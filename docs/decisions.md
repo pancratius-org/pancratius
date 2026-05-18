@@ -1,0 +1,185 @@
+# Data-Layer Decisions
+
+This file records engineer-discretion choices made while making the data layer
+production-ready. It is subordinate to `architecture.md` and `content-model.md`;
+if a choice here conflicts with those contracts, update this file.
+
+## Work-Bundle Asset Route
+
+Authored image sources live in the work bundle, not in a parallel author-facing
+`public/media/` hierarchy.
+
+Reasons:
+
+1. A non-technical author adding a book should work in one folder: Markdown,
+   source DOCX/PDF, cover, and body illustrations together.
+2. Covers are editorial assets, not anonymous hashed blobs. `cover.ru.jpg` and
+   `cover.en.jpg` are easier to inspect, replace, and review than a separate
+   hash path.
+3. Body illustrations belong to the argument of a specific book. Keeping shared
+   images directly under `images/`, and language-specific images under
+   `images/<lang>/`, preserves that ownership without forcing an extra folder
+   for the common case.
+4. Converter-extracted inline DOCX images may keep short hash-derived filenames
+   such as `images/649a499a5bdb.jpg`; after import these are stable asset IDs,
+   not live checksums. Author-added images can use readable names.
+5. Bibliography/reference thumbnails are not body illustrations. They become
+   structured `bibliography.yaml` / `cross_refs` data, not Markdown image refs.
+6. Deduplication and optimization are build/conversion concerns. The source
+   layout should optimize for human editing; generated public asset paths can
+   still be hashed in `dist/`.
+
+The converter may still compute hashes internally and record them in
+`data/conversion-manifest.json`, but `public/media/` is not the storage contract
+for authored sources.
+
+The same source-of-truth rule applies to reruns: the converter is additive by
+default. It may refresh files it generated, but it must not wipe a work bundle
+and thereby delete author-added images or editorial sidecars. A destructive
+clean-room rebuild is a separate audit workflow that writes to scratch output or
+deletes only manifest-owned files.
+
+## Bibliography Sidecar
+
+DOCX bibliography/catalog tables are stored as `bibliography.yaml`, not in
+Markdown body and not in frontmatter.
+
+```yaml
+kind: catalog_snapshot
+lang: ru
+source: docx_endmatter
+entries:
+  - title: "Князь мира сего"
+    source_url: https://www.litres.ru/72586354/
+    target:
+      kind: book
+      number: 32
+```
+
+Rationale:
+
+- Corpus samples show these lists are usually 20-80+ row catalog snapshots, not
+  curated recommendations.
+- Frontmatter should remain human-editable. An 81-row catalog makes the top of
+  every Markdown file hostile.
+- Website HTML already has `/books/` as the living catalog.
+- EPUB/PDF can optionally append the sidecar as an archival author catalog.
+
+## Reader-Facing Relations
+
+Reader-facing book relations have two surfaces:
+
+- **См. также** from authored `cross_refs`.
+- **Похожие книги** from algorithmic recommendations.
+
+Long bibliography/catalog snapshots do not feed either surface by default.
+Algorithmic recommendations exclude authored `cross_refs` so the reader does not
+see duplicate suggestions.
+
+## Divine-Voice Marking
+
+The converter preserves whatever italic markup pandoc emits from source DOCX
+`<w:i/>` runs. It does not invent semantic emphasis from `Творец:` / `Бог:`
+speaker labels.
+
+Rationale:
+
+- The contested claim that book #33 lost italic in "Предисловие от Творца" was
+  checked against source XML and was false for that block.
+- A heuristic that wraps every paragraph after a divine speaker label would
+  over-fire on quoted prose, narration, and mixed dialogues.
+- Corpus-wide divine-voice consistency is an editorial/source issue, not a safe
+  converter transform.
+
+## Downloadable DOCX
+
+The downloadable `content/<work>/<lang>.docx` is preserved from the author's
+DOCX, then optimized and cleaned in place when needed: rights-boilerplate removal
+and image re-encoding to the actual display rectangle.
+
+It is never regenerated from Markdown by default because a pandoc round-trip can
+lose layout details that make the DOCX valuable as a source artifact.
+
+## Downloadable PDF / EPUB
+
+PDF and EPUB are committed release artifacts in the work bundle, not products of
+the deploy build.
+
+Rationale:
+
+- A static library site should have a simple deploy path: validate, build,
+  publish files.
+- Document rendering brings heavyweight tools, fonts, templates, and format
+  quirks. That is library-management work, best run explicitly and reviewed
+  before commit.
+- CI should not silently skip promised downloads because a runner lacks pandoc or
+  typst, and it should not spend every deploy manufacturing hundreds of stable
+  artifacts.
+- Keeping `ru.pdf` / `ru.epub` beside `ru.md` makes the work bundle tell the full
+  story of the work and keeps the author workflow understandable.
+
+## Project Numbering
+
+Projects carry `number: 1` (`enlightened-ai`) and `number: 2` (`holy-rus`). The
+numbering is editorial and not URL-bearing, but it keeps `(kind, number)` as the
+single cross-language identity rule.
+
+## ASCII Slug Folder Names
+
+The converter emits `content/<kind>/<ascii-work-key>/<lang>.md`. Transliteration
+is practical (`й → i`, `ц → ts`, hard/soft signs drop, lowercase only). Existing
+Cyrillic folders are replaced by a re-conversion or cleanup migration; recurring
+conversion must not recreate Cyrillic folders.
+
+## Reading-Page Prose Styling
+
+`src/styles/prose.css` is imported from `global.css` and applied wherever a
+`<article class="prose">` wraps Markdown-rendered body content (book, poetry,
+project, and the static `/[slug]/` routes). It encodes the v7 reading register:
+justified text with hyphens, drop cap on the first paragraph (`.prose >
+p:first-of-type::first-letter` plus an explicit `.prose .lead::first-letter`
+escape hatch), italic centred `<h2>`, ornament-rule `<hr>`, italic-with-rule
+blockquotes, and mobile-only safety rules (table horizontal scroll, smaller
+drop cap).
+
+The `prose--manifesto` and `prose--poem` modifiers suppress the drop cap and
+swap to a left-aligned, looser-leading register; `[slug].astro` picks the
+modifier per-page (`mission` → `prose--manifesto`, the rest default to plain
+`prose`).
+
+If editorial wants slug-specific classes (`.lead`, `.verse`, `.creator`,
+`.ornament`) they must be authored directly in the Markdown — the converter
+does not emit them.
+
+## Verse Source Contract
+
+Poems and the manifesto use natural source lineation rather than Markdown hard
+break syntax:
+
+- adjacent source lines are displayed as verse lines;
+- blank source lines are stanza breaks;
+- source Markdown does not use trailing `\` or invisible two-space breaks.
+
+This is an authoring decision, not just a renderer trick. A non-technical author
+should be able to paste or write a poem as a poem and see the same lineation on
+the site. The web layer implements it with the scoped `.prose--poem` and
+`.prose--manifesto` classes (`white-space: pre-line` on paragraphs), while prose
+pages keep normal CommonMark semantics.
+
+Portable exports may add explicit hard-break markers in generated `.md` or use
+Pandoc's hard-line-break parsing for PDF/EPUB scratch files. Those markers do
+not belong in source content.
+
+The converter must treat stanza boundaries as editorial data. If the source
+representation is ambiguous, it should preserve known-good legacy/source
+lineation or produce a review report; it must not silently flatten all poems
+into one stanza.
+
+## Conceptosphere page-layout selectors are global
+
+The conceptosphere pages set `class="cs-main"` on `<main>` via the Base
+layout's `mainClass` prop. Astro's scoped-style attribute is added to the
+page's own template, not to the layout slot, so a scoped `.cs-main { … }`
+rule never matches the live `<main>`. Phase 6 ships those rules with explicit
+`:global(.cs-main)` selectors; the same pattern applies for any future page
+that needs to style the slotted `<main>` from the layout.

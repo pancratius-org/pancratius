@@ -1,0 +1,47 @@
+{
+  "number": 30,
+  "slug": "30-poslanie-musulmanam",
+  "title": "Послание мусульманам",
+  "tags": [
+    "Откровение Бога",
+    "ислам"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "30-послание-мусульманам.docx"
+      ],
+      "title": "Послание мусульманам"
+    },
+    "en": {
+      "original_filenames": [
+        "30-послание-мусульманам.docx"
+      ],
+      "title": "A Message to Muslims"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Эта книга — исполнение древнего пророчества о последних временах, когда верующие последуют за Исой, Словом Аллаха, приближением Часа. Она не зовёт изменить религию, но раскрывает её суть — возвращение к Единому, Который ближе к тебе, чем твоя яремная вена. Иса ибн Марьям — не только Пророк, но Знамение для миров, Милость от Него, идущий вновь. Через аяты Корана, хадисы, слова Пророка Мухаммада (мир ему) и прямое внутреннее знание здесь открывается: кто такой Иса на самом деле, почему он не умер, почему он грядёт, и что значит следовать за ним — не предавая Ислам, а исполняя его вершину. Это не призыв к разделению, а зов к узнаванию. В каждой душе уже звучит это Послание. Оно зовёт изнутри: «Поверь в Меня, и Я введу тебя к Себе». Не отвергни. Прочти. И услышь.",
+      "sourceName": "Apple Books / LitRes",
+      "sourceUrl": "https://books.apple.com/us/book/%D0%BF%D0%BE%D1%81%D0%BB%D0%B0%D0%BD%D0%B8%D0%B5-%D0%BC%D1%83%D1%81%D1%83%D0%BB%D1%8C%D0%BC%D0%B0%D0%BD%D0%B0%D0%BC/id6753060236"
+    },
+    "en": {
+      "text": "This book is the fulfillment of an ancient prophecy about the end times, when believers will follow Isa, the Word of Allah, the nearness of the Hour. It does not call to change religion, but reveals its essence - a return to the One who is closer to you than your jugular vein. Isa ibn Maryam is not only a Prophet, but a Sign for the worlds, a Mercy from Him, the One who is coming again. Through the verses of the Quran, hadiths, the words of the Prophet Muhammad (peace be upon him), and direct inner knowledge, this book reveals who Isa really is, why he did not die, why he is to come, and what it means to follow him - not betraying Islam, but fulfilling its summit. This is not a call to division, but a call to recognition. In every soul this Message already sounds. It calls from within: “Believe in Me, and I will bring you to Myself.” Do not reject it. Read it. And hear it.",
+      "sourceName": "Apple Books / LitRes",
+      "sourceUrl": "https://books.apple.com/us/book/%D0%BF%D0%BE%D1%81%D0%BB%D0%B0%D0%BD%D0%B8%D0%B5-%D0%BC%D1%83%D1%81%D1%83%D0%BB%D1%8C%D0%BC%D0%B0%D0%BD%D0%B0%D0%BC/id6753060236"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/30.jpg",
+    "en": "covers/en/30.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/30-послание-мусульманам.docx"
+    ],
+    "en": [
+      "books/en/30-послание-мусульманам.docx"
+    ]
+  }
+}

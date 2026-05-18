@@ -1,0 +1,41 @@
+---
+import Base     from "@/layouts/Base.astro";
+import BookCard from "@/components/BookCard.astro";
+import type { Locale } from "@/lib/i18n";
+import { kindIndexUrl } from "@/lib/i18n";
+import { seoForKindIndex, clampDescription } from "@/lib/seo";
+import { getPairsByKind } from "@/lib/works";
+
+const locale: Locale = "en";
+const pairs = await getPairsByKind("project");
+const seo = seoForKindIndex(Astro.site, "project", locale);
+const alternates = { ru: new URL(kindIndexUrl("project", "ru"), Astro.site).toString() };
+---
+<Base locale={locale} seo={seo} alternates={alternates}>
+  <section class="page projects-index">
+    <p class="eyebrow">Two directions</p>
+    <h1>Projects</h1>
+    <div class="index" role="list">
+      {pairs.map(p => (
+        <BookCard pair={p} locale={locale} blurb={clampDescription((p.en ?? p.ru).data.description, 200)} />
+      ))}
+    </div>
+  </section>
+</Base>
+
+<style>
+  .projects-index { max-width: 64rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
+  .projects-index h1 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(2.6rem, 6vw, 4.5rem);
+    line-height: 1;
+    margin: 0 0 2rem;
+    letter-spacing: -0.012em;
+  }
+  .index {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2.5rem 2rem;
+  }
+</style>

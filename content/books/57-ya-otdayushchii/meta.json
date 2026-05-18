@@ -1,0 +1,38 @@
+{
+  "number": 57,
+  "slug": "57-ya-otdayushchii",
+  "title": "Я - Отдающий",
+  "tags": [
+    "Откровение Бога",
+    "молитва"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "57-я-отдающии.docx"
+      ],
+      "title": "Я - Отдающий"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "«Я – Отдающий» — это книга о свободе, в которой человек проходит путь от накопления к полной отдаче себя. Она не зовёт к аскезе ради аскезы и не требует подвигов; она постепенно снимает всё, что кажется «моим», пока не остаётся то, что никогда не принадлежало форме. В конце пути обнаруживается не утрата, а начало: остаётся Тот, Кто говорит «Я — Отдающий».",
+      "sourceName": "NTV+ / LitRes",
+      "sourceUrl": "https://ntvplus.tv/books/book/ya-otdayuschij-647351"
+    },
+    "en": {
+      "text": "“I - The One Who Gives Away” is a book about freedom, in which a person passes from accumulation to a complete surrender of self. It does not call for asceticism for asceticism’s sake and does not demand feats of heroism; it gradually strips away everything that seems to be “mine” until what never belonged to form remains. At the end of the path, what is discovered is not loss, but a beginning: the One who says, “I am the One Who Gives Away.”",
+      "sourceName": "NTV+ / LitRes",
+      "sourceUrl": "https://ntvplus.tv/books/book/ya-otdayuschij-647351"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/57.jpg",
+    "en": "covers/en/57.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/57-я-отдающии.docx"
+    ]
+  }
+}

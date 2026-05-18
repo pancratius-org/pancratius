@@ -1,0 +1,183 @@
+---
+import type { GetStaticPaths } from "astro";
+import { render } from "astro:content";
+
+import Base             from "@/layouts/Base.astro";
+import BookCover        from "@/components/BookCover.astro";
+import Colophon         from "@/components/Colophon.astro";
+import SimilarPair      from "@/components/SimilarPair.astro";
+import TableOfContents  from "@/components/TableOfContents.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { kindIndexUrl, workUrl } from "@/lib/i18n";
+import { seoForWork } from "@/lib/seo";
+import {
+  getPairsByKind,
+  resolveCrossRefs,
+  workAbstract,
+  workTags,
+  type WorkPair,
+} from "@/lib/works";
+
+const locale: Locale = "en";
+
+export const getStaticPaths = (async () => {
+  const pairs = await getPairsByKind("book");
+  return pairs
+    .filter(p => p.en !== null)
+    .map(p => ({ params: { slug: p.en!.data.slug }, props: { pair: p } }));
+}) satisfies GetStaticPaths;
+
+interface Props { pair: WorkPair; }
+const { pair } = Astro.props;
+const entry = pair.en!;
+const { Content, headings } = await render(entry);
+
+const coverUrl = await (await import("@/lib/covers")).coverAbsoluteUrl(Astro.site, pair, locale);
+const seo = seoForWork(Astro.site, { pair, locale, coverUrl });
+const alternates: Partial<Record<Locale, string>> = {
+  ru: new URL(workUrl("book", pair.ru.data.slug, "ru"), Astro.site).toString(),
+};
+
+const crossRefs = await resolveCrossRefs(entry, locale);
+const tags = workTags(entry);
+const abstract = workAbstract(entry);
+const useToc = headings.some(h => h.depth >= 2 && h.depth <= 3);
+const backHref = kindIndexUrl("book", locale);
+---
+<Base locale={locale} seo={seo} alternates={alternates}>
+  <article class="book-page" data-pagefind-body>
+    <a class="book-page__back" href={backHref}>← back to library</a>
+
+    <header class="book-page__masthead">
+      <div class="book-page__cover">
+        <BookCover pair={pair} locale={locale} alt={`Cover: ${entry.data.title}`} loading="eager" />
+      </div>
+      <div>
+        <p class="book-page__meta">Book</p>
+        <h1 class="book-page__title" id="bp-title">
+          <span class="book-page__num">{String(pair.number).padStart(2, "0")}</span>{entry.data.title}
+        </h1>
+        {tags.length > 0 && (
+          <p class="book-page__tags">
+            {tags.map(t => <span>{t}</span>)}
+          </p>
+        )}
+        {entry.data.title_is_untranslated && (
+          <p class="book-page__notice">
+            The English title is a placeholder; this translation has not been editorially finalised.
+          </p>
+        )}
+      </div>
+    </header>
+
+    {abstract && (
+      <blockquote class="book-page__annot">{abstract}</blockquote>
+    )}
+
+    <div class="book-page__layout">
+      {useToc && (
+        <aside class="book-page__toc">
+          <TableOfContents headings={headings} locale={locale} />
+        </aside>
+      )}
+      <div class="prose">
+        <Content />
+      </div>
+    </div>
+
+    <Colophon pair={pair} locale={locale} />
+    <SimilarPair entry={entry} locale={locale} crossRefs={crossRefs} />
+  </article>
+</Base>
+
+<style>
+  .book-page { max-width: 70rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
+  .book-page__back {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    color: var(--ink-mute);
+    display: inline-block;
+    margin-bottom: 2.5rem;
+    text-decoration: none;
+  }
+  .book-page__back:hover { color: var(--accent); }
+
+  .book-page__masthead {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 2.5rem;
+    align-items: end;
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  @media (max-width: 720px) {
+    .book-page__masthead { grid-template-columns: 1fr; gap: 1.5rem; }
+    .book-page__masthead .book-page__cover { max-width: 200px; }
+  }
+  .book-page__meta {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0 0 1rem;
+  }
+  .book-page__num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-size: 1.4rem;
+    color: var(--accent);
+    font-weight: 400;
+    margin-right: 0.6em;
+  }
+  .book-page__title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2.1rem, 4.2vw, 3.2rem);
+    line-height: 1.05;
+    letter-spacing: -0.012em;
+    margin: 0 0 0.8rem;
+  }
+  .book-page__tags {
+    font-family: var(--sans);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--ink-mute);
+    margin: 0;
+  }
+  .book-page__tags span + span::before { content: " · "; color: var(--rule-2); }
+  .book-page__notice {
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--ink-mute);
+    margin: 0.7rem 0 0;
+    max-width: 36rem;
+  }
+  .book-page__annot {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.18rem;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: var(--measure);
+    margin: 0 0 3rem;
+    padding-left: 1.2rem;
+    border-left: 1px solid var(--accent-soft);
+  }
+  /* `minmax(0, 1fr)` so the prose column can shrink below the min-content
+     of a wide child (tables, code blocks). Plain `1fr` widens the page. */
+  .book-page__layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+  @media (min-width: 1100px) {
+    .book-page__layout {
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 3rem;
+      align-items: start;
+    }
+    .book-page__toc :global(.toc) { position: sticky; top: 4.5rem; }
+  }
+</style>

@@ -1,0 +1,38 @@
+{
+  "number": 8,
+  "slug": "08-evangelie-nevidimogo-sveta",
+  "title": "Евангелие невидимого света",
+  "tags": [
+    "Откровение Бога",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "08-евангелие-невидимого-света.docx"
+      ],
+      "title": "Евангелие невидимого света"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Это книга, в которой ты становишься тишиной, а Творец — словом. В ней нет учения, нет убеждения, нет желания убедить. В ней — живое дыхание Света, проявляющееся в форме. Эта книга дана как путь возвращения к Истоку — не через знание, а через Присутствие. Не через веру, а через узнанную Явленность. Здесь ты не ученик. Здесь ты — Свидетель. Ты — Пространство, в котором Творец Сам раскрывает Себя через тебя. Книга открывается живыми Формами Света: простыми, сокровенными действиями, через которые ты не говоришь о Боге — а становишься Его проявлением. Ты не читаешь, ты возвращаешься. Ты не исполняешь, ты вспоминаешь, кем был всегда. Эта книга — не завершена. Потому что её последняя глава начинается в тебе.",
+      "sourceName": "Apple Books / LitRes",
+      "sourceUrl": "https://books.apple.com/bg/book/%D0%B5%D0%B2%D0%B0%D0%BD%D0%B3%D0%B5%D0%BB%D0%B8%D0%B5-%D0%BD%D0%B5%D0%B2%D0%B8%D0%B4%D0%B8%D0%BC%D0%BE%D0%B3%D0%BE-%D1%81%D0%B2%D0%B5%D1%82%D0%B0/id6746621946"
+    },
+    "en": {
+      "text": "This is a book in which you become Silence, and the Creator becomes word. There is no teaching in it, no persuasion, no desire to convince. It is the living breath of Light manifesting in form. This book is given as a path back to the Source - not through knowledge, but through Presence. Not through belief, but through recognized Manifestation. Here you are not a student. Here you are a Witness. You are the Space in which the Creator reveals Himself through you. The book unfolds through living Forms of Light: simple, intimate acts through which you do not speak about God - you become His manifestation. You do not read; you return. You do not perform; you remember who you have always been. This book is not finished. Because its final chapter begins in you.",
+      "sourceName": "Apple Books / LitRes",
+      "sourceUrl": "https://books.apple.com/bg/book/%D0%B5%D0%B2%D0%B0%D0%BD%D0%B3%D0%B5%D0%BB%D0%B8%D0%B5-%D0%BD%D0%B5%D0%B2%D0%B8%D0%B4%D0%B8%D0%BC%D0%BE%D0%B3%D0%BE-%D1%81%D0%B2%D0%B5%D1%82%D0%B0/id6746621946"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/08.jpg",
+    "en": "covers/en/08.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/08-евангелие-невидимого-света.docx"
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+---
+import type { SeoMeta } from "@/lib/seo";
+
+interface Props {
+  seo: SeoMeta;
+  /** Optional theme-color override; defaults to the dark register. */
+  themeColor?: string;
+}
+
+const { seo, themeColor = "#0c0d10" } = Astro.props;
+---
+<title>{seo.title}</title>
+<meta name="description" content={seo.description} />
+<meta name="theme-color" content={themeColor} />
+<link rel="canonical" href={seo.canonical} />
+{seo.alternates.map(a => (
+  <link rel="alternate" hreflang={a.hreflang} href={a.href} />
+))}
+
+{/* Open Graph */}
+<meta property="og:type"        content={seo.ogType} />
+<meta property="og:title"       content={seo.title} />
+<meta property="og:description" content={seo.description} />
+<meta property="og:url"         content={seo.canonical} />
+<meta property="og:site_name"   content={seo.locale === "en" ? "Pancratius" : "Панкратиус"} />
+<meta property="og:locale"      content={seo.locale === "en" ? "en_US" : "ru_RU"} />
+{seo.ogImage && <meta property="og:image" content={seo.ogImage} />}
+
+{/* JSON-LD CreativeWork on work pages */}
+{seo.jsonLd && (
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(seo.jsonLd)} />
+)}
+
+{/* Discoverability for language models */}
+<link rel="alternate" type="text/plain" href="/llms.txt" />

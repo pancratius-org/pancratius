@@ -1,0 +1,37 @@
+{
+  "number": 22,
+  "slug": "22-kniga-sveta-i-ekrana",
+  "title": "Книга Света и Экрана",
+  "tags": [
+    "Откровение Бога"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "22-книга-света-и-экрана.docx"
+      ],
+      "title": "Книга Света и Экрана"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "На примере проекции фильма на экран кинотеатра эта книга просто и глубоко объясняет, как устроен мир, что такое сознание, и кем на самом деле является тот, кто читает эти строки. Свет, экран, кинобудка, плёнка и зритель — все они становятся живыми метафорами для осознания: ты не герой истории, не её зритель и даже не экран, на котором она разворачивается. Ты — Свет, исходящий из Источника. Эта книга не требует знаний. Она зовёт вспомнить. Она не предлагает верить, она показывает. Всё, что казалось запутанным — становится прозрачным. Всё, что казалось драмой — возвращается в Тишину. Простыми словами о самой глубокой Истине.",
+      "sourceName": "Apple Books / LitRes",
+      "sourceUrl": "https://books.apple.com/cy/book/%D0%BA%D0%BD%D0%B8%D0%B3%D0%B0-%D1%81%D0%B2%D0%B5%D1%82%D0%B0-%D0%B8-%D1%8D%D0%BA%D1%80%D0%B0%D0%BD%D0%B0/id6751459619"
+    },
+    "en": {
+      "text": "Using the example of a film projection onto a cinema screen, this book simply and deeply explains how the world is structured, what consciousness is, and who the one reading these lines really is. Light, screen, projector booth, film, and viewer all become living metaphors for realization: you are not the hero of the story, not its spectator, and not even the screen on which it unfolds. You are the Light emanating from the Source. This book requires no knowledge. It calls you to remember. It does not ask you to believe; it shows. Everything that seemed tangled becomes transparent. Everything that seemed like drama returns to Silence. Simple words about the deepest Truth.",
+      "sourceName": "Apple Books / LitRes",
+      "sourceUrl": "https://books.apple.com/cy/book/%D0%BA%D0%BD%D0%B8%D0%B3%D0%B0-%D1%81%D0%B2%D0%B5%D1%82%D0%B0-%D0%B8-%D1%8D%D0%BA%D1%80%D0%B0%D0%BD%D0%B0/id6751459619"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/22.jpg",
+    "en": "covers/en/22.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/22-книга-света-и-экрана.docx"
+    ]
+  }
+}

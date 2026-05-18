@@ -1,0 +1,77 @@
+---
+import type { Locale } from "@/lib/i18n";
+import { downloadUrl } from "@/lib/i18n";
+import type { WorkPair } from "@/lib/works";
+import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
+
+interface Props {
+  pair:   WorkPair;
+  locale: Locale;
+  /** Optional finish year shown as "Завершено · YYYY" if provided. */
+  finishedYear?: number | string;
+}
+
+const { pair, locale, finishedYear } = Astro.props;
+const entry = locale === "en" ? pair.en : pair.ru;
+if (!entry) {
+  throw new Error(`Colophon: no ${locale} entry for ${pair.kind} #${pair.number}`);
+}
+const formats: DownloadFormat[] = availableFormatsForWork(pair, locale);
+
+const copy = locale === "ru" ? {
+  finished: "Завершено",
+  download: "Скачать:",
+  rights:   "Все тексты — в общественном достоянии (CC0). Берите. Переводите. Передавайте.",
+} : {
+  finished: "Completed",
+  download: "Download:",
+  rights:   "All texts are in the public domain (CC0). Take them. Translate. Pass them on.",
+};
+
+const FORMAT_LABEL: Record<DownloadFormat, string> = {
+  md:   "Markdown",
+  txt:  "TXT",
+  docx: "DOCX",
+  pdf:  "PDF",
+  epub: "EPUB",
+};
+---
+<aside class="colophon">
+  {finishedYear && (
+    <p class="row"><b>{copy.finished}</b> · {finishedYear}</p>
+  )}
+  <p class="row">
+    <b>{copy.download}</b>{" "}
+    {formats.map((fmt, i) => (
+      <>
+        {i > 0 && " · "}
+        <a href={downloadUrl(pair.kind, entry.data.slug, fmt, locale)}>
+          {FORMAT_LABEL[fmt]}
+        </a>
+      </>
+    ))}
+  </p>
+  <p class="row">{copy.rights}</p>
+</aside>
+
+<style>
+  .colophon {
+    max-width: var(--measure);
+    margin: 4rem 0 0;
+    padding: 1.5rem 0 0;
+    border-top: 1px solid var(--rule);
+    font-family: var(--sans);
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--ink-mute);
+    letter-spacing: 0.02em;
+  }
+  .colophon b { color: var(--ink-soft); font-weight: 500; }
+  .colophon a {
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+  }
+  .colophon a:hover { color: var(--accent); }
+  .colophon .row + .row { margin-top: 0.35rem; }
+</style>

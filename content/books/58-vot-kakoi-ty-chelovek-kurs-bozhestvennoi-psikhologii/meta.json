@@ -1,0 +1,39 @@
+{
+  "number": 58,
+  "slug": "58-vot-kakoi-ty-chelovek-kurs-bozhestvennoi-psikhologii",
+  "title": "Вот какой ты человек. Курс божественной психологии",
+  "tags": [
+    "Откровение Бога",
+    "наука",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "58-вот-какои-ты-человек-курс-божественнои-психологии.docx"
+      ],
+      "title": "Вот какой ты человек. Курс божественной психологии"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Эта книга не учит быть хорошим. Она снимает маску того, кто пытается стать человеком, и показывает, что психика, роли и истории не исчерпывают того, кто ты есть. Здесь человек исчезает не как потеря, а как узнавание: за сценами страха, боли и усталости проступает Присутствие, которое не нужно достигать. Это не психология в привычном смысле, а Свет, раскрывающийся изнутри каждой человеческой сцены.",
+      "sourceName": "NTV+ / LitRes",
+      "sourceUrl": "https://ntvplus.tv/books/book/vot-kakoj-ty-chelovek-kurs-bozhestvennoj-psihologii-647640"
+    },
+    "en": {
+      "text": "This book does not teach you to be good. It removes the mask of the one trying to become human and shows that psyche, roles, and stories do not exhaust who you are. Here a person disappears not as a loss but as a recognition: behind the scenes of fear, pain, and exhaustion there emerges a Presence that need not be attained. This is not psychology in the usual sense, but the Light revealing itself from within every human scene.",
+      "sourceName": "NTV+ / LitRes",
+      "sourceUrl": "https://ntvplus.tv/books/book/vot-kakoj-ty-chelovek-kurs-bozhestvennoj-psihologii-647640"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/58.jpg",
+    "en": "covers/en/58.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/58-вот-какои-ты-человек-курс-божественнои-психологии.docx"
+    ]
+  }
+}

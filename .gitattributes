@@ -1,0 +1,31 @@
+# Binary content — don't try to diff or merge these as text.
+*.docx binary
+*.pdf  binary
+*.epub binary
+*.jpg  binary
+*.jpeg binary
+*.png  binary
+*.webp binary
+*.gif  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary
+*.mp3  binary
+*.mp4  binary
+*.zip  binary
+
+# Normalize line endings for text content.
+*.md     text eol=lf
+*.json   text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.ts     text eol=lf
+*.tsx    text eol=lf
+*.js     text eol=lf
+*.mjs    text eol=lf
+*.css    text eol=lf
+*.html   text eol=lf
+*.astro  text eol=lf
+*.py     text eol=lf

@@ -1,0 +1,78 @@
+---
+import type { MarkdownHeading } from "astro";
+import type { Locale } from "@/lib/i18n";
+
+interface Props {
+  headings: MarkdownHeading[];
+  locale:   Locale;
+  /** Inclusive min/max heading depth to include in the ToC. */
+  minDepth?: number;
+  maxDepth?: number;
+}
+
+const { headings, locale, minDepth = 2, maxDepth = 3 } = Astro.props;
+const items = headings.filter(h => h.depth >= minDepth && h.depth <= maxDepth);
+const label = locale === "ru" ? "Содержание" : "Contents";
+---
+{items.length > 0 && (
+  <details class="toc" open>
+    <summary>{label}</summary>
+    <ol class="toc__list">
+      {items.map(h => (
+        <li class:list={["toc__item", `toc__d${h.depth}`]}>
+          <a href={`#${h.slug}`}>{h.text}</a>
+        </li>
+      ))}
+    </ol>
+  </details>
+)}
+
+<style>
+  .toc {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    border-left: 1px solid var(--rule);
+    padding: 0.4rem 0 0.4rem 1.1rem;
+  }
+  .toc > summary {
+    list-style: none;
+    cursor: pointer;
+    color: var(--ink-mute);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 0.6rem;
+  }
+  .toc > summary::-webkit-details-marker { display: none; }
+  .toc__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    /* Touch target: each link is a 24+ px block so we don't trip Lighthouse's
+       target-size audit on long ToC entries. Visual gap is preserved by the
+       link's own padding rather than `gap`. */
+    gap: 0;
+  }
+  .toc__item a {
+    display: block;
+    padding: 0.45rem 0;
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: color 0.18s var(--ease);
+    line-height: 1.35;
+  }
+  .toc__item a:hover { color: var(--accent); }
+  .toc__d3 { padding-left: 1rem; font-size: 12px; color: var(--ink-mute); }
+  .toc__d3 a { color: var(--ink-mute); }
+
+  @media (min-width: 1100px) {
+    /* Desktop: when placed in an aside with `data-sticky`, stick on scroll. */
+    .toc[data-sticky] {
+      position: sticky;
+      top: 4.5rem;
+    }
+  }
+</style>

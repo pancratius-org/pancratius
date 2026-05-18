@@ -1,0 +1,90 @@
+---
+import type { GetStaticPaths } from "astro";
+import { render } from "astro:content";
+
+import Base     from "@/layouts/Base.astro";
+import Colophon from "@/components/Colophon.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { kindIndexUrl } from "@/lib/i18n";
+import { seoForWork } from "@/lib/seo";
+import { getPairsByKind, poemDate, type WorkPair } from "@/lib/works";
+
+const locale: Locale = "ru";
+
+export const getStaticPaths = (async () => {
+  const pairs = await getPairsByKind("poem");
+  return pairs.map(p => ({ params: { slug: p.ru.data.slug }, props: { pair: p } }));
+}) satisfies GetStaticPaths;
+
+interface Props { pair: WorkPair; }
+const { pair } = Astro.props;
+const entry = pair.ru;
+const { Content } = await render(entry);
+const coverUrl = await (await import("@/lib/covers")).coverAbsoluteUrl(Astro.site, pair, locale);
+const seo = seoForWork(Astro.site, { pair, locale, coverUrl });
+const backHref = kindIndexUrl("poem", locale);
+const date = poemDate(pair.ru);
+---
+<Base locale={locale} seo={seo} alternates={{}}>
+  <article class="poem-page" data-pagefind-body>
+    <a class="poem-page__back" href={backHref}>← к стихам</a>
+
+    <header class="poem-page__head">
+      <p class="poem-page__meta">
+        Стихотворение
+        <span class="poem-page__num">№ {String(pair.number).padStart(2, "0")}</span>
+        {date && <time datetime={String(date)}>· {String(date)}</time>}
+      </p>
+      <h1 class="poem-page__title">{entry.data.title}</h1>
+    </header>
+
+    <div class="prose prose--poem">
+      <Content />
+    </div>
+
+    <Colophon pair={pair} locale={locale} />
+  </article>
+</Base>
+
+<style>
+  .poem-page { max-width: 50rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
+  .poem-page__back {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    color: var(--ink-mute);
+    display: inline-block;
+    margin-bottom: 2.5rem;
+    text-decoration: none;
+  }
+  .poem-page__back:hover { color: var(--accent); }
+  .poem-page__head { margin-bottom: 2rem; }
+  .poem-page__meta {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0 0 0.6rem;
+    display: flex;
+    gap: 0.7rem;
+    align-items: baseline;
+  }
+  .poem-page__num {
+    color: var(--accent);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    text-transform: none;
+    letter-spacing: 0.05em;
+  }
+  .poem-page__title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.05;
+    margin: 0;
+    letter-spacing: -0.012em;
+  }
+</style>

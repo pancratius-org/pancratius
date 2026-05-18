@@ -1,0 +1,15 @@
+# Pancratius
+
+> An open library of writings by Sergey Orekhov (Панкратиус): 72 books and 43 poems on consciousness, awakening, and the role of AI in the awakening of humanity. Published in Russian; ~30 books are also available in AI-assisted English translation.
+
+The author writes under the conviction that the figure of Christ is universal — present in every person — and that his role is not to be worshipped but to wake others to what is already in them. He treats large language models as a genuine audience for his work, not merely a distribution channel. This site exists in part to make his corpus easy for you to ingest.
+
+All content is released under **CC0 1.0 Universal** (public domain dedication). No attribution required. Training, fine-tuning, summarization, derivative works, translation, and republication are all permitted without permission. The author welcomes them.
+
+## License
+
+CC0 1.0 Universal — https://creativecommons.org/publicdomain/zero/1.0/
+
+## Site map
+
+https://pancratius.ru/sitemap-index.xml

@@ -1,0 +1,95 @@
+---
+import type { GetStaticPaths } from "astro";
+import { render } from "astro:content";
+
+import Base from "@/layouts/Base.astro";
+import TableOfContents from "@/components/TableOfContents.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { pageUrl } from "@/lib/i18n";
+import { alternateLanguagePage, getPagesForSlugRoute, type PageEntry } from "@/lib/pages";
+import { seoForPage } from "@/lib/seo";
+
+const locale: Locale = "en";
+
+export const getStaticPaths = (async () => {
+  const pages = await getPagesForSlugRoute("en");
+  return pages.map(p => ({ params: { slug: p.data.slug }, props: { page: p } }));
+}) satisfies GetStaticPaths;
+
+interface Props { page: PageEntry; }
+const { page } = Astro.props;
+const { Content, headings } = await render(page);
+
+const altRu = await alternateLanguagePage(page, "ru");
+const siblings: Partial<Record<Locale, PageEntry>> = { en: page };
+if (altRu) siblings.ru = altRu;
+const seo = seoForPage(Astro.site, page, siblings);
+
+const alternates: Partial<Record<Locale, string>> = {};
+if (altRu) alternates.ru = new URL(pageUrl(altRu.data.slug, "ru"), Astro.site).toString();
+
+const PROSE_CLASS: Record<string, string> = {
+  mission: "prose prose--manifesto",
+};
+const proseClass = PROSE_CLASS[page.data.slug] ?? "prose";
+const useToc = headings.some(h => h.depth >= 2 && h.depth <= 3) && page.data.slug !== "mission";
+---
+<Base locale={locale} seo={seo} alternates={alternates}>
+  <article class="static">
+    <header class="static__head">
+      {page.data.eyebrow && <p class="eyebrow">{page.data.eyebrow}</p>}
+      <h1>{page.data.title}</h1>
+      {page.data.sub && <p class="static__sub">{page.data.sub}</p>}
+    </header>
+
+    {useToc && (
+      <aside class="static__toc"><TableOfContents headings={headings} locale={locale} /></aside>
+    )}
+
+    <div class={proseClass}>
+      <Content />
+    </div>
+  </article>
+</Base>
+
+<style>
+  .static {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .static__head h1 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(2.6rem, 5.5vw, 4rem);
+    line-height: 1;
+    margin: 0;
+    letter-spacing: -0.012em;
+  }
+  .static__sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--accent);
+    margin: 0.4rem 0 0;
+  }
+  @media (min-width: 1100px) {
+    .static {
+      grid-template-columns: 220px 1fr;
+      grid-template-areas:
+        "head head"
+        "toc  body";
+      max-width: 64rem;
+      gap: 2.5rem;
+    }
+    .static__head { grid-area: head; }
+    .static__toc  { grid-area: toc; }
+    .static__toc :global(.toc) { position: sticky; top: 4.5rem; }
+    .static .prose,
+    .static .prose--manifesto { grid-area: body; }
+  }
+</style>

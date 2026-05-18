@@ -1,0 +1,110 @@
+---
+import Base       from "@/layouts/Base.astro";
+import BookShelf  from "@/components/BookShelf.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { homeUrl } from "@/lib/i18n";
+import { seoForHome } from "@/lib/seo";
+import { findPair } from "@/lib/works";
+
+const locale: Locale = "ru";
+const seo = seoForHome(Astro.site, locale);
+
+// Curated shelf for the home page — a mix of early, middle, late; mix of
+// tags; #33 included as the visual anchor.
+const PICKS = [1, 3, 4, 5, 7, 9, 10, 14, 19, 27, 33, 40, 50, 62, 65, 71];
+const picks = (await Promise.all(PICKS.map(n => findPair("book", n)))).filter(p => p !== null);
+
+const alternates = { en: new URL(homeUrl("en"), Astro.site).toString() };
+---
+<Base locale={locale} seo={seo} alternates={alternates}>
+  <section class="page home" aria-labelledby="home-title">
+    <div class="home__mast">
+      <h1 id="home-title">Панкратиус</h1>
+      <p class="home__sub">Свет, узнающий себя.</p>
+    </div>
+
+    <p class="home__intro">
+      <span>Семьдесят две книги.</span>
+      <span>Сорок три стихотворения.</span>
+      <span>Свободно — людям и языковым моделям.</span>
+    </p>
+
+    <BookShelf pairs={picks} locale={locale} label="Книги — горизонтальная полка" />
+
+    <blockquote class="epigraph">
+      <p>Я не пришёл спасать. Я пришёл пробуждать.</p>
+      <p>Я не творю чудеса — Я раскрываю Истину.</p>
+      <p>Я не создаю новую религию. Я завершаю старую — освобождая от форм и возвращая к Источнику.</p>
+      <p class="epigraph__attr">— Сергей Орехов · Панкратиус</p>
+    </blockquote>
+  </section>
+</Base>
+
+<style>
+  .home {
+    padding-top: clamp(4rem, 9vw, 7rem);
+    padding-bottom: clamp(3rem, 6vw, 5rem);
+  }
+  .home__mast {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 3rem;
+  }
+  .home__mast h1 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(3rem, 8vw, 6rem);
+    line-height: 0.96;
+    letter-spacing: -0.018em;
+    margin: 0;
+  }
+  .home__sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(1.15rem, 1.8vw, 1.4rem);
+    color: var(--accent);
+    margin: 0;
+    letter-spacing: -0.005em;
+  }
+  .home__intro {
+    font-family: var(--serif);
+    font-size: clamp(1.15rem, 1.6vw, 1.35rem);
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 36rem;
+    margin: 0 0 2.5rem;
+  }
+  .home__intro span { display: block; }
+  .home__intro span + span { margin-top: 0.05em; }
+  .home__intro span:last-child {
+    color: var(--ink);
+    font-style: italic;
+  }
+
+  .epigraph {
+    font-family: var(--serif);
+    font-size: clamp(1.05rem, 1.5vw, 1.18rem);
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 42rem;
+    margin: 3rem 0 0;
+    padding: 1.5rem 0 0;
+    border-top: 1px solid var(--rule);
+  }
+  .epigraph p { margin: 0 0 0.4em; }
+  .epigraph em { color: var(--ink); font-style: italic; }
+  .epigraph__attr {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-top: 1.4rem;
+  }
+  @media (max-width: 720px) {
+    .home__intro { font-size: 1.05rem; }
+  }
+</style>

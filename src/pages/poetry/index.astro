@@ -1,0 +1,92 @@
+---
+import Base from "@/layouts/Base.astro";
+import type { Locale } from "@/lib/i18n";
+import { workUrl, kindIndexUrl } from "@/lib/i18n";
+import { seoForKindIndex } from "@/lib/seo";
+import { getPairsByKind, poemDate } from "@/lib/works";
+
+const locale: Locale = "ru";
+const pairs = await getPairsByKind("poem");
+const seo = seoForKindIndex(Astro.site, "poem", locale);
+const alternates = { en: new URL(kindIndexUrl("poem", "en"), Astro.site).toString() };
+---
+<Base locale={locale} seo={seo} alternates={alternates}>
+  <section class="page poetry-index">
+    <p class="eyebrow">Сорок три</p>
+    <h1>Поэзия</h1>
+    <p class="poetry-index__intro">Стихотворения. Тексты, не оторванные от молитвы.</p>
+
+    <ol class="poems">
+      {pairs.map(p => {
+        const date = poemDate(p.ru);
+        return (
+          <li>
+            <a href={workUrl("poem", p.ru.data.slug, "ru")}>
+              <span class="poems__num">{String(p.number).padStart(2, "0")}</span>
+              <span class="poems__title">{p.ru.data.title}</span>
+              {date && (
+                <time class="poems__date" datetime={date}>{date}</time>
+              )}
+            </a>
+          </li>
+        );
+      })}
+    </ol>
+  </section>
+</Base>
+
+<style>
+  .poetry-index { max-width: 56rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
+  .poetry-index h1 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(2.6rem, 6vw, 4.5rem);
+    line-height: 1;
+    margin: 0 0 0.4em;
+    letter-spacing: -0.012em;
+  }
+  .poetry-index__intro {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--ink-soft);
+    max-width: 36rem;
+    margin: 0 0 2.5rem;
+  }
+  .poems {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.4rem;
+  }
+  .poems li a {
+    display: grid;
+    grid-template-columns: 3.5rem 1fr auto;
+    gap: 1rem;
+    align-items: baseline;
+    padding: 0.5rem 0;
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dashed var(--rule);
+    transition: border-color 0.18s var(--ease), color 0.18s var(--ease);
+  }
+  .poems li a:hover { color: var(--accent); border-bottom-color: var(--accent-soft); }
+  .poems__num {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+  }
+  .poems__title {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    color: var(--ink);
+  }
+  .poems__date {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    color: var(--ink-mute);
+    letter-spacing: 0.04em;
+  }
+</style>

@@ -1,0 +1,288 @@
+---
+// /conceptosphere/ — the public corpus map.
+//
+// The graph data is RU-derived (concept lemmas and book titles ship as
+// Russian), but the chrome — mode toggle, search, side panel, methodology
+// footer — localises like everything else on the site. This file owns the
+// RU surface; `/en/conceptosphere/` mirrors it with `locale: "en"`.
+//
+// Two surfaces ship in the same HTML:
+//   * the desktop graph (Sigma 3 + graphology, bundled via npm) — mounts
+//     after the page paints; never CDN.
+//   * the mobile grouped list — statically rendered for every node so the
+//     content is readable without JS and without WebGL.
+
+import Base from "@/layouts/Base.astro";
+import type { Locale } from "@/lib/i18n";
+import { workUrl } from "@/lib/i18n";
+import { loadBooksGraph, loadConceptsGraph } from "@/lib/conceptosphere";
+import { findPair } from "@/lib/works";
+import { coverAssetUrl } from "@/lib/covers";
+
+import GraphCanvas from "@/components/conceptosphere/GraphCanvas.astro";
+import MobileList  from "@/components/conceptosphere/MobileList.astro";
+import { conceptosphereStrings } from "@/components/conceptosphere/strings";
+
+const locale: Locale = "ru";
+const t = conceptosphereStrings(locale);
+const canonical = new URL("/conceptosphere/", Astro.site).toString();
+const enHref    = new URL("/en/conceptosphere/", Astro.site).toString();
+
+const seo = {
+  title:       "Концептосфера — Панкратиус",
+  description: "Карта понятий и связи между книгами Панкратиуса. Граф концептов и граф книг по совместному появлению.",
+  canonical,
+  ogImage:     null,
+  ogType:      "website" as const,
+  alternates:  [
+    { hreflang: "ru" as const, href: canonical },
+    { hreflang: "en" as const, href: enHref },
+    { hreflang: "x-default", href: canonical },
+  ],
+  jsonLd:      null,
+  locale,
+};
+
+// Build the (kind, slug) → cover URL map for every book the graph references.
+// The graph script renders side-panel cover thumbnails and similarity rows;
+// resolving covers at build time keeps the client off `astro:content` and
+// avoids brittle `./cover.ru.jpg` paths that the prototype synthesised by
+// stripping numeric prefixes from slugs.
+const booksGraph = loadBooksGraph();
+const conceptsGraph = loadConceptsGraph();
+
+// Collect every book slug referenced anywhere in either payload.
+const referencedBookSlugs = new Set<string>();
+for (const n of booksGraph.nodes) {
+  referencedBookSlugs.add(n.slug);
+  for (const s of n.top_similar ?? []) referencedBookSlugs.add(s.slug);
+  for (const s of n.top_similar_embed ?? []) referencedBookSlugs.add(s.slug);
+}
+for (const n of conceptsGraph.nodes) {
+  for (const b of (n as { top_books?: { slug: string }[] }).top_books ?? []) {
+    referencedBookSlugs.add(b.slug);
+  }
+}
+
+// Resolve covers via the same import.meta.glob pipeline that powers
+// BookCover.astro elsewhere. Missing pairs simply produce `null` — the
+// runtime then paints the empty-cover hatch pattern.
+const coverUrls: Record<string, string> = {};
+const bookSlugInfo: Record<string, { number: number; title: string; href: string }> = {};
+for (const slug of referencedBookSlugs) {
+  const node = booksGraph.nodes.find((n) => n.slug === slug);
+  if (!node) continue;
+  const pair = await findPair("book", node.number);
+  const title = pair?.ru.data.title ?? node.title;
+  const href  = workUrl("book", pair?.ru.data.slug ?? node.slug, "ru");
+  bookSlugInfo[slug] = { number: node.number, title, href };
+  if (!pair) continue;
+  const url = await coverAssetUrl(pair, locale);
+  if (url) coverUrls[`book:${slug}`] = url;
+}
+
+// Stats line in the footer (initial value matches concepts because the
+// runtime starts on the persisted mode but defaults to concepts). The
+// runtime overwrites this text the moment the active payload finishes
+// loading; this baseline keeps the JS-disabled load from looking empty.
+const baselineCounts =
+  `${conceptsGraph.stats.kept_nodes ?? conceptsGraph.nodes.length} ${t.modes.concepts.countsNoun} · ${conceptsGraph.stats.edges ?? conceptsGraph.edges.length} ${t.edgesNoun} · ${conceptsGraph.stats.communities ?? conceptsGraph.communities.length} ${t.communitiesNoun}`;
+
+const initialMode: "concepts" | "books" = "concepts";
+---
+<Base
+  locale={locale}
+  seo={seo}
+  alternates={{ en: enHref }}
+  mainClass="cs-main"
+>
+  <header class="cs-page-head">
+    <h1 id="cs-page-h1">{t.modes.concepts.h1}</h1>
+    <p class="cs-lede" id="cs-page-lede">
+      {t.modes.concepts.lede}
+    </p>
+  </header>
+
+  <GraphCanvas
+    locale={locale}
+    conceptsUrl="/data/pancratius-concepts-graph.json"
+    booksUrl="/data/pancratius-books-graph.json"
+    initialMode={initialMode}
+    bookSlugInfo={bookSlugInfo}
+    coverUrls={coverUrls}
+  />
+
+  <MobileList locale={locale} initialMode={initialMode} />
+
+  <footer class="cs-page-foot">
+    <div class="cs-meth" id="cs-page-meth">
+      {t.modes.concepts.meth}
+    </div>
+    <div class="cs-meta" id="cs-counts">{baselineCounts}</div>
+  </footer>
+</Base>
+
+<style is:global>
+  /* ─── Conceptosphere theme tokens. Resolved against the site palette so
+       light and dark are both real designed registers. ─────────────────── */
+  :root {
+    --cs-panel-bg:   color-mix(in srgb, var(--bg-rise) 88%, transparent);
+    --cs-bg-soft:    var(--bg-rise);
+    --cs-rule:       var(--rule);
+    --cs-rule-2:     var(--rule-2);
+    --cs-ink:        var(--ink);
+    --cs-ink-faint:  color-mix(in srgb, var(--ink) 62%, transparent);
+    --cs-ink-trace:  color-mix(in srgb, var(--ink) 38%, transparent);
+    --cs-ink-edge:   color-mix(in srgb, var(--ink) 18%, transparent);
+    --cs-violet:     #7c6bb8;
+    --cs-grain-opacity: 0.035;
+
+    /* Painter-facing values. Kept as plain rgba so they ship straight into a
+       2D context (which doesn't understand color-mix). */
+    --cs-label-color: #f3eee0;
+    --cs-label-halo:  rgba(6, 8, 12, 0.55);
+    --cs-badge-halo:  rgba(6, 8, 12, 0.75);
+    --cs-badge-ink:   #f3eee0;
+    --cs-callout-bg:  rgba(9, 11, 16, 0.96);
+    --cs-callout-ink: #f3eee0;
+    --cs-dim-node:    rgba(70, 65, 55, 0.45);
+    --cs-dim-edge:    rgba(80, 70, 55, 0.04);
+  }
+  [data-theme="light"] {
+    /* Light register — the void becomes warm paper. Painters get inverted
+       so labels and badges read as dark ink on the disc, with a soft paper
+       halo for separation. */
+    --cs-panel-bg:    color-mix(in srgb, var(--bg-rise) 92%, transparent);
+    --cs-grain-opacity: 0.02;
+
+    --cs-label-color: #2a241a;
+    --cs-label-halo:  rgba(251, 250, 246, 0.92);
+    --cs-badge-halo:  rgba(251, 250, 246, 0.95);
+    --cs-badge-ink:   #2a241a;
+    --cs-callout-bg:  rgba(251, 250, 246, 0.98);
+    --cs-callout-ink: #2a241a;
+    --cs-dim-node:    rgba(150, 140, 120, 0.45);
+    --cs-dim-edge:    rgba(120, 100, 70, 0.04);
+  }
+</style>
+
+<style>
+  /* `.cs-main` is set on <main> by Base.astro, so the selector needs to
+     pierce Astro's scope — otherwise the scoped-attribute selector won't
+     match (Base's template doesn't carry this page's data-astro-cid) and
+     the desktop fixed-position layout silently breaks. */
+  :global(.cs-main) {
+    /* The conceptosphere takes over the viewport between header/footer.
+       Reset main's default bottom padding so the graph reaches the page foot. */
+    padding-bottom: 0;
+  }
+
+  .cs-page-head {
+    padding: 18px var(--rail) 14px;
+    border-bottom: 1px solid var(--rule);
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .cs-page-head h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(22px, 1.4rem + 0.6vw, 30px);
+    margin: 4px 0;
+    letter-spacing: 0.005em;
+  }
+  .cs-page-head .cs-lede {
+    margin: 0;
+    max-width: 62ch;
+    color: var(--ink-soft);
+    font-size: 14px;
+    font-style: italic;
+  }
+
+  .cs-page-foot {
+    padding: 12px var(--rail);
+    border-top: 1px solid var(--rule);
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    display: flex;
+    gap: 24px;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+  .cs-page-foot .cs-meth { max-width: 72ch; }
+  .cs-page-foot .cs-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    white-space: nowrap;
+  }
+
+  /* Desktop graph layout: head, then a flex stage, then foot, all locked
+     into the viewport so the canvas occupies a clean rectangle and never
+     spawns its own scrollbar. This shape is keyed on `html.cs-js` so the
+     JS-disabled / small-screen variant stays in normal block flow. */
+  @media (min-width: 701px) {
+    :global(html.cs-js body) { overflow: hidden; }
+    :global(html.cs-js .cs-main) {
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: var(--cs-header-top, 56px);
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    :global(html.cs-js) .cs-page-head { flex: 0 0 auto; }
+    :global(html.cs-js) .cs-page-foot { flex: 0 0 auto; }
+  }
+
+  /* Footer holds methodology prose + counts — both are *content*, not
+     graph chrome. Stack on phones (≤700 px) where the page is in mobile
+     list flow; flow side-by-side on desktop regardless of JS, so the
+     no-JS surface still presents the same two columns. */
+  .cs-page-foot {
+    flex-direction: column;
+    gap: 8px;
+  }
+  @media (min-width: 701px) {
+    .cs-page-foot {
+      flex-direction: row;
+      gap: 24px;
+    }
+  }
+
+  /* Internal error surface used by the runtime when the payload fetch fails. */
+  :global(.cs-load-error) {
+    padding: 24px;
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+</style>
+
+<script is:inline>
+  // Two jobs, both intentionally inline so they run before paint:
+  //   1. Add `cs-js` to <html> so the conceptosphere swaps from its
+  //      JS-disabled register (mobile list everywhere) to its full register
+  //      (desktop = graph, ≤700px = list). No FOUC on a working browser.
+  //   2. Measure the sticky site header so `.cs-main` can position itself
+  //      directly below it on desktop.
+  (function () {
+    document.documentElement.classList.add("cs-js");
+    function update() {
+      const header = document.querySelector("header.rail");
+      if (!header) return;
+      const h = header.getBoundingClientRect().height;
+      document.documentElement.style.setProperty("--cs-header-top", h + "px");
+    }
+    update();
+    window.addEventListener("resize", update);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(update);
+    }
+  })();
+</script>

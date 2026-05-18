@@ -1,0 +1,1345 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Панкратиус · Концептосфера · Семантика</title>
+  <meta name="description" content="Семантическая карта книг Сергея Орехова. Узлы — книги; близость определена эмбеддингами Qwen3 над фрагментами текстов." />
+  <meta name="theme-color" content="#06080c" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Old+Standard+TT:wght@400;700&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap&subset=cyrillic,cyrillic-ext,latin"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root {
+      --void:        #06080c;
+      --void-soft:   #0d1117;
+      --void-edge:   #1a1f2a;
+      --ink:         #e8e3d6;
+      --ink-faint:   rgba(232, 227, 214, 0.62);
+      --ink-trace:   rgba(232, 227, 214, 0.20);
+      --ink-edge:    rgba(232, 227, 214, 0.10);
+      --amber:       #e9a142;
+      --amber-soft:  #c98832;
+      --rule:        rgba(232, 227, 214, 0.14);
+
+      /* 20-step muted jewel palette — identical to the co-occurrence view,
+         so a reader visiting both files sees the same colour grammar. */
+      --c0:  #c25e4f;  --c1:  #d8a24a;  --c2:  #e9c66a;  --c3:  #6fa48a;
+      --c4:  #4d8aa6;  --c5:  #7c6bb8;  --c6:  #b06aa0;  --c7:  #c8a37a;
+      --c8:  #a8485a;  --c9:  #6e8fb5;  --c10: #93a85a;  --c11: #c98a4a;
+      --c12: #5fa3a3;  --c13: #a48cc8;  --c14: #b9755a;  --c15: #d9876b;
+      --c16: #5d997f;  --c17: #b5934f;  --c18: #8a7fbf;  --c19: #a3625f;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    html {
+      background: var(--void);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    body {
+      font-family: "PT Serif", Georgia, serif;
+      font-size: clamp(14px, 0.95rem + 0.15vw, 17px);
+      line-height: 1.55;
+      overflow: hidden;
+    }
+
+    :focus:not(:focus-visible) { outline: none; }
+    :focus-visible { outline: 1px solid var(--amber); outline-offset: 2px; }
+
+    a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--ink-edge); }
+    a:hover { color: var(--amber); border-bottom-color: var(--amber-soft); }
+
+    /* ============================================
+       Shell
+       ============================================ */
+    .shell {
+      position: fixed; inset: 0;
+      display: grid; grid-template-rows: auto 1fr auto;
+    }
+    header.page {
+      padding: 18px 24px 14px;
+      border-bottom: 1px solid var(--rule);
+      background: rgba(6, 8, 12, 0.92);
+      backdrop-filter: blur(4px);
+      z-index: 30;
+    }
+    header.page .site {
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+    }
+    header.page .site a { border: 0; }
+    header.page h1 {
+      font-family: "Old Standard TT", "PT Serif", Georgia, serif;
+      font-weight: 400;
+      font-size: clamp(22px, 1.4rem + 0.6vw, 30px);
+      margin: 4px 0 4px;
+      letter-spacing: 0.005em;
+    }
+    header.page h1 .sub {
+      font-style: italic;
+      color: var(--ink-faint);
+      font-size: 0.74em;
+      margin-left: 8px;
+    }
+    header.page p.lede {
+      margin: 0;
+      max-width: 64ch;
+      color: var(--ink-faint);
+      font-size: 14px;
+      font-style: italic;
+    }
+
+    main.stage {
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 50%, rgba(40, 30, 20, 0.18), transparent 70%),
+        radial-gradient(ellipse 120% 80% at 50% 100%, rgba(20, 15, 30, 0.12), transparent 60%),
+        var(--void);
+    }
+    main.stage::before {
+      content: "";
+      position: absolute; inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.035;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
+      mix-blend-mode: overlay;
+    }
+    #hulls { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+    #graph { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; }
+
+    footer.page {
+      padding: 12px 24px;
+      border-top: 1px solid var(--rule);
+      color: var(--ink-faint);
+      font-size: 12.5px;
+      background: rgba(6, 8, 12, 0.92);
+      z-index: 30;
+      display: flex; gap: 24px; justify-content: space-between; align-items: baseline;
+      flex-wrap: wrap;
+    }
+    footer.page .meth { max-width: 78ch; }
+    footer.page .meta {
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-trace);
+    }
+
+    /* ============================================
+       Search field (top-right)
+       ============================================ */
+    .search {
+      position: absolute;
+      top: 16px; right: 16px;
+      z-index: 20;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .search input {
+      width: 240px;
+      padding: 8px 12px;
+      background: rgba(13, 17, 23, 0.85);
+      border: 1px solid var(--rule);
+      color: var(--ink);
+      font-family: "PT Serif", Georgia, serif;
+      font-size: 14px;
+      border-radius: 2px;
+      backdrop-filter: blur(6px);
+      transition: border-color 120ms ease;
+    }
+    .search input:focus { border-color: var(--amber); }
+    .search input::placeholder { color: var(--ink-trace); font-style: italic; }
+    .search kbd {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      padding: 2px 5px;
+      border: 1px solid var(--ink-edge);
+      border-radius: 2px;
+      color: var(--ink-trace);
+      background: rgba(13, 17, 23, 0.6);
+    }
+
+    /* ============================================
+       Topic legend (top-left)
+       ============================================ */
+    .legend {
+      position: absolute;
+      top: 16px; left: 16px;
+      z-index: 20;
+      width: 280px;
+      max-width: 32vw;
+      background: rgba(13, 17, 23, 0.78);
+      border: 1px solid var(--rule);
+      backdrop-filter: blur(6px);
+      padding: 12px 14px;
+      border-radius: 2px;
+    }
+    .legend h2 {
+      margin: 0 0 8px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-trace);
+      font-weight: 500;
+    }
+    .legend .legend-tabs {
+      display: flex; gap: 6px; margin: 0 0 10px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+    }
+    .legend .legend-tabs button {
+      flex: 1;
+      background: none;
+      border: 1px solid var(--ink-edge);
+      color: var(--ink-faint);
+      padding: 5px 8px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: color 120ms ease, border-color 120ms ease;
+    }
+    .legend .legend-tabs button.active {
+      color: var(--amber);
+      border-color: var(--amber-soft);
+    }
+    .legend ul { list-style: none; margin: 0; padding: 0; max-height: 58vh; overflow-y: auto; }
+    .legend li {
+      padding: 6px 0;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--ink);
+      border-bottom: 1px dashed var(--ink-edge);
+      transition: color 120ms ease, opacity 120ms ease;
+    }
+    .legend li:last-child { border-bottom: 0; }
+    .legend li:hover { color: var(--amber); }
+    .legend li.muted { opacity: 0.32; }
+    .legend li .row1 {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .legend li .sw {
+      width: 11px; height: 11px;
+      border-radius: 50%;
+      flex: 0 0 11px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
+    }
+    .legend li .lab { flex: 1; min-width: 0; line-height: 1.3; }
+    .legend li .sz {
+      margin-left: auto;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10.5px;
+      color: var(--ink-trace);
+    }
+    .legend li .terms {
+      margin: 3px 0 0 19px;
+      font-size: 11.5px;
+      color: var(--ink-faint);
+      font-style: italic;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .legend .clear {
+      display: block;
+      margin-top: 10px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber-soft);
+      cursor: pointer;
+      border: 0;
+      background: none;
+      padding: 0;
+    }
+    .legend .clear[hidden] { display: none; }
+
+    /* ============================================
+       Side panel (right) — book detail
+       ============================================ */
+    .panel {
+      position: absolute;
+      top: 16px; bottom: 16px; right: 16px;
+      width: 340px;
+      background: rgba(13, 17, 23, 0.92);
+      border: 1px solid var(--rule);
+      backdrop-filter: blur(8px);
+      padding: 20px 22px;
+      overflow-y: auto;
+      z-index: 25;
+      transform: translateX(calc(100% + 24px));
+      transition: transform 140ms ease;
+      border-radius: 2px;
+    }
+    .panel.open { transform: translateX(0); }
+    .panel.pinned { border-color: var(--amber-soft); }
+    .panel .close {
+      position: absolute; top: 10px; right: 12px;
+      background: none; border: 0; color: var(--ink-trace);
+      font-size: 18px; cursor: pointer; line-height: 1;
+      font-family: "JetBrains Mono", monospace;
+    }
+    .panel .close:hover { color: var(--amber); }
+    .panel .com-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+    }
+    .panel .com-tag .sw {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    .panel .headline {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: 8px 0 12px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .panel .headline .cover-lg {
+      width: 64px; height: 92px;
+      flex: 0 0 64px;
+      background: var(--void-soft);
+      border: 1px solid var(--ink-edge);
+      object-fit: cover;
+      display: block;
+    }
+    .panel .headline .cover-lg.miss {
+      background:
+        repeating-linear-gradient(135deg, rgba(232,227,214,0.04) 0 4px, transparent 4px 8px),
+        var(--void-soft);
+    }
+    .panel h3 {
+      font-family: "Old Standard TT", "PT Serif", Georgia, serif;
+      font-weight: 400;
+      font-size: 22px;
+      line-height: 1.22;
+      margin: 4px 0 4px;
+      letter-spacing: 0.005em;
+    }
+    .panel .num {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      color: var(--ink-trace);
+      letter-spacing: 0.10em;
+    }
+    .panel .tags {
+      margin-top: 4px;
+      font-size: 11.5px;
+      color: var(--ink-faint);
+    }
+    .panel .tags .tag {
+      display: inline-block;
+      padding: 1px 6px;
+      margin: 2px 4px 2px 0;
+      border: 1px solid var(--ink-edge);
+      border-radius: 9px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: var(--ink-faint);
+    }
+    .panel .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 14px;
+      padding: 12px 0 14px;
+      border-bottom: 1px solid var(--rule);
+      margin-bottom: 14px;
+    }
+    .panel .stats dt {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9.5px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-trace);
+    }
+    .panel .stats dd {
+      margin: 0;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      color: var(--ink);
+    }
+    .panel .books-h {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-trace);
+      margin: 0 0 10px;
+      font-weight: 500;
+    }
+    .panel ol.books { list-style: none; margin: 0; padding: 0; }
+    .panel ol.books li {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--ink-edge);
+      cursor: pointer;
+    }
+    .panel ol.books li:last-child { border-bottom: 0; }
+    .panel ol.books li:hover .b-title { color: var(--amber); }
+    .panel ol.books .cover {
+      width: 36px; height: 52px;
+      flex: 0 0 36px;
+      background: var(--void-soft);
+      border: 1px solid var(--ink-edge);
+      object-fit: cover;
+      display: block;
+    }
+    .panel ol.books .cover.miss {
+      background:
+        repeating-linear-gradient(135deg, rgba(232,227,214,0.04) 0 4px, transparent 4px 8px),
+        var(--void-soft);
+    }
+    .panel ol.books .b-meta { flex: 1; min-width: 0; }
+    .panel ol.books .b-title {
+      font-size: 13px; line-height: 1.32;
+      color: var(--ink);
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+      overflow: hidden;
+      transition: color 120ms ease;
+    }
+    .panel ol.books .b-count {
+      margin-top: 3px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10.5px;
+      color: var(--ink-trace);
+    }
+
+    /* ============================================
+       Mobile fallback
+       ============================================ */
+    .mobile-list { display: none; }
+    @media (max-width: 700px) {
+      body { overflow: auto; }
+      .shell { position: static; display: block; }
+      header.page { position: static; }
+      main.stage { display: none; }
+      footer.page { position: static; }
+      .mobile-list { display: block; padding: 18px 20px 40px; }
+      .mobile-list .com {
+        margin: 0 0 22px;
+        padding: 0 0 14px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .mobile-list .com h2 {
+        display: flex; align-items: center; gap: 10px;
+        font-family: "Old Standard TT", "PT Serif", Georgia, serif;
+        font-weight: 400;
+        font-size: 20px;
+        margin: 0 0 8px;
+      }
+      .mobile-list .com h2 .sw { width: 12px; height: 12px; border-radius: 50%; }
+      .mobile-list ul { list-style: none; margin: 0; padding: 0; }
+      .mobile-list li {
+        display: flex; justify-content: space-between; align-items: baseline;
+        gap: 12px;
+        padding: 4px 0;
+        font-size: 15px;
+      }
+      .mobile-list li .num {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--ink-trace);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .panel { transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <header class="page">
+    <div class="site"><a href="/">Панкратиус</a></div>
+    <h1>Концептосфера<span class="sub">· Семантика</span></h1>
+    <p class="lede">Карта смыслов 117 текстов Сергея Орехова. Близость — не общие слова, а общее значение: эмбеддинги Qwen3 над фрагментами текстов и косинусная мера.</p>
+  </header>
+
+  <main class="stage">
+    <svg id="hulls" aria-hidden="true"></svg>
+    <div id="graph"></div>
+
+    <div class="legend" id="legend" aria-label="Темы и сообщества">
+      <h2>Темы корпуса</h2>
+      <div class="legend-tabs">
+        <button id="tab-topics" class="active">Темы</button>
+        <button id="tab-coms">Сообщества</button>
+      </div>
+      <ul id="legend-list"></ul>
+      <button class="clear" id="legend-clear" hidden>Сбросить фильтр</button>
+    </div>
+
+    <div class="search">
+      <input id="search" type="search" placeholder="Найти книгу" autocomplete="off" spellcheck="false" />
+      <kbd>/</kbd>
+    </div>
+
+    <aside class="panel" id="panel" aria-live="polite">
+      <button class="close" id="panel-close" aria-label="Закрыть">×</button>
+      <div class="com-tag" id="p-com"><span class="sw"></span><span class="t"></span></div>
+      <div class="headline">
+        <img class="cover-lg" id="p-cover" alt="" onerror="this.classList.add('miss');this.removeAttribute('src');" />
+        <div style="flex:1;min-width:0">
+          <div class="num" id="p-num"></div>
+          <h3 id="p-label"></h3>
+          <div class="tags" id="p-tags"></div>
+        </div>
+      </div>
+      <dl class="stats">
+        <dt>Фрагменты</dt><dd id="p-chunks"></dd>
+        <dt>Связи</dt><dd id="p-deg"></dd>
+        <dt>Центральность</dt><dd id="p-cent"></dd>
+        <dt>Тип</dt><dd id="p-kind"></dd>
+      </dl>
+      <p class="books-h">Семантически ближе всего</p>
+      <ol class="books" id="p-books"></ol>
+    </aside>
+  </main>
+
+  <footer class="page">
+    <div class="meth">
+      Семантические близости вычислены через эмбеддинги Qwen3-Embedding-0.6B; каждая книга — усреднённый центроид по своим фрагментам ≈ 400 токенов с перекрытием. Сообщества — Leiden над разреженным k-NN графом; темы — HDBSCAN над эмбеддингами фрагментов, подписи по TF-IDF. <a href="../data/conceptosphere-embed.json">conceptosphere-embed.json</a>
+    </div>
+    <div class="meta" id="meta-counts">— узлов · — связей · — сообществ · — тем</div>
+  </footer>
+
+  <div class="mobile-list" id="mobile-list" aria-hidden="true"></div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/graphology-library@0.8.0/dist/graphology-library.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sigma@3.0.1/dist/sigma.min.js"></script>
+
+<script>
+(async function () {
+  // Identical palette to conceptosphere.html for visual cohesion.
+  const PALETTE = [
+    '#c25e4f','#d8a24a','#e9c66a','#6fa48a','#4d8aa6',
+    '#7c6bb8','#b06aa0','#c8a37a','#a8485a','#6e8fb5',
+    '#93a85a','#c98a4a','#5fa3a3','#a48cc8','#b9755a',
+    '#d9876b','#5d997f','#b5934f','#8a7fbf','#a3625f'
+  ];
+  const DIM_NODE  = 'rgba(70, 65, 55, 0.45)';
+  const DIM_EDGE  = 'rgba(80, 70, 55, 0.04)';
+  const FOCUS_EDGE = 'rgba(233, 161, 66, 0.55)';
+
+  const isMobile = window.matchMedia('(max-width: 700px)').matches;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const res = await fetch('../data/conceptosphere-embed.json?t=' + Date.now(), { cache: 'no-store' });
+  const data = await res.json();
+
+  // Update header lede with real node count if data has it
+  try {
+    const n = data.stats?.nodes;
+    if (n) {
+      const lede = document.querySelector('header.page p.lede');
+      if (lede) lede.textContent = lede.textContent.replace(/\d+\s+текстов/, `${n} текстов`);
+    }
+  } catch {}
+
+  document.getElementById('meta-counts').textContent =
+    `${data.stats.nodes} узлов · ${data.stats.edges} связей · ${data.stats.communities} сообществ · ${data.stats.topics_discovered} тем`;
+
+  if (isMobile) { renderMobile(data); return; }
+
+  const comColor = new Map();
+  const comLabel = new Map();
+  const comSize  = new Map();
+  data.communities.forEach(c => {
+    comColor.set(c.id, PALETTE[c.id % PALETTE.length]);
+    comLabel.set(c.id, c.label);
+    comSize.set(c.id, c.size);
+  });
+
+  function hex2rgb(hex) {
+    const h = hex.replace('#','');
+    return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+  }
+  function mixRgb(a, b, t=0.5) {
+    return [a[0]*(1-t)+b[0]*t, a[1]*(1-t)+b[1]*t, a[2]*(1-t)+b[2]*t];
+  }
+  function rgbaStr([r,g,b], a) {
+    return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${a.toFixed(3)})`;
+  }
+  const comRgb = new Map();
+  data.communities.forEach(c => comRgb.set(c.id, hex2rgb(PALETTE[c.id % PALETTE.length])));
+
+  // ---- per-node primary topic, derived from topics[] ----
+  const nodeTopic = new Map();
+  (data.topics || []).forEach(t => {
+    (t.sample_books || []).forEach(sb => {
+      // a book can appear in multiple topics; pick the one where it has most chunks
+      const prev = nodeTopic.get(sb.slug);
+      if (!prev || sb.chunks > prev.chunks) {
+        nodeTopic.set(sb.slug, { topic: t.id, chunks: sb.chunks });
+      }
+    });
+  });
+  // Also use primary_topic stored on each node as a fallback
+  data.nodes.forEach(n => {
+    if (!nodeTopic.has(n.id) && n.primary_topic != null) {
+      nodeTopic.set(n.id, { topic: n.primary_topic, chunks: 0 });
+    }
+  });
+
+  // ---- build graphology graph ----
+  const Graph = graphology.Graph;
+  const graph = new Graph({ type: 'undirected', multi: false });
+
+  // node sizing: sqrt(chunk_count) + small centrality bonus; clamped
+  const sizes = data.nodes.map(n => {
+    const a = Math.sqrt(Math.max(1, n.chunk_count || 1)) * 1.6;
+    const b = Math.sqrt(Math.max(0, n.centrality || 0)) * 12;
+    return Math.max(4, Math.min(22, 4 + a + b));
+  });
+  const maxSize = Math.max(...sizes);
+
+  // Per-node label size (we always force-show the book number as an old-style figure)
+  const labelSizes = sizes.map(s => (s >= maxSize * 0.7 ? 14 : 12.5));
+
+  // ---- seed positions: sector per community, then FA2 with overlap pass ----
+  const comsBySize = [...data.communities].sort((a,b) => b.size - a.size);
+  const totalRoot = comsBySize.reduce((s,c) => s + Math.sqrt(c.size), 0);
+  let cursor = 0;
+  const sectorOf = new Map();
+  comsBySize.forEach((c) => {
+    const span = (Math.sqrt(c.size) / totalRoot) * Math.PI * 2;
+    sectorOf.set(c.id, { start: cursor, end: cursor + span, mid: cursor + span/2 });
+    cursor += span;
+  });
+  const nodesByCom = new Map();
+  data.nodes.forEach(n => {
+    if (!nodesByCom.has(n.community)) nodesByCom.set(n.community, []);
+    nodesByCom.get(n.community).push(n);
+  });
+  nodesByCom.forEach(arr => arr.sort((a,b) => b.degree - a.degree));
+
+  function prng(i) {
+    const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  const RING_BASE = 22;
+  const COM_SPREAD = 3.0;
+  const comCentroid = new Map();
+  comsBySize.forEach((c) => {
+    const sec = sectorOf.get(c.id);
+    comCentroid.set(c.id, { x: Math.cos(sec.mid) * RING_BASE, y: Math.sin(sec.mid) * RING_BASE });
+  });
+
+  data.nodes.forEach((n, i) => {
+    const c = comCentroid.get(n.community) || { x: 0, y: 0 };
+    const sec = sectorOf.get(n.community) || { mid: 0, start: 0, end: Math.PI*2 };
+    const cMembers = nodesByCom.get(n.community).length;
+    const inComIdx = nodesByCom.get(n.community).findIndex(x => x.id === n.id);
+    const radial = Math.sqrt(inComIdx / Math.max(1, cMembers)) * COM_SPREAD;
+    const angSpan = Math.min(sec.end - sec.start, Math.PI * 0.55);
+    const ang = sec.mid + (prng(i) - 0.5) * angSpan * 0.85;
+    const r = radial + prng(i + 7000) * 0.6;
+    const px = c.x + Math.cos(ang) * r;
+    const py = c.y + Math.sin(ang) * r;
+    const col = PALETTE[n.community % PALETTE.length];
+    // label: book number in old-style figure, always visible.
+    const label = (n.number != null) ? String(n.number) : (n.title || n.slug);
+    graph.addNode(n.id, {
+      label,
+      title: n.title || n.slug,
+      slug: n.slug,
+      number: n.number,
+      x: px,
+      y: py,
+      size: sizes[i],
+      _size: sizes[i],
+      labelSize: labelSizes[i],
+      color: col,
+      _color: col,
+      community: n.community,
+      kind: n.kind,
+      chunk_count: n.chunk_count,
+      degree: n.degree,
+      centrality: n.centrality,
+      cover: n.cover,
+      tags: n.tags || [],
+      most_similar: n.most_similar || [],
+      primary_topic: (nodeTopic.get(n.id)?.topic) ?? n.primary_topic ?? null,
+      forceLabel: true,
+    });
+  });
+
+  // ---- edges ----
+  let maxW = 0;
+  data.edges.forEach(e => maxW = Math.max(maxW, e.weight || 1));
+
+  data.edges.forEach(e => {
+    if (!graph.hasNode(e.source) || !graph.hasNode(e.target)) return;
+    if (graph.hasEdge(e.source, e.target)) return;
+    const sa = graph.getNodeAttributes(e.source);
+    const ta = graph.getNodeAttributes(e.target);
+    const within = sa.community === ta.community;
+    const w = e.weight || 1;
+    const t = (w - 0.3) / Math.max(0.01, maxW - 0.3);
+    const ca = comRgb.get(sa.community);
+    const cb = comRgb.get(ta.community);
+    let edgeColor;
+    if (within) {
+      edgeColor = rgbaStr(ca, 0.20 + Math.sqrt(Math.max(0,t)) * 0.45);
+    } else {
+      const mix = mixRgb(ca, cb, 0.5);
+      const muted = mixRgb(mix, [120, 110, 95], 0.40);
+      edgeColor = rgbaStr(muted, 0.06 + Math.sqrt(Math.max(0,t)) * 0.20);
+    }
+    graph.addEdge(e.source, e.target, {
+      size: within ? (0.35 + Math.sqrt(Math.max(0,t)) * 2.4) : (0.20 + Math.sqrt(Math.max(0,t)) * 1.3),
+      _size: within ? (0.35 + Math.sqrt(Math.max(0,t)) * 2.4) : (0.20 + Math.sqrt(Math.max(0,t)) * 1.3),
+      color: edgeColor,
+      _color: edgeColor,
+      weight: w,
+      within,
+      hidden: false,
+    });
+  });
+
+  // ---- multi-level layout ----
+  const FA2 = graphologyLibrary.layoutForceAtlas2;
+
+  // 1) Community-level graph for angular placement.
+  const comGraph = new Graph({ type: 'undirected', multi: false });
+  data.communities.forEach(c => {
+    comGraph.addNode(String(c.id), {
+      x: Math.cos((c.id / Math.max(1,data.communities.length)) * Math.PI * 2) * 10,
+      y: Math.sin((c.id / Math.max(1,data.communities.length)) * Math.PI * 2) * 10,
+      size: Math.sqrt(c.size) * 4
+    });
+  });
+  const comTieMap = new Map();
+  graph.forEachEdge((_e, attrs, _s, _t, sa, ta) => {
+    if (sa.community === ta.community) return;
+    const A = sa.community, B = ta.community;
+    const key = Math.min(A,B) + '|' + Math.max(A,B);
+    comTieMap.set(key, (comTieMap.get(key) || 0) + (attrs.weight || 1));
+  });
+  comTieMap.forEach((w, key) => {
+    const [a,b] = key.split('|');
+    if (comGraph.hasNode(a) && comGraph.hasNode(b)) comGraph.addEdge(a, b, { weight: w });
+  });
+  if (comGraph.size > 0) {
+    const comSettings = FA2.inferSettings(comGraph);
+    comSettings.gravity = 1.5;
+    comSettings.scalingRatio = 40;
+    comSettings.slowDown = 4;
+    comSettings.strongGravityMode = true;
+    comSettings.barnesHutOptimize = false;
+    comSettings.adjustSizes = true;
+    comSettings.edgeWeightInfluence = 1.2;
+    FA2.assign(comGraph, { iterations: 300, settings: comSettings });
+  }
+  const comAngles = [];
+  comGraph.forEachNode((id, a) => comAngles.push({ id: Number(id), ang: Math.atan2(a.y, a.x) }));
+  comAngles.sort((a,b) => a.ang - b.ang);
+  const totalWeight = comAngles.reduce((s,c) => s + Math.sqrt(comSize.get(c.id) || 1), 0);
+  let acc = 0;
+  const comPos = new Map();
+  comAngles.forEach(c => {
+    const span = (Math.sqrt(comSize.get(c.id) || 1) / Math.max(1,totalWeight)) * Math.PI * 2;
+    const ang = acc + span/2;
+    acc += span;
+    comPos.set(c.id, { _ang: ang });
+  });
+  const TIERS = [210, 330, 450];
+  comAngles.forEach((c, i) => {
+    const ang = comPos.get(c.id)._ang;
+    const sz = comSize.get(c.id) || 1;
+    const tier = i % 3;
+    const baseR = TIERS[tier];
+    const ringR = baseR + Math.sqrt(sz / 50) * 12;
+    comPos.set(c.id, { x: Math.cos(ang) * ringR, y: Math.sin(ang) * ringR, angle: ang });
+  });
+
+  // 2) per-community subgraph FA2
+  nodesByCom.forEach((nodes, cid) => {
+    const sub = new Graph({ type: 'undirected', multi: false });
+    nodes.forEach((n, i) => {
+      if (!graph.hasNode(n.id)) return;
+      const r = 1 + (i / Math.max(1, nodes.length - 1)) * 3.5;
+      const ang = (i / Math.max(1, nodes.length)) * Math.PI * 2;
+      sub.addNode(n.id, {
+        x: Math.cos(ang) * r,
+        y: Math.sin(ang) * r,
+        size: graph.getNodeAttribute(n.id, 'size')
+      });
+    });
+    graph.forEachEdge((edge, attrs, s, t, sa, ta) => {
+      if (sa.community === cid && ta.community === cid && sub.hasNode(s) && sub.hasNode(t)) {
+        sub.addEdge(s, t, { weight: attrs.weight || 1 });
+      }
+    });
+    if (sub.order > 2) {
+      const subSettings = FA2.inferSettings(sub);
+      subSettings.gravity = 1.2;
+      subSettings.scalingRatio = 7;
+      subSettings.slowDown = 6;
+      subSettings.strongGravityMode = true;
+      subSettings.adjustSizes = true;
+      subSettings.linLogMode = true;
+      subSettings.edgeWeightInfluence = 1.4;
+      subSettings.barnesHutOptimize = false;
+      FA2.assign(sub, { iterations: reduceMotion ? 120 : 260, settings: subSettings });
+    }
+    const centroid = comPos.get(cid) || { x: 0, y: 0 };
+    let subR = 0;
+    sub.forEachNode((_id, a) => { subR = Math.max(subR, Math.hypot(a.x, a.y)); });
+    const targetR = Math.min(28, 6 + Math.sqrt(nodes.length) * 3);
+    const subScale = subR > 0 ? targetR / subR : 1;
+    sub.forEachNode((id, a) => {
+      if (graph.hasNode(id)) {
+        graph.setNodeAttribute(id, 'x', a.x * subScale + centroid.x);
+        graph.setNodeAttribute(id, 'y', a.y * subScale + centroid.y);
+      }
+    });
+  });
+
+  // overlap pass
+  if (graphologyLibrary.layoutNoverlap) {
+    try {
+      graphologyLibrary.layoutNoverlap.assign(graph, {
+        maxIterations: 200,
+        settings: { margin: 2.0, ratio: 1.1, expansion: 1.15, speed: 4, gridSize: 40 }
+      });
+    } catch {}
+  }
+
+  // ---- sigma ----
+  const container = document.getElementById('graph');
+  const renderer = new Sigma(graph, container, {
+    renderEdgeLabels: false,
+    defaultEdgeColor: 'rgba(232, 227, 214, 0.10)',
+    labelColor: { color: '#f3eee0' },
+    labelFont: '"Old Standard TT", "PT Serif", Georgia, serif',
+    labelSize: 13,
+    labelWeight: '400',
+    labelDensity: 0.5,
+    labelGridCellSize: 80,
+    labelRenderedSizeThreshold: 1,
+    minCameraRatio: 0.08,
+    maxCameraRatio: 8,
+    zIndex: true,
+    defaultDrawNodeLabel: (context, data, settings) => {
+      if (!data.label) return;
+      const size = data.labelSize || settings.labelSize;
+      context.font = `400 ${size}px ${settings.labelFont}`;
+      const label = data.label;
+      // centered, drawn over the disc
+      const m = context.measureText(label);
+      const x = data.x - m.width / 2;
+      const y = data.y + size / 3;
+      // dark stroke (halo) so the figure reads clearly on bright discs
+      context.lineWidth = 3;
+      context.strokeStyle = 'rgba(6, 8, 12, 0.85)';
+      context.lineJoin = 'round';
+      context.strokeText(label, x, y);
+      // fill
+      context.fillStyle = '#f3eee0';
+      context.fillText(label, x, y);
+    },
+    defaultDrawNodeHover: (context, data, settings) => {
+      if (!data.title) return;
+      const size = (data.labelSize || settings.labelSize) + 1;
+      context.font = `600 ${size}px ${settings.labelFont}`;
+      const label = data.title;
+      const x = data.x + data.size + 6;
+      const y = data.y + size / 3;
+      const w = context.measureText(label).width + 10;
+      const h = size + 8;
+      context.fillStyle = 'rgba(13, 17, 23, 0.94)';
+      context.strokeStyle = 'rgba(233, 161, 66, 0.55)';
+      context.lineWidth = 1;
+      context.beginPath();
+      if (context.roundRect) context.roundRect(x - 5, y - h + 4, w, h, 2);
+      else context.rect(x - 5, y - h + 4, w, h);
+      context.fill();
+      context.stroke();
+      context.fillStyle = '#f3eee0';
+      context.fillText(label, x, y);
+    }
+  });
+
+  window.__pancratiusRenderer = renderer;
+  window.__pancratiusGraph = graph;
+
+  // ---- community hulls ----
+  const hullsSvg = document.getElementById('hulls');
+  function computeAndDrawHulls() {
+    hullsSvg.innerHTML = '';
+    const box = container.getBoundingClientRect();
+    hullsSvg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
+    hullsSvg.setAttribute('width', box.width);
+    hullsSvg.setAttribute('height', box.height);
+
+    nodesByCom.forEach((nodes, comId) => {
+      if (nodes.length < 3) return;
+      const pts = [];
+      for (const n of nodes) {
+        if (!graph.hasNode(n.id)) continue;
+        const a = graph.getNodeAttributes(n.id);
+        const screen = renderer.graphToViewport({ x: a.x, y: a.y });
+        if (Number.isFinite(screen.x) && Number.isFinite(screen.y)) pts.push([screen.x, screen.y]);
+      }
+      if (pts.length < 3) return;
+      const hull = convexHull(pts);
+      if (hull.length < 3) return;
+      const cx = hull.reduce((s,p) => s+p[0], 0) / hull.length;
+      const cy = hull.reduce((s,p) => s+p[1], 0) / hull.length;
+      const inflated = hull.map(([x,y]) => {
+        const dx = x - cx, dy = y - cy;
+        const d = Math.hypot(dx, dy) || 1;
+        const pad = 26;
+        return [x + dx/d*pad, y + dy/d*pad];
+      });
+      const d = smoothPathFromPoints(inflated);
+      const color = PALETTE[comId % PALETTE.length];
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', color);
+      path.setAttribute('fill-opacity', '0.07');
+      path.setAttribute('stroke', color);
+      path.setAttribute('stroke-opacity', '0.18');
+      path.setAttribute('stroke-width', '1');
+      path.setAttribute('stroke-linejoin', 'round');
+      path.setAttribute('data-com', String(comId));
+      hullsSvg.appendChild(path);
+    });
+  }
+
+  function convexHull(points) {
+    const pts = points.slice().sort((a,b) => a[0]===b[0] ? a[1]-b[1] : a[0]-b[0]);
+    const cross = (O,A,B) => (A[0]-O[0])*(B[1]-O[1]) - (A[1]-O[1])*(B[0]-O[0]);
+    const lower = [];
+    for (const p of pts) {
+      while (lower.length >= 2 && cross(lower[lower.length-2], lower[lower.length-1], p) <= 0) lower.pop();
+      lower.push(p);
+    }
+    const upper = [];
+    for (let i = pts.length - 1; i >= 0; i--) {
+      const p = pts[i];
+      while (upper.length >= 2 && cross(upper[upper.length-2], upper[upper.length-1], p) <= 0) upper.pop();
+      upper.push(p);
+    }
+    upper.pop(); lower.pop();
+    return lower.concat(upper);
+  }
+  function smoothPathFromPoints(pts) {
+    if (pts.length < 3) return '';
+    const n = pts.length;
+    const get = (i) => pts[((i % n) + n) % n];
+    let d = `M ${get(0)[0].toFixed(1)} ${get(0)[1].toFixed(1)} `;
+    for (let i = 0; i < n; i++) {
+      const p0 = get(i - 1), p1 = get(i), p2 = get(i + 1), p3 = get(i + 2);
+      const t = 0.18;
+      const c1x = p1[0] + (p2[0] - p0[0]) * t;
+      const c1y = p1[1] + (p2[1] - p0[1]) * t;
+      const c2x = p2[0] - (p3[0] - p1[0]) * t;
+      const c2y = p2[1] - (p3[1] - p1[1]) * t;
+      d += `C ${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)} `;
+    }
+    return d + 'Z';
+  }
+  renderer.getCamera().on('updated', () => {
+    if (computeAndDrawHulls._raf) return;
+    computeAndDrawHulls._raf = requestAnimationFrame(() => {
+      computeAndDrawHulls._raf = null;
+      computeAndDrawHulls();
+    });
+  });
+  window.addEventListener('resize', () => {
+    if (computeAndDrawHulls._raf) return;
+    computeAndDrawHulls._raf = requestAnimationFrame(() => {
+      computeAndDrawHulls._raf = null;
+      computeAndDrawHulls();
+    });
+  });
+  requestAnimationFrame(computeAndDrawHulls);
+
+  // ---- state ----
+  const state = {
+    hovered: null,
+    pinned: null,
+    filterCom: null,
+    filterTopic: null,
+    search: '',
+    legendMode: 'topics',  // 'topics' | 'coms'
+  };
+
+  // ---- interactions ----
+  renderer.on('enterNode', ({ node }) => {
+    if (state.pinned) return;
+    state.hovered = node;
+    applyHighlight();
+    showPanel(node, false);
+  });
+  renderer.on('leaveNode', () => {
+    if (state.pinned) return;
+    state.hovered = null;
+    applyHighlight();
+    hidePanel();
+  });
+  renderer.on('clickNode', ({ node }) => {
+    state.pinned = node;
+    state.hovered = node;
+    applyHighlight();
+    showPanel(node, true);
+  });
+  renderer.on('clickStage', () => {
+    if (state.pinned) {
+      state.pinned = null;
+      state.hovered = null;
+      applyHighlight();
+      hidePanel();
+    }
+  });
+
+  document.getElementById('panel-close').addEventListener('click', () => {
+    state.pinned = null;
+    state.hovered = null;
+    applyHighlight();
+    hidePanel();
+  });
+
+  function neighborhood(node) {
+    const set = new Set([node]);
+    graph.forEachNeighbor(node, n => set.add(n));
+    return set;
+  }
+  function matchesSearch(nodeAttrs) {
+    if (!state.search) return true;
+    const q = state.search.toLowerCase();
+    if ((nodeAttrs.title || '').toLowerCase().includes(q)) return true;
+    if ((nodeAttrs.slug || '').toLowerCase().includes(q)) return true;
+    return false;
+  }
+  function matchesTopic(attrs) {
+    if (state.filterTopic == null) return true;
+    return attrs.primary_topic === state.filterTopic;
+  }
+
+  function applyHighlight() {
+    const focus = state.pinned || state.hovered;
+    const focusSet = focus ? neighborhood(focus) : null;
+    const hasFocus = !!focusSet;
+    const hasFilter = state.filterCom != null;
+    const hasTopic = state.filterTopic != null;
+    const hasSearch = !!state.search;
+
+    renderer.setSetting('nodeReducer', (node, data) => {
+      const out = { ...data };
+      let dim = false;
+      if (hasFilter && data.community !== state.filterCom) dim = true;
+      if (hasTopic && !matchesTopic(data)) dim = true;
+      if (hasSearch && !matchesSearch(data)) dim = true;
+      if (hasFocus && !focusSet.has(node)) dim = true;
+      if (dim) {
+        out.color = DIM_NODE;
+        out.label = '';
+        out.zIndex = 0;
+      } else {
+        out.color = data._color;
+        out.zIndex = (hasFocus && focusSet.has(node)) ? 2 : 1;
+      }
+      return out;
+    });
+    renderer.setSetting('edgeReducer', (edge, data) => {
+      const out = { ...data };
+      const [s, t] = graph.extremities(edge);
+      const sa = graph.getNodeAttributes(s);
+      const ta = graph.getNodeAttributes(t);
+      let dim = false;
+      if (hasFilter && (sa.community !== state.filterCom || ta.community !== state.filterCom)) dim = true;
+      if (hasTopic && (!matchesTopic(sa) || !matchesTopic(ta))) dim = true;
+      if (hasSearch && !(matchesSearch(sa) || matchesSearch(ta))) dim = true;
+      if (hasFocus && !(focusSet.has(s) && focusSet.has(t))) dim = true;
+
+      if (dim) {
+        if (hasFilter || hasTopic || hasSearch || hasFocus) { out.hidden = true; return out; }
+        out.color = DIM_EDGE;
+        out.size = data._size * 0.5;
+        out.hidden = false;
+      } else if (hasFocus) {
+        out.color = FOCUS_EDGE;
+        out.size = data._size * 1.4;
+        out.zIndex = 2;
+        out.hidden = false;
+      } else {
+        out.color = data._color;
+        out.size = data._size;
+        out.zIndex = data.within ? 1 : 0;
+        out.hidden = false;
+      }
+      return out;
+    });
+    // Hull fade
+    [...hullsSvg.querySelectorAll('path')].forEach(p => {
+      const cid = Number(p.getAttribute('data-com'));
+      let highlight = false;
+      if (hasFilter) highlight = cid === state.filterCom;
+      else if (hasFocus) {
+        for (const n of focusSet) {
+          if (graph.getNodeAttribute(n, 'community') === cid) { highlight = true; break; }
+        }
+      } else if (hasTopic || hasSearch) {
+        highlight = false;  // de-emphasise all hulls under topic/search filters
+      } else {
+        highlight = true;
+      }
+      p.setAttribute('fill-opacity', highlight ? '0.08' : '0.015');
+      p.setAttribute('stroke-opacity', highlight ? '0.22' : '0.05');
+    });
+    renderer.refresh();
+  }
+
+  // ---- side panel ----
+  const panel = document.getElementById('panel');
+  function showPanel(nodeId, pinned) {
+    const a = graph.getNodeAttributes(nodeId);
+    document.getElementById('p-label').textContent = a.title || nodeId;
+
+    const numEl = document.getElementById('p-num');
+    if (a.number != null) numEl.textContent = `№ ${a.number}`;
+    else numEl.textContent = (a.kind === 'project' ? 'Проект' : '');
+
+    const coverEl = document.getElementById('p-cover');
+    coverEl.classList.remove('miss');
+    if (a.cover) {
+      coverEl.setAttribute('src', a.cover);
+    } else {
+      coverEl.classList.add('miss');
+      coverEl.removeAttribute('src');
+    }
+
+    const tagsEl = document.getElementById('p-tags');
+    tagsEl.innerHTML = (a.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('');
+
+    document.getElementById('p-chunks').textContent = (a.chunk_count || 0).toLocaleString('ru-RU');
+    document.getElementById('p-deg').textContent = a.degree;
+    document.getElementById('p-cent').textContent = (a.centrality * 1000).toFixed(1) + '‰';
+    document.getElementById('p-kind').textContent =
+      a.kind === 'book' ? 'Книга' : a.kind === 'poem' ? 'Стих' : a.kind === 'project' ? 'Проект' : '—';
+
+    const comTag = document.getElementById('p-com');
+    comTag.querySelector('.sw').style.background = comColor.get(a.community);
+    comTag.querySelector('.t').textContent = comLabel.get(a.community) || ('Сообщество ' + a.community);
+
+    const books = document.getElementById('p-books');
+    books.innerHTML = '';
+    (a.most_similar || []).slice(0, 10).forEach(b => {
+      const li = document.createElement('li');
+      const m = (b.slug || '').match(/^(\d{1,3})/);
+      const cover = m
+        ? `<img class="cover" loading="lazy" src="../legacy/covers/ru/${m[1].padStart(2,'0')}.jpg" alt="" onerror="this.classList.add('miss');this.removeAttribute('src');" />`
+        : `<span class="cover miss" aria-hidden="true"></span>`;
+      li.innerHTML = `
+        ${cover}
+        <div class="b-meta">
+          <div class="b-title">${escapeHtml(b.title || b.slug)}</div>
+          <div class="b-count">cos ${b.sim.toFixed(3)}</div>
+        </div>`;
+      li.addEventListener('click', () => {
+        // re-pin to that book if it exists
+        if (graph.hasNode(b.slug)) {
+          state.pinned = b.slug;
+          state.hovered = b.slug;
+          applyHighlight();
+          showPanel(b.slug, true);
+          // Pan camera to the new node
+          const pos = graph.getNodeAttributes(b.slug);
+          const view = renderer.graphToViewport({ x: pos.x, y: pos.y });
+          // Sigma 3: camera.animate to focus
+          const cam = renderer.getCamera();
+          cam.animate(renderer.viewportToGraph(view), { duration: 320 });
+        }
+      });
+      books.appendChild(li);
+    });
+
+    panel.classList.add('open');
+    panel.classList.toggle('pinned', !!pinned);
+  }
+  function hidePanel() { panel.classList.remove('open', 'pinned'); }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---- search ----
+  const searchInput = document.getElementById('search');
+  searchInput.addEventListener('input', () => {
+    state.search = searchInput.value.trim();
+    applyHighlight();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === '/' && document.activeElement !== searchInput) {
+      e.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+    } else if (e.key === 'Escape') {
+      if (document.activeElement === searchInput) searchInput.blur();
+      searchInput.value = '';
+      state.search = '';
+      state.pinned = null;
+      state.hovered = null;
+      state.filterCom = null;
+      state.filterTopic = null;
+      renderLegend();
+      applyHighlight();
+      hidePanel();
+    }
+  });
+
+  // ---- legend (two tabs: topics / communities) ----
+  const legendList = document.getElementById('legend-list');
+  const legendClear = document.getElementById('legend-clear');
+  const tabTopics = document.getElementById('tab-topics');
+  const tabComs = document.getElementById('tab-coms');
+
+  tabTopics.addEventListener('click', () => { state.legendMode = 'topics'; state.filterCom = null; renderLegend(); applyHighlight(); });
+  tabComs.addEventListener('click', () => { state.legendMode = 'coms'; state.filterTopic = null; renderLegend(); applyHighlight(); });
+  legendClear.addEventListener('click', () => {
+    state.filterCom = null;
+    state.filterTopic = null;
+    renderLegend();
+    applyHighlight();
+  });
+
+  function renderLegend() {
+    tabTopics.classList.toggle('active', state.legendMode === 'topics');
+    tabComs.classList.toggle('active', state.legendMode === 'coms');
+    legendList.innerHTML = '';
+
+    if (state.legendMode === 'topics') {
+      const topics = [...(data.topics || [])].sort((a,b) => b.size - a.size);
+      topics.forEach(t => {
+        const li = document.createElement('li');
+        li.dataset.topic = t.id;
+        // a topic doesn't strictly own a community colour, but the legend swatch
+        // gives a stable hue per topic id for visual rhyme.
+        const sw = PALETTE[t.id % PALETTE.length];
+        const terms = (t.top_terms || []).slice(0, 6).join(' · ');
+        li.innerHTML = `
+          <div class="row1">
+            <span class="sw" style="background:${sw}"></span>
+            <span class="lab">${escapeHtml(t.label)}</span>
+            <span class="sz">${t.size}</span>
+          </div>
+          <div class="terms">${escapeHtml(terms)}</div>`;
+        li.addEventListener('click', () => {
+          state.filterTopic = (state.filterTopic === t.id) ? null : t.id;
+          updateLegendUI();
+          applyHighlight();
+        });
+        legendList.appendChild(li);
+      });
+    } else {
+      const coms = [...data.communities].sort((a,b) => b.size - a.size);
+      coms.forEach(c => {
+        const li = document.createElement('li');
+        li.dataset.com = c.id;
+        li.innerHTML = `
+          <div class="row1">
+            <span class="sw" style="background:${comColor.get(c.id)}"></span>
+            <span class="lab">${escapeHtml(c.label)}</span>
+            <span class="sz">${c.size}</span>
+          </div>`;
+        li.addEventListener('click', () => {
+          state.filterCom = (state.filterCom === c.id) ? null : c.id;
+          updateLegendUI();
+          applyHighlight();
+        });
+        legendList.appendChild(li);
+      });
+    }
+    updateLegendUI();
+  }
+  function updateLegendUI() {
+    [...legendList.children].forEach(li => {
+      if (state.legendMode === 'topics') {
+        li.classList.toggle('muted', state.filterTopic != null && Number(li.dataset.topic) !== state.filterTopic);
+      } else {
+        li.classList.toggle('muted', state.filterCom != null && Number(li.dataset.com) !== state.filterCom);
+      }
+    });
+    legendClear.hidden = state.filterCom == null && state.filterTopic == null;
+  }
+  renderLegend();
+
+  // ---- recentre & initial paint ----
+  {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    graph.forEachNode((_n, a) => {
+      if (a.x < minX) minX = a.x; if (a.y < minY) minY = a.y;
+      if (a.x > maxX) maxX = a.x; if (a.y > maxY) maxY = a.y;
+    });
+    const cx = (minX + maxX) / 2; const cy = (minY + maxY) / 2;
+    graph.forEachNode((id, a) => {
+      graph.setNodeAttribute(id, 'x', a.x - cx);
+      graph.setNodeAttribute(id, 'y', a.y - cy);
+    });
+  }
+  applyHighlight();
+  renderer.getCamera().setState({ x: 0.5, y: 0.5, angle: 0, ratio: 1.08 });
+
+  // ---- mobile ----
+  function renderMobile(data) {
+    const root = document.getElementById('mobile-list');
+    root.setAttribute('aria-hidden', 'false');
+    const byCom = new Map();
+    data.nodes.forEach(n => {
+      if (!byCom.has(n.community)) byCom.set(n.community, []);
+      byCom.get(n.community).push(n);
+    });
+    const coms = data.communities
+      .filter(c => byCom.has(c.id))
+      .sort((a,b) => byCom.get(b.id).length - byCom.get(a.id).length);
+    coms.forEach(c => {
+      const section = document.createElement('section');
+      section.className = 'com';
+      const items = byCom.get(c.id).slice(0,30).map(n => `
+        <li><span class="lab">${esc(n.title || n.slug)}</span><span class="num">${n.number != null ? '№ ' + n.number : ''}</span></li>
+      `).join('');
+      section.innerHTML = `
+        <h2><span class="sw" style="background:${PALETTE[c.id % PALETTE.length]}"></span>
+            ${esc(c.label)}<span class="num" style="margin-left:auto">${byCom.get(c.id).length}</span></h2>
+        <ul>${items}</ul>`;
+      root.appendChild(section);
+    });
+    function esc(s){return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  }
+
+})().catch(err => {
+  console.error(err);
+  const g = document.getElementById('graph');
+  if (g) g.innerHTML = '<p style="padding:24px;color:#e8e3d6;font-family:JetBrains Mono,monospace;font-size:13px">Не удалось загрузить граф: ' + (err.message || err) + '</p>';
+});
+</script>
+
+</body>
+</html>

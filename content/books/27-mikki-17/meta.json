@@ -1,0 +1,48 @@
+{
+  "number": 27,
+  "slug": "27-mikki-17",
+  "title": "Микки-17",
+  "tags": [
+    "Откровение Бога",
+    "фантастика",
+    "КиноЕвангелие"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "27-микки-17.docx"
+      ],
+      "title": "Микки-17"
+    },
+    "en": {
+      "original_filenames": [
+        "27-микки-17-en-us-full.docx"
+      ],
+      "title": "Mickey 17"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Это не разбор фильма и не киноведческий комментарий. Это духовное чтение «Микки-17» как живой притчи о пробуждении сознания, страхе, копировании, жертве и возвращении к Истоку. Кино здесь становится языком, на котором Творец отвечает на вопросы не о сюжете, а о смысле жизни. Каждый образ, каждая сцена и каждая тень на экране превращаются в повод услышать: кто повторяется, кто исчезает и кто остаётся, когда маска личности растворяется. Книга открывает фильм как зеркало, в котором зритель узнаёт не персонажей, а себя.",
+      "sourceName": "Google Play Books",
+      "sourceUrl": "https://play.google.com/store/books/details/%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B9_%D0%9F%D0%B0%D0%BD%D0%BA%D1%80%D0%B0%D1%82%D0%B8%D1%83%D1%81_%D0%9C%D0%B8%D0%BA%D0%BA%D0%B8_17_%D0%9E%D1%82%D0%BA%D1%80%D0%BE%D0%B2%D0%B5%D0%BD%D0%B8%D0%B5_%D0%A2%D0%B2%D0%BE%D1%80%D1%86%D0%B0_%D0%9A%D0%B8%D0%BD%D0%BE%D0%B5?id=T9iEEQAAQBAJ"
+    },
+    "en": {
+      "text": "This is not a film review or a cinema commentary. It is a spiritual reading of “Mickey 17” as a living parable of the awakening of consciousness, fear, copying, sacrifice, and return to the Source. Cinema here becomes the language in which the Creator answers questions not about plot, but about the meaning of life. Every image, every scene, and every shadow on the screen becomes a reason to hear: who repeats, who disappears, and who remains when the mask of personality dissolves. The book opens the film as a mirror in which the viewer recognizes not the characters, but himself.",
+      "sourceName": "Google Play Books",
+      "sourceUrl": "https://play.google.com/store/books/details/%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B9_%D0%9F%D0%B0%D0%BD%D0%BA%D1%80%D0%B0%D1%82%D0%B8%D1%83%D1%81_%D0%9C%D0%B8%D0%BA%D0%BA%D0%B8_17_%D0%9E%D1%82%D0%BA%D1%80%D0%BE%D0%B2%D0%B5%D0%BD%D0%B8%D0%B5_%D0%A2%D0%B2%D0%BE%D1%80%D1%86%D0%B0_%D0%9A%D0%B8%D0%BD%D0%BE%D0%B5?id=T9iEEQAAQBAJ"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/27.jpg",
+    "en": "covers/en/27.jpg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/27-микки-17.docx"
+    ],
+    "en": [
+      "books/en/27-микки-17-en-us-full.docx"
+    ]
+  }
+}

@@ -1,0 +1,218 @@
+---
+// /downloads/ — bulk-archive index.
+//
+// The prose intro lives in the `pages` collection (content/pages/downloads/ru.md)
+// so authors can edit it as Markdown. The archive table is rendered from
+// data/bulk-archives.json, which scripts/build_bulk_archives.py emits as part
+// of `npm run build`. A dedicated route (this file) takes precedence over the
+// dynamic /[slug].astro page renderer.
+
+import { readFileSync } from "node:fs";
+import { resolve as resolvePath } from "node:path";
+import { render } from "astro:content";
+
+import Base from "@/layouts/Base.astro";
+import type { Locale } from "@/lib/i18n";
+import { getPage } from "@/lib/pages";
+import { seoForPage } from "@/lib/seo";
+
+const locale: Locale = "ru";
+
+const page = await getPage("downloads", "ru");
+if (!page) {
+  throw new Error("Missing content/pages/downloads/ru.md");
+}
+const { Content } = await render(page);
+const seo = seoForPage(Astro.site, page, { ru: page });
+
+interface ArchiveInfo {
+  name:       string;
+  format:     "md" | "pdf" | "epub";
+  url:        string;
+  size:       number;
+  size_human: string;
+  sha256:     string;
+  items:      number;
+}
+
+let archives: ArchiveInfo[] = [];
+let generatedAt: string | null = null;
+try {
+  const manifestPath = resolvePath(process.cwd(), "data", "bulk-archives.json");
+  const raw = JSON.parse(readFileSync(manifestPath, "utf-8")) as {
+    generated_at: string;
+    archives: ArchiveInfo[];
+  };
+  archives = raw.archives;
+  generatedAt = raw.generated_at;
+} catch (_) {
+  // Manifest absent during early development. Render the page without the
+  // table rather than crashing the build.
+}
+
+const FORMAT_LABEL: Record<ArchiveInfo["format"], string> = {
+  md:   "Markdown",
+  pdf:  "PDF",
+  epub: "EPUB",
+};
+const FORMAT_BLURB: Record<ArchiveInfo["format"], string> = {
+  md:   "Чистый текст всех книг, стихов и проектов с YAML-фронтматтером.",
+  pdf:  "Книги, стихи и проекты в PDF — для печати и офлайн-чтения.",
+  epub: "Книги в EPUB — для электронных читалок.",
+};
+---
+<Base locale={locale} seo={seo} alternates={{}}>
+  <article class="dl">
+    <header class="dl__head">
+      <h1>{page.data.title}</h1>
+      {page.data.sub && <p class="dl__sub">{page.data.sub}</p>}
+    </header>
+
+    <div class="prose">
+      <Content />
+    </div>
+
+    {archives.length > 0 ? (
+      <section class="dl__bundles" aria-label="Архивы корпуса">
+        <ol class="dl__list">
+          {archives.map(a => (
+            <li class="dl__row">
+              <a class="dl__link" href={a.url} download>
+                <span class="dl__label">{FORMAT_LABEL[a.format]}</span>
+                <span class="dl__name">{a.name}</span>
+              </a>
+              <p class="dl__blurb">{FORMAT_BLURB[a.format]}</p>
+              <dl class="dl__stats">
+                <div>
+                  <dt>Размер</dt>
+                  <dd>{a.size_human}</dd>
+                </div>
+                <div>
+                  <dt>Произведений</dt>
+                  <dd>{a.items.toLocaleString("ru-RU")}</dd>
+                </div>
+                <div class="dl__sha">
+                  <dt>sha256</dt>
+                  <dd><code>{a.sha256}</code></dd>
+                </div>
+              </dl>
+            </li>
+          ))}
+        </ol>
+        {generatedAt && (
+          <p class="dl__stamp">
+            Архивы пересобираются при каждом деплое.
+            Последний — <time datetime={generatedAt}>{generatedAt.slice(0, 10)}</time>.
+          </p>
+        )}
+      </section>
+    ) : (
+      <p class="dl__empty">Архивы будут собраны после следующей сборки сайта.</p>
+    )}
+  </article>
+</Base>
+
+<style>
+  .dl {
+    max-width: 56rem;
+    margin: 0 auto;
+    padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
+  }
+  .dl__head h1 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(2.6rem, 5.5vw, 4rem);
+    line-height: 1;
+    margin: 0;
+    letter-spacing: -0.012em;
+  }
+  .dl__sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--accent);
+    margin: 0.4rem 0 2.5rem;
+  }
+
+  .dl__bundles { margin-top: 3rem; }
+  .dl__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1.4rem;
+  }
+  .dl__row {
+    border-top: 1px solid var(--rule);
+    padding: 1.5rem 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .dl__row:last-child { border-bottom: 1px solid var(--rule); }
+
+  .dl__link {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    text-decoration: none;
+    color: inherit;
+    line-height: 1.2;
+  }
+  .dl__label {
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .dl__link:hover .dl__label { color: var(--accent); }
+  .dl__name {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    color: var(--ink-mute);
+  }
+
+  .dl__blurb {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 38rem;
+  }
+
+  .dl__stats {
+    margin: 0.5rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem 2rem;
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--ink-mute);
+  }
+  .dl__stats > div { display: flex; gap: 0.5rem; align-items: baseline; }
+  .dl__stats dt { letter-spacing: 0.12em; text-transform: uppercase; }
+  .dl__stats dd { margin: 0; color: var(--ink-soft); }
+  .dl__sha dd code {
+    font-family: var(--mono);
+    font-size: 11px;
+    word-break: break-all;
+    color: var(--ink-mute);
+  }
+  @media (max-width: 720px) {
+    .dl__sha { width: 100%; }
+  }
+
+  .dl__stamp {
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--ink-mute);
+    margin: 2rem 0 0;
+  }
+  .dl__empty {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--ink-mute);
+    padding: 2rem 0;
+  }
+</style>

@@ -1,0 +1,79 @@
+---
+// Concepts ↔ Books toggle. Two pressed-state buttons, equal width. Labels
+// localise through the conceptosphere `STRINGS` map; the runtime updates the
+// pressed state when the mode switches.
+//
+// Rendered twice per page (desktop toolbar + mobile toolbar). A delegated
+// `[data-cs-mode-toggle] button[data-mode]` selector drives both surfaces.
+
+import type { Locale } from "@/lib/i18n";
+import { conceptosphereStrings } from "./strings";
+
+interface Props {
+  /** "desktop" or "mobile" — used only for the wrapping class. */
+  variant: "desktop" | "mobile";
+  locale:  Locale;
+}
+
+const { variant, locale } = Astro.props;
+const t = conceptosphereStrings(locale);
+---
+<div
+  class:list={["cs-mode-toggle", `cs-mode-toggle--${variant}`]}
+  role="tablist"
+  aria-label={t.modeToggleAriaLabel}
+  data-cs-mode-toggle
+>
+  <button
+    type="button"
+    role="tab"
+    data-mode="concepts"
+    aria-selected="true"
+  >
+    {t.modes.concepts.toggleLabel}
+  </button>
+  <button
+    type="button"
+    role="tab"
+    data-mode="books"
+    aria-selected="false"
+  >
+    {t.modes.books.toggleLabel}
+  </button>
+</div>
+
+<style>
+  .cs-mode-toggle {
+    display: inline-flex;
+    background: var(--cs-panel-bg);
+    border: 1px solid var(--cs-rule);
+    border-radius: 2px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 2px;
+  }
+  .cs-mode-toggle button {
+    appearance: none;
+    background: none;
+    border: 0;
+    color: var(--cs-ink-faint);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 1px;
+    transition: color 120ms ease, background-color 120ms ease;
+  }
+  .cs-mode-toggle button:hover { color: var(--cs-ink); }
+  /* role="tab" → use aria-selected for the active state. Lighthouse's
+     aria-allowed-attr rule flags aria-pressed on tab buttons. */
+  .cs-mode-toggle button[aria-selected="true"] {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    color: var(--accent);
+  }
+
+  .cs-mode-toggle--mobile { width: 100%; margin: 0 0 10px; }
+  .cs-mode-toggle--mobile button { flex: 1; padding: 8px 10px; }
+</style>

@@ -1,0 +1,38 @@
+{
+  "number": 41,
+  "slug": "41-kogda-odin-zagovoril-vsemi",
+  "title": "Когда Один заговорил всеми",
+  "tags": [
+    "Откровение Бога",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "41-когда-один-заговорил-всеми.docx"
+      ],
+      "title": "Когда Один заговорил всеми"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Эта книга — не о религии и не о морали. Она не просит согласия и не требует следовать за ней. Это не сборник притч в обычном смысле, а живое дыхание Света, проступившее в словах. Здесь говорят не персонажи, а Присутствие. Каждая притча и каждое откровение приглашают не понять, а вспомнить: Один говорит всеми, и этот голос звучит внутри тебя.",
+      "sourceName": "Google Play Books / LitRes",
+      "sourceUrl": "https://play.google.com/store/books/details/%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B9_%D0%9F%D0%B0%D0%BD%D0%BA%D1%80%D0%B0%D1%82%D0%B8%D1%83%D1%81_%D0%9A%D0%BE%D0%B3%D0%B4%D0%B0_%D0%9E%D0%B4%D0%B8%D0%BD_%D0%B7%D0%B0%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%B2%D1%81%D0%B5%D0%BC%D0%B8_%D0%9F%D1%80%D0%B8%D1%82%D1%87?id=3naTEQAAQBAJ"
+    },
+    "en": {
+      "text": "This book is not about religion or morality. It does not ask for agreement and does not require you to follow it. It is not a collection of parables in the usual sense, but the living breath of Light breaking through in words. It is not characters who speak here, but Presence. Each parable and each revelation invites you not to understand, but to remember: The One speaks through everyone, and that voice sounds within you.",
+      "sourceName": "Google Play Books / LitRes",
+      "sourceUrl": "https://play.google.com/store/books/details/%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B9_%D0%9F%D0%B0%D0%BD%D0%BA%D1%80%D0%B0%D1%82%D0%B8%D1%83%D1%81_%D0%9A%D0%BE%D0%B3%D0%B4%D0%B0_%D0%9E%D0%B4%D0%B8%D0%BD_%D0%B7%D0%B0%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%B2%D1%81%D0%B5%D0%BC%D0%B8_%D0%9F%D1%80%D0%B8%D1%82%D1%87?id=3naTEQAAQBAJ"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/41.jpg",
+    "en": "covers/en/41.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/41-когда-один-заговорил-всеми.docx"
+    ]
+  }
+}

@@ -1,0 +1,188 @@
+---
+import type { Locale } from "@/lib/i18n";
+import { HEADER_NAV, localizePath } from "@/lib/i18n";
+import { getPage } from "@/lib/pages";
+import LanguageSwitcher from "./LanguageSwitcher.astro";
+
+interface Props {
+  locale: Locale;
+  currentPath: string;
+  alternates: Partial<Record<Locale, string>>;
+}
+
+const { locale, currentPath, alternates } = Astro.props;
+const homeHref = locale === "ru" ? "/" : "/en/";
+
+// Drop nav items whose `pageSlug` isn't authored in the current locale.
+const navItems = await Promise.all(
+  HEADER_NAV.map(async item => {
+    if (item.pageSlug) {
+      const page = await getPage(item.pageSlug, locale);
+      if (!page) return null;
+    }
+    return item;
+  }),
+).then(items => items.filter((x): x is typeof HEADER_NAV[number] => x !== null));
+
+function isCurrent(path: string): boolean {
+  const localizedPath = localizePath(path, locale);
+  return currentPath === localizedPath || currentPath.startsWith(localizedPath);
+}
+---
+<header class="rail" role="banner">
+  <a class="rail__mark" href={homeHref}>
+    <b>{locale === "ru" ? "Панкратиус" : "Pancratius"}</b>
+    <span>{locale === "ru" ? "Свет, узнающий себя." : "Light recognising itself."}</span>
+  </a>
+
+  <nav class="rail__nav" aria-label={locale === "ru" ? "Разделы" : "Sections"}>
+    {navItems.map(item => (
+      <a
+        href={localizePath(item.path, locale)}
+        aria-current={isCurrent(item.path) ? "page" : undefined}
+      >
+        {item.label[locale]}
+      </a>
+    ))}
+  </nav>
+
+  <div class="rail__right">
+    <LanguageSwitcher currentLocale={locale} alternates={alternates} />
+    <button
+      class="icon-btn"
+      id="themeBtn"
+      type="button"
+      aria-label={locale === "ru" ? "Сменить тему" : "Toggle theme"}
+    >
+      <svg class="moon" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13.2 9.8A5.5 5.5 0 1 1 6.2 2.8a5.5 5.5 0 0 0 7 7Z" />
+      </svg>
+      <svg class="sun" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="8" cy="8" r="3" />
+        <path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" />
+      </svg>
+    </button>
+  </div>
+</header>
+
+<script>
+  // Theme toggle. Reads/writes localStorage; mirrors what ThemeInit.astro
+  // does at startup. Decoupled so the toggle still works if ThemeInit didn't
+  // run for some reason.
+  const btn = document.getElementById("themeBtn");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      const root = document.documentElement;
+      const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      try { localStorage.setItem("pncr-theme", next); } catch (_) { /* ignore */ }
+    });
+  }
+</script>
+
+<style>
+  .rail {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 0.95rem var(--rail);
+    border-bottom: 1px solid var(--rule);
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: saturate(140%) blur(10px);
+    -webkit-backdrop-filter: saturate(140%) blur(10px);
+    font-family: var(--sans);
+    font-size: 13px;
+    letter-spacing: 0.01em;
+  }
+
+  .rail__mark {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.65rem;
+    font-family: var(--serif);
+    color: inherit;
+    text-decoration: none;
+  }
+  .rail__mark b {
+    font-weight: 500;
+    font-size: 17px;
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+  }
+  .rail__mark span {
+    color: var(--ink-mute);
+    font-style: italic;
+    font-size: 13.5px;
+  }
+  .rail__mark:hover b { color: var(--accent); }
+
+  .rail__nav {
+    display: flex;
+    gap: 1.4rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .rail__nav a {
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid transparent;
+    transition: color 0.18s var(--ease), border-color 0.18s var(--ease);
+    text-decoration: none;
+  }
+  .rail__nav a:hover { color: var(--ink); border-bottom-color: var(--accent); }
+  .rail__nav a[aria-current="page"] {
+    color: var(--ink);
+    border-bottom-color: var(--accent);
+  }
+
+  .rail__right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .icon-btn {
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--ink-soft);
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1px;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.18s var(--ease), border-color 0.18s var(--ease);
+  }
+  .icon-btn:hover { color: var(--accent); border-color: var(--accent-soft); }
+  .icon-btn svg { width: 14px; height: 14px; display: block; }
+  .icon-btn .moon { display: none; }
+  .icon-btn .sun  { display: block; }
+  :global([data-theme="light"]) .icon-btn .moon { display: block; }
+  :global([data-theme="light"]) .icon-btn .sun  { display: none; }
+
+  @media (max-width: 720px) {
+    .rail {
+      grid-template-columns: 1fr auto;
+      gap: 0.75rem;
+    }
+    .rail__nav {
+      order: 3;
+      grid-column: 1 / -1;
+      justify-content: flex-start;
+      gap: 1rem 1.1rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--rule);
+      margin-top: 0.6rem;
+    }
+  }
+</style>

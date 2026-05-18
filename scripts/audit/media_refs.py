@@ -1,0 +1,75 @@
+#!/usr/bin/env -S uv run --quiet
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pyyaml>=6.0"]
+# ///
+"""Every image reference in content/ resolves on disk. Works in the
+work-bundle asset model: covers are `./cover.<lang>.<ext>` and body images
+live under `./images/<hash>.<ext>` relative to each work folder."""
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+
+import yaml
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+CONTENT = ROOT / "content"
+MANIFEST = ROOT / "data" / "conversion-manifest.json"
+
+MD_IMG = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
+HTML_IMG = re.compile(r'<img[^>]+src="([^"]+)"', re.IGNORECASE)
+
+
+def main() -> int:
+    referenced = 0
+    missing: list[tuple[Path, str]] = []
+    for md in CONTENT.rglob("*.md"):
+        work_dir = md.parent
+        text = md.read_text(encoding="utf-8")
+        if text.startswith("---"):
+            end = text.find("\n---", 3)
+            if end > 0:
+                fm = yaml.safe_load(text[4:end]) or {}
+                cover = fm.get("cover")
+                if cover and isinstance(cover, str):
+                    referenced += 1
+                    target = (work_dir / cover).resolve()
+                    if not target.exists():
+                        missing.append((md, cover))
+        for m in MD_IMG.finditer(text):
+            src = m.group(1).split(' "', 1)[0].strip()
+            if src.startswith(("http://", "https://", "data:")):
+                continue
+            referenced += 1
+            target = (work_dir / src).resolve()
+            if not target.exists():
+                missing.append((md, src))
+        for m in HTML_IMG.finditer(text):
+            src = m.group(1)
+            if src.startswith(("http://", "https://", "data:")):
+                continue
+            referenced += 1
+            target = (work_dir / src).resolve()
+            if not target.exists():
+                missing.append((md, src))
+
+    print(f"image refs in content: {referenced} ({referenced - len(missing)} resolved)")
+    if MANIFEST.exists():
+        manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        roles = manifest.get("stats", {}).get("role_counts") or {}
+        print(f"role counts in manifest: {roles}")
+
+    if missing:
+        print(f"FAIL: {len(missing)} unresolved refs", file=sys.stderr)
+        for md, ref in missing[:25]:
+            print(f"  {md.relative_to(ROOT)} → {ref}", file=sys.stderr)
+        return 1
+    print("PASS")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

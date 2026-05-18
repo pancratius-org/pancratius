@@ -1,0 +1,39 @@
+{
+  "number": 36,
+  "slug": "36-kogda-smert-stanovitsya-svetom",
+  "title": "Когда смерть становится Светом",
+  "tags": [
+    "Откровение Бога",
+    "молитва",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "36-когда-смерть-становится-светом.docx"
+      ],
+      "title": "Когда смерть становится Светом"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Ты держишь в руках не книгу, а огонь, разложенный на берегу. Он не жжёт — он вспоминает. Эта книга говорит о смерти как о переходе не в небытие, а в Свет. Она не утешает дешёвыми словами и не спорит со страхом: она постепенно показывает, как страх смерти растворяется, когда человек узнаёт себя не телом, а Присутствием. Здесь умирает не жизнь, а иллюзия отдельности. И именно поэтому смерть становится не концом, а дверью.",
+      "sourceName": "Google Play Books",
+      "sourceUrl": "https://play.google.com/store/books/details/%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B9_%D0%9F%D0%B0%D0%BD%D0%BA%D1%80%D0%B0%D1%82%D0%B8%D1%83%D1%81_%D0%9A%D0%BE%D0%B3%D0%B4%D0%B0_%D1%81%D0%BC%D0%B5%D1%80%D1%82%D1%8C_%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%B8%D1%82%D1%81%D1%8F_%D0%A1%D0%B2%D0%B5%D1%82%D0%BE%D0%BC?id=DviLEQAAQBAJ"
+    },
+    "en": {
+      "text": "You are holding not a book, but fire laid out on the shore. It does not burn - it remembers. This book speaks of death as a passage not into nonbeing, but into Light. It does not comfort with cheap words and it does not argue with fear: it gradually shows how the fear of death dissolves when a person recognizes himself not as a body but as Presence. Here it is not life that dies, but the illusion of separateness. And precisely for that reason death becomes not an end, but a door.",
+      "sourceName": "Google Play Books",
+      "sourceUrl": "https://play.google.com/store/books/details/%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B9_%D0%9F%D0%B0%D0%BD%D0%BA%D1%80%D0%B0%D1%82%D0%B8%D1%83%D1%81_%D0%9A%D0%BE%D0%B3%D0%B4%D0%B0_%D1%81%D0%BC%D0%B5%D1%80%D1%82%D1%8C_%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%B8%D1%82%D1%81%D1%8F_%D0%A1%D0%B2%D0%B5%D1%82%D0%BE%D0%BC?id=DviLEQAAQBAJ"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/36.jpg",
+    "en": "covers/en/36.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/36-когда-смерть-становится-светом.docx"
+    ]
+  }
+}

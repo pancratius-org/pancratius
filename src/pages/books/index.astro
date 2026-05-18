@@ -1,0 +1,70 @@
+---
+import Base           from "@/layouts/Base.astro";
+import BookCard       from "@/components/BookCard.astro";
+import LibraryFilter  from "@/components/LibraryFilter.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { kindIndexUrl } from "@/lib/i18n";
+import { seoForKindIndex, clampDescription } from "@/lib/seo";
+import { getPairsByKind, workTags } from "@/lib/works";
+
+const locale: Locale = "ru";
+const pairs = await getPairsByKind("book");
+const seo = seoForKindIndex(Astro.site, "book", locale);
+
+const tagCounts = new Map<string, number>();
+for (const p of pairs) {
+  for (const t of workTags(p.ru)) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+}
+const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count }));
+
+const alternates = { en: new URL(kindIndexUrl("book", "en"), Astro.site).toString() };
+---
+<Base locale={locale} seo={seo} alternates={alternates}>
+  <section class="page lib">
+    <p class="eyebrow">Обсерватория Света</p>
+    <div class="lib__head">
+      <h1><b>{pairs.length}</b> книги</h1>
+    </div>
+
+    <LibraryFilter locale={locale} tags={tags} total={pairs.length} />
+
+    <div class="index" role="list" data-pagefind-ignore>
+      {pairs.map(p => (
+        <BookCard pair={p} locale={locale} blurb={clampDescription(p.ru.data.description, 120)} />
+      ))}
+    </div>
+  </section>
+</Base>
+
+<style>
+  .lib__head {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 2.5rem;
+  }
+  .lib__head h1 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(2.8rem, 7vw, 5rem);
+    line-height: 0.98;
+    margin: 0;
+    letter-spacing: -0.018em;
+  }
+  .lib__head h1 b {
+    font-weight: 500;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .index {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2.25rem 2rem;
+    margin-top: 1rem;
+  }
+  @media (max-width: 720px) {
+    .index { grid-template-columns: 1fr; gap: 1.75rem; }
+  }
+</style>

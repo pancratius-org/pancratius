@@ -1,0 +1,83 @@
+---
+import type { Locale } from "@/lib/i18n";
+import { LOCALES, LOCALE_LABEL, LOCALE_NAME } from "@/lib/i18n";
+
+interface Props {
+  currentLocale: Locale;
+  /** Map locale → absolute URL if a sibling page exists in that locale. */
+  alternates: Partial<Record<Locale, string>>;
+}
+
+const { currentLocale, alternates } = Astro.props;
+---
+<nav class="lang" aria-label={currentLocale === "ru" ? "Язык страницы" : "Page language"}>
+  {LOCALES.map(loc => {
+    const isCurrent = loc === currentLocale;
+    const href = alternates[loc];
+    const hasAlt = !!href;
+    const label = LOCALE_LABEL[loc];
+    const name = LOCALE_NAME[currentLocale][loc];
+    // Accessible name starts with the visible text so axe's
+    // `label-content-name-mismatch` (WCAG 2.5.3) is satisfied.
+    const accLabel = `${label} — ${name}`;
+    if (isCurrent) {
+      return (
+        <span class="lang__btn is-current" aria-current="true" aria-label={accLabel}>
+          {label}
+        </span>
+      );
+    }
+    if (hasAlt) {
+      return (
+        <a class="lang__btn" href={href} hreflang={loc} aria-label={accLabel}>
+          {label}
+        </a>
+      );
+    }
+    const noTranslation = currentLocale === "ru" ? "нет перевода" : "no translation available";
+    return (
+      <span
+        class="lang__btn is-disabled"
+        aria-disabled="true"
+        aria-label={`${label} — ${noTranslation}`}
+      >
+        {label}
+      </span>
+    );
+  })}
+</nav>
+
+<style>
+  .lang {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-family: var(--sans);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+  }
+  .lang__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 28px;
+    padding: 0 0.5rem;
+    border: 1px solid var(--rule);
+    border-radius: 1px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: color 0.18s var(--ease), border-color 0.18s var(--ease);
+  }
+  .lang__btn:hover { color: var(--accent); border-color: var(--accent-soft); }
+  .lang__btn.is-current {
+    color: var(--ink);
+    border-color: var(--accent-soft);
+    background: var(--accent-mute);
+  }
+  .lang__btn.is-disabled {
+    color: var(--ink-mute);
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+</style>

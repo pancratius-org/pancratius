@@ -1,0 +1,38 @@
+{
+  "number": 32,
+  "slug": "32-knyaz-mira-sego",
+  "title": "Князь мира сего",
+  "tags": [
+    "Откровение Бога",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "32-князь-мира-сего.docx"
+      ],
+      "title": "Князь мира сего"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Книга раскрывает, как привычные представления о Боге, человеке и жизни превращаются в невидимые цепи, а истина возвращает свободу взгляда. Здесь не спорят с миром и не навязывают догму — здесь бережно снимают маски с мыслей, которые веками воспринимались как нормальные. 200 ложных убеждений разобраны и заменены 200 ясными истинами, чтобы человек снова увидел Бога как Любовь и Свет, себя — как созданного для свободы, а радость — как то, что рождается внутри. Это путь очищения взгляда, на котором рушатся тени и проступает Свет, всегда уже бывший твоим.",
+      "sourceName": "Apple Books / LitRes",
+      "sourceUrl": "https://books.apple.com/us/book/%D0%BA%D0%BD%D1%8F%D0%B7%D1%8C-%D0%BC%D0%B8%D1%80%D0%B0-%D1%81%D0%B5%D0%B3%D0%BE/id6753267638"
+    },
+    "en": {
+      "text": "The book reveals how ordinary ideas about God, human beings, and life turn into invisible chains, while truth restores the freedom of sight. Here no one argues with the world or imposes a dogma - here the masks are gently lifted from thoughts that have been accepted as normal for centuries. 200 false beliefs are dismantled and replaced with 200 clear truths so that a person may once again see God as Love and Light, themselves as created for freedom, and joy as something born within. It is a path of purification of the gaze, along which shadows fall apart and Light emerges, always already yours.",
+      "sourceName": "Apple Books / LitRes",
+      "sourceUrl": "https://books.apple.com/us/book/%D0%BA%D0%BD%D1%8F%D0%B7%D1%8C-%D0%BC%D0%B8%D1%80%D0%B0-%D1%81%D0%B5%D0%B3%D0%BE/id6753267638"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/32.jpg",
+    "en": "covers/en/32.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/32-князь-мира-сего.docx"
+    ]
+  }
+}

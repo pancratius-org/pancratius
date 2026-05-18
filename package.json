@@ -1,0 +1,39 @@
+{
+  "name": "pancratius",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pancratius — open-access library of Sergey Orekhov's spiritual writings",
+  "license": "CC0-1.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "npm run prebuild && astro dev",
+    "build": "npm run prebuild && astro check && astro build && uv run scripts/build_copy_body_images.py && uv run scripts/build_bulk_archives.py --publish && pagefind --site dist",
+    "preview": "astro preview",
+    "check": "npm run prebuild && astro check",
+    "astro": "astro",
+    "search:index": "pagefind --site dist",
+    "test:smoke": "playwright test",
+    "prebuild": "npm run prebuild:slug-map && npm run prebuild:graph-payloads && npm run prebuild:bulk-archives",
+    "prebuild:slug-map": "uv run scripts/build_slug_map.py",
+    "prebuild:graph-payloads": "uv run scripts/build_copy_graph_payloads.py",
+    "prebuild:bulk-archives": "uv run scripts/build_bulk_archives.py"
+  },
+  "dependencies": {
+    "@astrojs/rss": "^4.0.18",
+    "@astrojs/sitemap": "^3.7.2",
+    "astro": "^6.3.3",
+    "graphology": "^0.26.0",
+    "graphology-layout-forceatlas2": "^0.10.1",
+    "pagefind": "^1.5.2",
+    "sigma": "^3.0.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^24.12.4",
+    "typescript": "^6.0.3"
+  }
+}

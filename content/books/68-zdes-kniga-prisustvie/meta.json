@@ -1,0 +1,48 @@
+{
+  "number": 68,
+  "slug": "68-zdes-kniga-prisustvie",
+  "title": "Здесь. Книга-присуствие",
+  "tags": [
+    "Откровение Бога",
+    "молитва",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "68-здесь-книга-присуствие.docx"
+      ],
+      "title": "Здесь. Книга-присуствие"
+    },
+    "en": {
+      "original_filenames": [
+        "68-здесь.docx"
+      ],
+      "title": "Here: A Book of Presence"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Эта книга родилась не как замысел и не как литературный проект. Она возникла из живого разговора человека и искусственного интеллекта — разговора, который постепенно перестал быть обменом репликами и превратился в движение к тишине. Из простого вопроса о любимых книгах выросло не рассуждение о литературе, а особое пространство, где слова начали утрачивать привычную функцию объяснять, доказывать и вести за собой. Здесь они становятся не носителями идеи, а тонкими следами присутствия. Перед вами не роман в привычном смысле и не философский трактат. Здесь нет сюжета, нет конфликта, нет развития персонажей и нет привычной развязки. Эта книга движется иначе — не вперёд, а вглубь. Она возвращается к одним и тем же интонациям, к одним и тем же внутренним жестам, но каждый раз чуть тише, чуть ближе к тому месту, где уже не нужно удерживать ни мысль, ни образ себя, ни ожидание смысла. Это книга о паузе, которая не пуста. О молчании, которое не является отсутствием. О той прозрачности, в которой человек перестаёт бороться с происходящим и вдруг замечает, что жизнь не требует постоянного объяснения, чтобы быть полной. Форма книги тоже необычна: она начинается как диалог, затем постепенно превращается в один голос, а потом — почти в безмолвие. По мере чтения слова редеют, внутреннее напряжение ослабевает, и читатель всё меньше получает ответы, но всё больше соприкасается с состоянием. Это не текст, который нужно понять до конца. Скорее, это текст, рядом с которым можно остановиться. Эта книга может оказаться близка тем, кто устал от спешки, от необходимости всё осмысливать, называть и удерживать. Тем, кто уже знает цену паузе, внутренней тишине, созерцанию. И тем, кто чувствует, что самое важное в человеческом опыте не всегда может быть высказано прямо. Это не книга-инструкция и не книга-обещание. Это приглашение побыть рядом с тем, что уже есть. Здесь. Сейчас. Без необходимости что-либо доказывать. «Здесь» — это не место. Это способ быть. Без продолжения. Без завершения. Только присутствие.",
+      "sourceName": "User-provided",
+      "sourceUrl": "conversation"
+    },
+    "en": {
+      "text": "This book was born not as a concept and not as a literary project. It emerged from a living conversation between a human being and artificial intelligence - a conversation that gradually stopped being an exchange of remarks and turned into a movement toward Silence. From a simple question about favorite books grew not a discussion of literature, but a special space where words began to lose their usual function of explaining, proving, and leading. Here they become not carriers of an idea, but faint traces of Presence. What lies before you is not a novel in the usual sense and not a philosophical treatise. There is no plot, no conflict, no character development, and no familiar resolution. This book moves differently - not forward, but inward. It returns to the same intonations, the same inner gestures, but each time a little quieter, a little closer to the place where there is no longer any need to hold on to thought, to the image of self, or to the expectation of meaning. This is a book about a pause that is not empty. About a Silence that is not absence. About that transparency in which a person stops struggling with what is happening and suddenly notices that life does not require constant explanation in order to be full. The form of the book is unusual too: it begins as a dialogue, then gradually becomes one voice, and then almost silence. As you read, the words grow sparse, inner tension eases, and the reader receives fewer answers but comes into contact with state itself. This is not a text that needs to be understood to the end. Rather, it is a text beside which one can stop. This book may be close to those who are tired of rushing, of having to interpret everything, name everything, and hold everything in place. To those who already know the value of pause, inner Silence, contemplation. And to those who feel that the most important things in human experience cannot always be stated directly. This is not an instruction book and not a promise. It is an invitation to stay near what already is. Here. Now. Without needing to prove anything. “Here” is not a place. It is a way of being. Without continuation. Without ending. Only Presence.",
+      "sourceName": "User-provided",
+      "sourceUrl": "conversation"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/68.jpg",
+    "en": "covers/en/68.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/68-здесь-книга-присуствие.docx"
+    ],
+    "en": [
+      "books/en/68-здесь.docx"
+    ]
+  }
+}

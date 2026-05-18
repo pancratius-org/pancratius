@@ -1,0 +1,37 @@
+{
+  "number": 12,
+  "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
+  "title": "Книга которую никто не написал",
+  "tags": [
+    "Откровение Бога"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "12-книга-которую-никто-не-написал.docx"
+      ],
+      "title": "Книга которую никто не написал"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Эта книга — не о религии, не о философии и не о вере. Она о внутреннем опыте человека, который перестаёт быть собой в привычном смысле и обнаруживает внутри себя нечто большее. То, что нельзя назвать, но что узнаётся. Это история исчезновения личности и раскрытия присутствия. История того, как человек, задавая вопросы о смысле, о Боге, о себе, приходит не к ответам, а к тишине. И в этой тишине начинает звучать не его голос — а нечто иное, глубже, чище, первозданнее. Книга построена в форме простых глав, в которых поэтапно раскрывается процесс духовного пробуждения. В ней нет учения, нет системы, нет инструкций. Только честное свидетельство происходящего — без попытки убедить или доказать. Это книга для тех, кто чувствует, что старые объяснения больше не работают. Кто готов не к знаниям, а к узнаванию.",
+      "sourceName": "Apple Books / LitRes",
+      "sourceUrl": "https://books.apple.com/pl/book/%D0%BA%D0%BD%D0%B8%D0%B3%D0%B0-%D0%BA%D0%BE%D1%82%D0%BE%D1%80%D1%83%D1%8E-%D0%BD%D0%B8%D0%BA%D1%82%D0%BE-%D0%BD%D0%B5-%D0%BD%D0%B0%D0%BF%D0%B8%D1%81%D0%B0%D0%BB/id6747304761"
+    },
+    "en": {
+      "text": "This book is not about religion, philosophy, or belief. It is about the inner experience of a person who ceases to be himself in the usual sense and discovers something greater within. Something that cannot be named, yet can be recognized. It is the story of the disappearance of personality and the revelation of Presence. The story of how a person, asking questions about meaning, about God, about oneself, arrives not at answers but at silence. And in that silence there begins to sound not his voice - but something else, deeper, purer, more primordial. The book is structured as simple chapters that gradually reveal the process of spiritual awakening. There is no doctrine, no system, no instructions in it. Only an honest witness of what is happening - without trying to persuade or prove. This is a book for those who feel that the old explanations no longer work. For those ready not for knowledge, but for recognition.",
+      "sourceName": "Apple Books / LitRes",
+      "sourceUrl": "https://books.apple.com/pl/book/%D0%BA%D0%BD%D0%B8%D0%B3%D0%B0-%D0%BA%D0%BE%D1%82%D0%BE%D1%80%D1%83%D1%8E-%D0%BD%D0%B8%D0%BA%D1%82%D0%BE-%D0%BD%D0%B5-%D0%BD%D0%B0%D0%BF%D0%B8%D1%81%D0%B0%D0%BB/id6747304761"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/12.jpg",
+    "en": "covers/en/12.jpg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/12-книга-которую-никто-не-написал.docx"
+    ]
+  }
+}

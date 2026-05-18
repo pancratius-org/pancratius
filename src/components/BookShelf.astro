@@ -1,0 +1,122 @@
+---
+import type { Locale } from "@/lib/i18n";
+import type { WorkPair } from "@/lib/works";
+import { workUrl } from "@/lib/i18n";
+import BookCover from "./BookCover.astro";
+
+interface Props {
+  pairs:  WorkPair[];
+  locale: Locale;
+  /** ARIA label for the horizontal shelf region. */
+  label:  string;
+}
+
+const { pairs, locale, label } = Astro.props;
+---
+{/*
+  Only show works that have an entry in the current locale. On /en/ this
+  silently drops RU-only books rather than rendering them with Russian
+  titles inside an English context (and linking back to /books/{slug}/ —
+  surprising in an EN navigation flow).
+*/}
+{(() => null)()}
+<section class="shelf" aria-label={label}>
+  <div class="shelf__edge shelf__edge--left" aria-hidden="true"></div>
+  <div class="shelf__rail">
+    {pairs.map((pair, i) => {
+      const entry = locale === "en" ? pair.en : pair.ru;
+      if (!entry) return null;
+      const href = workUrl(pair.kind, entry.data.slug, locale);
+      const altPrefix = locale === "en" ? "Cover" : "Обложка";
+      // The first shelf cover is the LCP element on the mobile homepage —
+      // ship it eagerly so it isn't fetched after the browser hits the lazy
+      // queue. The rest stay lazy.
+      const loading = i === 0 ? "eager" : "lazy";
+      return (
+        <a class="shelf__item" href={href}>
+          <BookCover pair={pair} locale={locale} alt={`${altPrefix}: ${entry.data.title}`} loading={loading} />
+          <span class="shelf__num">{String(pair.number).padStart(2, "0")}</span>
+          <span class="shelf__title">{entry.data.title}</span>
+        </a>
+      );
+    })}
+  </div>
+  <div class="shelf__edge shelf__edge--right" aria-hidden="true"></div>
+</section>
+
+<style>
+  .shelf {
+    position: relative;
+    margin: 0 calc(-1 * var(--rail));
+    padding: 1.5rem 0 2rem;
+  }
+  .shelf__rail {
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 1rem var(--rail) 2rem;
+    scroll-snap-type: x proximity;
+    scroll-padding-left: var(--rail);
+    scrollbar-width: thin;
+    scrollbar-color: var(--rule-2) transparent;
+  }
+  .shelf__rail::-webkit-scrollbar { height: 6px; }
+  .shelf__rail::-webkit-scrollbar-track { background: transparent; }
+  .shelf__rail::-webkit-scrollbar-thumb {
+    background: var(--rule); border-radius: 999px;
+  }
+  .shelf__rail::-webkit-scrollbar-thumb:hover { background: var(--rule-2); }
+
+  .shelf__item {
+    flex: 0 0 auto;
+    width: 156px;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    text-decoration: none;
+    color: inherit;
+  }
+  .shelf__item :global(.bcv) {
+    transition: border-color 0.18s var(--ease);
+  }
+  .shelf__item:hover :global(.bcv) {
+    border-color: var(--accent-soft);
+  }
+  .shelf__item:hover :global(.bcv img) { opacity: 1; }
+  .shelf__num {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-mute);
+    letter-spacing: 0.12em;
+  }
+  .shelf__title {
+    font-family: var(--serif);
+    font-size: 13.5px;
+    line-height: 1.3;
+    color: var(--ink-soft);
+    font-style: italic;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .shelf__item:hover .shelf__title { color: var(--ink); }
+
+  .shelf__edge {
+    position: absolute;
+    top: 1rem;
+    bottom: 2rem;
+    width: 3rem;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .shelf__edge--left  { left: 0;  background: linear-gradient(90deg,  var(--bg), transparent); }
+  .shelf__edge--right { right: 0; background: linear-gradient(270deg, var(--bg), transparent); }
+
+  @media (max-width: 720px) {
+    .shelf__item { width: 132px; }
+  }
+</style>

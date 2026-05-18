@@ -1,0 +1,48 @@
+{
+  "number": 50,
+  "slug": "50-mamona-pochemu-ty-v-ego-vlasti-i-kak-vyi-ti-v-svet-zdes-i-sei-chas",
+  "title": "Мамона. Почему ты в его власти и как выйти в Свет здесь и сейчас",
+  "tags": [
+    "Откровение Бога",
+    "наука",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "50-мамона-почему-ты-в-его-власти-и-как-выи-ти-в-свет-здесь-и-сеи-час.docx"
+      ],
+      "title": "Мамона. Почему ты в его власти и как выйти в Свет здесь и сейчас"
+    },
+    "en": {
+      "original_filenames": [
+        "50-мамона-почему-ты-в-его-власти-и-как-выи-ти-в-свет-здесь-и-сеи-час.docx"
+      ],
+      "title": "Mammon: Why You Are in His Power and How to Step into the Light Here and Now"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "«Мамона» — это книга не о деньгах, а о власти иллюзии. О системе, которая незаметно формирует мышление, страхи и желания человека, подменяя живое чувство жизни идеей дефицита. Эта книга показывает, как Мамона проявляется не только в экономике, но и в повседневных решениях, отношениях, самооценке и страхе будущего. Книга указывает на источник силы этой иллюзии — внутреннее согласие человека с логикой дефицита. Это путь распознавания иллюзии и выхода из неё через ясность, присутствие и возвращение к целостности.",
+      "sourceName": "Litres",
+      "sourceUrl": "https://www.litres.ru/book/sergey-pankratius/mamona-pochemu-ty-v-ego-vlasti-i-kak-vyyti-v-svet-zdes-i-73064398/"
+    },
+    "en": {
+      "text": "“Mammon” is a book not about money, but about the power of illusion. About a system that quietly shapes a person’s thinking, fears, and desires, substituting the living feeling of life with the idea of scarcity. This book shows how Mammon manifests not only in economics, but also in everyday decisions, relationships, self-esteem, and the fear of the future. The book points to the source of this illusion’s power - a person’s inner agreement with the logic of scarcity. It is a path of recognizing illusion and stepping out of it through clarity, Presence, and a return to wholeness.",
+      "sourceName": "Litres",
+      "sourceUrl": "https://www.litres.ru/book/sergey-pankratius/mamona-pochemu-ty-v-ego-vlasti-i-kak-vyyti-v-svet-zdes-i-73064398/"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/50.jpg",
+    "en": "covers/en/50.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/50-мамона-почему-ты-в-его-власти-и-как-выи-ти-в-свет-здесь-и-сеи-час.docx"
+    ],
+    "en": [
+      "books/en/50-мамона-почему-ты-в-его-власти-и-как-выи-ти-в-свет-здесь-и-сеи-час.docx"
+    ]
+  }
+}

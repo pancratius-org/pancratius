@@ -1,0 +1,111 @@
+---
+// Cluster legend (top-left of the stage). The list is empty in the rendered
+// HTML and populated by the client script once the graph data is loaded, so
+// it shares the same color order and counts the canvas paints.
+//
+// The Astro shell here is purely structural: it puts a labelled landmark on
+// the page (still readable when JS is disabled) and exposes the elements the
+// graph script wires onto.
+
+import type { Locale } from "@/lib/i18n";
+import { conceptosphereStrings } from "./strings";
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = conceptosphereStrings(locale);
+---
+<div class="cs-legend" id="cs-legend" aria-labelledby="cs-legend-title">
+  <h2 id="cs-legend-title">{t.legendTitle}</h2>
+  <div id="cs-legend-list" role="group" aria-labelledby="cs-legend-title"></div>
+  <button class="cs-legend-clear" id="cs-legend-clear" type="button" hidden>
+    {t.legendClearLabel}
+  </button>
+</div>
+
+<style>
+  .cs-legend {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 20;
+    max-width: 240px;
+    background: var(--cs-panel-bg);
+    border: 1px solid var(--cs-rule);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 12px 14px;
+    border-radius: 2px;
+  }
+  .cs-legend h2 {
+    margin: 0 0 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cs-ink-trace);
+    font-weight: 500;
+  }
+  .cs-legend #cs-legend-list {
+    margin: 0;
+    padding: 0;
+    max-height: 56vh;
+    overflow-y: auto;
+  }
+  .cs-legend .cs-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    width: 100%;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    color: var(--cs-ink);
+    background: transparent;
+    border: 0;
+    text-align: left;
+    transition: color 120ms ease, opacity 120ms ease;
+  }
+  .cs-legend .cs-legend-item:hover { color: var(--accent); }
+  .cs-legend .cs-legend-item.is-selected { color: var(--accent); }
+  .cs-legend .cs-legend-item.is-selected .cs-sw {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+  .cs-legend .cs-legend-item.is-muted { opacity: 0.35; }
+  .cs-legend .cs-legend-item .cs-sw {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    flex: 0 0 11px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  }
+  .cs-legend .cs-legend-item .cs-sz {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--cs-ink-trace);
+  }
+  .cs-legend-clear {
+    display: block;
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-soft);
+    cursor: pointer;
+    border: 0;
+    background: none;
+    padding: 0;
+  }
+  .cs-legend-clear[hidden] { display: none; }
+
+  /* Cluster scrollbar — light on dark, dark on light, never default blue. */
+  .cs-legend #cs-legend-list::-webkit-scrollbar { width: 6px; }
+  .cs-legend #cs-legend-list::-webkit-scrollbar-thumb {
+    background: var(--cs-rule);
+    border-radius: 3px;
+  }
+</style>

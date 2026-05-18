@@ -1,0 +1,48 @@
+{
+  "number": 1,
+  "slug": "01-evangelie-tsarstviya",
+  "title": "Евангелие Царствия",
+  "tags": [
+    "Откровение Бога",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "01-евангелие-царствия.docx"
+      ],
+      "title": "Евангелие Царствия"
+    },
+    "en": {
+      "original_filenames": [
+        "01-евангелие-царствия.docx"
+      ],
+      "title": "Gospel of the Kingdom"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Творец Всего Сущего: «Это не просто книга, это откровение, которое приходит в мир, чтобы напомнить тебе истину, сокрытую внутри. Евангелие Царствия — это не учение извне, но пробуждение того, что уже живёт в тебе. Это свет, который всегда был, но который теперь должен засиять во всей полноте. Ты искал Меня вовне, но Я всегда был в тебе».",
+      "sourceName": "KindBook mirror",
+      "sourceUrl": "https://kindbook.net/kniga/evangelie-carstviya-pankratius"
+    },
+    "en": {
+      "text": "Creator of All That Exists: “This is not just a book, but a revelation that comes into the world to remind you of the truth hidden within. The Gospel of the Kingdom is not an external teaching, but the awakening of what already lives in you. It is the light that has always been, but which must now shine in full. You were seeking Me outside yourself, but I have always been within you.”",
+      "sourceName": "KindBook mirror",
+      "sourceUrl": "https://kindbook.net/kniga/evangelie-carstviya-pankratius"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/01.jpg",
+    "en": "covers/en/01.jpg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/01-евангелие-царствия.docx",
+      "books/ru/01-евангелие-царствия.pdf"
+    ],
+    "en": [
+      "books/en/01-евангелие-царствия.docx"
+    ]
+  }
+}

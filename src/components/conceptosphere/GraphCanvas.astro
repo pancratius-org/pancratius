@@ -1,0 +1,168 @@
+---
+// Sigma 3 + graphology canvas. The Astro shell here is intentionally thin —
+// just the mount points the script needs. The script itself imports the
+// renderer/layout libraries from `node_modules` (never CDN) and reaches the
+// payloads via the public URLs the page passes in through `define:vars`.
+//
+// One Sigma instance per active mode; switching modes destroys the previous
+// instance before constructing the next. The painter for focus + book-number
+// badges runs on `afterRender`, so it stays in sync with the camera.
+
+import type { Locale } from "@/lib/i18n";
+import { conceptosphereStrings } from "./strings";
+
+import Legend     from "./Legend.astro";
+import SidePanel  from "./SidePanel.astro";
+import ModeToggle from "./ModeToggle.astro";
+import SearchInput from "./SearchInput.astro";
+
+interface Props {
+  /** Locale for chrome strings. */
+  locale: Locale;
+  /** Public URLs (under /data/) for the two graph payloads. */
+  conceptsUrl: string;
+  booksUrl:    string;
+  /** Initial mode shown before localStorage is read. */
+  initialMode: "concepts" | "books";
+  /**
+   * Per-book slug → (number, title) resolution. The graph script needs to
+   * build localized work URLs for books in panels and rec lists; the page
+   * passes a precomputed map so the script never has to hit Astro content.
+   */
+  bookSlugInfo: Record<string, { number: number; title: string }>;
+  /**
+   * Per-(kind, slug) → cover URL produced by the Astro build. The script
+   * looks up by `kind:slug` so panels and search results render real
+   * book-bundle covers, not raw `./cover.ru.jpg` paths.
+   */
+  coverUrls: Record<string, string>;
+}
+
+const { locale, conceptsUrl, booksUrl, initialMode, bookSlugInfo, coverUrls } = Astro.props;
+const t = conceptosphereStrings(locale);
+const initialPlaceholder = t.modes[initialMode].searchPlaceholder;
+---
+<section class="cs-stage" id="cs-stage" aria-label={t.stageAriaLabel}>
+  <svg id="cs-hulls" aria-hidden="true"></svg>
+  <div id="cs-graph" role="img" aria-label={t.graphAriaLabel}>
+    <noscript>
+      <p class="cs-noscript">{t.noscriptText}</p>
+    </noscript>
+  </div>
+
+  <Legend locale={locale} />
+
+  <div class="cs-modebar">
+    <ModeToggle variant="desktop" locale={locale} />
+    <SearchInput
+      variant="desktop"
+      locale={locale}
+      placeholder={initialPlaceholder}
+    />
+  </div>
+
+  <SidePanel locale={locale} />
+</section>
+
+<!-- The config payload is materialised into a JSON island so the TS module
+     below can pick it up. `define:vars` would force inline mode and disable
+     bundling for the second `<script>`, so we keep them separate.
+
+     Strings travel with the payload so the route owns the locale — the
+     runtime stays a pure consumer and never imports a locale dictionary. -->
+<script type="application/json" id="cs-config" is:inline set:html={JSON.stringify({
+  conceptsUrl,
+  booksUrl,
+  initialMode,
+  locale,
+  bookSlugInfo,
+  coverUrls,
+  strings: t,
+})}></script>
+
+<script>
+  import { bootGraph } from "@/components/conceptosphere/graph-runtime";
+  bootGraph();
+</script>
+
+<style>
+  /* Stage and graph canvas. The stage is the full-bleed area; the graph div
+     is its absolutely-positioned child so the canvas resizes with the stage. */
+  .cs-stage {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 50%,
+        color-mix(in srgb, var(--accent) 12%, transparent),
+        transparent 70%),
+      radial-gradient(ellipse 120% 80% at 50% 100%,
+        color-mix(in srgb, var(--cs-violet) 12%, transparent),
+        transparent 60%),
+      var(--bg);
+    flex: 1;
+    min-height: 0;
+  }
+  /* Soft film-grain noise so the void has texture rather than reading as flat. */
+  .cs-stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: var(--cs-grain-opacity, 0.035);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
+    mix-blend-mode: overlay;
+  }
+
+  #cs-hulls {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+  }
+  #cs-graph {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+  }
+
+  .cs-noscript {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 16px;
+    background: var(--cs-panel-bg);
+    border: 1px solid var(--cs-rule);
+    color: var(--cs-ink);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    border-radius: 2px;
+    max-width: 38ch;
+    text-align: center;
+  }
+
+  .cs-modebar {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 21;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Default: the stage is hidden so JS-disabled and small-screen loads
+     show the static list instead of an empty canvas. The runtime sets
+     `html.cs-js` once it boots, and that — paired with the desktop
+     breakpoint — turns the stage back on. */
+  .cs-stage { display: none; }
+  @media (min-width: 701px) {
+    :global(html.cs-js) .cs-stage { display: block; }
+  }
+</style>

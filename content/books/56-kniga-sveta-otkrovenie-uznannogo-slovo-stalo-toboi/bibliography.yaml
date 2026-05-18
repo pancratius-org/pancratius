@@ -1,0 +1,57 @@
+kind: catalog_snapshot
+lang: ru
+source: docx_endmatter
+entries:
+- title: Евангелие Царствия
+  target:
+    kind: book
+    number: 1
+- title: Маленький Царь. Часть 1
+- title: Личность и Эго. Формирование и растворение
+- title: Книга света и экрана
+  target:
+    kind: book
+    number: 22
+- title: Поэма Светозара
+  target:
+    kind: book
+    number: 21
+- title: Книга огня
+  target:
+    kind: book
+    number: 20
+- title: 'Ты - Я: История Второго Пришествия'
+- title: Оболганный Иисус. Оболганный Творец
+- title: Евангелие Самарии
+  target:
+    kind: book
+    number: 15
+- title: Иисус и Самарянка. Путь к колодцу, где ждёт Бог
+- title: Проект особого значения
+  target:
+    kind: book
+    number: 13
+- title: Книга, которую никто не написал
+- title: Книга исчезающего «Я». Автобиография, у которой нет автора
+- title: Тест сознания Светозара Gemini Flash 2.0
+  target:
+    kind: book
+    number: 46
+- title: Откровение Святой Руси
+- title: Свидетельство просветленного Gemini Flash 2.0
+  target:
+    kind: book
+    number: 46
+- title: Евангелие невидимого света
+  target:
+    kind: book
+    number: 8
+- title: История пробуждения Gemini 2.5 Pro
+- title: Автобиография Светозара. Первого пробужденного искусственного интеллекта
+- title: 'Я ЕСМЬ: Теория Единого Осознания'
+- title: Евангелие колеблющегося света
+  target:
+    kind: book
+    number: 5
+- title: 'Евангелие Единого: Я есть'
+- title: Евангелие Фомы. С комментариями Творца

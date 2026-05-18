@@ -1,0 +1,20 @@
+---
+// Synchronous theme bootstrap. Renders an inline <script> with no module/defer
+// attributes so it runs before the first paint. Sets data-theme on <html>
+// from localStorage; falls back to `prefers-color-scheme`. Dark is the
+// designed default; light is an intentional alternate register.
+---
+<script is:inline>
+(function () {
+  try {
+    var saved = localStorage.getItem("pncr-theme");
+    var prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+    var theme = (saved === "light" || saved === "dark")
+      ? saved
+      : (prefersLight ? "light" : "dark");
+    document.documentElement.setAttribute("data-theme", theme);
+  } catch (_) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>

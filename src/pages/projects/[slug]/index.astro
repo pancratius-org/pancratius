@@ -1,0 +1,93 @@
+---
+import type { GetStaticPaths } from "astro";
+import { render } from "astro:content";
+
+import Base       from "@/layouts/Base.astro";
+import BookCover  from "@/components/BookCover.astro";
+import Colophon   from "@/components/Colophon.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { kindIndexUrl, workUrl } from "@/lib/i18n";
+import { seoForWork } from "@/lib/seo";
+import { getPairsByKind, type WorkPair } from "@/lib/works";
+
+const locale: Locale = "ru";
+
+export const getStaticPaths = (async () => {
+  const pairs = await getPairsByKind("project");
+  return pairs.map(p => ({ params: { slug: p.ru.data.slug }, props: { pair: p } }));
+}) satisfies GetStaticPaths;
+
+interface Props { pair: WorkPair; }
+const { pair } = Astro.props;
+const entry = pair.ru;
+const { Content } = await render(entry);
+const coverUrl = await (await import("@/lib/covers")).coverAbsoluteUrl(Astro.site, pair, locale);
+const seo = seoForWork(Astro.site, { pair, locale, coverUrl });
+const alternates: Partial<Record<Locale, string>> = {};
+if (pair.en) alternates.en = new URL(workUrl("project", pair.en.data.slug, "en"), Astro.site).toString();
+const backHref = kindIndexUrl("project", locale);
+---
+<Base locale={locale} seo={seo} alternates={alternates}>
+  <article class="project-page" data-pagefind-body>
+    <a class="project-page__back" href={backHref}>← к проектам</a>
+
+    <header class="project-page__head">
+      <div class="project-page__cover">
+        <BookCover pair={pair} locale={locale} alt={`Обложка проекта: ${entry.data.title}`} loading="eager" />
+      </div>
+      <div>
+        <p class="project-page__meta">Проект</p>
+        <h1 class="project-page__title">{entry.data.title}</h1>
+      </div>
+    </header>
+
+    <div class="prose"><Content /></div>
+
+    <Colophon pair={pair} locale={locale} />
+  </article>
+</Base>
+
+<style>
+  .project-page { max-width: 64rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
+  .project-page__back {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    color: var(--ink-mute);
+    display: inline-block;
+    margin-bottom: 2rem;
+    text-decoration: none;
+  }
+  .project-page__back:hover { color: var(--accent); }
+  .project-page__head {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 2rem;
+    align-items: end;
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  @media (max-width: 720px) {
+    .project-page__head { grid-template-columns: 1fr; gap: 1.5rem; }
+    .project-page__head .project-page__cover { max-width: 200px; }
+  }
+  .project-page__meta {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0 0 1rem;
+  }
+  .project-page__title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2.1rem, 4.2vw, 3.2rem);
+    line-height: 1.05;
+    letter-spacing: -0.012em;
+    margin: 0;
+  }
+</style>

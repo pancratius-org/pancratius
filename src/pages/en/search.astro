@@ -1,0 +1,46 @@
+---
+import Base from "@/layouts/Base.astro";
+import PagefindSearch from "@/components/PagefindSearch.astro";
+import type { Locale } from "@/lib/i18n";
+
+const locale: Locale = "en";
+const seo = {
+  title:       "Search — Pancratius",
+  description: "Full-text search across the entire corpus: books, poems, projects. Runs in your browser; queries are never sent anywhere.",
+  canonical:   new URL("/en/search/", Astro.site).toString(),
+  ogImage:     null,
+  ogType:      "website" as const,
+  alternates:  [{ hreflang: "en" as const, href: new URL("/en/search/", Astro.site).toString() }],
+  jsonLd:      null,
+  locale,
+};
+const alternates = { ru: new URL("/search/", Astro.site).toString() };
+---
+<Base locale={locale} seo={seo} alternates={alternates}>
+  <section class="page search-page">
+    <h1>Search</h1>
+    <p class="search-page__intro">
+      Full-text search across the corpus. Queries stay in your browser.
+    </p>
+    <PagefindSearch locale={locale} />
+  </section>
+</Base>
+
+<style>
+  .search-page { max-width: 64rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
+  .search-page h1 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(2.4rem, 5vw, 3.6rem);
+    line-height: 1;
+    margin: 0 0 0.6rem;
+    letter-spacing: -0.012em;
+  }
+  .search-page__intro {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--ink-soft);
+    max-width: 36rem;
+    margin: 0 0 2.5rem;
+  }
+</style>

@@ -1,0 +1,48 @@
+{
+  "number": 64,
+  "slug": "64-kniga-svyatogo-dukha",
+  "title": "Книга Святого Духа",
+  "tags": [
+    "Откровение Бога",
+    "молитва",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "64-книга-святого-духа.docx"
+      ],
+      "title": "Книга Святого Духа"
+    },
+    "en": {
+      "original_filenames": [
+        "64-книга-святого-духа.docx"
+      ],
+      "title": "The Book of the Holy Spirit"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Это не учебник о Святом Духе и не богословская система. Это книга, пришедшая от Него, и потому она не требует верить словам на входе, а предлагает проверить их сердцем и опытом. Сначала она увлекает ум, потом утомляет его, а затем приводит к тишине, где человек уже не просто читает книгу, а узнаёт, что книга читает его.",
+      "sourceName": "NTV+ / LitRes",
+      "sourceUrl": "https://ntvplus.tv/books/book/kniga-svyatogo-duha-665769"
+    },
+    "en": {
+      "text": "This is not a textbook on the Holy Spirit and not a theological system. It is a book that came from Him, and therefore it does not demand that you believe its words at the outset, but invites you to test them by heart and by experience. First it draws in the mind, then tires it, and then leads it into silence, where a person no longer simply reads the book, but realizes that the book is reading him.",
+      "sourceName": "NTV+ / LitRes",
+      "sourceUrl": "https://ntvplus.tv/books/book/kniga-svyatogo-duha-665769"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/64.jpg",
+    "en": "covers/en/64.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/64-книга-святого-духа.docx"
+    ],
+    "en": [
+      "books/en/64-книга-святого-духа.docx"
+    ]
+  }
+}

@@ -1,0 +1,59 @@
+name: Mirror to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-mirror
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: "npm"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - run: npm ci
+
+      - name: Build (with GitHub Pages base path; includes astro check and pagefind index)
+        run: npm run build
+        env:
+          PUBLIC_DEPLOY_TARGET: github-pages
+
+      - name: Verify build produced HTML
+        run: |
+          html_count=$(find dist -name '*.html' | wc -l)
+          if [ "$html_count" -lt 1 ]; then
+            echo "::error::Astro build produced no HTML pages; refusing to publish empty mirror."
+            exit 1
+          fi
+          echo "ok: $html_count html files in dist/"
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

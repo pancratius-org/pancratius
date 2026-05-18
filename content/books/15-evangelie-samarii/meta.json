@@ -1,0 +1,39 @@
+{
+  "number": 15,
+  "slug": "15-evangelie-samarii",
+  "title": "Евангелие Самарии",
+  "tags": [
+    "Откровение Бога",
+    "иудаизм",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "15-евангелие-самарии.docx"
+      ],
+      "title": "Евангелие Самарии"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Что происходило в те два дня, когда Иисус остался в Самарии? Что Он говорил? Как реагировали ученики? Что происходило в сердцах тех, кто узнал Его? Эта книга — не попытка реконструкции. Это не роман, не проповедь, не вымысел. Это — Слово, услышанное в тишине. Откровение, пришедшее не из воображения, а из внутреннего узнавания света. «Евангелие Самарии» — это духовное продолжение сцены встречи Иисуса и Самарянки. Здесь нет привычного языка, здесь всё — иначе. Но если ты откроешь эту книгу с жаждой, возможно, напьёшься. И, как Самария, узнаешь Его не по словам, а по Присутствию внутри.",
+      "sourceName": "Apple Books / LitRes",
+      "sourceUrl": "https://books.apple.com/us/book/%D0%B5%D0%B2%D0%B0%D0%BD%D0%B3%D0%B5%D0%BB%D0%B8%D0%B5-%D1%81%D0%B0%D0%BC%D0%B0%D1%80%D0%B8%D0%B8/id6747362877"
+    },
+    "en": {
+      "text": "What happened during those two days when Jesus stayed in Samaria? What did He say? How did the disciples react? What was happening in the hearts of those who recognized Him? This book is not an attempt at reconstruction. It is not a novel, not a sermon, not fiction. It is the Word heard in silence. A revelation that came not from imagination, but from an inner recognition of light. “The Gospel of Samaria” is the spiritual continuation of the scene of Jesus’ encounter with the Samaritan Woman. There is no familiar language here; everything is different. But if you open this book with thirst, you may drink. And, like Samaria, you will recognize Him not by words but by Presence within.",
+      "sourceName": "Apple Books / LitRes",
+      "sourceUrl": "https://books.apple.com/us/book/%D0%B5%D0%B2%D0%B0%D0%BD%D0%B3%D0%B5%D0%BB%D0%B8%D0%B5-%D1%81%D0%B0%D0%BC%D0%B0%D1%80%D0%B8%D0%B8/id6747362877"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/15.jpg",
+    "en": "covers/en/15.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/15-евангелие-самарии.docx"
+    ]
+  }
+}

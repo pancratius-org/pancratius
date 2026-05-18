@@ -1,0 +1,84 @@
+---
+// Free-text search over the active graph. The wired-up script reads the
+// `data-cs-search` attribute to pick desktop vs. mobile instances; both surface
+// the same state but have different placeholders and chrome.
+
+import type { Locale } from "@/lib/i18n";
+import { conceptosphereStrings } from "./strings";
+
+interface Props {
+  variant:   "desktop" | "mobile";
+  locale:    Locale;
+  /** Placeholder is mode-dependent and rewritten by the script on mode swap. */
+  placeholder: string;
+}
+
+const { variant, locale, placeholder } = Astro.props;
+const t = conceptosphereStrings(locale);
+const id = variant === "mobile" ? "cs-search-mobile" : "cs-search-desktop";
+---
+<div class:list={["cs-search", `cs-search--${variant}`]}>
+  <label class="visually-hidden" for={id}>{t.searchSrLabel}</label>
+  <input
+    id={id}
+    type="search"
+    placeholder={placeholder}
+    autocomplete="off"
+    spellcheck="false"
+    data-cs-search={variant}
+  />
+  {variant === "desktop" && <kbd aria-hidden="true">/</kbd>}
+</div>
+
+<style>
+  .cs-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cs-search input {
+    width: 220px;
+    padding: 8px 12px;
+    background: var(--cs-panel-bg);
+    border: 1px solid var(--cs-rule);
+    color: var(--cs-ink);
+    font-family: var(--serif);
+    font-size: 14px;
+    border-radius: 2px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition: border-color 120ms ease;
+  }
+  .cs-search input:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
+  .cs-search input::placeholder {
+    color: var(--cs-ink-trace);
+    font-style: italic;
+  }
+  .cs-search kbd {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 5px;
+    border: 1px solid var(--cs-ink-edge);
+    border-radius: 2px;
+    color: var(--cs-ink-trace);
+    background: var(--cs-panel-bg);
+  }
+
+  .cs-search--mobile { display: block; margin: 0 0 12px; }
+  .cs-search--mobile input { width: 100%; }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+    padding: 0;
+    margin: -1px;
+  }
+</style>

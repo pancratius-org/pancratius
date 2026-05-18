@@ -1,0 +1,67 @@
+---
+import type { Locale } from "@/lib/i18n";
+import type { WorkPair } from "@/lib/works";
+import { coverAssetUrl } from "@/lib/covers";
+
+interface Props {
+  pair:    WorkPair;
+  locale:  Locale;
+  alt:     string;
+  /** `eager` for above-the-fold covers (book page masthead), `lazy` otherwise. */
+  loading?: "lazy" | "eager";
+  class?:   string;
+}
+
+const { pair, locale, alt, loading = "lazy", class: className = "" } = Astro.props;
+const url = await coverAssetUrl(pair, locale);
+---
+<div class:list={["bcv", className, !url && "bcv--empty"]} aria-hidden={url ? undefined : "true"}>
+  {url ? (
+    <img
+      src={url}
+      alt={alt}
+      loading={loading}
+      decoding="async"
+      width="720"
+      height="966"
+      fetchpriority={loading === "eager" ? "high" : undefined}
+    />
+  ) : (
+    <span class="bcv__num">{pair.number}</span>
+  )}
+</div>
+
+<style>
+  .bcv {
+    position: relative;
+    aspect-ratio: 2 / 3;
+    background: var(--bg-rise);
+    border: 1px solid var(--rule);
+    overflow: hidden;
+    box-shadow: var(--paper-shadow);
+    transition: border-color 0.18s var(--ease), transform 0.32s var(--ease);
+  }
+  .bcv img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0.94;
+    transition: opacity 0.32s var(--ease);
+  }
+  :global([data-theme="light"]) .bcv img { opacity: 1; }
+  .bcv--empty {
+    display: grid;
+    place-items: center;
+  }
+  .bcv__num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-size: 2.4rem;
+    color: var(--ink-mute);
+    line-height: 1;
+  }
+</style>

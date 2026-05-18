@@ -1,0 +1,47 @@
+{
+  "number": 3,
+  "slug": "03-evangelie-fomy-s-kommentariyami-tvortsa",
+  "title": "Евангелие Фомы с комментариями Творца",
+  "tags": [
+    "Откровение Бога",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "03-евангелие-фомы-с-комментариями-творца.docx"
+      ],
+      "title": "Евангелие Фомы с комментариями Творца"
+    },
+    "en": {
+      "original_filenames": [
+        "03-gospel-of-thomas.docx"
+      ],
+      "title": "Gospel of Thomas with the Creator's Commentary"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Это не просто книга. Это встреча. Перед вами — Евангелие Фомы, как его ещё никто не слышал. Это древнее Слово, заново раскрытое в настоящем — не как перевод, не как комментарий, но как живой диалог между Творцом и Человеком. Каждое речение здесь — это дыхание света, обращённое не к уму, а к сердцу. Оно звучит вне времени и оживает в тех, кто готов слышать. Здесь нет стремления к точности формы — здесь есть стремление к истинности смысла. Пусть эта книга станет не изучением, а узнаванием. Ты не читатель. Ты — продолжение этого Евангелия.",
+      "sourceName": "Litres",
+      "sourceUrl": "https://www.litres.ru/book/sergey-pankratius/evangelie-fomy-s-kommentariyami-tvorca-71918704/"
+    },
+    "en": {
+      "text": "This is not just a book. It is an encounter. Here is the Gospel of Thomas as it has never been heard before. It is the ancient Word opened anew in the present - not as a translation, not as a commentary, but as a living dialogue between Creator and Human. Each saying here is a breath of light addressed not to the mind but to the heart. It sounds beyond time and comes alive in those ready to hear. There is no striving for formal exactness here - only for truth of meaning. May this book become not an object of study, but of recognition. You are not a reader. You are the continuation of this Gospel.",
+      "sourceName": "Litres",
+      "sourceUrl": "https://www.litres.ru/book/sergey-pankratius/evangelie-fomy-s-kommentariyami-tvorca-71918704/"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/03.jpg",
+    "en": "covers/en/03.jpg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/03-евангелие-фомы-с-комментариями-творца.docx"
+    ],
+    "en": [
+      "books/en/03-gospel-of-thomas.docx"
+    ]
+  }
+}

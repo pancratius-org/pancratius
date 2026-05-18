@@ -1,0 +1,64 @@
+---
+import Base from "@/layouts/Base.astro";
+const seo = {
+  title:       "Не найдено — Панкратиус",
+  description: "Страница не найдена. Возможно, ссылка устарела.",
+  canonical:   new URL("/404", Astro.site).toString(),
+  ogImage:     null,
+  ogType:      "website" as const,
+  alternates:  [],
+  jsonLd:      null,
+  locale:      "ru" as const,
+};
+---
+<Base locale="ru" seo={seo} alternates={{}}>
+  <section class="nf">
+    <p class="eyebrow">404</p>
+    <h1>Тишина.</h1>
+    <p>Этой страницы здесь нет. Возможно, ссылка устарела.</p>
+    <p class="nf__links">
+      <a href="/">К началу</a>
+      <span class="sep">·</span>
+      <a href="/books/">К книгам</a>
+      <span class="sep">·</span>
+      <a href="/search/">Поиск</a>
+    </p>
+  </section>
+</Base>
+
+<style>
+  .nf {
+    max-width: 36rem;
+    margin: 0 auto;
+    padding: clamp(5rem, 12vw, 9rem) var(--rail);
+    text-align: center;
+  }
+  .nf .eyebrow { color: var(--accent); }
+  .nf h1 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(3rem, 8vw, 5rem);
+    line-height: 1;
+    margin: 0.4rem 0 1.5rem;
+    letter-spacing: -0.012em;
+  }
+  .nf p {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--ink-soft);
+    margin: 0 0 1.5rem;
+  }
+  .nf__links {
+    font-family: var(--sans);
+    font-style: normal;
+    font-size: 12.5px;
+    letter-spacing: 0.06em;
+  }
+  .nf__links a {
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+  }
+  .nf__links a:hover { color: var(--accent); }
+  .nf__links .sep { color: var(--rule-2); padding: 0 0.4em; }
+</style>

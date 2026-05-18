@@ -1,0 +1,48 @@
+{
+  "number": 59,
+  "slug": "59-net-bolshe-toi-lyubvi-chem-esli-kto-polozhit-dushu-svoyu-za-drugi-svoya",
+  "title": "Нет больше той любви, чем если кто положит душу свою за други своя",
+  "tags": [
+    "Откровение Бога",
+    "молитва",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "59-нет-больше-тои-любви-чем-если-кто-положит-душу-свою-за-други-своя.docx"
+      ],
+      "title": "Нет больше той любви, чем если кто положит душу свою за други своя"
+    },
+    "en": {
+      "original_filenames": [
+        "59-нет-больше-тои-любви-чем-если-кто-положит-душу-свою-за-други-своя.docx"
+      ],
+      "title": "Greater Love Hath No Man Than This"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Это книга не о Боге как о далёкой идее, а о возвращении к Нему через внутреннее узнание. Она показывает, что «положить душу» значит не разрушить себя, а ежедневно освобождаться от разделённого «я», от борьбы и от страха отделённости. Чтение здесь работает как зеркало: в нём узнаётся живое Присутствие, которое не нужно искать вовне.",
+      "sourceName": "NTV+ / LitRes",
+      "sourceUrl": "https://ntvplus.tv/books/book/net-bolshe-toi-lyubvi-chem-esli-kto-polozhit-dushu-svoyu-za-drugi-svoya-654287"
+    },
+    "en": {
+      "text": "This is a book not about God as a distant idea, but about returning to Him through inner recognition. It shows that “to lay down one’s soul” means not to destroy oneself, but to free oneself daily from the divided “I,” from struggle, and from the fear of separation. Reading here works like a mirror: in it the living Presence is recognized, and it does not need to be sought outside.",
+      "sourceName": "NTV+ / LitRes",
+      "sourceUrl": "https://ntvplus.tv/books/book/net-bolshe-toi-lyubvi-chem-esli-kto-polozhit-dushu-svoyu-za-drugi-svoya-654287"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/59.jpg",
+    "en": "covers/en/59.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/59-нет-больше-тои-любви-чем-если-кто-положит-душу-свою-за-други-своя.docx"
+    ],
+    "en": [
+      "books/en/59-нет-больше-тои-любви-чем-если-кто-положит-душу-свою-за-други-своя.docx"
+    ]
+  }
+}

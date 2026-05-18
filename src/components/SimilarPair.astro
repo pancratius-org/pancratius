@@ -1,0 +1,107 @@
+---
+import type { Locale } from "@/lib/i18n";
+import type { ResolvedCrossRef, WorkEntry } from "@/lib/works";
+import { entryUrl } from "@/lib/works";
+import { getMergedSimilar, type SimilarPick } from "@/lib/conceptosphere";
+
+interface Props {
+  entry:  WorkEntry;
+  locale: Locale;
+  /** Already-resolved authored cross_refs (rendered as "См. также"). */
+  crossRefs: ResolvedCrossRef[];
+  /** How many algorithmic picks to surface. */
+  limit?: number;
+}
+
+const { entry, locale, crossRefs, limit = 6 } = Astro.props;
+const algorithmic: SimilarPick[] = entry.data.kind === "book"
+  ? await getMergedSimilar({ entry, locale, limit })
+  : [];
+
+const labels = locale === "ru" ? {
+  see_also: "См. также",
+  similar:  "Похожие книги",
+  star:     "Совпадение по двум показателям",
+} : {
+  see_also: "See also",
+  similar:  "Similar books",
+  star:     "Both signals converge here",
+};
+---
+<aside class="sim">
+  {crossRefs.length > 0 && (
+    <section class="sim__block">
+      <h3 class="sim__h">{labels.see_also}</h3>
+      <ul class="sim__list">
+        {crossRefs.map(r => (
+          <li>
+            <a href={entryUrl(r.display)}>{r.display.data.title}</a>
+            {r.snippet && <p class="sim__snippet">{r.snippet}</p>}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  {algorithmic.length > 0 && (
+    <section class="sim__block">
+      <h3 class="sim__h">{labels.similar}</h3>
+      <ul class="sim__list">
+        {algorithmic.map(p => (
+          <li>
+            {p.convergent && (
+              <span class="sim__star" aria-label={labels.star} title={labels.star}>★</span>
+            )}
+            <a href={p.url}>{p.title}</a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+</aside>
+
+<style>
+  .sim {
+    max-width: var(--measure);
+    margin: 3rem 0 0;
+    font-family: var(--sans);
+  }
+  .sim__block + .sim__block { margin-top: 1.6rem; }
+  .sim__h {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--ink-soft);
+    margin: 0 0 0.7rem;
+    letter-spacing: -0.005em;
+  }
+  .sim__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.55rem;
+  }
+  .sim__list a {
+    font-family: var(--serif);
+    font-size: 1.02rem;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .sim__list a:hover { color: var(--accent); }
+  .sim__snippet {
+    margin: 0.2rem 0 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 0.92rem;
+    color: var(--ink-mute);
+  }
+  .sim__star {
+    display: inline-block;
+    width: 1.1em;
+    color: var(--accent);
+    font-size: 0.95em;
+    margin-right: 0.3rem;
+  }
+</style>

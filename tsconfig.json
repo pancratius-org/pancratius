@@ -1,0 +1,25 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "allowJs": false,
+    "checkJs": false,
+    "types": ["node"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    ".astro/types.d.ts",
+    "astro.config.ts",
+    "src/**/*",
+    "content/**/*.md"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "legacy",
+    "design",
+    "scripts",
+    "public"
+  ]
+}

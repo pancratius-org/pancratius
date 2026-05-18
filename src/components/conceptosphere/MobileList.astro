@@ -1,0 +1,522 @@
+---
+// Mobile fallback: a statically-rendered grouped list, one section per
+// Leiden community, two modes (Концепты / Книги, or Concepts / Books in EN).
+// Both modes are emitted into the HTML; the client script toggles `hidden`
+// on whichever mode is active so the JS-disabled load still shows the
+// default mode immediately.
+//
+// Per the universal "respect the reader" constraint: this is not a fallback
+// notice, it is the same data made navigable without a graph. Graph node
+// labels remain in the original Russian because the corpus is Russian;
+// only the chrome around them localises.
+
+import { kindIndexUrl, workUrl, type Locale } from "@/lib/i18n";
+import { loadBooksGraph, loadConceptsGraph } from "@/lib/conceptosphere";
+import { coverAssetUrl } from "@/lib/covers";
+import { findPair } from "@/lib/works";
+import ModeToggle from "./ModeToggle.astro";
+import SearchInput from "./SearchInput.astro";
+import { conceptosphereStrings } from "./strings";
+
+interface Props {
+  locale:      Locale;
+  initialMode: "concepts" | "books";
+}
+const { locale, initialMode } = Astro.props;
+const t = conceptosphereStrings(locale);
+const initialPlaceholder = t.modes[initialMode].searchPlaceholder;
+
+// Same palette as the runtime; mobile chips and group headings respect it
+// so the visual contract is the same on both surfaces.
+const PALETTE = [
+  "#c25e4f", "#d8a24a", "#e9c66a", "#6fa48a", "#4d8aa6",
+  "#7c6bb8", "#b06aa0", "#c8a37a", "#a8485a", "#6e8fb5",
+  "#93a85a", "#c98a4a", "#5fa3a3", "#a48cc8", "#b9755a",
+  "#d9876b", "#5d997f", "#b5934f", "#8a7fbf", "#a3625f",
+];
+
+const conceptsGraph = loadConceptsGraph();
+const booksGraph    = loadBooksGraph();
+
+// ─── Books mode: resolve covers via the build-time pipeline. ────────────
+type BookRow = {
+  slug:       string;
+  number:     number;
+  title:      string;
+  community:  number;
+  tags:       readonly string[];
+  href:       string;
+  coverUrl:   string | null;
+  topConcepts: { label: string }[];
+  searchHay:   string;
+};
+
+const bookRows: BookRow[] = [];
+for (const node of booksGraph.nodes) {
+  const pair = await findPair("book", node.number);
+  // Localized work URL: EN reader gets `/en/books/<slug>/`. If the EN
+  // sibling exists, that's the localized slug; if it doesn't, we still
+  // link the RU surface (the slug map records whatever each language
+  // declares, and the URL helper uses the per-language slug).
+  const display = locale === "en"
+    ? (pair?.en ?? pair?.ru ?? null)
+    : (pair?.ru ?? null);
+  const targetLocale: Locale = display === pair?.en ? "en" : "ru";
+  const linkSlug = display?.data.slug ?? node.slug;
+  const coverUrl = pair ? await coverAssetUrl(pair, locale) : null;
+  const concepts = (node.top_concepts ?? []).slice(0, 8).map((c) => ({ label: c.label }));
+  const displayTitle = display?.data.title ?? node.title;
+  bookRows.push({
+    slug:      node.slug,
+    number:    node.number,
+    title:     displayTitle,
+    community: node.community,
+    tags:      node.tags ?? [],
+    href:      workUrl("book", linkSlug, targetLocale),
+    coverUrl,
+    topConcepts: concepts,
+    searchHay: [
+      displayTitle,
+      node.title,
+      node.slug,
+      String(node.number),
+      ...(node.tags ?? []),
+      ...concepts.map((c) => c.label),
+    ].join(" ").toLowerCase(),
+  });
+}
+
+function bookGroups(): { com: { id: number; label: string }; rows: BookRow[] }[] {
+  const map = new Map<number, BookRow[]>();
+  for (const r of bookRows) {
+    const arr = map.get(r.community) ?? [];
+    arr.push(r);
+    map.set(r.community, arr);
+  }
+  return booksGraph.communities
+    .filter((c) => map.has(c.id))
+    .sort((a, b) => (map.get(b.id)!.length) - (map.get(a.id)!.length))
+    .map((c) => ({
+      com: { id: c.id, label: c.label },
+      rows: (map.get(c.id) ?? []).sort((a, b) => a.number - b.number),
+    }));
+}
+
+// ─── Concepts mode. ─────────────────────────────────────────────────────
+type ConceptRow = {
+  id:        string;
+  label:     string;
+  community: number;
+  frequency: number;
+  topBooks:  { slug: string; title: string; href: string }[];
+  searchHay: string;
+};
+
+const conceptRows: ConceptRow[] = await Promise.all(conceptsGraph.nodes.map(async (n) => {
+  const top = ((n as { top_books?: { slug: string; title: string }[] }).top_books ?? []).slice(0, 5);
+  const topBooks = await Promise.all(top.map(async (b) => {
+    // Each top-book slug is RU (graph is RU-derived). Resolve the localized
+    // sibling so an EN reader lands on /en/books/<slug>/ when it exists.
+    const node = booksGraph.nodes.find((bn) => bn.slug === b.slug);
+    const pair = node ? await findPair("book", node.number) : null;
+    const display = locale === "en"
+      ? (pair?.en ?? pair?.ru ?? null)
+      : (pair?.ru ?? null);
+    const targetLocale: Locale = display === pair?.en ? "en" : "ru";
+    const linkSlug = display?.data.slug ?? b.slug;
+    return {
+      slug:  b.slug,
+      title: display?.data.title ?? b.title,
+      href:  workUrl("book", linkSlug, targetLocale),
+    };
+  }));
+  return {
+    id:        n.id,
+    label:     n.label,
+    community: n.community,
+    frequency: (n as { frequency?: number }).frequency ?? 0,
+    topBooks,
+    searchHay: [n.label, n.lemma, ...top.map((b) => b.title)].join(" ").toLowerCase(),
+  };
+}));
+
+function conceptGroups(): { com: { id: number; label: string }; rows: ConceptRow[] }[] {
+  const map = new Map<number, ConceptRow[]>();
+  for (const r of conceptRows) {
+    const arr = map.get(r.community) ?? [];
+    arr.push(r);
+    map.set(r.community, arr);
+  }
+  return conceptsGraph.communities
+    .filter((c) => map.has(c.id))
+    .sort((a, b) => (map.get(b.id)!.length) - (map.get(a.id)!.length))
+    .map((c) => ({
+      com: { id: c.id, label: c.label },
+      rows: (map.get(c.id) ?? []).sort((a, b) => b.frequency - a.frequency),
+    }));
+}
+
+const conceptSections = conceptGroups();
+const bookSections    = bookGroups();
+const booksIndexHref  = kindIndexUrl("book", locale);
+
+// Number-formatting locale: each row's frequency renders here at build time
+// (mobile fallback is static HTML), so we localise digit grouping/spacing.
+const numberLocale = t.numberLocale;
+---
+<section class="cs-mobile-tools">
+  <ModeToggle variant="mobile" locale={locale} />
+  <SearchInput
+    variant="mobile"
+    locale={locale}
+    placeholder={initialPlaceholder}
+  />
+</section>
+
+<section
+  class="cs-mobile"
+  id="cs-mobile"
+  aria-label={t.mobileListAriaLabel}
+>
+  <p class="cs-mobile-note">
+    {t.mobileNote}
+  </p>
+
+  {/* Concepts mode list */}
+  <div
+    data-cs-mobile-mode="concepts"
+    hidden={initialMode !== "concepts"}
+  >
+    <nav class="cs-mobile-chips" aria-label={t.mobileChipsConceptsAria}>
+      <button type="button" data-cs-cluster-chip aria-pressed="true">{t.mobileChipAll}</button>
+      {conceptSections.map(({ com }) => (
+        <button
+          type="button"
+          data-cs-cluster-chip
+          data-com={com.id}
+          aria-pressed="false"
+        >
+          <span class="cs-sw" style={`background:${PALETTE[com.id % PALETTE.length]}`}></span>
+          {com.label}
+        </button>
+      ))}
+    </nav>
+
+    {conceptSections.map(({ com, rows }) => (
+      <section class="cs-mobile-group" data-cs-group data-com={com.id}>
+        <h2>
+          <span class="cs-sw" style={`background:${PALETTE[com.id % PALETTE.length]}`}></span>
+          {com.label}
+          <span class="cs-sz" aria-label={`${t.mobileGroupSizeAriaPrefix} ${rows.length}`}>{rows.length}</span>
+        </h2>
+        <ul>
+          {rows.map((row) => (
+            <li data-cs-row data-search={row.searchHay}>
+              <details>
+                <summary>
+                  <span class="cs-summary-main">
+                    <span class="cs-title">{row.label}</span>
+                  </span>
+                  <span class="cs-freq">{row.frequency.toLocaleString(numberLocale)}</span>
+                </summary>
+                <div class="cs-detail">
+                  {row.topBooks.length > 0 ? (
+                    <>
+                      <p class="cs-detail-h">{t.mobileAppearsInHeading}</p>
+                      <ul class="cs-detail-books">
+                        {row.topBooks.map((b) => (
+                          <li><a href={b.href}>{b.title}</a></li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <p class="cs-detail-empty">{t.conceptNotBoundToBook}</p>
+                  )}
+                </div>
+              </details>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+    <p class="cs-mobile-empty" data-cs-empty hidden>{t.mobileEmpty}</p>
+  </div>
+
+  {/* Books mode list */}
+  <div
+    data-cs-mobile-mode="books"
+    hidden={initialMode !== "books"}
+  >
+    <nav class="cs-mobile-chips" aria-label={t.mobileChipsBooksAria}>
+      <button type="button" data-cs-cluster-chip aria-pressed="true">{t.mobileChipAll}</button>
+      {bookSections.map(({ com }) => (
+        <button
+          type="button"
+          data-cs-cluster-chip
+          data-com={com.id}
+          aria-pressed="false"
+        >
+          <span class="cs-sw" style={`background:${PALETTE[com.id % PALETTE.length]}`}></span>
+          {com.label}
+        </button>
+      ))}
+    </nav>
+
+    {bookSections.map(({ com, rows }) => (
+      <section class="cs-mobile-group" data-cs-group data-com={com.id}>
+        <h2>
+          <span class="cs-sw" style={`background:${PALETTE[com.id % PALETTE.length]}`}></span>
+          {com.label}
+          <span class="cs-sz" aria-label={`${t.mobileGroupSizeAriaPrefix} ${rows.length}`}>{rows.length}</span>
+        </h2>
+        <ul>
+          {rows.map((row) => (
+            <li data-cs-row data-search={row.searchHay}>
+              <a class="cs-book-row" href={row.href}>
+                {row.coverUrl ? (
+                  <img class="cs-cover" src={row.coverUrl} alt="" loading="lazy" decoding="async" />
+                ) : (
+                  <span class="cs-cover is-miss" aria-hidden="true"></span>
+                )}
+                <span class="cs-book-row-meta">
+                  <span class="cs-freq">{t.bookNumberPrefix} {row.number}</span>
+                  <span class="cs-title">{row.title}</span>
+                  {row.topConcepts.length > 0 && (
+                    <span class="cs-book-row-concepts">
+                      {row.topConcepts.slice(0, 5).map((c) => c.label).join(" · ")}
+                    </span>
+                  )}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+    <p class="cs-mobile-empty" data-cs-empty hidden>{t.mobileEmpty}</p>
+
+    <p class="cs-mobile-note cs-mobile-foot">
+      {t.mobileFootPrompt}<a href={booksIndexHref}>{t.mobileFootLink}</a>
+    </p>
+  </div>
+</section>
+
+<style>
+  /* Default visibility: visible everywhere. The runtime adds `.cs-js` to
+     <html> the moment it boots, then the desktop-only rule below hides the
+     list and shows the graph. This means JS-disabled loads — including
+     screen readers and crawlers — see the full grouped list, not an empty
+     canvas. */
+  .cs-mobile-tools {
+    display: block;
+    padding: 14px var(--rail) 10px;
+    border-bottom: 1px solid var(--rule);
+    background: color-mix(in srgb, var(--bg) 96%, transparent);
+  }
+  .cs-mobile {
+    display: block;
+    padding: 16px var(--rail) 28px;
+  }
+
+  @media (min-width: 701px) {
+    :global(html.cs-js) .cs-mobile-tools { display: none; }
+    :global(html.cs-js) .cs-mobile { display: none; }
+  }
+
+  .cs-mobile-note {
+    margin: 0 0 14px;
+    color: var(--cs-ink-trace);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .cs-mobile-foot {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--cs-rule);
+  }
+  .cs-mobile-foot a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent-soft);
+  }
+
+  .cs-mobile-chips {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 0 0 12px;
+    scrollbar-width: thin;
+    margin-bottom: 4px;
+  }
+  .cs-mobile-chips button {
+    appearance: none;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--cs-ink-edge);
+    border-radius: 2px;
+    background: var(--cs-panel-bg);
+    color: var(--cs-ink-faint);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 8px;
+    cursor: pointer;
+  }
+  .cs-mobile-chips button[aria-pressed="true"] {
+    color: var(--accent);
+    border-color: var(--accent-soft);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  .cs-mobile-chips .cs-sw {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: 0 0 8px;
+  }
+
+  .cs-mobile-group {
+    margin: 0 0 22px;
+    padding: 0 0 14px;
+    border-bottom: 1px solid var(--cs-rule);
+  }
+  .cs-mobile-group:last-of-type { border-bottom: 0; }
+  .cs-mobile-group h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 20px;
+    margin: 0 0 8px;
+  }
+  .cs-mobile-group h2 .cs-sw {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+  .cs-mobile-group h2 .cs-sz {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--cs-ink-trace);
+    margin-left: auto;
+  }
+  .cs-mobile ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .cs-mobile details {
+    border-bottom: 1px dashed var(--cs-ink-edge);
+  }
+  .cs-mobile details:last-child { border-bottom: 0; }
+  .cs-mobile summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    list-style: none;
+    cursor: pointer;
+  }
+  .cs-mobile summary::-webkit-details-marker { display: none; }
+  .cs-mobile .cs-summary-main { flex: 1; min-width: 0; }
+  .cs-mobile .cs-title {
+    display: block;
+    color: var(--cs-ink);
+    line-height: 1.25;
+  }
+  .cs-mobile .cs-freq {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--cs-ink-trace);
+  }
+
+  .cs-mobile .cs-cover {
+    width: 44px;
+    height: 64px;
+    flex: 0 0 44px;
+    object-fit: cover;
+    border: 1px solid var(--cs-ink-edge);
+    background: var(--cs-bg-soft);
+    display: block;
+  }
+  .cs-mobile .cs-cover.is-miss {
+    background:
+      repeating-linear-gradient(135deg,
+        color-mix(in srgb, var(--cs-ink) 4%, transparent) 0 4px,
+        transparent 4px 8px),
+      var(--cs-bg-soft);
+  }
+
+  .cs-book-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--cs-ink-edge);
+    color: inherit;
+    text-decoration: none;
+  }
+  .cs-mobile-group li:last-child .cs-book-row { border-bottom: 0; }
+  .cs-book-row-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+  .cs-book-row-meta .cs-freq { letter-spacing: 0.08em; text-transform: uppercase; }
+  .cs-book-row-meta .cs-title { font-size: 15px; color: var(--cs-ink); }
+  .cs-book-row-concepts {
+    margin-top: 4px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--cs-ink-trace);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .cs-book-row:hover .cs-title { color: var(--accent); }
+  .cs-book-row:hover .cs-cover { border-color: var(--accent-soft); }
+
+  .cs-detail {
+    padding: 0 0 12px 0;
+    color: var(--cs-ink-faint);
+    font-size: 13px;
+  }
+  .cs-detail .cs-detail-h {
+    margin: 4px 0 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--cs-ink-trace);
+  }
+  .cs-detail-books {
+    margin: 0;
+    padding: 0 0 0 1rem;
+  }
+  .cs-detail-books li {
+    padding: 2px 0;
+  }
+  .cs-detail-books a {
+    color: var(--cs-ink);
+    text-decoration: underline;
+    text-decoration-color: var(--cs-rule-2);
+    text-underline-offset: 3px;
+  }
+  .cs-detail-books a:hover { color: var(--accent); }
+
+  .cs-mobile-empty {
+    margin: 22px 0;
+    color: var(--cs-ink-faint);
+    font-style: italic;
+  }
+</style>

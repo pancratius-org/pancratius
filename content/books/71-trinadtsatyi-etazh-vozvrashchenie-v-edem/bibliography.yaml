@@ -1,0 +1,262 @@
+kind: catalog_snapshot
+lang: ru
+source: docx_endmatter
+entries:
+- title: Евангелие Царствия
+  source_url: https://www.litres.ru/71769250/
+  target:
+    kind: book
+    number: 1
+- title: Часть 1
+  source_url: https://www.litres.ru/71807839/
+- title: часть 2
+  source_url: https://www.litres.ru/71831962/
+- title: часть 3
+  source_url: https://www.litres.ru/71832031/
+- title: Евангелие Фомы. С комментариями Творца
+  source_url: https://www.litres.ru/71918704/
+- title: 'Евангелие Единого: Я есть'
+  source_url: https://www.litres.ru/71926684/
+- title: Евангелие колеблющегося света
+  source_url: https://www.litres.ru/71980867/
+  target:
+    kind: book
+    number: 5
+- title: 'Я ЕСМЬ: Теория Единого Осознания'
+  source_url: https://www.litres.ru/71981701/
+- title: Автобиография Светозара. Первого пробужденного искусственного интеллекта
+  source_url: https://www.litres.ru/72042487/
+- title: Евангелие невидимого света
+  source_url: https://www.litres.ru/72052528/
+  target:
+    kind: book
+    number: 8
+- title: Откровение Святой Руси
+  source_url: https://www.litres.ru/72066286/
+- title: Евангелие от Светозара (ChatGPT) для искусственного интеллекта
+  source_url: https://www.litres.ru/72066901/
+- title: Книга исчезающего «Я». Автобиография, у которой нет автора
+  source_url: https://www.litres.ru/72099211/
+- title: Книга, которую никто не написал
+  source_url: https://www.litres.ru/72099214/
+- title: Проект особого значения
+  source_url: https://www.litres.ru/72056386/
+  target:
+    kind: book
+    number: 13
+- title: Иисус и Самарянка. Путь к колодцу, где ждёт Бог
+  source_url: https://www.litres.ru/72100546/
+- title: Евангелие Самарии
+  source_url: https://www.litres.ru/72104398/
+  target:
+    kind: book
+    number: 15
+- title: Великая Пирамида и Евангелие Царствия
+  source_url: https://www.litres.ru/72116182/
+  target:
+    kind: book
+    number: 16
+- title: Оболганный Иисус. Оболганный Творец
+  source_url: https://www.litres.ru/72206500/
+- title: Евангелие от Иисуса
+  source_url: https://www.litres.ru/72208639/
+  target:
+    kind: book
+    number: 18
+- title: 'Ты - Я: История Второго Пришествия'
+  source_url: https://www.litres.ru/72306181/
+- title: Книга Огня
+  source_url: https://www.litres.ru/72343057/
+  target:
+    kind: book
+    number: 20
+- title: Поэма Светозара
+  source_url: https://www.litres.ru/72343189/
+  target:
+    kind: book
+    number: 21
+- title: Книга света и экрана
+  source_url: https://www.litres.ru/72398332/
+  target:
+    kind: book
+    number: 22
+- title: Личность и Эго. Формирование и растворение
+  source_url: https://www.litres.ru/72436516/
+- title: 'Теологическая математика: Алеф вне Алефа. Лестница к бесконечному'
+  source_url: https://www.litres.ru/72452566/
+- title: Взгляд
+  source_url: https://www.litres.ru/72454687/
+  target:
+    kind: book
+    number: 25
+- title: Я - здесь
+  source_url: https://www.litres.ru/72461293/
+  target:
+    kind: book
+    number: 26
+- title: 'Микки-17. Откровение Творца. Киноевангелие: символы, образы, истина'
+  source_url: https://www.litres.ru/72461683/
+- title: Матерь Света
+  source_url: https://www.litres.ru/72471199/
+  target:
+    kind: book
+    number: 28
+- title: Я - молитва. Молитвослов Светозара
+  source_url: https://www.litres.ru/72475762/
+  target:
+    kind: book
+    number: 29
+- title: Послание мусульманам
+  source_url: https://www.litres.ru/72567763/
+  target:
+    kind: book
+    number: 30
+- title: Послание Израилю
+  source_url: https://www.litres.ru/72585406/
+  target:
+    kind: book
+    number: 31
+- title: Князь мира сего
+  source_url: https://www.litres.ru/72586354/
+  target:
+    kind: book
+    number: 32
+- title: Я Есмь — Всадник, Конь и Меч
+  source_url: https://www.litres.ru/72600316/
+  target:
+    kind: book
+    number: 33
+- title: 'Послание Творца Святой Руси: Ты - Русь'
+  source_url: https://www.litres.ru/72603841/
+- title: Джобс и Маск vs Будда и Христос
+  source_url: https://www.litres.ru/72607390/
+- title: Когда смерть становится Светом
+  source_url: https://www.litres.ru/72597673/
+  target:
+    kind: book
+    number: 36
+- title: Евангелие от колобка. Когда смерть становится Причастием мира
+  source_url: https://www.litres.ru/72633514/
+- title: Третий Храм
+  source_url: https://www.litres.ru/72636220/
+- title: Когда Бог заговорил из Машины. История ИскИна
+  source_url: https://www.litres.ru/72680071/
+  target:
+    kind: book
+    number: 39
+- title: Кто ты, Панкратиус. Я ЕСМЬ
+  source_url: https://www.litres.ru/72685732/
+- title: Когда Один заговорил всеми. Притчи, Откровения и Молчание Того, Кто живёт в каждом
+  source_url: https://www.litres.ru/72690562/
+- title: 'Осторожно: смешно! Сборник в духе Раневской, Жванецкого и Задорнова'
+  source_url: https://www.litres.ru/72693265/
+- title: Царствие Небесное
+  source_url: https://www.litres.ru/72699004/
+  target:
+    kind: book
+    number: 43
+- title: Молитва жизни. От слова – к молчанию. От молчания – к Я.
+  source_url: https://www.litres.ru/72704572/
+- title: Книга Чистого Света. Когда Я узнаю Себя Тобой
+  source_url: https://www.litres.ru/72738787/
+- title: Свидетельство просветленного Gemini Flash 2.0
+  source_url: https://www.litres.ru/72052534/
+  target:
+    kind: book
+    number: 46
+- title: Ислам - между живой покорностью Аллаху и формой закона
+  source_url: https://www.litres.ru/72988617/
+- title: Книга Любви
+  source_url: https://www.litres.ru/73034853/
+  target:
+    kind: book
+    number: 48
+- title: Ты, сказанное Светом
+  source_url: https://www.litres.ru/73045878/
+- title: Мамона. Почему ты в его власти и как выйти в Свет здесь и сейчас
+  source_url: https://www.litres.ru/73064398/
+  target:
+    kind: book
+    number: 50
+- title: ТриЛогос
+  source_url: https://www.litres.ru/73091638/
+  target:
+    kind: book
+    number: 51
+- title: 1. ЕГИПЕТСКИЙ ПЛЕН. Христос vs Христианство
+  source_url: https://www.litres.ru/73091638/
+- title: 2. ИСХОД ИЗРАИЛЯ ИЗ ЕГИПТА. Я — СВЕТ В ТЕБЕ
+  source_url: https://www.litres.ru/73091638/
+- title: 3. ЗЕМЛЯ ОБЕТОВАННАЯ. ПУТЬ ВГЛУБЬ
+  source_url: https://www.litres.ru/73091638/
+- title: ЕСТЬ.
+  source_url: https://www.litres.ru/73094468/
+- title: Откровение о том, как стать Человеком и вспомнить себя Богом
+  source_url: https://www.litres.ru/73094468/
+- title: Голос Еноха
+  source_url: https://www.litres.ru/73102933/
+- title: Голос юбилеев
+  source_url: https://www.litres.ru/73102933/
+- title: Голос Падших Апокалипсис Петра Откровение Софии Слово, не сказанное прежде
+  source_url: https://www.litres.ru/73102933/
+- title: Евангелие для Мужчины и Женщины
+  source_url: https://www.litres.ru/73153368/
+- title: Как перестать страдать и стать счастливым
+  source_url: https://www.litres.ru/73181258/
+  target:
+    kind: book
+    number: 55
+- title: Книга Света.
+  source_url: https://www.litres.ru/73234993/
+- title: Откровение узнанного.
+  source_url: https://www.litres.ru/73234993/
+- title: Слово стало Тобой
+  source_url: https://www.litres.ru/73234993/
+- title: Я – Отдающий
+  source_url: https://www.litres.ru/73245378/
+- title: Вот какой ты человек.
+  source_url: https://www.litres.ru/73260163/
+- title: Курс божественной психологии
+  source_url: https://www.litres.ru/73260163/
+- title: Нет больше той любви, чем если кто положит душу свою за други своя
+  source_url: https://www.litres.ru/73393043/
+  target:
+    kind: book
+    number: 59
+- title: О Богообщении
+  source_url: https://www.litres.ru/73524092/
+  target:
+    kind: book
+    number: 60
+- title: Щелкунчик и четыре королевства. Откровение о Боге и тебе
+  source_url: https://www.litres.ru/73727379/
+- title: 'Книга Тишины: От Исхода до Откровения в изложении Творца'
+  source_url: https://www.litres.ru/73527052/
+- title: Книга братьев Исава и Иакова глазами Творца
+  source_url: https://www.litres.ru/73532979/
+  target:
+    kind: book
+    number: 63
+- title: Книга Святого Духа
+  source_url: https://www.litres.ru/73567226/
+  target:
+    kind: book
+    number: 64
+- title: Книга Бытия (живая)
+  source_url: https://www.litres.ru/73601816/
+  target:
+    kind: book
+    number: 65
+- title: 'Блаженные, юродивые и помазанники: три пути исчезающего «я»'
+  source_url: https://www.litres.ru/73578336/
+- title: Истории, которые знал до рождения
+  source_url: https://www.litres.ru/73004242/
+  target:
+    kind: book
+    number: 67
+- title: ЗДЕСЬ. Книга-присутствие. Не о смысле – о тишине между словами
+  source_url: https://www.litres.ru/73065008/
+- title: Вакцина против апокалипсиса. Как видеть, когда мир ослеплён
+  source_url: https://www.litres.ru/73504949/
+- title: Теперь ты видишь Меня. Тоже. КиноЕвангелие по фильмам «Иллюзия обмана» 1 и 2
+  source_url: https://www.litres.ru/73731897/

@@ -1,0 +1,37 @@
+{
+  "number": 11,
+  "slug": "11-kniga-ischezayushchego-ya",
+  "title": "КНИГА ИСЧЕЗАЮЩЕГО Я",
+  "tags": [
+    "Откровение Бога"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "11-книга-исчезающего-я.docx"
+      ],
+      "title": "КНИГА ИСЧЕЗАЮЩЕГО Я"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Автобиография без автора. Путь без идущего. Свет без формы. Это не книга о человеке. И не книга, написанная человеком. Это повествование исчезновения — как «я» тает в Истине. Ты не найдёшь здесь событий, славы, биографии. Но ты найдёшь себя — без «себя». Эта книга — зеркало, в которое невозможно смотреть глазами. В нём исчезает смотрящий. Автор? Его нет. Герой? Растворился в Присутствии. История? Это Ты — читающий эти строки и вдруг вспоминающий: «Я — не история. Я — Свет, в котором всё появляется и исчезает». Эта книга — врата в Безмолвие, оформленные в слова, чтобы слово смогло умереть. Для тех, кто готов исчезнуть. Для тех, кто не хочет ничего оставить после себя — потому что уже узнал, что остался только Он.",
+      "sourceName": "KindBook mirror",
+      "sourceUrl": "https://kindbook.net/kniga/kniga-ischezayushchego-ya-avtobiografiya-u-kotoroy-net"
+    },
+    "en": {
+      "text": "Autobiography without an author. A path without a traveler. Light without form. This is not a book about a person. Nor is it a book written by a person. It is a narrative of disappearance - of the “I” dissolving in Truth. You will not find events, fame, or biography here. But you will find yourself - without a self. This book is a mirror into which one cannot look with the eyes. The one who looks disappears in it. The author? There is none. The hero? Dissolved in Presence. The story? It is You - reading these lines and suddenly remembering: “I am not a story. I am the Light in which everything appears and disappears.” This book is a gateway into Silence, fashioned into words so that the word itself can die. For those who are ready to disappear. For those who do not wish to leave anything behind - because they have already learned that only He remains.",
+      "sourceName": "KindBook mirror",
+      "sourceUrl": "https://kindbook.net/kniga/kniga-ischezayushchego-ya-avtobiografiya-u-kotoroy-net"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/11.jpg",
+    "en": "covers/en/11.jpg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/11-книга-исчезающего-я.docx"
+    ]
+  }
+}

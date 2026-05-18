@@ -1,0 +1,140 @@
+/*
+ * Reading-page prose. Applied via `<article class="prose">` around the
+ * Markdown-rendered body. The Markdown renderer emits straight HTML; this
+ * stylesheet does the typography work the mockup did inline.
+ */
+
+.prose {
+  max-width: var(--measure);
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.075rem;
+  line-height: 1.72;
+  color: var(--ink);
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+.prose p { margin: 0 0 0.4em; text-indent: 1.4em; }
+.prose > p:first-child,
+.prose > h1:first-child + p,
+.prose > h2:first-child + p,
+.prose > h3:first-child + p,
+.prose .lead { text-indent: 0; }
+
+.prose > p:first-of-type::first-letter,
+.prose .lead::first-letter {
+  font-family: var(--serif);
+  float: left;
+  font-size: 4.6em;
+  line-height: 0.85;
+  font-weight: 400;
+  padding: 0.04em 0.1em 0 0;
+  margin-right: 0.04em;
+  color: var(--accent);
+  font-style: normal;
+}
+
+.prose h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-style: italic;
+  font-size: 1.4rem;
+  margin: 2.5rem 0 1rem;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.prose h3 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 1.15rem;
+  margin: 2rem 0 0.8rem;
+  text-align: left;
+  color: var(--ink);
+}
+
+.prose blockquote {
+  margin: 1.2em 0 1.2em 1.4em;
+  padding-left: 1em;
+  border-left: 1px solid var(--accent-soft);
+  color: var(--ink-soft);
+  font-style: italic;
+}
+.prose blockquote p { text-indent: 0; }
+
+.prose hr {
+  border: 0;
+  text-align: center;
+  margin: 2.2rem 0;
+}
+.prose hr::before {
+  content: "·  ·  ·";
+  color: var(--accent);
+  font-size: 0.95rem;
+  letter-spacing: 0.6em;
+}
+
+.prose ul, .prose ol {
+  margin: 0.6em 0 1em 1.6em;
+  padding: 0;
+}
+.prose ul li, .prose ol li {
+  text-indent: 0;
+  margin: 0.2em 0;
+}
+
+.prose img {
+  margin: 1.8em auto;
+  max-width: 100%;
+  border: 1px solid var(--rule);
+}
+
+.prose code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  background: var(--accent-mute);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+.prose pre {
+  font-family: var(--mono);
+  background: var(--bg-rise);
+  border: 1px solid var(--rule);
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1.5em 0;
+  text-indent: 0;
+}
+.prose pre code { background: none; padding: 0; }
+
+@media (max-width: 720px) {
+  .prose { text-align: left; }
+  .prose > p:first-of-type::first-letter,
+  .prose .lead::first-letter { font-size: 4em; }
+}
+
+/*
+ * Manifesto/poetry stanza spacing.
+ *
+ * Author contract: within a stanza, lines sit on adjacent source lines and
+ * the newlines render as visible line breaks. Blank line in source = stanza
+ * break. No trailing `\`, no two-space ritual. CSS `white-space: pre-line`
+ * preserves the newlines the Markdown renderer leaves in the output; the
+ * paragraph margin then acts as the stanza gap.
+ */
+.prose--manifesto p,
+.prose--poem p {
+  text-indent: 0;
+  margin: 0 0 1.1em;
+  text-align: left;
+  font-size: 1.1rem;
+  line-height: 1.85;
+  white-space: pre-line;
+}
+.prose--manifesto > p:first-of-type::first-letter,
+.prose--poem > p:first-of-type::first-letter {
+  /* no drop-cap on manifesto/poems */
+  all: unset;
+}

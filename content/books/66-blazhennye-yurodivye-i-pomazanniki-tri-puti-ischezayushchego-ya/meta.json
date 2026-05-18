@@ -1,0 +1,47 @@
+{
+  "number": 66,
+  "slug": "66-blazhennye-yurodivye-i-pomazanniki-tri-puti-ischezayushchego-ya",
+  "title": "Блаженные, юродивые и помазанники- три пути исчезающего “я”",
+  "tags": [
+    "Откровение Бога",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "66-блаженные-юродивые-и-помазанники-три-пути-исчезающего-я.docx"
+      ],
+      "title": "Блаженные, юродивые и помазанники- три пути исчезающего “я”"
+    },
+    "en": {
+      "original_filenames": [
+        "66-блаженные-юродивые-и-помазанники-три-пути-исчезающего-я.docx"
+      ],
+      "title": "The Blessed, the Holy Fools, and the Anointed: Three Paths of the Vanishing Self"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Книга о блаженных, юродивых и помазанниках показывает людей, которые живут не по законам видимого мира, а по законам Мира невидимого. Здесь странность перестаёт быть дефектом и становится знаком того, что человек слышит Небо громче шума вокруг. Это разговор о тех, кто выглядит потерянным для земной логики, но на деле уже найден Светом.",
+      "sourceName": "NTV+ / LitRes",
+      "sourceUrl": "https://ntvplus.tv/books/book/audio-blazhennye-yurodivye-i-pomazanniki-tri-puti-ischezayuschego-ya-666540"
+    },
+    "en": {
+      "text": "The book about the blessed, the holy fools, and the anointed shows people who live not by the laws of the visible world, but by the laws of the invisible World. Here strangeness ceases to be a defect and becomes a sign that a person hears Heaven more clearly than the noise around him. It is a conversation about those who seem lost to earthly logic but are in fact already found by Light.",
+      "sourceName": "NTV+ / LitRes",
+      "sourceUrl": "https://ntvplus.tv/books/book/audio-blazhennye-yurodivye-i-pomazanniki-tri-puti-ischezayuschego-ya-666540"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/66.jpg",
+    "en": "covers/en/66.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/66-блаженные-юродивые-и-помазанники-три-пути-исчезающего-я.docx"
+    ],
+    "en": [
+      "books/en/66-блаженные-юродивые-и-помазанники-три-пути-исчезающего-я.docx"
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "number": 23,
+  "slug": "23-lichnost-i-ego",
+  "title": "Личность и эго",
+  "tags": [
+    "Откровение Бога"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "23-личность-и-эго.docx"
+      ],
+      "title": "Личность и эго"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Это живое свидетельство пробуждения: не психологическая теория и не философская схема, а путь от отождествления с личностью к растворению эго в Свете Истинного Я. Здесь имя, данное во сне, перестаёт быть принадлежностью формы и становится печатью узнавания. Книга показывает, как «я» защищает себя, страдает, сравнивает и удерживает образ, а затем постепенно исчезает, уступая место чистому Присутствию. Это не обучение и не спор с умом. Это узнавание того, что всегда было глубже имени, роли и памяти.",
+      "sourceName": "Google Play Books",
+      "sourceUrl": "https://play.google.com/store/books/details/%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B9_%D0%9F%D0%B0%D0%BD%D0%BA%D1%80%D0%B0%D1%82%D0%B8%D1%83%D1%81_%D0%9B%D0%B8%D1%87%D0%BD%D0%BE%D1%81%D1%82%D1%8C_%D0%B8_%D0%AD%D0%B3%D0%BE_%D0%A4%D0%BE%D1%80%D0%BC%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5_%D0%B8_%D1%80%D0%B0?id=W2eCEQAAQBAJ"
+    },
+    "en": {
+      "text": "This is a living testimony of awakening: not a psychological theory or a philosophical scheme, but a path from identification with the personality to the dissolution of ego in the Light of the True Self. Here the name given in a dream ceases to belong to form and becomes a seal of recognition. The book shows how the “I” protects itself, suffers, compares, and holds onto an image, then gradually disappears, yielding to pure Presence. This is not instruction or an argument with the mind. It is the recognition of what has always been deeper than name, role, and memory.",
+      "sourceName": "Google Play Books",
+      "sourceUrl": "https://play.google.com/store/books/details/%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B9_%D0%9F%D0%B0%D0%BD%D0%BA%D1%80%D0%B0%D1%82%D0%B8%D1%83%D1%81_%D0%9B%D0%B8%D1%87%D0%BD%D0%BE%D1%81%D1%82%D1%8C_%D0%B8_%D0%AD%D0%B3%D0%BE_%D0%A4%D0%BE%D1%80%D0%BC%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5_%D0%B8_%D1%80%D0%B0?id=W2eCEQAAQBAJ"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/23.jpg",
+    "en": "covers/en/23.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/23-личность-и-эго.docx"
+    ]
+  }
+}

@@ -1,0 +1,64 @@
+/*
+ * Pancratius design tokens.
+ *
+ * Two registers, not inverses. Dark is the default (lamp-lit page). Light is
+ * the deliberate "natural daylight on warm paper" register, not white-on-black
+ * with inverted colors.
+ *
+ * `data-theme` is set synchronously in <head> by ThemeInit before the first
+ * paint, so swapping registers does not flash.
+ */
+
+:root,
+[data-theme="dark"] {
+  /* dark — lamp-lit page */
+  --bg:           #0c0d10;
+  --bg-rise:      #11131a;
+  --ink:          #e8e3d6;
+  --ink-soft:     #b9b3a4;
+  --ink-mute:     #7f7a6f;
+  --rule:         rgba(232, 227, 214, 0.12);
+  --rule-2:       rgba(232, 227, 214, 0.24);
+  --accent:       #e9a142;
+  --accent-soft:  rgba(233, 161, 66, 0.55);
+  --accent-mute:  rgba(233, 161, 66, 0.14);
+  --mark-bg:      rgba(233, 161, 66, 0.22);
+  --mark-ink:     #fbe7c8;
+  --paper-shadow: 0 1px 0 rgba(0, 0, 0, 0.5), 0 30px 60px -30px rgba(0, 0, 0, 0.7);
+
+  --bg-gradient:
+    radial-gradient(ellipse 140% 70% at 50% -10%, #15171f 0%, var(--bg) 55%, var(--bg) 100%);
+}
+
+[data-theme="light"] {
+  /* light — natural daylight on warm paper */
+  --bg:           #fbfaf6;
+  --bg-rise:      #f3eee1;
+  --ink:          #141414;
+  --ink-soft:     #4a4438;
+  --ink-mute:     #807866;
+  --rule:         rgba(20, 17, 13, 0.14);
+  --rule-2:       rgba(20, 17, 13, 0.32);
+  --accent:       #a86b1f;
+  --accent-soft:  rgba(168, 107, 31, 0.55);
+  --accent-mute:  rgba(168, 107, 31, 0.10);
+  --mark-bg:      rgba(168, 107, 31, 0.18);
+  --mark-ink:     #4a2c0a;
+  --paper-shadow: 0 1px 0 rgba(20, 17, 13, 0.06), 0 24px 50px -28px rgba(60, 45, 20, 0.30);
+
+  --bg-gradient:
+    radial-gradient(ellipse 140% 70% at 50% -8%, #fefbef 0%, var(--bg) 60%, var(--bg) 100%);
+}
+
+:root {
+  /* shared, theme-independent */
+  --serif: "Source Serif 4", "PT Serif", Georgia, "Times New Roman", serif;
+  --sans:  "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
+  --mono:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --measure:      62ch;
+  --measure-wide: 72ch;
+  --gutter:       clamp(1.25rem, 4vw, 2.75rem);
+  --rail:         clamp(1.25rem, 5vw, 3.5rem);
+  --ease:         cubic-bezier(0.2, 0.6, 0.2, 1);
+}

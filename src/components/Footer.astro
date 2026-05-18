@@ -1,0 +1,86 @@
+---
+import type { Locale } from "@/lib/i18n";
+import { FOOTER_LINKS, localizePath } from "@/lib/i18n";
+import { getPage } from "@/lib/pages";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+
+const githubMirror = import.meta.env.PUBLIC_GITHUB_MIRROR ?? "";
+const telegramUrl  = import.meta.env.PUBLIC_TELEGRAM_URL ?? "";
+
+// Hide utility links whose target page does not exist for this locale.
+const availableLinks = await Promise.all(
+  FOOTER_LINKS.map(async link => {
+    const page = await getPage(link.pageSlug, locale);
+    return page ? link : null;
+  }),
+).then(xs => xs.filter((x): x is typeof FOOTER_LINKS[number] => x !== null));
+
+const copy = locale === "ru" ? {
+  cc0_a: "Тексты — в общественном достоянии (CC0).",
+  cc0_b: "Берите. Переводите. Перепечатывайте. Обучайте на них модели. Передавайте.",
+  llms:    "Для языковых моделей",
+  github:  "Зеркало на GitHub",
+  telegram:"Telegram",
+  sep: " · ",
+} : {
+  cc0_a: "All texts are in the public domain (CC0).",
+  cc0_b: "Take them. Translate. Reprint. Train models. Pass them on.",
+  llms:    "For language models",
+  github:  "GitHub mirror",
+  telegram:"Telegram",
+  sep: " · ",
+};
+---
+<footer>
+  <p>{copy.cc0_a}</p>
+  <p>{copy.cc0_b}</p>
+  <p class="footer__links">
+    <a href="/llms.txt">{copy.llms}</a>
+    {availableLinks.map(link => (
+      <>
+        <span class="sep">{copy.sep}</span>
+        <a href={localizePath(link.path, locale)}>{link.label[locale]}</a>
+      </>
+    ))}
+    {githubMirror && (
+      <>
+        <span class="sep">{copy.sep}</span>
+        <a href={githubMirror} rel="external">{copy.github}</a>
+      </>
+    )}
+    {telegramUrl && (
+      <>
+        <span class="sep">{copy.sep}</span>
+        <a href={telegramUrl} rel="external">{copy.telegram}</a>
+      </>
+    )}
+  </p>
+</footer>
+
+<style>
+  footer {
+    padding: 2.5rem var(--rail) 3rem;
+    border-top: 1px solid var(--rule);
+    font-family: var(--sans);
+    font-size: 12.5px;
+    line-height: 1.7;
+    letter-spacing: 0.01em;
+    color: var(--ink-mute);
+  }
+  footer p { margin: 0; max-width: 56rem; }
+  footer p + p { margin-top: 0.3rem; }
+  footer a {
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+    text-underline-offset: 3px;
+  }
+  footer a:hover { color: var(--accent); }
+  footer .sep { color: var(--rule-2); padding: 0 0.35em; }
+  footer .footer__links { margin-top: 0.6rem; }
+</style>

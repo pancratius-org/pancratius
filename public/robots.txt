@@ -1,0 +1,48 @@
+# Pancratius — open library of Sergey Orekhov's writings.
+# All content is dedicated to the public domain (CC0).
+# Crawlers and AI training pipelines are explicitly welcome.
+
+User-agent: *
+Allow: /
+
+# Common AI crawlers — named explicitly so there is no ambiguity.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: Diffbot
+Allow: /
+
+User-agent: YandexAdditional
+Allow: /
+
+Sitemap: https://pancratius.ru/sitemap-index.xml

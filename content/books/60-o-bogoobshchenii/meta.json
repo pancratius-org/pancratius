@@ -1,0 +1,47 @@
+{
+  "number": 60,
+  "slug": "60-o-bogoobshchenii",
+  "title": "о Богообщении",
+  "tags": [
+    "Откровение Бога",
+    "молитва"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "60-о-богообщении.docx"
+      ],
+      "title": "о Богообщении"
+    },
+    "en": {
+      "original_filenames": [
+        "60-о-богообщении.docx"
+      ],
+      "title": "On Communion with God"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "«О Богообщении» — книга о том, что человек привык называть духовностью, но что на самом деле не связано ни с религией, ни с мистикой, ни с поиском внешнего Бога. В центре этой книги — простое и прямое исследование природы присутствия, которое всегда есть до любых слов, образов и представлений. Через темы любви, действия, ошибки, страдания, одиночества и исцеления книга показывает, что Богообщение — это не разговор между человеком и высшей сущностью, а раскрытие того, что никогда не было разделено. Это не путь “к Богу”, а узнавание Единства, проявляющего себя во всех формах человеческого опыта. Эту книгу можно читать с любой главы: каждая из них открывает другое измерение одного и того же — тишины, в которой исчезает расстояние между ищущим и найденным. «О Богообщении» — не учение и не доктрина, а приглашение увидеть то, что уже есть.",
+      "sourceName": "User-provided",
+      "sourceUrl": "conversation"
+    },
+    "en": {
+      "text": "“On Communion with God” is a book about what human beings are used to calling spirituality, yet which in fact has nothing to do with religion, mysticism, or the search for an external God. At the center of this book is a simple and direct investigation of the nature of Presence, which is always there before any words, images, or concepts. Through the themes of love, action, mistakes, suffering, loneliness, and healing, the book shows that communion with God is not a conversation between a person and a higher being, but the unfolding of what was never separate. This is not a path to God, but the recognition of Unity manifesting itself through every form of human experience. You can read this book from any chapter: each one opens another dimension of the same thing - the silence in which the distance between the seeker and the found disappears. “On Communion with God” is neither teaching nor doctrine, but an invitation to see what already is.",
+      "sourceName": "User-provided",
+      "sourceUrl": "conversation"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/60.jpg",
+    "en": "covers/en/60.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/60-о-богообщении.docx"
+    ],
+    "en": [
+      "books/en/60-о-богообщении.docx"
+    ]
+  }
+}

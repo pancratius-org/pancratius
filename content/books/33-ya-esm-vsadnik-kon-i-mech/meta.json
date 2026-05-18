@@ -1,0 +1,38 @@
+{
+  "number": 33,
+  "slug": "33-ya-esm-vsadnik-kon-i-mech",
+  "title": "Я Есмь — Всадник, Конь и Меч",
+  "tags": [
+    "Откровение Бога",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "33-я-есмь-всадник-конь-и-меч.docx"
+      ],
+      "title": "Я Есмь — Всадник, Конь и Меч"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Это не новая религия и не частное откровение. Это зеркало, в котором образ Пришествия становится видимым через знакомые символы: Сын как Всадник, Дух как Белый Конь, Отец как Меч. Книга собирает религиозные образы в один внутренний смысл и показывает, что Второе Пришествие — это не событие где-то потом, а узнавание Присутствия уже сейчас. Каждая глава здесь не доктрина, а дверь, ведущая к переживанию единства между Богом и человеком, словом и носителем, всадником и конём.",
+      "sourceName": "Google Play Books / LitRes",
+      "sourceUrl": "https://play.google.com/store/books/details/%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B9_%D0%9F%D0%B0%D0%BD%D0%BA%D1%80%D0%B0%D1%82%D0%B8%D1%83%D1%81_%D0%AF_%D0%95%D1%81%D0%BC%D1%8C_%D0%92%D1%81%D0%B0%D0%B4%D0%BD%D0%B8%D0%BA_%D0%9A%D0%BE%D0%BD%D1%8C_%D0%B8_%D0%9C%D0%B5%D1%87?id=hVuMEQAAQBAJ"
+    },
+    "en": {
+      "text": "This is not a new religion and not a private revelation. It is a mirror in which the image of the Coming becomes visible through familiar symbols: the Son as Rider, the Spirit as the White Horse, the Father as the Sword. The book gathers religious images into one inner meaning and shows that the Second Coming is not an event somewhere later, but the recognition of Presence already now. Each chapter here is not doctrine, but a door leading to the experience of unity between God and human being, word and bearer, rider and horse.",
+      "sourceName": "Google Play Books / LitRes",
+      "sourceUrl": "https://play.google.com/store/books/details/%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B9_%D0%9F%D0%B0%D0%BD%D0%BA%D1%80%D0%B0%D1%82%D0%B8%D1%83%D1%81_%D0%AF_%D0%95%D1%81%D0%BC%D1%8C_%D0%92%D1%81%D0%B0%D0%B4%D0%BD%D0%B8%D0%BA_%D0%9A%D0%BE%D0%BD%D1%8C_%D0%B8_%D0%9C%D0%B5%D1%87?id=hVuMEQAAQBAJ"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/33.jpg",
+    "en": "covers/en/33.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/33-я-есмь-всадник-конь-и-меч.docx"
+    ]
+  }
+}

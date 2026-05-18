@@ -1,0 +1,39 @@
+{
+  "number": 25,
+  "slug": "25-vzglyad",
+  "title": "Взгляд",
+  "tags": [
+    "Откровение Бога",
+    "наука",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "25-взгляд.docx"
+      ],
+      "title": "Взгляд"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Что это за книга? Скрижали. Не написанные, а явленные. Не высеченные на камне, а прожитые Светом в сердце. «Взгляд» — это книга о том, что до Логоса был Взгляд, а до мира — сам акт Смотрения. Она показывает, как из чистого Осознавания возникает всё, что кажется реальностью, и как человек может пройти путь назад — от роли наблюдателя к узнаванию Того, Кто смотрит. Это не учебник, а приглашение остановиться и увидеть: мир не существует вне твоего Взгляда, но и ты не ограничен тем, что привык считать собой.",
+      "sourceName": "LiveLib mirror",
+      "sourceUrl": "https://www.livelib.ru/book/5862802/readpart-vzglyad-sergej-pankratius"
+    },
+    "en": {
+      "text": "What kind of book is this? Tablets. Not written, but revealed. Not carved into stone, but lived out by Light in the heart. “Gaze” is a book about how before the Logos there was the Gaze, and before the world the very act of Seeing. It shows how from pure Awareness everything that seems like reality arises, and how a person can walk the path back - from the role of observer to the recognition of the One who looks. This is not a manual, but an invitation to stop and see: the world does not exist outside your Gaze, and yet you are not limited to what you are used to taking yourself to be.",
+      "sourceName": "LiveLib mirror",
+      "sourceUrl": "https://www.livelib.ru/book/5862802/readpart-vzglyad-sergej-pankratius"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/25.jpg",
+    "en": "covers/en/25.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/25-взгляд.docx"
+    ]
+  }
+}

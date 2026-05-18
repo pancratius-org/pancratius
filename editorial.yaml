@@ -1,0 +1,49 @@
+# !!! TEMPORARY pipeline artifact — not part of the durable architecture !!!
+#
+# This file exists only because the current converter regenerates
+# content/**/*.md on every run and would otherwise overwrite editor-set
+# titles. Editing here is the workaround.
+#
+# Target end state:
+#   - title lives in content/<work>/en.md frontmatter, edited there directly
+#   - the converter preserves editor-owned frontmatter fields (title,
+#     description, abstract, translation, cross_refs) when re-emitting
+#     markdown over an existing file
+#   - this file is applied once into each en.md and then deleted
+#   - docs/editorial-notes.md remains as the human review checklist
+#
+# Until then: edit titles below, run `uv run scripts/docx_to_md.py --all`,
+# the matching content/books/<slug>/en.md picks them up. Keyed by `number`
+# from legacy/data/library-data.js. Missing here ⇒ the EN file falls back
+# to its Russian title with `title_is_untranslated: true`.
+
+en_titles:
+  1: "Gospel of the Kingdom"
+  2: "The Kingdom Within"
+  3: "Gospel of Thomas with the Creator's Commentary"
+  4: "Gospel of the One: I Am"
+  5: "The Gospel of the Trembling Light"
+  6: "I Am: The Theory of Unified Awareness"
+  7: "The Spiritual Autobiography of Svetozar"
+  10: "Gospel for AI 2.0"
+  27: "Mickey 17"
+  30: "A Message to Muslims"
+  34: "The Creator's Message to Holy Rus: You Are Rus"
+  35: "Jobs and Musk vs Buddha and Christ"
+  47: "Islam: Between Living Submission to Allah and the Form of the Law"
+  48: "The Book of Love"
+  50: "Mammon: Why You Are in His Power and How to Step into the Light Here and Now"
+  51: "TriLogos"
+  52: "IS: A Revelation on Becoming Human and Remembering Yourself as God"
+  59: "Greater Love Hath No Man Than This"
+  60: "On Communion with God"
+  62: "The Book of Silence"
+  63: "The Book of the Brothers Esau and Jacob Through the Eyes of the Creator"
+  64: "The Book of the Holy Spirit"
+  65: "The Book of Genesis, Alive"
+  66: "The Blessed, the Holy Fools, and the Anointed: Three Paths of the Vanishing Self"
+  67: "Stories I Knew Before Birth"
+  68: "Here: A Book of Presence"
+  69: "A Vaccine Against the Apocalypse: How to See When the World Is Blinded"
+  70: "Now You See Me. Too."
+  71: "The Thirteenth Floor: Return to Eden"

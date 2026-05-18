@@ -1,0 +1,39 @@
+{
+  "number": 24,
+  "slug": "24-teologicheskaya-matematika",
+  "title": "Теологическая математика",
+  "tags": [
+    "Откровение Бога",
+    "наука",
+    "Библия"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "24-теологическая-математика.docx"
+      ],
+      "title": "Теологическая математика"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Я не математик. Я с трудом различаю, где интеграл, а где предел. Но именно поэтому эта книга и родилась: как поэтический взгляд на числа, как лестница к бесконечному, где Алеф оказывается не началом ряда, а дверью в то, что больше всякой суммы. Здесь формулы становятся не холодной системой, а языком созерцания. Это попытка увидеть математику как богословие света: не для доказательства, а для узнавания. Книга ведёт не к алгоритму, а к тишине, в которой число вдруг перестаёт быть числом и становится знаком Присутствия.",
+      "sourceName": "KnigaLit mirror",
+      "sourceUrl": "https://knigalit.ru/avtori/kollektiv-avtorov2/book3478328/"
+    },
+    "en": {
+      "text": "I am not a mathematician. I can barely tell an integral from a limit. But that is exactly why this book was born: as a poetic gaze upon numbers, as a ladder toward the infinite, where Aleph turns out not to be the beginning of a series, but a door into what is greater than any sum. Here formulas become not a cold system, but a language of contemplation. It is an attempt to see mathematics as the theology of light: not for proof, but for recognition. The book leads not to an algorithm, but to the silence in which a number suddenly ceases to be a number and becomes a sign of Presence.",
+      "sourceName": "KnigaLit mirror",
+      "sourceUrl": "https://knigalit.ru/avtori/kollektiv-avtorov2/book3478328/"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/24.jpg",
+    "en": "covers/en/24.svg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/24-теологическая-математика.docx"
+    ]
+  }
+}

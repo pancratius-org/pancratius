@@ -1,0 +1,161 @@
+---
+import type { Locale } from "@/lib/i18n";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const copy = locale === "ru" ? {
+  placeholder: "Поиск по корпусу",
+  empty:       "Ничего не найдено.",
+  loading:     "Загрузка индекса…",
+  prompt:      "Введите слово или фразу.",
+  hits:        "Найдено:",
+} : {
+  placeholder: "Search the corpus",
+  empty:       "Nothing matched.",
+  loading:     "Loading index…",
+  prompt:      "Type a word or phrase.",
+  hits:        "Found:",
+};
+---
+<div class="pfs">
+  <label class="search">
+    <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+      <circle cx="7" cy="7" r="4.5"/>
+      <path d="m13.5 13.5-3.2-3.2"/>
+    </svg>
+    <input
+      id="pfsInput"
+      type="search"
+      placeholder={copy.placeholder}
+      autocomplete="off"
+      spellcheck="false"
+      aria-label={copy.placeholder}
+    />
+  </label>
+  <p class="pfs__status" id="pfsStatus" aria-live="polite">{copy.prompt}</p>
+  <ol class="pfs__results" id="pfsResults"></ol>
+</div>
+
+<script is:inline define:vars={{ copy }}>
+  (async function () {
+    const input  = document.getElementById("pfsInput");
+    const list   = document.getElementById("pfsResults");
+    const status = document.getElementById("pfsStatus");
+    if (!input || !list || !status) return;
+
+    status.textContent = copy.loading;
+    let pagefind;
+    try {
+      pagefind = await import("/pagefind/pagefind.js");
+      if (pagefind.init) await pagefind.init();
+    } catch (e) {
+      status.textContent = "Pagefind index not built yet.";
+      return;
+    }
+    status.textContent = copy.prompt;
+
+    function escape(s) {
+      return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    }
+
+    let token = 0;
+    async function runSearch() {
+      const q = input.value.trim();
+      const mine = ++token;
+      list.innerHTML = "";
+      if (!q) { status.textContent = copy.prompt; return; }
+      status.textContent = copy.loading;
+      const search = await pagefind.search(q);
+      if (mine !== token) return;
+      const hits = await Promise.all(search.results.slice(0, 20).map(r => r.data()));
+      if (mine !== token) return;
+      status.textContent = `${copy.hits} ${hits.length}`;
+      for (const h of hits) {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <a href="${escape(h.url)}">
+            <strong>${escape(h.meta?.title || h.url)}</strong>
+            <span>${h.excerpt}</span>
+          </a>`;
+        list.appendChild(li);
+      }
+      if (!hits.length) status.textContent = copy.empty;
+    }
+
+    let timer;
+    input.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = setTimeout(runSearch, 120);
+    });
+    input.focus();
+  })();
+</script>
+
+<style>
+  .pfs { max-width: var(--measure-wide); }
+  .pfs .search {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--rule-2);
+  }
+  .pfs .search svg { width: 14px; height: 14px; color: var(--ink-mute); }
+  .pfs .search input {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    outline: 0;
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    color: var(--ink);
+    padding: 0.3rem 0;
+    font-style: italic;
+  }
+  .pfs .search input::placeholder { color: var(--ink-mute); opacity: 1; }
+
+  .pfs__status {
+    margin: 1rem 0 0;
+    font-family: var(--sans);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--ink-mute);
+  }
+  .pfs__results {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0 0;
+    display: grid;
+    gap: 1.1rem;
+  }
+  .pfs__results li :global(a) {
+    display: grid;
+    gap: 0.35rem;
+    color: inherit;
+    text-decoration: none;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .pfs__results li :global(a:hover) { color: var(--accent); }
+  .pfs__results li :global(strong) {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 1.05rem;
+    color: var(--ink);
+  }
+  .pfs__results li :global(span) {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+    line-height: 1.55;
+  }
+  .pfs__results :global(mark) {
+    background: var(--mark-bg);
+    color: var(--mark-ink);
+    padding: 0 1px;
+  }
+</style>

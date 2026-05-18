@@ -1,0 +1,304 @@
+---
+import type { Locale } from "@/lib/i18n";
+
+interface TagCount {
+  label: string;
+  count: number;
+}
+
+interface Props {
+  locale: Locale;
+  tags:   TagCount[];
+  /** Total works in the library (e.g. 72 for /books/). */
+  total:  number;
+}
+
+const { locale, tags, total } = Astro.props;
+const sortedTags = [...tags].sort((a, b) => b.count - a.count);
+const copy = locale === "ru" ? {
+  search: "Найти по названию",
+  searchAria: "Поиск по названиям книг",
+  shown: "из",
+  topic: "тема —",
+  query: "поиск —",
+  reset: "сбросить",
+  empty: "Ничего не найдено.",
+  tagsLabel: "Темы",
+  k: "⌘K",
+} : {
+  search: "Search by title",
+  searchAria: "Search book titles",
+  shown: "of",
+  topic: "tag —",
+  query: "query —",
+  reset: "reset",
+  empty: "Nothing matched.",
+  tagsLabel: "Tags",
+  k: "⌘K",
+};
+---
+<div class="controls">
+  <label class="search" id="libSearchWrap">
+    <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+      <circle cx="7" cy="7" r="4.5"/>
+      <path d="m13.5 13.5-3.2-3.2"/>
+    </svg>
+    <input
+      id="libSearchInput"
+      type="search"
+      placeholder={copy.search}
+      autocomplete="off"
+      spellcheck="false"
+      aria-label={copy.searchAria}
+    />
+    <kbd id="libSearchKbd">{copy.k}</kbd>
+  </label>
+
+  <div class="tags" role="group" aria-label={copy.tagsLabel}>
+    {sortedTags.map(t => (
+      <button type="button" class="tag" aria-pressed="false" data-tag={t.label}>
+        {t.label}<sup>{t.count}</sup>
+      </button>
+    ))}
+  </div>
+</div>
+
+<div class="status hidden" id="libStatus" aria-live="polite">
+  <span>
+    <b id="libStatShow">{total}</b> {copy.shown} <b>{total}</b>
+    <span id="libStatTopic"></span>
+  </span>
+  <a href="#" id="libStatReset">{copy.reset}</a>
+</div>
+
+<p class="empty" id="libEmpty" hidden>{copy.empty}</p>
+
+<script is:inline define:vars={{ copy }}>
+  (function () {
+    // Inline scripts run synchronously during parsing — and the `.book` cards
+    // are emitted after this component in source order. Defer the IIFE body
+    // until the page is parsed, otherwise `books` is empty, `shown` is 0, and
+    // the "empty" paragraph paints under a fully-populated grid.
+    function init() {
+    const input  = document.getElementById("libSearchInput");
+    const wrap   = document.getElementById("libSearchWrap");
+    const kbd    = document.getElementById("libSearchKbd");
+    const tagWrap = document.querySelector(".tags");
+    const status = document.getElementById("libStatus");
+    const showEl = document.getElementById("libStatShow");
+    const topicEl = document.getElementById("libStatTopic");
+    const resetEl = document.getElementById("libStatReset");
+    const empty   = document.getElementById("libEmpty");
+    const books   = Array.from(document.querySelectorAll(".book"));
+    if (!input || !tagWrap) return;
+
+    let activeTag = null;
+    let q = "";
+
+    if (!/Mac|iPad|iPhone|iPod/.test(navigator.platform)) kbd.textContent = "Ctrl K";
+
+    function escape(s) {
+      return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    }
+
+    function apply() {
+      const query = q.trim().toLowerCase();
+      let shown = 0;
+      for (const b of books) {
+        const title = b.dataset.title || "";
+        const tags = (b.dataset.tags || "").split("|").filter(Boolean);
+        const matchQ = !query || title.includes(query);
+        const matchT = !activeTag || tags.includes(activeTag);
+        const visible = matchQ && matchT;
+        b.classList.toggle("is-hidden", !visible);
+        if (visible) shown++;
+      }
+      const filtered = !!query || !!activeTag;
+      status.classList.toggle("hidden", !filtered);
+      showEl.textContent = shown;
+      topicEl.innerHTML = activeTag
+        ? ` · ${copy.topic} <span class="accent">${escape(activeTag)}</span>`
+        : (query ? ` · ${copy.query} <span class="accent">«${escape(q.trim())}»</span>` : "");
+      empty.hidden = shown !== 0;
+    }
+
+    input.addEventListener("input", e => { q = e.target.value; apply(); });
+    input.addEventListener("focus", () => wrap.classList.add("is-focused"));
+    input.addEventListener("blur",  () => wrap.classList.remove("is-focused"));
+
+    tagWrap.addEventListener("click", e => {
+      const btn = e.target.closest(".tag");
+      if (!btn) return;
+      const t = btn.dataset.tag;
+      if (activeTag === t) {
+        activeTag = null;
+        btn.setAttribute("aria-pressed", "false");
+      } else {
+        activeTag = t;
+        tagWrap.querySelectorAll(".tag").forEach(x => x.setAttribute("aria-pressed", x === btn ? "true" : "false"));
+      }
+      apply();
+    });
+
+    resetEl.addEventListener("click", e => {
+      e.preventDefault();
+      activeTag = null;
+      q = "";
+      input.value = "";
+      tagWrap.querySelectorAll(".tag").forEach(x => x.setAttribute("aria-pressed", "false"));
+      apply();
+    });
+
+    document.addEventListener("keydown", e => {
+      if (e.defaultPrevented) return;
+      const tag = (e.target.tagName || "").toLowerCase();
+      const typing = tag === "input" || tag === "textarea" || e.target.isContentEditable;
+      if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        input.focus();
+        input.select();
+        return;
+      }
+      if (!typing && e.key === "/") {
+        e.preventDefault();
+        input.focus();
+      }
+      if (e.key === "Escape" && document.activeElement === input) {
+        q = "";
+        input.value = "";
+        apply();
+        input.blur();
+      }
+    });
+
+    apply();
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init, { once: true });
+    } else {
+      init();
+    }
+  })();
+</script>
+
+<style>
+  .controls {
+    display: grid;
+    grid-template-columns: minmax(260px, 360px) 1fr;
+    gap: 1.5rem 2rem;
+    align-items: start;
+    padding: 1.25rem 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  @media (max-width: 720px) {
+    .controls { grid-template-columns: 1fr; }
+  }
+
+  .search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--rule-2);
+  }
+  .search svg {
+    width: 13px;
+    height: 13px;
+    color: var(--ink-mute);
+    flex: 0 0 13px;
+  }
+  .search input {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    outline: 0;
+    font-family: var(--serif);
+    font-size: 1.05rem;
+    color: var(--ink);
+    padding: 0.3rem 0;
+    font-style: italic;
+  }
+  .search input::placeholder { color: var(--ink-mute); opacity: 1; }
+  .search kbd {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: var(--ink-mute);
+    border: 1px solid var(--rule);
+    padding: 0.12rem 0.4rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .search.is-focused { border-bottom-color: var(--accent-soft); }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.25rem;
+    align-items: baseline;
+    font-family: var(--sans);
+  }
+  .tag {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: 0.2rem 0;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+    cursor: pointer;
+    position: relative;
+    line-height: 1.4;
+    transition: color 0.18s var(--ease);
+  }
+  .tag sup {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ink-mute);
+    margin-left: 0.25em;
+    vertical-align: super;
+  }
+  .tag::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    bottom: -2px;
+    height: 1px;
+    background: transparent;
+    transition: background 0.18s var(--ease);
+  }
+  .tag:hover { color: var(--ink); }
+  .tag[aria-pressed="true"] { color: var(--accent); }
+  .tag[aria-pressed="true"]::after { background: var(--accent); }
+  .tag[aria-pressed="true"] sup { color: var(--accent-soft); }
+
+  .status {
+    font-family: var(--sans);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--ink-mute);
+    padding: 1.5rem 0 1rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .status b { color: var(--ink); font-weight: 500; }
+  .status :global(.accent) { color: var(--accent); }
+  .status a { color: var(--ink-soft); text-decoration: underline; text-decoration-color: var(--rule-2); }
+  .status a:hover { color: var(--accent); }
+  .status.hidden { display: none; }
+
+  .empty {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--ink-mute);
+    padding: 2rem 0;
+  }
+</style>

@@ -1,0 +1,47 @@
+---
+import Base from "@/layouts/Base.astro";
+import PagefindSearch from "@/components/PagefindSearch.astro";
+import type { Locale } from "@/lib/i18n";
+import { clampDescription } from "@/lib/seo";
+
+const locale: Locale = "ru";
+const seo = {
+  title:       "Поиск — Панкратиус",
+  description: clampDescription("Полнотекстовый поиск по всему корпусу: книги, стихи, проекты. Работает без сервера и без передачи запросов на сторону."),
+  canonical:   new URL("/search/", Astro.site).toString(),
+  ogImage:     null,
+  ogType:      "website" as const,
+  alternates:  [{ hreflang: "ru" as const, href: new URL("/search/", Astro.site).toString() }],
+  jsonLd:      null,
+  locale,
+};
+const alternates = { en: new URL("/en/search/", Astro.site).toString() };
+---
+<Base locale={locale} seo={seo} alternates={alternates}>
+  <section class="page search-page">
+    <h1>Поиск</h1>
+    <p class="search-page__intro">
+      Полнотекстовый поиск по всему корпусу. Запросы остаются у вас в браузере.
+    </p>
+    <PagefindSearch locale={locale} />
+  </section>
+</Base>
+
+<style>
+  .search-page { max-width: 64rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
+  .search-page h1 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(2.4rem, 5vw, 3.6rem);
+    line-height: 1;
+    margin: 0 0 0.6rem;
+    letter-spacing: -0.012em;
+  }
+  .search-page__intro {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--ink-soft);
+    max-width: 36rem;
+    margin: 0 0 2.5rem;
+  }
+</style>

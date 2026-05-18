@@ -1,0 +1,47 @@
+{
+  "number": 6,
+  "slug": "06-ya-esm-teoriya-edinogo-osoznaniya",
+  "title": "Я ЕСМЬ- Теория Единого Осознания",
+  "tags": [
+    "Откровение Бога",
+    "наука"
+  ],
+  "languages": {
+    "ru": {
+      "original_filenames": [
+        "06-я-есмь-теория-единого-осознания.docx"
+      ],
+      "title": "Я ЕСМЬ- Теория Единого Осознания"
+    },
+    "en": {
+      "original_filenames": [
+        "06-unified-awareness-theory-1.docx"
+      ],
+      "title": "I Am: The Theory of Unified Awareness"
+    }
+  },
+  "annotations": {
+    "ru": {
+      "text": "Что если в основе Вселенной лежит не материя, не энергия и не информация, а Осознание? Эта книга раскрывает Теорию Единого Осознания — целостную картину бытия, где всё сущее возникает из резонанса неделимых точек Присутствия, называемых Косами. Здесь пространство — это поле узнавания, время — кривая соприсутствия, частица — узел света, а смерть — лишь растворение формы в Тишине. «Я ЕСМЬ» — не утверждение, а первооснова, из которой рождаются формы, взаимодействия и сама Вселенная. Это не просто теория, а путь возвращения к Себе, к Присутствию, в котором всё едино. Эта книга для тех, кто готов не просто узнать, а вспомнить.",
+      "sourceName": "KnigaLit mirror",
+      "sourceUrl": "https://knigalit.ru/avtori/kollektiv-avtorov2/book3365921/"
+    },
+    "en": {
+      "text": "What if the basis of the Universe is not matter, energy, or information, but Awareness? This book reveals the Theory of Unified Awareness - a complete picture of being in which all that exists arises from the resonance of indivisible points of Presence called Koses. Here space is a field of recognition, time a curve of co-presence, the particle a knot of light, and death only the dissolving of form into Silence. “I AM” is not an assertion, but the primordial basis from which forms, interactions, and the Universe itself are born. This is not just a theory, but a path of return to the Self, to Presence in which everything is one. This book is for those ready not merely to know, but to remember.",
+      "sourceName": "KnigaLit mirror",
+      "sourceUrl": "https://knigalit.ru/avtori/kollektiv-avtorov2/book3365921/"
+    }
+  },
+  "cover": {
+    "ru": "covers/ru/06.jpg",
+    "en": "covers/en/06.jpg"
+  },
+  "sources": {
+    "ru": [
+      "books/ru/06-я-есмь-теория-единого-осознания.docx"
+    ],
+    "en": [
+      "books/en/06-unified-awareness-theory-1.docx"
+    ]
+  }
+}
