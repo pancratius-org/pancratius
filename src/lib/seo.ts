@@ -170,14 +170,13 @@ export function seoForWork(site: URL | undefined, input: WorkSeoInput): SeoMeta 
 }
 
 /**
- * SEO metadata for a static page. The route loads the page entry and (when
- * an EN sibling exists) passes both languages in via `siblings`, so this
- * helper can build hreflang alternates without needing async lookups.
+ * SEO metadata for a static page. Pass the set of locales that have an
+ * authored entry for this page so alternates list only real siblings.
  */
 export function seoForPage(
   site: URL | undefined,
   page: PageEntry,
-  siblings: Partial<Record<Locale, PageEntry>> = {},
+  authoredLocales: ReadonlySet<Locale>,
 ): SeoMeta {
   const data = page.data;
   const locale = data.lang as Locale;
@@ -188,7 +187,7 @@ export function seoForPage(
     canonical,
     ogImage:     null,
     ogType:      "article",
-    alternates:  alternatesForPage(site, data.slug, siblings),
+    alternates:  alternatesForPage(site, data.slug, authoredLocales),
     jsonLd:      null,
     locale,
   };
@@ -197,12 +196,12 @@ export function seoForPage(
 function alternatesForPage(
   site: URL | undefined,
   slug: string,
-  siblings: Partial<Record<Locale, PageEntry>>,
+  authoredLocales: ReadonlySet<Locale>,
 ): AlternateLink[] {
   const xs: AlternateLink[] = [];
   let defaultHref: string | null = null;
   for (const loc of LOCALES) {
-    if (siblings[loc]) {
+    if (authoredLocales.has(loc)) {
       const href = absUrl(site, pageUrl(slug, loc));
       xs.push({ hreflang: loc, href });
       if (loc === DEFAULT_LOCALE) defaultHref = href;

@@ -5,7 +5,6 @@ slug: 11-zvezda-vnutri
 title: Звезда внутри
 lang: ru
 description: 'Стихотворение №11: Звезда внутри'
-original_filename: Звезда внутри.docx
 cover: ./cover.ru.jpg
 date: '2025-03-15'
 translation:
@@ -13,7 +12,6 @@ translation:
 ---
 
 March 15, 2025 12:33 AM
-
 **Звезда внутри**
 
 Внутри меня горит звезда,

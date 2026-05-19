@@ -5,7 +5,6 @@ slug: 30-raschertili-nebo-spolokhi-zakata
 title: Расчертили небо сполохи заката
 lang: ru
 description: 'Стихотворение №30: Расчертили небо сполохи заката'
-original_filename: Расчертили небо сполохи заката.docx
 cover: ./cover.ru.jpg
 date: '2026-03-10'
 translation:

@@ -9,15 +9,17 @@ import { getPairsByKind } from "@/lib/works";
 const locale: Locale = "en";
 const pairs = await getPairsByKind("project");
 const seo = seoForKindIndex(Astro.site, "project", locale);
-const alternates = { ru: new URL(kindIndexUrl("project", "ru"), Astro.site).toString() };
+const alternates = { ru: kindIndexUrl("project", "ru") };
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
   <section class="page projects-index">
     <p class="eyebrow">Two directions</p>
     <h1>Projects</h1>
     <div class="index" role="list">
-      {pairs.map(p => (
-        <BookCard pair={p} locale={locale} blurb={clampDescription((p.en ?? p.ru).data.description, 200)} />
+      {pairs
+        .filter(p => p.en !== null)
+        .map(p => (
+        <BookCard pair={p} locale={locale} blurb={clampDescription(p.en!.data.description, 200)} />
       ))}
     </div>
   </section>
@@ -27,11 +29,11 @@ const alternates = { ru: new URL(kindIndexUrl("project", "ru"), Astro.site).toSt
   .projects-index { max-width: 64rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
   .projects-index h1 {
     font-family: var(--serif);
-    font-weight: 300;
-    font-size: clamp(2.6rem, 6vw, 4.5rem);
-    line-height: 1;
+    font-weight: 400;
+    font-size: clamp(2.8rem, 6.4vw, 4.8rem);
+    line-height: 0.98;
     margin: 0 0 2rem;
-    letter-spacing: -0.012em;
+    letter-spacing: -0.022em;
   }
   .index {
     display: grid;

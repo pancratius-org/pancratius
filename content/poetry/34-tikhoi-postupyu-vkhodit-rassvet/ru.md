@@ -5,14 +5,11 @@ slug: 34-tikhoi-postupyu-vkhodit-rassvet
 title: Тихой поступью входит рассвет
 lang: ru
 description: 'Стихотворение №34: Тихой поступью входит рассвет'
-original_filename: Тихой поступью входит рассвет.docx
 cover: ./cover.ru.jpg
 date: '2026-04-26'
 translation:
   source: original
 ---
-
-> **Тихой поступью входит рассвет**
 
 Тихой поступью входит рассвет,
 Я поверил, что Тебя рядом нет...

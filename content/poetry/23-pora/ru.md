@@ -5,7 +5,6 @@ slug: 23-pora
 title: Пора
 lang: ru
 description: 'Стихотворение №23: Пора'
-original_filename: Пора.docx
 cover: ./cover.ru.jpg
 date: '2024-09-25'
 translation:
@@ -13,9 +12,7 @@ translation:
 ---
 
 Пора… пора… да, вы все здесь,
-
 А я – туда,
-
 меня с собой позвали облака…
 
 Пора… пора… уже за гранью сна

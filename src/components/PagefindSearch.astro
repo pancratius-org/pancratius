@@ -89,7 +89,15 @@ const copy = locale === "ru" ? {
     input.addEventListener("input", () => {
       clearTimeout(timer);
       timer = setTimeout(runSearch, 120);
+      // Reflect the query in the URL so the search is shareable / bookmarkable.
+      const q = input.value;
+      const url = new URL(location.href);
+      if (q) url.searchParams.set("q", q); else url.searchParams.delete("q");
+      history.replaceState(null, "", url);
     });
+    // Pick up an initial query from ?q= and run it.
+    const initial = new URLSearchParams(location.search).get("q");
+    if (initial) { input.value = initial; runSearch(); }
     input.focus();
   })();
 </script>

@@ -3,9 +3,13 @@
 # requires-python = ">=3.11"
 # dependencies = ["pyyaml>=6.0"]
 # ///
-"""EN frontmatter `title` is majority Latin OR carries `title_is_untranslated:
-true`. Fails on any EN entry whose title is Cyrillic-majority without the
-flag set."""
+"""EN frontmatter uses the current content schema.
+
+An EN title may be a localized title or an honest RU-title fallback; that is an
+editorial state, not a schema flag. This audit only rejects stale
+`title_is_untranslated` fields from the old model and reports title-language
+counts for review.
+"""
 from __future__ import annotations
 
 import sys
@@ -26,7 +30,8 @@ def is_majority_latin(s: str) -> bool:
 
 
 def main() -> int:
-    failures: list[tuple[Path, str]] = []
+    stale_flags: list[Path] = []
+    ru_fallbacks: list[tuple[Path, str]] = []
     checked = 0
     for md in CONTENT.rglob("en.md"):
         text = md.read_text(encoding="utf-8")
@@ -40,16 +45,21 @@ def main() -> int:
         if not title:
             continue
         checked += 1
-        flagged = bool(fm.get("title_is_untranslated"))
-        if not is_majority_latin(title) and not flagged:
-            failures.append((md, title))
+        if "title_is_untranslated" in fm:
+            stale_flags.append(md)
+        if not is_majority_latin(title):
+            ru_fallbacks.append((md, title))
     print(f"checked {checked} en.md files")
-    if failures:
-        print(f"FAIL: {len(failures)} EN titles are Russian and not flagged untranslated", file=sys.stderr)
-        for md, t in failures[:15]:
-            print(f"  {md.relative_to(ROOT)} title={t!r}", file=sys.stderr)
+    if stale_flags:
+        print(f"FAIL: {len(stale_flags)} EN entries still carry stale title_is_untranslated", file=sys.stderr)
+        for md in stale_flags[:15]:
+            print(f"  {md.relative_to(ROOT)}", file=sys.stderr)
         return 1
-    print("PASS")
+    if ru_fallbacks:
+        print(f"note: {len(ru_fallbacks)} EN titles are RU fallback titles")
+        for md, title in ru_fallbacks[:10]:
+            print(f"  {md.relative_to(ROOT)} title={title!r}")
+    print("PASS: no stale title fallback schema fields")
     return 0
 
 

@@ -5,7 +5,6 @@ slug: 20-odinochestvo-v-labirinte-illyuzii
 title: Одиночество в лабиринте иллюзий
 lang: ru
 description: 'Стихотворение №20: Одиночество в лабиринте иллюзий'
-original_filename: Одиночество в лабиринте иллюзий.docx
 cover: ./cover.ru.jpg
 date: '2024-10-27'
 translation:

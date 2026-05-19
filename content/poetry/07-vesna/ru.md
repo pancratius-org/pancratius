@@ -5,7 +5,6 @@ slug: 07-vesna
 title: Весна
 lang: ru
 description: 'Стихотворение №7: Весна'
-original_filename: Весна.docx
 cover: ./cover.ru.jpg
 date: '2025-03-15'
 translation:

@@ -646,26 +646,82 @@ def _read_frontmatter(md: Path) -> dict:
     return yaml.safe_load(text[4:end]) or {}
 
 
+def _build_path_map_from_manifest(content_root: Path, legacy_root: Path) -> dict[Path, Path]:
+    """Map legacy DOCX sources to optimized DOCX destinations using
+    conversion-manifest provenance.
+
+    This is the preferred path: source filenames are conversion provenance,
+    not content frontmatter.
+    """
+    if not MANIFEST_PATH.exists():
+        return {}
+    try:
+        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+    folder_for_kind = {"book": "books", "poem": "poetry", "project": "projects"}
+    out: dict[Path, Path] = {}
+    by_work = manifest.get("by_work")
+    if not isinstance(by_work, dict):
+        return out
+
+    for entry in by_work.values():
+        if not isinstance(entry, dict):
+            continue
+        kind = entry.get("kind")
+        slug = entry.get("slug")
+        sources = entry.get("sources")
+        folder = folder_for_kind.get(str(kind))
+        if not folder or not isinstance(slug, str) or not isinstance(sources, dict):
+            continue
+        for lang, raw_entries in sources.items():
+            if not isinstance(lang, str) or not isinstance(raw_entries, list):
+                continue
+            docx_entries = [
+                item for item in raw_entries
+                if isinstance(item, dict)
+                and isinstance(item.get("path"), str)
+                and item["path"].endswith(".docx")
+            ]
+            total = len(docx_entries)
+            for idx, item in enumerate(docx_entries, start=1):
+                src = (ROOT / item["path"]).resolve()
+                if not src.is_file():
+                    continue
+                suffix = f"{lang}.docx" if total <= 1 else f"{lang}-part{idx}.docx"
+                out[src] = content_root / folder / slug / suffix
+    return out
+
+
 def build_path_map(content_root: Path, legacy_root: Path) -> dict[Path, Path]:
     """Walk the content tree and produce a map from resolved legacy source
     paths to content destination paths. Keys are full resolved paths so
     same-named files in different folders (e.g. two ``source.docx`` under
     different projects) don't collide.
 
+    Prefer ``data/conversion-manifest.json`` source provenance. Older metadata
+    fallbacks are retained only so the optimizer can run against pre-migration
+    trees.
+
     Resolution by kind:
-      books    — ``meta.json`` lists ``original_filenames`` per language; the
+      books    — manifest sources, or ``meta.json`` lists ``original_filenames`` per language; the
                  source lives at ``legacy/books/<lang>/<filename>``.
-      poetry   — frontmatter's ``original_filename`` is the file's basename;
+      poetry   — manifest sources, or frontmatter's ``original_filename`` is the file's basename;
                  the source lives somewhere under ``legacy/poetry/<folder>/``
                  where ``<folder>`` shares the same numeric prefix as the
                  content slug (e.g. ``02-...`` ↔ ``02. ...``). When that's
                  ambiguous we fall back to a direct filename match.
-      projects — content slug equals the legacy folder name exactly, so the
+      projects — manifest sources, or content slug equals the legacy folder name exactly, so the
                  source is ``legacy/projects/<slug>/<filename>``.
 
     Destination naming: ``<lang>.docx`` for single-source entries,
     ``<lang>-part<N>.docx`` for multi-source.
     """
+    out = _build_path_map_from_manifest(content_root, legacy_root)
+    if out:
+        return out
+
     out: dict[Path, Path] = {}
 
     # --- books -----------------------------------------------------------

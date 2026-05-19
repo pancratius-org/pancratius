@@ -1,18 +1,16 @@
 #!/usr/bin/env -S uv run --quiet
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["pyyaml>=6.0"]
+# dependencies = []
 # ///
-"""Every `legacy/**/*.docx` maps to a content/ folder or is in an explicit
-allowlist (drafts, pre-cleanup variants)."""
+"""Every `legacy/**/*.docx` maps to a generated work source or is in an
+explicit allowlist (drafts, pre-cleanup variants)."""
 from __future__ import annotations
 
 import json
-import re
 import sys
 from pathlib import Path
-
-import yaml
+from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 CONTENT = ROOT / "content"
@@ -25,36 +23,83 @@ ALLOWED_SKIP_SUFFIXES = ("-pre-cleanup.docx", "-pre-cleanup-v2.docx")
 ALLOWED_SKIP_NAMES: set[str] = set()
 
 
-def _collect_originals() -> set[str]:
-    used: set[str] = set()
-    for md in CONTENT.rglob("*.md"):
-        text = md.read_text(encoding="utf-8")
-        if not text.startswith("---"):
-            continue
-        end = text.find("\n---", 3)
-        if end < 0:
-            continue
-        fm = yaml.safe_load(text[4:end]) or {}
-        for k in ("original_filename", "original_filenames"):
-            v = fm.get(k)
-            if isinstance(v, str):
-                used.add(v)
-            elif isinstance(v, list):
-                used.update(str(x) for x in v)
+def _legacy_rel_from_source_url(raw: str) -> str | None:
+    if not raw:
+        return None
+    raw = unquote(raw.replace("\\", "/").lstrip("/"))
+    if raw.startswith("legacy/") and raw.endswith(".docx"):
+        return raw
+    # Legacy data usually stores URLs like `/books/ru/file.docx`. Map them
+    # into the repository path without making content frontmatter carry this
+    # provenance detail.
+    if raw.endswith(".docx") and raw.startswith(("books/", "poetry/", "projects/")):
+        return "legacy/" + raw
+    return None
+
+
+def _collect_used_sources() -> tuple[set[str], set[str]]:
+    used_paths: set[str] = set()
+    used_names: set[str] = set()
     if MANIFEST.exists():
         manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
         for work_entry in (manifest.get("by_work") or {}).values():
             if not isinstance(work_entry, dict):
                 continue
-            for entry in work_entry.get("images") or []:
-                f = entry.get("original_filename")
-                if f and not f.startswith(("book-cover-", "poem-cover", "project-cover", "cover:")):
-                    used.add(f)
-    return used
+            sources = work_entry.get("sources")
+            if isinstance(sources, dict):
+                for entries in sources.values():
+                    if not isinstance(entries, list):
+                        continue
+                    for entry in entries:
+                        if isinstance(entry, dict):
+                            path = entry.get("path")
+                            filename = entry.get("filename")
+                            if isinstance(path, str):
+                                used_paths.add(path)
+                            if isinstance(filename, str):
+                                used_names.add(filename)
+                        elif isinstance(entry, str):
+                            rel = _legacy_rel_from_source_url(entry)
+                            if rel:
+                                used_paths.add(rel)
+                            else:
+                                used_names.add(entry)
+
+    # Transitional fallback: `meta.json` is conversion provenance, unlike
+    # Markdown frontmatter. It lets this audit keep working against older
+    # manifests without making the public content schema carry source filenames.
+    for meta_path in CONTENT.rglob("meta.json"):
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+        sources = meta.get("sources")
+        if isinstance(sources, dict):
+            for raw_entries in sources.values():
+                entries = raw_entries if isinstance(raw_entries, list) else [raw_entries]
+                for raw in entries:
+                    if isinstance(raw, str):
+                        rel = _legacy_rel_from_source_url(raw)
+                        if rel:
+                            used_paths.add(rel)
+                        elif raw.endswith(".docx"):
+                            used_names.add(Path(raw).name)
+        languages = meta.get("languages")
+        if isinstance(languages, dict):
+            for info in languages.values():
+                if not isinstance(info, dict):
+                    continue
+                originals = info.get("original_filenames")
+                if isinstance(originals, str):
+                    used_names.add(originals)
+                elif isinstance(originals, list):
+                    used_names.update(str(x) for x in originals)
+
+    return used_paths, used_names
 
 
 def main() -> int:
-    used = _collect_originals()
+    used_paths, used_names = _collect_used_sources()
     unmapped: list[Path] = []
     for docx in LEGACY.rglob("*.docx"):
         if docx.name.startswith("~$"):
@@ -63,22 +108,26 @@ def main() -> int:
             continue
         if docx.name in ALLOWED_SKIP_NAMES:
             continue
-        if docx.name in used:
+        rel = docx.relative_to(ROOT).as_posix()
+        if rel in used_paths:
             continue
-        # projects/<slug>/source.docx is referenced via the project frontmatter
-        # `original_filename: source.docx` which is ambiguous across projects;
-        # explicitly check that a content/projects/<slug>/ exists.
+        # Legacy projects all use `source.docx`; if running against older
+        # provenance without path-level manifest sources, check the matching
+        # project bundle instead of treating the shared basename as globally
+        # meaningful.
         if docx.parent.parent.name == "projects":
             slug = docx.parent.name
             if (CONTENT / "projects" / slug).is_dir():
                 continue
+        if docx.name in used_names:
+            continue
         unmapped.append(docx)
     if unmapped:
         print(f"FAIL: {len(unmapped)} unmapped source docx files", file=sys.stderr)
         for p in unmapped:
             print(f"  {p.relative_to(ROOT)}", file=sys.stderr)
         return 1
-    print(f"PASS: every source docx maps to content/ (modulo {len(ALLOWED_SKIP_NAMES)} explicit skip + draft suffixes)")
+    print(f"PASS: every source docx maps to generated provenance (modulo {len(ALLOWED_SKIP_NAMES)} explicit skip + draft suffixes)")
     return 0
 
 

@@ -44,7 +44,6 @@ const baseWorkFields = {
   lang,
   description: z.string().min(1),
   translation,
-  title_is_untranslated: z.boolean().optional(),
   cover_is_placeholder: z.boolean().optional(),
   cross_refs: z.array(crossRefEntry).optional(),
 };
@@ -67,10 +66,8 @@ const books = defineCollection({
     number: z.number().int().positive(),
     slug: asciiSlug,
     title: z.string().min(1),
-    original_filenames: z.array(z.string()).default([]),
     tags: z.array(z.string()).default([]),
     cover: z.string().nullable().optional(),
-    abstract: z.string().optional(),
     ...baseWorkFields,
   }),
 });
@@ -86,7 +83,6 @@ const poetry = defineCollection({
     number: z.number().int().positive(),
     slug: asciiSlug,
     title: z.string().min(1),
-    original_filename: z.string().optional(),
     cover: z.string().nullable().optional(),
     date: z.string().nullable().optional(),
     ...baseWorkFields,
@@ -104,7 +100,6 @@ const projects = defineCollection({
     number: z.number().int().positive(),
     slug: asciiSlug,
     title: z.string().min(1),
-    original_filename: z.string().optional(),
     cover: z.string().nullable().optional(),
     ...baseWorkFields,
   }),
@@ -127,9 +122,6 @@ const pages = defineCollection({
     description: z.string().min(1),
     eyebrow: z.string().optional(),
     sub: z.string().optional(),
-    nav_label: z.string().optional(),
-    show_in_nav: z.boolean().default(false),
-    nav_order: z.number().int().optional(),
   }),
 });
 

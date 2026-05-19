@@ -15,6 +15,14 @@ html {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: geometricPrecision;
   scroll-behavior: smooth;
+  /* Horizontal-overflow guard lives on <html>, not <body>. On <body> it
+     promotes the element to a scroll container, which breaks
+     `position: sticky` on every descendant (the ToC, notably). */
+  overflow-x: clip;
+  /* Anchor jumps (clicking a ToC link, or arriving with `#slug`) need to
+     land below the sticky site header — otherwise the heading hides
+     under it. Header is ~3rem tall; 5rem leaves a small breathing pad. */
+  scroll-padding-top: 5rem;
 }
 
 body {
@@ -25,7 +33,6 @@ body {
   color: var(--ink);
   background: var(--bg-gradient);
   min-height: 100vh;
-  overflow-x: hidden;
   font-variant-numeric: oldstyle-nums proportional-nums;
 }
 
@@ -111,7 +118,7 @@ main { padding-bottom: 6rem; }
 
 h1, h2, h3 {
   font-family: var(--serif);
-  font-weight: 400;
+  font-weight: 500;
   color: var(--ink);
 }
 
@@ -128,4 +135,79 @@ h1, h2, h3 {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+}
+
+/* Reading-flow pager: previous + next book at the foot of a work page.
+   Lives in global.css because both RU and EN book routes render it and
+   Astro's scoped <style> would isolate it to one file. */
+.book-page__pager {
+  max-width: var(--measure);
+  margin: 3rem 0 0;
+  padding: 1.5rem 0 0;
+  border-top: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.book-page__pager-link {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.6rem;
+  align-items: baseline;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 0.4rem 0;
+}
+.book-page__pager-link--prev { grid-template-columns: auto auto 1fr; }
+.book-page__pager-link--next {
+  grid-template-columns: 1fr auto auto;
+  text-align: right;
+  justify-self: end;
+}
+.book-page__pager-link:hover { color: var(--accent); }
+.book-page__pager-arrow { color: var(--ink-mute); }
+.book-page__pager-num {
+  font-variant-numeric: oldstyle-nums proportional-nums;
+  color: var(--ink-mute);
+  letter-spacing: 0.12em;
+}
+.book-page__pager-title {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.book-page__pager-link:hover .book-page__pager-title { color: var(--accent); }
+@media (max-width: 720px) {
+  .book-page__pager { grid-template-columns: 1fr; gap: 1rem; }
+}
+
+/* Share button — peer to the masthead's "СКАЧАТЬ:" label, not to an
+   individual format link. Same small-cap register, same colour.
+   On copy-success the label briefly flips to "Скопировано". */
+.book-page__share {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  cursor: pointer;
+}
+.book-page__share:hover,
+.book-page__share:focus-visible { color: var(--accent); }
+.book-page__share[data-state="done"] {
+  color: var(--accent);
+  cursor: default;
 }

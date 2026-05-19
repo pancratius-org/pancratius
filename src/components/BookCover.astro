@@ -9,13 +9,12 @@ interface Props {
   alt:     string;
   /** `eager` for above-the-fold covers (book page masthead), `lazy` otherwise. */
   loading?: "lazy" | "eager";
-  class?:   string;
 }
 
-const { pair, locale, alt, loading = "lazy", class: className = "" } = Astro.props;
+const { pair, locale, alt, loading = "lazy" } = Astro.props;
 const url = await coverAssetUrl(pair, locale);
 ---
-<div class:list={["bcv", className, !url && "bcv--empty"]} aria-hidden={url ? undefined : "true"}>
+<div class:list={["bcv", !url && "bcv--empty"]} aria-hidden={url ? undefined : "true"}>
   {url ? (
     <img
       src={url}

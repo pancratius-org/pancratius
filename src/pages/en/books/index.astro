@@ -15,12 +15,12 @@ const seo = seoForKindIndex(Astro.site, "book", locale);
 
 const tagCounts = new Map<string, number>();
 for (const p of pairs) {
-  const tagsForBook = p.en ? workTags(p.en) : workTags(p.ru);
-  for (const t of tagsForBook) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+  // EN-available filter above guarantees p.en is non-null here.
+  for (const t of workTags(p.en!)) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
 }
 const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count }));
 
-const alternates = { ru: new URL(kindIndexUrl("book", "ru"), Astro.site).toString() };
+const alternates = { ru: kindIndexUrl("book", "ru") };
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
   <section class="page lib">
@@ -37,7 +37,7 @@ const alternates = { ru: new URL(kindIndexUrl("book", "ru"), Astro.site).toStrin
 
     <div class="index" role="list" data-pagefind-ignore>
       {pairs.map(p => (
-        <BookCard pair={p} locale={locale} blurb={clampDescription((p.en ?? p.ru).data.description, 120)} />
+        <BookCard pair={p} locale={locale} blurb={clampDescription(p.en!.data.description, 120)} />
       ))}
     </div>
   </section>
@@ -52,11 +52,11 @@ const alternates = { ru: new URL(kindIndexUrl("book", "ru"), Astro.site).toStrin
   }
   .lib__head h1 {
     font-family: var(--serif);
-    font-weight: 300;
-    font-size: clamp(2.8rem, 7vw, 5rem);
-    line-height: 0.98;
+    font-weight: 400;
+    font-size: clamp(3rem, 7.4vw, 5.4rem);
+    line-height: 0.96;
     margin: 0;
-    letter-spacing: -0.018em;
+    letter-spacing: -0.024em;
   }
   .lib__head h1 b {
     font-weight: 500;

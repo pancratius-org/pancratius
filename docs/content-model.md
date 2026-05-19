@@ -47,6 +47,12 @@ content/
       cover.ru.jpg
 ```
 
+Multi-source works keep their original optimized source parts beside the work,
+for example `ru-part1.docx`, `ru-part2.docx`, and `ru-part3.docx`. Those parts
+are provenance and local editing assets. A public per-work DOCX download is
+only the merged release artifact named `<lang>.docx`; if that file does not
+exist, the site does not expose a `.docx` route for the merged work.
+
 The important rule: **authored and release assets live with the work**. Covers,
 body illustrations, source DOCX, and release downloads belong beside the
 Markdown. Build output may still emit optimized public files into `dist/`, but no
@@ -85,12 +91,8 @@ title: Евангелие Царствия           # per-language string, neve
 lang: ru
 description: |                      # mandatory; SEO / OG / card copy
   Краткое описание для поисковиков и карточек на /books/.
-abstract: |                         # optional longer in-page intro
-  Это не новая религия и не частное откровение. ...
 tags: [Откровение Бога, Библия]
 cover: ./cover.ru.jpg               # relative to this work folder
-original_filenames:
-  - 01-евангелие-царствия.docx
 
 translation:                        # required; originals use source: original
   source: original | literary | ai
@@ -106,8 +108,7 @@ cross_refs:                         # optional; authored references only
     snippet: "Подробнее об этом Творец рассказывает в книге «Князь мира сего»."
     source_url: https://www.litres.ru/72586354/   # optional external source
 
-title_is_untranslated: false        # optional; honest EN fallback flag
-cover_is_placeholder: false         # optional; honest cover fallback flag
+cover_is_placeholder: false         # optional; flips RU-cover fallback on EN
 ```
 
 `number` is mandatory on every kind, including projects. The corpus has **one
@@ -115,10 +116,14 @@ invariant identity rule**: `(kind, number)`. Projects today are numbered 1
 (`enlightened-ai`) and 2 (`holy-rus`) — the numbering is editorial, not
 URL-bearing.
 
-`description` is mandatory. The converter may seed it from editorial
-annotations, but it is content, not generated metadata. `abstract` is optional
-and longer. `meta.json` can preserve where the strings came from while migration
-is in progress, but production UI must not read `meta.json`.
+`description` is mandatory and the only long-form metadata; SEO, cards, and
+in-page openers all read it. Don't add a separate "abstract" field — keep the
+description load-bearing.
+
+`translation.source: ai` is the honest signal that an EN translation came from
+a model; EN work pages surface it as a small "machine translation" line near
+the colophon, with a link back to the RU original. No separate fallback flag
+is needed.
 
 ## Markdown Body Contract
 
@@ -150,11 +155,39 @@ rendering classes. Export code may add explicit hard-break markers to
 downloadable Markdown scratch/output so strict CommonMark readers preserve the
 same lineation, but those markers are not part of the author-facing source.
 
-Converters must preserve real stanza breaks. Do not run a blanket
-`blank-line-between-every-line -> single newline` collapse unless stanza markers
-are recovered from a reliable source signal (source DOCX spacing, legacy text
-data, or explicit editorial markup). A poetry conversion pass should fail or
-emit a review report if it turns every poem into one stanza.
+Converters must preserve real stanza breaks. For DOCX poetry, the source signal
+is Word paragraph structure: non-empty paragraphs are verse lines, empty
+paragraphs are stanza breaks, and in-paragraph line breaks are verse lines inside
+one stanza. The converter reads this through Pandoc's `docx+empty_paragraphs`
+AST and writes the author-facing Markdown shape above. Do not run a blanket
+`blank-line-between-every-line -> single newline` collapse over Pandoc's GFM
+output; by then the stanza signal has already been blurred. The poetry stanza
+audit must fail if converted Markdown no longer matches the DOCX stanza
+structure.
+
+The same source signal appears inside some books. Named sections such as
+`Посвящение`, `Предисловие от Творца`, `Слово Творца`, and `Молитва` are clear
+examples, but the rule is structural rather than name-only: when the DOCX AST
+contains a confident run of short lineated paragraphs, the converter may emit
+an explicit `<div class="verse-block">` for that run. The wrapper contains
+natural source lines and blank stanza lines, not hand-authored `<p>` / `<br>`
+markup. It is converter-owned output; authors are not expected to type this
+HTML. CSS preserves that lineation while ordinary prose remains ordinary
+Markdown paragraphs.
+
+DOCX paragraph metadata is also source data. Pandoc's Markdown writer does not
+carry Word paragraph alignment, so the converter reads `word/document.xml`
+directly for narrow semantic cases:
+
+- right-aligned signature paragraphs become `<p class="signature">`;
+- right-aligned scripture / epigraph groups become
+  `<blockquote class="epigraph">`;
+- a standalone `***` line (escaped or unescaped in Pandoc output) becomes a
+  real Markdown thematic break.
+
+Do not infer these from rendered CSS, italic-only paragraphs, or arbitrary
+short-line runs. The signal must come from the DOCX structure or an explicit
+source marker.
 
 ## Relations
 
@@ -176,6 +209,10 @@ Long DOCX bibliography/catalog tables do **not** belong in Markdown body or
 frontmatter. In the current corpus they are usually catalog snapshots: 20-80+
 works with LitRes links, often "all books known at publication time," not a
 curated recommendation list.
+
+Some sources store the same catalog as screenshots / pasted cover-grid images.
+Those images are also bibliography, not body illustrations. The converter drops
+them from the reading body and must not copy them into `images/`.
 
 Keep them as an optional sidecar:
 
@@ -220,7 +257,7 @@ it ad hoc.
 
 | Lives in | What |
 |----------|------|
-| frontmatter | `kind`, `number`, `slug`, `title`, `lang`, `description`, `abstract`, `tags`, `cover`, `translation`, `cross_refs`, fallback flags |
+| frontmatter | `kind`, `number`, `slug`, `title`, `lang`, `description`, `tags`, `cover`, `translation`, `cross_refs`, `cover_is_placeholder` |
 | markdown body | the work itself, with relative links only to true inline body images |
 | work folder assets | covers, true body illustrations, source DOCX/PDF |
 | `bibliography.yaml` | long catalog/bibliography snapshots and external marketplace links |
@@ -235,8 +272,7 @@ it ad hoc.
 3. Run the conversion script. It creates or updates `<lang>.md`, resolves assets,
    seeds frontmatter, and optionally writes `bibliography.yaml`. It must preserve
    author-added files it does not own.
-4. Author edits `description`, `abstract`, `title`, `tags`, and `cross_refs` if
-   needed.
+4. Author edits `description`, `title`, `tags`, and `cross_refs` if needed.
 5. Re-run graph generators so algorithmic recommendations include the work.
 
 If a fully reproducible clean conversion is needed for audit, run it into a

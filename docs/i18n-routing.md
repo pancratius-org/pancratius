@@ -22,7 +22,7 @@ the URL only when the localized title is editorially real**.
 - The folder key is the canonical RU ASCII work key (`content/books/01-evangelie-tsarstviya/`).
 - `ru.md` `slug:` is always a Russian-derived ASCII transliteration.
 - `en.md` `slug:` is the English-title ASCII transliteration **only when the EN title is settled**. Until then, reuse the RU slug.
-- If the EN title is a fallback (AI-machine translation kept as placeholder, or no editorial pass), set `title_is_untranslated: true` and reuse the RU slug.
+- If the EN title is a fallback (AI-machine translation kept as placeholder, or no editorial pass), reuse the RU slug. `translation.source: ai` is the honest signal — EN work pages surface it as a "machine translation" line near the colophon with a link back to the RU original.
 
 Why: a localized URL keyword is a small SEO signal; renaming an EN slug later
 creates redirect debt that's worse than the missed signal. Page title, `<h1>`,
@@ -38,10 +38,12 @@ title: Евангелие Царствия
 slug: 01-gospel-of-the-kingdom
 title: Gospel of the Kingdom
 
-# en.md when the title is still a fallback
+# en.md when the title is still a fallback (RU slug + RU title; the
+# colophon's "machine translation" line carries the honesty)
 slug: 62-kniga-tishiny
 title: Книга Тишины
-title_is_untranslated: true
+translation:
+  source: ai
 ```
 
 `src/lib/i18n.ts` resolves URLs from the per-language `slug:` field; route

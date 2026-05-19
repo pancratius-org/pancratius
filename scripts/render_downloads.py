@@ -4,11 +4,13 @@
 # dependencies = ["pillow>=10.4", "pyyaml>=6"]
 # ///
 
-"""Local admin tool: render PDF and EPUB downloads into the work bundle.
+"""Local admin tool: render release downloads into the work bundle.
 
-Per ``docs/downloads.md``, PDFs and EPUBs are committed release artefacts
-under ``content/<kind>/<work>/<lang>.{pdf,epub}``. This script regenerates
-them locally; CI never runs it.
+Per ``docs/downloads.md``, PDFs and EPUBs are committed release artefacts under
+``content/<kind>/<work>/<lang>.{pdf,epub}``. Merged multi-part works may also
+need a committed ``<lang>.docx`` release artefact, because the optimized source
+DOCX parts are not the same thing as the public "one URL = one work" download.
+This script regenerates those artefacts locally; CI never runs it.
 
 Tools required on PATH:
   - pandoc (>= 3.0)
@@ -21,7 +23,7 @@ Inputs:
   - ``scripts/downloads-fonts/*/*.ttf`` (committed Cyrillic-capable fonts)
   - ``content/<work>/cover.<lang>.<ext>`` (optional cover)
 
-Outputs are written next to ``<lang>.md`` as ``<lang>.pdf`` and ``<lang>.epub``.
+Outputs are written next to ``<lang>.md``.
 
 Usage:
 
@@ -32,6 +34,7 @@ Usage:
   uv run scripts/render_downloads.py --lang en    # restrict to one language
   uv run scripts/render_downloads.py --skip-pdf   # only EPUBs
   uv run scripts/render_downloads.py --skip-epub  # only PDFs
+  uv run scripts/render_downloads.py --book 2 --docx --skip-pdf --skip-epub
   uv run scripts/render_downloads.py --force      # ignore existing outputs
 """
 
@@ -151,8 +154,11 @@ def discover_works() -> Iterable[WorkEntry]:
                 )
 
 
-def _ensure_tools() -> None:
-    for tool in ("pandoc", "typst"):
+def _ensure_tools(formats: Iterable[str]) -> None:
+    required = {"pandoc"}
+    if "pdf" in formats:
+        required.add("typst")
+    for tool in sorted(required):
         if shutil.which(tool) is None:
             print(f"error: {tool} is not on PATH. Install it before running.", file=sys.stderr)
             sys.exit(2)
@@ -264,15 +270,18 @@ def _rewrite_image_paths(body: str, image_map: dict[str, str]) -> str:
 def _write_export_markdown(entry: WorkEntry, dest: Path, image_map: dict[str, str]) -> None:
     raw = entry.md.read_text(encoding="utf-8")
     body = _rewrite_image_paths(_html_images_to_markdown(_strip_frontmatter(raw)), image_map)
-    header = (
-        "---\n"
-        f"title: {yaml.safe_dump(entry.title, allow_unicode=True).strip()}\n"
-        f"lang: {entry.lang}\n"
-        f'author: "{AUTHOR}"\n'
-        f'rights: "{RIGHTS}"\n'
-        "---\n\n"
+    metadata = yaml.safe_dump(
+        {
+            "title": entry.title,
+            "lang": entry.lang,
+            "author": AUTHOR,
+            "rights": RIGHTS,
+        },
+        allow_unicode=True,
+        sort_keys=False,
+        width=10_000,
     )
-    dest.write_text(header + body, encoding="utf-8")
+    dest.write_text(f"---\n{metadata}---\n\n{body}", encoding="utf-8")
 
 
 def _pandoc_from(entry: WorkEntry) -> list[str]:
@@ -343,6 +352,36 @@ def render_epub(entry: WorkEntry, scratch_dir: Path) -> Path:
     return out
 
 
+def _has_source_parts(entry: WorkEntry) -> bool:
+    return any(entry.folder.glob(f"{entry.lang}-part*.docx"))
+
+
+def render_docx(entry: WorkEntry, scratch_dir: Path) -> Path:
+    """Render a merged DOCX release artefact from canonical Markdown.
+
+    This is intentionally for multi-part works only. Single-source works keep
+    their optimized source DOCX as the public DOCX download.
+    """
+    if not _has_source_parts(entry):
+        raise ValueError(f"{entry.kind}#{entry.number}/{entry.lang} has no source DOCX parts")
+    export_root, _cover, image_map = _stage_export_bundle(entry, scratch_dir)
+    scratch_md = export_root / f"{entry.kind}-{entry.slug}-{entry.lang}.md"
+    _write_export_markdown(entry, scratch_md, image_map)
+    out = entry.folder / f"{entry.lang}.docx"
+    args = [
+        "pandoc", str(scratch_md),
+        *_pandoc_from(entry),
+        "-o", str(out),
+        "--resource-path", str(export_root),
+        "--metadata", f"title={entry.title}",
+        "--metadata", f"lang={entry.lang}",
+        "--metadata", f"author={AUTHOR}",
+        "--metadata", f"rights={RIGHTS}",
+    ]
+    subprocess.run(args, check=True)
+    return out
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--book", type=int, help="render only this book number")
@@ -351,10 +390,11 @@ def main() -> int:
     parser.add_argument("--lang", choices=LANGS, help="restrict to one language")
     parser.add_argument("--skip-pdf", action="store_true")
     parser.add_argument("--skip-epub", action="store_true")
+    parser.add_argument("--docx", action="store_true",
+                        help="also render merged DOCX release artifacts for multi-part works")
     parser.add_argument("--force", action="store_true",
                         help="re-render even if the output is newer than the source")
     args = parser.parse_args()
-    _ensure_tools()
 
     selected: list[WorkEntry] = []
     for entry in discover_works():
@@ -378,9 +418,12 @@ def main() -> int:
     formats: list[str] = []
     if not args.skip_pdf:  formats.append("pdf")
     if not args.skip_epub: formats.append("epub")
+    if args.docx: formats.append("docx")
+    _ensure_tools(formats)
 
     pdfs_made = 0
     epubs_made = 0
+    docxs_made = 0
     skipped = 0
 
     scratch_parent = REPO_ROOT / ".cache"
@@ -407,10 +450,18 @@ def main() -> int:
                     render_epub(entry, scratch_dir)
                     epubs_made += 1
                     print(f"  EPUB {entry.kind}#{entry.number}/{entry.lang}  →  {out.relative_to(REPO_ROOT)}")
+            if "docx" in formats and _has_source_parts(entry):
+                out = entry.folder / f"{entry.lang}.docx"
+                if not args.force and out.exists() and out.stat().st_mtime >= src_mtime:
+                    skipped += 1
+                else:
+                    render_docx(entry, scratch_dir)
+                    docxs_made += 1
+                    print(f"  DOCX {entry.kind}#{entry.number}/{entry.lang}  →  {out.relative_to(REPO_ROOT)}")
     finally:
         shutil.rmtree(scratch_dir, ignore_errors=True)
 
-    print(f"\nrendered: {pdfs_made} PDF, {epubs_made} EPUB ({skipped} skipped; --force to rebuild)")
+    print(f"\nrendered: {pdfs_made} PDF, {epubs_made} EPUB, {docxs_made} DOCX ({skipped} skipped; --force to rebuild)")
     return 0
 
 

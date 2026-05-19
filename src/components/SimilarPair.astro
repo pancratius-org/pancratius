@@ -1,107 +1,117 @@
 ---
+// "См. также" + "Похожие книги" widgets at the foot of a book page.
+//
+// Reuses BookCard so the visual matches the /books/ index card — same
+// grid sizing, same cover treatment, same overflow rules. The only
+// addition is a small ★ overlay on algorithmic picks where TF-IDF and
+// embedding signals both rank the same neighbour.
+
 import type { Locale } from "@/lib/i18n";
 import type { ResolvedCrossRef, WorkEntry } from "@/lib/works";
-import { entryUrl } from "@/lib/works";
-import { getMergedSimilar, type SimilarPick } from "@/lib/conceptosphere";
+import { getMergedSimilar } from "@/lib/conceptosphere";
+import BookCard from "./BookCard.astro";
 
 interface Props {
   entry:  WorkEntry;
   locale: Locale;
-  /** Already-resolved authored cross_refs (rendered as "См. также"). */
   crossRefs: ResolvedCrossRef[];
-  /** How many algorithmic picks to surface. */
   limit?: number;
 }
 
 const { entry, locale, crossRefs, limit = 6 } = Astro.props;
-const algorithmic: SimilarPick[] = entry.data.kind === "book"
+
+const algorithmic = entry.data.kind === "book"
   ? await getMergedSimilar({ entry, locale, limit })
   : [];
 
-const labels = locale === "ru" ? {
-  see_also: "См. также",
-  similar:  "Похожие книги",
-  star:     "Совпадение по двум показателям",
-} : {
-  see_also: "See also",
-  similar:  "Similar books",
-  star:     "Both signals converge here",
-};
+const labels = locale === "ru"
+  ? { see_also: "См. также", similar: "Похожие книги", star: "Совпадение по двум показателям" }
+  : { see_also: "See also",  similar: "Similar books", star: "Both signals converge here" };
 ---
 <aside class="sim">
   {crossRefs.length > 0 && (
     <section class="sim__block">
       <h3 class="sim__h">{labels.see_also}</h3>
-      <ul class="sim__list">
+      <div class="sim__grid">
         {crossRefs.map(r => (
-          <li>
-            <a href={entryUrl(r.display)}>{r.display.data.title}</a>
-            {r.snippet && <p class="sim__snippet">{r.snippet}</p>}
-          </li>
+          <BookCard pair={r.target} locale={locale} blurb={r.snippet} />
         ))}
-      </ul>
+      </div>
     </section>
   )}
 
   {algorithmic.length > 0 && (
     <section class="sim__block">
       <h3 class="sim__h">{labels.similar}</h3>
-      <ul class="sim__list">
+      <div class="sim__grid">
         {algorithmic.map(p => (
-          <li>
+          <div class="sim__wrap">
+            <BookCard pair={p.pair} locale={locale} />
             {p.convergent && (
               <span class="sim__star" aria-label={labels.star} title={labels.star}>★</span>
             )}
-            <a href={p.url}>{p.title}</a>
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     </section>
   )}
 </aside>
 
 <style>
   .sim {
-    max-width: var(--measure);
-    margin: 3rem 0 0;
-    font-family: var(--sans);
+    margin: 4rem 0 0;
+    padding: 1.5rem 0 0;
+    border-top: 1px solid var(--rule);
   }
-  .sim__block + .sim__block { margin-top: 1.6rem; }
+  .sim__block + .sim__block { margin-top: 2.5rem; }
+
   .sim__h {
     font-family: var(--serif);
-    font-weight: 400;
-    font-style: italic;
-    font-size: 1.1rem;
-    color: var(--ink-soft);
-    margin: 0 0 0.7rem;
-    letter-spacing: -0.005em;
-  }
-  .sim__list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    gap: 0.55rem;
-  }
-  .sim__list a {
-    font-family: var(--serif);
-    font-size: 1.02rem;
+    font-weight: 600;
+    font-style: normal;
+    font-size: 1.35rem;
     color: var(--ink);
-    text-decoration: none;
+    margin: 0 0 1.4rem;
+    letter-spacing: -0.012em;
+    position: relative;
+    padding-top: 0.7rem;
   }
-  .sim__list a:hover { color: var(--accent); }
-  .sim__snippet {
-    margin: 0.2rem 0 0;
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: 0.92rem;
-    color: var(--ink-mute);
+  .sim__h::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    width: 28px;
+    height: 1px;
+    background: var(--accent);
   }
+
+  .sim__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem 1.6rem;
+  }
+
+  .sim__wrap { position: relative; }
   .sim__star {
-    display: inline-block;
-    width: 1.1em;
+    position: absolute;
+    top: -8px;
+    left: 78px;            /* sits over the top-right corner of the 92px cover */
+    z-index: 2;
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    background: var(--bg);
     color: var(--accent);
-    font-size: 0.95em;
-    margin-right: 0.3rem;
+    font-size: 14px;
+    line-height: 1;
+    border: 1px solid var(--accent-soft);
+    border-radius: 999px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  }
+
+  @media (max-width: 720px) {
+    .sim__grid { grid-template-columns: 1fr; gap: 1.6rem; }
+    .sim__star { left: 62px; }   /* mobile cover is 76px wide */
   }
 </style>

@@ -12,14 +12,10 @@ interface Props {
 }
 
 const { pairs, locale, label } = Astro.props;
+// Only show works that have an entry in the current locale — drops RU-only
+// books from /en/ rather than rendering them with Russian titles inside an
+// English flow.
 ---
-{/*
-  Only show works that have an entry in the current locale. On /en/ this
-  silently drops RU-only books rather than rendering them with Russian
-  titles inside an English context (and linking back to /books/{slug}/ —
-  surprising in an EN navigation flow).
-*/}
-{(() => null)()}
 <section class="shelf" aria-label={label}>
   <div class="shelf__edge shelf__edge--left" aria-hidden="true"></div>
   <div class="shelf__rail">

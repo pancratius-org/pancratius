@@ -5,7 +5,6 @@ slug: 35-translyatsiya
 title: Трансляция
 lang: ru
 description: 'Стихотворение №35: Трансляция'
-original_filename: Трансляция.docx
 cover: ./cover.ru.jpg
 date: '2024-11-14'
 translation:

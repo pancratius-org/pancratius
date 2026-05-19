@@ -5,7 +5,6 @@ slug: 18-my-poteryalis-v-etom-mire
 title: Мы потерялись в этом мире
 lang: ru
 description: 'Стихотворение №18: Мы потерялись в этом мире'
-original_filename: Мы потерялись в этом мире.docx
 cover: ./cover.ru.jpg
 date: '2026-02-06'
 translation:

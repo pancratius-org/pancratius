@@ -18,7 +18,7 @@ for (const p of pairs) {
 }
 const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count }));
 
-const alternates = { en: new URL(kindIndexUrl("book", "en"), Astro.site).toString() };
+const alternates = { en: kindIndexUrl("book", "en") };
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
   <section class="page lib">
@@ -45,11 +45,11 @@ const alternates = { en: new URL(kindIndexUrl("book", "en"), Astro.site).toStrin
   }
   .lib__head h1 {
     font-family: var(--serif);
-    font-weight: 300;
-    font-size: clamp(2.8rem, 7vw, 5rem);
-    line-height: 0.98;
+    font-weight: 400;
+    font-size: clamp(3rem, 7.4vw, 5.4rem);
+    line-height: 0.96;
     margin: 0;
-    letter-spacing: -0.018em;
+    letter-spacing: -0.024em;
   }
   .lib__head h1 b {
     font-weight: 500;
@@ -61,10 +61,10 @@ const alternates = { en: new URL(kindIndexUrl("book", "en"), Astro.site).toStrin
   .index {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 2.25rem 2rem;
+    gap: 2.6rem 2.25rem;
     margin-top: 1rem;
   }
   @media (max-width: 720px) {
-    .index { grid-template-columns: 1fr; gap: 1.75rem; }
+    .index { grid-template-columns: 1fr; gap: 2rem; }
   }
 </style>

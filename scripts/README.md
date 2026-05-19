@@ -34,8 +34,9 @@ For each source `.docx`:
    `-clean.docx` variant is preferred over `-pre-cleanup*` drafts.
 9. Emits each book/poem/project to its work-bundle folder with YAML
    frontmatter Astro content collections consume directly.
-10. Updates `data/conversion-manifest.json`. Each run records every file the
-    converter wrote per work in `by_work[<kind/slug>].generated_paths`
+10. Updates `data/conversion-manifest.json`. Each run records the source DOCX
+    files used for each work and every file the converter wrote per work in
+    `by_work[<kind/slug>].generated_paths`
     (a dict keyed by owner — this script writes under `"docx_to_md"`,
     `docx_optimize.py` writes under `"docx_optimize"`). Paths are relative
     to the work folder, so the manifest is portable across `--out-content`
@@ -85,6 +86,10 @@ data/
     ],
     "docx_optimize": ["en.docx", "ru.docx"]
   },
+  "sources": {
+    "ru": [{ "path": "legacy/books/ru/01-евангелие-царствия.docx", "filename": "01-евангелие-царствия.docx" }],
+    "en": [{ "path": "legacy/books/en/01-евангелие-царствия.docx", "filename": "01-евангелие-царствия.docx" }]
+  },
   "images": [{ "image_index": 1, "hash": "...", "ext": ".jpg", "role": "body", ... }]
 }
 ```
@@ -103,8 +108,6 @@ lang: ru
 description: …                  # mandatory; SEO / OG / card copy
 tags: [Откровение Бога, Библия]
 cover: ./cover.ru.jpg           # relative to the work folder
-original_filenames:
-  - 33-я-есмь-всадник-конь-и-меч.docx
 translation:
   source: original
 ---
@@ -212,9 +215,11 @@ consistent regardless of how narrow a partial run is.
 ## docx_optimize.py
 
 Shrinks the original `.docx` files for distribution as downloadable Word
-documents. The corpus carries ~95% of its bytes as uncompressed 1024×1536
-RGB PNGs from an AI image generator; this script re-encodes those as JPEG
-q85 (visually indistinguishable on phones/tablets) and rezips the result.
+documents. Source/destination mapping comes from
+`data/conversion-manifest.json` provenance, not content frontmatter. The corpus
+carries ~95% of its bytes as uncompressed 1024×1536 RGB PNGs from an AI image
+generator; this script re-encodes those as JPEG q85 (visually
+indistinguishable on phones/tablets) and rezips the result.
 
 Full corpus: **1.1 GB → 267 MB (~77% saved)** in ~35 s on an M-series Mac.
 The 65 MB outlier drops to 7.8 MB.
@@ -239,9 +244,9 @@ every `word/**/*.rels` and ensures `[Content_Types].xml` declares a
 
 ### Output layout
 
-Optimized files land alongside their markdown siblings in the content tree —
-not under `dist/`. Multi-source books (the two that exist) produce part-N
-suffixes; everything else is single-file `<lang>.docx`:
+Optimized source files land alongside their markdown siblings in the content
+tree — not under `dist/`. Multi-source books keep part-N suffixes as source
+artifacts; everything else is single-file `<lang>.docx`:
 
 ```
 content/books/<slug>/{ru,en}.docx                    # single-source books
@@ -249,6 +254,10 @@ content/books/<slug>/{ru,en}-part{1,2,3}.docx        # multi-source books (02, 4
 content/poetry/<slug>/ru.docx
 content/projects/<slug>/ru.docx
 ```
+
+For a merged multi-source work, the public `<lang>.docx` download is produced
+separately by `render_downloads.py --docx` from the merged Markdown. Do not
+expose a part file as the per-work DOCX download.
 
 The destination is computed from the content tree: `meta.json` for books
 (canonical multi-part filename list), markdown frontmatter for poems and
@@ -305,10 +314,11 @@ Constants at the top of `docx_optimize.py`:
 
 ## render_downloads.py
 
-Local admin tool that renders PDF and EPUB release artefacts into the work
-bundle, per the contract in `docs/downloads.md`. Outputs land as
-`content/<kind>/<work>/<lang>.{pdf,epub}` and are **committed**; CI never runs
-this script and never invokes pandoc or typst.
+Local admin tool that renders release artefacts into the work bundle, per the
+contract in `docs/downloads.md`. PDF/EPUB outputs land as
+`content/<kind>/<work>/<lang>.{pdf,epub}`. Merged multi-part DOCX outputs land
+as `content/books/<work>/<lang>.docx` when `--docx` is passed. These files are
+**committed**; CI never runs this script and never invokes pandoc or typst.
 
 ### Requirements
 
@@ -337,6 +347,9 @@ uv run scripts/render_downloads.py --lang en
 # Selective formats.
 uv run scripts/render_downloads.py --skip-pdf
 uv run scripts/render_downloads.py --skip-epub
+
+# Merged DOCX release artifact for a multi-part work.
+uv run scripts/render_downloads.py --book 2 --docx --skip-pdf --skip-epub --force
 
 # Force regeneration even if the output is newer than the source.
 uv run scripts/render_downloads.py --force

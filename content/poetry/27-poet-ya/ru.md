@@ -5,7 +5,6 @@ slug: 27-poet-ya
 title: Поэт я...
 lang: ru
 description: 'Стихотворение №27: Поэт я...'
-original_filename: Поэт я....docx
 cover: ./cover.ru.jpg
 date: '2026-03-10'
 translation:

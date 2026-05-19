@@ -12,17 +12,14 @@ interface Props {
 }
 
 const { pair, locale, blurb } = Astro.props;
-// Card content always speaks the page locale. When EN is missing we fall
-// back to the RU surface but mark it visibly as "RU only" so an English
-// reader isn't surprised by the language switch on click.
-const entry = locale === "en" ? pair.en : pair.ru;
-const display = entry ?? pair.ru;
-// If we had to fall back to RU on an EN page, the link must point at the
-// real (RU) page — otherwise it would 404.
-const linkLocale: Locale = entry ? locale : (display.data.lang as Locale);
+// On EN pages, fall back to the RU surface when no EN translation exists. The
+// card still links somewhere real — to the RU page — and we mark the fallback
+// visibly so an EN reader isn't surprised by the language flip on click.
+const enFallback = locale === "en" && !pair.en;
+const display = enFallback ? pair.ru : (locale === "en" ? pair.en! : pair.ru);
+const linkLocale: Locale = enFallback ? "ru" : locale;
 const href = workUrl(pair.kind, display.data.slug, linkLocale);
-const tags = (display.data as { tags?: string[] }).tags ?? [];
-const isRuFallback = locale === "en" && !pair.en;
+const tags = "tags" in display.data ? display.data.tags : [];
 const hasEnBadge = pair.en !== null && locale === "ru";
 const altPrefix = locale === "en" ? "Cover" : "Обложка";
 ---
@@ -40,7 +37,7 @@ const altPrefix = locale === "en" ? "Cover" : "Обложка";
     <h2 class="book__title">{display.data.title}</h2>
     {blurb && <p class="book__annot">{blurb}</p>}
     {hasEnBadge && <span class="book__lang">RU · EN</span>}
-    {isRuFallback && <span class="book__lang book__lang--fallback">Russian only</span>}
+    {enFallback && <span class="book__lang book__lang--fallback">Russian only</span>}
   </div>
 </a>
 
@@ -68,11 +65,13 @@ const altPrefix = locale === "en" ? "Cover" : "Обложка";
   }
   .book__title {
     font-family: var(--serif);
-    font-size: 1.1rem;
-    line-height: 1.25;
-    font-weight: 500;
+    font-size: 1.22rem;
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: -0.012em;
     color: var(--ink);
-    margin: 0 0 0.45rem;
+    margin: 0 0 0.5rem;
+    text-wrap: balance;
   }
   .book:hover .book__title { color: var(--accent); }
   .book__annot {

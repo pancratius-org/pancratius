@@ -5,7 +5,6 @@ slug: 37-ty-ne-pride-sh
 title: Ты не придёшь
 lang: ru
 description: 'Стихотворение №37: Ты не придёшь'
-original_filename: Ты не придёшь.docx
 cover: ./cover.ru.jpg
 date: '2026-02-06'
 translation:

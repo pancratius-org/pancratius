@@ -7,6 +7,7 @@ import BookCover  from "@/components/BookCover.astro";
 import Colophon   from "@/components/Colophon.astro";
 
 import type { Locale } from "@/lib/i18n";
+import { coverAbsoluteUrl } from "@/lib/covers";
 import { kindIndexUrl, workUrl } from "@/lib/i18n";
 import { seoForWork } from "@/lib/seo";
 import { getPairsByKind, type WorkPair } from "@/lib/works";
@@ -22,14 +23,14 @@ interface Props { pair: WorkPair; }
 const { pair } = Astro.props;
 const entry = pair.ru;
 const { Content } = await render(entry);
-const coverUrl = await (await import("@/lib/covers")).coverAbsoluteUrl(Astro.site, pair, locale);
+const coverUrl = await coverAbsoluteUrl(Astro.site, pair, locale);
 const seo = seoForWork(Astro.site, { pair, locale, coverUrl });
 const alternates: Partial<Record<Locale, string>> = {};
-if (pair.en) alternates.en = new URL(workUrl("project", pair.en.data.slug, "en"), Astro.site).toString();
+if (pair.en) alternates.en = workUrl("project", pair.en.data.slug, "en");
 const backHref = kindIndexUrl("project", locale);
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
-  <article class="project-page" data-pagefind-body>
+  <article class="project-page">
     <a class="project-page__back" href={backHref}>← к проектам</a>
 
     <header class="project-page__head">
@@ -42,7 +43,13 @@ const backHref = kindIndexUrl("project", locale);
       </div>
     </header>
 
-    <div class="prose"><Content /></div>
+    <div
+      class="prose"
+      data-pagefind-body
+      data-pagefind-meta={`title:${entry.data.title}`}
+    >
+      <Content />
+    </div>
 
     <Colophon pair={pair} locale={locale} />
   </article>

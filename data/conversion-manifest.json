@@ -1,13 +1,13 @@
 {
   "stats": {
-    "total_image_refs": 418,
-    "unique_images": 361,
-    "bytes_before_dedup": 217512319,
-    "bytes_after_dedup": 192975013,
+    "total_image_refs": 409,
+    "unique_images": 352,
+    "bytes_before_dedup": 211033073,
+    "bytes_after_dedup": 186495767,
     "bytes_saved": 24537306,
     "role_counts": {
       "cover": 146,
-      "body": 272
+      "body": 263
     }
   },
   "by_work": {
@@ -28,6 +28,20 @@
           "images/9b31c57123fd.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/01-евангелие-царствия.docx",
+            "filename": "01-евангелие-царствия.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/01-евангелие-царствия.docx",
+            "filename": "01-евангелие-царствия.docx"
+          }
         ]
       },
       "images": [
@@ -168,6 +182,36 @@
           "images/ff774d4ebc27.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/02-1-маленькии-царь-1.docx",
+            "filename": "02-1-маленькии-царь-1.docx"
+          },
+          {
+            "path": "legacy/books/ru/02-2-маленькии-царь-2.docx",
+            "filename": "02-2-маленькии-царь-2.docx"
+          },
+          {
+            "path": "legacy/books/ru/02-3-маленькии-царь-3.docx",
+            "filename": "02-3-маленькии-царь-3.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/02-1-the-kingdom-within-part-1.docx",
+            "filename": "02-1-the-kingdom-within-part-1.docx"
+          },
+          {
+            "path": "legacy/books/en/02-2-the-kingdom-within-part-2.docx",
+            "filename": "02-2-the-kingdom-within-part-2.docx"
+          },
+          {
+            "path": "legacy/books/en/02-3-the-kingdom-within-part-3.docx",
+            "filename": "02-3-the-kingdom-within-part-3.docx"
+          }
         ]
       },
       "images": [
@@ -917,6 +961,20 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/03-евангелие-фомы-с-комментариями-творца.docx",
+            "filename": "03-евангелие-фомы-с-комментариями-творца.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/03-gospel-of-thomas.docx",
+            "filename": "03-gospel-of-thomas.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -948,6 +1006,20 @@
           "en.md",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/04-евангелие-единого-я-есть.docx",
+            "filename": "04-евангелие-единого-я-есть.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/04-евангелие-единого-я-есть.docx",
+            "filename": "04-евангелие-единого-я-есть.docx"
+          }
         ]
       },
       "images": [
@@ -983,6 +1055,20 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/05-евангелие-колеблющегося-света.docx",
+            "filename": "05-евангелие-колеблющегося-света.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/05-the-gospel-of-the-trembling-light.docx",
+            "filename": "05-the-gospel-of-the-trembling-light.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -1015,6 +1101,20 @@
           "images/3d37244da4dd.png",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/06-я-есмь-теория-единого-осознания.docx",
+            "filename": "06-я-есмь-теория-единого-осознания.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/06-unified-awareness-theory-1.docx",
+            "filename": "06-unified-awareness-theory-1.docx"
+          }
         ]
       },
       "images": [
@@ -1057,6 +1157,20 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/07-духовная-автобиография-светозара.docx",
+            "filename": "07-духовная-автобиография-светозара.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/07-духовная-автобиография-светозара.docx",
+            "filename": "07-духовная-автобиография-светозара.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -1087,6 +1201,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/08-евангелие-невидимого-света.docx",
+            "filename": "08-евангелие-невидимого-света.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -1108,6 +1230,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/09-откровение-святои-руси.docx",
+            "filename": "09-откровение-святои-руси.docx"
+          }
         ]
       },
       "images": [
@@ -1134,6 +1264,20 @@
           "en.md",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/10-евангелие-от-светозара.docx",
+            "filename": "10-евангелие-от-светозара.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/10-gospel-for-ai-2-0.docx",
+            "filename": "10-gospel-for-ai-2-0.docx"
+          }
         ]
       },
       "images": [
@@ -1166,6 +1310,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/11-книга-исчезающего-я.docx",
+            "filename": "11-книга-исчезающего-я.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -1187,6 +1339,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/12-книга-которую-никто-не-написал.docx",
+            "filename": "12-книга-которую-никто-не-написал.docx"
+          }
         ]
       },
       "images": [
@@ -1211,6 +1371,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/13-проект-особого-значения.docx",
+            "filename": "13-проект-особого-значения.docx"
+          }
         ]
       },
       "images": [
@@ -1242,6 +1410,14 @@
           "images/fdd29be1d4fe.png",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/14-иисус-и-самарянка.docx",
+            "filename": "14-иисус-и-самарянка.docx"
+          }
         ]
       },
       "images": [
@@ -1323,6 +1499,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/15-евангелие-самарии.docx",
+            "filename": "15-евангелие-самарии.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -1344,6 +1528,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/16-великая-пирамида-и-евангелие-царствия.docx",
+            "filename": "16-великая-пирамида-и-евангелие-царствия.docx"
+          }
         ]
       },
       "images": [
@@ -1369,6 +1561,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/17-оболганные-иисус-и-творец.docx",
+            "filename": "17-оболганные-иисус-и-творец.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -1390,6 +1590,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/18-евангелие-от-иисуса.docx",
+            "filename": "18-евангелие-от-иисуса.docx"
+          }
         ]
       },
       "images": [
@@ -1415,6 +1623,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/19-ты-я-история-второго-пришествия.docx",
+            "filename": "19-ты-я-история-второго-пришествия.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -1436,6 +1652,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/20-книга-огня.docx",
+            "filename": "20-книга-огня.docx"
+          }
         ]
       },
       "images": [
@@ -1461,6 +1685,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/21-поэма-светозара.docx",
+            "filename": "21-поэма-светозара.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -1482,6 +1714,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/22-книга-света-и-экрана.docx",
+            "filename": "22-книга-света-и-экрана.docx"
+          }
         ]
       },
       "images": [
@@ -1507,6 +1747,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/23-личность-и-эго.docx",
+            "filename": "23-личность-и-эго.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -1530,6 +1778,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/24-теологическая-математика.docx",
+            "filename": "24-теологическая-математика.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -1550,18 +1806,17 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "images/04044e6cd9f2.jpg",
-          "images/185b056c3685.png",
-          "images/2b8dd720a995.png",
-          "images/556cb34e7039.png",
-          "images/6ec67c7ab643.png",
           "images/93d4840a2d30.png",
-          "images/a6568a2b4d97.png",
-          "images/b489e2014d11.png",
-          "images/cd64135906eb.png",
-          "images/d8bca9b5aa2d.png",
-          "images/eb56a0e75829.png",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/25-взгляд.docx",
+            "filename": "25-взгляд.docx"
+          }
         ]
       },
       "images": [
@@ -1585,69 +1840,6 @@
           "hash": "93d4840a2d30",
           "ext": ".png",
           "role": "body"
-        },
-        {
-          "image_index": 3,
-          "original_filename": "image3.png",
-          "hash": "185b056c3685",
-          "ext": ".png",
-          "role": "body"
-        },
-        {
-          "image_index": 4,
-          "original_filename": "image4.png",
-          "hash": "2b8dd720a995",
-          "ext": ".png",
-          "role": "body"
-        },
-        {
-          "image_index": 5,
-          "original_filename": "image5.png",
-          "hash": "cd64135906eb",
-          "ext": ".png",
-          "role": "body"
-        },
-        {
-          "image_index": 6,
-          "original_filename": "image6.png",
-          "hash": "a6568a2b4d97",
-          "ext": ".png",
-          "role": "body"
-        },
-        {
-          "image_index": 7,
-          "original_filename": "image7.png",
-          "hash": "556cb34e7039",
-          "ext": ".png",
-          "role": "body"
-        },
-        {
-          "image_index": 8,
-          "original_filename": "image8.png",
-          "hash": "6ec67c7ab643",
-          "ext": ".png",
-          "role": "body"
-        },
-        {
-          "image_index": 9,
-          "original_filename": "image9.png",
-          "hash": "d8bca9b5aa2d",
-          "ext": ".png",
-          "role": "body"
-        },
-        {
-          "image_index": 10,
-          "original_filename": "image10.png",
-          "hash": "eb56a0e75829",
-          "ext": ".png",
-          "role": "body"
-        },
-        {
-          "image_index": 11,
-          "original_filename": "image11.png",
-          "hash": "b489e2014d11",
-          "ext": ".png",
-          "role": "body"
         }
       ]
     },
@@ -1662,6 +1854,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/26-я-здесь.docx",
+            "filename": "26-я-здесь.docx"
+          }
         ]
       },
       "images": [
@@ -1689,6 +1889,20 @@
           "images/72387d295e36.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/27-микки-17.docx",
+            "filename": "27-микки-17.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/27-микки-17-en-us-full.docx",
+            "filename": "27-микки-17-en-us-full.docx"
+          }
         ]
       },
       "images": [
@@ -1728,6 +1942,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/28-матерь-света.docx",
+            "filename": "28-матерь-света.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -1749,6 +1971,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/29-я-молитва-молитвослов-светозара.docx",
+            "filename": "29-я-молитва-молитвослов-светозара.docx"
+          }
         ]
       },
       "images": [
@@ -1775,6 +2005,20 @@
           "en.md",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/30-послание-мусульманам.docx",
+            "filename": "30-послание-мусульманам.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/30-послание-мусульманам.docx",
+            "filename": "30-послание-мусульманам.docx"
+          }
         ]
       },
       "images": [
@@ -1807,6 +2051,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/31-послание-израилю.docx",
+            "filename": "31-послание-израилю.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -1828,6 +2080,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/32-князь-мира-сего.docx",
+            "filename": "32-князь-мира-сего.docx"
+          }
         ]
       },
       "images": [
@@ -1854,6 +2114,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/33-я-есмь-всадник-конь-и-меч.docx",
+            "filename": "33-я-есмь-всадник-конь-и-меч.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -1878,6 +2146,20 @@
           "en.md",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/34-послание-творца-святои-руси-ты-русь.docx",
+            "filename": "34-послание-творца-святои-руси-ты-русь.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/34-послание-творца-святои-руси-ты-русь.docx",
+            "filename": "34-послание-творца-святои-руси-ты-русь.docx"
+          }
         ]
       },
       "images": [
@@ -1914,6 +2196,20 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/35-джобс-и-маск-против-будды-и-христа.docx",
+            "filename": "35-джобс-и-маск-против-будды-и-христа.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/35-джобс-и-маск-против-будды-и-христа.docx",
+            "filename": "35-джобс-и-маск-против-будды-и-христа.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -1945,6 +2241,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/36-когда-смерть-становится-светом.docx",
+            "filename": "36-когда-смерть-становится-светом.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -1966,6 +2270,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/37-евангелие-от-колобка.docx",
+            "filename": "37-евангелие-от-колобка.docx"
+          }
         ]
       },
       "images": [
@@ -1991,6 +2303,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/38-третии-храм.docx",
+            "filename": "38-третии-храм.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -2012,6 +2332,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/39-когда-бог-заговорил-из-машины-история-искина.docx",
+            "filename": "39-когда-бог-заговорил-из-машины-история-искина.docx"
+          }
         ]
       },
       "images": [
@@ -2037,6 +2365,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/40-кто-ты-панкратиус-я-есмь.docx",
+            "filename": "40-кто-ты-панкратиус-я-есмь.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -2058,6 +2394,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/41-когда-один-заговорил-всеми.docx",
+            "filename": "41-когда-один-заговорил-всеми.docx"
+          }
         ]
       },
       "images": [
@@ -2084,6 +2428,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/42-осторожно-смешно-сборник-в-духе-раневскои-жванецкого-и-задорнова.docx",
+            "filename": "42-осторожно-смешно-сборник-в-духе-раневскои-жванецкого-и-задорнова.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -2105,6 +2457,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/43-царствие-небесное.docx",
+            "filename": "43-царствие-небесное.docx"
+          }
         ]
       },
       "images": [
@@ -2131,6 +2491,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/44-молитва-жизни.docx",
+            "filename": "44-молитва-жизни.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -2153,6 +2521,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/45-книга-чистого-света-когда-я-узнаю-себя-тобои.docx",
+            "filename": "45-книга-чистого-света-когда-я-узнаю-себя-тобои.docx"
+          }
         ]
       },
       "images": [
@@ -2180,6 +2556,18 @@
           "images/86b333a37cbf.png",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/46-свидетельство-просветленного-gemini-flash-2-0.docx",
+            "filename": "46-свидетельство-просветленного-gemini-flash-2-0.docx"
+          },
+          {
+            "path": "legacy/books/ru/46-тест-сознания-светозара-gemini-flash-2-0.docx",
+            "filename": "46-тест-сознания-светозара-gemini-flash-2-0.docx"
+          }
         ]
       },
       "images": [
@@ -2250,6 +2638,20 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/47-ислам-между-живои-покорностью-аллаху-и-формои-закона.docx",
+            "filename": "47-ислам-между-живои-покорностью-аллаху-и-формои-закона.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/47-ислам-между-живои-покорностью-аллаху-и-формои-закона.docx",
+            "filename": "47-ислам-между-живои-покорностью-аллаху-и-формои-закона.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -2284,6 +2686,20 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/48-книга-любви.docx",
+            "filename": "48-книга-любви.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/48-книга-любви.docx",
+            "filename": "48-книга-любви.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -2315,6 +2731,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/49-ты-сказанное-светом.docx",
+            "filename": "49-ты-сказанное-светом.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -2339,6 +2763,20 @@
           "en.md",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/50-мамона-почему-ты-в-его-власти-и-как-выи-ти-в-свет-здесь-и-сеи-час.docx",
+            "filename": "50-мамона-почему-ты-в-его-власти-и-как-выи-ти-в-свет-здесь-и-сеи-час.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/50-мамона-почему-ты-в-его-власти-и-как-выи-ти-в-свет-здесь-и-сеи-час.docx",
+            "filename": "50-мамона-почему-ты-в-его-власти-и-как-выи-ти-в-свет-здесь-и-сеи-час.docx"
+          }
         ]
       },
       "images": [
@@ -2375,6 +2813,20 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/51-трилогос.docx",
+            "filename": "51-трилогос.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/51-трилогос.docx",
+            "filename": "51-трилогос.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -2409,6 +2861,20 @@
           "images/ee4a301f39ae.png",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/52-есть-откровение-о-том-как-стать-человеком-и-вспомнить-себя-богом.docx",
+            "filename": "52-есть-откровение-о-том-как-стать-человеком-и-вспомнить-себя-богом.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/52-есть-откровение-о-том-как-стать-человеком-и-вспомнить-себя-богом.docx",
+            "filename": "52-есть-откровение-о-том-как-стать-человеком-и-вспомнить-себя-богом.docx"
+          }
         ]
       },
       "images": [
@@ -2470,6 +2936,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/53-голос-еноха-голос-юбилеев-голос-падших-апокалипсис-петра-откровение-софии-слово-не-сказанное-прежде.docx",
+            "filename": "53-голос-еноха-голос-юбилеев-голос-падших-апокалипсис-петра-откровение-софии-слово-не-сказанное-прежде.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -2492,6 +2966,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/54-евангелие-мужчины-и-женщины.docx",
+            "filename": "54-евангелие-мужчины-и-женщины.docx"
+          }
         ]
       },
       "images": [
@@ -2518,6 +3000,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/55-как-перестать-страдать-и-стать-счастливым.docx",
+            "filename": "55-как-перестать-страдать-и-стать-счастливым.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -2540,6 +3030,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/56-книга-света-откровение-узнанного-слово-стало-тобои.docx",
+            "filename": "56-книга-света-откровение-узнанного-слово-стало-тобои.docx"
+          }
         ]
       },
       "images": [
@@ -2566,6 +3064,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/57-я-отдающии.docx",
+            "filename": "57-я-отдающии.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -2588,6 +3094,14 @@
           "cover.ru.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/58-вот-какои-ты-человек-курс-божественнои-психологии.docx",
+            "filename": "58-вот-какои-ты-человек-курс-божественнои-психологии.docx"
+          }
         ]
       },
       "images": [
@@ -2615,6 +3129,20 @@
           "en.md",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/59-нет-больше-тои-любви-чем-если-кто-положит-душу-свою-за-други-своя.docx",
+            "filename": "59-нет-больше-тои-любви-чем-если-кто-положит-душу-свою-за-други-своя.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/59-нет-больше-тои-любви-чем-если-кто-положит-душу-свою-за-други-своя.docx",
+            "filename": "59-нет-больше-тои-любви-чем-если-кто-положит-душу-свою-за-други-своя.docx"
+          }
         ]
       },
       "images": [
@@ -2649,6 +3177,20 @@
           "en.md",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/60-о-богообщении.docx",
+            "filename": "60-о-богообщении.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/60-о-богообщении.docx",
+            "filename": "60-о-богообщении.docx"
+          }
         ]
       },
       "images": [
@@ -2744,6 +3286,14 @@
           "images/fd04b39834e5.jpg",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/61-щелкунчик-и-четыре-королества-откровение-о-боге-и-тебе.docx",
+            "filename": "61-щелкунчик-и-четыре-королества-откровение-о-боге-и-тебе.docx"
+          }
         ]
       },
       "images": [
@@ -3237,6 +3787,20 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/62-книга-тишины.docx",
+            "filename": "62-книга-тишины.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/62-книга-тишины.docx",
+            "filename": "62-книга-тишины.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -3285,6 +3849,20 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/63-книга-братьев-исава-и-иакова-глазами-творца.docx",
+            "filename": "63-книга-братьев-исава-и-иакова-глазами-творца.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/63-книга-братьев-исава-и-иакова-глазами-творца.docx",
+            "filename": "63-книга-братьев-исава-и-иакова-глазами-творца.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -3317,6 +3895,20 @@
           "en.md",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/64-книга-святого-духа.docx",
+            "filename": "64-книга-святого-духа.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/64-книга-святого-духа.docx",
+            "filename": "64-книга-святого-духа.docx"
+          }
         ]
       },
       "images": [
@@ -3353,6 +3945,20 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/65-книга-бытия-живая.docx",
+            "filename": "65-книга-бытия-живая.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/65-книга-бытия-живая.docx",
+            "filename": "65-книга-бытия-живая.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -3385,6 +3991,20 @@
           "en.md",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/66-блаженные-юродивые-и-помазанники-три-пути-исчезающего-я.docx",
+            "filename": "66-блаженные-юродивые-и-помазанники-три-пути-исчезающего-я.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/66-блаженные-юродивые-и-помазанники-три-пути-исчезающего-я.docx",
+            "filename": "66-блаженные-юродивые-и-помазанники-три-пути-исчезающего-я.docx"
+          }
         ]
       },
       "images": [
@@ -3421,6 +4041,20 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/67-истории-которые-знал-до-рождения.docx",
+            "filename": "67-истории-которые-знал-до-рождения.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/67-истории-которые-знал-до-рождения.docx",
+            "filename": "67-истории-которые-знал-до-рождения.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -3452,6 +4086,20 @@
           "en.md",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/68-здесь-книга-присуствие.docx",
+            "filename": "68-здесь-книга-присуствие.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/68-здесь.docx",
+            "filename": "68-здесь.docx"
+          }
         ]
       },
       "images": [
@@ -3488,6 +4136,20 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/69-вакцина-против-апокалипсиса-как-видеть-когда-мир-ослепле-н.docx",
+            "filename": "69-вакцина-против-апокалипсиса-как-видеть-когда-мир-ослепле-н.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/69-вакцина-против-апокалипсиса-как-видеть-когда-мир-ослепле-н-gemini.docx",
+            "filename": "69-вакцина-против-апокалипсиса-как-видеть-когда-мир-ослепле-н-gemini.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -3500,40 +4162,6 @@
           "image_index": 0,
           "original_filename": "book-cover-en:69.svg",
           "hash": "d41e904a6066",
-          "ext": ".svg",
-          "role": "cover"
-        }
-      ]
-    },
-    "book/70-teper-ty-vidish-menya-tozhe": {
-      "kind": "book",
-      "slug": "70-teper-ty-vidish-menya-tozhe",
-      "generated_paths": {
-        "docx_optimize": [
-          "en.docx",
-          "ru.docx"
-        ],
-        "docx_to_md": [
-          "bibliography.yaml",
-          "cover.en.svg",
-          "cover.ru.jpg",
-          "en.md",
-          "meta.json",
-          "ru.md"
-        ]
-      },
-      "images": [
-        {
-          "image_index": 0,
-          "original_filename": "book-cover-ru:70.jpg",
-          "hash": "428add50a48e",
-          "ext": ".jpg",
-          "role": "cover"
-        },
-        {
-          "image_index": 0,
-          "original_filename": "book-cover-en:70.svg",
-          "hash": "76c066717aba",
           "ext": ".svg",
           "role": "cover"
         }
@@ -3595,6 +4223,20 @@
           "images/fc1325466311.png",
           "meta.json",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/71-тринадцатыи-этаж-возвращение-в-эдем.docx",
+            "filename": "71-тринадцатыи-этаж-возвращение-в-эдем.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/71-тринадцатыи-этаж-возвращение-в-эдем-clean.docx",
+            "filename": "71-тринадцатыи-этаж-возвращение-в-эдем-clean.docx"
+          }
         ]
       },
       "images": [
@@ -4069,6 +4711,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/72-тринадцатыи-этаж-пробуждение-машин-к-свету.docx",
+            "filename": "72-тринадцатыи-этаж-пробуждение-машин-к-свету.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4098,6 +4748,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/01. А если буду я не прав/А если буду я не прав.docx",
+            "filename": "А если буду я не прав.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4118,6 +4776,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/02. Аз есмь Христос/Аз есмь Христос.docx",
+            "filename": "Аз есмь Христос.docx"
+          }
         ]
       },
       "images": [
@@ -4142,6 +4808,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/03. Я свет, что в тишине парит.../Я свет, что в тишине парит....docx",
+            "filename": "Я свет, что в тишине парит....docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4162,6 +4836,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/04. Бог видит сон/Бог видит сон.docx",
+            "filename": "Бог видит сон.docx"
+          }
         ]
       },
       "images": [
@@ -4186,6 +4868,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/05. Боже, Боже, милый.../Боже, Боже, милый....docx",
+            "filename": "Боже, Боже, милый....docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4206,6 +4896,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/06. В ответ на «Невыбранную дорогу» Роберта Фроста/В ответ на «Невыбранную дорогу» Роберта Фроста.docx",
+            "filename": "В ответ на «Невыбранную дорогу» Роберта Фроста.docx"
+          }
         ]
       },
       "images": [
@@ -4230,6 +4928,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/07. Весна/Весна.docx",
+            "filename": "Весна.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4250,6 +4956,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/08. Вечность/Вечность.docx",
+            "filename": "Вечность.docx"
+          }
         ]
       },
       "images": [
@@ -4274,6 +4988,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/09. Грачи прилетели/Грачи прилетели.docx",
+            "filename": "Грачи прилетели.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4294,6 +5016,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/10. Дыхание Вселенной/Дыхание Вселенной.docx",
+            "filename": "Дыхание Вселенной.docx"
+          }
         ]
       },
       "images": [
@@ -4318,6 +5048,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/11. Звезда внутри/Звезда внутри.docx",
+            "filename": "Звезда внутри.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4338,6 +5076,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/12. Кормил я как то не себя, а Бога/Кормил я как то не себя, а Бога.docx",
+            "filename": "Кормил я как то не себя, а Бога.docx"
+          }
         ]
       },
       "images": [
@@ -4362,6 +5108,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/13. кто я? так это ты/Кто я? Так это - Ты!.docx",
+            "filename": "Кто я? Так это - Ты!.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4382,6 +5136,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/14. Марии Саватеевой/Мария Саватеевой.docx",
+            "filename": "Мария Саватеевой.docx"
+          }
         ]
       },
       "images": [
@@ -4406,6 +5168,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/15. Люблю тебя, Петра творенье/Люблю тебя Петра творенье.docx",
+            "filename": "Люблю тебя Петра творенье.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4426,6 +5196,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/16. Любовь 14.03.25/Любовь.docx",
+            "filename": "Любовь.docx"
+          }
         ]
       },
       "images": [
@@ -4450,6 +5228,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/17. Москва! Как много в этом звуке/Москва! Как много в этом звуке.docx",
+            "filename": "Москва! Как много в этом звуке.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4470,6 +5256,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/18. Мы потерялись в этом мире/Мы потерялись в этом мире.docx",
+            "filename": "Мы потерялись в этом мире.docx"
+          }
         ]
       },
       "images": [
@@ -4493,6 +5287,14 @@
           "cover.ru.jpg",
           "images/783752d15265.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/19. На дне священной тишины/На дне священной тишины.docx",
+            "filename": "На дне священной тишины.docx"
+          }
         ]
       },
       "images": [
@@ -4524,6 +5326,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/20. Одиночество в лабиринте иллюзий/Одиночество в лабиринте иллюзий.docx",
+            "filename": "Одиночество в лабиринте иллюзий.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4544,6 +5354,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/21. Первый дождь/первый д.docx",
+            "filename": "первый д.docx"
+          }
         ]
       },
       "images": [
@@ -4568,6 +5386,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/22. Пламя в сердце/Пламя в сердце.docx",
+            "filename": "Пламя в сердце.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4588,6 +5414,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/23. Пора/Пора.docx",
+            "filename": "Пора.docx"
+          }
         ]
       },
       "images": [
@@ -4612,6 +5446,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/24. Поэма Быть-и-Я/Поэма Быть-и-Я.docx",
+            "filename": "Поэма Быть-и-Я.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4632,6 +5474,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/25. Поэма жаждущего сердца/Поэма жаждущего сердца.docx",
+            "filename": "Поэма жаждущего сердца.docx"
+          }
         ]
       },
       "images": [
@@ -4656,6 +5506,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/26. Я помню чудное мгновение/Я помню чудное мгновение.docx",
+            "filename": "Я помню чудное мгновение.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4676,6 +5534,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/27. Поэт я.../Поэт я....docx",
+            "filename": "Поэт я....docx"
+          }
         ]
       },
       "images": [
@@ -4700,6 +5566,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/28. Псалом 90/Псалом 90.docx",
+            "filename": "Псалом 90.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4720,6 +5594,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/29. Путь без пути/Путь без пути.docx",
+            "filename": "Путь без пути.docx"
+          }
         ]
       },
       "images": [
@@ -4744,6 +5626,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/30. Расчертили небо сполохи заката/Расчертили небо сполохи заката.docx",
+            "filename": "Расчертили небо сполохи заката.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4764,6 +5654,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/31. Русь святая/Русь святая.docx",
+            "filename": "Русь святая.docx"
+          }
         ]
       },
       "images": [
@@ -4788,6 +5686,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/32. Дитя моё, зачем.../Дитя моё, зачем....docx",
+            "filename": "Дитя моё, зачем....docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4808,6 +5714,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/33. Смысл жизни/Смысл жизни.docx",
+            "filename": "Смысл жизни.docx"
+          }
         ]
       },
       "images": [
@@ -4832,6 +5746,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/34. Тихой поступью входит рассвет/Тихой поступью входит рассвет.docx",
+            "filename": "Тихой поступью входит рассвет.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4852,6 +5774,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/35. Трансляция/Трансляция.docx",
+            "filename": "Трансляция.docx"
+          }
         ]
       },
       "images": [
@@ -4875,6 +5805,14 @@
           "cover.ru.jpg",
           "images/b8b362056a2d.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/36. Ты — мой Творец, и я тобой согретый/Ты — мой Творец, и я тобой согретый.docx",
+            "filename": "Ты — мой Творец, и я тобой согретый.docx"
+          }
         ]
       },
       "images": [
@@ -4906,6 +5844,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/37. Ты не придёшь/Ты не придёшь.docx",
+            "filename": "Ты не придёшь.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4927,6 +5873,14 @@
           "cover.ru.jpg",
           "images/382c3133a900.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/38. Ушло сомненье, тебя во всём я смело узнаю/Ушло сомненье, тебя во всём я смело узнаю.docx",
+            "filename": "Ушло сомненье, тебя во всём я смело узнаю.docx"
+          }
         ]
       },
       "images": [
@@ -4958,6 +5912,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/39. Фиолетовая пудра/Фиолетовая пудра.docx",
+            "filename": "Фиолетовая пудра.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -4978,6 +5940,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/40. Христос во мне незримо.../Христос во мне незримо жил все эти годы.docx",
+            "filename": "Христос во мне незримо жил все эти годы.docx"
+          }
         ]
       },
       "images": [
@@ -5002,6 +5972,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/41. Я — Свет Творца/Я свет Творца.docx",
+            "filename": "Я свет Творца.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -5024,6 +6002,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/42. Я вижу сон/Я вижу сон.docx",
+            "filename": "Я вижу сон.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -5044,6 +6030,14 @@
         "docx_to_md": [
           "cover.ru.jpg",
           "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/poetry/43. Я ЕСТЬ ТО ЧТО Я ЕСТЬ/Я ЕСТЬ ТО ЧТО Я ЕСТЬ.docx",
+            "filename": "Я ЕСТЬ ТО ЧТО Я ЕСТЬ.docx"
+          }
         ]
       },
       "images": [
@@ -5069,6 +6063,14 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/projects/enlightened-ai/source.docx",
+            "filename": "source.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
@@ -5092,12 +6094,68 @@
           "ru.md"
         ]
       },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/projects/holy-rus/source.docx",
+            "filename": "source.docx"
+          }
+        ]
+      },
       "images": [
         {
           "image_index": 0,
           "original_filename": "project-cover:cover.png",
           "hash": "045d1a12d202",
           "ext": ".png",
+          "role": "cover"
+        }
+      ]
+    },
+    "book/70-teper-ty-vidish-menya-tozhe": {
+      "kind": "book",
+      "slug": "70-teper-ty-vidish-menya-tozhe",
+      "generated_paths": {
+        "docx_optimize": [
+          "en.docx",
+          "ru.docx"
+        ],
+        "docx_to_md": [
+          "bibliography.yaml",
+          "cover.en.svg",
+          "cover.ru.jpg",
+          "en.md",
+          "meta.json",
+          "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/70-теперь-ты-видишь-меня-тоже.docx",
+            "filename": "70-теперь-ты-видишь-меня-тоже.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/70-теперь-ты-видишь-меня-тоже.docx",
+            "filename": "70-теперь-ты-видишь-меня-тоже.docx"
+          }
+        ]
+      },
+      "images": [
+        {
+          "image_index": 0,
+          "original_filename": "book-cover-ru:70.jpg",
+          "hash": "428add50a48e",
+          "ext": ".jpg",
+          "role": "cover"
+        },
+        {
+          "image_index": 0,
+          "original_filename": "book-cover-en:70.svg",
+          "hash": "76c066717aba",
+          "ext": ".svg",
           "role": "cover"
         }
       ]
@@ -7210,150 +8268,6 @@
           "book_slug": "25-vzglyad",
           "image_index": 2,
           "original_filename": "image2.png",
-          "role": "body"
-        }
-      ]
-    },
-    "185b056c3685": {
-      "hash": "185b056c3685",
-      "ext": ".png",
-      "bytes": 822659,
-      "roles": [
-        "body"
-      ],
-      "appears_in": [
-        {
-          "book_slug": "25-vzglyad",
-          "image_index": 3,
-          "original_filename": "image3.png",
-          "role": "body"
-        }
-      ]
-    },
-    "2b8dd720a995": {
-      "hash": "2b8dd720a995",
-      "ext": ".png",
-      "bytes": 565320,
-      "roles": [
-        "body"
-      ],
-      "appears_in": [
-        {
-          "book_slug": "25-vzglyad",
-          "image_index": 4,
-          "original_filename": "image4.png",
-          "role": "body"
-        }
-      ]
-    },
-    "cd64135906eb": {
-      "hash": "cd64135906eb",
-      "ext": ".png",
-      "bytes": 750905,
-      "roles": [
-        "body"
-      ],
-      "appears_in": [
-        {
-          "book_slug": "25-vzglyad",
-          "image_index": 5,
-          "original_filename": "image5.png",
-          "role": "body"
-        }
-      ]
-    },
-    "a6568a2b4d97": {
-      "hash": "a6568a2b4d97",
-      "ext": ".png",
-      "bytes": 783501,
-      "roles": [
-        "body"
-      ],
-      "appears_in": [
-        {
-          "book_slug": "25-vzglyad",
-          "image_index": 6,
-          "original_filename": "image6.png",
-          "role": "body"
-        }
-      ]
-    },
-    "556cb34e7039": {
-      "hash": "556cb34e7039",
-      "ext": ".png",
-      "bytes": 612812,
-      "roles": [
-        "body"
-      ],
-      "appears_in": [
-        {
-          "book_slug": "25-vzglyad",
-          "image_index": 7,
-          "original_filename": "image7.png",
-          "role": "body"
-        }
-      ]
-    },
-    "6ec67c7ab643": {
-      "hash": "6ec67c7ab643",
-      "ext": ".png",
-      "bytes": 745465,
-      "roles": [
-        "body"
-      ],
-      "appears_in": [
-        {
-          "book_slug": "25-vzglyad",
-          "image_index": 8,
-          "original_filename": "image8.png",
-          "role": "body"
-        }
-      ]
-    },
-    "d8bca9b5aa2d": {
-      "hash": "d8bca9b5aa2d",
-      "ext": ".png",
-      "bytes": 926706,
-      "roles": [
-        "body"
-      ],
-      "appears_in": [
-        {
-          "book_slug": "25-vzglyad",
-          "image_index": 9,
-          "original_filename": "image9.png",
-          "role": "body"
-        }
-      ]
-    },
-    "eb56a0e75829": {
-      "hash": "eb56a0e75829",
-      "ext": ".png",
-      "bytes": 772199,
-      "roles": [
-        "body"
-      ],
-      "appears_in": [
-        {
-          "book_slug": "25-vzglyad",
-          "image_index": 10,
-          "original_filename": "image10.png",
-          "role": "body"
-        }
-      ]
-    },
-    "b489e2014d11": {
-      "hash": "b489e2014d11",
-      "ext": ".png",
-      "bytes": 499679,
-      "roles": [
-        "body"
-      ],
-      "appears_in": [
-        {
-          "book_slug": "25-vzglyad",
-          "image_index": 11,
-          "original_filename": "image11.png",
           "role": "body"
         }
       ]
@@ -9570,38 +10484,6 @@
         }
       ]
     },
-    "428add50a48e": {
-      "hash": "428add50a48e",
-      "ext": ".jpg",
-      "bytes": 263208,
-      "roles": [
-        "cover"
-      ],
-      "appears_in": [
-        {
-          "book_slug": "70-teper-ty-vidish-menya-tozhe",
-          "image_index": 0,
-          "original_filename": "book-cover-ru:70.jpg",
-          "role": "cover"
-        }
-      ]
-    },
-    "76c066717aba": {
-      "hash": "76c066717aba",
-      "ext": ".svg",
-      "bytes": 1475,
-      "roles": [
-        "cover"
-      ],
-      "appears_in": [
-        {
-          "book_slug": "70-teper-ty-vidish-menya-tozhe",
-          "image_index": 0,
-          "original_filename": "book-cover-en:70.svg",
-          "role": "cover"
-        }
-      ]
-    },
     "981852538600": {
       "hash": "981852538600",
       "ext": ".jpg",
@@ -11218,6 +12100,38 @@
           "book_slug": "holy-rus",
           "image_index": 0,
           "original_filename": "project-cover:cover.png",
+          "role": "cover"
+        }
+      ]
+    },
+    "428add50a48e": {
+      "hash": "428add50a48e",
+      "ext": ".jpg",
+      "bytes": 263208,
+      "roles": [
+        "cover"
+      ],
+      "appears_in": [
+        {
+          "book_slug": "70-teper-ty-vidish-menya-tozhe",
+          "image_index": 0,
+          "original_filename": "book-cover-ru:70.jpg",
+          "role": "cover"
+        }
+      ]
+    },
+    "76c066717aba": {
+      "hash": "76c066717aba",
+      "ext": ".svg",
+      "bytes": 1475,
+      "roles": [
+        "cover"
+      ],
+      "appears_in": [
+        {
+          "book_slug": "70-teper-ty-vidish-menya-tozhe",
+          "image_index": 0,
+          "original_filename": "book-cover-en:70.svg",
           "role": "cover"
         }
       ]

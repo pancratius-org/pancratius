@@ -23,7 +23,7 @@ if (!page) {
   throw new Error("Missing content/pages/downloads/ru.md");
 }
 const { Content } = await render(page);
-const seo = seoForPage(Astro.site, page, { ru: page });
+const seo = seoForPage(Astro.site, page, new Set<Locale>(["ru"]));
 
 interface ArchiveInfo {
   name:       string;
@@ -120,11 +120,11 @@ const FORMAT_BLURB: Record<ArchiveInfo["format"], string> = {
   }
   .dl__head h1 {
     font-family: var(--serif);
-    font-weight: 300;
-    font-size: clamp(2.6rem, 5.5vw, 4rem);
-    line-height: 1;
+    font-weight: 400;
+    font-size: clamp(2.8rem, 5.8vw, 4.3rem);
+    line-height: 0.98;
     margin: 0;
-    letter-spacing: -0.012em;
+    letter-spacing: -0.02em;
   }
   .dl__sub {
     font-family: var(--serif);

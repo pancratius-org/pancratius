@@ -5,14 +5,11 @@ slug: 26-ya-pomnyu-chudnoe-mgnovenie
 title: Я помню чудное мгновение
 lang: ru
 description: 'Стихотворение №26: Я помню чудное мгновение'
-original_filename: Я помню чудное мгновение.docx
 cover: ./cover.ru.jpg
 date: '2025-10-22'
 translation:
   source: original
 ---
-
-> **Я помню чудное мгновение**
 
 Я помню чудное мгновение —
 Не образ, голос иль черты,

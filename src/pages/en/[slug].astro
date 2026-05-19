@@ -22,12 +22,12 @@ const { page } = Astro.props;
 const { Content, headings } = await render(page);
 
 const altRu = await alternateLanguagePage(page, "ru");
-const siblings: Partial<Record<Locale, PageEntry>> = { en: page };
-if (altRu) siblings.ru = altRu;
-const seo = seoForPage(Astro.site, page, siblings);
+const authoredLocales = new Set<Locale>(["en"]);
+if (altRu) authoredLocales.add("ru");
+const seo = seoForPage(Astro.site, page, authoredLocales);
 
 const alternates: Partial<Record<Locale, string>> = {};
-if (altRu) alternates.ru = new URL(pageUrl(altRu.data.slug, "ru"), Astro.site).toString();
+if (altRu) alternates.ru = pageUrl(altRu.data.slug, "ru");
 
 const PROSE_CLASS: Record<string, string> = {
   mission: "prose prose--manifesto",
@@ -43,9 +43,7 @@ const useToc = headings.some(h => h.depth >= 2 && h.depth <= 3) && page.data.slu
       {page.data.sub && <p class="static__sub">{page.data.sub}</p>}
     </header>
 
-    {useToc && (
-      <aside class="static__toc"><TableOfContents headings={headings} locale={locale} /></aside>
-    )}
+    {useToc && <TableOfContents headings={headings} locale={locale} />}
 
     <div class={proseClass}>
       <Content />
@@ -64,11 +62,11 @@ const useToc = headings.some(h => h.depth >= 2 && h.depth <= 3) && page.data.slu
   }
   .static__head h1 {
     font-family: var(--serif);
-    font-weight: 300;
-    font-size: clamp(2.6rem, 5.5vw, 4rem);
-    line-height: 1;
+    font-weight: 400;
+    font-size: clamp(2.8rem, 5.8vw, 4.3rem);
+    line-height: 0.98;
     margin: 0;
-    letter-spacing: -0.012em;
+    letter-spacing: -0.02em;
   }
   .static__sub {
     font-family: var(--serif);
@@ -87,8 +85,7 @@ const useToc = headings.some(h => h.depth >= 2 && h.depth <= 3) && page.data.slu
       gap: 2.5rem;
     }
     .static__head { grid-area: head; }
-    .static__toc  { grid-area: toc; }
-    .static__toc :global(.toc) { position: sticky; top: 4.5rem; }
+    .static :global(.toc-aside) { grid-area: toc; }
     .static .prose,
     .static .prose--manifesto { grid-area: body; }
   }

@@ -135,21 +135,56 @@ conversion must not recreate Cyrillic folders.
 
 `src/styles/prose.css` is imported from `global.css` and applied wherever a
 `<article class="prose">` wraps Markdown-rendered body content (book, poetry,
-project, and the static `/[slug]/` routes). It encodes the v7 reading register:
-justified text with hyphens, drop cap on the first paragraph (`.prose >
-p:first-of-type::first-letter` plus an explicit `.prose .lead::first-letter`
-escape hatch), italic centred `<h2>`, ornament-rule `<hr>`, italic-with-rule
-blockquotes, and mobile-only safety rules (table horizontal scroll, smaller
-drop cap).
+project, and the static `/[slug]/` routes).
 
-The `prose--manifesto` and `prose--poem` modifiers suppress the drop cap and
-swap to a left-aligned, looser-leading register; `[slug].astro` picks the
-modifier per-page (`mission` → `prose--manifesto`, the rest default to plain
-`prose`).
+It encodes a reading register designed for the *actual* markup our pandoc
+pipeline emits, not for the hand-authored markup of the v4/v5/v7 mockups.
+The corpus is largely short paratactic lines in Word that arrive as one
+`<p>` per blank line, plus a small set of long narrative paragraphs. The
+v7 register (justified text + 1.4em first-line indent + chapter-italic
+`<h2>`) was authored against the mockup markup and broke on real markdown:
+justify + indent on one-line paragraphs produces a staircase, and centred
+italic `<h2>` mis-types Word "Heading 2" section labels as chapter openers.
 
-If editorial wants slug-specific classes (`.lead`, `.verse`, `.creator`,
-`.ornament`) they must be authored directly in the Markdown — the converter
-does not emit them.
+The current contract:
+
+- **ragged-right, no hyphens, no first-line indent.** Paragraph rhythm is
+  vertical (`margin-bottom: 0.95em`), not horizontal indent. This reads
+  as flowing prose on long paragraphs and as cleanly stacked short lines
+  on paratactic ones, with no fake-Word inter-word gaps.
+- **drop cap is opt-in only** via `<p class="lead">`. The corpus often opens
+  with a dedication, dialogue, or short liturgical fragment; automatic drop
+  caps mis-type those openings.
+- **verse / divine-voice sections are explicit.** The converter reads the DOCX
+  through Pandoc's `docx+empty_paragraphs` JSON AST, detects named and
+  structural short-line runs, and emits a `<div class="verse-block">` containing
+  natural source lines and blank-line stanza breaks. CSS styles that explicit
+  structure. It does not guess verse from arbitrary italic paragraphs at render
+  time, and authors are not asked to hand-write `<p>` / `<br>` line markup.
+- **right-aligned DOCX paragraphs are preserved as semantics only when the
+  source makes the role clear.** Standalone author/source lines become
+  `p.signature`; scripture and epigraph groups become
+  `blockquote.epigraph`. This comes from `word/document.xml`, not from CSS
+  heuristics or "italic means quote" guessing.
+- **standalone `***` is a thematic break.** Pandoc sometimes escapes the
+  asterisks; the converter normalizes escaped or unescaped `***`-only lines to
+  a real GFM thematic break so the site renders the intended ornament.
+- **`<h2>` is small-cap sans eyebrow in accent**, left-aligned with a
+  hairline underline. It reads as Word "Heading 2", which is what mid-book
+  section labels actually are. `<h3>` keeps a quiet italic-serif register
+  for chapter sub-sections.
+- **`<hr>` is an ornament rule.** Author-supplied `p.ornament` and
+  `p.signature` classes are honoured if present.
+
+The `prose--manifesto` and `prose--poem` modifiers suppress drop caps and
+swap to a left-aligned, looser-leading register with `white-space: pre-line`.
+`[slug].astro` picks the modifier per-page
+(`mission` → `prose--manifesto`, the rest default to plain `prose`).
+
+If editorial wants slug-specific classes (`.lead`, `.signature`,
+`.ornament`) they may be authored directly in the Markdown. The converter
+emits only structural classes it can justify from source shape and section
+name, such as `.verse-block`.
 
 ## Verse Source Contract
 
@@ -170,10 +205,14 @@ Portable exports may add explicit hard-break markers in generated `.md` or use
 Pandoc's hard-line-break parsing for PDF/EPUB scratch files. Those markers do
 not belong in source content.
 
-The converter must treat stanza boundaries as editorial data. If the source
-representation is ambiguous, it should preserve known-good legacy/source
-lineation or produce a review report; it must not silently flatten all poems
-into one stanza.
+The converter must treat stanza boundaries as editorial data. DOCX poems and
+book lineation are read through Pandoc's `docx+empty_paragraphs` JSON AST,
+because empty Word paragraphs survive there as explicit empty paragraph nodes.
+Poems emit the simple source contract above; book sections and confident
+short-line runs emit a minimal `.verse-block` wrapper around natural lines so
+stanza structure is explicit on normal prose pages. The converter must not infer
+stanza structure from plain Pandoc GFM after the empty-paragraph signal has been
+lost, and it must not silently flatten all poems into one stanza.
 
 ## Conceptosphere page-layout selectors are global
 

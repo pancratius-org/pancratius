@@ -5,7 +5,6 @@ slug: 10-dykhanie-vselennoi
 title: Дыхание Вселенной
 lang: ru
 description: 'Стихотворение №10: Дыхание Вселенной'
-original_filename: Дыхание Вселенной.docx
 cover: ./cover.ru.jpg
 date: '2025-03-15'
 translation:

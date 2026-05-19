@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import html
 import json
 import re
 import shutil
@@ -47,10 +48,12 @@ import subprocess
 import sys
 import tempfile
 import unicodedata
+import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
+import xml.etree.ElementTree as ET
 
 import yaml
 
@@ -112,6 +115,31 @@ def to_ascii_slug(s: str) -> str:
 # label as the work title; the merged work needs its own canonical title.
 TITLE_OVERRIDES_BY_NUMBER: dict[int, dict[str, str]] = {
     2: {"ru": "Маленький Царь", "en": "The Kingdom Within"},
+}
+
+
+# Why: book #2 is a merged three-part work. Legacy's top-level annotation is a
+# part-2 store blurb, so the merged work needs one work-level description.
+DESCRIPTION_OVERRIDES_BY_NUMBER: dict[int, dict[str, str]] = {
+    2: {
+        "ru": (
+            "«Маленький Царь» объединяет три части о Сергее и Царствии внутри: "
+            "от детского незабвения Света и живого мира вокруг него, через "
+            "встречу с теми, кто тоже начинает слышать Тишину, к возвращению "
+            "к себе и Присутствию. Это не обычная сказка и не приключение, "
+            "а тихий путь узнавания: всё живое, Царство внутри, а истина "
+            "открывается сердцем."
+        ),
+        "en": (
+            "The Kingdom Within brings together three parts about Sergey and "
+            "the Kingdom within: from a child's memory of the Light and the "
+            "living world around him, through encounters with others who begin "
+            "to hear Silence, toward a return to the self and Presence. It is "
+            "not an ordinary fairy tale or adventure, but a quiet path of "
+            "recognition: everything is alive, the Kingdom is within, and truth "
+            "is received by the heart."
+        ),
+    },
 }
 
 
@@ -182,6 +210,15 @@ _TOC_HEADING_LINE = re.compile(
     re.IGNORECASE,
 )
 _BARE_TOC_ANCHOR_LINE = re.compile(r"^_Toc\d+$", re.IGNORECASE)
+_BIBLIO_HEADING_LINE = re.compile(
+    r"^#{1,6}\s+(?:библиография|bibliography|список\s+литературы|литература)\s*$",
+    re.IGNORECASE,
+)
+_BIBLIO_SECTION_TELL = re.compile(
+    r"<img\b|!\[[^\]]*\]\([^)]+\)|<table\b|litres\.ru|kindbook\.net|"
+    r"Книги\s+автора|Books\s+by\s+the\s+author",
+    re.IGNORECASE,
+)
 
 _IMG_MD = re.compile(r"!\[([^\]]*)\]\(([^)]+?)\)")
 _IMG_HTML = re.compile(r"<img\s+([^>]*?)src\s*=\s*\"([^\"]+)\"([^>]*?)/?>", re.IGNORECASE)
@@ -247,9 +284,17 @@ class WorkWrites:
     slug: str
     work_dir: Path
     paths: set[str] = field(default_factory=set)
+    sources: dict[str, list[dict[str, str]]] = field(default_factory=dict)
 
     def add(self, p: Path) -> None:
         self.paths.add(p.relative_to(self.work_dir).as_posix())
+
+    def add_source(self, lang: str, p: Path) -> None:
+        rel = p.resolve().relative_to(ROOT).as_posix()
+        self.sources.setdefault(lang, [])
+        record = {"path": rel, "filename": p.name}
+        if record not in self.sources[lang]:
+            self.sources[lang].append(record)
 
 
 def _load_previous_works(path: Path) -> dict[str, list[str]]:
@@ -347,6 +392,90 @@ def _run_pandoc(docx: Path, media_dir: Path, out_md: Path) -> str:
     return proc.stderr.strip()
 
 
+def _run_pandoc_json(docx: Path, media_dir: Path | None = None) -> tuple[dict[str, Any], str]:
+    cmd = [
+        "pandoc",
+        "--from", "docx+empty_paragraphs",
+        "--to", "json",
+    ]
+    if media_dir is not None:
+        cmd.extend(["--extract-media", str(media_dir)])
+    cmd.append(str(docx))
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise RuntimeError(f"pandoc failed on {docx.name}: {proc.stderr.strip() or proc.stdout.strip()}")
+    return json.loads(proc.stdout), proc.stderr.strip()
+
+
+# ---------------------------------------------------------------------------
+# DOCX source metadata — signals Pandoc's Markdown writer drops
+# ---------------------------------------------------------------------------
+
+W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+W = f"{{{W_NS}}}"
+
+
+@dataclass(frozen=True)
+class DocxParagraphMeta:
+    text: str
+    align: str
+    style: str
+    bold: bool
+    italic: bool
+
+    @property
+    def is_empty(self) -> bool:
+        return not self.text.strip()
+
+
+def _w_val(el: ET.Element | None) -> str:
+    if el is None:
+        return ""
+    return str(el.get(f"{W}val") or "")
+
+
+def _run_prop_enabled(el: ET.Element | None) -> bool:
+    if el is None:
+        return False
+    val = el.get(f"{W}val")
+    return val not in {"0", "false", "False", "off"}
+
+
+def read_docx_paragraph_meta(docx: Path) -> list[DocxParagraphMeta]:
+    """Read paragraph-level Word metadata that Markdown cannot carry.
+
+    Pandoc is still the content converter. This pass only captures narrow
+    source signals that are otherwise lost, especially paragraph alignment.
+    """
+    with zipfile.ZipFile(docx) as zf:
+        root = ET.fromstring(zf.read("word/document.xml"))
+
+    paras: list[DocxParagraphMeta] = []
+    for p in root.iter(f"{W}p"):
+        text_parts: list[str] = []
+        for el in p.iter():
+            if el.tag == f"{W}t":
+                text_parts.append(el.text or "")
+            elif el.tag in {f"{W}br", f"{W}cr"}:
+                text_parts.append("\n")
+            elif el.tag == f"{W}tab":
+                text_parts.append("\t")
+
+        ppr = p.find(f"{W}pPr")
+        style = _w_val(ppr.find(f"{W}pStyle") if ppr is not None else None)
+        align = _w_val(ppr.find(f"{W}jc") if ppr is not None else None)
+        bold = any(_run_prop_enabled(el) for el in p.findall(f".//{W}b"))
+        italic = any(_run_prop_enabled(el) for el in p.findall(f".//{W}i"))
+        paras.append(DocxParagraphMeta(
+            text="".join(text_parts).strip(),
+            align=align,
+            style=style,
+            bold=bold,
+            italic=italic,
+        ))
+    return paras
+
+
 # ---------------------------------------------------------------------------
 # cleanup passes — each returns the transformed markdown
 # ---------------------------------------------------------------------------
@@ -382,6 +511,32 @@ def strip_toc(md: str) -> str:
                 continue
         i += 1
     return "\n".join(l for l, k in zip(lines, keep) if k)
+
+
+def strip_bibliography_sections(md: str) -> str:
+    """Remove body bibliography/catalog sections before image rewriting.
+
+    The corpus has several endmatter "Библиография" sections that are not
+    readable prose: long catalog tables, LitRes link lists, or screenshots of
+    book-cover grids. Structured catalog snapshots belong in `bibliography.yaml`
+    when parseable; image-only snapshots are simply not reading-page content.
+    """
+    lines = md.splitlines()
+    out: list[str] = []
+    i = 0
+    while i < len(lines):
+        if not _BIBLIO_HEADING_LINE.match(lines[i].strip()):
+            out.append(lines[i])
+            i += 1
+            continue
+
+        j = i + 1
+        while j < len(lines) and not _ANY_HEADING_RE.match(lines[j].strip()):
+            j += 1
+        if out and out[-1].strip():
+            out.append("")
+        i = j
+    return "\n".join(out)
 
 
 def strip_bold_only_headings(md: str) -> str:
@@ -422,6 +577,9 @@ def strip_formatting_artifacts(md: str) -> str:
     out: list[str] = []
     for ln in md.splitlines():
         s = ln.strip()
+        if re.fullmatch(r"(?:\\?\*\s*){3}", s):
+            out.append("***")
+            continue
         if s in ("**\\**", "\\**", "**\\", "\\", "***\\***", "***\\*", "*\\***"):
             continue
         ln = re.sub(r"\*\*\\\*\*", "", ln)
@@ -485,44 +643,975 @@ def collapse_blank_lines(md: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", md).strip() + "\n"
 
 
-def normalize_verse_body(md: str) -> str:
-    """Verse contract: within a stanza, lines sit on adjacent source lines;
-    blank line separates stanzas; no trailing `\\`, no two-space hard breaks.
+def demote_markdown_headings(md: str, levels: int) -> str:
+    """Demote body headings so the page title remains the only H1.
 
-    Pandoc writes one of two shapes when reading a poem DOCX:
-
-    1. **Stanza-aware**: lines within a stanza use trailing `\\` hard breaks
-       (the author pressed Shift+Enter); stanzas are separated by blank lines.
-       Detected by any `\\\\\\n` in the pandoc output. We just strip the `\\`s
-       and the resulting structure already matches the contract: each stanza
-       is one paragraph of newline-joined lines, blank lines remain between
-       stanzas.
-
-    2. **Flat (paragraph-per-line)**: every line is its own Word paragraph
-       and pandoc emits a blank line after each one. No `\\` hard breaks
-       anywhere. There is no stanza signal — author intent is single stanza.
-       Collapse `\\n\\n` to `\\n` so the poem renders without wide line gaps.
-       Preserve `\\n{3,}` if any (rare) as a defensive stanza marker.
-
-    Mixing both styles in one poem is rare; if any `\\` appears, the whole
-    poem is treated as stanza-aware (safer: we never destroy a stanza break
-    that pandoc made visible).
+    For a normal work, source H1 becomes H2. For a merged multi-part book,
+    inserted `## Part N` headings own the body top level, so source H1 becomes
+    H3 and the reading-page ToC can show both parts and chapters.
     """
-    has_hard_breaks = "\\\n" in md
-    lines = []
-    for line in md.split("\n"):
-        line = re.sub(r"[ \t]+$", "", line)
-        line = re.sub(r"\\$", "", line).rstrip()
-        lines.append(line)
-    body = "\n".join(lines)
-    if not has_hard_breaks:
-        sentinel = "\x00STANZA\x00"
-        body = re.sub(r"\n{3,}", sentinel, body)
-        body = body.replace("\n\n", "\n")
-        body = body.replace(sentinel, "\n\n")
-    else:
-        body = re.sub(r"\n{3,}", "\n\n", body)
-    return body.strip() + "\n"
+    if levels <= 0:
+        return md
+    out: list[str] = []
+    in_fence = False
+    for line in md.splitlines():
+        if line.startswith("```") or line.startswith("~~~"):
+            in_fence = not in_fence
+            out.append(line)
+            continue
+        if not in_fence:
+            m = re.match(r"^(#{1,6})(\s+.+)$", line)
+            if m:
+                out.append(f"{'#' * min(6, len(m.group(1)) + levels)}{m.group(2)}")
+                continue
+        out.append(line)
+    return "\n".join(out)
+
+
+_DEDICATION_HEADING_RE = re.compile(r"^#{2,6}\s+(?:Посвящение|Dedication):?\s*$", re.IGNORECASE)
+_ANY_HEADING_RE = re.compile(r"^#{1,6}\s+\S")
+_VERSE_SECTION_TITLE_RE = re.compile(
+    r"^(?:"
+    r"посвящение|dedication|"
+    r"предисловие\s+от\s+творца|preface\s+(?:from|by)\s+the\s+creator|"
+    r"слово\s+творца|the\s+word\s+of\s+the\s+creator|creator'?s\s+word|"
+    r"голос\s+творца|voice\s+of\s+the\s+creator|"
+    r"ответ\s+творца|creator'?s\s+answer|"
+    r"пояснение\s+творца|annotation\s+from\s+the\s+creator|"
+    r"благословляющее\s+слово\s+творца|"
+    r"молитва|prayer|псалом|psalm"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def _is_short_plain_verse_line(line: str) -> bool:
+    s = line.strip()
+    if not s:
+        return True
+    if len(s) > 120:
+        return False
+    if _ANY_HEADING_RE.match(s):
+        return False
+    if s.startswith(("!", "<", "|", ">")):
+        return False
+    if re.match(r"^[-*+]\s+", s) or re.match(r"^\d+[.)]\s+", s):
+        return False
+    if re.match(r"^\*\*[^*]{1,80}:\*\*", s):
+        return False
+    return True
+
+
+def normalize_dedication_verse_sections(md: str) -> str:
+    """Render short dedication sections as compact verse blocks.
+
+    Several books open with a dedication that Pandoc emits as one normal
+    paragraph per line. CSS cannot reliably infer that from plain `<p>` tags,
+    and prose drop caps make it worse. Keep the Markdown body honest by adding
+    one explicit HTML block for this narrow, named section.
+    """
+    lines = md.splitlines()
+    out: list[str] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        if not _DEDICATION_HEADING_RE.match(line.strip()):
+            i += 1
+            continue
+
+        j = i + 1
+        while j < len(lines) and not lines[j].strip():
+            j += 1
+        k = j
+        section: list[str] = []
+        while k < len(lines) and not _ANY_HEADING_RE.match(lines[k].strip()):
+            section.append(lines[k])
+            k += 1
+
+        verse_lines = [ln.strip() for ln in section if ln.strip()]
+        if (
+            2 <= len(verse_lines) <= 24
+            and section
+            and all(_is_short_plain_verse_line(ln) for ln in section)
+        ):
+            out.append("")
+            out.append('<div class="verse-block">')
+            out.extend(html.escape(ln, quote=False) for ln in verse_lines)
+            out.append("</div>")
+            out.append("")
+            i = k
+            continue
+
+        i += 1
+    return "\n".join(out)
+
+
+def _plain_text_inlines(inlines: list[dict[str, Any]]) -> str:
+    out: list[str] = []
+    for item in inlines:
+        typ = item.get("t")
+        val = item.get("c")
+        if typ == "Str":
+            out.append(str(val))
+        elif typ in {"Space", "SoftBreak", "LineBreak"}:
+            out.append(" ")
+        elif typ in {"Strong", "Emph", "Underline", "Strikeout", "Superscript", "Subscript", "SmallCaps"}:
+            out.append(_plain_text_inlines(val or []))
+        elif typ == "Quoted":
+            _quote_type, quoted = val
+            out.append(_plain_text_inlines(quoted))
+        elif typ == "Code":
+            out.append(str(val[1]))
+        elif typ == "Link":
+            _attr, label, _target = val
+            out.append(_plain_text_inlines(label))
+        elif typ == "Image":
+            _attr, label, _target = val
+            out.append(_plain_text_inlines(label))
+        elif typ == "Span":
+            _attr, span_inlines = val
+            out.append(_plain_text_inlines(span_inlines))
+        elif isinstance(val, list):
+            out.append(_plain_text_inlines(val))
+    return "".join(out).strip()
+
+
+def _pandoc_inlines_to_html(inlines: list[dict[str, Any]]) -> str:
+    out: list[str] = []
+    for item in inlines:
+        typ = item.get("t")
+        val = item.get("c")
+        if typ == "Str":
+            out.append(html.escape(str(val), quote=False))
+        elif typ == "Space":
+            out.append(" ")
+        elif typ in {"SoftBreak", "LineBreak"}:
+            out.append("<br>\n")
+        elif typ == "Strong":
+            out.append(f"<strong>{_pandoc_inlines_to_html(val or [])}</strong>")
+        elif typ == "Emph":
+            out.append(f"<em>{_pandoc_inlines_to_html(val or [])}</em>")
+        elif typ in {"Underline", "SmallCaps"}:
+            out.append(_pandoc_inlines_to_html(val or []))
+        elif typ == "Strikeout":
+            out.append(f"<s>{_pandoc_inlines_to_html(val or [])}</s>")
+        elif typ == "Superscript":
+            out.append(f"<sup>{_pandoc_inlines_to_html(val or [])}</sup>")
+        elif typ == "Subscript":
+            out.append(f"<sub>{_pandoc_inlines_to_html(val or [])}</sub>")
+        elif typ == "Quoted":
+            quote_type, quoted = val
+            inner = _pandoc_inlines_to_html(quoted)
+            if quote_type.get("t") == "SingleQuote":
+                out.append(f"'{inner}'")
+            else:
+                out.append(f"«{inner}»")
+        elif typ == "Code":
+            out.append(f"<code>{html.escape(str(val[1]), quote=False)}</code>")
+        elif typ == "Link":
+            _attr, label, target = val
+            label_html = _pandoc_inlines_to_html(label)
+            href = html.escape(str(target[0]), quote=True)
+            out.append(f'<a href="{href}">{label_html}</a>')
+        elif typ == "Image":
+            _attr, label, target = val
+            alt = html.escape(_plain_text_inlines(label), quote=True)
+            src = html.escape(str(target[0]), quote=True)
+            out.append(f'<img src="{src}" alt="{alt}">')
+        elif typ == "Span":
+            _attr, span_inlines = val
+            out.append(_pandoc_inlines_to_html(span_inlines))
+        elif typ == "RawInline":
+            fmt, raw = val
+            if fmt == "html":
+                out.append(str(raw))
+            elif fmt == "markdown":
+                out.append(html.escape(str(raw), quote=False))
+        elif isinstance(val, list):
+            out.append(_pandoc_inlines_to_html(val))
+    return "".join(out)
+
+
+def _merge_html_lines(lines: list[str], child_lines: list[str]) -> None:
+    for idx, child in enumerate(child_lines):
+        if idx:
+            lines.append("")
+        lines[-1] += child
+
+
+def _wrap_html_lines(tag: str, child_lines: list[str]) -> list[str]:
+    return [f"<{tag}>{line}</{tag}>" if line else "" for line in child_lines]
+
+
+def _pandoc_inlines_to_html_lines(inlines: list[dict[str, Any]]) -> list[str]:
+    """Render inline content as balanced HTML lines.
+
+    Pandoc can represent a Word run such as **line 1 / line 2** as one Strong
+    inline containing a LineBreak. Rendering that directly as
+    `<strong>line 1<br>line 2</strong>` inside a `white-space: pre-line` block
+    double-counts breaks and leaves the source hard to read. Split the run into
+    separate display lines and balance tags per line instead.
+    """
+    lines = [""]
+    for item in inlines:
+        typ = item.get("t")
+        val = item.get("c")
+        if typ == "Str":
+            lines[-1] += html.escape(str(val), quote=False)
+        elif typ == "Space":
+            lines[-1] += " "
+        elif typ in {"SoftBreak", "LineBreak"}:
+            lines.append("")
+        elif typ == "Strong":
+            _merge_html_lines(lines, _wrap_html_lines("strong", _pandoc_inlines_to_html_lines(val or [])))
+        elif typ == "Emph":
+            _merge_html_lines(lines, _wrap_html_lines("em", _pandoc_inlines_to_html_lines(val or [])))
+        elif typ in {"Underline", "SmallCaps"}:
+            _merge_html_lines(lines, _pandoc_inlines_to_html_lines(val or []))
+        elif typ == "Strikeout":
+            _merge_html_lines(lines, _wrap_html_lines("s", _pandoc_inlines_to_html_lines(val or [])))
+        elif typ == "Superscript":
+            _merge_html_lines(lines, _wrap_html_lines("sup", _pandoc_inlines_to_html_lines(val or [])))
+        elif typ == "Subscript":
+            _merge_html_lines(lines, _wrap_html_lines("sub", _pandoc_inlines_to_html_lines(val or [])))
+        elif typ == "Quoted":
+            quote_type, quoted = val
+            child = _pandoc_inlines_to_html_lines(quoted)
+            if child:
+                open_q, close_q = ("'", "'") if quote_type.get("t") == "SingleQuote" else ("«", "»")
+                child[0] = f"{open_q}{child[0]}"
+                child[-1] = f"{child[-1]}{close_q}"
+            _merge_html_lines(lines, child)
+        elif typ == "Code":
+            lines[-1] += f"<code>{html.escape(str(val[1]), quote=False)}</code>"
+        elif typ == "Link":
+            _attr, label, target = val
+            label_html = "".join(_pandoc_inlines_to_html_lines(label))
+            href = html.escape(str(target[0]), quote=True)
+            lines[-1] += f'<a href="{href}">{label_html}</a>'
+        elif typ == "Image":
+            _attr, label, target = val
+            alt = html.escape(_plain_text_inlines(label), quote=True)
+            src = html.escape(str(target[0]), quote=True)
+            lines[-1] += f'<img src="{src}" alt="{alt}">'
+        elif typ == "Span":
+            _attr, span_inlines = val
+            _merge_html_lines(lines, _pandoc_inlines_to_html_lines(span_inlines))
+        elif typ == "RawInline":
+            fmt, raw = val
+            if fmt == "html":
+                lines[-1] += str(raw)
+            elif fmt == "markdown":
+                lines[-1] += html.escape(str(raw), quote=False)
+        elif isinstance(val, list):
+            _merge_html_lines(lines, _pandoc_inlines_to_html_lines(val))
+    return lines
+
+
+def _is_verse_section_title(title: str) -> bool:
+    normalized = re.sub(r"\s+", " ", title.strip().lower())
+    return bool(_VERSE_SECTION_TITLE_RE.match(normalized))
+
+
+def _html_line_is_short_enough(line: str) -> bool:
+    text = re.sub(r"<[^>]+>", "", line)
+    text = html.unescape(text).strip()
+    return len(text) <= 180
+
+
+def _clean_verse_html_line(line: str) -> str:
+    line = re.sub(r"<(strong|em)>\s*(?:<br>\s*)+\s*</\1>", "", line)
+    line = re.sub(r"<(strong|em)>\s*</\1>", "", line)
+    line = re.sub(r"(?:<br>\s*)+$", "", line)
+    return line.strip()
+
+
+def _verse_html_from_ast_blocks(blocks: list[dict[str, Any]]) -> str | None:
+    stanzas: list[list[str]] = []
+    current: list[str] = []
+    saw_content = False
+
+    def flush() -> None:
+        nonlocal current
+        if current:
+            stanzas.append(current)
+            current = []
+
+    for block in blocks:
+        typ = block.get("t")
+        if typ in {"Para", "Plain"}:
+            inlines = block.get("c") or []
+            if not inlines:
+                flush()
+                continue
+            plain = _plain_text_inlines(inlines)
+            if plain.strip() in {"***", r"\*\*\*", "* * *"}:
+                flush()
+                stanzas.append(["***"])
+                continue
+            rendered_lines = [
+                _clean_verse_html_line(line)
+                for line in _pandoc_inlines_to_html_lines(inlines)
+                if _clean_verse_html_line(line)
+            ]
+            if not rendered_lines:
+                flush()
+                continue
+            for line in rendered_lines:
+                current.append(line)
+            saw_content = True
+            continue
+        if typ == "HorizontalRule":
+            flush()
+            stanzas.append(["***"])
+            continue
+        # Do not risk swallowing structured content into a verse block. If a
+        # named section contains tables, lists, code, or images as blocks, keep
+        # Pandoc's normal Markdown for that section.
+        if typ not in {"Null"}:
+            return None
+
+    flush()
+    lines = [line for stanza in stanzas for line in stanza]
+    if not saw_content or len(lines) < 2:
+        return None
+    short_ratio = sum(1 for line in lines if _html_line_is_short_enough(line)) / max(1, len(lines))
+    if short_ratio < 0.75:
+        return None
+
+    out = ['<div class="verse-block">']
+    for stanza in stanzas:
+        out.extend(stanza)
+        out.append("")
+    while out and out[-1] == "":
+        out.pop()
+    out.append("</div>")
+    return "\n".join(out)
+
+
+def _has_inline_kind(inlines: list[dict[str, Any]], kinds: set[str]) -> bool:
+    for item in inlines:
+        typ = item.get("t")
+        val = item.get("c")
+        if typ in kinds:
+            return True
+        if typ in {"Strong", "Emph", "Underline", "Strikeout", "Superscript", "Subscript", "SmallCaps"}:
+            if _has_inline_kind(val or [], kinds):
+                return True
+        elif typ == "Quoted":
+            if _has_inline_kind(val[1], kinds):
+                return True
+        elif typ == "Link":
+            _attr, label, _target = val
+            if _has_inline_kind(label, kinds):
+                return True
+        elif typ == "Span":
+            _attr, span_inlines = val
+            if _has_inline_kind(span_inlines, kinds):
+                return True
+        elif isinstance(val, list) and _has_inline_kind(val, kinds):
+            return True
+    return False
+
+
+def _is_lineated_plain_text(text: str) -> bool:
+    s = re.sub(r"\s+", " ", text).strip()
+    if not s or len(s) > 145:
+        return False
+    if _ANY_HEADING_RE.match(s):
+        return False
+    if s.startswith(("!", "<", "|", ">", "[]")):
+        return False
+    if re.match(r"^[-*+]\s+", s) or re.match(r"^\d+[.)]\s+", s):
+        return False
+    if re.match(r"^[A-ZА-ЯЁ][\w .А-Яа-яЁё-]{1,48}:\s*$", s):
+        return False
+    if re.match(r"^[A-ZА-ЯЁ][\w .А-Яа-яЁё-]{1,48}:\s", s):
+        return False
+    if re.match(r"^\*\*[^*]{1,80}:\*\*", s):
+        return False
+    if "http://" in s or "https://" in s:
+        return False
+    return True
+
+
+def _is_lineated_ast_block(block: dict[str, Any]) -> bool:
+    if block.get("t") not in {"Para", "Plain"}:
+        return False
+    inlines = block.get("c") or []
+    if not inlines:
+        return False
+    if _has_inline_kind(inlines, {"Image", "Link", "Code"}):
+        return False
+    return all(_is_lineated_plain_text(line) for line in _plain_text_inlines(inlines).splitlines())
+
+
+def _block_plain_lines(block: dict[str, Any]) -> list[str]:
+    return [
+        re.sub(r"\s+", " ", line).strip()
+        for line in _plain_text_inlines(block.get("c") or []).splitlines()
+        if line.strip()
+    ]
+
+
+def _lineated_run_is_confident(blocks: list[dict[str, Any]], *, after_named_heading: bool) -> bool:
+    content_blocks = [b for b in blocks if (b.get("c") or [])]
+    lines = [line for block in content_blocks for line in _block_plain_lines(block)]
+    if len(lines) < 3:
+        return False
+    lengths = [len(line) for line in lines]
+    avg_len = sum(lengths) / len(lengths)
+    empty_count = sum(1 for block in blocks if block.get("t") in {"Para", "Plain"} and not (block.get("c") or []))
+    linebreak_count = sum(
+        1
+        for block in content_blocks
+        if _has_inline_kind(block.get("c") or [], {"SoftBreak", "LineBreak"})
+    )
+
+    if after_named_heading:
+        return avg_len <= 150
+    if linebreak_count:
+        return True
+    if empty_count and avg_len <= 120:
+        return True
+    return False
+
+
+@dataclass
+class _VerseRun:
+    plain_lines: list[str]
+    html_block: str
+
+
+def _plain_key(text: str) -> str:
+    text = html.unescape(text)
+    text = re.sub(r"<[^>]+>", "", text)
+    text = re.sub(r"!\[([^\]]*)\]\([^)]+\)", r"\1", text)
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    text = re.sub(r"\[\^[^\]]+\]", "", text)
+    text = text.replace("\\", "")
+    text = re.sub(r"[*_`~^]+", "", text)
+    text = re.sub(r"\s+", " ", text).strip().lower()
+    return text
+
+
+def _lineated_runs_from_ast(ast: dict[str, Any]) -> list[_VerseRun]:
+    runs: list[_VerseRun] = []
+    current: list[dict[str, Any]] = []
+    last_heading_was_named = False
+    current_after_named_heading = False
+
+    def flush() -> None:
+        nonlocal current, current_after_named_heading
+        if current and _lineated_run_is_confident(current, after_named_heading=current_after_named_heading):
+            html_block = _verse_html_from_ast_blocks(current)
+            if html_block:
+                plain_lines = [
+                    _plain_key(line)
+                    for block in current
+                    if (block.get("c") or [])
+                    for line in _block_plain_lines(block)
+                ]
+                if len(plain_lines) >= 3:
+                    runs.append(_VerseRun(plain_lines=plain_lines, html_block=html_block))
+        current = []
+        current_after_named_heading = False
+
+    for block in ast.get("blocks") or []:
+        typ = block.get("t")
+        if typ == "Header":
+            flush()
+            _level, _attr, inlines = block.get("c") or [None, None, []]
+            last_heading_was_named = _is_verse_section_title(_plain_text_inlines(inlines))
+            continue
+        if typ in {"Para", "Plain"} and not (block.get("c") or []):
+            if current:
+                current.append(block)
+            continue
+        if _is_lineated_ast_block(block):
+            if not current:
+                current_after_named_heading = last_heading_was_named
+            current.append(block)
+            last_heading_was_named = False
+            continue
+        flush()
+        last_heading_was_named = False
+    flush()
+    return runs
+
+
+@dataclass
+class _MdBlock:
+    start: int
+    end: int
+    raw: str
+    key: str
+
+
+def _markdown_blocks(md: str) -> tuple[list[str], list[_MdBlock]]:
+    lines = md.splitlines()
+    blocks: list[_MdBlock] = []
+    i = 0
+    while i < len(lines):
+        while i < len(lines) and not lines[i].strip():
+            i += 1
+        if i >= len(lines):
+            break
+        start = i
+        while i < len(lines) and lines[i].strip():
+            i += 1
+        raw = "\n".join(lines[start:i])
+        if (
+            not _ANY_HEADING_RE.match(raw.strip())
+            and not raw.lstrip().startswith(("<", "|", "!", ">"))
+        ):
+            blocks.append(_MdBlock(start=start, end=i, raw=raw, key=_plain_key(raw)))
+    return lines, blocks
+
+
+@dataclass(frozen=True)
+class _DocxStructuralRun:
+    keys: list[str]
+    html_block: str
+
+
+_RIGHT_ALIGNS = {"right", "end"}
+_SCRIPTURE_REF_RE = re.compile(
+    r"^(?:"
+    r"(?:[1-3]\s*)?[А-ЯЁA-Z][А-Яа-яЁёA-Za-z. ]+\s+\d{1,3}:\d{1,3}(?:[–—-]\d{1,3})?|"
+    r"(?:Ин|Иоанн|Мф|Матф|Марк|Мк|Лк|Луки|Дан|Даниил|Откровение|Бытие|Кор|Пс)\.?\s*\d{1,3}:\d{1,3}(?:[–—-]\d{1,3})?"
+    r")\.?$",
+    re.IGNORECASE,
+)
+_SIGNATURE_LINE_RE = re.compile(
+    r"^(?:"
+    r"Панкратиус|Светозар|Сергей(?:\s+Панкратиус)?\.?|Я\s+Есмь|"
+    r"Pankratius|Svetozar|Creator|The Creator|"
+    r"[—-]\s*Панкратиус.*|[—-]\s*Светозар.*"
+    r")$",
+    re.IGNORECASE,
+)
+_SOURCE_LINE_RE = re.compile(
+    r"(?:к\.ф\.|Матрица|Пифия|Платон|Даниил|Откровение|Евангелие|Ин\.|Мф\.|Лк\.|Кор\.)",
+    re.IGNORECASE,
+)
+
+
+def _right_aligned_groups(paras: list[DocxParagraphMeta]) -> list[list[DocxParagraphMeta]]:
+    groups: list[list[DocxParagraphMeta]] = []
+    current: list[DocxParagraphMeta] = []
+    for para in paras:
+        if para.align in _RIGHT_ALIGNS and not para.is_empty:
+            current.append(para)
+            continue
+        if current:
+            groups.append(current)
+            current = []
+    if current:
+        groups.append(current)
+    return groups
+
+
+def _is_signature_group(lines: list[str]) -> bool:
+    if not (1 <= len(lines) <= 4):
+        return False
+    if any(len(line) > 90 for line in lines):
+        return False
+    if all(_SIGNATURE_LINE_RE.match(line.strip()) for line in lines):
+        return True
+    if len(lines) == 1 and re.fullmatch(r"[—-]\s*[\wА-Яа-яЁё .]{2,80}", lines[0]):
+        return True
+    return False
+
+
+def _is_epigraph_group(lines: list[str], group: list[DocxParagraphMeta]) -> bool:
+    if len(lines) < 2:
+        return False
+    joined = " ".join(lines)
+    if len(joined) < 30:
+        return False
+    has_ref = any(_SCRIPTURE_REF_RE.match(line.strip()) for line in lines)
+    has_source = any(_SOURCE_LINE_RE.search(line) for line in lines[1:])
+    starts_quoted = lines[0].lstrip().startswith(("«", "\"", "“", "„"))
+    mostly_italic = sum(1 for p in group if p.italic) >= max(1, len(group) // 2)
+    compact_source_quote = has_source and len(lines) <= 4 and len(lines[0]) <= 180
+    return bool(has_ref or compact_source_quote or (starts_quoted and has_source) or (starts_quoted and mostly_italic))
+
+
+def _split_epigraph_lines(lines: list[str]) -> tuple[list[str], list[str]]:
+    footer: list[str] = []
+    quote = list(lines)
+    while len(quote) > 1:
+        candidate = quote[-1].strip()
+        if _SCRIPTURE_REF_RE.match(candidate) or _SOURCE_LINE_RE.search(candidate):
+            footer.insert(0, quote.pop())
+            continue
+        break
+    if not footer:
+        footer = [quote.pop()]
+    return quote, footer
+
+
+def _render_signature(lines: list[str]) -> str:
+    body = "\n".join(html.escape(line, quote=False) for line in lines)
+    return f'<p class="signature">\n{body}\n</p>'
+
+
+def _render_epigraph(lines: list[str]) -> str:
+    quote, footer = _split_epigraph_lines(lines)
+    quote_html = "\n".join(html.escape(line, quote=False) for line in quote)
+    footer_html = "\n".join(html.escape(line, quote=False) for line in footer)
+    return "\n".join([
+        '<blockquote class="epigraph">',
+        "<p>",
+        quote_html,
+        "</p>",
+        "<footer>",
+        footer_html,
+        "</footer>",
+        "</blockquote>",
+    ])
+
+
+def _docx_structural_runs(paras: list[DocxParagraphMeta]) -> list[_DocxStructuralRun]:
+    runs: list[_DocxStructuralRun] = []
+    for group in _right_aligned_groups(paras):
+        lines = [p.text.strip() for p in group if p.text.strip()]
+        if not lines:
+            continue
+        if _is_signature_group(lines):
+            runs.append(_DocxStructuralRun(keys=[_plain_key(line) for line in lines], html_block=_render_signature(lines)))
+            continue
+        if _is_epigraph_group(lines, group):
+            runs.append(_DocxStructuralRun(keys=[_plain_key(line) for line in lines], html_block=_render_epigraph(lines)))
+    return runs
+
+
+def normalize_docx_structural_blocks(md: str, paras: list[DocxParagraphMeta]) -> str:
+    """Apply narrow DOCX-only semantic wrappers.
+
+    Paragraph alignment is source metadata. Use it for right-aligned signatures
+    and epigraph/scripture groups; do not infer these from rendered CSS,
+    italic alone, or arbitrary short paragraphs.
+    """
+    runs = _docx_structural_runs(paras)
+    if not runs:
+        return md
+
+    lines, md_blocks = _markdown_blocks(md)
+    replacements: list[tuple[int, int, list[str]]] = []
+    used: set[int] = set()
+
+    for run in runs:
+        keys = [key for key in run.keys if key]
+        if not keys:
+            continue
+        run_len = len(keys)
+        for idx in range(0, len(md_blocks) - run_len + 1):
+            if any((idx + off) in used for off in range(run_len)):
+                continue
+            window = md_blocks[idx:idx + run_len]
+            if [block.key for block in window] != keys:
+                continue
+            replacements.append((window[0].start, window[-1].end, ["", *run.html_block.splitlines(), ""]))
+            for off in range(run_len):
+                used.add(idx + off)
+            break
+
+    if not replacements:
+        return md
+    for start, end, replacement in sorted(replacements, reverse=True):
+        lines[start:end] = replacement
+    return "\n".join(lines)
+
+
+def normalize_ast_lineated_runs(md: str, ast: dict[str, Any]) -> str:
+    """Wrap detected short-line runs from DOCX as explicit verse blocks.
+
+    This is the general form of the earlier named-section fix. It uses the
+    Pandoc JSON AST to decide what is a stack of source lines, then matches the
+    same lines back into the cleaned Markdown and replaces only that range.
+    Normal prose is left as normal paragraphs, so CSS does not have to choose
+    between over-spaced stanzas and wall-of-text prose.
+    """
+    runs = _lineated_runs_from_ast(ast)
+    if not runs:
+        return md
+
+    lines, md_blocks = _markdown_blocks(md)
+    replacements: list[tuple[int, int, list[str]]] = []
+    used: set[int] = set()
+
+    for run in runs:
+        if not run.plain_lines:
+            continue
+        run_len = len(run.plain_lines)
+        for idx in range(0, len(md_blocks) - run_len + 1):
+            if any((idx + off) in used for off in range(run_len)):
+                continue
+            window = md_blocks[idx:idx + run_len]
+            if [block.key for block in window] != run.plain_lines:
+                continue
+            replacements.append((window[0].start, window[-1].end, ["", *run.html_block.splitlines(), ""]))
+            for off in range(run_len):
+                used.add(idx + off)
+            break
+
+    if not replacements:
+        return md
+
+    for start, end, replacement in sorted(replacements, reverse=True):
+        lines[start:end] = replacement
+    return "\n".join(lines)
+
+
+def _heading_title_from_md(line: str) -> str | None:
+    m = re.match(r"^#{1,6}\s+(.+?)\s*$", line.strip())
+    if not m:
+        return None
+    title = re.sub(r"\{#[^}]+\}\s*$", "", m.group(1)).strip()
+    title = re.sub(r"[*_`]+", "", title)
+    return re.sub(r"\s+", " ", title)
+
+
+def _verse_section_replacements_from_ast(ast: dict[str, Any]) -> dict[str, list[str]]:
+    blocks = ast.get("blocks") or []
+    replacements: dict[str, list[str]] = {}
+    i = 0
+    while i < len(blocks):
+        block = blocks[i]
+        if block.get("t") != "Header":
+            i += 1
+            continue
+        _level, _attr, inlines = block.get("c") or [None, None, []]
+        title = _plain_text_inlines(inlines)
+        if not _is_verse_section_title(title):
+            i += 1
+            continue
+        j = i + 1
+        section_blocks: list[dict[str, Any]] = []
+        while j < len(blocks) and blocks[j].get("t") != "Header":
+            section_blocks.append(blocks[j])
+            j += 1
+        html_block = _verse_html_from_ast_blocks(section_blocks)
+        if html_block:
+            key = re.sub(r"\s+", " ", title.strip())
+            replacements.setdefault(key, []).append(html_block)
+        i = j
+    return replacements
+
+
+def normalize_ast_verse_sections(md: str, ast: dict[str, Any]) -> str:
+    """Replace named lineated sections with explicit verse HTML.
+
+    Word source often represents liturgical / Creator-voice lineation as one
+    paragraph per line, with empty paragraphs as stanza separators. Pandoc's
+    Markdown writer loses the empty-paragraph signal, but `docx+empty_paragraphs`
+    keeps it in JSON. Use that structural source only for named sections where
+    lineation is intended, so normal prose can keep normal paragraph spacing.
+    """
+    replacements = _verse_section_replacements_from_ast(ast)
+    if not replacements:
+        return md
+
+    lines = md.splitlines()
+    out: list[str] = []
+    i = 0
+    while i < len(lines):
+        title = _heading_title_from_md(lines[i])
+        candidates = replacements.get(title or "")
+        if not candidates:
+            out.append(lines[i])
+            i += 1
+            continue
+
+        html_block = candidates.pop(0)
+        out.append(lines[i])
+        j = i + 1
+        while j < len(lines) and not _ANY_HEADING_RE.match(lines[j].strip()):
+            j += 1
+        out.append("")
+        out.append(html_block)
+        out.append("")
+        i = j
+    return "\n".join(out)
+
+
+def _pandoc_inlines_to_md(inlines: list[dict[str, Any]]) -> str:
+    out: list[str] = []
+    for item in inlines:
+        typ = item.get("t")
+        val = item.get("c")
+        if typ == "Str":
+            out.append(str(val))
+        elif typ == "Space":
+            out.append(" ")
+        elif typ in {"SoftBreak", "LineBreak"}:
+            out.append("\n")
+        elif typ == "Strong":
+            out.append(f"**{_pandoc_inlines_to_md(val or [])}**")
+        elif typ == "Emph":
+            out.append(f"*{_pandoc_inlines_to_md(val or [])}*")
+        elif typ == "Underline":
+            out.append(_pandoc_inlines_to_md(val or []))
+        elif typ == "Strikeout":
+            out.append(f"~~{_pandoc_inlines_to_md(val or [])}~~")
+        elif typ == "Superscript":
+            out.append(f"^{_pandoc_inlines_to_md(val or [])}^")
+        elif typ == "Subscript":
+            out.append(f"~{_pandoc_inlines_to_md(val or [])}~")
+        elif typ == "SmallCaps":
+            out.append(_pandoc_inlines_to_md(val or []))
+        elif typ == "Quoted":
+            quote_type, quoted = val
+            inner = _pandoc_inlines_to_md(quoted)
+            if quote_type.get("t") == "SingleQuote":
+                out.append(f"'{inner}'")
+            else:
+                out.append(f"«{inner}»")
+        elif typ == "Code":
+            out.append(f"`{val[1]}`")
+        elif typ == "Link":
+            _attr, label, target = val
+            label_text = _pandoc_inlines_to_md(label).strip()
+            if label_text:
+                out.append(f"[{label_text}]({target[0]})")
+        elif typ == "Image":
+            _attr, label, target = val
+            out.append(f"![{_pandoc_inlines_to_md(label)}]({target[0]})")
+        elif typ == "Span":
+            _attr, span_inlines = val
+            out.append(_pandoc_inlines_to_md(span_inlines))
+        elif typ == "RawInline":
+            fmt, raw = val
+            if fmt in {"html", "markdown"}:
+                out.append(str(raw))
+        elif isinstance(val, list):
+            out.append(_pandoc_inlines_to_md(val))
+    return "".join(out)
+
+
+def _is_strong_only_para(block: dict[str, Any]) -> bool:
+    return block.get("t") == "Para" and len(block.get("c") or []) == 1 and block["c"][0].get("t") == "Strong"
+
+
+def pandoc_poem_ast_to_md(ast: dict[str, Any]) -> str:
+    """Emit author-facing verse Markdown from Pandoc's docx AST.
+
+    The key is `docx+empty_paragraphs`: Word's empty paragraphs survive as
+    `Para []`, so stanza breaks are still present before Pandoc's Markdown
+    writer flattens them. Non-empty paragraphs become verse lines; paragraphs
+    with real Word line breaks become one stanza block.
+    """
+    blocks = ast.get("blocks") or []
+    groups: list[list[str]] = []
+    current: list[str] = []
+    seen_content = False
+
+    def flush() -> None:
+        nonlocal current
+        if current:
+            groups.append(current)
+            current = []
+
+    for block in blocks:
+        typ = block.get("t")
+        if typ == "Para":
+            inlines = block.get("c") or []
+            if not inlines:
+                flush()
+                continue
+            text = _pandoc_inlines_to_md(inlines)
+            lines = [re.sub(r"[ \t]+$", "", ln) for ln in text.split("\n")]
+            lines = [ln for ln in lines if ln.strip()]
+            if not lines:
+                flush()
+                continue
+            if not seen_content and _is_strong_only_para(block):
+                flush()
+                groups.append(lines)
+                seen_content = True
+                continue
+            seen_content = True
+            if len(lines) == 1 and lines[0].strip() == r"\*\*\*":
+                lines = ["***"]
+            if len(lines) == 1 and lines[0].strip() == "***":
+                flush()
+                groups.append(["***"])
+            elif len(lines) > 1:
+                flush()
+                groups.append(lines)
+            else:
+                current.append(lines[0])
+            continue
+        if typ == "Plain":
+            text = _pandoc_inlines_to_md(block.get("c") or [])
+            lines = [ln.rstrip() for ln in text.split("\n") if ln.strip()]
+            if len(lines) > 1:
+                flush()
+                groups.append(lines)
+            elif lines:
+                current.append(lines[0])
+                seen_content = True
+            continue
+        flush()
+    flush()
+    return "\n\n".join("\n".join(group) for group in groups).strip() + "\n"
+
+
+def process_poem_markdown(
+    md_raw: str,
+    book_slug: str,
+    image_root: Path,
+    work_dir: Path,
+    image_records: list[ImageRecord],
+    writes: WorkWrites,
+    image_counter_start: int,
+    cross_ref_title_index: dict[str, tuple[str, int | None, str | None]],
+    own_ascii_slug: str,
+) -> tuple[str, list[dict[str, Any]], int]:
+    md = strip_ai_alt(md_raw)
+    md, next_idx = rewrite_images(
+        md, book_slug, image_root, work_dir, image_records, writes, image_counter_start,
+    )
+    refs = extract_cross_refs(md, own_ascii_slug, cross_ref_title_index)
+    md = unwrap_spans_and_u(md)
+    md = strip_formatting_artifacts(md)
+    md = strip_empty_headings(md)
+    md = collapse_blank_lines(md)
+    return md, refs, next_idx
+
+
+def convert_poem_docx_to_md(
+    docx: Path,
+    book_slug: str,
+    work_dir: Path,
+    image_records: list[ImageRecord],
+    writes: WorkWrites,
+    image_counter_start: int,
+    cross_ref_title_index: dict[str, tuple[str, int | None, str | None]],
+    own_ascii_slug: str,
+) -> tuple[str, list[dict[str, Any]], int, str]:
+    if not docx.exists():
+        raise FileNotFoundError(docx)
+    with tempfile.TemporaryDirectory(prefix=f"pancratius-{book_slug}-") as td:
+        tdp = Path(td)
+        media_tmp = tdp / "media"
+        ast, warnings = _run_pandoc_json(docx, media_tmp)
+        md_raw = pandoc_poem_ast_to_md(ast)
+        md, refs, next_idx = process_poem_markdown(
+            md_raw=md_raw,
+            book_slug=book_slug,
+            image_root=tdp,
+            work_dir=work_dir,
+            image_records=image_records,
+            writes=writes,
+            image_counter_start=image_counter_start,
+            cross_ref_title_index=cross_ref_title_index,
+            own_ascii_slug=own_ascii_slug,
+        )
+    return md, refs, next_idx, warnings
 
 
 # ---------------------------------------------------------------------------
@@ -859,6 +1948,7 @@ def normalize_dialogue_labels(md: str) -> str:
 
 def process_markdown(
     md_raw: str,
+    docx_paras: list[DocxParagraphMeta],
     book_slug: str,
     image_root: Path,
     work_dir: Path,
@@ -874,6 +1964,7 @@ def process_markdown(
     md = strip_toc(md)
     md = strip_ai_alt(md)
     md, bibliography = extract_bibliography(md, biblio_slug_lookup)
+    md = strip_bibliography_sections(md)
     md, next_idx = rewrite_images(
         md, book_slug, image_root, work_dir, image_records, writes, image_counter_start,
     )
@@ -881,8 +1972,10 @@ def process_markdown(
     md = unwrap_spans_and_u(md)
     md = strip_formatting_artifacts(md)
     md = strip_bold_only_headings(md)
+    md = strip_bibliography_sections(md)
     md = strip_empty_headings(md)
     md = normalize_dialogue_labels(md)
+    md = normalize_docx_structural_blocks(md, docx_paras)
     md = collapse_blank_lines(md)
     return md, bibliography, cross_refs, next_idx
 
@@ -897,7 +1990,7 @@ def convert_docx_to_md(
     biblio_slug_lookup: dict[str, tuple[str, int | None, str | None]],
     cross_ref_title_index: dict[str, tuple[str, int | None, str | None]],
     own_ascii_slug: str,
-) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]], int, str]:
+) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]], int, str, dict[str, Any]]:
     if not docx.exists():
         raise FileNotFoundError(docx)
     with tempfile.TemporaryDirectory(prefix=f"pancratius-{book_slug}-") as td:
@@ -905,9 +1998,14 @@ def convert_docx_to_md(
         out_md = tdp / "out.md"
         media_tmp = tdp / "media"
         warnings = _run_pandoc(docx, media_tmp, out_md)
+        ast, json_warnings = _run_pandoc_json(docx)
+        docx_paras = read_docx_paragraph_meta(docx)
+        if json_warnings:
+            warnings = "\n".join(w for w in (warnings, json_warnings) if w)
         md_raw = out_md.read_text(encoding="utf-8")
         md, biblio, refs, next_idx = process_markdown(
             md_raw=md_raw,
+            docx_paras=docx_paras,
             book_slug=book_slug,
             image_root=tdp,
             work_dir=work_dir,
@@ -918,7 +2016,7 @@ def convert_docx_to_md(
             cross_ref_title_index=cross_ref_title_index,
             own_ascii_slug=own_ascii_slug,
         )
-    return md, biblio, refs, next_idx, warnings
+    return md, biblio, refs, next_idx, warnings, ast
 
 
 # ---------------------------------------------------------------------------
@@ -1058,34 +2156,20 @@ def _is_majority_latin(s: str) -> bool:
 def _pick_en_title(
     book: dict[str, Any],
     files_titles: list[str],
-) -> tuple[str, bool]:
-    """Return (title, title_is_untranslated)."""
+) -> str:
+    """Return the best available EN title, falling back to the RU title.
+
+    A fallback title is an editorial state, not a separate frontmatter field.
+    The page already carries `translation.source: ai` when the EN text came
+    from a model.
+    """
     override = EN_TITLE_OVERRIDES_BY_NUMBER.get(book["number"])
     if override:
-        return override, False
+        return override
     for candidate in files_titles:
         if candidate and _is_majority_latin(candidate):
-            return candidate, False
-    return book.get("title") or "", True
-
-
-def body_is_majority_latin(md: str, sample_chars: int = 5000) -> bool:
-    """Approximate language detection over the body. Skips YAML frontmatter
-    if present. We use it to flag files that landed in `legacy/books/en/`
-    but actually carry Russian content — in that case the en.md is not a
-    real translation and we mark it as such (title untranslated, no AI
-    badge claim)."""
-    s = md
-    if s.startswith("---"):
-        end = s.find("\n---", 3)
-        if end > 0:
-            s = s[end + 4:]
-    s = s[:sample_chars]
-    lat = sum(1 for c in s if c.isascii() and c.isalpha())
-    cyr = sum(1 for c in s if "Ѐ" <= c <= "ӿ")
-    if lat + cyr < 100:
-        return False
-    return lat >= cyr
+            return candidate
+    return book.get("title") or ""
 
 
 def _file_title(f: dict[str, Any]) -> str:
@@ -1171,7 +2255,8 @@ def convert_book(book: dict[str, Any], ctx: ConverterContext) -> list[Conversion
 
         for i, f in enumerate(docs, start=1):
             docx_path = _legacy_path(f["url"])
-            body, biblio, refs, image_idx, warns = convert_docx_to_md(
+            writes.add_source(lang, docx_path)
+            body, biblio, refs, image_idx, warns, ast = convert_docx_to_md(
                 docx=docx_path,
                 book_slug=ascii_slug,
                 work_dir=book_dir,
@@ -1182,6 +2267,10 @@ def convert_book(book: dict[str, Any], ctx: ConverterContext) -> list[Conversion
                 cross_ref_title_index=ctx.cross_ref_title_index,
                 own_ascii_slug=ascii_slug,
             )
+            body = demote_markdown_headings(body, 2 if len(docs) > 1 else 1)
+            body = normalize_ast_verse_sections(body, ast)
+            body = normalize_ast_lineated_runs(body, ast)
+            body = normalize_dedication_verse_sections(body)
             label = _book_part_label(i, len(docs), lang)
             if label:
                 bodies.append(f"{label}\n\n{body}")
@@ -1194,20 +2283,15 @@ def convert_book(book: dict[str, Any], ctx: ConverterContext) -> list[Conversion
                 print(f"  [{ascii_slug}/{lang}] pandoc: {warns}", file=sys.stderr)
 
         merged_override = TITLE_OVERRIDES_BY_NUMBER.get(book["number"]) or {}
-        body_text = "\n".join(bodies)
         if lang == "ru":
             title_for_lang = merged_override.get("ru") or book["title"]
-            title_is_untranslated = False
             if not merged_override and len(docs) == 1 and file_titles and file_titles[0]:
                 title_for_lang = file_titles[0]
         else:
             if merged_override.get("en"):
                 title_for_lang = merged_override["en"]
-                title_is_untranslated = False
             else:
-                title_for_lang, title_is_untranslated = _pick_en_title(book, file_titles)
-            if not body_is_majority_latin(body_text):
-                title_is_untranslated = True
+                title_for_lang = _pick_en_title(book, file_titles)
 
         cover_path = cover_paths.get(lang)
         cover_is_placeholder = False
@@ -1217,8 +2301,10 @@ def convert_book(book: dict[str, Any], ctx: ConverterContext) -> list[Conversion
         elif lang == "en" and cover_path and cover_path.endswith(".svg"):
             cover_is_placeholder = True
 
-        description_source = annotations.get(lang) or annotations.get("ru") or {}
-        description = (description_source.get("text") or "").strip()
+        description = (DESCRIPTION_OVERRIDES_BY_NUMBER.get(book["number"]) or {}).get(lang, "")
+        if not description:
+            description_source = annotations.get(lang) or annotations.get("ru") or {}
+            description = (description_source.get("text") or "").strip()
         if not description:
             description = f"TODO: editorial description needed for book {book['number']}."
 
@@ -1229,17 +2315,14 @@ def convert_book(book: dict[str, Any], ctx: ConverterContext) -> list[Conversion
             "title": title_for_lang,
             "lang": lang,
             "description": description,
-            "original_filenames": originals,
             "tags": book.get("tags") or [],
             "cover": cover_path,
         }
-        if title_is_untranslated:
-            fm["title_is_untranslated"] = True
         if cover_is_placeholder:
             fm["cover_is_placeholder"] = True
         if cross_refs:
             fm["cross_refs"] = _restructure_cross_refs(cross_refs)
-        fm["translation"] = _infer_translation(book, lang, title_is_untranslated)
+        fm["translation"] = _infer_translation(book, lang)
         if bibliography:
             per_lang_biblio[lang] = _dedupe_bibliography(bibliography)
 
@@ -1302,14 +2385,12 @@ def _write_bibliography_sidecar(work_dir: Path, per_lang: dict[str, list[dict[st
 def _infer_translation(
     book: dict[str, Any],
     lang: str,
-    title_is_untranslated: bool,
 ) -> dict[str, Any]:
     if lang == "ru":
         return {"source": "original"}
     # Why: corpus contains no human literary translations of these books; every
     # English variant was generated. Mark accordingly so the UI badge can show
-    # "AI translation" while title_is_untranslated separately signals that the
-    # frontmatter title is still Russian. `model` is omitted when unrecorded.
+    # "AI translation". `model` is omitted when unrecorded.
     return {"source": "ai"}
 
 
@@ -1323,18 +2404,17 @@ def convert_poem(poem: dict[str, Any], ctx: ConverterContext) -> ConversionOutco
         return None
     f = docs[0]
     docx_path = _legacy_path(f["url"])
-    body, biblio, refs, _, warns = convert_docx_to_md(
+    writes.add_source("ru", docx_path)
+    body, refs, _, warns = convert_poem_docx_to_md(
         docx=docx_path,
         book_slug=f"poem-{ascii_slug}",
         work_dir=poem_dir,
         image_records=ctx.image_records,
         writes=writes,
         image_counter_start=1,
-        biblio_slug_lookup=ctx.biblio_slug_lookup,
         cross_ref_title_index=ctx.cross_ref_title_index,
         own_ascii_slug=ascii_slug,
     )
-    body = normalize_verse_body(body)
     if warns:
         print(f"  [poem/{ascii_slug}] pandoc: {warns}", file=sys.stderr)
     cover_path = _ingest_cover(
@@ -1356,7 +2436,6 @@ def convert_poem(poem: dict[str, Any], ctx: ConverterContext) -> ConversionOutco
         "title": poem["title"],
         "lang": "ru",
         "description": description,
-        "original_filename": docx_path.name,
         "cover": cover_path,
         "date": _normalize_date(poem.get("date")),
         "translation": {"source": "original"},
@@ -1367,8 +2446,6 @@ def convert_poem(poem: dict[str, Any], ctx: ConverterContext) -> ConversionOutco
     out_path = poem_dir / "ru.md"
     out_path.write_text(md, encoding="utf-8")
     writes.add(out_path)
-    if biblio:
-        _write_bibliography_sidecar(poem_dir, {"ru": _dedupe_bibliography(biblio)}, writes)
     ctx.finish_work(writes)
     return ConversionOutcome(ascii_slug=ascii_slug, lang="ru", md_path=out_path)
 
@@ -1425,7 +2502,7 @@ def convert_project(project: dict[str, Any], ctx: ConverterContext) -> list[Conv
         print(f"  [project/{ascii_slug}] no number assigned in PROJECT_NUMBERS", file=sys.stderr)
         return []
 
-    body, biblio, refs, _, warns = convert_docx_to_md(
+    body, biblio, refs, _, warns, ast = convert_docx_to_md(
         docx=docx_path,
         book_slug=f"project-{ascii_slug}",
         work_dir=proj_dir,
@@ -1438,6 +2515,9 @@ def convert_project(project: dict[str, Any], ctx: ConverterContext) -> list[Conv
     )
     if warns:
         print(f"  [project/{ascii_slug}] pandoc: {warns}", file=sys.stderr)
+    body = demote_markdown_headings(body, 1)
+    body = normalize_ast_verse_sections(body, ast)
+    body = normalize_ast_lineated_runs(body, ast)
     cover_ru = _ingest_cover(
         project.get("cover"),
         book_slug=f"project-{ascii_slug}",
@@ -1451,6 +2531,10 @@ def convert_project(project: dict[str, Any], ctx: ConverterContext) -> list[Conv
     description_ru = (project.get("intro") or "").strip()
     if not description_ru:
         description_ru = titles.get("ru", "")
+    # The current project entries have one Russian source document and two UI
+    # locale pages. Register source provenance once, under RU; EN does not
+    # imply an authored EN DOCX artifact exists.
+    writes.add_source("ru", docx_path)
     for lang in ("ru", "en"):
         title_for_lang = titles.get(lang) or titles.get("ru", "")
         if not title_for_lang:
@@ -1462,12 +2546,9 @@ def convert_project(project: dict[str, Any], ctx: ConverterContext) -> list[Conv
             "title": title_for_lang,
             "lang": lang,
             "description": description_ru,
-            "original_filename": docx_path.name,
             "cover": cover_ru,
             "translation": {"source": "original"} if lang == "ru" else {"source": "ai"},
         }
-        if lang == "en" and not titles.get("en"):
-            fm["title_is_untranslated"] = True
         if refs:
             fm["cross_refs"] = _restructure_cross_refs(refs)
         md = _yaml_frontmatter(fm) + body
@@ -1548,6 +2629,7 @@ def write_manifest(
             "kind": writes.kind,
             "slug": writes.slug,
             "generated_paths": prev_gp,
+            "sources": writes.sources,
             "images": by_work_images.get(key, []),
         }
 

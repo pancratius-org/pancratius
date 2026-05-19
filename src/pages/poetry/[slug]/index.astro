@@ -6,6 +6,7 @@ import Base     from "@/layouts/Base.astro";
 import Colophon from "@/components/Colophon.astro";
 
 import type { Locale } from "@/lib/i18n";
+import { coverAbsoluteUrl } from "@/lib/covers";
 import { kindIndexUrl } from "@/lib/i18n";
 import { seoForWork } from "@/lib/seo";
 import { getPairsByKind, poemDate, type WorkPair } from "@/lib/works";
@@ -21,13 +22,13 @@ interface Props { pair: WorkPair; }
 const { pair } = Astro.props;
 const entry = pair.ru;
 const { Content } = await render(entry);
-const coverUrl = await (await import("@/lib/covers")).coverAbsoluteUrl(Astro.site, pair, locale);
+const coverUrl = await coverAbsoluteUrl(Astro.site, pair, locale);
 const seo = seoForWork(Astro.site, { pair, locale, coverUrl });
 const backHref = kindIndexUrl("poem", locale);
 const date = poemDate(pair.ru);
 ---
 <Base locale={locale} seo={seo} alternates={{}}>
-  <article class="poem-page" data-pagefind-body>
+  <article class="poem-page">
     <a class="poem-page__back" href={backHref}>← к стихам</a>
 
     <header class="poem-page__head">
@@ -39,7 +40,11 @@ const date = poemDate(pair.ru);
       <h1 class="poem-page__title">{entry.data.title}</h1>
     </header>
 
-    <div class="prose prose--poem">
+    <div
+      class="prose prose--poem"
+      data-pagefind-body
+      data-pagefind-meta={`title:${entry.data.title}`}
+    >
       <Content />
     </div>
 

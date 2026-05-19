@@ -56,8 +56,13 @@
   --sans:  "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
   --mono:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-  --measure:      62ch;
-  --measure-wide: 72ch;
+  /* Reading measure. 66ch keeps Russian line length in the comfortable
+     editorial range (a typical line of Cyrillic body type comes out
+     around 70–75 chars in this font), and matches the description block
+     in the book masthead so the masthead and reading column align as
+     one editorial register rather than two ragged ones. */
+  --measure:      66ch;
+  --measure-wide: 74ch;
   --gutter:       clamp(1.25rem, 4vw, 2.75rem);
   --rail:         clamp(1.25rem, 5vw, 3.5rem);
   --ease:         cubic-bezier(0.2, 0.6, 0.2, 1);

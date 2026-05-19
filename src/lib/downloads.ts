@@ -189,8 +189,11 @@ function siblingArtefactExists(pair: WorkPair, lang: Locale, ext: string): boole
 // Plain-text flattening.
 // ─────────────────────────────────────────────────────────────────────
 
+// UTF-8 BOM. Static hosts often serve .md/.txt as `text/markdown` /
+// `text/plain` without a `charset` parameter; the BOM is the portable signal
+// that tells any viewer to decode as UTF-8 instead of falling back to latin-1.
 function enc(s: string): Uint8Array {
-  return new TextEncoder().encode(s);
+  return new TextEncoder().encode("﻿" + s);
 }
 
 function stripFrontmatter(buf: Uint8Array): string {

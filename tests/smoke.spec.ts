@@ -61,6 +61,20 @@ test.describe("books index lists books", () => {
       expect(messages, messages.join("\n")).toEqual([]);
     });
   }
+
+  // Regression guard: an earlier LibraryFilter shape painted the "empty" line
+  // because its inline IIFE ran before the cards parsed. The empty paragraph
+  // is on the page (hidden by default); when books are present it must stay
+  // hidden once the filter init has run.
+  test("library filter does not show empty state with books present", async ({ page }) => {
+    await page.goto("/books/", { waitUntil: "domcontentloaded" });
+    // Wait for the script to have run. Filter init runs on DOMContentLoaded
+    // or immediately if document.readyState != "loading".
+    await page.locator(".book").first().waitFor();
+    const emptyHidden = await page.locator("#libEmpty").evaluate(el => (el as HTMLElement).hidden);
+    expect(emptyHidden).toBe(true);
+    expect(await page.locator(".book").count()).toBeGreaterThanOrEqual(20);
+  });
 });
 
 test.describe("conceptosphere loads graph runtime", () => {
@@ -90,6 +104,25 @@ test.describe("conceptosphere loads graph runtime", () => {
       expect(messages, messages.join("\n")).toEqual([]);
     });
   }
+
+  // Regression guard: a prior wireMobile shape captured `filterSets` in a TDZ
+  // and threw `ReferenceError: Cannot access 'filterSets' before initialization`
+  // on every mobile load. Run a phone-sized viewport against /conceptosphere/
+  // and assert no console errors.
+  test("mobile load of /conceptosphere/ has no console errors", async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const p = await ctx.newPage();
+    const { messages } = failOnConsoleErrors(p);
+    await p.goto("/conceptosphere/", { waitUntil: "domcontentloaded" });
+    await expect(p.locator(".cs-mobile").first()).toBeVisible();
+    // Click into the mobile mode toggle to exercise wireMobile's event
+    // listeners — that's where the TDZ ReferenceError used to fire.
+    const toggle = p.locator(".cs-mode-toggle--mobile button[data-mode='books']");
+    await toggle.waitFor({ state: "visible" });
+    await toggle.click();
+    expect(messages, messages.join("\n")).toEqual([]);
+    await ctx.close();
+  });
 });
 
 test.describe("representative book renders prose + colophon", () => {

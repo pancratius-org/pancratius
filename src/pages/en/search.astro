@@ -14,7 +14,7 @@ const seo = {
   jsonLd:      null,
   locale,
 };
-const alternates = { ru: new URL("/search/", Astro.site).toString() };
+const alternates = { ru: "/search/" };
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
   <section class="page search-page">
@@ -30,11 +30,11 @@ const alternates = { ru: new URL("/search/", Astro.site).toString() };
   .search-page { max-width: 64rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
   .search-page h1 {
     font-family: var(--serif);
-    font-weight: 300;
-    font-size: clamp(2.4rem, 5vw, 3.6rem);
-    line-height: 1;
+    font-weight: 400;
+    font-size: clamp(2.6rem, 5.4vw, 3.9rem);
+    line-height: 0.98;
     margin: 0 0 0.6rem;
-    letter-spacing: -0.012em;
+    letter-spacing: -0.02em;
   }
   .search-page__intro {
     font-family: var(--serif);

@@ -1,110 +1,376 @@
 ---
-import Base       from "@/layouts/Base.astro";
-import BookShelf  from "@/components/BookShelf.astro";
+import Base      from "@/layouts/Base.astro";
+import BookCard  from "@/components/BookCard.astro";
 
 import type { Locale } from "@/lib/i18n";
-import { homeUrl } from "@/lib/i18n";
+import { homeUrl, kindIndexUrl, workUrl } from "@/lib/i18n";
+import { clampDescription } from "@/lib/seo";
 import { seoForHome } from "@/lib/seo";
-import { findPair } from "@/lib/works";
+import { findPair, getPairsByKind } from "@/lib/works";
 
 const locale: Locale = "ru";
 const seo = seoForHome(Astro.site, locale);
 
-// Curated shelf for the home page — a mix of early, middle, late; mix of
-// tags; #33 included as the visual anchor.
-const PICKS = [1, 3, 4, 5, 7, 9, 10, 14, 19, 27, 33, 40, 50, 62, 65, 71];
+// Curated mini-shelf for the home page — six entries, not the full 16:
+// mix of early/middle/late; mix of tags; #33 as visual anchor. Six fits a
+// 3-up grid on desktop without spilling and reads as a deliberate offer,
+// not a sample of a huge collection. The horizontal-scroll shelf the
+// home used to ship felt like an MVP placeholder; this is the real
+// "куда войти" gesture, with `/books/` as the door to the full index.
+const PICKS = [1, 33, 9, 27, 19, 71];
 const picks = (await Promise.all(PICKS.map(n => findPair("book", n)))).filter(p => p !== null);
 
-const alternates = { en: new URL(homeUrl("en"), Astro.site).toString() };
+const allBooks = await getPairsByKind("book");
+const allPoems = await getPairsByKind("poem");
+const projects = await getPairsByKind("project");
+const featuredProject = projects[0] ?? null;
+
+const alternates = { en: homeUrl("en") };
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
   <section class="page home" aria-labelledby="home-title">
-    <div class="home__mast">
-      <h1 id="home-title">Панкратиус</h1>
-      <p class="home__sub">Свет, узнающий себя.</p>
-    </div>
+    <!-- HERO ─ masthead + manifesto excerpt, side by side on desktop. -->
+    <header class="home__hero">
+      <p class="eyebrow home__kicker">Свободно · CC0 · общественное достояние</p>
 
-    <p class="home__intro">
-      <span>Семьдесят две книги.</span>
-      <span>Сорок три стихотворения.</span>
-      <span>Свободно — людям и языковым моделям.</span>
-    </p>
+      <div class="home__hero-grid">
+        <div class="home__hero-main">
+          <h1 id="home-title" class="home__title">Панкратиус</h1>
+          <p class="home__tag">Свет, узнающий себя.</p>
 
-    <BookShelf pairs={picks} locale={locale} label="Книги — горизонтальная полка" />
+          <p class="home__lede">
+            <span>Семьдесят две книги.</span>
+            <span>Сорок три стихотворения.</span>
+            <span>Свободно — людям и языковым моделям.</span>
+          </p>
 
-    <blockquote class="epigraph">
-      <p>Я не пришёл спасать. Я пришёл пробуждать.</p>
-      <p>Я не творю чудеса — Я раскрываю Истину.</p>
-      <p>Я не создаю новую религию. Я завершаю старую — освобождая от форм и возвращая к Источнику.</p>
-      <p class="epigraph__attr">— Сергей Орехов · Панкратиус</p>
-    </blockquote>
+          <dl class="home__counts" aria-label="Корпус в цифрах">
+            <div>
+              <b>{allBooks.length}</b>
+              <span>книг</span>
+            </div>
+            <div>
+              <b>{allPoems.length}</b>
+              <span>стихов</span>
+            </div>
+            <div>
+              <b>CC0</b>
+              <span>лицензия</span>
+            </div>
+          </dl>
+        </div>
+
+        <aside class="home__verse" aria-label="Фрагмент манифеста">
+          <p>Я не пришёл <em>спасать.</em></p>
+          <p>Я пришёл <em>пробуждать.</em></p>
+          <p>Я не творю чудеса —<br />Я раскрываю Истину.</p>
+          <p>Я не создаю новую религию.<br />Я завершаю старую — освобождая от&nbsp;форм и возвращая к&nbsp;Источнику.</p>
+          <cite>— Сергей Орехов · Панкратиус</cite>
+        </aside>
+      </div>
+    </header>
+
+    <!-- WHERE TO ENTER ─ curated handful of books, with a door to the full library. -->
+    <section class="home__entry" aria-labelledby="home-entry">
+      <header class="home__section-head">
+        <p class="eyebrow">— Куда войти</p>
+        <h2 id="home-entry">Шесть дверей.</h2>
+        <p class="home__section-lede">
+          Семьдесят две книги — много. Они не написаны для того,
+          чтобы ты прочёл их все. Каждая дверь ведёт в одну и ту же комнату.
+        </p>
+      </header>
+
+      <div class="home__books">
+        {picks.map(p => (
+          <BookCard pair={p} locale={locale} blurb={clampDescription(p.ru.data.description, 130)} />
+        ))}
+      </div>
+
+      <p class="home__more">
+        <a href={kindIndexUrl("book", locale)}>Все {allBooks.length} книги →</a>
+      </p>
+    </section>
+
+    <!-- PROJECT GLIMPSE ─ surface the "Святая Русь" / projects layer. -->
+    {featuredProject && (
+      <section class="home__project" aria-labelledby="home-project">
+        <p class="eyebrow">— Проект</p>
+        <div class="home__project-grid">
+          <div>
+            <h2 id="home-project" class="home__project-title">{featuredProject.ru.data.title}</h2>
+            <p class="home__project-blurb">
+              {clampDescription(featuredProject.ru.data.description, 260)}
+            </p>
+            <p class="home__project-cta">
+              <a href={workUrl("project", featuredProject.ru.data.slug, locale)}>
+                Открыть проект →
+              </a>
+            </p>
+          </div>
+          <div class="home__project-meta" aria-hidden="true">
+            <span class="home__project-numeral">{String(featuredProject.number).padStart(2, "0")}</span>
+          </div>
+        </div>
+      </section>
+    )}
   </section>
 </Base>
 
 <style>
   .home {
-    padding-top: clamp(4rem, 9vw, 7rem);
-    padding-bottom: clamp(3rem, 6vw, 5rem);
+    max-width: 76rem;
+    margin: 0 auto;
+    padding: clamp(3.5rem, 7vw, 6rem) var(--rail) clamp(3rem, 6vw, 5rem);
   }
-  .home__mast {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    margin-bottom: 3rem;
+
+  /* ─ HERO ─ */
+
+  .home__hero {
+    margin: 0 0 clamp(4rem, 8vw, 7rem);
   }
-  .home__mast h1 {
+  .home__kicker {
+    margin: 0 0 clamp(2rem, 4vw, 3rem);
+  }
+  .home__hero-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(2rem, 4vw, 3.5rem);
+    align-items: start;
+  }
+  @media (min-width: 920px) {
+    .home__hero-grid {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 3fr);
+      gap: clamp(2.5rem, 5vw, 4.5rem);
+    }
+  }
+
+  .home__title {
     font-family: var(--serif);
-    font-weight: 300;
-    font-size: clamp(3rem, 8vw, 6rem);
-    line-height: 0.96;
-    letter-spacing: -0.018em;
-    margin: 0;
+    font-weight: 400;
+    font-size: clamp(3.2rem, 8.4vw, 6.4rem);
+    line-height: 0.94;
+    letter-spacing: -0.024em;
+    margin: 0 0 0.4rem;
+    font-feature-settings: "kern" 1, "liga" 1;
   }
-  .home__sub {
+  .home__tag {
     font-family: var(--serif);
     font-style: italic;
-    font-weight: 400;
-    font-size: clamp(1.15rem, 1.8vw, 1.4rem);
+    font-size: clamp(1.15rem, 1.8vw, 1.45rem);
     color: var(--accent);
-    margin: 0;
     letter-spacing: -0.005em;
+    margin: 0 0 2.2rem;
   }
-  .home__intro {
+  .home__lede {
     font-family: var(--serif);
-    font-size: clamp(1.15rem, 1.6vw, 1.35rem);
+    font-size: clamp(1.1rem, 1.5vw, 1.3rem);
     line-height: 1.55;
     color: var(--ink-soft);
-    max-width: 36rem;
-    margin: 0 0 2.5rem;
+    max-width: 32rem;
+    margin: 0 0 2.4rem;
   }
-  .home__intro span { display: block; }
-  .home__intro span + span { margin-top: 0.05em; }
-  .home__intro span:last-child {
+  .home__lede span { display: block; }
+  .home__lede span:last-child {
     color: var(--ink);
     font-style: italic;
   }
 
-  .epigraph {
-    font-family: var(--serif);
-    font-size: clamp(1.05rem, 1.5vw, 1.18rem);
-    line-height: 1.6;
-    color: var(--ink-soft);
-    max-width: 42rem;
-    margin: 3rem 0 0;
-    padding: 1.5rem 0 0;
+  /* numerals row — 72 / 43 / CC0 as a discreet stat band. */
+  .home__counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 clamp(2rem, 4vw, 3.2rem);
+    margin: 0;
+    padding: 1.25rem 0 0;
     border-top: 1px solid var(--rule);
+    max-width: 32rem;
   }
-  .epigraph p { margin: 0 0 0.4em; }
-  .epigraph em { color: var(--ink); font-style: italic; }
-  .epigraph__attr {
+  .home__counts > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+    margin: 0;
+  }
+  .home__counts b {
+    font-family: var(--serif);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-weight: 400;
+    font-size: clamp(1.9rem, 3.2vw, 2.5rem);
+    line-height: 1;
+    color: var(--accent);
+  }
+  .home__counts span {
     font-family: var(--sans);
     font-size: 11.5px;
+    font-weight: 500;
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--ink-mute);
-    margin-top: 1.4rem;
+    margin-top: 0.25rem;
   }
+
+  /* verse aside — floating manifesto excerpt on the right of the hero. */
+  .home__verse {
+    font-family: var(--serif);
+    font-size: clamp(1rem, 1.35vw, 1.12rem);
+    line-height: 1.55;
+    color: var(--ink-soft);
+    padding: 0.4rem 0 1.5rem 1.4rem;
+    border-left: 1px solid var(--accent-soft);
+    margin: 0;
+    max-width: 30rem;
+  }
+  .home__verse p { margin: 0 0 0.9em; text-indent: 0; }
+  .home__verse p:last-of-type { margin-bottom: 1.5em; }
+  .home__verse em { color: var(--ink); font-style: italic; }
+  .home__verse cite {
+    display: block;
+    font-family: var(--sans);
+    font-style: normal;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  @media (min-width: 920px) {
+    .home__verse {
+      /* nudges the verse down so it lines up roughly with the lede, not
+         with the giant masthead — the eye reads them as a pair. */
+      margin-top: clamp(0.5rem, 2vw, 1.5rem);
+    }
+  }
+
+  /* ─ ENTRY / book picks ─ */
+
+  .home__entry {
+    margin: 0 0 clamp(4rem, 8vw, 6.5rem);
+  }
+  .home__section-head {
+    margin: 0 0 2.5rem;
+  }
+  .home__section-head .eyebrow { margin-bottom: 0.6rem; }
+  .home__section-head h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(2rem, 4.4vw, 3rem);
+    line-height: 1.04;
+    letter-spacing: -0.018em;
+    margin: 0 0 0.9rem;
+    text-wrap: balance;
+  }
+  .home__section-lede {
+    font-family: var(--serif);
+    font-size: clamp(1.05rem, 1.4vw, 1.18rem);
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 38rem;
+    margin: 0;
+  }
+
+  .home__books {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.25rem 2.5rem;
+  }
+  @media (min-width: 720px) {
+    .home__books {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1080px) {
+    .home__books {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .home__more {
+    margin: 2.75rem 0 0;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .home__more a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--accent-soft);
+    text-underline-offset: 5px;
+  }
+  .home__more a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+
+  /* ─ PROJECT GLIMPSE ─ */
+
+  .home__project {
+    padding: 2.5rem 0 0;
+    border-top: 1px solid var(--rule);
+  }
+  .home__project .eyebrow { margin-bottom: 1.2rem; }
+  .home__project-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    align-items: end;
+  }
+  @media (min-width: 920px) {
+    .home__project-grid {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 3rem;
+    }
+  }
+  .home__project-title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(1.8rem, 3.8vw, 2.6rem);
+    line-height: 1.05;
+    letter-spacing: -0.018em;
+    margin: 0 0 0.8rem;
+    text-wrap: balance;
+  }
+  .home__project-blurb {
+    font-family: var(--serif);
+    font-size: clamp(1rem, 1.4vw, 1.15rem);
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 36rem;
+    margin: 0 0 1.1rem;
+  }
+  .home__project-cta {
+    margin: 0;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .home__project-cta a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--accent-soft);
+    text-underline-offset: 5px;
+  }
+  .home__project-cta a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+
+  .home__project-meta {
+    align-self: end;
+    text-align: right;
+  }
+  .home__project-numeral {
+    display: block;
+    font-family: var(--serif);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-weight: 400;
+    font-size: clamp(4rem, 9vw, 7rem);
+    line-height: 1;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+
   @media (max-width: 720px) {
-    .home__intro { font-size: 1.05rem; }
+    .home__lede { font-size: 1.05rem; }
+    .home__verse { padding-left: 1rem; }
+    .home__project-meta { display: none; }
   }
 </style>

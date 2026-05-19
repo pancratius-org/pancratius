@@ -260,17 +260,12 @@ export function pairKey(kind: WorkKind, number: number): string {
 // ─────────────────────────────────────────────────────────────────────
 // Narrowed accessors for kind-specific frontmatter fields.
 //
-// `WorkEntry` is a union; not every kind has `tags`, `abstract`, or `date`.
-// Route files use these helpers instead of direct property access so they
-// don't have to repeat the same `in`-guard at every callsite.
+// `WorkEntry` is a union; only books carry `tags`, only poems carry `date`.
+// Route files use these helpers instead of repeating the `in`-guard everywhere.
 // ─────────────────────────────────────────────────────────────────────
 
 export function workTags(entry: WorkEntry): readonly string[] {
   return "tags" in entry.data ? entry.data.tags : [];
-}
-
-export function workAbstract(entry: WorkEntry): string | undefined {
-  return "abstract" in entry.data ? entry.data.abstract : undefined;
 }
 
 export function poemDate(entry: WorkEntry): string | null {

@@ -5,7 +5,6 @@ slug: 22-plamya-v-serdtse
 title: Пламя в сердце
 lang: ru
 description: 'Стихотворение №22: Пламя в сердце'
-original_filename: Пламя в сердце.docx
 cover: ./cover.ru.jpg
 date: '2025-03-14'
 translation:

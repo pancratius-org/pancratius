@@ -45,26 +45,15 @@ export async function getPage(slug: string, locale: Locale): Promise<PageEntry |
   return all.find(e => e.data.slug === slug && e.data.lang === locale) ?? null;
 }
 
-export async function getAllPages(locale: Locale): Promise<PageEntry[]> {
-  const all = await loadPages();
-  return all
-    .filter(e => e.data.lang === locale)
-    .sort((a, b) => (a.data.nav_order ?? 1000) - (b.data.nav_order ?? 1000));
-}
-
 /**
  * Pages eligible for `/[slug].astro`'s `getStaticPaths`. Excludes any slug
  * served by a hand-written route, avoiding the route-conflict warning.
  */
 export async function getPagesForSlugRoute(locale: Locale): Promise<PageEntry[]> {
-  const all = await getAllPages(locale);
-  return all.filter(e => !PAGES_WITH_DEDICATED_ROUTE.has(e.data.slug));
-}
-
-/** All distinct page slugs in the corpus, irrespective of locale. */
-export async function getAllPageSlugs(): Promise<string[]> {
   const all = await loadPages();
-  return [...new Set(all.map(e => e.data.slug))].sort();
+  return all.filter(e =>
+    e.data.lang === locale && !PAGES_WITH_DEDICATED_ROUTE.has(e.data.slug),
+  );
 }
 
 /** Counterpart in the other language, if authored. */

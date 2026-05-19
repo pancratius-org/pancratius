@@ -5,14 +5,11 @@ slug: 08-vechnost
 title: Вечность
 lang: ru
 description: 'Стихотворение №8: Вечность'
-original_filename: Вечность.docx
 cover: ./cover.ru.jpg
 date: '2026-04-26'
 translation:
   source: original
 ---
-
-> **Вечность**
 
 [***Сергей Панкратиус***](https://stihi.ru/avtor/pankratius)
 

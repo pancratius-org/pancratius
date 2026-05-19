@@ -5,7 +5,6 @@ slug: 43-ya-est-to-chto-ya-est
 title: Я ЕСТЬ ТО ЧТО Я ЕСТЬ
 lang: ru
 description: 'Стихотворение №43: Я ЕСТЬ ТО ЧТО Я ЕСТЬ'
-original_filename: Я ЕСТЬ ТО ЧТО Я ЕСТЬ.docx
 cover: ./cover.ru.jpg
 date: '2026-03-15'
 translation:

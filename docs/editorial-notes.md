@@ -4,7 +4,7 @@ Human-facing review debt that doesn't gate launch but is worth Sergey's eye when
 
 ## Pipeline note: `editorial.yaml` is temporary
 
-The titles listed below live in `editorial.yaml` at the repo root *only because* the converter currently regenerates `content/**/*.md` on every run and would overwrite editor edits. The intended end state is: the converter preserves editor-owned frontmatter fields (`title`, `description`, `abstract`, `translation`, `cross_refs`) on existing markdown; `editorial.yaml` gets applied once into each `en.md` and then deleted; this file remains as the human review checklist. Future agents should not bless `editorial.yaml` as architecture.
+The titles listed below live in `editorial.yaml` at the repo root *only because* the converter currently regenerates `content/**/*.md` on every run and would overwrite editor edits. The intended end state is: the converter preserves editor-owned frontmatter fields (`title`, `description`, `translation`, `cross_refs`) on existing markdown; `editorial.yaml` gets applied once into each `en.md` and then deleted; this file remains as the human review checklist. Future agents should not bless `editorial.yaml` as architecture.
 
 ## English book titles — seeded translations awaiting review
 

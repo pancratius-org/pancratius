@@ -47,8 +47,10 @@ The build pipeline may hash, optimize, deduplicate, and emit public renditions
 into `dist/`, but `public/media/` is not the author-facing source of truth. A
 future author should be able to add one book by editing one work folder.
 
-Four image roles cover the corpus, classified at conversion time and recorded in
-`data/conversion-manifest.json`:
+The converter records source DOCX paths and generated paths per work in
+`data/conversion-manifest.json`; source filenames are provenance, not work
+frontmatter. Four image roles cover the corpus, classified at conversion time
+and recorded in the same manifest:
 
 - **canonical work cover** — one per (work, lang), referenced from frontmatter
   `cover`.

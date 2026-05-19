@@ -3,6 +3,8 @@ import { resolve as resolvePath } from "node:path";
 
 import { defineConfig } from "astro/config";
 import sitemap from "@astrojs/sitemap";
+import rehypeAutolinkHeadings from "rehype-autolink-headings";
+import rehypeSlug from "rehype-slug";
 
 // Deploy target selection. Canonical home is the primary static hosting
 // deploy; the GitHub Pages mirror lives at https://<owner>.github.io/<repo>/
@@ -138,38 +140,6 @@ function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }
   return null;
 }
 
-// ──────────────────────────────────────────────────────────────────
-// Body-image hardening.
-//
-// Converter-emitted markdown bodies contain raw `<img>` tags (pandoc emits
-// HTML for images inside tables). These tags ship without `alt`,
-// `loading="lazy"`, or `decoding="async"`, which costs us a11y and
-// first-paint quality. A small rehype plugin fills in safe defaults; it
-// never overwrites attributes the converter set.
-// ──────────────────────────────────────────────────────────────────
-
-type HastNode = {
-  type: string;
-  tagName?: string;
-  properties?: Record<string, unknown>;
-  children?: HastNode[];
-};
-
-function rehypeBodyImages() {
-  return (tree: HastNode) => {
-    const visit = (node: HastNode) => {
-      if (node.type === "element" && node.tagName === "img") {
-        const props = node.properties ?? (node.properties = {});
-        if (props.alt === undefined || props.alt === null) props.alt = "";
-        if (!props.loading) props.loading = "lazy";
-        if (!props.decoding) props.decoding = "async";
-      }
-      if (node.children) for (const c of node.children) visit(c);
-    };
-    visit(tree);
-  };
-}
-
 export default defineConfig({
   site,
   ...(base ? { base } : {}),
@@ -194,10 +164,35 @@ export default defineConfig({
     },
   },
   markdown: {
-    rehypePlugins: [rehypeBodyImages],
+    // Raw `<img>` tags (the only form the corpus emits) bypass the rehype
+    // pipeline because Astro's default markdown processor passes them through
+    // as `raw` nodes, not `element` nodes. `scripts/build_copy_body_images.py`
+    // adds alt/loading/decoding post-build instead.
     shikiConfig: {
       theme: "github-dark",
       wrap: true,
     },
+    rehypePlugins: [
+      // `rehype-slug` must run before `rehype-autolink-headings`, which
+      // only adds anchors to headings that already have an `id`. Astro's
+      // own slugger runs on its own pass for the `headings` collection
+      // and isn't visible to user plugins in the right order, so we add
+      // an explicit slug pass here. Result: every prose h2/h3/h4 gets a
+      // citable id and an anchor.
+      rehypeSlug,
+      [rehypeAutolinkHeadings, {
+        behavior: "append",
+        test: ["h2", "h3", "h4"],
+        properties: {
+          className: ["heading-anchor"],
+          ariaLabel: "Постоянная ссылка на этот раздел",
+        },
+        // No text content — the visible "#" is drawn by CSS via
+        // `::after`. That keeps the literal "#" out of plain-text
+        // extractors (ToC heading text, search snippets) which would
+        // otherwise pick up "Heading text#".
+        content: [],
+      }],
+    ],
   },
 });

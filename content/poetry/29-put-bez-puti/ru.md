@@ -5,14 +5,11 @@ slug: 29-put-bez-puti
 title: Путь без пути
 lang: ru
 description: 'Стихотворение №29: Путь без пути'
-original_filename: Путь без пути.docx
 cover: ./cover.ru.jpg
 date: '2026-04-26'
 translation:
   source: original
 ---
-
-> **Путь без пути**
 
 Я иду, но нет дороги,
 Не найдёшь её следов.

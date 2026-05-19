@@ -10,7 +10,7 @@ import { resolve as resolvePath } from "node:path";
 
 import type { Locale, WorkKind } from "./i18n";
 import { workUrl } from "./i18n";
-import type { WorkEntry } from "./works";
+import type { WorkEntry, WorkPair } from "./works";
 import { crossRefKeys, findPair, pairKey } from "./works";
 
 const REPO_ROOT = process.cwd();
@@ -170,12 +170,9 @@ export interface SimilarPickInput {
 }
 
 export interface SimilarPick {
-  kind:       WorkKind;
-  slug:       string;
-  title:      string;
-  cover:      string | null;
+  pair:       WorkPair;
+  /** Localised work URL for the active page locale. */
   url:        string;
-  weight:     number;
   convergent: boolean;
 }
 
@@ -259,12 +256,8 @@ export async function getMergedSimilar(input: SimilarPickInput): Promise<Similar
 
     scored.push({
       pick: {
-        kind:       "book",
-        slug:       display.data.slug,
-        title:      display.data.title,
-        cover:      bucket.ref.cover,
+        pair,
         url:        workUrl("book", display.data.slug, locale),
-        weight:     score,
         convergent,
       },
       sortKey: score,

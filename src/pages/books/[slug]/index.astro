@@ -9,17 +9,24 @@ import SimilarPair      from "@/components/SimilarPair.astro";
 import TableOfContents  from "@/components/TableOfContents.astro";
 
 import type { Locale } from "@/lib/i18n";
-import { kindIndexUrl, workUrl } from "@/lib/i18n";
+import { coverAbsoluteUrl } from "@/lib/covers";
+import { downloadUrl, kindIndexUrl, workUrl } from "@/lib/i18n";
 import { seoForWork } from "@/lib/seo";
+import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
 import {
   getPairsByKind,
   resolveCrossRefs,
-  workAbstract,
   workTags,
   type WorkPair,
 } from "@/lib/works";
 
+const FORMAT_LABEL: Record<DownloadFormat, string> = {
+  md: "Markdown", txt: "TXT", docx: "DOCX", pdf: "PDF", epub: "EPUB",
+};
+
 const locale: Locale = "ru";
+
+const allBookPairs = await getPairsByKind("book");
 
 export const getStaticPaths = (async () => {
   const pairs = await getPairsByKind("book");
@@ -31,21 +38,28 @@ const { pair } = Astro.props;
 const entry = pair.ru;
 const { Content, headings } = await render(entry);
 
-const coverUrl = await (await import("@/lib/covers")).coverAbsoluteUrl(Astro.site, pair, locale);
+const coverUrl = await coverAbsoluteUrl(Astro.site, pair, locale);
 const seo = seoForWork(Astro.site, { pair, locale, coverUrl });
 
 const alternates: Partial<Record<Locale, string>> = {};
-if (pair.en) alternates.en = new URL(workUrl("book", pair.en.data.slug, "en"), Astro.site).toString();
+if (pair.en) alternates.en = workUrl("book", pair.en.data.slug, "en");
 
 const crossRefs = await resolveCrossRefs(entry, locale);
 const tags = workTags(entry);
-const abstract = workAbstract(entry);
 const useToc = headings.some(h => h.depth >= 2 && h.depth <= 3);
 const backHref = kindIndexUrl("book", locale);
+const formats = availableFormatsForWork(pair, locale);
+
+// Reading-flow navigation: previous and next book by editorial number.
+const here = allBookPairs.findIndex(p => p.number === pair.number);
+const prev = here > 0 ? allBookPairs[here - 1] : null;
+const next = here < allBookPairs.length - 1 ? allBookPairs[here + 1] : null;
+const prevHref = prev ? workUrl("book", prev.ru.data.slug, "ru") : null;
+const nextHref = next ? workUrl("book", next.ru.data.slug, "ru") : null;
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
-  <article class="book-page" data-pagefind-body>
-    <a class="book-page__back" href={backHref}>← к {(await getPairsByKind("book")).length} книгам</a>
+  <article class="book-page">
+    <a class="book-page__back" href={backHref}>← к {allBookPairs.length} книгам</a>
 
     <header class="book-page__masthead">
       <div class="book-page__cover">
@@ -54,32 +68,65 @@ const backHref = kindIndexUrl("book", locale);
       <div>
         <p class="book-page__meta">Книга</p>
         <h1 class="book-page__title" id="bp-title">
-          <span class="book-page__num">{String(pair.number).padStart(2, "0")}</span>{entry.data.title}
+          <span class="book-page__num">{String(pair.number).padStart(2, "0")}</span>
+          <span class="book-page__name">{entry.data.title}</span>
         </h1>
+        <p class="book-page__description">{entry.data.description}</p>
         {tags.length > 0 && (
           <p class="book-page__tags">
             {tags.map(t => <span>{t}</span>)}
           </p>
         )}
+        {formats.length > 0 && (
+          <p class="book-page__downloads" aria-label="Скачать">
+            <span class="book-page__downloads-label">Скачать:</span>
+            {formats.map((fmt, i) => (
+              <>
+                {i > 0 && <span class="book-page__downloads-sep">·</span>}
+                <a href={downloadUrl(pair.kind, entry.data.slug, fmt, locale)}>{FORMAT_LABEL[fmt]}</a>
+              </>
+            ))}
+            <span class="book-page__downloads-sep">·</span>
+            <button type="button" class="book-page__share" data-share data-share-copied="Скопировано" data-share-failed="Не получилось">
+              Поделиться
+            </button>
+          </p>
+        )}
       </div>
     </header>
 
-    {abstract && (
-      <blockquote class="book-page__annot">{abstract}</blockquote>
-    )}
-
     <div class="book-page__layout">
-      {useToc && (
-        <aside class="book-page__toc">
-          <TableOfContents headings={headings} locale={locale} />
-        </aside>
-      )}
-      <div class="prose">
+      {useToc && <TableOfContents headings={headings} locale={locale} />}
+      <div
+        class="prose"
+        data-pagefind-body
+        data-pagefind-meta={`title:${entry.data.title}`}
+      >
         <Content />
       </div>
     </div>
 
     <Colophon pair={pair} locale={locale} />
+
+    {(prev || next) && (
+      <nav class="book-page__pager" aria-label="Другие книги">
+        {prev && prevHref && (
+          <a class="book-page__pager-link book-page__pager-link--prev" href={prevHref}>
+            <span class="book-page__pager-arrow">←</span>
+            <span class="book-page__pager-num">{String(prev.number).padStart(2, "0")}</span>
+            <span class="book-page__pager-title">{prev.ru.data.title}</span>
+          </a>
+        )}
+        {next && nextHref && (
+          <a class="book-page__pager-link book-page__pager-link--next" href={nextHref}>
+            <span class="book-page__pager-num">{String(next.number).padStart(2, "0")}</span>
+            <span class="book-page__pager-title">{next.ru.data.title}</span>
+            <span class="book-page__pager-arrow">→</span>
+          </a>
+        )}
+      </nav>
+    )}
+
     <SimilarPair entry={entry} locale={locale} crossRefs={crossRefs} />
   </article>
 </Base>
@@ -105,9 +152,13 @@ const backHref = kindIndexUrl("book", locale);
     display: grid;
     grid-template-columns: 220px 1fr;
     gap: 2.5rem;
-    align-items: end;
-    margin-bottom: 2.5rem;
-    padding-bottom: 2rem;
+    /* Cover anchors to the top of the metadata column so a long
+       description doesn't push it to the bottom and leave a "drowned"
+       cover floating below empty space. The empty area below the cover
+       on long-description books is intentional editorial breathing. */
+    align-items: start;
+    margin-bottom: 3rem;
+    padding-bottom: 2.25rem;
     border-bottom: 1px solid var(--rule);
   }
   @media (max-width: 720px) {
@@ -131,23 +182,45 @@ const backHref = kindIndexUrl("book", locale);
     color: var(--ink-mute);
     margin: 0 0 1rem;
   }
+  /* Folio number — sits at title scale as a real graphical anchor (v1's
+     register), not a tiny prefix. Oldstyle italic accent, with the
+     title and number sharing the same h1's first line so the eye reads
+     "09 ▸ Title" as one editorial unit. */
+  .book-page__title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(2.4rem, 5vw, 3.7rem);
+    line-height: 1.04;
+    letter-spacing: -0.018em;
+    margin: 0 0 0.95rem;
+    text-wrap: balance;
+    font-feature-settings: "lnum" 0, "onum" 1, "kern" 1;
+    display: flex;
+    align-items: baseline;
+    gap: 0.35em;
+    flex-wrap: wrap;
+  }
   .book-page__num {
     font-family: var(--serif);
     font-style: italic;
     font-variant-numeric: oldstyle-nums proportional-nums;
-    font-size: 1.4rem;
+    font-size: 1em;            /* matches title — folio scale */
     color: var(--accent);
     font-weight: 400;
-    margin-right: 0.6em;
+    line-height: 1;
+    letter-spacing: -0.01em;
   }
-  .book-page__title {
+  .book-page__name {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .book-page__description {
+    max-width: var(--measure);
+    margin: 0 0 1.15rem;
+    color: var(--ink-soft);
     font-family: var(--serif);
-    font-weight: 400;
-    font-size: clamp(2.1rem, 4.2vw, 3.2rem);
-    line-height: 1.05;
-    letter-spacing: -0.012em;
-    margin: 0 0 0.8rem;
-    font-feature-settings: "lnum" 0, "onum" 1;
+    font-size: clamp(1rem, 1.6vw, 1.12rem);
+    line-height: 1.6;
   }
   .book-page__tags {
     font-family: var(--sans);
@@ -158,17 +231,30 @@ const backHref = kindIndexUrl("book", locale);
   }
   .book-page__tags span + span::before { content: " · "; color: var(--rule-2); }
 
-  .book-page__annot {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: 1.18rem;
-    line-height: 1.55;
+  .book-page__downloads {
+    margin: 0.9rem 0 0;
+    font-family: var(--sans);
+    font-size: 12.5px;
     color: var(--ink-soft);
-    max-width: var(--measure);
-    margin: 0 0 3rem;
-    padding-left: 1.2rem;
-    border-left: 1px solid var(--accent-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    align-items: baseline;
   }
+  .book-page__downloads a {
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+  }
+  .book-page__downloads a:hover { color: var(--accent); }
+  .book-page__downloads-label {
+    color: var(--ink-mute);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 11px;
+    margin-right: 0.2em;
+  }
+  .book-page__downloads-sep { color: var(--rule-2); }
 
   .book-page__layout {
     display: grid;
@@ -185,6 +271,14 @@ const backHref = kindIndexUrl("book", locale);
       gap: 3rem;
       align-items: start;
     }
-    .book-page__toc :global(.toc) { position: sticky; top: 4.5rem; }
+    /* Anchor the post-prose blocks (colophon, pager, similar) to the
+       same left edge as the reading column. Without this they cling to
+       the page-left rail at narrow max-widths and read as orphaned
+       slivers under the much wider masthead/prose layout. */
+    .book-page > :global(.colophon),
+    .book-page > .book-page__pager,
+    .book-page > :global(.sim) {
+      margin-left: calc(220px + 3rem);
+    }
   }
 </style>

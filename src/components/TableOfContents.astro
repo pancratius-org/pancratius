@@ -11,23 +11,104 @@ interface Props {
 }
 
 const { headings, locale, minDepth = 2, maxDepth = 3 } = Astro.props;
-const items = headings.filter(h => h.depth >= minDepth && h.depth <= maxDepth);
+// `footnote-label` is the screen-reader-only `<h2>` the GFM footnote
+// renderer drops in to label the footnotes section. It shouldn't appear
+// as a visible ToC entry.
+const items = headings.filter(h =>
+  h.depth >= minDepth && h.depth <= maxDepth && h.slug !== "footnote-label",
+);
 const label = locale === "ru" ? "Содержание" : "Contents";
 ---
 {items.length > 0 && (
-  <details class="toc" open>
-    <summary>{label}</summary>
-    <ol class="toc__list">
-      {items.map(h => (
-        <li class:list={["toc__item", `toc__d${h.depth}`]}>
-          <a href={`#${h.slug}`}>{h.text}</a>
-        </li>
-      ))}
-    </ol>
-  </details>
+  <aside class="toc-aside">
+    <details class="toc" open>
+      <summary>{label}</summary>
+      <ol class="toc__list">
+        {items.map(h => (
+          <li class:list={["toc__item", `toc__d${h.depth}`]}>
+            <a href={`#${h.slug}`} data-toc-link={h.slug}>{h.text}</a>
+          </li>
+        ))}
+      </ol>
+    </details>
+
+    <script is:inline>
+      // Active-section scroll-spy. Position-based: the active heading is
+      // the LAST one whose top has scrolled above the reading line — a
+      // sliver just under the sticky site header. IntersectionObserver
+      // with rootMargin in the middle of the viewport mis-fires when the
+      // reader jumps to an anchor (the heading lands at the top, outside
+      // the active zone, so the previous heading stays highlighted).
+      //
+      // ToC renders before the prose in DOM order, so `getElementById`
+      // on heading slugs only works once parsing is past the prose —
+      // wait for DOMContentLoaded.
+      (function () {
+        // Must match `html { scroll-padding-top }` in global.css so that
+        // a freshly-jumped heading sits at exactly the active line. A
+        // few px slack handles fractional getBoundingClientRect values.
+        const READING_LINE = 84;
+
+        function init() {
+          const links = Array.from(document.querySelectorAll("[data-toc-link]"));
+          if (!links.length) return;
+          const byId = new Map(links.map(a => [a.dataset.tocLink, a]));
+          const headings = Array.from(byId.keys())
+            .map(id => document.getElementById(id))
+            .filter(Boolean);
+          if (!headings.length) return;
+
+          let active = null;
+          const setActive = (el) => {
+            if (active === el) return;
+            if (active) active.removeAttribute("aria-current");
+            if (el) el.setAttribute("aria-current", "location");
+            active = el;
+          };
+
+          function update() {
+            let current = null;
+            for (const h of headings) {
+              if (h.getBoundingClientRect().top <= READING_LINE) current = h;
+              else break;
+            }
+            setActive(current ? byId.get(current.id) : null);
+          }
+
+          let ticking = false;
+          function onScroll() {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(() => { update(); ticking = false; });
+          }
+          window.addEventListener("scroll", onScroll, { passive: true });
+          window.addEventListener("resize", onScroll, { passive: true });
+          update();
+        }
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", init, { once: true });
+        } else {
+          init();
+        }
+      })();
+    </script>
+  </aside>
 )}
 
 <style>
+  /* Desktop: stick within the row of whatever parent grid we're dropped
+     into. Sticky lives on the aside itself (not on .toc inside) so its
+     containing block is the grid row — which spans the full prose column
+     height. `align-self: start` keeps the aside's own height = its
+     content, leaving the rest of the row as scroll runway. */
+  @media (min-width: 1100px) {
+    .toc-aside {
+      position: sticky;
+      top: 4.5rem;
+      align-self: start;
+    }
+  }
+
   .toc {
     font-family: var(--sans);
     font-size: 12.5px;
@@ -65,14 +146,13 @@ const label = locale === "ru" ? "Содержание" : "Contents";
     line-height: 1.35;
   }
   .toc__item a:hover { color: var(--accent); }
+  .toc__item a[aria-current="location"] {
+    color: var(--ink);
+    box-shadow: inset 2px 0 0 var(--accent);
+    padding-left: 0.6rem;
+    margin-left: -0.6rem;
+  }
   .toc__d3 { padding-left: 1rem; font-size: 12px; color: var(--ink-mute); }
   .toc__d3 a { color: var(--ink-mute); }
-
-  @media (min-width: 1100px) {
-    /* Desktop: when placed in an aside with `data-sticky`, stick on scroll. */
-    .toc[data-sticky] {
-      position: sticky;
-      top: 4.5rem;
-    }
-  }
+  .toc__d3 a[aria-current="location"] { color: var(--ink-soft); }
 </style>

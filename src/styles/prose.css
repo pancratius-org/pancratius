@@ -2,6 +2,29 @@
  * Reading-page prose. Applied via `<article class="prose">` around the
  * Markdown-rendered body. The Markdown renderer emits straight HTML; this
  * stylesheet does the typography work the mockup did inline.
+ *
+ * Design notes (v8 register, post-mockup-v7 regression fix)
+ * --------------------------------------------------------
+ * The v7 mockup hand-authored `.lead`, `.verse.creator`, `.speaker`,
+ * `.ornament` directly into the HTML. Production Markdown is generated from
+ * DOCX, so lineated passages are detected in the converter and emitted as
+ * explicit `.verse-block` wrappers. CSS styles those structures; it does not
+ * guess prose vs. verse from arbitrary adjacent paragraphs.
+ *
+ * Three corollaries for this stylesheet:
+ *
+ *   1. Justification + first-line indent on a narrow column with mixed
+ *      one-line and multi-line paragraphs produces a staircase. So we use
+ *      ragged-right and vertical paragraph rhythm. Hyphenation is off by
+ *      default (Russian hyphenation in browsers is unreliable and bad
+ *      breaks read as broken).
+ *
+ *   2. Drop caps are opt-in only (`.lead`). This corpus often starts with a
+ *      dedication, dialogue, or short liturgical fragment, and automatic drop
+ *      caps turn those openings into broken typography.
+ *
+ *   3. Verse-like material is explicit (`.verse-block`, `.prose--poem`,
+ *      `.prose--manifesto`). That keeps normal prose breathing normally.
  */
 
 .prose {
@@ -11,69 +34,303 @@
   font-size: 1.075rem;
   line-height: 1.72;
   color: var(--ink);
-  text-align: justify;
-  hyphens: auto;
-  -webkit-hyphens: auto;
+  text-align: left;
+  hyphens: manual;
+  -webkit-hyphens: manual;
 }
 
-.prose p { margin: 0 0 0.4em; text-indent: 1.4em; }
-.prose > p:first-child,
-.prose > h1:first-child + p,
-.prose > h2:first-child + p,
-.prose > h3:first-child + p,
-.prose .lead { text-indent: 0; }
+/* Paragraph rhythm: normal prose needs visible paragraph boundaries.
+   Verse-like fragments are handled by explicit structures (`.verse-block`,
+   `.prose--poem`, `.prose--manifesto`) instead of weakening the whole
+   reading surface. */
+.prose p {
+  margin: 0 0 0.95em;
+  text-indent: 0;
+}
 
-.prose > p:first-of-type::first-letter,
-.prose .lead::first-letter {
+/* GFM footnote backref links: the markdown renderer appends an `↩` link
+   at the end of every footnote so the reader can hop back to the
+   reference. The raw arrow at body font-size looks like a typo. Tone it
+   down to a small superscript in accent. */
+.prose .data-footnote-backref {
+  margin-left: 0.4em;
+  font-size: 0.75em;
+  color: var(--accent-soft);
+  text-decoration: none;
+  vertical-align: super;
+}
+.prose .data-footnote-backref:hover { color: var(--accent); }
+/* No paragraph-to-heading overrides: h2/h3 own their margins, and any
+   override here would erase the generous breath we want around a
+   chapter break. (Older revision used a 1.2em override here that
+   shrank h2's 4.5rem top margin down to a thumbnail.) */
+
+/* Drop cap. Opt-in only: the corpus has too many short opening fragments for
+   automatic first-paragraph drop caps to be safe. */
+.prose p.lead::first-letter {
   font-family: var(--serif);
   float: left;
-  font-size: 4.6em;
-  line-height: 0.85;
+  font-size: 4.4em;
+  line-height: 0.82;
   font-weight: 400;
-  padding: 0.04em 0.1em 0 0;
-  margin-right: 0.04em;
+  padding: 0.04em 0.08em 0 0;
+  margin: 0.02em 0.06em 0 0;
   color: var(--accent);
   font-style: normal;
+  font-feature-settings: "lnum" 1;
 }
 
-.prose h2 {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-style: italic;
-  font-size: 1.4rem;
-  margin: 2.5rem 0 1rem;
-  text-align: center;
-  color: var(--ink-soft);
-}
-
-.prose h3 {
-  font-family: var(--serif);
-  font-weight: 500;
-  font-size: 1.15rem;
-  margin: 2rem 0 0.8rem;
-  text-align: left;
+/* `.lead` also strips any inherited indent and slightly enlarges the line,
+   matching v7's intentional opener register. */
+.prose p.lead {
+  font-size: 1.12em;
+  line-height: 1.6;
   color: var(--ink);
 }
 
+.prose .verse-block {
+  margin: 0.25em 0 1.35em;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-style: normal;
+  font-size: 1em;
+  line-height: 1.52;
+  white-space: pre-line;
+  text-align: left;
+}
+.prose .verse-block p {
+  margin: 0 0 0.85em;
+  text-indent: 0;
+  line-height: 1.52;
+  white-space: normal;
+}
+.prose .verse-block p:last-child {
+  margin-bottom: 0;
+}
+.prose .verse-block .verse-break {
+  margin: 1em 0;
+  color: var(--accent);
+  text-align: center;
+  letter-spacing: 0.45em;
+}
+.prose h2 + .verse-block,
+.prose h3 + .verse-block {
+  margin-top: 0.1em;
+}
+
+/*
+ * Section hierarchy. The corpus uses h2 for parts and major
+ * dedication/revelation breaks ("Часть 1", "Посвящение", "Откровение
+ * Двоицы"), h3 for chapters within a part ("Глава 1. ..."), h4 for
+ * sub-chapters in some books. Visual weight has to match that
+ * semantic — h2 must read as a real chapter opener, not as a label.
+ */
+
+/* h2: chapter opener. Centred serif, substantially larger and heavier
+   than body, framed above by a deliberate chapter mark (a short accent
+   rule pinned by a small accent dot) and substantial vertical breath,
+   so each h2 reads as a real page-break in the book rather than as a
+   slightly bigger paragraph. */
+.prose h2 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-style: normal;
+  font-size: clamp(1.95rem, 3.4vw, 2.55rem);
+  line-height: 1.15;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+  text-align: center;
+  text-wrap: balance;
+  margin: 5.5rem 0 1.8rem;
+  padding-top: 2.4rem;
+  position: relative;
+  font-feature-settings: "lnum" 0, "onum" 1, "kern" 1;
+}
+/* Chapter mark above the title: an 84px accent rule, pinned by a small
+   accent dot sitting on its midpoint. Two stacked pseudo-elements so
+   the geometry stays crisp at any zoom. */
+.prose h2::before {
+  content: "";
+  position: absolute;
+  top: 0.6rem;
+  left: 50%;
+  width: 84px;
+  height: 1px;
+  background: var(--accent);
+  transform: translateX(-50%);
+}
+.prose h2::after {
+  content: "";
+  position: absolute;
+  top: calc(0.6rem - 3px);
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translateX(-50%);
+}
+
+/* First h2 sits flush — the masthead already provides the opening
+   gesture, and a second one above the first heading would feel like
+   stutter. */
+.prose > h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+.prose > h2:first-child::before,
+.prose > h2:first-child::after { display: none; }
+
+/* h3: section heading. Upright serif (NOT italic — italic at this size
+   reads as italic body, which is the regression we just fixed). Bold
+   weight + a short accent rule above sets it apart from prose without
+   competing visually with the centred h2 chapter mark. */
+.prose h3 {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-style: normal;
+  font-size: clamp(1.3rem, 1.85vw, 1.55rem);
+  line-height: 1.25;
+  letter-spacing: -0.008em;
+  color: var(--ink);
+  text-align: left;
+  text-wrap: balance;
+  margin: 3rem 0 1rem;
+}
+.prose h3::before {
+  content: "";
+  display: block;
+  width: 28px;
+  height: 1px;
+  background: var(--accent);
+  margin-bottom: 0.6rem;
+}
+/* Editors sometimes wrap an h3 in **bold** in source (e.g.
+   `### **Глава 2. ...**`). Markdown turns that into `<h3><strong>`
+   which doubles the weight under our heading rule. Reset to the
+   heading's own weight inside h3. */
+.prose h3 strong { font-weight: inherit; }
+
+/* Heading-anchor "#": rehype-autolink-headings appends an empty <a> to
+   every prose heading; CSS draws the visible "#" via `::after` so the
+   literal character stays out of plain-text extractors (ToC labels,
+   search snippets). The anchor is hidden by default and revealed on
+   heading hover/focus — convention from documentation sites: a
+   copyable permalink without permanent visual noise. */
+.prose .heading-anchor {
+  margin-left: 0.4em;
+  color: var(--accent);
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 0.6em;
+  font-style: normal;
+  letter-spacing: 0;
+  text-decoration: none;
+  vertical-align: 0.18em;
+  opacity: 0;
+  transition: opacity 0.16s var(--ease), color 0.16s var(--ease);
+}
+.prose .heading-anchor::after { content: "#"; }
+.prose :is(h2, h3, h4):hover .heading-anchor,
+.prose .heading-anchor:focus-visible {
+  opacity: 1;
+}
+.prose .heading-anchor:hover { color: var(--ink); }
+@media (hover: none) {
+  /* Touch devices have no hover — show the anchors permanently but at
+     low intensity, so the affordance still exists but doesn't dominate. */
+  .prose .heading-anchor { opacity: 0.45; }
+}
+
+/* h4: sub-section label. The small-cap eyebrow register works here —
+   small enough not to compete with h3, distinctive enough to stand
+   out from a paragraph. */
+.prose h4 {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-align: left;
+  margin: 2.2rem 0 0.7rem;
+}
+
 .prose blockquote {
-  margin: 1.2em 0 1.2em 1.4em;
-  padding-left: 1em;
+  margin: 1.4em 0 1.4em 0;
+  padding: 0.1em 0 0.1em 1.2em;
   border-left: 1px solid var(--accent-soft);
   color: var(--ink-soft);
   font-style: italic;
 }
-.prose blockquote p { text-indent: 0; }
+.prose blockquote p { text-indent: 0; margin: 0 0 0.6em; }
+.prose blockquote p:last-child { margin-bottom: 0; }
 
+.prose blockquote.epigraph {
+  max-width: 42rem;
+  margin: 1.8em 0 2em auto;
+  padding: 0;
+  border-left: 0;
+  color: var(--ink-soft);
+  font-style: italic;
+  text-align: right;
+}
+.prose blockquote.epigraph p,
+.prose blockquote.epigraph footer {
+  white-space: pre-line;
+  text-indent: 0;
+}
+.prose blockquote.epigraph footer {
+  margin-top: 0.55em;
+  color: var(--accent-soft);
+  font-size: 0.92em;
+  font-style: normal;
+}
+
+/* Horizontal rule as ornament — a proper section break. Three serif
+   asterisks at chapter-heading size, letter-spaced wide so the trio
+   reads as a deliberate ornament instead of as punctuation. */
 .prose hr {
   border: 0;
   text-align: center;
-  margin: 2.2rem 0;
+  margin: 3.6rem 0;
+  height: auto;
+  overflow: visible;
+  line-height: 1;
 }
 .prose hr::before {
-  content: "·  ·  ·";
-  color: var(--accent);
-  font-size: 0.95rem;
+  content: "* * *";
+  display: inline-block;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 1.6rem;
   letter-spacing: 0.6em;
+  /* The asterisk glyph sits high on the baseline; nudge down so the
+     ornament reads as centred against neighbouring paragraphs. */
+  transform: translateY(-0.2em);
+  padding-left: 0.6em; /* compensate trailing letter-spacing */
+  color: var(--accent);
+}
+
+/* Author-supplied ornament paragraph (matches v7 `.ornament`). */
+.prose p.ornament {
+  text-align: center;
+  margin: 2.6rem 0;
+  color: var(--accent);
+  font-family: var(--serif);
+  font-size: 1.2rem;
+  letter-spacing: 0.55em;
+  text-indent: 0;
+}
+
+/* Signature line, opt-in via author class. Right-aligned italic. */
+.prose p.signature {
+  text-align: right;
+  font-style: italic;
+  color: var(--ink-soft);
+  margin-top: 1.8em;
+  text-indent: 0;
+  white-space: pre-line;
 }
 
 .prose ul, .prose ol {
@@ -83,6 +340,26 @@
 .prose ul li, .prose ol li {
   text-indent: 0;
   margin: 0.2em 0;
+}
+
+.prose strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.prose em {
+  font-style: italic;
+}
+
+.prose a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-2);
+  text-underline-offset: 3px;
+}
+.prose a:hover {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
 }
 
 .prose img {
@@ -109,14 +386,52 @@
 }
 .prose pre code { background: none; padding: 0; }
 
+/* Footnote markers: pandoc emits <sup><a>1</a></sup>. Make them legible
+   but not aggressive. */
+.prose sup {
+  font-size: 0.7em;
+  vertical-align: super;
+  line-height: 0;
+}
+.prose sup a {
+  color: var(--accent);
+  text-decoration: none;
+  padding: 0 0.15em;
+}
+.prose sup a:hover { text-decoration: underline; }
+
+/* Footnotes section that pandoc/rehype-footnotes emits at the bottom. */
+.prose .footnotes {
+  margin-top: 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.92em;
+  color: var(--ink-soft);
+}
+.prose .footnotes ol { margin-left: 1.2rem; }
+.prose .footnotes p { margin: 0 0 0.6em; }
+/* GFM emits a `<h2 id="footnote-label" class="sr-only">Footnotes</h2>`
+   as an accessible label for the footnotes region. With our new chapter-
+   opener h2 register that would render as a giant centred "Footnotes"
+   above the list. Keep it for screen readers, hide it visually. */
+.prose .footnotes > h2 {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 @media (max-width: 720px) {
-  .prose { text-align: left; }
-  .prose > p:first-of-type::first-letter,
-  .prose .lead::first-letter { font-size: 4em; }
+  .prose p.lead::first-letter {
+    font-size: 3.6em;
+  }
 }
 
 /*
- * Manifesto/poetry stanza spacing.
+ * Manifesto / poetry stanza spacing.
  *
  * Author contract: within a stanza, lines sit on adjacent source lines and
  * the newlines render as visible line breaks. Blank line in source = stanza
@@ -133,8 +448,66 @@
   line-height: 1.85;
   white-space: pre-line;
 }
+.prose--manifesto > p:first-child::first-letter,
 .prose--manifesto > p:first-of-type::first-letter,
-.prose--poem > p:first-of-type::first-letter {
+.prose--manifesto > h2:first-child + p::first-letter,
+.prose--manifesto p.lead::first-letter,
+.prose--poem > p:first-child::first-letter,
+.prose--poem > p:first-of-type::first-letter,
+.prose--poem > h2:first-child + p::first-letter,
+.prose--poem p.lead::first-letter {
   /* no drop-cap on manifesto/poems */
   all: unset;
+}
+
+/*
+ * Bio register — used on /about/ (Человек). Turns the page from a
+ * featureless wall of body text into something with editorial shape:
+ *
+ *   1. First short paragraph becomes a "poster" opener — large italic
+ *      kicker, full ink, accent colon mark, generous breath. The about
+ *      content starts with "Я — Сергей Орехов." which lives well as a
+ *      single statement set apart from the biographical paragraphs.
+ *   2. Second paragraph picks up the drop cap (the first is too short
+ *      for one), so the bio still has a real opener gesture.
+ *   3. Body text gets a touch more size/leading than regular prose —
+ *      a biographical register, less reference, more memoir.
+ */
+.prose--bio {
+  font-size: 1.1rem;
+  line-height: 1.78;
+}
+.prose--bio > p:first-of-type {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.6em;
+  line-height: 1.3;
+  color: var(--ink);
+  margin: 0 0 1.8em;
+  letter-spacing: -0.008em;
+  text-wrap: balance;
+  position: relative;
+  padding-left: 1.1rem;
+  border-left: 2px solid var(--accent);
+}
+.prose--bio > p:first-of-type + p::first-letter {
+  font-family: var(--serif);
+  float: left;
+  font-size: 4.2em;
+  line-height: 0.82;
+  font-weight: 400;
+  padding: 0.04em 0.08em 0 0;
+  margin: 0.02em 0.08em 0 0;
+  color: var(--accent);
+  font-style: normal;
+  font-feature-settings: "lnum" 1;
+}
+@media (max-width: 720px) {
+  .prose--bio > p:first-of-type {
+    font-size: 1.35em;
+    padding-left: 0.9rem;
+  }
+  .prose--bio > p:first-of-type + p::first-letter {
+    font-size: 3.4em;
+  }
 }

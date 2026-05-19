@@ -5,7 +5,6 @@ slug: 04-bog-vidit-son
 title: Бог видит сон
 lang: ru
 description: 'Стихотворение №4: Бог видит сон'
-original_filename: Бог видит сон.docx
 cover: ./cover.ru.jpg
 date: '2025-03-14'
 translation:
@@ -13,7 +12,6 @@ translation:
 ---
 
 March 14, 2025 11:10 PM
-
 **Сон Бога**
 
 Бог видит сон сквозь этот мир,

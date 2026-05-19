@@ -25,7 +25,8 @@ work. The endpoint delegates to `src/lib/downloads.ts` for dispatch and bytes.
 
 ## Release Artifacts
 
-PDF and EPUB are **release artifacts** stored in the work bundle:
+PDF, EPUB, and merged multi-part DOCX files are **release artifacts** stored in
+the work bundle:
 
 ```txt
 content/books/01-evangelie-tsarstviya/
@@ -40,6 +41,13 @@ They may be produced by a local script using pandoc, typst, templates, and
 committed fonts. That script can be friendly to a non-developer workflow ("refresh
 downloads for changed works"), but the produced files are durable content
 artifacts once committed.
+
+For a multi-source work, source parts such as `ru-part1.docx`,
+`ru-part2.docx`, and `ru-part3.docx` are provenance/source artifacts, not public
+per-work downloads. The public route `/books/{slug}.docx` exists only when a
+merged `ru.docx` or `en.docx` release artifact exists beside the Markdown.
+Example: `/books/little-king.pdf` is one merged PDF; `/books/little-king.docx`
+must also be one merged DOCX, not an arbitrary first part or a ZIP of parts.
 
 The site build must not depend on pandoc or typst. If a work has no committed
 `<lang>.pdf` or `<lang>.epub`, that route and link do not exist.

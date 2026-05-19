@@ -45,5 +45,39 @@ const currentPath = Astro.url.pathname;
       <slot />
     </main>
     <Footer locale={locale} />
+
+    <script is:inline>
+      // Share buttons (`<button data-share>`). Try the Web Share API first
+      // (mobile + recent desktops show a native share sheet); fall back to
+      // copying the URL and flipping the button label to the value of
+      // `data-share-copied` for 1.6 s. Single delegated listener so any
+      // page that drops a share button gets the behaviour for free.
+      document.addEventListener("click", async (e) => {
+        const btn = e.target instanceof Element && e.target.closest("[data-share]");
+        if (!btn) return;
+        e.preventDefault();
+        const original = btn.textContent;
+        const copied   = btn.dataset.shareCopied || "Copied";
+        const failed   = btn.dataset.shareFailed || "Failed";
+        const url      = location.href;
+        const title    = document.title;
+        try {
+          if (navigator.share) {
+            await navigator.share({ url, title });
+            return;
+          }
+          await navigator.clipboard.writeText(url);
+          btn.dataset.state = "done";
+          btn.textContent = copied;
+        } catch {
+          btn.dataset.state = "done";
+          btn.textContent = failed;
+        }
+        setTimeout(() => {
+          delete btn.dataset.state;
+          btn.textContent = original;
+        }, 1600);
+      });
+    </script>
   </body>
 </html>

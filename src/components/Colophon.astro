@@ -1,17 +1,15 @@
 ---
 import type { Locale } from "@/lib/i18n";
-import { downloadUrl } from "@/lib/i18n";
+import { downloadUrl, workUrl } from "@/lib/i18n";
 import type { WorkPair } from "@/lib/works";
 import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
 
 interface Props {
   pair:   WorkPair;
   locale: Locale;
-  /** Optional finish year shown as "Завершено · YYYY" if provided. */
-  finishedYear?: number | string;
 }
 
-const { pair, locale, finishedYear } = Astro.props;
+const { pair, locale } = Astro.props;
 const entry = locale === "en" ? pair.en : pair.ru;
 if (!entry) {
   throw new Error(`Colophon: no ${locale} entry for ${pair.kind} #${pair.number}`);
@@ -19,11 +17,9 @@ if (!entry) {
 const formats: DownloadFormat[] = availableFormatsForWork(pair, locale);
 
 const copy = locale === "ru" ? {
-  finished: "Завершено",
   download: "Скачать:",
   rights:   "Все тексты — в общественном достоянии (CC0). Берите. Переводите. Передавайте.",
 } : {
-  finished: "Completed",
   download: "Download:",
   rights:   "All texts are in the public domain (CC0). Take them. Translate. Pass them on.",
 };
@@ -37,8 +33,12 @@ const FORMAT_LABEL: Record<DownloadFormat, string> = {
 };
 ---
 <aside class="colophon">
-  {finishedYear && (
-    <p class="row"><b>{copy.finished}</b> · {finishedYear}</p>
+  {entry.data.translation.source === "ai" && (
+    <p class="row">
+      {locale === "ru"
+        ? <>Машинный перевод с русского. <a href={workUrl(pair.kind, pair.ru.data.slug, "ru")}>Оригинал</a>.</>
+        : <>Machine translation from Russian. <a href={workUrl(pair.kind, pair.ru.data.slug, "ru")}>Original</a>.</>}
+    </p>
   )}
   <p class="row">
     <b>{copy.download}</b>{" "}

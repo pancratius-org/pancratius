@@ -16,13 +16,7 @@ function pubDateFor(number: number, dateField: string | null | undefined): Date 
 }
 
 export const GET: APIRoute = async (context) => {
-  // Surface only works whose EN title is editorially real. Untranslated
-  // placeholders would mislead EN-locale RSS subscribers into thinking they
-  // have a translation.
-  const pairs = (await getAllWorkPairs()).filter(p => {
-    if (!p.en) return false;
-    return p.en.data.title_is_untranslated !== true;
-  });
+  const pairs = (await getAllWorkPairs()).filter(p => p.en !== null);
   return rss({
     title:       "Pancratius — new works",
     description: "Sergey Orekhov's writings in English translation. Free — for humans and for language models. CC0.",

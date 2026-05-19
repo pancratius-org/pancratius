@@ -22,6 +22,7 @@ PATTERNS: dict[str, re.Pattern[str]] = {
     "smallcaps-span": re.compile(r'<span\s+class="smallcaps"'),
     "underline-span": re.compile(r'<span\s+class="underline"'),
     "pandoc-anchor-ref": re.compile(r"\[\]\{#[^}]+\}"),
+    "escaped-thematic-break": re.compile(r"^\s*(?:\\\*\s*){3}\s*$", re.MULTILINE),
 }
 
 

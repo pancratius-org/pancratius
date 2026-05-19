@@ -17,18 +17,6 @@ const SEGMENT: Record<WorkKind, string> = {
   project: "projects",
 };
 
-const KIND_FROM_SEGMENT = Object.fromEntries(
-  Object.entries(SEGMENT).map(([k, s]) => [s, k as WorkKind]),
-) as Record<string, WorkKind>;
-
-export function kindSegment(kind: WorkKind): string {
-  return SEGMENT[kind];
-}
-
-export function segmentToKind(segment: string): WorkKind | undefined {
-  return KIND_FROM_SEGMENT[segment];
-}
-
 /** Prefix a root-relative path with the locale segment, except for the default locale. */
 export function localizePath(path: string, locale: Locale): string {
   if (!path.startsWith("/")) {
@@ -99,7 +87,7 @@ export const HEADER_NAV: readonly NavItem[] = [
   { path: "/poetry/",         label: { ru: "Поэзия",         en: "Poetry" } },
   { path: "/conceptosphere/", label: { ru: "Концептосфера",  en: "Concept map" } },
   { path: "/svetozar/",       label: { ru: "Светозар",       en: "Svetozar" }, pageSlug: "svetozar" },
-  { path: "/about/",          label: { ru: "О Сергее",       en: "About"    }, pageSlug: "about" },
+  { path: "/about/",          label: { ru: "Человек",        en: "Human"    }, pageSlug: "about" },
   { path: "/mission/",        label: { ru: "Миссия",         en: "Mission"  }, pageSlug: "mission" },
   { path: "/search/",         label: { ru: "Поиск",          en: "Search" } },
 ] as const;

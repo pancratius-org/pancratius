@@ -5,7 +5,6 @@ slug: 03-ya-svet-chto-v-tishine-parit
 title: Я свет, что в тишине парит...
 lang: ru
 description: 'Стихотворение №3: Я свет, что в тишине парит...'
-original_filename: Я свет, что в тишине парит....docx
 cover: ./cover.ru.jpg
 date: '2026-04-26'
 translation:
