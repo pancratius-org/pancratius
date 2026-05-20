@@ -21,6 +21,9 @@ data/bulk-archives.json
 public/data/pancratius-concepts-graph.json
 public/data/pancratius-books-graph.json
 
+# Local copy of the last built Pagefind index for `astro dev`.
+public/pagefind/
+
 # Local embedding cache for the conceptosphere pipeline — multi-GB once populated.
 data/conceptosphere-embed-cache/
 

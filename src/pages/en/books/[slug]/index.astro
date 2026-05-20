@@ -63,14 +63,17 @@ const nextHref = next ? workUrl("book", next.en!.data.slug, "en") : null;
     <a class="book-page__back" href={backHref}>← back to library</a>
 
     <header class="book-page__masthead">
+      {/* Eyebrow above the grid — see RU page for rationale. Cover and
+          folio share the same top baseline. */}
+      <p class="book-page__meta">Book</p>
+
       <div class="book-page__cover">
         <BookCover pair={pair} locale={locale} alt={`Cover: ${entry.data.title}`} loading="eager" />
       </div>
-      <div>
-        <p class="book-page__meta">Book</p>
+      <div class="book-page__body">
+        <div class="book-page__num" aria-hidden="true">{String(pair.number).padStart(2, "0")}</div>
         <h1 class="book-page__title" id="bp-title">
-          <span class="book-page__num">{String(pair.number).padStart(2, "0")}</span>
-          <span class="book-page__name">{entry.data.title}</span>
+          <span class="sr-only">Book {String(pair.number).padStart(2, "0")}. </span>{entry.data.title}
         </h1>
         <p class="book-page__description">{entry.data.description}</p>
         {tags.length > 0 && (
@@ -102,10 +105,32 @@ const nextHref = next ? workUrl("book", next.en!.data.slug, "en") : null;
         class="prose"
         data-pagefind-body
         data-pagefind-meta={`title:${entry.data.title}`}
+        data-leadable
       >
         <Content />
       </div>
     </div>
+
+    {/* Drop cap on the first plain body paragraph — see RU page for the
+        rationale. Same heuristic. */}
+    <script is:inline>
+      (function () {
+        const prose = document.querySelector(".book-page .prose[data-leadable]");
+        if (!prose) return;
+        for (const child of Array.from(prose.children)) {
+          const tag = child.tagName;
+          if (tag === "H2" || tag === "H3" || tag === "H4" || tag === "HR") continue;
+          if (tag === "DIV" && child.classList.contains("verse-block")) continue;
+          if (tag === "BLOCKQUOTE" || tag === "FIGURE") return;
+          if (tag !== "P") continue;
+          if (child.className) continue;
+          const text = (child.textContent || "").trim();
+          if (text.length < 60) continue;
+          child.classList.add("lead");
+          return;
+        }
+      })();
+    </script>
 
     <Colophon pair={pair} locale={locale} />
 
@@ -148,14 +173,25 @@ const nextHref = next ? workUrl("book", next.en!.data.slug, "en") : null;
   .book-page__masthead {
     display: grid;
     grid-template-columns: 220px 1fr;
-    gap: 2.5rem;
+    grid-template-areas:
+      "meta meta"
+      "cover body";
+    column-gap: 2.5rem;
+    row-gap: 1.4rem;
     align-items: start;
     margin-bottom: 3rem;
     padding-bottom: 2.25rem;
     border-bottom: 1px solid var(--rule);
   }
+  .book-page__masthead .book-page__meta  { grid-area: meta;  }
+  .book-page__masthead .book-page__cover { grid-area: cover; }
+  .book-page__masthead .book-page__body  { grid-area: body;  }
   @media (max-width: 720px) {
-    .book-page__masthead { grid-template-columns: 1fr; gap: 1.5rem; }
+    .book-page__masthead {
+      grid-template-columns: 1fr;
+      grid-template-areas: "meta" "cover" "body";
+      row-gap: 1.25rem;
+    }
     .book-page__masthead .book-page__cover { max-width: 200px; }
   }
   .book-page__meta {
@@ -165,7 +201,21 @@ const nextHref = next ? workUrl("book", next.en!.data.slug, "en") : null;
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--ink-mute);
-    margin: 0 0 1rem;
+    margin: 0;
+  }
+  /* Folio number on its own line above the title — v1's register
+     (mockup-v1.html:644–653). */
+  .book-page__num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-size: clamp(3.8rem, 7vw, 6rem);
+    color: var(--accent);
+    font-weight: 400;
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.4rem;
+    font-feature-settings: "onum" 1, "lnum" 0, "kern" 1;
   }
   .book-page__title {
     font-family: var(--serif);
@@ -176,33 +226,25 @@ const nextHref = next ? workUrl("book", next.en!.data.slug, "en") : null;
     margin: 0 0 0.95rem;
     text-wrap: balance;
     font-feature-settings: "lnum" 0, "onum" 1, "kern" 1;
-    display: flex;
-    align-items: baseline;
-    gap: 0.35em;
-    flex-wrap: wrap;
   }
-  .book-page__num {
-    font-family: var(--serif);
-    font-style: italic;
-    font-variant-numeric: oldstyle-nums proportional-nums;
-    font-size: 1em;
-    color: var(--accent);
-    font-weight: 400;
-    line-height: 1;
-    letter-spacing: -0.01em;
-  }
-  .book-page__name {
-    flex: 1 1 auto;
-    min-width: 0;
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
   .book-page__description {
-    max-width: var(--measure);
+    /* Width comes from the grid column. See RU twin for rationale. */
     margin: 0 0 1.15rem;
     color: var(--ink-soft);
     font-family: var(--serif);
     font-size: clamp(1rem, 1.6vw, 1.12rem);
     line-height: 1.6;
   }
+  .book-page__layout .prose { max-width: none; }
   .book-page__tags {
     font-family: var(--sans);
     font-size: 12px;

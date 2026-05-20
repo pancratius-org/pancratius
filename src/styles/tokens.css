@@ -19,7 +19,14 @@
   --ink-mute:     #7f7a6f;
   --rule:         rgba(232, 227, 214, 0.12);
   --rule-2:       rgba(232, 227, 214, 0.24);
+  /* Two-pigment accent register. `--accent` is the friendly amber used
+     for rules/lines/links — warm, not loud. `--accent-deep` is an
+     oxblood-leaning ember reserved for FOCAL ornaments (drop cap,
+     chapter dot, hr asterisks, opening seal). The two together give
+     the page the "ink + minium" two-pigment feel of an illuminated
+     manuscript, instead of one hospitable highlighter. */
   --accent:       #e9a142;
+  --accent-deep:  #c45a2a;
   --accent-soft:  rgba(233, 161, 66, 0.55);
   --accent-mute:  rgba(233, 161, 66, 0.14);
   --mark-bg:      rgba(233, 161, 66, 0.22);
@@ -27,7 +34,7 @@
   --paper-shadow: 0 1px 0 rgba(0, 0, 0, 0.5), 0 30px 60px -30px rgba(0, 0, 0, 0.7);
 
   --bg-gradient:
-    radial-gradient(ellipse 140% 70% at 50% -10%, #15171f 0%, var(--bg) 55%, var(--bg) 100%);
+    radial-gradient(ellipse 100% 60% at 50% -6%, #1a1620 0%, var(--bg) 55%, var(--bg) 100%);
 }
 
 [data-theme="light"] {
@@ -40,6 +47,7 @@
   --rule:         rgba(20, 17, 13, 0.14);
   --rule-2:       rgba(20, 17, 13, 0.32);
   --accent:       #a86b1f;
+  --accent-deep:  #7a2a0e;
   --accent-soft:  rgba(168, 107, 31, 0.55);
   --accent-mute:  rgba(168, 107, 31, 0.10);
   --mark-bg:      rgba(168, 107, 31, 0.18);
@@ -47,7 +55,7 @@
   --paper-shadow: 0 1px 0 rgba(20, 17, 13, 0.06), 0 24px 50px -28px rgba(60, 45, 20, 0.30);
 
   --bg-gradient:
-    radial-gradient(ellipse 140% 70% at 50% -8%, #fefbef 0%, var(--bg) 60%, var(--bg) 100%);
+    radial-gradient(ellipse 100% 55% at 50% 0%, #fffbef 0%, var(--bg) 60%, var(--bg) 100%);
 }
 
 :root {
@@ -56,13 +64,19 @@
   --sans:  "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
   --mono:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-  /* Reading measure. 66ch keeps Russian line length in the comfortable
-     editorial range (a typical line of Cyrillic body type comes out
-     around 70–75 chars in this font), and matches the description block
-     in the book masthead so the masthead and reading column align as
-     one editorial register rather than two ragged ones. */
-  --measure:      66ch;
-  --measure-wide: 74ch;
+  /* Reading measure.
+     `--measure` is the body-prose target: ~60 Cyrillic characters per
+     line, the classic editorial range for Russian. `ch` units measure
+     the width of the `0` glyph, which differs per font-size, so when
+     two surfaces with DIFFERENT font sizes share `var(--measure)` they
+     resolve to DIFFERENT pixel widths — and the eye sees the two
+     columns as unrelated. For surfaces that have to align visually
+     (the book-page description vs the prose body directly below it),
+     use `--book-measure` (a fixed rem) instead, so both produce the
+     exact same column width. */
+  --measure:        60ch;
+  --measure-wide:   70ch;
+  --book-measure:   38rem;
   --gutter:       clamp(1.25rem, 4vw, 2.75rem);
   --rail:         clamp(1.25rem, 5vw, 3.5rem);
   --ease:         cubic-bezier(0.2, 0.6, 0.2, 1);

@@ -42,6 +42,8 @@ export interface ConceptosphereStrings {
   /** Counts line — composed at runtime as `${n} {countsNoun} · ${e} {edgesNoun} · ${c} {communitiesNoun}`. */
   edgesNoun:       string;
   communitiesNoun: string;
+  /** Compact disclosure for the methodology text. */
+  methodSummary:   string;
 
   /** Stage / canvas landmark labels. */
   stageAriaLabel: string;
@@ -120,7 +122,7 @@ const RU: ConceptosphereStrings = {
       countsNoun:        "узлов",
     },
     books: {
-      h1:   "Книжная сфера",
+      h1:   "Книгосфера",
       lede: "Карта книг Панкратиуса. Точка — книга; связь — сходство по ключевым понятиям.",
       meth: "Книги связаны TF-IDF косинусом по векторам концептов (универсальные термины исключены); рёбра прорежены до 5 ближайших соседей с двух сторон. Кластеры — Leiden (модулярность); раскладка — ForceAtlas2.",
       toggleLabel:       "Книги",
@@ -131,6 +133,7 @@ const RU: ConceptosphereStrings = {
 
   edgesNoun:       "связей",
   communitiesNoun: "кластеров",
+  methodSummary:   "Как это устроено?",
 
   stageAriaLabel: "Граф концептосферы",
   graphAriaLabel: "Концептосфера — интерактивный граф",
@@ -201,6 +204,7 @@ const EN: ConceptosphereStrings = {
 
   edgesNoun:       "edges",
   communitiesNoun: "clusters",
+  methodSummary:   "How it works",
 
   stageAriaLabel: "Conceptosphere graph",
   graphAriaLabel: "Conceptosphere — interactive graph",

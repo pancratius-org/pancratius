@@ -10,7 +10,7 @@ import TableOfContents  from "@/components/TableOfContents.astro";
 
 import type { Locale } from "@/lib/i18n";
 import { coverAbsoluteUrl } from "@/lib/covers";
-import { downloadUrl, kindIndexUrl, workUrl } from "@/lib/i18n";
+import { downloadUrl, kindIndexUrl, plRu, RU_PLURALS, workUrl } from "@/lib/i18n";
 import { seoForWork } from "@/lib/seo";
 import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
 import {
@@ -59,17 +59,24 @@ const nextHref = next ? workUrl("book", next.ru.data.slug, "ru") : null;
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
   <article class="book-page">
-    <a class="book-page__back" href={backHref}>← к {allBookPairs.length} книгам</a>
+    <a class="book-page__back" href={backHref}>
+      ← к {allBookPairs.length} {plRu(allBookPairs.length, RU_PLURALS.bookDative)}
+    </a>
 
     <header class="book-page__masthead">
+      {/* The "Книга" eyebrow sits ABOVE the cover/body grid, so the
+          cover's top edge and the folio number's top edge both start
+          on the same baseline. Avoids the awkward "cover floats next
+          to nothing" disbalance the older layout produced. */}
+      <p class="book-page__meta">Книга</p>
+
       <div class="book-page__cover">
         <BookCover pair={pair} locale={locale} alt={`Обложка книги: ${entry.data.title}`} loading="eager" />
       </div>
-      <div>
-        <p class="book-page__meta">Книга</p>
+      <div class="book-page__body">
+        <div class="book-page__num" aria-hidden="true">{String(pair.number).padStart(2, "0")}</div>
         <h1 class="book-page__title" id="bp-title">
-          <span class="book-page__num">{String(pair.number).padStart(2, "0")}</span>
-          <span class="book-page__name">{entry.data.title}</span>
+          <span class="sr-only">Книга {String(pair.number).padStart(2, "0")}. </span>{entry.data.title}
         </h1>
         <p class="book-page__description">{entry.data.description}</p>
         {tags.length > 0 && (
@@ -101,10 +108,44 @@ const nextHref = next ? workUrl("book", next.ru.data.slug, "ru") : null;
         class="prose"
         data-pagefind-body
         data-pagefind-meta={`title:${entry.data.title}`}
+        data-leadable
       >
         <Content />
       </div>
     </div>
+
+    {/*
+      Drop cap on the first plain body paragraph. The converter emits
+      `.lead` nowhere, so we apply it client-side. The rule: pick the
+      first child of `.prose` that is a plain `<p>` (no class — so we
+      skip verse-blocks, ornaments, signatures), and only if it's not
+      preceded by a heading the eye would read as the opener. Trivial,
+      one-shot, no observer.
+    */}
+    <script is:inline>
+      (function () {
+        const prose = document.querySelector(".book-page .prose[data-leadable]");
+        if (!prose) return;
+        // Find the first plain prose paragraph long enough to carry a drop
+        // cap. Skip openers: headings, verse-blocks (epigraph register),
+        // horizontal rules, short fragments (titles inside the body,
+        // dedication lines, single-word incipits). Bail when we hit any
+        // block the converter emits as a structured non-prose register
+        // (blockquote, figure) — those want their own surface.
+        for (const child of Array.from(prose.children)) {
+          const tag = child.tagName;
+          if (tag === "H2" || tag === "H3" || tag === "H4" || tag === "HR") continue;
+          if (tag === "DIV" && child.classList.contains("verse-block")) continue;
+          if (tag === "BLOCKQUOTE" || tag === "FIGURE") return;
+          if (tag !== "P") continue;
+          if (child.className) continue;       // signature, ornament, etc.
+          const text = (child.textContent || "").trim();
+          if (text.length < 60) continue;      // skip short fragments
+          child.classList.add("lead");
+          return;
+        }
+      })();
+    </script>
 
     <Colophon pair={pair} locale={locale} />
 
@@ -148,21 +189,40 @@ const nextHref = next ? workUrl("book", next.ru.data.slug, "ru") : null;
   }
   .book-page__back:hover { color: var(--accent); }
 
+  /*
+   * Three-area grid: eyebrow spans the top row, cover and body live
+   * side by side below. Result: the cover's top edge sits on the same
+   * line as the folio number's top edge, both anchored below the
+   * "Книга" eyebrow. The earlier two-column layout floated the cover
+   * next to a metadata column whose first child was the eyebrow, so
+   * cover-top vs folio-top differed by ~50px — the disbalance the
+   * eye reads as "the cover doesn't align with anything".
+   */
   .book-page__masthead {
     display: grid;
     grid-template-columns: 220px 1fr;
-    gap: 2.5rem;
-    /* Cover anchors to the top of the metadata column so a long
-       description doesn't push it to the bottom and leave a "drowned"
-       cover floating below empty space. The empty area below the cover
-       on long-description books is intentional editorial breathing. */
+    grid-template-areas:
+      "meta meta"
+      "cover body";
+    column-gap: 2.5rem;
+    row-gap: 1.4rem;
     align-items: start;
     margin-bottom: 3rem;
     padding-bottom: 2.25rem;
     border-bottom: 1px solid var(--rule);
   }
+  .book-page__masthead .book-page__meta  { grid-area: meta;  }
+  .book-page__masthead .book-page__cover { grid-area: cover; }
+  .book-page__masthead .book-page__body  { grid-area: body;  }
   @media (max-width: 720px) {
-    .book-page__masthead { grid-template-columns: 1fr; gap: 1.5rem; }
+    .book-page__masthead {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "meta"
+        "cover"
+        "body";
+      row-gap: 1.25rem;
+    }
     .book-page__masthead .book-page__cover { max-width: 200px; }
   }
 
@@ -180,12 +240,26 @@ const nextHref = next ? workUrl("book", next.ru.data.slug, "ru") : null;
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--ink-mute);
-    margin: 0 0 1rem;
+    margin: 0;
   }
-  /* Folio number — sits at title scale as a real graphical anchor (v1's
-     register), not a tiny prefix. Oldstyle italic accent, with the
-     title and number sharing the same h1's first line so the eye reads
-     "09 ▸ Title" as one editorial unit. */
+  /* Folio number — sits on its own line ABOVE the title as a real graphical
+     anchor (v1's register, lines 644–653). Oldstyle italic accent, very
+     large, so the page opens with a folio statement rather than a tiny
+     prefix in front of the title. */
+  .book-page__num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-size: clamp(3.8rem, 7vw, 6rem);
+    color: var(--accent);
+    font-weight: 400;
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.4rem;
+    /* Hint to fonts that don't ship onum: italic + colour read the role even
+       when oldstyle figures are unavailable. */
+    font-feature-settings: "onum" 1, "lnum" 0, "kern" 1;
+  }
   .book-page__title {
     font-family: var(--serif);
     font-weight: 500;
@@ -195,33 +269,36 @@ const nextHref = next ? workUrl("book", next.ru.data.slug, "ru") : null;
     margin: 0 0 0.95rem;
     text-wrap: balance;
     font-feature-settings: "lnum" 0, "onum" 1, "kern" 1;
-    display: flex;
-    align-items: baseline;
-    gap: 0.35em;
-    flex-wrap: wrap;
   }
-  .book-page__num {
-    font-family: var(--serif);
-    font-style: italic;
-    font-variant-numeric: oldstyle-nums proportional-nums;
-    font-size: 1em;            /* matches title — folio scale */
-    color: var(--accent);
-    font-weight: 400;
-    line-height: 1;
-    letter-spacing: -0.01em;
-  }
-  .book-page__name {
-    flex: 1 1 auto;
-    min-width: 0;
+  /* sr-only utility for the screen-reader-only "Книга 01." prefix that
+     preserves accessibility now that the folio is decoupled from the h1. */
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
   .book-page__description {
-    max-width: var(--measure);
+    /* No max-width: the description fills its grid column (the body
+       column that holds the folio + title above). A separate clamp
+       here made the description visibly narrower than the title above
+       it — disbalanced. The grid column is the only authority on
+       width. */
     margin: 0 0 1.15rem;
     color: var(--ink-soft);
     font-family: var(--serif);
     font-size: clamp(1rem, 1.6vw, 1.12rem);
     line-height: 1.6;
   }
+  /* The body prose follows the same rule: fill the layout grid column
+     instead of double-clamping to `--measure`. Globally `.prose` is
+     constrained for readability, but inside a book page the layout
+     grid column already provides the readable width and the user reads
+     extra clamping as misalignment with the title/description above. */
+  .book-page__layout .prose { max-width: none; }
   .book-page__tags {
     font-family: var(--sans);
     font-size: 12px;

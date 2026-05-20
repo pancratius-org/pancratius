@@ -101,6 +101,15 @@ const initialMode: "concepts" | "books" = "concepts";
     <p class="cs-lede" id="cs-page-lede">
       {t.modes.concepts.lede}
     </p>
+    <div class="cs-method">
+      <span class="cs-method__trigger" tabindex="0" aria-describedby="cs-method-panel">
+        {t.methodSummary}
+      </span>
+      <div class="cs-method__panel" id="cs-method-panel" role="note">
+        <p class="cs-meth" id="cs-page-meth">{t.modes.concepts.meth}</p>
+        <p class="cs-meta" id="cs-counts">{baselineCounts}</p>
+      </div>
+    </div>
   </header>
 
   <GraphCanvas
@@ -113,56 +122,61 @@ const initialMode: "concepts" | "books" = "concepts";
   />
 
   <MobileList locale={locale} initialMode={initialMode} />
-
-  <footer class="cs-page-foot">
-    <div class="cs-meth" id="cs-page-meth">
-      {t.modes.concepts.meth}
-    </div>
-    <div class="cs-meta" id="cs-counts">{baselineCounts}</div>
-  </footer>
 </Base>
 
 <style is:global>
   /* ─── Conceptosphere theme tokens. Resolved against the site palette so
        light and dark are both real designed registers. ─────────────────── */
   :root {
-    --cs-panel-bg:   color-mix(in srgb, var(--bg-rise) 88%, transparent);
-    --cs-bg-soft:    var(--bg-rise);
-    --cs-rule:       var(--rule);
-    --cs-rule-2:     var(--rule-2);
-    --cs-ink:        var(--ink);
-    --cs-ink-faint:  color-mix(in srgb, var(--ink) 62%, transparent);
-    --cs-ink-trace:  color-mix(in srgb, var(--ink) 38%, transparent);
-    --cs-ink-edge:   color-mix(in srgb, var(--ink) 18%, transparent);
-    --cs-violet:     #7c6bb8;
+    --cs-stage-bg:   #06080c;
+    --cs-panel-bg:   rgba(13, 17, 23, 0.86);
+    --cs-panel-strong: rgba(13, 17, 23, 0.94);
+    --cs-bg-soft:    #0d1117;
+    --cs-rule:       rgba(232, 227, 214, 0.14);
+    --cs-rule-2:     rgba(232, 227, 214, 0.24);
+    --cs-ink:        #e8e3d6;
+    --cs-ink-faint:  rgba(232, 227, 214, 0.62);
+    --cs-ink-trace:  rgba(232, 227, 214, 0.36);
+    --cs-ink-edge:   rgba(232, 227, 214, 0.12);
     --cs-grain-opacity: 0.035;
 
     /* Painter-facing values. Kept as plain rgba so they ship straight into a
        2D context (which doesn't understand color-mix). */
-    --cs-label-color: #f3eee0;
-    --cs-label-halo:  rgba(6, 8, 12, 0.55);
+    --cs-label-color: #faf5e8;
+    --cs-label-halo:  rgba(6, 8, 12, 0.76);
     --cs-badge-halo:  rgba(6, 8, 12, 0.75);
     --cs-badge-ink:   #f3eee0;
     --cs-callout-bg:  rgba(9, 11, 16, 0.96);
     --cs-callout-ink: #f3eee0;
     --cs-dim-node:    rgba(70, 65, 55, 0.45);
     --cs-dim-edge:    rgba(80, 70, 55, 0.04);
+    --cs-toggle-active-bg: rgba(233, 161, 66, 0.18);
   }
   [data-theme="light"] {
     /* Light register — the void becomes warm paper. Painters get inverted
        so labels and badges read as dark ink on the disc, with a soft paper
        halo for separation. */
-    --cs-panel-bg:    color-mix(in srgb, var(--bg-rise) 92%, transparent);
-    --cs-grain-opacity: 0.02;
+    --cs-stage-bg:    #fbf8f0;
+    --cs-panel-bg:    rgba(251, 250, 246, 0.93);
+    --cs-panel-strong: rgba(251, 250, 246, 0.96);
+    --cs-bg-soft:     #efe6d4;
+    --cs-rule:        rgba(45, 36, 24, 0.18);
+    --cs-rule-2:      rgba(45, 36, 24, 0.30);
+    --cs-ink:         #211b14;
+    --cs-ink-faint:   rgba(33, 27, 20, 0.66);
+    --cs-ink-trace:   rgba(33, 27, 20, 0.42);
+    --cs-ink-edge:    rgba(33, 27, 20, 0.16);
+    --cs-grain-opacity: 0;
 
-    --cs-label-color: #2a241a;
-    --cs-label-halo:  rgba(251, 250, 246, 0.92);
+    --cs-label-color: #1d1710;
+    --cs-label-halo:  rgba(251, 250, 246, 0.97);
     --cs-badge-halo:  rgba(251, 250, 246, 0.95);
     --cs-badge-ink:   #2a241a;
     --cs-callout-bg:  rgba(251, 250, 246, 0.98);
     --cs-callout-ink: #2a241a;
-    --cs-dim-node:    rgba(150, 140, 120, 0.45);
-    --cs-dim-edge:    rgba(120, 100, 70, 0.04);
+    --cs-dim-node:    rgba(92, 78, 58, 0.52);
+    --cs-dim-edge:    rgba(70, 48, 24, 0.18);
+    --cs-toggle-active-bg: rgba(166, 100, 25, 0.16);
   }
 </style>
 
@@ -178,47 +192,101 @@ const initialMode: "concepts" | "books" = "concepts";
   }
 
   .cs-page-head {
-    padding: 18px var(--rail) 14px;
+    position: relative;
+    z-index: 60;
+    padding: 10px var(--rail);
     border-bottom: 1px solid var(--rule);
     background: color-mix(in srgb, var(--bg) 92%, transparent);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    gap: 1.15rem;
+    min-height: 42px;
   }
   .cs-page-head h1 {
-    font-family: var(--serif);
-    font-weight: 400;
-    font-size: clamp(22px, 1.4rem + 0.6vw, 30px);
-    margin: 4px 0;
-    letter-spacing: 0.005em;
+    flex: 0 0 auto;
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 11px;
+    line-height: 1.2;
+    margin: 0;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    white-space: nowrap;
   }
   .cs-page-head .cs-lede {
+    flex: 1 1 auto;
     margin: 0;
-    max-width: 62ch;
+    max-width: none;
     color: var(--ink-soft);
+    font-family: var(--serif);
     font-size: 14px;
+    line-height: 1.55;
     font-style: italic;
+    min-height: 0;
   }
 
-  .cs-page-foot {
-    padding: 12px var(--rail);
-    border-top: 1px solid var(--rule);
-    color: var(--ink-soft);
-    font-size: 12.5px;
-    background: color-mix(in srgb, var(--bg) 92%, transparent);
-    display: flex;
-    gap: 24px;
-    justify-content: space-between;
-    align-items: baseline;
-    flex-wrap: wrap;
+  .cs-method {
+    position: relative;
+    flex: 0 0 auto;
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--ink-mute);
+    z-index: 50;
   }
-  .cs-page-foot .cs-meth { max-width: 72ch; }
-  .cs-page-foot .cs-meta {
+  .cs-method__trigger {
+    display: inline-block;
+    cursor: help;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    text-underline-offset: 3px;
+    transition: color 120ms ease;
+    white-space: nowrap;
+    outline: none;
+  }
+  .cs-method__trigger:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 4px;
+  }
+  .cs-method__trigger:hover,
+  .cs-method:focus-within .cs-method__trigger { color: var(--accent); }
+  .cs-method__panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: min(38rem, calc(100vw - var(--rail) * 2));
+    padding: 14px 16px;
+    background: var(--cs-panel-strong);
+    border: 1px solid var(--cs-rule);
+    color: var(--cs-ink-faint);
+    box-shadow: 0 16px 42px rgba(0, 0, 0, 0.24);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+  }
+  .cs-method:hover .cs-method__panel,
+  .cs-method:focus-within .cs-method__panel {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .cs-method__panel p {
+    margin: 0;
+  }
+  .cs-method__panel .cs-meta {
+    margin-top: 10px;
     font-family: var(--mono);
     font-size: 11px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ink-mute);
-    white-space: nowrap;
   }
 
   /* Desktop graph layout: head, then a flex stage, then foot, all locked
@@ -237,21 +305,32 @@ const initialMode: "concepts" | "books" = "concepts";
       flex-direction: column;
     }
     :global(html.cs-js) .cs-page-head { flex: 0 0 auto; }
-    :global(html.cs-js) .cs-page-foot { flex: 0 0 auto; }
   }
-
-  /* Footer holds methodology prose + counts — both are *content*, not
-     graph chrome. Stack on phones (≤700 px) where the page is in mobile
-     list flow; flow side-by-side on desktop regardless of JS, so the
-     no-JS surface still presents the same two columns. */
-  .cs-page-foot {
-    flex-direction: column;
-    gap: 8px;
-  }
-  @media (min-width: 701px) {
-    .cs-page-foot {
-      flex-direction: row;
-      gap: 24px;
+  @media (max-width: 700px) {
+    .cs-page-head {
+      display: block;
+      padding: 18px var(--rail) 14px;
+    }
+    .cs-page-head h1 {
+      margin: 0 0 0.45rem;
+    }
+    .cs-page-head .cs-lede {
+      margin-bottom: 0.8rem;
+    }
+    .cs-method__panel {
+      position: static;
+      display: none;
+      width: auto;
+      margin-top: 0.65rem;
+      box-shadow: none;
+      opacity: 1;
+      visibility: visible;
+      transform: none;
+      pointer-events: auto;
+    }
+    .cs-method:hover .cs-method__panel,
+    .cs-method:focus-within .cs-method__panel {
+      display: block;
     }
   }
 

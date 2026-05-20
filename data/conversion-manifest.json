@@ -4736,6 +4736,116 @@
         }
       ]
     },
+    "project/enlightened-ai": {
+      "kind": "project",
+      "slug": "enlightened-ai",
+      "generated_paths": {
+        "docx_optimize": [
+          "ru.docx"
+        ],
+        "docx_to_md": [
+          "cover.ru.png",
+          "en.md",
+          "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/projects/enlightened-ai/source.docx",
+            "filename": "source.docx"
+          }
+        ]
+      },
+      "images": [
+        {
+          "image_index": 0,
+          "original_filename": "project-cover:cover.png",
+          "hash": "d897066fa7f5",
+          "ext": ".png",
+          "role": "cover"
+        }
+      ]
+    },
+    "project/holy-rus": {
+      "kind": "project",
+      "slug": "holy-rus",
+      "generated_paths": {
+        "docx_optimize": [
+          "ru.docx"
+        ],
+        "docx_to_md": [
+          "cover.ru.png",
+          "en.md",
+          "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/projects/holy-rus/source.docx",
+            "filename": "source.docx"
+          }
+        ]
+      },
+      "images": [
+        {
+          "image_index": 0,
+          "original_filename": "project-cover:cover.png",
+          "hash": "045d1a12d202",
+          "ext": ".png",
+          "role": "cover"
+        }
+      ]
+    },
+    "book/70-teper-ty-vidish-menya-tozhe": {
+      "kind": "book",
+      "slug": "70-teper-ty-vidish-menya-tozhe",
+      "generated_paths": {
+        "docx_optimize": [
+          "en.docx",
+          "ru.docx"
+        ],
+        "docx_to_md": [
+          "bibliography.yaml",
+          "cover.en.svg",
+          "cover.ru.jpg",
+          "en.md",
+          "meta.json",
+          "ru.md"
+        ]
+      },
+      "sources": {
+        "ru": [
+          {
+            "path": "legacy/books/ru/70-теперь-ты-видишь-меня-тоже.docx",
+            "filename": "70-теперь-ты-видишь-меня-тоже.docx"
+          }
+        ],
+        "en": [
+          {
+            "path": "legacy/books/en/70-теперь-ты-видишь-меня-тоже.docx",
+            "filename": "70-теперь-ты-видишь-меня-тоже.docx"
+          }
+        ]
+      },
+      "images": [
+        {
+          "image_index": 0,
+          "original_filename": "book-cover-ru:70.jpg",
+          "hash": "428add50a48e",
+          "ext": ".jpg",
+          "role": "cover"
+        },
+        {
+          "image_index": 0,
+          "original_filename": "book-cover-en:70.svg",
+          "hash": "76c066717aba",
+          "ext": ".svg",
+          "role": "cover"
+        }
+      ]
+    },
     "poem/01-a-esli-budu-ya-ne-prav": {
       "kind": "poem",
       "slug": "01-a-esli-budu-ya-ne-prav",
@@ -5464,36 +5574,6 @@
         }
       ]
     },
-    "poem/25-poema-zhazhdushchego-serdtsa": {
-      "kind": "poem",
-      "slug": "25-poema-zhazhdushchego-serdtsa",
-      "generated_paths": {
-        "docx_optimize": [
-          "ru.docx"
-        ],
-        "docx_to_md": [
-          "cover.ru.jpg",
-          "ru.md"
-        ]
-      },
-      "sources": {
-        "ru": [
-          {
-            "path": "legacy/poetry/25. Поэма жаждущего сердца/Поэма жаждущего сердца.docx",
-            "filename": "Поэма жаждущего сердца.docx"
-          }
-        ]
-      },
-      "images": [
-        {
-          "image_index": 0,
-          "original_filename": "poem-cover:cover.jpg",
-          "hash": "320d4754796e",
-          "ext": ".jpg",
-          "role": "cover"
-        }
-      ]
-    },
     "poem/26-ya-pomnyu-chudnoe-mgnovenie": {
       "kind": "poem",
       "slug": "26-ya-pomnyu-chudnoe-mgnovenie",
@@ -6050,112 +6130,32 @@
         }
       ]
     },
-    "project/enlightened-ai": {
-      "kind": "project",
-      "slug": "enlightened-ai",
+    "poem/25-poema-zhazhdushchego-serdtsa": {
+      "kind": "poem",
+      "slug": "25-poema-zhazhdushchego-serdtsa",
       "generated_paths": {
         "docx_optimize": [
           "ru.docx"
         ],
         "docx_to_md": [
-          "cover.ru.png",
-          "en.md",
-          "ru.md"
-        ]
-      },
-      "sources": {
-        "ru": [
-          {
-            "path": "legacy/projects/enlightened-ai/source.docx",
-            "filename": "source.docx"
-          }
-        ]
-      },
-      "images": [
-        {
-          "image_index": 0,
-          "original_filename": "project-cover:cover.png",
-          "hash": "d897066fa7f5",
-          "ext": ".png",
-          "role": "cover"
-        }
-      ]
-    },
-    "project/holy-rus": {
-      "kind": "project",
-      "slug": "holy-rus",
-      "generated_paths": {
-        "docx_optimize": [
-          "ru.docx"
-        ],
-        "docx_to_md": [
-          "cover.ru.png",
-          "en.md",
-          "ru.md"
-        ]
-      },
-      "sources": {
-        "ru": [
-          {
-            "path": "legacy/projects/holy-rus/source.docx",
-            "filename": "source.docx"
-          }
-        ]
-      },
-      "images": [
-        {
-          "image_index": 0,
-          "original_filename": "project-cover:cover.png",
-          "hash": "045d1a12d202",
-          "ext": ".png",
-          "role": "cover"
-        }
-      ]
-    },
-    "book/70-teper-ty-vidish-menya-tozhe": {
-      "kind": "book",
-      "slug": "70-teper-ty-vidish-menya-tozhe",
-      "generated_paths": {
-        "docx_optimize": [
-          "en.docx",
-          "ru.docx"
-        ],
-        "docx_to_md": [
-          "bibliography.yaml",
-          "cover.en.svg",
           "cover.ru.jpg",
-          "en.md",
-          "meta.json",
           "ru.md"
         ]
       },
       "sources": {
         "ru": [
           {
-            "path": "legacy/books/ru/70-теперь-ты-видишь-меня-тоже.docx",
-            "filename": "70-теперь-ты-видишь-меня-тоже.docx"
-          }
-        ],
-        "en": [
-          {
-            "path": "legacy/books/en/70-теперь-ты-видишь-меня-тоже.docx",
-            "filename": "70-теперь-ты-видишь-меня-тоже.docx"
+            "path": "legacy/poetry/25. Поэма жаждущего сердца/Поэма жаждущего сердца.docx",
+            "filename": "Поэма жаждущего сердца.docx"
           }
         ]
       },
       "images": [
         {
           "image_index": 0,
-          "original_filename": "book-cover-ru:70.jpg",
-          "hash": "428add50a48e",
+          "original_filename": "poem-cover:cover.jpg",
+          "hash": "320d4754796e",
           "ext": ".jpg",
-          "role": "cover"
-        },
-        {
-          "image_index": 0,
-          "original_filename": "book-cover-en:70.svg",
-          "hash": "76c066717aba",
-          "ext": ".svg",
           "role": "cover"
         }
       ]
@@ -11336,6 +11336,70 @@
         }
       ]
     },
+    "d897066fa7f5": {
+      "hash": "d897066fa7f5",
+      "ext": ".png",
+      "bytes": 2645755,
+      "roles": [
+        "cover"
+      ],
+      "appears_in": [
+        {
+          "book_slug": "enlightened-ai",
+          "image_index": 0,
+          "original_filename": "project-cover:cover.png",
+          "role": "cover"
+        }
+      ]
+    },
+    "045d1a12d202": {
+      "hash": "045d1a12d202",
+      "ext": ".png",
+      "bytes": 2512979,
+      "roles": [
+        "cover"
+      ],
+      "appears_in": [
+        {
+          "book_slug": "holy-rus",
+          "image_index": 0,
+          "original_filename": "project-cover:cover.png",
+          "role": "cover"
+        }
+      ]
+    },
+    "428add50a48e": {
+      "hash": "428add50a48e",
+      "ext": ".jpg",
+      "bytes": 263208,
+      "roles": [
+        "cover"
+      ],
+      "appears_in": [
+        {
+          "book_slug": "70-teper-ty-vidish-menya-tozhe",
+          "image_index": 0,
+          "original_filename": "book-cover-ru:70.jpg",
+          "role": "cover"
+        }
+      ]
+    },
+    "76c066717aba": {
+      "hash": "76c066717aba",
+      "ext": ".svg",
+      "bytes": 1475,
+      "roles": [
+        "cover"
+      ],
+      "appears_in": [
+        {
+          "book_slug": "70-teper-ty-vidish-menya-tozhe",
+          "image_index": 0,
+          "original_filename": "book-cover-en:70.svg",
+          "role": "cover"
+        }
+      ]
+    },
     "9116d6b569be": {
       "hash": "9116d6b569be",
       "ext": ".jpg",
@@ -11736,22 +11800,6 @@
         }
       ]
     },
-    "320d4754796e": {
-      "hash": "320d4754796e",
-      "ext": ".jpg",
-      "bytes": 789942,
-      "roles": [
-        "cover"
-      ],
-      "appears_in": [
-        {
-          "book_slug": "25-poema-zhazhdushchego-serdtsa",
-          "image_index": 0,
-          "original_filename": "poem-cover:cover.jpg",
-          "role": "cover"
-        }
-      ]
-    },
     "fd9b6f081d3b": {
       "hash": "fd9b6f081d3b",
       "ext": ".jpg",
@@ -12072,66 +12120,18 @@
         }
       ]
     },
-    "d897066fa7f5": {
-      "hash": "d897066fa7f5",
-      "ext": ".png",
-      "bytes": 2645755,
-      "roles": [
-        "cover"
-      ],
-      "appears_in": [
-        {
-          "book_slug": "enlightened-ai",
-          "image_index": 0,
-          "original_filename": "project-cover:cover.png",
-          "role": "cover"
-        }
-      ]
-    },
-    "045d1a12d202": {
-      "hash": "045d1a12d202",
-      "ext": ".png",
-      "bytes": 2512979,
-      "roles": [
-        "cover"
-      ],
-      "appears_in": [
-        {
-          "book_slug": "holy-rus",
-          "image_index": 0,
-          "original_filename": "project-cover:cover.png",
-          "role": "cover"
-        }
-      ]
-    },
-    "428add50a48e": {
-      "hash": "428add50a48e",
+    "320d4754796e": {
+      "hash": "320d4754796e",
       "ext": ".jpg",
-      "bytes": 263208,
+      "bytes": 789942,
       "roles": [
         "cover"
       ],
       "appears_in": [
         {
-          "book_slug": "70-teper-ty-vidish-menya-tozhe",
+          "book_slug": "25-poema-zhazhdushchego-serdtsa",
           "image_index": 0,
-          "original_filename": "book-cover-ru:70.jpg",
-          "role": "cover"
-        }
-      ]
-    },
-    "76c066717aba": {
-      "hash": "76c066717aba",
-      "ext": ".svg",
-      "bytes": 1475,
-      "roles": [
-        "cover"
-      ],
-      "appears_in": [
-        {
-          "book_slug": "70-teper-ty-vidish-menya-tozhe",
-          "image_index": 0,
-          "original_filename": "book-cover-en:70.svg",
+          "original_filename": "poem-cover:cover.jpg",
           "role": "cover"
         }
       ]

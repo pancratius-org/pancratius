@@ -101,6 +101,11 @@ const projects = defineCollection({
     slug: asciiSlug,
     title: z.string().min(1),
     cover: z.string().nullable().optional(),
+    // Short editorial tagline rendered under the title on the project
+    // masthead. One sentence; sets the position-paper register before
+    // the body opens. Optional — projects without a tagline fall back
+    // to no sub-line and let the negation opener carry.
+    tagline: z.string().optional(),
     ...baseWorkFields,
   }),
 });
@@ -122,6 +127,37 @@ const pages = defineCollection({
     description: z.string().min(1),
     eyebrow: z.string().optional(),
     sub: z.string().optional(),
+    // Optional portrait block — currently used on /about/ to render a
+    // left-rail figure beside the bio. Other pages can opt in by
+    // supplying these fields.
+    portrait: z
+      .object({
+        src: z.string().min(1),
+        alt: z.string().min(1),
+        caption: z.string().optional(),
+        meta: z.string().optional(),
+      })
+      .optional(),
+    // Optional structured facts list — rendered as a 2-column <dl> at the
+    // foot of the body. Used by /about/ for vital statistics.
+    facts: z
+      .array(z.object({ label: z.string().min(1), value: z.string().min(1) }))
+      .optional(),
+    // Optional channels widget — used by /support/ to render donation
+    // methods as a hairline-divided column with copy-to-clipboard
+    // affordances. Each entry is a row; `kind` selects how the value is
+    // rendered (image for `qr`, mono text + copy for `card` / `text`,
+    // anchor + copy for `link`).
+    channels: z
+      .array(
+        z.object({
+          kind: z.enum(["qr", "card", "link", "text"]),
+          label: z.string().min(1),
+          value: z.string().min(1),
+          caption: z.string().optional(),
+        })
+      )
+      .optional(),
   }),
 });
 

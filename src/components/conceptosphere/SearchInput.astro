@@ -27,8 +27,17 @@ const id = variant === "mobile" ? "cs-search-mobile" : "cs-search-desktop";
     spellcheck="false"
     data-cs-search={variant}
   />
-  {variant === "desktop" && <kbd aria-hidden="true">/</kbd>}
+  {variant === "desktop" && <kbd id="csSearchKbd" aria-hidden="true">⌘K</kbd>}
 </div>
+
+{variant === "desktop" && (
+  <script is:inline>
+    (function () {
+      const kbd = document.getElementById("csSearchKbd");
+      if (kbd && !/Mac|iPad|iPhone|iPod/.test(navigator.platform)) kbd.textContent = "Ctrl K";
+    })();
+  </script>
+)}
 
 <style>
   .cs-search {
@@ -37,6 +46,7 @@ const id = variant === "mobile" ? "cs-search-mobile" : "cs-search-desktop";
     gap: 8px;
   }
   .cs-search input {
+    appearance: none;
     width: 220px;
     padding: 8px 12px;
     background: var(--cs-panel-bg);
@@ -58,13 +68,15 @@ const id = variant === "mobile" ? "cs-search-mobile" : "cs-search-desktop";
     font-style: italic;
   }
   .cs-search kbd {
-    font-family: var(--mono);
-    font-size: 10px;
-    padding: 2px 5px;
-    border: 1px solid var(--cs-ink-edge);
+    font-family: var(--sans);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    padding: 0.12rem 0.4rem;
+    border: 1px solid var(--cs-rule);
     border-radius: 2px;
     color: var(--cs-ink-trace);
-    background: var(--cs-panel-bg);
+    white-space: nowrap;
   }
 
   .cs-search--mobile { display: block; margin: 0 0 12px; }

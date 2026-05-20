@@ -36,8 +36,11 @@ body {
   font-variant-numeric: oldstyle-nums proportional-nums;
 }
 
-::selection { background: var(--accent); color: var(--bg); }
-[data-theme="light"] ::selection { background: var(--accent); color: #fff; }
+/* Soft selection — a watermark, not a flag. Bright-amber selection on
+   long paragraphs felt neon; the deep-amber translucent register keeps
+   the ink legible during a copy. */
+::selection { background: var(--accent-mute); color: var(--ink); }
+[data-theme="light"] ::selection { background: var(--accent-mute); color: var(--ink); }
 
 :focus { outline: none; }
 :focus-visible {
@@ -115,11 +118,45 @@ main { padding-bottom: 6rem; }
   vertical-align: middle;
   margin-right: 0.85rem;
 }
+/* Larger eyebrow for section heads on big pages. Wider rule pulls the
+   accent forward; matches the v1 hairline-plate impression that the
+   default 22px rule is too small for at hero scale. */
+.eyebrow--lg {
+  font-size: 12.5px;
+}
+.eyebrow--lg::before {
+  width: 36px;
+  margin-right: 1rem;
+}
 
-h1, h2, h3 {
+/* Global heading defaults. Pages can still override per-route, but
+   anything that doesn't (about, 404, static utility pages) now lands on
+   a real editorial scale instead of inheriting the browser default. */
+h1 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2.8rem, 6vw, 4.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.022em;
+  color: var(--ink);
+  margin: 0 0 0.5em;
+}
+h2 {
   font-family: var(--serif);
   font-weight: 500;
+  font-size: clamp(1.75rem, 3vw, 2.2rem);
+  line-height: 1.15;
+  letter-spacing: -0.014em;
   color: var(--ink);
+  margin: 0 0 0.5em;
+}
+h3 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: clamp(1.2rem, 1.8vw, 1.45rem);
+  line-height: 1.25;
+  color: var(--ink);
+  margin: 0 0 0.4em;
 }
 
 @media (max-width: 720px) {

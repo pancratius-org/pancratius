@@ -1,6 +1,6 @@
 ---
 import type { Locale } from "@/lib/i18n";
-import { downloadUrl, workUrl } from "@/lib/i18n";
+import { downloadUrl, pageUrl, workUrl } from "@/lib/i18n";
 import type { WorkPair } from "@/lib/works";
 import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
 
@@ -16,12 +16,18 @@ if (!entry) {
 }
 const formats: DownloadFormat[] = availableFormatsForWork(pair, locale);
 
+const licenseHref = pageUrl("license", locale);
+
 const copy = locale === "ru" ? {
-  download: "Скачать:",
-  rights:   "Все тексты — в общественном достоянии (CC0). Берите. Переводите. Передавайте.",
+  download:      "Скачать:",
+  rights_before: "Все тексты — в ",
+  rights_link:   "общественном достоянии (CC0)",
+  rights_after:  ". Берите. Переводите. Передавайте.",
 } : {
-  download: "Download:",
-  rights:   "All texts are in the public domain (CC0). Take them. Translate. Pass them on.",
+  download:      "Download:",
+  rights_before: "All texts are in the ",
+  rights_link:   "public domain (CC0)",
+  rights_after:  ". Take them. Translate. Pass them on.",
 };
 
 const FORMAT_LABEL: Record<DownloadFormat, string> = {
@@ -45,13 +51,13 @@ const FORMAT_LABEL: Record<DownloadFormat, string> = {
     {formats.map((fmt, i) => (
       <>
         {i > 0 && " · "}
-        <a href={downloadUrl(pair.kind, entry.data.slug, fmt, locale)}>
+        <a href={downloadUrl(pair.kind, entry.data.slug, fmt, locale)} download>
           {FORMAT_LABEL[fmt]}
         </a>
       </>
     ))}
   </p>
-  <p class="row">{copy.rights}</p>
+  <p class="row">{copy.rights_before}<a href={licenseHref}>{copy.rights_link}</a>{copy.rights_after}</p>
 </aside>
 
 <style>

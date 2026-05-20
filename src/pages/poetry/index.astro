@@ -1,20 +1,97 @@
 ---
 import Base from "@/layouts/Base.astro";
 import type { Locale } from "@/lib/i18n";
-import { workUrl, kindIndexUrl } from "@/lib/i18n";
+import { workUrl, kindIndexUrl, plRu, RU_PLURALS } from "@/lib/i18n";
 import { seoForKindIndex } from "@/lib/seo";
 import { getPairsByKind, poemDate } from "@/lib/works";
+import { readFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const locale: Locale = "ru";
 const pairs = await getPairsByKind("poem");
 const seo = seoForKindIndex(Astro.site, "poem", locale);
 const alternates = { en: kindIndexUrl("poem", "en") };
+
+// Read the first stanza of a poem from disk. The content-collection's glob
+// loader doesn't expose `entry.body`, so we hit the markdown file directly
+// at build time. Same pattern as `src/pages/index.astro`. Skip a leading
+// title-shaped line so the hero excerpt is real verse, not the title twice.
+async function firstStanza(slug: string, title: string): Promise<string> {
+  const path = resolve(__dirname, "..", "..", "..", "content", "poetry", slug, "ru.md");
+  let raw = "";
+  try { raw = await readFile(path, "utf-8"); } catch { return ""; }
+  const body = raw.replace(/^---[\s\S]*?---\n?/, "").trim();
+  const normalize = (s: string) =>
+    s.replace(/[…\*]+$/g, "").replace(/[,;:!?\.]/g, "").trim().toLowerCase();
+  const lines = body.split(/\n/);
+  let start = 0;
+  while (start < lines.length && lines[start].trim() === "") start++;
+  if (start < lines.length && normalize(lines[start]) === normalize(title)) {
+    start++;
+    while (start < lines.length && lines[start].trim() === "") start++;
+  }
+  // First stanza = lines until the first blank line after `start`.
+  const stanza: string[] = [];
+  for (let i = start; i < lines.length; i++) {
+    if (lines[i].trim() === "") break;
+    stanza.push(lines[i]);
+  }
+  return stanza.join("\n");
+}
+
+// Pick the first poem whose title doesn't equal its first body line — that's
+// where the stanza preview adds info beyond the title itself.
+const normTitle = (s: string) =>
+  s.replace(/[…\*]+$/g, "").replace(/[,;:!?\.]/g, "").trim().toLowerCase();
+
+let heroPair = pairs[0];
+let heroStanza = "";
+for (const p of pairs) {
+  const stanza = await firstStanza(p.ru.data.slug, p.ru.data.title);
+  if (!stanza) continue;
+  const firstLine = stanza.split(/\n/, 1)[0] ?? "";
+  if (normTitle(firstLine) !== normTitle(p.ru.data.title)) {
+    heroPair = p;
+    heroStanza = stanza;
+    break;
+  }
+}
+if (!heroStanza && heroPair) {
+  heroStanza = await firstStanza(heroPair.ru.data.slug, heroPair.ru.data.title);
+}
+
+const MONTHS_RU = [
+  "янв.", "фев.", "мар.", "апр.", "мая", "июня",
+  "июля", "авг.", "сент.", "окт.", "нояб.", "дек.",
+];
+function formatPoemDate(iso: string): string {
+  // Expect ISO date like 2025-09-30; render as "сент. 2025".
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return iso;
+  const month = parseInt(m[2], 10);
+  if (month >= 1 && month <= 12) return `${MONTHS_RU[month - 1]} ${m[1]}`;
+  return m[1];
+}
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
   <section class="page poetry-index">
-    <p class="eyebrow">Сорок три</p>
-    <h1>Поэзия</h1>
-    <p class="poetry-index__intro">Стихотворения. Тексты, не оторванные от молитвы.</p>
+    <p class="eyebrow eyebrow--lg">Псалмы наших дней</p>
+    <div class="poetry-index__head">
+      <h1><b>{pairs.length}</b> {plRu(pairs.length, RU_PLURALS.poem)}</h1>
+      <p class="poetry-index__intro">Тексты, не оторванные от молитвы. Стихи, рождённые в&nbsp;тишине.</p>
+    </div>
+
+    {heroPair && heroStanza && (
+      <a class="poetry-hero" href={workUrl("poem", heroPair.ru.data.slug, locale)}>
+        <p class="poetry-hero__stanza">{heroStanza}</p>
+        <p class="poetry-hero__attr">
+          ← Стихотворение №{String(heroPair.number).padStart(2, "0")} «{heroPair.ru.data.title}»
+        </p>
+      </a>
+    )}
 
     <ol class="poems">
       {pairs.map(p => {
@@ -25,7 +102,7 @@ const alternates = { en: kindIndexUrl("poem", "en") };
               <span class="poems__num">{String(p.number).padStart(2, "0")}</span>
               <span class="poems__title">{p.ru.data.title}</span>
               {date && (
-                <time class="poems__date" datetime={date}>{date}</time>
+                <time class="poems__date" datetime={date}>{formatPoemDate(date)}</time>
               )}
             </a>
           </li>
@@ -37,38 +114,85 @@ const alternates = { en: kindIndexUrl("poem", "en") };
 
 <style>
   .poetry-index { max-width: 56rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
+  .poetry-index__head {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    margin-bottom: 2.5rem;
+  }
   .poetry-index h1 {
     font-family: var(--serif);
     font-weight: 400;
-    font-size: clamp(2.8rem, 6.4vw, 4.8rem);
-    line-height: 0.98;
-    margin: 0 0 0.4em;
-    letter-spacing: -0.022em;
+    font-size: clamp(3rem, 7.4vw, 5.4rem);
+    line-height: 0.96;
+    margin: 0;
+    letter-spacing: -0.024em;
+  }
+  .poetry-index h1 b {
+    font-weight: 500;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-style: italic;
+    color: var(--accent);
   }
   .poetry-index__intro {
     font-family: var(--serif);
     font-style: italic;
+    font-size: clamp(1.05rem, 1.4vw, 1.18rem);
+    line-height: 1.5;
     color: var(--ink-soft);
-    max-width: 36rem;
-    margin: 0 0 2.5rem;
+    max-width: 38rem;
+    margin: 0;
   }
+
+  /* Hero stanza block — accent-bordered editorial excerpt. */
+  .poetry-hero {
+    display: block;
+    margin: 0 0 3rem;
+    padding: 0.4rem 0 0.4rem 1.5rem;
+    border-left: 2px solid var(--accent);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.18s var(--ease);
+  }
+  .poetry-hero:hover { border-color: var(--accent-soft); }
+  .poetry-hero__stanza {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.15rem, 1.7vw, 1.4rem);
+    line-height: 1.45;
+    color: var(--ink);
+    margin: 0 0 1rem;
+    white-space: pre-line;
+    text-wrap: balance;
+    max-width: 38rem;
+  }
+  .poetry-hero__attr {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0;
+  }
+  .poetry-hero:hover .poetry-hero__attr { color: var(--accent); }
+
   .poems {
     list-style: none;
     padding: 0;
     margin: 0;
-    display: grid;
-    gap: 0.4rem;
+    border-top: 1px solid var(--rule);
   }
   .poems li a {
     display: grid;
     grid-template-columns: 3.5rem 1fr auto;
     gap: 1rem;
     align-items: baseline;
-    padding: 0.5rem 0;
+    padding: 0.9rem 0;
     color: inherit;
     text-decoration: none;
-    border-bottom: 1px dashed var(--rule);
-    transition: border-color 0.18s var(--ease), color 0.18s var(--ease);
+    border-bottom: 1px solid var(--rule);
+    transition: color 0.18s var(--ease), border-color 0.18s var(--ease);
   }
   .poems li a:hover { color: var(--accent); border-bottom-color: var(--accent-soft); }
   .poems__num {

@@ -52,7 +52,59 @@ def _is_strong_only(block: dict[str, Any]) -> bool:
     return block.get("t") == "Para" and len(block.get("c") or []) == 1 and block["c"][0].get("t") == "Strong"
 
 
-def expected_groups(docx: Path) -> list[int]:
+def _count_breaks(inlines: list[dict[str, Any]]) -> int:
+    total = 0
+    for item in inlines:
+        typ = item.get("t")
+        val = item.get("c")
+        if typ in {"SoftBreak", "LineBreak"}:
+            total += 1
+        elif typ in {"Strong", "Emph", "Underline", "SmallCaps", "Strikeout"}:
+            total += _count_breaks(val or [])
+        elif typ == "Quoted":
+            total += _count_breaks(val[1])
+        elif typ == "Link":
+            total += _count_breaks(val[1])
+        elif typ == "Span":
+            total += _count_breaks(val[1])
+        elif isinstance(val, list):
+            total += _count_breaks(val)
+    return total
+
+
+def _title_key(s: str) -> str:
+    s = re.sub(r"^[#>*_`\s-]+|[*_`\s-]+$", "", s.strip())
+    s = s.replace("…", "...")
+    s = re.sub(r"[.,;:!?]+$", "", s)
+    return re.sub(r"\s+", " ", s).casefold().strip()
+
+
+def _source_duplicate_title(blocks: list[dict[str, Any]], title: str) -> bool:
+    key = _title_key(title)
+    if not key:
+        return False
+    nonempty: list[dict[str, Any]] = []
+    for block in blocks:
+        if block.get("t") != "Para":
+            continue
+        text = _inlines_to_text(block.get("c") or [])
+        if text.strip():
+            nonempty.append(block)
+        if len(nonempty) >= 2:
+            break
+    if not nonempty:
+        return False
+    first = nonempty[0]
+    first_inlines = first.get("c") or []
+    if _title_key(_inlines_to_text(first_inlines)) != key:
+        return False
+    second_breaks = _count_breaks(nonempty[1].get("c") or []) if len(nonempty) > 1 else 0
+    second_text = _inlines_to_text(nonempty[1].get("c") or []) if len(nonempty) > 1 else ""
+    second_is_section = bool(re.match(r"^(?:[IVXLCDM]+\.|[А-ЯA-Z]\.)\s+\S", second_text.strip(), re.I))
+    return _is_strong_only(first) or _count_breaks(first_inlines) > 0 or second_breaks > 0 or second_is_section
+
+
+def expected_groups(docx: Path, title: str) -> list[int]:
     proc = subprocess.run(
         ["pandoc", "--from", "docx+empty_paragraphs", "--to", "json", str(docx)],
         capture_output=True,
@@ -97,6 +149,8 @@ def expected_groups(docx: Path) -> list[int]:
         else:
             current.append(lines[0])
     flush()
+    if groups and _source_duplicate_title(blocks, title) and len(groups[0]) == 1 and _title_key(groups[0][0]) == _title_key(title):
+        groups = groups[1:]
     return [len(g) for g in groups]
 
 
@@ -125,7 +179,9 @@ def main() -> int:
             failures.append(f"{md}: missing number")
             continue
         number = int(m.group(1))
-        exp = expected_groups(source_docx(number))
+        tm = re.search(r"^title:\s*(.+?)\s*$", text, re.M)
+        title = tm.group(1).strip().strip("'\"") if tm else ""
+        exp = expected_groups(source_docx(number), title)
         got = actual_groups(md)
         checked += 1
         if exp != got:

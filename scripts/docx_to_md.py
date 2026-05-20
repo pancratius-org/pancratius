@@ -422,6 +422,7 @@ class DocxParagraphMeta:
     style: str
     bold: bool
     italic: bool
+    line_breaks: int
 
     @property
     def is_empty(self) -> bool:
@@ -453,11 +454,13 @@ def read_docx_paragraph_meta(docx: Path) -> list[DocxParagraphMeta]:
     paras: list[DocxParagraphMeta] = []
     for p in root.iter(f"{W}p"):
         text_parts: list[str] = []
+        line_breaks = 0
         for el in p.iter():
             if el.tag == f"{W}t":
                 text_parts.append(el.text or "")
             elif el.tag in {f"{W}br", f"{W}cr"}:
                 text_parts.append("\n")
+                line_breaks += 1
             elif el.tag == f"{W}tab":
                 text_parts.append("\t")
 
@@ -472,6 +475,7 @@ def read_docx_paragraph_meta(docx: Path) -> list[DocxParagraphMeta]:
             style=style,
             bold=bold,
             italic=italic,
+            line_breaks=line_breaks,
         ))
     return paras
 
@@ -1560,6 +1564,65 @@ def pandoc_poem_ast_to_md(ast: dict[str, Any]) -> str:
     return "\n\n".join("\n".join(group) for group in groups).strip() + "\n"
 
 
+def _poem_title_key(s: str) -> str:
+    s = re.sub(r"<[^>]+>", "", s)
+    s = re.sub(r"^[#>*_`\s-]+|[*_`\s-]+$", "", s.strip())
+    s = s.replace("…", "...")
+    s = re.sub(r"[.,;:!?]+$", "", s)
+    return re.sub(r"\s+", " ", s).casefold().strip()
+
+
+def _first_nonempty_docx_paras(paras: list[DocxParagraphMeta], limit: int = 2) -> list[DocxParagraphMeta]:
+    out: list[DocxParagraphMeta] = []
+    for para in paras:
+        if para.is_empty:
+            continue
+        out.append(para)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _is_poem_section_heading_text(s: str) -> bool:
+    return bool(re.match(r"^(?:[IVXLCDM]+\.|[А-ЯA-Z]\.)\s+\S", s.strip(), re.IGNORECASE))
+
+
+def _strip_source_duplicate_poem_title(
+    body: str,
+    title: str,
+    docx_paras: list[DocxParagraphMeta],
+) -> str:
+    """Drop DOCX editor-title boilerplate from poem bodies, not incipits.
+
+    Some poem DOCX files start with a separate title paragraph and the page
+    masthead already renders that title. Others legitimately start with a
+    first verse line equal to the title/refrain ("А если буду я не прав?").
+    Strip only when the DOCX itself proves a title paragraph: the first
+    non-empty paragraph matches frontmatter title and is typographically
+    distinct (bold) or is followed by a real Word line-break stanza.
+    """
+    key = _poem_title_key(title)
+    first_two = _first_nonempty_docx_paras(docx_paras, 2)
+    if not key or not first_two or _poem_title_key(first_two[0].text) != key:
+        return body
+    first = first_two[0]
+    second = first_two[1] if len(first_two) > 1 else None
+    source_says_title = (
+        first.bold
+        or first.line_breaks > 0
+        or bool(second and second.line_breaks > 0)
+        or bool(second and _is_poem_section_heading_text(second.text))
+    )
+    if not source_says_title:
+        return body
+
+    blocks = re.split(r"\n\s*\n", body.strip(), maxsplit=1)
+    if not blocks or _poem_title_key(blocks[0]) != key:
+        return body
+    rest = blocks[1] if len(blocks) > 1 else ""
+    return rest.lstrip() + ("\n" if rest and not rest.endswith("\n") else "")
+
+
 def process_poem_markdown(
     md_raw: str,
     book_slug: str,
@@ -1585,6 +1648,7 @@ def process_poem_markdown(
 
 def convert_poem_docx_to_md(
     docx: Path,
+    title: str,
     book_slug: str,
     work_dir: Path,
     image_records: list[ImageRecord],
@@ -1599,6 +1663,7 @@ def convert_poem_docx_to_md(
         tdp = Path(td)
         media_tmp = tdp / "media"
         ast, warnings = _run_pandoc_json(docx, media_tmp)
+        docx_paras = read_docx_paragraph_meta(docx)
         md_raw = pandoc_poem_ast_to_md(ast)
         md, refs, next_idx = process_poem_markdown(
             md_raw=md_raw,
@@ -1611,6 +1676,7 @@ def convert_poem_docx_to_md(
             cross_ref_title_index=cross_ref_title_index,
             own_ascii_slug=own_ascii_slug,
         )
+        md = _strip_source_duplicate_poem_title(md, title, docx_paras)
     return md, refs, next_idx, warnings
 
 
@@ -2407,6 +2473,7 @@ def convert_poem(poem: dict[str, Any], ctx: ConverterContext) -> ConversionOutco
     writes.add_source("ru", docx_path)
     body, refs, _, warns = convert_poem_docx_to_md(
         docx=docx_path,
+        title=poem["title"],
         book_slug=f"poem-{ascii_slug}",
         work_dir=poem_dir,
         image_records=ctx.image_records,

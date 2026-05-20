@@ -1,0 +1,96 @@
+---
+// Related works panel for project pages.
+//
+// Smaller than SimilarPair (which is the books-side widget combining
+// authored cross-refs with TF-IDF / embedding-merged similar books).
+// Projects only have authored cross-refs — there is no algorithmic
+// neighbour graph for projects — so this is a single-block list of the
+// books the project explicitly leans on.
+//
+// Visual register matches the book page's "См. также" block (a short
+// accent rule above the section heading, then a grid of BookCard
+// thumbnails) so a reader who has already seen a book page recognises
+// the gesture, but the heading itself reads "Читать дальше" / "Read
+// next" — the project page is the manifesto; the books are the deeper
+// exploration.
+
+import type { Locale } from "@/lib/i18n";
+import type { ResolvedCrossRef } from "@/lib/works";
+import BookCard from "./BookCard.astro";
+
+interface Props {
+  locale:    Locale;
+  crossRefs: ResolvedCrossRef[];
+}
+
+const { locale, crossRefs } = Astro.props;
+
+if (crossRefs.length === 0) {
+  // Render nothing — the project simply has no authored cross-refs yet.
+}
+
+const labels = locale === "ru"
+  ? { h: "Читать дальше", sub: "Книги корпуса, в которых этот проект продолжается." }
+  : { h: "Read further",  sub: "Books from the corpus where this project unfolds further." };
+---
+{crossRefs.length > 0 && (
+  <aside class="project-related" aria-labelledby="pr-h">
+    <header class="project-related__head">
+      <h2 class="project-related__h" id="pr-h">{labels.h}</h2>
+      <p class="project-related__sub">{labels.sub}</p>
+    </header>
+    <div class="project-related__grid">
+      {crossRefs.map(r => (
+        <BookCard pair={r.target} locale={locale} blurb={r.snippet} />
+      ))}
+    </div>
+  </aside>
+)}
+
+<style>
+  .project-related {
+    margin: 4rem 0 0;
+    padding: 2.5rem 0 0;
+    border-top: 1px solid var(--rule);
+  }
+  .project-related__head {
+    margin: 0 0 1.8rem;
+  }
+  .project-related__h {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-style: normal;
+    font-size: 1.45rem;
+    color: var(--ink);
+    margin: 0 0 0.4rem;
+    letter-spacing: -0.012em;
+    position: relative;
+    padding-top: 0.7rem;
+  }
+  .project-related__h::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 28px;
+    height: 1px;
+    background: var(--accent);
+  }
+  .project-related__sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 0.98rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 50rem;
+  }
+  .project-related__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem 1.6rem;
+  }
+  @media (max-width: 720px) {
+    .project-related__grid { grid-template-columns: 1fr; gap: 1.6rem; }
+  }
+</style>

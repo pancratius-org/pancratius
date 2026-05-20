@@ -1,0 +1,263 @@
+---
+/*
+ * Support — channels widget.
+ *
+ * Renders the list of donation channels supplied by `page.data.channels`
+ * (see content.config.ts → pages.channels). Each row is a small card:
+ * an eyebrow label, the value (mono if it's an account / wallet, anchor
+ * if it's a link, an inline image if it's a QR), an optional caption,
+ * and — except for QR rows — a `[copy]` affordance that copies the
+ * value to the clipboard and flips the label for ~1.6 s.
+ *
+ * The copy handler is wired through a single delegated `click` listener
+ * (mirrors the share button in src/layouts/Base.astro). Targets are any
+ * element with `data-copy="<value>"`.
+ *
+ * Surface contract:
+ *   - Container: `.support-channels` — 1px accent rule top, hairline
+ *     rule between rows, sits inside a `--bg-rise` plate.
+ *   - Row: `.channel` — flex column on mobile, three-row block at all
+ *     widths (label / value / caption). QR rows use `.channel--qr` to
+ *     vertically centre the placeholder graphic.
+ *   - Values intentionally render as plain text (mono) — no auto-linking
+ *     beyond the `kind: link` case, so a card number never gets
+ *     interpreted as a URL by the markdown pipeline.
+ *
+ * Placeholder discipline: every value in the bundled markdown is
+ * obviously fake (all-zero PAN, `@pancratius` handles, T0000…). The
+ * author replaces them in the markdown frontmatter; the QR image is
+ * replaced by overwriting /public/qr-sbp-placeholder.svg with a real
+ * QR file at the same path.
+ */
+import type { Locale } from "@/lib/i18n";
+
+interface Channel {
+  kind: "qr" | "card" | "link" | "text";
+  label: string;
+  value: string;
+  caption?: string;
+}
+
+interface Props {
+  channels: Channel[];
+  locale: Locale;
+}
+
+const { channels, locale } = Astro.props;
+
+const COPY = locale === "ru" ? "копировать" : "copy";
+const COPIED = locale === "ru" ? "скопировано" : "copied";
+const FAILED = locale === "ru" ? "ошибка" : "failed";
+---
+
+{channels.length > 0 && (
+  <aside class="support-channels" aria-label={locale === "ru" ? "Каналы поддержки" : "Channels of support"}>
+    <ol class="support-channels__list">
+      {channels.map((c) => (
+        <li class:list={["channel", `channel--${c.kind}`]}>
+          <p class="eyebrow channel__label">{c.label}</p>
+
+          {c.kind === "qr" && (
+            <div class="channel__qr">
+              <img
+                src={c.value}
+                alt=""
+                width="200"
+                height="200"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          )}
+
+          {c.kind === "link" && (
+            <div class="channel__row">
+              <a class="channel__value channel__value--link" href={c.value} rel="noopener noreferrer" target="_blank">
+                {c.value.replace(/^https?:\/\//, "")}
+              </a>
+              <button
+                type="button"
+                class="channel__copy"
+                data-copy={c.value}
+                data-copy-label={COPY}
+                data-copy-done={COPIED}
+                data-copy-fail={FAILED}
+                aria-label={locale === "ru" ? `Скопировать: ${c.label}` : `Copy: ${c.label}`}
+              >[{COPY}]</button>
+            </div>
+          )}
+
+          {(c.kind === "card" || c.kind === "text") && (
+            <div class="channel__row">
+              <span class="channel__value channel__value--mono">{c.value}</span>
+              <button
+                type="button"
+                class="channel__copy"
+                data-copy={c.value}
+                data-copy-label={COPY}
+                data-copy-done={COPIED}
+                data-copy-fail={FAILED}
+                aria-label={locale === "ru" ? `Скопировать: ${c.label}` : `Copy: ${c.label}`}
+              >[{COPY}]</button>
+            </div>
+          )}
+
+          {c.caption && <p class="channel__caption">{c.caption}</p>}
+        </li>
+      ))}
+    </ol>
+  </aside>
+)}
+
+<script is:inline>
+  // Copy buttons (`<button data-copy="...">`). Writes the value to the
+  // clipboard and flips the button text to data-copy-done for 1.6 s
+  // (or data-copy-fail on error). Single delegated listener — any
+  // future surface that wants the behaviour just drops a button.
+  document.addEventListener("click", async (e) => {
+    const btn = e.target instanceof Element && e.target.closest("[data-copy]");
+    if (!btn) return;
+    e.preventDefault();
+    const value = btn.getAttribute("data-copy") || "";
+    const label = btn.dataset.copyLabel || "copy";
+    const done  = btn.dataset.copyDone  || "copied";
+    const fail  = btn.dataset.copyFail  || "failed";
+    try {
+      await navigator.clipboard.writeText(value);
+      btn.dataset.state = "done";
+      btn.textContent = `[${done}]`;
+    } catch {
+      btn.dataset.state = "fail";
+      btn.textContent = `[${fail}]`;
+    }
+    setTimeout(() => {
+      delete btn.dataset.state;
+      btn.textContent = `[${label}]`;
+    }, 1600);
+  });
+</script>
+
+<style>
+  .support-channels {
+    width: 100%;
+    background: var(--bg-rise);
+    border: 1px solid var(--rule);
+    border-top: 1px solid var(--accent);
+  }
+  .support-channels__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .channel {
+    padding: 1.3rem 1.4rem 1.4rem;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  .channel:last-child { border-bottom: none; }
+
+  .channel__label {
+    margin: 0;
+    /* Eyebrow already has its own font-size; we just lift the colour to
+       full ink-mute and keep the small accent dash. */
+  }
+
+  .channel__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .channel__value {
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--ink);
+    word-break: break-all;
+    overflow-wrap: anywhere;
+  }
+  .channel__value--mono {
+    font-family: var(--mono);
+    letter-spacing: 0.01em;
+  }
+  .channel__value--link {
+    font-family: var(--mono);
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 1px;
+    transition: color 120ms ease, border-color 120ms ease;
+  }
+  .channel__value--link:hover,
+  .channel__value--link:focus-visible {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .channel__copy {
+    appearance: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--ink-mute);
+    cursor: pointer;
+    transition: color 120ms ease;
+    flex-shrink: 0;
+  }
+  .channel__copy:hover,
+  .channel__copy:focus-visible {
+    color: var(--accent);
+    outline: none;
+  }
+  .channel__copy[data-state="done"] { color: var(--accent); }
+  .channel__copy[data-state="fail"] { color: var(--accent-deep); }
+
+  .channel__caption {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    color: var(--ink-mute);
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  /* QR row — image centred, no copy button. The image colour matches
+     accent via a subtle filter so the placeholder reads as part of the
+     brand register rather than as raw black ink. */
+  .channel--qr {
+    align-items: center;
+    text-align: center;
+    padding: 1.6rem 1.4rem 1.4rem;
+  }
+  .channel__qr {
+    width: 180px;
+    height: 180px;
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    padding: 12px;
+    display: grid;
+    place-items: center;
+  }
+  .channel__qr img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    color: var(--accent);
+    /* SVG inherits currentColor through `color`. Browsers honour it on
+       <img> for inline SVG only when masked, so we also apply a tint
+       filter as a fallback for light/dark themes. */
+  }
+  :global([data-theme="dark"]) .channel__qr img {
+    filter: invert(0.86) sepia(0.42) saturate(2.6) hue-rotate(347deg);
+  }
+  :global([data-theme="light"]) .channel__qr img {
+    filter: sepia(0.55) saturate(1.6) hue-rotate(347deg) brightness(0.65);
+  }
+</style>

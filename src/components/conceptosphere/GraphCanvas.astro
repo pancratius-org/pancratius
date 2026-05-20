@@ -29,7 +29,7 @@ interface Props {
    * build localized work URLs for books in panels and rec lists; the page
    * passes a precomputed map so the script never has to hit Astro content.
    */
-  bookSlugInfo: Record<string, { number: number; title: string }>;
+  bookSlugInfo: Record<string, { number: number; title: string; href: string }>;
   /**
    * Per-(kind, slug) → cover URL produced by the Astro build. The script
    * looks up by `kind:slug` so panels and search results render real
@@ -91,29 +91,10 @@ const initialPlaceholder = t.modes[initialMode].searchPlaceholder;
   .cs-stage {
     position: relative;
     overflow: hidden;
-    background:
-      radial-gradient(ellipse 80% 60% at 50% 50%,
-        color-mix(in srgb, var(--accent) 12%, transparent),
-        transparent 70%),
-      radial-gradient(ellipse 120% 80% at 50% 100%,
-        color-mix(in srgb, var(--cs-violet) 12%, transparent),
-        transparent 60%),
-      var(--bg);
+    background: var(--cs-stage-bg);
     flex: 1;
     min-height: 0;
   }
-  /* Soft film-grain noise so the void has texture rather than reading as flat. */
-  .cs-stage::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 1;
-    opacity: var(--cs-grain-opacity, 0.035);
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
-    mix-blend-mode: overlay;
-  }
-
   #cs-hulls {
     position: absolute;
     inset: 0;

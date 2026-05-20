@@ -53,9 +53,10 @@ The site build must not depend on pandoc or typst. If a work has no committed
 `<lang>.pdf` or `<lang>.epub`, that route and link do not exist.
 
 Generated `.md` downloads are not the same file as source Markdown. They strip
-frontmatter, rewrite image paths for the public URL space, and may add explicit
-hard-break markers for verse content so ordinary Markdown readers preserve poem
-and manifesto lineation. Source Markdown remains clean and author-facing.
+all frontmatter, rewrite image paths for the public URL space, and may add
+explicit hard-break markers for verse content so ordinary Markdown readers
+preserve poem and manifesto lineation. Source Markdown remains clean and
+author-facing; public Markdown is content-only.
 
 ## Local Generation
 
@@ -110,13 +111,15 @@ explicitly cites that external URL in the body.
 
 ## Bulk archives at `/downloads/`
 
-The production site ships **one** bulk archive: `all-md.zip` — every work's `*.md` packaged with `<kind>/<lang>/<slug>.md` paths. Audience: LLM training, mirror sites, archival ingests. Markdown is the canonical text-first surface; PDF and EPUB are presentation renderings served per-work on each book's page.
+The production site ships **one** bulk archive: `all-md.zip` — every work as public Markdown, packaged with `<kind>/<lang>/<slug>.md` paths. Audience: LLM training, mirror sites, archival ingests. Markdown is the canonical text-first surface; PDF and EPUB are presentation renderings served per-work on each book's page.
+
+The archive is not a raw copy of `content/**/*.md`. It contains the public export form only: frontmatter is removed, converter-only HTML wrappers are removed, inline HTML emphasis is converted to Markdown syntax where possible, and body image references become absolute Markdown image links.
 
 Bulk PDF and EPUB archives are **not** shipped on the production host because they duplicate ~317 MB of bytes already served per-work, and the host has a 1 GB ceiling. They can still be built off-host via `uv run scripts/build_bulk_archives.py --formats md,pdf,epub` for upload to GitHub Releases, the Internet Archive, or a Hugging Face dataset.
 
 The `/downloads/` page is a short index with size and `sha256` for verification.
 
-"Built" here means packaging already-committed artifacts. It does not mean rendering PDFs/EPUBs during CI.
+"Built" here means packaging already-committed artifacts. It does not mean rendering PDFs/EPUBs during CI. The prebuild archive step writes `.cache/bulk-archives/all-md.zip` plus `data/bulk-archives.json`; Astro then emits `/downloads/all-md.zip` through a static endpoint so local dev and production use the same URL.
 
 Per-work artifacts never live under `/downloads/` — that's the bulk surface only.
 

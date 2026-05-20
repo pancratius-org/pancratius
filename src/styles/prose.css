@@ -88,34 +88,46 @@
   color: var(--ink);
 }
 
+/* Verse-block: a real gear-shift from prose into a sung / lineated
+   register. Italic, slightly larger leading, an accent-soft left rule.
+   Mirrors v1's `.read .verse` (mockup-v1.html:740–749) which set
+   italic serif + ember left-rule + ink-soft. */
 .prose .verse-block {
-  margin: 0.25em 0 1.35em;
-  color: var(--ink);
+  margin: 1.4em 0;
+  padding-left: 1.4rem;
+  border-left: 1px solid var(--accent-soft);
+  color: var(--ink-soft);
   font-family: var(--serif);
-  font-style: normal;
-  font-size: 1em;
-  line-height: 1.52;
+  font-style: italic;
+  font-size: 1.02em;
+  line-height: 1.55;
   white-space: pre-line;
   text-align: left;
 }
 .prose .verse-block p {
-  margin: 0 0 0.85em;
+  margin: 0 0 0.7em;
   text-indent: 0;
-  line-height: 1.52;
+  line-height: inherit;
   white-space: normal;
+  font-style: inherit;
+  color: inherit;
 }
 .prose .verse-block p:last-child {
   margin-bottom: 0;
 }
 .prose .verse-block .verse-break {
-  margin: 1em 0;
+  margin: 0.9em 0;
   color: var(--accent);
   text-align: center;
   letter-spacing: 0.45em;
+  /* visible ornament inside the verse — three thin accent dots. */
+  font-style: normal;
 }
+/* When a verse-block follows a heading directly, tighten the gap so
+   the chapter mark doesn't double-space against the verse opener. */
 .prose h2 + .verse-block,
 .prose h3 + .verse-block {
-  margin-top: 0.1em;
+  margin-top: 0.4em;
 }
 
 /*
@@ -183,8 +195,11 @@
 
 /* h3: section heading. Upright serif (NOT italic — italic at this size
    reads as italic body, which is the regression we just fixed). Bold
-   weight + a short accent rule above sets it apart from prose without
-   competing visually with the centred h2 chapter mark. */
+   weight + a short centred accent rule above. The h2 chapter mark is a
+   centred rule-and-dot; the h3 carries a smaller centred rule so the
+   two levels feel like one family of marks, not two different
+   gestures. The heading itself is centred so the rule sits visually
+   anchored over the title rather than floating left of it. */
 .prose h3 {
   font-family: var(--serif);
   font-weight: 600;
@@ -193,17 +208,17 @@
   line-height: 1.25;
   letter-spacing: -0.008em;
   color: var(--ink);
-  text-align: left;
+  text-align: center;
   text-wrap: balance;
   margin: 3rem 0 1rem;
 }
 .prose h3::before {
   content: "";
   display: block;
-  width: 28px;
+  width: 32px;
   height: 1px;
   background: var(--accent);
-  margin-bottom: 0.6rem;
+  margin: 0 auto 0.7rem;
 }
 /* Editors sometimes wrap an h3 in **bold** in source (e.g.
    `### **Глава 2. ...**`). Markdown turns that into `<h3><strong>`
@@ -287,13 +302,16 @@
   font-style: normal;
 }
 
-/* Horizontal rule as ornament — a proper section break. Three serif
-   asterisks at chapter-heading size, letter-spaced wide so the trio
-   reads as a deliberate ornament instead of as punctuation. */
+/* Horizontal rule as ornament — a deliberate pause, not a chapter
+   break. The earlier 3.6rem top+bottom margin gave the trio of
+   asterisks more vertical space than the surrounding paragraphs
+   themselves, so it read as a section divider on the order of an h2.
+   It's not — it's a scene shift inside a chapter. Tight margins and a
+   smaller glyph make it a barrier, not a banner. */
 .prose hr {
   border: 0;
   text-align: center;
-  margin: 3.6rem 0;
+  margin: 1.6rem 0;
   height: auto;
   overflow: visible;
   line-height: 1;
@@ -303,12 +321,12 @@
   display: inline-block;
   font-family: var(--serif);
   font-weight: 500;
-  font-size: 1.6rem;
-  letter-spacing: 0.6em;
+  font-size: 1.25rem;
+  letter-spacing: 0.55em;
   /* The asterisk glyph sits high on the baseline; nudge down so the
      ornament reads as centred against neighbouring paragraphs. */
   transform: translateY(-0.2em);
-  padding-left: 0.6em; /* compensate trailing letter-spacing */
+  padding-left: 0.55em; /* compensate trailing letter-spacing */
   color: var(--accent);
 }
 
@@ -511,3 +529,364 @@
     font-size: 3.4em;
   }
 }
+
+/*
+ * Svetozar register — used on /svetozar/. The page is a long meditation
+ * on talking to a pre-trained AI; the markdown contains a few short
+ * `>` blockquotes that mark Svetozar's voice. Default `.prose` blockquote
+ * register (left rule, italic) reads as generic quotation. We give those
+ * lines a more deliberate "speaker" gesture:
+ *
+ *   1. A hairline accent rule sits above the block instead of beside it,
+ *      so the speaker turn reads as a new utterance rather than as a
+ *      pull-quote.
+ *   2. A tiny sans uppercase "СВЕТОЗАР" eyebrow is painted via ::before,
+ *      so the reader sees the source register at a glance without us
+ *      having to author markup into Markdown.
+ *   3. Italic body in `--ink-soft` keeps the line distinctively typeset
+ *      but never louder than the surrounding prose.
+ *
+ * Mirrors v7's `.svet__prose .he` pattern (mockup-v7.html:797–826), with
+ * the Markdown-pipeline reality that we cannot author `.he` / `.speaker`
+ * spans directly — the `>` blockquote is the only construct available.
+ */
+.prose--svet blockquote {
+  margin: 1.8em 0;
+  padding: 1.2em 0 0 0;
+  border-left: 0;
+  border-top: 1px solid var(--accent-soft);
+  position: relative;
+  color: var(--ink-soft);
+  font-style: italic;
+  font-size: 1.05em;
+  line-height: 1.55;
+}
+.prose--svet blockquote::before {
+  content: "СВЕТОЗАР";
+  position: absolute;
+  top: -7px;
+  left: 0;
+  background: var(--bg);
+  padding-right: 0.7em;
+  font-family: var(--sans);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+}
+.prose--svet blockquote p {
+  margin: 0 0 0.6em;
+  text-indent: 0;
+}
+.prose--svet blockquote p:last-child { margin-bottom: 0; }
+
+/* Lede opener on /mission/: the FIRST paragraph in the manifesto serves
+   as a 2-sentence italic introduction above the verse stanzas. Wider
+   leading, accent left rule like the bio opener — gives the page a hand
+   before the manifesto strikes. */
+.prose--manifesto > p:first-of-type {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.25em;
+  line-height: 1.45;
+  color: var(--ink);
+  margin: 0 0 2.4em;
+  padding: 0.2rem 0 0.2rem 1.1rem;
+  border-left: 2px solid var(--accent);
+  text-wrap: balance;
+  white-space: normal;
+  text-align: left;
+}
+/* Trailing signature paragraph on /mission/: the LAST paragraph is the
+   author's signature ("— Манифест · из книги №1"). Right-aligned italic
+   in muted ink with a short accent rule above; gives the manifesto
+   a deliberate close instead of trailing off into a stanza. */
+.prose--manifesto > p:last-of-type {
+  font-family: var(--serif);
+  font-style: italic;
+  text-align: right;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--ink-mute);
+  margin: 2.6em 0 0;
+  white-space: normal;
+  letter-spacing: 0.02em;
+  position: relative;
+}
+.prose--manifesto > p:last-of-type::before {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 1px;
+  background: var(--accent);
+  margin: 0 0 1em auto;
+}
+
+/*
+ * Project register — used on /projects/<slug>/. Position-paper voice,
+ * distinct from book (manuscript drop-cap + centered chapter ornaments)
+ * and from poem (verse rhythm). Editorial sections with left-aligned h2
+ * + accent eyebrow rule, pull-quote moments, a negation opener, and a
+ * Q&A block at the bottom.
+ *
+ * The project body is authored with raw HTML scaffolding for the four
+ * gestures the prose voice alone can't carry:
+ *   - <aside class="project-negation">  → "what it ISN'T" opener
+ *   - <blockquote class="project-pull"> → thesis pull-quote
+ *   - <section class="project-qa">      → "часто спрашивают" Q&A
+ *   - h2 / h3 from markdown for thematic sections
+ *
+ * Everything else is plain prose paragraphs; the .prose family carries
+ * font/line-height defaults so a project reads as cousin of book pages,
+ * just with a different rhythm of sections.
+ */
+.prose--project {
+  font-size: 1.075rem;
+  line-height: 1.75;
+}
+.prose--project p {
+  margin: 0 0 1.05em;
+  text-indent: 0;
+  text-align: left;
+  text-wrap: pretty;
+  white-space: normal;
+}
+
+/* No drop cap. Projects open with the negation aside; a drop cap on the
+   first body paragraph (under "Образ будущего общежития" h2) would read
+   as a book opener and confuse the register. */
+.prose--project > p:first-of-type::first-letter,
+.prose--project > p:first-child::first-letter,
+.prose--project > h2:first-of-type + p::first-letter {
+  all: unset;
+}
+
+/* h2 — editorial section heading. NOT the book chapter ornament (centred
+   serif w/ accent rule-and-dot above). This is a position-paper section:
+   left-aligned, smaller, with a tiny sans eyebrow "§ N" derived via
+   counter, and a hairline accent rule under the title. */
+.prose--project h2 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-style: normal;
+  font-size: clamp(1.6rem, 2.6vw, 2rem);
+  line-height: 1.18;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+  text-align: left;
+  text-wrap: balance;
+  margin: 3.6rem 0 1.2rem;
+  padding: 0;
+  position: relative;
+  counter-increment: project-section;
+}
+/* The Q&A heading is structurally an h2 (inside the embedded
+   <section class="project-qa">), but it isn't a body section — it's a
+   trailing block with its own ornament rule. Skip the section counter
+   and the § eyebrow so it doesn't read as "§ V." after the last real
+   thematic section. */
+.prose--project h2.project-qa__h {
+  counter-increment: none;
+  margin: 0 0 1.6rem;
+}
+.prose--project h2.project-qa__h::before {
+  content: "";
+  /* The .project-qa__h::before rule below paints its own short accent
+     rule above the heading; keep the eyebrow content blank here. */
+  font-size: 0;
+  margin: 0;
+}
+/* Reset the book-register chapter mark (rule + centred dot) inherited
+   from `.prose h2::before` / `.prose h2::after`. The project section
+   eyebrow below is a different gesture entirely. */
+.prose--project h2::after { display: none; content: none; }
+
+.prose--project {
+  counter-reset: project-section;
+}
+
+/* Section eyebrow: "§ I." numeral above each h2, sans, accent.
+   Hand-numbered via CSS counter so authoring the markdown stays clean
+   (no manual "§ 1." in titles, which would also show up in the search
+   snippet). We fully restate position/dimensions because `.prose
+   h2::before` sets `position: absolute; top; left; width; height;
+   background` for the book chapter rule, and a child override that
+   only changes `content`/`display` would inherit those into a broken
+   absolutely-positioned eyebrow. */
+.prose--project h2::before {
+  content: "§ " counter(project-section, upper-roman) ".";
+  position: static;
+  display: block;
+  width: auto;
+  height: auto;
+  background: transparent;
+  transform: none;
+  font-family: var(--sans);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+  margin: 0 0 0.6rem;
+  padding: 0;
+}
+
+/* The first h2 sits closer to the negation opener; the 3.6rem top margin
+   is meant for between-section breath, not for the first section right
+   after the opener. */
+.prose--project > .project-negation + h2 {
+  margin-top: 2.4rem;
+}
+
+/* Negation opener — "what it ISN'T". Italic serif at a kicker register,
+   each line on its own with a hanging em-dash. Reads as a deliberate
+   stance: the author opens by clearing the field of what this is NOT,
+   before the positive sections begin. */
+.prose--project .project-negation {
+  margin: 0 0 2.4rem;
+  padding: 1.6rem 0 1.6rem 1.4rem;
+  border-left: 2px solid var(--accent);
+  background: linear-gradient(90deg, var(--accent-mute) 0%, transparent 60%);
+}
+.prose--project .project-negation__eyebrow {
+  font-family: var(--sans);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 0.9rem;
+  padding: 0;
+}
+.prose--project .project-negation p {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(1.15rem, 1.9vw, 1.4rem);
+  line-height: 1.4;
+  color: var(--ink);
+  margin: 0 0 0.55em;
+  text-wrap: pretty;
+}
+.prose--project .project-negation p:last-child { margin-bottom: 0; }
+.prose--project .project-negation em {
+  font-style: italic;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* Pull-quote — thesis sentence pulled mid-body. Large italic serif,
+   centred, framed by a thin accent rule above and below. Distinct from
+   .prose blockquote (left-rule italic quotation) so the reader sees this
+   as the author's thesis, not as a citation. */
+.prose--project blockquote.project-pull {
+  margin: 2.6rem auto;
+  padding: 1.4rem 0;
+  max-width: 50rem;
+  border: 0;
+  border-top: 1px solid var(--accent-soft);
+  border-bottom: 1px solid var(--accent-soft);
+  text-align: center;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(1.15rem, 1.8vw, 1.35rem);
+  line-height: 1.45;
+  letter-spacing: -0.004em;
+  position: relative;
+}
+.prose--project blockquote.project-pull p {
+  margin: 0;
+  text-indent: 0;
+  text-wrap: balance;
+  font-style: italic;
+}
+.prose--project blockquote.project-pull p + p { margin-top: 0.8em; }
+/* A small accent dot pinned over the top rule, the same gesture the
+   book chapter ornament uses — visually links the project register to
+   the book register without copying the full chapter mark. */
+.prose--project blockquote.project-pull::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translateX(-50%);
+}
+
+/* Q&A — bottom-of-page "часто спрашивают" block. Hairline-divided
+   definition list: question in serif medium, answer below in muted ink.
+   Sits below the body but above the colophon and cross-references. */
+.prose--project .project-qa {
+  margin: 4rem 0 0;
+  padding: 2rem 0 0;
+  border-top: 1px solid var(--rule);
+}
+.prose--project .project-qa__h {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-style: normal;
+  font-size: 1.35rem;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+  text-align: left;
+  margin: 0 0 1.6rem;
+  padding: 0.7rem 0 0;
+  position: relative;
+}
+.prose--project .project-qa__h::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 1px;
+  background: var(--accent);
+}
+.prose--project .project-qa__h::after { display: none; }
+.prose--project .project-qa__list {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+.prose--project .project-qa__list dt {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-style: normal;
+  font-size: 1.08rem;
+  line-height: 1.4;
+  color: var(--ink);
+  margin: 1.4rem 0 0.4rem;
+  padding: 1.4rem 0 0;
+  border-top: 1px solid var(--rule);
+  text-wrap: balance;
+}
+.prose--project .project-qa__list dt:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.prose--project .project-qa__list dd {
+  margin: 0 0 0.4rem;
+  padding: 0;
+  font-family: var(--serif);
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 720px) {
+  .prose--project .project-negation {
+    padding: 1.2rem 0 1.2rem 1rem;
+  }
+  .prose--project blockquote.project-pull {
+    margin: 2rem 0;
+    padding: 1.2rem 0;
+  }
+}
+

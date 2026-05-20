@@ -9,15 +9,23 @@ const { locale } = Astro.props;
 const copy = locale === "ru" ? {
   placeholder: "Поиск по корпусу",
   empty:       "Ничего не найдено.",
-  loading:     "Загрузка индекса…",
+  searching:   "Ищу…",
   prompt:      "Введите слово или фразу.",
   hits:        "Найдено:",
+  more:        "Показать ещё",
+  // Friendly fallback for when /pagefind/pagefind.js isn't reachable —
+  // typically because the index hasn't been built yet (dev), or, in
+  // production, a deploy missed the post-build step. Reads as a quiet
+  // notice rather than as a dev error string.
+  unavailable: "Поиск временно недоступен. Попробуйте позже.",
 } : {
   placeholder: "Search the corpus",
   empty:       "Nothing matched.",
-  loading:     "Loading index…",
+  searching:   "Searching…",
   prompt:      "Type a word or phrase.",
   hits:        "Found:",
+  more:        "Show more",
+  unavailable: "Search is temporarily unavailable. Please try again later.",
 };
 ---
 <div class="pfs">
@@ -34,9 +42,11 @@ const copy = locale === "ru" ? {
       spellcheck="false"
       aria-label={copy.placeholder}
     />
+    <kbd id="pfsKbd" aria-hidden="true">⌘K</kbd>
   </label>
   <p class="pfs__status" id="pfsStatus" aria-live="polite">{copy.prompt}</p>
   <ol class="pfs__results" id="pfsResults"></ol>
+  <button class="pfs__more" id="pfsMore" type="button" hidden>{copy.more}</button>
 </div>
 
 <script is:inline define:vars={{ copy }}>
@@ -44,35 +54,38 @@ const copy = locale === "ru" ? {
     const input  = document.getElementById("pfsInput");
     const list   = document.getElementById("pfsResults");
     const status = document.getElementById("pfsStatus");
-    if (!input || !list || !status) return;
+    const more   = document.getElementById("pfsMore");
+    if (!input || !list || !status || !more) return;
+    const kbd = document.getElementById("pfsKbd");
+    if (kbd && !/Mac|iPad|iPhone|iPod/.test(navigator.platform)) kbd.textContent = "Ctrl K";
 
-    status.textContent = copy.loading;
-    let pagefind;
-    try {
-      pagefind = await import("/pagefind/pagefind.js");
-      if (pagefind.init) await pagefind.init();
-    } catch (e) {
-      status.textContent = "Pagefind index not built yet.";
-      return;
+    let pagefindPromise;
+    function loadPagefind() {
+      if (!pagefindPromise) {
+        pagefindPromise = import("/pagefind/pagefind.js")
+          .catch(err => {
+            pagefindPromise = null;
+            throw err;
+          });
+      }
+      return pagefindPromise;
     }
-    status.textContent = copy.prompt;
 
     function escape(s) {
       return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
     }
 
     let token = 0;
-    async function runSearch() {
-      const q = input.value.trim();
-      const mine = ++token;
-      list.innerHTML = "";
-      if (!q) { status.textContent = copy.prompt; return; }
-      status.textContent = copy.loading;
-      const search = await pagefind.search(q);
+    let activeResults = [];
+    let rendered = 0;
+
+    async function renderMore(mine) {
+      const next = activeResults.slice(rendered, rendered + 5);
+      more.hidden = true;
+      more.disabled = true;
+      const hits = await Promise.all(next.map(r => r.data()));
       if (mine !== token) return;
-      const hits = await Promise.all(search.results.slice(0, 20).map(r => r.data()));
-      if (mine !== token) return;
-      status.textContent = `${copy.hits} ${hits.length}`;
+      rendered += next.length;
       for (const h of hits) {
         const li = document.createElement("li");
         li.innerHTML = `
@@ -82,15 +95,53 @@ const copy = locale === "ru" ? {
           </a>`;
         list.appendChild(li);
       }
-      if (!hits.length) status.textContent = copy.empty;
+      more.disabled = false;
+      more.hidden = rendered >= activeResults.length;
+    }
+
+    async function runSearch() {
+      const q = input.value.trim();
+      const mine = ++token;
+      list.innerHTML = "";
+      activeResults = [];
+      rendered = 0;
+      more.hidden = true;
+      if (!q) { status.textContent = copy.prompt; return; }
+      status.textContent = copy.searching;
+      let pagefind;
+      try {
+        pagefind = await loadPagefind();
+      } catch (e) {
+        status.textContent = copy.unavailable;
+        return;
+      }
+      if (mine !== token) return;
+      const search = pagefind.debouncedSearch
+        ? await pagefind.debouncedSearch(q, {}, 260)
+        : await pagefind.search(q);
+      if (search === null) return;
+      if (mine !== token) return;
+      activeResults = search.results;
+      if (!activeResults.length) {
+        status.textContent = copy.empty;
+        return;
+      }
+      await renderMore(mine);
+      if (mine !== token) return;
+      status.textContent = `${copy.hits} ${activeResults.length}`;
     }
 
     let timer;
     input.addEventListener("input", () => {
       clearTimeout(timer);
-      timer = setTimeout(runSearch, 120);
+      timer = setTimeout(runSearch, 220);
+      const q = input.value.trim();
+      if (q) {
+        loadPagefind()
+          .then(pagefind => pagefind.preload?.(q))
+          .catch(() => {});
+      }
       // Reflect the query in the URL so the search is shareable / bookmarkable.
-      const q = input.value;
       const url = new URL(location.href);
       if (q) url.searchParams.set("q", q); else url.searchParams.delete("q");
       history.replaceState(null, "", url);
@@ -99,6 +150,22 @@ const copy = locale === "ru" ? {
     const initial = new URLSearchParams(location.search).get("q");
     if (initial) { input.value = initial; runSearch(); }
     input.focus();
+    more.addEventListener("click", () => renderMore(token));
+    document.addEventListener("keydown", e => {
+      if (e.defaultPrevented) return;
+      if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K") && !e.altKey) {
+        e.preventDefault();
+        input.focus();
+        input.select();
+      }
+    });
+
+    const warmSearch = () => { loadPagefind().catch(() => {}); };
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(warmSearch, { timeout: 2500 });
+    } else {
+      setTimeout(warmSearch, 1200);
+    }
   })();
 </script>
 
@@ -124,6 +191,17 @@ const copy = locale === "ru" ? {
     font-style: italic;
   }
   .pfs .search input::placeholder { color: var(--ink-mute); opacity: 1; }
+  .pfs .search kbd {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: var(--ink-mute);
+    border: 1px solid var(--rule);
+    padding: 0.12rem 0.4rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
 
   .pfs__status {
     margin: 1rem 0 0;
@@ -166,4 +244,17 @@ const copy = locale === "ru" ? {
     color: var(--mark-ink);
     padding: 0 1px;
   }
+  .pfs__more {
+    margin-top: 1.2rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--sans);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+  }
+  .pfs__more:hover { color: var(--ink); }
+  .pfs__more:disabled { cursor: wait; opacity: 0.55; }
 </style>

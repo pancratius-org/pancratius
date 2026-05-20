@@ -2,15 +2,16 @@
 import type { GetStaticPaths } from "astro";
 import { render } from "astro:content";
 
-import Base       from "@/layouts/Base.astro";
-import BookCover  from "@/components/BookCover.astro";
-import Colophon   from "@/components/Colophon.astro";
+import Base             from "@/layouts/Base.astro";
+import BookCover        from "@/components/BookCover.astro";
+import Colophon         from "@/components/Colophon.astro";
+import ProjectRelated   from "@/components/ProjectRelated.astro";
 
 import type { Locale } from "@/lib/i18n";
 import { coverAbsoluteUrl } from "@/lib/covers";
 import { kindIndexUrl, workUrl } from "@/lib/i18n";
 import { seoForWork } from "@/lib/seo";
-import { getPairsByKind, type WorkPair } from "@/lib/works";
+import { getPairsByKind, resolveCrossRefs, type WorkPair } from "@/lib/works";
 
 const locale: Locale = "ru";
 
@@ -28,35 +29,58 @@ const seo = seoForWork(Astro.site, { pair, locale, coverUrl });
 const alternates: Partial<Record<Locale, string>> = {};
 if (pair.en) alternates.en = workUrl("project", pair.en.data.slug, "en");
 const backHref = kindIndexUrl("project", locale);
+
+// Optional one-line tagline lives in frontmatter (`tagline:`). When
+// missing we omit the masthead annotation rather than synthesise a
+// fallback — the negation opener in the body carries the page.
+const tagline = (entry.data as { tagline?: string }).tagline;
+
+// `kind: "project"` entries don't currently carry `tags`, but
+// resolveCrossRefs only reads `data.cross_refs` which we DO have on
+// projects. The "Read further" panel below the body is built from
+// these authored references — no algorithmic similarity for projects
+// (the corpus graph is books-only).
+const crossRefs = await resolveCrossRefs(entry, locale);
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
   <article class="project-page">
     <a class="project-page__back" href={backHref}>← к проектам</a>
 
-    <header class="project-page__head">
+    <header class="project-page__masthead">
+      {/* Eyebrow spans both columns above the cover/title row so the
+          masthead opens with a deliberate "Проект" mark before either
+          the cover or the title lands. Same gesture book pages use,
+          minus the folio number — projects aren't book #X. */}
+      <p class="project-page__meta">Проект</p>
       <div class="project-page__cover">
-        <BookCover pair={pair} locale={locale} alt={`Обложка проекта: ${entry.data.title}`} loading="eager" />
+        <BookCover pair={pair} locale={locale} alt={`Иллюстрация проекта: ${entry.data.title}`} loading="eager" />
       </div>
-      <div>
-        <p class="project-page__meta">Проект</p>
+      <div class="project-page__body">
         <h1 class="project-page__title">{entry.data.title}</h1>
+        {tagline && <p class="project-page__tagline">{tagline}</p>}
       </div>
     </header>
 
     <div
-      class="prose"
+      class="prose prose--project"
       data-pagefind-body
       data-pagefind-meta={`title:${entry.data.title}`}
     >
       <Content />
     </div>
 
+    <ProjectRelated locale={locale} crossRefs={crossRefs} />
+
     <Colophon pair={pair} locale={locale} />
   </article>
 </Base>
 
 <style>
-  .project-page { max-width: 64rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
+  .project-page {
+    max-width: 64rem;
+    margin: 0 auto;
+    padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
+  }
   .project-page__back {
     font-family: var(--sans);
     font-size: 12.5px;
@@ -67,18 +91,44 @@ const backHref = kindIndexUrl("project", locale);
     text-decoration: none;
   }
   .project-page__back:hover { color: var(--accent); }
-  .project-page__head {
+
+  /*
+   * Masthead. Three-area grid same as the book page (eyebrow over the
+   * full width, cover + body underneath) so projects feel like cousins
+   * of book pages. The cover here is *illustration only* — no folio
+   * number, no heavy drop shadow — to mark that a project isn't a book.
+   */
+  .project-page__masthead {
     display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 2rem;
-    align-items: end;
-    margin-bottom: 2.5rem;
-    padding-bottom: 2rem;
+    grid-template-columns: 220px 1fr;
+    grid-template-areas:
+      "meta meta"
+      "cover body";
+    column-gap: 2.5rem;
+    row-gap: 1.4rem;
+    align-items: start;
+    margin-bottom: 3rem;
+    padding-bottom: 2.25rem;
     border-bottom: 1px solid var(--rule);
   }
+  .project-page__masthead .project-page__meta  { grid-area: meta;  }
+  .project-page__masthead .project-page__cover { grid-area: cover; }
+  .project-page__masthead .project-page__body  { grid-area: body;  }
   @media (max-width: 720px) {
-    .project-page__head { grid-template-columns: 1fr; gap: 1.5rem; }
-    .project-page__head .project-page__cover { max-width: 200px; }
+    .project-page__masthead {
+      grid-template-columns: 1fr;
+      grid-template-areas: "meta" "cover" "body";
+      row-gap: 1.25rem;
+    }
+    .project-page__masthead .project-page__cover { max-width: 200px; }
+  }
+  .project-page__cover :global(.bcv) {
+    /* Subtle lift, lighter than book pages — project cover reads as
+       illustration, not as a printed book object. */
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25), 0 28px 50px -30px rgba(0, 0, 0, 0.55);
+  }
+  :global([data-theme="light"]) .project-page__cover :global(.bcv) {
+    box-shadow: 0 1px 0 rgba(20, 17, 13, 0.05), 0 24px 48px -28px rgba(60, 45, 20, 0.30);
   }
   .project-page__meta {
     font-family: var(--sans);
@@ -87,14 +137,31 @@ const backHref = kindIndexUrl("project", locale);
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--ink-mute);
-    margin: 0 0 1rem;
+    margin: 0;
   }
   .project-page__title {
     font-family: var(--serif);
-    font-weight: 400;
-    font-size: clamp(2.1rem, 4.2vw, 3.2rem);
-    line-height: 1.05;
-    letter-spacing: -0.012em;
-    margin: 0;
+    font-weight: 500;
+    font-size: clamp(2.2rem, 4.4vw, 3.4rem);
+    line-height: 1.04;
+    letter-spacing: -0.018em;
+    margin: 0 0 1rem;
+    text-wrap: balance;
+    font-feature-settings: "lnum" 0, "onum" 1, "kern" 1;
   }
+  .project-page__tagline {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.05rem, 1.7vw, 1.2rem);
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0;
+    text-wrap: pretty;
+    max-width: 42rem;
+  }
+
+  /* Body prose fills its container — the masthead set the page width,
+     and a second clamp here would visibly disagree with the title row.
+     Same principle as book pages. */
+  .project-page .prose { max-width: none; }
 </style>

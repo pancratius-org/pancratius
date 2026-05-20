@@ -1,6 +1,6 @@
 ---
 import type { Locale } from "@/lib/i18n";
-import { FOOTER_LINKS, localizePath } from "@/lib/i18n";
+import { FOOTER_LINKS, localizePath, pageUrl } from "@/lib/i18n";
 import { getPage } from "@/lib/pages";
 
 interface Props {
@@ -20,15 +20,21 @@ const availableLinks = await Promise.all(
   }),
 ).then(xs => xs.filter((x): x is typeof FOOTER_LINKS[number] => x !== null));
 
+const licenseHref = pageUrl("license", locale);
+
 const copy = locale === "ru" ? {
-  cc0_a: "Тексты — в общественном достоянии (CC0).",
+  cc0_before: "Тексты — в общественном достоянии (",
+  cc0_link:   "CC0",
+  cc0_after:  ").",
   cc0_b: "Берите. Переводите. Перепечатывайте. Обучайте на них модели. Передавайте.",
   llms:    "Для языковых моделей",
   github:  "Зеркало на GitHub",
   telegram:"Telegram",
   sep: " · ",
 } : {
-  cc0_a: "All texts are in the public domain (CC0).",
+  cc0_before: "All texts are in the public domain (",
+  cc0_link:   "CC0",
+  cc0_after:  ").",
   cc0_b: "Take them. Translate. Reprint. Train models. Pass them on.",
   llms:    "For language models",
   github:  "GitHub mirror",
@@ -37,7 +43,7 @@ const copy = locale === "ru" ? {
 };
 ---
 <footer>
-  <p>{copy.cc0_a}</p>
+  <p>{copy.cc0_before}<a href={licenseHref}>{copy.cc0_link}</a>{copy.cc0_after}</p>
   <p>{copy.cc0_b}</p>
   <p class="footer__links">
     <a href="/llms.txt">{copy.llms}</a>

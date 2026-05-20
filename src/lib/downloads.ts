@@ -25,6 +25,7 @@ export const FORMATS_PER_KIND: Record<"book" | "poem" | "project", DownloadForma
 
 const REPO_ROOT = process.cwd();
 const CONTENT   = resolvePath(REPO_ROOT, "content");
+const SITE_ORIGIN = (process.env.PUBLIC_SITE_URL ?? "https://pancratius.ru").replace(/\/+$/, "");
 
 const CONTENT_TYPE: Record<DownloadFormat, string> = {
   md:   "text/markdown; charset=utf-8",
@@ -103,18 +104,12 @@ function copySibling(pair: WorkPair, entry: WorkEntry, ext: string): Uint8Array 
   return new Uint8Array(readFileSync(path));
 }
 
-/** Strip frontmatter and rewrite image refs to site-relative URLs. */
+/** Strip frontmatter and rewrite image refs to public absolute URLs. */
 function renderMarkdown(pair: WorkPair, entry: WorkEntry): Uint8Array {
   const raw = readSourceMd(pair, entry);
-  const body = stripFrontmatter(raw);
-  let rewritten = rewriteImageRefsToSiteRelative(body, pair, entry);
-  if (pair.kind === "poem") rewritten = portabilizeVerse(rewritten);
-  const header =
-    `# ${entry.data.title}\n` +
-    `\n` +
-    `<!-- Pancratius · CC0 · ${entry.data.lang.toUpperCase()} · ${entry.data.kind} #${entry.data.number} -->\n` +
-    `\n`;
-  return enc(header + rewritten);
+  let body = cleanPublicMarkdownBody(stripFrontmatter(raw), pair, entry);
+  if (pair.kind === "poem") body = portabilizeVerse(body);
+  return enc(body.trim() + "\n");
 }
 
 /**
@@ -139,7 +134,7 @@ function portabilizeVerse(body: string): string {
 /** Flatten Markdown to readable plain text. */
 function renderPlainText(pair: WorkPair, entry: WorkEntry): Uint8Array {
   const raw = readSourceMd(pair, entry);
-  const body = stripFrontmatter(raw);
+  const body = cleanPublicMarkdownBody(stripFrontmatter(raw), pair, entry);
   const flat = flattenMarkdown(body);
   const header =
     `${entry.data.title}\n` +
@@ -150,20 +145,89 @@ function renderPlainText(pair: WorkPair, entry: WorkEntry): Uint8Array {
   return enc(header + flat);
 }
 
-/**
- * Rewrite `./images/X` in a markdown body to `/<segment>/{slug}/images/X`.
- * The `.md` download lives at `/<segment>/{slug}.md` (no trailing slash); the
- * original `./images/X` would resolve to `/<segment>/images/X` and 404.
- */
-function rewriteImageRefsToSiteRelative(body: string, pair: WorkPair, entry: WorkEntry): string {
-  const base = workUrl(pair.kind, entry.data.slug, entry.data.lang as Locale);
-  let out = body.replace(/!\[([^\]]*)]\(\.\/images\/([^)\s]+)\)/g, (_m, alt, file) => {
-    return `![${alt}](${base}images/${file})`;
+function workImageUrl(pair: WorkPair, entry: WorkEntry, src: string): string {
+  const trimmed = decodeHtmlEntities(src.trim());
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("/")) return new URL(trimmed, `${SITE_ORIGIN}/`).toString();
+  const file = trimmed.replace(/^\.?\//, "");
+  if (file.startsWith("images/")) {
+    const base = workUrl(pair.kind, entry.data.slug, entry.data.lang as Locale);
+    return new URL(`${base}${file}`, `${SITE_ORIGIN}/`).toString();
+  }
+  return trimmed;
+}
+
+function attrValue(attrs: string, name: string): string {
+  const re = new RegExp(`${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, "i");
+  const got = attrs.match(re);
+  return got ? (got[1] ?? got[2] ?? "") : "";
+}
+
+function cleanPublicMarkdownBody(body: string, pair: WorkPair, entry: WorkEntry): string {
+  let out = body.replace(/\r\n?/g, "\n");
+
+  out = out.replace(/<blockquote\s+class=["']epigraph["'][^>]*>\s*([\s\S]*?)\s*<\/blockquote>/gi, (_m, inner) => {
+    const footer = inner.match(/<footer[^>]*>([\s\S]*?)<\/footer>/i)?.[1] ?? "";
+    const withoutFooter = inner.replace(/<footer[^>]*>[\s\S]*?<\/footer>/i, "");
+    const text = htmlInlineToMarkdown(withoutFooter)
+      .split("\n")
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map(line => `> ${line}`)
+      .join("\n");
+    const source = footer.trim() ? `\n> — ${htmlInlineToMarkdown(footer).trim()}` : "";
+    return `\n\n${text}${source}\n\n`;
   });
-  out = out.replace(/(<img\b[^>]*\bsrc=["'])\.\/images\/([^"']+)(["'])/gi, (_m, pre, file, post) => {
-    return `${pre}${base}images/${file}${post}`;
+
+  out = out.replace(/<div\s+class=["']verse-block["'][^>]*>\s*([\s\S]*?)\s*<\/div>/gi, (_m, inner) => {
+    return `\n\n${htmlInlineToMarkdown(inner).trim()}\n\n`;
   });
-  return out;
+
+  out = out.replace(/<p\s+class=["']signature["'][^>]*>\s*([\s\S]*?)\s*<\/p>/gi, (_m, inner) => {
+    return `\n\n${htmlInlineToMarkdown(inner).trim()}\n\n`;
+  });
+
+  out = out.replace(/<img\b([^>]*?)\/?>/gi, (_m, attrs) => {
+    const src = attrValue(attrs, "src");
+    if (!src) return "";
+    const alt = htmlInlineToMarkdown(attrValue(attrs, "alt")).replace(/\n+/g, " ").trim();
+    return `\n\n![${alt}](${workImageUrl(pair, entry, src)})\n\n`;
+  });
+
+  out = out.replace(/!\[([^\]]*)]\(\.\/images\/([^)\s]+)\)/g, (_m, alt, file) => {
+    return `![${alt}](${workImageUrl(pair, entry, `./images/${file}`)})`;
+  });
+
+  out = htmlInlineToMarkdown(out);
+  out = out.replace(/[ \t]+\n/g, "\n");
+  out = out.replace(/\n{4,}/g, "\n\n\n");
+  return out.trim() + "\n";
+}
+
+function htmlInlineToMarkdown(input: string): string {
+  let out = input;
+  out = out.replace(/<br\s*\/?>/gi, "\n");
+  out = out.replace(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_m, href, text) => {
+    return `[${htmlInlineToMarkdown(text).trim()}](${decodeHtmlEntities(href)})`;
+  });
+  out = out.replace(/<strong\b[^>]*>([\s\S]*?)<\/strong>/gi, (_m, text) => `**${htmlInlineToMarkdown(text).trim()}**`);
+  out = out.replace(/<b\b[^>]*>([\s\S]*?)<\/b>/gi, (_m, text) => `**${htmlInlineToMarkdown(text).trim()}**`);
+  out = out.replace(/<em\b[^>]*>([\s\S]*?)<\/em>/gi, (_m, text) => `*${htmlInlineToMarkdown(text).trim()}*`);
+  out = out.replace(/<i\b[^>]*>([\s\S]*?)<\/i>/gi, (_m, text) => `*${htmlInlineToMarkdown(text).trim()}*`);
+  out = out.replace(/<\/?p\b[^>]*>/gi, "");
+  out = out.replace(/<\/?div\b[^>]*>/gi, "");
+  out = out.replace(/<[^>]+>/g, "");
+  return decodeHtmlEntities(out);
+}
+
+function decodeHtmlEntities(s: string): string {
+  return s
+    .replace(/&nbsp;/g, " ")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
 }
 
 // ─────────────────────────────────────────────────────────────────────

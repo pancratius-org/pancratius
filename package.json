@@ -9,8 +9,8 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "dev": "npm run prebuild && astro dev",
-    "build": "npm run prebuild && astro check && astro build && uv run scripts/build_copy_body_images.py && uv run scripts/build_bulk_archives.py --publish && pagefind --site dist",
+    "dev": "npm run prebuild && uv run scripts/sync_pagefind_dev.py && astro dev",
+    "build": "npm run prebuild && astro check && astro build && uv run scripts/build_copy_body_images.py && pagefind --site dist",
     "preview": "astro preview",
     "check": "npm run prebuild && astro check",
     "astro": "astro",

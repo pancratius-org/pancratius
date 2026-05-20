@@ -56,7 +56,7 @@ const FORMAT_LABEL: Record<ArchiveInfo["format"], string> = {
   epub: "EPUB",
 };
 const FORMAT_BLURB: Record<ArchiveInfo["format"], string> = {
-  md:   "Чистый текст всех книг, стихов и проектов с YAML-фронтматтером.",
+  md:   "Чистый Markdown всех книг, стихов и проектов.",
   pdf:  "Книги, стихи и проекты в PDF — для печати и офлайн-чтения.",
   epub: "Книги в EPUB — для электронных читалок.",
 };
@@ -64,6 +64,7 @@ const FORMAT_BLURB: Record<ArchiveInfo["format"], string> = {
 <Base locale={locale} seo={seo} alternates={{}}>
   <article class="dl">
     <header class="dl__head">
+      {page.data.eyebrow && <p class="eyebrow eyebrow--lg">{page.data.eyebrow}</p>}
       <h1>{page.data.title}</h1>
       {page.data.sub && <p class="dl__sub">{page.data.sub}</p>}
     </header>

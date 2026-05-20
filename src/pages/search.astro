@@ -24,11 +24,18 @@ const alternates = { en: "/en/search/" };
       Полнотекстовый поиск по всему корпусу. Запросы остаются у вас в браузере.
     </p>
     <PagefindSearch locale={locale} />
+    <p class="search-page__hint">
+      <span>Попробуйте:</span>
+      <a href="?q=Иисус">Иисус</a>
+      <a href="?q=Светозар">Светозар</a>
+      <a href="?q=Царствие">Царствие</a>
+      <a href="?q=Святая Русь">Святая Русь</a>
+    </p>
   </section>
 </Base>
 
 <style>
-  .search-page { max-width: 64rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
+  .search-page { max-width: 64rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); min-height: 60vh; }
   .search-page h1 {
     font-family: var(--serif);
     font-weight: 400;
@@ -43,5 +50,37 @@ const alternates = { en: "/en/search/" };
     color: var(--ink-soft);
     max-width: 36rem;
     margin: 0 0 2.5rem;
+  }
+  .search-page__hint {
+    margin: 1.4rem 0 0;
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--ink-mute);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.1rem;
+    align-items: baseline;
+  }
+  .search-page__hint span {
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--accent);
+    margin-right: 0.2rem;
+  }
+  .search-page__hint a {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+    text-underline-offset: 3px;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .search-page__hint a:hover {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
   }
 </style>

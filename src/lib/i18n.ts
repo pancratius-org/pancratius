@@ -59,6 +59,46 @@ export const LOCALE_LABEL: Record<Locale, string> = {
   en: "EN",
 };
 
+/**
+ * Russian pluralization.
+ *
+ * Russian nouns take three forms when counted:
+ *   - one  (1)              → 1 книга
+ *   - few  (2–4)            → 2 книги
+ *   - many (5–20)           → 5 книг
+ *
+ * The choice depends on the last two digits of the number:
+ *   - 11–14 → many   (отличие от 1/2/3 — "одиннадцать книг")
+ *   - mod 10 = 1 → one   (21 книга, 101 книга)
+ *   - mod 10 = 2..4 → few (22 книги, 43 псалма)
+ *   - else → many        (25 книг, 47 книг)
+ *
+ * The catalogue below holds the three forms for every count we render.
+ * Add a new lemma when a new countable noun appears in copy.
+ */
+export type RuPluralForms = readonly [one: string, few: string, many: string];
+
+export const RU_PLURALS = {
+  book:           ["книга",         "книги",          "книг"]          as const,
+  bookDative:     ["книге",         "книгам",         "книгам"]        as const,
+  poem:           ["стихотворение", "стихотворения",  "стихотворений"] as const,
+  psalm:          ["псалом",        "псалма",         "псалмов"]       as const,
+  project:        ["проект",        "проекта",        "проектов"]      as const,
+  direction:      ["направление",   "направления",    "направлений"]   as const,
+  door:           ["дверь",         "двери",          "дверей"]        as const,
+} as const;
+
+/** Pick the right form of a Russian noun for the given count. */
+export function plRu(n: number, forms: RuPluralForms): string {
+  const abs = Math.abs(n);
+  const mod10 = abs % 10;
+  const mod100 = abs % 100;
+  if (mod100 >= 11 && mod100 <= 14) return forms[2];
+  if (mod10 === 1) return forms[0];
+  if (mod10 >= 2 && mod10 <= 4) return forms[1];
+  return forms[2];
+}
+
 /** Long-form locale name for ARIA. Read as `LOCALE_NAME[uiLocale][targetLocale]`. */
 export const LOCALE_NAME: Record<Locale, Record<Locale, string>> = {
   ru: { ru: "Русский", en: "Английский" },
@@ -85,6 +125,7 @@ export interface NavItem {
 export const HEADER_NAV: readonly NavItem[] = [
   { path: "/books/",          label: { ru: "Книги",          en: "Books" } },
   { path: "/poetry/",         label: { ru: "Поэзия",         en: "Poetry" } },
+  { path: "/projects/",       label: { ru: "Проекты",        en: "Projects" } },
   { path: "/conceptosphere/", label: { ru: "Концептосфера",  en: "Concept map" } },
   { path: "/svetozar/",       label: { ru: "Светозар",       en: "Svetozar" }, pageSlug: "svetozar" },
   { path: "/about/",          label: { ru: "Человек",        en: "Human"    }, pageSlug: "about" },

@@ -27,14 +27,16 @@ for the ``/downloads/`` index page to consume.
 not run pandoc or typst; if a work has no committed sibling artefact for a
 format, that work is silently omitted from the bundle.
 
-Two-phase pipeline because ``astro build`` wipes ``dist/``:
+Build pipeline:
 
   uv run scripts/build_bulk_archives.py            # default: builds all-md.zip
     Writes the zip(s) to .cache/bulk-archives/ and data/bulk-archives.json
-    so the /downloads/ page can render size + sha256 at astro-build time.
+    so the /downloads/ page can render size + sha256 and the
+    /downloads/[file].ts static endpoint can emit the zip at Astro-build time.
 
   uv run scripts/build_bulk_archives.py --publish
-    Copies the cached zips into dist/downloads/ after astro build.
+    Manual escape hatch: copies the cached zips into dist/downloads/. The
+    normal npm build does not need this because Astro emits the endpoint.
 
   uv run scripts/build_bulk_archives.py --formats md,pdf,epub
     Off-host build that also packages bulk PDF + EPUB. Intended for
@@ -46,6 +48,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import sys
 import zipfile
@@ -66,6 +69,7 @@ KIND_DIRS = {"book": "books", "poem": "poetry", "project": "projects"}
 LANGS = ("ru", "en")
 ALL_FORMATS = ("md", "pdf", "epub")
 DEFAULT_FORMATS = ("md",)
+SITE_ORIGIN = "https://pancratius.ru"
 
 
 @dataclass(slots=True)
@@ -83,6 +87,117 @@ def _slug_for(md: Path) -> str | None:
     _, fm, _ = text.split("---", 2)
     data = yaml.safe_load(fm)
     return data.get("slug") if isinstance(data, dict) else None
+
+
+def _split_frontmatter(text: str) -> tuple[dict[str, object], str]:
+    if not text.startswith("---"):
+        return {}, text
+    parts = text.split("---", 2)
+    if len(parts) != 3:
+        return {}, text
+    data = yaml.safe_load(parts[1])
+    return (data if isinstance(data, dict) else {}), parts[2].lstrip()
+
+
+def _decode_html_entities(s: str) -> str:
+    return (
+        s.replace("&nbsp;", " ")
+        .replace("&quot;", '"')
+        .replace("&#39;", "'")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&amp;", "&")
+    )
+
+
+def _html_inline_to_markdown(s: str) -> str:
+    out = s
+    out = re.sub(r"<br\s*/?>", "\n", out, flags=re.I)
+    out = re.sub(
+        r"<a\b[^>]*href=[\"']([^\"']+)[\"'][^>]*>([\s\S]*?)</a>",
+        lambda m: f"[{_html_inline_to_markdown(m.group(2)).strip()}]({_decode_html_entities(m.group(1))})",
+        out,
+        flags=re.I,
+    )
+    out = re.sub(
+        r"<(?:strong|b)\b[^>]*>([\s\S]*?)</(?:strong|b)>",
+        lambda m: f"**{_html_inline_to_markdown(m.group(1)).strip()}**",
+        out,
+        flags=re.I,
+    )
+    out = re.sub(
+        r"<(?:em|i)\b[^>]*>([\s\S]*?)</(?:em|i)>",
+        lambda m: f"*{_html_inline_to_markdown(m.group(1)).strip()}*",
+        out,
+        flags=re.I,
+    )
+    out = re.sub(r"</?(?:p|div)\b[^>]*>", "", out, flags=re.I)
+    out = re.sub(r"<[^>]+>", "", out)
+    return _decode_html_entities(out)
+
+
+def _attr(attrs: str, name: str) -> str:
+    m = re.search(rf"{name}\s*=\s*(?:\"([^\"]*)\"|'([^']*)')", attrs, flags=re.I)
+    return (m.group(1) or m.group(2) or "") if m else ""
+
+
+def _image_url(entry: Entry, src: str) -> str:
+    src = _decode_html_entities(src.strip())
+    if re.match(r"https?://", src, flags=re.I):
+        return src
+    if src.startswith("/"):
+        return f"{SITE_ORIGIN}{src}"
+    file = re.sub(r"^\.?/", "", src)
+    if file.startswith("images/"):
+        return f"{SITE_ORIGIN}/{KIND_DIRS[entry.kind]}/{entry.slug}/{file}"
+    return src
+
+
+def _clean_markdown_body(body: str, entry: Entry) -> str:
+    out = body.replace("\r\n", "\n").replace("\r", "\n")
+    out = re.sub(
+        r"<blockquote\s+class=[\"']epigraph[\"'][^>]*>\s*([\s\S]*?)\s*</blockquote>",
+        lambda m: "\n\n" + "\n".join(
+            f"> {line.strip()}"
+            for line in _html_inline_to_markdown(m.group(1)).splitlines()
+            if line.strip()
+        ) + "\n\n",
+        out,
+        flags=re.I,
+    )
+    out = re.sub(
+        r"<div\s+class=[\"']verse-block[\"'][^>]*>\s*([\s\S]*?)\s*</div>",
+        lambda m: f"\n\n{_html_inline_to_markdown(m.group(1)).strip()}\n\n",
+        out,
+        flags=re.I,
+    )
+    out = re.sub(
+        r"<p\s+class=[\"']signature[\"'][^>]*>\s*([\s\S]*?)\s*</p>",
+        lambda m: f"\n\n{_html_inline_to_markdown(m.group(1)).strip()}\n\n",
+        out,
+        flags=re.I,
+    )
+    out = re.sub(
+        r"<img\b([^>]*?)/?>",
+        lambda m: f"\n\n![{_html_inline_to_markdown(_attr(m.group(1), 'alt')).strip()}]({_image_url(entry, _attr(m.group(1), 'src'))})\n\n"
+        if _attr(m.group(1), "src") else "",
+        out,
+        flags=re.I,
+    )
+    out = re.sub(
+        r"!\[([^\]]*)]\(\./images/([^\)\s]+)\)",
+        lambda m: f"![{m.group(1)}]({_image_url(entry, './images/' + m.group(2))})",
+        out,
+    )
+    out = _html_inline_to_markdown(out)
+    out = re.sub(r"[ \t]+\n", "\n", out)
+    out = re.sub(r"\n{4,}", "\n\n\n", out)
+    return out.strip() + "\n"
+
+
+def _public_markdown(entry: Entry) -> str:
+    _data, body = _split_frontmatter(entry.path.read_text(encoding="utf-8"))
+    return _clean_markdown_body(body, entry)
 
 
 def _iter_entries(fmt: str) -> Iterable[Entry]:
@@ -136,7 +251,10 @@ def _build_archive(fmt: str) -> dict[str, object] | None:
     with zipfile.ZipFile(out_path, "w", method) as zf:
         for e in entries:
             arcname = f"{KIND_DIRS[e.kind]}/{e.lang}/{e.slug}.{fmt}"
-            zf.write(e.path, arcname=arcname)
+            if fmt == "md":
+                zf.writestr(arcname, _public_markdown(e))
+            else:
+                zf.write(e.path, arcname=arcname)
     size = out_path.stat().st_size
     return {
         "name":   f"all-{fmt}.zip",

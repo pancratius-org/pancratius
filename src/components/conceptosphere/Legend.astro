@@ -30,7 +30,9 @@ const t = conceptosphereStrings(locale);
     top: 16px;
     left: 16px;
     z-index: 20;
-    max-width: 240px;
+    width: min(240px, calc(100vw - 32px));
+    max-height: calc(100dvh - var(--cs-header-top, 56px) - 112px);
+    overflow: hidden;
     background: var(--cs-panel-bg);
     border: 1px solid var(--cs-rule);
     backdrop-filter: blur(6px);
@@ -50,15 +52,21 @@ const t = conceptosphereStrings(locale);
   .cs-legend #cs-legend-list {
     margin: 0;
     padding: 0;
-    max-height: 56vh;
+    max-height: calc(100dvh - var(--cs-header-top, 56px) - 190px);
     overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: var(--cs-rule-2) transparent;
   }
-  .cs-legend .cs-legend-item {
+  .cs-legend :global(.cs-legend-item) {
+    appearance: none;
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 3px 0;
     width: 100%;
+    min-width: 0;
     font-size: 13px;
     font-family: inherit;
     cursor: pointer;
@@ -68,26 +76,34 @@ const t = conceptosphereStrings(locale);
     text-align: left;
     transition: color 120ms ease, opacity 120ms ease;
   }
-  .cs-legend .cs-legend-item:hover { color: var(--accent); }
-  .cs-legend .cs-legend-item.is-selected { color: var(--accent); }
-  .cs-legend .cs-legend-item.is-selected .cs-sw {
+  .cs-legend :global(.cs-legend-item:hover) { color: var(--accent); }
+  .cs-legend :global(.cs-legend-item.is-selected) { color: var(--accent); }
+  .cs-legend :global(.cs-legend-item.is-selected .cs-sw) {
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent);
   }
-  .cs-legend .cs-legend-item.is-muted { opacity: 0.35; }
-  .cs-legend .cs-legend-item .cs-sw {
+  .cs-legend :global(.cs-legend-item.is-muted) { opacity: 0.35; }
+  .cs-legend :global(.cs-legend-item .cs-sw) {
     width: 11px;
     height: 11px;
     border-radius: 50%;
     flex: 0 0 11px;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+    margin-inline: 1px 2px;
+    box-shadow: none;
   }
-  .cs-legend .cs-legend-item .cs-sz {
+  .cs-legend :global(.cs-legend-item span:not(.cs-sw):not(.cs-sz)) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cs-legend :global(.cs-legend-item .cs-sz) {
     margin-left: auto;
     font-family: var(--mono);
     font-size: 10.5px;
     color: var(--cs-ink-trace);
   }
   .cs-legend-clear {
+    appearance: none;
     display: block;
     margin-top: 8px;
     font-family: var(--mono);

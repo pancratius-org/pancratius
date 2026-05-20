@@ -129,8 +129,6 @@ const PALETTE = [
   "#d9876b", "#5d997f", "#b5934f", "#8a7fbf", "#a3625f",
 ] as const;
 
-const STORAGE_KEY = "pancratius:conceptosphere:mode";
-
 // ─────────────────────────────────────────────────────────────────────
 // Small helpers.
 // ─────────────────────────────────────────────────────────────────────
@@ -152,6 +150,37 @@ function mixRgb(
 }
 function rgba([r, g, b]: [number, number, number], a: number): string {
   return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${a.toFixed(3)})`;
+}
+
+function parseCssRgba(value: string): { rgb: [number, number, number]; alpha: number } | null {
+  const match = value.match(/^\s*rgba?\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)(?:\s*,\s*([0-9.]+))?\s*\)\s*$/i);
+  if (!match) return null;
+  const r = Number(match[1]);
+  const g = Number(match[2]);
+  const b = Number(match[3]);
+  const a = match[4] === undefined ? 1 : Number(match[4]);
+  if (![r, g, b, a].every(Number.isFinite)) return null;
+  return {
+    rgb: [
+      Math.max(0, Math.min(255, r)),
+      Math.max(0, Math.min(255, g)),
+      Math.max(0, Math.min(255, b)),
+    ],
+    alpha: Math.max(0, Math.min(1, a)),
+  };
+}
+
+// Sigma's WebGL layers use premultiplied-alpha blending. Canvas painters still
+// want normal rgba(), but translucent colors sent into Sigma need RGB scaled by
+// alpha or they wash out badly on the light paper background.
+function sigmaRgba(rgb: [number, number, number], alpha: number): string {
+  const a = Math.max(0, Math.min(1, alpha));
+  return rgba([rgb[0] * a, rgb[1] * a, rgb[2] * a], a);
+}
+
+function sigmaCssRgba(value: string, fallbackRgb: [number, number, number], fallbackAlpha: number): string {
+  const parsed = parseCssRgba(value);
+  return parsed ? sigmaRgba(parsed.rgb, parsed.alpha) : sigmaRgba(fallbackRgb, fallbackAlpha);
 }
 
 function escapeHtml(s: string): string {
@@ -228,6 +257,7 @@ interface Session {
    *  reducer attached to the previous session. */
   dimNode:  string;
   dimEdge:  string;
+  focusEdge: string;
   state: {
     hovered: string | null;
     pinned:  string | null;
@@ -281,6 +311,7 @@ async function start(cfg: PageConfig): Promise<void> {
     loadSerial: 0,
     reduceMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     dataCache: new Map(),
+    activeMode: null,
   };
 
   ctx.panelClose.addEventListener("click", () => {
@@ -292,6 +323,12 @@ async function start(cfg: PageConfig): Promise<void> {
   });
 
   document.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K") && !e.altKey) {
+      e.preventDefault();
+      ctx.desktopSearch.focus();
+      ctx.desktopSearch.select();
+      return;
+    }
     if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey && !isEditableTarget(document.activeElement)) {
       e.preventDefault();
       ctx.desktopSearch.focus();
@@ -322,13 +359,26 @@ async function start(cfg: PageConfig): Promise<void> {
     btn.addEventListener("click", () => {
       const mode = btn.getAttribute("data-mode") as Mode | null;
       if (!mode) return;
-      setMode(ctx, mode);
+      void setMode(ctx, mode).catch((err) => showGraphError(ctx, err));
     });
   });
 
-  const initial = readStoredMode() ?? cfg.initialMode;
+  let themeRaf: number | null = null;
+  const themeObserver = new MutationObserver(() => {
+    if (themeRaf !== null) cancelAnimationFrame(themeRaf);
+    themeRaf = requestAnimationFrame(() => {
+      themeRaf = null;
+      const mode = ctx.activeMode ?? cfg.initialMode;
+      void setMode(ctx, mode).catch((err) => showGraphError(ctx, err));
+    });
+  });
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+  });
+
   try {
-    await setMode(ctx, initial);
+    await setMode(ctx, cfg.initialMode);
   } catch (err) {
     showGraphError(ctx, err);
   }
@@ -349,6 +399,7 @@ interface AppContext {
   loadSerial:    number;
   reduceMotion:  boolean;
   dataCache:     Map<string, GraphPayload>;
+  activeMode:    Mode | null;
 }
 
 function requireEl<T extends HTMLElement = HTMLElement>(id: string): T {
@@ -363,29 +414,18 @@ function isEditableTarget(el: Element | null): boolean {
   return html.isContentEditable || el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT";
 }
 
-function readStoredMode(): Mode | null {
-  try {
-    const v = localStorage.getItem(STORAGE_KEY);
-    if (v === "books" || v === "concepts") return v;
-  } catch { /* private mode */ }
-  return null;
-}
-function writeStoredMode(m: Mode): void {
-  try { localStorage.setItem(STORAGE_KEY, m); } catch { /* ignore */ }
-}
-
 // ─────────────────────────────────────────────────────────────────────
 // Mode swap.
 // ─────────────────────────────────────────────────────────────────────
 
 async function setMode(ctx: AppContext, mode: Mode): Promise<void> {
+  ctx.activeMode = mode;
   // Mark the active tab. role="tab" only accepts aria-selected (aria-pressed
   // is for role="button" toggles), so we use aria-selected exclusively here.
   document.querySelectorAll<HTMLButtonElement>("[data-cs-mode-toggle] button[data-mode]").forEach((b) => {
     const isActive = b.getAttribute("data-mode") === mode;
     b.setAttribute("aria-selected", isActive ? "true" : "false");
   });
-  writeStoredMode(mode);
 
   // Mobile: toggle the visible mode section in the statically-rendered list.
   document.querySelectorAll<HTMLElement>("[data-cs-mobile-mode]").forEach((el) => {
@@ -519,23 +559,28 @@ function showGraphError(ctx: AppContext, err: unknown): void {
 // Build a session (graph + Sigma + sector layout + painters).
 // ─────────────────────────────────────────────────────────────────────
 
-// Dim values are themed: dark uses a warm dim grey that recedes into the
-// void; light uses a soft mid-paper tone so muted nodes don't disappear into
-// the page. Snapshotted into the Session at build time (see `dimNode`/
-// `dimEdge` below) so the values can never drift between two sessions that
-// were built under different themes — module-level mutables would let a
-// second build mutate the first session's reducer behaviour.
+// Dim values are snapshotted into the Session at build time so the values can
+// never drift between two sessions that were built under different themes.
+// Light-mode node dimming is sent to Sigma's WebGL node program, so it uses
+// sigmaRgba() instead of the CSS token's ordinary rgba().
 const DIM_NODE_FALLBACK = "rgba(70, 65, 55, 0.45)";
 const DIM_EDGE_FALLBACK = "rgba(80, 70, 55, 0.04)";
-const FOCUS_EDGE = "rgba(233, 161, 66, 0.55)";
+const FOCUS_EDGE_DARK = "rgba(233, 161, 66, 0.55)";
 
 function buildSession(ctx: AppContext, data: GraphPayload, mode: Mode): Session {
   // Snapshot themed dim values for this session. Sigma copies these into the
   // node colour buffer the moment the reducer runs; reading once here and
   // storing on the Session means a live session never sees a mutated value
   // (mode swap rebuilds the session anyway).
-  const dimNode = cssVar("--cs-dim-node", DIM_NODE_FALLBACK);
+  const isLightTheme = document.documentElement.getAttribute("data-theme") === "light";
+  const dimNodeCss = cssVar("--cs-dim-node", DIM_NODE_FALLBACK);
+  const dimNode = isLightTheme
+    ? sigmaCssRgba(dimNodeCss, [92, 78, 58], 0.52)
+    : dimNodeCss;
   const dimEdge = cssVar("--cs-dim-edge", DIM_EDGE_FALLBACK);
+  const focusEdge = isLightTheme
+    ? sigmaRgba([154, 89, 24], 0.58)
+    : FOCUS_EDGE_DARK;
 
   const state = {
     hovered: null as string | null,
@@ -572,10 +617,10 @@ function buildSession(ctx: AppContext, data: GraphPayload, mode: Mode): Session 
   const maxSize = Math.max(...sizes);
   const sizeThresh = maxSize * 0.62;
   const labelSizes = sizes.map((s) => {
-    if (s >= maxSize * 0.78) return 17;
-    if (s >= maxSize * 0.55) return 14.5;
-    if (s >= maxSize * 0.36) return 12.5;
-    return 11.5;
+    if (s >= maxSize * 0.78) return 18;
+    if (s >= maxSize * 0.55) return 15.5;
+    if (s >= maxSize * 0.36) return 13.5;
+    return 12.5;
   });
 
   // Seed each community in its own sector. Sector width ∝ sqrt(community
@@ -602,7 +647,7 @@ function buildSession(ctx: AppContext, data: GraphPayload, mode: Mode): Session 
   }
 
   const RING_BASE = 22;
-  const COM_SPREAD = mode === "books" ? 6.0 : 3.8;
+  const COM_SPREAD = mode === "books" ? 7.6 : 3.8;
 
   const comCentroid = new Map<number, { x: number; y: number }>();
   for (const c of comsBySize) {
@@ -710,11 +755,27 @@ function buildSession(ctx: AppContext, data: GraphPayload, mode: Mode): Session 
     const t = Math.pow(Math.max(0, (w - minW) / wRange), 0.55);
     const ca = comRgb.get(sc)!;
     const cb = comRgb.get(tc)!;
+    const paperInk: [number, number, number] = [26, 18, 12];
+    const darkNeutral: [number, number, number] = [120, 110, 95];
+    const withinRgb = isLightTheme ? mixRgb(ca, paperInk, mode === "concepts" ? 0.20 : 0.24) : ca;
+    const crossRgb = isLightTheme
+      ? mixRgb(ca, paperInk, mode === "concepts" ? 0.12 : 0.18)
+      : mixRgb(mixRgb(ca, cb, 0.5), darkNeutral, 0.4);
+    const withinAlpha = isLightTheme
+      ? (mode === "books" ? 0.58 + t * 0.20 : 0.52 + t * 0.18)
+      : 0.22 + t * 0.55;
+    const crossAlpha = isLightTheme
+      ? (mode === "books" ? 0.42 + t * 0.18 : 0.24 + t * 0.12)
+      : 0.07 + t * 0.28;
     const edgeColor = within
-      ? rgba(ca, 0.22 + t * 0.55)
-      : rgba(mixRgb(mixRgb(ca, cb, 0.5), [120, 110, 95], 0.4), 0.07 + t * 0.28);
-    const sizeWithin = 0.6 + t * 5.0;
-    const sizeCross  = 0.4 + t * 3.0;
+      ? (isLightTheme ? sigmaRgba(withinRgb, withinAlpha) : rgba(withinRgb, withinAlpha))
+      : (isLightTheme ? sigmaRgba(crossRgb, crossAlpha) : rgba(crossRgb, crossAlpha));
+    const sizeWithin = isLightTheme
+      ? (mode === "books" ? 0.72 + t * 2.5 : 0.62 + t * 2.3)
+      : 0.6 + t * 5.0;
+    const sizeCross = isLightTheme
+      ? (mode === "books" ? 0.52 + t * 1.6 : 0.30 + t * 0.80)
+      : 0.4 + t * 3.0;
     graph.addEdge(e.source, e.target, {
       size: within ? sizeWithin : sizeCross,
       _size: within ? sizeWithin : sizeCross,
@@ -833,7 +894,7 @@ function buildSession(ctx: AppContext, data: GraphPayload, mode: Mode): Session 
       subR = Math.max(subR, Math.hypot(a.x as number, a.y as number));
     });
     const targetR = mode === "books"
-      ? Math.min(80, 18 + Math.sqrt(nodes.length) * 8)
+      ? Math.min(132, 32 + Math.sqrt(nodes.length) * 12.5)
       : Math.min(28, 6 + Math.sqrt(nodes.length) * 3);
     const subScale = subR > 0 ? targetR / subR : 1;
     sub.forEachNode((id, a) => {
@@ -841,6 +902,20 @@ function buildSession(ctx: AppContext, data: GraphPayload, mode: Mode): Session 
         graph.setNodeAttribute(id, "x", (a.x as number) * subScale + centroid.x);
         graph.setNodeAttribute(id, "y", (a.y as number) * subScale + centroid.y);
       }
+    });
+  }
+
+  relaxOverlaps(graph, {
+    iterations: ctx.reduceMotion ? (mode === "books" ? 120 : 70) : (mode === "books" ? 260 : 150),
+    margin: mode === "books" ? 9.5 : 2.0,
+    ratio: mode === "books" ? 1.22 : 1.08,
+  });
+  if (mode === "books") {
+    relaxCommunityCircles(graph, nodesByCom, {
+      iterations: ctx.reduceMotion ? 45 : 90,
+      margin: 22,
+      ratio: 0.90,
+      strength: 0.32,
     });
   }
 
@@ -863,16 +938,19 @@ function buildSession(ctx: AppContext, data: GraphPayload, mode: Mode): Session 
   });
 
   // ── Sigma renderer ──────────────────────────────────────────────
+  let rendererRef: Sigma | null = null;
   const settings: Partial<SigmaSettings> = {
     renderEdgeLabels: false,
-    defaultEdgeColor: "rgba(232, 227, 214, 0.10)",
+    defaultEdgeColor: isLightTheme
+      ? sigmaRgba([80, 58, 34], 0.18)
+      : "rgba(232, 227, 214, 0.10)",
     labelColor: { color: cssVar("--cs-label-color", "#f3eee0") },
     labelFont: 'var(--serif), Georgia, serif',
-    labelSize: 12.5,
-    labelWeight: "500",
-    labelDensity: 0.4,
-    labelGridCellSize: 140,
-    labelRenderedSizeThreshold: mode === "books" ? 0 : 11,
+    labelSize: 13.5,
+    labelWeight: "600",
+    labelDensity: mode === "concepts" ? 1 : 0.4,
+    labelGridCellSize: mode === "concepts" ? 68 : 140,
+    labelRenderedSizeThreshold: mode === "books" ? 0 : 6.5,
     minCameraRatio: 0.08,
     maxCameraRatio: 8,
     zIndex: true,
@@ -880,17 +958,21 @@ function buildSession(ctx: AppContext, data: GraphPayload, mode: Mode): Session 
     // dark/light palette; we paint our own focus chrome via afterRender.
     defaultDrawNodeHover: () => { /* no-op */ },
     defaultDrawNodeLabel: (context, displayData, drawSettings) => {
-      const fl = (displayData as NodeDisplayData & { forceLabel?: boolean }).forceLabel;
-      if (!displayData.label || !fl) return;
-      const labelSize = (displayData as NodeDisplayData & { labelSize?: number }).labelSize
+      if (!displayData.label) return;
+      if (mode === "books") return;
+      const baseLabelSize = (displayData as NodeDisplayData & { labelSize?: number }).labelSize
         ?? drawSettings.labelSize;
+      const cameraRatio = Math.max(0.001, rendererRef?.getCamera().getState().ratio ?? 1);
+      const zoomLift = Math.max(0, Math.min(1, (0.72 - cameraRatio) / 0.56));
+      const labelScale = 1 + zoomLift * (isLightTheme ? 0.46 : 0.32);
+      const labelSize = baseLabelSize * labelScale;
       const font = drawSettings.labelFont;
       const weight = drawSettings.labelWeight;
       context.font = `${weight} ${labelSize}px ${font}`;
       const label = displayData.label;
-      const x = displayData.x + displayData.size + 3;
+      const x = displayData.x + displayData.size + 3 + zoomLift * 2;
       const y = displayData.y + labelSize / 3;
-      context.lineWidth = 1.5;
+      context.lineWidth = (isLightTheme ? 3.4 : 2.5) * Math.min(1.24, labelScale);
       context.strokeStyle = cssVar("--cs-label-halo", "rgba(6, 8, 12, 0.55)");
       context.lineJoin = "round";
       context.miterLimit = 2;
@@ -901,6 +983,7 @@ function buildSession(ctx: AppContext, data: GraphPayload, mode: Mode): Session 
   };
 
   const renderer = new Sigma(graph, ctx.stage, settings);
+  rendererRef = renderer;
 
   // Sigma mounts a stack of `<canvas>` children under the stage. They're
   // pure presentation — every meaningful surface is exposed through the
@@ -1055,18 +1138,178 @@ function buildSession(ctx: AppContext, data: GraphPayload, mode: Mode): Session 
   window.__csRenderer = renderer;
   window.__csGraph = graph;
 
-  renderer.getCamera().setState({ x: 0.5, y: 0.5, angle: 0, ratio: 1.05 });
+  renderer.getCamera().setState({
+    x: 0.5,
+    y: 0.5,
+    angle: 0,
+    ratio: initialCameraRatio(ctx.stage, mode),
+  });
 
   const session: Session = {
     mode, data, graph, renderer, nodesByCom,
     comColor, comLabel, comSize, comRgb,
-    dimNode, dimEdge,
+    dimNode, dimEdge, focusEdge,
     state,
     applyHighlight: () => { /* set below */ },
     scheduleHullPaint: () => { /* set below */ },
     disposed: false,
   };
   return session;
+}
+
+function relaxOverlaps(
+  graph: Graph,
+  options: { iterations: number; margin: number; ratio: number },
+): void {
+  const nodes = graph.nodes();
+  if (nodes.length < 2) return;
+
+  for (let iter = 0; iter < options.iterations; iter++) {
+    let moved = 0;
+    const dx = new Map<string, number>();
+    const dy = new Map<string, number>();
+
+    for (let i = 0; i < nodes.length; i++) {
+      const aId = nodes[i]!;
+      const a = graph.getNodeAttributes(aId);
+      const ax = a.x as number;
+      const ay = a.y as number;
+      const ar = ((a._size as number | undefined) ?? (a.size as number) ?? 1) + options.margin;
+
+      for (let j = i + 1; j < nodes.length; j++) {
+        const bId = nodes[j]!;
+        const b = graph.getNodeAttributes(bId);
+        const bx = b.x as number;
+        const by = b.y as number;
+        const br = ((b._size as number | undefined) ?? (b.size as number) ?? 1) + options.margin;
+        let vx = bx - ax;
+        let vy = by - ay;
+        let dist = Math.hypot(vx, vy);
+        if (dist < 0.001) {
+          const seed = prng(i * 4099 + j);
+          const angle = seed * Math.PI * 2;
+          vx = Math.cos(angle) * 0.001;
+          vy = Math.sin(angle) * 0.001;
+          dist = 0.001;
+        }
+        const minDist = (ar + br) * options.ratio;
+        if (dist >= minDist) continue;
+        const push = (minDist - dist) * 0.5;
+        const ux = vx / dist;
+        const uy = vy / dist;
+        dx.set(aId, (dx.get(aId) ?? 0) - ux * push);
+        dy.set(aId, (dy.get(aId) ?? 0) - uy * push);
+        dx.set(bId, (dx.get(bId) ?? 0) + ux * push);
+        dy.set(bId, (dy.get(bId) ?? 0) + uy * push);
+        moved = Math.max(moved, push);
+      }
+    }
+
+    const damp = iter < 20 ? 0.55 : 0.38;
+    for (const id of nodes) {
+      const x = dx.get(id) ?? 0;
+      const y = dy.get(id) ?? 0;
+      if (x === 0 && y === 0) continue;
+      graph.updateNodeAttribute(id, "x", (v) => (v as number) + x * damp);
+      graph.updateNodeAttribute(id, "y", (v) => (v as number) + y * damp);
+    }
+    if (moved < 0.015) break;
+  }
+}
+
+function relaxCommunityCircles(
+  graph: Graph,
+  nodesByCom: Map<number, NodeJson[]>,
+  options: { iterations: number; margin: number; ratio: number; strength: number },
+): void {
+  const communities = [...nodesByCom.keys()];
+  if (communities.length < 2) return;
+
+  const circles = () => {
+    const out = new Map<number, { x: number; y: number; r: number }>();
+    for (const [cid, nodes] of nodesByCom) {
+      let x = 0, y = 0, count = 0;
+      for (const n of nodes) {
+        if (!graph.hasNode(n.id)) continue;
+        const a = graph.getNodeAttributes(n.id);
+        x += a.x as number;
+        y += a.y as number;
+        count++;
+      }
+      if (!count) continue;
+      x /= count;
+      y /= count;
+      let r = 0;
+      for (const n of nodes) {
+        if (!graph.hasNode(n.id)) continue;
+        const a = graph.getNodeAttributes(n.id);
+        const nodeR = ((a._size as number | undefined) ?? (a.size as number | undefined) ?? 1) * 0.72;
+        r = Math.max(r, Math.hypot((a.x as number) - x, (a.y as number) - y) + nodeR);
+      }
+      out.set(cid, { x, y, r: r + options.margin });
+    }
+    return out;
+  };
+
+  for (let iter = 0; iter < options.iterations; iter++) {
+    const current = circles();
+    let moved = 0;
+    const dx = new Map<number, number>();
+    const dy = new Map<number, number>();
+
+    for (let i = 0; i < communities.length; i++) {
+      const aId = communities[i]!;
+      const a = current.get(aId);
+      if (!a) continue;
+      for (let j = i + 1; j < communities.length; j++) {
+        const bId = communities[j]!;
+        const b = current.get(bId);
+        if (!b) continue;
+        let vx = b.x - a.x;
+        let vy = b.y - a.y;
+        let dist = Math.hypot(vx, vy);
+        if (dist < 0.001) {
+          const seed = prng(aId * 8191 + bId);
+          const ang = seed * Math.PI * 2;
+          vx = Math.cos(ang) * 0.001;
+          vy = Math.sin(ang) * 0.001;
+          dist = 0.001;
+        }
+        const minDist = (a.r + b.r) * options.ratio;
+        if (dist >= minDist) continue;
+        const push = (minDist - dist) * 0.5 * options.strength;
+        const ux = vx / dist;
+        const uy = vy / dist;
+        dx.set(aId, (dx.get(aId) ?? 0) - ux * push);
+        dy.set(aId, (dy.get(aId) ?? 0) - uy * push);
+        dx.set(bId, (dx.get(bId) ?? 0) + ux * push);
+        dy.set(bId, (dy.get(bId) ?? 0) + uy * push);
+        moved = Math.max(moved, push);
+      }
+    }
+
+    for (const cid of communities) {
+      const shiftX = dx.get(cid) ?? 0;
+      const shiftY = dy.get(cid) ?? 0;
+      if (!shiftX && !shiftY) continue;
+      for (const n of nodesByCom.get(cid) ?? []) {
+        if (!graph.hasNode(n.id)) continue;
+        graph.updateNodeAttribute(n.id, "x", (v) => (v as number) + shiftX);
+        graph.updateNodeAttribute(n.id, "y", (v) => (v as number) + shiftY);
+      }
+    }
+
+    if (moved < 0.025) break;
+  }
+}
+
+function initialCameraRatio(stage: HTMLElement, mode: Mode): number {
+  const box = stage.getBoundingClientRect();
+  const aspect = box.height > 0 ? box.width / box.height : 1.6;
+  let ratio = mode === "books" ? 1.25 : 1.08;
+  if (aspect < 1.35) ratio += 0.10;
+  if (aspect > 1.85) ratio -= 0.03;
+  return Math.max(1.02, Math.min(1.34, ratio));
 }
 
 function cssVar(name: string, fallback: string): string {
@@ -1119,6 +1362,7 @@ function drawHulls(ctx: AppContext, s: Session): void {
   if (s.disposed) return;
   while (ctx.hulls.firstChild) ctx.hulls.removeChild(ctx.hulls.firstChild);
   const box = ctx.stage.getBoundingClientRect();
+  const isLightTheme = document.documentElement.getAttribute("data-theme") === "light";
   ctx.hulls.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
   ctx.hulls.setAttribute("width", String(box.width));
   ctx.hulls.setAttribute("height", String(box.height));
@@ -1137,19 +1381,21 @@ function drawHulls(ctx: AppContext, s: Session): void {
     if (hull.length < 3) continue;
     const cx = hull.reduce((sum, p) => sum + p[0], 0) / hull.length;
     const cy = hull.reduce((sum, p) => sum + p[1], 0) / hull.length;
-    const pad = s.mode === "books" ? 30 : 24;
+    const pad = s.mode === "books" ? 40 : 28;
     const inflated = hull.map<[number, number]>(([x, y]) => {
       const dx = x - cx, dy = y - cy;
       const d = Math.hypot(dx, dy) || 1;
       return [x + (dx / d) * pad, y + (dy / d) * pad];
     });
     const color = PALETTE[cid % PALETTE.length];
+    const fillOpacity = isLightTheme ? (s.mode === "books" ? "0.060" : "0.065") : "0.07";
+    const strokeOpacity = isLightTheme ? (s.mode === "books" ? "0.155" : "0.160") : "0.18";
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", smoothPath(inflated));
     path.setAttribute("fill", color);
-    path.setAttribute("fill-opacity", "0.07");
+    path.setAttribute("fill-opacity", fillOpacity);
     path.setAttribute("stroke", color);
-    path.setAttribute("stroke-opacity", "0.18");
+    path.setAttribute("stroke-opacity", strokeOpacity);
     path.setAttribute("stroke-width", "1");
     path.setAttribute("stroke-linejoin", "round");
     path.setAttribute("data-com", String(cid));
@@ -1254,7 +1500,7 @@ function wireInteractions(ctx: AppContext, s: Session): void {
         out.size = (data._size as number) * 0.5;
         out.hidden = false;
       } else if (hasFocus) {
-        out.color = FOCUS_EDGE;
+        out.color = s.focusEdge;
         out.size = (data._size as number) * 1.4;
         out.zIndex = 2;
         out.hidden = false;
@@ -1286,8 +1532,9 @@ function wireInteractions(ctx: AppContext, s: Session): void {
           }
         }
       } else highlight = true;
-      p.setAttribute("fill-opacity", highlight ? "0.08" : "0.015");
-      p.setAttribute("stroke-opacity", highlight ? "0.22" : "0.05");
+      const isLightTheme = document.documentElement.getAttribute("data-theme") === "light";
+      p.setAttribute("fill-opacity", highlight ? (isLightTheme ? "0.070" : "0.08") : "0.012");
+      p.setAttribute("stroke-opacity", highlight ? (isLightTheme ? "0.18" : "0.22") : "0.045");
     });
     renderer.refresh();
   };
@@ -1552,13 +1799,11 @@ function wireMobile(cfg: PageConfig): void {
   const filterSets: Record<Mode, Set<number>> = { concepts: new Set(), books: new Set() };
 
   // 1) Mode toggle (the toggle buttons live in the page-level mobile toolbar).
-  const initial = readStoredMode() ?? cfg.initialMode;
-  applyMobileMode(initial);
+  applyMobileMode(cfg.initialMode);
   document.querySelectorAll<HTMLButtonElement>("[data-cs-mode-toggle] button[data-mode]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const m = btn.getAttribute("data-mode") as Mode | null;
       if (!m) return;
-      writeStoredMode(m);
       applyMobileMode(m);
     });
   });

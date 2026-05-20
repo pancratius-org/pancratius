@@ -70,7 +70,7 @@ const t = conceptosphereStrings(locale);
   /* role="tab" → use aria-selected for the active state. Lighthouse's
      aria-allowed-attr rule flags aria-pressed on tab buttons. */
   .cs-mode-toggle button[aria-selected="true"] {
-    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    background: var(--cs-toggle-active-bg, color-mix(in srgb, var(--accent) 16%, transparent));
     color: var(--accent);
   }
 

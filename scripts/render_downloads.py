@@ -270,28 +270,18 @@ def _rewrite_image_paths(body: str, image_map: dict[str, str]) -> str:
 def _write_export_markdown(entry: WorkEntry, dest: Path, image_map: dict[str, str]) -> None:
     raw = entry.md.read_text(encoding="utf-8")
     body = _rewrite_image_paths(_html_images_to_markdown(_strip_frontmatter(raw)), image_map)
-    metadata = yaml.safe_dump(
-        {
-            "title": entry.title,
-            "lang": entry.lang,
-            "author": AUTHOR,
-            "rights": RIGHTS,
-        },
-        allow_unicode=True,
-        sort_keys=False,
-        width=10_000,
-    )
-    dest.write_text(f"---\n{metadata}---\n\n{body}", encoding="utf-8")
+    dest.write_text(body, encoding="utf-8")
 
 
 def _pandoc_from(entry: WorkEntry) -> list[str]:
+    base = "markdown-yaml_metadata_block"
     # Why: poetry uses the verse contract — single newline = line break,
-    # blank line = stanza break. `gfm+hard_line_breaks` makes pandoc emit a
+    # blank line = stanza break. `+hard_line_breaks` makes pandoc emit a
     # real hard break for each in-paragraph newline, so PDF/EPUB preserve
     # lineation. Prose works (books, projects) stay on the default reader.
     if entry.kind == "poem":
-        return ["--from", "gfm+hard_line_breaks"]
-    return []
+        return ["--from", f"{base}+hard_line_breaks"]
+    return ["--from", base]
 
 
 def render_pdf(entry: WorkEntry, scratch_dir: Path) -> Path:

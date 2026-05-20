@@ -52,7 +52,7 @@
 #set par(
   justify: true,
   leading: 0.72em,
-  first-line-indent: (amount: 1.2em, all: false),
+  first-line-indent: 0pt,
 )
 
 #set text(

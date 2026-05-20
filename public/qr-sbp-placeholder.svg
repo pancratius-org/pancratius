@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Placeholder graphic for the СБП / SBP QR code. The author replaces this
+  file (same path, same filename) with a real QR PNG/SVG when ready. We
+  draw three "finder" squares in the QR positions plus a centred atom-seal
+  so the surface obviously says "this is where a QR goes" — not a missing
+  asset. Strokes use currentColor so the parent can re-tint via CSS.
+-->
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 200 200"
+  width="200"
+  height="200"
+  role="img"
+  aria-label="QR placeholder"
+>
+  <!-- Plate -->
+  <rect x="0" y="0" width="200" height="200" fill="none" />
+
+  <!-- Three QR finder squares (top-left, top-right, bottom-left).
+       Each is an outer ring + inner solid dot, mirroring how real QRs
+       paint their locator marks. -->
+  <g fill="none" stroke="currentColor" stroke-width="3">
+    <rect x="14" y="14"  width="40" height="40" />
+    <rect x="146" y="14" width="40" height="40" />
+    <rect x="14" y="146" width="40" height="40" />
+  </g>
+  <g fill="currentColor">
+    <rect x="24" y="24"   width="20" height="20" />
+    <rect x="156" y="24"  width="20" height="20" />
+    <rect x="24" y="156"  width="20" height="20" />
+  </g>
+
+  <!-- Quiet stippled fill — suggests QR modules without being noisy. -->
+  <g fill="currentColor" opacity="0.18">
+    <rect x="70"  y="22"  width="6" height="6" />
+    <rect x="86"  y="22"  width="6" height="6" />
+    <rect x="118" y="22"  width="6" height="6" />
+    <rect x="22"  y="70"  width="6" height="6" />
+    <rect x="22"  y="86"  width="6" height="6" />
+    <rect x="22"  y="118" width="6" height="6" />
+    <rect x="178" y="70"  width="6" height="6" />
+    <rect x="178" y="92"  width="6" height="6" />
+    <rect x="178" y="116" width="6" height="6" />
+    <rect x="178" y="140" width="6" height="6" />
+    <rect x="178" y="164" width="6" height="6" />
+    <rect x="70"  y="178" width="6" height="6" />
+    <rect x="92"  y="178" width="6" height="6" />
+    <rect x="116" y="178" width="6" height="6" />
+    <rect x="140" y="178" width="6" height="6" />
+    <rect x="164" y="178" width="6" height="6" />
+    <rect x="146" y="70"  width="6" height="6" />
+    <rect x="70"  y="146" width="6" height="6" />
+    <rect x="146" y="146" width="6" height="6" />
+    <rect x="86"  y="146" width="6" height="6" />
+    <rect x="146" y="86"  width="6" height="6" />
+  </g>
+
+  <!-- Atom seal — the brand mark, centred where a real QR would carry a
+       small logo. Concentric ring + dot. -->
+  <g transform="translate(100 100)">
+    <circle r="22" fill="none" stroke="currentColor" stroke-width="3" />
+    <circle r="6"  fill="currentColor" />
+  </g>
+</svg>
