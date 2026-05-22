@@ -1,32 +1,17 @@
 ---
 import type { Locale } from "@/lib/i18n";
+import { pagefindSearchCopy } from "@/lib/copy";
+import { sameSitePath } from "@/lib/paths";
 
 interface Props {
   locale: Locale;
 }
 
 const { locale } = Astro.props;
-const copy = locale === "ru" ? {
-  placeholder: "Поиск по корпусу",
-  empty:       "Ничего не найдено.",
-  searching:   "Ищу…",
-  prompt:      "Введите слово или фразу.",
-  hits:        "Найдено:",
-  more:        "Показать ещё",
-  // Friendly fallback for when /pagefind/pagefind.js isn't reachable —
-  // typically because the index hasn't been built yet (dev), or, in
-  // production, a deploy missed the post-build step. Reads as a quiet
-  // notice rather than as a dev error string.
-  unavailable: "Поиск временно недоступен. Попробуйте позже.",
-} : {
-  placeholder: "Search the corpus",
-  empty:       "Nothing matched.",
-  searching:   "Searching…",
-  prompt:      "Type a word or phrase.",
-  hits:        "Found:",
-  more:        "Show more",
-  unavailable: "Search is temporarily unavailable. Please try again later.",
-};
+const pagefindPath = sameSitePath("/pagefind/pagefind.js");
+// `unavailable` is deliberately user-facing: in dev the Pagefind index may
+// not exist yet, and in production this reads as a temporary feature notice.
+const copy = pagefindSearchCopy[locale];
 ---
 <div class="pfs">
   <label class="search">
@@ -49,7 +34,7 @@ const copy = locale === "ru" ? {
   <button class="pfs__more" id="pfsMore" type="button" hidden>{copy.more}</button>
 </div>
 
-<script is:inline define:vars={{ copy }}>
+<script is:inline define:vars={{ copy, pagefindPath }}>
   (async function () {
     const input  = document.getElementById("pfsInput");
     const list   = document.getElementById("pfsResults");
@@ -62,7 +47,7 @@ const copy = locale === "ru" ? {
     let pagefindPromise;
     function loadPagefind() {
       if (!pagefindPromise) {
-        pagefindPromise = import("/pagefind/pagefind.js")
+        pagefindPromise = import(pagefindPath)
           .catch(err => {
             pagefindPromise = null;
             throw err;

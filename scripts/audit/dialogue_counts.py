@@ -15,7 +15,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-CONTENT = ROOT / "content"
+CONTENT = ROOT / "src" / "content"
 LEGACY = ROOT / "legacy"
 
 # Why: Codex sampled these four books and reported preserved-turn counts

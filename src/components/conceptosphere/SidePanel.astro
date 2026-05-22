@@ -12,7 +12,7 @@ interface Props {
 const { locale } = Astro.props;
 const t = conceptosphereStrings(locale);
 ---
-<aside class="cs-panel" id="cs-panel" aria-live="polite" aria-label={t.sidePanelAriaLabel}>
+<aside class="cs-panel" id="cs-panel" aria-label={t.sidePanelAriaLabel}>
   <button
     class="cs-panel-close"
     id="cs-panel-close"
@@ -25,7 +25,7 @@ const t = conceptosphereStrings(locale);
 <style>
   .cs-panel {
     position: absolute;
-    top: 16px;
+    top: 66px;
     bottom: 16px;
     right: 16px;
     width: 320px;
@@ -85,6 +85,9 @@ const t = conceptosphereStrings(locale);
     margin: 4px 0 8px;
     letter-spacing: 0.005em;
     hyphens: auto;
+  }
+  .cs-panel :global(.cs-book-title-heading) {
+    margin-top: 4px;
   }
   .cs-panel :global(.cs-stats) {
     display: grid;

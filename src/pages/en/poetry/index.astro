@@ -2,6 +2,7 @@
 import Base from "@/layouts/Base.astro";
 import type { Locale } from "@/lib/i18n";
 import { kindIndexUrl, workUrl } from "@/lib/i18n";
+import { sameSitePath } from "@/lib/paths";
 import { seoForKindIndex } from "@/lib/seo";
 import { getPairsByKind } from "@/lib/works";
 
@@ -16,7 +17,7 @@ const alternates = { ru: kindIndexUrl("poem", "ru") };
     <div class="poetry-index__head">
       <h1><b>{pairs.length}</b> poems</h1>
       <p class="poetry-index__intro">
-        The corpus opens in Russian. Each row links to the original;
+        The originals are in Russian. Each row links to the poem;
         English translations will land here as they are authored.
       </p>
     </div>
@@ -28,7 +29,7 @@ const alternates = { ru: kindIndexUrl("poem", "ru") };
     <ol class="poems">
       {pairs.map(p => (
         <li>
-          <a href={workUrl("poem", p.ru.data.slug, "ru")}>
+          <a href={sameSitePath(workUrl("poem", p.ru.data.slug, "ru"))}>
             <span class="poems__num">{String(p.number).padStart(2, "0")}</span>
             <span class="poems__title">{p.ru.data.title}</span>
           </a>

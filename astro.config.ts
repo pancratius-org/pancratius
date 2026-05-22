@@ -76,12 +76,22 @@ const WORK_RE = /^(?:\/(en))?\/(books|poetry|projects)\/([^/]+)\/?$/;
 const PAGE_RE = /^(?:\/(en))?\/([^/]+)\/?$/;
 
 // Structural routes that exist in every locale and are not in the `pages`
-// collection (no authored Markdown). The sitemap resolver needs to pair them
-// up the same way it pairs work URLs; we keep the list narrow so it's easy
-// to reason about, not a catch-all.
-const STRUCTURAL_BOTH_LOCALES: Record<string, { ru: string; en: string }> = {
-  conceptosphere: { ru: "/conceptosphere/", en: "/en/conceptosphere/" },
-};
+// collection (no authored Markdown). Keep this list concrete: a route belongs
+// here only when both localized pages are real pages with matching intent.
+const STRUCTURAL_BOTH_LOCALES: readonly { ru: string; en: string }[] = [
+  { ru: "/",               en: "/en/" },
+  { ru: "/books/",         en: "/en/books/" },
+  { ru: "/poetry/",        en: "/en/poetry/" },
+  { ru: "/projects/",      en: "/en/projects/" },
+  { ru: "/conceptosphere/", en: "/en/conceptosphere/" },
+  { ru: "/search/",        en: "/en/search/" },
+];
+
+const structuralByPath = new Map<string, { ru: string; en: string }>();
+for (const pair of STRUCTURAL_BOTH_LOCALES) {
+  structuralByPath.set(pair.ru, pair);
+  structuralByPath.set(pair.en, pair);
+}
 
 function withXDefault(links: { lang: string; url: string }[]): { lang: string; url: string }[] {
   // Match page-level <head> behaviour: append x-default → RU canonical.
@@ -96,6 +106,16 @@ function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }
   let pathname = url.pathname;
   if (base && pathname.startsWith(base)) {
     pathname = "/" + pathname.slice(base.length).replace(/^\/+/, "");
+  }
+
+  const structural = structuralByPath.get(pathname);
+  if (structural) {
+    const links = (["ru", "en"] as const).map((l) => {
+      const urlPath = structural[l];
+      const path = base ? base.replace(/\/$/, "") + urlPath : urlPath;
+      return { lang: l, url: new URL(path, url.origin).toString() };
+    });
+    return withXDefault(links);
   }
 
   const mWork = pathname.match(WORK_RE);
@@ -115,18 +135,6 @@ function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }
   const mPage = pathname.match(PAGE_RE);
   if (mPage && SEGMENT_TO_KIND[mPage[2]] === undefined) {
     const slug = mPage[2];
-    // Structural routes (e.g. /conceptosphere/) live in both locales but
-    // aren't in the `pages` collection. Resolve their alternates from the
-    // structural table before falling back to the pages lookup.
-    const structural = STRUCTURAL_BOTH_LOCALES[slug];
-    if (structural) {
-      const links = (["ru", "en"] as const).map((l) => {
-        const urlPath = structural[l];
-        const path = base ? base.replace(/\/$/, "") + urlPath : urlPath;
-        return { lang: l, url: new URL(path, url.origin).toString() };
-      });
-      return withXDefault(links);
-    }
     const lang = mPage[1] ?? "ru";
     const p = pagesByLangSlug.get(`${lang}:${slug}`);
     if (!p) return null;
@@ -143,7 +151,11 @@ function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }
 export default defineConfig({
   site,
   ...(base ? { base } : {}),
-  trailingSlash: "always",
+  // Canonical URLs are produced by `src/lib/i18n.ts`: HTML routes end in `/`,
+  // file endpoints end in their extension. Astro's global "always" mode also
+  // appends `/` to dynamic endpoint params in dev (`foo.md/`), so use
+  // "ignore" here and keep the canonical shape in our route helpers.
+  trailingSlash: "ignore",
   build: { format: "directory" },
   integrations: [
     sitemap({
@@ -164,10 +176,6 @@ export default defineConfig({
     },
   },
   markdown: {
-    // Raw `<img>` tags (the only form the corpus emits) bypass the rehype
-    // pipeline because Astro's default markdown processor passes them through
-    // as `raw` nodes, not `element` nodes. `scripts/build_copy_body_images.py`
-    // adds alt/loading/decoding post-build instead.
     shikiConfig: {
       theme: "github-dark",
       wrap: true,

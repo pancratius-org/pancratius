@@ -1,0 +1,78 @@
+---
+import Base from "@/layouts/Base.astro";
+import PagefindSearch from "@/components/PagefindSearch.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { searchPageCopy } from "@/lib/copy";
+import { seoForSearch } from "@/lib/seo";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const copy = searchPageCopy[locale];
+const seo = seoForSearch(Astro.site, locale);
+---
+<Base locale={locale} seo={seo}>
+  <section class="page search-page">
+    <h1>{copy.heading}</h1>
+    <p class="search-page__intro">{copy.intro}</p>
+    <PagefindSearch locale={locale} />
+    <p class="search-page__hint">
+      <span>{copy.hintLabel}</span>
+      {copy.hints.map(q => <a href={`?q=${encodeURIComponent(q)}`}>{q}</a>)}
+    </p>
+  </section>
+</Base>
+
+<style>
+  .search-page { max-width: 64rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); min-height: 60vh; }
+  .search-page h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2.6rem, 5.4vw, 3.9rem);
+    line-height: 0.98;
+    margin: 0 0 0.6rem;
+    letter-spacing: -0.02em;
+  }
+  .search-page__intro {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--ink-soft);
+    max-width: 36rem;
+    margin: 0 0 2.5rem;
+  }
+  .search-page__hint {
+    margin: 1.4rem 0 0;
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--ink-mute);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.1rem;
+    align-items: baseline;
+  }
+  .search-page__hint span {
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--accent);
+    margin-right: 0.2rem;
+  }
+  .search-page__hint a {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+    text-underline-offset: 3px;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .search-page__hint a:hover {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
+  }
+</style>

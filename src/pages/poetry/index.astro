@@ -2,28 +2,19 @@
 import Base from "@/layouts/Base.astro";
 import type { Locale } from "@/lib/i18n";
 import { workUrl, kindIndexUrl, plRu, RU_PLURALS } from "@/lib/i18n";
+import { sameSitePath } from "@/lib/paths";
 import { seoForKindIndex } from "@/lib/seo";
 import { getPairsByKind, poemDate } from "@/lib/works";
-import { readFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const locale: Locale = "ru";
 const pairs = await getPairsByKind("poem");
 const seo = seoForKindIndex(Astro.site, "poem", locale);
 const alternates = { en: kindIndexUrl("poem", "en") };
 
-// Read the first stanza of a poem from disk. The content-collection's glob
-// loader doesn't expose `entry.body`, so we hit the markdown file directly
-// at build time. Same pattern as `src/pages/index.astro`. Skip a leading
+// Read the first stanza from the collection entry body. Skip a leading
 // title-shaped line so the hero excerpt is real verse, not the title twice.
-async function firstStanza(slug: string, title: string): Promise<string> {
-  const path = resolve(__dirname, "..", "..", "..", "content", "poetry", slug, "ru.md");
-  let raw = "";
-  try { raw = await readFile(path, "utf-8"); } catch { return ""; }
-  const body = raw.replace(/^---[\s\S]*?---\n?/, "").trim();
+function firstStanza(bodyMarkdown: string, title: string): string {
+  const body = bodyMarkdown.replace(/^---[\s\S]*?---\n?/, "").trim();
   const normalize = (s: string) =>
     s.replace(/[…\*]+$/g, "").replace(/[,;:!?\.]/g, "").trim().toLowerCase();
   const lines = body.split(/\n/);
@@ -50,7 +41,7 @@ const normTitle = (s: string) =>
 let heroPair = pairs[0];
 let heroStanza = "";
 for (const p of pairs) {
-  const stanza = await firstStanza(p.ru.data.slug, p.ru.data.title);
+  const stanza = firstStanza(p.ru.body ?? "", p.ru.data.title);
   if (!stanza) continue;
   const firstLine = stanza.split(/\n/, 1)[0] ?? "";
   if (normTitle(firstLine) !== normTitle(p.ru.data.title)) {
@@ -60,7 +51,7 @@ for (const p of pairs) {
   }
 }
 if (!heroStanza && heroPair) {
-  heroStanza = await firstStanza(heroPair.ru.data.slug, heroPair.ru.data.title);
+  heroStanza = firstStanza(heroPair.ru.body ?? "", heroPair.ru.data.title);
 }
 
 const MONTHS_RU = [
@@ -85,7 +76,7 @@ function formatPoemDate(iso: string): string {
     </div>
 
     {heroPair && heroStanza && (
-      <a class="poetry-hero" href={workUrl("poem", heroPair.ru.data.slug, locale)}>
+      <a class="poetry-hero" href={sameSitePath(workUrl("poem", heroPair.ru.data.slug, locale))}>
         <p class="poetry-hero__stanza">{heroStanza}</p>
         <p class="poetry-hero__attr">
           ← Стихотворение №{String(heroPair.number).padStart(2, "0")} «{heroPair.ru.data.title}»
@@ -98,7 +89,7 @@ function formatPoemDate(iso: string): string {
         const date = poemDate(p.ru);
         return (
           <li>
-            <a href={workUrl("poem", p.ru.data.slug, "ru")}>
+            <a href={sameSitePath(workUrl("poem", p.ru.data.slug, "ru"))}>
               <span class="poems__num">{String(p.number).padStart(2, "0")}</span>
               <span class="poems__title">{p.ru.data.title}</span>
               {date && (

@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-BOOKS = ROOT / "content" / "books"
+BOOKS = ROOT / "src" / "content" / "books"
 
 BIBLIO_HEADING = re.compile(
     r"^#{1,6}\s+(?:библиография|bibliography|список\s+литературы|литература)\s*$",

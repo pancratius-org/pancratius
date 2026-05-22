@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-CONTENT = ROOT / "content"
+CONTENT = ROOT / "src" / "content"
 
 PATTERNS: dict[str, re.Pattern[str]] = {
     "bold-backslash": re.compile(r"\*\*\\\*\*"),

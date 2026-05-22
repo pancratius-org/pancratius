@@ -1,7 +1,9 @@
 ---
 import type { Locale } from "@/lib/i18n";
-import { HEADER_NAV, localizePath } from "@/lib/i18n";
+import { HEADER_NAV, homeUrl, localizePath } from "@/lib/i18n";
+import { chromeCopy } from "@/lib/copy";
 import { getPage } from "@/lib/pages";
+import { sameSitePath, stripBasePath } from "@/lib/paths";
 import LanguageSwitcher from "./LanguageSwitcher.astro";
 
 interface Props {
@@ -11,7 +13,9 @@ interface Props {
 }
 
 const { locale, currentPath, alternates } = Astro.props;
-const homeHref = locale === "ru" ? "/" : "/en/";
+const homeHref = sameSitePath(homeUrl(locale));
+const currentRoute = stripBasePath(currentPath);
+const copy = chromeCopy[locale];
 
 // Drop nav items whose `pageSlug` isn't authored in the current locale.
 const navItems = await Promise.all(
@@ -26,19 +30,19 @@ const navItems = await Promise.all(
 
 function isCurrent(path: string): boolean {
   const localizedPath = localizePath(path, locale);
-  return currentPath === localizedPath || currentPath.startsWith(localizedPath);
+  return currentRoute === localizedPath || currentRoute.startsWith(localizedPath);
 }
 ---
 <header class="rail" role="banner">
   <a class="rail__mark" href={homeHref}>
-    <b>{locale === "ru" ? "Панкратиус" : "Pancratius"}</b>
-    <span>{locale === "ru" ? "Свет, узнающий себя." : "Light recognising itself."}</span>
+    <b>{copy.brand}</b>
+    <span>{copy.tagline}</span>
   </a>
 
-  <nav class="rail__nav" aria-label={locale === "ru" ? "Разделы" : "Sections"}>
+  <nav class="rail__nav" aria-label={copy.navAria}>
     {navItems.map(item => (
       <a
-        href={localizePath(item.path, locale)}
+        href={sameSitePath(localizePath(item.path, locale))}
         aria-current={isCurrent(item.path) ? "page" : undefined}
       >
         {item.label[locale]}
@@ -52,7 +56,7 @@ function isCurrent(path: string): boolean {
       class="icon-btn"
       id="themeBtn"
       type="button"
-      aria-label={locale === "ru" ? "Сменить тему" : "Toggle theme"}
+      aria-label={copy.themeAria}
     >
       <svg class="moon" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M13.2 9.8A5.5 5.5 0 1 1 6.2 2.8a5.5 5.5 0 0 0 7 7Z" />

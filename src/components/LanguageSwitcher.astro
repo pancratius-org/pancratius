@@ -1,6 +1,8 @@
 ---
 import type { Locale } from "@/lib/i18n";
 import { LOCALES, LOCALE_LABEL, LOCALE_NAME } from "@/lib/i18n";
+import { languageSwitcherCopy } from "@/lib/copy";
+import { sameSitePath } from "@/lib/paths";
 
 interface Props {
   currentLocale: Locale;
@@ -9,8 +11,9 @@ interface Props {
 }
 
 const { currentLocale, alternates } = Astro.props;
+const copy = languageSwitcherCopy[currentLocale];
 ---
-<nav class="lang" aria-label={currentLocale === "ru" ? "Язык страницы" : "Page language"}>
+<nav class="lang" aria-label={copy.aria}>
   {LOCALES.map(loc => {
     const isCurrent = loc === currentLocale;
     const href = alternates[loc];
@@ -29,17 +32,16 @@ const { currentLocale, alternates } = Astro.props;
     }
     if (hasAlt) {
       return (
-        <a class="lang__btn" href={href} hreflang={loc} aria-label={accLabel}>
+        <a class="lang__btn" href={sameSitePath(href)} hreflang={loc} aria-label={accLabel}>
           {label}
         </a>
       );
     }
-    const noTranslation = currentLocale === "ru" ? "нет перевода" : "no translation available";
     return (
       <span
         class="lang__btn is-disabled"
         aria-disabled="true"
-        aria-label={`${label} — ${noTranslation}`}
+        aria-label={`${label} — ${copy.noTranslation}`}
       >
         {label}
       </span>

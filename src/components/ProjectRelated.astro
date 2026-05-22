@@ -15,6 +15,7 @@
 // exploration.
 
 import type { Locale } from "@/lib/i18n";
+import { relatedCopy } from "@/lib/copy";
 import type { ResolvedCrossRef } from "@/lib/works";
 import BookCard from "./BookCard.astro";
 
@@ -29,15 +30,13 @@ if (crossRefs.length === 0) {
   // Render nothing — the project simply has no authored cross-refs yet.
 }
 
-const labels = locale === "ru"
-  ? { h: "Читать дальше", sub: "Книги корпуса, в которых этот проект продолжается." }
-  : { h: "Read further",  sub: "Books from the corpus where this project unfolds further." };
+const labels = relatedCopy[locale];
 ---
 {crossRefs.length > 0 && (
   <aside class="project-related" aria-labelledby="pr-h">
     <header class="project-related__head">
-      <h2 class="project-related__h" id="pr-h">{labels.h}</h2>
-      <p class="project-related__sub">{labels.sub}</p>
+      <h2 class="project-related__h" id="pr-h">{labels.projectHeading}</h2>
+      <p class="project-related__sub">{labels.projectSub}</p>
     </header>
     <div class="project-related__grid">
       {crossRefs.map(r => (

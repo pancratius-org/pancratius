@@ -25,8 +25,8 @@ under ``word/``). ``[Content_Types].xml`` is patched only if needed -- the corpu
 files all already declare ``Default Extension="jpg|jpeg|png"``.
 
 Originals stay read-only. Output is placed *into the content tree* alongside
-the rendered Markdown: ``content/<kind>/<slug>/<lang>.docx`` for single-source
-books/poems/projects, and ``content/books/<slug>/<lang>-part<N>.docx`` for
+the rendered Markdown: ``src/content/<kind>/<slug>/<lang>.docx`` for single-source
+books/poems/projects, and ``src/content/books/<slug>/<lang>-part<N>.docx`` for
 multi-part books (the few that exist). The mapping is derived from each
 content entry's frontmatter / sibling ``meta.json`` — there is no ``--out``
 override, because the destination is a property of the corpus layout, not a
@@ -95,7 +95,7 @@ LARGE_PNG_MIN_BYTES = 200_000
 EDGE_DENSITY_DIAGRAM_MIN = 0.13     # > this => keep as PNG (sharp lines)
 
 ROOT = Path(__file__).resolve().parent.parent
-CONTENT_ROOT = ROOT / "content"
+CONTENT_ROOT = ROOT / "src" / "content"
 MANIFEST_PATH = ROOT / "data" / "conversion-manifest.json"
 SOURCE_ROOTS = [
     ROOT / "legacy" / "books" / "ru",
@@ -104,7 +104,7 @@ SOURCE_ROOTS = [
     ROOT / "legacy" / "projects",
 ]
 
-# Why: map content/<folder>/ → manifest by_work kind segment, so optimized DOCX
+# Why: map src/content/<folder>/ → manifest by_work kind segment, so optimized DOCX
 # writes register under the same per-work generated_paths entry the
 # Markdown converter populates.
 _CONTENT_FOLDER_TO_KIND: dict[str, str] = {
@@ -115,7 +115,7 @@ _CONTENT_FOLDER_TO_KIND: dict[str, str] = {
 
 
 def _work_key_for_dst(dst: Path, content_root: Path) -> tuple[str, str, str] | None:
-    """For a destination like content/books/<slug>/<lang>.docx return
+    """For a destination like src/content/books/<slug>/<lang>.docx return
     (kind, slug, work-folder-relative-path). Returns None if `dst` isn't a
     work-bundle file under content_root."""
     try:
@@ -823,7 +823,7 @@ def main(argv: list[str]) -> int:
                 queue(f)
 
     if unmapped:
-        print(f"warn: {len(unmapped)} source file(s) have no content/ entry "
+        print(f"warn: {len(unmapped)} source file(s) have no src/content/ entry "
               f"and will be skipped (e.g. {unmapped[0].name})", file=sys.stderr)
 
     if not jobs:

@@ -8,7 +8,7 @@ import type { Locale } from "./i18n";
 import { COLLECTION_OF, resolveCover, type WorkPair } from "./works";
 
 const COVER_URLS = import.meta.glob<string>(
-  "/content/**/cover.*.{jpg,jpeg,png,webp,avif,svg}",
+  "/src/content/**/cover.*.{jpg,jpeg,png,webp,avif,svg}",
   { eager: true, query: "?url", import: "default" },
 );
 
@@ -18,7 +18,7 @@ export async function coverAssetUrl(pair: WorkPair, locale: Locale): Promise<str
   if (!cover) return null;
   const workFolder = pair.ru.id.split("--")[0];
   const segment = COLLECTION_OF[pair.kind];
-  const key = `/content/${segment}/${workFolder}/${cover.rel.replace(/^\.\//, "")}`;
+  const key = `/src/content/${segment}/${workFolder}/${cover.rel.replace(/^\.\//, "")}`;
   return COVER_URLS[key] ?? null;
 }
 

@@ -1,0 +1,181 @@
+---
+import Base from "@/layouts/Base.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { workUrl } from "@/lib/i18n";
+import { projectsIndexCopy } from "@/lib/copy";
+import { sameSitePath } from "@/lib/paths";
+import { seoForKindIndex } from "@/lib/seo";
+import { getPairsByKind, workTags, type WorkPair } from "@/lib/works";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const copy = projectsIndexCopy[locale];
+const pairs = await getPairsByKind("project");
+const seo = seoForKindIndex(Astro.site, "project", locale);
+
+function displayForProject(pair: WorkPair) {
+  if (locale === "ru") {
+    return { entry: pair.ru, hrefLocale: "ru" as const, isFallback: false };
+  }
+  // EN index lists every project. Authored EN content wins; missing EN content
+  // falls back visibly to the RU entry and links to the RU canonical route.
+  return pair.en
+    ? { entry: pair.en, hrefLocale: "en" as const, isFallback: false }
+    : { entry: pair.ru, hrefLocale: "ru" as const, isFallback: true };
+}
+---
+<Base locale={locale} seo={seo}>
+  <section class="page projects-index">
+    <p class="eyebrow eyebrow--lg">{copy.eyebrow}</p>
+    <div class="projects-index__head">
+      <h1>{copy.heading}</h1>
+      <p class="projects-index__intro">{copy.intro}</p>
+    </div>
+
+    <div class="projects-list">
+      {pairs.map(p => {
+        const { entry, hrefLocale, isFallback } = displayForProject(p);
+        const tags = workTags(entry);
+        return (
+          <a class="project-row" href={sameSitePath(workUrl("project", entry.data.slug, hrefLocale))}>
+            <span class="project-row__num">{String(p.number).padStart(2, "0")}</span>
+            <div class="project-row__body">
+              <h2 class="project-row__title">
+                {entry.data.title}
+                {isFallback && <span class="project-row__fallback">{copy.fallbackLabel}</span>}
+              </h2>
+              {entry.data.description && (
+                <p class="project-row__blurb">{entry.data.description}</p>
+              )}
+              {tags.length > 0 && (
+                <ul class="project-row__tags">
+                  {tags.map(t => <li>{t}</li>)}
+                </ul>
+              )}
+              <span class="project-row__cta">{copy.cta}</span>
+            </div>
+          </a>
+        );
+      })}
+    </div>
+  </section>
+</Base>
+
+<style>
+  .projects-index { max-width: 72rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
+  .projects-index__head {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    margin-bottom: clamp(3rem, 6vw, 4.5rem);
+  }
+  .projects-index h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(3rem, 7.4vw, 5.4rem);
+    line-height: 0.96;
+    margin: 0;
+    letter-spacing: -0.024em;
+  }
+  .projects-index__intro {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.05rem, 1.4vw, 1.18rem);
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 42rem;
+  }
+
+  .projects-list { border-top: 1px solid var(--rule); }
+  .project-row {
+    display: grid;
+    grid-template-columns: clamp(3.5rem, 7vw, 6rem) minmax(0, 1fr);
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+    align-items: start;
+    padding: clamp(2.5rem, 4.5vw, 3.5rem) 0;
+    border-bottom: 1px solid var(--rule);
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.18s var(--ease);
+  }
+  .project-row__num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-size: clamp(3rem, 5vw, 4rem);
+    line-height: 1;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+  .project-row__body { min-width: 0; }
+  .project-row__title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(1.8rem, 3.2vw, 2.6rem);
+    line-height: 1.08;
+    letter-spacing: -0.018em;
+    color: var(--ink);
+    margin: 0 0 1rem;
+    text-wrap: balance;
+  }
+  .project-row__blurb {
+    font-family: var(--serif);
+    font-size: clamp(1.02rem, 1.25vw, 1.12rem);
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 0 0 1.25rem;
+    max-width: 52rem;
+  }
+  .project-row__fallback {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 0.65rem;
+    padding: 0.16rem 0.42rem;
+    border: 1px solid var(--rule);
+    color: var(--ink-mute);
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+  .project-row__tags {
+    list-style: none;
+    margin: 0 0 1.25rem;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.6rem;
+  }
+  .project-row__tags li {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    padding: 0.25rem 0.55rem;
+    border: 1px solid var(--rule);
+  }
+  .project-row__cta {
+    display: inline-block;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .project-row:hover .project-row__title { color: var(--accent); }
+
+  @media (max-width: 720px) {
+    .project-row { grid-template-columns: 1fr; gap: 0.6rem; }
+    .project-row__num { font-size: clamp(2.4rem, 8vw, 3.2rem); }
+  }
+</style>

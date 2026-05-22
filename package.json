@@ -10,16 +10,17 @@
   },
   "scripts": {
     "dev": "npm run prebuild && uv run scripts/sync_pagefind_dev.py && astro dev",
-    "build": "npm run prebuild && astro check && astro build && uv run scripts/build_copy_body_images.py && pagefind --site dist",
+    "build": "npm run prebuild && astro check && astro build && pagefind --site dist",
     "preview": "astro preview",
     "check": "npm run prebuild && astro check",
     "astro": "astro",
     "search:index": "pagefind --site dist",
     "test:smoke": "playwright test",
+    "audit:download-asset-urls": "uv run scripts/audit/download_asset_urls.py",
     "prebuild": "npm run prebuild:slug-map && npm run prebuild:graph-payloads && npm run prebuild:bulk-archives",
     "prebuild:slug-map": "uv run scripts/build_slug_map.py",
     "prebuild:graph-payloads": "uv run scripts/build_copy_graph_payloads.py",
-    "prebuild:bulk-archives": "uv run scripts/build_bulk_archives.py"
+    "prebuild:bulk-archives": "node --experimental-strip-types scripts/build_bulk_archives.ts"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.18",

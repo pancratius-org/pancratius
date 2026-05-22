@@ -58,7 +58,7 @@ const workEntryId = (kind: "book" | "poem" | "project") =>
 const books = defineCollection({
   loader: glob({
     pattern: "**/*.md",
-    base: "./content/books",
+    base: "./src/content/books",
     generateId: workEntryId("book"),
   }),
   schema: z.object({
@@ -75,7 +75,7 @@ const books = defineCollection({
 const poetry = defineCollection({
   loader: glob({
     pattern: "**/*.md",
-    base: "./content/poetry",
+    base: "./src/content/poetry",
     generateId: workEntryId("poem"),
   }),
   schema: z.object({
@@ -92,7 +92,7 @@ const poetry = defineCollection({
 const projects = defineCollection({
   loader: glob({
     pattern: "**/*.md",
-    base: "./content/projects",
+    base: "./src/content/projects",
     generateId: workEntryId("project"),
   }),
   schema: z.object({
@@ -113,7 +113,7 @@ const projects = defineCollection({
 const pages = defineCollection({
   loader: glob({
     pattern: "**/*.md",
-    base: "./content/pages",
+    base: "./src/content/pages",
     generateId: ({ entry }) => {
       const m = entry.match(/^(.+?)\/(ru|en)\.md$/);
       if (!m) throw new Error(`Unexpected page path: ${entry}`);

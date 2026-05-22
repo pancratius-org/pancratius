@@ -36,7 +36,6 @@ export interface SimilarRef {
   slug:   string;
   kind:   WorkKind;
   title:  string;
-  cover:  string | null;
   weight: number;
 }
 
@@ -46,8 +45,11 @@ export interface BooksGraphNode {
   number:             number;
   label:              string;
   title:              string;
-  cover:              string | null;
   tags:               string[];
+  frequency:          number;
+  degree:             number;
+  weighted_degree:    number;
+  centrality:         number;
   community:          number;
   top_concepts:       { label: string; lemma: string; count: number }[];
   top_similar:        SimilarRef[];
@@ -71,11 +73,15 @@ export interface BooksGraph {
 }
 
 export interface ConceptsGraphNode {
-  id:        string;
-  label:     string;
-  lemma:     string;
-  count:     number;
-  community: number;
+  id:              string;
+  label:           string;
+  lemma:           string;
+  frequency:       number;
+  degree:          number;
+  weighted_degree: number;
+  centrality:      number;
+  community:       number;
+  top_books:       { slug: string; kind: "book"; title: string; count: number }[];
 }
 
 export interface ConceptsGraphEdge {
@@ -87,7 +93,7 @@ export interface ConceptsGraphEdge {
 
 export interface ConceptsGraph {
   generated_at: string;
-  mode:         "concepts";
+  mode?:        "concepts";
   params:       Record<string, unknown>;
   stats:        Record<string, unknown>;
   communities:  BooksGraphCommunity[];

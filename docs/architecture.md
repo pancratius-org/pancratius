@@ -7,7 +7,7 @@ The top-level contract for the production site. Implementation details (commands
 - **Framework**: Astro 6+. No additional UI framework — no React, no Vue, no Svelte, no Tailwind. Vanilla CSS scoped via Astro components.
 - **Language**: **TypeScript 6+, strict mode, everywhere in production source.** No handwritten production JavaScript (`.js` / `.mjs` / `.cjs`); archived `legacy/` and `design/` prototypes stay excluded until they are deleted. Astro config is `astro.config.ts`.
 - **Runtime**: Node 24.
-- **Scripts language**: Python with type hints. **Run via `uv` only** — PEP 723 inline deps per script; no `pip install`, no `conda`, no `requirements.txt`.
+- **Scripts language**: Python 3.13+ with type hints. **Run via `uv` only**; project Python dependencies are locked in `pyproject.toml` / `uv.lock`. No `pip install`, no `conda`, no `requirements.txt`.
 - **Conceptosphere viz libs**: Sigma 3 + `graphology` + `graphology-layout-forceatlas2`, bundled via npm, not CDN.
 - **Search**: Pagefind (static; ships with the build).
 - **Library-management tools**: pandoc, typst, pymorphy3, Qwen3-Embedding via MLX. These are local/admin tools for importing content, refreshing downloads, and regenerating data products. They are not part of the site deploy path.
@@ -18,13 +18,13 @@ The top-level contract for the production site. Implementation details (commands
 - **Static site.** Astro `output: 'static'`. The build emits files; the host serves files. No SSR, no runtime backend, no API surface.
 - **CI builds and publishes the site only.** CI validates content, builds Astro, runs Pagefind/sitemap generation, checks that referenced artifacts exist, and deploys `dist/`. It does not manufacture the library: no DOCX optimization, no PDF/EPUB rendering, no embedding regeneration.
 - **One URL = one resource.** Language, content, downloads, alternate-language links all follow from the URL. No decoupled "UI language" state. See [`i18n-routing.md`](./i18n-routing.md).
-- **Canonical URLs end in `/` for HTML, in the extension for files.** Astro config uses `trailingSlash: "always"` for the HTML route shape; endpoints with file extensions ignore the setting.
+- **Canonical URLs end in `/` for HTML, in the extension for files.** The canonical shape is produced by shared URL helpers. Astro config uses `trailingSlash: "ignore"` so dynamic file endpoints such as `/books/{slug}.md` are not rewritten to `/books/{slug}.md/` in dev.
 - **Deploy target shape.** A plain file host reached over FTP. Trust the server's MIME table — it picks `Content-Type` by file extension. Don't try to set headers from Astro `Response`s; they don't propagate to the deployed file.
 - **Mirror.** A GitHub Pages mirror uses the same source and build pipeline, with deploy-target-specific `site` / `base` config (the mirror's URL prefix differs, so it produces its own `dist/`).
 
 ## Content
 
-- **Source of truth lives in `content/`** as Markdown plus sibling source/release artifacts (DOCX, PDF, EPUB, covers, images). See [`content-model.md`](./content-model.md).
+- **Source of truth lives in `src/content/`** as Markdown plus sibling source/release artifacts (DOCX, PDF, EPUB, covers, images). See [`content-model.md`](./content-model.md).
 - **Build-pipeline data lives in `data/`** and is **not** web-public. Astro's static build does not ship `data/`. Public payloads (graph JSON, etc.) are emitted or copied into `public/data/` so they appear in `dist/`.
 - **Embedding caches, conversion manifests, and `conceptosphere-embed.json`** are build-time inputs only. Never publish them.
 
@@ -67,7 +67,7 @@ step, or both. The architecture-level invariant is not the mechanism; it is that
 source assets are co-located with the work, and generated public assets are build
 output.
 
-`content/` is persistent source content. Converter reruns are incremental by
+`src/content/` is persistent source content. Converter reruns are incremental by
 default: they may overwrite generated Markdown, generated sidecars, and
 converter-owned imported assets, but they must preserve unknown files in a work
 folder. Full clean-room regeneration belongs in a scratch directory or an
@@ -98,7 +98,7 @@ bulk surface at `/downloads/` ships a single `all-md.zip` corpus archive; large
 bulk PDF/EPUB archives are off-host archival/release artifacts, not production
 site payload. Details: [`downloads.md`](./downloads.md).
 
-PDF/EPUB/DOCX management is local library work. A non-developer-friendly script may refresh those artifacts before commit, but CI should only package and publish what is already present in `content/`.
+PDF/EPUB/DOCX management is local library work. A non-developer-friendly script may refresh those artifacts before commit, but CI should only package and publish what is already present in `src/content/`.
 
 ## Search
 

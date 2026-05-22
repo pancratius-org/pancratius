@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-CONTENT = ROOT / "content"
+CONTENT = ROOT / "src" / "content"
 
 TOC_LINE = re.compile(r"^\[.+?\[\d+\]\(#[^)]+\)\]\(#[^)]+\)\s*$")
 TOC_ANCHOR = re.compile(r"_Toc\d+")

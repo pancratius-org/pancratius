@@ -1,0 +1,142 @@
+---
+import { render } from "astro:content";
+
+import Base from "@/layouts/Base.astro";
+import BookCover from "@/components/BookCover.astro";
+import Colophon from "@/components/Colophon.astro";
+import ProjectRelated from "@/components/ProjectRelated.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { kindIndexUrl } from "@/lib/i18n";
+import { projectPageCopy } from "@/lib/copy";
+import { coverAbsoluteUrl } from "@/lib/covers";
+import { sameSitePath } from "@/lib/paths";
+import { seoForWork } from "@/lib/seo";
+import { resolveCrossRefs, type WorkPair } from "@/lib/works";
+
+interface Props {
+  pair: WorkPair;
+  locale: Locale;
+}
+
+const { pair, locale } = Astro.props;
+const entry = locale === "en" ? pair.en : pair.ru;
+if (!entry) {
+  throw new Error(`ProjectPage: no ${locale} entry for project #${pair.number}`);
+}
+
+const copy = projectPageCopy[locale];
+const { Content } = await render(entry);
+const coverUrl = await coverAbsoluteUrl(Astro.site, pair, locale);
+const seo = seoForWork(Astro.site, { pair, locale, coverUrl });
+const backHref = kindIndexUrl("project", locale);
+const tagline = (entry.data as { tagline?: string }).tagline;
+const crossRefs = await resolveCrossRefs(entry, locale);
+---
+<Base locale={locale} seo={seo}>
+  <article class="project-page">
+    <a class="project-page__back" href={sameSitePath(backHref)}>{copy.back}</a>
+
+    <header class="project-page__masthead">
+      <p class="project-page__meta">{copy.meta}</p>
+      <div class="project-page__cover">
+        <BookCover pair={pair} locale={locale} alt={copy.coverAlt(entry.data.title)} loading="eager" />
+      </div>
+      <div class="project-page__body">
+        <h1 class="project-page__title">{entry.data.title}</h1>
+        {tagline && <p class="project-page__tagline">{tagline}</p>}
+      </div>
+    </header>
+
+    <div
+      class="prose prose--project"
+      data-pagefind-body
+      data-pagefind-meta={`title:${entry.data.title}`}
+    >
+      <Content />
+    </div>
+
+    <ProjectRelated locale={locale} crossRefs={crossRefs} />
+
+    <Colophon pair={pair} locale={locale} />
+  </article>
+</Base>
+
+<style>
+  .project-page {
+    max-width: 64rem;
+    margin: 0 auto;
+    padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
+  }
+  .project-page__back {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    color: var(--ink-mute);
+    display: inline-block;
+    margin-bottom: 2rem;
+    text-decoration: none;
+  }
+  .project-page__back:hover { color: var(--accent); }
+
+  .project-page__masthead {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    grid-template-areas:
+      "meta meta"
+      "cover body";
+    column-gap: 2.5rem;
+    row-gap: 1.4rem;
+    align-items: start;
+    margin-bottom: 3rem;
+    padding-bottom: 2.25rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .project-page__masthead .project-page__meta  { grid-area: meta;  }
+  .project-page__masthead .project-page__cover { grid-area: cover; }
+  .project-page__masthead .project-page__body  { grid-area: body;  }
+  @media (max-width: 720px) {
+    .project-page__masthead {
+      grid-template-columns: 1fr;
+      grid-template-areas: "meta" "cover" "body";
+      row-gap: 1.25rem;
+    }
+    .project-page__masthead .project-page__cover { max-width: 200px; }
+  }
+  .project-page__cover :global(.bcv) {
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25), 0 28px 50px -30px rgba(0, 0, 0, 0.55);
+  }
+  :global([data-theme="light"]) .project-page__cover :global(.bcv) {
+    box-shadow: 0 1px 0 rgba(20, 17, 13, 0.05), 0 24px 48px -28px rgba(60, 45, 20, 0.30);
+  }
+  .project-page__meta {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0;
+  }
+  .project-page__title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(2.2rem, 4.4vw, 3.4rem);
+    line-height: 1.04;
+    letter-spacing: -0.018em;
+    margin: 0 0 1rem;
+    text-wrap: balance;
+    font-feature-settings: "lnum" 0, "onum" 1, "kern" 1;
+  }
+  .project-page__tagline {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.05rem, 1.7vw, 1.2rem);
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0;
+    text-wrap: pretty;
+    max-width: 42rem;
+  }
+  .project-page .prose { max-width: none; }
+</style>

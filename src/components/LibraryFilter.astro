@@ -1,5 +1,6 @@
 ---
 import type { Locale } from "@/lib/i18n";
+import { libraryFilterCopy } from "@/lib/copy";
 
 interface TagCount {
   label: string;
@@ -15,27 +16,7 @@ interface Props {
 
 const { locale, tags, total } = Astro.props;
 const sortedTags = [...tags].sort((a, b) => b.count - a.count);
-const copy = locale === "ru" ? {
-  search: "Найти по названию",
-  searchAria: "Поиск по названиям книг",
-  shown: "из",
-  topic: "тема —",
-  query: "поиск —",
-  reset: "сбросить",
-  empty: "Ничего не найдено.",
-  tagsLabel: "Темы",
-  k: "⌘K",
-} : {
-  search: "Search by title",
-  searchAria: "Search book titles",
-  shown: "of",
-  topic: "tag —",
-  query: "query —",
-  reset: "reset",
-  empty: "Nothing matched.",
-  tagsLabel: "Tags",
-  k: "⌘K",
-};
+const copy = libraryFilterCopy[locale];
 ---
 <div class="controls">
   <label class="search" id="libSearchWrap">

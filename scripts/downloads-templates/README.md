@@ -81,7 +81,7 @@ pandoc <md> -o <pdf>
 ## Regeneration
 
 Generated PDF/EPUB files are committed beside each work as
-`content/<kind>/<work>/<lang>.{pdf,epub}`. The script is incremental by default:
+`src/content/<kind>/<work>/<lang>.{pdf,epub}`. The script is incremental by default:
 it skips outputs newer than their source Markdown. Use `--force` when templates,
 fonts, or renderer versions change and every artifact needs a refresh.
 

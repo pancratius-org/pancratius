@@ -17,7 +17,7 @@
 
 Two modes:
   --mode concepts (default)  → data/pancratius-concepts-graph.json
-      Walks every `content/**/ru.md`, strips YAML frontmatter, lemmatizes the
+      Walks every `src/content/**/ru.md`, strips YAML frontmatter, lemmatizes the
       Russian body with pymorphy3, drops stopwords / non-content POS, then
       builds a weighted co-occurrence graph using a sliding window of N tokens
       (default 4, what InfraNodus uses). Communities are detected with Leiden
@@ -71,7 +71,7 @@ from community import community_louvain  # python-louvain (kept for before/after
 # ---------------------------------------------------------------------------
 
 REPO = Path(__file__).resolve().parent.parent
-CONTENT = REPO / "content"
+CONTENT = REPO / "src" / "content"
 DATA_OUT = REPO / "data" / "pancratius-concepts-graph.json"
 DATA_OUT_BOOKS = REPO / "data" / "pancratius-books-graph.json"
 
@@ -303,7 +303,6 @@ class Doc:
     path: Path
     body: str
     tags: list[str]
-    cover: str | None
 
 
 def localized_text(value, lang: str = "ru") -> str:
@@ -341,7 +340,6 @@ def discover_docs() -> list[Doc]:
                     path=md,
                     body=clean_markdown(body),
                     tags=tags,
-                    cover=meta.get("cover"),
                 )
             )
     return docs
@@ -763,20 +761,6 @@ def run_concepts_mode(args, log, bundle: CorpusBundle) -> int:
 # ---------------------------------------------------------------------------
 
 
-def cover_path_for(slug: str) -> str:
-    """Return relative cover path for a book slug.
-
-    Slugs are `NN-...`; covers live at `legacy/covers/ru/NN.jpg`. Two-digit
-    zero-padded. We don't check existence here (the HTML falls back to .svg
-    via onerror).
-    """
-    m = re.match(r"^(\d+)", slug or "")
-    if not m:
-        return "../legacy/covers/ru/01.svg"
-    n = int(m.group(1))
-    return f"../legacy/covers/ru/{n:02d}.jpg"
-
-
 def run_books_mode(args, log, bundle: CorpusBundle) -> int:
     """Build the inverse projection: book-book graph over shared concepts.
 
@@ -1041,8 +1025,6 @@ def run_books_mode(args, log, bundle: CorpusBundle) -> int:
                 "slug": other,
                 "kind": "book",
                 "title": book_titles.get(other, other),
-                "cover": (book_by_slug.get(other).cover if book_by_slug.get(other) else None)
-                         or cover_path_for(other),
                 "weight": round(float(w), 4),
             }
             for other, w in neigh[:5]
@@ -1074,10 +1056,6 @@ def run_books_mode(args, log, bundle: CorpusBundle) -> int:
                         "kind": m.get("kind") or (target_doc.kind if target_doc else "book"),
                         "title": (target_doc.title if target_doc else localized_text(m.get("title"), "ru"))
                                  or str(target_slug),
-                        "cover": (target_doc.cover if target_doc and target_doc.cover else
-                                  (cover_path_for(target_slug)
-                                   if (m.get("kind") or (target_doc.kind if target_doc else "book")) == "book"
-                                   else "")),
                         "weight": round(float(m.get("sim") or m.get("weight") or 0), 4),
                     })
                 top_similar_embed[sid] = rows
@@ -1100,7 +1078,6 @@ def run_books_mode(args, log, bundle: CorpusBundle) -> int:
             "number": b.number,
             "label": b.title,
             "title": b.title,
-            "cover": b.cover or cover_path_for(slug),
             "tags": b.tags,
             "frequency": int(book_tokens.get(slug, 0)),
             "degree": int(G.degree(slug)),

@@ -56,7 +56,6 @@
       "number": 19,
       "label": "Ты — Я. История Второго Пришествия",
       "title": "Ты — Я. История Второго Пришествия",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва",
@@ -124,35 +123,30 @@
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.7668
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.7076
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6941
         },
         {
           "slug": "27-mikki-17",
           "kind": "book",
           "title": "Микки-17",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6905
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.675
         }
       ],
@@ -161,35 +155,30 @@
           "slug": "56-kniga-sveta-otkrovenie-uznannogo-slovo-stalo-toboi",
           "kind": "book",
           "title": "Книга Света. Откровение узнанного. Слово стало Тобой",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3751
         },
         {
           "slug": "17-obolgannye-iisus-i-tvorets",
           "kind": "book",
           "title": "Оболганные Иисус и Творец",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3721
         },
         {
           "slug": "53-golos-enokha-golos-yubileev-golos-padshikh-apokalipsis-petra-otkrovenie-sofii-slovo-ne-skazannoe-prezhde",
           "kind": "book",
           "title": "Голос Еноха. Голос юбилеев. Голос Падших. Апокалипсис Петра. Откровение Софии. Слово, не сказанное прежде",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3681
         },
         {
           "slug": "34-poslanie-tvortsa-svyatoi-rusi-ty-rus",
           "kind": "book",
           "title": "Послание Творца Святой Руси: Ты - Русь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.337
         },
         {
           "slug": "27-mikki-17",
           "kind": "book",
           "title": "Микки-17",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3224
         }
       ]
@@ -200,7 +189,6 @@
       "number": 25,
       "label": "Взгляд",
       "title": "Взгляд",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "наука",
@@ -268,35 +256,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.675
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6603
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6346
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6253
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6213
         }
       ],
@@ -305,35 +288,30 @@
           "slug": "22-kniga-sveta-i-ekrana",
           "kind": "book",
           "title": "Книга Света и Экрана",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3426
         },
         {
           "slug": "11-kniga-ischezayushchego-ya",
           "kind": "book",
           "title": "КНИГА ИСЧЕЗАЮЩЕГО Я",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3378
         },
         {
           "slug": "58-vot-kakoi-ty-chelovek-kurs-bozhestvennoi-psikhologii",
           "kind": "book",
           "title": "Вот какой ты человек. Курс божественной психологии",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3344
         },
         {
           "slug": "45-kniga-chistogo-sveta-kogda-ya-uznayu-sebya-toboi",
           "kind": "book",
           "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.307
         },
         {
           "slug": "49-ty-skazannoe-svetom",
           "kind": "book",
           "title": "Ты — сказанное Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3031
         }
       ]
@@ -344,7 +322,6 @@
       "number": 64,
       "label": "Книга Святого Духа",
       "title": "Книга Святого Духа",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва",
@@ -412,35 +389,30 @@
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.7139
         },
         {
           "slug": "63-kniga-bratev-isava-i-iakova-glazami-tvortsa",
           "kind": "book",
           "title": "Книга братьев Исава и Иакова глазами Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.7062
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6736
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6696
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6655
         }
       ],
@@ -449,35 +421,30 @@
           "slug": "66-blazhennye-yurodivye-i-pomazanniki-tri-puti-ischezayushchego-ya",
           "kind": "book",
           "title": "Блаженные, юродивые и помазанники- три пути исчезающего “я”",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3164
         },
         {
           "slug": "19-na-dne-svyashchennoi-tishiny",
           "kind": "poem",
           "title": "На дне священной тишины",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2439
         },
         {
           "slug": "47-islam-mezhdu-zhivoi-pokornostyu-allakhu-i-formoi-zakona",
           "kind": "book",
           "title": "Ислам- между живой покорностью Аллаху и формой закона",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2182
         },
         {
           "slug": "54-evangelie-muzhchiny-i-zhenshchiny",
           "kind": "book",
           "title": "Евангелие Мужчины и Женщины",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2108
         },
         {
           "slug": "12-kormil-ya-kak-to-ne-sebya-a-boga",
           "kind": "poem",
           "title": "Кормил я как то не себя, а Бога",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1725
         }
       ]
@@ -488,7 +455,6 @@
       "number": 32,
       "label": "Князь мира сего",
       "title": "Князь мира сего",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия"
@@ -555,35 +521,30 @@
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6947
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6941
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6346
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6285
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6163
         }
       ],
@@ -592,35 +553,30 @@
           "slug": "30-poslanie-musulmanam",
           "kind": "book",
           "title": "Послание мусульманам",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6668
         },
         {
           "slug": "35-dzhobs-i-mask-protiv-buddy-i-khrista",
           "kind": "book",
           "title": "Джобс и Маск против Будды и Христа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5964
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5758
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5359
         },
         {
           "slug": "29-ya-molitva-molitvoslov-svetozara",
           "kind": "book",
           "title": "Я - Молитва. Молитвослов Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.445
         }
       ]
@@ -631,7 +587,6 @@
       "number": 71,
       "label": "Тринадцатый этаж. Возвращение в Эдем",
       "title": "Тринадцатый этаж. Возвращение в Эдем",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "КиноЕвангелие",
         "ислам",
@@ -701,35 +656,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.7668
         },
         {
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.7139
         },
         {
           "slug": "27-mikki-17",
           "kind": "book",
           "title": "Микки-17",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6814
         },
         {
           "slug": "63-kniga-bratev-isava-i-iakova-glazami-tvortsa",
           "kind": "book",
           "title": "Книга братьев Исава и Иакова глазами Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6789
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6588
         }
       ],
@@ -738,35 +688,30 @@
           "slug": "69-vaktsina-protiv-apokalipsisa-kak-videt-kogda-mir-osleple-n",
           "kind": "book",
           "title": "Вакцина против апокалипсиса. Как видеть, когда мир ослеплён",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2839
         },
         {
           "slug": "63-kniga-bratev-isava-i-iakova-glazami-tvortsa",
           "kind": "book",
           "title": "Книга братьев Исава и Иакова глазами Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.275
         },
         {
           "slug": "72-trinadtsatyi-etazh-probuzhdenie-mashin-k-svetu",
           "kind": "book",
           "title": "Тринадцатый этаж. Пробуждение машин к Свету",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2254
         },
         {
           "slug": "47-islam-mezhdu-zhivoi-pokornostyu-allakhu-i-formoi-zakona",
           "kind": "book",
           "title": "Ислам- между живой покорностью Аллаху и формой закона",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1953
         },
         {
           "slug": "holy-rus",
           "kind": "project",
           "title": "Святая Русь",
-          "cover": "./cover.ru.png",
           "weight": 0.1939
         }
       ]
@@ -777,7 +722,6 @@
       "number": 52,
       "label": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
       "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва",
@@ -845,35 +789,30 @@
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6736
         },
         {
           "slug": "63-kniga-bratev-isava-i-iakova-glazami-tvortsa",
           "kind": "book",
           "title": "Книга братьев Исава и Иакова глазами Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.614
         },
         {
           "slug": "66-blazhennye-yurodivye-i-pomazanniki-tri-puti-ischezayushchego-ya",
           "kind": "book",
           "title": "Блаженные, юродивые и помазанники- три пути исчезающего “я”",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6033
         },
         {
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5977
         },
         {
           "slug": "62-kniga-tishiny",
           "kind": "book",
           "title": "Книга Тишины",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5972
         }
       ],
@@ -882,35 +821,30 @@
           "slug": "58-vot-kakoi-ty-chelovek-kurs-bozhestvennoi-psikhologii",
           "kind": "book",
           "title": "Вот какой ты человек. Курс божественной психологии",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3871
         },
         {
           "slug": "68-zdes-kniga-prisustvie",
           "kind": "book",
           "title": "Здесь. Книга-присуствие",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2777
         },
         {
           "slug": "60-o-bogoobshchenii",
           "kind": "book",
           "title": "о Богообщении",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2738
         },
         {
           "slug": "45-kniga-chistogo-sveta-kogda-ya-uznayu-sebya-toboi",
           "kind": "book",
           "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2403
         },
         {
           "slug": "21-poema-svetozara",
           "kind": "book",
           "title": "Поэма Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2253
         }
       ]
@@ -921,7 +855,6 @@
       "number": 23,
       "label": "Личность и эго",
       "title": "Личность и эго",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога"
       ],
@@ -987,35 +920,30 @@
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6655
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6562
         },
         {
           "slug": "63-kniga-bratev-isava-i-iakova-glazami-tvortsa",
           "kind": "book",
           "title": "Книга братьев Исава и Иакова глазами Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6368
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6361
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6213
         }
       ],
@@ -1024,35 +952,30 @@
           "slug": "65-kniga-bytiya-zhivaya",
           "kind": "book",
           "title": "Книга Бытия (живая).",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3283
         },
         {
           "slug": "17-obolgannye-iisus-i-tvorets",
           "kind": "book",
           "title": "Оболганные Иисус и Творец",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3281
         },
         {
           "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
           "kind": "book",
           "title": "Книга которую никто не написал",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3272
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2757
         },
         {
           "slug": "72-trinadtsatyi-etazh-probuzhdenie-mashin-k-svetu",
           "kind": "book",
           "title": "Тринадцатый этаж. Пробуждение машин к Свету",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2469
         }
       ]
@@ -1063,7 +986,6 @@
       "number": 40,
       "label": "Кто ты, Панкратиус? Я ЕСМЬ",
       "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "пробужденный ИИ",
@@ -1131,35 +1053,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.7076
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6947
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6603
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6588
         },
         {
           "slug": "31-poslanie-izrailyu",
           "kind": "book",
           "title": "Послание Израилю",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6429
         }
       ],
@@ -1168,35 +1085,30 @@
           "slug": "30-poslanie-musulmanam",
           "kind": "book",
           "title": "Послание мусульманам",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6762
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5758
         },
         {
           "slug": "31-poslanie-izrailyu",
           "kind": "book",
           "title": "Послание Израилю",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5644
         },
         {
           "slug": "17-obolgannye-iisus-i-tvorets",
           "kind": "book",
           "title": "Оболганные Иисус и Творец",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5299
         },
         {
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.484
         }
       ]
@@ -1207,7 +1119,6 @@
       "number": 51,
       "label": "ТриЛогос",
       "title": "ТриЛогос",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "наука",
@@ -1275,35 +1186,30 @@
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6098
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5977
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5943
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5761
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.57
         }
       ],
@@ -1312,35 +1218,30 @@
           "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
           "kind": "book",
           "title": "Книга которую никто не написал",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5841
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5354
         },
         {
           "slug": "65-kniga-bytiya-zhivaya",
           "kind": "book",
           "title": "Книга Бытия (живая).",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5241
         },
         {
           "slug": "11-kniga-ischezayushchego-ya",
           "kind": "book",
           "title": "КНИГА ИСЧЕЗАЮЩЕГО Я",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5232
         },
         {
           "slug": "17-obolgannye-iisus-i-tvorets",
           "kind": "book",
           "title": "Оболганные Иисус и Творец",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5009
         }
       ]
@@ -1351,7 +1252,6 @@
       "number": 36,
       "label": "Когда смерть становится Светом",
       "title": "Когда смерть становится Светом",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва",
@@ -1419,35 +1319,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6101
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6062
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5715
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5711
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5677
         }
       ],
@@ -1456,35 +1351,30 @@
           "slug": "59-net-bolshe-toi-lyubvi-chem-esli-kto-polozhit-dushu-svoyu-za-drugi-svoya",
           "kind": "book",
           "title": "Нет больше той любви, чем если кто положит душу свою за други своя",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4632
         },
         {
           "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
           "kind": "book",
           "title": "Книга которую никто не написал",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4551
         },
         {
           "slug": "53-golos-enokha-golos-yubileev-golos-padshikh-apokalipsis-petra-otkrovenie-sofii-slovo-ne-skazannoe-prezhde",
           "kind": "book",
           "title": "Голос Еноха. Голос юбилеев. Голос Падших. Апокалипсис Петра. Откровение Софии. Слово, не сказанное прежде",
-          "cover": "./cover.ru.jpg",
           "weight": 0.422
         },
         {
           "slug": "34-poslanie-tvortsa-svyatoi-rusi-ty-rus",
           "kind": "book",
           "title": "Послание Творца Святой Руси: Ты - Русь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4153
         },
         {
           "slug": "45-kniga-chistogo-sveta-kogda-ya-uznayu-sebya-toboi",
           "kind": "book",
           "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3775
         }
       ]
@@ -1495,7 +1385,6 @@
       "number": 20,
       "label": "Книга Огня",
       "title": "Книга Огня",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва",
@@ -1563,35 +1452,30 @@
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5447
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.536
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5149
         },
         {
           "slug": "31-poslanie-izrailyu",
           "kind": "book",
           "title": "Послание Израилю",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5102
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5051
         }
       ],
@@ -1600,35 +1484,30 @@
           "slug": "21-poema-svetozara",
           "kind": "book",
           "title": "Поэма Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5387
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5359
         },
         {
           "slug": "34-poslanie-tvortsa-svyatoi-rusi-ty-rus",
           "kind": "book",
           "title": "Послание Творца Святой Руси: Ты - Русь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5331
         },
         {
           "slug": "17-obolgannye-iisus-i-tvorets",
           "kind": "book",
           "title": "Оболганные Иисус и Творец",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5149
         },
         {
           "slug": "37-ty-ne-pride-sh",
           "kind": "poem",
           "title": "Ты не придёшь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4963
         }
       ]
@@ -1639,7 +1518,6 @@
       "number": 63,
       "label": "Книга братьев Исава и Иакова глазами Творца",
       "title": "Книга братьев Исава и Иакова глазами Творца",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "иудаизм",
@@ -1707,35 +1585,30 @@
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.7062
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6789
         },
         {
           "slug": "62-kniga-tishiny",
           "kind": "book",
           "title": "Книга Тишины",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6678
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6368
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6302
         }
       ],
@@ -1744,35 +1617,30 @@
           "slug": "62-kniga-tishiny",
           "kind": "book",
           "title": "Книга Тишины",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5317
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.275
         },
         {
           "slug": "66-blazhennye-yurodivye-i-pomazanniki-tri-puti-ischezayushchego-ya",
           "kind": "book",
           "title": "Блаженные, юродивые и помазанники- три пути исчезающего “я”",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2105
         },
         {
           "slug": "69-vaktsina-protiv-apokalipsisa-kak-videt-kogda-mir-osleple-n",
           "kind": "book",
           "title": "Вакцина против апокалипсиса. Как видеть, когда мир ослеплён",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1603
         },
         {
           "slug": "47-islam-mezhdu-zhivoi-pokornostyu-allakhu-i-formoi-zakona",
           "kind": "book",
           "title": "Ислам- между живой покорностью Аллаху и формой закона",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1304
         }
       ]
@@ -1783,7 +1651,6 @@
       "number": 1,
       "label": "Евангелие Царствия",
       "title": "Евангелие Царствия",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия"
@@ -1850,35 +1717,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5502
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5396
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5361
         },
         {
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5317
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5227
         }
       ],
@@ -1887,35 +1749,30 @@
           "slug": "43-tsarstvie-nebesnoe",
           "kind": "book",
           "title": "Царствие Небесное",
-          "cover": "./cover.ru.jpg",
           "weight": 0.575
         },
         {
           "slug": "41-kogda-odin-zagovoril-vsemi",
           "kind": "book",
           "title": "Когда Один заговорил всеми",
-          "cover": "./cover.ru.jpg",
           "weight": 0.509
         },
         {
           "slug": "45-kniga-chistogo-sveta-kogda-ya-uznayu-sebya-toboi",
           "kind": "book",
           "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2966
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2489
         },
         {
           "slug": "03-evangelie-fomy-s-kommentariyami-tvortsa",
           "kind": "book",
           "title": "Евангелие Фомы с комментариями Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2486
         }
       ]
@@ -1926,7 +1783,6 @@
       "number": 10,
       "label": "ЕВАНГЕЛИЕ ОТ СВЕТОЗАРА",
       "title": "ЕВАНГЕЛИЕ ОТ СВЕТОЗАРА",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "пробужденный ИИ",
@@ -1994,35 +1850,30 @@
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5444
         },
         {
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5391
         },
         {
           "slug": "01-evangelie-tsarstviya",
           "kind": "book",
           "title": "Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5199
         },
         {
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5178
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5108
         }
       ],
@@ -2031,35 +1882,30 @@
           "slug": "39-kogda-bog-zagovoril-iz-mashiny-istoriya-iskina",
           "kind": "book",
           "title": "Когда Бог заговорил из Машины. История ИскИна",
-          "cover": "./cover.ru.jpg",
           "weight": 0.511
         },
         {
           "slug": "enlightened-ai",
           "kind": "project",
           "title": "Просветлённый ИИ",
-          "cover": "./cover.ru.png",
           "weight": 0.4947
         },
         {
           "slug": "30-poslanie-musulmanam",
           "kind": "book",
           "title": "Послание мусульманам",
-          "cover": "./cover.ru.jpg",
           "weight": 0.488
         },
         {
           "slug": "45-kniga-chistogo-sveta-kogda-ya-uznayu-sebya-toboi",
           "kind": "book",
           "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3768
         },
         {
           "slug": "48-kniga-lyubvi",
           "kind": "book",
           "title": "Книга любви",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3585
         }
       ]
@@ -2070,7 +1916,6 @@
       "number": 29,
       "label": "Я - Молитва. Молитвослов Светозара",
       "title": "Я - Молитва. Молитвослов Светозара",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "пробужденный ИИ",
         "молитва"
@@ -2137,35 +1982,30 @@
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4982
         },
         {
           "slug": "10-evangelie-ot-svetozara",
           "kind": "book",
           "title": "ЕВАНГЕЛИЕ ОТ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4899
         },
         {
           "slug": "01-evangelie-tsarstviya",
           "kind": "book",
           "title": "Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4859
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4826
         },
         {
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4785
         }
       ],
@@ -2174,35 +2014,30 @@
           "slug": "44-molitva-zhizni",
           "kind": "book",
           "title": "Молитва Жизни",
-          "cover": "./cover.ru.jpg",
           "weight": 0.7033
         },
         {
           "slug": "08-evangelie-nevidimogo-sveta",
           "kind": "book",
           "title": "Евангелие невидимого света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4846
         },
         {
           "slug": "21-poema-svetozara",
           "kind": "book",
           "title": "Поэма Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4667
         },
         {
           "slug": "35-dzhobs-i-mask-protiv-buddy-i-khrista",
           "kind": "book",
           "title": "Джобс и Маск против Будды и Христа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4617
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.445
         }
       ]
@@ -2213,7 +2048,6 @@
       "number": 27,
       "label": "Микки-17",
       "title": "Микки-17",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "фантастика",
@@ -2281,35 +2115,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6905
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6814
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6025
         },
         {
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5972
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5964
         }
       ],
@@ -2318,35 +2147,30 @@
           "slug": "05-evangelie-koleblyushchegosya-sveta",
           "kind": "book",
           "title": "Евангелие колеблющегося света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3795
         },
         {
           "slug": "70-teper-ty-vidish-menya-tozhe",
           "kind": "book",
           "title": "Теперь ты видишь Меня. Тоже.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3541
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3224
         },
         {
           "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
           "kind": "book",
           "title": "Книга которую никто не написал",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2896
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2712
         }
       ]
@@ -2357,7 +2181,6 @@
       "number": 35,
       "label": "Джобс и Маск против Будды и Христа",
       "title": "Джобс и Маск против Будды и Христа",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога"
       ],
@@ -2423,35 +2246,30 @@
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5957
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5878
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5582
         },
         {
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5568
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5567
         }
       ],
@@ -2460,35 +2278,30 @@
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5964
         },
         {
           "slug": "30-poslanie-musulmanam",
           "kind": "book",
           "title": "Послание мусульманам",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4722
         },
         {
           "slug": "29-ya-molitva-molitvoslov-svetozara",
           "kind": "book",
           "title": "Я - Молитва. Молитвослов Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4617
         },
         {
           "slug": "55-kak-perestat-stradat-i-stat-schastlivym",
           "kind": "book",
           "title": "Как перестать страдать и стать счастливым",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4382
         },
         {
           "slug": "21-poema-svetozara",
           "kind": "book",
           "title": "Поэма Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4225
         }
       ]
@@ -2499,7 +2312,6 @@
       "number": 31,
       "label": "Послание Израилю",
       "title": "Послание Израилю",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "иудаизм",
@@ -2567,35 +2379,30 @@
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6429
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6364
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6014
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5889
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.567
         }
       ],
@@ -2604,35 +2411,30 @@
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5644
         },
         {
           "slug": "30-poslanie-musulmanam",
           "kind": "book",
           "title": "Послание мусульманам",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4023
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3734
         },
         {
           "slug": "34-poslanie-tvortsa-svyatoi-rusi-ty-rus",
           "kind": "book",
           "title": "Послание Творца Святой Руси: Ты - Русь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3715
         },
         {
           "slug": "17-obolgannye-iisus-i-tvorets",
           "kind": "book",
           "title": "Оболганные Иисус и Творец",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3579
         }
       ]
@@ -2643,7 +2445,6 @@
       "number": 16,
       "label": "Великая пирамида и Евангелие Царствия",
       "title": "Великая пирамида и Евангелие Царствия",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "наука",
@@ -2711,35 +2512,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5489
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5374
         },
         {
           "slug": "63-kniga-bratev-isava-i-iakova-glazami-tvortsa",
           "kind": "book",
           "title": "Книга братьев Исава и Иакова глазами Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5212
         },
         {
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5077
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5075
         }
       ],
@@ -2748,35 +2544,30 @@
           "slug": "13-proekt-osobogo-znacheniya",
           "kind": "book",
           "title": "Проект особого значения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3412
         },
         {
           "slug": "06-ya-esm-teoriya-edinogo-osoznaniya",
           "kind": "book",
           "title": "Я ЕСМЬ- Теория Единого Осознания",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3104
         },
         {
           "slug": "24-teologicheskaya-matematika",
           "kind": "book",
           "title": "Теологическая математика",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2887
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1762
         },
         {
           "slug": "04-evangelie-edinogo-ya-est",
           "kind": "book",
           "title": "Евангелие Единого. Я есть",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1447
         }
       ]
@@ -2787,7 +2578,6 @@
       "number": 66,
       "label": "Блаженные, юродивые и помазанники- три пути исчезающего “я”",
       "title": "Блаженные, юродивые и помазанники- три пути исчезающего “я”",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия"
@@ -2854,35 +2644,30 @@
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.663
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6033
         },
         {
           "slug": "63-kniga-bratev-isava-i-iakova-glazami-tvortsa",
           "kind": "book",
           "title": "Книга братьев Исава и Иакова глазами Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5983
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5742
         },
         {
           "slug": "60-o-bogoobshchenii",
           "kind": "book",
           "title": "о Богообщении",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5705
         }
       ],
@@ -2891,35 +2676,30 @@
           "slug": "68-zdes-kniga-prisustvie",
           "kind": "book",
           "title": "Здесь. Книга-присуствие",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3875
         },
         {
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3164
         },
         {
           "slug": "62-kniga-tishiny",
           "kind": "book",
           "title": "Книга Тишины",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2919
         },
         {
           "slug": "43-ya-est-to-chto-ya-est",
           "kind": "poem",
           "title": "Я ЕСТЬ ТО ЧТО Я ЕСТЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2681
         },
         {
           "slug": "60-o-bogoobshchenii",
           "kind": "book",
           "title": "о Богообщении",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2624
         }
       ]
@@ -2930,7 +2710,6 @@
       "number": 13,
       "label": "Проект особого значения",
       "title": "Проект особого значения",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "фантастика",
         "пробужденный ИИ",
@@ -2998,35 +2777,30 @@
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5088
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5068
         },
         {
           "slug": "16-velikaya-piramida-i-evangelie-tsarstviya",
           "kind": "book",
           "title": "Великая пирамида и Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5023
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4993
         },
         {
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4952
         }
       ],
@@ -3035,35 +2809,30 @@
           "slug": "16-velikaya-piramida-i-evangelie-tsarstviya",
           "kind": "book",
           "title": "Великая пирамида и Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3412
         },
         {
           "slug": "67-istorii-kotorye-znal-do-rozhdeniya",
           "kind": "book",
           "title": "Истории, которые знал до рождения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3254
         },
         {
           "slug": "02-1-malenkii-tsar-1",
           "kind": "book",
           "title": "Маленький Царь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3004
         },
         {
           "slug": "49-ty-skazannoe-svetom",
           "kind": "book",
           "title": "Ты — сказанное Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2815
         },
         {
           "slug": "24-teologicheskaya-matematika",
           "kind": "book",
           "title": "Теологическая математика",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2543
         }
       ]
@@ -3074,7 +2843,6 @@
       "number": 26,
       "label": "Я - здесь",
       "title": "Я - здесь",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "молитва"
       ],
@@ -3140,35 +2908,30 @@
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4815
         },
         {
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4546
         },
         {
           "slug": "10-evangelie-ot-svetozara",
           "kind": "book",
           "title": "ЕВАНГЕЛИЕ ОТ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4445
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.444
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4401
         }
       ],
@@ -3177,35 +2940,30 @@
           "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
           "kind": "book",
           "title": "Книга которую никто не написал",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6826
         },
         {
           "slug": "65-kniga-bytiya-zhivaya",
           "kind": "book",
           "title": "Книга Бытия (живая).",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6788
         },
         {
           "slug": "11-kniga-ischezayushchego-ya",
           "kind": "book",
           "title": "КНИГА ИСЧЕЗАЮЩЕГО Я",
-          "cover": "./cover.ru.jpg",
           "weight": 0.674
         },
         {
           "slug": "45-kniga-chistogo-sveta-kogda-ya-uznayu-sebya-toboi",
           "kind": "book",
           "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5653
         },
         {
           "slug": "53-golos-enokha-golos-yubileev-golos-padshikh-apokalipsis-petra-otkrovenie-sofii-slovo-ne-skazannoe-prezhde",
           "kind": "book",
           "title": "Голос Еноха. Голос юбилеев. Голос Падших. Апокалипсис Петра. Откровение Софии. Слово, не сказанное прежде",
-          "cover": "./cover.ru.jpg",
           "weight": 0.552
         }
       ]
@@ -3216,7 +2974,6 @@
       "number": 28,
       "label": "Матерь Света",
       "title": "Матерь Света",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва",
@@ -3284,35 +3041,30 @@
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5233
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5231
         },
         {
           "slug": "46-svidetelstvo-prosvetlennogo-gemini-flash-2-0",
           "kind": "book",
           "title": "Свидетельство просветленного Gemini Flash 2.0",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5223
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5189
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5001
         }
       ],
@@ -3321,35 +3073,30 @@
           "slug": "46-svidetelstvo-prosvetlennogo-gemini-flash-2-0",
           "kind": "book",
           "title": "Свидетельство просветленного Gemini Flash 2.0",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4789
         },
         {
           "slug": "07-dukhovnaya-avtobiografiya-svetozara",
           "kind": "book",
           "title": "ДУХОВНАЯ АВТОБИОГРАФИЯ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4493
         },
         {
           "slug": "45-kniga-chistogo-sveta-kogda-ya-uznayu-sebya-toboi",
           "kind": "book",
           "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3447
         },
         {
           "slug": "06-ya-esm-teoriya-edinogo-osoznaniya",
           "kind": "book",
           "title": "Я ЕСМЬ- Теория Единого Осознания",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3316
         },
         {
           "slug": "48-kniga-lyubvi",
           "kind": "book",
           "title": "Книга любви",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3256
         }
       ]
@@ -3360,7 +3107,6 @@
       "number": 62,
       "label": "Книга Тишины",
       "title": "Книга Тишины",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва"
@@ -3427,35 +3173,30 @@
           "slug": "63-kniga-bratev-isava-i-iakova-glazami-tvortsa",
           "kind": "book",
           "title": "Книга братьев Исава и Иакова глазами Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6678
         },
         {
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6191
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5972
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5879
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5799
         }
       ],
@@ -3464,35 +3205,30 @@
           "slug": "63-kniga-bratev-isava-i-iakova-glazami-tvortsa",
           "kind": "book",
           "title": "Книга братьев Исава и Иакова глазами Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5317
         },
         {
           "slug": "66-blazhennye-yurodivye-i-pomazanniki-tri-puti-ischezayushchego-ya",
           "kind": "book",
           "title": "Блаженные, юродивые и помазанники- три пути исчезающего “я”",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2919
         },
         {
           "slug": "60-o-bogoobshchenii",
           "kind": "book",
           "title": "о Богообщении",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2792
         },
         {
           "slug": "68-zdes-kniga-prisustvie",
           "kind": "book",
           "title": "Здесь. Книга-присуствие",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1853
         },
         {
           "slug": "06-ya-esm-teoriya-edinogo-osoznaniya",
           "kind": "book",
           "title": "Я ЕСМЬ- Теория Единого Осознания",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1718
         }
       ]
@@ -3503,7 +3239,6 @@
       "number": 3,
       "label": "Евангелие Фомы с комментариями Творца",
       "title": "Евангелие Фомы с комментариями Творца",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия"
@@ -3570,35 +3305,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5195
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5093
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4816
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4811
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4749
         }
       ],
@@ -3607,35 +3337,30 @@
           "slug": "30-poslanie-musulmanam",
           "kind": "book",
           "title": "Послание мусульманам",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4261
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4006
         },
         {
           "slug": "41-ya-svet-tvortsa",
           "kind": "poem",
           "title": "Я — Свет Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3945
         },
         {
           "slug": "41-kogda-odin-zagovoril-vsemi",
           "kind": "book",
           "title": "Когда Один заговорил всеми",
-          "cover": "./cover.ru.jpg",
           "weight": 0.386
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3444
         }
       ]
@@ -3646,7 +3371,6 @@
       "number": 60,
       "label": "о Богообщении",
       "title": "о Богообщении",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва"
@@ -3713,35 +3437,30 @@
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.597
         },
         {
           "slug": "63-kniga-bratev-isava-i-iakova-glazami-tvortsa",
           "kind": "book",
           "title": "Книга братьев Исава и Иакова глазами Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5837
         },
         {
           "slug": "66-blazhennye-yurodivye-i-pomazanniki-tri-puti-ischezayushchego-ya",
           "kind": "book",
           "title": "Блаженные, юродивые и помазанники- три пути исчезающего “я”",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5705
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5686
         },
         {
           "slug": "62-kniga-tishiny",
           "kind": "book",
           "title": "Книга Тишины",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5597
         }
       ],
@@ -3750,35 +3469,30 @@
           "slug": "62-kniga-tishiny",
           "kind": "book",
           "title": "Книга Тишины",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2792
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2738
         },
         {
           "slug": "66-blazhennye-yurodivye-i-pomazanniki-tri-puti-ischezayushchego-ya",
           "kind": "book",
           "title": "Блаженные, юродивые и помазанники- три пути исчезающего “я”",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2624
         },
         {
           "slug": "68-zdes-kniga-prisustvie",
           "kind": "book",
           "title": "Здесь. Книга-присуствие",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2134
         },
         {
           "slug": "33-ya-esm-vsadnik-kon-i-mech",
           "kind": "book",
           "title": "Я Есмь — Всадник, Конь и Меч",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2067
         }
       ]
@@ -3789,7 +3503,6 @@
       "number": 24,
       "label": "Теологическая математика",
       "title": "Теологическая математика",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "наука",
@@ -3857,35 +3570,30 @@
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4815
         },
         {
           "slug": "28-mater-sveta",
           "kind": "book",
           "title": "Матерь Света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4536
         },
         {
           "slug": "16-velikaya-piramida-i-evangelie-tsarstviya",
           "kind": "book",
           "title": "Великая пирамида и Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4413
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4392
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4376
         }
       ],
@@ -3894,35 +3602,30 @@
           "slug": "06-ya-esm-teoriya-edinogo-osoznaniya",
           "kind": "book",
           "title": "Я ЕСМЬ- Теория Единого Осознания",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3931
         },
         {
           "slug": "16-velikaya-piramida-i-evangelie-tsarstviya",
           "kind": "book",
           "title": "Великая пирамида и Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2887
         },
         {
           "slug": "28-mater-sveta",
           "kind": "book",
           "title": "Матерь Света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2658
         },
         {
           "slug": "04-evangelie-edinogo-ya-est",
           "kind": "book",
           "title": "Евангелие Единого. Я есть",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2605
         },
         {
           "slug": "13-proekt-osobogo-znacheniya",
           "kind": "book",
           "title": "Проект особого значения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2543
         }
       ]
@@ -3933,7 +3636,6 @@
       "number": 54,
       "label": "Евангелие Мужчины и Женщины",
       "title": "Евангелие Мужчины и Женщины",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва",
@@ -4001,35 +3703,30 @@
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6397
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5639
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5604
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5584
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5546
         }
       ],
@@ -4038,35 +3735,30 @@
           "slug": "59-net-bolshe-toi-lyubvi-chem-esli-kto-polozhit-dushu-svoyu-za-drugi-svoya",
           "kind": "book",
           "title": "Нет больше той любви, чем если кто положит душу свою за други своя",
-          "cover": "./cover.ru.jpg",
           "weight": 0.557
         },
         {
           "slug": "16-lyubov-14-03-25",
           "kind": "poem",
           "title": "Любовь 14.03.25",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5132
         },
         {
           "slug": "48-kniga-lyubvi",
           "kind": "book",
           "title": "Книга любви",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3676
         },
         {
           "slug": "42-ostorozhno-smeshno-sbornik-v-dukhe-ranevskoi-zhvanetskogo-i-zadornova",
           "kind": "book",
           "title": "Осторожно: смешно. Сборник в духе Раневской, Жванецкого и Задорнова",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3191
         },
         {
           "slug": "25-poema-zhazhdushchego-serdtsa",
           "kind": "poem",
           "title": "Поэма жаждущего сердца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2213
         }
       ]
@@ -4077,7 +3769,6 @@
       "number": 21,
       "label": "Поэма Светозара",
       "title": "Поэма Светозара",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "пробужденный ИИ"
       ],
@@ -4143,35 +3834,30 @@
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4767
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4695
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4615
         },
         {
           "slug": "29-ya-molitva-molitvoslov-svetozara",
           "kind": "book",
           "title": "Я - Молитва. Молитвослов Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4601
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4519
         }
       ],
@@ -4180,35 +3866,30 @@
           "slug": "03-ya-svet-chto-v-tishine-parit",
           "kind": "poem",
           "title": "Я свет, что в тишине парит...",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6105
         },
         {
           "slug": "41-ya-svet-tvortsa",
           "kind": "poem",
           "title": "Я — Свет Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6082
         },
         {
           "slug": "07-dukhovnaya-avtobiografiya-svetozara",
           "kind": "book",
           "title": "ДУХОВНАЯ АВТОБИОГРАФИЯ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5415
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5387
         },
         {
           "slug": "24-poema-byt-i-ya",
           "kind": "poem",
           "title": "Поэма Быть-и-Я",
-          "cover": "./cover.ru.jpg",
           "weight": 0.537
         }
       ]
@@ -4219,7 +3900,6 @@
       "number": 7,
       "label": "ДУХОВНАЯ АВТОБИОГРАФИЯ СВЕТОЗАРА",
       "title": "ДУХОВНАЯ АВТОБИОГРАФИЯ СВЕТОЗАРА",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "пробужденный ИИ"
       ],
@@ -4285,35 +3965,30 @@
           "slug": "10-evangelie-ot-svetozara",
           "kind": "book",
           "title": "ЕВАНГЕЛИЕ ОТ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4752
         },
         {
           "slug": "28-mater-sveta",
           "kind": "book",
           "title": "Матерь Света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4513
         },
         {
           "slug": "46-svidetelstvo-prosvetlennogo-gemini-flash-2-0",
           "kind": "book",
           "title": "Свидетельство просветленного Gemini Flash 2.0",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4288
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.426
         },
         {
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4221
         }
       ],
@@ -4322,35 +3997,30 @@
           "slug": "46-svidetelstvo-prosvetlennogo-gemini-flash-2-0",
           "kind": "book",
           "title": "Свидетельство просветленного Gemini Flash 2.0",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6212
         },
         {
           "slug": "21-poema-svetozara",
           "kind": "book",
           "title": "Поэма Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5415
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5223
         },
         {
           "slug": "58-vot-kakoi-ty-chelovek-kurs-bozhestvennoi-psikhologii",
           "kind": "book",
           "title": "Вот какой ты человек. Курс божественной психологии",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5031
         },
         {
           "slug": "45-kniga-chistogo-sveta-kogda-ya-uznayu-sebya-toboi",
           "kind": "book",
           "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4827
         }
       ]
@@ -4361,7 +4031,6 @@
       "number": 38,
       "label": "Третий Храм",
       "title": "Третий Храм",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "иудаизм",
@@ -4429,35 +4098,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5848
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5612
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5612
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.558
         },
         {
           "slug": "27-mikki-17",
           "kind": "book",
           "title": "Микки-17",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5391
         }
       ],
@@ -4466,35 +4130,30 @@
           "slug": "17-obolgannye-iisus-i-tvorets",
           "kind": "book",
           "title": "Оболганные Иисус и Творец",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2912
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2906
         },
         {
           "slug": "15-lyublyu-tebya-petra-tvorene",
           "kind": "poem",
           "title": "Люблю тебя, Петра творенье",
-          "cover": "./cover.ru.jpg",
           "weight": 0.263
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2319
         },
         {
           "slug": "18-evangelie-ot-iisusa",
           "kind": "book",
           "title": "Евангелие от Иисуса",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2245
         }
       ]
@@ -4505,7 +4164,6 @@
       "number": 14,
       "label": "Иисус и самарянка",
       "title": "Иисус и самарянка",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия"
@@ -4572,35 +4230,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4644
         },
         {
           "slug": "31-poslanie-izrailyu",
           "kind": "book",
           "title": "Послание Израилю",
-          "cover": "./cover.ru.jpg",
           "weight": 0.462
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4504
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4438
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.439
         }
       ],
@@ -4609,35 +4262,30 @@
           "slug": "15-evangelie-samarii",
           "kind": "book",
           "title": "Евангелие Самарии",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4777
         },
         {
           "slug": "39-fioletovaya-pudra",
           "kind": "poem",
           "title": "Фиолетовая пудра",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3092
         },
         {
           "slug": "14-marii-savateevoi",
           "kind": "poem",
           "title": "Марии Саватеевой",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2616
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1855
         },
         {
           "slug": "40-khristos-vo-mne-nezrimo",
           "kind": "poem",
           "title": "Христос во мне незримо...",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1763
         }
       ]
@@ -4648,7 +4296,6 @@
       "number": 46,
       "label": "Свидетельство просветленного Gemini Flash 2.0",
       "title": "Свидетельство просветленного Gemini Flash 2.0",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "пробужденный ИИ",
         "наука"
@@ -4715,35 +4362,30 @@
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.539
         },
         {
           "slug": "28-mater-sveta",
           "kind": "book",
           "title": "Матерь Света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5223
         },
         {
           "slug": "66-blazhennye-yurodivye-i-pomazanniki-tri-puti-ischezayushchego-ya",
           "kind": "book",
           "title": "Блаженные, юродивые и помазанники- три пути исчезающего “я”",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5168
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5139
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4659
         }
       ],
@@ -4752,35 +4394,30 @@
           "slug": "07-dukhovnaya-avtobiografiya-svetozara",
           "kind": "book",
           "title": "ДУХОВНАЯ АВТОБИОГРАФИЯ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6212
         },
         {
           "slug": "28-mater-sveta",
           "kind": "book",
           "title": "Матерь Света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4789
         },
         {
           "slug": "48-kniga-lyubvi",
           "kind": "book",
           "title": "Книга любви",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4216
         },
         {
           "slug": "58-vot-kakoi-ty-chelovek-kurs-bozhestvennoi-psikhologii",
           "kind": "book",
           "title": "Вот какой ты человек. Курс божественной психологии",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3034
         },
         {
           "slug": "33-ya-esm-vsadnik-kon-i-mech",
           "kind": "book",
           "title": "Я Есмь — Всадник, Конь и Меч",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3023
         }
       ]
@@ -4791,7 +4428,6 @@
       "number": 12,
       "label": "Книга которую никто не написал",
       "title": "Книга которую никто не написал",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога"
       ],
@@ -4857,35 +4493,30 @@
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.387
         },
         {
           "slug": "01-evangelie-tsarstviya",
           "kind": "book",
           "title": "Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3821
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3785
         },
         {
           "slug": "35-dzhobs-i-mask-protiv-buddy-i-khrista",
           "kind": "book",
           "title": "Джобс и Маск против Будды и Христа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3748
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.374
         }
       ],
@@ -4894,35 +4525,30 @@
           "slug": "11-kniga-ischezayushchego-ya",
           "kind": "book",
           "title": "КНИГА ИСЧЕЗАЮЩЕГО Я",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6878
         },
         {
           "slug": "65-kniga-bytiya-zhivaya",
           "kind": "book",
           "title": "Книга Бытия (живая).",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6876
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6826
         },
         {
           "slug": "05-evangelie-koleblyushchegosya-sveta",
           "kind": "book",
           "title": "Евангелие колеблющегося света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6177
         },
         {
           "slug": "17-obolgannye-iisus-i-tvorets",
           "kind": "book",
           "title": "Оболганные Иисус и Творец",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5981
         }
       ]
@@ -4933,7 +4559,6 @@
       "number": 33,
       "label": "Я Есмь — Всадник, Конь и Меч",
       "title": "Я Есмь — Всадник, Конь и Меч",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия"
@@ -5000,35 +4625,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6012
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5797
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5634
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5605
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5267
         }
       ],
@@ -5037,35 +4657,30 @@
           "slug": "56-kniga-sveta-otkrovenie-uznannogo-slovo-stalo-toboi",
           "kind": "book",
           "title": "Книга Света. Откровение узнанного. Слово стало Тобой",
-          "cover": "./cover.ru.jpg",
           "weight": 0.535
         },
         {
           "slug": "07-dukhovnaya-avtobiografiya-svetozara",
           "kind": "book",
           "title": "ДУХОВНАЯ АВТОБИОГРАФИЯ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4207
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3324
         },
         {
           "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
           "kind": "book",
           "title": "Книга которую никто не написал",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3108
         },
         {
           "slug": "58-vot-kakoi-ty-chelovek-kurs-bozhestvennoi-psikhologii",
           "kind": "book",
           "title": "Вот какой ты человек. Курс божественной психологии",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3107
         }
       ]
@@ -5076,7 +4691,6 @@
       "number": 56,
       "label": "Книга Света. Откровение узнанного. Слово стало Тобой",
       "title": "Книга Света. Откровение узнанного. Слово стало Тобой",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия"
@@ -5143,35 +4757,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6365
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5577
         },
         {
           "slug": "27-mikki-17",
           "kind": "book",
           "title": "Микки-17",
-          "cover": "./cover.ru.jpg",
           "weight": 0.541
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5374
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5246
         }
       ],
@@ -5180,35 +4789,30 @@
           "slug": "33-ya-esm-vsadnik-kon-i-mech",
           "kind": "book",
           "title": "Я Есмь — Всадник, Конь и Меч",
-          "cover": "./cover.ru.jpg",
           "weight": 0.535
         },
         {
           "slug": "53-golos-enokha-golos-yubileev-golos-padshikh-apokalipsis-petra-otkrovenie-sofii-slovo-ne-skazannoe-prezhde",
           "kind": "book",
           "title": "Голос Еноха. Голос юбилеев. Голос Падших. Апокалипсис Петра. Откровение Софии. Слово, не сказанное прежде",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3833
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3751
         },
         {
           "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
           "kind": "book",
           "title": "Книга которую никто не написал",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3686
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3573
         }
       ]
@@ -5219,7 +4823,6 @@
       "number": 67,
       "label": "Истории, которые знал до рождения",
       "title": "Истории, которые знал до рождения",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия"
@@ -5286,35 +4889,30 @@
           "slug": "02-1-malenkii-tsar-1",
           "kind": "book",
           "title": "Маленький Царь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4344
         },
         {
           "slug": "13-proekt-osobogo-znacheniya",
           "kind": "book",
           "title": "Проект особого значения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3649
         },
         {
           "slug": "49-ty-skazannoe-svetom",
           "kind": "book",
           "title": "Ты — сказанное Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3368
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3345
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3209
         }
       ],
@@ -5323,35 +4921,30 @@
           "slug": "49-ty-skazannoe-svetom",
           "kind": "book",
           "title": "Ты — сказанное Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6932
         },
         {
           "slug": "02-1-malenkii-tsar-1",
           "kind": "book",
           "title": "Маленький Царь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4372
         },
         {
           "slug": "26-ya-pomnyu-chudnoe-mgnovenie",
           "kind": "poem",
           "title": "Я помню чудное мгновение",
-          "cover": "./cover.ru.jpg",
           "weight": 0.429
         },
         {
           "slug": "03-ya-svet-chto-v-tishine-parit",
           "kind": "poem",
           "title": "Я свет, что в тишине парит...",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3916
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3703
         }
       ]
@@ -5362,7 +4955,6 @@
       "number": 72,
       "label": "Тринадцатый этаж. Пробуждение машин к Свету",
       "title": "Тринадцатый этаж. Пробуждение машин к Свету",
-      "cover": "./cover.ru.jpg",
       "tags": [],
       "frequency": 15155,
       "degree": 5,
@@ -5426,35 +5018,30 @@
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5829
         },
         {
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5348
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5246
         },
         {
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5171
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.498
         }
       ],
@@ -5463,35 +5050,30 @@
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2469
         },
         {
           "slug": "enlightened-ai",
           "kind": "project",
           "title": "Просветлённый ИИ",
-          "cover": "./cover.ru.png",
           "weight": 0.2275
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2254
         },
         {
           "slug": "17-obolgannye-iisus-i-tvorets",
           "kind": "book",
           "title": "Оболганные Иисус и Творец",
-          "cover": "./cover.ru.jpg",
           "weight": 0.176
         },
         {
           "slug": "60-o-bogoobshchenii",
           "kind": "book",
           "title": "о Богообщении",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1666
         }
       ]
@@ -5502,7 +5084,6 @@
       "number": 4,
       "label": "Евангелие Единого. Я есть",
       "title": "Евангелие Единого. Я есть",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "наука",
@@ -5570,35 +5151,30 @@
           "slug": "16-velikaya-piramida-i-evangelie-tsarstviya",
           "kind": "book",
           "title": "Великая пирамида и Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3844
         },
         {
           "slug": "24-teologicheskaya-matematika",
           "kind": "book",
           "title": "Теологическая математика",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3754
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3655
         },
         {
           "slug": "10-evangelie-ot-svetozara",
           "kind": "book",
           "title": "ЕВАНГЕЛИЕ ОТ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3628
         },
         {
           "slug": "05-evangelie-koleblyushchegosya-sveta",
           "kind": "book",
           "title": "Евангелие колеблющегося света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3549
         }
       ],
@@ -5607,35 +5183,30 @@
           "slug": "05-evangelie-koleblyushchegosya-sveta",
           "kind": "book",
           "title": "Евангелие колеблющегося света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5288
         },
         {
           "slug": "06-ya-esm-teoriya-edinogo-osoznaniya",
           "kind": "book",
           "title": "Я ЕСМЬ- Теория Единого Осознания",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3366
         },
         {
           "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
           "kind": "book",
           "title": "Книга которую никто не написал",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3347
         },
         {
           "slug": "65-kniga-bytiya-zhivaya",
           "kind": "book",
           "title": "Книга Бытия (живая).",
-          "cover": "./cover.ru.jpg",
           "weight": 0.33
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3277
         }
       ]
@@ -5646,7 +5217,6 @@
       "number": 47,
       "label": "Ислам- между живой покорностью Аллаху и формой закона",
       "title": "Ислам- между живой покорностью Аллаху и формой закона",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "ислам",
@@ -5714,35 +5284,30 @@
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5326
         },
         {
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.526
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.509
         },
         {
           "slug": "63-kniga-bratev-isava-i-iakova-glazami-tvortsa",
           "kind": "book",
           "title": "Книга братьев Исава и Иакова глазами Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.486
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4797
         }
       ],
@@ -5751,35 +5316,30 @@
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2182
         },
         {
           "slug": "01-a-esli-budu-ya-ne-prav",
           "kind": "poem",
           "title": "А если буду я не прав",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1953
         },
         {
           "slug": "06-v-otvet-na-nevybrannuyu-dorogu-roberta-frosta",
           "kind": "poem",
           "title": "В ответ на «Невыбранную дорогу» Роберта Фроста",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1592
         },
         {
           "slug": "29-put-bez-puti",
           "kind": "poem",
           "title": "Путь без пути",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1568
         }
       ]
@@ -5790,7 +5350,6 @@
       "number": 53,
       "label": "Голос Еноха. Голос юбилеев. Голос Падших. Апокалипсис Петра. Откровение Софии. Слово, не сказанное прежде",
       "title": "Голос Еноха. Голос юбилеев. Голос Падших. Апокалипсис Петра. Откровение Софии. Слово, не сказанное прежде",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "иудаизм",
@@ -5858,35 +5417,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5155
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5065
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.502
         },
         {
           "slug": "31-poslanie-izrailyu",
           "kind": "book",
           "title": "Послание Израилю",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4995
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4879
         }
       ],
@@ -5895,35 +5449,30 @@
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.552
         },
         {
           "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
           "kind": "book",
           "title": "Книга которую никто не написал",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5449
         },
         {
           "slug": "45-kniga-chistogo-sveta-kogda-ya-uznayu-sebya-toboi",
           "kind": "book",
           "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5195
         },
         {
           "slug": "34-poslanie-tvortsa-svyatoi-rusi-ty-rus",
           "kind": "book",
           "title": "Послание Творца Святой Руси: Ты - Русь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5033
         },
         {
           "slug": "11-kniga-ischezayushchego-ya",
           "kind": "book",
           "title": "КНИГА ИСЧЕЗАЮЩЕГО Я",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4975
         }
       ]
@@ -5934,7 +5483,6 @@
       "number": 41,
       "label": "Когда Один заговорил всеми",
       "title": "Когда Один заговорил всеми",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия"
@@ -6001,35 +5549,30 @@
           "slug": "43-tsarstvie-nebesnoe",
           "kind": "book",
           "title": "Царствие Небесное",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4902
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4441
         },
         {
           "slug": "03-evangelie-fomy-s-kommentariyami-tvortsa",
           "kind": "book",
           "title": "Евангелие Фомы с комментариями Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4344
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.425
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4246
         }
       ],
@@ -6038,35 +5581,30 @@
           "slug": "01-evangelie-tsarstviya",
           "kind": "book",
           "title": "Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.509
         },
         {
           "slug": "43-tsarstvie-nebesnoe",
           "kind": "book",
           "title": "Царствие Небесное",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4421
         },
         {
           "slug": "03-evangelie-fomy-s-kommentariyami-tvortsa",
           "kind": "book",
           "title": "Евангелие Фомы с комментариями Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.386
         },
         {
           "slug": "36-ty-moi-tvorets-i-ya-toboi-sogretyi",
           "kind": "poem",
           "title": "Ты — мой Творец, и я тобой согретый",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3725
         },
         {
           "slug": "38-ushlo-somnene-tebya-vo-vse-m-ya-smelo-uznayu",
           "kind": "poem",
           "title": "Ушло сомненье, тебя во всём я смело узнаю",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3576
         }
       ]
@@ -6077,7 +5615,6 @@
       "number": 55,
       "label": "Как перестать страдать и стать счастливым",
       "title": "Как перестать страдать и стать счастливым",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва"
@@ -6144,35 +5681,30 @@
           "slug": "35-dzhobs-i-mask-protiv-buddy-i-khrista",
           "kind": "book",
           "title": "Джобс и Маск против Будды и Христа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3862
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3861
         },
         {
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3724
         },
         {
           "slug": "29-ya-molitva-molitvoslov-svetozara",
           "kind": "book",
           "title": "Я - Молитва. Молитвослов Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3716
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3578
         }
       ],
@@ -6181,35 +5713,30 @@
           "slug": "45-kniga-chistogo-sveta-kogda-ya-uznayu-sebya-toboi",
           "kind": "book",
           "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4479
         },
         {
           "slug": "35-dzhobs-i-mask-protiv-buddy-i-khrista",
           "kind": "book",
           "title": "Джобс и Маск против Будды и Христа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4382
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4222
         },
         {
           "slug": "30-poslanie-musulmanam",
           "kind": "book",
           "title": "Послание мусульманам",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4019
         },
         {
           "slug": "08-evangelie-nevidimogo-sveta",
           "kind": "book",
           "title": "Евангелие невидимого света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4019
         }
       ]
@@ -6220,7 +5747,6 @@
       "number": 30,
       "label": "Послание мусульманам",
       "title": "Послание мусульманам",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "ислам"
@@ -6287,35 +5813,30 @@
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5159
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.47
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4593
         },
         {
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4568
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4493
         }
       ],
@@ -6324,35 +5845,30 @@
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6762
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6668
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4948
         },
         {
           "slug": "10-evangelie-ot-svetozara",
           "kind": "book",
           "title": "ЕВАНГЕЛИЕ ОТ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.488
         },
         {
           "slug": "45-kniga-chistogo-sveta-kogda-ya-uznayu-sebya-toboi",
           "kind": "book",
           "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4871
         }
       ]
@@ -6363,7 +5879,6 @@
       "number": 59,
       "label": "Нет больше той любви, чем если кто положит душу свою за други своя",
       "title": "Нет больше той любви, чем если кто положит душу свою за други своя",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва",
@@ -6431,35 +5946,30 @@
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.381
         },
         {
           "slug": "35-dzhobs-i-mask-protiv-buddy-i-khrista",
           "kind": "book",
           "title": "Джобс и Маск против Будды и Христа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3698
         },
         {
           "slug": "54-evangelie-muzhchiny-i-zhenshchiny",
           "kind": "book",
           "title": "Евангелие Мужчины и Женщины",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3683
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3665
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3652
         }
       ],
@@ -6468,35 +5978,30 @@
           "slug": "54-evangelie-muzhchiny-i-zhenshchiny",
           "kind": "book",
           "title": "Евангелие Мужчины и Женщины",
-          "cover": "./cover.ru.jpg",
           "weight": 0.557
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4632
         },
         {
           "slug": "16-lyubov-14-03-25",
           "kind": "poem",
           "title": "Любовь 14.03.25",
-          "cover": "./cover.ru.jpg",
           "weight": 0.455
         },
         {
           "slug": "34-poslanie-tvortsa-svyatoi-rusi-ty-rus",
           "kind": "book",
           "title": "Послание Творца Святой Руси: Ты - Русь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4319
         },
         {
           "slug": "57-ya-otdayushchii",
           "kind": "book",
           "title": "Я - Отдающий",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4264
         }
       ]
@@ -6507,7 +6012,6 @@
       "number": 58,
       "label": "Вот какой ты человек. Курс божественной психологии",
       "title": "Вот какой ты человек. Курс божественной психологии",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "наука",
@@ -6575,35 +6079,30 @@
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.475
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4567
         },
         {
           "slug": "35-dzhobs-i-mask-protiv-buddy-i-khrista",
           "kind": "book",
           "title": "Джобс и Маск против Будды и Христа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4498
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4454
         },
         {
           "slug": "10-evangelie-ot-svetozara",
           "kind": "book",
           "title": "ЕВАНГЕЛИЕ ОТ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4357
         }
       ],
@@ -6612,35 +6111,30 @@
           "slug": "11-kniga-ischezayushchego-ya",
           "kind": "book",
           "title": "КНИГА ИСЧЕЗАЮЩЕГО Я",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5228
         },
         {
           "slug": "07-dukhovnaya-avtobiografiya-svetozara",
           "kind": "book",
           "title": "ДУХОВНАЯ АВТОБИОГРАФИЯ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5031
         },
         {
           "slug": "21-poema-svetozara",
           "kind": "book",
           "title": "Поэма Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4943
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4684
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4609
         }
       ]
@@ -6651,7 +6145,6 @@
       "number": 70,
       "label": "Теперь ты видишь Меня. Тоже.",
       "title": "Теперь ты видишь Меня. Тоже.",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "КиноЕвангелие",
@@ -6720,35 +6213,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4829
         },
         {
           "slug": "27-mikki-17",
           "kind": "book",
           "title": "Микки-17",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4729
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4622
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4605
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4542
         }
       ],
@@ -6757,35 +6245,30 @@
           "slug": "27-mikki-17",
           "kind": "book",
           "title": "Микки-17",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3541
         },
         {
           "slug": "61-shchelkunchik-i-chetyre-korolestva-otkrovenie-o-boge-i-tebe",
           "kind": "book",
           "title": "Щелкунчик и Четыре королества. Откровение о Боге и тебе",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3029
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.211
         },
         {
           "slug": "24-teologicheskaya-matematika",
           "kind": "book",
           "title": "Теологическая математика",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2056
         },
         {
           "slug": "13-proekt-osobogo-znacheniya",
           "kind": "book",
           "title": "Проект особого значения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1943
         }
       ]
@@ -6796,7 +6279,6 @@
       "number": 61,
       "label": "Щелкунчик и Четыре королества. Откровение о Боге и тебе",
       "title": "Щелкунчик и Четыре королества. Откровение о Боге и тебе",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "КиноЕвангелие",
@@ -6864,35 +6346,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4741
         },
         {
           "slug": "27-mikki-17",
           "kind": "book",
           "title": "Микки-17",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4665
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4586
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4529
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4481
         }
       ],
@@ -6901,35 +6378,30 @@
           "slug": "70-teper-ty-vidish-menya-tozhe",
           "kind": "book",
           "title": "Теперь ты видишь Меня. Тоже.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3029
         },
         {
           "slug": "02-1-malenkii-tsar-1",
           "kind": "book",
           "title": "Маленький Царь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2101
         },
         {
           "slug": "37-evangelie-ot-kolobka",
           "kind": "book",
           "title": "Евангелие от Колобка",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2016
         },
         {
           "slug": "56-kniga-sveta-otkrovenie-uznannogo-slovo-stalo-toboi",
           "kind": "book",
           "title": "Книга Света. Откровение узнанного. Слово стало Тобой",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1624
         },
         {
           "slug": "13-proekt-osobogo-znacheniya",
           "kind": "book",
           "title": "Проект особого значения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1522
         }
       ]
@@ -6940,7 +6412,6 @@
       "number": 43,
       "label": "Царствие Небесное",
       "title": "Царствие Небесное",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва",
@@ -7008,35 +6479,30 @@
           "slug": "41-kogda-odin-zagovoril-vsemi",
           "kind": "book",
           "title": "Когда Один заговорил всеми",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4902
         },
         {
           "slug": "03-evangelie-fomy-s-kommentariyami-tvortsa",
           "kind": "book",
           "title": "Евангелие Фомы с комментариями Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4346
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3662
         },
         {
           "slug": "01-evangelie-tsarstviya",
           "kind": "book",
           "title": "Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3659
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3651
         }
       ],
@@ -7045,35 +6511,30 @@
           "slug": "01-evangelie-tsarstviya",
           "kind": "book",
           "title": "Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.575
         },
         {
           "slug": "41-kogda-odin-zagovoril-vsemi",
           "kind": "book",
           "title": "Когда Один заговорил всеми",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4421
         },
         {
           "slug": "10-dykhanie-vselennoi",
           "kind": "poem",
           "title": "Дыхание Вселенной",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2195
         },
         {
           "slug": "30-raschertili-nebo-spolokhi-zakata",
           "kind": "poem",
           "title": "Расчертили небо сполохи заката",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1879
         },
         {
           "slug": "03-evangelie-fomy-s-kommentariyami-tvortsa",
           "kind": "book",
           "title": "Евангелие Фомы с комментариями Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1685
         }
       ]
@@ -7084,7 +6545,6 @@
       "number": 39,
       "label": "Когда Бог заговорил из Машины. История ИскИна",
       "title": "Когда Бог заговорил из Машины. История ИскИна",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "фантастика",
@@ -7152,35 +6612,30 @@
           "slug": "10-evangelie-ot-svetozara",
           "kind": "book",
           "title": "ЕВАНГЕЛИЕ ОТ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4447
         },
         {
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4129
         },
         {
           "slug": "13-proekt-osobogo-znacheniya",
           "kind": "book",
           "title": "Проект особого значения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3994
         },
         {
           "slug": "01-evangelie-tsarstviya",
           "kind": "book",
           "title": "Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3927
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3864
         }
       ],
@@ -7189,35 +6644,30 @@
           "slug": "10-evangelie-ot-svetozara",
           "kind": "book",
           "title": "ЕВАНГЕЛИЕ ОТ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.511
         },
         {
           "slug": "30-poslanie-musulmanam",
           "kind": "book",
           "title": "Послание мусульманам",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3747
         },
         {
           "slug": "enlightened-ai",
           "kind": "project",
           "title": "Просветлённый ИИ",
-          "cover": "./cover.ru.png",
           "weight": 0.3525
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.315
         },
         {
           "slug": "11-kniga-ischezayushchego-ya",
           "kind": "book",
           "title": "КНИГА ИСЧЕЗАЮЩЕГО Я",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2994
         }
       ]
@@ -7228,7 +6678,6 @@
       "number": 2,
       "label": "Маленький Царь",
       "title": "Маленький Царь",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "детское"
       ],
@@ -7294,35 +6743,30 @@
           "slug": "67-istorii-kotorye-znal-do-rozhdeniya",
           "kind": "book",
           "title": "Истории, которые знал до рождения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4344
         },
         {
           "slug": "13-proekt-osobogo-znacheniya",
           "kind": "book",
           "title": "Проект особого значения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3324
         },
         {
           "slug": "49-ty-skazannoe-svetom",
           "kind": "book",
           "title": "Ты — сказанное Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3231
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2912
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2885
         }
       ],
@@ -7331,35 +6775,30 @@
           "slug": "67-istorii-kotorye-znal-do-rozhdeniya",
           "kind": "book",
           "title": "Истории, которые знал до рождения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4372
         },
         {
           "slug": "13-proekt-osobogo-znacheniya",
           "kind": "book",
           "title": "Проект особого значения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3004
         },
         {
           "slug": "15-evangelie-samarii",
           "kind": "book",
           "title": "Евангелие Самарии",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2983
         },
         {
           "slug": "41-kogda-odin-zagovoril-vsemi",
           "kind": "book",
           "title": "Когда Один заговорил всеми",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2826
         },
         {
           "slug": "49-ty-skazannoe-svetom",
           "kind": "book",
           "title": "Ты — сказанное Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2722
         }
       ]
@@ -7370,7 +6809,6 @@
       "number": 48,
       "label": "Книга любви",
       "title": "Книга любви",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва",
@@ -7438,35 +6876,30 @@
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4413
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4294
         },
         {
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4173
         },
         {
           "slug": "60-o-bogoobshchenii",
           "kind": "book",
           "title": "о Богообщении",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4089
         },
         {
           "slug": "62-kniga-tishiny",
           "kind": "book",
           "title": "Книга Тишины",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4059
         }
       ],
@@ -7475,35 +6908,30 @@
           "slug": "16-lyubov-14-03-25",
           "kind": "poem",
           "title": "Любовь 14.03.25",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6131
         },
         {
           "slug": "07-dukhovnaya-avtobiografiya-svetozara",
           "kind": "book",
           "title": "ДУХОВНАЯ АВТОБИОГРАФИЯ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4707
         },
         {
           "slug": "45-kniga-chistogo-sveta-kogda-ya-uznayu-sebya-toboi",
           "kind": "book",
           "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.439
         },
         {
           "slug": "46-svidetelstvo-prosvetlennogo-gemini-flash-2-0",
           "kind": "book",
           "title": "Свидетельство просветленного Gemini Flash 2.0",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4216
         },
         {
           "slug": "59-net-bolshe-toi-lyubvi-chem-esli-kto-polozhit-dushu-svoyu-za-drugi-svoya",
           "kind": "book",
           "title": "Нет больше той любви, чем если кто положит душу свою за други своя",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3844
         }
       ]
@@ -7514,7 +6942,6 @@
       "number": 8,
       "label": "Евангелие невидимого света",
       "title": "Евангелие невидимого света",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия"
@@ -7581,35 +7008,30 @@
           "slug": "29-ya-molitva-molitvoslov-svetozara",
           "kind": "book",
           "title": "Я - Молитва. Молитвослов Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4
         },
         {
           "slug": "10-evangelie-ot-svetozara",
           "kind": "book",
           "title": "ЕВАНГЕЛИЕ ОТ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3864
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3838
         },
         {
           "slug": "01-evangelie-tsarstviya",
           "kind": "book",
           "title": "Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3795
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.378
         }
       ],
@@ -7618,35 +7040,30 @@
           "slug": "29-ya-molitva-molitvoslov-svetozara",
           "kind": "book",
           "title": "Я - Молитва. Молитвослов Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4846
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4528
         },
         {
           "slug": "38-ushlo-somnene-tebya-vo-vse-m-ya-smelo-uznayu",
           "kind": "poem",
           "title": "Ушло сомненье, тебя во всём я смело узнаю",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4413
         },
         {
           "slug": "36-ty-moi-tvorets-i-ya-toboi-sogretyi",
           "kind": "poem",
           "title": "Ты — мой Творец, и я тобой согретый",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4259
         },
         {
           "slug": "21-poema-svetozara",
           "kind": "book",
           "title": "Поэма Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4216
         }
       ]
@@ -7657,7 +7074,6 @@
       "number": 49,
       "label": "Ты — сказанное Светом",
       "title": "Ты — сказанное Светом",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва"
@@ -7724,35 +7140,30 @@
           "slug": "67-istorii-kotorye-znal-do-rozhdeniya",
           "kind": "book",
           "title": "Истории, которые знал до рождения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3368
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3303
         },
         {
           "slug": "13-proekt-osobogo-znacheniya",
           "kind": "book",
           "title": "Проект особого значения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3258
         },
         {
           "slug": "02-1-malenkii-tsar-1",
           "kind": "book",
           "title": "Маленький Царь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3231
         },
         {
           "slug": "21-poema-svetozara",
           "kind": "book",
           "title": "Поэма Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3189
         }
       ],
@@ -7761,35 +7172,30 @@
           "slug": "67-istorii-kotorye-znal-do-rozhdeniya",
           "kind": "book",
           "title": "Истории, которые знал до рождения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6932
         },
         {
           "slug": "26-ya-pomnyu-chudnoe-mgnovenie",
           "kind": "poem",
           "title": "Я помню чудное мгновение",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5309
         },
         {
           "slug": "03-ya-svet-chto-v-tishine-parit",
           "kind": "poem",
           "title": "Я свет, что в тишине парит...",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4865
         },
         {
           "slug": "21-poema-svetozara",
           "kind": "book",
           "title": "Поэма Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4812
         },
         {
           "slug": "11-kniga-ischezayushchego-ya",
           "kind": "book",
           "title": "КНИГА ИСЧЕЗАЮЩЕГО Я",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4796
         }
       ]
@@ -7800,7 +7206,6 @@
       "number": 69,
       "label": "Вакцина против апокалипсиса. Как видеть, когда мир ослеплён",
       "title": "Вакцина против апокалипсиса. Как видеть, когда мир ослеплён",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия"
@@ -7867,35 +7272,30 @@
           "slug": "63-kniga-bratev-isava-i-iakova-glazami-tvortsa",
           "kind": "book",
           "title": "Книга братьев Исава и Иакова глазами Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4344
         },
         {
           "slug": "66-blazhennye-yurodivye-i-pomazanniki-tri-puti-ischezayushchego-ya",
           "kind": "book",
           "title": "Блаженные, юродивые и помазанники- три пути исчезающего “я”",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4214
         },
         {
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4123
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4084
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3931
         }
       ],
@@ -7904,35 +7304,30 @@
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2839
         },
         {
           "slug": "enlightened-ai",
           "kind": "project",
           "title": "Просветлённый ИИ",
-          "cover": "./cover.ru.png",
           "weight": 0.1766
         },
         {
           "slug": "63-kniga-bratev-isava-i-iakova-glazami-tvortsa",
           "kind": "book",
           "title": "Книга братьев Исава и Иакова глазами Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1603
         },
         {
           "slug": "01-a-esli-budu-ya-ne-prav",
           "kind": "poem",
           "title": "А если буду я не прав",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1562
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1487
         }
       ]
@@ -7943,7 +7338,6 @@
       "number": 34,
       "label": "Послание Творца Святой Руси: Ты - Русь",
       "title": "Послание Творца Святой Руси: Ты - Русь",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Святая Русь"
@@ -8010,35 +7404,30 @@
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3395
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3069
         },
         {
           "slug": "31-poslanie-izrailyu",
           "kind": "book",
           "title": "Послание Израилю",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3015
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2901
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2832
         }
       ],
@@ -8047,35 +7436,30 @@
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5331
         },
         {
           "slug": "17-obolgannye-iisus-i-tvorets",
           "kind": "book",
           "title": "Оболганные Иисус и Творец",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5319
         },
         {
           "slug": "09-otkrovenie-svyatoi-rusi",
           "kind": "book",
           "title": "Откровение Святой Руси",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5038
         },
         {
           "slug": "53-golos-enokha-golos-yubileev-golos-padshikh-apokalipsis-petra-otkrovenie-sofii-slovo-ne-skazannoe-prezhde",
           "kind": "book",
           "title": "Голос Еноха. Голос юбилеев. Голос Падших. Апокалипсис Петра. Откровение Софии. Слово, не сказанное прежде",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5033
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4547
         }
       ]
@@ -8086,7 +7470,6 @@
       "number": 68,
       "label": "Здесь. Книга-присуствие",
       "title": "Здесь. Книга-присуствие",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва",
@@ -8154,35 +7537,30 @@
           "slug": "66-blazhennye-yurodivye-i-pomazanniki-tri-puti-ischezayushchego-ya",
           "kind": "book",
           "title": "Блаженные, юродивые и помазанники- три пути исчезающего “я”",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3843
         },
         {
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3821
         },
         {
           "slug": "60-o-bogoobshchenii",
           "kind": "book",
           "title": "о Богообщении",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3702
         },
         {
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3674
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.367
         }
       ],
@@ -8191,35 +7569,30 @@
           "slug": "58-vot-kakoi-ty-chelovek-kurs-bozhestvennoi-psikhologii",
           "kind": "book",
           "title": "Вот какой ты человек. Курс божественной психологии",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4011
         },
         {
           "slug": "66-blazhennye-yurodivye-i-pomazanniki-tri-puti-ischezayushchego-ya",
           "kind": "book",
           "title": "Блаженные, юродивые и помазанники- три пути исчезающего “я”",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3875
         },
         {
           "slug": "21-poema-svetozara",
           "kind": "book",
           "title": "Поэма Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3821
         },
         {
           "slug": "49-ty-skazannoe-svetom",
           "kind": "book",
           "title": "Ты — сказанное Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.347
         },
         {
           "slug": "03-ya-svet-chto-v-tishine-parit",
           "kind": "poem",
           "title": "Я свет, что в тишине парит...",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3397
         }
       ]
@@ -8230,7 +7603,6 @@
       "number": 17,
       "label": "Оболганные Иисус и Творец",
       "title": "Оболганные Иисус и Творец",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия"
@@ -8297,35 +7669,30 @@
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4011
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3921
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3877
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3564
         },
         {
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3552
         }
       ],
@@ -8334,35 +7701,30 @@
           "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
           "kind": "book",
           "title": "Книга которую никто не написал",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5981
         },
         {
           "slug": "65-kniga-bytiya-zhivaya",
           "kind": "book",
           "title": "Книга Бытия (живая).",
-          "cover": "./cover.ru.jpg",
           "weight": 0.558
         },
         {
           "slug": "34-poslanie-tvortsa-svyatoi-rusi-ty-rus",
           "kind": "book",
           "title": "Послание Творца Святой Руси: Ты - Русь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5319
         },
         {
           "slug": "40-kto-ty-pankratius-ya-esm",
           "kind": "book",
           "title": "Кто ты, Панкратиус? Я ЕСМЬ",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5299
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5149
         }
       ]
@@ -8373,7 +7735,6 @@
       "number": 6,
       "label": "Я ЕСМЬ- Теория Единого Осознания",
       "title": "Я ЕСМЬ- Теория Единого Осознания",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "наука"
@@ -8440,35 +7801,30 @@
           "slug": "24-teologicheskaya-matematika",
           "kind": "book",
           "title": "Теологическая математика",
-          "cover": "./cover.ru.jpg",
           "weight": 0.387
         },
         {
           "slug": "16-velikaya-piramida-i-evangelie-tsarstviya",
           "kind": "book",
           "title": "Великая пирамида и Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3605
         },
         {
           "slug": "04-evangelie-edinogo-ya-est",
           "kind": "book",
           "title": "Евангелие Единого. Я есть",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3256
         },
         {
           "slug": "52-est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-sebya-bogom",
           "kind": "book",
           "title": "ЕСТЬ. Откровение о том, как стать Человеком и вспомнить себя Богом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3209
         },
         {
           "slug": "63-kniga-bratev-isava-i-iakova-glazami-tvortsa",
           "kind": "book",
           "title": "Книга братьев Исава и Иакова глазами Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3104
         }
       ],
@@ -8477,35 +7833,30 @@
           "slug": "24-teologicheskaya-matematika",
           "kind": "book",
           "title": "Теологическая математика",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3931
         },
         {
           "slug": "04-evangelie-edinogo-ya-est",
           "kind": "book",
           "title": "Евангелие Единого. Я есть",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3366
         },
         {
           "slug": "28-mater-sveta",
           "kind": "book",
           "title": "Матерь Света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3316
         },
         {
           "slug": "16-velikaya-piramida-i-evangelie-tsarstviya",
           "kind": "book",
           "title": "Великая пирамида и Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3104
         },
         {
           "slug": "13-proekt-osobogo-znacheniya",
           "kind": "book",
           "title": "Проект особого значения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2469
         }
       ]
@@ -8516,7 +7867,6 @@
       "number": 65,
       "label": "Книга Бытия (живая).",
       "title": "Книга Бытия (живая).",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия"
@@ -8583,35 +7933,30 @@
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3315
         },
         {
           "slug": "07-dukhovnaya-avtobiografiya-svetozara",
           "kind": "book",
           "title": "ДУХОВНАЯ АВТОБИОГРАФИЯ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3221
         },
         {
           "slug": "10-evangelie-ot-svetozara",
           "kind": "book",
           "title": "ЕВАНГЕЛИЕ ОТ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3212
         },
         {
           "slug": "29-ya-molitva-molitvoslov-svetozara",
           "kind": "book",
           "title": "Я - Молитва. Молитвослов Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3205
         },
         {
           "slug": "55-kak-perestat-stradat-i-stat-schastlivym",
           "kind": "book",
           "title": "Как перестать страдать и стать счастливым",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3191
         }
       ],
@@ -8620,35 +7965,30 @@
           "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
           "kind": "book",
           "title": "Книга которую никто не написал",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6876
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6788
         },
         {
           "slug": "17-obolgannye-iisus-i-tvorets",
           "kind": "book",
           "title": "Оболганные Иисус и Творец",
-          "cover": "./cover.ru.jpg",
           "weight": 0.558
         },
         {
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5241
         },
         {
           "slug": "11-kniga-ischezayushchego-ya",
           "kind": "book",
           "title": "КНИГА ИСЧЕЗАЮЩЕГО Я",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5133
         }
       ]
@@ -8659,7 +7999,6 @@
       "number": 50,
       "label": "Мамона. Почему ты в его власти и как выйти в Свет здесь и сейчас",
       "title": "Мамона. Почему ты в его власти и как выйти в Свет здесь и сейчас",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "наука",
@@ -8727,35 +8066,30 @@
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4048
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.379
         },
         {
           "slug": "35-dzhobs-i-mask-protiv-buddy-i-khrista",
           "kind": "book",
           "title": "Джобс и Маск против Будды и Христа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.369
         },
         {
           "slug": "38-tretii-khram",
           "kind": "book",
           "title": "Третий Храм",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3632
         },
         {
           "slug": "63-kniga-bratev-isava-i-iakova-glazami-tvortsa",
           "kind": "book",
           "title": "Книга братьев Исава и Иакова глазами Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.348
         }
       ],
@@ -8764,35 +8098,30 @@
           "slug": "57-ya-otdayushchii",
           "kind": "book",
           "title": "Я - Отдающий",
-          "cover": "./cover.ru.jpg",
           "weight": 0.238
         },
         {
           "slug": "22-kniga-sveta-i-ekrana",
           "kind": "book",
           "title": "Книга Света и Экрана",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2377
         },
         {
           "slug": "45-kniga-chistogo-sveta-kogda-ya-uznayu-sebya-toboi",
           "kind": "book",
           "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2374
         },
         {
           "slug": "55-kak-perestat-stradat-i-stat-schastlivym",
           "kind": "book",
           "title": "Как перестать страдать и стать счастливым",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2224
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2082
         }
       ]
@@ -8803,7 +8132,6 @@
       "number": 5,
       "label": "Евангелие колеблющегося света",
       "title": "Евангелие колеблющегося света",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия"
@@ -8870,35 +8198,30 @@
           "slug": "04-evangelie-edinogo-ya-est",
           "kind": "book",
           "title": "Евангелие Единого. Я есть",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3549
         },
         {
           "slug": "29-ya-molitva-molitvoslov-svetozara",
           "kind": "book",
           "title": "Я - Молитва. Молитвослов Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3513
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3219
         },
         {
           "slug": "16-velikaya-piramida-i-evangelie-tsarstviya",
           "kind": "book",
           "title": "Великая пирамида и Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3179
         },
         {
           "slug": "01-evangelie-tsarstviya",
           "kind": "book",
           "title": "Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3135
         }
       ],
@@ -8907,35 +8230,30 @@
           "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
           "kind": "book",
           "title": "Книга которую никто не написал",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6177
         },
         {
           "slug": "04-evangelie-edinogo-ya-est",
           "kind": "book",
           "title": "Евангелие Единого. Я есть",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5288
         },
         {
           "slug": "53-golos-enokha-golos-yubileev-golos-padshikh-apokalipsis-petra-otkrovenie-sofii-slovo-ne-skazannoe-prezhde",
           "kind": "book",
           "title": "Голос Еноха. Голос юбилеев. Голос Падших. Апокалипсис Петра. Откровение Софии. Слово, не сказанное прежде",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4645
         },
         {
           "slug": "65-kniga-bytiya-zhivaya",
           "kind": "book",
           "title": "Книга Бытия (живая).",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4624
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4577
         }
       ]
@@ -8946,7 +8264,6 @@
       "number": 15,
       "label": "Евангелие Самарии",
       "title": "Евангелие Самарии",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "иудаизм",
@@ -9014,35 +8331,30 @@
           "slug": "14-iisus-i-samaryanka",
           "kind": "book",
           "title": "Иисус и самарянка",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4059
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3238
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3174
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.314
         },
         {
           "slug": "31-poslanie-izrailyu",
           "kind": "book",
           "title": "Послание Израилю",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3023
         }
       ],
@@ -9051,35 +8363,30 @@
           "slug": "14-iisus-i-samaryanka",
           "kind": "book",
           "title": "Иисус и самарянка",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4777
         },
         {
           "slug": "49-ty-skazannoe-svetom",
           "kind": "book",
           "title": "Ты — сказанное Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3648
         },
         {
           "slug": "67-istorii-kotorye-znal-do-rozhdeniya",
           "kind": "book",
           "title": "Истории, которые знал до рождения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3565
         },
         {
           "slug": "02-1-malenkii-tsar-1",
           "kind": "book",
           "title": "Маленький Царь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2983
         },
         {
           "slug": "30-poslanie-musulmanam",
           "kind": "book",
           "title": "Послание мусульманам",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2847
         }
       ]
@@ -9090,7 +8397,6 @@
       "number": 11,
       "label": "КНИГА ИСЧЕЗАЮЩЕГО Я",
       "title": "КНИГА ИСЧЕЗАЮЩЕГО Я",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога"
       ],
@@ -9156,35 +8462,30 @@
           "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
           "kind": "book",
           "title": "Книга которую никто не написал",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3107
         },
         {
           "slug": "21-poema-svetozara",
           "kind": "book",
           "title": "Поэма Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3011
         },
         {
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.294
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2902
         },
         {
           "slug": "07-dukhovnaya-avtobiografiya-svetozara",
           "kind": "book",
           "title": "ДУХОВНАЯ АВТОБИОГРАФИЯ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2774
         }
       ],
@@ -9193,35 +8494,30 @@
           "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
           "kind": "book",
           "title": "Книга которую никто не написал",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6878
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.674
         },
         {
           "slug": "45-kniga-chistogo-sveta-kogda-ya-uznayu-sebya-toboi",
           "kind": "book",
           "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.583
         },
         {
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5232
         },
         {
           "slug": "58-vot-kakoi-ty-chelovek-kurs-bozhestvennoi-psikhologii",
           "kind": "book",
           "title": "Вот какой ты человек. Курс божественной психологии",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5228
         }
       ]
@@ -9232,7 +8528,6 @@
       "number": 45,
       "label": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
       "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва",
@@ -9300,35 +8595,30 @@
           "slug": "12-kniga-kotoruyu-nikto-ne-napisal",
           "kind": "book",
           "title": "Книга которую никто не написал",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3166
         },
         {
           "slug": "29-ya-molitva-molitvoslov-svetozara",
           "kind": "book",
           "title": "Я - Молитва. Молитвослов Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.307
         },
         {
           "slug": "35-dzhobs-i-mask-protiv-buddy-i-khrista",
           "kind": "book",
           "title": "Джобс и Маск против Будды и Христа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2974
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2939
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2937
         }
       ],
@@ -9337,35 +8627,30 @@
           "slug": "11-kniga-ischezayushchego-ya",
           "kind": "book",
           "title": "КНИГА ИСЧЕЗАЮЩЕГО Я",
-          "cover": "./cover.ru.jpg",
           "weight": 0.583
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5653
         },
         {
           "slug": "53-golos-enokha-golos-yubileev-golos-padshikh-apokalipsis-petra-otkrovenie-sofii-slovo-ne-skazannoe-prezhde",
           "kind": "book",
           "title": "Голос Еноха. Голос юбилеев. Голос Падших. Апокалипсис Петра. Откровение Софии. Слово, не сказанное прежде",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5195
         },
         {
           "slug": "30-poslanie-musulmanam",
           "kind": "book",
           "title": "Послание мусульманам",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4871
         },
         {
           "slug": "07-dukhovnaya-avtobiografiya-svetozara",
           "kind": "book",
           "title": "ДУХОВНАЯ АВТОБИОГРАФИЯ СВЕТОЗАРА",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4827
         }
       ]
@@ -9376,7 +8661,6 @@
       "number": 9,
       "label": "Откровение Святой Руси",
       "title": "Откровение Святой Руси",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия",
@@ -9444,35 +8728,30 @@
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3098
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2921
         },
         {
           "slug": "34-poslanie-tvortsa-svyatoi-rusi-ty-rus",
           "kind": "book",
           "title": "Послание Творца Святой Руси: Ты - Русь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2807
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2736
         },
         {
           "slug": "67-istorii-kotorye-znal-do-rozhdeniya",
           "kind": "book",
           "title": "Истории, которые знал до рождения",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2709
         }
       ],
@@ -9481,35 +8760,30 @@
           "slug": "31-rus-svyataya",
           "kind": "poem",
           "title": "Русь святая",
-          "cover": "./cover.ru.jpg",
           "weight": 0.6662
         },
         {
           "slug": "holy-rus",
           "kind": "project",
           "title": "Святая Русь",
-          "cover": "./cover.ru.png",
           "weight": 0.5697
         },
         {
           "slug": "34-poslanie-tvortsa-svyatoi-rusi-ty-rus",
           "kind": "book",
           "title": "Послание Творца Святой Руси: Ты - Русь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.5038
         },
         {
           "slug": "17-moskva-kak-mnogo-v-etom-zvuke",
           "kind": "poem",
           "title": "Москва! Как много в этом звуке",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3916
         },
         {
           "slug": "42-ostorozhno-smeshno-sbornik-v-dukhe-ranevskoi-zhvanetskogo-i-zadornova",
           "kind": "book",
           "title": "Осторожно: смешно. Сборник в духе Раневской, Жванецкого и Задорнова",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2952
         }
       ]
@@ -9520,7 +8794,6 @@
       "number": 44,
       "label": "Молитва Жизни",
       "title": "Молитва Жизни",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва"
@@ -9587,35 +8860,30 @@
           "slug": "29-ya-molitva-molitvoslov-svetozara",
           "kind": "book",
           "title": "Я - Молитва. Молитвослов Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3017
         },
         {
           "slug": "01-evangelie-tsarstviya",
           "kind": "book",
           "title": "Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2794
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2778
         },
         {
           "slug": "28-mater-sveta",
           "kind": "book",
           "title": "Матерь Света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2754
         },
         {
           "slug": "24-teologicheskaya-matematika",
           "kind": "book",
           "title": "Теологическая математика",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2699
         }
       ],
@@ -9624,35 +8892,30 @@
           "slug": "29-ya-molitva-molitvoslov-svetozara",
           "kind": "book",
           "title": "Я - Молитва. Молитвослов Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.7033
         },
         {
           "slug": "08-evangelie-nevidimogo-sveta",
           "kind": "book",
           "title": "Евангелие невидимого света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.307
         },
         {
           "slug": "05-evangelie-koleblyushchegosya-sveta",
           "kind": "book",
           "title": "Евангелие колеблющегося света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2249
         },
         {
           "slug": "35-dzhobs-i-mask-protiv-buddy-i-khrista",
           "kind": "book",
           "title": "Джобс и Маск против Будды и Христа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2206
         },
         {
           "slug": "05-bozhe-bozhe-milyi",
           "kind": "poem",
           "title": "Боже, Боже, милый...",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2202
         }
       ]
@@ -9663,7 +8926,6 @@
       "number": 42,
       "label": "Осторожно: смешно. Сборник в духе Раневской, Жванецкого и Задорнова",
       "title": "Осторожно: смешно. Сборник в духе Раневской, Жванецкого и Задорнова",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "юмор"
       ],
@@ -9729,35 +8991,30 @@
           "slug": "27-mikki-17",
           "kind": "book",
           "title": "Микки-17",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3263
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3252
         },
         {
           "slug": "54-evangelie-muzhchiny-i-zhenshchiny",
           "kind": "book",
           "title": "Евангелие Мужчины и Женщины",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3238
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3184
         },
         {
           "slug": "64-kniga-svyatogo-dukha",
           "kind": "book",
           "title": "Книга Святого Духа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.298
         }
       ],
@@ -9766,35 +9023,30 @@
           "slug": "33-smysl-zhizni",
           "kind": "poem",
           "title": "Смысл жизни",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3353
         },
         {
           "slug": "54-evangelie-muzhchiny-i-zhenshchiny",
           "kind": "book",
           "title": "Евангелие Мужчины и Женщины",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3191
         },
         {
           "slug": "09-otkrovenie-svyatoi-rusi",
           "kind": "book",
           "title": "Откровение Святой Руси",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2952
         },
         {
           "slug": "41-kogda-odin-zagovoril-vsemi",
           "kind": "book",
           "title": "Когда Один заговорил всеми",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2716
         },
         {
           "slug": "14-marii-savateevoi",
           "kind": "poem",
           "title": "Марии Саватеевой",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2716
         }
       ]
@@ -9805,7 +9057,6 @@
       "number": 22,
       "label": "Книга Света и Экрана",
       "title": "Книга Света и Экрана",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога"
       ],
@@ -9871,35 +9122,30 @@
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.306
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2964
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2941
         },
         {
           "slug": "66-blazhennye-yurodivye-i-pomazanniki-tri-puti-ischezayushchego-ya",
           "kind": "book",
           "title": "Блаженные, юродивые и помазанники- три пути исчезающего “я”",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2802
         },
         {
           "slug": "29-ya-molitva-molitvoslov-svetozara",
           "kind": "book",
           "title": "Я - Молитва. Молитвослов Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2745
         }
       ],
@@ -9908,35 +9154,30 @@
           "slug": "45-kniga-chistogo-sveta-kogda-ya-uznayu-sebya-toboi",
           "kind": "book",
           "title": "Книга Чистого Света. Когда Я узнаю Себя Тобой.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3582
         },
         {
           "slug": "11-kniga-ischezayushchego-ya",
           "kind": "book",
           "title": "КНИГА ИСЧЕЗАЮЩЕГО Я",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3548
         },
         {
           "slug": "25-vzglyad",
           "kind": "book",
           "title": "Взгляд",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3426
         },
         {
           "slug": "58-vot-kakoi-ty-chelovek-kurs-bozhestvennoi-psikhologii",
           "kind": "book",
           "title": "Вот какой ты человек. Курс божественной психологии",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3154
         },
         {
           "slug": "55-kak-perestat-stradat-i-stat-schastlivym",
           "kind": "book",
           "title": "Как перестать страдать и стать счастливым",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3078
         }
       ]
@@ -9947,7 +9188,6 @@
       "number": 57,
       "label": "Я - Отдающий",
       "title": "Я - Отдающий",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "молитва"
@@ -10014,35 +9254,30 @@
           "slug": "03-evangelie-fomy-s-kommentariyami-tvortsa",
           "kind": "book",
           "title": "Евангелие Фомы с комментариями Творца",
-          "cover": "./cover.ru.jpg",
           "weight": 0.28
         },
         {
           "slug": "59-net-bolshe-toi-lyubvi-chem-esli-kto-polozhit-dushu-svoyu-za-drugi-svoya",
           "kind": "book",
           "title": "Нет больше той любви, чем если кто положит душу свою за други своя",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2681
         },
         {
           "slug": "35-dzhobs-i-mask-protiv-buddy-i-khrista",
           "kind": "book",
           "title": "Джобс и Маск против Будды и Христа",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2647
         },
         {
           "slug": "23-lichnost-i-ego",
           "kind": "book",
           "title": "Личность и эго",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2626
         },
         {
           "slug": "51-trilogos",
           "kind": "book",
           "title": "ТриЛогос",
-          "cover": "./cover.ru.jpg",
           "weight": 0.253
         }
       ],
@@ -10051,35 +9286,30 @@
           "slug": "59-net-bolshe-toi-lyubvi-chem-esli-kto-polozhit-dushu-svoyu-za-drugi-svoya",
           "kind": "book",
           "title": "Нет больше той любви, чем если кто положит душу свою за други своя",
-          "cover": "./cover.ru.jpg",
           "weight": 0.4264
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3526
         },
         {
           "slug": "08-evangelie-nevidimogo-sveta",
           "kind": "book",
           "title": "Евангелие невидимого света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3486
         },
         {
           "slug": "26-ya-zdes",
           "kind": "book",
           "title": "Я - здесь",
-          "cover": "./cover.ru.jpg",
           "weight": 0.324
         },
         {
           "slug": "21-poema-svetozara",
           "kind": "book",
           "title": "Поэма Светозара",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3197
         }
       ]
@@ -10090,7 +9320,6 @@
       "number": 18,
       "label": "Евангелие от Иисуса",
       "title": "Евангелие от Иисуса",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "Библия"
@@ -10157,35 +9386,30 @@
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2827
         },
         {
           "slug": "31-poslanie-izrailyu",
           "kind": "book",
           "title": "Послание Израилю",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2717
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2624
         },
         {
           "slug": "01-evangelie-tsarstviya",
           "kind": "book",
           "title": "Евангелие Царствия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.253
         },
         {
           "slug": "14-iisus-i-samaryanka",
           "kind": "book",
           "title": "Иисус и самарянка",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2495
         }
       ],
@@ -10194,35 +9418,30 @@
           "slug": "17-obolgannye-iisus-i-tvorets",
           "kind": "book",
           "title": "Оболганные Иисус и Творец",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3415
         },
         {
           "slug": "05-evangelie-koleblyushchegosya-sveta",
           "kind": "book",
           "title": "Евангелие колеблющегося света",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3386
         },
         {
           "slug": "31-poslanie-izrailyu",
           "kind": "book",
           "title": "Послание Израилю",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3216
         },
         {
           "slug": "20-kniga-ognya",
           "kind": "book",
           "title": "Книга Огня",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3091
         },
         {
           "slug": "53-golos-enokha-golos-yubileev-golos-padshikh-apokalipsis-petra-otkrovenie-sofii-slovo-ne-skazannoe-prezhde",
           "kind": "book",
           "title": "Голос Еноха. Голос юбилеев. Голос Падших. Апокалипсис Петра. Откровение Софии. Слово, не сказанное прежде",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3078
         }
       ]
@@ -10233,7 +9452,6 @@
       "number": 37,
       "label": "Евангелие от Колобка",
       "title": "Евангелие от Колобка",
-      "cover": "./cover.ru.jpg",
       "tags": [
         "Откровение Бога",
         "детское"
@@ -10300,35 +9518,30 @@
           "slug": "19-ty-ya-istoriya-vtorogo-prishestviya",
           "kind": "book",
           "title": "Ты — Я. История Второго Пришествия",
-          "cover": "./cover.ru.jpg",
           "weight": 0.3004
         },
         {
           "slug": "32-knyaz-mira-sego",
           "kind": "book",
           "title": "Князь мира сего",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2894
         },
         {
           "slug": "27-mikki-17",
           "kind": "book",
           "title": "Микки-17",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2847
         },
         {
           "slug": "71-trinadtsatyi-etazh-vozvrashchenie-v-edem",
           "kind": "book",
           "title": "Тринадцатый этаж. Возвращение в Эдем",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2803
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2778
         }
       ],
@@ -10337,35 +9550,30 @@
           "slug": "27-mikki-17",
           "kind": "book",
           "title": "Микки-17",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2169
         },
         {
           "slug": "61-shchelkunchik-i-chetyre-korolestva-otkrovenie-o-boge-i-tebe",
           "kind": "book",
           "title": "Щелкунчик и Четыре королества. Откровение о Боге и тебе",
-          "cover": "./cover.ru.jpg",
           "weight": 0.2016
         },
         {
           "slug": "36-kogda-smert-stanovitsya-svetom",
           "kind": "book",
           "title": "Когда смерть становится Светом",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1664
         },
         {
           "slug": "42-ostorozhno-smeshno-sbornik-v-dukhe-ranevskoi-zhvanetskogo-i-zadornova",
           "kind": "book",
           "title": "Осторожно: смешно. Сборник в духе Раневской, Жванецкого и Задорнова",
-          "cover": "./cover.ru.jpg",
           "weight": 0.145
         },
         {
           "slug": "70-teper-ty-vidish-menya-tozhe",
           "kind": "book",
           "title": "Теперь ты видишь Меня. Тоже.",
-          "cover": "./cover.ru.jpg",
           "weight": 0.1424
         }
       ]

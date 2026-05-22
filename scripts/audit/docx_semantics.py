@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-CONTENT = ROOT / "content"
+CONTENT = ROOT / "src" / "content"
 
 CHECKS: dict[Path, list[str]] = {
     CONTENT / "books" / "33-ya-esm-vsadnik-kon-i-mech" / "ru.md": [

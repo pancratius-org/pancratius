@@ -5,8 +5,8 @@
 // are passed down as props (server) and into the `#cs-config` JSON island
 // (client). No locale lookup at runtime; the runtime is a pure consumer.
 //
-// Graph data (node labels, book titles, community labels) remains Russian
-// because the corpus is Russian. Only chrome localises.
+// Concept and community labels remain Russian because the corpus is Russian.
+// Book titles localise where a paired translated work exists.
 
 import type { Locale } from "@/lib/i18n";
 
@@ -20,6 +20,12 @@ import type { Locale } from "@/lib/i18n";
  *     and the small pieces of UI prose the runtime stitches into panels.
  */
 export interface ConceptosphereStrings {
+  /** Head metadata for the route in this locale. */
+  seo: {
+    title: string;
+    description: string;
+  };
+
   /** `Intl.NumberFormat` locale tag — used by the runtime for `toLocaleString`. */
   numberLocale: string;
 
@@ -52,7 +58,7 @@ export interface ConceptosphereStrings {
   noscriptText:   string;
   /** Visually-hidden search label. */
   searchSrLabel:  string;
-  /** Mode-toggle group ARIA label (role="tablist"). */
+  /** Mode-toggle group ARIA label. */
   modeToggleAriaLabel: string;
 
   /** Cluster legend. */
@@ -86,8 +92,6 @@ export interface ConceptosphereStrings {
   openBookLabel:    string;
   /** Similarity row caption: "сходство 84%". `{pct}` placeholder. */
   similarityCaption: string;
-  /** Kind prefix for non-book similar rows ("стихотворение · сходство 84%"). */
-  kindLabels: Record<"book" | "poem" | "project", string>;
 
   /** Mobile fallback. */
   mobileListAriaLabel:   string;
@@ -109,7 +113,12 @@ export interface ConceptosphereStrings {
   loadErrorPrefix:         string;
 }
 
-const RU: ConceptosphereStrings = {
+const RU = {
+  seo: {
+    title: "Концептосфера — Панкратиус",
+    description: "Карта понятий и связи между книгами Панкратиуса. Граф концептов и граф книг по совместному появлению.",
+  },
+
   numberLocale: "ru-RU",
 
   modes: {
@@ -159,11 +168,6 @@ const RU: ConceptosphereStrings = {
   convergenceLabel: "в обоих списках",
   openBookLabel:    "Открыть книгу",
   similarityCaption: "сходство {pct}%",
-  kindLabels: {
-    book:    "книга",
-    poem:    "стихотворение",
-    project: "проект",
-  },
 
   mobileListAriaLabel:     "Концептосфера — список",
   mobileNote:              "Граф доступен на большом экране; здесь те же данные в виде списка.",
@@ -178,9 +182,14 @@ const RU: ConceptosphereStrings = {
   bookNumberPrefix:        "№",
   mobileAppearsInHeading:  "Чаще всего встречается в",
   loadErrorPrefix:         "Не удалось загрузить граф",
-};
+} satisfies ConceptosphereStrings;
 
-const EN: ConceptosphereStrings = {
+const EN = {
+  seo: {
+    title: "Concept map — Pancratius",
+    description: "A map of Pancratius's concepts and the connections between his books. A concept graph and a book graph built from co-occurrence.",
+  },
+
   numberLocale: "en-US",
 
   modes: {
@@ -195,7 +204,7 @@ const EN: ConceptosphereStrings = {
     books: {
       h1:   "Book sphere",
       lede: "A map of Pancratius's books. A dot is a book; a connection is similarity by key concepts.",
-      meth: "Books are linked by TF-IDF cosine over concept vectors (universal terms excluded); edges are pruned to the 5 nearest neighbours on either side. Clusters are Leiden communities (modularity); the layout is ForceAtlas2. Book titles remain in the original Russian.",
+      meth: "Books are linked by TF-IDF cosine over concept vectors (universal terms excluded); edges are pruned to the 5 nearest neighbours on either side. Clusters are Leiden communities (modularity); the layout is ForceAtlas2. Book titles use the English pair where one exists.",
       toggleLabel:       "Books",
       searchPlaceholder: "Find a book or concept",
       countsNoun:        "books",
@@ -230,11 +239,6 @@ const EN: ConceptosphereStrings = {
   convergenceLabel: "present in both lists",
   openBookLabel:    "Open the book",
   similarityCaption: "{pct}% similar",
-  kindLabels: {
-    book:    "book",
-    poem:    "poem",
-    project: "project",
-  },
 
   mobileListAriaLabel:     "Conceptosphere — list",
   mobileNote:              "The graph is available on a larger screen; here the same data appears as a list.",
@@ -249,12 +253,12 @@ const EN: ConceptosphereStrings = {
   bookNumberPrefix:        "No.",
   mobileAppearsInHeading:  "Most often appears in",
   loadErrorPrefix:         "Failed to load the graph",
-};
+} satisfies ConceptosphereStrings;
 
-export const STRINGS: Record<Locale, ConceptosphereStrings> = {
+export const STRINGS = {
   ru: RU,
   en: EN,
-};
+} satisfies Record<Locale, ConceptosphereStrings>;
 
 export function conceptosphereStrings(locale: Locale): ConceptosphereStrings {
   return STRINGS[locale];

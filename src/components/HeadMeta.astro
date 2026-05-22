@@ -1,5 +1,6 @@
 ---
 import type { SeoMeta } from "@/lib/seo";
+import { sameSitePath } from "@/lib/paths";
 
 interface Props {
   seo: SeoMeta;
@@ -32,4 +33,4 @@ const { seo, themeColor = "#0c0d10" } = Astro.props;
 )}
 
 {/* Discoverability for language models */}
-<link rel="alternate" type="text/plain" href="/llms.txt" />
+<link rel="alternate" type="text/plain" href={sameSitePath("/llms.txt")} />

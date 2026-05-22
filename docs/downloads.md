@@ -29,7 +29,7 @@ PDF, EPUB, and merged multi-part DOCX files are **release artifacts** stored in
 the work bundle:
 
 ```txt
-content/books/01-evangelie-tsarstviya/
+src/content/books/01-evangelie-tsarstviya/
   ru.md
   ru.docx
   ru.pdf
@@ -75,7 +75,7 @@ site consumes the result.
 
 CI should:
 
-- run content/schema checks;
+- run content schema checks;
 - build Astro;
 - build Pagefind and sitemap;
 - verify that every rendered download link points to an emitted file;
@@ -113,9 +113,9 @@ explicitly cites that external URL in the body.
 
 The production site ships **one** bulk archive: `all-md.zip` — every work as public Markdown, packaged with `<kind>/<lang>/<slug>.md` paths. Audience: LLM training, mirror sites, archival ingests. Markdown is the canonical text-first surface; PDF and EPUB are presentation renderings served per-work on each book's page.
 
-The archive is not a raw copy of `content/**/*.md`. It contains the public export form only: frontmatter is removed, converter-only HTML wrappers are removed, inline HTML emphasis is converted to Markdown syntax where possible, and body image references become absolute Markdown image links.
+The archive is not a raw copy of `src/content/**/*.md`. It contains the public export form only: frontmatter is removed, converter-only HTML wrappers are removed, inline HTML emphasis is converted to Markdown syntax where possible, and body image references become absolute Markdown image links.
 
-Bulk PDF and EPUB archives are **not** shipped on the production host because they duplicate ~317 MB of bytes already served per-work, and the host has a 1 GB ceiling. They can still be built off-host via `uv run scripts/build_bulk_archives.py --formats md,pdf,epub` for upload to GitHub Releases, the Internet Archive, or a Hugging Face dataset.
+Bulk PDF and EPUB archives are **not** shipped on the production host because they duplicate ~317 MB of bytes already served per-work, and the host has a 1 GB ceiling. They can still be built off-host via `node --experimental-strip-types scripts/build_bulk_archives.ts --formats=md,pdf,epub` for upload to GitHub Releases, the Internet Archive, or a Hugging Face dataset.
 
 The `/downloads/` page is a short index with size and `sha256` for verification.
 

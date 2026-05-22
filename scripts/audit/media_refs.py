@@ -3,9 +3,12 @@
 # requires-python = ">=3.11"
 # dependencies = ["pyyaml>=6.0"]
 # ///
-"""Every image reference in content/ resolves on disk. Works in the
-work-bundle asset model: covers are `./cover.<lang>.<ext>` and body images
-live under `./images/<hash>.<ext>` relative to each work folder."""
+"""Every image reference in src/content/ resolves on disk.
+
+Work bundles keep covers as ``./cover.<lang>.<ext>``. Body images live under
+``./images/`` and may be converter-imported hashes or human-readable authored
+names.
+"""
 from __future__ import annotations
 
 import json
@@ -16,16 +19,19 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-CONTENT = ROOT / "content"
+CONTENT = ROOT / "src" / "content"
 MANIFEST = ROOT / "data" / "conversion-manifest.json"
 
 MD_IMG = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 HTML_IMG = re.compile(r'<img[^>]+src="([^"]+)"', re.IGNORECASE)
+BODY_IMG_LINE = re.compile(r"!\[[^\]]*]\(\./images/[^)\s]+(?:\s+\"[^\"]*\")?\)")
 
 
 def main() -> int:
     referenced = 0
     missing: list[tuple[Path, str]] = []
+    raw_img_files: list[Path] = []
+    inline_img_lines: list[tuple[Path, int, str]] = []
     for md in CONTENT.rglob("*.md"):
         work_dir = md.parent
         text = md.read_text(encoding="utf-8")
@@ -48,6 +54,8 @@ def main() -> int:
             if not target.exists():
                 missing.append((md, src))
         for m in HTML_IMG.finditer(text):
+            if md.parts[-3] in {"books", "poetry", "projects"}:
+                raw_img_files.append(md)
             src = m.group(1)
             if src.startswith(("http://", "https://", "data:")):
                 continue
@@ -55,6 +63,13 @@ def main() -> int:
             target = (work_dir / src).resolve()
             if not target.exists():
                 missing.append((md, src))
+        if md.parts[-3] in {"books", "poetry", "projects"}:
+            for lineno, line in enumerate(text.splitlines(), start=1):
+                if line.lstrip().startswith("|"):
+                    continue
+                stripped = line.strip()
+                if BODY_IMG_LINE.search(stripped) and BODY_IMG_LINE.fullmatch(stripped) is None:
+                    inline_img_lines.append((md, lineno, stripped))
 
     print(f"image refs in content: {referenced} ({referenced - len(missing)} resolved)")
     if MANIFEST.exists():
@@ -66,6 +81,16 @@ def main() -> int:
         print(f"FAIL: {len(missing)} unresolved refs", file=sys.stderr)
         for md, ref in missing[:25]:
             print(f"  {md.relative_to(ROOT)} → {ref}", file=sys.stderr)
+        return 1
+    if raw_img_files:
+        print("FAIL: raw <img> tags remain in work Markdown; use ![](...)", file=sys.stderr)
+        for md in sorted(set(raw_img_files))[:25]:
+            print(f"  {md.relative_to(ROOT)}", file=sys.stderr)
+        return 1
+    if inline_img_lines:
+        print("FAIL: body image Markdown must stand on its own line", file=sys.stderr)
+        for md, lineno, line in inline_img_lines[:25]:
+            print(f"  {md.relative_to(ROOT)}:{lineno}: {line}", file=sys.stderr)
         return 1
     print("PASS")
     return 0

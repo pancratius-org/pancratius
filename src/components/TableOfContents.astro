@@ -1,6 +1,7 @@
 ---
 import type { MarkdownHeading } from "astro";
 import type { Locale } from "@/lib/i18n";
+import { tocCopy } from "@/lib/copy";
 
 interface Props {
   headings: MarkdownHeading[];
@@ -17,7 +18,7 @@ const { headings, locale, minDepth = 2, maxDepth = 3 } = Astro.props;
 const items = headings.filter(h =>
   h.depth >= minDepth && h.depth <= maxDepth && h.slug !== "footnote-label",
 );
-const label = locale === "ru" ? "Содержание" : "Contents";
+const label = tocCopy[locale].label;
 ---
 {items.length > 0 && (
   <aside class="toc-aside">

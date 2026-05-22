@@ -18,7 +18,7 @@ author-facing in the file tree, never the public URL. Public routes are built
 from each language file's frontmatter `slug`.
 
 ```txt
-content/
+src/content/
   books/
     01-evangelie-tsarstviya/
       ru.md
@@ -61,7 +61,9 @@ human should maintain a separate `public/media/` hierarchy by hand.
 The work bundle is persistent source content, not disposable build output.
 Conversion scripts must be additive by default: update files they own, preserve
 unknown author-added neighbors, and never begin a normal re-conversion by
-deleting `content/books`, `content/poetry`, or `content/projects`.
+deleting `src/content/books`, `src/content/poetry`, or `src/content/projects`.
+Clean rebuilds must be scoped to selected work folders, not whole content-kind
+directories.
 
 ### Asset Naming
 
@@ -134,7 +136,7 @@ Most Markdown bodies are ordinary CommonMark prose:
 - authors do not add trailing `\` or invisible two-space hard breaks.
 
 Verse-like content is the deliberate exception. For `kind: poem` and the
-manifesto page (`content/pages/mission/<lang>.md`), source lineation is content:
+manifesto page (`src/content/pages/mission/<lang>.md`), source lineation is content:
 
 ```md
 Первая строка
@@ -173,7 +175,16 @@ an explicit `<div class="verse-block">` for that run. The wrapper contains
 natural source lines and blank stanza lines, not hand-authored `<p>` / `<br>`
 markup. It is converter-owned output; authors are not expected to type this
 HTML. CSS preserves that lineation while ordinary prose remains ordinary
-Markdown paragraphs.
+Markdown paragraphs. Inline emphasis inside converter-owned HTML wrappers is
+HTML (`<strong>`, `<em>`) because CommonMark does not parse `**...**` as
+Markdown inside raw HTML blocks; public Markdown downloads may rewrite those
+inline tags back to Markdown.
+
+Numbered Q/A books have a related but distinct shape: a numbered question
+heading followed by a compact run of short answer paragraphs. That is not
+automatically poetry, so the converter may emit `<div class="answer-block">`
+for the answer run instead of forcing it into verse styling. The source signal
+is the numbered question heading plus the adjacent short DOCX paragraphs.
 
 DOCX paragraph metadata is also source data. Pandoc's Markdown writer does not
 carry Word paragraph alignment, so the converter reads `word/document.xml`
@@ -267,12 +278,25 @@ it ad hoc.
 
 ## Adding A New Work
 
-1. Create `content/<kind>/<canonical-ru-ascii-key>/`.
-2. Place the source `.docx`, cover, and any body images in that folder.
-3. Run the conversion script. It creates or updates `<lang>.md`, resolves assets,
-   seeds frontmatter, and optionally writes `bibliography.yaml`. It must preserve
-   author-added files it does not own.
-4. Author edits `description`, `title`, `tags`, and `cross_refs` if needed.
+1. Run the one-DOCX importer; it creates the work folder and writes the
+   cleaned/optimized DOCX artifact into the bundle:
+
+   ```sh
+   uv run scripts/import_docx.py /path/to/new.docx --kind book --lang ru
+   ```
+
+   To add a translation to an existing work, target the existing bundle key:
+
+   ```sh
+   uv run scripts/import_docx.py /path/to/book-en.docx --into 30-poslanie-musulmanam --lang en
+   ```
+
+2. Add `--title`, `--number`, `--slug`, `--description`, or `--cover` when the
+   importer cannot infer the desired value. Missing descriptions are seeded as
+   an obvious `TODO:` value so the file validates but remains easy to find.
+3. Author edits `description`, `title`, `tags`, and `cross_refs` if needed.
+4. Run the remaining local release-artifact scripts for the changed work:
+   render PDF/EPUB and refresh bulk Markdown.
 5. Re-run graph generators so algorithmic recommendations include the work.
 
 If a fully reproducible clean conversion is needed for audit, run it into a

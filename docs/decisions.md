@@ -33,6 +33,13 @@ The converter may still compute hashes internally and record them in
 `data/conversion-manifest.json`, but `public/media/` is not the storage contract
 for authored sources.
 
+Body images have a work-bundle identity. The Markdown file decides which
+`images/...` asset it references, but the original public URL is work-scoped:
+`/assets/<kind-segment>/<work-key>/images/<file>`. It is not scoped to a
+localized reading page or a per-language slug, so RU and EN markdown exports
+share the same canonical original image URL when they reference the same file.
+HTML reading pages still use Astro's image pipeline for rendered body images.
+
 The same source-of-truth rule applies to reruns: the converter is additive by
 default. It may refresh files it generated, but it must not wipe a work bundle
 and thereby delete author-added images or editorial sidecars. A destructive
@@ -93,9 +100,10 @@ Rationale:
 
 ## Downloadable DOCX
 
-The downloadable `content/<work>/<lang>.docx` is preserved from the author's
-DOCX, then optimized and cleaned in place when needed: rights-boilerplate removal
-and image re-encoding to the actual display rectangle.
+The downloadable `src/content/<kind>/<work>/<lang>.docx` is preserved from the
+author's DOCX, then optimized and cleaned in place when needed:
+rights-boilerplate removal and image re-encoding to the actual display
+rectangle.
 
 It is never regenerated from Markdown by default because a pandoc round-trip can
 lose layout details that make the DOCX valuable as a source artifact.
@@ -126,7 +134,7 @@ single cross-language identity rule.
 
 ## ASCII Slug Folder Names
 
-The converter emits `content/<kind>/<ascii-work-key>/<lang>.md`. Transliteration
+The converter emits `src/content/<kind>/<ascii-work-key>/<lang>.md`. Transliteration
 is practical (`й → i`, `ц → ts`, hard/soft signs drop, lowercase only). Existing
 Cyrillic folders are replaced by a re-conversion or cleanup migration; recurring
 conversion must not recreate Cyrillic folders.
@@ -161,6 +169,12 @@ The current contract:
   natural source lines and blank-line stanza breaks. CSS styles that explicit
   structure. It does not guess verse from arbitrary italic paragraphs at render
   time, and authors are not asked to hand-write `<p>` / `<br>` line markup.
+  Inline emphasis inside that raw HTML wrapper uses HTML tags because CommonMark
+  does not parse `**...**` inside raw HTML blocks.
+- **numbered Q/A answers are explicit when the source shape is clear.** A
+  numbered question heading followed by a compact run of short answer
+  paragraphs becomes `<div class="answer-block">`. It keeps catechetical answer
+  runs visually grouped without claiming they are poems.
 - **right-aligned DOCX paragraphs are preserved as semantics only when the
   source makes the role clear.** Standalone author/source lines become
   `p.signature`; scripture and epigraph groups become

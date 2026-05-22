@@ -4,7 +4,7 @@ name: Build and smoke
 # build, then a Playwright smoke against `npm run preview`.
 #
 # IMPORTANT: this workflow installs Node + uv only. It MUST NOT install pandoc
-# or typst — the build pipeline copies committed PDFs/EPUBs from `content/`
+# or typst — the build pipeline copies committed PDFs/EPUBs from `src/content/`
 # at build time, so CI never renders documents (see docs/downloads.md).
 
 on:
@@ -45,7 +45,7 @@ jobs:
       - name: Type-check (astro check)
         run: npm run check
 
-      - name: Build site (astro build + body images + bulk archives + pagefind)
+      - name: Build site (Astro + bulk archive + Pagefind)
         run: npm run build
 
       - name: Install Playwright browser (chromium only)

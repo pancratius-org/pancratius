@@ -13,7 +13,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-CONTENT = ROOT / "content"
+CONTENT = ROOT / "src" / "content"
 LEGACY = ROOT / "legacy"
 MANIFEST = ROOT / "data" / "conversion-manifest.json"
 

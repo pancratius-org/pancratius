@@ -25,11 +25,13 @@
  *
  * Placeholder discipline: every value in the bundled markdown is
  * obviously fake (all-zero PAN, `@pancratius` handles, T0000…). The
- * author replaces them in the markdown frontmatter; the QR image is
- * replaced by overwriting /public/qr-sbp-placeholder.svg with a real
- * QR file at the same path.
+ * author replaces them in the markdown frontmatter; the QR image is a
+ * support page asset under src/content/pages/support/images/ and is served
+ * through /assets/pages/support/images/....
  */
 import type { Locale } from "@/lib/i18n";
+import { supportChannelsCopy } from "@/lib/copy";
+import { sameSitePath } from "@/lib/paths";
 
 interface Channel {
   kind: "qr" | "card" | "link" | "text";
@@ -45,13 +47,11 @@ interface Props {
 
 const { channels, locale } = Astro.props;
 
-const COPY = locale === "ru" ? "копировать" : "copy";
-const COPIED = locale === "ru" ? "скопировано" : "copied";
-const FAILED = locale === "ru" ? "ошибка" : "failed";
+const copy = supportChannelsCopy[locale];
 ---
 
 {channels.length > 0 && (
-  <aside class="support-channels" aria-label={locale === "ru" ? "Каналы поддержки" : "Channels of support"}>
+  <aside class="support-channels" aria-label={copy.aria}>
     <ol class="support-channels__list">
       {channels.map((c) => (
         <li class:list={["channel", `channel--${c.kind}`]}>
@@ -60,7 +60,7 @@ const FAILED = locale === "ru" ? "ошибка" : "failed";
           {c.kind === "qr" && (
             <div class="channel__qr">
               <img
-                src={c.value}
+                src={sameSitePath(c.value)}
                 alt=""
                 width="200"
                 height="200"
@@ -79,11 +79,11 @@ const FAILED = locale === "ru" ? "ошибка" : "failed";
                 type="button"
                 class="channel__copy"
                 data-copy={c.value}
-                data-copy-label={COPY}
-                data-copy-done={COPIED}
-                data-copy-fail={FAILED}
-                aria-label={locale === "ru" ? `Скопировать: ${c.label}` : `Copy: ${c.label}`}
-              >[{COPY}]</button>
+                data-copy-label={copy.copy}
+                data-copy-done={copy.copied}
+                data-copy-fail={copy.failed}
+                aria-label={copy.copyAria(c.label)}
+              >[{copy.copy}]</button>
             </div>
           )}
 
@@ -94,11 +94,11 @@ const FAILED = locale === "ru" ? "ошибка" : "failed";
                 type="button"
                 class="channel__copy"
                 data-copy={c.value}
-                data-copy-label={COPY}
-                data-copy-done={COPIED}
-                data-copy-fail={FAILED}
-                aria-label={locale === "ru" ? `Скопировать: ${c.label}` : `Copy: ${c.label}`}
-              >[{COPY}]</button>
+                data-copy-label={copy.copy}
+                data-copy-done={copy.copied}
+                data-copy-fail={copy.failed}
+                aria-label={copy.copyAria(c.label)}
+              >[{copy.copy}]</button>
             </div>
           )}
 

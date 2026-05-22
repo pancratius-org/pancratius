@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
-CONTENT = ROOT / "content" / "poetry"
+CONTENT = ROOT / "src" / "content" / "poetry"
 LEGACY = ROOT / "legacy" / "poetry"
 
 
@@ -40,7 +40,9 @@ def _inlines_to_text(inlines: list[dict[str, Any]]) -> str:
         elif typ == "Link":
             out.append(_inlines_to_text(val[1]))
         elif typ == "Image":
-            out.append("[image]")
+            # Images are not verse lines. The converter may keep them as block
+            # illustrations, but stanza fidelity is about text lineation.
+            continue
         elif typ == "Span":
             out.append(_inlines_to_text(val[1]))
         elif isinstance(val, list):
@@ -157,7 +159,10 @@ def expected_groups(docx: Path, title: str) -> list[int]:
 def actual_groups(md: Path) -> list[int]:
     text = md.read_text(encoding="utf-8")
     body = text.split("---", 2)[2].strip()
-    groups = [g for g in re.split(r"\n\s*\n", body) if g.strip()]
+    groups = [
+        g for g in re.split(r"\n\s*\n", body)
+        if g.strip() and not re.fullmatch(r"!\[[^\]]*]\([^)]+\)", g.strip())
+    ]
     return [len([ln for ln in g.splitlines() if ln.strip()]) for g in groups]
 
 

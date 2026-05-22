@@ -68,7 +68,7 @@ uv run scripts/conceptosphere.py --mode concepts
 
 Pipeline:
 
-1. Read `content/{books,poetry,projects}/*/ru.md`.
+1. Read `src/content/{books,poetry,projects}/*/ru.md`.
 2. Strip frontmatter and Markdown structure.
 3. Tokenize and lemmatize Russian with `pymorphy3`.
 4. Drop stopwords, filler, weak parts of speech, and corpus-specific noise.
@@ -194,8 +194,6 @@ public graph files in one invocation.
 ## Known Gaps
 
 - The graph generators are Russian-only today (`ru.md` discovery is hardcoded).
-- Book graph cover paths prefer content frontmatter and should resolve
-  work-bundle cover assets through the same asset route as the rest of the site.
 - `conceptosphere-embed.json` includes poems/projects, so UI recommendations must
   respect `kind` and not assume every semantic neighbor is a book.
 - Topic labels in the embedding intermediate can still leak stopwords or HTML-ish

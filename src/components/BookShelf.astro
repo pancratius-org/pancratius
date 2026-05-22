@@ -2,6 +2,7 @@
 import type { Locale } from "@/lib/i18n";
 import type { WorkPair } from "@/lib/works";
 import { workUrl } from "@/lib/i18n";
+import { sameSitePath } from "@/lib/paths";
 import BookCover from "./BookCover.astro";
 
 interface Props {
@@ -22,7 +23,7 @@ const { pairs, locale, label } = Astro.props;
     {pairs.map((pair, i) => {
       const entry = locale === "en" ? pair.en : pair.ru;
       if (!entry) return null;
-      const href = workUrl(pair.kind, entry.data.slug, locale);
+      const href = sameSitePath(workUrl(pair.kind, entry.data.slug, locale));
       const altPrefix = locale === "en" ? "Cover" : "Обложка";
       // The first shelf cover is the LCP element on the mobile homepage —
       // ship it eagerly so it isn't fetched after the browser hits the lazy

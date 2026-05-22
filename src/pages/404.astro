@@ -1,9 +1,11 @@
 ---
 import Base from "@/layouts/Base.astro";
+import { sameSitePath } from "@/lib/paths";
+import { absUrl } from "@/lib/seo";
 const seo = {
   title:       "Не найдено — Панкратиус",
   description: "Страница не найдена. Возможно, ссылка устарела.",
-  canonical:   new URL("/404", Astro.site).toString(),
+  canonical:   absUrl(Astro.site, "/404"),
   ogImage:     null,
   ogType:      "website" as const,
   alternates:  [],
@@ -17,11 +19,11 @@ const seo = {
     <h1>Тишина.</h1>
     <p>Этой страницы здесь нет. Возможно, ссылка устарела.</p>
     <p class="nf__links">
-      <a href="/">К началу</a>
+      <a href={sameSitePath("/")}>К началу</a>
       <span class="sep">·</span>
-      <a href="/books/">К книгам</a>
+      <a href={sameSitePath("/books/")}>К книгам</a>
       <span class="sep">·</span>
-      <a href="/search/">Поиск</a>
+      <a href={sameSitePath("/search/")}>Поиск</a>
     </p>
   </section>
 </Base>

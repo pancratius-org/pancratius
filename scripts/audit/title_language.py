@@ -6,8 +6,8 @@
 """EN frontmatter uses the current content schema.
 
 An EN title may be a localized title or an honest RU-title fallback; that is an
-editorial state, not a schema flag. This audit only rejects stale
-`title_is_untranslated` fields from the old model and reports title-language
+editorial state, not a schema flag. This audit rejects legacy
+`title_is_untranslated` fields and reports title-language
 counts for review.
 """
 from __future__ import annotations
@@ -18,7 +18,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-CONTENT = ROOT / "content"
+CONTENT = ROOT / "src" / "content"
 
 
 def is_majority_latin(s: str) -> bool:
@@ -51,7 +51,7 @@ def main() -> int:
             ru_fallbacks.append((md, title))
     print(f"checked {checked} en.md files")
     if stale_flags:
-        print(f"FAIL: {len(stale_flags)} EN entries still carry stale title_is_untranslated", file=sys.stderr)
+        print(f"FAIL: {len(stale_flags)} EN entries still carry legacy title_is_untranslated", file=sys.stderr)
         for md in stale_flags[:15]:
             print(f"  {md.relative_to(ROOT)}", file=sys.stderr)
         return 1

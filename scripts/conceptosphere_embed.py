@@ -25,7 +25,7 @@ A third complementary view alongside the co-occurrence pipeline. Instead of
 similar things even when they use different vocabulary."
 
 Pipeline:
-  1. Read every content/{books,poetry,projects}/<slug>/ru.md
+  1. Read every src/content/{books,poetry,projects}/<slug>/ru.md
   2. Strip YAML frontmatter + Markdown syntax
   3. Sentence-split with razdel (Russian-aware)
   4. Pack into ~400-token chunks with ~50-token overlap, on sentence boundaries
@@ -72,7 +72,7 @@ from razdel import sentenize
 # Paths / config
 # ---------------------------------------------------------------------------
 REPO = Path(__file__).resolve().parent.parent
-CONTENT = REPO / "content"
+CONTENT = REPO / "src" / "content"
 DATA_OUT = REPO / "data" / "conceptosphere-embed.json"
 CACHE_DIR = REPO / "data" / "conceptosphere-embed-cache"
 
@@ -185,7 +185,6 @@ class Doc:
     number: int | None
     title: str
     tags: list[str]
-    cover: str         # content cover path, falling back to legacy cover path
     text: str          # cleaned body
 
 
@@ -200,16 +199,6 @@ def localized_text(value, lang: str = "ru") -> str:
                 return str(picked)
         return ""
     return str(value or "")
-
-
-def slug_to_cover(slug: str, kind: str) -> str | None:
-    """Books and poems have number-prefixed slugs; map to /legacy/covers/ru/NN.jpg."""
-    m = re.match(r"^(\d{1,3})-", slug)
-    if not m:
-        return None
-    nn = m.group(1).zfill(2)
-    sub = "ru"  # both books and poems live under covers/ru
-    return f"../legacy/covers/ru/{nn}.jpg"
 
 
 def collect_docs() -> list[Doc]:
@@ -235,7 +224,6 @@ def collect_docs() -> list[Doc]:
                 number=meta.get("number"),
                 title=localized_text(meta.get("title"), "ru") or slug_dir.name,
                 tags=list(meta.get("tags") or []),
-                cover=meta.get("cover") or slug_to_cover(slug_dir.name, kind) or "",
                 text=text,
             ))
     return docs
@@ -774,7 +762,6 @@ def main() -> int:
                 "slug": slugs[j],
                 "kind": nodes_docs[j].kind,
                 "title": nodes_docs[j].title,
-                "cover": nodes_docs[j].cover,
                 "sim": float(row[j]),
             }
             for j in idx
@@ -839,7 +826,6 @@ def main() -> int:
                 "number": nodes_docs[i].number,
                 "title": nodes_docs[i].title,
                 "tags": nodes_docs[i].tags,
-                "cover": nodes_docs[i].cover,
                 "chunk_count": chunk_counts[i],
                 "degree": deg[i],
                 "centrality": round(float(bc[i]), 4),

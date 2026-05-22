@@ -1,0 +1,322 @@
+---
+import { render } from "astro:content";
+
+import Base from "@/layouts/Base.astro";
+import BookCover from "@/components/BookCover.astro";
+import Colophon from "@/components/Colophon.astro";
+import SimilarPair from "@/components/SimilarPair.astro";
+import TableOfContents from "@/components/TableOfContents.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { downloadUrl, kindIndexUrl, workUrl } from "@/lib/i18n";
+import { bookPageCopy } from "@/lib/copy";
+import { coverAbsoluteUrl } from "@/lib/covers";
+import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
+import { sameSitePath } from "@/lib/paths";
+import { seoForWork } from "@/lib/seo";
+import {
+  getPairsByKind,
+  resolveCrossRefs,
+  workTags,
+  type WorkEntry,
+  type WorkPair,
+} from "@/lib/works";
+
+interface Props {
+  pair: WorkPair;
+  locale: Locale;
+}
+
+const FORMAT_LABEL: Record<DownloadFormat, string> = {
+  md: "Markdown", txt: "TXT", docx: "DOCX", pdf: "PDF", epub: "EPUB",
+};
+
+const { pair, locale } = Astro.props;
+const entry = locale === "en" ? pair.en : pair.ru;
+if (!entry) {
+  throw new Error(`BookPage: no ${locale} entry for book #${pair.number}`);
+}
+
+const copy = bookPageCopy[locale];
+const { Content, headings } = await render(entry);
+const coverUrl = await coverAbsoluteUrl(Astro.site, pair, locale);
+const seo = seoForWork(Astro.site, { pair, locale, coverUrl });
+const crossRefs = await resolveCrossRefs(entry, locale);
+const tags = workTags(entry);
+const useToc = headings.some(h => h.depth >= 2 && h.depth <= 3);
+const backHref = kindIndexUrl("book", locale);
+const formats = availableFormatsForWork(pair, locale);
+
+const allBookPairs = await getPairsByKind("book");
+const pagerPairs = locale === "en" ? allBookPairs.filter(p => p.en !== null) : allBookPairs;
+const here = pagerPairs.findIndex(p => p.number === pair.number);
+const prev = here > 0 ? pagerPairs[here - 1] : null;
+const next = here >= 0 && here < pagerPairs.length - 1 ? pagerPairs[here + 1] : null;
+
+function localizedEntry(p: WorkPair): WorkEntry {
+  const localized = locale === "en" ? p.en : p.ru;
+  if (!localized) {
+    throw new Error(`BookPage: pager included book #${p.number} without ${locale} entry`);
+  }
+  return localized;
+}
+
+const prevEntry = prev ? localizedEntry(prev) : null;
+const nextEntry = next ? localizedEntry(next) : null;
+const number = String(pair.number).padStart(2, "0");
+---
+<Base locale={locale} seo={seo}>
+  <article class="book-page">
+    <a class="book-page__back" href={sameSitePath(backHref)}>
+      {copy.back(pagerPairs.length)}
+    </a>
+
+    <header class="book-page__masthead">
+      <p class="book-page__meta">{copy.meta}</p>
+
+      <div class="book-page__cover">
+        <BookCover pair={pair} locale={locale} alt={copy.coverAlt(entry.data.title)} loading="eager" />
+      </div>
+      <div class="book-page__body">
+        <div class="book-page__num" aria-hidden="true">{number}</div>
+        <h1 class="book-page__title" id="bp-title">
+          <span class="sr-only">{copy.srPrefix(number)}</span>{entry.data.title}
+        </h1>
+        <p class="book-page__description">{entry.data.description}</p>
+        {tags.length > 0 && (
+          <p class="book-page__tags">
+            {tags.map(t => <span>{t}</span>)}
+          </p>
+        )}
+        {formats.length > 0 && (
+          <p class="book-page__downloads" aria-label={copy.downloadAria}>
+            <span class="book-page__downloads-label">{copy.downloadLabel}</span>
+            {formats.map((fmt, i) => (
+              <>
+                {i > 0 && <span class="book-page__downloads-sep">·</span>}
+                <a href={sameSitePath(downloadUrl(pair.kind, entry.data.slug, fmt, locale))}>{FORMAT_LABEL[fmt]}</a>
+              </>
+            ))}
+            <span class="book-page__downloads-sep">·</span>
+            <button
+              type="button"
+              class="book-page__share"
+              data-share
+              data-share-copied={copy.shareCopied}
+              data-share-failed={copy.shareFailed}
+            >
+              {copy.share}
+            </button>
+          </p>
+        )}
+      </div>
+    </header>
+
+    <div class="book-page__layout">
+      {useToc && <TableOfContents headings={headings} locale={locale} />}
+      <div
+        class="prose"
+        data-pagefind-body
+        data-pagefind-meta={`title:${entry.data.title}`}
+        data-leadable
+      >
+        <Content />
+      </div>
+    </div>
+
+    <script is:inline>
+      (function () {
+        const prose = document.querySelector(".book-page .prose[data-leadable]");
+        if (!prose) return;
+        for (const child of Array.from(prose.children)) {
+          const tag = child.tagName;
+          if (tag === "H2" || tag === "H3" || tag === "H4" || tag === "HR") continue;
+          if (tag === "DIV" && child.classList.contains("verse-block")) continue;
+          if (tag === "BLOCKQUOTE" || tag === "FIGURE") return;
+          if (tag !== "P") continue;
+          if (child.className) continue;
+          const text = (child.textContent || "").trim();
+          if (text.length < 60) continue;
+          child.classList.add("lead");
+          return;
+        }
+      })();
+    </script>
+
+    <Colophon pair={pair} locale={locale} />
+
+    {(prev && prevEntry) || (next && nextEntry) ? (
+      <nav class="book-page__pager" aria-label={copy.pagerAria}>
+        {prev && prevEntry && (
+          <a class="book-page__pager-link book-page__pager-link--prev" href={sameSitePath(workUrl("book", prevEntry.data.slug, locale))}>
+            <span class="book-page__pager-arrow">←</span>
+            <span class="book-page__pager-num">{String(prev.number).padStart(2, "0")}</span>
+            <span class="book-page__pager-title">{prevEntry.data.title}</span>
+          </a>
+        )}
+        {next && nextEntry && (
+          <a class="book-page__pager-link book-page__pager-link--next" href={sameSitePath(workUrl("book", nextEntry.data.slug, locale))}>
+            <span class="book-page__pager-num">{String(next.number).padStart(2, "0")}</span>
+            <span class="book-page__pager-title">{nextEntry.data.title}</span>
+            <span class="book-page__pager-arrow">→</span>
+          </a>
+        )}
+      </nav>
+    ) : null}
+
+    <SimilarPair entry={entry} locale={locale} crossRefs={crossRefs} />
+  </article>
+</Base>
+
+<style>
+  .book-page {
+    max-width: 70rem;
+    margin: 0 auto;
+    padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
+  }
+  .book-page__back {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    color: var(--ink-mute);
+    display: inline-block;
+    margin-bottom: 2.5rem;
+    text-decoration: none;
+  }
+  .book-page__back:hover { color: var(--accent); }
+
+  .book-page__masthead {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    grid-template-areas:
+      "meta meta"
+      "cover body";
+    column-gap: 2.5rem;
+    row-gap: 1.4rem;
+    align-items: start;
+    margin-bottom: 3rem;
+    padding-bottom: 2.25rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .book-page__masthead .book-page__meta  { grid-area: meta;  }
+  .book-page__masthead .book-page__cover { grid-area: cover; }
+  .book-page__masthead .book-page__body  { grid-area: body;  }
+  @media (max-width: 720px) {
+    .book-page__masthead {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "meta"
+        "cover"
+        "body";
+      row-gap: 1.25rem;
+    }
+    .book-page__masthead .book-page__cover { max-width: 200px; }
+  }
+
+  .book-page__cover :global(.bcv) {
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 50px 80px -40px rgba(0, 0, 0, 0.7);
+  }
+  :global([data-theme="light"]) .book-page__cover :global(.bcv) {
+    box-shadow: 0 1px 0 rgba(20, 17, 13, 0.06), 0 40px 70px -38px rgba(60, 45, 20, 0.40);
+  }
+
+  .book-page__meta {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0;
+  }
+  .book-page__num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-size: clamp(3.8rem, 7vw, 6rem);
+    color: var(--accent);
+    font-weight: 400;
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.4rem;
+    font-feature-settings: "onum" 1, "lnum" 0, "kern" 1;
+  }
+  .book-page__title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(2.4rem, 5vw, 3.7rem);
+    line-height: 1.04;
+    letter-spacing: -0.018em;
+    margin: 0 0 0.95rem;
+    text-wrap: balance;
+    font-feature-settings: "lnum" 0, "onum" 1, "kern" 1;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .book-page__description {
+    margin: 0 0 1.15rem;
+    color: var(--ink-soft);
+    font-family: var(--serif);
+    font-size: clamp(1rem, 1.6vw, 1.12rem);
+    line-height: 1.6;
+  }
+  .book-page__layout .prose { max-width: none; }
+  .book-page__tags {
+    font-family: var(--sans);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--ink-mute);
+    margin: 0;
+  }
+  .book-page__tags span + span::before { content: " · "; color: var(--rule-2); }
+
+  .book-page__downloads {
+    margin: 0.9rem 0 0;
+    font-family: var(--sans);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    align-items: baseline;
+  }
+  .book-page__downloads a {
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+  }
+  .book-page__downloads a:hover { color: var(--accent); }
+  .book-page__downloads-label {
+    color: var(--ink-mute);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 11px;
+    margin-right: 0.2em;
+  }
+  .book-page__downloads-sep { color: var(--rule-2); }
+
+  .book-page__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+  @media (min-width: 1100px) {
+    .book-page__layout {
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 3rem;
+      align-items: start;
+    }
+    .book-page > :global(.colophon),
+    .book-page > .book-page__pager,
+    .book-page > :global(.sim) {
+      margin-left: calc(220px + 3rem);
+    }
+  }
+</style>

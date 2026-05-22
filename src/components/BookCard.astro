@@ -2,6 +2,7 @@
 import type { Locale } from "@/lib/i18n";
 import type { WorkPair } from "@/lib/works";
 import { workUrl } from "@/lib/i18n";
+import { sameSitePath } from "@/lib/paths";
 import BookCover from "./BookCover.astro";
 
 interface Props {
@@ -18,7 +19,7 @@ const { pair, locale, blurb } = Astro.props;
 const enFallback = locale === "en" && !pair.en;
 const display = enFallback ? pair.ru : (locale === "en" ? pair.en! : pair.ru);
 const linkLocale: Locale = enFallback ? "ru" : locale;
-const href = workUrl(pair.kind, display.data.slug, linkLocale);
+const href = sameSitePath(workUrl(pair.kind, display.data.slug, linkLocale));
 const tags = "tags" in display.data ? display.data.tags : [];
 const hasEnBadge = pair.en !== null && locale === "ru";
 const altPrefix = locale === "en" ? "Cover" : "Обложка";

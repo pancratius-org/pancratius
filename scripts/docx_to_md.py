@@ -6,7 +6,7 @@
 # ]
 # ///
 """
-docx_to_md.py — convert Sergey Orekhov's .docx corpus (books, poetry, projects)
+docx_to_md.py — convert Sergey Orekhov's legacy .docx corpus
 to work-bundle Markdown with structured frontmatter and co-located assets.
 
 Per .docx pipeline:
@@ -18,7 +18,7 @@ Per .docx pipeline:
   5. scrub Word's TOC blocks, AI alt-text, rights boilerplate (bounded), HTML
      residue (`<u>`, anchor spans, `[]{#…}`, smallcaps), `**\\**` artifacts,
      empty headings
-  6. emit ASCII-slug work bundles under content/<kind>/<ascii-slug>/ with
+  6. emit ASCII-slug work bundles under src/content/<kind>/<ascii-slug>/ with
      <lang>.md, cover.<lang>.<ext>, optional bibliography.yaml, meta.json,
      and images/. Frontmatter satisfies src/content.config.ts strict schema.
 
@@ -26,15 +26,17 @@ The converter is additive by default: every write is recorded in
 data/conversion-manifest.json under by_work[<kind/slug>].generated_paths
 (relative to the work folder), and reruns only delete stale entries the new
 run does not reproduce. Unknown author-added neighbors survive. `--clean` is
-the explicit destructive maintenance path; it wipes content/{books,poetry,
-projects} and the manifest before regenerating.
+the explicit destructive maintenance path; it removes only the selected work
+bundles before regenerating them.
 
 Run:
-    uv run scripts/docx_to_md.py --all
-    uv run scripts/docx_to_md.py --book 33
-    uv run scripts/docx_to_md.py --poem 2
+    uv run scripts/docx_to_md.py --kind book --kind poem
+    uv run scripts/docx_to_md.py --kind book --number 33
+    uv run scripts/docx_to_md.py --kind poem --number 2
+    uv run scripts/docx_to_md.py --kind project
+    uv run scripts/docx_to_md.py --kind project --slug enlightened-ai
     uv run scripts/docx_to_md.py --test
-    uv run scripts/docx_to_md.py --all --clean
+    uv run scripts/docx_to_md.py --kind book --kind poem --clean
 """
 from __future__ import annotations
 
@@ -61,10 +63,10 @@ ROOT = Path(__file__).resolve().parent.parent
 LEGACY = ROOT / "legacy"
 DATA = LEGACY / "data"
 
-CONTENT_OUT = ROOT / "content"
+CONTENT_OUT = ROOT / "src" / "content"
 MANIFEST_PATH = ROOT / "data" / "conversion-manifest.json"
 
-TEST_CONTENT_OUT = ROOT / ".cache" / "converter-test" / "content"
+TEST_CONTENT_OUT = ROOT / ".cache" / "converter-test" / "src" / "content"
 TEST_MANIFEST_PATH = ROOT / ".cache" / "converter-test" / "conversion-manifest.json"
 
 HASH_PREFIX_LEN = 12
@@ -221,8 +223,10 @@ _BIBLIO_SECTION_TELL = re.compile(
 )
 
 _IMG_MD = re.compile(r"!\[([^\]]*)\]\(([^)]+?)\)")
+_BODY_IMG_MD = re.compile(r"!\[[^\]]*\]\(\./images/[^)\s]+(?:\s+\"[^\"]*\")?\)")
 _IMG_HTML = re.compile(r"<img\s+([^>]*?)src\s*=\s*\"([^\"]+)\"([^>]*?)/?>", re.IGNORECASE)
 _HTML_DIM_ATTR = re.compile(r"\s+(?:style|width|height)\s*=\s*\"[^\"]*\"")
+_HTML_ALT_ATTR = re.compile(r"\balt\s*=\s*\"([^\"]*)\"", re.IGNORECASE)
 
 _LITRES_URL = re.compile(r"https?://(?:www\.)?litres\.ru/[\w\-/]+")
 _FOOTNOTE_LINE = re.compile(r"^\[\^([^\]]+)\]:\s*(.+)$", re.MULTILINE)
@@ -647,6 +651,27 @@ def collapse_blank_lines(md: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", md).strip() + "\n"
 
 
+def strip_trailing_hardbreak_markers(md: str) -> str:
+    """Remove Pandoc's author-hostile hard-break backslashes.
+
+    Source Markdown keeps natural newlines. If a short-line run needs visual
+    lineation, the AST passes wrap it as `.verse-block` / `.answer-block`
+    instead of leaving raw hard-break syntax in the author-facing file.
+    """
+    out: list[str] = []
+    in_fence = False
+    for line in md.splitlines():
+        if re.match(r"^\s*(```|~~~)", line):
+            in_fence = not in_fence
+            out.append(line)
+            continue
+        if not in_fence and re.search(r"(?<!\\)\\[ \t]*$", line):
+            out.append(re.sub(r"(?<!\\)\\[ \t]*$", "", line).rstrip())
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
 def demote_markdown_headings(md: str, levels: int) -> str:
     """Demote body headings so the page title remains the only H1.
 
@@ -931,7 +956,7 @@ def _clean_verse_html_line(line: str) -> str:
     return line.strip()
 
 
-def _verse_html_from_ast_blocks(blocks: list[dict[str, Any]]) -> str | None:
+def _verse_html_from_ast_blocks(blocks: list[dict[str, Any]], class_name: str = "verse-block") -> str | None:
     stanzas: list[list[str]] = []
     current: list[str] = []
     saw_content = False
@@ -984,7 +1009,7 @@ def _verse_html_from_ast_blocks(blocks: list[dict[str, Any]]) -> str | None:
     if short_ratio < 0.75:
         return None
 
-    out = ['<div class="verse-block">']
+    out = [f'<div class="{class_name}">']
     for stanza in stanzas:
         out.extend(stanza)
         out.append("")
@@ -1019,7 +1044,54 @@ def _has_inline_kind(inlines: list[dict[str, Any]], kinds: set[str]) -> bool:
     return False
 
 
-def _is_lineated_plain_text(text: str) -> bool:
+def _pandoc_inlines_to_plain_lines(inlines: list[dict[str, Any]]) -> list[str]:
+    lines = [""]
+
+    def merge(child_lines: list[str]) -> None:
+        for idx, child in enumerate(child_lines):
+            if idx:
+                lines.append("")
+            lines[-1] += child
+
+    for item in inlines:
+        typ = item.get("t")
+        val = item.get("c")
+        if typ == "Str":
+            lines[-1] += str(val)
+        elif typ == "Space":
+            lines[-1] += " "
+        elif typ in {"SoftBreak", "LineBreak"}:
+            lines.append("")
+        elif typ in {"Strong", "Emph", "Underline", "Strikeout", "Superscript", "Subscript", "SmallCaps"}:
+            merge(_pandoc_inlines_to_plain_lines(val or []))
+        elif typ == "Quoted":
+            quote_type, quoted = val
+            child = _pandoc_inlines_to_plain_lines(quoted)
+            if child:
+                open_q, close_q = ("'", "'") if quote_type.get("t") == "SingleQuote" else ("«", "»")
+                child[0] = f"{open_q}{child[0]}"
+                child[-1] = f"{child[-1]}{close_q}"
+            merge(child)
+        elif typ == "Code":
+            lines[-1] += str(val[1])
+        elif typ == "Link":
+            _attr, label, _target = val
+            merge(_pandoc_inlines_to_plain_lines(label))
+        elif typ == "Image":
+            _attr, label, _target = val
+            merge(_pandoc_inlines_to_plain_lines(label))
+        elif typ == "Span":
+            _attr, span_inlines = val
+            merge(_pandoc_inlines_to_plain_lines(span_inlines))
+        elif typ == "RawInline":
+            _fmt, raw = val
+            lines[-1] += str(raw)
+        elif isinstance(val, list):
+            merge(_pandoc_inlines_to_plain_lines(val))
+    return [re.sub(r"\s+", " ", line).strip() for line in lines]
+
+
+def _is_lineated_plain_text(text: str, *, allow_colon_line: bool = False) -> bool:
     s = re.sub(r"\s+", " ", text).strip()
     if not s or len(s) > 145:
         return False
@@ -1029,9 +1101,9 @@ def _is_lineated_plain_text(text: str) -> bool:
         return False
     if re.match(r"^[-*+]\s+", s) or re.match(r"^\d+[.)]\s+", s):
         return False
-    if re.match(r"^[A-ZА-ЯЁ][\w .А-Яа-яЁё-]{1,48}:\s*$", s):
+    if not allow_colon_line and re.match(r"^[A-ZА-ЯЁ][\w .А-Яа-яЁё-]{1,48}:\s*$", s):
         return False
-    if re.match(r"^[A-ZА-ЯЁ][\w .А-Яа-яЁё-]{1,48}:\s", s):
+    if not allow_colon_line and re.match(r"^[A-ZА-ЯЁ][\w .А-Яа-яЁё-]{1,48}:\s", s):
         return False
     if re.match(r"^\*\*[^*]{1,80}:\*\*", s):
         return False
@@ -1040,7 +1112,7 @@ def _is_lineated_plain_text(text: str) -> bool:
     return True
 
 
-def _is_lineated_ast_block(block: dict[str, Any]) -> bool:
+def _is_lineated_ast_block(block: dict[str, Any], *, answer_context: bool = False) -> bool:
     if block.get("t") not in {"Para", "Plain"}:
         return False
     inlines = block.get("c") or []
@@ -1048,22 +1120,41 @@ def _is_lineated_ast_block(block: dict[str, Any]) -> bool:
         return False
     if _has_inline_kind(inlines, {"Image", "Link", "Code"}):
         return False
-    return all(_is_lineated_plain_text(line) for line in _plain_text_inlines(inlines).splitlines())
+    lines = [line for line in _pandoc_inlines_to_plain_lines(inlines) if line]
+    return bool(lines) and all(_is_lineated_plain_text(line, allow_colon_line=answer_context) for line in lines)
 
 
 def _block_plain_lines(block: dict[str, Any]) -> list[str]:
     return [
-        re.sub(r"\s+", " ", line).strip()
-        for line in _plain_text_inlines(block.get("c") or []).splitlines()
+        line
+        for line in _pandoc_inlines_to_plain_lines(block.get("c") or [])
         if line.strip()
     ]
 
 
-def _lineated_run_is_confident(blocks: list[dict[str, Any]], *, after_named_heading: bool) -> bool:
+_NUMBERED_QUESTION_TITLE_RE = re.compile(r"^\d{1,3}[.)]\s+\S.*[?？]\s*$")
+
+
+def _is_numbered_question_title(title: str) -> bool:
+    return bool(_NUMBERED_QUESTION_TITLE_RE.match(re.sub(r"\s+", " ", title.strip())))
+
+
+def _lineated_run_kind(
+    blocks: list[dict[str, Any]],
+    *,
+    after_named_heading: bool,
+    after_question_heading: bool,
+    after_heading: bool,
+    after_separator: bool,
+) -> str | None:
     content_blocks = [b for b in blocks if (b.get("c") or [])]
     lines = [line for block in content_blocks for line in _block_plain_lines(block)]
+    if after_question_heading and len(lines) >= 2 and len(lines) <= 12:
+        lengths = [len(line) for line in lines]
+        avg_len = sum(lengths) / len(lengths)
+        return "answer-block" if avg_len <= 95 and max(lengths) <= 150 else None
     if len(lines) < 3:
-        return False
+        return None
     lengths = [len(line) for line in lines]
     avg_len = sum(lengths) / len(lengths)
     empty_count = sum(1 for block in blocks if block.get("t") in {"Para", "Plain"} and not (block.get("c") or []))
@@ -1074,12 +1165,45 @@ def _lineated_run_is_confident(blocks: list[dict[str, Any]], *, after_named_head
     )
 
     if after_named_heading:
-        return avg_len <= 150
+        return "verse-block" if avg_len <= 150 else None
+    if after_separator and len(lines) <= 24:
+        return "verse-block" if avg_len <= 110 and max(lengths) <= 160 else None
+    if after_heading and len(lines) <= 14:
+        return "verse-block" if avg_len <= 95 and max(lengths) <= 150 else None
     if linebreak_count:
-        return True
+        return "verse-block"
     if empty_count and avg_len <= 120:
-        return True
-    return False
+        return "verse-block"
+    return None
+
+
+def _block_line_keys(block: dict[str, Any]) -> list[str]:
+    return [_plain_key(line) for line in _block_plain_lines(block) if _plain_key(line)]
+
+
+def _trim_trailing_protected_blocks(
+    blocks: list[dict[str, Any]],
+    protected_key_sequences: list[list[str]],
+) -> list[dict[str, Any]]:
+    if not blocks or not protected_key_sequences:
+        return blocks
+
+    out = list(blocks)
+    while out:
+        keys = [key for block in out for key in _block_line_keys(block)]
+        matched: list[str] | None = None
+        for seq in protected_key_sequences:
+            seq = [key for key in seq if key]
+            if seq and len(seq) <= len(keys) and keys[-len(seq):] == seq:
+                matched = seq
+                break
+        if not matched:
+            break
+
+        remaining = len(matched)
+        while out and remaining > 0:
+            remaining -= len(_block_line_keys(out.pop()))
+    return out
 
 
 @dataclass
@@ -1100,47 +1224,97 @@ def _plain_key(text: str) -> str:
     return text
 
 
-def _lineated_runs_from_ast(ast: dict[str, Any]) -> list[_VerseRun]:
+def _lineated_runs_from_ast(
+    ast: dict[str, Any],
+    protected_key_sequences: list[list[str]] | None = None,
+) -> list[_VerseRun]:
     runs: list[_VerseRun] = []
     current: list[dict[str, Any]] = []
+    last_heading_was_any = False
     last_heading_was_named = False
+    last_heading_was_question = False
+    last_block_was_separator = False
+    current_after_heading = False
     current_after_named_heading = False
+    current_after_question_heading = False
+    current_after_separator = False
+    protected_key_sequences = protected_key_sequences or []
 
     def flush() -> None:
-        nonlocal current, current_after_named_heading
-        if current and _lineated_run_is_confident(current, after_named_heading=current_after_named_heading):
-            html_block = _verse_html_from_ast_blocks(current)
+        nonlocal current, current_after_heading, current_after_named_heading, current_after_question_heading, current_after_separator
+        candidate = _trim_trailing_protected_blocks(current, protected_key_sequences)
+        run_kind = _lineated_run_kind(
+            candidate,
+            after_named_heading=current_after_named_heading,
+            after_question_heading=current_after_question_heading,
+            after_heading=current_after_heading,
+            after_separator=current_after_separator,
+        ) if candidate else None
+        if candidate and run_kind:
+            html_block = _verse_html_from_ast_blocks(candidate, class_name=run_kind)
             if html_block:
                 plain_lines = [
                     _plain_key(line)
-                    for block in current
+                    for block in candidate
                     if (block.get("c") or [])
                     for line in _block_plain_lines(block)
                 ]
-                if len(plain_lines) >= 3:
+                min_lines = 2 if run_kind == "answer-block" else 3
+                if len(plain_lines) >= min_lines:
                     runs.append(_VerseRun(plain_lines=plain_lines, html_block=html_block))
         current = []
+        current_after_heading = False
         current_after_named_heading = False
+        current_after_question_heading = False
+        current_after_separator = False
 
     for block in ast.get("blocks") or []:
         typ = block.get("t")
         if typ == "Header":
             flush()
             _level, _attr, inlines = block.get("c") or [None, None, []]
-            last_heading_was_named = _is_verse_section_title(_plain_text_inlines(inlines))
+            title = _plain_text_inlines(inlines)
+            last_heading_was_any = True
+            last_heading_was_named = _is_verse_section_title(title)
+            last_heading_was_question = _is_numbered_question_title(title)
+            last_block_was_separator = False
+            continue
+        if typ == "HorizontalRule":
+            flush()
+            last_heading_was_any = False
+            last_heading_was_named = False
+            last_heading_was_question = False
+            last_block_was_separator = True
+            continue
+        if typ in {"Para", "Plain"} and [line.strip() for line in _block_plain_lines(block)] in (["***"], [r"\*\*\*"], ["* * *"]):
+            flush()
+            last_heading_was_any = False
+            last_heading_was_named = False
+            last_heading_was_question = False
+            last_block_was_separator = True
             continue
         if typ in {"Para", "Plain"} and not (block.get("c") or []):
             if current:
                 current.append(block)
             continue
-        if _is_lineated_ast_block(block):
+        answer_context = last_heading_was_question or current_after_question_heading
+        if _is_lineated_ast_block(block, answer_context=answer_context):
             if not current:
+                current_after_heading = last_heading_was_any
                 current_after_named_heading = last_heading_was_named
+                current_after_question_heading = last_heading_was_question
+                current_after_separator = last_block_was_separator
             current.append(block)
+            last_heading_was_any = False
             last_heading_was_named = False
+            last_heading_was_question = False
+            last_block_was_separator = False
             continue
         flush()
+        last_heading_was_any = False
         last_heading_was_named = False
+        last_heading_was_question = False
+        last_block_was_separator = False
     flush()
     return runs
 
@@ -1151,6 +1325,7 @@ class _MdBlock:
     end: int
     raw: str
     key: str
+    line_keys: list[str]
 
 
 def _markdown_blocks(md: str) -> tuple[list[str], list[_MdBlock]]:
@@ -1170,8 +1345,35 @@ def _markdown_blocks(md: str) -> tuple[list[str], list[_MdBlock]]:
             not _ANY_HEADING_RE.match(raw.strip())
             and not raw.lstrip().startswith(("<", "|", "!", ">"))
         ):
-            blocks.append(_MdBlock(start=start, end=i, raw=raw, key=_plain_key(raw)))
+            line_keys = [_plain_key(line) for line in raw.splitlines() if _plain_key(line)]
+            blocks.append(_MdBlock(start=start, end=i, raw=raw, key=_plain_key(raw), line_keys=line_keys))
     return lines, blocks
+
+
+def _find_markdown_run_window(
+    md_blocks: list[_MdBlock],
+    target_keys: list[str],
+    used: set[int],
+) -> tuple[int, int, list[int]] | None:
+    target_keys = [key for key in target_keys if key]
+    if not target_keys:
+        return None
+    for idx in range(len(md_blocks)):
+        collected: list[str] = []
+        block_indexes: list[int] = []
+        for j in range(idx, len(md_blocks)):
+            if j in used:
+                break
+            next_keys = md_blocks[j].line_keys or ([md_blocks[j].key] if md_blocks[j].key else [])
+            if not next_keys:
+                break
+            collected.extend(next_keys)
+            block_indexes.append(j)
+            if collected == target_keys:
+                return md_blocks[idx].start, md_blocks[j].end, block_indexes
+            if len(collected) >= len(target_keys) or collected != target_keys[:len(collected)]:
+                break
+    return None
 
 
 @dataclass(frozen=True)
@@ -1222,6 +1424,8 @@ def _is_signature_group(lines: list[str]) -> bool:
         return False
     if any(len(line) > 90 for line in lines):
         return False
+    if any("панкратиус" in line.casefold() for line in lines):
+        return True
     if all(_SIGNATURE_LINE_RE.match(line.strip()) for line in lines):
         return True
     if len(lines) == 1 and re.fullmatch(r"[—-]\s*[\wА-Яа-яЁё .]{2,80}", lines[0]):
@@ -1281,7 +1485,12 @@ def _render_epigraph(lines: list[str]) -> str:
 def _docx_structural_runs(paras: list[DocxParagraphMeta]) -> list[_DocxStructuralRun]:
     runs: list[_DocxStructuralRun] = []
     for group in _right_aligned_groups(paras):
-        lines = [p.text.strip() for p in group if p.text.strip()]
+        lines = [
+            line.strip()
+            for p in group
+            for line in p.text.splitlines()
+            if line.strip()
+        ]
         if not lines:
             continue
         if _is_signature_group(lines):
@@ -1290,6 +1499,10 @@ def _docx_structural_runs(paras: list[DocxParagraphMeta]) -> list[_DocxStructura
         if _is_epigraph_group(lines, group):
             runs.append(_DocxStructuralRun(keys=[_plain_key(line) for line in lines], html_block=_render_epigraph(lines)))
     return runs
+
+
+def _docx_structural_key_sequences(paras: list[DocxParagraphMeta]) -> list[list[str]]:
+    return [run.keys for run in _docx_structural_runs(paras) if run.keys]
 
 
 def normalize_docx_structural_blocks(md: str, paras: list[DocxParagraphMeta]) -> str:
@@ -1309,19 +1522,12 @@ def normalize_docx_structural_blocks(md: str, paras: list[DocxParagraphMeta]) ->
 
     for run in runs:
         keys = [key for key in run.keys if key]
-        if not keys:
+        match = _find_markdown_run_window(md_blocks, keys, used)
+        if not match:
             continue
-        run_len = len(keys)
-        for idx in range(0, len(md_blocks) - run_len + 1):
-            if any((idx + off) in used for off in range(run_len)):
-                continue
-            window = md_blocks[idx:idx + run_len]
-            if [block.key for block in window] != keys:
-                continue
-            replacements.append((window[0].start, window[-1].end, ["", *run.html_block.splitlines(), ""]))
-            for off in range(run_len):
-                used.add(idx + off)
-            break
+        start, end, indexes = match
+        replacements.append((start, end, ["", *run.html_block.splitlines(), ""]))
+        used.update(indexes)
 
     if not replacements:
         return md
@@ -1330,7 +1536,11 @@ def normalize_docx_structural_blocks(md: str, paras: list[DocxParagraphMeta]) ->
     return "\n".join(lines)
 
 
-def normalize_ast_lineated_runs(md: str, ast: dict[str, Any]) -> str:
+def normalize_ast_lineated_runs(
+    md: str,
+    ast: dict[str, Any],
+    protected_key_sequences: list[list[str]] | None = None,
+) -> str:
     """Wrap detected short-line runs from DOCX as explicit verse blocks.
 
     This is the general form of the earlier named-section fix. It uses the
@@ -1339,7 +1549,7 @@ def normalize_ast_lineated_runs(md: str, ast: dict[str, Any]) -> str:
     Normal prose is left as normal paragraphs, so CSS does not have to choose
     between over-spaced stanzas and wall-of-text prose.
     """
-    runs = _lineated_runs_from_ast(ast)
+    runs = _lineated_runs_from_ast(ast, protected_key_sequences=protected_key_sequences)
     if not runs:
         return md
 
@@ -1350,17 +1560,12 @@ def normalize_ast_lineated_runs(md: str, ast: dict[str, Any]) -> str:
     for run in runs:
         if not run.plain_lines:
             continue
-        run_len = len(run.plain_lines)
-        for idx in range(0, len(md_blocks) - run_len + 1):
-            if any((idx + off) in used for off in range(run_len)):
-                continue
-            window = md_blocks[idx:idx + run_len]
-            if [block.key for block in window] != run.plain_lines:
-                continue
-            replacements.append((window[0].start, window[-1].end, ["", *run.html_block.splitlines(), ""]))
-            for off in range(run_len):
-                used.add(idx + off)
-            break
+        match = _find_markdown_run_window(md_blocks, run.plain_lines, used)
+        if not match:
+            continue
+        start, end, indexes = match
+        replacements.append((start, end, ["", *run.html_block.splitlines(), ""]))
+        used.update(indexes)
 
     if not replacements:
         return md
@@ -1626,6 +1831,7 @@ def _strip_source_duplicate_poem_title(
 def process_poem_markdown(
     md_raw: str,
     book_slug: str,
+    lang: str,
     image_root: Path,
     work_dir: Path,
     image_records: list[ImageRecord],
@@ -1636,12 +1842,13 @@ def process_poem_markdown(
 ) -> tuple[str, list[dict[str, Any]], int]:
     md = strip_ai_alt(md_raw)
     md, next_idx = rewrite_images(
-        md, book_slug, image_root, work_dir, image_records, writes, image_counter_start,
+        md, book_slug, lang, image_root, work_dir, image_records, writes, image_counter_start,
     )
     refs = extract_cross_refs(md, own_ascii_slug, cross_ref_title_index)
     md = unwrap_spans_and_u(md)
     md = strip_formatting_artifacts(md)
     md = strip_empty_headings(md)
+    md = strip_trailing_hardbreak_markers(md)
     md = collapse_blank_lines(md)
     return md, refs, next_idx
 
@@ -1668,6 +1875,7 @@ def convert_poem_docx_to_md(
         md, refs, next_idx = process_poem_markdown(
             md_raw=md_raw,
             book_slug=book_slug,
+            lang="ru",
             image_root=tdp,
             work_dir=work_dir,
             image_records=image_records,
@@ -1687,6 +1895,7 @@ def convert_poem_docx_to_md(
 def rewrite_images(
     md: str,
     book_slug: str,
+    lang: str,
     image_root: Path,
     work_dir: Path,
     image_records: list[ImageRecord],
@@ -1738,14 +1947,14 @@ def rewrite_images(
         next_idx += 1
 
     def md_repl(m: re.Match) -> str:
-        alt = m.group(1)
+        alt = m.group(1).strip() or _body_image_alt(lang)
         src = m.group(2).split(' "', 1)[0].strip()
         got = resolve(src)
         if not got:
             return m.group(0)
         h, ext = got
         record(src, h, ext, "body")
-        return f"![{alt}](./images/{h}{ext})"
+        return f"![{_escape_markdown_alt(alt)}](./images/{h}{ext})"
 
     def html_repl(m: re.Match) -> str:
         pre, src, post = m.group(1), m.group(2), m.group(3)
@@ -1754,16 +1963,57 @@ def rewrite_images(
             return m.group(0)
         h, ext = got
         record(src, h, ext, "body")
-        attrs = (pre + post)
-        attrs = _HTML_DIM_ATTR.sub("", attrs)
-        attrs = re.sub(r"\s+", " ", attrs).strip()
-        if attrs:
-            return f'<img {attrs} src="./images/{h}{ext}" />'
-        return f'<img src="./images/{h}{ext}" />'
+        attrs = _HTML_DIM_ATTR.sub("", pre + post)
+        alt_m = _HTML_ALT_ATTR.search(attrs)
+        alt = (alt_m.group(1).strip() if alt_m else "") or _body_image_alt(lang)
+        return f"![{_escape_markdown_alt(alt)}](./images/{h}{ext})"
 
     md = _IMG_MD.sub(md_repl, md)
     md = _IMG_HTML.sub(html_repl, md)
+    md = normalize_body_image_blocks(md)
     return md, next_idx
+
+
+def _body_image_alt(lang: str) -> str:
+    return "Illustration" if lang == "en" else "Иллюстрация"
+
+
+def _escape_markdown_alt(alt: str) -> str:
+    return alt.replace("[", r"\[").replace("]", r"\]")
+
+
+def normalize_body_image_blocks(md: str) -> str:
+    """Keep imported DOCX body illustrations as block Markdown images.
+
+    Pandoc often places an image run and adjacent paragraph text on the same
+    Markdown line. These are book illustrations, not inline emoji/icons, so
+    the author-facing source should make that structure explicit. Table rows
+    are left alone because Markdown images are valid cell content there.
+    """
+    out: list[str] = []
+    for line in md.splitlines():
+        if not _BODY_IMG_MD.search(line) or line.lstrip().startswith("|"):
+            out.append(line)
+            continue
+
+        pos = 0
+        for m in _BODY_IMG_MD.finditer(line):
+            before = line[pos:m.start()].strip()
+            if before:
+                out.append(before)
+            if out and out[-1] != "":
+                out.append("")
+            out.append(m.group(0))
+            out.append("")
+            pos = m.end()
+
+        after = line[pos:].strip()
+        if after:
+            out.append(after)
+        elif out and out[-1] == "":
+            out.pop()
+
+    return "\n".join(out)
 
 
 def _find_table_spans(md: str) -> list[tuple[int, int]]:
@@ -2016,6 +2266,7 @@ def process_markdown(
     md_raw: str,
     docx_paras: list[DocxParagraphMeta],
     book_slug: str,
+    lang: str,
     image_root: Path,
     work_dir: Path,
     image_records: list[ImageRecord],
@@ -2032,7 +2283,7 @@ def process_markdown(
     md, bibliography = extract_bibliography(md, biblio_slug_lookup)
     md = strip_bibliography_sections(md)
     md, next_idx = rewrite_images(
-        md, book_slug, image_root, work_dir, image_records, writes, image_counter_start,
+        md, book_slug, lang, image_root, work_dir, image_records, writes, image_counter_start,
     )
     cross_refs = extract_cross_refs(md, own_ascii_slug, cross_ref_title_index)
     md = unwrap_spans_and_u(md)
@@ -2042,6 +2293,7 @@ def process_markdown(
     md = strip_empty_headings(md)
     md = normalize_dialogue_labels(md)
     md = normalize_docx_structural_blocks(md, docx_paras)
+    md = strip_trailing_hardbreak_markers(md)
     md = collapse_blank_lines(md)
     return md, bibliography, cross_refs, next_idx
 
@@ -2049,6 +2301,7 @@ def process_markdown(
 def convert_docx_to_md(
     docx: Path,
     book_slug: str,
+    lang: str,
     work_dir: Path,
     image_records: list[ImageRecord],
     writes: WorkWrites,
@@ -2056,7 +2309,7 @@ def convert_docx_to_md(
     biblio_slug_lookup: dict[str, tuple[str, int | None, str | None]],
     cross_ref_title_index: dict[str, tuple[str, int | None, str | None]],
     own_ascii_slug: str,
-) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]], int, str, dict[str, Any]]:
+) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]], int, str, dict[str, Any], list[list[str]]]:
     if not docx.exists():
         raise FileNotFoundError(docx)
     with tempfile.TemporaryDirectory(prefix=f"pancratius-{book_slug}-") as td:
@@ -2069,10 +2322,12 @@ def convert_docx_to_md(
         if json_warnings:
             warnings = "\n".join(w for w in (warnings, json_warnings) if w)
         md_raw = out_md.read_text(encoding="utf-8")
+        structural_key_sequences = _docx_structural_key_sequences(docx_paras)
         md, biblio, refs, next_idx = process_markdown(
             md_raw=md_raw,
             docx_paras=docx_paras,
             book_slug=book_slug,
+            lang=lang,
             image_root=tdp,
             work_dir=work_dir,
             image_records=image_records,
@@ -2082,7 +2337,7 @@ def convert_docx_to_md(
             cross_ref_title_index=cross_ref_title_index,
             own_ascii_slug=own_ascii_slug,
         )
-    return md, biblio, refs, next_idx, warnings, ast
+    return md, biblio, refs, next_idx, warnings, ast, structural_key_sequences
 
 
 # ---------------------------------------------------------------------------
@@ -2322,9 +2577,10 @@ def convert_book(book: dict[str, Any], ctx: ConverterContext) -> list[Conversion
         for i, f in enumerate(docs, start=1):
             docx_path = _legacy_path(f["url"])
             writes.add_source(lang, docx_path)
-            body, biblio, refs, image_idx, warns, ast = convert_docx_to_md(
+            body, biblio, refs, image_idx, warns, ast, structural_key_sequences = convert_docx_to_md(
                 docx=docx_path,
                 book_slug=ascii_slug,
+                lang=lang,
                 work_dir=book_dir,
                 image_records=ctx.image_records,
                 writes=writes,
@@ -2335,8 +2591,9 @@ def convert_book(book: dict[str, Any], ctx: ConverterContext) -> list[Conversion
             )
             body = demote_markdown_headings(body, 2 if len(docs) > 1 else 1)
             body = normalize_ast_verse_sections(body, ast)
-            body = normalize_ast_lineated_runs(body, ast)
+            body = normalize_ast_lineated_runs(body, ast, structural_key_sequences)
             body = normalize_dedication_verse_sections(body)
+            body = collapse_blank_lines(body)
             label = _book_part_label(i, len(docs), lang)
             if label:
                 bodies.append(f"{label}\n\n{body}")
@@ -2569,9 +2826,10 @@ def convert_project(project: dict[str, Any], ctx: ConverterContext) -> list[Conv
         print(f"  [project/{ascii_slug}] no number assigned in PROJECT_NUMBERS", file=sys.stderr)
         return []
 
-    body, biblio, refs, _, warns, ast = convert_docx_to_md(
+    body, biblio, refs, _, warns, ast, structural_key_sequences = convert_docx_to_md(
         docx=docx_path,
         book_slug=f"project-{ascii_slug}",
+        lang="ru",
         work_dir=proj_dir,
         image_records=ctx.image_records,
         writes=writes,
@@ -2584,7 +2842,7 @@ def convert_project(project: dict[str, Any], ctx: ConverterContext) -> list[Conv
         print(f"  [project/{ascii_slug}] pandoc: {warns}", file=sys.stderr)
     body = demote_markdown_headings(body, 1)
     body = normalize_ast_verse_sections(body, ast)
-    body = normalize_ast_lineated_runs(body, ast)
+    body = normalize_ast_lineated_runs(body, ast, structural_key_sequences)
     cover_ru = _ingest_cover(
         project.get("cover"),
         book_slug=f"project-{ascii_slug}",
@@ -2771,12 +3029,13 @@ def write_manifest(
 
 TEST_BOOK_NUMBERS = [1, 33, 53, 3]
 TEST_POEM_NUMBERS = [2]
+WORK_KINDS = ("book", "poem", "project")
 
 
 def run(args: argparse.Namespace) -> None:
     if args.test:
-        content_out = TEST_CONTENT_OUT
-        manifest_path = TEST_MANIFEST_PATH
+        content_out = TEST_CONTENT_OUT if args.out_content is None else Path(args.out_content)
+        manifest_path = TEST_MANIFEST_PATH if args.manifest is None else Path(args.manifest)
     else:
         content_out = CONTENT_OUT if args.out_content is None else Path(args.out_content)
         manifest_path = MANIFEST_PATH if args.manifest is None else Path(args.manifest)
@@ -2795,29 +3054,37 @@ def run(args: argparse.Namespace) -> None:
 
     image_records: list[ImageRecord] = []
 
-    books_to_do = books
-    poems_to_do = poems
-    projects_to_do = projects
+    books_to_do: list[dict[str, Any]] = []
+    poems_to_do: list[dict[str, Any]] = []
+    projects_to_do: list[dict[str, Any]] = []
+
+    selected_kinds = set(args.kind or [])
+
+    if "book" in selected_kinds:
+        books_to_do = books
+    if "poem" in selected_kinds:
+        poems_to_do = poems
+    if "project" in selected_kinds:
+        projects_to_do = projects
 
     if args.test:
         books_to_do = [b for b in books if b["number"] in TEST_BOOK_NUMBERS]
         poems_to_do = [p for p in poems if p["number"] in TEST_POEM_NUMBERS]
         projects_to_do = []
-    if args.book:
-        books_to_do = [b for b in books if b["number"] == args.book]
-        poems_to_do = []
-        projects_to_do = []
-    if args.poem:
-        poems_to_do = [p for p in poems if p["number"] == args.poem]
-        books_to_do = []
-        projects_to_do = []
-    if args.no_books:
-        books_to_do = []
-    if args.no_poems:
-        poems_to_do = []
-    if args.no_projects:
-        projects_to_do = []
-
+    elif args.number is not None:
+        if "book" in selected_kinds:
+            books_to_do = [b for b in books if b["number"] == args.number]
+            if not books_to_do:
+                raise SystemExit(f"book not found: {args.number}")
+        elif "poem" in selected_kinds:
+            poems_to_do = [p for p in poems if p["number"] == args.number]
+            if not poems_to_do:
+                raise SystemExit(f"poem not found: {args.number}")
+    elif args.slug:
+        project_slug = to_ascii_slug(args.slug)
+        projects_to_do = [p for p in projects if to_ascii_slug(p["slug"]) == project_slug]
+        if not projects_to_do:
+            raise SystemExit(f"project not found: {args.slug}")
     print(f"books to convert: {len(books_to_do)}", file=sys.stderr)
     print(f"poems to convert: {len(poems_to_do)}", file=sys.stderr)
     print(f"projects to convert: {len(projects_to_do)}", file=sys.stderr)
@@ -2825,22 +3092,39 @@ def run(args: argparse.Namespace) -> None:
     # Why: --clean is the explicit destructive maintenance path. Without it the
     # rerun is additive: it only touches files the prior manifest says the
     # converter generated, and leaves unknown author-added neighbors alone.
+    # Clean only selected work bundles; never delete whole kind directories.
+    cleaned_work_keys: set[str] = set()
     if args.clean:
-        for sub in ("books", "poetry", "projects"):
-            sub_path = content_out / sub
-            if sub_path.exists():
-                shutil.rmtree(sub_path)
-            sub_path.mkdir(parents=True, exist_ok=True)
-        if manifest_path.exists():
-            manifest_path.unlink()
+        clean_targets: list[tuple[str, str, Path]] = []
+        clean_targets.extend(
+            ("book", _build_ascii_slug(b, "ru"), content_out / "books" / _build_ascii_slug(b, "ru"))
+            for b in books_to_do
+        )
+        clean_targets.extend(
+            ("poem", _build_ascii_slug(p, "ru"), content_out / "poetry" / _build_ascii_slug(p, "ru"))
+            for p in poems_to_do
+        )
+        clean_targets.extend(
+            ("project", to_ascii_slug(pr["slug"]), content_out / "projects" / to_ascii_slug(pr["slug"]))
+            for pr in projects_to_do
+        )
+        for kind, slug, target in clean_targets:
+            cleaned_work_keys.add(f"{kind}/{slug}")
+            if target.exists():
+                shutil.rmtree(target)
 
     previous_full: dict[str, Any] = {}
-    if manifest_path.exists() and not args.clean:
+    if manifest_path.exists():
         try:
             previous_full = json.loads(manifest_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             previous_full = {}
-    previous_works = _load_previous_works(manifest_path) if not args.clean else {}
+    if cleaned_work_keys:
+        by_work = previous_full.get("by_work")
+        if isinstance(by_work, dict):
+            for key in cleaned_work_keys:
+                by_work.pop(key, None)
+    previous_works = _load_previous_works(manifest_path)
 
     ctx = ConverterContext(
         content_out=content_out,
@@ -2875,26 +3159,68 @@ def run(args: argparse.Namespace) -> None:
     print(f"manifest written to {manifest_path}", file=sys.stderr)
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser(description="Convert Pancratius .docx corpus to Markdown.")
-    ap.add_argument("--all", action="store_true")
-    ap.add_argument("--test", action="store_true")
-    ap.add_argument("--book", type=int)
-    ap.add_argument("--poem", type=int)
-    ap.add_argument("--no-books", action="store_true")
-    ap.add_argument("--no-poems", action="store_true")
-    ap.add_argument("--no-projects", action="store_true")
+def build_parser() -> argparse.ArgumentParser:
+    ap = argparse.ArgumentParser(
+        description="Convert selected Pancratius legacy DOCX sources to work-bundle Markdown.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    ap.add_argument(
+        "--kind",
+        action="append",
+        choices=WORK_KINDS,
+        help="Work kind to convert. Repeat for multiple kinds.",
+    )
+    ap.add_argument(
+        "--number",
+        type=int,
+        help="Convert one book or poem by corpus number. Requires exactly one --kind book or --kind poem.",
+    )
+    ap.add_argument(
+        "--slug",
+        help="Convert one project by slug. Requires --kind project.",
+    )
+    ap.add_argument(
+        "--test",
+        action="store_true",
+        help="Convert the small test set into .cache/converter-test/ unless output paths are overridden.",
+    )
     ap.add_argument(
         "--clean",
         action="store_true",
-        help="Destructive: wipe content/books, content/poetry, content/projects, and the manifest before regenerating. Default is additive: preserve unknown author-added files in each work bundle and remove only files the prior manifest recorded as generated.",
+        help="Remove selected work folders before regenerating them.",
     )
-    ap.add_argument("--out-content", default=None)
-    ap.add_argument("--manifest", default=None)
-    args = ap.parse_args()
+    ap.add_argument("--out-content", default=None, help="Content output root.")
+    ap.add_argument("--manifest", default=None, help="Conversion manifest output path.")
+    return ap
 
-    if not any([args.all, args.test, args.book, args.poem]):
-        ap.error("specify --all, --test, --book N, or --poem N")
+
+def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    args.kind = list(dict.fromkeys(args.kind or []))
+
+    if args.test:
+        if args.kind or args.number is not None or args.slug:
+            parser.error("--test cannot be combined with --kind, --number, or --slug")
+        return
+
+    if not args.kind:
+        parser.error("choose at least one --kind (book, poem, or project), or use --test")
+
+    if args.number is not None and args.slug:
+        parser.error("--number and --slug are mutually exclusive")
+
+    if args.number is not None:
+        if len(args.kind) != 1 or args.kind[0] not in {"book", "poem"}:
+            parser.error("--number requires exactly one --kind book or --kind poem")
+
+    if args.slug:
+        if args.kind != ["project"]:
+            parser.error("--slug requires exactly one --kind project")
+
+
+def main() -> None:
+    ap = build_parser()
+    args = ap.parse_args()
+    validate_args(ap, args)
     if shutil.which("pandoc") is None:
         ap.error("pandoc not found on PATH; install with `brew install pandoc`")
 

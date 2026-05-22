@@ -19,7 +19,7 @@ The architecture supports slugs differing per language: each language file's
 frontmatter `slug` drives its URL. But the policy is conservative — **localize
 the URL only when the localized title is editorially real**.
 
-- The folder key is the canonical RU ASCII work key (`content/books/01-evangelie-tsarstviya/`).
+- The folder key is the canonical RU ASCII work key (`src/content/books/01-evangelie-tsarstviya/`).
 - `ru.md` `slug:` is always a Russian-derived ASCII transliteration.
 - `en.md` `slug:` is the English-title ASCII transliteration **only when the EN title is settled**. Until then, reuse the RU slug.
 - If the EN title is a fallback (AI-machine translation kept as placeholder, or no editorial pass), reuse the RU slug. `translation.source: ai` is the honest signal — EN work pages surface it as a "machine translation" line near the colophon with a link back to the RU original.

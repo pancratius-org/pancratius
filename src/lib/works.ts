@@ -5,21 +5,17 @@
 // EN translations, materializing graph neighbors, and validating cross_refs
 // all use the same key.
 
-import { resolve as resolvePath } from "node:path";
-
 import { getCollection, type CollectionEntry } from "astro:content";
 
 import type { Locale, WorkKind } from "./i18n";
 import { workUrl } from "./i18n";
-
-const REPO_ROOT = process.cwd();
 
 export type WorkEntry =
   | CollectionEntry<"books">
   | CollectionEntry<"poetry">
   | CollectionEntry<"projects">;
 
-const COLLECTION_OF: Record<WorkKind, "books" | "poetry" | "projects"> = {
+export const COLLECTION_OF: Record<WorkKind, "books" | "poetry" | "projects"> = {
   book:    "books",
   poem:    "poetry",
   project: "projects",
@@ -85,7 +81,9 @@ export async function getAllWorkPairs(): Promise<WorkPair[]> {
     return a.number - b.number;
   });
 
-  _pairsCache = pairs;
+  // Never cache an empty result — it only means content wasn't synced yet
+  // (dev-server startup race). Caching [] poisons every later call.
+  if (pairs.length > 0) _pairsCache = pairs;
   return pairs;
 }
 
@@ -131,10 +129,11 @@ export async function alternateLanguageEntry(
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Cover and body-image resolution.
+// Cover resolution.
 //
-// Per the asset-naming policy, a cover lives at `content/<work>/cover.<lang>.<ext>`
-// and is referenced from frontmatter as a relative path like `./cover.ru.jpg`.
+// Per the asset-naming policy, a cover lives at
+// `src/content/<kind>/<work>/cover.<lang>.<ext>` and is referenced from
+// frontmatter as a relative path like `./cover.ru.jpg`.
 // We reject `/media/<hash>` shapes here so the rule has a single enforcement point.
 // ─────────────────────────────────────────────────────────────────────
 
@@ -186,22 +185,6 @@ export async function resolveCover(pair: WorkPair, locale: Locale): Promise<Cove
     if (ref) return ref;
   }
   return null;
-}
-
-/**
- * Absolute path on disk for a cover ref, used by the build pipeline to feed
- * into Astro's image helpers. Astro components should prefer
- * `import.meta.glob` for this, but exposing the path makes it available to
- * download endpoints and to OG image emission.
- */
-export function coverDiskPath(pair: WorkPair, cover: CoverRef): string {
-  const kindFolder = COLLECTION_OF[pair.kind];
-  // Astro entry IDs are <work>--<lang>; the work folder is the first segment.
-  const workFolder = pair.ru.id.split("--")[0];
-  return resolvePath(
-    REPO_ROOT,
-    "content", kindFolder, workFolder, cover.rel.replace(/^\.\//, ""),
-  );
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -272,5 +255,3 @@ export function poemDate(entry: WorkEntry): string | null {
   if (!("date" in entry.data)) return null;
   return entry.data.date ?? null;
 }
-
-export { COLLECTION_OF };

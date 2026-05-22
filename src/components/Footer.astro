@@ -1,7 +1,9 @@
 ---
 import type { Locale } from "@/lib/i18n";
 import { FOOTER_LINKS, localizePath, pageUrl } from "@/lib/i18n";
+import { footerCopy } from "@/lib/copy";
 import { getPage } from "@/lib/pages";
+import { sameSitePath } from "@/lib/paths";
 
 interface Props {
   locale: Locale;
@@ -20,37 +22,19 @@ const availableLinks = await Promise.all(
   }),
 ).then(xs => xs.filter((x): x is typeof FOOTER_LINKS[number] => x !== null));
 
-const licenseHref = pageUrl("license", locale);
+const licenseHref = sameSitePath(pageUrl("license", locale));
 
-const copy = locale === "ru" ? {
-  cc0_before: "Тексты — в общественном достоянии (",
-  cc0_link:   "CC0",
-  cc0_after:  ").",
-  cc0_b: "Берите. Переводите. Перепечатывайте. Обучайте на них модели. Передавайте.",
-  llms:    "Для языковых моделей",
-  github:  "Зеркало на GitHub",
-  telegram:"Telegram",
-  sep: " · ",
-} : {
-  cc0_before: "All texts are in the public domain (",
-  cc0_link:   "CC0",
-  cc0_after:  ").",
-  cc0_b: "Take them. Translate. Reprint. Train models. Pass them on.",
-  llms:    "For language models",
-  github:  "GitHub mirror",
-  telegram:"Telegram",
-  sep: " · ",
-};
+const copy = footerCopy[locale];
 ---
 <footer>
   <p>{copy.cc0_before}<a href={licenseHref}>{copy.cc0_link}</a>{copy.cc0_after}</p>
   <p>{copy.cc0_b}</p>
   <p class="footer__links">
-    <a href="/llms.txt">{copy.llms}</a>
+    <a href={sameSitePath("/llms.txt")}>{copy.llms}</a>
     {availableLinks.map(link => (
       <>
         <span class="sep">{copy.sep}</span>
-        <a href={localizePath(link.path, locale)}>{link.label[locale]}</a>
+        <a href={sameSitePath(localizePath(link.path, locale))}>{link.label[locale]}</a>
       </>
     ))}
     {githubMirror && (

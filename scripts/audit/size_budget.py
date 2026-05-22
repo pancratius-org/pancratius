@@ -16,7 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
-CONTENT_DIR = ROOT / "content"
+CONTENT_DIR = ROOT / "src" / "content"
 DIST_DIR = ROOT / "dist"
 
 DOWNLOAD_EXTS = {".docx", ".pdf", ".epub"}
@@ -25,7 +25,7 @@ CONTENT_SOURCE_BUDGET_MB = 700
 CONTENT_DOWNLOAD_BUDGET_MB = 850
 # Why: Beget free tier has a 1 GB ceiling. Headroom for static assets +
 # Pagefind index + per-work downloads + the single all-md.zip bulk archive.
-# Bulk PDF/EPUB archives are off-host (see scripts/build_bulk_archives.py).
+# Bulk PDF/EPUB archives are off-host (see scripts/build_bulk_archives.ts).
 DIST_BUDGET_MB = 900
 
 
@@ -55,14 +55,14 @@ def main() -> int:
         download_mb = _du_matching(CONTENT_DIR, release=True) / (1 << 20)
         total_mb = source_mb + download_mb
         print(
-            f"content/ source: {source_mb:.1f} MB "
+            f"src/content/ source: {source_mb:.1f} MB "
             f"(budget {CONTENT_SOURCE_BUDGET_MB} MB)"
         )
         print(
-            f"content/ download artifacts: {download_mb:.1f} MB "
+            f"src/content/ download artifacts: {download_mb:.1f} MB "
             f"(budget {CONTENT_DOWNLOAD_BUDGET_MB} MB)"
         )
-        print(f"content/ total: {total_mb:.1f} MB")
+        print(f"src/content/ total: {total_mb:.1f} MB")
         if source_mb > CONTENT_SOURCE_BUDGET_MB:
             failures.append(
                 f"content source exceeds budget by "

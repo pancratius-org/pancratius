@@ -4,11 +4,11 @@ Human-facing review debt that doesn't gate launch but is worth Sergey's eye when
 
 ## Pipeline note: `editorial.yaml` is temporary
 
-The titles listed below live in `editorial.yaml` at the repo root *only because* the converter currently regenerates `content/**/*.md` on every run and would overwrite editor edits. The intended end state is: the converter preserves editor-owned frontmatter fields (`title`, `description`, `translation`, `cross_refs`) on existing markdown; `editorial.yaml` gets applied once into each `en.md` and then deleted; this file remains as the human review checklist. Future agents should not bless `editorial.yaml` as architecture.
+The titles listed below live in `editorial.yaml` at the repo root *only because* the converter currently regenerates `src/content/**/*.md` on every run and would overwrite editor edits. The intended end state is: the converter preserves editor-owned frontmatter fields (`title`, `description`, `translation`, `cross_refs`) on existing markdown; `editorial.yaml` gets applied once into each `en.md` and then deleted; this file remains as the human review checklist. Future agents should not bless `editorial.yaml` as architecture.
 
 ## English book titles — seeded translations awaiting review
 
-The English titles in `editorial.yaml` for these books were translated by the conversion engineer (Claude), not by Sergey. They aim for faithful spiritual/biblical register but a human author may prefer different wording. Editing `editorial.yaml` and re-running `uv run scripts/docx_to_md.py --all` regenerates the affected `content/books/<slug>/en.md` frontmatter.
+The English titles in `editorial.yaml` for these books were translated by the conversion engineer (Claude), not by Sergey. They aim for faithful spiritual/biblical register but a human author may prefer different wording. Editing `editorial.yaml` and re-running `uv run scripts/docx_to_md.py --kind book` regenerates the affected `src/content/books/<slug>/en.md` frontmatter.
 
 - 7  — *The Spiritual Autobiography of Svetozar*
 - 30 — *A Message to Muslims*

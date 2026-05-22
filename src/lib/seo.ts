@@ -6,6 +6,8 @@
 
 import type { Locale, WorkKind } from "./i18n";
 import { DEFAULT_LOCALE, LOCALES, homeUrl, kindIndexUrl, pageUrl, workUrl } from "./i18n";
+import { searchPageCopy } from "./copy";
+import { sameSitePath } from "./paths";
 import type { PageEntry } from "./pages";
 import type { WorkPair } from "./works";
 
@@ -40,8 +42,9 @@ export interface SeoMeta {
 
 /** Read the site origin from Astro's config (provided to each route via `Astro.site`). */
 export function absUrl(site: URL | undefined, path: string): string {
-  if (!site) return path;
-  const u = new URL(path, site);
+  const publicPath = sameSitePath(path);
+  if (!site) return publicPath;
+  const u = new URL(publicPath, site);
   return u.toString();
 }
 
@@ -107,8 +110,8 @@ export function seoForKindIndex(site: URL | undefined, kind: WorkKind, locale: L
   };
   const descriptions: Record<WorkKind, Record<Locale, string>> = {
     book:    {
-      ru: "72 книги Панкратиуса — полный корпус. Свободно — людям и языковым моделям.",
-      en: "All 72 books by Pancratius — free for humans and for language models.",
+      ru: "72 книги Панкратиуса — полное собрание. Свободно — людям и языковым моделям.",
+      en: "English translations of Pancratius's books — free for humans and for language models.",
     },
     poem: {
       ru: "43 стихотворения Панкратиуса. Свободно — людям и языковым моделям.",
@@ -127,6 +130,28 @@ export function seoForKindIndex(site: URL | undefined, kind: WorkKind, locale: L
     ogType:      "website",
     alternates:  alternatesForKindIndex(site, kind),
     jsonLd:      null,
+    locale,
+  };
+}
+
+export function seoForSearch(site: URL | undefined, locale: Locale): SeoMeta {
+  const copy = searchPageCopy[locale];
+  const alternates: AlternateLink[] = LOCALES.map(loc => ({
+    hreflang: loc,
+    href: absUrl(site, loc === DEFAULT_LOCALE ? "/search/" : `/${loc}/search/`),
+  }));
+  alternates.push({
+    hreflang: "x-default",
+    href: absUrl(site, "/search/"),
+  });
+  return {
+    title: copy.title,
+    description: clampDescription(copy.description),
+    canonical: absUrl(site, locale === DEFAULT_LOCALE ? "/search/" : `/${locale}/search/`),
+    ogImage: null,
+    ogType: "website",
+    alternates,
+    jsonLd: null,
     locale,
   };
 }
@@ -251,6 +276,25 @@ function alternatesForWork(site: URL | undefined, pair: WorkPair): AlternateLink
     xs.push({ hreflang: "x-default", href: absUrl(site, workUrl(pair.kind, pair.ru.data.slug, "ru")) });
   }
   return xs;
+}
+
+export function switcherAlternatesFromSeo(seo: SeoMeta): Partial<Record<Locale, string>> {
+  const alternates: Partial<Record<Locale, string>> = {};
+  for (const alt of seo.alternates) {
+    if (!LOCALES.includes(alt.hreflang as Locale)) continue;
+    alternates[alt.hreflang as Locale] = sameOriginPath(alt.href);
+  }
+  return alternates;
+}
+
+function sameOriginPath(href: string): string {
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(href)) return href;
+  try {
+    const url = new URL(href);
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return href;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────

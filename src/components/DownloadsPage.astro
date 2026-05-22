@@ -1,0 +1,176 @@
+---
+import type { Locale } from "@/lib/i18n";
+import type { ArchiveInfo } from "@/lib/bulk-archives";
+import { downloadsPageCopy } from "@/lib/copy";
+import { sameSitePath } from "@/lib/paths";
+import type { PageEntry } from "@/lib/pages";
+
+interface Props {
+  locale: Locale;
+  page: PageEntry;
+  archives: ArchiveInfo[];
+  generatedAt: string | null;
+}
+
+const { locale, page, archives, generatedAt } = Astro.props;
+const copy = downloadsPageCopy[locale];
+
+const FORMAT_LABEL: Record<ArchiveInfo["format"], string> = {
+  md:   "Markdown",
+  pdf:  "PDF",
+  epub: "EPUB",
+};
+---
+<article class="dl">
+  <header class="dl__head">
+    {page.data.eyebrow && <p class="eyebrow eyebrow--lg">{page.data.eyebrow}</p>}
+    <h1>{page.data.title}</h1>
+    {page.data.sub && <p class="dl__sub">{page.data.sub}</p>}
+  </header>
+
+  <div class="prose">
+    <slot />
+  </div>
+
+  {archives.length > 0 ? (
+    <section class="dl__bundles" aria-label={copy.aria}>
+      <ol class="dl__list">
+        {archives.map(a => (
+          <li class="dl__row">
+            <a class="dl__link" href={sameSitePath(a.url)} download>
+              <span class="dl__label">{FORMAT_LABEL[a.format]}</span>
+              <span class="dl__name">{a.name}</span>
+            </a>
+            <p class="dl__blurb">{copy.blurb[a.format]}</p>
+            <dl class="dl__stats">
+              <div>
+                <dt>{copy.size}</dt>
+                <dd>{a.size_human}</dd>
+              </div>
+              <div>
+                <dt>{copy.items}</dt>
+                <dd>{a.items.toLocaleString(copy.numberLocale)}</dd>
+              </div>
+              <div class="dl__sha">
+                <dt>sha256</dt>
+                <dd><code>{a.sha256}</code></dd>
+              </div>
+            </dl>
+          </li>
+        ))}
+      </ol>
+      {generatedAt && (
+        <p class="dl__stamp">
+          {copy.stampBefore}<time datetime={generatedAt}>{generatedAt.slice(0, 10)}</time>.
+        </p>
+      )}
+    </section>
+  ) : (
+    <p class="dl__empty">{copy.empty}</p>
+  )}
+</article>
+
+<style>
+  .dl {
+    max-width: 56rem;
+    margin: 0 auto;
+    padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
+  }
+  .dl__head h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2.8rem, 5.8vw, 4.3rem);
+    line-height: 0.98;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+  .dl__sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--accent);
+    margin: 0.4rem 0 2.5rem;
+  }
+
+  .dl__bundles { margin-top: 3rem; }
+  .dl__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1.4rem;
+  }
+  .dl__row {
+    border-top: 1px solid var(--rule);
+    padding: 1.5rem 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .dl__row:last-child { border-bottom: 1px solid var(--rule); }
+
+  .dl__link {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    text-decoration: none;
+    color: inherit;
+    line-height: 1.2;
+  }
+  .dl__label {
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .dl__link:hover .dl__label { color: var(--accent); }
+  .dl__name {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    color: var(--ink-mute);
+  }
+
+  .dl__blurb {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 38rem;
+  }
+
+  .dl__stats {
+    margin: 0.5rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem 2rem;
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--ink-mute);
+  }
+  .dl__stats > div { display: flex; gap: 0.5rem; align-items: baseline; }
+  .dl__stats dt { letter-spacing: 0.12em; text-transform: uppercase; }
+  .dl__stats dd { margin: 0; color: var(--ink-soft); }
+  .dl__sha dd code {
+    font-family: var(--mono);
+    font-size: 11px;
+    word-break: break-all;
+    color: var(--ink-mute);
+  }
+  @media (max-width: 720px) {
+    .dl__sha { width: 100%; }
+  }
+
+  .dl__stamp {
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--ink-mute);
+    margin: 2rem 0 0;
+  }
+  .dl__empty {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--ink-mute);
+    padding: 2rem 0;
+  }
+</style>

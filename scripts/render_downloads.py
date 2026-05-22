@@ -7,7 +7,7 @@
 """Local admin tool: render release downloads into the work bundle.
 
 Per ``docs/downloads.md``, PDFs and EPUBs are committed release artefacts under
-``content/<kind>/<work>/<lang>.{pdf,epub}``. Merged multi-part works may also
+``src/content/<kind>/<work>/<lang>.{pdf,epub}``. Merged multi-part works may also
 need a committed ``<lang>.docx`` release artefact, because the optimized source
 DOCX parts are not the same thing as the public "one URL = one work" download.
 This script regenerates those artefacts locally; CI never runs it.
@@ -17,11 +17,11 @@ Tools required on PATH:
   - typst  (>= 0.13)
 
 Inputs:
-  - ``content/<kind>/<work>/<lang>.md`` and any ``images/`` body assets
+  - ``src/content/<kind>/<work>/<lang>.md`` and any ``images/`` body assets
   - ``scripts/downloads-templates/book.typ`` (typst page layout)
   - ``scripts/downloads-templates/epub.css`` (optional EPUB stylesheet)
   - ``scripts/downloads-fonts/*/*.ttf`` (committed Cyrillic-capable fonts)
-  - ``content/<work>/cover.<lang>.<ext>`` (optional cover)
+  - ``src/content/<kind>/<work>/cover.<lang>.<ext>`` (optional cover)
 
 Outputs are written next to ``<lang>.md``.
 
@@ -55,7 +55,7 @@ import yaml
 from PIL import Image
 
 REPO_ROOT  = Path(__file__).resolve().parent.parent
-CONTENT    = REPO_ROOT / "content"
+CONTENT    = REPO_ROOT / "src" / "content"
 TEMPLATES  = REPO_ROOT / "scripts" / "downloads-templates"
 FONTS_ROOT = REPO_ROOT / "scripts" / "downloads-fonts"
 

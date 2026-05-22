@@ -12,7 +12,7 @@
     ".astro/types.d.ts",
     "astro.config.ts",
     "src/**/*",
-    "content/**/*.md"
+    "src/content/**/*.md"
   ],
   "exclude": [
     "dist",

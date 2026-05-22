@@ -47,11 +47,11 @@ from typing import Any
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-CONTENT = REPO_ROOT / "content"
+CONTENT = REPO_ROOT / "src" / "content"
 OUTPUT = REPO_ROOT / "data" / "slug-map.json"
 
 KIND_DIRS: dict[str, tuple[str, str]] = {
-    # collection name → (folder under content/, structural-noun URL segment)
+    # collection name → (folder under src/content/, structural-noun URL segment)
     "book":    ("books",    "books"),
     "poem":    ("poetry",   "poetry"),
     "project": ("projects", "projects"),

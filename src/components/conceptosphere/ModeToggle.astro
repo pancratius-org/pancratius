@@ -12,31 +12,29 @@ import { conceptosphereStrings } from "./strings";
 interface Props {
   /** "desktop" or "mobile" — used only for the wrapping class. */
   variant: "desktop" | "mobile";
-  locale:  Locale;
+  locale: Locale;
+  activeMode: "concepts" | "books";
 }
 
-const { variant, locale } = Astro.props;
+const { variant, locale, activeMode } = Astro.props;
 const t = conceptosphereStrings(locale);
 ---
 <div
   class:list={["cs-mode-toggle", `cs-mode-toggle--${variant}`]}
-  role="tablist"
   aria-label={t.modeToggleAriaLabel}
   data-cs-mode-toggle
 >
   <button
     type="button"
-    role="tab"
     data-mode="concepts"
-    aria-selected="true"
+    aria-pressed={activeMode === "concepts" ? "true" : "false"}
   >
     {t.modes.concepts.toggleLabel}
   </button>
   <button
     type="button"
-    role="tab"
     data-mode="books"
-    aria-selected="false"
+    aria-pressed={activeMode === "books" ? "true" : "false"}
   >
     {t.modes.books.toggleLabel}
   </button>
@@ -67,9 +65,7 @@ const t = conceptosphereStrings(locale);
     transition: color 120ms ease, background-color 120ms ease;
   }
   .cs-mode-toggle button:hover { color: var(--cs-ink); }
-  /* role="tab" → use aria-selected for the active state. Lighthouse's
-     aria-allowed-attr rule flags aria-pressed on tab buttons. */
-  .cs-mode-toggle button[aria-selected="true"] {
+  .cs-mode-toggle button[aria-pressed="true"] {
     background: var(--cs-toggle-active-bg, color-mix(in srgb, var(--accent) 16%, transparent));
     color: var(--accent);
   }

@@ -4,7 +4,7 @@
 # dependencies = []
 # ///
 """Zero `all rights reserved` / Russian-equivalent boilerplate phrases in
-content/ — both rendered MD bodies and downloadable DOCX. Bounded scrub
+src/content/ — both rendered MD bodies and downloadable DOCX. Bounded scrub
 applied to both pipelines should leave nothing of this in either."""
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-CONTENT = ROOT / "content"
+CONTENT = ROOT / "src" / "content"
 
 MD_PATTERNS = [
     re.compile(r"(?i)all rights reserved"),

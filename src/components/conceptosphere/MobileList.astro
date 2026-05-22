@@ -10,162 +10,39 @@
 // labels remain in the original Russian because the corpus is Russian;
 // only the chrome around them localises.
 
-import { kindIndexUrl, workUrl, type Locale } from "@/lib/i18n";
-import { loadBooksGraph, loadConceptsGraph } from "@/lib/conceptosphere";
-import { coverAssetUrl } from "@/lib/covers";
-import { findPair } from "@/lib/works";
+import type { Locale } from "@/lib/i18n";
 import ModeToggle from "./ModeToggle.astro";
 import SearchInput from "./SearchInput.astro";
 import { conceptosphereStrings } from "./strings";
+import type {
+  ConceptosphereBookRow,
+  ConceptosphereConceptRow,
+  ConceptosphereSection,
+} from "./page-data";
 
 interface Props {
-  locale:      Locale;
+  locale: Locale;
   initialMode: "concepts" | "books";
+  booksIndexHref: string;
+  conceptSections: ConceptosphereSection<ConceptosphereConceptRow>[];
+  bookSections: ConceptosphereSection<ConceptosphereBookRow>[];
 }
-const { locale, initialMode } = Astro.props;
+const {
+  locale,
+  initialMode,
+  booksIndexHref,
+  conceptSections,
+  bookSections,
+} = Astro.props;
 const t = conceptosphereStrings(locale);
 const initialPlaceholder = t.modes[initialMode].searchPlaceholder;
-
-// Same palette as the runtime; mobile chips and group headings respect it
-// so the visual contract is the same on both surfaces.
-const PALETTE = [
-  "#c25e4f", "#d8a24a", "#e9c66a", "#6fa48a", "#4d8aa6",
-  "#7c6bb8", "#b06aa0", "#c8a37a", "#a8485a", "#6e8fb5",
-  "#93a85a", "#c98a4a", "#5fa3a3", "#a48cc8", "#b9755a",
-  "#d9876b", "#5d997f", "#b5934f", "#8a7fbf", "#a3625f",
-];
-
-const conceptsGraph = loadConceptsGraph();
-const booksGraph    = loadBooksGraph();
-
-// ─── Books mode: resolve covers via the build-time pipeline. ────────────
-type BookRow = {
-  slug:       string;
-  number:     number;
-  title:      string;
-  community:  number;
-  tags:       readonly string[];
-  href:       string;
-  coverUrl:   string | null;
-  topConcepts: { label: string }[];
-  searchHay:   string;
-};
-
-const bookRows: BookRow[] = [];
-for (const node of booksGraph.nodes) {
-  const pair = await findPair("book", node.number);
-  // Localized work URL: EN reader gets `/en/books/<slug>/`. If the EN
-  // sibling exists, that's the localized slug; if it doesn't, we still
-  // link the RU surface (the slug map records whatever each language
-  // declares, and the URL helper uses the per-language slug).
-  const display = locale === "en"
-    ? (pair?.en ?? pair?.ru ?? null)
-    : (pair?.ru ?? null);
-  const targetLocale: Locale = display === pair?.en ? "en" : "ru";
-  const linkSlug = display?.data.slug ?? node.slug;
-  const coverUrl = pair ? await coverAssetUrl(pair, locale) : null;
-  const concepts = (node.top_concepts ?? []).slice(0, 8).map((c) => ({ label: c.label }));
-  const displayTitle = display?.data.title ?? node.title;
-  bookRows.push({
-    slug:      node.slug,
-    number:    node.number,
-    title:     displayTitle,
-    community: node.community,
-    tags:      node.tags ?? [],
-    href:      workUrl("book", linkSlug, targetLocale),
-    coverUrl,
-    topConcepts: concepts,
-    searchHay: [
-      displayTitle,
-      node.title,
-      node.slug,
-      String(node.number),
-      ...(node.tags ?? []),
-      ...concepts.map((c) => c.label),
-    ].join(" ").toLowerCase(),
-  });
-}
-
-function bookGroups(): { com: { id: number; label: string }; rows: BookRow[] }[] {
-  const map = new Map<number, BookRow[]>();
-  for (const r of bookRows) {
-    const arr = map.get(r.community) ?? [];
-    arr.push(r);
-    map.set(r.community, arr);
-  }
-  return booksGraph.communities
-    .filter((c) => map.has(c.id))
-    .sort((a, b) => (map.get(b.id)!.length) - (map.get(a.id)!.length))
-    .map((c) => ({
-      com: { id: c.id, label: c.label },
-      rows: (map.get(c.id) ?? []).sort((a, b) => a.number - b.number),
-    }));
-}
-
-// ─── Concepts mode. ─────────────────────────────────────────────────────
-type ConceptRow = {
-  id:        string;
-  label:     string;
-  community: number;
-  frequency: number;
-  topBooks:  { slug: string; title: string; href: string }[];
-  searchHay: string;
-};
-
-const conceptRows: ConceptRow[] = await Promise.all(conceptsGraph.nodes.map(async (n) => {
-  const top = ((n as { top_books?: { slug: string; title: string }[] }).top_books ?? []).slice(0, 5);
-  const topBooks = await Promise.all(top.map(async (b) => {
-    // Each top-book slug is RU (graph is RU-derived). Resolve the localized
-    // sibling so an EN reader lands on /en/books/<slug>/ when it exists.
-    const node = booksGraph.nodes.find((bn) => bn.slug === b.slug);
-    const pair = node ? await findPair("book", node.number) : null;
-    const display = locale === "en"
-      ? (pair?.en ?? pair?.ru ?? null)
-      : (pair?.ru ?? null);
-    const targetLocale: Locale = display === pair?.en ? "en" : "ru";
-    const linkSlug = display?.data.slug ?? b.slug;
-    return {
-      slug:  b.slug,
-      title: display?.data.title ?? b.title,
-      href:  workUrl("book", linkSlug, targetLocale),
-    };
-  }));
-  return {
-    id:        n.id,
-    label:     n.label,
-    community: n.community,
-    frequency: (n as { frequency?: number }).frequency ?? 0,
-    topBooks,
-    searchHay: [n.label, n.lemma, ...top.map((b) => b.title)].join(" ").toLowerCase(),
-  };
-}));
-
-function conceptGroups(): { com: { id: number; label: string }; rows: ConceptRow[] }[] {
-  const map = new Map<number, ConceptRow[]>();
-  for (const r of conceptRows) {
-    const arr = map.get(r.community) ?? [];
-    arr.push(r);
-    map.set(r.community, arr);
-  }
-  return conceptsGraph.communities
-    .filter((c) => map.has(c.id))
-    .sort((a, b) => (map.get(b.id)!.length) - (map.get(a.id)!.length))
-    .map((c) => ({
-      com: { id: c.id, label: c.label },
-      rows: (map.get(c.id) ?? []).sort((a, b) => b.frequency - a.frequency),
-    }));
-}
-
-const conceptSections = conceptGroups();
-const bookSections    = bookGroups();
-const booksIndexHref  = kindIndexUrl("book", locale);
 
 // Number-formatting locale: each row's frequency renders here at build time
 // (mobile fallback is static HTML), so we localise digit grouping/spacing.
 const numberLocale = t.numberLocale;
 ---
 <section class="cs-mobile-tools">
-  <ModeToggle variant="mobile" locale={locale} />
+  <ModeToggle variant="mobile" locale={locale} activeMode={initialMode} />
   <SearchInput
     variant="mobile"
     locale={locale}
@@ -196,7 +73,7 @@ const numberLocale = t.numberLocale;
           data-com={com.id}
           aria-pressed="false"
         >
-          <span class="cs-sw" style={`background:${PALETTE[com.id % PALETTE.length]}`}></span>
+          <span class="cs-sw" style={`background:${com.color}`}></span>
           {com.label}
         </button>
       ))}
@@ -205,7 +82,7 @@ const numberLocale = t.numberLocale;
     {conceptSections.map(({ com, rows }) => (
       <section class="cs-mobile-group" data-cs-group data-com={com.id}>
         <h2>
-          <span class="cs-sw" style={`background:${PALETTE[com.id % PALETTE.length]}`}></span>
+          <span class="cs-sw" style={`background:${com.color}`}></span>
           {com.label}
           <span class="cs-sz" aria-label={`${t.mobileGroupSizeAriaPrefix} ${rows.length}`}>{rows.length}</span>
         </h2>
@@ -256,7 +133,7 @@ const numberLocale = t.numberLocale;
           data-com={com.id}
           aria-pressed="false"
         >
-          <span class="cs-sw" style={`background:${PALETTE[com.id % PALETTE.length]}`}></span>
+          <span class="cs-sw" style={`background:${com.color}`}></span>
           {com.label}
         </button>
       ))}
@@ -265,7 +142,7 @@ const numberLocale = t.numberLocale;
     {bookSections.map(({ com, rows }) => (
       <section class="cs-mobile-group" data-cs-group data-com={com.id}>
         <h2>
-          <span class="cs-sw" style={`background:${PALETTE[com.id % PALETTE.length]}`}></span>
+          <span class="cs-sw" style={`background:${com.color}`}></span>
           {com.label}
           <span class="cs-sz" aria-label={`${t.mobileGroupSizeAriaPrefix} ${rows.length}`}>{rows.length}</span>
         </h2>
@@ -318,7 +195,7 @@ const numberLocale = t.numberLocale;
     padding: 16px var(--rail) 28px;
   }
 
-  @media (min-width: 701px) {
+  @media (min-width: 840px) {
     :global(html.cs-js) .cs-mobile-tools { display: none; }
     :global(html.cs-js) .cs-mobile { display: none; }
   }
@@ -414,7 +291,7 @@ const numberLocale = t.numberLocale;
   .cs-mobile details {
     border-bottom: 1px dashed var(--cs-ink-edge);
   }
-  .cs-mobile details:last-child { border-bottom: 0; }
+  .cs-mobile-group li:last-child details { border-bottom: 0; }
   .cs-mobile summary {
     display: flex;
     align-items: center;

@@ -10,7 +10,7 @@ const AUDIT_PAGES = [
   "/books/",
   "/books/33-ya-esm-vsadnik-kon-i-mech/",
   "/poetry/",
-  "/poetry/01-bayushki/",
+  "/poetry/01-a-esli-budu-ya-ne-prav/",
   "/projects/",
   "/projects/enlightened-ai/",
   "/conceptosphere/",

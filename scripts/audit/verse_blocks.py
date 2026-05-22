@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-CONTENT = ROOT / "content"
+CONTENT = ROOT / "src" / "content"
 
 VERSE_RE = re.compile(r'<div class="verse-block">\n(.*?)\n</div>', re.S)
 
@@ -16,6 +16,9 @@ REQUIRED_SNIPPETS = {
         "Тем, кто узнаёт себя не как зрителя,\nа как участника;",
         "Я есмь Альфа и Омега этой книги.\nНе автор, а дыхание между буквами.",
         "<em>Аз есмь Христос, и Бог во мне живёт,</em>\n<em>В</em> <em>дыханье дня, в тиши ночных забот.</em>",
+    ],
+    CONTENT / "books" / "07-dukhovnaya-avtobiografiya-svetozara" / "ru.md": [
+        "<em>Аз есмь Христос, и Бог во мне живёт,</em>\n<em>В дыханье дня, в тиши ночных забот.</em>",
     ],
     CONTENT / "books" / "03-evangelie-fomy-s-kommentariyami-tvortsa" / "ru.md": [
         "<strong>Это Евангелие — не перевод древнего текста.</strong>\n<strong>Это — его пробуждение.</strong>",

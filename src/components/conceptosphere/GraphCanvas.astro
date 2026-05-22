@@ -1,8 +1,8 @@
 ---
 // Sigma 3 + graphology canvas. The Astro shell here is intentionally thin —
 // just the mount points the script needs. The script itself imports the
-// renderer/layout libraries from `node_modules` (never CDN) and reaches the
-// payloads via the public URLs the page passes in through `define:vars`.
+// renderer/layout libraries from `node_modules` (never CDN) and reads the
+// page-owned config from the JSON island below.
 //
 // One Sigma instance per active mode; switching modes destroys the previous
 // instance before constructing the next. The painter for focus + book-number
@@ -22,25 +22,50 @@ interface Props {
   /** Public URLs (under /data/) for the two graph payloads. */
   conceptsUrl: string;
   booksUrl:    string;
-  /** Initial mode shown before localStorage is read. */
+  /** Initial mode shown before a reader changes the toggle. */
   initialMode: "concepts" | "books";
+  /** Pre-rendered localized count line for each graph mode. */
+  modeCounts: Record<"concepts" | "books", string>;
   /**
-   * Per-book slug → (number, title) resolution. The graph script needs to
-   * build localized work URLs for books in panels and rec lists; the page
-   * passes a precomputed map so the script never has to hit Astro content.
+   * Per-book slug → display metadata. The page resolves hrefs at build time
+   * so the graph script never invents locale-specific work URLs.
    */
   bookSlugInfo: Record<string, { number: number; title: string; href: string }>;
   /**
-   * Per-(kind, slug) → cover URL produced by the Astro build. The script
-   * looks up by `kind:slug` so panels and search results render real
-   * book-bundle covers, not raw `./cover.ru.jpg` paths.
+   * Per-book cover URL produced by the Astro build. The script looks up by
+   * `book:<ru-slug>` so panels render real book-bundle covers, not raw
+   * `./cover.ru.jpg` paths.
    */
   coverUrls: Record<string, string>;
 }
 
-const { locale, conceptsUrl, booksUrl, initialMode, bookSlugInfo, coverUrls } = Astro.props;
+const { locale, conceptsUrl, booksUrl, initialMode, modeCounts, bookSlugInfo, coverUrls } = Astro.props;
 const t = conceptosphereStrings(locale);
 const initialPlaceholder = t.modes[initialMode].searchPlaceholder;
+
+function jsonForScript(value: unknown): string {
+  return JSON.stringify(value).replace(/[<>&\u2028\u2029]/g, (char) => {
+    switch (char) {
+      case "<": return "\\u003c";
+      case ">": return "\\u003e";
+      case "&": return "\\u0026";
+      case "\u2028": return "\\u2028";
+      case "\u2029": return "\\u2029";
+      default: return char;
+    }
+  });
+}
+
+const configJson = jsonForScript({
+  conceptsUrl,
+  booksUrl,
+  initialMode,
+  locale,
+  modeCounts,
+  bookSlugInfo,
+  coverUrls,
+  strings: t,
+});
 ---
 <section class="cs-stage" id="cs-stage" aria-label={t.stageAriaLabel}>
   <svg id="cs-hulls" aria-hidden="true"></svg>
@@ -53,7 +78,7 @@ const initialPlaceholder = t.modes[initialMode].searchPlaceholder;
   <Legend locale={locale} />
 
   <div class="cs-modebar">
-    <ModeToggle variant="desktop" locale={locale} />
+    <ModeToggle variant="desktop" locale={locale} activeMode={initialMode} />
     <SearchInput
       variant="desktop"
       locale={locale}
@@ -70,15 +95,7 @@ const initialPlaceholder = t.modes[initialMode].searchPlaceholder;
 
      Strings travel with the payload so the route owns the locale — the
      runtime stays a pure consumer and never imports a locale dictionary. -->
-<script type="application/json" id="cs-config" is:inline set:html={JSON.stringify({
-  conceptsUrl,
-  booksUrl,
-  initialMode,
-  locale,
-  bookSlugInfo,
-  coverUrls,
-  strings: t,
-})}></script>
+<script type="application/json" id="cs-config" is:inline set:html={configJson}></script>
 
 <script>
   import { bootGraph } from "@/components/conceptosphere/graph-runtime";
@@ -143,7 +160,7 @@ const initialPlaceholder = t.modes[initialMode].searchPlaceholder;
      `html.cs-js` once it boots, and that — paired with the desktop
      breakpoint — turns the stage back on. */
   .cs-stage { display: none; }
-  @media (min-width: 701px) {
+  @media (min-width: 840px) {
     :global(html.cs-js) .cs-stage { display: block; }
   }
 </style>

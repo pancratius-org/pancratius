@@ -1,0 +1,312 @@
+---
+import { render } from "astro:content";
+
+import Base from "@/layouts/Base.astro";
+import TableOfContents from "@/components/TableOfContents.astro";
+import SupportChannels from "@/components/SupportChannels.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { pageUrl } from "@/lib/i18n";
+import { alternateLanguagePage, type PageEntry } from "@/lib/pages";
+import { sameSitePath } from "@/lib/paths";
+import { seoForPage } from "@/lib/seo";
+
+interface Props {
+  locale: Locale;
+  page: PageEntry;
+}
+
+const { locale, page } = Astro.props;
+const { Content, headings } = await render(page);
+
+const otherLocale: Locale = locale === "ru" ? "en" : "ru";
+const alternatePage = await alternateLanguagePage(page, otherLocale);
+const authoredLocales = new Set<Locale>([locale]);
+if (alternatePage) authoredLocales.add(otherLocale);
+
+const seo = seoForPage(Astro.site, page, authoredLocales);
+const alternates: Partial<Record<Locale, string>> = {};
+if (alternatePage) alternates[otherLocale] = pageUrl(alternatePage.data.slug, otherLocale);
+
+const isMission = page.data.slug === "mission";
+const isSvetozar = page.data.slug === "svetozar";
+const hasPortrait = Boolean(page.data.portrait);
+const facts = page.data.facts ?? [];
+const channels = page.data.channels ?? [];
+const hasSupportChannels = channels.length > 0;
+const proseClass = [
+  "prose",
+  isMission && "prose--manifesto",
+  hasPortrait && "prose--bio",
+  isSvetozar && "prose--svet",
+].filter((className): className is string => Boolean(className)).join(" ");
+// ToC only applies to plain-prose pages. Bespoke layouts (bio, support)
+// own their own grid templates with no `toc` area, so rendering a ToC
+// here drops the `<aside class="toc-aside">` into the implicit grid
+// track at the bottom of the page. Manifesto (mission) intentionally
+// has no ToC either.
+const useToc =
+  !isMission &&
+  !hasSupportChannels &&
+  !hasPortrait &&
+  headings.some(h => h.depth >= 2 && h.depth <= 3);
+---
+<Base locale={locale} seo={seo} alternates={alternates}>
+  <article
+    class:list={[
+      "static",
+      useToc && "static--with-toc",
+      hasPortrait && "static--bio",
+      hasSupportChannels && "static--support",
+    ]}
+  >
+    <header class="static__head">
+      {page.data.eyebrow && <p class="eyebrow eyebrow--lg">{page.data.eyebrow}</p>}
+      <h1 class="static__title">{page.data.title}</h1>
+      {page.data.sub && <p class="static__sub">{page.data.sub}</p>}
+    </header>
+
+    {hasPortrait && page.data.portrait && (
+      <figure class="static__portrait">
+        <img
+          src={sameSitePath(page.data.portrait.src)}
+          alt={page.data.portrait.alt}
+          loading="lazy"
+          decoding="async"
+        />
+        {(page.data.portrait.caption || page.data.portrait.meta) && (
+          <figcaption>
+            {page.data.portrait.caption && <span>{page.data.portrait.caption}</span>}
+            {page.data.portrait.meta    && <span>{page.data.portrait.meta}</span>}
+          </figcaption>
+        )}
+      </figure>
+    )}
+
+    {useToc && <TableOfContents headings={headings} locale={locale} />}
+
+    <div class={proseClass}>
+      <Content />
+      {facts.length > 0 && (
+        <dl class="static__facts">
+          {facts.map(f => (
+            <div>
+              <dt>{f.label}</dt>
+              <dd>{f.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </div>
+
+    {hasSupportChannels && (
+      <div class="support-widget">
+        <SupportChannels channels={channels} locale={locale} />
+        <svg
+          class="support-seal"
+          viewBox="0 0 32 32"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <circle cx="16" cy="16" r="10" fill="none" stroke="currentColor" stroke-width="2" />
+          <circle cx="16" cy="16" r="2.4" fill="currentColor" />
+        </svg>
+      </div>
+    )}
+  </article>
+</Base>
+
+<style>
+  .static {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  .static__head { margin-bottom: 0.5rem; }
+  .static__title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2.8rem, 5.8vw, 4.3rem);
+    line-height: 0.98;
+    margin: 0;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+  }
+  .static__sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.1rem, 1.5vw, 1.3rem);
+    line-height: 1.45;
+    color: var(--accent);
+    margin: 0.6rem 0 0;
+    max-width: 36rem;
+    text-wrap: balance;
+  }
+
+  .static__portrait {
+    margin: 0 auto;
+    max-width: 280px;
+  }
+  .static__portrait img {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--bg-rise);
+    box-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.45),
+      0 40px 60px -30px rgba(0, 0, 0, 0.55);
+    filter: saturate(0.95) contrast(1.02);
+  }
+  :global([data-theme="light"]) .static__portrait img {
+    box-shadow:
+      0 1px 0 rgba(20, 17, 13, 0.06),
+      0 30px 50px -25px rgba(60, 45, 20, 0.30);
+  }
+  .static__portrait figcaption {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .static__portrait figcaption span:first-child { color: var(--ink-soft); }
+
+  @media (min-width: 1100px) {
+    .static--with-toc {
+      grid-template-columns: 220px 1fr;
+      grid-template-areas:
+        "head head"
+        "toc  body";
+      max-width: 64rem;
+      gap: 2.5rem 3rem;
+    }
+    .static--with-toc .static__head { grid-area: head; }
+    .static--with-toc :global(.toc-aside) { grid-area: toc; }
+    .static--with-toc .prose,
+    .static--with-toc .prose--manifesto,
+    .static--with-toc .prose--bio,
+    .static--with-toc .prose--svet { grid-area: body; }
+  }
+
+  @media (min-width: 900px) {
+    .static--bio {
+      max-width: 64rem;
+      grid-template-columns: 280px minmax(0, 1fr);
+      grid-template-areas:
+        "head    head"
+        "portrait body";
+      gap: 2.5rem 3.2rem;
+      align-items: start;
+    }
+    .static--bio .static__head      { grid-area: head; }
+    .static--bio .static__portrait  { grid-area: portrait; position: sticky; top: 6rem; }
+    .static--bio .prose,
+    .static--bio .prose--bio        { grid-area: body; max-width: none; }
+  }
+
+  .static__facts {
+    margin: 3.2rem 0 0;
+    padding-top: 1.6rem;
+    border-top: 1px solid var(--rule);
+    display: grid;
+    gap: 0.9rem 1.6rem;
+    grid-template-columns: 1fr;
+  }
+  .static__facts > div {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+  .static__facts dt {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .static__facts dd {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 1rem;
+    color: var(--ink);
+  }
+  @media (min-width: 560px) {
+    .static__facts > div {
+      grid-template-columns: 9rem minmax(0, 1fr);
+      align-items: baseline;
+      gap: 1rem;
+    }
+    .static__facts dt { margin-top: 0.18em; }
+  }
+
+  .static--support :global(.prose blockquote) {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.4rem, 2.2vw, 1.85rem);
+    line-height: 1.32;
+    color: var(--ink);
+    border-left: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    text-wrap: balance;
+    max-width: none;
+  }
+  .static--support :global(.prose blockquote p) {
+    margin: 0;
+    font-style: italic;
+  }
+  .static--support :global(.prose p) {
+    color: var(--ink-soft);
+    max-width: none;
+  }
+  .static--support :global(.prose > p:last-child) {
+    margin-top: 1.6rem;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+
+  .support-widget {
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+    align-items: stretch;
+    width: 100%;
+  }
+  .support-seal {
+    display: block;
+    width: 28px;
+    height: 28px;
+    margin: 0.4rem auto 0;
+    color: var(--accent);
+    opacity: 0.85;
+  }
+
+  @media (min-width: 920px) {
+    .static--support {
+      max-width: 68rem;
+      grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr);
+      grid-template-areas:
+        "head    head"
+        "body    widget";
+      gap: 2.5rem 3.5rem;
+      align-items: start;
+    }
+    .static--support .static__head    { grid-area: head; }
+    .static--support .prose           { grid-area: body; max-width: none; }
+    .static--support .support-widget  { grid-area: widget; position: sticky; top: 6rem; }
+  }
+  @media (min-width: 1180px) {
+    .static--support {
+      grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
+    }
+  }
+</style>
