@@ -6,7 +6,12 @@
 import type { Rule } from "../lib/rule.ts";
 
 import { rule as pan002, pan003Locales, pan003Kinds } from "./locales.ts";
-import { pan004CorpusCollections, pan004BulkArchiveKinds } from "./projects.ts";
+import {
+  pan004CorpusCollections,
+  pan004BulkArchiveKinds,
+  pan004DuplicateIdentity,
+} from "./projects.ts";
+import { pan007AssetRefs } from "./assets.ts";
 import { pan012CiSeparation } from "./ownership.ts";
 
 export const RULES: readonly Rule[] = [
@@ -15,5 +20,7 @@ export const RULES: readonly Rule[] = [
   pan003Kinds,
   pan004CorpusCollections,
   pan004BulkArchiveKinds,
+  pan004DuplicateIdentity,
+  pan007AssetRefs,
   pan012CiSeparation,
 ];

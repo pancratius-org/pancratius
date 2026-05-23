@@ -1,24 +1,33 @@
 #!/usr/bin/env -S uv run --quiet
-# /// script
-# requires-python = ">=3.11"
-# dependencies = ["pyyaml>=6.0"]
-# ///
-"""Every image reference in src/content/ resolves on disk.
+"""PAN007 — every image reference in src/content/ resolves on disk.
 
 Work bundles keep covers as ``./cover.<lang>.<ext>``. Body images live under
 ``./images/`` and may be converter-imported hashes or human-readable authored
-names.
+names. Also rejects raw ``<img>`` in work Markdown (use ``![](...)``) and inline
+body-image Markdown that doesn't stand on its own line.
+
+Wrapped by the harness as PAN007 (scripts/audit/rules/assets.ts); honours
+``PANCRATIUS_AUDIT_ROOT`` so it can run against a fixture. Runs in the project
+env (pyyaml is a base dependency) — no PEP-723 header needed.
 """
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+
+def _audit_root() -> Path:
+    env = os.environ.get("PANCRATIUS_AUDIT_ROOT")
+    # scripts/audit/python/media_refs.py -> repo root is four levels up.
+    return Path(env).resolve() if env else Path(__file__).resolve().parents[3]
+
+
+ROOT = _audit_root()
 CONTENT = ROOT / "src" / "content"
 MANIFEST = ROOT / "data" / "conversion-manifest.json"
 

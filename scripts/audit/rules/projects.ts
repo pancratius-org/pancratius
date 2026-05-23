@@ -24,6 +24,7 @@ import ts from "typescript";
 
 import type { Rule, RuleContext } from "../lib/rule.ts";
 import type { Finding } from "../lib/finding.ts";
+import { runPythonCheck } from "../lib/python.ts";
 import {
   parseModule,
   findCallStringArgs,
@@ -213,5 +214,36 @@ export const pan004BulkArchiveKinds: Rule = {
     }
 
     return findings;
+  },
+};
+
+// Rule C — PAN004-duplicate-identity ----------------------------------------
+
+/**
+ * Corpus identity uniqueness: no two content files may claim the same
+ * (kind, number, lang). `src/lib/works.ts` keys per-language entries as
+ * `bucket[lang] = entry`, so a second file with the same identity silently
+ * OVERWRITES the first — a work vanishing from the corpus with no error. The zod
+ * schema validates each file alone and can't see the collision, so it's
+ * type-uncaught. Wraps the Python frontmatter scan.
+ */
+export const pan004DuplicateIdentity: Rule = {
+  id: "PAN004-duplicate-identity",
+  title: "PAN004: no two content files may claim the same (kind, number, lang)",
+  tier: "core",
+  run(ctx: RuleContext): Finding[] {
+    return runPythonCheck(ctx, {
+      id: "PAN004-duplicate-identity",
+      category: CATEGORY,
+      severity: "fatal",
+      script: "python/work_identity.py",
+      contract:
+        "A work is paired across languages by (kind, number), keyed per language by lang. Each (kind, number, lang) must belong to exactly one file — works.ts buckets entries as `bucket[lang] = entry`, so a collision silently overwrites.",
+      why: "A duplicate (kind, number, lang) makes one of the colliding works silently disappear from the corpus — and therefore from downloads, feed, search, and the bulk archive — with no build error.",
+      repair:
+        "Give each work a unique number within its kind (renumber the duplicate), or merge the two files if they are the same work. The check prints every colliding identity and the files that claim it.",
+      doNotFixBy:
+        "Leaving two files with the same (kind, number, lang) and relying on whichever happens to win the bucket overwrite.",
+    });
   },
 };
