@@ -17,7 +17,7 @@ import { pan008PublicMarkdownAssets } from "./downloads.ts";
 import { pan014InternalLinks } from "./crawl.ts";
 import { pan012CiSeparation } from "./ownership.ts";
 import { pan016SourceLanguage, pan016UiFramework } from "./stack.ts";
-import { pan017ImportWorkKinds } from "./imports.ts";
+import { pan017ImportWorkKinds, pan018WriterOnlyMutation } from "./imports.ts";
 import { contentQualityRules } from "./content_quality.ts";
 
 export const RULES: readonly Rule[] = [
@@ -34,6 +34,7 @@ export const RULES: readonly Rule[] = [
   pan016SourceLanguage,
   pan016UiFramework,
   pan017ImportWorkKinds,
+  pan018WriterOnlyMutation,
   // Deploy tier (post-build; run only on `npm run audit:deploy`):
   pan008PublicMarkdownAssets,
   pan014InternalLinks,

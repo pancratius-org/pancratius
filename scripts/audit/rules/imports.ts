@@ -42,3 +42,38 @@ export const pan017ImportWorkKinds: Rule = {
     });
   },
 };
+
+// PAN018 — writer-only-mutation guard. Import's safety boundary
+// (docs/import-pipeline.md): import code *produces* a WritePlan; only the writer
+// (scripts/lib/writer.py) mutates src/content. Every other import module that
+// carries the marker `# import-pure: no filesystem mutation` must contain NO
+// filesystem-mutation call. The scanned set is DERIVED from the markers (a
+// self-extending SoT — later phases mark the parser/normalizer/lowerer and they
+// are covered automatically), not hardcoded. writeplan.py carries the marker;
+// writer.py deliberately does NOT (it is the designated mutator).
+//
+// The detection lives in the Python checker (it AST-parses each marked module);
+// this TS rule owns the severity and the contract prose and wraps it via
+// runPythonCheck, the same shape as PAN017.
+
+export const pan018WriterOnlyMutation: Rule = {
+  id: "PAN018-writer-only-mutation",
+  title:
+    "PAN018: modules marked `# import-pure: no filesystem mutation` must contain no filesystem-mutation calls (only the writer mutates src/content)",
+  tier: "core",
+  run(ctx: RuleContext): Finding[] {
+    return runPythonCheck(ctx, {
+      id: "PAN018-writer-only-mutation",
+      category: CATEGORY,
+      severity: "fatal",
+      script: "python/writer_only_mutation.py",
+      contract:
+        "Import's safety boundary (docs/import-pipeline.md): import code produces a WritePlan; only the writer (scripts/lib/writer.py) mutates src/content. A module declares it is in the pure boundary with the marker comment `# import-pure: no filesystem mutation`, and every such module must contain NO filesystem-mutation call (.write_text/.write_bytes/.mkdir/.touch, shutil.copy*/move/rmtree, os.replace/remove/rename/unlink/makedirs, or open(..., write-mode)). The scanned set is derived FROM the markers, not hardcoded.",
+      why: "If a marked-pure import module (writeplan, and later the parser/normalizer/lowerer) can quietly write or copy into src/content, the single-mutator boundary has leaked — exactly the old shape where parsing copies media into a work folder as a side effect and the WritePlan/dry-run/overwrite guarantees no longer hold.",
+      repair:
+        "Move the filesystem mutation into scripts/lib/writer.py (the designated mutator) and have the pure module return a WritePlan/WriteOp describing the intended write instead. If a module legitimately mutates the filesystem, it is not pure — remove its `import-pure` marker (and route its writes through the writer).",
+      doNotFixBy:
+        "Deleting the `# import-pure` marker just to silence the scan while keeping the write, or special-casing the offending call so the AST check misses it.",
+    });
+  },
+};

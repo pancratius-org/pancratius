@@ -690,6 +690,64 @@ Implemented as a Python checker (`python/import_work_kinds.py`) that imports
 `rules/imports.ts` (`PAN017-import-work-kinds`) via `runPythonCheck`, with
 both-polarity fixtures under `fixtures/PAN017-import-work-kinds/{good,bad}/`.
 
+### PAN018: Writer-Only Mutation
+
+The second import-boundary rule, in the PAN005 (generated/authored ownership)
+family and backed by the import-pipeline contract's *safety boundary*
+(`import-pipeline.md` → "The writer — the only mutator"): import code *produces*
+a `WritePlan`; only the writer (`scripts/lib/writer.py`) mutates `src/content`.
+Every other import-pipeline module that helps produce the plan must be pure — no
+filesystem mutation — so an adapter, normalizer, analyzer, or lowerer can never
+quietly copy media into `src/content` as a parse side effect (the old shape this
+redesign kills).
+
+A module declares it is in the pure boundary with a marker comment on its first
+lines:
+
+```
+# import-pure: no filesystem mutation
+```
+
+The rule **derives the scanned set from those markers** (PAN003 "derive, do not
+restate"): it is a self-extending source of truth — when a later phase adds the
+marker to the parser/normalizer/lowerer, those modules are covered automatically
+with no rule edit. Each marked module must contain **no** filesystem-mutation
+call:
+
+- attribute calls — `.write_text`, `.write_bytes`, `.mkdir`, `.touch`,
+  `shutil.copy*`/`move`/`rmtree`, `os.replace`/`remove`/`rename`/`unlink`/
+  `makedirs`, `Path.rename`/`replace`;
+- `open(..., mode)` where the mode requests writing (`w`/`a`/`x`, incl. binary/
+  plus variants).
+
+`writeplan.py` carries the marker. `writer.py` deliberately does **not** — it is
+the designated mutator, the one place mutation is allowed to live, so it is never
+scanned. The detection lives in a Python checker (it tokenizes for a real
+COMMENT marker — a docstring mention does not count — and AST-walks the module);
+the marker requirement also fails loud if the SoT vanishes (no marked module ⇒
+FAIL).
+
+Fatal examples:
+
+- `writeplan.py` (or any future marked module) gains a `.write_text` /
+  `shutil.copyfile` / `open(p, "w")` into a bundle;
+- a new pure stage carries the marker but copies an extracted image into the work
+  folder directly instead of returning a `copy` `WriteOp`.
+
+Repair: move the mutation into `scripts/lib/writer.py` and have the pure module
+return a `WritePlan`/`WriteOp` describing the intended write. If a module
+genuinely must mutate, it is not pure — remove its marker and route its writes
+through the writer.
+
+Do not fix by: deleting the marker to silence the scan while keeping the write,
+or special-casing the call so the AST check misses it.
+
+Implemented as a Python checker (`python/writer_only_mutation.py`), wrapped as
+**fatal core** by `rules/imports.ts` (`PAN018-writer-only-mutation`) via
+`runPythonCheck`, with both-polarity fixtures under
+`fixtures/PAN018-writer-only-mutation/{good,bad}/` (good = a marked module with
+no mutation; bad = a marked module containing a `.write_text`).
+
 ## Surface-Specific Implementation Guidance
 
 ### TypeScript and Astro
@@ -851,7 +909,9 @@ scripts/audit/
     downloads.ts          # PAN008 (deploy; via python/download_asset_urls.py)
     crawl.ts              # PAN014 (deploy; dist internal-link crawl)
     stack.ts              # PAN016 (source-language + ui-framework)
-    imports.ts            # PAN017 (import work-kinds guard; via python/import_work_kinds.py)
+    imports.ts            # PAN017 (import work-kinds guard) + PAN018 (writer-only
+                          #   mutation) — both via python/ checks
+
     content_quality.ts    # non-blocking heuristics folded from the legacy content audits
     # [planned] urls.ts PAN006, literals.ts PAN006B, css.ts PAN009,
     # [planned] cohesion.ts PAN010, docs.ts PAN011, dead-code.ts PAN013,
@@ -859,6 +919,7 @@ scripts/audit/
   python/                 # checks the harness subprocesses (PANCRATIUS_AUDIT_ROOT-aware)
     locales.py  kind_segments.py  media_refs.py  work_identity.py
     ci_separation.py  download_asset_urls.py  import_work_kinds.py
+    writer_only_mutation.py
   fixtures/<rule-id>/{bad,good}/   # one per gating (core/deploy) rule
 ```
 

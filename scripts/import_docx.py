@@ -12,9 +12,10 @@ import argparse
 import re
 import shutil
 import sys
+import uuid
 import zipfile
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 import xml.etree.ElementTree as ET
 
@@ -39,10 +40,14 @@ from lib.docx_conversion import (
 )
 from lib.kinds import WORK_KINDS
 from lib.locales import LOCALES
+from lib.writeplan import Diagnostic, Role, WriteOp, WritePlan
+from lib.writer import WriteReport, apply as apply_plan
 
 
 ROOT = SCRIPT_DIR.parent
 DEFAULT_CONTENT_ROOT = ROOT / "src" / "content"
+# Scratch staging root for conversion (.cache/ is disposable; never src/content).
+STAGE_ROOT = ROOT / ".cache" / "import-stage"
 TODO_DESCRIPTION = "TODO: write the editorial description for this work."
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tiff"}
@@ -114,6 +119,84 @@ class ImportResult:
     md_path: Path
     docx_path: Path
     warnings: str = ""
+
+
+def _scratch_role(rel: PurePosixPath, lang: str) -> Role:
+    """Map a staged bundle file to its WritePlan role (the writer/audit boundary
+    cares only about ownership classes, not file specifics)."""
+    name = rel.name
+    if name == f"{lang}.md":
+        return "canonical_source"
+    if name == f"{lang}.docx":
+        return "source_artifact"
+    if name.startswith("cover."):
+        return "cover"
+    if name == "bibliography.yaml":
+        return "sidecar"
+    # Any remaining staged file (images/** and any other body asset) is an
+    # imported asset — the only other class the converter produces.
+    return "imported_asset"
+
+
+def _plan_from_scratch(
+    *,
+    stage_work_dir: Path,
+    content_root: Path,
+    scope: PurePosixPath,
+    lang: str,
+    replace: bool,
+    diagnostics: tuple[Diagnostic, ...],
+    source_document: Path,
+) -> WritePlan:
+    """Build a WritePlan that copies every staged bundle file into the real target
+    scope. The plan is the ONLY thing import_docx hands the writer; import_docx
+    itself never writes to content_root."""
+    ops: list[WriteOp] = [
+        WriteOp(
+            kind="ensure_dir",
+            rel_path=scope,
+            role="canonical_source",
+            reason="bundle directory",
+        )
+    ]
+    for staged in sorted(stage_work_dir.rglob("*")):
+        if not staged.is_file():
+            continue
+        rel_within = PurePosixPath(staged.relative_to(stage_work_dir).as_posix())
+        rel_path = scope / rel_within
+        ops.append(
+            WriteOp(
+                kind="copy",
+                rel_path=rel_path,
+                role=_scratch_role(rel_within, lang),
+                reason=f"import {rel_within}",
+                source=staged,
+            )
+        )
+    return WritePlan(
+        target_root=content_root,
+        target_scope=scope,
+        operations=tuple(ops),
+        diagnostics=diagnostics,
+        replace=replace,
+        source_document=source_document,
+    )
+
+
+def _print_report(report: WriteReport, *, dry_run: bool) -> None:
+    """Human/agent-facing dry-run + write summary (the review gate)."""
+    label = "DRY RUN — planned write-set (nothing written):" if dry_run else "write summary:"
+    print(label)
+    for bucket, paths in (
+        ("create", report.created),
+        ("change", report.changed),
+        ("skip", report.skipped),
+        ("REFUSE", report.refused),
+    ):
+        for rel in paths:
+            print(f"  {bucket}: {rel}")
+    for diag in report.diagnostics:
+        print(f"  [{diag.severity}] {diag.code}: {diag.message}", file=sys.stderr)
 
 
 def _docx_core_title(docx: Path) -> str | None:
@@ -232,11 +315,16 @@ def _find_cover(work_dir: Path, lang: str) -> tuple[str | None, bool]:
 def _prepare_cover(
     *,
     cover_arg: str | None,
-    work_dir: Path,
+    read_dir: Path,
+    write_dir: Path,
     lang: str,
     existing_lang: CatalogEntry | None,
     reference: CatalogEntry | None,
 ) -> tuple[str | None, bool]:
+    """Resolve the bundle cover. Existing committed covers are READ from
+    ``read_dir`` (the real bundle, for the additive --into case); a new --cover is
+    WRITTEN into ``write_dir`` (the scratch stage), so the writer remains the only
+    thing that touches the real target."""
     if cover_arg:
         src = Path(cover_arg).expanduser().resolve()
         if not src.is_file():
@@ -244,18 +332,18 @@ def _prepare_cover(
         if src.suffix.lower() not in IMAGE_EXTS:
             raise SystemExit(f"unsupported cover image extension: {src.suffix}")
         ext = ".jpg" if src.suffix.lower() in {".jpeg", ".jpe"} else src.suffix.lower()
-        dst = work_dir / f"cover.{lang}{ext}"
+        dst = write_dir / f"cover.{lang}{ext}"
         _copy_if_needed(src, dst)
         return f"./{dst.name}", False
 
-    if existing_lang and _frontmatter_cover_exists(work_dir, existing_lang.frontmatter.get("cover")):
+    if existing_lang and _frontmatter_cover_exists(read_dir, existing_lang.frontmatter.get("cover")):
         return str(existing_lang.frontmatter["cover"]), bool(existing_lang.frontmatter.get("cover_is_placeholder"))
 
-    found, placeholder = _find_cover(work_dir, lang)
+    found, placeholder = _find_cover(read_dir, lang)
     if found:
         return found, placeholder
 
-    if reference and _frontmatter_cover_exists(work_dir, reference.frontmatter.get("cover")):
+    if reference and _frontmatter_cover_exists(read_dir, reference.frontmatter.get("cover")):
         cover = str(reference.frontmatter["cover"])
         return cover, lang != reference.lang
 
@@ -376,7 +464,7 @@ def _resolve_target(
     return kind, work_key, number, slug, []
 
 
-def run(args: argparse.Namespace) -> ImportResult:
+def _run(args: argparse.Namespace) -> tuple[ImportResult, WriteReport]:
     docx = Path(args.docx).expanduser().resolve()
     if not docx.is_file():
         raise SystemExit(f"DOCX not found: {docx}")
@@ -384,12 +472,15 @@ def run(args: argparse.Namespace) -> ImportResult:
         raise SystemExit(f"expected a .docx file: {docx}")
 
     content_root = Path(args.out_content).expanduser().resolve()
-    content_root.mkdir(parents=True, exist_ok=True)
+    # Do NOT create content_root here: the writer is the only component that
+    # mutates the content tree, and --dry-run must touch nothing. `scan_catalog`
+    # tolerates a missing root, and the writer's `ensure_dir` creates the bundle
+    # (and its parents) when the plan is actually applied.
     entries = [e for e in scan_catalog(content_root) if e.kind in WORK_KINDS]
 
     kind, work_key, number, slug, work_entries = _resolve_target(args, entries, docx, content_root)
-    work_dir = content_root / KIND_DIRS[kind] / work_key
-    work_dir.mkdir(parents=True, exist_ok=True)
+    real_work_dir = content_root / KIND_DIRS[kind] / work_key
+    scope = PurePosixPath(KIND_DIRS[kind]) / work_key
 
     existing_lang = _existing_lang_entry(work_entries, args.lang)
     reference = _preferred_entry(work_entries, args.lang) if work_entries else None
@@ -410,62 +501,107 @@ def run(args: argparse.Namespace) -> ImportResult:
     else:
         description = TODO_DESCRIPTION
 
-    # Snapshot pre-existing body images so the forward cap only touches images
-    # written by this import run, never the already-committed corpus.
-    images_dir = work_dir / "images"
-    pre_existing_images = (
-        {p for p in images_dir.rglob("*") if p.is_file()} if images_dir.is_dir() else set()
-    )
+    # Stage the whole conversion into a disposable scratch bundle under .cache/.
+    # NOTHING here touches the real target — the writer is the only mutator of
+    # src/content. The scratch dir starts empty, so the import-time image cap only
+    # ever sees images this run produced (no need to snapshot the committed corpus).
+    stage_dir = STAGE_ROOT / uuid.uuid4().hex / KIND_DIRS[kind] / work_key
+    stage_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        stage_images = stage_dir / "images"
+        title_index = build_title_index(entries)
+        converted = convert_single_docx(
+            docx,
+            kind=kind,
+            lang=args.lang,
+            work_key=work_key,
+            title=title,
+            work_dir=stage_dir,
+            title_index=title_index,
+        )
 
-    title_index = build_title_index(entries)
-    converted = convert_single_docx(
-        docx,
-        kind=kind,
-        lang=args.lang,
-        work_key=work_key,
-        title=title,
-        work_dir=work_dir,
-        title_index=title_index,
-    )
+        _cap_imported_body_images(stage_images, skip=set())
 
-    _cap_imported_body_images(images_dir, skip=pre_existing_images)
+        cover, cover_is_placeholder = _prepare_cover(
+            cover_arg=args.cover,
+            read_dir=real_work_dir,
+            write_dir=stage_dir,
+            lang=args.lang,
+            existing_lang=existing_lang,
+            reference=reference,
+        )
+        fm = _frontmatter_for_import(
+            args=args,
+            kind=kind,
+            number=number,
+            slug=slug,
+            title=title,
+            description=description,
+            lang=args.lang,
+            cover=cover,
+            cover_is_placeholder=cover_is_placeholder,
+            existing_lang=existing_lang,
+            reference=reference,
+            converted=converted,
+        )
 
-    cover, cover_is_placeholder = _prepare_cover(
-        cover_arg=args.cover,
-        work_dir=work_dir,
-        lang=args.lang,
-        existing_lang=existing_lang,
-        reference=reference,
-    )
-    fm = _frontmatter_for_import(
-        args=args,
-        kind=kind,
-        number=number,
-        slug=slug,
-        title=title,
-        description=description,
-        lang=args.lang,
-        cover=cover,
-        cover_is_placeholder=cover_is_placeholder,
-        existing_lang=existing_lang,
-        reference=reference,
-        converted=converted,
-    )
+        (stage_dir / f"{args.lang}.md").write_text(
+            dump_frontmatter(fm) + converted.body, encoding="utf-8"
+        )
+        _write_docx_artifact(docx, stage_dir / f"{args.lang}.docx")
+        write_bibliography_sidecar(stage_dir, kind, args.lang, converted.bibliography)
 
-    md_path = work_dir / f"{args.lang}.md"
-    md_path.write_text(dump_frontmatter(fm) + converted.body, encoding="utf-8")
+        diagnostics = (
+            (Diagnostic("warning", "import.pandoc", converted.warnings),) if converted.warnings else ()
+        )
+        plan = _plan_from_scratch(
+            stage_work_dir=stage_dir,
+            content_root=content_root,
+            scope=scope,
+            lang=args.lang,
+            replace=bool(args.replace),
+            diagnostics=diagnostics,
+            source_document=docx,
+        )
+        report = apply_plan(plan, dry_run=bool(args.dry_run))
+    finally:
+        shutil.rmtree(STAGE_ROOT / stage_dir.relative_to(STAGE_ROOT).parts[0], ignore_errors=True)
 
-    docx_out = work_dir / f"{args.lang}.docx"
-    _write_docx_artifact(docx, docx_out)
+    _print_report(report, dry_run=bool(args.dry_run))
+    if report.refused:
+        raise SystemExit(
+            f"refused to write {kind}/{work_key} ({args.lang}): "
+            + "; ".join(d.message for d in report.diagnostics if d.severity == "fatal")
+        )
 
-    write_bibliography_sidecar(work_dir, kind, args.lang, converted.bibliography)
-
-    print(f"imported {kind}/{work_key} ({args.lang})")
-    print(f"markdown: {md_path}")
-    print(f"docx: {docx_out}")
+    md_path = real_work_dir / f"{args.lang}.md"
+    docx_out = real_work_dir / f"{args.lang}.docx"
+    if not args.dry_run:
+        print(f"imported {kind}/{work_key} ({args.lang})")
+        print(f"markdown: {md_path}")
+        print(f"docx: {docx_out}")
     if converted.warnings:
         print(f"pandoc warnings:\n{converted.warnings}", file=sys.stderr)
-    return ImportResult(kind=kind, work_key=work_key, md_path=md_path, docx_path=docx_out, warnings=converted.warnings)
+    result = ImportResult(
+        kind=kind, work_key=work_key, md_path=md_path, docx_path=docx_out, warnings=converted.warnings
+    )
+    return result, report
+
+
+def run(args: argparse.Namespace) -> ImportResult:
+    """Build the WritePlan, apply it through the writer, and return the legacy
+    `ImportResult`. The single mutating surface for src/content is the writer."""
+    return _run(args)[0]
+
+
+def import_work(args: argparse.Namespace) -> WriteReport:
+    """Stable importer entry the future `pancratius work import` CLI dispatches to.
+
+    Returns the writer's `WriteReport` (the planned/applied write-set + diagnostics)
+    rather than the legacy `ImportResult`. Shares the same plan→writer tail as
+    `run`; this is the contract surface that returns the report directly.
+    """
+    return _run(args)[1]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -483,6 +619,16 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--description", help="Override frontmatter description.")
     ap.add_argument("--cover", help="Optional cover image to copy as cover.<lang>.<ext>.")
     ap.add_argument("--translation-source", choices=["original", "literary", "ai"], help="Override translation.source.")
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the full planned write-set + diagnostics and write NOTHING (the review gate).",
+    )
+    ap.add_argument(
+        "--replace",
+        action="store_true",
+        help="Permit overwriting an existing converter-owned <lang>.md; without it, re-importing an existing language is refused.",
+    )
     return ap
 
 
