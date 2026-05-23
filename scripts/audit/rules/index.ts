@@ -17,8 +17,10 @@ import { pan008PublicMarkdownAssets } from "./downloads.ts";
 import { pan014InternalLinks } from "./crawl.ts";
 import { pan012CiSeparation } from "./ownership.ts";
 import { pan016SourceLanguage, pan016UiFramework } from "./stack.ts";
+import { contentQualityRules } from "./content_quality.ts";
 
 export const RULES: readonly Rule[] = [
+  // Fatal core (run on `npm run audit` — the PR gate):
   pan001PathBoundary,
   pan002,
   pan003Locales,
@@ -30,7 +32,9 @@ export const RULES: readonly Rule[] = [
   pan012CiSeparation,
   pan016SourceLanguage,
   pan016UiFramework,
-  // deploy-tier (post-build; run only on `npm run audit:deploy`):
+  // Deploy tier (post-build; run only on `npm run audit:deploy`):
   pan008PublicMarkdownAssets,
   pan014InternalLinks,
+  // Non-blocking heuristics (run only on `npm run audit:agent`):
+  ...contentQualityRules,
 ];
