@@ -229,10 +229,28 @@ function importSpecifiers(sf: ts.SourceFile): { spec: string; line: number }[] {
  */
 function bannedPackage(name: string, banned: ReadonlySet<string>): string | null {
   const n = name.toLowerCase();
-  for (const t of banned) {
-    if (n === t || n.startsWith(`${t}-`) || n.startsWith(`@${t}/`) || n === `${t}css` || n === `${t}js`) {
-      return t;
+  // A bare package name (or the name-part of a scoped one) that denotes the token:
+  // `vue`, `react-dom` (token-`-`), `tailwindcss`/`reactjs` (joined form).
+  const matchesName = (s: string, t: string): boolean =>
+    s === t || s.startsWith(`${t}-`) || s === `${t}css` || s === `${t}js`;
+
+  if (n.startsWith("@") && n.includes("/")) {
+    // Scoped: `@scope/sub`. A framework arrives either as its OWN scope
+    // (`@vue/*`, `@sveltejs/*`, `@solidjs/*`, `@tailwindcss/*` — scope is the
+    // token or token+js/css) or as a vendor integration whose NAME-part is the
+    // framework (`@astrojs/react`, `@astrojs/vue`). Scope must equal a token form
+    // (not merely start with it) so a benign scope like `@solidarity` is safe.
+    const slash = n.indexOf("/");
+    const scope = n.slice(1, slash);
+    const sub = n.slice(slash + 1);
+    for (const t of banned) {
+      if (scope === t || scope === `${t}js` || scope === `${t}css` || matchesName(sub, t)) return t;
     }
+    return null;
+  }
+
+  for (const t of banned) {
+    if (matchesName(n, t)) return t;
   }
   return null;
 }

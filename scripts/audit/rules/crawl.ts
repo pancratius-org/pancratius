@@ -167,9 +167,16 @@ function deriveBase(htmlFiles: readonly string[], read: (rel: string) => string)
 
 /**
  * Strip the deploy base from an ABSOLUTE link before it is resolved against dist.
- * `/pancratius/books/` with base `/pancratius` → `/books/`. An absolute link that
- * does NOT start with the base is left as-is — on a base-path deploy that is a
- * real bug (it points at domain root, not the base), so it should fail to resolve.
+ * `/pancratius/books/` with base `/pancratius` → `/books/`.
+ *
+ * KNOWN GAP (follow-up): an absolute link that does NOT carry the base is left
+ * as-is, so if the same path happens to exist at the dist root it still resolves
+ * and passes — even though on a base-path host it 404s (the doc's "links that
+ * only work at domain root"). This isn't reachable from the app today (all links
+ * go through the base-aware URL helpers), so it's a latent gap, not a live miss;
+ * catching it means flagging base-omitting absolute links as broken, which must
+ * first be validated against the real base-path build to avoid a deploy-blocking
+ * false positive on any framework-emitted root-absolute link.
  */
 function stripBase(linkPath: string, base: string): string {
   if (base === "" || !linkPath.startsWith("/")) return linkPath;
