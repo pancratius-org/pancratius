@@ -50,8 +50,8 @@ const seo = seoForProjectSubpage(Astro.site, {
 const isVerse = data.weight === "verse";
 ---
 <Base locale={locale} seo={seo}>
-  <article class="project-subpage">
-    <a class="project-subpage__back" href={sameSitePath(backHref)}>{copy.back}</a>
+  <article class="project-subpage" data-pagefind-body>
+    <a class="project-subpage__back" href={sameSitePath(backHref)} data-pagefind-ignore>{copy.back}</a>
     <header class="project-subpage__head">
       <h1 class="project-subpage__title">{data.title}</h1>
     </header>
