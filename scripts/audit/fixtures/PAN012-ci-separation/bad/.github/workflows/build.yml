@@ -1,0 +1,13 @@
+name: Build
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install render tools
+        run: sudo apt-get install -y pandoc
+      - name: Render downloads in CI
+        run: uv run scripts/render_downloads.py
+      - name: Build
+        run: npm run build
