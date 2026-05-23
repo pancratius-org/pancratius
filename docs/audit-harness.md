@@ -738,16 +738,21 @@ artifact and then discard it.
 
 The CLI should be quiet, readable, and deliberate.
 
-Suggested commands:
+Commands (implemented):
 
 ```txt
-npm run audit                 # fast deterministic fatal core, suitable for PR CI
-npm run audit:deploy          # post-build crawl/index checks, suitable for deploy/nightly
-npm run audit:agent           # fatal + warning + info, grouped for agents
-npm run audit:styles          # CSS/style duplication inventory
-npm run audit:content         # content/source integrity
-npm run audit:docs            # documentation drift
+npm run audit                 # fast deterministic fatal core — the PR-CI gate
+npm run audit:agent           # core + non-blocking heuristics, grouped, all severities
+npm run audit:deploy          # post-build crawl/index checks (needs dist/) — deploy gate
+npm run audit:selftest        # both-polarity fixture self-test of every gating rule
 ```
+
+`audit` is the canonical surface (a site-door verb — see `tooling.md`); a TS
+engine (`harness.ts`) with Python checks subprocessed via `python.ts`. Mode is a
+positional arg (`harness.ts [agent|deploy]`). Category-filtered modes
+(`audit:styles` / `audit:content` / `audit:docs`) are a future convenience to add
+once the CSS/cohesion/docs families exist — they would filter the registry by
+category, not introduce new behavior.
 
 The exact command names are less important than their behavior:
 
@@ -772,34 +777,46 @@ is added, keep it a secondary representation of the same findings.
 The implementation should be simple enough that a future agent can inspect one
 rule, understand it, and safely add another. Avoid a clever plugin framework.
 
-Preferred shape:
+Shape (as built; `[planned]` = the family is specified above but not yet
+implemented — add it incident-first):
 
 ```txt
 scripts/audit/
-  run_all.ts              # current fatal audit aggregator, eventually a thin wrapper
-  harness.ts              # CLI entrypoint when the harness exists
+  harness.ts              # CLI entrypoint: npm run audit [agent|deploy]
+  selftest.ts             # both-polarity fixture runner (npm run audit:selftest)
   lib/
     finding.ts            # severity, category, rule id, location, message
-    repo.ts               # repo roots, allowed path classes, ignore policy
-    report.ts             # pretty report; optional machine formatter later
-    text.ts               # small helpers for snippets and line numbers
+    rule.ts               # Rule + RuleContext + makeContext (the rule contract)
+    repo.ts               # repo root, walk/read with the ignore + fixtures-exclusion policy
+    report.ts             # pretty report; CI-terse vs agent-grouped
+    text.ts               # line numbers, snippets, regex-with-lines
+    python.ts             # the Python-subprocess normalizer (exit -> Finding)
+    ast.ts                # shared TS/.astro AST helpers (used by PAN002/004/016)
   rules/
     paths.ts              # PAN001
-    locales.ts            # PAN002/PAN003 TS-side checks
-    projects.ts           # PAN004
-    ownership.ts          # PAN005/PAN012
-    urls.ts               # PAN006
-    literals.ts           # PAN006B
-    assets.ts             # PAN007
-    downloads.ts          # PAN008
-    css.ts                # PAN009
-    cohesion.ts           # PAN010
-    docs.ts               # PAN011
-    dead-code.ts          # PAN013
-    crawl.ts              # PAN014
-    retired-surface.ts    # PAN015
-    stack.ts              # PAN016 (delegates type/annotation checks to the standard typecheck/lint tools)
+    locales.ts            # PAN002 + PAN003 (locale/kind SSoT parity, via python.ts)
+    projects.ts           # PAN004 (corpus collections, bulk kinds, duplicate identity)
+    assets.ts             # PAN007 (via python/media_refs.py)
+    ownership.ts          # PAN012 (via python/ci_separation.py); PAN005 [planned]
+    downloads.ts          # PAN008 (deploy; via python/download_asset_urls.py)
+    crawl.ts              # PAN014 (deploy; dist internal-link crawl)
+    stack.ts              # PAN016 (source-language + ui-framework)
+    content_quality.ts    # non-blocking heuristics folded from the legacy content audits
+    # [planned] urls.ts PAN006, literals.ts PAN006B, css.ts PAN009,
+    # [planned] cohesion.ts PAN010, docs.ts PAN011, dead-code.ts PAN013,
+    # [planned] retired-surface.ts PAN015
+  python/                 # checks the harness subprocesses (PANCRATIUS_AUDIT_ROOT-aware)
+    locales.py  kind_segments.py  media_refs.py  work_identity.py
+    ci_separation.py  download_asset_urls.py
+  fixtures/<rule-id>/{bad,good}/   # one per gating (core/deploy) rule
 ```
+
+Tiers map to modes: `core` rules run on `npm run audit` (the PR gate) and
+`audit:agent`; `heuristic` rules run only on `audit:agent`; `deploy` rules run
+only on `audit:deploy` (they need an emitted `dist/`). Only `fatal` findings exit
+non-zero. The harness `fixtures/` tree is excluded from the repo's typecheck/lint
+(tsconfig.scripts.json, ruff, ty) because it is crafted — sometimes intentionally
+malformed — test data, and a real-repo scan never walks it.
 
 Existing Python audits do not need to be rewritten just to satisfy this shape.
 The harness can either call them as subprocesses or let them gradually adopt the
@@ -882,21 +899,26 @@ backed by a real incident or fixture.
 
 ## Self-Tests
 
-Rules that can fail CI need their own tests. A minimal test fixture per fatal
-rule is enough:
+Rules that can gate (every `core` and `deploy` rule) need their own tests, and
+the test is BOTH polarities, not one: a `bad/` fixture the rule MUST fire on, and
+a `good/` fixture (a legitimate state / allowed variation) it MUST stay silent
+on. The good fixture is the insurance against the rule screaming on a legitimate
+future change — it is what decides fatal-vs-warning.
 
 ```txt
-scripts/audit/fixtures/
-  pan002-locale-fallback/
-  pan004-project-in-downloads/
-  pan006-bad-base-url/
-  pan008-frontmatter-in-public-md/
-  pan014-broken-internal-link/
+scripts/audit/fixtures/<rule-id>/
+  bad/    # a tiny tree the rule MUST flag (>=1 finding)
+  good/   # a tiny legitimate tree the rule MUST NOT flag (0 findings)
 ```
 
-Fixtures should be tiny and rule-focused. They do not need to resemble the full
-site. Their purpose is to prevent a rule from silently rotting when the repo
-changes.
+`npm run audit:selftest` (`selftest.ts`) runs every rule against its fixtures and
+ENFORCES the contract: a `core`/`deploy` rule missing either polarity fails the
+self-test; `heuristic` (non-gating) rules are exempt. It also shape-checks fired
+findings (required fields present, valid severity). Several good fixtures are
+deliberate regressions for a real false-positive the build hit — the PAN002
+shadowing case, the PAN016 incidental-substring import, the PAN001 `:\]` dialogue
+trap. Fixtures are tiny and rule-focused; they exist to stop a rule rotting
+silently when the repo changes.
 
 ## False Positives And Escapes
 
@@ -934,6 +956,26 @@ Examples:
 
 The goal is not to delete these scripts. The goal is to put them under a shared
 language: rule id, severity, category, evidence, repair.
+
+### As implemented
+
+The folds adopted by `python.ts` were given a `PANCRATIUS_AUDIT_ROOT` override
+and moved to `scripts/audit/python/`; the unmodified non-blocking ones are folded
+read-only in place and run only via `audit:agent`.
+
+| Existing script | Folded as | Tier / severity |
+| --- | --- | --- |
+| `locales.py`, `kind_segments.py` | PAN003 locale / kind-segment parity | core / **fatal** |
+| `media_refs.py` → `python/media_refs.py` | PAN007 asset refs | core / **fatal** |
+| `download_asset_urls.py` → `python/download_asset_urls.py` | PAN008 public-Markdown asset URLs | deploy / **fatal** |
+| `formatting_artifacts`, `toc_leaks`, `bibliography_leaks`, `rights_boilerplate`, `title_language`, `dialogue_counts`, `docx_semantics`, `size_budget`, `poetry_stanzas`, `verse_blocks`, `source_text_fidelity` | `content_quality.ts` (one heuristic each) | heuristic / warning or info |
+| `source_coverage.py` | **not folded** — legacy-dependent local library audit; run manually (`uv run scripts/audit/source_coverage.py`), never CI | local only |
+| `run_all.ts` | retired — `harness.ts` is the aggregator | — |
+
+`poetry_stanzas` is a documented promotion candidate: content-model.md says the
+stanza audit *should* become a fatal data-loss gate once it is adapted (root
+override + a both-polarity fixture). Promotion follows the staging rule — make it
+deterministic and back it with a fixture before it gates CI.
 
 ## Influences
 

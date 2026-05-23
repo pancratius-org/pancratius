@@ -223,9 +223,9 @@ another partial map. Disposition column: `npm` (site door), `work/project/…`
 | `conceptosphere.py` | **generate** graph data | **yes** (gen `data/`) | `pancratius data graph generate` (local/heavy) |
 | `conceptosphere_embed.py` | **generate** embeddings (MLX) | **yes** (gen `data/`) | `pancratius data embed generate` (`--extra embed`) |
 | `sync_pagefind_dev.py` | copy pagefind index for dev | no | `npm run dev` helper (stays under dev) |
-| `scripts/audit/*.py` (16) | content/corpus + SSOT checks | no | `audit` (harness Python subprocess) |
-| `scripts/audit/run_all.ts` | audit aggregator | no | becomes `harness.ts` (`npm run audit`) |
-| `npm run audit:download-asset-urls` → py | download URL check | no | folds into `npm run audit` |
+| `scripts/audit/*.py` | content/corpus + SSOT checks | no | `audit` — SSoT/asset/download/CI checks folded as fatal rules under `scripts/audit/python/`; content-quality ones folded as `audit:agent` heuristics (in place); `source_coverage.py` stays local-only (legacy-dependent, never CI). See `audit-harness.md` → "Relationship To Existing Audits" |
+| `scripts/audit/run_all.ts` | audit aggregator | no | **retired** — `harness.ts` (`npm run audit`) is the aggregator |
+| `download_asset_urls.py` | download/public-Markdown URL check | no | folded as PAN008 under `npm run audit:deploy` (post-build) |
 | `tests/visual_audit.spec.ts` | visual regression GATE (console errors + mobile h-overflow, theme × viewport matrix) | no | `dev` (`npm run test:visual`; Playwright, `VISUAL_AUDIT=1`-gated, off the default smoke run) |
 | `scripts/visual/{audit,viewport,shots}.ts` | snapshot GENERATORS → `.cache/visual-audit/` (gitignored) | no | `dev` (`npm run shots:audit` / `shots:viewport` / `shots:projects`) |
 | `scripts/visual/lighthouse.ts` | Lighthouse perf REPORT (scorecard + `summary.json`) — **optional, networked** (fetches `lighthouse@13` on demand), not a CI/verification gate | no | `dev` (`npm run test:perf`) |
