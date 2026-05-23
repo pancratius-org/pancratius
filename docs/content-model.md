@@ -50,7 +50,6 @@ src/content/
         ru/
           diagram-01.png    # language-specific body illustration
       bibliography.yaml     # optional export/provenance sidecar
-      meta.json             # legacy conversion audit (being retired to a data/-side import manifest)
   poetry/
     01-a-esli-budu-ya-ne-prav/
       ru.md
@@ -331,8 +330,7 @@ a stable unprocessed URL.
 | markdown body | the work itself, with relative links only to true inline body images |
 | work folder assets | covers, true body illustrations, source DOCX/PDF |
 | `bibliography.yaml` | long catalog/bibliography snapshots and external marketplace links |
-| `meta.json` | legacy in-bundle conversion audit; read by scripts, not UI. Being retired — the import redesign records volatile provenance (source hashes, tool versions, run time) in a `data/`-side import manifest instead, so committed bundles stay byte-identical on re-import (see [`import-pipeline.md`](./import-pipeline.md)) |
-| `data/` | generated corpus-wide data products (graph JSON) and the import manifest holding volatile import provenance — never committed inside a work bundle |
+| `data/` | generated corpus-wide data products (graph JSON) and the import/conversion manifest holding volatile provenance (source hashes, tool versions, run time, original source filenames) — never committed inside a work bundle, so bundles stay byte-identical on re-import |
 | `public/` | static files intentionally published as-is, not authored work assets |
 
 ## Adding A New Work

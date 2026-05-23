@@ -65,36 +65,9 @@ def _collect_used_sources() -> tuple[set[str], set[str]]:
                             else:
                                 used_names.add(entry)
 
-    # Transitional fallback: `meta.json` is conversion provenance, unlike
-    # Markdown frontmatter. It lets this audit keep working against older
-    # manifests without making the public content schema carry source filenames.
-    for meta_path in CONTENT.rglob("meta.json"):
-        try:
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            continue
-        sources = meta.get("sources")
-        if isinstance(sources, dict):
-            for raw_entries in sources.values():
-                entries = raw_entries if isinstance(raw_entries, list) else [raw_entries]
-                for raw in entries:
-                    if isinstance(raw, str):
-                        rel = _legacy_rel_from_source_url(raw)
-                        if rel:
-                            used_paths.add(rel)
-                        elif raw.endswith(".docx"):
-                            used_names.add(Path(raw).name)
-        languages = meta.get("languages")
-        if isinstance(languages, dict):
-            for info in languages.values():
-                if not isinstance(info, dict):
-                    continue
-                originals = info.get("original_filenames")
-                if isinstance(originals, str):
-                    used_names.add(originals)
-                elif isinstance(originals, list):
-                    used_names.update(str(x) for x in originals)
-
+    # Source provenance lives in the central manifest only — the former in-bundle
+    # meta.json fallback was removed with the move to manifest-only provenance
+    # (this audit is local-only and retires with legacy/).
     return used_paths, used_names
 
 

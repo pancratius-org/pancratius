@@ -103,7 +103,6 @@ src/content/
       <hash>.<ext>        # converter-imported body images (dedup'd within work)
       <named>.<ext>       # author-named body assets (preserved across reruns)
     bibliography.yaml     # optional catalog snapshot sidecar
-    meta.json             # conversion-time provenance (not UI truth)
   poetry/<ascii-slug>/ru.md (+ optional cover.ru.<ext>)
   projects/<ascii-slug>/{ru,en}.md (+ optional cover.ru.<ext>)
 data/
@@ -124,7 +123,6 @@ data/
       "en.md",
       "images/649a499a5bdb.jpg",
       "images/9b31c57123fd.jpg",
-      "meta.json",
       "ru.md"
     ],
     "docx_optimize": ["en.docx", "ru.docx"]
@@ -286,9 +284,9 @@ For a merged multi-source work, the public `<lang>.docx` download is produced
 separately by `render_downloads.py --docx` from the merged Markdown. Do not
 expose a part file as the per-work DOCX download.
 
-The destination is computed from the content tree: `meta.json` for books
-(canonical multi-part filename list), markdown frontmatter for poems and
-projects. Originals under `legacy/` are read-only.
+The destination is computed from the central `data/conversion-manifest.json`
+source provenance (with a markdown-frontmatter `original_filename` fallback for
+poems and projects). Originals under `legacy/` are read-only.
 
 ### Usage
 

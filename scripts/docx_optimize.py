@@ -27,8 +27,9 @@ files all already declare ``Default Extension="jpg|jpeg|png"``.
 Originals stay read-only. Output is placed *into the content tree* alongside
 the rendered Markdown: ``src/content/<kind>/<slug>/<lang>.docx`` for single-source
 books/poems/projects, and ``src/content/books/<slug>/<lang>-part<N>.docx`` for
-multi-part books (the few that exist). The mapping is derived from each
-content entry's frontmatter / sibling ``meta.json`` — there is no ``--out``
+multi-part books (the few that exist). The mapping is derived from the central
+``data/conversion-manifest.json`` source provenance (with a frontmatter
+``original_filename`` fallback for poetry/projects) — there is no ``--out``
 override, because the destination is a property of the corpus layout, not a
 CLI knob.
 
@@ -701,13 +702,15 @@ def build_path_map(content_root: Path, legacy_root: Path) -> dict[Path, Path]:
     same-named files in different folders (e.g. two ``source.docx`` under
     different projects) don't collide.
 
-    Prefer ``data/conversion-manifest.json`` source provenance. Older metadata
-    fallbacks are retained only so the optimizer can run against pre-migration
-    trees.
+    ``data/conversion-manifest.json`` source provenance is authoritative. A
+    frontmatter ``original_filename`` fallback is retained for poetry/projects so
+    the optimizer can run against trees whose manifest predates path-level
+    sources. (The former in-bundle ``meta.json`` fallback is gone — provenance
+    lives in the central manifest, not the work bundle.)
 
     Resolution by kind:
-      books    — manifest sources, or ``meta.json`` lists ``original_filenames`` per language; the
-                 source lives at ``legacy/books/<lang>/<filename>``.
+      books    — manifest sources; the source lives at
+                 ``legacy/books/<lang>/<filename>``.
       poetry   — manifest sources, or frontmatter's ``original_filename`` is the file's basename;
                  the source lives somewhere under ``legacy/poetry/<folder>/``
                  where ``<folder>`` shares the same numeric prefix as the
@@ -725,23 +728,10 @@ def build_path_map(content_root: Path, legacy_root: Path) -> dict[Path, Path]:
 
     out: dict[Path, Path] = {}
 
-    # --- books -----------------------------------------------------------
-    for meta_path in sorted((content_root / "books").glob("*/meta.json")):
-        slug = meta_path.parent.name
-        try:
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError as e:
-            print(f"warn: bad meta.json at {meta_path}: {e}", file=sys.stderr)
-            continue
-        for lang, info in (meta.get("languages") or {}).items():
-            originals = info.get("original_filenames") or []
-            total = len(originals)
-            for idx, name in enumerate(originals, start=1):
-                src = legacy_root / "books" / lang / name
-                if not src.is_file():
-                    continue
-                suffix = f"{lang}.docx" if total <= 1 else f"{lang}-part{idx}.docx"
-                out[src.resolve()] = content_root / "books" / slug / suffix
+    # Books carry no frontmatter source-filename fallback: their source
+    # provenance lives only in the central manifest (handled above). The former
+    # in-bundle meta.json fallback was removed with the move to manifest-only
+    # provenance.
 
     # --- poetry ----------------------------------------------------------
     for md_path in sorted((content_root / "poetry").glob("*/*.md")):

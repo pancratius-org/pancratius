@@ -12,14 +12,14 @@ the asset, verse, footnote, and bibliography *policies* are owned by
 [`content-model.md`](./content-model.md) and [`decisions.md`](./decisions.md).
 This document does not restate them — it states how import *honors* them.
 
-## Why this exists
+## Why two boundaries
 
-The replaced design interleaved everything: DOCX parsing, Markdown cleanup,
-semantic recovery, frontmatter construction, image extraction, placement, and
-filesystem mutation happened in one pass, and a parser could copy media into a
-work folder as a side effect. That is how content was lost and how stray markers
-shipped. The cure is not a framework; it is **two boundaries** that cut the pass
-into pure stages with a single mutating tail.
+Import touches the corpus — committed source of truth — and recovers semantics a
+source format expresses only loosely. When parsing, transformation, placement,
+and filesystem mutation share one pass, both jobs turn fragile: a parser can copy
+media into a work folder as a side effect, and content can be lost or mismarked
+as it crosses concerns. The protection is not a framework but **two boundaries**
+that cut the work into pure stages with a single mutating tail.
 
 ## The two boundaries
 
@@ -103,12 +103,10 @@ workflow.
 
 **Idempotency.** Re-importing the same source yields a byte-identical committed
 bundle — same `<lang>.md`, assets, and frontmatter, with no timestamps in
-committed output. Volatile provenance (source hashes, tool versions, run time) is
-recorded in the import manifest that
-[`content-model.md`](./content-model.md#what-lives-where) places under `data/`,
-never in the committed `<lang>.md` or assets; the legacy in-bundle `meta.json` is
-retired into that manifest by this redesign. Imported body-image filenames are
-stable asset IDs after first import, not live checksums (see
+committed output. Volatile provenance (source hashes, tool versions, run time) lives in the import
+manifest that [`content-model.md`](./content-model.md#what-lives-where) places
+under `data/`, never in the committed `<lang>.md` or assets. Imported body-image
+filenames are stable asset IDs after first import, not live checksums (see
 [`content-model.md`](./content-model.md#asset-naming)).
 
 **Dry-run** is the review gate: it prints the full planned write-set — including
