@@ -7,7 +7,7 @@ import DownloadsPage from "@/components/DownloadsPage.astro";
 import Base from "@/layouts/Base.astro";
 import { loadArchiveManifest } from "@/lib/bulk-archives";
 import type { Locale } from "@/lib/i18n";
-import { pageUrl } from "@/lib/i18n";
+import { LOCALES, pageUrl } from "@/lib/i18n";
 import { getPage } from "@/lib/pages";
 import { seoForPage } from "@/lib/seo";
 
@@ -18,13 +18,18 @@ if (!page) {
   throw new Error("Missing src/content/pages/downloads/en.md");
 }
 const { Content } = await render(page);
-const ruPage = await getPage("downloads", "ru");
-const authoredLocales = new Set<Locale>(["en"]);
-if (ruPage) authoredLocales.add("ru");
+const authoredLocales = new Set<Locale>();
+for (const loc of LOCALES) {
+  if (await getPage("downloads", loc)) authoredLocales.add(loc);
+}
 const seo = seoForPage(Astro.site, page, authoredLocales);
+const alternates: Partial<Record<Locale, string>> = {};
+for (const loc of authoredLocales) {
+  if (loc !== locale) alternates[loc] = pageUrl("downloads", loc);
+}
 const { archives, generatedAt } = loadArchiveManifest();
 ---
-<Base locale={locale} seo={seo} alternates={ruPage ? { ru: pageUrl("downloads", "ru") } : {}}>
+<Base locale={locale} seo={seo} alternates={alternates}>
   <DownloadsPage locale={locale} page={page} archives={archives} generatedAt={generatedAt}>
     <Content />
   </DownloadsPage>

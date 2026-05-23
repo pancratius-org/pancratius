@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, LOCALES, localizePath, type Locale } from "@/lib/i18n";
+import { DEFAULT_LOCALE, LOCALES, LOCALE_META, localizePath, type Locale } from "@/lib/i18n";
 import { absUrl, type SeoMeta } from "@/lib/seo";
 
 import { conceptosphereStrings } from "./strings";
@@ -28,10 +28,16 @@ export function conceptosphereSeo(site: URL | undefined, locale: Locale): SeoMet
     ],
     jsonLd: null,
     locale,
+    ogLocale: LOCALE_META[locale].ogLocale,
+    siteName: LOCALE_META[locale].siteLabel,
   };
 }
 
 export function conceptosphereAlternate(locale: Locale): Partial<Record<Locale, string>> {
-  const other = locale === "ru" ? "en" : "ru";
-  return { [other]: conceptospherePath(other) };
+  // Link to every other authored locale (currently the one non-active locale).
+  const out: Partial<Record<Locale, string>> = {};
+  for (const loc of LOCALES) {
+    if (loc !== locale) out[loc] = conceptospherePath(loc);
+  }
+  return out;
 }

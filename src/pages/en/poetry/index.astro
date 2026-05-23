@@ -1,15 +1,17 @@
 ---
 import Base from "@/layouts/Base.astro";
-import type { Locale } from "@/lib/i18n";
-import { kindIndexUrl, workUrl } from "@/lib/i18n";
+import { DEFAULT_LOCALE, LOCALES, type Locale, kindIndexUrl, workUrl } from "@/lib/i18n";
 import { sameSitePath } from "@/lib/paths";
 import { seoForKindIndex } from "@/lib/seo";
 import { getPairsByKind } from "@/lib/works";
 
-const locale: Locale = "en";
+const locale = "en" as const;
 const pairs = await getPairsByKind("poem");
 const seo = seoForKindIndex(Astro.site, "poem", locale);
-const alternates = { ru: kindIndexUrl("poem", "ru") };
+const alternates: Partial<Record<Locale, string>> = {};
+for (const loc of LOCALES) {
+  if (loc !== locale) alternates[loc] = kindIndexUrl("poem", loc);
+}
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
   <section class="page poetry-index">
@@ -27,14 +29,18 @@ const alternates = { ru: kindIndexUrl("poem", "ru") };
     </p>
 
     <ol class="poems">
-      {pairs.map(p => (
-        <li>
-          <a href={sameSitePath(workUrl("poem", p.ru.data.slug, "ru"))}>
-            <span class="poems__num">{String(p.number).padStart(2, "0")}</span>
-            <span class="poems__title">{p.ru.data.title}</span>
-          </a>
-        </li>
-      ))}
+      {pairs.map(p => {
+        // Poems are authored in the default locale; link to the canonical route.
+        const e = p.entries[DEFAULT_LOCALE]!;
+        return (
+          <li>
+            <a href={sameSitePath(workUrl("poem", e.data.slug, DEFAULT_LOCALE))}>
+              <span class="poems__num">{String(p.number).padStart(2, "0")}</span>
+              <span class="poems__title">{e.data.title}</span>
+            </a>
+          </li>
+        );
+      })}
     </ol>
   </section>
 </Base>

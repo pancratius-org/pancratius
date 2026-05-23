@@ -2,7 +2,7 @@
 import Base from "@/layouts/Base.astro";
 
 import type { Locale } from "@/lib/i18n";
-import { workUrl } from "@/lib/i18n";
+import { DEFAULT_LOCALE, workUrl } from "@/lib/i18n";
 import { projectsIndexCopy } from "@/lib/copy";
 import { sameSitePath } from "@/lib/paths";
 import { seoForKindIndex } from "@/lib/seo";
@@ -18,14 +18,14 @@ const pairs = await getPairsByKind("project");
 const seo = seoForKindIndex(Astro.site, "project", locale);
 
 function displayForProject(pair: WorkPair) {
-  if (locale === "ru") {
-    return { entry: pair.ru, hrefLocale: "ru" as const, isFallback: false };
+  // The projects index lists EVERY project in every locale. When the current
+  // locale was authored, link to it; otherwise fall back visibly to the
+  // default-locale entry and link to its canonical route.
+  const authored = pair.entries[locale];
+  if (authored) {
+    return { entry: authored, hrefLocale: locale, isFallback: false };
   }
-  // EN index lists every project. Authored EN content wins; missing EN content
-  // falls back visibly to the RU entry and links to the RU canonical route.
-  return pair.en
-    ? { entry: pair.en, hrefLocale: "en" as const, isFallback: false }
-    : { entry: pair.ru, hrefLocale: "ru" as const, isFallback: true };
+  return { entry: pair.entries[DEFAULT_LOCALE]!, hrefLocale: DEFAULT_LOCALE, isFallback: true };
 }
 ---
 <Base locale={locale} seo={seo}>

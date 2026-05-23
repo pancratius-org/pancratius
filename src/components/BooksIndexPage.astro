@@ -4,7 +4,7 @@ import BookCard from "@/components/BookCard.astro";
 import LibraryFilter from "@/components/LibraryFilter.astro";
 
 import type { Locale } from "@/lib/i18n";
-import { kindIndexUrl } from "@/lib/i18n";
+import { DEFAULT_LOCALE, kindIndexUrl } from "@/lib/i18n";
 import { booksIndexCopy, type BooksIndexCopy } from "@/lib/copy";
 import { sameSitePath } from "@/lib/paths";
 import { seoForKindIndex, clampDescription } from "@/lib/seo";
@@ -15,15 +15,21 @@ interface Props {
 }
 
 const { locale } = Astro.props;
+// Widen to the interface so optional per-locale fields (e.g. `fullCatalogLink`,
+// authored only in EN) are accessible regardless of the active locale.
 const copy: BooksIndexCopy = booksIndexCopy[locale];
 const allPairs = await getPairsByKind("book");
-const pairs = locale === "en" ? allPairs.filter(p => p.en !== null) : allPairs;
+// Existence: a non-default-locale index lists only works authored in it; the
+// default-locale index lists every work.
+const pairs = locale === DEFAULT_LOCALE
+  ? allPairs
+  : allPairs.filter(p => p.entries[locale]);
 const seo = seoForKindIndex(Astro.site, "book", locale);
-const ruHref = sameSitePath(kindIndexUrl("book", "ru"));
+const defaultHref = sameSitePath(kindIndexUrl("book", DEFAULT_LOCALE));
 
 const tagCounts = new Map<string, number>();
 for (const p of pairs) {
-  const entry = locale === "en" ? p.en! : p.ru;
+  const entry = p.entries[locale]!;
   for (const t of workTags(entry)) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
 }
 const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count }));
@@ -37,7 +43,7 @@ const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count })
         {copy.sub(allPairs.length, pairs.length)}
         {copy.fullCatalogLink && (
           <Fragment>
-            {" "}<a href={ruHref}>{copy.fullCatalogLink}</a>.
+            {" "}<a href={defaultHref}>{copy.fullCatalogLink}</a>.
           </Fragment>
         )}
       </p>
@@ -47,7 +53,7 @@ const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count })
 
     <div class="index" role="list" data-pagefind-ignore>
       {pairs.map(p => {
-        const entry = locale === "en" ? p.en! : p.ru;
+        const entry = p.entries[locale]!;
         return <BookCard pair={p} locale={locale} blurb={clampDescription(entry.data.description, 120)} />;
       })}
     </div>

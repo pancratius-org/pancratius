@@ -37,6 +37,7 @@ from lib.docx_conversion import (
     to_ascii_slug,
     write_bibliography_sidecar,
 )
+from lib.locales import LOCALES
 
 
 ROOT = SCRIPT_DIR.parent
@@ -44,7 +45,56 @@ DEFAULT_CONTENT_ROOT = ROOT / "src" / "content"
 TODO_DESCRIPTION = "TODO: write the editorial description for this work."
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tiff"}
-LANGS = ("ru", "en")
+LANGS = tuple(LOCALES)
+
+# Forward cap for NEWLY-IMPORTED body images. Raster masters extracted from a
+# DOCX are bounded to this longest edge at import time so future masters stay
+# reasonable, mirroring the bounded `/assets/` rendition the site serves. This
+# only applies to images written by this import run; it never re-encodes the
+# existing committed corpus. Vector (svg) and animated (gif) formats are left
+# untouched. The committed body-image filenames are content hashes, but the
+# converted Markdown references those exact names, so we cap in place and keep
+# the filename rather than re-hashing.
+IMPORT_MAX_LONGEST_EDGE = 1600
+RASTER_CAP_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".avif"}
+
+
+def _cap_imported_body_images(images_dir: Path, skip: set[Path]) -> None:
+    """Resize newly-imported raster body images down to the longest-edge cap.
+
+    `skip` holds image paths that already existed before this import so the
+    pre-existing corpus is never touched. Only down-scaling happens; small
+    images are left as-is. Any per-file failure is non-fatal — the original
+    bytes simply remain.
+    """
+    if not images_dir.is_dir():
+        return
+    from PIL import Image
+
+    for path in sorted(images_dir.rglob("*")):
+        if not path.is_file() or path in skip:
+            continue
+        if path.suffix.lower() not in RASTER_CAP_EXTS:
+            continue
+        try:
+            with Image.open(path) as img:
+                img.load()
+                width, height = img.size
+                if max(width, height) <= IMPORT_MAX_LONGEST_EDGE:
+                    continue
+                fmt = img.format
+                resized = img.copy()
+            resized.thumbnail(
+                (IMPORT_MAX_LONGEST_EDGE, IMPORT_MAX_LONGEST_EDGE),
+                Image.LANCZOS,
+            )
+            save_kwargs: dict[str, Any] = {}
+            if fmt in {"JPEG", "WEBP"}:
+                save_kwargs["quality"] = 82 if fmt == "JPEG" else 80
+            resized.save(path, format=fmt, **save_kwargs)
+            print(f"capped {path.name}: {width}x{height} -> {resized.size[0]}x{resized.size[1]}")
+        except Exception as exc:  # pragma: no cover - one bad image must not fail import
+            print(f"warning: could not cap {path}: {exc}", file=sys.stderr)
 
 _LEADING_NUMBER_RE = re.compile(r"^\s*\d+\s*[-._ ]+\s*")
 _LATIN_RE = re.compile(r"[A-Za-z]")
@@ -359,6 +409,13 @@ def run(args: argparse.Namespace) -> ImportResult:
     else:
         description = TODO_DESCRIPTION
 
+    # Snapshot pre-existing body images so the forward cap only touches images
+    # written by this import run, never the already-committed corpus.
+    images_dir = work_dir / "images"
+    pre_existing_images = (
+        {p for p in images_dir.rglob("*") if p.is_file()} if images_dir.is_dir() else set()
+    )
+
     title_index = build_title_index(entries)
     converted = convert_single_docx(
         docx,
@@ -369,6 +426,8 @@ def run(args: argparse.Namespace) -> ImportResult:
         work_dir=work_dir,
         title_index=title_index,
     )
+
+    _cap_imported_body_images(images_dir, skip=pre_existing_images)
 
     cover, cover_is_placeholder = _prepare_cover(
         cover_arg=args.cover,

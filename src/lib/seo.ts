@@ -5,11 +5,20 @@
 // back a SeoMeta they can spread into a single `<HeadMeta>` Astro component.
 
 import type { Locale, WorkKind } from "./i18n";
-import { DEFAULT_LOCALE, LOCALES, homeUrl, kindIndexUrl, pageUrl, workUrl } from "./i18n";
+import {
+  DEFAULT_LOCALE,
+  LOCALES,
+  LOCALE_META,
+  homeUrl,
+  kindIndexUrl,
+  localizePath,
+  pageUrl,
+  workUrl,
+} from "./i18n";
 import { searchPageCopy } from "./copy";
 import { sameSitePath } from "./paths";
 import type { PageEntry } from "./pages";
-import type { WorkPair } from "./works";
+import { entryForLocale, type WorkPair } from "./works";
 
 const AUTHOR_NAME = "Сергей Орехов";
 const AUTHOR_ALIAS = "Панкратиус";
@@ -18,7 +27,9 @@ const LICENSE_URL = "https://creativecommons.org/publicdomain/zero/1.0/";
 const META_DESC_TARGET = 220;  // characters; clamps to nearest sentence boundary
 
 /** Display name of the site, localized. EN never uses the Cyrillic spelling. */
-const SITE_LABEL: Record<Locale, string> = { ru: "Панкратиус", en: "Pancratius" };
+function siteLabel(locale: Locale): string {
+  return LOCALE_META[locale].siteLabel;
+}
 
 export interface AlternateLink {
   hreflang: string;  // "ru", "en", "x-default"
@@ -34,6 +45,10 @@ export interface SeoMeta {
   alternates:  AlternateLink[];
   jsonLd:      Record<string, unknown> | null;
   locale:      Locale;
+  /** Open Graph `og:locale` code for this locale (e.g. "ru_RU"). */
+  ogLocale:    string;
+  /** Site display name for `og:site_name` in this locale. */
+  siteName:    string;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -85,21 +100,32 @@ export function clampDescription(text: string, target = META_DESC_TARGET): strin
 // Per-surface builders.
 // ─────────────────────────────────────────────────────────────────────
 
+const homeTitle: Record<Locale, string> = {
+  ru: "Панкратиус — Свет, узнающий себя",
+  en: "Pancratius — Light recognising itself",
+};
+const homeDescription: Record<Locale, string> = {
+  ru: "Семьдесят две книги. Сорок три стихотворения. Свободно — людям и языковым моделям. Тексты в общественном достоянии (CC0).",
+  en: "Seventy-two books. Forty-three poems. Free — for humans and for language models. All texts in the public domain (CC0).",
+};
+
 export function seoForHome(site: URL | undefined, locale: Locale): SeoMeta {
-  const description = locale === "ru"
-    ? "Семьдесят две книги. Сорок три стихотворения. Свободно — людям и языковым моделям. Тексты в общественном достоянии (CC0)."
-    : "Seventy-two books. Forty-three poems. Free — for humans and for language models. All texts in the public domain (CC0).";
-  const title = locale === "ru" ? "Панкратиус — Свет, узнающий себя" : "Pancratius — Light recognising itself";
   return {
-    title,
-    description,
+    title:       homeTitle[locale],
+    description: homeDescription[locale],
     canonical:  absUrl(site, homeUrl(locale)),
     ogImage:    null,
     ogType:     "website",
     alternates: alternatesForHome(site),
     jsonLd:     null,
     locale,
+    ...ogMeta(locale),
   };
+}
+
+/** The registry-derived OG fields every SeoMeta carries. */
+function ogMeta(locale: Locale): { ogLocale: string; siteName: string } {
+  return { ogLocale: LOCALE_META[locale].ogLocale, siteName: LOCALE_META[locale].siteLabel };
 }
 
 export function seoForKindIndex(site: URL | undefined, kind: WorkKind, locale: Locale): SeoMeta {
@@ -131,29 +157,32 @@ export function seoForKindIndex(site: URL | undefined, kind: WorkKind, locale: L
     alternates:  alternatesForKindIndex(site, kind),
     jsonLd:      null,
     locale,
+    ...ogMeta(locale),
   };
 }
 
 export function seoForSearch(site: URL | undefined, locale: Locale): SeoMeta {
   const copy = searchPageCopy[locale];
-  const alternates: AlternateLink[] = LOCALES.map(loc => ({
-    hreflang: loc,
-    href: absUrl(site, loc === DEFAULT_LOCALE ? "/search/" : `/${loc}/search/`),
-  }));
-  alternates.push({
-    hreflang: "x-default",
-    href: absUrl(site, "/search/"),
-  });
   return {
     title: copy.title,
     description: clampDescription(copy.description),
-    canonical: absUrl(site, locale === DEFAULT_LOCALE ? "/search/" : `/${locale}/search/`),
+    canonical: absUrl(site, localizePath("/search/", locale)),
     ogImage: null,
     ogType: "website",
-    alternates,
+    alternates: alternatesForSearch(site),
     jsonLd: null,
     locale,
+    ...ogMeta(locale),
   };
+}
+
+function alternatesForSearch(site: URL | undefined): AlternateLink[] {
+  const xs: AlternateLink[] = [];
+  for (const loc of LOCALES) {
+    xs.push({ hreflang: loc, href: absUrl(site, localizePath("/search/", loc)) });
+  }
+  xs.push({ hreflang: "x-default", href: absUrl(site, localizePath("/search/", DEFAULT_LOCALE)) });
+  return xs;
 }
 
 export interface WorkSeoInput {
@@ -165,7 +194,9 @@ export interface WorkSeoInput {
 
 export function seoForWork(site: URL | undefined, input: WorkSeoInput): SeoMeta {
   const { pair, locale, coverUrl = null } = input;
-  const entry = locale === "en" ? pair.en : pair.ru;
+  // Existence: a work page in this locale only exists if the locale was
+  // authored. Do NOT fall back — a missing entry here is a routing bug.
+  const entry = pair.entries[locale];
   if (!entry) {
     throw new Error(
       `seoForWork: no ${locale} entry for ${pair.kind} #${pair.number}`,
@@ -174,7 +205,7 @@ export function seoForWork(site: URL | undefined, input: WorkSeoInput): SeoMeta 
   const data = entry.data;
   const canonical = absUrl(site, workUrl(pair.kind, data.slug, locale));
   const description = clampDescription(data.description);
-  const title = `${data.title} — ${SITE_LABEL[locale]}`;
+  const title = `${data.title} — ${siteLabel(locale)}`;
   return {
     title,
     description,
@@ -191,6 +222,7 @@ export function seoForWork(site: URL | undefined, input: WorkSeoInput): SeoMeta 
       site,
     }),
     locale,
+    ...ogMeta(locale),
   };
 }
 
@@ -207,7 +239,7 @@ export function seoForPage(
   const locale = data.lang as Locale;
   const canonical = absUrl(site, pageUrl(data.slug, locale));
   return {
-    title:       `${data.title} — ${SITE_LABEL[locale]}`,
+    title:       `${data.title} — ${siteLabel(locale)}`,
     description: clampDescription(data.description),
     canonical,
     ogImage:     null,
@@ -215,6 +247,7 @@ export function seoForPage(
     alternates:  alternatesForPage(site, data.slug, authoredLocales),
     jsonLd:      null,
     locale,
+    ...ogMeta(locale),
   };
 }
 
@@ -265,15 +298,21 @@ function alternatesForKindIndex(site: URL | undefined, kind: WorkKind): Alternat
 }
 
 function alternatesForWork(site: URL | undefined, pair: WorkPair): AlternateLink[] {
+  // Existence: list one alternate per locale that was actually authored, so a
+  // missing translation simply has no hreflang entry (switcher disables it).
   const xs: AlternateLink[] = [];
-  if (pair.ru) {
-    xs.push({ hreflang: "ru", href: absUrl(site, workUrl(pair.kind, pair.ru.data.slug, "ru")) });
+  for (const loc of LOCALES) {
+    const entry = pair.entries[loc];
+    if (entry) {
+      xs.push({ hreflang: loc, href: absUrl(site, workUrl(pair.kind, entry.data.slug, loc)) });
+    }
   }
-  if (pair.en) {
-    xs.push({ hreflang: "en", href: absUrl(site, workUrl(pair.kind, pair.en.data.slug, "en")) });
-  }
-  if (pair.ru) {
-    xs.push({ hreflang: "x-default", href: absUrl(site, workUrl(pair.kind, pair.ru.data.slug, "ru")) });
+  const canonical = pair.entries[DEFAULT_LOCALE];
+  if (canonical) {
+    xs.push({
+      hreflang: "x-default",
+      href: absUrl(site, workUrl(pair.kind, canonical.data.slug, DEFAULT_LOCALE)),
+    });
   }
   return xs;
 }
@@ -312,7 +351,10 @@ interface CreativeWorkInput {
 
 function creativeWorkLd(input: CreativeWorkInput): Record<string, unknown> {
   const { pair, locale, canonical, coverUrl, description, site } = input;
-  const entry = locale === "en" ? pair.en! : pair.ru;
+  // Display: the LD is emitted on a page that exists in `locale`, but use the
+  // display selector so a non-default locale still has a name if ever called
+  // for a locale whose entry is absent.
+  const entry = entryForLocale(pair, locale);
   const ld: Record<string, unknown> = {
     "@context":   "https://schema.org",
     "@type":      "CreativeWork",

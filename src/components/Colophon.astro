@@ -1,6 +1,6 @@
 ---
 import type { Locale } from "@/lib/i18n";
-import { downloadUrl, pageUrl, workUrl } from "@/lib/i18n";
+import { DEFAULT_LOCALE, downloadUrl, pageUrl, workUrl } from "@/lib/i18n";
 import { colophonCopy } from "@/lib/copy";
 import type { WorkPair } from "@/lib/works";
 import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
@@ -12,10 +12,13 @@ interface Props {
 }
 
 const { pair, locale } = Astro.props;
-const entry = locale === "en" ? pair.en : pair.ru;
+// Existence: the colophon renders on a page that exists in `locale`.
+const entry = pair.entries[locale];
 if (!entry) {
   throw new Error(`Colophon: no ${locale} entry for ${pair.kind} #${pair.number}`);
 }
+// The "original" back-link always points at the canonical default-locale work.
+const originalEntry = pair.entries[DEFAULT_LOCALE]!;
 const formats: DownloadFormat[] = availableFormatsForWork(pair, locale);
 
 const licenseHref = sameSitePath(pageUrl("license", locale));
@@ -33,7 +36,7 @@ const FORMAT_LABEL: Record<DownloadFormat, string> = {
 <aside class="colophon">
   {entry.data.translation.source === "ai" && (
     <p class="row">
-      {copy.machineTranslation} <a href={sameSitePath(workUrl(pair.kind, pair.ru.data.slug, "ru"))}>{copy.original}</a>.
+      {copy.machineTranslation} <a href={sameSitePath(workUrl(pair.kind, originalEntry.data.slug, DEFAULT_LOCALE))}>{copy.original}</a>.
     </p>
   )}
   <p class="row">

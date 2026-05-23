@@ -15,19 +15,16 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { renderPublicMarkdown, type PublicMarkdownKind } from "../src/lib/public-markdown.ts";
+import { SEGMENT_OF } from "../src/lib/kinds.ts";
+import { LOCALES, type Locale } from "../src/lib/locales.ts";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CONTENT = join(REPO_ROOT, "src", "content");
-const DIST = join(REPO_ROOT, "dist");
 const CACHE_DIR = join(REPO_ROOT, ".cache", "bulk-archives");
 const MANIFEST = join(REPO_ROOT, "data", "bulk-archives.json");
 
-const KIND_DIRS: Record<PublicMarkdownKind, string> = {
-  book: "books",
-  poem: "poetry",
-  project: "projects",
-};
-const LANGS = ["ru", "en"] as const;
+const KIND_DIRS: Record<PublicMarkdownKind, string> = SEGMENT_OF;
+const LANGS = LOCALES;
 const ALL_FORMATS = ["md", "pdf", "epub"] as const;
 const DEFAULT_FORMATS = ["md"] as const;
 
@@ -35,7 +32,7 @@ type Format = typeof ALL_FORMATS[number];
 
 interface Entry {
   kind: PublicMarkdownKind;
-  lang: typeof LANGS[number];
+  lang: Locale;
   slug: string;
   mdPath: string;
   srcPath: string;
@@ -184,33 +181,6 @@ function buildManifest(formats: Format[]): number {
   return 0;
 }
 
-function publishToDist(): number {
-  if (!existsSync(DIST)) {
-    process.stderr.write("build_bulk_archives --publish: dist/ missing - run after astro build\n");
-    return 1;
-  }
-  if (!existsSync(MANIFEST)) {
-    process.stderr.write("build_bulk_archives --publish: data/bulk-archives.json missing - run without --publish first\n");
-    return 1;
-  }
-  const declared = JSON.parse(readFileSync(MANIFEST, "utf-8")).archives ?? [];
-  const names = declared.map((a: { name?: string }) => a.name).filter(Boolean).sort();
-  const outDir = join(DIST, "downloads");
-  mkdirSync(outDir, { recursive: true });
-  for (const name of names) {
-    const src = join(CACHE_DIR, name);
-    if (!existsSync(src)) {
-      process.stderr.write(`  missing in .cache/: ${name} - re-run without --publish first\n`);
-      return 1;
-    }
-    const dst = join(outDir, name);
-    copyFileSync(src, dst);
-    process.stdout.write(`  published  ${relative(REPO_ROOT, dst)}  (${humanBytes(statSync(dst).size)})\n`);
-  }
-  process.stdout.write(`\npublished ${names.length} archive(s) to ${relative(REPO_ROOT, outDir)}\n`);
-  return 0;
-}
-
 function parseFormats(raw: string): Format[] {
   const requested = raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
   const unknown = requested.filter((f) => !ALL_FORMATS.includes(f as Format));
@@ -222,7 +192,6 @@ function parseFormats(raw: string): Format[] {
 
 function main(): number {
   const args = process.argv.slice(2);
-  if (args.includes("--publish")) return publishToDist();
   const formatArg = args.find((arg) => arg.startsWith("--formats="));
   const formatIndex = args.indexOf("--formats");
   const rawFormats = formatArg

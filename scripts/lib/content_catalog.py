@@ -7,14 +7,13 @@ from typing import Any
 
 import yaml
 
+from lib.kinds import KIND_OF_SEGMENT, SEGMENT_OF
 
-KIND_DIRS = {
-    "book": "books",
-    "poem": "poetry",
-    "project": "projects",
-}
-
-DIR_KINDS = {v: k for k, v in KIND_DIRS.items()}
+# Work kind -> content-collection folder. The folder name equals the URL
+# segment, so this is the canonical SEGMENT_OF map under the name callers
+# (e.g. import_docx.py) already import.
+KIND_DIRS = SEGMENT_OF
+DIR_KINDS = KIND_OF_SEGMENT
 
 _FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n?", re.DOTALL)
 

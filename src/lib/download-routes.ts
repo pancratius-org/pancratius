@@ -18,7 +18,8 @@ export async function downloadStaticPaths(kind: WorkKind, locale: Locale) {
   }[] = [];
 
   for (const pair of pairs) {
-    const entry = locale === "en" ? pair.en : pair.ru;
+    // Existence: only emit download routes for locales that were authored.
+    const entry = pair.entries[locale];
     if (!entry) continue;
     for (const format of availableFormatsForWork(pair, locale)) {
       out.push({

@@ -2,6 +2,7 @@
 import type { Locale } from "@/lib/i18n";
 import type { WorkPair } from "@/lib/works";
 import { workUrl } from "@/lib/i18n";
+import { bookCardCopy } from "@/lib/copy";
 import { sameSitePath } from "@/lib/paths";
 import BookCover from "./BookCover.astro";
 
@@ -13,18 +14,19 @@ interface Props {
 }
 
 const { pairs, locale, label } = Astro.props;
-// Only show works that have an entry in the current locale — drops RU-only
-// books from /en/ rather than rendering them with Russian titles inside an
-// English flow.
+const altPrefix = bookCardCopy[locale].coverAltPrefix;
+// Only show works that have an entry in the current locale — drops works with
+// no translation from a non-default locale rather than rendering them with
+// default-locale titles inside that locale's flow.
 ---
 <section class="shelf" aria-label={label}>
   <div class="shelf__edge shelf__edge--left" aria-hidden="true"></div>
   <div class="shelf__rail">
     {pairs.map((pair, i) => {
-      const entry = locale === "en" ? pair.en : pair.ru;
+      // Existence: only show works authored in the current locale.
+      const entry = pair.entries[locale];
       if (!entry) return null;
       const href = sameSitePath(workUrl(pair.kind, entry.data.slug, locale));
-      const altPrefix = locale === "en" ? "Cover" : "Обложка";
       // The first shelf cover is the LCP element on the mobile homepage —
       // ship it eagerly so it isn't fetched after the browser hits the lazy
       // queue. The rest stay lazy.

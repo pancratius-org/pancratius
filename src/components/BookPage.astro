@@ -32,7 +32,8 @@ const FORMAT_LABEL: Record<DownloadFormat, string> = {
 };
 
 const { pair, locale } = Astro.props;
-const entry = locale === "en" ? pair.en : pair.ru;
+// Existence: this page only exists in `locale` if the locale was authored.
+const entry = pair.entries[locale];
 if (!entry) {
   throw new Error(`BookPage: no ${locale} entry for book #${pair.number}`);
 }
@@ -48,13 +49,14 @@ const backHref = kindIndexUrl("book", locale);
 const formats = availableFormatsForWork(pair, locale);
 
 const allBookPairs = await getPairsByKind("book");
-const pagerPairs = locale === "en" ? allBookPairs.filter(p => p.en !== null) : allBookPairs;
+// Existence: the pager only walks books that exist in the current locale.
+const pagerPairs = allBookPairs.filter(p => p.entries[locale]);
 const here = pagerPairs.findIndex(p => p.number === pair.number);
 const prev = here > 0 ? pagerPairs[here - 1] : null;
 const next = here >= 0 && here < pagerPairs.length - 1 ? pagerPairs[here + 1] : null;
 
 function localizedEntry(p: WorkPair): WorkEntry {
-  const localized = locale === "en" ? p.en : p.ru;
+  const localized = p.entries[locale];
   if (!localized) {
     throw new Error(`BookPage: pager included book #${p.number} without ${locale} entry`);
   }

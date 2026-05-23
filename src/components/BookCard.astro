@@ -1,7 +1,8 @@
 ---
 import type { Locale } from "@/lib/i18n";
-import type { WorkPair } from "@/lib/works";
-import { workUrl } from "@/lib/i18n";
+import { DEFAULT_LOCALE, LOCALES, workUrl } from "@/lib/i18n";
+import { entryForLocale, type WorkPair } from "@/lib/works";
+import { bookCardCopy } from "@/lib/copy";
 import { sameSitePath } from "@/lib/paths";
 import BookCover from "./BookCover.astro";
 
@@ -13,16 +14,23 @@ interface Props {
 }
 
 const { pair, locale, blurb } = Astro.props;
-// On EN pages, fall back to the RU surface when no EN translation exists. The
-// card still links somewhere real — to the RU page — and we mark the fallback
-// visibly so an EN reader isn't surprised by the language flip on click.
-const enFallback = locale === "en" && !pair.en;
-const display = enFallback ? pair.ru : (locale === "en" ? pair.en! : pair.ru);
-const linkLocale: Locale = enFallback ? "ru" : locale;
+const copy = bookCardCopy[locale];
+// Existence check drives the visible fallback: on a non-default-locale index,
+// when this work has no entry in the current locale, fall back to the default-
+// locale surface. The card still links somewhere real — to the default-locale
+// page — and marks the fallback visibly so a reader isn't surprised by the
+// language flip on click.
+const localeFallback = locale !== DEFAULT_LOCALE && !pair.entries[locale];
+// Display: entryForLocale gives the right surface (locale entry, else default).
+const display = entryForLocale(pair, locale);
+const linkLocale: Locale = localeFallback ? DEFAULT_LOCALE : locale;
 const href = sameSitePath(workUrl(pair.kind, display.data.slug, linkLocale));
 const tags = "tags" in display.data ? display.data.tags : [];
-const hasEnBadge = pair.en !== null && locale === "ru";
-const altPrefix = locale === "en" ? "Cover" : "Обложка";
+// On the default-locale index, badge works that also have a non-default
+// translation. (For RU+EN this is the "RU · EN" badge on /books/.)
+const hasTranslationBadge =
+  locale === DEFAULT_LOCALE && LOCALES.some(l => l !== DEFAULT_LOCALE && !!pair.entries[l]);
+const altPrefix = copy.coverAltPrefix;
 ---
 <a
   class="book"
@@ -37,8 +45,8 @@ const altPrefix = locale === "en" ? "Cover" : "Обложка";
     <span class="book__num">{String(pair.number).padStart(2, "0")}</span>
     <h2 class="book__title">{display.data.title}</h2>
     {blurb && <p class="book__annot">{blurb}</p>}
-    {hasEnBadge && <span class="book__lang">RU · EN</span>}
-    {enFallback && <span class="book__lang book__lang--fallback">Russian only</span>}
+    {hasTranslationBadge && <span class="book__lang">{copy.bothLangsBadge}</span>}
+    {localeFallback && <span class="book__lang book__lang--fallback">{copy.fallbackBadge}</span>}
   </div>
 </a>
 

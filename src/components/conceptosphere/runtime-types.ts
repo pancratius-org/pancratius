@@ -1,3 +1,5 @@
+import type { Locale } from "@/lib/i18n";
+
 import type { ConceptosphereStrings } from "./strings";
 
 export type ConceptosphereMode = "concepts" | "books";
@@ -6,7 +8,7 @@ export interface PageConfig {
   conceptsUrl: string;
   booksUrl: string;
   initialMode: ConceptosphereMode;
-  locale: "ru" | "en";
+  locale: Locale;
   modeCounts: Record<ConceptosphereMode, string>;
   /**
    * Per-book lookup keyed by the RU slug (the graph payload's identity).

@@ -1,4 +1,8 @@
-export type PublicMarkdownKind = "book" | "poem" | "project";
+// `.ts` extension is required because this module is also loaded by
+// `node --experimental-strip-types` via scripts/build_bulk_archives.ts.
+import { SEGMENT_OF, type WorkKind } from "./kinds.ts";
+
+export type PublicMarkdownKind = WorkKind;
 
 export interface PublicMarkdownWork {
   kind: PublicMarkdownKind;
@@ -6,11 +10,7 @@ export interface PublicMarkdownWork {
   isVerse?: boolean;
 }
 
-const WORK_SEGMENT: Record<PublicMarkdownKind, string> = {
-  book: "books",
-  poem: "poetry",
-  project: "projects",
-};
+const WORK_SEGMENT: Record<PublicMarkdownKind, string> = SEGMENT_OF;
 
 const DEFAULT_SITE_ORIGIN = "https://pancratius.ru";
 

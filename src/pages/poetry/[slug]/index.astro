@@ -5,29 +5,31 @@ import { render } from "astro:content";
 import Base     from "@/layouts/Base.astro";
 import Colophon from "@/components/Colophon.astro";
 
-import type { Locale } from "@/lib/i18n";
 import { coverAbsoluteUrl } from "@/lib/covers";
-import { downloadUrl, kindIndexUrl } from "@/lib/i18n";
+import { DEFAULT_LOCALE, downloadUrl, kindIndexUrl } from "@/lib/i18n";
 import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
 import { sameSitePath } from "@/lib/paths";
 import { seoForWork } from "@/lib/seo";
 import { getPairsByKind, poemDate, type WorkPair } from "@/lib/works";
 
-const locale: Locale = "ru";
+const locale = DEFAULT_LOCALE;
 
 export const getStaticPaths = (async () => {
   const pairs = await getPairsByKind("poem");
-  return pairs.map(p => ({ params: { slug: p.ru.data.slug }, props: { pair: p } }));
+  return pairs.map(p => ({
+    params: { slug: p.entries[DEFAULT_LOCALE]!.data.slug },
+    props: { pair: p },
+  }));
 }) satisfies GetStaticPaths;
 
 interface Props { pair: WorkPair; }
 const { pair } = Astro.props;
-const entry = pair.ru;
+const entry = pair.entries[DEFAULT_LOCALE]!;
 const { Content } = await render(entry);
 const coverUrl = await coverAbsoluteUrl(Astro.site, pair, locale);
 const seo = seoForWork(Astro.site, { pair, locale, coverUrl });
 const backHref = kindIndexUrl("poem", locale);
-const date = poemDate(pair.ru);
+const date = poemDate(entry);
 const formats = availableFormatsForWork(pair, locale);
 
 const FORMAT_LABEL: Record<DownloadFormat, string> = {

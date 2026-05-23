@@ -18,6 +18,9 @@ TARGET = ROOT / "public" / "pagefind"
 
 
 def main() -> None:
+    # Never delete the existing TARGET unless we have a SOURCE to replace it
+    # with: a missing SOURCE just means no production build has run yet, and
+    # wiping TARGET in that case would silently break local dev search.
     if not SOURCE.exists():
         print("pagefind dev sync: dist/pagefind not found; run `npm run build` once to enable local search")
         return

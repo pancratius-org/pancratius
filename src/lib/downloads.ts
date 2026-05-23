@@ -10,7 +10,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve as resolvePath } from "node:path";
 
-import type { Locale } from "./i18n";
+import { DEFAULT_LOCALE, type Locale } from "./i18n";
 import { workBundleKey } from "./body-images";
 import { flattenPublicMarkdown, renderPublicMarkdown } from "./public-markdown";
 import { COLLECTION_OF, type WorkEntry, type WorkPair } from "./works";
@@ -51,7 +51,9 @@ export function renderDownload(
   locale: Locale,
   format: DownloadFormat,
 ): DownloadResult {
-  const entry = locale === "en" ? pair.en : pair.ru;
+  // Existence: a download for this locale exists only if the locale was
+  // authored — never fall back to another locale's content.
+  const entry = pair.entries[locale];
   if (!entry) {
     throw new Error(`renderDownload: no ${locale} entry for ${pair.kind} #${pair.number}`);
   }
@@ -136,7 +138,7 @@ function renderPlainText(pair: WorkPair, entry: WorkEntry): Uint8Array {
 // ─────────────────────────────────────────────────────────────────────
 
 function workFolder(pair: WorkPair): string {
-  const folder = pair.ru.id.split("--")[0];
+  const folder = pair.entries[DEFAULT_LOCALE]!.id.split("--")[0];
   return resolvePath(CONTENT, COLLECTION_OF[pair.kind], folder);
 }
 

@@ -7,8 +7,8 @@ import { getPairsByKind } from "@/lib/works";
 export const getStaticPaths = (async () => {
   const pairs = await getPairsByKind("project");
   return pairs
-    .filter(p => p.en !== null)
-    .map(p => ({ params: { slug: p.en!.data.slug }, props: { pair: p } }));
+    .filter(p => p.entries.en)
+    .map(p => ({ params: { slug: p.entries.en!.data.slug }, props: { pair: p } }));
 }) satisfies GetStaticPaths;
 
 const { pair } = Astro.props;

@@ -9,8 +9,8 @@ interface Props {
 
 const { locale } = Astro.props;
 const pagefindPath = sameSitePath("/pagefind/pagefind.js");
-// `unavailable` is deliberately user-facing: in dev the Pagefind index may
-// not exist yet, and in production this reads as a temporary feature notice.
+// `unavailable` copy is user-facing: in dev the Pagefind index may not exist
+// until the first `npm run build`. Search itself is a production feature.
 const copy = pagefindSearchCopy[locale];
 ---
 <div class="pfs">

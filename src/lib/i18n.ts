@@ -5,16 +5,73 @@
 // keeps the trailing-slash contract and the "/en/ prefix on non-default
 // locale" rule in one place.
 
-export type Locale = "ru" | "en";
-export type WorkKind = "book" | "poem" | "project";
+import { SEGMENT_OF, type WorkKind } from "./kinds";
+import { LOCALES, DEFAULT_LOCALE, type Locale } from "./locales";
 
-export const LOCALES: readonly Locale[] = ["ru", "en"] as const;
-export const DEFAULT_LOCALE: Locale = "ru";
+// `WorkKind` lives in `./kinds` (the pure mapping module). Re-export it here so
+// the many existing `import { WorkKind } from "./i18n"` callers keep working.
+export type { WorkKind };
 
-const SEGMENT: Record<WorkKind, string> = {
-  book:    "books",
-  poem:    "poetry",
-  project: "projects",
+// `Locale`, `LOCALES`, and `DEFAULT_LOCALE` live in `./locales` (the pure
+// canonical locale list). Re-export them here so existing
+// `import { Locale, LOCALES, DEFAULT_LOCALE } from "./i18n"` callers keep
+// working and the registry below stays the obvious place to extend a locale.
+export type { Locale };
+export { LOCALES, DEFAULT_LOCALE };
+
+// ─────────────────────────────────────────────────────────────────────
+// Locale registry — the per-locale metadata table.
+//
+// The canonical locale *codes* and order, plus the default locale, live in
+// `./locales` (a pure module the config and content-config can import too).
+// This table hangs the per-locale metadata off that list: UI labels, long-form
+// names, URL prefixes, Open Graph locale codes, the site display name, and the
+// display fallback chain. Adding a third language is: add the code to `LOCALES`
+// in `./locales`, add one entry here, author the per-locale strings in the
+// various `Record<Locale, …>` copy dictionaries, and the route/SEO machinery
+// follows. (`Record<Locale, LocaleMeta>` makes a missing entry a type error.)
+// ─────────────────────────────────────────────────────────────────────
+
+export interface LocaleMeta {
+  /** Short label rendered in chrome (header nav, footer, switcher). */
+  label:    string;
+  /**
+   * Long-form locale names, by the locale they are *displayed in*. Read as
+   * `LOCALE_META[targetLocale].name[uiLocale]` for "the name of `target`,
+   * written in `ui`'s language".
+   */
+  name:     Record<Locale, string>;
+  /**
+   * URL prefix segment (no slashes). The default locale's prefix is "". Which
+   * locale is canonical is owned by `DEFAULT_LOCALE` in `./locales`, not by a
+   * flag here — `localizePath` reads this prefix per locale.
+   */
+  urlPrefix: string;
+  /** Open Graph `og:locale` code, e.g. "ru_RU". */
+  ogLocale:  string;
+  /** Display name of the site in this locale (EN never uses the Cyrillic spelling). */
+  siteLabel: string;
+  /** Locale to fall back to for derived display data when this one is absent. */
+  fallback:  Locale;
+}
+
+export const LOCALE_META: Record<Locale, LocaleMeta> = {
+  ru: {
+    label:     "RU",
+    name:      { ru: "Русский",     en: "Russian" },
+    urlPrefix: "",
+    ogLocale:  "ru_RU",
+    siteLabel: "Панкратиус",
+    fallback:  "ru",
+  },
+  en: {
+    label:     "EN",
+    name:      { ru: "Английский",  en: "English" },
+    urlPrefix: "en",
+    ogLocale:  "en_US",
+    siteLabel: "Pancratius",
+    fallback:  "ru",
+  },
 };
 
 /** Prefix a root-relative path with the locale segment, except for the default locale. */
@@ -22,18 +79,19 @@ export function localizePath(path: string, locale: Locale): string {
   if (!path.startsWith("/")) {
     throw new Error(`localizePath expects an absolute path, got ${JSON.stringify(path)}`);
   }
-  if (locale === DEFAULT_LOCALE) return path;
-  return `/${locale}${path}`;
+  const prefix = LOCALE_META[locale].urlPrefix;
+  if (!prefix) return path;
+  return `/${prefix}${path}`;
 }
 
 /** Canonical work URL for `(kind, slug)` in `locale`. Slug must be the per-language slug. */
 export function workUrl(kind: WorkKind, slug: string, locale: Locale): string {
-  return localizePath(`/${SEGMENT[kind]}/${slug}/`, locale);
+  return localizePath(`/${SEGMENT_OF[kind]}/${slug}/`, locale);
 }
 
 /** Canonical kind-index URL in `locale` (e.g. `/books/` or `/en/poetry/`). */
 export function kindIndexUrl(kind: WorkKind, locale: Locale): string {
-  return localizePath(`/${SEGMENT[kind]}/`, locale);
+  return localizePath(`/${SEGMENT_OF[kind]}/`, locale);
 }
 
 /** Canonical static-page URL. */
@@ -44,20 +102,20 @@ export function pageUrl(slug: string, locale: Locale): string {
 /** Canonical download endpoint URL for `(kind, slug, format)` in `locale`. */
 export function downloadUrl(kind: WorkKind, slug: string, format: string, locale: Locale): string {
   // Endpoint URLs end in the file extension, not in `/`.
-  const base = localizePath(`/${SEGMENT[kind]}/`, locale);
+  const base = localizePath(`/${SEGMENT_OF[kind]}/`, locale);
   return `${base}${slug}.${format}`;
 }
 
 /** Home URL for `locale`. */
 export function homeUrl(locale: Locale): string {
-  return locale === DEFAULT_LOCALE ? "/" : `/${locale}/`;
+  const prefix = LOCALE_META[locale].urlPrefix;
+  return prefix ? `/${prefix}/` : "/";
 }
 
-/** Names rendered in UI chrome (header nav, footer, switcher). */
-export const LOCALE_LABEL: Record<Locale, string> = {
-  ru: "RU",
-  en: "EN",
-};
+/** Names rendered in UI chrome (header nav, footer, switcher). Derived from the registry. */
+export const LOCALE_LABEL: Record<Locale, string> = Object.fromEntries(
+  LOCALES.map(loc => [loc, LOCALE_META[loc].label]),
+) as Record<Locale, string>;
 
 /**
  * Russian pluralization.
@@ -99,11 +157,17 @@ export function plRu(n: number, forms: RuPluralForms): string {
   return forms[2];
 }
 
-/** Long-form locale name for ARIA. Read as `LOCALE_NAME[uiLocale][targetLocale]`. */
-export const LOCALE_NAME: Record<Locale, Record<Locale, string>> = {
-  ru: { ru: "Русский", en: "Английский" },
-  en: { ru: "Russian", en: "English"    },
-};
+/**
+ * Long-form locale name for ARIA. Read as `LOCALE_NAME[uiLocale][targetLocale]`
+ * — "the name of `target`, written in `ui`'s language". Derived from the
+ * registry's per-target `name` records (which are keyed the other way round).
+ */
+export const LOCALE_NAME: Record<Locale, Record<Locale, string>> = Object.fromEntries(
+  LOCALES.map(ui => [
+    ui,
+    Object.fromEntries(LOCALES.map(target => [target, LOCALE_META[target].name[ui]])),
+  ]),
+) as Record<Locale, Record<Locale, string>>;
 
 export interface NavItem {
   /** Root-relative path that `localizePath` will prefix per locale. */

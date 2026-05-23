@@ -46,18 +46,22 @@ from typing import Any
 
 import yaml
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+_SCRIPT_DIR = Path(__file__).resolve().parent
+if str(_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+
+from lib.kinds import SEGMENT_OF  # noqa: E402  (after sys.path bootstrap)
+from lib.locales import DEFAULT_LOCALE, LOCALES  # noqa: E402  (after sys.path bootstrap)
+
+REPO_ROOT = _SCRIPT_DIR.parent
 CONTENT = REPO_ROOT / "src" / "content"
 OUTPUT = REPO_ROOT / "data" / "slug-map.json"
 
+# kind → (folder under src/content/, structural-noun URL segment). The folder
+# name and the URL segment are the same value, so both come from SEGMENT_OF.
 KIND_DIRS: dict[str, tuple[str, str]] = {
-    # collection name → (folder under src/content/, structural-noun URL segment)
-    "book":    ("books",    "books"),
-    "poem":    ("poetry",   "poetry"),
-    "project": ("projects", "projects"),
+    kind: (segment, segment) for kind, segment in SEGMENT_OF.items()
 }
-
-LOCALES = ("ru", "en")
 
 
 @dataclass(slots=True)
@@ -79,13 +83,13 @@ def _read_frontmatter(md: Path) -> dict[str, Any]:
 
 
 def _url(segment: str, slug: str, lang: str) -> str:
-    if lang == "ru":
+    if lang == DEFAULT_LOCALE:
         return f"/{segment}/{slug}/"
     return f"/{lang}/{segment}/{slug}/"
 
 
 def _page_url(slug: str, lang: str) -> str:
-    if lang == "ru":
+    if lang == DEFAULT_LOCALE:
         return f"/{slug}/"
     return f"/{lang}/{slug}/"
 
@@ -97,7 +101,7 @@ def _collect_works() -> tuple[list[WorkEntry], list[str]]:
         root = CONTENT / folder
         if not root.exists():
             continue
-        for md in sorted(root.glob("*/[re][un].md")):
+        for md in sorted(root.glob("*/*.md")):
             lang = md.stem
             if lang not in LOCALES:
                 continue
@@ -140,7 +144,7 @@ def _collect_pages() -> list[dict[str, Any]]:
     if not root.exists():
         return []
     bucket: dict[str, dict[str, str]] = {}
-    for md in sorted(root.glob("*/[re][un].md")):
+    for md in sorted(root.glob("*/*.md")):
         lang = md.stem
         if lang not in LOCALES:
             continue

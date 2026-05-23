@@ -8,30 +8,61 @@
 import { getCollection, type CollectionEntry } from "astro:content";
 
 import type { Locale, WorkKind } from "./i18n";
-import { workUrl } from "./i18n";
+import { DEFAULT_LOCALE, LOCALE_META, LOCALES, workUrl } from "./i18n";
+import { SEGMENT_OF } from "./kinds";
 
 export type WorkEntry =
   | CollectionEntry<"books">
   | CollectionEntry<"poetry">
   | CollectionEntry<"projects">;
 
-export const COLLECTION_OF: Record<WorkKind, "books" | "poetry" | "projects"> = {
-  book:    "books",
-  poem:    "poetry",
-  project: "projects",
-};
+/**
+ * Work kind → content collection name. These segments double as both the
+ * collection names and the URL segments, so this is just the canonical
+ * `SEGMENT_OF` map re-exported under the name route files already import.
+ */
+export const COLLECTION_OF = SEGMENT_OF;
 
 /**
- * A work and its translations, keyed by `(kind, number)`. Each language entry
- * is present only when that language file exists.
+ * A work and its translations, keyed by `(kind, number)`. Each locale entry is
+ * present in `entries` only when that locale's file exists; the default-locale
+ * entry is guaranteed to exist (enforced at build in `getAllWorkPairs`).
  */
 export interface WorkPair {
-  kind:   WorkKind;
-  number: number;
-  /** Canonical RU file — every work must have one. */
-  ru: WorkEntry;
-  /** Translation, if authored. */
-  en: WorkEntry | null;
+  kind:    WorkKind;
+  number:  number;
+  /** Authored entries keyed by locale. `entries[DEFAULT_LOCALE]` always exists. */
+  entries: Partial<Record<Locale, WorkEntry>>;
+}
+
+/**
+ * Display-fallback selector: the entry to render for `locale`, walking the
+ * registry's per-locale `fallback` chain (locale → LOCALE_META[locale].fallback
+ * → … → DEFAULT_LOCALE) until an authored entry is found. The chain always
+ * terminates because DEFAULT_LOCALE's fallback is itself; the visited-set guard
+ * also breaks any accidental cycle. `pair.entries[DEFAULT_LOCALE]` is
+ * guaranteed to exist (enforced in `getAllWorkPairs`), so this never returns
+ * undefined.
+ *
+ * USE FOR DERIVED DISPLAY DATA ONLY — cover resolution, cross-ref title
+ * display, JSON-LD. Do NOT use it to decide whether a route or download
+ * exists: those must read `pair.entries[locale]` directly so an `/en/…` page
+ * never renders default-locale content for a locale that wasn't authored.
+ */
+export function entryForLocale(pair: WorkPair, locale: Locale): WorkEntry {
+  const seen = new Set<Locale>();
+  let current: Locale = locale;
+  while (!seen.has(current)) {
+    const entry = pair.entries[current];
+    if (entry) return entry;
+    seen.add(current);
+    const next = LOCALE_META[current].fallback;
+    if (next === current) break;  // DEFAULT_LOCALE.fallback === DEFAULT_LOCALE
+    current = next;
+  }
+  // Chain exhausted without an authored entry — fall back to the canonical
+  // default-locale entry, which getAllWorkPairs guarantees exists.
+  return pair.entries[DEFAULT_LOCALE]!;
 }
 
 function workKey(entry: WorkEntry): string {
@@ -42,7 +73,7 @@ let _pairsCache: WorkPair[] | null = null;
 
 /**
  * All works in the corpus, paired across languages by `(kind, number)`.
- * Throws if any non-RU translation lacks a RU counterpart — the RU file is
+ * Throws if any work lacks a default-locale entry — the default-locale file is
  * the canonical anchor for every work.
  */
 export async function getAllWorkPairs(): Promise<WorkPair[]> {
@@ -55,7 +86,7 @@ export async function getAllWorkPairs(): Promise<WorkPair[]> {
   ]);
   const all: WorkEntry[] = [...books, ...poetry, ...projects];
 
-  const buckets = new Map<string, { ru?: WorkEntry; en?: WorkEntry }>();
+  const buckets = new Map<string, Partial<Record<Locale, WorkEntry>>>();
   for (const entry of all) {
     const key = workKey(entry);
     const bucket = buckets.get(key) ?? {};
@@ -64,15 +95,17 @@ export async function getAllWorkPairs(): Promise<WorkPair[]> {
   }
 
   const pairs: WorkPair[] = [];
-  for (const [key, { ru, en }] of buckets) {
-    if (!ru) {
-      throw new Error(`Work ${key} has translations but no RU canonical entry`);
+  for (const [key, entries] of buckets) {
+    const canonical = entries[DEFAULT_LOCALE];
+    if (!canonical) {
+      throw new Error(
+        `Work ${key} has translations but no ${DEFAULT_LOCALE} canonical entry`,
+      );
     }
     pairs.push({
-      kind:   ru.data.kind as WorkKind,
-      number: ru.data.number,
-      ru,
-      en: en ?? null,
+      kind:    canonical.data.kind as WorkKind,
+      number:  canonical.data.number,
+      entries,
     });
   }
 
@@ -106,7 +139,8 @@ export async function findEntryBySlug(
   const all = await getAllWorkPairs();
   for (const pair of all) {
     if (pair.kind !== kind) continue;
-    const entry = locale === "ru" ? pair.ru : pair.en;
+    // Existence: only match a slug authored *in this locale*.
+    const entry = pair.entries[locale];
     if (entry && entry.data.slug === slug) return entry;
   }
   return null;
@@ -125,7 +159,8 @@ export async function alternateLanguageEntry(
   if (entry.data.lang === target) return entry;
   const pair = await findPair(entry.data.kind as WorkKind, entry.data.number);
   if (!pair) return null;
-  return target === "ru" ? pair.ru : pair.en;
+  // Existence: the counterpart exists only if `target` was authored.
+  return pair.entries[target] ?? null;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -137,7 +172,10 @@ export async function alternateLanguageEntry(
 // We reject `/media/<hash>` shapes here so the rule has a single enforcement point.
 // ─────────────────────────────────────────────────────────────────────
 
-const ALLOWED_COVER_RE = /^\.\/cover\.(ru|en)\.(jpe?g|png|webp|avif|svg)$/i;
+const ALLOWED_COVER_RE = new RegExp(
+  `^\\./cover\\.(${LOCALES.join("|")})\\.(jpe?g|png|webp|avif|svg)$`,
+  "i",
+);
 
 export interface CoverRef {
   /** The relative path as it appears in frontmatter, e.g. `./cover.ru.jpg`. */
@@ -155,7 +193,7 @@ export function parseCoverRef(value: string | null | undefined): CoverRef | null
   if (!match) {
     throw new Error(
       `Cover path ${JSON.stringify(value)} violates asset-naming policy. ` +
-      `Expected ./cover.<ru|en>.<jpg|png|webp|avif> inside the work bundle.`,
+      `Expected ./cover.<${LOCALES.join("|")}>.<jpg|png|webp|avif> inside the work bundle.`,
     );
   }
   return {
@@ -166,22 +204,25 @@ export function parseCoverRef(value: string | null | undefined): CoverRef | null
 }
 
 /**
- * Resolve a cover for a `(kind, slug, locale)` triple, falling back to the RU
- * cover when the locale-specific one isn't authored or is a placeholder.
- * Returns null if no cover frontmatter exists at all (we treat that as "draw
- * an empty card with a subtle placeholder" in the UI).
+ * Resolve a cover for a `(kind, slug, locale)` triple, falling back to the
+ * default-locale cover when the locale-specific one isn't authored or is a
+ * placeholder. Returns null if no cover frontmatter exists at all (we treat
+ * that as "draw an empty card with a subtle placeholder" in the UI).
+ *
+ * This is DISPLAY data — the fallback to the default-locale cover is intended.
  *
  * `cover_is_placeholder: true` on an entry counts as "no real cover yet" and
- * triggers the RU fallback.
+ * triggers the default-locale fallback.
  */
 export async function resolveCover(pair: WorkPair, locale: Locale): Promise<CoverRef | null> {
-  const primary = locale === "en" ? pair.en : pair.ru;
+  const primary = pair.entries[locale];
   if (primary && primary.data.cover_is_placeholder !== true) {
     const ref = parseCoverRef(primary.data.cover);
     if (ref) return ref;
   }
-  if (locale === "en") {
-    const ref = parseCoverRef(pair.ru.data.cover);
+  if (locale !== DEFAULT_LOCALE) {
+    const fallback = pair.entries[DEFAULT_LOCALE];
+    const ref = parseCoverRef(fallback?.data.cover);
     if (ref) return ref;
   }
   return null;
@@ -218,7 +259,7 @@ export async function resolveCrossRefs(
         `cross_refs dangling reference from ${entry.id}: ${ref.target.kind} #${ref.target.number} not in corpus`,
       );
     }
-    const display = (locale === "en" ? pair.en : pair.ru) ?? pair.ru;
+    const display = entryForLocale(pair, locale);
     resolved.push({
       target:    pair,
       display,

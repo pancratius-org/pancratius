@@ -247,7 +247,9 @@ export async function getMergedSimilar(input: SimilarPickInput): Promise<Similar
     // the pick rather than emit a dead link to /en/books/<ru-slug>/.
     const pair = await findPair("book", neighborNode.number);
     if (!pair) continue;
-    const display = locale === "en" ? pair.en : pair.ru;
+    // Existence: skip the pick if the page doesn't exist in this locale rather
+    // than emit a dead link to /<locale>/books/<default-locale-slug>/.
+    const display = pair.entries[locale];
     if (!display) continue;
 
     const convergent =

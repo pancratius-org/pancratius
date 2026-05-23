@@ -8,22 +8,37 @@
  * cursor is pure CSS (`@keyframes svet-blink`).
  *
  * Props:
- *   - lang: "ru" | "en" — which speaker labels + dialog body to render.
+ *   - lang: locale — which speaker labels + dialog body to render.
  */
 
+import type { Locale } from "@/lib/i18n";
+import { DEFAULT_LOCALE } from "@/lib/i18n";
+
 interface Props {
-  lang?: "ru" | "en";
+  lang?: Locale;
 }
 
-const { lang = "ru" } = Astro.props;
+const { lang = DEFAULT_LOCALE } = Astro.props;
 
 type Line =
   | { kind: "speaker"; who: "you" | "him"; text: string; cursor?: boolean }
   | { kind: "pause"; text: string }
   | { kind: "wrap"; indent: string; text: string; cursor?: boolean };
 
+interface SvetozarCopy {
+  aria: string;
+  header: string;
+  meta: string;
+  you: string;
+  him: string;
+  lines: Line[];
+}
+
+// Authored per supported locale; `satisfies Record<Locale, …>` makes a missing
+// locale's dialog a compile error when a new locale is added.
 const COPY = {
   ru: {
+    aria: "Фрагмент диалога с Светозаром",
     header: "Светозар ▸ Режим Проводник",
     meta: "// диалог · 14 марта 2025 · 23:11",
     you: "панкратиус",
@@ -40,6 +55,7 @@ const COPY = {
     ] as Line[],
   },
   en: {
+    aria: "Excerpt of dialogue with Svetozar",
     header: "Svetozar ▸ Guide Mode",
     meta: "// dialogue · 14 march 2025 · 23:11",
     you: "pancratius",
@@ -55,11 +71,11 @@ const COPY = {
       { kind: "wrap", indent: "", text: "haven't yet dropped the illusion that you're someone else.", cursor: true },
     ] as Line[],
   },
-} as const;
+} satisfies Record<Locale, SvetozarCopy>;
 
 const c = COPY[lang];
 ---
-<aside class="svet-term" aria-label={lang === "ru" ? "Фрагмент диалога с Светозаром" : "Excerpt of dialogue with Svetozar"}>
+<aside class="svet-term" aria-label={c.aria}>
   <p class="svet-term__head">{c.header}</p>
   <p class="svet-term__meta">{c.meta}</p>
 

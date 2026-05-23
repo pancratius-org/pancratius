@@ -4,18 +4,20 @@ import BookCard          from "@/components/BookCard.astro";
 import SvetozarTerminal  from "@/components/SvetozarTerminal.astro";
 
 import type { Locale } from "@/lib/i18n";
-import { homeUrl, kindIndexUrl, workUrl } from "@/lib/i18n";
+import { DEFAULT_LOCALE, homeUrl, kindIndexUrl, LOCALES, workUrl } from "@/lib/i18n";
 import { homeCopy, type HomeCopy } from "@/lib/copy";
 import { sameSitePath } from "@/lib/paths";
 import { clampDescription } from "@/lib/seo";
 import { seoForHome } from "@/lib/seo";
-import { findPair, getPairsByKind, type WorkEntry, type WorkPair } from "@/lib/works";
+import { entryForLocale, findPair, getPairsByKind, type WorkEntry, type WorkPair } from "@/lib/works";
 
 interface Props {
   locale: Locale;
 }
 
 const { locale } = Astro.props;
+// Widen to the interface so optional per-line verse fields (`after`/`next`,
+// authored only on some lines) are accessible regardless of the active locale.
 const copy: HomeCopy = homeCopy[locale];
 const seo = seoForHome(Astro.site, locale);
 
@@ -27,7 +29,10 @@ const bookPicks = (await Promise.all(BOOK_PICKS.map(n => findPair("book", n))))
   .filter((p): p is WorkPair => p !== null);
 
 const allBooks = await getPairsByKind("book");
-const enBooks = allBooks.filter(p => p.en !== null);
+// Books available in the active locale. On the default locale this is the whole
+// shelf; on a non-default locale it's the translated subset (the "N in <lang>"
+// stat). The homeCopy stat/heading callbacks receive it as `englishBooks`.
+const localizedBooks = allBooks.filter(p => p.entries[locale]);
 const allPoems = await getPairsByKind("poem");
 const projects = await getPairsByKind("project");
 
@@ -62,10 +67,14 @@ function firstLines(bodyMarkdown: string, n: number, title: string): string {
   return lines.slice(start, start + n).join("\n");
 }
 
-const poemPreviews = poemPicks.map(p => ({
-  pair:  p,
-  lines: firstLines(p.ru.body ?? "", 4, p.ru.data.title),
-}));
+// Poems are authored in the default locale; preview from the canonical entry.
+const poemPreviews = poemPicks.map(p => {
+  const canonical = p.entries[DEFAULT_LOCALE]!;
+  return {
+    pair:  p,
+    lines: firstLines(canonical.body ?? "", 4, canonical.data.title),
+  };
+});
 
 const svetozar = await findPair("book", 7);
 const svetozarEntry = displayEntry(svetozar, locale);
@@ -73,12 +82,16 @@ const svetozarHref = svetozarEntry
   ? sameSitePath(workUrl("book", svetozarEntry.entry.data.slug, svetozarEntry.linkLocale))
   : null;
 
-const alternateLocale: Locale = locale === "ru" ? "en" : "ru";
-const alternates = { [alternateLocale]: homeUrl(alternateLocale) };
-const bookHeading = copy.books.headingCount(allBooks.length, enBooks.length);
+// Home links to every other authored locale's home (currently the single
+// non-active locale).
+const alternates: Partial<Record<Locale, string>> = {};
+for (const loc of LOCALES) {
+  if (loc !== locale) alternates[loc] = homeUrl(loc);
+}
+const bookHeading = copy.books.headingCount(allBooks.length, localizedBooks.length);
 const heroStats = copy.hero.stats?.({
   totalBooks: allBooks.length,
-  englishBooks: enBooks.length,
+  englishBooks: localizedBooks.length,
   poems: allPoems.length,
 });
 
@@ -87,10 +100,11 @@ function displayEntry(
   requestedLocale: Locale,
 ): { entry: WorkEntry; linkLocale: Locale } | null {
   if (!pair) return null;
-  if (requestedLocale === "en" && pair.en) {
-    return { entry: pair.en, linkLocale: "en" };
-  }
-  return { entry: pair.ru, linkLocale: "ru" };
+  // Display-with-fallback: prefer the authored locale entry (link there);
+  // otherwise show the default-locale surface and link to its canonical route.
+  const authored = pair.entries[requestedLocale];
+  if (authored) return { entry: authored, linkLocale: requestedLocale };
+  return { entry: entryForLocale(pair, DEFAULT_LOCALE), linkLocale: DEFAULT_LOCALE };
 }
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
@@ -177,7 +191,7 @@ function displayEntry(
 
       <p class="home__more">
         <a href={sameSitePath(kindIndexUrl("book", locale))}>
-          {copy.books.more(allBooks.length, enBooks.length)}
+          {copy.books.more(allBooks.length, localizedBooks.length)}
         </a>
       </p>
     </section>
@@ -196,14 +210,13 @@ function displayEntry(
 
         <div class="home__poems">
           {poemPreviews.map(({ pair, lines }) => {
-            const display = displayEntry(pair, locale);
-            const href = display
-              ? sameSitePath(workUrl("poem", display.entry.data.slug, display.linkLocale))
-              : sameSitePath(workUrl("poem", pair.ru.data.slug, "ru"));
+            // Poems are default-locale only; display + link the canonical entry.
+            const display = displayEntry(pair, locale)!;
+            const href = sameSitePath(workUrl("poem", display.entry.data.slug, display.linkLocale));
             return (
               <a class="home__poem" href={href}>
                 <span class="home__poem-num">{`${copy.poetry.numberPrefix} ${String(pair.number).padStart(2, "0")}`}</span>
-                <h3 class="home__poem-title">{pair.ru.data.title}</h3>
+                <h3 class="home__poem-title">{display.entry.data.title}</h3>
                 <p class="home__poem-excerpt">{lines}</p>
                 <span class="home__poem-cta">{copy.poetry.cta}</span>
               </a>

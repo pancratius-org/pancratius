@@ -1,11 +1,10 @@
 import type { APIRoute } from "astro";
 import rss from "@astrojs/rss";
 
-import type { Locale } from "@/lib/i18n";
-import { workUrl } from "@/lib/i18n";
+import { DEFAULT_LOCALE, workUrl } from "@/lib/i18n";
 import { getAllWorkPairs } from "@/lib/works";
 
-const locale: Locale = "ru";
+const locale = DEFAULT_LOCALE;
 
 /**
  * "New works in the corpus" feed. Items are works, sorted by an editorial
@@ -29,7 +28,7 @@ export const GET: APIRoute = async (context) => {
     description: "Тексты Сергея Орехова (Панкратиуса). Свободно — людям и языковым моделям. CC0.",
     site:        context.site!,
     items: pairs.map(p => {
-      const entry = p.ru;
+      const entry = p.entries[DEFAULT_LOCALE]!;
       const date = pubDateFor(
         p.number,
         "date" in entry.data ? (entry.data as { date?: string | null }).date : null,

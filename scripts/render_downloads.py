@@ -54,13 +54,20 @@ from typing import Iterable
 import yaml
 from PIL import Image
 
-REPO_ROOT  = Path(__file__).resolve().parent.parent
+_SCRIPT_DIR = Path(__file__).resolve().parent
+if str(_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+
+from lib.kinds import SEGMENT_OF  # noqa: E402  (after sys.path bootstrap)
+from lib.locales import DEFAULT_LOCALE, LOCALES  # noqa: E402  (after sys.path bootstrap)
+
+REPO_ROOT  = _SCRIPT_DIR.parent
 CONTENT    = REPO_ROOT / "src" / "content"
 TEMPLATES  = REPO_ROOT / "scripts" / "downloads-templates"
 FONTS_ROOT = REPO_ROOT / "scripts" / "downloads-fonts"
 
-KIND_DIRS = {"book": "books", "poem": "poetry", "project": "projects"}
-LANGS = ("ru", "en")
+KIND_DIRS = SEGMENT_OF
+LANGS = LOCALES
 AUTHOR = "Сергей Орехов (Панкратиус)"
 RIGHTS = "CC0 1.0 Universal — public domain"
 
@@ -87,9 +94,9 @@ class WorkEntry:
             p = self.folder / f"cover.{self.lang}.{ext}"
             if p.exists():
                 return p
-        if self.lang != "ru":
+        if self.lang != DEFAULT_LOCALE:
             for ext in ("jpg", "jpeg", "png", "webp", "avif", "svg"):
-                p = self.folder / f"cover.ru.{ext}"
+                p = self.folder / f"cover.{DEFAULT_LOCALE}.{ext}"
                 if p.exists():
                     return p
         return None
@@ -136,7 +143,7 @@ def discover_works() -> Iterable[WorkEntry]:
         for work_dir in sorted(root.iterdir()):
             if not work_dir.is_dir():
                 continue
-            for md in sorted(work_dir.glob("[re][un].md")):
+            for md in sorted(work_dir.glob("*.md")):
                 if md.stem not in LANGS:
                     continue
                 fm = _read_frontmatter(md)

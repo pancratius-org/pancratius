@@ -6,6 +6,14 @@ import sitemap from "@astrojs/sitemap";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeSlug from "rehype-slug";
 
+// Canonical segment → kind map. `./src/lib/kinds.ts` is pure TS (no
+// `astro:content` import) precisely so this config can import it.
+import { KIND_OF_SEGMENT, SEGMENT_OF } from "./src/lib/kinds.ts";
+
+// Canonical locale list + default. `./src/lib/locales.ts` is pure TS (same
+// reason as kinds) so the i18n config and the URL grammar below derive from it.
+import { LOCALES, DEFAULT_LOCALE } from "./src/lib/locales.ts";
+
 // Deploy target selection. Canonical home is the primary static hosting
 // deploy; the GitHub Pages mirror lives at https://<owner>.github.io/<repo>/
 // and needs a base prefix so asset URLs resolve correctly. CI sets
@@ -66,38 +74,58 @@ if (slugMap) {
   }
 }
 
-const SEGMENT_TO_KIND: Record<string, "book" | "poem" | "project"> = {
-  books:    "book",
-  poetry:   "poem",
-  projects: "project",
-};
+// URL grammar derived from the SSOTs. The locale prefix alternation lists the
+// non-default locales (the default locale is unprefixed); the work-segment
+// alternation lists the structural-noun segments from `SEGMENT_OF`. Values are
+// regex-escaped so an exotic locale/segment token can't break the pattern.
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const NON_DEFAULT_LOCALES = LOCALES.filter((l) => l !== DEFAULT_LOCALE);
+const LOCALE_PREFIX = NON_DEFAULT_LOCALES.map(escapeRe).join("|");        // e.g. "en"
+const WORK_SEGMENTS = Object.values(SEGMENT_OF).map(escapeRe).join("|");  // e.g. "books|poetry|projects"
 
-const WORK_RE = /^(?:\/(en))?\/(books|poetry|projects)\/([^/]+)\/?$/;
-const PAGE_RE = /^(?:\/(en))?\/([^/]+)\/?$/;
+const WORK_RE = new RegExp(`^(?:\\/(${LOCALE_PREFIX}))?\\/(${WORK_SEGMENTS})\\/([^/]+)\\/?$`);
+const PAGE_RE = new RegExp(`^(?:\\/(${LOCALE_PREFIX}))?\\/([^/]+)\\/?$`);
+
+// Prefix a default-locale (root-relative, leading-slash) path with a locale
+// segment, except for the default locale. Mirror of `localizePath` in
+// `src/lib/i18n.ts`; kept local so this config stays decoupled from the chrome
+// registry while still deriving prefixes from the locale SSOT. NOTE: this uses
+// the locale code directly as the URL prefix. It matches `localizePath` only
+// while every non-default locale's `LOCALE_META.urlPrefix === its code`; if a
+// future locale sets a divergent `urlPrefix`, teach this mirror to consult it.
+function localizeStructuralPath(defaultPath: string, locale: string): string {
+  if (locale === DEFAULT_LOCALE) return defaultPath;
+  return `/${locale}${defaultPath}`;
+}
 
 // Structural routes that exist in every locale and are not in the `pages`
 // collection (no authored Markdown). Keep this list concrete: a route belongs
-// here only when both localized pages are real pages with matching intent.
-const STRUCTURAL_BOTH_LOCALES: readonly { ru: string; en: string }[] = [
-  { ru: "/",               en: "/en/" },
-  { ru: "/books/",         en: "/en/books/" },
-  { ru: "/poetry/",        en: "/en/poetry/" },
-  { ru: "/projects/",      en: "/en/projects/" },
-  { ru: "/conceptosphere/", en: "/en/conceptosphere/" },
-  { ru: "/search/",        en: "/en/search/" },
+// here only when its localized variants are real pages with matching intent.
+// Stored as default-locale root-relative paths; the per-locale URLs are derived
+// from the locale list so a third locale needs no edits here.
+const STRUCTURAL_PATHS: readonly string[] = [
+  "/",
+  "/books/",
+  "/poetry/",
+  "/projects/",
+  "/conceptosphere/",
+  "/search/",
 ];
 
-const structuralByPath = new Map<string, { ru: string; en: string }>();
-for (const pair of STRUCTURAL_BOTH_LOCALES) {
-  structuralByPath.set(pair.ru, pair);
-  structuralByPath.set(pair.en, pair);
+// Map any localized variant of a structural path back to its canonical
+// (default-locale) form, so we can regenerate the full alternate set from it.
+const structuralByPath = new Map<string, string>();
+for (const defaultPath of STRUCTURAL_PATHS) {
+  for (const loc of LOCALES) {
+    structuralByPath.set(localizeStructuralPath(defaultPath, loc), defaultPath);
+  }
 }
 
 function withXDefault(links: { lang: string; url: string }[]): { lang: string; url: string }[] {
-  // Match page-level <head> behaviour: append x-default → RU canonical.
-  const ru = links.find(l => l.lang === "ru");
-  if (!ru) return links;
-  return [...links, { lang: "x-default", url: ru.url }];
+  // Match page-level <head> behaviour: append x-default → default-locale canonical.
+  const canonical = links.find(l => l.lang === DEFAULT_LOCALE);
+  if (!canonical) return links;
+  return [...links, { lang: "x-default", url: canonical.url }];
 }
 
 function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }[] | null {
@@ -108,10 +136,10 @@ function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }
     pathname = "/" + pathname.slice(base.length).replace(/^\/+/, "");
   }
 
-  const structural = structuralByPath.get(pathname);
-  if (structural) {
-    const links = (["ru", "en"] as const).map((l) => {
-      const urlPath = structural[l];
+  const structuralDefaultPath = structuralByPath.get(pathname);
+  if (structuralDefaultPath) {
+    const links = LOCALES.map((l) => {
+      const urlPath = localizeStructuralPath(structuralDefaultPath, l);
       const path = base ? base.replace(/\/$/, "") + urlPath : urlPath;
       return { lang: l, url: new URL(path, url.origin).toString() };
     });
@@ -120,8 +148,8 @@ function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }
 
   const mWork = pathname.match(WORK_RE);
   if (mWork) {
-    const lang = mWork[1] ?? "ru";
-    const kind = SEGMENT_TO_KIND[mWork[2]];
+    const lang = mWork[1] ?? DEFAULT_LOCALE;
+    const kind = KIND_OF_SEGMENT[mWork[2]];
     const slug = mWork[3];
     const w = worksByLangSlug.get(`${kind}:${lang}:${slug}`);
     if (!w) return null;
@@ -133,9 +161,9 @@ function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }
   }
 
   const mPage = pathname.match(PAGE_RE);
-  if (mPage && SEGMENT_TO_KIND[mPage[2]] === undefined) {
+  if (mPage && KIND_OF_SEGMENT[mPage[2]] === undefined) {
     const slug = mPage[2];
-    const lang = mPage[1] ?? "ru";
+    const lang = mPage[1] ?? DEFAULT_LOCALE;
     const p = pagesByLangSlug.get(`${lang}:${slug}`);
     if (!p) return null;
     const links = Object.entries(p.languages).map(([l, urlPath]) => {
@@ -169,8 +197,8 @@ export default defineConfig({
     }),
   ],
   i18n: {
-    defaultLocale: "ru",
-    locales: ["ru", "en"],
+    defaultLocale: DEFAULT_LOCALE,
+    locales: [...LOCALES],
     routing: {
       prefixDefaultLocale: false,
     },

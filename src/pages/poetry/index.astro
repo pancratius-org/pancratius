@@ -1,15 +1,21 @@
 ---
 import Base from "@/layouts/Base.astro";
-import type { Locale } from "@/lib/i18n";
-import { workUrl, kindIndexUrl, plRu, RU_PLURALS } from "@/lib/i18n";
+import { DEFAULT_LOCALE, LOCALES, type Locale, workUrl, kindIndexUrl, plRu, RU_PLURALS } from "@/lib/i18n";
+import { formatMonthYear, poetryIndexCopy } from "@/lib/copy";
 import { sameSitePath } from "@/lib/paths";
 import { seoForKindIndex } from "@/lib/seo";
 import { getPairsByKind, poemDate } from "@/lib/works";
 
-const locale: Locale = "ru";
+const locale = DEFAULT_LOCALE;
+const copy = poetryIndexCopy[locale];
 const pairs = await getPairsByKind("poem");
 const seo = seoForKindIndex(Astro.site, "poem", locale);
-const alternates = { en: kindIndexUrl("poem", "en") };
+const alternates: Partial<Record<Locale, string>> = {};
+for (const loc of LOCALES) {
+  if (loc !== locale) alternates[loc] = kindIndexUrl("poem", loc);
+}
+
+const canonical = (p: typeof pairs[number]) => p.entries[DEFAULT_LOCALE]!;
 
 // Read the first stanza from the collection entry body. Skip a leading
 // title-shaped line so the hero excerpt is real verse, not the title twice.
@@ -41,59 +47,49 @@ const normTitle = (s: string) =>
 let heroPair = pairs[0];
 let heroStanza = "";
 for (const p of pairs) {
-  const stanza = firstStanza(p.ru.body ?? "", p.ru.data.title);
+  const e = canonical(p);
+  const stanza = firstStanza(e.body ?? "", e.data.title);
   if (!stanza) continue;
   const firstLine = stanza.split(/\n/, 1)[0] ?? "";
-  if (normTitle(firstLine) !== normTitle(p.ru.data.title)) {
+  if (normTitle(firstLine) !== normTitle(e.data.title)) {
     heroPair = p;
     heroStanza = stanza;
     break;
   }
 }
 if (!heroStanza && heroPair) {
-  heroStanza = firstStanza(heroPair.ru.body ?? "", heroPair.ru.data.title);
-}
-
-const MONTHS_RU = [
-  "янв.", "фев.", "мар.", "апр.", "мая", "июня",
-  "июля", "авг.", "сент.", "окт.", "нояб.", "дек.",
-];
-function formatPoemDate(iso: string): string {
-  // Expect ISO date like 2025-09-30; render as "сент. 2025".
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-  if (!m) return iso;
-  const month = parseInt(m[2], 10);
-  if (month >= 1 && month <= 12) return `${MONTHS_RU[month - 1]} ${m[1]}`;
-  return m[1];
+  const e = canonical(heroPair);
+  heroStanza = firstStanza(e.body ?? "", e.data.title);
 }
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
   <section class="page poetry-index">
-    <p class="eyebrow eyebrow--lg">Псалмы наших дней</p>
+    <p class="eyebrow eyebrow--lg">{copy.eyebrow}</p>
     <div class="poetry-index__head">
       <h1><b>{pairs.length}</b> {plRu(pairs.length, RU_PLURALS.poem)}</h1>
-      <p class="poetry-index__intro">Тексты, не оторванные от молитвы. Стихи, рождённые в&nbsp;тишине.</p>
+      <p class="poetry-index__intro">{copy.intro}</p>
     </div>
 
     {heroPair && heroStanza && (
-      <a class="poetry-hero" href={sameSitePath(workUrl("poem", heroPair.ru.data.slug, locale))}>
+      <a class="poetry-hero" href={sameSitePath(workUrl("poem", canonical(heroPair).data.slug, locale))}>
         <p class="poetry-hero__stanza">{heroStanza}</p>
         <p class="poetry-hero__attr">
-          ← Стихотворение №{String(heroPair.number).padStart(2, "0")} «{heroPair.ru.data.title}»
+          {copy.heroAttrPrefix}{String(heroPair.number).padStart(2, "0")} «{canonical(heroPair).data.title}»
         </p>
       </a>
     )}
 
     <ol class="poems">
       {pairs.map(p => {
-        const date = poemDate(p.ru);
+        const e = canonical(p);
+        const date = poemDate(e);
         return (
           <li>
-            <a href={sameSitePath(workUrl("poem", p.ru.data.slug, "ru"))}>
+            <a href={sameSitePath(workUrl("poem", e.data.slug, locale))}>
               <span class="poems__num">{String(p.number).padStart(2, "0")}</span>
-              <span class="poems__title">{p.ru.data.title}</span>
+              <span class="poems__title">{e.data.title}</span>
               {date && (
-                <time class="poems__date" datetime={date}>{formatPoemDate(date)}</time>
+                <time class="poems__date" datetime={date}>{formatMonthYear(date, copy.months)}</time>
               )}
             </a>
           </li>

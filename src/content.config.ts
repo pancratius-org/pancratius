@@ -2,7 +2,19 @@ import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
 
-const lang = z.enum(["ru", "en"]);
+// Canonical locale list. `./lib/locales.ts` is pure TS (no `astro:content`
+// import) precisely so this config can import it.
+import { LOCALES } from "./lib/locales";
+
+// `z.enum` accepts the readonly `as const` tuple directly and preserves the
+// literal union (`"ru" | "en"`), so `data.lang` stays a `Locale`, not `string`.
+// A third locale flows in from `./lib/locales.ts` with no edit here.
+const lang = z.enum(LOCALES);
+
+// Locale file names inside a work/page bundle (`ru.md`, `en.md`, …), derived
+// from the locale SSOT so a new locale's `<lang>.md` is discovered rather than
+// rejected by a hardcoded `(ru|en)` pattern.
+const LOCALE_FILE_RE = new RegExp(`^(.+?)/(${LOCALES.join("|")})\\.md$`);
 const asciiSlug = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, {
   message: "slug must be lowercase ASCII letters, digits, and hyphens",
 });
@@ -50,7 +62,7 @@ const baseWorkFields = {
 
 const workEntryId = (kind: "book" | "poem" | "project") =>
   ({ entry }: { entry: string }) => {
-    const m = entry.match(/^(.+?)\/(ru|en)\.md$/);
+    const m = entry.match(LOCALE_FILE_RE);
     if (!m) throw new Error(`Unexpected ${kind} path: ${entry}`);
     return `${m[1]}--${m[2]}`;
   };
@@ -115,7 +127,7 @@ const pages = defineCollection({
     pattern: "**/*.md",
     base: "./src/content/pages",
     generateId: ({ entry }) => {
-      const m = entry.match(/^(.+?)\/(ru|en)\.md$/);
+      const m = entry.match(LOCALE_FILE_RE);
       if (!m) throw new Error(`Unexpected page path: ${entry}`);
       return `${m[1]}--${m[2]}`;
     },

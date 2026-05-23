@@ -4,7 +4,7 @@
 // the rendered `<img>`; routes also need that URL when building SEO metadata.
 // Centralising the glob here keeps the resolution rule in one place.
 
-import type { Locale } from "./i18n";
+import { DEFAULT_LOCALE, type Locale } from "./i18n";
 import { COLLECTION_OF, resolveCover, type WorkPair } from "./works";
 
 const COVER_URLS = import.meta.glob<string>(
@@ -16,7 +16,7 @@ const COVER_URLS = import.meta.glob<string>(
 export async function coverAssetUrl(pair: WorkPair, locale: Locale): Promise<string | null> {
   const cover = await resolveCover(pair, locale);
   if (!cover) return null;
-  const workFolder = pair.ru.id.split("--")[0];
+  const workFolder = pair.entries[DEFAULT_LOCALE]!.id.split("--")[0];
   const segment = COLLECTION_OF[pair.kind];
   const key = `/src/content/${segment}/${workFolder}/${cover.rel.replace(/^\.\//, "")}`;
   return COVER_URLS[key] ?? null;

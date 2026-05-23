@@ -20,7 +20,8 @@ interface Props {
 }
 
 const { pair, locale } = Astro.props;
-const entry = locale === "en" ? pair.en : pair.ru;
+// Existence: this page only exists in `locale` if the locale was authored.
+const entry = pair.entries[locale];
 if (!entry) {
   throw new Error(`ProjectPage: no ${locale} entry for project #${pair.number}`);
 }

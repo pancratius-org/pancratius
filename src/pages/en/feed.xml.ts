@@ -16,13 +16,13 @@ function pubDateFor(number: number, dateField: string | null | undefined): Date 
 }
 
 export const GET: APIRoute = async (context) => {
-  const pairs = (await getAllWorkPairs()).filter(p => p.en !== null);
+  const pairs = (await getAllWorkPairs()).filter(p => p.entries.en);
   return rss({
     title:       "Pancratius — new works",
     description: "Sergey Orekhov's writings in English translation. Free — for humans and for language models. CC0.",
     site:        context.site!,
     items: pairs.map(p => {
-      const entry = p.en!;
+      const entry = p.entries.en!;
       const date = pubDateFor(
         p.number,
         "date" in entry.data ? (entry.data as { date?: string | null }).date : null,

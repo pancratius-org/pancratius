@@ -6,7 +6,7 @@
 
 import { coverAssetUrl } from "@/lib/covers";
 import { loadBooksGraph, loadConceptsGraph } from "@/lib/conceptosphere";
-import { kindIndexUrl, workUrl, type Locale } from "@/lib/i18n";
+import { DEFAULT_LOCALE, kindIndexUrl, workUrl, type Locale } from "@/lib/i18n";
 import { sameSitePath } from "@/lib/paths";
 import { findPair } from "@/lib/works";
 
@@ -89,10 +89,11 @@ export async function loadConceptospherePageData(
     if (!node) continue;
 
     const pair = await findPair("book", node.number);
-    const display = locale === "en"
-      ? (pair?.en ?? pair?.ru ?? null)
-      : (pair?.ru ?? null);
-    const linkLocale: Locale = display === pair?.en ? "en" : "ru";
+    // Display-with-fallback: prefer the entry authored in the active locale;
+    // otherwise fall back to the default-locale entry and link to its route.
+    const authored = pair?.entries[locale] ?? null;
+    const display = authored ?? pair?.entries[DEFAULT_LOCALE] ?? null;
+    const linkLocale: Locale = authored ? locale : DEFAULT_LOCALE;
     const linkSlug = display?.data.slug ?? node.slug;
     const title = display?.data.title ?? node.title;
 
@@ -118,7 +119,7 @@ export async function loadConceptospherePageData(
       title,
       community: node.community,
       tags: node.tags ?? [],
-      href: info?.href ?? sameSitePath(workUrl("book", node.slug, "ru")),
+      href: info?.href ?? sameSitePath(workUrl("book", node.slug, DEFAULT_LOCALE)),
       coverUrl: coverUrls[`book:${node.slug}`] ?? null,
       topConcepts: displayedConcepts,
       searchHay: [
@@ -137,7 +138,7 @@ export async function loadConceptospherePageData(
     const topBooks = top.map((b) => ({
       slug: b.slug,
       title: bookSlugInfo[b.slug]?.title ?? b.title,
-      href: bookSlugInfo[b.slug]?.href ?? sameSitePath(workUrl("book", b.slug, "ru")),
+      href: bookSlugInfo[b.slug]?.href ?? sameSitePath(workUrl("book", b.slug, DEFAULT_LOCALE)),
     }));
     const topBookTitles = new Set([...top.map((b) => b.title), ...topBooks.map((b) => b.title)]);
     return {

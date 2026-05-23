@@ -1,5 +1,7 @@
 import type Graph from "graphology";
 
+import { localizePath } from "@/lib/i18n";
+
 import type { BookSimilarRef, PageConfig, SimilarRef } from "./runtime-types";
 
 interface PanelContext {
@@ -174,7 +176,7 @@ function isBookSimilar(ref: SimilarRef): ref is BookSimilarRef {
 }
 
 function bookHrefFromCfg(slug: string | undefined | null, cfg: PageConfig): string {
-  if (!slug) return cfg.locale === "en" ? "/en/books/" : "/books/";
+  if (!slug) return localizePath("/books/", cfg.locale);
   const info = cfg.bookSlugInfo[slug];
   if (info?.href) return info.href;
   const clean = encodeURIComponent(String(slug).trim().replace(/^\/+|\/+$/g, "")).replace(/\./g, "%2E");

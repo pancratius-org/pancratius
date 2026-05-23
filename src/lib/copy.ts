@@ -305,6 +305,28 @@ export const libraryFilterCopy = {
   },
 } satisfies Record<Locale, LibraryFilterCopy>;
 
+export interface BookCardCopy {
+  /** Prefix for the cover image alt text, e.g. "Cover" / "Обложка". */
+  coverAltPrefix: string;
+  /** Badge shown on the default-locale index when a translation also exists. */
+  bothLangsBadge: string;
+  /** Badge shown on a non-default index when only the default-locale work exists. */
+  fallbackBadge: string;
+}
+
+export const bookCardCopy = {
+  ru: {
+    coverAltPrefix: "Обложка",
+    bothLangsBadge: "RU · EN",
+    fallbackBadge:  "Russian only",
+  },
+  en: {
+    coverAltPrefix: "Cover",
+    bothLangsBadge: "RU · EN",
+    fallbackBadge:  "Russian only",
+  },
+} satisfies Record<Locale, BookCardCopy>;
+
 export interface BooksIndexCopy {
   eyebrow: string;
   headingLabel(count: number): string;
@@ -532,6 +554,83 @@ export const bookPageCopy = {
     pagerAria: "Other books",
   },
 } satisfies Record<Locale, BookPageCopy>;
+
+export interface NotFoundCopy {
+  title:       string;
+  description: string;
+  eyebrow:     string;
+  heading:     string;
+  body:        string;
+  toHome:      string;
+  toBooks:     string;
+  toSearch:    string;
+}
+
+export const notFoundCopy = {
+  ru: {
+    title:       "Не найдено — Панкратиус",
+    description: "Страница не найдена. Возможно, ссылка устарела.",
+    eyebrow:     "404",
+    heading:     "Тишина.",
+    body:        "Этой страницы здесь нет. Возможно, ссылка устарела.",
+    toHome:      "К началу",
+    toBooks:     "К книгам",
+    toSearch:    "Поиск",
+  },
+  en: {
+    title:       "Not found — Pancratius",
+    description: "Page not found. The link may be out of date.",
+    eyebrow:     "404",
+    heading:     "Silence.",
+    body:        "This page isn't here. The link may be out of date.",
+    toHome:      "Home",
+    toBooks:     "Books",
+    toSearch:    "Search",
+  },
+} satisfies Record<Locale, NotFoundCopy>;
+
+export interface PoetryIndexCopy {
+  eyebrow:        string;
+  intro:          string;
+  /** Hero attribution prefix, e.g. "← Стихотворение №" / "← Poem No.". */
+  heroAttrPrefix: string;
+  /** Month abbreviations for "<month> <year>" date formatting (index 0 = January). */
+  months:         readonly string[];
+}
+
+export const poetryIndexCopy = {
+  ru: {
+    eyebrow:        "Псалмы наших дней",
+    intro:          "Тексты, не оторванные от молитвы. Стихи, рождённые в тишине.",
+    heroAttrPrefix: "← Стихотворение №",
+    months: [
+      "янв.", "фев.", "мар.", "апр.", "мая", "июня",
+      "июля", "авг.", "сент.", "окт.", "нояб.", "дек.",
+    ],
+  },
+  en: {
+    eyebrow:        "Psalms of our days",
+    intro:          "Texts never severed from prayer. Verse born in silence.",
+    heroAttrPrefix: "← Poem No.",
+    months: [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ],
+  },
+} satisfies Record<Locale, PoetryIndexCopy>;
+
+/**
+ * Format an ISO date (`2025-09-30`) as "<month> <year>" using the locale's
+ * month abbreviations. Falls back to the raw year (or the input) when the date
+ * can't be parsed. Keeps Russian month names off `/en/` pages.
+ */
+export function formatMonthYear(iso: string, months: readonly string[]): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return iso;
+  const month = parseInt(m[2], 10);
+  if (month >= 1 && month <= 12) return `${months[month - 1]} ${m[1]}`;
+  return m[1];
+}
 
 export interface ProjectPageCopy {
   back: string;
