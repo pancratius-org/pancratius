@@ -1,0 +1,28 @@
+---
+import type { GetStaticPaths } from "astro";
+
+import BookPage from "@/components/BookPage.astro";
+import { getPairsByKind, entryForLocale } from "@/lib/works";
+
+// CORRECT: existence is gated on the authored EN entry; params come from that
+// entry. `entryForLocale` is used here ONLY for DISPLAY props — both forms:
+//   - directly in a `props:` value, and
+//   - via `const display = entryForLocale(...)` referenced only in `props:`.
+// The display-fallback value never reaches `params` or a `.filter`, so PAN002
+// must stay SILENT. (Regression test for the over-broad false positive.)
+export const getStaticPaths = (async () => {
+  const pairs = await getPairsByKind("book");
+  return pairs
+    .filter(p => p.entries.en)
+    .map(p => {
+      const display = entryForLocale(p, "en");
+      return {
+        params: { slug: p.entries.en!.data.slug },
+        props: { pair: p, display, inline: entryForLocale(p, "en") },
+      };
+    });
+}) satisfies GetStaticPaths;
+
+const { pair, display } = Astro.props;
+---
+<BookPage pair={pair} display={display} locale="en" />

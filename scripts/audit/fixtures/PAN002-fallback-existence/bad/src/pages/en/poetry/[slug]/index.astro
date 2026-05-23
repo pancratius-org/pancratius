@@ -1,0 +1,20 @@
+---
+import type { GetStaticPaths } from "astro";
+
+import PoemPage from "@/components/PoemPage.astro";
+import { getPairsByKind, entryForLocale } from "@/lib/works";
+
+// BUG: the display-fallback selector is called inside a `.filter(...)` predicate,
+// so it decides which pairs survive → membership → existence. Because the
+// fallback never returns undefined, EVERY pair survives and an `/en/…` route is
+// emitted even for poems with no authored EN entry. PAN002 must fire here.
+export const getStaticPaths = (async () => {
+  const pairs = await getPairsByKind("poem");
+  return pairs
+    .filter(p => entryForLocale(p, "en").data.slug.length > 0)
+    .map(p => ({ params: { slug: p.entries.en!.data.slug }, props: { pair: p } }));
+}) satisfies GetStaticPaths;
+
+const { pair } = Astro.props;
+---
+<PoemPage pair={pair} locale="en" />

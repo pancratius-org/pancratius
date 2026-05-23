@@ -1,0 +1,26 @@
+---
+import type { GetStaticPaths } from "astro";
+
+import PoemPage from "@/components/PoemPage.astro";
+import { getPairsByKind, entryForLocale } from "@/lib/works";
+
+// CORRECT, and a regression test for branch-(b) shadowing: the selector is bound
+// to `entry` for a DISPLAY value (featuredTitle, handed to props), while the map
+// loop REUSES the name `entry` as the pair — and that inner `entry` is what feeds
+// params. Existence is gated on `p.entries.en`; params come from the EN entry.
+// PAN002 must stay SILENT (the selector's value never reaches params).
+export const getStaticPaths = (async () => {
+  const pairs = await getPairsByKind("poem");
+  const entry = entryForLocale(pairs[0], "en");
+  const featuredTitle = entry.data.title;
+  return pairs
+    .filter(p => p.entries.en)
+    .map(entry => ({
+      params: { slug: entry.entries.en!.data.slug },
+      props: { pair: entry, featuredTitle },
+    }));
+}) satisfies GetStaticPaths;
+
+const { pair } = Astro.props;
+---
+<PoemPage pair={pair} locale="en" />
