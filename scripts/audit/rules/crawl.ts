@@ -11,11 +11,13 @@
 // catches.
 //
 // SCOPE (deliberate, documented so a future agent knows the boundary):
-//   - SINGLE primary target: this build's base path is "/" (the canonical
-//     deploy), so absolute links are resolved as `dist` + path. The mirror /
-//     base-path target (whose `base` differs) is a NOTED FOLLOW-UP — its links
-//     resolve against `dist/<base>/…` and need a second pass keyed off that
-//     target's config.
+//   - BASE-PATH AWARE: it derives the deploy base from the emitted HTML itself
+//     (the prefix before `/_astro/` in an asset link — "" for the primary site,
+//     "/pancratius" for the GitHub-Pages mirror) and strips it before resolving
+//     absolute links. So the SAME crawl works against either target's `dist/`;
+//     run it once per built target (deploy.yml for the primary, the mirror
+//     workflow for the base-path build). An absolute link that does NOT carry the
+//     derived base is itself a base-path bug and correctly fails to resolve.
 //   - LINK/ASSET EXISTENCE only: href/src (incl. `<link href>` and
 //     `<script src>`). It does NOT verify sitemap/feed/hreflang/canonical URL
 //     parity, Pagefind index presence/loadability, or search-surface coverage —
@@ -147,6 +149,35 @@ function maskScriptStyleBodies(html: string): string {
   );
 }
 
+/**
+ * The deploy base path, derived from the emitted HTML: the prefix before
+ * `/_astro/` in an asset link (Astro prefixes every hashed asset URL with the
+ * configured `base`). "" for the primary site (`base: "/"`), "/pancratius" for a
+ * base-path mirror. Scans masked HTML (so a template-literal in a script body
+ * can't spoof it) until the first asset link is found; "" if none.
+ */
+function deriveBase(htmlFiles: readonly string[], read: (rel: string) => string): string {
+  const re = /(?:href|src)="([^"]*?)\/_astro\//;
+  for (const rel of htmlFiles) {
+    const m = re.exec(maskScriptStyleBodies(read(rel)));
+    if (m) return m[1];
+  }
+  return "";
+}
+
+/**
+ * Strip the deploy base from an ABSOLUTE link before it is resolved against dist.
+ * `/pancratius/books/` with base `/pancratius` → `/books/`. An absolute link that
+ * does NOT start with the base is left as-is — on a base-path deploy that is a
+ * real bug (it points at domain root, not the base), so it should fail to resolve.
+ */
+function stripBase(linkPath: string, base: string): string {
+  if (base === "" || !linkPath.startsWith("/")) return linkPath;
+  if (linkPath === base) return "/";
+  if (linkPath.startsWith(`${base}/`)) return linkPath.slice(base.length);
+  return linkPath;
+}
+
 /** Extract href/src attribute values from emitted HTML (regex; emitted Astro HTML is regular). */
 function extractLinks(html: string): { url: string; line: number }[] {
   const scanned = maskScriptStyleBodies(html);
@@ -178,6 +209,10 @@ export const pan014InternalLinks: Rule = {
       filter: (rel) => rel.startsWith("dist/") && rel.endsWith(".html"),
     });
 
+    // Derive the deploy base from the emitted HTML so absolute links resolve on
+    // either target (primary "" or base-path mirror "/pancratius").
+    const base = deriveBase(htmlFiles, (rel) => ctx.read(rel));
+
     // Existence cache over the dist tree so repeated link targets are O(1).
     const existsInDist = new Map<string, boolean>();
     const distHas = (relPath: string): boolean => {
@@ -199,7 +234,7 @@ export const pan014InternalLinks: Rule = {
 
       for (const { url, line } of extractLinks(html)) {
         if (isSkippable(url)) continue;
-        const linkPath = stripFragmentQuery(url);
+        const linkPath = stripBase(stripFragmentQuery(url), base);
         if (linkPath === "" || isSkippable(linkPath)) continue;
 
         const candidates = candidatesFor(linkPath, htmlRelDir);

@@ -10,6 +10,7 @@
 // broken and stdout/stderr carry the evidence.
 
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { Finding, Severity } from "./finding.ts";
@@ -37,11 +38,24 @@ export interface PythonCheckSpec {
  */
 export function runPythonCheck(ctx: RuleContext, spec: PythonCheckSpec): Finding[] {
   const scriptPath = join(AUDIT_DIR, spec.script);
-  // `--frozen`: a scanner must not mutate state. Without it `uv run` may resolve
-  // and update the lockfile / install as a side effect; --frozen runs against the
-  // committed uv.lock as-is and errors instead of touching it (CI's ruff/ty/pytest
-  // already run --frozen). Keeps the harness a pure read-only verifier.
-  const res = spawnSync("uv", ["run", "--frozen", "--quiet", scriptPath], {
+  // `--frozen` (project-env scripts only): a scanner must not mutate state, and
+  // without it `uv run` may resolve/update the project lockfile as a side effect.
+  // But a PEP-723 inline-script (`# /// script … dependencies = […] ///`) has NO
+  // project lockfile — `--frozen` errors there ("Unable to find lockfile for
+  // Python script"). Such scripts already run in an isolated ephemeral env and
+  // can't touch the project lock, so they don't need (and break under) --frozen.
+  // Detect the inline-metadata block and drop the flag for those.
+  let source = "";
+  try {
+    source = readFileSync(scriptPath, "utf-8");
+  } catch {
+    source = "";
+  }
+  const isInlineScript = /^#\s*\/\/\/\s*script\b/m.test(source);
+  const args = isInlineScript
+    ? ["run", "--quiet", scriptPath]
+    : ["run", "--frozen", "--quiet", scriptPath];
+  const res = spawnSync("uv", args, {
     encoding: "utf-8",
     env: { ...process.env, PANCRATIUS_AUDIT_ROOT: ctx.root },
     maxBuffer: 32 * 1024 * 1024,

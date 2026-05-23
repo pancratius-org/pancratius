@@ -38,30 +38,35 @@ interface PathPattern {
   readonly re: RegExp;
 }
 
-// PRECISE patterns — each anchored on a real path character so prose/dialogue
-// can't false-positive (validated against all of src/content: zero matches).
+// RAW-TEXT patterns — absolute machine-local paths that are unambiguous in ANY
+// context (capitalised / slashed forms that don't occur in this corpus's prose),
+// validated against all of src/content: zero matches. Note what is deliberately
+// NOT here:
+//   - `~/` is handled in the TARGET loop only: `~/` in prose ("approximately", a
+//     stray tilde) is common, so it is a path ONLY as a link/image target.
+//   - `legacy/` literal is GONE: a relative `legacy/` from a content file is a
+//     local sub-folder (legit, e.g. `./images/legacy/`), and `legacy/` inside an
+//     external URL is legit too. A reference to the RETIRED repo-root `legacy/`
+//     tree is reached via parent traversal (the escape check below catches it) or
+//     an absolute `/legacy/…` URL (caught post-build by PAN014). So the literal
+//     would only false-positive.
 const PATTERNS: readonly PathPattern[] = [
   // Machine-local absolute home on macOS.
   { label: "/Users/", re: /\/Users\//g },
   // A real /home/<user>/ dir (Linux home), not the bare word "home".
   { label: "/home/<user>/", re: /\/home\/[A-Za-z0-9._-]+\//g },
-  // Tilde home + a real path segment char (so a stray "~" in prose is ignored).
-  { label: "~/<path>", re: /~\/[A-Za-z0-9._-]/g },
   // Windows drive: drive letter + ":" + backslash + a REAL path char. `]` is NOT
   // in the class, so the dialogue trap `softly:\]` does not match (tested).
   { label: "<drive>:\\<path>", re: /\b[A-Za-z]:\\[A-Za-z0-9._-]/g },
-  // Retired-source `legacy/` used AS A PATH (followed by a path char), e.g.
-  // `](legacy/foo.png)` or `"legacy/x"` — NOT the bare English word "legacy".
-  { label: "legacy/<path>", re: /legacy\/[A-Za-z0-9._/-]/g },
 ];
 
 // Markdown link/image target capture: `](url …)` → url. Used for the
-// parent-traversal-escape check, which (unlike the literal patterns above) needs
-// to RESOLVE a relative target against the file's location, not just match text.
+// target-context checks (parent-traversal escape, `~/` home) which need to RESOLVE
+// or inspect the target itself, not just match raw text.
 const MD_TARGET_RE = /\]\(\s*<?([^)\s>]+)>?/g;
 
 const CONTRACT =
-  "Production source may reference project-relative source paths (src/, data/, public/, .cache/), emitted public URLs (/assets/…), or external https URLs — but never machine-local paths (/Users/…, ~/…, C:\\…), parent-escapes, or retired `legacy/` trees (docs/audit-harness.md PAN001).";
+  "Production source may reference project-relative source paths (src/, data/, public/, .cache/), emitted public URLs (/assets/…), or external https URLs — but never machine-local paths (/Users/…, ~/…, C:\\…) or parent-escapes out of the content tree (docs/audit-harness.md PAN001).";
 const WHY =
   "A mirror, a clean clone, or a CI build can't depend on a machine-local or retired path — the reference resolves only on the author's machine and breaks everywhere else.";
 const REPAIR =
@@ -75,7 +80,7 @@ const DO_NOT_FIX_BY =
  */
 export const pan001PathBoundary: Rule = {
   id: ID,
-  title: "PAN001: authored content must not embed machine-local or retired `legacy/` paths",
+  title: "PAN001: authored content must not embed machine-local paths or parent-traversal escapes",
   tier: "core",
   run(ctx: RuleContext): Finding[] {
     const findings: Finding[] = [];
@@ -112,6 +117,31 @@ export const pan001PathBoundary: Rule = {
       const dir = posix.dirname(rel);
       for (const { match, line } of matchesWithLines(text, MD_TARGET_RE)) {
         const raw = match[1].replace(/^<|>$/g, "");
+
+        // A `~/…` link/image target is a machine home path (checked in target
+        // context, not raw text, so a `~` in prose isn't a false positive).
+        if (raw.startsWith("~/")) {
+          findings.push({
+            rule: ID,
+            severity: "fatal",
+            category: CATEGORY,
+            file: rel,
+            line,
+            observed: `${rel}:${line} link/image target \`${raw}\` is a machine-local home path`,
+            contract: CONTRACT,
+            why: WHY,
+            repair: REPAIR,
+            doNotFixBy: DO_NOT_FIX_BY,
+          });
+          continue;
+        }
+
+        // Parent-traversal escape: a relative target that resolves OUTSIDE
+        // src/content/ depends on a path beyond the work bundle / content root
+        // (the doc's `../../MyWorks` class). Resolved, not pattern-matched, so an
+        // in-bundle `../sibling/x` stays silent while an escaping `../../../x`
+        // fires. Skips absolute (`/…`, handled by the raw patterns), anchors, and
+        // scheme URLs (so `legacy/` inside an https URL never trips this).
         if (raw.startsWith("/") || raw.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(raw)) continue;
         if (!raw.includes("../")) continue;
         const resolved = posix.normalize(posix.join(dir, raw));

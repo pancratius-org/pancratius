@@ -2,17 +2,20 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <link rel="stylesheet" href="/assets/site.css" />
-  <link rel="icon" href="/favicon.svg" />
-  <script src="/assets/app.js"></script>
+  <!-- Base-path deploy: every link carries the "/site" base; the FILES are at
+       dist/ root (no /site/ dir). The crawler derives base from the /_astro/
+       asset link and strips it — without that, every link below false-positives. -->
+  <link rel="stylesheet" href="/site/assets/site.css" />
+  <link rel="icon" href="/site/favicon.svg" />
+  <script src="/site/_astro/app.js"></script>
 </head>
 <body>
   <a href="#main">skip to content</a>
   <main id="main">
-    <a href="/books/foo/">a book (trailing-slash dir link)</a>
-    <a href="/about/">about (trailing-slash dir link)</a>
-    <img src="/assets/cover.jpg" alt="cover" />
-    <a href="books/foo/">a relative trailing-slash link</a>
+    <a href="/site/books/foo/">a book (base-prefixed trailing-slash dir link)</a>
+    <a href="/site/about/">about (base-prefixed dir link)</a>
+    <img src="/site/assets/cover.jpg" alt="cover" />
+    <a href="books/foo/">a relative trailing-slash link (no base)</a>
     <a href="https://example.com/anything">external (must be ignored)</a>
     <a href="mailto:hello@example.com">email (must be ignored)</a>
     <a href="#section">in-page anchor (must be ignored)</a>

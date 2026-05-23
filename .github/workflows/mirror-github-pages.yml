@@ -44,6 +44,16 @@ jobs:
           fi
           echo "ok: $html_count html files in dist/"
 
+      - name: Audit contracts + built site (core + deploy crawl, base-path target)
+        # Gate the mirror on the same contracts as the primary site, against the
+        # BASE-PATH build: `audit` is the deterministic fatal core; `audit:deploy`
+        # crawls this dist/ (PAN014 derives the /pancratius base from the emitted
+        # HTML, so the base-path links are checked, not false-positived). A fatal
+        # here aborts before the Pages artifact is uploaded.
+        run: |
+          npm run audit
+          npm run audit:deploy
+
       - uses: actions/upload-pages-artifact@v5
         with:
           path: ./dist

@@ -34,54 +34,91 @@ const SOURCE_LANG_ID = "PAN016-source-language";
 // production JavaScript (.js / .mjs / .cjs)"; tsconfig `allowJs: false`).
 const JS_EXTENSIONS: readonly string[] = [".js", ".mjs", ".cjs", ".jsx"];
 
-// Declared non-production / vendored trees where a `.js` is allowed. The walker
-// already prunes generated/disposable trees (dist/.cache/.astro/node_modules/
-// __pycache__), so the explicit allowlist is only the doc's NAMED non-prod and
-// vendored exceptions:
-//   - `legacy/` and `design/` — the tsconfig.json `exclude` non-prod trees
-//     (archived prototypes excluded from the strict typecheck until deleted).
-//   - `public/pagefind/` — the doc's vendored third-party output exception.
-const NON_PROD_PREFIXES: readonly string[] = ["legacy/", "design/", "public/pagefind/"];
+// The tsconfigs whose `include` globs DEFINE the production-source trees (the
+// place TypeScript is mandated): the app config + the scripts/specs config.
+const TSCONFIGS: readonly string[] = ["tsconfig.json", "tsconfig.scripts.json"];
 
 /**
- * Flag any handwritten-JavaScript file (`.js`/`.mjs`/`.cjs`/`.jsx`) in the
- * production-source WORKING TREE outside the declared non-production / vendored
- * trees. One fatal finding per offending file — production source is TypeScript.
+ * Derive the production-source top-level dirs from the tsconfig `include` globs
+ * (`src/**\/*` → `src`, `scripts/**\/*.ts` → `scripts`, `tests/**\/*.ts` →
+ * `tests`) rather than restating them — adding a new TS source tree to a tsconfig
+ * automatically brings it under the rule, and a root tooling config (no `/` in
+ * the glob, e.g. `astro.config.ts`) or anything OUTSIDE these trees (root
+ * `*.config.cjs`, `legacy/`, `design/`, `public/pagefind/`) is not production
+ * source and so is not flagged. Returns null when no include globs are found, so
+ * the caller can fail loud instead of scanning with no roots.
+ */
+function productionTsRoots(ctx: RuleContext): Set<string> | null {
+  const roots = new Set<string>();
+  for (const tc of TSCONFIGS) {
+    if (!ctx.exists(tc)) continue;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(ctx.read(tc));
+    } catch {
+      continue;
+    }
+    const include = (parsed as { include?: unknown }).include;
+    if (!Array.isArray(include)) continue;
+    for (const glob of include) {
+      if (typeof glob !== "string" || !glob.includes("/")) continue; // root files aren't a tree
+      const top = glob.split("/")[0];
+      if (top && !top.includes("*")) roots.add(top);
+    }
+  }
+  return roots.size > 0 ? roots : null;
+}
+
+/**
+ * Flag any handwritten-JavaScript file (`.js`/`.mjs`/`.cjs`/`.jsx`) inside a
+ * production-source tree (derived from the tsconfig `include`s). One fatal finding
+ * per offending file — production source is TypeScript.
  *
- * It walks the working tree (not `git ls-files`) so the same rule runs unchanged
- * against a fixture, which has no git. The walker already prunes the generated
- * trees (dist/.cache/.astro/node_modules/__pycache__/dot-dirs); the non-prod/
- * vendored allowlist below covers the rest. This is equal-or-stricter than
- * git-tracked: a stray untracked `.js` in production source is also out of stack.
+ * Scoping to the TS-mandated trees (not "everything except an allowlist") is what
+ * keeps it false-positive-free: a legitimate root tooling config (`*.config.cjs`),
+ * vendored `public/pagefind/`, and the archived `legacy/`/`design/` trees all sit
+ * OUTSIDE src/scripts/tests and are silently allowed. It walks the working tree
+ * (not `git ls-files`) so the same rule runs against a fixture, which has no git;
+ * a stray untracked `.js` in a production-source tree is still out of stack.
  */
 export const pan016SourceLanguage: Rule = {
   id: SOURCE_LANG_ID,
-  title: "PAN016: production source is TypeScript — no handwritten JavaScript outside declared non-prod trees",
+  title: "PAN016: production source is TypeScript — no handwritten JavaScript in the TS-mandated trees",
   tier: "core",
   run(ctx: RuleContext): Finding[] {
-    const findings: Finding[] = [];
+    const roots = productionTsRoots(ctx);
+    if (roots === null) {
+      return [
+        {
+          rule: SOURCE_LANG_ID,
+          severity: "fatal",
+          category: CATEGORY,
+          file: TSCONFIGS[0],
+          observed: `no tsconfig \`include\` globs found in ${TSCONFIGS.join(" / ")} to derive the production-source trees from`,
+          contract: `PAN016-source-language derives the production-source trees from the tsconfig \`include\` globs; without them it cannot tell production source from tooling/vendored files.`,
+          why: `A stale premise would make the rule scan the wrong set (or nothing) and silently stop catching handwritten JS in production source.`,
+          repair: `Restore the tsconfig \`include\` arrays, or update PAN016 in scripts/audit/rules/stack.ts if the config moved.`,
+          doNotFixBy: `Deleting this guard.`,
+        },
+      ];
+    }
 
     const offenders = ctx.walk({
       filter: (rel) =>
-        JS_EXTENSIONS.some((ext) => rel.endsWith(ext)) &&
-        !NON_PROD_PREFIXES.some((prefix) => rel.startsWith(prefix)),
+        JS_EXTENSIONS.some((ext) => rel.endsWith(ext)) && roots.has(rel.split("/")[0]),
     });
 
-    for (const rel of offenders) {
-      findings.push({
-        rule: SOURCE_LANG_ID,
-        severity: "fatal",
-        category: CATEGORY,
-        file: rel,
-        observed: `${rel} is handwritten JavaScript; production source is TypeScript`,
-        contract: `Production source is TypeScript (architecture.md Stack; tsconfig allowJs:false). Handwritten JavaScript (.js/.mjs/.cjs/.jsx) is allowed only in the declared non-production / vendored trees (${NON_PROD_PREFIXES.join(", ")}) and the generated trees the walker already prunes.`,
-        why: `A .js file ships outside the strict typecheck (tsconfig excludes it / allowJs is false) and teaches the wrong stack to future agents who read local examples as the pattern to follow.`,
-        repair: `Rewrite it as .ts (or, if it is genuinely non-production, move it under a declared non-prod tree such as ${NON_PROD_PREFIXES.join(", ")}).`,
-        doNotFixBy: `Adding the path to a broad ignore list, or renaming .js → .ts with no real typing just to pass the extension check.`,
-      });
-    }
-
-    return findings;
+    return offenders.map((rel) => ({
+      rule: SOURCE_LANG_ID,
+      severity: "fatal",
+      category: CATEGORY,
+      file: rel,
+      observed: `${rel} is handwritten JavaScript inside a production-source tree (${[...roots].join(", ")}); production source is TypeScript`,
+      contract: `Production source is TypeScript (architecture.md Stack; tsconfig allowJs:false). The production-source trees are derived from the tsconfig \`include\` globs (${[...roots].join(", ")}); JS outside them — root tooling configs, vendored public/pagefind, archived legacy/design — is allowed.`,
+      why: `A .js file in a TS-mandated tree ships outside the strict typecheck (allowJs:false) and teaches the wrong stack to future agents who read local examples as the pattern.`,
+      repair: `Rewrite it as .ts; if it is genuinely tooling config or non-production, it belongs outside the TS source trees (it is only flagged because it sits inside one).`,
+      doNotFixBy: `Adding the path to a broad ignore list, or renaming .js → .ts with no real typing just to pass the extension check.`,
+    }));
   },
 };
 
@@ -181,43 +218,43 @@ function importSpecifiers(sf: ts.SourceFile): { spec: string; line: number }[] {
 }
 
 /**
- * The first banned token contained (as a substring) in `haystack`, or null. Used
- * for package.json dependency KEYS, where substring is correct: `react-dom` and
- * `tailwindcss` both embed their token, and you control package.json so an
- * incidental dep name is implausible.
+ * The first banned token a PACKAGE NAME denotes, or null. Matches an npm package
+ * name (not a substring): the name IS the token (`vue`, `react`), is token-hyphen-
+ * prefixed (`react-dom`, `tailwind-merge`, `solid-js`), is the token's scope
+ * (`@vue/…`), or is the framework's joined form (`tailwindcss`). Crucially it does
+ * NOT fire on a name that merely CONTAINS a token mid-word — `consolidate` (solid),
+ * `vuex` / `vuex-helper-typings` (vue) — which the old substring match wrongly
+ * flagged as a fatal. Used for both dependency keys and (via the package extractor
+ * below) import specifiers, so the two surfaces match identically.
  */
-function matchedToken(haystack: string, banned: ReadonlySet<string>): string | null {
-  const lower = haystack.toLowerCase();
-  for (const token of banned) {
-    if (lower.includes(token)) return token;
-  }
-  return null;
-}
-
-/**
- * The first banned token matched in an IMPORT specifier by PATH SEGMENT, or null.
- * Module specifiers are "/"-delimited and may be scoped (`@vue/runtime-core`), so
- * we match a segment that IS the token, is token-prefixed (`react-dom`), or is the
- * scope (`@vue/…`). Substring matching would false-positive a fatal on a local
- * path that incidentally embeds a token (`@/lib/reactor`, `@/lib/revue`); segment
- * matching catches every real framework module path without that risk.
- */
-function bannedImportToken(spec: string, banned: ReadonlySet<string>): string | null {
-  const segments = spec.split("/").map((s) => (s.startsWith("@") ? s.slice(1) : s).toLowerCase());
-  for (const seg of segments) {
-    for (const token of banned) {
-      if (seg === token || seg.startsWith(`${token}-`)) return token;
+function bannedPackage(name: string, banned: ReadonlySet<string>): string | null {
+  const n = name.toLowerCase();
+  for (const t of banned) {
+    if (n === t || n.startsWith(`${t}-`) || n.startsWith(`@${t}/`) || n === `${t}css` || n === `${t}js`) {
+      return t;
     }
   }
   return null;
 }
 
 /**
+ * The npm package an import specifier resolves to (subpath stripped): `react`,
+ * `react-dom/client` → `react-dom`, `@vue/runtime-core` → `@vue/runtime-core`,
+ * `svelte/store` → `svelte`, and the project alias `@/lib/x` → `@/lib` (which
+ * `bannedPackage` won't match — no FP on the alias).
+ */
+function importPackageName(spec: string): string {
+  const parts = spec.split("/");
+  return spec.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
+}
+
+/**
  * No additional UI framework. Derive the banned set from architecture.md, then
- * flag (a) any package.json dependency/devDependency KEY containing a banned
- * token as a substring (react → "react"/"react-dom", tailwind → "tailwindcss")
- * and (b) any import specifier in src/**\/*.ts and src/**\/*.astro whose module
- * path contains a banned token. One fatal finding per offending dep/import.
+ * flag (a) any package.json dependency/devDependency KEY that is a banned package
+ * (react → "react"/"react-dom", tailwind → "tailwindcss") and (b) any import in
+ * src/**\/*.ts and src/**\/*.astro whose resolved package name is banned. Matching
+ * is package-name-based, not substring, so `consolidate`/`vuex` don't false-fire.
+ * One fatal finding per offending dep/import.
  */
 export const pan016UiFramework: Rule = {
   id: UI_FRAMEWORK_ID,
@@ -242,7 +279,7 @@ export const pan016UiFramework: Rule = {
     // (a) package.json dependency/devDependency keys.
     if (ctx.exists(PACKAGE_JSON)) {
       for (const key of dependencyKeys(ctx.read(PACKAGE_JSON))) {
-        const token = matchedToken(key, banned);
+        const token = bannedPackage(key, banned);
         if (token === null) continue;
         findings.push({
           rule: UI_FRAMEWORK_ID,
@@ -267,7 +304,7 @@ export const pan016UiFramework: Rule = {
       const sf = parseModule(rel, ctx.read(rel));
       if (!sf) continue;
       for (const { spec, line } of importSpecifiers(sf)) {
-        const token = bannedImportToken(spec, banned);
+        const token = bannedPackage(importPackageName(spec), banned);
         if (token === null) continue;
         findings.push({
           rule: UI_FRAMEWORK_ID,

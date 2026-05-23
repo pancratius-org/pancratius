@@ -41,12 +41,20 @@ jobs:
           fi
           echo "ok: $html_count html files in dist/"
 
-      # Post-build audit: crawl the emitted dist/ for broken internal links and
-      # verify the public Markdown / corpus exports use /assets/ URLs. A broken
-      # built site blocks the deploy (deploy-tier rules; the fast PR gate in
-      # build.yml stays `npm run audit` + selftest).
-      - name: Audit built site (deploy tier)
-        run: npm run audit:deploy
+      # Audit gate BEFORE shipping — independent of branch protection, so a bad
+      # thing can't deploy even if a red PR check was merged anyway:
+      #   `audit`        — the deterministic fatal CORE (locale fallback, project
+      #                    in downloads, SoT parity, CI separation, stack); a
+      #                    core-contract violation must not reach the host.
+      #   `audit:deploy` — post-build crawl of the emitted dist/ (broken internal
+      #                    links; public-Markdown /assets/ URLs).
+      # Either fatal aborts the job before the FTP upload. (The fast PR gate in
+      # build.yml runs `audit` + selftest; this re-runs core here so the deploy
+      # path itself enforces it.)
+      - name: Audit contracts + built site (core + deploy crawl)
+        run: |
+          npm run audit
+          npm run audit:deploy
 
       - name: Deploy to hosting via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0

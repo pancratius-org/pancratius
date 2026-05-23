@@ -3,13 +3,13 @@ title: Bad fixture
 lang: ru
 ---
 
-This work embeds a machine-local path:
+This work embeds a machine-local absolute path:
 
 ![cover](/Users/lr/x.jpg)
 
-…and a retired-source reference:
+…a machine home path as a link/image target:
 
-![old cover](legacy/cover.png)
+![home](~/secret/cover.jpg)
 
 …and a parent-traversal escape out of the content root:
 

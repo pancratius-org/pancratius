@@ -24,3 +24,12 @@ was full when he wrote this.
 An in-bundle parent reference stays inside the content root, so it is allowed:
 
 ![sibling](../b/images/shared.jpg)
+
+A co-located folder literally named "legacy" is a normal relative asset, NOT the
+retired repo-root tree, so it is allowed:
+
+![local](./images/legacy/old-scan.jpg)
+
+An external URL whose path contains "legacy/" is a real reader-facing reference:
+
+See [the archived edition](https://example.com/legacy/edition-1) online.
