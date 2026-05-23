@@ -7,7 +7,7 @@
 // This file is PURE TypeScript on purpose — it imports nothing from
 // `astro:content`, so `astro.config.ts` (which runs outside the content layer)
 // can import it too. The matching Python source is `scripts/lib/kinds.py`; the
-// `scripts/audit/kind_segments.py` audit asserts the two stay in agreement.
+// `scripts/audit/python/kind_segments.py` audit asserts the two stay in agreement.
 
 /** The three work kinds, in canonical order. */
 export const WORK_KINDS = ["book", "poem", "project"] as const;

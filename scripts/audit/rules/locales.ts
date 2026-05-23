@@ -29,6 +29,7 @@ import ts from "typescript";
 
 import type { Rule, RuleContext } from "../lib/rule.ts";
 import type { Finding } from "../lib/finding.ts";
+import { runPythonCheck } from "../lib/python.ts";
 import {
   parseModule,
   findExportedFunctionNames,
@@ -167,5 +168,61 @@ export const rule: Rule = {
     }
 
     return findings;
+  },
+};
+
+// PAN003 — cross-language single-source-of-truth parity (docs/audit-harness.md →
+// "PAN003: Single Sources Of Truth"). Two registries — the locale list+default,
+// and the work-kind → URL-segment map — are intentionally written once PER
+// LANGUAGE: in TypeScript (src/lib/*.ts, the source for routes/config) and in
+// Python (scripts/lib/*.py, the source for build scripts), because neither
+// language can import the other. These two thin rules wrap the existing,
+// production-proven Python checks (scripts/audit/python/*.py): each reads BOTH
+// sources and compares them (derive-don't-restate — the TS rule restates no
+// codes), so the Python check is the only thing keeping the two copies in
+// agreement. The check's non-zero exit (with both sides printed) becomes the
+// finding via runPythonCheck.
+
+/** PAN003: the locale list + default locale must agree between TS and Python. */
+export const pan003Locales: Rule = {
+  id: "PAN003-locale-parity",
+  title: "PAN003: the locale list and default locale must agree between src/lib/locales.ts and scripts/lib/locales.py",
+  tier: "core",
+  run(ctx: RuleContext): Finding[] {
+    return runPythonCheck(ctx, {
+      id: "PAN003-locale-parity",
+      category: "ssot-parity",
+      severity: "fatal",
+      script: "python/locales.py",
+      contract:
+        "The locale list and default locale are intentionally defined once per language — src/lib/locales.ts for routes/config, scripts/lib/locales.py for build scripts — because neither language can import the other; this audit is the only thing keeping the two copies in agreement (derive-don't-restate: it reads BOTH sources and compares, order included).",
+      why: "If the two copies drift, routes/config and the build scripts disagree about which locales exist and which is default → broken URLs, wrong route emission, and mismatched build output between the site and the scripts that feed it.",
+      repair:
+        "Make the two source files agree — the audit output shows both sides (TS vs Python). Edit whichever side is wrong so src/lib/locales.ts and scripts/lib/locales.py declare the same locale list and default.",
+      doNotFixBy:
+        "Editing only one side, or loosening the audit (e.g. ignoring order or making the comparison fuzzy) to silence the mismatch instead of reconciling the two sources.",
+    });
+  },
+};
+
+/** PAN003: the work-kind → URL-segment map must agree between TS and Python. */
+export const pan003Kinds: Rule = {
+  id: "PAN003-kind-segment-parity",
+  title: "PAN003: the work-kind → URL-segment map must agree between src/lib/kinds.ts and scripts/lib/kinds.py",
+  tier: "core",
+  run(ctx: RuleContext): Finding[] {
+    return runPythonCheck(ctx, {
+      id: "PAN003-kind-segment-parity",
+      category: "ssot-parity",
+      severity: "fatal",
+      script: "python/kind_segments.py",
+      contract:
+        "The work-kind → URL-segment map is intentionally defined once per language — src/lib/kinds.ts for routes/config, scripts/lib/kinds.py for build scripts — because neither language can import the other; this audit is the only thing keeping the two copies in agreement (derive-don't-restate: it reads BOTH sources and compares).",
+      why: "If the two copies drift, routes/config and the build scripts disagree about which URL segment a kind lives under → broken URLs, wrong route emission, and mismatched build output between the site and the scripts that feed it.",
+      repair:
+        "Make the two source files agree — the audit output shows both sides (TS vs Python). Edit whichever side is wrong so src/lib/kinds.ts and scripts/lib/kinds.py declare the same kind → segment map.",
+      doNotFixBy:
+        "Editing only one side, or loosening the audit to silence the mismatch instead of reconciling the two sources.",
+    });
   },
 };

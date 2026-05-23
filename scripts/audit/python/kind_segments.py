@@ -11,11 +11,22 @@ parses ``SEGMENT_OF`` out of the TS module and asserts it equals the Python
 from __future__ import annotations
 
 import importlib.util
+import os
 import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+
+def _audit_root() -> Path:
+    """The tree to scan: the fixture root when ``PANCRATIUS_AUDIT_ROOT`` is set
+    (the harness points a wrapped check at a fixture that way), else the repo
+    root. From scripts/audit/python/kind_segments.py the repo root is four levels
+    up (python -> audit -> scripts -> root)."""
+    env = os.environ.get("PANCRATIUS_AUDIT_ROOT")
+    return Path(env).resolve() if env else Path(__file__).resolve().parents[3]
+
+
+ROOT = _audit_root()
 TS_KINDS = ROOT / "src" / "lib" / "kinds.ts"
 PY_KINDS = ROOT / "scripts" / "lib" / "kinds.py"
 

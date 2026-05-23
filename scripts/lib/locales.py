@@ -2,7 +2,7 @@
 
 This mirrors ``src/lib/locales.ts``. Python cannot import the TS module and the
 config can't import Python, so the list necessarily exists once per language.
-``scripts/audit/locales.py`` is the cross-language guard: it asserts this list
+``scripts/audit/python/locales.py`` is the cross-language guard: it asserts this list
 and default equal the ``LOCALES`` / ``DEFAULT_LOCALE`` in ``src/lib/locales.ts``.
 """
 

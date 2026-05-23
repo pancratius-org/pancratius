@@ -2,7 +2,7 @@
 
 This mirrors ``src/lib/kinds.ts``. Python cannot import the TS module and the
 config can't import Python, so the mapping necessarily exists once per language.
-``scripts/audit/kind_segments.py`` is the cross-language guard: it asserts this
+``scripts/audit/python/kind_segments.py`` is the cross-language guard: it asserts this
 dict equals the ``SEGMENT_OF`` map in ``src/lib/kinds.ts``.
 """
 

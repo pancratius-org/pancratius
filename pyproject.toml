@@ -33,6 +33,11 @@ target-version = "py313"
 line-length = 100
 # Only the Python tooling is in scope; the Astro site / TS / src/ are not.
 include = ["scripts/**/*.py", "tests/**/*.py"]
+# The audit harness's own fixtures are test data — tiny crafted trees (some
+# intentionally malformed) that prove a rule fires; not production source, so
+# they're out of the typing mandate (mirrors the tsconfig.scripts.json exclude
+# and [tool.ty.src].exclude). PAN016 treats them as a declared non-prod tree.
+extend-exclude = ["scripts/audit/fixtures"]
 
 [tool.ruff.lint]
 # Scoped deliberately to the typing mandate, not general code-quality linting.
@@ -66,6 +71,9 @@ root = ["scripts"]
 
 [tool.ty.src]
 include = ["scripts", "tests"]
+# Harness fixtures are test data (see the ruff/tsconfig excludes) — keep ty off
+# them so an intentionally-malformed fixture can't fail the typecheck.
+exclude = ["scripts/audit/fixtures"]
 
 [tool.ty.rules]
 # Catch annotations that reference an unimported name at the type level too.

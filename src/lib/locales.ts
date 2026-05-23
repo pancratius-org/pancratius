@@ -8,7 +8,7 @@
 // This file is PURE TypeScript on purpose — it imports nothing from
 // `astro:content`, so `astro.config.ts` and `src/content.config.ts` (both of
 // which run outside the content layer) can import it too. The matching Python
-// source is `scripts/lib/locales.py`; `scripts/audit/locales.py` is the
+// source is `scripts/lib/locales.py`; `scripts/audit/python/locales.py` is the
 // cross-language guard that keeps the two copies in agreement.
 //
 // This mirrors the work-kind ↔ segment pattern in `src/lib/kinds.ts`.

@@ -5,11 +5,10 @@
 
 import type { Rule } from "../lib/rule.ts";
 
-import { rule as proofPython } from "./_example_python.ts";
-import { rule as pan002 } from "./locales.ts";
+import { rule as pan002, pan003Locales, pan003Kinds } from "./locales.ts";
 
 export const RULES: readonly Rule[] = [
-  // SCAFFOLD PROOF — Python path; remove when the first Python-backed rule lands.
-  proofPython,
   pan002,
+  pan003Locales,
+  pan003Kinds,
 ];

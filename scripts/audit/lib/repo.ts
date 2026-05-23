@@ -17,8 +17,8 @@ export const AUDIT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 // to live (selftest.ts points rules AT it). A real-repo scan must never see it,
 // or every rule would fire on its own negative fixtures. Excluded here, once, by
 // absolute path — when a rule runs against a fixture root the walk starts BELOW
-// this directory, so the exclusion is inert there. Python checks prune the same
-// relative path (`scripts/audit/fixtures`); see _example_check.py.
+// this directory, so the exclusion is inert there. A Python check that walks the
+// tree must prune the same relative path (`scripts/audit/fixtures`).
 const HARNESS_FIXTURES_ABS = join(AUDIT_DIR, "fixtures");
 
 // Disposable / vendor / VCS trees that no rule should ever walk by default.
@@ -42,7 +42,7 @@ const ALWAYS_IGNORE: ReadonlySet<string> = new Set([
 // (.venv, .ruff_cache, .ty_cache, …), so the default is to skip every dot-dir
 // rather than chase a denylist — except the few a rule legitimately scans (CI
 // config under .github, which PAN012 reads). Dot-FILES are kept; rules filter.
-// The Python walkers mirror this exact rule (see _example_check.py).
+// A Python check that walks the tree mirrors this exact rule.
 const KEEP_DOT_DIRS: ReadonlySet<string> = new Set([".github"]);
 
 /** Normalise an OS path to forward slashes so rule matching is platform-stable. */

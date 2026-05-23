@@ -8,17 +8,29 @@ import the other, so this audit is what keeps the two copies in agreement: it
 parses ``LOCALES`` and ``DEFAULT_LOCALE`` out of the TS module and asserts they
 equal the Python ones (order included — the list order is the display order).
 
-Mirrors ``scripts/audit/kind_segments.py``.
+Mirrors ``scripts/audit/python/kind_segments.py``. Wrapped by the harness as
+PAN003 (scripts/audit/rules/locales.ts); honours ``PANCRATIUS_AUDIT_ROOT``.
 """
 from __future__ import annotations
 
 import importlib.util
+import os
 import re
 import sys
 from pathlib import Path
 from types import ModuleType
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+
+def _audit_root() -> Path:
+    """The tree to scan: the fixture root when ``PANCRATIUS_AUDIT_ROOT`` is set
+    (the harness points a wrapped check at a fixture that way), else the repo
+    root. From scripts/audit/python/locales.py the repo root is four levels up
+    (python -> audit -> scripts -> root)."""
+    env = os.environ.get("PANCRATIUS_AUDIT_ROOT")
+    return Path(env).resolve() if env else Path(__file__).resolve().parents[3]
+
+
+ROOT = _audit_root()
 TS_LOCALES = ROOT / "src" / "lib" / "locales.ts"
 PY_LOCALES = ROOT / "scripts" / "lib" / "locales.py"
 

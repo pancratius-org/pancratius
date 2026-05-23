@@ -16,5 +16,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["scripts/**/*.ts", "tests/**/*.ts"]
+  "include": ["scripts/**/*.ts", "tests/**/*.ts"],
+  "//exclude": "The audit harness's own fixtures are test data — tiny crafted trees (sometimes intentionally malformed, e.g. a deliberately wrong .ts) that prove a rule fires. They are not production source, so they're excluded from the typecheck (mirrors the ruff/ty exclude in pyproject.toml). PAN016's typecheck-coverage member treats them as a declared non-production tree.",
+  "exclude": ["scripts/audit/fixtures"]
 }
