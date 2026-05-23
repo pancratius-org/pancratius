@@ -30,7 +30,6 @@ Usage:
   uv run scripts/render_downloads.py              # render everything
   uv run scripts/render_downloads.py --book 33    # one work by kind+number
   uv run scripts/render_downloads.py --poem 1
-  uv run scripts/render_downloads.py --project enlightened-ai
   uv run scripts/render_downloads.py --lang en    # restrict to one language
   uv run scripts/render_downloads.py --skip-pdf   # only EPUBs
   uv run scripts/render_downloads.py --skip-epub  # only PDFs
@@ -41,7 +40,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import io
 import re
 import shutil
 import subprocess
@@ -58,7 +56,7 @@ _SCRIPT_DIR = Path(__file__).resolve().parent
 if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
 
-from lib.kinds import SEGMENT_OF  # noqa: E402  (after sys.path bootstrap)
+from lib.kinds import SEGMENT_OF, WORK_KINDS  # noqa: E402  (after sys.path bootstrap)
 from lib.locales import DEFAULT_LOCALE, LOCALES  # noqa: E402  (after sys.path bootstrap)
 
 REPO_ROOT  = _SCRIPT_DIR.parent
@@ -136,7 +134,11 @@ def _html_images_to_markdown(body: str) -> str:
 
 
 def discover_works() -> Iterable[WorkEntry]:
-    for kind, folder_name in KIND_DIRS.items():
+    # Projects are themed sections, not works: they have no per-work download
+    # matrix (docs/content-model.md), so the download renderer covers WORK kinds
+    # only — never src/content/projects/.
+    for kind in WORK_KINDS:
+        folder_name = KIND_DIRS[kind]
         root = CONTENT / folder_name
         if not root.exists():
             continue
@@ -383,7 +385,6 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--book", type=int, help="render only this book number")
     parser.add_argument("--poem", type=int, help="render only this poem number")
-    parser.add_argument("--project", type=str, help="render only this project (slug or folder name)")
     parser.add_argument("--lang", choices=LANGS, help="restrict to one language")
     parser.add_argument("--skip-pdf", action="store_true")
     parser.add_argument("--skip-epub", action="store_true")
@@ -401,11 +402,6 @@ def main() -> int:
             continue
         if args.poem is not None and (entry.kind != "poem" or entry.number != args.poem):
             continue
-        if args.project is not None:
-            if entry.kind != "project":
-                continue
-            if entry.slug != args.project and entry.folder.name != args.project:
-                continue
         selected.append(entry)
 
     if not selected:

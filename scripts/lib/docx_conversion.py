@@ -60,10 +60,11 @@ def convert_single_docx(
             warnings=warnings,
         )
 
-    image_book_slug = f"project-{work_key}" if kind == "project" else work_key
+    # kind is only ever book/poem here (import_docx passes lib.kinds.WORK_KINDS);
+    # the image book_slug is just the work key for those.
     body, biblio, refs, _next_idx, warnings, ast, structural_key_sequences = legacy.convert_docx_to_md(
         docx=docx,
-        book_slug=image_book_slug,
+        book_slug=work_key,
         lang=lang,
         work_dir=work_dir,
         image_records=image_records,

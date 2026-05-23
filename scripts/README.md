@@ -170,8 +170,6 @@ Convert selected legacy source groups:
 
 ```sh
 uv run scripts/docx_to_md.py --kind book --kind poem
-uv run scripts/docx_to_md.py --kind project
-uv run scripts/docx_to_md.py --kind project --slug enlightened-ai
 ```
 
 Just the small test set into `.cache/converter-test/` (no mutation of the real
@@ -186,16 +184,6 @@ One book or one poem by number:
 ```sh
 uv run scripts/docx_to_md.py --kind book --number 33
 uv run scripts/docx_to_md.py --kind poem --number 2
-```
-
-Destructive clean-room rebuild for the selected works only. `--clean` removes
-each selected work bundle before regenerating it; it does not wipe whole content
-kind directories and does not touch unselected works.
-
-```sh
-uv run scripts/docx_to_md.py --kind book --kind poem --clean
-uv run scripts/docx_to_md.py --kind project --clean
-uv run scripts/docx_to_md.py --kind project --slug enlightened-ai --clean
 ```
 
 Custom output paths (e.g. scratch output outside the repo):
@@ -378,7 +366,6 @@ uv run scripts/render_downloads.py
 # One work.
 uv run scripts/render_downloads.py --book 33
 uv run scripts/render_downloads.py --poem 1
-uv run scripts/render_downloads.py --project enlightened-ai
 
 # One language only.
 uv run scripts/render_downloads.py --lang en

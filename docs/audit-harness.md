@@ -643,6 +643,53 @@ the strict typecheck is bypassed); warning for markup/CDN/undeclared-dep drift t
 may be a deliberate local exception; the annotation member rides on the delegated
 tools and is as fatal as their CI configuration makes them.
 
+### PAN017: Import Work-Kinds Guard
+
+A concrete instance of PAN015 (retired-capability surface) and PAN003 (single
+source of truth), made deterministic and fatal because it is backed by a real
+incident: the converter once had project import/conversion paths and a
+destructive `--clean`, and projects must never re-enter the work/import machinery
+(PAN004).
+
+"Work kinds" — the kinds the import/converter pipeline handles and which kinds get
+a download matrix — has one Python source of truth: `WORK_KINDS` in
+`scripts/lib/kinds.py` (`("book", "poem")`). `SEGMENT_OF` in the same module
+deliberately stays broader: it keeps `project` because projects still route under
+`/projects/` and appear in the sitemap. Routing breadth is not work scope.
+
+This rule derives from those two facts and asserts:
+
+1. the import CLI's `--kind` argparse `choices` in `scripts/import_docx.py` equals
+   `WORK_KINDS` — and, when expressed as a bare name, that name is `WORK_KINDS`
+   imported `from lib.kinds`, not a hardcoded list;
+2. `"project" not in WORK_KINDS` — projects are themed sections, not convertible
+   or downloadable works;
+3. `WORK_KINDS` is a subset of `SEGMENT_OF`'s keys — every work kind still routes.
+
+Fatal examples:
+
+- `scripts/import_docx.py` hardcodes `--kind` `choices=("book", "poem", "project")`
+  (or any literal that drifts from `WORK_KINDS`), re-admitting project as an
+  importable kind so the converter could write authored project sections through
+  work machinery;
+- `project` is added back to `WORK_KINDS`;
+- a work kind is added to `WORK_KINDS` without a `SEGMENT_OF` entry, so it has no
+  URL segment.
+
+Repair: keep `WORK_KINDS` the SoT in `scripts/lib/kinds.py` and have
+`import_docx.py` use `choices=WORK_KINDS` (imported from `lib.kinds`). Promote a
+kind to a work by adding it to `WORK_KINDS` (and `SEGMENT_OF`), never by
+special-casing it in the CLI.
+
+Do not fix by: hardcoding the `--kind` choices to silence the parity check, or
+widening `WORK_KINDS` to make projects "fit" the import/work machinery instead of
+keeping them a section.
+
+Implemented as a Python checker (`python/import_work_kinds.py`) that imports
+`kinds.py` and AST-parses the CLI's argparse, wrapped as **fatal core** by
+`rules/imports.ts` (`PAN017-import-work-kinds`) via `runPythonCheck`, with
+both-polarity fixtures under `fixtures/PAN017-import-work-kinds/{good,bad}/`.
+
 ## Surface-Specific Implementation Guidance
 
 ### TypeScript and Astro
@@ -804,13 +851,14 @@ scripts/audit/
     downloads.ts          # PAN008 (deploy; via python/download_asset_urls.py)
     crawl.ts              # PAN014 (deploy; dist internal-link crawl)
     stack.ts              # PAN016 (source-language + ui-framework)
+    imports.ts            # PAN017 (import work-kinds guard; via python/import_work_kinds.py)
     content_quality.ts    # non-blocking heuristics folded from the legacy content audits
     # [planned] urls.ts PAN006, literals.ts PAN006B, css.ts PAN009,
     # [planned] cohesion.ts PAN010, docs.ts PAN011, dead-code.ts PAN013,
     # [planned] retired-surface.ts PAN015
   python/                 # checks the harness subprocesses (PANCRATIUS_AUDIT_ROOT-aware)
     locales.py  kind_segments.py  media_refs.py  work_identity.py
-    ci_separation.py  download_asset_urls.py
+    ci_separation.py  download_asset_urls.py  import_work_kinds.py
   fixtures/<rule-id>/{bad,good}/   # one per gating (core/deploy) rule
 ```
 

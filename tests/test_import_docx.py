@@ -116,7 +116,6 @@ def test_importer_does_not_consult_legacy_catalog_files(tmp_path: Path, monkeypa
 
     monkeypatch.setattr(docx_to_md, "load_library", fail_legacy_catalog)
     monkeypatch.setattr(docx_to_md, "load_poetry", fail_legacy_catalog)
-    monkeypatch.setattr(docx_to_md, "load_projects", fail_legacy_catalog)
 
     original_read_text = Path.read_text
 

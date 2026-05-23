@@ -22,19 +22,17 @@ Per .docx pipeline:
      <lang>.md, cover.<lang>.<ext>, optional bibliography.yaml, meta.json,
      and images/. Frontmatter satisfies src/content.config.ts strict schema.
 
-The converter is additive by default: every write is recorded in
+The converter is additive: every write is recorded in
 data/conversion-manifest.json under by_work[<kind/slug>].generated_paths
 (relative to the work folder), and reruns only delete stale entries the new
-run does not reproduce. Unknown author-added neighbors survive. `--clean` is
-the explicit destructive maintenance path; it removes only the selected work
-bundles before regenerating them.
+run does not reproduce. Unknown author-added neighbors survive. There is no
+destructive whole-bundle clean.
 
 Run:
     uv run scripts/docx_to_md.py --kind book --kind poem
     uv run scripts/docx_to_md.py --kind book --number 33
     uv run scripts/docx_to_md.py --kind poem --number 2
     uv run scripts/docx_to_md.py --test
-    uv run scripts/docx_to_md.py --kind book --kind poem --clean
 """
 from __future__ import annotations
 
@@ -56,6 +54,12 @@ from urllib.parse import unquote
 import xml.etree.ElementTree as ET
 
 import yaml
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from lib.kinds import WORK_KINDS  # noqa: E402  (after sys.path bootstrap)
 
 ROOT = Path(__file__).resolve().parent.parent
 LEGACY = ROOT / "legacy"
@@ -246,10 +250,6 @@ def load_library() -> dict[str, Any]:
 
 def load_poetry() -> dict[str, Any]:
     return json.loads(_strip_js_wrapper((DATA / "poetry-data.js").read_text(encoding="utf-8")))
-
-
-def load_projects() -> dict[str, Any]:
-    return json.loads(_strip_js_wrapper((DATA / "projects-data.js").read_text(encoding="utf-8")))
 
 
 # ---------------------------------------------------------------------------
@@ -2802,93 +2802,6 @@ def _normalize_date(raw: object) -> str | None:
     return None
 
 
-def convert_project(project: dict[str, Any], ctx: ConverterContext) -> list[ConversionOutcome]:
-    slug = project["slug"]
-    ascii_slug = to_ascii_slug(slug)
-    proj_dir = ctx.content_out / "projects" / ascii_slug
-    proj_dir.mkdir(parents=True, exist_ok=True)
-    writes = ctx.writes_for("project", ascii_slug, proj_dir)
-    docx_rel = project.get("docx")
-    if not docx_rel:
-        return []
-    docx_path = _legacy_path(docx_rel)
-    if not docx_path.exists():
-        print(f"  [project/{ascii_slug}] no docx at {docx_path}", file=sys.stderr)
-        return []
-    title_raw = project.get("title")
-    titles: dict[str, str] = {}
-    if isinstance(title_raw, dict):
-        titles["ru"] = title_raw.get("ru", "")
-        titles["en"] = title_raw.get("en", "")
-    elif isinstance(title_raw, str):
-        titles["ru"] = title_raw
-        titles["en"] = title_raw
-    number = PROJECT_NUMBERS.get(ascii_slug)
-    if number is None:
-        print(f"  [project/{ascii_slug}] no number assigned in PROJECT_NUMBERS", file=sys.stderr)
-        return []
-
-    body, biblio, refs, _, warns, ast, structural_key_sequences = convert_docx_to_md(
-        docx=docx_path,
-        book_slug=f"project-{ascii_slug}",
-        lang="ru",
-        work_dir=proj_dir,
-        image_records=ctx.image_records,
-        writes=writes,
-        image_counter_start=1,
-        biblio_slug_lookup=ctx.biblio_slug_lookup,
-        cross_ref_title_index=ctx.cross_ref_title_index,
-        own_ascii_slug=ascii_slug,
-    )
-    if warns:
-        print(f"  [project/{ascii_slug}] pandoc: {warns}", file=sys.stderr)
-    body = demote_markdown_headings(body, 1)
-    body = normalize_ast_verse_sections(body, ast)
-    body = normalize_ast_lineated_runs(body, ast, structural_key_sequences)
-    cover_ru = _ingest_cover(
-        project.get("cover"),
-        book_slug=f"project-{ascii_slug}",
-        work_dir=proj_dir,
-        lang="ru",
-        image_records=ctx.image_records,
-        writes=writes,
-        role="project-cover",
-    )
-    outcomes: list[ConversionOutcome] = []
-    description_ru = (project.get("intro") or "").strip()
-    if not description_ru:
-        description_ru = titles.get("ru", "")
-    # The current project entries have one Russian source document and two UI
-    # locale pages. Register source provenance once, under RU; EN does not
-    # imply an authored EN DOCX artifact exists.
-    writes.add_source("ru", docx_path)
-    for lang in ("ru", "en"):
-        title_for_lang = titles.get(lang) or titles.get("ru", "")
-        if not title_for_lang:
-            continue
-        fm: dict[str, Any] = {
-            "kind": "project",
-            "number": number,
-            "slug": ascii_slug,
-            "title": title_for_lang,
-            "lang": lang,
-            "description": description_ru,
-            "cover": cover_ru,
-            "translation": {"source": "original"} if lang == "ru" else {"source": "ai"},
-        }
-        if refs:
-            fm["cross_refs"] = _restructure_cross_refs(refs)
-        md = _yaml_frontmatter(fm) + body
-        out_path = proj_dir / f"{lang}.md"
-        out_path.write_text(md, encoding="utf-8")
-        writes.add(out_path)
-        outcomes.append(ConversionOutcome(ascii_slug=ascii_slug, lang=lang, md_path=out_path))
-    if biblio:
-        _write_bibliography_sidecar(proj_dir, {"ru": _dedupe_bibliography(biblio)}, writes)
-    ctx.finish_work(writes)
-    return outcomes
-
-
 def _yaml_frontmatter(d: dict[str, Any]) -> str:
     body = yaml.safe_dump(
         d, allow_unicode=True, sort_keys=False, default_flow_style=False, width=10_000,
@@ -3031,7 +2944,6 @@ def write_manifest(
 
 TEST_BOOK_NUMBERS = [1, 33, 53, 3]
 TEST_POEM_NUMBERS = [2]
-WORK_KINDS = ("book", "poem")
 
 
 def run(args: argparse.Namespace) -> None:
@@ -3067,7 +2979,6 @@ def run(args: argparse.Namespace) -> None:
     if args.test:
         books_to_do = [b for b in books if b["number"] in TEST_BOOK_NUMBERS]
         poems_to_do = [p for p in poems if p["number"] in TEST_POEM_NUMBERS]
-        projects_to_do = []
     elif args.number is not None:
         if "book" in selected_kinds:
             books_to_do = [b for b in books if b["number"] == args.number]
@@ -3080,37 +2991,16 @@ def run(args: argparse.Namespace) -> None:
     print(f"books to convert: {len(books_to_do)}", file=sys.stderr)
     print(f"poems to convert: {len(poems_to_do)}", file=sys.stderr)
 
-    # Why: --clean is the explicit destructive maintenance path. Without it the
-    # rerun is additive: it only touches files the prior manifest says the
-    # converter generated, and leaves unknown author-added neighbors alone.
-    # Clean only selected work bundles; never delete whole kind directories.
-    cleaned_work_keys: set[str] = set()
-    if args.clean:
-        clean_targets: list[tuple[str, str, Path]] = []
-        clean_targets.extend(
-            ("book", _build_ascii_slug(b, "ru"), content_out / "books" / _build_ascii_slug(b, "ru"))
-            for b in books_to_do
-        )
-        clean_targets.extend(
-            ("poem", _build_ascii_slug(p, "ru"), content_out / "poetry" / _build_ascii_slug(p, "ru"))
-            for p in poems_to_do
-        )
-        for kind, slug, target in clean_targets:
-            cleaned_work_keys.add(f"{kind}/{slug}")
-            if target.exists():
-                shutil.rmtree(target)
-
+    # The rerun is additive: it only touches files the prior manifest says the
+    # converter generated, and leaves unknown author-added neighbors alone. There
+    # is no destructive whole-bundle clean — stale generated files are pruned by
+    # the per-work manifest reconciliation, never by deleting directories.
     previous_full: dict[str, Any] = {}
     if manifest_path.exists():
         try:
             previous_full = json.loads(manifest_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             previous_full = {}
-    if cleaned_work_keys:
-        by_work = previous_full.get("by_work")
-        if isinstance(by_work, dict):
-            for key in cleaned_work_keys:
-                by_work.pop(key, None)
     previous_works = _load_previous_works(manifest_path)
 
     ctx = ConverterContext(
@@ -3163,11 +3053,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--test",
         action="store_true",
         help="Convert the small test set into .cache/converter-test/ unless output paths are overridden.",
-    )
-    ap.add_argument(
-        "--clean",
-        action="store_true",
-        help="Remove selected work folders before regenerating them.",
     )
     ap.add_argument("--out-content", default=None, help="Content output root.")
     ap.add_argument("--manifest", default=None, help="Conversion manifest output path.")

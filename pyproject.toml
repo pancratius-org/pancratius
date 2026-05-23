@@ -9,6 +9,11 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  # Pillow is import_docx.py's image-cap dependency (declared in its PEP-723
+  # inline metadata for the `uv run --script` path). It must also be in the
+  # project dev env so the import behavioural tests in tests/test_import_docx.py
+  # actually RUN under `uv run pytest` instead of skipping on a missing PIL.
+  "pillow>=10.4",
   "pytest>=9.0",
   "ruff>=0.15.14",
   # Pinned exact: ty is pre-1.0, so any 0.0.x bump can change diagnostics. Bump

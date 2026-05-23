@@ -37,6 +37,7 @@ from lib.docx_conversion import (
     to_ascii_slug,
     write_bibliography_sidecar,
 )
+from lib.kinds import WORK_KINDS
 from lib.locales import LOCALES
 
 
@@ -46,11 +47,11 @@ TODO_DESCRIPTION = "TODO: write the editorial description for this work."
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tiff"}
 LANGS = tuple(LOCALES)
-# import_docx imports corpus WORKS only. Projects are authored themed sections
-# under src/content/projects/ (not converter output), so `project` is not an
-# importable kind and the catalog scan below ignores project entries — a
-# `--into <project>` simply finds no work, like any other unknown bundle.
-IMPORTABLE_KINDS = ("book", "poem")
+# import_docx imports corpus WORKS only (lib.kinds.WORK_KINDS). Projects are
+# authored themed sections under src/content/projects/ (not converter output), so
+# `project` is not an importable kind and the catalog scan below ignores project
+# entries — a `--into <project>` simply finds no work, like any other unknown
+# bundle.
 
 # Forward cap for NEWLY-IMPORTED body images. Raster masters extracted from a
 # DOCX are bounded to this longest edge at import time so future masters stay
@@ -332,11 +333,6 @@ def _frontmatter_for_import(
         if "date" not in fm:
             fm["date"] = reference.frontmatter.get("date") if reference else None
 
-    if kind == "project" and "tagline" not in fm and reference:
-        tagline = reference.frontmatter.get("tagline")
-        if tagline:
-            fm["tagline"] = tagline
-
     fm["cover"] = cover
     if cover_is_placeholder:
         fm["cover_is_placeholder"] = True
@@ -389,7 +385,7 @@ def run(args: argparse.Namespace) -> ImportResult:
 
     content_root = Path(args.out_content).expanduser().resolve()
     content_root.mkdir(parents=True, exist_ok=True)
-    entries = [e for e in scan_catalog(content_root) if e.kind in IMPORTABLE_KINDS]
+    entries = [e for e in scan_catalog(content_root) if e.kind in WORK_KINDS]
 
     kind, work_key, number, slug, work_entries = _resolve_target(args, entries, docx, content_root)
     work_dir = content_root / KIND_DIRS[kind] / work_key
@@ -477,7 +473,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Import one DOCX into a Pancratius work bundle using Markdown frontmatter as the catalog.",
     )
     ap.add_argument("docx", help="Source .docx file to import.")
-    ap.add_argument("--kind", choices=IMPORTABLE_KINDS, help="Required for a new work; optional with --into when the bundle is unique.")
+    ap.add_argument("--kind", choices=WORK_KINDS, help="Required for a new work; optional with --into when the bundle is unique.")
     ap.add_argument("--lang", choices=LANGS, required=True)
     ap.add_argument("--into", help="Existing work bundle key or frontmatter slug to update.")
     ap.add_argument("--out-content", default=str(DEFAULT_CONTENT_ROOT), help="Content root; defaults to src/content.")
