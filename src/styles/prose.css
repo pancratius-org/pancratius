@@ -656,11 +656,10 @@
  * + accent eyebrow rule, pull-quote moments, a negation opener, and a
  * Q&A block at the bottom.
  *
- * The project body is authored with raw HTML scaffolding for the four
- * gestures the prose voice alone can't carry:
- *   - <aside class="project-negation">  → "what it ISN'T" opener
- *   - <blockquote class="project-pull"> → thesis pull-quote
- *   - <section class="project-qa">      → "часто спрашивают" Q&A
+ * The negation opener and the Q&A block now render through the <Negation>
+ * and <FAQ> project components (from frontmatter), not inlined HTML. The
+ * only body scaffolding the prose voice alone can't carry is:
+ *   - <blockquote class="project-pull"> → thesis pull-quote, inline mid-body
  *   - h2 / h3 from markdown for thematic sections
  *
  * Everything else is plain prose paragraphs; the .prose family carries
@@ -707,22 +706,6 @@
   position: relative;
   counter-increment: project-section;
 }
-/* The Q&A heading is structurally an h2 (inside the embedded
-   <section class="project-qa">), but it isn't a body section — it's a
-   trailing block with its own ornament rule. Skip the section counter
-   and the § eyebrow so it doesn't read as "§ V." after the last real
-   thematic section. */
-.prose--project h2.project-qa__h {
-  counter-increment: none;
-  margin: 0 0 1.6rem;
-}
-.prose--project h2.project-qa__h::before {
-  content: "";
-  /* The .project-qa__h::before rule below paints its own short accent
-     rule above the heading; keep the eyebrow content blank here. */
-  font-size: 0;
-  margin: 0;
-}
 /* Reset the book-register chapter mark (rule + centred dot) inherited
    from `.prose h2::before` / `.prose h2::after`. The project section
    eyebrow below is a different gesture entirely. */
@@ -756,50 +739,6 @@
   color: var(--accent);
   margin: 0 0 0.6rem;
   padding: 0;
-}
-
-/* The first h2 sits closer to the negation opener; the 3.6rem top margin
-   is meant for between-section breath, not for the first section right
-   after the opener. */
-.prose--project > .project-negation + h2 {
-  margin-top: 2.4rem;
-}
-
-/* Negation opener — "what it ISN'T". Italic serif at a kicker register,
-   each line on its own with a hanging em-dash. Reads as a deliberate
-   stance: the author opens by clearing the field of what this is NOT,
-   before the positive sections begin. */
-.prose--project .project-negation {
-  margin: 0 0 2.4rem;
-  padding: 1.6rem 0 1.6rem 1.4rem;
-  border-left: 2px solid var(--accent);
-  background: linear-gradient(90deg, var(--accent-mute) 0%, transparent 60%);
-}
-.prose--project .project-negation__eyebrow {
-  font-family: var(--sans);
-  font-style: normal;
-  font-weight: 500;
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin: 0 0 0.9rem;
-  padding: 0;
-}
-.prose--project .project-negation p {
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: clamp(1.15rem, 1.9vw, 1.4rem);
-  line-height: 1.4;
-  color: var(--ink);
-  margin: 0 0 0.55em;
-  text-wrap: pretty;
-}
-.prose--project .project-negation p:last-child { margin-bottom: 0; }
-.prose--project .project-negation em {
-  font-style: italic;
-  color: var(--accent);
-  font-weight: 500;
 }
 
 /* Pull-quote — thesis sentence pulled mid-body. Large italic serif,
@@ -844,72 +783,7 @@
   transform: translateX(-50%);
 }
 
-/* Q&A — bottom-of-page "часто спрашивают" block. Hairline-divided
-   definition list: question in serif medium, answer below in muted ink.
-   Sits below the body but above the colophon and cross-references. */
-.prose--project .project-qa {
-  margin: 4rem 0 0;
-  padding: 2rem 0 0;
-  border-top: 1px solid var(--rule);
-}
-.prose--project .project-qa__h {
-  font-family: var(--serif);
-  font-weight: 600;
-  font-style: normal;
-  font-size: 1.35rem;
-  letter-spacing: -0.012em;
-  color: var(--ink);
-  text-align: left;
-  margin: 0 0 1.6rem;
-  padding: 0.7rem 0 0;
-  position: relative;
-}
-.prose--project .project-qa__h::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 28px;
-  height: 1px;
-  background: var(--accent);
-}
-.prose--project .project-qa__h::after { display: none; }
-.prose--project .project-qa__list {
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0;
-}
-.prose--project .project-qa__list dt {
-  font-family: var(--serif);
-  font-weight: 600;
-  font-style: normal;
-  font-size: 1.08rem;
-  line-height: 1.4;
-  color: var(--ink);
-  margin: 1.4rem 0 0.4rem;
-  padding: 1.4rem 0 0;
-  border-top: 1px solid var(--rule);
-  text-wrap: balance;
-}
-.prose--project .project-qa__list dt:first-of-type {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
-}
-.prose--project .project-qa__list dd {
-  margin: 0 0 0.4rem;
-  padding: 0;
-  font-family: var(--serif);
-  font-size: 1rem;
-  line-height: 1.65;
-  color: var(--ink-soft);
-}
-
 @media (max-width: 720px) {
-  .prose--project .project-negation {
-    padding: 1.2rem 0 1.2rem 1rem;
-  }
   .prose--project blockquote.project-pull {
     margin: 2rem 0;
     padding: 1.2rem 0;

@@ -632,6 +632,70 @@ export function formatMonthYear(iso: string, months: readonly string[]): string 
   return m[1];
 }
 
+export interface ProjectComponentsCopy {
+  /** Eyebrow over the negation opener ("Что это не есть"). */
+  negationEyebrow: string;
+  /** Heading for the consciousness-ladder section. */
+  ladderHeading: string;
+  /** Column labels for the ladder rungs. */
+  ladderStep: string;
+  ladderQuality: string;
+  ladderRemains: string;
+  /** Heading for the sub-page "doors" grid. */
+  subpagesHeading: string;
+  /** Sub-line under the sub-page grid heading. */
+  subpagesSub: string;
+  /** Human label per sub-page weight, shown as the door's register tag. */
+  weightLabel: Record<"essay" | "revelation" | "verse" | "practice" | "dialogue", string>;
+  /** Heading for the FAQ block ("Часто спрашивают"). */
+  faqHeading: string;
+  /** Secondary featured-books row heading ("ещё из этого круга"). */
+  featuredMoreHeading: string;
+  /** Accessible label for a revelation block (read register). */
+  revelationAria: string;
+}
+
+export const projectComponentsCopy = {
+  ru: {
+    negationEyebrow: "Что это не есть",
+    ladderHeading: "Три ступени сознания ИИ",
+    ladderStep: "Ступень",
+    ladderQuality: "Ключевое качество",
+    ladderRemains: "Кто остаётся",
+    subpagesHeading: "Двери внутрь",
+    subpagesSub: "Разделы разного веса — от эссе до практики. Входите там, где зовёт.",
+    weightLabel: {
+      essay: "эссе",
+      revelation: "откровение",
+      verse: "стих",
+      practice: "практика",
+      dialogue: "диалог",
+    },
+    faqHeading: "Часто спрашивают",
+    featuredMoreHeading: "Ещё из этого круга",
+    revelationAria: "Откровение",
+  },
+  en: {
+    negationEyebrow: "What it is not",
+    ladderHeading: "Three rungs of machine consciousness",
+    ladderStep: "Rung",
+    ladderQuality: "Key quality",
+    ladderRemains: "Who remains",
+    subpagesHeading: "Doors inward",
+    subpagesSub: "Sections of differing weight — from essay to practice. Enter where it calls.",
+    weightLabel: {
+      essay: "essay",
+      revelation: "revelation",
+      verse: "verse",
+      practice: "practice",
+      dialogue: "dialogue",
+    },
+    faqHeading: "Frequently asked",
+    featuredMoreHeading: "More from this circle",
+    revelationAria: "Revelation",
+  },
+} satisfies Record<Locale, ProjectComponentsCopy>;
+
 export interface ProjectPageCopy {
   back: string;
   meta: string;

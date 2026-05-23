@@ -1,0 +1,174 @@
+---
+/*
+ * <ProjectHero> — the mini-site masthead and the identity hook.
+ *
+ * Eyebrow (project label) · title · tagline · cover, framed by the per-theme
+ * VERTICAL APERTURE — a shaft of light the type sits within. The shaft is the
+ * one shared identity gesture across both projects (it echoes the literal
+ * shaft of light in both covers), tinted cold for enlightened-ai and warm-dawn
+ * for holy-rus by the theme variables (`--pt-aperture`, `--pt-light`). No
+ * decoration beyond it: the masthead serves the reading.
+ *
+ * The cover URL is resolved by the caller (ProjectPage) and passed in, so
+ * cover resolution stays in one place.
+ */
+
+import type { Locale } from "@/lib/i18n";
+import { projectPageCopy } from "@/lib/copy";
+
+interface Props {
+  eyebrow:  string;
+  title:    string;
+  tagline?: string;
+  coverUrl: string | null;
+  number:   number;
+  locale:   Locale;
+}
+
+const { eyebrow, title, tagline, coverUrl, number, locale } = Astro.props;
+const copy = projectPageCopy[locale];
+---
+<header class="hero">
+  <div class="hero__shaft" aria-hidden="true"></div>
+  <div class="hero__inner">
+    <div class="hero__text">
+      <p class="hero__eyebrow">{eyebrow}</p>
+      <h1 class="hero__title">{title}</h1>
+      {tagline && <p class="hero__tagline">{tagline}</p>}
+    </div>
+    <div class="hero__cover">
+      {coverUrl ? (
+        <img
+          class="hero__cover-img"
+          src={coverUrl}
+          alt={copy.coverAlt(title)}
+          loading="eager"
+          decoding="async"
+          width="720"
+          height="966"
+          fetchpriority="high"
+        />
+      ) : (
+        <div class="hero__cover-empty" aria-hidden="true">
+          <span>{String(number).padStart(2, "0")}</span>
+        </div>
+      )}
+    </div>
+  </div>
+</header>
+
+<style>
+  .hero {
+    position: relative;
+    margin: 0 0 clamp(2.5rem, 5vw, 4rem);
+    padding: clamp(2rem, 5vw, 4rem) 0 clamp(2.5rem, 5vw, 3.5rem);
+    border-bottom: 1px solid var(--rule);
+    isolation: isolate;
+  }
+  /* The aperture: a soft vertical band of light behind the title column,
+     wider on desktop, tinted by the theme. It never reads as a hard edge —
+     it's a glow the type sits inside. */
+  .hero__shaft {
+    position: absolute;
+    inset: 0 auto 0 0;
+    left: clamp(2rem, 14vw, 9rem);
+    width: clamp(8rem, 26vw, 18rem);
+    background: var(--pt-aperture);
+    /* Feather the band so it's a shaft, not a column. */
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 35%, #000 65%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 35%, #000 65%, transparent);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .hero__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(150px, 22vw, 230px);
+    column-gap: clamp(1.5rem, 4vw, 3rem);
+    align-items: center;
+  }
+  @media (max-width: 760px) {
+    .hero__inner {
+      grid-template-columns: 1fr;
+      row-gap: 1.8rem;
+    }
+    .hero__cover { order: -1; max-width: 190px; }
+    .hero__shaft { left: 0; width: clamp(7rem, 60vw, 14rem); }
+  }
+
+  .hero__text { min-width: 0; }
+  .hero__eyebrow {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1.1rem;
+    display: inline-block;
+    position: relative;
+    padding-left: 2.6rem;
+  }
+  .hero__eyebrow::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 2rem;
+    height: 1px;
+    background: var(--accent);
+  }
+  .hero__title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(2.6rem, 6.4vw, 4.4rem);
+    line-height: 1.0;
+    letter-spacing: -0.022em;
+    color: var(--ink);
+    margin: 0 0 1.2rem;
+    text-wrap: balance;
+    font-feature-settings: "lnum" 0, "onum" 1, "kern" 1;
+    /* A faint lift of the cold/warm light off the title — the type catching
+       the shaft. Kept subtle so it never glows. */
+    text-shadow: 0 0 36px color-mix(in srgb, var(--pt-light) 18%, transparent);
+  }
+  .hero__tagline {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.1rem, 1.8vw, 1.35rem);
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 38rem;
+    text-wrap: pretty;
+  }
+
+  .hero__cover {
+    aspect-ratio: 2 / 3;
+    border: 1px solid var(--pt-glass-edge, var(--rule));
+    overflow: hidden;
+    background: var(--bg-rise);
+    box-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.25),
+      0 30px 60px -34px rgba(0, 0, 0, 0.6);
+  }
+  .hero__cover-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .hero__cover-empty {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+  }
+  .hero__cover-empty span {
+    font-family: var(--serif);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-size: 2.4rem;
+    color: var(--ink-mute);
+  }
+</style>

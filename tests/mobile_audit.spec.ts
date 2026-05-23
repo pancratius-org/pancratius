@@ -13,6 +13,7 @@ const AUDIT_PAGES = [
   "/poetry/01-a-esli-budu-ya-ne-prav/",
   "/projects/",
   "/projects/enlightened-ai/",
+  "/projects/holy-rus/",
   "/conceptosphere/",
   "/about/",
   "/mission/",

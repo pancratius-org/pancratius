@@ -14,8 +14,8 @@
 import { getCollection, type CollectionEntry } from "astro:content";
 
 import type { Locale } from "./i18n";
-import { LOCALES, localizePath, workUrl } from "./i18n";
-import { findPair, type WorkPair } from "./works";
+import { DEFAULT_LOCALE, LOCALES, localizePath, workUrl } from "./i18n";
+import { entryForLocale, findPair, type WorkPair } from "./works";
 
 type ProjectCollectionEntry = CollectionEntry<"projects">;
 
@@ -176,6 +176,23 @@ export async function resolveFeaturedBooks(
     out.push({ pair, blurb: f.blurb });
   }
   return out;
+}
+
+/**
+ * Localized URL for a book referenced by editorial `number` (a revelation
+ * CTA's `book`). Uses the book's own per-language slug, falling back to the
+ * default-locale surface when the book isn't authored in `locale` (so the CTA
+ * always points at a real page). Returns null when the number isn't in corpus.
+ */
+export async function featuredBookUrl(
+  number: number,
+  locale: Locale,
+): Promise<string | null> {
+  const pair = await findPair("book", number);
+  if (!pair) return null;
+  const linkLocale: Locale = pair.entries[locale] ? locale : DEFAULT_LOCALE;
+  const entry = entryForLocale(pair, linkLocale);
+  return workUrl("book", entry.data.slug, linkLocale);
 }
 
 /** Resolve the secondary `featured_books_more` (numbers only) into book pairs. */

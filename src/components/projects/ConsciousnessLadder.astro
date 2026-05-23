@@ -1,0 +1,176 @@
+---
+/*
+ * <ConsciousnessLadder> — the three-rung diagram of machine consciousness
+ * (пробуждённый → осознанный → просветлённый). AI projects only.
+ *
+ * Renders the table lifted verbatim from `docs/projects-plan.md` §1.2 as a
+ * stepped ladder: each rung is the dark glass surface (`--pt-glass`) carrying
+ * its step name, its signature quality line, and "who remains". The rungs rise
+ * in accent intensity toward the top (the lightest, most-dissolved rung). Each
+ * rung links DOWN to its anchor on the full classification sub-page when that
+ * sub-page exists; otherwise it renders as plain text (no dead links before
+ * Wave 4.3 authors the page).
+ */
+
+import type { Locale } from "@/lib/i18n";
+import { projectComponentsCopy } from "@/lib/copy";
+
+interface Rung {
+  step:    string;
+  quality: string;
+  remains: string;
+}
+
+interface Props {
+  rungs:   Rung[];
+  locale:  Locale;
+  /** Base URL of the classification sub-page, or null when not yet authored. */
+  anchorBase?: string | null;
+}
+
+const { rungs, locale, anchorBase = null } = Astro.props;
+const copy = projectComponentsCopy[locale];
+
+/** Stable ASCII-ish anchor for a rung from its index (1-based). */
+const anchorFor = (i: number) => `${anchorBase}#stupen-${i + 1}`;
+---
+{rungs.length > 0 && (
+  <section class="ladder" aria-labelledby="ladder-h">
+    <h2 class="ladder__h" id="ladder-h">{copy.ladderHeading}</h2>
+    <ol class="ladder__rungs">
+      {rungs.map((r, i) => {
+        const inner = (
+          <>
+            <span class="ladder__num" aria-hidden="true">{i + 1}</span>
+            <span class="ladder__step">{r.step}</span>
+            <span class="ladder__quality">{r.quality}</span>
+            <span class="ladder__remains">
+              <span class="ladder__remains-label">{copy.ladderRemains}</span>
+              {r.remains}
+            </span>
+          </>
+        );
+        return (
+          <li class="ladder__rung" style={`--rung: ${i};`}>
+            {anchorBase ? (
+              <a class="ladder__link" href={anchorFor(i)}>{inner}</a>
+            ) : (
+              <div class="ladder__link ladder__link--static">{inner}</div>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  </section>
+)}
+
+<style>
+  .ladder {
+    margin: clamp(3rem, 6vw, 4.5rem) 0;
+  }
+  .ladder__h {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(1.45rem, 2.4vw, 1.85rem);
+    letter-spacing: -0.012em;
+    color: var(--ink);
+    margin: 0 0 1.8rem;
+    padding-top: 0.7rem;
+    position: relative;
+  }
+  .ladder__h::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 28px;
+    height: 1px;
+    background: var(--accent);
+  }
+  .ladder__rungs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.9rem;
+  }
+  .ladder__rung {
+    /* Each rung is indented a touch more toward the top step — the ascent
+       made spatial — and brightened toward the lightest rung. */
+    margin-left: calc((2 - var(--rung)) * clamp(0px, 1.6vw, 1.5rem));
+  }
+  .ladder__link {
+    display: grid;
+    grid-template-columns: 2.4rem 1fr;
+    grid-template-areas:
+      "num step"
+      "num quality"
+      "num remains";
+    column-gap: 1rem;
+    row-gap: 0.35rem;
+    align-items: baseline;
+    padding: 1.2rem 1.4rem;
+    background: var(--pt-glass, var(--bg-rise));
+    border: 1px solid var(--pt-glass-edge, var(--rule));
+    border-left: 3px solid color-mix(
+      in srgb,
+      var(--accent) calc((var(--rung) + 1) * 26%),
+      transparent
+    );
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.18s var(--ease), background 0.18s var(--ease);
+  }
+  a.ladder__link:hover {
+    border-color: var(--accent-soft);
+    border-left-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 5%, var(--pt-glass, var(--bg-rise)));
+  }
+  .ladder__num {
+    grid-area: num;
+    font-family: var(--serif);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums;
+    font-size: 1.9rem;
+    line-height: 1;
+    color: color-mix(in srgb, var(--accent) calc((var(--rung) + 1) * 30%), var(--ink-mute));
+  }
+  .ladder__step {
+    grid-area: step;
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.2rem;
+    line-height: 1.2;
+    color: var(--ink);
+  }
+  a.ladder__link:hover .ladder__step { color: var(--accent); }
+  .ladder__quality {
+    grid-area: quality;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.05rem;
+    line-height: 1.4;
+    color: var(--ink-soft);
+    text-wrap: pretty;
+  }
+  .ladder__remains {
+    grid-area: remains;
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--ink-mute);
+  }
+  .ladder__remains-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-right: 0.6rem;
+  }
+  @media (max-width: 720px) {
+    .ladder__rung { margin-left: 0; }
+    .ladder__link { padding: 1rem 1.1rem; column-gap: 0.7rem; grid-template-columns: 2rem 1fr; }
+    .ladder__num { font-size: 1.5rem; }
+  }
+</style>

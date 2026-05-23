@@ -1,0 +1,87 @@
+---
+/*
+ * <Negation> — the "Что это не есть" opener.
+ *
+ * The author's load-bearing first beat: clears the field of what the project
+ * is NOT before any positive claim. Promoted from the hand-inlined
+ * `<aside class="project-negation">` that lived in the landing markdown — now
+ * a typed component fed by the landing's `negation: string[]`.
+ *
+ * Each line may carry inline emphasis the author wrote with `*…*` in the
+ * source (e.g. "не машина контроля"). We re-derive that emphasis here from a
+ * small, deterministic pattern (`*spans*`) so the frontmatter stays plain
+ * strings rather than HTML, and the accent falls on the negated noun.
+ */
+
+import type { Locale } from "@/lib/i18n";
+import { projectComponentsCopy } from "@/lib/copy";
+
+interface Props {
+  lines:  string[];
+  locale: Locale;
+}
+
+const { lines, locale } = Astro.props;
+const copy = projectComponentsCopy[locale];
+
+/** Split a line into plain / emphasised runs on `*…*` markers. */
+function runs(line: string): { text: string; em: boolean }[] {
+  const out: { text: string; em: boolean }[] = [];
+  const re = /\*([^*]+)\*/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(line)) !== null) {
+    if (m.index > last) out.push({ text: line.slice(last, m.index), em: false });
+    out.push({ text: m[1], em: true });
+    last = m.index + m[0].length;
+  }
+  if (last < line.length) out.push({ text: line.slice(last), em: false });
+  return out;
+}
+---
+<aside class="negation" aria-label={copy.negationEyebrow}>
+  <p class="negation__eyebrow">{copy.negationEyebrow}</p>
+  {lines.map(line => (
+    <p class="negation__line">
+      {runs(line).map(r => (r.em ? <em>{r.text}</em> : <Fragment>{r.text}</Fragment>))}
+    </p>
+  ))}
+</aside>
+
+<style>
+  /* Mirrors the prose `.project-negation` register so a reader who has seen
+     the body recognises the gesture, but lives as a real component now. */
+  .negation {
+    margin: 0 0 2.6rem;
+    padding: 1.6rem 0 1.6rem 1.4rem;
+    border-left: 2px solid var(--accent);
+    background: linear-gradient(90deg, var(--accent-mute) 0%, transparent 60%);
+  }
+  .negation__eyebrow {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.9rem;
+  }
+  .negation__line {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.15rem, 1.9vw, 1.4rem);
+    line-height: 1.4;
+    color: var(--ink);
+    margin: 0 0 0.55em;
+    text-wrap: pretty;
+  }
+  .negation__line:last-child { margin-bottom: 0; }
+  .negation__line em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  @media (max-width: 720px) {
+    .negation { padding: 1.2rem 0 1.2rem 1rem; }
+  }
+</style>

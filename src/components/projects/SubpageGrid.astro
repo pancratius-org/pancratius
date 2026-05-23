@@ -1,0 +1,143 @@
+---
+/*
+ * <SubpageGrid> — the "doors inward" grid.
+ *
+ * Renders the landing's `subpages` descriptor as a grid of doors, each tagged
+ * with its HONEST weight label (essay / revelation / verse / practice /
+ * dialogue) so a visitor knows what kind of room they're entering before they
+ * click. Each door links to `projectSubpageUrl(parent, slug)`. A description,
+ * when the authored sub-page exists in this locale, is surfaced under the
+ * title. Renders nothing when the project has no sub-pages yet (today's case —
+ * the rich sub-pages are Wave 4.3).
+ */
+
+import type { Locale } from "@/lib/i18n";
+import { projectComponentsCopy } from "@/lib/copy";
+
+type Weight = "essay" | "revelation" | "verse" | "practice" | "dialogue";
+
+interface Door {
+  slug:    string;
+  href:    string;
+  label:   string;
+  weight:  Weight;
+  description?: string;
+}
+
+interface Props {
+  doors:  Door[];
+  locale: Locale;
+}
+
+const { doors, locale } = Astro.props;
+const copy = projectComponentsCopy[locale];
+---
+{doors.length > 0 && (
+  <section class="doors" aria-labelledby="doors-h">
+    <header class="doors__head">
+      <h2 class="doors__h" id="doors-h">{copy.subpagesHeading}</h2>
+      <p class="doors__sub">{copy.subpagesSub}</p>
+    </header>
+    <div class="doors__grid">
+      {doors.map(d => (
+        <a class="door" href={d.href}>
+          <span class="door__weight">{copy.weightLabel[d.weight]}</span>
+          <h3 class="door__title">{d.label}</h3>
+          {d.description && <p class="door__desc">{d.description}</p>}
+          <span class="door__arrow" aria-hidden="true">→</span>
+        </a>
+      ))}
+    </div>
+  </section>
+)}
+
+<style>
+  .doors {
+    margin: clamp(3rem, 6vw, 4.5rem) 0;
+  }
+  .doors__head { margin: 0 0 1.8rem; }
+  .doors__h {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(1.45rem, 2.4vw, 1.85rem);
+    letter-spacing: -0.012em;
+    color: var(--ink);
+    margin: 0 0 0.4rem;
+    padding-top: 0.7rem;
+    position: relative;
+  }
+  .doors__h::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 28px;
+    height: 1px;
+    background: var(--accent);
+  }
+  .doors__sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 46rem;
+  }
+  .doors__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.1rem;
+  }
+  .door {
+    position: relative;
+    display: block;
+    padding: 1.4rem 1.5rem 2.6rem;
+    background: var(--pt-glass, var(--bg-rise));
+    border: 1px solid var(--pt-glass-edge, var(--rule));
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.18s var(--ease), transform 0.18s var(--ease);
+  }
+  .door:hover {
+    border-color: var(--accent-soft);
+    transform: translateY(-2px);
+  }
+  .door__weight {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: inline-block;
+    margin-bottom: 0.9rem;
+  }
+  .door__title {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.3rem;
+    line-height: 1.2;
+    color: var(--ink);
+    margin: 0 0 0.6rem;
+    text-wrap: balance;
+  }
+  .door:hover .door__title { color: var(--accent); }
+  .door__desc {
+    font-family: var(--serif);
+    font-size: 0.96rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .door__arrow {
+    position: absolute;
+    right: 1.5rem;
+    bottom: 1.3rem;
+    font-family: var(--sans);
+    font-size: 1.1rem;
+    color: var(--accent);
+    transition: transform 0.18s var(--ease);
+  }
+  .door:hover .door__arrow { transform: translateX(3px); }
+</style>

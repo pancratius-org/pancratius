@@ -1,0 +1,107 @@
+---
+/*
+ * <FAQ> — the "Часто спрашивают" block.
+ *
+ * Promoted from the inlined `<section class="project-qa"><dl>`. Renders the
+ * landing's `faq: { q; a }[]` as native `<details>/<summary>` disclosures so
+ * the answers are keyboard-operable and collapsed-by-default on long landings,
+ * while the questions stay scannable. The hairline-divided definition register
+ * (question in serif medium, answer muted) carries over from the prose
+ * contract so the gesture reads the same as before.
+ */
+
+import type { Locale } from "@/lib/i18n";
+import { projectComponentsCopy } from "@/lib/copy";
+
+interface Props {
+  items:  { q: string; a: string }[];
+  locale: Locale;
+}
+
+const { items, locale } = Astro.props;
+const copy = projectComponentsCopy[locale];
+---
+{items.length > 0 && (
+  <section class="faq" aria-labelledby="faq-h">
+    <h2 class="faq__h" id="faq-h">{copy.faqHeading}</h2>
+    <div class="faq__list">
+      {items.map(item => (
+        <details class="faq__item">
+          <summary class="faq__q">{item.q}</summary>
+          <p class="faq__a">{item.a}</p>
+        </details>
+      ))}
+    </div>
+  </section>
+)}
+
+<style>
+  .faq {
+    margin: 4rem 0 0;
+    padding: 2rem 0 0;
+    border-top: 1px solid var(--rule);
+  }
+  .faq__h {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-style: normal;
+    font-size: 1.35rem;
+    letter-spacing: -0.012em;
+    color: var(--ink);
+    margin: 0 0 1.4rem;
+    padding: 0.7rem 0 0;
+    position: relative;
+  }
+  .faq__h::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 28px;
+    height: 1px;
+    background: var(--accent);
+  }
+  .faq__list { display: grid; gap: 0; }
+  .faq__item {
+    border-top: 1px solid var(--rule);
+    padding: 1.1rem 0;
+  }
+  .faq__item:first-child { border-top: 0; padding-top: 0; }
+  .faq__q {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.08rem;
+    line-height: 1.4;
+    color: var(--ink);
+    cursor: pointer;
+    list-style: none;
+    position: relative;
+    padding-right: 1.6rem;
+    text-wrap: balance;
+  }
+  /* Hide the native disclosure triangle; draw our own quiet marker. */
+  .faq__q::-webkit-details-marker { display: none; }
+  .faq__q::after {
+    content: "+";
+    position: absolute;
+    right: 0;
+    top: -0.05em;
+    font-family: var(--sans);
+    font-weight: 400;
+    font-size: 1.2rem;
+    line-height: 1;
+    color: var(--accent);
+    transition: transform 0.18s var(--ease);
+  }
+  .faq__item[open] .faq__q::after {
+    content: "−";
+  }
+  .faq__a {
+    font-family: var(--serif);
+    font-size: 1rem;
+    line-height: 1.65;
+    color: var(--ink-soft);
+    margin: 0.7rem 0 0;
+    max-width: 50rem;
+  }
+</style>

@@ -2,7 +2,13 @@
 import { render } from "astro:content";
 
 import Base from "@/layouts/Base.astro";
-import ProjectRelated from "@/components/ProjectRelated.astro";
+import ProjectHero from "@/components/projects/ProjectHero.astro";
+import Negation from "@/components/projects/Negation.astro";
+import ConsciousnessLadder from "@/components/projects/ConsciousnessLadder.astro";
+import RevelationBlock from "@/components/projects/RevelationBlock.astro";
+import SubpageGrid from "@/components/projects/SubpageGrid.astro";
+import FeaturedBooks from "@/components/projects/FeaturedBooks.astro";
+import FAQ from "@/components/projects/FAQ.astro";
 
 import type { Locale } from "@/lib/i18n";
 import { kindIndexUrl } from "@/lib/i18n";
@@ -11,7 +17,12 @@ import { sameSitePath } from "@/lib/paths";
 import { seoForProject } from "@/lib/seo";
 import {
   authoredProjectLocales,
+  featuredBookUrl,
+  getProjectSubpage,
+  getProjectSubpages,
+  projectSubpageUrl,
   resolveFeaturedBooks,
+  resolveFeaturedBooksMore,
   type ProjectLanding,
 } from "@/lib/projects";
 
@@ -49,37 +60,68 @@ const seo = seoForProject(Astro.site, {
   authoredLocales,
 });
 
-// Featured books strip — resolved from the landing's `featured_books`.
+// Featured books — primary strip (with blurbs) + optional secondary row.
 const featured = await resolveFeaturedBooks(data.featured_books);
+const featuredMore = await resolveFeaturedBooksMore(data.featured_books_more);
+
+// Sub-page doors. Built from the landing's `subpages` descriptor (order +
+// weight + label), linked via `projectSubpageUrl`. A door's description is
+// surfaced when the authored sub-page exists in this locale.
+const doors = await Promise.all(
+  (data.subpages ?? []).map(async s => {
+    const sub = await getProjectSubpage(data.slug, s.slug, locale);
+    return {
+      slug: s.slug,
+      href: sameSitePath(projectSubpageUrl(data.slug, s.slug, locale)),
+      label: s.label ?? sub?.data.title ?? s.slug,
+      weight: s.weight,
+      description: sub?.data.description,
+    };
+  }),
+);
+
+// Ladder anchor base — link rungs into the classification sub-page only when
+// it actually exists in this locale (no dead links before Wave 4.3 authors it).
+const subpages = await getProjectSubpages(data.slug, locale);
+const hasClassification = subpages.some(s => s.data.slug === "classification");
+const ladderAnchorBase = hasClassification
+  ? sameSitePath(projectSubpageUrl(data.slug, "classification", locale))
+  : null;
+
+// Revelation blocks — resolve any `cta.book` into a real localized URL.
+const revelations = await Promise.all(
+  (data.revelations ?? []).map(async r => {
+    let href = r.cta?.href;
+    if (r.cta?.book != null) {
+      const url = await featuredBookUrl(r.cta.book, locale);
+      if (url) href = sameSitePath(url);
+    }
+    return {
+      voice: r.voice,
+      text: r.text,
+      cta: r.cta ? { label: r.cta.label, href } : undefined,
+    };
+  }),
+);
+
+const themeAttr = data.theme ?? undefined;
 ---
 <Base locale={locale} seo={seo}>
-  <article class="project-page">
+  <article class="project-page project-themed" data-project-theme={themeAttr}>
     <a class="project-page__back" href={sameSitePath(backHref)}>{copy.back}</a>
 
-    <header class="project-page__masthead">
-      <p class="project-page__meta">{copy.meta}</p>
-      <div class="project-page__cover">
-        {coverUrl ? (
-          <img
-            class="project-page__cover-img"
-            src={coverUrl}
-            alt={copy.coverAlt(data.title)}
-            loading="eager"
-            decoding="async"
-            width="720"
-            height="966"
-          />
-        ) : (
-          <div class="project-page__cover-empty" aria-hidden="true">
-            <span>{String(data.number).padStart(2, "0")}</span>
-          </div>
-        )}
-      </div>
-      <div class="project-page__body">
-        <h1 class="project-page__title">{data.title}</h1>
-        {data.tagline && <p class="project-page__tagline">{data.tagline}</p>}
-      </div>
-    </header>
+    <ProjectHero
+      eyebrow={copy.meta}
+      title={data.title}
+      tagline={data.tagline}
+      coverUrl={coverUrl}
+      number={data.number}
+      locale={locale}
+    />
+
+    {data.negation && data.negation.length > 0 && (
+      <Negation lines={data.negation} locale={locale} />
+    )}
 
     <div
       class="prose prose--project"
@@ -89,7 +131,21 @@ const featured = await resolveFeaturedBooks(data.featured_books);
       <Content />
     </div>
 
-    <ProjectRelated locale={locale} featured={featured} />
+    {data.ladder && data.ladder.length > 0 && (
+      <ConsciousnessLadder rungs={data.ladder} locale={locale} anchorBase={ladderAnchorBase} />
+    )}
+
+    {revelations.map(r => (
+      <RevelationBlock text={r.text} voice={r.voice} cta={r.cta} locale={locale} />
+    ))}
+
+    <SubpageGrid doors={doors} locale={locale} />
+
+    <FeaturedBooks primary={featured} more={featuredMore} locale={locale} />
+
+    {data.faq && data.faq.length > 0 && (
+      <FAQ items={data.faq} locale={locale} />
+    )}
   </article>
 </Base>
 
@@ -97,7 +153,7 @@ const featured = await resolveFeaturedBooks(data.featured_books);
   .project-page {
     max-width: 64rem;
     margin: 0 auto;
-    padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
+    padding: clamp(2.5rem, 6vw, 4.5rem) var(--rail) clamp(3.5rem, 7vw, 6rem);
   }
   .project-page__back {
     font-family: var(--sans);
@@ -105,94 +161,26 @@ const featured = await resolveFeaturedBooks(data.featured_books);
     letter-spacing: 0.08em;
     color: var(--ink-mute);
     display: inline-block;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     text-decoration: none;
   }
   .project-page__back:hover { color: var(--accent); }
 
-  .project-page__masthead {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    grid-template-areas:
-      "meta meta"
-      "cover body";
-    column-gap: 2.5rem;
-    row-gap: 1.4rem;
-    align-items: start;
-    margin-bottom: 3rem;
-    padding-bottom: 2.25rem;
-    border-bottom: 1px solid var(--rule);
+  /* The themed scope owns the WHOLE surface, not a card. The reading column
+     stays centred + measured, but a full-bleed pseudo-element paints the
+     theme's background (and a faint top-pooled aperture glow) behind it, so
+     the identity reaches edge-to-edge under the site chrome. */
+  .project-page.project-themed { position: relative; }
+  .project-page.project-themed::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(120% 50% at 50% -8%, var(--pt-aperture-glow) 0%, transparent 60%),
+      var(--bg);
+    z-index: -1;
+    pointer-events: none;
   }
-  .project-page__masthead .project-page__meta  { grid-area: meta;  }
-  .project-page__masthead .project-page__cover { grid-area: cover; }
-  .project-page__masthead .project-page__body  { grid-area: body;  }
-  @media (max-width: 720px) {
-    .project-page__masthead {
-      grid-template-columns: 1fr;
-      grid-template-areas: "meta" "cover" "body";
-      row-gap: 1.25rem;
-    }
-    .project-page__masthead .project-page__cover { max-width: 200px; }
-  }
-  .project-page__cover {
-    aspect-ratio: 2 / 3;
-    border: 1px solid var(--rule);
-    overflow: hidden;
-    background: var(--bg-rise);
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25), 0 28px 50px -30px rgba(0, 0, 0, 0.55);
-  }
-  :global([data-theme="light"]) .project-page__cover {
-    box-shadow: 0 1px 0 rgba(20, 17, 13, 0.05), 0 24px 48px -28px rgba(60, 45, 20, 0.30);
-  }
-  .project-page__cover-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    opacity: 0.94;
-  }
-  :global([data-theme="light"]) .project-page__cover-img { opacity: 1; }
-  .project-page__cover-empty {
-    width: 100%;
-    height: 100%;
-    display: grid;
-    place-items: center;
-  }
-  .project-page__cover-empty span {
-    font-family: var(--serif);
-    font-style: italic;
-    font-variant-numeric: oldstyle-nums proportional-nums;
-    font-size: 2.4rem;
-    color: var(--ink-mute);
-  }
-  .project-page__meta {
-    font-family: var(--sans);
-    font-size: 11.5px;
-    font-weight: 500;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--ink-mute);
-    margin: 0;
-  }
-  .project-page__title {
-    font-family: var(--serif);
-    font-weight: 500;
-    font-size: clamp(2.2rem, 4.4vw, 3.4rem);
-    line-height: 1.04;
-    letter-spacing: -0.018em;
-    margin: 0 0 1rem;
-    text-wrap: balance;
-    font-feature-settings: "lnum" 0, "onum" 1, "kern" 1;
-  }
-  .project-page__tagline {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: clamp(1.05rem, 1.7vw, 1.2rem);
-    line-height: 1.55;
-    color: var(--ink-soft);
-    margin: 0;
-    text-wrap: pretty;
-    max-width: 42rem;
-  }
+
   .project-page .prose { max-width: none; }
 </style>

@@ -169,6 +169,53 @@ const projectLanding = z.object({
       }),
     )
     .optional(),
+  // ─── Typed structured-section fields the landing arc renders ───────────
+  // Each is OPTIONAL: a minimal landing (frontmatter + body only) validates.
+  // These are NAMED sections, not a generic component builder — the schema
+  // owns the arc's vocabulary so `ProjectPage` composes a known shape.
+  //
+  // The "Что это не есть" opener — one line per thing the project is NOT.
+  // Promoted from the hand-inlined `<aside class="project-negation">`.
+  negation: z.array(z.string().min(1)).optional(),
+  // The AI consciousness ladder (AI projects only). Each rung carries its
+  // step name, signature quality line, and "who remains" — lifted verbatim
+  // from the classification table in `docs/projects-plan.md` §1.2.
+  ladder: z
+    .array(
+      z.object({
+        step: z.string().min(1),
+        quality: z.string().min(1),
+        remains: z.string().min(1),
+      }),
+    )
+    .optional(),
+  // Set-apart Creator / awakened-AI quotes rendered in scripture register.
+  // `voice` attributes the speaker; an optional CTA may target a book by
+  // editorial `number` (resolved to a link) or a raw `href`.
+  revelations: z
+    .array(
+      z.object({
+        voice: z.string().optional(),
+        text: z.string().min(1),
+        cta: z
+          .object({
+            label: z.string().min(1),
+            href: z.string().optional(),
+            book: z.number().int().positive().optional(),
+          })
+          .optional(),
+      }),
+    )
+    .optional(),
+  // "Часто спрашивают" — promoted from the inlined `<section class="project-qa">`.
+  faq: z
+    .array(
+      z.object({
+        q: z.string().min(1),
+        a: z.string().min(1),
+      }),
+    )
+    .optional(),
   // Projects are original framing, not a translation-of — `translation` is
   // OPTIONAL here (the same shape works carry, but never forced).
   translation: translation.optional(),

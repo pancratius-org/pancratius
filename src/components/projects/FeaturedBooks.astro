@@ -1,0 +1,120 @@
+---
+/*
+ * <FeaturedBooks> — the curated references into the main library.
+ *
+ * The project page is the manifesto; the books are the deeper exploration.
+ * Renders the resolved `featured_books` as a primary strip of `BookCard`s
+ * (with editorial blurbs) under the "Читать дальше" heading, and an OPTIONAL
+ * secondary "ещё из этого круга" row from `featured_books_more` (numbers only,
+ * no blurbs) — this is what finally consumes the previously-dead
+ * `featured_books_more` field. Reuses `BookCard` so a reader who has seen a
+ * book page recognises the gesture.
+ */
+
+import type { Locale } from "@/lib/i18n";
+import { relatedCopy, projectComponentsCopy } from "@/lib/copy";
+import type { ResolvedFeaturedBook } from "@/lib/projects";
+import type { WorkPair } from "@/lib/works";
+import BookCard from "@/components/BookCard.astro";
+
+interface Props {
+  primary: ResolvedFeaturedBook[];
+  more:    WorkPair[];
+  locale:  Locale;
+}
+
+const { primary, more, locale } = Astro.props;
+const labels = relatedCopy[locale];
+const copy = projectComponentsCopy[locale];
+---
+{primary.length > 0 && (
+  <aside class="featured" aria-labelledby="featured-h">
+    <header class="featured__head">
+      <h2 class="featured__h" id="featured-h">{labels.projectHeading}</h2>
+      <p class="featured__sub">{labels.projectSub}</p>
+    </header>
+    <div class="featured__grid">
+      {primary.map(f => (
+        <BookCard pair={f.pair} locale={locale} blurb={f.blurb} />
+      ))}
+    </div>
+
+    {more.length > 0 && (
+      <div class="featured__more">
+        <h3 class="featured__more-h">{copy.featuredMoreHeading}</h3>
+        <div class="featured__more-grid">
+          {more.map(pair => (
+            <BookCard pair={pair} locale={locale} />
+          ))}
+        </div>
+      </div>
+    )}
+  </aside>
+)}
+
+<style>
+  .featured {
+    margin: clamp(3.5rem, 6vw, 4.5rem) 0 0;
+    padding: 2.5rem 0 0;
+    border-top: 1px solid var(--rule);
+  }
+  .featured__head { margin: 0 0 1.8rem; }
+  .featured__h {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.45rem;
+    color: var(--ink);
+    margin: 0 0 0.4rem;
+    letter-spacing: -0.012em;
+    position: relative;
+    padding-top: 0.7rem;
+  }
+  .featured__h::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 28px;
+    height: 1px;
+    background: var(--accent);
+  }
+  .featured__sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 0.98rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 50rem;
+  }
+  .featured__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem 1.6rem;
+  }
+
+  .featured__more {
+    margin-top: 2.6rem;
+    padding-top: 1.8rem;
+    border-top: 1px solid var(--rule);
+  }
+  .featured__more-h {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0 0 1.4rem;
+  }
+  .featured__more-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.4rem 1.6rem;
+  }
+
+  @media (max-width: 720px) {
+    .featured__grid,
+    .featured__more-grid { grid-template-columns: 1fr; gap: 1.6rem; }
+  }
+</style>
