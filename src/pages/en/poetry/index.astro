@@ -2,12 +2,12 @@
 import Base from "@/layouts/Base.astro";
 import { DEFAULT_LOCALE, LOCALES, type Locale, kindIndexUrl, workUrl } from "@/lib/i18n";
 import { sameSitePath } from "@/lib/paths";
-import { seoForKindIndex } from "@/lib/seo";
+import { seoForKindIndex, spellEnglishCardinal } from "@/lib/seo";
 import { getPairsByKind } from "@/lib/works";
 
 const locale = "en" as const;
 const pairs = await getPairsByKind("poem");
-const seo = seoForKindIndex(Astro.site, "poem", locale);
+const seo = seoForKindIndex(Astro.site, "poem", locale, { total: pairs.length });
 const alternates: Partial<Record<Locale, string>> = {};
 for (const loc of LOCALES) {
   if (loc !== locale) alternates[loc] = kindIndexUrl("poem", loc);
@@ -15,7 +15,7 @@ for (const loc of LOCALES) {
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
   <section class="page poetry-index">
-    <p class="eyebrow eyebrow--lg">Forty-three</p>
+    <p class="eyebrow eyebrow--lg">{spellEnglishCardinal(pairs.length)}</p>
     <div class="poetry-index__head">
       <h1><b>{pairs.length}</b> poems</h1>
       <p class="poetry-index__intro">

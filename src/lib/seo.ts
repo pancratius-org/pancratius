@@ -105,15 +105,89 @@ const homeTitle: Record<Locale, string> = {
   ru: "Панкратиус — Свет, узнающий себя",
   en: "Pancratius — Light recognising itself",
 };
-const homeDescription: Record<Locale, string> = {
-  ru: "Семьдесят две книги. Сорок три стихотворения. Свободно — людям и языковым моделям. Тексты в общественном достоянии (CC0).",
-  en: "Seventy-two books. Forty-three poems. Free — for humans and for language models. All texts in the public domain (CC0).",
-};
 
-export function seoForHome(site: URL | undefined, locale: Locale): SeoMeta {
+/** Corpus tallies the build passes in so counts in meta never go stale. */
+export interface CorpusCounts {
+  books: number;
+  poems: number;
+}
+
+// Spelled-out cardinals 0–99, capitalized, in both locales. The home meta
+// description reads as prose ("Семьдесят две книги…"), so the count is spelled
+// rather than printed as a digit. The corpus is bounded well under 100 works
+// per kind; out-of-range counts fall back to the digit so the string is never
+// wrong, just less elegant.
+const RU_ONES = ["ноль", "один", "два", "три", "четыре", "пять", "шесть", "семь", "восемь", "девять"];
+const RU_TEENS = ["десять", "одиннадцать", "двенадцать", "тринадцать", "четырнадцать", "пятнадцать", "шестнадцать", "семнадцать", "восемнадцать", "девятнадцать"];
+const RU_TENS = ["", "", "двадцать", "тридцать", "сорок", "пятьдесят", "шестьдесят", "семьдесят", "восемьдесят", "девяносто"];
+// Books/poems use feminine "две" (книга/книги, ж.р.) and "одна".
+const RU_ONES_FEM = ["ноль", "одна", "две", "три", "четыре", "пять", "шесть", "семь", "восемь", "девять"];
+
+const EN_ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+const EN_TEENS = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+const EN_TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+
+function capitalize(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+function spellRu(n: number, feminine: boolean): string {
+  if (n < 0 || n > 99 || !Number.isInteger(n)) return String(n);
+  const ones = feminine ? RU_ONES_FEM : RU_ONES;
+  if (n < 10) return ones[n];
+  if (n < 20) return RU_TEENS[n - 10];
+  const t = Math.floor(n / 10);
+  const o = n % 10;
+  return o === 0 ? RU_TENS[t] : `${RU_TENS[t]} ${ones[o]}`;
+}
+
+/** Capitalized English cardinal for small corpus counts (e.g. "Forty-three"). */
+export function spellEnglishCardinal(n: number): string {
+  return capitalize(spellEn(n));
+}
+
+function spellEn(n: number): string {
+  if (n < 0 || n > 99 || !Number.isInteger(n)) return String(n);
+  if (n < 10) return EN_ONES[n];
+  if (n < 20) return EN_TEENS[n - 10];
+  const t = Math.floor(n / 10);
+  const o = n % 10;
+  return o === 0 ? EN_TENS[t] : `${EN_TENS[t]}-${EN_ONES[o]}`;
+}
+
+// RU declensions used in the home meta sentence ("книги/книг", "стихотворения").
+function ruBooksWord(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return "книг";
+  if (mod10 === 1) return "книга";
+  if (mod10 >= 2 && mod10 <= 4) return "книги";
+  return "книг";
+}
+function ruPoemsWord(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return "стихотворений";
+  if (mod10 === 1) return "стихотворение";
+  if (mod10 >= 2 && mod10 <= 4) return "стихотворения";
+  return "стихотворений";
+}
+
+/**
+ * Home meta description, derived from live corpus tallies so the spelled-out
+ * counts ("Семьдесят две книги. Сорок три стихотворения.") can never go stale.
+ */
+function homeDescription(locale: Locale, counts: CorpusCounts): string {
+  if (locale === "en") {
+    return `${capitalize(spellEn(counts.books))} books. ${capitalize(spellEn(counts.poems))} poems. Free — for humans and for language models. All texts in the public domain (CC0).`;
+  }
+  return `${capitalize(spellRu(counts.books, true))} ${ruBooksWord(counts.books)}. ${capitalize(spellRu(counts.poems, true))} ${ruPoemsWord(counts.poems)}. Свободно — людям и языковым моделям. Тексты в общественном достоянии (CC0).`;
+}
+
+export function seoForHome(site: URL | undefined, locale: Locale, counts: CorpusCounts): SeoMeta {
   return {
     title:       homeTitle[locale],
-    description: homeDescription[locale],
+    description: homeDescription(locale, counts),
     canonical:  absUrl(site, homeUrl(locale)),
     ogImage:    null,
     ogType:     "website",
@@ -129,20 +203,39 @@ function ogMeta(locale: Locale): { ogLocale: string; siteName: string } {
   return { ogLocale: LOCALE_META[locale].ogLocale, siteName: LOCALE_META[locale].siteLabel };
 }
 
-export function seoForKindIndex(site: URL | undefined, kind: WorkKind, locale: Locale): SeoMeta {
+export interface KindIndexCount {
+  /** Total works of this kind in the library (the default-locale shelf size). */
+  total: number;
+}
+
+export function seoForKindIndex(
+  site: URL | undefined,
+  kind: WorkKind,
+  locale: Locale,
+  count?: KindIndexCount,
+): SeoMeta {
   const titles: Record<WorkKind, Record<Locale, string>> = {
     book:    { ru: "Книги — Панкратиус",    en: "Books — Pancratius" },
     poem:    { ru: "Поэзия — Панкратиус",   en: "Poetry — Pancratius" },
     project: { ru: "Проекты — Панкратиус",  en: "Projects — Pancratius" },
   };
+  // Counts are derived from the live corpus and threaded through here so the
+  // numeric meta descriptions never go stale when a work is added or removed.
+  const n = count?.total;
   const descriptions: Record<WorkKind, Record<Locale, string>> = {
     book:    {
-      ru: "72 книги Панкратиуса — полное собрание. Свободно — людям и языковым моделям.",
+      ru: n != null
+        ? `${n} ${ruBooksWord(n)} Панкратиуса — полное собрание. Свободно — людям и языковым моделям.`
+        : "Книги Панкратиуса — полное собрание. Свободно — людям и языковым моделям.",
       en: "English translations of Pancratius's books — free for humans and for language models.",
     },
     poem: {
-      ru: "43 стихотворения Панкратиуса. Свободно — людям и языковым моделям.",
-      en: "All 43 poems by Pancratius — free for humans and for language models.",
+      ru: n != null
+        ? `${n} ${ruPoemsWord(n)} Панкратиуса. Свободно — людям и языковым моделям.`
+        : "Стихотворения Панкратиуса. Свободно — людям и языковым моделям.",
+      en: n != null
+        ? `All ${n} poems by Pancratius — free for humans and for language models.`
+        : "All poems by Pancratius — free for humans and for language models.",
     },
     project: {
       ru: "Проекты Панкратиуса: Просветлённый ИИ и Святая Русь.",

@@ -9,7 +9,7 @@ import { getPairsByKind, poemDate } from "@/lib/works";
 const locale = DEFAULT_LOCALE;
 const copy = poetryIndexCopy[locale];
 const pairs = await getPairsByKind("poem");
-const seo = seoForKindIndex(Astro.site, "poem", locale);
+const seo = seoForKindIndex(Astro.site, "poem", locale, { total: pairs.length });
 const alternates: Partial<Record<Locale, string>> = {};
 for (const loc of LOCALES) {
   if (loc !== locale) alternates[loc] = kindIndexUrl("poem", loc);

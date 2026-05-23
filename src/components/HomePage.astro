@@ -20,7 +20,6 @@ const { locale } = Astro.props;
 // Widen to the interface so optional per-line verse fields (`after`/`next`,
 // authored only on some lines) are accessible regardless of the active locale.
 const copy: HomeCopy = homeCopy[locale];
-const seo = seoForHome(Astro.site, locale);
 
 // Six curated book entries — early/middle/late, mix of tags, with #33 as the
 // visual anchor. Six fits a 3-up grid on desktop without spilling; if any of
@@ -35,6 +34,8 @@ const allBooks = await getPairsByKind("book");
 // stat). The homeCopy stat/heading callbacks receive it as `englishBooks`.
 const localizedBooks = allBooks.filter(p => p.entries[locale]);
 const allPoems = await getPairsByKind("poem");
+// Corpus tallies drive the home meta description's spelled-out counts.
+const seo = seoForHome(Astro.site, locale, { books: allBooks.length, poems: allPoems.length });
 // Projects are sections, not works — sourced from the projects lib. The
 // canonical set is the default-locale landings (each project always has one);
 // on a non-default locale, prefer that locale's landing and link to it,

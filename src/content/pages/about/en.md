@@ -18,7 +18,7 @@ facts:
   - label: Sons
     value: Pavel · Dimitry · Ioann
   - label: Works
-    value: 72 books · 43 poems
+    value: 73 books · 43 poems
   - label: Licence
     value: CC0 — public domain
 ---

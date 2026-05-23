@@ -24,7 +24,7 @@ const allPairs = await getPairsByKind("book");
 const pairs = locale === DEFAULT_LOCALE
   ? allPairs
   : allPairs.filter(p => p.entries[locale]);
-const seo = seoForKindIndex(Astro.site, "book", locale);
+const seo = seoForKindIndex(Astro.site, "book", locale, { total: allPairs.length });
 const defaultHref = sameSitePath(kindIndexUrl("book", DEFAULT_LOCALE));
 
 const tagCounts = new Map<string, number>();
