@@ -1,15 +1,30 @@
 # Pancratius Content Model
 
-The **storage contract** for works in this corpus. Astro content collections,
-downloads, search, and graph data all read from this shape.
+The **storage contract** for the corpus. Astro content collections, downloads,
+search, and graph data all read from these shapes.
 
-The model has one product goal: a work folder should tell the whole story of
-that work. The author or an assisting agent should not have to juggle a content
-tree, a parallel media tree, and hidden metadata files to add one book.
+> This document is the storage shape, not the author workflow. The author/agent
+> workflow and the command surface are in [`tooling.md`](./tooling.md).
 
-> This document is the storage shape, not the author workflow. Author edits
-> happen through Markdown files directly, Codex-assisted scripts, or a future
-> small UI; that flow gets its own doc when it exists.
+## Content types (the ontology)
+
+Three kinds of content with different identity rules — do not collapse them:
+
+- **Works — books and poems — are a *population*.** Interchangeable in
+  structure: one frontmatter shape, one renderer, sorted by `number`, shown in a
+  card grid, paired across languages by `(kind, number)`. They are content
+  *collections* and own the full download matrix. Most of this doc is about works.
+- **Pages are *individuals*.** `about`, `mission`, `svetozar`, `license`,
+  `support`, `downloads` — each a one-of-a-kind route with its own purpose, not a
+  member of a population. They share a minimal `pages` schema + composable
+  blocks, but each is its own dedicated route. See [Pages](#pages).
+- **Projects are *themed sections* (mini-sites), not works.** A landing + ordered
+  sub-pages, curated references into the library, their own visual identity. They
+  do NOT flow through the work/download machinery. See [Projects](#projects) and
+  [`projects-plan.md`](./projects-plan.md).
+
+The product goal for works: one folder tells the whole story of that work — no
+parallel media tree, no hidden metadata files to add one book.
 
 ## Work Bundle
 
@@ -40,12 +55,10 @@ src/content/
     01-a-esli-budu-ya-ne-prav/
       ru.md
       ru.docx
-  projects/
-    enlightened-ai/
-      ru.md
-      ru.docx
-      cover.ru.jpg
 ```
+
+(Projects live under `src/content/projects/` too, but follow the
+[Projects](#projects) section's shape — a section, not a work bundle.)
 
 Multi-source works keep their original optimized source parts beside the work,
 for example `ru-part1.docx`, `ru-part2.docx`, and `ru-part3.docx`. Those parts
@@ -86,8 +99,8 @@ directories.
 ## Work Frontmatter
 
 ```yaml
-kind: book                          # "book" | "poem" | "project"
-number: 1                           # mandatory across all kinds; invariant identity
+kind: book                          # "book" | "poem"  (works only; see Projects/Pages)
+number: 1                           # mandatory for works; invariant identity
 slug: 01-evangelie-tsarstviya       # per-language; drives the URL
 title: Евангелие Царствия           # per-language string, never {ru, en}
 lang: ru
@@ -113,10 +126,10 @@ cross_refs:                         # optional; authored references only
 cover_is_placeholder: false         # optional; flips RU-cover fallback on EN
 ```
 
-`number` is mandatory on every kind, including projects. The corpus has **one
-invariant identity rule**: `(kind, number)`. Projects today are numbered 1
-(`enlightened-ai`) and 2 (`holy-rus`) — the numbering is editorial, not
-URL-bearing.
+`number` is mandatory on every **work** (book/poem) and is the invariant
+identity rule: `(kind, number)` pairs a work across languages. Projects also
+carry a `number` for editorial identity, but they are sections, not works —
+they do not enter the work-pair / download machinery (see [Projects](#projects)).
 
 `description` is mandatory and the only long-form metadata; SEO, cards, and
 in-page openers all read it. Don't add a separate "abstract" field — keep the
@@ -152,10 +165,12 @@ The rule is:
 - a blank source line separates stanzas;
 - no trailing `\`, no two-space ritual in source Markdown.
 
-The website preserves this with the `.prose--poem` and `.prose--manifesto`
-rendering classes. Export code may add explicit hard-break markers to
-downloadable Markdown scratch/output so strict CommonMark readers preserve the
-same lineation, but those markers are not part of the author-facing source.
+The website renders this with the `<Verse>` component (the lineation-preserving
+register — poems and the mission page; see [`decisions.md`](./decisions.md) for
+the `<Prose>`/`<Verse>` body renderers). Export code may add explicit hard-break
+markers to downloadable Markdown scratch/output so strict CommonMark readers
+preserve the same lineation, but those markers are not part of the author-facing
+source.
 
 Converters must preserve real stanza breaks. For DOCX poetry, the source signal
 is Word paragraph structure: non-empty paragraphs are verse lines, empty
@@ -258,11 +273,48 @@ already shown in `cross_refs`.
 
 ## Cross-Language Pairing
 
-Translations pair by **`(kind, number)`** across all kinds. One rule, no
-exceptions.
+Works (books and poems) pair across languages by **`(kind, number)`** — one
+rule, no exceptions. The pairing lives in `src/lib/works.ts` (`WorkPair.entries`
+keyed by locale); routes never recompute it ad hoc. Projects and pages are not
+paired works: a localized project/page exists only when that locale is authored
+(see [`i18n-routing.md`](./i18n-routing.md)).
 
-The pair-by-shared-key rule lives in `src/lib/i18n.ts`. Routes never recompute
-it ad hoc.
+## Projects
+
+Projects are **themed sections**, not works (full design:
+[`projects-plan.md`](./projects-plan.md)). A project is a landing + ordered
+sub-pages under `src/content/projects/<slug>/`:
+
+- `ru.md` — the landing. Frontmatter is a *section descriptor*: `kind: project`,
+  `slug`, `number` (editorial identity only), `title`, `tagline`, `description`,
+  `cover`, `theme`, `featured_books` (library books referenced by `number`),
+  `subpages` (ordered, with `weight` labels), optional `revelations`/`faq`. Body
+  is the landing prose.
+- `subpages/<sub>/ru.md` — a sub-page: `kind: project_subpage`, `parent`, `slug`,
+  `weight` (essay/revelation/verse/practice/dialogue), `title`, `description`,
+  optional `cover`/`component` (a bespoke interactive component).
+
+Projects have **no download matrix** and are excluded from `all-md.zip`. They are
+**converter-excluded** — the importers refuse `project` as a kind — because
+project content is authored, not converted: a new sub-page is *scaffolded*
+mechanically then *composed* editorially (see [`tooling.md`](./tooling.md)). A
+document worthy of the library is **promoted to a real book** (its own
+`(kind, number)`); a project then references it via `featured_books`, never
+copies it.
+
+## Pages
+
+Static pages live in the `pages` collection
+(`src/content/pages/<slug>/<lang>.md`) but are **individuals**, not a population.
+The shared schema is minimal — `slug`, `lang`, `title`, `description`,
+`eyebrow?`, `sub?` — and uses zod `.loose()` so a page may carry bespoke
+frontmatter (about's `portrait`/`facts`, support's `channels`) that its own
+dedicated route validates and renders. Each page is a thin dedicated route
+(`src/pages/<slug>/index.astro`, plus `/en/`) composing shared blocks
+(`<Prose>`, `<Verse>`, `PageShell`); there is no generic slug-dispatching
+renderer. A page's assets co-locate with it (about's portrait, support's QR), and
+renderable images go through `astro:assets`; `public/` is only for files needing
+a stable unprocessed URL.
 
 ## What Lives Where
 

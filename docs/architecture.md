@@ -2,6 +2,33 @@
 
 The top-level contract for the production site. Implementation details (commands, versions, runner images) live in scripts and CI configs, not here.
 
+## Core distinctions
+
+The boundary cuts the rest of the architecture rests on. Each is owned by the
+linked doc; this is only the index.
+
+- **Content types — population vs individual vs section.** Books and poems are a
+  *population* (a collection: one shape, paired by `(kind, number)`, full
+  downloads); pages are *individuals* (one-of-a-kind dedicated routes); projects
+  are *themed sections* (mini-sites), not works. → [`content-model.md`](./content-model.md).
+- **Mutate vs verify — the two command doors.** `pancratius` (uv) *mutates/produces*
+  the corpus (import, render, data); `npm` *builds and verifies* the site
+  (`build`, `check`, smoke, `audit`). Verification is not mutation, so audit lives
+  with the build. → [`tooling.md`](./tooling.md).
+- **Import / render / build — three activities.** Import DOCX → source; render
+  release artifacts locally; build/publish the static site in CI. CI never
+  imports or renders. → [`downloads.md`](./downloads.md).
+- **Mechanical vs editorial.** The CLI does mechanical transforms (DOCX→Markdown,
+  verse pairing, image capping, scaffolding); composition/synthesis is agent/skill
+  judgment, never a tool flag. → [`tooling.md`](./tooling.md).
+- **Display fallback vs route existence.** Derived display data may fall back to
+  the default locale; a route/download/feed/sitemap entry exists only when that
+  locale was authored — never render default-locale body under `/en/…`.
+  → [`i18n-routing.md`](./i18n-routing.md).
+- **`<Prose>` vs `<Verse>` — two body renderers, no "register".** The component is
+  the register (flowing vs lineation-preserving); page-specific looks are owned by
+  each dedicated route. → [`decisions.md`](./decisions.md).
+
 ## Stack
 
 - **Framework**: Astro 6+. No additional UI framework — no React, no Vue, no Svelte, no Tailwind. Vanilla CSS scoped via Astro components.

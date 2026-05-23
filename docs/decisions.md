@@ -128,9 +128,10 @@ Rationale:
 
 ## Project Numbering
 
-Projects carry `number: 1` (`enlightened-ai`) and `number: 2` (`holy-rus`). The
-numbering is editorial and not URL-bearing, but it keeps `(kind, number)` as the
-single cross-language identity rule.
+Projects carry a `number` (`enlightened-ai` = 1, `holy-rus` = 2) for editorial
+identity only. Projects are themed sections, not works (see `content-model.md`),
+so this number does NOT enrol them in the `(kind, number)` work-pair model, and
+they carry no download matrix.
 
 ## ASCII Slug Folder Names
 
@@ -141,9 +142,9 @@ conversion must not recreate Cyrillic folders.
 
 ## Reading-Page Prose Styling
 
-`src/styles/prose.css` is imported from `global.css` and applied wherever a
-`<article class="prose">` wraps Markdown-rendered body content (book, poetry,
-project, and the static `/[slug]/` routes).
+`src/styles/prose.css` is imported from `global.css` and applied wherever the
+`<Prose>` / `<Verse>` components wrap Markdown-rendered body content — book and
+poem pages, project landings and sub-pages, and the dedicated static-page routes.
 
 It encodes a reading register designed for the *actual* markup our pandoc
 pipeline emits, not for the hand-authored markup of the v4/v5/v7 mockups.
@@ -190,15 +191,28 @@ The current contract:
 - **`<hr>` is an ornament rule.** Author-supplied `p.ornament` and
   `p.signature` classes are honoured if present.
 
-The `prose--manifesto` and `prose--poem` modifiers suppress drop caps and
-swap to a left-aligned, looser-leading register with `white-space: pre-line`.
-`[slug].astro` picks the modifier per-page
-(`mission` → `prose--manifesto`, the rest default to plain `prose`).
+### Body renderers: `<Prose>` and `<Verse>` (no "register" abstraction)
 
-If editorial wants slug-specific classes (`.lead`, `.signature`,
-`.ornament`) they may be authored directly in the Markdown. The converter
-emits only structural classes it can justify from source shape and section
-name, such as `.verse-block`.
+There are exactly **two** body renderers, and the component *is* the register —
+there is no `register` enum or per-page modifier prop, and no slug-checks:
+
+- **`<Prose>`** — flowing prose (the contract above): paragraph rhythm, opt-in
+  drop cap, eyebrow `<h2>`. Books, project bodies, and most static pages.
+- **`<Verse>`** — the lineation-preserving register (`white-space: pre-line`,
+  left-aligned, no drop cap; the old `prose--poem`/`prose--manifesto` behavior).
+  Poems and the mission page both use it — "manifesto" was never a separate mode,
+  only a label on the verse renderer.
+
+There is no generic `[slug].astro` modifier-picker (it was deleted). Each static
+page is its own dedicated route that composes `<Prose>` or `<Verse>` and owns any
+page-specific layout itself (see "Pages" in `content-model.md`). Page-specific
+looks — about's portrait grid, support's widget, svetozar's treatment — live in
+those routes/components, not as branches in a shared renderer.
+
+If editorial wants slug-specific classes (`.lead`, `.signature`, `.ornament`)
+they may be authored directly in the Markdown. The converter emits only
+structural classes it can justify from source shape and section name, such as
+`.verse-block`.
 
 ## Verse Source Contract
 
@@ -211,9 +225,9 @@ break syntax:
 
 This is an authoring decision, not just a renderer trick. A non-technical author
 should be able to paste or write a poem as a poem and see the same lineation on
-the site. The web layer implements it with the scoped `.prose--poem` and
-`.prose--manifesto` classes (`white-space: pre-line` on paragraphs), while prose
-pages keep normal CommonMark semantics.
+the site. The web layer implements it with the `<Verse>` component
+(`white-space: pre-line` on paragraphs), while `<Prose>` keeps normal CommonMark
+semantics.
 
 Portable exports may add explicit hard-break markers in generated `.md` or use
 Pandoc's hard-line-break parsing for PDF/EPUB scratch files. Those markers do
