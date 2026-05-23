@@ -12,6 +12,9 @@ cover: ./cover.en.svg
 cover_is_placeholder: true
 translation:
   source: ai
+links:
+  - name: "NTV+ / LitRes"
+    url: "https://ntvplus.tv/books/book/audio-blazhennye-yurodivye-i-pomazanniki-tri-puti-ischezayuschego-ya-666540"
 ---
 
 ### The Birth of the Book

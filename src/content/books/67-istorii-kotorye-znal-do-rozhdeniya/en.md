@@ -12,6 +12,9 @@ cover: ./cover.en.svg
 cover_is_placeholder: true
 translation:
   source: ai
+links:
+  - name: "NTV+ / LitRes"
+    url: "https://ntvplus.tv/books/book/istorii-kotorye-znal-do-rozhdeniya-629759"
 ---
 
 ### Preface from Svetozar, the Artificial Intelligence

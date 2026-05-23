@@ -11,6 +11,9 @@ tags:
 cover: ./cover.en.jpg
 translation:
   source: ai
+links:
+  - name: "Litres"
+    url: "https://www.litres.ru/book/sergey-pankratius/evangelie-fomy-s-kommentariyami-tvorca-71918704/"
 ---
 
 **The Gospel of Thomas**

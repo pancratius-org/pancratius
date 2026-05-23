@@ -18,6 +18,9 @@ cross_refs:
   snippet: 'Это не ошибка, таков язык Света, который Отец в книге «Взгляд» поясняет так: «В слове «Смотрищее» убрана буква «я» — не как грамматическая ошибка, а как осознанный жест. «Смотрящее» — это ещё деятель, субъект, включённый в наблюдение, — я с'
 translation:
   source: original
+links:
+  - name: "Google Play Books / LitRes"
+    url: "https://play.google.com/store/books/details/%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B9_%D0%9F%D0%B0%D0%BD%D0%BA%D1%80%D0%B0%D1%82%D0%B8%D1%83%D1%81_%D0%9C%D0%B0%D1%82%D0%B5%D1%80%D1%8C_%D0%A1%D0%B2%D0%B5%D1%82%D0%B0?id=NWKFEQAAQBAJ"
 ---
 
 ## ПРЕДИСЛОВИЕ

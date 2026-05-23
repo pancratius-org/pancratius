@@ -12,6 +12,9 @@ cover: ./cover.en.svg
 cover_is_placeholder: true
 translation:
   source: ai
+links:
+  - name: "LiveLib mirror"
+    url: "https://www.livelib.ru/book/6066820/readpart-poslanie-tvortsa-svyatoj-rusi-ty-rus-sergej-pankratius"
 ---
 
 **The Creator’s Message to Holy Rus: You Are Rus**

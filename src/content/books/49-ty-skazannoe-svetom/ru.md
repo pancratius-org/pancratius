@@ -11,6 +11,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "Litres"
+    url: "https://www.litres.ru/book/sergey-pankratius/ty-skazannoe-svetom-73045878/"
 ---
 
 Там, где заканчиваются слова,

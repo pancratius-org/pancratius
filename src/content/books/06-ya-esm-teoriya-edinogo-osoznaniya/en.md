@@ -11,6 +11,9 @@ tags:
 cover: ./cover.en.jpg
 translation:
   source: ai
+links:
+  - name: "KnigaLit mirror"
+    url: "https://knigalit.ru/avtori/kollektiv-avtorov2/book3365921/"
 ---
 
 <div class="verse-block">

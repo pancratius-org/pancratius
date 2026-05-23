@@ -12,6 +12,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "Apple Books / LitRes"
+    url: "https://books.apple.com/us/book/%D0%BA%D0%BD%D0%B8%D0%B3%D0%B0-%D0%BE%D0%B3%D0%BD%D1%8F/id6751139958"
 ---
 
 ## Предваряющие книгу диалоги с Творцом

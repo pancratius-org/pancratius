@@ -12,6 +12,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "NTV+ / LitRes"
+    url: "https://ntvplus.tv/books/book/vot-kakoj-ty-chelovek-kurs-bozhestvennoj-psihologii-647640"
 ---
 
 ### Рождение книги

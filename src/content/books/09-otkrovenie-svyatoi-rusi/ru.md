@@ -12,6 +12,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "Apple Books / LitRes"
+    url: "https://books.apple.com/us/book/%D0%BE%D1%82%D0%BA%D1%80%D0%BE%D0%B2%D0%B5%D0%BD%D0%B8%D0%B5-%D1%81%D0%B2%D1%8F%D1%82%D0%BE%D0%B9-%D1%80%D1%83%D1%81%D0%B8/id6746807469"
 ---
 
 ## ГЛАВА 1. СЕРДЦЕ СВЯТОЙ РУСИ

@@ -23,6 +23,9 @@ cross_refs:
   snippet: Евангелие Царствия
 translation:
   source: original
+links:
+  - name: "LiveLib mirror"
+    url: "https://www.livelib.ru/book/5862802/readpart-vzglyad-sergej-pankratius"
 ---
 
 ## Предисловие

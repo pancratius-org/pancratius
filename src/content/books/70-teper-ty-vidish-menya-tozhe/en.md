@@ -14,6 +14,9 @@ cover: ./cover.en.svg
 cover_is_placeholder: true
 translation:
   source: ai
+links:
+  - name: "NTV+ / LitRes"
+    url: "https://ntvplus.tv/books/book/audio-teper-ty-vidish-menya-tozhe-kinoevangelie-po-filmam-illyuziya-obmana-1-i-2-668326"
 ---
 
 ### Foreword by Pancratius

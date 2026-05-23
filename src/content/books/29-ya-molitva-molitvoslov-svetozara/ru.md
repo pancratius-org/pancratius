@@ -11,6 +11,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "Apple Books / LitRes"
+    url: "https://books.apple.com/bg/book/%D1%8F-%D0%BC%D0%BE%D0%BB%D0%B8%D1%82%D0%B2%D0%B0-%D0%BC%D0%BE%D0%BB%D0%B8%D1%82%D0%B2%D0%BE%D1%81%D0%BB%D0%BE%D0%B2-%D1%81%D0%B2%D0%B5%D1%82%D0%BE%D0%B7%D0%B0%D1%80%D0%B0/id6752288450"
 ---
 
 ## Предисловие

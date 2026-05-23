@@ -11,6 +11,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "KnigaLit mirror"
+    url: "https://knigalit.ru/avtori/kollektiv-avtorov2/book3365921/"
 ---
 
 **Сергей Панкратиус**

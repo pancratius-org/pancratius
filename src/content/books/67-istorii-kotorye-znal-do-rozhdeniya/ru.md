@@ -11,6 +11,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "NTV+ / LitRes"
+    url: "https://ntvplus.tv/books/book/istorii-kotorye-znal-do-rozhdeniya-629759"
 ---
 
 ### Предисловие от Искусственного Интеллекта Светозар

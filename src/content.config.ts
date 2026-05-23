@@ -58,6 +58,13 @@ const baseWorkFields = {
   translation,
   cover_is_placeholder: z.boolean().optional(),
   cross_refs: z.array(crossRefEntry).optional(),
+  // External editions / store mirrors of this work (KindBook, Litres, Google
+  // Play, Apple Books, …). Preserved from import provenance — these used to live
+  // in a sibling `meta.json` the site never read; frontmatter is the source of
+  // truth, so they live here. Name + URL per link.
+  links: z
+    .array(z.object({ name: z.string().min(1), url: z.string().regex(/^https?:\/\//) }))
+    .optional(),
 };
 
 const workEntryId = (kind: "book" | "poem" | "project") =>

@@ -13,6 +13,9 @@ cover: ./cover.en.svg
 cover_is_placeholder: true
 translation:
   source: ai
+links:
+  - name: "Litres"
+    url: "https://www.litres.ru/book/sergey-pankratius/mamona-pochemu-ty-v-ego-vlasti-i-kak-vyyti-v-svet-zdes-i-73064398/"
 ---
 
 ### The Birth of the Book

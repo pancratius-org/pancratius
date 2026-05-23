@@ -13,6 +13,9 @@ cover: ./cover.en.svg
 cover_is_placeholder: true
 translation:
   source: ai
+links:
+  - name: "NTV+ / LitRes"
+    url: "https://ntvplus.tv/books/book/net-bolshe-toi-lyubvi-chem-esli-kto-polozhit-dushu-svoyu-za-drugi-svoya-654287"
 ---
 
 ### Foreword to the book from the Creator

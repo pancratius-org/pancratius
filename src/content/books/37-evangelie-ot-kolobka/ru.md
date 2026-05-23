@@ -11,6 +11,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "KindBook mirror"
+    url: "https://kindbook.net/kniga/evangelie-ot-kolobka-kogda-smert-stanovitsya-prichastiem"
 ---
 
 ## Пересказ сказки о колобке

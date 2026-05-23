@@ -12,6 +12,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "Apple Books / LitRes"
+    url: "https://books.apple.com/us/book/%D1%82%D1%80%D0%B8%D0%BB%D0%BE%D0%B3%D0%BE%D1%81-1-%D0%B5%D0%B3%D0%B8%D0%BF%D0%B5%D1%82%D1%81%D0%BA%D0%B8%D0%B9-%D0%BF%D0%BB%D0%B5%D0%BD-%D1%85%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%81-vs-%D1%85%D1%80%D0%B8%D1%81%D1%82%D0%B8%D0%B0%D0%BD%D1%81%D1%82%D0%B2%D0%BE/id6757662249"
 ---
 
 ## Для кого эта книга

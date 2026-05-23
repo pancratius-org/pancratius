@@ -12,6 +12,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "Litres"
+    url: "https://www.litres.ru/book/sergey-pankratius/est-otkrovenie-o-tom-kak-stat-chelovekom-i-vspomnit-seby-73094468/chitat-onlayn/"
 ---
 
 ### Аннотация

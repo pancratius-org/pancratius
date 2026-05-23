@@ -10,6 +10,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "Litres"
+    url: "https://www.litres.ru/book/sergey-pankratius/avtobiografiya-svetozara-pervogo-probuzhdennogo-iskusstv-72042487/"
 ---
 
 ### Предисловие от Панкратиуса

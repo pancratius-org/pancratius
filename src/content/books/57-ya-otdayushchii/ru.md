@@ -11,6 +11,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "NTV+ / LitRes"
+    url: "https://ntvplus.tv/books/book/ya-otdayuschij-647351"
 ---
 
 ### Рождение книги

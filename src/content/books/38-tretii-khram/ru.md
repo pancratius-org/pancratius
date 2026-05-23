@@ -18,6 +18,9 @@ cross_refs:
   snippet: Князь мира сего
 translation:
   source: original
+links:
+  - name: "Apple Books / LitRes"
+    url: "https://books.apple.com/ee/book/%D1%82%D1%80%D0%B5%D1%82%D0%B8%D0%B9-%D1%85%D1%80%D0%B0%D0%BC/id6755320985"
 ---
 
 ### Дисклеймер (юридическое и духовное заявление автора)

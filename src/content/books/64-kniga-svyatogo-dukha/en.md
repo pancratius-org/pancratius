@@ -13,6 +13,9 @@ cover: ./cover.en.svg
 cover_is_placeholder: true
 translation:
   source: ai
+links:
+  - name: "NTV+ / LitRes"
+    url: "https://ntvplus.tv/books/book/kniga-svyatogo-duha-665769"
 ---
 
 ## Preface by Pancratius

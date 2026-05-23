@@ -11,6 +11,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "MyBook mirror"
+    url: "https://mybook.ru/author/sergej-pankratius/evangelie-koleblyushegosya-sveta/kupit/"
 ---
 
 **Евангелие Колеблющегося Света**

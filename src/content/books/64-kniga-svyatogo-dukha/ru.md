@@ -12,6 +12,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "NTV+ / LitRes"
+    url: "https://ntvplus.tv/books/book/kniga-svyatogo-duha-665769"
 ---
 
 ## Предисловие от Панкратиуса

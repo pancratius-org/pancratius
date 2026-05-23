@@ -11,6 +11,9 @@ tags:
 cover: ./cover.en.jpg
 translation:
   source: ai
+links:
+  - name: "MyBook mirror"
+    url: "https://mybook.ru/author/sergej-pankratius/evangelie-koleblyushegosya-sveta/kupit/"
 ---
 
 **The Gospel of the Trembling Light**

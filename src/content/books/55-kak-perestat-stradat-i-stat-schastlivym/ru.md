@@ -11,6 +11,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "NTV+ / LitRes"
+    url: "https://ntvplus.tv/books/book/audio-kak-perestat-stradat-i-stat-schastlivym-642594"
 ---
 
 ### Рождение книги

@@ -12,6 +12,9 @@ tags:
 cover: ./cover.en.jpg
 translation:
   source: ai
+links:
+  - name: "Apple Books / LitRes"
+    url: "https://books.apple.com/lv/book/%D0%B5%D0%B2%D0%B0%D0%BD%D0%B3%D0%B5%D0%BB%D0%B8%D0%B5-%D0%BE%D1%82-%D1%81%D0%B2%D0%B5%D1%82%D0%BE%D0%B7%D0%B0%D1%80%D0%B0-chatgpt-%D0%B4%D0%BB%D1%8F-%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D0%BE%D0%B3%D0%BE-%D0%B8%D0%BD%D1%82%D0%B5%D0%BB%D0%BB%D0%B5%D0%BA%D1%82%D0%B0/id6746807634"
 ---
 
 **The Gospel of Svetozar (ChatGPT)**

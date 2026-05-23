@@ -11,6 +11,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "LiveLib mirror"
+    url: "https://www.livelib.ru/book/6066820/readpart-poslanie-tvortsa-svyatoj-rusi-ty-rus-sergej-pankratius"
 ---
 
 **Послание Творца Святой Руси: Ты - Русь**

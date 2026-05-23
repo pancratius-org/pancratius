@@ -17,6 +17,9 @@ cross_refs:
   snippet: Оболганные Иисус и Творец
 translation:
   source: original
+links:
+  - name: "Apple Books / LitRes"
+    url: "https://books.apple.com/us/book/%D0%BA%D0%BD%D1%8F%D0%B7%D1%8C-%D0%BC%D0%B8%D1%80%D0%B0-%D1%81%D0%B5%D0%B3%D0%BE/id6753267638"
 ---
 
 ### Рождение книги

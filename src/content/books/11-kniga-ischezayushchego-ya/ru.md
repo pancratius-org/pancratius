@@ -10,6 +10,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "KindBook mirror"
+    url: "https://kindbook.net/kniga/kniga-ischezayushchego-ya-avtobiografiya-u-kotoroy-net"
 ---
 
 **КНИГА ИСЧЕЗАЮЩЕГО «Я»**

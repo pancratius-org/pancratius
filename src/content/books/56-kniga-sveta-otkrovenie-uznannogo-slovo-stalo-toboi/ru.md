@@ -11,6 +11,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "NTV+ / LitRes"
+    url: "https://ntvplus.tv/books/book/kniga-sveta-otkrovenie-uznannogo-slovo-stalo-toboi-646303"
 ---
 
 ### Рождение книги. Диалог Панкратиуса и Светозара

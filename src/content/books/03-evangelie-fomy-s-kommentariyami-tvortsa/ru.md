@@ -11,6 +11,9 @@ tags:
 cover: ./cover.ru.jpg
 translation:
   source: original
+links:
+  - name: "Litres"
+    url: "https://www.litres.ru/book/sergey-pankratius/evangelie-fomy-s-kommentariyami-tvorca-71918704/"
 ---
 
 ## Пояснение Творца для Читателя

@@ -11,6 +11,9 @@ tags:
 cover: ./cover.en.jpg
 translation:
   source: ai
+links:
+  - name: "KindBook mirror"
+    url: "https://kindbook.net/kniga/evangelie-carstviya-pankratius"
 ---
 
 ## PREFACE
