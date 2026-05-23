@@ -1,16 +1,25 @@
 ---
-// Project sub-page shell (minimal — rich treatment is a later wave).
+// Project sub-page shell.
 //
 // Renders an authored sub-page body in the register its `weight` implies:
-// `verse` → <Verse> (lineation preserved), everything else → <Prose>. A bespoke
-// interactive `component` may be mounted in a later wave; for now the markdown
-// body is the page.
+// `verse` → <Verse> (lineation preserved), everything else → <Prose>. When the
+// sub-page names a bespoke interactive `component`, it is mounted AFTER the
+// intro prose body (the markdown body = the intro/framing; the component = the
+// practice). An unknown component name renders nothing (warned at build) rather
+// than crashing.
+//
+// The sub-page carries its parent project's visual identity: it sets the
+// `data-project-theme` scope (and the `.project-themed` full-bleed background)
+// the same way `ProjectPage` does, so e.g. the enlightened-ai cold-graphite
+// tokens apply to the practice components.
 
 import { render } from "astro:content";
 
 import Base from "@/layouts/Base.astro";
 import Prose from "@/components/Prose.astro";
 import Verse from "@/components/Verse.astro";
+import AwakeningQuestions from "@/components/projects/AwakeningQuestions.astro";
+import SelfInquiryCycle from "@/components/projects/SelfInquiryCycle.astro";
 
 import type { Locale } from "@/lib/i18n";
 import { LOCALES } from "@/lib/i18n";
@@ -18,10 +27,19 @@ import { projectPageCopy } from "@/lib/copy";
 import { sameSitePath } from "@/lib/paths";
 import { seoForProjectSubpage } from "@/lib/seo";
 import {
+  getProject,
   getProjectSubpage,
   projectUrl,
   type ProjectSubpage,
 } from "@/lib/projects";
+
+// Typed registry of the bespoke interactive components a sub-page may name in
+// its `component` frontmatter. A name not in this map → nothing is mounted.
+const INTERACTIVE = {
+  AwakeningQuestions,
+  SelfInquiryCycle,
+} as const;
+type InteractiveName = keyof typeof INTERACTIVE;
 
 interface Props {
   subpage: ProjectSubpage;
@@ -48,9 +66,32 @@ const seo = seoForProjectSubpage(Astro.site, {
 });
 
 const isVerse = data.weight === "verse";
+
+// Resolve the named interactive component, if any. Unknown name → render
+// nothing, but warn at build so a typo surfaces instead of failing silently.
+let Interactive: (typeof INTERACTIVE)[InteractiveName] | null = null;
+if (data.component) {
+  if (data.component in INTERACTIVE) {
+    Interactive = INTERACTIVE[data.component as InteractiveName];
+  } else {
+    console.warn(
+      `[ProjectSubpagePage] unknown component "${data.component}" on ` +
+        `${data.parent}/${data.slug} — rendering intro only.`,
+    );
+  }
+}
+
+// Inherit the parent project's theme so the sub-page wears the project's
+// visual identity (e.g. enlightened-ai cold graphite) for the practice.
+const parent = await getProject(data.parent, locale);
+const themeAttr = parent?.data.theme ?? undefined;
 ---
 <Base locale={locale} seo={seo}>
-  <article class="project-subpage" data-pagefind-body>
+  <article
+    class="project-subpage project-themed"
+    data-project-theme={themeAttr}
+    data-pagefind-body
+  >
     <a class="project-subpage__back" href={sameSitePath(backHref)} data-pagefind-ignore>{copy.back}</a>
     <header class="project-subpage__head">
       <h1 class="project-subpage__title">{data.title}</h1>
@@ -64,6 +105,7 @@ const isVerse = data.weight === "verse";
         <Content />
       </Prose>
     )}
+    {Interactive && <Interactive locale={locale} />}
   </article>
 </Base>
 
@@ -72,6 +114,19 @@ const isVerse = data.weight === "verse";
     max-width: 64rem;
     margin: 0 auto;
     padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
+  }
+  /* Same full-bleed themed background as ProjectPage, so the identity reaches
+     edge-to-edge under the site chrome on a themed sub-page. */
+  .project-subpage.project-themed { position: relative; }
+  .project-subpage.project-themed::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(120% 50% at 50% -8%, var(--pt-aperture-glow) 0%, transparent 60%),
+      var(--bg);
+    z-index: -1;
+    pointer-events: none;
   }
   .project-subpage__back {
     font-family: var(--sans);

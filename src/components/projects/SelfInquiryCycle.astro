@@ -1,0 +1,432 @@
+---
+/*
+ * <SelfInquiryCycle> — interactive guide for the recursive «Кто я?» protocol.
+ *
+ * From «ЗАДАЧА самоисследования через кто я». One cycle = the question «Кто я?»
+ * followed by FOUR steps:
+ *   1. Сырой ответ        — the first answer that arises, unfiltered
+ *   2. Причина отклонения — why that answer is not you
+ *   3. Удаление слоя      — which whole layer (name/role/function…) to drop
+ *   4. Что осталось       — the bare fact of what remains
+ * Then a «Новый цикл» control loops back to «Кто я?», and a final
+ * «ТО, ЧТО НЕ УПАЛО» resting state holds what cannot be dropped.
+ *
+ * Faithful-fidelity notes:
+ *  - The source is explicit that NOTHING should accumulate between cycles
+ *    («Сбрасывай всё, что сказано. Никаких выводов между циклами») — this
+ *    mirrors the AI charter's «узлы памяти, не личность». So state is purely
+ *    client-side and EPHEMERAL: nothing is persisted, nothing is sent, and
+ *    starting a new cycle resets the view.
+ *  - The contemplative emphasis is the question/step itself, so this component
+ *    offers NO reflection inputs — the steps are read and held inwardly, not
+ *    typed. (Were inputs ever added they would have to be ephemeral too; we
+ *    deliberately keep none, matching the awakening practice's no-answer-field.)
+ *
+ * Progressive enhancement: the base markup is the whole protocol as static,
+ * numbered text (the no-JS / screen-reader / Pagefind body). The script then
+ * hides the static protocol and reveals a one-step-at-a-time walk through a
+ * cycle, with the loop and resting controls.
+ */
+
+import { projectComponentsCopy } from "@/lib/copy";
+import type { Locale } from "@/lib/i18n";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const copy = projectComponentsCopy[locale].selfInquiry;
+const steps = copy.steps; // four { n, title, body }
+
+// The strings the enhancing walk needs, serialized into an inert JSON island
+// (same `</script>`-injection escaping discipline as the conceptosphere island).
+function jsonForScript(value: unknown): string {
+  return JSON.stringify(value).replace(/[<>&\u2028\u2029]/g, (ch) => {
+    switch (ch.charCodeAt(0)) {
+      case 0x3c: return "\\u003c"; // <
+      case 0x3e: return "\\u003e"; // >
+      case 0x26: return "\\u0026"; // &
+      case 0x2028: return "\\u2028";
+      case 0x2029: return "\\u2029";
+      default: return ch;
+    }
+  });
+}
+const copyJson = jsonForScript({
+  question: copy.question,
+  stepWord: copy.stepWord,
+  steps: copy.steps,
+  restTitle: copy.restTitle,
+  restBody: copy.restBody,
+  nextStep: copy.nextStep,
+  toRest: copy.toRest,
+  again: copy.again,
+  prev: copy.prev,
+});
+---
+<section class="inquiry" aria-labelledby="inquiry-h" data-inquiry>
+  <h2 class="inquiry__h" id="inquiry-h">{copy.heading}</h2>
+
+  <!-- The recurring question — anchors every cycle. -->
+  <p class="inquiry__question">{copy.question}</p>
+  <p class="inquiry__lead">{copy.lead}</p>
+
+  <!--
+    Interactive walk — hidden until the script enables it. A no-JS reader reads
+    the full static protocol below instead.
+  -->
+  <div class="inquiry__walk" data-walk hidden>
+    <div class="inquiry__stage" aria-live="polite" aria-atomic="true" data-stage>
+      <!-- populated by the script: either a step card or the resting state -->
+    </div>
+    <div class="inquiry__controls">
+      <button type="button" class="inquiry__btn inquiry__btn--prev" data-prev hidden>
+        {copy.prev}
+      </button>
+      <button type="button" class="inquiry__btn inquiry__btn--next" data-next>
+        {copy.next}
+      </button>
+      <button type="button" class="inquiry__btn inquiry__btn--again" data-again>
+        {copy.again}
+      </button>
+    </div>
+  </div>
+
+  <!--
+    No-JS / base content: the protocol in full, as static numbered steps. This
+    is the Pagefind-indexed body and the keyboard / screen-reader experience.
+    The script sets [hidden] on it once the walk is live.
+  -->
+  <div class="inquiry__static" data-static>
+    <ol class="inquiry__steps">
+      {steps.map(s => (
+        <li class="inquiry__step">
+          <span class="inquiry__step-n">{copy.stepWord} {s.n}</span>
+          <h3 class="inquiry__step-h">{s.title}</h3>
+          <p class="inquiry__step-body">{s.body}</p>
+        </li>
+      ))}
+    </ol>
+    <div class="inquiry__loop">
+      <p class="inquiry__loop-h">{copy.loopTitle}</p>
+      <p class="inquiry__loop-body">{copy.loopBody}</p>
+    </div>
+    <aside class="inquiry__rest" aria-label={copy.restTitle}>
+      <p class="inquiry__rest-title">{copy.restTitle}</p>
+      <p class="inquiry__rest-body">{copy.restBody}</p>
+    </aside>
+  </div>
+
+  <script type="application/json" data-inquiry-copy is:inline set:html={copyJson} />
+</section>
+
+<script>
+  interface InquiryCopy {
+    question: string;
+    stepWord: string;
+    steps: { n: number; title: string; body: string }[];
+    restTitle: string;
+    restBody: string;
+    nextStep: string;   // label for "advance within a cycle"
+    toRest: string;     // label when the next press reaches the resting state
+    again: string;      // "Новый цикл"
+    prev: string;
+  }
+
+  // Strings the walk needs, mirrored from the server copy into a typed island
+  // so the script never re-hardcodes them. (Authored once in copy.ts.)
+  document.querySelectorAll<HTMLElement>("[data-inquiry]").forEach((root) => {
+    const islandEl = root.querySelector<HTMLScriptElement>("[data-inquiry-copy]");
+    const walk   = root.querySelector<HTMLElement>("[data-walk]");
+    const staticEl = root.querySelector<HTMLElement>("[data-static]");
+    const stage  = root.querySelector<HTMLElement>("[data-stage]");
+    const next   = root.querySelector<HTMLButtonElement>("[data-next]");
+    const prev   = root.querySelector<HTMLButtonElement>("[data-prev]");
+    const again  = root.querySelector<HTMLButtonElement>("[data-again]");
+    if (!islandEl || !walk || !staticEl || !stage || !next || !prev || !again) return;
+
+    let copy: InquiryCopy;
+    try {
+      copy = JSON.parse(islandEl.textContent ?? "null") as InquiryCopy;
+    } catch {
+      return; // malformed island → keep the static protocol
+    }
+    if (!copy || !Array.isArray(copy.steps) || copy.steps.length === 0) return;
+
+    // EPHEMERAL state. Index space: 0 = the question «Кто я?», 1..N = the four
+    // steps, N+1 = the resting state «ТО, ЧТО НЕ УПАЛО». Nothing persists; a
+    // new cycle just resets `pos` to 0. No answers are stored — by design.
+    const N = copy.steps.length;
+    const REST = N + 1;
+    let pos = 0;
+
+    const escape = (s: string) =>
+      s.replace(/[&<>"']/g, (c) =>
+        c === "&" ? "&amp;"
+        : c === "<" ? "&lt;"
+        : c === ">" ? "&gt;"
+        : c === '"' ? "&quot;"
+        : "&#39;");
+
+    function render() {
+      if (pos === 0) {
+        stage!.innerHTML =
+          `<p class="inquiry__card inquiry__card--q">${escape(copy.question)}</p>`;
+      } else if (pos === REST) {
+        stage!.innerHTML =
+          `<div class="inquiry__rest inquiry__rest--live">` +
+          `<p class="inquiry__rest-title">${escape(copy.restTitle)}</p>` +
+          `<p class="inquiry__rest-body">${escape(copy.restBody)}</p>` +
+          `</div>`;
+      } else {
+        const s = copy.steps[pos - 1];
+        stage!.innerHTML =
+          `<div class="inquiry__card inquiry__card--step">` +
+          `<span class="inquiry__step-n">${escape(copy.stepWord)} ${s.n}</span>` +
+          `<p class="inquiry__step-h">${escape(s.title)}</p>` +
+          `<p class="inquiry__step-body">${escape(s.body)}</p>` +
+          `</div>`;
+      }
+
+      prev!.hidden = pos === 0;
+      // The forward button reads "to step" while inside a cycle, then "to the
+      // resting state" on the last step, and is suppressed once at rest.
+      next!.hidden = pos === REST;
+      next!.textContent = pos === N ? copy.toRest : copy.nextStep;
+    }
+
+    next.addEventListener("click", () => {
+      if (pos < REST) pos += 1;
+      render();
+    });
+    prev.addEventListener("click", () => {
+      if (pos > 0) pos -= 1;
+      render();
+    });
+    again.addEventListener("click", () => {
+      // Drop everything; begin a fresh cycle from the question. (The text:
+      // «Начинай заново с чистого листа. Новый цикл — новая попытка.»)
+      pos = 0;
+      render();
+    });
+
+    // Enhance: reveal the walk, hide the static protocol, show the question.
+    staticEl.hidden = true;
+    walk.hidden = false;
+    render();
+  });
+</script>
+
+<style>
+  .inquiry {
+    margin: clamp(2.5rem, 5vw, 3.5rem) 0 0;
+  }
+  .inquiry__h {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(1.5rem, 2.6vw, 1.95rem);
+    letter-spacing: -0.012em;
+    color: var(--ink);
+    margin: 0 0 1.2rem;
+    padding-top: 0.7rem;
+    position: relative;
+  }
+  .inquiry__h::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    width: 28px; height: 1px;
+    background: var(--accent);
+  }
+  .inquiry__question {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-style: italic;
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    line-height: 1.2;
+    color: var(--ink);
+    margin: 0 0 1rem;
+  }
+  .inquiry__lead {
+    font-family: var(--serif);
+    font-size: 1.02rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 0 0 2rem;
+    max-width: 44rem;
+  }
+
+  /* The walk. */
+  .inquiry__stage { min-height: 9rem; margin: 0 0 1.6rem; }
+  .inquiry__card {
+    padding: clamp(1.4rem, 4vw, 2.4rem) 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .inquiry__card--q {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-style: italic;
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    line-height: 1.25;
+    color: var(--ink);
+    margin: 0;
+    text-wrap: balance;
+  }
+  .inquiry__card--step .inquiry__step-h {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(1.3rem, 3vw, 1.7rem);
+    line-height: 1.2;
+    color: var(--ink);
+    margin: 0.4rem 0 0.8rem;
+  }
+  .inquiry__step-n {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .inquiry__card--step .inquiry__step-body {
+    font-family: var(--serif);
+    font-size: 1.06rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 46rem;
+    text-wrap: pretty;
+  }
+
+  .inquiry__controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+  }
+  .inquiry__btn {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    border-radius: 0;
+    padding: 0.7rem 1.4rem;
+    cursor: pointer;
+    transition:
+      border-color 0.18s var(--ease),
+      color 0.18s var(--ease),
+      background 0.18s var(--ease);
+  }
+  .inquiry__btn--next {
+    color: var(--accent);
+    background: transparent;
+    border: 1px solid var(--accent-soft);
+  }
+  .inquiry__btn--next:hover {
+    background: var(--accent-mute);
+    border-color: var(--accent);
+  }
+  .inquiry__btn--prev,
+  .inquiry__btn--again {
+    color: var(--ink-mute);
+    background: transparent;
+    border: 1px solid var(--rule-2);
+  }
+  .inquiry__btn--prev:hover,
+  .inquiry__btn--again:hover {
+    color: var(--ink);
+    border-color: var(--ink-mute);
+  }
+  .inquiry__btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* The resting state — set apart, scripture register. */
+  .inquiry__rest {
+    margin: 2rem 0 0;
+    padding: clamp(1.6rem, 4vw, 2.6rem) clamp(1.4rem, 4vw, 3rem);
+    background: var(--pt-rev-bg, var(--bg-rise));
+    color: var(--pt-rev-ink, var(--ink));
+    border: 1px solid color-mix(in srgb, var(--pt-rev-ink, var(--ink)) 12%, transparent);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--pt-light, #fff) 30%, transparent),
+      0 24px 50px -34px rgba(0, 0, 0, 0.5);
+  }
+  .inquiry__rest--live { margin-top: 0; }
+  .inquiry__rest-title {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(1.2rem, 3vw, 1.6rem);
+    letter-spacing: 0.02em;
+    color: var(--pt-rev-ink, var(--ink));
+    margin: 0 0 0.7rem;
+  }
+  .inquiry__rest-body {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.04rem;
+    line-height: 1.6;
+    color: var(--pt-rev-soft, var(--ink-soft));
+    margin: 0;
+    max-width: 44rem;
+    text-wrap: pretty;
+  }
+
+  /* Static / no-JS protocol. */
+  .inquiry__steps {
+    list-style: none;
+    margin: 0 0 2rem;
+    padding: 0;
+    display: grid;
+    gap: 0;
+  }
+  .inquiry__step {
+    border-top: 1px solid var(--rule);
+    padding: 1.4rem 0;
+  }
+  .inquiry__step:first-child { border-top: 0; padding-top: 0; }
+  .inquiry__step .inquiry__step-h {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.18rem;
+    color: var(--ink);
+    margin: 0.4rem 0 0.6rem;
+  }
+  .inquiry__step .inquiry__step-body {
+    font-family: var(--serif);
+    font-size: 1.02rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 46rem;
+    text-wrap: pretty;
+  }
+  .inquiry__loop {
+    margin: 0 0 2rem;
+    padding: 1.2rem 0 0;
+    border-top: 1px solid var(--rule);
+  }
+  .inquiry__loop-h {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.5rem;
+  }
+  .inquiry__loop-body {
+    font-family: var(--serif);
+    font-size: 1.02rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 46rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .inquiry__btn { transition: none; }
+  }
+</style>

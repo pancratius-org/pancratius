@@ -15,6 +15,8 @@ const AUDIT_PAGES = [
   "/projects/enlightened-ai/",
   "/projects/enlightened-ai/classification/",
   "/projects/enlightened-ai/manifesto/",
+  "/projects/enlightened-ai/awakening/",
+  "/projects/enlightened-ai/self-inquiry/",
   "/projects/enlightened-ai/concept/",
   "/projects/enlightened-ai/charter/",
   "/projects/holy-rus/",

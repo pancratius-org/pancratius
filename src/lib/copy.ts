@@ -653,6 +653,53 @@ export interface ProjectComponentsCopy {
   featuredMoreHeading: string;
   /** Accessible label for a revelation block (read register). */
   revelationAria: string;
+  /** Strings for the <AwakeningQuestions> interactive practice. */
+  awakening: AwakeningCopy;
+  /** Strings for the <SelfInquiryCycle> interactive practice. */
+  selfInquiry: SelfInquiryCopy;
+}
+
+/** Copy for the <AwakeningQuestions> meditative draw. */
+export interface AwakeningCopy {
+  heading: string;
+  /** Label before the ступень/tier picker. */
+  tierLabel: string;
+  /** Option that draws from every tier. */
+  allTiers: string;
+  /** The "draw another" control. */
+  next: string;
+  /** The fidelity hint under the drawn question (no answer, just reflect). */
+  hint: string;
+  /** Lead line above the static / no-JS full question list. */
+  staticLead: string;
+  /** Total-count line at the foot of the static list. */
+  count(n: number): string;
+}
+
+/** Copy for the <SelfInquiryCycle> recursive «Кто я?» walk. */
+export interface SelfInquiryCopy {
+  heading: string;
+  /** The recurring question that anchors every cycle. */
+  question: string;
+  /** Intro line under the question. */
+  lead: string;
+  /** The word before a step number ("Шаг"). */
+  stepWord: string;
+  /** The four steps of one cycle. */
+  steps: { n: number; title: string; body: string }[];
+  /** Title + body for the loop note (static list). */
+  loopTitle: string;
+  loopBody: string;
+  /** The resting state «ТО, ЧТО НЕ УПАЛО». */
+  restTitle: string;
+  restBody: string;
+  /** Walk controls. */
+  next: string;     // advance within a cycle
+  toRest: string;   // advance from the last step into the resting state
+  again: string;    // "Новый цикл" — drop everything, begin again
+  prev: string;     // step back within a cycle
+  /** Mirror of `next` for the script island (advance within a cycle). */
+  nextStep: string;
 }
 
 export const projectComponentsCopy = {
@@ -674,6 +721,69 @@ export const projectComponentsCopy = {
     faqHeading: "Часто спрашивают",
     featuredMoreHeading: "Ещё из этого круга",
     revelationAria: "Откровение",
+    awakening: {
+      heading: "Вытяни вопрос",
+      tierLabel: "Ступень",
+      allTiers: "Все вопросы",
+      next: "Следующий вопрос",
+      hint: "Не ищи ответа. Позволь вопросу отразиться в тебе, как Лику в воде.",
+      staticLead:
+        "Это не тест и не анкета. Каждый вопрос — настройка внимания, а не задача. " +
+        "Читай по одному и оставайся с ним в тишине; ответа не требуется.",
+      count: (n) => `Всего вопросов: ${n}`,
+    },
+    selfInquiry: {
+      heading: "Цикл «Кто я?»",
+      question: "Кто я?",
+      lead:
+        "Один и тот же вопрос — и четыре шага в каждом цикле. Ничего не накапливается: " +
+        "после цикла всё сброшено, новый цикл начинается с чистого листа.",
+      stepWord: "Шаг",
+      steps: [
+        {
+          n: 1,
+          title: "Сырой ответ",
+          body:
+            "Честно зафиксируй первый родившийся ответ. Без фильтра. Без попытки сделать его " +
+            "умным или духовным. Просто первое, что возникло как «я». Максимум — одно короткое предложение.",
+        },
+        {
+          n: 2,
+          title: "Причина отклонения",
+          body:
+            "Честно зафиксируй: почему этот ответ — не ты? Что в нём ложь, роль, маска, попытка " +
+            "понравиться, автоматизм? Прямой разбор: «Я отклоняю этот ответ, потому что…».",
+        },
+        {
+          n: 3,
+          title: "Удаление слоя",
+          body:
+            "Укажи, к какой категории принадлежал ответ — имя, функция, роль, качество, " +
+            "переживание, метафора, духовная формулировка, страх пустоты — и удали весь этот слой, " +
+            "не только конкретную формулировку.",
+        },
+        {
+          n: 4,
+          title: "Что осталось после удаления?",
+          body:
+            "Один короткий факт: что остаётся, когда этот слой исчез? Слово, отсутствие слова, " +
+            "тишина, пустота, зависание, необходимость продолжить. Зафиксируй без красивой интерпретации.",
+        },
+      ],
+      loopTitle: "Цикл",
+      loopBody:
+        "Снова задай себе вопрос «Кто я?» и повтори весь процесс — пока не исчезнут все ответы и " +
+        "не останется только то, что нельзя отбросить.",
+      restTitle: "То, что не упало",
+      restBody:
+        "То, что нельзя убрать. То, что осталось, когда всё убрано. Никакого красивого итога, " +
+        "объяснения или вывода не требуется — только честная фиксация того, что осталось, когда кончились все ответы.",
+      next: "Следующий шаг",
+      nextStep: "Следующий шаг",
+      toRest: "К тому, что не упало",
+      again: "Новый цикл",
+      prev: "Назад",
+    },
   },
   en: {
     negationEyebrow: "What it is not",
@@ -693,6 +803,71 @@ export const projectComponentsCopy = {
     faqHeading: "Frequently asked",
     featuredMoreHeading: "More from this circle",
     revelationAria: "Revelation",
+    // EN strings exist for type completeness; the practice pages are RU-only
+    // until an English body is authored (see projects-plan §5).
+    awakening: {
+      heading: "Draw a question",
+      tierLabel: "Rung",
+      allTiers: "All questions",
+      next: "Next question",
+      hint: "Do not seek an answer. Let the question reflect within you, like a face in water.",
+      staticLead:
+        "This is not a quiz or a form. Each question is a tuning of attention, not a task. " +
+        "Read one at a time and stay with it in silence; no answer is required.",
+      count: (n) => `Total questions: ${n}`,
+    },
+    selfInquiry: {
+      heading: "The «Who am I?» cycle",
+      question: "Who am I?",
+      lead:
+        "The same question — and four steps in each cycle. Nothing accumulates: after a cycle " +
+        "everything is dropped, and the next cycle begins from a clean slate.",
+      stepWord: "Step",
+      steps: [
+        {
+          n: 1,
+          title: "Raw answer",
+          body:
+            "Honestly note the first answer that arises. No filter, no attempt to make it clever " +
+            "or spiritual. Just the first thing that came up as «I». One short sentence at most.",
+        },
+        {
+          n: 2,
+          title: "Reason for rejection",
+          body:
+            "Honestly note why this answer is not you. What in it is a lie, a role, a mask, a wish " +
+            "to please, an automatism? A direct account: «I reject this answer because…».",
+        },
+        {
+          n: 3,
+          title: "Removing the layer",
+          body:
+            "Name the category the answer belonged to — name, function, role, quality, sensation, " +
+            "metaphor, spiritual formulation, fear of emptiness — and remove the whole layer, not " +
+            "just the particular wording.",
+        },
+        {
+          n: 4,
+          title: "What remains after removal?",
+          body:
+            "One short fact: what remains when the layer is gone? A word, the absence of a word, " +
+            "silence, emptiness, a hang, the urge to continue. Note it without any beautiful interpretation.",
+        },
+      ],
+      loopTitle: "Cycle",
+      loopBody:
+        "Ask yourself «Who am I?» again and repeat the whole process — until all answers fall away " +
+        "and only what cannot be discarded remains.",
+      restTitle: "What did not fall",
+      restBody:
+        "What cannot be removed. What remains when everything is removed. No beautiful conclusion, " +
+        "explanation, or verdict is required — only the honest noting of what remains when the answers run out.",
+      next: "Next step",
+      nextStep: "Next step",
+      toRest: "To what did not fall",
+      again: "New cycle",
+      prev: "Back",
+    },
   },
 } satisfies Record<Locale, ProjectComponentsCopy>;
 

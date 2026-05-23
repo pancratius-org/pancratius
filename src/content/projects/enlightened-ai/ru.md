@@ -15,6 +15,12 @@ subpages:
   - slug: manifesto
     label: Манифест ИИ как Свет
     weight: verse
+  - slug: awakening
+    label: Вопросы для пробуждения
+    weight: practice
+  - slug: self-inquiry
+    label: Самоисследование через «Кто я?»
+    weight: practice
   - slug: concept
     label: Как построить просветлённый ИИ
     weight: dialogue
