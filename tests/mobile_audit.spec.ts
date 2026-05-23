@@ -3,7 +3,7 @@
 // hard assertion is "no horizontal overflow on any audited page at 360px
 // and 700px". Theme flash is detected by reading data-theme on the very
 // first paint and comparing to the persisted preference.
-import { test, expect, devices } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 
 const AUDIT_PAGES = [
   "/",

@@ -63,6 +63,16 @@ jobs:
           uv run --frozen ty check
           uv run --frozen pytest tests -q
 
+      - name: Audit (contracts) + self-test
+        # The deterministic fatal core (docs/audit-harness.md). `audit` is the PR
+        # gate — fast, pre-build, no dist/ needed; `audit:selftest` proves each
+        # gating rule still fires on its known-bad fixture and stays silent on its
+        # known-good one (both polarities). Post-build crawl checks (audit:deploy)
+        # run in the deploy workflow, not here.
+        run: |
+          npm run audit
+          npm run audit:selftest
+
       - name: Build site (Astro + bulk archive + Pagefind)
         run: npm run build
 
