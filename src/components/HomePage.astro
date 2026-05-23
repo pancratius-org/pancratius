@@ -10,6 +10,7 @@ import { sameSitePath } from "@/lib/paths";
 import { clampDescription } from "@/lib/seo";
 import { seoForHome } from "@/lib/seo";
 import { entryForLocale, findPair, getPairsByKind, type WorkEntry, type WorkPair } from "@/lib/works";
+import { getProjects, projectUrl } from "@/lib/projects";
 
 interface Props {
   locale: Locale;
@@ -34,7 +35,19 @@ const allBooks = await getPairsByKind("book");
 // stat). The homeCopy stat/heading callbacks receive it as `englishBooks`.
 const localizedBooks = allBooks.filter(p => p.entries[locale]);
 const allPoems = await getPairsByKind("poem");
-const projects = await getPairsByKind("project");
+// Projects are sections, not works — sourced from the projects lib. The
+// canonical set is the default-locale landings (each project always has one);
+// on a non-default locale, prefer that locale's landing and link to it,
+// otherwise fall back visibly to the default-locale landing.
+const canonicalProjects = await getProjects(DEFAULT_LOCALE);
+const localizedProjects = locale === DEFAULT_LOCALE ? [] : await getProjects(locale);
+const localizedProjectBySlug = new Map(localizedProjects.map(p => [p.data.slug, p]));
+const projects = canonicalProjects.map(base => {
+  const own = localizedProjectBySlug.get(base.data.slug);
+  return own
+    ? { landing: own, linkLocale: locale }
+    : { landing: base, linkLocale: DEFAULT_LOCALE };
+});
 
 // Two featured poems — first stanza fits in a card. Hand-picked across
 // early/late so the pair feels like a range, not a sequence.
@@ -243,20 +256,16 @@ function displayEntry(
         </header>
 
         <div class="home__project-list">
-          {projects.map(p => {
-            const display = displayEntry(p, locale);
-            if (!display) return null;
-            return (
-              <a class="home__project" href={sameSitePath(workUrl("project", display.entry.data.slug, display.linkLocale))}>
-                <span class="home__project-num">{String(p.number).padStart(2, "0")}</span>
-                <div class="home__project-body">
-                  <h3 class="home__project-title">{display.entry.data.title}</h3>
-                  <p class="home__project-blurb">{clampDescription(display.entry.data.description, 220)}</p>
-                </div>
-                <span class="home__project-cta" aria-hidden="true">→</span>
-              </a>
-            );
-          })}
+          {projects.map(({ landing, linkLocale }) => (
+            <a class="home__project" href={sameSitePath(projectUrl(landing.data.slug, linkLocale))}>
+              <span class="home__project-num">{String(landing.data.number).padStart(2, "0")}</span>
+              <div class="home__project-body">
+                <h3 class="home__project-title">{landing.data.title}</h3>
+                <p class="home__project-blurb">{clampDescription(landing.data.description, 220)}</p>
+              </div>
+              <span class="home__project-cta" aria-hidden="true">→</span>
+            </a>
+          ))}
         </div>
       </section>
     )}

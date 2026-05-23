@@ -2,11 +2,11 @@
 import Base from "@/layouts/Base.astro";
 
 import type { Locale } from "@/lib/i18n";
-import { DEFAULT_LOCALE, workUrl } from "@/lib/i18n";
+import { DEFAULT_LOCALE } from "@/lib/i18n";
 import { projectsIndexCopy } from "@/lib/copy";
 import { sameSitePath } from "@/lib/paths";
 import { seoForKindIndex } from "@/lib/seo";
-import { getPairsByKind, workTags, type WorkPair } from "@/lib/works";
+import { getProjects, projectUrl, type ProjectLanding } from "@/lib/projects";
 
 interface Props {
   locale: Locale;
@@ -14,19 +14,27 @@ interface Props {
 
 const { locale } = Astro.props;
 const copy = projectsIndexCopy[locale];
-const pairs = await getPairsByKind("project");
 const seo = seoForKindIndex(Astro.site, "project", locale);
 
-function displayForProject(pair: WorkPair) {
-  // The projects index lists EVERY project in every locale. When the current
-  // locale was authored, link to it; otherwise fall back visibly to the
-  // default-locale entry and link to its canonical route.
-  const authored = pair.entries[locale];
-  if (authored) {
-    return { entry: authored, hrefLocale: locale, isFallback: false };
-  }
-  return { entry: pair.entries[DEFAULT_LOCALE]!, hrefLocale: DEFAULT_LOCALE, isFallback: true };
+// The projects index lists EVERY project. The canonical set is the
+// default-locale landings (each project always has one). When the current
+// locale has its own landing, link to it; otherwise fall back visibly to the
+// default-locale landing and link to its canonical route.
+const canonical = await getProjects(DEFAULT_LOCALE);
+const localized = locale === DEFAULT_LOCALE ? [] : await getProjects(locale);
+const localizedBySlug = new Map(localized.map(p => [p.data.slug, p]));
+
+interface Row {
+  landing:    ProjectLanding;
+  hrefLocale: Locale;
+  isFallback: boolean;
 }
+
+const rows: Row[] = canonical.map(base => {
+  const own = localizedBySlug.get(base.data.slug);
+  if (own) return { landing: own, hrefLocale: locale, isFallback: false };
+  return { landing: base, hrefLocale: DEFAULT_LOCALE, isFallback: true };
+});
 ---
 <Base locale={locale} seo={seo}>
   <section class="page projects-index">
@@ -37,30 +45,21 @@ function displayForProject(pair: WorkPair) {
     </div>
 
     <div class="projects-list">
-      {pairs.map(p => {
-        const { entry, hrefLocale, isFallback } = displayForProject(p);
-        const tags = workTags(entry);
-        return (
-          <a class="project-row" href={sameSitePath(workUrl("project", entry.data.slug, hrefLocale))}>
-            <span class="project-row__num">{String(p.number).padStart(2, "0")}</span>
-            <div class="project-row__body">
-              <h2 class="project-row__title">
-                {entry.data.title}
-                {isFallback && <span class="project-row__fallback">{copy.fallbackLabel}</span>}
-              </h2>
-              {entry.data.description && (
-                <p class="project-row__blurb">{entry.data.description}</p>
-              )}
-              {tags.length > 0 && (
-                <ul class="project-row__tags">
-                  {tags.map(t => <li>{t}</li>)}
-                </ul>
-              )}
-              <span class="project-row__cta">{copy.cta}</span>
-            </div>
-          </a>
-        );
-      })}
+      {rows.map(({ landing, hrefLocale, isFallback }) => (
+        <a class="project-row" href={sameSitePath(projectUrl(landing.data.slug, hrefLocale))}>
+          <span class="project-row__num">{String(landing.data.number).padStart(2, "0")}</span>
+          <div class="project-row__body">
+            <h2 class="project-row__title">
+              {landing.data.title}
+              {isFallback && <span class="project-row__fallback">{copy.fallbackLabel}</span>}
+            </h2>
+            {landing.data.description && (
+              <p class="project-row__blurb">{landing.data.description}</p>
+            )}
+            <span class="project-row__cta">{copy.cta}</span>
+          </div>
+        </a>
+      ))}
     </div>
   </section>
 </Base>
@@ -144,24 +143,6 @@ function displayForProject(pair: WorkPair) {
     letter-spacing: 0.12em;
     line-height: 1.2;
     text-transform: uppercase;
-  }
-  .project-row__tags {
-    list-style: none;
-    margin: 0 0 1.25rem;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem 0.6rem;
-  }
-  .project-row__tags li {
-    font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--ink-mute);
-    padding: 0.25rem 0.55rem;
-    border: 1px solid var(--rule);
   }
   .project-row__cta {
     display: inline-block;

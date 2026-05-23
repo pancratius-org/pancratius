@@ -13,15 +13,19 @@ import { resolve as resolvePath } from "node:path";
 import { DEFAULT_LOCALE, type Locale } from "./i18n";
 import { workBundleKey } from "./body-images";
 import { flattenPublicMarkdown, renderPublicMarkdown } from "./public-markdown";
-import { COLLECTION_OF, type WorkEntry, type WorkPair } from "./works";
+import { COLLECTION_OF, type WorkEntry, type WorkPair, type WorkPairKind } from "./works";
 
 export type DownloadFormat = "md" | "txt" | "docx" | "pdf" | "epub";
 
-/** Formats that may exist for each kind, per the contract. */
-export const FORMATS_PER_KIND: Record<"book" | "poem" | "project", DownloadFormat[]> = {
+/**
+ * Formats that may exist for each kind, per the contract. Only WORKS
+ * (books/poems) have downloads — projects are themed sections, not works, and
+ * never emit download routes (the key type is `WorkPairKind`, which excludes
+ * `project`).
+ */
+export const FORMATS_PER_KIND: Record<WorkPairKind, DownloadFormat[]> = {
   book:    ["md", "txt", "docx", "pdf", "epub"],
   poem:    ["md", "txt", "docx", "pdf"],
-  project: ["md", "txt", "docx", "pdf"],
 };
 
 const REPO_ROOT = process.cwd();

@@ -1,0 +1,29 @@
+---
+import type { GetStaticPaths } from "astro";
+
+import ProjectSubpagePage from "@/components/ProjectSubpagePage.astro";
+import { getProjects, getProjectSubpages } from "@/lib/projects";
+
+// EN sub-pages: emit only where the EN sub-page is authored. None exist yet, so
+// this returns [] today — by design — and never renders RU body under /en/.
+export const getStaticPaths = (async () => {
+  const projects = await getProjects("en");
+  const out: {
+    params: { slug: string; subpage: string };
+    props: { subpage: Awaited<ReturnType<typeof getProjectSubpages>>[number] };
+  }[] = [];
+  for (const project of projects) {
+    const subs = await getProjectSubpages(project.data.slug, "en");
+    for (const sub of subs) {
+      out.push({
+        params: { slug: project.data.slug, subpage: sub.data.slug },
+        props: { subpage: sub },
+      });
+    }
+  }
+  return out;
+}) satisfies GetStaticPaths;
+
+const { subpage } = Astro.props;
+---
+<ProjectSubpagePage subpage={subpage} locale="en" />

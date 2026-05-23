@@ -3,16 +3,16 @@ import type { GetStaticPaths } from "astro";
 
 import ProjectPage from "@/components/ProjectPage.astro";
 import { DEFAULT_LOCALE } from "@/lib/i18n";
-import { getPairsByKind } from "@/lib/works";
+import { getProjects } from "@/lib/projects";
 
 export const getStaticPaths = (async () => {
-  const pairs = await getPairsByKind("project");
-  return pairs.map(p => ({
-    params: { slug: p.entries[DEFAULT_LOCALE]!.data.slug },
-    props: { pair: p },
+  const projects = await getProjects(DEFAULT_LOCALE);
+  return projects.map(p => ({
+    params: { slug: p.data.slug },
+    props: { project: p },
   }));
 }) satisfies GetStaticPaths;
 
-const { pair } = Astro.props;
+const { project } = Astro.props;
 ---
-<ProjectPage pair={pair} locale={DEFAULT_LOCALE} />
+<ProjectPage project={project} locale={DEFAULT_LOCALE} />

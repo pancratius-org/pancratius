@@ -2,15 +2,19 @@
 import type { GetStaticPaths } from "astro";
 
 import ProjectPage from "@/components/ProjectPage.astro";
-import { getPairsByKind } from "@/lib/works";
+import { getProjects } from "@/lib/projects";
 
+// Existence rule: only emit `/en/projects/<slug>/` for projects with an
+// authored EN landing. EN landings are currently deleted (RU-under-EN bug), so
+// this returns [] today — by design — and never renders RU body under /en/.
 export const getStaticPaths = (async () => {
-  const pairs = await getPairsByKind("project");
-  return pairs
-    .filter(p => p.entries.en)
-    .map(p => ({ params: { slug: p.entries.en!.data.slug }, props: { pair: p } }));
+  const projects = await getProjects("en");
+  return projects.map(p => ({
+    params: { slug: p.data.slug },
+    props: { project: p },
+  }));
 }) satisfies GetStaticPaths;
 
-const { pair } = Astro.props;
+const { project } = Astro.props;
 ---
-<ProjectPage pair={pair} locale="en" />
+<ProjectPage project={project} locale="en" />

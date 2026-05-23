@@ -1,0 +1,30 @@
+---
+import type { GetStaticPaths } from "astro";
+
+import ProjectSubpagePage from "@/components/ProjectSubpagePage.astro";
+import { DEFAULT_LOCALE } from "@/lib/i18n";
+import { getProjects, getProjectSubpages } from "@/lib/projects";
+
+// One page per authored sub-page across all projects (default locale). Zero
+// sub-pages are authored yet, so this emits no pages today — by design.
+export const getStaticPaths = (async () => {
+  const projects = await getProjects(DEFAULT_LOCALE);
+  const out: {
+    params: { slug: string; subpage: string };
+    props: { subpage: Awaited<ReturnType<typeof getProjectSubpages>>[number] };
+  }[] = [];
+  for (const project of projects) {
+    const subs = await getProjectSubpages(project.data.slug, DEFAULT_LOCALE);
+    for (const sub of subs) {
+      out.push({
+        params: { slug: project.data.slug, subpage: sub.data.slug },
+        props: { subpage: sub },
+      });
+    }
+  }
+  return out;
+}) satisfies GetStaticPaths;
+
+const { subpage } = Astro.props;
+---
+<ProjectSubpagePage subpage={subpage} locale={DEFAULT_LOCALE} />

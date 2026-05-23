@@ -18,6 +18,7 @@ import {
 import { searchPageCopy } from "./copy";
 import { sameSitePath } from "./paths";
 import type { PageEntry } from "./pages";
+import type { ProjectLanding, ProjectSubpage } from "./projects";
 import { entryForLocale, type WorkPair } from "./works";
 
 const AUTHOR_NAME = "Сергей Орехов";
@@ -224,6 +225,130 @@ export function seoForWork(site: URL | undefined, input: WorkSeoInput): SeoMeta 
     locale,
     ...ogMeta(locale),
   };
+}
+
+export interface ProjectSeoInput {
+  project: ProjectLanding;
+  locale:  Locale;
+  /** Absolute URL of the cover, if one resolved. */
+  coverUrl?: string | null;
+  /** Locales with an authored landing for this project — drives alternates. */
+  authoredLocales: ReadonlySet<Locale>;
+}
+
+/**
+ * SEO metadata for a project SECTION landing. Projects are original framing
+ * (not a translation-of), so this does NOT go through `seoForWork`. Emits a
+ * localized canonical, hreflang siblings for every authored landing locale, OG
+ * `article`, and an `Article` JSON-LD scoped to the corpus series.
+ */
+export function seoForProject(site: URL | undefined, input: ProjectSeoInput): SeoMeta {
+  const { project, locale, coverUrl = null, authoredLocales } = input;
+  const data = project.data;
+  const canonical = absUrl(site, workUrl("project", data.slug, locale));
+  const description = clampDescription(data.description);
+  const title = `${data.title} — ${siteLabel(locale)}`;
+  const ld: Record<string, unknown> = {
+    "@context":    "https://schema.org",
+    "@type":       "Article",
+    "headline":    data.title,
+    "description": description,
+    "url":         canonical,
+    "inLanguage":  locale,
+    "author":      {
+      "@type":         "Person",
+      "name":          AUTHOR_NAME,
+      "alternateName": AUTHOR_ALIAS,
+    },
+    "license":     LICENSE_URL,
+    "isPartOf":    {
+      "@type":  "CreativeWorkSeries",
+      "name":   CORPUS_NAME,
+      "url":    absUrl(site, homeUrl(DEFAULT_LOCALE)),
+    },
+  };
+  if (coverUrl) ld["image"] = coverUrl;
+  return {
+    title,
+    description,
+    canonical,
+    ogImage:     coverUrl,
+    ogType:      "article",
+    alternates:  alternatesForProject(site, data.slug, authoredLocales),
+    jsonLd:      ld,
+    locale,
+    ...ogMeta(locale),
+  };
+}
+
+export interface ProjectSubpageSeoInput {
+  subpage: ProjectSubpage;
+  locale:  Locale;
+  /** Locales with an authored copy of this sub-page — drives alternates. */
+  authoredLocales: ReadonlySet<Locale>;
+}
+
+/** SEO metadata for a project SUB-PAGE. Localized article inside the section. */
+export function seoForProjectSubpage(
+  site: URL | undefined,
+  input: ProjectSubpageSeoInput,
+): SeoMeta {
+  const { subpage, locale, authoredLocales } = input;
+  const data = subpage.data;
+  const path = `/projects/${data.parent}/${data.slug}/`;
+  const canonical = absUrl(site, localizePath(path, locale));
+  const description = clampDescription(data.description);
+  return {
+    title:       `${data.title} — ${siteLabel(locale)}`,
+    description,
+    canonical,
+    ogImage:     null,
+    ogType:      "article",
+    alternates:  alternatesForProjectSubpath(site, path, authoredLocales),
+    jsonLd:      null,
+    locale,
+    ...ogMeta(locale),
+  };
+}
+
+function alternatesForProjectSubpath(
+  site: URL | undefined,
+  path: string,
+  authoredLocales: ReadonlySet<Locale>,
+): AlternateLink[] {
+  const xs: AlternateLink[] = [];
+  let defaultHref: string | null = null;
+  for (const loc of LOCALES) {
+    if (authoredLocales.has(loc)) {
+      const href = absUrl(site, localizePath(path, loc));
+      xs.push({ hreflang: loc, href });
+      if (loc === DEFAULT_LOCALE) defaultHref = href;
+    }
+  }
+  if (defaultHref) {
+    xs.push({ hreflang: "x-default", href: defaultHref });
+  }
+  return xs;
+}
+
+function alternatesForProject(
+  site: URL | undefined,
+  slug: string,
+  authoredLocales: ReadonlySet<Locale>,
+): AlternateLink[] {
+  const xs: AlternateLink[] = [];
+  let defaultHref: string | null = null;
+  for (const loc of LOCALES) {
+    if (authoredLocales.has(loc)) {
+      const href = absUrl(site, workUrl("project", slug, loc));
+      xs.push({ hreflang: loc, href });
+      if (loc === DEFAULT_LOCALE) defaultHref = href;
+    }
+  }
+  if (defaultHref) {
+    xs.push({ hreflang: "x-default", href: defaultHref });
+  }
+  return xs;
 }
 
 /**

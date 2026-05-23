@@ -1,46 +1,37 @@
 ---
-// Related works panel for project pages.
+// Featured-books strip for project pages.
 //
-// Smaller than SimilarPair (which is the books-side widget combining
-// authored cross-refs with TF-IDF / embedding-merged similar books).
-// Projects only have authored cross-refs — there is no algorithmic
-// neighbour graph for projects — so this is a single-block list of the
-// books the project explicitly leans on.
+// A project is a themed section; the books it leans on are surfaced here as a
+// "Читать дальше" / "Read further" block — the project page is the manifesto;
+// the books are the deeper exploration. The book list comes from the landing's
+// `featured_books` (resolved by `src/lib/projects.ts`), NOT from work cross_refs.
 //
-// Visual register matches the book page's "См. также" block (a short
-// accent rule above the section heading, then a grid of BookCard
-// thumbnails) so a reader who has already seen a book page recognises
-// the gesture, but the heading itself reads "Читать дальше" / "Read
-// next" — the project page is the manifesto; the books are the deeper
-// exploration.
+// Visual register matches the book page's "См. также" block (a short accent
+// rule above the heading, then a grid of BookCard thumbnails) so a reader who
+// has already seen a book page recognises the gesture.
 
 import type { Locale } from "@/lib/i18n";
 import { relatedCopy } from "@/lib/copy";
-import type { ResolvedCrossRef } from "@/lib/works";
+import type { ResolvedFeaturedBook } from "@/lib/projects";
 import BookCard from "./BookCard.astro";
 
 interface Props {
-  locale:    Locale;
-  crossRefs: ResolvedCrossRef[];
+  locale:   Locale;
+  featured: ResolvedFeaturedBook[];
 }
 
-const { locale, crossRefs } = Astro.props;
-
-if (crossRefs.length === 0) {
-  // Render nothing — the project simply has no authored cross-refs yet.
-}
-
+const { locale, featured } = Astro.props;
 const labels = relatedCopy[locale];
 ---
-{crossRefs.length > 0 && (
+{featured.length > 0 && (
   <aside class="project-related" aria-labelledby="pr-h">
     <header class="project-related__head">
       <h2 class="project-related__h" id="pr-h">{labels.projectHeading}</h2>
       <p class="project-related__sub">{labels.projectSub}</p>
     </header>
     <div class="project-related__grid">
-      {crossRefs.map(r => (
-        <BookCard pair={r.target} locale={locale} blurb={r.snippet} />
+      {featured.map(f => (
+        <BookCard pair={f.pair} locale={locale} blurb={f.blurb} />
       ))}
     </div>
   </aside>

@@ -1,8 +1,8 @@
 import type { APIRoute } from "astro";
 
 import { availableFormatsForWork, renderDownload, type DownloadFormat } from "./downloads";
-import type { Locale, WorkKind } from "./i18n";
-import { getPairsByKind, type WorkPair } from "./works";
+import type { Locale } from "./i18n";
+import { getPairsByKind, type WorkPair, type WorkPairKind } from "./works";
 
 export interface DownloadRouteProps extends Record<string, unknown> {
   pair: WorkPair;
@@ -10,7 +10,7 @@ export interface DownloadRouteProps extends Record<string, unknown> {
   format: DownloadFormat;
 }
 
-export async function downloadStaticPaths(kind: WorkKind, locale: Locale) {
+export async function downloadStaticPaths(kind: WorkPairKind, locale: Locale) {
   const pairs = await getPairsByKind(kind);
   const out: {
     params: { slug: string; format: DownloadFormat };

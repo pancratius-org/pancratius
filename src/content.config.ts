@@ -101,25 +101,103 @@ const poetry = defineCollection({
   }),
 });
 
+// ─────────────────────────────────────────────────────────────────────
+// Projects — themed mini-sites / sections, NOT downloadable works.
+//
+// A project is its own little section: a landing (`kind: project`) plus an
+// optional set of sub-pages (`kind: project_subpage`), all authored as
+// `<lang>.md` files under `src/content/projects/<project>/…`. The glob
+// recurses, so a sub-page lives at e.g.
+// `enlightened-ai/subpages/classification/ru.md` and gets a unique id
+// (`enlightened-ai/subpages/classification--ru`) from the same
+// LOCALE_FILE_RE rule used for works.
+//
+// Unlike books/poems, projects are ORIGINAL framing — there is no
+// translation-of relationship — so `translation` is optional, and there are
+// NO download fields: projects never emit `.md/.txt/.docx/.pdf/.epub` routes.
+// They reference BOOKS by number via `featured_books`, which `src/lib/projects.ts`
+// resolves through the work machinery; that is the only cross-module link.
+// ─────────────────────────────────────────────────────────────────────
+
+const projectGenerateId = ({ entry }: { entry: string }) => {
+  const m = entry.match(LOCALE_FILE_RE);
+  if (!m) throw new Error(`Unexpected project path: ${entry}`);
+  return `${m[1]}--${m[2]}`;
+};
+
+/** The editorial register of a project sub-page (drives the body renderer). */
+const projectSubpageWeight = z.enum([
+  "essay",
+  "revelation",
+  "verse",
+  "practice",
+  "dialogue",
+]);
+
+const projectLanding = z.object({
+  kind: z.literal("project"),
+  // (kind, number) is still the invariant identity for a project landing, so
+  // `scripts/build_slug_map.py` keeps mapping `/projects/<slug>/` from this.
+  number: z.number().int().positive(),
+  slug: asciiSlug,
+  lang,
+  title: z.string().min(1),
+  description: z.string().min(1),
+  // Short editorial tagline rendered under the title on the project masthead.
+  tagline: z.string().optional(),
+  cover: z.string().nullable().optional(),
+  // Visual-identity hook — a theme key a later wave maps to a colour/treatment.
+  theme: z.string().optional(),
+  // Books this project leans on, by editorial number, with an optional blurb.
+  featured_books: z
+    .array(
+      z.object({
+        number: z.number().int().positive(),
+        blurb: z.string().optional(),
+      }),
+    )
+    .optional(),
+  // Secondary featured books rendered as a quieter strip (numbers only).
+  featured_books_more: z.array(z.number().int().positive()).optional(),
+  // Authored sub-pages, in render order. Empty/absent → a landing-only section.
+  subpages: z
+    .array(
+      z.object({
+        slug: asciiSlug,
+        label: z.string().optional(),
+        weight: projectSubpageWeight,
+      }),
+    )
+    .optional(),
+  // Projects are original framing, not a translation-of — `translation` is
+  // OPTIONAL here (the same shape works carry, but never forced).
+  translation: translation.optional(),
+  // Kept for prose footnote links inside the landing body.
+  cross_refs: z.array(crossRefEntry).optional(),
+});
+
+const projectSubpage = z.object({
+  kind: z.literal("project_subpage"),
+  // The owning project's slug — pairs the sub-page to its landing.
+  parent: asciiSlug,
+  slug: asciiSlug,
+  lang,
+  title: z.string().min(1),
+  description: z.string().min(1),
+  weight: projectSubpageWeight,
+  cover: z.string().nullable().optional(),
+  // Names a bespoke interactive component a later wave mounts for this page.
+  component: z.string().optional(),
+  cross_refs: z.array(crossRefEntry).optional(),
+});
+
 const projects = defineCollection({
   loader: glob({
     pattern: "**/*.md",
     base: "./src/content/projects",
-    generateId: workEntryId("project"),
+    generateId: projectGenerateId,
   }),
-  schema: z.object({
-    kind: z.literal("project"),
-    number: z.number().int().positive(),
-    slug: asciiSlug,
-    title: z.string().min(1),
-    cover: z.string().nullable().optional(),
-    // Short editorial tagline rendered under the title on the project
-    // masthead. One sentence; sets the position-paper register before
-    // the body opens. Optional — projects without a tagline fall back
-    // to no sub-line and let the negation opener carry.
-    tagline: z.string().optional(),
-    ...baseWorkFields,
-  }),
+  schema: z.discriminatedUnion("kind", [projectLanding, projectSubpage]),
 });
 
 const pages = defineCollection({

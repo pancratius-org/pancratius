@@ -9,19 +9,30 @@ import { getCollection, type CollectionEntry } from "astro:content";
 
 import type { Locale, WorkKind } from "./i18n";
 import { DEFAULT_LOCALE, LOCALE_META, LOCALES, workUrl } from "./i18n";
-import { SEGMENT_OF } from "./kinds";
+
+/**
+ * The kinds the WORK-PAIR machinery handles. Projects are deliberately NOT in
+ * this union: they are themed sections, not downloadable works, and live in
+ * `src/lib/projects.ts`. `WorkKind` (kinds.ts) stays `book|poem|project` for
+ * URL-segment purposes, but the type below is what prevents a project from
+ * flowing through `getAllWorkPairs`, `getPairsByKind`, `findPair`, or the
+ * download routes — those all take `WorkPairKind`.
+ */
+export type WorkPairKind = "book" | "poem";
 
 export type WorkEntry =
   | CollectionEntry<"books">
-  | CollectionEntry<"poetry">
-  | CollectionEntry<"projects">;
+  | CollectionEntry<"poetry">;
 
 /**
- * Work kind → content collection name. These segments double as both the
- * collection names and the URL segments, so this is just the canonical
- * `SEGMENT_OF` map re-exported under the name route files already import.
+ * Work-pair kind → content collection name. Projects are intentionally absent
+ * (they aren't paired works). `COLLECTION_OF[kind]` for a `WorkPairKind` reuses
+ * the canonical `SEGMENT_OF` mapping, narrowed to the two work collections.
  */
-export const COLLECTION_OF = SEGMENT_OF;
+export const COLLECTION_OF: Record<WorkPairKind, "books" | "poetry"> = {
+  book: "books",
+  poem: "poetry",
+};
 
 /**
  * A work and its translations, keyed by `(kind, number)`. Each locale entry is
@@ -29,7 +40,7 @@ export const COLLECTION_OF = SEGMENT_OF;
  * entry is guaranteed to exist (enforced at build in `getAllWorkPairs`).
  */
 export interface WorkPair {
-  kind:    WorkKind;
+  kind:    WorkPairKind;
   number:  number;
   /** Authored entries keyed by locale. `entries[DEFAULT_LOCALE]` always exists. */
   entries: Partial<Record<Locale, WorkEntry>>;
@@ -79,12 +90,13 @@ let _pairsCache: WorkPair[] | null = null;
 export async function getAllWorkPairs(): Promise<WorkPair[]> {
   if (_pairsCache) return _pairsCache;
 
-  const [books, poetry, projects] = await Promise.all([
+  // Books + poetry ONLY. Projects are themed sections, not works — they live in
+  // `src/lib/projects.ts` and never enter the work-pair / download machinery.
+  const [books, poetry] = await Promise.all([
     getCollection("books"),
     getCollection("poetry"),
-    getCollection("projects"),
   ]);
-  const all: WorkEntry[] = [...books, ...poetry, ...projects];
+  const all: WorkEntry[] = [...books, ...poetry];
 
   const buckets = new Map<string, Partial<Record<Locale, WorkEntry>>>();
   for (const entry of all) {
@@ -103,7 +115,7 @@ export async function getAllWorkPairs(): Promise<WorkPair[]> {
       );
     }
     pairs.push({
-      kind:    canonical.data.kind as WorkKind,
+      kind:    canonical.data.kind as WorkPairKind,
       number:  canonical.data.number,
       entries,
     });
@@ -120,19 +132,19 @@ export async function getAllWorkPairs(): Promise<WorkPair[]> {
   return pairs;
 }
 
-export async function getPairsByKind(kind: WorkKind): Promise<WorkPair[]> {
+export async function getPairsByKind(kind: WorkPairKind): Promise<WorkPair[]> {
   const all = await getAllWorkPairs();
   return all.filter(p => p.kind === kind);
 }
 
-export async function findPair(kind: WorkKind, number: number): Promise<WorkPair | null> {
+export async function findPair(kind: WorkPairKind, number: number): Promise<WorkPair | null> {
   const all = await getAllWorkPairs();
   return all.find(p => p.kind === kind && p.number === number) ?? null;
 }
 
 /** Look up by per-language slug (the URL slug). */
 export async function findEntryBySlug(
-  kind: WorkKind,
+  kind: WorkPairKind,
   slug: string,
   locale: Locale,
 ): Promise<WorkEntry | null> {
@@ -148,7 +160,7 @@ export async function findEntryBySlug(
 
 /** The localized URL for an entry. Uses the entry's own per-language slug. */
 export function entryUrl(entry: WorkEntry): string {
-  return workUrl(entry.data.kind as WorkKind, entry.data.slug, entry.data.lang as Locale);
+  return workUrl(entry.data.kind, entry.data.slug, entry.data.lang as Locale);
 }
 
 /** Counterpart entry in the other language, if one exists. */
@@ -157,7 +169,7 @@ export async function alternateLanguageEntry(
   target: Locale,
 ): Promise<WorkEntry | null> {
   if (entry.data.lang === target) return entry;
-  const pair = await findPair(entry.data.kind as WorkKind, entry.data.number);
+  const pair = await findPair(entry.data.kind, entry.data.number);
   if (!pair) return null;
   // Existence: the counterpart exists only if `target` was authored.
   return pair.entries[target] ?? null;
@@ -253,7 +265,16 @@ export async function resolveCrossRefs(
   if (refs.length === 0) return [];
   const resolved: ResolvedCrossRef[] = [];
   for (const ref of refs) {
-    const pair = await findPair(ref.target.kind as WorkKind, ref.target.number);
+    // Work cross_refs only resolve to works (books/poems). A project target
+    // here would be a content bug — the work-pair machinery doesn't carry
+    // projects (they're sections, resolved in `src/lib/projects.ts`).
+    if (ref.target.kind === "project") {
+      throw new Error(
+        `cross_refs from ${entry.id} targets a project (${ref.target.kind} #${ref.target.number}); ` +
+        `works can only cross-reference books or poems`,
+      );
+    }
+    const pair = await findPair(ref.target.kind, ref.target.number);
     if (!pair) {
       throw new Error(
         `cross_refs dangling reference from ${entry.id}: ${ref.target.kind} #${ref.target.number} not in corpus`,

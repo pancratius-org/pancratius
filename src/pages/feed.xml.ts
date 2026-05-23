@@ -7,8 +7,9 @@ import { getAllWorkPairs } from "@/lib/works";
 const locale = DEFAULT_LOCALE;
 
 /**
- * "New works in the corpus" feed. Items are works, sorted by an editorial
- * date: poems use their `date` frontmatter; books and projects synthesize a
+ * "New works in the corpus" feed. Items are works (books + poems) — projects
+ * are themed sections, not works, and are not feed items. Sorted by an
+ * editorial date: poems use their `date` frontmatter; books synthesize a
  * stable date from `number` so consumer sort order is preserved without
  * lying about real publication moments. When real per-work dates land, swap
  * the synthetic source for them.

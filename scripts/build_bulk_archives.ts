@@ -23,7 +23,14 @@ const CONTENT = join(REPO_ROOT, "src", "content");
 const CACHE_DIR = join(REPO_ROOT, ".cache", "bulk-archives");
 const MANIFEST = join(REPO_ROOT, "data", "bulk-archives.json");
 
-const KIND_DIRS: Record<PublicMarkdownKind, string> = SEGMENT_OF;
+// The bulk corpus archive ships WORKS only — books + poems. Projects are themed
+// sections, not corpus works: they're excluded here just as they are from the
+// per-work download routes and the feeds, and their component-oriented landing
+// HTML doesn't survive Markdown flattening anyway.
+const KIND_DIRS: Record<"book" | "poem", string> = {
+  book: SEGMENT_OF.book,
+  poem: SEGMENT_OF.poem,
+};
 const LANGS = LOCALES;
 const ALL_FORMATS = ["md", "pdf", "epub"] as const;
 const DEFAULT_FORMATS = ["md"] as const;
