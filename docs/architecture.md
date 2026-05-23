@@ -32,7 +32,7 @@ linked doc; this is only the index.
 
 ## Stack
 
-- **Framework**: Astro 6+. No additional UI framework — no React, no Vue, no Svelte, no Tailwind. Vanilla CSS scoped via Astro components.
+- **Framework**: Astro 6+. No additional UI framework — no React, no Vue, no Svelte, no Solid, no Tailwind. Vanilla CSS scoped via Astro components.
 - **Language**: **TypeScript 6+, strict mode, everywhere in production source.** No handwritten production JavaScript (`.js` / `.mjs` / `.cjs`); archived `legacy/` and `design/` prototypes stay excluded until they are deleted. Astro config is `astro.config.ts`.
 - **Runtime**: Node 24.
 - **Scripts language**: Python 3.13+ with type hints. **Run via `uv` only**; project Python dependencies are locked in `pyproject.toml` / `uv.lock`. No `pip install`, no `conda`, no `requirements.txt`.

@@ -20,3 +20,7 @@ See [the source](https://example.com/path) for context.
 
 A bare drive letter with no backslash path is just prose: the disk labelled C:
 was full when he wrote this.
+
+An in-bundle parent reference stays inside the content root, so it is allowed:
+
+![sibling](../b/images/shared.jpg)

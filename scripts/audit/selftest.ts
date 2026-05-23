@@ -67,15 +67,25 @@ async function checkRule(rule: Rule): Promise<Result[]> {
   if (hasBad) {
     try {
       const found = await runAgainst(rule, badDir);
+      const shape = found.map(shapeError).find((e) => e !== null) ?? null;
+      // A core/deploy rule is a GATING rule: CI exits non-zero only on `fatal`
+      // (report.ts hasFatal), so its bad fixture must produce at least one FATAL
+      // finding — otherwise the rule "fires" in the self-test yet would NOT block
+      // CI (e.g. it accidentally returns a warning). Heuristic rules don't reach
+      // here (they're exempt from fixtures above).
+      const firedFatal = found.some((f) => f.severity === "fatal");
       if (found.length === 0) {
         results.push({ ok: false, label: `${rule.id} bad`, detail: "rule did not fire on the known-bad fixture" });
+      } else if (shape) {
+        results.push({ ok: false, label: `${rule.id} bad`, detail: shape });
+      } else if (!firedFatal) {
+        results.push({
+          ok: false,
+          label: `${rule.id} bad`,
+          detail: `${rule.tier} (gating) rule fired ${found.length} finding(s) but none are FATAL — it would NOT block CI; a gating rule's bad fixture must produce a fatal finding`,
+        });
       } else {
-        const shape = found.map(shapeError).find((e) => e !== null) ?? null;
-        results.push(
-          shape
-            ? { ok: false, label: `${rule.id} bad`, detail: shape }
-            : { ok: true, label: `${rule.id} bad (fired: ${found.length})` },
-        );
+        results.push({ ok: true, label: `${rule.id} bad (fired: ${found.length}, fatal)` });
       }
     } catch (err) {
       results.push({ ok: false, label: `${rule.id} bad`, detail: `rule threw: ${String(err)}` });

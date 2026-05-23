@@ -591,7 +591,10 @@ Members (each an instance of the same "stay in the declared surface" idea, so th
 family extends cleanly to the next banned thing):
 
 - **Source language.** Production source is TypeScript. No handwritten JavaScript
-  or JSX (`.js`, `.mjs`, `.cjs`, `.jsx`) in tracked source. Allowed only in
+  or JSX (`.js`, `.mjs`, `.cjs`, `.jsx`) in the production-source working tree
+  (implementation walks the tree rather than `git ls-files` so it runs against a
+  fixture too; equal-or-stricter than tracked — a stray untracked `.js` is also
+  out of stack). Allowed only in
   declared non-production trees: `legacy/` and `design/` (excluded until deleted),
   vendored third-party output such as `public/pagefind/`, and generated/disposable
   trees (`.astro/`, `.cache/`, `dist/`, `node_modules/`). The allowlist should be

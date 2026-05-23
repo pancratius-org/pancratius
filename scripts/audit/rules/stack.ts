@@ -44,9 +44,15 @@ const JS_EXTENSIONS: readonly string[] = [".js", ".mjs", ".cjs", ".jsx"];
 const NON_PROD_PREFIXES: readonly string[] = ["legacy/", "design/", "public/pagefind/"];
 
 /**
- * Flag any tracked handwritten-JavaScript file (`.js`/`.mjs`/`.cjs`/`.jsx`)
- * outside the declared non-production / vendored trees. One fatal finding per
- * offending file — production source is TypeScript.
+ * Flag any handwritten-JavaScript file (`.js`/`.mjs`/`.cjs`/`.jsx`) in the
+ * production-source WORKING TREE outside the declared non-production / vendored
+ * trees. One fatal finding per offending file — production source is TypeScript.
+ *
+ * It walks the working tree (not `git ls-files`) so the same rule runs unchanged
+ * against a fixture, which has no git. The walker already prunes the generated
+ * trees (dist/.cache/.astro/node_modules/__pycache__/dot-dirs); the non-prod/
+ * vendored allowlist below covers the rest. This is equal-or-stricter than
+ * git-tracked: a stray untracked `.js` in production source is also out of stack.
  */
 export const pan016SourceLanguage: Rule = {
   id: SOURCE_LANG_ID,

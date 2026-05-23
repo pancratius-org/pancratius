@@ -10,3 +10,7 @@ This work embeds a machine-local path:
 …and a retired-source reference:
 
 ![old cover](legacy/cover.png)
+
+…and a parent-traversal escape out of the content root:
+
+![escape](../../../../outside/asset.png)

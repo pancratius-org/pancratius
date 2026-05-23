@@ -18,6 +18,8 @@
 //   - a relative `./images/x.jpg`, an external `https://…`, and a bare `C:` with
 //     no backslash are all allowed and stay silent.
 
+import { posix } from "node:path";
+
 import type { Rule, RuleContext } from "../lib/rule.ts";
 import type { Finding } from "../lib/finding.ts";
 import { matchesWithLines, lineTextAt, snippet } from "../lib/text.ts";
@@ -52,6 +54,11 @@ const PATTERNS: readonly PathPattern[] = [
   // `](legacy/foo.png)` or `"legacy/x"` — NOT the bare English word "legacy".
   { label: "legacy/<path>", re: /legacy\/[A-Za-z0-9._/-]/g },
 ];
+
+// Markdown link/image target capture: `](url …)` → url. Used for the
+// parent-traversal-escape check, which (unlike the literal patterns above) needs
+// to RESOLVE a relative target against the file's location, not just match text.
+const MD_TARGET_RE = /\]\(\s*<?([^)\s>]+)>?/g;
 
 const CONTRACT =
   "Production source may reference project-relative source paths (src/, data/, public/, .cache/), emitted public URLs (/assets/…), or external https URLs — but never machine-local paths (/Users/…, ~/…, C:\\…), parent-escapes, or retired `legacy/` trees (docs/audit-harness.md PAN001).";
@@ -95,6 +102,32 @@ export const pan001PathBoundary: Rule = {
             doNotFixBy: DO_NOT_FIX_BY,
           });
         }
+      }
+
+      // Parent-traversal escape: a relative link/image target that resolves
+      // OUTSIDE src/content/ depends on a path beyond the work bundle / content
+      // root (the doc's `../../MyWorks` class). Resolved, not pattern-matched, so
+      // an in-bundle `../sibling/x` stays silent while an escaping `../../../x`
+      // fires. Skips absolute (`/…`, handled above), anchors, and scheme URLs.
+      const dir = posix.dirname(rel);
+      for (const { match, line } of matchesWithLines(text, MD_TARGET_RE)) {
+        const raw = match[1].replace(/^<|>$/g, "");
+        if (raw.startsWith("/") || raw.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(raw)) continue;
+        if (!raw.includes("../")) continue;
+        const resolved = posix.normalize(posix.join(dir, raw));
+        if (resolved.startsWith("src/content/")) continue; // stays inside the content root
+        findings.push({
+          rule: ID,
+          severity: "fatal",
+          category: CATEGORY,
+          file: rel,
+          line,
+          observed: `${rel}:${line} link/image target \`${raw}\` resolves to \`${resolved}\`, escaping src/content/ via parent traversal`,
+          contract: CONTRACT,
+          why: WHY,
+          repair: REPAIR,
+          doNotFixBy: DO_NOT_FIX_BY,
+        });
       }
     }
 

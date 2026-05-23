@@ -37,7 +37,11 @@ export interface PythonCheckSpec {
  */
 export function runPythonCheck(ctx: RuleContext, spec: PythonCheckSpec): Finding[] {
   const scriptPath = join(AUDIT_DIR, spec.script);
-  const res = spawnSync("uv", ["run", "--quiet", scriptPath], {
+  // `--frozen`: a scanner must not mutate state. Without it `uv run` may resolve
+  // and update the lockfile / install as a side effect; --frozen runs against the
+  // committed uv.lock as-is and errors instead of touching it (CI's ruff/ty/pytest
+  // already run --frozen). Keeps the harness a pure read-only verifier.
+  const res = spawnSync("uv", ["run", "--frozen", "--quiet", scriptPath], {
     encoding: "utf-8",
     env: { ...process.env, PANCRATIUS_AUDIT_ROOT: ctx.root },
     maxBuffer: 32 * 1024 * 1024,

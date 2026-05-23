@@ -28,6 +28,7 @@ import { runPythonCheck } from "../lib/python.ts";
 import {
   parseModule,
   findCallStringArgs,
+  findLocalNamesForImport,
   objectLiteralKeysOf,
   objectLiteralStringValuesOf,
   stringUnionMembersOf,
@@ -128,7 +129,13 @@ export const pan004CorpusCollections: Rule = {
 
     // worksSf is non-null here (workCollections came from it).
     const sf = worksSf!;
-    for (const call of findCallStringArgs(sf, "getCollection")) {
+    // Recognize getCollection under any local alias bound by a named import
+    // (`import { getCollection as gc }` → gc), closing the aliased-import evasion;
+    // the literal name is always included for the un-aliased case.
+    const getCollectionNames = findLocalNamesForImport(sf, "getCollection");
+    getCollectionNames.add("getCollection");
+    const calls = [...getCollectionNames].flatMap((name) => findCallStringArgs(sf, name));
+    for (const call of calls) {
       if (!nonWork.has(call.value)) continue;
       findings.push({
         rule: RULE_A_ID,
