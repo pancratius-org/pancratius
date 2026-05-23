@@ -25,9 +25,10 @@ linked doc; this is only the index.
   the default locale; a route/download/feed/sitemap entry exists only when that
   locale was authored — never render default-locale body under `/en/…`.
   → [`i18n-routing.md`](./i18n-routing.md).
-- **`<Prose>` vs `<Verse>` — two body renderers, no "register".** The component is
-  the register (flowing vs lineation-preserving); page-specific looks are owned by
-  each dedicated route. → [`decisions.md`](./decisions.md).
+- **`<Prose>` vs `<Verse>` — two body-renderer components, no "register" enum.**
+  The component is the register; a `class` prop carries page-local looks. Used by
+  static pages + project sub-pages today (work pages still render the prose
+  register directly — a follow-up). → [`decisions.md`](./decisions.md).
 
 ## Stack
 

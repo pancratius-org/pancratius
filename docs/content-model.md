@@ -165,9 +165,11 @@ The rule is:
 - a blank source line separates stanzas;
 - no trailing `\`, no two-space ritual in source Markdown.
 
-The website renders this with the `<Verse>` component (the lineation-preserving
-register — poems and the mission page; see [`decisions.md`](./decisions.md) for
-the `<Prose>`/`<Verse>` body renderers). Export code may add explicit hard-break
+The website preserves this lineation-preserving register: the mission page
+renders through the `<Verse>` component, while poems currently render the
+`prose--poem` register directly (`class="prose prose--poem"`) — work-page bodies
+are not yet on the shared `<Prose>`/`<Verse>` components (see
+[`decisions.md`](./decisions.md)). Export code may add explicit hard-break
 markers to downloadable Markdown scratch/output so strict CommonMark readers
 preserve the same lineation, but those markers are not part of the author-facing
 source.
@@ -301,6 +303,11 @@ mechanically then *composed* editorially (see [`tooling.md`](./tooling.md)). A
 document worthy of the library is **promoted to a real book** (its own
 `(kind, number)`); a project then references it via `featured_books`, never
 copies it.
+
+Note: project landings still appear in the build-time route manifest
+`data/slug-map.json` (under its `works` array, keyed via `SEGMENT_OF`) so the
+sitemap emits their URLs and hreflang. That manifest is a *route index*, not the
+`WorkPair` model — do not remove projects from it.
 
 ## Pages
 
