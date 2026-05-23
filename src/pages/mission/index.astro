@@ -1,0 +1,38 @@
+---
+// /mission/ — the manifesto. Lineation-preserving verse register, no ToC
+// (the old dispatcher special-cased `isMission` to skip the ToC and use the
+// `prose--manifesto` class; <Verse> carries that register).
+
+import { render } from "astro:content";
+
+import Base from "@/layouts/Base.astro";
+import PageShell from "@/components/PageShell.astro";
+import Verse from "@/components/Verse.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { LOCALES, pageUrl } from "@/lib/i18n";
+import { getPage } from "@/lib/pages";
+import { seoForPage } from "@/lib/seo";
+
+const SLUG = "mission";
+const locale: Locale = "ru";
+
+const page = await getPage(SLUG, locale);
+if (!page) throw new Error(`Missing src/content/pages/${SLUG}/${locale}.md`);
+const { Content } = await render(page);
+
+const authoredLocales = new Set<Locale>();
+for (const loc of LOCALES) {
+  if (await getPage(SLUG, loc)) authoredLocales.add(loc);
+}
+const seo = seoForPage(Astro.site, page, authoredLocales);
+const alternates: Partial<Record<Locale, string>> = {};
+for (const loc of authoredLocales) {
+  if (loc !== locale) alternates[loc] = pageUrl(SLUG, loc);
+}
+---
+<Base locale={locale} seo={seo} alternates={alternates}>
+  <PageShell title={page.data.title} eyebrow={page.data.eyebrow} sub={page.data.sub}>
+    <Verse><Content /></Verse>
+  </PageShell>
+</Base>

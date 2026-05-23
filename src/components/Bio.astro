@@ -1,0 +1,154 @@
+---
+// Bio block for /about/ — the bespoke author-bio composition shared by the RU
+// and EN about routes: an optimized portrait figure + the bio prose (in the
+// `prose--bio` register) + a vital-statistics facts <dl>. Owns the route-local
+// validation of about's bespoke frontmatter and the two-column bio grid, so the
+// about routes stay thin and the layout is defined once. The default slot
+// receives the rendered Markdown body.
+import { Image } from "astro:assets";
+import { z } from "astro/zod";
+
+import Prose from "@/components/Prose.astro";
+import type { PageEntry } from "@/lib/pages";
+
+// Portrait lives in the about bundle and is rendered through astro:assets so it
+// ships as an optimized, hashed `_astro/*` asset. One file serves both locales;
+// the alt/caption/meta come from each locale's frontmatter.
+import portrait from "@/content/pages/about/portrait.png";
+
+// Route-local schema for /about/'s bespoke frontmatter. The shared `pages`
+// schema deliberately omits these; we validate them here so a malformed about
+// page still fails loudly.
+const aboutExtras = z.object({
+  portrait: z.object({
+    alt: z.string().min(1),
+    caption: z.string().optional(),
+    meta: z.string().optional(),
+  }),
+  facts: z
+    .array(z.object({ label: z.string().min(1), value: z.string().min(1) }))
+    .default([]),
+});
+
+interface Props {
+  page: PageEntry;
+}
+
+const { page } = Astro.props;
+const { portrait: portraitMeta, facts } = aboutExtras.parse(page.data);
+---
+<figure class="static__portrait">
+  <Image src={portrait} alt={portraitMeta.alt} widths={[280, 560]} sizes="280px" loading="lazy" />
+  {(portraitMeta.caption || portraitMeta.meta) && (
+    <figcaption>
+      {portraitMeta.caption && <span>{portraitMeta.caption}</span>}
+      {portraitMeta.meta    && <span>{portraitMeta.meta}</span>}
+    </figcaption>
+  )}
+</figure>
+
+<Prose class="prose--bio">
+  <slot />
+  {facts.length > 0 && (
+    <dl class="static__facts">
+      {facts.map(f => (
+        <div>
+          <dt>{f.label}</dt>
+          <dd>{f.value}</dd>
+        </div>
+      ))}
+    </dl>
+  )}
+</Prose>
+
+<style>
+  .static__portrait {
+    margin: 0 auto;
+    max-width: 280px;
+  }
+  .static__portrait :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--bg-rise);
+    box-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.45),
+      0 40px 60px -30px rgba(0, 0, 0, 0.55);
+    filter: saturate(0.95) contrast(1.02);
+  }
+  :global([data-theme="light"]) .static__portrait :global(img) {
+    box-shadow:
+      0 1px 0 rgba(20, 17, 13, 0.06),
+      0 30px 50px -25px rgba(60, 45, 20, 0.30);
+  }
+  .static__portrait figcaption {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .static__portrait figcaption span:first-child { color: var(--ink-soft); }
+
+  /* Bio two-column grid: masthead spans, portrait left (sticky), prose right.
+     The `.static`/`.static--bio` article is rendered by <PageShell>, so it
+     carries PageShell's scope, not this component's — target it via :global and
+     anchor the bespoke children (which DO carry this component's scope) under
+     it. */
+  @media (min-width: 900px) {
+    :global(.static--bio) {
+      max-width: 64rem;
+      grid-template-columns: 280px minmax(0, 1fr);
+      grid-template-areas:
+        "head    head"
+        "portrait body";
+      gap: 2.5rem 3.2rem;
+      align-items: start;
+    }
+    :global(.static--bio .static__head) { grid-area: head; }
+    :global(.static--bio) .static__portrait { grid-area: portrait; position: sticky; top: 6rem; }
+    :global(.static--bio .prose)        { grid-area: body; max-width: none; }
+  }
+
+  /* Vital-statistics list at the foot of the bio. */
+  .static__facts {
+    margin: 3.2rem 0 0;
+    padding-top: 1.6rem;
+    border-top: 1px solid var(--rule);
+    display: grid;
+    gap: 0.9rem 1.6rem;
+    grid-template-columns: 1fr;
+  }
+  .static__facts > div {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+  .static__facts dt {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .static__facts dd {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 1rem;
+    color: var(--ink);
+  }
+  @media (min-width: 560px) {
+    .static__facts > div {
+      grid-template-columns: 9rem minmax(0, 1fr);
+      align-items: baseline;
+      gap: 1rem;
+    }
+    .static__facts dt { margin-top: 0.18em; }
+  }
+</style>

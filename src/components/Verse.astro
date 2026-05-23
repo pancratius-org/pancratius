@@ -1,0 +1,40 @@
+---
+/*
+ * Verse — the lineation-preserving body register.
+ *
+ * The second of the two body renderers (the other is <Prose>). Wraps a
+ * rendered Markdown body in `<div class="prose prose--manifesto">`, the
+ * existing register whose CSS keeps source line breaks visible
+ * (`white-space: pre-line`), stays left-aligned, suppresses the drop cap,
+ * and gives stanzas their paragraph-gap rhythm. That CSS lives in
+ * `src/styles/prose.css` under the `.prose--manifesto` / `.prose--poem`
+ * rules; reusing the class name keeps the rendered output byte-identical to
+ * today's /mission/ manifesto.
+ *
+ * Dumb by design: no slug logic, no page-specific branching. The component
+ * identity *is* the register — there is no `register` prop. The current
+ * `.prose--manifesto` rules also carry the manifesto's lede-opener and
+ * trailing-signature gestures (first/last paragraph), which apply to the
+ * mission body verbatim.
+ *
+ * Usage — render the page's `<Content/>` into the default slot:
+ *
+ *   const { Content } = await render(page);
+ *   <Verse><Content /></Verse>
+ *
+ * `class` is appended after the base register classes for any page-local
+ * modifier. A poem/work page COULD adopt this later (it already shares the
+ * `.prose--poem` lineation rules) — this component is deliberately free of
+ * any page identity so that move is a one-line swap.
+ */
+
+interface Props {
+  /** Extra register class(es) appended after the base verse classes. */
+  class?: string;
+}
+
+const { class: extraClass } = Astro.props;
+---
+<div class:list={["prose", "prose--manifesto", extraClass]}>
+  <slot />
+</div>

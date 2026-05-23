@@ -2,8 +2,10 @@
 //
 // `pages` lives outside the work `(kind, number)` model and serves
 // /about/, /mission/, /svetozar/, /license/, /support/, /downloads/. Each
-// page has at most one entry per locale; missing locales fall back to nothing
-// (the route resolves to a 404 in that locale).
+// page is an *individual* with its own dedicated route (no dynamic dispatcher);
+// the prose still lives in the collection so authors edit one Markdown file per
+// locale. Each page has at most one entry per locale; missing locales resolve
+// to a 404 in that locale (the route 404s/skips when `getPage` returns null).
 
 import { getCollection, type CollectionEntry } from "astro:content";
 
@@ -11,17 +13,6 @@ import type { Locale } from "./i18n";
 import { RESERVED_PAGE_SLUGS } from "./i18n";
 
 export type PageEntry = CollectionEntry<"pages">;
-
-/**
- * Page slugs whose URL is owned by a hand-written route, not by the dynamic
- * `/[slug].astro` renderer. The prose still lives in the pages collection so
- * authors edit Markdown, but the dedicated route renders extra structure
- * around it (a download table, etc.). `getStaticPagesForSlugRoute` filters
- * these out so Astro doesn't warn about a route conflict.
- */
-export const PAGES_WITH_DEDICATED_ROUTE: ReadonlySet<string> = new Set([
-  "downloads",
-]);
 
 let _cache: PageEntry[] | null = null;
 
@@ -43,17 +34,6 @@ async function loadPages(): Promise<PageEntry[]> {
 export async function getPage(slug: string, locale: Locale): Promise<PageEntry | null> {
   const all = await loadPages();
   return all.find(e => e.data.slug === slug && e.data.lang === locale) ?? null;
-}
-
-/**
- * Pages eligible for `/[slug].astro`'s `getStaticPaths`. Excludes any slug
- * served by a hand-written route, avoiding the route-conflict warning.
- */
-export async function getPagesForSlugRoute(locale: Locale): Promise<PageEntry[]> {
-  const all = await loadPages();
-  return all.filter(e =>
-    e.data.lang === locale && !PAGES_WITH_DEDICATED_ROUTE.has(e.data.slug),
-  );
 }
 
 /** Counterpart in the other language, if authored. */

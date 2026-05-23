@@ -1,0 +1,45 @@
+---
+// /en/license/ — localized CC0 notice. See src/pages/license/index.astro.
+
+import { render } from "astro:content";
+
+import Base from "@/layouts/Base.astro";
+import PageShell from "@/components/PageShell.astro";
+import Prose from "@/components/Prose.astro";
+import TableOfContents from "@/components/TableOfContents.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { LOCALES, pageUrl } from "@/lib/i18n";
+import { getPage } from "@/lib/pages";
+import { seoForPage } from "@/lib/seo";
+
+const SLUG = "license";
+const locale: Locale = "en";
+
+const page = await getPage(SLUG, locale);
+if (!page) throw new Error(`Missing src/content/pages/${SLUG}/${locale}.md`);
+const { Content, headings } = await render(page);
+
+const authoredLocales = new Set<Locale>();
+for (const loc of LOCALES) {
+  if (await getPage(SLUG, loc)) authoredLocales.add(loc);
+}
+const seo = seoForPage(Astro.site, page, authoredLocales);
+const alternates: Partial<Record<Locale, string>> = {};
+for (const loc of authoredLocales) {
+  if (loc !== locale) alternates[loc] = pageUrl(SLUG, loc);
+}
+
+const useToc = headings.some(h => h.depth >= 2 && h.depth <= 3);
+---
+<Base locale={locale} seo={seo} alternates={alternates}>
+  <PageShell
+    title={page.data.title}
+    eyebrow={page.data.eyebrow}
+    sub={page.data.sub}
+    class={useToc ? "static--with-toc" : undefined}
+  >
+    {useToc && <TableOfContents headings={headings} locale={locale} />}
+    <Prose><Content /></Prose>
+  </PageShell>
+</Base>

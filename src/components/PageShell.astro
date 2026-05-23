@@ -1,0 +1,88 @@
+---
+/*
+ * PageShell — shared masthead + centred reading column for static pages.
+ *
+ * A building block, not a dispatcher: it renders the eyebrow / title / sub
+ * masthead and the base `.static` grid container, then yields its default
+ * slot for whatever blocks a dedicated route composes (Prose, Verse, a
+ * portrait figure, a facts <dl>, a support widget…). It carries NO
+ * per-page branching — the grid template that a bespoke page needs (bio
+ * two-column, support sidebar) is owned by that page's own route via the
+ * `class` prop + the route's own `<style>`.
+ *
+ * The only layout this shell owns is the universal chrome shared by every
+ * static page: the centred column, the masthead typography, and the
+ * `static--with-toc` two-column variant (used by plain pages that grew
+ * headings). Anything page-specific layers on top via `class`.
+ */
+
+interface Props {
+  /** Masthead title (the page's <h1>). */
+  title: string;
+  /** Optional small-caps eyebrow above the title. */
+  eyebrow?: string;
+  /** Optional italic sub-line under the title. */
+  sub?: string;
+  /** Extra layout class(es) on the `<article>` (e.g. a route's bespoke grid). */
+  class?: string;
+}
+
+const { title, eyebrow, sub, class: extraClass } = Astro.props;
+---
+<article class:list={["static", extraClass]}>
+  <header class="static__head">
+    {eyebrow && <p class="eyebrow eyebrow--lg">{eyebrow}</p>}
+    <h1 class="static__title">{title}</h1>
+    {sub && <p class="static__sub">{sub}</p>}
+  </header>
+
+  <slot />
+</article>
+
+<style>
+  .static {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  .static__head { margin-bottom: 0.5rem; }
+  .static__title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2.8rem, 5.8vw, 4.3rem);
+    line-height: 0.98;
+    margin: 0;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+  }
+  .static__sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.1rem, 1.5vw, 1.3rem);
+    line-height: 1.45;
+    color: var(--accent);
+    margin: 0.6rem 0 0;
+    max-width: 36rem;
+    text-wrap: balance;
+  }
+
+  /* Plain-prose page that grew h2/h3 headings: a left ToC rail. The bespoke
+     pages (bio, support) own their own grid templates in their routes and
+     never use this variant. */
+  @media (min-width: 1100px) {
+    .static--with-toc {
+      grid-template-columns: 220px 1fr;
+      grid-template-areas:
+        "head head"
+        "toc  body";
+      max-width: 64rem;
+      gap: 2.5rem 3rem;
+    }
+    .static--with-toc .static__head { grid-area: head; }
+    .static--with-toc :global(.toc-aside) { grid-area: toc; }
+    .static--with-toc :global(.prose) { grid-area: body; }
+  }
+</style>

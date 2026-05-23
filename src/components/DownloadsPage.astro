@@ -1,4 +1,5 @@
 ---
+import Prose from "@/components/Prose.astro";
 import type { Locale } from "@/lib/i18n";
 import type { ArchiveInfo } from "@/lib/bulk-archives";
 import { downloadsPageCopy } from "@/lib/copy";
@@ -28,9 +29,7 @@ const FORMAT_LABEL: Record<ArchiveInfo["format"], string> = {
     {page.data.sub && <p class="dl__sub">{page.data.sub}</p>}
   </header>
 
-  <div class="prose">
-    <slot />
-  </div>
+  <Prose><slot /></Prose>
 
   {archives.length > 0 ? (
     <section class="dl__bundles" aria-label={copy.aria}>

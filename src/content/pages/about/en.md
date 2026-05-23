@@ -5,7 +5,6 @@ title: Sergey Orekhov
 sub: Pancratius
 description: The life of Sergey Orekhov (Pancratius) — author of the collected works. From Blagoveshchensk and Zeya to Magadan and Moscow, through the seven levels of awareness to the eighth — the white, the level of God-consciousness.
 portrait:
-  src: /portrait.png
   alt: Sergey Orekhov — Pancratius
   caption: Sergey Orekhov
   meta: 05.05.1974 · Blagoveshchensk

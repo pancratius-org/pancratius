@@ -132,45 +132,23 @@ const pages = defineCollection({
       return `${m[1]}--${m[2]}`;
     },
   }),
-  schema: z.object({
-    slug: asciiSlug,
-    lang,
-    title: z.string().min(1),
-    description: z.string().min(1),
-    eyebrow: z.string().optional(),
-    sub: z.string().optional(),
-    // Optional portrait block — currently used on /about/ to render a
-    // left-rail figure beside the bio. Other pages can opt in by
-    // supplying these fields.
-    portrait: z
-      .object({
-        src: z.string().min(1),
-        alt: z.string().min(1),
-        caption: z.string().optional(),
-        meta: z.string().optional(),
-      })
-      .optional(),
-    // Optional structured facts list — rendered as a 2-column <dl> at the
-    // foot of the body. Used by /about/ for vital statistics.
-    facts: z
-      .array(z.object({ label: z.string().min(1), value: z.string().min(1) }))
-      .optional(),
-    // Optional channels widget — used by /support/ to render donation
-    // methods as a hairline-divided column with copy-to-clipboard
-    // affordances. Each entry is a row; `kind` selects how the value is
-    // rendered (image for `qr`, mono text + copy for `card` / `text`,
-    // anchor + copy for `link`).
-    channels: z
-      .array(
-        z.object({
-          kind: z.enum(["qr", "card", "link", "text"]),
-          label: z.string().min(1),
-          value: z.string().min(1),
-          caption: z.string().optional(),
-        })
-      )
-      .optional(),
-  }),
+  // Universal minimum every static page shares. Bespoke editorial data
+  // (about's `portrait`/`facts`, support's `channels`) is NOT in this shared
+  // schema — pages are individuals, not a population, so per-page fields are
+  // co-located in each page's Markdown frontmatter and validated by a
+  // route-local zod schema in the dedicated route that consumes them.
+  // `.loose()` (zod's passthrough mode) keeps those extra keys on `entry.data`
+  // through the collection load so the route can read and re-validate them.
+  schema: z
+    .object({
+      slug: asciiSlug,
+      lang,
+      title: z.string().min(1),
+      description: z.string().min(1),
+      eyebrow: z.string().optional(),
+      sub: z.string().optional(),
+    })
+    .loose(),
 });
 
 export const collections = { books, poetry, projects, pages };

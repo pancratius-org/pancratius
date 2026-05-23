@@ -1,0 +1,35 @@
+---
+/*
+ * Prose — the flowing-prose body register.
+ *
+ * One of the two body renderers for authored Markdown (the other is
+ * <Verse>). Wraps a rendered Markdown body in `<div class="prose">`, which
+ * `src/styles/prose.css` styles as ragged-right, paragraph-rhythm reading
+ * prose with opt-in drop caps, chapter headings, footnotes, etc.
+ *
+ * Dumb by design: no slug logic, no page-specific branching. The component
+ * identity *is* the register — there is no `register` prop. A route that
+ * needs the lineation-preserving register reaches for <Verse> instead.
+ *
+ * Usage — render the page's `<Content/>` into the default slot:
+ *
+ *   const { Content } = await render(page);
+ *   <Prose><Content /></Prose>
+ *
+ * `class` is appended to the base `prose` class so a route can layer a
+ * page-local register modifier (e.g. `prose--bio`, `prose--svet`) without
+ * this component knowing what it means. The slot is the only content source;
+ * extra structure a page wants below the body (a facts <dl>, a channels
+ * widget) is composed by the route as a sibling, not threaded through here.
+ */
+
+interface Props {
+  /** Extra register class(es) appended after the base `prose` class. */
+  class?: string;
+}
+
+const { class: extraClass } = Astro.props;
+---
+<div class:list={["prose", extraClass]}>
+  <slot />
+</div>
