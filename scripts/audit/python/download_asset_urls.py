@@ -3,16 +3,28 @@
 
 This runs after ``npm run build``. It scans generated Markdown files and
 ``dist/downloads/all-md.zip`` for local image URLs outside ``/assets/``.
+
+Wrapped by the harness as PAN008 (scripts/audit/rules/downloads.ts); honours
+``PANCRATIUS_AUDIT_ROOT`` so it can run against a fixture. Runs in the project
+env — no PEP-723 header needed.
 """
 from __future__ import annotations
 
+import os
 import re
 import sys
 import zipfile
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+
+def _audit_root() -> Path:
+    env = os.environ.get("PANCRATIUS_AUDIT_ROOT")
+    # scripts/audit/python/download_asset_urls.py -> repo root is four levels up.
+    return Path(env).resolve() if env else Path(__file__).resolve().parents[3]
+
+
+ROOT = _audit_root()
 DIST = ROOT / "dist"
 ARCHIVE = DIST / "downloads" / "all-md.zip"
 

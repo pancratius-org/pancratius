@@ -13,6 +13,8 @@ import {
   pan004DuplicateIdentity,
 } from "./projects.ts";
 import { pan007AssetRefs } from "./assets.ts";
+import { pan008PublicMarkdownAssets } from "./downloads.ts";
+import { pan014InternalLinks } from "./crawl.ts";
 import { pan012CiSeparation } from "./ownership.ts";
 import { pan016SourceLanguage, pan016UiFramework } from "./stack.ts";
 
@@ -28,4 +30,7 @@ export const RULES: readonly Rule[] = [
   pan012CiSeparation,
   pan016SourceLanguage,
   pan016UiFramework,
+  // deploy-tier (post-build; run only on `npm run audit:deploy`):
+  pan008PublicMarkdownAssets,
+  pan014InternalLinks,
 ];

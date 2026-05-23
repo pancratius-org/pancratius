@@ -41,6 +41,13 @@ jobs:
           fi
           echo "ok: $html_count html files in dist/"
 
+      # Post-build audit: crawl the emitted dist/ for broken internal links and
+      # verify the public Markdown / corpus exports use /assets/ URLs. A broken
+      # built site blocks the deploy (deploy-tier rules; the fast PR gate in
+      # build.yml stays `npm run audit` + selftest).
+      - name: Audit built site (deploy tier)
+        run: npm run audit:deploy
+
       - name: Deploy to hosting via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:

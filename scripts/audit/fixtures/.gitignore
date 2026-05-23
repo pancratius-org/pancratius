@@ -1,0 +1,5 @@
+# These fixture trees deliberately contain an emitted `dist/` so the deploy-tier
+# rules (PAN008, PAN014) can run against them. The repo-root .gitignore excludes
+# `dist/` (build output); re-include it HERE so the selftest fixtures are tracked.
+!dist/
+!dist/**

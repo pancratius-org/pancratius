@@ -30,7 +30,6 @@
     "audit:agent": "node --experimental-strip-types scripts/audit/harness.ts agent",
     "audit:deploy": "node --experimental-strip-types scripts/audit/harness.ts deploy",
     "audit:selftest": "node --experimental-strip-types scripts/audit/selftest.ts",
-    "audit:download-asset-urls": "uv run scripts/audit/download_asset_urls.py",
     "prebuild": "npm run prebuild:slug-map && npm run prebuild:graph-payloads && npm run prebuild:bulk-archives",
     "prebuild:slug-map": "uv run scripts/build_slug_map.py",
     "prebuild:graph-payloads": "uv run scripts/build_copy_graph_payloads.py",
