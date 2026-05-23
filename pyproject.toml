@@ -10,7 +10,95 @@ dependencies = [
 [dependency-groups]
 dev = [
   "pytest>=9.0",
+  "ruff>=0.15.14",
+  # Pinned exact: ty is pre-1.0, so any 0.0.x bump can change diagnostics. Bump
+  # deliberately and re-verify; revisit the `==` once ty reaches a stable line.
+  "ty==0.0.39",
 ]
 
 [tool.uv]
 package = false
+
+# ---------------------------------------------------------------------------
+# Typed-Python enforcement (architecture mandate: every tracked .py annotated).
+# Single-vendor Astral stack — annotation coverage plus best-effort static
+# checking, not a claim of total type soundness:
+#   * ruff  → annotations are PRESENT          (flake8-annotations / ANN ruleset)
+#   * ty    → best-effort static type checking
+# Both are pinned in [dependency-groups].dev and uv.lock; run via `uv run`.
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+# Only the Python tooling is in scope; the Astro site / TS / src/ are not.
+include = ["scripts/**/*.py", "tests/**/*.py"]
+
+[tool.ruff.lint]
+# Scoped deliberately to the typing mandate, not general code-quality linting.
+#   ANN  → flake8-annotations: every function arg / return is annotated.
+#   F821 → undefined name: catches an annotation referencing an unimported
+#          symbol, i.e. the runtime-NameError trap for modules whose
+#          annotations are evaluated eagerly. Cheap, directly type-relevant.
+select = ["ANN", "F821"]
+
+[tool.ruff.lint.flake8-annotations]
+# Keep ANN401 (no bare `Any`) ON so accidental `Any` is flagged everywhere;
+# the only `Any` left is at the opaque MLX model/tokenizer boundary, waived
+# with a scoped `# noqa: ANN401` on those two parameters (see
+# scripts/conceptosphere_embed.py). Everything else uses `object` and narrows.
+allow-star-arg-any = false
+ignore-fully-untyped = false
+# `__init__` returns None implicitly; requiring `-> None` on it is noise, so
+# allow its omission when any other parameter is annotated. This is the only
+# return-annotation carve-out and it matches mypy's long-standing convention.
+mypy-init-return = true
+# Don't force `-> None` on functions that only ever return None — but we still
+# annotate them; this just avoids redundant churn on trivial procedures. Off:
+# we keep returns explicit. (Left at default false for maximal explicitness.)
+suppress-none-returning = false
+
+[tool.ty.environment]
+python-version = "3.13"
+# Sibling scripts are imported by basename (sys.path.insert(scripts/)) and by
+# tests; declare scripts/ as a first-party source root so ty resolves them.
+root = ["scripts"]
+
+[tool.ty.src]
+include = ["scripts", "tests"]
+
+[tool.ty.rules]
+# Catch annotations that reference an unimported name at the type level too.
+unresolved-reference = "error"
+
+[tool.ty.analysis]
+# Genuine dynamic boundaries: these libraries live in PEP-723 inline-script
+# metadata (run via `uv run --script`), NOT in the project venv, and several
+# ship no type stubs at all (MLX, igraph, leidenalg, pymorphy3, razdel,
+# python-louvain). Treating their imports as `Any` is the honest annotation
+# at the boundary and prevents a cascade of false positives in first-party
+# logic. This is explicit and enumerated — not a blanket `ignore`.
+replace-imports-with-any = [
+  "community",          # python-louvain
+  "community.**",
+  "hdbscan",
+  "igraph",
+  "leidenalg",
+  "mlx",                # mlx.core etc.
+  "mlx.**",
+  "mlx_embeddings",
+  "networkx",
+  "numpy",
+  "numpy.**",
+  "PIL",
+  "PIL.**",
+  "pymorphy3",
+  "pymorphy3.**",
+  "razdel",
+  "regex",
+  "scipy",
+  "scipy.**",
+  "sklearn",
+  "sklearn.**",         # e.g. sklearn.feature_extraction.text, sklearn.cluster
+  "yaml",               # PyYAML (no inline stubs in this env)
+]

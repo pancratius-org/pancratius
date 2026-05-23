@@ -20,6 +20,7 @@
     "legacy",
     "design",
     "scripts",
+    "tests",
     "public"
   ]
 }

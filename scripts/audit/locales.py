@@ -16,6 +16,7 @@ import importlib.util
 import re
 import sys
 from pathlib import Path
+from types import ModuleType
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 TS_LOCALES = ROOT / "src" / "lib" / "locales.ts"
@@ -44,7 +45,7 @@ def _parse_ts_default(text: str) -> str:
     return m.group(1)
 
 
-def _load_py_module():
+def _load_py_module() -> ModuleType:
     spec = importlib.util.spec_from_file_location("pancratius_locales", PY_LOCALES)
     if spec is None or spec.loader is None:
         raise ValueError(f"could not load {PY_LOCALES}")

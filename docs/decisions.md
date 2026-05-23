@@ -193,15 +193,24 @@ The current contract:
 
 ### Body renderers: `<Prose>` and `<Verse>` (no "register" abstraction)
 
-There are exactly **two** body renderers, and the component *is* the register —
-there is no `register` enum or per-page modifier prop, and no slug-checks:
+Two body-renderer components express the two registers — there is no `register`
+enum and no slug-dispatcher. They take a `class` prop so a route can layer a
+page-local modifier (`prose--bio`, `prose--svet`, `prose--project`); that is the
+only per-page knob, and the component never branches on what the class means.
 
 - **`<Prose>`** — flowing prose (the contract above): paragraph rhythm, opt-in
-  drop cap, eyebrow `<h2>`. Books, project bodies, and most static pages.
+  drop cap, eyebrow `<h2>`.
 - **`<Verse>`** — the lineation-preserving register (`white-space: pre-line`,
-  left-aligned, no drop cap; the old `prose--poem`/`prose--manifesto` behavior).
-  Poems and the mission page both use it — "manifesto" was never a separate mode,
-  only a label on the verse renderer.
+  left-aligned, no drop cap; `prose--manifesto` behavior). "Manifesto" was never
+  a separate mode, only a label on the verse renderer.
+
+**Scope (current):** these components are used by the **static pages and project
+sub-pages** — the mission page is the one `<Verse>` user today. **Work pages
+still render the prose register directly**: `BookPage.astro` emits
+`class="prose"` and the poem route emits `class="prose prose--poem"`; they are
+not on the shared components yet. Migrating book/poem bodies onto
+`<Prose>`/`<Verse>` is a follow-up — the components were built so that adoption
+is clean.
 
 There is no generic `[slug].astro` modifier-picker (it was deleted). Each static
 page is its own dedicated route that composes `<Prose>` or `<Verse>` and owns any
@@ -250,3 +259,32 @@ page's own template, not to the layout slot, so a scoped `.cs-main { … }`
 rule never matches the live `<main>`. Phase 6 ships those rules with explicit
 `:global(.cs-main)` selectors; the same pattern applies for any future page
 that needs to style the slotted `<main>` from the layout.
+
+## Python type enforcement: ruff + ty (Astral), not mypy/pyright
+
+The architecture mandates type-hinted Python. Two enforcement axes map to two
+tools: **ruff** (flake8-annotations `ANN` ruleset) enforces that annotations are
+*present*; **ty** (Astral's type checker) adds best-effort static type checking.
+The honest claim is **annotation coverage plus best-effort checking, not total
+type soundness** — the `replace-imports-with-any` list (below) deliberately treats
+several un-stubbed libraries as `Any`. Both tools are dev-dependencies pinned in
+`uv.lock` and run via `uv run` (`npm run check:py`, and a `--frozen` step in CI).
+
+Why ty over the conventional pyright/mypy:
+
+- Single-vendor Astral stack (ruff + ty + uv) — one toolchain, one config home,
+  fast.
+- The repo uses **zero** mypy plugins (no Django/Pydantic/SQLAlchemy) — the one
+  area where mypy is still irreplaceable does not apply here. The Python is pure
+  stdlib plus scientific/ML libraries.
+- ty's pre-1.0 risk is missed checks (false negatives), not false positives that
+  wrongly block CI; annotation *presence* is held by ruff regardless. In
+  practice ty already caught real latent bugs here (a wrong `slug_lookup` dict
+  type and an `int`/`float` reassignment), so it earns its place.
+
+Caveat and exit: ty is pre-1.0, so it is pinned **exact** (`ty==`), not `>=`.
+Re-evaluate against pyright/mypy `--strict` when ty reaches a stable line. `Any`
+is permitted only at genuine dynamic boundaries (opaque ML model/tokenizer
+objects, untyped Pandoc-AST payloads, un-stubbed third-party imports) and must be
+explicit (scoped `# noqa: ANN401`, a documented alias, or an enumerated
+`replace-imports-with-any` entry) — never a blanket suppression.

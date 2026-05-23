@@ -14,7 +14,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-import { renderPublicMarkdown, type PublicMarkdownKind } from "../src/lib/public-markdown.ts";
+import { renderPublicMarkdown } from "../src/lib/public-markdown.ts";
 import { SEGMENT_OF } from "../src/lib/kinds.ts";
 import { LOCALES, type Locale } from "../src/lib/locales.ts";
 
@@ -31,6 +31,8 @@ const KIND_DIRS: Record<"book" | "poem", string> = {
   book: SEGMENT_OF.book,
   poem: SEGMENT_OF.poem,
 };
+// The archive kinds, derived from KIND_DIRS so there's no second list to drift.
+type ArchiveKind = keyof typeof KIND_DIRS;
 const LANGS = LOCALES;
 const ALL_FORMATS = ["md", "pdf", "epub"] as const;
 const DEFAULT_FORMATS = ["md"] as const;
@@ -38,7 +40,7 @@ const DEFAULT_FORMATS = ["md"] as const;
 type Format = typeof ALL_FORMATS[number];
 
 interface Entry {
-  kind: PublicMarkdownKind;
+  kind: ArchiveKind;
   lang: Locale;
   slug: string;
   mdPath: string;
@@ -75,7 +77,7 @@ function slugFor(mdPath: string): string | null {
 
 function iterEntries(format: Format): Entry[] {
   const entries: Entry[] = [];
-  for (const [kind, folderName] of Object.entries(KIND_DIRS) as [PublicMarkdownKind, string][]) {
+  for (const [kind, folderName] of Object.entries(KIND_DIRS) as [ArchiveKind, string][]) {
     const root = join(CONTENT, folderName);
     if (!existsSync(root)) continue;
     for (const workKey of readdirSync(root).sort()) {

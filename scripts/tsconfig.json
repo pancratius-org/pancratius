@@ -1,0 +1,5 @@
+{
+  "//": "IDE discovery only: makes the editor apply the strict Node-scripts config (node types, ES2025, erasableSyntaxOnly) to scripts/*.ts, which the root tsconfig excludes. The command-line check of record is `tsc -p tsconfig.scripts.json` (npm run typecheck:scripts), which covers scripts/ + tests/ together.",
+  "extends": "../tsconfig.scripts.json",
+  "include": ["**/*.ts"]
+}

@@ -210,7 +210,7 @@ def _write_docx_artifact(src: Path, dst: Path) -> None:
         raise SystemExit(f"failed to optimize DOCX {src} -> {dst}: {exc}") from exc
 
 
-def _frontmatter_cover_exists(work_dir: Path, cover: Any) -> bool:
+def _frontmatter_cover_exists(work_dir: Path, cover: object) -> bool:
     if not isinstance(cover, str) or not cover.startswith("./"):
         return False
     return (work_dir / cover[2:]).is_file()

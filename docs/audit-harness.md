@@ -566,6 +566,80 @@ Severity:
 The audit should steer agents toward removing the invalid shape, not polishing
 the refusal message.
 
+### PAN016: Stack Conformance
+
+The architecture declares a bounded technology surface — frameworks, source
+languages, runtime dependencies, where code and markup may live. Anything outside
+that surface is drift, even when the site still builds. This rule family verifies
+the implementation stays inside the stack declared in `architecture.md` → "Stack"
+and "Routing".
+
+This is the policy layer, not a linter. It encodes the project-specific
+*boundary* a generic tool cannot know ("this repo forbids React", "production
+source is TypeScript, not JavaScript"). Generic correctness — does this file type-
+check, are these annotations present — is delegated to the standard tools below;
+the rule's job is to ensure those tools exist, run, and leave no source tree
+uncovered.
+
+**Derive, do not restate (PAN003 applies).** Read the declared stack from its
+sources — the `architecture.md` Stack section, `package.json` dependencies, and
+`tsconfig` (`allowJs: false`, `exclude`) — rather than hardcoding the banned list
+in the rule. Adding a forbidden framework should trip the rule because it appears
+in `package.json`/imports, not because the rule happens to name it.
+
+Members (each an instance of the same "stay in the declared surface" idea, so the
+family extends cleanly to the next banned thing):
+
+- **Source language.** Production source is TypeScript. No handwritten JavaScript
+  or JSX (`.js`, `.mjs`, `.cjs`, `.jsx`) in tracked source. Allowed only in
+  declared non-production trees: `legacy/` and `design/` (excluded until deleted),
+  vendored third-party output such as `public/pagefind/`, and generated/disposable
+  trees (`.astro/`, `.cache/`, `dist/`, `node_modules/`). The allowlist should be
+  derived from `tsconfig` `exclude` plus the doc's named exclusions, not invented
+  here. **Fatal** — a deterministic git/filesystem check, the textbook small fatal
+  core.
+- **UI-framework boundary.** No React, Vue, Svelte, Solid, or Tailwind — neither
+  as a `package.json` dependency nor imported anywhere in source. **Fatal** — a
+  deterministic dependency + import scan.
+- **Markup boundary.** Pages and components go through the Astro pipeline. A
+  hand-authored standalone `.html` file acting as a route is out of stack.
+  **Warning**, escalating to **fatal** if it shadows or competes with an emitted
+  route.
+- **Bundling boundary.** Client libraries are bundled via npm, not loaded from a
+  CDN (the doc states the conceptosphere viz libs are "bundled via npm, not CDN").
+  A `<script src="https://cdn…">` for a library that should be bundled is
+  **warning**, **fatal** when a deployed page depends on third-party CDN
+  availability at runtime.
+- **Dependency / runtime boundary.** Runtime dependencies stay within the declared
+  set; Python runs via `uv` with locked deps — no `pip install`, `conda`, or
+  `requirements.txt`. A new undeclared runtime dep is **warning**; a banned
+  mechanism (`requirements.txt`, a CDN runtime dependency) is **fatal**.
+- **Typed source (delegated).** TypeScript must be strict; Python must be
+  annotated. These are *generic* checks, so the harness does not re-implement them
+  — it asserts only that the standard typecheck/lint tools are wired into CI and
+  that no tracked tree escapes them. Two coverage gaps are easy to leave open: the
+  app `tsconfig` excludes `scripts/` and `tests/` (they need their own typecheck),
+  and Python needs annotation coverage. The standing policy is **no new untyped
+  Python or untyped `.ts` without an explicit, scoped boundary comment** — and the
+  goal is annotation *coverage* plus best-effort static checking, not a claim of
+  total type soundness. Which tools, versions, and suppression conventions
+  implement this is not contract — see `tooling.md` and `decisions.md`.
+
+Repair: remove the out-of-stack artifact (delete the `.mjs`, drop the framework,
+bundle the CDN lib, add the missing annotation), or, if a tree is legitimately
+non-production, make that explicit in the derived allowlist with a reason.
+
+Do not fix by: adding the offending path to a broad ignore list to silence the
+scan; renaming a `.js` to `.ts` with no real typing just to pass the extension
+check (the typecheck-coverage member is what makes that a hollow fix); or vendoring
+a banned framework under `public/` to dodge the dependency scan.
+
+Severity summary: fatal for handwritten JS in production source and for a banned-
+framework dependency/import (deterministic, clear harm: the wrong stack ships or
+the strict typecheck is bypassed); warning for markup/CDN/undeclared-dep drift that
+may be a deliberate local exception; the annotation member rides on the delegated
+tools and is as fatal as their CI configuration makes them.
+
 ## Surface-Specific Implementation Guidance
 
 ### TypeScript and Astro
@@ -724,6 +798,7 @@ scripts/audit/
     dead-code.ts          # PAN013
     crawl.ts              # PAN014
     retired-surface.ts    # PAN015
+    stack.ts              # PAN016 (delegates type/annotation checks to the standard typecheck/lint tools)
 ```
 
 Existing Python audits do not need to be rewritten just to satisfy this shape.

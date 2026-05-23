@@ -24,7 +24,7 @@ def _inlines_to_text(inlines: list[dict[str, Any]]) -> str:
     out: list[str] = []
     for item in inlines:
         typ = item.get("t")
-        val = item.get("c")
+        val: Any = item.get("c")  # Pandoc AST payload: shape depends on `typ`
         if typ == "Str":
             out.append(str(val))
         elif typ == "Space":
@@ -58,7 +58,7 @@ def _count_breaks(inlines: list[dict[str, Any]]) -> int:
     total = 0
     for item in inlines:
         typ = item.get("t")
-        val = item.get("c")
+        val: Any = item.get("c")  # Pandoc AST payload: shape depends on `typ`
         if typ in {"SoftBreak", "LineBreak"}:
             total += 1
         elif typ in {"Strong", "Emph", "Underline", "SmallCaps", "Strikeout"}:

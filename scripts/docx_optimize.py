@@ -608,11 +608,12 @@ def optimize_docx(src: Path, dst: Path, *, verbose: bool = False) -> tuple[int, 
 
 
 def fmt_bytes(n: int) -> str:
+    size: float = n
     for unit in ("B", "KB", "MB", "GB"):
-        if n < 1024 or unit == "GB":
-            return f"{n:.1f}{unit}" if unit != "B" else f"{n}B"
-        n /= 1024
-    return f"{n:.1f}GB"
+        if size < 1024 or unit == "GB":
+            return f"{size:.1f}{unit}" if unit != "B" else f"{int(size)}B"
+        size /= 1024
+    return f"{size:.1f}GB"
 
 
 # ---------- discovery / driver ------------------------------------------------
@@ -786,7 +787,7 @@ def build_path_map(content_root: Path, legacy_root: Path) -> dict[Path, Path]:
 
 
 def main(argv: list[str]) -> int:
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
+    ap = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[1])
     ap.add_argument("paths", nargs="*",
                     help="Specific .docx files or directories. Defaults to the corpus source roots.")
     ap.add_argument("--force", action="store_true",

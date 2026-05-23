@@ -1,0 +1,5 @@
+{
+  "//": "IDE discovery only: applies the strict Node-scripts config to the Playwright specs in tests/ (which the root tsconfig excludes and Playwright only transpiles). The command-line check of record is `tsc -p tsconfig.scripts.json` (npm run typecheck:scripts).",
+  "extends": "../tsconfig.scripts.json",
+  "include": ["**/*.ts"]
+}

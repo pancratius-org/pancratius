@@ -1,0 +1,18 @@
+{
+  "//": "Strict typecheck for Node scripts run via type-stripping AND the Playwright specs in tests/ (which the app tsconfig excludes and Playwright only transpiles). The app tsconfig excludes scripts/; this covers them. erasableSyntaxOnly keeps the node-run scripts strip-compatible (no enums/namespaces/param-properties); the specs satisfy it too.",
+  "compilerOptions": {
+    "target": "ES2025",
+    "lib": ["ES2025", "DOM", "DOM.Iterable"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["scripts/**/*.ts", "tests/**/*.ts"]
+}

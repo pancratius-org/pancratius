@@ -120,7 +120,7 @@ def test_importer_does_not_consult_legacy_catalog_files(tmp_path: Path, monkeypa
 
     original_read_text = Path.read_text
 
-    def guarded_read_text(self: Path, *args: object, **kwargs: object) -> str:
+    def guarded_read_text(self: Path, *args: str | None, **kwargs: str | None) -> str:
         if "legacy/data" in self.as_posix():
             raise AssertionError(f"legacy catalog read attempted: {self}")
         return original_read_text(self, *args, **kwargs)

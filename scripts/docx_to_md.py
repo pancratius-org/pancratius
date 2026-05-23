@@ -778,7 +778,7 @@ def _plain_text_inlines(inlines: list[dict[str, Any]]) -> str:
     out: list[str] = []
     for item in inlines:
         typ = item.get("t")
-        val = item.get("c")
+        val: Any = item.get("c")  # Pandoc AST payload: shape depends on `typ`
         if typ == "Str":
             out.append(str(val))
         elif typ in {"Space", "SoftBreak", "LineBreak"}:
@@ -808,7 +808,7 @@ def _pandoc_inlines_to_html(inlines: list[dict[str, Any]]) -> str:
     out: list[str] = []
     for item in inlines:
         typ = item.get("t")
-        val = item.get("c")
+        val: Any = item.get("c")  # Pandoc AST payload: shape depends on `typ`
         if typ == "Str":
             out.append(html.escape(str(val), quote=False))
         elif typ == "Space":
@@ -883,7 +883,7 @@ def _pandoc_inlines_to_html_lines(inlines: list[dict[str, Any]]) -> list[str]:
     lines = [""]
     for item in inlines:
         typ = item.get("t")
-        val = item.get("c")
+        val: Any = item.get("c")  # Pandoc AST payload: shape depends on `typ`
         if typ == "Str":
             lines[-1] += html.escape(str(val), quote=False)
         elif typ == "Space":
@@ -1020,7 +1020,7 @@ def _verse_html_from_ast_blocks(blocks: list[dict[str, Any]], class_name: str = 
 def _has_inline_kind(inlines: list[dict[str, Any]], kinds: set[str]) -> bool:
     for item in inlines:
         typ = item.get("t")
-        val = item.get("c")
+        val: Any = item.get("c")  # Pandoc AST payload: shape depends on `typ`
         if typ in kinds:
             return True
         if typ in {"Strong", "Emph", "Underline", "Strikeout", "Superscript", "Subscript", "SmallCaps"}:
@@ -1053,7 +1053,7 @@ def _pandoc_inlines_to_plain_lines(inlines: list[dict[str, Any]]) -> list[str]:
 
     for item in inlines:
         typ = item.get("t")
-        val = item.get("c")
+        val: Any = item.get("c")  # Pandoc AST payload: shape depends on `typ`
         if typ == "Str":
             lines[-1] += str(val)
         elif typ == "Space":
@@ -1270,7 +1270,8 @@ def _lineated_runs_from_ast(
         typ = block.get("t")
         if typ == "Header":
             flush()
-            _level, _attr, inlines = block.get("c") or [None, None, []]
+            heading: Any = block.get("c") or [None, None, []]  # Pandoc Header node
+            _level, _attr, inlines = heading
             title = _plain_text_inlines(inlines)
             last_heading_was_any = True
             last_heading_was_named = _is_verse_section_title(title)
@@ -1591,7 +1592,8 @@ def _verse_section_replacements_from_ast(ast: dict[str, Any]) -> dict[str, list[
         if block.get("t") != "Header":
             i += 1
             continue
-        _level, _attr, inlines = block.get("c") or [None, None, []]
+        heading: Any = block.get("c") or [None, None, []]  # Pandoc Header node
+        _level, _attr, inlines = heading
         title = _plain_text_inlines(inlines)
         if not _is_verse_section_title(title):
             i += 1
@@ -1649,7 +1651,7 @@ def _pandoc_inlines_to_md(inlines: list[dict[str, Any]]) -> str:
     out: list[str] = []
     for item in inlines:
         typ = item.get("t")
-        val = item.get("c")
+        val: Any = item.get("c")  # Pandoc AST payload: shape depends on `typ`
         if typ == "Str":
             out.append(str(val))
         elif typ == "Space":
@@ -2032,7 +2034,9 @@ def _find_table_spans(md: str) -> list[tuple[int, int]]:
 # bibliography extraction
 # ---------------------------------------------------------------------------
 
-def extract_bibliography(md: str, slug_lookup: dict[str, str]) -> tuple[str, list[dict[str, Any]]]:
+def extract_bibliography(
+    md: str, slug_lookup: dict[str, tuple[str, int | None, str | None]]
+) -> tuple[str, list[dict[str, Any]]]:
     """Pull every `<table>` block that looks like a bibliography (cells with
     images + LitRes URLs) out of the markdown. Resolve each row to a target
     ASCII slug when its title or LitRes URL matches a known work. Return the
@@ -2141,7 +2145,7 @@ def extract_cross_refs(
     refs: list[dict[str, Any]] = []
     seen: set[tuple[str, int]] = set()
 
-    def push(slug: str, number: int | None, kind: str | None, source: str, snippet: str, url: str | None = None) -> None:
+    def push(slug: str | None, number: int | None, kind: str | None, source: str, snippet: str, url: str | None = None) -> None:
         if slug == own_slug or number is None or not kind:
             return
         key = (kind, number)
@@ -2191,7 +2195,7 @@ def extract_cross_refs(
 # dialogue label normalization
 # ---------------------------------------------------------------------------
 
-_DIALOGUE_PREFIXES = [
+_DIALOGUE_PREFIXES: list[str] = [
     "Панкратиус",
     "Светозар",
     "Светозар Gemini Flash 2.0",
@@ -2217,7 +2221,7 @@ def normalize_dialogue_labels(md: str) -> str:
       - `**Speaker:** body` joined on one line → split body to next paragraph
       - `**Speaker label**` (no colon) → add colon
       - `**Speaker: body**` (label and body inside same bold span) → split"""
-    prefixes_sorted = sorted(_DIALOGUE_PREFIXES, key=len, reverse=True)
+    prefixes_sorted = sorted(_DIALOGUE_PREFIXES, key=lambda p: len(p), reverse=True)
     pattern_inner = "|".join(re.escape(p) for p in prefixes_sorted)
     label_inside_bold = re.compile(
         rf"^\*\*({pattern_inner})\s*:\s*(.+?)\*\*\s*$"
@@ -2775,7 +2779,7 @@ def convert_poem(poem: dict[str, Any], ctx: ConverterContext) -> ConversionOutco
 _DATE_RE = re.compile(r"(\d{4})-(\d{1,2})-(\d{1,2})")
 
 
-def _normalize_date(raw: Any) -> str | None:
+def _normalize_date(raw: object) -> str | None:
     if not raw:
         return None
     s = str(raw).strip()

@@ -56,7 +56,12 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Callable, Iterable, cast
+
+# A logging sink: ``print`` in normal runs, a no-op lambda under ``--quiet``.
+# It is called purely for its side effect, so the honest signature is
+# "accepts anything, returns nothing".
+LogFn = Callable[..., None]
 
 import igraph as ig
 import leidenalg
@@ -305,13 +310,14 @@ class Doc:
     tags: list[str]
 
 
-def localized_text(value, lang: str = "ru") -> str:
+def localized_text(value: object, lang: str = "ru") -> str:
     """Return a display string from scalar or localized frontmatter values."""
     if isinstance(value, dict):
-        picked = value.get(lang) or value.get("ru") or value.get("en")
+        localized = cast("dict[str, Any]", value)
+        picked = localized.get(lang) or localized.get("ru") or localized.get("en")
         if picked:
             return str(picked)
-        for picked in value.values():
+        for picked in localized.values():
             if picked:
                 return str(picked)
         return ""
@@ -439,7 +445,7 @@ class CorpusBundle:
     total_tokens_kept: int
 
 
-def process_corpus(log) -> CorpusBundle:
+def process_corpus(log: LogFn) -> CorpusBundle:
     docs = discover_docs()
     log(f"[corpus] {len(docs)} documents (books/poetry/projects)")
 
@@ -494,7 +500,7 @@ def process_corpus(log) -> CorpusBundle:
 # ---------------------------------------------------------------------------
 
 
-def run_concepts_mode(args, log, bundle: CorpusBundle) -> int:
+def run_concepts_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle) -> int:
     docs = bundle.docs
     doc_streams = bundle.doc_streams
     book_lemma_counts = bundle.book_lemma_counts
@@ -603,7 +609,7 @@ def run_concepts_mode(args, log, bundle: CorpusBundle) -> int:
     if G.number_of_nodes() > args.top:
         weighted_deg = {n: sum(d["weight"] for _, _, d in G.edges(n, data=True))
                         for n in G.nodes()}
-        keep = set(sorted(weighted_deg, key=weighted_deg.get, reverse=True)[: args.top])
+        keep = set(sorted(weighted_deg, key=lambda n: weighted_deg[n], reverse=True)[: args.top])
         G = G.subgraph(keep).copy()
         log(f"[graph]  nodes={G.number_of_nodes()} (capped at top={args.top})")
 
@@ -643,7 +649,9 @@ def run_concepts_mode(args, log, bundle: CorpusBundle) -> int:
     comm_members: dict[int, list[str]] = defaultdict(list)
     for n, c in partition.items():
         comm_members[c].append(n)
-    sorted_comms = sorted(comm_members.values(), key=len, reverse=True)
+    # `key=lambda` (not bare `key=len`): a lambda keeps the element type bound
+    # to the input (`list[str]`); `key=len` would collapse it to `Sized`.
+    sorted_comms = sorted(comm_members.values(), key=lambda c: len(c), reverse=True)
     comm_id_remap: dict[int, int] = {}
     for new_id, members in enumerate(sorted_comms):
         # find original id (any member works)
@@ -761,7 +769,7 @@ def run_concepts_mode(args, log, bundle: CorpusBundle) -> int:
 # ---------------------------------------------------------------------------
 
 
-def run_books_mode(args, log, bundle: CorpusBundle) -> int:
+def run_books_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle) -> int:
     """Build the inverse projection: book-book graph over shared concepts.
 
     Edge weight is **TF-IDF cosine similarity** on per-book concept-frequency
@@ -920,8 +928,9 @@ def run_books_mode(args, log, bundle: CorpusBundle) -> int:
         log(f"[books]  removed {len(isolates)} isolated books: " +
             ", ".join(isolates))
 
-    # Largest connected component — drop tiny fragments.
-    components = sorted(nx.connected_components(G), key=len, reverse=True)
+    # Largest connected component — drop tiny fragments. Annotated because
+    # `key=len` otherwise collapses the element type to `Sized` (see above).
+    components: list[Any] = sorted(nx.connected_components(G), key=len, reverse=True)
     if components and len(components) > 1:
         kept = components[0]
         dropped = [n for c in components[1:] for n in c]
@@ -946,7 +955,8 @@ def run_books_mode(args, log, bundle: CorpusBundle) -> int:
     members: dict[int, list[str]] = defaultdict(list)
     for n, c in partition.items():
         members[c].append(n)
-    sorted_comms = sorted(members.values(), key=len, reverse=True)
+    # See note above: `key=lambda` keeps the `list[str]` element type.
+    sorted_comms = sorted(members.values(), key=lambda c: len(c), reverse=True)
     remap: dict[int, int] = {}
     for new_id, group in enumerate(sorted_comms):
         remap[partition[group[0]]] = new_id
@@ -1141,7 +1151,12 @@ def run_books_mode(args, log, bundle: CorpusBundle) -> int:
     return 0
 
 
-def cosine_score(book_vec, book_norm, a, b) -> float:
+def cosine_score(
+    book_vec: dict[str, dict[str, float]],
+    book_norm: dict[str, float],
+    a: str,
+    b: str,
+) -> float:
     va, vb = book_vec[a], book_vec[b]
     if len(va) > len(vb):
         va, vb = vb, va

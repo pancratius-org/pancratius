@@ -61,7 +61,15 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable, cast
+
+# MLX model / tokenizer objects returned by ``mlx_embeddings.load()``. They are
+# opaque, un-stubbed runtime objects with no public type; ``Any`` is the honest
+# annotation at this dynamic ML boundary. Aliased (rather than bare ``Any``) so
+# the intent is documented and greppable, and the ANN401 waiver is scoped to
+# exactly these two parameters rather than the whole module.
+MLXModel = Any
+MLXTokenizer = Any
 
 import numpy as np
 import regex as re2
@@ -188,13 +196,14 @@ class Doc:
     text: str          # cleaned body
 
 
-def localized_text(value, lang: str = "ru") -> str:
+def localized_text(value: object, lang: str = "ru") -> str:
     """Return a display string from scalar or localized frontmatter values."""
     if isinstance(value, dict):
-        picked = value.get(lang) or value.get("ru") or value.get("en")
+        localized = cast("dict[str, Any]", value)
+        picked = localized.get(lang) or localized.get("ru") or localized.get("en")
         if picked:
             return str(picked)
-        for picked in value.values():
+        for picked in localized.values():
             if picked:
                 return str(picked)
         return ""
@@ -334,8 +343,8 @@ def save_book_cache(model_id: str, slug: str, chunks: list[str], embs: np.ndarra
 # ---------------------------------------------------------------------------
 def embed_chunks(
     chunks: list[str],
-    model,
-    tokenizer,
+    model: MLXModel,  # noqa: ANN401 — opaque MLX model object, no usable stubs
+    tokenizer: MLXTokenizer,  # noqa: ANN401 — opaque MLX tokenizer object
     *,
     batch_size: int,
     max_length: int,
@@ -484,13 +493,13 @@ def discover_topics(
     # Strategy: for each cluster, compare in-cluster term frequencies vs the
     # whole-corpus term frequencies, and pick the top terms by an in/out ratio.
     # We pre-lemmatise to make labels readable.
+    morph: Any = None  # opaque pymorphy3 analyzer (dynamic boundary) or None
     try:
         import pymorphy3
         morph = pymorphy3.MorphAnalyzer()
         def lemma_of(w: str) -> str:
             return morph.parse(w)[0].normal_form
     except Exception:
-        morph = None
         def lemma_of(w: str) -> str: return w
 
     WORD_RE = re2.compile(r"\p{L}+", re2.UNICODE)
