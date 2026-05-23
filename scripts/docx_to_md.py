@@ -3033,6 +3033,18 @@ WORK_KINDS = ("book", "poem", "project")
 
 
 def run(args: argparse.Namespace) -> None:
+    # Projects are no longer converter-owned: they are authored themed sections
+    # under src/content/projects/ (a landing + sub-pages, with featured_books /
+    # subpages / theme frontmatter and bespoke components), NOT works generated
+    # from legacy/data/projects-data.js. Regenerating them here would overwrite
+    # hand-authored content and emit frontmatter the current schema rejects.
+    # Fail loudly before loading any data. See docs/projects-plan.md.
+    if args.kind and "project" in args.kind:
+        raise SystemExit(
+            "docx_to_md.py no longer converts projects: they are authored "
+            "sections under src/content/projects/ (edit them directly). "
+            "Use --kind book and/or --kind poem."
+        )
     if args.test:
         content_out = TEST_CONTENT_OUT if args.out_content is None else Path(args.out_content)
         manifest_path = TEST_MANIFEST_PATH if args.manifest is None else Path(args.manifest)
