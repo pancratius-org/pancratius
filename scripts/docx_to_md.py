@@ -33,8 +33,6 @@ Run:
     uv run scripts/docx_to_md.py --kind book --kind poem
     uv run scripts/docx_to_md.py --kind book --number 33
     uv run scripts/docx_to_md.py --kind poem --number 2
-    uv run scripts/docx_to_md.py --kind project
-    uv run scripts/docx_to_md.py --kind project --slug enlightened-ai
     uv run scripts/docx_to_md.py --test
     uv run scripts/docx_to_md.py --kind book --kind poem --clean
 """
@@ -3029,22 +3027,10 @@ def write_manifest(
 
 TEST_BOOK_NUMBERS = [1, 33, 53, 3]
 TEST_POEM_NUMBERS = [2]
-WORK_KINDS = ("book", "poem", "project")
+WORK_KINDS = ("book", "poem")
 
 
 def run(args: argparse.Namespace) -> None:
-    # Projects are no longer converter-owned: they are authored themed sections
-    # under src/content/projects/ (a landing + sub-pages, with featured_books /
-    # subpages / theme frontmatter and bespoke components), NOT works generated
-    # from legacy/data/projects-data.js. Regenerating them here would overwrite
-    # hand-authored content and emit frontmatter the current schema rejects.
-    # Fail loudly before loading any data. See docs/projects-plan.md.
-    if args.kind and "project" in args.kind:
-        raise SystemExit(
-            "docx_to_md.py no longer converts projects: they are authored "
-            "sections under src/content/projects/ (edit them directly). "
-            "Use --kind book and/or --kind poem."
-        )
     if args.test:
         content_out = TEST_CONTENT_OUT if args.out_content is None else Path(args.out_content)
         manifest_path = TEST_MANIFEST_PATH if args.manifest is None else Path(args.manifest)
@@ -3056,19 +3042,16 @@ def run(args: argparse.Namespace) -> None:
 
     lib = load_library()
     poetry_data = load_poetry()
-    projects_data = load_projects()
 
     books = lib["books"]
     poems = poetry_data["works"]
-    projects = projects_data["projects"]
 
-    biblio_slug_lookup = _build_slug_lookups(books, poems, projects)
+    biblio_slug_lookup = _build_slug_lookups(books, poems, [])
 
     image_records: list[ImageRecord] = []
 
     books_to_do: list[dict[str, Any]] = []
     poems_to_do: list[dict[str, Any]] = []
-    projects_to_do: list[dict[str, Any]] = []
 
     selected_kinds = set(args.kind or [])
 
@@ -3076,8 +3059,6 @@ def run(args: argparse.Namespace) -> None:
         books_to_do = books
     if "poem" in selected_kinds:
         poems_to_do = poems
-    if "project" in selected_kinds:
-        projects_to_do = projects
 
     if args.test:
         books_to_do = [b for b in books if b["number"] in TEST_BOOK_NUMBERS]
@@ -3092,14 +3073,8 @@ def run(args: argparse.Namespace) -> None:
             poems_to_do = [p for p in poems if p["number"] == args.number]
             if not poems_to_do:
                 raise SystemExit(f"poem not found: {args.number}")
-    elif args.slug:
-        project_slug = to_ascii_slug(args.slug)
-        projects_to_do = [p for p in projects if to_ascii_slug(p["slug"]) == project_slug]
-        if not projects_to_do:
-            raise SystemExit(f"project not found: {args.slug}")
     print(f"books to convert: {len(books_to_do)}", file=sys.stderr)
     print(f"poems to convert: {len(poems_to_do)}", file=sys.stderr)
-    print(f"projects to convert: {len(projects_to_do)}", file=sys.stderr)
 
     # Why: --clean is the explicit destructive maintenance path. Without it the
     # rerun is additive: it only touches files the prior manifest says the
@@ -3115,10 +3090,6 @@ def run(args: argparse.Namespace) -> None:
         clean_targets.extend(
             ("poem", _build_ascii_slug(p, "ru"), content_out / "poetry" / _build_ascii_slug(p, "ru"))
             for p in poems_to_do
-        )
-        clean_targets.extend(
-            ("project", to_ascii_slug(pr["slug"]), content_out / "projects" / to_ascii_slug(pr["slug"]))
-            for pr in projects_to_do
         )
         for kind, slug, target in clean_targets:
             cleaned_work_keys.add(f"{kind}/{slug}")
@@ -3152,9 +3123,6 @@ def run(args: argparse.Namespace) -> None:
     for p in poems_to_do:
         print(f"poem {p['number']:>3} {p['slug']}", file=sys.stderr)
         convert_poem(p, ctx)
-    for pr in projects_to_do:
-        print(f"project {pr['slug']}", file=sys.stderr)
-        convert_project(pr, ctx)
 
     m = write_manifest(image_records, ctx.work_writes, previous_full, manifest_path)
     s = m["stats"]
@@ -3188,10 +3156,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Convert one book or poem by corpus number. Requires exactly one --kind book or --kind poem.",
     )
     ap.add_argument(
-        "--slug",
-        help="Convert one project by slug. Requires --kind project.",
-    )
-    ap.add_argument(
         "--test",
         action="store_true",
         help="Convert the small test set into .cache/converter-test/ unless output paths are overridden.",
@@ -3210,23 +3174,16 @@ def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
     args.kind = list(dict.fromkeys(args.kind or []))
 
     if args.test:
-        if args.kind or args.number is not None or args.slug:
-            parser.error("--test cannot be combined with --kind, --number, or --slug")
+        if args.kind or args.number is not None:
+            parser.error("--test cannot be combined with --kind or --number")
         return
 
     if not args.kind:
-        parser.error("choose at least one --kind (book, poem, or project), or use --test")
-
-    if args.number is not None and args.slug:
-        parser.error("--number and --slug are mutually exclusive")
+        parser.error("choose at least one --kind (book or poem), or use --test")
 
     if args.number is not None:
         if len(args.kind) != 1 or args.kind[0] not in {"book", "poem"}:
             parser.error("--number requires exactly one --kind book or --kind poem")
-
-    if args.slug:
-        if args.kind != ["project"]:
-            parser.error("--slug requires exactly one --kind project")
 
 
 def main() -> None:

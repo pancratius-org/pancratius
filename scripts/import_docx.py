@@ -46,6 +46,11 @@ TODO_DESCRIPTION = "TODO: write the editorial description for this work."
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tiff"}
 LANGS = tuple(LOCALES)
+# import_docx imports corpus WORKS only. Projects are authored themed sections
+# under src/content/projects/ (not converter output), so `project` is not an
+# importable kind and the catalog scan below ignores project entries — a
+# `--into <project>` simply finds no work, like any other unknown bundle.
+IMPORTABLE_KINDS = ("book", "poem")
 
 # Forward cap for NEWLY-IMPORTED body images. Raster masters extracted from a
 # DOCX are bounded to this longest edge at import time so future masters stay
@@ -384,21 +389,9 @@ def run(args: argparse.Namespace) -> ImportResult:
 
     content_root = Path(args.out_content).expanduser().resolve()
     content_root.mkdir(parents=True, exist_ok=True)
-    entries = scan_catalog(content_root)
+    entries = [e for e in scan_catalog(content_root) if e.kind in IMPORTABLE_KINDS]
 
     kind, work_key, number, slug, work_entries = _resolve_target(args, entries, docx, content_root)
-
-    # Projects are authored themed sections under src/content/projects/ (a
-    # landing + sub-pages, with featured_books/subpages/theme frontmatter and
-    # bespoke components) — NOT converter output. Importing one here (whether a
-    # new `--kind project` or `--into <existing-project>`) would write old-schema
-    # work markdown and clobber hand-authored content. Refuse, before any write.
-    if kind == "project":
-        raise SystemExit(
-            "import_docx.py does not import projects: they are authored sections "
-            "under src/content/projects/ (edit them directly). See docs/projects-plan.md."
-        )
-
     work_dir = content_root / KIND_DIRS[kind] / work_key
     work_dir.mkdir(parents=True, exist_ok=True)
 
@@ -484,7 +477,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Import one DOCX into a Pancratius work bundle using Markdown frontmatter as the catalog.",
     )
     ap.add_argument("docx", help="Source .docx file to import.")
-    ap.add_argument("--kind", choices=sorted(KIND_DIRS), help="Required for a new work; optional with --into when the bundle is unique.")
+    ap.add_argument("--kind", choices=IMPORTABLE_KINDS, help="Required for a new work; optional with --into when the bundle is unique.")
     ap.add_argument("--lang", choices=LANGS, required=True)
     ap.add_argument("--into", help="Existing work bundle key or frontmatter slug to update.")
     ap.add_argument("--out-content", default=str(DEFAULT_CONTENT_ROOT), help="Content root; defaults to src/content.")
