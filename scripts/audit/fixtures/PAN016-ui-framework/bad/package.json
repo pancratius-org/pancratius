@@ -1,0 +1,13 @@
+{
+  "name": "fixture-ui-framework-bad",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "astro": "^6.3.3",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3"
+  }
+}

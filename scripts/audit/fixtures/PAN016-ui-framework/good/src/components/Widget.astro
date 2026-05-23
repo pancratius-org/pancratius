@@ -1,0 +1,10 @@
+---
+import { local } from "./local.ts";
+// Incidental-substring regression: these paths embed banned tokens ("react" in
+// reactor, "vue" in revue) but are NOT framework packages. Segment matching must
+// keep PAN016-ui-framework SILENT on them (substring matching wrongly fired).
+import { spin } from "@/lib/reactor.ts";
+import { again } from "./revue.ts";
+---
+
+<div>{local}{spin}{again}</div>
