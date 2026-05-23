@@ -270,6 +270,135 @@ function isDeclarationOrNonRefName(id: ts.Identifier): boolean {
 }
 
 /**
+ * For each `CallExpression` within `node` whose callee is a BARE identifier with
+ * exactly `calleeName`, the first argument WHEN it is a string literal — as the
+ * literal's `value` plus the enclosing call `node` (so a caller can report the
+ * line of the call, not the argument). Calls whose first argument is not a string
+ * literal (a variable, an expression, missing) are skipped. Member-access callees
+ * (`ns.getCollection(…)`) are not matched, mirroring `findIdentifierCalls`.
+ */
+export function findCallStringArgs(
+  node: ts.Node,
+  calleeName: string,
+): { value: string; node: ts.Node }[] {
+  const out: { value: string; node: ts.Node }[] = [];
+
+  const visit = (n: ts.Node): void => {
+    if (
+      ts.isCallExpression(n) &&
+      ts.isIdentifier(n.expression) &&
+      n.expression.text === calleeName
+    ) {
+      const first = n.arguments[0];
+      if (first && ts.isStringLiteralLike(first)) {
+        out.push({ value: first.text, node: n });
+      }
+    }
+    ts.forEachChild(n, visit);
+  };
+
+  visit(node);
+  return out;
+}
+
+/**
+ * The object-literal initializer of a top-level `export? const constName = { … }`,
+ * with any `satisfies`/`as`/parenthesis wrapper peeled off, or null when there is
+ * no such const or its initializer isn't an object literal. The building block
+ * for `objectLiteralKeysOf` / `objectLiteralStringValuesOf`.
+ */
+function constObjectLiteral(
+  sf: ts.SourceFile,
+  constName: string,
+): ts.ObjectLiteralExpression | null {
+  for (const stmt of sf.statements) {
+    if (!ts.isVariableStatement(stmt)) continue;
+    for (const decl of stmt.declarationList.declarations) {
+      if (
+        ts.isIdentifier(decl.name) &&
+        decl.name.text === constName &&
+        decl.initializer
+      ) {
+        const init = unwrap(decl.initializer);
+        if (ts.isObjectLiteralExpression(init)) return init;
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Property-name keys of the object literal assigned to `export? const constName`,
+ * unwrapping `satisfies`/`as`. Covers `name: …` (PropertyAssignment) and
+ * `{ name }` shorthand; computed keys and spreads are skipped. Returns [] when
+ * the const or its object literal isn't found.
+ */
+export function objectLiteralKeysOf(sf: ts.SourceFile, constName: string): string[] {
+  const obj = constObjectLiteral(sf, constName);
+  if (!obj) return [];
+  const keys: string[] = [];
+  for (const prop of obj.properties) {
+    if (ts.isPropertyAssignment(prop)) {
+      const key = getPropertyName(prop.name);
+      if (key !== null) keys.push(key);
+    } else if (ts.isShorthandPropertyAssignment(prop)) {
+      keys.push(prop.name.text);
+    }
+  }
+  return keys;
+}
+
+/**
+ * String-literal VALUES of the object literal assigned to `export? const
+ * constName`, unwrapping `satisfies`/`as`. Only `name: "literal"` assignments
+ * contribute; non-string-literal values, shorthand, and spreads are skipped.
+ * Returns [] when the const or its object literal isn't found.
+ */
+export function objectLiteralStringValuesOf(sf: ts.SourceFile, constName: string): string[] {
+  const obj = constObjectLiteral(sf, constName);
+  if (!obj) return [];
+  const values: string[] = [];
+  for (const prop of obj.properties) {
+    if (ts.isPropertyAssignment(prop) && ts.isStringLiteralLike(prop.initializer)) {
+      values.push(prop.initializer.text);
+    }
+  }
+  return values;
+}
+
+/**
+ * Members of a top-level `export? type typeName = "a" | "b" | …` when it is a
+ * PURE union of string-literal types, returned in source order. Returns null
+ * (not []) when there's no such type alias OR it isn't a pure string-literal
+ * union (a single literal `type T = "a"` counts; anything with a non-literal
+ * member, or a non-union, returns null) — so a caller can treat null as "premise
+ * stale" rather than "empty union".
+ */
+export function stringUnionMembersOf(sf: ts.SourceFile, typeName: string): string[] | null {
+  for (const stmt of sf.statements) {
+    if (!ts.isTypeAliasDeclaration(stmt) || stmt.name.text !== typeName) continue;
+
+    const literalText = (t: ts.TypeNode): string | null =>
+      ts.isLiteralTypeNode(t) && ts.isStringLiteral(t.literal) ? t.literal.text : null;
+
+    // `type T = "a" | "b"` (union) or `type T = "a"` (a single literal).
+    if (ts.isUnionTypeNode(stmt.type)) {
+      const members: string[] = [];
+      for (const t of stmt.type.types) {
+        const lit = literalText(t);
+        if (lit === null) return null; // a non-string-literal member → not pure
+        members.push(lit);
+      }
+      return members;
+    }
+    const single = literalText(stmt.type);
+    return single === null ? null : [single];
+  }
+  return null;
+}
+
+/**
  * Position-range containment: does `ancestor` lexically enclose `descendant`?
  * Uses source offsets, so it works across helper boundaries without walking
  * parent links. (A node trivially contains itself.)
