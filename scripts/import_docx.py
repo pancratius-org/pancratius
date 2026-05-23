@@ -387,6 +387,18 @@ def run(args: argparse.Namespace) -> ImportResult:
     entries = scan_catalog(content_root)
 
     kind, work_key, number, slug, work_entries = _resolve_target(args, entries, docx, content_root)
+
+    # Projects are authored themed sections under src/content/projects/ (a
+    # landing + sub-pages, with featured_books/subpages/theme frontmatter and
+    # bespoke components) — NOT converter output. Importing one here (whether a
+    # new `--kind project` or `--into <existing-project>`) would write old-schema
+    # work markdown and clobber hand-authored content. Refuse, before any write.
+    if kind == "project":
+        raise SystemExit(
+            "import_docx.py does not import projects: they are authored sections "
+            "under src/content/projects/ (edit them directly). See docs/projects-plan.md."
+        )
+
     work_dir = content_root / KIND_DIRS[kind] / work_key
     work_dir.mkdir(parents=True, exist_ok=True)
 
