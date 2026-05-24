@@ -72,7 +72,10 @@ suppress-none-returning = false
 python-version = "3.13"
 # Sibling scripts are imported by basename (sys.path.insert(scripts/)) and by
 # tests; declare scripts/ as a first-party source root so ty resolves them.
-root = ["scripts"]
+# scripts/audit/ is a second root because audit modules (and their pytest
+# wrappers, e.g. test_ir_ab_corpus) import each other by basename via a runtime
+# sys.path.insert(scripts/audit) — mirror that here so ty resolves them too.
+root = ["scripts", "scripts/audit"]
 
 [tool.ty.src]
 include = ["scripts", "tests"]

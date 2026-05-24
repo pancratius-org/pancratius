@@ -1,0 +1,527 @@
+# import-pure: no filesystem mutation
+"""Lower the normalized block IR to canonical Markdown (the one lowering pass).
+
+This is the only stage that produces a Markdown string, and it does so exactly
+once — there is no string round-trip and no regex tail-stripping. It emits the
+SAME author-facing shape the GFM engine targets:
+
+  * verse-block / answer-block `<div>`s (rendered as `white-space: pre-line` HTML)
+  * `<p class="signature">` and `<blockquote class="epigraph">`
+  * footnote refs `[^N]` inline plus a generated `[^N]:` appendix AT THE TAIL —
+    generated last, from typed `FootnoteDef`s, so a definition can never be lost
+    to tail-stripping (the Phase-4 win, now structural)
+  * `./images/<hash>.<ext>` body image refs + planned assets (the writer copies)
+  * bibliography already lifted to the sidecar; reading-content tables kept as GFM
+
+The asset pass reads the extracted media files to hash them (read-only `open`),
+then assigns content-hash asset ids; it mutates nothing on disk — the returned
+`PlannedAsset`s are what the writer later copies. This module is `import-pure`.
+
+Image hashing, extension normalization, the hash prefix length, the raster-cap
+set, and the body-image alt/escaping are imported from `docx_engine` (not
+re-derived) so the IR path's asset filenames match the GFM path's byte-for-byte.
+"""
+
+from __future__ import annotations
+
+import html
+import re
+from pathlib import Path
+
+from lib import ir
+from lib.docx_engine import (
+    RASTER_CAP_EXTS,
+    PlannedAsset,
+    _body_image_alt,
+    _escape_markdown_alt,
+    _hash_file,
+    _is_image_path,
+    _normalize_ext,
+)
+
+
+# ---------------------------------------------------------------------------
+# asset pass: assign content-hash asset ids to body images; plan their copy
+# ---------------------------------------------------------------------------
+
+
+def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[PlannedAsset]:
+    """Resolve every body image, assign its content-hash `<hash>.<ext>` asset id,
+    and return the deduped `PlannedAsset`s for the writer to copy.
+
+    `media_root` is the directory pandoc extracted media into; an image whose
+    source cannot be resolved keeps its original ref (no asset planned). PURE: this
+    only READS the media files to hash them. The returned list is sorted by
+    bundle-relative path, matching the GFM engine's stable asset order.
+    """
+    seen: dict[str, tuple[str, str]] = {}
+    planned: dict[str, PlannedAsset] = {}
+
+    def resolve(src: str) -> tuple[str, str] | None:
+        if src in seen:
+            return seen[src]
+        cand = (media_root / src).resolve()
+        if not cand.exists():
+            alt = Path(src)
+            if alt.exists():
+                cand = alt.resolve()
+            else:
+                return None
+        if not _is_image_path(cand.name):
+            return None
+        h = _hash_file(cand)
+        ext = _normalize_ext(cand.suffix)
+        rel_within = f"images/{h}{ext}"
+        planned.setdefault(
+            rel_within,
+            PlannedAsset(rel_within=rel_within, source=cand, is_raster=ext in RASTER_CAP_EXTS),
+        )
+        seen[src] = (h, ext)
+        doc.assets.append(ir.AssetRef(asset_id=h, src_path=str(cand), ext=ext))
+        return h, ext
+
+    def visit_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
+        out: list[ir.Inline] = []
+        for n in inlines:
+            if isinstance(n, ir.ImageInline):
+                got = resolve(n.src)
+                out.append(ir.ImageInline(src=n.src, alt=n.alt, asset_id=(got[0] + got[1]) if got else None))
+            elif isinstance(n, ir.ContainerInline):
+                out.append(ir.rebuild_container(n, visit_inlines(n.children)))
+            else:
+                out.append(n)
+        return out
+
+    def visit_block(b: ir.Block) -> None:
+        if isinstance(b, ir.ImageBlock):
+            got = resolve(b.src)
+            if got:
+                b.asset_id = got[0] + got[1]
+        elif isinstance(b, ir.Paragraph):
+            b.inlines = visit_inlines(b.inlines)
+        elif isinstance(b, ir.BlockQuote):
+            for inner in b.blocks:
+                visit_block(inner)
+        elif isinstance(b, ir.ListBlock):
+            for item in b.items:
+                for inner in item:
+                    visit_block(inner)
+        elif isinstance(b, ir.VerseBlock):
+            b.stanzas = [[visit_inlines(line) for line in stanza] for stanza in b.stanzas]
+        elif isinstance(b, ir.Table):
+            b.rows = [[visit_inlines(cell) for cell in row] for row in b.rows]
+
+    for b in doc.blocks:
+        visit_block(b)
+    return [planned[k] for k in sorted(planned)]
+
+
+# ---------------------------------------------------------------------------
+# inline -> markdown (prose)
+# ---------------------------------------------------------------------------
+
+_EMPH_MD: dict[str, tuple[str, str]] = {
+    "strong": ("**", "**"), "emph": ("*", "*"), "strike": ("~~", "~~"),
+    "sup": ("^", "^"), "sub": ("~", "~"),
+}
+
+
+def _inline_md(n: ir.Inline, lang: str) -> str:
+    if isinstance(n, ir.Text):
+        return n.value
+    if isinstance(n, (ir.SoftBreak, ir.LineBreak)):
+        return "\n"
+    if isinstance(n, ir.Emphasis):
+        o, c = _EMPH_MD[n.kind]
+        return f"{o}{_inlines_md(n.children, lang)}{c}"
+    if isinstance(n, ir.Code):
+        return f"`{n.value}`"
+    if isinstance(n, ir.Quoted):
+        inner = _inlines_md(n.children, lang)
+        return f"'{inner}'" if n.single else f"«{inner}»"
+    if isinstance(n, ir.Link):
+        label = _inlines_md(n.children, lang).strip()
+        return f"[{label}]({n.target})" if label else ""
+    if isinstance(n, ir.DirectionalSpan):
+        inner = _inlines_md(n.children, lang)
+        return f'<span dir="{html.escape(n.direction, quote=True)}">{inner}</span>'
+    if isinstance(n, ir.ImageInline):
+        alt = n.alt or _body_image_alt(lang)
+        target = f"./images/{n.asset_id}" if n.asset_id else n.src
+        return f"![{_escape_markdown_alt(alt)}]({target})"
+    if isinstance(n, ir.FootnoteRef):
+        return f"[^{n.id}]"
+    if isinstance(n, ir.UnknownInline):
+        return _inlines_md(n.children, lang)
+    return ""
+
+
+def _inlines_md(nodes: list[ir.Inline], lang: str) -> str:
+    return "".join(_inline_md(n, lang) for n in nodes)
+
+
+# ---------------------------------------------------------------------------
+# inline -> balanced HTML lines (for verse/answer blocks); mirrors docx_engine
+# ---------------------------------------------------------------------------
+
+
+def _inline_html_lines(nodes: list[ir.Inline], lang: str) -> list[str]:
+    lines = [""]
+
+    def merge(child: list[str]) -> None:
+        for idx, c in enumerate(child):
+            if idx:
+                lines.append("")
+            lines[-1] += c
+
+    def wrap(tag: str, child: list[str]) -> list[str]:
+        return [f"<{tag}>{c}</{tag}>" if c else "" for c in child]
+
+    for n in nodes:
+        if isinstance(n, ir.Text):
+            lines[-1] += html.escape(n.value, quote=False)
+        elif isinstance(n, (ir.SoftBreak, ir.LineBreak)):
+            lines.append("")
+        elif isinstance(n, ir.Emphasis):
+            tag = {"strong": "strong", "emph": "em", "strike": "s", "sup": "sup", "sub": "sub"}[n.kind]
+            merge(wrap(tag, _inline_html_lines(n.children, lang)))
+        elif isinstance(n, ir.Code):
+            lines[-1] += f"<code>{html.escape(n.value, quote=False)}</code>"
+        elif isinstance(n, ir.Quoted):
+            child = _inline_html_lines(n.children, lang)
+            if child:
+                o, c = ("'", "'") if n.single else ("«", "»")
+                child[0] = f"{o}{child[0]}"
+                child[-1] = f"{child[-1]}{c}"
+            merge(child)
+        elif isinstance(n, ir.Link):
+            label = "".join(_inline_html_lines(n.children, lang))
+            lines[-1] += f'<a href="{html.escape(n.target, quote=True)}">{label}</a>'
+        elif isinstance(n, ir.DirectionalSpan):
+            inner = "".join(_inline_html_lines(n.children, lang))
+            lines[-1] += f'<span dir="{html.escape(n.direction, quote=True)}">{inner}</span>'
+        elif isinstance(n, ir.ImageInline):
+            target = f"./images/{n.asset_id}" if n.asset_id else n.src
+            lines[-1] += f'<img src="{html.escape(target, quote=True)}" alt="{html.escape(n.alt, quote=True)}">'
+        elif isinstance(n, ir.FootnoteRef):
+            lines[-1] += f"[^{n.id}]"
+        elif isinstance(n, ir.UnknownInline):
+            merge(_inline_html_lines(n.children, lang))
+    return lines
+
+
+def _clean_verse_html_line(line: str) -> str:
+    line = re.sub(r"<(strong|em)>\s*(?:<br>\s*)+\s*</\1>", "", line)
+    line = re.sub(r"<(strong|em)>\s*</\1>", "", line)
+    line = re.sub(r"(?:<br>\s*)+$", "", line)
+    return line.strip()
+
+
+# ---------------------------------------------------------------------------
+# block -> markdown
+# ---------------------------------------------------------------------------
+
+
+def _verse_md(vb: ir.VerseBlock, lang: str) -> str:
+    out: list[str] = [f'<div class="{vb.role}">']
+    for stanza in vb.stanzas:
+        for line_inlines in stanza:
+            if len(line_inlines) == 1 and isinstance(line_inlines[0], ir.Text) and line_inlines[0].value == "***":
+                out.append("***")
+                continue
+            for html_line in _inline_html_lines(line_inlines, lang):
+                cleaned = _clean_verse_html_line(html_line)
+                if cleaned:
+                    out.append(cleaned)
+        out.append("")
+    while out and out[-1] == "":
+        out.pop()
+    out.append("</div>")
+    return "\n".join(out)
+
+
+def _signature_md(s: ir.Signature) -> str:
+    body = "\n".join(html.escape(line, quote=False) for line in s.lines)
+    return f'<p class="signature">\n{body}\n</p>'
+
+
+def _epigraph_md(e: ir.Epigraph) -> str:
+    q = "\n".join(html.escape(line, quote=False) for line in e.quote)
+    f = "\n".join(html.escape(line, quote=False) for line in e.footer)
+    return "\n".join(['<blockquote class="epigraph">', "<p>", q, "</p>", "<footer>", f, "</footer>", "</blockquote>"])
+
+
+def _table_md(t: ir.Table, lang: str) -> str | None:
+    """Render a non-bibliography (reading-content) table as a GFM pipe table —
+    what the GFM engine keeps in the body. Cells are rendered from their inlines
+    (so images get the default body alt + `./images/<hash>` ref like prose), with
+    internal breaks collapsed to spaces and pipes escaped for the cell grid."""
+    if not t.rows:
+        return None
+    ncol = max(len(r) for r in t.rows)
+
+    def cell_md(cell: list[ir.Inline]) -> str:
+        text = _inlines_md(cell, lang)
+        text = re.sub(r"\s*\n\s*", " ", text).strip()
+        # Escape pipes for the GFM cell grid. `re.sub` (not str.replace) so the
+        # PAN018 purity scan — which flags the bare `.replace` attribute name,
+        # unable to tell `str.replace` from `os.replace`/`Path.replace` — stays
+        # clean on this import-pure module.
+        return re.sub(r"\|", r"\\|", text)
+
+    def row(cells: list[list[ir.Inline]]) -> str:
+        rendered = [cell_md(c) for c in cells] + [""] * (ncol - len(cells))
+        return "| " + " | ".join(rendered) + " |"
+
+    out = [row(t.rows[0]), "|" + "|".join(["----"] * ncol) + "|"]
+    for r in t.rows[1:]:
+        out.append(row(r))
+    return "\n".join(out)
+
+
+# A leading list marker in PROSE: an ordinal `N.`/`N)` or a bullet `-`/`*`/`+`,
+# in EACH case followed by whitespace (or end of line) — the actual CommonMark
+# list-item syntax. When the author typed a literal "1. " in a normal paragraph
+# (the source has NO `OrderedList` — e.g. `книга-огня`'s numbered prose), an
+# UNESCAPED marker makes the downstream Markdown parser emit an `<ol>`/`<ul>`.
+# Escaping the delimiter with a backslash (mirroring Pandoc's GFM writer: `1. ` →
+# `1\. `) keeps the paragraph a `<p>`. REAL source `OrderedList`/`BulletList`s are
+# lowered by `ListBlock` (not this prose path), so they still render as lists.
+#
+# The trailing-whitespace requirement is what keeps a DATE safe: `25.06.2025` is
+# `25.` followed by a DIGIT (no space), so it is never a list start and stays
+# untouched — only `1. ` / `1) ` / `- ` at a real marker boundary is escaped.
+_LEADING_LIST_MARKER_RE = re.compile(r"^(\s*)(\d{1,9}|[-*+])([.)]?)(?=\s|$)")
+
+
+def _escape_leading_list_marker(text: str) -> str:
+    m = _LEADING_LIST_MARKER_RE.match(text)
+    if not m:
+        return text
+    lead, token, delim = m.group(1), m.group(2), m.group(3)
+    if token in {"-", "*", "+"}:
+        # A bullet marker (`- ` → `\- `): there is no ordinal delimiter to escape;
+        # escape the bullet glyph itself.
+        return f"{lead}\\{token}{text[m.end():]}"
+    if not delim:
+        # A bare number with no `.`/`)` delimiter is not a list marker — leave it.
+        return text
+    # An ordinal `N.`/`N)` → escape the trailing delimiter (`1. ` → `1\. `).
+    return f"{lead}{token}\\{delim}{text[m.end():]}"
+
+
+def _heading_md(b: ir.Heading, lang: str) -> str:
+    """Lower a heading to an ATX line PRESERVING inline footnote refs + emphasis.
+
+    Headings cannot use ``inline_plain`` (which drops ``FootnoteRef`` and flattens
+    emphasis): a footnote anchored to a heading (`### Глава 25[^3]. …`) would lose
+    its `[^3]` ref, ORPHANING the `[^3]:` definition — a real footnote-integrity
+    regression vs the GFM engine, which keeps the marker on the heading line. So we
+    render through the inline-markdown path (emits `[^N]`, `*…*`, `**…**`, links),
+    collapse internal soft/hard breaks to spaces (a heading is one line), and then
+    strip a FULLY-bold wrapper (`# **TEXT**` → `# TEXT`) to mirror the GFM engine's
+    `strip_bold_only_headings` — partial emphasis is kept, exactly as GFM does."""
+    text = _inlines_md(b.inlines, lang)
+    text = re.sub(r"\s*\n\s*", " ", text).strip()
+    # `# **TEXT**` → `# TEXT`: a heading wrapped entirely in bold loses the wrapper
+    # (matches `docx_engine.strip_bold_only_headings`); partial bold survives.
+    m = re.fullmatch(r"\*\*(.+?)\*\*", text)
+    if m:
+        text = m.group(1)
+    return f"{'#' * b.level} {text}"
+
+
+def _block_md(b: ir.Block, lang: str, *, poem: bool = False) -> str | None:
+    if isinstance(b, ir.Heading):
+        return _heading_md(b, lang)
+    if isinstance(b, ir.Paragraph):
+        if b.empty:
+            return None
+        text = _inlines_md(b.inlines, lang)
+        if poem:
+            # Verse: keep hard/soft breaks as lines (one verse line each), trimming
+            # only trailing spaces — matches the GFM poem path's line-per-line shape.
+            lines = [ln.rstrip() for ln in text.split("\n")]
+            return "\n".join(ln for ln in lines if ln.strip()) or None
+        # Prose: collapse internal soft/hard breaks to spaces (Pandoc --wrap=none).
+        text = re.sub(r"\s*\n\s*", " ", text).strip()
+        return _escape_leading_list_marker(text) or None
+    if isinstance(b, ir.VerseBlock):
+        return _verse_md(b, lang)
+    if isinstance(b, ir.Signature):
+        return _signature_md(b)
+    if isinstance(b, ir.Epigraph):
+        return _epigraph_md(b)
+    if isinstance(b, ir.DialogueLabel):
+        return f"**{b.speaker}:**"
+    if isinstance(b, ir.ThematicBreak):
+        return "***"
+    if isinstance(b, ir.ImageBlock):
+        alt = b.alt or _body_image_alt(lang)
+        target = f"./images/{b.asset_id}" if b.asset_id else b.src
+        return f"![{_escape_markdown_alt(alt)}]({target})"
+    if isinstance(b, ir.BlockQuote):
+        if b.role == "_div":
+            return "\n\n".join(filter(None, (_block_md(x, lang) for x in b.blocks))) or None
+        inner = "\n".join(
+            "> " + line for blk in b.blocks for line in (_block_md(blk, lang) or "").splitlines()
+        )
+        return inner or None
+    if isinstance(b, ir.ListBlock):
+        parts: list[str] = []
+        for idx, item in enumerate(b.items):
+            marker = f"{b.start + idx}." if b.ordered else "-"
+            item_md = "\n\n".join(filter(None, (_block_md(x, lang) for x in item)))
+            parts.append(f"{marker} {item_md}")
+        return "\n".join(parts) or None
+    if isinstance(b, ir.CodeBlock):
+        return f"```\n{b.text}\n```"
+    if isinstance(b, ir.Table):
+        return _table_md(b, lang)
+    return None  # UnknownBlock carries no reading content
+
+
+# ---------------------------------------------------------------------------
+# footnote appendix (generated last; cannot be tail-stripped)
+# ---------------------------------------------------------------------------
+
+
+def _footnote_appendix(doc: ir.Document, lang: str) -> str:
+    if not doc.footnotes:
+        return ""
+    parts: list[str] = []
+    for fn in doc.footnotes:
+        body = "\n\n".join(filter(None, (_block_md(b, lang) for b in fn.blocks)))
+        body = re.sub(r"\n{2,}", " ", body).strip()  # single-line def like Pandoc GFM
+        parts.append(f"[^{fn.id}]: {body}")
+    return "\n\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# top-level lower
+# ---------------------------------------------------------------------------
+
+
+def _is_strong_only_para(b: ir.Block) -> bool:
+    """True when a paragraph's single inline is one `Strong` span — the IR shape of
+    the GFM poem path's `_is_strong_only_para` (a bold title paragraph)."""
+    return (
+        isinstance(b, ir.Paragraph)
+        and not b.empty
+        and len(b.inlines) == 1
+        and isinstance(b.inlines[0], ir.Emphasis)
+        and b.inlines[0].kind == "strong"
+    )
+
+
+def _lower_poem_body(doc: ir.Document, lang: str) -> str:
+    """Lower a poem as stanza-grouped verse lines, mirroring the GFM poem path
+    (`pandoc_poem_ast_to_md`) exactly:
+
+      * an empty paragraph is a stanza break (flush the accumulator);
+      * a `***` paragraph / thematic break is its own one-line stanza;
+      * a NON-EMPTY paragraph that yields MORE THAN ONE display line (it carries
+        internal hard/soft breaks) is its OWN stanza — flushed before and after;
+      * a non-empty paragraph that yields a SINGLE line ACCUMULATES into the
+        current stanza, which is flushed only at the next empty paragraph.
+
+    The multi-line-paragraph-is-its-own-stanza rule is the C1 fix: many poems
+    store ONE STANZA PER non-empty Word paragraph (the stanza's lines live as
+    internal hard breaks, with NO empty paragraph between stanzas). The previous
+    accumulate-everything shape merged every such stanza into one giant stanza
+    (e.g. "Весна" 3→1, "Бог видит сон" 5→1). A paragraph boundary between two
+    multi-line verse paragraphs IS a stanza break, exactly as the GFM poem path
+    treats it."""
+    stanzas: list[list[str]] = []
+    current: list[str] = []
+    seen_content = False
+
+    def flush() -> None:
+        nonlocal current
+        if current:
+            stanzas.append(current)
+            current = []
+
+    for b in doc.blocks:
+        if isinstance(b, ir.Paragraph) and b.empty:
+            flush()
+            continue
+        if isinstance(b, ir.ThematicBreak):
+            flush()
+            stanzas.append(["***"])
+            continue
+        if isinstance(b, ir.BlockQuote):
+            # The GFM poem path (`pandoc_poem_ast_to_md`) renders ONLY top-level
+            # `Para`/`Plain`; a `BlockQuote` flushes and is not emitted. In the
+            # corpus a poem `BlockQuote` only ever wraps the poem TITLE (the page
+            # masthead already renders that title), so this drop is a title-duplicate
+            # drop, not reading-content loss — and it keeps the head stanza count
+            # equal to the DOCX stanza oracle (#08 head 2→1).
+            flush()
+            continue
+        md = _block_md(b, lang, poem=True)
+        if md is None or md == "":
+            continue
+        lines = [line for line in md.split("\n") if line.strip()]
+        if not lines:
+            continue
+        # A poem illustration (a block image, or a paragraph that is ONLY an image)
+        # is never a verse line: flush the current stanza and emit the image as its
+        # own block, so it is separated by blank lines (otherwise it fuses into the
+        # last stanza and inflates that stanza's line count, e.g. #36/#38 last
+        # stanza 4→5). Mirrors the GFM poem path, where a non-text block flushes.
+        if isinstance(b, ir.ImageBlock) or (
+            isinstance(b, ir.Paragraph)
+            and len(b.inlines) == 1
+            and isinstance(b.inlines[0], ir.ImageInline)
+        ):
+            flush()
+            stanzas.append(lines)
+            continue
+        # The FIRST strong-only paragraph (before any verse content) is the poem's
+        # title paragraph — its own group, exactly as the GFM poem path
+        # (`pandoc_poem_ast_to_md`) treats it. Kept separate so the source-duplicate
+        # -title strip can drop it cleanly (otherwise a bold title line would fuse
+        # into the first stanza, e.g. #36 first stanza 4→3).
+        if not seen_content and _is_strong_only_para(b):
+            flush()
+            stanzas.append(lines)
+            seen_content = True
+            continue
+        seen_content = True
+        if len(lines) > 1:
+            # A multi-line paragraph is a self-contained stanza (its lines are the
+            # authored line breaks of one stanza): flush the accumulator, emit it
+            # as its own group, and keep the next paragraph a fresh stanza.
+            flush()
+            stanzas.append(lines)
+        else:
+            # A single-line paragraph accumulates; the stanza is closed by the next
+            # empty paragraph / thematic break / multi-line paragraph.
+            current.append(lines[0])
+    flush()
+    return "\n\n".join("\n".join(stanza) for stanza in stanzas).strip() + "\n"
+
+
+def lower(doc: ir.Document, lang: str, *, poem: bool = False) -> str:
+    """Lower the document to the canonical Markdown body string.
+
+    `poem` selects verse lowering for the work-as-a-whole: paragraphs become
+    stanza-grouped verse lines (one line each, stanzas split on empty paragraphs)
+    rather than prose, matching the GFM poem path's line-per-line shape."""
+    if poem:
+        body = _lower_poem_body(doc, lang)
+        appendix = _footnote_appendix(doc, lang)
+        if appendix:
+            body = body.rstrip("\n") + "\n\n" + appendix
+        return re.sub(r"\n{3,}", "\n\n", body).strip() + "\n"
+    pieces: list[str] = []
+    for b in doc.blocks:
+        md = _block_md(b, lang)
+        if md is not None and md != "":
+            pieces.append(md)
+    body = "\n\n".join(pieces)
+    appendix = _footnote_appendix(doc, lang)
+    if appendix:
+        body = body.rstrip("\n") + "\n\n" + appendix
+    return re.sub(r"\n{3,}", "\n\n", body).strip() + "\n"

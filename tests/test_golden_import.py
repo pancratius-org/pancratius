@@ -117,9 +117,14 @@ class GoldenCase:
 #   book62 — body images + bibliography table + the KNOWN orphaned-[^N]
 #            footnote bug (5 refs, 0 defs). One case, three signals.
 #            legacy/books/ru/62-книга-тишины.docx
-#   book23 — well-formed footnotes (1 ref + 1 def) AND the pure-converter
-#            cross-check (its imported body is byte-identical to the committed
-#            src/content/books/23-lichnost-i-ego/ru.md body).
+#   book23 — well-formed footnotes (1 ref + 1 def). Stored as a regular IR
+#            snapshot. (It used to anchor a committed-corpus cross-check: its
+#            imported body had to equal the committed
+#            src/content/books/23-lichnost-i-ego/ru.md body byte-for-byte. That
+#            held under the GFM engine that produced the committed corpus; after
+#            the 6.2 cutover the IR importer diverges from the legacy committed
+#            file BY DESIGN, so the cross-check is gone and book23 is a stored IR
+#            golden like the others.)
 #            legacy/books/ru/23-личность-и-эго.docx
 #   book18 — ordinary prose / Q&A (no footnotes, images, or bibliography).
 #            legacy/books/ru/18-евангелие-от-иисуса.docx
@@ -153,7 +158,7 @@ CASES: tuple[GoldenCase, ...] = (
         number=23,
         slug="lichnost-i-ego",
         title="Личность и эго",
-        signals=("footnotes", "pure-converter-cross-check"),
+        signals=("footnotes",),
     ),
     GoldenCase(
         name="book18",
@@ -167,17 +172,20 @@ CASES: tuple[GoldenCase, ...] = (
     ),
 )
 
-# The single case proven (in Phase-2a QA) to be unmodified converter output:
-# its imported body must equal the committed corpus body byte-for-byte. This case
-# is frozen by that cross-check ALONE — we don't also store a body.md snapshot for
-# it, which would just duplicate the committed corpus file (~800KB) without adding
-# coverage (the cross-check already freezes its full body, footnotes included).
-CROSS_CHECK_CASE = "book23"
-CROSS_CHECK_COMMITTED = ROOT / "src" / "content" / "books" / "23-lichnost-i-ego" / "ru.md"
-
-# Cases that get a stored body/frontmatter/assets/biblio snapshot under
-# tests/golden/<case>/. The cross-check case is excluded (see above).
-SNAPSHOT_CASES: tuple[GoldenCase, ...] = tuple(c for c in CASES if c.name != CROSS_CHECK_CASE)
+# All cases get a stored body/frontmatter/assets/biblio snapshot under
+# tests/golden/<case>/.
+#
+# HISTORICAL NOTE (6.2 cutover): book23 used to be EXCLUDED from stored snapshots
+# and frozen instead by `test_pure_converter_cross_check`, which asserted its
+# imported body was byte-identical to the committed corpus file
+# `src/content/books/23-lichnost-i-ego/ru.md`. That committed file is GFM-era
+# converter output (the live engine before the cutover); the IR importer is now
+# the truth and diverges from it BY DESIGN, so that cross-check no longer holds
+# and was removed. Re-importing any committed book through the live importer now
+# produces the new IR shape — that is the expected new behavior, NOT a regression,
+# and must NOT be "fixed" by re-importing the corpus (that would clobber any
+# hand-edits in the committed files). book23 is now a regular stored IR snapshot.
+SNAPSHOT_CASES: tuple[GoldenCase, ...] = CASES
 
 
 @dataclass(frozen=True)
@@ -317,8 +325,7 @@ def _assert_against_golden(case: GoldenCase, snap: ImportSnapshot) -> None:
 def test_golden_import(case: GoldenCase, tmp_path: Path) -> None:
     """Freeze (or assert against) the importer output for each snapshot case.
 
-    The cross-check case (book23) is excluded — it is frozen byte-for-byte by
-    ``test_pure_converter_cross_check`` against the committed corpus instead.
+    Post-6.2-cutover the goldens reflect the LIVE typed-IR converter output.
     """
     snap = _import_case(case, tmp_path / "src" / "content")
     if GOLDEN_UPDATE:
@@ -353,27 +360,13 @@ def test_import_is_idempotent(case: GoldenCase, tmp_path: Path) -> None:
     )
 
 
-def test_pure_converter_cross_check(tmp_path: Path) -> None:
-    """The cross-check case's imported body equals the committed corpus body.
-
-    Proves the golden net reflects the REAL committed corpus, not just a
-    self-consistent re-import. The committed bundle for
-    `src/content/books/23-lichnost-i-ego/ru.md` is known-unmodified converter
-    output; its body must match the freshly imported body byte-for-byte.
-    """
-    case = next(c for c in CASES if c.name == CROSS_CHECK_CASE)
-    snap = _import_case(case, tmp_path / "src" / "content")
-
-    assert CROSS_CHECK_COMMITTED.is_file(), f"missing committed corpus file: {CROSS_CHECK_COMMITTED}"
-    _fm, committed_body = split_frontmatter(
-        CROSS_CHECK_COMMITTED.read_text(encoding="utf-8")
-    )
-
-    assert snap.body == committed_body, (
-        f"{case.name}: imported body diverged from the committed corpus body "
-        f"({CROSS_CHECK_COMMITTED}):\n"
-        + _text_diff("ru.md body", committed_body, snap.body)
-    )
+# NOTE (6.2 cutover): the former ``test_pure_converter_cross_check`` asserted
+# book23's imported body equalled the committed corpus body
+# (`src/content/books/23-lichnost-i-ego/ru.md`) byte-for-byte. That committed file
+# is GFM-era output; the live importer is now the typed-IR truth and diverges from
+# the legacy committed file BY DESIGN, so the cross-check was removed and book23 is
+# a stored IR snapshot (see SNAPSHOT_CASES). Idempotency of every case — including
+# book23 — is still proven by ``test_import_is_idempotent``.
 
 
 # Cases whose source carries footnotes — the property below must hold for them

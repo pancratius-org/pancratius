@@ -8,6 +8,7 @@ giant stanza.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import subprocess
@@ -174,7 +175,101 @@ def source_docx(number: int) -> Path:
     return matches[0]
 
 
-def main() -> int:
+def _committed_poem_meta() -> list[tuple[int, str, str]]:
+    """``(number, title, slug)`` for every committed poem, sorted by number.
+
+    Title and number are the only inputs the importer needs to reproduce a poem's
+    body deterministically; we read them from the committed frontmatter so the
+    ``--from-ir`` pass imports each poem with the SAME title/number the live
+    importer would use, then compares the freshly converted body to the DOCX
+    stanza oracle."""
+    meta: list[tuple[int, str, str]] = []
+    for md in sorted(CONTENT.glob("*/ru.md")):
+        text = md.read_text(encoding="utf-8")
+        m = re.search(r"^number:\s*(\d+)\s*$", text, re.M)
+        if not m:
+            raise ValueError(f"{md}: missing number")
+        number = int(m.group(1))
+        tm = re.search(r"^title:\s*(.+?)\s*$", text, re.M)
+        title = tm.group(1).strip().strip("'\"") if tm else ""
+        sm = re.search(r"^slug:\s*(.+?)\s*$", text, re.M)
+        slug = sm.group(1).strip().strip("'\"") if sm else md.parent.name
+        meta.append((number, title, slug))
+    return sorted(meta)
+
+
+def actual_groups_from_ir() -> int:
+    """Stanza oracle run against FRESH importer output, not committed content.
+
+    Imports every legacy poem DOCX through the live importer (``import_docx.run``
+    -> ``lib.docx_conversion.convert_single_docx``, which is the typed-IR path
+    after the 6.2 cutover) into a throwaway content root, then asserts the
+    converted body's stanza line-counts equal the DOCX ``poetry_stanzas`` oracle.
+    This validates the IR conversion directly rather than relying on the committed
+    (GFM-era) markdown the default mode reads.
+
+    Returns a process exit code (0 = all poems match)."""
+    import contextlib
+    import io
+    import tempfile
+
+    # Imported lazily/here so the audit's default committed-content mode stays a
+    # pure stdlib reader (no importer wiring) and works without scripts on path.
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import import_docx  # noqa: PLC0415
+
+    failures: list[str] = []
+    checked = 0
+    for number, title, slug in _committed_poem_meta():
+        docx = source_docx(number)
+        exp = expected_groups(docx, title)
+        with tempfile.TemporaryDirectory(prefix="poetry-ir-") as td:
+            content_root = Path(td) / "src" / "content"
+            parsed = import_docx.build_parser().parse_args(
+                [
+                    str(docx),
+                    "--kind", "poem",
+                    "--lang", "ru",
+                    "--number", str(number),
+                    "--slug", slug,
+                    "--title", title,
+                    "--out-content", str(content_root),
+                ]
+            )
+            # The importer prints a per-write report to stdout; swallow it so the
+            # audit's own one-line verdict is the only thing on stdout.
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = import_docx.run(parsed)
+            got = actual_groups(result.md_path)
+        checked += 1
+        if exp != got:
+            failures.append(
+                f"poem #{number:02d} {slug}: expected stanza line-counts {exp}, got {got}"
+            )
+    if failures:
+        print("FAIL: poetry stanza mismatches (IR import path)")
+        for failure in failures[:30]:
+            print(" ", failure)
+        if len(failures) > 30:
+            print(f"  ... {len(failures) - 30} more")
+        return 1
+    print(f"checked {checked} poems via IR import path; stanza boundaries match DOCX")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument(
+        "--from-ir",
+        action="store_true",
+        help="Import each legacy poem through the live importer (IR path) into a "
+        "temp tree and run the stanza oracle on that fresh output, instead of "
+        "reading the committed (GFM-era) markdown.",
+    )
+    args = ap.parse_args(argv)
+    if args.from_ir:
+        return actual_groups_from_ir()
+
     failures: list[str] = []
     checked = 0
     for md in sorted(CONTENT.glob("*/ru.md")):
