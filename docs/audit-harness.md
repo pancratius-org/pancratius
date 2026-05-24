@@ -428,8 +428,11 @@ Audits should protect the import/render/build split.
 
 Fatal examples:
 
-- CI installs or runs pandoc, typst, embedding models, DOCX optimizers, or
-  source importers;
+- CI installs or runs pandoc, typst, embedding models, DOCX optimizers, source
+  importers/renderers, or the converter/IR/writer library modules behind them
+  (the DOCX adapter, the typed IR + normalize/lower, footnote/cross-ref analysis,
+  the WritePlan, and the writer) — whether invoked by `.py` path or as a dotted
+  module (`python -m scripts.lib.…`);
 - Astro routes render PDF/EPUB/DOCX on demand;
 - build scripts regenerate committed release artifacts;
 - import scripts write to projects by default.
@@ -709,10 +712,12 @@ lines:
 ```
 
 The rule **derives the scanned set from those markers** (PAN003 "derive, do not
-restate"): it is a self-extending source of truth — when a later phase adds the
-marker to the parser/normalizer/lowerer, those modules are covered automatically
-with no rule edit. Each marked module must contain **no** filesystem-mutation
-call:
+restate"): it is a self-extending source of truth — every pure import module
+carries the marker, so the DOCX adapter's pure neighbors (the typed IR, its
+normalize/lower passes, footnote and cross-ref analysis, the narrow OOXML reader,
+and the `WritePlan`) are all covered, and any new pure stage is covered the moment
+it carries the marker, with no rule edit. Each marked module must contain **no**
+filesystem-mutation call:
 
 - attribute calls — `.write_text`, `.write_bytes`, `.mkdir`, `.touch`,
   `shutil.copy*`/`move`/`rmtree`, `os.replace`/`remove`/`rename`/`unlink`/
@@ -720,12 +725,15 @@ call:
 - `open(..., mode)` where the mode requests writing (`w`/`a`/`x`, incl. binary/
   plus variants).
 
-`writeplan.py` carries the marker. `writer.py` deliberately does **not** — it is
-the designated mutator, the one place mutation is allowed to live, so it is never
-scanned. The detection lives in a Python checker (it tokenizes for a real
-COMMENT marker — a docstring mention does not count — and AST-walks the module);
-the marker requirement also fails loud if the SoT vanishes (no marked module ⇒
-FAIL).
+The pure modules — `ir.py`, `ir_normalize.py`, `ir_lower.py`, `footnotes.py`,
+`cross_refs.py`, `ooxml.py`, and `writeplan.py` — carry the marker. `writer.py`
+deliberately does **not** — it is the designated mutator, the one place mutation
+is allowed to live, so it is never scanned; nor do the impure boundary modules
+that legitimately touch the outside world (`docx_adapter.py` shells to pandoc and
+reads the source zip, `docx_conversion.py` stages converter output). The detection
+lives in a Python checker (it tokenizes for a real COMMENT marker — a docstring
+mention does not count — and AST-walks the module); the marker requirement also
+fails loud if the SoT vanishes (no marked module ⇒ FAIL).
 
 Fatal examples:
 

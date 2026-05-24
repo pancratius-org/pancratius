@@ -16,7 +16,8 @@ import { runPythonCheck } from "../lib/python.ts";
 /** PAN012: CI workflows must not install or run library-management tooling. */
 export const pan012CiSeparation: Rule = {
   id: "PAN012-ci-separation",
-  title: "PAN012: CI must not install or run pandoc/typst/embedding/importer/renderer tooling",
+  title:
+    "PAN012: CI must not install or run pandoc/typst/embedding/importer/renderer tooling or the converter/IR/writer library modules",
   tier: "core",
   run(ctx: RuleContext): Finding[] {
     return runPythonCheck(ctx, {
@@ -25,12 +26,12 @@ export const pan012CiSeparation: Rule = {
       severity: "fatal",
       script: "python/ci_separation.py",
       contract:
-        "CI builds and publishes the site only; it never manufactures the library (architecture.md \"Shape\"; downloads.md \"CI Contract\"). A workflow step must not install or run pandoc, typst, the embedding stack, DOCX optimizers, or the source importers/renderers — those are local/admin activities that mutate source or render release artifacts.",
+        "CI builds and publishes the site only; it never manufactures the library (architecture.md \"Shape\"; downloads.md \"CI Contract\"). A workflow step must not install or run pandoc, typst, the embedding stack, DOCX optimizers, the source importers/renderers, or the converter/IR/writer library modules behind them (the DOCX adapter, the typed IR + normalize/lower, footnote/cross-ref analysis, the WritePlan, and the writer — src/content's sole mutator; docs/import-pipeline.md) — whether invoked by .py path or as a dotted module (python -m scripts.lib.…). Those are local/admin activities that mutate source or render release artifacts.",
       why: "If CI renders or imports, the deploy pipeline depends on heavy local tooling (pandoc/typst/MLX) and can mutate or regenerate committed source — making the build non-reproducible and able to overwrite authored content. The split is what keeps CI a pure build-and-publish.",
       repair:
-        "Run import/render/optimize/embedding locally via the library door (uv) and commit the results; CI only packages and publishes what is already in src/content/. Remove the offending install/run step from the workflow.",
+        "Run import/render/optimize/embedding locally via the library door (uv) and commit the results; CI only packages and publishes what is already in src/content/. Remove the offending install/run/import step from the workflow.",
       doNotFixBy:
-        "Adding a pandoc/typst install step or invoking an importer/renderer in CI to 'just make the artifact in the pipeline' — that erases the import/render/build boundary.",
+        "Adding a pandoc/typst install step, invoking an importer/renderer, or `python -m`-running a converter/writer library module in CI to 'just make the artifact in the pipeline' — that erases the import/render/build boundary.",
     });
   },
 };

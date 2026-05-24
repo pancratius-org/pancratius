@@ -9,5 +9,9 @@ jobs:
         run: sudo apt-get install -y pandoc
       - name: Render downloads in CI
         run: uv run scripts/render_downloads.py
+      - name: Import a work in CI (dotted module form)
+        run: uv run python -m scripts.lib.writer
+      - name: Lower IR in CI (library module path form)
+        run: uv run scripts/lib/ir_lower.py
       - name: Build
         run: npm run build

@@ -27,8 +27,9 @@ Import has exactly two real seams. Everything else is an ordinary function call.
 
 1. **`WritePlan` — the safety boundary.** It separates all import logic from
    filesystem mutation. Import *produces* a plan; it does not write. Only the
-   writer applies a plan. This is the boundary that prevents the old shape from
-   returning, so it lands **first** in the migration, before the IR exists.
+   writer applies a plan. This is the boundary that keeps the old fused shape from
+   returning: every stage upstream of the writer is pure, so nothing but the
+   writer can reach `src/content`.
 
 2. **The block IR — the semantic boundary.** A small typed block model separates
    source-format parsing from Pancratius normalization and lowering. After the
@@ -224,8 +225,9 @@ maintenance with its own write policy; see [`tooling.md`](./tooling.md).)
 
 The CLI is a thin facade. Import exposes one **stable importer entry** — the
 function `pancratius work import` dispatches to (located by
-[`tooling.md`](./tooling.md)) — which returns a `WritePlan` rather than a written
-bundle. So adding the CLI is wiring, not a rewrite.
+[`tooling.md`](./tooling.md)) — which runs the plan→writer tail and returns the
+writer's report (the planned/applied write-set plus diagnostics). So adding the
+CLI is wiring, not a rewrite.
 
 ## How import is verified
 
@@ -246,13 +248,15 @@ nothing, subpage scaffold touches only the subpage dir, the CLI refuses
 
 **Audits** (PAN rules in the harness — derive-from-SoT, deterministic-fatal,
 both-polarity fixtures; see [`audit-harness.md`](./audit-harness.md)): the import
-CLI's kind choices exclude `project`, derived from the work kinds (shipped); a
+CLI's kind choices exclude `project`, derived from the work kinds (PAN017); a
 source scan asserting that filesystem mutation into `src/content` happens only in
-the writer module (lands with the writer, so the boundary holds regardless of test
-coverage); and import code is never invoked from CI. These guard the *shape* so
-the boundary cannot silently drift; the runtime behaviors above stay in tests,
-where a property is established by running the code, not by guessing from its
-shape.
+the writer module — every pure import module carries a marker and the scan derives
+its set from those markers, so the boundary holds regardless of test coverage
+(PAN018); and import/converter code is never invoked from CI, neither the
+importer/renderer scripts nor the converter/IR/writer library modules behind them
+(PAN012). These guard the *shape* so the boundary cannot silently drift; the
+runtime behaviors above stay in tests, where a property is established by running
+the code, not by guessing from its shape.
 
 ## Final rules
 
