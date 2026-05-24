@@ -33,7 +33,7 @@ Import has exactly two real seams. Everything else is an ordinary function call.
 
 2. **The block IR — the semantic boundary.** A small typed block model separates
    source-format parsing from Pancratius normalization and lowering. After the
-   adapter, nothing is "DOCX-shaped"; it is blocks, assets, metadata guesses, and
+   adapter, nothing is "DOCX-shaped"; it is blocks, footnotes, bibliography, and
    diagnostics.
 
 > Import does not write files. Import produces a `WritePlan`. Only the writer
@@ -104,10 +104,13 @@ workflow.
 
 **Idempotency.** Re-importing the same source yields a byte-identical committed
 bundle — same `<lang>.md`, assets, and frontmatter, with no timestamps in
-committed output. Volatile provenance (source hashes, tool versions, run time) lives in the import
-manifest that [`content-model.md`](./content-model.md#what-lives-where) places
-under `data/`, never in the committed `<lang>.md` or assets. Imported body-image
-filenames are stable asset IDs after first import, not live checksums (see
+committed output. Volatile provenance (source hashes, tool versions, run time)
+lives in the writer's per-work `data/imports/<work-key>.json` manifest — gitignored,
+outside the bundle (the layout in
+[`content-model.md`](./content-model.md#what-lives-where)) — never in the
+committed `<lang>.md` or assets. (This is distinct from `docx_optimize.py`'s
+committed `data/conversion-manifest.json`.) Imported body-image filenames are
+stable asset IDs after first import, not live checksums (see
 [`content-model.md`](./content-model.md#asset-naming)).
 
 **Dry-run** is the review gate: it prints the full planned write-set — including
@@ -124,14 +127,16 @@ structure, role-tagged blockquotes and tables, asset-id images, thematic breaks,
 emphasis, links, code, footnote references — plus an explicit *unknown* block and
 *unknown* inline for anything unrecognized. The authoritative kind set lives in
 code, not here; the contract is the shape, not the inventory. Footnote
-definitions, the document's metadata *guesses*, and its assets travel beside the
-blocks, not inside the prose.
+definitions, the lifted bibliography, and diagnostics travel beside the blocks,
+not inside the prose.
 
-Metadata guesses (a title read from the document, say) leave the adapter as
-candidates carrying their own diagnostics. Placement and lowering *consume* them
-to seed frontmatter; they never reach back into the blocks. So changing how a
-value is guessed is a local edit in the adapter, and changing how a guess becomes
-frontmatter is a local edit in lowering — the two never entangle.
+Frontmatter is seeded by the importer, not carried inside the IR. The importer
+starts from the existing bundle's `<lang>.md` frontmatter (so author-owned fields
+survive a re-import), then layers explicit CLI overrides and values inferred from
+the source document (a title read from the document core or filename, a `TODO`
+description seed, the lifted `cross_refs`/`bibliography`). The blocks carry only
+reading content; seeding frontmatter is a separate concern in the importer, so it
+never reaches back into the blocks.
 
 The model is deliberately small: source-specific style noise becomes a
 diagnostic, not a block type; a raw Markdown string is too weak to preserve
@@ -206,6 +211,19 @@ table classified as bibliography, dropped source frontmatter keys). **Info**
 records provenance and candidates. The rule from
 [`architecture.md`](./architecture.md): when the tool is guessing, the user sees
 a diagnostic.
+
+## Import is the content-safety boundary
+
+The published Markdown is rendered without a sanitizer — verse-blocks,
+signatures, and bidi spans carry converter-emitted raw HTML the pages depend on.
+The importer is therefore the boundary that makes authored content safe before it
+reaches the corpus: literal `Text` is escaped (Markdown/HTML metacharacters,
+variable-length code fences) so it cannot become active markup; link and image
+URL schemes are allowlisted (http/https/mailto and relative/anchor targets;
+others dropped with a diagnostic); an unresolvable or scope-escaping local image
+is a fatal write-refusal; and imported body-image SVGs are sanitized at the
+writer's copy boundary. See
+[`decisions.md`](./decisions.md#import-is-the-publish-gate-harden-authored-content-not-the-renderer).
 
 ## What import must never automate
 

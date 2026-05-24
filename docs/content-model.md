@@ -186,10 +186,15 @@ structure.
 The same source signal appears inside some books. Named sections such as
 `Посвящение`, `Предисловие от Творца`, `Слово Творца`, and `Молитва` are clear
 examples, but the rule is structural rather than name-only: when the DOCX AST
-contains a confident run of short lineated paragraphs, the converter may emit
-an explicit `<div class="verse-block">` for that run. The wrapper contains
-natural source lines and blank stanza lines, not hand-authored `<p>` / `<br>`
-markup. It is converter-owned output; authors are not expected to type this
+contains a confident run of short lineated lines, the converter emits an explicit
+`<div class="verse-block">` for that run. A verse-block is a confident run of
+short lineated lines — each line is ≤120 characters, and the run carries a
+source-lineation signal: ≥2 lines when the signal is strong (a hard `<w:br/>`
+line break, or a named verse-section heading), or ≥3 lines when the signal is
+weak (lineation implied only by stanza-break empty paragraphs). A 2-line run with
+no hard break stays prose, because paragraph boundaries alone do not separate a
+couplet from two prose sentences. The wrapper contains natural source lines and
+blank stanza lines, not hand-authored `<p>` / `<br>` markup. It is converter-owned output; authors are not expected to type this
 HTML. CSS preserves that lineation while ordinary prose remains ordinary
 Markdown paragraphs. Inline emphasis inside converter-owned HTML wrappers is
 HTML (`<strong>`, `<em>`) because CommonMark does not parse `**...**` as
@@ -330,7 +335,7 @@ a stable unprocessed URL.
 | markdown body | the work itself, with relative links only to true inline body images |
 | work folder assets | covers, true body illustrations, source DOCX/PDF |
 | `bibliography.yaml` | long catalog/bibliography snapshots and external marketplace links |
-| `data/` | generated corpus-wide data products (graph JSON) and the import/conversion manifest holding volatile provenance (source hashes, tool versions, run time, original source filenames) — never committed inside a work bundle, so bundles stay byte-identical on re-import |
+| `data/` | generated corpus-wide data products (graph JSON) and two distinct provenance manifests, both outside any work bundle so bundles stay byte-identical on re-import: the importer's per-work `data/imports/<work-key>.json` (volatile run provenance — timestamps, source hashes; gitignored, never committed) and `docx_optimize.py`'s shared `data/conversion-manifest.json` (committed source-provenance index) |
 | `public/` | static files intentionally published as-is, not authored work assets |
 
 ## Adding A New Work
