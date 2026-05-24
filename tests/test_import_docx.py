@@ -195,3 +195,90 @@ def test_converter_typed_diagnostics_carry_severity(tmp_path: Path) -> None:
     assert all(d.severity in {"fatal", "warning", "info"} for d in converted.diagnostics)
     # The human-readable warnings string is still produced.
     assert isinstance(converted.warnings, str)
+
+
+# ---------------------------------------------------------------------------
+# Typed stable importer entry: ImportRequest / import_work / ImportError
+# ---------------------------------------------------------------------------
+
+
+def test_import_work_returns_a_write_report(tmp_path: Path) -> None:
+    # The stable entry takes a typed ImportRequest and RETURNS the writer's
+    # WriteReport directly (the contract surface), with files actually written.
+    from lib.writer import WriteReport
+
+    content_root = tmp_path / "src" / "content"
+    report = import_docx.import_work(import_docx.ImportRequest(
+        docx=ROOT / "legacy/books/ru/23-личность-и-эго.docx",
+        lang="ru",
+        out_content=content_root,
+        kind="book",
+        number=90,
+        slug="probe-work",
+        title="Probe Work",
+        description="Probe description.",
+    ))
+
+    assert isinstance(report, WriteReport)
+    assert (content_root / "books" / "90-probe-work" / "ru.md").is_file()
+    assert not report.refused
+
+
+def test_import_work_refusal_returns_a_report_with_fatal_diagnostic(tmp_path: Path) -> None:
+    # Re-importing an existing converter-owned <lang>.md without --replace is a
+    # refusal. import_work must RETURN that refused report (with a fatal
+    # diagnostic), NOT raise / SystemExit.
+    content_root = tmp_path / "src" / "content"
+    first = import_docx.import_work(import_docx.ImportRequest(
+        docx=ROOT / "legacy/books/ru/23-личность-и-эго.docx",
+        lang="ru",
+        out_content=content_root,
+        kind="book",
+        number=90,
+        slug="probe-work",
+        title="Probe Work",
+        description="Probe description.",
+    ))
+    assert not first.refused
+
+    # Second import of the SAME bundle/lang, no replace -> the importer routes
+    # through --into resolution by key; replace is False, so it is refused.
+    second = import_docx.import_work(import_docx.ImportRequest(
+        docx=ROOT / "legacy/books/ru/23-личность-и-эго.docx",
+        lang="ru",
+        out_content=content_root,
+        into="90-probe-work",
+        replace=False,
+    ))
+    assert second.refused, "an existing canonical_source without --replace must be refused"
+    assert any(d.severity == "fatal" for d in second.diagnostics)
+
+
+def test_import_work_missing_docx_raises_import_error(tmp_path: Path) -> None:
+    content_root = tmp_path / "src" / "content"
+    with pytest.raises(import_docx.ImportError):
+        import_docx.import_work(import_docx.ImportRequest(
+            docx=tmp_path / "does-not-exist.docx",
+            lang="ru",
+            out_content=content_root,
+            kind="book",
+        ))
+
+
+def test_import_work_is_side_effect_free(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    # The stable entry emits NO stdout/stderr (the CLI owns side effects).
+    content_root = tmp_path / "src" / "content"
+    capsys.readouterr()  # drain anything prior
+    import_docx.import_work(import_docx.ImportRequest(
+        docx=ROOT / "legacy/books/ru/23-личность-и-эго.docx",
+        lang="ru",
+        out_content=content_root,
+        kind="book",
+        number=90,
+        slug="silent-probe",
+        title="Silent Probe",
+        description="d.",
+    ))
+    captured = capsys.readouterr()
+    assert captured.out == "", f"import_work must not print to stdout; got {captured.out!r}"
+    assert captured.err == "", f"import_work must not print to stderr; got {captured.err!r}"

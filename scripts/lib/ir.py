@@ -17,6 +17,7 @@ writer-only-mutation contract.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Literal, Union
 
@@ -309,6 +310,35 @@ Block = Union[
 ]
 
 
+def map_block_inlines(block: Block, fn: Callable[[list[Inline]], list[Inline]]) -> None:
+    """Walk the container-block skeleton of `block`, applying `fn` to every leaf
+    inline list it reaches, mutating IN PLACE.
+
+    The ONE place the block-traversal skeleton is spelled, mirroring
+    `rebuild_container` for inlines. The leaf inline lists are a `Heading`/
+    `Paragraph`'s `inlines`, each verse display line in a `VerseBlock`'s `stanzas`,
+    and each `Table` cell; container blocks (`BlockQuote`, `ListBlock`) are
+    descended recursively. `fn` returns the replacement inline list (the per-pass
+    leaf logic — URL sanitize, asset assignment, AI-alt scrub).
+
+    Leaf kinds `fn` cannot express (an `ImageBlock`'s `src`/`alt`, footnote bodies)
+    are handled by the caller AROUND this descent — this shares ONLY the skeleton,
+    not the per-pass leaf decisions."""
+    if isinstance(block, (Heading, Paragraph)):
+        block.inlines = fn(block.inlines)
+    elif isinstance(block, VerseBlock):
+        block.stanzas = [[fn(line) for line in stanza] for stanza in block.stanzas]
+    elif isinstance(block, Table):
+        block.rows = [[fn(cell) for cell in row] for row in block.rows]
+    elif isinstance(block, BlockQuote):
+        for inner in block.blocks:
+            map_block_inlines(inner, fn)
+    elif isinstance(block, ListBlock):
+        for item in block.items:
+            for inner in item:
+                map_block_inlines(inner, fn)
+
+
 # ---------------------------------------------------------------------------
 # Side-channel document data (travels beside the blocks, never inside prose)
 # ---------------------------------------------------------------------------
@@ -325,18 +355,6 @@ class FootnoteDef:
 
 
 @dataclass(frozen=True)
-class AssetRef:
-    """A body asset the lowering references but does not copy: its content-hash
-    `asset_id` stem, the absolute extracted-media `src_path` to copy from, the
-    normalized `ext`, and its role."""
-
-    asset_id: str
-    src_path: str
-    ext: str
-    role: str = "body"
-
-
-@dataclass(frozen=True)
 class Diagnostic:
     """A first-class finding with a severity and a stable code. `fatal` blocks the
     write; `warning` prints before the write summary; `info` records provenance."""
@@ -348,11 +366,12 @@ class Diagnostic:
 
 @dataclass
 class Document:
-    """The IR document. Blocks plus footnotes, bibliography, assets, and
-    diagnostics travel SIDE BY SIDE — never inside the prose."""
+    """The IR document. Blocks plus footnotes, bibliography, and diagnostics
+    travel SIDE BY SIDE — never inside the prose. The body images the lowering
+    references are returned as `PlannedAsset`s from the asset pass (the writer
+    copies them); they are not stored on the document."""
 
     blocks: list[Block] = field(default_factory=list)
     footnotes: list[FootnoteDef] = field(default_factory=list)
     bibliography: list[dict[str, object]] = field(default_factory=list)
-    assets: list[AssetRef] = field(default_factory=list)
     diagnostics: list[Diagnostic] = field(default_factory=list)

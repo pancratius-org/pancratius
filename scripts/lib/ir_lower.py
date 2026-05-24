@@ -150,28 +150,11 @@ def sanitize_urls(doc: ir.Document) -> None:
                 out.append(n)
         return out
 
-    def visit_block(b: ir.Block) -> None:
-        if isinstance(b, ir.Heading):
-            b.inlines = visit_inlines(b.inlines)
-        elif isinstance(b, ir.Paragraph):
-            b.inlines = visit_inlines(b.inlines)
-        elif isinstance(b, ir.BlockQuote):
-            for inner in b.blocks:
-                visit_block(inner)
-        elif isinstance(b, ir.ListBlock):
-            for item in b.items:
-                for inner in item:
-                    visit_block(inner)
-        elif isinstance(b, ir.VerseBlock):
-            b.stanzas = [[visit_inlines(line) for line in stanza] for stanza in b.stanzas]
-        elif isinstance(b, ir.Table):
-            b.rows = [[visit_inlines(cell) for cell in row] for row in b.rows]
-
     for b in doc.blocks:
-        visit_block(b)
+        ir.map_block_inlines(b, visit_inlines)
     for fn in doc.footnotes:
         for b in fn.blocks:
-            visit_block(b)
+            ir.map_block_inlines(b, visit_inlines)
 
 
 # ---------------------------------------------------------------------------
@@ -276,7 +259,6 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
             PlannedAsset(rel_within=rel_within, source=cand, is_raster=ext in RASTER_CAP_EXTS),
         )
         seen[src] = (h, ext)
-        doc.assets.append(ir.AssetRef(asset_id=h, src_path=str(cand), ext=ext))
         return h, ext
 
     def visit_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
@@ -295,6 +277,9 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
         return out
 
     def visit_block(b: ir.Block) -> None:
+        # An `ImageBlock` is the one leaf the shared inline-descent cannot express
+        # (its image is a block field, not an inline list); resolve it here, then let
+        # the shared skeleton handle every inline-list leaf.
         if isinstance(b, ir.ImageBlock):
             got = resolve(b.src)
             if got == _DROP_IMAGE:
@@ -304,19 +289,8 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
                 b.asset_id = None
             elif isinstance(got, tuple):
                 b.asset_id = got[0] + got[1]
-        elif isinstance(b, ir.Paragraph):
-            b.inlines = visit_inlines(b.inlines)
-        elif isinstance(b, ir.BlockQuote):
-            for inner in b.blocks:
-                visit_block(inner)
-        elif isinstance(b, ir.ListBlock):
-            for item in b.items:
-                for inner in item:
-                    visit_block(inner)
-        elif isinstance(b, ir.VerseBlock):
-            b.stanzas = [[visit_inlines(line) for line in stanza] for stanza in b.stanzas]
-        elif isinstance(b, ir.Table):
-            b.rows = [[visit_inlines(cell) for cell in row] for row in b.rows]
+            return
+        ir.map_block_inlines(b, visit_inlines)
 
     for b in doc.blocks:
         visit_block(b)

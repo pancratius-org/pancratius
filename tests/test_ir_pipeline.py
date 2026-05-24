@@ -662,7 +662,6 @@ def test_asset_absolute_src_is_rejected_with_diagnostic(tmp_path: Path) -> None:
 
     # No asset planned for the escaping ref; the ref is DROPPED (not kept).
     assert planned == []
-    assert doc.assets == []
     assert _para(doc.blocks[0]).inlines == [], "the escaping image ref must be dropped"
     # A FATAL diagnostic surfaced (not a silent read of the outside file).
     fatal = [d for d in doc.diagnostics if d.severity == "fatal" and "image" in d.code.lower()]
@@ -684,7 +683,6 @@ def test_asset_parent_escaping_src_is_rejected_with_diagnostic(tmp_path: Path) -
     planned = ir_lower.assign_assets(doc, media_root, "ru")
 
     assert planned == []
-    assert doc.assets == []
     assert _para(doc.blocks[0]).inlines == [], "the parent-escaping image ref must be dropped"
     fatal = [d for d in doc.diagnostics if d.severity == "fatal" and "image" in d.code.lower()]
     assert fatal
