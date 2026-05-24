@@ -640,10 +640,11 @@ def test_literal_markup_in_heading_text_is_escaped() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Bug 3: a body-image asset `src` must stay UNDER the pandoc media-extraction dir.
-# An absolute `src` (e.g. `/etc/passwd`) or a `..`-escaping `src` must be REJECTED
-# (no asset planned, original ref kept, a warning diagnostic surfaced) — the
-# importer must never read/copy a file outside `media_root`.
+# Bug 3 (now hardened by Fix A): a body-image asset `src` must stay UNDER the pandoc
+# media-extraction dir. An absolute `src` (e.g. `/etc/passwd`) or a `..`-escaping
+# `src` is REJECTED — the importer must never read/copy a file outside `media_root`.
+# Fix A makes this a FATAL local-image-unresolved diagnostic (blocking the write)
+# and DROPS the ref so no dangling/escaping path is emitted into the body.
 # ---------------------------------------------------------------------------
 
 
@@ -659,16 +660,15 @@ def test_asset_absolute_src_is_rejected_with_diagnostic(tmp_path: Path) -> None:
     ])
     planned = ir_lower.assign_assets(doc, media_root, "ru")
 
-    # No asset planned for the escaping ref; the original (unresolved) ref is kept.
+    # No asset planned for the escaping ref; the ref is DROPPED (not kept).
     assert planned == []
     assert doc.assets == []
-    img = _para(doc.blocks[0]).inlines[0]
-    assert isinstance(img, ir.ImageInline) and img.asset_id is None
-    # A diagnostic surfaced (not a silent read of the outside file).
-    assert any(
-        d.severity in {"warning", "fatal"} and "asset" in d.code
-        for d in doc.diagnostics
-    )
+    assert _para(doc.blocks[0]).inlines == [], "the escaping image ref must be dropped"
+    # A FATAL diagnostic surfaced (not a silent read of the outside file).
+    fatal = [d for d in doc.diagnostics if d.severity == "fatal" and "image" in d.code.lower()]
+    assert fatal
+    # And the body never leaks the absolute path.
+    assert str(outside) not in ir_lower.lower(doc, "ru")
 
 
 def test_asset_parent_escaping_src_is_rejected_with_diagnostic(tmp_path: Path) -> None:
@@ -685,12 +685,10 @@ def test_asset_parent_escaping_src_is_rejected_with_diagnostic(tmp_path: Path) -
 
     assert planned == []
     assert doc.assets == []
-    img = _para(doc.blocks[0]).inlines[0]
-    assert isinstance(img, ir.ImageInline) and img.asset_id is None
-    assert any(
-        d.severity in {"warning", "fatal"} and "asset" in d.code
-        for d in doc.diagnostics
-    )
+    assert _para(doc.blocks[0]).inlines == [], "the parent-escaping image ref must be dropped"
+    fatal = [d for d in doc.diagnostics if d.severity == "fatal" and "image" in d.code.lower()]
+    assert fatal
+    assert "../../secret.png" not in ir_lower.lower(doc, "ru")
 
 
 def test_asset_legit_src_under_media_root_still_planned(tmp_path: Path) -> None:
@@ -746,3 +744,175 @@ def test_lower_empty_unknown_block_still_emits_diagnostic() -> None:
     ir_lower.lower(doc, "ru")
     surfaced = [d for d in doc.diagnostics if d.severity in {"warning", "fatal"} and "unknown" in d.code]
     assert surfaced
+
+
+# ---------------------------------------------------------------------------
+# Fix B: code-delimiter-safe lowering (Markdown breakout via literal backticks)
+# ---------------------------------------------------------------------------
+
+
+def test_inline_code_with_literal_backtick_cannot_break_out() -> None:
+    # SECURITY (defense-in-depth): a literal backtick inside Code lowered with a
+    # FIXED single-backtick delimiter (`` ` ``) closes the span early, so the rest
+    # of the run escapes back into prose markup. The delimiter must be a run of
+    # N+1 backticks where N is the longest internal backtick run, so the content
+    # round-trips inert. Per CommonMark, when the content begins/ends with a
+    # backtick a single space pad is required inside the fence.
+    md = ir_lower._inline_md(ir.Code("a ` b"), "ru")
+    # The opening fence is at least two backticks (longer than the internal run of 1).
+    assert md.startswith("``")
+    assert md.endswith("``")
+    # The literal content survives verbatim between the fences.
+    assert "a ` b" in md
+    # Round-trip: rendering this Markdown must yield exactly one <code> element whose
+    # text is the original — i.e. the inner backtick did not terminate the span.
+    import re as _re
+
+    fence_match = _re.match(r"^(`+) ?", md)
+    assert fence_match is not None
+    fence = fence_match.group(1)
+    # The internal backtick run (1) must be strictly shorter than the fence.
+    assert len(fence) >= 2
+
+
+def test_inline_code_pure_backtick_content_is_space_padded() -> None:
+    # Content that is itself only backticks needs both a longer fence AND space
+    # padding so the renderer does not strip the leading/trailing backtick.
+    md = ir_lower._inline_md(ir.Code("`"), "ru")
+    # fence is at least 2 backticks; padded with single spaces around the content.
+    assert md == "`` ` ``"
+
+
+def test_code_block_with_internal_fence_uses_longer_fence() -> None:
+    # SECURITY: a code block whose content contains a ``` line closes the block
+    # early under a FIXED triple-fence, leaking the remainder as raw Markdown. The
+    # fence must be longer than the longest internal backtick run.
+    cb = ir.CodeBlock(text="line one\n```\nstill code\n```")
+    md = ir_lower._block_md(cb, "ru")
+    assert md is not None
+    fence = md.split("\n", 1)[0]
+    assert set(fence) == {"`"}
+    # The fence (4+ backticks) is strictly longer than the internal run of 3.
+    assert len(fence) >= 4
+    # The whole literal body is preserved between the fences.
+    assert "line one" in md
+    assert "still code" in md
+    # The closing fence equals the opening fence and is the last line.
+    assert md.rstrip().endswith(fence)
+
+
+# ---------------------------------------------------------------------------
+# Fix C: URL-scheme allowlist for links + images (drop unsafe, keep text)
+# ---------------------------------------------------------------------------
+
+
+def test_javascript_link_drops_target_keeps_text_with_warning() -> None:
+    # SECURITY: the renderer emits raw HTML with no sanitizer, so a
+    # `javascript:`-scheme link target would become an active anchor. An unsafe
+    # scheme must drop the link (keeping its visible text) and surface a warning.
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Link([ir.Text("click me")], "javascript:alert(1)")])])
+    body = ir_lower.lower(doc, "ru")
+    assert "click me" in body
+    assert "javascript:" not in body
+    assert "](" not in body  # no markdown link syntax survives
+    warned = [d for d in doc.diagnostics if d.severity == "warning" and "url" in d.code.lower()]
+    assert warned, "an unsafe link scheme must surface a warning diagnostic"
+
+
+def test_https_link_is_preserved() -> None:
+    # A normal http(s) link is untouched.
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Link([ir.Text("home")], "https://example.org/x")])])
+    body = ir_lower.lower(doc, "ru")
+    assert "[home](https://example.org/x)" in body
+
+
+def test_relative_and_anchor_and_mailto_links_preserved() -> None:
+    for target in ("./other", "/works/x", "#section", "mailto:a@b.org"):
+        doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Link([ir.Text("L")], target)])])
+        body = ir_lower.lower(doc, "ru")
+        assert f"[L]({target})" in body, target
+
+
+def test_unsafe_link_in_verse_drops_target_keeps_text() -> None:
+    # The verse/HTML lowering path must apply the same allowlist (it emits raw <a>).
+    vb = ir.VerseBlock(stanzas=[[[ir.Link([ir.Text("x")], "javascript:alert(1)")]]])
+    doc = ir.Document(blocks=[vb])
+    body = ir_lower.lower(doc, "ru")
+    assert "javascript:" not in body
+    assert "<a " not in body  # the anchor element is gone
+    assert ">x<" not in body or "x" in body  # the text remains
+
+
+def test_unsafe_scheme_image_is_dropped_with_warning() -> None:
+    # An image whose src is an unsafe non-image scheme (e.g. data:text/html or
+    # javascript:) must be dropped entirely (no <img>, no ![]() ) with a warning.
+    img = ir.ImageInline(src="javascript:alert(1)", alt="bad")
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("before "), img, ir.Text(" after")])])
+    body = ir_lower.lower(doc, "ru")
+    assert "javascript:" not in body
+    assert "![" not in body
+    assert "before" in body and "after" in body
+    warned = [d for d in doc.diagnostics if d.severity == "warning" and "url" in d.code.lower()]
+    assert warned
+
+
+# ---------------------------------------------------------------------------
+# Fix A: an unresolvable / unsafe LOCAL image is FATAL; lowerer emits no dangling path
+# ---------------------------------------------------------------------------
+
+
+def test_unresolvable_local_image_is_fatal_and_ref_not_emitted(tmp_path: Path) -> None:
+    # docs/import-pipeline.md: an unresolvable LOCAL image is FATAL. A relative src
+    # that names no real file under the media dir must (a) surface a FATAL
+    # diagnostic and (b) NOT leave a dangling ref in the lowered body.
+    media = tmp_path / "media"
+    media.mkdir()
+    img = ir.ImageInline(src="media/missing.png", alt="x")
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("before "), img, ir.Text(" after")])])
+    ir_lower.assign_assets(doc, media, "ru")
+    fatal = [d for d in doc.diagnostics if d.severity == "fatal" and "image" in d.code.lower()]
+    assert fatal, "an unresolvable local image must be FATAL"
+    body = ir_lower.lower(doc, "ru")
+    assert "missing.png" not in body, "no dangling local image ref may reach the body"
+    assert "before" in body and "after" in body
+
+
+def test_escaping_absolute_image_is_fatal_and_ref_not_emitted(tmp_path: Path) -> None:
+    # An absolute/`..`-escaping src (e.g. /Users/...) must be FATAL and never emitted
+    # into the body — it must not become an exfiltrating or path-leaking ref.
+    media = tmp_path / "media"
+    media.mkdir()
+    img = ir.ImageInline(src="/etc/passwd.png", alt="x")
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[img])])
+    ir_lower.assign_assets(doc, media, "ru")
+    fatal = [d for d in doc.diagnostics if d.severity == "fatal" and "image" in d.code.lower()]
+    assert fatal
+    body = ir_lower.lower(doc, "ru")
+    assert "/etc/passwd" not in body
+
+
+def test_resolvable_local_image_assigns_asset_and_is_not_fatal(tmp_path: Path) -> None:
+    # A normal in-root image resolves to a content-hash asset; no fatal.
+    media = tmp_path / "media" / "media"
+    media.mkdir(parents=True)
+    (media / "image1.png").write_bytes(b"\x89PNGfakebytes")
+    img = ir.ImageInline(src="media/image1.png", alt="x")
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[img])])
+    planned = ir_lower.assign_assets(doc, tmp_path / "media", "ru")
+    assert planned, "a resolvable image must produce a planned asset"
+    assert not [d for d in doc.diagnostics if d.severity == "fatal"]
+    body = ir_lower.lower(doc, "ru")
+    assert "./images/" in body
+
+
+def test_remote_http_image_is_kept_not_fatal(tmp_path: Path) -> None:
+    # A safe REMOTE image (http/https) is not a LOCAL image: it is a valid remote
+    # ref, kept as-is, never fatal.
+    media = tmp_path / "media"
+    media.mkdir()
+    img = ir.ImageInline(src="https://example.org/a.png", alt="x")
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[img])])
+    ir_lower.assign_assets(doc, media, "ru")
+    assert not [d for d in doc.diagnostics if d.severity == "fatal"]
+    body = ir_lower.lower(doc, "ru")
+    assert "https://example.org/a.png" in body

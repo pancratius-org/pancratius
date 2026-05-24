@@ -20,11 +20,13 @@ import hashlib
 import io
 import json
 import os
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from lib import svg_sanitize
 from lib.writeplan import AssetTransform, Diagnostic, WriteOp, WritePlan, has_fatal, validate
 
 # Raster formats the cap applies to (vector/animated are copied untouched) and the
@@ -87,14 +89,39 @@ def _read_source_bytes(op: WriteOp) -> bytes:
 
 
 def _atomic_write(dest: Path, payload: bytes) -> None:
-    """Write `payload` to `dest` via a temp sibling + os.replace (atomic-ish).
+    """Write `payload` to `dest` via a UNIQUE temp sibling + os.replace (atomic-ish).
 
     Never pre-deletes `dest`; os.replace overwrites in one step if it exists.
+
+    The temp is created with `tempfile.mkstemp` in `dest.parent`: a unique,
+    UNPREDICTABLE name opened with `O_CREAT|O_EXCL` (and `O_NOFOLLOW` where the
+    platform offers it). A previous version used a DETERMINISTIC `.<name>.import-tmp`
+    written via `Path.write_bytes`, which FOLLOWS a symlink — a pre-seeded symlink at
+    that predictable path could redirect the write outside the bundle scope. The
+    unpredictable, exclusively-created temp closes that hole: a pre-existing path
+    (symlink or file) at the chosen name cannot exist (mkstemp would pick another),
+    so the write always lands on a fresh real file before the atomic rename. On any
+    failure the temp is removed so no residue is left.
     """
     dest.parent.mkdir(parents=True, exist_ok=True)
-    tmp = dest.parent / f".{dest.name}.import-tmp"
-    tmp.write_bytes(payload)
-    os.replace(tmp, dest)
+    # `tempfile.mkstemp` opens with O_CREAT|O_EXCL and an unpredictable name, so the
+    # chosen path cannot pre-exist as an attacker-seeded symlink (O_EXCL refuses an
+    # existing path; the unpredictable name removes the ability to pre-seed one). Its
+    # fd already points at the freshly-created real file — write through it directly,
+    # no second open (and thus no symlink to follow). os.replace is the atomic swap.
+    fd, tmp_name = tempfile.mkstemp(dir=dest.parent, prefix=f".{dest.name}.", suffix=".import-tmp")
+    tmp = Path(tmp_name)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(payload)
+        os.replace(tmp, dest)
+    except BaseException:
+        # Don't leak a temp file on any failure path.
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
 
 
 def _capped_raster_bytes(op: WriteOp, transform: AssetTransform) -> tuple[bytes, Diagnostic | None]:
@@ -142,20 +169,52 @@ def _capped_raster_bytes(op: WriteOp, transform: AssetTransform) -> tuple[bytes,
         )
 
 
+# SVG sanitization is scoped to BODY-IMAGE assets (role `imported_asset`), the
+# DOCX-extracted, content-hash-named SVGs the threat model names. COVERS (role
+# `cover`) are DELIBERATELY excluded: the committed author cover SVGs legitimately
+# use `<foreignObject>` to render the styled title (cover.en.svg), and stripping it
+# would corrupt the published cover. Covers are admin-curated design assets on a
+# different trust path (committed directly / passed by an explicit `--cover`), not
+# DOCX body content — so sanitizing them risks corruption for no body-XSS gain.
+# (Cross-checked: the 3 committed body SVGs are clean — the sanitizer is a no-op on
+# them byte-for-byte; only the cover carries a foreignObject.)
+_SVG_SANITIZE_ROLES: frozenset[str] = frozenset({"imported_asset"})
+
+
+def _maybe_sanitize_svg(op: WriteOp, payload: bytes) -> bytes:
+    """Sanitize SVG XSS gadgets at the body-image asset-copy boundary.
+
+    A DOCX-extracted SVG body image is served RAW same-origin, so a `<script>`/
+    `on*`/`javascript:`/`<foreignObject>`/external-href gadget in it is stored XSS.
+    The writer is the sole component that copies assets in, so it is the gate: a
+    body-image (`imported_asset`) op landing a `.svg` target is routed through
+    `svg_sanitize.sanitize_svg`, which strips the gadgets and returns CLEAN input
+    byte-for-byte (the real body SVGs are untouched). Rasters and covers are not
+    touched (see `_SVG_SANITIZE_ROLES`)."""
+    if op.role in _SVG_SANITIZE_ROLES and svg_sanitize.is_svg_name(op.rel_path.name):
+        return svg_sanitize.sanitize_svg(payload)
+    return payload
+
+
 def _op_payload(op: WriteOp) -> tuple[bytes, Diagnostic | None]:
     """The bytes a write_text/copy/transform_asset op will land, plus an optional
-    warning the transform produced. (ensure_dir has none.)"""
+    warning the transform produced. (ensure_dir has none.) SVG asset payloads are
+    sanitized at this boundary (Fix D)."""
     if op.kind == "write_text":
         if op.content is None:
             raise ValueError(f"write_text op for {op.rel_path} has no content")
         return op.content.encode("utf-8"), None
     if op.kind == "copy":
-        return _read_source_bytes(op), None
+        return _maybe_sanitize_svg(op, _read_source_bytes(op)), None
     if op.kind == "transform_asset":
         transform = op.transform or AssetTransform(kind="copy")
         if transform.kind == "cap_raster":
-            return _capped_raster_bytes(op, transform)
-        return _read_source_bytes(op), None
+            # cap_raster only ever runs on rasters (PNG/JPEG/WEBP); an SVG asset is a
+            # `copy` transform. If a non-raster slips into a cap op it falls back to
+            # original bytes, which we still sanitize if it is an SVG.
+            payload, warning = _capped_raster_bytes(op, transform)
+            return _maybe_sanitize_svg(op, payload), warning
+        return _maybe_sanitize_svg(op, _read_source_bytes(op)), None
     raise ValueError(f"{op.kind} op has no payload")
 
 

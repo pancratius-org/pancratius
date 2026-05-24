@@ -82,6 +82,99 @@ def _escape_markdown_alt(alt: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# URL-scheme allowlist (defense-in-depth: the renderer emits raw HTML unsanitized)
+# ---------------------------------------------------------------------------
+
+# The site's Markdown renderer has NO sanitizer (verse-block <div>, <span dir>,
+# p.signature are emitted as raw HTML on purpose), so the IMPORT is the gate: a
+# DOCX-authored link/image target must never become an active scheme in a
+# published page. Only these schemes — plus relative / anchor / scheme-less
+# targets — are allowed through; `javascript:`/`vbscript:`/`data:` (non-image) and
+# any other scheme are unsafe.
+_ALLOWED_URL_SCHEMES: frozenset[str] = frozenset({"http", "https", "mailto"})
+# A leading `scheme:` per RFC 3986 (ALPHA then *(ALPHA / DIGIT / "+" / "-" / ".")),
+# matched case-insensitively. A target with NO such prefix is relative/anchor and
+# is allowed; one WITH a prefix is allowed only when the scheme is in the set.
+_URL_SCHEME_RE = re.compile(r"^([a-zA-Z][a-zA-Z0-9+.\-]*):")
+
+
+def _is_safe_url(target: str) -> bool:
+    """True if `target` is a safe link/image target: a relative/anchor/scheme-less
+    path, or an absolute URL whose scheme is in `_ALLOWED_URL_SCHEMES`.
+
+    A scheme-less target (`./x`, `/works/x`, `#anchor`, `images/a.png`, or bare
+    text) carries no active scheme and is allowed. A target with an explicit
+    `scheme:` prefix is allowed only for http/https/mailto; `javascript:`,
+    `vbscript:`, `data:`, `file:`, etc. are rejected. Leading control/space chars
+    (a `\\tjavascript:` evasion) are stripped before the scheme is read, mirroring
+    how a browser would parse the attribute."""
+    stripped = target.strip().lstrip("\x00\t\n\r ")
+    m = _URL_SCHEME_RE.match(stripped)
+    if m is None:
+        return True  # relative / anchor / scheme-less
+    return m.group(1).lower() in _ALLOWED_URL_SCHEMES
+
+
+def sanitize_urls(doc: ir.Document) -> None:
+    """Drop unsafe link/image targets across the document, in place.
+
+    For each reachable inline: an `ir.Link` with an unsafe target is replaced by
+    its child inlines (the link text is KEPT, only the active target is dropped);
+    an `ir.ImageInline` with an unsafe `src` is dropped entirely. Each removal
+    surfaces a `warning` diagnostic so the admin sees what was neutralized. Runs
+    BEFORE lowering (and before the asset pass), so an unsafe image never reaches
+    asset resolution and an unsafe link never reaches the Markdown/HTML emitters.
+    This is the URL half of the import gate; the asset pass + lowerer enforce the
+    image-resolution half (an in-root-but-unresolvable ref is handled there)."""
+
+    def visit_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
+        out: list[ir.Inline] = []
+        for n in inlines:
+            if isinstance(n, ir.Link) and not _is_safe_url(n.target):
+                doc.diagnostics.append(ir.Diagnostic(
+                    "warning", "import.unsafe-url",
+                    f"link target {n.target!r} uses a disallowed URL scheme; dropped "
+                    "the link, kept its text.",
+                ))
+                out.extend(visit_inlines(n.children))
+            elif isinstance(n, ir.ImageInline) and not _is_safe_url(n.src):
+                doc.diagnostics.append(ir.Diagnostic(
+                    "warning", "import.unsafe-url",
+                    f"image source {n.src!r} uses a disallowed URL scheme; dropped "
+                    "the image.",
+                ))
+                # drop it entirely (no replacement inline)
+            elif isinstance(n, ir.ContainerInline):
+                out.append(ir.rebuild_container(n, visit_inlines(n.children)))
+            else:
+                out.append(n)
+        return out
+
+    def visit_block(b: ir.Block) -> None:
+        if isinstance(b, ir.Heading):
+            b.inlines = visit_inlines(b.inlines)
+        elif isinstance(b, ir.Paragraph):
+            b.inlines = visit_inlines(b.inlines)
+        elif isinstance(b, ir.BlockQuote):
+            for inner in b.blocks:
+                visit_block(inner)
+        elif isinstance(b, ir.ListBlock):
+            for item in b.items:
+                for inner in item:
+                    visit_block(inner)
+        elif isinstance(b, ir.VerseBlock):
+            b.stanzas = [[visit_inlines(line) for line in stanza] for stanza in b.stanzas]
+        elif isinstance(b, ir.Table):
+            b.rows = [[visit_inlines(cell) for cell in row] for row in b.rows]
+
+    for b in doc.blocks:
+        visit_block(b)
+    for fn in doc.footnotes:
+        for b in fn.blocks:
+            visit_block(b)
+
+
+# ---------------------------------------------------------------------------
 # asset pass: assign content-hash asset ids to body images; plan their copy
 # ---------------------------------------------------------------------------
 
@@ -120,38 +213,61 @@ def _confined_media_source(src: str, media_root: Path) -> Path | None:
     return cand
 
 
+def _is_remote_url(src: str) -> bool:
+    """True if `src` is a safe REMOTE url (http/https) — a valid non-local image ref
+    that is kept as-is and is NOT subject to the local-image-resolution FATAL.
+
+    `mailto:` is not an image scheme; an unsafe scheme is already dropped upstream
+    by `sanitize_urls`, so by the time the asset pass runs the only scheme-bearing
+    image srcs that survive are http/https remote refs."""
+    m = _URL_SCHEME_RE.match(src.strip())
+    return m is not None and m.group(1).lower() in {"http", "https"}
+
+
+# The sentinel a resolve() result uses to say "this LOCAL image did not resolve to a
+# safe asset under the media dir" — FATAL, and the ref is DROPPED from the body
+# (never emitted as a dangling/escaping path). `None` means "kept as-is" (a safe
+# remote ref); a `(hash, ext)` pair means "resolved to a content-hash asset".
+_DROP_IMAGE = "drop"
+
+
 def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[PlannedAsset]:
     """Resolve every body image, assign its content-hash `<hash>.<ext>` asset id,
     and return the deduped `PlannedAsset`s for the writer to copy.
 
-    `media_root` is the directory pandoc extracted media into; an image whose source
-    cannot be resolved SAFELY UNDER `media_root` keeps its original ref (no asset
-    planned) and surfaces a warning diagnostic — an absolute or `..`-escaping `src`
-    is never read/copied (asset-source confinement). PURE: this only READS the media
-    files to hash them. The returned list is sorted by bundle-relative path, giving
-    the writer a stable asset order.
+    `media_root` is the directory pandoc extracted media into. An image whose source
+    is a safe REMOTE url (http/https) is kept as-is. A LOCAL image whose source does
+    NOT resolve to a safe readable file UNDER `media_root` — a missing in-root ref,
+    or an absolute / `..`-escaping path — is FATAL (docs/import-pipeline.md: "an
+    unresolvable local image is fatal"): a FATAL diagnostic is surfaced AND the ref
+    is DROPPED so the lowerer never writes a dangling/escaping path (e.g. a
+    `/Users/...` leak) into the published body. PURE: this only READS the media files
+    to hash them. The returned list is sorted by bundle-relative path, giving the
+    writer a stable asset order.
     """
     seen: dict[str, tuple[str, str]] = {}
     planned: dict[str, PlannedAsset] = {}
 
-    def resolve(src: str) -> tuple[str, str] | None:
+    def resolve(src: str) -> tuple[str, str] | str | None:
+        """`(hash, ext)` → resolved asset; `_DROP_IMAGE` → unresolvable LOCAL image
+        (FATAL, drop the ref); `None` → safe remote ref kept as-is."""
         if src in seen:
             return seen[src]
+        if _is_remote_url(src):
+            return None  # valid remote image ref — not a local image
         cand = _confined_media_source(src, media_root)
-        if cand is None:
-            # Distinguish an ESCAPING ref (a safety refusal worth surfacing) from an
-            # ordinary missing/unresolvable in-root ref (the benign keep-original-ref
-            # case the corpus hits for a stale link). Pandoc's absolute-but-in-root
-            # paths are NOT escapes, so they never trip this.
-            if _escapes_media_root(src, media_root):
-                doc.diagnostics.append(ir.Diagnostic(
-                    "warning", "import.asset-escape",
-                    f"image source {src!r} escapes the media-extraction dir; "
-                    "dropped (not read) — keeping the original ref.",
-                ))
-            return None
-        if not _is_image_path(cand.name):
-            return None
+        if cand is None or not _is_image_path(cand.name):
+            # A LOCAL image ref that does not resolve to a safe readable image file
+            # under the media dir. The documented FATAL: surface it and drop the ref
+            # (the writer refuses the whole write; the body never leaks the path).
+            escaped = _escapes_media_root(src, media_root)
+            doc.diagnostics.append(ir.Diagnostic(
+                "fatal", "import.image-unresolved",
+                f"local image source {src!r} "
+                + ("escapes the media-extraction dir" if escaped else "does not resolve to a readable image under the media dir")
+                + "; refusing the write and dropping the ref (no dangling path emitted).",
+            ))
+            return _DROP_IMAGE
         h = _hash_file(cand)
         ext = _normalize_ext(cand.suffix)
         rel_within = f"images/{h}{ext}"
@@ -168,7 +284,10 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
         for n in inlines:
             if isinstance(n, ir.ImageInline):
                 got = resolve(n.src)
-                out.append(ir.ImageInline(src=n.src, alt=n.alt, asset_id=(got[0] + got[1]) if got else None))
+                if got == _DROP_IMAGE:
+                    continue  # unresolvable local image: FATAL upstream, drop the ref
+                asset_id = (got[0] + got[1]) if isinstance(got, tuple) else None
+                out.append(ir.ImageInline(src=n.src, alt=n.alt, asset_id=asset_id))
             elif isinstance(n, ir.ContainerInline):
                 out.append(ir.rebuild_container(n, visit_inlines(n.children)))
             else:
@@ -178,7 +297,12 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
     def visit_block(b: ir.Block) -> None:
         if isinstance(b, ir.ImageBlock):
             got = resolve(b.src)
-            if got:
+            if got == _DROP_IMAGE:
+                # An unresolvable local block image is FATAL; blank the src so the
+                # lowerer emits no dangling path (the write is refused regardless).
+                b.src = ""
+                b.asset_id = None
+            elif isinstance(got, tuple):
                 b.asset_id = got[0] + got[1]
         elif isinstance(b, ir.Paragraph):
             b.inlines = visit_inlines(b.inlines)
@@ -238,6 +362,29 @@ def _escape_literal_text(value: str) -> str:
     return _LITERAL_MD_ESCAPE_RE.sub(lambda m: "\\" + m.group(0), value)
 
 
+def _longest_backtick_run(value: str) -> int:
+    """The length of the longest consecutive run of backticks in `value` (0 if
+    none). Drives the variable-length fence/delimiter sizing below."""
+    return max((len(m.group(0)) for m in re.finditer(r"`+", value)), default=0)
+
+
+def _inline_code_md(value: str) -> str:
+    """Lower inline code with a CommonMark-safe variable-length backtick delimiter.
+
+    A FIXED single-backtick delimiter lets a literal backtick in the content close
+    the span early, leaking the rest of the run back into prose markup (a Markdown
+    breakout). The delimiter is therefore a run of N+1 backticks where N is the
+    longest internal backtick run — strictly longer than anything inside, so the
+    span cannot be terminated early. Per CommonMark, when the content begins or ends
+    with a backtick (or is all whitespace) a single space pad inside the fence keeps
+    the leading/trailing backtick from being stripped; the renderer drops exactly
+    one such pad, so the literal content round-trips inert.
+    """
+    fence = "`" * (_longest_backtick_run(value) + 1)
+    pad = " " if value and (value[0] == "`" or value[-1] == "`" or value.strip() == "") else ""
+    return f"{fence}{pad}{value}{pad}{fence}"
+
+
 def _inline_md(n: ir.Inline, lang: str) -> str:
     if isinstance(n, ir.Text):
         return _escape_literal_text(n.value)
@@ -247,7 +394,7 @@ def _inline_md(n: ir.Inline, lang: str) -> str:
         o, c = _EMPH_MD[n.kind]
         return f"{o}{_inlines_md(n.children, lang)}{c}"
     if isinstance(n, ir.Code):
-        return f"`{n.value}`"
+        return _inline_code_md(n.value)
     if isinstance(n, ir.Quoted):
         inner = _inlines_md(n.children, lang)
         return f"'{inner}'" if n.single else f"«{inner}»"
@@ -258,8 +405,10 @@ def _inline_md(n: ir.Inline, lang: str) -> str:
         inner = _inlines_md(n.children, lang)
         return f'<span dir="{html.escape(n.direction, quote=True)}">{inner}</span>'
     if isinstance(n, ir.ImageInline):
-        alt = n.alt or _body_image_alt(lang)
         target = f"./images/{n.asset_id}" if n.asset_id else n.src
+        if not target:
+            return ""  # a dropped (unresolvable-local) image emits nothing
+        alt = n.alt or _body_image_alt(lang)
         return f"![{_escape_markdown_alt(alt)}]({target})"
     if isinstance(n, ir.FootnoteRef):
         return f"[^{n.id}]"
@@ -314,7 +463,8 @@ def _inline_html_lines(nodes: list[ir.Inline], lang: str) -> list[str]:
             lines[-1] += f'<span dir="{html.escape(n.direction, quote=True)}">{inner}</span>'
         elif isinstance(n, ir.ImageInline):
             target = f"./images/{n.asset_id}" if n.asset_id else n.src
-            lines[-1] += f'<img src="{html.escape(target, quote=True)}" alt="{html.escape(n.alt, quote=True)}">'
+            if target:  # a dropped (unresolvable-local) image emits nothing
+                lines[-1] += f'<img src="{html.escape(target, quote=True)}" alt="{html.escape(n.alt, quote=True)}">'
         elif isinstance(n, ir.FootnoteRef):
             lines[-1] += f"[^{n.id}]"
         elif isinstance(n, ir.UnknownInline):
@@ -485,8 +635,10 @@ def _block_md(b: ir.Block, lang: str, *, poem: bool = False) -> str | None:
     if isinstance(b, ir.ThematicBreak):
         return "***"
     if isinstance(b, ir.ImageBlock):
-        alt = b.alt or _body_image_alt(lang)
         target = f"./images/{b.asset_id}" if b.asset_id else b.src
+        if not target:
+            return None  # a dropped (unresolvable-local) block image emits nothing
+        alt = b.alt or _body_image_alt(lang)
         return f"![{_escape_markdown_alt(alt)}]({target})"
     if isinstance(b, ir.BlockQuote):
         if b.role == "_div":
@@ -503,7 +655,12 @@ def _block_md(b: ir.Block, lang: str, *, poem: bool = False) -> str | None:
             parts.append(f"{marker} {item_md}")
         return "\n".join(parts) or None
     if isinstance(b, ir.CodeBlock):
-        return f"```\n{b.text}\n```"
+        # A FIXED triple-fence lets a ``` line inside the content close the block
+        # early, leaking the remainder as raw Markdown. Size the fence to be strictly
+        # longer than the longest internal backtick run (min 3), so the block cannot
+        # be terminated early — CommonMark info-string-less variable-length fence.
+        fence = "`" * max(3, _longest_backtick_run(b.text) + 1)
+        return f"{fence}\n{b.text}\n{fence}"
     if isinstance(b, ir.Table):
         return _table_md(b, lang)
     if isinstance(b, ir.UnknownBlock):
@@ -668,6 +825,10 @@ def lower(doc: ir.Document, lang: str, *, poem: bool = False) -> str:
     `poem` selects verse lowering for the work-as-a-whole: paragraphs become
     stanza-grouped verse lines (one line each, stanzas split on empty paragraphs)
     rather than prose, in a line-per-line shape."""
+    # Neutralize unsafe link/image schemes BEFORE any Markdown/HTML is emitted (the
+    # import is the only sanitizer the unsanitized renderer has). Idempotent — the
+    # converter also runs it before the asset pass, and a re-run finds nothing left.
+    sanitize_urls(doc)
     _surface_unknown_block_diagnostics(doc)
     if poem:
         body = _lower_poem_body(doc, lang)

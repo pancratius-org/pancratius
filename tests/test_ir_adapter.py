@@ -12,9 +12,12 @@ ordered-list start, table structuring).
 
 from __future__ import annotations
 
+import subprocess
 import sys
 import zipfile
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
@@ -427,3 +430,41 @@ def test_reconcile_alignment_no_match_assigns_nothing() -> None:
     records = [adapter._JcRecord(align="right", text="unrelated source words")]
     assigned = adapter.reconcile_alignment([para], records)
     assert assigned == 0 and para.align == ""
+
+
+# ---------------------------------------------------------------------------
+# Fix F: pandoc subprocess runs with a timeout; a hang raises a clear error
+# ---------------------------------------------------------------------------
+
+
+def test_run_pandoc_passes_a_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    # A pandoc invocation with no timeout can hang the import forever on a
+    # pathological/large input. The subprocess.run call must carry a generous
+    # `timeout=` kwarg.
+    captured: dict[str, object] = {}
+
+    class _FakeProc:
+        returncode = 0
+        stdout = '{"blocks":[],"pandoc-api-version":[1,23],"meta":{}}'
+        stderr = ""
+
+    def fake_run(cmd: list[str], **kwargs: object) -> _FakeProc:
+        captured.update(kwargs)
+        return _FakeProc()
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    adapter.run_pandoc_json(tmp_path / "x.docx", tmp_path / "media")
+    assert "timeout" in captured, "pandoc subprocess.run must pass a timeout"
+    assert isinstance(captured["timeout"], (int, float)) and captured["timeout"] > 0
+
+
+def test_run_pandoc_timeout_raises_clear_error(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    # On a TimeoutExpired the adapter must raise a clear, actionable error (not let
+    # the raw subprocess exception bubble unexplained).
+    def fake_run(cmd: list[str], **kwargs: object) -> object:
+        timeout = kwargs.get("timeout", 0)
+        raise subprocess.TimeoutExpired(cmd, float(timeout) if isinstance(timeout, (int, float)) else 0.0)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    with pytest.raises(RuntimeError, match="(?i)timed out|timeout"):
+        adapter.run_pandoc_json(tmp_path / "x.docx", tmp_path / "media")

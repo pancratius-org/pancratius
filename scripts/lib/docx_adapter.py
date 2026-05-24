@@ -61,17 +61,34 @@ def _node(value: object) -> dict[str, Any] | None:
 # ---------------------------------------------------------------------------
 
 
+# A generous wall-clock cap on a single pandoc invocation. The largest corpus book
+# (~40k paragraphs) converts in seconds; this bound only fires on a pathological /
+# adversarial input that would otherwise hang the import indefinitely with no
+# subprocess timeout. Local admin tool, so the cap is loose, not tight.
+PANDOC_TIMEOUT_SECONDS = 300
+
+
 def run_pandoc_json(docx: Path, media_dir: Path) -> tuple[dict[str, Any], str]:
     """Parse `docx` to the Pandoc JSON AST, extracting media into `media_dir`.
 
     Returns `(ast, stderr)`. `+empty_paragraphs` preserves Word empty paragraphs
-    so stanza structure reaches the IR. Raises on a non-zero pandoc exit.
+    so stanza structure reaches the IR. Raises on a non-zero pandoc exit, and on a
+    `PANDOC_TIMEOUT_SECONDS` wall-clock overrun (a hung/pathological conversion is
+    turned into a clear error instead of an indefinite hang).
     """
     cmd = [
         "pandoc", "--from", "docx+empty_paragraphs", "--to", "json",
         "--extract-media", str(media_dir), str(docx),
     ]
-    proc = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=PANDOC_TIMEOUT_SECONDS
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"pandoc timed out after {PANDOC_TIMEOUT_SECONDS}s on {docx.name}; "
+            "the conversion was aborted (no partial output is trusted)."
+        ) from exc
     if proc.returncode != 0:
         raise RuntimeError(f"pandoc failed on {docx.name}: {proc.stderr.strip()}")
     return json.loads(proc.stdout), proc.stderr.strip()

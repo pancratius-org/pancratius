@@ -279,6 +279,42 @@ def test_symlink_escape_is_refused(tmp_path: Path) -> None:
     assert any(d.code == "writeplan.scope-escape" for d in report.diagnostics)
 
 
+def test_preseeded_symlink_at_temp_path_does_not_redirect_write(tmp_path: Path) -> None:
+    # Fix E: `_atomic_write` previously used a DETERMINISTIC temp sibling
+    # `.<name>.import-tmp` and `Path.write_bytes`, which FOLLOWS a symlink. A
+    # pre-seeded symlink at that predictable temp path could redirect the write to an
+    # arbitrary out-of-scope file. The hardened writer uses a unique, unpredictable
+    # temp (mkstemp) and never follows a pre-existing symlink — the destination gets
+    # the real bytes and the out-of-scope target is untouched.
+    dest_dir = tmp_path / "bundle"
+    dest_dir.mkdir()
+    dest = dest_dir / "ru.md"
+
+    outside = tmp_path / "victim.txt"
+    outside.write_text("ORIGINAL", encoding="utf-8")
+
+    # Pre-seed the OLD deterministic temp path with a symlink to the victim file.
+    legacy_tmp = dest_dir / f".{dest.name}.import-tmp"
+    legacy_tmp.symlink_to(outside)
+
+    writer._atomic_write(dest, b"NEWCONTENT")
+
+    # The destination has the real new bytes (the write succeeded into scope).
+    assert dest.read_bytes() == b"NEWCONTENT"
+    # The out-of-scope victim was NOT overwritten through the pre-seeded symlink.
+    assert outside.read_text(encoding="utf-8") == "ORIGINAL"
+
+
+def test_atomic_write_does_not_leave_temp_files(tmp_path: Path) -> None:
+    # The unique temp is renamed into place; no `.import-tmp`/`tmp*` residue is left.
+    dest_dir = tmp_path / "bundle"
+    dest_dir.mkdir()
+    dest = dest_dir / "ru.md"
+    writer._atomic_write(dest, b"X")
+    leftovers = [p.name for p in dest_dir.iterdir() if p.name != "ru.md"]
+    assert leftovers == [], f"no temp residue expected, found {leftovers}"
+
+
 # --- transform_asset (the cap_raster transform — the only place PIL runs). These
 # need a real raster, so they are skipped where pillow is absent. ---
 
@@ -407,3 +443,129 @@ def test_cap_raster_corrupt_image_falls_back_to_copy(tmp_path: Path) -> None:
     warnings = [d for d in report.diagnostics if d.code == "writer.cap-failed"]
     assert len(warnings) == 1
     assert warnings[0].severity == "warning"
+
+
+# --- Fix D: SVG sanitize-on-import (the asset-copy boundary) -----------------
+# SVG is served raw same-origin, so an SVG body image carrying script/on*/external
+# refs is a stored-XSS gadget. When the writer copies an SVG asset it must strip the
+# gadget; a clean SVG must be byte-identical (so the real author SVGs are preserved).
+
+
+def _svg_copy_op(src: Path, rel: str) -> WriteOp:
+    return WriteOp(
+        kind="transform_asset",
+        rel_path=SCOPE / rel,
+        role="imported_asset",
+        reason="svg",
+        source=src,
+        transform=AssetTransform(kind="copy"),
+    )
+
+
+def test_svg_with_script_is_sanitized_on_copy(tmp_path: Path) -> None:
+    root = tmp_path / "content"
+    src = tmp_path / "src" / "evil.svg"
+    src.parent.mkdir(parents=True, exist_ok=True)
+    src.write_bytes(
+        b'<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)">'
+        b'<script>alert(2)</script>'
+        b'<rect width="10" height="10"/>'
+        b'<a href="javascript:alert(3)"><text>x</text></a>'
+        b'<foreignObject><body>html</body></foreignObject>'
+        b"</svg>"
+    )
+    plan = _plan(
+        root,
+        (
+            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
+            _svg_copy_op(src, "images/evil.svg"),
+        ),
+    )
+    writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    out = (root / "books/99-probe/images/evil.svg").read_text(encoding="utf-8")
+
+    assert "<script" not in out
+    assert "onload" not in out
+    assert "javascript:" not in out
+    assert "<foreignObject" not in out.lower()
+    # the benign drawing content survives
+    assert "<rect" in out
+
+
+def test_clean_svg_is_byte_identical(tmp_path: Path) -> None:
+    # A clean SVG (only internal #-fragment refs, no script/on*/external href) must
+    # round-trip byte-for-byte — the real author SVGs are not corrupted.
+    root = tmp_path / "content"
+    src = tmp_path / "src" / "clean.svg"
+    src.parent.mkdir(parents=True, exist_ok=True)
+    src.write_bytes(
+        b'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+        b'<defs><linearGradient id="g1"/></defs>'
+        b'<rect fill="url(#g1)" width="10" height="10"/>'
+        b'<use xlink:href="#g1"/>'
+        b"</svg>"
+    )
+    plan = _plan(
+        root,
+        (
+            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
+            _svg_copy_op(src, "images/clean.svg"),
+        ),
+    )
+    writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    out = (root / "books/99-probe/images/clean.svg").read_bytes()
+    assert out == src.read_bytes(), "a clean SVG must be preserved byte-for-byte"
+
+
+def test_svg_external_xlink_href_is_neutralized(tmp_path: Path) -> None:
+    # An EXTERNAL xlink:href (http/data/file) in an SVG is a fetch/exfil gadget; an
+    # INTERNAL #-fragment ref (gradient/symbol) must be kept.
+    root = tmp_path / "content"
+    src = tmp_path / "src" / "ext.svg"
+    src.parent.mkdir(parents=True, exist_ok=True)
+    src.write_bytes(
+        b'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+        b'<image xlink:href="https://evil.example/x.png"/>'
+        b'<use xlink:href="#internal"/>'
+        b"</svg>"
+    )
+    plan = _plan(
+        root,
+        (
+            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
+            _svg_copy_op(src, "images/ext.svg"),
+        ),
+    )
+    writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    out = (root / "books/99-probe/images/ext.svg").read_text(encoding="utf-8")
+    assert "evil.example" not in out
+    assert "#internal" in out, "an internal #-fragment ref must be kept"
+
+
+def test_cover_svg_is_not_sanitized(tmp_path: Path) -> None:
+    # A COVER SVG (role `cover`) is DELIBERATELY not sanitized: the committed author
+    # covers legitimately use <foreignObject> to render the styled title, and
+    # stripping it would corrupt the published cover. Covers are a different trust
+    # path (admin-curated). The body-image gate is where the XSS risk lives.
+    root = tmp_path / "content"
+    src = tmp_path / "src" / "cover.en.svg"
+    src.parent.mkdir(parents=True, exist_ok=True)
+    src.write_bytes(
+        b'<svg xmlns="http://www.w3.org/2000/svg">'
+        b'<foreignObject x="0" y="0" width="100" height="100"><body>Title</body></foreignObject>'
+        b"</svg>"
+    )
+    op = WriteOp(
+        kind="copy",
+        rel_path=SCOPE / "cover.en.svg",
+        role="cover",
+        reason="cover",
+        source=src,
+    )
+    plan = _plan(
+        root,
+        (WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"), op),
+    )
+    writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    out = (root / "books/99-probe/cover.en.svg").read_bytes()
+    assert out == src.read_bytes(), "a cover SVG must be preserved byte-for-byte (foreignObject kept)"

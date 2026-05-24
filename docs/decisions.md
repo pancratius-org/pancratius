@@ -288,3 +288,24 @@ is permitted only at genuine dynamic boundaries (opaque ML model/tokenizer
 objects, untyped Pandoc-AST payloads, un-stubbed third-party imports) and must be
 explicit (scoped `# noqa: ANN401`, a documented alias, or an enumerated
 `replace-imports-with-any` entry) — never a blanket suppression.
+
+## Import is the publish gate: harden authored content, not the renderer
+
+The site's Markdown renderer carries no sanitizer — verse-blocks, signatures, and
+bidi spans are converter-emitted raw HTML the pages depend on, so a sanitizer
+can't be added without breaking them. The import is therefore the single gate:
+literal authored text must not become unintended active markup in published pages.
+The importer accordingly escapes literal `Text` (Markdown/HTML metacharacters,
+variable-length code fences), allowlists link/image URL schemes
+(http/https/mailto/relative; unsafe schemes dropped with a diagnostic), and makes
+an unresolvable or scope-escaping local image a fatal write-refusal.
+
+Imported **body-image SVGs** are sanitized at the writer's copy boundary (strip
+`<script>`, `on*` handlers, `javascript:`/`data:` hrefs, `<foreignObject>`,
+external refs) because they are served raw, same-origin. **Covers are
+deliberately excluded** from this sanitize: they are admin-curated design assets
+on a different trust path (committed directly or passed via an explicit
+`--cover`), and the author cover SVGs legitimately use `<foreignObject>` to render
+their styled title — sanitizing would corrupt them. The committed body SVGs are
+clean (the sanitizer is a byte-for-byte no-op on them); the scoping lives in
+`scripts/lib/writer.py`.

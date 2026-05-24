@@ -3,9 +3,8 @@
 
 This is the semantic boundary from `docs/import-pipeline.md` ("The block IR"):
 after the DOCX adapter, nothing is DOCX-shaped — it is blocks, inlines, footnote
-definitions, assets, metadata guesses, and diagnostics. Lowering turns this typed
-structure into canonical Markdown exactly once; no Markdown string exists before
-then.
+definitions, assets, and diagnostics. Lowering turns this typed structure into
+canonical Markdown exactly once; no Markdown string exists before then.
 
 The model is deliberately minimal: only the block and inline kinds the Pancratius
 canonical Markdown body actually needs, plus explicit `UnknownBlock`/`UnknownInline`
@@ -338,17 +337,6 @@ class AssetRef:
 
 
 @dataclass(frozen=True)
-class MetadataGuess:
-    """A value the adapter read from the document (e.g. a title) offered as a
-    frontmatter candidate; placement/lowering consume guesses, they never reach
-    back into the blocks."""
-
-    key: str
-    value: str
-    note: str
-
-
-@dataclass(frozen=True)
 class Diagnostic:
     """A first-class finding with a severity and a stable code. `fatal` blocks the
     write; `warning` prints before the write summary; `info` records provenance."""
@@ -360,12 +348,11 @@ class Diagnostic:
 
 @dataclass
 class Document:
-    """The IR document. Blocks plus footnotes, bibliography, assets, metadata
-    guesses, and diagnostics travel SIDE BY SIDE — never inside the prose."""
+    """The IR document. Blocks plus footnotes, bibliography, assets, and
+    diagnostics travel SIDE BY SIDE — never inside the prose."""
 
     blocks: list[Block] = field(default_factory=list)
     footnotes: list[FootnoteDef] = field(default_factory=list)
     bibliography: list[dict[str, object]] = field(default_factory=list)
     assets: list[AssetRef] = field(default_factory=list)
-    guesses: list[MetadataGuess] = field(default_factory=list)
     diagnostics: list[Diagnostic] = field(default_factory=list)

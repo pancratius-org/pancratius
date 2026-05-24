@@ -13,7 +13,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from lib import cross_refs, docx_adapter, ir_lower, ir_normalize, ooxml
+from lib import cross_refs, docx_adapter, ir, ir_lower, ir_normalize, ooxml
 from lib.writeplan import PlannedAsset
 
 
@@ -28,6 +28,12 @@ class ConvertedDocx:
     # media); the importer turns these into writer `transform_asset` ops, so the
     # writer is the sole component that copies them into the bundle.
     assets: list[PlannedAsset] = field(default_factory=list)
+    # TYPED diagnostics carried straight from the IR document (severity preserved),
+    # so a converter-side FATAL (e.g. an unresolvable local image) can ride into the
+    # WritePlan and block the write. Flattening these into `warnings` (a string) lost
+    # severity, letting a fatal slip through as a non-blocking warning. `warnings` is
+    # still produced for the human summary.
+    diagnostics: list[ir.Diagnostic] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -181,6 +187,10 @@ def convert_single_docx(
     else:
         ir_normalize.normalize(doc, demote_levels=1, slug_lookup=title_index)
 
+    # Neutralize unsafe link/image URL schemes BEFORE the asset pass reads/hashes
+    # any image, so an unsafe-scheme image src never reaches asset resolution (and
+    # the kept link text survives). `lower` runs it again idempotently.
+    ir_lower.sanitize_urls(doc)
     assets = ir_lower.assign_assets(doc, media_out, lang)
     body = ir_lower.lower(doc, lang, poem=(kind == "poem"))
     if kind == "poem":
@@ -213,6 +223,9 @@ def convert_single_docx(
         cross_refs=cross_refs.restructure_cross_refs(refs),
         warnings=warnings,
         assets=assets,
+        # Carry EVERY typed diagnostic (severity preserved) so the importer can let a
+        # converter-side FATAL block the write — not just the flattened warning string.
+        diagnostics=list(doc.diagnostics),
     )
 
 

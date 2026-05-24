@@ -559,8 +559,16 @@ def _run(args: argparse.Namespace) -> tuple[ImportResult, WriteReport]:
             Diagnostic(d.severity, d.code, d.message)
             for d in footnotes.analyze_footnotes(converted.body)
         )
-        if converted.warnings:
-            diagnostics += (Diagnostic("warning", "import.pandoc", converted.warnings),)
+        # Carry the converter's TYPED diagnostics (severity preserved) into the plan
+        # so a converter-side FATAL — e.g. the unresolvable-local-image fatal from
+        # `ir_lower.assign_assets` — reaches the writer's `has_fatal` refusal and
+        # blocks the write. Previously these were flattened into a single warning
+        # string, so a fatal could not block. `ir.Diagnostic` and the plan's
+        # `Diagnostic` share the (severity, code, message) shape; re-wrap to the
+        # plan's type at this boundary.
+        diagnostics += tuple(
+            Diagnostic(d.severity, d.code, d.message) for d in converted.diagnostics
+        )
         plan = _plan_from_scratch(
             stage_work_dir=stage_dir,
             content_root=content_root,

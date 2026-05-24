@@ -138,3 +138,60 @@ def test_importer_does_not_consult_legacy_catalog_files(tmp_path: Path, monkeypa
     assert fm["number"] == 7
     assert fm["slug"] == "07-frontmatter-only"
     assert fm["title"] == "Frontmatter Only"
+
+
+# ---------------------------------------------------------------------------
+# Fix A: typed converter diagnostics flow into the WritePlan and a FATAL blocks
+# ---------------------------------------------------------------------------
+
+
+def test_converter_fatal_diagnostic_blocks_the_write(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # A converter-side FATAL (the unresolvable-local-image fatal proven in
+    # test_ir_pipeline) must reach WritePlan.diagnostics and make the writer REFUSE —
+    # nothing written. Today the converter flattened diagnostics into a warning STRING,
+    # so a fatal could not block. We inject the fatal at the asset pass (its real
+    # trigger) and assert the whole bundle is refused.
+    from lib import ir, ir_lower
+
+    real_assign = ir_lower.assign_assets
+
+    def fatal_assign(doc: "ir.Document", media_root: Path, lang: str) -> list:
+        out = real_assign(doc, media_root, lang)
+        doc.diagnostics.append(ir.Diagnostic("fatal", "import.image-unresolved", "synthetic fatal"))
+        return out
+
+    monkeypatch.setattr(ir_lower, "assign_assets", fatal_assign)
+
+    content_root = tmp_path / "src" / "content"
+    parsed = import_docx.build_parser().parse_args([
+        str(ROOT / "legacy/books/ru/23-личность-и-эго.docx"),
+        "--kind", "book", "--lang", "ru", "--number", "91", "--slug", "fatal-probe",
+        "--title", "Fatal Probe", "--description", "d.",
+        "--out-content", str(content_root),
+    ])
+    with pytest.raises(SystemExit):
+        import_docx.run(parsed)
+
+    work_dir = content_root / "books" / "91-fatal-probe"
+    assert not (work_dir / "ru.md").exists(), "a converter FATAL must block the write entirely"
+
+
+def test_converter_typed_diagnostics_carry_severity(tmp_path: Path) -> None:
+    # The converter must expose TYPED diagnostics (not just a flattened string), so a
+    # downstream consumer can read severity. A clean import still carries any
+    # info/warning diagnostics with their severity intact.
+    from lib import content_catalog
+    from lib.docx_conversion import convert_single_docx
+
+    media = tmp_path / "media"
+    converted = convert_single_docx(
+        ROOT / "legacy/books/ru/23-личность-и-эго.docx",
+        kind="book", lang="ru", work_key="91-probe", title="Probe",
+        work_dir=tmp_path / "stage",
+        title_index=content_catalog.build_title_index([]),
+        media_out=media,
+    )
+    assert hasattr(converted, "diagnostics"), "ConvertedDocx must expose typed diagnostics"
+    assert all(d.severity in {"fatal", "warning", "info"} for d in converted.diagnostics)
+    # The human-readable warnings string is still produced.
+    assert isinstance(converted.warnings, str)
