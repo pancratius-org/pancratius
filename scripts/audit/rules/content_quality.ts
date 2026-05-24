@@ -125,6 +125,15 @@ const FOLDED: readonly FoldedAudit[] = [
     repair: "Regenerate the verse block from the DOCX AST through the converter.",
   },
   {
+    id: "PAN006B-book-verse",
+    script: "book_verse.py",
+    severity: "warning",
+    category: "conversion-fidelity",
+    contract: "Book verse-block decisions are faithful to the DOCX source: the converter wraps a verse-block only for a confident source verse run (>=2 short lineated lines whose lineation comes from a hard <w:br/> or a stanza-break-separated run of short standalone paragraphs), never an isolated short line, a Speaker:/Speaker (qual): label, a prose-length line, or one prose sentence after a label; and it does not leave a confident source run as prose. The DOCX-source oracle for BOOK verse (poems have poetry_stanzas.py) and the executable spec for ir_normalize's verse detection.",
+    why: "An over-wrapped label/prose line ships as mis-rendered verse; a missed litany run loses authored lineation. A signature/epigraph that no longer matches the right-aligned source is the C1/I2 regression class this also guards.",
+    repair: "Re-run reading the DOCX AST stanza/lineation signal (the rule in scripts/audit/book_verse.py); fix the ir_normalize verse-detection pass, not the committed Markdown. A genuine borderline run boundary is an editorial call for the lead, not a tool change.",
+  },
+  {
     id: "PAN006B-source-text-fidelity",
     script: "source_text_fidelity.py",
     severity: "warning",

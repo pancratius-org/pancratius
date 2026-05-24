@@ -185,19 +185,84 @@ def _is_question_title(t: str) -> bool:
     return bool(_NUMBERED_QUESTION_TITLE_RE.match(t.strip()))
 
 
+# The dialogue speaker names the converter canonicalizes (`**Speaker:**`). Defined
+# here (above verse detection) because both the dialogue-label pass AND verse
+# detection's speaker-turn rejection consume it — ONE source of truth for who is a
+# speaker, so adding a speaker keeps the two in sync.
+_DIALOGUE_PREFIXES = [
+    "Панкратиус", "Светозар", "Светозар Gemini Flash 2.0", "Светозар DeepSeek",
+    "Светозар ChatGPT", "Творец", "Бог", "Слово Творца", "Слово Бога",
+    "Pankratius", "Svetozar", "Creator", "God", "Gemini", "DeepSeek", "ChatGPT",
+]
+
+# Short-line length threshold (I4 calibration). A display line longer than this
+# is "prose-length" and is NOT a verse line — so a run of one-sentence-per-Word-
+# paragraph PROSE (how the corpus stores prose, indistinguishable from verse by
+# paragraph shape alone) is not folded into a verse-block. Refined DOWN from the
+# legacy 145: across the corpus the genuine verse-line population sits well under
+# 120 chars, while clean prose paragraphs stored one-per-line cluster at 121–144;
+# 120 keeps a margin above real verse lines while excluding that prose tail (see
+# scripts/audit/book_verse.py, which encodes the same threshold as the spec).
+VERSE_SHORT_LINE_MAX = 120
+
+# A SPEAKER LABEL line: an optional leading bold marker, a short speaker phrase
+# (capitalized start), an OPTIONAL parenthetical qualifier `(…)`, then a TERMINAL
+# colon (nothing meaningful after it but an optional closing bold). This is the
+# `Speaker:` / `Speaker (qual):` shape the spec excludes from verse — the
+# parenthetical is INSIDE the pattern (the old `[\w .…-]` char class let `(` break
+# the match, so `Ответ от Творца (режим проводника):` slipped through as a verse
+# line — the over-detection root cause). A colon MID-sentence (text after it, e.g.
+# `Ты спросил: кто они?`) is NOT matched, so genuine litany lines stay verse (the
+# under-detection root cause was rejecting those mid-sentence-colon lines).
+_LABEL_LINE_RE = re.compile(
+    r"^\s*\**\s*"
+    r"[A-ZА-ЯЁ][\wА-Яа-яЁё.\- ]{0,47}?"
+    r"(?:\s*\([^)]{1,40}\))?"
+    r"\s*:\s*\**\s*$"
+)
+
+
+def _speaker_turn_re() -> re.Pattern[str]:
+    """A SPEAKER-led colon line: `<known dialogue prefix>:` OR `<Name> (qual):`
+    followed by content (or end). This is a dialogue/source TURN, never verse —
+    `Панкратиус: <prose>`, `Ответ от Творца (режим Проводник): …`, `Возражение (от
+    исламской традиции): …`. It is DISTINCT from a mid-sentence colon in a verse
+    line (`Ты спросил: кто они?`, `Молитва узнавания:`) — only a speaker NAME or a
+    parenthetical-qualified speaker before the colon is rejected, not an arbitrary
+    verb phrase. Built from `_DIALOGUE_PREFIXES` (the dialogue SoT) so adding a
+    speaker keeps this in sync."""
+    prefixes = sorted(_DIALOGUE_PREFIXES, key=lambda p: -len(p))
+    inner = "|".join(re.escape(p) for p in prefixes)
+    return re.compile(
+        rf"^\**\s*(?:(?:{inner})|[A-ZА-ЯЁ][\wА-Яа-яЁё.\- ]{{0,40}}\s*\([^)]{{1,40}}\))"
+        rf"\s*:(?:\s|\*|$)"
+    )
+
+
+_SPEAKER_TURN_RE = _speaker_turn_re()
+
+
 def _is_lineated_line(text: str, allow_colon: bool = False) -> bool:
     """True for a single short source line that reads as a verse line rather
-    than prose / a label / a list item."""
+    than prose / a label / a speaker turn / a list item.
+
+    `allow_colon` (set in the Q/A answer-block context) suppresses the TERMINAL
+    `Speaker:` label rejection so a `Speaker:`-shaped answer fragment (`Есть
+    только:`) can still be an answer line. It does NOT suppress the SPEAKER-TURN
+    rejection: a `Панкратиус: …` / `Ответ от Творца (…): …` dialogue turn is never a
+    verse line, in any context (the over-detection a too-broad colon allowance
+    reintroduced — a dialogue turn folding into a verse-block via the empty-stanza
+    path)."""
     s = re.sub(r"\s+", " ", text).strip()
-    if not s or len(s) > 145:
+    if not s or len(s) > VERSE_SHORT_LINE_MAX:
         return False
     if s.startswith(("!", "<", "|", ">", "[]")):
         return False
     if re.match(r"^[-*+]\s+", s) or re.match(r"^\d+[.)]\s+", s):
         return False
-    if not allow_colon and re.match(r"^[A-ZА-ЯЁ][\w .А-Яа-яЁё-]{1,48}:\s*$", s):
+    if _SPEAKER_TURN_RE.match(s):
         return False
-    if not allow_colon and re.match(r"^[A-ZА-ЯЁ][\w .А-Яа-яЁё-]{1,48}:\s", s):
+    if not allow_colon and _LABEL_LINE_RE.match(s):
         return False
     if "http://" in s or "https://" in s:
         return False
@@ -713,12 +778,6 @@ def structural_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
 # 10. dialogue labels (incl. mixed leading-Strong inline split)
 # ---------------------------------------------------------------------------
 
-_DIALOGUE_PREFIXES = [
-    "Панкратиус", "Светозар", "Светозар Gemini Flash 2.0", "Светозар DeepSeek",
-    "Светозар ChatGPT", "Творец", "Бог", "Слово Творца", "Слово Бога",
-    "Pankratius", "Svetozar", "Creator", "God", "Gemini", "DeepSeek", "ChatGPT",
-]
-
 
 def _leading_strong(inlines: list[ir.Inline]) -> tuple[ir.Emphasis | None, list[ir.Inline]]:
     """If the paragraph opens with a `Strong` span, return it plus the trailing
@@ -937,7 +996,11 @@ def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
                 i += 1
             content = [p for p in run if not p.empty]
             kind = _run_kind(run, run_after_named, run_after_question, run_after_heading, run_after_separator)
-            if kind and len(_all_lines(content)) >= (2 if kind == "answer-block" else 3):
+            # `_run_kind` owns the run-length floor now (>=2 with confident source
+            # lineation, >=3 for the weak bare-standalone-paragraph signal); a
+            # returned kind already cleared it, so the outer guard only needs the
+            # universal >=2 minimum (no single-line "verse").
+            if kind and len(_all_lines(content)) >= 2:
                 out.append(_build_verse(run, kind))
             else:
                 out.extend(run)
@@ -964,18 +1027,28 @@ def _run_kind(
         lengths = [len(line) for line in lines]
         avg = sum(lengths) / len(lengths)
         return "answer-block" if avg <= 95 and max(lengths) <= 150 else None
-    if len(lines) < 3:
+    # The strongest source-lineation signal: a paragraph carrying a HARD `LineBreak`
+    # (`<w:br/>`) is authored multi-line verse. A `SoftBreak` is prose wrapping and
+    # must NOT count (the C2 over-detection fix); the walk recurses into containers
+    # so a hard break nested inside `Emph` still counts (the C3 fix).
+    linebreak_count = sum(
+        1 for p in content if any(isinstance(x, ir.LineBreak) for x in _walk_inlines(p.inlines))
+    )
+    # Run-length floor (I4): the spec's "verse run = >=2 SHORT lineated lines where
+    # lineation comes from the SOURCE". A hard break (or a named verse-title
+    # heading) is a CONFIDENT source-lineation signal, so two lines suffice. A run
+    # of BARE standalone single-line paragraphs is the WEAK signal — paragraph
+    # boundaries alone don't separate a couplet from two prose sentences — so it
+    # needs >=3 lines to read as a confident verse run. Each line is already known
+    # short (<= VERSE_SHORT_LINE_MAX) and label-free: `_para_lineated` rejected any
+    # long/label line, breaking the run before it reached here.
+    confident_lineation = bool(linebreak_count) or after_named
+    min_lines = 2 if confident_lineation else 3
+    if len(lines) < min_lines:
         return None
     lengths = [len(line) for line in lines]
     avg = sum(lengths) / len(lengths)
     empty_count = sum(1 for p in run if p.empty)
-    # The fallback verse signal: a paragraph carrying a HARD `LineBreak` (`<w:br/>`)
-    # reads as multi-line verse. A `SoftBreak` is prose wrapping and must NOT count
-    # (the C2 over-detection fix); the walk recurses into containers so a hard break
-    # nested inside `Emph` still counts (the C3 fix).
-    linebreak_count = sum(
-        1 for p in content if any(isinstance(x, ir.LineBreak) for x in _walk_inlines(p.inlines))
-    )
     if after_named:
         return "verse-block" if avg <= 150 else None
     if after_separator and len(lines) <= 24:
