@@ -60,6 +60,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from lib.kinds import WORK_KINDS  # noqa: E402  (after sys.path bootstrap)
+from lib import footnotes  # noqa: E402  (pure footnote extract/reattach + analysis)
 
 ROOT = Path(__file__).resolve().parent.parent
 LEGACY = ROOT / "legacy"
@@ -2344,12 +2345,29 @@ def process_markdown(
     md = scrub_rights_boilerplate(md)
     md = strip_toc(md)
     md = strip_ai_alt(md)
+    # Lift Pandoc's OWN footnote definitions out of the document BEFORE any
+    # bibliography/tail stripping runs. Pandoc's GFM writer puts every `[^id]:`
+    # definition at the document tail; the bibliography stripper deletes from a
+    # `## Библиография`-type heading to the next heading and, when that heading is
+    # the LAST one, to EOF — which used to take the definitions with it, leaving
+    # orphaned `[^id]` references (the proven bug). The inline `[^id]` references
+    # stay in the body; only the definition blocks are extracted here and
+    # re-appended after all stripping, so they survive.
+    md, footnote_defs = footnotes.extract_footnote_defs(md)
     md, bibliography = extract_bibliography(md, biblio_slug_lookup)
     md = strip_bibliography_sections(md)
     md, next_idx, planned_assets = rewrite_images(
         md, book_slug, lang, image_root, work_dir, image_records, writes, image_counter_start,
     )
-    cross_refs = extract_cross_refs(md, own_ascii_slug, cross_ref_title_index)
+    # Cross-ref extraction reads footnote bodies (`_FOOTNOTE_LINE`), so feed it a
+    # view that includes the extracted definitions — otherwise the lift above
+    # would hide them. The extracted text is appended (not re-attached to `md`)
+    # purely for this scan; the real re-append happens after all stripping.
+    cross_refs = extract_cross_refs(
+        footnotes.reattach_footnote_defs(md, footnote_defs),
+        own_ascii_slug,
+        cross_ref_title_index,
+    )
     md = unwrap_spans_and_u(md)
     md = strip_formatting_artifacts(md)
     md = strip_bold_only_headings(md)
@@ -2359,6 +2377,12 @@ def process_markdown(
     md = normalize_docx_structural_blocks(md, docx_paras)
     md = strip_trailing_hardbreak_markers(md)
     md = collapse_blank_lines(md)
+    # Re-append the surviving footnote definitions at the tail (Pandoc's original
+    # placement) AFTER all stripping, so they can't be deleted by the
+    # bibliography passes. Every body `[^id]` reference now has its `[^id]:`
+    # definition; the importer's footnote analysis turns any remaining orphan into
+    # a FATAL diagnostic that blocks the write.
+    md = footnotes.reattach_footnote_defs(md, footnote_defs)
     return md, bibliography, cross_refs, next_idx, planned_assets
 
 

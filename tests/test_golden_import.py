@@ -59,6 +59,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import import_docx  # noqa: E402
+from lib import footnotes  # noqa: E402
 from lib.content_catalog import dump_frontmatter, split_frontmatter  # noqa: E402
 
 
@@ -373,3 +374,30 @@ def test_pure_converter_cross_check(tmp_path: Path) -> None:
         f"({CROSS_CHECK_COMMITTED}):\n"
         + _text_diff("ru.md body", committed_body, snap.body)
     )
+
+
+# Cases whose source carries footnotes — the property below must hold for them
+# (every `[^N]` reference has a matching `[^N]:` definition). book62 is the
+# regression case (the orphaned-marker bug); book23 has one well-formed footnote.
+FOOTNOTE_CASES: tuple[GoldenCase, ...] = tuple(
+    c for c in CASES if c.name in {"book62", "book23"}
+)
+
+
+@pytest.mark.parametrize("case", FOOTNOTE_CASES, ids=[c.name for c in FOOTNOTE_CASES])
+def test_imported_footnotes_resolve(case: GoldenCase, tmp_path: Path) -> None:
+    """Every `[^N]` reference in a footnoted import has a matching `[^N]:`
+    definition — no orphans. This is the property the Phase-4 fix establishes and
+    the `analyze_footnotes` FATAL guards; here we assert it on real imports."""
+    snap = _import_case(case, tmp_path / "src" / "content")
+    refs = set(footnotes.reference_ids(snap.body))
+    defs = set(footnotes.definition_ids(snap.body))
+    assert refs, f"{case.name}: expected footnote references but found none"
+    orphans = sorted(refs - defs)
+    assert not orphans, (
+        f"{case.name}: orphaned footnote references with no definition: "
+        + ", ".join(f"[^{o}]" for o in orphans)
+    )
+    # And the first-class analysis agrees there are zero fatal findings.
+    fatal = [d for d in footnotes.analyze_footnotes(snap.body) if d.severity == "fatal"]
+    assert not fatal, f"{case.name}: analyze_footnotes reported fatal(s): {fatal}"

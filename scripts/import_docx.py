@@ -39,6 +39,7 @@ from lib.docx_conversion import (
     write_bibliography_sidecar,
 )
 from docx_to_md import PlannedAsset
+from lib import footnotes
 from lib.kinds import WORK_KINDS
 from lib.locales import LOCALES
 from lib.writeplan import AssetTransform, Diagnostic, Role, WriteOp, WritePlan
@@ -548,9 +549,19 @@ def _run(args: argparse.Namespace) -> tuple[ImportResult, WriteReport]:
         _write_docx_artifact(docx, stage_dir / f"{args.lang}.docx")
         write_bibliography_sidecar(stage_dir, kind, args.lang, converted.bibliography)
 
-        diagnostics = (
-            (Diagnostic("warning", "import.pandoc", converted.warnings),) if converted.warnings else ()
+        # Footnote integrity is a first-class plan diagnostic, not bespoke writer
+        # logic: an orphaned `[^id]` reference (no matching `[^id]:` definition)
+        # is FATAL and rides into `WritePlan.diagnostics`, where the writer's
+        # has_fatal machinery refuses the write. After the Phase-4 fix valid books
+        # resolve and this never fires; it is the safety net that makes the
+        # orphaned-marker bug class impossible to ship again. Unused/duplicate
+        # definitions surface as non-blocking warnings.
+        diagnostics: tuple[Diagnostic, ...] = tuple(
+            Diagnostic(d.severity, d.code, d.message)
+            for d in footnotes.analyze_footnotes(converted.body)
         )
+        if converted.warnings:
+            diagnostics += (Diagnostic("warning", "import.pandoc", converted.warnings),)
         plan = _plan_from_scratch(
             stage_work_dir=stage_dir,
             content_root=content_root,
