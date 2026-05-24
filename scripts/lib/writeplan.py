@@ -22,12 +22,34 @@ from pathlib import Path, PurePosixPath
 from typing import Literal
 
 Severity = Literal["fatal", "warning", "info"]
-OpKind = Literal["ensure_dir", "write_text", "copy"]
+OpKind = Literal["ensure_dir", "write_text", "copy", "transform_asset"]
 Role = Literal["canonical_source", "source_artifact", "imported_asset", "cover", "sidecar"]
 
 # No `delete` kind exists — a normal import never deletes (docs/import-pipeline.md
 # "A normal import never contains a delete"). Forbidden by construction.
-ALLOWED_OP_KINDS: frozenset[str] = frozenset({"ensure_dir", "write_text", "copy"})
+# `transform_asset` is `copy` with a declared transform (e.g. a raster cap) the
+# writer applies — it still lands one real target file, so the path/scope/escape
+# checks below treat it exactly like `copy`/`write_text`.
+ALLOWED_OP_KINDS: frozenset[str] = frozenset(
+    {"ensure_dir", "write_text", "copy", "transform_asset"}
+)
+
+
+@dataclass(frozen=True)
+class AssetTransform:
+    """A declared transform the writer applies to an asset as it copies it.
+
+    `copy` is byte-for-byte; `cap_raster` down-scales a raster whose longest edge
+    exceeds `max_long_edge` (LANCZOS, same format, optional re-encode `quality`),
+    falling back to a byte copy when the image is small or unreadable. The
+    parameters live in the plan so the transform is a contract, not hidden writer
+    behavior — and so capping is the ONLY place PIL runs (docs/import-pipeline.md
+    "Image And Asset Policy").
+    """
+
+    kind: Literal["copy", "cap_raster"]
+    max_long_edge: int | None = None
+    quality: int | None = None
 
 
 @dataclass(frozen=True)
@@ -46,8 +68,9 @@ class WriteOp:
     `rel_path` is always relative to the plan's `target_root` and must stay under
     `target_scope` (the writer enforces this against the real filesystem; the
     plan enforces the lexical part). `content` carries inline text for
-    `write_text`; `source` names the input file for `copy` (an input path, never
-    a write target).
+    `write_text`; `source` names the input file for `copy`/`transform_asset` (an
+    input path, never a write target); `transform` declares how a
+    `transform_asset` op reshapes its source on the way to the target.
     """
 
     kind: OpKind
@@ -56,6 +79,7 @@ class WriteOp:
     reason: str
     content: str | None = None
     source: Path | None = None
+    transform: AssetTransform | None = None
 
 
 @dataclass(frozen=True)

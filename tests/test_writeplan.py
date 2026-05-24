@@ -16,6 +16,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 from lib.writeplan import (  # noqa: E402
+    AssetTransform,
     Diagnostic,
     OpKind,
     Role,
@@ -134,3 +135,56 @@ def test_content_op_at_scope_dir_is_rejected() -> None:
     diags = validate(plan, target_exists=_never, escapes_scope=_never)
     assert "writeplan.scope-is-dir" in _codes(diags)
     assert has_fatal(diags)
+
+
+# --- transform_asset gets the SAME path-safety treatment as copy/write_text. A
+# transform_asset op has a real target file, so absolute paths, `..`, out-of-scope
+# paths, scope-escapes, and a path that IS the scope dir must all be rejected. ---
+
+
+def _transform_op(rel: str) -> WriteOp:
+    return WriteOp(
+        kind="transform_asset",
+        rel_path=PurePosixPath(rel),
+        role="imported_asset",
+        reason="t",
+        source=Path("/x"),
+        transform=AssetTransform(kind="cap_raster", max_long_edge=1600),
+    )
+
+
+def test_transform_asset_clean_is_accepted() -> None:
+    plan = _plan(_transform_op("books/99-probe/images/a.png"))
+    diags = validate(plan, target_exists=_never, escapes_scope=_never)
+    assert diags == ()
+    assert not has_fatal(diags)
+
+
+def test_transform_asset_absolute_path_is_rejected() -> None:
+    plan = _plan(_transform_op("/etc/evil.png"))
+    diags = validate(plan, target_exists=_never, escapes_scope=_never)
+    assert "writeplan.unsafe-path" in _codes(diags)
+
+
+def test_transform_asset_parent_traversal_is_rejected() -> None:
+    plan = _plan(_transform_op("books/99-probe/../../escape.png"))
+    diags = validate(plan, target_exists=_never, escapes_scope=_never)
+    assert "writeplan.unsafe-path" in _codes(diags)
+
+
+def test_transform_asset_out_of_scope_is_rejected() -> None:
+    plan = _plan(_transform_op("books/other-work/images/a.png"))
+    diags = validate(plan, target_exists=_never, escapes_scope=_never)
+    assert "writeplan.out-of-scope" in _codes(diags)
+
+
+def test_transform_asset_symlink_escape_is_rejected() -> None:
+    plan = _plan(_transform_op("books/99-probe/images/a.png"))
+    diags = validate(plan, target_exists=_never, escapes_scope=_always)
+    assert "writeplan.scope-escape" in _codes(diags)
+
+
+def test_transform_asset_at_scope_dir_is_rejected() -> None:
+    plan = _plan(_transform_op("books/99-probe"))
+    diags = validate(plan, target_exists=_never, escapes_scope=_never)
+    assert "writeplan.scope-is-dir" in _codes(diags)

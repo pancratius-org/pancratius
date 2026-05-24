@@ -17,13 +17,22 @@ byte-identical on re-import.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
+from typing import Any
 
-from lib.writeplan import Diagnostic, WriteOp, WritePlan, has_fatal, validate
+from lib.writeplan import AssetTransform, Diagnostic, WriteOp, WritePlan, has_fatal, validate
+
+# Raster formats the cap applies to (vector/animated are copied untouched) and the
+# JPEG/WEBP re-encode quality, mirroring the import-time cap exactly so a capped
+# image is byte-identical to the pre-boundary behaviour. Cross-checked by the
+# golden net (book62 has oversized rasters).
+_CAP_RASTER_FORMATS: frozenset[str] = frozenset({"PNG", "JPEG", "WEBP"})
+_CAP_QUALITY: dict[str, int] = {"JPEG": 82, "WEBP": 80}
 
 # Provenance lives outside the committed bundle (docs/import-pipeline.md
 # "Idempotency"): per-import manifest under data/imports/<work-key>.json, never
@@ -88,14 +97,65 @@ def _atomic_write(dest: Path, payload: bytes) -> None:
     os.replace(tmp, dest)
 
 
-def _op_payload(op: WriteOp) -> bytes:
-    """The bytes a write_text/copy op will land. (ensure_dir has none.)"""
+def _capped_raster_bytes(op: WriteOp, transform: AssetTransform) -> tuple[bytes, Diagnostic | None]:
+    """Return the bytes a `cap_raster` transform lands, plus an optional warning.
+
+    Down-scales (LANCZOS) only when the source is a readable raster in
+    `_CAP_RASTER_FORMATS` whose longest edge exceeds `max_long_edge`; otherwise
+    returns the original bytes. A per-image failure is NON-FATAL: it falls back to
+    the original bytes and surfaces a warning diagnostic, so one bad image never
+    fails the import (docs/import-pipeline.md "capped image" is a warning, not
+    fatal). This is the only place PIL runs.
+    """
+    if op.source is None:
+        raise ValueError(f"transform_asset op for {op.rel_path} has no source")
+    original = op.source.read_bytes()
+    if transform.max_long_edge is None:
+        return original, None
+    try:
+        # PIL is imported lazily so the writer (and its pure unit tests) don't pay
+        # the import unless a raster cap actually runs.
+        from PIL import Image
+
+        with Image.open(op.source) as img:
+            img.load()
+            width, height = img.size
+            fmt = img.format
+            if fmt not in _CAP_RASTER_FORMATS or max(width, height) <= transform.max_long_edge:
+                # Vector/animated/unknown formats, and already-small rasters, are
+                # copied verbatim — the cap only ever down-scales oversized rasters.
+                return original, None
+            resized = img.copy()
+        resized.thumbnail((transform.max_long_edge, transform.max_long_edge), Image.LANCZOS)
+        save_kwargs: dict[str, Any] = {}
+        quality = transform.quality if transform.quality is not None else _CAP_QUALITY.get(fmt)
+        if fmt in _CAP_QUALITY and quality is not None:
+            save_kwargs["quality"] = quality
+        buf = io.BytesIO()
+        resized.save(buf, format=fmt, **save_kwargs)
+        return buf.getvalue(), None
+    except Exception as exc:  # one bad image must not fail import
+        return original, Diagnostic(
+            "warning",
+            "writer.cap-failed",
+            f"could not cap raster {op.rel_path} ({exc}); copied original bytes.",
+        )
+
+
+def _op_payload(op: WriteOp) -> tuple[bytes, Diagnostic | None]:
+    """The bytes a write_text/copy/transform_asset op will land, plus an optional
+    warning the transform produced. (ensure_dir has none.)"""
     if op.kind == "write_text":
         if op.content is None:
             raise ValueError(f"write_text op for {op.rel_path} has no content")
-        return op.content.encode("utf-8")
+        return op.content.encode("utf-8"), None
     if op.kind == "copy":
-        return _read_source_bytes(op)
+        return _read_source_bytes(op), None
+    if op.kind == "transform_asset":
+        transform = op.transform or AssetTransform(kind="copy")
+        if transform.kind == "cap_raster":
+            return _capped_raster_bytes(op, transform)
+        return _read_source_bytes(op), None
     raise ValueError(f"{op.kind} op has no payload")
 
 
@@ -182,6 +242,7 @@ def apply(
     created: list[PurePosixPath] = []
     changed: list[PurePosixPath] = []
     skipped: list[PurePosixPath] = []
+    transform_diags: list[Diagnostic] = []
 
     for op in plan.operations:
         dest = plan.target_root / op.rel_path
@@ -190,7 +251,9 @@ def apply(
                 dest.mkdir(parents=True, exist_ok=True)
             continue
 
-        payload = _op_payload(op)
+        payload, warning = _op_payload(op)
+        if warning is not None:
+            transform_diags.append(warning)
         bucket = _classify(dest, payload)
         if not dry_run and bucket != "skipped":
             _atomic_write(dest, payload)
@@ -205,6 +268,6 @@ def apply(
         changed=tuple(changed),
         skipped=tuple(skipped),
         refused=(),
-        diagnostics=diagnostics,
+        diagnostics=(*diagnostics, *transform_diags),
         manifest_path=manifest_path,
     )

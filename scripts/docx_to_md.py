@@ -78,6 +78,12 @@ EXT_FROM_MIME = {".jpeg": ".jpg", ".jpe": ".jpg"}
 
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tiff", ".emf", ".wmf")
 
+# Raster body-image extensions the import-time longest-edge cap applies to (after
+# `_normalize_ext` folds `.jpeg`->`.jpg`). Vector (svg/emf/wmf) and animated (gif)
+# are copied verbatim. The cap itself is a writer transform; this set only labels
+# which planned assets are cap-eligible.
+RASTER_CAP_EXTS = frozenset({".png", ".jpg", ".webp", ".avif"})
+
 
 # Why: the corpus uses Cyrillic ASCII-ish slugs from the legacy site
 # (e.g. `тои` for `той`, `выи` for `вый`). We freeze a practical
@@ -265,6 +271,23 @@ class ImageRecord:
     ext: str
     bytes: int
     role: str = "body"  # cover | body | bibliography_thumb
+
+
+@dataclass(frozen=True)
+class PlannedAsset:
+    """A body image the conversion REFERENCES but does NOT copy.
+
+    `rewrite_images` is pure (no filesystem mutation): it rewrites the Markdown
+    ref to `./images/<hash>.<ext>` (hash = content hash of the original source
+    bytes, unchanged from when copying lived here) and returns one of these per
+    deduped image. The writer turns each into a `transform_asset` WriteOp and is
+    the only thing that copies it into the bundle (docs/import-pipeline.md "Import
+    produces a WritePlan; only the writer applies it").
+    """
+
+    rel_within: str  # bundle-relative POSIX path, e.g. "images/<hash>.<ext>"
+    source: Path  # the extracted pandoc media file to copy from
+    is_raster: bool  # raster (cap-eligible) vs vector/animated (copied verbatim)
 
 
 @dataclass
@@ -1839,9 +1862,9 @@ def process_poem_markdown(
     image_counter_start: int,
     cross_ref_title_index: dict[str, tuple[str, int | None, str | None]],
     own_ascii_slug: str,
-) -> tuple[str, list[dict[str, Any]], int]:
+) -> tuple[str, list[dict[str, Any]], int, list[PlannedAsset]]:
     md = strip_ai_alt(md_raw)
-    md, next_idx = rewrite_images(
+    md, next_idx, planned_assets = rewrite_images(
         md, book_slug, lang, image_root, work_dir, image_records, writes, image_counter_start,
     )
     refs = extract_cross_refs(md, own_ascii_slug, cross_ref_title_index)
@@ -1850,7 +1873,7 @@ def process_poem_markdown(
     md = strip_empty_headings(md)
     md = strip_trailing_hardbreak_markers(md)
     md = collapse_blank_lines(md)
-    return md, refs, next_idx
+    return md, refs, next_idx, planned_assets
 
 
 def convert_poem_docx_to_md(
@@ -1863,29 +1886,34 @@ def convert_poem_docx_to_md(
     image_counter_start: int,
     cross_ref_title_index: dict[str, tuple[str, int | None, str | None]],
     own_ascii_slug: str,
-) -> tuple[str, list[dict[str, Any]], int, str]:
+    media_out: Path,
+) -> tuple[str, list[dict[str, Any]], int, str, list[PlannedAsset]]:
+    """Convert a poem DOCX. Pandoc media is extracted into the caller-provided
+    PERSISTENT `media_out` (the planned assets reference it until the writer copies
+    them); only transient parsing scratch uses the auto-cleaned tempdir."""
     if not docx.exists():
         raise FileNotFoundError(docx)
-    with tempfile.TemporaryDirectory(prefix=f"pancratius-{book_slug}-") as td:
-        tdp = Path(td)
-        media_tmp = tdp / "media"
-        ast, warnings = _run_pandoc_json(docx, media_tmp)
-        docx_paras = read_docx_paragraph_meta(docx)
-        md_raw = pandoc_poem_ast_to_md(ast)
-        md, refs, next_idx = process_poem_markdown(
-            md_raw=md_raw,
-            book_slug=book_slug,
-            lang="ru",
-            image_root=tdp,
-            work_dir=work_dir,
-            image_records=image_records,
-            writes=writes,
-            image_counter_start=image_counter_start,
-            cross_ref_title_index=cross_ref_title_index,
-            own_ascii_slug=own_ascii_slug,
-        )
-        md = _strip_source_duplicate_poem_title(md, title, docx_paras)
-    return md, refs, next_idx, warnings
+    # Media goes to the persistent media_out (its files back the planned assets
+    # until the writer copies them); poem conversion keeps no other scratch, so no
+    # tempdir is needed here.
+    media_out.mkdir(parents=True, exist_ok=True)
+    ast, warnings = _run_pandoc_json(docx, media_out)
+    docx_paras = read_docx_paragraph_meta(docx)
+    md_raw = pandoc_poem_ast_to_md(ast)
+    md, refs, next_idx, planned_assets = process_poem_markdown(
+        md_raw=md_raw,
+        book_slug=book_slug,
+        lang="ru",
+        image_root=media_out.parent,
+        work_dir=work_dir,
+        image_records=image_records,
+        writes=writes,
+        image_counter_start=image_counter_start,
+        cross_ref_title_index=cross_ref_title_index,
+        own_ascii_slug=own_ascii_slug,
+    )
+    md = _strip_source_duplicate_poem_title(md, title, docx_paras)
+    return md, refs, next_idx, warnings, planned_assets
 
 
 # ---------------------------------------------------------------------------
@@ -1901,14 +1929,26 @@ def rewrite_images(
     image_records: list[ImageRecord],
     writes: WorkWrites,
     image_counter_start: int = 1,
-) -> tuple[str, int]:
-    """Rewrite image refs to `./images/<hash>.<ext>` co-located with
-    the work, dedup by hash within the work bundle, record metadata. Run
-    *after* bibliography lift so thumbs from catalog tables are never
-    copied."""
+) -> tuple[str, int, list[PlannedAsset]]:
+    """Rewrite image refs to `./images/<hash>.<ext>` co-located with the work,
+    dedup by hash within the work bundle, record metadata, and RETURN the planned
+    assets. PURE: this performs no filesystem mutation — it does not copy, mkdir,
+    or write. It only READS the extracted media files to hash and size them; the
+    writer is the sole component that copies them into the bundle (the import
+    safety boundary, docs/import-pipeline.md). Run *after* bibliography lift so
+    thumbs from catalog tables are never planned.
+
+    The `<hash>` is the content hash of the ORIGINAL extracted source bytes,
+    exactly as when copying lived here, so the rewritten refs and the eventual
+    asset filenames are unchanged. `work_dir`/`writes` are retained for signature
+    stability but are no longer written to. Returns
+    `(rewritten_md, next_image_index, planned_assets)`.
+    """
     seen: dict[str, tuple[str, str]] = {}
     next_idx = image_counter_start
-    images_dir = work_dir / "images"
+    # Deduped planned assets keyed by bundle-relative path, so the same image
+    # referenced twice is planned once (matching the old copy-once behaviour).
+    planned: dict[str, PlannedAsset] = {}
 
     def resolve(src: str) -> tuple[str, str] | None:
         if src in seen:
@@ -1924,17 +1964,21 @@ def rewrite_images(
             return None
         h = _hash_file(candidate)
         ext = _normalize_ext(candidate.suffix)
-        dst = images_dir / f"{h}{ext}"
-        if not dst.exists():
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(candidate, dst)
-        writes.add(dst)
+        rel_within = f"images/{h}{ext}"
+        planned.setdefault(
+            rel_within,
+            PlannedAsset(
+                rel_within=rel_within,
+                source=candidate,
+                is_raster=ext in RASTER_CAP_EXTS,
+            ),
+        )
         seen[src] = (h, ext)
         return h, ext
 
     def record(src: str, h: str, ext: str, role: str) -> None:
         nonlocal next_idx
-        size = (images_dir / f"{h}{ext}").stat().st_size
+        size = planned[f"images/{h}{ext}"].source.stat().st_size
         image_records.append(ImageRecord(
             book_slug=book_slug,
             image_index=next_idx,
@@ -1971,7 +2015,25 @@ def rewrite_images(
     md = _IMG_MD.sub(md_repl, md)
     md = _IMG_HTML.sub(html_repl, md)
     md = normalize_body_image_blocks(md)
-    return md, next_idx
+    # Stable order: by bundle-relative path, matching the sorted asset set the
+    # golden net freezes.
+    return md, next_idx, [planned[k] for k in sorted(planned)]
+
+
+def _stage_planned_assets(planned: list[PlannedAsset], work_dir: Path, writes: WorkWrites) -> None:
+    """Copy planned body assets into `work_dir` and record them.
+
+    Used only by the LEGACY batch CLI below, which is itself a direct mutator
+    (the import path never calls this — its writer applies the planned assets as
+    `transform_asset` ops). Kept so the dead batch path stays functional and
+    type-clean during the migration to the writer boundary.
+    """
+    for asset in planned:
+        dst = work_dir / asset.rel_within
+        if not dst.exists():
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(asset.source, dst)
+        writes.add(dst)
 
 
 def _body_image_alt(lang: str) -> str:
@@ -2277,14 +2339,14 @@ def process_markdown(
     biblio_slug_lookup: dict[str, tuple[str, int | None, str | None]],
     cross_ref_title_index: dict[str, tuple[str, int | None, str | None]],
     own_ascii_slug: str,
-) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]], int]:
+) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]], int, list[PlannedAsset]]:
     md = md_raw
     md = scrub_rights_boilerplate(md)
     md = strip_toc(md)
     md = strip_ai_alt(md)
     md, bibliography = extract_bibliography(md, biblio_slug_lookup)
     md = strip_bibliography_sections(md)
-    md, next_idx = rewrite_images(
+    md, next_idx, planned_assets = rewrite_images(
         md, book_slug, lang, image_root, work_dir, image_records, writes, image_counter_start,
     )
     cross_refs = extract_cross_refs(md, own_ascii_slug, cross_ref_title_index)
@@ -2297,7 +2359,7 @@ def process_markdown(
     md = normalize_docx_structural_blocks(md, docx_paras)
     md = strip_trailing_hardbreak_markers(md)
     md = collapse_blank_lines(md)
-    return md, bibliography, cross_refs, next_idx
+    return md, bibliography, cross_refs, next_idx, planned_assets
 
 
 def convert_docx_to_md(
@@ -2311,26 +2373,35 @@ def convert_docx_to_md(
     biblio_slug_lookup: dict[str, tuple[str, int | None, str | None]],
     cross_ref_title_index: dict[str, tuple[str, int | None, str | None]],
     own_ascii_slug: str,
-) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]], int, str, dict[str, Any], list[list[str]]]:
+    media_out: Path,
+) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]], int, str, dict[str, Any], list[list[str]], list[PlannedAsset]]:
+    """Convert a DOCX. Pandoc media is extracted into the caller-provided
+    PERSISTENT `media_out` (the planned assets' sources point into it, so it must
+    outlive this call until the writer copies them); only `out.md`/json stay in an
+    auto-cleaned tempdir. Returns the converted markdown, sidecar data, pandoc
+    warnings, the AST, structural key sequences, and the PLANNED body assets."""
     if not docx.exists():
         raise FileNotFoundError(docx)
+    media_out.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=f"pancratius-{book_slug}-") as td:
         tdp = Path(td)
         out_md = tdp / "out.md"
-        media_tmp = tdp / "media"
-        warnings = _run_pandoc(docx, media_tmp, out_md)
+        warnings = _run_pandoc(docx, media_out, out_md)
         ast, json_warnings = _run_pandoc_json(docx)
         docx_paras = read_docx_paragraph_meta(docx)
         if json_warnings:
             warnings = "\n".join(w for w in (warnings, json_warnings) if w)
         md_raw = out_md.read_text(encoding="utf-8")
         structural_key_sequences = _docx_structural_key_sequences(docx_paras)
-        md, biblio, refs, next_idx = process_markdown(
+        # pandoc writes ABSOLUTE media refs (we pass an absolute --extract-media),
+        # so image resolution does not depend on `image_root`; it is passed for
+        # signature stability and the relative-path fallback only.
+        md, biblio, refs, next_idx, planned_assets = process_markdown(
             md_raw=md_raw,
             docx_paras=docx_paras,
             book_slug=book_slug,
             lang=lang,
-            image_root=tdp,
+            image_root=media_out.parent,
             work_dir=work_dir,
             image_records=image_records,
             writes=writes,
@@ -2339,7 +2410,7 @@ def convert_docx_to_md(
             cross_ref_title_index=cross_ref_title_index,
             own_ascii_slug=own_ascii_slug,
         )
-    return md, biblio, refs, next_idx, warnings, ast, structural_key_sequences
+    return md, biblio, refs, next_idx, warnings, ast, structural_key_sequences, planned_assets
 
 
 # ---------------------------------------------------------------------------
@@ -2579,18 +2650,32 @@ def convert_book(book: dict[str, Any], ctx: ConverterContext) -> list[Conversion
         for i, f in enumerate(docs, start=1):
             docx_path = _legacy_path(f["url"])
             writes.add_source(lang, docx_path)
-            body, biblio, refs, image_idx, warns, ast, structural_key_sequences = convert_docx_to_md(
-                docx=docx_path,
-                book_slug=ascii_slug,
-                lang=lang,
-                work_dir=book_dir,
-                image_records=ctx.image_records,
-                writes=writes,
-                image_counter_start=image_idx,
-                biblio_slug_lookup=ctx.biblio_slug_lookup,
-                cross_ref_title_index=ctx.cross_ref_title_index,
-                own_ascii_slug=ascii_slug,
-            )
+            with tempfile.TemporaryDirectory(prefix=f"pancratius-media-{ascii_slug}-") as media_td:
+                (
+                    body,
+                    biblio,
+                    refs,
+                    image_idx,
+                    warns,
+                    ast,
+                    structural_key_sequences,
+                    planned_assets,
+                ) = convert_docx_to_md(
+                    docx=docx_path,
+                    book_slug=ascii_slug,
+                    lang=lang,
+                    work_dir=book_dir,
+                    image_records=ctx.image_records,
+                    writes=writes,
+                    image_counter_start=image_idx,
+                    biblio_slug_lookup=ctx.biblio_slug_lookup,
+                    cross_ref_title_index=ctx.cross_ref_title_index,
+                    own_ascii_slug=ascii_slug,
+                    media_out=Path(media_td) / "media",
+                )
+                # Legacy batch CLI is a direct mutator: stage the planned assets
+                # itself (the import path routes them through the writer instead).
+                _stage_planned_assets(planned_assets, book_dir, writes)
             body = demote_markdown_headings(body, 2 if len(docs) > 1 else 1)
             body = normalize_ast_verse_sections(body, ast)
             body = normalize_ast_lineated_runs(body, ast, structural_key_sequences)
@@ -2730,17 +2815,21 @@ def convert_poem(poem: dict[str, Any], ctx: ConverterContext) -> ConversionOutco
     f = docs[0]
     docx_path = _legacy_path(f["url"])
     writes.add_source("ru", docx_path)
-    body, refs, _, warns = convert_poem_docx_to_md(
-        docx=docx_path,
-        title=poem["title"],
-        book_slug=f"poem-{ascii_slug}",
-        work_dir=poem_dir,
-        image_records=ctx.image_records,
-        writes=writes,
-        image_counter_start=1,
-        cross_ref_title_index=ctx.cross_ref_title_index,
-        own_ascii_slug=ascii_slug,
-    )
+    with tempfile.TemporaryDirectory(prefix=f"pancratius-media-{ascii_slug}-") as media_td:
+        body, refs, _, warns, planned_assets = convert_poem_docx_to_md(
+            docx=docx_path,
+            title=poem["title"],
+            book_slug=f"poem-{ascii_slug}",
+            work_dir=poem_dir,
+            image_records=ctx.image_records,
+            writes=writes,
+            image_counter_start=1,
+            cross_ref_title_index=ctx.cross_ref_title_index,
+            own_ascii_slug=ascii_slug,
+            media_out=Path(media_td) / "media",
+        )
+        # Legacy batch CLI mutates directly; the import path uses the writer.
+        _stage_planned_assets(planned_assets, poem_dir, writes)
     if warns:
         print(f"  [poem/{ascii_slug}] pandoc: {warns}", file=sys.stderr)
     cover_path = _ingest_cover(

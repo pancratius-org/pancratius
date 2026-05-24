@@ -9,9 +9,10 @@ refused; and a real symlink escape in a tmp tree is refused.
 
 from __future__ import annotations
 
-from pathlib import Path, PurePosixPath
+import importlib.util
 import json
 import sys
+from pathlib import Path, PurePosixPath
 
 import pytest
 
@@ -19,10 +20,12 @@ SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from lib.writeplan import Diagnostic, WriteOp, WritePlan  # noqa: E402
+from lib.writeplan import AssetTransform, Diagnostic, WriteOp, WritePlan  # noqa: E402
 from lib import writer  # noqa: E402
 
 SCOPE = PurePosixPath("books/99-probe")
+
+_HAS_PIL = importlib.util.find_spec("PIL") is not None
 
 
 def _source(tmp: Path, name: str, content: str) -> Path:
@@ -192,3 +195,133 @@ def test_symlink_escape_is_refused(tmp_path: Path) -> None:
     assert SCOPE / "images" / "a.png" in report.refused
     assert not (outside / "a.png").exists()
     assert any(d.code == "writeplan.scope-escape" for d in report.diagnostics)
+
+
+# --- transform_asset (the cap_raster transform — the only place PIL runs). These
+# need a real raster, so they are skipped where pillow is absent. ---
+
+pytestmark_pil = pytest.mark.skipif(not _HAS_PIL, reason="pillow required for cap_raster")
+
+
+def _make_raster(path: Path, size: tuple[int, int], fmt: str = "PNG", quality: int | None = None) -> None:
+    from PIL import Image
+
+    img = Image.new("RGB", size)
+    # Deterministic-ish pixels so a re-encode is meaningful (not a flat image).
+    for x in range(0, size[0], 8):
+        for y in range(0, size[1], 8):
+            img.putpixel((x, y), ((x * 7) % 256, (y * 5) % 256, ((x + y) * 3) % 256))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    save_kwargs = {"quality": quality} if quality is not None else {}
+    img.save(path, format=fmt, **save_kwargs)
+
+
+def _cap_op(source: Path, rel: str = "images/a.png") -> WriteOp:
+    return WriteOp(
+        kind="transform_asset",
+        rel_path=SCOPE / PurePosixPath(rel),
+        role="imported_asset",
+        reason="img",
+        source=source,
+        transform=AssetTransform(kind="cap_raster", max_long_edge=1600),
+    )
+
+
+@pytestmark_pil
+def test_cap_raster_resizes_oversized_image(tmp_path: Path) -> None:
+    from PIL import Image
+
+    root = tmp_path / "content"
+    src = tmp_path / "src" / "big.png"
+    _make_raster(src, (2400, 1200), fmt="PNG")
+
+    plan = _plan(
+        root,
+        (
+            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
+            _cap_op(src),
+        ),
+    )
+    report = writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+
+    dest = root / "books/99-probe/images/a.png"
+    assert SCOPE / "images" / "a.png" in report.created
+    with Image.open(dest) as out:
+        assert max(out.size) == 1600  # longest edge capped, aspect preserved
+        assert out.size == (1600, 800)
+    # The capped output is NOT the original bytes.
+    assert dest.read_bytes() != src.read_bytes()
+    assert not any(d.code == "writer.cap-failed" for d in report.diagnostics)
+
+
+@pytestmark_pil
+def test_cap_raster_under_cap_is_byte_copied(tmp_path: Path) -> None:
+    root = tmp_path / "content"
+    src = tmp_path / "src" / "small.png"
+    _make_raster(src, (800, 600), fmt="PNG")
+
+    plan = _plan(
+        root,
+        (
+            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
+            _cap_op(src, rel="images/small.png"),
+        ),
+    )
+    writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+
+    dest = root / "books/99-probe/images/small.png"
+    # An under-cap raster is copied verbatim — byte-identical to the source.
+    assert dest.read_bytes() == src.read_bytes()
+
+
+@pytestmark_pil
+def test_copy_transform_is_byte_copied(tmp_path: Path) -> None:
+    # A `copy` transform (vector/animated assets) is always byte-for-byte, even on
+    # a large raster — it never invokes the cap.
+    root = tmp_path / "content"
+    src = tmp_path / "src" / "vector.svg"
+    src.parent.mkdir(parents=True, exist_ok=True)
+    src.write_bytes(b'<svg xmlns="http://www.w3.org/2000/svg"><rect width="9000" height="9000"/></svg>')
+
+    op = WriteOp(
+        kind="transform_asset",
+        rel_path=SCOPE / "images" / "v.svg",
+        role="imported_asset",
+        reason="img",
+        source=src,
+        transform=AssetTransform(kind="copy"),
+    )
+    plan = _plan(
+        root,
+        (WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"), op),
+    )
+    writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+
+    assert (root / "books/99-probe/images/v.svg").read_bytes() == src.read_bytes()
+
+
+@pytestmark_pil
+def test_cap_raster_corrupt_image_falls_back_to_copy(tmp_path: Path) -> None:
+    # A cap_raster op whose source is not a decodable image must NOT fail the
+    # import: it falls back to copying the original bytes and emits a NON-fatal
+    # warning diagnostic (docs/import-pipeline.md "one bad image must not fail").
+    root = tmp_path / "content"
+    src = tmp_path / "src" / "broken.png"
+    src.parent.mkdir(parents=True, exist_ok=True)
+    src.write_bytes(b"this is not a real PNG")
+
+    plan = _plan(
+        root,
+        (
+            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
+            _cap_op(src, rel="images/broken.png"),
+        ),
+    )
+    report = writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+
+    dest = root / "books/99-probe/images/broken.png"
+    assert report.refused == ()  # non-fatal: the import still applied
+    assert dest.read_bytes() == src.read_bytes()  # original bytes preserved
+    warnings = [d for d in report.diagnostics if d.code == "writer.cap-failed"]
+    assert len(warnings) == 1
+    assert warnings[0].severity == "warning"

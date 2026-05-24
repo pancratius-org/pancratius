@@ -38,9 +38,10 @@ from lib.docx_conversion import (
     to_ascii_slug,
     write_bibliography_sidecar,
 )
+from docx_to_md import PlannedAsset
 from lib.kinds import WORK_KINDS
 from lib.locales import LOCALES
-from lib.writeplan import Diagnostic, Role, WriteOp, WritePlan
+from lib.writeplan import AssetTransform, Diagnostic, Role, WriteOp, WritePlan
 from lib.writer import WriteReport, apply as apply_plan
 
 
@@ -64,48 +65,10 @@ LANGS = tuple(LOCALES)
 # only applies to images written by this import run; it never re-encodes the
 # existing committed corpus. Vector (svg) and animated (gif) formats are left
 # untouched. The committed body-image filenames are content hashes, but the
-# converted Markdown references those exact names, so we cap in place and keep
-# the filename rather than re-hashing.
+# converted Markdown references those exact names, so the cap keeps the filename
+# rather than re-hashing — it is a writer `transform_asset` (cap_raster) op now,
+# not a post-conversion in-place pass.
 IMPORT_MAX_LONGEST_EDGE = 1600
-RASTER_CAP_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".avif"}
-
-
-def _cap_imported_body_images(images_dir: Path, skip: set[Path]) -> None:
-    """Resize newly-imported raster body images down to the longest-edge cap.
-
-    `skip` holds image paths that already existed before this import so the
-    pre-existing corpus is never touched. Only down-scaling happens; small
-    images are left as-is. Any per-file failure is non-fatal — the original
-    bytes simply remain.
-    """
-    if not images_dir.is_dir():
-        return
-    from PIL import Image
-
-    for path in sorted(images_dir.rglob("*")):
-        if not path.is_file() or path in skip:
-            continue
-        if path.suffix.lower() not in RASTER_CAP_EXTS:
-            continue
-        try:
-            with Image.open(path) as img:
-                img.load()
-                width, height = img.size
-                if max(width, height) <= IMPORT_MAX_LONGEST_EDGE:
-                    continue
-                fmt = img.format
-                resized = img.copy()
-            resized.thumbnail(
-                (IMPORT_MAX_LONGEST_EDGE, IMPORT_MAX_LONGEST_EDGE),
-                Image.LANCZOS,
-            )
-            save_kwargs: dict[str, Any] = {}
-            if fmt in {"JPEG", "WEBP"}:
-                save_kwargs["quality"] = 82 if fmt == "JPEG" else 80
-            resized.save(path, format=fmt, **save_kwargs)
-            print(f"capped {path.name}: {width}x{height} -> {resized.size[0]}x{resized.size[1]}")
-        except Exception as exc:  # pragma: no cover - one bad image must not fail import
-            print(f"warning: could not cap {path}: {exc}", file=sys.stderr)
 
 _LEADING_NUMBER_RE = re.compile(r"^\s*\d+\s*[-._ ]+\s*")
 _LATIN_RE = re.compile(r"[A-Za-z]")
@@ -138,6 +101,33 @@ def _scratch_role(rel: PurePosixPath, lang: str) -> Role:
     return "imported_asset"
 
 
+def _asset_ops(assets: list[PlannedAsset], scope: PurePosixPath) -> list[WriteOp]:
+    """Turn the converter's planned body images into `transform_asset` WriteOps.
+
+    Rasters get a `cap_raster` transform (longest-edge cap, applied by the writer
+    — the only place PIL runs); vector/animated assets get a plain `copy`. The
+    bundle-relative path is `images/<hash>.<ext>` exactly as the Markdown body
+    references it, so filenames are unchanged."""
+    ops: list[WriteOp] = []
+    for asset in assets:
+        transform = (
+            AssetTransform(kind="cap_raster", max_long_edge=IMPORT_MAX_LONGEST_EDGE)
+            if asset.is_raster
+            else AssetTransform(kind="copy")
+        )
+        ops.append(
+            WriteOp(
+                kind="transform_asset",
+                rel_path=scope / PurePosixPath(asset.rel_within),
+                role="imported_asset",
+                reason=f"import {asset.rel_within}",
+                source=asset.source,
+                transform=transform,
+            )
+        )
+    return ops
+
+
 def _plan_from_scratch(
     *,
     stage_work_dir: Path,
@@ -147,10 +137,13 @@ def _plan_from_scratch(
     replace: bool,
     diagnostics: tuple[Diagnostic, ...],
     source_document: Path,
+    asset_ops: list[WriteOp],
 ) -> WritePlan:
     """Build a WritePlan that copies every staged bundle file into the real target
-    scope. The plan is the ONLY thing import_docx hands the writer; import_docx
-    itself never writes to content_root."""
+    scope, alongside the planned body-image `transform_asset` ops (which are NOT
+    staged into the scratch bundle — the writer copies/caps them from the
+    persistent pandoc media dir). The plan is the ONLY thing import_docx hands the
+    writer; import_docx itself never writes to content_root."""
     ops: list[WriteOp] = [
         WriteOp(
             kind="ensure_dir",
@@ -173,6 +166,7 @@ def _plan_from_scratch(
                 source=staged,
             )
         )
+    ops.extend(asset_ops)
     return WritePlan(
         target_root=content_root,
         target_scope=scope,
@@ -501,14 +495,18 @@ def _run(args: argparse.Namespace) -> tuple[ImportResult, WriteReport]:
     else:
         description = TODO_DESCRIPTION
 
-    # Stage the whole conversion into a disposable scratch bundle under .cache/.
+    # Stage the whole conversion into a disposable scratch root under .cache/.
     # NOTHING here touches the real target — the writer is the only mutator of
-    # src/content. The scratch dir starts empty, so the import-time image cap only
-    # ever sees images this run produced (no need to snapshot the committed corpus).
-    stage_dir = STAGE_ROOT / uuid.uuid4().hex / KIND_DIRS[kind] / work_key
+    # src/content. The pandoc media dir is a sibling of the staged bundle under the
+    # same scratch root: it holds the extracted body images the planned
+    # `transform_asset` ops copy/cap, so it must live until the writer runs and is
+    # cleaned in the `finally` with the rest of the stage. Body images are NOT
+    # staged into the bundle — they reach src/content only via the writer.
+    stage_root = STAGE_ROOT / uuid.uuid4().hex
+    stage_dir = stage_root / KIND_DIRS[kind] / work_key
+    media_out = stage_root / "media"
     stage_dir.mkdir(parents=True, exist_ok=True)
     try:
-        stage_images = stage_dir / "images"
         title_index = build_title_index(entries)
         converted = convert_single_docx(
             docx,
@@ -518,9 +516,8 @@ def _run(args: argparse.Namespace) -> tuple[ImportResult, WriteReport]:
             title=title,
             work_dir=stage_dir,
             title_index=title_index,
+            media_out=media_out,
         )
-
-        _cap_imported_body_images(stage_images, skip=set())
 
         cover, cover_is_placeholder = _prepare_cover(
             cover_arg=args.cover,
@@ -562,10 +559,11 @@ def _run(args: argparse.Namespace) -> tuple[ImportResult, WriteReport]:
             replace=bool(args.replace),
             diagnostics=diagnostics,
             source_document=docx,
+            asset_ops=_asset_ops(converted.assets, scope),
         )
         report = apply_plan(plan, dry_run=bool(args.dry_run))
     finally:
-        shutil.rmtree(STAGE_ROOT / stage_dir.relative_to(STAGE_ROOT).parts[0], ignore_errors=True)
+        shutil.rmtree(stage_root, ignore_errors=True)
 
     _print_report(report, dry_run=bool(args.dry_run))
     if report.refused:
