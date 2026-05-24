@@ -272,7 +272,53 @@ Hardcoded route fragments inside tests or docs may be informational. Hardcoded
 runtime URL grammar in production code should be warning or fatal depending on
 surface.
 
-### PAN006B: Visible Copy And Literal Text Locality
+### PAN006B: Content Quality And Conversion Fidelity
+
+`PAN006B-*` is the heuristic family for content quality and DOCX→Markdown
+conversion fidelity over the committed corpus. Each member is a non-blocking
+(heuristic-tier) check folded from a Python script, run via `audit:agent`. The
+family:
+
+- `PAN006B-formatting-artifacts` — authored Markdown carries no conversion
+  formatting artifacts (stray escapes, doubled punctuation, leftover wrappers);
+- `PAN006B-title-language` — EN entries carry no stale title-fallback schema
+  fields (an RU-fallback EN title is the honest `translation.source` signal);
+- `PAN006B-poetry-stanzas` — converted poetry matches the DOCX stanza structure
+  (empty paragraphs are stanza breaks); a promotion candidate (see below);
+- `PAN006B-verse-blocks` — converter-owned verse-block wrappers contain natural
+  source lines and blank stanza lines, not hand-authored `<p>`/`<br>` markup;
+- `PAN006B-book-verse` — book verse-block decisions are faithful to the DOCX
+  source (detailed below);
+- `PAN006B-source-text-fidelity` — converted Markdown preserves the source DOCX
+  text (no dropped or duplicated passages).
+
+Each member states its own contract, evidence, and repair through the folded
+content-quality runner; the fold table under "Relationship To Existing Audits"
+lists the scripts and severities.
+
+### PAN006B-book-verse: Book Verse Source Fidelity
+
+The DOCX-source oracle for BOOK verse-block decisions (poems have
+`PAN006B-poetry-stanzas`), and the executable spec for `ir_normalize`'s verse
+detection. It reads each book's DOCX structure independently of the importer and
+compares the expected verse structure to the converted Markdown, flagging both
+directions:
+
+- over-detection — a verse/answer-block wraps a line that is not a verse line (an
+  isolated short line, a `Speaker:` / `Speaker (qual):` label, a prose-length
+  line, a numbered Q&A heading, or one prose sentence after a label);
+- under-detection — a confident source verse run the converter left as prose.
+
+A verse run is ≥2 short lineated lines whose lineation comes from the source — a
+hard `<w:br/>` (counts at ≥2 lines), or a stanza-break-separated run of short
+standalone paragraphs (the weak signal, ≥3 lines). It also asserts every
+converted signature/epigraph is drawn from the right-aligned (`w:jc`) source, so
+it doubles as the verse/signature realignment regression guard. Heuristic tier
+(non-blocking guidance), like its sibling content-quality rules: book verse is
+partly an editorial call, so it is guidance until the rule earns a both-polarity
+fixture and a hard contract.
+
+### PAN006C: Visible Copy And Literal Text Locality
 
 Hardcoded visible text is not always a production bug, but it is a common source
 of localization drift and editor confusion. The audit should inventory visible
@@ -921,7 +967,7 @@ scripts/audit/
                           #   mutation) — both via python/ checks
 
     content_quality.ts    # non-blocking heuristics folded from the legacy content audits
-    # [planned] urls.ts PAN006, literals.ts PAN006B, css.ts PAN009,
+    # [planned] urls.ts PAN006, literals.ts PAN006C, css.ts PAN009,
     # [planned] cohesion.ts PAN010, docs.ts PAN011, dead-code.ts PAN013,
     # [planned] retired-surface.ts PAN015
   python/                 # checks the harness subprocesses (PANCRATIUS_AUDIT_ROOT-aware)
@@ -1088,7 +1134,7 @@ read-only in place and run only via `audit:agent`.
 | `locales.py`, `kind_segments.py` | PAN003 locale / kind-segment parity | core / **fatal** |
 | `media_refs.py` → `python/media_refs.py` | PAN007 asset refs | core / **fatal** |
 | `download_asset_urls.py` → `python/download_asset_urls.py` | PAN008 public-Markdown asset URLs | deploy / **fatal** |
-| `formatting_artifacts`, `toc_leaks`, `bibliography_leaks`, `rights_boilerplate`, `title_language`, `dialogue_counts`, `docx_semantics`, `size_budget`, `poetry_stanzas`, `verse_blocks`, `source_text_fidelity` | `content_quality.ts` (one heuristic each) | heuristic / warning or info |
+| `formatting_artifacts`, `toc_leaks`, `bibliography_leaks`, `rights_boilerplate`, `title_language`, `dialogue_counts`, `docx_semantics`, `size_budget`, `poetry_stanzas`, `verse_blocks`, `book_verse`, `source_text_fidelity` | `content_quality.ts` (one heuristic each) | heuristic / warning or info |
 | `source_coverage.py` | **not folded** — legacy-dependent local library audit; run manually (`uv run scripts/audit/source_coverage.py`), never CI | local only |
 | `run_all.ts` | retired — `harness.ts` is the aggregator | — |
 

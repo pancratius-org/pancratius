@@ -247,9 +247,16 @@ book lineation are read through Pandoc's `docx+empty_paragraphs` JSON AST,
 because empty Word paragraphs survive there as explicit empty paragraph nodes.
 Poems emit the simple source contract above; book sections and confident
 short-line runs emit a minimal `.verse-block` wrapper around natural lines so
-stanza structure is explicit on normal prose pages. The converter must not infer
+stanza structure is explicit on normal prose pages. A confident run is short
+lineated lines (each ≤120 characters) carrying a source-lineation signal: ≥2 lines
+on a strong signal (a hard `<w:br/>` or a named verse-section heading), else ≥3
+lines on the weak empty-paragraph-only signal. The converter must not infer
 stanza structure from plain Pandoc GFM after the empty-paragraph signal has been
-lost, and it must not silently flatten all poems into one stanza.
+lost, and it must not silently flatten all poems into one stanza. The 120-char
+threshold is duplicated in `scripts/lib/ir_normalize.py` (`VERSE_SHORT_LINE_MAX`)
+and `scripts/audit/book_verse.py` (`SHORT_LINE_MAX`) — the audit is the
+independent DOCX-source oracle for the IR rule, so the two values must stay in
+sync.
 
 ## Conceptosphere page-layout selectors are global
 
