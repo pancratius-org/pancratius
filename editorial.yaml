@@ -1,21 +1,16 @@
 # !!! TEMPORARY pipeline artifact — not part of the durable architecture !!!
 #
-# This file exists only because the current converter regenerates
-# content/**/*.md on every run and would otherwise overwrite editor-set
-# titles. Editing here is the workaround.
+# Nothing reads this file anymore. Its only consumer was the legacy batch
+# converter (an `en_titles` override applied while regenerating the whole
+# corpus); that path is gone. The single-DOCX importer
+# (`scripts/import_docx.py`) preserves editor-owned frontmatter fields (title,
+# description, translation, cross_refs) on an existing `<lang>.md` directly, so
+# titles are edited in `content/<work>/en.md` frontmatter, not here.
 #
-# Target end state:
-#   - title lives in content/<work>/en.md frontmatter, edited there directly
-#   - the converter preserves editor-owned frontmatter fields (title,
-#     description, abstract, translation, cross_refs) when re-emitting
-#     markdown over an existing file
-#   - this file is applied once into each en.md and then deleted
-#   - docs/editorial-notes.md remains as the human review checklist
-#
-# Until then: edit titles below, run `uv run scripts/docx_to_md.py --all`,
-# the matching content/books/<slug>/en.md picks them up. Keyed by `number`
-# from legacy/data/library-data.js. Missing here ⇒ the EN file falls back
-# to its Russian title with `title_is_untranslated: true`.
+# This file is retained only as the staging list for a one-time apply of these
+# EN titles into the matching `content/books/<slug>/en.md` frontmatter, after
+# which it is deleted. `docs/editorial-notes.md` remains as the human review
+# checklist. Keyed by `number`.
 
 en_titles:
   1: "Gospel of the Kingdom"

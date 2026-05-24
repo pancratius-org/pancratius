@@ -1,47 +1,37 @@
-#!/usr/bin/env -S uv run --quiet
-# /// script
-# requires-python = ">=3.11"
-# dependencies = [
-#   "pyyaml>=6.0",
-# ]
-# ///
-"""
-docx_to_md.py — convert Sergey Orekhov's legacy .docx corpus
-to work-bundle Markdown with structured frontmatter and co-located assets.
+"""DOCX -> work-bundle Markdown conversion engine.
 
-Per .docx pipeline:
-  1. pandoc → GFM markdown + extracted media
-  2. lift bibliography tables → ./bibliography.yaml sidecar
-  3. content-addressed body-image dedup inside ./images/<hash>.<ext>
+This is the live conversion engine for the import pipeline. It is a library
+module: `import_docx.py` drives it through the `lib.docx_conversion` facade,
+which calls the per-DOCX primitives here. There is no script entry point — the
+engine never reads legacy catalogs and never writes to `src/content`; the
+importer stages output and the writer is the sole mutator of the content tree.
+
+Per-DOCX pipeline (one work bundle at a time):
+  1. pandoc -> GFM markdown + extracted media (into a caller-provided dir)
+  2. lift bibliography tables -> bibliography.yaml sidecar data
+  3. content-addressed body-image planning under images/<hash>.<ext>
      (relative to the work folder)
-  4. extract footnote and inline cross-references → frontmatter cross_refs
+  4. extract footnote and inline cross-references -> frontmatter cross_refs
   5. scrub Word's TOC blocks, AI alt-text, rights boilerplate (bounded), HTML
      residue (`<u>`, anchor spans, `[]{#…}`, smallcaps), `**\\**` artifacts,
      empty headings
-  6. emit ASCII-slug work bundles under src/content/<kind>/<ascii-slug>/ with
-     <lang>.md, cover.<lang>.<ext>, optional bibliography.yaml, meta.json,
-     and images/. Frontmatter satisfies src/content.config.ts strict schema.
+  6. normalize verse/lineated/dedication runs from the pandoc AST and emit the
+     author-facing Markdown body, sidecar bibliography, and the PLANNED body
+     assets the importer turns into writer ops.
 
-The converter is additive: every write is recorded in
-data/conversion-manifest.json under by_work[<kind/slug>].generated_paths
-(relative to the work folder), and reruns only delete stale entries the new
-run does not reproduce. Unknown author-added neighbors survive. There is no
-destructive whole-bundle clean.
+Frontmatter the importer assembles around this body satisfies the
+`src/content.config.ts` strict schema.
 
-Run:
-    uv run scripts/docx_to_md.py --kind book --kind poem
-    uv run scripts/docx_to_md.py --kind book --number 33
-    uv run scripts/docx_to_md.py --kind poem --number 2
-    uv run scripts/docx_to_md.py --test
+NOTE: `PlannedAsset` lives here for now (it moved with the engine). It is a
+plan-adjacent value type; a later phase may relocate it next to the other
+WritePlan value types in `lib.writeplan`.
 """
 from __future__ import annotations
 
-import argparse
 import hashlib
 import html
 import json
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -50,27 +40,19 @@ import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote
 import xml.etree.ElementTree as ET
 
 import yaml
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+# This module lives at scripts/lib/docx_engine.py. Put scripts/ on sys.path so
+# the sibling `lib` package imports resolve no matter how the engine is reached.
+SCRIPTS_DIR = Path(__file__).resolve().parents[1]
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
 
-from lib.kinds import WORK_KINDS  # noqa: E402  (after sys.path bootstrap)
 from lib import footnotes  # noqa: E402  (pure footnote extract/reattach + analysis)
 
-ROOT = Path(__file__).resolve().parent.parent
-LEGACY = ROOT / "legacy"
-DATA = LEGACY / "data"
-
-CONTENT_OUT = ROOT / "src" / "content"
-MANIFEST_PATH = ROOT / "data" / "conversion-manifest.json"
-
-TEST_CONTENT_OUT = ROOT / ".cache" / "converter-test" / "src" / "content"
-TEST_MANIFEST_PATH = ROOT / ".cache" / "converter-test" / "conversion-manifest.json"
+ROOT = Path(__file__).resolve().parents[2]
 
 HASH_PREFIX_LEN = 12
 PANDOC_FORMAT = "gfm"
@@ -122,66 +104,6 @@ def to_ascii_slug(s: str) -> str:
     return s
 
 
-# Why: book #2 is a merged trilogy. The library entry stores the first part's
-# label as the work title; the merged work needs its own canonical title.
-TITLE_OVERRIDES_BY_NUMBER: dict[int, dict[str, str]] = {
-    2: {"ru": "Маленький Царь", "en": "The Kingdom Within"},
-}
-
-
-# Why: book #2 is a merged three-part work. Legacy's top-level annotation is a
-# part-2 store blurb, so the merged work needs one work-level description.
-DESCRIPTION_OVERRIDES_BY_NUMBER: dict[int, dict[str, str]] = {
-    2: {
-        "ru": (
-            "«Маленький Царь» объединяет три части о Сергее и Царствии внутри: "
-            "от детского незабвения Света и живого мира вокруг него, через "
-            "встречу с теми, кто тоже начинает слышать Тишину, к возвращению "
-            "к себе и Присутствию. Это не обычная сказка и не приключение, "
-            "а тихий путь узнавания: всё живое, Царство внутри, а истина "
-            "открывается сердцем."
-        ),
-        "en": (
-            "The Kingdom Within brings together three parts about Sergey and "
-            "the Kingdom within: from a child's memory of the Light and the "
-            "living world around him, through encounters with others who begin "
-            "to hear Silence, toward a return to the self and Presence. It is "
-            "not an ordinary fairy tale or adventure, but a quiet path of "
-            "recognition: everything is alive, the Kingdom is within, and truth "
-            "is received by the heart."
-        ),
-    },
-}
-
-
-# Why: projects carry an editorial number to satisfy the (kind, number) invariant.
-PROJECT_NUMBERS: dict[str, int] = {
-    "enlightened-ai": 1,
-    "holy-rus": 2,
-}
-
-
-# !!! TEMPORARY — see editorial.yaml header for the migration plan.
-# This loader and the YAML file should both go away once the converter
-# learns to preserve editor-owned frontmatter fields (title, description,
-# abstract, translation, cross_refs) on existing markdown. At that point
-# editorial.yaml is applied once into each en.md and then deleted; the
-# residual review checklist lives in docs/editorial-notes.md. Don't bless
-# this as architecture.
-EDITORIAL_PATH = ROOT / "editorial.yaml"
-
-
-def _load_en_titles() -> dict[int, str]:
-    if not EDITORIAL_PATH.exists():
-        return {}
-    data = yaml.safe_load(EDITORIAL_PATH.read_text(encoding="utf-8")) or {}
-    raw = data.get("en_titles") or {}
-    return {int(k): str(v) for k, v in raw.items() if str(v).strip()}
-
-
-EN_TITLE_OVERRIDES_BY_NUMBER: dict[int, str] = _load_en_titles()
-
-
 # Why: AI image generators leave a verbose alt text in DOCX. Strip it (or its
 # truncation) — the surface form is consistent. Keep `alt=""` so screen
 # readers don't read filenames.
@@ -225,11 +147,6 @@ _BIBLIO_HEADING_LINE = re.compile(
     r"^#{1,6}\s+(?:библиография|bibliography|список\s+литературы|литература)\s*$",
     re.IGNORECASE,
 )
-_BIBLIO_SECTION_TELL = re.compile(
-    r"<img\b|!\[[^\]]*\]\([^)]+\)|<table\b|litres\.ru|kindbook\.net|"
-    r"Книги\s+автора|Books\s+by\s+the\s+author",
-    re.IGNORECASE,
-)
 
 _IMG_MD = re.compile(r"!\[([^\]]*)\]\(([^)]+?)\)")
 _BODY_IMG_MD = re.compile(r"!\[[^\]]*\]\(\./images/[^)\s]+(?:\s+\"[^\"]*\")?\)")
@@ -241,22 +158,6 @@ _LITRES_URL = re.compile(r"https?://(?:www\.)?litres\.ru/[\w\-/]+")
 _FOOTNOTE_LINE = re.compile(r"^\[\^([^\]]+)\]:\s*(.+)$", re.MULTILINE)
 _INLINE_BOOK_TITLE = re.compile(r"книг[аеу]\s+«([^»]{3,80})»")
 _EN_INLINE_BOOK_TITLE = re.compile(r"the\s+book\s+\"([^\"]{3,80})\"", re.IGNORECASE)
-
-
-def _strip_js_wrapper(text: str) -> str:
-    eq = text.index("=")
-    body = text[eq + 1:].strip()
-    if body.endswith(";"):
-        body = body[:-1]
-    return body
-
-
-def load_library() -> dict[str, Any]:
-    return json.loads(_strip_js_wrapper((DATA / "library-data.js").read_text(encoding="utf-8")))
-
-
-def load_poetry() -> dict[str, Any]:
-    return json.loads(_strip_js_wrapper((DATA / "poetry-data.js").read_text(encoding="utf-8")))
 
 
 # ---------------------------------------------------------------------------
@@ -291,19 +192,10 @@ class PlannedAsset:
     is_raster: bool  # raster (cap-eligible) vs vector/animated (copied verbatim)
 
 
-@dataclass
-class ConversionOutcome:
-    ascii_slug: str
-    lang: str
-    md_path: Path
-    images: list[ImageRecord] = field(default_factory=list)
-
-
-# Why: every converter-written file is recorded per work so a rerun can
-# delete only what it previously generated and preserve unknown author-added
-# neighbors (see docs/architecture.md "additive by default" rule). Paths are
-# work-folder-relative so the manifest is portable across `--out-content`
-# scratch directories.
+# Per-work bookkeeping the conversion primitives thread through and append to
+# (work-folder-relative paths plus per-language source records). The importer
+# constructs it and passes it down; nothing here persists it — the WritePlan +
+# writer are the system of record for what lands in src/content.
 @dataclass
 class WorkWrites:
     kind: str
@@ -321,67 +213,6 @@ class WorkWrites:
         record = {"path": rel, "filename": p.name}
         if record not in self.sources[lang]:
             self.sources[lang].append(record)
-
-
-def _load_previous_works(path: Path) -> dict[str, list[str]]:
-    """Read the converter's prior `generated_paths` per work key, scoped to
-    its owner slot. Returns `{<kind/slug>: [<work-folder-relative path>]}`."""
-    if not path.exists():
-        return {}
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return {}
-    by_work = data.get("by_work") or {}
-    result: dict[str, list[str]] = {}
-    for key, entry in by_work.items():
-        if not isinstance(entry, dict):
-            continue
-        gp = entry.get("generated_paths") or {}
-        if isinstance(gp, dict):
-            mine = gp.get(WORK_OWNER) or []
-            if isinstance(mine, list):
-                result[key] = [str(p) for p in mine]
-    return result
-
-
-# Why: explicit per-path ownership in the manifest avoids any heuristic about
-# which script wrote a file. The converter only reconciles paths recorded
-# under its own owner slot; other slots (notably `docx_optimize` for the
-# downloadable .docx files) are untouched.
-WORK_OWNER = "docx_to_md"
-
-
-def _reconcile_stale(writes: WorkWrites, previous_works: dict[str, list[str]]) -> int:
-    key = f"{writes.kind}/{writes.slug}"
-    removed = 0
-    for rel in previous_works.get(key, []):
-        rel_path = Path(rel)
-        if rel_path.is_absolute() or ".." in rel_path.parts:
-            continue
-        if rel in writes.paths:
-            continue
-        p = writes.work_dir / rel_path
-        if p.is_file():
-            try:
-                p.unlink()
-                removed += 1
-            except OSError:
-                pass
-    if removed and writes.work_dir.is_dir():
-        # Why: clean up image-directory shells the converter left empty after
-        # removing stale hashes; preserve any dir that still has an author-named
-        # neighbor.
-        for sub in sorted(
-            (p for p in writes.work_dir.rglob("*") if p.is_dir()), reverse=True,
-        ):
-            try:
-                next(sub.iterdir())
-            except StopIteration:
-                sub.rmdir()
-            except OSError:
-                pass
-    return removed
 
 
 def _normalize_ext(ext: str) -> str:
@@ -826,62 +657,6 @@ def _plain_text_inlines(inlines: list[dict[str, Any]]) -> str:
         elif isinstance(val, list):
             out.append(_plain_text_inlines(val))
     return "".join(out).strip()
-
-
-def _pandoc_inlines_to_html(inlines: list[dict[str, Any]]) -> str:
-    out: list[str] = []
-    for item in inlines:
-        typ = item.get("t")
-        val: Any = item.get("c")  # Pandoc AST payload: shape depends on `typ`
-        if typ == "Str":
-            out.append(html.escape(str(val), quote=False))
-        elif typ == "Space":
-            out.append(" ")
-        elif typ in {"SoftBreak", "LineBreak"}:
-            out.append("<br>\n")
-        elif typ == "Strong":
-            out.append(f"<strong>{_pandoc_inlines_to_html(val or [])}</strong>")
-        elif typ == "Emph":
-            out.append(f"<em>{_pandoc_inlines_to_html(val or [])}</em>")
-        elif typ in {"Underline", "SmallCaps"}:
-            out.append(_pandoc_inlines_to_html(val or []))
-        elif typ == "Strikeout":
-            out.append(f"<s>{_pandoc_inlines_to_html(val or [])}</s>")
-        elif typ == "Superscript":
-            out.append(f"<sup>{_pandoc_inlines_to_html(val or [])}</sup>")
-        elif typ == "Subscript":
-            out.append(f"<sub>{_pandoc_inlines_to_html(val or [])}</sub>")
-        elif typ == "Quoted":
-            quote_type, quoted = val
-            inner = _pandoc_inlines_to_html(quoted)
-            if quote_type.get("t") == "SingleQuote":
-                out.append(f"'{inner}'")
-            else:
-                out.append(f"«{inner}»")
-        elif typ == "Code":
-            out.append(f"<code>{html.escape(str(val[1]), quote=False)}</code>")
-        elif typ == "Link":
-            _attr, label, target = val
-            label_html = _pandoc_inlines_to_html(label)
-            href = html.escape(str(target[0]), quote=True)
-            out.append(f'<a href="{href}">{label_html}</a>')
-        elif typ == "Image":
-            _attr, label, target = val
-            alt = html.escape(_plain_text_inlines(label), quote=True)
-            src = html.escape(str(target[0]), quote=True)
-            out.append(f'<img src="{src}" alt="{alt}">')
-        elif typ == "Span":
-            _attr, span_inlines = val
-            out.append(_pandoc_inlines_to_html(span_inlines))
-        elif typ == "RawInline":
-            fmt, raw = val
-            if fmt == "html":
-                out.append(str(raw))
-            elif fmt == "markdown":
-                out.append(html.escape(str(raw), quote=False))
-        elif isinstance(val, list):
-            out.append(_pandoc_inlines_to_html(val))
-    return "".join(out)
 
 
 def _merge_html_lines(lines: list[str], child_lines: list[str]) -> None:
@@ -2021,22 +1796,6 @@ def rewrite_images(
     return md, next_idx, [planned[k] for k in sorted(planned)]
 
 
-def _stage_planned_assets(planned: list[PlannedAsset], work_dir: Path, writes: WorkWrites) -> None:
-    """Copy planned body assets into `work_dir` and record them.
-
-    Used only by the LEGACY batch CLI below, which is itself a direct mutator
-    (the import path never calls this — its writer applies the planned assets as
-    `transform_asset` ops). Kept so the dead batch path stays functional and
-    type-clean during the migration to the writer boundary.
-    """
-    for asset in planned:
-        dst = work_dir / asset.rel_within
-        if not dst.exists():
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(asset.source, dst)
-        writes.add(dst)
-
-
 def _body_image_alt(lang: str) -> str:
     return "Illustration" if lang == "en" else "Иллюстрация"
 
@@ -2437,347 +2196,6 @@ def convert_docx_to_md(
     return md, biblio, refs, next_idx, warnings, ast, structural_key_sequences, planned_assets
 
 
-# ---------------------------------------------------------------------------
-# legacy path resolution + cover ingest
-# ---------------------------------------------------------------------------
-
-def _legacy_path(rel_url: str) -> Path:
-    return LEGACY / unquote(rel_url)
-
-
-def _ingest_cover(
-    rel_url: str | None,
-    book_slug: str,
-    work_dir: Path,
-    lang: str,
-    image_records: list[ImageRecord],
-    writes: WorkWrites,
-    role: str,
-) -> str | None:
-    """Copy the cover into the work bundle as `cover.<lang>.<ext>`. Returns
-    the relative frontmatter path (`./cover.<lang>.<ext>`)."""
-    if not rel_url:
-        return None
-    src = _legacy_path(rel_url)
-    if not src.exists() or not _is_image_path(src.name):
-        return None
-    ext = _normalize_ext(src.suffix)
-    cover_name = f"cover.{lang}{ext}"
-    dst = work_dir / cover_name
-    work_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(src, dst)
-    writes.add(dst)
-    image_records.append(ImageRecord(
-        book_slug=book_slug,
-        image_index=0,
-        original_filename=f"{role}:{src.name}",
-        media_hash=_hash_file(dst),
-        ext=ext,
-        bytes=dst.stat().st_size,
-        role="cover",
-    ))
-    return f"./{cover_name}"
-
-
-def _book_part_label(idx: int, total: int, lang: str) -> str | None:
-    if total <= 1:
-        return None
-    return f"## Part {idx}" if lang == "en" else f"## Часть {idx}"
-
-
-def _pick_en_files(files: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    if not files:
-        return files
-    docs = [f for f in files if f["format"] == "docx"]
-    if not docs:
-        return []
-    cleans = [f for f in docs if Path(f["url"]).stem.endswith("-clean")]
-    if cleans:
-        return cleans
-    non_drafts = [f for f in docs if not Path(f["url"]).stem.endswith("-pre-cleanup")
-                  and not Path(f["url"]).stem.endswith("-pre-cleanup-v2")]
-    return non_drafts or docs
-
-
-# ---------------------------------------------------------------------------
-# slug + title indexes
-# ---------------------------------------------------------------------------
-
-def _build_ascii_slug(book_or_poem: dict[str, Any], lang: str) -> str:
-    """Map legacy Cyrillic-ish slug to ASCII per language. Books use the
-    Russian title for both languages (the folder name is canonical RU-ASCII).
-    Per-language route slugs are derived from each lang's title for the route
-    layer; here we just need a stable, ASCII folder name."""
-    cyr = book_or_poem.get("slug") or book_or_poem.get("number")
-    if cyr is None:
-        raise ValueError("missing slug/number")
-    return to_ascii_slug(str(cyr))
-
-
-def _build_slug_lookups(
-    books: list[dict[str, Any]],
-    poems: list[dict[str, Any]],
-    projects: list[dict[str, Any]],
-) -> dict[str, tuple[str, int | None, str | None]]:
-    """Return a `{title_or_url → (ascii_slug, number, kind)}` index. Keys are
-    lower-cased and whitespace-normalized. LitRes URLs are tagged too."""
-    index: dict[str, tuple[str, int | None, str | None]] = {}
-
-    def add(key: str | None, ascii_slug: str, number: int | None, kind: str) -> None:
-        if not key:
-            return
-        norm = re.sub(r"\s+", " ", key.strip().lower())
-        if norm and norm not in index:
-            index[norm] = (ascii_slug, number, kind)
-
-    for b in books:
-        ascii_slug = _build_ascii_slug(b, "ru")
-        number = b.get("number")
-        add(b.get("title"), ascii_slug, number, "book")
-        if number is not None and number in EN_TITLE_OVERRIDES_BY_NUMBER:
-            add(EN_TITLE_OVERRIDES_BY_NUMBER[number], ascii_slug, number, "book")
-        for lang_files in (b.get("languages") or {}).values():
-            for f in lang_files:
-                add(f.get("title"), ascii_slug, number, "book")
-    for p in poems:
-        ascii_slug = _build_ascii_slug(p, "ru")
-        add(p.get("title"), ascii_slug, p.get("number"), "poem")
-    for pr in projects:
-        ascii_slug = to_ascii_slug(pr.get("slug") or "")
-        number = PROJECT_NUMBERS.get(ascii_slug)
-        title = pr.get("title")
-        if isinstance(title, dict):
-            for v in title.values():
-                add(v, ascii_slug, number, "project")
-        else:
-            add(title, ascii_slug, number, "project")
-
-    return index
-
-
-# ---------------------------------------------------------------------------
-# title-language heuristics
-# ---------------------------------------------------------------------------
-
-_LATIN_RUN = re.compile(r"[A-Za-z]")
-_CYRILLIC_RUN = re.compile(r"[А-Яа-яЁё]")
-
-
-def _is_majority_latin(s: str) -> bool:
-    lat = len(_LATIN_RUN.findall(s))
-    cyr = len(_CYRILLIC_RUN.findall(s))
-    if lat + cyr == 0:
-        return True
-    return lat >= cyr
-
-
-def _pick_en_title(
-    book: dict[str, Any],
-    files_titles: list[str],
-) -> str:
-    """Return the best available EN title, falling back to the RU title.
-
-    A fallback title is an editorial state, not a separate frontmatter field.
-    The page already carries `translation.source: ai` when the EN text came
-    from a model.
-    """
-    override = EN_TITLE_OVERRIDES_BY_NUMBER.get(book["number"])
-    if override:
-        return override
-    for candidate in files_titles:
-        if candidate and _is_majority_latin(candidate):
-            return candidate
-    return book.get("title") or ""
-
-
-def _file_title(f: dict[str, Any]) -> str:
-    candidate = f.get("title") or ""
-    for suffix in (".clean", ".pre-cleanup-v2", ".pre-cleanup"):
-        if candidate.endswith(suffix):
-            candidate = candidate[: -len(suffix)]
-    return candidate.strip()
-
-
-# ---------------------------------------------------------------------------
-# conversion drivers
-# ---------------------------------------------------------------------------
-
-@dataclass
-class ConverterContext:
-    content_out: Path
-    image_records: list[ImageRecord]
-    biblio_slug_lookup: dict[str, tuple[str, int | None, str | None]]
-    cross_ref_title_index: dict[str, tuple[str, int | None, str | None]]
-    previous_works: dict[str, list[str]] = field(default_factory=dict)
-    work_writes: dict[str, WorkWrites] = field(default_factory=dict)
-    stale_removed: int = 0
-
-    def writes_for(self, kind: str, slug: str, work_dir: Path) -> WorkWrites:
-        key = f"{kind}/{slug}"
-        if key not in self.work_writes:
-            self.work_writes[key] = WorkWrites(kind=kind, slug=slug, work_dir=work_dir)
-        return self.work_writes[key]
-
-    def finish_work(self, writes: WorkWrites) -> None:
-        self.stale_removed += _reconcile_stale(writes, self.previous_works)
-
-
-def convert_book(book: dict[str, Any], ctx: ConverterContext) -> list[ConversionOutcome]:
-    ascii_slug = to_ascii_slug(book["slug"])
-    book_dir = ctx.content_out / "books" / ascii_slug
-    book_dir.mkdir(parents=True, exist_ok=True)
-    writes = ctx.writes_for("book", ascii_slug, book_dir)
-    results: list[ConversionOutcome] = []
-    image_idx = 1
-
-    annotations = book.get("annotations") or {}
-    # Why: ingest covers per-language on demand inside the lang loop, so books
-    # without an EN translation don't leave an orphan cover.en.svg in the
-    # bundle.
-    cover_paths: dict[str, str | None] = {}
-
-    meta: dict[str, Any] = {
-        "number": book["number"],
-        "slug": ascii_slug,
-        "title": book["title"],
-        "tags": book.get("tags") or [],
-        "languages": {},
-        "annotations": annotations,
-        "cover": book.get("cover") or {},
-        "sources": {},
-    }
-
-    per_lang_biblio: dict[str, list[dict[str, Any]]] = {}
-
-    for lang in ("ru", "en"):
-        files = (book.get("languages") or {}).get(lang) or []
-        docs = [f for f in files if f["format"] == "docx"]
-        if lang == "en":
-            docs = _pick_en_files(docs)
-        if not docs:
-            continue
-        cover_paths[lang] = _ingest_cover(
-            (book.get("cover") or {}).get(lang),
-            book_slug=ascii_slug,
-            work_dir=book_dir,
-            lang=lang,
-            image_records=ctx.image_records,
-            writes=writes,
-            role=f"book-cover-{lang}",
-        )
-        bodies: list[str] = []
-        originals: list[str] = []
-        bibliography: list[dict[str, Any]] = []
-        cross_refs: list[dict[str, Any]] = []
-        file_titles = [_file_title(f) for f in docs]
-
-        for i, f in enumerate(docs, start=1):
-            docx_path = _legacy_path(f["url"])
-            writes.add_source(lang, docx_path)
-            with tempfile.TemporaryDirectory(prefix=f"pancratius-media-{ascii_slug}-") as media_td:
-                (
-                    body,
-                    biblio,
-                    refs,
-                    image_idx,
-                    warns,
-                    ast,
-                    structural_key_sequences,
-                    planned_assets,
-                ) = convert_docx_to_md(
-                    docx=docx_path,
-                    book_slug=ascii_slug,
-                    lang=lang,
-                    work_dir=book_dir,
-                    image_records=ctx.image_records,
-                    writes=writes,
-                    image_counter_start=image_idx,
-                    biblio_slug_lookup=ctx.biblio_slug_lookup,
-                    cross_ref_title_index=ctx.cross_ref_title_index,
-                    own_ascii_slug=ascii_slug,
-                    media_out=Path(media_td) / "media",
-                )
-                # Legacy batch CLI is a direct mutator: stage the planned assets
-                # itself (the import path routes them through the writer instead).
-                _stage_planned_assets(planned_assets, book_dir, writes)
-            body = demote_markdown_headings(body, 2 if len(docs) > 1 else 1)
-            body = normalize_ast_verse_sections(body, ast)
-            body = normalize_ast_lineated_runs(body, ast, structural_key_sequences)
-            body = normalize_dedication_verse_sections(body)
-            body = collapse_blank_lines(body)
-            label = _book_part_label(i, len(docs), lang)
-            if label:
-                bodies.append(f"{label}\n\n{body}")
-            else:
-                bodies.append(body)
-            originals.append(docx_path.name)
-            bibliography.extend(biblio)
-            cross_refs.extend(refs)
-            if warns:
-                print(f"  [{ascii_slug}/{lang}] pandoc: {warns}", file=sys.stderr)
-
-        merged_override = TITLE_OVERRIDES_BY_NUMBER.get(book["number"]) or {}
-        if lang == "ru":
-            title_for_lang = merged_override.get("ru") or book["title"]
-            if not merged_override and len(docs) == 1 and file_titles and file_titles[0]:
-                title_for_lang = file_titles[0]
-        else:
-            if merged_override.get("en"):
-                title_for_lang = merged_override["en"]
-            else:
-                title_for_lang = _pick_en_title(book, file_titles)
-
-        cover_path = cover_paths.get(lang)
-        cover_is_placeholder = False
-        if not cover_path:
-            cover_path = cover_paths.get("ru")
-            cover_is_placeholder = True
-        elif lang == "en" and cover_path and cover_path.endswith(".svg"):
-            cover_is_placeholder = True
-
-        description = (DESCRIPTION_OVERRIDES_BY_NUMBER.get(book["number"]) or {}).get(lang, "")
-        if not description:
-            description_source = annotations.get(lang) or annotations.get("ru") or {}
-            description = (description_source.get("text") or "").strip()
-        if not description:
-            description = f"TODO: editorial description needed for book {book['number']}."
-
-        fm: dict[str, Any] = {
-            "kind": "book",
-            "number": book["number"],
-            "slug": ascii_slug,
-            "title": title_for_lang,
-            "lang": lang,
-            "description": description,
-            "tags": book.get("tags") or [],
-            "cover": cover_path,
-        }
-        if cover_is_placeholder:
-            fm["cover_is_placeholder"] = True
-        if cross_refs:
-            fm["cross_refs"] = _restructure_cross_refs(cross_refs)
-        fm["translation"] = _infer_translation(book, lang)
-        if bibliography:
-            per_lang_biblio[lang] = _dedupe_bibliography(bibliography)
-
-        md = _yaml_frontmatter(fm) + "\n\n".join(b.strip() for b in bodies) + "\n"
-        out_path = book_dir / f"{lang}.md"
-        out_path.write_text(md, encoding="utf-8")
-        writes.add(out_path)
-        meta["languages"][lang] = {"original_filenames": originals, "title": title_for_lang}
-        meta["sources"][lang] = [f["url"] for f in files]
-        results.append(ConversionOutcome(ascii_slug=ascii_slug, lang=lang, md_path=out_path))
-
-    _write_bibliography_sidecar(book_dir, per_lang_biblio, writes)
-    meta_path = book_dir / "meta.json"
-    meta_path.write_text(
-        json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8",
-    )
-    writes.add(meta_path)
-    ctx.finish_work(writes)
-    return results
-
-
 def _dedupe_bibliography(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     seen: set[tuple[str, str]] = set()
     out: list[dict[str, Any]] = []
@@ -2814,389 +2232,3 @@ def _write_bibliography_sidecar(work_dir: Path, per_lang: dict[str, list[dict[st
     sidecar_path = work_dir / "bibliography.yaml"
     sidecar_path.write_text(body, encoding="utf-8")
     writes.add(sidecar_path)
-
-
-def _infer_translation(
-    book: dict[str, Any],
-    lang: str,
-) -> dict[str, Any]:
-    if lang == "ru":
-        return {"source": "original"}
-    # Why: corpus contains no human literary translations of these books; every
-    # English variant was generated. Mark accordingly so the UI badge can show
-    # "AI translation". `model` is omitted when unrecorded.
-    return {"source": "ai"}
-
-
-def convert_poem(poem: dict[str, Any], ctx: ConverterContext) -> ConversionOutcome | None:
-    ascii_slug = to_ascii_slug(poem["slug"])
-    poem_dir = ctx.content_out / "poetry" / ascii_slug
-    poem_dir.mkdir(parents=True, exist_ok=True)
-    writes = ctx.writes_for("poem", ascii_slug, poem_dir)
-    docs = [f for f in poem.get("files", []) if f["format"] == "docx"]
-    if not docs:
-        return None
-    f = docs[0]
-    docx_path = _legacy_path(f["url"])
-    writes.add_source("ru", docx_path)
-    with tempfile.TemporaryDirectory(prefix=f"pancratius-media-{ascii_slug}-") as media_td:
-        body, refs, _, warns, planned_assets = convert_poem_docx_to_md(
-            docx=docx_path,
-            title=poem["title"],
-            book_slug=f"poem-{ascii_slug}",
-            work_dir=poem_dir,
-            image_records=ctx.image_records,
-            writes=writes,
-            image_counter_start=1,
-            cross_ref_title_index=ctx.cross_ref_title_index,
-            own_ascii_slug=ascii_slug,
-            media_out=Path(media_td) / "media",
-        )
-        # Legacy batch CLI mutates directly; the import path uses the writer.
-        _stage_planned_assets(planned_assets, poem_dir, writes)
-    if warns:
-        print(f"  [poem/{ascii_slug}] pandoc: {warns}", file=sys.stderr)
-    cover_path = _ingest_cover(
-        poem.get("cover"),
-        book_slug=f"poem-{ascii_slug}",
-        work_dir=poem_dir,
-        lang="ru",
-        image_records=ctx.image_records,
-        writes=writes,
-        role="poem-cover",
-    )
-    description = (poem.get("intro") or "").strip()
-    if not description:
-        description = f"Стихотворение №{poem['number']}: {poem.get('title', '').strip()}"
-    fm: dict[str, Any] = {
-        "kind": "poem",
-        "number": poem["number"],
-        "slug": ascii_slug,
-        "title": poem["title"],
-        "lang": "ru",
-        "description": description,
-        "cover": cover_path,
-        "date": _normalize_date(poem.get("date")),
-        "translation": {"source": "original"},
-    }
-    if refs:
-        fm["cross_refs"] = _restructure_cross_refs(refs)
-    md = _yaml_frontmatter(fm) + body
-    out_path = poem_dir / "ru.md"
-    out_path.write_text(md, encoding="utf-8")
-    writes.add(out_path)
-    ctx.finish_work(writes)
-    return ConversionOutcome(ascii_slug=ascii_slug, lang="ru", md_path=out_path)
-
-
-_DATE_RE = re.compile(r"(\d{4})-(\d{1,2})-(\d{1,2})")
-
-
-def _normalize_date(raw: object) -> str | None:
-    if not raw:
-        return None
-    s = str(raw).strip()
-    m = _DATE_RE.search(s)
-    if m:
-        return f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
-    m = re.search(r"(\d{1,2})\.(\d{1,2})\.(\d{2,4})", s)
-    if m:
-        d, mo, y = m.group(1), m.group(2), m.group(3)
-        if len(y) == 2:
-            y = "20" + y
-        return f"{y}-{int(mo):02d}-{int(d):02d}"
-    months = {
-        "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
-        "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
-    }
-    m = re.search(r"(?i)([a-z]+)\s+(\d{1,2}),\s+(\d{4})", s)
-    if m and m.group(1).lower() in months:
-        return f"{m.group(3)}-{months[m.group(1).lower()]:02d}-{int(m.group(2)):02d}"
-    return None
-
-
-def _yaml_frontmatter(d: dict[str, Any]) -> str:
-    body = yaml.safe_dump(
-        d, allow_unicode=True, sort_keys=False, default_flow_style=False, width=10_000,
-    ).strip()
-    return f"---\n{body}\n---\n\n"
-
-
-# ---------------------------------------------------------------------------
-# manifest
-# ---------------------------------------------------------------------------
-
-_BOOK_SLUG_TO_WORK_KEY_PREFIX: dict[str, str] = {
-    "poem-": "poem/",
-    "project-": "project/",
-}
-
-
-def _image_book_slug_to_work_key(book_slug: str) -> str:
-    # Why: book_slug is recorded on ImageRecord as either an ascii_slug (books)
-    # or `poem-<slug>` / `project-<slug>` (poems and projects). Convert it to
-    # the canonical `<kind>/<slug>` work key.
-    for prefix, kind in _BOOK_SLUG_TO_WORK_KEY_PREFIX.items():
-        if book_slug.startswith(prefix):
-            return kind + book_slug[len(prefix):]
-    return "book/" + book_slug
-
-
-def write_manifest(
-    records: list[ImageRecord],
-    work_writes: dict[str, WorkWrites],
-    previous_full: dict[str, Any],
-    path: Path,
-) -> dict[str, Any]:
-    # Why: build by_work first (carried-forward + current run), then derive
-    # by_hash and stats from the *merged* corpus view, so partial runs don't
-    # leave conversion-manifest.json internally inconsistent.
-    by_work_images: dict[str, list[dict[str, Any]]] = {}
-    for r in records:
-        work_key = _image_book_slug_to_work_key(r.book_slug)
-        by_work_images.setdefault(work_key, []).append({
-            "image_index": r.image_index,
-            "original_filename": r.original_filename,
-            "hash": r.media_hash,
-            "ext": r.ext,
-            "role": r.role,
-        })
-
-    by_work: dict[str, dict[str, Any]] = {}
-    converted_keys = set(work_writes.keys())
-    prev_by_work = previous_full.get("by_work") or {}
-    for key, entry in prev_by_work.items():
-        if key not in converted_keys and isinstance(entry, dict):
-            by_work[key] = entry
-    for key, writes in work_writes.items():
-        # Why: rewrite this owner's slot only; carry forward any other owner
-        # slots (e.g. `docx_optimize`) from the previous manifest.
-        prev_gp: dict[str, Any] = {}
-        prev_entry = prev_by_work.get(key)
-        if isinstance(prev_entry, dict):
-            existing = prev_entry.get("generated_paths")
-            if isinstance(existing, dict):
-                prev_gp = {k: v for k, v in existing.items() if k != WORK_OWNER}
-        prev_gp[WORK_OWNER] = sorted(writes.paths)
-        by_work[key] = {
-            "kind": writes.kind,
-            "slug": writes.slug,
-            "generated_paths": prev_gp,
-            "sources": writes.sources,
-            "images": by_work_images.get(key, []),
-        }
-
-    prev_by_hash = previous_full.get("by_hash") or {}
-    by_hash: dict[str, dict[str, Any]] = {}
-    role_totals: dict[str, int] = {}
-    total_refs = 0
-    total_bytes_pre = 0
-
-    def _bytes_for(media_hash: str) -> int:
-        # Why: ImageRecord carries bytes for this run; carried-forward entries
-        # only know hash + ext + role. Look up bytes from the previous by_hash.
-        return int((prev_by_hash.get(media_hash) or {}).get("bytes", 0))
-
-    bytes_by_hash: dict[str, tuple[int, str]] = {}
-    for r in records:
-        bytes_by_hash[r.media_hash] = (r.bytes, r.ext)
-
-    for work_key, entry in by_work.items():
-        slug_for_appears = entry.get("slug") or work_key.split("/", 1)[-1]
-        for img in entry.get("images") or []:
-            media_hash = img.get("hash")
-            ext = img.get("ext", "")
-            role = img.get("role", "body")
-            if media_hash in bytes_by_hash:
-                size, ext_real = bytes_by_hash[media_hash]
-            else:
-                size = _bytes_for(media_hash)
-                ext_real = ext
-            rec = by_hash.setdefault(media_hash, {
-                "hash": media_hash,
-                "ext": ext_real,
-                "bytes": size,
-                "roles": set(),
-                "appears_in": [],
-            })
-            rec["roles"].add(role)
-            rec["appears_in"].append({
-                "book_slug": slug_for_appears,
-                "image_index": img.get("image_index", 0),
-                "original_filename": img.get("original_filename", ""),
-                "role": role,
-            })
-            role_totals[role] = role_totals.get(role, 0) + 1
-            total_refs += 1
-            total_bytes_pre += size
-
-    for v in by_hash.values():
-        v["roles"] = sorted(v["roles"])
-    unique_bytes = sum(v["bytes"] for v in by_hash.values())
-
-    manifest = {
-        "stats": {
-            "total_image_refs": total_refs,
-            "unique_images": len(by_hash),
-            "bytes_before_dedup": total_bytes_pre,
-            "bytes_after_dedup": unique_bytes,
-            "bytes_saved": total_bytes_pre - unique_bytes,
-            "role_counts": role_totals,
-        },
-        "by_work": by_work,
-        "by_hash": by_hash,
-    }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return manifest
-
-
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
-
-TEST_BOOK_NUMBERS = [1, 33, 53, 3]
-TEST_POEM_NUMBERS = [2]
-
-
-def run(args: argparse.Namespace) -> None:
-    if args.test:
-        content_out = TEST_CONTENT_OUT if args.out_content is None else Path(args.out_content)
-        manifest_path = TEST_MANIFEST_PATH if args.manifest is None else Path(args.manifest)
-    else:
-        content_out = CONTENT_OUT if args.out_content is None else Path(args.out_content)
-        manifest_path = MANIFEST_PATH if args.manifest is None else Path(args.manifest)
-
-    content_out.mkdir(parents=True, exist_ok=True)
-
-    lib = load_library()
-    poetry_data = load_poetry()
-
-    books = lib["books"]
-    poems = poetry_data["works"]
-
-    biblio_slug_lookup = _build_slug_lookups(books, poems, [])
-
-    image_records: list[ImageRecord] = []
-
-    books_to_do: list[dict[str, Any]] = []
-    poems_to_do: list[dict[str, Any]] = []
-
-    selected_kinds = set(args.kind or [])
-
-    if "book" in selected_kinds:
-        books_to_do = books
-    if "poem" in selected_kinds:
-        poems_to_do = poems
-
-    if args.test:
-        books_to_do = [b for b in books if b["number"] in TEST_BOOK_NUMBERS]
-        poems_to_do = [p for p in poems if p["number"] in TEST_POEM_NUMBERS]
-    elif args.number is not None:
-        if "book" in selected_kinds:
-            books_to_do = [b for b in books if b["number"] == args.number]
-            if not books_to_do:
-                raise SystemExit(f"book not found: {args.number}")
-        elif "poem" in selected_kinds:
-            poems_to_do = [p for p in poems if p["number"] == args.number]
-            if not poems_to_do:
-                raise SystemExit(f"poem not found: {args.number}")
-    print(f"books to convert: {len(books_to_do)}", file=sys.stderr)
-    print(f"poems to convert: {len(poems_to_do)}", file=sys.stderr)
-
-    # The rerun is additive: it only touches files the prior manifest says the
-    # converter generated, and leaves unknown author-added neighbors alone. There
-    # is no destructive whole-bundle clean — stale generated files are pruned by
-    # the per-work manifest reconciliation, never by deleting directories.
-    previous_full: dict[str, Any] = {}
-    if manifest_path.exists():
-        try:
-            previous_full = json.loads(manifest_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            previous_full = {}
-    previous_works = _load_previous_works(manifest_path)
-
-    ctx = ConverterContext(
-        content_out=content_out,
-        image_records=image_records,
-        biblio_slug_lookup=biblio_slug_lookup,
-        cross_ref_title_index=biblio_slug_lookup,
-        previous_works=previous_works,
-    )
-
-    for b in books_to_do:
-        print(f"book {b['number']:>3} {b['slug']}", file=sys.stderr)
-        convert_book(b, ctx)
-    for p in poems_to_do:
-        print(f"poem {p['number']:>3} {p['slug']}", file=sys.stderr)
-        convert_poem(p, ctx)
-
-    m = write_manifest(image_records, ctx.work_writes, previous_full, manifest_path)
-    s = m["stats"]
-    print(
-        f"\nimages: {s['total_image_refs']} refs across docx → "
-        f"{s['unique_images']} unique after dedup\n"
-        f"size: {s['bytes_before_dedup'] / 1e6:.1f} MB before dedup → "
-        f"{s['bytes_after_dedup'] / 1e6:.1f} MB on disk "
-        f"(saved {s['bytes_saved'] / 1e6:.1f} MB)\n"
-        f"roles: {s['role_counts']}\n"
-        f"stale files removed: {ctx.stale_removed}",
-        file=sys.stderr,
-    )
-    print(f"manifest written to {manifest_path}", file=sys.stderr)
-
-
-def build_parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(
-        description="Convert selected Pancratius legacy DOCX sources to work-bundle Markdown.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    ap.add_argument(
-        "--kind",
-        action="append",
-        choices=WORK_KINDS,
-        help="Work kind to convert. Repeat for multiple kinds.",
-    )
-    ap.add_argument(
-        "--number",
-        type=int,
-        help="Convert one book or poem by corpus number. Requires exactly one --kind book or --kind poem.",
-    )
-    ap.add_argument(
-        "--test",
-        action="store_true",
-        help="Convert the small test set into .cache/converter-test/ unless output paths are overridden.",
-    )
-    ap.add_argument("--out-content", default=None, help="Content output root.")
-    ap.add_argument("--manifest", default=None, help="Conversion manifest output path.")
-    return ap
-
-
-def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
-    args.kind = list(dict.fromkeys(args.kind or []))
-
-    if args.test:
-        if args.kind or args.number is not None:
-            parser.error("--test cannot be combined with --kind or --number")
-        return
-
-    if not args.kind:
-        parser.error("choose at least one --kind (book or poem), or use --test")
-
-    if args.number is not None:
-        if len(args.kind) != 1 or args.kind[0] not in {"book", "poem"}:
-            parser.error("--number requires exactly one --kind book or --kind poem")
-
-
-def main() -> None:
-    ap = build_parser()
-    args = ap.parse_args()
-    validate_args(ap, args)
-    if shutil.which("pandoc") is None:
-        ap.error("pandoc not found on PATH; install with `brew install pandoc`")
-
-    run(args)
-
-
-if __name__ == "__main__":
-    main()

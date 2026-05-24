@@ -111,11 +111,10 @@ already use `argparse`).
 The verb space **teaches the corpus ontology** (see `content-model.md`): you
 `work import` a book/poem (a corpus work, `(kind, number)`); you `project page
 add` a sub-page (a themed section). An agent cannot express "import a project as
-a book" — the boundary is in the grammar. `docx_to_md.py` is excluded by
-omission — it gets no verb. The *file* cannot be deleted yet, though:
-`scripts/lib/docx_conversion.py` imports it as `legacy` and delegates the whole
-conversion engine to it, so `work import` depends on it transitively. Deletion is
-gated on extracting those primitives into `scripts/lib/` (see Migration step 6).
+a book" — the boundary is in the grammar. The conversion engine
+(`scripts/lib/docx_engine.py`) gets no verb of its own — it is a library the
+`work import` path drives through the `scripts/lib/docx_conversion.py` facade
+(which imports it as `legacy`).
 
 ### Mechanical (tool) vs editorial (skill)
 
@@ -217,7 +216,7 @@ another partial map. Disposition column: `npm` (site door), `work/project/…`
 | `npm run prebuild:graph-payloads` → `build_copy_graph_payloads.py` | **copy** graph JSON `data/`→`public/` | no | `npm` prebuild (CI-safe copy) — distinct from `data graph generate` |
 | `npm run prebuild:bulk-archives` → `build_bulk_archives.ts` | build `all-md.zip` | no | `npm` prebuild + `pancratius data bulk refresh` |
 | `import_docx.py` | DOCX → work bundle | **yes** (creates work) | `pancratius work import` |
-| `docx_to_md.py` | legacy batch converter + **holds the conversion engine** (`lib/docx_conversion.py` imports it as `legacy`) | **yes** | no verb now; **delete only after extracting the engine into `scripts/lib/`** |
+| `lib/docx_engine.py` | the DOCX→Markdown conversion engine (`lib/docx_conversion.py` imports it as `legacy`); library only, no entry point | no (never src/content — pandoc media + sidecar land in the caller's staging dir; the writer is the sole src/content mutator) | no verb — internal to `work import` |
 | `render_downloads.py` | render PDF/EPUB/DOCX | **yes** (release artifacts) | `pancratius downloads render` |
 | `docx_optimize.py` | clean source DOCX in place | **yes** | `pancratius docx optimize` |
 | `conceptosphere.py` | **generate** graph data | **yes** (gen `data/`) | `pancratius data graph generate` (local/heavy) |
@@ -249,12 +248,12 @@ ergonomics + skills-enablement effort, sequenced before the skills.
 5. **Wire data verbs:** `data slug-map/bulk refresh` as thin aliases over the
    prebuild generators (one owner); `data graph/embed generate` as the local
    heavy regen (distinct from the build-prep `prebuild:graph-payloads` copy).
-6. **Extract the conversion engine** from `docx_to_md.py` into
-   `scripts/lib/docx_conversion.py` (it currently does `import docx_to_md as
-   legacy` and delegates `convert_docx_to_md`, `convert_poem_docx_to_md`, the AST
-   verse/lineation normalizers, slug/image helpers, cross-ref restructuring) so
-   `work import` stops depending on the legacy file — **then** delete
-   `docx_to_md.py`. The verb surface is unchanged either way.
+6. **The conversion engine lives in `scripts/lib/docx_engine.py`.** It is a
+   library module under the shared `scripts/lib/` core — `convert_docx_to_md`,
+   `convert_poem_docx_to_md`, the AST verse/lineation normalizers, slug/image
+   helpers, and cross-ref restructuring. `scripts/lib/docx_conversion.py` imports
+   it as `legacy` and `work import` drives it through that facade. There is no
+   batch CLI and no top-level `docx_to_md.py`. The verb surface is unchanged.
 
 Do first: 2 + 3. Leave alone: the npm site door, `prebuild:*` coupling, the
 `scripts/visual/` dev diagnostics, the shared `scripts/lib/` core.

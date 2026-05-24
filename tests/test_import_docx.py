@@ -13,7 +13,6 @@ SCRIPTS = ROOT / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-import docx_to_md  # noqa: E402
 import import_docx  # noqa: E402
 from lib.content_catalog import split_frontmatter  # noqa: E402
 
@@ -111,12 +110,9 @@ Existing body.
 
 
 def test_importer_does_not_consult_legacy_catalog_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    def fail_legacy_catalog(*_args: object, **_kwargs: object) -> None:
-        raise AssertionError("legacy catalog should not be read by import_docx.py")
-
-    monkeypatch.setattr(docx_to_md, "load_library", fail_legacy_catalog)
-    monkeypatch.setattr(docx_to_md, "load_poetry", fail_legacy_catalog)
-
+    # The legacy catalog loaders no longer exist (the batch CLI is gone); the
+    # remaining guard is the only one that matters: nothing in the import path may
+    # read anything under legacy/data.
     original_read_text = Path.read_text
 
     def guarded_read_text(self: Path, *args: str | None, **kwargs: str | None) -> str:

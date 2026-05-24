@@ -34,7 +34,7 @@ from typing import Literal
 
 # A footnote DEFINITION line: `[^id]: body`. Anchored at line start (GFM defs are
 # never indented at column 0 unless they ARE a definition). `id` is the run of
-# non-`]` characters, mirroring `docx_to_md._FOOTNOTE_LINE`.
+# non-`]` characters, mirroring `lib.docx_engine._FOOTNOTE_LINE`.
 _DEF_LINE_RE = re.compile(r"^\[\^([^\]]+)\]:\s?(.*)$")
 
 # A footnote REFERENCE marker anywhere inline: `[^id]` NOT followed by `:`
