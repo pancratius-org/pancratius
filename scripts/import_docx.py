@@ -75,6 +75,42 @@ _LATIN_RE = re.compile(r"[A-Za-z]")
 _CYRILLIC_RE = re.compile(r"[А-Яа-яЁё]")
 
 
+class ImportError(Exception):
+    """Invalid import input or an unresolvable target.
+
+    The ONE error strategy of the stable `import_work` entry: it is raised for
+    bad input (missing/non-DOCX file) and for a `_resolve_target` failure (no
+    such work, an ambiguous `--into`, a `--kind`-less new work, an existing
+    bundle dir). A *write refusal* is NOT an error — `import_work` returns the
+    refused `WriteReport` (with its fatal diagnostics) instead of raising, so the
+    caller can inspect it. The CLI maps this to `parser.error`."""
+
+
+@dataclass(frozen=True)
+class ImportRequest:
+    """The explicit, frozen input contract for an import.
+
+    This is the stable surface `import_work` consumes — decoupled from argparse,
+    so a caller (a future `pancratius work import`, a test, another tool) builds
+    a request by name rather than threading an `argparse.Namespace`. Field names
+    mirror the CLI flags; `_request_from_args` adapts a parsed namespace into one.
+    """
+
+    docx: Path
+    lang: str
+    out_content: Path
+    kind: str | None = None
+    into: str | None = None
+    title: str | None = None
+    number: int | None = None
+    slug: str | None = None
+    description: str | None = None
+    cover: Path | None = None
+    translation_source: str | None = None
+    dry_run: bool = False
+    replace: bool = False
+
+
 @dataclass(frozen=True)
 class ImportResult:
     kind: str
@@ -243,10 +279,10 @@ def _existing_group(matches: list[CatalogEntry], work_ref: str) -> tuple[str, st
     for entry in matches:
         groups.setdefault((entry.kind, entry.work_key), []).append(entry)
     if not groups:
-        raise SystemExit(f"work not found in Markdown catalog: {work_ref}")
+        raise ImportError(f"work not found in Markdown catalog: {work_ref}")
     if len(groups) > 1:
         choices = ", ".join(f"{kind}/{work_key}" for kind, work_key in sorted(groups))
-        raise SystemExit(f"--into is ambiguous ({choices}); pass --kind")
+        raise ImportError(f"--into is ambiguous ({choices}); pass --kind")
     (kind, work_key), entries = next(iter(groups.items()))
     return kind, work_key, entries
 
@@ -284,8 +320,8 @@ def _write_docx_artifact(src: Path, dst: Path) -> None:
     dst.parent.mkdir(parents=True, exist_ok=True)
     try:
         optimize_docx(src, dst)
-    except Exception as exc:  # pragma: no cover - preserves CLI error clarity
-        raise SystemExit(f"failed to optimize DOCX {src} -> {dst}: {exc}") from exc
+    except Exception as exc:  # pragma: no cover - preserves error clarity
+        raise ImportError(f"failed to optimize DOCX {src} -> {dst}: {exc}") from exc
 
 
 def _frontmatter_cover_exists(work_dir: Path, cover: object) -> bool:
@@ -322,9 +358,9 @@ def _prepare_cover(
     if cover_arg:
         src = Path(cover_arg).expanduser().resolve()
         if not src.is_file():
-            raise SystemExit(f"cover not found: {src}")
+            raise ImportError(f"cover not found: {src}")
         if src.suffix.lower() not in IMAGE_EXTS:
-            raise SystemExit(f"unsupported cover image extension: {src.suffix}")
+            raise ImportError(f"unsupported cover image extension: {src.suffix}")
         ext = ".jpg" if src.suffix.lower() in {".jpeg", ".jpe"} else src.suffix.lower()
         dst = write_dir / f"cover.{lang}{ext}"
         _copy_if_needed(src, dst)
@@ -383,7 +419,7 @@ def _merge_cross_refs(existing_lang: CatalogEntry | None, converted: ConvertedDo
 
 def _frontmatter_for_import(
     *,
-    args: argparse.Namespace,
+    request: ImportRequest,
     kind: str,
     number: int,
     slug: str,
@@ -427,69 +463,77 @@ def _frontmatter_for_import(
     else:
         fm.pop("cross_refs", None)
 
-    fm["translation"] = {"source": _translation_source(existing_lang, lang, args.translation_source)}
+    fm["translation"] = {"source": _translation_source(existing_lang, lang, request.translation_source)}
     return fm
 
 
 def _resolve_target(
-    args: argparse.Namespace,
+    request: ImportRequest,
     entries: list[CatalogEntry],
     docx: Path,
     content_root: Path,
 ) -> tuple[str, str, int, str, list[CatalogEntry]]:
-    if args.into:
-        matches = find_work_entries(entries, args.into, args.kind)
-        kind, work_key, work_entries = _existing_group(matches, args.into)
-        reference = _preferred_entry(work_entries, args.lang)
-        number = args.number or reference.number
-        slug = _slug_with_number(args.slug, number) if args.slug else reference.slug
+    if request.into:
+        matches = find_work_entries(entries, request.into, request.kind)
+        kind, work_key, work_entries = _existing_group(matches, request.into)
+        reference = _preferred_entry(work_entries, request.lang)
+        number = request.number or reference.number
+        slug = _slug_with_number(request.slug, number) if request.slug else reference.slug
         return kind, work_key, number, slug, work_entries
 
-    if not args.kind:
-        raise SystemExit("--kind is required when importing a new work")
-    kind = args.kind
-    number = args.number or next_number(entries, kind)
-    title = args.title or infer_title(docx)
-    work_key = _slug_with_number(args.slug or title, number)
+    if not request.kind:
+        raise ImportError("--kind is required when importing a new work")
+    kind = request.kind
+    number = request.number or next_number(entries, kind)
+    title = request.title or infer_title(docx)
+    work_key = _slug_with_number(request.slug or title, number)
     slug = work_key
     work_dir = content_root / KIND_DIRS[kind] / work_key
     if work_dir.exists():
-        raise SystemExit(f"work bundle already exists: {work_dir}; use --into {work_key} to update it")
+        raise ImportError(f"work bundle already exists: {work_dir}; use --into {work_key} to update it")
     return kind, work_key, number, slug, []
 
 
-def _run(args: argparse.Namespace) -> tuple[ImportResult, WriteReport]:
-    docx = Path(args.docx).expanduser().resolve()
-    if not docx.is_file():
-        raise SystemExit(f"DOCX not found: {docx}")
-    if docx.suffix.lower() != ".docx":
-        raise SystemExit(f"expected a .docx file: {docx}")
+def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
+    """The side-effect-free import core: convert + plan + apply through the writer,
+    returning BOTH the legacy `ImportResult` and the writer's `WriteReport`.
 
-    content_root = Path(args.out_content).expanduser().resolve()
+    Emits no stdout/stderr and never raises on a write refusal — a refusal rides
+    home in the returned `WriteReport.refused` with its fatal diagnostics. It
+    raises `ImportError` only for invalid input (missing/non-DOCX file) or an
+    unresolvable target (via `_resolve_target`). `import_work` / `run` are the thin
+    public adapters over this; the writer is the only mutator of src/content."""
+    docx = Path(request.docx).expanduser().resolve()
+    if not docx.is_file():
+        raise ImportError(f"DOCX not found: {docx}")
+    if docx.suffix.lower() != ".docx":
+        raise ImportError(f"expected a .docx file: {docx}")
+
+    content_root = Path(request.out_content).expanduser().resolve()
     # Do NOT create content_root here: the writer is the only component that
     # mutates the content tree, and --dry-run must touch nothing. `scan_catalog`
     # tolerates a missing root, and the writer's `ensure_dir` creates the bundle
     # (and its parents) when the plan is actually applied.
     entries = [e for e in scan_catalog(content_root) if e.kind in WORK_KINDS]
 
-    kind, work_key, number, slug, work_entries = _resolve_target(args, entries, docx, content_root)
+    kind, work_key, number, slug, work_entries = _resolve_target(request, entries, docx, content_root)
     real_work_dir = content_root / KIND_DIRS[kind] / work_key
     scope = PurePosixPath(KIND_DIRS[kind]) / work_key
 
-    existing_lang = _existing_lang_entry(work_entries, args.lang)
-    reference = _preferred_entry(work_entries, args.lang) if work_entries else None
+    existing_lang = _existing_lang_entry(work_entries, request.lang)
+    reference = _preferred_entry(work_entries, request.lang) if work_entries else None
     inferred_title = infer_title(docx)
-    if args.title:
-        title = args.title
+    if request.title:
+        title = request.title
     elif existing_lang:
         title = existing_lang.title
-    elif args.into and reference and (args.lang == reference.lang or not _majority_latin(inferred_title)):
+    elif request.into and reference and (request.lang == reference.lang or not _majority_latin(inferred_title)):
         title = reference.title
     else:
         title = inferred_title
 
-    if args.description:
-        description = args.description
+    if request.description:
+        description = request.description
     elif existing_lang and existing_lang.description:
         description = existing_lang.description
     else:
@@ -511,7 +555,7 @@ def _run(args: argparse.Namespace) -> tuple[ImportResult, WriteReport]:
         converted = convert_single_docx(
             docx,
             kind=kind,
-            lang=args.lang,
+            lang=request.lang,
             work_key=work_key,
             title=title,
             work_dir=stage_dir,
@@ -520,21 +564,21 @@ def _run(args: argparse.Namespace) -> tuple[ImportResult, WriteReport]:
         )
 
         cover, cover_is_placeholder = _prepare_cover(
-            cover_arg=args.cover,
+            cover_arg=str(request.cover) if request.cover is not None else None,
             read_dir=real_work_dir,
             write_dir=stage_dir,
-            lang=args.lang,
+            lang=request.lang,
             existing_lang=existing_lang,
             reference=reference,
         )
         fm = _frontmatter_for_import(
-            args=args,
+            request=request,
             kind=kind,
             number=number,
             slug=slug,
             title=title,
             description=description,
-            lang=args.lang,
+            lang=request.lang,
             cover=cover,
             cover_is_placeholder=cover_is_placeholder,
             existing_lang=existing_lang,
@@ -542,11 +586,11 @@ def _run(args: argparse.Namespace) -> tuple[ImportResult, WriteReport]:
             converted=converted,
         )
 
-        (stage_dir / f"{args.lang}.md").write_text(
+        (stage_dir / f"{request.lang}.md").write_text(
             dump_frontmatter(fm) + converted.body, encoding="utf-8"
         )
-        _write_docx_artifact(docx, stage_dir / f"{args.lang}.docx")
-        write_bibliography_sidecar(stage_dir, kind, args.lang, converted.bibliography)
+        _write_docx_artifact(docx, stage_dir / f"{request.lang}.docx")
+        write_bibliography_sidecar(stage_dir, kind, request.lang, converted.bibliography)
 
         # Footnote integrity is a first-class plan diagnostic, not bespoke writer
         # logic: an orphaned `[^id]` reference (no matching `[^id]:` definition)
@@ -573,51 +617,87 @@ def _run(args: argparse.Namespace) -> tuple[ImportResult, WriteReport]:
             stage_work_dir=stage_dir,
             content_root=content_root,
             scope=scope,
-            lang=args.lang,
-            replace=bool(args.replace),
+            lang=request.lang,
+            replace=bool(request.replace),
             diagnostics=diagnostics,
             source_document=docx,
             asset_ops=_asset_ops(converted.assets, scope),
         )
-        report = apply_plan(plan, dry_run=bool(args.dry_run))
+        report = apply_plan(plan, dry_run=bool(request.dry_run))
     finally:
         shutil.rmtree(stage_root, ignore_errors=True)
 
-    _print_report(report, dry_run=bool(args.dry_run))
-    if report.refused:
-        raise SystemExit(
-            f"refused to write {kind}/{work_key} ({args.lang}): "
-            + "; ".join(d.message for d in report.diagnostics if d.severity == "fatal")
-        )
-
-    md_path = real_work_dir / f"{args.lang}.md"
-    docx_out = real_work_dir / f"{args.lang}.docx"
-    if not args.dry_run:
-        print(f"imported {kind}/{work_key} ({args.lang})")
-        print(f"markdown: {md_path}")
-        print(f"docx: {docx_out}")
-    if converted.warnings:
-        print(f"pandoc warnings:\n{converted.warnings}", file=sys.stderr)
     result = ImportResult(
-        kind=kind, work_key=work_key, md_path=md_path, docx_path=docx_out, warnings=converted.warnings
+        kind=kind,
+        work_key=work_key,
+        md_path=real_work_dir / f"{request.lang}.md",
+        docx_path=real_work_dir / f"{request.lang}.docx",
+        warnings=converted.warnings,
     )
     return result, report
 
 
+def import_work(request: ImportRequest) -> WriteReport:
+    """The stable, side-effect-free importer entry the `pancratius work import` CLI
+    dispatches to.
+
+    RETURNS the writer's `WriteReport` (the planned/applied write-set + its
+    diagnostics) — including on a write refusal, where `report.refused` is
+    non-empty and carries the fatal diagnostics (it does NOT raise / SystemExit on
+    a refusal). Raises `ImportError` only for invalid input or an unresolvable
+    target. Emits NO stdout/stderr; the CLI (`main`) owns all side effects."""
+    return _apply(request)[1]
+
+
 def run(args: argparse.Namespace) -> ImportResult:
-    """Build the WritePlan, apply it through the writer, and return the legacy
-    `ImportResult`. The single mutating surface for src/content is the writer."""
-    return _run(args)[0]
+    """Back-compat adapter: parsed namespace -> `ImportRequest` -> `import_work`,
+    reproducing the legacy CLI behavior (print the report summary + pandoc
+    warnings, raise `SystemExit` on a refusal) and returning the `ImportResult`.
+
+    The single mutating surface for src/content is the writer. Kept so existing
+    tests and the golden harness (which call `run(build_parser().parse_args(...))`)
+    stay unchanged."""
+    request = _request_from_args(args)
+    result, report = _apply(request)
+    _emit_cli_report(request, result, report)
+    if report.refused:
+        raise SystemExit(
+            f"refused to write {result.kind}/{result.work_key} ({request.lang}): "
+            + "; ".join(d.message for d in report.diagnostics if d.severity == "fatal")
+        )
+    return result
 
 
-def import_work(args: argparse.Namespace) -> WriteReport:
-    """Stable importer entry the future `pancratius work import` CLI dispatches to.
+def _emit_cli_report(request: ImportRequest, result: ImportResult, report: WriteReport) -> None:
+    """The CLI's human/agent-facing side effects: the dry-run/write summary, the
+    `imported …` confirmation, and pandoc warnings. Kept OUT of `import_work` so the
+    stable entry is silent."""
+    _print_report(report, dry_run=request.dry_run)
+    if not report.refused and not request.dry_run:
+        print(f"imported {result.kind}/{result.work_key} ({request.lang})")
+        print(f"markdown: {result.md_path}")
+        print(f"docx: {result.docx_path}")
+    if result.warnings:
+        print(f"pandoc warnings:\n{result.warnings}", file=sys.stderr)
 
-    Returns the writer's `WriteReport` (the planned/applied write-set + diagnostics)
-    rather than the legacy `ImportResult`. Shares the same plan→writer tail as
-    `run`; this is the contract surface that returns the report directly.
-    """
-    return _run(args)[1]
+
+def _request_from_args(ns: argparse.Namespace) -> ImportRequest:
+    """Adapt a parsed argparse namespace into the typed `ImportRequest`."""
+    return ImportRequest(
+        docx=Path(ns.docx),
+        lang=ns.lang,
+        out_content=Path(ns.out_content),
+        kind=ns.kind,
+        into=ns.into,
+        title=ns.title,
+        number=ns.number,
+        slug=ns.slug,
+        description=ns.description,
+        cover=Path(ns.cover) if ns.cover else None,
+        translation_source=ns.translation_source,
+        dry_run=bool(ns.dry_run),
+        replace=bool(ns.replace),
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -648,13 +728,23 @@ def build_parser() -> argparse.ArgumentParser:
     return ap
 
 
-def main(argv: list[str] | None = None) -> None:
+def main(argv: list[str] | None = None) -> int:
+    """The CLI: parse, dispatch to the stable `import_work`, then own all side
+    effects — print the report summary + pandoc warnings, and exit nonzero on a
+    refusal. Invalid input / an unresolvable target raises `ImportError`, mapped to
+    `parser.error` (the conventional argparse usage exit)."""
     parser = build_parser()
-    args = parser.parse_args(argv)
+    ns = parser.parse_args(argv)
     if shutil.which("pandoc") is None:
         parser.error("pandoc not found on PATH; install with `brew install pandoc`")
-    run(args)
+    request = _request_from_args(ns)
+    try:
+        result, report = _apply(request)
+    except ImportError as exc:
+        parser.error(str(exc))
+    _emit_cli_report(request, result, report)
+    return 1 if report.refused else 0
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    sys.exit(main(sys.argv[1:]))

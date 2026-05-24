@@ -73,8 +73,3 @@ def extract_cross_refs(
         push(slug, number, kind, "inline_title", title_m)
 
     return refs
-
-
-def restructure_cross_refs(refs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    # Why: already in {target, source, snippet} shape; just return.
-    return refs

@@ -368,17 +368,15 @@ def _scrub_alt_in_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
 
 def scrub_ai_alt(blocks: list[ir.Block]) -> list[ir.Block]:
     for b in blocks:
-        if isinstance(b, ir.Paragraph):
-            b.inlines = _scrub_alt_in_inlines(b.inlines)
-        elif isinstance(b, ir.ImageBlock) and _is_ai_alt(b.alt):
-            b.alt = ""
-        elif isinstance(b, ir.Table):
-            b.rows = [[_scrub_alt_in_inlines(cell) for cell in row] for row in b.rows]
-        elif isinstance(b, ir.BlockQuote):
-            scrub_ai_alt(b.blocks)  # recurse into containers (e.g. unwrapped Figure)
-        elif isinstance(b, ir.ListBlock):
-            for item in b.items:
-                scrub_ai_alt(item)
+        # An `ImageBlock`'s alt is a block field, not an inline list, so the shared
+        # inline-descent cannot reach it; scrub it here. Every inline-list leaf
+        # (paragraph/heading/verse-line/table-cell, and the inner blocks of
+        # blockquotes/lists) is reached by the shared skeleton.
+        if isinstance(b, ir.ImageBlock):
+            if _is_ai_alt(b.alt):
+                b.alt = ""
+        else:
+            ir.map_block_inlines(b, _scrub_alt_in_inlines)
     return blocks
 
 
@@ -1023,10 +1021,17 @@ def _run_kind(
 ) -> ir.VerseRole | None:
     content = [p for p in run if not p.empty]
     lines = _all_lines(content)
+
+    def _passes(avg_max: float, line_max: int | None = None) -> bool:
+        """The repeated length gate: the run's mean line length is within `avg_max`
+        and (when given) every line is within `line_max`. The per-context `(avg_max,
+        line_max)` pair is the only thing that varies across the ladder below."""
+        return avg <= avg_max and (line_max is None or max(lengths) <= line_max)
+
     if after_question and 2 <= len(lines) <= 12:
         lengths = [len(line) for line in lines]
         avg = sum(lengths) / len(lengths)
-        return "answer-block" if avg <= 95 and max(lengths) <= 150 else None
+        return "answer-block" if _passes(95, 150) else None
     # The strongest source-lineation signal: a paragraph carrying a HARD `LineBreak`
     # (`<w:br/>`) is authored multi-line verse. A `SoftBreak` is prose wrapping and
     # must NOT count (the C2 over-detection fix); the walk recurses into containers
@@ -1050,14 +1055,14 @@ def _run_kind(
     avg = sum(lengths) / len(lengths)
     empty_count = sum(1 for p in run if p.empty)
     if after_named:
-        return "verse-block" if avg <= 150 else None
+        return "verse-block" if _passes(150) else None
     if after_separator and len(lines) <= 24:
-        return "verse-block" if avg <= 110 and max(lengths) <= 160 else None
+        return "verse-block" if _passes(110, 160) else None
     if after_heading and len(lines) <= 14:
-        return "verse-block" if avg <= 95 and max(lengths) <= 150 else None
+        return "verse-block" if _passes(95, 150) else None
     if linebreak_count:
         return "verse-block"
-    if empty_count and avg <= 120:
+    if empty_count and _passes(120):
         return "verse-block"
     return None
 

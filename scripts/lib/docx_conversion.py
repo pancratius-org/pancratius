@@ -220,7 +220,7 @@ def convert_single_docx(
     return ConvertedDocx(
         body=body,
         bibliography=_dedupe_bibliography(doc.bibliography),
-        cross_refs=cross_refs.restructure_cross_refs(refs),
+        cross_refs=refs,
         warnings=warnings,
         assets=assets,
         # Carry EVERY typed diagnostic (severity preserved) so the importer can let a
