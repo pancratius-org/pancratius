@@ -27,7 +27,7 @@ from __future__ import annotations
 import hashlib
 import html
 import re
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from lib import ir
 from lib.writeplan import PlannedAsset
@@ -86,14 +86,50 @@ def _escape_markdown_alt(alt: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _escapes_media_root(src: str, media_root: Path) -> bool:
+    """True if `src` resolves OUTSIDE the pandoc media-extraction dir.
+
+    The real-path confinement: `(media_root / src).resolve()` (absolute `src`
+    overrides `media_root` under `Path.__truediv__`, so an absolute path resolves to
+    itself; a relative one joins) must be `media_root` itself or sit under it, with
+    BOTH sides `resolve()`d so a symlinked component or a `/tmp -> /private/tmp`
+    style root is normalized. `..` in the path parts is treated as escaping too
+    (defense-in-depth for the parent-traversal intent, even where it would resolve
+    back). This is what stops an `src` like `/etc/passwd` or `../../secret` from
+    being read/copied — WITHOUT rejecting the absolute-but-in-root paths Pandoc
+    legitimately emits (`<media_root>/media/imageN.jpg`)."""
+    if ".." in PurePosixPath(src).parts:
+        return True
+    root = media_root.resolve()
+    cand = (media_root / src).resolve()
+    return cand != root and root not in cand.parents
+
+
+def _confined_media_source(src: str, media_root: Path) -> Path | None:
+    """Resolve a body-image `src` to a real file CONFINED under `media_root`.
+
+    Returns the resolved candidate iff it does NOT escape `media_root` and is a
+    readable file; otherwise `None` (the caller drops the ref, with a diagnostic for
+    the escape case). The previous `Path(src)` arbitrary-path fallback is removed: a
+    ref that does not resolve safely UNDER `media_root` is never read."""
+    if _escapes_media_root(src, media_root):
+        return None
+    cand = (media_root / src).resolve()
+    if not cand.is_file():
+        return None
+    return cand
+
+
 def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[PlannedAsset]:
     """Resolve every body image, assign its content-hash `<hash>.<ext>` asset id,
     and return the deduped `PlannedAsset`s for the writer to copy.
 
-    `media_root` is the directory pandoc extracted media into; an image whose
-    source cannot be resolved keeps its original ref (no asset planned). PURE: this
-    only READS the media files to hash them. The returned list is sorted by
-    bundle-relative path, giving the writer a stable asset order.
+    `media_root` is the directory pandoc extracted media into; an image whose source
+    cannot be resolved SAFELY UNDER `media_root` keeps its original ref (no asset
+    planned) and surfaces a warning diagnostic — an absolute or `..`-escaping `src`
+    is never read/copied (asset-source confinement). PURE: this only READS the media
+    files to hash them. The returned list is sorted by bundle-relative path, giving
+    the writer a stable asset order.
     """
     seen: dict[str, tuple[str, str]] = {}
     planned: dict[str, PlannedAsset] = {}
@@ -101,13 +137,19 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
     def resolve(src: str) -> tuple[str, str] | None:
         if src in seen:
             return seen[src]
-        cand = (media_root / src).resolve()
-        if not cand.exists():
-            alt = Path(src)
-            if alt.exists():
-                cand = alt.resolve()
-            else:
-                return None
+        cand = _confined_media_source(src, media_root)
+        if cand is None:
+            # Distinguish an ESCAPING ref (a safety refusal worth surfacing) from an
+            # ordinary missing/unresolvable in-root ref (the benign keep-original-ref
+            # case the corpus hits for a stale link). Pandoc's absolute-but-in-root
+            # paths are NOT escapes, so they never trip this.
+            if _escapes_media_root(src, media_root):
+                doc.diagnostics.append(ir.Diagnostic(
+                    "warning", "import.asset-escape",
+                    f"image source {src!r} escapes the media-extraction dir; "
+                    "dropped (not read) — keeping the original ref.",
+                ))
+            return None
         if not _is_image_path(cand.name):
             return None
         h = _hash_file(cand)
@@ -166,10 +208,39 @@ _EMPH_MD: dict[str, tuple[str, str]] = {
     "sup": ("^", "^"), "sub": ("~", "~"),
 }
 
+# The mid-line Markdown/HTML markup characters a LITERAL `ir.Text` value must be
+# escaped against, so a DOCX literal (e.g. `[x](y)`, `*not emphasis*`, `<script>`)
+# lowers as inert text rather than being re-interpreted as real markup — exactly
+# what Pandoc's GFM writer did for `Str` runs. The backslash MUST be first in the
+# class so an inserted `\` is never itself re-escaped. NOT included here:
+#   * `#` — a LINE-LEADING concern (mid-word `#` like "C#" is literal); handled in
+#     `_escape_leading_list_marker`.
+#   * `>` — also handled below (per-char escape would mangle nothing, but a leading
+#     `>` is the only structural case); kept in the per-char class because a literal
+#     `>` mid-line is harmless to escape and a leading one must be.
+#   * `|` — only structural INSIDE a GFM table; escaped once in the table-cell path
+#     (`_table_md`), so a prose `|` stays literal and a cell `|` is not double-escaped.
+# Applied ONLY to `Text` node values — never to the markup the IR nodes themselves
+# emit (Emphasis `*…*`, Link `[…](…)`, Code backticks, DirectionalSpan `<span…>`),
+# so intentional markup is never over-escaped.
+_LITERAL_MD_ESCAPE_RE = re.compile(r"[\\`*_\[\]<>~]")
+
+
+def _escape_literal_text(value: str) -> str:
+    """Escape the mid-line Markdown/HTML markup chars in a LITERAL text run.
+
+    A Pandoc `Str`/IR `Text` value is literal source text, not markup; emitting it
+    raw lets `[x](y)` become a real link, `*x*` emphasis, `<b>` raw HTML, `a|b` a
+    table-cell split. Each markup char gets a leading backslash (`*` → `\\*`). The
+    backslash-first regex class keeps the inserted `\\` from being doubled. Code
+    content and the IR's own emitted markup are NOT routed through here.
+    """
+    return _LITERAL_MD_ESCAPE_RE.sub(lambda m: "\\" + m.group(0), value)
+
 
 def _inline_md(n: ir.Inline, lang: str) -> str:
     if isinstance(n, ir.Text):
-        return n.value
+        return _escape_literal_text(n.value)
     if isinstance(n, (ir.SoftBreak, ir.LineBreak)):
         return "\n"
     if isinstance(n, ir.Emphasis):
@@ -335,14 +406,31 @@ def _table_md(t: ir.Table, lang: str) -> str | None:
 _LEADING_LIST_MARKER_RE = re.compile(r"^(\s*)(\d{1,9}|[-*+])([.)]?)(?=\s|$)")
 
 
+# A leading ATX-heading run `#`..`######` followed by whitespace/end: a literal
+# leading `#` in a normal paragraph (the author typed it; the source has no
+# `Header`) would otherwise be parsed as a heading. Escaping the first `#` (`# x`
+# → `\# x`) keeps the paragraph a `<p>`, mirroring Pandoc's GFM writer. `#` is NOT
+# in the per-char literal set because mid-word `#` ("C#", "F#") is not markup and
+# must stay literal — only a line-LEADING `#` is structural.
+_LEADING_HEADING_RE = re.compile(r"^(\s*)(#{1,6})(?=\s|$)")
+
+
 def _escape_leading_list_marker(text: str) -> str:
+    # A leading literal `#…` ATX run is escaped first (it cannot coexist with a
+    # list marker on the same line). `>` is handled by the per-char literal escape
+    # (a leading literal `>` is already `\>` by the time this runs).
+    hm = _LEADING_HEADING_RE.match(text)
+    if hm:
+        lead, hashes = hm.group(1), hm.group(2)
+        return f"{lead}\\{hashes}{text[hm.end():]}"
     m = _LEADING_LIST_MARKER_RE.match(text)
     if not m:
         return text
     lead, token, delim = m.group(1), m.group(2), m.group(3)
     if token in {"-", "*", "+"}:
         # A bullet marker (`- ` → `\- `): there is no ordinal delimiter to escape;
-        # escape the bullet glyph itself.
+        # escape the bullet glyph itself. (A leading `*` bullet is already escaped
+        # by the per-char literal pass, so only `-`/`+` reach this branch.)
         return f"{lead}\\{token}{text[m.end():]}"
     if not delim:
         # A bare number with no `.`/`)` delimiter is not a list marker — leave it.
@@ -418,7 +506,14 @@ def _block_md(b: ir.Block, lang: str, *, poem: bool = False) -> str | None:
         return f"```\n{b.text}\n```"
     if isinstance(b, ir.Table):
         return _table_md(b, lang)
-    return None  # UnknownBlock carries no reading content
+    if isinstance(b, ir.UnknownBlock):
+        # PRESERVE the unknown block's readable text (escaped — it is literal source
+        # text) rather than dropping it. A diagnostic is surfaced separately in
+        # `lower` (it owns the document); a kind with no recoverable text emits
+        # nothing here but is still surfaced.
+        text = re.sub(r"\s*\n\s*", " ", b.text).strip()
+        return _escape_literal_text(text) or None if text else None
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -540,12 +635,40 @@ def _lower_poem_body(doc: ir.Document, lang: str) -> str:
     return "\n\n".join("\n".join(stanza) for stanza in stanzas).strip() + "\n"
 
 
+def _surface_unknown_block_diagnostics(doc: ir.Document) -> None:
+    """Append one `warning` diagnostic per `UnknownBlock` reachable in `doc.blocks`
+    (descending into the container blocks that nest others), so an unmodeled block is
+    SURFACED, never silently dropped — the design's "unknown → preserve content /
+    emit a diagnostic". The block's text is still preserved at lowering; this only
+    makes its presence visible to the caller (which forwards `warning`/`fatal`)."""
+
+    def visit(b: ir.Block) -> None:
+        if isinstance(b, ir.UnknownBlock):
+            preserved = "preserved its text" if b.text.strip() else "no recoverable text"
+            doc.diagnostics.append(ir.Diagnostic(
+                "warning", "import.unknown-block",
+                f"unmodeled block kind {b.note!r} ({preserved}); surfaced rather than "
+                "silently dropped.",
+            ))
+        elif isinstance(b, ir.BlockQuote):
+            for inner in b.blocks:
+                visit(inner)
+        elif isinstance(b, ir.ListBlock):
+            for item in b.items:
+                for inner in item:
+                    visit(inner)
+
+    for b in doc.blocks:
+        visit(b)
+
+
 def lower(doc: ir.Document, lang: str, *, poem: bool = False) -> str:
     """Lower the document to the canonical Markdown body string.
 
     `poem` selects verse lowering for the work-as-a-whole: paragraphs become
     stanza-grouped verse lines (one line each, stanzas split on empty paragraphs)
     rather than prose, in a line-per-line shape."""
+    _surface_unknown_block_diagnostics(doc)
     if poem:
         body = _lower_poem_body(doc, lang)
         appendix = _footnote_appendix(doc, lang)

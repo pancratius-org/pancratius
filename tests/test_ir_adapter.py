@@ -171,6 +171,35 @@ def test_figure_unwraps_content_and_caption() -> None:
     assert kinds.count("Paragraph") == 2
 
 
+def test_line_block_maps_to_verse_lines_not_unknown() -> None:
+    # Bug 4(a): a Pandoc LineBlock is verse-like lines — it must map to REAL content
+    # (a VerseBlock with each line preserved), not an UnknownBlock that lowering
+    # drops. LineBlock c = [[inlines for line 1], [inlines for line 2], ...].
+    ctx = adapter._Ctx()
+    node = {"t": "LineBlock", "c": [
+        [_str("Roses are red,")],
+        [_str("violets are blue.")],
+    ]}
+    b = adapter._block(node, ctx)
+    assert isinstance(b, ir.VerseBlock), f"LineBlock should map to VerseBlock, got {type(b).__name__}"
+    lines = [line for stanza in b.stanzas for line in stanza]
+    assert len(lines) == 2
+    assert lines[0] == [ir.Text("Roses are red,")]
+    assert lines[1] == [ir.Text("violets are blue.")]
+
+
+def test_unknown_block_preserves_plain_text_content() -> None:
+    # Bug 4(b): a genuinely-unknown block must PRESERVE its readable text content so
+    # lowering can emit it (not silently drop it). The adapter records the block's
+    # best-effort plain text on the UnknownBlock.
+    ctx = adapter._Ctx()
+    node = {"t": "Bogus", "c": [_para(_str("important reading content"))]}
+    b = adapter._block(node, ctx)
+    assert isinstance(b, ir.UnknownBlock)
+    assert b.note == "Bogus"
+    assert "important reading content" in b.text
+
+
 def test_para_all_italic_flag_set_for_epigraph_signal() -> None:
     ctx = adapter._Ctx()
     italic = adapter._block(_para({"t": "Emph", "c": [_str("all italic")]}), ctx)

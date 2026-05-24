@@ -293,9 +293,14 @@ class ImageBlock:
 @dataclass
 class UnknownBlock:
     """A block kind the adapter does not model. `note` records the source kind;
-    it carries no reading content (such kinds — e.g. `Null` — have none)."""
+    `text` carries the block's best-effort plain reading text so lowering can
+    PRESERVE it rather than silently dropping the block (the design's "unknown →
+    preserve content / emit a diagnostic"). `text` is `""` for kinds that genuinely
+    carry no reading content (e.g. `Null`); the block's presence is surfaced as a
+    diagnostic at lowering regardless."""
 
     note: str
+    text: str = ""
 
 
 Block = Union[

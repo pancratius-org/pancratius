@@ -159,6 +159,49 @@ def _op_payload(op: WriteOp) -> tuple[bytes, Diagnostic | None]:
     raise ValueError(f"{op.kind} op has no payload")
 
 
+def _preflight_sources(plan: WritePlan) -> tuple[Diagnostic, ...]:
+    """Prove EVERY `copy`/`transform_asset` op's source is a readable file, BEFORE
+    the writer mutates anything — the WritePlan safety contract's preflight step.
+
+    Returns one FATAL diagnostic per op whose source is missing/None/unreadable
+    (empty == every source readable). The writer refuses the WHOLE plan on any
+    fatal, so a later unreadable source can never leave a half-written, manifest-
+    less bundle (the partial-apply bug). This checks READABILITY (the source exists
+    and a 1-byte read succeeds), not decodability: a cap_raster source that exists
+    but is an undecodable raster is a per-image NON-fatal fallback handled later in
+    `_capped_raster_bytes`, not a plan-level refusal. `write_text`/`ensure_dir` ops
+    carry no source and are not preflighted here (their payload is already in hand).
+    """
+    diags: list[Diagnostic] = []
+    for op in plan.operations:
+        if op.kind not in {"copy", "transform_asset"}:
+            continue
+        if op.source is None:
+            diags.append(
+                Diagnostic(
+                    "fatal",
+                    "writer.missing-source",
+                    f"{op.kind} op for {op.rel_path} has no source path; refusing the "
+                    "whole plan rather than writing a partial bundle.",
+                )
+            )
+            continue
+        try:
+            with op.source.open("rb") as fh:
+                fh.read(1)
+        except OSError as exc:
+            diags.append(
+                Diagnostic(
+                    "fatal",
+                    "writer.unreadable-source",
+                    f"{op.kind} op for {op.rel_path} cannot read its source "
+                    f"{op.source} ({exc}); refusing the whole plan — nothing written "
+                    "(a later unreadable source must not leave a partial bundle).",
+                )
+            )
+    return tuple(diags)
+
+
 def _classify(dest: Path, payload: bytes) -> str:
     """`created` if dest is absent, `skipped` if its bytes already match,
     `changed` otherwise — so re-importing an identical bundle reports skips, not
@@ -226,7 +269,12 @@ def apply(
         target_exists=lambda rel: _target_exists(plan, rel),
         escapes_scope=lambda rel: _escapes_scope(plan, rel),
     )
-    diagnostics = (*plan.diagnostics, *validation)
+    # Preflight every source as readable BEFORE any write, so a later unreadable
+    # source refuses the whole plan instead of leaving a partial, manifest-less
+    # bundle (the WritePlan safety contract). Folded into the same fatal-diagnostic
+    # refusal path as `validate`.
+    source_check = _preflight_sources(plan)
+    diagnostics = (*plan.diagnostics, *validation, *source_check)
 
     if has_fatal(diagnostics):
         refused = tuple(op.rel_path for op in plan.operations if op.kind != "ensure_dir")

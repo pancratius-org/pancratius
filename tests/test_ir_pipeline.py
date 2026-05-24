@@ -527,3 +527,222 @@ def test_lower_body_image_default_alt_and_hash_ref() -> None:
     para = ir.Paragraph(inlines=[img])
     body = ir_lower.lower(ir.Document(blocks=[para]), "ru")
     assert body.strip() == "![Иллюстрация](./images/abc123.png)"
+
+
+# ---------------------------------------------------------------------------
+# Bug 2: literal Markdown/HTML in Text nodes is escaped at prose lowering
+# (Pandoc Str/Text values are LITERAL source text, not markup — emitting them
+# raw lets a DOCX literal become a real link/emphasis/HTML, like the OLD GFM
+# writer that DID escape them). The escaping applies ONLY to literal Text-node
+# values, never to the intentional markup the IR nodes emit (Link/Emphasis/Code/
+# DirectionalSpan), so a real Link still renders as a working link.
+# ---------------------------------------------------------------------------
+
+
+def test_literal_bracket_link_text_does_not_render_as_link() -> None:
+    # A DOCX literal `[not a link](https://example.com)` is one Text run; raw it
+    # parses as a real Markdown link. Lowered, the `[` `]` `(` are escaped so it
+    # renders as plain text, not an anchor.
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("[not a link](https://example.com)")])])
+    body = ir_lower.lower(doc, "ru")
+    # the open bracket is escaped so no `[label](url)` link survives
+    assert "\\[not a link\\]" in body
+    assert "[not a link](https://example.com)" not in body
+
+
+def test_literal_html_script_is_inert() -> None:
+    # A literal `<script>alert(1)</script>` Text run must not pass through as raw
+    # HTML — the angle brackets are escaped so it renders as inert text.
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("<script>alert(1)</script>")])])
+    body = ir_lower.lower(doc, "ru")
+    assert "<script>" not in body
+    assert "\\<script\\>alert(1)\\</script\\>" in body
+
+
+def test_literal_emphasis_stars_are_escaped() -> None:
+    # A literal `*not emphasis*` Text run must not become emphasis; the `*` are
+    # escaped so the asterisks render verbatim.
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("*not emphasis*")])])
+    body = ir_lower.lower(doc, "ru")
+    assert "\\*not emphasis\\*" in body
+
+
+def test_literal_leading_hash_and_quote_are_escaped() -> None:
+    # A literal leading `#` (would parse as a heading) and a leading `>` (a
+    # blockquote) at the start of a prose paragraph are escaped.
+    h = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("# not a heading")])])
+    assert "\\# not a heading" in ir_lower.lower(h, "ru")
+    q = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("> not a quote")])])
+    assert "\\> not a quote" in ir_lower.lower(q, "ru")
+
+
+def test_intentional_link_node_still_renders_as_working_link() -> None:
+    # A genuine IR Link node (intentional markup) is NOT over-escaped — its `[` `]`
+    # `(` `)` are the link syntax and must survive so it renders as a real link.
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[
+        ir.Link(children=[ir.Text("Anthropic")], target="https://anthropic.com"),
+    ])])
+    body = ir_lower.lower(doc, "ru")
+    assert "[Anthropic](https://anthropic.com)" in body
+    assert "\\[" not in body
+
+
+def test_intentional_emphasis_node_still_renders() -> None:
+    # A genuine IR Emphasis node still emits working `**bold**` / `*italic*`; the
+    # markup asterisks the node produces must not be escaped.
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[
+        ir.Text("see "),
+        ir.Emphasis("strong", [ir.Text("this")]),
+        ir.Text(" and "),
+        ir.Emphasis("emph", [ir.Text("that")]),
+    ])])
+    body = ir_lower.lower(doc, "ru")
+    assert "**this**" in body
+    assert "*that*" in body
+
+
+def test_intentional_code_node_text_not_escaped() -> None:
+    # Inline `Code` is literal-but-protected-by-backticks: its content is NOT
+    # Markdown-escaped (backticks already make it literal), so a `*` inside code
+    # stays a `*`.
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Code("a*b_c")])])
+    body = ir_lower.lower(doc, "ru")
+    assert "`a*b_c`" in body
+
+
+def test_literal_pipe_in_table_cell_is_escaped() -> None:
+    # A literal `|` in a reading-content table cell must stay escaped for the GFM
+    # grid, and other literal markup chars in the cell are escaped too.
+    t = ir.Table(rows=[[[ir.Text("a|b")], [ir.Text("*c*")]]])
+    doc = ir.Document(blocks=[t])
+    body = ir_lower.lower(doc, "ru")
+    assert "a\\|b" in body
+    assert "\\*c\\*" in body
+
+
+def test_literal_markup_in_footnote_body_is_escaped() -> None:
+    # A footnote body carrying a literal `[x](y)` must be escaped too (the appendix
+    # lowers footnote blocks through the same prose path).
+    doc = ir.Document(
+        blocks=[ir.Paragraph(inlines=[ir.Text("ref"), ir.FootnoteRef(raw_index=1, id=1)])],
+        footnotes=[ir.FootnoteDef(id=1, blocks=[ir.Paragraph(inlines=[ir.Text("see [x](y)")])])],
+    )
+    body = ir_lower.lower(doc, "ru")
+    assert "[^1]: see \\[x\\](y)" in body
+
+
+def test_literal_markup_in_heading_text_is_escaped() -> None:
+    # A heading whose literal Text carries markup chars escapes them, while a real
+    # FootnoteRef / Emphasis node in the SAME heading still renders.
+    doc = ir.Document(blocks=[ir.Heading(level=2, inlines=[ir.Text("A*B and [c]")])])
+    body = ir_lower.lower(doc, "ru")
+    assert "## A\\*B and \\[c\\]" in body
+
+
+# ---------------------------------------------------------------------------
+# Bug 3: a body-image asset `src` must stay UNDER the pandoc media-extraction dir.
+# An absolute `src` (e.g. `/etc/passwd`) or a `..`-escaping `src` must be REJECTED
+# (no asset planned, original ref kept, a warning diagnostic surfaced) — the
+# importer must never read/copy a file outside `media_root`.
+# ---------------------------------------------------------------------------
+
+
+def test_asset_absolute_src_is_rejected_with_diagnostic(tmp_path: Path) -> None:
+    media_root = tmp_path / "media"
+    media_root.mkdir()
+    # A real sensitive file OUTSIDE the media root the absolute src points at.
+    outside = tmp_path / "secret.png"
+    outside.write_bytes(b"\x89PNG\r\n\x1a\nSENSITIVE")
+
+    doc = ir.Document(blocks=[
+        ir.Paragraph(inlines=[ir.ImageInline(src=str(outside), alt="")]),
+    ])
+    planned = ir_lower.assign_assets(doc, media_root, "ru")
+
+    # No asset planned for the escaping ref; the original (unresolved) ref is kept.
+    assert planned == []
+    assert doc.assets == []
+    img = _para(doc.blocks[0]).inlines[0]
+    assert isinstance(img, ir.ImageInline) and img.asset_id is None
+    # A diagnostic surfaced (not a silent read of the outside file).
+    assert any(
+        d.severity in {"warning", "fatal"} and "asset" in d.code
+        for d in doc.diagnostics
+    )
+
+
+def test_asset_parent_escaping_src_is_rejected_with_diagnostic(tmp_path: Path) -> None:
+    media_root = tmp_path / "wd" / "media"
+    media_root.mkdir(parents=True)
+    # A real file two levels up that `../../secret.png` would resolve to.
+    outside = tmp_path / "secret.png"
+    outside.write_bytes(b"\x89PNG\r\n\x1a\nSENSITIVE")
+
+    doc = ir.Document(blocks=[
+        ir.Paragraph(inlines=[ir.ImageInline(src="../../secret.png", alt="")]),
+    ])
+    planned = ir_lower.assign_assets(doc, media_root, "ru")
+
+    assert planned == []
+    assert doc.assets == []
+    img = _para(doc.blocks[0]).inlines[0]
+    assert isinstance(img, ir.ImageInline) and img.asset_id is None
+    assert any(
+        d.severity in {"warning", "fatal"} and "asset" in d.code
+        for d in doc.diagnostics
+    )
+
+
+def test_asset_legit_src_under_media_root_still_planned(tmp_path: Path) -> None:
+    # The confinement must NOT reject a legitimate in-root media file — a normal
+    # `media/<name>.png` (and a nested subdir) still resolves and is planned.
+    media_root = tmp_path / "media"
+    (media_root / "sub").mkdir(parents=True)
+    img_file = media_root / "sub" / "pic.png"
+    img_file.write_bytes(b"\x89PNG\r\n\x1a\nlegit-bytes")
+
+    doc = ir.Document(blocks=[
+        ir.Paragraph(inlines=[ir.ImageInline(src="sub/pic.png", alt="")]),
+    ])
+    planned = ir_lower.assign_assets(doc, media_root, "ru")
+
+    assert len(planned) == 1
+    assert planned[0].rel_within.startswith("images/")
+    img = _para(doc.blocks[0]).inlines[0]
+    assert isinstance(img, ir.ImageInline) and img.asset_id is not None
+
+
+# ---------------------------------------------------------------------------
+# Bug 4: a LineBlock is verse content (not dropped); a genuinely-unknown block
+# PRESERVES its readable text AND surfaces a diagnostic (never silently dropped).
+# ---------------------------------------------------------------------------
+
+
+def test_lower_line_block_produces_verse_lines() -> None:
+    # Bug 4(a): a LineBlock (mapped to a VerseBlock by the adapter) lowers to a
+    # non-empty verse `<div>` preserving its lines — not empty output.
+    vb = ir.VerseBlock(stanzas=[[[ir.Text("Roses are red,")], [ir.Text("violets are blue.")]]])
+    body = ir_lower.lower(ir.Document(blocks=[vb]), "ru")
+    assert "Roses are red," in body
+    assert "violets are blue." in body
+    assert '<div class="verse-block">' in body
+
+
+def test_lower_unknown_block_preserves_text_and_emits_diagnostic() -> None:
+    # Bug 4(b): a genuinely-unknown block must NOT be silently dropped — its readable
+    # text is emitted AND a diagnostic is surfaced on the document.
+    doc = ir.Document(blocks=[ir.UnknownBlock(note="Bogus", text="important reading content")])
+    body = ir_lower.lower(doc, "ru")
+    assert "important reading content" in body
+    surfaced = [d for d in doc.diagnostics if d.severity in {"warning", "fatal"} and "unknown" in d.code]
+    assert surfaced, "an unknown block must surface a diagnostic, not be silently dropped"
+
+
+def test_lower_empty_unknown_block_still_emits_diagnostic() -> None:
+    # An unknown block with NO recoverable text (e.g. Pandoc Null) carries no
+    # reading content, but its presence is still surfaced as a diagnostic — the
+    # importer never drops a block silently.
+    doc = ir.Document(blocks=[ir.UnknownBlock(note="Null", text="")])
+    ir_lower.lower(doc, "ru")
+    surfaced = [d for d in doc.diagnostics if d.severity in {"warning", "fatal"} and "unknown" in d.code]
+    assert surfaced

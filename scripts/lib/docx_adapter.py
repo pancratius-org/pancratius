@@ -380,6 +380,36 @@ def _plain(nodes: list[dict[str, Any]]) -> str:
     return "".join(out).strip()
 
 
+def _node_plain(value: object) -> str:
+    """Best-effort readable text of an ARBITRARY Pandoc node/subtree — used to
+    PRESERVE the reading content of a block kind the adapter does not model, so an
+    UnknownBlock carries its text instead of being silently dropped at lowering.
+
+    Walks dicts/lists generically: a `Str` contributes its text, the spacing nodes a
+    space, and any other `c` list recurses. Inert (no reading content) kinds — e.g.
+    `Null` — yield `""`. Deliberately structure-agnostic: it never assumes the
+    unknown kind's `c` is inlines vs blocks."""
+    parts: list[str] = []
+
+    def walk(v: object) -> None:
+        nd = _node(v)
+        if nd is not None:
+            t = nd.get("t")
+            c = nd.get("c")
+            if t == "Str":
+                parts.append(str(c))
+            elif t in {"Space", "SoftBreak", "LineBreak"}:
+                parts.append(" ")
+            elif isinstance(c, (list, dict)):
+                walk(c)
+        elif isinstance(v, list):
+            for item in v:
+                walk(item)
+
+    walk(value)
+    return re.sub(r"\s+", " ", "".join(parts)).strip()
+
+
 # ---------------------------------------------------------------------------
 # Block lowering: Pandoc block node -> IR Block
 # ---------------------------------------------------------------------------
@@ -412,6 +442,13 @@ def _block(node: dict[str, Any], ctx: _Ctx) -> ir.Block:
             ordered=True, start=start,
             items=[[_block(b, ctx) for b in item] for item in items],
         )
+    if t == "LineBlock" and isinstance(c, list):
+        # A Pandoc LineBlock is verse-like lines (`c` = a list of lines, each a list
+        # of inlines). It is REAL reading content, so map it to a one-stanza
+        # `VerseBlock` (each line preserved) rather than an UnknownBlock that lowering
+        # would drop — the silent-content-loss bug.
+        stanza = [_inlines(line, ctx) for line in c if isinstance(line, list)]
+        return ir.VerseBlock(stanzas=[stanza])
     if t == "CodeBlock" and isinstance(c, list):
         _attr, text = c
         return ir.CodeBlock(text=str(text))
@@ -434,7 +471,10 @@ def _block(node: dict[str, Any], ctx: _Ctx) -> ir.Block:
         if cap_blocks:
             inner.extend(_block(b, ctx) for b in cap_blocks)
         return ir.BlockQuote(blocks=inner, role="_div")
-    return ir.UnknownBlock(note=str(t))
+    # A block kind we do not model: PRESERVE its best-effort reading text on the
+    # UnknownBlock (lowering emits it + surfaces a diagnostic) so content is never
+    # silently dropped.
+    return ir.UnknownBlock(note=str(t), text=_node_plain(c))
 
 
 def _all_italic(inlines: list[dict[str, Any]]) -> bool:

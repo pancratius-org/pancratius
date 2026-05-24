@@ -167,6 +167,88 @@ def test_existing_canonical_with_replace_is_applied(tmp_path: Path) -> None:
     assert (bundle / "ru.md").read_text() == "---\nkind: book\n---\n\nbody\n"
 
 
+def test_missing_copy_source_refuses_whole_plan_before_any_write(tmp_path: Path) -> None:
+    # Bug 1 repro: a plan whose 1st op is a write_text (ru.md) and whose 2nd op is a
+    # copy with a MISSING source must write NOTHING — the writer must preflight every
+    # source as readable BEFORE writing any target, so the bundle is never left
+    # partial. Before the fix, the writer wrote ru.md, then raised on the missing
+    # source, leaving a half-written bundle and no manifest (the WritePlan safety
+    # contract violation).
+    root = tmp_path / "content"
+    md = _source(tmp_path, "ru.md", "---\nkind: book\n---\n\nbody\n")
+    missing = tmp_path / "src" / "does-not-exist.png"  # never created
+    plan = _plan(
+        root,
+        (
+            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
+            WriteOp(
+                kind="write_text",
+                rel_path=SCOPE / "ru.md",
+                role="canonical_source",
+                reason="md",
+                content=md.read_text(),
+            ),
+            WriteOp(
+                kind="copy",
+                rel_path=SCOPE / "images" / "a.png",
+                role="imported_asset",
+                reason="img",
+                source=missing,
+            ),
+        ),
+    )
+    report = writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+
+    # NOTHING was written — the first op's target must not exist afterward.
+    assert not (root / "books/99-probe/ru.md").exists()
+    assert not (root / "books").exists() or not any((root / "books").rglob("*.md"))
+    assert report.created == ()
+    assert report.changed == ()
+    assert report.manifest_path is None
+    # The whole plan was refused with a surfaced fatal diagnostic.
+    assert set(report.refused) == {SCOPE / "ru.md", SCOPE / "images" / "a.png"}
+    assert any(d.severity == "fatal" and "source" in d.code for d in report.diagnostics)
+
+
+def test_unreadable_transform_asset_source_refuses_whole_plan(tmp_path: Path) -> None:
+    # Bug 1 (transform_asset variant): a cap_raster op whose source file is MISSING
+    # is unreadable at preflight, so the whole plan is refused before any write. (A
+    # source that EXISTS but is an undecodable raster is a per-image NON-fatal
+    # fallback — that path is covered by test_cap_raster_corrupt_image_falls_back; a
+    # MISSING source is a plan-level fatal, never a partial bundle.)
+    root = tmp_path / "content"
+    md = _source(tmp_path, "ru.md", "---\nkind: book\n---\n\nbody\n")
+    missing = tmp_path / "src" / "gone.png"  # never created
+    plan = _plan(
+        root,
+        (
+            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
+            WriteOp(
+                kind="write_text",
+                rel_path=SCOPE / "ru.md",
+                role="canonical_source",
+                reason="md",
+                content=md.read_text(),
+            ),
+            WriteOp(
+                kind="transform_asset",
+                rel_path=SCOPE / "images" / "big.png",
+                role="imported_asset",
+                reason="img",
+                source=missing,
+                transform=AssetTransform(kind="cap_raster", max_long_edge=1600),
+            ),
+        ),
+    )
+    report = writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+
+    assert not (root / "books/99-probe/ru.md").exists()
+    assert report.created == ()
+    assert report.manifest_path is None
+    assert SCOPE / "ru.md" in report.refused
+    assert any(d.severity == "fatal" and "source" in d.code for d in report.diagnostics)
+
+
 def test_symlink_escape_is_refused(tmp_path: Path) -> None:
     root = tmp_path / "content"
     bundle = root / "books/99-probe"
