@@ -2,10 +2,9 @@
 
 These exercise the adapter's Pandoc-AST → typed-IR mapping on hand-built AST
 fixtures and the OOXML `w:jc` side-channel read on a synthetic in-memory DOCX —
-no real DOCX and (almost) no pandoc, so they run everywhere. The adapter's
-end-to-end behaviour over the real corpus is covered by the A/B gate in
-``test_ir_ab_corpus`` (pandoc-gated); these lock the per-node contracts the spec
-calls out: Note → dense-renumbered footnote ref + def, ``w:jc`` → paragraph
+no real DOCX and (almost) no pandoc, so they run everywhere. These lock the
+per-node contracts the spec calls out: Note → dense-renumbered footnote ref +
+def, ``w:jc`` → paragraph
 ``align``, Image → ``ImageInline`` assetref source, plus the inline/block kind
 mapping (emphasis, quoted, underline/smallcaps unwrap, Div/Figure containers,
 ordered-list start, table structuring).

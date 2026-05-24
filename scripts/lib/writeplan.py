@@ -36,6 +36,23 @@ ALLOWED_OP_KINDS: frozenset[str] = frozenset(
 
 
 @dataclass(frozen=True)
+class PlannedAsset:
+    """A body image the conversion REFERENCES but does NOT copy.
+
+    The converter (`ir_lower.assign_assets`) is pure w.r.t. the filesystem: it
+    rewrites the Markdown ref to `./images/<hash>.<ext>` (hash = content hash of
+    the original source bytes) and returns one of these per deduped image. The
+    importer turns each into a `transform_asset` WriteOp and the writer is the
+    only thing that copies it into the bundle (docs/import-pipeline.md "Import
+    produces a WritePlan; only the writer applies it").
+    """
+
+    rel_within: str  # bundle-relative POSIX path, e.g. "images/<hash>.<ext>"
+    source: Path  # the extracted pandoc media file to copy from
+    is_raster: bool  # raster (cap-eligible) vs vector/animated (copied verbatim)
+
+
+@dataclass(frozen=True)
 class AssetTransform:
     """A declared transform the writer applies to an asset as it copies it.
 

@@ -1,11 +1,11 @@
 # import-pure: no filesystem mutation
 """Normalization passes over the block IR (the editorial-mechanics stage).
 
-These reproduce the GFM engine's behaviours, but operate on the typed IR directly
-instead of string-patching Markdown — so a detection/normalization rule change is
-a local edit here, never a ripple through parse or write (the contract in
-`docs/import-pipeline.md`, "The transformation layer must be editable in one
-place"). Pure: each pass is a value transformation with no filesystem access.
+These operate on the typed IR directly rather than string-patching Markdown — so
+a detection/normalization rule change is a local edit here, never a ripple
+through parse or write (the contract in `docs/import-pipeline.md`, "The
+transformation layer must be editable in one place"). Pure: each pass is a value
+transformation with no filesystem access.
 
 Passes (the order is set by `normalize`):
   * TOC drop                — `Heading`/`Paragraph` runs that are auto-TOC links
@@ -20,8 +20,8 @@ Passes (the order is set by `normalize`):
   * dialogue labels          — canonicalize `**Speaker:**` (incl. mixed inline)
   * verse / answer blocks    — fold lineated runs from stanza structure
 
-The AI-alt vocabulary is the production `AI_ALT_FRAGMENTS` constant, imported (not
-re-derived) so the two paths can never drift.
+The AI-alt vocabulary (`AI_ALT_FRAGMENTS`) and the rights-boilerplate patterns
+(`RIGHTS_PATTERNS`) are defined here next to the passes that consume them.
 """
 
 from __future__ import annotations
@@ -31,12 +31,38 @@ import re
 from typing import Any, cast
 
 from lib import ir
-from lib.docx_engine import AI_ALT_FRAGMENTS, RIGHTS_PATTERNS
+
+# Why: AI image generators leave a verbose alt text in DOCX. Strip it (or its
+# truncation) — the surface form is consistent. Keep `alt=""` so screen
+# readers don't read filenames.
+AI_ALT_FRAGMENTS = (
+    "Содержимое, созданное искусственным интеллектом",
+    "Содержимое создано искусственным интеллектом",
+    "Content created by AI",
+    "Изображение выглядит как",
+    "AI-generated content may be incorrect",
+    "может быть неверным",
+)
+
+# Why: rights-boilerplate scrub is bounded to the first 3% of body OR the
+# region before the first H1, whichever comes first. The patterns are anchored
+# at line starts, with explicit short maximum spans — never `.*?` across
+# arbitrary content.
+RIGHTS_PATTERNS = [
+    re.compile(r"(?im)^\s*Copyright\s+©.*$"),
+    re.compile(r"(?im)^\s*All rights reserved\.?\s*$"),
+    re.compile(r"(?im)^\s*©\s*\d{4}.*$"),
+    re.compile(r"(?im)^\s*No part of this book may be reproduced.*$"),
+    re.compile(r"(?im)^\s*The characters and events portrayed.*coincidental.*$"),
+    re.compile(r"(?im)^\s*Все\s+права\s+защищены\.?\s*$"),
+    re.compile(r"(?im)^\s*Никакая\s+часть\s+(этой|данной)\s+книги.*$"),
+    re.compile(r"(?im)^\s*Воспроизведение\s+(или\s+)?распространение.*запрещ.*$"),
+]
 
 # Pandoc JSON nodes are `{"t": ..., "c": ...}` dicts with string keys; this is the
-# project-wide shape for them (see `docx_engine`). `_node` views an opaque value as
-# that dict when it is one, so `.get("t")`/`["c"]` are str-keyed (an `isinstance`
-# narrow alone yields `dict[Unknown, Unknown]`, whose keys ty types as `Never`).
+# project-wide shape for them. `_node` views an opaque value as that dict when it
+# is one, so `.get("t")`/`["c"]` are str-keyed (an `isinstance` narrow alone
+# yields `dict[Unknown, Unknown]`, whose keys ty types as `Never`).
 PandocNode = dict[str, Any]
 
 
@@ -128,7 +154,7 @@ def _walk_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
 
 
 # ---------------------------------------------------------------------------
-# section-title vocab (mirrors docx_engine)
+# section-title vocab
 # ---------------------------------------------------------------------------
 
 _VERSE_SECTION_TITLE_RE = re.compile(
@@ -143,8 +169,8 @@ _VERSE_SECTION_TITLE_RE = re.compile(
     re.IGNORECASE,
 )
 _NUMBERED_QUESTION_TITLE_RE = re.compile(r"^\d{1,3}[.)]\s+\S.*[?？]\s*$")
-# Endmatter bibliography/catalog heading vocab (mirrors docx_engine
-# `_BIBLIO_HEADING_LINE`): the heading whose section was lifted is then dropped.
+# Endmatter bibliography/catalog heading vocab: the heading whose section was
+# lifted to the sidecar is then dropped from the body.
 _BIBLIO_HEADING_RE = re.compile(
     r"^(?:библиография|bibliography|список\s+литературы|литература)\s*$",
     re.IGNORECASE,
@@ -160,8 +186,8 @@ def _is_question_title(t: str) -> bool:
 
 
 def _is_lineated_line(text: str, allow_colon: bool = False) -> bool:
-    """Mirror of `docx_engine._is_lineated_plain_text`: a single short source
-    line that reads as a verse line rather than prose / a label / a list item."""
+    """True for a single short source line that reads as a verse line rather
+    than prose / a label / a list item."""
     s = re.sub(r"\s+", " ", text).strip()
     if not s or len(s) > 145:
         return False
@@ -190,8 +216,8 @@ _TOC_HEADING_RE = re.compile(
 
 def _is_toc_paragraph(p: ir.Paragraph) -> bool:
     """A paragraph that is entirely internal-anchor links (`#...` targets), i.e.
-    a Pandoc-generated TOC entry. The GFM engine matched these as `[..](#..)`
-    link lines; the IR sees them as `Link` inlines with `#`-prefixed targets."""
+    a Pandoc-generated TOC entry — seen here as `Link` inlines with `#`-prefixed
+    targets."""
     if p.empty:
         return False
     links = [n for n in _walk_inlines(p.inlines) if isinstance(n, ir.Link)]
@@ -237,9 +263,8 @@ def drop_toc(blocks: list[ir.Block]) -> list[ir.Block]:
 
 def scrub_rights(blocks: list[ir.Block]) -> list[ir.Block]:
     """Drop copyright/rights paragraphs in the head region (before the first H1,
-    capped at the first 3% of blocks). Mirrors `docx_engine.scrub_rights_boilerplate`
-    but on whole paragraphs: a paragraph whose entire text matches a rights
-    pattern is dropped."""
+    capped at the first 3% of blocks), operating on whole paragraphs: a paragraph
+    whose entire text matches a `RIGHTS_PATTERNS` entry is dropped."""
     n = len(blocks)
     if n == 0:
         return blocks
@@ -331,21 +356,20 @@ def _renders_as_html_table(t: ir.Table) -> bool:
     """True when Pandoc's GFM writer would emit this table as raw HTML `<table>`
     rather than a pipe table.
 
-    This is the EXACT set the GFM engine ever lifts: its `extract_bibliography`
-    only scans `<table>` blocks, because Pandoc renders simple grids (single-block
-    cells, no spans, no caption) as pipe tables — which the GFM engine KEEPS in the
-    body. Pandoc falls back to HTML when a cell holds more than one block (e.g. a
-    catalog cover image Para plus a title-link Para), when a cell has a row/col
-    span ≠ 1, or when the table has a caption. Mirroring that decision here keeps
-    the IR's lift set identical to the GFM engine's, so a reading-content grid
-    (single-block cells) is never lifted.
+    This is the EXACT set the bibliography lift considers: only `<table>` blocks,
+    because Pandoc renders simple grids (single-block cells, no spans, no caption)
+    as pipe tables — which are KEPT in the body as reading content. Pandoc falls
+    back to HTML when a cell holds more than one block (e.g. a catalog cover image
+    Para plus a title-link Para), when a cell has a row/col span ≠ 1, or when the
+    table has a caption; only those richer tables are catalog candidates, so a
+    reading-content grid (single-block cells) is never lifted.
 
     NOTE: this pipe-vs-HTML-table fallback heuristic is pinned to the CURRENT
     Pandoc GFM writer (pandoc 3.9 — the version this pipeline runs). The exact
     conditions under which Pandoc downgrades a pipe table to raw HTML
     (multi-block cells, spans ≠ 1, captions) are writer-internal and could shift
     in a future Pandoc; if the pinned pandoc is bumped, re-confirm this set against
-    the new writer (the A/B oracle's bibliography-lift parity is the canary).
+    the new writer (the golden tests pin the lift outcome over the real corpus).
     """
     node = _node(t.raw)  # opaque Pandoc Table node
     if node is None:
@@ -388,10 +412,9 @@ def _renders_as_html_table(t: ir.Table) -> bool:
 
 def _looks_like_biblio(t: ir.Table) -> bool:
     """A catalog/bibliography table to lift: it carries a catalog signal (cover
-    images / LitRes / kindbook URLs) AND Pandoc would render it as an HTML table
-    (the only tables the GFM engine ever lifts). A simple reading-content grid —
-    rendered by Pandoc as a pipe table, kept by the GFM engine — is never lifted,
-    even if it embeds a thumbnail (the spike's content-loss class)."""
+    images / LitRes / kindbook URLs) AND Pandoc would render it as an HTML table.
+    A simple reading-content grid — rendered by Pandoc as a pipe table — is never
+    lifted, even if it embeds a thumbnail (the spike's content-loss class)."""
     if not _renders_as_html_table(t):
         return False
     raw = _raw_table_text(t.raw)
@@ -491,8 +514,8 @@ def strip_bare_bibliography_heading(blocks: list[ir.Block]) -> list[ir.Block]:
     (the catalog table) was lifted to the sidecar, leaving the heading orphaned.
 
     A heading is dropped when its remaining section (up to the next heading) holds
-    no reading content — only empty paragraphs / thematic breaks. This mirrors
-    `docx_engine.strip_bibliography_sections` post-lift."""
+    no reading content — only empty paragraphs / thematic breaks (the post-lift
+    bibliography-section drop)."""
     out: list[ir.Block] = []
     i = 0
     n = len(blocks)
@@ -554,8 +577,8 @@ def demote_headings(blocks: list[ir.Block], levels: int = 1) -> list[ir.Block]:
 
 def _is_empty_emphasis(n: ir.Inline) -> bool:
     """True when `n` is an emphasis span whose flattened text is empty — the
-    structural form of the GFM engine's stray `** **` / `\\**` artifacts (a Word
-    run that held only whitespace/a break inside emphasis markers)."""
+    structural form of a stray `** **` / `\\**` artifact (a Word run that held
+    only whitespace/a break inside emphasis markers)."""
     return isinstance(n, ir.Emphasis) and inline_plain(n.children) == ""
 
 
@@ -650,7 +673,7 @@ def _split_epigraph(lines: list[str]) -> tuple[list[str], list[str]]:
 def structural_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
     """Group contiguous right-aligned non-empty paragraphs and classify each run
     as a signature or epigraph, consuming the `w:jc` payload directly from the IR
-    (no markdown round-trip / fuzzy re-matching like the GFM engine needs)."""
+    (no markdown round-trip / fuzzy re-matching)."""
     out: list[ir.Block] = []
     i = 0
     n = len(blocks)
@@ -874,8 +897,7 @@ def _all_lines(paras: list[ir.Paragraph]) -> list[str]:
 
 def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
     """Fold runs of short source lines (one paragraph per line, empty paragraphs
-    as stanza separators) into `VerseBlock`/answer-block. Mirrors
-    `docx_engine._lineated_runs_from_ast` + `_lineated_run_kind`, on the IR."""
+    as stanza separators) into `VerseBlock`/answer-block, on the IR."""
     out: list[ir.Block] = []
     i = 0
     n = len(blocks)

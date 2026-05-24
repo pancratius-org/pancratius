@@ -1,29 +1,20 @@
 from __future__ import annotations
 
+import re
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 import sys
 from typing import Any
 
+import yaml
+
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from lib import docx_adapter, docx_engine as legacy, ir_lower, ir_normalize
-
-# PHASE-7 RE-HOME NOTE (do not act now): the LIVE IR path still reaches into the
-# `docx_engine` (`legacy`) module for a handful of helpers that pre-date the IR
-# pipeline and were never re-homed. Before `docx_engine` can be deleted in Phase 7,
-# these must move into the IR modules (or a shared util):
-#   * here (`docx_conversion`): `_strip_source_duplicate_poem_title`,
-#     `read_docx_paragraph_meta`, `_dedupe_bibliography`, `_restructure_cross_refs`,
-#     `extract_cross_refs`, plus `to_ascii_slug` / `WorkWrites` / `ImageRecord` /
-#     `PlannedAsset` / `_write_bibliography_sidecar`;
-#   * `ir_lower`: the asset helpers `_body_image_alt`, `_escape_markdown_alt`,
-#     `_hash_file`, `_is_image_path`, `_normalize_ext`, `PlannedAsset`, `RASTER_CAP_EXTS`;
-#   * `ir_normalize`: `AI_ALT_FRAGMENTS`, `RIGHTS_PATTERNS`.
-# (The GFM-oracle path `convert_single_docx_gfm` is itself deleted in Phase 7, so
-# its `legacy` use is expected to disappear with the engine.)
+from lib import cross_refs, docx_adapter, ir_lower, ir_normalize, ooxml
+from lib.writeplan import PlannedAsset
 
 
 @dataclass
@@ -33,14 +24,122 @@ class ConvertedDocx:
     cross_refs: list[dict[str, Any]] = field(default_factory=list)
     warnings: str = ""
     # Planned body images the conversion REFERENCES but does not copy. The
-    # converter is now pure w.r.t. the filesystem (it only reads the extracted
+    # converter is pure w.r.t. the filesystem (it only reads the extracted
     # media); the importer turns these into writer `transform_asset` ops, so the
     # writer is the sole component that copies them into the bundle.
-    assets: list[legacy.PlannedAsset] = field(default_factory=list)
+    assets: list[PlannedAsset] = field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# slug
+# ---------------------------------------------------------------------------
+
+# Why: the corpus uses Cyrillic ASCII-ish slugs from the legacy site
+# (e.g. `тои` for `той`, `выи` for `вый`). We freeze a practical
+# transliteration that matches that historical choice so existing slugs
+# round-trip stably to ASCII without ё/й/ц collisions.
+_CYR_TO_LAT = {
+    "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "yo",
+    "ж": "zh", "з": "z", "и": "i", "й": "i", "к": "k", "л": "l", "м": "m",
+    "н": "n", "о": "o", "п": "p", "р": "r", "с": "s", "т": "t", "у": "u",
+    "ф": "f", "х": "kh", "ц": "ts", "ч": "ch", "ш": "sh", "щ": "shch",
+    "ъ": "", "ы": "y", "ь": "", "э": "e", "ю": "yu", "я": "ya",
+}
+
+_SLUG_NONALNUM = re.compile(r"[^a-z0-9]+")
+_SLUG_DASHES = re.compile(r"-+")
 
 
 def to_ascii_slug(value: str) -> str:
-    return legacy.to_ascii_slug(value)
+    s = "".join(_CYR_TO_LAT.get(ch, ch) for ch in value.lower())
+    s = unicodedata.normalize("NFKD", s)
+    s = s.encode("ascii", "ignore").decode("ascii")
+    s = _SLUG_NONALNUM.sub("-", s.lower())
+    s = _SLUG_DASHES.sub("-", s).strip("-")
+    return s
+
+
+# ---------------------------------------------------------------------------
+# poem source-duplicate-title strip (uses OOXML paragraph signals)
+# ---------------------------------------------------------------------------
+
+
+def _poem_title_key(s: str) -> str:
+    s = re.sub(r"<[^>]+>", "", s)
+    s = re.sub(r"^[#>*_`\s-]+|[*_`\s-]+$", "", s.strip())
+    s = s.replace("…", "...")
+    s = re.sub(r"[.,;:!?]+$", "", s)
+    return re.sub(r"\s+", " ", s).casefold().strip()
+
+
+def _first_nonempty_docx_paras(
+    paras: list[ooxml.DocxParagraphMeta], limit: int = 2
+) -> list[ooxml.DocxParagraphMeta]:
+    out: list[ooxml.DocxParagraphMeta] = []
+    for para in paras:
+        if para.is_empty:
+            continue
+        out.append(para)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _is_poem_section_heading_text(s: str) -> bool:
+    return bool(re.match(r"^(?:[IVXLCDM]+\.|[А-ЯA-Z]\.)\s+\S", s.strip(), re.IGNORECASE))
+
+
+def _strip_source_duplicate_poem_title(
+    body: str,
+    title: str,
+    docx_paras: list[ooxml.DocxParagraphMeta],
+) -> str:
+    """Drop DOCX editor-title boilerplate from poem bodies, not incipits.
+
+    Some poem DOCX files start with a separate title paragraph and the page
+    masthead already renders that title. Others legitimately start with a
+    first verse line equal to the title/refrain ("А если буду я не прав?").
+    Strip only when the DOCX itself proves a title paragraph: the first
+    non-empty paragraph matches frontmatter title and is typographically
+    distinct (bold) or is followed by a real Word line-break stanza.
+    """
+    key = _poem_title_key(title)
+    first_two = _first_nonempty_docx_paras(docx_paras, 2)
+    if not key or not first_two or _poem_title_key(first_two[0].text) != key:
+        return body
+    first = first_two[0]
+    second = first_two[1] if len(first_two) > 1 else None
+    source_says_title = (
+        first.bold
+        or first.line_breaks > 0
+        or bool(second and second.line_breaks > 0)
+        or bool(second and _is_poem_section_heading_text(second.text))
+    )
+    if not source_says_title:
+        return body
+
+    blocks = re.split(r"\n\s*\n", body.strip(), maxsplit=1)
+    if not blocks or _poem_title_key(blocks[0]) != key:
+        return body
+    rest = blocks[1] if len(blocks) > 1 else ""
+    return rest.lstrip() + ("\n" if rest and not rest.endswith("\n") else "")
+
+
+# ---------------------------------------------------------------------------
+# bibliography sidecar
+# ---------------------------------------------------------------------------
+
+
+def _dedupe_bibliography(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen: set[tuple[str, str]] = set()
+    out: list[dict[str, Any]] = []
+    for entry in entries:
+        key = (entry.get("title", ""), entry.get("source_url", ""))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(entry)
+    return out
 
 
 def convert_single_docx(
@@ -58,27 +157,23 @@ def convert_single_docx(
     PLANNED body assets — through the typed-IR pipeline (adapter → normalize →
     lower).
 
-    This is the LIVE conversion path (6.2 cutover): ``import_docx`` calls this and
-    gets IR output. It deliberately does not read legacy catalogs or write
-    manifests, and it does not copy media: pandoc extracts media into the
-    caller-provided PERSISTENT ``media_out``, and the returned
-    ``ConvertedDocx.assets`` reference those files. ``media_out`` must outlive this
-    call until the writer copies the assets.
+    This is the converter ``import_docx`` calls. It deliberately does not read
+    legacy catalogs or write manifests, and it does not copy media: pandoc
+    extracts media into the caller-provided PERSISTENT ``media_out``, and the
+    returned ``ConvertedDocx.assets`` reference those files. ``media_out`` must
+    outlive this call until the writer copies the assets.
 
     The pipeline is pure after the adapter: ``ir_normalize``/``ir_lower`` perform
     no filesystem mutation; the adapter shells out to pandoc and extracts media
-    only. The GFM engine (``convert_single_docx_gfm``) is retained as the A/B
-    oracle (``scripts/audit/ir_ab_corpus.py``); it is deleted in Phase 7 after
-    final sign-off.
+    only.
     """
     media_out.mkdir(parents=True, exist_ok=True)
     doc = docx_adapter.adapt(docx, media_out)
 
     if kind == "poem":
-        # Poems are verse end-to-end: the GFM poem path does not demote headings,
-        # lift a bibliography, or run structural/verse detection (it renders the
-        # whole AST as verse via `pandoc_poem_ast_to_md`). Mirror that by skipping
-        # heading demotion and bibliography lift; light cleanup still applies.
+        # Poems are verse end-to-end: skip heading demotion, bibliography lift,
+        # and structural/verse detection (the whole AST renders as verse). Light
+        # cleanup still applies.
         doc.blocks = ir_normalize.drop_toc(doc.blocks)
         doc.blocks = ir_normalize.scrub_ai_alt(doc.blocks)
         doc.blocks = ir_normalize.thematic_breaks(doc.blocks)
@@ -89,16 +184,15 @@ def convert_single_docx(
     assets = ir_lower.assign_assets(doc, media_out, lang)
     body = ir_lower.lower(doc, lang, poem=(kind == "poem"))
     if kind == "poem":
-        # Mirror the GFM poem path's source-duplicate-title strip: when the DOCX
-        # itself starts with a title paragraph (the masthead already renders that
-        # title) the first stanza repeats the page title and must be dropped — the
-        # same drop the DOCX stanza oracle (`poetry_stanzas.expected_groups`)
-        # applies. Reuse the GFM helpers so the strip decision is byte-identical to
-        # the live path (bold / line-break source signals, not a string guess).
-        body = legacy._strip_source_duplicate_poem_title(
-            body, title, legacy.read_docx_paragraph_meta(docx)
+        # Strip the source-duplicate title: when the DOCX itself starts with a
+        # title paragraph (the masthead already renders that title) the first
+        # stanza repeats the page title and must be dropped — the same drop the
+        # DOCX stanza oracle (`poetry_stanzas.expected_groups`) applies. The
+        # decision uses bold / line-break source signals, not a string guess.
+        body = _strip_source_duplicate_poem_title(
+            body, title, ooxml.read_docx_paragraph_meta(docx)
         )
-    cross_refs = legacy.extract_cross_refs(body, work_key, title_index)
+    refs = cross_refs.extract_cross_refs(body, work_key, title_index)
     # Propagate pandoc warnings AND any SURFACED adapter/normalize diagnostic
     # (severity `warning`/`fatal`) to the caller — not just `import.pandoc-warn`.
     # The C1 fix added `import.align-unreconciled` (right-aligned source paragraphs
@@ -115,90 +209,8 @@ def convert_single_docx(
     warnings = "\n".join(warning_messages)
     return ConvertedDocx(
         body=body,
-        bibliography=legacy._dedupe_bibliography(doc.bibliography),
-        cross_refs=legacy._restructure_cross_refs(cross_refs),
-        warnings=warnings,
-        assets=assets,
-    )
-
-
-def convert_single_docx_gfm(
-    docx: Path,
-    *,
-    kind: str,
-    lang: str,
-    work_key: str,
-    title: str,
-    work_dir: Path,
-    title_index: dict[str, tuple[str, int | None, str | None]],
-    media_out: Path,
-) -> ConvertedDocx:
-    """Convert one DOCX through the legacy GFM engine (markdown-string patching),
-    returning the same ``ConvertedDocx`` shape the live IR path returns.
-
-    This is NO LONGER the live path — ``convert_single_docx`` (the typed-IR
-    pipeline) is, after the 6.2 cutover. This is retained ONLY as the A/B ORACLE:
-    ``scripts/audit/ir_ab_corpus.py`` runs both engines over the real corpus and
-    asserts the IR-live body loses no reading content vs this GFM oracle. The
-    signature matches ``convert_single_docx`` exactly. Deleted in Phase 7 after
-    final sign-off, together with ``lib.docx_engine``.
-    """
-    writes = legacy.WorkWrites(kind=kind, slug=work_key, work_dir=work_dir)
-    image_records: list[legacy.ImageRecord] = []
-
-    if kind == "poem":
-        body, refs, _next_idx, warnings, assets = legacy.convert_poem_docx_to_md(
-            docx=docx,
-            title=title,
-            book_slug=f"poem-{work_key}",
-            work_dir=work_dir,
-            image_records=image_records,
-            writes=writes,
-            image_counter_start=1,
-            cross_ref_title_index=title_index,
-            own_ascii_slug=work_key,
-            media_out=media_out,
-        )
-        return ConvertedDocx(
-            body=body,
-            cross_refs=legacy._restructure_cross_refs(refs),
-            warnings=warnings,
-            assets=assets,
-        )
-
-    # kind is only ever book/poem here (import_docx passes lib.kinds.WORK_KINDS);
-    # the image book_slug is just the work key for those.
-    (
-        body,
-        biblio,
-        refs,
-        _next_idx,
-        warnings,
-        ast,
-        structural_key_sequences,
-        assets,
-    ) = legacy.convert_docx_to_md(
-        docx=docx,
-        book_slug=work_key,
-        lang=lang,
-        work_dir=work_dir,
-        image_records=image_records,
-        writes=writes,
-        image_counter_start=1,
-        biblio_slug_lookup=title_index,
-        cross_ref_title_index=title_index,
-        own_ascii_slug=work_key,
-        media_out=media_out,
-    )
-    body = legacy.demote_markdown_headings(body, 1)
-    body = legacy.normalize_ast_verse_sections(body, ast)
-    body = legacy.normalize_ast_lineated_runs(body, ast, structural_key_sequences)
-    body = legacy.normalize_dedication_verse_sections(body)
-    body = legacy.collapse_blank_lines(body)
-    return ConvertedDocx(
-        body=body,
-        bibliography=legacy._dedupe_bibliography(biblio),
-        cross_refs=legacy._restructure_cross_refs(refs),
+        bibliography=_dedupe_bibliography(doc.bibliography),
+        cross_refs=cross_refs.restructure_cross_refs(refs),
         warnings=warnings,
         assets=assets,
     )
@@ -210,7 +222,20 @@ def write_bibliography_sidecar(
     lang: str,
     bibliography: list[dict[str, Any]],
 ) -> None:
+    """Write the lifted endmatter bibliography to ``<work_dir>/bibliography.yaml``.
+
+    A no-op when there is nothing to write. Called from the staging step in
+    ``import_docx`` before the WritePlan is assembled.
+    """
     if not bibliography:
         return
-    writes = legacy.WorkWrites(kind=kind, slug=work_dir.name, work_dir=work_dir)
-    legacy._write_bibliography_sidecar(work_dir, {lang: bibliography}, writes)
+    sidecar = {
+        "kind": "catalog_snapshot",
+        "lang": lang,
+        "source": "docx_endmatter",
+        "entries": bibliography,
+    }
+    body = yaml.safe_dump(
+        sidecar, allow_unicode=True, sort_keys=False, default_flow_style=False, width=10_000,
+    )
+    (work_dir / "bibliography.yaml").write_text(body, encoding="utf-8")

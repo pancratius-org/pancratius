@@ -3,7 +3,7 @@
 
 This is the only stage that produces a Markdown string, and it does so exactly
 once — there is no string round-trip and no regex tail-stripping. It emits the
-SAME author-facing shape the GFM engine targets:
+canonical author-facing shape:
 
   * verse-block / answer-block `<div>`s (rendered as `white-space: pre-line` HTML)
   * `<p class="signature">` and `<blockquote class="epigraph">`
@@ -17,27 +17,68 @@ The asset pass reads the extracted media files to hash them (read-only `open`),
 then assigns content-hash asset ids; it mutates nothing on disk — the returned
 `PlannedAsset`s are what the writer later copies. This module is `import-pure`.
 
-Image hashing, extension normalization, the hash prefix length, the raster-cap
-set, and the body-image alt/escaping are imported from `docx_engine` (not
-re-derived) so the IR path's asset filenames match the GFM path's byte-for-byte.
+Image hashing, extension normalization, the hash-prefix length, the raster-cap
+set, and the body-image alt/escaping live here next to the asset pass that is
+their sole user; `PlannedAsset` is the plan-adjacent value type from `writeplan`.
 """
 
 from __future__ import annotations
 
+import hashlib
 import html
 import re
 from pathlib import Path
 
 from lib import ir
-from lib.docx_engine import (
-    RASTER_CAP_EXTS,
-    PlannedAsset,
-    _body_image_alt,
-    _escape_markdown_alt,
-    _hash_file,
-    _is_image_path,
-    _normalize_ext,
-)
+from lib.writeplan import PlannedAsset
+
+
+# ---------------------------------------------------------------------------
+# body-image asset constants + helpers (content-addressed planning)
+# ---------------------------------------------------------------------------
+
+# Length of the content-hash prefix used for `images/<hash>.<ext>` asset ids.
+HASH_PREFIX_LEN = 12
+
+# Image extensions a body media file may carry; `_normalize_ext` folds `.jpeg`/
+# `.jpe` to `.jpg` so equivalent encodings hash to the same asset id.
+IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tiff", ".emf", ".wmf")
+EXT_FROM_MIME = {".jpeg": ".jpg", ".jpe": ".jpg"}
+
+# Raster body-image extensions the import-time longest-edge cap applies to (after
+# `_normalize_ext` folds `.jpeg`->`.jpg`). Vector (svg/emf/wmf) and animated (gif)
+# are copied verbatim. The cap itself is a writer transform; this set only labels
+# which planned assets are cap-eligible.
+RASTER_CAP_EXTS = frozenset({".png", ".jpg", ".webp", ".avif"})
+
+
+def _normalize_ext(ext: str) -> str:
+    ext = ext.lower()
+    return EXT_FROM_MIME.get(ext, ext)
+
+
+def _hash_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 16), b""):
+            h.update(chunk)
+    return h.hexdigest()[:HASH_PREFIX_LEN]
+
+
+def _is_image_path(p: str) -> bool:
+    return any(p.lower().endswith(e) for e in IMAGE_EXTS)
+
+
+def _body_image_alt(lang: str) -> str:
+    return "Illustration" if lang == "en" else "Иллюстрация"
+
+
+def _escape_markdown_alt(alt: str) -> str:
+    # Escape `[`/`]` in image alt text. `re.sub` (not str.replace) so the PAN018
+    # purity scan — which flags the bare `.replace` attribute name, unable to tell
+    # `str.replace` from `os.replace`/`Path.replace` — stays green in this
+    # import-pure module.
+    return re.sub(r"[\[\]]", r"\\\g<0>", alt)
 
 
 # ---------------------------------------------------------------------------
@@ -52,7 +93,7 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
     `media_root` is the directory pandoc extracted media into; an image whose
     source cannot be resolved keeps its original ref (no asset planned). PURE: this
     only READS the media files to hash them. The returned list is sorted by
-    bundle-relative path, matching the GFM engine's stable asset order.
+    bundle-relative path, giving the writer a stable asset order.
     """
     seen: dict[str, tuple[str, str]] = {}
     planned: dict[str, PlannedAsset] = {}
@@ -161,7 +202,7 @@ def _inlines_md(nodes: list[ir.Inline], lang: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# inline -> balanced HTML lines (for verse/answer blocks); mirrors docx_engine
+# inline -> balanced HTML lines (for verse/answer blocks)
 # ---------------------------------------------------------------------------
 
 
@@ -253,7 +294,7 @@ def _epigraph_md(e: ir.Epigraph) -> str:
 
 def _table_md(t: ir.Table, lang: str) -> str | None:
     """Render a non-bibliography (reading-content) table as a GFM pipe table —
-    what the GFM engine keeps in the body. Cells are rendered from their inlines
+    reading-content tables are kept in the body. Cells are rendered from their inlines
     (so images get the default body alt + `./images/<hash>` ref like prose), with
     internal breaks collapsed to spaces and pipes escaped for the cell grid."""
     if not t.rows:
@@ -316,15 +357,14 @@ def _heading_md(b: ir.Heading, lang: str) -> str:
     Headings cannot use ``inline_plain`` (which drops ``FootnoteRef`` and flattens
     emphasis): a footnote anchored to a heading (`### Глава 25[^3]. …`) would lose
     its `[^3]` ref, ORPHANING the `[^3]:` definition — a real footnote-integrity
-    regression vs the GFM engine, which keeps the marker on the heading line. So we
-    render through the inline-markdown path (emits `[^N]`, `*…*`, `**…**`, links),
-    collapse internal soft/hard breaks to spaces (a heading is one line), and then
-    strip a FULLY-bold wrapper (`# **TEXT**` → `# TEXT`) to mirror the GFM engine's
-    `strip_bold_only_headings` — partial emphasis is kept, exactly as GFM does."""
+    regression. The marker must stay on the heading line, so we render through the
+    inline-markdown path (emits `[^N]`, `*…*`, `**…**`, links), collapse internal
+    soft/hard breaks to spaces (a heading is one line), and then strip a FULLY-bold
+    wrapper (`# **TEXT**` → `# TEXT`) — partial emphasis is kept."""
     text = _inlines_md(b.inlines, lang)
     text = re.sub(r"\s*\n\s*", " ", text).strip()
-    # `# **TEXT**` → `# TEXT`: a heading wrapped entirely in bold loses the wrapper
-    # (matches `docx_engine.strip_bold_only_headings`); partial bold survives.
+    # `# **TEXT**` → `# TEXT`: a heading wrapped entirely in bold loses the wrapper;
+    # partial bold survives.
     m = re.fullmatch(r"\*\*(.+?)\*\*", text)
     if m:
         text = m.group(1)
@@ -340,7 +380,7 @@ def _block_md(b: ir.Block, lang: str, *, poem: bool = False) -> str | None:
         text = _inlines_md(b.inlines, lang)
         if poem:
             # Verse: keep hard/soft breaks as lines (one verse line each), trimming
-            # only trailing spaces — matches the GFM poem path's line-per-line shape.
+            # only trailing spaces — the poem path's line-per-line shape.
             lines = [ln.rstrip() for ln in text.split("\n")]
             return "\n".join(ln for ln in lines if ln.strip()) or None
         # Prose: collapse internal soft/hard breaks to spaces (Pandoc --wrap=none).
@@ -403,8 +443,8 @@ def _footnote_appendix(doc: ir.Document, lang: str) -> str:
 
 
 def _is_strong_only_para(b: ir.Block) -> bool:
-    """True when a paragraph's single inline is one `Strong` span — the IR shape of
-    the GFM poem path's `_is_strong_only_para` (a bold title paragraph)."""
+    """True when a paragraph's single inline is one `Strong` span — a bold title
+    paragraph."""
     return (
         isinstance(b, ir.Paragraph)
         and not b.empty
@@ -415,8 +455,7 @@ def _is_strong_only_para(b: ir.Block) -> bool:
 
 
 def _lower_poem_body(doc: ir.Document, lang: str) -> str:
-    """Lower a poem as stanza-grouped verse lines, mirroring the GFM poem path
-    (`pandoc_poem_ast_to_md`) exactly:
+    """Lower a poem as stanza-grouped verse lines:
 
       * an empty paragraph is a stanza break (flush the accumulator);
       * a `***` paragraph / thematic break is its own one-line stanza;
@@ -427,11 +466,10 @@ def _lower_poem_body(doc: ir.Document, lang: str) -> str:
 
     The multi-line-paragraph-is-its-own-stanza rule is the C1 fix: many poems
     store ONE STANZA PER non-empty Word paragraph (the stanza's lines live as
-    internal hard breaks, with NO empty paragraph between stanzas). The previous
-    accumulate-everything shape merged every such stanza into one giant stanza
-    (e.g. "Весна" 3→1, "Бог видит сон" 5→1). A paragraph boundary between two
-    multi-line verse paragraphs IS a stanza break, exactly as the GFM poem path
-    treats it."""
+    internal hard breaks, with NO empty paragraph between stanzas). A paragraph
+    boundary between two multi-line verse paragraphs IS a stanza break (without
+    this, every such stanza merges into one giant stanza, e.g. "Весна" 3→1,
+    "Бог видит сон" 5→1)."""
     stanzas: list[list[str]] = []
     current: list[str] = []
     seen_content = False
@@ -451,8 +489,8 @@ def _lower_poem_body(doc: ir.Document, lang: str) -> str:
             stanzas.append(["***"])
             continue
         if isinstance(b, ir.BlockQuote):
-            # The GFM poem path (`pandoc_poem_ast_to_md`) renders ONLY top-level
-            # `Para`/`Plain`; a `BlockQuote` flushes and is not emitted. In the
+            # The poem lowering renders ONLY top-level `Para`/`Plain`; a
+            # `BlockQuote` flushes and is not emitted. In the
             # corpus a poem `BlockQuote` only ever wraps the poem TITLE (the page
             # masthead already renders that title), so this drop is a title-duplicate
             # drop, not reading-content loss — and it keeps the head stanza count
@@ -469,7 +507,7 @@ def _lower_poem_body(doc: ir.Document, lang: str) -> str:
         # is never a verse line: flush the current stanza and emit the image as its
         # own block, so it is separated by blank lines (otherwise it fuses into the
         # last stanza and inflates that stanza's line count, e.g. #36/#38 last
-        # stanza 4→5). Mirrors the GFM poem path, where a non-text block flushes.
+        # stanza 4→5): a non-text block flushes.
         if isinstance(b, ir.ImageBlock) or (
             isinstance(b, ir.Paragraph)
             and len(b.inlines) == 1
@@ -479,8 +517,7 @@ def _lower_poem_body(doc: ir.Document, lang: str) -> str:
             stanzas.append(lines)
             continue
         # The FIRST strong-only paragraph (before any verse content) is the poem's
-        # title paragraph — its own group, exactly as the GFM poem path
-        # (`pandoc_poem_ast_to_md`) treats it. Kept separate so the source-duplicate
+        # title paragraph — its own group. Kept separate so the source-duplicate
         # -title strip can drop it cleanly (otherwise a bold title line would fuse
         # into the first stanza, e.g. #36 first stanza 4→3).
         if not seen_content and _is_strong_only_para(b):
@@ -508,7 +545,7 @@ def lower(doc: ir.Document, lang: str, *, poem: bool = False) -> str:
 
     `poem` selects verse lowering for the work-as-a-whole: paragraphs become
     stanza-grouped verse lines (one line each, stanzas split on empty paragraphs)
-    rather than prose, matching the GFM poem path's line-per-line shape."""
+    rather than prose, in a line-per-line shape."""
     if poem:
         body = _lower_poem_body(doc, lang)
         appendix = _footnote_appendix(doc, lang)

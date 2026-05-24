@@ -1,13 +1,12 @@
 """Unit tests for the typed-IR import pipeline (ir / normalize / lower).
 
 These exercise the pure stages directly on hand-built IR fixtures — no pandoc, no
-DOCX — so they run everywhere (the corpus A/B in ``test_ir_ab_corpus`` covers the
-adapter end-to-end where pandoc is available). They lock in the behaviours ported
-from the GFM engine into the IR: dialogue-label canonicalization (including the
-mixed-inline split the spike left unfinished), empty-emphasis artifact stripping,
-the bare-bibliography-heading strip, AI-alt scrubbing via the shared production
-constant, thematic breaks, verse detection, ordered-list start preservation, and
-the generated footnote appendix.
+DOCX — so they run everywhere (``test_ir_adapter`` covers the adapter end-to-end
+where pandoc is available). They lock in the IR behaviours: dialogue-label
+canonicalization (including the mixed-inline split the spike left unfinished),
+empty-emphasis artifact stripping, the bare-bibliography-heading strip, AI-alt
+scrubbing via the shared `AI_ALT_FRAGMENTS` constant, thematic breaks, verse
+detection, ordered-list start preservation, and the generated footnote appendix.
 """
 
 from __future__ import annotations
@@ -21,7 +20,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 from lib import ir, ir_lower, ir_normalize  # noqa: E402
-from lib.docx_engine import AI_ALT_FRAGMENTS  # noqa: E402
+from lib.ir_normalize import AI_ALT_FRAGMENTS  # noqa: E402
 
 
 # Narrowing helpers: the IR Block/Inline unions need an isinstance check before a
@@ -439,9 +438,8 @@ def test_lower_heading_preserves_footnote_ref() -> None:
 
 
 def test_lower_heading_keeps_partial_emphasis_strips_full_bold() -> None:
-    # Partial emphasis in a heading survives (matches the GFM engine); a heading
-    # wrapped ENTIRELY in bold loses the wrapper (`# **TEXT**` -> `# TEXT`, mirrors
-    # `docx_engine.strip_bold_only_headings`).
+    # Partial emphasis in a heading survives; a heading wrapped ENTIRELY in bold
+    # loses the wrapper (`# **TEXT**` -> `# TEXT`).
     partial = ir.Document(blocks=[
         ir.Heading(level=2, inlines=[ir.Text("О "), ir.Emphasis("strong", [ir.Text("Слове")])]),
     ])

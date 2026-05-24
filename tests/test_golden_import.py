@@ -1,9 +1,9 @@
 """Golden test net: freeze the CURRENT DOCX->Markdown importer behavior.
 
-Phase 2a deliverable. The single job of this module is to lock down what the
-live import path (`import_docx.run` -> `lib.docx_conversion.convert_single_docx`
--> `lib.docx_engine` primitives) produces TODAY, so later refactor phases can be
-proven behavior-preserving against a committed snapshot.
+The single job of this module is to lock down what the live import path
+(`import_docx.run` -> `lib.docx_conversion.convert_single_docx`, the typed-IR
+pipeline) produces, so refactors stay behavior-preserving against a committed
+snapshot.
 
 What is frozen, per case, under ``tests/golden/<case>/``:
   * ``body.md``          — the markdown body (everything AFTER the frontmatter).

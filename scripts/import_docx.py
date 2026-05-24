@@ -38,11 +38,10 @@ from lib.docx_conversion import (
     to_ascii_slug,
     write_bibliography_sidecar,
 )
-from lib.docx_engine import PlannedAsset
 from lib import footnotes
 from lib.kinds import WORK_KINDS
 from lib.locales import LOCALES
-from lib.writeplan import AssetTransform, Diagnostic, Role, WriteOp, WritePlan
+from lib.writeplan import AssetTransform, Diagnostic, PlannedAsset, Role, WriteOp, WritePlan
 from lib.writer import WriteReport, apply as apply_plan
 
 
