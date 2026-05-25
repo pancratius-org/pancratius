@@ -201,31 +201,22 @@ agent can recover from a stale doc by asking the CLI; one prefix per activity (n
 grammar); explicit mechanical/editorial split; and bootstrap-free (uv + npm already
 required). The CLI must exist and stabilize **before** the skills are written.
 
-## What's left to build
+## Implementation status
 
-The site builds/deploys via `npm`; the importer/IR pipeline and the audit harness
-have landed. What remains is the library *door* itself:
+The library *door* is built and matches this contract: the `pancratius`
+console-script (`[project.scripts]` + a hatchling `[build-system]`) dispatches the
+noun-first groups above to one clean library entry per owner — `import_work`,
+`scaffold_subpage`, `render`, `optimize`, `generate_graph`, `generate_embeddings`,
+`generate_slug_map`, and the Node bulk owner — never to another CLI. Each owner's
+`argparse main()` is a thin adapter over that entry. The `graph`/`embed` stacks are
+`[project.optional-dependencies]`; `data graph/embed generate` lazy-import their
+owner and, absent the extra, exit with `uv sync --extra <name>`. The work-kind
+boundary is audit-enforced on both surfaces: the door defers `--kind` to the
+importer's shared declaration, and PAN017 scans `pancratius/cli.py` to keep it that
+way (defer or derive from `WORK_KINDS`).
 
-1. **Stand up the console-script** — add `[project.scripts]` + a `[build-system]`,
-   remove `[tool.uv] package = false`, add `pancratius/cli.py`.
-2. **Make each owning script a library module** — extract one clean typed entry and
-   reduce its `argparse main()` to a thin adapter (or drop it). `import_docx`
-   already does this (`import_work`); `render_downloads`, `conceptosphere`,
-   `conceptosphere_embed`, `docx_optimize`, `build_slug_map` follow the same shape
-   so the dispatcher calls functions, not CLIs.
-3. **Move heavy deps into extras** — lift the `graph`/`embed` stacks into
-   `[project.optional-dependencies]`; re-lock `uv.lock`.
-4. **Wire the verbs** — `work import`, `downloads render`, `docx optimize`, the
-   `data …` verbs (thin aliases over the one owner for slug-map/bulk;
-   lazy-imported heavy regen for graph/embed), and `project page add`
-   (scaffold-only), with `scaffold_subpage` co-located with the conversion lib.
-5. **Extend PAN017 to the CLI surface** — the work-kind guard scans `import_docx`
-   today; it must also cover `pancratius/cli.py` (or the CLI must not redeclare
-   `--kind`, deferring to the importer's entry) so the `book|poem` boundary stays
-   audit-enforced.
-
-Leave alone: the npm site door, `prebuild:*` coupling, the `scripts/visual/` dev
-diagnostics, the shared `scripts/lib/` core.
+Left alone, as intended: the npm site door, `prebuild:*` coupling, the
+`scripts/visual/` dev diagnostics, the shared `scripts/lib/` core.
 
 ## Rejected alternatives (so they are not relitigated)
 
