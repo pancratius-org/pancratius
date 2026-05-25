@@ -11,7 +11,14 @@ itself stays coherent with the routing map:
   2. ``"project" not in WORK_KINDS`` — projects are themed sections, not works,
      so they must never be an importable/convertible kind (PAN004 / PAN015);
   3. ``WORK_KINDS`` is a subset of ``SEGMENT_OF`` keys — every work kind still
-     routes (``SEGMENT_OF`` deliberately also carries ``project`` for routing).
+     routes (``SEGMENT_OF`` deliberately also carries ``project`` for routing);
+  4. the ``pancratius`` CLI door (``pancratius/cli.py``) must NOT redeclare
+     ``--kind`` with choices that drift from ``WORK_KINDS``. The door is meant to
+     DEFER (declare no ``--kind`` of its own — it reuses
+     ``import_docx.add_import_arguments`` so the boundary is owned in one place);
+     if it ever declares one, it must be ``WORK_KINDS``-derived. Either way the
+     ``book|poem`` boundary stays audit-enforced on the CLI surface, not just the
+     standalone importer.
 
 It derives, it does not restate (PAN003): the kinds come from ``kinds.py`` and
 the choices come from the CLI's own argparse, so re-adding ``project`` to the
@@ -42,6 +49,9 @@ def _audit_root() -> Path:
 ROOT = _audit_root()
 PY_KINDS = ROOT / "scripts" / "lib" / "kinds.py"
 IMPORT_CLI = ROOT / "scripts" / "import_docx.py"
+# The `pancratius` library door. Optional in a fixture tree (a fixture may omit it);
+# when present it must defer or derive --kind (rule 4).
+CLI_DOOR = ROOT / "pancratius" / "cli.py"
 
 # The argparse option whose `choices` must equal WORK_KINDS, and the SoT name the
 # CLI is expected to reference for those choices.
@@ -186,15 +196,53 @@ def main() -> int:
                 "disagrees with the WORK_KINDS source of truth."
             )
 
+    # (4) the CLI door must not redeclare a drifting --kind. It is OPTIONAL in a
+    # fixture tree; when present it must DEFER (no --kind of its own) or DERIVE
+    # (choices == WORK_KINDS, imported from lib.kinds) — the same standard the
+    # importer's own --kind is held to, so the boundary holds on the CLI surface.
+    if CLI_DOOR.exists():
+        cli_tree = ast.parse(CLI_DOOR.read_text(encoding="utf-8"))
+        cli_form, cli_members, cli_name_id, cli_lineno = _kind_choices(cli_tree)
+        cli_loc = f"pancratius/cli.py:{cli_lineno}" if cli_lineno else "pancratius/cli.py"
+        if cli_form == "missing":
+            pass  # the door defers --kind to the importer entry — the encouraged state
+        elif cli_form == "other":
+            failures.append(
+                f"{cli_loc}: the CLI door's `{KIND_OPTION}` choices is not WORK_KINDS nor a "
+                "string-literal list/tuple; the audit can't prove it equals the WORK_KINDS SoT."
+            )
+        elif cli_form == "name":
+            if cli_name_id != SOT_NAME:
+                failures.append(
+                    f"{cli_loc}: the CLI door's `{KIND_OPTION}` choices is `{cli_name_id}`, not the "
+                    f"`{SOT_NAME}` source of truth — the door must defer to the importer entry or "
+                    "derive choices from lib.kinds.WORK_KINDS."
+                )
+            elif not _imports_sot_from_kinds(cli_tree):
+                failures.append(
+                    f"{cli_loc}: the CLI door's `{KIND_OPTION}` choices is {SOT_NAME} but "
+                    f"pancratius/cli.py does not `from lib.kinds import {SOT_NAME}` — choices must "
+                    "derive from the SoT."
+                )
+        elif cli_form == "literal":
+            assert cli_members is not None
+            if tuple(cli_members) != tuple(work_kinds):
+                failures.append(
+                    f"{cli_loc}: the CLI door redeclares `{KIND_OPTION}` choices {tuple(cli_members)!r} "
+                    f"!= WORK_KINDS {tuple(work_kinds)!r} — it must defer to the importer entry, not "
+                    "hardcode a divergent kind list."
+                )
+
     if failures:
         print("FAIL: import work-kinds boundary violated", file=sys.stderr)
         for f in failures:
             print(f"  {f}", file=sys.stderr)
         return 1
 
+    door = "; CLI door defers/derives --kind" if CLI_DOOR.exists() else ""
     print(
         f"PASS: import --kind choices derive from WORK_KINDS {tuple(work_kinds)!r}; "
-        "project excluded; WORK_KINDS ⊆ SEGMENT_OF"
+        f"project excluded; WORK_KINDS ⊆ SEGMENT_OF{door}"
     )
     return 0
 

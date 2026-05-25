@@ -9,11 +9,15 @@
 //      (PAN004), so re-adding `project` to the import surface is the exact
 //      retired-capability regression PAN015 forbids;
 //   3. `WORK_KINDS` ⊆ `SEGMENT_OF` keys — every work kind still routes
-//      (`SEGMENT_OF` deliberately also carries `project` for routing).
+//      (`SEGMENT_OF` deliberately also carries `project` for routing);
+//   4. the `pancratius` CLI door (pancratius/cli.py) must DEFER `--kind` to the
+//      importer entry (declare none of its own — it reuses
+//      import_docx.add_import_arguments) or DERIVE it from WORK_KINDS, so the
+//      book|poem boundary holds on the CLI surface, not just the standalone CLI.
 //
 // The detection lives in the Python checker (it must import kinds.py and parse
-// the CLI's argparse); this TS rule owns the severity and the contract prose and
-// wraps it via runPythonCheck, the same shape as PAN004-duplicate-identity.
+// the import CLI's + the door's argparse); this TS rule owns the severity and the
+// contract prose and wraps it via runPythonCheck, the same shape as PAN004.
 
 import type { Rule, RuleContext } from "../lib/rule.ts";
 import type { Finding } from "../lib/finding.ts";
@@ -24,7 +28,7 @@ const CATEGORY = "import-boundary";
 export const pan017ImportWorkKinds: Rule = {
   id: "PAN017-import-work-kinds",
   title:
-    "PAN017: the import CLI's --kind choices must equal WORK_KINDS, project must not be a work kind, and WORK_KINDS ⊆ SEGMENT_OF",
+    "PAN017: the import CLI's --kind choices must equal WORK_KINDS, project must not be a work kind, WORK_KINDS ⊆ SEGMENT_OF, and the pancratius CLI door must defer or derive --kind",
   tier: "core",
   run(ctx: RuleContext): Finding[] {
     return runPythonCheck(ctx, {
@@ -33,12 +37,12 @@ export const pan017ImportWorkKinds: Rule = {
       severity: "fatal",
       script: "python/import_work_kinds.py",
       contract:
-        "The import CLI converts corpus WORKS only. Work kinds have one source of truth — `WORK_KINDS` in scripts/lib/kinds.py. scripts/import_docx.py's `--kind` argparse `choices` must equal `WORK_KINDS`; `project` must NOT be in `WORK_KINDS` (projects are themed sections, not works — PAN004); and `WORK_KINDS` must be a subset of `SEGMENT_OF`'s keys (every work kind still routes; SEGMENT_OF deliberately keeps `project` for routing).",
-      why: "Re-admitting `project` as an importable kind, or hardcoding the import CLI's --kind list so it drifts from WORK_KINDS, is the retired-capability regression PAN015 forbids: the converter could write authored project sections through work machinery, and the import surface would stop matching the corpus definition.",
+        "The import CLI converts corpus WORKS only. Work kinds have one source of truth — `WORK_KINDS` in scripts/lib/kinds.py. scripts/import_docx.py's `--kind` argparse `choices` must equal `WORK_KINDS`; `project` must NOT be in `WORK_KINDS` (projects are themed sections, not works — PAN004); `WORK_KINDS` must be a subset of `SEGMENT_OF`'s keys (every work kind still routes; SEGMENT_OF deliberately keeps `project` for routing); and the `pancratius` CLI door (pancratius/cli.py) must NOT redeclare a drifting `--kind` — it must defer to the importer entry (declare none) or derive choices from WORK_KINDS.",
+      why: "Re-admitting `project` as an importable kind, hardcoding the import CLI's --kind list so it drifts from WORK_KINDS, or letting the new CLI door redeclare its own divergent --kind, is the retired-capability regression PAN015 forbids: the converter could write authored project sections through work machinery, and the import surface would stop matching the corpus definition.",
       repair:
-        "Keep `WORK_KINDS = (\"book\", \"poem\")` as the SoT in scripts/lib/kinds.py and have scripts/import_docx.py use `choices=WORK_KINDS` (imported from lib.kinds), not a literal list. If a kind is genuinely promoted to a work, add it to WORK_KINDS (and SEGMENT_OF) — do not special-case it in the CLI.",
+        "Keep `WORK_KINDS = (\"book\", \"poem\")` as the SoT in scripts/lib/kinds.py; have scripts/import_docx.py use `choices=WORK_KINDS` (imported from lib.kinds); and have pancratius/cli.py reuse import_docx.add_import_arguments rather than declaring its own `--kind`. If a kind is genuinely promoted to a work, add it to WORK_KINDS (and SEGMENT_OF) — do not special-case it in either CLI.",
       doNotFixBy:
-        "Hardcoding the --kind choices to silence the parity check, or adding `project` back to WORK_KINDS to make projects \"fit\" the work/import machinery instead of keeping them a section.",
+        "Hardcoding the --kind choices (in the importer OR the CLI door) to silence the parity check, or adding `project` back to WORK_KINDS to make projects \"fit\" the work/import machinery instead of keeping them a section.",
     });
   },
 };
