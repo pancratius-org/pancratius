@@ -99,6 +99,49 @@ def _work_import(args: argparse.Namespace) -> int:
     return 1 if report.refused else 0
 
 
+# --- handlers (project group) -------------------------------------------------
+def _project_page_add(args: argparse.Namespace) -> int:
+    """`project page add <project> <subpage-slug> <docx>` — scaffold a draft
+    sub-page (the deterministic slice only; docs/tooling.md).
+
+    Dispatches to `scaffold_subpage`, which converts the DOCX, co-locates images,
+    and writes the draft `<lang>.md` with editorial fields left `TODO` through the
+    general writer (no provenance manifest). On a clean apply the door prints the
+    suggested landing `subpages:` entry to STDOUT for a human to place — it never
+    edits the landing. Bad input (missing/non-DOCX) is a usage error (exit 2); a
+    write refusal is a failure (exit 1)."""
+    from lib.docx_conversion import ScaffoldError, scaffold_subpage
+    import import_docx  # for print_report (shared report formatter) — light, no ML
+
+    if shutil.which("pandoc") is None:
+        print("error: pandoc not found on PATH; install with `brew install pandoc`.", file=sys.stderr)
+        return 1
+    try:
+        report = scaffold_subpage(
+            project=args.project,
+            subpage_slug=args.subpage_slug,
+            docx=Path(args.docx),
+            lang=args.lang,
+            out_content=Path(args.out_content),
+            dry_run=args.dry_run,
+        )
+    except ScaffoldError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    import_docx.print_report(report, dry_run=args.dry_run)
+    if not report.refused:
+        # Print the suggested landing entry — the human places it; the landing is
+        # NEVER edited by the tool.
+        print(
+            f"\nadd this entry to projects/{args.project}/{args.lang}.md  subpages:  "
+            "(place it yourself — the landing is never edited):"
+        )
+        print(f"  - slug: {args.subpage_slug}")
+        print('    label: "TODO: short landing label"')
+        print('    weight: "TODO: essay|revelation|verse|practice|dialogue"')
+    return 1 if report.refused else 0
+
+
 # --- handlers (downloads / docx groups) ---------------------------------------
 def _downloads_render(args: argparse.Namespace) -> int:
     """`downloads render [--book N]` — render local PDF/EPUB/DOCX release artifacts.
@@ -188,6 +231,34 @@ def _add_work_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     work_import.set_defaults(func=_work_import)
 
 
+def _add_project_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    import import_docx  # light (no ML); owns DEFAULT_CONTENT_ROOT
+    from lib.locales import LOCALES
+
+    project = sub.add_parser("project", help="Scaffold project material (a themed section).")
+    project.set_defaults(func=_require_subcommand(project))
+    project_sub = project.add_subparsers(dest="noun", metavar="<noun>")
+    page = project_sub.add_parser("page", help="Project sub-pages.")
+    page.set_defaults(func=_require_subcommand(page))
+    page_sub = page.add_subparsers(dest="verb", metavar="<verb>")
+    page_add = page_sub.add_parser(
+        "add", help="Scaffold a draft sub-page from a DOCX (editorial fields left TODO; landing never edited)."
+    )
+    page_add.add_argument("project", help="Owning project slug (the landing's slug).")
+    page_add.add_argument("subpage_slug", metavar="<subpage-slug>", help="Sub-page slug under the project.")
+    page_add.add_argument("docx", help="Source .docx file to convert into the draft body.")
+    page_add.add_argument("--lang", choices=tuple(LOCALES), required=True)
+    page_add.add_argument(
+        "--out-content", default=str(import_docx.DEFAULT_CONTENT_ROOT), help="Content root; defaults to src/content."
+    )
+    page_add.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the full planned write-set + diagnostics and write NOTHING (the review gate).",
+    )
+    page_add.set_defaults(func=_project_page_add)
+
+
 def _add_downloads_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     from lib.locales import LOCALES
 
@@ -270,6 +341,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.set_defaults(func=_require_subcommand(parser))
     sub = parser.add_subparsers(dest="group", metavar="<group>")
     _add_work_group(sub)
+    _add_project_group(sub)
     _add_downloads_group(sub)
     _add_docx_group(sub)
     _add_data_group(sub)
