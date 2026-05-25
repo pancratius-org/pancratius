@@ -4,6 +4,7 @@ import re
 import shutil
 import unicodedata
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 import sys
@@ -17,17 +18,20 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 from lib import cross_refs, docx_adapter, footnotes, ir, ir_lower, ir_normalize, ooxml
 from lib.content_catalog import dump_frontmatter
-from lib.writeplan import AssetTransform, Diagnostic, PlannedAsset, WriteOp, WritePlan
+from lib.writeplan import AssetTransform, Diagnostic, PlannedAsset, Role, WriteOp, WritePlan
 from lib.writer import WriteReport, apply as apply_plan
 
 # Repo root: scripts/lib/ -> scripts/ -> repo root. Used to anchor the disposable
 # conversion scratch dir under `.cache/` (never src/content).
 _REPO_ROOT = SCRIPTS_DIR.parent
 
-# Body-image longest-edge cap for a scaffolded sub-page, mirroring the work-import
-# cap policy (import_docx.IMPORT_MAX_LONGEST_EDGE).
-SUBPAGE_MAX_LONG_EDGE = 1600
-
+# The longest-edge cap (px) for NEWLY-CONVERTED body images, applied by the writer
+# as a `cap_raster` transform at copy time. ONE owner for both the work importer and
+# the project sub-page scaffold (docs/content-model.md asset policy): a raster master
+# extracted from a DOCX is bounded to this edge; vector/animated formats are copied
+# untouched. The committed filenames are content hashes the Markdown already
+# references, so the cap keeps the name rather than re-hashing.
+BODY_IMAGE_MAX_LONG_EDGE = 1600
 
 @dataclass
 class ConvertedDocx:
@@ -267,22 +271,21 @@ def write_bibliography_sidecar(
 
 
 # ---------------------------------------------------------------------------
-# project sub-page scaffold (`pancratius project page add`)
+# shared plan assembly (one owner for the work importer + the sub-page scaffold)
 # ---------------------------------------------------------------------------
 
 
-class ScaffoldError(Exception):
-    """Invalid input to scaffold_subpage (missing/non-DOCX source)."""
-
-
-def _subpage_asset_ops(assets: list[PlannedAsset], scope: PurePosixPath) -> list[WriteOp]:
-    """Turn the converter's planned body images into `transform_asset` WriteOps for
-    a sub-page scope — same shape as import_docx._asset_ops: rasters get a
-    `cap_raster` cap, vector/animated assets get a plain `copy`."""
+def body_asset_ops(assets: list[PlannedAsset], scope: PurePosixPath) -> list[WriteOp]:
+    """Turn the converter's planned body images into `transform_asset` WriteOps,
+    scope-relative: a raster gets a `cap_raster` cap (`BODY_IMAGE_MAX_LONG_EDGE`,
+    applied by the writer — the only place PIL runs); vector/animated assets get a
+    plain `copy`. The bundle-relative path is `images/<hash>.<ext>` exactly as the
+    Markdown body references it, so filenames are unchanged. Shared by the work
+    importer and the sub-page scaffold so the cap policy has ONE owner."""
     ops: list[WriteOp] = []
     for asset in assets:
         transform = (
-            AssetTransform(kind="cap_raster", max_long_edge=SUBPAGE_MAX_LONG_EDGE)
+            AssetTransform(kind="cap_raster", max_long_edge=BODY_IMAGE_MAX_LONG_EDGE)
             if asset.is_raster
             else AssetTransform(kind="copy")
         )
@@ -291,12 +294,77 @@ def _subpage_asset_ops(assets: list[PlannedAsset], scope: PurePosixPath) -> list
                 kind="transform_asset",
                 rel_path=scope / PurePosixPath(asset.rel_within),
                 role="imported_asset",
-                reason=f"scaffold {asset.rel_within}",
+                reason=f"body image {asset.rel_within}",
                 source=asset.source,
                 transform=transform,
             )
         )
     return ops
+
+
+def plan_from_staged_bundle(
+    *,
+    stage_dir: Path,
+    content_root: Path,
+    scope: PurePosixPath,
+    role_for: Callable[[PurePosixPath], Role],
+    asset_ops: list[WriteOp],
+    diagnostics: tuple[Diagnostic, ...],
+    source_document: Path,
+    replace: bool,
+) -> WritePlan:
+    """Build a WritePlan that copies every staged bundle file into the target scope,
+    alongside the body-image `transform_asset` ops (which are NOT staged — the writer
+    copies/caps them from the persistent media dir). `role_for` maps each staged
+    bundle-relative path to its ownership role (the caller owns that policy; the
+    importer keys on filename via _scratch_role, the scaffold on a simpler split).
+    The plan is the ONLY thing handed to the writer; no caller mutates content_root
+    directly. Shared by import_docx._plan_from_scratch and scaffold_subpage."""
+    ops: list[WriteOp] = [
+        WriteOp(
+            kind="ensure_dir",
+            rel_path=scope,
+            role="canonical_source",
+            reason="bundle directory",
+        )
+    ]
+    for staged in sorted(stage_dir.rglob("*")):
+        if not staged.is_file():
+            continue
+        rel_within = PurePosixPath(staged.relative_to(stage_dir).as_posix())
+        ops.append(
+            WriteOp(
+                kind="copy",
+                rel_path=scope / rel_within,
+                role=role_for(rel_within),
+                reason=f"copy {rel_within}",
+                source=staged,
+            )
+        )
+    ops.extend(asset_ops)
+    return WritePlan(
+        target_root=content_root,
+        target_scope=scope,
+        operations=tuple(ops),
+        diagnostics=diagnostics,
+        replace=replace,
+        source_document=source_document,
+    )
+
+
+# ---------------------------------------------------------------------------
+# project sub-page scaffold (`pancratius project page add`)
+# ---------------------------------------------------------------------------
+
+
+class ScaffoldError(Exception):
+    """Invalid input to scaffold_subpage (missing/non-DOCX source)."""
+
+
+def _subpage_role(rel: PurePosixPath) -> Role:
+    """A sub-page bundle's role map: the lifted bibliography is a sidecar, the
+    `<lang>.md` (and anything else staged) is converter-owned canonical source."""
+    return "sidecar" if rel.name == "bibliography.yaml" else "canonical_source"
 
 
 def scaffold_subpage(
@@ -372,37 +440,13 @@ def scaffold_subpage(
         if converted.cross_refs:
             fm["cross_refs"] = converted.cross_refs
 
-        # Stage the <lang>.md and bibliography into the scratch bundle and copy them
-        # in via the writer (exactly like import_docx) — this reuses the writer's
-        # role classification / SVG-sanitize boundary unchanged.
+        # Stage the <lang>.md and bibliography into the scratch bundle; the shared
+        # plan builder copies them in via the writer (exactly like import_docx),
+        # reusing the writer's role classification / SVG-sanitize boundary unchanged.
         (stage_dir / f"{lang}.md").write_text(
             dump_frontmatter(fm) + converted.body, encoding="utf-8"
         )
         write_bibliography_sidecar(stage_dir, "project", lang, converted.bibliography)
-
-        ops: list[WriteOp] = [
-            WriteOp(
-                kind="ensure_dir",
-                rel_path=scope,
-                role="canonical_source",
-                reason="sub-page directory",
-            )
-        ]
-        for staged in sorted(stage_dir.rglob("*")):
-            if not staged.is_file():
-                continue
-            rel_within = PurePosixPath(staged.relative_to(stage_dir).as_posix())
-            role = "sidecar" if rel_within.name == "bibliography.yaml" else "canonical_source"
-            ops.append(
-                WriteOp(
-                    kind="copy",
-                    rel_path=scope / rel_within,
-                    role=role,
-                    reason=f"scaffold {rel_within}",
-                    source=staged,
-                )
-            )
-        ops.extend(_subpage_asset_ops(converted.assets, scope))
 
         # Same fatal-footnote / typed-diagnostic safety as import: an orphaned
         # footnote reference or a converter-side FATAL refuses the write.
@@ -413,13 +457,15 @@ def scaffold_subpage(
             Diagnostic(d.severity, d.code, d.message) for d in converted.diagnostics
         )
 
-        plan = WritePlan(
-            target_root=content_root,
-            target_scope=scope,
-            operations=tuple(ops),
+        plan = plan_from_staged_bundle(
+            stage_dir=stage_dir,
+            content_root=content_root,
+            scope=scope,
+            role_for=_subpage_role,
+            asset_ops=body_asset_ops(converted.assets, scope),
             diagnostics=diagnostics,
-            replace=False,
             source_document=docx,
+            replace=False,
         )
         return apply_plan(plan, dry_run=dry_run)
     finally:
