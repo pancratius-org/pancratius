@@ -47,6 +47,32 @@ export const pan017ImportWorkKinds: Rule = {
   },
 };
 
+// PAN019 — CLI door verify-boundary. The two-doors split (docs/tooling.md) cuts on
+// mutate vs verify: the `pancratius` console-script MUTATES the corpus; verification
+// (`check`/`test`/`audit`) is the npm site door's job. So the door must register no
+// `audit`/`site` sub-parser — the two rejected alternatives the doc names. The
+// Python checker AST-scans pancratius/cli.py for forbidden `add_parser` names.
+export const pan019CliVerifyBoundary: Rule = {
+  id: "PAN019-cli-verify-boundary",
+  title: "PAN019: the pancratius CLI door exposes no verify verb (no `audit` group/verb, no `site` proxy)",
+  tier: "core",
+  run(ctx: RuleContext): Finding[] {
+    return runPythonCheck(ctx, {
+      id: "PAN019-cli-verify-boundary",
+      category: CATEGORY,
+      severity: "fatal",
+      script: "python/cli_verify_boundary.py",
+      contract:
+        "The two-doors split (docs/tooling.md) cuts on what a command does to the world: `pancratius` MUTATES the corpus, while verification (`check`, `test`, `audit`) is pure and lives behind the `npm` site door. So `pancratius/cli.py` must register NO argparse sub-parser named `audit` or `site` (at any nesting level) — discoverability of `npm run audit` is a `--help`/skills-doc concern, not a routing one.",
+      why: "A `pancratius site audit → npm run audit` proxy (or any `audit` verb) inverts the doc's mutate/verify cut at the grammar level: it puts a verify command under the mutate door, the exact `site`-proxy alternative tooling.md rejected. Barring the names keeps the seam CI-enforced instead of convention-only.",
+      repair:
+        "Keep verification under `npm` (`npm run audit`, `astro check`, Playwright). The `pancratius` door only grows MUTATE verbs (import, scaffold, render, optimize, data generation); point users at `npm run audit` from the skills doc and `--help`, not a proxy verb.",
+      doNotFixBy:
+        "Adding a `pancratius site audit`/`pancratius audit` convenience wrapper that shells to `npm run audit` — that is the rejected `site` proxy; it re-creates a second surface for a one-owner verify command under the wrong door.",
+    });
+  },
+};
+
 // PAN018 — writer-only-mutation guard. Import's safety boundary
 // (docs/import-pipeline.md): import code *produces* a WritePlan; only the writer
 // (scripts/lib/writer.py) mutates src/content. Every other import module that

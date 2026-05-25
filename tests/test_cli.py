@@ -53,6 +53,13 @@ def test_unknown_command_is_usage_error(argv: list[str]) -> None:
     assert _exit_code(argv) == 2
 
 
+@pytest.mark.parametrize("verify", [["audit"], ["site"]])
+def test_door_has_no_verify_verb(verify: list[str]) -> None:
+    """The door MUTATES; verification (`audit`/`site`) is the npm site door's job
+    (the mutate/verify cut, PAN019). They are not groups → usage error."""
+    assert _exit_code(verify) == 2
+
+
 # --- dispatch + exit-code remap ----------------------------------------------
 def test_data_slug_map_refresh_dispatches_to_owner(monkeypatch: pytest.MonkeyPatch) -> None:
     import build_slug_map
