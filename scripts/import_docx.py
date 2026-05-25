@@ -17,9 +17,9 @@ import sys
 import uuid
 import zipfile
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, TypedDict
 import xml.etree.ElementTree as ET
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -52,21 +52,14 @@ from lib.writer import WriteReport, apply as apply_plan
 
 ROOT = SCRIPT_DIR.parent
 DEFAULT_CONTENT_ROOT = ROOT / "src" / "content"
-# Scratch staging root for conversion (.cache/ is disposable; never src/content).
+# Disposable conversion scratch; never src/content.
 STAGE_ROOT = ROOT / ".cache" / "import-stage"
 TODO_DESCRIPTION = "TODO: write the editorial description for this work."
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tiff"}
 LANGS = tuple(LOCALES)
-# import_docx imports corpus WORKS only (lib.kinds.WORK_KINDS). Projects are
-# authored themed sections under src/content/projects/ (not converter output), so
-# `project` is not an importable kind and the catalog scan below ignores project
-# entries — a `--into <project>` simply finds no work, like any other unknown
-# bundle.
-
-# The body-image cap policy (cap_raster max-long-edge) lives in lib.docx_conversion
-# (BODY_IMAGE_MAX_LONG_EDGE) — one owner shared with the sub-page scaffold — and is
-# applied via the `body_asset_ops` helper this module imports.
+# Imports corpus WORKS only (lib.kinds.WORK_KINDS); the catalog scan ignores project
+# entries, so `--into <project>` simply finds no work.
 
 _LEADING_NUMBER_RE = re.compile(r"^\s*\d+\s*[-._ ]+\s*")
 _LATIN_RE = re.compile(r"[A-Za-z]")
@@ -76,23 +69,17 @@ _CYRILLIC_RE = re.compile(r"[А-Яа-яЁё]")
 class ImportError(Exception):
     """Invalid import input or an unresolvable target.
 
-    The ONE error strategy of the stable `import_work` entry: it is raised for
-    bad input (missing/non-DOCX file) and for a `_resolve_target` failure (no
-    such work, an ambiguous `--into`, a `--kind`-less new work, an existing
-    bundle dir). A *write refusal* is NOT an error — `import_work` returns the
-    refused `WriteReport` (with its fatal diagnostics) instead of raising, so the
-    caller can inspect it. The CLI maps this to `parser.error`."""
+    Raised for bad input (missing/non-DOCX file) and `_resolve_target` failures (no
+    such work, ambiguous `--into`, `--kind`-less new work, existing bundle dir). A
+    write refusal is NOT this: `import_work` returns the refused `WriteReport` (with
+    its fatal diagnostics) instead. The CLI maps this to `parser.error`."""
 
 
 @dataclass(frozen=True)
 class ImportRequest:
-    """The explicit, frozen input contract for an import.
-
-    This is the stable surface `import_work` consumes — decoupled from argparse,
-    so a caller (a future `pancratius work import`, a test, another tool) builds
-    a request by name rather than threading an `argparse.Namespace`. Field names
-    mirror the CLI flags; `request_from_namespace` adapts a parsed namespace into one.
-    """
+    """The frozen input contract `import_work` consumes, decoupled from argparse so a
+    caller builds a request by name. Field names mirror the CLI flags;
+    `request_from_namespace` adapts a parsed namespace into one."""
 
     docx: Path
     lang: str
@@ -119,8 +106,7 @@ class ImportResult:
 
 
 def _scratch_role(rel: PurePosixPath, lang: str) -> Role:
-    """Map a staged bundle file to its WritePlan role (the writer/audit boundary
-    cares only about ownership classes, not file specifics)."""
+    """Map a staged bundle file to its WritePlan ownership role."""
     name = rel.name
     if name == f"{lang}.md":
         return "canonical_source"
@@ -130,9 +116,7 @@ def _scratch_role(rel: PurePosixPath, lang: str) -> Role:
         return "cover"
     if name == "bibliography.yaml":
         return "sidecar"
-    # Any remaining staged file (images/** and any other body asset) is an
-    # imported asset — the only other class the converter produces.
-    return "imported_asset"
+    return "imported_asset"  # images/** and any other body asset
 
 
 def _plan_from_scratch(
@@ -146,11 +130,8 @@ def _plan_from_scratch(
     source_document: Path,
     asset_ops: list[WriteOp],
 ) -> WritePlan:
-    """Build the import WritePlan via the shared `plan_from_staged_bundle`, binding
-    `lang` into the work-bundle role map (`_scratch_role`). The plan copies every
-    staged bundle file into the real target scope alongside the body-image
-    `transform_asset` ops; it is the ONLY thing import_docx hands the writer —
-    import_docx never writes to content_root itself."""
+    """Build the import WritePlan via shared `plan_from_staged_bundle`, binding `lang`
+    into the role map. The plan is the only thing import_docx hands the writer."""
     return plan_from_staged_bundle(
         stage_dir=stage_work_dir,
         content_root=content_root,
@@ -164,18 +145,10 @@ def _plan_from_scratch(
 
 
 def _imports_dir(content_root: Path) -> Path:
-    """Where the per-import provenance manifest lands, RELATIVE to the content root.
-
-    Provenance lives outside the committed bundle (docs/import-pipeline.md
-    "Idempotency"), under `data/imports/`. Deriving it from the content root
-    sandboxes a temp `--out-content`: a real import (`<repo>/src/content`) lands
-    at `<repo>/data/imports`; a test importing into `tmp/src/content` lands at
-    `tmp/data/imports`, never the real repo.
-
-    The layout assumes the canonical `<root>/src/content` shape (`parents[1]` is
-    the project root). A degenerate `--out-content` too shallow to have a
-    grandparent (e.g. `/content`) is rejected as bad input rather than crashing
-    with an IndexError — the door maps `ImportError` to a clean usage exit."""
+    """Where the out-of-bundle provenance manifest lands, derived from the content root
+    (`<root>/src/content` → `<root>/data/imports`) so a temp `--out-content` sandboxes
+    to its own tree, never the real repo. A path too shallow to have a grandparent is
+    rejected as bad input rather than crashing with IndexError."""
     if len(content_root.parents) < 2:
         raise ImportError(
             f"--out-content {content_root} is too shallow to locate data/imports; "
@@ -192,24 +165,32 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+class _ManifestOp(TypedDict):
+    kind: str
+    rel_path: str
+    role: str
+    reason: str
+
+
+class _Manifest(TypedDict):
+    generated_at: str
+    target_scope: str
+    replace: bool
+    source_document: str | None
+    source_sha256: str | None
+    operations: list[_ManifestOp]
+
+
 def _write_manifest(plan: WritePlan, *, imports_dir: Path) -> Path:
-    """Write the per-import provenance manifest under data/imports/.
+    """Write the volatile out-of-bundle provenance manifest under data/imports/.
 
-    Volatile-only (generated_at, the ORIGINAL source document + its sha256, the
-    target scope, the op list) — it never feeds the committed bundle, so re-import
-    stays byte-identical. The recorded source is `plan.source_document` (the real
-    input the user imported), not the staged scratch copies (which are deleted
-    after the run). The filename is derived from the FULL scope so two kinds that
-    share a work number (books/01-x vs poetry/01-x) cannot collide.
-
-    Provenance is the IMPORTER's concern, not the writer's: the writer is general
-    (it applies any plan to any scope and emits no manifest), so this is written
-    by the import entry AFTER the writer applies (docs/import-pipeline.md
-    "The writer — the only mutator").
-    """
+    It never feeds the committed bundle, so re-import stays byte-identical. The
+    filename is the full scope so kinds sharing a number (books/01-x vs poetry/01-x)
+    cannot collide. The importer writes it AFTER the writer applies — the writer is
+    general and emits no manifest."""
     source = plan.source_document
-    manifest = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+    manifest: _Manifest = {
+        "generated_at": datetime.now(UTC).isoformat(),
         "target_scope": str(plan.target_scope),
         "replace": plan.replace,
         "source_document": str(source) if source is not None else None,
@@ -232,12 +213,8 @@ def _write_manifest(plan: WritePlan, *, imports_dir: Path) -> Path:
 
 
 def print_report(report: WriteReport, *, dry_run: bool) -> None:
-    """Human/agent-facing dry-run + write summary (the review gate).
-
-    Public because the `pancratius work import` / `project page add` door reuses it
-    as the shared report formatter — summary buckets to stdout, diagnostics to
-    stderr — so the door owns the exit/stream contract without re-implementing the
-    format."""
+    """The shared dry-run/write summary formatter (buckets to stdout, diagnostics to
+    stderr). Reused by the `work import` / `project page add` door."""
     label = "DRY RUN — planned write-set (nothing written):" if dry_run else "write summary:"
     print(label)
     for bucket, paths in (
@@ -332,12 +309,7 @@ def _copy_if_needed(src: Path, dst: Path) -> None:
 
 
 def _write_docx_artifact(src: Path, dst: Path) -> None:
-    """Write the bundle DOCX artifact.
-
-    Imported DOCX files do not go through `legacy/`. The author supplies a
-    source file; the bundle receives the cleaned/optimized downloadable artifact
-    at `<lang>.docx`.
-    """
+    """Write the cleaned/optimized downloadable `<lang>.docx` artifact for the bundle."""
     from docx_optimize import optimize_docx
 
     dst.parent.mkdir(parents=True, exist_ok=True)
@@ -374,10 +346,9 @@ def _prepare_cover(
     existing_lang: CatalogEntry | None,
     reference: CatalogEntry | None,
 ) -> tuple[str | None, bool]:
-    """Resolve the bundle cover. Existing committed covers are READ from
-    ``read_dir`` (the real bundle, for the additive --into case); a new --cover is
-    WRITTEN into ``write_dir`` (the scratch stage), so the writer remains the only
-    thing that touches the real target."""
+    """Resolve the bundle cover: existing covers are read from `read_dir` (the real
+    bundle, for additive --into), a new --cover is written into `write_dir` (the scratch
+    stage), so the writer stays the only thing that touches the real target."""
     if cover_arg:
         src = Path(cover_arg).expanduser().resolve()
         if not src.is_file():
@@ -465,14 +436,18 @@ def _frontmatter_for_import(
         "description": description,
     })
 
-    if kind == "book":
-        tags = fm.get("tags")
-        if not isinstance(tags, list):
-            tags = reference.frontmatter.get("tags") if reference else []
-        fm["tags"] = tags if isinstance(tags, list) else []
-    elif kind == "poem":
-        if "date" not in fm:
-            fm["date"] = reference.frontmatter.get("date") if reference else None
+    # Per-kind frontmatter defaults; other work kinds need none, hence `case _`.
+    match kind:
+        case "book":
+            tags = fm.get("tags")
+            if not isinstance(tags, list):
+                tags = reference.frontmatter.get("tags") if reference else []
+            fm["tags"] = tags if isinstance(tags, list) else []
+        case "poem":
+            if "date" not in fm:
+                fm["date"] = reference.frontmatter.get("date") if reference else None
+        case _:
+            pass
 
     fm["cover"] = cover
     if cover_is_placeholder:
@@ -519,13 +494,11 @@ def _resolve_target(
 
 def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
     """The side-effect-free import core: convert + plan + apply through the writer,
-    returning BOTH the legacy `ImportResult` and the writer's `WriteReport`.
+    returning both the `ImportResult` and the writer's `WriteReport`.
 
-    Emits no stdout/stderr and never raises on a write refusal — a refusal rides
-    home in the returned `WriteReport.refused` with its fatal diagnostics. It
-    raises `ImportError` only for invalid input (missing/non-DOCX file) or an
-    unresolvable target (via `_resolve_target`). `import_work` / `run` are the thin
-    public adapters over this; the writer is the only mutator of src/content."""
+    Emits no stdout/stderr and never raises on a write refusal — a refusal rides home
+    in `WriteReport.refused` with its fatal diagnostics. Raises `ImportError` only for
+    invalid input or an unresolvable target. The writer is the only mutator."""
     docx = Path(request.docx).expanduser().resolve()
     if not docx.is_file():
         raise ImportError(f"DOCX not found: {docx}")
@@ -533,10 +506,8 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
         raise ImportError(f"expected a .docx file: {docx}")
 
     content_root = Path(request.out_content).expanduser().resolve()
-    # Do NOT create content_root here: the writer is the only component that
-    # mutates the content tree, and --dry-run must touch nothing. `scan_catalog`
-    # tolerates a missing root, and the writer's `ensure_dir` creates the bundle
-    # (and its parents) when the plan is actually applied.
+    # Do not create content_root: the writer is the only mutator and dry-run must touch
+    # nothing; scan_catalog tolerates a missing root.
     entries = [e for e in scan_catalog(content_root) if e.kind in WORK_KINDS]
 
     kind, work_key, number, slug, work_entries = _resolve_target(request, entries, docx, content_root)
@@ -562,13 +533,9 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
     else:
         description = TODO_DESCRIPTION
 
-    # Stage the whole conversion into a disposable scratch root under .cache/.
-    # NOTHING here touches the real target — the writer is the only mutator of
-    # src/content. The pandoc media dir is a sibling of the staged bundle under the
-    # same scratch root: it holds the extracted body images the planned
-    # `transform_asset` ops copy/cap, so it must live until the writer runs and is
-    # cleaned in the `finally` with the rest of the stage. Body images are NOT
-    # staged into the bundle — they reach src/content only via the writer.
+    # Stage into a disposable scratch root; the pandoc media dir is a sibling holding
+    # the extracted body images, which must live until the writer copies them. Body
+    # images reach src/content only via the writer, never the stage.
     stage_root = STAGE_ROOT / uuid.uuid4().hex
     stage_dir = stage_root / KIND_DIRS[kind] / work_key
     media_out = stage_root / "media"
@@ -615,24 +582,15 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
         _write_docx_artifact(docx, stage_dir / f"{request.lang}.docx")
         write_bibliography_sidecar(stage_dir, kind, request.lang, converted.bibliography)
 
-        # Footnote integrity is a first-class plan diagnostic, not bespoke writer
-        # logic: an orphaned `[^id]` reference (no matching `[^id]:` definition)
-        # is FATAL and rides into `WritePlan.diagnostics`, where the writer's
-        # has_fatal machinery refuses the write. After the Phase-4 fix valid books
-        # resolve and this never fires; it is the safety net that makes the
-        # orphaned-marker bug class impossible to ship again. Unused/duplicate
-        # definitions surface as non-blocking warnings.
+        # Footnote-fatal safety: an orphaned `[^id]` reference rides into the plan as a
+        # FATAL the writer refuses on; unused/duplicate defs are non-blocking warnings.
+        # The converter's typed diagnostics carry severity too, so a converter-side
+        # FATAL (e.g. an unresolvable local image) also blocks. Both share the IR
+        # `Diagnostic` shape; re-wrap to the plan's type at this boundary.
         diagnostics: tuple[Diagnostic, ...] = tuple(
             Diagnostic(d.severity, d.code, d.message)
             for d in footnotes.analyze_footnotes(converted.body)
         )
-        # Carry the converter's TYPED diagnostics (severity preserved) into the plan
-        # so a converter-side FATAL — e.g. the unresolvable-local-image fatal from
-        # `ir_lower.assign_assets` — reaches the writer's `has_fatal` refusal and
-        # blocks the write. Previously these were flattened into a single warning
-        # string, so a fatal could not block. `ir.Diagnostic` and the plan's
-        # `Diagnostic` share the (severity, code, message) shape; re-wrap to the
-        # plan's type at this boundary.
         diagnostics += tuple(
             Diagnostic(d.severity, d.code, d.message) for d in converted.diagnostics
         )
@@ -647,10 +605,8 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
             asset_ops=body_asset_ops(converted.assets, scope),
         )
         report = apply_plan(plan, dry_run=bool(request.dry_run))
-        # Provenance is the importer's concern, written AFTER the writer applies
-        # (the writer is general and emits no manifest). Only on a real apply that
-        # actually wrote — never on a dry-run or a refusal. Sandboxed to the
-        # content root so a temp --out-content never touches the real repo.
+        # Relay provenance only on a real apply that wrote — never a dry-run or refusal;
+        # the writer emits no manifest.
         if not request.dry_run and not report.refused:
             _write_manifest(plan, imports_dir=_imports_dir(content_root))
     finally:
@@ -667,25 +623,18 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
 
 
 def import_work(request: ImportRequest) -> WriteReport:
-    """The stable, side-effect-free importer entry the `pancratius work import` CLI
-    dispatches to.
-
-    RETURNS the writer's `WriteReport` (the planned/applied write-set + its
-    diagnostics) — including on a write refusal, where `report.refused` is
-    non-empty and carries the fatal diagnostics (it does NOT raise / SystemExit on
-    a refusal). Raises `ImportError` only for invalid input or an unresolvable
-    target. Emits NO stdout/stderr; the CLI (`main`) owns all side effects."""
+    """The side-effect-free importer entry the `pancratius work import` CLI dispatches
+    to. Returns the writer's `WriteReport` — including on a refusal, where
+    `report.refused` carries the fatal diagnostics (it does not raise). Raises
+    `ImportError` only for invalid input or an unresolvable target. The CLI owns all
+    side effects."""
     return _apply(request)[1]
 
 
 def run(args: argparse.Namespace) -> ImportResult:
-    """Back-compat adapter: parsed namespace -> `ImportRequest` -> `import_work`,
-    reproducing the legacy CLI behavior (print the report summary + pandoc
-    warnings, raise `SystemExit` on a refusal) and returning the `ImportResult`.
-
-    The single mutating surface for src/content is the writer. Kept so existing
-    tests and the golden harness (which call `run(build_parser().parse_args(...))`)
-    stay unchanged."""
+    """Namespace -> `ImportRequest` -> `import_work` adapter that also emits the CLI
+    summary and raises `SystemExit` on a refusal, returning the `ImportResult`. Kept so
+    the tests and golden harness (`run(build_parser().parse_args(...))`) stay unchanged."""
     request = request_from_namespace(args)
     result, report = _apply(request)
     _emit_cli_report(request, result, report)
@@ -698,9 +647,8 @@ def run(args: argparse.Namespace) -> ImportResult:
 
 
 def _emit_cli_report(request: ImportRequest, result: ImportResult, report: WriteReport) -> None:
-    """The CLI's human/agent-facing side effects: the dry-run/write summary, the
-    `imported …` confirmation, and pandoc warnings. Kept OUT of `import_work` so the
-    stable entry is silent."""
+    """The CLI's side effects: the dry-run/write summary, the `imported …`
+    confirmation, and pandoc warnings. Kept out of `import_work` so the entry is silent."""
     print_report(report, dry_run=request.dry_run)
     if not report.refused and not request.dry_run:
         print(f"imported {result.kind}/{result.work_key} ({request.lang})")
@@ -711,11 +659,8 @@ def _emit_cli_report(request: ImportRequest, result: ImportResult, report: Write
 
 
 def request_from_namespace(ns: argparse.Namespace) -> ImportRequest:
-    """Adapt a parsed argparse namespace into the typed `ImportRequest`.
-
-    Public because the `pancratius work import` door builds its subparser from
-    `add_import_arguments` and reuses this adapter — so the flag→field mapping has a
-    single owner shared by the standalone CLI and the door."""
+    """Adapt a parsed namespace into the typed `ImportRequest` — the single owner of
+    the flag→field mapping, shared by the standalone CLI and the door."""
     return ImportRequest(
         docx=Path(ns.docx),
         lang=ns.lang,
@@ -734,10 +679,9 @@ def request_from_namespace(ns: argparse.Namespace) -> ImportRequest:
 
 
 def add_import_arguments(ap: argparse.ArgumentParser) -> None:
-    """Declare the import flags on `ap` — the SINGLE owner of the work-import flag
-    set. Both `build_parser` (the standalone CLI) and the `pancratius work import`
-    door subparser call this, so `--kind` is declared here ONCE with
-    `choices=WORK_KINDS` (PAN017-guarded) and the door never redeclares it."""
+    """Declare the import flags on `ap`, shared by `build_parser` and the
+    `pancratius work import` door. `--kind` is declared here with `choices=WORK_KINDS`
+    so the kind boundary is owned in one place (PAN017) and the door never redeclares it."""
     ap.add_argument("docx", help="Source .docx file to import.")
     ap.add_argument("--kind", choices=WORK_KINDS, help="Required for a new work; optional with --into when the bundle is unique.")
     ap.add_argument("--lang", choices=LANGS, required=True)
@@ -770,10 +714,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """The CLI: parse, dispatch to the stable `import_work`, then own all side
-    effects — print the report summary + pandoc warnings, and exit nonzero on a
-    refusal. Invalid input / an unresolvable target raises `ImportError`, mapped to
-    `parser.error` (the conventional argparse usage exit)."""
+    """The CLI: parse, dispatch, then own side effects — print the summary + pandoc
+    warnings and exit nonzero on a refusal. Invalid input / an unresolvable target
+    maps `ImportError` to `parser.error` (the argparse usage exit)."""
     parser = build_parser()
     ns = parser.parse_args(argv)
     if shutil.which("pandoc") is None:

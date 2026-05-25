@@ -17,21 +17,17 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from lib import cross_refs, docx_adapter, footnotes, ir, ir_lower, ir_normalize, ooxml
-from lib.content_catalog import dump_frontmatter
+from lib.content_catalog import IndexHit, dump_frontmatter
 from lib.writeplan import AssetTransform, Diagnostic, PlannedAsset, Role, WriteOp, WritePlan
 from lib.writer import WriteReport, apply as apply_plan
 
-# Repo root: scripts/lib/ -> scripts/ -> repo root. Used to anchor the disposable
-# conversion scratch dir under `.cache/` (never src/content).
 _REPO_ROOT = SCRIPTS_DIR.parent
 
-# The longest-edge cap (px) for NEWLY-CONVERTED body images, applied by the writer
-# as a `cap_raster` transform at copy time. ONE owner for both the work importer and
-# the project sub-page scaffold (docs/content-model.md asset policy): a raster master
-# extracted from a DOCX is bounded to this edge; vector/animated formats are copied
-# untouched. The committed filenames are content hashes the Markdown already
-# references, so the cap keeps the name rather than re-hashing.
+# Longest-edge cap (px) for converted body rasters, applied by the writer as a
+# `cap_raster` transform. One owner for the work importer and the sub-page scaffold;
+# vector/animated formats copy untouched (docs/content-model.md asset policy).
 BODY_IMAGE_MAX_LONG_EDGE = 1600
+
 
 @dataclass
 class ConvertedDocx:
@@ -39,16 +35,12 @@ class ConvertedDocx:
     bibliography: list[dict[str, Any]] = field(default_factory=list)
     cross_refs: list[dict[str, Any]] = field(default_factory=list)
     warnings: str = ""
-    # Planned body images the conversion REFERENCES but does not copy. The
-    # converter is pure w.r.t. the filesystem (it only reads the extracted
-    # media); the importer turns these into writer `transform_asset` ops, so the
-    # writer is the sole component that copies them into the bundle.
+    # Body images the conversion references but never copies — the converter only
+    # reads the extracted media; the writer is the sole copier.
     assets: list[PlannedAsset] = field(default_factory=list)
-    # TYPED diagnostics carried straight from the IR document (severity preserved),
-    # so a converter-side FATAL (e.g. an unresolvable local image) can ride into the
-    # WritePlan and block the write. Flattening these into `warnings` (a string) lost
-    # severity, letting a fatal slip through as a non-blocking warning. `warnings` is
-    # still produced for the human summary.
+    # Typed diagnostics straight from the IR (severity preserved) so a converter-side
+    # FATAL rides into the WritePlan and blocks the write; flattening to `warnings`
+    # would lose severity.
     diagnostics: list[ir.Diagnostic] = field(default_factory=list)
 
 
@@ -56,10 +48,8 @@ class ConvertedDocx:
 # slug
 # ---------------------------------------------------------------------------
 
-# Why: the corpus uses Cyrillic ASCII-ish slugs from the legacy site
-# (e.g. `тои` for `той`, `выи` for `вый`). We freeze a practical
-# transliteration that matches that historical choice so existing slugs
-# round-trip stably to ASCII without ё/й/ц collisions.
+# Frozen transliteration matching the legacy site's ASCII-ish Cyrillic slugs
+# (e.g. `тои` for `той`), so existing slugs round-trip without ё/й/ц collisions.
 _CYR_TO_LAT = {
     "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "yo",
     "ж": "zh", "з": "z", "и": "i", "й": "i", "к": "k", "л": "l", "м": "m",
@@ -116,14 +106,11 @@ def _strip_source_duplicate_poem_title(
     title: str,
     docx_paras: list[ooxml.DocxParagraphMeta],
 ) -> str:
-    """Drop DOCX editor-title boilerplate from poem bodies, not incipits.
+    """Drop a DOCX title paragraph from a poem body, but never an incipit.
 
-    Some poem DOCX files start with a separate title paragraph and the page
-    masthead already renders that title. Others legitimately start with a
-    first verse line equal to the title/refrain ("А если буду я не прав?").
-    Strip only when the DOCX itself proves a title paragraph: the first
-    non-empty paragraph matches frontmatter title and is typographically
-    distinct (bold) or is followed by a real Word line-break stanza.
+    A first verse line can legitimately equal the title/refrain ("А если буду я не
+    прав?"), so strip only when the DOCX itself proves a title paragraph: the first
+    non-empty paragraph matches the title AND is bold or followed by a line-break stanza.
     """
     key = _poem_title_key(title)
     first_two = _first_nonempty_docx_paras(docx_paras, 2)
@@ -172,30 +159,22 @@ def convert_single_docx(
     work_key: str,
     title: str,
     work_dir: Path,
-    title_index: dict[str, tuple[str, int | None, str | None]],
+    title_index: dict[str, IndexHit],
     media_out: Path,
 ) -> ConvertedDocx:
-    """Convert one DOCX into author-facing Markdown body + sidecar data + the
-    PLANNED body assets — through the typed-IR pipeline (adapter → normalize →
-    lower).
+    """Convert one DOCX into author-facing Markdown body + sidecar data + planned
+    body assets, through the typed-IR pipeline (adapter → normalize → lower).
 
-    This is the converter ``import_docx`` calls. It deliberately does not read
-    legacy catalogs or write manifests, and it does not copy media: pandoc
-    extracts media into the caller-provided PERSISTENT ``media_out``, and the
-    returned ``ConvertedDocx.assets`` reference those files. ``media_out`` must
-    outlive this call until the writer copies the assets.
-
-    The pipeline is pure after the adapter: ``ir_normalize``/``ir_lower`` perform
-    no filesystem mutation; the adapter shells out to pandoc and extracts media
-    only.
+    Copies no media: pandoc extracts into the caller's persistent `media_out` and the
+    returned `ConvertedDocx.assets` reference those files, so `media_out` must outlive
+    this call until the writer copies them. Pure after the adapter.
     """
     media_out.mkdir(parents=True, exist_ok=True)
     doc = docx_adapter.adapt(docx, media_out)
 
     if kind == "poem":
-        # Poems are verse end-to-end: skip heading demotion, bibliography lift,
-        # and structural/verse detection (the whole AST renders as verse). Light
-        # cleanup still applies.
+        # Verse end-to-end: skip heading demotion, bibliography lift, and verse
+        # detection (the whole AST is verse); only light cleanup applies.
         doc.blocks = ir_normalize.drop_toc(doc.blocks)
         doc.blocks = ir_normalize.scrub_ai_alt(doc.blocks)
         doc.blocks = ir_normalize.thematic_breaks(doc.blocks)
@@ -203,27 +182,20 @@ def convert_single_docx(
     else:
         ir_normalize.normalize(doc, demote_levels=1, slug_lookup=title_index)
 
-    # Neutralize unsafe link/image URL schemes BEFORE the asset pass reads/hashes
-    # any image, so an unsafe-scheme image src never reaches asset resolution (and
-    # the kept link text survives). `lower` runs it again idempotently.
+    # Neutralize unsafe URL schemes before the asset pass hashes any image, so an
+    # unsafe-scheme src never reaches asset resolution; `lower` re-runs idempotently.
     ir_lower.sanitize_urls(doc)
     assets = ir_lower.assign_assets(doc, media_out, lang)
     body = ir_lower.lower(doc, lang, poem=(kind == "poem"))
     if kind == "poem":
-        # Strip the source-duplicate title: when the DOCX itself starts with a
-        # title paragraph (the masthead already renders that title) the first
-        # stanza repeats the page title and must be dropped — the same drop the
-        # DOCX stanza oracle (`poetry_stanzas.expected_groups`) applies. The
-        # decision uses bold / line-break source signals, not a string guess.
+        # A poem DOCX that opens with a title paragraph repeats the masthead title in
+        # its first stanza; drop it on bold/line-break source signals, not a guess.
         body = _strip_source_duplicate_poem_title(
             body, title, ooxml.read_docx_paragraph_meta(docx)
         )
     refs = cross_refs.extract_cross_refs(body, work_key, title_index)
-    # Propagate pandoc warnings AND any SURFACED adapter/normalize diagnostic
-    # (severity `warning`/`fatal`) to the caller — not just `import.pandoc-warn`.
-    # The C1 fix added `import.align-unreconciled` (right-aligned source paragraphs
-    # that no longer reconcile onto the AST); forwarding warnings here is what makes
-    # the documented "fail loud" actually fire instead of being discarded.
+    # Forward pandoc warnings plus any surfaced warning/fatal diagnostic, so the
+    # documented "fail loud" actually fires.
     warning_messages = [
         d.message for d in doc.diagnostics if d.code == "import.pandoc-warn"
     ]
@@ -239,8 +211,6 @@ def convert_single_docx(
         cross_refs=refs,
         warnings=warnings,
         assets=assets,
-        # Carry EVERY typed diagnostic (severity preserved) so the importer can let a
-        # converter-side FATAL block the write — not just the flattened warning string.
         diagnostics=list(doc.diagnostics),
     )
 
@@ -276,12 +246,10 @@ def write_bibliography_sidecar(
 
 
 def body_asset_ops(assets: list[PlannedAsset], scope: PurePosixPath) -> list[WriteOp]:
-    """Turn the converter's planned body images into `transform_asset` WriteOps,
-    scope-relative: a raster gets a `cap_raster` cap (`BODY_IMAGE_MAX_LONG_EDGE`,
-    applied by the writer — the only place PIL runs); vector/animated assets get a
-    plain `copy`. The bundle-relative path is `images/<hash>.<ext>` exactly as the
-    Markdown body references it, so filenames are unchanged. Shared by the work
-    importer and the sub-page scaffold so the cap policy has ONE owner."""
+    """Turn the converter's planned body images into scope-relative `transform_asset`
+    ops: a raster caps to `BODY_IMAGE_MAX_LONG_EDGE` (the writer is the only place PIL
+    runs), vector/animated copy verbatim. The path is `images/<hash>.<ext>` exactly as
+    the body references it, so filenames are unchanged."""
     ops: list[WriteOp] = []
     for asset in assets:
         transform = (
@@ -313,13 +281,11 @@ def plan_from_staged_bundle(
     source_document: Path,
     replace: bool,
 ) -> WritePlan:
-    """Build a WritePlan that copies every staged bundle file into the target scope,
-    alongside the body-image `transform_asset` ops (which are NOT staged — the writer
-    copies/caps them from the persistent media dir). `role_for` maps each staged
-    bundle-relative path to its ownership role (the caller owns that policy; the
-    importer keys on filename via _scratch_role, the scaffold on a simpler split).
-    The plan is the ONLY thing handed to the writer; no caller mutates content_root
-    directly. Shared by import_docx._plan_from_scratch and scaffold_subpage."""
+    """Build a WritePlan copying every staged bundle file into the target scope,
+    alongside the body-image `transform_asset` ops (not staged — the writer copies/caps
+    them from the persistent media dir). `role_for` maps each staged path to its
+    ownership role (the caller owns that policy). The plan is the only thing handed to
+    the writer. Shared by import_docx._plan_from_scratch and scaffold_subpage."""
     ops: list[WriteOp] = [
         WriteOp(
             kind="ensure_dir",
@@ -376,43 +342,37 @@ def scaffold_subpage(
     out_content: Path,
     dry_run: bool = False,
 ) -> WriteReport:
-    """Scaffold a project sub-page draft from one DOCX — the deterministic slice
-    only (docs/tooling.md "project page add scaffolds only").
+    """Scaffold a project sub-page draft from one DOCX — the deterministic slice only
+    (docs/tooling.md "project page add scaffolds only").
 
-    Converts the DOCX prose to a draft body, co-locates its body images, and
-    writes `projects/<project>/subpages/<subpage-slug>/<lang>.md` with the
-    MECHANICAL frontmatter (`kind`, `parent`, `slug`, `lang`) seeded and the
-    EDITORIAL fields (`title`, `description`, `weight`) left as explicit `TODO`
-    placeholders — so the draft fails `npm run check` until a human fills them
-    (the safe outcome: a failing draft beats a guessed register that ships wrong).
+    Converts the DOCX prose, co-locates its body images, and writes
+    `projects/<project>/subpages/<subpage-slug>/<lang>.md` with mechanical frontmatter
+    seeded and editorial fields left as `TODO` placeholders, so the draft fails
+    `npm run check` until a human fills them (a failing draft beats a guessed register).
 
-    It NEVER reads or writes the project landing. It writes through the import
-    writer (atomic, scoped, no-clobber, dry-run-safe) — the writer is general and
-    emits no provenance, so this reuses it with no import coupling. Raises
-    `ScaffoldError` for bad input (missing/non-DOCX source); a write refusal rides
-    home in the returned report (it does not raise)."""
+    Never reads or writes the project landing. Writes through the import writer (the
+    writer is general and emits no provenance, so there is no import coupling). Raises
+    `ScaffoldError` for bad input; a write refusal rides home in the returned report."""
     docx = Path(docx).expanduser().resolve()
     if not docx.is_file():
         raise ScaffoldError(f"DOCX not found: {docx}")
     if docx.suffix.lower() != ".docx":
         raise ScaffoldError(f"expected a .docx file: {docx}")
 
-    # Do NOT create content_root: the writer is the only mutator and dry-run must
+    # Do not create content_root: the writer is the only mutator and dry-run must
     # touch nothing.
     content_root = Path(out_content).expanduser().resolve()
     scope = PurePosixPath("projects") / project / "subpages" / subpage_slug
 
-    # Stage the whole conversion into a disposable scratch root under .cache/ (never
-    # src/content), mirroring import_docx. The pandoc media dir is a sibling of the
-    # staged bundle so the planned `transform_asset` ops can copy/cap the extracted
-    # body images; it must live until the writer runs and is cleaned in `finally`.
+    # Stage into a disposable scratch root; the pandoc media dir is a sibling that must
+    # live until the writer copies the body images, cleaned in `finally`.
     stage_root = _REPO_ROOT / ".cache" / "subpage-stage" / uuid.uuid4().hex
     stage_dir = stage_root / scope.name
     media_out = stage_root / "media"
     stage_dir.mkdir(parents=True, exist_ok=True)
     try:
-        # Convert PROSE: thread a NON-work kind so the prose path runs (the converter
-        # only special-cases `kind == "poem"`). `project` is that non-work kind.
+        # Thread a non-work kind so the prose path runs (only `kind == "poem"` is
+        # special-cased).
         converted = convert_single_docx(
             docx,
             kind="project",
@@ -424,10 +384,9 @@ def scaffold_subpage(
             media_out=media_out,
         )
 
-        # Draft frontmatter: mechanical fields seeded, editorial fields left as
-        # explicit TODO placeholders (src/content.config.ts `projectSubpage`). The
-        # `weight` TODO is an enum-invalid value on purpose, so the draft FAILS
-        # `npm run check` until a human sets the register.
+        # Mechanical fields seeded; editorial fields are TODO placeholders. The
+        # `weight` value is enum-invalid, so the draft fails `npm run check` until a
+        # human sets the register.
         fm: dict[str, Any] = {
             "kind": "project_subpage",
             "parent": project,
@@ -440,16 +399,13 @@ def scaffold_subpage(
         if converted.cross_refs:
             fm["cross_refs"] = converted.cross_refs
 
-        # Stage the <lang>.md and bibliography into the scratch bundle; the shared
-        # plan builder copies them in via the writer (exactly like import_docx),
-        # reusing the writer's role classification / SVG-sanitize boundary unchanged.
         (stage_dir / f"{lang}.md").write_text(
             dump_frontmatter(fm) + converted.body, encoding="utf-8"
         )
         write_bibliography_sidecar(stage_dir, "project", lang, converted.bibliography)
 
-        # Same fatal-footnote / typed-diagnostic safety as import: an orphaned
-        # footnote reference or a converter-side FATAL refuses the write.
+        # Footnote-fatal / typed-diagnostic safety: an orphaned footnote reference or a
+        # converter-side FATAL refuses the write.
         diagnostics: tuple[Diagnostic, ...] = tuple(
             Diagnostic(d.severity, d.code, d.message)
             for d in footnotes.analyze_footnotes(converted.body)
