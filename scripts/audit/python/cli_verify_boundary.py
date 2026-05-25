@@ -8,10 +8,16 @@ must expose NO verification verb — concretely, no `audit` group/verb and no `s
 proxy group (the two rejected alternatives tooling.md names). A `pancratius site
 audit → npm run audit` proxy would invert the doc's cut at the grammar level.
 
-This audit asserts that `pancratius/cli.py` registers no argparse sub-parser named
-`audit` or `site` (at ANY nesting level), so the boundary can't silently drift in.
-It derives the forbidden set from the doc's named rejected alternatives, not from a
-guess — the door grows new MUTATE verbs freely; only the verify names are barred.
+This audit asserts that `pancratius/cli.py` registers no argparse sub-parser whose
+name is a site-door verb (at ANY nesting level), so the boundary can't silently
+drift in. The door grows new MUTATE verbs freely (import/add/render/optimize/
+generate/refresh — none collide); only the site-door names are barred.
+
+This is necessarily NAME-bound: a verb's *semantics* aren't statically knowable, so
+the rule can't catch a verify verb under a creative new name. It bars the whole
+site-door verb family (not just `audit`/`site`) to make an accidental `check`/`build`
+door verb trip the wire, and pairs with `tests/test_cli.py`'s behavioural check that
+those names aren't door groups. The defence is the named boundary, not omniscience.
 
 Honours ``PANCRATIUS_AUDIT_ROOT`` (the harness points it at a fixture); wrapped as
 PAN019 in scripts/audit/rules/imports.ts.
@@ -24,10 +30,14 @@ import os
 import sys
 from pathlib import Path
 
-# The verify-side names that must never become a door verb/group (the mutate/verify
-# cut). Derived from tooling.md's rejected alternatives ("a `site` proxy group",
-# "a `pancratius site audit` verb"): verification belongs to the npm site door.
-FORBIDDEN_VERBS: frozenset[str] = frozenset({"audit", "site"})
+# The site-door verb family that must never become a `pancratius` (mutate-door)
+# verb/group — the mutate/verify cut (docs/tooling.md). `site` is the rejected proxy
+# group; the rest are the npm site door's own verbs: the VERIFY family (check, test,
+# audit) and the BUILD/serve family (dev, build, preview). None collide with a real
+# mutate verb, so barring the names is safe and faithful to the cut.
+FORBIDDEN_VERBS: frozenset[str] = frozenset(
+    {"site", "audit", "check", "test", "build", "dev", "preview"}
+)
 
 
 def _audit_root() -> Path:
