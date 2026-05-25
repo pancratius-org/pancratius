@@ -9,12 +9,15 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import re
 import shutil
 import sys
 import uuid
 import zipfile
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
 import xml.etree.ElementTree as ET
@@ -211,6 +214,64 @@ def _plan_from_scratch(
         replace=replace,
         source_document=source_document,
     )
+
+
+def _imports_dir(content_root: Path) -> Path:
+    """Where the per-import provenance manifest lands, RELATIVE to the content root.
+
+    Provenance lives outside the committed bundle (docs/import-pipeline.md
+    "Idempotency"), under `data/imports/`. Deriving it from the content root
+    sandboxes a temp `--out-content`: a real import (`<repo>/src/content`) lands
+    at `<repo>/data/imports`; a test importing into `tmp/src/content` lands at
+    `tmp/data/imports`, never the real repo."""
+    return content_root.parents[1] / "data" / "imports"
+
+
+def _sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _write_manifest(plan: WritePlan, *, imports_dir: Path) -> Path:
+    """Write the per-import provenance manifest under data/imports/.
+
+    Volatile-only (generated_at, the ORIGINAL source document + its sha256, the
+    target scope, the op list) — it never feeds the committed bundle, so re-import
+    stays byte-identical. The recorded source is `plan.source_document` (the real
+    input the user imported), not the staged scratch copies (which are deleted
+    after the run). The filename is derived from the FULL scope so two kinds that
+    share a work number (books/01-x vs poetry/01-x) cannot collide.
+
+    Provenance is the IMPORTER's concern, not the writer's: the writer is general
+    (it applies any plan to any scope and emits no manifest), so this is written
+    by the import entry AFTER the writer applies (docs/import-pipeline.md
+    "The writer — the only mutator").
+    """
+    source = plan.source_document
+    manifest = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "target_scope": str(plan.target_scope),
+        "replace": plan.replace,
+        "source_document": str(source) if source is not None else None,
+        "source_sha256": _sha256(source) if source is not None and source.is_file() else None,
+        "operations": [
+            {
+                "kind": op.kind,
+                "rel_path": str(op.rel_path),
+                "role": op.role,
+                "reason": op.reason,
+            }
+            for op in plan.operations
+        ],
+    }
+    imports_dir.mkdir(parents=True, exist_ok=True)
+    manifest_name = str(plan.target_scope).replace("/", "-") + ".json"
+    manifest_path = imports_dir / manifest_name
+    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return manifest_path
 
 
 def print_report(report: WriteReport, *, dry_run: bool) -> None:
@@ -629,6 +690,12 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
             asset_ops=_asset_ops(converted.assets, scope),
         )
         report = apply_plan(plan, dry_run=bool(request.dry_run))
+        # Provenance is the importer's concern, written AFTER the writer applies
+        # (the writer is general and emits no manifest). Only on a real apply that
+        # actually wrote — never on a dry-run or a refusal. Sandboxed to the
+        # content root so a temp --out-content never touches the real repo.
+        if not request.dry_run and not report.refused:
+            _write_manifest(plan, imports_dir=_imports_dir(content_root))
     finally:
         shutil.rmtree(stage_root, ignore_errors=True)
 

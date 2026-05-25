@@ -162,7 +162,7 @@ def test_orphaned_ref_fatal_blocks_writer(tmp_path: Path) -> None:
         ),
         replace=False,
     )
-    report = apply_plan(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    report = apply_plan(plan, dry_run=False)
 
     assert report.refused, "writer must refuse on the orphaned-footnote fatal"
     assert not report.created and not report.changed

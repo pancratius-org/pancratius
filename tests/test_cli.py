@@ -215,6 +215,74 @@ def test_work_import_missing_pandoc_is_failure(monkeypatch: pytest.MonkeyPatch) 
     assert _exit_code(["work", "import", "x.docx", "--kind", "book", "--lang", "ru"]) == 1
 
 
+# --- project page add (writer-backed scaffold; door prints the landing entry) -
+def _fake_scaffold_report(*, refused: tuple[object, ...] = ()) -> types.SimpleNamespace:
+    """A stand-in for the writer's WriteReport carrying the fields print_report reads."""
+    return types.SimpleNamespace(
+        created=(), changed=(), skipped=(), refused=refused, diagnostics=()
+    )
+
+
+def test_project_page_add_dispatches_and_prints_landing(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """`project page add` maps its args onto scaffold_subpage and, on a clean report,
+    exits 0 and prints the suggested landing `subpages:` entry (with the slug) to stdout."""
+    from lib import docx_conversion
+
+    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    captured: list[dict[str, object]] = []
+
+    def fake_scaffold(**kwargs: object) -> object:
+        captured.append(kwargs)
+        return _fake_scaffold_report()
+
+    monkeypatch.setattr(docx_conversion, "scaffold_subpage", fake_scaffold)
+    rc = _exit_code(
+        ["project", "page", "add", "holy-rus", "my-sub", "doc.docx", "--lang", "ru"]
+    )
+    assert rc == 0
+    (kw,) = captured
+    assert kw["project"] == "holy-rus"
+    assert kw["subpage_slug"] == "my-sub"
+    assert kw["docx"] == Path("doc.docx")
+    assert kw["lang"] == "ru"
+    assert kw["dry_run"] is False
+    out = capsys.readouterr().out
+    assert "subpages:" in out
+    assert "my-sub" in out, "the landing entry must name the sub-page slug"
+
+
+def test_project_page_add_refusal_is_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    from lib import docx_conversion
+
+    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(
+        docx_conversion,
+        "scaffold_subpage",
+        lambda **_k: _fake_scaffold_report(refused=("projects/holy-rus/subpages/my-sub/ru.md",)),
+    )
+    assert _exit_code(["project", "page", "add", "holy-rus", "my-sub", "x.docx", "--lang", "ru"]) == 1
+
+
+def test_project_page_add_scaffold_error_is_usage(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A ScaffoldError (bad input — missing/non-DOCX) is a usage error (exit 2)."""
+    from lib import docx_conversion
+
+    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+
+    def boom(**_k: object) -> object:
+        raise docx_conversion.ScaffoldError("expected a .docx file")
+
+    monkeypatch.setattr(docx_conversion, "scaffold_subpage", boom)
+    assert _exit_code(["project", "page", "add", "holy-rus", "my-sub", "x.txt", "--lang", "ru"]) == 2
+
+
+def test_project_page_add_missing_pandoc_is_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cli.shutil, "which", lambda _tool: None)
+    assert _exit_code(["project", "page", "add", "holy-rus", "my-sub", "x.docx", "--lang", "ru"]) == 1
+
+
 # --- downloads / docx (pass-through to owner) ---------------------------------
 def test_downloads_render_dispatches(monkeypatch: pytest.MonkeyPatch) -> None:
     import render_downloads
@@ -272,3 +340,97 @@ def test_work_import_dry_run_writes_nothing(tmp_path: Path) -> None:
     assert rc == 0
     written = list(content_root.rglob("*")) if content_root.exists() else []
     assert written == [], f"--dry-run wrote files through the door: {written}"
+
+
+@pytest.mark.skipif(
+    shutil.which("pandoc") is None
+    or importlib.util.find_spec("PIL") is None
+    or not _FIXTURE_DOCX.is_file(),
+    reason="pandoc, pillow, and the fixture DOCX are required",
+)
+def test_project_page_add_dry_run_writes_nothing(tmp_path: Path) -> None:
+    """The genuine door → scaffold_subpage → writer path under --dry-run must touch
+    nothing — proven against a scratch content root, never the real corpus."""
+    content_root = tmp_path / "src" / "content"
+    rc = cli.main(
+        [
+            "project", "page", "add", "holy-rus", "classification", str(_FIXTURE_DOCX),
+            "--lang", "ru",
+            "--out-content", str(content_root),
+            "--dry-run",
+        ]
+    )
+    assert rc == 0
+    written = list(content_root.rglob("*")) if content_root.exists() else []
+    assert written == [], f"--dry-run wrote files through the door: {written}"
+
+
+@pytest.mark.skipif(
+    shutil.which("pandoc") is None
+    or importlib.util.find_spec("PIL") is None
+    or not _FIXTURE_DOCX.is_file(),
+    reason="pandoc, pillow, and the fixture DOCX are required",
+)
+def test_project_page_add_scaffolds_subpage_not_landing(tmp_path: Path) -> None:
+    """A real (non-dry-run) scaffold writes the sub-page `<lang>.md` with the
+    mechanical frontmatter seeded and the editorial `weight` left TODO, and NEVER
+    creates/edits the project landing."""
+    from lib.content_catalog import split_frontmatter
+
+    content_root = tmp_path / "src" / "content"
+    rc = cli.main(
+        [
+            "project", "page", "add", "holy-rus", "classification", str(_FIXTURE_DOCX),
+            "--lang", "ru",
+            "--out-content", str(content_root),
+        ]
+    )
+    assert rc == 0
+
+    subpage = content_root / "projects" / "holy-rus" / "subpages" / "classification" / "ru.md"
+    assert subpage.is_file(), "the scaffold must write the sub-page <lang>.md"
+    # The landing is never created/edited by the tool.
+    assert not (content_root / "projects" / "holy-rus" / "ru.md").exists()
+
+    fm, _body = split_frontmatter(subpage.read_text(encoding="utf-8"))
+    assert fm["kind"] == "project_subpage"
+    assert fm["parent"] == "holy-rus"
+    assert fm["slug"] == "classification"
+    assert fm["lang"] == "ru"
+    assert str(fm["weight"]).startswith("TODO"), "the editorial register stays a TODO placeholder"
+
+
+@pytest.mark.skipif(
+    shutil.which("pandoc") is None
+    or importlib.util.find_spec("PIL") is None
+    or not _FIXTURE_DOCX.is_file(),
+    reason="pandoc, pillow, and the fixture DOCX are required",
+)
+@pytest.mark.parametrize(
+    ("project", "subpage_slug"),
+    [
+        ("../../../tmp/evil", "probe"),
+        ("/tmp/evil", "probe"),
+        ("x/../../etc", "probe"),
+        ("holy-rus", "../../../tmp/evil"),
+        ("holy-rus", "/etc/passwd"),
+        ("holy-rus", "x/../../y"),
+    ],
+)
+def test_project_page_add_scope_escape_is_refused(
+    tmp_path: Path, project: str, subpage_slug: str
+) -> None:
+    """A project OR subpage argument that would escape src/content is refused by the
+    writer's path-boundary: every op path embeds the scope, so a `..`/absolute in
+    either raw arg trips `writeplan.unsafe-path` (fatal). The scaffold builds the
+    scope from raw args, so this boundary is what keeps a hostile slug from writing
+    outside the content tree. Pinned on BOTH axes against future refactors."""
+    from lib.docx_conversion import scaffold_subpage
+
+    content_root = tmp_path / "src" / "content"
+    report = scaffold_subpage(
+        project=project, subpage_slug=subpage_slug, docx=_FIXTURE_DOCX, lang="ru",
+        out_content=content_root, dry_run=True,
+    )
+    assert report.refused, "a scope-escaping arg must be refused"
+    assert any(d.severity == "fatal" for d in report.diagnostics)

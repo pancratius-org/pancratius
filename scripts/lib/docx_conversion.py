@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import re
+import shutil
 import unicodedata
+import uuid
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import sys
 from typing import Any
 
@@ -13,8 +15,18 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from lib import cross_refs, docx_adapter, ir, ir_lower, ir_normalize, ooxml
-from lib.writeplan import PlannedAsset
+from lib import cross_refs, docx_adapter, footnotes, ir, ir_lower, ir_normalize, ooxml
+from lib.content_catalog import dump_frontmatter
+from lib.writeplan import AssetTransform, Diagnostic, PlannedAsset, WriteOp, WritePlan
+from lib.writer import WriteReport, apply as apply_plan
+
+# Repo root: scripts/lib/ -> scripts/ -> repo root. Used to anchor the disposable
+# conversion scratch dir under `.cache/` (never src/content).
+_REPO_ROOT = SCRIPTS_DIR.parent
+
+# Body-image longest-edge cap for a scaffolded sub-page, mirroring the work-import
+# cap policy (import_docx.IMPORT_MAX_LONGEST_EDGE).
+SUBPAGE_MAX_LONG_EDGE = 1600
 
 
 @dataclass
@@ -252,3 +264,163 @@ def write_bibliography_sidecar(
         sidecar, allow_unicode=True, sort_keys=False, default_flow_style=False, width=10_000,
     )
     (work_dir / "bibliography.yaml").write_text(body, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# project sub-page scaffold (`pancratius project page add`)
+# ---------------------------------------------------------------------------
+
+
+class ScaffoldError(Exception):
+    """Invalid input to scaffold_subpage (missing/non-DOCX source)."""
+
+
+def _subpage_asset_ops(assets: list[PlannedAsset], scope: PurePosixPath) -> list[WriteOp]:
+    """Turn the converter's planned body images into `transform_asset` WriteOps for
+    a sub-page scope — same shape as import_docx._asset_ops: rasters get a
+    `cap_raster` cap, vector/animated assets get a plain `copy`."""
+    ops: list[WriteOp] = []
+    for asset in assets:
+        transform = (
+            AssetTransform(kind="cap_raster", max_long_edge=SUBPAGE_MAX_LONG_EDGE)
+            if asset.is_raster
+            else AssetTransform(kind="copy")
+        )
+        ops.append(
+            WriteOp(
+                kind="transform_asset",
+                rel_path=scope / PurePosixPath(asset.rel_within),
+                role="imported_asset",
+                reason=f"scaffold {asset.rel_within}",
+                source=asset.source,
+                transform=transform,
+            )
+        )
+    return ops
+
+
+def scaffold_subpage(
+    *,
+    project: str,
+    subpage_slug: str,
+    docx: Path,
+    lang: str,
+    out_content: Path,
+    dry_run: bool = False,
+) -> WriteReport:
+    """Scaffold a project sub-page draft from one DOCX — the deterministic slice
+    only (docs/tooling.md "project page add scaffolds only").
+
+    Converts the DOCX prose to a draft body, co-locates its body images, and
+    writes `projects/<project>/subpages/<subpage-slug>/<lang>.md` with the
+    MECHANICAL frontmatter (`kind`, `parent`, `slug`, `lang`) seeded and the
+    EDITORIAL fields (`title`, `description`, `weight`) left as explicit `TODO`
+    placeholders — so the draft fails `npm run check` until a human fills them
+    (the safe outcome: a failing draft beats a guessed register that ships wrong).
+
+    It NEVER reads or writes the project landing. It writes through the import
+    writer (atomic, scoped, no-clobber, dry-run-safe) — the writer is general and
+    emits no provenance, so this reuses it with no import coupling. Raises
+    `ScaffoldError` for bad input (missing/non-DOCX source); a write refusal rides
+    home in the returned report (it does not raise)."""
+    docx = Path(docx).expanduser().resolve()
+    if not docx.is_file():
+        raise ScaffoldError(f"DOCX not found: {docx}")
+    if docx.suffix.lower() != ".docx":
+        raise ScaffoldError(f"expected a .docx file: {docx}")
+
+    # Do NOT create content_root: the writer is the only mutator and dry-run must
+    # touch nothing.
+    content_root = Path(out_content).expanduser().resolve()
+    scope = PurePosixPath("projects") / project / "subpages" / subpage_slug
+
+    # Stage the whole conversion into a disposable scratch root under .cache/ (never
+    # src/content), mirroring import_docx. The pandoc media dir is a sibling of the
+    # staged bundle so the planned `transform_asset` ops can copy/cap the extracted
+    # body images; it must live until the writer runs and is cleaned in `finally`.
+    stage_root = _REPO_ROOT / ".cache" / "subpage-stage" / uuid.uuid4().hex
+    stage_dir = stage_root / scope.name
+    media_out = stage_root / "media"
+    stage_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        # Convert PROSE: thread a NON-work kind so the prose path runs (the converter
+        # only special-cases `kind == "poem"`). `project` is that non-work kind.
+        converted = convert_single_docx(
+            docx,
+            kind="project",
+            lang=lang,
+            work_key=subpage_slug,
+            title=subpage_slug,
+            work_dir=stage_dir,
+            title_index={},
+            media_out=media_out,
+        )
+
+        # Draft frontmatter: mechanical fields seeded, editorial fields left as
+        # explicit TODO placeholders (src/content.config.ts `projectSubpage`). The
+        # `weight` TODO is an enum-invalid value on purpose, so the draft FAILS
+        # `npm run check` until a human sets the register.
+        fm: dict[str, Any] = {
+            "kind": "project_subpage",
+            "parent": project,
+            "slug": subpage_slug,
+            "lang": lang,
+            "title": "TODO: write the sub-page title",
+            "description": "TODO: write the sub-page description",
+            "weight": "TODO: set the register — one of essay|revelation|verse|practice|dialogue",
+        }
+        if converted.cross_refs:
+            fm["cross_refs"] = converted.cross_refs
+
+        # Stage the <lang>.md and bibliography into the scratch bundle and copy them
+        # in via the writer (exactly like import_docx) — this reuses the writer's
+        # role classification / SVG-sanitize boundary unchanged.
+        (stage_dir / f"{lang}.md").write_text(
+            dump_frontmatter(fm) + converted.body, encoding="utf-8"
+        )
+        write_bibliography_sidecar(stage_dir, "project", lang, converted.bibliography)
+
+        ops: list[WriteOp] = [
+            WriteOp(
+                kind="ensure_dir",
+                rel_path=scope,
+                role="canonical_source",
+                reason="sub-page directory",
+            )
+        ]
+        for staged in sorted(stage_dir.rglob("*")):
+            if not staged.is_file():
+                continue
+            rel_within = PurePosixPath(staged.relative_to(stage_dir).as_posix())
+            role = "sidecar" if rel_within.name == "bibliography.yaml" else "canonical_source"
+            ops.append(
+                WriteOp(
+                    kind="copy",
+                    rel_path=scope / rel_within,
+                    role=role,
+                    reason=f"scaffold {rel_within}",
+                    source=staged,
+                )
+            )
+        ops.extend(_subpage_asset_ops(converted.assets, scope))
+
+        # Same fatal-footnote / typed-diagnostic safety as import: an orphaned
+        # footnote reference or a converter-side FATAL refuses the write.
+        diagnostics: tuple[Diagnostic, ...] = tuple(
+            Diagnostic(d.severity, d.code, d.message)
+            for d in footnotes.analyze_footnotes(converted.body)
+        ) + tuple(
+            Diagnostic(d.severity, d.code, d.message) for d in converted.diagnostics
+        )
+
+        plan = WritePlan(
+            target_root=content_root,
+            target_scope=scope,
+            operations=tuple(ops),
+            diagnostics=diagnostics,
+            replace=False,
+            source_document=docx,
+        )
+        return apply_plan(plan, dry_run=dry_run)
+    finally:
+        shutil.rmtree(stage_root, ignore_errors=True)

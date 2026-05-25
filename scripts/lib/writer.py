@@ -9,20 +9,18 @@ neighbours are preserved by construction.
 
 This module deliberately does NOT carry the `# import-pure` marker: it is the
 designated mutator, the one place the PAN018-writer-only-mutation audit allows
-filesystem mutation to live. Volatile provenance (timestamps, source hashes) is
-written OUTSIDE the bundle, under `data/imports/`, so committed bundles stay
-byte-identical on re-import.
+filesystem mutation to live. The writer is GENERAL — it does NOT write any
+import provenance; the per-import manifest is the importer's concern (written by
+the import entry after a successful apply), so a non-import mutation like
+`project page add` reuses the writer unchanged.
 """
 
 from __future__ import annotations
 
-import hashlib
 import io
-import json
 import os
 import tempfile
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -36,12 +34,6 @@ from lib.writeplan import AssetTransform, Diagnostic, WriteOp, WritePlan, has_fa
 _CAP_RASTER_FORMATS: frozenset[str] = frozenset({"PNG", "JPEG", "WEBP"})
 _CAP_QUALITY: dict[str, int] = {"JPEG": 82, "WEBP": 80}
 
-# Provenance lives outside the committed bundle (docs/import-pipeline.md
-# "Idempotency"): per-import manifest under data/imports/<work-key>.json, never
-# committed. Resolved relative to the repo root (scripts/lib/ -> repo root).
-_REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_IMPORTS_DIR = _REPO_ROOT / "data" / "imports"
-
 
 @dataclass(frozen=True)
 class WriteReport:
@@ -52,7 +44,6 @@ class WriteReport:
     skipped: tuple[PurePosixPath, ...]
     refused: tuple[PurePosixPath, ...]
     diagnostics: tuple[Diagnostic, ...]
-    manifest_path: Path | None
 
 
 def _target_exists(plan: WritePlan, rel: PurePosixPath) -> bool:
@@ -72,14 +63,6 @@ def _escapes_scope(plan: WritePlan, rel: PurePosixPath) -> bool:
     if resolved == scope_root:
         return False
     return scope_root not in resolved.parents
-
-
-def _sha256(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def _read_source_bytes(op: WriteOp) -> bytes:
@@ -273,45 +256,10 @@ def _classify(dest: Path, payload: bytes) -> str:
         return "changed"
 
 
-def _write_manifest(plan: WritePlan, *, imports_dir: Path) -> Path:
-    """Write the per-import provenance manifest under data/imports/.
-
-    Volatile-only (generated_at, the ORIGINAL source document + its sha256, the
-    target scope, the op list) — it never feeds the committed bundle, so re-import
-    stays byte-identical. The recorded source is `plan.source_document` (the real
-    input the user imported), not the staged scratch copies (which are deleted
-    after the run). The filename is derived from the FULL scope so two kinds that
-    share a work number (books/01-x vs poetry/01-x) cannot collide.
-    """
-    source = plan.source_document
-    manifest = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "target_scope": str(plan.target_scope),
-        "replace": plan.replace,
-        "source_document": str(source) if source is not None else None,
-        "source_sha256": _sha256(source) if source is not None and source.is_file() else None,
-        "operations": [
-            {
-                "kind": op.kind,
-                "rel_path": str(op.rel_path),
-                "role": op.role,
-                "reason": op.reason,
-            }
-            for op in plan.operations
-        ],
-    }
-    imports_dir.mkdir(parents=True, exist_ok=True)
-    manifest_name = str(plan.target_scope).replace("/", "-") + ".json"
-    manifest_path = imports_dir / manifest_name
-    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    return manifest_path
-
-
 def apply(
     plan: WritePlan,
     *,
     dry_run: bool,
-    imports_dir: Path | None = None,
 ) -> WriteReport:
     """Validate and (unless dry-run) apply `plan` — the only fs-mutating call.
 
@@ -319,10 +267,9 @@ def apply(
     diagnostics. If ANY diagnostic is fatal, write NOTHING and return a report
     listing the would-be writes as `refused` plus the fatal diagnostics. On
     dry_run, report what WOULD happen and touch nothing. Otherwise apply ops in
-    order through atomic replace, then write the volatile manifest.
+    order through atomic replace. Provenance (if any) is the caller's concern,
+    written after this returns — the writer is general and emits no manifest.
     """
-    imports_dir = imports_dir or DEFAULT_IMPORTS_DIR
-
     validation = validate(
         plan,
         target_exists=lambda rel: _target_exists(plan, rel),
@@ -343,7 +290,6 @@ def apply(
             skipped=(),
             refused=refused,
             diagnostics=diagnostics,
-            manifest_path=None,
         )
 
     created: list[PurePosixPath] = []
@@ -366,15 +312,10 @@ def apply(
             _atomic_write(dest, payload)
         {"created": created, "changed": changed, "skipped": skipped}[bucket].append(op.rel_path)
 
-    manifest_path: Path | None = None
-    if not dry_run:
-        manifest_path = _write_manifest(plan, imports_dir=imports_dir)
-
     return WriteReport(
         created=tuple(created),
         changed=tuple(changed),
         skipped=tuple(skipped),
         refused=(),
         diagnostics=(*diagnostics, *transform_diags),
-        manifest_path=manifest_path,
     )

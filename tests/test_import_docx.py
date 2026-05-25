@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import importlib.util
+import json
 import shutil
 import sys
 
@@ -263,6 +264,58 @@ def test_import_work_missing_docx_raises_import_error(tmp_path: Path) -> None:
             out_content=content_root,
             kind="book",
         ))
+
+
+# ---------------------------------------------------------------------------
+# Provenance relayer: the manifest is written by the IMPORT ENTRY (not the
+# writer), sandboxed under the content root's `data/imports/`.
+# ---------------------------------------------------------------------------
+
+
+def test_real_import_writes_manifest_under_content_root(tmp_path: Path) -> None:
+    # A real (non-dry-run) import must write the per-import provenance manifest at
+    # `<tmp>/data/imports/<scope>.json` (derived from the temp content root, so the
+    # real repo data/imports is NEVER touched), with the source sha256 set and the
+    # source_document pointing at the input DOCX.
+    docx = ROOT / "legacy/books/ru/23-личность-и-эго.docx"
+    content_root = tmp_path / "src" / "content"
+    report = import_docx.import_work(import_docx.ImportRequest(
+        docx=docx,
+        lang="ru",
+        out_content=content_root,
+        kind="book",
+        number=90,
+        slug="probe-work",
+        title="Probe Work",
+        description="Probe description.",
+    ))
+    assert not report.refused
+
+    manifest_path = tmp_path / "data" / "imports" / "books-90-probe-work.json"
+    assert manifest_path.is_file(), "the import entry must write the manifest under the content root's data/imports"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["target_scope"] == "books/90-probe-work"
+    assert manifest["source_document"] == str(docx.resolve())
+    assert manifest["source_sha256"]
+
+
+def test_dry_run_import_writes_no_manifest(tmp_path: Path) -> None:
+    # A dry-run import touches NOTHING — no bundle, and no provenance manifest.
+    content_root = tmp_path / "src" / "content"
+    report = import_docx.import_work(import_docx.ImportRequest(
+        docx=ROOT / "legacy/books/ru/23-личность-и-эго.docx",
+        lang="ru",
+        out_content=content_root,
+        kind="book",
+        number=90,
+        slug="probe-work",
+        title="Probe Work",
+        description="Probe description.",
+        dry_run=True,
+    ))
+    assert not report.refused
+    assert not (tmp_path / "data" / "imports").exists(), "dry-run must write no manifest"
+    assert not (content_root / "books").exists(), "dry-run must write no bundle"
 
 
 def test_import_work_is_side_effect_free(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

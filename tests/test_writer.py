@@ -1,16 +1,16 @@
 """Integration tests for the writer — the only fs mutator (scripts/lib/writer.py).
 
 These run on a real tmp_path tree (the writer's whole job is fs mutation, so it
-cannot be tested purely). They prove: ops apply with correct content; the
-manifest lands under the injected imports dir; author-added neighbours survive;
-dry-run writes nothing; a fatal plan / existing-canonical-without-replace is
-refused; and a real symlink escape in a tmp tree is refused.
+cannot be tested purely). They prove: ops apply with correct content; author-added
+neighbours survive; dry-run writes nothing; a fatal plan /
+existing-canonical-without-replace is refused; and a real symlink escape in a tmp
+tree is refused. (Provenance is the importer's concern now, not the writer's — its
+relayer is covered in test_import_docx.)
 """
 
 from __future__ import annotations
 
 import importlib.util
-import json
 import sys
 from pathlib import Path, PurePosixPath
 
@@ -66,36 +66,12 @@ def _bundle_ops(tmp: Path) -> tuple[WriteOp, ...]:
 def test_apply_creates_files_with_content(tmp_path: Path) -> None:
     root = tmp_path / "content"
     plan = _plan(root, _bundle_ops(tmp_path))
-    report = writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    report = writer.apply(plan, dry_run=False)
 
     assert (root / "books/99-probe/ru.md").read_text() == "---\nkind: book\n---\n\nbody\n"
     assert (root / "books/99-probe/images/a.png").read_text() == "PNGDATA"
     assert set(report.created) == {SCOPE / "ru.md", SCOPE / "images" / "a.png"}
     assert report.refused == ()
-
-
-def test_manifest_written_to_injected_imports_dir(tmp_path: Path) -> None:
-    root = tmp_path / "content"
-    imports = tmp_path / "imports"
-    source = _source(tmp_path, "input.docx", "DOCXBYTES")
-    plan = _plan(root, _bundle_ops(tmp_path), source_document=source)
-    report = writer.apply(plan, dry_run=False, imports_dir=imports)
-
-    # Filename is derived from the FULL scope (no books/poetry collision on a
-    # shared work number).
-    assert report.manifest_path == imports / "books-99-probe.json"
-    assert report.manifest_path is not None
-    manifest = json.loads(report.manifest_path.read_text())
-    assert manifest["target_scope"] == "books/99-probe"
-    assert "generated_at" in manifest
-    assert {op["rel_path"] for op in manifest["operations"]} >= {
-        "books/99-probe/ru.md",
-        "books/99-probe/images/a.png",
-    }
-    # Provenance records the ORIGINAL source document + its sha256 (not the
-    # scratch copies, which are deleted after the run).
-    assert manifest["source_document"] == str(source)
-    assert manifest["source_sha256"]
 
 
 def test_author_neighbour_is_left_untouched(tmp_path: Path) -> None:
@@ -106,7 +82,7 @@ def test_author_neighbour_is_left_untouched(tmp_path: Path) -> None:
     neighbour.write_text("hand-written, not in any plan", encoding="utf-8")
 
     plan = _plan(root, _bundle_ops(tmp_path))
-    writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    writer.apply(plan, dry_run=False)
 
     # The plan never names the neighbour, so it is preserved by construction.
     assert neighbour.read_text() == "hand-written, not in any plan"
@@ -114,13 +90,10 @@ def test_author_neighbour_is_left_untouched(tmp_path: Path) -> None:
 
 def test_dry_run_writes_nothing(tmp_path: Path) -> None:
     root = tmp_path / "content"
-    imports = tmp_path / "imports"
     plan = _plan(root, _bundle_ops(tmp_path))
-    report = writer.apply(plan, dry_run=True, imports_dir=imports)
+    report = writer.apply(plan, dry_run=True)
 
     assert not (root / "books").exists()
-    assert not imports.exists()
-    assert report.manifest_path is None
     # Dry-run still reports WHAT would be created.
     assert set(report.created) == {SCOPE / "ru.md", SCOPE / "images" / "a.png"}
 
@@ -132,7 +105,7 @@ def test_fatal_diagnostic_in_plan_refuses_all(tmp_path: Path) -> None:
         _bundle_ops(tmp_path),
         diagnostics=(Diagnostic("fatal", "test.boom", "upstream said no"),),
     )
-    report = writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    report = writer.apply(plan, dry_run=False)
 
     assert not (root / "books").exists()
     assert report.created == ()
@@ -147,7 +120,7 @@ def test_existing_canonical_without_replace_is_refused(tmp_path: Path) -> None:
     (bundle / "ru.md").write_text("ORIGINAL committed body", encoding="utf-8")
 
     plan = _plan(root, _bundle_ops(tmp_path), replace=False)
-    report = writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    report = writer.apply(plan, dry_run=False)
 
     assert SCOPE / "ru.md" in report.refused
     # The existing canonical file is untouched.
@@ -161,7 +134,7 @@ def test_existing_canonical_with_replace_is_applied(tmp_path: Path) -> None:
     (bundle / "ru.md").write_text("ORIGINAL committed body", encoding="utf-8")
 
     plan = _plan(root, _bundle_ops(tmp_path), replace=True)
-    report = writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    report = writer.apply(plan, dry_run=False)
 
     assert report.refused == ()
     assert (bundle / "ru.md").read_text() == "---\nkind: book\n---\n\nbody\n"
@@ -197,14 +170,13 @@ def test_missing_copy_source_refuses_whole_plan_before_any_write(tmp_path: Path)
             ),
         ),
     )
-    report = writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    report = writer.apply(plan, dry_run=False)
 
     # NOTHING was written — the first op's target must not exist afterward.
     assert not (root / "books/99-probe/ru.md").exists()
     assert not (root / "books").exists() or not any((root / "books").rglob("*.md"))
     assert report.created == ()
     assert report.changed == ()
-    assert report.manifest_path is None
     # The whole plan was refused with a surfaced fatal diagnostic.
     assert set(report.refused) == {SCOPE / "ru.md", SCOPE / "images" / "a.png"}
     assert any(d.severity == "fatal" and "source" in d.code for d in report.diagnostics)
@@ -240,11 +212,10 @@ def test_unreadable_transform_asset_source_refuses_whole_plan(tmp_path: Path) ->
             ),
         ),
     )
-    report = writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    report = writer.apply(plan, dry_run=False)
 
     assert not (root / "books/99-probe/ru.md").exists()
     assert report.created == ()
-    assert report.manifest_path is None
     assert SCOPE / "ru.md" in report.refused
     assert any(d.severity == "fatal" and "source" in d.code for d in report.diagnostics)
 
@@ -272,7 +243,7 @@ def test_symlink_escape_is_refused(tmp_path: Path) -> None:
             ),
         ),
     )
-    report = writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    report = writer.apply(plan, dry_run=False)
 
     assert SCOPE / "images" / "a.png" in report.refused
     assert not (outside / "a.png").exists()
@@ -360,7 +331,7 @@ def test_cap_raster_resizes_oversized_image(tmp_path: Path) -> None:
             _cap_op(src),
         ),
     )
-    report = writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    report = writer.apply(plan, dry_run=False)
 
     dest = root / "books/99-probe/images/a.png"
     assert SCOPE / "images" / "a.png" in report.created
@@ -385,7 +356,7 @@ def test_cap_raster_under_cap_is_byte_copied(tmp_path: Path) -> None:
             _cap_op(src, rel="images/small.png"),
         ),
     )
-    writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    writer.apply(plan, dry_run=False)
 
     dest = root / "books/99-probe/images/small.png"
     # An under-cap raster is copied verbatim — byte-identical to the source.
@@ -413,7 +384,7 @@ def test_copy_transform_is_byte_copied(tmp_path: Path) -> None:
         root,
         (WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"), op),
     )
-    writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    writer.apply(plan, dry_run=False)
 
     assert (root / "books/99-probe/images/v.svg").read_bytes() == src.read_bytes()
 
@@ -435,7 +406,7 @@ def test_cap_raster_corrupt_image_falls_back_to_copy(tmp_path: Path) -> None:
             _cap_op(src, rel="images/broken.png"),
         ),
     )
-    report = writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    report = writer.apply(plan, dry_run=False)
 
     dest = root / "books/99-probe/images/broken.png"
     assert report.refused == ()  # non-fatal: the import still applied
@@ -481,7 +452,7 @@ def test_svg_with_script_is_sanitized_on_copy(tmp_path: Path) -> None:
             _svg_copy_op(src, "images/evil.svg"),
         ),
     )
-    writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    writer.apply(plan, dry_run=False)
     out = (root / "books/99-probe/images/evil.svg").read_text(encoding="utf-8")
 
     assert "<script" not in out
@@ -512,7 +483,7 @@ def test_clean_svg_is_byte_identical(tmp_path: Path) -> None:
             _svg_copy_op(src, "images/clean.svg"),
         ),
     )
-    writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    writer.apply(plan, dry_run=False)
     out = (root / "books/99-probe/images/clean.svg").read_bytes()
     assert out == src.read_bytes(), "a clean SVG must be preserved byte-for-byte"
 
@@ -536,7 +507,7 @@ def test_svg_external_xlink_href_is_neutralized(tmp_path: Path) -> None:
             _svg_copy_op(src, "images/ext.svg"),
         ),
     )
-    writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    writer.apply(plan, dry_run=False)
     out = (root / "books/99-probe/images/ext.svg").read_text(encoding="utf-8")
     assert "evil.example" not in out
     assert "#internal" in out, "an internal #-fragment ref must be kept"
@@ -566,6 +537,6 @@ def test_cover_svg_is_not_sanitized(tmp_path: Path) -> None:
         root,
         (WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"), op),
     )
-    writer.apply(plan, dry_run=False, imports_dir=tmp_path / "imports")
+    writer.apply(plan, dry_run=False)
     out = (root / "books/99-probe/cover.en.svg").read_bytes()
     assert out == src.read_bytes(), "a cover SVG must be preserved byte-for-byte (foreignObject kept)"
