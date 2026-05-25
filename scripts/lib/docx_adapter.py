@@ -1,21 +1,17 @@
 """DOCX → block IR (the one source adapter).
 
-This is the parse stage of `docs/import-pipeline.md`: it turns a DOCX into the
-typed IR and stops. **No Markdown string is produced here** — the adapter does not
-parse to GFM and then patch the string.
+The parse stage of `docs/import-pipeline.md`: turn a DOCX into the typed IR and
+stop. No Markdown string is produced here.
 
-The primary parse is `pandoc --from docx+empty_paragraphs --to json` (the Phase-0
-decision: `+empty_paragraphs` keeps Word's empty paragraphs as `Para []`, so
-stanza breaks survive into the IR). The ONLY OOXML side-channel read is paragraph
-alignment `w:jc`, which Pandoc structurally drops; it is zipped onto the IR's
-`Paragraph` blocks positionally by visible-body-paragraph order.
+The primary parse is `pandoc --from docx+empty_paragraphs --to json`;
+`+empty_paragraphs` keeps Word's empty paragraphs as `Para []` so stanza breaks
+survive into the IR. The one OOXML side-channel read is paragraph alignment `w:jc`,
+which Pandoc drops; it is reconciled onto the IR's `Paragraph` blocks by content.
 
-This module is NOT `import-pure`: it shells out to pandoc, reads the DOCX zip, and
-extracts media into a caller-provided scratch directory. That impurity is
-deliberately isolated here so every downstream stage (normalize, lower) is pure.
-Footnotes are inline `Note` nodes in the AST; they are lowered to IR
-`FootnoteRef` + `FootnoteDef` pairs with dense renumbering by reference order, so
-a definition can never be lost to tail-stripping later.
+NOT `import-pure`: it shells to pandoc, reads the DOCX zip, and extracts media into
+a caller-provided scratch dir — that impurity is isolated here so downstream stages
+stay pure. Footnotes arrive as inline `Note` nodes and are lowered to
+`FootnoteRef`/`FootnoteDef` pairs renumbered densely by reference order.
 """
 
 from __future__ import annotations
@@ -33,10 +29,9 @@ from lib import ir
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W = f"{{{W_NS}}}"
-# OOXML markup-compatibility (`mc:`): a run can carry both an `mc:Choice` and an
-# `mc:Fallback` rendering of the SAME content (e.g. a drawing vs a VML picture);
-# walking every `w:t` would DOUBLE that text, so the side-channel reader drops the
-# `mc:Fallback` subtree and keeps only the Choice/primary text.
+# OOXML markup-compatibility: a run can carry both an `mc:Choice` and an
+# `mc:Fallback` rendering of the same content; the side-channel reader drops the
+# `mc:Fallback` subtree so its `w:t` text is not double-counted.
 MC_NS = "http://schemas.openxmlformats.org/markup-compatibility/2006"
 MC_FALLBACK = f"{{{MC_NS}}}Fallback"
 
@@ -44,15 +39,15 @@ _WORD_RE = re.compile(r"\w+", re.UNICODE)
 
 
 def _words(text: str) -> list[str]:
-    """The casefolded reading-word stream of `text` — the unit the alignment
-    reconciliation diffs on (script-agnostic via `\\w` under `re.UNICODE`)."""
+    """The casefolded reading-word stream of `text` (script-agnostic via `\\w` under
+    `re.UNICODE`)."""
     return [m.group(0).casefold() for m in _WORD_RE.finditer(text)]
 
 
 def _node(value: object) -> dict[str, Any] | None:
-    """View an opaque value as a Pandoc `{"t":…, "c":…}` node when it is a dict
-    (so `.get("t")`/`.get("c")` are string-keyed). A bare `isinstance(x, dict)`
-    narrow alone yields `dict[Unknown, Unknown]`, whose keys ty types as `Never`."""
+    """View an opaque value as a Pandoc `{"t":…, "c":…}` node when it is a dict. The
+    cast is needed because a bare `isinstance(x, dict)` narrows to
+    `dict[Unknown, Unknown]`, whose keys ty types as `Never`."""
     return cast("dict[str, Any]", value) if isinstance(value, dict) else None
 
 
@@ -61,10 +56,8 @@ def _node(value: object) -> dict[str, Any] | None:
 # ---------------------------------------------------------------------------
 
 
-# A generous wall-clock cap on a single pandoc invocation. The largest corpus book
-# (~40k paragraphs) converts in seconds; this bound only fires on a pathological /
-# adversarial input that would otherwise hang the import indefinitely with no
-# subprocess timeout. Local admin tool, so the cap is loose, not tight.
+# Wall-clock cap on a single pandoc invocation: a loose bound that fires only on a
+# pathological input that would otherwise hang the import indefinitely.
 PANDOC_TIMEOUT_SECONDS = 300
 
 
@@ -101,23 +94,23 @@ def run_pandoc_json(docx: Path, media_dir: Path) -> tuple[dict[str, Any], str]:
 
 @dataclass(frozen=True)
 class _JcRecord:
-    """One body `w:p`'s alignment plus its reading text, for reconciliation
-    against the AST paragraph sequence (the positional zip the C1 fix replaces)."""
+    """One body `w:p`'s alignment plus its reading text, for content reconciliation
+    against the AST paragraph sequence."""
 
     align: str
     text: str
 
 
 def _paragraph_text(p: ET.Element) -> str:
-    """The reading text of a `w:p` from its `w:t` runs, hard breaks as spaces, and
-    `mc:Fallback` duplicates dropped (so an `mc:Choice`/`mc:Fallback` pair is not
-    double-counted). Used only to MATCH the paragraph to its AST counterpart."""
+    """The reading text of a `w:p` (its `w:t` runs, hard breaks as spaces,
+    `mc:Fallback` duplicates dropped). Used only to MATCH the paragraph to its AST
+    counterpart."""
     parts: list[str] = []
 
     def walk(el: ET.Element, in_fallback: bool) -> None:
         for child in el:
             if child.tag == MC_FALLBACK:
-                walk(child, True)  # the redundant rendering — counted by neither side
+                walk(child, True)
             elif child.tag == f"{W}t":
                 if not in_fallback:
                     parts.append(child.text or "")
@@ -133,19 +126,15 @@ def _paragraph_text(p: ET.Element) -> str:
 def read_w_jc(docx: Path) -> list[_JcRecord]:
     """Per-body-paragraph `(align, text)` records in document order.
 
-    Only top-level body paragraphs (not inside tables or footnotes) are walked:
-    the body's direct `w:p` children plus those nested in `w:sdt` content controls,
-    skipping `w:tbl` contents (table cells are not top-level AST paragraphs).
+    Only top-level body paragraphs are walked: the body's direct `w:p` children plus
+    those nested in `w:sdt` content controls, skipping `w:tbl` contents (table cells
+    are not top-level AST paragraphs).
 
-    List-item paragraphs (`w:numPr`) are SKIPPED: Pandoc deterministically
-    collapses a run of N list `w:p` into ONE `OrderedList`/`BulletList` block, so
-    they never surface as top-level `Para`s. Emitting an alignment entry for each
-    would desync the vector from the AST paragraph sequence — the dominant C1
-    drift source (one list of N items lagged the index by N, dropping a later
-    right-aligned signature/epigraph). The remaining collapse/merge shapes (a
-    `Div`/`Figure`/image-only paragraph, or several short `w:p` Pandoc fuses into
-    one multi-line `Para`) are absorbed by the CONTENT reconciliation in `adapt`,
-    not by trying to enumerate every collapse here.
+    List-item paragraphs (`w:numPr`) are skipped: Pandoc collapses a run of list
+    `w:p` into one `OrderedList`/`BulletList` block, so they never surface as
+    top-level `Para`s and emitting an entry per item would desync this vector from
+    the AST sequence. The other collapse/fusion shapes are absorbed by the content
+    reconciliation in `reconcile_alignment`, not enumerated here.
     """
     with zipfile.ZipFile(docx) as zf:
         root = ET.fromstring(zf.read("word/document.xml"))
@@ -175,47 +164,38 @@ def read_w_jc(docx: Path) -> list[_JcRecord]:
 
 
 def _fingerprint(text: str) -> str:
-    """A whitespace/case-insensitive fingerprint of a paragraph's reading words —
-    the comparison key the alignment reconciliation diffs on. Joining the word
-    stream (not the raw text) makes the AST `_plain` rendering and the raw `w:t`
-    text comparable (both drop punctuation/markup spacing differences)."""
+    """A whitespace/case-insensitive fingerprint of a paragraph's reading words — the
+    comparison key reconciliation diffs on. Joining the word stream makes the AST
+    `_plain` rendering and the raw `w:t` text comparable."""
     return " ".join(_words(text))
 
 
 def reconcile_alignment(
     paragraphs: list[ir.Paragraph], records: list[_JcRecord]
 ) -> int:
-    """Assign each AST `Paragraph` its source `w:jc` alignment by CONTENT, not by
-    position, and return the count of paragraphs given a non-default alignment.
+    """Assign each AST `Paragraph` its source `w:jc` alignment by CONTENT, returning
+    the count given a non-default alignment.
 
-    The positional 1:1 (body `w:p` ↔ top-level `Para`/`Header`) assumption is
-    false: Pandoc collapses some `w:p` out of the top-level sequence (lists,
-    `Div`s, `Figure`s, image-only paragraphs) and FUSES others (several short
-    right-aligned `w:p` become one multi-line `Para`). A positional zip therefore
-    drifts after the first such shape and silently mis-assigns/drops a later
-    right-aligned signature/epigraph (the C1 regression).
+    Position cannot be trusted: Pandoc collapses some `w:p` out of the top-level
+    sequence (lists, `Div`s, `Figure`s, image-only paragraphs) and FUSES others
+    (several short right-aligned `w:p` become one multi-line `Para`), so a positional
+    zip drifts and drops a later right-aligned signature/epigraph.
 
-    ONLY right/end alignment is reconciled: it is the sole alignment any downstream
-    pass reads (signature/epigraph detection in `ir_normalize.structural_blocks`);
-    center/left/justify are inert, so a document with no right-aligned source
-    paragraph does nothing — the common case, and what keeps the largest books
-    (≈40k paragraphs, 0 right `w:jc`) instant.
+    Only right/end alignment is reconciled — the sole alignment any downstream pass
+    reads (signature/epigraph detection); center/left/justify are inert, so a
+    document with no right-aligned source paragraph does nothing (the common case).
 
-    The placement is a single ORDER-PRESERVING forward pass over the AST paragraph
-    fingerprints — near-linear even on the largest books (a word/paragraph
-    `difflib` over a 40k-element sequence is O(n·m) and unusable). For each right
-    record, in document order, the cursor advances to the next AST paragraph that
-    carries that text. Two shapes are accepted, EXACT first so a record never binds
-    to an unrelated paragraph that merely shares a prefix:
+    A single order-preserving forward pass over the AST fingerprints — near-linear
+    where a paragraph `difflib` would be O(n·m). For each right record in order, the
+    cursor advances to the next paragraph carrying its text, accepting EXACT first so
+    a record never binds to an unrelated paragraph sharing a prefix:
 
-      * EXACT fingerprint — the 1:1 case (a standalone right `w:p` → one `Para`);
-      * a FUSION — Pandoc joined several CONSECUTIVE right `w:p` into one multi-line
-        `Para`; the paragraph fingerprint equals this record's concatenated with
-        the next records', so those consecutive records are consumed onto the one
-        fused paragraph.
+      * EXACT fingerprint — a standalone right `w:p` → one `Para`;
+      * a FUSION — consecutive right `w:p` Pandoc joined into one multi-line `Para`,
+        whose fingerprint equals the concatenated records', consuming them all.
 
-    A record whose text never surfaces (collapsed away) is skipped; a paragraph
-    keeps the default `""` when no reconciled record carried a right `w:jc`."""
+    A record whose text never surfaces is skipped; a paragraph keeps `""` when no
+    reconciled record carried a right `w:jc`."""
     if not any(r.align in {"right", "end"} for r in records):
         return 0
 
@@ -226,11 +206,10 @@ def reconcile_alignment(
     n = len(a_fps)
 
     def fusion_len(scan: int, ri: int) -> int:
-        """If the paragraph at `scan` is the FUSION of consecutive records starting
-        at `ri` whose concatenated fingerprints EXACTLY equal it, return how many
-        records it consumes (≥ 2); else 0. The full equality requirement is what
-        stops a record binding to an unrelated paragraph that merely shares a word
-        prefix (the epigraph-vs-paraphrase false match)."""
+        """How many consecutive records starting at `ri` the paragraph at `scan`
+        consumes when their concatenated fingerprints EXACTLY equal it (else 0). Full
+        equality, not a prefix, so a record never binds to an unrelated paragraph
+        that merely shares a word prefix."""
         para = a_fps[scan]
         built = rec_fps[ri]
         if not built or not para.startswith(built):
@@ -253,10 +232,7 @@ def reconcile_alignment(
             ri += 1
             continue
         target = rec_fps[ri]
-        # Scan forward for a paragraph that EXACTLY matches this record, or that is a
-        # CONFIRMED fusion of this record plus the next consecutive ones. Exact and
-        # confirmed-fusion only — never a bare prefix — so a record never binds to an
-        # unrelated longer paragraph that just happens to start with the same words.
+        # Scan forward for an EXACT match or a confirmed fusion — never a bare prefix.
         scan = cursor
         consumed = 1
         while scan < n:
@@ -313,64 +289,64 @@ def _inlines(nodes: list[dict[str, Any]], ctx: _Ctx) -> list[ir.Inline]:
 
 
 def _inline(node: dict[str, Any], ctx: _Ctx) -> list[ir.Inline]:
+    # Dispatch on Pandoc's string tag; the `isinstance(c, list)` guards inside arms
+    # are intrinsic — `c` is positional Pandoc JSON, not a typed shape.
     t = node.get("t")
     c = node.get("c")
-    if t == "Str":
-        return [ir.Text(str(c))]
-    if t == "Space":
-        return [ir.Text(" ")]
-    if t == "SoftBreak":
-        return [ir.SoftBreak()]
-    if t == "LineBreak":
-        return [ir.LineBreak()]
-    if t in _EMPH_MAP:
-        children = c if isinstance(c, list) else []
-        return [ir.Emphasis(_EMPH_MAP[str(t)], _inlines(children, ctx))]
-    if t in {"Underline", "SmallCaps"}:
-        # Production unwraps these to plain text.
-        return _inlines(c if isinstance(c, list) else [], ctx)
-    if t == "Quoted" and isinstance(c, list):
-        qt, quoted = c
-        single = isinstance(qt, dict) and qt.get("t") == "SingleQuote"
-        return [ir.Quoted(single, _inlines(quoted, ctx))]
-    if t == "Code" and isinstance(c, list):
-        return [ir.Code(str(c[1]))]
-    if t == "Link" and isinstance(c, list):
-        _attr, label, target = c
-        return [ir.Link(_inlines(label, ctx), str(target[0]))]
-    if t == "Image" and isinstance(c, list):
-        _attr, label, target = c
-        return [ir.ImageInline(src=str(target[0]), alt=_plain(label))]
-    if t == "Span" and isinstance(c, list):
-        attr, span = c
-        # Production unwraps a Span to its children, EXCEPT a directional span: a
-        # `dir` attribute (Hebrew/Arabic bidi) governs visual ordering, so it is
-        # modelled (`DirectionalSpan`) rather than flattened. `attr` is
-        # `[id, classes, [(k, v), ...]]`; only the `dir` key is preserved.
-        direction = ""
-        if isinstance(attr, list) and len(attr) == 3 and isinstance(attr[2], list):
-            for pair in attr[2]:
-                if isinstance(pair, list) and len(pair) == 2 and pair[0] == "dir":
-                    direction = str(pair[1])
-        children = _inlines(span, ctx)
-        if direction:
-            return [ir.DirectionalSpan(direction=direction, children=children)]
-        return children
-    if t == "Note" and isinstance(c, list):
-        # A footnote: `c` is a list of body blocks. Renumber densely by reference
-        # order so the dense id never depends on Word's internal `w:id`.
-        ctx.fn_index += 1
-        idx = ctx.fn_index
-        ctx.fn_defs.append((idx, [_block(b, ctx) for b in c]))
-        return [ir.FootnoteRef(raw_index=idx, id=idx)]
-    if t == "RawInline" and isinstance(c, list):
-        fmt, raw = c
-        if fmt in {"html", "markdown"}:
-            return [ir.Text(str(raw))]
-        return []
-    if isinstance(c, list):
-        return [ir.UnknownInline(note=str(t), children=_inlines(c, ctx))]
-    return [ir.UnknownInline(note=str(t))]
+    match t:
+        case "Str":
+            return [ir.Text(str(c))]
+        case "Space":
+            return [ir.Text(" ")]
+        case "SoftBreak":
+            return [ir.SoftBreak()]
+        case "LineBreak":
+            return [ir.LineBreak()]
+        case "Strong" | "Emph" | "Strikeout" | "Superscript" | "Subscript":
+            children = c if isinstance(c, list) else []
+            return [ir.Emphasis(_EMPH_MAP[t], _inlines(children, ctx))]
+        case "Underline" | "SmallCaps":  # production unwraps to plain text
+            return _inlines(c if isinstance(c, list) else [], ctx)
+        case "Quoted" if isinstance(c, list):
+            qt, quoted = c
+            single = isinstance(qt, dict) and qt.get("t") == "SingleQuote"
+            return [ir.Quoted(single, _inlines(quoted, ctx))]
+        case "Code" if isinstance(c, list):
+            return [ir.Code(str(c[1]))]
+        case "Link" if isinstance(c, list):
+            _attr, label, target = c
+            return [ir.Link(_inlines(label, ctx), str(target[0]))]
+        case "Image" if isinstance(c, list):
+            _attr, label, target = c
+            return [ir.ImageInline(src=str(target[0]), alt=_plain(label))]
+        case "Span" if isinstance(c, list):
+            # Production unwraps a Span, EXCEPT a `dir` attribute (Hebrew/Arabic
+            # bidi) governs visual ordering, so it survives as `DirectionalSpan`.
+            # `attr` is `[id, classes, [(k, v), ...]]`; only `dir` is preserved.
+            attr, span = c
+            direction = ""
+            if isinstance(attr, list) and len(attr) == 3 and isinstance(attr[2], list):
+                for pair in attr[2]:
+                    if isinstance(pair, list) and len(pair) == 2 and pair[0] == "dir":
+                        direction = str(pair[1])
+            children = _inlines(span, ctx)
+            if direction:
+                return [ir.DirectionalSpan(direction=direction, children=children)]
+            return children
+        case "Note" if isinstance(c, list):
+            # `c` is footnote body blocks. Renumber densely by reference order so the
+            # id never depends on Word's internal `w:id`.
+            ctx.fn_index += 1
+            idx = ctx.fn_index
+            ctx.fn_defs.append((idx, [_block(b, ctx) for b in c]))
+            return [ir.FootnoteRef(raw_index=idx, id=idx)]
+        case "RawInline" if isinstance(c, list):
+            fmt, raw = c
+            return [ir.Text(str(raw))] if fmt in {"html", "markdown"} else []
+        case _:
+            if isinstance(c, list):
+                return [ir.UnknownInline(note=str(t), children=_inlines(c, ctx))]
+            return [ir.UnknownInline(note=str(t))]
 
 
 def _plain(nodes: list[dict[str, Any]]) -> str:
@@ -379,33 +355,32 @@ def _plain(nodes: list[dict[str, Any]]) -> str:
     for node in nodes:
         t = node.get("t")
         c = node.get("c")
-        if t == "Str":
-            out.append(str(c))
-        elif t in {"Space", "SoftBreak", "LineBreak"}:
-            out.append(" ")
-        elif t in _EMPH_MAP or t in {"Underline", "SmallCaps", "Span"}:
-            payload = c[1] if t == "Span" and isinstance(c, list) else c
-            out.append(_plain(payload if isinstance(payload, list) else []))
-        elif t == "Quoted" and isinstance(c, list):
-            out.append(_plain(c[1]))
-        elif t == "Code" and isinstance(c, list):
-            out.append(str(c[1]))
-        elif t in {"Link", "Image"} and isinstance(c, list):
-            out.append(_plain(c[1]))
-        elif isinstance(c, list):
-            out.append(_plain(c))
+        match t:
+            case "Str":
+                out.append(str(c))
+            case "Space" | "SoftBreak" | "LineBreak":
+                out.append(" ")
+            case _ if t in _EMPH_MAP or t in {"Underline", "SmallCaps", "Span"}:
+                payload = c[1] if t == "Span" and isinstance(c, list) else c
+                out.append(_plain(payload if isinstance(payload, list) else []))
+            case "Quoted" if isinstance(c, list):
+                out.append(_plain(c[1]))
+            case "Code" if isinstance(c, list):
+                out.append(str(c[1]))
+            case "Link" | "Image" if isinstance(c, list):
+                out.append(_plain(c[1]))
+            case _ if isinstance(c, list):
+                out.append(_plain(c))
     return "".join(out).strip()
 
 
 def _node_plain(value: object) -> str:
-    """Best-effort readable text of an ARBITRARY Pandoc node/subtree — used to
-    PRESERVE the reading content of a block kind the adapter does not model, so an
-    UnknownBlock carries its text instead of being silently dropped at lowering.
+    """Best-effort readable text of an arbitrary Pandoc node/subtree, so an
+    UnknownBlock carries its content instead of dropping it at lowering.
 
-    Walks dicts/lists generically: a `Str` contributes its text, the spacing nodes a
-    space, and any other `c` list recurses. Inert (no reading content) kinds — e.g.
-    `Null` — yield `""`. Deliberately structure-agnostic: it never assumes the
-    unknown kind's `c` is inlines vs blocks."""
+    Structure-agnostic (never assumes the kind's `c` is inlines vs blocks): walks
+    dicts/lists generically — a `Str` contributes its text, spacing nodes a space,
+    any other `c` list recurses. Inert kinds (e.g. `Null`) yield `""`."""
     parts: list[str] = []
 
     def walk(v: object) -> None:
@@ -433,65 +408,63 @@ def _node_plain(value: object) -> str:
 
 
 def _block(node: dict[str, Any], ctx: _Ctx) -> ir.Block:
+    # Dispatch on Pandoc's string tag; the `isinstance(c, list)` guards inside arms
+    # are intrinsic — `c` is positional Pandoc JSON, not a typed shape.
     t = node.get("t")
     c = node.get("c")
-    if t == "Header" and isinstance(c, list):
-        level, _attr, inlines = c
-        return ir.Heading(level=int(level), inlines=_inlines(inlines, ctx))
-    if t in {"Para", "Plain"}:
-        inlines = c if isinstance(c, list) else []
-        if not inlines:
-            return ir.Paragraph(inlines=[], empty=True)
-        para = ir.Paragraph(inlines=_inlines(inlines, ctx))
-        para.italic = _all_italic(inlines)
-        return para
-    if t == "HorizontalRule":
-        return ir.ThematicBreak()
-    if t == "BlockQuote" and isinstance(c, list):
-        return ir.BlockQuote(blocks=[_block(b, ctx) for b in c])
-    if t == "BulletList" and isinstance(c, list):
-        return ir.ListBlock(ordered=False, items=[[_block(b, ctx) for b in item] for item in c])
-    if t == "OrderedList" and isinstance(c, list):
-        attr, items = c
-        # attr = [start, style, delim]; keep the source start ordinal.
-        start = int(attr[0]) if isinstance(attr, list) and attr else 1
-        return ir.ListBlock(
-            ordered=True, start=start,
-            items=[[_block(b, ctx) for b in item] for item in items],
-        )
-    if t == "LineBlock" and isinstance(c, list):
-        # A Pandoc LineBlock is verse-like lines (`c` = a list of lines, each a list
-        # of inlines). It is REAL reading content, so map it to a one-stanza
-        # `VerseBlock` (each line preserved) rather than an UnknownBlock that lowering
-        # would drop — the silent-content-loss bug.
-        stanza = [_inlines(line, ctx) for line in c if isinstance(line, list)]
-        return ir.VerseBlock(stanzas=[stanza])
-    if t == "CodeBlock" and isinstance(c, list):
-        _attr, text = c
-        return ir.CodeBlock(text=str(text))
-    if t == "Table":
-        return _table(node, ctx)
-    if t == "Div" and isinstance(c, list):
-        # Production unwraps Divs; keep a transparent container (role "_div") so
-        # the structure survives until lowering inlines its children.
-        _attr, blocks = c
-        return ir.BlockQuote(blocks=[_block(b, ctx) for b in (blocks or [])], role="_div")
-    if t == "Figure" and isinstance(c, list):
-        # Pandoc 3.x wraps a standalone image in a Figure: [attr, caption,
-        # content_blocks]. The GFM writer keeps the image plus the figcaption text;
-        # unwrap to a transparent container of the figure's content blocks followed
-        # by the caption as a paragraph, so neither the image nor its caption is
-        # lost (Figure is the standalone-image shape; book-illustration content).
-        _attr, caption, content = c
-        inner: list[ir.Block] = [_block(b, ctx) for b in (content or [])]
-        cap_blocks = caption[1] if isinstance(caption, list) and len(caption) > 1 else None
-        if cap_blocks:
-            inner.extend(_block(b, ctx) for b in cap_blocks)
-        return ir.BlockQuote(blocks=inner, role="_div")
-    # A block kind we do not model: PRESERVE its best-effort reading text on the
-    # UnknownBlock (lowering emits it + surfaces a diagnostic) so content is never
-    # silently dropped.
-    return ir.UnknownBlock(note=str(t), text=_node_plain(c))
+    match t:
+        case "Header" if isinstance(c, list):
+            level, _attr, inlines = c
+            return ir.Heading(level=int(level), inlines=_inlines(inlines, ctx))
+        case "Para" | "Plain":
+            inlines = c if isinstance(c, list) else []
+            if not inlines:
+                return ir.Paragraph(inlines=[], empty=True)
+            para = ir.Paragraph(inlines=_inlines(inlines, ctx))
+            para.italic = _all_italic(inlines)
+            return para
+        case "HorizontalRule":
+            return ir.ThematicBreak()
+        case "BlockQuote" if isinstance(c, list):
+            return ir.BlockQuote(blocks=[_block(b, ctx) for b in c])
+        case "BulletList" if isinstance(c, list):
+            return ir.ListBlock(ordered=False, items=[[_block(b, ctx) for b in item] for item in c])
+        case "OrderedList" if isinstance(c, list):
+            attr, items = c  # attr = [start, style, delim]; keep the source start ordinal
+            start = int(attr[0]) if isinstance(attr, list) and attr else 1
+            return ir.ListBlock(
+                ordered=True, start=start,
+                items=[[_block(b, ctx) for b in item] for item in items],
+            )
+        case "LineBlock" if isinstance(c, list):
+            # Verse-like lines (each a list of inlines) — real reading content, so a
+            # one-stanza VerseBlock rather than an UnknownBlock lowering would drop.
+            stanza = [_inlines(line, ctx) for line in c if isinstance(line, list)]
+            return ir.VerseBlock(stanzas=[stanza])
+        case "CodeBlock" if isinstance(c, list):
+            _attr, text = c
+            return ir.CodeBlock(text=str(text))
+        case "Table":
+            return _table(node, ctx)
+        case "Div" if isinstance(c, list):
+            # Production unwraps Divs; a transparent container (role "_div") keeps the
+            # structure until lowering inlines its children.
+            _attr, blocks = c
+            return ir.BlockQuote(blocks=[_block(b, ctx) for b in (blocks or [])], role="_div")
+        case "Figure" if isinstance(c, list):
+            # Pandoc 3.x wraps a standalone image: [attr, caption, content_blocks].
+            # Unwrap to a transparent container of content blocks plus the caption,
+            # so neither the image nor its caption is lost.
+            _attr, caption, content = c
+            inner: list[ir.Block] = [_block(b, ctx) for b in (content or [])]
+            cap_blocks = caption[1] if isinstance(caption, list) and len(caption) > 1 else None
+            if cap_blocks:
+                inner.extend(_block(b, ctx) for b in cap_blocks)
+            return ir.BlockQuote(blocks=inner, role="_div")
+        case _:
+            # Unmodelled kind: preserve best-effort reading text (lowering emits it +
+            # surfaces a diagnostic) so content is never silently dropped.
+            return ir.UnknownBlock(note=str(t), text=_node_plain(c))
 
 
 def _all_italic(inlines: list[dict[str, Any]]) -> bool:
@@ -522,31 +495,32 @@ def _inline_md(nodes: list[dict[str, Any]]) -> str:
     for node in nodes:
         t = node.get("t")
         c = node.get("c")
-        if t == "Str":
-            out.append(str(c))
-        elif t in {"Space", "SoftBreak", "LineBreak"}:
-            out.append(" ")
-        elif t in _EMPH_WRAP and isinstance(c, list):
-            o, cl = _EMPH_WRAP[str(t)]
-            out.append(f"{o}{_inline_md(c)}{cl}")
-        elif t in {"Underline", "SmallCaps"} and isinstance(c, list):
-            out.append(_inline_md(c))
-        elif t == "Quoted" and isinstance(c, list):
-            qt, quoted = c
-            o, cl = ("'", "'") if isinstance(qt, dict) and qt.get("t") == "SingleQuote" else ("«", "»")
-            out.append(f"{o}{_inline_md(quoted)}{cl}")
-        elif t == "Code" and isinstance(c, list):
-            out.append(f"`{c[1]}`")
-        elif t == "Link" and isinstance(c, list):
-            _a, label, target = c
-            out.append(f"[{_inline_md(label)}]({target[0]})")
-        elif t == "Image" and isinstance(c, list):
-            _a, label, target = c
-            out.append(f"![{_plain(label)}]({target[0]})")
-        elif t == "Span" and isinstance(c, list):
-            out.append(_inline_md(c[1]))
-        elif isinstance(c, list):
-            out.append(_inline_md(c))
+        match t:
+            case "Str":
+                out.append(str(c))
+            case "Space" | "SoftBreak" | "LineBreak":
+                out.append(" ")
+            case "Strong" | "Emph" | "Strikeout" | "Superscript" | "Subscript" if isinstance(c, list):
+                o, cl = _EMPH_WRAP[t]
+                out.append(f"{o}{_inline_md(c)}{cl}")
+            case ("Underline" | "SmallCaps") if isinstance(c, list):
+                out.append(_inline_md(c))
+            case "Quoted" if isinstance(c, list):
+                qt, quoted = c
+                o, cl = ("'", "'") if isinstance(qt, dict) and qt.get("t") == "SingleQuote" else ("«", "»")
+                out.append(f"{o}{_inline_md(quoted)}{cl}")
+            case "Code" if isinstance(c, list):
+                out.append(f"`{c[1]}`")
+            case "Link" if isinstance(c, list):
+                _a, label, target = c
+                out.append(f"[{_inline_md(label)}]({target[0]})")
+            case "Image" if isinstance(c, list):
+                _a, label, target = c
+                out.append(f"![{_plain(label)}]({target[0]})")
+            case "Span" if isinstance(c, list):
+                out.append(_inline_md(c[1]))
+            case _ if isinstance(c, list):
+                out.append(_inline_md(c))
     return re.sub(r"\s+", " ", "".join(out)).strip()
 
 
@@ -559,9 +533,7 @@ def _table(node: dict[str, Any], ctx: _Ctx) -> ir.Table:
     rows: list[list[list[ir.Inline]]] = []
 
     def cell_inlines(cell: object) -> list[ir.Inline]:
-        # cell = [attr, alignment, rowspan, colspan, blocks]; isinstance narrows the
-        # opaque Pandoc node to a list before indexing (the structural try/except
-        # below is the runtime guard for any unexpected shape).
+        # cell = [attr, alignment, rowspan, colspan, blocks]; narrow before indexing.
         if not isinstance(cell, list) or len(cell) < 5 or not isinstance(cell[4], list):
             return []
         out: list[ir.Inline] = []
@@ -604,13 +576,10 @@ def _table(node: dict[str, Any], ctx: _Ctx) -> ir.Table:
 def adapt(docx: Path, media_dir: Path) -> ir.Document:
     """Parse `docx` into an `ir.Document`, extracting media into `media_dir`.
 
-    Alignment from `w:jc` is assigned onto the IR's top-level `Paragraph` blocks by
-    CONTENT (`reconcile_alignment`), not by a positional zip — the positional zip
-    drifted past any collapsed/fused `w:p` and silently dropped a later
-    right-aligned signature/epigraph (C1). A surfaced `warning` fires when no
-    right-aligned source paragraph could be reconciled despite the source having
-    them, so a future regression can't ship silently. Footnote definitions
-    collected during the inline walk are attached densely renumbered.
+    `w:jc` alignment is assigned onto the top-level `Paragraph` blocks by CONTENT
+    (`reconcile_alignment`); a `warning` fires when right-aligned source paragraphs
+    exist but none reconcile, so a future drift can't ship silently. Footnote
+    definitions collected during the inline walk are attached densely renumbered.
     """
     ast, warns = run_pandoc_json(docx, media_dir)
     records = read_w_jc(docx)
@@ -636,9 +605,8 @@ def adapt(docx: Path, media_dir: Path) -> ir.Document:
         f"w:jc records={len(records)} assigned={assigned} "
         f"right-records={right_records} right-assigned={right_assigned}",
     ))
-    # Arm the safety: the source has right-aligned paragraphs but NONE survived
-    # reconciliation — the signal the C1 drift used to swallow silently. Surface it
-    # as a warning the caller propagates (a future drift then fails loud).
+    # Right-aligned source paragraphs that none reconciled onto the AST — a warning
+    # the caller propagates so a future drift fails loud.
     if right_records and not right_assigned:
         doc.diagnostics.append(ir.Diagnostic(
             "warning", "import.align-unreconciled",

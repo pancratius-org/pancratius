@@ -49,11 +49,8 @@ def _run_prop_enabled(el: ET.Element | None) -> bool:
 
 
 def read_docx_paragraph_meta(docx: Path) -> list[DocxParagraphMeta]:
-    """Read paragraph-level Word metadata that Markdown cannot carry.
-
-    Pandoc is still the content converter. This pass only captures narrow
-    source signals that are otherwise lost, especially paragraph alignment.
-    """
+    """Read paragraph-level Word metadata that Markdown cannot carry — alignment,
+    style, bold/italic runs, source line-break count — in document order."""
     with zipfile.ZipFile(docx) as zf:
         root = ET.fromstring(zf.read("word/document.xml"))
 

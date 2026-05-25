@@ -1,44 +1,35 @@
 # import-pure: no filesystem mutation
 """Footnote handling for the import pipeline — extraction + diagnosis.
 
-This module is PURE: every function is a string/value transformation with no
-filesystem access (the PAN018 marker above keys this contract). It exists to fix
-and guard a proven shipped bug:
+Pandoc's GFM writer places every footnote definition (`[^id]: …`) at the document
+TAIL. The converter's bibliography stripper deletes from a `## Библиография`-type
+heading to the next heading; a LAST such heading deletes to EOF, taking the
+definitions with it and orphaning the `[^id]` references in the body.
 
-  Pandoc's GFM writer places ALL footnote definitions (`[^id]: …`) at the very
-  TAIL of the document. The converter's bibliography stripper deletes from a
-  `## Библиография`-type heading to the next heading; when that heading is the
-  LAST one, it deletes to EOF — taking the footnote definitions with it and
-  leaving orphaned `[^id]` references in the body (15 of 35 footnoted RU books).
+Two pieces guard that:
 
-The fix lives in two pieces this module provides:
-
-  * `extract_footnote_defs` / `reattach_footnote_defs` — lift Pandoc's OWN
-    emitted definitions out of the markdown BEFORE the tail-stripping passes run,
-    then re-append the survivors at the document tail (Pandoc's original
-    placement). We preserve Pandoc's definitions verbatim rather than
-    reconstructing from the AST — they are already correct.
-
-  * `analyze_footnotes` — a first-class diagnostic pass over the FINAL body: an
-    `[^id]` reference with no matching `[^id]:` definition is FATAL (the
-    orphaned-marker bug class); an unused definition or a duplicate id is a
-    warning. The importer carries the fatal into the `WritePlan`, so the writer
-    refuses — making it impossible to ship this bug class again.
+  * `extract_footnote_defs` / `reattach_footnote_defs` lift Pandoc's emitted
+    definitions out before tail-stripping, then re-append the survivors at the
+    tail. Pandoc's definitions are kept verbatim — they are already correct.
+  * `analyze_footnotes` diagnoses the FINAL body: an `[^id]` reference with no
+    matching `[^id]:` definition is FATAL (the orphaned-marker class); an unused
+    definition or duplicate id is a warning. The importer carries the fatal into
+    the `WritePlan`, so the writer refuses.
 """
 
 from __future__ import annotations
 
 import re
+from collections import Counter
 from dataclasses import dataclass
 from typing import Literal
 
-# A footnote DEFINITION line: `[^id]: body`. Anchored at line start (GFM defs are
-# never indented at column 0 unless they ARE a definition). `id` is the run of
-# non-`]` characters, mirroring `lib.cross_refs._FOOTNOTE_LINE`.
-_DEF_LINE_RE = re.compile(r"^\[\^([^\]]+)\]:\s?(.*)$")
+type _Severity = Literal["fatal", "warning"]
 
-# A footnote REFERENCE marker anywhere inline: `[^id]` NOT followed by `:`
-# (a `:` means it's the start of a definition, not a reference).
+# A footnote DEFINITION line `[^id]: body`, anchored at line start; `id` is the run
+# of non-`]` characters, mirroring `lib.cross_refs._FOOTNOTE_LINE`.
+_DEF_LINE_RE = re.compile(r"^\[\^([^\]]+)\]:\s?(.*)$")
+# A footnote REFERENCE marker `[^id]` NOT followed by `:` (a `:` starts a definition).
 _REF_RE = re.compile(r"\[\^([^\]]+)\](?!:)")
 
 
@@ -46,9 +37,9 @@ _REF_RE = re.compile(r"\[\^([^\]]+)\](?!:)")
 class FootnoteDef:
     """One extracted footnote definition, verbatim.
 
-    `id` is the footnote id; `text` is the full definition block exactly as
-    Pandoc emitted it — the `[^id]: …` line plus any indented continuation lines
-    — with no trailing newline. Re-emitting `text` reproduces Pandoc's output.
+    `text` is the full block exactly as Pandoc emitted it — the `[^id]: …` line
+    plus any indented continuation lines, no trailing newline — so re-emitting it
+    reproduces Pandoc's output.
     """
 
     id: str
@@ -59,26 +50,19 @@ class FootnoteDef:
 class FootnoteDiagnostic:
     """A footnote finding: severity + stable code + human message.
 
-    Deliberately a plain value (not `writeplan.Diagnostic`) so this module stays
-    free of any import-pipeline coupling — the importer maps these onto
-    `writeplan.Diagnostic`s when it folds them into the plan. `severity` is a
-    `Literal` so callers building `writeplan.Diagnostic`s carry the precise type
-    through with no cast.
+    A plain value (not `writeplan.Diagnostic`) to keep this module free of
+    import-pipeline coupling; the importer maps these onto `writeplan.Diagnostic`s.
     """
 
-    severity: Literal["fatal", "warning"]
+    severity: _Severity
     code: str
     message: str
 
 
 def _is_continuation(line: str) -> bool:
-    """True if `line` continues the preceding footnote definition.
-
-    GFM continuation lines are blank or indented (Pandoc emits 4-space
-    indentation). A blank line alone is ambiguous, so the caller only treats a
-    blank as a continuation when an indented line follows it; this predicate
-    answers the indented-line case.
-    """
+    """True if `line` is an indented continuation of the preceding definition. A
+    blank line is ambiguous, so the caller treats a blank as continuation only when
+    an indented line follows; this answers the indented-line case."""
     return bool(line) and line[:1] in (" ", "\t")
 
 
@@ -87,13 +71,8 @@ def extract_footnote_defs(md: str) -> tuple[str, list[FootnoteDef]]:
 
     Returns `(body_without_defs, defs)` where `defs` preserves source order and
     each `FootnoteDef.text` is the verbatim def block (definition line plus any
-    indented/blank-then-indented continuation lines). The returned body has the
-    def blocks removed; `[^id]` references in the body are untouched (they are
-    inline and must survive).
-
-    This is the EXTRACT half of the fix — run it before the tail/bibliography
-    stripping so Pandoc's correct definitions cannot be deleted with the
-    bibliography section.
+    indented/blank-then-indented continuation lines). Inline `[^id]` references in
+    the body are untouched. Run before tail/bibliography stripping.
     """
     lines = md.splitlines()
     kept: list[str] = []
@@ -138,8 +117,7 @@ def reattach_footnote_defs(md: str, defs: list[FootnoteDef]) -> str:
 
     A blank line separates the body from the definition block and each
     definition from the next, matching Pandoc's GFM output. Returns `md`
-    unchanged when there are no definitions. This is the RE-APPEND half of the
-    fix — run it after all stripping so the definitions survive."""
+    unchanged when there are no definitions. Run after all stripping."""
     if not defs:
         return md
     body = md.rstrip("\n")
@@ -197,9 +175,7 @@ def analyze_footnotes(body: str) -> list[FootnoteDiagnostic]:
             )
         )
 
-    counts: dict[str, int] = {}
-    for fid in defs:
-        counts[fid] = counts.get(fid, 0) + 1
+    counts = Counter(defs)
     for fid in sorted(c for c, n in counts.items() if n > 1):
         diags.append(
             FootnoteDiagnostic(
