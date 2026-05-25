@@ -47,6 +47,16 @@ def _ok(owner_rc: int) -> int:
     return 0 if owner_rc == 0 else 1
 
 
+def _missing_extra(extra: str, exc: ImportError) -> int:
+    """A heavy verb was invoked without its optional-dependency stack: print the
+    install hint to stderr and fail (exit 1) instead of dumping a traceback
+    (docs/tooling.md "Dependency model"). The light core never imports a heavy
+    module, so this is the only place a missing extra surfaces."""
+    print(f"error: the '{extra}' extra is not installed ({exc}).", file=sys.stderr)
+    print(f"run: uv sync --extra {extra}", file=sys.stderr)
+    return 1
+
+
 def _require_subcommand(parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], int]:
     """A `func` default for every non-leaf parser: running a bare group/noun with no
     verb prints THAT level's help to stderr and signals a usage error (exit 2),
@@ -77,6 +87,28 @@ def _data_bulk_refresh(_args: argparse.Namespace) -> int:
     return _ok(proc.returncode)
 
 
+def _data_graph_generate(args: argparse.Namespace) -> int:
+    """`data graph generate [--only concepts|books]` — regenerate the concept/book
+    graph projections into data/ (heavy — needs the `graph` extra). Lazy-imports the
+    owner so the light core never pulls networkx/igraph/leidenalg. Distinct from the
+    CI-safe npm `prebuild:graph-payloads`, which only COPIES data/→public/data/."""
+    try:
+        from conceptosphere import generate_graph
+    except ImportError as exc:
+        return _missing_extra("graph", exc)
+    return _ok(generate_graph(only=args.only))
+
+
+def _data_embed_generate(_args: argparse.Namespace) -> int:
+    """`data embed generate` — regenerate semantic embeddings into data/ (heavy —
+    needs the `embed` MLX extra). Lazy-imports the owner so the light core stays light."""
+    try:
+        from conceptosphere_embed import generate_embeddings
+    except ImportError as exc:
+        return _missing_extra("embed", exc)
+    return _ok(generate_embeddings())
+
+
 # --- parser assembly ----------------------------------------------------------
 # Each group is built by its own function so later phases add groups/verbs locally.
 def _add_data_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -99,6 +131,24 @@ def _add_data_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         "refresh", help="Rebuild all-md.zip (same owner as prebuild:bulk-archives)."
     )
     bulk_refresh.set_defaults(func=_data_bulk_refresh)
+
+    graph = data_sub.add_parser("graph", help="Concept/book graphs (heavy — uv sync --extra graph).")
+    graph.set_defaults(func=_require_subcommand(graph))
+    graph_sub = graph.add_subparsers(dest="verb", metavar="<verb>")
+    graph_generate = graph_sub.add_parser(
+        "generate", help="Regenerate BOTH graph projections into data/ (--only for one)."
+    )
+    graph_generate.add_argument(
+        "--only", choices=("concepts", "books"), default=None,
+        help="Regenerate only this projection (default: both, off one corpus scan).",
+    )
+    graph_generate.set_defaults(func=_data_graph_generate)
+
+    embed = data_sub.add_parser("embed", help="Semantic embeddings (heavy — uv sync --extra embed).")
+    embed.set_defaults(func=_require_subcommand(embed))
+    embed_sub = embed.add_subparsers(dest="verb", metavar="<verb>")
+    embed_generate = embed_sub.add_parser("generate", help="Regenerate embeddings into data/.")
+    embed_generate.set_defaults(func=_data_embed_generate)
 
 
 def build_parser() -> argparse.ArgumentParser:

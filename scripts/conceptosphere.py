@@ -1,18 +1,8 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.11"
-# dependencies = [
-#   "pymorphy3>=2.0.2",
-#   "pymorphy3-dicts-ru>=2.4.417150",
-#   "PyYAML>=6.0",
-#   "networkx>=3.2",
-#   "python-louvain>=0.16",
-#   "regex>=2024.5.15",
-#   "scipy>=1.11",
-#   "igraph>=0.11",
-#   "leidenalg>=0.10",
-# ]
-# ///
+#!/usr/bin/env python3
+# Heavy graph stack (networkx/igraph/leidenalg/pymorphy3/scipy/…) lives in the
+# project's `graph` optional-dependency group, NOT in per-script PEP-723 inline
+# metadata (docs/tooling.md "Dependency model"). Run via the door
+# `uv run pancratius data graph generate`, or standalone after `uv sync --extra graph`.
 """conceptosphere.py — extract concept / book graphs for Sergey Orekhov's corpus.
 
 Two modes:

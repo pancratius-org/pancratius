@@ -50,7 +50,7 @@ def main() -> int:
         print(
             "conceptosphere payloads missing in data/: "
             + ", ".join(missing)
-            + " — run scripts/conceptosphere.py to regenerate",
+            + " — run `uv run pancratius data graph generate` to regenerate",
             file=sys.stderr,
         )
         return 1
