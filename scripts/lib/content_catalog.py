@@ -9,11 +9,15 @@ import yaml
 
 from lib.kinds import KIND_OF_SEGMENT, SEGMENT_OF
 
-# Work kind -> content-collection folder. The folder name equals the URL
-# segment, so this is the canonical SEGMENT_OF map under the name callers
-# (e.g. import_docx.py) already import.
+# Work kind -> content-collection folder. The folder name equals the URL segment,
+# so this is SEGMENT_OF under the name callers already import.
 KIND_DIRS = SEGMENT_OF
 DIR_KINDS = KIND_OF_SEGMENT
+
+# A title-index hit: (slug, work-number, kind). The index maps a normalized litres
+# URL or book title to the work it names; public because cross_refs/ir_normalize
+# resolve against it.
+type IndexHit = tuple[str, int | None, str | None]
 
 _FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n?", re.DOTALL)
 
@@ -113,8 +117,8 @@ def normalize_title_key(value: str) -> str:
     return re.sub(r"\s+", " ", value.strip().lower())
 
 
-def build_title_index(entries: list[CatalogEntry]) -> dict[str, tuple[str, int | None, str | None]]:
-    index: dict[str, tuple[str, int | None, str | None]] = {}
+def build_title_index(entries: list[CatalogEntry]) -> dict[str, IndexHit]:
+    index: dict[str, IndexHit] = {}
     for entry in entries:
         for key in (entry.title, entry.slug, entry.work_key):
             norm = normalize_title_key(key)
