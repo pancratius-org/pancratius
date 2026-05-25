@@ -140,12 +140,12 @@ exclude = ["scripts/audit/fixtures"]
 unresolved-reference = "error"
 
 [tool.ty.analysis]
-# Genuine dynamic boundaries: these libraries live in PEP-723 inline-script
-# metadata (run via `uv run --script`), NOT in the project venv, and several
-# ship no type stubs at all (MLX, igraph, leidenalg, pymorphy3, razdel,
-# python-louvain). Treating their imports as `Any` is the honest annotation
-# at the boundary and prevents a cascade of false positives in first-party
-# logic. This is explicit and enumerated — not a blanket `ignore`.
+# Untyped external boundaries: the heavy graph/embed libs are optional extras
+# (absent from the base venv ty checks against), and several libs ship no type
+# stubs (MLX, igraph, leidenalg, pymorphy3, razdel, python-louvain, …). Treating
+# their imports as `Any` is the honest annotation at the boundary and prevents a
+# cascade of false positives in first-party logic — explicit and enumerated, not
+# a blanket `ignore`.
 replace-imports-with-any = [
   "community",          # python-louvain
   "community.**",

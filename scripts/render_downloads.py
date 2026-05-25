@@ -1,8 +1,4 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.12"
-# dependencies = ["pillow>=10.4", "pyyaml>=6"]
-# ///
+#!/usr/bin/env python3
 
 """Local admin tool: render release downloads into the work bundle.
 
