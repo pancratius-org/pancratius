@@ -1,18 +1,13 @@
-"""The writer — the ONLY filesystem mutator for import (docs/import-pipeline.md).
+"""The writer — the only filesystem mutator for import (docs/import-pipeline.md).
 
-A `WritePlan` is a pure value (`scripts/lib/writeplan.py`); this module is the
-single component permitted to change `src/content`. It validates the plan's
-paths, refuses to apply if any diagnostic is fatal, then applies operations
-through temporary paths and atomic replace. It never pre-deletes directories,
-never rmtrees, and only ever touches paths named in the plan — so author-added
-neighbours are preserved by construction.
+A `WritePlan` is a pure value (`scripts/lib/writeplan.py`); this module applies it.
+It validates the plan's paths, refuses if any diagnostic is fatal, then applies
+operations through temporary paths and atomic replace. It never pre-deletes and
+only touches paths named in the plan, so author-added neighbours survive.
 
-This module deliberately does NOT carry the `# import-pure` marker: it is the
-designated mutator, the one place the PAN018-writer-only-mutation audit allows
-filesystem mutation to live. The writer is GENERAL — it does NOT write any
-import provenance; the per-import manifest is the importer's concern (written by
-the import entry after a successful apply), so a non-import mutation like
-`project page add` reuses the writer unchanged.
+It carries no `# import-pure` marker: it is the designated mutator PAN018 permits
+to write. It is GENERAL — it emits no import provenance (the per-import manifest is
+the importer's concern), so a non-import mutation like `project page add` reuses it.
 """
 
 from __future__ import annotations
@@ -22,15 +17,17 @@ import os
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Literal, assert_never
 
 from lib import svg_sanitize
 from lib.writeplan import AssetTransform, Diagnostic, WriteOp, WritePlan, has_fatal, validate
 
+# How an applied op landed against an existing target.
+type _Bucket = Literal["created", "changed", "skipped"]
+
 # Raster formats the cap applies to (vector/animated are copied untouched) and the
-# JPEG/WEBP re-encode quality, mirroring the import-time cap exactly so a capped
-# image is byte-identical to the pre-boundary behaviour. Cross-checked by the
-# golden net (book62 has oversized rasters).
+# JPEG/WEBP re-encode quality. Mirrors the import-time cap so a capped image is
+# byte-identical; cross-checked by the goldens (book62 has oversized rasters).
 _CAP_RASTER_FORMATS: frozenset[str] = frozenset({"PNG", "JPEG", "WEBP"})
 _CAP_QUALITY: dict[str, int] = {"JPEG": 82, "WEBP": 80}
 
@@ -52,11 +49,10 @@ def _target_exists(plan: WritePlan, rel: PurePosixPath) -> bool:
 
 
 def _escapes_scope(plan: WritePlan, rel: PurePosixPath) -> bool:
-    """fs-backed `escapes_scope` predicate: does the REAL resolved path of
-    target_root/rel leave target_root/target_scope? `Path.resolve()` follows
-    symlinks, so this catches a symlinked component pointing outside the bundle.
-    The scope root is resolved too (it may itself sit behind a symlink, e.g. a
-    macOS /tmp -> /private/tmp), so a legitimate in-scope path is not flagged.
+    """fs-backed `escapes_scope`: does the real resolved path of target_root/rel
+    leave the scope? `resolve()` follows symlinks (catching a symlinked component
+    pointing outside the bundle); the scope root is resolved too so a legitimate
+    in-scope path behind a symlinked root (macOS /tmp -> /private/tmp) is not flagged.
     """
     scope_root = (plan.target_root / plan.target_scope).resolve()
     resolved = (plan.target_root / rel).resolve()
@@ -72,26 +68,14 @@ def _read_source_bytes(op: WriteOp) -> bytes:
 
 
 def _atomic_write(dest: Path, payload: bytes) -> None:
-    """Write `payload` to `dest` via a UNIQUE temp sibling + os.replace (atomic-ish).
+    """Write `payload` to `dest` via a unique temp sibling + os.replace.
 
-    Never pre-deletes `dest`; os.replace overwrites in one step if it exists.
-
-    The temp is created with `tempfile.mkstemp` in `dest.parent`: a unique,
-    UNPREDICTABLE name opened with `O_CREAT|O_EXCL` (and `O_NOFOLLOW` where the
-    platform offers it). A previous version used a DETERMINISTIC `.<name>.import-tmp`
-    written via `Path.write_bytes`, which FOLLOWS a symlink — a pre-seeded symlink at
-    that predictable path could redirect the write outside the bundle scope. The
-    unpredictable, exclusively-created temp closes that hole: a pre-existing path
-    (symlink or file) at the chosen name cannot exist (mkstemp would pick another),
-    so the write always lands on a fresh real file before the atomic rename. On any
-    failure the temp is removed so no residue is left.
+    Symlink-TOCTOU safe: `mkstemp` opens an unpredictable name with O_CREAT|O_EXCL,
+    so the temp cannot pre-exist as an attacker-seeded symlink, and its fd already
+    points at the fresh real file — no second open, no symlink to follow. os.replace
+    is the atomic swap (never pre-deletes `dest`). On any failure the temp is removed.
     """
     dest.parent.mkdir(parents=True, exist_ok=True)
-    # `tempfile.mkstemp` opens with O_CREAT|O_EXCL and an unpredictable name, so the
-    # chosen path cannot pre-exist as an attacker-seeded symlink (O_EXCL refuses an
-    # existing path; the unpredictable name removes the ability to pre-seed one). Its
-    # fd already points at the freshly-created real file — write through it directly,
-    # no second open (and thus no symlink to follow). os.replace is the atomic swap.
     fd, tmp_name = tempfile.mkstemp(dir=dest.parent, prefix=f".{dest.name}.", suffix=".import-tmp")
     tmp = Path(tmp_name)
     try:
@@ -99,7 +83,6 @@ def _atomic_write(dest: Path, payload: bytes) -> None:
             fh.write(payload)
         os.replace(tmp, dest)
     except BaseException:
-        # Don't leak a temp file on any failure path.
         try:
             tmp.unlink()
         except OSError:
@@ -110,12 +93,10 @@ def _atomic_write(dest: Path, payload: bytes) -> None:
 def _capped_raster_bytes(op: WriteOp, transform: AssetTransform) -> tuple[bytes, Diagnostic | None]:
     """Return the bytes a `cap_raster` transform lands, plus an optional warning.
 
-    Down-scales (LANCZOS) only when the source is a readable raster in
-    `_CAP_RASTER_FORMATS` whose longest edge exceeds `max_long_edge`; otherwise
-    returns the original bytes. A per-image failure is NON-FATAL: it falls back to
-    the original bytes and surfaces a warning diagnostic, so one bad image never
-    fails the import (docs/import-pipeline.md "capped image" is a warning, not
-    fatal). This is the only place PIL runs.
+    Down-scales (LANCZOS) only a readable raster in `_CAP_RASTER_FORMATS` whose
+    longest edge exceeds `max_long_edge`; everything else returns the original
+    bytes. A per-image failure is non-fatal: original bytes + a warning, so one bad
+    image never fails the import. The only place PIL runs.
     """
     if op.source is None:
         raise ValueError(f"transform_asset op for {op.rel_path} has no source")
@@ -123,8 +104,8 @@ def _capped_raster_bytes(op: WriteOp, transform: AssetTransform) -> tuple[bytes,
     if transform.max_long_edge is None:
         return original, None
     try:
-        # PIL is imported lazily so the writer (and its pure unit tests) don't pay
-        # the import unless a raster cap actually runs.
+        # PIL is imported lazily so the writer (and its pure tests) don't pay for it
+        # unless a cap actually runs.
         from PIL import Image
 
         with Image.open(op.source) as img:
@@ -132,12 +113,10 @@ def _capped_raster_bytes(op: WriteOp, transform: AssetTransform) -> tuple[bytes,
             width, height = img.size
             fmt = img.format
             if fmt not in _CAP_RASTER_FORMATS or max(width, height) <= transform.max_long_edge:
-                # Vector/animated/unknown formats, and already-small rasters, are
-                # copied verbatim — the cap only ever down-scales oversized rasters.
-                return original, None
+                return original, None  # vector/animated/unknown or already small
             resized = img.copy()
         resized.thumbnail((transform.max_long_edge, transform.max_long_edge), Image.LANCZOS)
-        save_kwargs: dict[str, Any] = {}
+        save_kwargs: dict[str, int] = {}
         quality = transform.quality if transform.quality is not None else _CAP_QUALITY.get(fmt)
         if fmt in _CAP_QUALITY and quality is not None:
             save_kwargs["quality"] = quality
@@ -152,67 +131,64 @@ def _capped_raster_bytes(op: WriteOp, transform: AssetTransform) -> tuple[bytes,
         )
 
 
-# SVG sanitization is scoped to BODY-IMAGE assets (role `imported_asset`), the
-# DOCX-extracted, content-hash-named SVGs the threat model names. COVERS (role
-# `cover`) are DELIBERATELY excluded: the committed author cover SVGs legitimately
-# use `<foreignObject>` to render the styled title (cover.en.svg), and stripping it
-# would corrupt the published cover. Covers are admin-curated design assets on a
-# different trust path (committed directly / passed by an explicit `--cover`), not
-# DOCX body content — so sanitizing them risks corruption for no body-XSS gain.
-# (Cross-checked: the 3 committed body SVGs are clean — the sanitizer is a no-op on
-# them byte-for-byte; only the cover carries a foreignObject.)
+# SVG sanitization is scoped to body-image assets (`imported_asset`), the
+# DOCX-extracted SVGs the threat model names. Covers are excluded: the committed
+# author cover SVGs legitimately use `<foreignObject>` for the styled title, and
+# they arrive on a curated trust path, not as DOCX body content.
 _SVG_SANITIZE_ROLES: frozenset[str] = frozenset({"imported_asset"})
 
 
 def _maybe_sanitize_svg(op: WriteOp, payload: bytes) -> bytes:
     """Sanitize SVG XSS gadgets at the body-image asset-copy boundary.
 
-    A DOCX-extracted SVG body image is served RAW same-origin, so a `<script>`/
-    `on*`/`javascript:`/`<foreignObject>`/external-href gadget in it is stored XSS.
-    The writer is the sole component that copies assets in, so it is the gate: a
-    body-image (`imported_asset`) op landing a `.svg` target is routed through
-    `svg_sanitize.sanitize_svg`, which strips the gadgets and returns CLEAN input
-    byte-for-byte (the real body SVGs are untouched). Rasters and covers are not
-    touched (see `_SVG_SANITIZE_ROLES`)."""
+    A body SVG is served raw same-origin, so a script/on*/javascript:/foreignObject/
+    external-href gadget in it is stored XSS; the writer is the sole asset-copy gate.
+    A clean SVG returns byte-for-byte (real body SVGs untouched).
+    """
     if op.role in _SVG_SANITIZE_ROLES and svg_sanitize.is_svg_name(op.rel_path.name):
         return svg_sanitize.sanitize_svg(payload)
     return payload
 
 
-def _op_payload(op: WriteOp) -> tuple[bytes, Diagnostic | None]:
-    """The bytes a write_text/copy/transform_asset op will land, plus an optional
-    warning the transform produced. (ensure_dir has none.) SVG asset payloads are
-    sanitized at this boundary (Fix D)."""
-    if op.kind == "write_text":
-        if op.content is None:
-            raise ValueError(f"write_text op for {op.rel_path} has no content")
-        return op.content.encode("utf-8"), None
-    if op.kind == "copy":
-        return _maybe_sanitize_svg(op, _read_source_bytes(op)), None
-    if op.kind == "transform_asset":
-        transform = op.transform or AssetTransform(kind="copy")
-        if transform.kind == "cap_raster":
-            # cap_raster only ever runs on rasters (PNG/JPEG/WEBP); an SVG asset is a
-            # `copy` transform. If a non-raster slips into a cap op it falls back to
-            # original bytes, which we still sanitize if it is an SVG.
+def _transform_payload(op: WriteOp) -> tuple[bytes, Diagnostic | None]:
+    """The bytes a `transform_asset` op lands, plus any cap warning. SVG payloads are
+    sanitized whichever transform produced them (a non-raster cap falls back to
+    original bytes, still sanitized)."""
+    transform = op.transform or AssetTransform(kind="copy")
+    match transform.kind:
+        case "cap_raster":
             payload, warning = _capped_raster_bytes(op, transform)
             return _maybe_sanitize_svg(op, payload), warning
-        return _maybe_sanitize_svg(op, _read_source_bytes(op)), None
-    raise ValueError(f"{op.kind} op has no payload")
+        case "copy":
+            return _maybe_sanitize_svg(op, _read_source_bytes(op)), None
+    assert_never(transform.kind)
+
+
+def _op_payload(op: WriteOp) -> tuple[bytes, Diagnostic | None]:
+    """The bytes a content op lands, plus any transform warning. SVG asset payloads
+    are sanitized at this boundary. Partial over `OpKind`: `ensure_dir` carries no
+    payload and is dispatched separately in `apply`."""
+    match op.kind:
+        case "write_text":
+            if op.content is None:
+                raise ValueError(f"write_text op for {op.rel_path} has no content")
+            return op.content.encode("utf-8"), None
+        case "copy":
+            return _maybe_sanitize_svg(op, _read_source_bytes(op)), None
+        case "transform_asset":
+            return _transform_payload(op)
+        case _:
+            raise ValueError(f"{op.kind} op has no payload")
 
 
 def _preflight_sources(plan: WritePlan) -> tuple[Diagnostic, ...]:
-    """Prove EVERY `copy`/`transform_asset` op's source is a readable file, BEFORE
-    the writer mutates anything — the WritePlan safety contract's preflight step.
+    """One FATAL diagnostic per `copy`/`transform_asset` op whose source is
+    missing/None/unreadable, checked BEFORE any mutation so a later unreadable
+    source refuses the whole plan instead of leaving a half-written bundle.
 
-    Returns one FATAL diagnostic per op whose source is missing/None/unreadable
-    (empty == every source readable). The writer refuses the WHOLE plan on any
-    fatal, so a later unreadable source can never leave a half-written, manifest-
-    less bundle (the partial-apply bug). This checks READABILITY (the source exists
-    and a 1-byte read succeeds), not decodability: a cap_raster source that exists
-    but is an undecodable raster is a per-image NON-fatal fallback handled later in
-    `_capped_raster_bytes`, not a plan-level refusal. `write_text`/`ensure_dir` ops
-    carry no source and are not preflighted here (their payload is already in hand).
+    Checks readability (exists + a 1-byte read), not decodability — an undecodable
+    cap_raster source is a per-image non-fatal fallback in `_capped_raster_bytes`.
+    `write_text`/`ensure_dir` carry no source.
     """
     diags: list[Diagnostic] = []
     for op in plan.operations:
@@ -244,10 +220,9 @@ def _preflight_sources(plan: WritePlan) -> tuple[Diagnostic, ...]:
     return tuple(diags)
 
 
-def _classify(dest: Path, payload: bytes) -> str:
-    """`created` if dest is absent, `skipped` if its bytes already match,
-    `changed` otherwise — so re-importing an identical bundle reports skips, not
-    rewrites."""
+def _classify(dest: Path, payload: bytes) -> _Bucket:
+    """`created` if dest is absent, `skipped` if its bytes already match, `changed`
+    otherwise — so re-importing an identical bundle reports skips, not rewrites."""
     if not dest.exists():
         return "created"
     try:
@@ -263,22 +238,18 @@ def apply(
 ) -> WriteReport:
     """Validate and (unless dry-run) apply `plan` — the only fs-mutating call.
 
-    Preflight: `validate` with fs-backed predicates, combined with the plan's own
-    diagnostics. If ANY diagnostic is fatal, write NOTHING and return a report
-    listing the would-be writes as `refused` plus the fatal diagnostics. On
-    dry_run, report what WOULD happen and touch nothing. Otherwise apply ops in
-    order through atomic replace. Provenance (if any) is the caller's concern,
-    written after this returns — the writer is general and emits no manifest.
+    Combines `validate` (fs-backed predicates) and source preflight with the plan's
+    own diagnostics. On any fatal diagnostic, writes nothing and reports the
+    would-be writes as `refused`. On dry-run, reports the same buckets but touches
+    nothing. Otherwise applies ops in order through atomic replace.
     """
     validation = validate(
         plan,
         target_exists=lambda rel: _target_exists(plan, rel),
         escapes_scope=lambda rel: _escapes_scope(plan, rel),
     )
-    # Preflight every source as readable BEFORE any write, so a later unreadable
-    # source refuses the whole plan instead of leaving a partial, manifest-less
-    # bundle (the WritePlan safety contract). Folded into the same fatal-diagnostic
-    # refusal path as `validate`.
+    # Preflight sources before any write so a later unreadable source refuses the
+    # whole plan rather than leaving a partial bundle (same fatal path as `validate`).
     source_check = _preflight_sources(plan)
     diagnostics = (*plan.diagnostics, *validation, *source_check)
 
@@ -307,10 +278,17 @@ def apply(
         payload, warning = _op_payload(op)
         if warning is not None:
             transform_diags.append(warning)
-        bucket = _classify(dest, payload)
-        if not dry_run and bucket != "skipped":
-            _atomic_write(dest, payload)
-        {"created": created, "changed": changed, "skipped": skipped}[bucket].append(op.rel_path)
+        match _classify(dest, payload):
+            case "created":
+                if not dry_run:
+                    _atomic_write(dest, payload)
+                created.append(op.rel_path)
+            case "changed":
+                if not dry_run:
+                    _atomic_write(dest, payload)
+                changed.append(op.rel_path)
+            case "skipped":
+                skipped.append(op.rel_path)
 
     return WriteReport(
         created=tuple(created),

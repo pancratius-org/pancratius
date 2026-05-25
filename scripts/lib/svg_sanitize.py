@@ -1,28 +1,18 @@
 # import-pure: no filesystem mutation
 """Sanitize an SVG asset at the import asset-copy boundary (defense-in-depth).
 
-SVG body images are served RAW, same-origin, by the static site. An SVG that
-carries a script element, an `on*` event-handler attribute, a `javascript:` href,
-a `<foreignObject>` (which can host arbitrary HTML), or an EXTERNAL
-`href`/`xlink:href` (a fetch/exfil gadget) is a stored-XSS vector the moment it is
-served. The site's Markdown renderer has no sanitizer (we emit raw HTML on
-purpose), so the IMPORT is the gate: the writer routes every copied SVG through
-`sanitize_svg` so an authored gadget never reaches a published asset.
+SVG body images are served raw, same-origin; a script element, an `on*` handler, a
+`javascript:` href, a `<foreignObject>` (it can host arbitrary HTML), or an
+external `href`/`xlink:href` (a fetch/exfil gadget) is then stored XSS. The
+renderer has no sanitizer (it emits raw HTML by design), so import is the gate.
 
-This is NOT a general HTML sanitizer. It removes a closed, enumerated set of
-dangerous constructs with conservative, byte-preserving regex surgery — a CLEAN
-SVG (the common case: gradients/symbols referenced by internal `#`-fragment
-`xlink:href`) is returned BYTE-FOR-BYTE so the real author SVGs are never
-corrupted. Only when a dangerous construct is actually present are bytes rewritten.
-
-The trust model justifies regex over a full XML round-trip: sources are
-trusted-authored DOCX whose images are Inkscape/illustrator SVGs, imported locally
-by an admin — the goal is to strip an inadvertent (or smuggled) active gadget, not
-to defend a parser-differential against a determined attacker mutating the file at
-serve time (serving is out of scope). A full XML reserialization would reorder
-attributes and break the byte-identity guarantee the clean-SVG case relies on.
-
-This module is PURE: it transforms bytes to bytes and touches no filesystem.
+Not a general HTML sanitizer: it removes a closed, enumerated set of constructs
+with byte-preserving regex surgery, so a clean SVG (the common case:
+gradients/symbols via internal `#`-fragment `xlink:href`) returns byte-for-byte and
+the author SVGs are never corrupted. Regex over an XML round-trip is intentional —
+sources are admin-imported, trusted-authored DOCX SVGs (serve-time parser
+differentials are out of scope), and reserialization would reorder attributes and
+break the clean-SVG byte-identity. PURE: bytes to bytes, no filesystem.
 """
 
 from __future__ import annotations
@@ -76,18 +66,16 @@ def is_svg_name(name: str) -> bool:
 def sanitize_svg(payload: bytes) -> bytes:
     """Return `payload` with SVG XSS gadgets removed.
 
-    Strips `<script>`/`<foreignObject>` elements, `on*` event-handler attributes,
-    `javascript:`/`vbscript:`/`data:` and external `href`/`xlink:href` targets;
-    keeps everything else, including internal `#`-fragment refs. CLEAN input is
-    returned UNCHANGED (the same object), so a clean SVG copies byte-for-byte.
+    Strips `<script>`/`<foreignObject>` elements, `on*` handler attributes, and
+    `javascript:`/`vbscript:`/`data:`/external `href`/`xlink:href` targets; keeps
+    everything else, including internal `#`-fragment refs. Clean input returns
+    unchanged, so a clean SVG copies byte-for-byte.
 
-    Runs the strip pass to a fixed point (max a few iterations) so a construct that
-    only becomes matchable after a sibling is removed — e.g. a handler revealed when
-    a wrapping `<script>` goes — is still caught. Idempotent: re-running on already-
-    sanitized bytes is a no-op.
+    Strips to a fixed point so a construct revealed only after a sibling is removed
+    (e.g. a handler unwrapped when its `<script>` goes) is still caught. Idempotent.
     """
     out = payload
-    for _ in range(8):  # fixed point; SVGs are shallow, this converges in 1-2 passes
+    for _ in range(8):  # SVGs are shallow; converges in 1-2 passes
         stripped = _strip_all(out)
         if stripped == out:
             break
