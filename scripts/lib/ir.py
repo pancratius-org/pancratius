@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Literal, Union
+from typing import Literal, assert_never
 
 # The emphasis kinds the IR models. Exported so the adapter (mapping Pandoc node
 # tags to it) and the lowering (mapping it to Markdown/HTML) share ONE source of
@@ -131,14 +131,19 @@ class UnknownInline:
     children: list[Inline] = field(default_factory=list)
 
 
-Inline = Union[
-    Text, Emphasis, Code, Link, ImageInline, Quoted, FootnoteRef,
-    LineBreak, SoftBreak, DirectionalSpan, UnknownInline,
-]
+type Inline = (
+    Text | Emphasis | Code | Link | ImageInline | Quoted | FootnoteRef
+    | LineBreak | SoftBreak | DirectionalSpan | UnknownInline
+)
 
-# The container inline kinds (those that nest a `children` inline list). Recursive
-# inline passes test against this tuple instead of re-spelling the isinstance chain
-# at every call site.
+# The container inline kinds (those that nest a `children` inline list) named ONCE,
+# in two complementary shapes that must list the SAME kinds:
+#   * `ContainerInlineNode` — the typing union, used to type a value already known
+#     to be a container (e.g. `rebuild_container`'s parameter);
+#   * `ContainerInline` — the runtime tuple, the second arg to `isinstance` (a `type`
+#     alias cannot be used there), so recursive inline passes narrow against it
+#     instead of re-spelling the isinstance chain at every call site.
+type ContainerInlineNode = Emphasis | Link | Quoted | DirectionalSpan | UnknownInline
 ContainerInline = (Emphasis, Link, Quoted, DirectionalSpan, UnknownInline)
 
 
@@ -148,23 +153,26 @@ def is_container_inline(node: Inline) -> bool:
     return isinstance(node, ContainerInline)
 
 
-def rebuild_container(
-    node: Emphasis | Link | Quoted | DirectionalSpan | UnknownInline,
-    children: list[Inline],
-) -> Inline:
+def rebuild_container(node: ContainerInlineNode, children: list[Inline]) -> Inline:
     """Return a copy of a container inline with its `children` replaced, preserving
     the kind's other fields. The ONE place the container shapes are reconstructed,
     so a recursive inline pass (AI-alt scrub, empty-emphasis drop, asset
-    assignment) maps children without re-spelling the per-kind constructors."""
-    if isinstance(node, Emphasis):
-        return Emphasis(node.kind, children)
-    if isinstance(node, Link):
-        return Link(children, node.target)
-    if isinstance(node, Quoted):
-        return Quoted(node.single, children)
-    if isinstance(node, DirectionalSpan):
-        return DirectionalSpan(node.direction, children)
-    return UnknownInline(node.note, children)
+    assignment) maps children without re-spelling the per-kind constructors.
+
+    The `match` is exhaustive over `ContainerInlineNode`: adding a container kind
+    makes the type checker flag the `assert_never` until a new arm is added."""
+    match node:
+        case Emphasis():
+            return Emphasis(node.kind, children)
+        case Link():
+            return Link(children, node.target)
+        case Quoted():
+            return Quoted(node.single, children)
+        case DirectionalSpan():
+            return DirectionalSpan(node.direction, children)
+        case UnknownInline():
+            return UnknownInline(node.note, children)
+    assert_never(node)
 
 
 # ---------------------------------------------------------------------------
@@ -272,12 +280,15 @@ class Table:
     """A table. `rows` is structured cell content — rows of cells, each cell a list
     of inlines — so reading-content tables flow through the same AI-alt scrub and
     asset-rewrite passes as body prose before lowering to a GFM pipe table. `raw`
-    keeps the Pandoc node for the bibliography classifier (it needs the hrefs and
-    image alts the flattened cells would drop). `role == "bibliography"` once
-    classified (then lifted, not lowered)."""
+    keeps the opaque source node (the Pandoc Table JSON object, or `None`) for the
+    bibliography classifier (it needs the hrefs and image alts the flattened cells
+    would drop); it is typed `dict[str, object] | None` — a JSON object whose
+    schema the pure IR makes no claim about, not the bare `object` it was — so the
+    classifier still narrows it itself. `role == "bibliography"` once classified
+    (then lifted, not lowered)."""
 
     rows: list[list[list[Inline]]]
-    raw: object = None
+    raw: dict[str, object] | None = None
     role: str | None = None
 
 
@@ -303,11 +314,11 @@ class UnknownBlock:
     text: str = ""
 
 
-Block = Union[
-    Heading, Paragraph, VerseBlock, Signature, Epigraph, DialogueLabel,
-    ThematicBreak, BlockQuote, ListBlock, CodeBlock, Table, ImageBlock,
-    UnknownBlock,
-]
+type Block = (
+    Heading | Paragraph | VerseBlock | Signature | Epigraph | DialogueLabel
+    | ThematicBreak | BlockQuote | ListBlock | CodeBlock | Table | ImageBlock
+    | UnknownBlock
+)
 
 
 def map_block_inlines(block: Block, fn: Callable[[list[Inline]], list[Inline]]) -> None:
@@ -321,22 +332,28 @@ def map_block_inlines(block: Block, fn: Callable[[list[Inline]], list[Inline]]) 
     descended recursively. `fn` returns the replacement inline list (the per-pass
     leaf logic — URL sanitize, asset assignment, AI-alt scrub).
 
-    Leaf kinds `fn` cannot express (an `ImageBlock`'s `src`/`alt`, footnote bodies)
-    are handled by the caller AROUND this descent — this shares ONLY the skeleton,
-    not the per-pass leaf decisions."""
-    if isinstance(block, (Heading, Paragraph)):
-        block.inlines = fn(block.inlines)
-    elif isinstance(block, VerseBlock):
-        block.stanzas = [[fn(line) for line in stanza] for stanza in block.stanzas]
-    elif isinstance(block, Table):
-        block.rows = [[fn(cell) for cell in row] for row in block.rows]
-    elif isinstance(block, BlockQuote):
-        for inner in block.blocks:
-            map_block_inlines(inner, fn)
-    elif isinstance(block, ListBlock):
-        for item in block.items:
-            for inner in item:
+    The dispatch is DELIBERATELY non-exhaustive (a `case _` no-op, NOT
+    `assert_never`): leaf kinds `fn` cannot express (an `ImageBlock`'s `src`/`alt`,
+    footnote bodies) and the inline-free blocks (`Signature`/`Epigraph`/
+    `DialogueLabel`/`ThematicBreak`/`CodeBlock`/`UnknownBlock`) carry no mappable
+    inline list, so they are skipped here and handled by the caller AROUND this
+    descent — this shares ONLY the skeleton, not the per-pass leaf decisions."""
+    match block:
+        case Heading() | Paragraph():
+            block.inlines = fn(block.inlines)
+        case VerseBlock():
+            block.stanzas = [[fn(line) for line in stanza] for stanza in block.stanzas]
+        case Table():
+            block.rows = [[fn(cell) for cell in row] for row in block.rows]
+        case BlockQuote():
+            for inner in block.blocks:
                 map_block_inlines(inner, fn)
+        case ListBlock():
+            for item in block.items:
+                for inner in item:
+                    map_block_inlines(inner, fn)
+        case _:
+            pass  # inline-free block kinds carry no mappable inline list
 
 
 # ---------------------------------------------------------------------------
@@ -369,7 +386,15 @@ class Document:
     """The IR document. Blocks plus footnotes, bibliography, and diagnostics
     travel SIDE BY SIDE — never inside the prose. The body images the lowering
     references are returned as `PlannedAsset`s from the asset pass (the writer
-    copies them); they are not stored on the document."""
+    copies them); they are not stored on the document.
+
+    `bibliography` stays `list[dict[str, object]]` ON PURPOSE: each entry is a
+    dynamically-shaped record (`title`, optional `source_url`, optional nested
+    `target`) that is serialized straight to `bibliography.yaml` and crosses into
+    the bibliography sidecar writer (`docx_conversion`) as `list[dict[str, Any]]`.
+    A `TypedDict` is not a `dict[str, object]`/`dict[str, Any]` subtype (and
+    `list` is invariant), so modelling it as one would break that boundary — the
+    honest type for a YAML-flavored open record is the open dict."""
 
     blocks: list[Block] = field(default_factory=list)
     footnotes: list[FootnoteDef] = field(default_factory=list)
