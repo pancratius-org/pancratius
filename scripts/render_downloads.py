@@ -381,26 +381,23 @@ def render_docx(entry: WorkEntry, scratch_dir: Path) -> Path:
     return out
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--book", type=int, help="render only this book number")
-    parser.add_argument("--poem", type=int, help="render only this poem number")
-    parser.add_argument("--lang", choices=LANGS, help="restrict to one language")
-    parser.add_argument("--skip-pdf", action="store_true")
-    parser.add_argument("--skip-epub", action="store_true")
-    parser.add_argument("--docx", action="store_true",
-                        help="also render merged DOCX release artifacts for multi-part works")
-    parser.add_argument("--force", action="store_true",
-                        help="re-render even if the output is newer than the source")
-    args = parser.parse_args()
-
+def render(
+    *,
+    book: int | None = None,
+    poem: int | None = None,
+    lang: str | None = None,
+    skip_pdf: bool = False,
+    skip_epub: bool = False,
+    docx: bool = False,
+    force: bool = False,
+) -> int:
     selected: list[WorkEntry] = []
     for entry in discover_works():
-        if args.lang and entry.lang != args.lang:
+        if lang and entry.lang != lang:
             continue
-        if args.book is not None and (entry.kind != "book" or entry.number != args.book):
+        if book is not None and (entry.kind != "book" or entry.number != book):
             continue
-        if args.poem is not None and (entry.kind != "poem" or entry.number != args.poem):
+        if poem is not None and (entry.kind != "poem" or entry.number != poem):
             continue
         selected.append(entry)
 
@@ -409,9 +406,9 @@ def main() -> int:
         return 1
 
     formats: list[str] = []
-    if not args.skip_pdf:  formats.append("pdf")
-    if not args.skip_epub: formats.append("epub")
-    if args.docx: formats.append("docx")
+    if not skip_pdf:  formats.append("pdf")
+    if not skip_epub: formats.append("epub")
+    if docx: formats.append("docx")
     _ensure_tools(formats)
 
     pdfs_made = 0
@@ -428,7 +425,7 @@ def main() -> int:
             src_mtime = entry.md.stat().st_mtime
             if "pdf" in formats:
                 out = entry.folder / f"{entry.lang}.pdf"
-                if not args.force and out.exists() and out.stat().st_mtime >= src_mtime:
+                if not force and out.exists() and out.stat().st_mtime >= src_mtime:
                     skipped += 1
                 else:
                     render_pdf(entry, scratch_dir)
@@ -437,7 +434,7 @@ def main() -> int:
             # EPUB scope per docs/downloads.md: books only.
             if "epub" in formats and entry.kind == "book":
                 out = entry.folder / f"{entry.lang}.epub"
-                if not args.force and out.exists() and out.stat().st_mtime >= src_mtime:
+                if not force and out.exists() and out.stat().st_mtime >= src_mtime:
                     skipped += 1
                 else:
                     render_epub(entry, scratch_dir)
@@ -445,7 +442,7 @@ def main() -> int:
                     print(f"  EPUB {entry.kind}#{entry.number}/{entry.lang}  →  {out.relative_to(REPO_ROOT)}")
             if "docx" in formats and _has_source_parts(entry):
                 out = entry.folder / f"{entry.lang}.docx"
-                if not args.force and out.exists() and out.stat().st_mtime >= src_mtime:
+                if not force and out.exists() and out.stat().st_mtime >= src_mtime:
                     skipped += 1
                 else:
                     render_docx(entry, scratch_dir)
@@ -456,6 +453,29 @@ def main() -> int:
 
     print(f"\nrendered: {pdfs_made} PDF, {epubs_made} EPUB, {docxs_made} DOCX ({skipped} skipped; --force to rebuild)")
     return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--book", type=int, help="render only this book number")
+    parser.add_argument("--poem", type=int, help="render only this poem number")
+    parser.add_argument("--lang", choices=LANGS, help="restrict to one language")
+    parser.add_argument("--skip-pdf", action="store_true")
+    parser.add_argument("--skip-epub", action="store_true")
+    parser.add_argument("--docx", action="store_true",
+                        help="also render merged DOCX release artifacts for multi-part works")
+    parser.add_argument("--force", action="store_true",
+                        help="re-render even if the output is newer than the source")
+    ns = parser.parse_args()
+    return render(
+        book=ns.book,
+        poem=ns.poem,
+        lang=ns.lang,
+        skip_pdf=ns.skip_pdf,
+        skip_epub=ns.skip_epub,
+        docx=ns.docx,
+        force=ns.force,
+    )
 
 
 if __name__ == "__main__":

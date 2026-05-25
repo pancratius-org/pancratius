@@ -776,17 +776,13 @@ def build_path_map(content_root: Path, legacy_root: Path) -> dict[Path, Path]:
     return out
 
 
-def main(argv: list[str]) -> int:
-    ap = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[1])
-    ap.add_argument("paths", nargs="*",
-                    help="Specific .docx files or directories. Defaults to the corpus source roots.")
-    ap.add_argument("--force", action="store_true",
-                    help="Re-process even if dst is newer than src.")
-    ap.add_argument("--verbose", "-v", action="store_true")
-    ap.add_argument("--dry-run", action="store_true",
-                    help="Print what would be done; don't write outputs.")
-    args = ap.parse_args(argv)
-
+def optimize(
+    *,
+    paths: list[Path],
+    force: bool = False,
+    verbose: bool = False,
+    dry_run: bool = False,
+) -> int:
     path_map = build_path_map(CONTENT_ROOT, ROOT / "legacy")
     jobs: list[tuple[Path, Path]] = []
     unmapped: list[Path] = []
@@ -798,8 +794,8 @@ def main(argv: list[str]) -> int:
             return
         jobs.append((src, dst))
 
-    if args.paths:
-        for raw in args.paths:
+    if paths:
+        for raw in paths:
             p = Path(raw).resolve()
             if p.is_file():
                 queue(p)
@@ -828,7 +824,7 @@ def main(argv: list[str]) -> int:
     written: list[Path] = []
 
     for src, dst in jobs:
-        if not args.force and dst.exists() and dst.stat().st_mtime >= src.stat().st_mtime:
+        if not force and dst.exists() and dst.stat().st_mtime >= src.stat().st_mtime:
             in_size = src.stat().st_size
             out_size = dst.stat().st_size
             total_in += in_size
@@ -837,12 +833,12 @@ def main(argv: list[str]) -> int:
             written.append(dst)
             print(f"SKIP   {src.name}: {fmt_bytes(in_size):>9s} -> {fmt_bytes(out_size):>9s} (cached)")
             continue
-        if args.dry_run:
+        if dry_run:
             print(f"WOULD  {src} -> {dst}")
             continue
         t0 = time.time()
         try:
-            in_size, out_size, _ = optimize_docx(src, dst, verbose=args.verbose)
+            in_size, out_size, _ = optimize_docx(src, dst, verbose=verbose)
         except Exception as e:
             print(f"FAIL   {src}: {e}", file=sys.stderr)
             continue
@@ -855,7 +851,7 @@ def main(argv: list[str]) -> int:
         print(f"OK     {src.name}: {fmt_bytes(in_size):>9s} -> {fmt_bytes(out_size):>9s}  "
               f"({pct:5.1f}% saved, {dt:4.1f}s)")
 
-    if not args.dry_run:
+    if not dry_run:
         added = update_manifest_generated_paths(written)
         if added:
             print(f"manifest: registered {added} optimized-docx path(s) into by_work.generated_paths")
@@ -865,6 +861,24 @@ def main(argv: list[str]) -> int:
         print(f"\nSUMMARY: {processed} processed, {skipped} cached, "
               f"{fmt_bytes(total_in)} -> {fmt_bytes(total_out)}  ({pct:.1f}% saved)")
     return 0
+
+
+def main(argv: list[str]) -> int:
+    ap = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[1])
+    ap.add_argument("paths", nargs="*",
+                    help="Specific .docx files or directories. Defaults to the corpus source roots.")
+    ap.add_argument("--force", action="store_true",
+                    help="Re-process even if dst is newer than src.")
+    ap.add_argument("--verbose", "-v", action="store_true")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="Print what would be done; don't write outputs.")
+    ns = ap.parse_args(argv)
+    return optimize(
+        paths=[Path(p) for p in ns.paths],
+        force=ns.force,
+        verbose=ns.verbose,
+        dry_run=ns.dry_run,
+    )
 
 
 if __name__ == "__main__":

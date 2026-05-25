@@ -80,6 +80,27 @@ CONTENT = REPO / "src" / "content"
 DATA_OUT = REPO / "data" / "pancratius-concepts-graph.json"
 DATA_OUT_BOOKS = REPO / "data" / "pancratius-books-graph.json"
 
+
+# ---------------------------------------------------------------------------
+# Tuning configuration
+# ---------------------------------------------------------------------------
+# Frozen dataclass mirroring the CLI tuning flags. Defaults MUST match the
+# argparse defaults in ``main()`` exactly — both the standalone CLI and the
+# library door (``generate_graph``) feed the same values into the mode funcs.
+
+
+@dataclass(frozen=True)
+class GraphConfig:
+    top: int = 420
+    window: int = 4
+    min_degree: int = 3
+    min_weight: int = 6
+    min_freq: int = 14
+    edges_per_node: int = 10
+    min_npmi: float = 0.18
+    books_edges_per_node: int = 5
+    books_min_cosine: float = 0.10
+
 # ---------------------------------------------------------------------------
 # Stopwords
 # ---------------------------------------------------------------------------
@@ -500,7 +521,7 @@ def process_corpus(log: LogFn) -> CorpusBundle:
 # ---------------------------------------------------------------------------
 
 
-def run_concepts_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle) -> int:
+def run_concepts_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBundle) -> int:
     docs = bundle.docs
     doc_streams = bundle.doc_streams
     book_lemma_counts = bundle.book_lemma_counts
@@ -509,8 +530,8 @@ def run_concepts_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle
     total_tokens_kept = bundle.total_tokens_kept
 
     # Trim by min frequency BEFORE building edges — saves a ton of memory.
-    frequent = {lemma for lemma, c in global_freq.items() if c >= args.min_freq}
-    log(f"[trim]   {len(frequent)} lemmas with freq >= {args.min_freq}")
+    frequent = {lemma for lemma, c in global_freq.items() if c >= config.min_freq}
+    log(f"[trim]   {len(frequent)} lemmas with freq >= {config.min_freq}")
 
     # Build co-occurrence edge weights.
     edge_w: Counter = Counter()
@@ -520,14 +541,14 @@ def run_concepts_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle
         for tok in stream:
             if tok == "\x00":
                 if buf:
-                    for a, b in slide_pairs(buf, args.window):
+                    for a, b in slide_pairs(buf, config.window):
                         edge_w[(a, b)] += 1
                     buf = []
                 continue
             if tok in frequent:
                 buf.append(tok)
         if buf:
-            for a, b in slide_pairs(buf, args.window):
+            for a, b in slide_pairs(buf, config.window):
                 edge_w[(a, b)] += 1
 
     log(f"[edges]  raw_pairs={len(edge_w)}")
@@ -562,10 +583,10 @@ def run_concepts_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle
     # Build candidate edge list with NPMI scores.
     candidates: list[tuple[str, str, int, float]] = []
     for (a, b), w in edge_w.items():
-        if w < args.min_weight:
+        if w < config.min_weight:
             continue
         score = npmi(a, b, w)
-        if score < args.min_npmi:
+        if score < config.min_npmi:
             continue
         candidates.append((a, b, w, score))
     log(f"[edges]  candidates after weight+npmi prune: {len(candidates)}")
@@ -575,7 +596,7 @@ def run_concepts_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle
     # concept keeps its *most surprising* neighbors, not its most frequent
     # ones. Sum-of-best-from-both-sides survives.
     G = nx.Graph()
-    if args.edges_per_node > 0:
+    if config.edges_per_node > 0:
         by_node: dict[str, list[tuple[str, int, float]]] = defaultdict(list)
         for a, b, w, s in candidates:
             by_node[a].append((b, w, s))
@@ -583,7 +604,7 @@ def run_concepts_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle
         keep_edges: set[tuple[str, str]] = set()
         for node, neighbors in by_node.items():
             neighbors.sort(key=lambda x: x[2], reverse=True)
-            for other, _w, _s in neighbors[: args.edges_per_node]:
+            for other, _w, _s in neighbors[: config.edges_per_node]:
                 pair = (node, other) if node < other else (other, node)
                 keep_edges.add(pair)
         for a, b, w, s in candidates:
@@ -599,19 +620,19 @@ def run_concepts_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle
     # Degree prune (iterative — removing a node may push neighbors below
     # threshold). Two passes is usually enough.
     for _ in range(3):
-        weak = [n for n, deg in G.degree() if deg < args.min_degree]
+        weak = [n for n, deg in G.degree() if deg < config.min_degree]
         if not weak:
             break
         G.remove_nodes_from(weak)
     log(f"[graph]  nodes={G.number_of_nodes()} edges={G.number_of_edges()} (after degree prune)")
 
     # Cap to top N by weighted degree if still oversized.
-    if G.number_of_nodes() > args.top:
+    if G.number_of_nodes() > config.top:
         weighted_deg = {n: sum(d["weight"] for _, _, d in G.edges(n, data=True))
                         for n in G.nodes()}
-        keep = set(sorted(weighted_deg, key=lambda n: weighted_deg[n], reverse=True)[: args.top])
+        keep = set(sorted(weighted_deg, key=lambda n: weighted_deg[n], reverse=True)[: config.top])
         G = G.subgraph(keep).copy()
-        log(f"[graph]  nodes={G.number_of_nodes()} (capped at top={args.top})")
+        log(f"[graph]  nodes={G.number_of_nodes()} (capped at top={config.top})")
 
     if G.number_of_nodes() == 0:
         print("ERROR: graph is empty — loosen thresholds.", file=sys.stderr)
@@ -725,16 +746,16 @@ def run_concepts_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle
             "color_index": cid % 12,
         })
 
-    out = {
+    out_doc = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "params": {
-            "window": args.window,
-            "min_degree": args.min_degree,
-            "min_weight": args.min_weight,
-            "min_freq": args.min_freq,
-            "min_npmi": args.min_npmi,
-            "edges_per_node": args.edges_per_node,
-            "top": args.top,
+            "window": config.window,
+            "min_degree": config.min_degree,
+            "min_weight": config.min_weight,
+            "min_freq": config.min_freq,
+            "min_npmi": config.min_npmi,
+            "edges_per_node": config.edges_per_node,
+            "top": config.top,
             "community_algorithm": "leiden-modularity",
         },
         "stats": {
@@ -755,10 +776,10 @@ def run_concepts_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle
         "edges": edges_out,
     }
 
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
-    size_kb = args.out.stat().st_size / 1024
-    log(f"\n[done]  wrote {args.out}  size={size_kb:.1f} KB")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(out_doc, ensure_ascii=False, indent=2), encoding="utf-8")
+    size_kb = out.stat().st_size / 1024
+    log(f"\n[done]  wrote {out}  size={size_kb:.1f} KB")
     log(f"[done]  {len(nodes_out)} nodes, {len(edges_out)} edges, "
         f"{len(communities_out)} communities")
     return 0
@@ -769,7 +790,7 @@ def run_concepts_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle
 # ---------------------------------------------------------------------------
 
 
-def run_books_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle) -> int:
+def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBundle) -> int:
     """Build the inverse projection: book-book graph over shared concepts.
 
     Edge weight is **TF-IDF cosine similarity** on per-book concept-frequency
@@ -823,11 +844,11 @@ def run_books_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle) -
     max_df = int(0.85 * len(books))
     vocab = [
         lemma for lemma, df in concept_doc_freq.items()
-        if df >= 2 and df <= max_df and global_freq.get(lemma, 0) >= args.min_freq
+        if df >= 2 and df <= max_df and global_freq.get(lemma, 0) >= config.min_freq
     ]
     vocab_idx = {lemma: i for i, lemma in enumerate(vocab)}
     log(f"[books]  vocab size = {len(vocab)} concepts "
-        f"(≥2 books, ≤{max_df} books, ≥{args.min_freq} corpus freq)")
+        f"(≥2 books, ≤{max_df} books, ≥{config.min_freq} corpus freq)")
 
     # IDF for each vocab term — natural log smoothed.
     N = len(books)
@@ -881,11 +902,11 @@ def run_books_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle) -
         cosine.append((a, b, c))
     log(f"[books]  raw cosine pairs = {len(cosine)} (before prune)")
 
-    # Prune to top-K neighbors per book (K = args.books_edges_per_node).
+    # Prune to top-K neighbors per book (K = config.books_edges_per_node).
     # We keep an edge if it survives in either endpoint's top-K list — this
     # is the "mutual k-NN union" trick that keeps hubs from monopolising
     # all the edges and isolated nodes from being orphaned.
-    K = args.books_edges_per_node
+    K = config.books_edges_per_node
     by_book: dict[str, list[tuple[str, float]]] = defaultdict(list)
     for a, b, c in cosine:
         by_book[a].append((b, c))
@@ -904,7 +925,7 @@ def run_books_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle) -
         (cosine_score(book_vec, book_norm, a, b) for a, b in keep),
         reverse=True,
     )
-    floor = args.books_min_cosine
+    floor = config.books_min_cosine
     log(f"[books]  cosine floor = {floor:.3f}")
 
     G = nx.Graph()
@@ -998,7 +1019,7 @@ def run_books_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle) -
     full_idf = {
         lemma: math.log((1 + N) / (1 + df)) + 1.0
         for lemma, df in concept_doc_freq.items()
-        if df >= 2 and global_freq.get(lemma, 0) >= args.min_freq
+        if df >= 2 and global_freq.get(lemma, 0) >= config.min_freq
     }
 
     def top_concepts_for(slug: str, k: int = 10) -> list[dict]:
@@ -1118,14 +1139,14 @@ def run_books_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle) -
             "color_index": cid % 12,
         })
 
-    out = {
+    out_doc = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "mode": "books",
         "params": {
             "edge_weight": "tfidf-cosine",
-            "edges_per_node": args.books_edges_per_node,
-            "min_cosine": args.books_min_cosine,
-            "min_freq": args.min_freq,
+            "edges_per_node": config.books_edges_per_node,
+            "min_cosine": config.books_min_cosine,
+            "min_freq": config.min_freq,
             "community_algorithm": "leiden-modularity",
         },
         "stats": {
@@ -1142,10 +1163,10 @@ def run_books_mode(args: argparse.Namespace, log: LogFn, bundle: CorpusBundle) -
         "edges": edges_out,
     }
 
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
-    size_kb = args.out.stat().st_size / 1024
-    log(f"\n[done]  wrote {args.out}  size={size_kb:.1f} KB")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(out_doc, ensure_ascii=False, indent=2), encoding="utf-8")
+    size_kb = out.stat().st_size / 1024
+    log(f"\n[done]  wrote {out}  size={size_kb:.1f} KB")
     log(f"[done]  {len(nodes_out)} books, {len(edges_out)} edges, "
         f"{len(communities_out)} communities")
     return 0
@@ -1162,6 +1183,34 @@ def cosine_score(
         va, vb = vb, va
     dot = sum(va[k] * vb.get(k, 0.0) for k in va)
     return dot / (book_norm[a] * book_norm[b]) if dot else 0.0
+
+
+# ---------------------------------------------------------------------------
+# Library door — one typed entry both the CLI and the console-script call
+# ---------------------------------------------------------------------------
+
+
+def generate_graph(
+    *,
+    only: str | None = None,
+    config: GraphConfig = GraphConfig(),
+    concepts_out: Path | None = None,
+    books_out: Path | None = None,
+    quiet: bool = False,
+) -> int:
+    """Regenerate BOTH graph projections off one corpus scan (or one, via `only`)."""
+    log: LogFn = print if not quiet else (lambda *a, **k: None)  # match main()'s log choice
+    bundle = process_corpus(log)
+    rc = 0
+    # Attempt BOTH projections off the one bundle (the run_* call is the left
+    # operand, so it always executes — a failed concepts projection does not skip
+    # books); return the first nonzero exit. On the standalone single-mode path
+    # exactly one branch runs, so this is `run_X(...) or 0` == run_X(...).
+    if only in (None, "concepts"):
+        rc = run_concepts_mode(config, concepts_out or DATA_OUT, log, bundle) or rc
+    if only in (None, "books"):
+        rc = run_books_mode(config, books_out or DATA_OUT_BOOKS, log, bundle) or rc
+    return rc
 
 
 # ---------------------------------------------------------------------------
@@ -1205,20 +1254,17 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args(argv)
 
-    if args.out is None:
-        args.out = DATA_OUT_BOOKS if args.mode == "books" else DATA_OUT
-
     t0 = time.time()
-    log = print if not args.quiet else (lambda *a, **k: None)
-
-    bundle = process_corpus(log)
-
-    if args.mode == "books":
-        rc = run_books_mode(args, log, bundle)
-    else:
-        rc = run_concepts_mode(args, log, bundle)
+    config = GraphConfig(top=args.top, window=args.window, min_degree=args.min_degree,
+        min_weight=args.min_weight, min_freq=args.min_freq, edges_per_node=args.edges_per_node,
+        min_npmi=args.min_npmi, books_edges_per_node=args.books_edges_per_node,
+        books_min_cosine=args.books_min_cosine)
+    rc = generate_graph(only=args.mode, config=config,
+        concepts_out=args.out if args.mode == "concepts" else None,
+        books_out=args.out if args.mode == "books" else None, quiet=args.quiet)
 
     elapsed = time.time() - t0
+    log = print if not args.quiet else (lambda *a, **k: None)
     log(f"[time]   total elapsed {elapsed:.1f}s")
     return rc
 
