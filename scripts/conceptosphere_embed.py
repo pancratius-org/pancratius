@@ -586,28 +586,28 @@ def discover_topics(
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--model", default=DEFAULT_MODEL,
-                    help="MLX-loadable embedding model. Default Qwen3-Embedding-0.6B; "
-                         "swap to Qwen/Qwen3-Embedding-4B for production.")
-    ap.add_argument("--rebuild", action="store_true",
-                    help="Ignore cache and re-embed every chunk.")
-    ap.add_argument("--batch-size", type=int, default=8,
-                    help="Embedding batch size (per-forward-pass).")
-    ap.add_argument("--max-length", type=int, default=512,
-                    help="Max tokens per chunk on the tokeniser side.")
-    ap.add_argument("--out", type=Path, default=DATA_OUT)
-    ap.add_argument("--limit", type=int, default=0,
-                    help="If >0, process only the first N documents (smoke test).")
-    args = ap.parse_args()
-
+def generate_embeddings(
+    *,
+    model: str = DEFAULT_MODEL,
+    rebuild: bool = False,
+    batch_size: int = 8,
+    max_length: int = 512,
+    out: Path = DATA_OUT,
+    limit: int = 0,
+) -> int:
+    """Embed the corpus, cluster, and write the semantic conceptosphere JSON."""
+    # The ``model`` parameter is the string model-id (what argparse held in
+    # ``args.model``). Keep it under a stable name because the verbatim body
+    # later rebinds the bare ``model`` name to the *loaded MLX object* via
+    # ``model, tokenizer = load(...)`` — exactly as the original did, where
+    # ``args.model`` (string) and ``model`` (object) were distinct names.
+    model_id = model
     t_total = time.time()
-    print(f"[i] model: {args.model}")
+    print(f"[i] model: {model_id}")
     print(f"[i] cache: {CACHE_DIR}")
     docs = collect_docs()
-    if args.limit:
-        docs = docs[:args.limit]
+    if limit:
+        docs = docs[:limit]
     print(f"[i] {len(docs)} documents collected "
           f"(books={sum(d.kind=='book' for d in docs)}, "
           f"poems={sum(d.kind=='poem' for d in docs)}, "
@@ -633,7 +633,7 @@ def main() -> int:
     from mlx_embeddings import load
     import mlx.core as mx
     t = time.time()
-    model, tokenizer = load(args.model)
+    model, tokenizer = load(model_id)
     print(f"[i] model loaded in {time.time()-t:.2f}s")
 
     # Walk every book, embed missing chunks, cache.
@@ -652,19 +652,19 @@ def main() -> int:
             # empty doc — assign a zero centroid; will be a graph outlier
             embs = np.zeros((0, 1), dtype=np.float32)
         else:
-            cached = None if args.rebuild else load_book_cache(args.model, d.slug, chunks)
+            cached = None if rebuild else load_book_cache(model_id, d.slug, chunks)
             if cached is not None:
                 embs = cached.astype(np.float32)
                 n_cached += len(chunks)
             else:
                 t_b = time.time()
                 embs = embed_chunks(chunks, model, tokenizer,
-                                    batch_size=args.batch_size,
-                                    max_length=args.max_length)
+                                    batch_size=batch_size,
+                                    max_length=max_length)
                 # re-normalise to be safe (mlx-embeddings already does this)
                 norms = np.linalg.norm(embs, axis=1, keepdims=True) + 1e-9
                 embs = (embs / norms).astype(np.float32)
-                save_book_cache(args.model, d.slug, chunks, embs)
+                save_book_cache(model_id, d.slug, chunks, embs)
                 n_computed += len(chunks)
                 print(f"  · {d.slug}: {len(chunks)} chunks "
                       f"in {time.time()-t_b:.2f}s")
@@ -804,9 +804,9 @@ def main() -> int:
 
     # ---- emit JSON ----
     PALETTE_LEN = 20  # matches conceptosphere.html
-    out = {
+    out_doc = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "model": args.model,
+        "model": model_id,
         "params": {
             "chunk_tokens": CHUNK_TOKENS,
             "chunk_overlap": CHUNK_OVERLAP,
@@ -852,11 +852,31 @@ def main() -> int:
         "topics": topics,
     }
 
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"[✓] wrote {args.out}  ({args.out.stat().st_size/1024:.1f} KB)")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(out_doc, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"[✓] wrote {out}  ({out.stat().st_size/1024:.1f} KB)")
     print(f"[✓] total wall: {time.time()-t_total:.1f}s")
     return 0
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--model", default=DEFAULT_MODEL,
+                    help="MLX-loadable embedding model. Default Qwen3-Embedding-0.6B; "
+                         "swap to Qwen/Qwen3-Embedding-4B for production.")
+    ap.add_argument("--rebuild", action="store_true",
+                    help="Ignore cache and re-embed every chunk.")
+    ap.add_argument("--batch-size", type=int, default=8,
+                    help="Embedding batch size (per-forward-pass).")
+    ap.add_argument("--max-length", type=int, default=512,
+                    help="Max tokens per chunk on the tokeniser side.")
+    ap.add_argument("--out", type=Path, default=DATA_OUT)
+    ap.add_argument("--limit", type=int, default=0,
+                    help="If >0, process only the first N documents (smoke test).")
+    ns = ap.parse_args()
+    return generate_embeddings(model=ns.model, rebuild=ns.rebuild,
+                               batch_size=ns.batch_size, max_length=ns.max_length,
+                               out=ns.out, limit=ns.limit)
 
 
 if __name__ == "__main__":

@@ -159,7 +159,7 @@ def _collect_pages() -> list[dict[str, Any]]:
     ]
 
 
-def main() -> int:
+def generate_slug_map() -> int:
     works, cross_ref_errors = _collect_works()
     if cross_ref_errors:
         for err in cross_ref_errors:
@@ -186,6 +186,10 @@ def main() -> int:
     summary = ", ".join(f"{k}={n}" for k, n in sorted(by_kind.items()))
     print(f"slug-map: {OUTPUT.relative_to(REPO_ROOT)}  works({summary})  pages={len(pages)}")
     return 0
+
+
+def main() -> int:
+    return generate_slug_map()
 
 
 if __name__ == "__main__":
