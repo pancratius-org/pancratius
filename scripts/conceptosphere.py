@@ -1188,8 +1188,12 @@ def generate_graph(
     books_out: Path | None = None,
     quiet: bool = False,
 ) -> int:
-    """Regenerate BOTH graph projections off one corpus scan (or one, via `only`)."""
-    log: LogFn = print if not quiet else (lambda *a, **k: None)  # match main()'s log choice
+    """Regenerate BOTH graph projections off one corpus scan (or one, via `only`).
+
+    Owns the run timing so EVERY caller (the `pancratius data graph generate` door
+    and the standalone `main`) gets the `[time]` line — `main` no longer times."""
+    log: LogFn = print if not quiet else (lambda *a, **k: None)
+    t0 = time.time()
     bundle = process_corpus(log)
     rc = 0
     # Attempt BOTH projections off the one bundle (the run_* call is the left
@@ -1200,6 +1204,7 @@ def generate_graph(
         rc = run_concepts_mode(config, concepts_out or DATA_OUT, log, bundle) or rc
     if only in (None, "books"):
         rc = run_books_mode(config, books_out or DATA_OUT_BOOKS, log, bundle) or rc
+    log(f"[time]   total elapsed {time.time() - t0:.1f}s")
     return rc
 
 
@@ -1244,19 +1249,14 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args(argv)
 
-    t0 = time.time()
     config = GraphConfig(top=args.top, window=args.window, min_degree=args.min_degree,
         min_weight=args.min_weight, min_freq=args.min_freq, edges_per_node=args.edges_per_node,
         min_npmi=args.min_npmi, books_edges_per_node=args.books_edges_per_node,
         books_min_cosine=args.books_min_cosine)
-    rc = generate_graph(only=args.mode, config=config,
+    # generate_graph owns the timing line, so the door and the standalone CLI agree.
+    return generate_graph(only=args.mode, config=config,
         concepts_out=args.out if args.mode == "concepts" else None,
         books_out=args.out if args.mode == "books" else None, quiet=args.quiet)
-
-    elapsed = time.time() - t0
-    log = print if not args.quiet else (lambda *a, **k: None)
-    log(f"[time]   total elapsed {elapsed:.1f}s")
-    return rc
 
 
 if __name__ == "__main__":
