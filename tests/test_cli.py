@@ -53,10 +53,13 @@ def test_unknown_command_is_usage_error(argv: list[str]) -> None:
     assert _exit_code(argv) == 2
 
 
-@pytest.mark.parametrize("verify", [["audit"], ["site"]])
+@pytest.mark.parametrize(
+    "verify", [["audit"], ["site"], ["check"], ["build"], ["test"], ["dev"], ["preview"]]
+)
 def test_door_has_no_verify_verb(verify: list[str]) -> None:
-    """The door MUTATES; verification (`audit`/`site`) is the npm site door's job
-    (the mutate/verify cut, PAN019). They are not groups → usage error."""
+    """The door MUTATES; the site-door verb family (verify: audit/check/test;
+    build/serve: build/dev/preview; plus the `site` proxy) is the npm door's job
+    (the mutate/verify cut, PAN019). None are door groups → usage error."""
     assert _exit_code(verify) == 2
 
 
