@@ -1,7 +1,4 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.12"
-# ///
+#!/usr/bin/env python3
 
 """Copy the public conceptosphere graph payloads into ``public/data/``.
 

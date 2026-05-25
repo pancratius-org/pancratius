@@ -1,11 +1,4 @@
-#!/usr/bin/env -S uv run --quiet --script
-# /// script
-# requires-python = ">=3.11"
-# dependencies = [
-#   "pillow>=10.4",
-#   "pyyaml>=6.0",
-# ]
-# ///
+#!/usr/bin/env python3
 """
 docx_optimize.py — shrink Sergey Orekhov's .docx corpus.
 
