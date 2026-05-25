@@ -223,7 +223,17 @@ def _imports_dir(content_root: Path) -> Path:
     "Idempotency"), under `data/imports/`. Deriving it from the content root
     sandboxes a temp `--out-content`: a real import (`<repo>/src/content`) lands
     at `<repo>/data/imports`; a test importing into `tmp/src/content` lands at
-    `tmp/data/imports`, never the real repo."""
+    `tmp/data/imports`, never the real repo.
+
+    The layout assumes the canonical `<root>/src/content` shape (`parents[1]` is
+    the project root). A degenerate `--out-content` too shallow to have a
+    grandparent (e.g. `/content`) is rejected as bad input rather than crashing
+    with an IndexError — the door maps `ImportError` to a clean usage exit."""
+    if len(content_root.parents) < 2:
+        raise ImportError(
+            f"--out-content {content_root} is too shallow to locate data/imports; "
+            "pass a path shaped like '<root>/src/content'."
+        )
     return content_root.parents[1] / "data" / "imports"
 
 

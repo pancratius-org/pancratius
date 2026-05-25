@@ -335,3 +335,14 @@ def test_import_work_is_side_effect_free(tmp_path: Path, capsys: pytest.CaptureF
     captured = capsys.readouterr()
     assert captured.out == "", f"import_work must not print to stdout; got {captured.out!r}"
     assert captured.err == "", f"import_work must not print to stderr; got {captured.err!r}"
+
+
+def test_imports_dir_canonical_layout() -> None:
+    # Manifest lands at <root>/data/imports for the canonical <root>/src/content.
+    assert import_docx._imports_dir(Path("/x/src/content")) == Path("/x/data/imports")
+
+
+def test_imports_dir_rejects_shallow_out_content() -> None:
+    # Too shallow to have a grandparent → a clean input error, not an IndexError.
+    with pytest.raises(import_docx.ImportError):
+        import_docx._imports_dir(Path("/content"))
