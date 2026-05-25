@@ -8,11 +8,42 @@ requires-python = ">=3.13"
 # `project page add` — so `uv sync` (no extras) installs and runs them. Pillow is
 # the image-cap/optimize dependency; it also keeps the import behavioural tests in
 # tests/test_import_docx.py running under `uv run pytest` instead of skipping on a
-# missing PIL. The HEAVY stacks (graph/embed) are opt-in extras (added in a later
-# phase under [project.optional-dependencies]), not here.
+# missing PIL. The HEAVY stacks (graph/embed) are opt-in extras below, not here.
 dependencies = [
   "pyyaml>=6.0.2",
   "pillow>=10.4",
+]
+
+# Heavy stacks for the two heavy `data` verbs, declared HERE in the project (not
+# inlined per-script — these scripts are pancratius library modules, docs/tooling.md
+# "Dependency model"). `uv sync` without an extra never installs them, so the light
+# core stays light; `data graph generate` / `data embed generate` lazy-import their
+# owner inside the handler and, on ImportError, exit with `uv sync --extra <name>`.
+[project.optional-dependencies]
+graph = [
+  "pymorphy3>=2.0.2",
+  "pymorphy3-dicts-ru>=2.4.417150",
+  "networkx>=3.2",
+  "python-louvain>=0.16",
+  "regex>=2024.5.15",
+  "scipy>=1.11",
+  "igraph>=0.11",
+  "leidenalg>=0.10",
+]
+embed = [
+  "mlx-embeddings>=0.1.0",
+  "mlx>=0.20",
+  "huggingface_hub>=0.20",
+  "regex>=2024.5.15",
+  "razdel>=0.5.0",
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "igraph>=0.11",
+  "leidenalg>=0.10",
+  "hdbscan>=0.8.40",
+  "scikit-learn>=1.4",
+  "pymorphy3>=2.0.2",
+  "pymorphy3-dicts-ru>=2.4.417150",
 ]
 
 # The library door (docs/tooling.md): `uv run pancratius …` dispatches to the

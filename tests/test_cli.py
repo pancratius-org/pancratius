@@ -87,3 +87,67 @@ def test_data_bulk_refresh_node_failure_is_failure(monkeypatch: pytest.MonkeyPat
         cli.subprocess, "run", lambda *a, **k: types.SimpleNamespace(returncode=3)
     )
     assert _exit_code(["data", "bulk", "refresh"]) == 1
+
+
+# --- heavy verbs behind the extras gate --------------------------------------
+def test_light_core_imports_no_ml_deps() -> None:
+    """Importing the door must not pull a heavy stack — the light core stays light.
+    `import pancratius.cli` ran at module load; assert no heavy module rode in."""
+    for heavy in ("conceptosphere", "conceptosphere_embed", "networkx", "igraph", "mlx", "numpy"):
+        assert heavy not in sys.modules, f"light core unexpectedly imported {heavy}"
+
+
+@pytest.mark.parametrize(
+    ("argv", "owner", "extra"),
+    [
+        (["data", "graph", "generate"], "conceptosphere", "graph"),
+        (["data", "embed", "generate"], "conceptosphere_embed", "embed"),
+    ],
+)
+def test_heavy_verb_without_extra_prints_hint(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    argv: list[str],
+    owner: str,
+    extra: str,
+) -> None:
+    """A heavy verb with its extra absent exits 1 with the install hint — never a
+    traceback. Forced deterministically by blocking the owner import (so the test
+    holds whether or not the extra happens to be installed)."""
+    monkeypatch.setitem(sys.modules, owner, None)  # `from <owner> import …` → ImportError
+    assert _exit_code(argv) == 1
+    err = capsys.readouterr().err
+    assert f"uv sync --extra {extra}" in err
+
+
+def _stub_owner(monkeypatch: pytest.MonkeyPatch, module: str, attr: str) -> list[dict[str, object]]:
+    """Inject a fake owner module exposing `attr` as a call-recording stub, so the
+    door's `from <module> import <attr>` resolves to it. Returns the calls list."""
+    calls: list[dict[str, object]] = []
+
+    def stub(**kwargs: object) -> int:
+        calls.append(kwargs)
+        return 0
+
+    fake = types.ModuleType(module)
+    setattr(fake, attr, stub)
+    monkeypatch.setitem(sys.modules, module, fake)
+    return calls
+
+
+def test_data_graph_generate_dispatches_with_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = _stub_owner(monkeypatch, "conceptosphere", "generate_graph")
+    assert _exit_code(["data", "graph", "generate", "--only", "books"]) == 0
+    assert calls == [{"only": "books"}]
+
+
+def test_data_graph_generate_defaults_to_both(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = _stub_owner(monkeypatch, "conceptosphere", "generate_graph")
+    assert _exit_code(["data", "graph", "generate"]) == 0
+    assert calls == [{"only": None}]  # only=None → both projections
+
+
+def test_data_embed_generate_dispatches(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = _stub_owner(monkeypatch, "conceptosphere_embed", "generate_embeddings")
+    assert _exit_code(["data", "embed", "generate"]) == 0
+    assert calls == [{}]

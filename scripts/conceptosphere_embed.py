@@ -1,23 +1,8 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.11"
-# dependencies = [
-#   "mlx-embeddings>=0.1.0",
-#   "mlx>=0.20",
-#   "huggingface_hub>=0.20",
-#   "PyYAML>=6.0",
-#   "regex>=2024.5.15",
-#   "razdel>=0.5.0",
-#   "numpy>=1.26",
-#   "scipy>=1.11",
-#   "igraph>=0.11",
-#   "leidenalg>=0.10",
-#   "hdbscan>=0.8.40",
-#   "scikit-learn>=1.4",
-#   "pymorphy3>=2.0.2",
-#   "pymorphy3-dicts-ru>=2.4.417150",
-# ]
-# ///
+#!/usr/bin/env python3
+# Heavy embedding stack (MLX/numpy/scikit-learn/hdbscan/…) lives in the project's
+# `embed` optional-dependency group, NOT in per-script PEP-723 inline metadata
+# (docs/tooling.md "Dependency model"). Run via the door
+# `uv run pancratius data embed generate`, or standalone after `uv sync --extra embed`.
 """conceptosphere_embed.py — semantic-embedding-based conceptosphere for Pancratius.
 
 A third complementary view alongside the co-occurrence pipeline. Instead of
