@@ -132,14 +132,8 @@ def sanitize_urls(doc: ir.Document) -> None:
     def visit_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
         out: list[ir.Inline] = []
         for n in inlines:
-            # Kept as an isinstance ladder (NOT `match`): the container-recurse arm
-            # tests against `ir.ContainerInline` — the runtime tuple naming the
-            # container kinds ONCE in ir.py — which cannot appear in a `case` (a `case`
-            # would force re-spelling the five container kinds inline, the very thing
-            # that tuple exists to avoid). This pass is also intentionally PARTIAL:
-            # only the scheme-bearing kinds (Link target / ImageInline src) act; a
-            # SAFE link falls through to the container rebuild, every other inline
-            # passes through unchanged.
+            # isinstance, not match: the container arm tests `ir.ContainerInline`
+            # (a runtime tuple), which can't appear in a `case`.
             if isinstance(n, ir.Link) and not _is_safe_url(n.target):
                 doc.diagnostics.append(ir.Diagnostic(
                     "warning", "import.unsafe-url",
@@ -207,45 +201,33 @@ def _confined_media_source(src: str, media_root: Path) -> Path | None:
 
 
 def _is_remote_url(src: str) -> bool:
-    """True if `src` is a safe REMOTE url (http/https) — a valid non-local image ref
-    that is kept as-is and is NOT subject to the local-image-resolution FATAL.
-
-    `mailto:` is not an image scheme; an unsafe scheme is already dropped upstream
-    by `sanitize_urls`, so by the time the asset pass runs the only scheme-bearing
-    image srcs that survive are http/https remote refs."""
+    """True for a safe remote (http/https) image url, kept as-is. Unsafe schemes are
+    dropped upstream by `sanitize_urls`, so surviving scheme-bearing srcs are
+    http/https."""
     m = _URL_SCHEME_RE.match(src.strip())
     return m is not None and m.group(1).lower() in {"http", "https"}
 
 
-# The three outcomes of resolving ONE body-image src, as a tagged union rather than
-# an overloaded `tuple | str | None` with a magic-string sentinel — so each consumer
-# dispatches structurally and adding a fourth outcome flags every site:
-#   * `ResolvedAsset(asset_id)` — resolved to a content-hash asset (its id is the
-#     `<hash><ext>` filename the ref is rewritten to);
-#   * `DropImage()`            — an unresolvable LOCAL image: FATAL upstream, and the
-#     ref is DROPPED from the body (never emitted as a dangling/escaping path);
-#   * `KeepRemote()`           — a safe remote (http/https) ref kept as-is.
-
-
+# Outcome of resolving one body-image src.
 @dataclass(frozen=True)
-class ResolvedAsset:
-    """A body image resolved to a content-hash asset; `asset_id` is its
-    `<hash><ext>` filename (the ref is rewritten to `./images/<asset_id>`)."""
+class _ResolvedAsset:
+    """Resolved to a content-hash asset; `asset_id` is its `<hash><ext>` filename
+    (the ref is rewritten to `./images/<asset_id>`)."""
 
     asset_id: str
 
 
 @dataclass(frozen=True)
-class DropImage:
-    """An unresolvable LOCAL image: FATAL (surfaced upstream), the ref is dropped."""
+class _DropImage:
+    """An unresolvable local image: FATAL upstream, the ref is dropped."""
 
 
 @dataclass(frozen=True)
-class KeepRemote:
-    """A safe remote (http/https) image ref; kept as-is, not a planned asset."""
+class _KeepRemote:
+    """A safe remote (http/https) ref, kept as-is."""
 
 
-type ImageResolution = ResolvedAsset | DropImage | KeepRemote
+type _ImageResolution = _ResolvedAsset | _DropImage | _KeepRemote
 
 
 def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[PlannedAsset]:
@@ -262,11 +244,11 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
     to hash them. The returned list is sorted by bundle-relative path, giving the
     writer a stable asset order.
     """
-    seen: dict[str, ResolvedAsset] = {}
+    seen: dict[str, _ResolvedAsset] = {}
     planned: dict[str, PlannedAsset] = {}
 
-    def resolve(src: str) -> ImageResolution:
-        """Resolve ONE image src to a tagged `ImageResolution` (see the union above).
+    def resolve(src: str) -> _ImageResolution:
+        """Resolve ONE image src to a tagged `_ImageResolution` (see the union above).
 
         A cached src was previously resolved to an asset; a safe remote ref is kept;
         any other src is a LOCAL image that must resolve to a safe readable image file
@@ -274,7 +256,7 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
         if src in seen:
             return seen[src]
         if _is_remote_url(src):
-            return KeepRemote()  # valid remote image ref — not a local image
+            return _KeepRemote()  # valid remote image ref — not a local image
         cand = _confined_media_source(src, media_root)
         if cand is None or not _is_image_path(cand.name):
             # A LOCAL image ref that does not resolve to a safe readable image file
@@ -287,7 +269,7 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
                 + ("escapes the media-extraction dir" if escaped else "does not resolve to a readable image under the media dir")
                 + "; refusing the write and dropping the ref (no dangling path emitted).",
             ))
-            return DropImage()
+            return _DropImage()
         h = _hash_file(cand)
         ext = _normalize_ext(cand.suffix)
         rel_within = f"images/{h}{ext}"
@@ -295,25 +277,22 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
             rel_within,
             PlannedAsset(rel_within=rel_within, source=cand, is_raster=ext in RASTER_CAP_EXTS),
         )
-        resolved = ResolvedAsset(asset_id=f"{h}{ext}")
+        resolved = _ResolvedAsset(asset_id=f"{h}{ext}")
         seen[src] = resolved
         return resolved
 
     def visit_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
         out: list[ir.Inline] = []
         for n in inlines:
-            # Kept as an isinstance ladder (NOT `match`): the container-recurse arm
-            # tests `ir.ContainerInline` (the runtime tuple naming the container kinds
-            # once in ir.py), which cannot appear in a `case`. Partial: only an
-            # `ImageInline` resolves; a container recurses; everything else passes
-            # through unchanged.
+            # isinstance, not match: the container arm tests `ir.ContainerInline`
+            # (a runtime tuple), which can't appear in a `case`.
             if isinstance(n, ir.ImageInline):
                 match resolve(n.src):
-                    case DropImage():
+                    case _DropImage():
                         continue  # unresolvable local image: FATAL upstream, drop the ref
-                    case ResolvedAsset(asset_id=asset_id):
+                    case _ResolvedAsset(asset_id=asset_id):
                         out.append(ir.ImageInline(src=n.src, alt=n.alt, asset_id=asset_id))
-                    case KeepRemote():
+                    case _KeepRemote():
                         out.append(ir.ImageInline(src=n.src, alt=n.alt, asset_id=None))
             elif isinstance(n, ir.ContainerInline):
                 out.append(ir.rebuild_container(n, visit_inlines(n.children)))
@@ -330,14 +309,14 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
         match b:
             case ir.ImageBlock():
                 match resolve(b.src):
-                    case DropImage():
+                    case _DropImage():
                         # An unresolvable local block image is FATAL; blank the src so
                         # the lowerer emits no dangling path (the write is refused).
                         b.src = ""
                         b.asset_id = None
-                    case ResolvedAsset(asset_id=asset_id):
+                    case _ResolvedAsset(asset_id=asset_id):
                         b.asset_id = asset_id
-                    case KeepRemote():
+                    case _KeepRemote():
                         pass  # a remote block image keeps its src; no asset id
             case _:
                 ir.map_block_inlines(b, visit_inlines)
@@ -351,10 +330,8 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
 # inline -> markdown (prose)
 # ---------------------------------------------------------------------------
 
-# Both maps are keyed by `ir.EmphKind` (the shared closed set, not a bare `str`) so
-# the lookups are total over the emphasis kinds the IR can carry. They are kept
-# SEPARATE because they target different lowerings of the same kind — `_EMPH_MD` to
-# the prose Markdown delimiter pair, `_EMPH_HTML_TAG` to the verse/answer HTML tag.
+# Emphasis-kind lowerings: `_EMPH_MD` the Markdown delimiter pair, `_EMPH_HTML_TAG`
+# the HTML tag. `test_emph_tables_total` pins both to the full `EmphKind` set.
 _EMPH_MD: dict[ir.EmphKind, tuple[str, str]] = {
     "strong": ("**", "**"), "emph": ("*", "*"), "strike": ("~~", "~~"),
     "sup": ("^", "^"), "sub": ("~", "~"),

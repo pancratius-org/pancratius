@@ -914,3 +914,21 @@ def test_remote_http_image_is_kept_not_fatal(tmp_path: Path) -> None:
     assert not [d for d in doc.diagnostics if d.severity == "fatal"]
     body = ir_lower.lower(doc, "ru")
     assert "https://example.org/a.png" in body
+
+
+def test_container_forms_in_sync() -> None:
+    # The union (ir.ContainerInlineNode) and the isinstance tuple (ir.ContainerInline)
+    # must list the same kinds — they are maintained as two forms of one set.
+    from typing import get_args
+
+    assert set(get_args(ir.ContainerInlineNode.__value__)) == set(ir.ContainerInline)
+
+
+def test_emph_tables_total() -> None:
+    # The lowering tables must cover every EmphKind (a dict[Literal,...] is NOT
+    # exhaustiveness-checked by the type checker, so pin it here).
+    from typing import get_args
+
+    kinds = set(get_args(ir.EmphKind))
+    assert set(ir_lower._EMPH_MD) == kinds
+    assert set(ir_lower._EMPH_HTML_TAG) == kinds
