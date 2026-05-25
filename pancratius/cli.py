@@ -24,6 +24,7 @@ core never imports a heavy (graph/embed) stack just to print ``--help``.
 from __future__ import annotations
 
 import argparse
+import shutil
 import subprocess
 import sys
 from collections.abc import Callable
@@ -69,13 +70,76 @@ def _require_subcommand(parser: argparse.ArgumentParser) -> Callable[[argparse.N
     return handler
 
 
+# --- handlers (work group) ----------------------------------------------------
+def _work_import(args: argparse.Namespace) -> int:
+    """`work import <docx> --kind book|poem` — import a corpus work bundle.
+
+    Builds an `ImportRequest` from the parsed flags (the same `add_import_arguments`
+    declaration and `request_from_namespace` adapter the standalone CLI uses) and
+    dispatches to `import_work`, which is silent and returns the writer's report (or
+    raises on bad input / an unresolvable target). The door owns all output: it
+    prints the report (the `--dry-run` review gate) and maps a write refusal to a
+    failure exit."""
+    import import_docx
+
+    if shutil.which("pandoc") is None:
+        print("error: pandoc not found on PATH; install with `brew install pandoc`.", file=sys.stderr)
+        return 1
+    request = import_docx.request_from_namespace(args)
+    try:
+        report = import_docx.import_work(request)
+    except import_docx.ImportError as exc:
+        # `import_docx.ImportError` is the importer's OWN input/target error class
+        # (it shadows the builtin). Accessed qualified, so the door's namespace keeps
+        # the real builtin ImportError that the extras gate catches. Bad input / an
+        # unresolvable target is a usage error (exit 2), matching the standalone CLI.
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    import_docx.print_report(report, dry_run=request.dry_run)
+    return 1 if report.refused else 0
+
+
+# --- handlers (downloads / docx groups) ---------------------------------------
+def _downloads_render(args: argparse.Namespace) -> int:
+    """`downloads render [--book N]` — render local PDF/EPUB/DOCX release artifacts.
+    Pass-through to the render owner, which prints its own progress/summary."""
+    from render_downloads import render
+
+    return _ok(
+        render(
+            book=args.book,
+            poem=args.poem,
+            lang=args.lang,
+            skip_pdf=args.skip_pdf,
+            skip_epub=args.skip_epub,
+            docx=args.docx,
+            force=args.force,
+        )
+    )
+
+
+def _docx_optimize(args: argparse.Namespace) -> int:
+    """`docx optimize [paths…]` — in-place source DOCX cleanup. Pass-through to the
+    optimize owner (which has its own `--dry-run`)."""
+    from docx_optimize import optimize
+
+    return _ok(
+        optimize(
+            paths=[Path(p) for p in args.paths],
+            force=args.force,
+            verbose=args.verbose,
+            dry_run=args.dry_run,
+        )
+    )
+
+
 # --- handlers (data group) ----------------------------------------------------
 def _data_slug_map_refresh(_args: argparse.Namespace) -> int:
     """`data slug-map refresh` — regenerate the sitemap slug-map. Thin alias over
     the one owner the npm `prebuild:slug-map` step also runs."""
     import build_slug_map
 
-    return _ok(build_slug_map.main())
+    return _ok(build_slug_map.generate_slug_map())
 
 
 def _data_bulk_refresh(_args: argparse.Namespace) -> int:
@@ -111,6 +175,50 @@ def _data_embed_generate(_args: argparse.Namespace) -> int:
 
 # --- parser assembly ----------------------------------------------------------
 # Each group is built by its own function so later phases add groups/verbs locally.
+def _add_work_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    import import_docx  # light (no ML); owns the import flag declaration
+
+    work = sub.add_parser("work", help="Import corpus works (a book or a poem).")
+    work.set_defaults(func=_require_subcommand(work))
+    work_sub = work.add_subparsers(dest="noun", metavar="<noun>")
+    work_import = work_sub.add_parser(
+        "import", help="Import one DOCX into a work bundle (--kind book|poem; --into to add a translation)."
+    )
+    import_docx.add_import_arguments(work_import)  # door does not redeclare --kind (PAN017-owned)
+    work_import.set_defaults(func=_work_import)
+
+
+def _add_downloads_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    from lib.locales import LOCALES
+
+    downloads = sub.add_parser("downloads", help="Render local release artifacts (PDF/EPUB/DOCX).")
+    downloads.set_defaults(func=_require_subcommand(downloads))
+    downloads_sub = downloads.add_subparsers(dest="noun", metavar="<noun>")
+    render = downloads_sub.add_parser("render", help="Render release artifacts (never CI).")
+    render.add_argument("--book", type=int, help="Render only this book number.")
+    render.add_argument("--poem", type=int, help="Render only this poem number.")
+    render.add_argument("--lang", choices=tuple(LOCALES), help="Restrict to one language.")
+    render.add_argument("--skip-pdf", action="store_true", help="Skip PDF rendering.")
+    render.add_argument("--skip-epub", action="store_true", help="Skip EPUB rendering.")
+    render.add_argument("--docx", action="store_true", help="Also render merged DOCX for multi-part works.")
+    render.add_argument("--force", action="store_true", help="Re-render even if output is newer than source.")
+    render.set_defaults(func=_downloads_render)
+
+
+def _add_docx_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    docx = sub.add_parser("docx", help="Maintain source DOCX artifacts.")
+    docx.set_defaults(func=_require_subcommand(docx))
+    docx_sub = docx.add_subparsers(dest="noun", metavar="<noun>")
+    optimize = docx_sub.add_parser("optimize", help="In-place source DOCX cleanup (image cap, scrub).")
+    optimize.add_argument(
+        "paths", nargs="*", help="Specific .docx files or directories. Defaults to the corpus source roots."
+    )
+    optimize.add_argument("--force", action="store_true", help="Re-process even if dst is newer than src.")
+    optimize.add_argument("--verbose", "-v", action="store_true")
+    optimize.add_argument("--dry-run", action="store_true", help="Print what would be done; write nothing.")
+    optimize.set_defaults(func=_docx_optimize)
+
+
 def _add_data_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     data = sub.add_parser("data", help="Generate corpus data products.")
     data.set_defaults(func=_require_subcommand(data))
@@ -161,6 +269,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.set_defaults(func=_require_subcommand(parser))
     sub = parser.add_subparsers(dest="group", metavar="<group>")
+    _add_work_group(sub)
+    _add_downloads_group(sub)
+    _add_docx_group(sub)
     _add_data_group(sub)
     return parser
 
