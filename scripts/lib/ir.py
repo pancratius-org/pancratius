@@ -136,13 +136,9 @@ type Inline = (
     | LineBreak | SoftBreak | DirectionalSpan | UnknownInline
 )
 
-# The container inline kinds (those that nest a `children` inline list) named ONCE,
-# in two complementary shapes that must list the SAME kinds:
-#   * `ContainerInlineNode` — the typing union, used to type a value already known
-#     to be a container (e.g. `rebuild_container`'s parameter);
-#   * `ContainerInline` — the runtime tuple, the second arg to `isinstance` (a `type`
-#     alias cannot be used there), so recursive inline passes narrow against it
-#     instead of re-spelling the isinstance chain at every call site.
+# Container inline kinds (those nesting a `children` list), in two forms: the union
+# types a known container; the tuple is `isinstance`'s 2nd arg (a `type` alias can't
+# be). `test_container_forms_in_sync` keeps them aligned.
 type ContainerInlineNode = Emphasis | Link | Quoted | DirectionalSpan | UnknownInline
 ContainerInline = (Emphasis, Link, Quoted, DirectionalSpan, UnknownInline)
 
@@ -325,19 +321,11 @@ def map_block_inlines(block: Block, fn: Callable[[list[Inline]], list[Inline]]) 
     """Walk the container-block skeleton of `block`, applying `fn` to every leaf
     inline list it reaches, mutating IN PLACE.
 
-    The ONE place the block-traversal skeleton is spelled, mirroring
-    `rebuild_container` for inlines. The leaf inline lists are a `Heading`/
-    `Paragraph`'s `inlines`, each verse display line in a `VerseBlock`'s `stanzas`,
-    and each `Table` cell; container blocks (`BlockQuote`, `ListBlock`) are
-    descended recursively. `fn` returns the replacement inline list (the per-pass
-    leaf logic — URL sanitize, asset assignment, AI-alt scrub).
-
-    The dispatch is DELIBERATELY non-exhaustive (a `case _` no-op, NOT
-    `assert_never`): leaf kinds `fn` cannot express (an `ImageBlock`'s `src`/`alt`,
-    footnote bodies) and the inline-free blocks (`Signature`/`Epigraph`/
-    `DialogueLabel`/`ThematicBreak`/`CodeBlock`/`UnknownBlock`) carry no mappable
-    inline list, so they are skipped here and handled by the caller AROUND this
-    descent — this shares ONLY the skeleton, not the per-pass leaf decisions."""
+    Leaf inline lists: a `Heading`/`Paragraph`'s `inlines`, each verse display line
+    in a `VerseBlock`'s `stanzas`, each `Table` cell; `BlockQuote`/`ListBlock`
+    recurse. `fn` returns the replacement list. Blocks with no inline list (image
+    and footnote leaves, the inline-free kinds) are skipped — their leaf content is
+    handled by the caller, hence `case _` rather than `assert_never`."""
     match block:
         case Heading() | Paragraph():
             block.inlines = fn(block.inlines)
@@ -388,13 +376,9 @@ class Document:
     references are returned as `PlannedAsset`s from the asset pass (the writer
     copies them); they are not stored on the document.
 
-    `bibliography` stays `list[dict[str, object]]` ON PURPOSE: each entry is a
-    dynamically-shaped record (`title`, optional `source_url`, optional nested
-    `target`) that is serialized straight to `bibliography.yaml` and crosses into
-    the bibliography sidecar writer (`docx_conversion`) as `list[dict[str, Any]]`.
-    A `TypedDict` is not a `dict[str, object]`/`dict[str, Any]` subtype (and
-    `list` is invariant), so modelling it as one would break that boundary — the
-    honest type for a YAML-flavored open record is the open dict."""
+    `bibliography` is an open `dict` record: a `TypedDict` isn't assignable across
+    the `docx_conversion` sidecar boundary (it takes `list[dict[str, Any]]`, and
+    `list` is invariant), so the open dict is the honest type."""
 
     blocks: list[Block] = field(default_factory=list)
     footnotes: list[FootnoteDef] = field(default_factory=list)
