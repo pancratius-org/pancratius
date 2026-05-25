@@ -93,7 +93,7 @@ class ImportRequest:
     This is the stable surface `import_work` consumes — decoupled from argparse,
     so a caller (a future `pancratius work import`, a test, another tool) builds
     a request by name rather than threading an `argparse.Namespace`. Field names
-    mirror the CLI flags; `_request_from_args` adapts a parsed namespace into one.
+    mirror the CLI flags; `request_from_namespace` adapts a parsed namespace into one.
     """
 
     docx: Path
@@ -213,8 +213,13 @@ def _plan_from_scratch(
     )
 
 
-def _print_report(report: WriteReport, *, dry_run: bool) -> None:
-    """Human/agent-facing dry-run + write summary (the review gate)."""
+def print_report(report: WriteReport, *, dry_run: bool) -> None:
+    """Human/agent-facing dry-run + write summary (the review gate).
+
+    Public because the `pancratius work import` / `project page add` door reuses it
+    as the shared report formatter — summary buckets to stdout, diagnostics to
+    stderr — so the door owns the exit/stream contract without re-implementing the
+    format."""
     label = "DRY RUN — planned write-set (nothing written):" if dry_run else "write summary:"
     print(label)
     for bucket, paths in (
@@ -657,7 +662,7 @@ def run(args: argparse.Namespace) -> ImportResult:
     The single mutating surface for src/content is the writer. Kept so existing
     tests and the golden harness (which call `run(build_parser().parse_args(...))`)
     stay unchanged."""
-    request = _request_from_args(args)
+    request = request_from_namespace(args)
     result, report = _apply(request)
     _emit_cli_report(request, result, report)
     if report.refused:
@@ -672,7 +677,7 @@ def _emit_cli_report(request: ImportRequest, result: ImportResult, report: Write
     """The CLI's human/agent-facing side effects: the dry-run/write summary, the
     `imported …` confirmation, and pandoc warnings. Kept OUT of `import_work` so the
     stable entry is silent."""
-    _print_report(report, dry_run=request.dry_run)
+    print_report(report, dry_run=request.dry_run)
     if not report.refused and not request.dry_run:
         print(f"imported {result.kind}/{result.work_key} ({request.lang})")
         print(f"markdown: {result.md_path}")
@@ -681,8 +686,12 @@ def _emit_cli_report(request: ImportRequest, result: ImportResult, report: Write
         print(f"pandoc warnings:\n{result.warnings}", file=sys.stderr)
 
 
-def _request_from_args(ns: argparse.Namespace) -> ImportRequest:
-    """Adapt a parsed argparse namespace into the typed `ImportRequest`."""
+def request_from_namespace(ns: argparse.Namespace) -> ImportRequest:
+    """Adapt a parsed argparse namespace into the typed `ImportRequest`.
+
+    Public because the `pancratius work import` door builds its subparser from
+    `add_import_arguments` and reuses this adapter — so the flag→field mapping has a
+    single owner shared by the standalone CLI and the door."""
     return ImportRequest(
         docx=Path(ns.docx),
         lang=ns.lang,
@@ -700,10 +709,11 @@ def _request_from_args(ns: argparse.Namespace) -> ImportRequest:
     )
 
 
-def build_parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(
-        description="Import one DOCX into a Pancratius work bundle using Markdown frontmatter as the catalog.",
-    )
+def add_import_arguments(ap: argparse.ArgumentParser) -> None:
+    """Declare the import flags on `ap` — the SINGLE owner of the work-import flag
+    set. Both `build_parser` (the standalone CLI) and the `pancratius work import`
+    door subparser call this, so `--kind` is declared here ONCE with
+    `choices=WORK_KINDS` (PAN017-guarded) and the door never redeclares it."""
     ap.add_argument("docx", help="Source .docx file to import.")
     ap.add_argument("--kind", choices=WORK_KINDS, help="Required for a new work; optional with --into when the bundle is unique.")
     ap.add_argument("--lang", choices=LANGS, required=True)
@@ -725,6 +735,13 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Permit overwriting an existing converter-owned <lang>.md; without it, re-importing an existing language is refused.",
     )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    ap = argparse.ArgumentParser(
+        description="Import one DOCX into a Pancratius work bundle using Markdown frontmatter as the catalog.",
+    )
+    add_import_arguments(ap)
     return ap
 
 
@@ -737,7 +754,7 @@ def main(argv: list[str] | None = None) -> int:
     ns = parser.parse_args(argv)
     if shutil.which("pandoc") is None:
         parser.error("pandoc not found on PATH; install with `brew install pandoc`")
-    request = _request_from_args(ns)
+    request = request_from_namespace(ns)
     try:
         result, report = _apply(request)
     except ImportError as exc:
