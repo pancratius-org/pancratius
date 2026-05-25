@@ -17,8 +17,11 @@ editorial/domain decisions and runs no verification — that is ``npm run audit`
 The owning logic lives under ``scripts/`` (the same modules the ``npm`` prebuild
 steps run). This door reproduces those scripts' ``sys.path`` bootstrap so
 ``from lib.* import …`` and ``import <owner>`` resolve, then dispatches to one entry
-per owner. Owner modules are imported **lazily inside each handler** so the light
-core never imports a heavy (graph/embed) stack just to print ``--help``.
+per owner. The HEAVY owners (``conceptosphere``/``conceptosphere_embed``) are
+imported lazily **inside their handlers**, so the light core never imports an ML
+(graph/embed) stack — not even to print ``--help``. Light owners may be imported at
+parser-build time (e.g. ``import_docx`` to reuse its flag declaration); they pull no
+ML deps, so the light-core guarantee holds.
 """
 
 from __future__ import annotations
@@ -49,13 +52,28 @@ def _ok(owner_rc: int) -> int:
 
 
 def _missing_extra(extra: str, exc: ImportError) -> int:
-    """A heavy verb was invoked without its optional-dependency stack: print the
-    install hint to stderr and fail (exit 1) instead of dumping a traceback
-    (docs/tooling.md "Dependency model"). The light core never imports a heavy
-    module, so this is the only place a missing extra surfaces."""
-    print(f"error: the '{extra}' extra is not installed ({exc}).", file=sys.stderr)
-    print(f"run: uv sync --extra {extra}", file=sys.stderr)
+    """A heavy owner failed to import: print the install hint to stderr and fail
+    (exit 1) instead of dumping a traceback (docs/tooling.md "Dependency model").
+
+    The message HEDGES rather than asserting the extra is uninstalled — the same
+    `ImportError` also fires if the extra IS installed but its stack (or the owner)
+    has an import-time fault. Either way the actual missing module is shown (`exc`)
+    and the actionable remedy is the same."""
+    print(
+        f"error: could not load the '{extra}' stack ({exc}).",
+        file=sys.stderr,
+    )
+    print(f"if its optional dependencies are not installed, run: uv sync --extra {extra}", file=sys.stderr)
     return 1
+
+
+def _require_pandoc() -> int | None:
+    """Shared precheck for the conversion verbs (`work import`, `project page add`):
+    return 1 (with a stderr hint) if pandoc is absent, else None to proceed."""
+    if shutil.which("pandoc") is None:
+        print("error: pandoc not found on PATH; install with `brew install pandoc`.", file=sys.stderr)
+        return 1
+    return None
 
 
 def _require_subcommand(parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], int]:
@@ -82,9 +100,8 @@ def _work_import(args: argparse.Namespace) -> int:
     failure exit."""
     import import_docx
 
-    if shutil.which("pandoc") is None:
-        print("error: pandoc not found on PATH; install with `brew install pandoc`.", file=sys.stderr)
-        return 1
+    if (rc := _require_pandoc()) is not None:
+        return rc
     request = import_docx.request_from_namespace(args)
     try:
         report = import_docx.import_work(request)
@@ -106,16 +123,15 @@ def _project_page_add(args: argparse.Namespace) -> int:
 
     Dispatches to `scaffold_subpage`, which converts the DOCX, co-locates images,
     and writes the draft `<lang>.md` with editorial fields left `TODO` through the
-    general writer (no provenance manifest). On a clean apply the door prints the
+    general writer (no provenance manifest). After a REAL apply the door prints the
     suggested landing `subpages:` entry to STDOUT for a human to place — it never
     edits the landing. Bad input (missing/non-DOCX) is a usage error (exit 2); a
     write refusal is a failure (exit 1)."""
     from lib.docx_conversion import ScaffoldError, scaffold_subpage
     import import_docx  # for print_report (shared report formatter) — light, no ML
 
-    if shutil.which("pandoc") is None:
-        print("error: pandoc not found on PATH; install with `brew install pandoc`.", file=sys.stderr)
-        return 1
+    if (rc := _require_pandoc()) is not None:
+        return rc
     try:
         report = scaffold_subpage(
             project=args.project,
@@ -129,9 +145,11 @@ def _project_page_add(args: argparse.Namespace) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     import_docx.print_report(report, dry_run=args.dry_run)
-    if not report.refused:
-        # Print the suggested landing entry — the human places it; the landing is
-        # NEVER edited by the tool.
+    if not args.dry_run and not report.refused:
+        # Print the suggested landing entry only after a REAL write — it is a
+        # post-write next step, not part of the --dry-run preview (nothing was
+        # written to place it against). The human places it; the landing is NEVER
+        # edited by the tool.
         print(
             f"\nadd this entry to projects/{args.project}/{args.lang}.md  subpages:  "
             "(place it yourself — the landing is never edited):"

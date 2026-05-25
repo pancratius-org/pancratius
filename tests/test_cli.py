@@ -260,6 +260,22 @@ def test_project_page_add_dispatches_and_prints_landing(
     assert "my-sub" in out, "the landing entry must name the sub-page slug"
 
 
+def test_project_page_add_dry_run_omits_landing_suggestion(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The landing suggestion is a POST-write next step: --dry-run (which writes
+    nothing) must not emit it, only the planned-write-set preview."""
+    from lib import docx_conversion
+
+    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(docx_conversion, "scaffold_subpage", lambda **_k: _fake_scaffold_report())
+    rc = _exit_code(
+        ["project", "page", "add", "holy-rus", "my-sub", "doc.docx", "--lang", "ru", "--dry-run"]
+    )
+    assert rc == 0
+    assert "add this entry" not in capsys.readouterr().out
+
+
 def test_project_page_add_refusal_is_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     from lib import docx_conversion
 
