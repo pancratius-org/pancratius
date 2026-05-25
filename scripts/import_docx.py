@@ -37,14 +37,16 @@ from lib.content_catalog import (
 )
 from lib.docx_conversion import (
     ConvertedDocx,
+    body_asset_ops,
     convert_single_docx,
+    plan_from_staged_bundle,
     to_ascii_slug,
     write_bibliography_sidecar,
 )
 from lib import footnotes
 from lib.kinds import WORK_KINDS
 from lib.locales import LOCALES
-from lib.writeplan import AssetTransform, Diagnostic, PlannedAsset, Role, WriteOp, WritePlan
+from lib.writeplan import Diagnostic, Role, WriteOp, WritePlan
 from lib.writer import WriteReport, apply as apply_plan
 
 
@@ -62,16 +64,9 @@ LANGS = tuple(LOCALES)
 # entries — a `--into <project>` simply finds no work, like any other unknown
 # bundle.
 
-# Forward cap for NEWLY-IMPORTED body images. Raster masters extracted from a
-# DOCX are bounded to this longest edge at import time so future masters stay
-# reasonable, mirroring the bounded `/assets/` rendition the site serves. This
-# only applies to images written by this import run; it never re-encodes the
-# existing committed corpus. Vector (svg) and animated (gif) formats are left
-# untouched. The committed body-image filenames are content hashes, but the
-# converted Markdown references those exact names, so the cap keeps the filename
-# rather than re-hashing — it is a writer `transform_asset` (cap_raster) op now,
-# not a post-conversion in-place pass.
-IMPORT_MAX_LONGEST_EDGE = 1600
+# The body-image cap policy (cap_raster max-long-edge) lives in lib.docx_conversion
+# (BODY_IMAGE_MAX_LONG_EDGE) — one owner shared with the sub-page scaffold — and is
+# applied via the `body_asset_ops` helper this module imports.
 
 _LEADING_NUMBER_RE = re.compile(r"^\s*\d+\s*[-._ ]+\s*")
 _LATIN_RE = re.compile(r"[A-Za-z]")
@@ -140,33 +135,6 @@ def _scratch_role(rel: PurePosixPath, lang: str) -> Role:
     return "imported_asset"
 
 
-def _asset_ops(assets: list[PlannedAsset], scope: PurePosixPath) -> list[WriteOp]:
-    """Turn the converter's planned body images into `transform_asset` WriteOps.
-
-    Rasters get a `cap_raster` transform (longest-edge cap, applied by the writer
-    — the only place PIL runs); vector/animated assets get a plain `copy`. The
-    bundle-relative path is `images/<hash>.<ext>` exactly as the Markdown body
-    references it, so filenames are unchanged."""
-    ops: list[WriteOp] = []
-    for asset in assets:
-        transform = (
-            AssetTransform(kind="cap_raster", max_long_edge=IMPORT_MAX_LONGEST_EDGE)
-            if asset.is_raster
-            else AssetTransform(kind="copy")
-        )
-        ops.append(
-            WriteOp(
-                kind="transform_asset",
-                rel_path=scope / PurePosixPath(asset.rel_within),
-                role="imported_asset",
-                reason=f"import {asset.rel_within}",
-                source=asset.source,
-                transform=transform,
-            )
-        )
-    return ops
-
-
 def _plan_from_scratch(
     *,
     stage_work_dir: Path,
@@ -178,41 +146,20 @@ def _plan_from_scratch(
     source_document: Path,
     asset_ops: list[WriteOp],
 ) -> WritePlan:
-    """Build a WritePlan that copies every staged bundle file into the real target
-    scope, alongside the planned body-image `transform_asset` ops (which are NOT
-    staged into the scratch bundle — the writer copies/caps them from the
-    persistent pandoc media dir). The plan is the ONLY thing import_docx hands the
-    writer; import_docx itself never writes to content_root."""
-    ops: list[WriteOp] = [
-        WriteOp(
-            kind="ensure_dir",
-            rel_path=scope,
-            role="canonical_source",
-            reason="bundle directory",
-        )
-    ]
-    for staged in sorted(stage_work_dir.rglob("*")):
-        if not staged.is_file():
-            continue
-        rel_within = PurePosixPath(staged.relative_to(stage_work_dir).as_posix())
-        rel_path = scope / rel_within
-        ops.append(
-            WriteOp(
-                kind="copy",
-                rel_path=rel_path,
-                role=_scratch_role(rel_within, lang),
-                reason=f"import {rel_within}",
-                source=staged,
-            )
-        )
-    ops.extend(asset_ops)
-    return WritePlan(
-        target_root=content_root,
-        target_scope=scope,
-        operations=tuple(ops),
+    """Build the import WritePlan via the shared `plan_from_staged_bundle`, binding
+    `lang` into the work-bundle role map (`_scratch_role`). The plan copies every
+    staged bundle file into the real target scope alongside the body-image
+    `transform_asset` ops; it is the ONLY thing import_docx hands the writer —
+    import_docx never writes to content_root itself."""
+    return plan_from_staged_bundle(
+        stage_dir=stage_work_dir,
+        content_root=content_root,
+        scope=scope,
+        role_for=lambda rel: _scratch_role(rel, lang),
+        asset_ops=asset_ops,
         diagnostics=diagnostics,
-        replace=replace,
         source_document=source_document,
+        replace=replace,
     )
 
 
@@ -697,7 +644,7 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
             replace=bool(request.replace),
             diagnostics=diagnostics,
             source_document=docx,
-            asset_ops=_asset_ops(converted.assets, scope),
+            asset_ops=body_asset_ops(converted.assets, scope),
         )
         report = apply_plan(plan, dry_run=bool(request.dry_run))
         # Provenance is the importer's concern, written AFTER the writer applies
