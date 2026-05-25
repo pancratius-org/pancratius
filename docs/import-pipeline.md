@@ -68,9 +68,8 @@ result that escapes the scope.
 
 What the boundary buys, in one object: dry-run output for humans and agents;
 tests that compare planned writes with no filesystem; one overwrite policy; one
-path-boundary policy; one manifest generator; and a hard guarantee that no
-adapter, normalizer, analyzer, or lowerer can quietly copy media into
-`src/content`.
+path-boundary policy; and a hard guarantee that no adapter, normalizer, analyzer,
+or lowerer can quietly copy media into `src/content`.
 
 Rules the plan must enforce (the writer trusts the plan, so the plan owns these):
 
@@ -92,8 +91,14 @@ The writer — a dedicated module under `scripts/lib/` — is the single compone
 permitted to change `src/content`. It validates the plan's paths, refuses to
 apply if any diagnostic is fatal, preflights sources and collisions, then applies
 operations through temporary paths and atomic replace. It never pre-deletes
-directories. It emits a manifest of what was created, changed, skipped, and
-refused.
+directories. It returns a report of what was created, changed, skipped, and refused.
+
+The writer is **general** — it applies any `WritePlan` to any scope and has no
+import-specific opinion. Provenance (below) is the *importer's* policy, written by
+the import entry after a successful apply, not by the writer. That is what lets a
+non-import mutation — `project page add` scaffolding a sub-page — reuse the writer
+unchanged (the same atomic/scoped/no-clobber guarantees and content-general roles)
+without emitting an import manifest.
 
 **Ownership.** Files carry provenance: converter-owned (regenerated on
 re-import), author-owned (never clobbered without an explicit replace), and
@@ -104,10 +109,10 @@ workflow.
 
 **Idempotency.** Re-importing the same source yields a byte-identical committed
 bundle — same `<lang>.md`, assets, and frontmatter, with no timestamps in
-committed output. Volatile provenance (source hashes, tool versions, run time)
-lives in the writer's per-work `data/imports/<work-key>.json` manifest — gitignored,
-outside the bundle (the layout in
-[`content-model.md`](./content-model.md#what-lives-where)) — never in the
+committed output. Volatile provenance (source hashes, tool versions, run time) is
+written by the **import entry** (after the writer applies) to a per-work
+`data/imports/<work-key>.json` manifest — gitignored, outside the bundle (the
+layout in [`content-model.md`](./content-model.md#what-lives-where)) — never in the
 committed `<lang>.md` or assets. (This is distinct from `docx_optimize.py`'s
 committed `data/conversion-manifest.json`.) Imported body-image filenames are
 stable asset IDs after first import, not live checksums (see
@@ -237,15 +242,16 @@ and stops short of deciding.
 
 The verbs live in [`tooling.md`](./tooling.md); this pipeline backs the import
 ones. `work import` writes work bundles; `project page add` scaffolds a subpage
-only; `source convert` writes a draft outside `src/content`. Every import verb
-supports dry-run. (`docx optimize` is not import — it is source-artifact
-maintenance with its own write policy; see [`tooling.md`](./tooling.md).)
+only. Both support `--dry-run`. (`docx optimize` is not import — it is
+source-artifact maintenance with its own write policy; see
+[`tooling.md`](./tooling.md).)
 
-The CLI is a thin facade. Import exposes one **stable importer entry** — the
-function `pancratius work import` dispatches to (located by
-[`tooling.md`](./tooling.md)) — which runs the plan→writer tail and returns the
-writer's report (the planned/applied write-set plus diagnostics). So adding the
-CLI is wiring, not a rewrite.
+The CLI is a thin facade over **library entries**, not other CLIs. `work import`
+dispatches to `import_work(ImportRequest) -> WriteReport`; `project page add`
+dispatches to a sibling `scaffold_subpage(...) -> WriteReport` co-located with the
+conversion lib. Both run the plan→writer tail and return the writer's report (the
+planned/applied write-set plus diagnostics). So adding the CLI is wiring, not a
+rewrite.
 
 ## How import is verified
 
