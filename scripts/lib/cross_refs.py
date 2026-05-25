@@ -12,6 +12,11 @@ from __future__ import annotations
 import re
 from typing import Any
 
+# A title-index hit: `(slug, work-number, kind)`. The index maps a normalized
+# litres URL or book title to the work it names; matches `content_catalog`'s
+# `build_title_index` return.
+type _IndexHit = tuple[str, int | None, str | None]
+
 _FOOTNOTE_LINE = re.compile(r"^\[\^([^\]]+)\]:\s*(.+)$", re.MULTILINE)
 _LITRES_URL = re.compile(r"https?://(?:www\.)?litres\.ru/[\w\-/]+")
 _INLINE_BOOK_TITLE = re.compile(r"книг[аеу]\s+«([^»]{3,80})»")
@@ -21,7 +26,7 @@ _EN_INLINE_BOOK_TITLE = re.compile(r"the\s+book\s+\"([^\"]{3,80})\"", re.IGNOREC
 def extract_cross_refs(
     md: str,
     own_slug: str,
-    title_index: dict[str, tuple[str, int | None, str | None]],
+    title_index: dict[str, _IndexHit],
 ) -> list[dict[str, Any]]:
     """Scan footnote bodies and inline mentions for references to other works
     in the corpus. Emit `{target: {kind, number}, source, snippet}` entries
@@ -45,11 +50,8 @@ def extract_cross_refs(
             entry["source_url"] = url
         refs.append(entry)
 
-    def lookup(key: str) -> tuple[str | None, int | None, str | None]:
-        got = title_index.get(key)
-        if not got:
-            return None, None, None
-        return got
+    def lookup(key: str) -> _IndexHit | tuple[None, None, None]:
+        return title_index.get(key) or (None, None, None)
 
     for m in _FOOTNOTE_LINE.finditer(md):
         body = m.group(2)
