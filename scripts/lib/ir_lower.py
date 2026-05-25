@@ -27,7 +27,9 @@ from __future__ import annotations
 import hashlib
 import html
 import re
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
+from typing import assert_never
 
 from lib import ir
 from lib.writeplan import PlannedAsset
@@ -130,6 +132,14 @@ def sanitize_urls(doc: ir.Document) -> None:
     def visit_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
         out: list[ir.Inline] = []
         for n in inlines:
+            # Kept as an isinstance ladder (NOT `match`): the container-recurse arm
+            # tests against `ir.ContainerInline` — the runtime tuple naming the
+            # container kinds ONCE in ir.py — which cannot appear in a `case` (a `case`
+            # would force re-spelling the five container kinds inline, the very thing
+            # that tuple exists to avoid). This pass is also intentionally PARTIAL:
+            # only the scheme-bearing kinds (Link target / ImageInline src) act; a
+            # SAFE link falls through to the container rebuild, every other inline
+            # passes through unchanged.
             if isinstance(n, ir.Link) and not _is_safe_url(n.target):
                 doc.diagnostics.append(ir.Diagnostic(
                     "warning", "import.unsafe-url",
@@ -207,11 +217,35 @@ def _is_remote_url(src: str) -> bool:
     return m is not None and m.group(1).lower() in {"http", "https"}
 
 
-# The sentinel a resolve() result uses to say "this LOCAL image did not resolve to a
-# safe asset under the media dir" — FATAL, and the ref is DROPPED from the body
-# (never emitted as a dangling/escaping path). `None` means "kept as-is" (a safe
-# remote ref); a `(hash, ext)` pair means "resolved to a content-hash asset".
-_DROP_IMAGE = "drop"
+# The three outcomes of resolving ONE body-image src, as a tagged union rather than
+# an overloaded `tuple | str | None` with a magic-string sentinel — so each consumer
+# dispatches structurally and adding a fourth outcome flags every site:
+#   * `ResolvedAsset(asset_id)` — resolved to a content-hash asset (its id is the
+#     `<hash><ext>` filename the ref is rewritten to);
+#   * `DropImage()`            — an unresolvable LOCAL image: FATAL upstream, and the
+#     ref is DROPPED from the body (never emitted as a dangling/escaping path);
+#   * `KeepRemote()`           — a safe remote (http/https) ref kept as-is.
+
+
+@dataclass(frozen=True)
+class ResolvedAsset:
+    """A body image resolved to a content-hash asset; `asset_id` is its
+    `<hash><ext>` filename (the ref is rewritten to `./images/<asset_id>`)."""
+
+    asset_id: str
+
+
+@dataclass(frozen=True)
+class DropImage:
+    """An unresolvable LOCAL image: FATAL (surfaced upstream), the ref is dropped."""
+
+
+@dataclass(frozen=True)
+class KeepRemote:
+    """A safe remote (http/https) image ref; kept as-is, not a planned asset."""
+
+
+type ImageResolution = ResolvedAsset | DropImage | KeepRemote
 
 
 def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[PlannedAsset]:
@@ -228,16 +262,19 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
     to hash them. The returned list is sorted by bundle-relative path, giving the
     writer a stable asset order.
     """
-    seen: dict[str, tuple[str, str]] = {}
+    seen: dict[str, ResolvedAsset] = {}
     planned: dict[str, PlannedAsset] = {}
 
-    def resolve(src: str) -> tuple[str, str] | str | None:
-        """`(hash, ext)` → resolved asset; `_DROP_IMAGE` → unresolvable LOCAL image
-        (FATAL, drop the ref); `None` → safe remote ref kept as-is."""
+    def resolve(src: str) -> ImageResolution:
+        """Resolve ONE image src to a tagged `ImageResolution` (see the union above).
+
+        A cached src was previously resolved to an asset; a safe remote ref is kept;
+        any other src is a LOCAL image that must resolve to a safe readable image file
+        under `media_root` or it is FATAL (surfaced) and dropped."""
         if src in seen:
             return seen[src]
         if _is_remote_url(src):
-            return None  # valid remote image ref — not a local image
+            return KeepRemote()  # valid remote image ref — not a local image
         cand = _confined_media_source(src, media_root)
         if cand is None or not _is_image_path(cand.name):
             # A LOCAL image ref that does not resolve to a safe readable image file
@@ -250,7 +287,7 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
                 + ("escapes the media-extraction dir" if escaped else "does not resolve to a readable image under the media dir")
                 + "; refusing the write and dropping the ref (no dangling path emitted).",
             ))
-            return _DROP_IMAGE
+            return DropImage()
         h = _hash_file(cand)
         ext = _normalize_ext(cand.suffix)
         rel_within = f"images/{h}{ext}"
@@ -258,18 +295,26 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
             rel_within,
             PlannedAsset(rel_within=rel_within, source=cand, is_raster=ext in RASTER_CAP_EXTS),
         )
-        seen[src] = (h, ext)
-        return h, ext
+        resolved = ResolvedAsset(asset_id=f"{h}{ext}")
+        seen[src] = resolved
+        return resolved
 
     def visit_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
         out: list[ir.Inline] = []
         for n in inlines:
+            # Kept as an isinstance ladder (NOT `match`): the container-recurse arm
+            # tests `ir.ContainerInline` (the runtime tuple naming the container kinds
+            # once in ir.py), which cannot appear in a `case`. Partial: only an
+            # `ImageInline` resolves; a container recurses; everything else passes
+            # through unchanged.
             if isinstance(n, ir.ImageInline):
-                got = resolve(n.src)
-                if got == _DROP_IMAGE:
-                    continue  # unresolvable local image: FATAL upstream, drop the ref
-                asset_id = (got[0] + got[1]) if isinstance(got, tuple) else None
-                out.append(ir.ImageInline(src=n.src, alt=n.alt, asset_id=asset_id))
+                match resolve(n.src):
+                    case DropImage():
+                        continue  # unresolvable local image: FATAL upstream, drop the ref
+                    case ResolvedAsset(asset_id=asset_id):
+                        out.append(ir.ImageInline(src=n.src, alt=n.alt, asset_id=asset_id))
+                    case KeepRemote():
+                        out.append(ir.ImageInline(src=n.src, alt=n.alt, asset_id=None))
             elif isinstance(n, ir.ContainerInline):
                 out.append(ir.rebuild_container(n, visit_inlines(n.children)))
             else:
@@ -277,20 +322,25 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
         return out
 
     def visit_block(b: ir.Block) -> None:
-        # An `ImageBlock` is the one leaf the shared inline-descent cannot express
-        # (its image is a block field, not an inline list); resolve it here, then let
-        # the shared skeleton handle every inline-list leaf.
-        if isinstance(b, ir.ImageBlock):
-            got = resolve(b.src)
-            if got == _DROP_IMAGE:
-                # An unresolvable local block image is FATAL; blank the src so the
-                # lowerer emits no dangling path (the write is refused regardless).
-                b.src = ""
-                b.asset_id = None
-            elif isinstance(got, tuple):
-                b.asset_id = got[0] + got[1]
-            return
-        ir.map_block_inlines(b, visit_inlines)
+        # Deliberately PARTIAL (a `case _` delegating to the shared skeleton, NOT
+        # `assert_never`): an `ImageBlock` is the one leaf the shared inline-descent
+        # cannot express (its image is a block field, not an inline list), so it is
+        # resolved here; every other block kind has its inline-list leaves handled by
+        # `map_block_inlines`, so it falls through unchanged.
+        match b:
+            case ir.ImageBlock():
+                match resolve(b.src):
+                    case DropImage():
+                        # An unresolvable local block image is FATAL; blank the src so
+                        # the lowerer emits no dangling path (the write is refused).
+                        b.src = ""
+                        b.asset_id = None
+                    case ResolvedAsset(asset_id=asset_id):
+                        b.asset_id = asset_id
+                    case KeepRemote():
+                        pass  # a remote block image keeps its src; no asset id
+            case _:
+                ir.map_block_inlines(b, visit_inlines)
 
     for b in doc.blocks:
         visit_block(b)
@@ -301,9 +351,16 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
 # inline -> markdown (prose)
 # ---------------------------------------------------------------------------
 
-_EMPH_MD: dict[str, tuple[str, str]] = {
+# Both maps are keyed by `ir.EmphKind` (the shared closed set, not a bare `str`) so
+# the lookups are total over the emphasis kinds the IR can carry. They are kept
+# SEPARATE because they target different lowerings of the same kind — `_EMPH_MD` to
+# the prose Markdown delimiter pair, `_EMPH_HTML_TAG` to the verse/answer HTML tag.
+_EMPH_MD: dict[ir.EmphKind, tuple[str, str]] = {
     "strong": ("**", "**"), "emph": ("*", "*"), "strike": ("~~", "~~"),
     "sup": ("^", "^"), "sub": ("~", "~"),
+}
+_EMPH_HTML_TAG: dict[ir.EmphKind, str] = {
+    "strong": "strong", "emph": "em", "strike": "s", "sup": "sup", "sub": "sub",
 }
 
 # The mid-line Markdown/HTML markup characters a LITERAL `ir.Text` value must be
@@ -360,35 +417,36 @@ def _inline_code_md(value: str) -> str:
 
 
 def _inline_md(n: ir.Inline, lang: str) -> str:
-    if isinstance(n, ir.Text):
-        return _escape_literal_text(n.value)
-    if isinstance(n, (ir.SoftBreak, ir.LineBreak)):
-        return "\n"
-    if isinstance(n, ir.Emphasis):
-        o, c = _EMPH_MD[n.kind]
-        return f"{o}{_inlines_md(n.children, lang)}{c}"
-    if isinstance(n, ir.Code):
-        return _inline_code_md(n.value)
-    if isinstance(n, ir.Quoted):
-        inner = _inlines_md(n.children, lang)
-        return f"'{inner}'" if n.single else f"«{inner}»"
-    if isinstance(n, ir.Link):
-        label = _inlines_md(n.children, lang).strip()
-        return f"[{label}]({n.target})" if label else ""
-    if isinstance(n, ir.DirectionalSpan):
-        inner = _inlines_md(n.children, lang)
-        return f'<span dir="{html.escape(n.direction, quote=True)}">{inner}</span>'
-    if isinstance(n, ir.ImageInline):
-        target = f"./images/{n.asset_id}" if n.asset_id else n.src
-        if not target:
-            return ""  # a dropped (unresolvable-local) image emits nothing
-        alt = n.alt or _body_image_alt(lang)
-        return f"![{_escape_markdown_alt(alt)}]({target})"
-    if isinstance(n, ir.FootnoteRef):
-        return f"[^{n.id}]"
-    if isinstance(n, ir.UnknownInline):
-        return _inlines_md(n.children, lang)
-    return ""
+    match n:
+        case ir.Text():
+            return _escape_literal_text(n.value)
+        case ir.SoftBreak() | ir.LineBreak():
+            return "\n"
+        case ir.Emphasis():
+            o, c = _EMPH_MD[n.kind]
+            return f"{o}{_inlines_md(n.children, lang)}{c}"
+        case ir.Code():
+            return _inline_code_md(n.value)
+        case ir.Quoted():
+            inner = _inlines_md(n.children, lang)
+            return f"'{inner}'" if n.single else f"«{inner}»"
+        case ir.Link():
+            label = _inlines_md(n.children, lang).strip()
+            return f"[{label}]({n.target})" if label else ""
+        case ir.DirectionalSpan():
+            inner = _inlines_md(n.children, lang)
+            return f'<span dir="{html.escape(n.direction, quote=True)}">{inner}</span>'
+        case ir.ImageInline():
+            target = f"./images/{n.asset_id}" if n.asset_id else n.src
+            if not target:
+                return ""  # a dropped (unresolvable-local) image emits nothing
+            alt = n.alt or _body_image_alt(lang)
+            return f"![{_escape_markdown_alt(alt)}]({target})"
+        case ir.FootnoteRef():
+            return f"[^{n.id}]"
+        case ir.UnknownInline():
+            return _inlines_md(n.children, lang)
+    assert_never(n)
 
 
 def _inlines_md(nodes: list[ir.Inline], lang: str) -> str:
@@ -413,36 +471,38 @@ def _inline_html_lines(nodes: list[ir.Inline], lang: str) -> list[str]:
         return [f"<{tag}>{c}</{tag}>" if c else "" for c in child]
 
     for n in nodes:
-        if isinstance(n, ir.Text):
-            lines[-1] += html.escape(n.value, quote=False)
-        elif isinstance(n, (ir.SoftBreak, ir.LineBreak)):
-            lines.append("")
-        elif isinstance(n, ir.Emphasis):
-            tag = {"strong": "strong", "emph": "em", "strike": "s", "sup": "sup", "sub": "sub"}[n.kind]
-            merge(wrap(tag, _inline_html_lines(n.children, lang)))
-        elif isinstance(n, ir.Code):
-            lines[-1] += f"<code>{html.escape(n.value, quote=False)}</code>"
-        elif isinstance(n, ir.Quoted):
-            child = _inline_html_lines(n.children, lang)
-            if child:
-                o, c = ("'", "'") if n.single else ("«", "»")
-                child[0] = f"{o}{child[0]}"
-                child[-1] = f"{child[-1]}{c}"
-            merge(child)
-        elif isinstance(n, ir.Link):
-            label = "".join(_inline_html_lines(n.children, lang))
-            lines[-1] += f'<a href="{html.escape(n.target, quote=True)}">{label}</a>'
-        elif isinstance(n, ir.DirectionalSpan):
-            inner = "".join(_inline_html_lines(n.children, lang))
-            lines[-1] += f'<span dir="{html.escape(n.direction, quote=True)}">{inner}</span>'
-        elif isinstance(n, ir.ImageInline):
-            target = f"./images/{n.asset_id}" if n.asset_id else n.src
-            if target:  # a dropped (unresolvable-local) image emits nothing
-                lines[-1] += f'<img src="{html.escape(target, quote=True)}" alt="{html.escape(n.alt, quote=True)}">'
-        elif isinstance(n, ir.FootnoteRef):
-            lines[-1] += f"[^{n.id}]"
-        elif isinstance(n, ir.UnknownInline):
-            merge(_inline_html_lines(n.children, lang))
+        match n:
+            case ir.Text():
+                lines[-1] += html.escape(n.value, quote=False)
+            case ir.SoftBreak() | ir.LineBreak():
+                lines.append("")
+            case ir.Emphasis():
+                merge(wrap(_EMPH_HTML_TAG[n.kind], _inline_html_lines(n.children, lang)))
+            case ir.Code():
+                lines[-1] += f"<code>{html.escape(n.value, quote=False)}</code>"
+            case ir.Quoted():
+                child = _inline_html_lines(n.children, lang)
+                if child:
+                    o, c = ("'", "'") if n.single else ("«", "»")
+                    child[0] = f"{o}{child[0]}"
+                    child[-1] = f"{child[-1]}{c}"
+                merge(child)
+            case ir.Link():
+                label = "".join(_inline_html_lines(n.children, lang))
+                lines[-1] += f'<a href="{html.escape(n.target, quote=True)}">{label}</a>'
+            case ir.DirectionalSpan():
+                inner = "".join(_inline_html_lines(n.children, lang))
+                lines[-1] += f'<span dir="{html.escape(n.direction, quote=True)}">{inner}</span>'
+            case ir.ImageInline():
+                target = f"./images/{n.asset_id}" if n.asset_id else n.src
+                if target:  # a dropped (unresolvable-local) image emits nothing
+                    lines[-1] += f'<img src="{html.escape(target, quote=True)}" alt="{html.escape(n.alt, quote=True)}">'
+            case ir.FootnoteRef():
+                lines[-1] += f"[^{n.id}]"
+            case ir.UnknownInline():
+                merge(_inline_html_lines(n.children, lang))
+            case _:
+                assert_never(n)
     return lines
 
 
@@ -584,67 +644,68 @@ def _heading_md(b: ir.Heading, lang: str) -> str:
 
 
 def _block_md(b: ir.Block, lang: str, *, poem: bool = False) -> str | None:
-    if isinstance(b, ir.Heading):
-        return _heading_md(b, lang)
-    if isinstance(b, ir.Paragraph):
-        if b.empty:
-            return None
-        text = _inlines_md(b.inlines, lang)
-        if poem:
-            # Verse: keep hard/soft breaks as lines (one verse line each), trimming
-            # only trailing spaces — the poem path's line-per-line shape.
-            lines = [ln.rstrip() for ln in text.split("\n")]
-            return "\n".join(ln for ln in lines if ln.strip()) or None
-        # Prose: collapse internal soft/hard breaks to spaces (Pandoc --wrap=none).
-        text = re.sub(r"\s*\n\s*", " ", text).strip()
-        return _escape_leading_list_marker(text) or None
-    if isinstance(b, ir.VerseBlock):
-        return _verse_md(b, lang)
-    if isinstance(b, ir.Signature):
-        return _signature_md(b)
-    if isinstance(b, ir.Epigraph):
-        return _epigraph_md(b)
-    if isinstance(b, ir.DialogueLabel):
-        return f"**{b.speaker}:**"
-    if isinstance(b, ir.ThematicBreak):
-        return "***"
-    if isinstance(b, ir.ImageBlock):
-        target = f"./images/{b.asset_id}" if b.asset_id else b.src
-        if not target:
-            return None  # a dropped (unresolvable-local) block image emits nothing
-        alt = b.alt or _body_image_alt(lang)
-        return f"![{_escape_markdown_alt(alt)}]({target})"
-    if isinstance(b, ir.BlockQuote):
-        if b.role == "_div":
-            return "\n\n".join(filter(None, (_block_md(x, lang) for x in b.blocks))) or None
-        inner = "\n".join(
-            "> " + line for blk in b.blocks for line in (_block_md(blk, lang) or "").splitlines()
-        )
-        return inner or None
-    if isinstance(b, ir.ListBlock):
-        parts: list[str] = []
-        for idx, item in enumerate(b.items):
-            marker = f"{b.start + idx}." if b.ordered else "-"
-            item_md = "\n\n".join(filter(None, (_block_md(x, lang) for x in item)))
-            parts.append(f"{marker} {item_md}")
-        return "\n".join(parts) or None
-    if isinstance(b, ir.CodeBlock):
-        # A FIXED triple-fence lets a ``` line inside the content close the block
-        # early, leaking the remainder as raw Markdown. Size the fence to be strictly
-        # longer than the longest internal backtick run (min 3), so the block cannot
-        # be terminated early — CommonMark info-string-less variable-length fence.
-        fence = "`" * max(3, _longest_backtick_run(b.text) + 1)
-        return f"{fence}\n{b.text}\n{fence}"
-    if isinstance(b, ir.Table):
-        return _table_md(b, lang)
-    if isinstance(b, ir.UnknownBlock):
-        # PRESERVE the unknown block's readable text (escaped — it is literal source
-        # text) rather than dropping it. A diagnostic is surfaced separately in
-        # `lower` (it owns the document); a kind with no recoverable text emits
-        # nothing here but is still surfaced.
-        text = re.sub(r"\s*\n\s*", " ", b.text).strip()
-        return _escape_literal_text(text) or None if text else None
-    return None
+    match b:
+        case ir.Heading():
+            return _heading_md(b, lang)
+        case ir.Paragraph():
+            if b.empty:
+                return None
+            text = _inlines_md(b.inlines, lang)
+            if poem:
+                # Verse: keep hard/soft breaks as lines (one verse line each), trimming
+                # only trailing spaces — the poem path's line-per-line shape.
+                lines = [ln.rstrip() for ln in text.split("\n")]
+                return "\n".join(ln for ln in lines if ln.strip()) or None
+            # Prose: collapse internal soft/hard breaks to spaces (Pandoc --wrap=none).
+            text = re.sub(r"\s*\n\s*", " ", text).strip()
+            return _escape_leading_list_marker(text) or None
+        case ir.VerseBlock():
+            return _verse_md(b, lang)
+        case ir.Signature():
+            return _signature_md(b)
+        case ir.Epigraph():
+            return _epigraph_md(b)
+        case ir.DialogueLabel():
+            return f"**{b.speaker}:**"
+        case ir.ThematicBreak():
+            return "***"
+        case ir.ImageBlock():
+            target = f"./images/{b.asset_id}" if b.asset_id else b.src
+            if not target:
+                return None  # a dropped (unresolvable-local) block image emits nothing
+            alt = b.alt or _body_image_alt(lang)
+            return f"![{_escape_markdown_alt(alt)}]({target})"
+        case ir.BlockQuote():
+            if b.role == "_div":
+                return "\n\n".join(filter(None, (_block_md(x, lang) for x in b.blocks))) or None
+            inner = "\n".join(
+                "> " + line for blk in b.blocks for line in (_block_md(blk, lang) or "").splitlines()
+            )
+            return inner or None
+        case ir.ListBlock():
+            parts: list[str] = []
+            for idx, item in enumerate(b.items):
+                marker = f"{b.start + idx}." if b.ordered else "-"
+                item_md = "\n\n".join(filter(None, (_block_md(x, lang) for x in item)))
+                parts.append(f"{marker} {item_md}")
+            return "\n".join(parts) or None
+        case ir.CodeBlock():
+            # A FIXED triple-fence lets a ``` line inside the content close the block
+            # early, leaking the remainder as raw Markdown. Size the fence to be strictly
+            # longer than the longest internal backtick run (min 3), so the block cannot
+            # be terminated early — CommonMark info-string-less variable-length fence.
+            fence = "`" * max(3, _longest_backtick_run(b.text) + 1)
+            return f"{fence}\n{b.text}\n{fence}"
+        case ir.Table():
+            return _table_md(b, lang)
+        case ir.UnknownBlock():
+            # PRESERVE the unknown block's readable text (escaped — it is literal source
+            # text) rather than dropping it. A diagnostic is surfaced separately in
+            # `lower` (it owns the document); a kind with no recoverable text emits
+            # nothing here but is still surfaced.
+            text = re.sub(r"\s*\n\s*", " ", b.text).strip()
+            return _escape_literal_text(text) or None if text else None
+    assert_never(b)
 
 
 # ---------------------------------------------------------------------------
@@ -774,20 +835,27 @@ def _surface_unknown_block_diagnostics(doc: ir.Document) -> None:
     makes its presence visible to the caller (which forwards `warning`/`fatal`)."""
 
     def visit(b: ir.Block) -> None:
-        if isinstance(b, ir.UnknownBlock):
-            preserved = "preserved its text" if b.text.strip() else "no recoverable text"
-            doc.diagnostics.append(ir.Diagnostic(
-                "warning", "import.unknown-block",
-                f"unmodeled block kind {b.note!r} ({preserved}); surfaced rather than "
-                "silently dropped.",
-            ))
-        elif isinstance(b, ir.BlockQuote):
-            for inner in b.blocks:
-                visit(inner)
-        elif isinstance(b, ir.ListBlock):
-            for item in b.items:
-                for inner in item:
+        # Deliberately PARTIAL (a `case _` no-op, NOT `assert_never`): only an
+        # `UnknownBlock` surfaces a diagnostic, and only the container blocks
+        # (`BlockQuote`/`ListBlock`) nest others to descend into; every other block
+        # kind is a non-nesting leaf with nothing to surface, so it is skipped.
+        match b:
+            case ir.UnknownBlock():
+                preserved = "preserved its text" if b.text.strip() else "no recoverable text"
+                doc.diagnostics.append(ir.Diagnostic(
+                    "warning", "import.unknown-block",
+                    f"unmodeled block kind {b.note!r} ({preserved}); surfaced rather than "
+                    "silently dropped.",
+                ))
+            case ir.BlockQuote():
+                for inner in b.blocks:
                     visit(inner)
+            case ir.ListBlock():
+                for item in b.items:
+                    for inner in item:
+                        visit(inner)
+            case _:
+                pass  # non-nesting leaf blocks have nothing to surface
 
     for b in doc.blocks:
         visit(b)
