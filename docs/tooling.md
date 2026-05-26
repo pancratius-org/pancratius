@@ -1,239 +1,136 @@
-# Pancratius Tooling & Invocation Contract
+# Pancratius Tooling
 
-How Pancratius is operated from the command line — the invocation surface that
-humans, agents (Codex/Claude), and the project's Claude/Codex skills call. Like the
-sibling architecture docs this describes the target contract; what remains to build
-it is at the end.
+## Boundary
 
-It is a companion to [`architecture.md`](./architecture.md) (what the site is, and
-the import/render/build split), [`content-model.md`](./content-model.md) (the corpus
-shape), [`import-pipeline.md`](./import-pipeline.md) (the DOCX→Markdown importer +
-`WritePlan`/writer), [`downloads.md`](./downloads.md) (the release-artifact
-contract), and [`audit-harness.md`](./audit-harness.md) (the audit contract).
+Pancratius has two command surfaces:
 
-## The problem this fixes
+- `uv run pancratius ...` changes the library. It imports, scaffolds, renders
+  release artifacts, optimizes source DOCX, and regenerates committed Python data
+  products.
+- `npm run ...` builds, serves, and verifies the site. It owns Astro, Pagefind,
+  Playwright, TypeScript checks, audit, and deterministic build derivations.
 
-The repo grew ~40+ invocation points with no coherent front door: npm scripts,
-~25 Python scripts run via `uv`, and Node `.ts` tools — plus the audits. A request
-like "import this DOCX as a new book" or "add this DOCX as a project sub-page" has
-no obvious, discoverable command. The pain is often misread as "we need one CLI for
-everything." That is the wrong fix: the site build surface already exists and is
-correct; the **library-management side has no door at all.**
+The owner is decided by the effect. Mutation and committed corpus products belong
+to `pancratius`; build and verification belong to `npm`.
 
-## The decision: two doors, split by *mutate* vs *verify*
+Do not add wrapper commands across that boundary. In particular, `pancratius`
+must not grow `audit`, `check`, `test`, `build`, `dev`, `preview`, or `site`
+commands. PAN019 guards this.
 
-The boundary is **not** subject (content vs site) and **not** language (Python vs
-TS). It is **what the command does to the world**:
+## Site Operations
 
-- **Library door — `pancratius` (uv) — MUTATE / PRODUCE the corpus.** Commands that
-  *change* content or build inputs: import a work, scaffold a project sub-page,
-  render release artifacts, optimize a DOCX, generate data products.
-- **Site door — `npm` (Node) — BUILD the deployable artifact + VERIFY it.** `dev`,
-  `build`, `preview`, and the *verification* family that gates the artifact:
-  `astro check` (types), Playwright (smoke), and **audit** (contracts).
+Site operations are npm-native because the deploy artifact is an Astro static
+site.
 
-Verification is not mutation. `check`, `test`, and `audit` are pure — they never
-change content; they decide whether the artifact is trustworthy to publish. By that
-cut they belong with the build (the site door), alongside the type-check and smoke
-tests — not with the corpus-mutating commands. Each door keeps a coherent essence:
-**`npm` = make and verify the site; `pancratius` = change the library.** Two
-prefixes is the one accepted cost; the seam is real and CI-enforced.
+| Command | Owns |
+| --- | --- |
+| `npm run dev` | Prebuild derivations, Pagefind dev sync, Astro dev server. |
+| `npm run build` | Prebuild derivations, `astro check`, static build, Pagefind index. |
+| `npm run preview` | Astro preview of the built site. |
+| `npm run check` | Prebuild derivations plus Astro content/type checks. |
+| `npm run audit` | Core architecture audit. |
+| `npm run audit:agent` | Core audit plus non-blocking heuristic checks. |
+| `npm run audit:deploy` | Deploy-surface audit against emitted `dist/`. |
+| `npm run audit:selftest` | Harness fixtures proving audit polarity. |
+| `npm run test:smoke` | Playwright smoke/e2e specs. |
+| `npm run test:unit` | Node unit tests for TS helpers. |
+| `npm run test:visual` | Playwright visual gate. |
+| `npm run typecheck:tooling` | Type-check TS tooling outside the Astro app config. |
+| `npm run check:py` | Ruff annotation lint plus `ty` for Python. |
 
-## Site door — `npm`
+Build derivations live in `build/` and run from npm. They derive artifacts from
+committed source; they do not mutate `src/content/`:
 
-Unchanged. `dev`, `build`, `preview`, `check`, `search:index` (Pagefind),
-`test:smoke` (Playwright), the `prebuild:*` steps (build-time-coupled data prep),
-and **`audit`** (the contract harness). This is the deploy path and what CI runs.
-Do not wrap Astro under another tool — the site build is Node/CI-native.
+- `build/slug-map.ts` writes the build-time route manifest.
+- `build/copy-graph-payloads.ts` copies committed graph data into the public
+  payload space.
+- `build/bulk-archives.ts` builds the bulk archive manifest and `.cache` zip.
+- `build/sync-pagefind-dev.ts` copies Pagefind output for local dev.
 
-### Audit lives here (verification)
+Audit belongs to site operations because it verifies. Python checks in `audit/`
+are subprocesses of the harness, not standalone commands.
 
-The audit harness's canonical surface is **`npm run audit`** (with `audit:agent` /
-`audit:deploy` modes and `audit:selftest`, per
-[`audit-harness.md`](./audit-harness.md)), not a `pancratius` verb: audit is
-verification (site door, by the mutate/verify cut), and most contracts it checks
-live in Node/Astro surfaces (routes, `src/lib`, `dist`, sitemap/feed, Pagefind,
-CSS, the built-surface crawl), so a TS engine belongs under the Node door. Shape:
+## Library Operations
 
-```txt
-scripts/audit/harness.ts   # runner, severity, report (canonical)
-scripts/audit/rules/*.ts   # TS/Astro/CSS/HTML/dist/url/SSOT rules
-scripts/audit/python/*.py  # content/corpus checks, called as subprocesses
+Library operations use the `pancratius` Python package:
+
+```sh
+uv run pancratius <group> ...
 ```
 
-The Python content audits are not rewritten for purity — the harness calls them as
-subprocesses and normalizes their output.
+It is a real console script (`pancratius.cli:main`). The dispatcher calls library
+functions in process. It does not shell out to other Python CLIs.
 
-### Stack conformance also lives here
+| Command | Owner |
+| --- | --- |
+| `pancratius work import <docx> --kind book|poem` | `pancratius.import_docx.import_work` |
+| `pancratius project page add <project> <subpage-slug> <docx>` | `pancratius.docx_conversion.scaffold_subpage` |
+| `pancratius downloads render [--book N]` | `pancratius.render_downloads` |
+| `pancratius docx optimize [paths...]` | `pancratius.docx_optimize` |
+| `pancratius conceptosphere graph generate [--only concepts|books]` | `pancratius.conceptosphere.generate_graph` |
+| `pancratius conceptosphere embed generate` | `pancratius.conceptosphere_embed.generate_embeddings` |
 
-The stack-conformance checks (PAN016) are verification, run in CI alongside the
-type-check:
+The grammar carries the content model:
 
-- **TypeScript everywhere** — `check` (`astro check`) covers the app; the Node
-  scripts and Playwright specs the app config excludes are covered by
-  `typecheck:scripts` (`tsc -p tsconfig.scripts.json`). Editor association comes
-  from `scripts/tsconfig.json` / `tests/tsconfig.json`.
-- **Typed Python** — `lint:py` (`ruff` `ANN`) and `typecheck:py` (`ty`); `check:py`
-  runs both. Pinned in `uv.lock`, run `--frozen` in CI. Tool rationale in
-  [`decisions.md`](./decisions.md) ("Python type enforcement: ruff + ty").
+- `work import` handles corpus works only: books and poems. `project` is not a
+  work kind. PAN017 guards this.
+- `project page add` scaffolds a project sub-page draft. It does not edit the
+  project landing and does not decide the page's editorial placement.
+- Graph and embedding generation live here because they produce committed
+  Python-only data products. Copying those products into `public/data/` is npm
+  build work.
 
-## Library door — `pancratius`
+## Exit And Output Contract
 
-A real package with a console-script `pancratius = "pancratius.cli:main"`, invoked
-as `uv run pancratius …`. Standing it up means adding `[project.scripts]` and a
-`[build-system]` to `pyproject.toml` and removing `[tool.uv] package = false` (a
-console-script needs a build backend; uv will not install an entry point while the
-project is non-package). A small `pancratius/cli.py` argparse dispatcher with
-**noun-first** groups (domain first, so `--help` is a navigable ontology); no new
-dependency.
+The `pancratius` CLI owns process behavior:
 
-The dispatcher calls **library functions, not other CLIs.** Each owning script is a
-library module exposing one clean typed entry — a function, or a frozen request
-object where the argument set is large (`import_work(ImportRequest) -> WriteReport`
-is the model). Its own `argparse main()` is a thin adapter or is dropped, so
-`pancratius` is the only CLI surface. The dispatcher therefore owns one uniform
-output contract: exit `0` success / `1` refusal-or-failure / `2` usage; human
-summary on stdout, diagnostics on stderr. Library entries return values and raise;
-they never print or `sys.exit`.
+- `0`: success.
+- `1`: failed operation or refused write.
+- `2`: usage/input error.
 
-| Command | Library entry | Notes |
-|---|---|---|
-| `pancratius work import <docx> --kind book\|poem` | `import_work(ImportRequest)` | Per-DOCX corpus-work importer. `--into <key>` adds a translation. Flags map 1:1 onto `ImportRequest`. |
-| `pancratius project page add <project> <subpage-slug> <docx>` | `scaffold_subpage(...)` | **Scaffolds** a draft sub-page (deterministic slice only) — never synthesizes or wires the landing. |
-| `pancratius downloads render [--book N]` | `render_downloads` entry | Local PDF/EPUB/DOCX release artifacts. Never CI. |
-| `pancratius docx optimize [paths…]` | `docx_optimize` entry | In-place source DOCX cleanup. |
-| `pancratius data graph generate [--only concepts\|books]` | `conceptosphere` entry | Regenerate **both** graph projections into `data/` (heavy — `--extra graph`); `--only` for granular regen. The CI-safe `data/`→`public/data/` copy is the npm `prebuild:graph-payloads`, separate. |
-| `pancratius data embed generate` | `conceptosphere_embed` entry | Regenerate embeddings into `data/` (heavy — `--extra embed`). |
-| `pancratius data slug-map refresh` | `build_slug_map` entry | Sitemap slug-map (same generator as `prebuild:slug-map` — one owner). |
-| `pancratius data bulk refresh` | `build_bulk_archives.ts` | `all-md.zip` (same as `prebuild:bulk-archives` — one owner; shells to Node, the one cross-language verb). |
+Library owners return values or raise domain exceptions. They do not call
+`sys.exit`, parse shell flags, or print progress meant for another command
+surface. The CLI turns library outcomes into user-facing text and exit codes.
 
-The verb space **teaches the corpus ontology** (see `content-model.md`): you
-`work import` a book/poem (a corpus work, `(kind, number)`); you `project page add`
-a sub-page (a themed section). An agent cannot express "import a project as a book"
-— the boundary is in the grammar (and PAN017-enforced). The DOCX→Markdown converter
-is a library the `work import` path drives through the `scripts/lib/docx_conversion.py`
-facade (`convert_single_docx`, the typed-IR pipeline `docx_adapter` → `ir_normalize`
-→ `ir_lower`); it has no verb because it is not a user task.
+## Mechanical vs Editorial
 
-### Mechanical (tool) vs editorial (skill)
+`pancratius` performs mechanical work:
 
-The CLI does **mechanical** transforms only: DOCX→Markdown conversion (including the
-verse/stanza rules from `content-model.md`), image extraction/capping, frontmatter
-scaffolding, file placement. It does **not** do **editorial composition**: deciding
-whether a document becomes a book, a sub-page, or an inline section; the
-prophetic-voice synthesis; how a sub-page sits in a project landing; the register
-(`Prose`/`Verse`) choice. Composition is a skill/agent's judgment, not a tool flag.
-This is why `project page add` scaffolds and stops.
+- convert DOCX to canonical Markdown through the import IR;
+- extract and cap images;
+- preserve or seed frontmatter;
+- place files in the correct bundle;
+- render release artifacts;
+- regenerate graph/embed data.
 
-### `project page add` scaffolds only the deterministic slice
+It does not perform editorial judgment: deciding whether a document deserves to
+be a book, choosing final titles/descriptions, composing project landings,
+ordering project sub-pages, approving translations, or changing theological
+register. When a tool cannot know, it should produce a diagnostic or a draft
+placeholder, not guess.
 
-A project sub-page's value is editorial — projects were authored from
-`docs/projects-plan.md` in the author's voice, not converted from a DOCX. So this
-verb does the deterministic slice and stops: it converts the DOCX to a draft body,
-co-locates images, and writes
-`src/content/projects/<project>/subpages/<subpage-slug>/<lang>.md` with the
-mechanical frontmatter (`kind`, `parent`, `slug`, `lang`) and the **editorial fields
-(`title`, `description`, `weight`) as explicit `TODO` placeholders**. The draft is
-intentionally schema-incomplete — it will not pass `npm run check` until a human
-fills those fields. That is the safe choice: a draft that fails loudly beats one
-that validates with a guessed `weight` and ships the wrong register. It then
-**prints the suggested landing `subpages:` entry** for a human to place; it never
-edits the landing.
+## Dependencies
 
-It writes through the import **writer** (atomic, scoped, no-clobber, `--dry-run`).
-The writer is a general safe-bundle-writer; the import *provenance* manifest is the
-importer's concern, not the writer's, so a scaffold reuses the writer with no
-import coupling (see [`import-pipeline.md`](./import-pipeline.md)).
+Base Python dependencies cover the light local verbs. Heavy graph and embedding
+stacks are optional extras:
 
-## Dependency model
+```sh
+uv sync --extra graph
+uv sync --extra embed
+```
 
-The console-script installs light; heavy stacks are opt-in:
+The CLI lazy-imports those owners and prints the relevant extra hint when the
+stack is missing. System tools such as pandoc and typst are local prerequisites,
+not Python package dependencies.
 
-- **Base deps** (`[project.dependencies]`, e.g. `pyyaml`, `pillow`) cover the
-  in-process verbs: `work import`, `docx optimize`, `data slug-map refresh`,
-  `project page add`.
-- **Heavy stacks are `[project.optional-dependencies]` extras** — `graph`
-  (networkx/igraph/leidenalg/…) and `embed` (MLX). The deps are declared here, in
-  the project, **not** inlined per-script: these scripts are `pancratius` library
-  modules, not standalone tools. (System tools like pandoc/typst are not pip deps.)
-- The `data graph` / `data embed` handlers **lazy-import** their heavy library
-  function inside the handler; on `ImportError` they exit with the hint
-  (`run: uv sync --extra graph`). The light core never imports a heavy module, so
-  `uv sync` without extras installs and runs the common verbs.
+## Invariants
 
-## One owner, thin aliases
-
-A task has exactly one implementation; a second surface is a thin alias, never a
-copy. For `slug-map` and `bulk`, `prebuild:*` and `pancratius data … refresh` call
-the **same** generator. Graph is two *distinct* activities, not one:
-`prebuild:graph-payloads` only **copies** `data/`→`public/data/` (CI-safe), while
-`data graph generate` **regenerates** the graph (heavy, local) — do not collapse
-them. Cross-language SSOTs (`kinds.ts`/`kinds.py`, `locales.ts`/`locales.py`) keep
-their parity audits; the CLI adds no third copy.
-
-## The two flagship flows (the import answer)
-
-- **"Make this directory's DOCX + cover a new book":**
-  `pancratius work import <docx> --kind book --lang ru --cover <cover>`, then the
-  agent fills the seeded `description`/`tags` and confirms the title.
-- **"Add this DOCX as a new page in the Holy Rus project":**
-  `pancratius project page add holy-rus <subpage-slug> <docx> --lang ru` — converts
-  (mechanical) and scaffolds a draft sub-page with editorial fields left `TODO`,
-  then prints the landing entry to add; the agent does the title/description,
-  placement, register, and any synthesis (editorial).
-
-## Skills connection
-
-This surface **is** the API the Claude/Codex skills call, so it is optimized for
-that. The skill is a thin doc naming verbs:
-
-> Add a book: `uv run pancratius work import <docx> --kind book --lang <lang>`.
-> Add a project page: `uv run pancratius project page add <project> <subpage-slug> <docx> --lang <lang>`, then place the printed `subpages:` entry and fill the `TODO` fields.
-> Refresh downloads: `uv run pancratius downloads render [--book N]`.
-> Check your work: `npm run audit`.
-> Build the site: `npm run build`.
-> Unsure of flags: `uv run pancratius <group> --help`.
-
-Why it is a good skill API: a stable verb-noun contract (survives refactors of the
-library underneath); self-documenting via `--help` so the skill stays short and an
-agent can recover from a stale doc by asking the CLI; one prefix per activity (no
-`npm run x -- --flag` `--`-swallowing); boundary-teaching (work vs section is in the
-grammar); explicit mechanical/editorial split; and bootstrap-free (uv + npm already
-required). The CLI must exist and stabilize **before** the skills are written.
-
-## Implementation status
-
-The library *door* is built and matches this contract: the `pancratius`
-console-script (`[project.scripts]` + a hatchling `[build-system]`) dispatches the
-noun-first groups above to one clean library entry per owner — `import_work`,
-`scaffold_subpage`, `render`, `optimize`, `generate_graph`, `generate_embeddings`,
-`generate_slug_map`, and the Node bulk owner — never to another CLI. Each owner's
-`argparse main()` is a thin adapter over that entry. The `graph`/`embed` stacks are
-`[project.optional-dependencies]`; `data graph/embed generate` lazy-import their
-owner and, absent the extra, exit with `uv sync --extra <name>`. The work-kind
-boundary is audit-enforced on both surfaces: the door defers `--kind` to the
-importer's shared declaration, and PAN017 scans `pancratius/cli.py` to keep it that
-way (defer or derive from `WORK_KINDS`).
-
-Left alone, as intended: the npm site door, `prebuild:*` coupling, the
-`scripts/visual/` dev diagnostics, the shared `scripts/lib/` core.
-
-## Rejected alternatives (so they are not relitigated)
-
-- **One door for everything / Astro under a Python CLI** — inverts the
-  Node/CI-native build into a leaky Python wrapper.
-- **A `site` proxy group inside `pancratius` (e.g. `pancratius site audit` →
-  `npm run audit`)** — a second surface for a one-owner command that puts a
-  *verify* verb under the *mutate* door, inverting the doc's cut at the grammar
-  level. Discoverability is a `--help` + skills-doc concern, not a routing one.
-- **A Node/TS CLI owning the Python tools** — double-maintenance: re-declares every
-  Python entry's args and shells to `uv` for the real work. (The one place TS *is*
-  the right owner — the audit engine — is the site door.)
-- **npm-only as the library API** — no per-command `--help`, weak args
-  (`-- --flag` swallowing); a poor skill API.
-- **`just` / Taskfile / Make** — a new toolchain for a `--list`; `pancratius --help`
-  gives listing + `--help` + real args natively.
-- **A compiled Rust/Go binary** — a toolchain + release pipeline to ship a
-  dispatcher; the runtime cost is pandoc/typst/ML, not arg parsing.
-- **Status quo + a README index** — silent rot; nothing enforces the doc against
-  the commands.
+- One task has one owner. A second command surface is drift unless it is only a
+  documented alias at the same command surface.
+- CI never imports DOCX, renders PDF/EPUB, optimizes DOCX, or regenerates
+  embeddings.
+- The Python package does not reach into `build/` or `audit/` to implement site
+  work.
+- The site build does not shell into `pancratius` to manufacture corpus source.
+- Cross-language facts, such as locales and kind segments, have explicit parity
+  audits rather than hidden copies.

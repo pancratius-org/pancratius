@@ -20,8 +20,7 @@ Three kinds of content with different identity rules — do not collapse them:
   blocks, but each is its own dedicated route. See [Pages](#pages).
 - **Projects are *themed sections* (mini-sites), not works.** A landing + ordered
   sub-pages, curated references into the library, their own visual identity. They
-  do NOT flow through the work/download machinery. See [Projects](#projects) and
-  [`projects-plan.md`](./projects-plan.md).
+  do NOT flow through the work/download machinery. See [Projects](#projects).
 
 The product goal for works: one folder tells the whole story of that work — no
 parallel media tree, no hidden metadata files to add one book.
@@ -56,7 +55,7 @@ src/content/
       ru.docx
 ```
 
-(Projects live under `src/content/projects/` too, but follow the
+(Projects partly live under `src/content/projects/` too, but follow the
 [Projects](#projects) section's shape — a section, not a work bundle.)
 
 Multi-source works keep their original optimized source parts beside the work,
@@ -71,7 +70,7 @@ Markdown. Build output may still emit optimized public files into `dist/`, but n
 human should maintain a separate `public/media/` hierarchy by hand.
 
 The work bundle is persistent source content, not disposable build output.
-Conversion scripts must be additive by default: update files they own, preserve
+Conversion tools must be additive by default: update files they own, preserve
 unknown author-added neighbors, and never begin a normal re-conversion by
 deleting `src/content/books`, `src/content/poetry`, or `src/content/projects`.
 Clean rebuilds must be scoped to selected work folders, not whole content-kind
@@ -287,8 +286,7 @@ paired works: a localized project/page exists only when that locale is authored
 
 ## Projects
 
-Projects are **themed sections**, not works (full design:
-[`projects-plan.md`](./projects-plan.md)). A project is a landing + ordered
+Projects are **themed sections**, not works. A project is a landing + ordered
 sub-pages under `src/content/projects/<slug>/`:
 
 - `ru.md` — the landing. Frontmatter is a *section descriptor*: `kind: project`,
@@ -309,7 +307,7 @@ document worthy of the library is **promoted to a real book** (its own
 copies it.
 
 Note: project landings still appear in the build-time route manifest
-`data/slug-map.json` (under its `works` array, keyed via `SEGMENT_OF`) so the
+`data/slug-map.json` (under its `entries` array, keyed via `SEGMENT_OF`) so the
 sitemap emits their URLs and hreflang. That manifest is a *route index*, not the
 `WorkPair` model — do not remove projects from it.
 
@@ -344,20 +342,20 @@ a stable unprocessed URL.
    cleaned/optimized DOCX artifact into the bundle:
 
    ```sh
-   uv run scripts/import_docx.py /path/to/new.docx --kind book --lang ru
+   uv run pancratius work import /path/to/new.docx --kind book --lang ru
    ```
 
    To add a translation to an existing work, target the existing bundle key:
 
    ```sh
-   uv run scripts/import_docx.py /path/to/book-en.docx --into 30-poslanie-musulmanam --lang en
+   uv run pancratius work import /path/to/book-en.docx --into 30-poslanie-musulmanam --lang en
    ```
 
 2. Add `--title`, `--number`, `--slug`, `--description`, or `--cover` when the
    importer cannot infer the desired value. Missing descriptions are seeded as
    an obvious `TODO:` value so the file validates but remains easy to find.
 3. Author edits `description`, `title`, `tags`, and `cross_refs` if needed.
-4. Run the remaining local release-artifact scripts for the changed work:
+4. Run the remaining local release-artifact tools for the changed work:
    render PDF/EPUB and refresh bulk Markdown.
 5. Re-run graph generators so algorithmic recommendations include the work.
 
@@ -373,7 +371,7 @@ folder keys and ASCII public slugs. Transliteration is practical, not GOST 7.79:
 `ц → ts`, `й → i`, soft and hard signs drop, lowercase only. Number prefix is
 preserved.
 
-The converter should emit the final shape natively. A one-time migration script
+The converter should emit the final shape natively. A one-time migration tool
 may clean old folders, rewrite `slug:` fields, and emit `data/slug-migration.json`,
 but recurring conversion must not recreate Cyrillic folders or legacy metadata.
 

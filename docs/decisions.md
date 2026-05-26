@@ -253,8 +253,8 @@ on a strong signal (a hard `<w:br/>` or a named verse-section heading), else ≥
 lines on the weak empty-paragraph-only signal. The converter must not infer
 stanza structure from plain Pandoc GFM after the empty-paragraph signal has been
 lost, and it must not silently flatten all poems into one stanza. The 120-char
-threshold is duplicated in `scripts/lib/ir_normalize.py` (`VERSE_SHORT_LINE_MAX`)
-and `scripts/audit/book_verse.py` (`SHORT_LINE_MAX`) — the audit is the
+threshold is duplicated in `pancratius/ir/normalize.py` (`VERSE_SHORT_LINE_MAX`)
+and `audit/book_verse.py` (`SHORT_LINE_MAX`) — the audit is the
 independent DOCX-source oracle for the IR rule, so the two values must stay in
 sync.
 
@@ -315,4 +315,4 @@ on a different trust path (committed directly or passed via an explicit
 `--cover`), and the author cover SVGs legitimately use `<foreignObject>` to render
 their styled title — sanitizing would corrupt them. The committed body SVGs are
 clean (the sanitizer is a byte-for-byte no-op on them); the scoping lives in
-`scripts/lib/writer.py`.
+`pancratius/writer.py`.

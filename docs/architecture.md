@@ -1,54 +1,79 @@
 # Pancratius Architecture
 
-The top-level contract for the production site. Implementation details (commands, versions, runner images) live in scripts and CI configs, not here.
+Production-site architecture. This file names the stable boundaries. Commands
+live in [`tooling.md`](./tooling.md); CI details live in `.github/workflows/`.
 
-## Core distinctions
+## Boundaries
 
-The boundary cuts the rest of the architecture rests on. Each is owned by the
-linked doc; this is only the index.
+These rules decide where a change belongs.
 
-- **Content types — population vs individual vs section.** Books and poems are a
-  *population* (a collection: one shape, paired by `(kind, number)`, full
-  downloads); pages are *individuals* (one-of-a-kind dedicated routes); projects
-  are *themed sections* (mini-sites), not works. → [`content-model.md`](./content-model.md).
-- **Mutate vs verify — the two command doors.** `pancratius` (uv) *mutates/produces*
-  the corpus (import, render, data); `npm` *builds and verifies* the site
-  (`build`, `check`, smoke, `audit`). Verification is not mutation, so audit lives
-  with the build. → [`tooling.md`](./tooling.md).
-- **Import / render / build — three activities.** Import DOCX → source; render
-  release artifacts locally; build/publish the static site in CI. CI never
-  imports or renders. → [`downloads.md`](./downloads.md).
-- **Mechanical vs editorial.** The CLI does mechanical transforms (DOCX→Markdown,
-  verse pairing, image capping, scaffolding); composition/synthesis is agent/skill
-  judgment, never a tool flag. → [`tooling.md`](./tooling.md).
-- **Display fallback vs route existence.** Derived display data may fall back to
-  the default locale; a route/download/feed/sitemap entry exists only when that
-  locale was authored — never render default-locale body under `/en/…`.
+- **Content kinds.** Books and poems are a *population* (one shape, paired by
+  `(kind, number)`, full downloads); pages are *individuals* (dedicated routes);
+  projects are *themed mini-sites*, not works. → [`content-model.md`](./content-model.md).
+- **Command ownership.** `pancratius` changes the library. `npm` builds, checks,
+  previews, audits, and deploys the site. → [`tooling.md`](./tooling.md).
+- **Mechanical vs editorial.** The CLI may convert, scaffold, render, optimize,
+  and regenerate data. It must not decide titles, descriptions, project shape,
+  theological register, or publication judgment. → [`tooling.md`](./tooling.md).
+- **Local vs CI.** Import DOCX → source and render release artifacts locally; CI
+  only builds and publishes — it never imports or renders. → [`downloads.md`](./downloads.md).
+- **Fallback vs route existence.** Display data may fall back to the default
+  locale; a route, download, or feed exists only where that locale was authored.
   → [`i18n-routing.md`](./i18n-routing.md).
-- **`<Prose>` vs `<Verse>` — two body-renderer components, no "register" enum.**
-  The component is the register; a `class` prop carries page-local looks. Used by
-  static pages + project sub-pages today (work pages still render the prose
-  register directly — a follow-up). → [`decisions.md`](./decisions.md).
+
+## Flow
+
+```txt
+local library work
+  source DOCX / authored edits
+      -> pancratius
+      -> src/content + committed data/products
+
+site work
+  committed source
+      -> npm build/check/audit
+      -> dist
+      -> production site + GitHub Pages mirror
+```
+
+The first flow creates or changes the library. The second publishes what is
+already committed. Their meeting point is committed source.
 
 ## Stack
 
-- **Framework**: Astro 6+. No additional UI framework — no React, no Vue, no Svelte, no Solid, no Tailwind. Vanilla CSS scoped via Astro components.
-- **Language**: **TypeScript 6+, strict mode, everywhere in production source.** No handwritten production JavaScript (`.js` / `.mjs` / `.cjs`); archived `legacy/` and `design/` prototypes stay excluded until they are deleted. Astro config is `astro.config.ts`.
+- **Framework**: Astro 6+. No additional UI framework — no React, no Vue, no Svelte, no Solid, no Tailwind. Vanilla CSS is scoped through Astro components.
+- **Language**: TypeScript 6+, strict mode, everywhere in production source. No
+  handwritten production JavaScript (`.js` / `.mjs` / `.cjs`). Archived
+  `legacy/` and `design/` prototypes stay excluded until they are deleted.
 - **Runtime**: Node 24.
-- **Scripts language**: Python 3.13+ with type hints. **Run via `uv` only**; project Python dependencies are locked in `pyproject.toml` / `uv.lock`. No `pip install`, no `conda`, no `requirements.txt`.
-- **Conceptosphere viz libs**: Sigma 3 + `graphology` + `graphology-layout-forceatlas2`, bundled via npm, not CDN.
+- **Python tooling**: Python 3.13+ with type hints. Run through `uv`; dependencies
+  are locked in `pyproject.toml` / `uv.lock`. No `pip`, `conda`, or
+  `requirements.txt`.
+- **Conceptosphere viz libs**: Sigma 3, `graphology`, and
+  `graphology-layout-forceatlas2`, bundled through npm.
 - **Search**: Pagefind (static; ships with the build).
-- **Library-management tools**: pandoc, typst, pymorphy3, Qwen3-Embedding via MLX. These are local/admin tools for importing content, refreshing downloads, and regenerating data products. They are not part of the site deploy path.
+- **Library-management tools**: pandoc, typst, pymorphy3, Qwen3-Embedding via
+  MLX. These are local/admin tools, not deploy tools.
 - **License**: CC0 1.0 Universal across content and code.
 
-## Shape
+## Site Shape
 
-- **Static site.** Astro `output: 'static'`. The build emits files; the host serves files. No SSR, no runtime backend, no API surface.
-- **CI builds and publishes the site only.** CI validates content, builds Astro, runs Pagefind/sitemap generation, checks that referenced artifacts exist, and deploys `dist/`. It does not manufacture the library: no DOCX optimization, no PDF/EPUB rendering, no embedding regeneration.
-- **One URL = one resource.** Language, content, downloads, alternate-language links all follow from the URL. No decoupled "UI language" state. See [`i18n-routing.md`](./i18n-routing.md).
-- **Canonical URLs end in `/` for HTML, in the extension for files.** The canonical shape is produced by shared URL helpers. Astro config uses `trailingSlash: "ignore"` so dynamic file endpoints such as `/books/{slug}.md` are not rewritten to `/books/{slug}.md/` in dev.
-- **Deploy target shape.** A plain file host reached over FTP. Trust the server's MIME table — it picks `Content-Type` by file extension. Don't try to set headers from Astro `Response`s; they don't propagate to the deployed file.
-- **Mirror.** A GitHub Pages mirror uses the same source and build pipeline, with deploy-target-specific `site` / `base` config (the mirror's URL prefix differs, so it produces its own `dist/`).
+- **Static output.** Astro emits files; the host serves files. No SSR, runtime
+  backend, or API surface.
+- **CI publishes committed source.** CI validates content, builds Astro, runs
+  Pagefind/sitemap generation, checks referenced artifacts, and deploys `dist/`.
+  It does not optimize DOCX, render PDF/EPUB, or regenerate embeddings.
+- **One URL = one resource.** Language, content, downloads, and alternate links
+  follow from the URL. There is no separate UI-language state. See
+  [`i18n-routing.md`](./i18n-routing.md).
+- **Canonical URLs.** HTML ends in `/`; file downloads end in the extension.
+  Shared URL helpers own this shape. Astro uses `trailingSlash: "ignore"` so
+  dynamic file endpoints such as `/books/{slug}.md` are not rewritten in dev.
+- **Deploy target.** The production host is a plain FTP file host. It sets
+  `Content-Type` from file extension; Astro `Response` headers do not carry over
+  to deployed static files.
+- **Mirror.** GitHub Pages uses the same source and build pipeline with its own
+  `site` / `base` config.
 
 ## Content
 
@@ -73,7 +98,7 @@ kept as Markdown images.
 
 The build pipeline may hash, optimize, deduplicate, and emit public renditions
 into `dist/`, but `public/media/` is not the author-facing source of truth. A
-future author should be able to add one book by editing one work folder.
+book should be addable from one work folder.
 
 The converter records source DOCX paths and generated paths per work in
 `data/conversion-manifest.json`; source filenames are provenance, not work
@@ -90,10 +115,9 @@ and recorded in the same manifest:
 - **decorative junk** — anchor spans, page-strip artefacts. Dropped during
   conversion.
 
-The implementation can use Astro's image pipeline, a small custom copy/optimize
-step, or both. The architecture-level invariant is not the mechanism; it is that
-source assets are co-located with the work, and generated public assets are build
-output.
+The mechanism can be Astro's image pipeline, a custom copy/optimize step, or
+both. The invariant is source assets with the work; generated public assets in
+build output.
 
 `src/content/` is persistent source content. Converter reruns are incremental by
 default: they may overwrite generated Markdown, generated sidecars, and
@@ -126,7 +150,9 @@ bulk surface at `/downloads/` ships a single `all-md.zip` corpus archive; large
 bulk PDF/EPUB archives are off-host archival/release artifacts, not production
 site payload. Details: [`downloads.md`](./downloads.md).
 
-PDF/EPUB/DOCX management is local library work. A non-developer-friendly script may refresh those artifacts before commit, but CI should only package and publish what is already present in `src/content/`.
+PDF/EPUB/DOCX management is local library work. `pancratius downloads render`
+may refresh those artifacts before commit; CI only packages and publishes what is
+already present in `src/content/`.
 
 ## Search
 
@@ -146,4 +172,4 @@ merged algorithmic **Похожие книги** list on book pages. Data contra
 
 ## What is not architecture
 
-- Exact CLI invocations, version pins, font-installation steps, runner images. Those live in scripts and script docs. If they change, this doc should not need to.
+- Exact CLI invocations, version pins, font-installation steps, runner images. Those live in tooling docs and CI configs. If they change, this doc should not need to.
