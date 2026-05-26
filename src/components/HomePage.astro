@@ -9,6 +9,7 @@ import { homeCopy, type HomeCopy } from "@/lib/copy";
 import { sameSitePath } from "@/lib/paths";
 import { clampDescription } from "@/lib/seo";
 import { seoForHome } from "@/lib/seo";
+import { poemPreviewLines } from "@/lib/publication/poetry";
 import { entryForLocale, findPair, getPairsByKind, type WorkEntry, type WorkPair } from "@/lib/works";
 import { getProjects, projectUrl } from "@/lib/projects";
 
@@ -56,37 +57,12 @@ const POEM_PICKS = [2, 43];
 const poemPicks = (await Promise.all(POEM_PICKS.map(n => findPair("poem", n))))
   .filter((p): p is NonNullable<typeof p> => p !== null);
 
-// Pull a short opening from the collection entry body. Many poems repeat the
-// title as the first body line; skip that so previews open with real verse.
-function firstLines(bodyMarkdown: string, n: number, title: string): string {
-  const body = bodyMarkdown.replace(/^---[\s\S]*?---\n?/, "").trim();
-  // Drop empty lines + a leading "title-shaped" line. We treat a line as
-  // a title repeat when, after stripping punctuation and case, it
-  // matches the frontmatter title — covers "Я ЕСТЬ ТО, ЧТО Я ЕСТЬ",
-  // "Я свет, что в тишине парит…", etc.
-  // Treat a first body line as a "title repeat" only when it matches the
-  // frontmatter title exactly after stripping trailing ellipsis/asterisks
-  // (e.g. "Я свет, что в тишине парит…" → "Я свет, что в тишине парит"
-  // matches its frontmatter title, but "Аз есмь Христос, и Бог во мне
-  // живёт," does NOT match its title "Аз есмь Христос" and stays.
-  const normalize = (s: string) =>
-    s.replace(/[…\*]+$/g, "").replace(/[,;:!?\.]/g, "").trim().toLowerCase();
-  const lines = body.split(/\n/);
-  let start = 0;
-  while (start < lines.length && lines[start].trim() === "") start++;
-  if (start < lines.length && normalize(lines[start]) === normalize(title)) {
-    start++;
-    while (start < lines.length && lines[start].trim() === "") start++;
-  }
-  return lines.slice(start, start + n).join("\n");
-}
-
 // Poems are authored in the default locale; preview from the canonical entry.
 const poemPreviews = poemPicks.map(p => {
   const canonical = p.entries[DEFAULT_LOCALE]!;
   return {
     pair:  p,
-    lines: firstLines(canonical.body ?? "", 4, canonical.data.title),
+    lines: poemPreviewLines(canonical.body ?? "", canonical.data.title, 4),
   };
 });
 

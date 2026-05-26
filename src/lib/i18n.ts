@@ -5,12 +5,12 @@
 // keeps the trailing-slash contract and the "/en/ prefix on non-default
 // locale" rule in one place.
 
-import { SEGMENT_OF, type WorkKind } from "./kinds";
+import { SEGMENT_OF, type CorpusWorkKind, type RoutedKind } from "./kinds";
 import { LOCALES, DEFAULT_LOCALE, type Locale } from "./locales";
 
-// `WorkKind` lives in `./kinds` (the pure mapping module). Re-export it here so
-// the many existing `import { WorkKind } from "./i18n"` callers keep working.
-export type { WorkKind };
+// `RoutedKind` lives in `./kinds` (the pure mapping module). Re-export it here so
+// the many existing `import { RoutedKind } from "./i18n"` callers keep working.
+export type { CorpusWorkKind, RoutedKind };
 
 // `Locale`, `LOCALES`, and `DEFAULT_LOCALE` live in `./locales` (the pure
 // canonical locale list). Re-export them here so existing
@@ -84,13 +84,18 @@ export function localizePath(path: string, locale: Locale): string {
   return `/${prefix}${path}`;
 }
 
-/** Canonical work URL for `(kind, slug)` in `locale`. Slug must be the per-language slug. */
-export function workUrl(kind: WorkKind, slug: string, locale: Locale): string {
+/** Canonical routed-content URL for `(kind, slug)` in `locale`. Slug must be per-language. */
+export function routedUrl(kind: RoutedKind, slug: string, locale: Locale): string {
   return localizePath(`/${SEGMENT_OF[kind]}/${slug}/`, locale);
 }
 
+/** Canonical corpus-work URL for `(kind, slug)` in `locale`. */
+export function workUrl(kind: CorpusWorkKind, slug: string, locale: Locale): string {
+  return routedUrl(kind, slug, locale);
+}
+
 /** Canonical kind-index URL in `locale` (e.g. `/books/` or `/en/poetry/`). */
-export function kindIndexUrl(kind: WorkKind, locale: Locale): string {
+export function kindIndexUrl(kind: RoutedKind, locale: Locale): string {
   return localizePath(`/${SEGMENT_OF[kind]}/`, locale);
 }
 
@@ -100,7 +105,7 @@ export function pageUrl(slug: string, locale: Locale): string {
 }
 
 /** Canonical download endpoint URL for `(kind, slug, format)` in `locale`. */
-export function downloadUrl(kind: WorkKind, slug: string, format: string, locale: Locale): string {
+export function downloadUrl(kind: CorpusWorkKind, slug: string, format: string, locale: Locale): string {
   // Endpoint URLs end in the file extension, not in `/`.
   const base = localizePath(`/${SEGMENT_OF[kind]}/`, locale);
   return `${base}${slug}.${format}`;

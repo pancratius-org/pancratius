@@ -5,14 +5,15 @@
 // inside the work bundle (`src/content/<kind>/<work>/<lang>.{docx,pdf,epub}`).
 // The site build never runs pandoc, typst, or any document converter.
 // Local refresh of those artefacts is the job of
-// `scripts/render_downloads.py`, not this module.
+// `pancratius downloads render`, not this module.
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve as resolvePath } from "node:path";
 
 import { DEFAULT_LOCALE, type Locale } from "./i18n";
 import { workBundleKey } from "./body-images";
-import { flattenPublicMarkdown, renderPublicMarkdown } from "./public-markdown";
+import { markdownToPlainText } from "./publication/plain-text";
+import { renderPublicWorkMarkdown } from "./publication/public-markdown";
 import { COLLECTION_OF, type WorkEntry, type WorkPair, type WorkPairKind } from "./works";
 
 export type DownloadFormat = "md" | "txt" | "docx" | "pdf" | "epub";
@@ -44,6 +45,10 @@ export interface DownloadResult {
   filename:    string;
 }
 
+export interface DownloadRenderOptions {
+  origin: string;
+}
+
 /**
  * Render the requested format for `(pair, locale)`. Returns the bytes the
  * endpoint should serve. Throws if the locale has no entry or the format's
@@ -54,6 +59,7 @@ export function renderDownload(
   pair: WorkPair,
   locale: Locale,
   format: DownloadFormat,
+  options: DownloadRenderOptions,
 ): DownloadResult {
   // Existence: a download for this locale exists only if the locale was
   // authored — never fall back to another locale's content.
@@ -62,14 +68,19 @@ export function renderDownload(
     throw new Error(`renderDownload: no ${locale} entry for ${pair.kind} #${pair.number}`);
   }
   const filename = `${entry.data.slug}.${format}`;
-  const bytes = generate(pair, entry, format);
+  const bytes = generate(pair, entry, format, options);
   return { bytes, contentType: CONTENT_TYPE[format], filename };
 }
 
-function generate(pair: WorkPair, entry: WorkEntry, format: DownloadFormat): Uint8Array {
+function generate(
+  pair: WorkPair,
+  entry: WorkEntry,
+  format: DownloadFormat,
+  options: DownloadRenderOptions,
+): Uint8Array {
   switch (format) {
-    case "md":   return renderMarkdown(pair, entry);
-    case "txt":  return renderPlainText(pair, entry);
+    case "md":   return renderMarkdown(pair, entry, options);
+    case "txt":  return renderPlainText(pair, entry, options);
     case "docx":
     case "pdf":
     case "epub": return copySibling(pair, entry, format);
@@ -103,31 +114,35 @@ function copySibling(pair: WorkPair, entry: WorkEntry, ext: string): Uint8Array 
     throw new Error(
       `Missing ${ext.toUpperCase()} for ${pair.kind} #${pair.number} (${entry.data.lang}): ` +
       `${path} is not committed in the work bundle. ` +
-      `Run \`uv run scripts/render_downloads.py\` to refresh release artefacts.`,
+      `Run \`uv run pancratius downloads render\` to refresh release artefacts.`,
     );
   }
   return new Uint8Array(readFileSync(path));
 }
 
 /** Strip frontmatter and rewrite image refs to public absolute URLs. */
-function renderMarkdown(pair: WorkPair, entry: WorkEntry): Uint8Array {
+function renderMarkdown(pair: WorkPair, entry: WorkEntry, options: DownloadRenderOptions): Uint8Array {
   const raw = readSourceMd(pair, entry);
-  return enc(renderPublicMarkdown(raw, {
-    kind: pair.kind,
-    workKey: workBundleKey(pair),
-    isVerse: pair.kind === "poem",
+  return enc(renderPublicWorkMarkdown(raw, {
+    origin: options.origin,
+    work: {
+      kind: pair.kind,
+      bundleKey: workBundleKey(pair),
+    },
   }));
 }
 
 /** Flatten Markdown to readable plain text. */
-function renderPlainText(pair: WorkPair, entry: WorkEntry): Uint8Array {
+function renderPlainText(pair: WorkPair, entry: WorkEntry, options: DownloadRenderOptions): Uint8Array {
   const raw = readSourceMd(pair, entry);
-  const body = renderPublicMarkdown(raw, {
-    kind: pair.kind,
-    workKey: workBundleKey(pair),
-    isVerse: pair.kind === "poem",
+  const body = renderPublicWorkMarkdown(raw, {
+    origin: options.origin,
+    work: {
+      kind: pair.kind,
+      bundleKey: workBundleKey(pair),
+    },
   });
-  const flat = flattenPublicMarkdown(body);
+  const flat = markdownToPlainText(body);
   const header =
     `${entry.data.title}\n` +
     `${"=".repeat([...entry.data.title].length)}\n` +

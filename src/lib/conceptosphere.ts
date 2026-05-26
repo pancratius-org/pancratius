@@ -8,7 +8,7 @@
 import { readFileSync } from "node:fs";
 import { resolve as resolvePath } from "node:path";
 
-import type { Locale, WorkKind } from "./i18n";
+import type { Locale, RoutedKind } from "./i18n";
 import { workUrl } from "./i18n";
 import type { WorkEntry, WorkPair } from "./works";
 import { crossRefKeys, findPair, pairKey } from "./works";
@@ -16,7 +16,7 @@ import { crossRefKeys, findPair, pairKey } from "./works";
 const REPO_ROOT = process.cwd();
 
 // ─────────────────────────────────────────────────────────────────────
-// Wire types — mirror what scripts/conceptosphere.py emits.
+// Wire types — mirror what `pancratius conceptosphere graph generate` emits.
 // Only the fields production reads are typed; the rest stays untyped.
 // ─────────────────────────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ export interface BooksGraphCommunity {
 
 export interface SimilarRef {
   slug:   string;
-  kind:   WorkKind;
+  kind:   RoutedKind;
   title:  string;
   weight: number;
 }

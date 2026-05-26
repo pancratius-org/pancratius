@@ -14,7 +14,7 @@
 import { getCollection, type CollectionEntry } from "astro:content";
 
 import type { Locale } from "./i18n";
-import { DEFAULT_LOCALE, LOCALES, localizePath, workUrl } from "./i18n";
+import { DEFAULT_LOCALE, LOCALES, localizePath, routedUrl, workUrl } from "./i18n";
 import { entryForLocale, findPair, type WorkPair } from "./works";
 
 type ProjectCollectionEntry = CollectionEntry<"projects">;
@@ -218,7 +218,7 @@ export async function resolveFeaturedBooksMore(
 
 /** Canonical landing URL for a project slug in `locale` (e.g. `/projects/holy-rus/`). */
 export function projectUrl(slug: string, locale: Locale): string {
-  return workUrl("project", slug, locale);
+  return routedUrl("project", slug, locale);
 }
 
 /** Canonical sub-page URL (e.g. `/projects/holy-rus/sobor/`). */

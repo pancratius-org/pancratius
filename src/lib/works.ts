@@ -7,18 +7,18 @@
 
 import { getCollection, type CollectionEntry } from "astro:content";
 
-import type { Locale, WorkKind } from "./i18n";
+import type { CorpusWorkKind, Locale, RoutedKind } from "./i18n";
 import { DEFAULT_LOCALE, LOCALE_META, LOCALES, workUrl } from "./i18n";
 
 /**
  * The kinds the WORK-PAIR machinery handles. Projects are deliberately NOT in
  * this union: they are themed sections, not downloadable works, and live in
- * `src/lib/projects.ts`. `WorkKind` (kinds.ts) stays `book|poem|project` for
+ * `src/lib/projects.ts`. `RoutedKind` (kinds.ts) stays `book|poem|project` for
  * URL-segment purposes, but the type below is what prevents a project from
  * flowing through `getAllWorkPairs`, `getPairsByKind`, `findPair`, or the
  * download routes — those all take `WorkPairKind`.
  */
-export type WorkPairKind = "book" | "poem";
+export type WorkPairKind = CorpusWorkKind;
 
 export type WorkEntry =
   | CollectionEntry<"books">
@@ -254,7 +254,7 @@ export interface ResolvedCrossRef {
 
 /**
  * Resolve a work entry's authored `cross_refs` into renderable references.
- * Dangling refs are caught at build time by `scripts/build_slug_map.py`, so
+ * Dangling refs are caught at build time by `build/slug-map.ts`, so
  * any here-and-now miss is an integrity failure worth crashing the build.
  */
 export async function resolveCrossRefs(
@@ -298,7 +298,7 @@ export function crossRefKeys(entry: WorkEntry): Set<string> {
   return new Set(refs.map(r => `${r.target.kind}:${r.target.number}`));
 }
 
-export function pairKey(kind: WorkKind, number: number): string {
+export function pairKey(kind: RoutedKind, number: number): string {
   return `${kind}:${number}`;
 }
 

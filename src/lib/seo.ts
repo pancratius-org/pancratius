@@ -4,7 +4,7 @@
 // Routes pass in the locale + a domain object (work, page, or index) and get
 // back a SeoMeta they can spread into a single `<HeadMeta>` Astro component.
 
-import type { Locale, WorkKind } from "./i18n";
+import type { Locale, RoutedKind } from "./i18n";
 import {
   DEFAULT_LOCALE,
   LOCALES,
@@ -13,6 +13,7 @@ import {
   kindIndexUrl,
   localizePath,
   pageUrl,
+  routedUrl,
   workUrl,
 } from "./i18n";
 import { searchPageCopy } from "./copy";
@@ -210,11 +211,11 @@ export interface KindIndexCount {
 
 export function seoForKindIndex(
   site: URL | undefined,
-  kind: WorkKind,
+  kind: RoutedKind,
   locale: Locale,
   count?: KindIndexCount,
 ): SeoMeta {
-  const titles: Record<WorkKind, Record<Locale, string>> = {
+  const titles: Record<RoutedKind, Record<Locale, string>> = {
     book:    { ru: "Книги — Панкратиус",    en: "Books — Pancratius" },
     poem:    { ru: "Поэзия — Панкратиус",   en: "Poetry — Pancratius" },
     project: { ru: "Проекты — Панкратиус",  en: "Projects — Pancratius" },
@@ -222,7 +223,7 @@ export function seoForKindIndex(
   // Counts are derived from the live corpus and threaded through here so the
   // numeric meta descriptions never go stale when a work is added or removed.
   const n = count?.total;
-  const descriptions: Record<WorkKind, Record<Locale, string>> = {
+  const descriptions: Record<RoutedKind, Record<Locale, string>> = {
     book:    {
       ru: n != null
         ? `${n} ${ruBooksWord(n)} Панкратиуса — полное собрание. Свободно — людям и языковым моделям.`
@@ -338,7 +339,7 @@ export interface ProjectSeoInput {
 export function seoForProject(site: URL | undefined, input: ProjectSeoInput): SeoMeta {
   const { project, locale, coverUrl = null, authoredLocales } = input;
   const data = project.data;
-  const canonical = absUrl(site, workUrl("project", data.slug, locale));
+  const canonical = absUrl(site, routedUrl("project", data.slug, locale));
   const description = clampDescription(data.description);
   const title = `${data.title} — ${siteLabel(locale)}`;
   const ld: Record<string, unknown> = {
@@ -433,7 +434,7 @@ function alternatesForProject(
   let defaultHref: string | null = null;
   for (const loc of LOCALES) {
     if (authoredLocales.has(loc)) {
-      const href = absUrl(site, workUrl("project", slug, loc));
+      const href = absUrl(site, routedUrl("project", slug, loc));
       xs.push({ hreflang: loc, href });
       if (loc === DEFAULT_LOCALE) defaultHref = href;
     }
@@ -506,7 +507,7 @@ function alternatesForHome(site: URL | undefined): AlternateLink[] {
   return xs;
 }
 
-function alternatesForKindIndex(site: URL | undefined, kind: WorkKind): AlternateLink[] {
+function alternatesForKindIndex(site: URL | undefined, kind: RoutedKind): AlternateLink[] {
   const xs: AlternateLink[] = [];
   for (const loc of LOCALES) {
     xs.push({ hreflang: loc, href: absUrl(site, kindIndexUrl(kind, loc)) });

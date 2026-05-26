@@ -144,7 +144,7 @@ const projectSubpageWeight = z.enum([
 const projectLanding = z.object({
   kind: z.literal("project"),
   // (kind, number) is still the invariant identity for a project landing, so
-  // `scripts/build_slug_map.py` keeps mapping `/projects/<slug>/` from this.
+  // `build/slug-map.ts` keeps mapping `/projects/<slug>/` from this.
   number: z.number().int().positive(),
   slug: asciiSlug,
   lang,
@@ -184,9 +184,6 @@ const projectLanding = z.object({
   // The "Что это не есть" opener — one line per thing the project is NOT.
   // Promoted from the hand-inlined `<aside class="project-negation">`.
   negation: z.array(z.string().min(1)).optional(),
-  // The AI consciousness ladder (AI projects only). Each rung carries its
-  // step name, signature quality line, and "who remains" — lifted verbatim
-  // from the classification table in `docs/projects-plan.md` §1.2.
   ladder: z
     .array(
       z.object({

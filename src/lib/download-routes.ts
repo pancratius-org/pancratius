@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 
 import { availableFormatsForWork, renderDownload, type DownloadFormat } from "./downloads";
 import type { Locale } from "./i18n";
+import { publicationOrigin } from "./publication/site";
 import { getPairsByKind, type WorkPair, type WorkPairKind } from "./works";
 
 export interface DownloadRouteProps extends Record<string, unknown> {
@@ -34,7 +35,9 @@ export async function downloadStaticPaths(kind: WorkPairKind, locale: Locale) {
 
 export const handleDownloadGET: APIRoute<DownloadRouteProps> = ({ props }) => {
   const { pair, locale, format } = props;
-  const { bytes, contentType, filename } = renderDownload(pair, locale, format);
+  const { bytes, contentType, filename } = renderDownload(pair, locale, format, {
+    origin: publicationOrigin(),
+  });
   return new Response(new Uint8Array(bytes), {
     headers: {
       "Content-Type": contentType,
