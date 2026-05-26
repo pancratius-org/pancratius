@@ -1,6 +1,7 @@
-"""The Pancratius library door — the `pancratius` console script (docs/tooling.md).
+"""Python corpus-management tooling for the Pancratius project.
 
-This package is intentionally thin: it is the *door*, not the rooms. The owning
-logic lives under ``scripts/`` and ``scripts/lib/``; ``pancratius.cli`` dispatches
-to one clean entry per owner.
+The Astro site owns the built web artifact. This package owns local corpus
+operations: DOCX import/conversion, safe writes, release downloads, and the heavy
+conceptosphere generators. ``pancratius.cli`` is the command-line door into those
+library modules.
 """

@@ -14,41 +14,22 @@ contract:
 Human-readable summaries go to stdout; diagnostics go to stderr. It makes no
 editorial/domain decisions and runs no verification — that is ``npm run audit``.
 
-The owning logic lives under ``scripts/`` (the same modules the ``npm`` prebuild
-steps run). This door reproduces those scripts' ``sys.path`` bootstrap so
-``from lib.* import …`` and ``import <owner>`` resolve, then dispatches to one entry
-per owner. The HEAVY owners (``conceptosphere``/``conceptosphere_embed``) are
-imported lazily **inside their handlers**, so the light core never imports an ML
-(graph/embed) stack — not even to print ``--help``. Light owners may be imported at
-parser-build time (e.g. ``import_docx`` to reuse its flag declaration); they pull no
-ML deps, so the light-core guarantee holds.
+This door dispatches to importable ``pancratius`` package modules. The heavy
+conceptosphere owners are imported lazily inside their handlers, so the light
+core never imports the graph/embed stacks just to print ``--help``.
 """
 
 from __future__ import annotations
 
 import argparse
 import shutil
-import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-# --- bootstrap ----------------------------------------------------------------
-# Make scripts/ importable, mirroring each scripts/<owner>.py's own
-# `sys.path.insert(0, SCRIPT_DIR)`. uv installs the project root editable, so
-# __file__ resolves into the source tree and parents[1] is the repo root.
-_REPO_ROOT = Path(__file__).resolve().parents[1]
-_SCRIPTS = _REPO_ROOT / "scripts"
-if str(_SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(_SCRIPTS))
-
-
-# --- output contract ----------------------------------------------------------
-def _ok(owner_rc: int) -> int:
-    """Map an owner entry's return code onto the door's contract: 0 stays 0; any
-    nonzero collapses to 1 (failure). Exit 2 is reserved for argparse usage errors,
-    so an owner's own nonzero code never masquerades as a usage error."""
-    return 0 if owner_rc == 0 else 1
+if TYPE_CHECKING:
+    from pancratius.import_docx import ImportRequest
 
 
 def _missing_extra(extra: str, exc: ImportError) -> int:
@@ -89,27 +70,43 @@ def _require_subcommand(parser: argparse.ArgumentParser) -> Callable[[argparse.N
 
 
 # --- handlers (work group) ----------------------------------------------------
+def _import_request_from_args(args: argparse.Namespace) -> ImportRequest:
+    from pancratius import import_docx
+
+    return import_docx.ImportRequest(
+        docx=Path(args.docx),
+        lang=args.lang,
+        out_content=Path(args.out_content),
+        kind=args.kind,
+        into=args.into,
+        title=args.title,
+        number=args.number,
+        slug=args.slug,
+        description=args.description,
+        cover=Path(args.cover) if args.cover else None,
+        translation_source=args.translation_source,
+        dry_run=bool(args.dry_run),
+        replace=bool(args.replace),
+    )
+
+
 def _work_import(args: argparse.Namespace) -> int:
     """`work import <docx> --kind book|poem` — import a corpus work bundle.
 
-    Builds an `ImportRequest` from the parsed flags (the same `add_import_arguments`
-    declaration and `request_from_namespace` adapter the standalone CLI uses) and
-    dispatches to `import_work`, which is silent and returns the writer's report (or
-    raises on bad input / an unresolvable target). The door owns all output: it
-    prints the report (the `--dry-run` review gate) and maps a write refusal to a
-    failure exit."""
-    import import_docx
+    Builds an `ImportRequest` from the parsed flags and dispatches to `import_work`,
+    which is silent and returns the writer's report (or raises on bad input / an
+    unresolvable target). The door owns all output: it prints the report (the
+    `--dry-run` review gate) and maps a write refusal to a failure exit."""
+    from pancratius import import_docx
 
     if (rc := _require_pandoc()) is not None:
         return rc
-    request = import_docx.request_from_namespace(args)
+    request = _import_request_from_args(args)
     try:
         report = import_docx.import_work(request)
-    except import_docx.ImportError as exc:
-        # `import_docx.ImportError` is the importer's OWN input/target error class
-        # (it shadows the builtin). Accessed qualified, so the door's namespace keeps
-        # the real builtin ImportError that the extras gate catches. Bad input / an
-        # unresolvable target is a usage error (exit 2), matching the standalone CLI.
+    except import_docx.ImportWorkError as exc:
+        # Bad input / an unresolvable target is a usage error (exit 2), matching
+        # the door's contract.
         print(f"error: {exc}", file=sys.stderr)
         return 2
     import_docx.print_report(report, dry_run=request.dry_run)
@@ -127,8 +124,8 @@ def _project_page_add(args: argparse.Namespace) -> int:
     suggested landing `subpages:` entry to STDOUT for a human to place — it never
     edits the landing. Bad input (missing/non-DOCX) is a usage error (exit 2); a
     write refusal is a failure (exit 1)."""
-    from lib.docx_conversion import ScaffoldError, scaffold_subpage
-    import import_docx  # for print_report (shared report formatter) — light, no ML
+    from pancratius.docx_conversion import ScaffoldError, scaffold_subpage
+    from pancratius import import_docx  # for print_report (shared report formatter) — light, no ML
 
     if (rc := _require_pandoc()) is not None:
         return rc
@@ -164,9 +161,9 @@ def _project_page_add(args: argparse.Namespace) -> int:
 def _downloads_render(args: argparse.Namespace) -> int:
     """`downloads render [--book N]` — render local PDF/EPUB/DOCX release artifacts.
     Pass-through to the render owner, which prints its own progress/summary."""
-    from render_downloads import render
+    from pancratius.render_downloads import DownloadRenderError, render
 
-    return _ok(
+    try:
         render(
             book=args.book,
             poem=args.poem,
@@ -176,68 +173,83 @@ def _downloads_render(args: argparse.Namespace) -> int:
             docx=args.docx,
             force=args.force,
         )
-    )
+    except DownloadRenderError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    return 0
 
 
 def _docx_optimize(args: argparse.Namespace) -> int:
     """`docx optimize [paths…]` — in-place source DOCX cleanup. Pass-through to the
     optimize owner (which has its own `--dry-run`)."""
-    from docx_optimize import optimize
+    from pancratius.docx_optimize import optimize
 
-    return _ok(
-        optimize(
-            paths=[Path(p) for p in args.paths],
-            force=args.force,
-            verbose=args.verbose,
-            dry_run=args.dry_run,
-        )
+    summary = optimize(
+        paths=[Path(p) for p in args.paths],
+        force=args.force,
+        verbose=args.verbose,
+        dry_run=args.dry_run,
     )
+    return 1 if summary.failed else 0
 
 
-# --- handlers (data group) ----------------------------------------------------
-def _data_slug_map_refresh(_args: argparse.Namespace) -> int:
-    """`data slug-map refresh` — regenerate the sitemap slug-map. Thin alias over
-    the one owner the npm `prebuild:slug-map` step also runs."""
-    import build_slug_map
-
-    return _ok(build_slug_map.generate_slug_map())
-
-
-def _data_bulk_refresh(_args: argparse.Namespace) -> int:
-    """`data bulk refresh` — rebuild all-md.zip. The one cross-language verb: the
-    bulk-archive owner is Node, so the door shells to it (same owner as the npm
-    `prebuild:bulk-archives` step)."""
-    script = _SCRIPTS / "build_bulk_archives.ts"
-    proc = subprocess.run(["node", "--experimental-strip-types", str(script)])
-    return _ok(proc.returncode)
-
-
-def _data_graph_generate(args: argparse.Namespace) -> int:
-    """`data graph generate [--only concepts|books]` — regenerate the concept/book
-    graph projections into data/ (heavy — needs the `graph` extra). Lazy-imports the
-    owner so the light core never pulls networkx/igraph/leidenalg. Distinct from the
-    CI-safe npm `prebuild:graph-payloads`, which only COPIES data/→public/data/."""
+# --- handlers (conceptosphere group) ------------------------------------------
+def _conceptosphere_graph_generate(args: argparse.Namespace) -> int:
+    """`conceptosphere graph generate [--only concepts|books]` — regenerate the
+    committed concept/book graph projections into data/ (heavy — graph extra)."""
     try:
-        from conceptosphere import generate_graph
+        from pancratius.conceptosphere import GraphConfig, GraphGenerationError, generate_graph
     except ImportError as exc:
         return _missing_extra("graph", exc)
-    return _ok(generate_graph(only=args.only))
-
-
-def _data_embed_generate(_args: argparse.Namespace) -> int:
-    """`data embed generate` — regenerate semantic embeddings into data/ (heavy —
-    needs the `embed` MLX extra). Lazy-imports the owner so the light core stays light."""
+    config = GraphConfig(
+        top=args.top,
+        window=args.window,
+        min_degree=args.min_degree,
+        min_weight=args.min_weight,
+        min_freq=args.min_freq,
+        edges_per_node=args.edges_per_node,
+        min_npmi=args.min_npmi,
+        books_edges_per_node=args.books_edges_per_node,
+        books_min_cosine=args.books_min_cosine,
+    )
     try:
-        from conceptosphere_embed import generate_embeddings
+        generate_graph(
+            only=args.only,
+            config=config,
+            concepts_out=args.concepts_out,
+            books_out=args.books_out,
+            quiet=args.quiet,
+        )
+    except GraphGenerationError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _conceptosphere_embed_generate(args: argparse.Namespace) -> int:
+    """`conceptosphere embed generate` — regenerate committed semantic embeddings
+    into data/ (heavy — embed extra)."""
+    try:
+        from pancratius.conceptosphere_embed import generate_embeddings
     except ImportError as exc:
         return _missing_extra("embed", exc)
-    return _ok(generate_embeddings())
+    generate_embeddings(
+        model=args.model,
+        rebuild=args.rebuild,
+        batch_size=args.batch_size,
+        max_length=args.max_length,
+        out=args.out,
+        limit=args.limit,
+    )
+    return 0
 
 
 # --- parser assembly ----------------------------------------------------------
 # Each group is built by its own function so later phases add groups/verbs locally.
 def _add_work_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    import import_docx  # light (no ML); owns the import flag declaration
+    from pancratius import import_docx  # light (no ML); owns DEFAULT_CONTENT_ROOT
+    from pancratius.kinds import CORPUS_WORK_KINDS
+    from pancratius.locales import LOCALES
 
     work = sub.add_parser("work", help="Import corpus works (a book or a poem).")
     work.set_defaults(func=_require_subcommand(work))
@@ -245,13 +257,45 @@ def _add_work_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     work_import = work_sub.add_parser(
         "import", help="Import one DOCX into a work bundle (--kind book|poem; --into to add a translation)."
     )
-    import_docx.add_import_arguments(work_import)  # door does not redeclare --kind (PAN017-owned)
+    work_import.add_argument("docx", help="Source .docx file to import.")
+    work_import.add_argument(
+        "--kind",
+        choices=tuple(CORPUS_WORK_KINDS),
+        help="Required for a new work; optional with --into when the bundle is unique.",
+    )
+    work_import.add_argument("--lang", choices=tuple(LOCALES), required=True)
+    work_import.add_argument("--into", help="Existing work bundle key or frontmatter slug to update.")
+    work_import.add_argument(
+        "--out-content", default=str(import_docx.DEFAULT_CONTENT_ROOT), help="Content root; defaults to src/content."
+    )
+    work_import.add_argument("--title", help="Override frontmatter title.")
+    work_import.add_argument(
+        "--number", type=int, help="Override work number; defaults to next number for new works or existing number with --into."
+    )
+    work_import.add_argument(
+        "--slug", help="Override frontmatter/work slug. Without a numeric prefix, the work number is prepended."
+    )
+    work_import.add_argument("--description", help="Override frontmatter description.")
+    work_import.add_argument("--cover", help="Optional cover image to copy as cover.<lang>.<ext>.")
+    work_import.add_argument(
+        "--translation-source", choices=["original", "literary", "ai"], help="Override translation.source."
+    )
+    work_import.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the full planned write-set + diagnostics and write NOTHING (the review gate).",
+    )
+    work_import.add_argument(
+        "--replace",
+        action="store_true",
+        help="Permit overwriting an existing converter-owned <lang>.md; without it, re-importing an existing language is refused.",
+    )
     work_import.set_defaults(func=_work_import)
 
 
 def _add_project_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    import import_docx  # light (no ML); owns DEFAULT_CONTENT_ROOT
-    from lib.locales import LOCALES
+    from pancratius import import_docx  # light (no ML); owns DEFAULT_CONTENT_ROOT
+    from pancratius.locales import LOCALES
 
     project = sub.add_parser("project", help="Scaffold project material (a themed section).")
     project.set_defaults(func=_require_subcommand(project))
@@ -278,7 +322,7 @@ def _add_project_group(sub: argparse._SubParsersAction[argparse.ArgumentParser])
 
 
 def _add_downloads_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    from lib.locales import LOCALES
+    from pancratius.locales import LOCALES
 
     downloads = sub.add_parser("downloads", help="Render local release artifacts (PDF/EPUB/DOCX).")
     downloads.set_defaults(func=_require_subcommand(downloads))
@@ -308,44 +352,56 @@ def _add_docx_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     optimize.set_defaults(func=_docx_optimize)
 
 
-def _add_data_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    data = sub.add_parser("data", help="Generate corpus data products.")
-    data.set_defaults(func=_require_subcommand(data))
-    data_sub = data.add_subparsers(dest="noun", metavar="<noun>")
+def _add_conceptosphere_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    conceptosphere = sub.add_parser("conceptosphere", help="Generate committed concept graph data.")
+    conceptosphere.set_defaults(func=_require_subcommand(conceptosphere))
+    concept_sub = conceptosphere.add_subparsers(dest="noun", metavar="<noun>")
 
-    slug_map = data_sub.add_parser("slug-map", help="Sitemap slug-map.")
-    slug_map.set_defaults(func=_require_subcommand(slug_map))
-    slug_map_sub = slug_map.add_subparsers(dest="verb", metavar="<verb>")
-    sm_refresh = slug_map_sub.add_parser(
-        "refresh", help="Regenerate the slug-map (same owner as prebuild:slug-map)."
-    )
-    sm_refresh.set_defaults(func=_data_slug_map_refresh)
-
-    bulk = data_sub.add_parser("bulk", help="Bulk Markdown archive.")
-    bulk.set_defaults(func=_require_subcommand(bulk))
-    bulk_sub = bulk.add_subparsers(dest="verb", metavar="<verb>")
-    bulk_refresh = bulk_sub.add_parser(
-        "refresh", help="Rebuild all-md.zip (same owner as prebuild:bulk-archives)."
-    )
-    bulk_refresh.set_defaults(func=_data_bulk_refresh)
-
-    graph = data_sub.add_parser("graph", help="Concept/book graphs (heavy — uv sync --extra graph).")
+    graph = concept_sub.add_parser("graph", help="Concept/book graphs (heavy — uv sync --extra graph).")
     graph.set_defaults(func=_require_subcommand(graph))
     graph_sub = graph.add_subparsers(dest="verb", metavar="<verb>")
     graph_generate = graph_sub.add_parser(
-        "generate", help="Regenerate BOTH graph projections into data/ (--only for one)."
+        "generate",
+        help="Regenerate BOTH graph projections into data/ (--only for one).",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     graph_generate.add_argument(
         "--only", choices=("concepts", "books"), default=None,
         help="Regenerate only this projection (default: both, off one corpus scan).",
     )
-    graph_generate.set_defaults(func=_data_graph_generate)
+    graph_generate.add_argument("--top", type=int, default=420, help="[concepts] Node cap after pruning.")
+    graph_generate.add_argument("--window", type=int, default=4, help="[concepts] Co-occurrence window.")
+    graph_generate.add_argument("--min-degree", type=int, default=3, help="[concepts] Minimum node degree.")
+    graph_generate.add_argument("--min-weight", type=int, default=6, help="[concepts] Minimum raw edge weight.")
+    graph_generate.add_argument("--min-freq", type=int, default=14, help="Minimum lemma corpus frequency.")
+    graph_generate.add_argument("--edges-per-node", type=int, default=10, help="[concepts] Backbone edges per node.")
+    graph_generate.add_argument("--min-npmi", type=float, default=0.18, help="[concepts] Minimum NPMI.")
+    graph_generate.add_argument("--books-edges-per-node", type=int, default=5, help="[books] Neighbor cap per book.")
+    graph_generate.add_argument("--books-min-cosine", type=float, default=0.10, help="[books] Minimum cosine floor.")
+    graph_generate.add_argument("--concepts-out", type=Path, default=None, help="Override concepts graph output path.")
+    graph_generate.add_argument("--books-out", type=Path, default=None, help="Override books graph output path.")
+    graph_generate.add_argument("--quiet", action="store_true", help="Suppress progress output.")
+    graph_generate.set_defaults(func=_conceptosphere_graph_generate)
 
-    embed = data_sub.add_parser("embed", help="Semantic embeddings (heavy — uv sync --extra embed).")
+    embed = concept_sub.add_parser("embed", help="Semantic embeddings (heavy — uv sync --extra embed).")
     embed.set_defaults(func=_require_subcommand(embed))
     embed_sub = embed.add_subparsers(dest="verb", metavar="<verb>")
-    embed_generate = embed_sub.add_parser("generate", help="Regenerate embeddings into data/.")
-    embed_generate.set_defaults(func=_data_embed_generate)
+    embed_generate = embed_sub.add_parser(
+        "generate",
+        help="Regenerate embeddings into data/.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    embed_generate.add_argument(
+        "--model",
+        default="Qwen/Qwen3-Embedding-0.6B",
+        help="MLX-loadable embedding model.",
+    )
+    embed_generate.add_argument("--rebuild", action="store_true", help="Ignore cache and re-embed every chunk.")
+    embed_generate.add_argument("--batch-size", type=int, default=8, help="Embedding batch size.")
+    embed_generate.add_argument("--max-length", type=int, default=512, help="Maximum tokens per chunk at encode time.")
+    embed_generate.add_argument("--out", type=Path, default=Path("data/conceptosphere-embed.json"))
+    embed_generate.add_argument("--limit", type=int, default=0, help="Process only first N documents for smoke tests.")
+    embed_generate.set_defaults(func=_conceptosphere_embed_generate)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -362,7 +418,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_project_group(sub)
     _add_downloads_group(sub)
     _add_docx_group(sub)
-    _add_data_group(sub)
+    _add_conceptosphere_group(sub)
     return parser
 
 
@@ -374,7 +430,3 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     handler: Callable[[argparse.Namespace], int] = args.func
     return handler(args)
-
-
-if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
