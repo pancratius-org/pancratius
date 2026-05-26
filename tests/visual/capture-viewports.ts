@@ -4,8 +4,8 @@
 // you want to eyeball results rather than gate a regression.
 //
 // Usage:
-//   node scripts/visual/viewport.ts
-//   node scripts/visual/viewport.ts --tag after-vp
+//   node --experimental-strip-types tests/visual/capture-viewports.ts
+//   node --experimental-strip-types tests/visual/capture-viewports.ts --tag after-vp
 //
 // Writes .cache/visual-audit/<tag>/<theme>-<viewport>-<route>-{top,mid}.png
 

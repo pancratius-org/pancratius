@@ -12,7 +12,7 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = Number(process.env.PORT ?? 4321);
 
 export default defineConfig({
-  testDir: "./tests",
+  testDir: "./tests/e2e",
   fullyParallel: true,
   reporter: process.env.CI ? "github" : "list",
   use: {

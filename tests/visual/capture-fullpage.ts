@@ -6,8 +6,8 @@
 // (tests/visual_audit.spec.ts). This script only captures pixels.
 //
 // Usage:
-//   node scripts/visual/audit.ts                 # dark+light, desktop+mobile
-//   node scripts/visual/audit.ts --tag after     # label the output folder
+//   node --experimental-strip-types tests/visual/capture-fullpage.ts                 # dark+light, desktop+mobile
+//   node --experimental-strip-types tests/visual/capture-fullpage.ts --tag after     # label the output folder
 //
 // Writes .cache/visual-audit/<tag>/<theme>-<viewport>-<route>.png
 

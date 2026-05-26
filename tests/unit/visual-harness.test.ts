@@ -2,7 +2,7 @@
 // tested here — it has no logic worth mocking a browser for; the value is in the
 // argument parsing, naming, and Lighthouse report extraction.
 //
-// Run: npm run test:unit  (= node --experimental-strip-types --test "scripts/visual/*.test.ts")
+// Run: npm run test:unit
 
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
@@ -13,7 +13,7 @@ import {
   parseTag,
   screenshotName,
   settleMsFor,
-} from "./harness.ts";
+} from "../visual/harness.ts";
 import {
   categoryScore,
   lighthouseArgs,
@@ -22,7 +22,7 @@ import {
   summarizeReport,
   type LighthouseReport,
   type Row,
-} from "./lighthouse.ts";
+} from "../visual/lighthouse-report.ts";
 
 describe("parseTag", () => {
   test("reads the =form", () => {

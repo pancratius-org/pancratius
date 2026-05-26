@@ -45,12 +45,12 @@ jobs:
       - name: Type-check (astro check)
         run: npm run check
 
-      - name: Type-check scripts + specs (tsc) and run unit tests
-        # The app tsconfig excludes scripts/ and tests/, so `npm run check` does
-        # not cover the Node scripts or Playwright specs — this does (PAN016:
+      - name: Type-check tooling + specs (tsc) and run unit tests
+        # The app tsconfig excludes build/, audit/, and tests/, so `npm run check`
+        # does not cover Node tooling or Playwright specs — this does (PAN016:
         # TypeScript everywhere). test:unit runs the pure-helper units (no browser).
         run: |
-          npm run typecheck:scripts
+          npm run typecheck:tooling
           npm run test:unit
 
       - name: Check Python (ruff annotations + ty + pytest)
@@ -61,7 +61,7 @@ jobs:
         run: |
           uv run --frozen ruff check .
           uv run --frozen ty check
-          uv run --frozen pytest tests -q
+          uv run --frozen pytest tests/python -q
 
       - name: Audit (contracts) + self-test
         # The deterministic fatal core (docs/audit-harness.md). `audit` is the PR
