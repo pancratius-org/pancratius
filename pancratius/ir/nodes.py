@@ -27,6 +27,10 @@ from typing import Literal, assert_never
 EmphKind = Literal["strong", "emph", "strike", "sup", "sub"]
 # The single converter-owned lineated-run wrapper emitted into canonical Markdown.
 VerseRole = Literal["verse-block"]
+# Open JSON-ish records at the IR boundary. Pandoc table raw nodes stay opaque;
+# bibliography entries are structured enough to name, but intentionally open-ended.
+type JsonObject = dict[str, object]
+type BibliographyEntry = dict[str, object]
 
 # ---------------------------------------------------------------------------
 # Inline kinds
@@ -283,13 +287,13 @@ class Table:
     asset-rewrite passes as body prose before lowering to a GFM pipe table. `raw`
     keeps the opaque source node (the Pandoc Table JSON object, or `None`) for the
     bibliography classifier (it needs the hrefs and image alts the flattened cells
-    would drop); it is typed `dict[str, object] | None` — a JSON object whose
-    schema the pure IR makes no claim about, not the bare `object` it was — so the
+    would drop); it is typed `JsonObject | None` — a JSON object whose schema the
+    pure IR makes no claim about, not the bare `object` it was — so the
     classifier still narrows it itself. `role == "bibliography"` once classified
     (then lifted, not lowered)."""
 
     rows: list[list[list[Inline]]]
-    raw: dict[str, object] | None = None
+    raw: JsonObject | None = None
     role: str | None = None
 
 
@@ -381,11 +385,10 @@ class Document:
     references are returned as `PlannedAsset`s from the asset pass (the writer
     copies them); they are not stored on the document.
 
-    `bibliography` is an open `dict` record: a `TypedDict` isn't assignable across
-    the `docx_conversion` sidecar boundary (it takes `list[dict[str, Any]]`, and
-    `list` is invariant), so the open dict is the honest type."""
+    `bibliography` is an open record: the sidecar can grow fields without the IR
+    pretending to own a closed schema."""
 
     blocks: list[Block] = field(default_factory=list)
     footnotes: list[FootnoteDef] = field(default_factory=list)
-    bibliography: list[dict[str, object]] = field(default_factory=list)
+    bibliography: list[BibliographyEntry] = field(default_factory=list)
     diagnostics: list[Diagnostic] = field(default_factory=list)
