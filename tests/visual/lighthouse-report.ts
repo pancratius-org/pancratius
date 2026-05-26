@@ -10,7 +10,7 @@
 // design. Making it a locked check would mean pinning lighthouse as a dependency.
 //
 // Usage:
-//   node scripts/visual/lighthouse.ts
+//   node --experimental-strip-types tests/visual/lighthouse-report.ts
 //
 // Writes per-page JSON to .cache/visual-audit/lighthouse/<viewport>-<name>.json
 // plus a summary.json, and prints the scorecard table.

@@ -4,7 +4,7 @@
 // for crisp review.
 //
 // Usage:
-//   node scripts/visual/shots.ts
+//   node --experimental-strip-types tests/visual/capture-projects.ts
 //
 // Writes .cache/visual-audit/projects/<theme>-<viewport>-<route>.png
 

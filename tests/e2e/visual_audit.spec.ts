@@ -15,7 +15,7 @@
 //   VISUAL_AUDIT=1 npx playwright test visual_audit.spec.ts
 //
 // PNG capture for human review is a *separate* concern — see
-// scripts/visual/audit.ts. This spec asserts; it does not write artifacts.
+// tests/visual/capture-fullpage.ts. This spec asserts; it does not write artifacts.
 import { expect, test, type ConsoleMessage, type Page } from "@playwright/test";
 import {
   AUDIT_ROUTE_NAMES,
@@ -27,7 +27,7 @@ import {
   settleMsFor,
   waitForFontsReady,
   type Route,
-} from "../scripts/visual/harness.ts";
+} from "../visual/harness.ts";
 
 test.skip(!process.env.VISUAL_AUDIT, "set VISUAL_AUDIT=1 to run the full theme × viewport visual gate");
 
