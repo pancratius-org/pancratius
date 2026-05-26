@@ -804,7 +804,7 @@ export const projectComponentsCopy = {
     featuredMoreHeading: "More from this circle",
     revelationAria: "Revelation",
     // EN strings exist for type completeness; the practice pages are RU-only
-    // until an English body is authored (see projects-plan §5).
+    // until an English body is authored.
     awakening: {
       heading: "Draw a question",
       tierLabel: "Rung",

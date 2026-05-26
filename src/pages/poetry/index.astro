@@ -2,6 +2,7 @@
 import Base from "@/layouts/Base.astro";
 import { DEFAULT_LOCALE, LOCALES, type Locale, workUrl, kindIndexUrl, plRu, RU_PLURALS } from "@/lib/i18n";
 import { formatMonthYear, poetryIndexCopy } from "@/lib/copy";
+import { isPoemTitleLine, poemFirstStanza } from "@/lib/publication/poetry";
 import { sameSitePath } from "@/lib/paths";
 import { seoForKindIndex } from "@/lib/seo";
 import { getPairsByKind, poemDate } from "@/lib/works";
@@ -17,41 +18,16 @@ for (const loc of LOCALES) {
 
 const canonical = (p: typeof pairs[number]) => p.entries[DEFAULT_LOCALE]!;
 
-// Read the first stanza from the collection entry body. Skip a leading
-// title-shaped line so the hero excerpt is real verse, not the title twice.
-function firstStanza(bodyMarkdown: string, title: string): string {
-  const body = bodyMarkdown.replace(/^---[\s\S]*?---\n?/, "").trim();
-  const normalize = (s: string) =>
-    s.replace(/[…\*]+$/g, "").replace(/[,;:!?\.]/g, "").trim().toLowerCase();
-  const lines = body.split(/\n/);
-  let start = 0;
-  while (start < lines.length && lines[start].trim() === "") start++;
-  if (start < lines.length && normalize(lines[start]) === normalize(title)) {
-    start++;
-    while (start < lines.length && lines[start].trim() === "") start++;
-  }
-  // First stanza = lines until the first blank line after `start`.
-  const stanza: string[] = [];
-  for (let i = start; i < lines.length; i++) {
-    if (lines[i].trim() === "") break;
-    stanza.push(lines[i]);
-  }
-  return stanza.join("\n");
-}
-
 // Pick the first poem whose title doesn't equal its first body line — that's
 // where the stanza preview adds info beyond the title itself.
-const normTitle = (s: string) =>
-  s.replace(/[…\*]+$/g, "").replace(/[,;:!?\.]/g, "").trim().toLowerCase();
-
 let heroPair = pairs[0];
 let heroStanza = "";
 for (const p of pairs) {
   const e = canonical(p);
-  const stanza = firstStanza(e.body ?? "", e.data.title);
+  const stanza = poemFirstStanza(e.body ?? "", e.data.title);
   if (!stanza) continue;
   const firstLine = stanza.split(/\n/, 1)[0] ?? "";
-  if (normTitle(firstLine) !== normTitle(e.data.title)) {
+  if (!isPoemTitleLine(firstLine, e.data.title)) {
     heroPair = p;
     heroStanza = stanza;
     break;
@@ -59,7 +35,7 @@ for (const p of pairs) {
 }
 if (!heroStanza && heroPair) {
   const e = canonical(heroPair);
-  heroStanza = firstStanza(e.body ?? "", e.data.title);
+  heroStanza = poemFirstStanza(e.body ?? "", e.data.title);
 }
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>

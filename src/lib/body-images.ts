@@ -5,8 +5,8 @@ import { extname, resolve as resolvePath } from "node:path";
 import type { APIRoute } from "astro";
 import sharp from "sharp";
 
-import { DEFAULT_LOCALE, type WorkKind } from "./i18n";
-import { SEGMENT_OF, WORK_KINDS, type WorkSegment } from "./kinds";
+import { DEFAULT_LOCALE, type RoutedKind } from "./i18n";
+import { ROUTED_KINDS, SEGMENT_OF, type RoutedSegment } from "./kinds";
 import type { WorkPair } from "./works";
 
 const REPO_ROOT = process.cwd();
@@ -34,12 +34,12 @@ const RASTER_EXTS = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif"]);
 // Bump when the rendition algorithm changes so stale cache entries are ignored.
 const RENDITION_VERSION = "v1";
 
-const WORK_SEGMENT: Record<WorkKind, WorkSegment> = SEGMENT_OF;
+const ROUTED_SEGMENT: Record<RoutedKind, RoutedSegment> = SEGMENT_OF;
 
 // Body images live under work bundles AND under the `pages` collection, so the
 // scannable set of content dirs is the work segments plus "pages".
 const ASSET_KIND_SEGMENTS = [
-  ...WORK_KINDS.map((kind) => SEGMENT_OF[kind]),
+  ...ROUTED_KINDS.map((kind) => ROUTED_SEGMENT[kind]),
   "pages",
 ] as const;
 
@@ -64,12 +64,12 @@ export function workBundleKey(pair: WorkPair): string {
   return pair.entries[DEFAULT_LOCALE]!.id.split("--")[0];
 }
 
-export function workAssetImagePublicPath(kind: WorkKind, workKey: string, imagePath: string): string {
+export function workAssetImagePublicPath(kind: RoutedKind, workKey: string, imagePath: string): string {
   const normalized = imagePath.trim().replace(/^\.?\//, "");
   if (!normalized.startsWith("images/")) {
     throw new Error(`workAssetImagePublicPath expects an images/ path, got ${JSON.stringify(imagePath)}`);
   }
-  return `/assets/${WORK_SEGMENT[kind]}/${workKey}/${normalized}`;
+  return `/assets/${ROUTED_SEGMENT[kind]}/${workKey}/${normalized}`;
 }
 
 export function workAssetImageStaticPaths() {
