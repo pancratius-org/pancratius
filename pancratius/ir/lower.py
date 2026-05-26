@@ -294,6 +294,8 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
                         out.append(ir.ImageInline(src=n.src, alt=n.alt, asset_id=asset_id))
                     case _KeepRemote():
                         out.append(ir.ImageInline(src=n.src, alt=n.alt, asset_id=None))
+                    case unexpected:
+                        assert_never(unexpected)
             elif isinstance(n, ir.ContainerInline):
                 out.append(ir.rebuild_container(n, visit_inlines(n.children)))
             else:
@@ -318,6 +320,8 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
                         b.asset_id = asset_id
                     case _KeepRemote():
                         pass  # a remote block image keeps its src; no asset id
+                    case unexpected:
+                        assert_never(unexpected)
             case _:
                 ir.map_block_inlines(b, visit_inlines)
 
@@ -681,7 +685,9 @@ def _block_md(b: ir.Block, lang: str, *, poem: bool = False) -> str | None:
             # `lower` (it owns the document); a kind with no recoverable text emits
             # nothing here but is still surfaced.
             text = re.sub(r"\s*\n\s*", " ", b.text).strip()
-            return _escape_literal_text(text) or None if text else None
+            if not text:
+                return None
+            return _escape_literal_text(text) or None
     assert_never(b)
 
 

@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any, assert_never, cast
 
@@ -139,14 +140,12 @@ def inline_lines(
     return [ln for ln in lines if ln]
 
 
-def _walk_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
-    """Depth-first flatten of an inline tree (for kind probes)."""
-    out: list[ir.Inline] = []
+def _walk_inlines(inlines: list[ir.Inline]) -> Iterator[ir.Inline]:
+    """Depth-first inline tree walk for kind probes."""
     for n in inlines:
-        out.append(n)
+        yield n
         if isinstance(n, ir.ContainerInline):
-            out.extend(_walk_inlines(n.children))
-    return out
+            yield from _walk_inlines(n.children)
 
 
 # ---------------------------------------------------------------------------
@@ -600,9 +599,10 @@ def strip_endmatter_sections(blocks: list[ir.Block]) -> list[ir.Block]:
                 in_endmatter = True
                 level = b.level
                 i += 1
-                while i < n and not (
-                    isinstance(blocks[i], ir.Heading) and blocks[i].level <= level
-                ):
+                while i < n:
+                    current = blocks[i]
+                    if isinstance(current, ir.Heading) and current.level <= level:
+                        break
                     i += 1
                 continue
         out.append(b)
@@ -916,9 +916,11 @@ def _is_wrapped_prose(p: ir.Paragraph) -> bool:
     a literal `\\r\\n` in one `<w:t>`) with no hard `LineBreak`: its lineation was
     never authored, so it is prose even when collapsed to one short line. A hard
     break — or no break at all (one Word paragraph per line) — stays verse-eligible."""
-    nodes = _walk_inlines(p.inlines)
-    has_soft = any(isinstance(n, ir.SoftBreak) for n in nodes)
-    has_hard = any(isinstance(n, ir.LineBreak) for n in nodes)
+    has_soft = False
+    has_hard = False
+    for n in _walk_inlines(p.inlines):
+        has_soft = has_soft or isinstance(n, ir.SoftBreak)
+        has_hard = has_hard or isinstance(n, ir.LineBreak)
     return has_soft and not has_hard
 
 
@@ -1013,15 +1015,10 @@ def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
             ):
                 run.append(pi)
                 i += 1
-            content = [p for p in run if not p.empty]
-            kind = _run_kind(run, run_ctx)
             # `_run_kind` owns the run-length floor (>=2 with confident source
             # lineation, >=3 for the weak bare-standalone-paragraph signal); the
             # outer guard only re-asserts the universal >=2 minimum.
-            if kind and len(_all_lines(content)) >= 2:
-                out.append(_build_verse(run, kind))
-            else:
-                out.extend(run)
+            out.extend(_lineated_run_blocks(run, run_ctx))
             ctx = _NEUTRAL_CONTEXT
             continue
         ctx = _NEUTRAL_CONTEXT
@@ -1049,16 +1046,23 @@ def _visual_verse_blocks(
             while i < len(group) and (group[i].empty or _para_lineated(group[i])):
                 run.append(group[i])
                 i += 1
-            content = [rp for rp in run if not rp.empty]
-            kind = _run_kind(run, ctx)
-            if kind and len(_all_lines(content)) >= 2:
-                out.append(_build_verse(run, kind))
-            else:
-                out.extend(run)
+            out.extend(_lineated_run_blocks(run, ctx))
             continue
         out.append(p)
         i += 1
     return out
+
+
+def _lineated_run_blocks(
+    run: list[ir.Paragraph],
+    ctx: _PrecedingContext,
+) -> list[ir.Block]:
+    """Return either the folded verse block or the original paragraph run."""
+    kind = _run_kind(run, ctx)
+    content = [p for p in run if not p.empty]
+    if kind and len(_all_lines(content)) >= 2:
+        return [_build_verse(run, kind)]
+    return list(run)
 
 
 def _run_kind(run: list[ir.Paragraph], ctx: _PrecedingContext) -> ir.VerseRole | None:
@@ -1074,8 +1078,9 @@ def _run_kind(run: list[ir.Paragraph], ctx: _PrecedingContext) -> ir.VerseRole |
     # A paragraph carrying a hard `LineBreak` (`<w:br/>`) is authored multi-line
     # verse — the strongest source-lineation signal. A `SoftBreak` is prose wrapping
     # and is not counted; the walk recurses so a hard break nested in `Emph` counts.
-    linebreak_count = sum(
-        1 for p in content if any(isinstance(x, ir.LineBreak) for x in _walk_inlines(p.inlines))
+    has_hard_break = any(
+        any(isinstance(x, ir.LineBreak) for x in _walk_inlines(p.inlines))
+        for p in content
     )
     # Run-length floor (the spec's "verse run = >=2 short lineated source lines"). A
     # hard break or a named verse-title heading is a confident source-lineation
@@ -1087,7 +1092,7 @@ def _run_kind(run: list[ir.Paragraph], ctx: _PrecedingContext) -> ir.VerseRole |
     # heading, or separator: two short same-style paragraphs after a speaker turn
     # can still be ordinary prose. Let visual-only runs clear the weak >=3 floor
     # before the visual branch below classifies them.
-    confident_lineation = bool(linebreak_count) or ctx.named or ctx.heading or ctx.separator
+    confident_lineation = has_hard_break or ctx.named or ctx.heading or ctx.separator
     min_lines = 2 if confident_lineation else 3
     if len(lines) < min_lines:
         return None
@@ -1102,7 +1107,7 @@ def _run_kind(run: list[ir.Paragraph], ctx: _PrecedingContext) -> ir.VerseRole |
         return "verse-block" if _passes(95, 150) else None
     if ctx.visual and len(lines) <= 64:
         return "verse-block" if _passes(95, 120) else None
-    if linebreak_count:
+    if has_hard_break:
         return "verse-block"
     if empty_count and _passes(120):
         return "verse-block"

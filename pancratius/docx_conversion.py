@@ -6,6 +6,7 @@ import unicodedata
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from itertools import islice
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -24,11 +25,13 @@ from pancratius.writer import WriteReport, apply as apply_plan
 # vector/animated formats copy untouched (docs/content-model.md asset policy).
 BODY_IMAGE_MAX_LONG_EDGE = 1600
 
+type BibliographyEntry = dict[str, object]
+
 
 @dataclass
 class ConvertedDocx:
     body: str
-    bibliography: list[dict[str, Any]] = field(default_factory=list)
+    bibliography: list[BibliographyEntry] = field(default_factory=list)
     cross_refs: list[dict[str, Any]] = field(default_factory=list)
     warnings: str = ""
     # Body images the conversion references but never copies — the converter only
@@ -83,14 +86,7 @@ def _poem_title_key(s: str) -> str:
 def _first_nonempty_docx_paras(
     paras: list[ooxml.DocxParagraphMeta], limit: int = 2
 ) -> list[ooxml.DocxParagraphMeta]:
-    out: list[ooxml.DocxParagraphMeta] = []
-    for para in paras:
-        if para.is_empty:
-            continue
-        out.append(para)
-        if len(out) >= limit:
-            break
-    return out
+    return list(islice((para for para in paras if not para.is_empty), limit))
 
 
 def _is_poem_section_heading_text(s: str) -> bool:
@@ -135,8 +131,17 @@ def _strip_source_duplicate_poem_title(
 # ---------------------------------------------------------------------------
 
 
-def _dedupe_bibliography(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    out: list[dict[str, Any]] = []
+def _normalized_bibliography_title(entry: BibliographyEntry) -> str:
+    return re.sub(r"\s+", " ", str(entry.get("title") or "").casefold()).strip()
+
+
+def _bibliography_dedupe_key(entry: BibliographyEntry) -> str:
+    title_key = _normalized_bibliography_title(entry)
+    return title_key or f"url:{entry.get('source_url', '')}"
+
+
+def _dedupe_bibliography(entries: list[BibliographyEntry]) -> list[BibliographyEntry]:
+    out: list[BibliographyEntry] = []
     by_title: dict[str, int] = {}
     i = 0
     while i < len(entries):
@@ -147,8 +152,7 @@ def _dedupe_bibliography(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
             if nxt.get("target") and not entry.get("target"):
                 entry["target"] = nxt["target"]
             i += 1
-        title_key = re.sub(r"\s+", " ", str(entry.get("title") or "").casefold()).strip()
-        key = title_key or f"url:{entry.get('source_url', '')}"
+        key = _bibliography_dedupe_key(entry)
         if key not in by_title:
             by_title[key] = len(out)
             out.append(dict(entry))
@@ -166,12 +170,12 @@ def _dedupe_bibliography(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [_ordered_bibliography_entry(entry) for entry in out]
 
 
-def _merge_adjacent_part_link(entry: dict[str, Any], nxt: dict[str, Any]) -> bool:
+def _merge_adjacent_part_link(entry: BibliographyEntry, nxt: BibliographyEntry) -> bool:
     """Cover alt `Full Title. Part 1` followed by link text `Part 1` is one entry."""
     if entry.get("source_url") or not nxt.get("source_url"):
         return False
-    title = re.sub(r"\s+", " ", str(entry.get("title") or "").casefold()).strip()
-    linked = re.sub(r"\s+", " ", str(nxt.get("title") or "").casefold()).strip()
+    title = _normalized_bibliography_title(entry)
+    linked = _normalized_bibliography_title(nxt)
     if not title or not linked:
         return False
     if not re.fullmatch(r"(?:часть|part)\s+\d+", linked):
@@ -179,9 +183,9 @@ def _merge_adjacent_part_link(entry: dict[str, Any], nxt: dict[str, Any]) -> boo
     return title.endswith(linked)
 
 
-def _ordered_bibliography_entry(entry: dict[str, Any]) -> dict[str, Any]:
+def _ordered_bibliography_entry(entry: BibliographyEntry) -> BibliographyEntry:
     """Keep generated YAML stable: title, URL, target, then any future fields."""
-    ordered: dict[str, Any] = {"title": entry.get("title", "")}
+    ordered: BibliographyEntry = {"title": entry.get("title", "")}
     if entry.get("source_url"):
         ordered["source_url"] = entry["source_url"]
     if entry.get("target"):
@@ -260,7 +264,7 @@ def write_bibliography_sidecar(
     work_dir: Path,
     kind: str,
     lang: str,
-    bibliography: list[dict[str, Any]],
+    bibliography: list[BibliographyEntry],
 ) -> None:
     """Write the lifted endmatter bibliography to ``<work_dir>/bibliography.yaml``.
 

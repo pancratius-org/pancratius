@@ -23,6 +23,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 import zipfile
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 from typing import Any, cast
 
@@ -244,17 +245,22 @@ def _source_paragraphs_join(a: _SourceParagraph, b: _SourceParagraph) -> bool:
 
 
 def _assign_lineation_groups(paragraphs: list[_SourceParagraph]) -> None:
+    if not paragraphs:
+        return
     group_id = 1
-    i = 0
-    while i < len(paragraphs):
-        j = i + 1
-        while j < len(paragraphs) and _source_paragraphs_join(paragraphs[j - 1], paragraphs[j]):
-            j += 1
-        if j - i > 1:
-            for p in paragraphs[i:j]:
+    run = [paragraphs[0]]
+    for prev, cur in pairwise(paragraphs):
+        if _source_paragraphs_join(prev, cur):
+            run.append(cur)
+            continue
+        if len(run) > 1:
+            for p in run:
                 p.lineation_group = group_id
             group_id += 1
-        i = j
+        run = [cur]
+    if len(run) > 1:
+        for p in run:
+            p.lineation_group = group_id
 
 
 def _source_boundary() -> _SourceParagraph:
