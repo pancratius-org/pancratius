@@ -4,21 +4,20 @@ version = "0.1.0"
 description = "Python tooling for the Pancratius static library"
 requires-python = ">=3.13"
 # Base deps cover the LIGHT (in-process, no-ML) verbs of the `pancratius` console
-# script — `work import`, `docx optimize`, `data slug-map refresh`,
-# `project page add` — so `uv sync` (no extras) installs and runs them. Pillow is
+# script — `work import`, `docx optimize`, `project page add`, `downloads render`
+# — so `uv sync` (no extras) installs and runs them. Pillow is
 # the image-cap/optimize dependency; it also keeps the import behavioural tests in
-# tests/test_import_docx.py running under `uv run pytest` instead of skipping on a
+# tests/python/test_import_docx.py running under `uv run pytest` instead of skipping on a
 # missing PIL. The HEAVY stacks (graph/embed) are opt-in extras below, not here.
 dependencies = [
   "pyyaml>=6.0.2",
   "pillow>=10.4",
 ]
 
-# Heavy stacks for the two heavy `data` verbs, declared HERE in the project (not
-# inlined per-script — these scripts are pancratius library modules, docs/tooling.md
-# "Dependency model"). `uv sync` without an extra never installs them, so the light
-# core stays light; `data graph generate` / `data embed generate` lazy-import their
-# owner inside the handler and, on ImportError, exit with `uv sync --extra <name>`.
+# Heavy stacks for the two conceptosphere generation verbs, declared here in the
+# project. `uv sync` without an extra never installs them, so the light core stays
+# light; `conceptosphere graph generate` / `conceptosphere embed generate`
+# lazy-import their owners and, on ImportError, print `uv sync --extra <name>`.
 [project.optional-dependencies]
 graph = [
   "pymorphy3>=2.0.2",
@@ -62,8 +61,7 @@ dev = [
 
 # A console-script needs a build backend; uv will not install an entry point while
 # the project is non-package, so `[tool.uv] package = false` is gone. Hatchling
-# builds only the `pancratius/` door package — the owning logic stays in scripts/,
-# reached at runtime via the same `sys.path` bootstrap the scripts use.
+# builds the `pancratius/` package directly; there is no second Python side door.
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -83,14 +81,13 @@ packages = ["pancratius"]
 [tool.ruff]
 target-version = "py313"
 line-length = 100
-# Only the Python tooling is in scope; the Astro site / TS / src/ are not.
-# `pancratius/` is the console-script door (docs/tooling.md) — typed like the rest.
-include = ["pancratius/**/*.py", "scripts/**/*.py", "tests/**/*.py"]
+# Only Python tooling is in scope; the Astro site / TS / src/ are not.
+include = ["pancratius/**/*.py", "audit/**/*.py", "tests/python/**/*.py"]
 # The audit harness's own fixtures are test data — tiny crafted trees (some
 # intentionally malformed) that prove a rule fires; not production source, so
 # they're out of the typing mandate (mirrors the tsconfig.scripts.json exclude
 # and [tool.ty.src].exclude). PAN016 treats them as a declared non-prod tree.
-extend-exclude = ["scripts/audit/fixtures"]
+extend-exclude = ["audit/fixtures"]
 
 [tool.ruff.lint]
 # Scoped deliberately to the typing mandate, not general code-quality linting.
@@ -104,7 +101,7 @@ select = ["ANN", "F821"]
 # Keep ANN401 (no bare `Any`) ON so accidental `Any` is flagged everywhere;
 # the only `Any` left is at the opaque MLX model/tokenizer boundary, waived
 # with a scoped `# noqa: ANN401` on those two parameters (see
-# scripts/conceptosphere_embed.py). Everything else uses `object` and narrows.
+# pancratius/conceptosphere_embed.py). Everything else uses `object` and narrows.
 allow-star-arg-any = false
 ignore-fully-untyped = false
 # `__init__` returns None implicitly; requiring `-> None` on it is noise, so
@@ -118,22 +115,13 @@ suppress-none-returning = false
 
 [tool.ty.environment]
 python-version = "3.13"
-# Sibling scripts are imported by basename (sys.path.insert(scripts/)) and by
-# tests; declare scripts/ as a first-party source root so ty resolves them.
-# scripts/audit/ is a second root because audit modules (and their pytest
-# wrappers, e.g. test_ir_ab_corpus) import each other by basename via a runtime
-# sys.path.insert(scripts/audit) — mirror that here so ty resolves them too.
-# `pancratius/` (the console-script door) bootstraps scripts/ onto sys.path at
-# runtime and imports the owners by basename, so the existing scripts roots cover
-# its `from lib.* import …` / `import import_docx`; it is its own root too so its
-# package modules resolve.
-root = ["pancratius", "scripts", "scripts/audit"]
+root = ["pancratius", "audit", "tests/python"]
 
 [tool.ty.src]
-include = ["pancratius", "scripts", "tests"]
+include = ["pancratius", "audit", "tests/python"]
 # Harness fixtures are test data (see the ruff/tsconfig excludes) — keep ty off
 # them so an intentionally-malformed fixture can't fail the typecheck.
-exclude = ["scripts/audit/fixtures"]
+exclude = ["audit/fixtures"]
 
 [tool.ty.rules]
 # Catch annotations that reference an unimported name at the type level too.
