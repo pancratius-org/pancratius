@@ -94,7 +94,7 @@ describe("renderPublicWorkMarkdown", () => {
         '<div class="verse-block"><p>Line one<br>Line two</p></div>',
         { origin: ORIGIN, work: { kind: "book", bundleKey: "book-1" } },
       ),
-      "Line one\nLine two\n",
+      "Line one  \nLine two\n",
     );
   });
 });

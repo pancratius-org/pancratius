@@ -172,10 +172,11 @@ The current contract:
   time, and authors are not asked to hand-write `<p>` / `<br>` line markup.
   Inline emphasis inside that raw HTML wrapper uses HTML tags because CommonMark
   does not parse `**...**` inside raw HTML blocks.
-- **numbered Q/A answers are explicit when the source shape is clear.** A
-  numbered question heading followed by a compact run of short answer
-  paragraphs becomes `<div class="answer-block">`. It keeps catechetical answer
-  runs visually grouped without claiming they are poems.
+- **there is one lineated block shape.** Numbered sections, catechetical
+  answers, prayers, and divine-voice short-line runs all use
+  `<div class="verse-block">` when the source is lineated. The converter does not
+  maintain a separate answer-wrapper taxonomy unless the site gives that register a
+  genuinely different visual and semantic treatment.
 - **right-aligned DOCX paragraphs are preserved as semantics only when the
   source makes the role clear.** Standalone author/source lines become
   `p.signature`; scripture and epigraph groups become
@@ -249,9 +250,10 @@ Poems emit the simple source contract above; book sections and confident
 short-line runs emit a minimal `.verse-block` wrapper around natural lines so
 stanza structure is explicit on normal prose pages. A confident run is short
 lineated lines (each ≤120 characters) carrying a source-lineation signal: ≥2 lines
-on a strong signal (a hard `<w:br/>` or a named verse-section heading), else ≥3
-lines on the weak empty-paragraph-only signal. The converter must not infer
-stanza structure from plain Pandoc GFM after the empty-paragraph signal has been
+on a strong signal (a hard `<w:br/>`, heading, or thematic separator), else ≥3
+lines on the weak empty-paragraph-only signal. Short colon openers remain inside
+the lineated run; explicit speaker/source turns end it. The converter must not
+infer stanza structure from plain Pandoc GFM after the empty-paragraph signal has been
 lost, and it must not silently flatten all poems into one stanza. The 120-char
 threshold is duplicated in `pancratius/ir/normalize.py` (`VERSE_SHORT_LINE_MAX`)
 and `audit/book_verse.py` (`SHORT_LINE_MAX`) — the audit is the

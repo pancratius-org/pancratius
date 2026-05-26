@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pancratius.ir.lower as lower  # noqa: E402
 import pancratius.ir.normalize as normalize  # noqa: E402
+from pancratius import docx_conversion  # noqa: E402
 from pancratius import ir  # noqa: E402
 from pancratius.ir.normalize import AI_ALT_FRAGMENTS  # noqa: E402
 
@@ -37,6 +38,66 @@ def _first_image_alt(block: ir.Block) -> str:
 def _blockquote(block: ir.Block) -> ir.BlockQuote:
     assert isinstance(block, ir.BlockQuote)
     return block
+
+
+def _block_texts(blocks: list[ir.Block]) -> list[str]:
+    texts: list[str] = []
+    for block in blocks:
+        if isinstance(block, (ir.Heading, ir.Paragraph)):
+            texts.append(normalize.inline_plain(block.inlines))
+    return texts
+
+
+# ---------------------------------------------------------------------------
+# bibliography sidecar helpers
+# ---------------------------------------------------------------------------
+
+
+def test_bibliography_dedupe_merges_cover_alt_and_store_link() -> None:
+    entries: list[dict[str, object]] = [
+        {"title": "Евангелие Царствия", "target": {"kind": "book", "number": 1}},
+        {
+            "title": "Евангелие Царствия",
+            "source_url": "https://www.litres.ru/71769250/",
+        },
+        {"title": "Книга огня", "target": {"kind": "book", "number": 20}},
+        {
+            "title": "Книга Огня",
+            "source_url": "https://www.litres.ru/72343057/",
+            "target": {"kind": "book", "number": 20},
+        },
+        {"title": "Маленький Царь. Часть 1"},
+        {"title": "Часть 1", "source_url": "https://www.litres.ru/71807839/"},
+        {"title": "часть 2", "source_url": "https://www.litres.ru/71831962/"},
+    ]
+
+    assert docx_conversion._dedupe_bibliography(entries) == [
+        {
+            "title": "Евангелие Царствия",
+            "source_url": "https://www.litres.ru/71769250/",
+            "target": {"kind": "book", "number": 1},
+        },
+        {
+            "title": "Книга Огня",
+            "source_url": "https://www.litres.ru/72343057/",
+            "target": {"kind": "book", "number": 20},
+        },
+        {
+            "title": "Маленький Царь. Часть 1",
+            "source_url": "https://www.litres.ru/71807839/",
+        },
+        {"title": "часть 2", "source_url": "https://www.litres.ru/71831962/"},
+    ]
+
+
+def test_bibliography_target_resolution_ignores_terminal_period() -> None:
+    lookup = {
+        "книга бытия (живая).": ("65-kniga-bytiya-zhivaya", 65, "book"),
+    }
+    assert normalize._resolve_target("Книга Бытия (живая)", lookup) == {
+        "kind": "book",
+        "number": 65,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -210,6 +271,69 @@ def test_strip_bare_bibliography_heading_keeps_real_section() -> None:
         ir.Paragraph(inlines=[ir.Text("Real prose still here.")]),
     ]
     assert normalize.strip_bare_bibliography_heading(blocks) == blocks
+
+
+def test_strip_endmatter_sections_drops_tail_biblio_contacts_and_copyright() -> None:
+    blocks: list[ir.Block] = [
+        ir.Heading(level=1, inlines=[ir.Text("Book")]),
+        *[
+            ir.Paragraph(inlines=[ir.Text(f"body {i}")])
+            for i in range(20)
+        ],
+        ir.Heading(level=2, inlines=[ir.Text("Библиография")]),
+        ir.Paragraph(inlines=[ir.Text("70+1")]),
+        ir.Heading(level=2, inlines=[ir.Text("Контакты")]),
+        ir.Paragraph(inlines=[ir.Text("Donation details")]),
+        ir.Heading(level=2, inlines=[ir.Text("Копирайт")]),
+        ir.Paragraph(inlines=[ir.Text("© Сергей Орехов (Панкратиус), 2025, 2026")]),
+    ]
+
+    out = normalize.strip_endmatter_sections(blocks)
+
+    text = "\n".join(_block_texts(out))
+    assert "body 19" in text
+    assert "Библиография" not in text
+    assert "Контакты" not in text
+    assert "Копирайт" not in text
+    assert "70+1" not in text
+    assert "Donation details" not in text
+    assert "© Сергей" not in text
+
+
+def test_strip_endmatter_sections_keeps_mid_document_contact_section() -> None:
+    blocks: list[ir.Block] = [
+        ir.Heading(level=1, inlines=[ir.Text("Book")]),
+        *[
+            ir.Paragraph(inlines=[ir.Text(f"before {i}")])
+            for i in range(20)
+        ],
+        ir.Heading(level=2, inlines=[ir.Text("Контакты")]),
+        ir.Paragraph(inlines=[ir.Text("This is a real in-body section.")]),
+        *[
+            ir.Paragraph(inlines=[ir.Text(f"after {i}")])
+            for i in range(200)
+        ],
+    ]
+
+    assert normalize.strip_endmatter_sections(blocks) == blocks
+
+
+def test_strip_endmatter_sections_drops_mid_document_bibliography_section() -> None:
+    blocks: list[ir.Block] = [
+        ir.Heading(level=1, inlines=[ir.Text("Book")]),
+        ir.Paragraph(inlines=[ir.Text("body before")]),
+        ir.Heading(level=3, inlines=[ir.Text("БИБЛИОГРАФИЯ")]),
+        ir.Paragraph(inlines=[ir.Text("Catalog introduction.")]),
+        ir.Heading(level=2, inlines=[ir.Text("Next chapter")]),
+        ir.Paragraph(inlines=[ir.Text("body after")]),
+    ]
+
+    assert _block_texts(normalize.strip_endmatter_sections(blocks)) == [
+        "Book",
+        "body before",
+        "Next chapter",
+        "body after",
+    ]
 
 
 # ---------------------------------------------------------------------------

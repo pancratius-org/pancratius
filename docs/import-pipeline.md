@@ -164,8 +164,8 @@ detected" forces edits in the adapter or the writer, the boundary has leaked.
 
 The *substance* of these rules is the body contract in
 [`content-model.md`](./content-model.md#markdown-body-contract) and the styling
-decisions in [`decisions.md`](./decisions.md) (verse/stanza handling, Q/A answer
-runs, right-aligned signatures and epigraphs, thematic breaks, divine-voice
+decisions in [`decisions.md`](./decisions.md) (verse/stanza handling,
+right-aligned signatures and epigraphs, thematic breaks, divine-voice
 non-marking, bibliography lift). Import implements those; it does not invent its
 own. Empty source paragraphs are meaningful and must be captured in the IR before
 any Markdown output could lose them.

@@ -26,8 +26,9 @@ The verse rule (the SPEC — mirrored by the IR, unit-tested in
 
   * A *verse run* is >=2 consecutive SHORT lineated display-lines whose lineation
     comes from the SOURCE — a hard ``LineBreak`` (``<w:br/>``) inside one
-    paragraph, OR a run of short standalone paragraphs separated only by empty
-    paragraphs (stanza breaks). Each line must be under ``SHORT_LINE_MAX`` chars.
+    paragraph, a run after a heading, or a run of short standalone paragraphs
+    separated only by empty paragraphs (stanza breaks). Each line must be under
+    ``SHORT_LINE_MAX`` chars.
   * A run of BARE standalone single-line paragraphs is a CONFIDENT verse run only
     when it carries a stanza-break empty paragraph (the source separates its lines
     with a blank Word paragraph) AND has >=3 lines — paragraph boundaries alone
@@ -36,9 +37,9 @@ The verse rule (the SPEC — mirrored by the IR, unit-tested in
     prose. A hard ``<w:br/>`` line is a CONFIDENT signal on its own and counts at
     >=2. (These two floors mirror the IR's ``_run_kind``: the empty-paragraph path
     requires the >=3 weak-signal floor; the hard-break path counts at >=2.)
-  * NOT a verse line: a SPEAKER LABEL (`Speaker:` / `Speaker (qual):`, leading-
-    bold or not, terminal colon); a LONG (prose-length) line; a numbered Q/A
-    heading; a list item; an image/table/link line.
+  * NOT a verse line: an explicit SPEAKER/SOURCE turn (`Speaker:` /
+    `Speaker: content`); a LONG (prose-length) line; a numbered Q/A heading; a
+    list item; an image/table/link line.
 
 Tiering: this is a ``heuristic`` (agent-tier, non-blocking) audit, like
 ``poetry_stanzas`` — it runs in ``npm run audit:agent`` and never gates the PR
@@ -70,16 +71,6 @@ SHORT_LINE_MAX = 120
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
-# A SPEAKER LABEL line: optional leading bold, a short capitalized speaker phrase,
-# an OPTIONAL parenthetical qualifier `(…)`, then a TERMINAL colon. This is the
-# `Speaker:` / `Speaker (qual):` shape excluded from verse — the parenthetical is
-# INSIDE the pattern (a char-class that omits `(` lets the qualifier break the
-# match, which is exactly the over-detection bug this audit guards). A colon
-# MID-sentence (text after it) is NOT a label, so litany lines stay verse.
-LABEL_LINE_RE = re.compile(
-    r"^\s*\**\s*[A-ZА-ЯЁ][\wА-Яа-яЁё.\- ]{0,47}?"
-    r"(?:\s*\([^)]{1,40}\))?\s*:\s*\**\s*$"
-)
 _NUMBERED_QUESTION_RE = re.compile(r"^\d{1,3}[.)]\s+\S.*[?？]\s*$")
 
 
@@ -108,8 +99,8 @@ SPEAKER_TURN_RE = _speaker_turn_re()
 
 
 def is_label_line(line: str) -> bool:
-    """A `Speaker:` / `Speaker (qual):` label line (terminal colon) — not verse."""
-    return bool(LABEL_LINE_RE.match(line.strip()))
+    """Backward-compatible helper: explicit speaker/source labels are not verse."""
+    return is_speaker_turn(line)
 
 
 def is_speaker_turn(line: str) -> bool:
@@ -134,8 +125,6 @@ def is_verse_line(line: str) -> bool:
         return False
     if is_speaker_turn(s):
         return False
-    if is_label_line(s):
-        return False
     if "http://" in s or "https://" in s:
         return False
     return True
@@ -145,6 +134,7 @@ def is_verse_line(line: str) -> bool:
 # structural boundary that ENDS any in-progress verse run. Carried as a unit so
 # the grouping sees document order; it is never a verse line.
 STRUCTURAL_BREAK = "\x00BREAK"
+HEADING_BREAK = "\x00HEADING"
 
 
 def group_expected_runs(units: list[tuple[str, bool]]) -> list[list[str]]:
@@ -154,7 +144,7 @@ def group_expected_runs(units: list[tuple[str, bool]]) -> list[list[str]]:
     pair: a NON-empty paragraph unit holds one source paragraph's collapsed display
     lines joined by ``\\n`` (its hard ``<w:br/>`` lineation); an empty unit is a
     Word empty paragraph (a stanza break); a ``STRUCTURAL_BREAK`` text marks a
-    non-paragraph block (heading/table/…).
+    non-paragraph block (table/list/…); a ``HEADING_BREAK`` marks a heading.
 
     A run accumulates consecutive lineated paragraphs (every display line is a
     verse line) with empty paragraphs allowed BETWEEN them as stanza breaks; a
@@ -164,6 +154,8 @@ def group_expected_runs(units: list[tuple[str, bool]]) -> list[list[str]]:
     run of short standalone paragraphs is NOT folded without one, because paragraph
     boundaries alone don't tell a couplet from two prose sentences):
 
+      * a heading immediately before the run and 2–32 short lines within the
+        converter's heading-run length thresholds; OR
       * a hard ``<w:br/>`` (>=1 multi-line unit) and the run has >=2 lines — the
         strong in-paragraph source-lineation signal; OR
       * a stanza-break empty paragraph inside the run AND >=3 lines — the source
@@ -173,22 +165,38 @@ def group_expected_runs(units: list[tuple[str, bool]]) -> list[list[str]]:
     cur_lines: list[str] = []
     cur_has_hardbreak = False
     cur_has_empty = False
+    cur_after_heading = False
+    pending_heading = False
 
     def flush() -> None:
-        nonlocal cur_lines, cur_has_hardbreak, cur_has_empty
+        nonlocal cur_lines, cur_has_hardbreak, cur_has_empty, cur_after_heading
         if cur_lines:
-            confident = (cur_has_hardbreak and len(cur_lines) >= 2) or (
-                cur_has_empty and len(cur_lines) >= 3
+            lengths = [len(line) for line in cur_lines]
+            avg = sum(lengths) / len(lengths)
+            max_len = max(lengths)
+            confident = (
+                cur_after_heading
+                and 2 <= len(cur_lines) <= 32
+                and avg <= 95
+                and max_len <= 150
+            ) or (cur_has_hardbreak and len(cur_lines) >= 2) or (
+                cur_has_empty and len(cur_lines) >= 3 and avg <= 120
             )
             if confident:
                 runs.append(cur_lines)
         cur_lines = []
         cur_has_hardbreak = False
         cur_has_empty = False
+        cur_after_heading = False
 
     for text, is_empty in units:
+        if text == HEADING_BREAK:
+            flush()
+            pending_heading = True
+            continue
         if text == STRUCTURAL_BREAK:
             flush()
+            pending_heading = False
             continue
         if is_empty:
             # An empty paragraph is a stanza break: it does NOT end an in-progress
@@ -200,11 +208,15 @@ def group_expected_runs(units: list[tuple[str, bool]]) -> list[list[str]]:
             continue
         display = [ln for ln in text.split("\n") if ln.strip()]
         if display and all(is_verse_line(ln) for ln in display):
+            if not cur_lines and pending_heading:
+                cur_after_heading = True
             cur_lines.extend(re.sub(r"\s+", " ", ln).strip() for ln in display)
             if len(display) > 1:
                 cur_has_hardbreak = True
+            pending_heading = False
         else:
             flush()
+            pending_heading = False
     flush()
     return runs
 
@@ -286,6 +298,9 @@ def source_units(docx: Path) -> list[tuple[str, bool]]:
     units: list[tuple[str, bool]] = []
     for block in blocks:
         t = block.get("t")
+        if t == "Header":
+            units.append((HEADING_BREAK, False))
+            continue
         if t not in {"Para", "Plain"}:
             # A structural block breaks any in-progress run: emit a sentinel that
             # group_expected_runs treats as a non-verse boundary.
@@ -315,7 +330,7 @@ def expected_verse_runs(docx: Path) -> list[list[str]]:
 # converted-Markdown read (the actual IR output)
 # ---------------------------------------------------------------------------
 
-_VERSE_RE = re.compile(r'<div class="(verse-block|answer-block)">\n(.*?)\n</div>', re.S)
+_VERSE_RE = re.compile(r'<div class="verse-block">\n(.*?)\n</div>', re.S)
 _TAG_RE = re.compile(r"<[^>]+>")
 
 
@@ -323,29 +338,20 @@ def _norm(line: str) -> str:
     return re.sub(r"\s+", " ", _TAG_RE.sub("", line)).strip()
 
 
-def actual_block_lines(md_body: str) -> tuple[set[str], set[str]]:
-    """``(verse_lines, answer_lines)`` — the normalized lines the IR placed inside
-    ``verse-block`` vs ``answer-block`` divs (tags stripped, ``***`` dropped).
-
-    The two are separated because an ANSWER-block legitimately contains a
-    `Speaker:`-shaped colon line (a Q&A answer fragment after a numbered question,
-    where the IR runs with `allow_colon`); the over-detection LABEL check applies
-    only to plain verse-blocks."""
+def actual_block_lines(md_body: str) -> set[str]:
+    """The normalized lines the IR placed inside ``verse-block`` divs."""
     verse: set[str] = set()
-    answer: set[str] = set()
     for m in _VERSE_RE.finditer(md_body):
-        bucket = verse if m.group(1) == "verse-block" else answer
-        for raw in m.group(2).splitlines():
+        for raw in m.group(1).splitlines():
             line = _norm(raw)
             if line and line != "***":
-                bucket.add(line)
-    return verse, answer
+                verse.add(line)
+    return verse
 
 
 def actual_verse_lines(md_body: str) -> set[str]:
-    """All lines the IR placed inside any verse/answer block (both roles)."""
-    verse, answer = actual_block_lines(md_body)
-    return verse | answer
+    """All lines the IR placed inside a verse block."""
+    return actual_block_lines(md_body)
 
 
 _SIGNATURE_RE = re.compile(r'<p class="signature">\n(.*?)\n</p>', re.S)
@@ -379,7 +385,7 @@ def source_right_aligned_words(docx: Path) -> set[str]:
 
 
 def prose_lines(md_body: str) -> set[str]:
-    """The set of normalized lines OUTSIDE any verse/answer block — the body's
+    """The set of normalized lines OUTSIDE any verse block — the body's
     prose (and heading/label) lines. Used to confirm an UNDER-detection: a source
     verse run is only "missed" if its lines survived in the body AS PROSE (so a
     scrubbed/demoted/canonicalized source line — gone from the body entirely — is
@@ -451,15 +457,14 @@ def _compare(number: int, docx: Path, md_body: str) -> list[str]:
     """
     out: list[str] = []
 
-    verse_lines, answer_lines = actual_block_lines(md_body)
-    actual = verse_lines | answer_lines
-    # OVER-detection: a verse/answer-block line that is UNAMBIGUOUSLY not verse —
+    actual = actual_block_lines(md_body)
+    # OVER-detection: a verse-block line that is UNAMBIGUOUSLY not verse —
     # a SPEAKER TURN (`Панкратиус: …` / `Ответ от Творца (…): …`), a PROSE-LENGTH
     # line (> the short-line cap), or a numbered Q&A heading. A bare terminal-colon
     # phrase (`Спроси:` / `Молитва узнавания:`) is NOT flagged: it legitimately
     # OPENS a multi-line verse stanza (a hard-`<w:br/>` paragraph whose first line
     # ends in a colon) and is genuine verse there — flagging it would be a false
-    # positive. The same unambiguous tests apply to answer-blocks.
+    # positive.
     def over_line(ln: str) -> bool:
         return (
             is_speaker_turn(ln)
@@ -478,11 +483,10 @@ def _compare(number: int, docx: Path, md_body: str) -> list[str]:
     prose = prose_lines(md_body)
     missed: list[list[str]] = []
     for run in expected_verse_runs(docx):
-        # A run is "missed" only if NONE of its lines reached a verse-block and ALL
-        # of them are still present in the body as prose (the content survived but
-        # was not grouped). A run whose lines were scrubbed/demoted/merged simply
-        # isn't present as prose and is not reported.
-        if not any(ln in actual for ln in run) and all(ln in prose for ln in run):
+        # A run is "missed" when any of its source lines survived as prose instead
+        # of all of them reaching the verse block. This catches partial splits like
+        # book #30 item 23, where the opener wrapped but the rest was left as prose.
+        if all(ln in actual or ln in prose for ln in run) and any(ln in prose for ln in run):
             missed.append(run)
     if missed:
         n_lines = sum(len(r) for r in missed)

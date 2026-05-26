@@ -17,7 +17,7 @@ from audit import book_verse as bv
 # ---------------------------------------------------------------------------
 
 
-def test_label_line_accepts_speaker_and_parenthetical_qualifier() -> None:
+def test_label_line_accepts_explicit_speaker_and_parenthetical_qualifier() -> None:
     assert bv.is_label_line("Ответ от Творца:")
     assert bv.is_label_line("Ответ от Творца (режим проводника):")
     assert bv.is_label_line("**Ответ от Творца (режим проводника):**")
@@ -27,6 +27,7 @@ def test_label_line_accepts_speaker_and_parenthetical_qualifier() -> None:
 
 def test_label_line_rejects_mid_sentence_colon_and_plain_prose() -> None:
     assert not bv.is_label_line("Ты спросил: кто они?")
+    assert not bv.is_label_line("Разве не сказал Я:")
     assert not bv.is_label_line("Они — ты, когда ты не разделён.")
 
 
@@ -59,6 +60,7 @@ def test_is_verse_line_rejects_label_long_list_question_and_break() -> None:
 def test_is_verse_line_accepts_short_lines_incl_mid_colon() -> None:
     assert bv.is_verse_line("Я — Свет.")
     assert bv.is_verse_line("Ты спросил: кто они?")
+    assert bv.is_verse_line("Разве не сказал Я:")
     assert bv.is_verse_line("Они — ты, когда ты не разделён.")
 
 
@@ -134,25 +136,49 @@ def test_structural_break_ends_a_run() -> None:
     assert runs == [["Я — Свет.", "Я — Образ.", "Я — Слово."]]
 
 
+def test_heading_context_makes_book30_item23_one_expected_run() -> None:
+    units = [
+        (bv.HEADING_BREAK, False),
+        ("Я не люблю тебя как другой.", False),
+        ("Я люблю — в тебе, через тебя, как ты.", False),
+        ("Любовь — не эмоция.", False),
+        ("Любовь — Я, скрытый под всеми формами.", False),
+        ("И если ты любишь Истину —", False),
+        ("ты уже Мной жив.", False),
+        ("Разве не сказал Я:", False),
+        ("«Тех, кто уверовал и творили добро, Милостивый наполнит любовью» (Сура 19:96).", False),
+        ("Любовь — это знак.", False),
+        ("Если ты чувствуешь её,", False),
+        ("значит, Я в тебе просыпаюсь.", False),
+        ("И если ты любишь Ису —", False),
+        ("не потому, что он пророк,", False),
+        ("а потому, что он близок,", False),
+        ("потому что он горит Светом,", False),
+        ("значит, ты уже узнал:", False),
+        ("Это — Я.", False),
+        ("Дальше.", False),
+        (bv.HEADING_BREAK, False),
+    ]
+    runs = bv.group_expected_runs(units)
+    assert len(runs) == 1
+    assert runs[0][0] == "Я не люблю тебя как другой."
+    assert runs[0][-1] == "Дальше."
+
+
 # ---------------------------------------------------------------------------
 # converted-Markdown extraction
 # ---------------------------------------------------------------------------
 
 
-def test_actual_block_lines_separates_verse_from_answer_and_strips_tags() -> None:
+def test_actual_block_lines_extracts_verse_and_strips_tags() -> None:
     body = (
         '<div class="verse-block">\n'
         "<em>Я — Свет.</em>\n"
         "Я — Образ.\n"
-        "</div>\n\n"
-        '<div class="answer-block">\n'
-        "Только:\n"
-        "Я есть.\n"
         "</div>\n"
     )
-    verse, answer = bv.actual_block_lines(body)
+    verse = bv.actual_block_lines(body)
     assert verse == {"Я — Свет.", "Я — Образ."}
-    assert answer == {"Только:", "Я есть."}
 
 
 def test_actual_structural_blocks_extracts_signature_and_epigraph_text() -> None:

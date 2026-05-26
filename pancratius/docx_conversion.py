@@ -136,15 +136,60 @@ def _strip_source_duplicate_poem_title(
 
 
 def _dedupe_bibliography(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    seen: set[tuple[str, str]] = set()
     out: list[dict[str, Any]] = []
-    for entry in entries:
-        key = (entry.get("title", ""), entry.get("source_url", ""))
-        if key in seen:
+    by_title: dict[str, int] = {}
+    i = 0
+    while i < len(entries):
+        entry = dict(entries[i])
+        if i + 1 < len(entries) and _merge_adjacent_part_link(entry, entries[i + 1]):
+            nxt = entries[i + 1]
+            entry["source_url"] = nxt["source_url"]
+            if nxt.get("target") and not entry.get("target"):
+                entry["target"] = nxt["target"]
+            i += 1
+        title_key = re.sub(r"\s+", " ", str(entry.get("title") or "").casefold()).strip()
+        key = title_key or f"url:{entry.get('source_url', '')}"
+        if key not in by_title:
+            by_title[key] = len(out)
+            out.append(dict(entry))
+            i += 1
             continue
-        seen.add(key)
-        out.append(entry)
-    return out
+        existing = out[by_title[key]]
+        if entry.get("source_url") and not existing.get("source_url"):
+            existing["source_url"] = entry["source_url"]
+            # Prefer the store-link label over image alt text when they differ only
+            # by case/punctuation normalization; it is the navigable catalog title.
+            existing["title"] = entry.get("title", existing.get("title", ""))
+        if entry.get("target") and not existing.get("target"):
+            existing["target"] = entry["target"]
+        i += 1
+    return [_ordered_bibliography_entry(entry) for entry in out]
+
+
+def _merge_adjacent_part_link(entry: dict[str, Any], nxt: dict[str, Any]) -> bool:
+    """Cover alt `Full Title. Part 1` followed by link text `Part 1` is one entry."""
+    if entry.get("source_url") or not nxt.get("source_url"):
+        return False
+    title = re.sub(r"\s+", " ", str(entry.get("title") or "").casefold()).strip()
+    linked = re.sub(r"\s+", " ", str(nxt.get("title") or "").casefold()).strip()
+    if not title or not linked:
+        return False
+    if not re.fullmatch(r"(?:часть|part)\s+\d+", linked):
+        return False
+    return title.endswith(linked)
+
+
+def _ordered_bibliography_entry(entry: dict[str, Any]) -> dict[str, Any]:
+    """Keep generated YAML stable: title, URL, target, then any future fields."""
+    ordered: dict[str, Any] = {"title": entry.get("title", "")}
+    if entry.get("source_url"):
+        ordered["source_url"] = entry["source_url"]
+    if entry.get("target"):
+        ordered["target"] = entry["target"]
+    for key, value in entry.items():
+        if key not in ordered:
+            ordered[key] = value
+    return ordered
 
 
 def convert_single_docx(

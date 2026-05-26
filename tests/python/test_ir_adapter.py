@@ -281,6 +281,10 @@ def _aligns(records: list[adapter._JcRecord]) -> list[str]:
     return [r.align for r in records]
 
 
+def _groups(records: list[adapter._JcRecord]) -> list[int | None]:
+    return [r.lineation_group for r in records]
+
+
 def test_read_w_jc_returns_alignment_per_body_paragraph() -> None:
     path = _docx_with_paragraphs("right", None, "center")
     try:
@@ -329,6 +333,49 @@ def test_read_w_jc_skips_list_item_paragraphs() -> None:
         records = adapter.read_w_jc(path)
         assert _aligns(records) == ["", "right"]  # the two list items are skipped
         assert [r.text for r in records] == ["before", "after"]
+    finally:
+        path.unlink()
+
+
+def test_read_w_jc_marks_contextual_spacing_visual_group() -> None:
+    document = (
+        '<?xml version="1.0"?>'
+        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        '<w:p><w:pPr><w:contextualSpacing/><w:spacing w:after="100"/></w:pPr>'
+        '<w:r><w:t>first line</w:t></w:r></w:p>'
+        '<w:p><w:pPr><w:contextualSpacing/><w:spacing w:before="100"/></w:pPr>'
+        '<w:r><w:t>second line</w:t></w:r></w:p>'
+        '<w:p><w:pPr><w:contextualSpacing/><w:spacing w:before="100"/></w:pPr>'
+        '<w:r><w:t>third line</w:t></w:r></w:p>'
+        "</w:body></w:document>"
+    )
+    path = _docx_from_document(document)
+    try:
+        records = adapter.read_w_jc(path)
+        assert [r.text for r in records] == ["first line", "second line", "third line"]
+        assert _groups(records) == [1, 1, 1]
+    finally:
+        path.unlink()
+
+
+def test_read_w_jc_visual_group_does_not_bridge_list_item() -> None:
+    document = (
+        '<?xml version="1.0"?>'
+        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        '<w:p><w:pPr><w:contextualSpacing/><w:spacing w:after="100"/></w:pPr>'
+        '<w:r><w:t>before list</w:t></w:r></w:p>'
+        '<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>'
+        '<w:contextualSpacing/><w:spacing w:before="100" w:after="100"/></w:pPr>'
+        '<w:r><w:t>list item</w:t></w:r></w:p>'
+        '<w:p><w:pPr><w:contextualSpacing/><w:spacing w:before="100"/></w:pPr>'
+        '<w:r><w:t>after list</w:t></w:r></w:p>'
+        "</w:body></w:document>"
+    )
+    path = _docx_from_document(document)
+    try:
+        records = adapter.read_w_jc(path)
+        assert [r.text for r in records] == ["before list", "after list"]
+        assert _groups(records) == [None, None]
     finally:
         path.unlink()
 
