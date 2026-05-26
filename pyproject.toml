@@ -12,6 +12,7 @@ requires-python = ">=3.13"
 dependencies = [
   "pyyaml>=6.0.2",
   "pillow>=10.4",
+  "google-api-python-client>=2.140",
 ]
 
 # Heavy stacks for the two conceptosphere generation verbs, declared here in the
@@ -137,6 +138,8 @@ unresolved-reference = "error"
 replace-imports-with-any = [
   "community",          # python-louvain
   "community.**",
+  "googleapiclient",    # google-api-python-client (used by video_scan)
+  "googleapiclient.**",
   "hdbscan",
   "igraph",
   "leidenalg",

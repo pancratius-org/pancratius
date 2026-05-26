@@ -1,0 +1,213 @@
+---
+import Base from "@/layouts/Base.astro";
+import VideoCard from "@/components/VideoCard.astro";
+import LibraryFilter from "@/components/LibraryFilter.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { DEFAULT_LOCALE, kindIndexUrl } from "@/lib/i18n";
+import { videosIndexCopy, type VideosIndexCopy } from "@/lib/copy";
+import { sameSitePath } from "@/lib/paths";
+import { seoForKindIndex, clampDescription } from "@/lib/seo";
+import { getAllVideoPairs, getChannels, videoTags } from "@/lib/videos";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+// Widen to the interface so optional per-locale fields (`fullCatalogLink`,
+// authored only in EN) are accessible regardless of the active locale.
+const copy: VideosIndexCopy = videosIndexCopy[locale];
+const allPairs = await getAllVideoPairs();
+// Existence: a non-default-locale index lists only videos authored in it.
+const pairs = locale === DEFAULT_LOCALE
+  ? allPairs
+  : allPairs.filter(p => p.entries[locale]);
+const seo = seoForKindIndex(Astro.site, "video", locale, { total: allPairs.length });
+const defaultHref = sameSitePath(kindIndexUrl("video", DEFAULT_LOCALE));
+const channels = await getChannels();
+
+const tagCounts = new Map<string, number>();
+for (const p of pairs) {
+  const entry = p.entries[locale]!;
+  for (const t of videoTags(entry)) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+}
+const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count }));
+---
+<Base locale={locale} seo={seo}>
+  <section class="page lib lib--video">
+    <p class="eyebrow eyebrow--lg">{copy.eyebrow}</p>
+    <div class="lib__head">
+      <h1><b>{pairs.length}</b> {copy.headingLabel(pairs.length)}</h1>
+      <p class="lib__sub">
+        {copy.sub(allPairs.length, pairs.length)}
+        {copy.fullCatalogLink && (
+          <Fragment>
+            {" "}<a href={defaultHref}>{copy.fullCatalogLink}</a>
+          </Fragment>
+        )}
+      </p>
+    </div>
+
+    {channels.length > 0 && (
+      <section class="channels" aria-labelledby="ch-h">
+        <h2 class="channels__h" id="ch-h">{copy.channelsHeading}</h2>
+        <p class="channels__sub">{copy.channelsSub}</p>
+        <ul class="channels__grid" role="list">
+          {channels.map(c => (
+            <li class="channels__card">
+              <div class="channels__top">
+                <h3 class="channels__title">{c.data.title[locale]}</h3>
+                {c.data.badge?.[locale] && (
+                  <span class="channels__badge">{c.data.badge[locale]}</span>
+                )}
+              </div>
+              <p class="channels__copy">{c.data.copy[locale]}</p>
+              <a class="channels__link" href={c.data.url} rel="noopener" target="_blank">
+                {copy.openChannel} →
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    {tags.length > 0 && <LibraryFilter locale={locale} tags={tags} total={pairs.length} />}
+
+    <div class="index" role="list" data-pagefind-ignore>
+      {pairs.map(p => {
+        const entry = p.entries[locale]!;
+        return <VideoCard pair={p} locale={locale} blurb={clampDescription(entry.data.description, 120)} />;
+      })}
+    </div>
+  </section>
+</Base>
+
+<style>
+  .lib__head {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 2.5rem;
+    gap: 1.1rem;
+  }
+  .lib__head h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(3rem, 7.4vw, 5.4rem);
+    line-height: 0.96;
+    margin: 0;
+    letter-spacing: -0.024em;
+  }
+  .lib__head h1 b {
+    font-weight: 500;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-style: italic;
+    color: var(--accent);
+  }
+  .lib__sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.05rem, 1.4vw, 1.18rem);
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 40rem;
+  }
+  .lib__sub :global(a) {
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+    text-underline-offset: 3px;
+  }
+  .lib__sub :global(a:hover) {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
+  }
+
+  .channels {
+    margin: 2.5rem 0 3rem;
+  }
+  .channels__h {
+    font-family: var(--serif);
+    font-size: 1.6rem;
+    font-weight: 500;
+    margin: 0 0 0.35rem;
+    color: var(--ink);
+  }
+  .channels__sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1rem;
+    color: var(--ink-soft);
+    margin: 0 0 1.4rem;
+  }
+  .channels__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.2rem;
+  }
+  .channels__card {
+    display: flex;
+    flex-direction: column;
+    padding: 1.1rem 1.2rem 1rem;
+    border: 1px solid var(--rule);
+    background: var(--bg-rise);
+    border-radius: 2px;
+  }
+  .channels__top {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .channels__title {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0;
+    line-height: 1.2;
+  }
+  .channels__badge {
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    border: 1px solid var(--rule-2);
+    padding: 1px 6px;
+    border-radius: 2px;
+  }
+  .channels__copy {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+    margin: 0 0 0.9rem;
+    line-height: 1.45;
+  }
+  .channels__link {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+    margin-top: auto;
+    align-self: flex-start;
+  }
+  .channels__link:hover { color: var(--accent); text-decoration-color: var(--accent); }
+
+  .index {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2.6rem 2.25rem;
+    margin-top: 1rem;
+  }
+  @media (max-width: 720px) {
+    .index { grid-template-columns: 1fr; gap: 2rem; }
+  }
+</style>

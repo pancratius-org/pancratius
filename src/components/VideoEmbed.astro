@@ -1,0 +1,177 @@
+---
+// Lite video facade: render the thumbnail + play button server-side; only
+// fetch the iframe on user click. Privacy-friendly (no third-party cookies
+// until interaction) and lightweight (~30 lines of inline JS, no framework).
+//
+// Falls back gracefully when the entry has no embed URL (e.g. a non-YouTube
+// platform mirror without embed_url) — the component renders the watch link
+// only.
+
+import type { Locale } from "@/lib/i18n";
+import { embedUrlFor, watchUrlFor, type VideoEntry } from "@/lib/videos";
+import { videoCoverAssetUrl, type VideoPair } from "@/lib/videos";
+import { videoPageCopy } from "@/lib/copy";
+
+interface Props {
+  entry:   VideoEntry;
+  pair:    VideoPair;
+  locale:  Locale;
+  /** `eager` for above-the-fold embeds, `lazy` otherwise. */
+  loading?: "lazy" | "eager";
+}
+
+const { entry, pair, locale, loading = "lazy" } = Astro.props;
+const copy = videoPageCopy[locale];
+const embed = embedUrlFor(entry);
+const watch = watchUrlFor(entry);
+const thumb = await videoCoverAssetUrl(pair, locale);
+const title = entry.data.title;
+---
+{embed ? (
+  <div
+    class="vembed"
+    data-embed-src={embed}
+    data-watch={watch}
+    data-title={title}
+  >
+    <button type="button" class="vembed__play" aria-label={copy.playAria}>
+      {thumb && (
+        <img
+          src={thumb}
+          alt=""
+          loading={loading}
+          decoding="async"
+          width="1280"
+          height="720"
+          fetchpriority={loading === "eager" ? "high" : undefined}
+        />
+      )}
+      <span class="vembed__icon" aria-hidden="true">▶</span>
+    </button>
+    <noscript>
+      <p class="vembed__noscript">
+        <a href={watch} rel="noopener">{title}</a>
+      </p>
+    </noscript>
+  </div>
+) : (
+  <p class="vembed__fallback">
+    <a href={watch} rel="noopener">{title}</a>
+  </p>
+)}
+
+<script is:inline>
+  (function () {
+    const facades = document.querySelectorAll(".vembed[data-embed-src]");
+    for (const node of facades) {
+      const btn = node.querySelector(".vembed__play");
+      if (!btn) continue;
+      btn.addEventListener("click", () => {
+        const base = node.getAttribute("data-embed-src");
+        if (!base) return;
+        // Merge autoplay params with whatever the authored embed URL already
+        // carries — string concat ("?autoplay=1") corrupts URLs that already
+        // have a query string.
+        let src;
+        try {
+          const u = new URL(base);
+          u.searchParams.set("autoplay", "1");
+          u.searchParams.set("rel", "0");
+          src = u.toString();
+        } catch {
+          src = base;
+        }
+        const iframe = document.createElement("iframe");
+        iframe.src = src;
+        iframe.title = node.getAttribute("data-title") || "Video";
+        iframe.setAttribute("allow", "accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture");
+        iframe.setAttribute("allowfullscreen", "");
+        iframe.setAttribute("loading", "eager");
+        iframe.referrerPolicy = "strict-origin-when-cross-origin";
+        node.replaceChildren(iframe);
+      }, { once: true });
+    }
+  })();
+</script>
+
+<style>
+  .vembed {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    background: #000;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    box-shadow: var(--paper-shadow);
+  }
+  .vembed :global(iframe) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+  .vembed__play {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    color: inherit;
+  }
+  .vembed__play img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.92;
+    transition: opacity 0.18s var(--ease);
+  }
+  .vembed__play:hover img { opacity: 1; }
+  .vembed__icon {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.74);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 28px;
+    line-height: 1;
+    padding-left: 4px;
+    transition: background 0.18s var(--ease), transform 0.32s var(--ease);
+  }
+  .vembed__play:hover .vembed__icon {
+    background: var(--accent);
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+  .vembed__noscript {
+    position: absolute;
+    inset: auto 0 0 0;
+    margin: 0;
+    padding: 0.6rem 0.8rem;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+  }
+  .vembed__noscript a { color: inherit; }
+  .vembed__fallback {
+    margin: 0;
+    padding: 1rem;
+    border: 1px dashed var(--rule);
+  }
+  .vembed__fallback a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+  }
+</style>

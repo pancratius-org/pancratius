@@ -1,5 +1,5 @@
 import { defineCollection } from "astro:content";
-import { glob } from "astro/loaders";
+import { file, glob } from "astro/loaders";
 import { z } from "astro/zod";
 
 // Canonical locale list. `./lib/locales.ts` is pure TS (no `astro:content`
@@ -41,7 +41,7 @@ const translation = z.discriminatedUnion("source", [
 ]);
 
 const targetRef = z.object({
-  kind: z.enum(["book", "poem", "project"]),
+  kind: z.enum(["book", "poem", "project", "video"]),
   number: z.number().int().positive(),
 });
 
@@ -67,7 +67,7 @@ const baseWorkFields = {
     .optional(),
 };
 
-const workEntryId = (kind: "book" | "poem" | "project") =>
+const workEntryId = (kind: "book" | "poem" | "project" | "video") =>
   ({ entry }: { entry: string }) => {
     const m = entry.match(LOCALE_FILE_RE);
     if (!m) throw new Error(`Unexpected ${kind} path: ${entry}`);
@@ -280,4 +280,126 @@ const pages = defineCollection({
     .loose(),
 });
 
-export const collections = { books, poetry, projects, pages };
+// ─────────────────────────────────────────────────────────────────────
+// Videos — catalogued YouTube/other-platform videos, rendered at /videos/.
+//
+// Videos are a routed kind (SEGMENT_OF includes them) but NOT a corpus work:
+// no DOCX-import flow, no download matrix. They pair across languages by
+// `(kind, number)` like books — each language's entry is its own page, with
+// its own per-locale commentary. A single video stream can be referenced by
+// multiple locale entries; the embed source lives in `sources[]`, which is a
+// mirrors list (YouTube primary today, Vimeo/Rutube/self-hosted in the
+// future). The scanner — `uv run pancratius video sync` — only seeds
+// frontmatter and downloads the source thumbnail as `cover.<lang>.jpg`;
+// commentary in the body is editorial and never touched by re-runs.
+//
+// Compact-vs-blog layout is derived from body density by default
+// (`src/lib/videos.ts:layoutForEntry`); an explicit `layout: compact | blog`
+// overrides.
+// ─────────────────────────────────────────────────────────────────────
+
+// ISO 8601 duration as YouTube reports it (`PT8M42S`, `PT1H3M`, `PT45S`, …).
+const iso8601Duration = z.string().regex(/^PT(?:\d+H)?(?:\d+M)?(?:\d+S)?$/, {
+  message: "duration must be ISO 8601 (e.g. PT8M42S)",
+});
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
+  message: "date must be YYYY-MM-DD",
+});
+
+// One mirror entry. `platform` keeps the schema open to non-YouTube hosts.
+// YouTube entries additionally validate the canonical 11-char id format;
+// other platforms accept a free-form id (or none).
+const videoSource = z
+  .object({
+    platform: z.enum(["youtube", "vimeo", "rutube", "odysee", "self", "other"]),
+    id: z.string().min(1).optional(),
+    url: z.string().regex(/^https?:\/\//),
+    embed_url: z.string().regex(/^https?:\/\//).optional(),
+    // Optional ref into `channels.yaml` (`key:`). Used to render the channel
+    // badge on the card and to attribute the upload on the page.
+    channel: z.string().min(1).optional(),
+  })
+  .superRefine((src, ctx) => {
+    if (src.platform === "youtube") {
+      if (!src.id || !/^[A-Za-z0-9_-]{11}$/.test(src.id)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "YouTube source must carry a valid 11-char `id`",
+          path: ["id"],
+        });
+      }
+    }
+  });
+
+const videoPlaylist = z.object({
+  // Source-platform id (YouTube uses ~34-char base64-ish strings; keep loose).
+  id: z.string().min(1),
+  // Title for THIS locale's page. The scanner seeds it from the raw YouTube
+  // playlist title; the author can localize by hand.
+  title: z.string().min(1),
+});
+
+const videos = defineCollection({
+  loader: glob({
+    pattern: "**/*.md",
+    base: "./src/content/videos",
+    generateId: workEntryId("video"),
+  }),
+  schema: z.object({
+    kind: z.literal("video"),
+    // Invariant editorial identity, same rule as books. `(kind, number)` pairs
+    // across locales. The scanner allocates max(number)+1 for new videos.
+    number: z.number().int().positive(),
+    slug: asciiSlug,
+    title: z.string().min(1),
+    lang,
+    description: z.string().min(1),
+    // Authored or scanner-seeded from YouTube playlist titles. Drives the
+    // LibraryFilter chips on `/videos/`, same as books `tags`.
+    tags: z.array(z.string()).default([]),
+    cover: z.string().nullable().optional(),
+    cover_is_placeholder: z.boolean().optional(),
+    // Source publication date on the primary platform.
+    published_at: isoDate,
+    // ISO 8601 duration (e.g. `PT8M42S`).
+    duration: iso8601Duration,
+    // Ordered list of mirrors; the first entry is the primary embed source.
+    sources: z.array(videoSource).min(1),
+    // Source-platform playlists the video belongs to. Optional; the scanner
+    // seeds these from YouTube. Rendered as chips on the video page.
+    playlists: z.array(videoPlaylist).optional(),
+    // Optional cross-link to a book by editorial number (e.g. reading-of-X).
+    related_book: z.number().int().positive().optional(),
+    // Layout override. When absent, `src/lib/videos.ts:layoutForEntry` derives
+    // it from body density: `compact` for empty/short bodies, `blog` for
+    // substantive commentary.
+    layout: z.enum(["compact", "blog"]).optional(),
+    translation,
+    cross_refs: z.array(crossRefEntry).optional(),
+  }),
+});
+
+// Channels — small authored sidecar. Two consumers: the site renders a
+// channel strip at the top of `/videos/`; the Python scanner uses these
+// definitions to decide what to poll. Lives at
+// `src/content/videos/channels.yaml` so it co-locates with the collection.
+const videoChannels = defineCollection({
+  loader: file("src/content/videos/channels.yaml"),
+  schema: z.object({
+    // Channel key referenced from a video's `sources[].channel`.
+    platform: z.enum(["youtube", "vimeo", "rutube", "odysee", "other"]),
+    handle: z.string().optional(),
+    channel_id: z.string().optional(),
+    url: z.string().regex(/^https?:\/\//),
+    // Optional badge ("ислам" / "Islam") rendered on the channel card.
+    badge: z.record(lang, z.string()).optional(),
+    title: z.record(lang, z.string()),
+    copy: z.record(lang, z.string()),
+    // When false, the scanner skips this channel: the card still renders on
+    // /videos/ (catalogue-only) but no videos from it land in the collection.
+    scan: z.boolean().default(true),
+  }),
+});
+
+export const collections = { books, poetry, projects, pages, videos, videoChannels };

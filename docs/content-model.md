@@ -8,7 +8,7 @@ search, and graph data all read from these shapes.
 
 ## Content types (the ontology)
 
-Three kinds of content with different identity rules — do not collapse them:
+Four kinds of content with different identity rules — do not collapse them:
 
 - **Works — books and poems — are a *population*.** Interchangeable in
   structure: one frontmatter shape, one renderer, sorted by `number`, shown in a
@@ -21,6 +21,16 @@ Three kinds of content with different identity rules — do not collapse them:
 - **Projects are *themed sections* (mini-sites), not works.** A landing + ordered
   sub-pages, curated references into the library, their own visual identity. They
   do NOT flow through the work/download machinery. See [Projects](#projects).
+- **Videos are a *catalogued population* at /videos/.** Paired across languages
+  by `(kind, number)` like works, but NOT works: no DOCX-import flow, no
+  PDF/EPUB/DOCX download matrix. Each video carries an ordered list of mirror
+  URLs (`sources[]`) so the library survives any one platform pulling content;
+  YouTube is the default platform today but has no privileged status in the
+  schema. The body is editorial commentary (an SEO-targeted blog post about the
+  video); if it is empty/short the page renders a compact layout, otherwise the
+  book-like layout. Channels live in `src/content/videos/channels.yaml`;
+  `uv run pancratius video sync` polls them and scaffolds new drafts
+  mechanically (frontmatter + thumbnail only). See [Videos](#videos).
 
 The product goal for works: one folder tells the whole story of that work — no
 parallel media tree, no hidden metadata files to add one book.
@@ -307,6 +317,77 @@ Note: project landings still appear in the build-time route manifest
 `data/slug-map.json` (under its `entries` array, keyed via `SEGMENT_OF`) so the
 sitemap emits their URLs and hreflang. That manifest is a *route index*, not the
 `WorkPair` model — do not remove projects from it.
+
+## Videos
+
+Videos are catalogued at `/videos/{slug}/` (RU) and `/en/videos/{slug}/` (EN).
+One folder per video, mirroring the work-bundle shape:
+
+```txt
+src/content/videos/
+  channels.yaml                          # authored sidecar (platforms + copy)
+  01-evangelie-glava-1/
+    ru.md                                # frontmatter + commentary
+    en.md                                # optional locale commentary
+    cover.ru.jpg                         # thumbnail (e.g. YouTube maxres)
+    cover.en.jpg                         # optional localized cover
+    images/                              # optional inline blog-post images
+```
+
+Frontmatter shape (zod-validated):
+
+```yaml
+kind: video
+number: 14                               # invariant identity; pairs across locales
+slug: 14-jacob-and-esau                  # per-locale ASCII slug
+title: "Jacob & Esau — what the story really says"
+lang: en
+description: |                           # SEO/OG/card; mandatory
+  Single paragraph that opens the page and feeds search/cards.
+tags: [Bible, Apocalypse]                # like books; the scanner seeds these
+                                         # from YouTube playlist titles.
+cover: ./cover.en.jpg                    # optional; falls back to RU
+published_at: "2026-01-22"               # ISO date; source publication
+duration: "PT8M42S"                      # ISO 8601 (matches YouTube)
+sources:                                 # ordered: first = primary, others = mirrors
+  - platform: youtube
+    id: "abc123XYZ"
+    url: "https://www.youtube.com/watch?v=abc123XYZ"
+    embed_url: "https://www.youtube-nocookie.com/embed/abc123XYZ"
+    channel: main                        # ref into channels.yaml `id`
+  - platform: vimeo                      # future mirror
+    id: "987654321"
+    url: "https://vimeo.com/987654321"
+playlists:                               # optional; from YouTube
+  - id: "PLFvJf-...XjmgPh3CySk"
+    title: "Апокалипсис"
+related_book: 1                          # optional cross-link to a book
+layout: compact | blog                   # optional override; default = derived
+translation:
+  source: original
+```
+
+The compact-vs-blog layout is derived by `src/lib/video-format.ts:layoutFor`:
+`compact` when the rendered body has zero headings and <600 characters of raw
+text, `blog` otherwise. An explicit `layout:` field overrides the heuristic.
+
+Channels live in a sidecar so the same file feeds two consumers:
+
+```yaml
+# src/content/videos/channels.yaml
+- id: main
+  platform: youtube
+  handle: "@pankratyus"
+  channel_id: ""                          # cached after first scan
+  url: "https://www.youtube.com/@pankratyus"
+  title: { ru: "Основной канал",  en: "Main channel" }
+  copy:  { ru: "...",             en: "..." }
+  scan: true                              # `scan: false` = catalogue-only
+```
+
+Videos are excluded from `all-md.zip` (no download matrix) and have no
+`[slug].[format].ts` endpoints. Pagefind indexes blog-layout video bodies via
+the standard `<article data-pagefind-body>` wrapper.
 
 ## Pages
 

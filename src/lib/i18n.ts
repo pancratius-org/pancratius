@@ -8,14 +8,8 @@
 import { SEGMENT_OF, type CorpusWorkKind, type RoutedKind } from "./kinds";
 import { LOCALES, DEFAULT_LOCALE, type Locale } from "./locales";
 
-// `RoutedKind` lives in `./kinds` (the pure mapping module). Re-export it here so
-// the many existing `import { RoutedKind } from "./i18n"` callers keep working.
+// Re-export kind/locale primitives so route code reaches for one module.
 export type { CorpusWorkKind, RoutedKind };
-
-// `Locale`, `LOCALES`, and `DEFAULT_LOCALE` live in `./locales` (the pure
-// canonical locale list). Re-export them here so existing
-// `import { Locale, LOCALES, DEFAULT_LOCALE } from "./i18n"` callers keep
-// working and the registry below stays the obvious place to extend a locale.
 export type { Locale };
 export { LOCALES, DEFAULT_LOCALE };
 
@@ -194,6 +188,7 @@ export interface NavItem {
 export const HEADER_NAV: readonly NavItem[] = [
   { path: "/books/",          label: { ru: "Книги",          en: "Books" } },
   { path: "/poetry/",         label: { ru: "Поэзия",         en: "Poetry" } },
+  { path: "/videos/",         label: { ru: "Видео",          en: "Video" } },
   { path: "/projects/",       label: { ru: "Проекты",        en: "Projects" } },
   { path: "/conceptosphere/", label: { ru: "Концептосфера",  en: "Concept map" } },
   { path: "/svetozar/",       label: { ru: "Светозар",       en: "Svetozar" }, pageSlug: "svetozar" },
@@ -220,7 +215,7 @@ export const FOOTER_LINKS: readonly FooterLink[] = [
  * would shadow an index URL. Used to validate the `pages` collection.
  */
 export const RESERVED_PAGE_SLUGS = new Set([
-  "books", "poetry", "projects", "conceptosphere",
+  "books", "poetry", "projects", "videos", "conceptosphere",
   "search", "feed", "feed.xml", "robots.txt", "llms.txt",
   "en", "ru", "sitemap-index.xml",
 ]);

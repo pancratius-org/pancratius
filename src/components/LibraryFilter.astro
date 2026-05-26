@@ -70,7 +70,7 @@ const copy = libraryFilterCopy[locale];
     const topicEl = document.getElementById("libStatTopic");
     const resetEl = document.getElementById("libStatReset");
     const empty   = document.getElementById("libEmpty");
-    const books   = Array.from(document.querySelectorAll(".book"));
+    const books   = Array.from(document.querySelectorAll("[data-tags]"));
     if (!input || !tagWrap) return;
 
     let activeTag = null;

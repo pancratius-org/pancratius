@@ -8,8 +8,9 @@ itself stays coherent with the routing map:
 
   1. ``pancratius/cli.py``'s ``work import --kind`` argparse ``choices`` derives
      from ``CORPUS_WORK_KINDS``;
-  2. ``"project" not in CORPUS_WORK_KINDS`` — projects are themed sections, not works,
-     so they must never be an importable/convertible kind (PAN004 / PAN015);
+  2. ``"project" not in CORPUS_WORK_KINDS`` and ``"video" not in CORPUS_WORK_KINDS`` —
+     projects are themed sections and videos are a catalogued routed kind; neither
+     is convertible/downloadable, so neither may be an importable kind (PAN004 / PAN015);
   3. ``CORPUS_WORK_KINDS`` is a subset of ``SEGMENT_OF`` keys — every work kind still
      routes (``SEGMENT_OF`` deliberately also carries ``project`` for routing);
 
@@ -132,12 +133,17 @@ def main() -> int:
 
     failures: list[str] = []
 
-    # (2) projects are sections, not works.
-    if "project" in work_kinds:
-        failures.append(
-            f'"project" is in CORPUS_WORK_KINDS ({work_kinds!r}) — projects are themed '
-            "sections, not convertible/downloadable works (PAN004/PAN015)."
-        )
+    # (2) projects are sections, videos are a catalogued routed kind — neither
+    # is a convertible/downloadable work.
+    for forbidden, reason in (
+        ("project", "themed sections, not convertible/downloadable works"),
+        ("video",   "a catalogued routed kind with no DOCX import or download matrix"),
+    ):
+        if forbidden in work_kinds:
+            failures.append(
+                f'"{forbidden}" is in CORPUS_WORK_KINDS ({work_kinds!r}) — {reason} '
+                "(PAN004/PAN015)."
+            )
 
     # (3) every work kind must route (subset of SEGMENT_OF keys).
     missing_segments = [k for k in work_kinds if k not in segment_of]

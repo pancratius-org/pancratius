@@ -1,0 +1,18 @@
+---
+import type { GetStaticPaths } from "astro";
+
+import VideoPage from "@/components/VideoPage.astro";
+import { DEFAULT_LOCALE } from "@/lib/i18n";
+import { getAllVideoPairs } from "@/lib/videos";
+
+export const getStaticPaths = (async () => {
+  const pairs = await getAllVideoPairs();
+  return pairs.map(p => ({
+    params: { slug: p.entries[DEFAULT_LOCALE]!.data.slug },
+    props: { pair: p },
+  }));
+}) satisfies GetStaticPaths;
+
+const { pair } = Astro.props;
+---
+<VideoPage pair={pair} locale={DEFAULT_LOCALE} />

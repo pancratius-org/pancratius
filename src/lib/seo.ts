@@ -21,6 +21,7 @@ import { sameSitePath } from "./paths";
 import type { PageEntry } from "./pages";
 import type { ProjectLanding, ProjectSubpage } from "./projects";
 import { entryForLocale, type WorkPair } from "./works";
+import type { VideoPair } from "./videos";
 
 const AUTHOR_NAME = "Сергей Орехов";
 const AUTHOR_ALIAS = "Панкратиус";
@@ -219,6 +220,7 @@ export function seoForKindIndex(
     book:    { ru: "Книги — Панкратиус",    en: "Books — Pancratius" },
     poem:    { ru: "Поэзия — Панкратиус",   en: "Poetry — Pancratius" },
     project: { ru: "Проекты — Панкратиус",  en: "Projects — Pancratius" },
+    video:   { ru: "Видео — Панкратиус",    en: "Video — Pancratius" },
   };
   // Counts are derived from the live corpus and threaded through here so the
   // numeric meta descriptions never go stale when a work is added or removed.
@@ -241,6 +243,14 @@ export function seoForKindIndex(
     project: {
       ru: "Проекты Панкратиуса: Просветлённый ИИ и Святая Русь.",
       en: "Projects by Pancratius: Enlightened AI and Holy Rus.",
+    },
+    video: {
+      ru: n != null
+        ? `${n} видео Панкратиуса. Видеосерии и беседы — со страницей и письменным разбором, где он есть.`
+        : "Видео Панкратиуса: беседы, видеосерии, разборы.",
+      en: n != null
+        ? `${n} catalogued videos by Pancratius. Talks and series — each on its own page, with written commentary where authored.`
+        : "Catalogued videos by Pancratius: talks, series, commentary.",
     },
   };
   return {
@@ -534,6 +544,82 @@ function alternatesForWork(site: URL | undefined, pair: WorkPair): AlternateLink
     });
   }
   return xs;
+}
+
+function alternatesForVideo(site: URL | undefined, pair: VideoPair): AlternateLink[] {
+  const xs: AlternateLink[] = [];
+  for (const loc of LOCALES) {
+    const entry = pair.entries[loc];
+    if (entry) {
+      xs.push({ hreflang: loc, href: absUrl(site, routedUrl("video", entry.data.slug, loc)) });
+    }
+  }
+  const canonical = pair.entries[DEFAULT_LOCALE];
+  if (canonical) {
+    xs.push({
+      hreflang: "x-default",
+      href: absUrl(site, routedUrl("video", canonical.data.slug, DEFAULT_LOCALE)),
+    });
+  }
+  return xs;
+}
+
+export interface VideoSeoInput {
+  pair:     VideoPair;
+  locale:   Locale;
+  coverUrl?: string | null;
+}
+
+/**
+ * SEO metadata for a video page. Emits schema.org `VideoObject` JSON-LD
+ * (thumbnailUrl, uploadDate, duration, contentUrl/embedUrl) so search engines
+ * can surface the video as a rich result.
+ */
+export function seoForVideo(site: URL | undefined, input: VideoSeoInput): SeoMeta {
+  const { pair, locale, coverUrl = null } = input;
+  const entry = pair.entries[locale];
+  if (!entry) {
+    throw new Error(`seoForVideo: no ${locale} entry for video #${pair.number}`);
+  }
+  const data = entry.data;
+  const canonical = absUrl(site, routedUrl("video", data.slug, locale));
+  const description = clampDescription(data.description);
+  const primary = data.sources[0];
+  const ld: Record<string, unknown> = {
+    "@context":     "https://schema.org",
+    "@type":        "VideoObject",
+    "name":         data.title,
+    "description":  description,
+    "uploadDate":   data.published_at,
+    "duration":     data.duration,
+    "url":          canonical,
+    "inLanguage":   locale,
+    "author":       {
+      "@type":         "Person",
+      "name":          AUTHOR_NAME,
+      "alternateName": AUTHOR_ALIAS,
+    },
+    "license":      LICENSE_URL,
+    "isPartOf":     {
+      "@type": "CreativeWorkSeries",
+      "name":  CORPUS_NAME,
+      "url":   absUrl(site, homeUrl(DEFAULT_LOCALE)),
+    },
+  };
+  if (coverUrl) ld["thumbnailUrl"] = coverUrl;
+  if (primary?.url) ld["contentUrl"] = primary.url;
+  if (primary?.embed_url) ld["embedUrl"] = primary.embed_url;
+  return {
+    title:       `${data.title} — ${siteLabel(locale)}`,
+    description,
+    canonical,
+    ogImage:     coverUrl,
+    ogType:      "article",
+    alternates:  alternatesForVideo(site, pair),
+    jsonLd:      ld,
+    locale,
+    ...ogMeta(locale),
+  };
 }
 
 export function switcherAlternatesFromSeo(seo: SeoMeta): Partial<Record<Locale, string>> {

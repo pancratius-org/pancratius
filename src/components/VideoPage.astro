@@ -1,0 +1,434 @@
+---
+import { render } from "astro:content";
+
+import Base from "@/layouts/Base.astro";
+import TableOfContents from "@/components/TableOfContents.astro";
+import VideoCover from "@/components/VideoCover.astro";
+import VideoEmbed from "@/components/VideoEmbed.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { kindIndexUrl, routedUrl } from "@/lib/i18n";
+import { videoPageCopy } from "@/lib/copy";
+import { sameSitePath } from "@/lib/paths";
+import { seoForVideo } from "@/lib/seo";
+import {
+  getAllVideoPairs,
+  channelForEntry,
+  formatDuration,
+  layoutForEntry,
+  videoCoverAbsoluteUrl,
+  videoTags,
+  watchUrlFor,
+  type VideoPair,
+} from "@/lib/videos";
+
+interface Props {
+  pair:   VideoPair;
+  locale: Locale;
+}
+
+const { pair, locale } = Astro.props;
+const entry = pair.entries[locale];
+if (!entry) {
+  throw new Error(`VideoPage: no ${locale} entry for video #${pair.number}`);
+}
+
+const copy = videoPageCopy[locale];
+const { Content, headings } = await render(entry);
+const coverUrl = await videoCoverAbsoluteUrl(Astro.site, pair, locale);
+const seo = seoForVideo(Astro.site, { pair, locale, coverUrl });
+const tags = videoTags(entry);
+const layout = await layoutForEntry(entry);
+const useToc = layout === "blog" && headings.some(h => h.depth >= 2 && h.depth <= 3);
+const backHref = kindIndexUrl("video", locale);
+
+const allPairs = await getAllVideoPairs();
+const pagerPairs = allPairs.filter(p => p.entries[locale]);
+const here = pagerPairs.findIndex(p => p.number === pair.number);
+const prev = here > 0 ? pagerPairs[here - 1] : null;
+const next = here >= 0 && here < pagerPairs.length - 1 ? pagerPairs[here + 1] : null;
+const prevEntry = prev ? prev.entries[locale]! : null;
+const nextEntry = next ? next.entries[locale]! : null;
+
+const number = String(pair.number).padStart(2, "0");
+const duration = formatDuration(entry.data.duration);
+const primary = entry.data.sources[0];
+const mirrors = entry.data.sources.slice(1);
+const channel = await channelForEntry(entry);
+const PLATFORM_LABEL: Record<string, string> = {
+  youtube: "YouTube",
+  vimeo:   "Vimeo",
+  rutube:  "RUTUBE",
+  odysee:  "Odysee",
+  self:    "mirror",
+  other:   "link",
+};
+---
+<Base locale={locale} seo={seo}>
+  <article class:list={["video-page", `video-page--${layout}`]}>
+    <a class="video-page__back" href={sameSitePath(backHref)}>
+      {copy.back(pagerPairs.length)}
+    </a>
+
+    {layout === "compact" ? (
+      <section
+        class="vp-compact"
+        data-pagefind-body
+        data-pagefind-meta={`title:${entry.data.title}`}
+      >
+        <p class="video-page__meta">{copy.meta}</p>
+        <h1 class="vp-compact__title" id="vp-title">{entry.data.title}</h1>
+        <p class="vp-compact__desc">{entry.data.description}</p>
+        <div class="vp-compact__embed">
+          <VideoEmbed entry={entry} pair={pair} locale={locale} loading="eager" />
+        </div>
+        <dl class="vp-compact__meta">
+          <div><dt>{copy.publishedLabel}</dt><dd>{entry.data.published_at}</dd></div>
+          <div><dt>{copy.durationLabel}</dt><dd>{duration}</dd></div>
+          {channel && <div><dt>{copy.channelLabel}</dt><dd><a href={channel.data.url} rel="noopener" target="_blank">{channel.data.title[locale]}</a></dd></div>}
+        </dl>
+        <p class="vp-compact__watch">
+          <a href={watchUrlFor(entry)} rel="noopener" target="_blank">
+            {copy.watchOn(PLATFORM_LABEL[primary.platform] ?? primary.platform)} →
+          </a>
+          {mirrors.length > 0 && (
+            <span class="vp-compact__mirrors">
+              <span class="vp-compact__mirrors-label">{copy.mirrorsLabel}</span>
+              {mirrors.map((m, i) => (
+                <>
+                  {i > 0 && " · "}
+                  <a href={m.url} rel="noopener" target="_blank">{PLATFORM_LABEL[m.platform] ?? m.platform}</a>
+                </>
+              ))}
+            </span>
+          )}
+        </p>
+        {tags.length > 0 && (
+          <p class="video-page__tags">{tags.map(t => <span>{t}</span>)}</p>
+        )}
+      </section>
+    ) : (
+      <Fragment>
+        <header class="video-page__masthead">
+          <p class="video-page__meta">{copy.meta}</p>
+          <div class="video-page__cover">
+            <VideoCover pair={pair} locale={locale} alt={copy.coverAlt(entry.data.title)} loading="eager" badge={duration} />
+          </div>
+          <div class="video-page__body">
+            <div class="video-page__num" aria-hidden="true">{number}</div>
+            <h1 class="video-page__title" id="vp-title">{entry.data.title}</h1>
+            <p class="video-page__description">{entry.data.description}</p>
+            {tags.length > 0 && (
+              <p class="video-page__tags">{tags.map(t => <span>{t}</span>)}</p>
+            )}
+            <p class="video-page__watch">
+              <a href={watchUrlFor(entry)} rel="noopener" target="_blank">
+                {copy.watchOn(PLATFORM_LABEL[primary.platform] ?? primary.platform)} →
+              </a>
+              {mirrors.length > 0 && (
+                <span class="video-page__mirrors">
+                  <span class="video-page__mirrors-label">{copy.mirrorsLabel}</span>
+                  {mirrors.map((m, i) => (
+                    <>
+                      {i > 0 && " · "}
+                      <a href={m.url} rel="noopener" target="_blank">{PLATFORM_LABEL[m.platform] ?? m.platform}</a>
+                    </>
+                  ))}
+                </span>
+              )}
+            </p>
+          </div>
+        </header>
+
+        <div class="video-page__embed-wrap">
+          <VideoEmbed entry={entry} pair={pair} locale={locale} loading="eager" />
+        </div>
+
+        <div class="video-page__layout">
+          {useToc && <TableOfContents headings={headings} locale={locale} />}
+          <div
+            class="prose"
+            data-pagefind-body
+            data-pagefind-meta={`title:${entry.data.title}`}
+          >
+            <Content />
+          </div>
+        </div>
+      </Fragment>
+    )}
+
+    {(prev && prevEntry) || (next && nextEntry) ? (
+      <nav class="video-page__pager" aria-label={copy.pagerAria}>
+        {prev && prevEntry && (
+          <a class="video-page__pager-link video-page__pager-link--prev" href={sameSitePath(routedUrl("video", prevEntry.data.slug, locale))}>
+            <span class="video-page__pager-arrow">←</span>
+            <span class="video-page__pager-num">{String(prev.number).padStart(2, "0")}</span>
+            <span class="video-page__pager-title">{prevEntry.data.title}</span>
+          </a>
+        )}
+        {next && nextEntry && (
+          <a class="video-page__pager-link video-page__pager-link--next" href={sameSitePath(routedUrl("video", nextEntry.data.slug, locale))}>
+            <span class="video-page__pager-num">{String(next.number).padStart(2, "0")}</span>
+            <span class="video-page__pager-title">{nextEntry.data.title}</span>
+            <span class="video-page__pager-arrow">→</span>
+          </a>
+        )}
+      </nav>
+    ) : null}
+  </article>
+</Base>
+
+<style>
+  .video-page {
+    max-width: 70rem;
+    margin: 0 auto;
+    padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
+  }
+  .video-page__back {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    color: var(--ink-mute);
+    display: inline-block;
+    margin-bottom: 2.5rem;
+    text-decoration: none;
+  }
+  .video-page__back:hover { color: var(--accent); }
+
+  .video-page__meta {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0;
+  }
+
+  /* ─── COMPACT layout ────────────────────────────────────────────────── */
+  .vp-compact {
+    max-width: 44rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+  }
+  .vp-compact__title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(2rem, 4.2vw, 3rem);
+    line-height: 1.06;
+    letter-spacing: -0.018em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .vp-compact__desc {
+    margin: 0;
+    color: var(--ink-soft);
+    font-family: var(--serif);
+    font-size: clamp(1rem, 1.5vw, 1.1rem);
+    line-height: 1.6;
+  }
+  .vp-compact__embed { margin: 0.6rem 0; }
+  .vp-compact__meta {
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.6rem 1.2rem;
+    font-family: var(--sans);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+  .vp-compact__meta dt {
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 10.5px;
+    margin: 0;
+  }
+  .vp-compact__meta dd { margin: 2px 0 0; color: var(--ink-soft); }
+  .vp-compact__meta dd a { color: var(--ink-soft); text-decoration: underline; text-decoration-color: var(--rule-2); }
+  .vp-compact__meta dd a:hover { color: var(--accent); }
+  .vp-compact__watch {
+    margin: 0;
+    font-family: var(--sans);
+    font-size: 13px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    align-items: baseline;
+  }
+  .vp-compact__watch > a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+  }
+  .vp-compact__watch > a:hover { color: var(--accent); }
+  .vp-compact__mirrors-label {
+    color: var(--ink-mute);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 11px;
+    margin-right: 0.3em;
+  }
+  .vp-compact__mirrors a {
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+  }
+
+  /* ─── BLOG layout ───────────────────────────────────────────────────── */
+  .video-page__masthead {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    grid-template-areas:
+      "meta meta"
+      "cover body";
+    column-gap: 2.5rem;
+    row-gap: 1.4rem;
+    align-items: start;
+    margin-bottom: 2rem;
+    padding-bottom: 2.25rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .video-page__masthead .video-page__meta  { grid-area: meta;  }
+  .video-page__masthead .video-page__cover { grid-area: cover; }
+  .video-page__masthead .video-page__body  { grid-area: body;  }
+  @media (max-width: 820px) {
+    .video-page__masthead {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "meta"
+        "cover"
+        "body";
+      row-gap: 1.25rem;
+    }
+  }
+
+  .video-page__cover :global(.vcv) {
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 50px 80px -40px rgba(0, 0, 0, 0.7);
+  }
+  :global([data-theme="light"]) .video-page__cover :global(.vcv) {
+    box-shadow: 0 1px 0 rgba(20, 17, 13, 0.06), 0 40px 70px -38px rgba(60, 45, 20, 0.40);
+  }
+
+  .video-page__num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-size: clamp(3.4rem, 6vw, 5.2rem);
+    color: var(--accent);
+    font-weight: 400;
+    line-height: 0.92;
+    margin: 0 0 0.4rem;
+  }
+  .video-page__title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(2rem, 4.4vw, 3.2rem);
+    line-height: 1.05;
+    letter-spacing: -0.018em;
+    margin: 0 0 0.9rem;
+    text-wrap: balance;
+  }
+  .video-page__description {
+    margin: 0 0 1.1rem;
+    color: var(--ink-soft);
+    font-family: var(--serif);
+    font-size: clamp(1rem, 1.55vw, 1.1rem);
+    line-height: 1.6;
+  }
+  .video-page__tags {
+    font-family: var(--sans);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--ink-mute);
+    margin: 0;
+  }
+  .video-page__tags span + span::before { content: " · "; color: var(--rule-2); }
+
+  .video-page__watch {
+    margin: 0.9rem 0 0;
+    font-family: var(--sans);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    align-items: baseline;
+  }
+  .video-page__watch > a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+  }
+  .video-page__watch > a:hover { color: var(--accent); }
+  .video-page__mirrors-label {
+    color: var(--ink-mute);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 11px;
+    margin-right: 0.3em;
+  }
+  .video-page__mirrors a {
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+  }
+
+  .video-page__embed-wrap {
+    margin: 2rem 0;
+  }
+
+  .video-page__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+  .video-page__layout .prose { max-width: none; }
+  @media (min-width: 1100px) {
+    .video-page--blog .video-page__layout {
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 3rem;
+      align-items: start;
+    }
+  }
+
+  /* ─── Pager ─────────────────────────────────────────────────────────── */
+  .video-page__pager {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+    margin-top: 3rem;
+    padding-top: 1.6rem;
+    border-top: 1px solid var(--rule);
+  }
+  .video-page__pager-link {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: center;
+    gap: 0.5rem 0.7rem;
+    text-decoration: none;
+    color: var(--ink-soft);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 0.6rem 0;
+  }
+  .video-page__pager-link--next {
+    grid-template-columns: auto 1fr auto;
+    justify-self: end;
+    text-align: right;
+  }
+  .video-page__pager-link:hover .video-page__pager-title { color: var(--accent); }
+  .video-page__pager-arrow { color: var(--ink-mute); }
+  .video-page__pager-num {
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    color: var(--ink-mute);
+  }
+  .video-page__pager-title { color: var(--ink); }
+  @media (max-width: 720px) {
+    .video-page__pager { grid-template-columns: 1fr; }
+    .video-page__pager-link--next { justify-self: start; text-align: left; grid-template-columns: auto auto 1fr; }
+  }
+</style>
