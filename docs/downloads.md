@@ -37,10 +37,10 @@ src/content/books/01-evangelie-tsarstviya/
   cover.ru.jpg
 ```
 
-They may be produced by a local script using pandoc, typst, templates, and
-committed fonts. That script can be friendly to a non-developer workflow ("refresh
-downloads for changed works"), but the produced files are durable content
-artifacts once committed.
+They may be produced by the local `pancratius downloads render` command using
+pandoc, typst, templates, and committed fonts. That command can be friendly to a
+non-developer workflow ("refresh downloads for changed works"), but the produced
+files are durable content artifacts once committed.
 
 For a multi-source work, source parts such as `ru-part1.docx`,
 `ru-part2.docx`, and `ru-part3.docx` are provenance/source artifacts, not public
@@ -60,7 +60,8 @@ author-facing; public Markdown is content-only.
 
 ## Local Generation
 
-The local/admin generation script owns document-rendering choices:
+The local/admin renderer (`pancratius downloads render`) owns document-rendering
+choices:
 
 - PDF renderer and templates.
 - EPUB stylesheet and cover embedding.
@@ -68,8 +69,8 @@ The local/admin generation script owns document-rendering choices:
 - Image staging for body images.
 - Version pinning and checksums when needed.
 
-That belongs in scripts and script docs, not in Astro routes and not in CI. The
-site consumes the result.
+That belongs in the `pancratius` local tool and its asset docs, not in Astro
+routes and not in CI. The site consumes the result.
 
 ## CI Contract
 
@@ -115,7 +116,7 @@ The production site ships **one** bulk archive: `all-md.zip` — every work as p
 
 The archive is not a raw copy of `src/content/**/*.md`. It contains the public export form only: frontmatter is removed, converter-only HTML wrappers are removed, inline HTML emphasis is converted to Markdown syntax where possible, and body image references become absolute Markdown image links.
 
-Bulk PDF and EPUB archives are **not** shipped on the production host because they duplicate ~317 MB of bytes already served per-work, and the host has a 1 GB ceiling. They can still be built off-host via `node --experimental-strip-types scripts/build_bulk_archives.ts --formats=md,pdf,epub` for upload to GitHub Releases, the Internet Archive, or a Hugging Face dataset.
+Bulk PDF and EPUB archives are **not** shipped on the production host because they duplicate ~317 MB of bytes already served per-work, and the host has a 1 GB ceiling. They can still be built off-host via `node --experimental-strip-types build/bulk-archives.ts --formats=md,pdf,epub` for upload to GitHub Releases, the Internet Archive, or a Hugging Face dataset.
 
 The `/downloads/` page is a short index with size and `sha256` for verification.
 
@@ -125,4 +126,5 @@ Per-work artifacts never live under `/downloads/` — that's the bulk surface on
 
 ## Out of scope here
 
-Exact local renderer commands, version pins, and font/template details belong in scripts and script docs, not this architecture document.
+Exact renderer flags, version pins, and font/template details belong in the
+`pancratius` tool docs, not this architecture document.

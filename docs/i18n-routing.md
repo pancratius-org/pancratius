@@ -1,10 +1,16 @@
 # Pancratius i18n / Routing
 
-The narrow contract for how language and URLs interact. Site-wide architecture is in [`architecture.md`](./architecture.md); the content shape is in [`content-model.md`](./content-model.md).
+Language and URL rules. Site-wide architecture is in
+[`architecture.md`](./architecture.md); content shape is in
+[`content-model.md`](./content-model.md).
 
-## First Principle
+## Rule
 
-**One URL equals one resource.** Language, content, downloads, alternate-language links — all of it follows from the URL. No separate "UI language" and "content language" state. Two state spaces produce hybrid bugs ("why is the UI in RU but the page in EN?"); don't open the door.
+One URL equals one resource. Language, content, downloads, and alternate-language
+links all follow from the URL. There is no separate UI-language state.
+
+Reason: two language states create hybrid bugs. A page with EN chrome and a RU
+body is not a fallback; it is the wrong resource at that URL.
 
 ## URL structure
 

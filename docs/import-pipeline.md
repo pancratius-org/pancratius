@@ -1,39 +1,28 @@
-# Pancratius Import Pipeline
+# Pancratius Import
 
-The contract for **import**: turn an authored source document plus its companion
-assets into canonical source Markdown and co-located assets, and write only the
-one intended target bundle after explicit safety checks.
+Import turns an authored source document plus companion assets into canonical
+source Markdown and co-located assets. It writes one explicit target bundle after
+safety checks.
 
-Import is one of the three activities in [`architecture.md`](./architecture.md);
-it is not release rendering (PDF/EPUB/DOCX/TXT/public Markdown) and not the Astro
-build. Those never call import code, and import never renders. The storage shapes
-this pipeline must produce are owned by [`content-model.md`](./content-model.md);
-the asset, verse, footnote, and bibliography *policies* are owned by
-[`content-model.md`](./content-model.md) and [`decisions.md`](./decisions.md).
-This document does not restate them — it states how import *honors* them.
+Import is library work. It is not release rendering and not the Astro build.
+Those never call import code, and import never renders. The storage shape is
+owned by [`content-model.md`](./content-model.md); asset, verse, footnote, and
+bibliography policy live there and in [`decisions.md`](./decisions.md).
 
-## Why two boundaries
+## Boundaries
 
-Import touches the corpus — committed source of truth — and recovers semantics a
-source format expresses only loosely. When parsing, transformation, placement,
-and filesystem mutation share one pass, both jobs turn fragile: a parser can copy
-media into a work folder as a side effect, and content can be lost or mismarked
-as it crosses concerns. The protection is not a framework but **two boundaries**
-that cut the work into pure stages with a single mutating tail.
+Import touches committed source and recovers semantics from loose source
+formats. The parser, transformation logic, placement logic, and filesystem
+mutation stay separated so a source-format adapter cannot quietly write into
+`src/content` or lose content while deciding placement.
 
-## The two boundaries
+1. **`WritePlan` — filesystem boundary.** Import produces a plan; it does not
+   write. Only the writer applies a plan. Every stage upstream of the writer is
+   pure or scratch-only, so adapters and normalizers cannot reach `src/content`.
 
-Import has exactly two real seams. Everything else is an ordinary function call.
-
-1. **`WritePlan` — the safety boundary.** It separates all import logic from
-   filesystem mutation. Import *produces* a plan; it does not write. Only the
-   writer applies a plan. This is the boundary that keeps the old fused shape from
-   returning: every stage upstream of the writer is pure, so nothing but the
-   writer can reach `src/content`.
-
-2. **The block IR — the semantic boundary.** A small typed block model separates
+2. **Block IR — semantic boundary.** A small typed block model separates
    source-format parsing from Pancratius normalization and lowering. After the
-   adapter, nothing is "DOCX-shaped"; it is blocks, footnotes, bibliography, and
+   adapter, nothing is DOCX-shaped; it is blocks, footnotes, bibliography, and
    diagnostics.
 
 > Import does not write files. Import produces a `WritePlan`. Only the writer
@@ -41,24 +30,28 @@ Import has exactly two real seams. Everything else is an ordinary function call.
 
 ## Pipeline
 
+Import is compiler-shaped: parse a source format into a small domain IR, run
+passes over that IR, lower it to Pancratius Markdown/assets, then hand a write
+plan to the only filesystem mutator. This keeps DOCX quirks out of site storage
+and gives tests a stable semantic surface.
+
 ```txt
 source + companions
-  → acquire        (resolve, hash; scratch only — never src/content)
-  → parse          (DOCX adapter → block IR; format-specific stops here)
-  → normalize      (editorial mechanics over the IR; pure)
-  → analyze        (diagnostics over the normalized IR; pure)
-  → place          (target from explicit command intent, not from the document)
-  → lower          (IR → canonical Markdown + planned assets; pure)
-  → plan           (canonical output → WritePlan)
-  → write          (the only stage that touches src/content)
+  -> acquire        resolve sources; scratch only, never src/content
+  -> parse          DOCX/OOXML adapter -> Block IR; format-specific stops here
+  -> normalize      editorial mechanics over the IR; pure
+  -> analyze        diagnostics over the normalized IR; pure
+  -> place          target from explicit command intent, not from the document
+  -> lower          IR -> canonical Markdown + planned assets; pure
+  -> plan           canonical output -> WritePlan
+  -> write          the only stage that touches src/content
 ```
 
-The stages are small because the boundaries are real, not because "pipeline" is
-a nice word. Every stage before `write` is pure or writes only to scratch. Stages
-may be fused in code so long as the two boundaries hold; the contract is the
-boundaries, not a fixed function count.
+Every stage before `write` is pure or writes only to scratch. Stages may be
+fused in code so long as the two boundaries hold; the contract is the boundaries,
+not a fixed function count.
 
-## `WritePlan` — the safety boundary
+## `WritePlan`
 
 A `WritePlan` is an immutable value: a declared target scope, an ordered set of
 write operations expressed as **scope-relative** paths, the diagnostics gathered
@@ -66,10 +59,9 @@ upstream, and the ownership/overwrite policy. It never holds absolute target
 paths — the writer joins each operation onto the target root and refuses any
 result that escapes the scope.
 
-What the boundary buys, in one object: dry-run output for humans and agents;
-tests that compare planned writes with no filesystem; one overwrite policy; one
-path-boundary policy; and a hard guarantee that no adapter, normalizer, analyzer,
-or lowerer can quietly copy media into `src/content`.
+A single plan gives dry-run output, write-set tests without filesystem mutation,
+one overwrite policy, one path-boundary policy, and a hard rule that only the
+writer can copy media into `src/content`.
 
 Rules the plan must enforce (the writer trusts the plan, so the plan owns these):
 
@@ -85,20 +77,18 @@ Rules the plan must enforce (the writer trusts the plan, so the plan owns these)
   replacement is explicitly requested; author-added neighbors are always
   preserved.
 
-## The writer — the only mutator
+## Writer
 
-The writer — a dedicated module under `scripts/lib/` — is the single component
-permitted to change `src/content`. It validates the plan's paths, refuses to
-apply if any diagnostic is fatal, preflights sources and collisions, then applies
-operations through temporary paths and atomic replace. It never pre-deletes
-directories. It returns a report of what was created, changed, skipped, and refused.
+`pancratius/writer.py` is the only component allowed to change `src/content`. It
+validates plan paths, refuses fatal diagnostics, preflights sources and
+collisions, then applies operations through temporary paths and atomic replace.
+It never pre-deletes directories. It returns what was created, changed, skipped,
+and refused.
 
-The writer is **general** — it applies any `WritePlan` to any scope and has no
-import-specific opinion. Provenance (below) is the *importer's* policy, written by
-the import entry after a successful apply, not by the writer. That is what lets a
-non-import mutation — `project page add` scaffolding a sub-page — reuse the writer
-unchanged (the same atomic/scoped/no-clobber guarantees and content-general roles)
-without emitting an import manifest.
+The writer applies any `WritePlan` to any scope. It has no import-specific
+policy. Provenance is written by the import entry after a successful apply, not
+by the writer. That lets `project page add` reuse the same scoped/no-clobber
+write path without emitting an import manifest.
 
 **Ownership.** Files carry provenance: converter-owned (regenerated on
 re-import), author-owned (never clobbered without an explicit replace), and
@@ -124,7 +114,7 @@ Scope is the target bundle or narrower (a single added language file is a valid
 narrower scope); replacement is required only to overwrite an existing
 converter-owned file, never to add a new one.
 
-## The block IR — the semantic boundary
+## Block IR
 
 A typed block model, not a compiler AST. It carries only the block and inline
 kinds Pancratius canonical Markdown actually needs — prose, verse with stanza
@@ -143,19 +133,18 @@ description seed, the lifted `cross_refs`/`bibliography`). The blocks carry only
 reading content; seeding frontmatter is a separate concern in the importer, so it
 never reaches back into the blocks.
 
-The model is deliberately small: source-specific style noise becomes a
-diagnostic, not a block type; a raw Markdown string is too weak to preserve
-stanza, footnote, image-role, and source-span information, and a full source AST
-is too broad to be the Pancratius model. If a future need appears, add a block
-type — do not smuggle structure through string conventions.
+The model is deliberately small. Source-specific style noise becomes a
+diagnostic, not a block type. A raw Markdown string cannot preserve stanza,
+footnote, image-role, and source-span information; a full source AST is too broad
+for the Pancratius model. Add a block type when structure is real. Do not smuggle
+structure through string conventions.
 
 ### One adapter now: DOCX
 
 The parser turns one source format into the IR. **Only the DOCX adapter exists.**
-The other formats named in earlier drafts (Markdown, HTML, text, ODT) are *not*
-built; the IR is the seam that would let them be added later without touching
-placement, lowering, or the writer. Designing that seam costs nothing; populating
-it now would be speculative surface, so we do not.
+The other formats named in earlier drafts (Markdown, HTML, text, ODT) are not
+built. The IR boundary would let them be added later without touching placement,
+lowering, or the writer. Adding them now would be speculative surface.
 
 *How* the DOCX adapter reads the document — which structured parse feeds the IR
 and which narrow OOXML signals are read directly for things a text writer drops
@@ -230,7 +219,7 @@ is a fatal write-refusal; and imported body-image SVGs are sanitized at the
 writer's copy boundary. See
 [`decisions.md`](./decisions.md#import-is-the-publish-gate-harden-authored-content-not-the-renderer).
 
-## What import must never automate
+## Limits
 
 Editorial judgment is never a tool output: whether a document is a book or a
 project subpage, the final title or description, theological framing, project
@@ -248,10 +237,9 @@ source-artifact maintenance with its own write policy; see
 
 The CLI is a thin facade over **library entries**, not other CLIs. `work import`
 dispatches to `import_work(ImportRequest) -> WriteReport`; `project page add`
-dispatches to a sibling `scaffold_subpage(...) -> WriteReport` co-located with the
-conversion lib. Both run the plan→writer tail and return the writer's report (the
-planned/applied write-set plus diagnostics). So adding the CLI is wiring, not a
-rewrite.
+dispatches to `scaffold_subpage(...) -> WriteReport`. Both run the plan→writer
+tail and return the writer's report: the planned/applied write-set plus
+diagnostics.
 
 ## How import is verified
 
@@ -277,7 +265,7 @@ source scan asserting that filesystem mutation into `src/content` happens only i
 the writer module — every pure import module carries a marker and the scan derives
 its set from those markers, so the boundary holds regardless of test coverage
 (PAN018); and import/converter code is never invoked from CI, neither the
-importer/renderer scripts nor the converter/IR/writer library modules behind them
+importer/renderer tools nor the converter/IR/writer library modules behind them
 (PAN012). These guard the *shape* so the boundary cannot silently drift; the
 runtime behaviors above stay in tests, where a property is established by running
 the code, not by guessing from its shape.

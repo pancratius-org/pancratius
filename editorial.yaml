@@ -3,14 +3,14 @@
 # Nothing reads this file anymore. Its only consumer was the legacy batch
 # converter (an `en_titles` override applied while regenerating the whole
 # corpus); that path is gone. The single-DOCX importer
-# (`scripts/import_docx.py`) preserves editor-owned frontmatter fields (title,
+# (`pancratius work import`) preserves editor-owned frontmatter fields (title,
 # description, translation, cross_refs) on an existing `<lang>.md` directly, so
 # titles are edited in `content/<work>/en.md` frontmatter, not here.
 #
 # This file is retained only as the staging list for a one-time apply of these
 # EN titles into the matching `content/books/<slug>/en.md` frontmatter, after
-# which it is deleted. `docs/editorial-notes.md` remains as the human review
-# checklist. Keyed by `number`.
+# which it is deleted. `docs/scratchpad/editorial-review.md` remains as the
+# human review checklist. Keyed by `number`.
 
 en_titles:
   1: "Gospel of the Kingdom"
