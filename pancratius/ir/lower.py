@@ -5,7 +5,7 @@ This is the only stage that produces a Markdown string, and it does so exactly
 once — there is no string round-trip and no regex tail-stripping. It emits the
 canonical author-facing shape:
 
-  * verse-block / answer-block `<div>`s (rendered as `white-space: pre-line` HTML)
+  * verse-block `<div>`s (rendered as `white-space: pre-line` HTML)
   * `<p class="signature">` and `<blockquote class="epigraph">`
   * footnote refs `[^N]` inline plus a generated `[^N]:` appendix AT THE TAIL —
     generated last, from typed `FootnoteDef`s, so a definition can never be lost
@@ -431,7 +431,7 @@ def _inlines_md(nodes: list[ir.Inline], lang: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# inline -> balanced HTML lines (for verse/answer blocks)
+# inline -> balanced HTML lines (for verse blocks)
 # ---------------------------------------------------------------------------
 
 
@@ -496,7 +496,7 @@ def _clean_verse_html_line(line: str) -> str:
 
 
 def _verse_md(vb: ir.VerseBlock, lang: str) -> str:
-    out: list[str] = [f'<div class="{vb.role}">']
+    out: list[str] = ['<div class="verse-block">']
     for stanza in vb.stanzas:
         for line_inlines in stanza:
             if len(line_inlines) == 1 and isinstance(line_inlines[0], ir.Text) and line_inlines[0].value == "***":

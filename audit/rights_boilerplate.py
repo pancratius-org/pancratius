@@ -14,6 +14,9 @@ CONTENT = ROOT / "src" / "content"
 MD_PATTERNS = [
     re.compile(r"(?i)all rights reserved"),
     re.compile(r"(?i)no part of this book may be reproduced"),
+    re.compile(r"©\s*Сергей\s+Орехов", re.IGNORECASE),
+    re.compile(r"Эта\s+книга\s+даруется\s+миру\s+свободно", re.IGNORECASE),
+    re.compile(r"Пусть\s+е[ёе]\s+чистота\s+будет\s+сохранена", re.IGNORECASE),
     re.compile(r"Все\s+права\s+защищены", re.IGNORECASE),
     re.compile(r"Никакая\s+часть\s+(этой|данной)\s+книги.*воспроизв", re.IGNORECASE),
 ]

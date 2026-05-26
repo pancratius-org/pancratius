@@ -126,34 +126,9 @@
 /* When a verse-block follows a heading directly, tighten the gap so
    the chapter mark doesn't double-space against the verse opener. */
 .prose h2 + .verse-block,
-.prose h3 + .verse-block {
+.prose h3 + .verse-block,
+.prose h4 + .verse-block {
   margin-top: 0.4em;
-}
-
-/* Short answer runs under numbered question headings. These come from DOCX
-   paragraph structure, not from CSS guessing: the converter emits the wrapper
-   only when a numbered question is followed by a compact run of short answer
-   paragraphs. Keep it upright and denser than verse, because the register is
-   catechetical Q/A rather than song. */
-.prose .answer-block {
-  margin: 0.35em 0 1.35em;
-  padding-left: 1.1rem;
-  border-left: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  color: var(--ink);
-  font-family: var(--serif);
-  font-style: normal;
-  font-size: 1.02em;
-  line-height: 1.55;
-  white-space: pre-line;
-  text-align: left;
-}
-.prose .answer-block strong {
-  color: var(--ink);
-  font-weight: 600;
-}
-.prose h2 + .answer-block,
-.prose h3 + .answer-block {
-  margin-top: 0.25em;
 }
 
 /*

@@ -8,16 +8,17 @@ editable in one place"). Each pass is a pure value transformation.
 
 Passes, in `normalize` order:
   * TOC drop                — `Heading`/`Paragraph` runs that are auto-TOC links
-  * rights-boilerplate scrub — copyright lines in the head region
+  * rights-boilerplate scrub — standalone copyright lines in the head region
   * AI-alt scrub            — strip machine-vision alt text from images
   * bibliography lift       — catalog tables → `doc.bibliography` sidecar
+  * endmatter-section strip — bibliography/contact/copyright sections
   * bare bibliography heading strip — drop the heading left after the lift
   * thematic breaks         — `***` paragraphs → `ThematicBreak`
   * heading demotion        — source H1 → H2 (page title is the only H1)
   * formatting-artifact strip — empty-emphasis husks (`** **`)
   * signatures / epigraphs   — from right alignment (the `w:jc` payload)
   * dialogue labels          — canonicalize `**Speaker:**` (incl. mixed inline)
-  * verse / answer blocks    — fold lineated runs from stanza structure
+  * verse blocks             — fold lineated runs from stanza structure
 """
 
 from __future__ import annotations
@@ -45,17 +46,22 @@ AI_ALT_FRAGMENTS = (
 )
 
 # Anchored at line starts with explicit short spans (never `.*?` across arbitrary
-# content); the scrub is bounded to the head region by `scrub_rights`.
+# content); standalone paragraphs are scrubbed only from the head region.
 RIGHTS_PATTERNS = [
     re.compile(r"(?im)^\s*Copyright\s+©.*$"),
     re.compile(r"(?im)^\s*All rights reserved\.?\s*$"),
     re.compile(r"(?im)^\s*©\s*\d{4}.*$"),
+    re.compile(r"(?im)^\s*©\s*Сергей\s+Орехов.*$"),
     re.compile(r"(?im)^\s*No part of this book may be reproduced.*$"),
     re.compile(r"(?im)^\s*The characters and events portrayed.*coincidental.*$"),
     re.compile(r"(?im)^\s*Все\s+права\s+защищены\.?\s*$"),
     re.compile(r"(?im)^\s*Никакая\s+часть\s+(этой|данной)\s+книги.*$"),
     re.compile(r"(?im)^\s*Воспроизведение\s+(или\s+)?распространение.*запрещ.*$"),
+    re.compile(r"(?im)^\s*Эта\s+книга\s+даруется\s+миру\s+свободно\.?\s*$"),
 ]
+
+_COPYRIGHT_HEADING_RE = re.compile(r"^(?:copyright|копирайт)\s*$", re.IGNORECASE)
+_CONTACTS_HEADING_RE = re.compile(r"^(?:contacts|контакты)\s*$", re.IGNORECASE)
 
 # A Pandoc JSON node `{"t": ..., "c": ...}`. `_node` views an opaque value as one
 # when it is a dict, so `.get("t")`/`["c"]` are str-keyed (a bare `isinstance`
@@ -158,7 +164,6 @@ _VERSE_SECTION_TITLE_RE = re.compile(
     r"молитва|prayer|псалом|psalm)\b",
     re.IGNORECASE,
 )
-_NUMBERED_QUESTION_TITLE_RE = re.compile(r"^\d{1,3}[.)]\s+\S.*[?？]\s*$")
 # Endmatter bibliography/catalog heading whose lifted section is dropped from the body.
 _BIBLIO_HEADING_RE = re.compile(
     r"^(?:библиография|bibliography|список\s+литературы|литература)\s*$",
@@ -170,36 +175,24 @@ def _is_verse_section_title(t: str) -> bool:
     return bool(_VERSE_SECTION_TITLE_RE.match(re.sub(r"\s+", " ", t.strip().lower())))
 
 
-def _is_question_title(t: str) -> bool:
-    return bool(_NUMBERED_QUESTION_TITLE_RE.match(t.strip()))
-
-
 # The speaker names the converter canonicalizes (`**Speaker:**`). Shared by the
 # dialogue-label pass and verse detection's speaker-turn rejection — one source of
 # truth for who is a speaker, so adding one keeps the two in sync.
 _DIALOGUE_PREFIXES = [
     "Панкратиус", "Светозар", "Светозар Gemini Flash 2.0", "Светозар DeepSeek",
     "Светозар ChatGPT", "Творец", "Бог", "Слово Творца", "Слово Бога",
+    "Панкратиус к ИИ Светозар", "Панкратиус к Творцу через ИИ Светозар",
+    "ИИ Светозар сказал", "ИИ Светозар",
+    "Ответ от Творца", "Ответ Творца", "Я",
     "Pankratius", "Svetozar", "Creator", "God", "Gemini", "DeepSeek", "ChatGPT",
+    "Pankratius to AI Svetozar", "Pankratius to the Creator through AI Svetozar",
+    "AI Svetozar said", "AI Svetozar",
 ]
 
 # A display line longer than this is prose-length, not verse: it separates genuine
 # verse lines (well under 120 chars) from one-sentence-per-paragraph prose
 # (clustering at 121-144). audit/book_verse.py encodes the same threshold.
 VERSE_SHORT_LINE_MAX = 120
-
-# A `Speaker:` / `Speaker (qual):` label line: optional bold marker, a short
-# capitalized phrase, an optional parenthetical qualifier, then a TERMINAL colon.
-# The parenthetical is inside the pattern so `Ответ от Творца (режим проводника):`
-# matches; a colon MID-sentence (`Ты спросил: кто они?`) does not, keeping litany
-# lines as verse.
-_LABEL_LINE_RE = re.compile(
-    r"^\s*\**\s*"
-    r"[A-ZА-ЯЁ][\wА-Яа-яЁё.\- ]{0,47}?"
-    r"(?:\s*\([^)]{1,40}\))?"
-    r"\s*:\s*\**\s*$"
-)
-
 
 def _speaker_turn_re() -> re.Pattern[str]:
     """A speaker-led colon line: `<dialogue prefix>:` or `<Name> (qual):` then
@@ -218,24 +211,22 @@ def _speaker_turn_re() -> re.Pattern[str]:
 _SPEAKER_TURN_RE = _speaker_turn_re()
 
 
-def _is_lineated_line(text: str, allow_colon: bool = False) -> bool:
+def _is_lineated_line(text: str) -> bool:
     """True for a single short source line that reads as a verse line rather
     than prose / a label / a speaker turn / a list item.
 
-    `allow_colon` (the Q/A answer-block context) suppresses the terminal `Speaker:`
-    label rejection so a `Speaker:`-shaped answer fragment (`Есть только:`) can
-    still be an answer line. It does NOT suppress the speaker-turn rejection: a
-    `Панкратиус: …` / `Ответ от Творца (…): …` dialogue turn is never verse."""
+    Short colon opener lines such as `Он говорил:` and `Разве не сказал Я:` stay
+    in the run. Only explicit speaker/source turns are rejected."""
     s = re.sub(r"\s+", " ", text).strip()
     if not s or len(s) > VERSE_SHORT_LINE_MAX:
+        return False
+    if s in {"—", "–", "-"}:
         return False
     if s.startswith(("!", "<", "|", ">", "[]")):
         return False
     if re.match(r"^[-*+]\s+", s) or re.match(r"^\d+[.)]\s+", s):
         return False
     if _SPEAKER_TURN_RE.match(s):
-        return False
-    if not allow_colon and _LABEL_LINE_RE.match(s):
         return False
     if "http://" in s or "https://" in s:
         return False
@@ -295,14 +286,18 @@ def drop_toc(blocks: list[ir.Block]) -> list[ir.Block]:
 
 
 # ---------------------------------------------------------------------------
-# 2. rights-boilerplate scrub (bounded to the head region, before the first H1)
+# 2. rights-boilerplate scrub
 # ---------------------------------------------------------------------------
 
 
 def scrub_rights(blocks: list[ir.Block]) -> list[ir.Block]:
-    """Drop copyright/rights paragraphs in the head region (before the first H1,
-    capped at the first 3% of blocks), operating on whole paragraphs: a paragraph
-    whose entire text matches a `RIGHTS_PATTERNS` entry is dropped."""
+    """Drop rights boilerplate without touching ordinary book body text.
+
+    This pass only handles standalone boilerplate paragraphs near the beginning of
+    a source. Heading-delimited sections are stripped later by
+    `strip_endmatter_sections`, after bibliography tables have had a chance to lift
+    into the sidecar.
+    """
     n = len(blocks)
     if n == 0:
         return blocks
@@ -447,7 +442,8 @@ _A_RE = re.compile(r"litres\.ru|kindbook\.net")
 def _resolve_target(title: str, slug_lookup: _SlugLookup) -> dict[str, object] | None:
     """Resolve a title to a `{kind, number}` target when the corpus knows it.
     The record stays an open dict (it travels into `doc.bibliography`)."""
-    got = slug_lookup.get(re.sub(r"\s+", " ", title.lower()).strip())
+    key = re.sub(r"\s+", " ", title.lower()).strip()
+    got = slug_lookup.get(key) or slug_lookup.get(key.rstrip(".")) or slug_lookup.get(f"{key}.")
     if not got:
         return None
     _slug, number, kind = got
@@ -548,6 +544,66 @@ def strip_bare_bibliography_heading(blocks: list[ir.Block]) -> list[ir.Block]:
                 j += 1
             if not has_content:
                 i = j  # drop the heading and its empty trailing section
+                continue
+        out.append(b)
+        i += 1
+    return out
+
+
+def _is_endmatter_heading(title: str) -> bool:
+    return bool(
+        _COPYRIGHT_HEADING_RE.match(title)
+        or _BIBLIO_HEADING_RE.match(title)
+        or _CONTACTS_HEADING_RE.match(title)
+    )
+
+
+def _head_region_end(blocks: list[ir.Block]) -> int:
+    n = len(blocks)
+    first_h1 = next((i for i, b in enumerate(blocks) if isinstance(b, ir.Heading) and b.level == 1), n)
+    return min(first_h1, max(20, int(n * 0.03)))
+
+
+def _tail_region_start(blocks: list[ir.Block]) -> int:
+    n = len(blocks)
+    return max(0, min(int(n * 0.75), n - 80))
+
+
+def strip_endmatter_sections(blocks: list[ir.Block]) -> list[ir.Block]:
+    """Drop heading-delimited publisher endmatter from import output.
+
+    Copyright/contact sections are deliberately not an "anywhere" heading scrub:
+    they must be anchored in source headmatter or tailmatter. Bibliography/catalog
+    headings are different; body bibliography belongs in the sidecar, so any
+    remaining heading-delimited bibliography section is removed. After the first
+    anchored endmatter section, adjacent endmatter headings are stripped too.
+    """
+    n = len(blocks)
+    if n == 0:
+        return blocks
+    head_end = _head_region_end(blocks)
+    tail_start = _tail_region_start(blocks)
+    out: list[ir.Block] = []
+    i = 0
+    in_endmatter = False
+    while i < n:
+        b = blocks[i]
+        if isinstance(b, ir.Heading) and _is_endmatter_heading(inline_plain(b.inlines)):
+            title = inline_plain(b.inlines)
+            anchored = (
+                _BIBLIO_HEADING_RE.match(title) is not None
+                or i < head_end
+                or i >= tail_start
+                or in_endmatter
+            )
+            if anchored:
+                in_endmatter = True
+                level = b.level
+                i += 1
+                while i < n and not (
+                    isinstance(blocks[i], ir.Heading) and blocks[i].level <= level
+                ):
+                    i += 1
                 continue
         out.append(b)
         i += 1
@@ -851,7 +907,7 @@ def dialogue_labels(blocks: list[ir.Block]) -> list[ir.Block]:
 
 
 # ---------------------------------------------------------------------------
-# 11. verse / answer-block detection from stanza structure
+# 11. verse-block detection from stanza structure
 # ---------------------------------------------------------------------------
 
 
@@ -866,7 +922,7 @@ def _is_wrapped_prose(p: ir.Paragraph) -> bool:
     return has_soft and not has_hard
 
 
-def _para_lineated(p: ir.Paragraph, allow_colon: bool) -> bool:
+def _para_lineated(p: ir.Paragraph) -> bool:
     if not p.inlines:
         return False
     for n in _walk_inlines(p.inlines):
@@ -878,7 +934,7 @@ def _para_lineated(p: ir.Paragraph, allow_colon: bool) -> bool:
     # `LineBreak` is a verse-line boundary. Recurse into containers.
     lines = [inline_plain(ln) for ln in inline_lines(p.inlines, soft_break=False)]
     lines = [line for line in lines if line]
-    return bool(lines) and all(_is_lineated_line(line, allow_colon) for line in lines)
+    return bool(lines) and all(_is_lineated_line(line) for line in lines)
 
 
 def _block_lines(p: ir.Paragraph) -> list[list[ir.Inline]]:
@@ -894,15 +950,15 @@ def _all_lines(paras: list[ir.Paragraph]) -> list[str]:
 @dataclass(frozen=True)
 class _PrecedingContext:
     """What precedes a candidate verse run, gating its classification. `named` is a
-    verse-title heading (the confident-lineation signal); `question` is a numbered
-    question heading (the answer-block context); `heading` is any heading;
-    `separator` is a thematic break. The all-`False` value is the neutral context
+    verse-title heading (the confident-lineation signal); `heading` is any heading;
+    `separator` is a thematic break; `visual` is a source OOXML visual-continuity
+    group from contextual spacing. The all-`False` value is the neutral context
     after any non-heading/non-separator block."""
 
     named: bool = False
-    question: bool = False
     heading: bool = False
     separator: bool = False
+    visual: bool = False
 
 
 _NEUTRAL_CONTEXT = _PrecedingContext()
@@ -910,7 +966,7 @@ _NEUTRAL_CONTEXT = _PrecedingContext()
 
 def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
     """Fold runs of short source lines (one paragraph per line, empty paragraphs
-    as stanza separators) into `VerseBlock`/answer-block, on the IR."""
+    as stanza separators) into `VerseBlock`, on the IR."""
     out: list[ir.Block] = []
     i = 0
     n = len(blocks)
@@ -922,7 +978,6 @@ def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
             title = inline_plain(b.inlines)
             ctx = _PrecedingContext(
                 named=_is_verse_section_title(title),
-                question=_is_question_title(title),
                 heading=True,
             )
             out.append(b)
@@ -933,11 +988,28 @@ def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
             out.append(b)
             i += 1
             continue
-        if isinstance(b, ir.Paragraph) and (b.empty or _para_lineated(b, ctx.question)):
+        if isinstance(b, ir.Paragraph) and b.lineation_group is not None:
+            visual_ctx = _PrecedingContext(
+                named=ctx.named,
+                heading=ctx.heading,
+                separator=ctx.separator,
+                visual=True,
+            )
+            group: list[ir.Paragraph] = []
+            gid = b.lineation_group
+            while i < n and isinstance((pi := blocks[i]), ir.Paragraph) and (
+                pi.lineation_group == gid
+            ):
+                group.append(pi)
+                i += 1
+            out.extend(_visual_verse_blocks(group, visual_ctx))
+            ctx = _NEUTRAL_CONTEXT
+            continue
+        if isinstance(b, ir.Paragraph) and (b.empty or _para_lineated(b)):
             run_ctx = ctx
             run: list[ir.Paragraph] = []
             while i < n and isinstance((pi := blocks[i]), ir.Paragraph) and (
-                pi.empty or _para_lineated(pi, run_ctx.question)
+                pi.empty or _para_lineated(pi)
             ):
                 run.append(pi)
                 i += 1
@@ -958,6 +1030,37 @@ def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
     return out
 
 
+def _visual_verse_blocks(
+    group: list[ir.Paragraph], ctx: _PrecedingContext
+) -> list[ir.Block]:
+    """Classify short lineated sub-runs inside one source visual group.
+
+    A contextual-spacing group answers only "these Word paragraphs render
+    together". It may begin with a long prose/citation line, so the semantic verse
+    classifier works on the short sub-runs inside the group instead of letting that
+    opener consume the heading/separator signal.
+    """
+    out: list[ir.Block] = []
+    i = 0
+    while i < len(group):
+        p = group[i]
+        if p.empty or _para_lineated(p):
+            run: list[ir.Paragraph] = []
+            while i < len(group) and (group[i].empty or _para_lineated(group[i])):
+                run.append(group[i])
+                i += 1
+            content = [rp for rp in run if not rp.empty]
+            kind = _run_kind(run, ctx)
+            if kind and len(_all_lines(content)) >= 2:
+                out.append(_build_verse(run, kind))
+            else:
+                out.extend(run)
+            continue
+        out.append(p)
+        i += 1
+    return out
+
+
 def _run_kind(run: list[ir.Paragraph], ctx: _PrecedingContext) -> ir.VerseRole | None:
     content = [p for p in run if not p.empty]
     lines = _all_lines(content)
@@ -968,10 +1071,6 @@ def _run_kind(run: list[ir.Paragraph], ctx: _PrecedingContext) -> ir.VerseRole |
         the ladder below."""
         return avg <= avg_max and (line_max is None or max(lengths) <= line_max)
 
-    if ctx.question and 2 <= len(lines) <= 12:
-        lengths = [len(line) for line in lines]
-        avg = sum(lengths) / len(lengths)
-        return "answer-block" if _passes(95, 150) else None
     # A paragraph carrying a hard `LineBreak` (`<w:br/>`) is authored multi-line
     # verse — the strongest source-lineation signal. A `SoftBreak` is prose wrapping
     # and is not counted; the walk recurses so a hard break nested in `Emph` counts.
@@ -984,7 +1083,11 @@ def _run_kind(run: list[ir.Paragraph], ctx: _PrecedingContext) -> ir.VerseRole |
     # is the weak signal (a paragraph boundary alone can't tell a couplet from two
     # prose sentences) and needs >=3. Each line is already short and label-free —
     # `_para_lineated` broke the run before any long/label line reached here.
-    confident_lineation = bool(linebreak_count) or ctx.named
+    # Visual OOXML grouping is a source signal, but it is weaker than a hard break,
+    # heading, or separator: two short same-style paragraphs after a speaker turn
+    # can still be ordinary prose. Let visual-only runs clear the weak >=3 floor
+    # before the visual branch below classifies them.
+    confident_lineation = bool(linebreak_count) or ctx.named or ctx.heading or ctx.separator
     min_lines = 2 if confident_lineation else 3
     if len(lines) < min_lines:
         return None
@@ -993,10 +1096,12 @@ def _run_kind(run: list[ir.Paragraph], ctx: _PrecedingContext) -> ir.VerseRole |
     empty_count = sum(1 for p in run if p.empty)
     if ctx.named:
         return "verse-block" if _passes(150) else None
-    if ctx.separator and len(lines) <= 24:
+    if ctx.separator and len(lines) <= 32:
         return "verse-block" if _passes(110, 160) else None
-    if ctx.heading and len(lines) <= 14:
+    if ctx.heading and len(lines) <= 32:
         return "verse-block" if _passes(95, 150) else None
+    if ctx.visual and len(lines) <= 64:
+        return "verse-block" if _passes(95, 120) else None
     if linebreak_count:
         return "verse-block"
     if empty_count and _passes(120):
@@ -1046,6 +1151,7 @@ def normalize(
     doc.blocks = scrub_rights(doc.blocks)
     doc.blocks = scrub_ai_alt(doc.blocks)
     lift_bibliography(doc, slug_lookup)
+    doc.blocks = strip_endmatter_sections(doc.blocks)
     doc.blocks = strip_bare_bibliography_heading(doc.blocks)
     doc.blocks = thematic_breaks(doc.blocks)
     doc.blocks = demote_headings(doc.blocks, demote_levels)

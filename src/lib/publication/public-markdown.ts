@@ -53,11 +53,7 @@ function cleanPublicMarkdownBody(
   });
 
   out = out.replace(/<div\s+class=["']verse-block["'][^>]*>\s*([\s\S]*?)\s*<\/div>/gi, (_match, inner: string) => {
-    return `\n\n${htmlInlineToMarkdown(inner).trim()}\n\n`;
-  });
-
-  out = out.replace(/<div\s+class=["']answer-block["'][^>]*>\s*([\s\S]*?)\s*<\/div>/gi, (_match, inner: string) => {
-    return `\n\n${htmlInlineToMarkdown(inner).trim()}\n\n`;
+    return `\n\n${portabilizeVerse(htmlInlineToMarkdown(inner).trim())}\n\n`;
   });
 
   out = out.replace(/<p\s+class=["']signature["'][^>]*>\s*([\s\S]*?)\s*<\/p>/gi, (_match, inner: string) => {
@@ -74,7 +70,7 @@ function cleanPublicMarkdownBody(
   out = rewriteMarkdownImageRefs(out, work, origin);
 
   out = htmlInlineToMarkdown(out);
-  out = out.replace(/[ \t]+\n/g, "\n");
+  out = trimTrailingWhitespacePreservingHardBreaks(out);
   out = out.replace(/\n{4,}/g, "\n\n\n");
   return out.trim() + "\n";
 }
@@ -127,6 +123,13 @@ function portabilizeVerse(body: string): string {
     }
   }
   return lines.join("\n");
+}
+
+function trimTrailingWhitespacePreservingHardBreaks(body: string): string {
+  return body.split("\n").map((line) => {
+    if (line.endsWith("  ")) return line.replace(/[ \t]+$/, "  ");
+    return line.replace(/[ \t]+$/, "");
+  }).join("\n");
 }
 
 function normalizeOrigin(origin: string): string {

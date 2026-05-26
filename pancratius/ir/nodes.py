@@ -25,8 +25,8 @@ from typing import Literal, assert_never
 # tags to it) and the lowering (mapping it to Markdown/HTML) share ONE source of
 # truth for the closed set, instead of each re-spelling the string literals.
 EmphKind = Literal["strong", "emph", "strike", "sup", "sub"]
-# The two lineated-run kinds verse detection classifies (verse vs Q&A answer).
-VerseRole = Literal["verse-block", "answer-block"]
+# The single converter-owned lineated-run wrapper emitted into canonical Markdown.
+VerseRole = Literal["verse-block"]
 
 # ---------------------------------------------------------------------------
 # Inline kinds
@@ -188,22 +188,27 @@ class Heading:
 class Paragraph:
     """A body paragraph.
 
-    `align` is the OOXML `w:jc` alignment zipped on positionally by the adapter
-    (`""` for the default); it drives signature/epigraph detection. `empty` marks
-    a Word empty paragraph — meaningful as a stanza break, so it is captured in
-    the IR before any Markdown output could lose it. `italic` records that every
-    text-bearing run carried italic (an epigraph signal).
+    `align` is the OOXML `w:jc` alignment reconciled by the adapter (`""` for the
+    default); it drives signature/epigraph detection. `lineation_group` is a
+    read-only DOCX visual-continuity group: adjacent Word paragraphs whose
+    `w:contextualSpacing` suppresses same-style paragraph spacing share the same
+    id. It is a structural source signal for verse classification, not a rendering
+    instruction. `empty` marks a Word empty paragraph — meaningful as a stanza
+    break, so it is captured in the IR before any Markdown output could lose it.
+    `italic` records that every text-bearing run carried italic (an epigraph
+    signal).
     """
 
     inlines: list[Inline]
     align: str = ""
     empty: bool = False
     italic: bool = False
+    lineation_group: int | None = None
 
 
 @dataclass
 class VerseBlock:
-    """Lineated verse / Q&A answer run.
+    """Lineated verse run.
 
     `stanzas` is a list of stanzas; each stanza is a list of display lines; each
     line is a list of inlines. A `***` stanza separator is represented as a

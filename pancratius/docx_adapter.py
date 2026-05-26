@@ -5,8 +5,9 @@ stop. No Markdown string is produced here.
 
 The primary parse is `pandoc --from docx+empty_paragraphs --to json`;
 `+empty_paragraphs` keeps Word's empty paragraphs as `Para []` so stanza breaks
-survive into the IR. The one OOXML side-channel read is paragraph alignment `w:jc`,
-which Pandoc drops; it is reconciled onto the IR's `Paragraph` blocks by content.
+survive into the IR. The OOXML side-channel reads paragraph alignment `w:jc` and
+visual lineation groups from `w:contextualSpacing`, which Pandoc drops; they are
+reconciled onto the IR's `Paragraph` blocks by content.
 
 NOT `import-pure`: it shells to pandoc, reads the DOCX zip, and extracts media into
 a caller-provided scratch dir — that impurity is isolated here so downstream stages
@@ -94,11 +95,183 @@ def run_pandoc_json(docx: Path, media_dir: Path) -> tuple[dict[str, Any], str]:
 
 @dataclass(frozen=True)
 class _JcRecord:
-    """One body `w:p`'s alignment plus its reading text, for content reconciliation
+    """One body `w:p`'s metadata plus its reading text, for content reconciliation
     against the AST paragraph sequence."""
 
     align: str
     text: str
+    lineation_group: int | None = None
+
+
+@dataclass
+class _SourceParagraph:
+    """Top-level source paragraph metadata before reconciliation onto Pandoc IR."""
+
+    align: str
+    text: str
+    style: str
+    contextual_spacing: bool
+    spacing: dict[str, str]
+    indented: bool
+    bordered: bool
+    heading: bool
+    thematic: bool
+    reconcile: bool = True
+    lineation_group: int | None = None
+
+
+@dataclass(frozen=True)
+class _StyleInfo:
+    based_on: str
+    contextual_spacing: bool
+    spacing: dict[str, str]
+
+
+def _spacing_attrs(ppr: ET.Element | None) -> dict[str, str]:
+    spacing = ppr.find(f"{W}spacing") if ppr is not None else None
+    if spacing is None:
+        return {}
+    return {k.removeprefix(W): v for k, v in spacing.attrib.items()}
+
+
+def _paragraph_styles(zf: zipfile.ZipFile) -> tuple[dict[str, _StyleInfo], str]:
+    try:
+        root = ET.fromstring(zf.read("word/styles.xml"))
+    except KeyError:
+        return {}, "Normal"
+
+    styles: dict[str, _StyleInfo] = {}
+    default = "Normal"
+    for st in root.findall(f".//{W}style"):
+        if st.get(f"{W}type") != "paragraph":
+            continue
+        style_id = str(st.get(f"{W}styleId") or "")
+        if not style_id:
+            continue
+        if st.get(f"{W}default") == "1":
+            default = style_id
+        ppr = st.find(f"{W}pPr")
+        styles[style_id] = _StyleInfo(
+            based_on=_w_val(st.find(f"{W}basedOn")),
+            contextual_spacing=(
+                ppr.find(f"{W}contextualSpacing") is not None if ppr is not None else False
+            ),
+            spacing=_spacing_attrs(ppr),
+        )
+    return styles, default
+
+
+def _w_val(el: ET.Element | None) -> str:
+    if el is None:
+        return ""
+    return str(el.get(f"{W}val") or "")
+
+
+def _style_chain(style: str, styles: dict[str, _StyleInfo]) -> list[_StyleInfo]:
+    out: list[_StyleInfo] = []
+    seen: set[str] = set()
+    cur = style
+    while cur and cur not in seen:
+        seen.add(cur)
+        got = styles.get(cur)
+        if got is None:
+            break
+        out.append(got)
+        cur = got.based_on
+    return out
+
+
+def _resolved_contextual_spacing(
+    style: str, styles: dict[str, _StyleInfo], direct: bool
+) -> bool:
+    return direct or any(info.contextual_spacing for info in _style_chain(style, styles))
+
+
+def _resolved_spacing(
+    style: str, styles: dict[str, _StyleInfo], direct: dict[str, str]
+) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for info in reversed(_style_chain(style, styles)):
+        out.update(info.spacing)
+    out.update(direct)
+    return out
+
+
+def _spacing_before_is_real(p: _SourceParagraph) -> bool:
+    if p.spacing.get("beforeAutospacing") == "1":
+        return True
+    try:
+        return int(p.spacing.get("before") or "0") > 0
+    except ValueError:
+        return False
+
+
+def _spacing_after_is_real(p: _SourceParagraph) -> bool:
+    if p.spacing.get("afterAutospacing") == "1":
+        return True
+    try:
+        return int(p.spacing.get("after") or "0") > 0
+    except ValueError:
+        return False
+
+
+def _source_paragraphs_join(a: _SourceParagraph, b: _SourceParagraph) -> bool:
+    """Whether adjacent Word paragraphs render as one visual lineated group.
+
+    This is intentionally structural. It does not decide whether the group is
+    verse-worthy; it only records that Word suppresses visible paragraph spacing
+    between same-style neighbors.
+
+    Debugging note: when this logic drifts, the fastest RCA has been a read-only
+    one-off OOXML inspector that prints paragraph index, resolved style,
+    `w:contextualSpacing`, spacing attrs, `numPr`/`ind`/`jc`/`pBdr`, and text around
+    a failing phrase. Inspect the source signals first; do not prototype by
+    rewriting the DOCX and then diffing Pandoc output.
+    """
+    if not (a.contextual_spacing and b.contextual_spacing):
+        return False
+    if a.style != b.style:
+        return False
+    if not a.text.strip() or not b.text.strip():
+        return False
+    if a.heading or b.heading or a.thematic or b.thematic:
+        return False
+    if a.indented or b.indented or a.bordered or b.bordered:
+        return False
+    if a.align != b.align:
+        return False
+    return _spacing_after_is_real(a) or _spacing_before_is_real(b)
+
+
+def _assign_lineation_groups(paragraphs: list[_SourceParagraph]) -> None:
+    group_id = 1
+    i = 0
+    while i < len(paragraphs):
+        j = i + 1
+        while j < len(paragraphs) and _source_paragraphs_join(paragraphs[j - 1], paragraphs[j]):
+            j += 1
+        if j - i > 1:
+            for p in paragraphs[i:j]:
+                p.lineation_group = group_id
+            group_id += 1
+        i = j
+
+
+def _source_boundary() -> _SourceParagraph:
+    """A top-level source block that must break visual grouping but does not
+    reconcile onto a top-level Pandoc paragraph."""
+    return _SourceParagraph(
+        align="",
+        text="",
+        style="",
+        contextual_spacing=False,
+        spacing={},
+        indented=False,
+        bordered=False,
+        heading=False,
+        thematic=False,
+        reconcile=False,
+    )
 
 
 def _paragraph_text(p: ET.Element) -> str:
@@ -124,7 +297,7 @@ def _paragraph_text(p: ET.Element) -> str:
 
 
 def read_w_jc(docx: Path) -> list[_JcRecord]:
-    """Per-body-paragraph `(align, text)` records in document order.
+    """Per-body-paragraph `(align, text, lineation_group)` records in document order.
 
     Only top-level body paragraphs are walked: the body's direct `w:p` children plus
     those nested in `w:sdt` content controls, skipping `w:tbl` contents (table cells
@@ -137,22 +310,41 @@ def read_w_jc(docx: Path) -> list[_JcRecord]:
     reconciliation in `reconcile_alignment`, not enumerated here.
     """
     with zipfile.ZipFile(docx) as zf:
+        styles, default_style = _paragraph_styles(zf)
         root = ET.fromstring(zf.read("word/document.xml"))
     body = root.find(f"{W}body")
     if body is None:
         return []
-    records: list[_JcRecord] = []
+    records: list[_SourceParagraph] = []
 
     def walk(el: ET.Element) -> None:
         for child in el:
             if child.tag == f"{W}p":
                 ppr = child.find(f"{W}pPr")
                 if ppr is not None and ppr.find(f"{W}numPr") is not None:
+                    records.append(_source_boundary())
                     continue  # list item: Pandoc collapses it into a List block
-                jc = ppr.find(f"{W}jc") if ppr is not None else None
-                align = str(jc.get(f"{W}val")) if jc is not None else ""
-                records.append(_JcRecord(align=align, text=_paragraph_text(child)))
+                direct_style = _w_val(ppr.find(f"{W}pStyle") if ppr is not None else None)
+                style = direct_style or default_style
+                direct_spacing = _spacing_attrs(ppr)
+                txt = _paragraph_text(child).strip()
+                records.append(_SourceParagraph(
+                    align=_w_val(ppr.find(f"{W}jc") if ppr is not None else None),
+                    text=txt,
+                    style=style,
+                    contextual_spacing=_resolved_contextual_spacing(
+                        style,
+                        styles,
+                        ppr.find(f"{W}contextualSpacing") is not None if ppr is not None else False,
+                    ),
+                    spacing=_resolved_spacing(style, styles, direct_spacing),
+                    indented=ppr.find(f"{W}ind") is not None if ppr is not None else False,
+                    bordered=ppr.find(f"{W}pBdr") is not None if ppr is not None else False,
+                    heading=bool(re.fullmatch(r"(?:Heading\d+|[1-9])", direct_style)),
+                    thematic=txt in {"***", "* * *", "---"},
+                ))
             elif child.tag == f"{W}tbl":
+                records.append(_source_boundary())
                 continue  # table cells are not top-level AST paragraphs
             elif child.tag == f"{W}sdt":
                 content = child.find(f"{W}sdtContent")
@@ -160,7 +352,12 @@ def read_w_jc(docx: Path) -> list[_JcRecord]:
                     walk(content)
 
     walk(body)
-    return records
+    _assign_lineation_groups(records)
+    return [
+        _JcRecord(align=p.align, text=p.text, lineation_group=p.lineation_group)
+        for p in records
+        if p.reconcile
+    ]
 
 
 def _fingerprint(text: str) -> str:
@@ -173,7 +370,7 @@ def _fingerprint(text: str) -> str:
 def reconcile_alignment(
     paragraphs: list[ir.Paragraph], records: list[_JcRecord]
 ) -> int:
-    """Assign each AST `Paragraph` its source `w:jc` alignment by CONTENT, returning
+    """Assign each AST `Paragraph` its source OOXML metadata by CONTENT, returning
     the count given a non-default alignment.
 
     Position cannot be trusted: Pandoc collapses some `w:p` out of the top-level
@@ -195,8 +392,10 @@ def reconcile_alignment(
         whose fingerprint equals the concatenated records', consuming them all.
 
     A record whose text never surfaces is skipped; a paragraph keeps `""` when no
-    reconciled record carried a right `w:jc`."""
-    if not any(r.align in {"right", "end"} for r in records):
+    reconciled record carried a right `w:jc`. `lineation_group` is assigned by the
+    same content match so verse detection can read the source visual-continuity
+    signal without a DOCX rewrite."""
+    if not records:
         return 0
 
     a_fps = [_fingerprint(_paragraph_plain(p)) for p in paragraphs]
@@ -228,7 +427,7 @@ def reconcile_alignment(
     ri = 0
     nr = len(records)
     while ri < nr:
-        if not rec_right[ri] or not rec_fps[ri]:
+        if not rec_fps[ri]:
             ri += 1
             continue
         target = rec_fps[ri]
@@ -246,7 +445,12 @@ def reconcile_alignment(
         if scan >= n:
             ri += 1  # this record's text never surfaced (collapsed away)
             continue
-        if not paragraphs[scan].align:
+        consumed_records = records[ri:ri + consumed]
+        if any(r.lineation_group is not None for r in consumed_records):
+            groups = {r.lineation_group for r in consumed_records if r.lineation_group is not None}
+            if len(groups) == 1:
+                paragraphs[scan].lineation_group = groups.pop()
+        if any(rec_right[ri:ri + consumed]) and not paragraphs[scan].align:
             paragraphs[scan].align = "right"
             assigned += 1
         cursor = scan + 1
@@ -576,10 +780,11 @@ def _table(node: dict[str, Any], ctx: _Ctx) -> ir.Table:
 def adapt(docx: Path, media_dir: Path) -> ir.Document:
     """Parse `docx` into an `ir.Document`, extracting media into `media_dir`.
 
-    `w:jc` alignment is assigned onto the top-level `Paragraph` blocks by CONTENT
-    (`reconcile_alignment`); a `warning` fires when right-aligned source paragraphs
-    exist but none reconcile, so a future drift can't ship silently. Footnote
-    definitions collected during the inline walk are attached densely renumbered.
+    `w:jc` alignment and visual lineation groups are assigned onto the top-level
+    `Paragraph` blocks by CONTENT (`reconcile_alignment`); a `warning` fires when
+    right-aligned source paragraphs exist but none reconcile, so a future drift
+    can't ship silently. Footnote definitions collected during the inline walk are
+    attached densely renumbered.
     """
     ast, warns = run_pandoc_json(docx, media_dir)
     records = read_w_jc(docx)

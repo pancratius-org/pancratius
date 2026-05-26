@@ -189,22 +189,19 @@ contains a confident run of short lineated lines, the converter emits an explici
 `<div class="verse-block">` for that run. A verse-block is a confident run of
 short lineated lines — each line is ≤120 characters, and the run carries a
 source-lineation signal: ≥2 lines when the signal is strong (a hard `<w:br/>`
-line break, or a named verse-section heading), or ≥3 lines when the signal is
-weak (lineation implied only by stanza-break empty paragraphs). A 2-line run with
-no hard break stays prose, because paragraph boundaries alone do not separate a
-couplet from two prose sentences. The wrapper contains natural source lines and
-blank stanza lines, not hand-authored `<p>` / `<br>` markup. It is converter-owned output; authors are not expected to type this
+line break, a heading, or a thematic separator), or ≥3 lines when the signal is
+weak (lineation implied only by stanza-break empty paragraphs). Short colon
+openers such as `Он говорил:` and `Разве не сказал Я:` stay inside the run;
+explicit speaker/source turns such as `Панкратиус: ...` or `Ответ от Творца:`
+end it. The wrapper contains natural source lines and blank stanza lines, not
+hand-authored `<p>` / `<br>` markup. It is converter-owned output; authors are not expected to type this
 HTML. CSS preserves that lineation while ordinary prose remains ordinary
 Markdown paragraphs. Inline emphasis inside converter-owned HTML wrappers is
 HTML (`<strong>`, `<em>`) because CommonMark does not parse `**...**` as
 Markdown inside raw HTML blocks; public Markdown downloads may rewrite those
-inline tags back to Markdown.
-
-Numbered Q/A books have a related but distinct shape: a numbered question
-heading followed by a compact run of short answer paragraphs. That is not
-automatically poetry, so the converter may emit `<div class="answer-block">`
-for the answer run instead of forcing it into verse styling. The source signal
-is the numbered question heading plus the adjacent short DOCX paragraphs.
+inline tags back to Markdown and add explicit hard-break markers so portable
+Markdown readers preserve the lineation. If a numbered Q/A answer is lineated, it
+uses the same `verse-block` contract.
 
 DOCX paragraph metadata is also source data. Pandoc's Markdown writer does not
 carry Word paragraph alignment, so the converter reads `word/document.xml`
