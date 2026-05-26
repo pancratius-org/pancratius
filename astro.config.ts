@@ -36,12 +36,12 @@ const base = isGhPages && ghRepoName ? `/${ghRepoName}/` : undefined;
 // `@astrojs/sitemap`'s built-in i18n alternate generation assumes parallel
 // slugs across locales; Pancratius's slugs differ per language, so we attach
 // `links` per route using a precomputed manifest. The manifest is built by
-// `scripts/build_slug_map.py` and lives at `data/slug-map.json` (gitignored,
+// `build/slug-map.ts` and lives at `data/slug-map.json` (gitignored,
 // regenerated before every build/dev/check).
 // ──────────────────────────────────────────────────────────────────
 
 type SlugMap = {
-  works: {
+  entries: {
     kind:   "book" | "poem" | "project";
     number: number;
     languages: Record<string, { slug: string; url: string }>;
@@ -59,12 +59,12 @@ const slugMap: SlugMap | null = existsSync(slugMapPath)
 
 // Build a lookup keyed by `(kind, lang, slug)` so we can derive alternates
 // from any work URL the sitemap visits.
-const worksByLangSlug = new Map<string, SlugMap["works"][number]>();
+const entriesByLangSlug = new Map<string, SlugMap["entries"][number]>();
 const pagesByLangSlug = new Map<string, SlugMap["pages"][number]>();
 if (slugMap) {
-  for (const w of slugMap.works) {
-    for (const lang of Object.keys(w.languages)) {
-      worksByLangSlug.set(`${w.kind}:${lang}:${w.languages[lang].slug}`, w);
+  for (const entry of slugMap.entries) {
+    for (const lang of Object.keys(entry.languages)) {
+      entriesByLangSlug.set(`${entry.kind}:${lang}:${entry.languages[lang].slug}`, entry);
     }
   }
   for (const p of slugMap.pages) {
@@ -151,7 +151,7 @@ function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }
     const lang = mWork[1] ?? DEFAULT_LOCALE;
     const kind = KIND_OF_SEGMENT[mWork[2]];
     const slug = mWork[3];
-    const w = worksByLangSlug.get(`${kind}:${lang}:${slug}`);
+    const w = entriesByLangSlug.get(`${kind}:${lang}:${slug}`);
     if (!w) return null;
     const links = Object.entries(w.languages).map(([l, info]) => {
       const path = base ? base.replace(/\/$/, "") + info.url : info.url;
