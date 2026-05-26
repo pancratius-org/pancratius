@@ -65,6 +65,7 @@ functions in process. It does not shell out to other Python CLIs.
 | --- | --- |
 | `pancratius work import <docx> --kind book|poem` | `pancratius.import_docx.import_work` |
 | `pancratius project page add <project> <subpage-slug> <docx>` | `pancratius.docx_conversion.scaffold_subpage` |
+| `pancratius video sync [--channel KEY] [--dry-run]` | `pancratius.video_scan.scan` |
 | `pancratius downloads render [--book N]` | `pancratius.render_downloads` |
 | `pancratius docx optimize [paths...]` | `pancratius.docx_optimize` |
 | `pancratius conceptosphere graph generate [--only concepts|books]` | `pancratius.conceptosphere.generate_graph` |
@@ -72,10 +73,15 @@ functions in process. It does not shell out to other Python CLIs.
 
 The grammar carries the content model:
 
-- `work import` handles corpus works only: books and poems. `project` is not a
-  work kind. PAN017 guards this.
+- `work import` handles corpus works only: books and poems. `project` and
+  `video` are routed but not works; PAN017 guards this.
 - `project page add` scaffolds a project sub-page draft. It does not edit the
   project landing and does not decide the page's editorial placement.
+- `video sync` is mechanical-only: it polls every `scan: true` channel in
+  `src/content/videos/channels.yaml` via the YouTube Data API v3 (requires
+  `YOUTUBE_API_KEY`) and scaffolds frontmatter + a `cover.<lang>.jpg`
+  thumbnail for each new video. Commentary in the body is editorial. Re-runs
+  never touch known entries.
 - Graph and embedding generation live here because they produce committed
   Python-only data products. Copying those products into `public/data/` is npm
   build work.

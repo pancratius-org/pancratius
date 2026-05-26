@@ -1,0 +1,104 @@
+---
+import type { Locale } from "@/lib/i18n";
+import { DEFAULT_LOCALE, LOCALES, routedUrl } from "@/lib/i18n";
+import { videoEntryForLocale, formatDuration, videoTags, type VideoPair } from "@/lib/videos";
+import { videoCardCopy } from "@/lib/copy";
+import { sameSitePath } from "@/lib/paths";
+import VideoCover from "./VideoCover.astro";
+
+interface Props {
+  pair:    VideoPair;
+  locale:  Locale;
+  /** Optional short blurb shown under the title (italic). */
+  blurb?:  string;
+}
+
+const { pair, locale, blurb } = Astro.props;
+const copy = videoCardCopy[locale];
+const localeFallback = locale !== DEFAULT_LOCALE && !pair.entries[locale];
+const display = videoEntryForLocale(pair, locale);
+const linkLocale: Locale = localeFallback ? DEFAULT_LOCALE : locale;
+const href = sameSitePath(routedUrl("video", display.data.slug, linkLocale));
+const tags = videoTags(display);
+const hasTranslationBadge =
+  locale === DEFAULT_LOCALE && LOCALES.some(l => l !== DEFAULT_LOCALE && !!pair.entries[l]);
+const altPrefix = copy.coverAltPrefix;
+const duration = formatDuration(display.data.duration);
+---
+<a
+  class="vid"
+  href={href}
+  role="listitem"
+  data-title={display.data.title.toLowerCase()}
+  data-tags={tags.join("|")}
+  data-number={pair.number}
+>
+  <VideoCover pair={pair} locale={locale} alt={`${altPrefix}: ${display.data.title}`} badge={duration} />
+  <div class="vid__body">
+    <span class="vid__num">{String(pair.number).padStart(2, "0")}</span>
+    <h2 class="vid__title">{display.data.title}</h2>
+    {blurb && <p class="vid__annot">{blurb}</p>}
+    {hasTranslationBadge && <span class="vid__lang">{copy.bothLangsBadge}</span>}
+    {localeFallback && <span class="vid__lang vid__lang--fallback">{copy.fallbackBadge}</span>}
+  </div>
+</a>
+
+<style>
+  .vid {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 0.9rem;
+    text-decoration: none;
+    color: inherit;
+  }
+  .vid :global(.vcv) {
+    transition: border-color 0.18s var(--ease);
+  }
+  .vid:hover :global(.vcv) { border-color: var(--accent-soft); }
+  .vid__num {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    color: var(--ink-mute);
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+  .vid__title {
+    font-family: var(--serif);
+    font-size: 1.15rem;
+    line-height: 1.22;
+    font-weight: 600;
+    letter-spacing: -0.012em;
+    color: var(--ink);
+    margin: 0 0 0.45rem;
+    text-wrap: balance;
+  }
+  .vid:hover .vid__title { color: var(--accent); }
+  .vid__annot {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .vid__lang {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: var(--ink-mute);
+    margin-top: 0.55rem;
+    display: inline-block;
+  }
+  .vid__lang--fallback {
+    color: var(--accent-soft);
+    border-bottom: 1px dashed var(--rule-2);
+  }
+  .vid.is-hidden { display: none; }
+</style>

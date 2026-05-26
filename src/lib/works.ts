@@ -11,12 +11,11 @@ import type { CorpusWorkKind, Locale, RoutedKind } from "./i18n";
 import { DEFAULT_LOCALE, LOCALE_META, LOCALES, workUrl } from "./i18n";
 
 /**
- * The kinds the WORK-PAIR machinery handles. Projects are deliberately NOT in
- * this union: they are themed sections, not downloadable works, and live in
- * `src/lib/projects.ts`. `RoutedKind` (kinds.ts) stays `book|poem|project` for
- * URL-segment purposes, but the type below is what prevents a project from
- * flowing through `getAllWorkPairs`, `getPairsByKind`, `findPair`, or the
- * download routes — those all take `WorkPairKind`.
+ * Kinds the WORK-PAIR machinery handles. A strict subset of `RoutedKind` —
+ * projects (themed sections, `src/lib/projects.ts`) and videos (catalogued
+ * routed kind, `src/lib/videos.ts`) route but aren't works, so they don't
+ * flow through `getAllWorkPairs`, `getPairsByKind`, `findPair`, or the
+ * download routes (all keyed on `WorkPairKind`).
  */
 export type WorkPairKind = CorpusWorkKind;
 
@@ -265,12 +264,12 @@ export async function resolveCrossRefs(
   if (refs.length === 0) return [];
   const resolved: ResolvedCrossRef[] = [];
   for (const ref of refs) {
-    // Work cross_refs only resolve to works (books/poems). A project target
-    // here would be a content bug — the work-pair machinery doesn't carry
-    // projects (they're sections, resolved in `src/lib/projects.ts`).
-    if (ref.target.kind === "project") {
+    // Work cross_refs only resolve to works (books/poems). Project or video
+    // targets would be content bugs — the work-pair machinery doesn't carry
+    // either (projects: `src/lib/projects.ts`; videos: `src/lib/videos.ts`).
+    if (ref.target.kind === "project" || ref.target.kind === "video") {
       throw new Error(
-        `cross_refs from ${entry.id} targets a project (${ref.target.kind} #${ref.target.number}); ` +
+        `cross_refs from ${entry.id} targets a ${ref.target.kind} (#${ref.target.number}); ` +
         `works can only cross-reference books or poems`,
       );
     }

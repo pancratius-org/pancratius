@@ -1,0 +1,38 @@
+# Pancratius video channels.
+#
+# Two consumers:
+#   - the site renders a channel strip at the top of /videos/
+#   - `uv run pancratius video sync` polls each channel with `scan: true`
+#
+# Adding a channel: append an entry below. `id` is the channel key referenced
+# from a video's `sources[].channel`. `scan: false` keeps the card on /videos/
+# but skips it during sync (catalogue-only).
+
+- id: main
+  platform: youtube
+  handle: "@pankratyus"
+  channel_id: ""
+  url: "https://www.youtube.com/@pankratyus"
+  title:
+    ru: "Основной канал"
+    en: "Main channel"
+  copy:
+    ru: "Главный канал Панкратиуса с книгами, чтениями, смыслами и видеосериями."
+    en: "Pancratius' main channel — books, readings, reflections, and video series."
+  scan: true
+
+- id: arabic
+  platform: youtube
+  handle: "@Pankratius-Muslim"
+  channel_id: ""
+  url: "https://www.youtube.com/@Pankratius-Muslim"
+  badge:
+    ru: "ислам"
+    en: "Islam"
+  title:
+    ru: "Арабский канал"
+    en: "Arabic channel"
+  copy:
+    ru: "Отдельный канал для мусульманской аудитории на арабском языке."
+    en: "A separate Arabic-language channel for Muslim audiences."
+  scan: false

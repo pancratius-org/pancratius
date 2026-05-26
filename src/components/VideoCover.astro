@@ -1,0 +1,83 @@
+---
+import type { Locale } from "@/lib/i18n";
+import { videoCoverAssetUrl, type VideoPair } from "@/lib/videos";
+
+interface Props {
+  pair:    VideoPair;
+  locale:  Locale;
+  alt:     string;
+  /** `eager` for above-the-fold covers (video page masthead), `lazy` otherwise. */
+  loading?: "lazy" | "eager";
+  /** Optional badge text (typically duration `8:42`) rendered in the bottom-right. */
+  badge?:  string;
+}
+
+const { pair, locale, alt, loading = "lazy", badge } = Astro.props;
+const url = await videoCoverAssetUrl(pair, locale);
+---
+<div class:list={["vcv", !url && "vcv--empty"]} aria-hidden={url ? undefined : "true"}>
+  {url ? (
+    <img
+      src={url}
+      alt={alt}
+      loading={loading}
+      decoding="async"
+      width="1280"
+      height="720"
+      fetchpriority={loading === "eager" ? "high" : undefined}
+    />
+  ) : (
+    <span class="vcv__num">{pair.number}</span>
+  )}
+  {badge && <span class="vcv__badge">{badge}</span>}
+</div>
+
+<style>
+  .vcv {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: var(--bg-rise);
+    border: 1px solid var(--rule);
+    overflow: hidden;
+    box-shadow: var(--paper-shadow);
+    transition: border-color 0.18s var(--ease), transform 0.32s var(--ease);
+  }
+  .vcv img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0.94;
+    transition: opacity 0.32s var(--ease);
+  }
+  :global([data-theme="light"]) .vcv img { opacity: 1; }
+  .vcv--empty {
+    display: grid;
+    place-items: center;
+  }
+  .vcv__num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-size: 2.4rem;
+    color: var(--ink-mute);
+    line-height: 1;
+  }
+  .vcv__badge {
+    position: absolute;
+    right: 0.55rem;
+    bottom: 0.55rem;
+    background: rgba(0, 0, 0, 0.78);
+    color: #fff;
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    padding: 2px 6px;
+    border-radius: 2px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+  }
+</style>

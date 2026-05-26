@@ -352,6 +352,43 @@ def _add_docx_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     optimize.set_defaults(func=_docx_optimize)
 
 
+def _video_sync(args: argparse.Namespace) -> int:
+    """`video sync` — poll configured YouTube channels, scaffold drafts for new
+    videos. Mechanical only; commentary in the body is editorial.
+
+    Re-runs are idempotent: known IDs are skipped, editor edits preserved."""
+    from pancratius import video_scan
+
+    dry_run: bool = args.dry_run
+    try:
+        result = video_scan.scan(channel_key=args.channel, dry_run=dry_run)
+    except video_scan.VideoScanError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    video_scan.print_result(result, dry_run=dry_run)
+    return 0
+
+
+def _add_video_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    video = sub.add_parser("video", help="Catalogue and sync YouTube/mirror videos.")
+    video.set_defaults(func=_require_subcommand(video))
+    video_sub = video.add_subparsers(dest="noun", metavar="<noun>")
+    sync = video_sub.add_parser(
+        "sync",
+        help="Poll configured channels and scaffold draft entries for new videos.",
+    )
+    sync.add_argument(
+        "--channel",
+        help="Restrict to a single channel key (from src/content/videos/channels.yaml).",
+    )
+    sync.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print planned actions; write nothing.",
+    )
+    sync.set_defaults(func=_video_sync)
+
+
 def _add_conceptosphere_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     conceptosphere = sub.add_parser("conceptosphere", help="Generate committed concept graph data.")
     conceptosphere.set_defaults(func=_require_subcommand(conceptosphere))
@@ -416,6 +453,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="group", metavar="<group>")
     _add_work_group(sub)
     _add_project_group(sub)
+    _add_video_group(sub)
     _add_downloads_group(sub)
     _add_docx_group(sub)
     _add_conceptosphere_group(sub)
