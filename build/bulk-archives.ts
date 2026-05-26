@@ -4,8 +4,10 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
+  mkdtempSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -14,14 +16,17 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-import { renderPublicMarkdown } from "../src/lib/public-markdown.ts";
 import { SEGMENT_OF } from "../src/lib/kinds.ts";
 import { LOCALES, type Locale } from "../src/lib/locales.ts";
+import { renderPublicWorkMarkdown } from "../src/lib/publication/public-markdown.ts";
+import { publicationOrigin } from "../src/lib/publication/site.ts";
+import { readFrontmatter, stringField } from "./frontmatter.ts";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CONTENT = join(REPO_ROOT, "src", "content");
 const CACHE_DIR = join(REPO_ROOT, ".cache", "bulk-archives");
 const MANIFEST = join(REPO_ROOT, "data", "bulk-archives.json");
+const PUBLIC_ORIGIN = publicationOrigin();
 
 // The bulk corpus archive ships WORKS only — books + poems. Projects are themed
 // sections, not corpus works: they're excluded here just as they are from the
@@ -58,21 +63,8 @@ interface ArchiveInfo {
   items: number;
 }
 
-function frontmatterScalar(text: string, key: string): string | null {
-  if (!text.startsWith("---")) return null;
-  const end = text.indexOf("\n---", 3);
-  if (end < 0) return null;
-  const lines = text.slice(4, end).split("\n");
-  for (const line of lines) {
-    const match = new RegExp(`^${key}:\\s*(.+?)\\s*$`).exec(line);
-    if (!match) continue;
-    return match[1].replace(/^['"]|['"]$/g, "");
-  }
-  return null;
-}
-
 function slugFor(mdPath: string): string | null {
-  return frontmatterScalar(readFileSync(mdPath, "utf-8"), "slug");
+  return stringField(readFrontmatter(mdPath, REPO_ROOT), "slug") ?? null;
 }
 
 function iterEntries(format: Format): Entry[] {
@@ -113,23 +105,27 @@ function humanBytes(size: number): string {
 }
 
 function zipWithSystem(zipPath: string, files: { arcname: string; path?: string; content?: string }[]): void {
-  const tmpRoot = join(CACHE_DIR, `.tmp-${basename(zipPath, ".zip")}`);
-  rmrf(tmpRoot);
-  mkdirSync(tmpRoot, { recursive: true });
-  for (const file of files) {
-    const dst = join(tmpRoot, file.arcname);
-    mkdirSync(dirname(dst), { recursive: true });
-    if (file.content !== undefined) {
-      writeFileSync(dst, file.content, "utf-8");
-    } else if (file.path) {
-      copyFileSync(file.path, dst);
+  const tmpRoot = mkdtempSync(join(CACHE_DIR, `.tmp-${basename(zipPath, ".zip")}-`));
+  const stagedZipPath = join(CACHE_DIR, `${basename(tmpRoot)}.zip`);
+  try {
+    for (const file of files) {
+      const dst = join(tmpRoot, file.arcname);
+      mkdirSync(dirname(dst), { recursive: true });
+      if (file.content !== undefined) {
+        writeFileSync(dst, file.content, "utf-8");
+      } else if (file.path) {
+        copyFileSync(file.path, dst);
+      }
     }
-  }
-  const args = ["-q", "-r", zipPath, "."];
-  const result = spawnSync("zip", args, { cwd: tmpRoot, encoding: "utf-8" });
-  rmrf(tmpRoot);
-  if (result.status !== 0) {
-    throw new Error(`zip failed for ${zipPath}: ${result.stderr || result.stdout}`);
+    const args = ["-q", "-r", stagedZipPath, "."];
+    const result = spawnSync("zip", args, { cwd: tmpRoot, encoding: "utf-8" });
+    if (result.status !== 0) {
+      throw new Error(`zip failed for ${zipPath}: ${result.stderr || result.stdout}`);
+    }
+    renameSync(stagedZipPath, zipPath);
+  } finally {
+    rmrf(stagedZipPath);
+    rmrf(tmpRoot);
   }
 }
 
@@ -142,17 +138,18 @@ function buildArchive(format: Format): ArchiveInfo | null {
   const outPath = join(CACHE_DIR, `all-${format}.zip`);
   const entries = iterEntries(format);
   if (entries.length === 0) return null;
-  if (existsSync(outPath)) rmrf(outPath);
 
   zipWithSystem(outPath, entries.map((entry) => {
     const arcname = `${KIND_DIRS[entry.kind]}/${entry.lang}/${entry.slug}.${format}`;
     if (format === "md") {
       return {
         arcname,
-        content: renderPublicMarkdown(readFileSync(entry.mdPath, "utf-8"), {
-          kind: entry.kind,
-          workKey: entry.workKey,
-          isVerse: entry.kind === "poem",
+        content: renderPublicWorkMarkdown(readFileSync(entry.mdPath, "utf-8"), {
+          origin: PUBLIC_ORIGIN,
+          work: {
+            kind: entry.kind,
+            bundleKey: entry.workKey,
+          },
         }),
       };
     }
