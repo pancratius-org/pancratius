@@ -234,7 +234,7 @@ export async function getMergedSimilar(input: SimilarPickInput): Promise<Similar
 
   for (const bucket of buckets.values()) {
     // «Похожие книги» is a books-only surface per docs/conceptosphere.md.
-    // top_similar_embed leaks poems/projects into the input lists; filter them out.
+    // top_similar_embed can include poetry; filter non-books out.
     if (bucket.ref.kind !== "book") continue;
     if (bucket.ref.slug === selfSlug) continue;
 

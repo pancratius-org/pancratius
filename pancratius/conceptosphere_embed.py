@@ -7,20 +7,20 @@ A third complementary view alongside the co-occurrence pipeline. Instead of
 similar things even when they use different vocabulary."
 
 Pipeline:
-  1. Read every src/content/{books,poetry,projects}/<slug>/ru.md
+  1. Read every src/content/{books,poetry}/<slug>/ru.md
   2. Strip YAML frontmatter + Markdown syntax
   3. Sentence-split with razdel (Russian-aware)
   4. Pack into ~400-token chunks with ~50-token overlap, on sentence boundaries
   5. Embed each chunk with Qwen3-Embedding-0.6B via mlx-embeddings (MLX on M-series)
        - last-token pooling (decoder model); embeddings are L2-normalised in-model
        - cache as .npy per (slug, chunk_idx) for cheap re-runs
-  6. Per-book centroid = length-weighted mean of chunk embeddings, renormalised
-  7. Cosine similarity between every pair of book centroids
+  6. Per-document centroid = length-weighted mean of chunk embeddings, renormalised
+  7. Cosine similarity between every pair of document centroids
   8. Sparsify: union of (top-K mutual NN, k=10) ∪ (global threshold edges)
   9. Leiden communities on the sparsified graph (resolution=1.0, weighted)
  10. HDBSCAN over the chunk-level embedding space → topics; label each topic
      by top TF-IDF terms of its member chunks
- 11. Emit JSON: nodes (books), edges (book-book similarity), topics, communities
+ 11. Emit JSON: nodes, edges (document similarity), topics, communities
 
 Run:
     uv run pancratius conceptosphere embed generate
@@ -170,7 +170,7 @@ def clean_markdown(body: str) -> str:
 @dataclass
 class Doc:
     slug: str
-    kind: str          # "book" | "poem" | "project"
+    kind: str          # "book" | "poem"
     number: int | None
     title: str
     tags: list[str]
@@ -193,7 +193,7 @@ def localized_text(value: object, lang: str = "ru") -> str:
 
 def collect_docs() -> list[Doc]:
     docs: list[Doc] = []
-    for kind, subdir in (("book", "books"), ("poem", "poetry"), ("project", "projects")):
+    for kind, subdir in (("book", "books"), ("poem", "poetry")):
         root = CONTENT / subdir
         if not root.exists():
             continue
@@ -285,12 +285,12 @@ def chunk_sentences(
 # ---------------------------------------------------------------------------
 def _cache_paths(model_id: str, slug: str) -> tuple[Path, Path]:
     safe_model = model_id.replace("/", "__")
-    book_dir = CACHE_DIR / safe_model
-    book_dir.mkdir(parents=True, exist_ok=True)
-    return book_dir / f"{slug}.npy", book_dir / f"{slug}.json"
+    doc_dir = CACHE_DIR / safe_model
+    doc_dir.mkdir(parents=True, exist_ok=True)
+    return doc_dir / f"{slug}.npy", doc_dir / f"{slug}.json"
 
 
-def load_book_cache(model_id: str, slug: str, chunks_now: list[str]) -> np.ndarray | None:
+def load_doc_cache(model_id: str, slug: str, chunks_now: list[str]) -> np.ndarray | None:
     """If cache exists and chunks match exactly, return the embedding matrix."""
     npy, jsn = _cache_paths(model_id, slug)
     if not npy.exists() or not jsn.exists():
@@ -309,7 +309,7 @@ def load_book_cache(model_id: str, slug: str, chunks_now: list[str]) -> np.ndarr
     return arr
 
 
-def save_book_cache(model_id: str, slug: str, chunks: list[str], embs: np.ndarray) -> None:
+def save_doc_cache(model_id: str, slug: str, chunks: list[str], embs: np.ndarray) -> None:
     npy, jsn = _cache_paths(model_id, slug)
     np.save(npy, embs)
     jsn.write_text(json.dumps({
@@ -351,11 +351,11 @@ def embed_chunks(
 # ---------------------------------------------------------------------------
 # Graph construction
 # ---------------------------------------------------------------------------
-def build_book_graph(
+def build_content_graph(
     centroids: np.ndarray,
     slugs: list[str],
 ) -> tuple[list[tuple[int, int, float]], np.ndarray]:
-    """Build sparsified book-book similarity graph.
+    """Build sparsified document-similarity graph.
 
     Returns (edges as (i, j, sim) with i<j, sims_matrix).
     """
@@ -433,8 +433,8 @@ def betweenness_centrality(n_nodes: int, edges: list[tuple[int, int, float]]) ->
 def discover_topics(
     chunk_embs: np.ndarray,
     chunk_texts: list[str],
-    chunk_book_slug: list[str],
-    chunk_book_title: list[str],
+    chunk_doc_slug: list[str],
+    chunk_doc_title: list[str],
 ) -> list[dict]:
     import hdbscan
     from sklearn.feature_extraction.text import TfidfVectorizer
@@ -532,16 +532,16 @@ def discover_topics(
         order = np.argsort(-sims)
         sample_chunk_idx = [member_idx[k] for k in order[:5]]
 
-        # Books predominantly in this topic
+        # Documents predominantly in this topic
         slug_counts: Counter[str] = Counter()
         title_for: dict[str, str] = {}
         for i in member_idx:
-            slug_counts[chunk_book_slug[i]] += 1
-            title_for[chunk_book_slug[i]] = chunk_book_title[i]
-        # Normalize: per-book chunk count
-        sample_books = []
+            slug_counts[chunk_doc_slug[i]] += 1
+            title_for[chunk_doc_slug[i]] = chunk_doc_title[i]
+        # Normalize: per-document chunk count
+        sample_docs = []
         for slug, cnt in slug_counts.most_common(8):
-            sample_books.append({"slug": slug, "title": title_for[slug], "chunks": cnt})
+            sample_docs.append({"slug": slug, "title": title_for[slug], "chunks": cnt})
 
         # Label: first 2-3 most distinctive terms, title-cased; preserve case of names.
         label_terms = top_terms[:3]
@@ -552,9 +552,9 @@ def discover_topics(
             "label": label,
             "size": len(member_idx),
             "top_terms": top_terms,
-            "sample_books": sample_books,
+            "sample_books": sample_docs,
             "sample_chunks": [
-                {"slug": chunk_book_slug[i], "preview": chunk_texts[i][:280]}
+                {"slug": chunk_doc_slug[i], "preview": chunk_texts[i][:280]}
                 for i in sample_chunk_idx
             ],
         })
@@ -591,8 +591,7 @@ def generate_embeddings(
         docs = docs[:limit]
     print(f"[i] {len(docs)} documents collected "
           f"(books={sum(d.kind=='book' for d in docs)}, "
-          f"poems={sum(d.kind=='poem' for d in docs)}, "
-          f"projects={sum(d.kind=='project' for d in docs)})")
+          f"poems={sum(d.kind=='poem' for d in docs)})")
 
     # ---- chunk every doc ----
     print("[i] chunking …")
@@ -617,12 +616,12 @@ def generate_embeddings(
     model, tokenizer = load(model_id)
     print(f"[i] model loaded in {time.time()-t:.2f}s")
 
-    # Walk every book, embed missing chunks, cache.
+    # Walk every document, embed missing chunks, cache.
     print("[i] embedding …")
     t_embed = time.time()
-    book_embs: list[np.ndarray] = []
-    chunk_book_slug: list[str] = []
-    chunk_book_title: list[str] = []
+    doc_embs: list[np.ndarray] = []
+    chunk_doc_slug: list[str] = []
+    chunk_doc_title: list[str] = []
     chunk_texts_all: list[str] = []
     chunk_embs_all: list[np.ndarray] = []
 
@@ -633,7 +632,7 @@ def generate_embeddings(
             # empty doc — assign a zero centroid; will be a graph outlier
             embs = np.zeros((0, 1), dtype=np.float32)
         else:
-            cached = None if rebuild else load_book_cache(model_id, d.slug, chunks)
+            cached = None if rebuild else load_doc_cache(model_id, d.slug, chunks)
             if cached is not None:
                 embs = cached.astype(np.float32)
                 n_cached += len(chunks)
@@ -645,14 +644,14 @@ def generate_embeddings(
                 # re-normalise to be safe (mlx-embeddings already does this)
                 norms = np.linalg.norm(embs, axis=1, keepdims=True) + 1e-9
                 embs = (embs / norms).astype(np.float32)
-                save_book_cache(model_id, d.slug, chunks, embs)
+                save_doc_cache(model_id, d.slug, chunks, embs)
                 n_computed += len(chunks)
                 print(f"  · {d.slug}: {len(chunks)} chunks "
                       f"in {time.time()-t_b:.2f}s")
-        book_embs.append(embs)
-        for ci, c in enumerate(chunks):
-            chunk_book_slug.append(d.slug)
-            chunk_book_title.append(d.title)
+        doc_embs.append(embs)
+        for c in chunks:
+            chunk_doc_slug.append(d.slug)
+            chunk_doc_title.append(d.title)
             chunk_texts_all.append(c)
         chunk_embs_all.append(embs)
     chunk_embs_all = np.concatenate(chunk_embs_all, axis=0) if chunk_embs_all else np.zeros((0, 1024))
@@ -665,20 +664,20 @@ def generate_embeddings(
         mu = chunk_embs_all.mean(axis=0, keepdims=True)
         chunk_embs_all = chunk_embs_all - mu
         chunk_embs_all /= np.maximum(1e-9, np.linalg.norm(chunk_embs_all, axis=1, keepdims=True))
-        # Re-slice per-book matrices from the centered concat so downstream
+        # Re-slice per-document matrices from the centered concat so downstream
         # centroid + topic code uses centered chunks.
         _offset = 0
-        for _i in range(len(book_embs)):
-            _n = book_embs[_i].shape[0]
-            book_embs[_i] = chunk_embs_all[_offset : _offset + _n]
+        for _i in range(len(doc_embs)):
+            _n = doc_embs[_i].shape[0]
+            doc_embs[_i] = chunk_embs_all[_offset : _offset + _n]
             _offset += _n
         print(f"[i] mean-centered all chunks (||mu||={float(np.linalg.norm(mu)):.4f})")
 
-    # ---- per-book centroids ----
+    # ---- per-document centroids ----
     centroids = []
     valid_idx = []
     for i, (d, chunks) in enumerate(chunked):
-        embs = book_embs[i]
+        embs = doc_embs[i]
         if embs.shape[0] == 0 or embs.shape[1] == 0:
             print(f"[!] {d.slug} has no chunks; skipping")
             continue
@@ -690,7 +689,7 @@ def generate_embeddings(
         centroids.append(c)
         valid_idx.append(i)
     centroids = np.stack(centroids, axis=0) if centroids else np.zeros((0, 1024))
-    print(f"[i] {centroids.shape[0]} book centroids · dim {centroids.shape[1]}")
+    print(f"[i] {centroids.shape[0]} document centroids · dim {centroids.shape[1]}")
 
     # node order = valid_idx order
     nodes_docs = [chunked[i][0] for i in valid_idx]
@@ -698,8 +697,8 @@ def generate_embeddings(
     chunk_counts = [len(chunked[i][1]) for i in valid_idx]
 
     # ---- graph ----
-    edges, sims = build_book_graph(centroids, slugs)
-    print(f"[i] {len(edges)} book-book edges "
+    edges, sims = build_content_graph(centroids, slugs)
+    print(f"[i] {len(edges)} document-document edges "
           f"(min sim={MIN_SIM_FOR_EDGE}, top-K={TOP_K_PER_NODE}, "
           f"threshold={GLOBAL_SIM_THRESHOLD})")
 
@@ -740,7 +739,7 @@ def generate_embeddings(
         for cid in sorted(com_members)
     ]
 
-    # ---- most-similar (top 10) per book ----
+    # ---- most-similar (top 10) per document ----
     # use raw sims (before pruning), exclude self
     top10_per: list[list[dict]] = []
     for i in range(len(slugs)):
@@ -761,27 +760,16 @@ def generate_embeddings(
     print("[i] discovering topics over chunk embeddings …")
     t = time.time()
     topics = discover_topics(chunk_embs_all, chunk_texts_all,
-                             chunk_book_slug, chunk_book_title)
+                             chunk_doc_slug, chunk_doc_title)
     print(f"[i] {len(topics)} topics in {time.time()-t:.2f}s")
 
-    # Per-node primary topic (the topic with the most member chunks for that book)
-    book_topic_counts: dict[str, Counter[int]] = defaultdict(Counter)
+    # Per-node primary topic (the topic with the most member chunks for that document)
+    doc_topic_counts: dict[str, Counter[int]] = defaultdict(Counter)
     if topics:
-        # Recompute the cluster label per chunk to keep ids stable
-        # (simpler: assign by argmax of mean-sim to topic centroids)
-        topic_centroids = []
+        # Coarse but stable: mark each topic's sampled documents with its chunk count.
         for t_ in topics:
-            mem = [i for i, sl in enumerate(chunk_book_slug)
-                   if any(sl == sb["slug"] for sb in t_["sample_books"])]
-            # actually easier: reconstruct from sample_chunks centroid via top_terms; skip.
-        # Recompute from the labels we built above by re-running argmax over cluster centroids:
-        # to avoid re-running HDBSCAN we recompute centroids from chunk_embs by topic via top-term overlap.
-        # Simpler approach: for each chunk, find topic whose top_terms overlap most with the chunk's lemmas.
-        # This is a coarse proxy but good enough for the per-node primary_topic field.
-        # — replaced with the simpler: for each topic, mark its sample_books with that topic.
-        for ti, t_ in enumerate(topics):
             for sb in t_["sample_books"]:
-                book_topic_counts[sb["slug"]][t_["id"]] += sb["chunks"]
+                doc_topic_counts[sb["slug"]][t_["id"]] += sb["chunks"]
 
     # ---- emit JSON ----
     PALETTE_LEN = 20  # matches conceptosphere.html
@@ -799,7 +787,6 @@ def generate_embeddings(
         "stats": {
             "books": int(sum(d.kind == "book" for d in nodes_docs)),
             "poems": int(sum(d.kind == "poem" for d in nodes_docs)),
-            "projects": int(sum(d.kind == "project" for d in nodes_docs)),
             "nodes": len(slugs),
             "chunks": int(chunk_embs_all.shape[0]),
             "edges": len(edges),
@@ -820,8 +807,8 @@ def generate_embeddings(
                 "degree": deg[i],
                 "centrality": round(float(bc[i]), 4),
                 "community": int(membership[i]),
-                "primary_topic": (book_topic_counts[slugs[i]].most_common(1)[0][0]
-                                  if book_topic_counts.get(slugs[i]) else None),
+                "primary_topic": (doc_topic_counts[slugs[i]].most_common(1)[0][0]
+                                  if doc_topic_counts.get(slugs[i]) else None),
                 "most_similar": top10_per[i],
             }
             for i in range(len(slugs))
