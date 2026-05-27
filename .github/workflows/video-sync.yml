@@ -1,0 +1,109 @@
+name: Sync videos
+
+# Weekly poll of Sergey's YouTube channels via the Data API v3. Runs
+# `uv run pancratius video sync`, validates the site still builds with the new
+# scaffolds, opens (or updates) `bot/video-sync` PR, then enables auto-merge.
+#
+# One-time setup in repo settings:
+#   1. Secrets and variables → Actions → New secret: `YOUTUBE_API_KEY`.
+#   2. General → Pull Requests → enable "Allow auto-merge".
+#   3. If branch protection requires reviewers on main, add a bypass for the
+#      `github-actions[bot]` author or drop the requirement for this branch.
+#
+# Validation runs INSIDE this workflow (npm check + audit) so the PR is opened
+# only after the site builds clean. Auto-merge can then fire with no extra
+# required checks. PRs triggered by the default GITHUB_TOKEN do not re-run
+# build.yml, which is why we validate here instead of relying on PR checks.
+
+on:
+  schedule:
+    - cron: "0 9 * * 0"   # Sundays 09:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: video-sync
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          lfs: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: "npm"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - name: Install Python deps
+        run: uv sync --frozen
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Scan YouTube channels for new videos
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: uv run --frozen pancratius video sync
+
+      - name: Stop early if nothing changed
+        id: diff
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No new videos; skipping PR + validation."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git status --short
+          fi
+
+      - name: Type-check (astro check)
+        if: steps.diff.outputs.changed == 'true'
+        run: npm run check
+
+      - name: Audit (contracts + selftest)
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          npm run audit
+          npm run audit:selftest
+
+      - name: Build site (Astro + bulk archive + Pagefind)
+        if: steps.diff.outputs.changed == 'true'
+        run: npm run build
+
+      - name: Audit built site (post-build deploy crawl)
+        if: steps.diff.outputs.changed == 'true'
+        run: npm run audit:deploy
+
+      - name: Open or update PR
+        if: steps.diff.outputs.changed == 'true'
+        id: cpr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          branch: bot/video-sync
+          delete-branch: true
+          commit-message: "feat: sync new videos"
+          title: "feat: sync new videos"
+          body: |
+            Automated by `.github/workflows/video-sync.yml`.
+
+            Site checks (`npm run check`, `npm run audit`) passed inside the
+            workflow before this PR was opened, so it should auto-merge as
+            soon as GitHub clears it.
+
+      - name: Enable auto-merge
+        if: steps.cpr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge --squash --auto "${{ steps.cpr.outputs.pull-request-number }}"
