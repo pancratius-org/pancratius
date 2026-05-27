@@ -18,15 +18,18 @@ What is frozen, per case, under ``tests/golden/<case>/``:
 
 Deliberate-update path:
   Run with ``GOLDEN_UPDATE=1`` to (re)generate every golden file instead of
-  asserting. Phase 4 will use this to update the footnote goldens with a
-  reviewed diff once the orphaned-``[^N]`` bug is fixed. Example:
+  asserting. Use this only when the importer behavior changed deliberately and
+  the resulting diff has been reviewed against the source DOCX intent. Example:
 
-      GOLDEN_UPDATE=1 uv run pytest tests/test_golden_import.py
+      GOLDEN_UPDATE=1 uv run pytest tests/python/test_golden_import.py
 
-KNOWN-BUG NOTE: case ``book62`` currently emits orphaned ``[^1]``..``[^5]``
-footnote references with NO matching definitions (the converter drops the
-footnote bodies). Freezing that buggy output now is intentional — Phase 4 fixes
-the bug and updates this golden on purpose, with the diff under review.
+Fixture-source rule:
+  The ``docx`` paths in ``CASES`` are the inputs under test, and today they point
+  at the canonical in-place corpus DOCX files under ``src/content``. If one of
+  those DOCX files changes, a golden failure may be expected rather than a parser
+  regression. First inspect the imported diff against the new DOCX intent and the
+  refreshed corpus body; only then promote the new snapshot with
+  ``GOLDEN_UPDATE=1``.
 
 Determinism: tests do not depend on machine-local paths and guard on
 pandoc + PIL availability (both installed here, so they RUN). The DOCX artifact
@@ -59,10 +62,13 @@ from pancratius import footnotes  # noqa: E402
 from pancratius.content_catalog import KIND_DIRS, dump_frontmatter, split_frontmatter  # noqa: E402
 
 
-pytestmark = pytest.mark.skipif(
-    shutil.which("pandoc") is None or importlib.util.find_spec("PIL") is None,
-    reason="pandoc and pillow are required",
-)
+pytestmark = [
+    pytest.mark.pandoc,
+    pytest.mark.skipif(
+        shutil.which("pandoc") is None or importlib.util.find_spec("PIL") is None,
+        reason="pandoc and pillow are required",
+    ),
+]
 
 GOLDEN_DIR = Path(__file__).resolve().parent / "golden"
 GOLDEN_UPDATE = os.environ.get("GOLDEN_UPDATE") == "1"
@@ -109,10 +115,9 @@ class GoldenCase:
 # Chosen cases (smallest real source DOCX that covers each required signal):
 #
 #   poem01 — verse / stanzas.
-#            legacy/poetry/01. А если буду я не прав/...docx
-#   book62 — body images + bibliography table + the KNOWN orphaned-[^N]
-#            footnote bug (5 refs, 0 defs). One case, three signals.
-#            legacy/books/ru/62-книга-тишины.docx
+#            src/content/poetry/01-a-esli-budu-ya-ne-prav/ru.docx
+#   book62 — body images + bibliography table + footnotes.
+#            src/content/books/62-kniga-tishiny/ru.docx
 #   book23 — well-formed footnotes (1 ref + 1 def). Stored as a regular IR
 #            snapshot. (It used to anchor a committed-corpus cross-check: its
 #            imported body had to equal the committed
@@ -121,14 +126,14 @@ class GoldenCase:
 #            the 6.2 cutover the IR importer diverges from the legacy committed
 #            file BY DESIGN, so the cross-check is gone and book23 is a stored IR
 #            golden like the others.)
-#            legacy/books/ru/23-личность-и-эго.docx
+#            src/content/books/23-lichnost-i-ego/ru.docx
 #   book18 — ordinary prose / Q&A (no footnotes, images, or bibliography).
-#            legacy/books/ru/18-евангелие-от-иисуса.docx
+#            src/content/books/18-evangelie-ot-iisusa/ru.docx
 # ---------------------------------------------------------------------------
 CASES: tuple[GoldenCase, ...] = (
     GoldenCase(
         name="poem01",
-        docx="legacy/poetry/01. А если буду я не прав/А если буду я не прав.docx",
+        docx="src/content/poetry/01-a-esli-budu-ya-ne-prav/ru.docx",
         kind="poem",
         lang="ru",
         number=1,
@@ -138,17 +143,17 @@ CASES: tuple[GoldenCase, ...] = (
     ),
     GoldenCase(
         name="book62",
-        docx="legacy/books/ru/62-книга-тишины.docx",
+        docx="src/content/books/62-kniga-tishiny/ru.docx",
         kind="book",
         lang="ru",
         number=62,
         slug="kniga-tishiny",
         title="Книга Тишины",
-        signals=("body-images", "bibliography-table", "orphaned-footnote-bug"),
+        signals=("body-images", "bibliography-table", "footnotes"),
     ),
     GoldenCase(
         name="book23",
-        docx="legacy/books/ru/23-личность-и-эго.docx",
+        docx="src/content/books/23-lichnost-i-ego/ru.docx",
         kind="book",
         lang="ru",
         number=23,
@@ -158,7 +163,7 @@ CASES: tuple[GoldenCase, ...] = (
     ),
     GoldenCase(
         name="book18",
-        docx="legacy/books/ru/18-евангелие-от-иисуса.docx",
+        docx="src/content/books/18-evangelie-ot-iisusa/ru.docx",
         kind="book",
         lang="ru",
         number=18,
@@ -171,16 +176,10 @@ CASES: tuple[GoldenCase, ...] = (
 # All cases get a stored body/frontmatter/assets/biblio snapshot under
 # tests/golden/<case>/.
 #
-# HISTORICAL NOTE (6.2 cutover): book23 used to be EXCLUDED from stored snapshots
-# and frozen instead by `test_pure_converter_cross_check`, which asserted its
-# imported body was byte-identical to the committed corpus file
-# `src/content/books/23-lichnost-i-ego/ru.md`. That committed file is GFM-era
-# converter output (the live engine before the cutover); the IR importer is now
-# the truth and diverges from it BY DESIGN, so that cross-check no longer holds
-# and was removed. Re-importing any committed book through the live importer now
-# produces the new IR shape — that is the expected new behavior, NOT a regression,
-# and must NOT be "fixed" by re-importing the corpus (that would clobber any
-# hand-edits in the committed files). book23 is now a regular stored IR snapshot.
+# HISTORICAL NOTE (6.2 cutover): book23 used to be frozen by a cross-check against
+# the committed corpus body. That made the test depend on corpus authoring state
+# instead of the importer contract. It is now a regular stored IR snapshot, and
+# corpus-wide re-imports are reviewed separately from this golden net.
 SNAPSHOT_CASES: tuple[GoldenCase, ...] = CASES
 
 
@@ -271,7 +270,7 @@ def _assert_against_golden(case: GoldenCase, snap: ImportSnapshot) -> None:
     out = _case_golden_dir(case)
     assert out.is_dir(), (
         f"missing golden dir for {case.name}: {out}. "
-        "Run `GOLDEN_UPDATE=1 uv run pytest tests/test_golden_import.py` to seed it."
+        "Run `GOLDEN_UPDATE=1 uv run pytest tests/python/test_golden_import.py` to seed it."
     )
 
     body_golden = (out / "body.md").read_text(encoding="utf-8")
@@ -349,18 +348,13 @@ def test_import_is_idempotent(case: GoldenCase, tmp_path: Path) -> None:
     )
 
 
-# NOTE (6.2 cutover): the former ``test_pure_converter_cross_check`` asserted
-# book23's imported body equalled the committed corpus body
-# (`src/content/books/23-lichnost-i-ego/ru.md`) byte-for-byte. That committed file
-# is GFM-era output; the live importer is now the typed-IR truth and diverges from
-# the legacy committed file BY DESIGN, so the cross-check was removed and book23 is
-# a stored IR snapshot (see SNAPSHOT_CASES). Idempotency of every case — including
-# book23 — is still proven by ``test_import_is_idempotent``.
+# NOTE (6.2 cutover): the former corpus-body cross-check is intentionally gone.
+# These tests now compare importer output only to stored importer snapshots; corpus
+# files can be refreshed or edited through their own workflow.
 
 
-# Cases whose source carries footnotes — the property below must hold for them
-# (every `[^N]` reference has a matching `[^N]:` definition). book62 is the
-# regression case (the orphaned-marker bug); book23 has one well-formed footnote.
+# Cases whose source carries footnotes — every `[^N]` reference in the import
+# must have a matching `[^N]:` definition.
 FOOTNOTE_CASES: tuple[GoldenCase, ...] = tuple(
     c for c in CASES if c.name in {"book62", "book23"}
 )

@@ -69,29 +69,39 @@ def test_note_with_multi_paragraph_body_keeps_all_blocks() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_emphasis_kinds_mapped() -> None:
+@pytest.mark.parametrize(
+    ("tag", "kind"),
+    [
+        ("Strong", "strong"),
+        ("Emph", "emph"),
+        ("Strikeout", "strike"),
+        ("Superscript", "sup"),
+        ("Subscript", "sub"),
+    ],
+)
+def test_emphasis_kind_mapped(tag: str, kind: ir.EmphKind) -> None:
     ctx = adapter._Ctx()
-    cases: list[tuple[str, ir.EmphKind]] = [
-        ("Strong", "strong"), ("Emph", "emph"), ("Strikeout", "strike"),
-        ("Superscript", "sup"), ("Subscript", "sub"),
-    ]
-    for tag, kind in cases:
-        out = adapter._inline({"t": tag, "c": [_str("x")]}, ctx)
-        assert out == [ir.Emphasis(kind, [ir.Text("x")])]
+    out = adapter._inline({"t": tag, "c": [_str("x")]}, ctx)
+    assert out == [ir.Emphasis(kind, [ir.Text("x")])]
 
 
-def test_underline_and_smallcaps_unwrap_to_plain() -> None:
+@pytest.mark.parametrize(("tag", "text"), [("Underline", "u"), ("SmallCaps", "s")])
+def test_style_wrapper_unwraps_to_plain_text(tag: str, text: str) -> None:
     ctx = adapter._Ctx()
-    assert adapter._inline({"t": "Underline", "c": [_str("u")]}, ctx) == [ir.Text("u")]
-    assert adapter._inline({"t": "SmallCaps", "c": [_str("s")]}, ctx) == [ir.Text("s")]
+    assert adapter._inline({"t": tag, "c": [_str(text)]}, ctx) == [ir.Text(text)]
 
 
-def test_quoted_carries_single_flag() -> None:
+@pytest.mark.parametrize(
+    ("quote_type", "text", "single"),
+    [
+        ("DoubleQuote", "d", False),
+        ("SingleQuote", "s", True),
+    ],
+)
+def test_quoted_carries_single_flag(quote_type: str, text: str, single: bool) -> None:
     ctx = adapter._Ctx()
-    dq = adapter._inline({"t": "Quoted", "c": [{"t": "DoubleQuote"}, [_str("d")]]}, ctx)
-    sq = adapter._inline({"t": "Quoted", "c": [{"t": "SingleQuote"}, [_str("s")]]}, ctx)
-    assert dq == [ir.Quoted(False, [ir.Text("d")])]
-    assert sq == [ir.Quoted(True, [ir.Text("s")])]
+    out = adapter._inline({"t": "Quoted", "c": [{"t": quote_type}, [_str(text)]]}, ctx)
+    assert out == [ir.Quoted(single, [ir.Text(text)])]
 
 
 def test_span_unwraps_to_children() -> None:

@@ -14,10 +14,13 @@ from pancratius.kinds import KIND_OF_SEGMENT, SEGMENT_OF
 KIND_DIRS = SEGMENT_OF
 DIR_KINDS = KIND_OF_SEGMENT
 
-# A title-index hit: (slug, work-number, kind). The index maps a normalized litres
-# URL or book title to the work it names; public because cross_refs/ir.normalize
-# resolve against it.
-type IndexHit = tuple[str, int | None, str | None]
+@dataclass(frozen=True)
+class IndexHit:
+    """One title-index hit for a normalized URL/title/slug lookup."""
+
+    work_key: str
+    number: int | None
+    kind: str | None
 
 _FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n?", re.DOTALL)
 
@@ -123,5 +126,9 @@ def build_title_index(entries: list[CatalogEntry]) -> dict[str, IndexHit]:
         for key in (entry.title, entry.slug, entry.work_key):
             norm = normalize_title_key(key)
             if norm and norm not in index:
-                index[norm] = (entry.work_key, entry.number, entry.kind)
+                index[norm] = IndexHit(
+                    work_key=entry.work_key,
+                    number=entry.number,
+                    kind=entry.kind,
+                )
     return index
