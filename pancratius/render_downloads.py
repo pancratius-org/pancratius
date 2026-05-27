@@ -38,12 +38,13 @@ import shutil
 import subprocess
 import uuid
 from dataclasses import dataclass
+from html import unescape
 from pathlib import Path
 from typing import Iterable
 
-import yaml
 from PIL import Image
 
+from pancratius.content_catalog import split_frontmatter
 from pancratius.kinds import CORPUS_WORK_KINDS, SEGMENT_OF
 from pancratius.locales import DEFAULT_LOCALE, LOCALES
 from pancratius.paths import (
@@ -67,7 +68,16 @@ EXPORT_MAX_LONG_EDGE = 1200
 EXPORT_JPEG_QUALITY = 82
 
 HTML_IMG_RE = re.compile(r"<img\b([^>]*?)/?>", re.IGNORECASE)
-HTML_ATTR_RE = re.compile(r"\b([a-zA-Z_-]+)\s*=\s*(?:\"([^\"]*)\"|'([^']*)')")
+HTML_TAG_PATTERN = (
+    r"<(?P<closing>/)?(?P<name>[A-Za-z][A-Za-z0-9:-]*)(?P<attrs>(?:\s+[^<>]*?)?)\s*(?P<self>/)?>"
+)
+HTML_MARKUP_RE = re.compile(
+    r"<!--[\s\S]*?(?:-->|$)|<![^\s<>][^>]*(?:>|$)|<\?[A-Za-z][\s\S]*?(?:\?>|$)|" + HTML_TAG_PATTERN
+)
+HTML_ATTR_RE = re.compile(r"\s+([A-Za-z_:][A-Za-z0-9_:.-]*)\s*=\s*(?:\"([^\"]*)\"|'([^']*)')")
+URL_SCHEME_RE = re.compile(r"^([A-Za-z][A-Za-z0-9+.\-]*):")
+ALLOWED_HREF_SCHEMES = {"http", "https", "mailto"}
+SPAN_DIR_VALUES = {"ltr", "rtl", "auto"}
 
 
 @dataclass(slots=True)
@@ -107,21 +117,193 @@ class DownloadRenderError(Exception):
 
 
 def _read_frontmatter(md: Path) -> dict[str, object]:
-    text = md.read_text(encoding="utf-8")
-    if not text.startswith("---"):
+    fm, _body = split_frontmatter(md.read_text(encoding="utf-8"))
+    if not fm:
         raise ValueError(f"{md}: missing frontmatter")
-    _, fm, _ = text.split("---", 2)
-    data = yaml.safe_load(fm)
-    if not isinstance(data, dict):
-        raise ValueError(f"{md}: frontmatter is not a mapping")
-    return data
+    return fm
 
 
-def _strip_frontmatter(text: str) -> str:
-    if not text.startswith("---"):
-        return text
-    _, _, rest = text.split("---", 2)
-    return rest.lstrip()
+def _html_error(tag: str, source: Path, line: int, reason: str) -> DownloadRenderError:
+    return DownloadRenderError(f"{source}:{line}: unsupported raw HTML tag {tag!r}: {reason}")
+
+
+def _parse_html_attrs(attrs: str, tag: str, source: Path, line: int) -> dict[str, str]:
+    parsed: dict[str, str] = {}
+    end = 0
+    for match in HTML_ATTR_RE.finditer(attrs):
+        if attrs[end:match.start()].strip():
+            raise _html_error(tag, source, line, "attributes must be quoted name=value pairs")
+        name = match.group(1).lower()
+        if name in parsed:
+            raise _html_error(tag, source, line, f"duplicate {name} attribute")
+        parsed[name] = match.group(2) or match.group(3) or ""
+        end = match.end()
+    if attrs[end:].strip():
+        raise _html_error(tag, source, line, "attributes must be quoted name=value pairs")
+    return parsed
+
+
+def _require_no_attrs(attrs: str, tag: str, source: Path, line: int) -> None:
+    if attrs.strip():
+        raise _html_error(tag, source, line, "attributes are not supported on this tag")
+
+
+def _require_only_attrs(
+    attrs: dict[str, str],
+    allowed: set[str],
+    tag: str,
+    source: Path,
+    line: int,
+) -> None:
+    unsupported = sorted(set(attrs) - allowed)
+    if unsupported:
+        raise _html_error(tag, source, line, f"unsupported attribute {unsupported[0]!r}")
+
+
+def _require_class(
+    attrs_text: str,
+    expected: set[str],
+    tag: str,
+    source: Path,
+    line: int,
+) -> str:
+    attrs = _parse_html_attrs(attrs_text, tag, source, line)
+    _require_only_attrs(attrs, {"class"}, tag, source, line)
+    class_name = attrs.get("class")
+    if class_name not in expected:
+        allowed = ", ".join(sorted(expected))
+        raise _html_error(tag, source, line, f"expected class {allowed}")
+    return class_name
+
+
+def _require_safe_href(href: str, tag: str, source: Path, line: int) -> None:
+    decoded = unescape(href).strip()
+    if not decoded:
+        raise _html_error(tag, source, line, "missing required href attribute")
+    match = URL_SCHEME_RE.match(decoded)
+    if match and match.group(1).lower() not in ALLOWED_HREF_SCHEMES:
+        raise _html_error(
+            tag,
+            source,
+            line,
+            f"unsupported href URL scheme {match.group(1).lower()!r}",
+        )
+
+
+def _validate_download_html_allowlist(body: str, source: Path) -> None:
+    stack: list[tuple[str, str, str, int]] = []
+    line = 1
+    cursor = 0
+
+    for match in HTML_MARKUP_RE.finditer(body):
+        tag = match.group(0)
+        line += body.count("\n", cursor, match.start())
+        match_line = line
+        line += body.count("\n", match.start(), match.end())
+        cursor = match.end()
+
+        if match.group("name") is None:
+            raise _html_error(tag, source, match_line, "raw HTML comments, declarations, and processing instructions are not supported")
+
+        name = match.group("name").lower()
+        attrs_text = match.group("attrs") or ""
+        closing = bool(match.group("closing"))
+        self_closing = bool(match.group("self"))
+
+        if closing:
+            if attrs_text.strip() or self_closing:
+                raise _html_error(tag, source, match_line, "closing tags cannot carry attributes")
+            if name in {"strong", "em", "a", "span"}:
+                continue
+            if name in {"br", "img"}:
+                raise _html_error(tag, source, match_line, "void tag cannot be closed")
+            if name in {"div", "blockquote", "p", "footer"}:
+                if not stack or stack[-1][0] != name:
+                    raise _html_error(tag, source, match_line, "does not close the current supported wrapper")
+                stack.pop()
+                continue
+            raise _html_error(tag, source, match_line, "tag is outside the download HTML allowlist")
+
+        if name in {"strong", "em"}:
+            if self_closing:
+                raise _html_error(tag, source, match_line, "inline emphasis tag cannot be self-closing")
+            _require_no_attrs(attrs_text, tag, source, match_line)
+            continue
+
+        if name == "br":
+            _require_no_attrs(attrs_text, tag, source, match_line)
+            continue
+
+        if name == "img":
+            attrs = _parse_html_attrs(attrs_text, tag, source, match_line)
+            _require_only_attrs(attrs, {"src", "alt"}, tag, source, match_line)
+            if not attrs.get("src"):
+                raise _html_error(tag, source, match_line, "missing required src attribute")
+            continue
+
+        if name == "a":
+            if self_closing:
+                raise _html_error(tag, source, match_line, "anchor tag cannot be self-closing")
+            attrs = _parse_html_attrs(attrs_text, tag, source, match_line)
+            _require_only_attrs(attrs, {"href"}, tag, source, match_line)
+            href = attrs.get("href")
+            if href is None:
+                raise _html_error(tag, source, match_line, "missing required href attribute")
+            _require_safe_href(href, tag, source, match_line)
+            continue
+
+        if name == "span":
+            if self_closing:
+                raise _html_error(tag, source, match_line, "span tag cannot be self-closing")
+            attrs = _parse_html_attrs(attrs_text, tag, source, match_line)
+            _require_only_attrs(attrs, {"dir"}, tag, source, match_line)
+            if attrs.get("dir", "").lower() not in SPAN_DIR_VALUES:
+                raise _html_error(tag, source, match_line, 'span requires dir="ltr", dir="rtl", or dir="auto"')
+            continue
+
+        if name == "div":
+            if self_closing:
+                raise _html_error(tag, source, match_line, "verse-block wrapper cannot be self-closing")
+            role = _require_class(attrs_text, {"verse-block"}, tag, source, match_line)
+            stack.append((name, role, tag, match_line))
+            continue
+
+        if name == "blockquote":
+            if self_closing:
+                raise _html_error(tag, source, match_line, "blockquote wrapper cannot be self-closing")
+            role = _require_class(attrs_text, {"epigraph"}, tag, source, match_line)
+            stack.append((name, role, tag, match_line))
+            continue
+
+        if name == "p":
+            if self_closing:
+                raise _html_error(tag, source, match_line, "paragraph wrapper cannot be self-closing")
+            attrs = _parse_html_attrs(attrs_text, tag, source, match_line)
+            if attrs:
+                _require_only_attrs(attrs, {"class"}, tag, source, match_line)
+                if attrs.get("class") != "signature" or stack:
+                    raise _html_error(tag, source, match_line, 'only top-level <p class="signature"> is allowed')
+                stack.append((name, "signature", tag, match_line))
+                continue
+            if stack and stack[-1][0] == "blockquote" and stack[-1][1] == "epigraph":
+                stack.append((name, "plain", tag, match_line))
+                continue
+            raise _html_error(tag, source, match_line, "plain <p> is only allowed inside canonical blockquotes")
+
+        if name == "footer":
+            if self_closing:
+                raise _html_error(tag, source, match_line, "footer wrapper cannot be self-closing")
+            _require_no_attrs(attrs_text, tag, source, match_line)
+            if not stack or stack[-1][0] != "blockquote" or stack[-1][1] != "epigraph":
+                raise _html_error(tag, source, match_line, "footer is only allowed directly inside epigraph blockquotes")
+            stack.append((name, "footer", tag, match_line))
+            continue
+
+        raise _html_error(tag, source, match_line, "tag is outside the download HTML allowlist")
+
+    if stack:
+        _name, _role, tag, line = stack[-1]
+        raise _html_error(tag, source, line, "wrapper is not closed")
 
 
 def _html_images_to_markdown(body: str) -> str:
@@ -283,7 +465,10 @@ def _rewrite_image_paths(body: str, image_map: dict[str, str]) -> str:
 
 def _write_export_markdown(entry: WorkEntry, dest: Path, image_map: dict[str, str]) -> None:
     raw = entry.md.read_text(encoding="utf-8")
-    body = _rewrite_image_paths(_html_images_to_markdown(_strip_frontmatter(raw)), image_map)
+    _frontmatter, body = split_frontmatter(raw)
+    body = body.lstrip()
+    _validate_download_html_allowlist(body, entry.md)
+    body = _rewrite_image_paths(_html_images_to_markdown(body), image_map)
     dest.write_text(body, encoding="utf-8")
 
 
