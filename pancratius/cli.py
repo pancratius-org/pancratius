@@ -22,6 +22,7 @@ core never imports the graph/embed stacks just to print ``--help``.
 from __future__ import annotations
 
 import argparse
+import logging
 import shutil
 import sys
 from collections.abc import Callable
@@ -48,12 +49,20 @@ def _missing_extra(extra: str, exc: ImportError) -> int:
     return 1
 
 
+def _fail(msg: str | Exception, code: int = 1) -> int:
+    """Report a CLI-level error to stderr and return the exit code.
+
+    Used for terminal failures paired with a non-zero exit (`return _fail(...)`);
+    mid-work non-fatal problems go through `logger.warning` / `logger.error`."""
+    print(f"error: {msg}", file=sys.stderr)
+    return code
+
+
 def _require_pandoc() -> int | None:
     """Shared precheck for the conversion verbs (`work import`, `project page add`):
-    return 1 (with a stderr hint) if pandoc is absent, else None to proceed."""
+    return 1 if pandoc is absent, else None to proceed."""
     if shutil.which("pandoc") is None:
-        print("error: pandoc not found on PATH; install with `brew install pandoc`.", file=sys.stderr)
-        return 1
+        return _fail("pandoc not found on PATH; install with `brew install pandoc`.")
     return None
 
 
@@ -107,8 +116,7 @@ def _work_import(args: argparse.Namespace) -> int:
     except import_docx.ImportWorkError as exc:
         # Bad input / an unresolvable target is a usage error (exit 2), matching
         # the door's contract.
-        print(f"error: {exc}", file=sys.stderr)
-        return 2
+        return _fail(exc, 2)
     import_docx.print_report(report, dry_run=request.dry_run)
     return 1 if report.refused else 0
 
@@ -139,8 +147,7 @@ def _project_page_add(args: argparse.Namespace) -> int:
             dry_run=args.dry_run,
         )
     except ScaffoldError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 2
+        return _fail(exc, 2)
     import_docx.print_report(report, dry_run=args.dry_run)
     if not args.dry_run and not report.refused:
         # Print the suggested landing entry only after a REAL write — it is a
@@ -174,8 +181,7 @@ def _downloads_render(args: argparse.Namespace) -> int:
             force=args.force,
         )
     except DownloadRenderError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 1
+        return _fail(exc)
     return 0
 
 
@@ -221,8 +227,7 @@ def _conceptosphere_graph_generate(args: argparse.Namespace) -> int:
             quiet=args.quiet,
         )
     except GraphGenerationError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 1
+        return _fail(exc)
     return 0
 
 
@@ -363,8 +368,7 @@ def _video_sync(args: argparse.Namespace) -> int:
     try:
         result = video_scan.scan(channel_key=args.channel, dry_run=dry_run)
     except video_scan.VideoScanError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 1
+        return _fail(exc)
     video_scan.print_result(result, dry_run=dry_run)
     return 0
 
@@ -460,11 +464,26 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _configure_logging() -> None:
+    """Attach a stderr handler to the `pancratius` package logger. Library
+    modules emit through `logging.getLogger(__name__)`; the CLI owns the sink.
+    `propagate = False` keeps third-party loggers (e.g. googleapiclient) from
+    routing through this handler."""
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    pkg_logger = logging.getLogger("pancratius")
+    pkg_logger.handlers.clear()
+    pkg_logger.addHandler(handler)
+    pkg_logger.setLevel(logging.INFO)
+    pkg_logger.propagate = False
+
+
 def main(argv: list[str] | None = None) -> int:
     """Parse and dispatch. Every parser level carries a `func` default, so a bare
     group/noun prints help + returns 2 while a leaf verb returns its handler's
     code. argparse raises SystemExit(2) for genuine usage errors."""
     parser = build_parser()
     args = parser.parse_args(argv)
+    _configure_logging()
     handler: Callable[[argparse.Namespace], int] = args.func
     return handler(args)
