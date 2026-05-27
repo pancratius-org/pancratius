@@ -70,6 +70,14 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["pancratius"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
+addopts = ["--strict-config", "--strict-markers", "-ra"]
+xfail_strict = true
+markers = [
+  "pandoc: tests that require a local pandoc executable and DOCX conversion stack",
+]
+
 # ---------------------------------------------------------------------------
 # Typed-Python enforcement (architecture mandate: every tracked .py annotated).
 # Single-vendor Astral stack — annotation coverage plus best-effort static

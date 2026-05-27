@@ -14,6 +14,7 @@ Passes, in `normalize` order:
   * endmatter-section strip — bibliography/contact/copyright sections
   * bare bibliography heading strip — drop the heading left after the lift
   * thematic breaks         — `***` paragraphs → `ThematicBreak`
+  * empty headings          — drop DOCX heading paragraphs with no reading text
   * heading demotion        — source H1 → H2 (page title is the only H1)
   * formatting-artifact strip — empty-emphasis husks (`** **`)
   * signatures / epigraphs   — from right alignment (the `w:jc` payload)
@@ -25,15 +26,16 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from typing import Any, assert_never, cast
 
 from pancratius import ir
+from pancratius.content_catalog import IndexHit
 
 # The slug→(slug, number, kind) corpus index the bibliography lift resolves
 # titles against; an entry resolves to a `{kind, number}` target.
-type _SlugLookup = dict[str, tuple[str, int | None, str | None]]
+type _SlugLookup = Mapping[str, IndexHit]
 
 # AI image generators leave a verbose alt text in DOCX; strip it (or its
 # truncation). `alt=""` survives so screen readers don't read filenames.
@@ -284,6 +286,19 @@ def drop_toc(blocks: list[ir.Block]) -> list[ir.Block]:
     return out
 
 
+def drop_empty_headings(blocks: list[ir.Block]) -> list[ir.Block]:
+    """Drop source heading paragraphs that carry no reading text.
+
+    Some DOCX sources contain accidental empty Heading 1/2 paragraphs between the
+    generated TOC and the first real section. If lowered, they become visible
+    Markdown like `## `, which is never useful author-facing content.
+    """
+    return [
+        block for block in blocks
+        if not (isinstance(block, ir.Heading) and not inline_plain(block.inlines))
+    ]
+
+
 # ---------------------------------------------------------------------------
 # 2. rights-boilerplate scrub
 # ---------------------------------------------------------------------------
@@ -445,9 +460,8 @@ def _resolve_target(title: str, slug_lookup: _SlugLookup) -> dict[str, object] |
     got = slug_lookup.get(key) or slug_lookup.get(key.rstrip(".")) or slug_lookup.get(f"{key}.")
     if not got:
         return None
-    _slug, number, kind = got
-    if number is not None and kind:
-        return {"kind": kind, "number": number}
+    if got.number is not None and got.kind:
+        return {"kind": got.kind, "number": got.number}
     return None
 
 
@@ -1159,6 +1173,7 @@ def normalize(
     doc.blocks = strip_endmatter_sections(doc.blocks)
     doc.blocks = strip_bare_bibliography_heading(doc.blocks)
     doc.blocks = thematic_breaks(doc.blocks)
+    doc.blocks = drop_empty_headings(doc.blocks)
     doc.blocks = demote_headings(doc.blocks, demote_levels)
     doc.blocks = strip_formatting_artifacts(doc.blocks)
     doc.blocks = structural_blocks(doc.blocks)

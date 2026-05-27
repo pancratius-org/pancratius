@@ -14,10 +14,11 @@ from pancratius import import_docx  # noqa: E402
 from pancratius.content_catalog import split_frontmatter  # noqa: E402
 
 
-pytestmark = pytest.mark.skipif(
+requires_docx_import = pytest.mark.skipif(
     shutil.which("pandoc") is None or importlib.util.find_spec("PIL") is None,
     reason="pandoc and pillow are required",
 )
+docx_import_test = pytest.mark.pandoc
 
 
 def _frontmatter(path: Path) -> dict:
@@ -25,6 +26,8 @@ def _frontmatter(path: Path) -> dict:
     return fm
 
 
+@docx_import_test
+@requires_docx_import
 def test_import_new_docx_creates_bundle_paths_and_frontmatter(tmp_path: Path) -> None:
     content_root = tmp_path / "src" / "content"
     report = import_docx.import_work(import_docx.ImportRequest(
@@ -53,6 +56,8 @@ def test_import_new_docx_creates_bundle_paths_and_frontmatter(tmp_path: Path) ->
     assert fm["translation"] == {"source": "original"}
 
 
+@docx_import_test
+@requires_docx_import
 def test_import_translation_with_into_updates_existing_bundle(tmp_path: Path) -> None:
     content_root = tmp_path / "src" / "content"
     work_dir = content_root / "books" / "30-poslanie-musulmanam"
@@ -101,6 +106,8 @@ Existing body.
     assert fm["translation"] == {"source": "ai"}
 
 
+@docx_import_test
+@requires_docx_import
 def test_importer_does_not_consult_legacy_catalog_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # The legacy catalog loaders no longer exist (the batch CLI is gone); the
     # remaining guard is the only one that matters: nothing in the import path may
@@ -138,6 +145,8 @@ def test_importer_does_not_consult_legacy_catalog_files(tmp_path: Path, monkeypa
 # ---------------------------------------------------------------------------
 
 
+@docx_import_test
+@requires_docx_import
 def test_converter_fatal_diagnostic_blocks_the_write(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # A converter-side FATAL (the unresolvable-local-image fatal proven in
     # test_ir_pipeline) must reach WritePlan.diagnostics and make the writer REFUSE —
@@ -173,6 +182,8 @@ def test_converter_fatal_diagnostic_blocks_the_write(tmp_path: Path, monkeypatch
     assert not (work_dir / "ru.md").exists(), "a converter FATAL must block the write entirely"
 
 
+@docx_import_test
+@requires_docx_import
 def test_converter_typed_diagnostics_carry_severity(tmp_path: Path) -> None:
     # The converter must expose TYPED diagnostics (not just a flattened string), so a
     # downstream consumer can read severity. A clean import still carries any
@@ -199,6 +210,8 @@ def test_converter_typed_diagnostics_carry_severity(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+@docx_import_test
+@requires_docx_import
 def test_import_work_returns_a_write_report(tmp_path: Path) -> None:
     # The stable entry takes a typed ImportRequest and RETURNS the writer's
     # WriteReport directly (the contract surface), with files actually written.
@@ -221,6 +234,8 @@ def test_import_work_returns_a_write_report(tmp_path: Path) -> None:
     assert not report.refused
 
 
+@docx_import_test
+@requires_docx_import
 def test_import_work_refusal_returns_a_report_with_fatal_diagnostic(tmp_path: Path) -> None:
     # Re-importing an existing converter-owned <lang>.md without --replace is a
     # refusal. import_work must RETURN that refused report (with a fatal
@@ -253,7 +268,7 @@ def test_import_work_refusal_returns_a_report_with_fatal_diagnostic(tmp_path: Pa
 
 def test_import_work_missing_docx_raises_import_work_error(tmp_path: Path) -> None:
     content_root = tmp_path / "src" / "content"
-    with pytest.raises(import_docx.ImportWorkError):
+    with pytest.raises(import_docx.ImportWorkError, match="DOCX not found"):
         import_docx.import_work(import_docx.ImportRequest(
             docx=tmp_path / "does-not-exist.docx",
             lang="ru",
@@ -268,6 +283,8 @@ def test_import_work_missing_docx_raises_import_work_error(tmp_path: Path) -> No
 # ---------------------------------------------------------------------------
 
 
+@docx_import_test
+@requires_docx_import
 def test_real_import_writes_manifest_under_content_root(tmp_path: Path) -> None:
     # A real (non-dry-run) import must write the per-import provenance manifest at
     # `<tmp>/data/imports/<scope>.json` (derived from the temp content root, so the
@@ -295,6 +312,8 @@ def test_real_import_writes_manifest_under_content_root(tmp_path: Path) -> None:
     assert manifest["source_sha256"]
 
 
+@docx_import_test
+@requires_docx_import
 def test_dry_run_import_writes_no_manifest(tmp_path: Path) -> None:
     # A dry-run import touches NOTHING — no bundle, and no provenance manifest.
     content_root = tmp_path / "src" / "content"
@@ -314,6 +333,8 @@ def test_dry_run_import_writes_no_manifest(tmp_path: Path) -> None:
     assert not (content_root / "books").exists(), "dry-run must write no bundle"
 
 
+@docx_import_test
+@requires_docx_import
 def test_import_work_is_side_effect_free(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     # The stable entry emits NO stdout/stderr (the CLI owns side effects).
     content_root = tmp_path / "src" / "content"
@@ -340,5 +361,5 @@ def test_imports_dir_canonical_layout() -> None:
 
 def test_imports_dir_rejects_shallow_out_content() -> None:
     # Too shallow to have a grandparent → a clean input error, not an IndexError.
-    with pytest.raises(import_docx.ImportWorkError):
+    with pytest.raises(import_docx.ImportWorkError, match="must be shaped like"):
         import_docx._imports_dir(Path("/content"))

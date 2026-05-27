@@ -620,7 +620,7 @@ def _heading_md(b: ir.Heading, lang: str) -> str:
     # partial bold survives.
     m = re.fullmatch(r"\*\*(.+?)\*\*", text)
     if m:
-        text = m.group(1)
+        text = m.group(1).strip()
     return f"{'#' * b.level} {text}"
 
 

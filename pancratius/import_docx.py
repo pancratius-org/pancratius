@@ -91,6 +91,22 @@ class ImportResult:
     warnings: str = ""
 
 
+@dataclass(frozen=True)
+class _ExistingGroup:
+    kind: str
+    work_key: str
+    entries: list[CatalogEntry]
+
+
+@dataclass(frozen=True)
+class _ResolvedTarget:
+    kind: str
+    work_key: str
+    number: int
+    slug: str
+    work_entries: list[CatalogEntry]
+
+
 def _scratch_role(rel: PurePosixPath, lang: str) -> Role:
     """Map a staged bundle file to its WritePlan ownership role."""
     name = rel.name
@@ -259,7 +275,7 @@ def _slug_with_number(raw_slug: str, number: int) -> str:
     return f"{number:02d}-{slug}"
 
 
-def _existing_group(matches: list[CatalogEntry], work_ref: str) -> tuple[str, str, list[CatalogEntry]]:
+def _existing_group(matches: list[CatalogEntry], work_ref: str) -> _ExistingGroup:
     groups: dict[tuple[str, str], list[CatalogEntry]] = {}
     for entry in matches:
         groups.setdefault((entry.kind, entry.work_key), []).append(entry)
@@ -269,7 +285,7 @@ def _existing_group(matches: list[CatalogEntry], work_ref: str) -> tuple[str, st
         choices = ", ".join(f"{kind}/{work_key}" for kind, work_key in sorted(groups))
         raise ImportWorkError(f"--into is ambiguous ({choices}); pass --kind")
     (kind, work_key), entries = next(iter(groups.items()))
-    return kind, work_key, entries
+    return _ExistingGroup(kind=kind, work_key=work_key, entries=entries)
 
 
 def _preferred_entry(entries: list[CatalogEntry], lang: str) -> CatalogEntry:
@@ -455,14 +471,20 @@ def _resolve_target(
     entries: list[CatalogEntry],
     docx: Path,
     content_root: Path,
-) -> tuple[str, str, int, str, list[CatalogEntry]]:
+) -> _ResolvedTarget:
     if request.into:
         matches = find_work_entries(entries, request.into, request.kind)
-        kind, work_key, work_entries = _existing_group(matches, request.into)
-        reference = _preferred_entry(work_entries, request.lang)
+        group = _existing_group(matches, request.into)
+        reference = _preferred_entry(group.entries, request.lang)
         number = request.number or reference.number
         slug = _slug_with_number(request.slug, number) if request.slug else reference.slug
-        return kind, work_key, number, slug, work_entries
+        return _ResolvedTarget(
+            kind=group.kind,
+            work_key=group.work_key,
+            number=number,
+            slug=slug,
+            work_entries=group.entries,
+        )
 
     if not request.kind:
         raise ImportWorkError("--kind is required when importing a new work")
@@ -474,7 +496,13 @@ def _resolve_target(
     work_dir = content_root / KIND_DIRS[kind] / work_key
     if work_dir.exists():
         raise ImportWorkError(f"work bundle already exists: {work_dir}; use --into {work_key} to update it")
-    return kind, work_key, number, slug, []
+    return _ResolvedTarget(
+        kind=kind,
+        work_key=work_key,
+        number=number,
+        slug=slug,
+        work_entries=[],
+    )
 
 
 def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
@@ -495,12 +523,12 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
     # nothing; scan_catalog tolerates a missing root.
     entries = [e for e in scan_catalog(content_root) if e.kind in CORPUS_WORK_KINDS]
 
-    kind, work_key, number, slug, work_entries = _resolve_target(request, entries, docx, content_root)
-    real_work_dir = content_root / KIND_DIRS[kind] / work_key
-    scope = PurePosixPath(KIND_DIRS[kind]) / work_key
+    target = _resolve_target(request, entries, docx, content_root)
+    real_work_dir = content_root / KIND_DIRS[target.kind] / target.work_key
+    scope = PurePosixPath(KIND_DIRS[target.kind]) / target.work_key
 
-    existing_lang = _existing_lang_entry(work_entries, request.lang)
-    reference = _preferred_entry(work_entries, request.lang) if work_entries else None
+    existing_lang = _existing_lang_entry(target.work_entries, request.lang)
+    reference = _preferred_entry(target.work_entries, request.lang) if target.work_entries else None
     inferred_title = infer_title(docx)
     if request.title:
         title = request.title
@@ -522,16 +550,16 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
     # the extracted body images, which must live until the writer copies them. Body
     # images reach src/content only via the writer, never the stage.
     stage_root = STAGE_ROOT / uuid.uuid4().hex
-    stage_dir = stage_root / KIND_DIRS[kind] / work_key
+    stage_dir = stage_root / KIND_DIRS[target.kind] / target.work_key
     media_out = stage_root / "media"
     stage_dir.mkdir(parents=True, exist_ok=True)
     try:
         title_index = build_title_index(entries)
         converted = convert_single_docx(
             docx,
-            kind=kind,
+            kind=target.kind,
             lang=request.lang,
-            work_key=work_key,
+            work_key=target.work_key,
             title=title,
             work_dir=stage_dir,
             title_index=title_index,
@@ -548,9 +576,9 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
         )
         fm = _frontmatter_for_import(
             request=request,
-            kind=kind,
-            number=number,
-            slug=slug,
+            kind=target.kind,
+            number=target.number,
+            slug=target.slug,
             title=title,
             description=description,
             lang=request.lang,
@@ -565,7 +593,7 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
             dump_frontmatter(fm) + converted.body, encoding="utf-8"
         )
         _write_docx_artifact(docx, stage_dir / f"{request.lang}.docx")
-        write_bibliography_sidecar(stage_dir, kind, request.lang, converted.bibliography)
+        write_bibliography_sidecar(stage_dir, target.kind, request.lang, converted.bibliography)
 
         # Footnote-fatal safety: an orphaned `[^id]` reference rides into the plan as a
         # FATAL the writer refuses on; unused/duplicate defs are non-blocking warnings.
@@ -598,8 +626,8 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
         shutil.rmtree(stage_root, ignore_errors=True)
 
     result = ImportResult(
-        kind=kind,
-        work_key=work_key,
+        kind=target.kind,
+        work_key=target.work_key,
         md_path=real_work_dir / f"{request.lang}.md",
         docx_path=real_work_dir / f"{request.lang}.docx",
         warnings=converted.warnings,

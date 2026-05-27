@@ -12,11 +12,13 @@ detection, ordered-list start preservation, and the generated footnote appendix.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 import pancratius.ir.lower as lower  # noqa: E402
 import pancratius.ir.normalize as normalize  # noqa: E402
 from pancratius import docx_conversion  # noqa: E402
 from pancratius import ir  # noqa: E402
+from pancratius.content_catalog import IndexHit  # noqa: E402
 from pancratius.ir.normalize import AI_ALT_FRAGMENTS  # noqa: E402
 
 
@@ -46,6 +48,16 @@ def _block_texts(blocks: list[ir.Block]) -> list[str]:
         if isinstance(block, (ir.Heading, ir.Paragraph)):
             texts.append(normalize.inline_plain(block.inlines))
     return texts
+
+
+def _assert_diagnostic(
+    doc: ir.Document,
+    severity: Literal["fatal", "warning", "info"],
+    code: str,
+) -> None:
+    assert any(d.severity == severity and d.code == code for d in doc.diagnostics), (
+        f"expected {severity} {code}; got {doc.diagnostics!r}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -92,7 +104,11 @@ def test_bibliography_dedupe_merges_cover_alt_and_store_link() -> None:
 
 def test_bibliography_target_resolution_ignores_terminal_period() -> None:
     lookup = {
-        "книга бытия (живая).": ("65-kniga-bytiya-zhivaya", 65, "book"),
+        "книга бытия (живая).": IndexHit(
+            work_key="65-kniga-bytiya-zhivaya",
+            number=65,
+            kind="book",
+        ),
     }
     assert normalize._resolve_target("Книга Бытия (живая)", lookup) == {
         "kind": "book",
@@ -346,10 +362,30 @@ def test_thematic_break_from_stars_paragraph() -> None:
     assert len(out) == 1 and isinstance(out[0], ir.ThematicBreak)
 
 
+def test_empty_heading_is_dropped_before_markdown() -> None:
+    out = normalize.drop_empty_headings([
+        ir.Heading(level=1, inlines=[ir.Text(" \n ")]),
+        ir.Heading(level=2, inlines=[ir.Text("Real section")]),
+    ])
+    assert out == [ir.Heading(level=2, inlines=[ir.Text("Real section")])]
+
+
 def test_demote_headings_h1_to_h2() -> None:
     h = ir.Heading(level=1, inlines=[ir.Text("Title")])
     normalize.demote_headings([h], 1)
     assert h.level == 2
+
+
+def test_bold_heading_with_trailing_break_has_no_trailing_space() -> None:
+    doc = ir.Document(blocks=[
+        ir.Heading(
+            level=4,
+            inlines=[
+                ir.Emphasis("strong", [ir.Text("Title"), ir.LineBreak()]),
+            ],
+        ),
+    ])
+    assert lower.lower(doc, "en") == "#### Title\n"
 
 
 # ---------------------------------------------------------------------------
@@ -784,8 +820,7 @@ def test_asset_absolute_src_is_rejected_with_diagnostic(tmp_path: Path) -> None:
     assert planned == []
     assert _para(doc.blocks[0]).inlines == [], "the escaping image ref must be dropped"
     # A FATAL diagnostic surfaced (not a silent read of the outside file).
-    fatal = [d for d in doc.diagnostics if d.severity == "fatal" and "image" in d.code.lower()]
-    assert fatal
+    _assert_diagnostic(doc, "fatal", "import.image-unresolved")
     # And the body never leaks the absolute path.
     assert str(outside) not in lower.lower(doc, "ru")
 
@@ -804,8 +839,7 @@ def test_asset_parent_escaping_src_is_rejected_with_diagnostic(tmp_path: Path) -
 
     assert planned == []
     assert _para(doc.blocks[0]).inlines == [], "the parent-escaping image ref must be dropped"
-    fatal = [d for d in doc.diagnostics if d.severity == "fatal" and "image" in d.code.lower()]
-    assert fatal
+    _assert_diagnostic(doc, "fatal", "import.image-unresolved")
     assert "../../secret.png" not in lower.lower(doc, "ru")
 
 
@@ -850,8 +884,7 @@ def test_lower_unknown_block_preserves_text_and_emits_diagnostic() -> None:
     doc = ir.Document(blocks=[ir.UnknownBlock(note="Bogus", text="important reading content")])
     body = lower.lower(doc, "ru")
     assert "important reading content" in body
-    surfaced = [d for d in doc.diagnostics if d.severity in {"warning", "fatal"} and "unknown" in d.code]
-    assert surfaced, "an unknown block must surface a diagnostic, not be silently dropped"
+    _assert_diagnostic(doc, "warning", "import.unknown-block")
 
 
 def test_lower_empty_unknown_block_still_emits_diagnostic() -> None:
@@ -860,8 +893,7 @@ def test_lower_empty_unknown_block_still_emits_diagnostic() -> None:
     # importer never drops a block silently.
     doc = ir.Document(blocks=[ir.UnknownBlock(note="Null", text="")])
     lower.lower(doc, "ru")
-    surfaced = [d for d in doc.diagnostics if d.severity in {"warning", "fatal"} and "unknown" in d.code]
-    assert surfaced
+    _assert_diagnostic(doc, "warning", "import.unknown-block")
 
 
 # ---------------------------------------------------------------------------
@@ -933,8 +965,7 @@ def test_javascript_link_drops_target_keeps_text_with_warning() -> None:
     assert "click me" in body
     assert "javascript:" not in body
     assert "](" not in body  # no markdown link syntax survives
-    warned = [d for d in doc.diagnostics if d.severity == "warning" and "url" in d.code.lower()]
-    assert warned, "an unsafe link scheme must surface a warning diagnostic"
+    _assert_diagnostic(doc, "warning", "import.unsafe-url")
 
 
 def test_https_link_is_preserved() -> None:
@@ -970,8 +1001,7 @@ def test_unsafe_scheme_image_is_dropped_with_warning() -> None:
     assert "javascript:" not in body
     assert "![" not in body
     assert "before" in body and "after" in body
-    warned = [d for d in doc.diagnostics if d.severity == "warning" and "url" in d.code.lower()]
-    assert warned
+    _assert_diagnostic(doc, "warning", "import.unsafe-url")
 
 
 # ---------------------------------------------------------------------------
@@ -988,8 +1018,7 @@ def test_unresolvable_local_image_is_fatal_and_ref_not_emitted(tmp_path: Path) -
     img = ir.ImageInline(src="media/missing.png", alt="x")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("before "), img, ir.Text(" after")])])
     lower.assign_assets(doc, media, "ru")
-    fatal = [d for d in doc.diagnostics if d.severity == "fatal" and "image" in d.code.lower()]
-    assert fatal, "an unresolvable local image must be FATAL"
+    _assert_diagnostic(doc, "fatal", "import.image-unresolved")
     body = lower.lower(doc, "ru")
     assert "missing.png" not in body, "no dangling local image ref may reach the body"
     assert "before" in body and "after" in body
@@ -1003,8 +1032,7 @@ def test_escaping_absolute_image_is_fatal_and_ref_not_emitted(tmp_path: Path) ->
     img = ir.ImageInline(src="/etc/passwd.png", alt="x")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[img])])
     lower.assign_assets(doc, media, "ru")
-    fatal = [d for d in doc.diagnostics if d.severity == "fatal" and "image" in d.code.lower()]
-    assert fatal
+    _assert_diagnostic(doc, "fatal", "import.image-unresolved")
     body = lower.lower(doc, "ru")
     assert "/etc/passwd" not in body
 

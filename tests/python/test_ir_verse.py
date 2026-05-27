@@ -26,6 +26,8 @@ Must NOT regress the C2 (SoftBreak = wrapping space) and C3 (hard breaks nested 
 
 from __future__ import annotations
 
+import pytest
+
 import pancratius.ir.normalize as normalize  # noqa: E402
 from pancratius import ir  # noqa: E402
 
@@ -50,28 +52,46 @@ def _empty() -> ir.Paragraph:
 # ---------------------------------------------------------------------------
 
 
-def test_explicit_speaker_line_with_parenthetical_is_not_lineated() -> None:
+@pytest.mark.parametrize(
+    "line",
+    [
+        "Ответ от Творца (режим проводника):",
+        "Ответ от Творца:",
+        "Панкратиус к ИИ Светозар: Назови мне места Корана",
+        "ИИ Светозар: Ты спросил",
+        "Светозар (ChatGPT):",
+        "Я:",
+    ],
+)
+def test_explicit_speaker_line_is_not_lineated(line: str) -> None:
     # Explicit speaker/source turns are never verse lines.
-    assert not normalize._is_lineated_line("Ответ от Творца (режим проводника):")
-    assert not normalize._is_lineated_line("Ответ от Творца:")
-    assert not normalize._is_lineated_line("Панкратиус к ИИ Светозар: Назови мне места Корана")
-    assert not normalize._is_lineated_line("ИИ Светозар: Ты спросил")
-    assert not normalize._is_lineated_line("Светозар (ChatGPT):")
-    assert not normalize._is_lineated_line("Я:")
+    assert not normalize._is_lineated_line(line)
 
 
-def test_mid_sentence_colon_line_is_lineated() -> None:
+@pytest.mark.parametrize(
+    "line",
+    [
+        "Ты спросил: кто они?",
+        "Ты спросил: почему они молчат?",
+    ],
+)
+def test_mid_sentence_colon_line_is_lineated(line: str) -> None:
     # A colon MID-sentence (text after it) is a normal verse line, NOT a label —
     # rejecting it broke the litany run (the under-detection root cause).
-    assert normalize._is_lineated_line("Ты спросил: кто они?")
-    assert normalize._is_lineated_line("Ты спросил: почему они молчат?")
+    assert normalize._is_lineated_line(line)
 
 
-def test_short_colon_opener_line_is_lineated() -> None:
+@pytest.mark.parametrize(
+    "line",
+    [
+        "Он говорил:",
+        "Разве не сказал Я:",
+    ],
+)
+def test_short_colon_opener_line_is_lineated(line: str) -> None:
     # Book sections often use a short opener before scripture/answer lines. It is
     # part of the lineated run, not a generic label boundary.
-    assert normalize._is_lineated_line("Он говорил:")
-    assert normalize._is_lineated_line("Разве не сказал Я:")
+    assert normalize._is_lineated_line(line)
 
 
 def test_long_prose_line_is_not_lineated() -> None:
@@ -81,15 +101,20 @@ def test_long_prose_line_is_not_lineated() -> None:
     assert not normalize._is_lineated_line(long_line)
 
 
-def test_short_line_under_cap_is_lineated() -> None:
-    assert normalize._is_lineated_line("Я — Свет.")
-    assert normalize._is_lineated_line("Они — ты, когда ты не разделён.")
+@pytest.mark.parametrize(
+    "line",
+    [
+        "Я — Свет.",
+        "Они — ты, когда ты не разделён.",
+    ],
+)
+def test_short_line_under_cap_is_lineated(line: str) -> None:
+    assert normalize._is_lineated_line(line)
 
 
-def test_standalone_dash_separator_is_not_lineated() -> None:
-    assert not normalize._is_lineated_line("—")
-    assert not normalize._is_lineated_line("–")
-    assert not normalize._is_lineated_line("-")
+@pytest.mark.parametrize("line", ["—", "–", "-"])
+def test_standalone_dash_separator_is_not_lineated(line: str) -> None:
+    assert not normalize._is_lineated_line(line)
 
 
 # ---------------------------------------------------------------------------
