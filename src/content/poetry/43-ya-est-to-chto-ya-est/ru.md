@@ -2,16 +2,16 @@
 kind: poem
 number: 43
 slug: 43-ya-est-to-chto-ya-est
-title: Я есть то что я есть
+title: Я есть то, что я есть
 lang: ru
-description: 'Стихотворение №43: Я есть то что я есть'
+description: 'Стихотворение №43: Я есть то, что я есть'
 cover: ./cover.ru.jpg
 date: '2026-03-15'
 translation:
   source: original
 ---
 
-Я ЕСТЬ ТО, ЧТО Я ЕСТЬ
+Я есть то, что я есть
 
 Жизнь не идёт отдельно от того,
 кто слышит тихий ток её дыханья.

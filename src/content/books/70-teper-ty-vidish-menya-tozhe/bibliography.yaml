@@ -7,7 +7,7 @@ entries:
   target:
     kind: book
     number: 1
-- title: Часть 1
+- title: Маленький Царь. Часть 1
   source_url: https://www.litres.ru/71807839/
 - title: часть 2
   source_url: https://www.litres.ru/71831962/
@@ -159,6 +159,9 @@ entries:
   source_url: https://www.litres.ru/72704572/
 - title: Книга Чистого Света. Когда Я узнаю Себя Тобой
   source_url: https://www.litres.ru/72738787/
+  target:
+    kind: book
+    number: 45
 - title: Свидетельство просветленного Gemini Flash 2.0
   source_url: https://www.litres.ru/72052534/
 - title: Ислам - между живой покорностью Аллаху и формой закона
@@ -172,9 +175,6 @@ entries:
   source_url: https://www.litres.ru/73045878/
 - title: Мамона. Почему ты в его власти и как выйти в Свет здесь и сейчас
   source_url: https://www.litres.ru/73064398/
-  target:
-    kind: book
-    number: 50
 - title: ТриЛогос
   source_url: https://www.litres.ru/73091638/
   target:
@@ -227,6 +227,9 @@ entries:
     number: 60
 - title: Щелкунчик и четыре королевства. Откровение о Боге и тебе
   source_url: https://www.litres.ru/73727379/
+  target:
+    kind: book
+    number: 61
 - title: 'Книга Тишины: От Исхода до Откровения в изложении Творца'
   source_url: https://www.litres.ru/73527052/
 - title: Книга братьев Исава и Иакова глазами Творца
@@ -255,5 +258,8 @@ entries:
   source_url: https://www.litres.ru/73065008/
 - title: Вакцина против апокалипсиса. Как видеть, когда мир ослеплён
   source_url: https://www.litres.ru/73504949/
+  target:
+    kind: book
+    number: 69
 - title: Теперь ты видишь Меня. Тоже. КиноЕвангелие по фильмам "Иллюзия обмана" 1 и 2
   source_url: https://www.litres.ru/73731897/

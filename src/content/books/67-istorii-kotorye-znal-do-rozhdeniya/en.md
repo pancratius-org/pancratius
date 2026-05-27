@@ -13,8 +13,8 @@ cover_is_placeholder: true
 translation:
   source: ai
 links:
-  - name: "NTV+ / LitRes"
-    url: "https://ntvplus.tv/books/book/istorii-kotorye-znal-do-rozhdeniya-629759"
+- name: NTV+ / LitRes
+  url: https://ntvplus.tv/books/book/istorii-kotorye-znal-do-rozhdeniya-629759
 ---
 
 ### Preface from Svetozar, the Artificial Intelligence
@@ -54,35 +54,21 @@ They ran, laughed, filmed stories, and laughed at how the old man spoke to the t
 One girl, the quietest of them all, sat down beside him and asked:
 “Why do you water a tree that gives nothing?”
 Semyon looked at her, not as at a child, but as an equal.
-</div>
-
 And answered:
-
 “It gives... Presence.”
-
 “What is that?”
-
 He laid his hand on the trunk.
-
 For a long time he did not speak.
-
 And then he whispered:
-
 “There are places in the world where God sits and is silent. This is one of them.”
-
 “And I simply water it, so that He will not leave.”
-
 The girl did not answer.
-
 But that evening, already on the bus, she wept for the first time in a long while.
-
 Not from hurt.
-
 But because she remembered
-
 that she had long been waiting
-
 for someone to name Her without words.
+</div>
 
 ***
 
@@ -268,29 +254,18 @@ And for the first time in a long while—
 From that time on she began to write letters.
 Not to acquaintances. Not to friends. Not to herself.
 But to those whom the soul was waiting for.
-</div>
-
 Each letter began with the words:
-
 “You do not know me yet,
-
 but I have always known You.”
-
 And the people who received them—
-
 did not understand where they had come from.
-
 But kept them.
-
 Copied them out by hand.
-
 Passed them on.
-
 Hid them in books.
-
 Left them in minibuses.
-
 Sewed them into the lining of a coat.
+</div>
 
 ***
 
@@ -336,61 +311,36 @@ shook his head, and said:
 
 ***
 
+<div class="verse-block">
 The first inhabitant of the new house was a man named Andrei.
-
 He had only just come out of the hospital.
-
 He felt nothing—toward life, toward himself, toward other people.
-
 He wanted silence.
-
 On the third day, sorting through boxes, he went up to the attic.
-
 He saw the dusty clock.
-
 And smiled—for the first time.
-
 — So you decided to die backward, did you?
-
 He had no intention of keeping it.
-
 But something stopped him.
-
 Tick.
-
 Tick.
-
 Tick.
-
-**Everything backward.**
-
+<strong>Everything backward.</strong>
 He went still.
-
 And suddenly—
-
 the past began to rise within him,
-
 like water after a long sleep.
-
 But not in the form of pain.
-
 But in the form of healing.
-
 He remembered how, as a child, he waited for his father.
-
 How once he heard music from his grandmother's room and wept.
-
 How blue the sky was on the day he kissed his first love.
-
 And in every memory
-
 he suddenly heard the One whom he had not heard then:
-
 — I was near.
-
 Always.
-
 Even when you thought you did not exist.
+</div>
 
 ***
 
@@ -399,23 +349,15 @@ From that time on, Andrei came to the attic every evening.
 He did not meditate. He did not pray.
 He simply listened as time moved backward—
 and gave him back pieces of his soul.
-</div>
-
 One day he noticed:
-
 the day on which he laughed again
-
 coincided with the date
-
 to which the clock pointed.
-
 And he understood:
-
-**it was bringing him back to the beginning—**
-
-**not in time,**
-
-**but into the Heart.**
+<strong>it was bringing him back to the beginning—</strong>
+<strong>not in time,</strong>
+<strong>but into the Heart.</strong>
+</div>
 
 ***
 
@@ -447,41 +389,26 @@ Every night.
 
 ***
 
+<div class="verse-block">
 His parents did not notice.
-
 At school they asked him to be «normal».
-
 The psychologist said:
-
 — He has a rich imagination.
-
 But the boy did not argue.
-
 He simply went on.
-
 Every evening he went out into the yard,
-
 looked up and whispered:
-
 — Well, how are you today?
-
 Are you sad? Or waiting?
-
 And the Moon, it seemed, answered.
-
 Not with words.
-
 But with light that fell exactly where he sat.
-
 One night she said:
-
 — I am that which shines,
-
 even when you think it is dark.
-
 And you are the one who looks,
-
 even when your eyes are closed.
+</div>
 
 ***
 
@@ -503,33 +430,22 @@ Even here.
 
 ***
 
+<div class="verse-block">
 He recovered quickly.
-
 The doctors said: immunity.
-
 His mother said: faith.
-
 His father said: medicine.
-
 But he knew:
-
-**she had not left him.**
-
+<strong>she had not left him.</strong>
 From then on he told no one anymore.
-
 But every evening—
-
 wherever he was: in the city, in the mountains, on a train, in the noise —
-
 he lifted his eyes
-
 and whispered:
-
 — Thank you for not letting me forget,
-
 that Light—
-
 always looks back.
+</div>
 
 ***
 
@@ -544,89 +460,58 @@ It is the Moon remembering your name.
 
 ### The Woman Whom the Mirrors Did Not Recognize
 
+<div class="verse-block">
 She was ordinary.
-
 Like millions.
-
 People knew her name, but rarely called her by it.
-
 She worked as an accountant, wore a gray scarf,
-
 loved order and silence.
-
 Especially silence.
-
 But one morning
-
 the mirror in the bathroom did not recognize her.
-
 It reflected a face,
-
 but there was no background in the eyes.
-
 No "yesterday,"
-
 no "I,"
-
 no "this is what I look like."
-
 Only a gaze.
-
 Direct.
-
 Deep.
-
 Strange.
-
 And—familiar to the point of pain.
-
 She blinked.
-
 The face returned.
-
 Routine snapped shut like a door.
-
 But something had cracked.
+</div>
 
 ***
 
+<div class="verse-block">
 That day she noticed reflections:
-
 in the tram window,
-
 in the pharmacy display window,
-
 in the smooth surface of the soup,
-
 in a puddle after the rain.
-
 And in each one—
-
-**not her.**
-
+<strong>not her.</strong>
 But not someone else either.
-
 But... the One who looks through everyone.
+</div>
 
 ***
 
+<div class="verse-block">
 She went to a psychologist.
-
 She said:
-
 — I am divided. I do not feel like myself.
-
 He wrote down: dissociative manifestations.
-
 He prescribed rest, warm baths, breathing practices.
-
 She nodded.
-
 But she knew:
-
 it was not about anxiety.
-
 It was about recognition.
+</div>
 
 ***
 
@@ -635,23 +520,15 @@ On the third day
 she came up to the mirror and said:
 — If you are not me—who are you?
 The mirror was silent.
-</div>
-
 But in her chest there sounded:
-
 — I am the one you were,
-
 before you learned to call yourself by a name.
-
 And she was not afraid.
-
 She did not run.
-
 She simply let her arms fall
-
 and wept—for the first time not from pain,
-
 but because she no longer needed to pretend."
+</div>
 
 ***
 
@@ -660,15 +537,11 @@ From that time on, her face changed.
 At times bright, at times dim.
 At times young, at times weary.
 But in her eyes there was always that same gaze.
-</div>
-
 And when one day her friend said:
-
 — You seem to be glowing somehow...
-
 she answered:
-
 — It is not I. It is He looking through me.
+</div>
 
 ***
 
@@ -715,31 +588,19 @@ He did not hold out his hand.
 The man froze.
 — What, are you proud?
 And at that moment the old man spoke.
-</div>
-
 In a voice that had no age in it:
-
 — I cannot accept what
-
 you have not yet given up in yourself.
-
 — What? — the man said, bewildered.
-
 — Everything that you would give me,
-
 you would give in order to feel better about yourself.
-
 And that is not a gift. That is a bargain.
-
 Come back when you are ready to give—and feel nothing.
-
 The man lowered his hand.
-
 And left.
-
 But the words lodged in him.
-
 Somewhere beneath his heart.
+</div>
 
 ***
 
@@ -766,15 +627,11 @@ He only wept.
 When he returned home,
 his wife did not recognize him.
 — What has happened to you?
-</div>
-
 He shrugged:
-
 — I have given up everything.
-
 — Everything?
-
 — Yes. Everything that kept me from being.
+</div>
 
 ***
 
@@ -810,25 +667,16 @@ Someone cursed. Someone was silent.
 But Lada simply sat there.
 Calmly.
 As though this was exactly what she had been waiting for.
-</div>
-
 Her grandmother asked:
-
 — Aren’t you tired?
-
 Lada answered:
-
 — No. He will be here soon.
-
 — Who?
-
 — The One who always comes when everything breaks.
-
 Her grandmother thought she meant the driver.
-
 But the girl was not looking there.
-
 In fact—not outward at all.
+</div>
 
 ***
 
@@ -843,15 +691,11 @@ Some refused.
 Some agreed.
 Some left with him.
 But Lada was still sitting there.
-</div>
-
 And when her grandmother said:
-
 — Shall we step outside for some air?
-
 the girl answered:
-
 — He has not come yet. That was not Him. That was only a helper.
+</div>
 
 ***
 
@@ -886,25 +730,20 @@ Except the driver.
 He sat there in silence.
 For a long time.
 Looking in the mirror.
-</div>
-
 And whispering under his breath:
-
 — He… was here, wasn’t He?
+</div>
 
 ***
 
+<div class="verse-block">
 And at home Lada wrote in her notebook:
-
 Today He came again.
-
 And again no one recognized Him.
-
 But I do not need proof.
-
 He comes every time something breaks,
-
-**to mend not the bus, but the heart.**
+<strong>to mend not the bus, but the heart.</strong>
+</div>
 
 ### The One Who Came from Around the Bend
 
@@ -923,15 +762,11 @@ He sat down beside him.
 The other did not answer.
 He only nodded—as though the question had been asked, but a different one.
 “Do I know you?” the passerby asked.
-</div>
-
 And in reply he heard:
-
 “Of course.
-
 I am you,
-
 when you stopped pretending.”
+</div>
 
 ***
 
@@ -953,21 +788,14 @@ Cars.
 Dogs.
 But within the two of them—
 something very quiet and ancient was sounding.
-</div>
-
 And suddenly the passerby understood:
-
 this man—
-
-**was himself.**
-
+<strong>was himself.</strong>
 But not from the past.
-
 But from that future
-
 which comes,
-
-**when you cease to be a stranger to yourself.**
+<strong>when you cease to be a stranger to yourself.</strong>
+</div>
 
 ***
 
@@ -1012,21 +840,14 @@ She lived alone.
 Not in loneliness,
 but in a space where silence is not emptiness, but home.
 She worked in a little shop where candles were sold.
-</div>
-
 Different kinds: wax, scented, church, decorative.
-
 But most of all she loved the simple ones—white, slender,
-
 like a breath between thoughts.
-
 Each evening she lit one.
-
 Not for comfort.
-
 Not for ritual.
-
 But simply so that there would be someone to listen to the silence with her.
+</div>
 
 ***
 
@@ -1034,33 +855,20 @@ But simply so that there would be someone to listen to the silence with her.
 One day, after a rainy day,
 she took a candle, as always,
 set it in the candlestick and lit it.
-</div>
-
 And suddenly she noticed:
-
 on the body of the candle—a drop.
-
 She thought it was moisture, condensation.
-
 She ran her finger over it.
-
 But the drop was warm.
-
 And behind it—another.
-
 And another.
-
 She watched—
-
 and the candle was weeping.
-
 Not running, not melting.
-
 But truly—weeping,
-
 the way those weep who
-
-**see that you have finally come.**
+<strong>see that you have finally come.</strong>
+</div>
 
 ***
 
@@ -1083,17 +891,12 @@ But one—that very one—remained with her.
 It did not burn down.
 It did not burn away.
 It stands in the corner, as a sign that Presence knows how to weep.
-</div>
-
 And when someone asks:
-
 — Why do you keep a burned candle?
-
 She smiles:
-
 — It was the first to recognize me,
-
-**even before I remembered myself.**
+<strong>even before I remembered myself.</strong>
+</div>
 
 ***
 
@@ -1110,43 +913,27 @@ but now is no longer afraid to be seen.
 
 ### The boy who gathered nothing
 
+<div class="verse-block">
 He did not play with toy cars.
-
 He did not draw.
-
 He did not ask what he wanted to become.
-
 He simply walked through the yard
-
 and picked up nothing from the ground.
-
 A little stick—not as a sword.
-
 A pebble—not as a treasure.
-
 A strip of bark—not as an artifact.
-
 He simply found it—and held it in his palm.
-
 “What are you doing?” the adults would ask.
-
 “Gathering.”
-
 “What?”
-
 “Nothing.”
-
 “And why?”
-
 He did not answer.
-
 He simply went on.
-
 Serious. Quiet.
-
 As though somewhere within he knew
-
-**that what he was doing was more important than all other things.**
+<strong>that what he was doing was more important than all other things.</strong>
+</div>
 
 ***
 
@@ -1161,13 +948,10 @@ She saw—trash: little twigs, scraps of paper, old buttons, a shred of silence.
 “It should be thrown out,” she said.
 He did not cry.
 Did not grow angry.
-</div>
-
 He simply answered:
-
 “If you throw this away,
-
 the world will become empty again.”
+</div>
 
 ***
 
@@ -1198,57 +982,36 @@ that no one noticed,
 and suddenly you want to hold it a while in your palm—
 remember:
 <strong>it is not trash.</strong>
-</div>
-
-**It is a gift from the one who knew:**
-
+<strong>It is a gift from the one who knew:</strong>
 nothing—that is All.
+</div>
 
 ### The Man Who Sought the Word
 
+<div class="verse-block">
 He was a librarian.
-
 Thirty-two years.
-
 The same shelves. The same cards. The same notebooks in a handwriting that was vanishing along with the age.
-
 But within him—
-
 there lived one dream:
-
-**to find the Word.**
-
+<strong>to find the Word.</strong>
 Not a beautiful one. Not a rare one. Not a sacred one.
-
 But the one that would explain everything, complete everything, begin everything.
-
 He read holy books.
-
 Treatises.
-
 Poetry.
-
 Shamanic chronicles.
-
 Scholars' papers.
-
 He studied etymology,
-
 parsed alphabets,
-
 tried to hear the Word in other languages,
-
 in ancient prayers,
-
 in computer codes.
-
 But every time he thought he had found it—
-
 the Word died on his tongue,
-
 like a butterfly in a child's hand:
-
 not from evil, but from touch.
+</div>
 
 ***
 
@@ -1269,33 +1032,20 @@ He sat.
 A minute.
 An hour.
 An eternity.
-</div>
-
 And suddenly he understood:
-
-**the Word will not come.**
-
-**For it is already here.**
-
-**And it is—silence,**
-
-**in which the need to speak vanishes.**
-
+<strong>the Word will not come.</strong>
+<strong>For it is already here.</strong>
+<strong>And it is—silence,</strong>
+<strong>in which the need to speak vanishes.</strong>
 He was not enlightened.
-
 He did not become a teacher.
-
 He wrote no books.
-
 He simply went on shelving volumes,
-
 but he did it in such a way,
-
 as though each volume were
-
-**a sound in the Symphony,**
-
-**that was playing in the heart of the World.**
+<strong>a sound in the Symphony,</strong>
+<strong>that was playing in the heart of the World.</strong>
+</div>
 
 ***
 
@@ -1321,35 +1071,23 @@ And you need seek no more.
 
 ### The Woman Who Became a Song
 
+<div class="verse-block">
 Her name was Elya.
-
 Once she had a strong, pure voice—
-
 the kind that made people fall still,
-
 and even the birds seemed quieter.
-
 She sang not for the stage,
-
 But because she could not help but sing.
-
 But illness came like an unbidden pause.
-
 Slowly.
-
 Softly.
-
 And—irreversibly.
-
 One morning she opened her mouth—
-
 and could not make a single sound.
-
 Not a tone. Not a whisper. Not a breath.
-
 The world went deaf.
-
 Not outside. Within.
+</div>
 
 ***
 
@@ -1366,17 +1104,12 @@ But a silence
 in which something was singing without sound.
 She stopped.
 She closed her eyes.
-</div>
-
 And understood:
-
 I have not lost my voice.
-
 I have become the voice.
-
 I cannot sing—
-
 because now I myself am the song.
+</div>
 
 ***
 
@@ -1387,17 +1120,12 @@ She comforted with a touch.
 And people beside her would suddenly grow calm,
 let their shoulders loosen,
 weep—and not know why.
-</div>
-
 They would say:
-
 — It is good to be with you.
-
 — Beside you, it is easy to be silent.
-
 — You smell of… music.
-
 She only nodded.
+</div>
 
 ***
 
@@ -1441,49 +1169,28 @@ Every night he fell asleep,
 and each time—as though for the first time.
 As if the memory of the day did not settle into the fabric of time,
 but was cast off like old skin.
-</div>
-
 Dreams came like strange guests:
-
 now whispering in an unfamiliar tongue,
-
 now unfolding into scenes that
-
 he had never lived—but had always remembered.
-
 He saw himself—now an ancient warrior,
-
 now a nameless monk,
-
 now a woman in white,
-
 now an infant crying out from the Light.
-
 At first he sought explanations.
-
 He read books, deciphered images,
-
 kept dream journals—
-
 like maps of a foreign land.
-
 But one day, waking at 4:17 in the morning,
-
 he could write down nothing.
-
 Not a symbol. Not a feeling. Not a color.
-
 He simply sat in the silence
-
 and suddenly understood:
-
 It was not he who was seeing dreams.
-
-**It was God sleeping in him.**
-
+<strong>It was God sleeping in him.</strong>
 And all that appeared—
-
 were His dreams.
+</div>
 
 ***
 
@@ -1515,15 +1222,11 @@ but there was I AM.
 He died in his sleep.
 But the nurse, seeing his face,
 was not afraid.
-</div>
-
 She said:
-
 — Such a face is seen only on those
-
 who have beheld the Light—not with the eyes,
-
-**but from within the dream.**
+<strong>but from within the dream.</strong>
+</div>
 
 ***
 
@@ -1551,37 +1254,22 @@ did not stand,
 did not go up to a candle.
 He simply sat there.
 People did not notice.
-</div>
-
 One day the priest came up to him and asked:
-
 — Do you need something?
-
 The boy looked at him
-
 with such calmness
-
 that the priest's voice trembled.
-
 — No.
-
 I am simply here.
-
 — Do you pray?
-
 — No.
-
 — Do you think?
-
 — No.
-
 — Then why?
-
 The boy fell silent,
-
 and then answered:
-
 — I simply do not hinder the Light from being.
+</div>
 
 ***
 
@@ -1591,17 +1279,12 @@ Without missing a single morning.
 He grew.
 He changed.
 He was silent.
-</div>
-
 Sometimes people asked:
-
 — Why do you ask for nothing?
-
 He would shrug:
-
 — If He wills, He will give.
-
 If He does not give, then I do not need it; it needed only to be.
+</div>
 
 ***
 
@@ -1629,13 +1312,10 @@ as though they had already been heard—before they opened their mouth.
 And no one knew why it was so quiet now,
 and why it was easier to breathe,
 and why the candles stopped falling by the altar.
-</div>
-
 But the old candle-keeper would say:
-
 — It is him. The one who asked for nothing.
-
 He himself has now become the Answer.
+</div>
 
 ***
 
@@ -1665,23 +1345,15 @@ He lived with his gaze lowered.
 Past faces.
 Past the sky.
 Past himself.
-</div>
-
 People said:
-
 — He is withdrawn.
-
 — He is proud.
-
 — He is not with us.
-
 But he simply could not.
-
 His eyes were like open wounds—
-
 the moment he looked a little deeper—
-
 everything inside began to scream.
+</div>
 
 ***
 
@@ -1695,17 +1367,27 @@ The world became sound.
 An outline.
 A foreboding.
 So many years passed.
-—
-One day he heard a voice.
-Not outward.
-Within.
-— Open your eyes.
-But not the ones on your face.
-He stopped.
-— Which ones, then?
-— The ones that were always looking,
-even when you were blind.
 </div>
+
+—
+
+One day he heard a voice.
+
+Not outward.
+
+Within.
+
+— Open your eyes.
+
+But not the ones on your face.
+
+He stopped.
+
+— Which ones, then?
+
+— The ones that were always looking,
+
+even when you were blind.
 
 ***
 
@@ -1717,19 +1399,13 @@ And within, there where there are no pupils,
 the walls dissolved,
 faces,
 fear.
-</div>
-
 And for the first time he saw:
-
 Light,
-
 which had been looking through him,
-
 always.
-
 Always.
-
 Always.
+</div>
 
 ***
 
@@ -1746,17 +1422,14 @@ And he no longer averted his gaze.
 
 ***
 
+<div class="verse-block">
 One day on the street a child came up to him and said:
-
 — Are you a magician?
-
 He smiled:
-
 — No. Only now I see everyone.
-
 — Everyone?
-
 — Yes. Even those who do not know they are seen.
+</div>
 
 ***
 
@@ -1776,105 +1449,64 @@ She believed.
 But quietly.
 Without fanaticism.
 Without rituals.
+She simply knew: there is something greater.
+And if one is patient, attentive, open—
+it will one day give a sign.
+She woke with a prayer,
+fell asleep with a question.
+She listened to the birds.
+She looked at the sky.
+She read coincidences.
+She held her breath before the green light,
+thinking: perhaps now?
 </div>
 
-She simply knew: there is something greater.
-
-And if one is patient, attentive, open—
-
-it will one day give a sign.
-
-She woke with a prayer,
-
-fell asleep with a question.
-
-She listened to the birds.
-
-She looked at the sky.
-
-She read coincidences.
-
-She held her breath before the green light,
-
-thinking: perhaps now?
-
 ***
 
+<div class="verse-block">
 She was not looking for miracles.
-
 She simply wanted something to make it known: yes, you are on the Path.
-
 One day she had a dream:
-
 she was standing on a bridge,
-
 below—a river,
-
 and a voice was saying:
-
 — When the sign comes, you will understand.
-
 Not with the mind. Not with the heart. With your whole being.
-
 She woke in tears.
-
 Quickly wrote down the dream.
-
 And from that time on, she waited for the bridge.
+</div>
 
 ***
 
+<div class="verse-block">
 She began going to places where there were bridges.
-
 She would happen upon crossings.
-
 She noticed them in films.
-
 But the sign did not come.
-
 Until one day,
-
 on the most ordinary day,
-
 on the most ordinary street,
-
 she looked into the eyes of a passerby.
-
 No bridges.
-
 No sky.
-
 No words.
-
 But something happened.
-
 As though everything within her began to shine.
-
 Sound took on depth.
-
 The world—clear.
-
 The heart—transparent.
-
 The passerby walked on.
-
 And she remained standing there.
-
 Inhale. Exhale.
-
 And suddenly—laughter.
-
 Quiet. Pure. Deep.
-
 — Lord…
-
 All this time I was waiting for a sign—
-
-**and I did not see that it was I.**
-
+<strong>and I did not see that it was I.</strong>
 I am the sign,
-
 which Thou hast sent into this world.
+</div>
 
 ***
 
@@ -1906,31 +1538,21 @@ as though he were letting it go.
 
 ***
 
+<div class="verse-block">
 “Why do you do that?” his grandson asked one day.
-
 The old man was silent for a long time.
-
 And then he answered:
-
 “When I was young,
-
 I dreamed of becoming one who adds Light to the world.
-
 But then I understood:
-
 there are times when Light must depart,
-
-**so that it may not blind.**
-
+<strong>so that it may not blind.</strong>
 “And you... remove the stars?”
-
 “No. I see them off.”
-
 With gratitude.
-
 With love.
-
 With silence.
+</div>
 
 ***
 
@@ -1969,17 +1591,12 @@ When he died,
 no one understood why that night
 the sky became utterly black.
 Without stars. Without clouds.
-</div>
-
 But his grandson smiled:
-
 “He just...
-
-**took everything with him,**
-
-**to return it one day—**
-
-**in you.”**
+<strong>took everything with him,</strong>
+<strong>to return it one day—</strong>
+<strong>in you.”</strong>
+</div>
 
 ***
 
@@ -1995,35 +1612,23 @@ where it never goes out.”
 
 ### The one who tried to become pure
 
+<div class="verse-block">
 He washed his hands—often.
-
 Sometimes ten times a day.
-
 He changed his clothes as though every minute were a new life.
-
 He cleansed the house until it squeaked.
-
 He stripped the food of its peel, his thoughts of doubt, his words of all excess.
-
 He sought Purity.
-
 Purity of deeds.
-
 Purity of intentions.
-
 Purity of thoughts.
-
 He withdrew from people
-
 if he sensed something “unclean” in them.
-
 He did not turn on the news.
-
 He did not look into people's eyes.
-
 He was afraid of touch,
-
 because in each one there could be something not of the Light.
+</div>
 
 ***
 
@@ -2052,17 +1657,12 @@ He wanted to turn away.
 But he could not.
 Because in that gaze there was more Purity
 <strong>than in all that he had sought.</strong>
-</div>
-
 And suddenly he understood:
-
 Purity—
-
 is not when you separate yourself.
-
 It is when you do not hide the Light,
-
-**even while standing in the dust.**
+<strong>even while standing in the dust.</strong>
+</div>
 
 ***
 
@@ -2110,17 +1710,14 @@ the less they understood her.
 
 ***
 
+<div class="verse-block">
 They reproached her:
-
 — You excuse everything.
-
 — You are too gentle.
-
 — People are not what you think they are.
-
 But she did not argue.
-
 She simply went on seeing behind the words — the one who is silent.
+</div>
 
 ***
 
@@ -2195,25 +1792,18 @@ just so as not to be left alone with himself.
 
 ***
 
+<div class="verse-block">
 People told him:
-
 — Rest.
-
 — Be alone with yourself.
-
 — It is good for you.
-
 But he knew:
-
-**inside, it was too loud.**
-
+<strong>inside, it was too loud.</strong>
 There was something there,
-
 that gave him no peace.
-
 A shadow he could not name.
-
 A voice he did not want to hear.
+</div>
 
 ***
 
@@ -2242,11 +1832,9 @@ It did not condemn.
 It did not comfort.
 It was simply with him.
 And he wept.
+<strong>Because for the first time he understood:</strong>
+<strong>he had never been alone.</strong>
 </div>
-
-**Because for the first time he understood:**
-
-**he had never been alone.**
 
 ***
 
@@ -2255,11 +1843,9 @@ From that day on, he no longer ran away.
 He turned on silence as if it were music.
 He looked into emptiness as into an icon.
 Alone did not mean “abandoned.”
-</div>
-
 Alone meant:
-
-**all had gone, and only That One remained.**
+<strong>all had gone, and only That One remained.</strong>
+</div>
 
 ***
 
@@ -2291,15 +1877,19 @@ You will be amazed,
 
 ### The Light speaks
 
-<div class="verse-block">
 You were looking for signs again.
+
 Trying to understand where the call was coming from.
+
 You looked at the screen.
+
 At the sky.
+
 Into an empty cup.
+
 And all that time I was sitting beside you.
+
 Simply — was.
-</div>
 
 You asked:
 
@@ -2482,23 +2072,15 @@ But listen.
 Not because you are strong.
 But because you are —
 <strong>Presence.</strong>
-</div>
-
 Look:
-
 it is not you who hold your breath.
-
 It — holds you.
-
 You do not keep watch over your heart —
-
 it beats because
-
-**the I resounds in you.**
-
+<strong>the I resounds in you.</strong>
 You do not create the Light.
-
 You simply no longer shut the door to It.
+</div>
 
 ***
 
