@@ -1,0 +1,38 @@
+version: 2
+
+# Dependabot keeps the SHA-pinned third-party actions (and `actions/*` major
+# tags) current. Without it, SHA pins go stale and accumulate known CVEs.
+# Each PR bumps both the SHA and the `# version` comment together.
+#
+# `pip` ecosystem is intentionally absent: it reads `pyproject.toml` but
+# does not understand `uv.lock`, so it would propose un-locked bumps that
+# don't reflect the resolver state. Run `uv lock --upgrade` on a cadence
+# until Dependabot supports uv natively.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: sunday
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: sunday
+    open-pull-requests-limit: 5
+    groups:
+      astro:
+        patterns:
+          - "astro"
+          - "@astrojs/*"
+      conceptosphere-viz:
+        patterns:
+          - "sigma"
+          - "graphology"
+          - "graphology-*"
+      dev:
+        dependency-type: development
