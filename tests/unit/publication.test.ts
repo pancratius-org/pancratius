@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative } from "node:path";
 import { describe, test } from "node:test";
 
 import { markdownToPlainText } from "../../src/lib/publication/plain-text.ts";
@@ -11,6 +13,42 @@ import { renderPublicWorkMarkdown } from "../../src/lib/publication/public-markd
 import { parseMarkdownDocument } from "../../src/lib/publication/source.ts";
 
 const ORIGIN = "https://example.test";
+
+type CurrentCorpusMarkdown = {
+  bundleKey: string;
+  file: string;
+  kind: "book" | "poem";
+};
+
+function currentWorkMarkdownFiles(): CurrentCorpusMarkdown[] {
+  const entries: CurrentCorpusMarkdown[] = [];
+  for (const root of [
+    { kind: "book" as const, segment: "books" },
+    { kind: "poem" as const, segment: "poetry" },
+  ]) {
+    const rootDir = join(process.cwd(), "src", "content", root.segment);
+    collectMarkdownFiles(rootDir, root.kind, rootDir, entries);
+  }
+  return entries;
+}
+
+function collectMarkdownFiles(
+  dir: string,
+  kind: "book" | "poem",
+  rootDir: string,
+  entries: CurrentCorpusMarkdown[],
+): void {
+  for (const dirent of readdirSync(dir, { withFileTypes: true })) {
+    const file = join(dir, dirent.name);
+    if (dirent.isDirectory()) {
+      collectMarkdownFiles(file, kind, rootDir, entries);
+      continue;
+    }
+    if (!dirent.isFile() || !dirent.name.endsWith(".md")) continue;
+    const bundleKey = relative(rootDir, file).split(/[\\/]/)[0] ?? "";
+    entries.push({ bundleKey, file, kind });
+  }
+}
 
 describe("parseMarkdownDocument", () => {
   test("parses mapping frontmatter and returns the Markdown body", () => {
@@ -81,6 +119,83 @@ describe("renderPublicWorkMarkdown", () => {
     );
   });
 
+  test("refuses unsupported raw HTML instead of stripping it", () => {
+    assert.throws(
+      () => renderPublicWorkMarkdown(
+        "<aside>foo</aside>\n",
+        { origin: ORIGIN, work: { kind: "book", bundleKey: "work-1" } },
+      ),
+      /Unsupported raw HTML "<aside>".*book\/work-1/,
+    );
+  });
+
+  test("refuses unsafe HTML anchor href schemes before rendering Markdown links", () => {
+    for (const href of ["javascript:alert(1)", "java&#115;cript:alert(1)"]) {
+      assert.throws(
+        () => renderPublicWorkMarkdown(
+          `<a href="${href}">x</a>\n`,
+          { origin: ORIGIN, work: { kind: "book", bundleKey: "work-1" } },
+        ),
+        /unsupported href URL scheme "javascript"/,
+      );
+    }
+  });
+
+  test("renders canonical work HTML wrappers and inline publication tags", () => {
+    const rendered = renderPublicWorkMarkdown(
+      [
+        '<div class="verse-block">Line <strong>one</strong><br><span dir="rtl">RTL text</span></div>',
+        '<blockquote class="epigraph"><p>Quote <em>text</em><br>next '
+          + '<a href="https://example.test/ref?x=1&amp;y=2">link</a></p><footer>Source</footer></blockquote>',
+        '<p class="signature">Name</p>',
+        '<img src="./images/pic.jpg" alt="Image &amp; sign">',
+      ].join("\n\n"),
+      { origin: ORIGIN, work: { kind: "book", bundleKey: "work-1" } },
+    );
+
+    assert.equal(
+      rendered,
+      [
+        "Line **one**  ",
+        "RTL text",
+        "",
+        "",
+        "> Quote *text*",
+        "> next [link](https://example.test/ref?x=1&y=2)",
+        "> — Source",
+        "",
+        "",
+        "Name",
+        "",
+        "",
+        "![Image & sign](https://example.test/assets/books/work-1/images/pic.jpg)",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  test("refuses raw HTML comments, declarations, and processing instructions", () => {
+    for (const raw of ["<!-- hidden -->", "<!doctype html>", "<?xml version=\"1.0\"?>"]) {
+      assert.throws(
+        () => renderPublicWorkMarkdown(
+          `${raw}\n`,
+          { origin: ORIGIN, work: { kind: "book", bundleKey: "work-1" } },
+        ),
+        /Unsupported raw HTML/,
+      );
+    }
+  });
+
+  test("does not treat ordinary comparison operators as raw HTML", () => {
+    assert.equal(
+      renderPublicWorkMarkdown(
+        "The comparison 2 < 3 and 5 > 4 stays textual.\n",
+        { origin: ORIGIN, work: { kind: "book", bundleKey: "work-1" } },
+      ),
+      "The comparison 2 < 3 and 5 > 4 stays textual.\n",
+    );
+  });
+
   test("infers poem hard breaks from kind", () => {
     assert.equal(
       renderPublicWorkMarkdown(
@@ -96,6 +211,23 @@ describe("renderPublicWorkMarkdown", () => {
       ),
       "Line one  \nLine two\n",
     );
+  });
+
+  test("renders the current book and poem corpus as public Markdown", () => {
+    const failures: string[] = [];
+    for (const entry of currentWorkMarkdownFiles()) {
+      try {
+        renderPublicWorkMarkdown(
+          readFileSync(entry.file, "utf-8"),
+          { origin: ORIGIN, work: { kind: entry.kind, bundleKey: entry.bundleKey } },
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        failures.push(`${relative(process.cwd(), entry.file)}: ${message}`);
+      }
+    }
+
+    assert.deepEqual(failures, []);
   });
 });
 
