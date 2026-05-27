@@ -38,10 +38,10 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import os
 import re
 import shutil
-import sys
 import tempfile
 import time
 import zipfile
@@ -53,6 +53,8 @@ import yaml
 from PIL import Image, ImageFilter
 
 from pancratius.paths import CONTENT_ROOT, DATA_ROOT, LEGACY_ROOT, REPO_ROOT
+
+logger = logging.getLogger(__name__)
 
 # ---------- tunables ----------------------------------------------------------
 
@@ -753,8 +755,10 @@ def build_path_map(content_root: Path, legacy_root: Path) -> dict[Path, Path]:
                                               or c.parent.name.startswith(f"{slug_num} ")]
                 candidates = tight or candidates
             if len(candidates) != 1:
-                print(f"warn: ambiguous poetry source for {slug}/{name} "
-                      f"({len(candidates)} candidates)", file=sys.stderr)
+                logger.warning(
+                    "ambiguous poetry source for %s/%s (%d candidates)",
+                    slug, name, len(candidates),
+                )
                 continue
             suffix = f"{lang}.docx" if total <= 1 else f"{lang}-part{idx}.docx"
             out[candidates[0].resolve()] = content_root / "poetry" / slug / suffix
@@ -804,18 +808,20 @@ def optimize(
                 for f in iter_docx_files(p):
                     queue(f)
             else:
-                print(f"warn: not found: {p}", file=sys.stderr)
+                logger.warning("not found: %s", p)
     else:
         for src_root in SOURCE_ROOTS:
             for f in iter_docx_files(src_root):
                 queue(f)
 
     if unmapped:
-        print(f"warn: {len(unmapped)} source file(s) have no src/content/ entry "
-              f"and will be skipped (e.g. {unmapped[0].name})", file=sys.stderr)
+        logger.warning(
+            "%d source file(s) have no src/content/ entry and will be skipped (e.g. %s)",
+            len(unmapped), unmapped[0].name,
+        )
 
     if not jobs:
-        print("no .docx files found")
+        logger.info("no .docx files found")
         return OptimizeSummary(processed=0, skipped=0, failed=0, dry_run=dry_run)
 
     total_in = 0
@@ -833,16 +839,19 @@ def optimize(
             total_out += out_size
             skipped += 1
             written.append(dst)
-            print(f"SKIP   {src.name}: {fmt_bytes(in_size):>9s} -> {fmt_bytes(out_size):>9s} (cached)")
+            logger.info(
+                "SKIP   %s: %9s -> %9s (cached)",
+                src.name, fmt_bytes(in_size), fmt_bytes(out_size),
+            )
             continue
         if dry_run:
-            print(f"WOULD  {src} -> {dst}")
+            logger.info("WOULD  %s -> %s", src, dst)
             continue
         t0 = time.time()
         try:
             in_size, out_size, _ = optimize_docx(src, dst, verbose=verbose)
         except (OSError, zipfile.BadZipFile, zipfile.LargeZipFile) as exc:
-            print(f"FAIL   {src}: {type(exc).__name__}: {exc}", file=sys.stderr)
+            logger.error("FAIL   %s: %s: %s", src, type(exc).__name__, exc)
             failed += 1
             continue
         dt = time.time() - t0
@@ -851,8 +860,10 @@ def optimize(
         total_out += out_size
         processed += 1
         written.append(dst)
-        print(f"OK     {src.name}: {fmt_bytes(in_size):>9s} -> {fmt_bytes(out_size):>9s}  "
-              f"({pct:5.1f}% saved, {dt:4.1f}s)")
+        logger.info(
+            "OK     %s: %9s -> %9s  (%5.1f%% saved, %4.1fs)",
+            src.name, fmt_bytes(in_size), fmt_bytes(out_size), pct, dt,
+        )
 
     if not dry_run:
         added = update_manifest_generated_paths(written)

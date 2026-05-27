@@ -25,9 +25,9 @@ HTTP retries, and structured ``HttpError``s are handled by the SDK.
 
 from __future__ import annotations
 
+import logging
 import os
 import re
-import sys
 import urllib.error
 import urllib.request
 from collections.abc import Iterator, Sequence
@@ -44,6 +44,8 @@ from pancratius.docx_conversion import to_ascii_slug
 from pancratius.paths import CONTENT_ROOT
 from pancratius.video_channels import CHANNELS_PATH, VideoChannel, load_channels
 
+
+logger = logging.getLogger(__name__)
 
 THUMBNAIL_BASE = "https://i.ytimg.com/vi"
 # Single match captures the frontmatter header text between the opening and
@@ -457,10 +459,7 @@ def _download_thumbnail(maxres_url: str, yt_id: VideoId, dst: Path) -> None:
             return
         except urllib.error.URLError as exc:
             last_error = exc
-    print(
-        f"warning: could not download thumbnail for {yt_id}: {last_error}",
-        file=sys.stderr,
-    )
+    logger.warning("could not download thumbnail for %s: %s", yt_id, last_error)
 
 
 @dataclass
@@ -502,37 +501,46 @@ def scan(
 
     for channel in channels:
         if not channel.scan:
+            logger.info("skip %s (scan: false)", channel.key)
             result.skipped_channels.append(channel.key)
             continue
         result.scanned_channels.append(channel.key)
+        logger.info("%s: resolving channel…", channel.key)
         try:
             info = client.resolve_channel(_channel_locator(channel))
         except VideoScanError as exc:
-            print(f"warning: channel {channel.key}: {exc}", file=sys.stderr)
+            logger.warning("channel %s: %s", channel.key, exc)
             continue
 
+        logger.info("%s: listing uploads…", channel.key)
         all_ids = client.list_playlist_video_ids(info.uploads_playlist_id)
         new_ids = [vid for vid in all_ids if vid not in known_ids]
+        logger.info("%s: %d uploads, %d new", channel.key, len(all_ids), len(new_ids))
         if not new_ids:
-            print(f"channel {channel.key}: nothing new ({len(all_ids)} known).")
             continue
 
+        logger.info("%s: fetching metadata for %d videos…", channel.key, len(new_ids))
         videos = client.fetch_videos(new_ids)
+        logger.info("%s: listing channel playlists…", channel.key)
         playlists = client.list_channel_playlists(info.channel_id)
+        logger.info("%s: mapping videos to %d playlists…", channel.key, len(playlists))
         attribution = _build_attribution(client, playlists, new_ids)
 
         # publishedAt is authoritative; the uploads-playlist order isn't documented.
         new_ids.sort(key=lambda v: videos[v].published_at if v in videos else "")
 
-        for vid in new_ids:
+        total = len(new_ids)
+        for idx, vid in enumerate(new_ids, start=1):
             meta = videos.get(vid)
             if meta is None:
-                print(f"warning: no metadata for {vid}; skipping", file=sys.stderr)
+                logger.warning("no metadata for %s; skipping", vid)
                 continue
             slug_root = to_ascii_slug(meta.title) or f"video-{vid}"
+            folder_name = f"{next_number:02d}-{slug_root}"
+            logger.info("%s [%d/%d] %s", channel.key, idx, total, folder_name)
             new_video = NewVideo(
                 number=next_number,
-                folder=f"{next_number:02d}-{slug_root}",
+                folder=folder_name,
                 lang=channel.default_lang,
                 yt_id=vid,
                 title=meta.title,
