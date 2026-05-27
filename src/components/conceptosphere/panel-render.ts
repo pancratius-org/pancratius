@@ -108,8 +108,8 @@ function renderBookPanel(
     <li>${escapeHtml(tc.label ?? tc.lemma ?? "")}<span class="cs-n">${(tc.count ?? 0).toLocaleString(numberLocale)}</span></li>
   `).join("");
 
-  // Similar rows are intentionally book-only: the graph payload can mention
-  // poems/projects, but this panel has a stable href/cover contract only for
+  // Similar rows are intentionally book-only: the semantic payload can mention
+  // poems, but this panel has a stable href/cover contract only for
   // books. Keep that boundary explicit instead of synthesizing mixed-kind URLs.
   const tfItems = ((a.top_similar as SimilarRef[] | undefined) ?? []).filter(isBookSimilar).slice(0, 5);
   const semItems = ((a.top_similar_embed as SimilarRef[] | undefined) ?? []).filter(isBookSimilar).slice(0, 5);

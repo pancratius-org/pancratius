@@ -1052,8 +1052,8 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
     # Top similar content by semantic embedding (Qwen3 + mean-centering). Loaded
     # from the sibling pipeline's output if available — embedded into each
     # node here so the panel doesn't need a separate 1 MB fetch just to render
-    # 5 list rows. Unlike TF-IDF overlap, this can point at books, poems, or
-    # projects; every row carries `kind` so the UI can link it correctly.
+    # 5 list rows. Unlike TF-IDF overlap, this can point at books or poems;
+    # every row carries `kind` so books-only surfaces can filter it explicitly.
     top_similar_embed: dict[str, list[dict]] = {}
     embed_path = DATA_ROOT / "conceptosphere-embed.json"
     if embed_path.exists():
@@ -1065,18 +1065,23 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
                     continue
                 ms = n.get("most_similar") or []
                 rows: list[dict] = []
-                for m in ms[:5]:
+                for m in ms:
                     target_slug = m.get("slug")
                     if not target_slug:
                         continue
                     target_doc = doc_by_slug.get(target_slug)
+                    kind = str(m.get("kind") or (target_doc.kind if target_doc else "book"))
+                    if kind == "project":
+                        continue
                     rows.append({
                         "slug": target_slug,
-                        "kind": m.get("kind") or (target_doc.kind if target_doc else "book"),
+                        "kind": kind,
                         "title": (target_doc.title if target_doc else localized_text(m.get("title"), "ru"))
                                  or str(target_slug),
                         "weight": round(float(m.get("sim") or m.get("weight") or 0), 4),
                     })
+                    if len(rows) == 5:
+                        break
                 top_similar_embed[sid] = rows
             log(f"merged semantic-similar rankings for "
                 f"{len(top_similar_embed)} content items from {embed_path.name}")

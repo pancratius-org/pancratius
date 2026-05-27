@@ -42,7 +42,7 @@ Build derivations live in `build/` and run from npm. They derive artifacts from
 committed source; they do not mutate `src/content/`:
 
 - `build/slug-map.ts` writes the build-time route manifest.
-- `build/copy-graph-payloads.ts` copies committed graph data into the public
+- `build/copy-graph-payloads.ts` minifies committed graph JSON into the public
   payload space.
 - `build/bulk-archives.ts` builds the bulk archive manifest and `.cache` zip.
 - `build/sync-pagefind-dev.ts` copies Pagefind output for local dev.

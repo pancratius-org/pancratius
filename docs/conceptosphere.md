@@ -50,13 +50,13 @@ changes after a rebuild; regenerate the JSON if you need fresh counts.
 
 | Output | Nodes | Edges | Clusters | Modularity |
 | --- | ---: | ---: | ---: | ---: |
-| Concepts | 418 | 1,214 | 20 | 0.7210 |
-| Books, TF-IDF | 72 | 330 | 6 | 0.3424 |
-| Embedding intermediate | 117 | 851 | 4 | 0.3847 |
+| Concepts | 418 | 1,119 | 21 | 0.7504 |
+| Books, TF-IDF | 75 | 346 | 5 | 0.3433 |
 
-Embedding intermediate also contains 14,880 chunks and 12 discovered chunk
-topics. It includes books, poems, and projects; semantic recommendations in
-the public books graph carry `kind` so the UI can link each item correctly.
+A fresh embedding intermediate contains document nodes for books and poems plus
+discovered chunk topics. Projects are site sections, not works, so they are
+excluded from semantic embeddings. Recommendations in the public books graph
+carry `kind` and books-only surfaces filter non-books out.
 
 ## Concepts Graph
 
@@ -118,12 +118,13 @@ recommendations in `pancratius-books-graph.json`.
 
 Embedding pipeline:
 
-1. Read the same Russian corpus.
+1. Read Russian books and poetry. Project landings are excluded because they are
+   site framing, not reader works.
 2. Split texts into roughly 400-token chunks with 50-token overlap.
 3. Embed chunks with `Qwen/Qwen3-Embedding-0.6B` by default.
 4. Apply the same instruction prefix to every chunk because this is symmetric
    similarity/clustering, not asymmetric search.
-5. Mean-center all chunk embeddings before book centroids. This removes the
+5. Mean-center all chunk embeddings before document centroids. This removes the
    common "all these texts are from the same spiritual corpus" component.
 6. Build length-weighted document centroids.
 7. Connect documents by centroid cosine using top-K plus threshold pruning.
@@ -194,7 +195,7 @@ default. Use `--only concepts` or `--only books` for a narrower refresh.
 ## Known Gaps
 
 - The graph generators are Russian-only today (`ru.md` discovery is hardcoded).
-- `conceptosphere-embed.json` includes poems/projects, so UI recommendations must
-  respect `kind` and not assume every semantic neighbor is a book.
+- `conceptosphere-embed.json` includes poetry, so UI recommendations must respect
+  `kind` and not assume every semantic neighbor is a book.
 - Topic labels in the embedding intermediate can still leak stopwords or HTML-ish
   tokens; they are not a production UI surface yet.
