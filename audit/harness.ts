@@ -11,7 +11,7 @@ import { REPO_ROOT } from "./lib/repo.ts";
 import { renderReport, hasFatal } from "./lib/report.ts";
 import { RULES } from "./rules/index.ts";
 
-type Mode = "default" | "agent" | "deploy";
+type Mode = "default" | "agent" | "post-build";
 
 interface ModeConfig {
   tiers: ReadonlySet<Tier>;
@@ -24,15 +24,15 @@ const MODES: Record<Mode, ModeConfig> = {
   default: { tiers: new Set<Tier>(["core"]), showInfo: false, title: "Pancratius audit" },
   // Agent view: core + non-blocking heuristics, everything shown grouped.
   agent: { tiers: new Set<Tier>(["core", "heuristic"]), showInfo: true, title: "Pancratius audit (agent)" },
-  // Post-build crawl/index checks; need an emitted dist/.
-  deploy: { tiers: new Set<Tier>(["deploy"]), showInfo: false, title: "Pancratius audit (deploy)" },
+  // Rules that need an emitted dist/ (PAN014 link crawl, PAN008 asset scan).
+  "post-build": { tiers: new Set<Tier>(["post-build"]), showInfo: false, title: "Pancratius audit (post-build)" },
 };
 
 function parseMode(argv: readonly string[]): Mode {
   const arg = argv[2];
   if (arg === undefined || arg === "default") return "default";
-  if (arg === "agent" || arg === "deploy") return arg;
-  process.stderr.write(`unknown audit mode: ${arg}\nusage: harness.ts [default|agent|deploy]\n`);
+  if (arg === "agent" || arg === "post-build") return arg;
+  process.stderr.write(`unknown audit mode: ${arg}\nusage: harness.ts [default|agent|post-build]\n`);
   process.exit(2);
 }
 

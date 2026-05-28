@@ -7,7 +7,7 @@
 //   fixtures/<rule.id>/good/  — a legitimate state; the rule MUST NOT fire (0)
 //
 // The good fixture is the insurance that a fatal rule won't scream on an allowed
-// future change. Both are MANDATORY for every `core` and `deploy` rule; a missing
+// future change. Both are MANDATORY for every `core` and `post-build` rule; a missing
 // fixture fails the run. Heuristic (info-only, non-gating) rules are exempt.
 //
 // Adding a rule with its two fixtures auto-registers its test — no edits here.
@@ -68,7 +68,7 @@ async function checkRule(rule: Rule): Promise<Result[]> {
     try {
       const found = await runAgainst(rule, badDir);
       const shape = found.map(shapeError).find((e) => e !== null) ?? null;
-      // A core/deploy rule is a GATING rule: CI exits non-zero only on `fatal`
+      // A core/post-build rule is a GATING rule: CI exits non-zero only on `fatal`
       // (report.ts hasFatal), so its bad fixture must produce at least one FATAL
       // finding — otherwise the rule "fires" in the self-test yet would NOT block
       // CI (e.g. it accidentally returns a warning). Heuristic rules don't reach

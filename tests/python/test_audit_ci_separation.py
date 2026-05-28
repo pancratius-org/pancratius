@@ -18,7 +18,7 @@ CHECKER = ROOT / "audit" / "python" / "ci_separation.py"
 def _workflow(root: Path, run: str) -> Path:
     workflows = root / ".github" / "workflows"
     workflows.mkdir(parents=True)
-    (workflows / "build.yml").write_text(
+    (workflows / "pr.yml").write_text(
         "\n".join((
             "name: Build",
             "on: [push]",

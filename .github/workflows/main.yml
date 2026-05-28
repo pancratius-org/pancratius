@@ -1,0 +1,134 @@
+name: Build and deploy
+
+# Push-to-main pipeline. Builds ONCE, audits ONCE, deploys to both targets.
+#
+# Design: a single job, not artifact-passed fan-out. The built `dist/` is
+# ~800 MB; uploading and re-downloading it as an artifact is roughly the
+# same wall clock as rebuilding, costs storage quota, and adds a transfer
+# failure mode. So: keep the artifact in-process and run the two deploys
+# sequentially in the same runner.
+#
+# Failure semantics:
+#   - Check, build, or audit failure aborts before any deploy is attempted
+#     (correct; never ship an invalid site).
+#   - Once the deploy gate is reached, one host failing does NOT block the
+#     other. Single-target failure is still reported by the final deploy
+#     outcome step; rerun via `workflow_dispatch`.
+#
+# IMPORTANT: this workflow installs Node + uv only. It MUST NOT install
+# pandoc or typst — CI never renders documents (see docs/downloads.md).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Serialize main-branch deploys. cancel-in-progress=false because cancelling
+# mid-deploy can leave the host in a partial state.
+concurrency:
+  group: main-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          lfs: false
+
+      - name: Setup Node (24)
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install Python deps (frozen lock)
+        run: uv sync --frozen
+
+      # Re-run the audit core on the deploy path. Branch protection + the PR
+      # gate already enforce this, but the deploy job is the last line — a
+      # bypass-merged red PR must not reach the host. Cheap; pre-build.
+      - name: Audit core (contracts + selftest)
+        run: |
+          npm run audit
+          npm run audit:selftest
+
+      - name: Check site (Astro content + types)
+        run: npm run check
+
+      - name: Build site (Astro + bulk archive + Pagefind)
+        run: npm run build
+
+      - name: Verify build produced HTML
+        run: |
+          html_count=$(find dist -name '*.html' | wc -l)
+          if [ "$html_count" -lt 1 ]; then
+            echo "::error::Astro build produced no HTML pages; refusing to deploy an empty site."
+            exit 1
+          fi
+          echo "ok: $html_count html files in dist/"
+
+      - name: Audit built site (post-build rules)
+        # Rules that need an emitted dist/ (PAN014 link crawl, PAN008
+        # /assets/ URL contract). A fatal here aborts before any deploy.
+        run: npm run audit:post-build
+
+      - name: Mark deploy gate
+        id: deploy_gate
+        run: echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      # ── Deploy to primary FTP host ──────────────────────────────────────
+      - name: Deploy to primary host via FTP
+        id: deploy_ftp
+        if: ${{ !cancelled() && steps.deploy_gate.outputs.ready == 'true' }}
+        continue-on-error: true
+        uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
+        with:
+          server: ${{ vars.HOSTING_FTP_HOST }}
+          username: ${{ secrets.HOSTING_FTP_USER }}
+          password: ${{ secrets.HOSTING_FTP_PASSWORD }}
+          local-dir: ./dist/
+          server-dir: ${{ vars.HOSTING_FTP_PATH }}
+          protocol: ${{ vars.HOSTING_FTP_PROTOCOL || 'ftps' }}
+          security: loose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+          log-level: standard
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy_cloudflare
+        if: ${{ !cancelled() && steps.deploy_gate.outputs.ready == 'true' }}
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT }} --branch=main
+
+      - name: Report deploy outcome
+        if: >-
+          ${{
+            !cancelled()
+            && steps.deploy_gate.outputs.ready == 'true'
+            && (
+              steps.deploy_ftp.outcome == 'failure'
+              || steps.deploy_cloudflare.outcome == 'failure'
+            )
+          }}
+        run: |
+          echo "::error::At least one deploy target failed (ftp=${{ steps.deploy_ftp.outcome }}, cloudflare=${{ steps.deploy_cloudflare.outcome }})."
+          exit 1

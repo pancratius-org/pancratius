@@ -25,18 +25,18 @@ site.
 | Command | Owns |
 | --- | --- |
 | `npm run dev` | Prebuild derivations, Pagefind dev sync, Astro dev server. |
-| `npm run build` | Prebuild derivations, `astro check`, static build, Pagefind index. |
+| `npm run build` | Prebuild derivations, static build, Pagefind index. |
 | `npm run preview` | Astro preview of the built site. |
 | `npm run check` | Prebuild derivations plus Astro content/type checks. |
-| `npm run audit` | Core architecture audit. |
+| `npm run check:ts` | Type-check TS tooling and run Node unit tests. |
+| `npm run verify` | Local equivalent of the PR gate (`pr.yml` minus Playwright). |
+| `npm run audit` | Architectural contract harness; see [`audit-harness.md`](./audit-harness.md). |
 | `npm run audit:agent` | Core audit plus non-blocking heuristic checks. |
-| `npm run audit:deploy` | Deploy-surface audit against emitted `dist/`. |
+| `npm run audit:post-build` | Rules that need an emitted `dist/` (PAN014 link crawl, PAN008 `/assets/` URL contract). |
 | `npm run audit:selftest` | Harness fixtures proving audit polarity. |
 | `npm run test:smoke` | Playwright smoke/e2e specs. |
-| `npm run test:unit` | Node unit tests for TS helpers. |
 | `npm run test:visual` | Playwright visual gate. |
-| `npm run typecheck:tooling` | Type-check TS tooling outside the Astro app config. |
-| `npm run check:py` | Ruff annotation lint plus `ty` for Python. |
+| `npm run check:py` | Ruff annotations + `ty` types + pytest behaviour for the Python tooling. |
 
 Build derivations live in `build/` and run from npm. They derive artifacts from
 committed source; they do not mutate `src/content/`:

@@ -4,11 +4,10 @@ version = "0.1.0"
 description = "Python tooling for the Pancratius static library"
 requires-python = ">=3.13"
 # Base deps cover the LIGHT (in-process, no-ML) verbs of the `pancratius` console
-# script — `work import`, `docx optimize`, `project page add`, `downloads render`
-# — so `uv sync` (no extras) installs and runs them. Pillow is
-# the image-cap/optimize dependency; it also keeps the import behavioural tests in
-# tests/python/test_import_docx.py running under `uv run pytest` instead of skipping on a
-# missing PIL. The HEAVY stacks (graph/embed) are opt-in extras below, not here.
+# script — `work import`, `docx optimize`, `project page add`, `downloads render`,
+# and `video sync` — so `uv sync` (no extras) installs and runs them. Pillow is
+# the image-cap/optimize dependency; google-api-python-client is the YouTube
+# metadata dependency. The HEAVY stacks (graph/embed) are opt-in extras below.
 dependencies = [
   "pyyaml>=6.0.2",
   "pillow>=10.4",

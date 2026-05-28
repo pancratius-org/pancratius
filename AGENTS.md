@@ -10,7 +10,7 @@ Two entry points:
 - **Library:** `uv run pancratius ...`
   Local Python tooling that changes the library: import works, scaffold project pages drafts, build downloads, optimize docx, generate committed graph and embedding data for recommendations. It is not the site build and not CI. Never use bare python/pip/venv, only `uv`.
 - **Site:** `npm run ...` and GitHub actions
-  Astro/TypeScript tooling that builds, checks, previews, audits, and deploys the site from committed source. It may derive build artifcats, but it does not create or edit the library.
+  Astro/TypeScript tooling that builds, checks, previews, audits, and deploys the site from committed source. It may derive build artifacts, but it does not create or edit the library.
 
 Each file has one home:
 - `src/content/` — authored or imported library and site content;
@@ -29,4 +29,6 @@ Classify the work and read the contract that owns it:
 - commands, local library operations, site operations -> `docs/tooling.md`;
 - code structure, boundaries, tech stack, deploy -> `docs/architecture.md`.
 
-Work inside the owning boundaries. Do not change component boundaries or introduce new bridges between them, unless the task explicitly asks to re-architect them. Verify/audit before claiming done.
+Work inside the owning boundaries. Do not change component boundaries or introduce new bridges between them, unless the task explicitly asks to re-architect them.
+
+Verify before claiming done. Minimum quality gate: `npm run verify` (like CI, but skips Playwright).
