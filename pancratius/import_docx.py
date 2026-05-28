@@ -6,17 +6,17 @@ import re
 import shutil
 import sys
 import uuid
+import xml.etree.ElementTree as ET
 import zipfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any, TypedDict
-import xml.etree.ElementTree as ET
 
-from pancratius.paths import CACHE_ROOT, CONTENT_ROOT, imports_dir_for_content_root
+from pancratius import footnotes
 from pancratius.content_catalog import (
-    CatalogEntry,
     KIND_DIRS,
+    CatalogEntry,
     build_title_index,
     dump_frontmatter,
     find_work_entries,
@@ -31,11 +31,11 @@ from pancratius.docx_conversion import (
     to_ascii_slug,
     write_bibliography_sidecar,
 )
-from pancratius import footnotes
 from pancratius.kinds import CORPUS_WORK_KINDS
+from pancratius.paths import CACHE_ROOT, CONTENT_ROOT, imports_dir_for_content_root
 from pancratius.writeplan import Diagnostic, Role, WriteOp, WritePlan
-from pancratius.writer import WriteReport, apply as apply_plan
-
+from pancratius.writer import WriteReport
+from pancratius.writer import apply as apply_plan
 
 DEFAULT_CONTENT_ROOT = CONTENT_ROOT
 # Disposable conversion scratch; never src/content.

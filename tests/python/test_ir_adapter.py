@@ -13,15 +13,13 @@ ordered-list start, table structuring).
 from __future__ import annotations
 
 import subprocess
-import sys
 import zipfile
 from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-
-from pancratius import docx_adapter as adapter, ir  # noqa: E402
+from pancratius import docx_adapter as adapter
+from pancratius import ir
 
 W = adapter.W
 

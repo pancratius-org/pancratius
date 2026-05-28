@@ -9,10 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
 from typing import cast
-import sys
 
-
-from pancratius.writeplan import (  # noqa: E402
+from pancratius.writeplan import (
     AssetTransform,
     Diagnostic,
     OpKind,

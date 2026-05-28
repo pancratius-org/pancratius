@@ -18,7 +18,8 @@ from pancratius import cross_refs, docx_adapter, footnotes, ir, ooxml
 from pancratius.content_catalog import IndexHit, dump_frontmatter
 from pancratius.paths import CACHE_ROOT
 from pancratius.writeplan import AssetTransform, Diagnostic, PlannedAsset, Role, WriteOp, WritePlan
-from pancratius.writer import WriteReport, apply as apply_plan
+from pancratius.writer import WriteReport
+from pancratius.writer import apply as apply_plan
 
 # Longest-edge cap (px) for converted body rasters, applied by the writer as a
 # `cap_raster` transform. One owner for the work importer and the sub-page scaffold;

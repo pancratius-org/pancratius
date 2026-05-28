@@ -11,14 +11,12 @@ relayer is covered in test_import_docx.)
 from __future__ import annotations
 
 import importlib.util
-import sys
 from pathlib import Path, PurePosixPath
 
 import pytest
 
-
-from pancratius.writeplan import AssetTransform, Diagnostic, WriteOp, WritePlan  # noqa: E402
-from pancratius import writer  # noqa: E402
+from pancratius import writer
+from pancratius.writeplan import AssetTransform, Diagnostic, WriteOp, WritePlan
 
 SCOPE = PurePosixPath("books/99-probe")
 
@@ -298,8 +296,10 @@ def _make_raster(path: Path, size: tuple[int, int], fmt: str = "PNG", quality: i
         for y in range(0, size[1], 8):
             img.putpixel((x, y), ((x * 7) % 256, (y * 5) % 256, ((x + y) * 3) % 256))
     path.parent.mkdir(parents=True, exist_ok=True)
-    save_kwargs = {"quality": quality} if quality is not None else {}
-    img.save(path, format=fmt, **save_kwargs)
+    if quality is None:
+        img.save(path, format=fmt)
+    else:
+        img.save(path, format=fmt, quality=quality)
 
 
 def _cap_op(source: Path, rel: str = "images/a.png") -> WriteOp:

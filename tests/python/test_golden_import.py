@@ -54,13 +54,13 @@ import pytest
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
+from pancratius import (
+    footnotes,
+    import_docx,
+)
+from pancratius.content_catalog import KIND_DIRS, dump_frontmatter, split_frontmatter
 
 ROOT = Path(__file__).resolve().parents[2]
-
-from pancratius import import_docx  # noqa: E402
-from pancratius import footnotes  # noqa: E402
-from pancratius.content_catalog import KIND_DIRS, dump_frontmatter, split_frontmatter  # noqa: E402
-
 
 pytestmark = [
     pytest.mark.pandoc,

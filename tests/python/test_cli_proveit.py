@@ -25,19 +25,19 @@ against a scratch tmp `--out-content`, never the real corpus.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
-from pathlib import Path
-from types import ModuleType
 import importlib.util
 import re
 import shutil
 import sys
+from collections.abc import Iterator
+from pathlib import Path
+from types import ModuleType
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
+from pancratius import cli
 
-from pancratius import cli  # noqa: E402
+ROOT = Path(__file__).resolve().parents[2]
 
 _FIXTURE_DOCX = ROOT / "legacy" / "books" / "ru" / "23-личность-и-эго.docx"
 _REQUIRES_REAL = pytest.mark.skipif(

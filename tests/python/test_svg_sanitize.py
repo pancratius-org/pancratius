@@ -7,12 +7,11 @@ no-op on them) so the import boundary never corrupts the author's images.
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+from pancratius import svg_sanitize
 
-from pancratius import svg_sanitize  # noqa: E402
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_strips_script_element() -> None:

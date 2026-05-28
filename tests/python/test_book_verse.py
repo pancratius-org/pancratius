@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from audit import book_verse as bv
 
-
 # ---------------------------------------------------------------------------
 # is_label_line / is_verse_line — the per-line predicate (the SPEC)
 # ---------------------------------------------------------------------------

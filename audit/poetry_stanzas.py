@@ -214,7 +214,7 @@ def actual_groups_from_ir() -> int:
 
     # Imported lazily/here so the audit's default committed-content mode stays a
     # pure stdlib reader (no importer wiring) and works without scripts on path.
-    from pancratius import import_docx  # noqa: PLC0415
+    from pancratius import import_docx
 
     failures: list[str] = []
     checked = 0

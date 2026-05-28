@@ -37,10 +37,10 @@ import re
 import shutil
 import subprocess
 import uuid
+from collections.abc import Iterable
 from dataclasses import dataclass
 from html import unescape
 from pathlib import Path
-from typing import Iterable
 
 from PIL import Image
 
@@ -595,9 +595,12 @@ def render(
         raise DownloadRenderError("no matching works")
 
     formats: list[str] = []
-    if not skip_pdf:  formats.append("pdf")
-    if not skip_epub: formats.append("epub")
-    if docx: formats.append("docx")
+    if not skip_pdf:
+        formats.append("pdf")
+    if not skip_epub:
+        formats.append("epub")
+    if docx:
+        formats.append("docx")
     _ensure_tools(formats)
 
     pdfs_made = 0

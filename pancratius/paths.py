@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Shared filesystem boundaries for the local corpus tooling.
 
 The package owns one repository-shaped corpus. Callers may override the root with
@@ -7,8 +5,10 @@ The package owns one repository-shaped corpus. Callers may override the root wit
 directory. Package assets are resolved relative to the package itself.
 """
 
-from collections.abc import Iterator
+from __future__ import annotations
+
 import os
+from collections.abc import Iterator
 from pathlib import Path
 
 
