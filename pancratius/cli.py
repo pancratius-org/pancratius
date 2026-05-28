@@ -132,8 +132,8 @@ def _project_page_add(args: argparse.Namespace) -> int:
     suggested landing `subpages:` entry to STDOUT for a human to place — it never
     edits the landing. Bad input (missing/non-DOCX) is a usage error (exit 2); a
     write refusal is a failure (exit 1)."""
-    from pancratius.docx_conversion import ScaffoldError, scaffold_subpage
     from pancratius import import_docx  # for print_report (shared report formatter) — light, no ML
+    from pancratius.docx_conversion import ScaffoldError, scaffold_subpage
 
     if (rc := _require_pandoc()) is not None:
         return rc

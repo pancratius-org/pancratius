@@ -6,10 +6,9 @@ the nested IR/package paths so a broad bad fixture cannot hide a stale guard.
 
 from __future__ import annotations
 
-from pathlib import Path
 import subprocess
 import sys
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CHECKER = ROOT / "audit" / "python" / "ci_separation.py"

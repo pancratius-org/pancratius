@@ -39,9 +39,16 @@ import re
 import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable, cast
+from typing import Any, Protocol, cast
+
+import numpy as np
+import regex as re2
+import yaml
+from razdel import sentenize
+
+from pancratius.paths import CONTENT_ROOT, DATA_ROOT
 
 # MLX model / tokenizer objects returned by ``mlx_embeddings.load()``. They are
 # opaque, un-stubbed runtime objects with no public type; ``Any`` is the honest
@@ -51,12 +58,10 @@ from typing import Any, Iterable, cast
 MLXModel = Any
 MLXTokenizer = Any
 
-import numpy as np
-import regex as re2
-import yaml
-from razdel import sentenize
 
-from pancratius.paths import CONTENT_ROOT, DATA_ROOT
+class _EmbeddingResult(Protocol):
+    text_embeds: Any
+
 
 # ---------------------------------------------------------------------------
 # Paths / config
@@ -253,7 +258,6 @@ def chunk_sentences(
         starts.append(cursor)
         cursor += len(s) + 1  # +1 for joining space
         ends.append(cursor)
-    total = cursor
 
     i = 0
     n = len(sents)
@@ -324,8 +328,8 @@ def save_doc_cache(model_id: str, slug: str, chunks: list[str], embs: np.ndarray
 # ---------------------------------------------------------------------------
 def embed_chunks(
     chunks: list[str],
-    model: MLXModel,  # noqa: ANN401 — opaque MLX model object, no usable stubs
-    tokenizer: MLXTokenizer,  # noqa: ANN401 — opaque MLX tokenizer object
+    model: MLXModel,
+    tokenizer: MLXTokenizer,
     *,
     batch_size: int,
     max_length: int,
@@ -339,12 +343,22 @@ def embed_chunks(
         # Qwen3-Embedding wants the instruction prefix on every input for
         # symmetric tasks (similarity/clustering). Same instruction both sides.
         batch = [INSTRUCTION_PREFIX + c for c in chunks[s : s + batch_size]]
-        out = generate(model, tokenizer, batch, max_length=max_length,
-                       padding=True, truncation=True)
+        out = cast(
+            _EmbeddingResult,
+            generate(
+                model,
+                tokenizer,
+                batch,
+                max_length=max_length,
+                padding=True,
+                truncation=True,
+            ),
+        )
         # text_embeds is (B, D), already L2-normalised
-        arr = np.asarray(out.text_embeds.astype(mx.float32))
+        text_embeds = out.text_embeds
+        arr = np.asarray(text_embeds.astype(mx.float32))
         out_rows.append(arr)
-        mx.eval(out.text_embeds)
+        mx.eval(text_embeds)
     return np.concatenate(out_rows, axis=0) if out_rows else np.zeros((0, 0), dtype=np.float32)
 
 
@@ -387,7 +401,7 @@ def build_content_graph(
                 kept.add((a, b))
     # global threshold
     iu, ju = np.where(np.triu(sims >= GLOBAL_SIM_THRESHOLD, k=1))
-    for a, b in zip(iu, ju):
+    for a, b in zip(iu, ju, strict=True):
         kept.add((int(a), int(b)))
 
     edges = [(a, b, float(sims[a, b])) for (a, b) in kept]
@@ -437,7 +451,6 @@ def discover_topics(
     chunk_doc_title: list[str],
 ) -> list[dict]:
     import hdbscan
-    from sklearn.feature_extraction.text import TfidfVectorizer
 
     if len(chunk_embs) < HDBSCAN_MIN_CLUSTER_SIZE * 2:
         return []
@@ -489,10 +502,10 @@ def discover_topics(
         for w in WORD_RE.findall(t.lower()):
             if len(w) < 3:
                 continue
-            l = lemma_of(w)
-            if l in RU_STOP or len(l) < 3:
+            lemma = lemma_of(w)
+            if lemma in RU_STOP or len(lemma) < 3:
                 continue
-            out.append(l)
+            out.append(lemma)
         return out
 
     # Pre-tokenise each chunk once
@@ -506,9 +519,9 @@ def discover_topics(
     idf = {w: math.log((N + 1) / (df + 1)) + 1.0 for w, df in df_counter.items()}
 
     topics: list[dict] = []
-    cluster_ids = sorted({int(l) for l in labels if l != -1})
+    cluster_ids = sorted({int(label) for label in labels if label != -1})
     for cid in cluster_ids:
-        member_idx = [i for i, l in enumerate(labels) if l == cid]
+        member_idx = [i for i, label in enumerate(labels) if label == cid]
         if len(member_idx) < 5:
             continue
         # Aggregate TF over cluster
@@ -577,11 +590,6 @@ def generate_embeddings(
     limit: int = 0,
 ) -> None:
     """Embed the corpus, cluster, and write the semantic conceptosphere JSON."""
-    # The ``model`` parameter is the string model-id (what argparse held in
-    # ``args.model``). Keep it under a stable name because the verbatim body
-    # later rebinds the bare ``model`` name to the *loaded MLX object* via
-    # ``model, tokenizer = load(...)`` — exactly as the original did, where
-    # ``args.model`` (string) and ``model`` (object) were distinct names.
     model_id = model
     t_total = time.time()
     print(f"[i] model: {model_id}")
@@ -611,9 +619,8 @@ def generate_embeddings(
     # ---- embed ----
     print("[i] loading model (first run downloads weights)…")
     from mlx_embeddings import load
-    import mlx.core as mx
     t = time.time()
-    model, tokenizer = load(model_id)
+    loaded_model, tokenizer = cast(tuple[MLXModel, MLXTokenizer], load(model_id))
     print(f"[i] model loaded in {time.time()-t:.2f}s")
 
     # Walk every document, embed missing chunks, cache.
@@ -623,7 +630,7 @@ def generate_embeddings(
     chunk_doc_slug: list[str] = []
     chunk_doc_title: list[str] = []
     chunk_texts_all: list[str] = []
-    chunk_embs_all: list[np.ndarray] = []
+    chunk_emb_rows: list[np.ndarray] = []
 
     n_cached = 0
     n_computed = 0
@@ -638,7 +645,7 @@ def generate_embeddings(
                 n_cached += len(chunks)
             else:
                 t_b = time.time()
-                embs = embed_chunks(chunks, model, tokenizer,
+                embs = embed_chunks(chunks, loaded_model, tokenizer,
                                     batch_size=batch_size,
                                     max_length=max_length)
                 # re-normalise to be safe (mlx-embeddings already does this)
@@ -653,8 +660,12 @@ def generate_embeddings(
             chunk_doc_slug.append(d.slug)
             chunk_doc_title.append(d.title)
             chunk_texts_all.append(c)
-        chunk_embs_all.append(embs)
-    chunk_embs_all = np.concatenate(chunk_embs_all, axis=0) if chunk_embs_all else np.zeros((0, 1024))
+        chunk_emb_rows.append(embs)
+    chunk_embs_all = (
+        np.concatenate(chunk_emb_rows, axis=0)
+        if chunk_emb_rows
+        else np.zeros((0, 1024), dtype=np.float32)
+    )
     t_embed_total = time.time() - t_embed
     print(f"[i] embedded {n_computed} new chunks, hit cache for {n_cached} "
           f"(wall {t_embed_total:.1f}s)")
@@ -772,9 +783,8 @@ def generate_embeddings(
                 doc_topic_counts[sb["slug"]][t_["id"]] += sb["chunks"]
 
     # ---- emit JSON ----
-    PALETTE_LEN = 20  # matches conceptosphere.html
     out_doc = {
-        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "model": model_id,
         "params": {
             "chunk_tokens": CHUNK_TOKENS,

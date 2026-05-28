@@ -9,10 +9,8 @@ from pathlib import Path
 
 import pytest
 
-
-from pancratius import import_docx  # noqa: E402
-from pancratius.content_catalog import split_frontmatter  # noqa: E402
-
+from pancratius import import_docx
+from pancratius.content_catalog import split_frontmatter
 
 requires_docx_import = pytest.mark.skipif(
     shutil.which("pandoc") is None or importlib.util.find_spec("PIL") is None,
@@ -43,8 +41,7 @@ def make_docx(tmp_path: Path) -> DocxFactory:
         subprocess.run(
             ["pandoc", str(md), "-o", str(docx)],
             check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
         )
         return docx
@@ -163,7 +160,7 @@ def test_converter_fatal_diagnostic_blocks_the_write(
 
     real_assign = lower.assign_assets
 
-    def fatal_assign(doc: "ir.Document", media_root: Path, lang: str) -> list:
+    def fatal_assign(doc: ir.Document, media_root: Path, lang: str) -> list:
         out = real_assign(doc, media_root, lang)
         doc.diagnostics.append(ir.Diagnostic("fatal", "import.image-unresolved", "synthetic fatal"))
         return out

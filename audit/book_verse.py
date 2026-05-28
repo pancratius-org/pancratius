@@ -79,7 +79,7 @@ def _speaker_turn_re() -> re.Pattern[str]:
     dialogue prefixes (`ir.normalize._DIALOGUE_PREFIXES`, the dialogue SoT) so the
     audit's speaker set tracks the IR's. Distinct from a mid-sentence colon in a
     verse line (`Ты спросил: кто они?`), which is NOT rejected."""
-    from pancratius.ir.normalize import _DIALOGUE_PREFIXES  # noqa: PLC0415
+    from pancratius.ir.normalize import _DIALOGUE_PREFIXES
 
     prefixes = sorted(_DIALOGUE_PREFIXES, key=lambda p: -len(p))
     inner = "|".join(re.escape(p) for p in prefixes)
@@ -374,7 +374,7 @@ def source_right_aligned_words(docx: Path) -> set[str]:
     — a block whose words are NOT mostly right-aligned source is a spurious
     signature/epigraph, the symptom of the C1 ``w:jc``-realignment drift (a
     positional zip mis-assigning alignment). Reuses the importer's ``read_w_jc``."""
-    from pancratius import docx_adapter  # noqa: PLC0415
+    from pancratius import docx_adapter
 
     words: set[str] = set()
     for rec in docx_adapter.read_w_jc(docx):
@@ -561,7 +561,7 @@ def _check_from_ir() -> int:
     import io
     import tempfile
 
-    from pancratius import import_docx  # noqa: PLC0415
+    from pancratius import import_docx
 
     failures: list[str] = []
     checked = 0

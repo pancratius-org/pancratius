@@ -34,7 +34,6 @@ from typing import assert_never
 from pancratius import ir
 from pancratius.writeplan import PlannedAsset
 
-
 # ---------------------------------------------------------------------------
 # body-image asset constants + helpers (content-addressed planning)
 # ---------------------------------------------------------------------------

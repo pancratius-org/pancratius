@@ -116,12 +116,12 @@ def _capped_raster_bytes(op: WriteOp, transform: AssetTransform) -> tuple[bytes,
                 return original, None  # vector/animated/unknown or already small
             resized = img.copy()
         resized.thumbnail((transform.max_long_edge, transform.max_long_edge), Image.LANCZOS)
-        save_kwargs: dict[str, int] = {}
         quality = transform.quality if transform.quality is not None else _CAP_QUALITY.get(fmt)
-        if fmt in _CAP_QUALITY and quality is not None:
-            save_kwargs["quality"] = quality
         buf = io.BytesIO()
-        resized.save(buf, format=fmt, **save_kwargs)
+        if fmt in _CAP_QUALITY and quality is not None:
+            resized.save(buf, format=fmt, quality=quality)
+        else:
+            resized.save(buf, format=fmt)
         return buf.getvalue(), None
     except (ImportError, OSError) as exc:
         return original, Diagnostic(

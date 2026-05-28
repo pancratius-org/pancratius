@@ -40,15 +40,11 @@ import math
 import re
 import time
 from collections import Counter, defaultdict
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable, Iterable, cast
-
-# A logging sink: ``print`` in normal runs, a no-op lambda under ``--quiet``.
-# It is called purely for its side effect, so the honest signature is
-# "accepts anything, returns nothing".
-LogFn = Callable[..., None]
+from typing import Any, cast
 
 import igraph as ig
 import leidenalg
@@ -56,9 +52,16 @@ import networkx as nx
 import pymorphy3
 import regex as re2
 import yaml
-from community import community_louvain  # python-louvain (kept for before/after modularity comparison)
+from community import (
+    community_louvain,  # python-louvain (kept for before/after modularity comparison)
+)
 
 from pancratius.paths import CONTENT_ROOT, DATA_ROOT
+
+# A logging sink: ``print`` in normal runs, a no-op lambda under ``--quiet``.
+# It is called purely for its side effect, so the honest signature is
+# "accepts anything, returns nothing".
+LogFn = Callable[..., None]
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -87,6 +90,9 @@ class GraphConfig:
     min_npmi: float = 0.18
     books_edges_per_node: int = 5
     books_min_cosine: float = 0.10
+
+
+DEFAULT_GRAPH_CONFIG = GraphConfig()
 
 
 class GraphGenerationError(Exception):
@@ -119,13 +125,13 @@ RU_STOPWORDS_BASE = {
     "свою", "этой", "перед", "иногда", "лучше", "чуть", "том", "нельзя",
     "такой", "им", "более", "всегда", "конечно", "всю", "между",
     # corpus noise — pronouns, filler, demonstratives, intensifiers, modals
-    "это", "этот", "эта", "это", "тот", "та", "те", "сей", "сия", "сие",
+    "это", "эта", "та", "те", "сей", "сия", "сие",
     "который", "которая", "которое", "которые", "свой", "свои", "своя", "своё",
-    "весь", "вся", "всё", "все", "сам", "сама", "само", "сами", "иной", "оный",
-    "такой", "такая", "такое", "такие", "каждый", "каждая", "каждое",
+    "весь", "вся", "всё", "сама", "само", "сами", "иной", "оный",
+    "такая", "такое", "такие", "каждый", "каждая", "каждое",
     "никакой", "ничей", "некий", "некоторый", "любой",
-    "просто", "очень", "именно", "именно", "также", "ещё", "уже", "вообще",
-    "тебе", "себе", "моё", "твоё", "наше", "ваше",
+    "просто", "очень", "именно", "также", "ещё", "вообще",
+    "тебе", "моё", "твоё", "наше", "ваше",
     "мочь", "хотеть", "должен", "должный", "стать", "становиться",
     "являться", "оказываться", "оказаться", "сказать", "говорить", "ответить",
     "спросить", "знать", "видеть", "слышать", "понимать", "думать",
@@ -144,8 +150,7 @@ RU_STOPWORDS_BASE = {
     # corpus-specific noise (high freq, low structure)
     "режим", "проводник",
     # typographic / OCR / Word artifacts
-    "г", "т", "д", "с", "н", "м", "л", "р", "п", "к",
-    "ст", "стр", "гл", "тыс", "млн",
+    "г", "т", "д", "н", "м", "л", "р", "п", "ст", "стр", "гл", "тыс", "млн",
     # English / latin chrome from inline phrases
     "the", "of", "a", "to", "and", "in", "is", "it", "you", "that", "for",
     "on", "with", "as", "this", "be", "or", "an", "by", "are", "from",
@@ -159,7 +164,7 @@ KEEP_OVERRIDE = {
     "любовь", "вера", "знание", "ии", "церковь", "православие", "молитва",
     "сердце", "душа", "ум", "тело", "слово", "имя", "путь", "тьма", "жизнь",
     "смерть", "грех", "святой", "святость", "русь", "россия", "мир", "время",
-    "вечность", "истина", "правда", "ложь",
+    "вечность", "правда", "ложь",
     "панкратиус", "евангелие", "храм", "тишина", "присутствие",
 }
 
@@ -737,7 +742,7 @@ def run_concepts_mode(config: GraphConfig, out: Path, log: LogFn, bundle: Corpus
         })
 
     out_doc = {
-        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "params": {
             "window": config.window,
             "min_degree": config.min_degree,
@@ -872,7 +877,7 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
             inv[lemma].append((slug, w))
 
     sim: dict[tuple[str, str], float] = defaultdict(float)
-    for lemma, postings in inv.items():
+    for _lemma, postings in inv.items():
         # contribution to dot product for every pair of books sharing this lemma
         for i in range(len(postings)):
             sa, wa = postings[i]
@@ -906,13 +911,9 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
             pair = (slug, other) if slug < other else (other, slug)
             keep.add(pair)
 
-    # Floor threshold so the very weakest links don't make it (e.g. two books
-    # sharing one mid-IDF concept). Tune to roughly the 30th percentile of
-    # surviving edges — books with no strong tie just sit isolated.
-    sorted_keep_w = sorted(
-        (cosine_score(book_vec, book_norm, a, b) for a, b in keep),
-        reverse=True,
-    )
+    # Fixed floor threshold so the very weakest links don't make it (e.g. two
+    # books sharing one mid-IDF concept). Books with no strong tie just sit
+    # isolated.
     floor = config.books_min_cosine
     log(f"[books]  cosine floor = {floor:.3f}")
 
@@ -1133,7 +1134,7 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
         })
 
     out_doc = {
-        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "mode": "books",
         "params": {
             "edge_weight": "tfidf-cosine",
@@ -1185,7 +1186,7 @@ def cosine_score(
 def generate_graph(
     *,
     only: str | None = None,
-    config: GraphConfig = GraphConfig(),
+    config: GraphConfig = DEFAULT_GRAPH_CONFIG,
     concepts_out: Path | None = None,
     books_out: Path | None = None,
     quiet: bool = False,

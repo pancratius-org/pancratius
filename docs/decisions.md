@@ -295,8 +295,8 @@ Caveat and exit: ty is pre-1.0, so it is pinned **exact** (`ty==`), not `>=`.
 Re-evaluate against pyright/mypy `--strict` when ty reaches a stable line. `Any`
 is permitted only at genuine dynamic boundaries (opaque ML model/tokenizer
 objects, untyped Pandoc-AST payloads, un-stubbed third-party imports) and must be
-explicit (scoped `# noqa: ANN401`, a documented alias, or an enumerated
-`replace-imports-with-any` entry) — never a blanket suppression.
+explicit through local aliases or narrow typed payload edges — never a blanket
+suppression.
 
 ## Import is the publish gate: harden authored content, not the renderer
 

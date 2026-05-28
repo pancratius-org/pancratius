@@ -44,7 +44,6 @@ from pancratius.docx_conversion import to_ascii_slug
 from pancratius.paths import CONTENT_ROOT
 from pancratius.video_channels import CHANNELS_PATH, VideoChannel, load_channels
 
-
 logger = logging.getLogger(__name__)
 
 THUMBNAIL_BASE = "https://i.ytimg.com/vi"
@@ -208,7 +207,7 @@ class YouTubeClient:
     def fetch_videos(self, video_ids: Sequence[VideoId]) -> dict[VideoId, VideoMetadata]:
         """Batch `videos.list` (50/batch). Skips items missing required fields."""
         out: dict[VideoId, VideoMetadata] = {}
-        for batch in batched(video_ids, 50):
+        for batch in batched(video_ids, 50, strict=False):
             request = self._service.videos().list(
                 part="snippet,contentDetails", id=",".join(batch),
             )
@@ -454,7 +453,7 @@ def _download_thumbnail(maxres_url: str, yt_id: VideoId, dst: Path) -> None:
     last_error: urllib.error.URLError | None = None
     for url in candidates:
         try:
-            with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310 (fixed https host)
+            with urllib.request.urlopen(url, timeout=30) as response:
                 dst.write_bytes(response.read())
             return
         except urllib.error.URLError as exc:

@@ -25,7 +25,6 @@ from pancratius.video_scan import (
     YouTubePlaylist,
 )
 
-
 # ─────────────────────────────────────────────────────────────────────
 # Fake client. Implements the YouTubeClient method surface; the scanner
 # never sees an HTTP request.

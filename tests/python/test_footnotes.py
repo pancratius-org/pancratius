@@ -15,23 +15,16 @@ Covers three things Phase 4 introduced:
 
 from __future__ import annotations
 
-from pathlib import Path
-import sys
+from pathlib import Path, PurePosixPath
 
-import pytest
-
-ROOT = Path(__file__).resolve().parents[2]
-
-from pancratius import footnotes  # noqa: E402
-from pancratius.writeplan import (  # noqa: E402
+from pancratius import footnotes
+from pancratius.writeplan import (
     Diagnostic,
     WriteOp,
     WritePlan,
     has_fatal,
 )
-from pancratius.writer import apply as apply_plan  # noqa: E402
-from pathlib import PurePosixPath  # noqa: E402
-
+from pancratius.writer import apply as apply_plan
 
 # ---------------------------------------------------------------------------
 # analyze_footnotes

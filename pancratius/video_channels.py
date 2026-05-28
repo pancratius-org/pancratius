@@ -15,7 +15,6 @@ import yaml
 
 from pancratius.paths import CONTENT_ROOT
 
-
 CHANNELS_PATH = CONTENT_ROOT / "videos" / "channels.yaml"
 
 

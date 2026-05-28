@@ -8,17 +8,18 @@ The owners' own behaviour is covered by their dedicated tests.
 
 from __future__ import annotations
 
-from pathlib import Path
 import importlib.util
 import shutil
 import sys
 import types
+from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
+from pancratius import cli
 
-from pancratius import cli  # noqa: E402
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def _exit_code(argv: list[str]) -> int:
@@ -107,8 +108,9 @@ def _stub_owner(monkeypatch: pytest.MonkeyPatch, module: str, attr: str) -> list
     fake = types.ModuleType(module)
     setattr(fake, attr, stub)
     if module == "pancratius.conceptosphere":
-        setattr(fake, "GraphConfig", types.SimpleNamespace)
-        setattr(fake, "GraphGenerationError", RuntimeError)
+        fake_dynamic = cast(Any, fake)
+        fake_dynamic.GraphConfig = types.SimpleNamespace
+        fake_dynamic.GraphGenerationError = RuntimeError
     monkeypatch.setitem(sys.modules, module, fake)
     return calls
 

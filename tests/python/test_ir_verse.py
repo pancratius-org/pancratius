@@ -28,8 +28,8 @@ from __future__ import annotations
 
 import pytest
 
-import pancratius.ir.normalize as normalize  # noqa: E402
-from pancratius import ir  # noqa: E402
+import pancratius.ir.normalize as normalize
+from pancratius import ir
 
 
 def _verse_lines(block: ir.Block) -> list[str]:

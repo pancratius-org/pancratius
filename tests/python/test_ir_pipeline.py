@@ -14,12 +14,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-import pancratius.ir.lower as lower  # noqa: E402
-import pancratius.ir.normalize as normalize  # noqa: E402
-from pancratius import docx_conversion  # noqa: E402
-from pancratius import ir  # noqa: E402
-from pancratius.content_catalog import IndexHit  # noqa: E402
-from pancratius.ir.normalize import AI_ALT_FRAGMENTS  # noqa: E402
+import pancratius.ir.lower as lower
+import pancratius.ir.normalize as normalize
+from pancratius import (
+    docx_conversion,
+    ir,
+)
+from pancratius.content_catalog import IndexHit
+from pancratius.ir.normalize import AI_ALT_FRAGMENTS
 
 
 # Narrowing helpers: the IR Block/Inline unions need an isinstance check before a

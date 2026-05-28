@@ -3,21 +3,12 @@ name = "pancratius"
 version = "0.1.0"
 description = "Python tooling for the Pancratius static library"
 requires-python = ">=3.13"
-# Base deps cover the LIGHT (in-process, no-ML) verbs of the `pancratius` console
-# script — `work import`, `docx optimize`, `project page add`, `downloads render`,
-# and `video sync` — so `uv sync` (no extras) installs and runs them. Pillow is
-# the image-cap/optimize dependency; google-api-python-client is the YouTube
-# metadata dependency. The HEAVY stacks (graph/embed) are opt-in extras below.
 dependencies = [
   "pyyaml>=6.0.2",
   "pillow>=10.4",
   "google-api-python-client>=2.140",
 ]
 
-# Heavy stacks for the two conceptosphere generation verbs, declared here in the
-# project. `uv sync` without an extra never installs them, so the light core stays
-# light; `conceptosphere graph generate` / `conceptosphere embed generate`
-# lazy-import their owners and, on ImportError, print `uv sync --extra <name>`.
 [project.optional-dependencies]
 graph = [
   "pymorphy3>=2.0.2",
@@ -45,23 +36,21 @@ embed = [
   "pymorphy3-dicts-ru>=2.4.417150",
 ]
 
-# The library door (docs/tooling.md): `uv run pancratius …` dispatches to the
-# argparse front door, which calls library functions — never other CLIs.
 [project.scripts]
 pancratius = "pancratius.cli:main"
 
 [dependency-groups]
 dev = [
+  "google-api-python-client-stubs>=1.37.0",
   "pytest>=9.0",
   "ruff>=0.15.14",
-  # Pinned exact: ty is pre-1.0, so any 0.0.x bump can change diagnostics. Bump
-  # deliberately and re-verify; revisit the `==` once ty reaches a stable line.
-  "ty==0.0.39",
+  "ty==0.0.40",
+  "types-networkx>=3.6.1.20260518",
+  "types-pillow>=10.2.0.20240822",
+  "types-pyyaml>=6.0.12.20260518",
+  "types-regex>=2026.5.9.20260518",
 ]
 
-# A console-script needs a build backend; uv will not install an entry point while
-# the project is non-package, so `[tool.uv] package = false` is gone. Hatchling
-# builds the `pancratius/` package directly; there is no second Python side door.
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -77,48 +66,32 @@ markers = [
   "pandoc: tests that require a local pandoc executable and DOCX conversion stack",
 ]
 
-# ---------------------------------------------------------------------------
-# Typed-Python enforcement (architecture mandate: every tracked .py annotated).
-# Single-vendor Astral stack — annotation coverage plus best-effort static
-# checking, not a claim of total type soundness:
-#   * ruff  → annotations are PRESENT          (flake8-annotations / ANN ruleset)
-#   * ty    → best-effort static type checking
-# Both are pinned in [dependency-groups].dev and uv.lock; run via `uv run`.
-# ---------------------------------------------------------------------------
-
 [tool.ruff]
 target-version = "py313"
 line-length = 100
-# Only Python tooling is in scope; the Astro site / TS / src/ are not.
 include = ["pancratius/**/*.py", "audit/**/*.py", "tests/python/**/*.py"]
-# The audit harness's own fixtures are test data — tiny crafted trees (some
-# intentionally malformed) that prove a rule fires; not production source, so
-# they're out of the typing mandate (mirrors the tsconfig.scripts.json exclude
-# and [tool.ty.src].exclude). PAN016 treats them as a declared non-prod tree.
 extend-exclude = ["audit/fixtures"]
 
 [tool.ruff.lint]
-# Scoped deliberately to the typing mandate, not general code-quality linting.
-#   ANN  → flake8-annotations: every function arg / return is annotated.
-#   F821 → undefined name: catches an annotation referencing an unimported
-#          symbol, i.e. the runtime-NameError trap for modules whose
-#          annotations are evaluated eagerly. Cheap, directly type-relevant.
-select = ["ANN", "F821"]
+select = [
+  "E4",
+  "E7",
+  "E9",
+  "F",
+  "ANN",
+  "B",
+  "BLE",
+  "I",
+  "UP",
+  "RUF100",
+  "RUF013",
+  "RUF018",
+]
 
 [tool.ruff.lint.flake8-annotations]
-# Keep ANN401 (no bare `Any`) ON so accidental `Any` is flagged everywhere;
-# the only `Any` left is at the opaque MLX model/tokenizer boundary, waived
-# with a scoped `# noqa: ANN401` on those two parameters (see
-# pancratius/conceptosphere_embed.py). Everything else uses `object` and narrows.
 allow-star-arg-any = false
 ignore-fully-untyped = false
-# `__init__` returns None implicitly; requiring `-> None` on it is noise, so
-# allow its omission when any other parameter is annotated. This is the only
-# return-annotation carve-out and it matches mypy's long-standing convention.
 mypy-init-return = true
-# Don't force `-> None` on functions that only ever return None — but we still
-# annotate them; this just avoids redundant churn on trivial procedures. Off:
-# we keep returns explicit. (Left at default false for maximal explicitness.)
 suppress-none-returning = false
 
 [tool.ty.environment]
@@ -127,44 +100,36 @@ root = ["pancratius", "audit", "tests/python"]
 
 [tool.ty.src]
 include = ["pancratius", "audit", "tests/python"]
-# Harness fixtures are test data (see the ruff/tsconfig excludes) — keep ty off
-# them so an intentionally-malformed fixture can't fail the typecheck.
 exclude = ["audit/fixtures"]
 
 [tool.ty.rules]
-# Catch annotations that reference an unimported name at the type level too.
 unresolved-reference = "error"
+ignore-comment-unknown-rule = "error"
+unused-ignore-comment = "error"
+unused-type-ignore-comment = "error"
+
+possibly-unresolved-reference = "warn"
+possibly-missing-import = "warn"
+possibly-missing-attribute = "warn"
+deprecated = "warn"
+unused-awaitable = "warn"
 
 [tool.ty.analysis]
-# Untyped external boundaries: the heavy graph/embed libs are optional extras
-# (absent from the base venv ty checks against), and several libs ship no type
-# stubs (MLX, igraph, leidenalg, pymorphy3, razdel, python-louvain, …). Treating
-# their imports as `Any` is the honest annotation at the boundary and prevents a
-# cascade of false positives in first-party logic — explicit and enumerated, not
-# a blanket `ignore`.
-replace-imports-with-any = [
-  "community",          # python-louvain
+respect-type-ignore-comments = false
+
+allowed-unresolved-imports = [
   "community.**",
-  "googleapiclient",    # google-api-python-client (used by video_scan)
-  "googleapiclient.**",
-  "hdbscan",
-  "igraph",
-  "leidenalg",
-  "mlx",                # mlx.core etc.
+  "hdbscan.**",
+  "igraph.**",
+  "leidenalg.**",
   "mlx.**",
-  "mlx_embeddings",
-  "networkx",
-  "numpy",
+  "mlx_embeddings.**",
+  "networkx.**",
   "numpy.**",
-  "PIL",
-  "PIL.**",
-  "pymorphy3",
   "pymorphy3.**",
-  "razdel",
-  "regex",
-  "scipy",
+  "razdel.**",
+  "regex.**",
   "scipy.**",
-  "sklearn",
-  "sklearn.**",         # e.g. sklearn.feature_extraction.text, sklearn.cluster
-  "yaml",               # PyYAML (no inline stubs in this env)
+  "sklearn.**",
 ]
+replace-imports-with-any = []
