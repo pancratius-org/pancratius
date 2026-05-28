@@ -17,7 +17,6 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "src" / "content" / "poetry"
-LEGACY = ROOT / "legacy" / "poetry"
 
 
 def _inlines_to_text(inlines: list[dict[str, Any]]) -> str:
@@ -167,10 +166,10 @@ def actual_groups(md: Path) -> list[int]:
 
 
 def source_docx(number: int) -> Path:
-    matches = sorted(LEGACY.glob(f"{number:02d}. */*.docx"))
+    matches = sorted(CONTENT.glob(f"{number:02d}-*/ru.docx"))
     matches = [m for m in matches if not m.name.startswith(".~")]
     if not matches:
-        raise FileNotFoundError(f"legacy poetry DOCX not found for #{number}")
+        raise FileNotFoundError(f"committed poetry DOCX not found for #{number}")
     return matches[0]
 
 
@@ -200,7 +199,7 @@ def _committed_poem_meta() -> list[tuple[int, str, str]]:
 def actual_groups_from_ir() -> int:
     """Stanza oracle run against FRESH importer output, not committed content.
 
-    Imports every legacy poem DOCX through the live importer
+    Imports every committed poem DOCX through the live importer
     (``import_docx.import_work`` -> ``pancratius.docx_conversion.convert_single_docx``)
     into a throwaway content root, then asserts the
     converted body's stanza line-counts equal the DOCX ``poetry_stanzas`` oracle.
@@ -260,7 +259,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--from-ir",
         action="store_true",
-        help="Import each legacy poem through the live importer (IR path) into a "
+        help="Import each committed poem DOCX through the live importer (IR path) into a "
         "temp tree and run the stanza oracle on that fresh output, instead of "
         "reading the committed (GFM-era) markdown.",
     )
