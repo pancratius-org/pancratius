@@ -40,7 +40,7 @@ export const RULES: readonly Rule[] = [
   pan017ImportWorkKinds,
   pan018WriterOnlyMutation,
   pan019CliVerifyBoundary,
-  // Deploy tier (post-build; run only on `npm run audit:deploy`):
+  // Post-build tier (need dist/; run only on `npm run audit:post-build`):
   pan008PublicMarkdownAssets,
   pan014InternalLinks,
   // Non-blocking heuristics (run only on `npm run audit:agent`):

@@ -15,10 +15,11 @@ import { walk, read, exists, isDir, abs, type WalkOptions } from "./repo.ts";
  *                in agent mode. The only tier whose findings gate CI.
  * - `heuristic`— non-blocking agent guidance (literals, css, cohesion, …); runs
  *                only in agent mode. Never fatal (the doc forbids it).
- * - `deploy`   — post-build crawl/index checks; runs only on `audit:deploy`
- *                because they need an emitted `dist/`.
+ * - `post-build`— checks that need an emitted `dist/` (link crawls, public-
+ *                Markdown asset scans, archive scans); runs on
+ *                `npm run audit:post-build`.
  */
-export type Tier = "core" | "heuristic" | "deploy";
+export type Tier = "core" | "heuristic" | "post-build";
 
 /** The read-only view of a tree that a rule scans. Bound to one root. */
 export interface RuleContext {

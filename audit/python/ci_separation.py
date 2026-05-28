@@ -12,7 +12,7 @@ the WritePlan) all belong to the library door, never CI — invoked by their .py
 OR as a dotted module (`python -m pancratius.writer`, `-c "from pancratius.…"`).
 
 This parses the workflow YAML with PyYAML and scans only the `run:` and `uses:`
-of each step — NOT comments or surrounding prose — so build.yml's own
+of each step — NOT comments or surrounding prose — so a workflow's own
 "MUST NOT install pandoc or typst" comment is not a false hit. Honours
 ``PANCRATIUS_AUDIT_ROOT`` (the harness points it at a fixture); wrapped by the
 TS harness as PAN012 (audit/rules/ownership.ts).

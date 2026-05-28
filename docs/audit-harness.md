@@ -14,7 +14,7 @@ assets, and the split between library work and site work.
 | --- | --- |
 | `npm run audit` | Core fatal rules. This is the normal PR gate. |
 | `npm run audit:agent` | Core rules plus non-blocking heuristic checks. |
-| `npm run audit:deploy` | Deploy rules that require an emitted `dist/`. |
+| `npm run audit:post-build` | Rules that need an emitted `dist/`. |
 | `npm run audit:selftest` | Known-good/known-bad fixtures for the harness. |
 
 Only `fatal` findings fail the command. `warning` and `info` findings are still
@@ -24,16 +24,18 @@ real review signal; they just do not block the build by default.
 
 Audit rules should enforce durable product facts:
 
-- CI builds and publishes the static site; it does not import, render, optimize,
-  or regenerate the library.
+- CI builds and publishes the static site. It does not import works, render
+  release artifacts, optimize DOCX, or regenerate embeddings — those are local
+  library work. The narrow exception is light external-metadata ingestion (e.g.
+  `pancratius video sync`), which is additive and idempotent.
 - Source content lives in `src/content/`; build input data lives in `data/`;
   public static inputs live in `public/`; deploy output lives in `dist/`.
 - Books and poems are corpus works. Projects are themed sections. Pages are
   individual routes.
 - A localized route/download/feed/sitemap URL exists only when that localized
   content exists.
-- Public URLs, asset URLs, canonical URLs, and download URLs must work on the
-  deployed host and mirror.
+- Public URLs, asset URLs, canonical URLs, and download URLs must work on every
+  deployed host.
 - Authored assets stay with the content they belong to.
 - Registry facts such as locales, kind segments, work kinds, and download formats
   come from their owning source of truth.
@@ -65,7 +67,7 @@ Rules must not become another source of truth.
 - **Keep heuristics non-blocking.** Dead-code inventories, literal scans, docs
   drift, CSS duplication, and cohesion checks are useful review prompts, not CI
   gates.
-- **Self-test gates.** Core and deploy rules need a known-bad and known-good
+- **Self-test gates.** Core and post-build rules need a known-bad and known-good
   fixture, or focused tests that prove the same polarity.
 
 ## Finding Shape
@@ -100,12 +102,12 @@ Fatal rules need a concrete harm. "Looks wrong" is not enough.
 | Tier | Runs In | Use For |
 | --- | --- | --- |
 | `core` | `audit`, `audit:agent` | Fast source-tree invariants that should gate normal work. |
-| `deploy` | `audit:deploy` | Checks over emitted `dist/`, public archives, crawls, and deploy-only surfaces. |
+| `post-build` | `audit:post-build` | Rules that need an emitted `dist/` (PAN014 link crawl, PAN008 public-Markdown asset scan). |
 | `heuristic` | `audit:agent` | Non-blocking content, cohesion, and review prompts. |
 
 The PR audit should stay fast and deterministic. Expensive full-build crawls,
-Pagefind inspection, and large archive validation belong in deploy or scheduled
-checks unless the current change touched that surface.
+Pagefind inspection, and large archive validation belong in post-build or
+scheduled checks unless the current change touched that surface.
 
 ## Current Rule Families
 

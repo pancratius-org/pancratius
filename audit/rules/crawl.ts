@@ -1,7 +1,7 @@
 // Built-surface internal-link crawl (docs/audit-harness.md → "PAN014:
-// Built-Surface Crawl And Index Sanity"). A `deploy`-tier rule: it crawls an
-// emitted `dist/`, so it runs only on `npm run audit:deploy` (post-build), never
-// on the fast PR gate.
+// Built-Surface Crawl And Index Sanity"). A `post-build`-tier rule: it needs
+// an emitted `dist/`, so it runs only on `npm run audit:post-build`, never on
+// the fast PR gate.
 //
 // `astro build` alone does not prove the deployed site is internally consistent:
 // only crawling the EMITTED files as a plain static host would serve them shows
@@ -10,14 +10,7 @@
 // broken internal link is a real production defect that nothing before this gate
 // catches.
 //
-// SCOPE (deliberate, documented so a future agent knows the boundary):
-//   - BASE-PATH AWARE: it derives the deploy base from the emitted HTML itself
-//     (the prefix before `/_astro/` in an asset link — "" for the primary site,
-//     "/pancratius" for the GitHub-Pages mirror) and strips it before resolving
-//     absolute links. So the SAME crawl works against either target's `dist/`;
-//     run it once per built target (deploy.yml for the primary, the mirror
-//     workflow for the base-path build). An absolute link that does NOT carry the
-//     derived base is itself a base-path bug and correctly fails to resolve.
+// SCOPE:
 //   - LINK/ASSET EXISTENCE only: href/src (incl. `<link href>` and
 //     `<script src>`). It does NOT verify sitemap/feed/hreflang/canonical URL
 //     parity, Pagefind index presence/loadability, or search-surface coverage —
@@ -50,7 +43,7 @@ const CATEGORY = "built-surface";
 const MAX_FINDINGS = 100;
 
 const CONTRACT =
-  "Every internal link/asset reference in emitted HTML (href/src, including <link> and <script>) must point to a file that exists in dist, with the target's base path applied (this build's base is \"/\").";
+  "Every internal link/asset reference in emitted HTML (href/src, including <link> and <script>) must point to a file that exists in dist.";
 const WHY =
   "A static file host returns 404 for a link to a non-emitted page or file — `astro build` succeeding proves nothing about cross-page link integrity. This crawl of the emitted files is the only thing that proves the built site is internally consistent before it ships.";
 const REPAIR =
@@ -100,7 +93,6 @@ function candidatesFor(linkPath: string, htmlRelDir: string): string[] {
   // trailing slash (we need it to choose the dir-vs-file branch).
   let base: string;
   if (isAbsolute) {
-    // base "/" → absolute path is rooted at dist.
     base = posix.join("dist", decoded);
   } else {
     // Relative (./a, ../a, a) → resolve against the HTML file's directory.
@@ -149,42 +141,6 @@ function maskScriptStyleBodies(html: string): string {
   );
 }
 
-/**
- * The deploy base path, derived from the emitted HTML: the prefix before
- * `/_astro/` in an asset link (Astro prefixes every hashed asset URL with the
- * configured `base`). "" for the primary site (`base: "/"`), "/pancratius" for a
- * base-path mirror. Scans masked HTML (so a template-literal in a script body
- * can't spoof it) until the first asset link is found; "" if none.
- */
-function deriveBase(htmlFiles: readonly string[], read: (rel: string) => string): string {
-  const re = /(?:href|src)="([^"]*?)\/_astro\//;
-  for (const rel of htmlFiles) {
-    const m = re.exec(maskScriptStyleBodies(read(rel)));
-    if (m) return m[1];
-  }
-  return "";
-}
-
-/**
- * Strip the deploy base from an ABSOLUTE link before it is resolved against dist.
- * `/pancratius/books/` with base `/pancratius` → `/books/`.
- *
- * KNOWN GAP (follow-up): an absolute link that does NOT carry the base is left
- * as-is, so if the same path happens to exist at the dist root it still resolves
- * and passes — even though on a base-path host it 404s (the doc's "links that
- * only work at domain root"). This isn't reachable from the app today (all links
- * go through the base-aware URL helpers), so it's a latent gap, not a live miss;
- * catching it means flagging base-omitting absolute links as broken, which must
- * first be validated against the real base-path build to avoid a deploy-blocking
- * false positive on any framework-emitted root-absolute link.
- */
-function stripBase(linkPath: string, base: string): string {
-  if (base === "" || !linkPath.startsWith("/")) return linkPath;
-  if (linkPath === base) return "/";
-  if (linkPath.startsWith(`${base}/`)) return linkPath.slice(base.length);
-  return linkPath;
-}
-
 /** Extract href/src attribute values from emitted HTML (regex; emitted Astro HTML is regular). */
 function extractLinks(html: string): { url: string; line: number }[] {
   const scanned = maskScriptStyleBodies(html);
@@ -203,22 +159,18 @@ function extractLinks(html: string): { url: string; line: number }[] {
 
 /**
  * PAN014: every internal link/asset reference in emitted HTML must resolve to a
- * file that exists in dist (base "/"). One fatal finding per broken (file, link)
- * pair, deduped; findings capped, count reported.
+ * file that exists in dist. One fatal finding per broken (file, link) pair,
+ * deduped; findings capped, count reported.
  */
 export const pan014InternalLinks: Rule = {
   id: ID,
   title: "PAN014: every internal link/asset reference in emitted dist/ HTML must resolve to a file that exists",
-  tier: "deploy",
+  tier: "post-build",
   run(ctx: RuleContext): Finding[] {
     const htmlFiles = ctx.walk({
       unignore: ["dist"],
       filter: (rel) => rel.startsWith("dist/") && rel.endsWith(".html"),
     });
-
-    // Derive the deploy base from the emitted HTML so absolute links resolve on
-    // either target (primary "" or base-path mirror "/pancratius").
-    const base = deriveBase(htmlFiles, (rel) => ctx.read(rel));
 
     // Existence cache over the dist tree so repeated link targets are O(1).
     const existsInDist = new Map<string, boolean>();
@@ -241,7 +193,7 @@ export const pan014InternalLinks: Rule = {
 
       for (const { url, line } of extractLinks(html)) {
         if (isSkippable(url)) continue;
-        const linkPath = stripBase(stripFragmentQuery(url), base);
+        const linkPath = stripFragmentQuery(url);
         if (linkPath === "" || isSkippable(linkPath)) continue;
 
         const candidates = candidatesFor(linkPath, htmlRelDir);
@@ -252,7 +204,7 @@ export const pan014InternalLinks: Rule = {
           continue; // resolves
         }
 
-        const key = `${htmlRel} ${url}`;
+        const key = `${htmlRel} ${url}`;
         if (seen.has(key)) continue;
         seen.add(key);
         brokenCount += 1;

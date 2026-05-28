@@ -1,1 +1,1 @@
-// emitted asset; its /site/_astro/ link reveals the deploy base to the crawler
+// emitted asset; its internal link is visible to the crawler

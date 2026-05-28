@@ -16,7 +16,11 @@ These rules decide where a change belongs.
   and regenerate data. It must not decide titles, descriptions, project shape,
   theological register, or publication judgment. → [`tooling.md`](./tooling.md).
 - **Local vs CI.** Import DOCX → source and render release artifacts locally; CI
-  only builds and publishes — it never imports or renders. → [`downloads.md`](./downloads.md).
+  only builds and publishes — it does not import works, render release artifacts,
+  optimize DOCX, or regenerate embeddings. **Exception:** light external-metadata
+  ingestion (e.g. `pancratius video sync` via `.github/workflows/video-sync.yml`)
+  runs in CI because it is additive, idempotent, and stays away from the heavy
+  paths above.
 - **Fallback vs route existence.** Display data may fall back to the default
   locale; a route, download, or feed exists only where that locale was authored.
   → [`i18n-routing.md`](./i18n-routing.md).
@@ -33,7 +37,7 @@ site work
   committed source
       -> npm build/check/audit
       -> dist
-      -> production site + GitHub Pages mirror
+      -> production hosts
 ```
 
 The first flow creates or changes the library. The second publishes what is
@@ -43,8 +47,8 @@ already committed. Their meeting point is committed source.
 
 - **Framework**: Astro 6+. No additional UI framework — no React, no Vue, no Svelte, no Solid, no Tailwind. Vanilla CSS is scoped through Astro components.
 - **Language**: TypeScript 6+, strict mode, everywhere in production source. No
-  handwritten production JavaScript (`.js` / `.mjs` / `.cjs`). Archived
-  `legacy/` and `design/` prototypes stay excluded until they are deleted.
+  handwritten production JavaScript (`.js` / `.mjs` / `.cjs`) in source trees.
+  Non-production JavaScript belongs outside the tsconfig-included trees.
 - **Runtime**: Node 24.
 - **Python tooling**: Python 3.13+ with type hints. Run through `uv`; dependencies
   are locked in `pyproject.toml` / `uv.lock`. No `pip`, `conda`, or
@@ -69,11 +73,9 @@ already committed. Their meeting point is committed source.
 - **Canonical URLs.** HTML ends in `/`; file downloads end in the extension.
   Shared URL helpers own this shape. Astro uses `trailingSlash: "ignore"` so
   dynamic file endpoints such as `/books/{slug}.md` are not rewritten in dev.
-- **Deploy target.** The production host is a plain FTP file host. It sets
-  `Content-Type` from file extension; Astro `Response` headers do not carry over
-  to deployed static files.
-- **Mirror.** GitHub Pages uses the same source and build pipeline with its own
-  `site` / `base` config.
+- **Deploy targets.** The same `dist/` ships to a plain FTP host and to
+  Cloudflare Pages. The FTP host sets `Content-Type` from file extension;
+  Astro `Response` headers do not carry over to deployed static files.
 
 ## Content
 
