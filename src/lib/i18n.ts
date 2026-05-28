@@ -181,7 +181,7 @@ export interface NavItem {
 
 /**
  * Header navigation. The same `path` is reused for every locale via
- * `localizePath`. Order follows design/_copy-v7.md.
+ * `localizePath`. Order is the product navigation order.
  *
  * `/license/`, `/support/`, `/downloads/` live in the footer.
  */

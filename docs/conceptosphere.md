@@ -35,9 +35,6 @@ data/
 pancratius/
   conceptosphere.py               concepts graph + books graph generator
   conceptosphere_embed.py         semantic embedding generator
-
-design/
-  conceptosphere.html             standalone prototype
 ```
 
 This document defines the generated graph artifacts and the science behind them. The site architecture decides whether publishable artifacts are copied, bundled, or emitted into the final static build — see [`architecture.md`](./architecture.md).
