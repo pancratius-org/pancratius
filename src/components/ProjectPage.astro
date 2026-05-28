@@ -13,7 +13,6 @@ import FAQ from "@/components/projects/FAQ.astro";
 import type { Locale } from "@/lib/i18n";
 import { kindIndexUrl } from "@/lib/i18n";
 import { projectPageCopy } from "@/lib/copy";
-import { sameSitePath } from "@/lib/paths";
 import { seoForProject } from "@/lib/seo";
 import {
   authoredProjectLocales,
@@ -72,7 +71,7 @@ const doors = await Promise.all(
     const sub = await getProjectSubpage(data.slug, s.slug, locale);
     return {
       slug: s.slug,
-      href: sameSitePath(projectSubpageUrl(data.slug, s.slug, locale)),
+      href: projectSubpageUrl(data.slug, s.slug, locale),
       label: s.label ?? sub?.data.title ?? s.slug,
       weight: s.weight,
       description: sub?.data.description,
@@ -85,7 +84,7 @@ const doors = await Promise.all(
 const subpages = await getProjectSubpages(data.slug, locale);
 const hasClassification = subpages.some(s => s.data.slug === "classification");
 const ladderAnchorBase = hasClassification
-  ? sameSitePath(projectSubpageUrl(data.slug, "classification", locale))
+  ? projectSubpageUrl(data.slug, "classification", locale)
   : null;
 
 // Revelation blocks — resolve any `cta.book` into a real localized URL.
@@ -94,7 +93,7 @@ const revelations = await Promise.all(
     let href = r.cta?.href;
     if (r.cta?.book != null) {
       const url = await featuredBookUrl(r.cta.book, locale);
-      if (url) href = sameSitePath(url);
+      if (url) href = url;
     }
     return {
       voice: r.voice,
@@ -108,7 +107,7 @@ const themeAttr = data.theme ?? undefined;
 ---
 <Base locale={locale} seo={seo}>
   <article class="project-page project-themed" data-project-theme={themeAttr}>
-    <a class="project-page__back" href={sameSitePath(backHref)}>{copy.back}</a>
+    <a class="project-page__back" href={backHref}>{copy.back}</a>
 
     <ProjectHero
       eyebrow={copy.meta}

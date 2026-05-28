@@ -3,7 +3,6 @@ import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE, LOCALES, workUrl } from "@/lib/i18n";
 import { entryForLocale, type WorkPair } from "@/lib/works";
 import { bookCardCopy } from "@/lib/copy";
-import { sameSitePath } from "@/lib/paths";
 import BookCover from "./BookCover.astro";
 
 interface Props {
@@ -24,7 +23,7 @@ const localeFallback = locale !== DEFAULT_LOCALE && !pair.entries[locale];
 // Display: entryForLocale gives the right surface (locale entry, else default).
 const display = entryForLocale(pair, locale);
 const linkLocale: Locale = localeFallback ? DEFAULT_LOCALE : locale;
-const href = sameSitePath(workUrl(pair.kind, display.data.slug, linkLocale));
+const href = workUrl(pair.kind, display.data.slug, linkLocale);
 const tags = "tags" in display.data ? display.data.tags : [];
 // On the default-locale index, badge works that also have a non-default
 // translation. (For RU+EN this is the "RU · EN" badge on /books/.)

@@ -2,7 +2,6 @@
 import Base from "@/layouts/Base.astro";
 import { LOCALE_META } from "@/lib/i18n";
 import { notFoundCopy } from "@/lib/copy";
-import { sameSitePath } from "@/lib/paths";
 import { absUrl } from "@/lib/seo";
 
 const locale = "en" as const;
@@ -26,11 +25,11 @@ const seo = {
     <h1>{copy.heading}</h1>
     <p>{copy.body}</p>
     <p class="nf__links">
-      <a href={sameSitePath("/en/")}>{copy.toHome}</a>
+      <a href="/en/">{copy.toHome}</a>
       <span class="sep">·</span>
-      <a href={sameSitePath("/en/books/")}>{copy.toBooks}</a>
+      <a href="/en/books/">{copy.toBooks}</a>
       <span class="sep">·</span>
-      <a href={sameSitePath("/en/search/")}>{copy.toSearch}</a>
+      <a href="/en/search/">{copy.toSearch}</a>
     </p>
   </section>
 </Base>

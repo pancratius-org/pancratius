@@ -3,7 +3,6 @@ import type { Locale } from "@/lib/i18n";
 import { FOOTER_LINKS, localizePath, pageUrl } from "@/lib/i18n";
 import { footerCopy } from "@/lib/copy";
 import { getPage } from "@/lib/pages";
-import { sameSitePath } from "@/lib/paths";
 
 interface Props {
   locale: Locale;
@@ -11,8 +10,8 @@ interface Props {
 
 const { locale } = Astro.props;
 
-const githubMirror = import.meta.env.PUBLIC_GITHUB_MIRROR ?? "";
-const telegramUrl  = import.meta.env.PUBLIC_TELEGRAM_URL ?? "";
+const githubRepo  = import.meta.env.PUBLIC_GITHUB_REPO ?? "";
+const telegramUrl = import.meta.env.PUBLIC_TELEGRAM_URL ?? "";
 
 // Hide utility links whose target page does not exist for this locale.
 const availableLinks = await Promise.all(
@@ -22,7 +21,7 @@ const availableLinks = await Promise.all(
   }),
 ).then(xs => xs.filter((x): x is typeof FOOTER_LINKS[number] => x !== null));
 
-const licenseHref = sameSitePath(pageUrl("license", locale));
+const licenseHref = pageUrl("license", locale);
 
 const copy = footerCopy[locale];
 ---
@@ -30,17 +29,17 @@ const copy = footerCopy[locale];
   <p>{copy.cc0_before}<a href={licenseHref}>{copy.cc0_link}</a>{copy.cc0_after}</p>
   <p>{copy.cc0_b}</p>
   <p class="footer__links">
-    <a href={sameSitePath("/llms.txt")}>{copy.llms}</a>
+    <a href="/llms.txt">{copy.llms}</a>
     {availableLinks.map(link => (
       <>
         <span class="sep">{copy.sep}</span>
-        <a href={sameSitePath(localizePath(link.path, locale))}>{link.label[locale]}</a>
+        <a href={localizePath(link.path, locale)}>{link.label[locale]}</a>
       </>
     ))}
-    {githubMirror && (
+    {githubRepo && (
       <>
         <span class="sep">{copy.sep}</span>
-        <a href={githubMirror} rel="external">{copy.github}</a>
+        <a href={githubRepo} rel="external">{copy.github}</a>
       </>
     )}
     {telegramUrl && (

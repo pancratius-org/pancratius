@@ -6,7 +6,6 @@
 // Russian; book titles localise where an English work pair exists.
 
 import type { Locale } from "@/lib/i18n";
-import { sameSitePath } from "@/lib/paths";
 
 import ConceptospherePage from "@/components/conceptosphere/ConceptospherePage.astro";
 import { loadConceptospherePageData } from "@/components/conceptosphere/page-data";
@@ -23,8 +22,8 @@ const graphData = await loadConceptospherePageData(locale, t);
   locale={locale}
   seo={seo}
   alternates={conceptosphereAlternate(locale)}
-  conceptsUrl={sameSitePath("/data/pancratius-concepts-graph.json")}
-  booksUrl={sameSitePath("/data/pancratius-books-graph.json")}
+  conceptsUrl="/data/pancratius-concepts-graph.json"
+  booksUrl="/data/pancratius-books-graph.json"
   initialMode={initialMode}
   modeCounts={graphData.modeCounts}
   bookSlugInfo={graphData.bookSlugInfo}

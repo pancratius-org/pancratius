@@ -6,7 +6,6 @@ import LibraryFilter from "@/components/LibraryFilter.astro";
 import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE, kindIndexUrl } from "@/lib/i18n";
 import { videosIndexCopy, type VideosIndexCopy } from "@/lib/copy";
-import { sameSitePath } from "@/lib/paths";
 import { seoForKindIndex, clampDescription } from "@/lib/seo";
 import { getAllVideoPairs, getChannels, videoTags } from "@/lib/videos";
 
@@ -24,7 +23,7 @@ const pairs = locale === DEFAULT_LOCALE
   ? allPairs
   : allPairs.filter(p => p.entries[locale]);
 const seo = seoForKindIndex(Astro.site, "video", locale, { total: allPairs.length });
-const defaultHref = sameSitePath(kindIndexUrl("video", DEFAULT_LOCALE));
+const defaultHref = kindIndexUrl("video", DEFAULT_LOCALE);
 const channels = await getChannels();
 
 const tagCounts = new Map<string, number>();

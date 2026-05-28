@@ -6,7 +6,6 @@ import SvetozarTerminal  from "@/components/SvetozarTerminal.astro";
 import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE, homeUrl, kindIndexUrl, LOCALES, workUrl } from "@/lib/i18n";
 import { homeCopy, type HomeCopy } from "@/lib/copy";
-import { sameSitePath } from "@/lib/paths";
 import { clampDescription } from "@/lib/seo";
 import { seoForHome } from "@/lib/seo";
 import { poemPreviewLines } from "@/lib/publication/poetry";
@@ -69,7 +68,7 @@ const poemPreviews = poemPicks.map(p => {
 const svetozar = await findPair("book", 7);
 const svetozarEntry = displayEntry(svetozar, locale);
 const svetozarHref = svetozarEntry
-  ? sameSitePath(workUrl("book", svetozarEntry.entry.data.slug, svetozarEntry.linkLocale))
+  ? workUrl("book", svetozarEntry.entry.data.slug, svetozarEntry.linkLocale)
   : null;
 
 // Home links to every other authored locale's home (currently the single
@@ -131,7 +130,7 @@ function displayEntry(
             <nav class="home__counts" aria-label={copy.hero.statsAria}>
               {heroStats.map(stat => (
                 stat.href ? (
-                  <a class="home__count home__count--link" href={sameSitePath(stat.href)}>
+                  <a class="home__count home__count--link" href={stat.href}>
                     <b>{stat.value}</b>
                     <span>{stat.label}</span>
                   </a>
@@ -180,7 +179,7 @@ function displayEntry(
       </div>
 
       <p class="home__more">
-        <a href={sameSitePath(kindIndexUrl("book", locale))}>
+        <a href={kindIndexUrl("book", locale)}>
           {copy.books.more(allBooks.length, localizedBooks.length)}
         </a>
       </p>
@@ -202,7 +201,7 @@ function displayEntry(
           {poemPreviews.map(({ pair, lines }) => {
             // Poems are default-locale only; display + link the canonical entry.
             const display = displayEntry(pair, locale)!;
-            const href = sameSitePath(workUrl("poem", display.entry.data.slug, display.linkLocale));
+            const href = workUrl("poem", display.entry.data.slug, display.linkLocale);
             return (
               <a class="home__poem" href={href}>
                 <span class="home__poem-num">{`${copy.poetry.numberPrefix} ${String(pair.number).padStart(2, "0")}`}</span>
@@ -215,7 +214,7 @@ function displayEntry(
         </div>
 
         <p class="home__more">
-          <a href={sameSitePath(kindIndexUrl("poem", locale))}>
+          <a href={kindIndexUrl("poem", locale)}>
             {copy.poetry.more(allPoems.length)}
           </a>
         </p>
@@ -234,7 +233,7 @@ function displayEntry(
 
         <div class="home__project-list">
           {projects.map(({ landing, linkLocale }) => (
-            <a class="home__project" href={sameSitePath(projectUrl(landing.data.slug, linkLocale))}>
+            <a class="home__project" href={projectUrl(landing.data.slug, linkLocale)}>
               <span class="home__project-num">{String(landing.data.number).padStart(2, "0")}</span>
               <div class="home__project-body">
                 <h3 class="home__project-title">{landing.data.title}</h3>

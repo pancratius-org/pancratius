@@ -1,7 +1,6 @@
 ---
 import Base from "@/layouts/Base.astro";
 import { DEFAULT_LOCALE, LOCALES, type Locale, kindIndexUrl, workUrl } from "@/lib/i18n";
-import { sameSitePath } from "@/lib/paths";
 import { seoForKindIndex, spellEnglishCardinal } from "@/lib/seo";
 import { getPairsByKind } from "@/lib/works";
 
@@ -34,7 +33,7 @@ for (const loc of LOCALES) {
         const e = p.entries[DEFAULT_LOCALE]!;
         return (
           <li>
-            <a href={sameSitePath(workUrl("poem", e.data.slug, DEFAULT_LOCALE))}>
+            <a href={workUrl("poem", e.data.slug, DEFAULT_LOCALE)}>
               <span class="poems__num">{String(p.number).padStart(2, "0")}</span>
               <span class="poems__title">{e.data.title}</span>
             </a>

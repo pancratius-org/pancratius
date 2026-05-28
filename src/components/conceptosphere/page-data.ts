@@ -7,7 +7,6 @@
 import { coverAssetUrl } from "@/lib/covers";
 import { loadBooksGraph, loadConceptsGraph } from "@/lib/conceptosphere";
 import { DEFAULT_LOCALE, kindIndexUrl, workUrl, type Locale } from "@/lib/i18n";
-import { sameSitePath } from "@/lib/paths";
 import { findPair } from "@/lib/works";
 
 import { communityColor } from "./palette";
@@ -100,12 +99,12 @@ export async function loadConceptospherePageData(
     bookSlugInfo[slug] = {
       number: node.number,
       title,
-      href: sameSitePath(workUrl("book", linkSlug, linkLocale)),
+      href: workUrl("book", linkSlug, linkLocale),
     };
 
     if (!pair) continue;
     const url = await coverAssetUrl(pair, locale);
-    if (url) coverUrls[`book:${slug}`] = sameSitePath(url);
+    if (url) coverUrls[`book:${slug}`] = url;
   }
 
   const bookRows: ConceptosphereBookRow[] = booksGraph.nodes.map((node) => {
@@ -119,7 +118,7 @@ export async function loadConceptospherePageData(
       title,
       community: node.community,
       tags: node.tags ?? [],
-      href: info?.href ?? sameSitePath(workUrl("book", node.slug, DEFAULT_LOCALE)),
+      href: info?.href ?? workUrl("book", node.slug, DEFAULT_LOCALE),
       coverUrl: coverUrls[`book:${node.slug}`] ?? null,
       topConcepts: displayedConcepts,
       searchHay: [
@@ -138,7 +137,7 @@ export async function loadConceptospherePageData(
     const topBooks = top.map((b) => ({
       slug: b.slug,
       title: bookSlugInfo[b.slug]?.title ?? b.title,
-      href: bookSlugInfo[b.slug]?.href ?? sameSitePath(workUrl("book", b.slug, DEFAULT_LOCALE)),
+      href: bookSlugInfo[b.slug]?.href ?? workUrl("book", b.slug, DEFAULT_LOCALE),
     }));
     const topBookTitles = new Set([...top.map((b) => b.title), ...topBooks.map((b) => b.title)]);
     return {
@@ -178,7 +177,7 @@ export async function loadConceptospherePageData(
     modeCounts,
     bookSlugInfo,
     coverUrls,
-    booksIndexHref: sameSitePath(kindIndexUrl("book", locale)),
+    booksIndexHref: kindIndexUrl("book", locale),
     conceptSections: groupRows(
       conceptsGraph.communities,
       conceptRows,

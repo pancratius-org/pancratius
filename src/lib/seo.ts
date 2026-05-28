@@ -17,7 +17,6 @@ import {
   workUrl,
 } from "./i18n";
 import { searchPageCopy } from "./copy";
-import { sameSitePath } from "./paths";
 import type { PageEntry } from "./pages";
 import type { ProjectLanding, ProjectSubpage } from "./projects";
 import { entryForLocale, type WorkPair } from "./works";
@@ -60,10 +59,8 @@ export interface SeoMeta {
 
 /** Read the site origin from Astro's config (provided to each route via `Astro.site`). */
 export function absUrl(site: URL | undefined, path: string): string {
-  const publicPath = sameSitePath(path);
-  if (!site) return publicPath;
-  const u = new URL(publicPath, site);
-  return u.toString();
+  if (!site) return path;
+  return new URL(path, site).toString();
 }
 
 // ─────────────────────────────────────────────────────────────────────

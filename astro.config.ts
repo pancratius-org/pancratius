@@ -14,21 +14,8 @@ import { KIND_OF_SEGMENT, SEGMENT_OF } from "./src/lib/kinds.ts";
 // reason as kinds) so the i18n config and the URL grammar below derive from it.
 import { LOCALES, DEFAULT_LOCALE } from "./src/lib/locales.ts";
 
-// Deploy target selection. Canonical home is the primary static hosting
-// deploy; the GitHub Pages mirror lives at https://<owner>.github.io/<repo>/
-// and needs a base prefix so asset URLs resolve correctly. CI sets
-// PUBLIC_DEPLOY_TARGET=github-pages on the mirror workflow;
-// GITHUB_REPOSITORY is "<owner>/<repo>" inside any GitHub Action.
-const deployTarget = process.env.PUBLIC_DEPLOY_TARGET ?? "primary";
-const ghRepo = process.env.GITHUB_REPOSITORY ?? "";
-const [ghOwner, ghRepoName] = ghRepo.split("/");
-const isGhPages = deployTarget === "github-pages";
-const primarySite = process.env.PUBLIC_SITE_URL ?? "https://pancratius.ru";
-
-const site = isGhPages && ghOwner
-  ? `https://${ghOwner}.github.io`
-  : primarySite;
-const base = isGhPages && ghRepoName ? `/${ghRepoName}/` : undefined;
+// Site origin baked into canonical URLs, sitemap, OpenGraph, JSON-LD.
+const site = process.env.PUBLIC_SITE_URL ?? "https://pancratius.ru";
 
 // ──────────────────────────────────────────────────────────────────
 // Sitemap hreflang pairing.
@@ -131,17 +118,13 @@ function withXDefault(links: { lang: string; url: string }[]): { lang: string; u
 function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }[] | null {
   let url: URL;
   try { url = new URL(itemUrlString); } catch { return null; }
-  let pathname = url.pathname;
-  if (base && pathname.startsWith(base)) {
-    pathname = "/" + pathname.slice(base.length).replace(/^\/+/, "");
-  }
+  const pathname = url.pathname;
 
   const structuralDefaultPath = structuralByPath.get(pathname);
   if (structuralDefaultPath) {
     const links = LOCALES.map((l) => {
       const urlPath = localizeStructuralPath(structuralDefaultPath, l);
-      const path = base ? base.replace(/\/$/, "") + urlPath : urlPath;
-      return { lang: l, url: new URL(path, url.origin).toString() };
+      return { lang: l, url: new URL(urlPath, url.origin).toString() };
     });
     return withXDefault(links);
   }
@@ -154,8 +137,7 @@ function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }
     const w = entriesByLangSlug.get(`${kind}:${lang}:${slug}`);
     if (!w) return null;
     const links = Object.entries(w.languages).map(([l, info]) => {
-      const path = base ? base.replace(/\/$/, "") + info.url : info.url;
-      return { lang: l, url: new URL(path, url.origin).toString() };
+      return { lang: l, url: new URL(info.url, url.origin).toString() };
     });
     return withXDefault(links);
   }
@@ -167,8 +149,7 @@ function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }
     const p = pagesByLangSlug.get(`${lang}:${slug}`);
     if (!p) return null;
     const links = Object.entries(p.languages).map(([l, urlPath]) => {
-      const path = base ? base.replace(/\/$/, "") + urlPath : urlPath;
-      return { lang: l, url: new URL(path, url.origin).toString() };
+      return { lang: l, url: new URL(urlPath, url.origin).toString() };
     });
     return withXDefault(links);
   }
@@ -178,7 +159,6 @@ function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }
 
 export default defineConfig({
   site,
-  ...(base ? { base } : {}),
   // Canonical URLs are produced by `src/lib/i18n.ts`: HTML routes end in `/`,
   // file endpoints end in their extension. Astro's global "always" mode also
   // appends `/` to dynamic endpoint params in dev (`foo.md/`), so use

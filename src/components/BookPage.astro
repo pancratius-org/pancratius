@@ -12,7 +12,6 @@ import { downloadUrl, kindIndexUrl, workUrl } from "@/lib/i18n";
 import { bookPageCopy } from "@/lib/copy";
 import { coverAbsoluteUrl } from "@/lib/covers";
 import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
-import { sameSitePath } from "@/lib/paths";
 import { seoForWork } from "@/lib/seo";
 import {
   getPairsByKind,
@@ -69,7 +68,7 @@ const number = String(pair.number).padStart(2, "0");
 ---
 <Base locale={locale} seo={seo}>
   <article class="book-page">
-    <a class="book-page__back" href={sameSitePath(backHref)}>
+    <a class="book-page__back" href={backHref}>
       {copy.back(pagerPairs.length)}
     </a>
 
@@ -96,7 +95,7 @@ const number = String(pair.number).padStart(2, "0");
             {formats.map((fmt, i) => (
               <>
                 {i > 0 && <span class="book-page__downloads-sep">·</span>}
-                <a href={sameSitePath(downloadUrl(pair.kind, entry.data.slug, fmt, locale))}>{FORMAT_LABEL[fmt]}</a>
+                <a href={downloadUrl(pair.kind, entry.data.slug, fmt, locale)}>{FORMAT_LABEL[fmt]}</a>
               </>
             ))}
             <span class="book-page__downloads-sep">·</span>
@@ -150,14 +149,14 @@ const number = String(pair.number).padStart(2, "0");
     {(prev && prevEntry) || (next && nextEntry) ? (
       <nav class="book-page__pager" aria-label={copy.pagerAria}>
         {prev && prevEntry && (
-          <a class="book-page__pager-link book-page__pager-link--prev" href={sameSitePath(workUrl("book", prevEntry.data.slug, locale))}>
+          <a class="book-page__pager-link book-page__pager-link--prev" href={workUrl("book", prevEntry.data.slug, locale)}>
             <span class="book-page__pager-arrow">←</span>
             <span class="book-page__pager-num">{String(prev.number).padStart(2, "0")}</span>
             <span class="book-page__pager-title">{prevEntry.data.title}</span>
           </a>
         )}
         {next && nextEntry && (
-          <a class="book-page__pager-link book-page__pager-link--next" href={sameSitePath(workUrl("book", nextEntry.data.slug, locale))}>
+          <a class="book-page__pager-link book-page__pager-link--next" href={workUrl("book", nextEntry.data.slug, locale)}>
             <span class="book-page__pager-num">{String(next.number).padStart(2, "0")}</span>
             <span class="book-page__pager-title">{nextEntry.data.title}</span>
             <span class="book-page__pager-arrow">→</span>

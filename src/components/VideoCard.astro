@@ -3,7 +3,6 @@ import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE, LOCALES, routedUrl } from "@/lib/i18n";
 import { videoEntryForLocale, formatDuration, videoTags, type VideoPair } from "@/lib/videos";
 import { videoCardCopy } from "@/lib/copy";
-import { sameSitePath } from "@/lib/paths";
 import VideoCover from "./VideoCover.astro";
 
 interface Props {
@@ -18,7 +17,7 @@ const copy = videoCardCopy[locale];
 const localeFallback = locale !== DEFAULT_LOCALE && !pair.entries[locale];
 const display = videoEntryForLocale(pair, locale);
 const linkLocale: Locale = localeFallback ? DEFAULT_LOCALE : locale;
-const href = sameSitePath(routedUrl("video", display.data.slug, linkLocale));
+const href = routedUrl("video", display.data.slug, linkLocale);
 const tags = videoTags(display);
 const hasTranslationBadge =
   locale === DEFAULT_LOCALE && LOCALES.some(l => l !== DEFAULT_LOCALE && !!pair.entries[l]);
