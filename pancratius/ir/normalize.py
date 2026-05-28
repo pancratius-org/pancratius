@@ -953,6 +953,25 @@ def _para_lineated(p: ir.Paragraph) -> bool:
     return bool(lines) and all(_is_lineated_line(line) for line in lines)
 
 
+_CODA_PSEUDO_HEADING_RE = re.compile(
+    r"^(?:\d{1,4}|вопрос|ответ|question|answer)\s*:?\s*$",
+    re.IGNORECASE,
+)
+_VISUAL_CODA_LINE_MAX = 64
+_VISUAL_CODA_AVG_MAX = 48.0
+
+
+def _is_strong_only_pseudo_heading(p: ir.Paragraph) -> bool:
+    if len(p.inlines) != 1:
+        return False
+    only = p.inlines[0]
+    return (
+        isinstance(only, ir.Emphasis)
+        and only.kind == "strong"
+        and bool(_CODA_PSEUDO_HEADING_RE.match(inline_plain(only.children)))
+    )
+
+
 def _block_lines(p: ir.Paragraph) -> list[list[ir.Inline]]:
     # Verse display lines as detection sees them: hard `LineBreak`s (incl. nested in
     # `Emph`) split; `SoftBreak` wrapping joins as a space.
@@ -961,6 +980,16 @@ def _block_lines(p: ir.Paragraph) -> list[list[ir.Inline]]:
 
 def _all_lines(paras: list[ir.Paragraph]) -> list[str]:
     return [inline_plain(ln) for p in paras for ln in _block_lines(p)]
+
+
+def _is_compact_visual_coda(lines: list[str]) -> bool:
+    """A visual coda is a compact closing couplet, not two prose preview sentences."""
+    if len(lines) != 2:
+        return False
+    lengths = [len(line) for line in lines]
+    return max(lengths) <= _VISUAL_CODA_LINE_MAX and (
+        sum(lengths) / len(lengths)
+    ) <= _VISUAL_CODA_AVG_MAX
 
 
 @dataclass(frozen=True)
@@ -1004,6 +1033,17 @@ def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
             out.append(b)
             i += 1
             continue
+        if isinstance(b, ir.VerseBlock):
+            if (segment := _existing_verse_coda_segment(blocks, i)) is not None:
+                verse, next_i = segment
+                out.append(verse)
+                ctx = _NEUTRAL_CONTEXT
+                i = next_i
+                continue
+            ctx = _NEUTRAL_CONTEXT
+            out.append(b)
+            i += 1
+            continue
         if isinstance(b, ir.Paragraph) and b.lineation_group is not None:
             visual_ctx = _PrecedingContext(
                 named=ctx.named,
@@ -1011,13 +1051,13 @@ def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
                 separator=ctx.separator,
                 visual=True,
             )
-            group: list[ir.Paragraph] = []
-            gid = b.lineation_group
-            while i < n and isinstance((pi := blocks[i]), ir.Paragraph) and (
-                pi.lineation_group == gid
-            ):
-                group.append(pi)
-                i += 1
+            if (segment := _visual_verse_coda_segment(blocks, i, visual_ctx)) is not None:
+                emitted, next_i = segment
+                out.extend(emitted)
+                ctx = _NEUTRAL_CONTEXT
+                i = next_i
+                continue
+            group, i = _collect_visual_group(blocks, i)
             out.extend(_visual_verse_blocks(group, visual_ctx))
             ctx = _NEUTRAL_CONTEXT
             continue
@@ -1039,6 +1079,110 @@ def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
         out.append(b)
         i += 1
     return out
+
+
+def _collect_visual_group(
+    blocks: list[ir.Block],
+    i: int,
+) -> tuple[list[ir.Paragraph], int]:
+    first = blocks[i]
+    assert isinstance(first, ir.Paragraph)
+    gid = first.lineation_group
+    group: list[ir.Paragraph] = []
+    while i < len(blocks) and isinstance((p := blocks[i]), ir.Paragraph) and (
+        p.lineation_group == gid
+    ):
+        group.append(p)
+        i += 1
+    return group, i
+
+
+def _skip_empty_paragraphs(blocks: list[ir.Block], i: int) -> tuple[int, bool]:
+    start = i
+    while i < len(blocks) and isinstance((p := blocks[i]), ir.Paragraph) and p.empty:
+        i += 1
+    return i, i > start
+
+
+def _visual_coda_candidate(
+    blocks: list[ir.Block],
+    i: int,
+) -> tuple[list[ir.Paragraph], int] | None:
+    """A local coda segment after a verse run.
+
+    Shape: one or more empty paragraphs, an exact two-line same-visual-group
+    candidate, optional empty paragraphs, then a heading/thematic boundary. The
+    candidate must be compact; this keeps prose previews before the next heading in
+    prose without naming their words.
+    """
+    i, saw_gap = _skip_empty_paragraphs(blocks, i)
+    if not saw_gap:
+        return None
+
+    first = blocks[i] if i < len(blocks) else None
+    if not isinstance(first, ir.Paragraph) or first.empty or first.lineation_group is None:
+        return None
+    coda, i = _collect_visual_group(blocks, i)
+    if not coda:
+        return None
+    for p in coda:
+        if not (
+            not p.empty and _para_lineated(p) and not _is_strong_only_pseudo_heading(p)
+        ):
+            return None
+
+    coda_lines = _all_lines(coda)
+    if not _is_compact_visual_coda(coda_lines):
+        return None
+
+    boundary_i, _saw_trailing_gap = _skip_empty_paragraphs(blocks, i)
+    boundary = blocks[boundary_i] if boundary_i < len(blocks) else None
+    if not isinstance(boundary, (ir.Heading, ir.ThematicBreak)):
+        return None
+
+    return coda, boundary_i
+
+
+def _append_coda_copy(prev: ir.VerseBlock, coda: list[ir.Paragraph]) -> ir.VerseBlock:
+    return ir.VerseBlock(
+        stanzas=[*prev.stanzas, *_build_verse(coda, prev.role).stanzas],
+        role=prev.role,
+    )
+
+
+def _existing_verse_coda_segment(
+    blocks: list[ir.Block],
+    i: int,
+) -> tuple[ir.VerseBlock, int] | None:
+    prev = blocks[i]
+    assert isinstance(prev, ir.VerseBlock)
+    candidate = _visual_coda_candidate(blocks, i + 1)
+    if candidate is None:
+        return None
+    coda, next_i = candidate
+    return _append_coda_copy(prev, coda), next_i
+
+
+def _visual_verse_coda_segment(
+    blocks: list[ir.Block],
+    i: int,
+    ctx: _PrecedingContext,
+) -> tuple[list[ir.Block], int] | None:
+    """Classify `visual verse run + gap + compact two-line coda + boundary`.
+
+    This makes the coda decision before the first visual run is emitted, so the
+    surrounding source segment is visible and no previously emitted block needs to
+    be rewritten.
+    """
+    group, after_group = _collect_visual_group(blocks, i)
+    emitted = _visual_verse_blocks(group, ctx)
+    if not emitted or not isinstance((prev := emitted[-1]), ir.VerseBlock):
+        return None
+    candidate = _visual_coda_candidate(blocks, after_group)
+    if candidate is None:
+        return None
+    coda, next_i = candidate
+    return [*emitted[:-1], _append_coda_copy(prev, coda)], next_i
 
 
 def _visual_verse_blocks(

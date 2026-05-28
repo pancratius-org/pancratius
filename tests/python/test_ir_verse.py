@@ -37,10 +37,25 @@ def _verse_lines(block: ir.Block) -> list[str]:
     return [normalize.inline_plain(line) for stanza in block.stanzas for line in stanza]
 
 
+def _verse_stanzas(block: ir.Block) -> list[list[str]]:
+    assert isinstance(block, ir.VerseBlock)
+    return [
+        [normalize.inline_plain(line) for line in stanza]
+        for stanza in block.stanzas
+    ]
+
+
 def _para(*lines: str, lineation_group: int | None = None) -> ir.Paragraph:
     """A standalone single-line source paragraph (one Word paragraph per line)."""
     assert len(lines) == 1
     return ir.Paragraph(inlines=[ir.Text(lines[0])], lineation_group=lineation_group)
+
+
+def _strong_para(text: str, *, lineation_group: int | None = None) -> ir.Paragraph:
+    return ir.Paragraph(
+        inlines=[ir.Emphasis("strong", [ir.Text(text)])],
+        lineation_group=lineation_group,
+    )
 
 
 def _empty() -> ir.Paragraph:
@@ -340,6 +355,155 @@ def test_book30_item3_visual_suffix_after_long_citation_becomes_verse() -> None:
     ]
     assert isinstance(out[1], ir.Paragraph)
     assert normalize.inline_plain(out[1].inlines).startswith("«Воистину, подобие Исы")
+
+
+def test_visual_two_line_coda_after_verse_appends_as_new_stanza() -> None:
+    blocks: list[ir.Block] = [
+        ir.Heading(level=4, inlines=[ir.Text("20. И вот — как в Эммаусе")]),
+        _para("Нет больше «Он».", lineation_group=1),
+        _para("Остался только Я Есмь.", lineation_group=1),
+        _empty(),
+        _para("Если готов —", lineation_group=2),
+        _para("Я поведу тебя дальше.", lineation_group=2),
+        ir.Heading(level=4, inlines=[ir.Text("21. Ты спросишь")]),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+
+    assert len(verse) == 1
+    assert _verse_stanzas(verse[0]) == [
+        ["Нет больше «Он».", "Остался только Я Есмь."],
+        ["Если готов —", "Я поведу тебя дальше."],
+    ]
+
+
+def test_visual_two_line_coda_before_thematic_break_appends_as_new_stanza() -> None:
+    blocks: list[ir.Block] = [
+        _para("Так начинается сборка ложного «я» —", lineation_group=1),
+        _para("из обломков взглядов,", lineation_group=1),
+        _para("а внешним лучом.", lineation_group=1),
+        _empty(),
+        _para("Ты — как глина,", lineation_group=2),
+        _para("которую лепят чужие глаза.", lineation_group=2),
+        _empty(),
+        ir.ThematicBreak(),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+
+    assert len(verse) == 1
+    assert _verse_stanzas(verse[0]) == [
+        ["Так начинается сборка ложного «я» —", "из обломков взглядов,", "а внешним лучом."],
+        ["Ты — как глина,", "которую лепят чужие глаза."],
+    ]
+
+
+def test_pseudo_heading_fragments_after_verse_do_not_append() -> None:
+    blocks: list[ir.Block] = [
+        ir.Heading(level=4, inlines=[ir.Text("137. Предыдущий ответ")]),
+        _para("Я — Свет.", lineation_group=1),
+        _para("Я — Слово.", lineation_group=1),
+        _empty(),
+        _strong_para("138", lineation_group=2),
+        _strong_para("Вопрос:", lineation_group=2),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+
+    assert len(verse) == 1
+    assert _verse_stanzas(verse[0]) == [["Я — Свет.", "Я — Слово."]]
+    assert any(
+        isinstance(b, ir.Paragraph) and normalize.inline_plain(b.inlines) == "Вопрос:"
+        for b in out
+    )
+
+
+def test_speaker_turn_after_verse_does_not_append_as_coda() -> None:
+    blocks: list[ir.Block] = [
+        ir.Heading(level=4, inlines=[ir.Text("Псалом")]),
+        _para("Я — Свет.", lineation_group=1),
+        _para("Я — Слово.", lineation_group=1),
+        _empty(),
+        _para("Панкратиус: Дальше.", lineation_group=2),
+        _para("Это уже проза.", lineation_group=2),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+
+    assert len(verse) == 1
+    assert _verse_stanzas(verse[0]) == [["Я — Свет.", "Я — Слово."]]
+
+
+def test_visual_coda_without_following_structural_boundary_does_not_append() -> None:
+    blocks: list[ir.Block] = [
+        ir.Heading(level=4, inlines=[ir.Text("Псалом")]),
+        _para("Я — Свет.", lineation_group=1),
+        _para("Я — Слово.", lineation_group=1),
+        _empty(),
+        _para("Кто автор?", lineation_group=2),
+        _para("Тот, кто смотрит.", lineation_group=2),
+        _empty(),
+        _para("Как она была явлена? —", lineation_group=3),
+        _para("через тишину.", lineation_group=3),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+
+    assert _verse_stanzas(verse[0]) == [["Я — Свет.", "Я — Слово."]]
+
+
+def test_next_song_preview_before_heading_does_not_append_as_coda() -> None:
+    blocks: list[ir.Block] = [
+        ir.Heading(level=2, inlines=[ir.Text("Песня 17")]),
+        _para("Тело — это не обременение.", lineation_group=1),
+        _para("Это — Мой Храм.", lineation_group=1),
+        _empty(),
+        _para(
+            "Следующая Песнь — о том, как простота тела становится орудием великого Творения.",
+            lineation_group=2,
+        ),
+        _para(
+            "О том, как все действия становятся актом божественного сотворения.",
+            lineation_group=2,
+        ),
+        ir.Heading(level=2, inlines=[ir.Text("Песня 18")]),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+
+    assert len(verse) == 1
+    assert _verse_stanzas(verse[0]) == [["Тело — это не обременение.", "Это — Мой Храм."]]
+    assert any(
+        isinstance(b, ir.Paragraph)
+        and normalize.inline_plain(b.inlines).startswith("Следующая Песнь")
+        for b in out
+    )
+
+
+def test_visual_coda_does_not_mutate_existing_verse_block() -> None:
+    existing = ir.VerseBlock(stanzas=[[[ir.Text("Я — Свет.")], [ir.Text("Я — Слово.")]]])
+    blocks: list[ir.Block] = [
+        existing,
+        _empty(),
+        _para("Если готов —", lineation_group=2),
+        _para("Я поведу тебя дальше.", lineation_group=2),
+        ir.Heading(level=4, inlines=[ir.Text("Дальше")]),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+
+    assert _verse_stanzas(existing) == [["Я — Свет.", "Я — Слово."]]
+    assert isinstance(out[0], ir.VerseBlock)
+    assert _verse_stanzas(out[0]) == [
+        ["Я — Свет.", "Я — Слово."],
+        ["Если готов —", "Я поведу тебя дальше."],
+    ]
 
 
 def test_book30_early_speaker_and_list_prose_are_not_overwrapped() -> None:
