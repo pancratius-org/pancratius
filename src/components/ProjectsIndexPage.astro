@@ -4,7 +4,6 @@ import Base from "@/layouts/Base.astro";
 import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE } from "@/lib/i18n";
 import { projectsIndexCopy } from "@/lib/copy";
-import { sameSitePath } from "@/lib/paths";
 import { seoForKindIndex } from "@/lib/seo";
 import { getProjects, projectUrl, type ProjectLanding } from "@/lib/projects";
 
@@ -48,7 +47,7 @@ const rows: Row[] = canonical.map(base => {
       {rows.map(({ landing, hrefLocale, isFallback }) => (
         <a
           class="project-row"
-          href={sameSitePath(projectUrl(landing.data.slug, hrefLocale))}
+          href={projectUrl(landing.data.slug, hrefLocale)}
           data-project-theme={landing.data.theme ?? undefined}
         >
           <span class="project-row__num">{String(landing.data.number).padStart(2, "0")}</span>

@@ -6,7 +6,6 @@ import LibraryFilter from "@/components/LibraryFilter.astro";
 import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE, kindIndexUrl } from "@/lib/i18n";
 import { booksIndexCopy, type BooksIndexCopy } from "@/lib/copy";
-import { sameSitePath } from "@/lib/paths";
 import { seoForKindIndex, clampDescription } from "@/lib/seo";
 import { getPairsByKind, workTags } from "@/lib/works";
 
@@ -25,7 +24,7 @@ const pairs = locale === DEFAULT_LOCALE
   ? allPairs
   : allPairs.filter(p => p.entries[locale]);
 const seo = seoForKindIndex(Astro.site, "book", locale, { total: allPairs.length });
-const defaultHref = sameSitePath(kindIndexUrl("book", DEFAULT_LOCALE));
+const defaultHref = kindIndexUrl("book", DEFAULT_LOCALE);
 
 const tagCounts = new Map<string, number>();
 for (const p of pairs) {

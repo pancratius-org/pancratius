@@ -8,7 +8,6 @@ import Colophon from "@/components/Colophon.astro";
 import { coverAbsoluteUrl } from "@/lib/covers";
 import { DEFAULT_LOCALE, downloadUrl, kindIndexUrl } from "@/lib/i18n";
 import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
-import { sameSitePath } from "@/lib/paths";
 import { seoForWork } from "@/lib/seo";
 import { getPairsByKind, poemDate, type WorkPair } from "@/lib/works";
 
@@ -42,7 +41,7 @@ const FORMAT_LABEL: Record<DownloadFormat, string> = {
 ---
 <Base locale={locale} seo={seo} alternates={{}}>
   <article class="poem-page">
-    <a class="poem-page__back" href={sameSitePath(backHref)}>← к стихам</a>
+    <a class="poem-page__back" href={backHref}>← к стихам</a>
 
     <header class="poem-page__head">
       <p class="poem-page__meta">
@@ -57,7 +56,7 @@ const FORMAT_LABEL: Record<DownloadFormat, string> = {
           {formats.map((fmt, i) => (
             <>
               {i > 0 && <span class="poem-page__downloads-sep">·</span>}
-              <a href={sameSitePath(downloadUrl(pair.kind, entry.data.slug, fmt, locale))} download>{FORMAT_LABEL[fmt]}</a>
+              <a href={downloadUrl(pair.kind, entry.data.slug, fmt, locale)} download>{FORMAT_LABEL[fmt]}</a>
             </>
           ))}
           <span class="poem-page__downloads-sep">·</span>

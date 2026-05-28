@@ -3,7 +3,6 @@ import Base from "@/layouts/Base.astro";
 import { DEFAULT_LOCALE, LOCALES, type Locale, workUrl, kindIndexUrl, plRu, RU_PLURALS } from "@/lib/i18n";
 import { formatMonthYear, poetryIndexCopy } from "@/lib/copy";
 import { isPoemTitleLine, poemFirstStanza } from "@/lib/publication/poetry";
-import { sameSitePath } from "@/lib/paths";
 import { seoForKindIndex } from "@/lib/seo";
 import { getPairsByKind, poemDate } from "@/lib/works";
 
@@ -47,7 +46,7 @@ if (!heroStanza && heroPair) {
     </div>
 
     {heroPair && heroStanza && (
-      <a class="poetry-hero" href={sameSitePath(workUrl("poem", canonical(heroPair).data.slug, locale))}>
+      <a class="poetry-hero" href={workUrl("poem", canonical(heroPair).data.slug, locale)}>
         <p class="poetry-hero__stanza">{heroStanza}</p>
         <p class="poetry-hero__attr">
           {copy.heroAttrPrefix}{String(heroPair.number).padStart(2, "0")} «{canonical(heroPair).data.title}»
@@ -61,7 +60,7 @@ if (!heroStanza && heroPair) {
         const date = poemDate(e);
         return (
           <li>
-            <a href={sameSitePath(workUrl("poem", e.data.slug, locale))}>
+            <a href={workUrl("poem", e.data.slug, locale)}>
               <span class="poems__num">{String(p.number).padStart(2, "0")}</span>
               <span class="poems__title">{e.data.title}</span>
               {date && (

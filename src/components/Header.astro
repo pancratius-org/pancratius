@@ -3,7 +3,6 @@ import type { Locale } from "@/lib/i18n";
 import { HEADER_NAV, homeUrl, localizePath } from "@/lib/i18n";
 import { chromeCopy } from "@/lib/copy";
 import { getPage } from "@/lib/pages";
-import { sameSitePath, stripBasePath } from "@/lib/paths";
 import LanguageSwitcher from "./LanguageSwitcher.astro";
 
 interface Props {
@@ -13,8 +12,8 @@ interface Props {
 }
 
 const { locale, currentPath, alternates } = Astro.props;
-const homeHref = sameSitePath(homeUrl(locale));
-const currentRoute = stripBasePath(currentPath);
+const homeHref = homeUrl(locale);
+const currentRoute = currentPath;
 const copy = chromeCopy[locale];
 
 // Drop nav items whose `pageSlug` isn't authored in the current locale.
@@ -42,7 +41,7 @@ function isCurrent(path: string): boolean {
   <nav class="rail__nav" aria-label={copy.navAria}>
     {navItems.map(item => (
       <a
-        href={sameSitePath(localizePath(item.path, locale))}
+        href={localizePath(item.path, locale)}
         aria-current={isCurrent(item.path) ? "page" : undefined}
       >
         {item.label[locale]}

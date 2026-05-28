@@ -24,7 +24,6 @@ import SelfInquiryCycle from "@/components/projects/SelfInquiryCycle.astro";
 import type { Locale } from "@/lib/i18n";
 import { LOCALES } from "@/lib/i18n";
 import { projectPageCopy } from "@/lib/copy";
-import { sameSitePath } from "@/lib/paths";
 import { seoForProjectSubpage } from "@/lib/seo";
 import {
   getProject,
@@ -92,7 +91,7 @@ const themeAttr = parent?.data.theme ?? undefined;
     data-project-theme={themeAttr}
     data-pagefind-body
   >
-    <a class="project-subpage__back" href={sameSitePath(backHref)} data-pagefind-ignore>{copy.back}</a>
+    <a class="project-subpage__back" href={backHref} data-pagefind-ignore>{copy.back}</a>
     <header class="project-subpage__head">
       <h1 class="project-subpage__title">{data.title}</h1>
     </header>

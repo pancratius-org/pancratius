@@ -1,14 +1,13 @@
 ---
 import type { Locale } from "@/lib/i18n";
 import { pagefindSearchCopy } from "@/lib/copy";
-import { sameSitePath } from "@/lib/paths";
 
 interface Props {
   locale: Locale;
 }
 
 const { locale } = Astro.props;
-const pagefindPath = sameSitePath("/pagefind/pagefind.js");
+const pagefindPath = "/pagefind/pagefind.js";
 // `unavailable` copy is user-facing: in dev the Pagefind index may not exist
 // until the first `npm run build`. Search itself is a production feature.
 const copy = pagefindSearchCopy[locale];

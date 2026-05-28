@@ -4,7 +4,6 @@ import { DEFAULT_LOCALE, downloadUrl, pageUrl, workUrl } from "@/lib/i18n";
 import { colophonCopy } from "@/lib/copy";
 import type { WorkPair } from "@/lib/works";
 import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
-import { sameSitePath } from "@/lib/paths";
 
 interface Props {
   pair:   WorkPair;
@@ -21,7 +20,7 @@ if (!entry) {
 const originalEntry = pair.entries[DEFAULT_LOCALE]!;
 const formats: DownloadFormat[] = availableFormatsForWork(pair, locale);
 
-const licenseHref = sameSitePath(pageUrl("license", locale));
+const licenseHref = pageUrl("license", locale);
 
 const copy = colophonCopy[locale];
 
@@ -36,7 +35,7 @@ const FORMAT_LABEL: Record<DownloadFormat, string> = {
 <aside class="colophon">
   {entry.data.translation.source === "ai" && (
     <p class="row">
-      {copy.machineTranslation} <a href={sameSitePath(workUrl(pair.kind, originalEntry.data.slug, DEFAULT_LOCALE))}>{copy.original}</a>.
+      {copy.machineTranslation} <a href={workUrl(pair.kind, originalEntry.data.slug, DEFAULT_LOCALE)}>{copy.original}</a>.
     </p>
   )}
   <p class="row">
@@ -44,7 +43,7 @@ const FORMAT_LABEL: Record<DownloadFormat, string> = {
     {formats.map((fmt, i) => (
       <>
         {i > 0 && " · "}
-        <a href={sameSitePath(downloadUrl(pair.kind, entry.data.slug, fmt, locale))} download>
+        <a href={downloadUrl(pair.kind, entry.data.slug, fmt, locale)} download>
           {FORMAT_LABEL[fmt]}
         </a>
       </>

@@ -3,7 +3,6 @@ import Prose from "@/components/Prose.astro";
 import type { Locale } from "@/lib/i18n";
 import type { ArchiveInfo } from "@/lib/bulk-archives";
 import { downloadsPageCopy } from "@/lib/copy";
-import { sameSitePath } from "@/lib/paths";
 import type { PageEntry } from "@/lib/pages";
 
 interface Props {
@@ -36,7 +35,7 @@ const FORMAT_LABEL: Record<ArchiveInfo["format"], string> = {
       <ol class="dl__list">
         {archives.map(a => (
           <li class="dl__row">
-            <a class="dl__link" href={sameSitePath(a.url)} download>
+            <a class="dl__link" href={a.url} download>
               <span class="dl__label">{FORMAT_LABEL[a.format]}</span>
               <span class="dl__name">{a.name}</span>
             </a>

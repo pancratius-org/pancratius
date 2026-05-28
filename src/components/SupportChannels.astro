@@ -31,7 +31,6 @@
  */
 import type { Locale } from "@/lib/i18n";
 import { supportChannelsCopy } from "@/lib/copy";
-import { sameSitePath } from "@/lib/paths";
 
 interface Channel {
   kind: "qr" | "card" | "link" | "text";
@@ -60,7 +59,7 @@ const copy = supportChannelsCopy[locale];
           {c.kind === "qr" && (
             <div class="channel__qr">
               <img
-                src={sameSitePath(c.value)}
+                src={c.value}
                 alt=""
                 width="200"
                 height="200"

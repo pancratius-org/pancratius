@@ -9,7 +9,6 @@ import VideoEmbed from "@/components/VideoEmbed.astro";
 import type { Locale } from "@/lib/i18n";
 import { kindIndexUrl, routedUrl } from "@/lib/i18n";
 import { videoPageCopy } from "@/lib/copy";
-import { sameSitePath } from "@/lib/paths";
 import { seoForVideo } from "@/lib/seo";
 import {
   getAllVideoPairs,
@@ -66,7 +65,7 @@ const PLATFORM_LABEL: Record<string, string> = {
 ---
 <Base locale={locale} seo={seo}>
   <article class:list={["video-page", `video-page--${layout}`]}>
-    <a class="video-page__back" href={sameSitePath(backHref)}>
+    <a class="video-page__back" href={backHref}>
       {copy.back(pagerPairs.length)}
     </a>
 
@@ -160,14 +159,14 @@ const PLATFORM_LABEL: Record<string, string> = {
     {(prev && prevEntry) || (next && nextEntry) ? (
       <nav class="video-page__pager" aria-label={copy.pagerAria}>
         {prev && prevEntry && (
-          <a class="video-page__pager-link video-page__pager-link--prev" href={sameSitePath(routedUrl("video", prevEntry.data.slug, locale))}>
+          <a class="video-page__pager-link video-page__pager-link--prev" href={routedUrl("video", prevEntry.data.slug, locale)}>
             <span class="video-page__pager-arrow">←</span>
             <span class="video-page__pager-num">{String(prev.number).padStart(2, "0")}</span>
             <span class="video-page__pager-title">{prevEntry.data.title}</span>
           </a>
         )}
         {next && nextEntry && (
-          <a class="video-page__pager-link video-page__pager-link--next" href={sameSitePath(routedUrl("video", nextEntry.data.slug, locale))}>
+          <a class="video-page__pager-link video-page__pager-link--next" href={routedUrl("video", nextEntry.data.slug, locale)}>
             <span class="video-page__pager-num">{String(next.number).padStart(2, "0")}</span>
             <span class="video-page__pager-title">{nextEntry.data.title}</span>
             <span class="video-page__pager-arrow">→</span>

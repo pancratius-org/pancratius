@@ -3,7 +3,6 @@ import type { Locale } from "@/lib/i18n";
 import type { WorkPair } from "@/lib/works";
 import { workUrl } from "@/lib/i18n";
 import { bookCardCopy } from "@/lib/copy";
-import { sameSitePath } from "@/lib/paths";
 import BookCover from "./BookCover.astro";
 
 interface Props {
@@ -26,7 +25,7 @@ const altPrefix = bookCardCopy[locale].coverAltPrefix;
       // Existence: only show works authored in the current locale.
       const entry = pair.entries[locale];
       if (!entry) return null;
-      const href = sameSitePath(workUrl(pair.kind, entry.data.slug, locale));
+      const href = workUrl(pair.kind, entry.data.slug, locale);
       // The first shelf cover is the LCP element on the mobile homepage —
       // ship it eagerly so it isn't fetched after the browser hits the lazy
       // queue. The rest stay lazy.
