@@ -24,7 +24,7 @@ const HARNESS_FIXTURES_ABS = join(AUDIT_DIR, "fixtures");
 // Disposable / vendor / VCS trees that no rule should ever walk by default.
 // These are build output and caches, never source — keeping them out of the walk
 // is not a contract decision, just "don't scan generated junk". Production-source
-// boundaries (legacy/, design/) are NOT hidden here: a rule that cares about them
+// boundaries are NOT hidden here: a rule that cares about a tree's role
 // derives that from the real source (tsconfig exclude etc.), per PAN016.
 // Non-dot build/vendor/report trees — never source. Dot-directories (.git,
 // .cache, .astro, .venv, .pytest_cache, .ruff_cache, editor/agent dirs, …) are
@@ -64,7 +64,7 @@ export interface WalkOptions {
   ignoreDirs?: Iterable<string>;
   /**
    * Directory basenames to walk that are ignored by default — the escape a
-   * `deploy`-tier rule uses to enumerate an emitted tree, e.g.
+   * `post-build` rule uses to enumerate an emitted tree, e.g.
    * `walk({ unignore: ["dist"], filter: p => p.endsWith(".html") })`.
    */
   unignore?: Iterable<string>;

@@ -44,8 +44,8 @@ const TSCONFIGS: readonly string[] = ["tsconfig.json", "tsconfig.scripts.json"];
  * `tests/**\/*.ts` → `tests`) rather than restating them — adding a new TS source tree to a tsconfig
  * automatically brings it under the rule, and a root tooling config (no `/` in
  * the glob, e.g. `astro.config.ts`) or anything OUTSIDE these trees (root
- * `*.config.cjs`, `legacy/`, `design/`, `public/pagefind/`) is not production
- * source and so is not flagged. Returns null when no include globs are found, so
+ * `*.config.cjs`, generated public payloads) is not production source and so is
+ * not flagged. Returns null when no include globs are found, so
  * the caller can fail loud instead of scanning with no roots.
  */
 function productionTsRoots(ctx: RuleContext): Set<string> | null {
@@ -75,9 +75,9 @@ function productionTsRoots(ctx: RuleContext): Set<string> | null {
  * per offending file — production source is TypeScript.
  *
  * Scoping to the TS-mandated trees (not "everything except an allowlist") is what
- * keeps it false-positive-free: a legitimate root tooling config (`*.config.cjs`),
- * vendored `public/pagefind/`, and the archived `legacy/`/`design/` trees all sit
- * OUTSIDE the tsconfig-included source roots and are silently allowed. It walks the working tree
+ * keeps it false-positive-free: a legitimate root tooling config (`*.config.cjs`)
+ * and generated public payloads sit OUTSIDE the tsconfig-included source roots
+ * and are silently allowed. It walks the working tree
  * (not `git ls-files`) so the same rule runs against a fixture, which has no git;
  * a stray untracked `.js` in a production-source tree is still out of stack.
  */
@@ -114,7 +114,7 @@ export const pan016SourceLanguage: Rule = {
       category: CATEGORY,
       file: rel,
       observed: `${rel} is handwritten JavaScript inside a production-source tree (${[...roots].join(", ")}); production source is TypeScript`,
-      contract: `Production source is TypeScript (architecture.md Stack; tsconfig allowJs:false). The production-source trees are derived from the tsconfig \`include\` globs (${[...roots].join(", ")}); JS outside them — root tooling configs, vendored public/pagefind, archived legacy/design — is allowed.`,
+      contract: `Production source is TypeScript (architecture.md Stack; tsconfig allowJs:false). The production-source trees are derived from the tsconfig \`include\` globs (${[...roots].join(", ")}); JS outside them — root tooling configs and generated public payloads — is allowed.`,
       why: `A .js file in a TS-mandated tree ships outside the strict typecheck (allowJs:false) and teaches the wrong stack to future agents who read local examples as the pattern.`,
       repair: `Rewrite it as .ts; if it is genuinely tooling config or non-production, it belongs outside the TS source trees (it is only flagged because it sits inside one).`,
       doNotFixBy: `Adding the path to a broad ignore list, or renaming .js → .ts with no real typing just to pass the extension check.`,
