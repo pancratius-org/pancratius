@@ -62,7 +62,6 @@ from typing import Any
 
 ROOT = Path(os.environ.get("PANCRATIUS_AUDIT_ROOT") or Path(__file__).resolve().parents[1])
 CONTENT = ROOT / "src" / "content" / "books"
-LEGACY = ROOT / "legacy" / "books" / "ru"
 
 # The short-line length cap — a display line longer than this is "prose-length"
 # and is NOT a verse line. Mirrors ``ir.normalize.VERSE_SHORT_LINE_MAX``; the two
@@ -403,20 +402,39 @@ def _md_body(md_text: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _book_dir(number: int) -> Path | None:
+    matches = sorted(CONTENT.glob(f"{number:02d}-*"))
+    return matches[0] if matches else None
+
+
+def _source_parts(number: int) -> list[Path]:
+    book_dir = _book_dir(number)
+    if book_dir is None:
+        return []
+    return sorted(p for p in book_dir.glob("ru-part*.docx") if not p.name.startswith("~$"))
+
+
 def source_docx(number: int) -> Path:
-    """The legacy RU book DOCX for ``number``. The single multi-part book (#02,
-    three Word files) is skipped by the caller (committed content concatenates the
-    parts, so no single DOCX is the source-of-truth for its verse decisions)."""
-    matches = sorted(LEGACY.glob(f"{number:02d}-*.docx"))
-    matches = [m for m in matches if not m.name.startswith(".~")]
-    if not matches:
-        raise FileNotFoundError(f"legacy book DOCX not found for #{number}")
-    return matches[0]
+    """The committed RU book DOCX for ``number``.
+
+    Multi-part books keep ``ru-part*.docx`` beside the merged ``ru.docx`` and are
+    skipped by the caller: the source oracle needs one authored DOCX, not a
+    generated merge.
+    """
+    book_dir = _book_dir(number)
+    if book_dir is None:
+        raise FileNotFoundError(f"book content folder not found for #{number}")
+    single = book_dir / "ru.docx"
+    if single.is_file():
+        return single
+    parts = _source_parts(number)
+    if len(parts) == 1:
+        return parts[0]
+    raise FileNotFoundError(f"committed RU book DOCX not found for #{number}")
 
 
 def _is_multipart(number: int) -> bool:
-    parts = [m for m in LEGACY.glob(f"{number:02d}-*.docx") if not m.name.startswith(".~")]
-    return len(parts) > 1
+    return len(_source_parts(number)) > 1
 
 
 def _committed_book_meta() -> list[tuple[int, str, str]]:

@@ -5,15 +5,10 @@ from __future__ import annotations
 import re
 import sys
 import zipfile
-import json
 from pathlib import Path
-
-import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "src" / "content"
-LEGACY = ROOT / "legacy"
-MANIFEST = ROOT / "data" / "conversion-manifest.json"
 
 SAMPLE_BOOKS = [1, 3, 33, 53, 7, 35, 46, 64, 71]
 SHINGLE_K = 8
@@ -65,29 +60,6 @@ def _docx_heading_count(docx: Path) -> int:
     return len(re.findall(r'<w:pStyle\s+w:val="Heading\d"', xml))
 
 
-def _manifest_ru_docx(work_slug: str) -> Path | None:
-    if not MANIFEST.exists():
-        return None
-    try:
-        manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return None
-    entry = (manifest.get("by_work") or {}).get(f"book/{work_slug}")
-    if not isinstance(entry, dict):
-        return None
-    sources = entry.get("sources")
-    if not isinstance(sources, dict):
-        return None
-    for source in sources.get("ru") or []:
-        raw = source.get("path") if isinstance(source, dict) else source
-        if not isinstance(raw, str):
-            continue
-        path = ROOT / raw
-        if path.exists() and path.suffix.lower() == ".docx":
-            return path
-    return None
-
-
 def main() -> int:
     failures: list[str] = []
     for number in SAMPLE_BOOKS:
@@ -95,18 +67,15 @@ def main() -> int:
         if not dirs:
             failures.append(f"book {number}: no content dir")
             continue
-        md_path = dirs[0] / "ru.md"
-        docx_path = _manifest_ru_docx(dirs[0].name)
-        if docx_path is None:
-            docx_candidates = list((LEGACY / "books" / "ru").glob(f"{number:02d}*.docx"))
-            docx_path = docx_candidates[0] if docx_candidates else None
-        if not md_path.exists() or docx_path is None:
-            failures.append(f"book {number}: missing md or docx")
-            continue
-        # Why: book #02 is a merged trilogy; we'd need to compare the union
-        # of three docx files. Skip with a note.
-        if number == 2:
+        work_dir = dirs[0]
+        if sorted(work_dir.glob("ru-part*.docx")):
+            # Multipart works need a union comparison; this sample audit skips them.
             print(f"book {number}: skipped (multi-part)")
+            continue
+        md_path = work_dir / "ru.md"
+        docx_path = work_dir / "ru.docx"
+        if not md_path.exists() or not docx_path.is_file():
+            failures.append(f"book {number}: missing md or docx")
             continue
         md_text = _strip_yaml(md_path.read_text(encoding="utf-8"))
         md_norm = _normalize(md_text)

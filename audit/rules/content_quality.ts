@@ -14,10 +14,6 @@
 // PASS/FAIL into a finding of the classified severity. Adapting one (root
 // override + fixture) is the step that accompanies any future promotion to fatal.
 //
-// `source_coverage.py` is deliberately NOT here: it is a legacy-dependent local
-// library audit (it fails on retired `legacy/` source), so it must never gate
-// CI — it stays a local/manual diagnostic (see docs/audit-harness.md).
-
 import type { Rule, Tier } from "../lib/rule.ts";
 import type { Severity, Finding } from "../lib/finding.ts";
 import type { RuleContext } from "../lib/rule.ts";

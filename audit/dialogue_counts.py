@@ -11,7 +11,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "src" / "content"
-LEGACY = ROOT / "legacy"
 
 # Why: Codex sampled these four books and reported preserved-turn counts
 # (the data made it through; only labels were inconsistent). After the

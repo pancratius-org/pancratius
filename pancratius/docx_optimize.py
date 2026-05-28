@@ -16,17 +16,9 @@ When a media file's extension changes (PNG -> JPG), the script rewrites the
 under ``word/``). ``[Content_Types].xml`` is patched only if needed -- the corpus
 files all already declare ``Default Extension="jpg|jpeg|png"``.
 
-Originals stay read-only. Output is placed *into the content tree* alongside
-the rendered Markdown: ``src/content/<kind>/<slug>/<lang>.docx`` for single-source
-books/poems/projects, and ``src/content/books/<slug>/<lang>-part<N>.docx`` for
-multi-part books (the few that exist). The mapping is derived from the central
-``data/conversion-manifest.json`` source provenance (with a frontmatter
-``original_filename`` fallback for poetry/projects) — there is no ``--out``
-override, because the destination is a property of the corpus layout, not a
-CLI knob.
-
-The script is idempotent: if the output exists and is newer than the source it
-is skipped, unless ``--force`` is given.
+The command optimizes committed DOCX files in place under
+``src/content/{books,poetry,projects}``. The script is idempotent: a file maps
+to itself and is skipped unless ``--force`` is given.
 
 Usage:
     uv run pancratius docx optimize                      # process default roots
@@ -41,7 +33,6 @@ import json
 import logging
 import os
 import re
-import shutil
 import tempfile
 import time
 import zipfile
@@ -49,10 +40,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-import yaml
 from PIL import Image, ImageFilter
 
-from pancratius.paths import CONTENT_ROOT, DATA_ROOT, LEGACY_ROOT, REPO_ROOT
+from pancratius.paths import CONTENT_ROOT, DATA_ROOT
 
 logger = logging.getLogger(__name__)
 
@@ -99,13 +89,11 @@ LARGE_PNG_MIN_EDGE = 512
 LARGE_PNG_MIN_BYTES = 200_000
 EDGE_DENSITY_DIAGRAM_MIN = 0.13     # > this => keep as PNG (sharp lines)
 
-ROOT = REPO_ROOT
 MANIFEST_PATH = DATA_ROOT / "conversion-manifest.json"
 SOURCE_ROOTS = [
-    LEGACY_ROOT / "books" / "ru",
-    LEGACY_ROOT / "books" / "en",
-    LEGACY_ROOT / "poetry",
-    LEGACY_ROOT / "projects",
+    CONTENT_ROOT / "books",
+    CONTENT_ROOT / "poetry",
+    CONTENT_ROOT / "projects",
 ]
 
 # Why: map src/content/<folder>/ → manifest by_work kind segment, so optimized DOCX
@@ -635,150 +623,9 @@ def iter_docx_files(root: Path) -> Iterable[Path]:
         yield p
 
 
-def relative_under(child: Path, parent: Path) -> Path:
-    return child.resolve().relative_to(parent.resolve())
-
-
-def _read_frontmatter(md: Path) -> dict:
-    """Pull the YAML frontmatter block out of a markdown file. Returns {} if
-    there is none."""
-    text = md.read_text(encoding="utf-8")
-    if not text.startswith("---\n"):
-        return {}
-    end = text.find("\n---", 4)
-    if end < 0:
-        return {}
-    return yaml.safe_load(text[4:end]) or {}
-
-
-def _build_path_map_from_manifest(content_root: Path, legacy_root: Path) -> dict[Path, Path]:
-    """Map legacy DOCX sources to optimized DOCX destinations using
-    conversion-manifest provenance.
-
-    This is the preferred path: source filenames are conversion provenance,
-    not content frontmatter.
-    """
-    if not MANIFEST_PATH.exists():
-        return {}
-    try:
-        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return {}
-
-    folder_for_kind = {"book": "books", "poem": "poetry", "project": "projects"}
-    out: dict[Path, Path] = {}
-    by_work = manifest.get("by_work")
-    if not isinstance(by_work, dict):
-        return out
-
-    for entry in by_work.values():
-        if not isinstance(entry, dict):
-            continue
-        kind = entry.get("kind")
-        slug = entry.get("slug")
-        sources = entry.get("sources")
-        folder = folder_for_kind.get(str(kind))
-        if not folder or not isinstance(slug, str) or not isinstance(sources, dict):
-            continue
-        for lang, raw_entries in sources.items():
-            if not isinstance(lang, str) or not isinstance(raw_entries, list):
-                continue
-            docx_entries = [
-                item for item in raw_entries
-                if isinstance(item, dict)
-                and isinstance(item.get("path"), str)
-                and item["path"].endswith(".docx")
-            ]
-            total = len(docx_entries)
-            for idx, item in enumerate(docx_entries, start=1):
-                src = (ROOT / item["path"]).resolve()
-                if not src.is_file():
-                    continue
-                suffix = f"{lang}.docx" if total <= 1 else f"{lang}-part{idx}.docx"
-                out[src] = content_root / folder / slug / suffix
-    return out
-
-
-def build_path_map(content_root: Path, legacy_root: Path) -> dict[Path, Path]:
-    """Walk the content tree and produce a map from resolved legacy source
-    paths to content destination paths. Keys are full resolved paths so
-    same-named files in different folders (e.g. two ``source.docx`` under
-    different projects) don't collide.
-
-    ``data/conversion-manifest.json`` source provenance is authoritative. A
-    frontmatter ``original_filename`` fallback is retained for poetry/projects so
-    the optimizer can run against trees whose manifest predates path-level
-    sources. (The former in-bundle ``meta.json`` fallback is gone — provenance
-    lives in the central manifest, not the work bundle.)
-
-    Resolution by kind:
-      books    — manifest sources; the source lives at
-                 ``legacy/books/<lang>/<filename>``.
-      poetry   — manifest sources, or frontmatter's ``original_filename`` is the file's basename;
-                 the source lives somewhere under ``legacy/poetry/<folder>/``
-                 where ``<folder>`` shares the same numeric prefix as the
-                 content slug (e.g. ``02-...`` ↔ ``02. ...``). When that's
-                 ambiguous we fall back to a direct filename match.
-      projects — manifest sources, or content slug equals the legacy folder name exactly, so the
-                 source is ``legacy/projects/<slug>/<filename>``.
-
-    Destination naming: ``<lang>.docx`` for single-source entries,
-    ``<lang>-part<N>.docx`` for multi-source.
-    """
-    out = _build_path_map_from_manifest(content_root, legacy_root)
-    if out:
-        return out
-
-    out: dict[Path, Path] = {}
-
-    # Books carry no frontmatter source-filename fallback: their source
-    # provenance lives only in the central manifest (handled above). The former
-    # in-bundle meta.json fallback was removed with the move to manifest-only
-    # provenance.
-
-    # --- poetry ----------------------------------------------------------
-    for md_path in sorted((content_root / "poetry").glob("*/*.md")):
-        slug = md_path.parent.name
-        lang = md_path.stem
-        fm = _read_frontmatter(md_path)
-        single = fm.get("original_filename")
-        names = fm.get("original_filenames") or ([single] if single else [])
-        total = len(names)
-        # Prefer legacy folders whose number prefix matches the content slug's.
-        slug_num = slug.split("-", 1)[0]
-        for idx, name in enumerate(names, start=1):
-            candidates = list((legacy_root / "poetry").glob(f"*/{name}"))
-            if not candidates:
-                continue
-            if len(candidates) > 1:
-                tight = [c for c in candidates if c.parent.name.startswith(f"{slug_num}.")
-                                              or c.parent.name.startswith(f"{slug_num} ")]
-                candidates = tight or candidates
-            if len(candidates) != 1:
-                logger.warning(
-                    "ambiguous poetry source for %s/%s (%d candidates)",
-                    slug, name, len(candidates),
-                )
-                continue
-            suffix = f"{lang}.docx" if total <= 1 else f"{lang}-part{idx}.docx"
-            out[candidates[0].resolve()] = content_root / "poetry" / slug / suffix
-
-    # --- projects --------------------------------------------------------
-    for md_path in sorted((content_root / "projects").glob("*/*.md")):
-        slug = md_path.parent.name
-        lang = md_path.stem
-        fm = _read_frontmatter(md_path)
-        single = fm.get("original_filename")
-        names = fm.get("original_filenames") or ([single] if single else [])
-        total = len(names)
-        for idx, name in enumerate(names, start=1):
-            src = legacy_root / "projects" / slug / name
-            if not src.is_file():
-                continue
-            suffix = f"{lang}.docx" if total <= 1 else f"{lang}-part{idx}.docx"
-            out[src.resolve()] = content_root / "projects" / slug / suffix
-
-    return out
+def build_path_map(content_root: Path) -> dict[Path, Path]:
+    """Map committed content DOCX files to themselves for in-place optimization."""
+    return {docx.resolve(): docx for docx in iter_docx_files(content_root)}
 
 
 def optimize(
@@ -788,7 +635,7 @@ def optimize(
     verbose: bool = False,
     dry_run: bool = False,
 ) -> OptimizeSummary:
-    path_map = build_path_map(CONTENT_ROOT, ROOT / "legacy")
+    path_map = build_path_map(CONTENT_ROOT)
     jobs: list[tuple[Path, Path]] = []
     unmapped: list[Path] = []
 

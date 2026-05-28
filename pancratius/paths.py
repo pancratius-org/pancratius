@@ -42,7 +42,6 @@ REPO_ROOT = _discover_repo_root()
 CONTENT_ROOT = REPO_ROOT / "src" / "content"
 DATA_ROOT = REPO_ROOT / "data"
 CACHE_ROOT = REPO_ROOT / ".cache"
-LEGACY_ROOT = REPO_ROOT / "legacy"
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 DOWNLOAD_TEMPLATES_ROOT = PACKAGE_ROOT / "download_assets" / "templates"

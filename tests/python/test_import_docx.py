@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from pathlib import Path
 import importlib.util
 import json
 import shutil
+import subprocess
+from collections.abc import Callable
+from pathlib import Path
 
 import pytest
 
-
-ROOT = Path(__file__).resolve().parents[2]
 
 from pancratius import import_docx  # noqa: E402
 from pancratius.content_catalog import split_frontmatter  # noqa: E402
@@ -19,6 +19,7 @@ requires_docx_import = pytest.mark.skipif(
     reason="pandoc and pillow are required",
 )
 docx_import_test = pytest.mark.pandoc
+type DocxFactory = Callable[[str, str], Path]
 
 
 def _frontmatter(path: Path) -> dict:
@@ -26,12 +27,41 @@ def _frontmatter(path: Path) -> dict:
     return fm
 
 
+@pytest.fixture
+def make_docx(tmp_path: Path) -> DocxFactory:
+    """Factory for tiny DOCX fixtures used by importer contract tests.
+
+    These tests exercise the importer/writer boundary, not a specific corpus
+    source file. Generating the DOCX keeps them independent of removed source
+    archives and of mutable release artifacts under src/content/.
+    """
+
+    def make(name: str, markdown: str = "# Fixture\n\nBody.") -> Path:
+        md = tmp_path / f"{Path(name).stem}.md"
+        docx = tmp_path / name
+        md.write_text(markdown, encoding="utf-8")
+        subprocess.run(
+            ["pandoc", str(md), "-o", str(docx)],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        return docx
+
+    return make
+
+
 @docx_import_test
 @requires_docx_import
-def test_import_new_docx_creates_bundle_paths_and_frontmatter(tmp_path: Path) -> None:
+def test_import_new_docx_creates_bundle_paths_and_frontmatter(
+    tmp_path: Path,
+    make_docx: DocxFactory,
+) -> None:
+    docx = make_docx("source-ru.docx", "# Личность и эго\n\nТекст.")
     content_root = tmp_path / "src" / "content"
     report = import_docx.import_work(import_docx.ImportRequest(
-        docx=ROOT / "legacy/books/ru/23-личность-и-эго.docx",
+        docx=docx,
         lang="ru",
         out_content=content_root,
         kind="book",
@@ -58,7 +88,11 @@ def test_import_new_docx_creates_bundle_paths_and_frontmatter(tmp_path: Path) ->
 
 @docx_import_test
 @requires_docx_import
-def test_import_translation_with_into_updates_existing_bundle(tmp_path: Path) -> None:
+def test_import_translation_with_into_updates_existing_bundle(
+    tmp_path: Path,
+    make_docx: DocxFactory,
+) -> None:
+    docx = make_docx("source-en.docx", "# Message to Muslims\n\nEnglish body.")
     content_root = tmp_path / "src" / "content"
     work_dir = content_root / "books" / "30-poslanie-musulmanam"
     work_dir.mkdir(parents=True)
@@ -84,7 +118,7 @@ Existing body.
     )
 
     report = import_docx.import_work(import_docx.ImportRequest(
-        docx=ROOT / "legacy/books/en/30-послание-мусульманам.docx",
+        docx=docx,
         lang="en",
         out_content=content_root,
         into="30-poslanie-musulmanam",
@@ -106,40 +140,6 @@ Existing body.
     assert fm["translation"] == {"source": "ai"}
 
 
-@docx_import_test
-@requires_docx_import
-def test_importer_does_not_consult_legacy_catalog_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    # The legacy catalog loaders no longer exist (the batch CLI is gone); the
-    # remaining guard is the only one that matters: nothing in the import path may
-    # read anything under legacy/data.
-    original_read_text = Path.read_text
-
-    def guarded_read_text(self: Path, *args: str | None, **kwargs: str | None) -> str:
-        if "legacy/data" in self.as_posix():
-            raise AssertionError(f"legacy catalog read attempted: {self}")
-        return original_read_text(self, *args, **kwargs)
-
-    monkeypatch.setattr(Path, "read_text", guarded_read_text)
-
-    content_root = tmp_path / "src" / "content"
-    report = import_docx.import_work(import_docx.ImportRequest(
-        docx=ROOT / "legacy/books/ru/30-послание-мусульманам.docx",
-        lang="ru",
-        out_content=content_root,
-        kind="book",
-        number=7,
-        slug="frontmatter-only",
-        title="Frontmatter Only",
-        description="From overrides.",
-    ))
-    assert not report.refused
-
-    fm = _frontmatter(content_root / "books" / "07-frontmatter-only" / "ru.md")
-    assert fm["number"] == 7
-    assert fm["slug"] == "07-frontmatter-only"
-    assert fm["title"] == "Frontmatter Only"
-
-
 # ---------------------------------------------------------------------------
 # Fix A: typed converter diagnostics flow into the WritePlan and a FATAL blocks
 # ---------------------------------------------------------------------------
@@ -147,7 +147,12 @@ def test_importer_does_not_consult_legacy_catalog_files(tmp_path: Path, monkeypa
 
 @docx_import_test
 @requires_docx_import
-def test_converter_fatal_diagnostic_blocks_the_write(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_converter_fatal_diagnostic_blocks_the_write(
+    tmp_path: Path,
+    make_docx: DocxFactory,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    docx = make_docx("source-ru.docx", "# Fatal Probe\n\nТекст.")
     # A converter-side FATAL (the unresolvable-local-image fatal proven in
     # test_ir_pipeline) must reach WritePlan.diagnostics and make the writer REFUSE —
     # nothing written. Today the converter flattened diagnostics into a warning STRING,
@@ -167,7 +172,7 @@ def test_converter_fatal_diagnostic_blocks_the_write(tmp_path: Path, monkeypatch
 
     content_root = tmp_path / "src" / "content"
     report = import_docx.import_work(import_docx.ImportRequest(
-        docx=ROOT / "legacy/books/ru/23-личность-и-эго.docx",
+        docx=docx,
         lang="ru",
         out_content=content_root,
         kind="book",
@@ -184,7 +189,11 @@ def test_converter_fatal_diagnostic_blocks_the_write(tmp_path: Path, monkeypatch
 
 @docx_import_test
 @requires_docx_import
-def test_converter_typed_diagnostics_carry_severity(tmp_path: Path) -> None:
+def test_converter_typed_diagnostics_carry_severity(
+    tmp_path: Path,
+    make_docx: DocxFactory,
+) -> None:
+    docx = make_docx("source-ru.docx", "# Probe\n\nТекст.")
     # The converter must expose TYPED diagnostics (not just a flattened string), so a
     # downstream consumer can read severity. A clean import still carries any
     # info/warning diagnostics with their severity intact.
@@ -193,7 +202,7 @@ def test_converter_typed_diagnostics_carry_severity(tmp_path: Path) -> None:
 
     media = tmp_path / "media"
     converted = convert_single_docx(
-        ROOT / "legacy/books/ru/23-личность-и-эго.docx",
+        docx,
         kind="book", lang="ru", work_key="91-probe", title="Probe",
         work_dir=tmp_path / "stage",
         title_index=content_catalog.build_title_index([]),
@@ -212,14 +221,15 @@ def test_converter_typed_diagnostics_carry_severity(tmp_path: Path) -> None:
 
 @docx_import_test
 @requires_docx_import
-def test_import_work_returns_a_write_report(tmp_path: Path) -> None:
+def test_import_work_returns_a_write_report(tmp_path: Path, make_docx: DocxFactory) -> None:
+    docx = make_docx("source-ru.docx", "# Probe Work\n\nТекст.")
     # The stable entry takes a typed ImportRequest and RETURNS the writer's
     # WriteReport directly (the contract surface), with files actually written.
     from pancratius.writer import WriteReport
 
     content_root = tmp_path / "src" / "content"
     report = import_docx.import_work(import_docx.ImportRequest(
-        docx=ROOT / "legacy/books/ru/23-личность-и-эго.docx",
+        docx=docx,
         lang="ru",
         out_content=content_root,
         kind="book",
@@ -236,13 +246,17 @@ def test_import_work_returns_a_write_report(tmp_path: Path) -> None:
 
 @docx_import_test
 @requires_docx_import
-def test_import_work_refusal_returns_a_report_with_fatal_diagnostic(tmp_path: Path) -> None:
+def test_import_work_refusal_returns_a_report_with_fatal_diagnostic(
+    tmp_path: Path,
+    make_docx: DocxFactory,
+) -> None:
+    docx = make_docx("source-ru.docx", "# Probe Work\n\nТекст.")
     # Re-importing an existing converter-owned <lang>.md without --replace is a
     # refusal. import_work must RETURN that refused report (with a fatal
     # diagnostic), NOT raise / SystemExit.
     content_root = tmp_path / "src" / "content"
     first = import_docx.import_work(import_docx.ImportRequest(
-        docx=ROOT / "legacy/books/ru/23-личность-и-эго.docx",
+        docx=docx,
         lang="ru",
         out_content=content_root,
         kind="book",
@@ -256,7 +270,7 @@ def test_import_work_refusal_returns_a_report_with_fatal_diagnostic(tmp_path: Pa
     # Second import of the SAME bundle/lang, no replace -> the importer routes
     # through --into resolution by key; replace is False, so it is refused.
     second = import_docx.import_work(import_docx.ImportRequest(
-        docx=ROOT / "legacy/books/ru/23-личность-и-эго.docx",
+        docx=docx,
         lang="ru",
         out_content=content_root,
         into="90-probe-work",
@@ -285,12 +299,15 @@ def test_import_work_missing_docx_raises_import_work_error(tmp_path: Path) -> No
 
 @docx_import_test
 @requires_docx_import
-def test_real_import_writes_manifest_under_content_root(tmp_path: Path) -> None:
+def test_real_import_writes_manifest_under_content_root(
+    tmp_path: Path,
+    make_docx: DocxFactory,
+) -> None:
+    docx = make_docx("source-ru.docx", "# Probe Work\n\nТекст.")
     # A real (non-dry-run) import must write the per-import provenance manifest at
     # `<tmp>/data/imports/<scope>.json` (derived from the temp content root, so the
     # real repo data/imports is NEVER touched), with the source sha256 set and the
     # source_document pointing at the input DOCX.
-    docx = ROOT / "legacy/books/ru/23-личность-и-эго.docx"
     content_root = tmp_path / "src" / "content"
     report = import_docx.import_work(import_docx.ImportRequest(
         docx=docx,
@@ -314,11 +331,15 @@ def test_real_import_writes_manifest_under_content_root(tmp_path: Path) -> None:
 
 @docx_import_test
 @requires_docx_import
-def test_dry_run_import_writes_no_manifest(tmp_path: Path) -> None:
+def test_dry_run_import_writes_no_manifest(
+    tmp_path: Path,
+    make_docx: DocxFactory,
+) -> None:
+    docx = make_docx("source-ru.docx", "# Probe Work\n\nТекст.")
     # A dry-run import touches NOTHING — no bundle, and no provenance manifest.
     content_root = tmp_path / "src" / "content"
     report = import_docx.import_work(import_docx.ImportRequest(
-        docx=ROOT / "legacy/books/ru/23-личность-и-эго.docx",
+        docx=docx,
         lang="ru",
         out_content=content_root,
         kind="book",
@@ -335,12 +356,17 @@ def test_dry_run_import_writes_no_manifest(tmp_path: Path) -> None:
 
 @docx_import_test
 @requires_docx_import
-def test_import_work_is_side_effect_free(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_import_work_is_side_effect_free(
+    tmp_path: Path,
+    make_docx: DocxFactory,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    docx = make_docx("source-ru.docx", "# Silent Probe\n\nТекст.")
     # The stable entry emits NO stdout/stderr (the CLI owns side effects).
     content_root = tmp_path / "src" / "content"
     capsys.readouterr()  # drain anything prior
     import_docx.import_work(import_docx.ImportRequest(
-        docx=ROOT / "legacy/books/ru/23-личность-и-эго.docx",
+        docx=docx,
         lang="ru",
         out_content=content_root,
         kind="book",
