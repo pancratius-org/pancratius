@@ -5,8 +5,7 @@
 // core) or a deploy. So they are classified — given a stable id, severity, and
 // category — without being promoted to fatal: the doc keeps style/quality/
 // fidelity smells non-blocking until one proves a hard contract and earns a
-// fixture (e.g. content-model.md says the poetry-stanza audit SHOULD become a
-// fatal data-loss gate — a documented promotion candidate, not yet fatal here).
+// fixture (poetry-stanza fidelity is promoted separately in poetry.ts).
 //
 // They are folded read-only and referenced IN PLACE (audit/<name>.py),
 // not adapted into audit/python/: each is an unmodified working audit
@@ -101,15 +100,6 @@ const FOLDED: readonly FoldedAudit[] = [
     contract: "Source content (and the built site) stay within the size budget the static host can serve.",
     why: "Oversized assets blow the host's ceiling and slow the reader; large source images may exceed the asset policy.",
     repair: "Cap/optimize the flagged assets per the import asset policy.",
-  },
-  {
-    id: "PAN006B-poetry-stanzas",
-    script: "poetry_stanzas.py",
-    severity: "warning",
-    category: "conversion-fidelity",
-    contract: "Converted poetry Markdown matches the DOCX stanza structure — empty paragraphs are stanza breaks (content-model.md). Promotion candidate: content-model.md says this SHOULD be a fatal data-loss gate once adapted with a fixture.",
-    why: "A stanza-boundary mismatch is verse data loss — the poem's lineation is content, not formatting.",
-    repair: "Re-convert reading the DOCX AST stanza signal; do not blanket-collapse blank lines.",
   },
   {
     id: "PAN006B-verse-blocks",

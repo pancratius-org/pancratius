@@ -13,6 +13,7 @@ import {
   pan004DuplicateIdentity,
 } from "./projects.ts";
 import { pan007AssetRefs } from "./assets.ts";
+import { pan006bPoetryStanzas } from "./poetry.ts";
 import { pan008PublicMarkdownAssets } from "./downloads.ts";
 import { pan014InternalLinks } from "./crawl.ts";
 import { pan012CiSeparation } from "./ownership.ts";
@@ -33,6 +34,7 @@ export const RULES: readonly Rule[] = [
   pan004CorpusCollections,
   pan004BulkArchiveKinds,
   pan004DuplicateIdentity,
+  pan006bPoetryStanzas,
   pan007AssetRefs,
   pan012CiSeparation,
   pan016SourceLanguage,
