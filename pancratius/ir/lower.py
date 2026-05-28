@@ -434,6 +434,42 @@ def _inlines_md(nodes: list[ir.Inline], lang: str) -> str:
     return "".join(_inline_md(n, lang) for n in nodes)
 
 
+def _paragraph_image_blocks_md(inlines: list[ir.Inline], lang: str, *, poem: bool) -> str | None:
+    """Lower direct paragraph images as standalone Markdown blocks.
+
+    Pandoc can place an image inline beside prose when a DOCX picture is anchored
+    in a text paragraph. Canonical source Markdown treats body illustrations as
+    block images, so split the paragraph at each direct ``ImageInline`` while
+    preserving the surrounding text order.
+    """
+    parts: list[str] = []
+    current: list[ir.Inline] = []
+
+    def flush_text() -> None:
+        if not current:
+            return
+        text = _inlines_md(current, lang)
+        current.clear()
+        if poem:
+            lines = [ln.rstrip() for ln in text.split("\n")]
+            text = "\n".join(ln for ln in lines if ln.strip())
+        else:
+            text = _escape_leading_list_marker(re.sub(r"\s*\n\s*", " ", text).strip())
+        if text:
+            parts.append(text)
+
+    for node in inlines:
+        if isinstance(node, ir.ImageInline):
+            flush_text()
+            image = _inline_md(node, lang).strip()
+            if image:
+                parts.append(image)
+        else:
+            current.append(node)
+    flush_text()
+    return "\n\n".join(parts) or None
+
+
 # ---------------------------------------------------------------------------
 # inline -> balanced HTML lines (for verse blocks)
 # ---------------------------------------------------------------------------
@@ -631,6 +667,8 @@ def _block_md(b: ir.Block, lang: str, *, poem: bool = False) -> str | None:
         case ir.Paragraph():
             if b.empty:
                 return None
+            if any(isinstance(node, ir.ImageInline) for node in b.inlines):
+                return _paragraph_image_blocks_md(b.inlines, lang, poem=poem)
             text = _inlines_md(b.inlines, lang)
             if poem:
                 # Verse: keep hard/soft breaks as lines (one verse line each), trimming
@@ -766,6 +804,16 @@ def _lower_poem_body(doc: ir.Document, lang: str) -> str:
             # drop, not reading-content loss — and it keeps the head stanza count
             # equal to the DOCX stanza oracle (#08 head 2→1).
             flush()
+            continue
+        if isinstance(b, ir.Paragraph) and any(isinstance(node, ir.ImageInline) for node in b.inlines):
+            flush()
+            md = _paragraph_image_blocks_md(b.inlines, lang, poem=True)
+            if md:
+                for part in md.split("\n\n"):
+                    lines = [line for line in part.splitlines() if line.strip()]
+                    if lines:
+                        stanzas.append(lines)
+            seen_content = True
             continue
         md = _block_md(b, lang, poem=True)
         if md is None or md == "":

@@ -2693,7 +2693,9 @@ Judas is not simply one bad disciple among the good. Judas is the symbol of clos
 
 That is why this line is so important for our chapter. When a monetary sign bears the words "In God We Trust," that too is a kiss. It is a gesture of acknowledgement. A gesture of faith. A gesture of trust. It is not a slap in the face. It is not open blasphemy. It is precisely a kiss. But if in that same system what lies between the two is no longer the presence of God but profit; if the living God is excluded from the real circulation of life and is replaced by measure, utility, reserve, credit, and fear; if "trust in God" on the surface proves to be trust in the system at depth and a business trust (TRUST) — then that kiss begins to read as the kiss of Judas. God's Name is indicated. But by that very indication the living God is betrayed to death in a world where He is no longer the center.
 
-Judas receives payment. Not simply money in general, but silver pieces. And here the symbolism becomes almost unbearable. Because in the history of the dollar there was a layer in which old banknotes literally said: **silver certificate.** ![Illustration](./images/e30ee37287c0.jpg)
+Judas receives payment. Not simply money in general, but silver pieces. And here the symbolism becomes almost unbearable. Because in the history of the dollar there was a layer in which old banknotes literally said: **silver certificate.**
+
+![Illustration](./images/e30ee37287c0.jpg)
 
 Moreover, it was precisely on the one-dollar silver certificates of the 1957 series that the inscription **"In God We Trust"** first appeared:
 

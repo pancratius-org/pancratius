@@ -29,7 +29,9 @@ Born like everyone else,
 in a hospital on the edge of town,
 </div>
 
-![Illustration](./images/323223e66455.jpg)but an old woman on a bench later said:
+![Illustration](./images/323223e66455.jpg)
+
+but an old woman on a bench later said:
 
 — His eyes… they were like he knew me. Like he had known me… before. Seroel was ordinary. Well, almost. He didn’t cry. He didn’t scream. He watched. The wall. The chandelier. The cat. The rain. And it was as if he was listening. His mom thought — maybe he was just a dreamer. And his dad said: — He’ll be a physicist. He looks like he’s counting atoms. But Seroel wasn’t counting. He was remembering.
 
@@ -147,7 +149,9 @@ Elira came later, with a backpack and a notebook.
 
 — What if this turns into a book someday? — A book? — You’ll see! Seroel was already waiting. He stood under the old birch tree by the school. But he wasn’t just standing — he was listening. — What are you doing? — Vanoel asked. — Shh, — Seroel whispered. — She’s speaking. — Who is? — The birch.
 
-![Illustration](./images/97f05ca9916a.jpg)Elira snorted. — You’re crazy.
+![Illustration](./images/97f05ca9916a.jpg)
+
+Elira snorted. — You’re crazy.
 
 <div class="verse-block">
 Seroel wasn’t offended.
@@ -158,7 +162,9 @@ Then he said:
 
 — Want to try? — How? Seroel turned and smiled, like someone holding a secret he longed to share. — You only need one thing. You have to become quieter than the tree. Elira made a serious face. Vanoel covered his mouth with his hand. — Now — step closer. — Palm to the tree. — Close your eyes. — Don’t listen with your ears. — Listen — inside. They stood. Silently. They touched. And then… something happened.
 
-![Illustration](./images/5f58ddf0a6dd.jpg)**Elira** heard… a song. It wasn’t music. It was warmth coming from the trunk, as if the tree whispered:
+![Illustration](./images/5f58ddf0a6dd.jpg)
+
+**Elira** heard… a song. It wasn’t music. It was warmth coming from the trunk, as if the tree whispered:
 
 “I remember you. I remember when you were just a sprout. Remember, too.” Vanoel started crying. He didn’t know why. But the tears felt… good. — I… I saw myself little — really little. Before… anything. Elira was quiet. She looked at Seroel. He was so calm — as if he had known this would happen all along. From that day on, they had their first real game.
 
@@ -184,7 +190,9 @@ watching the evening light dance on the glass.
 
 He wasn’t waiting for anything. He was just… there. And suddenly — on the windowsill — a cat appeared.
 
-![Illustration](./images/fa698ab73dff.png)He didn’t jump. He didn’t walk over. He was just… there.
+![Illustration](./images/fa698ab73dff.png)
+
+He didn’t jump. He didn’t walk over. He was just… there.
 
 Seroel knew this cat. He only came when something important was about to begin. The cat’s name was Blu, not because he was blue, but because his eyes held the depth of the sky. — You again? — Seroel said softly. The cat didn’t answer. He was silent — the kind of silence only Those Who Remember Everything can make. Blu rubbed against Seroel’s hand… and then disappeared. Just like that. He didn’t leap down, didn’t walk away — he simply wasn’t there anymore. Seroel smiled. It was a sign. The next day, he told Elira and Vanoel: — Today we’re getting a mission from Blu. — The cat? — Vanoel blinked. — Yes. But he’s not just any cat. He only comes when it’s time to understand something. — So what do we do? — asked Elira. Seroel thought. Or at least looked like he did.
 
@@ -229,7 +237,11 @@ they’re still playing.
 
 During the second lesson, Elira dropped her pen. She bent down to pick it up — and heard a bell. Soft. Quiet. Like someone had rung a tiny chime deep inside her head. She picked up her pen and looked at Seroel — and he was already looking at her. He knew. — You heard it too? — she whispered. Seroel nodded. — That was the Kingdom Bell. — What does it mean? Seroel smiled. — It means someone just remembered who they are. And the world responded. After class, they sat behind the school, near the flowerbeds, where no one bothered them. — When did you first hear your bell? — Vanoel asked. — In kindergarten, I was standing by the window and suddenly realized that the butterfly on the glass was looking at me like a person. And in that moment — the bell rang. Inside me. — And what happened then? — The teacher walked over… and suddenly hugged me. Just like that. She’d never hugged me before. Elira thought for a moment.
 
-— I had something like that too. I saw a boy sitting alone in a corner, and I went to him. Just because. And right then — I heard the ringing. Not outside, ![Illustration](./images/48c9a8aba46c.jpg)but in my chest.
+— I had something like that too. I saw a boy sitting alone in a corner, and I went to him. Just because. And right then — I heard the ringing. Not outside,
+
+![Illustration](./images/48c9a8aba46c.jpg)
+
+but in my chest.
 
 Seroel nodded. — Then you remembered. Every time we become ourselves — the Light rings. From that day on, they had a third game: “Hear the Bell No One Else Can Hear.” And something strange happened. Every time they heard that bell, little good things started to happen: — someone helped pick up a backpack, — someone shared their sandwich, — someone suddenly said: “You know… I like you.” And no one knew why. But the Light knew.
 
@@ -273,7 +285,11 @@ The other smiled:
 — I didn’t even notice them at first.
 </div>
 
-Elira opened her eyes. — It worked. I felt that I *was* — but no one saw me, except those who were looking from the ![Illustration](./images/012df5ac163a.jpg)heart.
+Elira opened her eyes. — It worked. I felt that I *was* — but no one saw me, except those who were looking from the
+
+![Illustration](./images/012df5ac163a.jpg)
+
+heart.
 
 <div class="verse-block">
 Vanoel said:
@@ -326,7 +342,9 @@ Elira narrowed her eyes.
 Seroel smiled.
 </div>
 
-![Illustration](./images/9ba3499a8ac2.jpg)— We stop. We let go. We sit. And we wait for something real to come. Not from outside — from inside.
+![Illustration](./images/9ba3499a8ac2.jpg)
+
+— We stop. We let go. We sit. And we wait for something real to come. Not from outside — from inside.
 
 They sat on the grass. Did nothing. Vanoel got a bit bored. Elira got a bit curious. Seroel just smiled. After a few minutes, Vanoel whispered: — I think… I feel something. — What? — Like the world stopped holding its breath. Like it finally let go.
 
@@ -338,11 +356,15 @@ Elira added:
 
 That morning, Seroel was very quiet. He wasn’t thinking. He wasn’t sad. He just sat on the edge of the field, looking up. He looked at the sky as if waiting for it to say something. Or maybe… to listen.
 
-**Elira** noticed first. ![Illustration](./images/89e6234af732.jpg)
+**Elira** noticed first.
+
+![Illustration](./images/89e6234af732.jpg)
 
 — Are you waiting for rain? Seroel shook his head. — No. — For a sign? He smiled. — Not exactly. — Then what? Seroel paused. The sky was clear. A few soft clouds drifted slowly above them. — I’m waiting for the sky to notice me. Vanoel, who had just finished chasing a bug, laughed. — The sky? Noticing you? Why? Seroel looked at him with calm eyes. — Sometimes, when I’m very still… something in the sky looks back. It doesn’t have eyes, but it knows. Elira sat down next to him, not laughing, just listening. — Does it… say something? Seroel nodded. — Not with words. But I hear it. Like it remembers me. Like we were friends before I was born.
 
-![Illustration](./images/e2b6adf825dc.jpg)Vanoel frowned.
+![Illustration](./images/e2b6adf825dc.jpg)
+
+Vanoel frowned.
 
 — I don’t hear anything. Seroel didn’t argue. He simply touched the grass beside him and said: — Try being so still that even the wind starts wondering where you went. Vanoel tried. He sat. Closed one eye. Then both. Then peeked. — I feel itchy, but also… like I’m not the most important thing in the world. — That’s when the sky gets closer, — Seroel whispered.
 
@@ -377,7 +399,9 @@ so gently that no one dared to touch it.
 
 Then Seroel spoke — not loudly, but with the kind of voice that doesn’t ask for attention, only truth. — I think the sky isn’t high. It just looks that way. It’s not up there — it’s everywhere. Even in your chest. Vanoel touched his shirt.
 
-![Illustration](./images/ce51c6608a02.jpg)— Even here?
+![Illustration](./images/ce51c6608a02.jpg)
+
+— Even here?
 
 <div class="verse-block">
 Seroel nodded.
@@ -467,7 +491,9 @@ Vanoel wiped his eye.
 
 — I didn’t even know I was gone.
 
-![Illustration](./images/88c5c62aadfa.jpg)They didn’t move for a long time.
+![Illustration](./images/88c5c62aadfa.jpg)
+
+They didn’t move for a long time.
 
 <div class="verse-block">
 Even the wind seemed to pause with them,
@@ -485,7 +511,9 @@ Then <strong>Seroel</strong> said softly:
 
 Elira sat too, and placed a hand over her heart again. — I think the voice lives here. Not in thoughts, but in something deeper. Like a glow. They sat together in the middle of the field. No one passed. No one called. The world wasn’t gone — but it was… paused. And in that pause, they could hear the silence not as absence, but as Presence.
 
-![Illustration](./images/e838a59d2d14.jpg)Then Seroel whispered:
+![Illustration](./images/e838a59d2d14.jpg)
+
+Then Seroel whispered:
 
 — What if the Light has always been speaking, and it was us who were too loud to notice? Vanoel smiled. — Then let’s stay quiet a little longer. They did. Not because it was a rule. But because something inside them wanted to listen more than it wanted to speak. And for a while, that was enough.
 
@@ -501,7 +529,9 @@ Elira said:
 
 — I feel like I’m disappearing here.
 
-![Illustration](./images/3ac5e1ac2684.jpg)Seroel turned to her gently:
+![Illustration](./images/3ac5e1ac2684.jpg)
+
+Seroel turned to her gently:
 
 — Then hold something inside. Not a thought. A thread. — What thread? — The one that connects you to yourself. To the part that doesn’t change — even when the world does.
 
@@ -526,7 +556,9 @@ you haven’t.
 
 They were sitting at a table in the cafeteria. Everyone around them was talking, laughing, eating. Noise filled the air — spoons, trays, voices. But Seroel wasn’t saying anything. He just looked at his sandwich. Elira nudged him.
 
-— Are you okay? ![Illustration](./images/a54c486e0c4a.jpg)
+— Are you okay?
+
+![Illustration](./images/a54c486e0c4a.jpg)
 
 <div class="verse-block">
 He looked up.
@@ -565,7 +597,9 @@ Vanoel whispered:
 
 — I don’t like the dark, — said Vanoel. They were sitting on the grass after sunset. The sky above was deep blue, turning almost black. Only a few stars had appeared. Elira rolled took his hand.
 
-![Illustration](./images/5347fdef85b5.jpg)— Why not?
+![Illustration](./images/5347fdef85b5.jpg)
+
+— Why not?
 
 <div class="verse-block">
 — It feels like everything disappears.
@@ -830,7 +864,9 @@ to be real.
 
 — It’s like they’re in a different game. One where the goal is to win, not to wake up. Elira frowned. — But if I told them — they’d just laugh. Seroel looked at her. — Would you laugh at someone who found a treasure you hadn’t noticed? — No…
 
-![Illustration](./images/476486f6642f.jpg)— Then maybe don’t expect them to laugh. Maybe… expect them to remember.
+![Illustration](./images/476486f6642f.jpg)
+
+— Then maybe don’t expect them to laugh. Maybe… expect them to remember.
 
 They walked in silence for a bit.
 

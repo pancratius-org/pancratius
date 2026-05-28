@@ -1051,6 +1051,24 @@ def test_resolvable_local_image_assigns_asset_and_is_not_fatal(tmp_path: Path) -
     assert "./images/" in body
 
 
+def test_inline_body_image_lowers_as_standalone_block() -> None:
+    img = ir.ImageInline(src="m/img.png", alt="", asset_id="abc123.png")
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("before "), img, ir.Text(" after")])])
+
+    body = lower.lower(doc, "ru")
+
+    assert body == "before\n\n![Иллюстрация](./images/abc123.png)\n\nafter\n"
+
+
+def test_poem_inline_body_image_lowers_as_standalone_block() -> None:
+    img = ir.ImageInline(src="m/img.png", alt="", asset_id="abc123.png")
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("before"), img, ir.Text("after")])])
+
+    body = lower.lower(doc, "en", poem=True)
+
+    assert body == "before\n\n![Illustration](./images/abc123.png)\n\nafter\n"
+
+
 def test_remote_http_image_is_kept_not_fatal(tmp_path: Path) -> None:
     # A safe REMOTE image (http/https) is not a LOCAL image: it is a valid remote
     # ref, kept as-is, never fatal.
