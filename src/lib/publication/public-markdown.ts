@@ -17,7 +17,7 @@ const WORK_SEGMENT: Record<CorpusWorkKind, string> = {
 };
 
 const MARKDOWN_IMAGE_RE = /!\[([^\]]*)]\(\s*(<?)([^<>\s)]+)(>?)(\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\s*\)/g;
-const URL_SCHEME_RE = /^([a-zA-Z][a-zA-Z0-9+.\-]*):/;
+const URL_SCHEME_RE = /^([a-zA-Z][a-zA-Z0-9+.-]*):/;
 const ALLOWED_HREF_SCHEMES = new Set(["http", "https", "mailto"]);
 const HTML_NAMED_ENTITIES: Partial<Record<string, string>> = {
   amp: "&",
