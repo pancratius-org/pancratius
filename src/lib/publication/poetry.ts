@@ -38,5 +38,5 @@ function dropLeadingBlankLines(lines: readonly string[]): string[] {
 }
 
 function normalizedPoemTitleLine(value: string): string {
-  return value.replace(/[…\*]+$/g, "").replace(/[,;:!?\.]/g, "").trim().toLowerCase();
+  return value.replace(/[…*]+$/g, "").replace(/[,;:!?.]/g, "").trim().toLowerCase();
 }

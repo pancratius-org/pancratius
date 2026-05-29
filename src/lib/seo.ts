@@ -14,6 +14,8 @@ import {
   localizePath,
   pageUrl,
   routedUrl,
+  spellEnglishCardinal,
+  spellRussianCardinal,
   workUrl,
 } from "./i18n";
 import { searchPageCopy } from "./i18n/copy";
@@ -122,57 +124,6 @@ export interface CorpusCounts {
   poems: number;
 }
 
-// Spelled-out cardinals 0–99, capitalized, in both locales. The home meta
-// description reads as prose ("Семьдесят две книги…"), so the count is spelled
-// rather than printed as a digit. The corpus is bounded well under 100 works
-// per kind; out-of-range counts fall back to the digit so the string is never
-// wrong, just less elegant.
-const RU_ONES = ["ноль", "один", "два", "три", "четыре", "пять", "шесть", "семь", "восемь", "девять"];
-const RU_TEENS = ["десять", "одиннадцать", "двенадцать", "тринадцать", "четырнадцать", "пятнадцать", "шестнадцать", "семнадцать", "восемнадцать", "девятнадцать"];
-const RU_TENS = ["", "", "двадцать", "тридцать", "сорок", "пятьдесят", "шестьдесят", "семьдесят", "восемьдесят", "девяносто"];
-// Books/poems use feminine "две" (книга/книги, ж.р.) and "одна".
-const RU_ONES_FEM = ["ноль", "одна", "две", "три", "четыре", "пять", "шесть", "семь", "восемь", "девять"];
-
-const EN_ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
-const EN_TEENS = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
-const EN_TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
-
-function capitalize(word: string): string {
-  return word.charAt(0).toUpperCase() + word.slice(1);
-}
-
-function wordAt(words: readonly string[], index: number, context: string): string {
-  const word = words[index];
-  if (word === undefined) throw new Error(`${context}: no word for index ${index}`);
-  return word;
-}
-
-function spellRu(n: number, feminine: boolean): string {
-  if (n < 0 || n > 99 || !Number.isInteger(n)) return String(n);
-  const ones = feminine ? RU_ONES_FEM : RU_ONES;
-  if (n < 10) return wordAt(ones, n, "Russian ones");
-  if (n < 20) return wordAt(RU_TEENS, n - 10, "Russian teens");
-  const t = Math.floor(n / 10);
-  const o = n % 10;
-  const tens = wordAt(RU_TENS, t, "Russian tens");
-  return o === 0 ? tens : `${tens} ${wordAt(ones, o, "Russian ones")}`;
-}
-
-/** Capitalized English cardinal for small corpus counts (e.g. "Forty-three"). */
-export function spellEnglishCardinal(n: number): string {
-  return capitalize(spellEn(n));
-}
-
-function spellEn(n: number): string {
-  if (n < 0 || n > 99 || !Number.isInteger(n)) return String(n);
-  if (n < 10) return wordAt(EN_ONES, n, "English ones");
-  if (n < 20) return wordAt(EN_TEENS, n - 10, "English teens");
-  const t = Math.floor(n / 10);
-  const o = n % 10;
-  const tens = wordAt(EN_TENS, t, "English tens");
-  return o === 0 ? tens : `${tens}-${wordAt(EN_ONES, o, "English ones")}`;
-}
-
 // RU declensions used in the home meta sentence ("книги/книг", "стихотворения").
 function ruBooksWord(n: number): string {
   const mod10 = n % 10;
@@ -197,9 +148,9 @@ function ruPoemsWord(n: number): string {
  */
 function homeDescription(locale: Locale, counts: CorpusCounts): string {
   if (locale === "en") {
-    return `${capitalize(spellEn(counts.books))} books. ${capitalize(spellEn(counts.poems))} poems. Free — for humans and for language models. All texts in the public domain (CC0).`;
+    return `${spellEnglishCardinal(counts.books)} books. ${spellEnglishCardinal(counts.poems)} poems. Free — for humans and for language models. All texts in the public domain (CC0).`;
   }
-  return `${capitalize(spellRu(counts.books, true))} ${ruBooksWord(counts.books)}. ${capitalize(spellRu(counts.poems, true))} ${ruPoemsWord(counts.poems)}. Свободно — людям и языковым моделям. Тексты в общественном достоянии (CC0).`;
+  return `${spellRussianCardinal(counts.books, { feminine: true })} ${ruBooksWord(counts.books)}. ${spellRussianCardinal(counts.poems, { feminine: true })} ${ruPoemsWord(counts.poems)}. Свободно — людям и языковым моделям. Тексты в общественном достоянии (CC0).`;
 }
 
 export function seoForHome(site: URL | undefined, locale: Locale, counts: CorpusCounts): SeoMeta {
@@ -310,7 +261,7 @@ export interface WorkSeoInput {
   pair:    WorkPair;
   locale:  Locale;
   /** Absolute URL of the cover, if one resolved. */
-  coverUrl?: string | null;
+  coverUrl?: string;
 }
 
 export function seoForWork(site: URL | undefined, input: WorkSeoInput): SeoMeta {
@@ -352,7 +303,7 @@ export interface ProjectSeoInput {
   project: ProjectLanding;
   locale:  Locale;
   /** Absolute URL of the cover, if one resolved. */
-  coverUrl?: string | null;
+  coverUrl?: string;
   /** Locales with an authored landing for this project — drives alternates. */
   authoredLocales: ReadonlySet<Locale>;
 }
@@ -388,7 +339,7 @@ export function seoForProject(site: URL | undefined, input: ProjectSeoInput): Se
       "url":    absUrl(site, homeUrl(DEFAULT_LOCALE)),
     },
   };
-  if (coverUrl) ld["image"] = coverUrl;
+  if (coverUrl) ld.image = coverUrl;
   return {
     title,
     description,
@@ -613,9 +564,9 @@ export function seoForVideo(site: URL | undefined, input: VideoSeoInput): SeoMet
       "url":   absUrl(site, homeUrl(DEFAULT_LOCALE)),
     },
   };
-  if (coverUrl) ld["thumbnailUrl"] = coverUrl;
-  if (primary?.url) ld["contentUrl"] = primary.url;
-  if (primary?.embed_url) ld["embedUrl"] = primary.embed_url;
+  if (coverUrl) ld.thumbnailUrl = coverUrl;
+  if (primary?.url) ld.contentUrl = primary.url;
+  if (primary?.embed_url) ld.embedUrl = primary.embed_url;
   return {
     title:       `${data.title} — ${siteLabel(locale)}`,
     description,
@@ -683,8 +634,8 @@ function creativeWorkLd(input: CreativeWorkInput): Record<string, unknown> {
       "url":    absUrl(site, homeUrl(DEFAULT_LOCALE)),
     },
   };
-  if (coverUrl) ld["image"] = coverUrl;
+  if (coverUrl) ld.image = coverUrl;
   // Editorial number, useful for catalog tools that consume the structured data.
-  ld["position"] = pair.number;
+  ld.position = pair.number;
   return ld;
 }

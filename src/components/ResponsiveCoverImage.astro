@@ -1,0 +1,54 @@
+---
+import { Image } from "astro:assets";
+
+import type { CoverAsset } from "@/lib/cover-assets";
+
+interface Props {
+  src:            CoverAsset;
+  alt:            string;
+  class?:         string;
+  widths:         number[];
+  sizes:          string;
+  loading?:       "lazy" | "eager";
+  decoding?:      "sync" | "async" | "auto";
+  width?:         string | number;
+  height?:        string | number;
+  fetchpriority?: "high" | "low" | "auto";
+}
+
+const {
+  src,
+  alt,
+  class: className,
+  widths,
+  sizes,
+  loading = "lazy",
+  decoding = "async",
+  width = 720,
+  height = 966,
+  fetchpriority,
+} = Astro.props;
+---
+{src.kind === "raster" ? (
+  <Image
+    class={className}
+    src={src.image}
+    alt={alt}
+    widths={widths}
+    sizes={sizes}
+    loading={loading}
+    decoding={decoding}
+    fetchpriority={fetchpriority}
+  />
+) : (
+  <img
+    class={className}
+    src={src.url}
+    alt={alt}
+    loading={loading}
+    decoding={decoding}
+    width={width}
+    height={height}
+    fetchpriority={fetchpriority}
+  />
+)}

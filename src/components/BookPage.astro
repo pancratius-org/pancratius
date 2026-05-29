@@ -6,12 +6,12 @@ import BookCover from "@/components/BookCover.astro";
 import Colophon from "@/components/Colophon.astro";
 import SimilarPair from "@/components/SimilarPair.astro";
 import TableOfContents from "@/components/TableOfContents.astro";
+import WorkDownloadActions from "@/components/WorkDownloadActions.astro";
 
 import type { Locale } from "@/lib/i18n";
-import { downloadUrl, kindIndexUrl, workUrl } from "@/lib/i18n";
+import { kindIndexUrl, workUrl } from "@/lib/i18n";
 import { bookPageCopy } from "@/lib/i18n/copy";
 import { coverAbsoluteUrl } from "@/lib/covers";
-import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
 import { seoForWork } from "@/lib/seo";
 import {
   entryForAuthoredLocale,
@@ -27,10 +27,6 @@ interface Props {
   locale: Locale;
 }
 
-const FORMAT_LABEL: Record<DownloadFormat, string> = {
-  md: "Markdown", txt: "TXT", docx: "DOCX", pdf: "PDF", epub: "EPUB",
-};
-
 const { pair, locale } = Astro.props;
 // Existence: this page only exists in `locale` if the locale was authored.
 const entry = entryForAuthoredLocale(pair, locale);
@@ -41,12 +37,15 @@ if (!entry) {
 const copy = bookPageCopy[locale];
 const { Content, headings } = await render(entry);
 const coverUrl = coverAbsoluteUrl(Astro.site, pair, locale);
-const seo = seoForWork(Astro.site, { pair, locale, coverUrl });
+const seo = seoForWork(Astro.site, {
+  pair,
+  locale,
+  ...(coverUrl === null ? {} : { coverUrl }),
+});
 const crossRefs = await resolveCrossRefs(entry, locale);
 const tags = workTags(entry);
 const useToc = headings.some(h => h.depth >= 2 && h.depth <= 3);
 const backHref = kindIndexUrl("book", locale);
-const formats = availableFormatsForWork(pair, locale);
 
 const allBookPairs = await getPairsByKind("book");
 // Existence: the pager only walks books that exist in the current locale.
@@ -79,27 +78,7 @@ const number = String(pair.number).padStart(2, "0");
             {tags.map(t => <span>{t}</span>)}
           </p>
         )}
-        {formats.length > 0 && (
-          <p class="book-page__downloads" aria-label={copy.downloadAria}>
-            <span class="book-page__downloads-label">{copy.downloadLabel}</span>
-            {formats.map((fmt, i) => (
-              <>
-                {i > 0 && <span class="book-page__downloads-sep">·</span>}
-                <a href={downloadUrl(pair.kind, entry.data.slug, fmt, locale)}>{FORMAT_LABEL[fmt]}</a>
-              </>
-            ))}
-            <span class="book-page__downloads-sep">·</span>
-            <button
-              type="button"
-              class="book-page__share"
-              data-share
-              data-share-copied={copy.shareCopied}
-              data-share-failed={copy.shareFailed}
-            >
-              {copy.share}
-            </button>
-          </p>
-        )}
+        <WorkDownloadActions pair={pair} entry={entry} locale={locale} copy={copy} />
       </div>
     </header>
 
@@ -268,7 +247,7 @@ const number = String(pair.number).padStart(2, "0");
   }
   .book-page__tags span + span::before { content: " · "; color: var(--rule-2); }
 
-  .book-page__downloads {
+  .book-page__body :global(.work-actions) {
     margin: 0.9rem 0 0;
     font-family: var(--sans);
     font-size: 12.5px;
@@ -278,20 +257,20 @@ const number = String(pair.number).padStart(2, "0");
     gap: 0.5em;
     align-items: baseline;
   }
-  .book-page__downloads a {
+  .book-page__body :global(.work-actions a) {
     color: var(--ink-soft);
     text-decoration: underline;
     text-decoration-color: var(--rule-2);
   }
-  .book-page__downloads a:hover { color: var(--accent); }
-  .book-page__downloads-label {
+  .book-page__body :global(.work-actions a:hover) { color: var(--accent); }
+  .book-page__body :global(.work-actions__label) {
     color: var(--ink-mute);
     letter-spacing: 0.08em;
     text-transform: uppercase;
     font-size: 11px;
     margin-right: 0.2em;
   }
-  .book-page__downloads-sep { color: var(--rule-2); }
+  .book-page__body :global(.work-actions__sep) { color: var(--rule-2); }
 
   .book-page__layout {
     display: grid;

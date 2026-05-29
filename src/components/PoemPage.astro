@@ -1,0 +1,148 @@
+---
+import { render } from "astro:content";
+
+import Base from "@/layouts/Base.astro";
+import Colophon from "@/components/Colophon.astro";
+import WorkDownloadActions from "@/components/WorkDownloadActions.astro";
+
+import { coverAbsoluteUrl } from "@/lib/covers";
+import type { Locale } from "@/lib/i18n";
+import { kindIndexUrl } from "@/lib/i18n";
+import { poemPageCopy } from "@/lib/i18n/copy";
+import { seoForWork } from "@/lib/seo";
+import { entryForAuthoredLocale, poemDate, type WorkPair } from "@/lib/works";
+
+interface Props {
+  pair: WorkPair;
+  locale: Locale;
+}
+
+const { pair, locale } = Astro.props;
+const entry = entryForAuthoredLocale(pair, locale);
+if (!entry) {
+  throw new Error(`PoemPage: no ${locale} entry for poem #${pair.number}`);
+}
+
+const copy = poemPageCopy[locale];
+const { Content } = await render(entry);
+const coverUrl = coverAbsoluteUrl(Astro.site, pair, locale);
+const seo = seoForWork(Astro.site, {
+  pair,
+  locale,
+  ...(coverUrl === null ? {} : { coverUrl }),
+});
+const backHref = kindIndexUrl("poem", locale);
+const date = poemDate(entry);
+---
+<Base locale={locale} seo={seo}>
+  <article class="poem-page">
+    <a class="poem-page__back" href={backHref}>{copy.back}</a>
+
+    <header class="poem-page__head">
+      <p class="poem-page__meta">
+        {copy.meta}
+        <span class="poem-page__num">№ {String(pair.number).padStart(2, "0")}</span>
+        {date && <time datetime={date}>· {date}</time>}
+      </p>
+      <h1 class="poem-page__title">{entry.data.title}</h1>
+      <WorkDownloadActions pair={pair} entry={entry} locale={locale} copy={copy} downloadAttribute />
+    </header>
+
+    <div
+      class="prose prose--poem poem-page__body"
+      data-pagefind-body
+      data-pagefind-meta={`title:${entry.data.title}`}
+    >
+      <Content />
+    </div>
+
+    <div class="poem-page__end" aria-hidden="true">·  ·  ·</div>
+
+    <Colophon pair={pair} locale={locale} />
+  </article>
+</Base>
+
+<style>
+  .poem-page { max-width: 50rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
+  .poem-page__back {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    color: var(--ink-mute);
+    display: inline-block;
+    margin-bottom: 2.5rem;
+    text-decoration: none;
+  }
+  .poem-page__back:hover { color: var(--accent); }
+  .poem-page__head { margin-bottom: 2rem; }
+  .poem-page__meta {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0 0 0.6rem;
+    display: flex;
+    gap: 0.7rem;
+    align-items: baseline;
+  }
+  .poem-page__num {
+    color: var(--accent);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    text-transform: none;
+    letter-spacing: 0.05em;
+  }
+  .poem-page__title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.05;
+    margin: 0;
+    letter-spacing: -0.012em;
+  }
+  .poem-page__head :global(.work-actions) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: baseline;
+    margin: 1.2rem 0 0;
+    font-family: var(--sans);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .poem-page__head :global(.work-actions__label) { color: var(--ink-soft); font-weight: 500; }
+  .poem-page__head :global(.work-actions a) {
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+  }
+  .poem-page__head :global(.work-actions a:hover) { color: var(--accent); }
+  .poem-page__head :global(.work-actions__sep) { color: var(--rule-2); }
+
+  .poem-page__body > :global(p:first-of-type)::first-letter,
+  .poem-page__body > :global(h2:first-child + p)::first-letter {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 2.4em;
+    line-height: 0.95;
+    color: var(--accent);
+    padding-right: 0.06em;
+    vertical-align: -0.05em;
+    font-feature-settings: "onum" 1, "kern" 1;
+  }
+
+  .poem-page__end {
+    text-align: center;
+    margin: 2.8rem 0 1.6rem;
+    color: var(--accent);
+    font-family: var(--serif);
+    font-size: 1.2rem;
+    letter-spacing: 0.4em;
+    padding-left: 0.4em;
+    user-select: none;
+  }
+</style>

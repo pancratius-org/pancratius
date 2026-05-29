@@ -1,0 +1,216 @@
+---
+import Base from "@/layouts/Base.astro";
+
+import { DEFAULT_LOCALE, LOCALES, type Locale, kindIndexUrl, workUrl } from "@/lib/i18n";
+import { formatMonthYear, poetryIndexCopy } from "@/lib/i18n/copy";
+import { isPoemTitleLine, poemFirstStanza } from "@/lib/publication/poetry";
+import { seoForKindIndex } from "@/lib/seo";
+import {
+  defaultWorkEntry,
+  displayWorkEntry,
+  getPairsByKind,
+  poemDate,
+  type DisplayWorkEntry,
+  type WorkEntry,
+  type WorkPair,
+} from "@/lib/works";
+
+interface Props {
+  locale: Locale;
+}
+
+interface PoetryRow {
+  pair: WorkPair;
+  entry: WorkEntry;
+  linkLocale: Locale;
+  date: string | null;
+}
+
+const { locale } = Astro.props;
+const copy = poetryIndexCopy[locale];
+const pairs = await getPairsByKind("poem");
+const seo = seoForKindIndex(Astro.site, "poem", locale, { total: pairs.length });
+const alternates: Partial<Record<Locale, string>> = {};
+for (const loc of LOCALES) {
+  if (loc !== locale) alternates[loc] = kindIndexUrl("poem", loc);
+}
+
+const rows: PoetryRow[] = pairs.map(pair => {
+  const display: DisplayWorkEntry = locale === DEFAULT_LOCALE
+    ? { entry: defaultWorkEntry(pair), linkLocale: DEFAULT_LOCALE }
+    : displayWorkEntry(pair, locale);
+  return { pair, entry: display.entry, linkLocale: display.linkLocale, date: poemDate(display.entry) };
+});
+
+const showHero = locale === DEFAULT_LOCALE;
+const showDates = locale === DEFAULT_LOCALE;
+const fallbackBanner = rows.some(row => row.linkLocale !== locale) ? copy.fallbackBanner : undefined;
+
+let heroRow = rows[0] ?? null;
+let heroStanza = "";
+if (showHero) {
+  for (const row of rows) {
+    const stanza = poemFirstStanza(row.entry.body ?? "", row.entry.data.title);
+    if (!stanza) continue;
+    const firstLine = stanza.split(/\n/, 1)[0] ?? "";
+    if (!isPoemTitleLine(firstLine, row.entry.data.title)) {
+      heroRow = row;
+      heroStanza = stanza;
+      break;
+    }
+  }
+  if (!heroStanza && heroRow) {
+    heroStanza = poemFirstStanza(heroRow.entry.body ?? "", heroRow.entry.data.title);
+  }
+}
+---
+<Base locale={locale} seo={seo} alternates={alternates}>
+  <section class="page poetry-index">
+    <p class="eyebrow eyebrow--lg">{copy.eyebrow(pairs.length)}</p>
+    <div class="poetry-index__head">
+      <h1><b>{pairs.length}</b> {copy.headingLabel(pairs.length)}</h1>
+      <p class="poetry-index__intro">{copy.intro}</p>
+    </div>
+
+    {showHero && heroRow && heroStanza && (
+      <a class="poetry-hero" href={workUrl("poem", heroRow.entry.data.slug, heroRow.linkLocale)}>
+        <p class="poetry-hero__stanza">{heroStanza}</p>
+        <p class="poetry-hero__attr">
+          {copy.heroAttrPrefix}{String(heroRow.pair.number).padStart(2, "0")} «{heroRow.entry.data.title}»
+        </p>
+      </a>
+    )}
+
+    {fallbackBanner && <p class="poetry-index__banner">{fallbackBanner}</p>}
+
+    <ol class:list={["poems", { "poems--after-banner": Boolean(fallbackBanner) }]}>
+      {rows.map(row => (
+        <li>
+          <a href={workUrl("poem", row.entry.data.slug, row.linkLocale)}>
+            <span class="poems__num">{String(row.pair.number).padStart(2, "0")}</span>
+            <span class="poems__title">{row.entry.data.title}</span>
+            {showDates && row.date && (
+              <time class="poems__date" datetime={row.date}>{formatMonthYear(row.date, copy.months)}</time>
+            )}
+          </a>
+        </li>
+      ))}
+    </ol>
+  </section>
+</Base>
+
+<style>
+  .poetry-index { max-width: 56rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
+  .poetry-index__head {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    margin-bottom: 2.5rem;
+  }
+  .poetry-index h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(3rem, 7.4vw, 5.4rem);
+    line-height: 0.96;
+    margin: 0;
+    letter-spacing: -0.024em;
+  }
+  .poetry-index h1 b {
+    font-weight: 500;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-style: italic;
+    color: var(--accent);
+  }
+  .poetry-index__intro {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.05rem, 1.4vw, 1.18rem);
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 38rem;
+    margin: 0;
+  }
+
+  .poetry-hero {
+    display: block;
+    margin: 0 0 3rem;
+    padding: 0.4rem 0 0.4rem 1.5rem;
+    border-left: 2px solid var(--accent);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.18s var(--ease);
+  }
+  .poetry-hero:hover { border-color: var(--accent-soft); }
+  .poetry-hero__stanza {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.15rem, 1.7vw, 1.4rem);
+    line-height: 1.45;
+    color: var(--ink);
+    margin: 0 0 1rem;
+    white-space: pre-line;
+    text-wrap: balance;
+    max-width: 38rem;
+  }
+  .poetry-hero__attr {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0;
+  }
+  .poetry-hero:hover .poetry-hero__attr { color: var(--accent); }
+
+  .poetry-index__banner {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0 0 1.4rem;
+    padding: 0.7rem 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .poems {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-top: 1px solid var(--rule);
+  }
+  .poems--after-banner { border-top: 0; }
+  .poems li a {
+    display: grid;
+    grid-template-columns: 3.5rem 1fr auto;
+    gap: 1rem;
+    align-items: baseline;
+    padding: 0.9rem 0;
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    transition: color 0.18s var(--ease), border-color 0.18s var(--ease);
+  }
+  .poems li a:hover { color: var(--accent); border-bottom-color: var(--accent-soft); }
+  .poems__num {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+  }
+  .poems__title {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    color: var(--ink);
+  }
+  .poems__date {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    color: var(--ink-mute);
+    letter-spacing: 0.04em;
+  }
+</style>
