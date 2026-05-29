@@ -1,0 +1,11 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": [
+    "src/components/conceptosphere/graph-runtime.ts"
+  ],
+  "ignore": [
+    "audit/fixtures/**",
+    "dist/**"
+  ],
+  "ignoreBinaries": ["uv"]
+}

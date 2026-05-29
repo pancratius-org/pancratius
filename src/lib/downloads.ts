@@ -24,7 +24,7 @@ export type DownloadFormat = "md" | "txt" | "docx" | "pdf" | "epub";
  * never emit download routes (the key type is `WorkPairKind`, which excludes
  * `project`).
  */
-export const FORMATS_PER_KIND: Record<WorkPairKind, DownloadFormat[]> = {
+const FORMATS_PER_KIND: Record<WorkPairKind, DownloadFormat[]> = {
   book:    ["md", "txt", "docx", "pdf", "epub"],
   poem:    ["md", "txt", "docx", "pdf"],
 };

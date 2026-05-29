@@ -3,7 +3,7 @@
 // Nothing clever — just so every rule reports `file:line` the same way.
 
 /** 1-based line number of a character offset within `text`. */
-export function lineAt(text: string, index: number): number {
+function lineAt(text: string, index: number): number {
   let line = 1;
   for (let i = 0; i < index && i < text.length; i++) {
     if (text.charCodeAt(i) === 10 /* \n */) line += 1;

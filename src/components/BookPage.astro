@@ -39,7 +39,7 @@ if (!entry) {
 
 const copy = bookPageCopy[locale];
 const { Content, headings } = await render(entry);
-const coverUrl = await coverAbsoluteUrl(Astro.site, pair, locale);
+const coverUrl = coverAbsoluteUrl(Astro.site, pair, locale);
 const seo = seoForWork(Astro.site, { pair, locale, coverUrl });
 const crossRefs = await resolveCrossRefs(entry, locale);
 const tags = workTags(entry);

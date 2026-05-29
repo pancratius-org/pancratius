@@ -20,7 +20,7 @@ const REPO_ROOT = process.cwd();
 // Only the fields production reads are typed; the rest stays untyped.
 // ─────────────────────────────────────────────────────────────────────
 
-export interface BooksGraphCommunity {
+interface BooksGraphCommunity {
   id:          number;
   label:       string;
   size:        number;
@@ -32,14 +32,14 @@ export interface BooksGraphCommunity {
   // want to delegate palette choice back to the payload.
 }
 
-export interface SimilarRef {
+interface SimilarRef {
   slug:   string;
   kind:   RoutedKind;
   title:  string;
   weight: number;
 }
 
-export interface BooksGraphNode {
+interface BooksGraphNode {
   id:                 string;
   slug:               string;
   number:             number;
@@ -56,7 +56,7 @@ export interface BooksGraphNode {
   top_similar_embed?: SimilarRef[];
 }
 
-export interface BooksGraphEdge {
+interface BooksGraphEdge {
   source: string;
   target: string;
   weight: number;
@@ -72,7 +72,7 @@ export interface BooksGraph {
   edges:        BooksGraphEdge[];
 }
 
-export interface ConceptsGraphNode {
+interface ConceptsGraphNode {
   id:              string;
   label:           string;
   lemma:           string;
@@ -84,7 +84,7 @@ export interface ConceptsGraphNode {
   top_books:       { slug: string; kind: "book"; title: string; count: number }[];
 }
 
-export interface ConceptsGraphEdge {
+interface ConceptsGraphEdge {
   source: string;
   target: string;
   weight: number;
@@ -141,7 +141,7 @@ function indexBookNodes(): void {
   }
 }
 
-export function bookNode(numberOrSlug: number | string): BooksGraphNode | null {
+function bookNode(numberOrSlug: number | string): BooksGraphNode | null {
   indexBookNodes();
   if (typeof numberOrSlug === "number") return _bookNodeByNumber!.get(numberOrSlug) ?? null;
   return _bookNodeBySlug!.get(numberOrSlug) ?? null;

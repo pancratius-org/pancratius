@@ -194,7 +194,7 @@ function dependencyKeys(packageJson: string): string[] {
   for (const field of ["dependencies", "devDependencies"] as const) {
     const block = pkg[field];
     if (block !== null && typeof block === "object") {
-      keys.push(...Object.keys(block as Record<string, unknown>));
+      keys.push(...Object.keys(block));
     }
   }
   return keys;

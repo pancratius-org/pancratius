@@ -1,8 +1,8 @@
 name: PR verify
 
 # Pull-request quality gate. Runs the same `npm run verify` that maintainers
-# run locally (npm audit + astro check + tooling typecheck + unit tests + py
-# checks + audit core + audit selftest + build + audit:post-build), then a
+# run locally (npm audit + JS/TS tooling checks + Astro check + Python checks
+# + audit core + audit selftest + build + audit:post-build), then a
 # Playwright smoke against the freshly built `dist/`.
 #
 # `verify` is the contract from docs/tooling.md; CI mirrors it so "passes

@@ -6,7 +6,7 @@
   "description": "Pancratius — open-access library of Sergey Orekhov's spiritual writings",
   "license": "CC0-1.0",
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=24.12.0"
   },
   "scripts": {
     "dev": "npm run prebuild && node --experimental-strip-types build/sync-pagefind-dev.ts && astro dev",
@@ -22,6 +22,9 @@
     "shots:audit": "node --experimental-strip-types tests/visual/capture-fullpage.ts",
     "shots:viewport": "node --experimental-strip-types tests/visual/capture-viewports.ts",
     "shots:projects": "node --experimental-strip-types tests/visual/capture-projects.ts",
+    "lint": "eslint \"{src,build,audit,tests}/**/*.{ts,tsx,astro,js,mjs,cjs}\"",
+    "dead": "knip",
+    "check:js": "npm run typecheck:tooling && npm run lint && npm run dead && npm run test:unit",
     "typecheck:tooling": "tsc -p tsconfig.tooling.json",
     "check:ts": "npm run typecheck:tooling && npm run test:unit",
     "check:py": "uv run ruff check . && uv run ty check && uv run pytest tests/python -q",
@@ -29,7 +32,7 @@
     "audit:agent": "node --experimental-strip-types audit/harness.ts agent",
     "audit:post-build": "node --experimental-strip-types audit/harness.ts post-build",
     "audit:selftest": "node --experimental-strip-types audit/selftest.ts",
-    "verify": "npm audit --audit-level=high && npm run check && npm run check:ts && npm run check:py && npm run audit && npm run audit:selftest && npm run build && npm run audit:post-build",
+    "verify": "npm audit --audit-level=high && npm run check:js && npm run check && npm run check:py && npm run audit && npm run audit:selftest && npm run build && npm run audit:post-build",
     "prebuild": "npm run prebuild:slug-map && npm run prebuild:graph-payloads && npm run prebuild:bulk-archives",
     "prebuild:slug-map": "node --experimental-strip-types build/slug-map.ts",
     "prebuild:graph-payloads": "node --experimental-strip-types build/copy-graph-payloads.ts",
@@ -50,8 +53,13 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.60.0",
     "@types/node": "^24.12.4",
-    "typescript": "^6.0.3"
+    "eslint": "^10.4.0",
+    "eslint-plugin-astro": "^1.7.0",
+    "knip": "^6.14.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.60.0"
   }
 }

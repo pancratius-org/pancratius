@@ -8,7 +8,7 @@
 import { getCollection, type CollectionEntry } from "astro:content";
 
 import type { CorpusWorkKind, Locale, RoutedKind } from "./i18n";
-import { DEFAULT_LOCALE, LOCALE_META, LOCALES, workUrl } from "./i18n";
+import { DEFAULT_LOCALE, LOCALE_META, LOCALES } from "./i18n";
 
 /**
  * Kinds the WORK-PAIR machinery handles. A strict subset of `RoutedKind` —
@@ -114,7 +114,7 @@ export async function getAllWorkPairs(): Promise<WorkPair[]> {
       );
     }
     pairs.push({
-      kind:    canonical.data.kind as WorkPairKind,
+      kind:    canonical.data.kind,
       number:  canonical.data.number,
       entries,
     });
@@ -141,39 +141,6 @@ export async function findPair(kind: WorkPairKind, number: number): Promise<Work
   return all.find(p => p.kind === kind && p.number === number) ?? null;
 }
 
-/** Look up by per-language slug (the URL slug). */
-export async function findEntryBySlug(
-  kind: WorkPairKind,
-  slug: string,
-  locale: Locale,
-): Promise<WorkEntry | null> {
-  const all = await getAllWorkPairs();
-  for (const pair of all) {
-    if (pair.kind !== kind) continue;
-    // Existence: only match a slug authored *in this locale*.
-    const entry = pair.entries[locale];
-    if (entry && entry.data.slug === slug) return entry;
-  }
-  return null;
-}
-
-/** The localized URL for an entry. Uses the entry's own per-language slug. */
-export function entryUrl(entry: WorkEntry): string {
-  return workUrl(entry.data.kind, entry.data.slug, entry.data.lang as Locale);
-}
-
-/** Counterpart entry in the other language, if one exists. */
-export async function alternateLanguageEntry(
-  entry: WorkEntry,
-  target: Locale,
-): Promise<WorkEntry | null> {
-  if (entry.data.lang === target) return entry;
-  const pair = await findPair(entry.data.kind, entry.data.number);
-  if (!pair) return null;
-  // Existence: the counterpart exists only if `target` was authored.
-  return pair.entries[target] ?? null;
-}
-
 // ─────────────────────────────────────────────────────────────────────
 // Cover resolution.
 //
@@ -198,7 +165,7 @@ export interface CoverRef {
 }
 
 /** Parse and validate a `cover:` frontmatter value. Returns null if absent. */
-export function parseCoverRef(value: string | null | undefined): CoverRef | null {
+function parseCoverRef(value: string | null | undefined): CoverRef | null {
   if (!value) return null;
   const match = ALLOWED_COVER_RE.exec(value.trim());
   if (!match) {
@@ -230,7 +197,7 @@ export function parseCoverRef(value: string | null | undefined): CoverRef | null
  * `cover_is_placeholder: true` on an entry counts as "no real cover yet" and
  * triggers the default-locale fallback.
  */
-export async function resolveCover(pair: WorkPair, locale: Locale): Promise<CoverRef | null> {
+export function resolveCover(pair: WorkPair, locale: Locale): CoverRef | null {
   const primary = pair.entries[locale];
   if (primary && primary.data.cover_is_placeholder !== true) {
     const ref = parseCoverRef(primary.data.cover);

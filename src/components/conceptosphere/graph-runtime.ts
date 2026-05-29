@@ -782,7 +782,7 @@ function wireInteractions(ctx: AppContext, s: Session): void {
       const out: NodeOut = { ...(data as NodeOut) };
       let dim = false;
       if (hasFilter && !state.filterComs.has(data.community as number)) dim = true;
-      if (hasSearch && !matchesSearch(data as Record<string, unknown>)) dim = true;
+      if (hasSearch && !matchesSearch(data)) dim = true;
       if (hasFocus && focusSet && !focusSet.has(node)) dim = true;
       if (dim) {
         out.color = s.theme.dimNode;
@@ -791,12 +791,12 @@ function wireInteractions(ctx: AppContext, s: Session): void {
         out._dim = true;
       } else {
         out.color = data._color as string;
-        out.zIndex = (hasFocus && focusSet!.has(node)) ? 2 : 1;
+        out.zIndex = hasFocus && focusSet?.has(node) ? 2 : 1;
         if (hasFocus) {
-          out.forceLabel = showFocusNeighborLabels && node !== focus && focusSet!.has(node);
+          out.forceLabel = showFocusNeighborLabels && node !== focus && focusSet?.has(node) === true;
         } else {
           if (hasFilter && state.filterComs.has(data.community as number)) out.forceLabel = true;
-          if (hasSearch && matchesSearch(data as Record<string, unknown>)) out.forceLabel = true;
+          if (hasSearch && matchesSearch(data)) out.forceLabel = true;
         }
         out._dim = false;
       }

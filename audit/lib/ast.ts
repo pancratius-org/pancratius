@@ -149,19 +149,11 @@ function unwrap(node: ts.Expression): ts.Expression {
 }
 
 /**
- * Every `CallExpression` within `node` whose callee is a BARE identifier with
- * exactly `calleeName`. Deliberately does NOT match member-access callees like
- * `ns.entryForLocale(…)` — keep it precise so the finding is unambiguous.
- */
-export function findIdentifierCalls(node: ts.Node, calleeName: string): ts.Node[] {
-  return findIdentifierCallsAny(node, new Set([calleeName]));
-}
-
-/**
- * Like `findIdentifierCalls` but matches a CallExpression whose bare-identifier
- * callee is ANY of `calleeNames`. Lets a rule treat a set of local aliases (e.g.
- * `import { entryForLocale as ef }`) as the same selector. Member-access callees
- * like `ns.foo(…)` are still NOT matched — a namespace import is a known gap.
+ * Every `CallExpression` within `node` whose callee is a BARE identifier
+ * matching any of `calleeNames`. Lets a rule treat a set of local aliases (e.g.
+ * `import { entryForLocale as ef }`) as the same selector. Member-access
+ * callees like `ns.foo(…)` are still NOT matched — a namespace import is a
+ * known gap.
  */
 export function findIdentifierCallsAny(node: ts.Node, calleeNames: ReadonlySet<string>): ts.Node[] {
   const calls: ts.Node[] = [];
@@ -182,9 +174,10 @@ export function findIdentifierCallsAny(node: ts.Node, calleeNames: ReadonlySet<s
  * `importedName`, across all `import` declarations in `sf` — regardless of which
  * module it comes from (the imported name is assumed distinctive enough). Both
  * `import { foo }` (local === imported) and `import { foo as bar }` (local is the
- * alias) are returned. Lets a rule recognize calls to a selector even when it was
- * imported under an alias. Namespace imports (`import * as ns`) are NOT covered:
- * `ns.foo(…)` is a member-access callee and remains a known gap.
+ * alias) are returned. Lets a rule recognize bare-identifier selector calls even
+ * when the selector was imported under an alias. Namespace imports (`import * as
+ * ns`) are NOT covered: `ns.foo(…)` is a member-access callee and remains a
+ * known gap.
  */
 export function findLocalNamesForImport(sf: ts.SourceFile, importedName: string): Set<string> {
   const locals = new Set<string>();
@@ -398,37 +391,6 @@ export function arrayLiteralStringValuesOf(sf: ts.SourceFile, constName: string)
     if (ts.isStringLiteralLike(unwrapped)) values.push(unwrapped.text);
   }
   return values;
-}
-
-/**
- * Members of a top-level `export? type typeName = "a" | "b" | …` when it is a
- * PURE union of string-literal types, returned in source order. Returns null
- * (not []) when there's no such type alias OR it isn't a pure string-literal
- * union (a single literal `type T = "a"` counts; anything with a non-literal
- * member, or a non-union, returns null) — so a caller can treat null as "premise
- * stale" rather than "empty union".
- */
-export function stringUnionMembersOf(sf: ts.SourceFile, typeName: string): string[] | null {
-  for (const stmt of sf.statements) {
-    if (!ts.isTypeAliasDeclaration(stmt) || stmt.name.text !== typeName) continue;
-
-    const literalText = (t: ts.TypeNode): string | null =>
-      ts.isLiteralTypeNode(t) && ts.isStringLiteral(t.literal) ? t.literal.text : null;
-
-    // `type T = "a" | "b"` (union) or `type T = "a"` (a single literal).
-    if (ts.isUnionTypeNode(stmt.type)) {
-      const members: string[] = [];
-      for (const t of stmt.type.types) {
-        const lit = literalText(t);
-        if (lit === null) return null; // a non-string-literal member → not pure
-        members.push(lit);
-      }
-      return members;
-    }
-    const single = literalText(stmt.type);
-    return single === null ? null : [single];
-  }
-  return null;
 }
 
 /**

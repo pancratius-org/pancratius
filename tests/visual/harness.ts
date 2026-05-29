@@ -49,7 +49,7 @@ const CONCEPTOSPHERE_SETTLE_MS = 1200;
  * the live slug can change, so callers resolve it at runtime (probeEnBook33Slug)
  * and either substitute the real slug or drop the route.
  */
-export const AUDIT_ROUTES: readonly Route[] = [
+const AUDIT_ROUTES: readonly Route[] = [
   { name: "home-ru", path: "/" },
   { name: "home-en", path: "/en/" },
   { name: "books-ru", path: "/books/" },
@@ -74,7 +74,7 @@ export const AUDIT_ROUTES: readonly Route[] = [
 ];
 
 /** The name of the EN book-33 route whose slug is resolved at runtime. */
-export const EN_BOOK_33_ROUTE = "book-33-en";
+const EN_BOOK_33_ROUTE = "book-33-en";
 
 /** Just the route names, in order — a stable parametrization key for the gate. */
 export const AUDIT_ROUTE_NAMES: readonly string[] = AUDIT_ROUTES.map((r) => r.name);
@@ -120,11 +120,6 @@ export function settleMsFor(path: string): number {
   return path.includes("/conceptosphere") ? CONCEPTOSPHERE_SETTLE_MS : 0;
 }
 
-/** Match an `/en/books/<slug>/` href that names book 33. Shared by the live probe. */
-export function isEnBook33Href(href: string): boolean {
-  return /\/en\/books\/[^/]+\/?$/.test(href) && /33|horseman|sword/i.test(href);
-}
-
 // --- live EN book-33 slug probe (shared by the gate spec and the generator) --
 
 /**
@@ -132,7 +127,7 @@ export function isEnBook33Href(href: string): boolean {
  * change, so neither the gate nor the generator may hard-code it; both resolve
  * it from the running site and either substitute it or drop the route.
  */
-export async function probeEnBook33Slug(page: Page, baseUrl: string = BASE_URL): Promise<string | null> {
+async function probeEnBook33Slug(page: Page, baseUrl: string = BASE_URL): Promise<string | null> {
   try {
     await page.goto(`${baseUrl}/en/books/`, { waitUntil: "domcontentloaded" });
     return await page.evaluate(() => {
@@ -207,7 +202,7 @@ export async function themedContext(
  * regardless of `prefers-color-scheme`. Works on a context (generators) or a
  * page (the gate spec) — both accept addInitScript with the same shape.
  */
-export async function seedTheme(
+async function seedTheme(
   target: { addInitScript: BrowserContext["addInitScript"] },
   theme: Theme,
 ): Promise<void> {

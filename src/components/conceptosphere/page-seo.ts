@@ -3,7 +3,7 @@ import { absUrl, type SeoMeta } from "@/lib/seo";
 
 import { conceptosphereStrings } from "./strings";
 
-export function conceptospherePath(locale: Locale): string {
+function conceptospherePath(locale: Locale): string {
   return localizePath("/conceptosphere/", locale);
 }
 

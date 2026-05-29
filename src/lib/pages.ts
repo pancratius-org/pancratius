@@ -43,15 +43,6 @@ export async function getPage(slug: string, locale: Locale): Promise<PageEntry |
   return all.find(e => e.data.slug === slug && e.data.lang === locale) ?? null;
 }
 
-/** Counterpart in the other language, if authored. */
-export async function alternateLanguagePage(
-  page: PageEntry,
-  target: Locale,
-): Promise<PageEntry | null> {
-  if (page.data.lang === target) return page;
-  return getPage(page.data.slug, target);
-}
-
 export function pageShellProps(page: PageEntry, extraClass?: string): PageShellProps {
   return {
     title: page.data.title,

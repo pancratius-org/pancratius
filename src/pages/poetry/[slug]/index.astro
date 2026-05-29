@@ -25,7 +25,7 @@ interface Props { pair: WorkPair; }
 const { pair } = Astro.props;
 const entry = pair.entries[DEFAULT_LOCALE]!;
 const { Content } = await render(entry);
-const coverUrl = await coverAbsoluteUrl(Astro.site, pair, locale);
+const coverUrl = coverAbsoluteUrl(Astro.site, pair, locale);
 const seo = seoForWork(Astro.site, { pair, locale, coverUrl });
 const backHref = kindIndexUrl("poem", locale);
 const date = poemDate(entry);

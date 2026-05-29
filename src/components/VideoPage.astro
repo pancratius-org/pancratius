@@ -34,7 +34,7 @@ if (!entry) {
 
 const copy = videoPageCopy[locale];
 const { Content, headings } = await render(entry);
-const coverUrl = await videoCoverAbsoluteUrl(Astro.site, pair, locale);
+const coverUrl = videoCoverAbsoluteUrl(Astro.site, pair, locale);
 const seo = seoForVideo(Astro.site, { pair, locale, coverUrl });
 const tags = videoTags(entry);
 const layout = await layoutForEntry(entry);

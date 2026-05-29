@@ -119,7 +119,7 @@ export const searchPageCopy = {
   },
 } satisfies Record<Locale, SearchPageCopy>;
 
-export interface HomeStatsInput {
+interface HomeStatsInput {
   totalBooks: number;
   englishBooks: number;
   poems: number;
@@ -666,7 +666,7 @@ export interface ProjectComponentsCopy {
 }
 
 /** Copy for the <AwakeningQuestions> meditative draw. */
-export interface AwakeningCopy {
+interface AwakeningCopy {
   heading: string;
   /** Label before the ступень/tier picker. */
   tierLabel: string;
@@ -683,7 +683,7 @@ export interface AwakeningCopy {
 }
 
 /** Copy for the <SelfInquiryCycle> recursive «Кто я?» walk. */
-export interface SelfInquiryCopy {
+interface SelfInquiryCopy {
   heading: string;
   /** The recurring question that anchors every cycle. */
   question: string;

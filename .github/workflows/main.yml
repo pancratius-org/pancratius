@@ -57,19 +57,12 @@ jobs:
       - name: Install Python deps (frozen lock)
         run: uv sync --frozen
 
-      # Re-run the audit core on the deploy path. Branch protection + the PR
-      # gate already enforce this, but the deploy job is the last line — a
-      # bypass-merged red PR must not reach the host. Cheap; pre-build.
-      - name: Audit core (contracts + selftest)
-        run: |
-          npm run audit
-          npm run audit:selftest
-
-      - name: Check site (Astro content + types)
-        run: npm run check
-
-      - name: Build site (Astro + bulk archive + Pagefind)
-        run: npm run build
+      # Re-run the full local/PR gate on the deploy path. Branch protection
+      # should already enforce this, but the deploy job is the last line — a
+      # bypass-merged red PR must not reach the host. `verify` also builds
+      # `dist/`, so deploy uses that one build.
+      - name: Verify (full local gate)
+        run: npm run verify
 
       - name: Verify build produced HTML
         run: |
@@ -79,11 +72,6 @@ jobs:
             exit 1
           fi
           echo "ok: $html_count html files in dist/"
-
-      - name: Audit built site (post-build rules)
-        # Rules that need an emitted dist/ (PAN014 link crawl, PAN008
-        # /assets/ URL contract). A fatal here aborts before any deploy.
-        run: npm run audit:post-build
 
       - name: Mark deploy gate
         id: deploy_gate

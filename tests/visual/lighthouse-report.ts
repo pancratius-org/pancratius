@@ -153,7 +153,7 @@ async function main(): Promise<void> {
         const { perf, a11y, bp, seo } = row.scores;
         stdout.write(` perf=${perf} a11y=${a11y} bp=${bp} seo=${seo} (${((Date.now() - started) / 1000).toFixed(1)}s)\n`);
       } catch (err) {
-        stdout.write(` FAIL ${err instanceof Error ? err.message : err}\n`);
+        stdout.write(` FAIL ${err instanceof Error ? err.message : String(err)}\n`);
       }
     }
   }
