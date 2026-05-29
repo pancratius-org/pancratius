@@ -31,4 +31,4 @@ Classify the work and read the contract that owns it:
 
 Work inside the owning boundaries. Do not change component boundaries or introduce new bridges between them, unless the task explicitly asks to re-architect them.
 
-Verify before claiming done. Minimum quality gate: `npm run verify` (like CI, but skips Playwright).
+Verify before claiming done. Minimum quality gate: `npm run verify` (like CI, but skips Playwright). When checks fail, diagnose the cause and improve the code or contract; do not silence or route around failures just to pass.
