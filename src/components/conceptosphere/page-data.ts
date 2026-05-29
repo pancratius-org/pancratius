@@ -5,15 +5,17 @@
 // cannot drift in slug collection, cover lookup, or fallback behavior.
 
 import { coverAssetUrl } from "@/lib/covers";
-import { loadBooksGraph, loadConceptsGraph } from "@/lib/conceptosphere";
+import { loadBooksGraph, loadConceptsGraph, type BooksGraph, type ConceptsGraph } from "@/lib/conceptosphere";
 import { kindIndexUrl, workUrl, type Locale } from "@/lib/i18n";
 import { displayWorkEntry, findPair } from "@/lib/works";
 
-import { communityColor } from "./palette";
-import type { ConceptosphereStrings } from "./strings";
-import type { ConceptosphereMode } from "./runtime-types";
+import { communityColor } from "./palette.ts";
+import type { ConceptosphereStrings } from "./strings.ts";
+import type { ConceptosphereMode } from "./graph-types.ts";
 
 type BookSlugInfo = Record<string, { number: number; title: string; href: string }>;
+type BooksGraphNode = BooksGraph["nodes"][number];
+type ConceptsGraphNode = ConceptsGraph["nodes"][number];
 
 type ConceptosphereCommunityView = {
   id: number;
@@ -56,140 +58,42 @@ export interface ConceptospherePageData {
   bookSections: ConceptosphereSection<ConceptosphereBookRow>[];
 }
 
+interface ConceptosphereGraphs {
+  books: BooksGraph;
+  concepts: ConceptsGraph;
+}
+
+interface LocalizedBookCatalogEntry {
+  number: number;
+  title: string;
+  href: string;
+  coverUrl: string | null;
+}
+
+type LocalizedBookCatalog = ReadonlyMap<string, LocalizedBookCatalogEntry>;
+
 export async function loadConceptospherePageData(
   locale: Locale,
   strings: ConceptosphereStrings,
 ): Promise<ConceptospherePageData> {
-  const booksGraph = loadBooksGraph();
-  const conceptsGraph = loadConceptsGraph();
-
-  const referencedBookSlugs = new Set<string>();
-  for (const n of booksGraph.nodes) {
-    referencedBookSlugs.add(n.slug);
-    for (const s of n.top_similar) {
-      if (s.kind === "book") referencedBookSlugs.add(s.slug);
-    }
-    for (const s of n.top_similar_embed ?? []) {
-      if (s.kind === "book") referencedBookSlugs.add(s.slug);
-    }
-  }
-  for (const n of conceptsGraph.nodes) {
-    for (const b of n.top_books) {
-      referencedBookSlugs.add(b.slug);
-    }
-  }
-
-  const coverUrls: Record<string, string> = {};
-  const bookSlugInfo: BookSlugInfo = {};
-  const bookBySlug = new Map(booksGraph.nodes.map((n) => [n.slug, n]));
-
-  for (const slug of referencedBookSlugs) {
-    const node = bookBySlug.get(slug);
-    if (!node) {
-      throw new Error(`conceptosphere graph references unknown book slug ${JSON.stringify(slug)}`);
-    }
-
-    const pair = await findPair("book", node.number);
-    if (!pair) {
-      throw new Error(`conceptosphere graph book #${node.number} (${slug}) has no matching content pair`);
-    }
-
-    // Display-with-fallback: prefer the active locale when authored, otherwise
-    // link to the real fallback route owned by the display selector.
-    const { entry, linkLocale } = displayWorkEntry(pair, locale);
-
-    bookSlugInfo[slug] = {
-      number: node.number,
-      title: entry.data.title,
-      href: workUrl("book", entry.data.slug, linkLocale),
-    };
-
-    const url = coverAssetUrl(pair, locale);
-    if (url) coverUrls[`book:${slug}`] = url;
-  }
-
-  const bookRows: ConceptosphereBookRow[] = booksGraph.nodes.map((node) => {
-    const info = requireBookSlugInfo(bookSlugInfo, node.slug);
-    const title = info.title;
-    const allConcepts = node.top_concepts;
-    const displayedConcepts = allConcepts.slice(0, 8).map((c) => ({ label: c.label }));
-    return {
-      slug: node.slug,
-      number: node.number,
-      title,
-      community: node.community,
-      tags: node.tags,
-      href: info.href,
-      coverUrl: coverUrls[`book:${node.slug}`] ?? null,
-      topConcepts: displayedConcepts,
-      searchHay: [
-        title,
-        node.title,
-        node.slug,
-        String(node.number),
-        ...node.tags,
-        ...allConcepts.flatMap((c) => [c.label, c.lemma]),
-      ].join(" ").toLowerCase(),
-    };
-  });
-
-  const conceptRows: ConceptosphereConceptRow[] = conceptsGraph.nodes.map((node) => {
-    const top = node.top_books.slice(0, 5);
-    const topBooks = top.map((b) => {
-      const info = requireBookSlugInfo(bookSlugInfo, b.slug);
-      return {
-        slug: b.slug,
-        title: info.title,
-        href: info.href,
-      };
-    });
-    const topBookTitles = new Set([...top.map((b) => b.title), ...topBooks.map((b) => b.title)]);
-    return {
-      id: node.id,
-      label: node.label,
-      community: node.community,
-      frequency: node.frequency,
-      topBooks,
-      searchHay: [node.label, node.lemma, ...topBookTitles].join(" ").toLowerCase(),
-    };
-  });
-
-  const modeCounts: Record<ConceptosphereMode, string> = {
-    concepts: countLine(
-      {
-        stats: conceptsGraph.stats,
-        nodesLength: conceptsGraph.nodes.length,
-        edgesLength: conceptsGraph.edges.length,
-        communitiesLength: conceptsGraph.communities.length,
-      },
-      "concepts",
-      strings,
-    ),
-    books: countLine(
-      {
-        stats: booksGraph.stats,
-        nodesLength: booksGraph.nodes.length,
-        edgesLength: booksGraph.edges.length,
-        communitiesLength: booksGraph.communities.length,
-      },
-      "books",
-      strings,
-    ),
-  };
+  const graphs = loadConceptosphereGraphs();
+  const bookCatalog = await resolveLocalizedBookCatalog(graphs, locale);
+  const bookRows = graphs.books.nodes.map((node) => bookRow(node, bookCatalog));
+  const conceptRows = graphs.concepts.nodes.map((node) => conceptRow(node, bookCatalog));
 
   return {
-    modeCounts,
-    bookSlugInfo,
-    coverUrls,
+    modeCounts: modeCounts(graphs, strings),
+    bookSlugInfo: bookSlugInfoRecord(bookCatalog),
+    coverUrls: coverUrlRecord(bookCatalog),
     booksIndexHref: kindIndexUrl("book", locale),
     conceptSections: groupRows(
-      conceptsGraph.communities,
+      graphs.concepts.communities,
       conceptRows,
       (row) => row.community,
       (a, b) => b.frequency - a.frequency,
     ),
     bookSections: groupRows(
-      booksGraph.communities,
+      graphs.books.communities,
       bookRows,
       (row) => row.community,
       (a, b) => a.number - b.number,
@@ -197,12 +101,176 @@ export async function loadConceptospherePageData(
   };
 }
 
-function requireBookSlugInfo(bookSlugInfo: BookSlugInfo, graphSlug: string): BookSlugInfo[string] {
-  const info = bookSlugInfo[graphSlug];
+function loadConceptosphereGraphs(): ConceptosphereGraphs {
+  return {
+    books: loadBooksGraph(),
+    concepts: loadConceptsGraph(),
+  };
+}
+
+async function resolveLocalizedBookCatalog(
+  graphs: ConceptosphereGraphs,
+  locale: Locale,
+): Promise<LocalizedBookCatalog> {
+  const bookBySlug = new Map(graphs.books.nodes.map((node) => [node.slug, node]));
+  const catalog = new Map<string, LocalizedBookCatalogEntry>();
+
+  for (const slug of referencedBookSlugs(graphs)) {
+    catalog.set(slug, await resolveLocalizedBook(slug, bookBySlug, locale));
+  }
+  return catalog;
+}
+
+function referencedBookSlugs(graphs: ConceptosphereGraphs): Set<string> {
+  const slugs = new Set<string>();
+  for (const node of graphs.books.nodes) addBookNodeReferences(slugs, node);
+  for (const node of graphs.concepts.nodes) addConceptNodeReferences(slugs, node);
+  return slugs;
+}
+
+function addBookNodeReferences(slugs: Set<string>, node: BooksGraphNode): void {
+  slugs.add(node.slug);
+  for (const ref of [...node.top_similar, ...(node.top_similar_embed ?? [])]) {
+    if (ref.kind === "book") slugs.add(ref.slug);
+  }
+}
+
+function addConceptNodeReferences(slugs: Set<string>, node: ConceptsGraphNode): void {
+  for (const book of node.top_books) slugs.add(book.slug);
+}
+
+async function resolveLocalizedBook(
+  slug: string,
+  bookBySlug: ReadonlyMap<string, BooksGraphNode>,
+  locale: Locale,
+): Promise<LocalizedBookCatalogEntry> {
+  const node = bookBySlug.get(slug);
+  if (!node) throw new Error(`conceptosphere graph references unknown book slug ${JSON.stringify(slug)}`);
+
+  const pair = await findPair("book", node.number);
+  if (!pair) throw new Error(`conceptosphere graph book #${node.number} (${slug}) has no matching content pair`);
+
+  const { entry, linkLocale } = displayWorkEntry(pair, locale);
+  return {
+    number: node.number,
+    title: entry.data.title,
+    href: workUrl("book", entry.data.slug, linkLocale),
+    coverUrl: coverAssetUrl(pair, locale),
+  };
+}
+
+function bookSlugInfoRecord(catalog: LocalizedBookCatalog): BookSlugInfo {
+  return Object.fromEntries(
+    [...catalog].map(([slug, info]) => [slug, { number: info.number, title: info.title, href: info.href }]),
+  );
+}
+
+function coverUrlRecord(catalog: LocalizedBookCatalog): Record<string, string> {
+  const coverUrls: Record<string, string> = {};
+  for (const [slug, info] of catalog) {
+    if (info.coverUrl) coverUrls[`book:${slug}`] = info.coverUrl;
+  }
+  return coverUrls;
+}
+
+function bookRow(node: BooksGraphNode, catalog: LocalizedBookCatalog): ConceptosphereBookRow {
+  const info = requireBookInfo(catalog, node.slug);
+  const allConcepts = node.top_concepts;
+  return {
+    slug: node.slug,
+    number: node.number,
+    title: info.title,
+    community: node.community,
+    tags: node.tags,
+    href: info.href,
+    coverUrl: info.coverUrl,
+    topConcepts: allConcepts.slice(0, 8).map((concept) => ({ label: concept.label })),
+    searchHay: bookSearchHay(node, info.title),
+  };
+}
+
+function conceptRow(node: ConceptsGraphNode, catalog: LocalizedBookCatalog): ConceptosphereConceptRow {
+  const top = node.top_books.slice(0, 5);
+  const topBooks = top.map((book) => topBookRow(book, catalog));
+  return {
+    id: node.id,
+    label: node.label,
+    community: node.community,
+    frequency: node.frequency,
+    topBooks,
+    searchHay: conceptSearchHay(node, top, topBooks),
+  };
+}
+
+function topBookRow(
+  book: ConceptsGraphNode["top_books"][number],
+  catalog: LocalizedBookCatalog,
+): ConceptosphereConceptRow["topBooks"][number] {
+  const info = requireBookInfo(catalog, book.slug);
+  return {
+    slug: book.slug,
+    title: info.title,
+    href: info.href,
+  };
+}
+
+function bookSearchHay(node: BooksGraphNode, localizedTitle: string): string {
+  return haystack([
+    localizedTitle,
+    node.title,
+    node.slug,
+    String(node.number),
+    ...node.tags,
+    ...node.top_concepts.flatMap((concept) => [concept.label, concept.lemma]),
+  ]);
+}
+
+function conceptSearchHay(
+  node: ConceptsGraphNode,
+  rawTopBooks: readonly ConceptsGraphNode["top_books"][number][],
+  localizedTopBooks: readonly ConceptosphereConceptRow["topBooks"][number][],
+): string {
+  const topBookTitles = new Set([
+    ...rawTopBooks.map((book) => book.title),
+    ...localizedTopBooks.map((book) => book.title),
+  ]);
+  return haystack([node.label, node.lemma, ...topBookTitles]);
+}
+
+function haystack(parts: readonly string[]): string {
+  return parts.join(" ").toLowerCase();
+}
+
+function requireBookInfo(catalog: LocalizedBookCatalog, graphSlug: string): LocalizedBookCatalogEntry {
+  const info = catalog.get(graphSlug);
   if (!info) {
     throw new Error(`conceptosphere page data missing resolved book info for graph slug ${JSON.stringify(graphSlug)}`);
   }
   return info;
+}
+
+function modeCounts(
+  graphs: ConceptosphereGraphs,
+  strings: ConceptosphereStrings,
+): Record<ConceptosphereMode, string> {
+  return {
+    concepts: countLine(graphMeasure(graphs.concepts), "concepts", strings),
+    books: countLine(graphMeasure(graphs.books), "books", strings),
+  };
+}
+
+function graphMeasure(graph: BooksGraph | ConceptsGraph): {
+  stats: Record<string, unknown>;
+  nodesLength: number;
+  edgesLength: number;
+  communitiesLength: number;
+} {
+  return {
+    stats: graph.stats,
+    nodesLength: graph.nodes.length,
+    edgesLength: graph.edges.length,
+    communitiesLength: graph.communities.length,
+  };
 }
 
 function countLine(

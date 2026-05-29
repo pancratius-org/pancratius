@@ -1,61 +1,121 @@
-import type { Community, EdgeJson, GraphPayload, NodeJson, SimilarRef } from "./runtime-types";
+import type { SimilarRef, TopBookRef, TopConceptRef } from "./graph-types.ts";
+
+interface PayloadCommunity {
+  id: number;
+  label: string;
+  size: number;
+}
+
+export interface PayloadNode {
+  id: string;
+  label?: string;
+  lemma?: string;
+  title?: string;
+  slug?: string;
+  number?: number;
+  tags?: string[];
+  community: number;
+  frequency?: number;
+  centrality?: number;
+  degree?: number;
+  top_concepts?: TopConceptRef[];
+  top_books?: TopBookRef[];
+  top_similar?: SimilarRef[];
+  top_similar_embed?: SimilarRef[];
+}
+
+export interface PayloadEdge {
+  source: string;
+  target: string;
+  weight: number;
+  npmi?: number;
+}
+
+export interface GraphPayload {
+  stats: Record<string, number | string | undefined>;
+  communities: PayloadCommunity[];
+  nodes: PayloadNode[];
+  edges: PayloadEdge[];
+}
 
 export function parseGraphPayload(value: unknown, url: string): GraphPayload {
   if (!isRecord(value) || !Array.isArray(value.communities) || !Array.isArray(value.nodes) || !Array.isArray(value.edges)) {
     throw new Error(`Invalid graph payload: ${url}`);
   }
 
-  value.communities.forEach((community, index) => {
-    if (!isCommunity(community)) {
-      throw new Error(`Invalid graph community[${index}] in ${url}`);
-    }
-  });
-  value.nodes.forEach((node, index) => {
-    if (!isNode(node)) {
-      throw new Error(`Invalid graph node[${index}] in ${url}`);
-    }
-  });
-  value.edges.forEach((edge, index) => {
-    if (!isEdge(edge)) {
-      throw new Error(`Invalid graph edge[${index}] in ${url}`);
-    }
-  });
-
   return {
-    stats: isRecord(value.stats)
-      ? value.stats as Record<string, number | string | undefined>
-      : {},
-    communities: value.communities as Community[],
-    nodes: value.nodes as NodeJson[],
-    edges: value.edges as EdgeJson[],
+    stats: readStats(value.stats),
+    communities: parsePayloadArray(value.communities, isCommunity, "community", url),
+    nodes: parsePayloadArray(value.nodes, isNode, "node", url),
+    edges: parsePayloadArray(value.edges, isEdge, "edge", url),
   };
 }
 
-function isCommunity(value: unknown): value is Community {
+function parsePayloadArray<T>(
+  values: readonly unknown[],
+  guard: (item: unknown) => item is T,
+  label: string,
+  url: string,
+): T[] {
+  return values.map((item, index) => {
+    if (!guard(item)) throw new Error(`Invalid graph ${label}[${index}] in ${url}`);
+    return item;
+  });
+}
+
+function readStats(value: unknown): Record<string, number | string | undefined> {
+  if (!isRecord(value)) return {};
+  const stats: Record<string, number | string | undefined> = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (typeof item === "number" || typeof item === "string" || item === undefined) {
+      stats[key] = item;
+    }
+  }
+  return stats;
+}
+
+function isCommunity(value: unknown): value is PayloadCommunity {
   return isRecord(value)
     && isNumber(value.id)
     && typeof value.label === "string"
     && isNumber(value.size);
 }
 
-function isNode(value: unknown): value is NodeJson {
-  if (!isRecord(value) || typeof value.id !== "string" || !isNumber(value.community)) return false;
+function isNode(value: unknown): value is PayloadNode {
+  return isRecord(value)
+    && hasNodeIdentity(value)
+    && hasOptionalNodeText(value)
+    && hasOptionalNodeMetrics(value)
+    && hasOptionalNodeRelations(value);
+}
+
+function hasNodeIdentity(value: Record<string, unknown>): boolean {
+  return typeof value.id === "string" && isNumber(value.community);
+}
+
+function hasOptionalNodeText(value: Record<string, unknown>): boolean {
   return optionalString(value.label)
     && optionalString(value.lemma)
     && optionalString(value.title)
     && optionalString(value.slug)
-    && optionalNumber(value.number)
-    && optionalStringArray(value.tags)
+    && optionalStringArray(value.tags);
+}
+
+function hasOptionalNodeMetrics(value: Record<string, unknown>): boolean {
+  return optionalNumber(value.number)
     && optionalNumber(value.frequency)
     && optionalNumber(value.centrality)
-    && optionalNumber(value.degree)
-    && optionalArray(value.top_concepts, isTopConcept)
+    && optionalNumber(value.degree);
+}
+
+function hasOptionalNodeRelations(value: Record<string, unknown>): boolean {
+  return optionalArray(value.top_concepts, isTopConcept)
     && optionalArray(value.top_books, isTopBook)
     && optionalArray(value.top_similar, isSimilarRef)
     && optionalArray(value.top_similar_embed, isSimilarRef);
 }
 
-function isEdge(value: unknown): value is EdgeJson {
+function isEdge(value: unknown): value is PayloadEdge {
   return isRecord(value)
     && typeof value.source === "string"
     && typeof value.target === "string"

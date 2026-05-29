@@ -1,4 +1,7 @@
-import type { ConceptosphereMode } from "./runtime-types";
+import type { ConceptosphereMode } from "./graph-types.ts";
+
+type Rgb = [number, number, number];
+type EdgeScope = "within" | "cross";
 
 export interface GraphTheme {
   isLight: boolean;
@@ -18,8 +21,8 @@ export interface GraphTheme {
   focusRingMutedSoft: string;
   focusCalloutBorder: string;
   focusCalloutBorderMuted: string;
-  edgeInkRgb: [number, number, number];
-  edgeNeutralRgb: [number, number, number];
+  edgeInkRgb: Rgb;
+  edgeNeutralRgb: Rgb;
   hullFillOpacity: string;
   hullStrokeOpacity: string;
   hullDimFillOpacity: string;
@@ -50,6 +53,78 @@ const GRAPH_THEME_FALLBACKS = {
   hullDimFillOpacity: "0.012",
   hullDimStrokeOpacity: "0.045",
 } as const;
+
+interface EdgeVisualPolicy {
+  color: EdgeColorPolicy;
+  alphaBase: number;
+  alphaRange: number;
+  sizeBase: number;
+  sizeRange: number;
+  premultiply: boolean;
+}
+
+type EdgeColorPolicy =
+  | { kind: "source" }
+  | { kind: "sourceInk"; inkMix: number }
+  | { kind: "crossCommunity"; neutralMix: number };
+
+const DARK_EDGE_POLICIES = {
+  within: {
+    color: { kind: "source" },
+    alphaBase: 0.22,
+    alphaRange: 0.55,
+    sizeBase: 0.6,
+    sizeRange: 5.0,
+    premultiply: false,
+  },
+  cross: {
+    color: { kind: "crossCommunity", neutralMix: 0.4 },
+    alphaBase: 0.07,
+    alphaRange: 0.28,
+    sizeBase: 0.4,
+    sizeRange: 3.0,
+    premultiply: false,
+  },
+} as const satisfies Record<EdgeScope, EdgeVisualPolicy>;
+
+const LIGHT_EDGE_POLICIES = {
+  concepts: {
+    within: {
+      color: { kind: "sourceInk", inkMix: 0.20 },
+      alphaBase: 0.52,
+      alphaRange: 0.18,
+      sizeBase: 0.62,
+      sizeRange: 2.3,
+      premultiply: true,
+    },
+    cross: {
+      color: { kind: "sourceInk", inkMix: 0.12 },
+      alphaBase: 0.24,
+      alphaRange: 0.12,
+      sizeBase: 0.30,
+      sizeRange: 0.80,
+      premultiply: true,
+    },
+  },
+  books: {
+    within: {
+      color: { kind: "sourceInk", inkMix: 0.24 },
+      alphaBase: 0.58,
+      alphaRange: 0.20,
+      sizeBase: 0.72,
+      sizeRange: 2.5,
+      premultiply: true,
+    },
+    cross: {
+      color: { kind: "sourceInk", inkMix: 0.18 },
+      alphaBase: 0.42,
+      alphaRange: 0.18,
+      sizeBase: 0.52,
+      sizeRange: 1.6,
+      premultiply: true,
+    },
+  },
+} as const satisfies Record<ConceptosphereMode, Record<EdgeScope, EdgeVisualPolicy>>;
 
 export function readGraphTheme(): GraphTheme {
   const isLight = document.documentElement.getAttribute("data-theme") === "light";
@@ -85,41 +160,52 @@ export function edgeVisual(
   mode: ConceptosphereMode,
   within: boolean,
   t: number,
-  ca: [number, number, number],
-  cb: [number, number, number],
+  ca: Rgb,
+  cb: Rgb,
 ): { color: string; size: number } {
-  if (!theme.isLight) {
-    const rgb = within ? ca : mixRgb(mixRgb(ca, cb, 0.5), theme.edgeNeutralRgb, 0.4);
-    const alpha = within ? 0.22 + t * 0.55 : 0.07 + t * 0.28;
-    const size = within ? 0.6 + t * 5.0 : 0.4 + t * 3.0;
-    return { color: rgba(rgb, alpha), size };
-  }
-
-  const withinRgb = mixRgb(ca, theme.edgeInkRgb, mode === "concepts" ? 0.20 : 0.24);
-  const crossRgb = mixRgb(ca, theme.edgeInkRgb, mode === "concepts" ? 0.12 : 0.18);
-  const withinAlpha = mode === "books" ? 0.58 + t * 0.20 : 0.52 + t * 0.18;
-  const crossAlpha = mode === "books" ? 0.42 + t * 0.18 : 0.24 + t * 0.12;
-  const sizeWithin = mode === "books" ? 0.72 + t * 2.5 : 0.62 + t * 2.3;
-  const sizeCross = mode === "books" ? 0.52 + t * 1.6 : 0.30 + t * 0.80;
+  const policy = edgeVisualPolicy(theme, mode, within);
+  const rgb = edgePolicyRgb(policy.color, theme, ca, cb);
+  const alpha = policy.alphaBase + t * policy.alphaRange;
+  const size = policy.sizeBase + t * policy.sizeRange;
   return {
-    color: sigmaRgba(within ? withinRgb : crossRgb, within ? withinAlpha : crossAlpha),
-    size: within ? sizeWithin : sizeCross,
+    color: policy.premultiply ? sigmaRgba(rgb, alpha) : rgba(rgb, alpha),
+    size,
   };
 }
 
+function edgeVisualPolicy(
+  theme: GraphTheme,
+  mode: ConceptosphereMode,
+  within: boolean,
+): EdgeVisualPolicy {
+  const scope = within ? "within" : "cross";
+  return theme.isLight ? LIGHT_EDGE_POLICIES[mode][scope] : DARK_EDGE_POLICIES[scope];
+}
+
+function edgePolicyRgb(
+  policy: EdgeColorPolicy,
+  theme: GraphTheme,
+  sourceRgb: Rgb,
+  targetRgb: Rgb,
+): Rgb {
+  if (policy.kind === "source") return sourceRgb;
+  if (policy.kind === "sourceInk") return mixRgb(sourceRgb, theme.edgeInkRgb, policy.inkMix);
+  return mixRgb(mixRgb(sourceRgb, targetRgb, 0.5), theme.edgeNeutralRgb, policy.neutralMix);
+}
+
 function mixRgb(
-  a: [number, number, number],
-  b: [number, number, number],
+  a: Rgb,
+  b: Rgb,
   t = 0.5,
-): [number, number, number] {
+): Rgb {
   return [a[0] * (1 - t) + b[0] * t, a[1] * (1 - t) + b[1] * t, a[2] * (1 - t) + b[2] * t];
 }
 
-function rgba([r, g, b]: [number, number, number], a: number): string {
+function rgba([r, g, b]: Rgb, a: number): string {
   return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${a.toFixed(3)})`;
 }
 
-function parseCssRgba(value: string): { rgb: [number, number, number]; alpha: number } | null {
+function parseCssRgba(value: string): { rgb: Rgb; alpha: number } | null {
   const match = value.match(/^\s*rgba?\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)(?:\s*,\s*([0-9.]+))?\s*\)\s*$/i);
   if (!match) return null;
   const r = Number(match[1]);
@@ -140,7 +226,7 @@ function parseCssRgba(value: string): { rgb: [number, number, number]; alpha: nu
 // Sigma's WebGL layers use premultiplied-alpha blending. Canvas painters still
 // want normal rgba(), but translucent colors sent into Sigma need RGB scaled by
 // alpha or they wash out badly on the light paper background.
-function sigmaRgba(rgb: [number, number, number], alpha: number): string {
+function sigmaRgba(rgb: Rgb, alpha: number): string {
   const a = Math.max(0, Math.min(1, alpha));
   return rgba([rgb[0] * a, rgb[1] * a, rgb[2] * a], a);
 }
@@ -154,7 +240,7 @@ function cssSigmaColor(name: string, fallback: string, premultiply: boolean): st
   return fallbackParsed ? sigmaRgba(fallbackParsed.rgb, fallbackParsed.alpha) : value;
 }
 
-function cssRgbTriplet(name: string, fallback: [number, number, number]): [number, number, number] {
+function cssRgbTriplet(name: string, fallback: Rgb): Rgb {
   const raw = cssVar(name, "").replace(/,/g, " ").trim();
   const parts = raw.split(/\s+/).map(Number).filter(Number.isFinite);
   const [red, green, blue] = parts;

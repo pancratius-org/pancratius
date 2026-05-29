@@ -1,175 +1,281 @@
-import type Graph from "graphology";
-
 import { localizePath } from "@/lib/i18n";
 
-import type { BookSimilarRef, PageConfig, SimilarRef } from "./runtime-types";
+import type { CommunityCatalog } from "./graph-data.ts";
+import type { ConceptGraph, ConceptNodeAttributes } from "./graph-model.ts";
+import type { BookSimilarRef, ConceptosphereMode, SimilarRef } from "./graph-types.ts";
+import type { PageConfig } from "./page-config.ts";
 
-interface PanelContext {
+export interface PanelHost {
   cfg: PageConfig;
   panel: HTMLElement;
   panelBody: HTMLElement;
 }
 
 interface PanelSession {
-  mode: "concepts" | "books";
-  graph: Graph;
-  comLabel: Map<number, string>;
-  comColor: Map<number, string>;
+  mode: ConceptosphereMode;
+  graph: ConceptGraph;
+  communities: CommunityCatalog;
 }
 
-export function showPanel(ctx: PanelContext, s: PanelSession, nodeId: string, pinned: boolean): void {
-  const attrs = s.graph.getNodeAttributes(nodeId) as Record<string, unknown>;
-  ctx.panelBody.innerHTML = s.mode === "books"
-    ? renderBookPanel(ctx, s, attrs)
-    : renderConceptPanel(ctx, s, attrs, nodeId);
+const PANEL_CLASS = {
+  communityTag: "cs-com-tag",
+  swatch: "cs-sw",
+  stats: "cs-stats",
+  booksHeading: "cs-books-h",
+  booksList: "cs-books",
+  cover: "cs-cover",
+  missing: "is-miss",
+  bookMeta: "cs-b-meta",
+  bookTitle: "cs-b-title",
+  bookCount: "cs-b-count",
+  bookHero: "cs-book-hero",
+  bookCoverLink: "cs-big-cover-link",
+  bigCover: "cs-big-cover",
+  heroMeta: "cs-h-meta",
+  heroNumber: "cs-h-number",
+  bookTitleHeading: "cs-book-title-heading",
+  bookTitleLink: "cs-book-title-link",
+  tags: "cs-tags",
+  concepts: "cs-concepts",
+  count: "cs-n",
+  similarTf: "cs-similar-tf",
+  similarSem: "cs-similar-sem",
+  titleRow: "cs-b-title-row",
+  convergence: "cs-conv",
+  convergenceFoot: "cs-conv-foot",
+} as const;
+
+export function showPanel(ctx: PanelHost, session: PanelSession, nodeId: string, pinned: boolean): void {
+  const attrs = session.graph.getNodeAttributes(nodeId);
+  ctx.panelBody.replaceChildren(
+    session.mode === "books"
+      ? renderBookPanel(ctx, session, attrs)
+      : renderConceptPanel(ctx, session, attrs, nodeId),
+  );
   wirePanelImageFallbacks(ctx.panelBody);
   ctx.panel.classList.add("is-open");
   ctx.panel.classList.toggle("is-pinned", pinned);
 }
 
-export function hidePanel(ctx: PanelContext): void {
+export function hidePanel(ctx: PanelHost): void {
   ctx.panel.classList.remove("is-open", "is-pinned");
 }
 
 function wirePanelImageFallbacks(root: HTMLElement): void {
   root.querySelectorAll<HTMLImageElement>("img.cs-cover, img.cs-big-cover").forEach((img) => {
     img.addEventListener("error", () => {
-      img.classList.add("is-miss");
+      img.classList.add(PANEL_CLASS.missing);
       img.removeAttribute("src");
     }, { once: true });
   });
 }
 
 function renderConceptPanel(
-  ctx: PanelContext,
-  s: PanelSession,
-  a: Record<string, unknown>,
+  ctx: PanelHost,
+  session: PanelSession,
+  attrs: ConceptNodeAttributes,
   nodeId: string,
-): string {
+): DocumentFragment {
   const strings = ctx.cfg.strings;
   const numberLocale = strings.numberLocale;
-  const community = a.community as number;
-  const comName = s.comLabel.get(community)
-    ?? strings.clusterFallbackLabel.replace("{n}", String(community));
-  const sw = s.comColor.get(community) ?? "#888";
-  const top = (a.top_books as { slug: string; title: string; count?: number }[] | undefined) ?? [];
-  const books = top.slice(0, 5).map((b) => {
-    const coverUrl = ctx.cfg.coverUrls[`book:${b.slug}`];
-    const cover = coverUrl
-      ? `<img class="cs-cover" loading="lazy" src="${attr(coverUrl)}" alt="" />`
-      : `<span class="cs-cover is-miss" aria-hidden="true"></span>`;
-    return `<li>
-      ${cover}
-      <div class="cs-b-meta">
-        <a class="cs-b-title" href="${attr(bookHrefFromCfg(b.slug, ctx.cfg))}">${escapeHtml(b.title)}</a>
-        <div class="cs-b-count">${(b.count ?? 0).toLocaleString(numberLocale)} ${escapeHtml(strings.mentionsSuffix)}</div>
-      </div>
-    </li>`;
-  }).join("");
-  const freq = (a.frequency as number | undefined) ?? 0;
-  const cent = (a.centrality as number | undefined) ?? 0;
-  const label = typeof a.label === "string" ? a.label : "";
-  return `
-    <div class="cs-com-tag"><span class="cs-sw" style="background:${attr(sw)}"></span><span>${escapeHtml(comName)}</span></div>
-    <h3>${escapeHtml(label)}</h3>
-    <dl class="cs-stats">
-      <dt>${escapeHtml(strings.statFrequency)}</dt><dd>${freq.toLocaleString(numberLocale)}</dd>
-      <dt>${escapeHtml(strings.statCentrality)}</dt><dd>${(cent * 1000).toFixed(2)}‰</dd>
-      <dt>${escapeHtml(strings.statConnections)}</dt><dd>${s.graph.degree(nodeId)}</dd>
-    </dl>
-    <p class="cs-books-h">${escapeHtml(strings.conceptTopBooksHeading)}</p>
-    <ol class="cs-books">${books}</ol>`;
+  const community = communityView(ctx, session, attrs.communityId);
+
+  return fragment(
+    communityTag(community),
+    element("h3", { text: attrs.label }),
+    statsList([
+      [strings.statFrequency, (attrs.frequency ?? 0).toLocaleString(numberLocale)],
+      [strings.statCentrality, `${((attrs.centrality ?? 0) * 1000).toFixed(2)}‰`],
+      [strings.statConnections, String(session.graph.degree(nodeId))],
+    ]),
+    element("p", { className: PANEL_CLASS.booksHeading, text: strings.conceptTopBooksHeading }),
+    orderedBookList(
+      attrs.topBooks.slice(0, 5).map((book) => conceptBookRow(ctx, book, numberLocale)),
+    ),
+  );
 }
 
 function renderBookPanel(
-  ctx: PanelContext,
-  s: PanelSession,
-  a: Record<string, unknown>,
-): string {
+  ctx: PanelHost,
+  session: PanelSession,
+  attrs: ConceptNodeAttributes,
+): DocumentFragment {
   const strings = ctx.cfg.strings;
-  const numberLocale = strings.numberLocale;
-  const community = a.community as number;
-  const comName = s.comLabel.get(community)
-    ?? strings.clusterFallbackLabel.replace("{n}", String(community));
-  const sw = s.comColor.get(community) ?? "#888";
-  const slug = (a.slug as string | undefined) ?? "";
-  const coverUrl = ctx.cfg.coverUrls[`book:${slug}`];
+  const community = communityView(ctx, session, attrs.communityId);
+  const slug = attrs.slug ?? "";
   const selfLink = bookHrefFromCfg(slug, ctx.cfg);
-  const coverEl = coverUrl
-    ? `<a class="cs-big-cover-link" href="${attr(selfLink)}" aria-label="${attr(strings.openBookLabel)}"><img class="cs-big-cover" loading="lazy" src="${attr(coverUrl)}" alt="" /></a>`
-    : `<a class="cs-big-cover-link" href="${attr(selfLink)}" aria-label="${attr(strings.openBookLabel)}"><span class="cs-big-cover is-miss" aria-hidden="true"></span></a>`;
 
-  const tags = ((a.tags as string[] | undefined) ?? []);
-  const tagsHtml = tags.length
-    ? `<ul class="cs-tags">${tags.map((t) => `<li>${escapeHtml(t)}</li>`).join("")}</ul>`
-    : "";
-
-  const topConcepts = ((a.top_concepts as { label?: string; lemma?: string; count?: number }[] | undefined) ?? []);
-  const conceptsHtml = topConcepts.slice(0, 10).map((tc) => `
-    <li>${escapeHtml(tc.label ?? tc.lemma ?? "")}<span class="cs-n">${(tc.count ?? 0).toLocaleString(numberLocale)}</span></li>
-  `).join("");
-
-  // Similar rows are intentionally book-only: the semantic payload can mention
-  // poems, but this panel has a stable href/cover contract only for
-  // books. Keep that boundary explicit instead of synthesizing mixed-kind URLs.
-  const tfItems = ((a.top_similar as SimilarRef[] | undefined) ?? []).filter(isBookSimilar).slice(0, 5);
-  const semItems = ((a.top_similar_embed as SimilarRef[] | undefined) ?? []).filter(isBookSimilar).slice(0, 5);
-  const semSlugs = new Set(semItems.map((b) => b.slug));
-  const tfSlugs = new Set(tfItems.map((b) => b.slug));
-
-  const tfHtml = tfItems.map((b) => renderSimilarRow(ctx, b, semSlugs)).join("");
-  const semHtml = semItems.map((b) => renderSimilarRow(ctx, b, tfSlugs)).join("");
-  const hasAny = tfItems.length || semItems.length;
-
-  const similarBlock = hasAny ? `
-    ${tfItems.length ? `
-      <p class="cs-books-h">${escapeHtml(strings.similarByConceptsHeading)}</p>
-      <ol class="cs-books cs-similar-tf">${tfHtml}</ol>` : ""}
-    ${semItems.length ? `
-      <p class="cs-books-h">${escapeHtml(strings.similarByMeaningHeading)}</p>
-      <ol class="cs-books cs-similar-sem">${semHtml}</ol>` : ""}
-    ${(tfItems.length && semItems.length) ? `<p class="cs-conv-foot"><span class="cs-conv" aria-hidden="true">★</span>${escapeHtml(strings.convergenceFoot)}</p>` : ""}
-  ` : "";
-
-  return `
-    <div class="cs-com-tag"><span class="cs-sw" style="background:${attr(sw)}"></span><span>${escapeHtml(comName)}</span></div>
-    <div class="cs-book-hero">
-      ${coverEl}
-      <div class="cs-h-meta">
-        <div class="cs-h-number">${escapeHtml(strings.bookNumberPrefix)} ${(a.number as number | undefined) ?? "—"}</div>
-        <h3 class="cs-book-title-heading"><a class="cs-book-title-link" href="${attr(selfLink)}">${escapeHtml((a.title as string | undefined) ?? (a.label as string | undefined) ?? "")}</a></h3>
-        ${tagsHtml}
-      </div>
-    </div>
-    <p class="cs-books-h">${escapeHtml(strings.bookTopConceptsHeading)}</p>
-    <ul class="cs-concepts">${conceptsHtml}</ul>
-    ${similarBlock}`;
+  return fragment(
+    communityTag(community),
+    bookHero(ctx, attrs, selfLink),
+    element("p", { className: PANEL_CLASS.booksHeading, text: strings.bookTopConceptsHeading }),
+    conceptList(attrs, strings.numberLocale),
+    similarBooksBlock(ctx, attrs),
+  );
 }
 
-function renderSimilarRow(
-  ctx: PanelContext,
-  ref: BookSimilarRef,
-  convergentSet: Set<string>,
-): string {
+function conceptBookRow(
+  ctx: PanelHost,
+  book: { slug: string; title: string; count?: number },
+  numberLocale: string,
+): HTMLLIElement {
+  return element("li", {}, [
+    coverThumb(ctx.cfg.coverUrls[`book:${book.slug}`]),
+    element("div", { className: PANEL_CLASS.bookMeta }, [
+      link(bookHrefFromCfg(book.slug, ctx.cfg), book.title, PANEL_CLASS.bookTitle),
+      element("div", {
+        className: PANEL_CLASS.bookCount,
+        text: `${(book.count ?? 0).toLocaleString(numberLocale)} ${ctx.cfg.strings.mentionsSuffix}`,
+      }),
+    ]),
+  ]);
+}
+
+function bookHero(ctx: PanelHost, attrs: ConceptNodeAttributes, selfLink: string): HTMLElement {
   const strings = ctx.cfg.strings;
-  const key = `book:${ref.slug}`;
-  const coverUrl = ctx.cfg.coverUrls[key];
-  const cover = coverUrl
-    ? `<img class="cs-cover" loading="lazy" src="${attr(coverUrl)}" alt="" />`
-    : `<span class="cs-cover is-miss" aria-hidden="true"></span>`;
-  const star = convergentSet.has(ref.slug)
-    ? `<span class="cs-conv" title="${attr(strings.convergenceLabel)}" aria-label="${attr(strings.convergenceLabel)}">★</span>`
-    : "";
-  const pct = ((ref.weight ?? 0) * 100).toFixed(0);
-  const href = bookHrefFromCfg(ref.slug, ctx.cfg);
-  const caption = strings.similarityCaption.replace("{pct}", pct);
-  return `<li>
-    ${cover}
-    <div class="cs-b-meta">
-      <div class="cs-b-title-row"><a class="cs-b-title" href="${attr(href)}">${escapeHtml(ref.title)}</a>${star}</div>
-      <div class="cs-b-count">${escapeHtml(caption)}</div>
-    </div>
-  </li>`;
+  const slug = attrs.slug ?? "";
+  const coverUrl = ctx.cfg.coverUrls[`book:${slug}`];
+  const coverLink = link(selfLink, "", PANEL_CLASS.bookCoverLink);
+  coverLink.setAttribute("aria-label", strings.openBookLabel);
+  coverLink.append(bigCover(coverUrl));
+
+  return element("div", { className: PANEL_CLASS.bookHero }, [
+    coverLink,
+    element("div", { className: PANEL_CLASS.heroMeta }, [
+      element("div", {
+        className: PANEL_CLASS.heroNumber,
+        text: `${strings.bookNumberPrefix} ${attrs.number ?? "—"}`,
+      }),
+      element("h3", { className: PANEL_CLASS.bookTitleHeading }, [
+        link(selfLink, attrs.title ?? attrs.label, PANEL_CLASS.bookTitleLink),
+      ]),
+      tagList(attrs.tags),
+    ]),
+  ]);
+}
+
+function conceptList(attrs: ConceptNodeAttributes, numberLocale: string): HTMLUListElement {
+  return element("ul", { className: PANEL_CLASS.concepts }, attrs.topConcepts.slice(0, 10).map((concept) =>
+    element("li", {}, [
+      concept.label ?? concept.lemma ?? "",
+      element("span", { className: PANEL_CLASS.count, text: (concept.count ?? 0).toLocaleString(numberLocale) }),
+    ]),
+  ));
+}
+
+function similarBooksBlock(ctx: PanelHost, attrs: ConceptNodeAttributes): DocumentFragment {
+  const tfItems = attrs.similarByConcepts.filter(isBookSimilar).slice(0, 5);
+  const semItems = attrs.similarByMeaning.filter(isBookSimilar).slice(0, 5);
+  const tfSlugs = new Set(tfItems.map((book) => book.slug));
+  const semSlugs = new Set(semItems.map((book) => book.slug));
+  const strings = ctx.cfg.strings;
+
+  const nodes: Node[] = [];
+  if (tfItems.length) {
+    nodes.push(
+      element("p", { className: PANEL_CLASS.booksHeading, text: strings.similarByConceptsHeading }),
+      orderedBookList(tfItems.map((book) => similarBookRow(ctx, book, semSlugs)), PANEL_CLASS.similarTf),
+    );
+  }
+  if (semItems.length) {
+    nodes.push(
+      element("p", { className: PANEL_CLASS.booksHeading, text: strings.similarByMeaningHeading }),
+      orderedBookList(semItems.map((book) => similarBookRow(ctx, book, tfSlugs)), PANEL_CLASS.similarSem),
+    );
+  }
+  if (tfItems.length && semItems.length) {
+    const marker = element("span", { className: PANEL_CLASS.convergence, text: "★" });
+    marker.setAttribute("aria-hidden", "true");
+    nodes.push(element("p", { className: PANEL_CLASS.convergenceFoot }, [
+      marker,
+      strings.convergenceFoot,
+    ]));
+  }
+  return fragment(...nodes);
+}
+
+function similarBookRow(
+  ctx: PanelHost,
+  ref: BookSimilarRef,
+  convergentSet: ReadonlySet<string>,
+): HTMLLIElement {
+  const strings = ctx.cfg.strings;
+  const star = element("span", { className: PANEL_CLASS.convergence, text: "★" });
+  star.title = strings.convergenceLabel;
+  star.setAttribute("aria-label", strings.convergenceLabel);
+  if (!convergentSet.has(ref.slug)) star.hidden = true;
+
+  return element("li", {}, [
+    coverThumb(ctx.cfg.coverUrls[`book:${ref.slug}`]),
+    element("div", { className: PANEL_CLASS.bookMeta }, [
+      element("div", { className: PANEL_CLASS.titleRow }, [
+        link(bookHrefFromCfg(ref.slug, ctx.cfg), ref.title, PANEL_CLASS.bookTitle),
+        star,
+      ]),
+      element("div", {
+        className: PANEL_CLASS.bookCount,
+        text: strings.similarityCaption.replace("{pct}", ((ref.weight ?? 0) * 100).toFixed(0)),
+      }),
+    ]),
+  ]);
+}
+
+function communityTag(community: { label: string; color: string }): HTMLElement {
+  const swatch = element("span", { className: PANEL_CLASS.swatch });
+  swatch.style.background = community.color;
+  return element("div", { className: PANEL_CLASS.communityTag }, [
+    swatch,
+    element("span", { text: community.label }),
+  ]);
+}
+
+function statsList(rows: readonly [string, string][]): HTMLDListElement {
+  const list = element("dl", { className: PANEL_CLASS.stats });
+  for (const [term, description] of rows) {
+    list.append(element("dt", { text: term }), element("dd", { text: description }));
+  }
+  return list;
+}
+
+function orderedBookList(rows: readonly HTMLLIElement[], extraClass?: string): HTMLOListElement {
+  return element("ol", {
+    className: extraClass ? `${PANEL_CLASS.booksList} ${extraClass}` : PANEL_CLASS.booksList,
+  }, rows);
+}
+
+function tagList(tags: readonly string[]): HTMLUListElement | DocumentFragment {
+  if (!tags.length) return fragment();
+  return element("ul", { className: PANEL_CLASS.tags }, tags.map((tag) => element("li", { text: tag })));
+}
+
+function coverThumb(src: string | undefined): HTMLElement {
+  if (!src) return element("span", { className: `${PANEL_CLASS.cover} ${PANEL_CLASS.missing}` });
+  const img = element("img", { className: PANEL_CLASS.cover });
+  img.loading = "lazy";
+  img.src = src;
+  img.alt = "";
+  return img;
+}
+
+function bigCover(src: string | undefined): HTMLElement {
+  if (!src) return element("span", { className: `${PANEL_CLASS.bigCover} ${PANEL_CLASS.missing}` });
+  const img = element("img", { className: PANEL_CLASS.bigCover });
+  img.loading = "lazy";
+  img.src = src;
+  img.alt = "";
+  return img;
+}
+
+function communityView(
+  ctx: PanelHost,
+  session: PanelSession,
+  communityId: number,
+): { label: string; color: string } {
+  const community = session.communities.byId.get(communityId);
+  return {
+    label: community?.label ?? ctx.cfg.strings.clusterFallbackLabel.replace("{n}", String(communityId)),
+    color: community?.color ?? "#888",
+  };
 }
 
 function isBookSimilar(ref: SimilarRef): ref is BookSimilarRef {
@@ -184,21 +290,26 @@ function bookHrefFromCfg(slug: string | undefined | null, cfg: PageConfig): stri
   return clean ? `/books/${clean}/` : "/books/";
 }
 
-function attr(s: string): string {
-  return escapeHtml(s);
+function link(href: string, text: string, className: string): HTMLAnchorElement {
+  const anchor = element("a", { className, text });
+  anchor.href = href;
+  return anchor;
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, escapeHtmlChar);
+function fragment(...children: readonly Node[]): DocumentFragment {
+  const out = document.createDocumentFragment();
+  out.append(...children);
+  return out;
 }
 
-function escapeHtmlChar(c: string): string {
-  switch (c) {
-    case "&": return "&amp;";
-    case "<": return "&lt;";
-    case ">": return "&gt;";
-    case "\"": return "&quot;";
-    case "'": return "&#39;";
-    default: return c;
-  }
+function element<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  options: { className?: string; text?: string } = {},
+  children: readonly (Node | string)[] = [],
+): HTMLElementTagNameMap[K] {
+  const node = document.createElement(tag);
+  if (options.className) node.className = options.className;
+  if (options.text !== undefined) node.textContent = options.text;
+  for (const child of children) node.append(typeof child === "string" ? document.createTextNode(child) : child);
+  return node;
 }
