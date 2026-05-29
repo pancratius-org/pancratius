@@ -26,6 +26,6 @@ export function layoutFor(
   thresholdChars = 600,
 ): "compact" | "blog" {
   if (headingsCount > 0) return "blog";
-  const cleaned = bodyText.replace(/<!--[\s\S]*?-->/g, "").replace(/[#*_>`\-\[\]\(\)]/g, "").trim();
+  const cleaned = bodyText.replace(/<!--[\s\S]*?-->/g, "").replace(/[\[\]#*_>`()-]/g, "").trim();
   return cleaned.length >= thresholdChars ? "blog" : "compact";
 }

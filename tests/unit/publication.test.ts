@@ -135,7 +135,7 @@ describe("renderPublicWorkMarkdown", () => {
     );
     assert.throws(
       () => renderPublicWorkMarkdown(
-        "![Alt](data:image\/png;base64,abc)\n",
+        "![Alt](data:image/png;base64,abc)\n",
         { origin: ORIGIN, work: { kind: "book", bundleKey: "work-1" } },
       ),
       /Unsupported public Markdown image URL scheme/,
