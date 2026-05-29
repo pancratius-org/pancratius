@@ -16,7 +16,7 @@ function archiveNames(): string[] {
   const manifest = JSON.parse(readFileSync(manifestPath, "utf-8")) as ArchiveManifest;
   return (manifest.archives ?? [])
     .map(a => a.name)
-    .filter((name): name is string => Boolean(name && name.endsWith(".zip")));
+    .filter((name): name is string => name?.endsWith(".zip") === true);
 }
 
 export const getStaticPaths = (() => {

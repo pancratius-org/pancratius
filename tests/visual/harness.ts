@@ -89,7 +89,10 @@ export const AUDIT_ROUTE_NAMES: readonly string[] = AUDIT_ROUTES.map((r) => r.na
 export function parseTag(argv: readonly string[], fallback: string): string {
   for (const [i, arg] of argv.entries()) {
     if (arg.startsWith("--tag=")) return arg.slice("--tag=".length) || fallback;
-    if (arg === "--tag") return argv.at(i + 1) || fallback;
+    if (arg === "--tag") {
+      const value = argv.at(i + 1);
+      return value === undefined || value === "" ? fallback : value;
+    }
   }
   return fallback;
 }

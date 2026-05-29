@@ -92,6 +92,20 @@ function lineOf(sf: ts.SourceFile, node: ts.Node): number {
   return ts.getLineAndCharacterOfPosition(sf, node.getStart()).line + 1;
 }
 
+function withinAnyRegion(node: ts.Node, regions: readonly ts.Node[]): boolean {
+  return regions.some((r) => nodeContains(r, node));
+}
+
+function capturedBindingReachesParams(
+  init: ts.Node,
+  call: ts.Node,
+  paramsValues: readonly ts.Node[],
+): boolean {
+  const binding = enclosingBindingName(call);
+  if (!binding || nameDeclarationCount(init, binding) !== 1) return false;
+  return findIdentifierRefs(init, binding).some((ref) => withinAnyRegion(ref, paramsValues));
+}
+
 export const rule: Rule = {
   id: ID,
   title: "PAN002: display-fallback selectors must not influence route params/existence in getStaticPaths",
@@ -144,9 +158,6 @@ export const rule: Rule = {
       const paramsValues = findPropertyValues(init, "params");
       const filterArgs = findMethodCallArguments(init, "filter");
 
-      const within = (node: ts.Node, regions: ts.Node[]): boolean =>
-        regions.some((r) => nodeContains(r, node));
-
       for (const selector of SELECTORS) {
         // Recognize the selector under any local alias bound by a named import
         // whose original name is the selector (closes the aliased-import
@@ -158,7 +169,7 @@ export const rule: Rule = {
         for (const call of findIdentifierCallsAny(init, selectorNames)) {
           // (a) the call itself sits inside a params value subtree, or
           // (c) inside a .filter(...) argument subtree.
-          let influencesExistence = within(call, paramsValues) || within(call, filterArgs);
+          let influencesExistence = withinAnyRegion(call, paramsValues) || withinAnyRegion(call, filterArgs);
 
           // (b) the call is captured into `const X = displayWorkEntry(…)` and
           // some reference to X within this getStaticPaths body lands in a params
@@ -166,13 +177,7 @@ export const rule: Rule = {
           // scan can't distinguish a shadowed re-use (idiomatic
           // `.map((entry) => …)`), so we refuse the ambiguous case rather than
           // risk a fatal false positive.
-          if (!influencesExistence) {
-            const binding = enclosingBindingName(call);
-            if (binding && nameDeclarationCount(init, binding) === 1) {
-              const refs = findIdentifierRefs(init, binding);
-              influencesExistence = refs.some((ref) => within(ref, paramsValues));
-            }
-          }
+          if (!influencesExistence) influencesExistence = capturedBindingReachesParams(init, call, paramsValues);
 
           if (!influencesExistence) continue;
 
