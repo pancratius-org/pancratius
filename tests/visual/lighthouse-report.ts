@@ -121,7 +121,7 @@ function run(cmd: string, args: readonly string[]): Promise<void> {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(cmd, [...args], { stdio: ["ignore", "pipe", "pipe"] });
     let err = "";
-    child.stderr?.on("data", (chunk: Buffer) => {
+    child.stderr.on("data", (chunk: Buffer) => {
       err += chunk.toString();
     });
     child.on("error", rejectRun);

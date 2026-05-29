@@ -1,0 +1,20 @@
+---
+import type { GetStaticPaths } from "astro";
+
+import VideoPage from "@/components/VideoPage.astro";
+import { displayVideoEntry, getAllVideoPairs, localizedVideoPairs } from "@/lib/videos";
+
+// CORRECT: existence is gated on the authored EN entry; params come from that
+// entry. `displayVideoEntry` is used only for display props.
+export const getStaticPaths = (async () => {
+  const pairs = await getAllVideoPairs();
+  return localizedVideoPairs(pairs, "en")
+    .map(({ pair, entry }) => ({
+      params: { slug: entry.data.slug },
+      props: { pair, display: displayVideoEntry(pair, "en") },
+    }));
+}) satisfies GetStaticPaths;
+
+const { pair } = Astro.props;
+---
+<VideoPage pair={pair} locale="en" />

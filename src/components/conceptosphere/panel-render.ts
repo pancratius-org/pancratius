@@ -68,9 +68,10 @@ function renderConceptPanel(
   }).join("");
   const freq = (a.frequency as number | undefined) ?? 0;
   const cent = (a.centrality as number | undefined) ?? 0;
+  const label = typeof a.label === "string" ? a.label : "";
   return `
     <div class="cs-com-tag"><span class="cs-sw" style="background:${attr(sw)}"></span><span>${escapeHtml(comName)}</span></div>
-    <h3>${escapeHtml((a.label as string) ?? "")}</h3>
+    <h3>${escapeHtml(label)}</h3>
     <dl class="cs-stats">
       <dt>${escapeHtml(strings.statFrequency)}</dt><dd>${freq.toLocaleString(numberLocale)}</dd>
       <dt>${escapeHtml(strings.statCentrality)}</dt><dd>${(cent * 1000).toFixed(2)}‰</dd>
@@ -179,7 +180,7 @@ function bookHrefFromCfg(slug: string | undefined | null, cfg: PageConfig): stri
   if (!slug) return localizePath("/books/", cfg.locale);
   const info = cfg.bookSlugInfo[slug];
   if (info?.href) return info.href;
-  const clean = encodeURIComponent(String(slug).trim().replace(/^\/+|\/+$/g, "")).replace(/\./g, "%2E");
+  const clean = encodeURIComponent(slug.trim().replace(/^\/+|\/+$/g, "")).replace(/\./g, "%2E");
   return clean ? `/books/${clean}/` : "/books/";
 }
 
@@ -188,7 +189,16 @@ function attr(s: string): string {
 }
 
 function escapeHtml(s: string): string {
-  return String(s).replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;",
-  }[c]!));
+  return s.replace(/[&<>"']/g, escapeHtmlChar);
+}
+
+function escapeHtmlChar(c: string): string {
+  switch (c) {
+    case "&": return "&amp;";
+    case "<": return "&lt;";
+    case ">": return "&gt;";
+    case "\"": return "&quot;";
+    case "'": return "&#39;";
+    default: return c;
+  }
 }

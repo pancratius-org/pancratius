@@ -3,12 +3,12 @@ import type { GetStaticPaths } from "astro";
 
 import BookPage from "@/components/BookPage.astro";
 import { DEFAULT_LOCALE } from "@/lib/i18n";
-import { getPairsByKind } from "@/lib/works";
+import { defaultWorkEntry, getPairsByKind } from "@/lib/works";
 
 export const getStaticPaths = (async () => {
   const pairs = await getPairsByKind("book");
   return pairs.map(p => ({
-    params: { slug: p.entries[DEFAULT_LOCALE]!.data.slug },
+    params: { slug: defaultWorkEntry(p).data.slug },
     props: { pair: p },
   }));
 }) satisfies GetStaticPaths;

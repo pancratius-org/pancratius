@@ -11,7 +11,7 @@ import { resolve as resolvePath } from "node:path";
 import type { Locale, RoutedKind } from "./i18n";
 import { workUrl } from "./i18n";
 import type { WorkEntry, WorkPair } from "./works";
-import { crossRefKeys, findPair, pairKey } from "./works";
+import { crossRefKeys, entryForAuthoredLocale, findPair, pairKey } from "./works";
 
 const REPO_ROOT = process.cwd();
 
@@ -127,24 +127,28 @@ export function loadConceptsGraph(): ConceptsGraph {
 // from RU content, so its node IDs are RU slugs.
 // ─────────────────────────────────────────────────────────────────────
 
-let _bookNodeBySlug: Map<string, BooksGraphNode> | null = null;
-let _bookNodeByNumber: Map<number, BooksGraphNode> | null = null;
+let _bookNodeIndex: {
+  bySlug:   Map<string, BooksGraphNode>;
+  byNumber: Map<number, BooksGraphNode>;
+} | null = null;
 
-function indexBookNodes(): void {
-  if (_bookNodeBySlug && _bookNodeByNumber) return;
+function bookNodeIndex(): { bySlug: Map<string, BooksGraphNode>; byNumber: Map<number, BooksGraphNode> } {
+  if (_bookNodeIndex) return _bookNodeIndex;
   const graph = loadBooksGraph();
-  _bookNodeBySlug   = new Map();
-  _bookNodeByNumber = new Map();
+  const bySlug = new Map<string, BooksGraphNode>();
+  const byNumber = new Map<number, BooksGraphNode>();
   for (const node of graph.nodes) {
-    _bookNodeBySlug.set(node.slug, node);
-    _bookNodeByNumber.set(node.number, node);
+    bySlug.set(node.slug, node);
+    byNumber.set(node.number, node);
   }
+  _bookNodeIndex = { bySlug, byNumber };
+  return _bookNodeIndex;
 }
 
 function bookNode(numberOrSlug: number | string): BooksGraphNode | null {
-  indexBookNodes();
-  if (typeof numberOrSlug === "number") return _bookNodeByNumber!.get(numberOrSlug) ?? null;
-  return _bookNodeBySlug!.get(numberOrSlug) ?? null;
+  const index = bookNodeIndex();
+  if (typeof numberOrSlug === "number") return index.byNumber.get(numberOrSlug) ?? null;
+  return index.bySlug.get(numberOrSlug) ?? null;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -192,7 +196,7 @@ export async function getMergedSimilar(input: SimilarPickInput): Promise<Similar
   const node = bookNode(entry.data.number);
   if (!node) return [];
 
-  const tfidf = node.top_similar ?? [];
+  const tfidf = node.top_similar;
   const embed = node.top_similar_embed ?? [];
 
   const tfidfMax = tfidf[0]?.weight ?? 1;
@@ -249,7 +253,7 @@ export async function getMergedSimilar(input: SimilarPickInput): Promise<Similar
     if (!pair) continue;
     // Existence: skip the pick if the page doesn't exist in this locale rather
     // than emit a dead link to /<locale>/books/<default-locale-slug>/.
-    const display = pair.entries[locale];
+    const display = entryForAuthoredLocale(pair, locale);
     if (!display) continue;
 
     const convergent =

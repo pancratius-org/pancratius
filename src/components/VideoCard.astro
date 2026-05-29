@@ -1,7 +1,7 @@
 ---
 import type { Locale } from "@/lib/i18n";
-import { DEFAULT_LOCALE, LOCALES, routedUrl } from "@/lib/i18n";
-import { videoEntryForLocale, formatDuration, videoTags, type VideoPair } from "@/lib/videos";
+import { DEFAULT_LOCALE, routedUrl } from "@/lib/i18n";
+import { authoredVideoPairs, displayVideoEntry, formatDuration, videoTags, type VideoPair } from "@/lib/videos";
 import { videoCardCopy } from "@/lib/copy";
 import VideoCover from "./VideoCover.astro";
 
@@ -14,28 +14,29 @@ interface Props {
 
 const { pair, locale, blurb } = Astro.props;
 const copy = videoCardCopy[locale];
-const localeFallback = locale !== DEFAULT_LOCALE && !pair.entries[locale];
-const display = videoEntryForLocale(pair, locale);
-const linkLocale: Locale = localeFallback ? DEFAULT_LOCALE : locale;
-const href = routedUrl("video", display.data.slug, linkLocale);
-const tags = videoTags(display);
+const display = displayVideoEntry(pair, locale);
+const localeFallback = display.linkLocale !== locale;
+const linkLocale: Locale = display.linkLocale;
+const entry = display.entry;
+const href = routedUrl("video", entry.data.slug, linkLocale);
+const tags = videoTags(entry);
 const hasTranslationBadge =
-  locale === DEFAULT_LOCALE && LOCALES.some(l => l !== DEFAULT_LOCALE && !!pair.entries[l]);
+  locale === DEFAULT_LOCALE && authoredVideoPairs(pair).some(item => item.locale !== DEFAULT_LOCALE);
 const altPrefix = copy.coverAltPrefix;
-const duration = formatDuration(display.data.duration);
+const duration = formatDuration(entry.data.duration);
 ---
 <a
   class="vid"
   href={href}
   role="listitem"
-  data-title={display.data.title.toLowerCase()}
+  data-title={entry.data.title.toLowerCase()}
   data-tags={tags.join("|")}
   data-number={pair.number}
 >
-  <VideoCover pair={pair} locale={locale} alt={`${altPrefix}: ${display.data.title}`} badge={duration} />
+  <VideoCover pair={pair} locale={locale} alt={`${altPrefix}: ${entry.data.title}`} badge={duration} />
   <div class="vid__body">
     <span class="vid__num">{String(pair.number).padStart(2, "0")}</span>
-    <h2 class="vid__title">{display.data.title}</h2>
+    <h2 class="vid__title">{entry.data.title}</h2>
     {blurb && <p class="vid__annot">{blurb}</p>}
     {hasTranslationBadge && <span class="vid__lang">{copy.bothLangsBadge}</span>}
     {localeFallback && <span class="vid__lang vid__lang--fallback">{copy.fallbackBadge}</span>}

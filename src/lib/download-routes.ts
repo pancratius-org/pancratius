@@ -3,7 +3,7 @@ import type { APIRoute } from "astro";
 import { availableFormatsForWork, renderDownload, type DownloadFormat } from "./downloads";
 import type { Locale } from "./i18n";
 import { publicationOrigin } from "./publication/site";
-import { getPairsByKind, type WorkPair, type WorkPairKind } from "./works";
+import { getPairsByKind, localizedWorkPairs, type WorkPair, type WorkPairKind } from "./works";
 
 export interface DownloadRouteProps extends Record<string, unknown> {
   pair: WorkPair;
@@ -18,10 +18,8 @@ export async function downloadStaticPaths(kind: WorkPairKind, locale: Locale) {
     props: DownloadRouteProps;
   }[] = [];
 
-  for (const pair of pairs) {
+  for (const { pair, entry } of localizedWorkPairs(pairs, locale)) {
     // Existence: only emit download routes for locales that were authored.
-    const entry = pair.entries[locale];
-    if (!entry) continue;
     for (const format of availableFormatsForWork(pair, locale)) {
       out.push({
         params: { slug: entry.data.slug, format },

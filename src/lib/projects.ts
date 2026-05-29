@@ -14,8 +14,8 @@
 import { getCollection, type CollectionEntry } from "astro:content";
 
 import type { Locale } from "./i18n";
-import { DEFAULT_LOCALE, LOCALES, localizePath, routedUrl, workUrl } from "./i18n";
-import { entryForLocale, findPair, type WorkPair } from "./works";
+import { LOCALES, localizePath, routedUrl, workUrl } from "./i18n";
+import { displayWorkEntry, findPair, type WorkPair } from "./works";
 
 type ProjectCollectionEntry = CollectionEntry<"projects">;
 
@@ -193,8 +193,7 @@ export async function featuredBookUrl(
 ): Promise<string | null> {
   const pair = await findPair("book", number);
   if (!pair) return null;
-  const linkLocale: Locale = pair.entries[locale] ? locale : DEFAULT_LOCALE;
-  const entry = entryForLocale(pair, linkLocale);
+  const { entry, linkLocale } = displayWorkEntry(pair, locale);
   return workUrl("book", entry.data.slug, linkLocale);
 }
 

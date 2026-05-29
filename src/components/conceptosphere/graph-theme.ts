@@ -157,11 +157,12 @@ function cssSigmaColor(name: string, fallback: string, premultiply: boolean): st
 function cssRgbTriplet(name: string, fallback: [number, number, number]): [number, number, number] {
   const raw = cssVar(name, "").replace(/,/g, " ").trim();
   const parts = raw.split(/\s+/).map(Number).filter(Number.isFinite);
-  if (parts.length < 3) return fallback;
+  const [red, green, blue] = parts;
+  if (red === undefined || green === undefined || blue === undefined) return fallback;
   return [
-    Math.max(0, Math.min(255, parts[0]!)),
-    Math.max(0, Math.min(255, parts[1]!)),
-    Math.max(0, Math.min(255, parts[2]!)),
+    Math.max(0, Math.min(255, red)),
+    Math.max(0, Math.min(255, green)),
+    Math.max(0, Math.min(255, blue)),
   ];
 }
 

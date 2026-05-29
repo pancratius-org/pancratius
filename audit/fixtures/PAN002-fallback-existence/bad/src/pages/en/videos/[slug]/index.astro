@@ -1,0 +1,19 @@
+---
+import type { GetStaticPaths } from "astro";
+
+import VideoPage from "@/components/VideoPage.astro";
+import { getAllVideoPairs, displayVideoEntry } from "@/lib/videos";
+
+// BUG: getStaticPaths uses the display-fallback selector to build params/props,
+// so an `/en/…` route is emitted even for a video with no authored EN entry.
+export const getStaticPaths = (async () => {
+  const pairs = await getAllVideoPairs();
+  return pairs.map(p => {
+    const display = displayVideoEntry(p, "en");
+    return { params: { slug: display.entry.data.slug }, props: { pair: p } };
+  });
+}) satisfies GetStaticPaths;
+
+const { pair } = Astro.props;
+---
+<VideoPage pair={pair} locale="en" />

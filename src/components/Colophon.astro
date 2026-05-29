@@ -2,7 +2,7 @@
 import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE, downloadUrl, pageUrl, workUrl } from "@/lib/i18n";
 import { colophonCopy } from "@/lib/copy";
-import type { WorkPair } from "@/lib/works";
+import { defaultWorkEntry, entryForAuthoredLocale, type WorkPair } from "@/lib/works";
 import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
 
 interface Props {
@@ -12,12 +12,12 @@ interface Props {
 
 const { pair, locale } = Astro.props;
 // Existence: the colophon renders on a page that exists in `locale`.
-const entry = pair.entries[locale];
+const entry = entryForAuthoredLocale(pair, locale);
 if (!entry) {
   throw new Error(`Colophon: no ${locale} entry for ${pair.kind} #${pair.number}`);
 }
 // The "original" back-link always points at the canonical default-locale work.
-const originalEntry = pair.entries[DEFAULT_LOCALE]!;
+const originalEntry = defaultWorkEntry(pair);
 const formats: DownloadFormat[] = availableFormatsForWork(pair, locale);
 
 const licenseHref = pageUrl("license", locale);

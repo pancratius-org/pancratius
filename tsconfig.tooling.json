@@ -2,7 +2,7 @@
   "//": "Strict typecheck for Node build/audit/test tooling and Playwright specs that the app tsconfig excludes. erasableSyntaxOnly keeps node-run tooling strip-compatible (no enums/namespaces/param-properties).",
   "compilerOptions": {
     "target": "ES2025",
-    "lib": ["ES2025", "DOM", "DOM.Iterable"],
+    "lib": ["ES2025", "DOM"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "types": ["node"],

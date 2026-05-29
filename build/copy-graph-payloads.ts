@@ -15,11 +15,7 @@ const PAYLOADS = [
 
 function minifyJsonFile(path: string): string {
   const parsed: unknown = JSON.parse(readFileSync(path, "utf-8"));
-  const minified = JSON.stringify(parsed);
-  if (minified === undefined) {
-    throw new Error("JSON payload must be an object, array, or scalar");
-  }
-  return minified;
+  return JSON.stringify(parsed);
 }
 
 function sameText(path: string, text: string): boolean {

@@ -5,10 +5,9 @@ import { extname, resolve as resolvePath } from "node:path";
 import type { APIRoute } from "astro";
 import sharp from "sharp";
 
-import { DEFAULT_LOCALE, type RoutedKind } from "./i18n";
+import type { RoutedKind } from "./i18n";
 import { CORPUS_WORK_KINDS, ROUTED_KINDS, SEGMENT_OF, type RoutedSegment } from "./kinds";
 import { publicWorkMarkdownAssetPaths } from "./publication/public-markdown";
-import type { WorkPair } from "./works";
 
 const REPO_ROOT = process.cwd();
 const CONTENT = resolvePath(REPO_ROOT, "src", "content");
@@ -62,14 +61,6 @@ export interface BodyImageRouteProps {
   [key: string]: unknown;
   diskPath:     string;
   contentType: string;
-}
-
-export function workBundleKey(pair: WorkPair): string {
-  // The bundle folder is the same across locales; key off the canonical entry.
-  const id = pair.entries[DEFAULT_LOCALE]!.id;
-  const separator = id.indexOf("--");
-  if (separator === -1) throw new Error(`work entry id ${JSON.stringify(id)} is missing its locale separator`);
-  return id.slice(0, separator);
 }
 
 export function workAssetImageStaticPaths() {
@@ -138,7 +129,7 @@ function assetPublicPath(kind: string, work: string, file: string): string {
 }
 
 export const bodyImageGET: APIRoute<BodyImageRouteProps> = async ({ props }) => {
-  if (!props || !existsSync(props.diskPath)) {
+  if (!existsSync(props.diskPath)) {
     return new Response("Not found", { status: 404 });
   }
 

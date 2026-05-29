@@ -30,6 +30,17 @@ function labelSizeFor(size: number, maxSize: number): number {
   return 12.5;
 }
 
+function numericAttr(attrs: Record<string, unknown>, key: string): number | undefined {
+  const value = attrs[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function requireMapEntry<K, V>(map: ReadonlyMap<K, V>, key: K, label: string): V {
+  const value = map.get(key);
+  if (value === undefined) throw new Error(`conceptosphere graph layout missing ${label}: ${String(key)}`);
+  return value;
+}
+
 function cycleAt<T>(items: readonly [T, ...T[]], index: number): T {
   const item = items[index % items.length];
   if (item === undefined) throw new Error("cycleAt received an empty cycle");
@@ -89,7 +100,7 @@ export function buildGraphModel(
 
   const comCentroid = new Map<number, { x: number; y: number }>();
   for (const c of comsBySize) {
-    const sec = sectorOf.get(c.id)!;
+    const sec = requireMapEntry(sectorOf, c.id, "community sector");
     comCentroid.set(c.id, {
       x: Math.cos(sec.mid) * RING_BASE,
       y: Math.sin(sec.mid) * RING_BASE,
@@ -97,9 +108,9 @@ export function buildGraphModel(
   }
 
   sizedNodes.forEach(({ node: n, size }, i) => {
-    const c = comCentroid.get(n.community)!;
-    const sec = sectorOf.get(n.community)!;
-    const members = nodesByCom.get(n.community)!;
+    const c = requireMapEntry(comCentroid, n.community, "community centroid");
+    const sec = requireMapEntry(sectorOf, n.community, "community sector");
+    const members = requireMapEntry(nodesByCom, n.community, "community members");
     const inComIdx = members.findIndex((x) => x.id === n.id);
     const radial = Math.sqrt(inComIdx / Math.max(1, members.length)) * COM_SPREAD;
     const angSpan = Math.min(sec.end - sec.start, Math.PI * 0.6);
@@ -148,7 +159,7 @@ export function buildGraphModel(
 
   let minW = Infinity, maxW = 0;
   for (const e of data.edges) {
-    const w = e.weight ?? 1;
+    const w = e.weight;
     if (w < minW) minW = w;
     if (w > maxW) maxW = w;
   }
@@ -168,7 +179,7 @@ export function buildGraphModel(
   }
   const visibleCross = new Set<string>();
   for (const arr of crossByPair.values()) {
-    arr.sort((a, b) => (b.npmi ?? b.weight ?? 0) - (a.npmi ?? a.weight ?? 0));
+    arr.sort((a, b) => (b.npmi ?? b.weight) - (a.npmi ?? a.weight));
     for (const e of arr.slice(0, CROSS_KEEP)) {
       visibleCross.add(`${e.source}|${e.target}`);
     }
@@ -181,10 +192,10 @@ export function buildGraphModel(
     const tc = graph.getNodeAttribute(e.target, "community") as number;
     const within = sc === tc;
     const isBackbone = within || visibleCross.has(`${e.source}|${e.target}`);
-    const w = e.weight ?? 1;
+    const w = e.weight;
     const t = Math.pow(Math.max(0, (w - minW) / wRange), 0.55);
-    const ca = comRgb.get(sc)!;
-    const cb = comRgb.get(tc)!;
+    const ca = requireMapEntry(comRgb, sc, "community color");
+    const cb = requireMapEntry(comRgb, tc, "community color");
     const edge = edgeVisual(theme, mode, within, t, ca, cb);
     graph.addEdge(e.source, e.target, {
       size: edge.size,
@@ -218,8 +229,10 @@ function applyCommunityLayout(
     const B = ta.community as number;
     if (A === B) return;
     const w = (attrs.weight as number | undefined) ?? 1;
-    comTies.get(A)!.set(B, (comTies.get(A)!.get(B) ?? 0) + w);
-    comTies.get(B)!.set(A, (comTies.get(B)!.get(A) ?? 0) + w);
+    const tiesA = requireMapEntry(comTies, A, "community ties");
+    const tiesB = requireMapEntry(comTies, B, "community ties");
+    tiesA.set(B, (tiesA.get(B) ?? 0) + w);
+    tiesB.set(A, (tiesB.get(A) ?? 0) + w);
   });
 
   const comGraph = new Graph({ type: "undirected", multi: false });
@@ -269,7 +282,7 @@ function applyCommunityLayout(
   }
   const TIERS = mode === "books" ? [260, 380] as const : [210, 330, 450] as const;
   comAngles.forEach((c, i) => {
-    const ang = tmp.get(c.id)!;
+    const ang = requireMapEntry(tmp, c.id, "community angle");
     const sz = comSize.get(c.id) ?? 0;
     const baseR = cycleAt(TIERS, i);
     const ringR = baseR + Math.sqrt(sz / 50) * 12;
@@ -351,19 +364,19 @@ function relaxOverlaps(
     const dx = new Map<string, number>();
     const dy = new Map<string, number>();
 
-    for (let i = 0; i < nodes.length; i++) {
-      const aId = nodes[i]!;
+    for (const [i, aId] of nodes.entries()) {
       const a = graph.getNodeAttributes(aId);
       const ax = a.x as number;
       const ay = a.y as number;
-      const ar = ((a._size as number | undefined) ?? (a.size as number) ?? 1) + options.margin;
+      const ar = (numericAttr(a, "_size") ?? numericAttr(a, "size") ?? 1) + options.margin;
 
       for (let j = i + 1; j < nodes.length; j++) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- bounded hot loop over graph.nodes(); j < nodes.length guarantees presence.
         const bId = nodes[j]!;
         const b = graph.getNodeAttributes(bId);
         const bx = b.x as number;
         const by = b.y as number;
-        const br = ((b._size as number | undefined) ?? (b.size as number) ?? 1) + options.margin;
+        const br = (numericAttr(b, "_size") ?? numericAttr(b, "size") ?? 1) + options.margin;
         let vx = bx - ax;
         let vy = by - ay;
         let dist = Math.hypot(vx, vy);
@@ -439,11 +452,11 @@ function relaxCommunityCircles(
     const dx = new Map<number, number>();
     const dy = new Map<number, number>();
 
-    for (let i = 0; i < communities.length; i++) {
-      const aId = communities[i]!;
+    for (const [i, aId] of communities.entries()) {
       const a = current.get(aId);
       if (!a) continue;
       for (let j = i + 1; j < communities.length; j++) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- bounded hot loop over community ids; j < communities.length guarantees presence.
         const bId = communities[j]!;
         const b = current.get(bId);
         if (!b) continue;

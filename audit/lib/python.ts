@@ -61,7 +61,7 @@ export function runPythonCheck(ctx: RuleContext, spec: PythonCheckSpec): Finding
 
   if (res.status === 0) return [];
 
-  const output = `${res.stdout ?? ""}${res.stderr ?? ""}`.trim();
+  const output = `${res.stdout}${res.stderr}`.trim();
   return [
     {
       rule: spec.id,

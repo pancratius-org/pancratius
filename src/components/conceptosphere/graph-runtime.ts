@@ -63,9 +63,18 @@ function readPageConfig(): PageConfig | null {
 // ─────────────────────────────────────────────────────────────────────
 
 function escapeHtml(s: string): string {
-  return String(s).replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;",
-  }[c]!));
+  return s.replace(/[&<>"']/g, escapeHtmlChar);
+}
+
+function escapeHtmlChar(c: string): string {
+  switch (c) {
+    case "&": return "&amp;";
+    case "<": return "&lt;";
+    case ">": return "&gt;";
+    case "\"": return "&quot;";
+    case "'": return "&#39;";
+    default: return c;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -386,7 +395,6 @@ async function fetchJson(ctx: AppContext, url: string): Promise<GraphPayload> {
  */
 function applyLocalizedBookTitles(ctx: AppContext, data: GraphPayload): void {
   const info = ctx.cfg.bookSlugInfo;
-  if (!info) return;
   const titleFor = (slug: string | undefined): string | null =>
     slug && info[slug]?.title ? info[slug].title : null;
   for (const n of data.nodes) {
@@ -544,7 +552,7 @@ function buildSession(ctx: AppContext, data: GraphPayload, mode: Mode): Session 
       context.lineJoin = "round";
       context.miterLimit = 2;
       context.strokeText(label, x, y);
-      context.fillStyle = (drawSettings.labelColor as { color: string }).color ?? "#f3eee0";
+      context.fillStyle = (drawSettings.labelColor as { color: string }).color;
       context.fillText(label, x, y);
     },
   };
@@ -769,7 +777,6 @@ function wireInteractions(ctx: AppContext, s: Session): void {
   s.applyHighlight = function applyHighlight(): void {
     const focus = state.pinned ?? state.hovered;
     const focusSet = focus ? neighborhood(focus) : null;
-    const hasFocus = !!focusSet;
     const hasFilter = state.filterComs.size > 0;
     const hasSearch = !!state.search;
     const showFocusNeighborLabels = s.mode === "concepts" && !!state.pinned;
@@ -783,7 +790,7 @@ function wireInteractions(ctx: AppContext, s: Session): void {
       let dim = false;
       if (hasFilter && !state.filterComs.has(data.community as number)) dim = true;
       if (hasSearch && !matchesSearch(data)) dim = true;
-      if (hasFocus && focusSet && !focusSet.has(node)) dim = true;
+      if (focusSet !== null && !focusSet.has(node)) dim = true;
       if (dim) {
         out.color = s.theme.dimNode;
         out.forceLabel = false;
@@ -791,9 +798,9 @@ function wireInteractions(ctx: AppContext, s: Session): void {
         out._dim = true;
       } else {
         out.color = data._color as string;
-        out.zIndex = hasFocus && focusSet?.has(node) ? 2 : 1;
-        if (hasFocus) {
-          out.forceLabel = showFocusNeighborLabels && node !== focus && focusSet?.has(node) === true;
+        out.zIndex = focusSet !== null && focusSet.has(node) ? 2 : 1;
+        if (focusSet !== null) {
+          out.forceLabel = showFocusNeighborLabels && node !== focus && focusSet.has(node);
         } else {
           if (hasFilter && state.filterComs.has(data.community as number)) out.forceLabel = true;
           if (hasSearch && matchesSearch(data)) out.forceLabel = true;
@@ -827,14 +834,14 @@ function wireInteractions(ctx: AppContext, s: Session): void {
       let dim = false;
       if (hasFilter && (!state.filterComs.has(sa.community as number) || !state.filterComs.has(ta.community as number))) dim = true;
       if (hasSearch && !(matchesSearch(sa) || matchesSearch(ta))) dim = true;
-      if (hasFocus && focusSet && !(focusSet.has(src) && focusSet.has(tgt))) dim = true;
+      if (focusSet !== null && !(focusSet.has(src) && focusSet.has(tgt))) dim = true;
       if (dim) {
-        if (hasFilter || hasSearch || hasFocus) { out.hidden = true; return out; }
+        if (hasFilter || hasSearch || focusSet !== null) { out.hidden = true; return out; }
         if (!data.backbone) { out.hidden = true; return out; }
         out.color = s.theme.dimEdge;
         out.size = (data._size as number) * 0.5;
         out.hidden = false;
-      } else if (hasFocus) {
+      } else if (focusSet !== null) {
         out.color = s.theme.focusEdge;
         out.size = (data._size as number) * 1.4;
         out.zIndex = 2;
@@ -859,7 +866,7 @@ function wireInteractions(ctx: AppContext, s: Session): void {
       const cid = Number(p.getAttribute("data-com"));
       let highlight = false;
       if (hasFilter) highlight = state.filterComs.has(cid);
-      else if (hasFocus && focusSet) {
+      else if (focusSet !== null) {
         for (const n of focusSet) {
           if ((graph.getNodeAttribute(n, "community") as number) === cid) {
             highlight = true;

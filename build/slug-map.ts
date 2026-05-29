@@ -1,6 +1,6 @@
 #!/usr/bin/env -S node --experimental-strip-types
 import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stderr } from "node:process";
 
@@ -23,11 +23,12 @@ type PageEntry = {
   languages: Partial<Record<Locale, string>>;
 };
 
-function workUrl(segment: string, slug: string, lang: Locale): string {
+function routedEntryUrl(kind: RoutedKind, slug: string, lang: Locale): string {
+  const segment = SEGMENT_OF[kind];
   return lang === DEFAULT_LOCALE ? `/${segment}/${slug}/` : `/${lang}/${segment}/${slug}/`;
 }
 
-function pageUrl(slug: string, lang: Locale): string {
+function routedPageUrl(slug: string, lang: Locale): string {
   return lang === DEFAULT_LOCALE ? `/${slug}/` : `/${lang}/${slug}/`;
 }
 
@@ -44,14 +45,19 @@ function collectMarkdown(root: string): string[] {
   return files;
 }
 
+function markdownLocale(mdPath: string): Locale | null {
+  const lang = basename(mdPath, ".md");
+  return (LOCALES as readonly string[]).includes(lang) ? lang as Locale : null;
+}
+
 function collectRoutedEntries(): { entries: RoutedEntry[]; errors: string[] } {
   const bucket = new Map<string, RoutedEntry>();
   const crossRefs: { path: string; kind: string; number: number }[] = [];
 
   for (const [kind, segment] of Object.entries(SEGMENT_OF) as [RoutedKind, string][]) {
     for (const mdPath of collectMarkdown(join(CONTENT, segment))) {
-      const lang = mdPath.slice(0, -".md".length).split("/").at(-1) as Locale;
-      if (!LOCALES.includes(lang)) continue;
+      const lang = markdownLocale(mdPath);
+      if (!lang) continue;
       const fm = readFrontmatter(mdPath, REPO_ROOT);
       const fmKind = stringField(fm, "kind");
       if (fmKind !== kind) {
@@ -64,7 +70,7 @@ function collectRoutedEntries(): { entries: RoutedEntry[]; errors: string[] } {
       }
       const key = `${kind}:${number}`;
       const entry: RoutedEntry = bucket.get(key) ?? { kind, number, languages: {} };
-      entry.languages[lang] = { slug, url: workUrl(segment, slug, lang) };
+      entry.languages[lang] = { slug, url: routedEntryUrl(kind, slug, lang) };
       bucket.set(key, entry);
       for (const ref of crossRefTargets(fm)) crossRefs.push({ path: mdPath, ...ref });
     }
@@ -84,13 +90,13 @@ function collectPages(): PageEntry[] {
   const root = join(CONTENT, "pages");
   const bucket = new Map<string, PageEntry>();
   for (const mdPath of collectMarkdown(root)) {
-    const lang = mdPath.slice(0, -".md".length).split("/").at(-1) as Locale;
-    if (!LOCALES.includes(lang)) continue;
+    const lang = markdownLocale(mdPath);
+    if (!lang) continue;
     const fm = readFrontmatter(mdPath, REPO_ROOT);
     const slug = stringField(fm, "slug");
     if (!slug) throw new Error(`${relative(REPO_ROOT, mdPath)}: missing slug`);
     const entry = bucket.get(slug) ?? { slug, languages: {} };
-    entry.languages[lang] = pageUrl(slug, lang);
+    entry.languages[lang] = routedPageUrl(slug, lang);
     bucket.set(slug, entry);
   }
   return [...bucket.values()].sort((a, b) => a.slug.localeCompare(b.slug));

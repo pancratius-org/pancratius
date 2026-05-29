@@ -53,7 +53,7 @@ for (const vp of VIEWPORTS) {
       test(`no overflow ${path}`, async ({ page }) => {
         await page.goto(path, { waitUntil: "domcontentloaded" });
         // Wait for fonts so wide measurements settle.
-        await page.evaluate(() => (document as Document & { fonts?: { ready?: Promise<void> } }).fonts?.ready);
+        await page.evaluate(() => document.fonts.ready);
         const overflow = await page.evaluate(() => {
           return {
             scrollW: document.documentElement.scrollWidth,

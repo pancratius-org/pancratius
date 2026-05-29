@@ -151,7 +151,7 @@ function unwrap(node: ts.Expression): ts.Expression {
 /**
  * Every `CallExpression` within `node` whose callee is a BARE identifier
  * matching any of `calleeNames`. Lets a rule treat a set of local aliases (e.g.
- * `import { entryForLocale as ef }`) as the same selector. Member-access
+ * `import { displayWorkEntry as dwe }`) as the same selector. Member-access
  * callees like `ns.foo(…)` are still NOT matched — a namespace import is a
  * known gap.
  */
@@ -253,7 +253,6 @@ export function findIdentifierRefs(node: ts.Node, name: string): ts.Node[] {
  */
 function isDeclarationOrNonRefName(id: ts.Identifier): boolean {
   const p = id.parent;
-  if (!p) return false;
   if (ts.isVariableDeclaration(p) && p.name === id) return true;
   if (ts.isBindingElement(p) && p.name === id) return true;
   if (ts.isParameter(p) && p.name === id) return true;
@@ -449,7 +448,6 @@ export function nameDeclarationCount(scope: ts.Node, name: string): number {
 /** True when an identifier is the NAME introduced by a binding (not a reference). */
 function isBindingDeclarationName(id: ts.Identifier): boolean {
   const p = id.parent;
-  if (!p) return false;
   return (
     (ts.isVariableDeclaration(p) && p.name === id) ||
     (ts.isParameter(p) && p.name === id) ||
@@ -462,13 +460,13 @@ function isBindingDeclarationName(id: ts.Identifier): boolean {
 /**
  * The name of the nearest `const`/`let`/`var` binding whose initializer subtree
  * contains `call`, walking up parent links and stopping at the first function
- * boundary (we only care about same-scope `const X = entryForLocale(…)` capture).
+ * boundary (we only care about same-scope `const X = displayWorkEntry(…)` capture).
  * Returns null when the call isn't part of a simple identifier-named binding
  * initializer (e.g. it's an inline argument, or the binding name is destructured).
  */
 export function enclosingBindingName(call: ts.Node): string | null {
-  let n: ts.Node | undefined = call.parent;
-  while (n) {
+  let n: ts.Node = call.parent;
+  while (!ts.isSourceFile(n)) {
     // Don't escape the function the call lives in.
     if (
       ts.isFunctionDeclaration(n) ||
