@@ -39,6 +39,19 @@ interface CollisionBody<Id extends CollisionId> extends Circle {
   id: Id;
 }
 
+type LayoutCacheKey = "default" | "reduced-motion";
+type LayoutSnapshot = ReadonlyMap<string, Point>;
+
+interface CollisionCell {
+  x: number;
+  y: number;
+}
+
+interface CollisionGrid {
+  cells: Map<string, number[]>;
+  bodyCells: CollisionCell[];
+}
+
 interface RelaxCollisionOptions<Id extends CollisionId> {
   iterations: number;
   ratio: number;
@@ -57,9 +70,14 @@ const forceAtlas = (forceAtlas2 as unknown as {
     assign(graph: LayoutGraph, params: { iterations: number; settings: ForceAtlas2Settings }): void;
   };
 }).default;
+const layoutCache = new WeakMap<GraphData, Map<LayoutCacheKey, LayoutSnapshot>>();
 
 export function layoutGraphGeometry(input: LayoutRequest): void {
   const { graph, data, reduceMotion } = input;
+  const cacheKey = layoutCacheKey(reduceMotion);
+  const cached = layoutCache.get(data)?.get(cacheKey);
+  if (cached && applyCachedLayout(graph, cached)) return;
+
   const profile = GRAPH_GEOMETRY_PROFILE[data.mode];
   const communityPositions = placeCommunities(graph, data);
   placeNodesWithinCommunities(graph, data, communityPositions, reduceMotion);
@@ -82,6 +100,38 @@ export function layoutGraphGeometry(input: LayoutRequest): void {
   }
 
   recenterGraph(graph);
+  cacheGraphLayout(graph, data, cacheKey);
+}
+
+function layoutCacheKey(reduceMotion: boolean): LayoutCacheKey {
+  return reduceMotion ? "reduced-motion" : "default";
+}
+
+function applyCachedLayout(graph: ConceptGraph, snapshot: LayoutSnapshot): boolean {
+  if (snapshot.size !== graph.order) return false;
+
+  for (const nodeId of graph.nodes()) {
+    const point = snapshot.get(nodeId);
+    if (!point) return false;
+    graph.setNodeAttribute(nodeId, "x", point.x);
+    graph.setNodeAttribute(nodeId, "y", point.y);
+  }
+  return true;
+}
+
+function cacheGraphLayout(
+  graph: ConceptGraph,
+  data: GraphData,
+  cacheKey: LayoutCacheKey,
+): void {
+  const snapshot = new Map<string, Point>();
+  graph.forEachNode((nodeId, attrs) => {
+    snapshot.set(nodeId, { x: attrs.x, y: attrs.y });
+  });
+
+  const byMotion = layoutCache.get(data) ?? new Map<LayoutCacheKey, LayoutSnapshot>();
+  byMotion.set(cacheKey, snapshot);
+  layoutCache.set(data, byMotion);
 }
 
 function placeCommunities(
@@ -424,17 +474,117 @@ function separateCollidingPairs<Id extends CollisionId>(
   displacements: Map<Id, Point>,
   options: RelaxCollisionOptions<Id>,
 ): number {
+  const cellSize = collisionCellSize(bodies, options.ratio);
+  const grid = collisionGrid(bodies, cellSize);
   let moved = 0;
-  for (const [i, source] of bodies.entries()) {
-    let j = i + 1;
-    for (const target of bodies.slice(i + 1)) {
-      const push = overlapPush(source, target, options, i, j);
-      if (push) applyPairPush(displacements, source.id, target.id, push);
-      moved = Math.max(moved, push?.amount ?? 0);
-      j++;
-    }
+  for (let i = 0; i < bodies.length; i++) {
+    moved = Math.max(moved, separateBodyCollisions(bodies, grid, i, displacements, options));
   }
   return moved;
+}
+
+function separateBodyCollisions<Id extends CollisionId>(
+  bodies: readonly CollisionBody<Id>[],
+  grid: CollisionGrid,
+  sourceIndex: number,
+  displacements: Map<Id, Point>,
+  options: RelaxCollisionOptions<Id>,
+): number {
+  const source = bodies[sourceIndex];
+  const cell = grid.bodyCells[sourceIndex];
+  if (!source || !cell) return 0;
+
+  let moved = 0;
+  for (let cellX = cell.x - 1; cellX <= cell.x + 1; cellX++) {
+    moved = Math.max(moved, separateBodyColumnCollisions(
+      bodies,
+      grid,
+      source,
+      sourceIndex,
+      { x: cellX, y: cell.y },
+      displacements,
+      options,
+    ));
+  }
+  return moved;
+}
+
+function separateBodyColumnCollisions<Id extends CollisionId>(
+  bodies: readonly CollisionBody<Id>[],
+  grid: CollisionGrid,
+  source: CollisionBody<Id>,
+  sourceIndex: number,
+  cell: CollisionCell,
+  displacements: Map<Id, Point>,
+  options: RelaxCollisionOptions<Id>,
+): number {
+  let moved = 0;
+  for (let cellY = cell.y - 1; cellY <= cell.y + 1; cellY++) {
+    moved = Math.max(moved, separateCollisionCell(
+      bodies,
+      grid.cells.get(collisionCellKey(cell.x, cellY)) ?? [],
+      source,
+      sourceIndex,
+      displacements,
+      options,
+    ));
+  }
+  return moved;
+}
+
+function separateCollisionCell<Id extends CollisionId>(
+  bodies: readonly CollisionBody<Id>[],
+  targetIndexes: readonly number[],
+  source: CollisionBody<Id>,
+  sourceIndex: number,
+  displacements: Map<Id, Point>,
+  options: RelaxCollisionOptions<Id>,
+): number {
+  let moved = 0;
+  for (const targetIndex of targetIndexes) {
+    if (targetIndex <= sourceIndex) continue;
+    const target = bodies[targetIndex];
+    if (!target) continue;
+    const push = overlapPush(source, target, options, sourceIndex, targetIndex);
+    if (push) applyPairPush(displacements, source.id, target.id, push);
+    moved = Math.max(moved, push?.amount ?? 0);
+  }
+  return moved;
+}
+
+function collisionCellSize<Id extends CollisionId>(
+  bodies: readonly CollisionBody<Id>[],
+  ratio: number,
+): number {
+  let maxRadius = 0;
+  for (const body of bodies) maxRadius = Math.max(maxRadius, body.r);
+  return Math.max(maxRadius * 2 * ratio, 1);
+}
+
+function collisionGrid<Id extends CollisionId>(
+  bodies: readonly CollisionBody<Id>[],
+  cellSize: number,
+): CollisionGrid {
+  const cells = new Map<string, number[]>();
+  const bodyCells: CollisionCell[] = [];
+
+  bodies.forEach((body, index) => {
+    const cell = {
+      x: Math.floor(body.x / cellSize),
+      y: Math.floor(body.y / cellSize),
+    };
+    bodyCells[index] = cell;
+    const key = collisionCellKey(cell.x, cell.y);
+    const indexes = cells.get(key) ?? [];
+    indexes.push(index);
+    cells.set(key, indexes);
+  });
+
+  return { cells, bodyCells };
+}
+
+function collisionCellKey(x: number, y: number): string {
+  return `${x}|${y}`;
 }
 
 function overlapPush<Id extends CollisionId>(
@@ -444,7 +594,7 @@ function overlapPush<Id extends CollisionId>(
   sourceIndex: number,
   targetIndex: number,
 ): Point & { amount: number } | null {
-  const axis = separationAxis(source, target, options.jitter(source, target, sourceIndex, targetIndex));
+  const axis = separationAxis(source, target, () => options.jitter(source, target, sourceIndex, targetIndex));
   const minimumDistance = (source.r + target.r) * options.ratio;
   if (axis.distance >= minimumDistance) return null;
 
@@ -456,7 +606,7 @@ function overlapPush<Id extends CollisionId>(
   };
 }
 
-function separationAxis(source: Circle, target: Circle, jitter: number): {
+function separationAxis(source: Circle, target: Circle, jitter: () => number): {
   unitX: number;
   unitY: number;
   distance: number;
@@ -469,11 +619,11 @@ function separationAxis(source: Circle, target: Circle, jitter: number): {
   };
 }
 
-function nonZeroVector(vector: Point, jitter: number): Point & { distance: number } {
+function nonZeroVector(vector: Point, jitter: () => number): Point & { distance: number } {
   const distance = Math.hypot(vector.x, vector.y);
   if (distance >= 0.001) return { ...vector, distance };
 
-  const angle = jitter * Math.PI * 2;
+  const angle = jitter() * Math.PI * 2;
   return {
     x: Math.cos(angle) * 0.001,
     y: Math.sin(angle) * 0.001,

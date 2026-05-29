@@ -146,7 +146,7 @@ function addGraphEdges(input: {
     const targetCommunityId = graph.getNodeAttribute(edge.target, "communityId");
     const within = sourceCommunityId === targetCommunityId;
     const isBackbone = within || visibleCrossEdges.has(edgeKey(edge));
-    const tone = Math.pow(Math.max(0, (edge.weight - minWeight) / weightRange), 0.55);
+    const tone = Math.max(0, (edge.weight - minWeight) / weightRange) ** 0.55;
     const sourceCommunity = requireCommunity(data, sourceCommunityId);
     const targetCommunity = requireCommunity(data, targetCommunityId);
     const visual = edgeVisual(theme, data.mode, within, tone, sourceCommunity.rgb, targetCommunity.rgb);
