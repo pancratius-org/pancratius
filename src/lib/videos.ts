@@ -71,7 +71,13 @@ export async function getAllVideoPairs(): Promise<VideoPair[]> {
   if (_pairsCache) return _pairsCache;
 
   const all = await getCollection("videos");
+  const pairs = videoPairsFromBuckets(videoBuckets(all));
 
+  if (pairs.length > 0) _pairsCache = pairs;
+  return pairs;
+}
+
+function videoBuckets(all: readonly VideoEntry[]): Map<number, Partial<Record<Locale, VideoEntry>>> {
   const buckets = new Map<number, Partial<Record<Locale, VideoEntry>>>();
   for (const entry of all) {
     const bucket = buckets.get(entry.data.number) ?? {};
@@ -87,28 +93,31 @@ export async function getAllVideoPairs(): Promise<VideoPair[]> {
     bucket[lang] = entry;
     buckets.set(entry.data.number, bucket);
   }
+  return buckets;
+}
 
-  const pairs: VideoPair[] = [];
-  for (const [number, entries] of buckets) {
-    const canonical = entries[DEFAULT_LOCALE];
-    if (!canonical) {
-      throw new Error(
-        `Video #${number} has translations but no ${DEFAULT_LOCALE} canonical entry`,
-      );
-    }
-    const pairEntries: VideoPairEntries = { ...entries, [DEFAULT_LOCALE]: canonical };
-    pairs.push({ number, entries: pairEntries });
+function videoPairsFromBuckets(buckets: ReadonlyMap<number, Partial<Record<Locale, VideoEntry>>>): VideoPair[] {
+  return [...buckets.entries()]
+    .map(([number, entries]) => videoPairFromBucket(number, entries))
+    .sort(compareVideoPairs);
+}
+
+function videoPairFromBucket(number: number, entries: Partial<Record<Locale, VideoEntry>>): VideoPair {
+  const canonical = entries[DEFAULT_LOCALE];
+  if (!canonical) {
+    throw new Error(
+      `Video #${number} has translations but no ${DEFAULT_LOCALE} canonical entry`,
+    );
   }
+  const pairEntries: VideoPairEntries = { ...entries, [DEFAULT_LOCALE]: canonical };
+  return { number, entries: pairEntries };
+}
 
-  pairs.sort((a, b) => {
-    const ad = defaultVideoEntry(a).data.published_at;
-    const bd = defaultVideoEntry(b).data.published_at;
-    if (ad !== bd) return ad < bd ? 1 : -1;
-    return b.number - a.number;
-  });
-
-  if (pairs.length > 0) _pairsCache = pairs;
-  return pairs;
+function compareVideoPairs(a: VideoPair, b: VideoPair): number {
+  const ad = defaultVideoEntry(a).data.published_at;
+  const bd = defaultVideoEntry(b).data.published_at;
+  if (ad !== bd) return ad < bd ? 1 : -1;
+  return b.number - a.number;
 }
 
 /**

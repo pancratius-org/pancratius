@@ -6,7 +6,7 @@ import type { APIRoute } from "astro";
 import sharp from "sharp";
 
 import type { RoutedKind } from "./i18n";
-import { CORPUS_WORK_KINDS, ROUTED_KINDS, SEGMENT_OF, type RoutedSegment } from "./kinds";
+import { CORPUS_WORK_KINDS, ROUTED_KINDS, SEGMENT_OF, type CorpusWorkKind, type RoutedSegment } from "./kinds";
 import { publicWorkMarkdownAssetPaths } from "./publication/public-markdown";
 
 const REPO_ROOT = process.cwd();
@@ -71,57 +71,94 @@ export function workAssetImageStaticPaths() {
   const referencedWorkAssets = referencedWorkAssetPublicPaths();
 
   for (const kind of ASSET_KIND_SEGMENTS) {
-    const kindRoot = resolvePath(CONTENT, kind);
-    if (!existsSync(kindRoot)) continue;
-    const isCorpusWorkSegment = CORPUS_ASSET_SEGMENTS.has(kind);
-
-    for (const work of readdirSync(kindRoot, { withFileTypes: true })) {
-      if (!work.isDirectory()) continue;
-      const imagesDir = resolvePath(kindRoot, work.name, "images");
-      if (!existsSync(imagesDir)) continue;
-
-      for (const file of imageFiles(imagesDir)) {
-        const ext = extname(file).toLowerCase();
-        const contentType = CONTENT_TYPE[ext];
-        if (!contentType) continue;
-        if (isCorpusWorkSegment && !referencedWorkAssets.has(assetPublicPath(kind, work.name, file))) continue;
-        paths.push({
-          params: { kind, work: work.name, file },
-          props: {
-            diskPath: resolvePath(imagesDir, file),
-            contentType,
-          },
-        });
-      }
-    }
+    paths.push(...assetImageStaticPathsForKind(kind, referencedWorkAssets));
   }
 
   return paths;
+}
+
+function assetImageStaticPathsForKind(
+  kind: string,
+  referencedWorkAssets: ReadonlySet<string>,
+): {
+  params: { kind: string; work: string; file: string };
+  props: BodyImageRouteProps;
+}[] {
+  const kindRoot = resolvePath(CONTENT, kind);
+  if (!existsSync(kindRoot)) return [];
+  return readdirSync(kindRoot, { withFileTypes: true })
+    .filter((work) => work.isDirectory())
+    .flatMap((work) => assetImageStaticPathsForWork(kind, kindRoot, work.name, referencedWorkAssets));
+}
+
+function assetImageStaticPathsForWork(
+  kind: string,
+  kindRoot: string,
+  work: string,
+  referencedWorkAssets: ReadonlySet<string>,
+): {
+  params: { kind: string; work: string; file: string };
+  props: BodyImageRouteProps;
+}[] {
+  const imagesDir = resolvePath(kindRoot, work, "images");
+  if (!existsSync(imagesDir)) return [];
+  return imageFiles(imagesDir).flatMap((file) =>
+    assetImageStaticPathForFile(kind, work, imagesDir, file, referencedWorkAssets));
+}
+
+function assetImageStaticPathForFile(
+  kind: string,
+  work: string,
+  imagesDir: string,
+  file: string,
+  referencedWorkAssets: ReadonlySet<string>,
+): {
+  params: { kind: string; work: string; file: string };
+  props: BodyImageRouteProps;
+}[] {
+  const contentType = CONTENT_TYPE[extname(file).toLowerCase()];
+  if (!contentType) return [];
+  if (CORPUS_ASSET_SEGMENTS.has(kind) && !referencedWorkAssets.has(assetPublicPath(kind, work, file))) return [];
+  return [{
+    params: { kind, work, file },
+    props: {
+      diskPath: resolvePath(imagesDir, file),
+      contentType,
+    },
+  }];
 }
 
 function referencedWorkAssetPublicPaths(): Set<string> {
   const paths = new Set<string>();
 
   for (const kind of CORPUS_WORK_KINDS) {
-    const segment = ROUTED_SEGMENT[kind];
-    const root = resolvePath(CONTENT, segment);
-    if (!existsSync(root)) continue;
-
-    for (const work of readdirSync(root, { withFileTypes: true })) {
-      if (!work.isDirectory()) continue;
-      const workDir = resolvePath(root, work.name);
-
-      for (const entry of readdirSync(workDir, { withFileTypes: true })) {
-        if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
-        const source = readFileSync(resolvePath(workDir, entry.name), "utf-8");
-        for (const path of publicWorkMarkdownAssetPaths(source, { kind, bundleKey: work.name })) {
-          paths.add(path);
-        }
-      }
-    }
+    for (const path of referencedWorkAssetPublicPathsForKind(kind)) paths.add(path);
   }
 
   return paths;
+}
+
+function referencedWorkAssetPublicPathsForKind(kind: CorpusWorkKind): string[] {
+  const segment = ROUTED_SEGMENT[kind];
+  const root = resolvePath(CONTENT, segment);
+  if (!existsSync(root)) return [];
+  return readdirSync(root, { withFileTypes: true })
+    .filter((work) => work.isDirectory())
+    .flatMap((work) => referencedWorkAssetPublicPathsForWork(kind, root, work.name));
+}
+
+function referencedWorkAssetPublicPathsForWork(
+  kind: CorpusWorkKind,
+  root: string,
+  work: string,
+): string[] {
+  const workDir = resolvePath(root, work);
+  return readdirSync(workDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+    .flatMap((entry) => {
+      const source = readFileSync(resolvePath(workDir, entry.name), "utf-8");
+      return publicWorkMarkdownAssetPaths(source, { kind, bundleKey: work });
+    });
 }
 
 function assetPublicPath(kind: string, work: string, file: string): string {

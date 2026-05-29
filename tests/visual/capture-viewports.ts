@@ -10,6 +10,7 @@
 // Writes .cache/visual-audit/<tag>/<theme>-<viewport>-<route>-{top,mid}.png
 
 import { argv, exit } from "node:process";
+import type { Browser, BrowserContext } from "@playwright/test";
 import {
   BASE_URL,
   CACHE_ROOT,
@@ -23,7 +24,9 @@ import {
   settleMsFor,
   themedContext,
   withBrowser,
+  type NamedViewport,
   type Route,
+  type Theme,
 } from "./harness.ts";
 
 const TAG = parseTag(argv, "before-vp");
@@ -57,36 +60,55 @@ async function main(): Promise<void> {
 
   await withBrowser(async (browser) => {
     for (const theme of THEMES) {
-      for (const { name: viewportName, viewport } of DESKTOP_MOBILE) {
-        const context = await themedContext(browser, theme, viewport);
-        for (const route of ROUTES) {
-          const page = await context.newPage();
-          try {
-            await gotoStable(page, `${BASE_URL}${route.path}`, { settleMs: settleMsFor(route.path) });
-          } catch (err) {
-            console.log("SKIP", route.path, theme, viewportName, err instanceof Error ? err.message : err);
-            await page.close();
-            continue;
-          }
-
-          await page.screenshot({ path: `${outDir}/${screenshotName(theme, viewportName, route.name, "top")}` });
-
-          const scrollY = midScrollY(
-            await page.evaluate(() =>
-              Math.max(document.body.scrollHeight, document.documentElement.scrollHeight),
-            ),
-          );
-          if (scrollY > 100) {
-            await page.evaluate((y) => window.scrollTo(0, y), scrollY);
-            await page.waitForTimeout(200);
-            await page.screenshot({ path: `${outDir}/${screenshotName(theme, viewportName, route.name, "mid")}` });
-          }
-          await page.close();
-        }
-        await context.close();
+      for (const viewport of DESKTOP_MOBILE) {
+        await captureViewportSet(browser, outDir, theme, viewport);
       }
     }
   });
+}
+
+async function captureViewportSet(
+  browser: Browser,
+  outDir: string,
+  theme: Theme,
+  { name: viewportName, viewport }: NamedViewport,
+): Promise<void> {
+  const context = await themedContext(browser, theme, viewport);
+  try {
+    for (const route of ROUTES) {
+      await captureRouteSnapshots(context, outDir, theme, viewportName, route);
+    }
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureRouteSnapshots(
+  context: BrowserContext,
+  outDir: string,
+  theme: Theme,
+  viewportName: string,
+  route: Route,
+): Promise<void> {
+  const page = await context.newPage();
+  try {
+    await gotoStable(page, `${BASE_URL}${route.path}`, { settleMs: settleMsFor(route.path) });
+    await page.screenshot({ path: `${outDir}/${screenshotName(theme, viewportName, route.name, "top")}` });
+
+    const scrollY = midScrollY(
+      await page.evaluate(() =>
+        Math.max(document.body.scrollHeight, document.documentElement.scrollHeight),
+      ),
+    );
+    if (scrollY <= 100) return;
+    await page.evaluate((y) => window.scrollTo(0, y), scrollY);
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: `${outDir}/${screenshotName(theme, viewportName, route.name, "mid")}` });
+  } catch (err) {
+    console.log("SKIP", route.path, theme, viewportName, err instanceof Error ? err.message : err);
+  } finally {
+    await page.close();
+  }
 }
 
 if (import.meta.main) {

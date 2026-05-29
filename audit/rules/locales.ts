@@ -111,95 +111,108 @@ export const rule: Rule = {
   title: "PAN002: display-fallback selectors must not influence route params/existence in getStaticPaths",
   tier: "core",
   run(ctx: RuleContext): Finding[] {
-    const findings: Finding[] = [];
-
     // Derive-don't-restate: tie the rule to each source of truth. If a selector
     // is no longer exported by its owning module, our premise is stale — fail
     // loud rather than scan pages against a wrong assumption.
-    for (const selector of SELECTORS) {
-      const sf = ctx.exists(selector.source)
-        ? parseModule(selector.source, ctx.read(selector.source))
-        : null;
-      const exported = sf ? findExportedFunctionNames(sf) : new Set<string>();
-      if (!exported.has(selector.name)) {
-        findings.push({
-          rule: ID,
-          severity: "fatal",
-          category: CATEGORY,
-          file: selector.source,
-          observed: `${selector.source} no longer exports a function named ${selector.name}`,
-          contract: `PAN002 is anchored to the display-fallback selector exported from ${selector.source}; that exported function is one of the symbols the rule forbids from influencing route params inside getStaticPaths.`,
-          why: `The selector was renamed or removed, so the rule can no longer recognize it and would silently stop catching phantom localized routes — a stale premise is worse than a loud failure.`,
-          repair: `Update PAN002 in audit/rules/locales.ts to the selector's new name (and docs/audit-harness.md PAN002 / its docstring in ${selector.source}).`,
-          doNotFixBy: `Deleting this guard — it exists precisely so the rule can't go silently stale when the SoT moves.`,
-        });
-      }
-    }
-    if (findings.length > 0) {
-      return findings;
-    }
+    const stalePremises = selectorPremiseFindings(ctx);
+    if (stalePremises.length > 0) return stalePremises;
 
     // Scan every page-route module. `getStaticPaths` is what decides existence;
     // a call to the display-fallback selector that reaches its params/filter is
     // the violation.
-    const pages = ctx.walk({
-      filter: (rel) =>
-        rel.startsWith("src/pages/") && (rel.endsWith(".astro") || rel.endsWith(".ts")),
-    });
-
-    for (const rel of pages) {
-      const sf = parseModule(rel, ctx.read(rel));
-      if (!sf) continue;
-      const init = getStaticPathsInitializer(sf);
-      if (!init) continue;
-
-      // The existence-deciding output: every `params:` value subtree, and every
-      // `.filter(…)` argument subtree. (`props:` and `.sort(…)` are NOT here.)
-      const paramsValues = findPropertyValues(init, "params");
-      const filterArgs = findMethodCallArguments(init, "filter");
-
-      for (const selector of SELECTORS) {
-        // Recognize the selector under any local alias bound by a named import
-        // whose original name is the selector (closes the aliased-import
-        // evasion). The literal name is always included so an un-aliased call
-        // still matches even if no import specifier is found (e.g. odd casing).
-        const selectorNames = findLocalNamesForImport(sf, selector.name);
-        selectorNames.add(selector.name);
-
-        for (const call of findIdentifierCallsAny(init, selectorNames)) {
-          // (a) the call itself sits inside a params value subtree, or
-          // (c) inside a .filter(...) argument subtree.
-          let influencesExistence = withinAnyRegion(call, paramsValues) || withinAnyRegion(call, filterArgs);
-
-          // (b) the call is captured into `const X = displayWorkEntry(…)` and
-          // some reference to X within this getStaticPaths body lands in a params
-          // value. Only when X is declared ONCE in the body — a name-based ref
-          // scan can't distinguish a shadowed re-use (idiomatic
-          // `.map((entry) => …)`), so we refuse the ambiguous case rather than
-          // risk a fatal false positive.
-          if (!influencesExistence) influencesExistence = capturedBindingReachesParams(init, call, paramsValues);
-
-          if (!influencesExistence) continue;
-
-          findings.push({
-            rule: ID,
-            severity: "fatal",
-            category: CATEGORY,
-            file: rel,
-            line: lineOf(sf, call),
-            observed: `getStaticPaths lets ${selector.name}(...) influence the returned route params (or a .filter membership test) — the display-fallback selector decides route existence here`,
-            contract: `The \`params\` set returned by getStaticPaths is a route's existence/identity output, and \`.filter\` decides membership; both must use authored-locale selectors such as ${selector.authoredSelectors}. ${selector.name} is display-fallback only (per its docstring in ${selector.source} and docs/audit-harness.md PAN002), legitimate for \`props\`/display values.`,
-            why: `The fallback returns another locale's entry, so feeding it into params/filter emits a localized route for content with no authored entry in that locale, rendering the wrong-language body under a localized URL — a route that lies about its language.`,
-            repair: `Gate existence with ${selector.authoredSelectors} and take params from the authored entry; if you need display data, pass it through \`props\` and let ${selector.name} resolve it there (or in the component).`,
-            doNotFixBy: `Routing the ${selector.name} result into params through an intermediate variable or wrapper — the fallback still emits phantom localized routes; only DISPLAY (props) use is allowed.`,
-          });
-        }
-      }
-    }
-
-    return findings;
+    return pageRouteFiles(ctx).flatMap((rel) => scanPageRoute(ctx, rel));
   },
 };
+
+function selectorPremiseFindings(ctx: RuleContext): Finding[] {
+  return SELECTORS
+    .filter((selector) => !selectorIsExported(ctx, selector))
+    .map(staleSelectorFinding);
+}
+
+function selectorIsExported(ctx: RuleContext, selector: FallbackSelector): boolean {
+  const sf = ctx.exists(selector.source)
+    ? parseModule(selector.source, ctx.read(selector.source))
+    : null;
+  return sf ? findExportedFunctionNames(sf).has(selector.name) : false;
+}
+
+function staleSelectorFinding(selector: FallbackSelector): Finding {
+  return {
+    rule: ID,
+    severity: "fatal",
+    category: CATEGORY,
+    file: selector.source,
+    observed: `${selector.source} no longer exports a function named ${selector.name}`,
+    contract: `PAN002 is anchored to the display-fallback selector exported from ${selector.source}; that exported function is one of the symbols the rule forbids from influencing route params inside getStaticPaths.`,
+    why: `The selector was renamed or removed, so the rule can no longer recognize it and would silently stop catching phantom localized routes — a stale premise is worse than a loud failure.`,
+    repair: `Update PAN002 in audit/rules/locales.ts to the selector's new name (and docs/audit-harness.md PAN002 / its docstring in ${selector.source}).`,
+    doNotFixBy: `Deleting this guard — it exists precisely so the rule can't go silently stale when the SoT moves.`,
+  };
+}
+
+function pageRouteFiles(ctx: RuleContext): string[] {
+  return ctx.walk({
+    filter: (rel) =>
+      rel.startsWith("src/pages/") && (rel.endsWith(".astro") || rel.endsWith(".ts")),
+  });
+}
+
+function scanPageRoute(ctx: RuleContext, rel: string): Finding[] {
+  const sf = parseModule(rel, ctx.read(rel));
+  if (!sf) return [];
+  const init = getStaticPathsInitializer(sf);
+  if (!init) return [];
+
+  const paramsValues = findPropertyValues(init, "params");
+  const filterArgs = findMethodCallArguments(init, "filter");
+  return SELECTORS.flatMap((selector) =>
+    selectorFindings({ rel, sf, init, selector, paramsValues, filterArgs }));
+}
+
+function selectorFindings(input: {
+  rel: string;
+  sf: ts.SourceFile;
+  init: ts.Node;
+  selector: FallbackSelector;
+  paramsValues: readonly ts.Node[];
+  filterArgs: readonly ts.Node[];
+}): Finding[] {
+  const selectorNames = findLocalNamesForImport(input.sf, input.selector.name);
+  selectorNames.add(input.selector.name);
+  return findIdentifierCallsAny(input.init, selectorNames)
+    .filter((call) => fallbackCallInfluencesExistence(call, input))
+    .map((call) => fallbackExistenceFinding(input.rel, input.sf, input.selector, call));
+}
+
+function fallbackCallInfluencesExistence(
+  call: ts.Node,
+  input: { init: ts.Node; paramsValues: readonly ts.Node[]; filterArgs: readonly ts.Node[] },
+): boolean {
+  return withinAnyRegion(call, input.paramsValues)
+    || withinAnyRegion(call, input.filterArgs)
+    || capturedBindingReachesParams(input.init, call, input.paramsValues);
+}
+
+function fallbackExistenceFinding(
+  rel: string,
+  sf: ts.SourceFile,
+  selector: FallbackSelector,
+  call: ts.Node,
+): Finding {
+  return {
+    rule: ID,
+    severity: "fatal",
+    category: CATEGORY,
+    file: rel,
+    line: lineOf(sf, call),
+    observed: `getStaticPaths lets ${selector.name}(...) influence the returned route params (or a .filter membership test) — the display-fallback selector decides route existence here`,
+    contract: `The \`params\` set returned by getStaticPaths is a route's existence/identity output, and \`.filter\` decides membership; both must use authored-locale selectors such as ${selector.authoredSelectors}. ${selector.name} is display-fallback only (per its docstring in ${selector.source} and docs/audit-harness.md PAN002), legitimate for \`props\`/display values.`,
+    why: `The fallback returns another locale's entry, so feeding it into params/filter emits a localized route for content with no authored entry in that locale, rendering the wrong-language body under a localized URL — a route that lies about its language.`,
+    repair: `Gate existence with ${selector.authoredSelectors} and take params from the authored entry; if you need display data, pass it through \`props\` and let ${selector.name} resolve it there (or in the component).`,
+    doNotFixBy: `Routing the ${selector.name} result into params through an intermediate variable or wrapper — the fallback still emits phantom localized routes; only DISPLAY (props) use is allowed.`,
+  };
+}
 
 // PAN003 — cross-language single-source-of-truth parity (docs/audit-harness.md →
 // "PAN003: Single Sources Of Truth"). Two registries — the locale list+default,

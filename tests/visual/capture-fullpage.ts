@@ -12,7 +12,7 @@
 // Writes .cache/visual-audit/<tag>/<theme>-<viewport>-<route>.png
 
 import { argv, exit, stdout } from "node:process";
-import type { Browser } from "@playwright/test";
+import type { Browser, BrowserContext } from "@playwright/test";
 import {
   CACHE_ROOT,
   DESKTOP_MOBILE,
@@ -26,6 +26,9 @@ import {
   settleMsFor,
   themedContext,
   withBrowser,
+  type NamedViewport,
+  type Route,
+  type Theme,
 } from "./harness.ts";
 
 const TAG = parseTag(argv, "before");
@@ -48,27 +51,55 @@ async function main(): Promise<void> {
     const routes = await routesFor(browser);
     const files: string[] = [];
     for (const theme of THEMES) {
-      for (const { name: viewportName, viewport } of DESKTOP_MOBILE) {
-        const context = await themedContext(browser, theme, viewport);
-        for (const route of routes) {
-          const page = await context.newPage();
-          try {
-            await gotoStable(page, `${BASE_URL}${route.path}`, { settleMs: settleMsFor(route.path) });
-            const file = `${outDir}/${screenshotName(theme, viewportName, route.name)}`;
-            await page.screenshot({ path: file, fullPage: true });
-            files.push(file);
-          } catch (err) {
-            stdout.write(`SKIP ${theme} ${viewportName} ${route.path}: ${err instanceof Error ? err.message : String(err)}\n`);
-          }
-          await page.close();
-        }
-        await context.close();
+      for (const viewport of DESKTOP_MOBILE) {
+        files.push(...await captureViewportSet(browser, outDir, theme, viewport, routes));
       }
     }
     return files;
   });
 
   console.log(`Wrote ${written.length} screenshots to ${outDir}`);
+}
+
+async function captureViewportSet(
+  browser: Browser,
+  outDir: string,
+  theme: Theme,
+  { name: viewportName, viewport }: NamedViewport,
+  routes: readonly Route[],
+): Promise<string[]> {
+  const context = await themedContext(browser, theme, viewport);
+  try {
+    const files: string[] = [];
+    for (const route of routes) {
+      const file = await captureRoute(context, outDir, theme, viewportName, route);
+      if (file) files.push(file);
+    }
+    return files;
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureRoute(
+  context: BrowserContext,
+  outDir: string,
+  theme: Theme,
+  viewportName: string,
+  route: Route,
+): Promise<string | null> {
+  const page = await context.newPage();
+  try {
+    await gotoStable(page, `${BASE_URL}${route.path}`, { settleMs: settleMsFor(route.path) });
+    const file = `${outDir}/${screenshotName(theme, viewportName, route.name)}`;
+    await page.screenshot({ path: file, fullPage: true });
+    return file;
+  } catch (err) {
+    stdout.write(`SKIP ${theme} ${viewportName} ${route.path}: ${err instanceof Error ? err.message : String(err)}\n`);
+    return null;
+  } finally {
+    await page.close();
+  }
 }
 
 if (import.meta.main) {

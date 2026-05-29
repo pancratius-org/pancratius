@@ -54,6 +54,18 @@ export function publicWorkMarkdownAssetPaths(
   const body = parseMarkdownDocument(sourceMarkdown).body.replace(/\r\n?/g, "\n");
   const paths = new Set<string>();
 
+  collectHtmlImageAssetPaths(body, work, context, paths);
+  collectMarkdownImageAssetPaths(body, work, context, paths);
+
+  return Array.from(paths).sort();
+}
+
+function collectHtmlImageAssetPaths(
+  body: string,
+  work: PublicationWork,
+  context: string,
+  paths: Set<string>,
+): void {
   for (const match of body.matchAll(/<img\b([^>]*?)\/?>/gi)) {
     const tag = match[0];
     const attrs = match[1];
@@ -67,7 +79,14 @@ export function publicWorkMarkdownAssetPaths(
     const assetPath = publicImageAssetPath(work, src);
     if (assetPath) paths.add(assetPath);
   }
+}
 
+function collectMarkdownImageAssetPaths(
+  body: string,
+  work: PublicationWork,
+  context: string,
+  paths: Set<string>,
+): void {
   for (const match of body.matchAll(MARKDOWN_IMAGE_RE)) {
     const openAngle = match[2] ?? "";
     const target = match[3];
@@ -79,8 +98,6 @@ export function publicWorkMarkdownAssetPaths(
     const assetPath = publicImageAssetPath(work, target);
     if (assetPath) paths.add(assetPath);
   }
-
-  return Array.from(paths).sort();
 }
 
 function cleanPublicMarkdownBody(

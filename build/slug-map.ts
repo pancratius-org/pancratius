@@ -23,6 +23,8 @@ type PageEntry = {
   languages: Partial<Record<Locale, string>>;
 };
 
+type CrossRefTarget = { path: string; kind: string; number: number };
+
 function routedEntryUrl(kind: RoutedKind, slug: string, lang: Locale): string {
   const segment = SEGMENT_OF[kind];
   return lang === DEFAULT_LOCALE ? `/${segment}/${slug}/` : `/${lang}/${segment}/${slug}/`;
@@ -52,27 +54,11 @@ function markdownLocale(mdPath: string): Locale | null {
 
 function collectRoutedEntries(): { entries: RoutedEntry[]; errors: string[] } {
   const bucket = new Map<string, RoutedEntry>();
-  const crossRefs: { path: string; kind: string; number: number }[] = [];
+  const crossRefs: CrossRefTarget[] = [];
 
   for (const [kind, segment] of Object.entries(SEGMENT_OF) as [RoutedKind, string][]) {
     for (const mdPath of collectMarkdown(join(CONTENT, segment))) {
-      const lang = markdownLocale(mdPath);
-      if (!lang) continue;
-      const fm = readFrontmatter(mdPath, REPO_ROOT);
-      const fmKind = stringField(fm, "kind");
-      if (fmKind !== kind) {
-        throw new Error(`${relative(REPO_ROOT, mdPath)}: kind ${String(fmKind)} does not match collection ${kind}`);
-      }
-      const number = integerField(fm, "number");
-      const slug = stringField(fm, "slug");
-      if (number === undefined || !slug) {
-        throw new Error(`${relative(REPO_ROOT, mdPath)}: missing number/slug`);
-      }
-      const key = `${kind}:${number}`;
-      const entry: RoutedEntry = bucket.get(key) ?? { kind, number, languages: {} };
-      entry.languages[lang] = { slug, url: routedEntryUrl(kind, slug, lang) };
-      bucket.set(key, entry);
-      for (const ref of crossRefTargets(fm)) crossRefs.push({ path: mdPath, ...ref });
+      addRoutedMarkdownEntry(bucket, crossRefs, kind, mdPath);
     }
   }
 
@@ -84,6 +70,35 @@ function collectRoutedEntries(): { entries: RoutedEntry[]; errors: string[] } {
     );
   const entries = [...bucket.values()].sort((a, b) => a.kind.localeCompare(b.kind) || a.number - b.number);
   return { entries, errors };
+}
+
+function addRoutedMarkdownEntry(
+  bucket: Map<string, RoutedEntry>,
+  crossRefs: CrossRefTarget[],
+  kind: RoutedKind,
+  mdPath: string,
+): void {
+  const lang = markdownLocale(mdPath);
+  if (!lang) return;
+  const fm = readFrontmatter(mdPath, REPO_ROOT);
+  assertCollectionKind(mdPath, kind, stringField(fm, "kind"));
+
+  const number = integerField(fm, "number");
+  const slug = stringField(fm, "slug");
+  if (number === undefined || !slug) {
+    throw new Error(`${relative(REPO_ROOT, mdPath)}: missing number/slug`);
+  }
+
+  const key = `${kind}:${number}`;
+  const entry: RoutedEntry = bucket.get(key) ?? { kind, number, languages: {} };
+  entry.languages[lang] = { slug, url: routedEntryUrl(kind, slug, lang) };
+  bucket.set(key, entry);
+  for (const ref of crossRefTargets(fm)) crossRefs.push({ path: mdPath, ...ref });
+}
+
+function assertCollectionKind(mdPath: string, expected: RoutedKind, actual: string | undefined): void {
+  if (actual === expected) return;
+  throw new Error(`${relative(REPO_ROOT, mdPath)}: kind ${String(actual)} does not match collection ${expected}`);
 }
 
 function collectPages(): PageEntry[] {

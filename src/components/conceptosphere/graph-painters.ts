@@ -226,7 +226,30 @@ function paintFocusCallout(
   labelText: string,
 ): void {
   if (!labelText) return;
+  const box = focusCalloutBox(context, dims, center, radius, strong, labelText);
+  paintCalloutBox(context, theme, strong, box);
+  context.fillStyle = theme.calloutInk;
+  context.textBaseline = "middle";
+  context.fillText(box.text, box.x + box.padX, box.y + box.height / 2 + 0.5);
+}
 
+interface FocusCalloutBox {
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  padX: number;
+}
+
+function focusCalloutBox(
+  context: CanvasRenderingContext2D,
+  dims: { width: number; height: number },
+  center: { x: number; y: number },
+  radius: number,
+  strong: boolean,
+  labelText: string,
+): FocusCalloutBox {
   const fontSize = strong ? 13.5 : 12.5;
   context.font = `${strong ? 600 : 500} ${fontSize}px var(--serif), "PT Serif", Georgia, serif`;
   const padX = 10;
@@ -240,22 +263,26 @@ function paintFocusCallout(
   let boxX = center.x + radius + 10;
   if (boxX + boxWidth > dims.width - 8) boxX = center.x - radius - 10 - boxWidth;
   const boxY = Math.max(8, Math.min(dims.height - boxHeight - 8, center.y - boxHeight / 2));
+  return { text: drawn, x: boxX, y: boxY, width: boxWidth, height: boxHeight, padX };
+}
 
+function paintCalloutBox(
+  context: CanvasRenderingContext2D,
+  theme: GraphTheme,
+  strong: boolean,
+  box: FocusCalloutBox,
+): void {
   context.fillStyle = theme.calloutBg;
   context.strokeStyle = strong ? theme.focusCalloutBorder : theme.focusCalloutBorderMuted;
   context.lineWidth = strong ? 1.3 : 1;
   context.beginPath();
   if (typeof context.roundRect === "function") {
-    context.roundRect(boxX, boxY, boxWidth, boxHeight, 2);
+    context.roundRect(box.x, box.y, box.width, box.height, 2);
   } else {
-    context.rect(boxX, boxY, boxWidth, boxHeight);
+    context.rect(box.x, box.y, box.width, box.height);
   }
   context.fill();
   context.stroke();
-
-  context.fillStyle = theme.calloutInk;
-  context.textBaseline = "middle";
-  context.fillText(drawn, boxX + padX, boxY + boxHeight / 2 + 0.5);
 }
 
 function truncateCanvasText(

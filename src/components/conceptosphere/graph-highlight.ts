@@ -110,8 +110,17 @@ function nodeDisplay(
   data: ConceptNodeAttributes,
   context: HighlightContext,
 ): NodeReducerOutput {
-  const out: NodeReducerOutput = { ...data };
+  const out = baseNodeDisplay(node, data, context);
+  const interaction = nodeInteractionState(node, context);
+  return interaction ? highlightedNodeDisplay(out, data, interaction) : out;
+}
 
+function baseNodeDisplay(
+  node: string,
+  data: ConceptNodeAttributes,
+  context: HighlightContext,
+): NodeReducerOutput {
+  const out: NodeReducerOutput = { ...data };
   if (isDimNode(data, context, node)) {
     out.color = context.theme.dimNode;
     out.forceLabel = false;
@@ -124,21 +133,27 @@ function nodeDisplay(
     out.forceLabel = forceNodeLabel(data, context, node, focused);
     out.dimmed = false;
   }
+  return out;
+}
 
-  if (context.state.pinned === node) {
-    out.color = data.baseColor;
-    out.size = data.baseSize * 1.12;
-    out.forceLabel = false;
-    out.zIndex = 4;
-    out.dimmed = false;
-  } else if (context.state.hovered === node) {
-    out.color = data.baseColor;
-    out.size = data.baseSize * 1.08;
-    out.forceLabel = false;
-    out.zIndex = 3;
-    out.dimmed = false;
-  }
+type NodeInteractionState = "pinned" | "hovered";
 
+function nodeInteractionState(node: string, context: HighlightContext): NodeInteractionState | null {
+  if (context.state.pinned === node) return "pinned";
+  if (context.state.hovered === node) return "hovered";
+  return null;
+}
+
+function highlightedNodeDisplay(
+  out: NodeReducerOutput,
+  data: ConceptNodeAttributes,
+  interaction: NodeInteractionState,
+): NodeReducerOutput {
+  out.color = data.baseColor;
+  out.size = data.baseSize * (interaction === "pinned" ? 1.12 : 1.08);
+  out.forceLabel = false;
+  out.zIndex = interaction === "pinned" ? 4 : 3;
+  out.dimmed = false;
   return out;
 }
 

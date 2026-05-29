@@ -50,68 +50,74 @@ async function checkRule(rule: Rule): Promise<Result[]> {
   const hasBad = existsSync(badDir);
   const hasGood = existsSync(goodDir);
 
-  if (rule.tier === "heuristic") {
-    if (!hasBad && !hasGood) return [{ ok: true, label: `${rule.id} (heuristic, no fixtures required)` }];
-  } else if (!hasBad || !hasGood) {
-    return [
-      {
-        ok: false,
-        label: `${rule.id} fixtures`,
-        detail: `a ${rule.tier} rule needs both fixtures/${rule.id}/bad and /good (bad=${hasBad}, good=${hasGood})`,
-      },
-    ];
-  }
+  const fixtureIssue = fixturePresenceResult(rule, hasBad, hasGood);
+  if (fixtureIssue) return [fixtureIssue];
 
   const results: Result[] = [];
-
-  if (hasBad) {
-    try {
-      const found = await runAgainst(rule, badDir);
-      const shape = found.map(shapeError).find((e) => e !== null) ?? null;
-      // A core/post-build rule is a GATING rule: CI exits non-zero only on `fatal`
-      // (report.ts hasFatal), so its bad fixture must produce at least one FATAL
-      // finding — otherwise the rule "fires" in the self-test yet would NOT block
-      // CI (e.g. it accidentally returns a warning). Heuristic rules don't reach
-      // here (they're exempt from fixtures above).
-      const firedFatal = found.some((f) => f.severity === "fatal");
-      if (found.length === 0) {
-        results.push({ ok: false, label: `${rule.id} bad`, detail: "rule did not fire on the known-bad fixture" });
-      } else if (shape) {
-        results.push({ ok: false, label: `${rule.id} bad`, detail: shape });
-      } else if (!firedFatal) {
-        results.push({
-          ok: false,
-          label: `${rule.id} bad`,
-          detail: `${rule.tier} (gating) rule fired ${found.length} finding(s) but none are FATAL — it would NOT block CI; a gating rule's bad fixture must produce a fatal finding`,
-        });
-      } else {
-        results.push({ ok: true, label: `${rule.id} bad (fired: ${found.length}, fatal)` });
-      }
-    } catch (err) {
-      results.push({ ok: false, label: `${rule.id} bad`, detail: `rule threw: ${String(err)}` });
-    }
-  }
-
-  if (hasGood) {
-    try {
-      const found = await runAgainst(rule, goodDir);
-      results.push(
-        found.length === 0
-          ? { ok: true, label: `${rule.id} good (silent)` }
-          : {
-              ok: false,
-              label: `${rule.id} good`,
-              detail: `rule false-positived on the known-good fixture: ${found
-                .map((f) => f.observed)
-                .join(" | ")}`,
-            },
-      );
-    } catch (err) {
-      results.push({ ok: false, label: `${rule.id} good`, detail: `rule threw: ${String(err)}` });
-    }
-  }
-
+  if (hasBad) results.push(await checkBadFixture(rule, badDir));
+  if (hasGood) results.push(await checkGoodFixture(rule, goodDir));
   return results;
+}
+
+function fixturePresenceResult(rule: Rule, hasBad: boolean, hasGood: boolean): Result | null {
+  if (rule.tier === "heuristic") {
+    return !hasBad && !hasGood
+      ? { ok: true, label: `${rule.id} (heuristic, no fixtures required)` }
+      : null;
+  }
+
+  if (hasBad && hasGood) return null;
+  return {
+    ok: false,
+    label: `${rule.id} fixtures`,
+    detail: `a ${rule.tier} rule needs both fixtures/${rule.id}/bad and /good (bad=${hasBad}, good=${hasGood})`,
+  };
+}
+
+async function checkBadFixture(rule: Rule, badDir: string): Promise<Result> {
+  try {
+    const found = await runAgainst(rule, badDir);
+    return badFixtureResult(rule, found);
+  } catch (err) {
+    return { ok: false, label: `${rule.id} bad`, detail: `rule threw: ${String(err)}` };
+  }
+}
+
+function badFixtureResult(rule: Rule, found: readonly Finding[]): Result {
+  const shape = found.map(shapeError).find((error) => error !== null) ?? null;
+  const firedFatal = found.some((finding) => finding.severity === "fatal");
+  if (found.length === 0) {
+    return { ok: false, label: `${rule.id} bad`, detail: "rule did not fire on the known-bad fixture" };
+  }
+  if (shape) return { ok: false, label: `${rule.id} bad`, detail: shape };
+  if (!firedFatal) {
+    return {
+      ok: false,
+      label: `${rule.id} bad`,
+      detail: `${rule.tier} (gating) rule fired ${found.length} finding(s) but none are FATAL — it would NOT block CI; a gating rule's bad fixture must produce a fatal finding`,
+    };
+  }
+  return { ok: true, label: `${rule.id} bad (fired: ${found.length}, fatal)` };
+}
+
+async function checkGoodFixture(rule: Rule, goodDir: string): Promise<Result> {
+  try {
+    const found = await runAgainst(rule, goodDir);
+    return goodFixtureResult(rule, found);
+  } catch (err) {
+    return { ok: false, label: `${rule.id} good`, detail: `rule threw: ${String(err)}` };
+  }
+}
+
+function goodFixtureResult(rule: Rule, found: readonly Finding[]): Result {
+  if (found.length === 0) return { ok: true, label: `${rule.id} good (silent)` };
+  return {
+    ok: false,
+    label: `${rule.id} good`,
+    detail: `rule false-positived on the known-good fixture: ${found
+      .map((finding) => finding.observed)
+      .join(" | ")}`,
+  };
 }
 
 async function main(): Promise<void> {

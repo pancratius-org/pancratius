@@ -76,29 +76,33 @@ export function findExportedFunctionNames(sf: ts.SourceFile): Set<string> {
   const names = new Set<string>();
 
   for (const stmt of sf.statements) {
-    // export function foo() {}
-    if (ts.isFunctionDeclaration(stmt) && stmt.name && hasExportModifier(stmt)) {
-      names.add(stmt.name.text);
-      continue;
-    }
-    // export const foo = (…) => … | function (…) {…}
-    if (ts.isVariableStatement(stmt) && hasExportModifier(stmt)) {
-      for (const decl of stmt.declarationList.declarations) {
-        if (
-          ts.isIdentifier(decl.name) &&
-          decl.initializer &&
-          (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer))
-        ) {
-          names.add(decl.name.text);
-        }
-      }
-    }
+    for (const name of exportedFunctionNamesInStatement(stmt)) names.add(name);
   }
 
   return names;
 }
 
-function hasExportModifier(node: ts.HasModifiers): boolean {
+function exportedFunctionNamesInStatement(stmt: ts.Statement): string[] {
+  if (!hasExportModifier(stmt)) return [];
+  if (ts.isFunctionDeclaration(stmt)) return stmt.name ? [stmt.name.text] : [];
+  if (!ts.isVariableStatement(stmt)) return [];
+
+  return stmt.declarationList.declarations
+    .map(exportedFunctionVariableName)
+    .filter((name) => name !== null);
+}
+
+function exportedFunctionVariableName(decl: ts.VariableDeclaration): string | null {
+  if (!ts.isIdentifier(decl.name) || !decl.initializer) return null;
+  return isFunctionValue(decl.initializer) ? decl.name.text : null;
+}
+
+function isFunctionValue(node: ts.Node): boolean {
+  return ts.isArrowFunction(node) || ts.isFunctionExpression(node);
+}
+
+function hasExportModifier(node: ts.Node): boolean {
+  if (!ts.canHaveModifiers(node)) return false;
   return (ts.getModifiers(node) ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 }
 
@@ -111,28 +115,33 @@ function hasExportModifier(node: ts.HasModifiers): boolean {
  */
 export function getStaticPathsInitializer(sf: ts.SourceFile): ts.Node | null {
   for (const stmt of sf.statements) {
-    // export function getStaticPaths() { … }
-    if (
-      ts.isFunctionDeclaration(stmt) &&
-      stmt.name?.text === "getStaticPaths" &&
-      hasExportModifier(stmt)
-    ) {
-      return stmt.body ?? null;
-    }
-    // export const getStaticPaths = … ;
-    if (ts.isVariableStatement(stmt) && hasExportModifier(stmt)) {
-      for (const decl of stmt.declarationList.declarations) {
-        if (
-          ts.isIdentifier(decl.name) &&
-          decl.name.text === "getStaticPaths" &&
-          decl.initializer
-        ) {
-          return unwrap(decl.initializer);
-        }
-      }
-    }
+    const initializer = staticPathsInitializerInStatement(stmt);
+    if (initializer) return initializer;
   }
   return null;
+}
+
+function staticPathsInitializerInStatement(stmt: ts.Statement): ts.Node | null {
+  if (!hasExportModifier(stmt)) return null;
+  if (isNamedFunctionDeclaration(stmt, "getStaticPaths")) return stmt.body ?? null;
+  if (!ts.isVariableStatement(stmt)) return null;
+
+  for (const decl of stmt.declarationList.declarations) {
+    const initializer = staticPathsInitializerInDeclaration(decl);
+    if (initializer) return initializer;
+  }
+  return null;
+}
+
+function isNamedFunctionDeclaration(stmt: ts.Statement, name: string): stmt is ts.FunctionDeclaration {
+  return ts.isFunctionDeclaration(stmt) && stmt.name?.text === name;
+}
+
+function staticPathsInitializerInDeclaration(decl: ts.VariableDeclaration): ts.Expression | null {
+  if (!ts.isIdentifier(decl.name) || decl.name.text !== "getStaticPaths" || !decl.initializer) {
+    return null;
+  }
+  return unwrap(decl.initializer);
 }
 
 /** Peel `satisfies`/`as` assertions and parentheses to the underlying expression. */
@@ -253,14 +262,17 @@ export function findIdentifierRefs(node: ts.Node, name: string): ts.Node[] {
  */
 function isDeclarationOrNonRefName(id: ts.Identifier): boolean {
   const p = id.parent;
-  if (ts.isVariableDeclaration(p) && p.name === id) return true;
-  if (ts.isBindingElement(p) && p.name === id) return true;
-  if (ts.isParameter(p) && p.name === id) return true;
-  if (ts.isPropertyAssignment(p) && p.name === id) return true;
-  if (ts.isPropertyAccessExpression(p) && p.name === id) return true;
-  if (ts.isImportSpecifier(p)) return true;
-  return false;
+  return NON_REF_IDENTIFIER_POSITIONS.some((isNonRef) => isNonRef(p, id));
 }
+
+const NON_REF_IDENTIFIER_POSITIONS: readonly ((parent: ts.Node, id: ts.Identifier) => boolean)[] = [
+  (parent, id) => ts.isVariableDeclaration(parent) && parent.name === id,
+  (parent, id) => ts.isBindingElement(parent) && parent.name === id,
+  (parent, id) => ts.isParameter(parent) && parent.name === id,
+  (parent, id) => ts.isPropertyAssignment(parent) && parent.name === id,
+  (parent, id) => ts.isPropertyAccessExpression(parent) && parent.name === id,
+  (parent) => ts.isImportSpecifier(parent),
+];
 
 /**
  * For each `CallExpression` within `node` whose callee is a BARE identifier with
@@ -304,42 +316,33 @@ function constObjectLiteral(
   sf: ts.SourceFile,
   constName: string,
 ): ts.ObjectLiteralExpression | null {
-  for (const stmt of sf.statements) {
-    if (!ts.isVariableStatement(stmt)) continue;
-    for (const decl of stmt.declarationList.declarations) {
-      if (
-        ts.isIdentifier(decl.name) &&
-        decl.name.text === constName &&
-        decl.initializer
-      ) {
-        const init = unwrap(decl.initializer);
-        if (ts.isObjectLiteralExpression(init)) return init;
-        return null;
-      }
-    }
-  }
-  return null;
+  const init = constInitializer(sf, constName);
+  return init && ts.isObjectLiteralExpression(init) ? init : null;
 }
 
 function constArrayLiteral(
   sf: ts.SourceFile,
   constName: string,
 ): ts.ArrayLiteralExpression | null {
+  const init = constInitializer(sf, constName);
+  return init && ts.isArrayLiteralExpression(init) ? init : null;
+}
+
+function constInitializer(sf: ts.SourceFile, constName: string): ts.Expression | null {
   for (const stmt of sf.statements) {
     if (!ts.isVariableStatement(stmt)) continue;
     for (const decl of stmt.declarationList.declarations) {
-      if (
-        ts.isIdentifier(decl.name) &&
-        decl.name.text === constName &&
-        decl.initializer
-      ) {
-        const init = unwrap(decl.initializer);
-        if (ts.isArrayLiteralExpression(init)) return init;
-        return null;
-      }
+      if (isConstDeclarationNamed(decl, constName)) return unwrap(decl.initializer);
     }
   }
   return null;
+}
+
+function isConstDeclarationNamed(
+  decl: ts.VariableDeclaration,
+  constName: string,
+): decl is ts.VariableDeclaration & { initializer: ts.Expression } {
+  return ts.isIdentifier(decl.name) && decl.name.text === constName && decl.initializer !== undefined;
 }
 
 /**
