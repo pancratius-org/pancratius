@@ -14,6 +14,28 @@ export interface GraphModel {
   comRgb: Map<number, [number, number, number]>;
 }
 
+function nodeSize(n: NodeJson, mode: ConceptosphereMode): number {
+  const cent = Math.max(0, n.centrality ?? 0);
+  const freq = (n.frequency ?? 1) + 1;
+  if (mode === "books") {
+    return Math.max(11, Math.min(32, 9 + Math.sqrt(cent) * 90 + Math.log10(freq) * 1.6));
+  }
+  return Math.max(2.4, Math.min(32, Math.sqrt(cent) * 130 + Math.log10(freq) * 0.9));
+}
+
+function labelSizeFor(size: number, maxSize: number): number {
+  if (size >= maxSize * 0.78) return 18;
+  if (size >= maxSize * 0.55) return 15.5;
+  if (size >= maxSize * 0.36) return 13.5;
+  return 12.5;
+}
+
+function cycleAt<T>(items: readonly [T, ...T[]], index: number): T {
+  const item = items[index % items.length];
+  if (item === undefined) throw new Error("cycleAt received an empty cycle");
+  return item;
+}
+
 export function buildGraphModel(
   data: GraphPayload,
   mode: ConceptosphereMode,
@@ -36,22 +58,9 @@ export function buildGraphModel(
 
   // Node sizing: sqrt(centrality) emphasizes anchor nodes while log(freq)
   // keeps the long tail visible. Books mode reserves room for the number badge.
-  const sizes = data.nodes.map((n) => {
-    const cent = Math.max(0, n.centrality ?? 0);
-    const freq = (n.frequency ?? 1) + 1;
-    if (mode === "books") {
-      return Math.max(11, Math.min(32, 9 + Math.sqrt(cent) * 90 + Math.log10(freq) * 1.6));
-    }
-    return Math.max(2.4, Math.min(32, Math.sqrt(cent) * 130 + Math.log10(freq) * 0.9));
-  });
-  const maxSize = Math.max(...sizes);
+  const sizedNodes = data.nodes.map((node) => ({ node, size: nodeSize(node, mode) }));
+  const maxSize = sizedNodes.reduce((max, { size }) => Math.max(max, size), 0);
   const sizeThresh = maxSize * 0.62;
-  const labelSizes = sizes.map((s) => {
-    if (s >= maxSize * 0.78) return 18;
-    if (s >= maxSize * 0.55) return 15.5;
-    if (s >= maxSize * 0.36) return 13.5;
-    return 12.5;
-  });
 
   // Seed each community in its own sector. Sector width ∝ sqrt(community
   // size), so big communities own more arc without crowding everything else.
@@ -66,7 +75,7 @@ export function buildGraphModel(
   }
 
   const nodesByCom = new Map<number, NodeJson[]>();
-  for (const n of data.nodes) {
+  for (const { node: n } of sizedNodes) {
     const arr = nodesByCom.get(n.community) ?? [];
     arr.push(n);
     nodesByCom.set(n.community, arr);
@@ -87,7 +96,7 @@ export function buildGraphModel(
     });
   }
 
-  data.nodes.forEach((n, i) => {
+  sizedNodes.forEach(({ node: n, size }, i) => {
     const c = comCentroid.get(n.community)!;
     const sec = sectorOf.get(n.community)!;
     const members = nodesByCom.get(n.community)!;
@@ -106,9 +115,9 @@ export function buildGraphModel(
       badge,
       x: c.x + Math.cos(ang) * r,
       y: c.y + Math.sin(ang) * r,
-      size: sizes[i],
-      _size: sizes[i],
-      labelSize: labelSizes[i],
+      size,
+      _size: size,
+      labelSize: labelSizeFor(size, maxSize),
       color: col,
       _color: col,
       community: n.community,
@@ -124,7 +133,7 @@ export function buildGraphModel(
       number: n.number,
       slug: n.slug,
       kind: mode === "books" ? "book" : undefined,
-      forceLabel: mode === "books" ? false : sizes[i] >= sizeThresh,
+      forceLabel: mode === "books" ? false : size >= sizeThresh,
     });
   });
 
@@ -258,11 +267,11 @@ function applyCommunityLayout(
     tmp.set(c.id, acc + span / 2);
     acc += span;
   }
-  const TIERS = mode === "books" ? [260, 380] : [210, 330, 450];
+  const TIERS = mode === "books" ? [260, 380] as const : [210, 330, 450] as const;
   comAngles.forEach((c, i) => {
     const ang = tmp.get(c.id)!;
     const sz = comSize.get(c.id) ?? 0;
-    const baseR = TIERS[i % TIERS.length];
+    const baseR = cycleAt(TIERS, i);
     const ringR = baseR + Math.sqrt(sz / 50) * 12;
     comPos.set(c.id, { x: Math.cos(ang) * ringR, y: Math.sin(ang) * ringR, angle: ang });
   });

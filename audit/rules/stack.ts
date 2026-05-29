@@ -36,7 +36,12 @@ const JS_EXTENSIONS: readonly string[] = [".js", ".mjs", ".cjs", ".jsx"];
 
 // The tsconfigs whose `include` globs DEFINE the production-source trees (the
 // place TypeScript is mandated): the app config + the tooling/specs config.
-const TSCONFIGS: readonly string[] = ["tsconfig.json", "tsconfig.scripts.json"];
+const TSCONFIGS = ["tsconfig.json", "tsconfig.tooling.json"] as const satisfies readonly [string, ...string[]];
+
+function firstPathSegment(path: string): string {
+  const slash = path.indexOf("/");
+  return slash === -1 ? path : path.slice(0, slash);
+}
 
 /**
  * Derive the production-source top-level dirs from the tsconfig `include` globs
@@ -62,7 +67,7 @@ function productionTsRoots(ctx: RuleContext): Set<string> | null {
     if (!Array.isArray(include)) continue;
     for (const glob of include) {
       if (typeof glob !== "string" || !glob.includes("/")) continue; // root files aren't a tree
-      const top = glob.split("/")[0];
+      const top = firstPathSegment(glob);
       if (top && !top.includes("*")) roots.add(top);
     }
   }
@@ -105,7 +110,7 @@ export const pan016SourceLanguage: Rule = {
 
     const offenders = ctx.walk({
       filter: (rel) =>
-        JS_EXTENSIONS.some((ext) => rel.endsWith(ext)) && roots.has(rel.split("/")[0]),
+        JS_EXTENSIONS.some((ext) => rel.endsWith(ext)) && roots.has(firstPathSegment(rel)),
     });
 
     return offenders.map((rel) => ({
@@ -151,7 +156,11 @@ function deriveBannedTokens(archMd: string): Set<string> | null {
   const tokens = new Set<string>();
   const re = /\bno\s+([A-Z][A-Za-z]+)/g;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(line)) !== null) tokens.add(m[1].toLowerCase());
+  while ((m = re.exec(line)) !== null) {
+    const token = m[1];
+    if (token === undefined) throw new Error("framework token extractor matched without a token capture");
+    tokens.add(token.toLowerCase());
+  }
 
   return tokens.size === 0 ? null : tokens;
 }
@@ -262,8 +271,14 @@ function bannedPackage(name: string, banned: ReadonlySet<string>): string | null
  * `bannedPackage` won't match — no FP on the alias).
  */
 function importPackageName(spec: string): string {
-  const parts = spec.split("/");
-  return spec.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
+  if (spec.startsWith("@")) {
+    const firstSlash = spec.indexOf("/");
+    if (firstSlash === -1) return spec;
+    const secondSlash = spec.indexOf("/", firstSlash + 1);
+    return secondSlash === -1 ? spec : spec.slice(0, secondSlash);
+  }
+  const slash = spec.indexOf("/");
+  return slash === -1 ? spec : spec.slice(0, slash);
 }
 
 /**

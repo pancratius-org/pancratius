@@ -6,7 +6,9 @@ export const CONCEPTOSPHERE_PALETTE = [
 ] as const;
 
 export function communityColor(id: number): string {
-  return CONCEPTOSPHERE_PALETTE[id % CONCEPTOSPHERE_PALETTE.length];
+  const color = CONCEPTOSPHERE_PALETTE[id % CONCEPTOSPHERE_PALETTE.length];
+  if (color === undefined) throw new Error("conceptosphere palette must contain at least one color");
+  return color;
 }
 
 export function communityRgb(id: number): [number, number, number] {

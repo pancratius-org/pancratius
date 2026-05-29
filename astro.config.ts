@@ -50,8 +50,8 @@ const entriesByLangSlug = new Map<string, SlugMap["entries"][number]>();
 const pagesByLangSlug = new Map<string, SlugMap["pages"][number]>();
 if (slugMap) {
   for (const entry of slugMap.entries) {
-    for (const lang of Object.keys(entry.languages)) {
-      entriesByLangSlug.set(`${entry.kind}:${lang}:${entry.languages[lang].slug}`, entry);
+    for (const [lang, info] of Object.entries(entry.languages)) {
+      entriesByLangSlug.set(`${entry.kind}:${lang}:${info.slug}`, entry);
     }
   }
   for (const p of slugMap.pages) {
@@ -132,8 +132,13 @@ function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }
   const mWork = pathname.match(WORK_RE);
   if (mWork) {
     const lang = mWork[1] ?? DEFAULT_LOCALE;
-    const kind = KIND_OF_SEGMENT[mWork[2]];
+    const segment = mWork[2];
     const slug = mWork[3];
+    if (segment === undefined || slug === undefined) {
+      throw new Error(`WORK_RE matched ${pathname} without a segment or slug`);
+    }
+    const kind = KIND_OF_SEGMENT[segment];
+    if (kind === undefined) throw new Error(`WORK_RE matched unregistered work segment ${segment}`);
     const w = entriesByLangSlug.get(`${kind}:${lang}:${slug}`);
     if (!w) return null;
     const links = Object.entries(w.languages).map(([l, info]) => {
@@ -143,8 +148,10 @@ function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }
   }
 
   const mPage = pathname.match(PAGE_RE);
-  if (mPage && KIND_OF_SEGMENT[mPage[2]] === undefined) {
+  if (mPage) {
     const slug = mPage[2];
+    if (slug === undefined) throw new Error(`PAGE_RE matched ${pathname} without a slug`);
+    if (KIND_OF_SEGMENT[slug] !== undefined) return null;
     const lang = mPage[1] ?? DEFAULT_LOCALE;
     const p = pagesByLangSlug.get(`${lang}:${slug}`);
     if (!p) return null;

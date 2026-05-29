@@ -181,6 +181,7 @@ const copyJson = jsonForScript({
           `</div>`;
       } else {
         const s = copy.steps[pos - 1];
+        if (!s) throw new Error("SelfInquiryCycle step index out of range");
         stage!.innerHTML =
           `<div class="inquiry__card inquiry__card--step">` +
           `<span class="inquiry__step-n">${escape(copy.stepWord)} ${s.n}</span>` +

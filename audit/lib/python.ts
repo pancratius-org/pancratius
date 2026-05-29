@@ -72,7 +72,7 @@ export function runPythonCheck(ctx: RuleContext, spec: PythonCheckSpec): Finding
       contract: spec.contract,
       why: spec.why,
       repair: spec.repair,
-      doNotFixBy: spec.doNotFixBy,
+      ...(spec.doNotFixBy === undefined ? {} : { doNotFixBy: spec.doNotFixBy }),
     },
   ];
 }

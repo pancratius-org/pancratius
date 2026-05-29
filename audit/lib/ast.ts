@@ -47,8 +47,9 @@ function extractAstroFrontmatter(source: string): string | null {
   if (lines[0]?.trimEnd() !== "---") return null;
 
   let close = -1;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trimEnd() === "---") {
+  for (const [i, line] of lines.entries()) {
+    if (i === 0) continue;
+    if (line.trimEnd() === "---") {
       close = i;
       break;
     }

@@ -60,7 +60,11 @@ const seo = seoForProject(Astro.site, {
 });
 
 // Featured books — primary strip (with blurbs) + optional secondary row.
-const featured = await resolveFeaturedBooks(data.featured_books);
+const featuredBookRefs = data.featured_books?.map(f => ({
+  number: f.number,
+  ...(f.blurb === undefined ? {} : { blurb: f.blurb }),
+}));
+const featured = await resolveFeaturedBooks(featuredBookRefs);
 const featuredMore = await resolveFeaturedBooksMore(data.featured_books_more);
 
 // Sub-page doors. Built from the landing's `subpages` descriptor (order +
@@ -74,7 +78,7 @@ const doors = await Promise.all(
       href: projectSubpageUrl(data.slug, s.slug, locale),
       label: s.label ?? sub?.data.title ?? s.slug,
       weight: s.weight,
-      description: sub?.data.description,
+      ...(sub?.data.description === undefined ? {} : { description: sub.data.description }),
     };
   }),
 );
@@ -95,28 +99,32 @@ const revelations = await Promise.all(
       const url = await featuredBookUrl(r.cta.book, locale);
       if (url) href = url;
     }
+    const cta = r.cta
+      ? { label: r.cta.label, ...(href === undefined ? {} : { href }) }
+      : undefined;
     return {
-      voice: r.voice,
       text: r.text,
-      cta: r.cta ? { label: r.cta.label, href } : undefined,
+      ...(r.voice === undefined ? {} : { voice: r.voice }),
+      ...(cta === undefined ? {} : { cta }),
     };
   }),
 );
 
 const themeAttr = data.theme ?? undefined;
+const heroProps = {
+  eyebrow: copy.meta,
+  title: data.title,
+  coverUrl,
+  number: data.number,
+  locale,
+  ...(data.tagline === undefined ? {} : { tagline: data.tagline }),
+};
 ---
 <Base locale={locale} seo={seo}>
   <article class="project-page project-themed" data-project-theme={themeAttr}>
     <a class="project-page__back" href={backHref}>{copy.back}</a>
 
-    <ProjectHero
-      eyebrow={copy.meta}
-      title={data.title}
-      tagline={data.tagline}
-      coverUrl={coverUrl}
-      number={data.number}
-      locale={locale}
-    />
+    <ProjectHero {...heroProps} />
 
     {data.negation && data.negation.length > 0 && (
       <Negation lines={data.negation} locale={locale} />
@@ -135,7 +143,7 @@ const themeAttr = data.theme ?? undefined;
     )}
 
     {revelations.map(r => (
-      <RevelationBlock text={r.text} voice={r.voice} cta={r.cta} locale={locale} />
+      <RevelationBlock {...r} locale={locale} />
     ))}
 
     <SubpageGrid doors={doors} locale={locale} />

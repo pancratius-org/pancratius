@@ -6,7 +6,8 @@ import type { APIRoute } from "astro";
 import sharp from "sharp";
 
 import { DEFAULT_LOCALE, type RoutedKind } from "./i18n";
-import { ROUTED_KINDS, SEGMENT_OF, type RoutedSegment } from "./kinds";
+import { CORPUS_WORK_KINDS, ROUTED_KINDS, SEGMENT_OF, type RoutedSegment } from "./kinds";
+import { publicWorkMarkdownAssetPaths } from "./publication/public-markdown";
 import type { WorkPair } from "./works";
 
 const REPO_ROOT = process.cwd();
@@ -43,6 +44,10 @@ const ASSET_KIND_SEGMENTS = [
   "pages",
 ] as const;
 
+const CORPUS_ASSET_SEGMENTS = new Set<string>(
+  CORPUS_WORK_KINDS.map((kind) => ROUTED_SEGMENT[kind]),
+);
+
 const CONTENT_TYPE: Record<string, string> = {
   ".avif": "image/avif",
   ".gif":  "image/gif",
@@ -61,7 +66,10 @@ export interface BodyImageRouteProps {
 
 export function workBundleKey(pair: WorkPair): string {
   // The bundle folder is the same across locales; key off the canonical entry.
-  return pair.entries[DEFAULT_LOCALE]!.id.split("--")[0];
+  const id = pair.entries[DEFAULT_LOCALE]!.id;
+  const separator = id.indexOf("--");
+  if (separator === -1) throw new Error(`work entry id ${JSON.stringify(id)} is missing its locale separator`);
+  return id.slice(0, separator);
 }
 
 export function workAssetImagePublicPath(kind: RoutedKind, workKey: string, imagePath: string): string {
@@ -77,10 +85,12 @@ export function workAssetImageStaticPaths() {
     params: { kind: string; work: string; file: string };
     props: BodyImageRouteProps;
   }[] = [];
+  const referencedWorkAssets = referencedWorkAssetPublicPaths();
 
   for (const kind of ASSET_KIND_SEGMENTS) {
     const kindRoot = resolvePath(CONTENT, kind);
     if (!existsSync(kindRoot)) continue;
+    const isCorpusWorkSegment = CORPUS_ASSET_SEGMENTS.has(kind);
 
     for (const work of readdirSync(kindRoot, { withFileTypes: true })) {
       if (!work.isDirectory()) continue;
@@ -91,6 +101,7 @@ export function workAssetImageStaticPaths() {
         const ext = extname(file).toLowerCase();
         const contentType = CONTENT_TYPE[ext];
         if (!contentType) continue;
+        if (isCorpusWorkSegment && !referencedWorkAssets.has(assetPublicPath(kind, work.name, file))) continue;
         paths.push({
           params: { kind, work: work.name, file },
           props: {
@@ -103,6 +114,35 @@ export function workAssetImageStaticPaths() {
   }
 
   return paths;
+}
+
+function referencedWorkAssetPublicPaths(): Set<string> {
+  const paths = new Set<string>();
+
+  for (const kind of CORPUS_WORK_KINDS) {
+    const segment = ROUTED_SEGMENT[kind];
+    const root = resolvePath(CONTENT, segment);
+    if (!existsSync(root)) continue;
+
+    for (const work of readdirSync(root, { withFileTypes: true })) {
+      if (!work.isDirectory()) continue;
+      const workDir = resolvePath(root, work.name);
+
+      for (const entry of readdirSync(workDir, { withFileTypes: true })) {
+        if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
+        const source = readFileSync(resolvePath(workDir, entry.name), "utf-8");
+        for (const path of publicWorkMarkdownAssetPaths(source, { kind, bundleKey: work.name })) {
+          paths.add(path);
+        }
+      }
+    }
+  }
+
+  return paths;
+}
+
+function assetPublicPath(kind: string, work: string, file: string): string {
+  return `assets/${kind}/${work}/images/${file}`;
 }
 
 export const bodyImageGET: APIRoute<BodyImageRouteProps> = async ({ props }) => {

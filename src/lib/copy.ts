@@ -627,9 +627,15 @@ export const poetryIndexCopy = {
 export function formatMonthYear(iso: string, months: readonly string[]): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
   if (!m) return iso;
-  const month = parseInt(m[2], 10);
-  if (month >= 1 && month <= 12) return `${months[month - 1]} ${m[1]}`;
-  return m[1];
+  const year = m[1];
+  const monthText = m[2];
+  if (year === undefined || monthText === undefined) {
+    throw new Error("ISO date parser matched without year or month captures");
+  }
+  const month = parseInt(monthText, 10);
+  const monthName = months[month - 1];
+  if (month >= 1 && month <= 12 && monthName !== undefined) return `${monthName} ${year}`;
+  return year;
 }
 
 export interface ProjectComponentsCopy {

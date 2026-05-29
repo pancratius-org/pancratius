@@ -9,7 +9,7 @@ import Verse from "@/components/Verse.astro";
 
 import type { Locale } from "@/lib/i18n";
 import { LOCALES, pageUrl } from "@/lib/i18n";
-import { getPage } from "@/lib/pages";
+import { getPage, pageShellProps } from "@/lib/pages";
 import { seoForPage } from "@/lib/seo";
 
 const SLUG = "mission";
@@ -30,7 +30,7 @@ for (const loc of authoredLocales) {
 }
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
-  <PageShell title={page.data.title} eyebrow={page.data.eyebrow} sub={page.data.sub}>
+  <PageShell {...pageShellProps(page)}>
     <Verse><Content /></Verse>
   </PageShell>
 </Base>

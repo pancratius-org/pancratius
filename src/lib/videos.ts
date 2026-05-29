@@ -34,6 +34,21 @@ export interface VideoPair {
 let _pairsCache: VideoPair[] | null = null;
 let _channelsCache: VideoChannel[] | null = null;
 
+function defaultVideoEntry(pair: VideoPair): VideoEntry {
+  const entry = pair.entries[DEFAULT_LOCALE];
+  if (!entry) {
+    throw new Error(`Video #${pair.number} has no ${DEFAULT_LOCALE} canonical entry`);
+  }
+  return entry;
+}
+
+function videoBundleKey(pair: VideoPair): string {
+  const id = defaultVideoEntry(pair).id;
+  const separator = id.indexOf("--");
+  if (separator === -1) throw new Error(`video entry id ${JSON.stringify(id)} is missing its locale separator`);
+  return id.slice(0, separator);
+}
+
 /**
  * All videos in the corpus, paired across languages by `number`.
  * Throws if any video lacks a default-locale entry — the default-locale file
@@ -75,8 +90,8 @@ export async function getAllVideoPairs(): Promise<VideoPair[]> {
   }
 
   pairs.sort((a, b) => {
-    const ad = a.entries[DEFAULT_LOCALE]!.data.published_at;
-    const bd = b.entries[DEFAULT_LOCALE]!.data.published_at;
+    const ad = defaultVideoEntry(a).data.published_at;
+    const bd = defaultVideoEntry(b).data.published_at;
     if (ad !== bd) return ad < bd ? 1 : -1;
     return b.number - a.number;
   });
@@ -120,7 +135,7 @@ export function videoEntryForLocale(pair: VideoPair, locale: Locale): VideoEntry
     if (next === current) break;
     current = next;
   }
-  return pair.entries[DEFAULT_LOCALE]!;
+  return defaultVideoEntry(pair);
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -173,7 +188,12 @@ function parseVideoCover(value: string | null | undefined): VideoCoverRef | null
       `Expected ./cover.<${LOCALES.join("|")}>.<jpg|png|webp|avif> inside the video bundle.`,
     );
   }
-  return { rel: value.trim(), lang: match[1].toLowerCase() as Locale, ext: match[2].toLowerCase() };
+  const lang = match[1];
+  const ext = match[2];
+  if (lang === undefined || ext === undefined) {
+    throw new Error(`Video cover path ${JSON.stringify(value)} matched without locale or extension`);
+  }
+  return { rel: value.trim(), lang: lang.toLowerCase() as Locale, ext: ext.toLowerCase() };
 }
 
 export async function resolveVideoCover(pair: VideoPair, locale: Locale): Promise<VideoCoverRef | null> {
@@ -193,8 +213,7 @@ export async function resolveVideoCover(pair: VideoPair, locale: Locale): Promis
 export async function videoCoverAssetUrl(pair: VideoPair, locale: Locale): Promise<string | null> {
   const cover = await resolveVideoCover(pair, locale);
   if (!cover) return null;
-  const folder = pair.entries[DEFAULT_LOCALE]!.id.split("--")[0];
-  const key = `/src/content/videos/${folder}/${cover.rel.replace(/^\.\//, "")}`;
+  const key = `/src/content/videos/${videoBundleKey(pair)}/${cover.rel.replace(/^\.\//, "")}`;
   return VIDEO_COVER_URLS[key] ?? null;
 }
 

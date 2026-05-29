@@ -207,10 +207,15 @@ export function parseCoverRef(value: string | null | undefined): CoverRef | null
       `Expected ./cover.<${LOCALES.join("|")}>.<jpg|png|webp|avif> inside the work bundle.`,
     );
   }
+  const lang = match[1];
+  const ext = match[2];
+  if (lang === undefined || ext === undefined) {
+    throw new Error(`Cover path ${JSON.stringify(value)} matched without locale or extension`);
+  }
   return {
-    rel:  value.trim(),
-    lang: match[1].toLowerCase() as Locale,
-    ext:  match[2].toLowerCase(),
+    rel: value.trim(),
+    lang: lang.toLowerCase() as Locale,
+    ext: ext.toLowerCase(),
   };
 }
 
@@ -281,10 +286,10 @@ export async function resolveCrossRefs(
     }
     const display = entryForLocale(pair, locale);
     resolved.push({
-      target:    pair,
+      target: pair,
       display,
-      snippet:   ref.snippet,
-      sourceUrl: ref.source_url,
+      ...(ref.snippet === undefined ? {} : { snippet: ref.snippet }),
+      ...(ref.source_url === undefined ? {} : { sourceUrl: ref.source_url }),
     });
   }
   return resolved;

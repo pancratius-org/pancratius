@@ -173,7 +173,10 @@ export async function resolveFeaturedBooks(
         `resolveFeaturedBooks: book #${f.number} not in corpus`,
       );
     }
-    out.push({ pair, blurb: f.blurb });
+    out.push({
+      pair,
+      ...(f.blurb === undefined ? {} : { blurb: f.blurb }),
+    });
   }
   return out;
 }

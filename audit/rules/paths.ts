@@ -116,7 +116,9 @@ export const pan001PathBoundary: Rule = {
       // fires. Skips absolute (`/…`, handled above), anchors, and scheme URLs.
       const dir = posix.dirname(rel);
       for (const { match, line } of matchesWithLines(text, MD_TARGET_RE)) {
-        const raw = match[1].replace(/^<|>$/g, "");
+        const target = match[1];
+        if (target === undefined) throw new Error("Markdown target extractor matched without a target capture");
+        const raw = target.replace(/^<|>$/g, "");
 
         // A `~/…` link/image target is a machine home path (checked in target
         // context, not raw text, so a `~` in prose isn't a false positive).

@@ -20,12 +20,19 @@ export function isPoemTitleLine(line: string, title: string): boolean {
 
 function poemBodyLines(bodyMarkdown: string, title: string): string[] {
   const body = parseMarkdownDocument(bodyMarkdown).body.trim();
-  const lines = body.split("\n");
+  const lines = dropLeadingBlankLines(body.split("\n"));
+  const firstLine = lines[0];
+  if (firstLine !== undefined && isPoemTitleLine(firstLine, title)) {
+    return dropLeadingBlankLines(lines.slice(1));
+  }
+  return lines;
+}
+
+function dropLeadingBlankLines(lines: readonly string[]): string[] {
   let start = 0;
-  while (start < lines.length && lines[start].trim() === "") start++;
-  if (start < lines.length && isPoemTitleLine(lines[start], title)) {
+  for (const line of lines) {
+    if (line.trim() !== "") break;
     start++;
-    while (start < lines.length && lines[start].trim() === "") start++;
   }
   return lines.slice(start);
 }

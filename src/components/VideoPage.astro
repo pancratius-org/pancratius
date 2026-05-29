@@ -51,8 +51,10 @@ const nextEntry = next ? next.entries[locale]! : null;
 
 const number = String(pair.number).padStart(2, "0");
 const duration = formatDuration(entry.data.duration);
-const primary = entry.data.sources[0];
-const mirrors = entry.data.sources.slice(1);
+const [primary, ...mirrors] = entry.data.sources;
+if (primary === undefined) {
+  throw new Error(`VideoPage: video #${pair.number} ${locale} has no sources`);
+}
 const channel = await channelForEntry(entry);
 const PLATFORM_LABEL: Record<string, string> = {
   youtube: "YouTube",
