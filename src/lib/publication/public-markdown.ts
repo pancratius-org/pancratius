@@ -46,6 +46,43 @@ export function renderPublicWorkMarkdown(
   return body.trim() + "\n";
 }
 
+export function publicWorkMarkdownAssetPaths(
+  sourceMarkdown: string,
+  work: PublicationWork,
+): string[] {
+  const context = publicMarkdownContext(work);
+  const body = parseMarkdownDocument(sourceMarkdown).body.replace(/\r\n?/g, "\n");
+  const paths = new Set<string>();
+
+  for (const match of body.matchAll(/<img\b([^>]*?)\/?>/gi)) {
+    const tag = match[0];
+    const attrs = match[1];
+    if (attrs === undefined) {
+      throw unsupportedHtmlError(tag, context, "image attribute parser matched without attributes");
+    }
+    const parsed = parseHtmlAttributes(attrs, tag, context);
+    requireOnlyAttributes(parsed, ["src", "alt"], tag, context);
+    const src = parsed.get("src");
+    if (!src) throw unsupportedHtmlError(tag, context, "missing required src attribute");
+    const assetPath = publicImageAssetPath(work, src);
+    if (assetPath) paths.add(assetPath);
+  }
+
+  for (const match of body.matchAll(MARKDOWN_IMAGE_RE)) {
+    const openAngle = match[2] ?? "";
+    const target = match[3];
+    const closeAngle = match[4] ?? "";
+    if ((openAngle && !closeAngle) || (!openAngle && closeAngle)) continue;
+    if (target === undefined) {
+      throw new Error(`Markdown image parser matched without a target in ${context}`);
+    }
+    const assetPath = publicImageAssetPath(work, target);
+    if (assetPath) paths.add(assetPath);
+  }
+
+  return Array.from(paths).sort();
+}
+
 function cleanPublicMarkdownBody(
   body: string,
   work: PublicationWork,
@@ -123,9 +160,33 @@ function publicImageUrl(work: PublicationWork, src: string, origin: string): str
 
   if (trimmed.startsWith("/")) return new URL(trimmed, `${origin}/`).toString();
 
+  const assetPath = publicImageAssetPath(work, trimmed);
+  if (assetPath) {
+    return `${origin}/${assetPath}`;
+  }
+
+  throw new Error(
+    `Unsupported local public Markdown image path ${JSON.stringify(src)}. ` +
+    "Use a remote URL, a root-relative URL, or a work-bundle images/... path.",
+  );
+}
+
+function publicImageAssetPath(work: PublicationWork, src: string): string | null {
+  const trimmed = decodeHtmlEntities(src.trim());
+  if (/^https?:\/\//i.test(trimmed)) return null;
+
+  const scheme = URL_SCHEME_RE.exec(trimmed)?.[1];
+  if (scheme) {
+    throw new Error(`Unsupported public Markdown image URL scheme ${JSON.stringify(scheme)} in ${JSON.stringify(src)}`);
+  }
+
+  if (trimmed.startsWith("/")) {
+    return trimmed.startsWith("/assets/") ? trimmed.slice(1) : null;
+  }
+
   const file = trimmed.replace(/^\.?\//, "");
   if (file.startsWith("images/")) {
-    return `${origin}/assets/${WORK_SEGMENT[work.kind]}/${work.bundleKey}/${file}`;
+    return `assets/${WORK_SEGMENT[work.kind]}/${work.bundleKey}/${file}`;
   }
 
   throw new Error(
@@ -139,6 +200,9 @@ function portabilizeVerse(body: string): string {
   for (let i = 0; i < lines.length - 1; i++) {
     const current = lines[i];
     const next = lines[i + 1];
+    if (current === undefined || next === undefined) {
+      throw new Error("verse lineation loop exceeded its line bounds");
+    }
     if (current.trim() && next.trim()) {
       lines[i] = current.replace(/\s+$/, "") + "  ";
     }
@@ -208,7 +272,11 @@ function parseHtmlAttributes(attrs: string, tag: string, context: string): Map<s
     if (attrs.slice(end, match.index).trim()) {
       throw unsupportedHtmlError(tag, context, "attributes must be quoted name=value pairs");
     }
-    const name = match[1].toLowerCase();
+    const rawName = match[1];
+    if (rawName === undefined) {
+      throw unsupportedHtmlError(tag, context, "attribute parser matched without a name");
+    }
+    const name = rawName.toLowerCase();
     if (parsed.has(name)) {
       throw unsupportedHtmlError(tag, context, `duplicate ${name} attribute`);
     }

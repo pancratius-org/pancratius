@@ -130,14 +130,21 @@ function capitalize(word: string): string {
   return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
+function wordAt(words: readonly string[], index: number, context: string): string {
+  const word = words[index];
+  if (word === undefined) throw new Error(`${context}: no word for index ${index}`);
+  return word;
+}
+
 function spellRu(n: number, feminine: boolean): string {
   if (n < 0 || n > 99 || !Number.isInteger(n)) return String(n);
   const ones = feminine ? RU_ONES_FEM : RU_ONES;
-  if (n < 10) return ones[n];
-  if (n < 20) return RU_TEENS[n - 10];
+  if (n < 10) return wordAt(ones, n, "Russian ones");
+  if (n < 20) return wordAt(RU_TEENS, n - 10, "Russian teens");
   const t = Math.floor(n / 10);
   const o = n % 10;
-  return o === 0 ? RU_TENS[t] : `${RU_TENS[t]} ${ones[o]}`;
+  const tens = wordAt(RU_TENS, t, "Russian tens");
+  return o === 0 ? tens : `${tens} ${wordAt(ones, o, "Russian ones")}`;
 }
 
 /** Capitalized English cardinal for small corpus counts (e.g. "Forty-three"). */
@@ -147,11 +154,12 @@ export function spellEnglishCardinal(n: number): string {
 
 function spellEn(n: number): string {
   if (n < 0 || n > 99 || !Number.isInteger(n)) return String(n);
-  if (n < 10) return EN_ONES[n];
-  if (n < 20) return EN_TEENS[n - 10];
+  if (n < 10) return wordAt(EN_ONES, n, "English ones");
+  if (n < 20) return wordAt(EN_TEENS, n - 10, "English teens");
   const t = Math.floor(n / 10);
   const o = n % 10;
-  return o === 0 ? EN_TENS[t] : `${EN_TENS[t]}-${EN_ONES[o]}`;
+  const tens = wordAt(EN_TENS, t, "English tens");
+  return o === 0 ? tens : `${tens}-${wordAt(EN_ONES, o, "English ones")}`;
 }
 
 // RU declensions used in the home meta sentence ("книги/книг", "стихотворения").

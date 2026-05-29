@@ -201,7 +201,7 @@ function main(): number {
   const formatArg = args.find((arg) => arg.startsWith("--formats="));
   const formatIndex = args.indexOf("--formats");
   const rawFormats = formatArg
-    ? formatArg.split("=", 2)[1]
+    ? formatArg.slice("--formats=".length)
     : formatIndex >= 0
       ? args[formatIndex + 1] ?? ""
       : DEFAULT_FORMATS.join(",");

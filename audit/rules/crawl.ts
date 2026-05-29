@@ -148,11 +148,13 @@ function extractLinks(html: string): { url: string; line: number }[] {
   const re = /(?:href|src)\s*=\s*"([^"]*)"/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(scanned)) !== null) {
+    const url = m[1];
+    if (url === undefined) throw new Error("href/src extractor matched without a URL capture");
     // 1-based line of the match start (cheap single pass per match). Offsets are
     // preserved by the mask (same length, newlines kept), so the line is exact.
     let line = 1;
     for (let i = 0; i < m.index; i++) if (scanned.charCodeAt(i) === 10) line += 1;
-    out.push({ url: m[1], line });
+    out.push({ url, line });
   }
   return out;
 }

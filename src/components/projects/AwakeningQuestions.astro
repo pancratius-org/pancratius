@@ -61,6 +61,10 @@ function jsonForScript(value: unknown): string {
 }
 const dataJson = jsonForScript(bank.tiers.map(t => ({ id: t.id, questions: t.questions })));
 const totalCount = bank.tiers.reduce((n, t) => n + t.questions.length, 0);
+const firstQuestion = bank.tiers[0]?.questions[0];
+if (firstQuestion === undefined) {
+  throw new Error("AwakeningQuestions requires at least one tier with one question");
+}
 ---
 <section class="awaken" aria-labelledby="awaken-h" data-awaken>
   <h2 class="awaken__h" id="awaken-h">{copy.heading}</h2>
@@ -87,7 +91,7 @@ const totalCount = bank.tiers.reduce((n, t) => n + t.questions.length, 0);
     </div>
 
     <p class="awaken__card" data-card aria-live="polite" aria-atomic="true">
-      {bank.tiers[0].questions[0]}
+      {firstQuestion}
     </p>
 
     <p class="awaken__hint">{copy.hint}</p>
@@ -156,10 +160,15 @@ const totalCount = bank.tiers.reduce((n, t) => n + t.questions.length, 0);
     let current = card.textContent?.trim() ?? "";
     const drawFrom = (questions: string[]): string => {
       if (questions.length === 0) return current;
-      if (questions.length === 1) return questions[0];
+      const questionAt = (index: number): string => {
+        const question = questions[index];
+        if (question === undefined) throw new Error("question draw index exceeded pool bounds");
+        return question;
+      };
+      if (questions.length === 1) return questionAt(0);
       let pick = current;
       while (pick === current) {
-        pick = questions[Math.floor(Math.random() * questions.length)];
+        pick = questionAt(Math.floor(Math.random() * questions.length));
       }
       return pick;
     };

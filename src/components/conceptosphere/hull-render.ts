@@ -5,6 +5,8 @@ import type { GraphTheme } from "./graph-theme";
 import { communityColor } from "./palette";
 import type { ConceptosphereMode, NodeJson } from "./runtime-types";
 
+type Point = [number, number];
+
 interface HullContext {
   stage: HTMLElement;
   hulls: SVGSVGElement;
@@ -29,7 +31,7 @@ export function drawHulls(ctx: HullContext, s: HullSession): void {
 
   for (const [cid, nodes] of s.nodesByCom) {
     if (nodes.length < 3) continue;
-    const pts: [number, number][] = [];
+    const pts: Point[] = [];
     for (const n of nodes) {
       if (!s.graph.hasNode(n.id)) continue;
       const a = s.graph.getNodeAttributes(n.id);
@@ -42,7 +44,7 @@ export function drawHulls(ctx: HullContext, s: HullSession): void {
     const cx = hull.reduce((sum, p) => sum + p[0], 0) / hull.length;
     const cy = hull.reduce((sum, p) => sum + p[1], 0) / hull.length;
     const pad = s.mode === "books" ? 40 : 28;
-    const inflated = hull.map<[number, number]>(([x, y]) => {
+    const inflated = hull.map<Point>(([x, y]) => {
       const dx = x - cx, dy = y - cy;
       const d = Math.hypot(dx, dy) || 1;
       return [x + (dx / d) * pad, y + (dy / d) * pad];
@@ -61,32 +63,54 @@ export function drawHulls(ctx: HullContext, s: HullSession): void {
   }
 }
 
-function convexHull(points: [number, number][]): [number, number][] {
+function convexHull(points: Point[]): Point[] {
   const pts = points.slice().sort((a, b) => (a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]));
-  const cross = (O: [number, number], A: [number, number], B: [number, number]) =>
+  const cross = (O: Point, A: Point, B: Point) =>
     (A[0] - O[0]) * (B[1] - O[1]) - (A[1] - O[1]) * (B[0] - O[0]);
-  const lower: [number, number][] = [];
+  const lower: Point[] = [];
   for (const p of pts) {
-    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+    while (lower.length >= 2) {
+      const [a, b] = lastTwo(lower);
+      if (cross(a, b, p) > 0) break;
+      lower.pop();
+    }
     lower.push(p);
   }
-  const upper: [number, number][] = [];
-  for (let i = pts.length - 1; i >= 0; i--) {
-    const p = pts[i];
-    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+  const upper: Point[] = [];
+  for (const p of [...pts].reverse()) {
+    while (upper.length >= 2) {
+      const [a, b] = lastTwo(upper);
+      if (cross(a, b, p) > 0) break;
+      upper.pop();
+    }
     upper.push(p);
   }
   upper.pop(); lower.pop();
   return lower.concat(upper);
 }
 
-function smoothPath(pts: [number, number][]): string {
+function lastTwo(points: readonly Point[]): [Point, Point] {
+  const a = points.at(-2);
+  const b = points.at(-1);
+  if (a === undefined || b === undefined) {
+    throw new Error("convex hull stack must contain at least two points");
+  }
+  return [a, b];
+}
+
+function pointAt(points: readonly Point[], index: number): Point {
+  const point = points[((index % points.length) + points.length) % points.length];
+  if (point === undefined) throw new Error("smooth hull path index exceeded point bounds");
+  return point;
+}
+
+function smoothPath(pts: Point[]): string {
   if (pts.length < 3) return "";
   const n = pts.length;
-  const get = (i: number) => pts[((i % n) + n) % n];
-  let d = `M ${get(0)[0].toFixed(1)} ${get(0)[1].toFixed(1)} `;
+  const start = pointAt(pts, 0);
+  let d = `M ${start[0].toFixed(1)} ${start[1].toFixed(1)} `;
   for (let i = 0; i < n; i++) {
-    const p0 = get(i - 1), p1 = get(i), p2 = get(i + 1), p3 = get(i + 2);
+    const p0 = pointAt(pts, i - 1), p1 = pointAt(pts, i), p2 = pointAt(pts, i + 1), p3 = pointAt(pts, i + 2);
     const t = 0.18;
     const c1x = p1[0] + (p2[0] - p0[0]) * t;
     const c1y = p1[1] + (p2[1] - p0[1]) * t;

@@ -32,7 +32,9 @@ function runs(line: string): { text: string; em: boolean }[] {
   let m: RegExpExecArray | null;
   while ((m = re.exec(line)) !== null) {
     if (m.index > last) out.push({ text: line.slice(last, m.index), em: false });
-    out.push({ text: m[1], em: true });
+    const text = m[1];
+    if (text === undefined) throw new Error("negation emphasis parser matched without text");
+    out.push({ text, em: true });
     last = m.index + m[0].length;
   }
   if (last < line.length) out.push({ text: line.slice(last), em: false });

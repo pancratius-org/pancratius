@@ -180,9 +180,13 @@ describe("scoresTable", () => {
     ];
     const lines = scoresTable(rows).split("\n");
     assert.equal(lines.length, 3);
-    assert.ok(lines[0].startsWith("| page | vp |"));
-    assert.ok(lines[1].startsWith("|---|"));
-    assert.ok(lines[2].includes("home-ru"));
-    assert.ok(lines[2].includes("99"));
+    const [header, separator, row] = lines;
+    if (header === undefined || separator === undefined || row === undefined) {
+      throw new Error("scoresTable should render header, separator, and one data row");
+    }
+    assert.ok(header.startsWith("| page | vp |"));
+    assert.ok(separator.startsWith("|---|"));
+    assert.ok(row.includes("home-ru"));
+    assert.ok(row.includes("99"));
   });
 });

@@ -14,6 +14,13 @@ import { RESERVED_PAGE_SLUGS } from "./i18n";
 
 export type PageEntry = CollectionEntry<"pages">;
 
+interface PageShellProps {
+  title: string;
+  eyebrow?: string;
+  sub?: string;
+  class?: string;
+}
+
 let _cache: PageEntry[] | null = null;
 
 async function loadPages(): Promise<PageEntry[]> {
@@ -43,4 +50,13 @@ export async function alternateLanguagePage(
 ): Promise<PageEntry | null> {
   if (page.data.lang === target) return page;
   return getPage(page.data.slug, target);
+}
+
+export function pageShellProps(page: PageEntry, extraClass?: string): PageShellProps {
+  return {
+    title: page.data.title,
+    ...(page.data.eyebrow === undefined ? {} : { eyebrow: page.data.eyebrow }),
+    ...(page.data.sub === undefined ? {} : { sub: page.data.sub }),
+    ...(extraClass === undefined ? {} : { class: extraClass }),
+  };
 }

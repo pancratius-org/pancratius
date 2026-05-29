@@ -87,10 +87,9 @@ export const AUDIT_ROUTE_NAMES: readonly string[] = AUDIT_ROUTES.map((r) => r.na
  * space form but only matched the `=` form.
  */
 export function parseTag(argv: readonly string[], fallback: string): string {
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
+  for (const [i, arg] of argv.entries()) {
     if (arg.startsWith("--tag=")) return arg.slice("--tag=".length) || fallback;
-    if (arg === "--tag" && i + 1 < argv.length) return argv[i + 1] || fallback;
+    if (arg === "--tag") return argv.at(i + 1) || fallback;
   }
   return fallback;
 }

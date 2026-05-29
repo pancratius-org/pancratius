@@ -33,7 +33,9 @@ const labels = relatedCopy[locale];
       <h3 class="sim__h">{labels.see_also}</h3>
       <div class="sim__grid">
         {crossRefs.map(r => (
-          <BookCard pair={r.target} locale={locale} blurb={r.snippet} />
+          r.snippet === undefined
+            ? <BookCard pair={r.target} locale={locale} />
+            : <BookCard pair={r.target} locale={locale} blurb={r.snippet} />
         ))}
       </div>
     </section>

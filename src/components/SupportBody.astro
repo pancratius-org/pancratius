@@ -35,7 +35,13 @@ interface Props {
 }
 
 const { page, locale } = Astro.props;
-const { channels } = supportExtras.parse(page.data);
+const support = supportExtras.parse(page.data);
+const channels = support.channels.map(c => ({
+  kind: c.kind,
+  label: c.label,
+  value: c.value,
+  ...(c.caption === undefined ? {} : { caption: c.caption }),
+}));
 ---
 <Prose><slot /></Prose>
 

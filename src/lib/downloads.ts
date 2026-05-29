@@ -10,7 +10,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve as resolvePath } from "node:path";
 
-import { DEFAULT_LOCALE, type Locale } from "./i18n";
+import type { Locale } from "./i18n";
 import { workBundleKey } from "./body-images";
 import { markdownToPlainText } from "./publication/plain-text";
 import { renderPublicWorkMarkdown } from "./publication/public-markdown";
@@ -157,8 +157,7 @@ function renderPlainText(pair: WorkPair, entry: WorkEntry, options: DownloadRend
 // ─────────────────────────────────────────────────────────────────────
 
 function workFolder(pair: WorkPair): string {
-  const folder = pair.entries[DEFAULT_LOCALE]!.id.split("--")[0];
-  return resolvePath(CONTENT, COLLECTION_OF[pair.kind], folder);
+  return resolvePath(CONTENT, COLLECTION_OF[pair.kind], workBundleKey(pair));
 }
 
 function readSourceMd(pair: WorkPair, entry: WorkEntry): string {

@@ -9,7 +9,10 @@ import {
   poemFirstStanza,
   poemPreviewLines,
 } from "../../src/lib/publication/poetry.ts";
-import { renderPublicWorkMarkdown } from "../../src/lib/publication/public-markdown.ts";
+import {
+  publicWorkMarkdownAssetPaths,
+  renderPublicWorkMarkdown,
+} from "../../src/lib/publication/public-markdown.ts";
 import { parseMarkdownDocument } from "../../src/lib/publication/source.ts";
 
 const ORIGIN = "https://example.test";
@@ -77,6 +80,26 @@ describe("parseMarkdownDocument", () => {
 });
 
 describe("renderPublicWorkMarkdown", () => {
+  test("reports the public asset paths needed by local image refs", () => {
+    const paths = publicWorkMarkdownAssetPaths(
+      [
+        "![Alt](./images/pic.jpg)",
+        "![Other](images/other.jpg \"Caption\")",
+        '<img src="./images/raw.jpg" alt="Raw">',
+        "![Root](/assets/books/work-1/images/root.jpg)",
+        "![Remote](https://cdn.example.test/image.jpg)",
+      ].join("\n"),
+      { kind: "book", bundleKey: "work-1" },
+    );
+
+    assert.deepEqual(paths, [
+      "assets/books/work-1/images/other.jpg",
+      "assets/books/work-1/images/pic.jpg",
+      "assets/books/work-1/images/raw.jpg",
+      "assets/books/work-1/images/root.jpg",
+    ]);
+  });
+
   test("rewrites work-local image refs to fully-qualified publication URLs", () => {
     const rendered = renderPublicWorkMarkdown(
       "---\ntitle: Test\n---\n\n![Alt](./images/pic.jpg)\n![Other](images/other.jpg \"Caption\")\n",
