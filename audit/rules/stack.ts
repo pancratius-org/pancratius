@@ -56,22 +56,36 @@ function firstPathSegment(path: string): string {
 function productionTsRoots(ctx: RuleContext): Set<string> | null {
   const roots = new Set<string>();
   for (const tc of TSCONFIGS) {
-    if (!ctx.exists(tc)) continue;
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(ctx.read(tc));
-    } catch {
-      continue;
-    }
-    const include = (parsed as { include?: unknown }).include;
-    if (!Array.isArray(include)) continue;
-    for (const glob of include) {
-      if (typeof glob !== "string" || !glob.includes("/")) continue; // root files aren't a tree
-      const top = firstPathSegment(glob);
-      if (top && !top.includes("*")) roots.add(top);
-    }
+    for (const root of productionRootsInTsconfig(ctx, tc)) roots.add(root);
   }
   return roots.size > 0 ? roots : null;
+}
+
+function productionRootsInTsconfig(ctx: RuleContext, tsconfigPath: string): string[] {
+  const include = tsconfigIncludeGlobs(ctx, tsconfigPath);
+  return include.map(topLevelTreeFromGlob).filter((root) => root !== null);
+}
+
+function tsconfigIncludeGlobs(ctx: RuleContext, tsconfigPath: string): string[] {
+  if (!ctx.exists(tsconfigPath)) return [];
+  const parsed = parseJsonRecord(ctx.read(tsconfigPath));
+  const include = parsed?.include;
+  return Array.isArray(include) ? include.filter((glob): glob is string => typeof glob === "string") : [];
+}
+
+function parseJsonRecord(source: string): Record<string, unknown> | null {
+  try {
+    const parsed: unknown = JSON.parse(source);
+    return parsed !== null && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+}
+
+function topLevelTreeFromGlob(glob: string): string | null {
+  if (!glob.includes("/")) return null; // root files aren't a tree
+  const top = firstPathSegment(glob);
+  return top && !top.includes("*") ? top : null;
 }
 
 /**

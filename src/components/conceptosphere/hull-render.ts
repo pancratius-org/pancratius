@@ -61,31 +61,48 @@ export function createHullLayer(input: HullLayerInput): HullLayer {
 function paintHulls(input: HullLayerInput): void {
   clearSvg(input.hulls);
   const box = input.stage.getBoundingClientRect();
-  input.hulls.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
-  input.hulls.setAttribute("width", String(box.width));
-  input.hulls.setAttribute("height", String(box.height));
+  sizeHullLayer(input.hulls, box);
 
   for (const [communityId, nodes] of input.nodesByCommunity) {
-    if (nodes.length < 3) continue;
-    const points = viewportPoints(input.graph, input.renderer, nodes);
-    if (points.length < 3) continue;
-
-    const hull = convexHull(points);
-    if (hull.length < 3) continue;
-
-    const inflated = inflateHull(hull, GRAPH_GEOMETRY_PROFILE[input.mode].hull.paddingViewportPx);
-    const color = communityColor(communityId);
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", smoothPath(inflated));
-    path.setAttribute("fill", color);
-    path.setAttribute("fill-opacity", input.theme.hullFillOpacity);
-    path.setAttribute("stroke", color);
-    path.setAttribute("stroke-opacity", input.theme.hullStrokeOpacity);
-    path.setAttribute("stroke-width", "1");
-    path.setAttribute("stroke-linejoin", "round");
-    path.setAttribute("data-com", String(communityId));
-    input.hulls.appendChild(path);
+    const path = communityHullPath(input, communityId, nodes);
+    if (path) input.hulls.appendChild(path);
   }
+}
+
+function sizeHullLayer(hulls: SVGSVGElement, box: DOMRect): void {
+  hulls.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
+  hulls.setAttribute("width", String(box.width));
+  hulls.setAttribute("height", String(box.height));
+}
+
+function communityHullPath(
+  input: HullLayerInput,
+  communityId: number,
+  nodes: readonly GraphNodeData[],
+): SVGPathElement | null {
+  if (nodes.length < 3) return null;
+  const hull = convexHull(viewportPoints(input.graph, input.renderer, nodes));
+  if (hull.length < 3) return null;
+  const inflated = inflateHull(hull, GRAPH_GEOMETRY_PROFILE[input.mode].hull.paddingViewportPx);
+  return svgHullPath(inflated, communityColor(communityId), communityId, input.theme);
+}
+
+function svgHullPath(
+  points: readonly Point[],
+  color: string,
+  communityId: number,
+  theme: GraphTheme,
+): SVGPathElement {
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", smoothPath(points));
+  path.setAttribute("fill", color);
+  path.setAttribute("fill-opacity", theme.hullFillOpacity);
+  path.setAttribute("stroke", color);
+  path.setAttribute("stroke-opacity", theme.hullStrokeOpacity);
+  path.setAttribute("stroke-width", "1");
+  path.setAttribute("stroke-linejoin", "round");
+  path.setAttribute("data-com", String(communityId));
+  return path;
 }
 
 function viewportPoints(
@@ -156,7 +173,7 @@ function pointAt(points: readonly Point[], index: number): Point {
   return point;
 }
 
-function smoothPath(points: Point[]): string {
+function smoothPath(points: readonly Point[]): string {
   if (points.length < 3) return "";
   const start = pointAt(points, 0);
   let path = `M ${start[0].toFixed(1)} ${start[1].toFixed(1)} `;

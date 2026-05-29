@@ -169,79 +169,122 @@ export const pan014InternalLinks: Rule = {
   title: "PAN014: every internal link/asset reference in emitted dist/ HTML must resolve to a file that exists",
   tier: "post-build",
   run(ctx: RuleContext): Finding[] {
-    const htmlFiles = ctx.walk({
-      unignore: ["dist"],
-      filter: (rel) => rel.startsWith("dist/") && rel.endsWith(".html"),
-    });
-
-    // Existence cache over the dist tree so repeated link targets are O(1).
-    const existsInDist = new Map<string, boolean>();
-    const distHas = (relPath: string): boolean => {
-      const norm = normalize(relPath).split("\\").join("/");
-      const cached = existsInDist.get(norm);
-      if (cached !== undefined) return cached;
-      const ok = ctx.exists(norm) && !ctx.isDir(norm);
-      existsInDist.set(norm, ok);
-      return ok;
-    };
-
-    const findings: Finding[] = [];
-    const seen = new Set<string>(); // dedupe identical (htmlfile, link) pairs
-    let brokenCount = 0;
-
-    for (const htmlRel of htmlFiles) {
-      const html = ctx.read(htmlRel);
-      const htmlRelDir = dirname(htmlRel).split("\\").join("/");
-
-      for (const { url, line } of extractLinks(html)) {
-        if (isSkippable(url)) continue;
-        const linkPath = stripFragmentQuery(url);
-        if (linkPath === "" || isSkippable(linkPath)) continue;
-
-        const candidates = candidatesFor(linkPath, htmlRelDir);
-        if (candidates.length === 0) {
-          // Resolved out of the dist root — unresolvable by construction; fall
-          // through to the broken-link branch below.
-        } else if (candidates.some((c) => distHas(c))) {
-          continue; // resolves
-        }
-
-        const key = `${htmlRel} ${url}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        brokenCount += 1;
-
-        if (findings.length >= MAX_FINDINGS) continue;
-        findings.push({
-          rule: ID,
-          severity: "fatal",
-          category: CATEGORY,
-          file: htmlRel,
-          line,
-          observed: `${htmlRel}:${line} links to \`${url}\` — no matching file emitted in dist/ (tried: ${candidates.length ? candidates.join(", ") : "<escaped dist root>"})`,
-          contract: CONTRACT,
-          why: WHY,
-          repair: REPAIR,
-          doNotFixBy: DO_NOT_FIX_BY,
-        });
-      }
-    }
-
-    if (brokenCount > findings.length && findings.length > 0) {
-      // Surface the true scale even though the report is capped.
-      findings.push({
-        rule: ID,
-        severity: "fatal",
-        category: CATEGORY,
-        file: "dist",
-        observed: `${brokenCount} broken internal links found across emitted HTML; ${findings.length} shown (cap ${MAX_FINDINGS}).`,
-        contract: CONTRACT,
-        why: WHY,
-        repair: REPAIR,
-        doNotFixBy: DO_NOT_FIX_BY,
-      });
-    }
-
-    return findings;
+    return brokenInternalLinkReport(ctx).findings;
   },
 };
+
+interface BrokenLinkReport {
+  findings: Finding[];
+  brokenCount: number;
+}
+
+interface LinkCheck {
+  url: string;
+  line: number;
+  candidates: string[];
+}
+
+function brokenInternalLinkReport(ctx: RuleContext): BrokenLinkReport {
+  const distHas = distExistenceChecker(ctx);
+  const seen = new Set<string>();
+  const report: BrokenLinkReport = { findings: [], brokenCount: 0 };
+
+  for (const htmlRel of emittedHtmlFiles(ctx)) {
+    for (const broken of brokenLinksInHtml(ctx, htmlRel, distHas)) {
+      addBrokenLink(report, seen, htmlRel, broken);
+    }
+  }
+
+  appendCapFinding(report);
+  return report;
+}
+
+function emittedHtmlFiles(ctx: RuleContext): string[] {
+  return ctx.walk({
+    unignore: ["dist"],
+    filter: (rel) => rel.startsWith("dist/") && rel.endsWith(".html"),
+  });
+}
+
+function distExistenceChecker(ctx: RuleContext): (relPath: string) => boolean {
+  const cache = new Map<string, boolean>();
+  return (relPath: string): boolean => {
+    const norm = normalize(relPath).split("\\").join("/");
+    const cached = cache.get(norm);
+    if (cached !== undefined) return cached;
+    const ok = ctx.exists(norm) && !ctx.isDir(norm);
+    cache.set(norm, ok);
+    return ok;
+  };
+}
+
+function brokenLinksInHtml(
+  ctx: RuleContext,
+  htmlRel: string,
+  distHas: (relPath: string) => boolean,
+): LinkCheck[] {
+  const html = ctx.read(htmlRel);
+  const htmlRelDir = dirname(htmlRel).split("\\").join("/");
+  return extractLinks(html)
+    .map((link) => unresolvedLink(link, htmlRelDir, distHas))
+    .filter((link) => link !== null);
+}
+
+function unresolvedLink(
+  link: { url: string; line: number },
+  htmlRelDir: string,
+  distHas: (relPath: string) => boolean,
+): LinkCheck | null {
+  if (isSkippable(link.url)) return null;
+  const linkPath = stripFragmentQuery(link.url);
+  if (linkPath === "" || isSkippable(linkPath)) return null;
+
+  const candidates = candidatesFor(linkPath, htmlRelDir);
+  return candidates.some((candidate) => distHas(candidate))
+    ? null
+    : { ...link, candidates };
+}
+
+function addBrokenLink(
+  report: BrokenLinkReport,
+  seen: Set<string>,
+  htmlRel: string,
+  broken: LinkCheck,
+): void {
+  const key = `${htmlRel} ${broken.url}`;
+  if (seen.has(key)) return;
+  seen.add(key);
+  report.brokenCount += 1;
+  if (report.findings.length >= MAX_FINDINGS) return;
+  report.findings.push(brokenLinkFinding(htmlRel, broken));
+}
+
+function brokenLinkFinding(htmlRel: string, broken: LinkCheck): Finding {
+  return {
+    rule: ID,
+    severity: "fatal",
+    category: CATEGORY,
+    file: htmlRel,
+    line: broken.line,
+    observed: `${htmlRel}:${broken.line} links to \`${broken.url}\` — no matching file emitted in dist/ (tried: ${broken.candidates.length ? broken.candidates.join(", ") : "<escaped dist root>"})`,
+    contract: CONTRACT,
+    why: WHY,
+    repair: REPAIR,
+    doNotFixBy: DO_NOT_FIX_BY,
+  };
+}
+
+function appendCapFinding(report: BrokenLinkReport): void {
+  if (report.brokenCount <= report.findings.length || report.findings.length === 0) return;
+  report.findings.push({
+    rule: ID,
+    severity: "fatal",
+    category: CATEGORY,
+    file: "dist",
+    observed: `${report.brokenCount} broken internal links found across emitted HTML; ${report.findings.length} shown (cap ${MAX_FINDINGS}).`,
+    contract: CONTRACT,
+    why: WHY,
+    repair: REPAIR,
+    doNotFixBy: DO_NOT_FIX_BY,
+  });
+}

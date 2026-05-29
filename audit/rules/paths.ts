@@ -84,85 +84,88 @@ export const pan001PathBoundary: Rule = {
   tier: "core",
   run(ctx: RuleContext): Finding[] {
     const findings: Finding[] = [];
-
-    const mdFiles = ctx.walk({
-      filter: (rel) => rel.startsWith("src/content/") && rel.endsWith(".md"),
-    });
-
-    for (const rel of mdFiles) {
+    for (const rel of contentMarkdownFiles(ctx)) {
       const text = ctx.read(rel);
-      for (const { re } of PATTERNS) {
-        for (const { match, line } of matchesWithLines(text, re)) {
-          const offending = snippet(lineTextAt(text, match.index), SNIPPET_MAX);
-          findings.push({
-            rule: ID,
-            severity: "fatal",
-            category: CATEGORY,
-            file: rel,
-            line,
-            observed: `${rel}:${line} embeds the out-of-project / retired path \`${match[0]}\` — "${offending}"`,
-            contract: CONTRACT,
-            why: WHY,
-            repair: REPAIR,
-            doNotFixBy: DO_NOT_FIX_BY,
-          });
-        }
-      }
-
-      // Parent-traversal escape: a relative link/image target that resolves
-      // OUTSIDE src/content/ depends on a path beyond the work bundle / content
-      // root (the doc's `../../MyWorks` class). Resolved, not pattern-matched, so
-      // an in-bundle `../sibling/x` stays silent while an escaping `../../../x`
-      // fires. Skips absolute (`/…`, handled above), anchors, and scheme URLs.
-      const dir = posix.dirname(rel);
-      for (const { match, line } of matchesWithLines(text, MD_TARGET_RE)) {
-        const target = match[1];
-        if (target === undefined) throw new Error("Markdown target extractor matched without a target capture");
-        const raw = target.replace(/^<|>$/g, "");
-
-        // A `~/…` link/image target is a machine home path (checked in target
-        // context, not raw text, so a `~` in prose isn't a false positive).
-        if (raw.startsWith("~/")) {
-          findings.push({
-            rule: ID,
-            severity: "fatal",
-            category: CATEGORY,
-            file: rel,
-            line,
-            observed: `${rel}:${line} link/image target \`${raw}\` is a machine-local home path`,
-            contract: CONTRACT,
-            why: WHY,
-            repair: REPAIR,
-            doNotFixBy: DO_NOT_FIX_BY,
-          });
-          continue;
-        }
-
-        // Parent-traversal escape: a relative target that resolves OUTSIDE
-        // src/content/ depends on a path beyond the work bundle / content root
-        // (the doc's `../../MyWorks` class). Resolved, not pattern-matched, so an
-        // in-bundle `../sibling/x` stays silent while an escaping `../../../x`
-        // fires. Skips absolute (`/…`, handled by the raw patterns), anchors, and
-        // scheme URLs (so `legacy/` inside an https URL never trips this).
-        if (raw.startsWith("/") || raw.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(raw)) continue;
-        if (!raw.includes("../")) continue;
-        const resolved = posix.normalize(posix.join(dir, raw));
-        if (resolved.startsWith("src/content/")) continue; // stays inside the content root
-        findings.push({
-          rule: ID,
-          severity: "fatal",
-          category: CATEGORY,
-          file: rel,
-          line,
-          observed: `${rel}:${line} link/image target \`${raw}\` resolves to \`${resolved}\`, escaping src/content/ via parent traversal`,
-          contract: CONTRACT,
-          why: WHY,
-          repair: REPAIR,
-          doNotFixBy: DO_NOT_FIX_BY,
-        });
-      }
+      findings.push(...rawPathFindings(rel, text));
+      findings.push(...markdownTargetFindings(rel, text));
     }
-
     return findings;
   },
 };
+
+function contentMarkdownFiles(ctx: RuleContext): string[] {
+  return ctx.walk({
+    filter: (rel) => rel.startsWith("src/content/") && rel.endsWith(".md"),
+  });
+}
+
+function rawPathFindings(rel: string, text: string): Finding[] {
+  const findings: Finding[] = [];
+  for (const { re } of PATTERNS) {
+    for (const { match, line } of matchesWithLines(text, re)) {
+      const offending = snippet(lineTextAt(text, match.index), SNIPPET_MAX);
+      findings.push(pathFinding({
+        file: rel,
+        line,
+        observed: `${rel}:${line} embeds the out-of-project / retired path \`${match[0]}\` — "${offending}"`,
+      }));
+    }
+  }
+  return findings;
+}
+
+function markdownTargetFindings(rel: string, text: string): Finding[] {
+  const findings: Finding[] = [];
+  const dir = posix.dirname(rel);
+  for (const { match, line } of matchesWithLines(text, MD_TARGET_RE)) {
+    const target = match[1];
+    if (target === undefined) throw new Error("Markdown target extractor matched without a target capture");
+    const raw = target.replace(/^<|>$/g, "");
+    const finding = markdownTargetFinding(rel, line, dir, raw);
+    if (finding) findings.push(finding);
+  }
+  return findings;
+}
+
+function markdownTargetFinding(
+  rel: string,
+  line: number,
+  dir: string,
+  raw: string,
+): Finding | null {
+  if (raw.startsWith("~/")) {
+    return pathFinding({
+      file: rel,
+      line,
+      observed: `${rel}:${line} link/image target \`${raw}\` is a machine-local home path`,
+    });
+  }
+
+  if (isAbsoluteAnchorOrScheme(raw) || !raw.includes("../")) return null;
+  const resolved = posix.normalize(posix.join(dir, raw));
+  if (resolved.startsWith("src/content/")) return null;
+  return pathFinding({
+    file: rel,
+    line,
+    observed: `${rel}:${line} link/image target \`${raw}\` resolves to \`${resolved}\`, escaping src/content/ via parent traversal`,
+  });
+}
+
+function isAbsoluteAnchorOrScheme(raw: string): boolean {
+  return raw.startsWith("/") || raw.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(raw);
+}
+
+function pathFinding(input: { file: string; line: number; observed: string }): Finding {
+  return {
+    rule: ID,
+    severity: "fatal",
+    category: CATEGORY,
+    file: input.file,
+    line: input.line,
+    observed: input.observed,
+    contract: CONTRACT,
+    why: WHY,
+    repair: REPAIR,
+    doNotFixBy: DO_NOT_FIX_BY,
+  };
+}

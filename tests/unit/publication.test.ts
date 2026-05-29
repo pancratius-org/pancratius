@@ -141,7 +141,9 @@ describe("renderPublicWorkMarkdown", () => {
       /Unsupported public Markdown image URL scheme/,
     );
   });
+});
 
+describe("renderPublicWorkMarkdown raw HTML policy", () => {
   test("refuses unsupported raw HTML instead of stripping it", () => {
     assert.throws(
       () => renderPublicWorkMarkdown(
@@ -218,7 +220,9 @@ describe("renderPublicWorkMarkdown", () => {
       "The comparison 2 < 3 and 5 > 4 stays textual.\n",
     );
   });
+});
 
+describe("renderPublicWorkMarkdown lineation and corpus smoke", () => {
   test("infers poem hard breaks from kind", () => {
     assert.equal(
       renderPublicWorkMarkdown(

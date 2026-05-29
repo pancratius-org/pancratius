@@ -5,7 +5,7 @@ import type { ForceAtlas2Settings } from "graphology-layout-forceatlas2";
 
 import type { GraphData, GraphNodeData } from "./graph-data.ts";
 import { GRAPH_GEOMETRY_PROFILE } from "./graph-geometry-config.ts";
-import type { ConceptGraph } from "./graph-model.ts";
+import type { ConceptGraph, ConceptNodeAttributes } from "./graph-model.ts";
 
 interface LayoutRequest {
   graph: ConceptGraph;
@@ -244,58 +244,104 @@ function placeNodesWithinCommunities(
   reduceMotion: boolean,
 ): void {
   for (const [communityId, nodes] of data.communities.nodesByCommunity) {
-    const localGraph: LayoutGraph =
-      new Graph({ type: "undirected", multi: false });
-
-    nodes.forEach((node, index) => {
-      if (!graph.hasNode(node.id)) return;
-      const radius = 1 + (index / Math.max(1, nodes.length - 1)) * 3.5;
-      const angle = (index / Math.max(1, nodes.length)) * Math.PI * 2;
-      localGraph.addNode(node.id, {
-        x: Math.cos(angle) * radius,
-        y: Math.sin(angle) * radius,
-        size: graph.getNodeAttribute(node.id, "size"),
-      });
-    });
-
-    graph.forEachEdge((_edge, attrs, source, target, sourceAttrs, targetAttrs) => {
-      if (
-        sourceAttrs.communityId === communityId
-        && targetAttrs.communityId === communityId
-        && localGraph.hasNode(source)
-        && localGraph.hasNode(target)
-      ) {
-        localGraph.addEdge(source, target, { weight: attrs.weight });
-      }
-    });
-
-    if (localGraph.order > 2) {
-      const settings = forceAtlas.inferSettings(localGraph);
-      settings.gravity = 1.2;
-      settings.scalingRatio = data.mode === "books" ? 12 : 7;
-      settings.slowDown = 6;
-      settings.strongGravityMode = true;
-      settings.adjustSizes = true;
-      settings.linLogMode = true;
-      settings.edgeWeightInfluence = 1.4;
-      settings.barnesHutOptimize = false;
-      forceAtlas.assign(localGraph, { iterations: reduceMotion ? 120 : 300, settings });
-    }
-
+    const localGraph = communityLocalGraph(graph, data, communityId, nodes, reduceMotion);
     const centroid = communityPositions.get(communityId) ?? { x: 0, y: 0, angle: 0 };
-    let localRadius = 0;
-    localGraph.forEachNode((_id, attrs) => {
-      localRadius = Math.max(localRadius, Math.hypot(attrs.x, attrs.y));
-    });
     const targetRadius = communityRadius(data.mode, nodes.length);
-    const localScale = localRadius > 0 ? targetRadius / localRadius : 1;
-
-    localGraph.forEachNode((id, attrs) => {
-      if (!graph.hasNode(id)) return;
-      graph.setNodeAttribute(id, "x", attrs.x * localScale + centroid.x);
-      graph.setNodeAttribute(id, "y", attrs.y * localScale + centroid.y);
-    });
+    projectLocalLayout(graph, localGraph, centroid, targetRadius);
   }
+}
+
+function communityLocalGraph(
+  graph: ConceptGraph,
+  data: GraphData,
+  communityId: number,
+  nodes: readonly GraphNodeData[],
+  reduceMotion: boolean,
+): LayoutGraph {
+  const localGraph: LayoutGraph = new Graph({ type: "undirected", multi: false });
+  nodes.forEach((node, index) => seedLocalNode(graph, localGraph, node.id, index, nodes.length));
+  addLocalCommunityEdges(graph, localGraph, communityId);
+  relaxLocalCommunityGraph(localGraph, data.mode, reduceMotion);
+  return localGraph;
+}
+
+function seedLocalNode(
+  graph: ConceptGraph,
+  localGraph: LayoutGraph,
+  nodeId: string,
+  index: number,
+  nodeCount: number,
+): void {
+  if (!graph.hasNode(nodeId)) return;
+  const radius = 1 + (index / Math.max(1, nodeCount - 1)) * 3.5;
+  const angle = (index / Math.max(1, nodeCount)) * Math.PI * 2;
+  localGraph.addNode(nodeId, {
+    x: Math.cos(angle) * radius,
+    y: Math.sin(angle) * radius,
+    size: graph.getNodeAttribute(nodeId, "size"),
+  });
+}
+
+function addLocalCommunityEdges(graph: ConceptGraph, localGraph: LayoutGraph, communityId: number): void {
+  graph.forEachEdge((_edge, attrs, source, target, sourceAttrs, targetAttrs) => {
+    if (!isLocalCommunityEdge(localGraph, communityId, source, target, sourceAttrs, targetAttrs)) return;
+    localGraph.addEdge(source, target, { weight: attrs.weight });
+  });
+}
+
+function isLocalCommunityEdge(
+  localGraph: LayoutGraph,
+  communityId: number,
+  source: string,
+  target: string,
+  sourceAttrs: ConceptNodeAttributes,
+  targetAttrs: ConceptNodeAttributes,
+): boolean {
+  return sourceAttrs.communityId === communityId
+    && targetAttrs.communityId === communityId
+    && localGraph.hasNode(source)
+    && localGraph.hasNode(target);
+}
+
+function relaxLocalCommunityGraph(
+  localGraph: LayoutGraph,
+  mode: GraphData["mode"],
+  reduceMotion: boolean,
+): void {
+  if (localGraph.order <= 2) return;
+  const settings = forceAtlas.inferSettings(localGraph);
+  settings.gravity = 1.2;
+  settings.scalingRatio = mode === "books" ? 12 : 7;
+  settings.slowDown = 6;
+  settings.strongGravityMode = true;
+  settings.adjustSizes = true;
+  settings.linLogMode = true;
+  settings.edgeWeightInfluence = 1.4;
+  settings.barnesHutOptimize = false;
+  forceAtlas.assign(localGraph, { iterations: reduceMotion ? 120 : 300, settings });
+}
+
+function projectLocalLayout(
+  graph: ConceptGraph,
+  localGraph: LayoutGraph,
+  centroid: { x: number; y: number },
+  targetRadius: number,
+): void {
+  const localRadius = localGraphRadius(localGraph);
+  const localScale = localRadius > 0 ? targetRadius / localRadius : 1;
+  localGraph.forEachNode((id, attrs) => {
+    if (!graph.hasNode(id)) return;
+    graph.setNodeAttribute(id, "x", attrs.x * localScale + centroid.x);
+    graph.setNodeAttribute(id, "y", attrs.y * localScale + centroid.y);
+  });
+}
+
+function localGraphRadius(localGraph: LayoutGraph): number {
+  let radius = 0;
+  localGraph.forEachNode((_id, attrs) => {
+    radius = Math.max(radius, Math.hypot(attrs.x, attrs.y));
+  });
+  return radius;
 }
 
 function communityRadius(mode: GraphData["mode"], nodeCount: number): number {

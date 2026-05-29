@@ -70,23 +70,38 @@ function slugFor(mdPath: string): string | null {
 function iterEntries(format: Format): Entry[] {
   const entries: Entry[] = [];
   for (const [kind, folderName] of Object.entries(KIND_DIRS) as [ArchiveKind, string][]) {
-    const root = join(CONTENT, folderName);
-    if (!existsSync(root)) continue;
-    for (const workKey of readdirSync(root).sort()) {
-      const workDir = join(root, workKey);
-      if (!statSync(workDir).isDirectory()) continue;
-      for (const lang of LANGS) {
-        const mdPath = join(workDir, `${lang}.md`);
-        if (!existsSync(mdPath)) continue;
-        const slug = slugFor(mdPath);
-        if (!slug) continue;
-        const srcPath = join(workDir, `${lang}.${format}`);
-        if (!existsSync(srcPath)) continue;
-        entries.push({ kind, lang, slug, mdPath, srcPath, workKey });
-      }
-    }
+    entries.push(...entriesForKind(kind, folderName, format));
   }
   return entries;
+}
+
+function entriesForKind(kind: ArchiveKind, folderName: string, format: Format): Entry[] {
+  const root = join(CONTENT, folderName);
+  if (!existsSync(root)) return [];
+  return readdirSync(root)
+    .sort()
+    .flatMap((workKey) => entriesForWork(kind, root, workKey, format));
+}
+
+function entriesForWork(kind: ArchiveKind, root: string, workKey: string, format: Format): Entry[] {
+  const workDir = join(root, workKey);
+  if (!statSync(workDir).isDirectory()) return [];
+  return LANGS.flatMap((lang) => entryForLanguage(kind, workDir, workKey, lang, format));
+}
+
+function entryForLanguage(
+  kind: ArchiveKind,
+  workDir: string,
+  workKey: string,
+  lang: Locale,
+  format: Format,
+): Entry[] {
+  const mdPath = join(workDir, `${lang}.md`);
+  if (!existsSync(mdPath)) return [];
+  const slug = slugFor(mdPath);
+  if (!slug) return [];
+  const srcPath = join(workDir, `${lang}.${format}`);
+  return existsSync(srcPath) ? [{ kind, lang, slug, mdPath, srcPath, workKey }] : [];
 }
 
 function sha256Of(path: string): string {
