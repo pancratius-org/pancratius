@@ -52,7 +52,7 @@ translation:
   source: ai
 ```
 
-`src/lib/i18n.ts` resolves URLs from the per-language `slug:` field; route
+`src/lib/i18n/` resolves URLs from the per-language `slug:` field; route
 generation never derives the EN slug from the RU slug or from the folder name.
 `data/slug-map.json` likewise records whatever each language file declares.
 

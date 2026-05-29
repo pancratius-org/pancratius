@@ -1,7 +1,7 @@
 // Canonical locale list and default locale — the single TS source of truth.
 //
 // The site ships RU (default, unprefixed) and EN (at /en/). This module is the
-// one place the locale *codes* and their order live. `src/lib/i18n.ts` builds
+// one place the locale *codes* and their order live. `src/lib/i18n/` builds
 // the full `LOCALE_META` registry on top of this list (labels, names, URL
 // prefixes, OG codes, fallback chain); everything else derives from there.
 //

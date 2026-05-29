@@ -16,7 +16,7 @@ import {
   routedUrl,
   workUrl,
 } from "./i18n";
-import { searchPageCopy } from "./copy";
+import { searchPageCopy } from "./i18n/copy";
 import type { PageEntry } from "./pages";
 import type { ProjectLanding, ProjectSubpage } from "./projects";
 import {

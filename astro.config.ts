@@ -75,7 +75,7 @@ const PAGE_RE = new RegExp(`^(?:\\/(${LOCALE_PREFIX}))?\\/([^/]+)\\/?$`);
 
 // Prefix a default-locale (root-relative, leading-slash) path with a locale
 // segment, except for the default locale. Mirror of `localizePath` in
-// `src/lib/i18n.ts`; kept local so this config stays decoupled from the chrome
+// `src/lib/i18n/`; kept local so this config stays decoupled from the chrome
 // registry while still deriving prefixes from the locale SSOT. NOTE: this uses
 // the locale code directly as the URL prefix. It matches `localizePath` only
 // while every non-default locale's `LOCALE_META.urlPrefix === its code`; if a
@@ -166,7 +166,7 @@ function alternatesFromUrl(itemUrlString: string): { lang: string; url: string }
 
 export default defineConfig({
   site,
-  // Canonical URLs are produced by `src/lib/i18n.ts`: HTML routes end in `/`,
+  // Canonical URLs are produced by `src/lib/i18n/`: HTML routes end in `/`,
   // file endpoints end in their extension. Astro's global "always" mode also
   // appends `/` to dynamic endpoint params in dev (`foo.md/`), so use
   // "ignore" here and keep the canonical shape in our route helpers.

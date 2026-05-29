@@ -1,7 +1,7 @@
 ---
 import Base from "@/layouts/Base.astro";
 import { DEFAULT_LOCALE, LOCALES, type Locale, workUrl, kindIndexUrl, plRu, RU_PLURALS } from "@/lib/i18n";
-import { formatMonthYear, poetryIndexCopy } from "@/lib/copy";
+import { formatMonthYear, poetryIndexCopy } from "@/lib/i18n/copy";
 import { isPoemTitleLine, poemFirstStanza } from "@/lib/publication/poetry";
 import { seoForKindIndex } from "@/lib/seo";
 import { defaultWorkEntry, getPairsByKind, poemDate } from "@/lib/works";
