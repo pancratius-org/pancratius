@@ -1,5 +1,6 @@
 ---
 import { render } from "astro:content";
+import type { ImageMetadata } from "astro";
 
 import Base from "@/layouts/Base.astro";
 import ProjectHero from "@/components/projects/ProjectHero.astro";
@@ -11,6 +12,12 @@ import FeaturedBooks from "@/components/projects/FeaturedBooks.astro";
 import FAQ from "@/components/projects/FAQ.astro";
 
 import type { Locale } from "@/lib/i18n";
+import {
+  absoluteCoverAssetUrl,
+  contentCoverKey,
+  resolveCoverAsset,
+  type CoverAssetRegistry,
+} from "@/lib/cover-assets";
 import { kindIndexUrl } from "@/lib/i18n";
 import { projectPageCopy } from "@/lib/i18n/copy";
 import { seoForProject } from "@/lib/seo";
@@ -40,23 +47,26 @@ const backHref = kindIndexUrl("project", locale);
 // Cover: resolve the landing's frontmatter `cover` (e.g. `./cover.ru.png`)
 // straight from the content folder. Projects are sections, not works, so they
 // don't go through the work-cover machinery (which keys on `WorkPair.kind`).
-const COVER_URLS = import.meta.glob<string>(
-  "/src/content/projects/**/cover.*.{jpg,jpeg,png,webp,avif,svg}",
-  { eager: true, query: "?url", import: "default" },
-);
-const folder = project.id.split("--")[0]; // e.g. "enlightened-ai"
-const coverRel = data.cover?.replace(/^\.\//, "");
-const coverUrl = coverRel
-  ? COVER_URLS[`/src/content/projects/${folder}/${coverRel}`] ?? null
-  : null;
-const coverAbs = coverUrl && Astro.site ? new URL(coverUrl, Astro.site).toString() : coverUrl;
+const COVER_ASSETS = {
+  raster: import.meta.glob<ImageMetadata>(
+    "/src/content/projects/**/cover.*.{jpg,jpeg,png,webp,avif}",
+    { eager: true, import: "default" },
+  ),
+  svg: import.meta.glob<string>(
+    "/src/content/projects/**/cover.*.svg",
+    { eager: true, query: "?url", import: "default" },
+  ),
+} satisfies CoverAssetRegistry;
+const folder = projectFolder(project.id); // e.g. "enlightened-ai"
+const coverKey = data.cover ? contentCoverKey("projects", folder, data.cover) : null;
+const cover = coverKey ? resolveCoverAsset(coverKey, COVER_ASSETS) : null;
 
 const authoredLocales = new Set(await authoredProjectLocales(data.slug));
 const seo = seoForProject(Astro.site, {
   project,
   locale,
-  coverUrl: coverAbs,
   authoredLocales,
+  ...(cover === null ? {} : { coverUrl: absoluteCoverAssetUrl(cover, Astro.site) }),
 });
 
 // Featured books — primary strip (with blurbs) + optional secondary row.
@@ -114,11 +124,16 @@ const themeAttr = data.theme ?? undefined;
 const heroProps = {
   eyebrow: copy.meta,
   title: data.title,
-  coverUrl,
   number: data.number,
   locale,
+  ...(cover === null ? {} : { cover }),
   ...(data.tagline === undefined ? {} : { tagline: data.tagline }),
 };
+
+function projectFolder(id: string): string {
+  const localeSeparator = id.indexOf("--");
+  return localeSeparator === -1 ? id : id.slice(0, localeSeparator);
+}
 ---
 <Base locale={locale} seo={seo}>
   <article class="project-page project-themed" data-project-theme={themeAttr}>

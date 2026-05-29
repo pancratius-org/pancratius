@@ -9,23 +9,25 @@
  * for holy-rus by the theme variables (`--pt-aperture`, `--pt-light`). No
  * decoration beyond it: the masthead serves the reading.
  *
- * The cover URL is resolved by the caller (ProjectPage) and passed in, so
+ * The cover asset is resolved by the caller (ProjectPage) and passed in, so
  * cover resolution stays in one place.
  */
 
+import ResponsiveCoverImage from "@/components/ResponsiveCoverImage.astro";
 import type { Locale } from "@/lib/i18n";
 import { projectPageCopy } from "@/lib/i18n/copy";
+import type { CoverAsset } from "@/lib/cover-assets";
 
 interface Props {
   eyebrow:  string;
   title:    string;
   tagline?: string;
-  coverUrl: string | null;
+  cover?:   CoverAsset;
   number:   number;
   locale:   Locale;
 }
 
-const { eyebrow, title, tagline, coverUrl, number, locale } = Astro.props;
+const { eyebrow, title, tagline, cover, number, locale } = Astro.props;
 const copy = projectPageCopy[locale];
 ---
 <header class="hero">
@@ -37,15 +39,15 @@ const copy = projectPageCopy[locale];
       {tagline && <p class="hero__tagline">{tagline}</p>}
     </div>
     <div class="hero__cover">
-      {coverUrl ? (
-        <img
+      {cover ? (
+        <ResponsiveCoverImage
           class="hero__cover-img"
-          src={coverUrl}
+          src={cover}
           alt={copy.coverAlt(title)}
+          widths={[180, 240, 320, 460]}
+          sizes="(max-width: 760px) 190px, 230px"
           loading="eager"
           decoding="async"
-          width="720"
-          height="966"
           fetchpriority="high"
         />
       ) : (

@@ -5,7 +5,8 @@
 // Centralising the glob here keeps the resolution rule in one place.
 
 import type { Locale } from "./i18n";
-import { COLLECTION_OF, resolveCover, workBundleKey, type WorkPair } from "./works";
+import { workCoverKey } from "./cover-assets";
+import type { WorkPair } from "./works";
 
 const COVER_URLS = import.meta.glob<string>(
   "/src/content/**/cover.*.{jpg,jpeg,png,webp,avif,svg}",
@@ -14,11 +15,8 @@ const COVER_URLS = import.meta.glob<string>(
 
 /** The asset URL for a work's cover in the given locale, or null when absent. */
 export function coverAssetUrl(pair: WorkPair, locale: Locale): string | null {
-  const cover = resolveCover(pair, locale);
-  if (!cover) return null;
-  const segment = COLLECTION_OF[pair.kind];
-  const key = `/src/content/${segment}/${workBundleKey(pair)}/${cover.rel.replace(/^\.\//, "")}`;
-  return COVER_URLS[key] ?? null;
+  const key = workCoverKey(pair, locale);
+  return key ? COVER_URLS[key] ?? null : null;
 }
 
 /** Absolute URL of the cover asset, suitable for og:image / JSON-LD image. */

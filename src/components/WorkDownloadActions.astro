@@ -1,0 +1,76 @@
+---
+import type { Locale } from "@/lib/i18n";
+import { downloadUrl } from "@/lib/i18n";
+import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
+import type { WorkEntry, WorkPair } from "@/lib/works";
+
+interface WorkActionCopy {
+  downloadLabel: string;
+  share: string;
+  shareCopied: string;
+  shareFailed: string;
+}
+
+interface Props {
+  pair: WorkPair;
+  entry: WorkEntry;
+  locale: Locale;
+  copy: WorkActionCopy;
+  downloadAttribute?: boolean;
+}
+
+const { pair, entry, locale, copy, downloadAttribute = false } = Astro.props;
+const formats = availableFormatsForWork(pair, locale);
+const labelId = `work-actions-${pair.kind}-${pair.number}-${locale}`;
+
+const FORMAT_LABEL: Record<DownloadFormat, string> = {
+  md: "Markdown", txt: "TXT", docx: "DOCX", pdf: "PDF", epub: "EPUB",
+};
+---
+{formats.length > 0 && (
+  <div class="work-actions" role="group" aria-labelledby={labelId}>
+    <span id={labelId} class="work-actions__label">{copy.downloadLabel}</span>
+    {formats.map((fmt, i) => (
+      <>
+        {i > 0 && <span class="work-actions__sep">·</span>}
+        {downloadAttribute ? (
+          <a href={downloadUrl(pair.kind, entry.data.slug, fmt, locale)} download>{FORMAT_LABEL[fmt]}</a>
+        ) : (
+          <a href={downloadUrl(pair.kind, entry.data.slug, fmt, locale)}>{FORMAT_LABEL[fmt]}</a>
+        )}
+      </>
+    ))}
+    <span class="work-actions__sep">·</span>
+    <button
+      type="button"
+      class="work-actions__share"
+      data-share
+      data-share-copied={copy.shareCopied}
+      data-share-failed={copy.shareFailed}
+    >
+      {copy.share}
+    </button>
+  </div>
+)}
+
+<style>
+  .work-actions__share {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    cursor: pointer;
+  }
+  .work-actions__share:hover,
+  .work-actions__share:focus-visible { color: var(--accent); }
+  .work-actions__share[data-state="done"] {
+    color: var(--accent);
+    cursor: default;
+  }
+</style>

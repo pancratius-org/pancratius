@@ -9,5 +9,6 @@ export { DEFAULT_LOCALE, LOCALES } from "../locales";
 
 export * from "./locale-meta";
 export * from "./navigation";
+export * from "./numbers";
 export * from "./plural";
 export * from "./routing";

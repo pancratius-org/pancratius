@@ -1,0 +1,15 @@
+---
+import type { GetStaticPaths } from "astro";
+
+import PoemPage from "@/components/PoemPage.astro";
+import { getPairsByKind, localizedWorkPairs } from "@/lib/works";
+
+export const getStaticPaths = (async () => {
+  const pairs = await getPairsByKind("poem");
+  return localizedWorkPairs(pairs, "en")
+    .map(({ pair, entry }) => ({ params: { slug: entry.data.slug }, props: { pair } }));
+}) satisfies GetStaticPaths;
+
+const { pair } = Astro.props;
+---
+<PoemPage pair={pair} locale="en" />

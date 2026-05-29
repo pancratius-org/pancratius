@@ -1,7 +1,10 @@
 ---
+import type { ImageMetadata } from "astro";
+
+import ResponsiveCoverImage from "@/components/ResponsiveCoverImage.astro";
 import type { Locale } from "@/lib/i18n";
+import { resolveCoverAsset, workCoverKey, type CoverAssetRegistry } from "@/lib/cover-assets";
 import type { WorkPair } from "@/lib/works";
-import { coverAssetUrl } from "@/lib/covers";
 
 interface Props {
   pair:    WorkPair;
@@ -11,19 +14,34 @@ interface Props {
   loading?: "lazy" | "eager";
 }
 
+const COVER_ASSETS = {
+  raster: import.meta.glob<ImageMetadata>(
+    "/src/content/**/cover.*.{jpg,jpeg,png,webp,avif}",
+    { eager: true, import: "default" },
+  ),
+  svg: import.meta.glob<string>(
+    "/src/content/**/cover.*.svg",
+    { eager: true, query: "?url", import: "default" },
+  ),
+} satisfies CoverAssetRegistry;
+
 const { pair, locale, alt, loading = "lazy" } = Astro.props;
-const url = coverAssetUrl(pair, locale);
+const coverKey = workCoverKey(pair, locale);
+const cover = coverKey ? resolveCoverAsset(coverKey, COVER_ASSETS) : null;
+const coverImageProps = loading === "eager"
+  ? { fetchpriority: "high" as const }
+  : {};
 ---
-<div class:list={["bcv", !url && "bcv--empty"]} aria-hidden={url ? undefined : "true"}>
-  {url ? (
-    <img
-      src={url}
+<div class:list={["bcv", !cover && "bcv--empty"]} aria-hidden={cover ? undefined : "true"}>
+  {cover ? (
+    <ResponsiveCoverImage
+      src={cover}
       alt={alt}
+      widths={[96, 160, 220, 320, 440, 720]}
+      sizes="(max-width: 720px) 200px, 220px"
       loading={loading}
       decoding="async"
-      width="720"
-      height="966"
-      fetchpriority={loading === "eager" ? "high" : undefined}
+      {...coverImageProps}
     />
   ) : (
     <span class="bcv__num">{pair.number}</span>

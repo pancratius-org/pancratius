@@ -1,4 +1,5 @@
 import type { Locale } from "../../locales";
+import { spellEnglishCardinal } from "../numbers";
 import { plRu, RU_PLURALS } from "../plural";
 
 export interface LibraryFilterCopy {
@@ -139,7 +140,6 @@ export interface BookPageCopy {
   meta: string;
   coverAlt(title: string): string;
   srPrefix(number: string): string;
-  downloadAria: string;
   downloadLabel: string;
   share: string;
   shareCopied: string;
@@ -153,7 +153,6 @@ export const bookPageCopy = {
     meta: "Книга",
     coverAlt: (title) => `Обложка книги: ${title}`,
     srPrefix: (number) => `Книга ${number}. `,
-    downloadAria: "Скачать",
     downloadLabel: "Скачать:",
     share: "Поделиться",
     shareCopied: "Скопировано",
@@ -165,7 +164,6 @@ export const bookPageCopy = {
     meta: "Book",
     coverAlt: (title) => `Cover: ${title}`,
     srPrefix: (number) => `Book ${number}. `,
-    downloadAria: "Download",
     downloadLabel: "Download:",
     share: "Share",
     shareCopied: "Copied",
@@ -174,19 +172,50 @@ export const bookPageCopy = {
   },
 } satisfies Record<Locale, BookPageCopy>;
 
-export interface PoetryIndexCopy {
-  eyebrow:        string;
-  intro:          string;
-  /** Hero attribution prefix, e.g. "← Стихотворение №" / "← Poem No.". */
-  heroAttrPrefix: string;
-  /** Month abbreviations for "<month> <year>" date formatting (index 0 = January). */
-  months:         readonly string[];
+export interface PoemPageCopy {
+  back: string;
+  meta: string;
+  downloadLabel: string;
+  share: string;
+  shareCopied: string;
+  shareFailed: string;
 }
 
-export const poetryIndexCopy = {
+export const poemPageCopy = {
   ru: {
-    eyebrow:        "Псалмы наших дней",
-    intro:          "Тексты, не оторванные от молитвы. Стихи, рождённые в тишине.",
+    back: "← к стихам",
+    meta: "Стихотворение",
+    downloadLabel: "Скачать:",
+    share: "Поделиться",
+    shareCopied: "Скопировано",
+    shareFailed: "Не получилось",
+  },
+  en: {
+    back: "← back to poetry",
+    meta: "Poem",
+    downloadLabel: "Download:",
+    share: "Share",
+    shareCopied: "Copied",
+    shareFailed: "Failed",
+  },
+} satisfies Record<Locale, PoemPageCopy>;
+
+export interface PoetryIndexCopy {
+  eyebrow(count: number): string;
+  headingLabel(count: number): string;
+  intro: string;
+  /** Hero attribution prefix, e.g. "← Стихотворение №" / "← Poem No.". */
+  heroAttrPrefix: string;
+  fallbackBanner?: string;
+  /** Month abbreviations for "<month> <year>" date formatting (index 0 = January). */
+  months: readonly string[];
+}
+
+export const poetryIndexCopy: Record<Locale, PoetryIndexCopy> = {
+  ru: {
+    eyebrow: () => "Псалмы наших дней",
+    headingLabel: (count) => plRu(count, RU_PLURALS.poem),
+    intro: "Тексты, не оторванные от молитвы. Стихи, рождённые в тишине.",
     heroAttrPrefix: "← Стихотворение №",
     months: [
       "янв.", "фев.", "мар.", "апр.", "мая", "июня",
@@ -194,15 +223,17 @@ export const poetryIndexCopy = {
     ],
   },
   en: {
-    eyebrow:        "Psalms of our days",
-    intro:          "Texts never severed from prayer. Verse born in silence.",
+    eyebrow: spellEnglishCardinal,
+    headingLabel: () => "poems",
+    intro: "The originals are in Russian. Each row links to the poem; English translations will land here as they are authored.",
     heroAttrPrefix: "← Poem No.",
+    fallbackBanner: "Original Russian — translations forthcoming.",
     months: [
       "Jan", "Feb", "Mar", "Apr", "May", "Jun",
       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     ],
   },
-} satisfies Record<Locale, PoetryIndexCopy>;
+};
 
 /**
  * Format an ISO date (`2025-09-30`) as "<month> <year>" using the locale's
