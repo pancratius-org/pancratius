@@ -1,19 +1,20 @@
 // Locale-route contracts (docs/audit-harness.md → PAN002, and later PAN003).
 //
-// PAN002 — the display-fallback selector must not gate route EXISTENCE.
-// `src/lib/works.ts` exports `entryForLocale`, whose own docstring says it is
-// DISPLAY-fallback only and must NOT decide whether a route or download exists.
-// A route's `getStaticPaths` decides which localized routes exist via its
-// returned `params` set; the fallback returns the default-locale entry, so
-// letting it influence `params` (or a `.filter` membership test) emits an
-// `/en/…` route for a work with no EN entry — default-locale body under a
-// localized URL.
+// PAN002 — display-fallback selectors must not gate route EXISTENCE.
+// `src/lib/works.ts` exports `displayWorkEntry`, and `src/lib/videos.ts`
+// exports `displayVideoEntry`; both docstrings say the selector is DISPLAY-only
+// and must NOT decide whether a localized route exists. A route's
+// `getStaticPaths` decides which localized routes exist via its returned
+// `params` set; a display fallback returns another locale's entry, so letting it
+// influence `params` (or a `.filter` membership test) emits an `/en/…` route for
+// a work/video with no authored EN entry — default-locale body under a localized
+// URL.
 //
 // Precision (docs/audit-harness.md → "Fatal rules must be deterministic":
 // check the OBSERVABLE CONSEQUENCE, not mere presence): the violation is not
-// "entryForLocale appears in getStaticPaths", it is "its value reaches the
-// existence-deciding output". So inside a getStaticPaths body we fire on an
-// `entryForLocale` call C iff ANY of:
+// "displayWorkEntry/displayVideoEntry appears in getStaticPaths", it is "its
+// value reaches the existence-deciding output". So inside a getStaticPaths body
+// we fire on a display selector call C iff ANY of:
 //   (a) C is lexically within a `params:` value subtree (params ARE the
 //       existence/identity output of getStaticPaths); OR
 //   (b) C is the initializer (or within it) of a `const`/`let` binding `X = …`,
@@ -47,26 +48,43 @@ import {
 const ID = "PAN002-fallback-existence";
 const CATEGORY = "locale-route-existence";
 
-// The display-fallback selector and the module that owns it. We confirm this
-// name is actually an exported function in works.ts (the SoT) before scanning,
-// so a rename fails the rule loud instead of letting it silently pass.
-const SELECTOR = "entryForLocale";
-const SELECTOR_SOURCE = "src/lib/works.ts";
+interface FallbackSelector {
+  name: string;
+  source: string;
+  authoredSelectors: string;
+}
+
+// The display-fallback selectors and the modules that own them. We confirm each
+// name is actually exported by its source-of-truth module before scanning, so a
+// rename fails loud instead of letting the rule silently pass.
+const SELECTORS: readonly FallbackSelector[] = [
+  {
+    name: "displayWorkEntry",
+    source: "src/lib/works.ts",
+    authoredSelectors: "`localizedWorkPairs` or `entryForAuthoredLocale`",
+  },
+  {
+    name: "displayVideoEntry",
+    source: "src/lib/videos.ts",
+    authoredSelectors: "`localizedVideoPairs` or `entryForAuthoredVideoLocale`",
+  },
+];
 
 // KNOWN GAPS (best-effort, documented so a future agent knows the boundary).
 // All are realized only AFTER build as phantom localized routes, which the
 // post-build crawl PAN014 (built-surface link/sitemap/hreflang sanity) catches:
 //  - Namespace import then member call: `import * as w from "@/lib/works"` →
-//    `w.entryForLocale(…)` (member-access callee, not a bare identifier).
-//  - Indirection through a local helper: `const pick = (p) => entryForLocale(…)`
-//    then `pick(p)` feeding params (we don't trace user-defined helpers).
+//    `w.displayWorkEntry(…)` (member-access callee, not a bare identifier).
+//  - Indirection through a local helper:
+//    `const pick = (p) => displayWorkEntry(…)` then `pick(p)` feeding params
+//    (we don't trace user-defined helpers).
 //  - Branch (b) follows a binding by NAME, so it only fires when that name is
 //    declared ONCE in the body (the `nameDeclarationCount === 1` guard). This
 //    avoids a shadowing FALSE POSITIVE — an inner `.map((entry) => …params:
 //    entry…)` reusing the binding's name is a different binding — at the cost of
 //    missing the rare case where a re-used name genuinely also reaches params.
 //  - Chained capture (`const b = a; …params: b…`) and destructuring
-//    (`const { data } = entryForLocale(…)`) are not traced.
+//    (`const { entry } = displayWorkEntry(…)`) are not traced.
 //  - Only `.filter` membership is modelled, not `.find`/`.some`/`.every`.
 
 /** 1-based line of a node within its source file. */
@@ -76,30 +94,34 @@ function lineOf(sf: ts.SourceFile, node: ts.Node): number {
 
 export const rule: Rule = {
   id: ID,
-  title: "PAN002: entryForLocale (display-fallback) must not influence route params/existence in getStaticPaths",
+  title: "PAN002: display-fallback selectors must not influence route params/existence in getStaticPaths",
   tier: "core",
   run(ctx: RuleContext): Finding[] {
     const findings: Finding[] = [];
 
-    // Derive-don't-restate: tie the rule to the source of truth. If the selector
-    // is no longer an exported function in works.ts, our premise is stale —
-    // fail loud rather than scan pages against a wrong assumption.
-    const worksSf = ctx.exists(SELECTOR_SOURCE)
-      ? parseModule(SELECTOR_SOURCE, ctx.read(SELECTOR_SOURCE))
-      : null;
-    const exported = worksSf ? findExportedFunctionNames(worksSf) : new Set<string>();
-    if (!exported.has(SELECTOR)) {
-      findings.push({
-        rule: ID,
-        severity: "fatal",
-        category: CATEGORY,
-        file: SELECTOR_SOURCE,
-        observed: `${SELECTOR_SOURCE} no longer exports a function named ${SELECTOR}`,
-        contract: `PAN002 is anchored to the display-fallback selector exported from ${SELECTOR_SOURCE}; that exported function is the symbol the rule forbids from influencing route params inside getStaticPaths.`,
-        why: `The selector was renamed or removed, so the rule can no longer recognize it and would silently stop catching phantom localized routes — a stale premise is worse than a loud failure.`,
-        repair: `Update PAN002 in audit/rules/locales.ts to the selector's new name (and docs/audit-harness.md PAN002 / its docstring in ${SELECTOR_SOURCE}).`,
-        doNotFixBy: `Deleting this guard — it exists precisely so the rule can't go silently stale when the SoT moves.`,
-      });
+    // Derive-don't-restate: tie the rule to each source of truth. If a selector
+    // is no longer exported by its owning module, our premise is stale — fail
+    // loud rather than scan pages against a wrong assumption.
+    for (const selector of SELECTORS) {
+      const sf = ctx.exists(selector.source)
+        ? parseModule(selector.source, ctx.read(selector.source))
+        : null;
+      const exported = sf ? findExportedFunctionNames(sf) : new Set<string>();
+      if (!exported.has(selector.name)) {
+        findings.push({
+          rule: ID,
+          severity: "fatal",
+          category: CATEGORY,
+          file: selector.source,
+          observed: `${selector.source} no longer exports a function named ${selector.name}`,
+          contract: `PAN002 is anchored to the display-fallback selector exported from ${selector.source}; that exported function is one of the symbols the rule forbids from influencing route params inside getStaticPaths.`,
+          why: `The selector was renamed or removed, so the rule can no longer recognize it and would silently stop catching phantom localized routes — a stale premise is worse than a loud failure.`,
+          repair: `Update PAN002 in audit/rules/locales.ts to the selector's new name (and docs/audit-harness.md PAN002 / its docstring in ${selector.source}).`,
+          doNotFixBy: `Deleting this guard — it exists precisely so the rule can't go silently stale when the SoT moves.`,
+        });
+      }
+    }
+    if (findings.length > 0) {
       return findings;
     }
 
@@ -117,13 +139,6 @@ export const rule: Rule = {
       const init = getStaticPathsInitializer(sf);
       if (!init) continue;
 
-      // Recognize the selector under any local alias bound by a named import
-      // whose original name is `entryForLocale` (closes the aliased-import
-      // evasion). The literal name is always included so an un-aliased call
-      // still matches even if no import specifier is found (e.g. odd casing).
-      const selectorNames = findLocalNamesForImport(sf, SELECTOR);
-      selectorNames.add(SELECTOR);
-
       // The existence-deciding output: every `params:` value subtree, and every
       // `.filter(…)` argument subtree. (`props:` and `.sort(…)` are NOT here.)
       const paramsValues = findPropertyValues(init, "params");
@@ -132,38 +147,48 @@ export const rule: Rule = {
       const within = (node: ts.Node, regions: ts.Node[]): boolean =>
         regions.some((r) => nodeContains(r, node));
 
-      for (const call of findIdentifierCallsAny(init, selectorNames)) {
-        // (a) the call itself sits inside a params value subtree, or
-        // (c) inside a .filter(...) argument subtree.
-        let influencesExistence = within(call, paramsValues) || within(call, filterArgs);
+      for (const selector of SELECTORS) {
+        // Recognize the selector under any local alias bound by a named import
+        // whose original name is the selector (closes the aliased-import
+        // evasion). The literal name is always included so an un-aliased call
+        // still matches even if no import specifier is found (e.g. odd casing).
+        const selectorNames = findLocalNamesForImport(sf, selector.name);
+        selectorNames.add(selector.name);
 
-        // (b) the call is captured into `const X = entryForLocale(…)` and some
-        // reference to X within this getStaticPaths body lands in a params value.
-        // Only when X is declared ONCE in the body — a name-based ref scan can't
-        // distinguish a shadowed re-use (idiomatic `.map((entry) => …)`), so we
-        // refuse the ambiguous case rather than risk a fatal false positive.
-        if (!influencesExistence) {
-          const binding = enclosingBindingName(call);
-          if (binding && nameDeclarationCount(init, binding) === 1) {
-            const refs = findIdentifierRefs(init, binding);
-            influencesExistence = refs.some((ref) => within(ref, paramsValues));
+        for (const call of findIdentifierCallsAny(init, selectorNames)) {
+          // (a) the call itself sits inside a params value subtree, or
+          // (c) inside a .filter(...) argument subtree.
+          let influencesExistence = within(call, paramsValues) || within(call, filterArgs);
+
+          // (b) the call is captured into `const X = displayWorkEntry(…)` and
+          // some reference to X within this getStaticPaths body lands in a params
+          // value. Only when X is declared ONCE in the body — a name-based ref
+          // scan can't distinguish a shadowed re-use (idiomatic
+          // `.map((entry) => …)`), so we refuse the ambiguous case rather than
+          // risk a fatal false positive.
+          if (!influencesExistence) {
+            const binding = enclosingBindingName(call);
+            if (binding && nameDeclarationCount(init, binding) === 1) {
+              const refs = findIdentifierRefs(init, binding);
+              influencesExistence = refs.some((ref) => within(ref, paramsValues));
+            }
           }
+
+          if (!influencesExistence) continue;
+
+          findings.push({
+            rule: ID,
+            severity: "fatal",
+            category: CATEGORY,
+            file: rel,
+            line: lineOf(sf, call),
+            observed: `getStaticPaths lets ${selector.name}(...) influence the returned route params (or a .filter membership test) — the display-fallback selector decides route existence here`,
+            contract: `The \`params\` set returned by getStaticPaths is a route's existence/identity output, and \`.filter\` decides membership; both must use authored-locale selectors such as ${selector.authoredSelectors}. ${selector.name} is display-fallback only (per its docstring in ${selector.source} and docs/audit-harness.md PAN002), legitimate for \`props\`/display values.`,
+            why: `The fallback returns another locale's entry, so feeding it into params/filter emits a localized route for content with no authored entry in that locale, rendering the wrong-language body under a localized URL — a route that lies about its language.`,
+            repair: `Gate existence with ${selector.authoredSelectors} and take params from the authored entry; if you need display data, pass it through \`props\` and let ${selector.name} resolve it there (or in the component).`,
+            doNotFixBy: `Routing the ${selector.name} result into params through an intermediate variable or wrapper — the fallback still emits phantom localized routes; only DISPLAY (props) use is allowed.`,
+          });
         }
-
-        if (!influencesExistence) continue;
-
-        findings.push({
-          rule: ID,
-          severity: "fatal",
-          category: CATEGORY,
-          file: rel,
-          line: lineOf(sf, call),
-          observed: `getStaticPaths lets ${SELECTOR}(...) influence the returned route params (or a .filter membership test) — the display-fallback selector decides route existence here`,
-          contract: `The \`params\` set returned by getStaticPaths is a route's existence/identity output, and \`.filter\` decides membership; both must read \`pair.entries[locale]\` directly. ${SELECTOR} is display-fallback only (per its docstring in ${SELECTOR_SOURCE} and docs/audit-harness.md PAN002), legitimate for \`props\`/display values.`,
-          why: `The fallback returns the default-locale entry, so feeding it into params/filter emits an \`/en/…\` route for a work with no authored EN entry, rendering default-locale body under a localized URL — a route that lies about its language.`,
-          repair: `Gate existence on \`pair.entries[locale]\` (filter to authored entries) and take params from that entry; if you need display data, pass it through \`props\` and let ${SELECTOR} resolve it there (or in the component).`,
-          doNotFixBy: `Routing the ${SELECTOR} result into params through an intermediate variable or wrapper — the fallback still emits phantom localized routes; only DISPLAY (props) use is allowed.`,
-        });
       }
     }
 

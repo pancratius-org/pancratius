@@ -7,7 +7,7 @@ import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE, kindIndexUrl } from "@/lib/i18n";
 import { videosIndexCopy, type VideosIndexCopy } from "@/lib/copy";
 import { seoForKindIndex, clampDescription } from "@/lib/seo";
-import { getAllVideoPairs, getChannels, videoTags } from "@/lib/videos";
+import { getAllVideoPairs, getChannels, localizedVideoPairs, videoTags } from "@/lib/videos";
 
 interface Props {
   locale: Locale;
@@ -19,16 +19,13 @@ const { locale } = Astro.props;
 const copy: VideosIndexCopy = videosIndexCopy[locale];
 const allPairs = await getAllVideoPairs();
 // Existence: a non-default-locale index lists only videos authored in it.
-const pairs = locale === DEFAULT_LOCALE
-  ? allPairs
-  : allPairs.filter(p => p.entries[locale]);
+const pairs = localizedVideoPairs(allPairs, locale);
 const seo = seoForKindIndex(Astro.site, "video", locale, { total: allPairs.length });
 const defaultHref = kindIndexUrl("video", DEFAULT_LOCALE);
 const channels = await getChannels();
 
 const tagCounts = new Map<string, number>();
-for (const p of pairs) {
-  const entry = p.entries[locale]!;
+for (const { entry } of pairs) {
   for (const t of videoTags(entry)) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
 }
 const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count }));
@@ -74,9 +71,8 @@ const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count })
     {tags.length > 0 && <LibraryFilter locale={locale} tags={tags} total={pairs.length} />}
 
     <div class="index" role="list" data-pagefind-ignore>
-      {pairs.map(p => {
-        const entry = p.entries[locale]!;
-        return <VideoCard pair={p} locale={locale} blurb={clampDescription(entry.data.description, 120)} />;
+      {pairs.map(({ pair, entry }) => {
+        return <VideoCard pair={pair} locale={locale} blurb={clampDescription(entry.data.description, 120)} />;
       })}
     </div>
   </section>

@@ -4,7 +4,7 @@ import { DEFAULT_LOCALE, LOCALES, type Locale, workUrl, kindIndexUrl, plRu, RU_P
 import { formatMonthYear, poetryIndexCopy } from "@/lib/copy";
 import { isPoemTitleLine, poemFirstStanza } from "@/lib/publication/poetry";
 import { seoForKindIndex } from "@/lib/seo";
-import { getPairsByKind, poemDate } from "@/lib/works";
+import { defaultWorkEntry, getPairsByKind, poemDate } from "@/lib/works";
 
 const locale = DEFAULT_LOCALE;
 const copy = poetryIndexCopy[locale];
@@ -15,7 +15,7 @@ for (const loc of LOCALES) {
   if (loc !== locale) alternates[loc] = kindIndexUrl("poem", loc);
 }
 
-const canonical = (p: typeof pairs[number]) => p.entries[DEFAULT_LOCALE]!;
+const canonical = defaultWorkEntry;
 
 // Pick the first poem whose title doesn't equal its first body line — that's
 // where the stanza preview adds info beyond the title itself.

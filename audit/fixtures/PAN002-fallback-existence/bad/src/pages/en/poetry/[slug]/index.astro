@@ -2,7 +2,7 @@
 import type { GetStaticPaths } from "astro";
 
 import PoemPage from "@/components/PoemPage.astro";
-import { getPairsByKind, entryForLocale } from "@/lib/works";
+import { displayWorkEntry, getPairsByKind } from "@/lib/works";
 
 // BUG: the display-fallback selector is called inside a `.filter(...)` predicate,
 // so it decides which pairs survive → membership → existence. Because the
@@ -11,7 +11,7 @@ import { getPairsByKind, entryForLocale } from "@/lib/works";
 export const getStaticPaths = (async () => {
   const pairs = await getPairsByKind("poem");
   return pairs
-    .filter(p => entryForLocale(p, "en").data.slug.length > 0)
+    .filter(p => displayWorkEntry(p, "en").entry.data.slug.length > 0)
     .map(p => ({ params: { slug: p.entries.en!.data.slug }, props: { pair: p } }));
 }) satisfies GetStaticPaths;
 

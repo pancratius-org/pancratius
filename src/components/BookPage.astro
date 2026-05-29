@@ -14,10 +14,11 @@ import { coverAbsoluteUrl } from "@/lib/covers";
 import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
 import { seoForWork } from "@/lib/seo";
 import {
+  entryForAuthoredLocale,
   getPairsByKind,
+  localizedWorkPairs,
   resolveCrossRefs,
   workTags,
-  type WorkEntry,
   type WorkPair,
 } from "@/lib/works";
 
@@ -32,7 +33,7 @@ const FORMAT_LABEL: Record<DownloadFormat, string> = {
 
 const { pair, locale } = Astro.props;
 // Existence: this page only exists in `locale` if the locale was authored.
-const entry = pair.entries[locale];
+const entry = entryForAuthoredLocale(pair, locale);
 if (!entry) {
   throw new Error(`BookPage: no ${locale} entry for book #${pair.number}`);
 }
@@ -49,21 +50,10 @@ const formats = availableFormatsForWork(pair, locale);
 
 const allBookPairs = await getPairsByKind("book");
 // Existence: the pager only walks books that exist in the current locale.
-const pagerPairs = allBookPairs.filter(p => p.entries[locale]);
-const here = pagerPairs.findIndex(p => p.number === pair.number);
+const pagerPairs = localizedWorkPairs(allBookPairs, locale);
+const here = pagerPairs.findIndex(({ pair: p }) => p.number === pair.number);
 const prev = here > 0 ? pagerPairs[here - 1] : null;
 const next = here >= 0 && here < pagerPairs.length - 1 ? pagerPairs[here + 1] : null;
-
-function localizedEntry(p: WorkPair): WorkEntry {
-  const localized = p.entries[locale];
-  if (!localized) {
-    throw new Error(`BookPage: pager included book #${p.number} without ${locale} entry`);
-  }
-  return localized;
-}
-
-const prevEntry = prev ? localizedEntry(prev) : null;
-const nextEntry = next ? localizedEntry(next) : null;
 const number = String(pair.number).padStart(2, "0");
 ---
 <Base locale={locale} seo={seo}>
@@ -146,19 +136,19 @@ const number = String(pair.number).padStart(2, "0");
 
     <Colophon pair={pair} locale={locale} />
 
-    {(prev && prevEntry) || (next && nextEntry) ? (
+    {prev || next ? (
       <nav class="book-page__pager" aria-label={copy.pagerAria}>
-        {prev && prevEntry && (
-          <a class="book-page__pager-link book-page__pager-link--prev" href={workUrl("book", prevEntry.data.slug, locale)}>
+        {prev && (
+          <a class="book-page__pager-link book-page__pager-link--prev" href={workUrl("book", prev.entry.data.slug, locale)}>
             <span class="book-page__pager-arrow">←</span>
-            <span class="book-page__pager-num">{String(prev.number).padStart(2, "0")}</span>
-            <span class="book-page__pager-title">{prevEntry.data.title}</span>
+            <span class="book-page__pager-num">{String(prev.pair.number).padStart(2, "0")}</span>
+            <span class="book-page__pager-title">{prev.entry.data.title}</span>
           </a>
         )}
-        {next && nextEntry && (
-          <a class="book-page__pager-link book-page__pager-link--next" href={workUrl("book", nextEntry.data.slug, locale)}>
-            <span class="book-page__pager-num">{String(next.number).padStart(2, "0")}</span>
-            <span class="book-page__pager-title">{nextEntry.data.title}</span>
+        {next && (
+          <a class="book-page__pager-link book-page__pager-link--next" href={workUrl("book", next.entry.data.slug, locale)}>
+            <span class="book-page__pager-num">{String(next.pair.number).padStart(2, "0")}</span>
+            <span class="book-page__pager-title">{next.entry.data.title}</span>
             <span class="book-page__pager-arrow">→</span>
           </a>
         )}

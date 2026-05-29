@@ -235,7 +235,7 @@ export async function gotoStable(page: Page, url: string, options: VisitOptions 
 /** Wait for webfonts to settle so text metrics (and overflow checks) are stable. */
 export async function waitForFontsReady(page: Page): Promise<void> {
   try {
-    await page.waitForFunction(() => document.fonts?.ready, null, { timeout: 5_000 });
+    await page.waitForFunction(() => document.fonts.ready, null, { timeout: 5_000 });
   } catch {
     /* fonts.ready unsupported or slow; the page is still usable */
   }

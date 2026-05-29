@@ -11,10 +11,16 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve as resolvePath } from "node:path";
 
 import type { Locale } from "./i18n";
-import { workBundleKey } from "./body-images";
 import { markdownToPlainText } from "./publication/plain-text";
 import { renderPublicWorkMarkdown } from "./publication/public-markdown";
-import { COLLECTION_OF, type WorkEntry, type WorkPair, type WorkPairKind } from "./works";
+import {
+  COLLECTION_OF,
+  entryForAuthoredLocale,
+  workBundleKey,
+  type WorkEntry,
+  type WorkPair,
+  type WorkPairKind,
+} from "./works";
 
 export type DownloadFormat = "md" | "txt" | "docx" | "pdf" | "epub";
 
@@ -63,7 +69,7 @@ export function renderDownload(
 ): DownloadResult {
   // Existence: a download for this locale exists only if the locale was
   // authored — never fall back to another locale's content.
-  const entry = pair.entries[locale];
+  const entry = entryForAuthoredLocale(pair, locale);
   if (!entry) {
     throw new Error(`renderDownload: no ${locale} entry for ${pair.kind} #${pair.number}`);
   }
@@ -98,6 +104,7 @@ export function availableFormatsForWork(
   pair: WorkPair,
   lang: Locale,
 ): DownloadFormat[] {
+  if (!entryForAuthoredLocale(pair, lang)) return [];
   return FORMATS_PER_KIND[pair.kind].filter(format => {
     if (format === "md" || format === "txt") return true;
     return siblingArtefactExists(pair, lang, format);

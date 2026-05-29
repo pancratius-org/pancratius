@@ -13,8 +13,10 @@ import { seoForVideo } from "@/lib/seo";
 import {
   getAllVideoPairs,
   channelForEntry,
+  entryForAuthoredVideoLocale,
   formatDuration,
   layoutForEntry,
+  localizedVideoPairs,
   videoCoverAbsoluteUrl,
   videoTags,
   watchUrlFor,
@@ -27,7 +29,7 @@ interface Props {
 }
 
 const { pair, locale } = Astro.props;
-const entry = pair.entries[locale];
+const entry = entryForAuthoredVideoLocale(pair, locale);
 if (!entry) {
   throw new Error(`VideoPage: no ${locale} entry for video #${pair.number}`);
 }
@@ -42,12 +44,10 @@ const useToc = layout === "blog" && headings.some(h => h.depth >= 2 && h.depth <
 const backHref = kindIndexUrl("video", locale);
 
 const allPairs = await getAllVideoPairs();
-const pagerPairs = allPairs.filter(p => p.entries[locale]);
-const here = pagerPairs.findIndex(p => p.number === pair.number);
+const pagerPairs = localizedVideoPairs(allPairs, locale);
+const here = pagerPairs.findIndex(({ pair: p }) => p.number === pair.number);
 const prev = here > 0 ? pagerPairs[here - 1] : null;
 const next = here >= 0 && here < pagerPairs.length - 1 ? pagerPairs[here + 1] : null;
-const prevEntry = prev ? prev.entries[locale]! : null;
-const nextEntry = next ? next.entries[locale]! : null;
 
 const number = String(pair.number).padStart(2, "0");
 const duration = formatDuration(entry.data.duration);
@@ -158,19 +158,19 @@ const PLATFORM_LABEL: Record<string, string> = {
       </Fragment>
     )}
 
-    {(prev && prevEntry) || (next && nextEntry) ? (
+    {prev || next ? (
       <nav class="video-page__pager" aria-label={copy.pagerAria}>
-        {prev && prevEntry && (
-          <a class="video-page__pager-link video-page__pager-link--prev" href={routedUrl("video", prevEntry.data.slug, locale)}>
+        {prev && (
+          <a class="video-page__pager-link video-page__pager-link--prev" href={routedUrl("video", prev.entry.data.slug, locale)}>
             <span class="video-page__pager-arrow">←</span>
-            <span class="video-page__pager-num">{String(prev.number).padStart(2, "0")}</span>
-            <span class="video-page__pager-title">{prevEntry.data.title}</span>
+            <span class="video-page__pager-num">{String(prev.pair.number).padStart(2, "0")}</span>
+            <span class="video-page__pager-title">{prev.entry.data.title}</span>
           </a>
         )}
-        {next && nextEntry && (
-          <a class="video-page__pager-link video-page__pager-link--next" href={routedUrl("video", nextEntry.data.slug, locale)}>
-            <span class="video-page__pager-num">{String(next.number).padStart(2, "0")}</span>
-            <span class="video-page__pager-title">{nextEntry.data.title}</span>
+        {next && (
+          <a class="video-page__pager-link video-page__pager-link--next" href={routedUrl("video", next.entry.data.slug, locale)}>
+            <span class="video-page__pager-num">{String(next.pair.number).padStart(2, "0")}</span>
+            <span class="video-page__pager-title">{next.entry.data.title}</span>
             <span class="video-page__pager-arrow">→</span>
           </a>
         )}

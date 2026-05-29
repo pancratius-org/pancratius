@@ -9,21 +9,21 @@ import { coverAbsoluteUrl } from "@/lib/covers";
 import { DEFAULT_LOCALE, downloadUrl, kindIndexUrl } from "@/lib/i18n";
 import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
 import { seoForWork } from "@/lib/seo";
-import { getPairsByKind, poemDate, type WorkPair } from "@/lib/works";
+import { defaultWorkEntry, getPairsByKind, poemDate, type WorkPair } from "@/lib/works";
 
 const locale = DEFAULT_LOCALE;
 
 export const getStaticPaths = (async () => {
   const pairs = await getPairsByKind("poem");
   return pairs.map(p => ({
-    params: { slug: p.entries[DEFAULT_LOCALE]!.data.slug },
+    params: { slug: defaultWorkEntry(p).data.slug },
     props: { pair: p },
   }));
 }) satisfies GetStaticPaths;
 
 interface Props { pair: WorkPair; }
 const { pair } = Astro.props;
-const entry = pair.entries[DEFAULT_LOCALE]!;
+const entry = defaultWorkEntry(pair);
 const { Content } = await render(entry);
 const coverUrl = coverAbsoluteUrl(Astro.site, pair, locale);
 const seo = seoForWork(Astro.site, { pair, locale, coverUrl });

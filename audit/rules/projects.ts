@@ -115,7 +115,7 @@ export const pan004CorpusCollections: Rule = {
       );
       return findings;
     }
-    if (workCollections.length === 0) {
+    if (!worksSf || workCollections.length === 0) {
       findings.push(
         stalePremise(
           RULE_A_ID,
@@ -129,14 +129,12 @@ export const pan004CorpusCollections: Rule = {
     const work = new Set(workCollections);
     const nonWork = new Set(allCollections.filter((c) => !work.has(c)));
 
-    // worksSf is non-null here (workCollections came from it).
-    const sf = worksSf!;
     // Recognize getCollection under any local alias bound by a named import
     // (`import { getCollection as gc }` → gc), closing the aliased-import evasion;
     // the literal name is always included for the un-aliased case.
-    const getCollectionNames = findLocalNamesForImport(sf, "getCollection");
+    const getCollectionNames = findLocalNamesForImport(worksSf, "getCollection");
     getCollectionNames.add("getCollection");
-    const calls = [...getCollectionNames].flatMap((name) => findCallStringArgs(sf, name));
+    const calls = [...getCollectionNames].flatMap((name) => findCallStringArgs(worksSf, name));
     for (const call of calls) {
       if (!nonWork.has(call.value)) continue;
       findings.push({
@@ -144,7 +142,7 @@ export const pan004CorpusCollections: Rule = {
         severity: "fatal",
         category: CATEGORY,
         file: WORKS,
-        line: lineOf(sf, call.node),
+        line: lineOf(worksSf, call.node),
         observed: `${WORKS} calls getCollection("${call.value}") — "${call.value}" is a non-work content collection (work collections are ${[...work].map((c) => `"${c}"`).join(", ")}), so it enters the work-pair corpus`,
         contract: `The work-pair corpus builder in ${WORKS} must read ONLY the work content collections — the string-literal values of \`${COLLECTION_OF_CONST}\` (${[...work].map((c) => `"${c}"`).join(", ")}). \`getCollection("X")\` takes a string literal, so a non-work collection compiles silently; the work/project boundary is derived from the \`${COLLECTIONS_CONST}\` export and \`${COLLECTION_OF_CONST}\`, not type-checked here.`,
         why: WHY,

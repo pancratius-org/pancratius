@@ -3,7 +3,7 @@ import rss from "@astrojs/rss";
 
 import type { Locale } from "@/lib/i18n";
 import { workUrl } from "@/lib/i18n";
-import { getAllWorkPairs } from "@/lib/works";
+import { getAllWorkPairs, localizedWorkPairs } from "@/lib/works";
 
 const locale: Locale = "en";
 
@@ -15,22 +15,26 @@ function pubDateFor(number: number, dateField: string | null | undefined): Date 
   return new Date(Date.UTC(2025, 0, 1 + number));
 }
 
+function configuredSite(site: URL | undefined): URL {
+  if (!site) throw new Error("RSS feed requires `site` in astro.config.ts");
+  return site;
+}
+
 export const GET: APIRoute = async (context) => {
-  const pairs = (await getAllWorkPairs()).filter(p => p.entries.en);
+  const pairs = localizedWorkPairs(await getAllWorkPairs(), locale);
   return rss({
     title:       "Pancratius — new works",
     description: "Sergey Orekhov's writings in English translation. Free — for humans and for language models. CC0.",
-    site:        context.site!,
-    items: pairs.map(p => {
-      const entry = p.entries.en!;
+    site:        configuredSite(context.site),
+    items: pairs.map(({ pair, entry }) => {
       const date = pubDateFor(
-        p.number,
+        pair.number,
         "date" in entry.data ? (entry.data as { date?: string | null }).date : null,
       );
       return {
         title:       entry.data.title,
         description: entry.data.description,
-        link:        workUrl(p.kind, entry.data.slug, locale),
+        link:        workUrl(pair.kind, entry.data.slug, locale),
         pubDate:     date,
         categories:  "tags" in entry.data ? (entry.data as { tags?: string[] }).tags ?? [] : [],
       };

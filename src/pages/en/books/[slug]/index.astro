@@ -2,13 +2,12 @@
 import type { GetStaticPaths } from "astro";
 
 import BookPage from "@/components/BookPage.astro";
-import { getPairsByKind } from "@/lib/works";
+import { getPairsByKind, localizedWorkPairs } from "@/lib/works";
 
 export const getStaticPaths = (async () => {
   const pairs = await getPairsByKind("book");
-  return pairs
-    .filter(p => p.entries.en)
-    .map(p => ({ params: { slug: p.entries.en!.data.slug }, props: { pair: p } }));
+  return localizedWorkPairs(pairs, "en")
+    .map(({ pair, entry }) => ({ params: { slug: entry.data.slug }, props: { pair } }));
 }) satisfies GetStaticPaths;
 
 const { pair } = Astro.props;

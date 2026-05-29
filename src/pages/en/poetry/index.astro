@@ -2,7 +2,7 @@
 import Base from "@/layouts/Base.astro";
 import { DEFAULT_LOCALE, LOCALES, type Locale, kindIndexUrl, workUrl } from "@/lib/i18n";
 import { seoForKindIndex, spellEnglishCardinal } from "@/lib/seo";
-import { getPairsByKind } from "@/lib/works";
+import { defaultWorkEntry, getPairsByKind } from "@/lib/works";
 
 const locale = "en" as const;
 const pairs = await getPairsByKind("poem");
@@ -30,7 +30,7 @@ for (const loc of LOCALES) {
     <ol class="poems">
       {pairs.map(p => {
         // Poems are authored in the default locale; link to the canonical route.
-        const e = p.entries[DEFAULT_LOCALE]!;
+        const e = defaultWorkEntry(p);
         return (
           <li>
             <a href={workUrl("poem", e.data.slug, DEFAULT_LOCALE)}>

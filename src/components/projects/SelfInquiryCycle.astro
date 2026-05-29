@@ -136,15 +136,22 @@ const copyJson = jsonForScript({
 
   // Strings the walk needs, mirrored from the server copy into a typed island
   // so the script never re-hardcodes them. (Authored once in copy.ts.)
-  document.querySelectorAll<HTMLElement>("[data-inquiry]").forEach((root) => {
+  function inquiryDom(root: HTMLElement) {
     const islandEl = root.querySelector<HTMLScriptElement>("[data-inquiry-copy]");
-    const walk   = root.querySelector<HTMLElement>("[data-walk]");
+    const walk = root.querySelector<HTMLElement>("[data-walk]");
     const staticEl = root.querySelector<HTMLElement>("[data-static]");
-    const stage  = root.querySelector<HTMLElement>("[data-stage]");
-    const next   = root.querySelector<HTMLButtonElement>("[data-next]");
-    const prev   = root.querySelector<HTMLButtonElement>("[data-prev]");
-    const again  = root.querySelector<HTMLButtonElement>("[data-again]");
-    if (!islandEl || !walk || !staticEl || !stage || !next || !prev || !again) return;
+    const stage = root.querySelector<HTMLElement>("[data-stage]");
+    const next = root.querySelector<HTMLButtonElement>("[data-next]");
+    const prev = root.querySelector<HTMLButtonElement>("[data-prev]");
+    const again = root.querySelector<HTMLButtonElement>("[data-again]");
+    if (!islandEl || !walk || !staticEl || !stage || !next || !prev || !again) return null;
+    return { islandEl, walk, staticEl, stage, next, prev, again };
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-inquiry]").forEach((root) => {
+    const dom = inquiryDom(root);
+    if (!dom) return;
+    const { islandEl, walk, staticEl, stage, next, prev, again } = dom;
 
     let copy: InquiryCopy;
     try {
@@ -171,10 +178,10 @@ const copyJson = jsonForScript({
 
     function render() {
       if (pos === 0) {
-        stage!.innerHTML =
+        stage.innerHTML =
           `<p class="inquiry__card inquiry__card--q">${escape(copy.question)}</p>`;
       } else if (pos === REST) {
-        stage!.innerHTML =
+        stage.innerHTML =
           `<div class="inquiry__rest inquiry__rest--live">` +
           `<p class="inquiry__rest-title">${escape(copy.restTitle)}</p>` +
           `<p class="inquiry__rest-body">${escape(copy.restBody)}</p>` +
@@ -182,7 +189,7 @@ const copyJson = jsonForScript({
       } else {
         const s = copy.steps[pos - 1];
         if (!s) throw new Error("SelfInquiryCycle step index out of range");
-        stage!.innerHTML =
+        stage.innerHTML =
           `<div class="inquiry__card inquiry__card--step">` +
           `<span class="inquiry__step-n">${escape(copy.stepWord)} ${s.n}</span>` +
           `<p class="inquiry__step-h">${escape(s.title)}</p>` +
@@ -190,11 +197,11 @@ const copyJson = jsonForScript({
           `</div>`;
       }
 
-      prev!.hidden = pos === 0;
+      prev.hidden = pos === 0;
       // The forward button reads "to step" while inside a cycle, then "to the
       // resting state" on the last step, and is suppressed once at rest.
-      next!.hidden = pos === REST;
-      next!.textContent = pos === N ? copy.toRest : copy.nextStep;
+      next.hidden = pos === REST;
+      next.textContent = pos === N ? copy.toRest : copy.nextStep;
     }
 
     next.addEventListener("click", () => {

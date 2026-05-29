@@ -1,10 +1,10 @@
 ---
 import Base from "@/layouts/Base.astro";
-import { DEFAULT_LOCALE, LOCALE_META } from "@/lib/i18n";
+import { DEFAULT_LOCALE, LOCALE_META, type Locale } from "@/lib/i18n";
 import { notFoundCopy } from "@/lib/copy";
 import { absUrl } from "@/lib/seo";
 
-const locale = DEFAULT_LOCALE;
+const locale: Locale = DEFAULT_LOCALE;
 const copy = notFoundCopy[locale];
 const seo = {
   title:       copy.title,

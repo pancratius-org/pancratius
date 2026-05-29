@@ -9,7 +9,14 @@ import { homeCopy, type HomeCopy } from "@/lib/copy";
 import { clampDescription } from "@/lib/seo";
 import { seoForHome } from "@/lib/seo";
 import { poemPreviewLines } from "@/lib/publication/poetry";
-import { entryForLocale, findPair, getPairsByKind, type WorkEntry, type WorkPair } from "@/lib/works";
+import {
+  defaultWorkEntry,
+  displayWorkEntry,
+  findPair,
+  getPairsByKind,
+  localizedWorkPairs,
+  type WorkPair,
+} from "@/lib/works";
 import { getProjects, projectUrl } from "@/lib/projects";
 
 interface Props {
@@ -32,7 +39,7 @@ const allBooks = await getPairsByKind("book");
 // Books available in the active locale. On the default locale this is the whole
 // shelf; on a non-default locale it's the translated subset (the "N in <lang>"
 // stat). The homeCopy stat/heading callbacks receive it as `englishBooks`.
-const localizedBooks = allBooks.filter(p => p.entries[locale]);
+const localizedBooks = localizedWorkPairs(allBooks, locale);
 const allPoems = await getPairsByKind("poem");
 // Corpus tallies drive the home meta description's spelled-out counts.
 const seo = seoForHome(Astro.site, locale, { books: allBooks.length, poems: allPoems.length });
@@ -43,7 +50,7 @@ const seo = seoForHome(Astro.site, locale, { books: allBooks.length, poems: allP
 const canonicalProjects = await getProjects(DEFAULT_LOCALE);
 const localizedProjects = locale === DEFAULT_LOCALE ? [] : await getProjects(locale);
 const localizedProjectBySlug = new Map(localizedProjects.map(p => [p.data.slug, p]));
-const projects = canonicalProjects.map(base => {
+const projects = canonicalProjects.map((base): { landing: typeof base; linkLocale: Locale } => {
   const own = localizedProjectBySlug.get(base.data.slug);
   return own
     ? { landing: own, linkLocale: locale }
@@ -58,7 +65,7 @@ const poemPicks = (await Promise.all(POEM_PICKS.map(n => findPair("poem", n))))
 
 // Poems are authored in the default locale; preview from the canonical entry.
 const poemPreviews = poemPicks.map(p => {
-  const canonical = p.entries[DEFAULT_LOCALE]!;
+  const canonical = defaultWorkEntry(p);
   return {
     pair:  p,
     lines: poemPreviewLines(canonical.body ?? "", canonical.data.title, 4),
@@ -66,7 +73,7 @@ const poemPreviews = poemPicks.map(p => {
 });
 
 const svetozar = await findPair("book", 7);
-const svetozarEntry = displayEntry(svetozar, locale);
+const svetozarEntry = svetozar ? displayWorkEntry(svetozar, locale) : null;
 const svetozarHref = svetozarEntry
   ? workUrl("book", svetozarEntry.entry.data.slug, svetozarEntry.linkLocale)
   : null;
@@ -83,18 +90,7 @@ const heroStats = copy.hero.stats?.({
   englishBooks: localizedBooks.length,
   poems: allPoems.length,
 });
-
-function displayEntry(
-  pair: WorkPair | null,
-  requestedLocale: Locale,
-): { entry: WorkEntry; linkLocale: Locale } | null {
-  if (!pair) return null;
-  // Display-with-fallback: prefer the authored locale entry (link there);
-  // otherwise show the default-locale surface and link to its canonical route.
-  const authored = pair.entries[requestedLocale];
-  if (authored) return { entry: authored, linkLocale: requestedLocale };
-  return { entry: entryForLocale(pair, DEFAULT_LOCALE), linkLocale: DEFAULT_LOCALE };
-}
+const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
 ---
 <Base locale={locale} seo={seo} alternates={alternates}>
   <section class="page home" aria-labelledby="home-title">
@@ -172,8 +168,7 @@ function displayEntry(
 
       <div class="home__books-grid">
         {bookPicks.map(p => {
-          const display = displayEntry(p, locale);
-          if (!display) return null;
+          const display = displayWorkEntry(p, locale);
           return <BookCard pair={p} locale={locale} blurb={clampDescription(display.entry.data.description, 130)} />;
         })}
       </div>
@@ -200,7 +195,7 @@ function displayEntry(
         <div class="home__poems">
           {poemPreviews.map(({ pair, lines }) => {
             // Poems are default-locale only; display + link the canonical entry.
-            const display = displayEntry(pair, locale)!;
+            const display = displayWorkEntry(pair, locale);
             const href = workUrl("poem", display.entry.data.slug, display.linkLocale);
             return (
               <a class="home__poem" href={href}>
@@ -257,9 +252,9 @@ function displayEntry(
 
       <div class="home__svetozar-grid">
         <div class="home__svetozar-copy">
-          <p>{copy.svetozar.paragraphs[0]}</p>
-          <p class="home__svetozar-pull">{copy.svetozar.paragraphs[1]}</p>
-          <p>{copy.svetozar.paragraphs[2]}</p>
+          <p>{svetozarIntro}</p>
+          <p class="home__svetozar-pull">{svetozarPull}</p>
+          <p>{svetozarClose}</p>
           {svetozarHref && (
             <p class="home__svetozar-cta">
               <a href={svetozarHref}>{copy.svetozar.cta}</a>

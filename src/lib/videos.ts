@@ -19,6 +19,7 @@ export { formatDuration } from "./video-format";
 
 export type VideoEntry = CollectionEntry<"videos">;
 export type VideoChannel = CollectionEntry<"videoChannels">;
+type VideoPairEntries = Partial<Record<Locale, VideoEntry>> & Record<typeof DEFAULT_LOCALE, VideoEntry>;
 
 /**
  * A video and its translations, keyed by `(kind, number)`. Each locale entry
@@ -28,18 +29,26 @@ export type VideoChannel = CollectionEntry<"videoChannels">;
 export interface VideoPair {
   number: number;
   /** Authored entries keyed by locale. `entries[DEFAULT_LOCALE]` always exists. */
-  entries: Partial<Record<Locale, VideoEntry>>;
+  entries: VideoPairEntries;
+}
+
+export interface LocalizedVideoPair {
+  pair:   VideoPair;
+  entry:  VideoEntry;
+  locale: Locale;
+}
+
+export interface DisplayVideoEntry {
+  entry:      VideoEntry;
+  linkLocale: Locale;
 }
 
 let _pairsCache: VideoPair[] | null = null;
 let _channelsCache: VideoChannel[] | null = null;
 
-function defaultVideoEntry(pair: VideoPair): VideoEntry {
-  const entry = pair.entries[DEFAULT_LOCALE];
-  if (!entry) {
-    throw new Error(`Video #${pair.number} has no ${DEFAULT_LOCALE} canonical entry`);
-  }
-  return entry;
+/** The canonical default-locale entry. Every `VideoPair` has one. */
+export function defaultVideoEntry(pair: VideoPair): VideoEntry {
+  return pair.entries[DEFAULT_LOCALE];
 }
 
 function videoBundleKey(pair: VideoPair): string {
@@ -87,7 +96,8 @@ export async function getAllVideoPairs(): Promise<VideoPair[]> {
         `Video #${number} has translations but no ${DEFAULT_LOCALE} canonical entry`,
       );
     }
-    pairs.push({ number, entries });
+    const pairEntries: VideoPairEntries = { ...entries, [DEFAULT_LOCALE]: canonical };
+    pairs.push({ number, entries: pairEntries });
   }
 
   pairs.sort((a, b) => {
@@ -102,23 +112,56 @@ export async function getAllVideoPairs(): Promise<VideoPair[]> {
 }
 
 /**
- * Display-fallback selector: the entry to render for `locale`, walking the
- * registry's per-locale `fallback` chain. Mirrors `entryForLocale` in
- * `works.ts`. USE FOR DISPLAY ONLY — routes/downloads must read
- * `pair.entries[locale]` directly to decide existence.
+ * Authored-locale selector for route existence. Returns null when this pair
+ * has no authored file in `locale`; it deliberately does not fall back.
  */
-export function videoEntryForLocale(pair: VideoPair, locale: Locale): VideoEntry {
+export function entryForAuthoredVideoLocale(pair: VideoPair, locale: Locale): VideoEntry | null {
+  return pair.entries[locale] ?? null;
+}
+
+function localizedVideoPair(pair: VideoPair, locale: Locale): LocalizedVideoPair | null {
+  const entry = entryForAuthoredVideoLocale(pair, locale);
+  return entry ? { pair, entry, locale } : null;
+}
+
+export function localizedVideoPairs(
+  pairs: readonly VideoPair[],
+  locale: Locale,
+): LocalizedVideoPair[] {
+  const localized: LocalizedVideoPair[] = [];
+  for (const pair of pairs) {
+    const item = localizedVideoPair(pair, locale);
+    if (item) localized.push(item);
+  }
+  return localized;
+}
+
+export function authoredVideoPairs(pair: VideoPair): LocalizedVideoPair[] {
+  return LOCALES.flatMap(locale => {
+    const item = localizedVideoPair(pair, locale);
+    return item ? [item] : [];
+  });
+}
+
+/**
+ * Display selector for cards/CTAs that may fall back through the locale
+ * registry. `linkLocale` tells the caller which real route owns the entry.
+ *
+ * USE FOR DISPLAY ONLY — routes must use `entryForAuthoredVideoLocale` or
+ * `localizedVideoPairs` to decide existence.
+ */
+export function displayVideoEntry(pair: VideoPair, requestedLocale: Locale): DisplayVideoEntry {
   const seen = new Set<Locale>();
-  let current: Locale = locale;
+  let current: Locale = requestedLocale;
   while (!seen.has(current)) {
     const entry = pair.entries[current];
-    if (entry) return entry;
+    if (entry) return { entry, linkLocale: current };
     seen.add(current);
     const next = LOCALE_META[current].fallback;
     if (next === current) break;
     current = next;
   }
-  return defaultVideoEntry(pair);
+  return { entry: defaultVideoEntry(pair), linkLocale: DEFAULT_LOCALE };
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -186,8 +229,8 @@ function resolveVideoCover(pair: VideoPair, locale: Locale): VideoCoverRef | nul
     if (ref) return ref;
   }
   if (locale !== DEFAULT_LOCALE) {
-    const fallback = pair.entries[DEFAULT_LOCALE];
-    const ref = parseVideoCover(fallback?.data.cover);
+    const fallback = defaultVideoEntry(pair);
+    const ref = parseVideoCover(fallback.data.cover);
     if (ref) return ref;
   }
   return null;
@@ -253,7 +296,7 @@ export function watchUrlFor(entry: VideoEntry): string {
 
 /** Flatten playlist titles into the video's `tags` list (de-duplicated). */
 export function videoTags(entry: VideoEntry): readonly string[] {
-  const tags = new Set(entry.data.tags ?? []);
+  const tags = new Set(entry.data.tags);
   for (const p of entry.data.playlists ?? []) tags.add(p.title);
   return [...tags];
 }

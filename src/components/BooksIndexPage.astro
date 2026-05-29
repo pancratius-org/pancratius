@@ -7,7 +7,7 @@ import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE, kindIndexUrl } from "@/lib/i18n";
 import { booksIndexCopy, type BooksIndexCopy } from "@/lib/copy";
 import { seoForKindIndex, clampDescription } from "@/lib/seo";
-import { getPairsByKind, workTags } from "@/lib/works";
+import { getPairsByKind, localizedWorkPairs, workTags } from "@/lib/works";
 
 interface Props {
   locale: Locale;
@@ -20,15 +20,12 @@ const copy: BooksIndexCopy = booksIndexCopy[locale];
 const allPairs = await getPairsByKind("book");
 // Existence: a non-default-locale index lists only works authored in it; the
 // default-locale index lists every work.
-const pairs = locale === DEFAULT_LOCALE
-  ? allPairs
-  : allPairs.filter(p => p.entries[locale]);
+const pairs = localizedWorkPairs(allPairs, locale);
 const seo = seoForKindIndex(Astro.site, "book", locale, { total: allPairs.length });
 const defaultHref = kindIndexUrl("book", DEFAULT_LOCALE);
 
 const tagCounts = new Map<string, number>();
-for (const p of pairs) {
-  const entry = p.entries[locale]!;
+for (const { entry } of pairs) {
   for (const t of workTags(entry)) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
 }
 const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count }));
@@ -51,9 +48,8 @@ const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count })
     <LibraryFilter locale={locale} tags={tags} total={pairs.length} />
 
     <div class="index" role="list" data-pagefind-ignore>
-      {pairs.map(p => {
-        const entry = p.entries[locale]!;
-        return <BookCard pair={p} locale={locale} blurb={clampDescription(entry.data.description, 120)} />;
+      {pairs.map(({ pair, entry }) => {
+        return <BookCard pair={pair} locale={locale} blurb={clampDescription(entry.data.description, 120)} />;
       })}
     </div>
   </section>

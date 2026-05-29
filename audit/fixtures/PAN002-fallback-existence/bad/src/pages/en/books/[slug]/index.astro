@@ -3,15 +3,15 @@ import type { GetStaticPaths } from "astro";
 
 import BookPage from "@/components/BookPage.astro";
 import { getPairsByKind } from "@/lib/works";
-import { entryForLocale } from "@/lib/works";
+import { displayWorkEntry } from "@/lib/works";
 
 // BUG: getStaticPaths uses the display-fallback selector to build params/props,
 // so an `/en/…` route is emitted even for a pair with no authored EN entry.
 export const getStaticPaths = (async () => {
   const pairs = await getPairsByKind("book");
   return pairs.map(p => {
-    const entry = entryForLocale(p, "en");
-    return { params: { slug: entry.data.slug }, props: { pair: p } };
+    const display = displayWorkEntry(p, "en");
+    return { params: { slug: display.entry.data.slug }, props: { pair: p } };
   });
 }) satisfies GetStaticPaths;
 

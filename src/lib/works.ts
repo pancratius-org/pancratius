@@ -23,6 +23,8 @@ export type WorkEntry =
   | CollectionEntry<"books">
   | CollectionEntry<"poetry">;
 
+type WorkPairEntries = Partial<Record<Locale, WorkEntry>> & Record<typeof DEFAULT_LOCALE, WorkEntry>;
+
 /**
  * Work-pair kind → content collection name. Projects are intentionally absent
  * (they aren't paired works). `COLLECTION_OF[kind]` for a `WorkPairKind` reuses
@@ -42,37 +44,86 @@ export interface WorkPair {
   kind:    WorkPairKind;
   number:  number;
   /** Authored entries keyed by locale. `entries[DEFAULT_LOCALE]` always exists. */
-  entries: Partial<Record<Locale, WorkEntry>>;
+  entries: WorkPairEntries;
+}
+
+export interface LocalizedWorkPair {
+  pair:   WorkPair;
+  entry:  WorkEntry;
+  locale: Locale;
+}
+
+export interface DisplayWorkEntry {
+  entry:      WorkEntry;
+  linkLocale: Locale;
+}
+
+/** The canonical default-locale entry. Every `WorkPair` has one. */
+export function defaultWorkEntry(pair: WorkPair): WorkEntry {
+  return pair.entries[DEFAULT_LOCALE];
+}
+
+/** The bundle folder is shared across translations; key off the canonical entry. */
+export function workBundleKey(pair: WorkPair): string {
+  const id = defaultWorkEntry(pair).id;
+  const separator = id.indexOf("--");
+  if (separator === -1) throw new Error(`work entry id ${JSON.stringify(id)} is missing its locale separator`);
+  return id.slice(0, separator);
 }
 
 /**
- * Display-fallback selector: the entry to render for `locale`, walking the
- * registry's per-locale `fallback` chain (locale → LOCALE_META[locale].fallback
- * → … → DEFAULT_LOCALE) until an authored entry is found. The chain always
- * terminates because DEFAULT_LOCALE's fallback is itself; the visited-set guard
- * also breaks any accidental cycle. `pair.entries[DEFAULT_LOCALE]` is
- * guaranteed to exist (enforced in `getAllWorkPairs`), so this never returns
- * undefined.
- *
- * USE FOR DERIVED DISPLAY DATA ONLY — cover resolution, cross-ref title
- * display, JSON-LD. Do NOT use it to decide whether a route or download
- * exists: those must read `pair.entries[locale]` directly so an `/en/…` page
- * never renders default-locale content for a locale that wasn't authored.
+ * Authored-locale selector for route existence and downloads. Returns null
+ * when this pair has no authored file in `locale`; it deliberately does not
+ * fall back.
  */
-export function entryForLocale(pair: WorkPair, locale: Locale): WorkEntry {
+export function entryForAuthoredLocale(pair: WorkPair, locale: Locale): WorkEntry | null {
+  return pair.entries[locale] ?? null;
+}
+
+function localizedWorkPair(pair: WorkPair, locale: Locale): LocalizedWorkPair | null {
+  const entry = entryForAuthoredLocale(pair, locale);
+  return entry ? { pair, entry, locale } : null;
+}
+
+export function localizedWorkPairs(
+  pairs: readonly WorkPair[],
+  locale: Locale,
+): LocalizedWorkPair[] {
+  const localized: LocalizedWorkPair[] = [];
+  for (const pair of pairs) {
+    const item = localizedWorkPair(pair, locale);
+    if (item) localized.push(item);
+  }
+  return localized;
+}
+
+export function authoredWorkPairs(pair: WorkPair): LocalizedWorkPair[] {
+  return LOCALES.flatMap(locale => {
+    const item = localizedWorkPair(pair, locale);
+    return item ? [item] : [];
+  });
+}
+
+/**
+ * Display selector for cards/CTAs that may fall back through the locale
+ * registry. `linkLocale` tells the caller which real route owns the entry.
+ *
+ * USE FOR DISPLAY ONLY — routes/downloads must use `entryForAuthoredLocale`
+ * or `localizedWorkPairs` so a missing translation never creates a fallback
+ * page or download.
+ */
+export function displayWorkEntry(pair: WorkPair, requestedLocale: Locale): DisplayWorkEntry {
   const seen = new Set<Locale>();
-  let current: Locale = locale;
+  let current: Locale = requestedLocale;
   while (!seen.has(current)) {
     const entry = pair.entries[current];
-    if (entry) return entry;
+    if (entry) return { entry, linkLocale: current };
     seen.add(current);
     const next = LOCALE_META[current].fallback;
     if (next === current) break;  // DEFAULT_LOCALE.fallback === DEFAULT_LOCALE
     current = next;
   }
-  // Chain exhausted without an authored entry — fall back to the canonical
-  // default-locale entry, which getAllWorkPairs guarantees exists.
-  return pair.entries[DEFAULT_LOCALE]!;
+  return { entry: defaultWorkEntry(pair), linkLocale: DEFAULT_LOCALE };
 }
 
 function workKey(entry: WorkEntry): string {
@@ -113,10 +164,11 @@ export async function getAllWorkPairs(): Promise<WorkPair[]> {
         `Work ${key} has translations but no ${DEFAULT_LOCALE} canonical entry`,
       );
     }
+    const pairEntries: WorkPairEntries = { ...entries, [DEFAULT_LOCALE]: canonical };
     pairs.push({
       kind:    canonical.data.kind,
       number:  canonical.data.number,
-      entries,
+      entries: pairEntries,
     });
   }
 
@@ -204,8 +256,8 @@ export function resolveCover(pair: WorkPair, locale: Locale): CoverRef | null {
     if (ref) return ref;
   }
   if (locale !== DEFAULT_LOCALE) {
-    const fallback = pair.entries[DEFAULT_LOCALE];
-    const ref = parseCoverRef(fallback?.data.cover);
+    const fallback = defaultWorkEntry(pair);
+    const ref = parseCoverRef(fallback.data.cover);
     if (ref) return ref;
   }
   return null;
@@ -251,7 +303,7 @@ export async function resolveCrossRefs(
         `cross_refs dangling reference from ${entry.id}: ${ref.target.kind} #${ref.target.number} not in corpus`,
       );
     }
-    const display = entryForLocale(pair, locale);
+    const display = displayWorkEntry(pair, locale).entry;
     resolved.push({
       target: pair,
       display,

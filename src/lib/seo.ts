@@ -19,8 +19,19 @@ import {
 import { searchPageCopy } from "./copy";
 import type { PageEntry } from "./pages";
 import type { ProjectLanding, ProjectSubpage } from "./projects";
-import { entryForLocale, type WorkPair } from "./works";
-import type { VideoPair } from "./videos";
+import {
+  authoredWorkPairs,
+  defaultWorkEntry,
+  entryForAuthoredLocale,
+  type WorkEntry,
+  type WorkPair,
+} from "./works";
+import {
+  authoredVideoPairs,
+  defaultVideoEntry,
+  entryForAuthoredVideoLocale,
+  type VideoPair,
+} from "./videos";
 
 const AUTHOR_NAME = "Сергей Орехов";
 const AUTHOR_ALIAS = "Панкратиус";
@@ -306,7 +317,7 @@ export function seoForWork(site: URL | undefined, input: WorkSeoInput): SeoMeta 
   const { pair, locale, coverUrl = null } = input;
   // Existence: a work page in this locale only exists if the locale was
   // authored. Do NOT fall back — a missing entry here is a routing bug.
-  const entry = pair.entries[locale];
+  const entry = entryForAuthoredLocale(pair, locale);
   if (!entry) {
     throw new Error(
       `seoForWork: no ${locale} entry for ${pair.kind} #${pair.number}`,
@@ -325,6 +336,7 @@ export function seoForWork(site: URL | undefined, input: WorkSeoInput): SeoMeta 
     alternates: alternatesForWork(site, pair),
     jsonLd:     creativeWorkLd({
       pair,
+      entry,
       locale,
       canonical,
       coverUrl,
@@ -535,37 +547,27 @@ function alternatesForWork(site: URL | undefined, pair: WorkPair): AlternateLink
   // Existence: list one alternate per locale that was actually authored, so a
   // missing translation simply has no hreflang entry (switcher disables it).
   const xs: AlternateLink[] = [];
-  for (const loc of LOCALES) {
-    const entry = pair.entries[loc];
-    if (entry) {
-      xs.push({ hreflang: loc, href: absUrl(site, workUrl(pair.kind, entry.data.slug, loc)) });
-    }
+  for (const { entry, locale: loc } of authoredWorkPairs(pair)) {
+    xs.push({ hreflang: loc, href: absUrl(site, workUrl(pair.kind, entry.data.slug, loc)) });
   }
-  const canonical = pair.entries[DEFAULT_LOCALE];
-  if (canonical) {
-    xs.push({
-      hreflang: "x-default",
-      href: absUrl(site, workUrl(pair.kind, canonical.data.slug, DEFAULT_LOCALE)),
-    });
-  }
+  const canonical = defaultWorkEntry(pair);
+  xs.push({
+    hreflang: "x-default",
+    href: absUrl(site, workUrl(pair.kind, canonical.data.slug, DEFAULT_LOCALE)),
+  });
   return xs;
 }
 
 function alternatesForVideo(site: URL | undefined, pair: VideoPair): AlternateLink[] {
   const xs: AlternateLink[] = [];
-  for (const loc of LOCALES) {
-    const entry = pair.entries[loc];
-    if (entry) {
-      xs.push({ hreflang: loc, href: absUrl(site, routedUrl("video", entry.data.slug, loc)) });
-    }
+  for (const { entry, locale: loc } of authoredVideoPairs(pair)) {
+    xs.push({ hreflang: loc, href: absUrl(site, routedUrl("video", entry.data.slug, loc)) });
   }
-  const canonical = pair.entries[DEFAULT_LOCALE];
-  if (canonical) {
-    xs.push({
-      hreflang: "x-default",
-      href: absUrl(site, routedUrl("video", canonical.data.slug, DEFAULT_LOCALE)),
-    });
-  }
+  const canonical = defaultVideoEntry(pair);
+  xs.push({
+    hreflang: "x-default",
+    href: absUrl(site, routedUrl("video", canonical.data.slug, DEFAULT_LOCALE)),
+  });
   return xs;
 }
 
@@ -582,7 +584,7 @@ export interface VideoSeoInput {
  */
 export function seoForVideo(site: URL | undefined, input: VideoSeoInput): SeoMeta {
   const { pair, locale, coverUrl = null } = input;
-  const entry = pair.entries[locale];
+  const entry = entryForAuthoredVideoLocale(pair, locale);
   if (!entry) {
     throw new Error(`seoForVideo: no ${locale} entry for video #${pair.number}`);
   }
@@ -652,6 +654,7 @@ function sameOriginPath(href: string): string {
 
 interface CreativeWorkInput {
   pair:        WorkPair;
+  entry:       WorkEntry;
   locale:      Locale;
   canonical:   string;
   coverUrl:    string | null;
@@ -660,11 +663,7 @@ interface CreativeWorkInput {
 }
 
 function creativeWorkLd(input: CreativeWorkInput): Record<string, unknown> {
-  const { pair, locale, canonical, coverUrl, description, site } = input;
-  // Display: the LD is emitted on a page that exists in `locale`, but use the
-  // display selector so a non-default locale still has a name if ever called
-  // for a locale whose entry is absent.
-  const entry = entryForLocale(pair, locale);
+  const { pair, entry, locale, canonical, coverUrl, description, site } = input;
   const ld: Record<string, unknown> = {
     "@context":   "https://schema.org",
     "@type":      "CreativeWork",
