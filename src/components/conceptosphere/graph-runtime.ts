@@ -48,10 +48,10 @@ const DESKTOP_MEDIA_QUERY = "(min-width: 840px)";
 const MOBILE_MEDIA_QUERY = "(max-width: 839px)";
 
 function readPageConfig(): PageConfig | null {
-  const el = document.getElementById("cs-config");
-  if (!el || !el.textContent) return null;
+  const raw = document.getElementById("cs-config")?.textContent;
+  if (!raw) return null;
   try {
-    return JSON.parse(el.textContent) as PageConfig;
+    return JSON.parse(raw) as PageConfig;
   } catch (err) {
     console.error("conceptosphere: failed to parse #cs-config", err);
     return null;
@@ -798,9 +798,10 @@ function wireInteractions(ctx: AppContext, s: Session): void {
         out._dim = true;
       } else {
         out.color = data._color as string;
-        out.zIndex = focusSet !== null && focusSet.has(node) ? 2 : 1;
+        const focused = focusSet?.has(node) ?? false;
+        out.zIndex = focused ? 2 : 1;
         if (focusSet !== null) {
-          out.forceLabel = showFocusNeighborLabels && node !== focus && focusSet.has(node);
+          out.forceLabel = showFocusNeighborLabels && node !== focus && focused;
         } else {
           if (hasFilter && state.filterComs.has(data.community as number)) out.forceLabel = true;
           if (hasSearch && matchesSearch(data)) out.forceLabel = true;
