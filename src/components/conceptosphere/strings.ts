@@ -255,7 +255,7 @@ const EN = {
   loadErrorPrefix:         "Failed to load the graph",
 } satisfies ConceptosphereStrings;
 
-export const STRINGS = {
+const STRINGS = {
   ru: RU,
   en: EN,
 } satisfies Record<Locale, ConceptosphereStrings>;

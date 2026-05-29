@@ -15,7 +15,7 @@ import type { ConceptosphereMode } from "./runtime-types";
 
 type BookSlugInfo = Record<string, { number: number; title: string; href: string }>;
 
-export type ConceptosphereCommunityView = {
+type ConceptosphereCommunityView = {
   id: number;
   label: string;
   color: string;
@@ -103,7 +103,7 @@ export async function loadConceptospherePageData(
     };
 
     if (!pair) continue;
-    const url = await coverAssetUrl(pair, locale);
+    const url = coverAssetUrl(pair, locale);
     if (url) coverUrls[`book:${slug}`] = url;
   }
 

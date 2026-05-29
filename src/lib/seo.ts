@@ -33,7 +33,7 @@ function siteLabel(locale: Locale): string {
   return LOCALE_META[locale].siteLabel;
 }
 
-export interface AlternateLink {
+interface AlternateLink {
   hreflang: string;  // "ru", "en", "x-default"
   href:     string;  // absolute URL
 }
@@ -470,7 +470,7 @@ export function seoForPage(
   authoredLocales: ReadonlySet<Locale>,
 ): SeoMeta {
   const data = page.data;
-  const locale = data.lang as Locale;
+  const locale = data.lang;
   const canonical = absUrl(site, pageUrl(data.slug, locale));
   return {
     title:       `${data.title} — ${siteLabel(locale)}`,

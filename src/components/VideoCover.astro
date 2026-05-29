@@ -13,7 +13,7 @@ interface Props {
 }
 
 const { pair, locale, alt, loading = "lazy", badge } = Astro.props;
-const url = await videoCoverAssetUrl(pair, locale);
+const url = videoCoverAssetUrl(pair, locale);
 ---
 <div class:list={["vcv", !url && "vcv--empty"]} aria-hidden={url ? undefined : "true"}>
   {url ? (

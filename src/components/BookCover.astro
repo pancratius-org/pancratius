@@ -12,7 +12,7 @@ interface Props {
 }
 
 const { pair, locale, alt, loading = "lazy" } = Astro.props;
-const url = await coverAssetUrl(pair, locale);
+const url = coverAssetUrl(pair, locale);
 ---
 <div class:list={["bcv", !url && "bcv--empty"]} aria-hidden={url ? undefined : "true"}>
   {url ? (

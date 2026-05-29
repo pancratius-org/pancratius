@@ -4,7 +4,7 @@
 // which is what makes both-polarity fixture testing possible.
 
 import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
-import { join, resolve, dirname, sep } from "node:path";
+import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Absolute path to the repository root (audit/lib/ → repo root). */
@@ -44,11 +44,6 @@ const ALWAYS_IGNORE: ReadonlySet<string> = new Set([
 // config under .github, which PAN012 reads). Dot-FILES are kept; rules filter.
 // A Python check that walks the tree mirrors this exact rule.
 const KEEP_DOT_DIRS: ReadonlySet<string> = new Set([".github"]);
-
-/** Normalise an OS path to forward slashes so rule matching is platform-stable. */
-export function toPosix(p: string): string {
-  return sep === "/" ? p : p.split(sep).join("/");
-}
 
 /** Directory entries, or [] for an unreadable directory. Type inferred from the call. */
 function readEntries(absDir: string) {

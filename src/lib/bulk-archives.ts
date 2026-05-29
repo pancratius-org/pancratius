@@ -22,7 +22,7 @@ export function loadArchiveManifest(): {
       archives: ArchiveInfo[];
     };
     return { archives: raw.archives, generatedAt: raw.generated_at };
-  } catch (_) {
+  } catch {
     return { archives: [], generatedAt: null };
   }
 }

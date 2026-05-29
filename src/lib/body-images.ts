@@ -72,14 +72,6 @@ export function workBundleKey(pair: WorkPair): string {
   return id.slice(0, separator);
 }
 
-export function workAssetImagePublicPath(kind: RoutedKind, workKey: string, imagePath: string): string {
-  const normalized = imagePath.trim().replace(/^\.?\//, "");
-  if (!normalized.startsWith("images/")) {
-    throw new Error(`workAssetImagePublicPath expects an images/ path, got ${JSON.stringify(imagePath)}`);
-  }
-  return `/assets/${ROUTED_SEGMENT[kind]}/${workKey}/${normalized}`;
-}
-
 export function workAssetImageStaticPaths() {
   const paths: {
     params: { kind: string; work: string; file: string };

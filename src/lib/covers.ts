@@ -13,8 +13,8 @@ const COVER_URLS = import.meta.glob<string>(
 );
 
 /** The asset URL for a work's cover in the given locale, or null when absent. */
-export async function coverAssetUrl(pair: WorkPair, locale: Locale): Promise<string | null> {
-  const cover = await resolveCover(pair, locale);
+export function coverAssetUrl(pair: WorkPair, locale: Locale): string | null {
+  const cover = resolveCover(pair, locale);
   if (!cover) return null;
   const workFolder = pair.entries[DEFAULT_LOCALE]!.id.split("--")[0];
   const segment = COLLECTION_OF[pair.kind];
@@ -23,12 +23,12 @@ export async function coverAssetUrl(pair: WorkPair, locale: Locale): Promise<str
 }
 
 /** Absolute URL of the cover asset, suitable for og:image / JSON-LD image. */
-export async function coverAbsoluteUrl(
+export function coverAbsoluteUrl(
   site: URL | undefined,
   pair: WorkPair,
   locale: Locale,
-): Promise<string | null> {
-  const rel = await coverAssetUrl(pair, locale);
+): string | null {
+  const rel = coverAssetUrl(pair, locale);
   if (!rel || !site) return rel;
   return new URL(rel, site).toString();
 }

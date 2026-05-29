@@ -69,9 +69,10 @@ export async function getAllVideoPairs(): Promise<VideoPair[]> {
     // Two entries for the same `(number, lang)` would silently overwrite
     // each other and lose data — surface it as an integrity error instead.
     const lang = entry.data.lang;
-    if (bucket[lang]) {
+    const existing = bucket[lang];
+    if (existing) {
       throw new Error(
-        `Duplicate video #${entry.data.number}/${lang}: ${bucket[lang]!.id} and ${entry.id} share an (number, lang)`,
+        `Duplicate video #${entry.data.number}/${lang}: ${existing.id} and ${entry.id} share an (number, lang)`,
       );
     }
     bucket[lang] = entry;
@@ -98,24 +99,6 @@ export async function getAllVideoPairs(): Promise<VideoPair[]> {
 
   if (pairs.length > 0) _pairsCache = pairs;
   return pairs;
-}
-
-export async function findVideoPair(number: number): Promise<VideoPair | null> {
-  const all = await getAllVideoPairs();
-  return all.find(p => p.number === number) ?? null;
-}
-
-/** Look up by per-language slug (the URL slug). */
-export async function findVideoEntryBySlug(
-  slug: string,
-  locale: Locale,
-): Promise<VideoEntry | null> {
-  const all = await getAllVideoPairs();
-  for (const pair of all) {
-    const entry = pair.entries[locale];
-    if (entry && entry.data.slug === slug) return entry;
-  }
-  return null;
 }
 
 /**
@@ -149,7 +132,7 @@ export async function getChannels(): Promise<VideoChannel[]> {
   return channels;
 }
 
-export async function findChannel(key: string): Promise<VideoChannel | null> {
+async function findChannel(key: string): Promise<VideoChannel | null> {
   const all = await getChannels();
   return all.find(c => c.id === key) ?? null;
 }
@@ -196,7 +179,7 @@ function parseVideoCover(value: string | null | undefined): VideoCoverRef | null
   return { rel: value.trim(), lang: lang.toLowerCase() as Locale, ext: ext.toLowerCase() };
 }
 
-export async function resolveVideoCover(pair: VideoPair, locale: Locale): Promise<VideoCoverRef | null> {
+function resolveVideoCover(pair: VideoPair, locale: Locale): VideoCoverRef | null {
   const primary = pair.entries[locale];
   if (primary && primary.data.cover_is_placeholder !== true) {
     const ref = parseVideoCover(primary.data.cover);
@@ -210,19 +193,19 @@ export async function resolveVideoCover(pair: VideoPair, locale: Locale): Promis
   return null;
 }
 
-export async function videoCoverAssetUrl(pair: VideoPair, locale: Locale): Promise<string | null> {
-  const cover = await resolveVideoCover(pair, locale);
+export function videoCoverAssetUrl(pair: VideoPair, locale: Locale): string | null {
+  const cover = resolveVideoCover(pair, locale);
   if (!cover) return null;
   const key = `/src/content/videos/${videoBundleKey(pair)}/${cover.rel.replace(/^\.\//, "")}`;
   return VIDEO_COVER_URLS[key] ?? null;
 }
 
-export async function videoCoverAbsoluteUrl(
+export function videoCoverAbsoluteUrl(
   site: URL | undefined,
   pair: VideoPair,
   locale: Locale,
-): Promise<string | null> {
-  const rel = await videoCoverAssetUrl(pair, locale);
+): string | null {
+  const rel = videoCoverAssetUrl(pair, locale);
   if (!rel || !site) return rel;
   return new URL(rel, site).toString();
 }

@@ -1,4 +1,4 @@
-export const CONCEPTOSPHERE_PALETTE = [
+const CONCEPTOSPHERE_PALETTE = [
   "#c25e4f", "#d8a24a", "#e9c66a", "#6fa48a", "#4d8aa6",
   "#7c6bb8", "#b06aa0", "#c8a37a", "#a8485a", "#6e8fb5",
   "#93a85a", "#c98a4a", "#5fa3a3", "#a48cc8", "#b9755a",
