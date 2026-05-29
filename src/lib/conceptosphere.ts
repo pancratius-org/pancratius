@@ -189,100 +189,169 @@ export interface SimilarPick {
 const CONVERGENCE_BONUS = 0.15;             // capped: weaker than the gap between strong and weak single-source picks
 const CONVERGENCE_THRESHOLD = 0.25;          // normalized score floor that qualifies as a "real" pick on a list
 
+type SimilarSource = "tfidf" | "embed";
+
+interface SimilarEvidence {
+  ref: SimilarRef;
+  tfidfNorm: number;
+  embedNorm: number;
+  sources: Set<SimilarSource>;
+  order: number;
+}
+
+interface SimilarResolutionContext {
+  locale: Locale;
+  exclude: ReadonlySet<string>;
+  selfSlug: string;
+}
+
+interface RankedSimilarPick {
+  pick: SimilarPick;
+  score: number;
+  evidence: SimilarEvidence;
+}
+
 export async function getMergedSimilar(input: SimilarPickInput): Promise<SimilarPick[]> {
   const { entry, locale, limit = 6 } = input;
-  if (entry.data.kind !== "book") return [];
-
-  const node = bookNode(entry.data.number);
+  const node = recommendationBookNode(entry);
   if (!node) return [];
 
-  const tfidf = node.top_similar;
-  const embed = node.top_similar_embed ?? [];
-
-  const tfidfMax = tfidf[0]?.weight ?? 1;
-  const embedMax = embed[0]?.weight ?? 1;
-
-  type Bucket = {
-    ref:        SimilarRef;
-    tfidfNorm:  number;
-    embedNorm:  number;
-    seenIn:     Set<"tfidf" | "embed">;
-  };
-  const buckets = new Map<string, Bucket>();
-
-  function bucketKey(ref: SimilarRef): string {
-    return `${ref.kind}:${ref.slug}`;
-  }
-
-  for (const ref of tfidf) {
-    const key = bucketKey(ref);
-    const norm = tfidfMax > 0 ? ref.weight / tfidfMax : 0;
-    const bucket = buckets.get(key) ?? { ref, tfidfNorm: 0, embedNorm: 0, seenIn: new Set() };
-    bucket.tfidfNorm = Math.max(bucket.tfidfNorm, norm);
-    bucket.seenIn.add("tfidf");
-    buckets.set(key, bucket);
-  }
-  for (const ref of embed) {
-    const key = bucketKey(ref);
-    const norm = embedMax > 0 ? ref.weight / embedMax : 0;
-    const bucket = buckets.get(key) ?? { ref, tfidfNorm: 0, embedNorm: 0, seenIn: new Set() };
-    bucket.embedNorm = Math.max(bucket.embedNorm, norm);
-    bucket.seenIn.add("embed");
-    buckets.set(key, bucket);
-  }
-
-  // Exclude the current work and anything in authored См. также.
-  const exclude = crossRefKeys(entry);
-  const selfSlug = node.slug;
-  const scored: { pick: SimilarPick; sortKey: number; bucket: Bucket }[] = [];
-
-  for (const bucket of buckets.values()) {
-    // «Похожие книги» is a books-only surface per docs/conceptosphere.md.
-    // top_similar_embed can include poetry; filter non-books out.
-    if (bucket.ref.kind !== "book") continue;
-    if (bucket.ref.slug === selfSlug) continue;
-
-    const neighborNode = bookNode(bucket.ref.slug);
-    if (!neighborNode) continue;
-    if (exclude.has(pairKey("book", neighborNode.number))) continue;
-
-    // Resolve through `(kind, number)` so we use the *localized* slug, title,
-    // and cover. If the EN page doesn't exist on an EN reader's surface, skip
-    // the pick rather than emit a dead link to /en/books/<ru-slug>/.
-    const pair = await findPair("book", neighborNode.number);
-    if (!pair) continue;
-    // Existence: skip the pick if the page doesn't exist in this locale rather
-    // than emit a dead link to /<locale>/books/<default-locale-slug>/.
-    const display = entryForAuthoredLocale(pair, locale);
-    if (!display) continue;
-
-    const convergent =
-      bucket.seenIn.has("tfidf") &&
-      bucket.seenIn.has("embed") &&
-      bucket.tfidfNorm >= CONVERGENCE_THRESHOLD &&
-      bucket.embedNorm >= CONVERGENCE_THRESHOLD;
-
-    const baseScore = Math.max(bucket.tfidfNorm, bucket.embedNorm);
-    const bonus = convergent ? CONVERGENCE_BONUS : 0;
-    const score = baseScore + bonus;
-
-    scored.push({
-      pick: {
-        pair,
-        url:        workUrl("book", display.data.slug, locale),
-        convergent,
-      },
-      sortKey: score,
-      bucket,
-    });
-  }
-
-  // Stable sort by score desc; secondary tiebreak by tfidfNorm so single-source
-  // strong-TF-IDF wins over weaker single-source semantic on the rare tie.
-  scored.sort((a, b) => {
-    if (b.sortKey !== a.sortKey) return b.sortKey - a.sortKey;
-    return b.bucket.tfidfNorm - a.bucket.tfidfNorm;
+  const ranked = await resolveSimilarPicks(fusedSimilarEvidence(node), {
+    locale,
+    exclude: crossRefKeys(entry),
+    selfSlug: node.slug,
   });
 
-  return scored.slice(0, limit).map(s => s.pick);
+  return ranked
+    .sort(compareRankedSimilar)
+    .slice(0, limit)
+    .map(item => item.pick);
+}
+
+function recommendationBookNode(entry: WorkEntry): BooksGraphNode | null {
+  if (entry.data.kind !== "book") return null;
+  return bookNode(entry.data.number);
+}
+
+function fusedSimilarEvidence(node: BooksGraphNode): SimilarEvidence[] {
+  const buckets = new Map<string, SimilarEvidence>();
+  const order = { next: 0 };
+  recordSimilarSource(buckets, order, node.top_similar, "tfidf");
+  recordSimilarSource(buckets, order, node.top_similar_embed ?? [], "embed");
+  return [...buckets.values()];
+}
+
+function recordSimilarSource(
+  buckets: Map<string, SimilarEvidence>,
+  order: { next: number },
+  refs: readonly SimilarRef[],
+  source: SimilarSource,
+): void {
+  const maxWeight = refs[0]?.weight ?? 1;
+  for (const ref of refs) {
+    const evidence = similarEvidenceBucket(buckets, order, ref);
+    recordEvidenceScore(evidence, source, normalizedSimilarWeight(ref, maxWeight));
+  }
+}
+
+function similarEvidenceBucket(
+  buckets: Map<string, SimilarEvidence>,
+  order: { next: number },
+  ref: SimilarRef,
+): SimilarEvidence {
+  const key = similarEvidenceKey(ref);
+  const existing = buckets.get(key);
+  if (existing) return existing;
+
+  const evidence = { ref, tfidfNorm: 0, embedNorm: 0, sources: new Set<SimilarSource>(), order: order.next };
+  buckets.set(key, evidence);
+  order.next++;
+  return evidence;
+}
+
+function recordEvidenceScore(
+  evidence: SimilarEvidence,
+  source: SimilarSource,
+  score: number,
+): void {
+  if (source === "tfidf") evidence.tfidfNorm = Math.max(evidence.tfidfNorm, score);
+  else evidence.embedNorm = Math.max(evidence.embedNorm, score);
+  evidence.sources.add(source);
+}
+
+function normalizedSimilarWeight(ref: SimilarRef, maxWeight: number): number {
+  return maxWeight > 0 ? ref.weight / maxWeight : 0;
+}
+
+function similarEvidenceKey(ref: SimilarRef): string {
+  return `${ref.kind}:${ref.slug}`;
+}
+
+async function resolveSimilarPicks(
+  evidences: readonly SimilarEvidence[],
+  context: SimilarResolutionContext,
+): Promise<RankedSimilarPick[]> {
+  const ranked: RankedSimilarPick[] = [];
+  for (const evidence of evidences) {
+    const pick = await resolveSimilarPick(evidence, context);
+    if (pick) ranked.push(pick);
+  }
+  return ranked;
+}
+
+async function resolveSimilarPick(
+  evidence: SimilarEvidence,
+  context: SimilarResolutionContext,
+): Promise<RankedSimilarPick | null> {
+  const target = similarBookTarget(evidence, context);
+  if (!target) return null;
+
+  const pair = await findPair("book", target.number);
+  if (!pair) return null;
+  const display = entryForAuthoredLocale(pair, context.locale);
+  if (!display) return null;
+
+  const rank = similarEvidenceRank(evidence);
+  return {
+    pick: {
+      pair,
+      url: workUrl("book", display.data.slug, context.locale),
+      convergent: rank.convergent,
+    },
+    score: rank.score,
+    evidence,
+  };
+}
+
+function similarBookTarget(
+  evidence: SimilarEvidence,
+  context: SimilarResolutionContext,
+): BooksGraphNode | null {
+  if (evidence.ref.kind !== "book" || evidence.ref.slug === context.selfSlug) return null;
+  const target = bookNode(evidence.ref.slug);
+  if (!target) return null;
+  return context.exclude.has(pairKey("book", target.number)) ? null : target;
+}
+
+function similarEvidenceRank(evidence: SimilarEvidence): { score: number; convergent: boolean } {
+  const convergent = isConvergentEvidence(evidence);
+  return {
+    score: Math.max(evidence.tfidfNorm, evidence.embedNorm) + (convergent ? CONVERGENCE_BONUS : 0),
+    convergent,
+  };
+}
+
+function isConvergentEvidence(evidence: SimilarEvidence): boolean {
+  return evidence.sources.has("tfidf")
+    && evidence.sources.has("embed")
+    && evidence.tfidfNorm >= CONVERGENCE_THRESHOLD
+    && evidence.embedNorm >= CONVERGENCE_THRESHOLD;
+}
+
+function compareRankedSimilar(a: RankedSimilarPick, b: RankedSimilarPick): number {
+  if (b.score !== a.score) return b.score - a.score;
+  if (b.evidence.tfidfNorm !== a.evidence.tfidfNorm) {
+    return b.evidence.tfidfNorm - a.evidence.tfidfNorm;
+  }
+  return a.evidence.order - b.evidence.order;
 }

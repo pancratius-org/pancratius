@@ -1,7 +1,7 @@
 import { DEFAULT_LOCALE, LOCALES, LOCALE_META, localizePath, type Locale } from "@/lib/i18n";
 import { absUrl, type SeoMeta } from "@/lib/seo";
 
-import { conceptosphereStrings } from "./strings";
+import { conceptosphereStrings } from "./strings.ts";
 
 function conceptospherePath(locale: Locale): string {
   return localizePath("/conceptosphere/", locale);

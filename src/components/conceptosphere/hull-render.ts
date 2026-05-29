@@ -1,91 +1,143 @@
-import type Graph from "graphology";
-import type Sigma from "sigma";
-
-import type { GraphTheme } from "./graph-theme";
-import { communityColor } from "./palette";
-import type { ConceptosphereMode, NodeJson } from "./runtime-types";
+import type { GraphNodeData } from "./graph-data.ts";
+import { GRAPH_GEOMETRY_PROFILE } from "./graph-geometry-config.ts";
+import type { ConceptGraph, ConceptRenderer } from "./graph-model.ts";
+import type { GraphTheme } from "./graph-theme.ts";
+import { communityColor } from "./palette.ts";
+import type { ConceptosphereMode } from "./graph-types.ts";
 
 type Point = [number, number];
 
-interface HullContext {
+interface HullLayerInput {
   stage: HTMLElement;
   hulls: SVGSVGElement;
-}
-
-interface HullSession {
   mode: ConceptosphereMode;
-  graph: Graph;
-  renderer: Sigma;
+  graph: ConceptGraph;
+  renderer: ConceptRenderer;
   theme: GraphTheme;
-  nodesByCom: Map<number, NodeJson[]>;
-  disposed: boolean;
+  nodesByCommunity: ReadonlyMap<number, readonly GraphNodeData[]>;
+  isDisposed: () => boolean;
 }
 
-export function drawHulls(ctx: HullContext, s: HullSession): void {
-  if (s.disposed) return;
-  while (ctx.hulls.firstChild) ctx.hulls.removeChild(ctx.hulls.firstChild);
-  const box = ctx.stage.getBoundingClientRect();
-  ctx.hulls.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
-  ctx.hulls.setAttribute("width", String(box.width));
-  ctx.hulls.setAttribute("height", String(box.height));
+export interface HullLayer {
+  readonly element: SVGSVGElement;
+  paint: () => void;
+  schedule: () => void;
+  dispose: () => void;
+}
 
-  for (const [cid, nodes] of s.nodesByCom) {
-    if (nodes.length < 3) continue;
-    const pts: Point[] = [];
-    for (const n of nodes) {
-      if (!s.graph.hasNode(n.id)) continue;
-      const a = s.graph.getNodeAttributes(n.id);
-      const screen = s.renderer.graphToViewport({ x: a.x as number, y: a.y as number });
-      if (Number.isFinite(screen.x) && Number.isFinite(screen.y)) pts.push([screen.x, screen.y]);
-    }
-    if (pts.length < 3) continue;
-    const hull = convexHull(pts);
-    if (hull.length < 3) continue;
-    const cx = hull.reduce((sum, p) => sum + p[0], 0) / hull.length;
-    const cy = hull.reduce((sum, p) => sum + p[1], 0) / hull.length;
-    const pad = s.mode === "books" ? 40 : 28;
-    const inflated = hull.map<Point>(([x, y]) => {
-      const dx = x - cx, dy = y - cy;
-      const d = Math.hypot(dx, dy) || 1;
-      return [x + (dx / d) * pad, y + (dy / d) * pad];
+export function createHullLayer(input: HullLayerInput): HullLayer {
+  let hullRaf: number | null = null;
+
+  const paint = () => {
+    if (input.isDisposed()) return;
+    paintHulls(input);
+  };
+
+  const schedule = () => {
+    if (input.isDisposed() || hullRaf !== null) return;
+    hullRaf = requestAnimationFrame(() => {
+      hullRaf = null;
+      paint();
     });
-    const color = communityColor(cid);
+  };
+
+  const camera = input.renderer.getCamera();
+  camera.on("updated", schedule);
+  schedule();
+
+  return {
+    element: input.hulls,
+    paint,
+    schedule,
+    dispose: () => {
+      camera.removeListener("updated", schedule);
+      if (hullRaf !== null) cancelAnimationFrame(hullRaf);
+      hullRaf = null;
+      clearSvg(input.hulls);
+    },
+  };
+}
+
+function paintHulls(input: HullLayerInput): void {
+  clearSvg(input.hulls);
+  const box = input.stage.getBoundingClientRect();
+  input.hulls.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
+  input.hulls.setAttribute("width", String(box.width));
+  input.hulls.setAttribute("height", String(box.height));
+
+  for (const [communityId, nodes] of input.nodesByCommunity) {
+    if (nodes.length < 3) continue;
+    const points = viewportPoints(input.graph, input.renderer, nodes);
+    if (points.length < 3) continue;
+
+    const hull = convexHull(points);
+    if (hull.length < 3) continue;
+
+    const inflated = inflateHull(hull, GRAPH_GEOMETRY_PROFILE[input.mode].hull.paddingViewportPx);
+    const color = communityColor(communityId);
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", smoothPath(inflated));
     path.setAttribute("fill", color);
-    path.setAttribute("fill-opacity", s.theme.hullFillOpacity);
+    path.setAttribute("fill-opacity", input.theme.hullFillOpacity);
     path.setAttribute("stroke", color);
-    path.setAttribute("stroke-opacity", s.theme.hullStrokeOpacity);
+    path.setAttribute("stroke-opacity", input.theme.hullStrokeOpacity);
     path.setAttribute("stroke-width", "1");
     path.setAttribute("stroke-linejoin", "round");
-    path.setAttribute("data-com", String(cid));
-    ctx.hulls.appendChild(path);
+    path.setAttribute("data-com", String(communityId));
+    input.hulls.appendChild(path);
   }
+}
+
+function viewportPoints(
+  graph: ConceptGraph,
+  renderer: ConceptRenderer,
+  nodes: readonly GraphNodeData[],
+): Point[] {
+  const points: Point[] = [];
+  for (const node of nodes) {
+    if (!graph.hasNode(node.id)) continue;
+    const attrs = graph.getNodeAttributes(node.id);
+    const screen = renderer.graphToViewport({ x: attrs.x, y: attrs.y });
+    if (Number.isFinite(screen.x) && Number.isFinite(screen.y)) points.push([screen.x, screen.y]);
+  }
+  return points;
+}
+
+function inflateHull(hull: readonly Point[], pad: number): Point[] {
+  const centerX = hull.reduce((sum, point) => sum + point[0], 0) / hull.length;
+  const centerY = hull.reduce((sum, point) => sum + point[1], 0) / hull.length;
+  return hull.map<Point>(([x, y]) => {
+    const dx = x - centerX;
+    const dy = y - centerY;
+    const distance = Math.hypot(dx, dy) || 1;
+    return [x + (dx / distance) * pad, y + (dy / distance) * pad];
+  });
 }
 
 function convexHull(points: Point[]): Point[] {
   const pts = points.slice().sort((a, b) => (a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]));
-  const cross = (O: Point, A: Point, B: Point) =>
-    (A[0] - O[0]) * (B[1] - O[1]) - (A[1] - O[1]) * (B[0] - O[0]);
+  const cross = (origin: Point, a: Point, b: Point) =>
+    (a[0] - origin[0]) * (b[1] - origin[1]) - (a[1] - origin[1]) * (b[0] - origin[0]);
   const lower: Point[] = [];
-  for (const p of pts) {
+  for (const point of pts) {
     while (lower.length >= 2) {
       const [a, b] = lastTwo(lower);
-      if (cross(a, b, p) > 0) break;
+      if (cross(a, b, point) > 0) break;
       lower.pop();
     }
-    lower.push(p);
+    lower.push(point);
   }
   const upper: Point[] = [];
-  for (const p of [...pts].reverse()) {
+  for (const point of [...pts].reverse()) {
     while (upper.length >= 2) {
       const [a, b] = lastTwo(upper);
-      if (cross(a, b, p) > 0) break;
+      if (cross(a, b, point) > 0) break;
       upper.pop();
     }
-    upper.push(p);
+    upper.push(point);
   }
-  upper.pop(); lower.pop();
+  upper.pop();
+  lower.pop();
   return lower.concat(upper);
 }
 
@@ -104,19 +156,25 @@ function pointAt(points: readonly Point[], index: number): Point {
   return point;
 }
 
-function smoothPath(pts: Point[]): string {
-  if (pts.length < 3) return "";
-  const n = pts.length;
-  const start = pointAt(pts, 0);
-  let d = `M ${start[0].toFixed(1)} ${start[1].toFixed(1)} `;
-  for (let i = 0; i < n; i++) {
-    const p0 = pointAt(pts, i - 1), p1 = pointAt(pts, i), p2 = pointAt(pts, i + 1), p3 = pointAt(pts, i + 2);
-    const t = 0.18;
-    const c1x = p1[0] + (p2[0] - p0[0]) * t;
-    const c1y = p1[1] + (p2[1] - p0[1]) * t;
-    const c2x = p2[0] - (p3[0] - p1[0]) * t;
-    const c2y = p2[1] - (p3[1] - p1[1]) * t;
-    d += `C ${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)} `;
+function smoothPath(points: Point[]): string {
+  if (points.length < 3) return "";
+  const start = pointAt(points, 0);
+  let path = `M ${start[0].toFixed(1)} ${start[1].toFixed(1)} `;
+  for (let i = 0; i < points.length; i++) {
+    const p0 = pointAt(points, i - 1);
+    const p1 = pointAt(points, i);
+    const p2 = pointAt(points, i + 1);
+    const p3 = pointAt(points, i + 2);
+    const tension = 0.18;
+    const c1x = p1[0] + (p2[0] - p0[0]) * tension;
+    const c1y = p1[1] + (p2[1] - p0[1]) * tension;
+    const c2x = p2[0] - (p3[0] - p1[0]) * tension;
+    const c2y = p2[1] - (p3[1] - p1[1]) * tension;
+    path += `C ${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)} `;
   }
-  return `${d}Z`;
+  return `${path}Z`;
+}
+
+function clearSvg(svg: SVGSVGElement): void {
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
 }
