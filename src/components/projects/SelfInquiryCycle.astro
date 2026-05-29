@@ -28,7 +28,7 @@
  * cycle, with the loop and resting controls.
  */
 
-import { projectComponentsCopy } from "@/lib/copy";
+import { projectComponentsCopy } from "@/lib/i18n/copy";
 import type { Locale } from "@/lib/i18n";
 
 interface Props {
@@ -135,7 +135,7 @@ const copyJson = jsonForScript({
   }
 
   // Strings the walk needs, mirrored from the server copy into a typed island
-  // so the script never re-hardcodes them. (Authored once in copy.ts.)
+  // so the script never re-hardcodes them. (Authored once in i18n/copy.)
   function inquiryDom(root: HTMLElement) {
     const islandEl = root.querySelector<HTMLScriptElement>("[data-inquiry-copy]");
     const walk = root.querySelector<HTMLElement>("[data-walk]");

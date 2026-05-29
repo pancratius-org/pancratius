@@ -139,7 +139,7 @@ Route files are thin. The work lives in `src/lib/`:
 
 - `works.ts` — discovery, per-language pairing, neighbor resolution from the public graph JSON.
 - `downloads.ts` — format dispatch, artifact existence, cheap Markdown/TXT derivation.
-- `i18n.ts` — locale config, slug pairing, hreflang generation.
+- `i18n/` — locale config, URL routing, navigation labels, and UI copy dictionaries.
 - `seo.ts` — canonical URLs, Open Graph metadata, JSON-LD builders.
 - `conceptosphere.ts` — data adapters for the graph explorer.
 
