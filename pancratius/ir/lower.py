@@ -333,14 +333,13 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
 # inline -> markdown (prose)
 # ---------------------------------------------------------------------------
 
-# Emphasis-kind lowerings: `_EMPH_MD` the Markdown delimiter pair, `_EMPH_HTML_TAG`
-# the HTML tag. `test_emph_tables_total` pins both to the full `EmphKind` set.
+# Emphasis-kind lowerings: the Markdown delimiter pair per `EmphKind`.
+# `test_emph_tables_total` pins it to the full `EmphKind` set. Verse-block emphasis
+# now lowers through this same Markdown path (the blank line after `<div>` lets
+# CommonMark parse the inside), so there is no longer a separate HTML-tag table.
 _EMPH_MD: dict[ir.EmphKind, tuple[str, str]] = {
     "strong": ("**", "**"), "emph": ("*", "*"), "strike": ("~~", "~~"),
     "sup": ("^", "^"), "sub": ("~", "~"),
-}
-_EMPH_HTML_TAG: dict[ir.EmphKind, str] = {
-    "strong": "strong", "emph": "em", "strike": "s", "sup": "sup", "sub": "sub",
 }
 
 # The mid-line Markdown/HTML markup characters a LITERAL `ir.Text` value must be
@@ -470,84 +469,49 @@ def _paragraph_image_blocks_md(inlines: list[ir.Inline], lang: str, *, poem: boo
 
 
 # ---------------------------------------------------------------------------
-# inline -> balanced HTML lines (for verse blocks)
-# ---------------------------------------------------------------------------
-
-
-def _inline_html_lines(nodes: list[ir.Inline], lang: str) -> list[str]:
-    lines = [""]
-
-    def merge(child: list[str]) -> None:
-        for idx, c in enumerate(child):
-            if idx:
-                lines.append("")
-            lines[-1] += c
-
-    def wrap(tag: str, child: list[str]) -> list[str]:
-        return [f"<{tag}>{c}</{tag}>" if c else "" for c in child]
-
-    for n in nodes:
-        match n:
-            case ir.Text():
-                lines[-1] += html.escape(n.value, quote=False)
-            case ir.SoftBreak() | ir.LineBreak():
-                lines.append("")
-            case ir.Emphasis():
-                merge(wrap(_EMPH_HTML_TAG[n.kind], _inline_html_lines(n.children, lang)))
-            case ir.Code():
-                lines[-1] += f"<code>{html.escape(n.value, quote=False)}</code>"
-            case ir.Quoted():
-                child = _inline_html_lines(n.children, lang)
-                if child:
-                    o, c = ("'", "'") if n.single else ("«", "»")
-                    child[0] = f"{o}{child[0]}"
-                    child[-1] = f"{child[-1]}{c}"
-                merge(child)
-            case ir.Link():
-                label = "".join(_inline_html_lines(n.children, lang))
-                lines[-1] += f'<a href="{html.escape(n.target, quote=True)}">{label}</a>'
-            case ir.DirectionalSpan():
-                inner = "".join(_inline_html_lines(n.children, lang))
-                lines[-1] += f'<span dir="{html.escape(n.direction, quote=True)}">{inner}</span>'
-            case ir.ImageInline():
-                target = f"./images/{n.asset_id}" if n.asset_id else n.src
-                if target:  # a dropped (unresolvable-local) image emits nothing
-                    lines[-1] += f'<img src="{html.escape(target, quote=True)}" alt="{html.escape(n.alt, quote=True)}">'
-            case ir.FootnoteRef():
-                lines[-1] += f"[^{n.id}]"
-            case ir.UnknownInline():
-                merge(_inline_html_lines(n.children, lang))
-            case _:
-                assert_never(n)
-    return lines
-
-
-def _clean_verse_html_line(line: str) -> str:
-    line = re.sub(r"<(strong|em)>\s*(?:<br>\s*)+\s*</\1>", "", line)
-    line = re.sub(r"<(strong|em)>\s*</\1>", "", line)
-    line = re.sub(r"(?:<br>\s*)+$", "", line)
-    return line.strip()
-
-
-# ---------------------------------------------------------------------------
 # block -> markdown
 # ---------------------------------------------------------------------------
 
 
+def _verse_lines(line_inlines: list[ir.Inline], lang: str) -> list[str]:
+    """The display lines a single verse line's inlines lower to.
+
+    Inlines render to Markdown (emphasis as `*`/`**`, footnote refs as `[^N]`),
+    with any internal soft/hard break (a `\\n` from `_inline_md`) splitting into a
+    further display line. Blank results are dropped so a stray break never emits an
+    empty verse line."""
+    md = _inlines_md(line_inlines, lang)
+    return [ln.strip() for ln in md.split("\n") if ln.strip()]
+
+
 def _verse_md(vb: ir.VerseBlock, lang: str) -> str:
-    out: list[str] = ['<div class="verse-block">']
+    """Lower a verse-block to the cross-consumer canonical encoding.
+
+    The wrapper is a raw `<div class="verse-block">` carrying the verse REGISTER.
+    A blank line after the opening `<div>` is load-bearing: it makes CommonMark
+    parse the inside as Markdown (a type-7 HTML block), so emphasis is real `*`/`**`
+    and LINEATION is encoded as TWO TRAILING SPACES — the cross-consumer hard break
+    that survives Astro, pandoc PDF/EPUB/DOCX, AND the public-Markdown export (a
+    backslash break does not: the export corrupts on it). Every non-final line of a
+    stanza carries the two-space break; stanzas are separated by a blank line; a
+    `***` verse-break stanza renders as its own thematic-break line. A trailing
+    blank before `</div>` mirrors the leading one (not strictly required)."""
+    out: list[str] = ['<div class="verse-block">', ""]
     for stanza in vb.stanzas:
+        lines: list[str] = []
         for line_inlines in stanza:
             if len(line_inlines) == 1 and isinstance(line_inlines[0], ir.Text) and line_inlines[0].value == "***":
-                out.append("***")
+                # A `***` separator is its own one-line stanza: emit it as a
+                # thematic break (CommonMark `<hr>` styled `.verse-block hr`), kept
+                # apart by the surrounding stanza blank lines.
+                lines.append("***")
                 continue
-            for html_line in _inline_html_lines(line_inlines, lang):
-                cleaned = _clean_verse_html_line(html_line)
-                if cleaned:
-                    out.append(cleaned)
+            lines.extend(_verse_lines(line_inlines, lang))
+        # Two trailing spaces on every non-final line of the stanza is the break;
+        # the final line closes the stanza with a blank-line separator instead.
+        for idx, line in enumerate(lines):
+            out.append(line if (idx == len(lines) - 1 or line == "***") else line + "  ")
         out.append("")
-    while out and out[-1] == "":
-        out.pop()
     out.append("</div>")
     return "\n".join(out)
 
@@ -854,7 +818,23 @@ def _lower_poem_body(doc: ir.Document, lang: str) -> str:
             # empty paragraph / thematic break / multi-line paragraph.
             current.append(lines[0])
     flush()
-    return "\n\n".join("\n".join(stanza) for stanza in stanzas).strip() + "\n"
+    return "\n\n".join(_stanza_md(stanza) for stanza in stanzas).strip() + "\n"
+
+
+def _stanza_md(lines: list[str]) -> str:
+    """Join a poem stanza's display lines with the cross-consumer hard break.
+
+    LINEATION inside a stanza is encoded the same way as in a `.verse-block`: TWO
+    TRAILING SPACES on every non-final line (the CommonMark hard break that
+    survives Astro, pandoc PDF/EPUB, AND the public-Markdown export), the final
+    line closed by the blank-line stanza separator instead. A `***` verse-break
+    line is its own one-line stanza and never carries a break. Poems are whole-body
+    verse (no wrapper); their REGISTER comes from `kind: poem` / the poem
+    component, not a `.verse-block` class."""
+    return "\n".join(
+        line if (idx == len(lines) - 1 or line == "***") else line + "  "
+        for idx, line in enumerate(lines)
+    )
 
 
 def _surface_unknown_block_diagnostics(doc: ir.Document) -> None:

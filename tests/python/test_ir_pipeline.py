@@ -529,7 +529,9 @@ def test_poem_strong_only_title_is_its_own_stanza() -> None:
     body = lower.lower(doc, "ru", poem=True)
     stanzas = [s for s in body.strip().split("\n\n") if s.strip()]
     assert stanzas[0] == "**Заголовок**"
-    assert stanzas[1] == "первая строка\nвторая строка"
+    # Within-stanza lineation is two-trailing-space hard breaks (the cross-consumer
+    # encoding); the final line of the stanza closes with the blank-line separator.
+    assert stanzas[1] == "первая строка  \nвторая строка"
 
 
 # ---------------------------------------------------------------------------
@@ -656,11 +658,30 @@ def test_lower_real_ordered_list_still_renders_as_list() -> None:
 
 
 def test_lower_verse_block_emits_div_with_lines() -> None:
+    # The cross-consumer canonical encoding: a blank line after `<div>` (so
+    # CommonMark parses the inside), two TRAILING SPACES on every non-final stanza
+    # line (the hard break), the final line bare, and a blank line before `</div>`.
     vb = ir.VerseBlock(stanzas=[[[ir.Text("line one")], [ir.Text("line two")]]], role="verse-block")
     body = lower.lower(ir.Document(blocks=[vb]), "ru")
-    assert '<div class="verse-block">' in body
-    assert "line one\nline two" in body
-    assert "</div>" in body
+    assert body == '<div class="verse-block">\n\nline one  \nline two\n\n</div>\n'
+
+
+def test_lower_verse_block_markdown_emphasis_and_stanza_break() -> None:
+    # Emphasis lowers to Markdown `*`/`**` (not HTML), stanzas are blank-line
+    # separated, and a `***` separator stanza becomes a thematic-break line.
+    vb = ir.VerseBlock(stanzas=[
+        [[ir.Text("plain "), ir.Emphasis("strong", [ir.Text("bold")])]],
+        [[ir.Text("***")]],
+        [[ir.Emphasis("emph", [ir.Text("ital")]), ir.Text(" tail")]],
+    ], role="verse-block")
+    body = lower.lower(ir.Document(blocks=[vb]), "ru")
+    assert body == (
+        '<div class="verse-block">\n\n'
+        "plain **bold**\n\n"
+        "***\n\n"
+        "*ital* tail\n\n"
+        "</div>\n"
+    )
 
 
 def test_lower_signature_emits_p_signature() -> None:
@@ -669,7 +690,10 @@ def test_lower_signature_emits_p_signature() -> None:
 
 
 def test_lower_poem_keeps_lines_and_stanza_breaks() -> None:
-    # Two stanzas: lines within a stanza on adjacent lines, blank between stanzas.
+    # Two stanzas. Within a stanza, lineation is a two-trailing-space hard break on
+    # every non-final line (the cross-consumer encoding that survives Astro, pandoc
+    # PDF/EPUB, and the public-Markdown export); the final line of a stanza closes
+    # with the blank-line separator instead. Poems are whole-body verse (no wrapper).
     doc = ir.Document(blocks=[
         ir.Paragraph(inlines=[ir.Text("first line")]),
         ir.Paragraph(inlines=[ir.Text("second line")]),
@@ -677,7 +701,7 @@ def test_lower_poem_keeps_lines_and_stanza_breaks() -> None:
         ir.Paragraph(inlines=[ir.Text("third line")]),
     ])
     body = lower.lower(doc, "ru", poem=True)
-    assert body == "first line\nsecond line\n\nthird line\n"
+    assert body == "first line  \nsecond line\n\nthird line\n"
 
 
 def test_lower_body_image_default_alt_and_hash_ref() -> None:
@@ -1093,10 +1117,9 @@ def test_container_forms_in_sync() -> None:
 
 
 def test_emph_tables_total() -> None:
-    # The lowering tables must cover every EmphKind (a dict[Literal,...] is NOT
-    # exhaustiveness-checked by the type checker, so pin it here).
+    # The Markdown emphasis table must cover every EmphKind (a dict[Literal,...] is
+    # NOT exhaustiveness-checked by the type checker, so pin it here).
     from typing import get_args
 
     kinds = set(get_args(ir.EmphKind))
     assert set(lower._EMPH_MD) == kinds
-    assert set(lower._EMPH_HTML_TAG) == kinds

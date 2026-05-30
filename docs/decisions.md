@@ -201,9 +201,13 @@ only per-page knob, and the component never branches on what the class means.
 
 - **`<Prose>`** — flowing prose (the contract above): paragraph rhythm, opt-in
   drop cap, eyebrow `<h2>`.
-- **`<Verse>`** — the lineation-preserving register (`white-space: pre-line`,
-  left-aligned, no drop cap; `prose--manifesto` behavior). "Manifesto" was never
-  a separate mode, only a label on the verse renderer.
+- **`<Verse>`** — the lineation-preserving register for the mission/manifesto and
+  project verse subpages: `prose--manifesto`. Left-aligned, no drop cap.
+  "Manifesto" was never a separate mode, only a label on the verse renderer. Its
+  lineation is the one corpus-wide encoding — CommonMark two-trailing-space hard
+  breaks rendered as `<br>` — so it does NOT use `white-space: pre-line`; the
+  sibling `prose--poem` register (generated poems) shares the same rules. See
+  "Verse Source Contract" below.
 
 **Scope (current):** these components are used by the **static pages and project
 sub-pages** — the mission page is the one `<Verse>` user today. **Work pages
@@ -226,29 +230,44 @@ structural classes it can justify from source shape and section name, such as
 
 ## Verse Source Contract
 
-Poems and the manifesto use natural source lineation rather than Markdown hard
-break syntax:
+Markdown here is a DERIVED publication format, not an authoring surface — an AI
+generates it from a DOCX/text source; nobody hand-types it line by line. So there
+is ONE uniform lineation encoding across the ENTIRE corpus and every page, with no
+authored-vs-derived distinction. (An inconsistent encoding split across sections is
+exactly what trips up the AI agents and humans this format serves.)
 
-- adjacent source lines are displayed as verse lines;
-- blank source lines are stanza breaks;
-- source Markdown does not use trailing `\` or invisible two-space breaks.
+The encoding, everywhere lineation appears — books, poems, the mission/manifesto
+page, project verse subpages, any future lineated body:
 
-This is an authoring decision, not just a renderer trick. A non-technical author
-should be able to paste or write a poem as a poem and see the same lineation on
-the site. The web layer implements it with the `<Verse>` component
-(`white-space: pre-line` on paragraphs), while `<Prose>` keeps normal CommonMark
-semantics.
+- **Lineated content** (verse, and any place a line break is content) is encoded
+  as **CommonMark two-trailing-space hard breaks**: every non-final line of a
+  stanza ends with exactly two trailing spaces; a blank line is the stanza break;
+  flowing prose carries no breaks. This is the cross-consumer hard break — it
+  survives Astro, pandoc PDF/EPUB, and the public-Markdown export, where a
+  backslash break does not. The breaks render as `<br>`, so the verse CSS must NOT
+  use `white-space: pre-line` anywhere (that would double the break against the
+  literal newline beside each `<br>`) — CSS never infers lineation from a raw
+  newline.
+- **REGISTER** (prose voice vs verse voice) is orthogonal and comes from the
+  `.verse-block` wrapper (prose books), `kind: poem` / the poem component (poems),
+  or the `<Verse>` component / `weight: verse` (the manifesto and project verse
+  subpages) — never from CSS reading raw newlines. `<Prose>` keeps normal
+  CommonMark semantics; flowing-prose bodies are left untouched.
 
-Portable exports may add explicit hard-break markers in generated `.md` or use
-Pandoc's hard-line-break parsing for PDF/EPUB scratch files. Those markers do
-not belong in source content.
+A `***` line is the thematic/verse separator (CommonMark `<hr>`); `---` is NOT
+used, because under a text line it parses as a setext heading in Astro. A guard
+audit (PAN006B-lineation-breaks) fails if ANY lineated body — verse-block, poem,
+mission page, or verse subpage — loses its two-space breaks; `.editorconfig`
+carries `[*.md] trim_trailing_whitespace = false` so a formatter cannot silently
+strip them. The download exporters read this one encoding through a single plain
+pandoc reader (no poem-only `+hard_line_breaks`).
 
 The converter must treat stanza boundaries as editorial data. DOCX poems and
 book lineation are read through Pandoc's `docx+empty_paragraphs` JSON AST,
 because empty Word paragraphs survive there as explicit empty paragraph nodes.
-Poems emit the simple source contract above; book sections and confident
-short-line runs emit a minimal `.verse-block` wrapper around natural lines so
-stanza structure is explicit on normal prose pages. A confident run is short
+Poems emit whole-body verse in the generated encoding above; book sections and
+confident short-line runs emit a minimal `.verse-block` wrapper around natural
+lines so stanza structure is explicit on normal prose pages. A confident run is short
 lineated lines (each ≤120 characters) carrying a source-lineation signal: ≥2 lines
 on a strong signal (a hard `<w:br/>`, heading, or thematic separator), else ≥3
 lines on the weak empty-paragraph-only signal. Short colon openers remain inside
