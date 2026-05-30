@@ -432,6 +432,7 @@ def reconcile_alignment(
     cursor = 0
     ri = 0
     nr = len(records)
+    handled: set[int] = set()  # right-record indices the forward pass located
     while ri < nr:
         if not rec_fps[ri]:
             ri += 1
@@ -459,9 +460,61 @@ def reconcile_alignment(
         if any(rec_right[ri:ri + consumed]) and not paragraphs[scan].align:
             paragraphs[scan].align = "right"
             assigned += 1
+        handled.update(range(ri, ri + consumed))
         cursor = scan + 1
         ri += consumed
-    return assigned
+    return assigned + _recover_overshot_right(paragraphs, records, a_fps, rec_fps, rec_right, handled)
+
+
+def _recover_overshot_right(
+    paragraphs: list[ir.Paragraph],
+    records: list[_JcRecord],
+    a_fps: list[str],
+    rec_fps: list[str],
+    rec_right: list[bool],
+    handled: set[int],
+) -> int:
+    """Re-attach right-alignment for right records the forward cursor SKIPPED.
+
+    On a very large document a duplicate prose fingerprint can advance the single
+    global cursor PAST an early signature/epigraph, so its right `w:p` never matches
+    (book #32: 0 of 21 reconciled though all 21 texts are present). This pass picks
+    those missed right records up by fingerprint.
+
+    It is a strict no-op when the forward pass already matched every right record
+    (every working book), so it changes nothing there. The recovery is constrained
+    to be unambiguous: a missed right record is only re-attached when EVERY AST
+    paragraph carrying its fingerprint is itself a right record — so the text is an
+    entirely right-aligned phenomenon and we can never grab an unrelated prose
+    duplicate that merely shares the words (a signature name reused in dialogue)."""
+    missed = [ri for ri in range(len(records)) if rec_right[ri] and rec_fps[ri] and ri not in handled]
+    if not missed:
+        return 0
+    ast_pos: dict[str, list[int]] = {}
+    for i, fp in enumerate(a_fps):
+        if fp:
+            ast_pos.setdefault(fp, []).append(i)
+    right_fp_count: dict[str, int] = {}
+    for ri, fp in enumerate(rec_fps):
+        if rec_right[ri] and fp:
+            right_fp_count[fp] = right_fp_count.get(fp, 0) + 1
+    used = {i for i, p in enumerate(paragraphs) if p.align in {"right", "end"}}
+    recovered = 0
+    for ri in missed:
+        fp = rec_fps[ri]
+        occ = ast_pos.get(fp, [])
+        if not occ or len(occ) != right_fp_count.get(fp, 0):
+            continue  # the text also surfaces as non-right prose: ambiguous, skip
+        cand = [i for i in occ if i not in used]
+        if not cand:
+            continue
+        i = cand[0]
+        paragraphs[i].align = "right"
+        used.add(i)
+        recovered += 1
+        if records[ri].lineation_group is not None and paragraphs[i].lineation_group is None:
+            paragraphs[i].lineation_group = records[ri].lineation_group
+    return recovered
 
 
 def _paragraph_plain(para: ir.Paragraph) -> str:
