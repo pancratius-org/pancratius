@@ -150,43 +150,48 @@ is needed.
 
 ## Markdown Body Contract
 
-Most Markdown bodies are ordinary CommonMark prose:
+Markdown here is a derived *publication format*, not an authoring surface — an AI
+generates it from a DOCX/text source; nobody hand-types it line by line. So ONE
+uniform lineation encoding holds across the ENTIRE corpus and every page (books,
+poems, the mission/manifesto page, project verse subpages), with no
+authored-vs-derived distinction. An inconsistent encoding split across sections is
+exactly what breaks the AI agents and humans this format serves.
 
-- a single source newline inside a paragraph is just wrapping;
-- a blank line starts a new paragraph;
-- authors do not add trailing `\` or invisible two-space hard breaks.
-
-Verse-like content is the deliberate exception. For `kind: poem` and the
-manifesto page (`src/content/pages/mission/<lang>.md`), source lineation is content:
+The lineation encoding:
 
 ```md
-Первая строка
+Первая строка␣␣
 Вторая строка
 
-Следующая строфа
+Следующая строфа␣␣
 Ещё строка
 ```
 
-The rule is:
+- flowing prose has no breaks (a single source newline is just wrapping);
+- a lineated line ends with **two trailing spaces** (the cross-consumer hard break
+  that survives Astro, pandoc PDF/EPUB, and the public-Markdown export — a
+  backslash break does not);
+- a blank line separates stanzas; the final line of a stanza carries no break;
+- a `***` line is a thematic/verse separator (CommonMark `<hr>`). It is NOT
+  `---`, which under a text line parses as a setext heading in Astro.
 
-- adjacent source lines are verse lines;
-- a blank source line separates stanzas;
-- no trailing `\`, no two-space ritual in source Markdown.
-
-The website preserves this lineation-preserving register: the mission page
-renders through the `<Verse>` component, while poems currently render the
-`prose--poem` register directly (`class="prose prose--poem"`) — work-page bodies
-are not yet on the shared `<Prose>`/`<Verse>` components (see
-[`decisions.md`](./decisions.md)). Export code may add explicit hard-break
-markers to downloadable Markdown scratch/output so strict CommonMark readers
-preserve the same lineation, but those markers are not part of the author-facing
-source.
+The breaks render as `<br>`, so the verse CSS does NOT use `white-space: pre-line`
+anywhere — CSS never infers lineation from a raw newline. REGISTER (prose voice vs
+verse voice) is separate from lineation: for books it comes from the
+`<div class="verse-block">` wrapper; for poems (whole-body verse, no wrapper) from
+`kind: poem` / the poem component; for the mission page and project verse subpages
+from the `<Verse>` component (`weight: verse`). A guard audit
+(`audit/lineation_breaks.py`, PAN006B-lineation-breaks) fails if ANY lineated body
+— verse-block, poem, mission page, or verse subpage — loses its two-space breaks,
+the failure mode if a formatter trims `.md` trailing whitespace, so `.editorconfig`
+carries `[*.md] trim_trailing_whitespace = false`.
 
 Converters must preserve real stanza breaks. For DOCX poetry, the source signal
 is Word paragraph structure: non-empty paragraphs are verse lines, empty
 paragraphs are stanza breaks, and in-paragraph line breaks are verse lines inside
 one stanza. The converter reads this through Pandoc's `docx+empty_paragraphs`
-AST and writes the author-facing Markdown shape above. Do not run a blanket
+AST and writes the generated-Markdown lineation shape above (two-space breaks
+within a stanza, blank line between stanzas). Do not run a blanket
 `blank-line-between-every-line -> single newline` collapse over Pandoc's GFM
 output; by then the stanza signal has already been blurred. The poetry stanza
 audit must fail if converted Markdown no longer matches the DOCX stanza
@@ -203,15 +208,16 @@ line break, a heading, or a thematic separator), or ≥3 lines when the signal i
 weak (lineation implied only by stanza-break empty paragraphs). Short colon
 openers such as `Он говорил:` and `Разве не сказал Я:` stay inside the run;
 explicit speaker/source turns such as `Панкратиус: ...` or `Ответ от Творца:`
-end it. The wrapper contains natural source lines and blank stanza lines, not
-hand-authored `<p>` / `<br>` markup. It is converter-owned output; authors are not expected to type this
-HTML. CSS preserves that lineation while ordinary prose remains ordinary
-Markdown paragraphs. Inline emphasis inside converter-owned HTML wrappers is
-HTML (`<strong>`, `<em>`) because CommonMark does not parse `**...**` as
-Markdown inside raw HTML blocks; public Markdown downloads may rewrite those
-inline tags back to Markdown and add explicit hard-break markers so portable
-Markdown readers preserve the lineation. If a numbered Q/A answer is lineated, it
-uses the same `verse-block` contract.
+end it. The wrapper contains natural source lines (two-space hard breaks within a
+stanza, blank stanza lines) and no hand-authored `<p>` / `<br>` markup. It is
+converter-owned output; authors are not expected to type this HTML. A blank line
+after the opening `<div>` lets CommonMark parse the inner content, so lineation is
+the two-space hard break and inline emphasis is Markdown `**`/`*` (not raw HTML
+`<strong>`/`<em>`). The `<br>` the breaks produce carries the lineation, so the
+verse register's CSS does NOT use `white-space: pre-line`. Public Markdown
+downloads strip the wrapper and keep the two-space breaks so portable readers
+preserve the lineation. If a numbered Q/A answer is lineated, it uses the same
+`verse-block` contract.
 
 DOCX paragraph metadata is also source data. Pandoc's Markdown writer does not
 carry Word paragraph alignment, so the converter reads `word/document.xml`

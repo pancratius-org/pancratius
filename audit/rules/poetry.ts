@@ -22,3 +22,24 @@ export const pan006bPoetryStanzas: Rule = {
     });
   },
 };
+
+export const pan006bLineationBreaks: Rule = {
+  id: "PAN006B-lineation-breaks",
+  title: "PAN006B: generated verse keeps its two-space hard breaks",
+  tier: "core",
+  run(ctx: RuleContext): Finding[] {
+    return runPythonCheck(ctx, {
+      id: "PAN006B-lineation-breaks",
+      category: "conversion-fidelity",
+      severity: "fatal",
+      script: "lineation_breaks.py",
+      contract:
+        "Generated work Markdown encodes lineation as CommonMark two-trailing-space hard breaks: every non-final line of a verse-block stanza (books/projects) and of a poem-body stanza ends with exactly two trailing spaces (content-model.md / decisions.md).",
+      why: "A trimmed trailing-space break is SILENT lineation loss — the renderer reflows the line into the next and nothing else fails. A whitespace-trimming formatter/editor/git-filter would erase the whole verse encoding undetected.",
+      repair:
+        "Restore the two-space breaks by regenerating the affected body, and verify no formatter strips `.md` trailing whitespace (.editorconfig must carry `[*.md] trim_trailing_whitespace = false`). Re-check with `uv run python audit/lineation_breaks.py`.",
+      doNotFixBy:
+        "Silencing the audit, or switching verse back to raw-newline + CSS pre-line; lineation must be encoded in the Markdown, not inferred by CSS.",
+    });
+  },
+};

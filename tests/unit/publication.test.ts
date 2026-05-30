@@ -276,6 +276,16 @@ describe("poetry excerpts", () => {
     assert.equal(stanza, "Line one\nLine two");
   });
 
+  test("strips two-space hard-break encoding from generated poem previews", () => {
+    // Generated poem bodies carry two-trailing-space CommonMark hard breaks; the
+    // plain-text preview rejoins with "\n" (rendered via pre-line), so the
+    // trailing hard-break spaces must not leak into the extracted text.
+    const stanza = poemFirstStanza("Title\n\nLine one  \nLine two\n\nLine three\n", "Title");
+    assert.equal(stanza, "Line one\nLine two");
+    const preview = poemPreviewLines("Title\n\nLine one  \nLine two  \nLine three\n", "Title", 2);
+    assert.equal(preview, "Line one\nLine two");
+  });
+
   test("shares title-line comparison across poetry previews", () => {
     assert.equal(isPoemTitleLine("Заголовок...", "Заголовок"), true);
     assert.equal(isPoemTitleLine("Аз есмь Христос, и Бог во мне живёт,", "Аз есмь Христос"), false);

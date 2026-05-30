@@ -472,15 +472,12 @@ def _write_export_markdown(entry: WorkEntry, dest: Path, image_map: dict[str, st
     dest.write_text(body, encoding="utf-8")
 
 
-def _pandoc_from(entry: WorkEntry) -> list[str]:
-    base = "markdown-yaml_metadata_block"
-    # Why: poetry uses the verse contract — single newline = line break,
-    # blank line = stanza break. `+hard_line_breaks` makes pandoc emit a
-    # real hard break for each in-paragraph newline, so PDF/EPUB preserve
-    # lineation. Prose works (books, projects) stay on the default reader.
-    if entry.kind == "poem":
-        return ["--from", f"{base}+hard_line_breaks"]
-    return ["--from", base]
+def _pandoc_from(_entry: WorkEntry) -> list[str]:
+    # One plain reader for every kind. LINEATION (books AND poems) is encoded in
+    # the generated Markdown as CommonMark two-trailing-space hard breaks, which
+    # the default reader already turns into real hard breaks — so PDF/EPUB
+    # preserve lineation without the poem-only `+hard_line_breaks` extension.
+    return ["--from", "markdown-yaml_metadata_block"]
 
 
 def render_pdf(entry: WorkEntry, scratch_dir: Path) -> Path:

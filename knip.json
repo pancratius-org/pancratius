@@ -5,7 +5,8 @@
   ],
   "ignore": [
     "audit/fixtures/**",
-    "dist/**"
+    "dist/**",
+    "docs/scratchpad/**"
   ],
   "ignoreBinaries": ["uv"]
 }
