@@ -166,7 +166,7 @@ def _project_page_add(args: argparse.Namespace) -> int:
 
 # --- handlers (downloads / docx groups) ---------------------------------------
 def _downloads_render(args: argparse.Namespace) -> int:
-    """`downloads render [--book N]` — render local PDF/EPUB/DOCX release artifacts.
+    """`downloads render [--book N]` — render local PDF/EPUB release artifacts.
     Pass-through to the render owner, which prints its own progress/summary."""
     from pancratius.render_downloads import DownloadRenderError, render
 
@@ -177,7 +177,6 @@ def _downloads_render(args: argparse.Namespace) -> int:
             lang=args.lang,
             skip_pdf=args.skip_pdf,
             skip_epub=args.skip_epub,
-            docx=args.docx,
             force=args.force,
         )
     except DownloadRenderError as exc:
@@ -329,7 +328,7 @@ def _add_project_group(sub: argparse._SubParsersAction[argparse.ArgumentParser])
 def _add_downloads_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     from pancratius.locales import LOCALES
 
-    downloads = sub.add_parser("downloads", help="Render local release artifacts (PDF/EPUB/DOCX).")
+    downloads = sub.add_parser("downloads", help="Render local release artifacts (PDF/EPUB).")
     downloads.set_defaults(func=_require_subcommand(downloads))
     downloads_sub = downloads.add_subparsers(dest="noun", metavar="<noun>")
     render = downloads_sub.add_parser("render", help="Render release artifacts (never CI).")
@@ -338,7 +337,6 @@ def _add_downloads_group(sub: argparse._SubParsersAction[argparse.ArgumentParser
     render.add_argument("--lang", choices=tuple(LOCALES), help="Restrict to one language.")
     render.add_argument("--skip-pdf", action="store_true", help="Skip PDF rendering.")
     render.add_argument("--skip-epub", action="store_true", help="Skip EPUB rendering.")
-    render.add_argument("--docx", action="store_true", help="Also render merged DOCX for multi-part works.")
     render.add_argument("--force", action="store_true", help="Re-render even if output is newer than source.")
     render.set_defaults(func=_downloads_render)
 

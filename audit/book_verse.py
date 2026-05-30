@@ -407,34 +407,15 @@ def _book_dir(number: int) -> Path | None:
     return matches[0] if matches else None
 
 
-def _source_parts(number: int) -> list[Path]:
-    book_dir = _book_dir(number)
-    if book_dir is None:
-        return []
-    return sorted(p for p in book_dir.glob("ru-part*.docx") if not p.name.startswith("~$"))
-
-
 def source_docx(number: int) -> Path:
-    """The committed RU book DOCX for ``number``.
-
-    Multi-part books keep ``ru-part*.docx`` beside the merged ``ru.docx`` and are
-    skipped by the caller: the source oracle needs one authored DOCX, not a
-    generated merge.
-    """
+    """The committed RU source DOCX for ``number``."""
     book_dir = _book_dir(number)
     if book_dir is None:
         raise FileNotFoundError(f"book content folder not found for #{number}")
     single = book_dir / "ru.docx"
     if single.is_file():
         return single
-    parts = _source_parts(number)
-    if len(parts) == 1:
-        return parts[0]
     raise FileNotFoundError(f"committed RU book DOCX not found for #{number}")
-
-
-def _is_multipart(number: int) -> bool:
-    return len(_source_parts(number)) > 1
 
 
 def _committed_book_meta() -> list[tuple[int, str, str]]:
@@ -504,6 +485,8 @@ def _compare(number: int, docx: Path, md_body: str) -> list[str]:
         # A run is "missed" when any of its source lines survived as prose instead
         # of all of them reaching the verse block. This catches partial splits like
         # book #30 item 23, where the opener wrapped but the rest was left as prose.
+        if all(ln in actual for ln in run):
+            continue
         if all(ln in actual or ln in prose for ln in run) and any(ln in prose for ln in run):
             missed.append(run)
     if missed:
@@ -539,8 +522,6 @@ def _check_committed() -> int:
     failures: list[str] = []
     checked = 0
     for number, _title, slug in _committed_book_meta():
-        if _is_multipart(number):
-            continue
         try:
             docx = source_docx(number)
         except FileNotFoundError:
@@ -566,8 +547,6 @@ def _check_from_ir() -> int:
     failures: list[str] = []
     checked = 0
     for number, title, slug in _committed_book_meta():
-        if _is_multipart(number):
-            continue
         try:
             docx = source_docx(number)
         except FileNotFoundError:
