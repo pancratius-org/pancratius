@@ -68,10 +68,6 @@ def main() -> int:
             failures.append(f"book {number}: no content dir")
             continue
         work_dir = dirs[0]
-        if sorted(work_dir.glob("ru-part*.docx")):
-            # Multipart works need a union comparison; this sample audit skips them.
-            print(f"book {number}: skipped (multi-part)")
-            continue
         md_path = work_dir / "ru.md"
         docx_path = work_dir / "ru.docx"
         if not md_path.exists() or not docx_path.is_file():

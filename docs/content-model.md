@@ -68,11 +68,10 @@ src/content/
 (Projects partly live under `src/content/projects/` too, but follow the
 [Projects](#projects) section's shape — a section, not a work bundle.)
 
-Multi-source works keep their original optimized source parts beside the work,
-for example `ru-part1.docx`, `ru-part2.docx`, and `ru-part3.docx`. Those parts
-are provenance and local editing assets. A public per-work DOCX download is
-only the merged release artifact named `<lang>.docx`; if that file does not
-exist, the site does not expose a `.docx` route for the merged work.
+Each work language has at most one active source DOCX: `<lang>.docx`. If an
+author supplies a work in parts, merge those parts into one source DOCX before
+committing the work bundle. The site exposes a `.docx` route only when that
+single source DOCX exists beside the Markdown.
 
 The important rule: **authored and release assets live with the work**. Covers,
 body illustrations, source DOCX, and release downloads belong beside the

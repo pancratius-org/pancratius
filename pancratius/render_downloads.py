@@ -1,10 +1,9 @@
 """Local admin tool: render release downloads into the work bundle.
 
 Per ``docs/downloads.md``, PDFs and EPUBs are committed release artefacts under
-``src/content/<kind>/<work>/<lang>.{pdf,epub}``. Merged multi-part works may also
-need a committed ``<lang>.docx`` release artefact, because the optimized source
-DOCX parts are not the same thing as the public "one URL = one work" download.
-This script regenerates those artefacts locally; CI never runs it.
+``src/content/<kind>/<work>/<lang>.{pdf,epub}``. Source DOCX files are edited and
+optimized through the DOCX toolchain, not rendered from Markdown. This script
+regenerates presentation artefacts locally; CI never runs it.
 
 Tools required on PATH:
   - pandoc (>= 3.0)
@@ -27,7 +26,6 @@ Usage:
   uv run pancratius downloads render --lang en    # restrict to one language
   uv run pancratius downloads render --skip-pdf   # only EPUBs
   uv run pancratius downloads render --skip-epub  # only PDFs
-  uv run pancratius downloads render --book 2 --docx --skip-pdf --skip-epub
   uv run pancratius downloads render --force      # ignore existing outputs
 """
 
@@ -108,7 +106,6 @@ class WorkEntry:
 class RenderSummary:
     pdfs_made: int
     epubs_made: int
-    docxs_made: int
     skipped: int
 
 
@@ -538,36 +535,6 @@ def render_epub(entry: WorkEntry, scratch_dir: Path) -> Path:
     return out
 
 
-def _has_source_parts(entry: WorkEntry) -> bool:
-    return any(entry.folder.glob(f"{entry.lang}-part*.docx"))
-
-
-def render_docx(entry: WorkEntry, scratch_dir: Path) -> Path:
-    """Render a merged DOCX release artefact from canonical Markdown.
-
-    This is intentionally for multi-part works only. Single-source works keep
-    their optimized source DOCX as the public DOCX download.
-    """
-    if not _has_source_parts(entry):
-        raise ValueError(f"{entry.kind}#{entry.number}/{entry.lang} has no source DOCX parts")
-    export_root, _cover, image_map = _stage_export_bundle(entry, scratch_dir)
-    scratch_md = export_root / f"{entry.kind}-{entry.slug}-{entry.lang}.md"
-    _write_export_markdown(entry, scratch_md, image_map)
-    out = entry.folder / f"{entry.lang}.docx"
-    args = [
-        "pandoc", str(scratch_md),
-        *_pandoc_from(entry),
-        "-o", str(out),
-        "--resource-path", str(export_root),
-        "--metadata", f"title={entry.title}",
-        "--metadata", f"lang={entry.lang}",
-        "--metadata", f"author={AUTHOR}",
-        "--metadata", f"rights={RIGHTS}",
-    ]
-    subprocess.run(args, check=True)
-    return out
-
-
 def render(
     *,
     book: int | None = None,
@@ -575,7 +542,6 @@ def render(
     lang: str | None = None,
     skip_pdf: bool = False,
     skip_epub: bool = False,
-    docx: bool = False,
     force: bool = False,
 ) -> RenderSummary:
     selected: list[WorkEntry] = []
@@ -596,13 +562,10 @@ def render(
         formats.append("pdf")
     if not skip_epub:
         formats.append("epub")
-    if docx:
-        formats.append("docx")
     _ensure_tools(formats)
 
     pdfs_made = 0
     epubs_made = 0
-    docxs_made = 0
     skipped = 0
 
     scratch_parent = CACHE_ROOT
@@ -629,25 +592,16 @@ def render(
                     render_epub(entry, scratch_dir)
                     epubs_made += 1
                     print(f"  EPUB {entry.kind}#{entry.number}/{entry.lang}  →  {out.relative_to(REPO_ROOT)}")
-            if "docx" in formats and _has_source_parts(entry):
-                out = entry.folder / f"{entry.lang}.docx"
-                if not force and out.exists() and out.stat().st_mtime >= src_mtime:
-                    skipped += 1
-                else:
-                    render_docx(entry, scratch_dir)
-                    docxs_made += 1
-                    print(f"  DOCX {entry.kind}#{entry.number}/{entry.lang}  →  {out.relative_to(REPO_ROOT)}")
     finally:
         shutil.rmtree(scratch_dir, ignore_errors=True)
 
     summary = RenderSummary(
         pdfs_made=pdfs_made,
         epubs_made=epubs_made,
-        docxs_made=docxs_made,
         skipped=skipped,
     )
     print(
-        f"\nrendered: {summary.pdfs_made} PDF, {summary.epubs_made} EPUB, "
-        f"{summary.docxs_made} DOCX ({summary.skipped} skipped; --force to rebuild)"
+        f"\nrendered: {summary.pdfs_made} PDF, {summary.epubs_made} EPUB "
+        f"({summary.skipped} skipped; --force to rebuild)"
     )
     return summary

@@ -152,9 +152,9 @@ bulk surface at `/downloads/` ships a single `all-md.zip` corpus archive; large
 bulk PDF/EPUB archives are off-host archival/release artifacts, not production
 site payload. Details: [`downloads.md`](./downloads.md).
 
-PDF/EPUB/DOCX management is local library work. `pancratius downloads render`
-may refresh those artifacts before commit; CI only packages and publishes what is
-already present in `src/content/`.
+PDF/EPUB rendering and DOCX optimization are local library work.
+`pancratius downloads render` may refresh presentation artifacts before commit;
+CI only packages and publishes what is already present in `src/content/`.
 
 ## Search
 

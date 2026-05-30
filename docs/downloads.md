@@ -25,8 +25,7 @@ work. The endpoint delegates to `src/lib/downloads.ts` for dispatch and bytes.
 
 ## Release Artifacts
 
-PDF, EPUB, and merged multi-part DOCX files are **release artifacts** stored in
-the work bundle:
+PDF and EPUB files are **release artifacts** stored in the work bundle:
 
 ```txt
 src/content/books/01-evangelie-tsarstviya/
@@ -37,17 +36,15 @@ src/content/books/01-evangelie-tsarstviya/
   cover.ru.jpg
 ```
 
-They may be produced by the local `pancratius downloads render` command using
-pandoc, typst, templates, and committed fonts. That command can be friendly to a
-non-developer workflow ("refresh downloads for changed works"), but the produced
-files are durable content artifacts once committed.
+PDF and EPUB files may be produced by the local `pancratius downloads render`
+command using pandoc, typst, templates, and committed fonts. That command can be
+friendly to a non-developer workflow ("refresh downloads for changed works"),
+but the produced files are durable content artifacts once committed.
 
-For a multi-source work, source parts such as `ru-part1.docx`,
-`ru-part2.docx`, and `ru-part3.docx` are provenance/source artifacts, not public
-per-work downloads. The public route `/books/{slug}.docx` exists only when a
-merged `ru.docx` or `en.docx` release artifact exists beside the Markdown.
-Example: `/books/little-king.pdf` is one merged PDF; `/books/little-king.docx`
-must also be one merged DOCX, not an arbitrary first part or a ZIP of parts.
+DOCX files are source documents, not Markdown-rendered release artifacts. A work
+language has at most one active DOCX source, named `<lang>.docx`; if the author
+supplies parts, merge them before committing. The public route
+`/books/{slug}.docx` copies that single source DOCX.
 
 The site build must not depend on pandoc or typst. If a work has no committed
 `<lang>.pdf` or `<lang>.epub`, that route and link do not exist.
