@@ -4,12 +4,12 @@
  *
  * The second of the two body renderers (the other is <Prose>). Wraps a
  * rendered Markdown body in `<div class="prose prose--manifesto">`, the
- * existing register whose CSS keeps source line breaks visible
- * (`white-space: pre-line`), stays left-aligned, suppresses the drop cap,
- * and gives stanzas their paragraph-gap rhythm. That CSS lives in
- * `src/styles/prose.css` under the `.prose--manifesto` / `.prose--poem`
- * rules; reusing the class name keeps the rendered output byte-identical to
- * today's /mission/ manifesto.
+ * verse register: left-aligned, no drop cap, stanza paragraph-gap rhythm.
+ * Lineation is CommonMark two-trailing-space hard breaks (rendered as `<br>`),
+ * the one corpus-wide encoding — the CSS does NOT use `white-space: pre-line`,
+ * so it never infers a break from a raw newline. That CSS lives in
+ * `src/styles/prose.css` under the shared `.prose--manifesto` / `.prose--poem`
+ * rules.
  *
  * Dumb by design: no slug logic, no page-specific branching. The component
  * identity *is* the register — there is no `register` prop. The current
@@ -24,7 +24,7 @@
  *
  * `class` is appended after the base register classes for any page-local
  * modifier. A poem/work page COULD adopt this later (it already shares the
- * `.prose--poem` lineation rules) — this component is deliberately free of
+ * `.prose--poem` lineation encoding) — this component is deliberately free of
  * any page identity so that move is a one-line swap.
  */
 

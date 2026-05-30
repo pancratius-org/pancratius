@@ -44,7 +44,27 @@
    `.prose--poem`, `.prose--manifesto`) instead of weakening the whole
    reading surface. */
 .prose p {
-  margin: 0 0 0.95em;
+  margin: 0 0 0.35em;
+  text-indent: 1.4em;
+  text-wrap: pretty;
+}
+/* First paragraph of the body, and the first after any structural break,
+   sits flush (no indent) — book convention. A first-line indent only earns
+   its keep as a *continuation* signal between running paragraphs; after a
+   heading, rule, image, list, or quote the break is already explicit, so the
+   indent there would read as a stray dent. */
+.prose > p:first-child,
+.prose h2 + p,
+.prose h3 + p,
+.prose h4 + p,
+.prose hr + p,
+.prose figure + p,
+.prose blockquote + p,
+.prose .verse-block + p,
+.prose ul + p,
+.prose ol + p,
+.prose p:has(> img:only-child),          /* image-only paragraph */
+.prose p:has(> img:only-child) + p {     /* paragraph right after an image */
   text-indent: 0;
 }
 
@@ -80,12 +100,14 @@
   font-feature-settings: "lnum" 1;
 }
 
-/* `.lead` also strips any inherited indent and slightly enlarges the line,
-   matching v7's intentional opener register. */
+/* `.lead` also strips any inherited indent (the drop cap floats into the
+   first-line position, so an indent would push the body away from it) and
+   slightly enlarges the line, matching v7's intentional opener register. */
 .prose p.lead {
   font-size: 1.12em;
   line-height: 1.6;
   color: var(--ink);
+  text-indent: 0;
 }
 
 /* Verse-block: a real gear-shift from prose into a sung / lineated
@@ -101,7 +123,6 @@
   font-style: italic;
   font-size: 1.02em;
   line-height: 1.55;
-  white-space: pre-line;
   text-align: left;
 }
 .prose .verse-block p {
@@ -115,12 +136,12 @@
 .prose .verse-block p:last-child {
   margin-bottom: 0;
 }
-.prose .verse-block .verse-break {
+/* A `***` verse-break inside a verse-block lowers to `<hr>` (the same thematic
+   break as in prose): it inherits the `.prose hr` `* * *` ornament, with a
+   tighter margin and upright (non-italic) glyphs so it reads as a sung-register
+   separator rather than a chapter rule. */
+.prose .verse-block hr {
   margin: 0.9em 0;
-  color: var(--accent);
-  text-align: center;
-  letter-spacing: 0.45em;
-  /* visible ornament inside the verse — three thin accent dots. */
   font-style: normal;
 }
 /* When a verse-block follows a heading directly, tighten the gap so
@@ -452,11 +473,16 @@
 /*
  * Manifesto / poetry stanza spacing.
  *
- * Author contract: within a stanza, lines sit on adjacent source lines and
- * the newlines render as visible line breaks. Blank line in source = stanza
- * break. No trailing `\`, no two-space ritual. CSS `white-space: pre-line`
- * preserves the newlines the Markdown renderer leaves in the output; the
- * paragraph margin then acts as the stanza gap.
+ * Both registers share one lineation encoding: CommonMark two-trailing-space
+ * hard breaks, which the renderer turns into `<br>`.
+ *   - `.prose--manifesto` — the verse-register bodies (the /mission/ manifesto,
+ *     project `weight: verse` subpages).
+ *   - `.prose--poem` — the imported poems.
+ * Neither uses `white-space: pre-line`: the `<br>` carries the line break, so a
+ * `pre-line` would render the literal newline beside each `<br>` as a SECOND
+ * break (double-spacing the stanza). Register comes from the component, not CSS;
+ * CSS never infers lineation from raw newlines. Blank line in source = stanza
+ * break; the paragraph margin is the gap.
  */
 .prose--manifesto p,
 .prose--poem p {
@@ -465,7 +491,6 @@
   text-align: left;
   font-size: 1.1rem;
   line-height: 1.85;
-  white-space: pre-line;
 }
 .prose--manifesto > p:first-child::first-letter,
 .prose--manifesto > p:first-of-type::first-letter,
@@ -495,6 +520,13 @@
 .prose--bio {
   font-size: 1.1rem;
   line-height: 1.78;
+}
+/* The memoir register keeps blocked paragraphs (gap, no first-line indent):
+   it reads as reference/biography, not as running narrative, so the book
+   register's indent-led rhythm would look like stray dents here. */
+.prose--bio p {
+  text-indent: 0;
+  margin: 0 0 1.1em;
 }
 .prose--bio > p:first-of-type {
   font-family: var(--serif);
