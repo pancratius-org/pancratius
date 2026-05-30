@@ -11,7 +11,6 @@ env (pyyaml is a base dependency).
 """
 from __future__ import annotations
 
-import json
 import os
 import re
 import sys
@@ -28,7 +27,6 @@ def _audit_root() -> Path:
 
 ROOT = _audit_root()
 CONTENT = ROOT / "src" / "content"
-MANIFEST = ROOT / "data" / "conversion-manifest.json"
 
 MD_IMG = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 HTML_IMG = re.compile(r'<img[^>]+src="([^"]+)"', re.IGNORECASE)
@@ -80,10 +78,6 @@ def main() -> int:
                     inline_img_lines.append((md, lineno, stripped))
 
     print(f"image refs in content: {referenced} ({referenced - len(missing)} resolved)")
-    if MANIFEST.exists():
-        manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-        roles = manifest.get("stats", {}).get("role_counts") or {}
-        print(f"role counts in manifest: {roles}")
 
     if missing:
         print(f"FAIL: {len(missing)} unresolved refs", file=sys.stderr)

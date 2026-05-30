@@ -81,7 +81,7 @@ already committed. Their meeting point is committed source.
 
 - **Source of truth lives in `src/content/`** as Markdown plus sibling source/release artifacts (DOCX, PDF, EPUB, covers, images). See [`content-model.md`](./content-model.md).
 - **Build-pipeline data lives in `data/`** and is **not** web-public. Astro's static build does not ship `data/`. Public payloads (graph JSON, etc.) are emitted or copied into `public/data/` so they appear in `dist/`.
-- **Embedding caches, conversion manifests, and `conceptosphere-embed.json`** are build-time inputs only. Never publish them.
+- **Embedding caches and `conceptosphere-embed.json`** are build-time inputs only. Never publish them.
 
 ## Images and asset route
 
@@ -102,10 +102,7 @@ The build pipeline may hash, optimize, deduplicate, and emit public renditions
 into `dist/`, but `public/media/` is not the author-facing source of truth. A
 book should be addable from one work folder.
 
-The converter records source DOCX paths and generated paths per work in
-`data/conversion-manifest.json`; source filenames are provenance, not work
-frontmatter. Four image roles cover the corpus, classified at conversion time
-and recorded in the same manifest:
+Four image roles cover the corpus:
 
 - **canonical work cover** — one per (work, lang), referenced from frontmatter
   `cover`.
