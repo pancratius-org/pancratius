@@ -103,9 +103,8 @@ committed output. Volatile provenance (source hashes, tool versions, run time) i
 written by the **import entry** (after the writer applies) to a per-work
 `data/imports/<work-key>.json` manifest — gitignored, outside the bundle (the
 layout in [`content-model.md`](./content-model.md#what-lives-where)) — never in the
-committed `<lang>.md` or assets. (This is distinct from `docx_optimize.py`'s
-committed `data/conversion-manifest.json`.) Imported body-image filenames are
-stable asset IDs after first import, not live checksums (see
+committed `<lang>.md` or assets. Imported body-image filenames are stable asset
+IDs after first import, not live checksums (see
 [`content-model.md`](./content-model.md#asset-naming)).
 
 **Dry-run** is the review gate: it prints the full planned write-set — including

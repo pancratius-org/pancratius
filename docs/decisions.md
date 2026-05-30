@@ -29,9 +29,8 @@ Reasons:
    layout should optimize for human editing; generated public asset paths can
    still be hashed in `dist/`.
 
-The converter may still compute hashes internally and record them in
-`data/conversion-manifest.json`, but `public/media/` is not the storage contract
-for authored sources.
+The converter may still compute hashes internally during an import, but
+`public/media/` is not the storage contract for authored sources.
 
 Body images have a work-bundle identity. The Markdown file decides which
 `images/...` asset it references, but the original public URL is work-scoped:

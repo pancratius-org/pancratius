@@ -416,7 +416,7 @@ a stable unprocessed URL.
 | markdown body | the work itself, with relative links only to true inline body images |
 | work folder assets | covers, true body illustrations, source DOCX/PDF |
 | `bibliography.yaml` | long catalog/bibliography snapshots and external marketplace links |
-| `data/` | generated corpus-wide data products (graph JSON) and two distinct provenance manifests, both outside any work bundle so bundles stay byte-identical on re-import: the importer's per-work `data/imports/<work-key>.json` (volatile run provenance — timestamps, source hashes; gitignored, never committed) and `docx_optimize.py`'s shared `data/conversion-manifest.json` (committed source-provenance index) |
+| `data/` | generated corpus-wide data products (graph JSON) plus importer per-work `data/imports/<work-key>.json` volatile run provenance (timestamps, source hashes; gitignored, never committed), outside any work bundle so bundles stay byte-identical on re-import |
 | `public/` | static files intentionally published as-is, not authored work assets |
 
 ## Adding A New Work

@@ -17,7 +17,7 @@
 *.zip  binary
 
 # Normalize line endings for text content.
-*.md     text eol=lf
+*.md     text eol=lf whitespace=-blank-at-eol
 *.json   text eol=lf
 *.yml    text eol=lf
 *.yaml   text eol=lf

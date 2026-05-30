@@ -29,7 +29,6 @@ Usage:
 from __future__ import annotations
 
 import io
-import json
 import logging
 import os
 import re
@@ -41,7 +40,7 @@ from pathlib import Path
 
 from PIL import Image, ImageFilter
 
-from pancratius.paths import CONTENT_ROOT, DATA_ROOT
+from pancratius.paths import CONTENT_ROOT
 
 logger = logging.getLogger(__name__)
 
@@ -88,97 +87,11 @@ LARGE_PNG_MIN_EDGE = 512
 LARGE_PNG_MIN_BYTES = 200_000
 EDGE_DENSITY_DIAGRAM_MIN = 0.13     # > this => keep as PNG (sharp lines)
 
-MANIFEST_PATH = DATA_ROOT / "conversion-manifest.json"
 SOURCE_ROOTS = [
     CONTENT_ROOT / "books",
     CONTENT_ROOT / "poetry",
     CONTENT_ROOT / "projects",
 ]
-
-# Why: map src/content/<folder>/ → manifest by_work kind segment, so optimized DOCX
-# writes register under the same per-work generated_paths entry the
-# Markdown converter populates.
-_CONTENT_FOLDER_TO_KIND: dict[str, str] = {
-    "books": "book",
-    "poetry": "poem",
-    "projects": "project",
-}
-
-
-def _work_key_for_dst(dst: Path, content_root: Path) -> tuple[str, str, str] | None:
-    """For a destination like src/content/books/<slug>/<lang>.docx return
-    (kind, slug, work-folder-relative-path). Returns None if `dst` isn't a
-    work-bundle file under content_root."""
-    try:
-        rel = dst.resolve().relative_to(content_root.resolve())
-    except ValueError:
-        return None
-    parts = rel.parts
-    if len(parts) < 3:
-        return None
-    folder, slug, *_rest = parts
-    kind = _CONTENT_FOLDER_TO_KIND.get(folder)
-    if not kind:
-        return None
-    work_rel = Path(*parts[2:]).as_posix()
-    return kind, slug, work_rel
-
-
-WORK_OWNER = "docx_optimize"
-
-
-def update_manifest_generated_paths(
-    written: list[Path],
-    content_root: Path = CONTENT_ROOT,
-    manifest_path: Path = MANIFEST_PATH,
-) -> int:
-    """Register optimized-docx writes into this owner's slot in the per-work
-    `generated_paths` dict. The Markdown converter writes its own slot; we
-    never touch it. Skips silently when the manifest doesn't exist."""
-    if not manifest_path.exists() or not written:
-        return 0
-    try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return 0
-    by_work = manifest.get("by_work")
-    if not isinstance(by_work, dict):
-        return 0
-    added = 0
-    for dst in written:
-        info = _work_key_for_dst(dst, content_root)
-        if info is None:
-            continue
-        kind, slug, work_rel = info
-        key = f"{kind}/{slug}"
-        entry = by_work.get(key)
-        if not isinstance(entry, dict):
-            continue
-        gp = entry.setdefault("generated_paths", {})
-        if not isinstance(gp, dict):
-            continue
-        mine = gp.setdefault(WORK_OWNER, [])
-        if not isinstance(mine, list):
-            continue
-        if work_rel in mine:
-            continue
-        mine.append(work_rel)
-        added += 1
-    if added:
-        for entry in by_work.values():
-            if not isinstance(entry, dict):
-                continue
-            gp = entry.get("generated_paths")
-            if not isinstance(gp, dict):
-                continue
-            mine = gp.get(WORK_OWNER)
-            if isinstance(mine, list):
-                gp[WORK_OWNER] = sorted(set(mine))
-        manifest_path.write_text(
-            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
-    return added
 
 # ---------- helpers -----------------------------------------------------------
 
@@ -675,8 +588,6 @@ def optimize(
     skipped = 0
     processed = 0
     failed = 0
-    written: list[Path] = []
-
     for src, dst in jobs:
         if not force and dst.exists() and dst.stat().st_mtime >= src.stat().st_mtime:
             in_size = src.stat().st_size
@@ -684,7 +595,6 @@ def optimize(
             total_in += in_size
             total_out += out_size
             skipped += 1
-            written.append(dst)
             logger.info(
                 "SKIP   %s: %9s -> %9s (cached)",
                 src.name, fmt_bytes(in_size), fmt_bytes(out_size),
@@ -705,16 +615,10 @@ def optimize(
         total_in += in_size
         total_out += out_size
         processed += 1
-        written.append(dst)
         logger.info(
             "OK     %s: %9s -> %9s  (%5.1f%% saved, %4.1fs)",
             src.name, fmt_bytes(in_size), fmt_bytes(out_size), pct, dt,
         )
-
-    if not dry_run:
-        added = update_manifest_generated_paths(written)
-        if added:
-            print(f"manifest: registered {added} optimized-docx path(s) into by_work.generated_paths")
 
     if total_in:
         pct = 100 * (1 - total_out / total_in)
