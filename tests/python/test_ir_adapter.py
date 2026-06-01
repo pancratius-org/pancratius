@@ -259,12 +259,14 @@ def test_table_unknown_shape_keeps_raw_with_empty_rows() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _docx_from_document(document: str) -> Path:
+def _docx_from_document(document: str, *, styles: str | None = None) -> Path:
     """Wrap a `word/document.xml` string into a minimal in-memory .docx temp file."""
     import tempfile
     fd = tempfile.NamedTemporaryFile(suffix=".docx", delete=False)
     with zipfile.ZipFile(fd, "w") as zf:
         zf.writestr("word/document.xml", document)
+        if styles is not None:
+            zf.writestr("word/styles.xml", styles)
     fd.close()
     return Path(fd.name)
 
@@ -362,6 +364,61 @@ def test_read_w_jc_marks_contextual_spacing_visual_group() -> None:
         records = adapter.read_w_jc(path)
         assert [r.text for r in records] == ["first line", "second line", "third line"]
         assert _groups(records) == [1, 1, 1]
+    finally:
+        path.unlink()
+
+
+def test_read_w_jc_uses_doc_default_spacing_for_visual_group() -> None:
+    styles = (
+        '<?xml version="1.0"?>'
+        f'<w:styles xmlns:w="{adapter.W_NS}">'
+        '<w:docDefaults><w:pPrDefault><w:pPr><w:spacing w:after="100"/>'
+        "</w:pPr></w:pPrDefault></w:docDefaults>"
+        "</w:styles>"
+    )
+    document = (
+        '<?xml version="1.0"?>'
+        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        '<w:p><w:pPr><w:contextualSpacing/></w:pPr>'
+        '<w:r><w:t>first line</w:t></w:r></w:p>'
+        '<w:p><w:pPr><w:contextualSpacing/></w:pPr>'
+        '<w:r><w:t>second line</w:t></w:r></w:p>'
+        "</w:body></w:document>"
+    )
+    path = _docx_from_document(document, styles=styles)
+    try:
+        records = adapter.read_w_jc(path)
+        assert [r.text for r in records] == ["first line", "second line"]
+        assert _groups(records) == [1, 1]
+    finally:
+        path.unlink()
+
+
+def test_read_w_jc_style_spacing_overrides_doc_default_spacing() -> None:
+    styles = (
+        '<?xml version="1.0"?>'
+        f'<w:styles xmlns:w="{adapter.W_NS}">'
+        '<w:docDefaults><w:pPrDefault><w:pPr><w:spacing w:after="100"/>'
+        "</w:pPr></w:pPrDefault></w:docDefaults>"
+        '<w:style w:type="paragraph" w:styleId="NoGap">'
+        '<w:pPr><w:spacing w:after="0"/></w:pPr>'
+        "</w:style>"
+        "</w:styles>"
+    )
+    document = (
+        '<?xml version="1.0"?>'
+        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        '<w:p><w:pPr><w:pStyle w:val="NoGap"/><w:contextualSpacing/></w:pPr>'
+        '<w:r><w:t>first paragraph</w:t></w:r></w:p>'
+        '<w:p><w:pPr><w:pStyle w:val="NoGap"/><w:contextualSpacing/></w:pPr>'
+        '<w:r><w:t>second paragraph</w:t></w:r></w:p>'
+        "</w:body></w:document>"
+    )
+    path = _docx_from_document(document, styles=styles)
+    try:
+        records = adapter.read_w_jc(path)
+        assert [r.text for r in records] == ["first paragraph", "second paragraph"]
+        assert _groups(records) == [None, None]
     finally:
         path.unlink()
 

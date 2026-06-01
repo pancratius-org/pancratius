@@ -66,20 +66,6 @@ class ParaRow:
     block_kind: str = "?"  # the IR block this paragraph's text landed in
 
 
-def _doc_default_spacing(zf: zipfile.ZipFile) -> dict[str, str]:
-    """The ``w:docDefaults`` paragraph spacing — the document-wide baseline gap
-    LibreOffice/Word apply when a paragraph and its style set nothing. Neither the
-    importer's ``_resolved_spacing`` nor a naive style-chain read sees this, so a
-    paragraph can render with a real gap while looking gap-less in the XML (the
-    blind spot the visual render exposed for book #71)."""
-    try:
-        root = ET.fromstring(zf.read("word/styles.xml"))
-    except KeyError:
-        return {}
-    sp = root.find(f"{W}docDefaults/{W}pPrDefault/{W}pPr/{W}spacing")
-    return {k.removeprefix(W): v for k, v in sp.attrib.items()} if sp is not None else {}
-
-
 def _ind_attrs(ppr: ET.Element | None) -> dict[str, str]:
     ind = ppr.find(f"{W}ind") if ppr is not None else None
     if ind is None:
@@ -100,7 +86,7 @@ def read_rows(docx: Path) -> list[ParaRow]:
     """
     with zipfile.ZipFile(docx) as zf:
         styles, default_style = da._paragraph_styles(zf)
-        doc_default_spacing = _doc_default_spacing(zf)
+        doc_default_spacing = da._doc_default_spacing(zf)
         root = ET.fromstring(zf.read("word/document.xml"))
     body = root.find(f"{W}body")
     if body is None:
