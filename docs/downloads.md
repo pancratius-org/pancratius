@@ -43,8 +43,10 @@ but the produced files are durable content artifacts once committed.
 
 DOCX files are source documents, not Markdown-rendered release artifacts. A work
 language has at most one active DOCX source, named `<lang>.docx`; if the author
-supplies parts, merge them before committing. The public route
-`/books/{slug}.docx` copies that single source DOCX.
+supplies parts, merge them before committing and ensure the merged source carries
+real DOCX part headings (`pancratius docx merge --part ...` inserts them during
+the physical merge). The public route `/books/{slug}.docx` copies that single
+source DOCX.
 
 The site build must not depend on pandoc or typst. If a work has no committed
 `<lang>.pdf` or `<lang>.epub`, that route and link do not exist.
