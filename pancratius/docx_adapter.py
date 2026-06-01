@@ -135,6 +135,16 @@ def _spacing_attrs(ppr: ET.Element | None) -> dict[str, str]:
     return {k.removeprefix(W): v for k, v in spacing.attrib.items()}
 
 
+def _doc_default_spacing(zf: zipfile.ZipFile) -> dict[str, str]:
+    """Document-wide paragraph spacing inherited when style/direct spacing is absent."""
+    try:
+        root = ET.fromstring(zf.read("word/styles.xml"))
+    except KeyError:
+        return {}
+    sp = root.find(f"{W}docDefaults/{W}pPrDefault/{W}pPr/{W}spacing")
+    return {k.removeprefix(W): v for k, v in sp.attrib.items()} if sp is not None else {}
+
+
 def _paragraph_styles(zf: zipfile.ZipFile) -> tuple[dict[str, _StyleInfo], str]:
     try:
         root = ET.fromstring(zf.read("word/styles.xml"))
@@ -317,6 +327,7 @@ def read_w_jc(docx: Path) -> list[_JcRecord]:
     """
     with zipfile.ZipFile(docx) as zf:
         styles, default_style = _paragraph_styles(zf)
+        doc_default_spacing = _doc_default_spacing(zf)
         root = ET.fromstring(zf.read("word/document.xml"))
     body = root.find(f"{W}body")
     if body is None:
@@ -343,7 +354,10 @@ def read_w_jc(docx: Path) -> list[_JcRecord]:
                         styles,
                         ppr.find(f"{W}contextualSpacing") is not None if ppr is not None else False,
                     ),
-                    spacing=_resolved_spacing(style, styles, direct_spacing),
+                    spacing={
+                        **doc_default_spacing,
+                        **_resolved_spacing(style, styles, direct_spacing),
+                    },
                     indented=ppr.find(f"{W}ind") is not None if ppr is not None else False,
                     bordered=ppr.find(f"{W}pBdr") is not None if ppr is not None else False,
                     heading=bool(re.fullmatch(r"(?:Heading\d+|[1-9])", direct_style)),
