@@ -71,6 +71,7 @@ functions in process. It does not shell out to other Python CLIs.
 | `pancratius video sync [--channel KEY] [--dry-run]` | `pancratius.video_scan.scan` |
 | `pancratius downloads render [--book N]` | `pancratius.render_downloads` |
 | `pancratius docx optimize [paths...]` | `pancratius.docx_optimize` |
+| `pancratius docx merge <parts...> --out <docx> [--part TITLE::MARKER]` | `pancratius.docx_merge` |
 | `pancratius conceptosphere graph generate [--only concepts|books]` | `pancratius.conceptosphere.generate_graph` |
 | `pancratius conceptosphere embed generate` | `pancratius.conceptosphere_embed.generate_embeddings` |
 
@@ -85,9 +86,27 @@ The grammar carries the content model:
   `YOUTUBE_API_KEY`) and scaffolds frontmatter + a `cover.<lang>.jpg`
   thumbnail for each new video. Commentary in the body is editorial. Re-runs
   never touch known entries.
+- `docx merge` composes source parts and validates the resulting DOCX package
+  structure (ZIP, XML, relationships, media references). Optional
+  `--part TITLE::MARKER` arguments insert real source part headings during the
+  merge. Office-suite load checks are outside the first-class merge path; use
+  explicit local QA when that heavier confidence is needed.
 - Graph and embedding generation live here because they produce committed
   Python-only data products. Copying those products into `public/data/` is npm
   build work.
+
+DOCX merge example:
+
+```sh
+uv run pancratius docx merge \
+  ~/Downloads/book-02-ru-part1.docx \
+  ~/Downloads/book-02-ru-part2.docx \
+  ~/Downloads/book-02-ru-part3.docx \
+  --out /tmp/book-02-ru-merged.docx \
+  --part "Часть 1::Глава 1. Который видит Свет" \
+  --part "Часть 2::Глава 1. Где заканчивается" \
+  --part "Часть 3::Глава 1. Школа"
+```
 
 ## Exit And Output Contract
 

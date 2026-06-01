@@ -70,8 +70,10 @@ src/content/
 
 Each work language has at most one active source DOCX: `<lang>.docx`. If an
 author supplies a work in parts, merge those parts into one source DOCX before
-committing the work bundle. The site exposes a `.docx` route only when that
-single source DOCX exists beside the Markdown.
+committing the work bundle. The merged source must carry real part headings in
+the DOCX outline; `uv run pancratius docx merge ... --part ...` inserts those
+headings during the physical merge. The site exposes a `.docx` route only when
+that single source DOCX exists beside the Markdown.
 
 The important rule: **authored and release assets live with the work**. Covers,
 body illustrations, source DOCX, and release downloads belong beside the

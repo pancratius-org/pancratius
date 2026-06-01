@@ -198,6 +198,39 @@ def _docx_optimize(args: argparse.Namespace) -> int:
     return 1 if summary.failed else 0
 
 
+def _docx_merge(args: argparse.Namespace) -> int:
+    """`docx merge` — merge multipart source DOCX files and validate the package."""
+    from pancratius.docx_merge import DocxMergeError, DocxMergeUsageError, merge_docx
+    from pancratius.docx_outline import DocxOutlineError, parse_part_spec
+
+    try:
+        parts = tuple(parse_part_spec(raw) for raw in args.part)
+        summary = merge_docx(
+            tuple(Path(src) for src in args.inputs),
+            Path(args.out),
+            parts=parts,
+        )
+    except DocxOutlineError as exc:
+        return _fail(exc, 2)
+    except DocxMergeUsageError as exc:
+        return _fail(exc, 2)
+    except DocxMergeError as exc:
+        return _fail(exc, 1)
+    outline = ""
+    if summary.outline is not None:
+        outline = (
+            f"; inserted {summary.outline.inserted_parts} part headings; "
+            f"demoted {summary.outline.demoted_headings} headings"
+        )
+    print(
+        f"merged {len(summary.inputs)} DOCX file(s) -> {summary.output} "
+        f"({summary.validation.package_parts} package parts; "
+        f"{summary.validation.relationships} relationships; "
+        f"{summary.validation.media_parts} media parts{outline})"
+    )
+    return 0
+
+
 # --- handlers (conceptosphere group) ------------------------------------------
 def _conceptosphere_graph_generate(args: argparse.Namespace) -> int:
     """`conceptosphere graph generate [--only concepts|books]` — regenerate the
@@ -353,6 +386,20 @@ def _add_docx_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     optimize.add_argument("--verbose", "-v", action="store_true")
     optimize.add_argument("--dry-run", action="store_true", help="Print what would be done; write nothing.")
     optimize.set_defaults(func=_docx_optimize)
+
+    merge = docx_sub.add_parser(
+        "merge",
+        help="Merge one or more source DOCX files into one package-validated DOCX.",
+    )
+    merge.add_argument("inputs", nargs="+", help="Input .docx files, in source order.")
+    merge.add_argument("--out", required=True, help="Output .docx path.")
+    merge.add_argument(
+        "--part",
+        action="append",
+        default=[],
+        help="Optional part spec shaped as 'Part title::first heading prefix'. Repeat in source order.",
+    )
+    merge.set_defaults(func=_docx_merge)
 
 
 def _video_sync(args: argparse.Namespace) -> int:
