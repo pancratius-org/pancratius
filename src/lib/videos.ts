@@ -12,24 +12,30 @@
 import { getCollection, render, type CollectionEntry } from "astro:content";
 
 import { DEFAULT_LOCALE, LOCALE_META, LOCALES, type Locale } from "./i18n";
-import { layoutFor } from "./video-format";
+import { layoutFor, localizedEmbedUrl } from "./video-format";
 
 // Re-export the pure formatter so callers `import { formatDuration } from "@/lib/videos"`.
 export { formatDuration } from "./video-format";
 
 export type VideoEntry = CollectionEntry<"videos">;
 export type VideoChannel = CollectionEntry<"videoChannels">;
-type VideoPairEntries = Partial<Record<Locale, VideoEntry>> & Record<typeof DEFAULT_LOCALE, VideoEntry>;
+type VideoSource = VideoEntry["data"]["sources"][number];
+type DefaultVideoLocale = typeof DEFAULT_LOCALE;
+type TranslatedVideoLocale = Exclude<Locale, DefaultVideoLocale>;
+type VideoTranslations = Partial<Record<TranslatedVideoLocale, VideoEntry>>;
+export type VideoPlatform = VideoSource["platform"];
 
 /**
- * A video and its translations, keyed by `(kind, number)`. Each locale entry
- * is present in `entries` only when that locale's `.md` file exists; the
- * default-locale entry is guaranteed to exist (enforced in `getAllVideoPairs`).
+ * A video and its translations, keyed by `(kind, number)`. The default-locale
+ * entry is guaranteed to exist (enforced in `getAllVideoPairs`); translated
+ * entries are present only when that locale's `.md` file exists.
  */
 export interface VideoPair {
   number: number;
-  /** Authored entries keyed by locale. `entries[DEFAULT_LOCALE]` always exists. */
-  entries: VideoPairEntries;
+  /** Canonical default-locale entry. Every pair has one. */
+  defaultEntry: VideoEntry;
+  /** Authored non-default-locale entries keyed by locale. */
+  translations: VideoTranslations;
 }
 
 export interface LocalizedVideoPair {
@@ -43,12 +49,22 @@ export interface DisplayVideoEntry {
   linkLocale: Locale;
 }
 
+interface VideoWatchLink {
+  platform: VideoPlatform;
+  url:      string;
+}
+
+export interface VideoWatchLinks {
+  primary: VideoWatchLink;
+  mirrors: VideoWatchLink[];
+}
+
 let _pairsCache: VideoPair[] | null = null;
 let _channelsCache: VideoChannel[] | null = null;
 
 /** The canonical default-locale entry. Every `VideoPair` has one. */
 export function defaultVideoEntry(pair: VideoPair): VideoEntry {
-  return pair.entries[DEFAULT_LOCALE];
+  return pair.defaultEntry;
 }
 
 function videoBundleKey(pair: VideoPair): string {
@@ -68,13 +84,13 @@ function videoBundleKey(pair: VideoPair): string {
  * what a video catalogue is for.
  */
 export async function getAllVideoPairs(): Promise<VideoPair[]> {
-  if (_pairsCache) return _pairsCache;
+  if (_pairsCache !== null) return _pairsCache;
 
   const all = await getCollection("videos");
   const pairs = videoPairsFromBuckets(videoBuckets(all));
 
-  if (pairs.length > 0) _pairsCache = pairs;
-  return pairs;
+  _pairsCache = pairs;
+  return _pairsCache;
 }
 
 function videoBuckets(all: readonly VideoEntry[]): Map<number, Partial<Record<Locale, VideoEntry>>> {
@@ -109,8 +125,13 @@ function videoPairFromBucket(number: number, entries: Partial<Record<Locale, Vid
       `Video #${number} has translations but no ${DEFAULT_LOCALE} canonical entry`,
     );
   }
-  const pairEntries: VideoPairEntries = { ...entries, [DEFAULT_LOCALE]: canonical };
-  return { number, entries: pairEntries };
+  const translations: VideoTranslations = {};
+  for (const locale of LOCALES) {
+    if (locale === DEFAULT_LOCALE) continue;
+    const entry = entries[locale];
+    if (entry !== undefined) translations[locale] = entry;
+  }
+  return { number, defaultEntry: canonical, translations };
 }
 
 function compareVideoPairs(a: VideoPair, b: VideoPair): number {
@@ -125,12 +146,14 @@ function compareVideoPairs(a: VideoPair, b: VideoPair): number {
  * has no authored file in `locale`; it deliberately does not fall back.
  */
 export function entryForAuthoredVideoLocale(pair: VideoPair, locale: Locale): VideoEntry | null {
-  return pair.entries[locale] ?? null;
+  if (locale === DEFAULT_LOCALE) return pair.defaultEntry;
+  return pair.translations[locale] ?? null;
 }
 
 function localizedVideoPair(pair: VideoPair, locale: Locale): LocalizedVideoPair | null {
   const entry = entryForAuthoredVideoLocale(pair, locale);
-  return entry ? { pair, entry, locale } : null;
+  if (entry === null) return null;
+  return { pair, entry, locale };
 }
 
 export function localizedVideoPairs(
@@ -146,10 +169,12 @@ export function localizedVideoPairs(
 }
 
 export function authoredVideoPairs(pair: VideoPair): LocalizedVideoPair[] {
-  return LOCALES.flatMap(locale => {
+  const authored: LocalizedVideoPair[] = [];
+  for (const locale of LOCALES) {
     const item = localizedVideoPair(pair, locale);
-    return item ? [item] : [];
-  });
+    if (item !== null) authored.push(item);
+  }
+  return authored;
 }
 
 /**
@@ -163,8 +188,8 @@ export function displayVideoEntry(pair: VideoPair, requestedLocale: Locale): Dis
   const seen = new Set<Locale>();
   let current: Locale = requestedLocale;
   while (!seen.has(current)) {
-    const entry = pair.entries[current];
-    if (entry) return { entry, linkLocale: current };
+    const entry = entryForAuthoredVideoLocale(pair, current);
+    if (entry !== null) return { entry, linkLocale: current };
     seen.add(current);
     const next = LOCALE_META[current].fallback;
     if (next === current) break;
@@ -177,11 +202,28 @@ export function displayVideoEntry(pair: VideoPair, requestedLocale: Locale): Dis
 // Channels.
 // ─────────────────────────────────────────────────────────────────────
 
+// Display order for the /videos/ channel strip: the main channel leads, the
+// rest follow by id. `getCollection` returns channels sorted by entry id, which
+// would otherwise float "arabic" above "main".
+const CHANNEL_ORDER = ["main"] as const;
+const CHANNEL_RANK = new Map<string, number>(
+  CHANNEL_ORDER.map((id, rank) => [id, rank]),
+);
+
+function channelRank(channel: VideoChannel): number {
+  return CHANNEL_RANK.get(channel.id) ?? Number.POSITIVE_INFINITY;
+}
+
+function compareChannels(a: VideoChannel, b: VideoChannel): number {
+  const rankDelta = channelRank(a) - channelRank(b);
+  return rankDelta !== 0 ? rankDelta : a.id.localeCompare(b.id);
+}
+
 export async function getChannels(): Promise<VideoChannel[]> {
-  if (_channelsCache) return _channelsCache;
+  if (_channelsCache !== null) return _channelsCache;
   const channels = await getCollection("videoChannels");
-  if (channels.length > 0) _channelsCache = channels;
-  return channels;
+  _channelsCache = [...channels].sort(compareChannels);
+  return _channelsCache;
 }
 
 async function findChannel(key: string): Promise<VideoChannel | null> {
@@ -191,9 +233,8 @@ async function findChannel(key: string): Promise<VideoChannel | null> {
 
 /** The channel a video's primary source attributes itself to, if any. */
 export async function channelForEntry(entry: VideoEntry): Promise<VideoChannel | null> {
-  const primary = entry.data.sources[0];
-  if (!primary?.channel) return null;
-  return findChannel(primary.channel);
+  const channel = primaryVideoSource(entry).channel;
+  return channel === undefined ? null : findChannel(channel);
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -232,9 +273,9 @@ function parseVideoCover(value: string | null | undefined): VideoCoverRef | null
 }
 
 function resolveVideoCover(pair: VideoPair, locale: Locale): VideoCoverRef | null {
-  const primary = pair.entries[locale];
-  if (primary && primary.data.cover_is_placeholder !== true) {
-    const ref = parseVideoCover(primary.data.cover);
+  const localized = entryForAuthoredVideoLocale(pair, locale);
+  if (localized !== null && localized.data.cover_is_placeholder !== true) {
+    const ref = parseVideoCover(localized.data.cover);
     if (ref) return ref;
   }
   if (locale !== DEFAULT_LOCALE) {
@@ -258,7 +299,8 @@ export function videoCoverAbsoluteUrl(
   locale: Locale,
 ): string | null {
   const rel = videoCoverAssetUrl(pair, locale);
-  if (!rel || !site) return rel;
+  if (rel === null) return null;
+  if (site === undefined) return rel;
   return new URL(rel, site).toString();
 }
 
@@ -287,25 +329,68 @@ export async function layoutForEntry(entry: VideoEntry): Promise<VideoLayout> {
 // Embed URL helpers.
 // ─────────────────────────────────────────────────────────────────────
 
-/** Primary embed URL for a video. Prefers explicit `embed_url`, else derives. */
-export function embedUrlFor(entry: VideoEntry): string | null {
-  const src = entry.data.sources[0];
-  if (!src) return null;
-  if (src.embed_url) return src.embed_url;
-  if (src.platform === "youtube" && src.id) {
-    return `https://www.youtube-nocookie.com/embed/${src.id}`;
-  }
-  return null;
+/**
+ * Primary embed URL for a video, localized to `locale`. Prefers explicit
+ * `embed_url`, else derives the nocookie URL. The player UI follows `locale`
+ * (`hl`); for a non-default locale we also prefer that caption track and force
+ * captions on (`cc_lang_pref` + `cc_load_policy`), since the audio stays
+ * Russian — so the EN page of a RU video shows English UI and English subtitles.
+ */
+export function embedUrlFor(entry: VideoEntry, locale: Locale): string | null {
+  const base = baseEmbedUrlFor(entry);
+  if (base === null) return null;
+  return localizedEmbedUrl(base, locale, locale === DEFAULT_LOCALE ? null : locale);
 }
 
 /** Source-platform watch URL for a video's primary source. */
 export function watchUrlFor(entry: VideoEntry): string {
-  return entry.data.sources[0]?.url ?? "";
+  return primaryVideoSource(entry).url;
+}
+
+/** Primary watch link plus mirror links, stripped to rendering-safe fields. */
+export function videoWatchLinks(entry: VideoEntry): VideoWatchLinks {
+  const { primary, mirrors } = videoSources(entry);
+  return {
+    primary: sourceWatchLink(primary),
+    mirrors: mirrors.map(sourceWatchLink),
+  };
+}
+
+/** Embed URL without player-localization params, for metadata and feeds. */
+export function baseEmbedUrlFor(entry: VideoEntry): string | null {
+  return embedBaseUrl(entry, primaryVideoSource(entry));
 }
 
 /** Flatten playlist titles into the video's `tags` list (de-duplicated). */
 export function videoTags(entry: VideoEntry): readonly string[] {
   const tags = new Set(entry.data.tags);
-  for (const p of entry.data.playlists ?? []) tags.add(p.title);
+  for (const playlist of entry.data.playlists ?? []) {
+    tags.add(playlist.title);
+  }
   return [...tags];
+}
+
+function primaryVideoSource(entry: VideoEntry): VideoSource {
+  return videoSources(entry).primary;
+}
+
+function videoSources(entry: VideoEntry): { primary: VideoSource; mirrors: VideoSource[] } {
+  const [primary, ...mirrors] = entry.data.sources;
+  if (primary === undefined) {
+    throw new Error(`Video entry ${entry.id} has no primary source`);
+  }
+  return { primary, mirrors };
+}
+
+function sourceWatchLink(source: VideoSource): VideoWatchLink {
+  return { platform: source.platform, url: source.url };
+}
+
+function embedBaseUrl(entry: VideoEntry, source: VideoSource): string | null {
+  if (source.embed_url !== undefined) return source.embed_url;
+  if (source.platform !== "youtube") return null;
+  if (source.id === undefined) {
+    throw new Error(`YouTube video entry ${entry.id} has no source id`);
+  }
+  return `https://www.youtube-nocookie.com/embed/${source.id}`;
 }

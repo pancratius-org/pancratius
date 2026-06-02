@@ -1,0 +1,87 @@
+---
+import { richParagraphs, shouldCollapse } from "@/lib/rich-text";
+
+interface Props {
+  /** Plain-text source copy (e.g. a full video description). */
+  text: string;
+  /** Optional extra class on the wrapper for surface-specific typography. */
+  class?: string;
+  /**
+   * When set, long text collapses under a no-JS "show more" so it can't push
+   * the page's primary content (a video embed) off-screen. Labels are passed in
+   * localized; the collapse only engages past the length threshold below.
+   */
+  collapse?: { more: string; less: string };
+}
+
+const { text, class: className, collapse } = Astro.props;
+const paragraphs = richParagraphs(text);
+const collapsed = collapse !== undefined && shouldCollapse(text);
+const Wrapper = collapsed ? "details" : "div";
+---
+<Wrapper class:list={["richtext", collapsed && "richtext--collapsible", className]}>
+  {collapsed && collapse ? (
+    <summary class="richtext__toggle">
+      <span class="richtext__more">{collapse.more}</span>
+      <span class="richtext__less">{collapse.less}</span>
+    </summary>
+  ) : null}
+  <div class="richtext__body">
+    {paragraphs.map(segments => (
+      <p>
+        {segments.map(segment =>
+          segment.kind === "link"
+            ? <a href={segment.href} rel="noopener nofollow" target="_blank">{segment.text}</a>
+            : <Fragment>{segment.text}</Fragment>,
+        )}
+      </p>
+    ))}
+  </div>
+</Wrapper>
+
+<style>
+  .richtext__body > p {
+    margin: 0 0 0.9em;
+    /* Single newlines inside a source paragraph are real line breaks. */
+    white-space: pre-line;
+  }
+  .richtext__body > p:last-child { margin-bottom: 0; }
+  .richtext a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+    text-underline-offset: 2px;
+    word-break: break-word;
+  }
+  .richtext a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+
+  /* ─── collapsible (no-JS) ───────────────────────────────────────────── */
+  .richtext--collapsible {
+    display: flex;
+    flex-direction: column;
+  }
+  .richtext--collapsible .richtext__body { order: 1; }
+  .richtext--collapsible:not([open]) .richtext__body {
+    display: block;
+    max-height: 14em;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent);
+            mask-image: linear-gradient(180deg, #000 70%, transparent);
+  }
+  .richtext__toggle {
+    list-style: none;
+    cursor: pointer;
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-family: var(--sans);
+    font-size: 12.5px;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    order: 2;
+  }
+  .richtext__toggle::-webkit-details-marker { display: none; }
+  .richtext__toggle:hover { color: var(--accent-deep); }
+  .richtext__less { display: none; }
+  .richtext--collapsible[open] .richtext__more { display: none; }
+  .richtext--collapsible[open] .richtext__less { display: inline; }
+</style>

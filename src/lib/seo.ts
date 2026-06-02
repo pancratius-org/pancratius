@@ -30,8 +30,10 @@ import {
 } from "./works";
 import {
   authoredVideoPairs,
+  baseEmbedUrlFor,
   defaultVideoEntry,
   entryForAuthoredVideoLocale,
+  videoWatchLinks,
   type VideoPair,
 } from "./videos";
 
@@ -542,7 +544,8 @@ export function seoForVideo(site: URL | undefined, input: VideoSeoInput): SeoMet
   const data = entry.data;
   const canonical = absUrl(site, routedUrl("video", data.slug, locale));
   const description = clampDescription(data.description);
-  const primary = data.sources[0];
+  const watchLinks = videoWatchLinks(entry);
+  const embedUrl = baseEmbedUrlFor(entry);
   const ld: Record<string, unknown> = {
     "@context":     "https://schema.org",
     "@type":        "VideoObject",
@@ -565,8 +568,8 @@ export function seoForVideo(site: URL | undefined, input: VideoSeoInput): SeoMet
     },
   };
   if (coverUrl) ld.thumbnailUrl = coverUrl;
-  if (primary?.url) ld.contentUrl = primary.url;
-  if (primary?.embed_url) ld.embedUrl = primary.embed_url;
+  ld.contentUrl = watchLinks.primary.url;
+  if (embedUrl !== null) ld.embedUrl = embedUrl;
   return {
     title:       `${data.title} — ${siteLabel(locale)}`,
     description,
