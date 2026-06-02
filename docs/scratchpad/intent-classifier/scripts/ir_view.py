@@ -218,8 +218,13 @@ def _line_of(inlines: list[ir.Inline], geom: wrapmod.PageGeom) -> Line:
                 md=inline_md(inlines), html=inline_html(inlines))
 
 
-def read_view(docx: Path) -> list[Para]:
-    """Faithful per-paragraph view from the IR, with the hard-boundary skeleton."""
+def read_view(docx: Path, *, mask: dict[int, di.MaskVerdict] | None = None) -> list[Para]:
+    """Faithful per-paragraph view from the IR, with the hard-boundary skeleton.
+
+    Pass a precomputed `mask` (from `di.votability_mask`) to skip the second
+    adapt+normalize a bare call does — useful when a batch driver reads many books or
+    re-reads one. The full single-pass fix (one pipeline run) is Slice 1+ (the
+    source-view reads votability off the structural-IR seam directly)."""
     geom = wrapmod.page_geom(docx)
     with tempfile.TemporaryDirectory(prefix="ir-view-") as td:
         doc = da.adapt(docx, Path(td))
@@ -313,7 +318,8 @@ def read_view(docx: Path) -> list[Para]:
     # the IR itself, not a guess, so they are left untouched. Lineated/verse ordinals redact
     # to BODY (votable); only non-body structure becomes CONTEXT; mixed/unknown/unmapped stay
     # votable but flag `needs_review`. The mask runs the full pipeline ONCE per docx.
-    mask = di.votability_mask(docx)
+    if mask is None:
+        mask = di.votability_mask(docx)
     for p in out:
         if p.role != ROLE_BODY:
             continue

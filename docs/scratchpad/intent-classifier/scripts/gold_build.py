@@ -110,6 +110,8 @@ class RunFeats(NamedTuple):
     short_frac: float
     has_gap: bool
     n_br: int
+    n_review: int   # body paras the compiler mask flagged (mixed/unmapped/orphan) — votable
+                    # but provenance-uncertain; surfaced so a run can be audited/held out.
 
 
 class Structure(NamedTuple):
@@ -171,7 +173,8 @@ def _run_feats(paras: list[iv.Para], lo: int, hi: int) -> RunFeats:
     short_frac = (sum(f < 0.5 for f in fills) / len(fills)) if fills else 0.0
     return RunFeats(n_body=len(body), n_lines=len(lines), mean_fill=round(mean_fill, 3),
                     wrap_frac=round(wrap_frac, 3), short_frac=round(short_frac, 3),
-                    has_gap=has_gap, n_br=sum(p.br_count for p in body))
+                    has_gap=has_gap, n_br=sum(p.br_count for p in body),
+                    n_review=sum(p.needs_review for p in body))
 
 
 def _stratum(f: RunFeats) -> Stratum:
@@ -231,6 +234,11 @@ def frame(paths: GoldPaths) -> int:
     c = Counter(r["stratum"] for r in rows)
     nbooks = len({r["book"] for r in rows})
     print(f"frame: {len(rows)} runs over {nbooks} books -> frame.jsonl")
+    nrev = sum(r["n_review"] for r in rows)
+    if nrev:
+        rev_runs = sum(1 for r in rows if r["n_review"])
+        print(f"  provenance-flagged: {nrev} body paras across {rev_runs} runs "
+              f"(votable, mask-uncertain — audit before trusting as gold)")
     for s in Stratum:
         rs = [r for r in rows if r["stratum"] == s]
         if rs:
