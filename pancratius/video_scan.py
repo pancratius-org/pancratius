@@ -314,27 +314,20 @@ def _build_attribution(
 
 
 _DESCRIPTION_TODO = "TODO: write a one-paragraph SEO description for this video."
-_SENTENCE_ENDS = (". ", "! ", "? ", "… ")
-_TRAILING_PUNCT = " ,;:—–-"
 
 
-def _truncate_description(text: str, limit: int = 240) -> str:
-    """Single-paragraph blurb for frontmatter `description`. Whitespace-only
-    input collapses to the TODO marker so the editor's `rg TODO` walk finds it."""
-    flattened = " ".join(text.split())
-    if not flattened:
-        return _DESCRIPTION_TODO
-    if len(flattened) <= limit:
-        return flattened
-    cut = flattened[:limit]
-    # Prefer a real sentence end past the halfway mark of the budget.
-    for end in _SENTENCE_ENDS:
-        idx = cut.rfind(end)
-        if idx > limit * 0.55:
-            return cut[: idx + 1].strip()
-    last_space = cut.rfind(" ")
-    trimmed = cut[:last_space] if last_space > 0 else cut
-    return trimmed.rstrip(_TRAILING_PUNCT) + "…"
+def _clean_description(text: str) -> str:
+    """The full source description, kept whole. Lightly normalized — trailing
+    whitespace stripped per line and runs of blank lines collapsed — but
+    paragraph structure (and any links) preserved. Empty input collapses to the
+    TODO marker so the editor's ``rg TODO`` walk finds it.
+
+    Crimping to a card/SEO blurb is the view's job (`clampDescription` in
+    `src/lib/seo.ts`), never the scanner's: the model stores the whole message,
+    the view decides how much to show."""
+    lines = [line.rstrip() for line in text.strip().splitlines()]
+    cleaned = re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+    return cleaned or _DESCRIPTION_TODO
 
 
 def _existing_video_ids(content_root: Path) -> tuple[set[VideoId], int]:
@@ -543,7 +536,7 @@ def scan(
                 lang=channel.default_lang,
                 yt_id=vid,
                 title=meta.title,
-                description=_truncate_description(meta.description),
+                description=_clean_description(meta.description),
                 published_at=meta.published_at,
                 duration=meta.duration,
                 channel_key=channel.key,

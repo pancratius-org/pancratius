@@ -8,7 +8,7 @@ detection consumes — resolved style, ``w:contextualSpacing``, spacing attrs,
 hard ``<w:br/>`` count, and the assigned visual ``lineation_group`` — beside the
 IR block the paragraph actually became after the full ``adapt`` → ``normalize``
 pipeline. A human can then see WHY a run was (or was not) folded into a
-``verse-block``: the source signals on the left, the classifier's verdict on the
+``verse``: the source signals on the left, the classifier's verdict on the
 right.
 
 It reuses ``pancratius.docx_adapter`` so the signals shown are exactly the ones
@@ -20,19 +20,17 @@ scratch media dir. It mutates nothing under ``src/content``.
 
 Run it:
 
-    uv run python -m pancratius.docx_inspect <docx> --contains "Память кого"
-    uv run python -m pancratius.docx_inspect --book 13 --around "Память кого" --context 8
-    uv run python -m pancratius.docx_inspect --book 13 --verse-only
+    uv run pancratius docx inspect <docx> --contains "Память кого"
+    uv run pancratius docx inspect --book 13 --around "Память кого" --context 8
+    uv run pancratius docx inspect --book 13 --verse-only
 """
 from __future__ import annotations
 
-import argparse
 import re
-import sys
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from pancratius import docx_adapter as da
@@ -64,6 +62,64 @@ class ParaRow:
     empty: bool
     lineation_group: int | None = None
     block_kind: str = "?"  # the IR block this paragraph's text landed in
+    block_source_span: ir.SourceSpan | None = None
+
+
+class DocxInspectError(ValueError):
+    """The requested DOCX inspection cannot be completed from the given input."""
+
+
+@dataclass(frozen=True)
+class InspectOptions:
+    contains: str | None = None
+    around: str | None = None
+    context: int = 6
+    index_range: tuple[int, int] | None = None
+    verse_only: bool = False
+    lineated_only: bool = False
+
+    def __post_init__(self) -> None:
+        filters = [
+            self.contains is not None,
+            self.around is not None,
+            self.index_range is not None,
+            self.verse_only,
+            self.lineated_only,
+        ]
+        if sum(filters) > 1:
+            raise DocxInspectError(
+                "choose only one inspect filter: --contains, --around, --range, "
+                "--verse-only, or --lineated-only"
+            )
+        if self.context < 0:
+            raise DocxInspectError("--context must be non-negative")
+        if self.index_range is not None:
+            lo, hi = self.index_range
+            if lo < 0 or hi < lo:
+                raise DocxInspectError("--range must be shaped as LO:HI with 0 <= LO <= HI")
+
+
+@dataclass(frozen=True)
+class InspectResult:
+    docx: Path
+    rows: tuple[ParaRow, ...]
+    selected: tuple[ParaRow, ...]
+
+    @property
+    def verse_paragraphs(self) -> int:
+        return sum(1 for row in self.rows if row.block_kind == "VerseBlock")
+
+    @property
+    def lineated_paragraphs(self) -> int:
+        return sum(1 for row in self.rows if row.block_kind == "LineatedBlock")
+
+    @property
+    def lineation_groups(self) -> int:
+        return len({row.lineation_group for row in self.rows if row.lineation_group is not None})
+
+    @property
+    def ambiguous_paragraphs(self) -> int:
+        return sum(1 for row in self.rows if row.block_kind.startswith("Ambiguous["))
 
 
 def _ind_attrs(ppr: ET.Element | None) -> dict[str, str]:
@@ -98,8 +154,10 @@ def read_rows(docx: Path) -> list[ParaRow]:
     # the group assignment back.
     src: list[da._SourceParagraph] = []
     raw_index: list[int] = []  # rows index aligned to reconcile-eligible src records
+    source_segment = 0
 
     def walk(el: ET.Element) -> None:
+        nonlocal source_segment
         for child in el:
             if child.tag == f"{W}p":
                 ppr = child.find(f"{W}pPr")
@@ -138,17 +196,25 @@ def read_rows(docx: Path) -> list[ParaRow]:
                 # The source-paragraph record the importer would build (list items
                 # and tables become boundaries there; keep them aligned to rows).
                 if numbered:
-                    src.append(da._source_boundary())
+                    src.append(da._source_boundary(
+                        ir.SourceSpan(row.index, row.index),
+                        source_segment=source_segment,
+                    ))
+                    source_segment += 1
                 else:
                     src.append(da._SourceParagraph(
                         align=align, text=txt, style=style,
                         contextual_spacing=contextual, spacing=spacing,
                         indented=indented, bordered=bordered,
                         heading=heading, thematic=thematic,
+                        source_span=ir.SourceSpan(row.index, row.index),
+                        source_segment=source_segment,
+                        empty=da._paragraph_is_empty_source(child, txt),
                     ))
                 raw_index.append(row.index)
             elif child.tag == f"{W}tbl":
-                src.append(da._source_boundary())
+                src.append(da._source_boundary(source_segment=source_segment))
+                source_segment += 1
                 raw_index.append(-1)
             elif child.tag == f"{W}sdt":
                 content = child.find(f"{W}sdtContent")
@@ -179,7 +245,7 @@ def _block_lines(block: ir.Block) -> list[str]:
     from pancratius.ir.normalize import inline_plain
 
     match block:
-        case ir.VerseBlock():
+        case ir.LineatedBlock() | ir.VerseBlock():
             return [_norm(inline_plain(line)) for stanza in block.stanzas for line in stanza]
         case ir.Signature():
             return [_norm(s) for s in block.lines]
@@ -193,31 +259,117 @@ def _block_lines(block: ir.Block) -> list[str]:
             return []
 
 
-def classify(docx: Path) -> dict[str, str]:
-    """Map normalized reading-line text → IR block kind after the full pipeline."""
+type BlockKindsByText = dict[str, frozenset[str]]
+
+
+@dataclass(frozen=True)
+class BlockSourceHit:
+    kinds: frozenset[str]
+    span: ir.SourceSpan
+
+
+type BlockKindsBySource = dict[int, BlockSourceHit]
+
+
+@dataclass(frozen=True)
+class BlockClassifications:
+    by_text: BlockKindsByText
+    by_source: BlockKindsBySource
+
+
+@dataclass
+class _SourceClassificationBuilder:
+    kinds: dict[int, set[str]] = field(default_factory=dict)
+    spans: dict[int, ir.SourceSpan] = field(default_factory=dict)
+
+    def add(self, *, name: str, span: ir.SourceSpan) -> None:
+        for index in range(span.start, span.end + 1):
+            self.kinds.setdefault(index, set()).add(name)
+            previous = self.spans.get(index)
+            self.spans[index] = (
+                span if previous is None
+                else ir.SourceSpan(
+                    start=min(previous.start, span.start),
+                    end=max(previous.end, span.end),
+                )
+            )
+
+    def build(self) -> BlockKindsBySource:
+        return {
+            index: BlockSourceHit(kinds=frozenset(kinds), span=self.spans[index])
+            for index, kinds in self.kinds.items()
+        }
+
+
+def classify_blocks(docx: Path) -> BlockClassifications:
+    """Classify normalized import blocks by reading text and source paragraph span.
+
+    Source ordinals are the stable diagnostic path. Text remains as a fallback for
+    legacy/unknown blocks without provenance and for tests that exercise repeated
+    text ambiguity explicitly.
+    """
     from pancratius.ir.normalize import normalize
 
     with tempfile.TemporaryDirectory(prefix="docx-inspect-") as td:
         doc = da.adapt(docx, Path(td))
         normalize(doc)
-    kind_of: dict[str, str] = {}
+
+    kind_of: dict[str, set[str]] = {}
+    by_source = _SourceClassificationBuilder()
     for block in doc.blocks:
         name = type(block).__name__
         for line in _block_lines(block):
             if line:
-                kind_of.setdefault(line, name)
-    return kind_of
+                kind_of.setdefault(line, set()).add(name)
+        span = block.source_span
+        if span is None:
+            continue
+        by_source.add(name=name, span=span)
+    return BlockClassifications(
+        by_text={line: frozenset(kinds) for line, kinds in kind_of.items()},
+        by_source=by_source.build(),
+    )
+
+
+def classify(docx: Path) -> BlockKindsByText:
+    """Map normalized reading-line text → possible IR block kinds after import."""
+    return classify_blocks(docx).by_text
+
+
+def classify_source_spans(docx: Path) -> BlockKindsBySource:
+    """Map raw source paragraph index → normalized IR block kind/span."""
+    return classify_blocks(docx).by_source
+
+
+def _kind_label(kinds: frozenset[str]) -> str:
+    if not kinds:
+        return "Paragraph?"
+    if len(kinds) == 1:
+        return next(iter(kinds))
+    return "Ambiguous[" + "|".join(sorted(kinds)) + "]"
+
+
+def _row_may_be_kind(row: ParaRow, kind: str) -> bool:
+    return row.block_kind == kind or (
+        row.block_kind.startswith("Ambiguous[") and kind in row.block_kind
+    )
 
 
 def annotate(rows: list[ParaRow], docx: Path) -> None:
-    kind_of = classify(docx)
+    classifications = classify_blocks(docx)
     for row in rows:
+        if source_hit := classifications.by_source.get(row.index):
+            row.block_kind = _kind_label(source_hit.kinds)
+            row.block_source_span = source_hit.span
+            continue
         if row.empty:
             row.block_kind = "—"
             continue
         # A paragraph with a hard break contributes several lines; key on the first.
         first = _norm(row.text.split("\n", 1)[0])
-        row.block_kind = kind_of.get(first) or kind_of.get(_norm(row.text)) or "Paragraph?"
+        candidates = set(classifications.by_text.get(first, ()))
+        candidates.update(classifications.by_text.get(_norm(row.text), ()))
+        row.block_kind = _kind_label(frozenset(candidates))
 
 
 # ---------------------------------------------------------------------------
@@ -227,6 +379,10 @@ def annotate(rows: list[ParaRow], docx: Path) -> None:
 
 def _flags(row: ParaRow) -> str:
     out: list[str] = []
+    if row.block_source_span is not None and (
+        row.block_source_span.start != row.index or row.block_source_span.end != row.index
+    ):
+        out.append(f"ir={row.block_source_span.start}..{row.block_source_span.end}")
     if row.align:
         out.append(f"jc={row.align}")
     if row.contextual:
@@ -263,6 +419,7 @@ def _flags(row: ParaRow) -> str:
 
 
 _KIND_MARK = {
+    "LineatedBlock": "LINE ",
     "VerseBlock": "VERSE",
     "Signature": "SIGN ",
     "Epigraph": "EPIG ",
@@ -281,7 +438,11 @@ def render(rows: list[ParaRow], *, width: int = 58) -> str:
     lines.append(header)
     lines.append("-" * len(header))
     for row in rows:
-        mark = _KIND_MARK.get(row.block_kind, row.block_kind[:5])
+        mark = (
+            "AMBIG"
+            if row.block_kind.startswith("Ambiguous[")
+            else _KIND_MARK.get(row.block_kind, row.block_kind[:5])
+        )
         lg = str(row.lineation_group) if row.lineation_group is not None else "·"
         preview = re.sub(r"\s+", " ", row.text)[:width] or "∅"
         style = (row.style or "Normal")[:14]
@@ -291,66 +452,96 @@ def render(rows: list[ParaRow], *, width: int = 58) -> str:
 
 
 # ---------------------------------------------------------------------------
-# entry
+# inspection API
 # ---------------------------------------------------------------------------
 
 
-def _book_docx(number: int) -> Path:
+def resolve_book_docx(number: int, *, lang: str = "ru", content_root: Path | None = None) -> Path:
     root = Path(__file__).resolve().parents[1]
-    matches = sorted((root / "src" / "content" / "books").glob(f"{number:02d}-*"))
+    books_root = content_root / "books" if content_root is not None else root / "src" / "content" / "books"
+    matches = sorted(books_root.glob(f"{number:02d}-*"))
     if not matches:
-        raise SystemExit(f"no book folder for #{number}")
-    docx = matches[0] / "ru.docx"
+        raise DocxInspectError(f"no book folder for #{number}")
+    docx = matches[0] / f"{lang}.docx"
     if not docx.is_file():
-        raise SystemExit(f"no ru.docx in {matches[0].name}")
+        raise DocxInspectError(f"no {lang}.docx in {matches[0].name}")
     return docx
 
 
-def _select(rows: list[ParaRow], args: argparse.Namespace) -> list[ParaRow]:
-    if args.around:
-        hits = [r.index for r in rows if args.around in r.text]
+def parse_index_range(raw: str | None) -> tuple[int, int] | None:
+    if raw is None:
+        return None
+    pieces = raw.split(":")
+    if len(pieces) != 2 or not pieces[0] or not pieces[1]:
+        raise DocxInspectError("--range must be shaped as LO:HI")
+    try:
+        lo, hi = (int(piece) for piece in pieces)
+    except ValueError as exc:
+        raise DocxInspectError("--range bounds must be integers") from exc
+    if lo < 0 or hi < lo:
+        raise DocxInspectError("--range must be shaped as LO:HI with 0 <= LO <= HI")
+    return lo, hi
+
+
+def select_rows(rows: list[ParaRow], options: InspectOptions) -> list[ParaRow]:
+    if options.around is not None:
+        hits = [r.index for r in rows if options.around in r.text]
         if not hits:
-            raise SystemExit(f"no paragraph contains {args.around!r}")
+            raise DocxInspectError(f"no paragraph contains {options.around!r}")
         keep: set[int] = set()
         for h in hits:
-            keep.update(range(max(0, h - args.context), min(len(rows), h + args.context + 1)))
+            keep.update(
+                range(max(0, h - options.context), min(len(rows), h + options.context + 1))
+            )
         return [r for r in rows if r.index in keep]
-    if args.contains:
-        return [r for r in rows if args.contains in r.text]
-    if args.verse_only:
-        return [r for r in rows if r.block_kind == "VerseBlock"]
-    if args.range:
-        lo, hi = (int(x) for x in args.range.split(":"))
+    if options.contains is not None:
+        return [r for r in rows if options.contains in r.text]
+    if options.verse_only:
+        return [r for r in rows if _row_may_be_kind(r, "VerseBlock")]
+    if options.lineated_only:
+        return [r for r in rows if _row_may_be_kind(r, "LineatedBlock")]
+    if options.index_range:
+        lo, hi = options.index_range
         return [r for r in rows if lo <= r.index <= hi]
     return rows
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    src = ap.add_mutually_exclusive_group(required=True)
-    src.add_argument("docx", nargs="?", type=Path, help="path to a .docx")
-    src.add_argument("--book", type=int, help="committed RU book number (uses its ru.docx)")
-    ap.add_argument("--contains", help="only rows whose source text contains this substring")
-    ap.add_argument("--around", help="rows near (±context) paragraphs containing this substring")
-    ap.add_argument("--context", type=int, default=6, help="rows of context for --around")
-    ap.add_argument("--range", help="row index range LO:HI (inclusive)")
-    ap.add_argument("--verse-only", action="store_true", help="only rows the IR folded into a verse-block")
-    args = ap.parse_args(argv)
+def inspect_docx(docx: Path, options: InspectOptions | None = None) -> InspectResult:
+    options = options or InspectOptions()
+    if docx.suffix.lower() != ".docx":
+        raise DocxInspectError(f"expected a .docx file, got {docx}")
+    if not docx.is_file():
+        raise DocxInspectError(f"DOCX not found: {docx}")
+    try:
+        rows = read_rows(docx)
+        annotate(rows, docx)
+    except zipfile.BadZipFile as exc:
+        raise DocxInspectError(f"{docx} is not a valid ZIP/DOCX package") from exc
+    except KeyError as exc:
+        raise DocxInspectError(f"{docx} is missing required DOCX part: {exc}") from exc
+    except ET.ParseError as exc:
+        raise DocxInspectError(f"{docx} contains malformed DOCX XML: {exc}") from exc
+    except RuntimeError as exc:
+        raise DocxInspectError(exc) from exc
+    except FileNotFoundError as exc:
+        if exc.filename == "pandoc":
+            raise DocxInspectError(
+                "pandoc not found on PATH; install with `brew install pandoc`."
+            ) from exc
+        raise
+    selected = select_rows(rows, options)
+    return InspectResult(docx=docx, rows=tuple(rows), selected=tuple(selected))
 
-    docx = _book_docx(args.book) if args.book else args.docx
-    if not docx or not docx.is_file():
-        raise SystemExit(f"not a file: {docx}")
 
-    rows = read_rows(docx)
-    annotate(rows, docx)
-    selected = _select(rows, args)
-    print(f"# {docx}  ({len(rows)} body paragraphs, {len(selected)} shown)")
-    n_verse = sum(1 for r in rows if r.block_kind == "VerseBlock")
-    n_groups = len({r.lineation_group for r in rows if r.lineation_group is not None})
-    print(f"# verse-block paragraphs: {n_verse}   visual lineation-groups: {n_groups}")
-    print(render(selected))
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+def render_inspection(result: InspectResult) -> str:
+    lines = [
+        f"# {result.docx}  ({len(result.rows)} body paragraphs, {len(result.selected)} shown)",
+        (
+            f"# verse-register paragraphs: {result.verse_paragraphs}   "
+            f"lineated-prose paragraphs: {result.lineated_paragraphs}   "
+            f"visual lineation-groups: {result.lineation_groups}   "
+            f"ambiguous text matches: {result.ambiguous_paragraphs}"
+        ),
+        render(list(result.selected)),
+    ]
+    return "\n".join(lines)

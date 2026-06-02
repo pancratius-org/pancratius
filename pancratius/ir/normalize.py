@@ -19,7 +19,7 @@ Passes, in `normalize` order:
   * formatting-artifact strip — empty-emphasis husks (`** **`)
   * signatures / epigraphs   — from right alignment (the `w:jc` payload)
   * dialogue labels          — canonicalize `**Speaker:**` (incl. mixed inline)
-  * verse blocks             — fold lineated runs from stanza structure
+  * lineated / verse blocks  — fold source lineation first, then apply verse register
 """
 
 from __future__ import annotations
@@ -635,7 +635,7 @@ def thematic_breaks(blocks: list[ir.Block]) -> list[ir.Block]:
     out: list[ir.Block] = []
     for b in blocks:
         if isinstance(b, ir.Paragraph) and not b.empty and inline_plain(b.inlines) in _HR_TEXTS:
-            out.append(ir.ThematicBreak())
+            out.append(ir.ThematicBreak(source_span=b.source_span))
             continue
         out.append(b)
     return out
@@ -777,13 +777,14 @@ def structural_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
                     if s:
                         lines.append(s)
             italic_count = sum(1 for p in group if p.italic)
+            source_span = ir.merge_source_spans(p.source_span for p in group)
             if lines and _is_signature(lines):
-                out.append(ir.Signature(lines=lines))
+                out.append(ir.Signature(lines=lines, source_span=source_span))
                 i = j
                 continue
             if lines and _is_epigraph(lines, italic_count):
                 quote, footer = _split_epigraph(lines)
-                out.append(ir.Epigraph(quote=quote, footer=footer))
+                out.append(ir.Epigraph(quote=quote, footer=footer, source_span=source_span))
                 i = j
                 continue
             out.extend(group)
@@ -831,6 +832,7 @@ def _emit_dialogue_segment(
     inlines: list[ir.Inline],
     re_inside: re.Pattern[str],
     re_label: re.Pattern[str],
+    source_span: ir.SourceSpan | None,
 ) -> list[ir.Block] | None:
     """Canonicalize one dialogue segment (a paragraph or a single hard-break turn).
 
@@ -845,20 +847,24 @@ def _emit_dialogue_segment(
     if not tail:
         m = re_inside.match(head_txt)
         if m:
-            blocks: list[ir.Block] = [ir.DialogueLabel(speaker=m.group(1))]
+            blocks: list[ir.Block] = [
+                ir.DialogueLabel(speaker=m.group(1), source_span=source_span)
+            ]
             body = m.group(2).strip()
             if re.search(r"[\wЀ-ӿ]", body):
-                blocks.append(ir.Paragraph(inlines=[ir.Text(body)]))
+                blocks.append(ir.Paragraph(inlines=[ir.Text(body)], source_span=source_span))
             return blocks
         lm = re_label.match(head_txt)
         if lm:
-            return [ir.DialogueLabel(speaker=lm.group(1))]
+            return [ir.DialogueLabel(speaker=lm.group(1), source_span=source_span)]
         return None
     m = re_label.match(head_txt)
     if m:
-        out: list[ir.Block] = [ir.DialogueLabel(speaker=m.group(1))]
+        out: list[ir.Block] = [
+            ir.DialogueLabel(speaker=m.group(1), source_span=source_span)
+        ]
         if tail:
-            out.append(ir.Paragraph(inlines=tail))
+            out.append(ir.Paragraph(inlines=tail, source_span=source_span))
         return out
     m = re_inside.match(head_txt)
     if m:
@@ -868,7 +874,10 @@ def _emit_dialogue_segment(
         head_body = m.group(2).strip()
         joiner = "" if head_body and head_body[-1] in "«“„([{‹" else " "
         body_inlines: list[ir.Inline] = [ir.Text(head_body + joiner)] + tail
-        return [ir.DialogueLabel(speaker=m.group(1)), ir.Paragraph(inlines=body_inlines)]
+        return [
+            ir.DialogueLabel(speaker=m.group(1), source_span=source_span),
+            ir.Paragraph(inlines=body_inlines, source_span=source_span),
+        ]
     return None
 
 
@@ -906,13 +915,13 @@ def dialogue_labels(blocks: list[ir.Block]) -> list[ir.Block]:
         segments = _hard_break_segments(b.inlines)
         if len(segments) > 1 and sum(opens_with_speaker(s) for s in segments) >= 2:
             for seg in segments:
-                emitted = _emit_dialogue_segment(seg, re_inside, re_label)
+                emitted = _emit_dialogue_segment(seg, re_inside, re_label, b.source_span)
                 if emitted is not None:
                     out.extend(emitted)
                 else:
-                    out.append(ir.Paragraph(inlines=seg))
+                    out.append(ir.Paragraph(inlines=seg, source_span=b.source_span))
             continue
-        emitted = _emit_dialogue_segment(b.inlines, re_inside, re_label)
+        emitted = _emit_dialogue_segment(b.inlines, re_inside, re_label, b.source_span)
         if emitted is not None:
             out.extend(emitted)
         else:
@@ -921,7 +930,7 @@ def dialogue_labels(blocks: list[ir.Block]) -> list[ir.Block]:
 
 
 # ---------------------------------------------------------------------------
-# 11. verse-block detection from stanza structure
+# 11. lineation detection + verse-register promotion
 # ---------------------------------------------------------------------------
 
 
@@ -953,23 +962,33 @@ def _para_lineated(p: ir.Paragraph) -> bool:
     return bool(lines) and all(_is_lineated_line(line) for line in lines)
 
 
+def _para_has_hard_lineation(p: ir.Paragraph) -> bool:
+    """True when the source paragraph carries an explicit hard `w:br` boundary.
+
+    This is LINEATION evidence even when the lines are not verse-register lines:
+    lowering must preserve the authored break instead of collapsing it as prose.
+    """
+    return any(isinstance(n, ir.LineBreak) for n in _walk_inlines(p.inlines))
+
+
+def _para_structurally_lineated(p: ir.Paragraph) -> bool:
+    """True when a paragraph can participate in a source-lineated run.
+
+    Hard breaks are structural on their own. Short standalone paragraphs remain
+    eligible for the existing verse classifier, but are only emitted as bare
+    `LineatedBlock`s when surrounding source evidence makes that safe.
+    """
+    return not p.empty and bool(p.inlines) and (
+        _para_has_hard_lineation(p) or _para_lineated(p)
+    )
+
+
 _CODA_PSEUDO_HEADING_RE = re.compile(
     r"^(?:\d{1,4}|вопрос|ответ|question|answer)\s*:?\s*$",
     re.IGNORECASE,
 )
 _VISUAL_CODA_LINE_MAX = 64
 _VISUAL_CODA_AVG_MAX = 48.0
-
-
-def _is_strong_only_pseudo_heading(p: ir.Paragraph) -> bool:
-    if len(p.inlines) != 1:
-        return False
-    only = p.inlines[0]
-    return (
-        isinstance(only, ir.Emphasis)
-        and only.kind == "strong"
-        and bool(_CODA_PSEUDO_HEADING_RE.match(inline_plain(only.children)))
-    )
 
 
 def _block_lines(p: ir.Paragraph) -> list[list[ir.Inline]]:
@@ -982,8 +1001,8 @@ def _all_lines(paras: list[ir.Paragraph]) -> list[str]:
     return [inline_plain(ln) for p in paras for ln in _block_lines(p)]
 
 
-def _is_compact_visual_coda(lines: list[str]) -> bool:
-    """A visual coda is a compact closing couplet, not two prose preview sentences."""
+def _is_compact_coda(lines: list[str]) -> bool:
+    """A coda is a compact closing couplet, not two prose preview sentences."""
     if len(lines) != 2:
         return False
     lengths = [len(line) for line in lines]
@@ -994,30 +1013,124 @@ def _is_compact_visual_coda(lines: list[str]) -> bool:
 
 @dataclass(frozen=True)
 class _PrecedingContext:
-    """What precedes a candidate verse run, gating its classification. `named` is a
-    verse-title heading (the confident-lineation signal); `heading` is any heading;
-    `separator` is a thematic break; `visual` is a source OOXML visual-continuity
-    group from contextual spacing. The all-`False` value is the neutral context
-    after any non-heading/non-separator block."""
+    """Q2 register context preceding an already-lineated block.
+
+    The heading text and thematic separators may promote a lineated substrate to
+    verse register. They are intentionally absent from `LineationEvidence`, which
+    belongs to Q1 line-boundary provenance.
+    """
 
     named: bool = False
     heading: bool = False
     separator: bool = False
-    visual: bool = False
 
 
 _NEUTRAL_CONTEXT = _PrecedingContext()
 
 
-def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
-    """Fold runs of short source lines (one paragraph per line, empty paragraphs
-    as stanza separators) into `VerseBlock`, on the IR."""
+def _collect_lineated_run(
+    blocks: list[ir.Block],
+    i: int,
+) -> tuple[list[ir.Paragraph], int]:
+    """Collect one source-lineated paragraph run, starting at a non-empty paragraph.
+
+    Empty Word paragraphs may travel with the run as source evidence and, when
+    between non-empty lineated neighbors, as stanza separators. Leading empties
+    never start a run; edge gaps are not emitted as stanzas.
+    """
+    run: list[ir.Paragraph] = []
+    n = len(blocks)
+    while i < n:
+        b = blocks[i]
+        if isinstance(b, ir.Paragraph) and _para_structurally_lineated(b):
+            run.append(b)
+            i += 1
+            continue
+        if isinstance(b, ir.Paragraph) and b.empty and run:
+            run.append(b)
+            i += 1
+            # Keep consecutive blank source paragraphs with the same boundary; the
+            # lineated builder collapses them to a single stanza gap only if another
+            # lineated paragraph follows.
+            continue
+        break
+    return run, i
+
+
+def lineated_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
+    """Q1: fold source rows into `LineatedBlock`s, never `VerseBlock`s.
+
+    Explicit/mechanical lineation is axiomatic: Pandoc `LineBlock`s already arrive
+    as `LineatedBlock`, and paragraphs with hard `<w:br/>` boundaries are folded
+    here regardless of verse register. The only non-explicit path is the named
+    `_should_infer_source_row_lineation` gate below; it is source-row inference,
+    not register promotion.
+    """
     out: list[ir.Block] = []
     i = 0
-    n = len(blocks)
+    after_source_boundary = True
+
+    while i < len(blocks):
+        b = blocks[i]
+        if isinstance(b, (ir.Heading, ir.ThematicBreak)):
+            out.append(b)
+            after_source_boundary = True
+            i += 1
+            continue
+        if isinstance(b, (ir.LineatedBlock, ir.VerseBlock)):
+            out.append(b)
+            after_source_boundary = False
+            i += 1
+            continue
+        if isinstance(b, ir.Paragraph) and b.empty:
+            out.append(b)
+            i += 1
+            continue
+        if isinstance(b, ir.Paragraph) and b.lineation_group is not None:
+            group, i = _collect_visual_group(blocks, i)
+            out.extend(_source_row_lineation_blocks(
+                group,
+                after_source_boundary=after_source_boundary,
+                before_source_boundary=_has_source_boundary_after_gap(blocks, i),
+            ))
+            after_source_boundary = False
+            continue
+        if isinstance(b, ir.Paragraph) and _para_structurally_lineated(b):
+            run, i = _collect_lineated_run(blocks, i)
+            out.extend(_lineated_run_blocks(
+                run,
+                after_source_boundary=after_source_boundary,
+                before_source_boundary=_has_source_boundary_after_gap(blocks, i),
+            ))
+            after_source_boundary = False
+            continue
+        out.append(b)
+        after_source_boundary = False
+        i += 1
+    return out
+
+
+def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
+    """Q1 lineation, then Q2 verse-register promotion.
+
+    This compatibility entry point preserves the old public pass name while making
+    the two questions explicit: it first decides line breaks, then only wraps
+    already-lineated blocks in the `verse` register.
+    """
+    return promote_verse_register(lineated_blocks(blocks))
+
+
+def promote_verse_register(blocks: list[ir.Block]) -> list[ir.Block]:
+    """Q2: promote already-lineated blocks to `VerseBlock`s.
+
+    This pass may use register context such as headings, named verse titles, and
+    separators. It never folds paragraphs and therefore cannot create hard breaks.
+    """
+    out: list[ir.Block] = []
+    i = 0
     ctx = _NEUTRAL_CONTEXT
 
-    while i < n:
+    while i < len(blocks):
         b = blocks[i]
         if isinstance(b, ir.Heading):
             title = inline_plain(b.inlines)
@@ -1033,6 +1146,21 @@ def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
             out.append(b)
             i += 1
             continue
+        if isinstance(b, ir.LineatedBlock):
+            if (kind := _lineated_block_kind(b, ctx)) is not None:
+                verse = ir.VerseBlock(stanzas=b.stanzas, role=kind, source_span=b.source_span)
+                if (segment := _lineated_coda_segment(blocks, i + 1, verse)) is not None:
+                    verse, next_i = segment
+                    out.append(verse)
+                    ctx = _NEUTRAL_CONTEXT
+                    i = next_i
+                    continue
+                out.append(verse)
+            else:
+                out.append(b)
+            ctx = _NEUTRAL_CONTEXT
+            i += 1
+            continue
         if isinstance(b, ir.VerseBlock):
             if (segment := _existing_verse_coda_segment(blocks, i)) is not None:
                 verse, next_i = segment
@@ -1043,37 +1171,6 @@ def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
             ctx = _NEUTRAL_CONTEXT
             out.append(b)
             i += 1
-            continue
-        if isinstance(b, ir.Paragraph) and b.lineation_group is not None:
-            visual_ctx = _PrecedingContext(
-                named=ctx.named,
-                heading=ctx.heading,
-                separator=ctx.separator,
-                visual=True,
-            )
-            if (segment := _visual_verse_coda_segment(blocks, i, visual_ctx)) is not None:
-                emitted, next_i = segment
-                out.extend(emitted)
-                ctx = _NEUTRAL_CONTEXT
-                i = next_i
-                continue
-            group, i = _collect_visual_group(blocks, i)
-            out.extend(_visual_verse_blocks(group, visual_ctx))
-            ctx = _NEUTRAL_CONTEXT
-            continue
-        if isinstance(b, ir.Paragraph) and (b.empty or _para_lineated(b)):
-            run_ctx = ctx
-            run: list[ir.Paragraph] = []
-            while i < n and isinstance((pi := blocks[i]), ir.Paragraph) and (
-                pi.empty or _para_lineated(pi)
-            ):
-                run.append(pi)
-                i += 1
-            # `_run_kind` owns the run-length floor (>=2 with confident source
-            # lineation, >=3 for the weak bare-standalone-paragraph signal); the
-            # outer guard only re-asserts the universal >=2 minimum.
-            out.extend(_lineated_run_blocks(run, run_ctx))
-            ctx = _NEUTRAL_CONTEXT
             continue
         ctx = _NEUTRAL_CONTEXT
         out.append(b)
@@ -1097,6 +1194,39 @@ def _collect_visual_group(
     return group, i
 
 
+def _source_row_lineation_blocks(
+    group: list[ir.Paragraph],
+    *,
+    after_source_boundary: bool,
+    before_source_boundary: bool,
+) -> list[ir.Block]:
+    """Fold eligible sub-runs inside one OOXML visual-continuity group.
+
+    The group is used only as a source segmentation boundary. It is not itself a
+    reason to preserve hard breaks or to apply verse register.
+    """
+    out: list[ir.Block] = []
+    i = 0
+    boundary_available = after_source_boundary
+    while i < len(group):
+        p = group[i]
+        if _para_structurally_lineated(p):
+            run: list[ir.Paragraph] = []
+            while i < len(group) and _para_structurally_lineated(group[i]):
+                run.append(group[i])
+                i += 1
+            out.extend(_lineated_run_blocks(
+                run,
+                after_source_boundary=boundary_available,
+                before_source_boundary=before_source_boundary and i == len(group),
+            ))
+            boundary_available = False
+            continue
+        out.append(p)
+        i += 1
+    return out
+
+
 def _skip_empty_paragraphs(blocks: list[ir.Block], i: int) -> tuple[int, bool]:
     start = i
     while i < len(blocks) and isinstance((p := blocks[i]), ir.Paragraph) and p.empty:
@@ -1104,13 +1234,18 @@ def _skip_empty_paragraphs(blocks: list[ir.Block], i: int) -> tuple[int, bool]:
     return i, i > start
 
 
-def _visual_coda_candidate(
+def _has_source_boundary_after_gap(blocks: list[ir.Block], i: int) -> bool:
+    i, _saw_gap = _skip_empty_paragraphs(blocks, i)
+    return i >= len(blocks) or isinstance(blocks[i], (ir.Heading, ir.ThematicBreak))
+
+
+def _lineated_coda_candidate(
     blocks: list[ir.Block],
     i: int,
-) -> tuple[list[ir.Paragraph], int] | None:
+) -> tuple[ir.LineatedBlock, int] | None:
     """A local coda segment after a verse run.
 
-    Shape: one or more empty paragraphs, an exact two-line same-visual-group
+    Shape: one or more empty paragraphs, an exact two-line lineated
     candidate, optional empty paragraphs, then a heading/thematic boundary. The
     candidate must be compact; this keeps prose previews before the next heading in
     prose without naming their words.
@@ -1120,19 +1255,14 @@ def _visual_coda_candidate(
         return None
 
     first = blocks[i] if i < len(blocks) else None
-    if not isinstance(first, ir.Paragraph) or first.empty or first.lineation_group is None:
+    if not isinstance(first, ir.LineatedBlock):
         return None
-    coda, i = _collect_visual_group(blocks, i)
-    if not coda:
-        return None
-    for p in coda:
-        if not (
-            not p.empty and _para_lineated(p) and not _is_strong_only_pseudo_heading(p)
-        ):
-            return None
+    i += 1
 
-    coda_lines = _all_lines(coda)
-    if not _is_compact_visual_coda(coda_lines):
+    coda_lines = _lineated_block_lines(first)
+    if not _is_compact_coda(coda_lines):
+        return None
+    if any(_CODA_PSEUDO_HEADING_RE.match(line) for line in coda_lines):
         return None
 
     boundary_i, _saw_trailing_gap = _skip_empty_paragraphs(blocks, i)
@@ -1140,14 +1270,27 @@ def _visual_coda_candidate(
     if not isinstance(boundary, (ir.Heading, ir.ThematicBreak)):
         return None
 
-    return coda, boundary_i
+    return first, boundary_i
 
 
-def _append_coda_copy(prev: ir.VerseBlock, coda: list[ir.Paragraph]) -> ir.VerseBlock:
+def _append_coda_copy(prev: ir.VerseBlock, coda: ir.LineatedBlock) -> ir.VerseBlock:
     return ir.VerseBlock(
-        stanzas=[*prev.stanzas, *_build_verse(coda, prev.role).stanzas],
+        stanzas=[*prev.stanzas, *coda.stanzas],
         role=prev.role,
+        source_span=ir.merge_source_spans((prev.source_span, coda.source_span)),
     )
+
+
+def _lineated_coda_segment(
+    blocks: list[ir.Block],
+    i: int,
+    prev: ir.VerseBlock,
+) -> tuple[ir.VerseBlock, int] | None:
+    candidate = _lineated_coda_candidate(blocks, i)
+    if candidate is None:
+        return None
+    coda, next_i = candidate
+    return _append_coda_copy(prev, coda), next_i
 
 
 def _existing_verse_coda_segment(
@@ -1156,123 +1299,197 @@ def _existing_verse_coda_segment(
 ) -> tuple[ir.VerseBlock, int] | None:
     prev = blocks[i]
     assert isinstance(prev, ir.VerseBlock)
-    candidate = _visual_coda_candidate(blocks, i + 1)
-    if candidate is None:
-        return None
-    coda, next_i = candidate
-    return _append_coda_copy(prev, coda), next_i
-
-
-def _visual_verse_coda_segment(
-    blocks: list[ir.Block],
-    i: int,
-    ctx: _PrecedingContext,
-) -> tuple[list[ir.Block], int] | None:
-    """Classify `visual verse run + gap + compact two-line coda + boundary`.
-
-    This makes the coda decision before the first visual run is emitted, so the
-    surrounding source segment is visible and no previously emitted block needs to
-    be rewritten.
-    """
-    group, after_group = _collect_visual_group(blocks, i)
-    emitted = _visual_verse_blocks(group, ctx)
-    if not emitted or not isinstance((prev := emitted[-1]), ir.VerseBlock):
-        return None
-    candidate = _visual_coda_candidate(blocks, after_group)
-    if candidate is None:
-        return None
-    coda, next_i = candidate
-    return [*emitted[:-1], _append_coda_copy(prev, coda)], next_i
-
-
-def _visual_verse_blocks(
-    group: list[ir.Paragraph], ctx: _PrecedingContext
-) -> list[ir.Block]:
-    """Classify short lineated sub-runs inside one source visual group.
-
-    A contextual-spacing group answers only "these Word paragraphs render
-    together". It may begin with a long prose/citation line, so the semantic verse
-    classifier works on the short sub-runs inside the group instead of letting that
-    opener consume the heading/separator signal.
-    """
-    out: list[ir.Block] = []
-    i = 0
-    while i < len(group):
-        p = group[i]
-        if p.empty or _para_lineated(p):
-            run: list[ir.Paragraph] = []
-            while i < len(group) and (group[i].empty or _para_lineated(group[i])):
-                run.append(group[i])
-                i += 1
-            out.extend(_lineated_run_blocks(run, ctx))
-            continue
-        out.append(p)
-        i += 1
-    return out
+    return _lineated_coda_segment(blocks, i + 1, prev)
 
 
 def _lineated_run_blocks(
     run: list[ir.Paragraph],
-    ctx: _PrecedingContext,
+    *,
+    after_source_boundary: bool,
+    before_source_boundary: bool,
 ) -> list[ir.Block]:
-    """Return either the folded verse block or the original paragraph run."""
-    kind = _run_kind(run, ctx)
-    content = [p for p in run if not p.empty]
-    if kind and len(_all_lines(content)) >= 2:
-        return [_build_verse(run, kind)]
-    return list(run)
-
-
-def _run_kind(run: list[ir.Paragraph], ctx: _PrecedingContext) -> ir.VerseRole | None:
+    """Return a structural lineated block or the original paragraphs."""
     content = [p for p in run if not p.empty]
     lines = _all_lines(content)
+    if len(lines) < 2:
+        return list(run)
+    evidence = _run_evidence(run)
+    if not evidence.hard_break and _should_infer_source_row_lineation(
+        run,
+        after_source_boundary=after_source_boundary,
+        before_source_boundary=before_source_boundary,
+    ):
+        evidence = ir.LineationEvidence(
+            hard_break=evidence.hard_break,
+            inferred_source_rows=True,
+            stanza_break=evidence.stanza_break,
+            compact_callout=evidence.compact_callout,
+        )
+    if not (
+        evidence.hard_break
+        or evidence.inferred_source_rows
+        or evidence.compact_callout
+    ):
+        return list(run)
+    lineated = _build_lineated(run, evidence=evidence)
+    return [lineated]
 
+
+def _lineated_block_lines(block: ir.LineatedBlock) -> list[str]:
+    return [
+        inline_plain(line)
+        for stanza in block.stanzas
+        for line in stanza
+        if inline_plain(line)
+    ]
+
+
+def _lineated_block_kind(
+    block: ir.LineatedBlock,
+    ctx: _PrecedingContext,
+) -> ir.VerseRole | None:
+    """Promote an already-structural lineated block to verse register."""
+    lines = _lineated_block_lines(block)
+    return _kind_for_lines(lines, block.evidence, ctx)
+
+
+def _is_strong_colon_opener(p: ir.Paragraph) -> bool:
+    if len(p.inlines) != 1:
+        return False
+    only = p.inlines[0]
+    return (
+        isinstance(only, ir.Emphasis)
+        and only.kind == "strong"
+        and inline_plain(only.children).rstrip().endswith(":")
+    )
+
+
+def _is_compact_strong_opener_callout(run: list[ir.Paragraph]) -> bool:
+    """A narrow source-lineation signal for DOCX callouts.
+
+    This is not "blank before short lines". It requires the run itself to be a
+    compact unindented callout with a bold colon opener followed by very short
+    source paragraphs. Indented paragraph runs stay prose, which protects
+    one-sentence-per-paragraph body text.
+    """
+    content = [p for p in run if not p.empty]
+    if not (3 <= len(content) <= 8):
+        return False
+    if any(p.indented for p in content):
+        return False
+    if not _is_strong_colon_opener(content[0]):
+        return False
+    lines = _all_lines(content)
+    if len(lines) != len(content):
+        return False
+    lengths = [len(line) for line in lines]
+    return max(lengths) <= 80 and (sum(lengths) / len(lengths)) <= 45.0
+
+
+def _should_infer_source_row_lineation(
+    run: list[ir.Paragraph],
+    *,
+    after_source_boundary: bool,
+    before_source_boundary: bool,
+) -> bool:
+    """Q1b gate: infer lineation from compact source rows.
+
+    This is intentionally named as inference and uses only source-row shape:
+    short label-free rows, stanza empties, a structural section boundary, or a
+    narrow unindented strong-colon callout. It does not inspect heading titles or
+    decide verse register.
+    """
+    content = [p for p in run if not p.empty]
+    if not content or not all(_para_lineated(p) for p in content):
+        return False
+    if any(p.indented for p in content):
+        return False
+    if _is_compact_strong_opener_callout(run):
+        return True
+    lines = _all_lines(content)
+    if len(lines) < 2:
+        return False
+    lengths = [len(line) for line in lines]
+    avg = sum(lengths) / len(lengths)
+    if after_source_boundary and len(lines) <= 32 and avg <= 95 and max(lengths) <= 150:
+        return True
+    if (
+        before_source_boundary
+        and len(lines) == 2
+        and _is_compact_coda(lines)
+        and not any(_CODA_PSEUDO_HEADING_RE.match(line) for line in lines)
+    ):
+        return True
+    if any(p.empty for p in run) and len(lines) >= 3 and avg <= 120:
+        return True
+    return False
+
+
+def _run_evidence(run: list[ir.Paragraph]) -> ir.LineationEvidence:
+    content = [p for p in run if not p.empty]
+    return ir.LineationEvidence(
+        hard_break=any(
+            any(isinstance(x, ir.LineBreak) for x in _walk_inlines(p.inlines))
+            for p in content
+        ),
+        # Any blank captured with the run is source lineation evidence. Edge blanks
+        # are trimmed when building stanzas so they do not render as fake empty
+        # stanzas, but a trailing blank still signals that the preceding compact run
+        # was authored as lineated material rather than ordinary prose sentences.
+        stanza_break=any(p.empty for p in run),
+        compact_callout=_is_compact_strong_opener_callout(run),
+    )
+
+
+def _kind_for_lines(
+    lines: list[str],
+    evidence: ir.LineationEvidence,
+    ctx: _PrecedingContext,
+) -> ir.VerseRole | None:
+    if len(lines) < 2 or not all(_is_lineated_line(line) for line in lines):
+        return None
     def _passes(avg_max: float, line_max: int | None = None) -> bool:
         """The run's mean line length is within `avg_max` and (when given) every line
         is within `line_max`. The `(avg_max, line_max)` pair is all that varies across
         the ladder below."""
         return avg <= avg_max and (line_max is None or max(lengths) <= line_max)
 
-    # A paragraph carrying a hard `LineBreak` (`<w:br/>`) is authored multi-line
-    # verse — the strongest source-lineation signal. A `SoftBreak` is prose wrapping
-    # and is not counted; the walk recurses so a hard break nested in `Emph` counts.
-    has_hard_break = any(
-        any(isinstance(x, ir.LineBreak) for x in _walk_inlines(p.inlines))
-        for p in content
-    )
-    # Run-length floor (the spec's "verse run = >=2 short lineated source lines"). A
-    # hard break or a named verse-title heading is a confident source-lineation
-    # signal, so two lines suffice; a run of bare standalone single-line paragraphs
-    # is the weak signal (a paragraph boundary alone can't tell a couplet from two
-    # prose sentences) and needs >=3. Each line is already short and label-free —
-    # `_para_lineated` broke the run before any long/label line reached here.
-    # Visual OOXML grouping is a source signal, but it is weaker than a hard break,
-    # heading, or separator: two short same-style paragraphs after a speaker turn
-    # can still be ordinary prose. Let visual-only runs clear the weak >=3 floor
-    # before the visual branch below classifies them.
-    confident_lineation = has_hard_break or ctx.named or ctx.heading or ctx.separator
-    min_lines = 2 if confident_lineation else 3
-    if len(lines) < min_lines:
-        return None
     lengths = [len(line) for line in lines]
+    if evidence.hard_break and max(lengths) > VERSE_SHORT_LINE_MAX:
+        return None
     avg = sum(lengths) / len(lengths)
-    empty_count = sum(1 for p in run if p.empty)
     if ctx.named:
-        return "verse-block" if _passes(150) else None
+        return "verse" if _passes(150) else None
     if ctx.separator and len(lines) <= 32:
-        return "verse-block" if _passes(110, 160) else None
+        return "verse" if _passes(110, 160) else None
     if ctx.heading and len(lines) <= 32:
-        return "verse-block" if _passes(95, 150) else None
-    if ctx.visual and len(lines) <= 64:
-        return "verse-block" if _passes(95, 120) else None
-    if has_hard_break:
-        return "verse-block"
-    if empty_count and _passes(120):
-        return "verse-block"
+        return "verse" if _passes(95, 150) else None
+    if evidence.compact_callout:
+        return None
+    if evidence.hard_break:
+        return "verse"
+    if evidence.stanza_break and len(lines) >= 3 and _passes(120):
+        return "verse"
+    if evidence.inferred_source_rows and len(lines) >= 3 and _passes(95, 120):
+        return "verse"
     return None
 
 
-def _build_verse(run: list[ir.Paragraph], kind: ir.VerseRole) -> ir.VerseBlock:
+def _trim_empty_edges(run: list[ir.Paragraph]) -> list[ir.Paragraph]:
+    start = 0
+    end = len(run)
+    while start < end and run[start].empty:
+        start += 1
+    while end > start and run[end - 1].empty:
+        end -= 1
+    return run[start:end]
+
+
+def _build_lineated(
+    run: list[ir.Paragraph],
+    *,
+    evidence: ir.LineationEvidence | None = None,
+) -> ir.LineatedBlock:
     """Build stanzas: an empty paragraph is a stanza break; a `***` paragraph is a
     one-line separator stanza."""
     stanzas: list[list[list[ir.Inline]]] = []
@@ -1284,7 +1501,8 @@ def _build_verse(run: list[ir.Paragraph], kind: ir.VerseRole) -> ir.VerseBlock:
             stanzas.append(current)
             current = []
 
-    for p in run:
+    source_run = _trim_empty_edges(run)
+    for p in source_run:
         if p.empty:
             flush()
             continue
@@ -1295,7 +1513,11 @@ def _build_verse(run: list[ir.Paragraph], kind: ir.VerseRole) -> ir.VerseBlock:
         for ln in _block_lines(p):
             current.append(ln)
     flush()
-    return ir.VerseBlock(stanzas=stanzas, role=kind)
+    return ir.LineatedBlock(
+        stanzas=stanzas,
+        evidence=evidence or ir.LineationEvidence(),
+        source_span=ir.merge_source_spans(p.source_span for p in source_run),
+    )
 
 
 # ---------------------------------------------------------------------------

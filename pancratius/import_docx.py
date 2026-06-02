@@ -521,7 +521,7 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
     content_root = Path(request.out_content).expanduser().resolve()
     # Do not create content_root: the writer is the only mutator and dry-run must touch
     # nothing; scan_catalog tolerates a missing root.
-    entries = [e for e in scan_catalog(content_root) if e.kind in CORPUS_WORK_KINDS]
+    entries = scan_catalog(content_root, kinds=CORPUS_WORK_KINDS)
 
     target = _resolve_target(request, entries, docx, content_root)
     real_work_dir = content_root / KIND_DIRS[target.kind] / target.work_key

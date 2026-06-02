@@ -231,6 +231,67 @@ def _docx_merge(args: argparse.Namespace) -> int:
     return 0
 
 
+def _docx_inspect(args: argparse.Namespace) -> int:
+    """`docx inspect` — read-only source DOCX/importer signal diagnostics."""
+    from pancratius.docx_inspect import (
+        DocxInspectError,
+        InspectOptions,
+        inspect_docx,
+        parse_index_range,
+        render_inspection,
+        resolve_book_docx,
+    )
+
+    try:
+        options = InspectOptions(
+            contains=args.contains,
+            around=args.around,
+            context=args.context,
+            index_range=parse_index_range(args.range),
+            verse_only=args.verse_only,
+            lineated_only=args.lineated_only,
+        )
+        docx = (
+            resolve_book_docx(args.book, lang=args.lang, content_root=Path(args.content_root))
+            if args.book is not None
+            else Path(args.docx)
+        )
+        result = inspect_docx(docx, options)
+    except DocxInspectError as exc:
+        return _fail(exc, 2)
+    print(render_inspection(result))
+    return 0
+
+
+def _docx_render_slice(args: argparse.Namespace) -> int:
+    """`docx render-slice` — render a diagnostic paragraph slice via LibreOffice."""
+    from pancratius.docx_inspect import DocxInspectError, parse_index_range, resolve_book_docx
+    from pancratius.docx_render import DocxRenderError, range_key, render, resolve_range
+
+    try:
+        docx = (
+            resolve_book_docx(args.book, lang=args.lang, content_root=Path(args.content_root))
+            if args.book is not None
+            else Path(args.docx)
+        )
+        lo, hi, rows = resolve_range(
+            docx,
+            around=args.around,
+            context=args.context,
+            index_range=parse_index_range(args.range),
+        )
+        pages = render(docx, lo, hi, Path(args.out))
+    except (DocxInspectError, DocxRenderError) as exc:
+        return _fail(exc, 2)
+    print(f"rendered paragraphs [{lo}..{hi}] of {docx.name} -> {len(pages)} page(s)")
+    for page in pages:
+        print(f"  {page}")
+    print("\nparagraph index -> text (correlate with `docx inspect`):")
+    for line in range_key(rows, lo, hi):
+        print(f"  {line}")
+    return 0
+
+
 # --- handlers (conceptosphere group) ------------------------------------------
 def _conceptosphere_graph_generate(args: argparse.Namespace) -> int:
     """`conceptosphere graph generate [--only concepts|books]` — regenerate the
@@ -375,6 +436,9 @@ def _add_downloads_group(sub: argparse._SubParsersAction[argparse.ArgumentParser
 
 
 def _add_docx_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    from pancratius import import_docx  # light (no ML); owns DEFAULT_CONTENT_ROOT
+    from pancratius.locales import LOCALES
+
     docx = sub.add_parser("docx", help="Maintain source DOCX artifacts.")
     docx.set_defaults(func=_require_subcommand(docx))
     docx_sub = docx.add_subparsers(dest="noun", metavar="<noun>")
@@ -400,6 +464,59 @@ def _add_docx_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         help="Optional part spec shaped as 'Part title::first heading prefix'. Repeat in source order.",
     )
     merge.set_defaults(func=_docx_merge)
+
+    inspect = docx_sub.add_parser(
+        "inspect",
+        help="Inspect read-only OOXML/importer paragraph signals in a source DOCX.",
+    )
+    inspect_src = inspect.add_mutually_exclusive_group(required=True)
+    inspect_src.add_argument("docx", nargs="?", help="Source .docx file to inspect.")
+    inspect_src.add_argument("--book", type=int, help="Committed book number; inspects its <lang>.docx.")
+    inspect.add_argument("--lang", choices=tuple(LOCALES), default="ru", help="Language for --book.")
+    inspect.add_argument(
+        "--content-root",
+        default=str(import_docx.DEFAULT_CONTENT_ROOT),
+        help="Content root for --book lookup; defaults to src/content.",
+    )
+    inspect_filter = inspect.add_mutually_exclusive_group()
+    inspect_filter.add_argument("--contains", help="Show only rows whose source text contains this substring.")
+    inspect_filter.add_argument(
+        "--around",
+        help="Show rows around paragraphs whose source text contains this substring.",
+    )
+    inspect_filter.add_argument("--range", help="Show row index range LO:HI (inclusive).")
+    inspect_filter.add_argument(
+        "--verse-only",
+        action="store_true",
+        help="Show only rows the importer promoted to verse register.",
+    )
+    inspect_filter.add_argument(
+        "--lineated-only",
+        action="store_true",
+        help="Show only rows the importer folded into a lineated-prose block.",
+    )
+    inspect.add_argument("--context", type=int, default=6, help="Rows of context for --around.")
+    inspect.set_defaults(func=_docx_inspect)
+
+    render_slice = docx_sub.add_parser(
+        "render-slice",
+        help="Render a diagnostic DOCX paragraph slice to PNG via LibreOffice.",
+    )
+    render_src = render_slice.add_mutually_exclusive_group(required=True)
+    render_src.add_argument("docx", nargs="?", help="Source .docx file to render.")
+    render_src.add_argument("--book", type=int, help="Committed book number; renders its <lang>.docx.")
+    render_slice.add_argument("--lang", choices=tuple(LOCALES), default="ru", help="Language for --book.")
+    render_slice.add_argument(
+        "--content-root",
+        default=str(import_docx.DEFAULT_CONTENT_ROOT),
+        help="Content root for --book lookup; defaults to src/content.",
+    )
+    render_filter = render_slice.add_mutually_exclusive_group(required=True)
+    render_filter.add_argument("--around", help="Render rows around paragraphs containing this text.")
+    render_filter.add_argument("--range", help="Render row index range LO:HI (inclusive).")
+    render_slice.add_argument("--context", type=int, default=10, help="Rows of context for --around.")
+    render_slice.add_argument("--out", required=True, help="Output PNG path; multi-page slices add suffixes.")
+    render_slice.set_defaults(func=_docx_render_slice)
 
 
 def _video_sync(args: argparse.Namespace) -> int:

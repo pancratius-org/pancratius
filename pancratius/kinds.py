@@ -10,13 +10,16 @@ from __future__ import annotations
 
 # Routed content kind -> structural-noun URL segment (also the content-collection
 # name). Includes `project` (themed sections under /projects/) and `video`
-# (catalogued YouTube/other-platform videos under /videos/) — both route and
-# appear in the sitemap. Routing breadth != convertible-work scope.
+# (catalogued YouTube/other-platform videos under /videos/) and `message`
+# (dated «Послания» posts under /poslaniya/) — all route and appear in the
+# sitemap. Routing breadth != convertible-work scope. `message`'s segment is a
+# transliterated-Russian stem (svetozar precedent), not an English noun.
 SEGMENT_OF: dict[str, str] = {
     "book": "books",
     "poem": "poetry",
     "project": "projects",
     "video": "videos",
+    "message": "poslaniya",
 }
 
 # The kinds that are convertible/downloadable corpus works — the source of truth
