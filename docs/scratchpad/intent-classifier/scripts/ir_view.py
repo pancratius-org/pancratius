@@ -226,6 +226,12 @@ def read_view(docx: Path, *, mask: dict[int, di.MaskVerdict] | None = None) -> l
     re-reads one. The full single-pass fix (one pipeline run) is Slice 1+ (the
     source-view reads votability off the structural-IR seam directly)."""
     geom = wrapmod.page_geom(docx)
+    # The first pass reads PRE-normalize blocks (adapt only, no normalize): verse/lineated
+    # runs do not exist yet — each authored line is still a Paragraph — so this pass only
+    # ever sees Paragraph for body content and never assigns ROLE_OTHER to it. The mask
+    # (post-normalize, below) maps those same ordinals to BODY, so the second pass keeps
+    # them ROLE_BODY. Adding normalize() here would make this pass see VerseBlock/Lineated
+    # as non-body and the mask would then never refine them — do not.
     with tempfile.TemporaryDirectory(prefix="ir-view-") as td:
         doc = da.adapt(docx, Path(td))
     out: list[Para] = []

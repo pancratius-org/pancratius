@@ -410,6 +410,8 @@ def _verdict_for(
         return MaskVerdict.REVIEW
     (kind,) = tuple(kinds)
     if orphan_body:
+        # `orphan_body` is only ever set for {DialogueLabel} ordinals (_orphaned_body_ordinals
+        # only adds those), so this fires before the structural check below to keep them votable.
         # A lone {DialogueLabel} whose turn body was lineated and lost its span:
         # the `<w:p>` still carries votable body text the classifier can no longer
         # see at this ordinal. Flag, never mask. (Slice 0 cannot split the label
