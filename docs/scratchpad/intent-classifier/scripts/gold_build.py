@@ -294,8 +294,8 @@ _HARD_CTX = {
     iv.ROLE_EMPTY: "blank", iv.ROLE_TABLE: "table", iv.ROLE_LIST: "list",
     iv.ROLE_SIGNATURE: "right-aligned", iv.ROLE_EPIGRAPH: "right-aligned",
     iv.ROLE_BLOCKQUOTE: "blockquote", iv.ROLE_OTHER: "other-block",
-    # inferred soft roles collapsed to a neutral marker (don't leak the harness guess)
-    iv.ROLE_PSEUDO_HEADER: "bold-line", iv.ROLE_SPEAKER_LABEL: "bold-line",
+    # the production compiler classified this <w:p> as non-body structure
+    iv.ROLE_CONTEXT: "context",
 }
 
 

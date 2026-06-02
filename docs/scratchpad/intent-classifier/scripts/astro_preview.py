@@ -172,8 +172,8 @@ def _struct_html(p: iv.Para) -> str:
                            f"padding:2px 8px\">{html.escape(c)}</td>" for c in ln.text.split(" | "))
                            + "</tr>" for ln in p.lines)
             return f'<table style="border-collapse:collapse;margin:1em 0;font-size:.92em">{rows}</table>'
-        case iv.ROLE_PSEUDO_HEADER | iv.ROLE_SPEAKER_LABEL:
-            return f"<p><strong>{t}</strong></p>"
+        case iv.ROLE_CONTEXT:    # production compiler: non-body structure (dialogue label/…)
+            return f'<p style="color:var(--ink-soft)">{t}</p>'
         case _:
             return f'<p style="color:var(--ink-mute)">[{t}]</p>' if t else ""
 
