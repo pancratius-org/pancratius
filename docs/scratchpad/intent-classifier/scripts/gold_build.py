@@ -142,8 +142,11 @@ only prose vs lineated.)
 EVIDENCE you are given per region:
   1. A composite IMAGE: the DOCX PAGE on the left (LibreOffice — the AUTHORITY for how the
      author's lines actually sit on the page: stanza gaps, short lines, indentation), and
-     beside it the SAME text rendered two ways — as PROSE (lines joined into paragraphs)
-     and as LINEATED (each line kept, stanza gaps). Look at which rendering reads TRUE.
+     beside it the SAME text rendered two ways — as PROSE (each source paragraph set with
+     prose typography; a paragraph's own soft-wrapped lines flow together) and as LINEATED
+     (every source line kept on its own line, with stanza gaps). Source paragraphs the author
+     indented in the DOCX are shown block-indented in BOTH panels — a cue, not a rule. Look at
+     which rendering reads TRUE against the page.
   2. A per-line STRUCTURE listing: each body line keyed (idx.sub) with its text, whether it
      WRAPS at the real reading column, and any emphasis. Hard structural markers
      (heading / *** / image / blank / right-aligned / blockquote) are shown as separators —
@@ -359,7 +362,15 @@ def _package_region(paths: GoldPaths, book: str, paras: list[iv.Para], tlo: int,
     idxs = [p.index for p in paras]
     plo, phi = max(min(idxs), tlo - 1), min(max(idxs), thi + 1)
     region = ap._region(paras, plo, phi)
-    src_lo, src_hi = ap._src_span(region)
+    # Crop leading/trailing UNMAPPED paras (no source ordinal → not locatable on the rendered
+    # DOCX page) so candidate-visible text ⊆ page evidence. Interior unmapped paras sit within
+    # the page's physical span and are kept. (Without this, edge context like an adjacent
+    # span-less list/verse run shows in the candidate panels but not on the authoritative page.)
+    while region and region[0].src_start is None:
+        region.pop(0)
+    while region and region[-1].src_start is None:
+        region.pop()
+    src_lo, src_hi = ap._src_span(region)   # raises RegionUnlocatable if nothing locatable
     structure = _structure(region, tlo, thi)
     entry = {"rid": rid, "book": book, "stratum": stratum, "ir_lo": tlo, "ir_hi": thi,
              "tiled": tiled, "composite": str(comp_path), "structure": structure.listing,

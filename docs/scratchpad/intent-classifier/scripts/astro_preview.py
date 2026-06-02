@@ -132,17 +132,23 @@ def _block_html(members: list[iv.Para], cls: RenderClass) -> str:
         else:
             stanzas[-1].append(p)
     stanzas = [s for s in stanzas if s]
+    # Source-author DOCX indentation: a faithful EVIDENCE cue (some <w:p> are indented in the
+    # source; the reader uses that to tell running prose from lineation). Shown as a block
+    # left-indent — visually distinct from the site's typographic first-line indent — via an
+    # inline style only (no production CSS change). NEVER a lineation label rule.
+    si = ' style="padding-left:1.6em"'
     if cls == "prose":
         # one <p> per SOURCE paragraph (this corpus separates paragraphs by spacing, not
-        # blank lines) — so each gets the prose first-line indent, instead of fusing a whole
-        # run into one justified wall.
-        return "\n".join(f"<p>{' '.join(_emph(ln) for ln in p.lines)}</p>"
+        # blank lines) — each set with prose typography; within-paragraph soft-wrapped lines
+        # flow together. Not whole-run fusion.
+        return "\n".join(f"<p{si if p.indented else ''}>{' '.join(_emph(ln) for ln in p.lines)}</p>"
                          for s in stanzas for p in s)
     wrap_cls = "lineated verse" if cls == "verse" else "lineated"
     out = [f'<div class="{wrap_cls}">']
     for s in stanzas:
-        lines = [_emph(ln) for p in s for ln in p.lines]
-        out.append("<p>" + "<br>\n".join(lines) + "</p>")
+        lines = "<br>\n".join(_emph(ln) for p in s for ln in p.lines)
+        indent = si if (s and all(p.indented for p in s)) else ""   # indent a wholly-indented stanza
+        out.append(f"<p{indent}>{lines}</p>")
     out.append("</div>")
     return "\n".join(out)
 
