@@ -1,0 +1,7 @@
+# Transient/derived — heavy and regenerable; kept out of git. The gold *labels*, scripts,
+# and docs are committed; PNGs/composites/renders rebuild from src/content via the pipeline.
+__pycache__/
+renders/
+data/*/png/
+data/*/raw/
+adjudicate/assessment_gold_block2.json

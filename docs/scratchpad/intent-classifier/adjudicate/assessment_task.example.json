@@ -1,0 +1,65 @@
+{
+  "title": "Verse vs Prose — sample",
+  "instructions": "For each page, decide what the rendered text reads as. You are the ground-truth authority; if it is genuinely ambiguous, say so in the note. Hints from the model panel are hidden by default — only reveal them after you have formed your own judgement.",
+  "items": [
+    {
+      "id": "w51_13-1",
+      "mode": "single-choice",
+      "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NjAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iNDYwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2ZiZjhmMSIvPjxnIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLHNlcmlmIiBmaWxsPSIjMjMyMDFjIj48dGV4dCB4PSI0OCIgeT0iNzAiIGZvbnQtc2l6ZT0iMjAiPtCa0LvRj9C90YPRgdGMINGPLCDRh9GC0L4g0L3QtSDQt9Cw0LzQvtC70YfRgyw8L3RleHQ+PHRleHQgeD0iNDgiIHk9IjEwNiIgZm9udC1zaXplPSIyMCI+0YfRgtC+INGB0LXRgNC00YbQtSDQvNC+0LUg0L3QtSDRgdC+0LvQs9C10YIuPC90ZXh0Pjx0ZXh0IHg9IjQ4IiB5PSIxNDIiIGZvbnQtc2l6ZT0iMjAiPtCo0YPQvNGP0Ykg0YDQtdC60L7QuSwg0YjRg9C80Y/RiSDQs9GA0L7Qt9C+0LksPC90ZXh0Pjx0ZXh0IHg9IjQ4IiB5PSIxNzgiIGZvbnQtc2l6ZT0iMjAiPtC90L4g0YHQtdGA0LTRhtC1INCx0YPQtNC10YIg0L/QtdGC0YwuPC90ZXh0PjwvZz48dGV4dCB4PSI0OCIgeT0iMjYwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEyIiBmaWxsPSIjOTM4NjczIj5zYW1wbGUgcmVuZGVyPC90ZXh0Pjwvc3ZnPg==",
+      "structure": "block 13 (window w51)\nrun: 1 paragraph, 4 contextual-spacing breaks\nwrap: lines do not reach the right margin\nlead: no first-line indent",
+      "question": "Is this block lineated verse, or prose that happens to wrap?",
+      "options": [
+        {
+          "value": "verse",
+          "label": "Lineated verse"
+        },
+        {
+          "value": "prose",
+          "label": "Prose"
+        },
+        {
+          "value": "unsure",
+          "label": "Genuinely ambiguous"
+        }
+      ],
+      "hint": "Model panel: 3/4 readers voted \"verse\" (one abstained, citing the missing stanza gap)."
+    },
+    {
+      "id": "w288_68-1",
+      "mode": "per-line",
+      "structure": "block 68 (window w288)\nmixed run — heading line followed by body",
+      "question": "Tag each line as it should read in the final book.",
+      "lineOptions": [
+        {
+          "value": "verse",
+          "label": "Verse"
+        },
+        {
+          "value": "prose",
+          "label": "Prose"
+        }
+      ],
+      "lines": [
+        {
+          "key": "L1",
+          "text": "Заповедь первая",
+          "hint": "panel: prose (heading)"
+        },
+        {
+          "key": "L2",
+          "text": "Возлюби ближнего своего,"
+        },
+        {
+          "key": "L3",
+          "text": "как самого себя."
+        },
+        {
+          "key": "L4",
+          "text": "И тогда откроется тебе путь.",
+          "hint": "panel: split 2/2"
+        }
+      ],
+      "hint": "Panel disagreed on whether L1 is a heading (prose) or the verse's first line."
+    }
+  ]
+}

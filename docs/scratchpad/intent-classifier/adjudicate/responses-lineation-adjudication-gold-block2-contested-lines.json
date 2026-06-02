@@ -1,0 +1,380 @@
+{
+  "title": "Lineation adjudication — gold_block2 contested lines",
+  "completedAt": "2026-06-02T11:10:25.216Z",
+  "responses": {
+    "g00_b64_t0": {
+      "lines": {
+        "33413.0": "lineated",
+        "33414.0": "lineated",
+        "33415.0": "lineated",
+        "33416.0": "lineated",
+        "33417.0": "lineated",
+        "33418.0": "lineated",
+        "33422.0": "lineated",
+        "33423.0": "lineated",
+        "33424.0": "lineated",
+        "33425.0": "lineated",
+        "33426.0": "lineated",
+        "33430.0": "lineated",
+        "33431.0": "lineated",
+        "33432.0": "lineated",
+        "33433.0": "lineated",
+        "33434.0": "lineated",
+        "33435.0": "lineated",
+        "33439.0": "lineated",
+        "33440.0": "lineated",
+        "33441.0": "lineated",
+        "33442.0": "lineated",
+        "33446.0": "lineated"
+      },
+      "note": "Important: \"тишина воспринимается \\ как отсутствие звуков.\", \"шум может существовать внутри сознания.\", \"тишина связана \\ с состоянием внимания.\", \"возникает пространство \\ между мыслями.\" All those cases are rendered as separate paragraphs, even in lineated version. This is a bug, because it's clearly same sentence with line above that introduces them after \":\", they don't have a period inside, and even ends with period. Moreover, it's clearly incoherent with png and principle of reading flow & consistency."
+    },
+    "g00_b64_t1": {
+      "lines": {
+        "33447.0": "lineated",
+        "33448.0": "lineated",
+        "33449.0": "lineated",
+        "33450.0": "lineated",
+        "33451.0": "lineated",
+        "33453.0": "lineated",
+        "33455.0": "lineated",
+        "33456.0": "lineated",
+        "33457.0": "lineated",
+        "33458.0": "lineated",
+        "33459.0": "lineated",
+        "33461.0": "lineated",
+        "33463.0": "lineated",
+        "33464.0": "lineated",
+        "33465.0": "lineated",
+        "33466.0": "lineated",
+        "33467.0": "lineated",
+        "33469.0": "lineated",
+        "33471.0": "lineated",
+        "33472.0": "lineated",
+        "33473.0": "lineated",
+        "33474.0": "lineated",
+        "33475.0": "lineated",
+        "33476.0": "lineated",
+        "33477.0": "lineated",
+        "33478.0": "lineated"
+      },
+      "note": "See sample 1 comment. It's even more notable here, seeing the structure: \n33451.0Я говорю:\n33453.0 **для мыслей.**\nSo, it means \"тишина становится фоном\" is not even a text line, likely misclassified as hard structure?"
+    },
+    "g00_b64_t2": {
+      "lines": {
+        "33487.0": "lineated",
+        "33488.0": "lineated",
+        "33489.0": "lineated",
+        "33490.0": "lineated",
+        "33491.0": "lineated",
+        "33492.0": "lineated",
+        "33493.0": "lineated",
+        "33494.0": "lineated",
+        "33497.0": "lineated",
+        "33498.0": "lineated",
+        "33499.0": "lineated",
+        "33500.0": "lineated",
+        "33501.0": "lineated",
+        "33503.0": "lineated",
+        "33504.0": "lineated",
+        "33507.0": "lineated"
+      },
+      "note": "See 1, 2. Note how:\n\n  33494.0  nowrap | **Святой Дух — это пространство присутствия,**\n  ---- [bold-line] которое переживается\n  ---- [bold-line] как тихий фон\n  33497.0  nowrap | **всех переживаний.**\nBecomes 33494, then new paraphraph, bold lines, then new paragraph, 33497. This is not disagreement, this is a bug in parsing? Same with \"почему переживание присутствия\""
+    },
+    "g04_b73": {
+      "lines": {
+        "10306.0": "lineated",
+        "10309.0": "lineated",
+        "10309.1": "lineated",
+        "10309.2": "lineated"
+      },
+      "note": "It's declarational, legal-like section -- it uses lines to emphasize meaning. \n\"Каждый человек имеет право жить не в страхе, не в рабстве, не во лжи, а в Свете — как в естественной среде своей души.\" is not the same as \"а в Свете\" on a new line -- clear contrast, opposition. But regarding line-by-line conflict -- \"Это право включает:\" can be considered questionable (it works fine both as prose and lineated, the only reason I give it lineated is that it's style-coherent with surrounding paragraphs/sections, and it's a real factor when there's bit repetition of structure like here with \"Articles\" or with questions -- as it can be thought that generally, author tries to style \"collective-style\" content similarly, and thus the collective inference is a bit simpler, given we can prefer consistency when not sure. In-context judgment -- is book or a section prose heavy? is book line-heavy?\nBut regarding \"Жизнь в Свете — не привилегия избранных, ... Кто он\" stanza -- it's opposition/contrast, just like the first paragraph."
+    },
+    "g05_b37": {
+      "lines": {
+        "388.0": "lineated",
+        "390.0": "lineated",
+        "392.0": "lineated",
+        "394.0": "lineated"
+      },
+      "note": "Actually, I don't understand question. \"Prose\" section renders list headers in the same paragraph as the content. But the question is only about the headers as a lines -- meaning it's misleading rendering, both options would produce header on a separate line?\nWhy I'm asking -- in russian, it's uncommon to mangle list headers with content like that: \"1. Вода Мир — как река\". At least it would be \"1. Вода. Мир -- как река\". Without period, it's clear that it can't be the same \"line\". And it's not about lineated/prose? So, if my suspicion is right -- then both work here. Judge in-context. I put lineated here just because in the book it looks like lineated. But note that in your lineated render -- each header is correctly a separate line, with a contrasting gap from the paragraph above. If it would collapse the gap, it would look like a wall of text. But here, it turns out fine."
+    },
+    "g06_b40": {
+      "lines": {
+        "18893.0": "lineated"
+      },
+      "note": "Again, it's a bit in-context -- I had to open the book to see how it's done in other sections and questions in the book. If it's consistent across the book, both versions are defensible. If there's a risk that somewhere \"Ответ:\" is a prose, somewhere -- a lineated block, then it's a problem. Here i have answered lineated because it corresponds to the png the most. I guess it should play well with question asked above, the flow they both visually create."
+    },
+    "g08_b55_t0": {
+      "lines": {
+        "1496.0": "lineated"
+      },
+      "note": "It's line-separated contrast/opposition."
+    },
+    "g09_b16_t2": {
+      "lines": {
+        "621.0": "prose",
+        "622.0": "prose",
+        "623.0": "prose",
+        "624.0": "prose",
+        "625.0": "prose",
+        "626.0": "prose",
+        "627.0": "prose",
+        "628.0": "prose",
+        "629.0": "prose",
+        "630.0": "prose",
+        "631.0": "prose",
+        "632.0": "prose",
+        "633.0": "prose",
+        "634.0": "prose",
+        "635.0": "prose",
+        "636.0": "prose",
+        "637.0": "prose",
+        "638.0": "prose",
+        "639.0": "prose",
+        "640.0": "prose",
+        "641.0": "prose",
+        "642.0": "prose",
+        "643.0": "prose",
+        "644.0": "prose"
+      },
+      "note": "It's prose, super clear -- it's even indented in author's docx (on the png), which is not that common. Yet, FYI, the prose render on your \"prose\" picture is wrong -- it's not indented, not separated. It looks like ALL text is in a giant single P. Note it's some kind of bug, the question is where it lives"
+    },
+    "g10_b19": {
+      "lines": {
+        "7957.0": "prose"
+      },
+      "note": "\"Запомни: Имена -- это не границы\" in docx/png is indented, yet even in your \"prose\" section it doesn't have indent, is it ill-rendered prose or lineated?\nAnd \"Есть. Потому что всё моё творение\" is glued to pancratius's question, despite they are clearly in separate paragraphs on png -- rendering bug or something more serious?"
+    },
+    "g18_b60_t0": {
+      "lines": {
+        "5146.0": "lineated",
+        "5147.0": "lineated",
+        "5151.0": "lineated",
+        "5166.0": "lineated",
+        "5167.0": "lineated"
+      },
+      "note": "Parts of a verse, except after-header \"Все предыдущие главы показывали одно и то же\" — here, it's list enumeration, but author decided to split it in two lines (to emphasize \"the same\" -> \"but under different circumstances\"), so it's resolves ambiguity toward lineation."
+    },
+    "g18_b60_t1": {
+      "lines": {
+        "5180.0": "lineated",
+        "5181.0": "lineated",
+        "5182.0": "lineated",
+        "5183.0": "lineated",
+        "5198.0": "lineated",
+        "5199.0": "lineated"
+      },
+      "note": "Clearly lineation, because part of a verse, and with editorial in-sentence contrast/opposition. \"между тем, кто воспринимает,\" and \"и тем, что воспринимается.\" -- same arguments, but it's even a single sentence, not emphasized or anything, strange that it's a question."
+    },
+    "g18_b60_t3": {
+      "lines": {
+        "5238.0": "lineated",
+        "5239.0": "lineated",
+        "5244.0": "lineated",
+        "5245.0": "lineated",
+        "5246.0": "lineated",
+        "5247.0": "lineated",
+        "5248.0": "lineated",
+        "5249.0": "lineated",
+        "5250.0": "lineated",
+        "5251.0": "lineated",
+        "5252.0": "lineated",
+        "5253.0": "lineated",
+        "5254.0": "lineated"
+      }
+    },
+    "g18_b60_t4": {
+      "lines": {
+        "5258.0": "lineated",
+        "5260.0": "lineated"
+      },
+      "note": "5260 looks like kind of a pseudo-header, I guess that's what caused confusion. But I rule prose out based on docx png. Note: \"Библиография\" is here."
+    },
+    "g22_b31_t1": {
+      "lines": {
+        "5887.0": "lineated",
+        "5888.0": "lineated",
+        "5889.0": "lineated",
+        "5906.0": "lineated",
+        "5907.0": "lineated",
+        "5908.0": "lineated"
+      }
+    },
+    "g22_b31_t3": {
+      "lines": {
+        "6032.0": "lineated",
+        "6050.0": "lineated",
+        "6066.0": "lineated"
+      }
+    },
+    "g22_b31_t4": {
+      "lines": {
+        "6079.0": "lineated"
+      },
+      "note": "It's part of a verse stanza, so clearly not prose"
+    },
+    "g22_b31_t5": {
+      "lines": {
+        "6160.0": "lineated",
+        "6161.0": "lineated",
+        "6162.0": "lineated",
+        "6164.0": "lineated",
+        "6165.0": "lineated",
+        "6180.0": "lineated",
+        "6181.0": "lineated",
+        "6182.0": "lineated"
+      },
+      "note": "Important bugs: \"\n  ---- [bold-line] Но не извне —\n  6153.0  nowrap | **а изнутри.**\nThis is rendered on your lineated screenshot as \"Но не извне\" as a big block, then \"а изнутри.\" big block, then \"Не с неба -\" big block, and \"а из сердца.\" big block. So, something broke 2 stanzas here."
+    },
+    "g23_b17": {
+      "lines": {
+        "126.0": "prose",
+        "127.0": "prose",
+        "128.0": "prose",
+        "129.0": "prose",
+        "130.0": "prose",
+        "131.0": "prose",
+        "132.0": "prose",
+        "133.0": "prose",
+        "134.0": "prose",
+        "135.0": "prose",
+        "136.0": "prose",
+        "137.0": "prose",
+        "138.0": "prose"
+      },
+      "note": "Clearly all prose -- they are even indented in author's docx png. You don't have this is a feature, it seems, don't see the indents? That's a bug, I guess. Because as a human, I clearly see big here: on average, 2-row \"lines\", each starting with an indent. It makes it obvious for me it's not lineated blocks. And more importantly, again a rendering bug, or not rendering: The whole \"prose\" rendering example is rendered mangled, as a single paragraph. Bug."
+    },
+    "g27_b67_t0": {
+      "lines": {
+        "146.0": "lineated",
+        "147.0": "lineated"
+      }
+    },
+    "g27_b67_t1": {
+      "lines": {
+        "162.0": "lineated",
+        "163.0": "lineated",
+        "165.0": "lineated",
+        "166.0": "lineated",
+        "169.0": "lineated",
+        "170.0": "lineated",
+        "171.0": "lineated",
+        "172.0": "lineated",
+        "173.0": "lineated",
+        "174.0": "lineated",
+        "178.0": "lineated"
+      }
+    },
+    "g27_b67_t2": {
+      "lines": {
+        "185.0": "lineated",
+        "186.0": "lineated",
+        "187.0": "lineated",
+        "188.0": "lineated",
+        "189.0": "lineated",
+        "190.0": "lineated",
+        "191.0": "lineated"
+      },
+      "note": "Not sure why the confusion, can it be related to ***? Because if yes, likely we need to transform it to something stronger, so LLMs understand it's a hard boundary. In your \"prose\" example it's even mangled into a single paragraph with everything else. Again, clearly some bug."
+    },
+    "g29_b69_t0": {
+      "lines": {
+        "922.0": "lineated",
+        "923.0": "lineated",
+        "924.0": "lineated",
+        "925.0": "lineated",
+        "928.0": "lineated",
+        "929.0": "lineated",
+        "932.0": "lineated",
+        "933.0": "lineated",
+        "935.0": "lineated",
+        "936.0": "lineated",
+        "937.0": "lineated",
+        "938.0": "lineated",
+        "939.0": "lineated",
+        "940.0": "lineated",
+        "941.0": "lineated",
+        "945.0": "lineated"
+      },
+      "note": "Ok, this one is really tricky for you: author used indents to \"emphasize\" lines relating to answer. Here, we need to understand his intent -- it's lineated prose (some lines in each \"Ответ от Творца:\" are long) that he wanted to highlight. We have other expressive means available for us (maybe we'll do a separate register for QA and style it creatively, or something, or just cleaner typography), so it's important for us here not to over-optimize with the means used by author, seeing the intent."
+    },
+    "g29_b69_t1": {
+      "lines": {
+        "951.0": "lineated",
+        "952.0": "lineated"
+      },
+      "note": "Not a verse/litany/etc, just lineated prose. A tricky example, yes. Note he uses indents here, and some lines are long.  Can it be just prose? 100% it can. The only way we can tell is to look how does it look better -- if prose gives ugly gaps on lines like \"Гора — это место зрения.\", then lineated prose would look better. If fine, then prose works, also, as technically it is prose here. And again, your prose renderer (or something else) mangled everything in a single parapgraph. So i can't compare which option looks better visually, actually, and guessing (just based on very little inter-para gaps between lines on docx png, honestly)."
+    },
+    "g34_b63": {
+      "lines": {
+        "20351.0": "lineated",
+        "20352.0": "lineated",
+        "20353.0": "lineated",
+        "20354.0": "lineated",
+        "20355.0": "lineated",
+        "20356.0": "lineated",
+        "20360.0": "lineated",
+        "20364.0": "lineated"
+      }
+    },
+    "g38_b28": {
+      "lines": {
+        "682.0": "lineated",
+        "690.0": "lineated"
+      },
+      "note": "Ok, \"***\" again: in your \"verse\" block, it is part of the \"Что ты делаешь через меня?\" header. Rendering bug or something else? And more importantly, Right after the header the text starts, right the same line, not on the new line. \"Что остаётся, если исчезает всё привычное\" in your prose variant is mangled into the same paragraph as answer block at \"Светозар сказал:\"."
+    },
+    "audit_g14_b07": {
+      "lines": {
+        "624.0": "lineated",
+        "624.1": "lineated",
+        "624.2": "lineated",
+        "624.3": "lineated",
+        "625.0": "lineated",
+        "625.1": "lineated",
+        "625.2": "lineated",
+        "625.3": "lineated",
+        "626.0": "lineated",
+        "626.1": "lineated",
+        "626.2": "lineated",
+        "626.3": "lineated",
+        "626.4": "lineated",
+        "626.5": "lineated",
+        "626.6": "lineated",
+        "627.0": "lineated",
+        "627.1": "lineated",
+        "627.2": "lineated",
+        "627.3": "lineated"
+      },
+      "note": "it's clearly a verse, with editorial short line breaks, so lineated"
+    },
+    "audit_g24_b28": {
+      "lines": {
+        "1460.0": "lineated",
+        "1461.0": "lineated",
+        "1462.0": "lineated"
+      },
+      "note": "\"**Почему это сложно?**\" is mangled into the single paragraph in prose on the verse render. Why I chose lineated for **Почему это сложно?**? Because it matches the context/content/png, without it — a prose (if consistent with everything else) it could also be defensible."
+    },
+    "audit_g31_b13": {
+      "lines": {
+        "776.0": "lineated",
+        "777.0": "lineated",
+        "778.0": "lineated",
+        "779.0": "lineated"
+      },
+      "note": "Interesting case -- because technically, given indents and wrapping lines, it's prose. But it has to be \"dense\" by intent, \"all lineated\" is more defensible here from the visual viewpoint. Also, note that you have \"verse\" styling in both your prose and lineated, but there's no verse where it is rendered."
+    },
+    "audit_g33_b66": {
+      "lines": {
+        "55.0": "lineated",
+        "56.0": "lineated",
+        "57.0": "lineated",
+        "58.0": "lineated",
+        "59.0": "lineated"
+      },
+      "note": "Your prose renderer mangled it into a single p, so hard to say. Technically, it's lineated -- writted visually dense, without indents, so it's the most defensible option. But honestly — prose (bug-less, of course) would also work here just fine, assuming it matches other styling/conventions of a book or its section."
+    }
+  }
+}
