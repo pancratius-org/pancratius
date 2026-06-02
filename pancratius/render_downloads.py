@@ -76,6 +76,7 @@ HTML_ATTR_RE = re.compile(r"\s+([A-Za-z_:][A-Za-z0-9_:.-]*)\s*=\s*(?:\"([^\"]*)\
 URL_SCHEME_RE = re.compile(r"^([A-Za-z][A-Za-z0-9+.\-]*):")
 ALLOWED_HREF_SCHEMES = {"http", "https", "mailto"}
 SPAN_DIR_VALUES = {"ltr", "rtl", "auto"}
+LINEATED_DIV_CLASSES = {"lineated", "lineated verse"}
 
 
 @dataclass(slots=True)
@@ -260,8 +261,14 @@ def _validate_download_html_allowlist(body: str, source: Path) -> None:
 
         if name == "div":
             if self_closing:
-                raise _html_error(tag, source, match_line, "verse-block wrapper cannot be self-closing")
-            role = _require_class(attrs_text, {"verse-block"}, tag, source, match_line)
+                raise _html_error(tag, source, match_line, "publication wrapper cannot be self-closing")
+            role = _require_class(
+                attrs_text,
+                LINEATED_DIV_CLASSES,
+                tag,
+                source,
+                match_line,
+            )
             stack.append((name, role, tag, match_line))
             continue
 

@@ -5,7 +5,8 @@ This is the only stage that produces a Markdown string, and it does so exactly
 once — there is no string round-trip and no regex tail-stripping. It emits the
 canonical author-facing shape:
 
-  * verse-block `<div>`s (rendered as `white-space: pre-line` HTML)
+  * lineated prose as `<div class="lineated">` with two-space hard breaks
+  * verse as `<div class="lineated verse">` with the same lineation plus register
   * `<p class="signature">` and `<blockquote class="epigraph">`
   * footnote refs `[^N]` inline plus a generated `[^N]:` appendix AT THE TAIL —
     generated last, from typed `FootnoteDef`s, so a definition can never be lost
@@ -86,7 +87,7 @@ def _escape_markdown_alt(alt: str) -> str:
 # URL-scheme allowlist (defense-in-depth: the renderer emits raw HTML unsanitized)
 # ---------------------------------------------------------------------------
 
-# The site's Markdown renderer has NO sanitizer (verse-block <div>, <span dir>,
+# The site's Markdown renderer has NO sanitizer (lineated <div>, <span dir>,
 # p.signature are emitted as raw HTML on purpose), so the IMPORT is the gate: a
 # DOCX-authored link/image target must never become an active scheme in a
 # published page. Only these schemes — plus relative / anchor / scheme-less
@@ -334,7 +335,7 @@ def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[Planned
 # ---------------------------------------------------------------------------
 
 # Emphasis-kind lowerings: the Markdown delimiter pair per `EmphKind`.
-# `test_emph_tables_total` pins it to the full `EmphKind` set. Verse-block emphasis
+# `test_emph_tables_total` pins it to the full `EmphKind` set. Lineated-wrapper emphasis
 # now lowers through this same Markdown path (the blank line after `<div>` lets
 # CommonMark parse the inside), so there is no longer a separate HTML-tag table.
 _EMPH_MD: dict[ir.EmphKind, tuple[str, str]] = {
@@ -473,47 +474,124 @@ def _paragraph_image_blocks_md(inlines: list[ir.Inline], lang: str, *, poem: boo
 # ---------------------------------------------------------------------------
 
 
-def _verse_lines(line_inlines: list[ir.Inline], lang: str) -> list[str]:
-    """The display lines a single verse line's inlines lower to.
+def _lineated_lines(line_inlines: list[ir.Inline], lang: str) -> list[str]:
+    """The display lines a single lineated line's inlines lower to.
 
     Inlines render to Markdown (emphasis as `*`/`**`, footnote refs as `[^N]`),
     with any internal soft/hard break (a `\\n` from `_inline_md`) splitting into a
     further display line. Blank results are dropped so a stray break never emits an
-    empty verse line."""
+    empty line."""
     md = _inlines_md(line_inlines, lang)
-    return [ln.strip() for ln in md.split("\n") if ln.strip()]
+    return [_escape_leading_list_marker(ln.strip()) for ln in md.split("\n") if ln.strip()]
+
+
+@dataclass(frozen=True)
+class _LineatedImage:
+    md: str
+
+
+type _LineatedPart = str | _LineatedImage
+
+
+def _lineated_parts(line_inlines: list[ir.Inline], lang: str) -> list[_LineatedPart]:
+    """Lower one source display line, splitting direct body images into block parts.
+
+    A DOCX drawing can be anchored in the same paragraph as text. The content
+    contract still treats body illustrations as standalone blocks, so a direct
+    ``ImageInline`` interrupts the current lineated wrapper instead of becoming
+    ``text ![](…)`` inside it.
+    """
+    parts: list[_LineatedPart] = []
+    current: list[ir.Inline] = []
+
+    def flush_text() -> None:
+        if not current:
+            return
+        parts.extend(_lineated_lines(current, lang))
+        current.clear()
+
+    for node in line_inlines:
+        if isinstance(node, ir.ImageInline):
+            flush_text()
+            image = _inline_md(node, lang).strip()
+            if image:
+                parts.append(_LineatedImage(image))
+        else:
+            current.append(node)
+    flush_text()
+    return parts
+
+
+def _lineated_wrapper_from_lines(classes: str, stanzas: list[list[str]]) -> str | None:
+    out: list[str] = [f'<div class="{classes}">', ""]
+    emitted = False
+    for stanza in stanzas:
+        if stanza:
+            emitted = True
+            out.extend(
+                line if (idx == len(stanza) - 1 or line == "***") else line + "  "
+                for idx, line in enumerate(stanza)
+            )
+            out.append("")
+    if not emitted:
+        return None
+    out.append("</div>")
+    return "\n".join(out)
+
+
+def _lineated_wrapper_md(classes: str, stanzas: ir.LineatedStanzas, lang: str) -> str | None:
+    """Lower lineated stanzas into a raw wrapper whose inside is parsed Markdown.
+
+    The blank line after the opening `<div>` is load-bearing: it makes CommonMark
+    parse the wrapper body as Markdown, so emphasis remains `*`/`**` and
+    LINEATION is encoded as TWO TRAILING SPACES. Stanzas are separated by blank
+    lines; a trailing blank before `</div>` mirrors the leading one.
+    """
+    chunks: list[str] = []
+    wrapper_stanzas: list[list[str]] = []
+    stanza_lines: list[str] = []
+
+    def finish_stanza() -> None:
+        nonlocal stanza_lines
+        if stanza_lines:
+            wrapper_stanzas.append(stanza_lines)
+            stanza_lines = []
+
+    def flush_wrapper() -> None:
+        finish_stanza()
+        wrapper = _lineated_wrapper_from_lines(classes, wrapper_stanzas)
+        if wrapper:
+            chunks.append(wrapper)
+        wrapper_stanzas.clear()
+
+    for stanza in stanzas:
+        for line_inlines in stanza:
+            if len(line_inlines) == 1 and isinstance(line_inlines[0], ir.Text) and line_inlines[0].value == "***":
+                stanza_lines.append("***")
+                continue
+            for part in _lineated_parts(line_inlines, lang):
+                if isinstance(part, _LineatedImage):
+                    flush_wrapper()
+                    chunks.append(part.md)
+                else:
+                    stanza_lines.append(part)
+        finish_stanza()
+    flush_wrapper()
+    return "\n\n".join(chunks) or None
+
+def _lineated_md(lb: ir.LineatedBlock, lang: str) -> str | None:
+    """Lower lineated prose to the explicit base lineation wrapper."""
+    return _lineated_wrapper_md("lineated", lb.stanzas, lang)
 
 
 def _verse_md(vb: ir.VerseBlock, lang: str) -> str:
-    """Lower a verse-block to the cross-consumer canonical encoding.
+    """Lower a verse-register block to the cross-consumer canonical encoding.
 
-    The wrapper is a raw `<div class="verse-block">` carrying the verse REGISTER.
-    A blank line after the opening `<div>` is load-bearing: it makes CommonMark
-    parse the inside as Markdown (a type-7 HTML block), so emphasis is real `*`/`**`
-    and LINEATION is encoded as TWO TRAILING SPACES — the cross-consumer hard break
-    that survives Astro, pandoc PDF/EPUB/DOCX, AND the public-Markdown export (a
-    backslash break does not: the export corrupts on it). Every non-final line of a
-    stanza carries the two-space break; stanzas are separated by a blank line; a
-    `***` verse-break stanza renders as its own thematic-break line. A trailing
-    blank before `</div>` mirrors the leading one (not strictly required)."""
-    out: list[str] = ['<div class="verse-block">', ""]
-    for stanza in vb.stanzas:
-        lines: list[str] = []
-        for line_inlines in stanza:
-            if len(line_inlines) == 1 and isinstance(line_inlines[0], ir.Text) and line_inlines[0].value == "***":
-                # A `***` separator is its own one-line stanza: emit it as a
-                # thematic break (CommonMark `<hr>` styled `.verse-block hr`), kept
-                # apart by the surrounding stanza blank lines.
-                lines.append("***")
-                continue
-            lines.extend(_verse_lines(line_inlines, lang))
-        # Two trailing spaces on every non-final line of the stanza is the break;
-        # the final line closes the stanza with a blank-line separator instead.
-        for idx, line in enumerate(lines):
-            out.append(line if (idx == len(lines) - 1 or line == "***") else line + "  ")
-        out.append("")
-    out.append("</div>")
-    return "\n".join(out)
+    Verse is lineated content plus the additive `verse` register, not a separate
+    lineation encoding. The wrapper is therefore `<div class="lineated verse">`.
+    """
+    rendered = _lineated_wrapper_md(f"lineated {vb.role}", vb.stanzas, lang)
+    return rendered or ""
 
 
 def _signature_md(s: ir.Signature) -> str:
@@ -641,6 +719,8 @@ def _block_md(b: ir.Block, lang: str, *, poem: bool = False) -> str | None:
             # Prose: collapse internal soft/hard breaks to spaces (Pandoc --wrap=none).
             text = re.sub(r"\s*\n\s*", " ", text).strip()
             return _escape_leading_list_marker(text) or None
+        case ir.LineatedBlock():
+            return _lineated_md(b, lang)
         case ir.VerseBlock():
             return _verse_md(b, lang)
         case ir.Signature():
@@ -824,13 +904,13 @@ def _lower_poem_body(doc: ir.Document, lang: str) -> str:
 def _stanza_md(lines: list[str]) -> str:
     """Join a poem stanza's display lines with the cross-consumer hard break.
 
-    LINEATION inside a stanza is encoded the same way as in a `.verse-block`: TWO
+    LINEATION inside a stanza is encoded the same way as in a `.lineated` block: TWO
     TRAILING SPACES on every non-final line (the CommonMark hard break that
     survives Astro, pandoc PDF/EPUB, AND the public-Markdown export), the final
     line closed by the blank-line stanza separator instead. A `***` verse-break
     line is its own one-line stanza and never carries a break. Poems are whole-body
     verse (no wrapper); their REGISTER comes from `kind: poem` / the poem
-    component, not a `.verse-block` class."""
+    component, not a `.lineated.verse` class."""
     return "\n".join(
         line if (idx == len(lines) - 1 or line == "***") else line + "  "
         for idx, line in enumerate(lines)

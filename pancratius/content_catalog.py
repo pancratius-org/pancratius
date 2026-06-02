@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -65,9 +66,10 @@ def dump_frontmatter(data: dict[str, Any]) -> str:
     return f"---\n{body}\n---\n\n"
 
 
-def scan_catalog(content_root: Path) -> list[CatalogEntry]:
+def scan_catalog(content_root: Path, *, kinds: Iterable[str] | None = None) -> list[CatalogEntry]:
     entries: list[CatalogEntry] = []
-    for kind, folder in KIND_DIRS.items():
+    kind_items = KIND_DIRS.items() if kinds is None else ((kind, KIND_DIRS[kind]) for kind in kinds)
+    for kind, folder in kind_items:
         base = content_root / folder
         if not base.exists():
             continue

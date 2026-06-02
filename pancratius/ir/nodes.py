@@ -17,7 +17,7 @@ writer-only-mutation contract.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import Literal, assert_never
 
@@ -25,12 +25,50 @@ from typing import Literal, assert_never
 # tags to it) and the lowering (mapping it to Markdown/HTML) share ONE source of
 # truth for the closed set, instead of each re-spelling the string literals.
 EmphKind = Literal["strong", "emph", "strike", "sup", "sub"]
-# The single converter-owned lineated-run wrapper emitted into canonical Markdown.
-VerseRole = Literal["verse-block"]
+# The only verse register emitted into canonical Markdown. Structural lineation
+# without verse register is represented by `LineatedBlock`; `VerseBlock` adds this
+# register on top of the same lineation wrapper.
+VerseRole = Literal["verse"]
 # Open JSON-ish records at the IR boundary. Pandoc table raw nodes stay opaque;
 # bibliography entries are structured enough to name, but intentionally open-ended.
 type JsonObject = dict[str, object]
 type BibliographyEntry = dict[str, object]
+
+
+@dataclass(frozen=True)
+class SourceSpan:
+    """Inclusive top-level source paragraph ordinals.
+
+    This is provenance, not semantics: it says which DOCX body ``w:p`` rows a block
+    came from, so diagnostics can render or inspect the original source slice. It
+    is optional on blocks because hand-built IR, future non-DOCX adapters, and
+    genuinely synthetic nodes must not fake provenance they cannot prove.
+    """
+
+    start: int
+    end: int
+
+    def __post_init__(self) -> None:
+        if self.start < 0 or self.end < self.start:
+            raise ValueError(f"invalid SourceSpan({self.start}, {self.end})")
+
+
+def merge_source_spans(spans: Iterable[SourceSpan | None]) -> SourceSpan | None:
+    """Return the smallest span covering a complete span set, or ``None``.
+
+    Normalization passes use this when they merge or wrap source-derived blocks.
+    Missing spans poison the merge: a composite block may carry provenance only when
+    every source piece can prove provenance. Returning a partial span would make
+    diagnostics render too narrow a source slice.
+    """
+    collected = list(spans)
+    if not collected or any(span is None for span in collected):
+        return None
+    present = [span for span in collected if span is not None]
+    return SourceSpan(
+        start=min(span.start for span in present),
+        end=max(span.end for span in present),
+    )
 
 # ---------------------------------------------------------------------------
 # Inline kinds
@@ -140,6 +178,28 @@ type Inline = (
     | LineBreak | SoftBreak | DirectionalSpan | UnknownInline
 )
 
+# Shared lineated-block shape: stanzas -> display lines -> inline content.
+type DisplayLine = list[Inline]
+type Stanza = list[DisplayLine]
+type LineatedStanzas = list[Stanza]
+
+
+@dataclass(frozen=True)
+class LineationEvidence:
+    """Q1 provenance for a structural lineated run.
+
+    This records why the importer decided source rows should lower as line breaks.
+    It deliberately excludes register cues such as title text, headings, anaphora,
+    and visual style. Lowering ignores it; Q2 register promotion may consult it as
+    lineation provenance, but it must not encode "almost verse" state here.
+    """
+
+    pandoc_line_block: bool = False
+    hard_break: bool = False
+    inferred_source_rows: bool = False
+    stanza_break: bool = False
+    compact_callout: bool = False
+
 # Container inline kinds (those nesting a `children` list), in two forms: the union
 # types a known container; the tuple is `isinstance`'s 2nd arg (a `type` alias can't
 # be). `test_container_forms_in_sync` keeps them aligned.
@@ -186,6 +246,7 @@ class Heading:
 
     level: int
     inlines: list[Inline]
+    source_span: SourceSpan | None = None
 
 
 @dataclass
@@ -196,11 +257,13 @@ class Paragraph:
     default); it drives signature/epigraph detection. `lineation_group` is a
     read-only DOCX visual-continuity group: adjacent Word paragraphs whose
     `w:contextualSpacing` suppresses same-style paragraph spacing share the same
-    id. It is a structural source signal for verse classification, not a rendering
-    instruction. `empty` marks a Word empty paragraph — meaningful as a stanza
-    break, so it is captured in the IR before any Markdown output could lose it.
-    `italic` records that every text-bearing run carried italic (an epigraph
-    signal).
+    id. It may bound source-row inference, but it is not itself lineation truth or
+    verse-register evidence. `empty` marks a Word empty paragraph — meaningful as
+    a stanza break, so it is captured in the IR before any Markdown output could
+    lose it. `indented` records source paragraph indentation: indented short
+    paragraphs are usually running prose, while unindented compact callouts can be
+    source lineation. `italic` records that every text-bearing run carried italic
+    (an epigraph signal).
     """
 
     inlines: list[Inline]
@@ -208,6 +271,23 @@ class Paragraph:
     empty: bool = False
     italic: bool = False
     lineation_group: int | None = None
+    indented: bool = False
+    source_span: SourceSpan | None = None
+
+
+@dataclass
+class LineatedBlock:
+    """Lineated prose run.
+
+    Preserves authored/intended display lines and stanza breaks without applying
+    the verse register. It lowers to a `<div class="lineated">` wrapper whose
+    body uses Markdown hard breaks (two trailing spaces) and blank-line stanza
+    separators.
+    """
+
+    stanzas: LineatedStanzas
+    evidence: LineationEvidence = field(default_factory=LineationEvidence)
+    source_span: SourceSpan | None = None
 
 
 @dataclass
@@ -216,11 +296,13 @@ class VerseBlock:
 
     `stanzas` is a list of stanzas; each stanza is a list of display lines; each
     line is a list of inlines. A `***` stanza separator is represented as a
-    one-line stanza whose single line is `[Text("***")]`.
+    one-line stanza whose single line is `[Text("***")]`. The `verse` role is an
+    additive register layered onto the base `lineated` wrapper at lowering.
     """
 
-    stanzas: list[list[list[Inline]]]
-    role: VerseRole = "verse-block"
+    stanzas: LineatedStanzas
+    role: VerseRole = "verse"
+    source_span: SourceSpan | None = None
 
 
 @dataclass
@@ -228,6 +310,7 @@ class Signature:
     """A right-aligned authorial signature block (`<p class="signature">`)."""
 
     lines: list[str]
+    source_span: SourceSpan | None = None
 
 
 @dataclass
@@ -237,6 +320,7 @@ class Epigraph:
 
     quote: list[str]
     footer: list[str]
+    source_span: SourceSpan | None = None
 
 
 @dataclass
@@ -244,11 +328,14 @@ class DialogueLabel:
     """A canonicalized speaker label (lowered as `**Speaker:**`)."""
 
     speaker: str
+    source_span: SourceSpan | None = None
 
 
 @dataclass
 class ThematicBreak:
     """A `***` thematic break."""
+
+    source_span: SourceSpan | None = None
 
 
 @dataclass
@@ -259,6 +346,7 @@ class BlockQuote:
 
     blocks: list[Block]
     role: str | None = None
+    source_span: SourceSpan | None = None
 
 
 @dataclass
@@ -271,6 +359,7 @@ class ListBlock:
     ordered: bool
     items: list[list[Block]]
     start: int = 1
+    source_span: SourceSpan | None = None
 
 
 @dataclass
@@ -278,6 +367,7 @@ class CodeBlock:
     """A fenced code block."""
 
     text: str
+    source_span: SourceSpan | None = None
 
 
 @dataclass
@@ -295,6 +385,7 @@ class Table:
     rows: list[list[list[Inline]]]
     raw: JsonObject | None = None
     role: str | None = None
+    source_span: SourceSpan | None = None
 
 
 @dataclass
@@ -304,6 +395,7 @@ class ImageBlock:
     src: str
     alt: str
     asset_id: str | None = None
+    source_span: SourceSpan | None = None
 
 
 @dataclass
@@ -317,10 +409,11 @@ class UnknownBlock:
 
     note: str
     text: str = ""
+    source_span: SourceSpan | None = None
 
 
 type Block = (
-    Heading | Paragraph | VerseBlock | Signature | Epigraph | DialogueLabel
+    Heading | Paragraph | LineatedBlock | VerseBlock | Signature | Epigraph | DialogueLabel
     | ThematicBreak | BlockQuote | ListBlock | CodeBlock | Table | ImageBlock
     | UnknownBlock
 )
@@ -330,15 +423,16 @@ def map_block_inlines(block: Block, fn: Callable[[list[Inline]], list[Inline]]) 
     """Walk the container-block skeleton of `block`, applying `fn` to every leaf
     inline list it reaches, mutating IN PLACE.
 
-    Leaf inline lists: a `Heading`/`Paragraph`'s `inlines`, each verse display line
-    in a `VerseBlock`'s `stanzas`, each `Table` cell; `BlockQuote`/`ListBlock`
-    recurse. `fn` returns the replacement list. Blocks with no inline list (image
-    and footnote leaves, the inline-free kinds) are skipped — their leaf content is
-    handled by the caller, hence `case _` rather than `assert_never`."""
+    Leaf inline lists: a `Heading`/`Paragraph`'s `inlines`, each display line in
+    a `LineatedBlock`/`VerseBlock`'s `stanzas`, each `Table` cell;
+    `BlockQuote`/`ListBlock` recurse. `fn` returns the replacement list. Blocks
+    with no inline list (image and footnote leaves, the inline-free kinds) are
+    skipped — their leaf content is handled by the caller, hence `case _` rather
+    than `assert_never`."""
     match block:
         case Heading() | Paragraph():
             block.inlines = fn(block.inlines)
-        case VerseBlock():
+        case LineatedBlock() | VerseBlock():
             block.stanzas = [[fn(line) for line in stanza] for stanza in block.stanzas]
         case Table():
             block.rows = [[fn(cell) for cell in row] for row in block.rows]

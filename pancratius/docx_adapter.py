@@ -102,6 +102,10 @@ class _JcRecord:
     align: str
     text: str
     lineation_group: int | None = None
+    indented: bool = False
+    source_span: ir.SourceSpan | None = None
+    source_segment: int = 0
+    empty: bool = False
 
 
 @dataclass
@@ -117,6 +121,9 @@ class _SourceParagraph:
     bordered: bool
     heading: bool
     thematic: bool
+    source_span: ir.SourceSpan | None = None
+    source_segment: int = 0
+    empty: bool = False
     reconcile: bool = True
     lineation_group: int | None = None
 
@@ -273,7 +280,11 @@ def _assign_lineation_groups(paragraphs: list[_SourceParagraph]) -> None:
             p.lineation_group = group_id
 
 
-def _source_boundary() -> _SourceParagraph:
+def _source_boundary(
+    source_span: ir.SourceSpan | None = None,
+    *,
+    source_segment: int = 0,
+) -> _SourceParagraph:
     """A top-level source block that must break visual grouping but does not
     reconcile onto a top-level Pandoc paragraph."""
     return _SourceParagraph(
@@ -286,6 +297,8 @@ def _source_boundary() -> _SourceParagraph:
         bordered=False,
         heading=False,
         thematic=False,
+        source_span=source_span,
+        source_segment=source_segment,
         reconcile=False,
     )
 
@@ -312,6 +325,14 @@ def _paragraph_text(p: ET.Element) -> str:
     return "".join(parts)
 
 
+_NON_TEXT_SOURCE_CONTENT = {f"{W}br", f"{W}cr", f"{W}tab", f"{W}drawing", f"{W}pict", f"{W}object"}
+
+
+def _paragraph_is_empty_source(p: ET.Element, text: str) -> bool:
+    """True for a structural empty paragraph, not an image/object paragraph."""
+    return not text.strip() and not any(el.tag in _NON_TEXT_SOURCE_CONTENT for el in p.iter())
+
+
 def read_w_jc(docx: Path) -> list[_JcRecord]:
     """Per-body-paragraph `(align, text, lineation_group)` records in document order.
 
@@ -333,13 +354,22 @@ def read_w_jc(docx: Path) -> list[_JcRecord]:
     if body is None:
         return []
     records: list[_SourceParagraph] = []
+    source_index = 0
+    source_segment = 0
 
     def walk(el: ET.Element) -> None:
+        nonlocal source_index, source_segment
         for child in el:
             if child.tag == f"{W}p":
+                source_span = ir.SourceSpan(source_index, source_index)
+                source_index += 1
                 ppr = child.find(f"{W}pPr")
                 if ppr is not None and ppr.find(f"{W}numPr") is not None:
-                    records.append(_source_boundary())
+                    records.append(_source_boundary(
+                        source_span,
+                        source_segment=source_segment,
+                    ))
+                    source_segment += 1
                     continue  # list item: Pandoc collapses it into a List block
                 direct_style = _w_val(ppr.find(f"{W}pStyle") if ppr is not None else None)
                 style = direct_style or default_style
@@ -362,9 +392,13 @@ def read_w_jc(docx: Path) -> list[_JcRecord]:
                     bordered=ppr.find(f"{W}pBdr") is not None if ppr is not None else False,
                     heading=bool(re.fullmatch(r"(?:Heading\d+|[1-9])", direct_style)),
                     thematic=txt in {"***", "* * *", "---"},
+                    source_span=source_span,
+                    source_segment=source_segment,
+                    empty=_paragraph_is_empty_source(child, txt),
                 ))
             elif child.tag == f"{W}tbl":
-                records.append(_source_boundary())
+                records.append(_source_boundary(source_segment=source_segment))
+                source_segment += 1
                 continue  # table cells are not top-level AST paragraphs
             elif child.tag == f"{W}sdt":
                 content = child.find(f"{W}sdtContent")
@@ -374,7 +408,15 @@ def read_w_jc(docx: Path) -> list[_JcRecord]:
     walk(body)
     _assign_lineation_groups(records)
     return [
-        _JcRecord(align=p.align, text=p.text, lineation_group=p.lineation_group)
+        _JcRecord(
+            align=p.align,
+            text=p.text,
+            lineation_group=p.lineation_group,
+            indented=p.indented,
+            source_span=p.source_span,
+            source_segment=p.source_segment,
+            empty=p.empty,
+        )
         for p in records
         if p.reconcile
     ]
@@ -385,6 +427,182 @@ def _fingerprint(text: str) -> str:
     comparison key reconciliation diffs on. Joining the word stream makes the AST
     `_plain` rendering and the raw `w:t` text comparable."""
     return " ".join(_words(text))
+
+
+def _source_match_key(text: str) -> str:
+    """Content key for provenance matching.
+
+    Word-only fingerprints intentionally ignore punctuation for prose matching, but
+    structural punctuation paragraphs such as ``***`` still need source provenance.
+    Fall back to normalized literal text only when there are no words to key on.
+    """
+    return _fingerprint(text) or re.sub(r"\s+", " ", text).strip().casefold()
+
+
+def _has_contiguous_source_spans(records: list[_JcRecord]) -> bool:
+    """True when records prove adjacent source paragraph ordinals."""
+    if not records or records[0].source_span is None:
+        return False
+    prev = records[0].source_span
+    segment = records[0].source_segment
+    for record in records[1:]:
+        cur = record.source_span
+        if record.source_segment != segment or cur is None or cur.start != prev.end + 1:
+            return False
+        prev = cur
+    return True
+
+
+def _source_span(records: list[_JcRecord]) -> ir.SourceSpan | None:
+    return ir.merge_source_spans(record.source_span for record in records)
+
+
+def _assign_bracketed_empty_spans(blocks: list[ir.Block], records: list[_JcRecord]) -> int:
+    """Attach source spans to empty IR paragraphs only when neighbors prove them.
+
+    Empty paragraphs have no text key, so matching them during the main content walk
+    can move the cursor past real content. The truthful case is narrower: an empty
+    IR run between two already-sourced blocks maps to exactly the empty DOCX
+    paragraph ordinals between those neighbors.
+    """
+    empty_spans = {
+        record.source_span.start: record.source_span
+        for record in records
+        if record.empty and record.source_span is not None
+    }
+    if not empty_spans:
+        return 0
+
+    assigned = 0
+    i = 0
+    while i < len(blocks):
+        block = blocks[i]
+        if not (isinstance(block, ir.Paragraph) and block.empty and block.source_span is None):
+            i += 1
+            continue
+
+        start = i
+        while i < len(blocks):
+            current = blocks[i]
+            if not (
+                isinstance(current, ir.Paragraph)
+                and current.empty
+                and current.source_span is None
+            ):
+                break
+            i += 1
+        empty_run = blocks[start:i]
+        prev_span = blocks[start - 1].source_span if start > 0 else None
+        next_span = blocks[i].source_span if i < len(blocks) else None
+        if prev_span is None or next_span is None:
+            continue
+
+        source_ordinals = range(prev_span.end + 1, next_span.start)
+        candidate_spans = [empty_spans[ordinal] for ordinal in source_ordinals if ordinal in empty_spans]
+        if len(candidate_spans) != len(empty_run):
+            continue
+        for empty_block, span in zip(empty_run, candidate_spans, strict=True):
+            empty_block.source_span = span
+            assigned += 1
+    return assigned
+
+
+def _block_plain_for_source_span(block: ir.Block) -> str:
+    """Best-effort reading text for top-level source-span reconciliation."""
+    from pancratius.ir.normalize import inline_plain
+
+    match block:
+        case ir.Heading() | ir.Paragraph():
+            return inline_plain(block.inlines)
+        case ir.LineatedBlock() | ir.VerseBlock():
+            return " ".join(
+                inline_plain(line)
+                for stanza in block.stanzas
+                for line in stanza
+            )
+        case ir.Signature():
+            return " ".join(block.lines)
+        case ir.Epigraph():
+            return " ".join([*block.quote, *block.footer])
+        case ir.DialogueLabel():
+            return block.speaker
+        case ir.ThematicBreak():
+            return "***"
+        case ir.BlockQuote():
+            return " ".join(_block_plain_for_source_span(child) for child in block.blocks)
+        case ir.ListBlock():
+            return " ".join(
+                _block_plain_for_source_span(child)
+                for item in block.items
+                for child in item
+            )
+        case ir.CodeBlock():
+            return block.text
+        case ir.Table():
+            return " ".join(inline_plain(cell) for row in block.rows for cell in row)
+        case ir.ImageBlock():
+            return block.alt
+        case ir.UnknownBlock():
+            return block.text
+        case _:
+            return ""
+
+
+def _assign_source_spans(blocks: list[ir.Block], records: list[_JcRecord]) -> int:
+    """Attach proven raw DOCX paragraph ordinals to source-derived top-level blocks.
+
+    This is provenance only. It mirrors the content reconciliation discipline:
+    exact fingerprint matches and exact multi-record fusions get spans; ambiguous
+    or collapsed shapes stay ``None`` rather than inventing a source location.
+    """
+    if not records:
+        return 0
+    a_fps = [_source_match_key(_block_plain_for_source_span(block)) for block in blocks]
+    rec_fps = [_source_match_key(record.text) for record in records]
+    n = len(a_fps)
+    assigned = 0
+    cursor = 0
+    ri = 0
+
+    def fusion_len(scan: int, start_ri: int) -> int:
+        block_fp = a_fps[scan]
+        built = rec_fps[start_ri]
+        if not built or not block_fp.startswith(built):
+            return 0
+        k = start_ri + 1
+        while k < len(records) and len(built) < len(block_fp):
+            if not _has_contiguous_source_spans(records[start_ri:k + 1]):
+                break
+            nxt = rec_fps[k]
+            if not nxt or not block_fp.startswith(f"{built} {nxt}"):
+                break
+            built = f"{built} {nxt}"
+            k += 1
+        return (k - start_ri) if built == block_fp else 0
+
+    while ri < len(records):
+        if not rec_fps[ri]:
+            ri += 1
+            continue
+        scan = cursor
+        consumed = 1
+        while scan < n:
+            if a_fps[scan] == rec_fps[ri]:
+                break
+            if fl := fusion_len(scan, ri):
+                consumed = fl
+                break
+            scan += 1
+        if scan >= n:
+            ri += 1
+            continue
+        span = _source_span(records[ri:ri + consumed])
+        if span is not None:
+            blocks[scan].source_span = span
+            assigned += 1
+        cursor = scan + 1
+        ri += consumed
+    return assigned + _assign_bracketed_empty_spans(blocks, records)
 
 
 def reconcile_alignment(
@@ -435,6 +653,8 @@ def reconcile_alignment(
             return 0
         k = ri + 1
         while k < len(records) and len(built) < len(para):
+            if not _has_contiguous_source_spans(records[ri:k + 1]):
+                break
             nxt = rec_fps[k]
             if not nxt or not para.startswith(f"{built} {nxt}"):
                 break
@@ -467,6 +687,8 @@ def reconcile_alignment(
             ri += 1  # this record's text never surfaced (collapsed away)
             continue
         consumed_records = records[ri:ri + consumed]
+        if any(r.indented for r in consumed_records):
+            paragraphs[scan].indented = True
         if any(r.lineation_group is not None for r in consumed_records):
             groups = {r.lineation_group for r in consumed_records if r.lineation_group is not None}
             if len(groups) == 1:
@@ -524,6 +746,8 @@ def _recover_overshot_right(
             continue
         i = cand[0]
         paragraphs[i].align = "right"
+        if records[ri].indented:
+            paragraphs[i].indented = True
         used.add(i)
         recovered += 1
         if records[ri].lineation_group is not None and paragraphs[i].lineation_group is None:
@@ -714,10 +938,14 @@ def _block(node: dict[str, Any], ctx: _Ctx) -> ir.Block:
                 items=[[_block(b, ctx) for b in item] for item in items],
             )
         case "LineBlock" if isinstance(c, list):
-            # Verse-like lines (each a list of inlines) — real reading content, so a
-            # one-stanza VerseBlock rather than an UnknownBlock lowering would drop.
+            # Pandoc `LineBlock` proves structural lineation, not verse register.
+            # Normalization may promote it later if surrounding register context
+            # warrants that; the adapter only preserves the authored line shape.
             stanza = [_inlines(line, ctx) for line in c if isinstance(line, list)]
-            return ir.VerseBlock(stanzas=[stanza])
+            return ir.LineatedBlock(
+                stanzas=[stanza],
+                evidence=ir.LineationEvidence(pandoc_line_block=True),
+            )
         case "CodeBlock" if isinstance(c, list):
             _attr, text = c
             return ir.CodeBlock(text=str(text))
@@ -873,6 +1101,7 @@ def adapt(docx: Path, media_dir: Path) -> ir.Document:
     for node in raw_blocks:
         doc.blocks.append(_block(node, ctx))
 
+    span_assigned = _assign_source_spans(doc.blocks, records)
     paragraphs = [b for b in doc.blocks if isinstance(b, ir.Paragraph)]
     assigned = reconcile_alignment(paragraphs, records)
 
@@ -881,7 +1110,8 @@ def adapt(docx: Path, media_dir: Path) -> ir.Document:
     doc.diagnostics.append(ir.Diagnostic(
         "info", "import.align-zip",
         f"w:jc records={len(records)} assigned={assigned} "
-        f"right-records={right_records} right-assigned={right_assigned}",
+        f"right-records={right_records} right-assigned={right_assigned} "
+        f"source-spans={span_assigned}",
     ))
     # Right-aligned source paragraphs that none reconciled onto the AST — a warning
     # the caller propagates so a future drift fails loud.

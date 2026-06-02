@@ -1,34 +1,33 @@
-"""Render a focused DOCX paragraph range to an image for VISUAL fidelity checks.
+"""Render a focused DOCX paragraph slice to an image for visual QA.
 
 The OOXML signal table from ``docx_inspect`` tells you what the source *says*
 (``w:jc``, ``w:ind``, ``w:contextualSpacing`` …). This tells you what the source
-*looks like* — the rendered layout a human reads — so a prose-vs-verse call is
-made against the page, not against one's interpretation of the XML. (The current
-PAN006B oracle codified an XML interpretation that disagrees with the page; a
-visual check is how that class of mistake is caught.)
+selected paragraph range looks like in isolation, so a prose-vs-verse call can be
+checked against a rendered slice rather than only against XML interpretation.
 
 It works by SLICING: it copies the DOCX zip unchanged except for
 ``word/document.xml``, whose body is trimmed to the selected ``w:p`` range with
 every paragraph's own markup kept byte-for-byte (alignment, indent, spacing,
-``contextualSpacing``, runs). The slice is then rendered by **LibreOffice**, which
-interprets the OOXML directly — an authority INDEPENDENT of this package's own
-reader, so the render can actually contradict (and thereby validate) it. Pandoc is
-deliberately NOT used: its Markdown/HTML path drops alignment and indent, the very
-signals under test.
+``contextualSpacing``, runs). The slice is then rendered by **LibreOffice** with a
+temporary user profile, so an open GUI session cannot leak into the diagnostic.
+LibreOffice interprets the OOXML directly — an authority INDEPENDENT of this
+package's own reader, so the render can actually contradict it. This is not a
+full original page render: surrounding paragraphs, live pagination, and inline
+drawings are removed.
+Pandoc is deliberately NOT used because its Markdown/HTML path drops alignment and
+indent, the very signals under test.
 
-PURE w.r.t. the library: it reads the source DOCX and writes only into a
-caller-provided scratch/output dir (a PDF + PNGs). It never touches ``src/content``.
+PURE w.r.t. the library: it reads the source DOCX and writes only the requested
+PNG(s). It never touches ``src/content``.
 
-    uv run python -m pancratius.docx_render --book 13 --around "Память кого" \
+    uv run pancratius docx render-slice --book 13 --around "Память кого" \
         --context 12 --out /tmp/b13.png
 """
 from __future__ import annotations
 
-import argparse
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
@@ -38,6 +37,10 @@ from pancratius import docx_inspect as di
 
 W = di.W
 W_NS = di.da.W_NS
+
+
+class DocxRenderError(RuntimeError):
+    """The requested DOCX visual slice cannot be rendered."""
 
 
 def _soffice() -> str | None:
@@ -91,7 +94,7 @@ def slice_docx(docx: Path, lo: int, hi: int, dest: Path) -> Path:
     root = ET.fromstring(document)
     body = root.find(f"{W}body")
     if body is None:
-        raise SystemExit("no w:body in document.xml")
+        raise DocxRenderError("no w:body in document.xml")
 
     paras = _ordered_paragraphs(body)
     keep = paras[lo:hi + 1]
@@ -120,7 +123,7 @@ def slice_docx(docx: Path, lo: int, hi: int, dest: Path) -> Path:
 def render(docx: Path, lo: int, hi: int, out_png: Path, *, dpi: int = 140) -> list[Path]:
     soffice = _soffice()
     if soffice is None:
-        raise SystemExit(
+        raise DocxRenderError(
             "LibreOffice not found. Install it for an authoritative Word-faithful render:\n"
             "    brew install --cask libreoffice\n"
             "(pandoc/typst are NOT used here — they drop the alignment/indent signals "
@@ -129,19 +132,48 @@ def render(docx: Path, lo: int, hi: int, out_png: Path, *, dpi: int = 140) -> li
     with tempfile.TemporaryDirectory(prefix="docx-render-") as td:
         tdp = Path(td)
         sliced = slice_docx(docx, lo, hi, tdp / "slice.docx")
-        subprocess.run(
-            [soffice, "--headless", "--convert-to", "pdf", "--outdir", str(tdp), str(sliced)],
-            check=True, capture_output=True, text=True,
-        )
+        profile = tdp / "libreoffice-profile"
+        profile.mkdir()
+        try:
+            lo_result = subprocess.run(
+                [
+                    soffice,
+                    "--headless",
+                    "--nologo",
+                    "--nodefault",
+                    "--nofirststartwizard",
+                    "--nolockcheck",
+                    f"-env:UserInstallation={profile.as_uri()}",
+                    "--convert-to",
+                    "pdf",
+                    "--outdir",
+                    str(tdp),
+                    str(sliced),
+                ],
+                check=True, capture_output=True, text=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            detail = "\n".join(part for part in (exc.stdout, exc.stderr) if part)
+            raise DocxRenderError(f"LibreOffice failed to render the DOCX slice: {detail}") from exc
         pdf = tdp / "slice.pdf"
         if not pdf.is_file():
-            raise SystemExit("LibreOffice produced no PDF")
+            detail = "\n".join(part for part in (lo_result.stdout, lo_result.stderr) if part)
+            message = "LibreOffice produced no PDF"
+            if detail:
+                message = f"{message}: {detail}"
+            raise DocxRenderError(message)
         out_png.parent.mkdir(parents=True, exist_ok=True)
         stem = out_png.with_suffix("")
-        subprocess.run(
-            ["pdftoppm", "-png", "-r", str(dpi), str(pdf), str(stem)],
-            check=True, capture_output=True, text=True,
-        )
+        try:
+            subprocess.run(
+                ["pdftoppm", "-png", "-r", str(dpi), str(pdf), str(stem)],
+                check=True, capture_output=True, text=True,
+            )
+        except FileNotFoundError as exc:
+            raise DocxRenderError("pdftoppm not found on PATH; install poppler.") from exc
+        except subprocess.CalledProcessError as exc:
+            detail = "\n".join(part for part in (exc.stdout, exc.stderr) if part)
+            raise DocxRenderError(f"pdftoppm failed to rasterize the DOCX slice: {detail}") from exc
     pages = sorted(out_png.parent.glob(f"{out_png.stem}-*.png"))
     if not pages:  # single-page docs land at exactly the stem
         single = out_png.parent / f"{out_png.stem}.png"
@@ -149,49 +181,42 @@ def render(docx: Path, lo: int, hi: int, out_png: Path, *, dpi: int = 140) -> li
     return pages
 
 
-def _resolve_range(docx: Path, args: argparse.Namespace) -> tuple[int, int, list[di.ParaRow]]:
+def resolve_range(
+    docx: Path,
+    *,
+    around: str | None = None,
+    context: int = 10,
+    index_range: tuple[int, int] | None = None,
+) -> tuple[int, int, list[di.ParaRow]]:
+    if docx.suffix.lower() != ".docx":
+        raise DocxRenderError(f"expected a .docx file, got {docx}")
+    if not docx.is_file():
+        raise DocxRenderError(f"DOCX not found: {docx}")
     rows = di.read_rows(docx)
-    if args.range:
-        lo, hi = (int(x) for x in args.range.split(":"))
+    if index_range is not None:
+        lo, hi = index_range
         return lo, hi, rows
-    if args.around:
-        hits = [r.index for r in rows if args.around in r.text]
+    if around is not None:
+        hits = [r.index for r in rows if around in r.text]
         if not hits:
-            raise SystemExit(f"no paragraph contains {args.around!r}")
-        lo = max(0, hits[0] - args.context)
-        hi = min(len(rows) - 1, hits[-1] + args.context)
+            raise DocxRenderError(f"no paragraph contains {around!r}")
+        if len(hits) > 1:
+            preview = ", ".join(str(index) for index in hits[:8])
+            suffix = "" if len(hits) <= 8 else ", …"
+            raise DocxRenderError(
+                f"{around!r} matched {len(hits)} paragraphs ({preview}{suffix}); "
+                "use --range with `docx inspect --around` output, or search for a more specific fragment"
+            )
+        lo = max(0, hits[0] - context)
+        hi = min(len(rows) - 1, hits[0] + context)
         return lo, hi, rows
-    raise SystemExit("need --around or --range")
+    raise DocxRenderError("need --around or --range")
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    src = ap.add_mutually_exclusive_group(required=True)
-    src.add_argument("docx", nargs="?", type=Path)
-    src.add_argument("--book", type=int)
-    ap.add_argument("--around", help="render around paragraphs containing this text")
-    ap.add_argument("--context", type=int, default=10)
-    ap.add_argument("--range", help="paragraph index range LO:HI")
-    ap.add_argument("--out", type=Path, required=True, help="output PNG path (pages get -1,-2 suffixes)")
-    ap.add_argument("--dpi", type=int, default=140)
-    args = ap.parse_args(argv)
-
-    docx = di._book_docx(args.book) if args.book else args.docx
-    if not docx or not docx.is_file():
-        raise SystemExit(f"not a file: {docx}")
-
-    lo, hi, rows = _resolve_range(docx, args)
-    pages = render(docx, lo, hi, args.out, dpi=args.dpi)
-    print(f"rendered paragraphs [{lo}..{hi}] of {docx.name} -> {len(pages)} page(s)")
-    for p in pages:
-        print(f"  {p}")
-    # The index↔text key so a viewer can map a rendered line to its row signals.
-    print("\nparagraph index → text (correlate with `docx_inspect`):")
-    for r in rows:
-        if lo <= r.index <= hi and not r.empty:
-            print(f"  {r.index:>5}  {re.sub(r'\\s+', ' ', r.text)[:80]}")
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+def range_key(rows: list[di.ParaRow], lo: int, hi: int) -> list[str]:
+    """Text key for correlating rendered lines with `docx inspect` rows."""
+    return [
+        f"{row.index:>5}  {re.sub(r'\\s+', ' ', row.text)[:80]}"
+        for row in rows
+        if lo <= row.index <= hi and not row.empty
+    ]
