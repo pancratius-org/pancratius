@@ -109,7 +109,7 @@ def build_region(book: str, ir_lo: int, ir_hi: int, rid: str, ctx_pad: int = 0) 
                 lines.append({"book": book, "idx": p.index, "sub": li, "kind": "body",
                               "text": ln.text, "emph": em, "wraps": ln.wraps})
         else:
-            ctx = _HARD_CTX.get(p.role, "context")
+            ctx = _HARD_CTX.get(p.role, "context")   # fallback unreachable: every non-body role is mapped
             lines.append({"book": book, "idx": p.index, "sub": 0, "kind": "break",
                           "marker": ctx, "text": p.text})
     return {"rid": rid, "book": book, "ir_lo": ir_lo, "ir_hi": ir_hi,
