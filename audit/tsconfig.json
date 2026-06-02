@@ -1,0 +1,6 @@
+{
+  "//": "IDE/project-service entrypoint for the TS audit harness. The command-line check of record is `tsc -p ../tsconfig.tooling.json`.",
+  "extends": "../tsconfig.tooling.json",
+  "include": ["**/*.ts"],
+  "exclude": ["fixtures"]
+}

@@ -6,7 +6,6 @@ import astro from "eslint-plugin-astro";
 import tseslint from "typescript-eslint";
 
 const TS_FILES = ["**/*.{ts,tsx}"];
-const TS_PROJECTS = ["./tsconfig.json", "./tsconfig.tooling.json", "./tests/tsconfig.json"];
 
 function tsFilesOnly<T extends object>(config: T): T & { files: string[] } {
   return { ...config, files: TS_FILES };
@@ -32,7 +31,7 @@ export default defineConfig(
     files: TS_FILES,
     languageOptions: {
       parserOptions: {
-        project: TS_PROJECTS,
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
