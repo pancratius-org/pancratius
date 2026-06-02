@@ -458,6 +458,11 @@ def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
 
     Lineated/verse are redacted to ``BODY`` so the converter's own lineation
     verdict never reaches a dataset as truth.
+
+    Runs ``normalize`` without the book ``slug_lookup`` the production import passes
+    (docx_conversion); that only resolves bibliography cross-reference targets, never
+    a block's kind, so per-ordinal verdicts are identical. Matches the existing
+    ``classify_blocks`` path.
     """
     from pancratius.ir.normalize import normalize
 
