@@ -198,6 +198,8 @@ class Para:
     src_end: int | None = None    # from the IR block's SourceSpan. None if block has none.
     needs_review: bool = False    # the mask kept this votable but flagged it (mixed/unknown/
                                   # unmapped/unexpected-merge kind) — never silently masked.
+    indented: bool = False        # the source <w:p> carried DOCX indentation (b.indented) —
+                                  # a faithful visual cue (evidence), NOT a lineation label rule.
 
     @property
     def text(self) -> str:
@@ -298,7 +300,8 @@ def read_view(docx: Path, *, mask: dict[int, di.MaskVerdict] | None = None) -> l
                     br = len(lines) - 1
                     bold_all = all(ln.bold for ln in lines)
                     out.append(Para(index=idx, role=ROLE_BODY, lines=lines,
-                                    align=b.align, br_count=br, bold_all=bold_all))
+                                    align=b.align, br_count=br, bold_all=bold_all,
+                                    indented=b.indented))
             case ir.BlockQuote():
                 # holds BLOCKS, not inlines — flatten its paragraphs' reading text for
                 # the preview, but it is a hard boundary (quoted material is not part of
