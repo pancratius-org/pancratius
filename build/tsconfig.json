@@ -1,0 +1,5 @@
+{
+  "//": "IDE/project-service entrypoint for Node build helpers. The command-line check of record is `tsc -p ../tsconfig.tooling.json`.",
+  "extends": "../tsconfig.tooling.json",
+  "include": ["**/*.ts"]
+}
