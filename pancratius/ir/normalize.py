@@ -1530,8 +1530,18 @@ def normalize(
     *,
     demote_levels: int = 1,
     slug_lookup: _SlugLookup | None = None,
+    stop_before_lineation: bool = False,
 ) -> ir.Document:
-    """Run the full normalize chain over `doc` in dependency order."""
+    """Run the full normalize chain over `doc` in dependency order.
+
+    With `stop_before_lineation=True`, stop at the structural boundary — after
+    dialogue labels, before `verse_blocks` merges lineated/verse runs. The merge
+    coalesces many source paragraphs into one block and `merge_source_spans` drops
+    that block's provenance if any member (e.g. an empty stanza-gap) lacks a span,
+    so source-ordinal provenance survives intact only at this seam. Callers that
+    need per-source-paragraph provenance (the votability mask) observe here; the
+    default runs the whole chain and is byte-identical to before.
+    """
     doc.blocks = drop_toc(doc.blocks)
     doc.blocks = scrub_rights(doc.blocks)
     doc.blocks = scrub_ai_alt(doc.blocks)
@@ -1544,5 +1554,7 @@ def normalize(
     doc.blocks = strip_formatting_artifacts(doc.blocks)
     doc.blocks = structural_blocks(doc.blocks)
     doc.blocks = dialogue_labels(doc.blocks)
+    if stop_before_lineation:
+        return doc
     doc.blocks = verse_blocks(doc.blocks)
     return doc
