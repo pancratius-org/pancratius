@@ -56,7 +56,7 @@ def find_center(paras, sub):
 # markers (the model must SEE the image between two beats, not have the window truncated
 # at it). They still bound a RUN downstream; here they are context, not a window edge.
 _CLIP_ROLES = {iv.ROLE_HEADING, iv.ROLE_THEMATIC, iv.ROLE_TABLE, iv.ROLE_LIST,
-               iv.ROLE_SIGNATURE, iv.ROLE_EPIGRAPH}
+               iv.ROLE_SIGNATURE, iv.ROLE_EPIGRAPH, iv.ROLE_CONTEXT}
 
 
 def region(paras, center, ctx=10):
@@ -73,7 +73,7 @@ def region(paras, center, ctx=10):
 
 _ROLE_TAG = {
     iv.ROLE_HEADING: "═══ HEADING", iv.ROLE_THEMATIC: "═══ * * *",
-    iv.ROLE_PSEUDO_HEADER: "─── (bold section-head)", iv.ROLE_SPEAKER_LABEL: "─── (speaker)",
+    iv.ROLE_CONTEXT: "─── (compiler: context)",
     iv.ROLE_SIGNATURE: "═══ SIGNATURE", iv.ROLE_EPIGRAPH: "═══ EPIGRAPH",
     iv.ROLE_BLOCKQUOTE: "═══ QUOTE", iv.ROLE_LIST: "═══ LIST", iv.ROLE_TABLE: "═══ TABLE",
     iv.ROLE_IMAGE: "═══ [IMAGE]", iv.ROLE_OTHER: "═══ (other block)",

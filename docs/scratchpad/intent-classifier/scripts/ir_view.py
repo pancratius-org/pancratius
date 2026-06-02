@@ -40,6 +40,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import wrap as wrapmod  # noqa: E402
 
 from pancratius import docx_adapter as da  # noqa: E402
+from pancratius import docx_inspect as di  # noqa: E402
 from pancratius import ir  # noqa: E402
 from pancratius.ir.normalize import inline_lines, inline_plain  # noqa: E402
 
@@ -146,8 +147,11 @@ class Role(StrEnum):
     IMAGE = "image"                # an image (block or image-only paragraph) — HARD boundary
     OTHER = "other"                # any other IR block (code/footnote/…) — HARD boundary
     EMPTY = "empty"                # blank para — stanza/section separator (NOT hard)
-    PSEUDO_HEADER = "pseudo_header"   # inferred bold section head — SOFT boundary
-    SPEAKER_LABEL = "speaker_label"   # inferred **Speaker:** — SOFT boundary
+    CONTEXT = "context"            # the production compiler classified this <w:p> as
+                                   # NON-body structure (heading/table/dialogue-label/…) —
+                                   # masked out of voting as a HARD boundary, no guess.
+    PSEUDO_HEADER = "pseudo_header"   # legacy soft role — no longer assigned (kept for callers)
+    SPEAKER_LABEL = "speaker_label"   # legacy soft role — no longer assigned (kept for callers)
 
     @property
     def is_hard_boundary(self) -> bool:
@@ -170,12 +174,13 @@ ROLE_BLOCKQUOTE = Role.BLOCKQUOTE
 ROLE_IMAGE = Role.IMAGE
 ROLE_OTHER = Role.OTHER
 ROLE_EMPTY = Role.EMPTY
+ROLE_CONTEXT = Role.CONTEXT
 ROLE_PSEUDO_HEADER = Role.PSEUDO_HEADER
 ROLE_SPEAKER_LABEL = Role.SPEAKER_LABEL
 
 HARD_BOUNDARY_ROLES = frozenset({Role.HEADING, Role.THEMATIC, Role.TABLE, Role.LIST,
                                  Role.SIGNATURE, Role.EPIGRAPH, Role.BLOCKQUOTE,
-                                 Role.IMAGE, Role.OTHER})
+                                 Role.IMAGE, Role.OTHER, Role.CONTEXT})
 SOFT_BOUNDARY_ROLES = frozenset({Role.PSEUDO_HEADER, Role.SPEAKER_LABEL})
 
 
@@ -191,6 +196,8 @@ class Para:
     bold_all: bool = False        # whole para all-bold (header/label signal)
     src_start: int | None = None  # source <w:p> ordinal range (render-slice index space):
     src_end: int | None = None    # from the IR block's SourceSpan. None if block has none.
+    needs_review: bool = False    # the mask kept this votable but flagged it (mixed/unknown/
+                                  # unmapped/unexpected-merge kind) — never silently masked.
 
     @property
     def text(self) -> str:
@@ -209,29 +216,6 @@ def _line_of(inlines: list[ir.Inline], geom: wrapmod.PageGeom) -> Line:
     ws = wrapmod.wrap_stat(txt, geom)
     return Line(text=txt, bold=bold, italic=italic, fill=ws.fill, wraps=ws.wraps,
                 md=inline_md(inlines), html=inline_html(inlines))
-
-
-def _looks_pseudo_header(p: Para) -> bool:
-    """A short all-bold standalone body paragraph the author used as a section head:
-    one line, all-bold, not sentence-final punctuation. LOWER confidence than a real
-    heading — used only as a soft boundary where real headings are sparse."""
-    if p.role != ROLE_BODY or len(p.lines) != 1 or not p.lines[0].bold:
-        return False
-    t = p.lines[0].text.strip()
-    # A short all-bold line ending in sentence/ellipsis/colon/comma OR a trailing dash is a
-    # sentence or a mid-thought continuation (e.g. "Но не извне —" → "а изнутри."), not a
-    # section head — a trailing em/en/hyphen dash marks an obvious continuation into the next line.
-    return bool(t) and len(t) <= 60 and not t.endswith((".", "!", "?", "…", ":", ";", ",", "—", "–", "-"))
-
-
-def _looks_speaker_label(p: Para) -> bool:
-    """An all-bold `Speaker:`-style turn (ends with ':' or is a known label)."""
-    # F10: only a SINGLE-line all-bold "Speaker:" is a label; a multi-line paragraph whose
-    # first line ends ":" is a colon-opener of a stanza, not a speaker label.
-    if p.role != ROLE_BODY or len(p.lines) != 1 or not p.lines[0].bold:
-        return False
-    t = p.lines[0].text.strip()
-    return t.endswith(":") and len(t) <= 50
 
 
 def read_view(docx: Path) -> list[Para]:
@@ -322,21 +306,27 @@ def read_view(docx: Path) -> list[Para]:
             for p in out[_before:]:
                 p.src_start, p.src_end = sp.start, sp.end
         idx += 1
-    # second pass: infer soft boundaries (pseudo-header / speaker-label) on body paras. A
-    # pseudo-header must be ISOLATED — a short all-bold line whose body neighbours are NOT
-    # all-bold. A run of adjacent all-bold body lines is a bold SENTENCE wrapped across <w:p>
-    # rows (e.g. #64 "тишина воспринимается / как отсутствие звуков"), not a stack of headers.
-    body_order = [i for i, p in enumerate(out) if p.role == ROLE_BODY]
-    bold_at = {i for i in body_order if out[i].bold_all}
-    for k, i in enumerate(body_order):
-        p = out[i]
-        if _looks_speaker_label(p):
-            p.role = ROLE_SPEAKER_LABEL
-        elif _looks_pseudo_header(p):
-            prev_bold = k > 0 and body_order[k - 1] in bold_at
-            next_bold = k + 1 < len(body_order) and body_order[k + 1] in bold_at
-            if not (prev_bold or next_bold):
-                p.role = ROLE_PSEUDO_HEADER
+    # second pass: replace the old structural GUESSING (pseudo-header / speaker-label /
+    # bold-isolation) with a conservative MASK from the production compiler. Only paragraphs
+    # the first pass called ROLE_BODY are refined — ROLE_EMPTY and the roles read from a real
+    # IR node type (heading/table/list/signature/epigraph/blockquote/image/other) come from
+    # the IR itself, not a guess, so they are left untouched. Lineated/verse ordinals redact
+    # to BODY (votable); only non-body structure becomes CONTEXT; mixed/unknown/unmapped stay
+    # votable but flag `needs_review`. The mask runs the full pipeline ONCE per docx.
+    mask = di.votability_mask(docx)
+    for p in out:
+        if p.role != ROLE_BODY:
+            continue
+        if p.src_start is None:
+            p.needs_review = True            # no SourceSpan: the unmapped tail (§14-P1)
+            continue
+        verdict = mask.get(p.src_start, di.MaskVerdict.REVIEW)
+        if verdict is di.MaskVerdict.CONTEXT:
+            p.role = ROLE_CONTEXT
+            p.boundary = True
+        elif verdict is di.MaskVerdict.REVIEW:
+            p.needs_review = True
+        # MaskVerdict.BODY: confident votable body — leave ROLE_BODY as-is.
     return out
 
 

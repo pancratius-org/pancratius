@@ -12,8 +12,9 @@ Fixes the QA-found criticals:
   H1 (book02): its DOCX source is fixed → render-slice loads it directly (no render_clean).
   H2 (label space): reader labels 2-way {flowing, lineated} to match the gold.
   M1 (contamination): the structure shows ONLY hard OOXML signals (heading/***/image/
-     empty/<w:br>/right-align) + text/emphasis/wrap — NOT the harness's inferred
-     pseudo_header/speaker_label guesses (those would bias the reader).
+     empty/<w:br>/right-align) + the production compiler's non-body CONTEXT verdict +
+     text/emphasis/wrap — never a text-heuristic guess on a body line (that would bias
+     the reader).
 
 Each region package = {rid, book, ir_lo, ir_hi, src_lo, src_hi, png[], lines[]}.
 A line: {book, idx, sub, kind, text, emph, wraps} where kind ∈ {body, break} (break =
@@ -37,15 +38,15 @@ from pancratius import docx_inspect as di  # noqa: E402
 DATA = Path(__file__).resolve().parents[1] / "data" / "gold_lineation"
 PNG = DATA / "png"
 
-# Hard OOXML structural roles the reader sees as CONTEXT (never labels). The inferred
-# soft roles (pseudo_header, speaker_label) are deliberately collapsed to a neutral
-# "bold line" so we don't leak the harness's guesses (M1).
+# Hard structural roles the reader sees as CONTEXT (never labels): OOXML/IR signals plus
+# the production compiler's non-body verdict (ROLE_CONTEXT). No text-heuristic guess (M1).
 _HARD_CTX = {
     iv.ROLE_HEADING: "heading", iv.ROLE_THEMATIC: "thematic-break",
     iv.ROLE_IMAGE: "image", iv.ROLE_EMPTY: "blank",
     iv.ROLE_TABLE: "table", iv.ROLE_LIST: "list",
     iv.ROLE_SIGNATURE: "right-aligned", iv.ROLE_EPIGRAPH: "right-aligned",
     iv.ROLE_BLOCKQUOTE: "blockquote", iv.ROLE_OTHER: "other-block",
+    iv.ROLE_CONTEXT: "context",   # production compiler: non-body structure
 }
 
 
@@ -108,9 +109,7 @@ def build_region(book: str, ir_lo: int, ir_hi: int, rid: str, ctx_pad: int = 0) 
                 lines.append({"book": book, "idx": p.index, "sub": li, "kind": "body",
                               "text": ln.text, "emph": em, "wraps": ln.wraps})
         else:
-            # collapse inferred soft roles (pseudo_header/speaker_label) to a neutral
-            # marker so the reader doesn't see the harness's opinion; show hard roles as-is.
-            ctx = _HARD_CTX.get(p.role, "bold-line")
+            ctx = _HARD_CTX.get(p.role, "context")
             lines.append({"book": book, "idx": p.index, "sub": 0, "kind": "break",
                           "marker": ctx, "text": p.text})
     return {"rid": rid, "book": book, "ir_lo": ir_lo, "ir_hi": ir_hi,
