@@ -22,7 +22,7 @@ interface Props {
 
 const { entry, pair, locale, loading = "lazy" } = Astro.props;
 const copy = videoPageCopy[locale];
-const embed = embedUrlFor(entry);
+const embed = embedUrlFor(entry, locale);
 const watch = watchUrlFor(entry);
 const thumb = videoCoverAssetUrl(pair, locale);
 const title = entry.data.title;

@@ -1,4 +1,5 @@
 import type { Locale } from "../../locales";
+import type { VideoPlatform } from "../../videos";
 
 export interface VideosIndexCopy {
   eyebrow: string;
@@ -60,7 +61,29 @@ export interface VideoPageCopy {
   playAria: string;
   pagerAria: string;
   channelLabel: string;
+  showMore: string;
+  showLess: string;
+  platformLabel(platform: VideoPlatform): string;
 }
+
+const platformLabels = {
+  ru: {
+    youtube: "YouTube",
+    vimeo:   "Vimeo",
+    rutube:  "RUTUBE",
+    odysee:  "Odysee",
+    self:    "зеркало",
+    other:   "ссылка",
+  },
+  en: {
+    youtube: "YouTube",
+    vimeo:   "Vimeo",
+    rutube:  "RUTUBE",
+    odysee:  "Odysee",
+    self:    "mirror",
+    other:   "link",
+  },
+} satisfies Record<Locale, Record<VideoPlatform, string>>;
 
 export const videoPageCopy = {
   ru: {
@@ -74,6 +97,9 @@ export const videoPageCopy = {
     playAria: "Запустить видео",
     pagerAria: "Другие видео",
     channelLabel: "Канал:",
+    showMore: "Читать полностью ▾",
+    showLess: "Свернуть ▴",
+    platformLabel: (platform) => platformLabels.ru[platform],
   },
   en: {
     back: () => "← back to videos",
@@ -86,5 +112,8 @@ export const videoPageCopy = {
     playAria: "Play video",
     pagerAria: "Other videos",
     channelLabel: "Channel:",
+    showMore: "Read more ▾",
+    showLess: "Show less ▴",
+    platformLabel: (platform) => platformLabels.en[platform],
   },
 } satisfies Record<Locale, VideoPageCopy>;

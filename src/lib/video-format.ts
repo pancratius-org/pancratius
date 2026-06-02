@@ -1,5 +1,5 @@
-// Pure formatters for video data — no `astro:content` imports so tests can
-// load this directly under node --test.
+// Pure formatters for video data — no imports, so tests can load this directly
+// under node --test.
 
 /**
  * Format an ISO 8601 duration (`PT8M42S`, `PT1H3M`) as a display string
@@ -28,4 +28,24 @@ export function layoutFor(
   if (headingsCount > 0) return "blog";
   const cleaned = bodyText.replace(/<!--[\s\S]*?-->/g, "").replace(/[\[\]#*_>`()-]/g, "").trim();
   return cleaned.length >= thresholdChars ? "blog" : "compact";
+}
+
+/**
+ * Localize a YouTube embed URL: set the player UI language (`hl`); when
+ * `forcedCaptionLanguage` is set, also prefer that caption track and force
+ * captions on (`cc_lang_pref` + `cc_load_policy`). The caller passes a caption
+ * locale for translated pages, since the audio stays in the default locale.
+ */
+export function localizedEmbedUrl(
+  base: string,
+  playerLanguage: string,
+  forcedCaptionLanguage: string | null,
+): string {
+  const url = new URL(base);
+  url.searchParams.set("hl", playerLanguage);
+  if (forcedCaptionLanguage !== null) {
+    url.searchParams.set("cc_lang_pref", forcedCaptionLanguage);
+    url.searchParams.set("cc_load_policy", "1");
+  }
+  return url.toString();
 }
