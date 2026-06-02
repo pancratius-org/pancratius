@@ -12,7 +12,6 @@ from pancratius.docx_inspect import (
     InspectOptions,
     MaskVerdict,
     ParaRow,
-    _orphaned_body_ordinals,
     _verdict_for,
     parse_index_range,
     votability_mask,
@@ -250,72 +249,45 @@ def test_docx_inspect_kind_filters_keep_ambiguous_candidates() -> None:
 
 
 # --- votability mask (Slice 0): contract = which source ordinals are votable body ----------
-# These pin the VERDICT contract, not the mask's internals: lineated/verse redact to votable,
-# structural-only is context, and every ambiguous case (mixed/unknown/unmapped/orphan/merge)
-# stays votable-but-flagged — never silently masked. The same outcomes must hold when the
-# re-architecture reads votability off the structural-IR seam instead of this shim.
+# These pin the VERDICT contract, not the mask's internals: at the structural seam the mask
+# observes, body is plain Paragraph; structural-only is context; every ambiguous case
+# (mixed/unknown/unmapped/unexpected-merge) stays votable-but-flagged — never silently masked.
+# The same outcomes must hold when the re-architecture reads votability off the structural-IR
+# seam directly instead of this shim.
 
 def _hit(kinds: set[str], start: int, end: int) -> BlockSourceHit:
     return BlockSourceHit(kinds=frozenset(kinds), span=ir.SourceSpan(start, end))
 
 
 def test_verdict_body_kinds_are_votable() -> None:
-    assert _verdict_for(_hit({"Paragraph"}, 5, 5), orphan_body=False) is MaskVerdict.BODY
-    # lineated/verse legitimately MERGE several source ordinals — the redacted lineation
-    # verdict, not an ambiguity — so they stay a clean BODY, never surfaced as a label.
-    assert _verdict_for(_hit({"LineatedBlock"}, 5, 8), orphan_body=False) is MaskVerdict.BODY
-    assert _verdict_for(_hit({"VerseBlock"}, 5, 8), orphan_body=False) is MaskVerdict.BODY
+    assert _verdict_for(_hit({"Paragraph"}, 5, 5)) is MaskVerdict.BODY
+    # lineated/verse do not appear at the structural seam, but are listed as body for
+    # robustness — if ever observed past the seam they stay BODY, never a leaked verdict.
+    assert _verdict_for(_hit({"LineatedBlock"}, 5, 8)) is MaskVerdict.BODY
+    assert _verdict_for(_hit({"VerseBlock"}, 5, 8)) is MaskVerdict.BODY
 
 
 def test_verdict_structural_only_is_context() -> None:
     for kind in ("Heading", "Signature", "DialogueLabel", "Table", "ThematicBreak"):
-        assert _verdict_for(_hit({kind}, 3, 3), orphan_body=False) is MaskVerdict.CONTEXT
+        assert _verdict_for(_hit({kind}, 3, 3)) is MaskVerdict.CONTEXT
 
 
 def test_verdict_mixed_kinds_stay_votable_flagged() -> None:
     # a <w:p> that split into label + body must never collapse to the structural half
-    assert _verdict_for(_hit({"DialogueLabel", "Paragraph"}, 7, 7),
-                        orphan_body=False) is MaskVerdict.REVIEW
+    assert _verdict_for(_hit({"DialogueLabel", "Paragraph"}, 7, 7)) is MaskVerdict.REVIEW
 
 
 def test_verdict_unknown_kind_is_review() -> None:
-    assert _verdict_for(_hit({"FootnoteDef"}, 2, 2), orphan_body=False) is MaskVerdict.REVIEW
+    assert _verdict_for(_hit({"FootnoteDef"}, 2, 2)) is MaskVerdict.REVIEW
 
 
 def test_verdict_unmapped_ordinal_is_review() -> None:
-    assert _verdict_for(None, orphan_body=False) is MaskVerdict.REVIEW
-
-
-def test_verdict_orphan_body_overrides_label_context() -> None:
-    # a lone DialogueLabel whose lineated body lost its span carries votable text the
-    # classifier can no longer see at this ordinal — flag it, never mask it to context.
-    assert _verdict_for(_hit({"DialogueLabel"}, 21, 21), orphan_body=True) is MaskVerdict.REVIEW
+    assert _verdict_for(None) is MaskVerdict.REVIEW
 
 
 def test_verdict_unexpected_paragraph_merge_is_review() -> None:
     # a plain Paragraph owns ONE ordinal; spanning >1 is an unexpected merge → flag it
-    assert _verdict_for(_hit({"Paragraph"}, 5, 7), orphan_body=False) is MaskVerdict.REVIEW
-
-
-def test_orphaned_body_detects_label_then_spanless_lineation() -> None:
-    blocks = (
-        ir.DialogueLabel(speaker="Творец", source_span=ir.SourceSpan(21, 21)),
-        ir.LineatedBlock(stanzas=[[[ir.Text("body line")]]], source_span=None),
-    )
-    assert _orphaned_body_ordinals(blocks) == frozenset({21})
-
-
-def test_orphaned_body_ignores_spanned_or_nonlineated_following() -> None:
-    spanned = (   # the following lineated block kept a span → not orphaned
-        ir.DialogueLabel(speaker="A", source_span=ir.SourceSpan(3, 3)),
-        ir.LineatedBlock(stanzas=[[[ir.Text("x")]]], source_span=ir.SourceSpan(9, 9)),
-    )
-    prose = (     # the following block is a plain paragraph, not lineated → not orphaned
-        ir.DialogueLabel(speaker="A", source_span=ir.SourceSpan(3, 3)),
-        ir.Paragraph(inlines=[], source_span=None),
-    )
-    assert _orphaned_body_ordinals(spanned) == frozenset()
-    assert _orphaned_body_ordinals(prose) == frozenset()
+    assert _verdict_for(_hit({"Paragraph"}, 5, 7)) is MaskVerdict.REVIEW
 
 
 def test_votability_mask_keys_per_ordinal_and_leaves_unmapped_absent(

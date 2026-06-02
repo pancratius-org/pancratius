@@ -359,23 +359,23 @@ _STRUCTURAL_KINDS = frozenset({
     "Epigraph", "BlockQuote", "ImageBlock", "DialogueLabel",
 })
 
-# The IR block kinds that ARE the votable body. `LineatedBlock`/`VerseBlock` are
-# the converter's OWN lineation verdict (the decision the dataset exists to
-# re-judge), so they are REDACTED to body here — never surfaced as a label or a
-# hint. `Paragraph` is plain prose body.
+# The IR block kinds that ARE votable body. At the structural seam the mask observes
+# (see `votability_mask`), lineated/verse runs have NOT been merged yet — every body
+# line is still a `Paragraph`. `LineatedBlock`/`VerseBlock` are listed for robustness
+# so that if the mask is ever observed past the lineation seam they are still treated
+# as body (the lineation verdict — the decision the dataset re-judges — never leaks).
 _BODY_KINDS = frozenset({"Paragraph", "LineatedBlock", "VerseBlock"})
 
 
 class MaskVerdict(StrEnum):
     """The conservative votability verdict for one source paragraph.
 
-    `BODY` — the classifier says this ordinal is (prose/lineated/verse) body; it
-        is a votable candidate. (Lineated/verse are redacted to BODY.)
+    `BODY` — the classifier says this ordinal is prose body; it is a votable candidate.
     `CONTEXT` — the classifier says this ordinal is ONLY non-body structure
         (heading, table, dialogue label, …); it is not a candidate.
     `REVIEW` — votable like BODY, but flagged: the classifier was mixed, the kind
-        is unknown, the ordinal is unmapped (no entry / no span), or the block
-        merges several source ordinals. Never silently masked away.
+        is unknown, the ordinal is unmapped (no entry / no span), or a paragraph
+        unexpectedly merges several source ordinals. Never silently masked away.
     """
 
     BODY = "body"
@@ -383,20 +383,12 @@ class MaskVerdict(StrEnum):
     REVIEW = "review"
 
 
-def _verdict_for(
-    hit: BlockSourceHit | None, *, orphan_body: bool
-) -> MaskVerdict:
-    """Reduce one source ordinal's classifier hit to a votability verdict.
-
-    `orphan_body` is True when this ordinal's `<w:p>` produced a label PLUS a body
-    that a downstream lineation merge later orphaned (its span dropped) — the body
-    is votable but no longer ordinal-addressable, so the label-only hit must not
-    mask it away.
-    """
+def _verdict_for(hit: BlockSourceHit | None) -> MaskVerdict:
+    """Reduce one source ordinal's structural-IR hit to a votability verdict."""
     if hit is None:
-        # No block carried this ordinal after full normalize: dropped (TOC/
-        # endmatter), unreconciled, or otherwise unmapped (§14-P1). Stay votable,
-        # but flag — we cannot faithfully render it against a known block.
+        # No block carried this ordinal at the structural seam: dropped (TOC/
+        # endmatter/bibliography) or unreconciled (§14-P1). Stay votable, but flag —
+        # we cannot faithfully render it against a known block.
         return MaskVerdict.REVIEW
     kinds = hit.kinds
     if not kinds <= (_BODY_KINDS | _STRUCTURAL_KINDS):
@@ -409,68 +401,42 @@ def _verdict_for(
         # structural half.
         return MaskVerdict.REVIEW
     (kind,) = tuple(kinds)
-    if orphan_body:
-        # `orphan_body` is only ever set for {DialogueLabel} ordinals (_orphaned_body_ordinals
-        # only adds those), so this fires before the structural check below to keep them votable.
-        # A lone {DialogueLabel} whose turn body was lineated and lost its span:
-        # the `<w:p>` still carries votable body text the classifier can no longer
-        # see at this ordinal. Flag, never mask. (Slice 0 cannot split the label
-        # from the body at display-line grain; that is the §16 fragment work.)
-        return MaskVerdict.REVIEW
     if kind in _STRUCTURAL_KINDS:
         return MaskVerdict.CONTEXT
-    # a BODY kind. A LineatedBlock/VerseBlock legitimately MERGES several source
-    # ordinals — that merge is the redacted lineation verdict, not an ambiguity,
-    # so it stays a clean BODY. A *Paragraph* spanning >1 ordinal would be an
-    # unexpected merge → flag it.
+    # a BODY kind. A *Paragraph* owns one source ordinal; spanning >1 is an
+    # unexpected merge (e.g. a dialogue coda fused onto its lead) → flag it.
     if kind == "Paragraph" and hit.span.end != hit.span.start:
         return MaskVerdict.REVIEW
     return MaskVerdict.BODY
 
 
-def _orphaned_body_ordinals(blocks: tuple[ir.Block, ...]) -> frozenset[int]:
-    """Ordinals of `DialogueLabel`s whose turn body was orphaned by a later merge.
-
-    `_emit_dialogue_segment` stamps the same `source_span` on a label AND its body
-    paragraph, but a downstream lineation pass MERGES that body into a
-    `LineatedBlock`/`VerseBlock` that drops per-paragraph spans (normalize merges N
-    paragraphs into one block, dropping ownership). The merged body then sits
-    immediately after the label as a span-less lineated block. Detect that purely
-    structurally (adjacency + span-None), no text inspection."""
-    out: set[int] = set()
-    for current, following in zip(blocks, blocks[1:], strict=False):
-        if (
-            isinstance(current, ir.DialogueLabel)
-            and current.source_span is not None
-            and isinstance(following, ir.LineatedBlock | ir.VerseBlock)
-            and following.source_span is None
-        ):
-            out.add(current.source_span.start)
-    return frozenset(out)
-
-
 def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
     """Per source-paragraph-ordinal votability verdict from the production compiler.
 
-    Runs the full ``adapt`` + ``normalize`` pipeline ONCE and reduces each source
-    ordinal's resulting IR block kind(s) to a conservative ``MaskVerdict``. The
-    caller looks a paragraph up by its ``SourceSpan`` start; an ordinal absent from
-    the returned map is unmapped and should be treated as ``REVIEW`` (votable,
-    flagged), never silently masked.
+    Runs ``adapt`` then ``normalize`` ONCE — stopping at the structural seam
+    (``stop_before_lineation``: after dialogue labels, before ``verse_blocks``) —
+    and reduces each source ordinal's resulting IR block kind(s) to a conservative
+    ``MaskVerdict``. The caller looks a paragraph up by its ``SourceSpan`` start; an
+    ordinal absent from the returned map is unmapped and should be treated as
+    ``REVIEW`` (votable, flagged), never silently masked.
 
-    Lineated/verse are redacted to ``BODY`` so the converter's own lineation
-    verdict never reaches a dataset as truth.
+    Why the seam, not full normalize: ``verse_blocks`` merges lineated/verse runs
+    into one block, and ``merge_source_spans`` drops that block's provenance if any
+    member (e.g. an empty stanza-gap) lacks a span — poisoning provenance for whole
+    verse sections and falsely flagging thousands of real body lines. Observing
+    before that pass keeps each body line an addressable ``Paragraph`` AND avoids
+    surfacing the lineation verdict (it has not been computed yet). Structural roles
+    (heading/signature/dialogue-label/…) are already assigned by this point.
 
-    Runs ``normalize`` without the book ``slug_lookup`` the production import passes
-    (docx_conversion); that only resolves bibliography cross-reference targets, never
-    a block's kind, so per-ordinal verdicts are identical. Matches the existing
-    ``classify_blocks`` path.
+    ``slug_lookup`` is omitted (as in ``classify_blocks``): it only resolves
+    bibliography cross-reference targets, never a block's kind, so verdicts are
+    identical to the production import path.
     """
     from pancratius.ir.normalize import normalize
 
     with tempfile.TemporaryDirectory(prefix="docx-mask-") as td:
         doc = da.adapt(docx, Path(td))
-        normalize(doc)
+        normalize(doc, stop_before_lineation=True)
     blocks = tuple(doc.blocks)
 
     by_source = _SourceClassificationBuilder()
@@ -480,9 +446,8 @@ def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
             by_source.add(name=type(block).__name__, span=span)
     # `add()` already keys every ordinal a span covers, so `hits` is complete per-ordinal.
     hits = by_source.build()
-    orphans = _orphaned_body_ordinals(blocks)
     return {
-        ordinal: _verdict_for(hit, orphan_body=ordinal in orphans)
+        ordinal: _verdict_for(hit)
         for ordinal, hit in hits.items()
     }
 
