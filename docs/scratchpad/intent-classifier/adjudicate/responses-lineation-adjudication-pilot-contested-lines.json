@@ -1,0 +1,70 @@
+{
+  "title": "Lineation adjudication — pilot contested lines",
+  "completedAt": "2026-06-01T16:25:27.936Z",
+  "responses": {
+    "g05_b62": {
+      "lines": {
+        "4749.0": "lineated",
+        "4753.0": "lineated"
+      },
+      "note": "Lineated render is visually closer to the original docx file"
+    },
+    "g07_b20": {
+      "lines": {
+        "189.0": "lineated",
+        "190.0": "lineated",
+        "191.0": "lineated",
+        "192.0": "lineated",
+        "193.0": "lineated",
+        "194.0": "lineated",
+        "195.0": "lineated",
+        "196.0": "lineated",
+        "197.0": "lineated",
+        "198.0": "lineated",
+        "199.0": "lineated",
+        "200.0": "lineated",
+        "201.0": "lineated",
+        "202.0": "lineated"
+      },
+      "note": "Prose version lost the numbers/list, they are mangled into a single line, essentially."
+    },
+    "g10_b37": {
+      "lines": {
+        "167.0": "lineated",
+        "167.1": "lineated",
+        "167.2": "lineated",
+        "171.0": "lineated",
+        "171.1": "lineated",
+        "175.0": "lineated",
+        "175.1": "lineated",
+        "175.2": "lineated",
+        "179.0": "lineated",
+        "179.1": "lineated",
+        "183.0": "lineated",
+        "183.1": "lineated",
+        "183.2": "lineated"
+      },
+      "note": "In prose, list items are mangled in a single wrapped line, in each headered section."
+    },
+    "g13_b43": {
+      "lines": {
+        "782.0": "lineated",
+        "783.0": "lineated",
+        "784.0": "lineated",
+        "786.0": "lineated",
+        "788.0": "lineated",
+        "790.0": "lineated",
+        "795.0": "lineated",
+        "802.0": "lineated"
+      }
+    },
+    "g17_b03": {
+      "lines": {
+        "166.0": "lineated",
+        "169.1": "lineated",
+        "170.0": "lineated"
+      },
+      "note": "Not related, but on the same page (can be seen on renders): \"Запрос:\" and \"Ответ от творца:\" have a big gap wrt the content that goes after them, which doesn't correspond how it looks in docx. Does it mean they're also lineated? Not too important -- both options of requests acceptable, but to keep in mind."
+    }
+  }
+}
