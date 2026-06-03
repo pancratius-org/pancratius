@@ -118,13 +118,14 @@ def write_run_raw(dataset: str, readers: Sequence[str], prefix: str, dest: Path)
     if not src.exists():
         return None
     core = set(readers)
+    pat = re.compile(re.escape(prefix) + r"\d*") if prefix else re.compile(".*")
     rows = []
     for line in src.read_text().splitlines():
         if not line.strip():
             continue
         row = json.loads(line)
         run = str(row.get("run", "")).lstrip("_")
-        if row.get("tag") in core and (run.startswith(prefix) if prefix else True):
+        if row.get("tag") in core and pat.fullmatch(run):   # exact: prefix + optional rep digits
             rows.append(line)
     if not rows:
         return None
@@ -370,6 +371,8 @@ def _gates(args: argparse.Namespace) -> Gates:
         kw["lead"] = args.core[0]
     if getattr(args, "conf_floor", None) is not None:
         kw["conf_floor"] = args.conf_floor
+    if getattr(args, "min_agree", None) is not None:
+        kw["min_core_agree"] = args.min_agree
     return Gates(**kw)
 
 
@@ -392,6 +395,8 @@ def main() -> int:
     common.add_argument("--core", nargs="+", help="override core readers (first is lead)")
     common.add_argument("--conf-floor", type=float, dest="conf_floor",
                         help="confidence gate (0 disables; default 0.7)")
+    common.add_argument("--min-agree", type=int, dest="min_agree",
+                        help="min core readers that must share the majority (default 2; ≤len core)")
 
     ap = argparse.ArgumentParser(prog="gold.run", parents=[common])
     sub = ap.add_subparsers(dest="cmd", required=True)
