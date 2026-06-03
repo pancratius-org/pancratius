@@ -476,7 +476,7 @@
   width: 1px; height: 1px;
   margin: -1px; padding: 0;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }
@@ -678,6 +678,7 @@
  * just with a different rhythm of sections.
  */
 .prose--project {
+  counter-reset: project-section;
   font-size: 1.075rem;
   line-height: 1.75;
 }
@@ -721,10 +722,6 @@
    from `.prose h2::before` / `.prose h2::after`. The project section
    eyebrow below is a different gesture entirely. */
 .prose--project h2::after { display: none; content: none; }
-
-.prose--project {
-  counter-reset: project-section;
-}
 
 /* Section eyebrow: "§ I." numeral above each h2, sans, accent.
    Hand-numbered via CSS counter so authoring the markdown stays clean

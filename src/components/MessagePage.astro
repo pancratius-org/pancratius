@@ -164,13 +164,11 @@ const relatedVideos = await relatedVideosFor(entry);
       column-gap: var(--mp-gap);
     }
   }
-  .mp__meta { grid-area: eyebrow; }
-  .mp__seal { grid-area: seal; }
-  .mp__head-body { grid-area: head; }
   /* The struck date-seal — focal oxblood numeral echoing the месяцеслов.
      Right-aligned in the rail column so the date hugs the gutter beside the
      title (a marginal folio), rather than stranded at the far-left edge. */
   .mp__seal {
+    grid-area: seal;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -198,8 +196,8 @@ const relatedVideos = await relatedVideosFor(entry);
     margin-top: 0.5rem;
     white-space: nowrap;
   }
-  .mp__head-body { min-width: 0; }
-  .mp__meta { margin: 0 0 1.1rem; font-family: var(--sans); }
+  .mp__head-body { grid-area: head; min-width: 0; }
+  .mp__meta { grid-area: eyebrow; margin: 0 0 1.1rem; font-family: var(--sans); }
   .mp__kind {
     font-size: 11.5px;
     font-weight: 500;
@@ -212,7 +210,7 @@ const relatedVideos = await relatedVideosFor(entry);
     width: 1px; height: 1px;
     padding: 0; margin: -1px;
     overflow: hidden;
-    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
     white-space: nowrap;
     border: 0;
   }

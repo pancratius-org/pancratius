@@ -1,0 +1,19 @@
+{
+  "extends": ["stylelint-config-recommended"],
+  "ignoreFiles": ["dist/**", ".astro/**", "node_modules/**"],
+  "overrides": [
+    {
+      "files": ["**/*.astro"],
+      "customSyntax": "postcss-html"
+    }
+  ],
+  "rules": {
+    "no-descending-specificity": null,
+    "selector-pseudo-class-no-unknown": [
+      true,
+      {
+        "ignorePseudoClasses": ["global"]
+      }
+    ]
+  }
+}
