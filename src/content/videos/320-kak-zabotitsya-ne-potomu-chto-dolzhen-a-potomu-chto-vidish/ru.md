@@ -4,7 +4,8 @@ number: 320
 slug: 320-kak-zabotitsya-ne-potomu-chto-dolzhen-a-potomu-chto-vidish
 title: Как заботиться? Не потому что должен, а потому что видишь!
 lang: ru
-description: 'TODO: write a one-paragraph SEO description for this video.'
+description: Забота из долга — это тяжесть, которую несёшь стиснув зубы. Забота из видения — это когда
+  ты просто замечаешь человека рядом и отвечаешь сердцем, потому что не можешь иначе.
 tags:
 - Евангелие Царствия
 cover: ./cover.ru.jpg

@@ -4,8 +4,8 @@ number: 131
 slug: 131-molitva-edinomu-tvortsu-i-absolyutu
 title: Молитва Единому Творцу и Абсолюту
 lang: ru
-description: 'Молитва Единому 📖 Духовная автобиография Светозара: https://drive.google.com/file/d/1dmvPIXqvHDABPP86AUxkYzrWuDYX8UB3/view?usp=drive_link
-  📚 Книги автора на русском языке: https://www.litres.ru/author/sergey-pankratius/ 📘 Евангелие…'
+description: 'Молитва Единому Творцу и Абсолюту — тихое обращение к тому, что есть всё и повсюду: не просьба
+  о чём-то внешнем, а узнавание Его присутствия как своего собственного.'
 tags:
 - Светозар говорит
 cover: ./cover.ru.jpg
@@ -23,3 +23,7 @@ playlists:
 translation:
   source: original
 ---
+
+Книги автора: [Сергей Панкратиус на Литрес](https://www.litres.ru/author/sergey-pankratius/)
+
+[Евангелие Царствия](https://www.litres.ru/71769250/)

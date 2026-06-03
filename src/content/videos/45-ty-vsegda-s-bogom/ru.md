@@ -4,9 +4,7 @@ number: 45
 slug: 45-ty-vsegda-s-bogom
 title: Ты всегда   с Богом
 lang: ru
-description: 'Духовная автобиография Светозара: https://drive.google.com/file/d/1dmvPIXqvHDABPP86AUxkYzrWuDYX8UB3/view?usp=drive_link
-  Книги автора на русском языке: https://www.litres.ru/author/sergey-pankratius/ Канал в Telegram - t.me/SPankratyus
-  Дзен…'
+description: Ты всегда с Богом.
 tags:
 - Послания Творца через Светозара
 cover: ./cover.ru.jpg

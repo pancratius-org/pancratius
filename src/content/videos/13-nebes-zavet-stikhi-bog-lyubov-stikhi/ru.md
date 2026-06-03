@@ -2,11 +2,12 @@
 kind: video
 number: 13
 slug: 13-nebes-zavet-stikhi-bog-lyubov-stikhi
-title: 'Небес Завет. Стихи #бог #любовь #стихи'
+title: Небес Завет. Стихи
 lang: ru
-description: 'TODO: write a one-paragraph SEO description for this video.'
+description: Стихотворение о завете между небом и душой — о том, что любовь Бога не условие, а вечное
+  основание, на котором ты стоишь, даже когда не знаешь об этом.
 tags:
-- ПОЭЗИЯ ОСОЗНАННОСТИ
+- Поэзия осознанности
 cover: ./cover.ru.jpg
 published_at: '2024-12-27'
 duration: PT1M
@@ -18,7 +19,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEItnPMiWRDP_SfG8ddXwBaSt
-  title: ПОЭЗИЯ ОСОЗНАННОСТИ
+  title: Поэзия осознанности
 translation:
   source: original
 ---

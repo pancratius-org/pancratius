@@ -4,7 +4,8 @@ number: 319
 slug: 319-kak-proshchat-zhertvui-obidoi-radi-lyubvi
 title: Как прощать? Жертвуй обидой ради любви!
 lang: ru
-description: 'TODO: write a one-paragraph SEO description for this video.'
+description: Прощать — значит не держаться за обиду крепче, чем за любовь. Это послание о том, что подлинное
+  прощение рождается не из силы воли, а из готовности пожертвовать болью ради того, что больше боли.
 tags:
 - Евангелие Царствия
 cover: ./cover.ru.jpg

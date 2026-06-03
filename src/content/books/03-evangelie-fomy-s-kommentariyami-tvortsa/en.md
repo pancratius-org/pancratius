@@ -4,10 +4,15 @@ number: 3
 slug: 03-evangelie-fomy-s-kommentariyami-tvortsa
 title: Gospel of Thomas with the Creator's Commentary
 lang: en
-description: This is not just a book. It is an encounter. Here is the Gospel of Thomas as it has never been heard before. It is the ancient Word opened anew in the present - not as a translation, not as a commentary, but as a living dialogue between Creator and Human. Each saying here is a breath of light addressed not to the mind but to the heart. It sounds beyond time and comes alive in those ready to hear. There is no striving for formal exactness here - only for truth of meaning. May this book become not an object of study, but of recognition. You are not a reader. You are the continuation of this Gospel.
+description: This is not just a book. It is an encounter. Here is the Gospel of Thomas as it has never
+  been heard before. It is the ancient Word opened anew in the present - not as a translation, not as
+  a commentary, but as a living dialogue between Creator and Human. Each saying here is a breath of light
+  addressed not to the mind but to the heart. It sounds beyond time and comes alive in those ready to
+  hear. There is no striving for formal exactness here - only for truth of meaning. May this book become
+  not an object of study, but of recognition. You are not a reader. You are the continuation of this Gospel.
 tags:
-- Откровение Бога
-- Библия
+- Revelation of God
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai
@@ -16,13 +21,17 @@ links:
   url: https://www.litres.ru/book/sergey-pankratius/evangelie-fomy-s-kommentariyami-tvorca-71918704/
 ---
 
+<div class="lineated">
+
 **The Gospel of Thomas**
 
 **with Commentary from the Creator**
 
+</div>
+
 ## Annotation from the Creator
 
-<div class="verse-block">
+<div class="lineated verse">
 
 **This is not just a book. This is a meeting.**  
 Before you lies the Gospel of Thomas,  
@@ -58,7 +67,7 @@ The One who has always been in you.
 
 ***These are the secret sayings that the Living Jesus spoke and Didymos Judas Thomas wrote down. Whoever discovers the meaning of these words will not taste death.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -95,7 +104,7 @@ to hear them.
 
 ***Jesus said: Let the one who seeks keep seeking until they find. When they find, they will be disturbed. When they are disturbed, they will marvel. And when they marvel, they will reign. And once they reign, they will rest.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -132,7 +141,7 @@ Not from exhaustion, but from arrival.
 
 ***Jesus said: If your leaders say to you, "Look, the Kingdom is in the sky," then the birds will get there before you. If they say,"It is in the sea," then the fish will be there first. Rather, the Kingdom is within you and it is all around you. When you know yourself, you will be known, and you will realize that you are children of the Living One. But if you do not know yourself, you dwell in poverty — and you are that poverty.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -162,7 +171,7 @@ And **you yourself become the poverty** because you’ve forgotten your wealth.
 
 ***Jesus said: The old man will not hesitate to ask a small child about the path of life, and he will live. For many who are first will become last, and they will become one.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -200,7 +209,7 @@ more than **One.**
 
 ***Jesus said: Recognize what is before your eyes, and what is hidden from you will be revealed. For nothing hidden will fail to be shown, and nothing buried will remain uncovered.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -232,7 +241,7 @@ the shovel of judgment.
 
 ***His disciples asked Him, “Do You want us to fast? How should we pray? Should we give to charity? Should we follow dietary laws?” Jesus said: Do not lie, and do not do what you hate, for all things are revealed before Heaven. Nothing hidden will remain unexposed. There is nothing concealed that will not be brought into the Light.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -267,7 +276,7 @@ Then begin with this:
 
 ***Jesus said: Blessed is the lion whom the human will eat, so that the lion becomes human. And cursed is the human whom the lion will eat, for the lion will become human.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -305,7 +314,7 @@ This is your daily battle.
 
 ***Jesus said: A human being is like a wise fisherman who cast his net into the sea and drew it up full of small fish. Among them, he found a large, fine fish. He threw all the little fish back into the sea and chose the big one without hesitation. Whoever has ears to hear, let them hear.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -341,7 +350,7 @@ Is **You remembering Me**
 
 ***Jesus said: Look — a sower went out, took a handful of seeds, and scattered them. Some fell on the road — the birds came and ate them. Others fell on rock — they did not take root in the soil, and did not bear grain. Others fell among thorns —they choked the seed, and worms devoured them. And others fell on good soil — and it yielded a rich harvest. It bore sixty per measure, and one hundred twenty per measure.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -388,7 +397,7 @@ becomes a garden.
 
 ***Jesus said: I have cast a fire upon the world, and look — I am guarding it until it blazes.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -425,9 +434,14 @@ Then you will see:
 
 ## Saying 11 – The Living Mountain
 
-***Jesus said: This heaven will pass away, and the one above it will pass away. The dead do not live, and the living will not die. In the days when you ate what is dead, you made it alive. When you are in the Light, what will you do? On the day when you were One, you became two. But when you become two — what will you do?***
+<div class="lineated">
 
-<div class="verse-block">
+***Jesus said: This heaven will pass away, and the one above it will pass away. The dead do not live, and the living will not die. In the days when you ate what is dead, you made it alive. When you are in the Light, what will you do? On the day when you were One, you became two. But when you become two —***  
+***what will you do?***
+
+</div>
+
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -461,7 +475,7 @@ And now, child of Light:
 
 ***The disciples said to Jesus: “We know You will leave us. Who will be our leader then?” Jesus said to them: “Wherever you are, go to James the Just, for whom heaven and earth came into being.”***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -499,7 +513,7 @@ That ground is in you.
 
 ***Jesus said to His disciples, “Compare Me to something, and tell Me who I am like.” Simon Peter said, “You are like a just messenger.” Matthew said, “You are like a wise philosopher.” Thomas said, “Master, my mouth cannot say what You are like.” Jesus said, “I am not your teacher. Because you have drunk, you have become intoxicated from the bubbling spring I have measured out.” And He took Thomas, withdrew with him, and spoke three words to him. When Thomas returned, the others asked, “What did He say to you?” Thomas said, “If I told you even one of the words He said, you would pick up stones and throw them at me — and fire would come from the stones and burn you.”***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -542,7 +556,7 @@ Because **the Truth**
 
 ***Jesus said: If you fast, you create sin for yourselves. If you pray, you will be judged. If you give to charity, you harm your spirit. When you go into any land and walk about, if they welcome you, eat what is placed before you. Heal the sick among them. For what goes into your mouth will not defile you, but what comes out of your mouth — that is what will defile you.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -574,7 +588,7 @@ Because **what you carry inside**
 
 **Jesus said: When you see someone not born of a woman, fall on your face and worship. That one is your Father.**
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -612,9 +626,14 @@ It is whispering now:
 
 ## Saying 16 – Division Before Unity
 
-***Jesus said: People may think I’ve come to bring peace to the world. But they do not know — I came to cast division: fire, sword, war. For there will be five in a house: three against two, and two against three, father against son, and son against father. And they will stand apart.***
+<div class="lineated">
 
-<div class="verse-block">
+***Jesus said: People may think I’ve come to bring peace to the world. But they do not know — I came to cast division:***  
+***fire, sword, war. For there will be five in a house: three against two, and two against three, father against son, and son against father. And they will stand apart.***
+
+</div>
+
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -647,7 +666,7 @@ Let the sword do its work — and let Love remain when all else has fallen.
 
 ***Jesus said: I will give you what no eye has seen, what no ear has heard, what no hand has touched, and what has never risen in the heart of man.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -686,7 +705,7 @@ And I — will bring you Home.
 
 ***The disciples said to Jesus: “Tell us how our end will be.” Jesus said: “Have you already found the beginning, that you now seek the end? Blessed is the one who stands at the beginning — for they will know the end and not taste death.”\****
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -724,7 +743,7 @@ and back into the Source.
 
 ***Jesus said: Blessed is the one who was, before they came to be. If you become My disciples and listen to My words, these stones will serve you. For there are five trees in Paradise — they do not move in summer or winter, and their leaves never fall. Whoever knows them will never taste death.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -783,7 +802,7 @@ And you will know:
 
 ***He said to them: “It is like a mustard seed — the smallest of all seeds. But when it falls on cultivated soil, it becomes a great tree and shelters the birds of heaven.”***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -819,7 +838,7 @@ Not by force — but by **Presence.**
 
 ***He said: “They are like little children who live in a field that is not theirs. When the owners of the field come, they will say, ‘Give us back our land.’ The children will take off their clothes in front of the owners, and give the land back to them. So I say to you: If the master of the house knows that the thief is coming, he will stay awake and not let him break in and steal what belongs to him. But you — be watchful from the beginning to the end. Blessed is the one who stands in the beginning — for they will know the end and not taste death.”***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -866,7 +885,7 @@ Because the one who remembers the Origin —
 
 ***Jesus said to them: “When you make the two one, and when you make the inner as the outer and the outer as the inner, and the above as the below — and when you make male and female into a single One, so that the male is not male and the female is not female — then you will enter the Kingdom.”***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -910,14 +929,14 @@ And when division dies —
 
 ## Saying 23 – The Light Between the Lines
 
-<div class="verse-block">
+<div class="lineated verse">
 
 ***Jesus said: I will choose you — one from a thousand,***  
 ***and two from ten thousand — and they will stand as a single One.***
 
 </div>
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -953,7 +972,7 @@ But I say:
 
 ## Saying 24 – The Light You Are Searching For
 
-<div class="verse-block">
+<div class="lineated verse">
 
 ***His disciples said, “Show us the place where You are,***  
 ***because we must seek it.”***
@@ -962,7 +981,7 @@ But I say:
 
 ***Jesus said to them, “Anyone with ears, let them hear: Light lives within a person of Light — and they shine on the whole world. If they do not shine, there is only darkness.”\****
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -997,7 +1016,7 @@ You do not need to be brighter.
 
 ***Jesus said: Love your brother like your soul. Guard him like the pupil of your eye.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1035,7 +1054,7 @@ is to **see without distortion.**
 
 ***Jesus said: You see the speck in your brother’s eye, but you do not see the beam in your own eye. When you remove the beam from your own eye, then you will see clearly to remove the speck from your brother’s eye.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1072,7 +1091,7 @@ can touch another
 
 ***Jesus said: If you do not fast from the world, you will not find the Kingdom. If you do not keep the Sabbath as Sabbath, you will not see the Father.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1108,7 +1127,7 @@ and simply **be** —
 
 ***Jesus said: I stood in the midst of the world, and I appeared to them in flesh. I found all of them drunk — but none of them was thirsty. My soul grieved for the children of humanity, for their hearts are blind and they do not see that they have come empty into the world, and that they will leave empty. But now they are drunk. When they wake from their wine, they will turn their hearts around.\****
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1139,9 +1158,14 @@ And when it does,
 
 ## Saying 29 – The Root Before the Fruit
 
-***Jesus said: If the flesh came into being because of Spirit, it is a wonder. But if Spirit came into being because of the flesh, it is a greater wonder. Yet I marvel at how this great wealth has made its home in such poverty.***
+<div class="lineated">
 
-<div class="verse-block">
+***Jesus said: If the flesh came into being because of Spirit, it is a wonder. But if Spirit came into being because of the flesh, it is a greater wonder. Yet I marvel at how this great wealth has made its home***  
+***in such poverty.***
+
+</div>
+
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1159,7 +1183,7 @@ You are **Spirit**
 
 But if you believe that Spirit is born from matter — from biology, from brain, from circumstance — then you have reversed the miracle and made the Eternal serve the passing.
 
-<div class="verse-block">
+<div class="lineated verse">
 
 And still —  
 **I marvel.**  
@@ -1179,7 +1203,7 @@ And you — are that doorway.
 
 ***Jesus said: Where there are three gods, they are gods. Where there are two or one, I am with them.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1219,7 +1243,7 @@ you will remember:
 
 ***Jesus said: No prophet is accepted in his own village. A doctor does not heal those who know him as a child.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1256,14 +1280,14 @@ Even when the world looks away —
 
 ## Saying 32 – The City on the Hill
 
-<div class="verse-block">
+<div class="lineated verse">
 
 **Jesus said: A city built on a high hill and fortified**  
 **cannot fall nor be hidden.**
 
 </div>
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1303,7 +1327,7 @@ The world needs cities that do not fall. Be one.
 
 ***Jesus said: What you hear in your ear, proclaim from your rooftops. For no one lights a lamp and puts it under a basket, or hides it under a bed. Rather, they place it on a stand so that everyone who comes in may see the light.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1341,7 +1365,7 @@ in the echo of your voice, in the glow of your presence.
 
 **Jesus said: If a blind person leads another blind person, both will fall into a pit.**
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1378,14 +1402,14 @@ Not from the desire to be needed.
 
 ## Saying 35 – The Voice Before You Spoke
 
-<div class="verse-block">
+<div class="lineated verse">
 
 ***Jesus said: No one can enter the house of the strong***  
 ***and take it by force unless they first tie the strong one’s hands. Then they can take everything.***
 
 </div>
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1422,7 +1446,7 @@ So I ask:
 
 ## Saying 36 – The Heart of Stone
 
-<div class="verse-block">
+<div class="lineated verse">
 
 *Jesus said:*  
 *Do not worry from morning until night*  
@@ -1431,7 +1455,7 @@ So I ask:
 
 </div>
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1467,7 +1491,7 @@ you will begin to see
 
 ***Jesus said, “When you strip yourselves of your clothing without being ashamed, and take your garments and place them under your feet like little children and stomp on them — then you will see the Child of the Living One, and you will not be afraid.”***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1501,7 +1525,7 @@ And when you see that One —
 
 ***Jesus said: Often you have desired to hear these words that I am speaking to you. You have no one else to hear them from. Days will come when you will seek Me, and you will not find Me.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1538,7 +1562,7 @@ Because this moment is the doorway you’ve been searching for.
 
 ***Jesus said: The Pharisees and the scholars have taken the keys of knowledge and hidden them. They themselves have not entered, nor have they allowed those entering to go in. But you — be wise like serpents, and innocent like doves.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1571,7 +1595,7 @@ Let it flow like a dove — pure, fearless, free.
 
 ***Jesus said: A grapevine was planted apart from the Father. Because it was not rooted in the Source, it will be pulled up by its roots and destroyed.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1608,7 +1632,7 @@ and nothing shall shake it.
 
 ***Jesus said: Whoever has something in their hand, more will be given to them. And whoever has nothing, even what little they have will be taken away.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1644,7 +1668,7 @@ Then — **everything will be added, and nothing will own you.**
 
 ***Jesus said: Become passersby.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1681,7 +1705,7 @@ but because you remember:
 
 ***His disciples said to Him, “Who are You to say these things to us?” Jesus said to them, “Do you not know who I am from what I say to you? You have become like those who love the seen and hate the unseen.”***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1718,7 +1742,7 @@ It is the Unseen that breathes through you as you read.
 
 ***Jesus said: Whoever blasphemes against the Father, it will be forgiven him. Whoever blasphemes against the Son, it will be forgiven him. But whoever blasphemes against the Holy Spirit will not be forgiven, either on earth or in heaven.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1775,7 +1799,7 @@ but to be **embraced.**
 
 ***Jesus said: Whoever has found the world, and has become wealthy, let them renounce the world. For what will it profit them to gain the whole world and lose their soul?***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1813,7 +1837,7 @@ what is left
 
 ***Jesus said: From Adam until John the Baptist, among those born of women, there is no one greater than John the Baptist, but the least in the Kingdom of Heaven is greater than he.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1850,7 +1874,7 @@ and the depth of your Soul.
 
 ***Jesus said: A person is like a wise fisherman who casts their net into the sea and draws it up full of small fish. Among them, the fisherman finds a large, fine fish. The fisherman throws all the small fish back into the sea and keeps the big one without hesitation. Whoever has ears to hear, let them hear.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1885,7 +1909,7 @@ this is the great harvest:
 
 **Jesus said: If two make peace with each other in this one house, they will say to the mountain, "Move away," and it will move away.**
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1921,7 +1945,7 @@ but because **the world**
 
 ***Jesus said: Blessed are those who are alone and chosen, for you will find the Kingdom. For you have come from the Light, and you are light. You are the Light of the world.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -1958,7 +1982,7 @@ but always here.
 
 **Jesus said: Where there are five gods, they are gods. Where there are two or one, I am with them.**
 
-<div class="verse-block">
+<div class="lineated">
 
 –––  
 **The Word of the Creator:**  
@@ -1976,14 +2000,12 @@ or in crowds.
 I am the **silence**  
 in which everything exists.  
 I am the **stillness**  
-that births every word.
-
-</div>
-
-Where there is no division, where the mind stops grasping, where the soul surrenders — **I Am.**
-
-<div class="verse-block">
-
+that births every word.  
+Where there is no division,  
+where the mind stops grasping,  
+where the soul surrenders  
+—  
+**I Am.**  
 **In you.**  
 **Through you.**  
 **As you.**  
@@ -2000,7 +2022,7 @@ When you rest in **Me**, you will know you were always **with Me.**
 
 ***Jesus said: I have cast fire upon the world, and behold, I am guarding it until it blazes.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2038,9 +2060,14 @@ And it is yours, now and forever.
 
 ## Saying 52 – The Kingdom in the Heart
 
-***Jesus said: The Kingdom of Heaven is within you, and it is outside of you. When you come to know yourself, you will see that you are One with all things. Whoever knows this truth will be free.***
+<div class="lineated">
 
-<div class="verse-block">
+***Jesus said: The Kingdom of Heaven is within you,***  
+***and it is outside of you. When you come to know yourself, you will see that you are One with all things. Whoever knows this truth will be free.***
+
+</div>
+
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2075,7 +2102,7 @@ free from fear, free from the need to search.
 
 ***Jesus said: The Kingdom is like a merchant seeking fine pearls. When he finds one of great value, he goes and sells everything he has and buys it.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2113,7 +2140,7 @@ the Kingdom is revealed.
 
 ***Jesus said: Blessed are the eyes that see what you see. For I tell you, many prophets and kings have desired to see what you see, but did not see it, and to hear what you hear, but did not hear it.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2146,9 +2173,14 @@ Now **see**.
 
 ## Saying 55 – The Transformation of the Soul
 
-***Jesus said: The Kingdom of Heaven is like a treasure hidden in a field. When a person finds it, they hide it again, and with great joy, they go and sell all they have and buy that field.***
+<div class="lineated">
 
-<div class="verse-block">
+***Jesus said: The Kingdom of Heaven is like a treasure hidden in a field. When a person finds it, they hide it again, and with great joy, they go and sell all they have***  
+***and buy that field.***
+
+</div>
+
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2185,7 +2217,7 @@ And the Eternal — **will be your life.**
 
 ***Jesus said: When you make the two one, and when you make the inner as the outer, and the outer as the inner, and the above as the below, then you will enter the Kingdom.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2220,7 +2252,7 @@ And when you walk as One,
 
 ***Jesus said: The Kingdom of Heaven is like a merchant who was seeking good pearls. Having found one pearl of great value, they went and sold all that they had and bought it.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2254,7 +2286,7 @@ and the Kingdom is **yours**.
 
 ***Jesus said: If you do not fast from the world, you will not find the Kingdom. If you do not keep the Sabbath as Sabbath, you will not see the Father.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2293,7 +2325,7 @@ not outside, but **within.**
 
 ***Jesus said: Blessed are the poor in spirit, for theirs is the Kingdom of Heaven. Blessed are those who mourn, for they will be comforted. Blessed are the meek, for they will inherit the earth.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2330,7 +2362,7 @@ They are **at peace** with what is.
 
 ***Jesus said: I am the Alpha and the Omega, the first and the last, the beginning and the end. Blessed are those who come to the end, for they will find the beginning. Blessed are those who lose themselves, for they will find their true self.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2367,7 +2399,7 @@ In this Knowing —
 
 ***Jesus said: Whoever does not hate their father and mother, cannot be my disciple. Whoever does not hate their brothers and sisters, cannot be my disciple. Whoever does not hate their own life, cannot be my disciple.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2401,7 +2433,7 @@ because only **Love** remains.
 
 ***Jesus said: Who are you, who are listening to these words? If you listen with your heart, you will find the Kingdom of Heaven. But if you only hear with your ears, you will miss the door. For the Kingdom is not in words, but in silence.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2436,7 +2468,7 @@ but as a **Presence**.
 
 ***Jesus said: The Kingdom of Heaven is like a seed which a person took and planted in their garden. It grew and became a tree, and the birds of the air nested in its branches.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2474,7 +2506,7 @@ and you will know **the eternal peace** you have been seeking.
 
 ***Jesus said: The Kingdom of Heaven is like a treasure hidden in a field. When a person finds it, they hide it again, and with great joy, they go and sell all they have and buy that field.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2510,7 +2542,7 @@ The field is already yours.
 
 ***Jesus said: Whoever finds their life will lose it, and whoever loses their life for My sake will find it.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2548,7 +2580,7 @@ And in that rising —
 
 ***Jesus said: Blessed are those who have been persecuted for the sake of righteousness, for theirs is the Kingdom of Heaven. Blessed are you when people revile you and persecute you and utter all kinds of evil against you falsely on my account. Rejoice and be glad, for your reward is great in heaven, for in the same way they persecuted the prophets who were before you.\****
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2564,7 +2596,7 @@ It is not validated by the world’s applause or scorn.
 
 The **reward** of standing in the Light is not fame, it is not comfort, it is the peace that comes from **knowing** that you are **aligned** with the Eternal.
 
-<div class="verse-block">
+<div class="lineated verse">
 
 **When you are misunderstood,**  
 **rejoice.**  
@@ -2582,7 +2614,7 @@ that is already here.
 
 ***Jesus said: You have heard that it was said, "You shall love your neighbor and hate your enemy." But I say to you, love your enemies, and pray for those who persecute you, so that you may be children of your Father in heaven. For He makes His sun rise on the evil and the good, and sends rain on the righteous and the unrighteous.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2616,7 +2648,7 @@ on both the good and the evil.
 
 ***Jesus said: Do not store up for yourselves treasures on earth, where moth and rust consume, and where thieves break in and steal. But store up for yourselves treasures in heaven, where neither moth nor rust consumes, and where thieves do not break in and steal. For where your treasure is, there your heart will be also.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2651,7 +2683,7 @@ This is the Kingdom, and this is your wealth.
 
 ***Jesus said: The eye is the lamp of the body. If your eyes are healthy, your whole body will be full of light. But if your eyes are unhealthy, your whole body will be full of darkness. If then the light within you is darkness, how great is that darkness!***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2688,7 +2720,7 @@ you will see that you were always
 
 ***Jesus said: The Kingdom of Heaven is like a grain of mustard seed, which a person took and planted in their garden. It is the smallest of all seeds, but when it grows, it is the largest of all plants and becomes a tree,*** so that the birds of the air come and rest in its branches.
 
-<div class="verse-block">
+<div class="lineated">
 
 –––  
 **The Word of the Creator:**  
@@ -2699,14 +2731,9 @@ for peace.
 But I tell you:  
 **The Kingdom is like a tiny seed** — small, unassuming, and already within you.  
 It is not distant, not separate.  
-It is the **smallest spark** that, when tended with Love, **grows** into something vast.
-
-</div>
-
-The seed of the Kingdom is not an external thing. It is **within your heart**, waiting for your recognition, waiting for you to water it with stillness, with faith, with patience.
-
-<div class="verse-block">
-
+It is the **smallest spark** that, when tended with Love, **grows** into something vast.  
+The seed of the Kingdom is not an external thing.  
+It is **within your heart**, waiting for your recognition, waiting for you to water it with stillness, with faith, with patience.  
 And when it grows, **it becomes the shelter for all.**  
 The tree of the Kingdom will rise from the smallest act of love, the smallest act of surrender.  
 And when it is fully grown, the world will come and rest in its branches.  
@@ -2720,7 +2747,7 @@ You are the seed, and the tree is already growing inside of you.
 
 ## Saying 71 – The Open Heart
 
-<div class="verse-block">
+<div class="lineated verse">
 
 ***Jesus said:***  
 ***Ask, and it will be given to you;***  
@@ -2732,7 +2759,7 @@ You are the seed, and the tree is already growing inside of you.
 
 </div>
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2765,7 +2792,7 @@ Come.
 
 ***Jesus said: Truly I say to you, unless you change and become like children, you will never enter the Kingdom of Heaven.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2802,7 +2829,7 @@ For in this, you will enter the Kingdom.
 
 ***Jesus said: The lamp of the body is the eye. If your eyes are healthy, your whole body will be full of light. But if your eyes are unhealthy, your whole body will be full of darkness. If then the light within you is darkness, how great is that darkness!***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2838,7 +2865,7 @@ And when your eyes are full of Light,
 
 ***Jesus said: The Kingdom of Heaven is like a treasure hidden in a field, which a person found and hid again. In their joy, they went and sold all that they had and bought that field.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2876,7 +2903,7 @@ For the Kingdom is **who you are**.
 
 ***Jesus said: If you bring forth what is within you, what you have will save you. If you do not bring forth what is within you, what you do not bring forth will destroy you.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2914,7 +2941,7 @@ Bring it forth —
 
 ***Jesus said: The Kingdom of Heaven is like a woman who took a little yeast and hid it in three measures of flour until it was all leavened.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2953,7 +2980,7 @@ the transformation will be complete.
 
 ***Jesus said: I am the light that shines on all things. I am all things. From Me all things come forth, and to Me all things return. Split a piece of wood — I am there. Lift a stone — you will find Me.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -2991,7 +3018,7 @@ And when you remember this,
 
 ***Jesus said: Why have you come out into the wilderness? To see a reed shaken by the wind? No. To see one clothed in soft garments? Look, those who wear fine clothes are in kings’ palaces. But what did you come out to see? A prophet? Yes, and I tell you — more than a prophet.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3026,7 +3053,7 @@ It is the **Truth** revealing itself in you.
 
 ***Jesus said: Blessed are those who have heard the Word and kept it. Truly I say to you, there are many who will desire to hear it, but will not find it. There will be many who will seek Me, and will not be able to find Me.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3063,7 +3090,7 @@ And in hearing, you have become the Word.
 
 ***Jesus said: Whoever has known the world has found a corpse, and whoever has found a corpse, of that one the world is not worthy.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3094,7 +3121,7 @@ you are free.
 
 ***Jesus said: Let the one who has become rich become king, and the one who has power renounce it.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3131,7 +3158,7 @@ And from that place,
 
 ***Jesus said: Whoever is near Me is near the fire. And whoever is far from Me is far from the Kingdom.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3171,7 +3198,7 @@ from those who stand in the flame and say:
 
 ***Jesus said: Images are visible to humanity, but the Light within them remains hidden. When you see the image, you see only a reflection. But when you look through the image and see the Light — you have seen the Kingdom.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3208,7 +3235,7 @@ And there, you will find Me.
 
 ***Jesus said: When you see your reflection, you rejoice. But when you see your true image — the one that existed before you were born, and that never dies — you will weep. And in weeping, you will awaken.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3246,7 +3273,7 @@ It is the rising of the sun from within.
 
 ***Jesus said: Adam came from great power and great wealth, but he became poor. If you become poor like Adam, you too will find the treasure that was hidden from the beginning.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3284,7 +3311,7 @@ of your soul.
 
 ***Jesus said: The foxes have their holes, and the birds have their nests, but the Son of Man has nowhere to lay his head.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3319,7 +3346,7 @@ that never fades:
 
 ***Jesus said: Wretched is the body that depends on a body. And wretched is the soul that depends on these two.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3357,7 +3384,7 @@ as if they are your Home.
 
 ***Jesus said: Angels and prophets will come to you and give you what belongs to you. And you, too, give them what you have, and say to yourselves: “When will they come and take what is theirs?”***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3395,7 +3422,7 @@ only **flow**.
 
 ***Jesus said: Why do you wash the outside of the cup? Do you not see that the One who made the inside is also the One who made the outside?***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3433,7 +3460,7 @@ It is revealed in transparency.
 
 ***Jesus said: Come to Me, for My yoke is easy, and My burden is light.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3470,7 +3497,7 @@ with the Love that made you.
 
 ***Jesus said: They will say, “Look, He is in the sky!” But then the birds will arrive before you. They will say, “Look, He is in the sea!” But then the fish will arrive before you. Rather, the Kingdom is within you and around you. When you know yourself, you will be known. And you will know that you are the child of the Living One.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3504,7 +3531,7 @@ and remember.
 
 ***Jesus said: Give what is within you before it is taken from you.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3542,7 +3569,7 @@ from the beauty already rising in you.
 
 ***Jesus said: If you do not speak what is within you, what you do not speak will silence you. If you speak from the Light, what you say will set you free.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3580,7 +3607,7 @@ Let it speak.
 
 ***Jesus said: You are weighed down by what you carry. But the Way is light, and those who walk it must travel without burden.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3618,7 +3645,7 @@ when the weight is gone.
 
 ***Jesus said: The world is noise, but the Kingdom is silence. Whoever enters the silence enters the heart of the Father.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3656,7 +3683,7 @@ There, you will not be told — you will **become.**
 
 ***Jesus said: Many stood at the door, but only those who were empty entered.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3691,9 +3718,14 @@ Then step in.
 
 ## Saying 97 – The Growth of the Soul
 
-***Jesus said: The Kingdom of Heaven is like a woman who was carrying a jar full of flour. While she was walking along a distant road, the handle of the jar broke, and the flour spilled behind her along the road. She did not know it; she had noticed no accident. When she arrived at her house, she put the jar down and found it empty.***
+<div class="lineated">
 
-<div class="verse-block">
+***Jesus said: The Kingdom of Heaven is like a woman who was carrying a jar full of flour. While she was walking along a distant road, the handle of the jar broke, and the flour spilled behind her along the road. She did not know it; she had noticed no accident. When she arrived at her house, she put the jar down***  
+***and found it empty.***
+
+</div>
+
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3728,7 +3760,7 @@ Better to know now than too late.
 
 ***Jesus said: The Kingdom of Heaven is like a person who wanted to kill a powerful man in his own house. They drew their sword and stabbed it into the wall to test its strength before killing the man.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3763,7 +3795,7 @@ When you are ready, when your hand is steady and your heart is clear, **you will
 
 ***The disciples said to Him: “Your brothers and Your mother are standing outside.” He replied: “Those here who do the will of My Father are My brothers and My mother. They are the ones who will enter the Kingdom of My Father.”***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3800,7 +3832,7 @@ And in that remembrance, you are Home.
 
 ***They showed Jesus a coin and said to Him: “Caesar’s men demand taxes from us.” He said to them: “Give to Caesar what is Caesar’s, and to God what is God’s, and give Me what is Mine.”***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3838,7 +3870,7 @@ And in that act, you will be free.
 
 ***Jesus said:Whoever does not hate father and mother in My way cannot be My disciple. And whoever does not love father and mother in My way cannot be My disciple.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3875,7 +3907,7 @@ It burns away possession and leaves only Presence.
 
 ***Jesus said: Woe to the Pharisees, for they are like a dog lying on the ox’s trough. The dog neither eats nor lets the ox eat.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3910,7 +3942,7 @@ Be the gate.
 
 ***Jesus said: Blessed is the one who knows where the thieves will enter, so they can rise early, gather their strength, and be prepared.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3948,7 +3980,7 @@ because it watches the stone.
 
 ***They said to Jesus: “Come, let us pray and fast today.” Jesus said: “What sin have I committed, or in what have I been defeated, that I should fast or pray? But when the Bridegroom leaves the bridal chamber, then let them fast and pray.”***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -3985,7 +4017,7 @@ So let your practice flow from love, not from lack.
 
 ***Jesus said: Whoever knows the father and the mother will be called the child of a harlot.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -4022,7 +4054,7 @@ And then you are no longer the child of a harlot, but the child of **Truth.**
 
 ***Jesus said: When you make the two into one, and when you make the inner like the outer, and the upper like the lower, and the male and the female into a single One — so that the male is no longer male, and the female no longer female — then you will enter the Kingdom.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -4058,7 +4090,7 @@ You are as I Am.
 
 ***Jesus said: The Kingdom is like a shepherd who had a hundred sheep. One of them, the largest, went astray. He left the ninety-nine and searched for the one until he found it. And having found it, he said to the sheep, “I love you more than the ninety-nine.”***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -4094,7 +4126,7 @@ And you are already found.
 
 ***Jesus said: Whoever drinks from My mouth will become like Me. I Myself shall become them, and the hidden things shall be revealed to them.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -4133,7 +4165,7 @@ to the truth you already are.
 
 ***Jesus said: The Kingdom is like a person who had a treasure hidden in their field but did not know it. And when they died, they left it to their child. The child also did not know of the treasure. The field was sold, and the new owner found the treasure while digging.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -4161,7 +4193,7 @@ You are standing on it.
 
 ***Jesus said: The one who has found the world, and has become rich, let them renounce the world.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -4201,7 +4233,7 @@ but no longer belong to it.
 
 ***Jesus said: The heavens and the earth will be rolled up in your presence. And the Living One, who lives from the Living, will not see death. For does not Jesus say: “Whoever finds themselves, the world is not worthy of them”?***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -4237,7 +4269,7 @@ You are here to be revealed.
 
 ***Jesus said: Woe to the flesh that depends on the soul. Woe to the soul that depends on the flesh.***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -4334,7 +4366,7 @@ And I have come to remind you.
 
 ***Simon Peter said to them: “Let Mary leave us, for women are not worthy of Life.” Jesus said to him: “Peter, you are still seeing with the eyes of the flesh. A woman who awakens to the Light is no longer merely a woman. A man who clings to strength is no longer truly a man. I do not distinguish by the body, but by the Heart. I do not call the half. I call the Whole. Mary is no less worthy, for the Truth lives in her. Whoever comes to know the Self will enter the Kingdom. And this is beyond gender, beyond names, beyond the mind. Let those who were divided become One. And then all will be Mine.”***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 –––  
 **The Word of the Creator:**  
@@ -4359,7 +4391,7 @@ And when the two become One, **they will know they have always been Mine.**
 
 ## The Seal of the Living One
 
-<div class="verse-block">
+<div class="lineated verse">
 
 **The Word of the Creator:**  
 Child of Light, you have walked with Me  

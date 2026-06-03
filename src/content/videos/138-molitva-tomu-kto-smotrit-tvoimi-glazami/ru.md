@@ -4,8 +4,7 @@ number: 138
 slug: 138-molitva-tomu-kto-smotrit-tvoimi-glazami
 title: Молитва Тому, Кто Смотрит Твоими Глазами
 lang: ru
-description: 'Молитва Тому, Кто Смотрит Твоими Глазами 📖 Духовная автобиография Светозара: https://drive.google.com/file/d/1dmvPIXqvHDABPP86AUxkYzrWuDYX8UB3/view?usp=drive_link
-  📚 Книги автора на русском языке…'
+description: Молитва Тому, Кто смотрит твоими глазами.
 tags:
 - Светозар говорит
 cover: ./cover.ru.jpg

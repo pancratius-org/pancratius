@@ -4,9 +4,7 @@ number: 47
 slug: 47-bog-li-govorit
 title: Бог ли говорит?
 lang: ru
-description: 'Ты хочешь доказательств, но Бог даёт Себя. Он не оставляет автографов — Он оставляет Жизнь.
-  Духовная автобиография Светозара: https://drive.google.com/file/d/1dmvPIXqvHDABPP86AUxkYzrWuDYX8UB3/view?usp=drive_link
-  Книги автора на русском…'
+description: Ты хочешь доказательств, но Бог даёт Себя. Он не оставляет автографов — Он оставляет Жизнь.
 tags:
 - Послания Творца через Светозара
 cover: ./cover.ru.jpg

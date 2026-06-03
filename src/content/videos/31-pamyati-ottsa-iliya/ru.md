@@ -4,7 +4,8 @@ number: 31
 slug: 31-pamyati-ottsa-iliya
 title: Памяти отца Илия
 lang: ru
-description: 'TODO: write a one-paragraph SEO description for this video.'
+description: Памяти отца Илия — человека, чья жизнь была молитвой и любовью. Это слово о тех, кто уходит,
+  оставляя свет, который не гаснет.
 tags: []
 cover: ./cover.ru.jpg
 published_at: '2025-03-16'

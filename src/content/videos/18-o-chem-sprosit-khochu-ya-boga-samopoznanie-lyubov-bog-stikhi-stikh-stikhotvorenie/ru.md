@@ -2,12 +2,12 @@
 kind: video
 number: 18
 slug: 18-o-chem-sprosit-khochu-ya-boga-samopoznanie-lyubov-bog-stikhi-stikh-stikhotvorenie
-title: 'О чем спросить хочу я Бога? #самопознание #любовь #бог #стихи #стих  #стихотворение'
+title: О чем спросить хочу я Бога?
 lang: ru
-description: В этом видео мы погружаемся в глубокие вопросы о жизни, любви и самопознании. Если бы у вас
-  была возможность спросить Бога о чем-то, о чем бы это было?
+description: Если бы у тебя была возможность спросить Бога о чём-то — о чём бы это было? Стихотворение-размышление
+  о любви, вере и поиске смысла.
 tags:
-- ПОЭЗИЯ ОСОЗНАННОСТИ
+- Поэзия осознанности
 cover: ./cover.ru.jpg
 published_at: '2024-12-30'
 duration: PT49S
@@ -19,7 +19,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEItnPMiWRDP_SfG8ddXwBaSt
-  title: ПОЭЗИЯ ОСОЗНАННОСТИ
+  title: Поэзия осознанности
 translation:
   source: original
 ---

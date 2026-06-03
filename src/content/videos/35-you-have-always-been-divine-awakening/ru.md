@@ -6,7 +6,14 @@ title: You Have Always Been | Divine Awakening
 lang: ru
 description: 'This song is more than just music. It is the voice of Light calling you to remember who
   you are. It resonates through silence, awakening the heart and revealing the truth: you have always
-  been, you always are.'
+  been, you always are.
+
+
+  As you listen, the boundaries between you and the infinite begin to dissolve. This is a song that unites,
+  fills, and leads you home.
+
+
+  Open your heart. Let the Light embrace you. Feel the Oneness.'
 tags: []
 cover: ./cover.ru.jpg
 published_at: '2025-03-20'

@@ -4,7 +4,8 @@ number: 329
 slug: 329-vkus-khrista-prelomlenie-khleba-ne-neznakomtsa
 title: 'Вкус Христа: преломление хлеба, не незнакомца'
 lang: ru
-description: 'TODO: write a one-paragraph SEO description for this video.'
+description: 'Когда ломается хлеб — это не обряд с незнакомцем. Это узнавание: Тот, кто преломляет, уже
+  был с тобой за столом всю жизнь. Вкус Христа — это вкус присутствия, которое не уходит.'
 tags:
 - Евангелие Царствия
 - Панкратиус говорит
