@@ -131,8 +131,6 @@ cross_refs:                         # optional; authored references only
     source: footnote | inline_url | inline_title | editorial
     snippet: "Подробнее об этом Творец рассказывает в книге «Князь мира сего»."
     source_url: https://www.litres.ru/72586354/   # optional external source
-
-cover_is_placeholder: false         # optional; flips RU-cover fallback on EN
 ```
 
 `number` is mandatory on every **work** (book/poem) and is the invariant
@@ -158,14 +156,18 @@ poems, the mission/manifesto page, project verse subpages), with no
 authored-vs-derived distinction. An inconsistent encoding split across sections is
 exactly what breaks the AI agents and humans this format serves.
 
-The lineation encoding:
+The lineation encoding inside an explicit lineated wrapper:
 
 ```md
+<div class="lineated">
+
 Первая строка␣␣
 Вторая строка
 
 Следующая строфа␣␣
 Ещё строка
+
+</div>
 ```
 
 - flowing prose has no breaks (a single source newline is just wrapping);
@@ -178,14 +180,16 @@ The lineation encoding:
 
 The breaks render as `<br>`, so the verse CSS does NOT use `white-space: pre-line`
 anywhere — CSS never infers lineation from a raw newline. REGISTER (prose voice vs
-verse voice) is separate from lineation: for books it comes from the
-`<div class="verse-block">` wrapper; for poems (whole-body verse, no wrapper) from
-`kind: poem` / the poem component; for the mission page and project verse subpages
-from the `<Verse>` component (`weight: verse`). A guard audit
-(`audit/lineation_breaks.py`, PAN006B-lineation-breaks) fails if ANY lineated body
-— verse-block, poem, mission page, or verse subpage — loses its two-space breaks,
-the failure mode if a formatter trims `.md` trailing whitespace, so `.editorconfig`
-carries `[*.md] trim_trailing_whitespace = false`.
+verse voice) is separate from lineation: book lineated prose is emitted as
+`<div class="lineated">`, while book verse register is additive:
+`<div class="lineated verse">` around the same line/stanza structure. Poems
+(whole-body verse, no wrapper) get register from `kind: poem` / the poem
+component; the mission page and project verse subpages get it from the `<Verse>`
+component (`weight: verse`). A guard audit (`audit/lineation_breaks.py`,
+PAN006B-lineation-breaks) fails if generated lineation — lineated wrappers,
+poem, mission page, or verse subpage — loses its two-space breaks, the failure mode if a formatter trims `.md`
+trailing whitespace, so `.editorconfig` carries
+`[*.md] trim_trailing_whitespace = false`.
 
 Converters must preserve real stanza breaks. For DOCX poetry, the source signal
 is Word paragraph structure: non-empty paragraphs are verse lines, empty
@@ -200,25 +204,20 @@ structure.
 
 The same source signal appears inside some books. Named sections such as
 `Посвящение`, `Предисловие от Творца`, `Слово Творца`, and `Молитва` are clear
-examples, but the rule is structural rather than name-only: when the DOCX AST
-contains a confident run of short lineated lines, the converter emits an explicit
-`<div class="verse-block">` for that run. A verse-block is a confident run of
-short lineated lines — each line is ≤120 characters, and the run carries a
-source-lineation signal: ≥2 lines when the signal is strong (a hard `<w:br/>`
-line break, a heading, or a thematic separator), or ≥3 lines when the signal is
-weak (lineation implied only by stanza-break empty paragraphs). Short colon
-openers such as `Он говорил:` and `Разве не сказал Я:` stay inside the run;
-explicit speaker/source turns such as `Панкратиус: ...` or `Ответ от Творца:`
-end it. The wrapper contains natural source lines (two-space hard breaks within a
-stanza, blank stanza lines) and no hand-authored `<p>` / `<br>` markup. It is
-converter-owned output; authors are not expected to type this HTML. A blank line
-after the opening `<div>` lets CommonMark parse the inner content, so lineation is
-the two-space hard break and inline emphasis is Markdown `**`/`*` (not raw HTML
-`<strong>`/`<em>`). The `<br>` the breaks produce carries the lineation, so the
-verse register's CSS does NOT use `white-space: pre-line`. Public Markdown
-downloads strip the wrapper and keep the two-space breaks so portable readers
-preserve the lineation. If a numbered Q/A answer is lineated, it uses the same
-`verse-block` contract.
+examples, but the rule is structural rather than name-only. Import makes two
+decisions: first preserve source lineation as line/stanza structure, then promote
+only confident verse-register runs from `class="lineated"` to
+`class="lineated verse"`. A lineated run contains natural source lines (two-space
+hard breaks within a stanza, blank stanza lines) and no hand-authored `<p>` /
+`<br>` markup. A blank line after the opening `<div>` lets CommonMark parse the
+inner content, so lineation is still the two-space hard break and inline emphasis
+is Markdown `**`/`*` (not raw HTML `<strong>`/`<em>`). The `<br>` the breaks
+produce carries the lineation, so the verse register's CSS does NOT use
+`white-space: pre-line`. Public Markdown downloads strip the lineated wrapper and
+register while keeping the two-space breaks so portable readers preserve
+lineation. If a numbered Q/A answer is lineated, it may remain
+`class="lineated"` unless the import stage has separate high-confidence
+verse-register evidence.
 
 DOCX paragraph metadata is also source data. Pandoc's Markdown writer does not
 carry Word paragraph alignment, so the converter reads `word/document.xml`
@@ -349,8 +348,11 @@ number: 14                               # invariant identity; pairs across loca
 slug: 14-jacob-and-esau                  # per-locale ASCII slug
 title: "Jacob & Esau — what the story really says"
 lang: en
-description: |                           # SEO/OG/card; mandatory
-  Single paragraph that opens the page and feeds search/cards.
+description: |                           # mandatory; the FULL source description
+  The whole YouTube description, kept intact (paragraphs and links and all).
+  The scanner stores it whole — the model keeps the full message. The VIEW
+  decides how much to show: cards and SEO clamp it (`clampDescription`), the
+  video page renders it in full as paragraphs with linkified URLs.
 tags: [Bible, Apocalypse]                # like books; the scanner seeds these
                                          # from YouTube playlist titles.
 cover: ./cover.en.jpg                    # optional; falls back to RU
@@ -414,7 +416,7 @@ a stable unprocessed URL.
 
 | Lives in | What |
 |----------|------|
-| frontmatter | `kind`, `number`, `slug`, `title`, `lang`, `description`, `tags`, `cover`, `translation`, `cross_refs`, `cover_is_placeholder` |
+| frontmatter | `kind`, `number`, `slug`, `title`, `lang`, `description`, `tags`, `cover`, `translation`, `cross_refs` |
 | markdown body | the work itself, with relative links only to true inline body images |
 | work folder assets | covers, true body illustrations, source DOCX/PDF |
 | `bibliography.yaml` | long catalog/bibliography snapshots and external marketplace links |

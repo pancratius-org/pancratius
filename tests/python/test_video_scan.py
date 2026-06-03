@@ -232,19 +232,27 @@ def test_scan_reports_real_quota_used(
 # ─────────────────────────────────────────────────────────────────────
 
 
-def test_truncate_description_handles_long_text() -> None:
-    long = "Это первое предложение. " * 30
-    out = video_scan._truncate_description(long, limit=120)
-    assert len(out) <= 121
-    assert out.endswith(".") or out.endswith("…")
+def test_clean_description_keeps_full_text_with_paragraphs_and_links() -> None:
+    full = (
+        "Первый абзац с мыслью.\n\n"
+        "Второй абзац и ссылка https://example.com/x внутри."
+    )
+    # Nothing is truncated; the paragraph break and the URL survive intact —
+    # crimping is the view's job, not the scanner's.
+    assert video_scan._clean_description(full) == full
+
+
+def test_clean_description_collapses_blank_runs_and_trailing_space() -> None:
+    messy = "Абзац один.   \n\n\n\nАбзац два.   "
+    assert video_scan._clean_description(messy) == "Абзац один.\n\nАбзац два."
 
 
 @pytest.mark.parametrize(
     "text",
     [pytest.param("", id="empty"), pytest.param("   \n\t  ", id="whitespace-only")],
 )
-def test_truncate_description_falls_back_to_todo(text: str) -> None:
-    assert video_scan._truncate_description(text, limit=240).startswith("TODO")
+def test_clean_description_falls_back_to_todo(text: str) -> None:
+    assert video_scan._clean_description(text).startswith("TODO")
 
 
 @pytest.mark.parametrize(

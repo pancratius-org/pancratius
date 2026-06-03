@@ -32,17 +32,18 @@ const HTML_RAW_MARKUP_RE = /<!--[\s\S]*?(?:-->|$)|<![^\s<>][^>]*(?:>|$)|<\?[A-Za
 const HTML_TAG_RE = /<\/?([A-Za-z][A-Za-z0-9:-]*)(?:\s+[^<>]*?)?\s*\/?>/g;
 const HTML_ATTR_RE = /\s+([A-Za-z_:][A-Za-z0-9_:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 const SPAN_DIR_VALUES = new Set(["ltr", "rtl", "auto"]);
+const LINEATED_PUBLICATION_DIV_RE =
+  /<div\s+class=(["'])(lineated(?:\s+verse)?)\1>\s*([\s\S]*?)\s*<\/div>/gi;
 
 export function renderPublicWorkMarkdown(
   sourceMarkdown: string,
   options: RenderPublicWorkMarkdownOptions,
 ): string {
-  let body = cleanPublicMarkdownBody(
+  const body = cleanPublicMarkdownBody(
     parseMarkdownDocument(sourceMarkdown).body,
     options.work,
     normalizeOrigin(options.origin),
   );
-  if (options.work.kind === "poem") body = portabilizeVerse(body);
   return body.trim() + "\n";
 }
 
@@ -121,9 +122,7 @@ function cleanPublicMarkdownBody(
     return `\n\n${text}${source}\n\n`;
   });
 
-  out = out.replace(/<div\s+class=(["'])verse-block\1>\s*([\s\S]*?)\s*<\/div>/gi, (_match, _quote: string, inner: string) => {
-    return `\n\n${portabilizeVerse(htmlInlineToMarkdown(stripPlainParagraphTags(inner), context).trim())}\n\n`;
-  });
+  out = unwrapLineatedPublicationDivs(out, context);
 
   out = out.replace(/<p\s+class=(["'])signature\1>\s*([\s\S]*?)\s*<\/p>/gi, (_match, _quote: string, inner: string) => {
     return `\n\n${htmlInlineToMarkdown(inner, context).trim()}\n\n`;
@@ -148,6 +147,15 @@ function cleanPublicMarkdownBody(
 
 function publicMarkdownContext(work: PublicationWork): string {
   return `public Markdown for ${work.kind}/${work.bundleKey}`;
+}
+
+function unwrapLineatedPublicationDivs(input: string, context: string): string {
+  return input.replace(
+    LINEATED_PUBLICATION_DIV_RE,
+    (_match, _quote: string, _className: string, inner: string) => {
+      return `\n\n${htmlInlineToMarkdown(stripPlainParagraphTags(inner), context).trim()}\n\n`;
+    },
+  );
 }
 
 function rewriteMarkdownImageRefs(
@@ -210,21 +218,6 @@ function publicImageAssetPath(work: PublicationWork, src: string): string | null
     `Unsupported local public Markdown image path ${JSON.stringify(src)}. ` +
     "Use a remote URL, a root-relative URL, or a work-bundle images/... path.",
   );
-}
-
-function portabilizeVerse(body: string): string {
-  const lines = body.split("\n");
-  for (let i = 0; i < lines.length - 1; i++) {
-    const current = lines[i];
-    const next = lines[i + 1];
-    if (current === undefined || next === undefined) {
-      throw new Error("verse lineation loop exceeded its line bounds");
-    }
-    if (current.trim() && next.trim()) {
-      lines[i] = current.replace(/\s+$/, "") + "  ";
-    }
-  }
-  return lines.join("\n");
 }
 
 function trimTrailingWhitespacePreservingHardBreaks(body: string): string {

@@ -30,6 +30,15 @@ interface FoldedAudit {
 
 const FOLDED: readonly FoldedAudit[] = [
   {
+    id: "PAN006C-tag-localization",
+    script: "tag_consistency.py",
+    severity: "warning",
+    category: "content-i18n",
+    contract: "Tags are per-entry and language-bound: a Russian entry carries the normalized canonical tag key, its English translation carries the English label (audit/data/tag-glossary.json). Video playlist titles used as tags follow the same rule.",
+    why: "An unglossaried or wrongly-cased tag leaks Russian onto an English page and splinters the per-locale filter into duplicate chips for one concept.",
+    repair: "Add the canonical RU key + EN label to audit/data/tag-glossary.json, then normalize the entry's tags/playlist titles to match.",
+  },
+  {
     id: "PAN006B-formatting-artifacts",
     script: "formatting_artifacts.py",
     severity: "warning",
@@ -102,22 +111,22 @@ const FOLDED: readonly FoldedAudit[] = [
     repair: "Cap/optimize the flagged assets per the import asset policy.",
   },
   {
-    id: "PAN006B-verse-blocks",
+    id: "PAN006B-lineated-wrappers",
     script: "verse_blocks.py",
     severity: "info",
     category: "conversion-fidelity",
-    contract: "Converter-owned verse-block wrappers contain natural source lines and blank stanza lines, not hand-authored <p>/<br> markup (content-model.md).",
-    why: "Malformed verse blocks render wrong and teach the wrong source shape.",
-    repair: "Regenerate the verse block from the DOCX AST through the converter.",
+    contract: "Converter-owned lineated wrappers contain natural source lines and blank stanza lines, not hand-authored <p>/<br> markup (content-model.md).",
+    why: "Malformed lineated wrappers render wrong and teach the wrong source shape.",
+    repair: "Regenerate the lineated block from the DOCX AST through the converter.",
   },
   {
     id: "PAN006B-book-verse",
     script: "book_verse.py",
     severity: "warning",
     category: "conversion-fidelity",
-    contract: "Book verse-block decisions are faithful to the DOCX source: the converter wraps one verse-block shape for a confident source lineated run (>=2 short lineated lines after a heading/separator or hard <w:br/>, or >=3 stanza-break-separated short standalone paragraphs), keeps short colon openers in the run, rejects explicit Speaker:/source turns and prose-length lines, and does not leave a confident source run as prose. The DOCX-source oracle for BOOK verse (poems have poetry_stanzas.py) and the executable spec for pancratius.ir.normalize's verse detection.",
-    why: "An over-wrapped label/prose line ships as mis-rendered verse; a missed litany run loses authored lineation. A signature/epigraph that no longer matches the right-aligned source is the C1/I2 regression class this also guards.",
-    repair: "Re-run reading the DOCX AST stanza/lineation signal (the rule in audit/book_verse.py); fix the pancratius.ir.normalize verse-detection pass, not the committed Markdown. A genuine borderline run boundary is an editorial call for the lead, not a tool change.",
+    contract: "Legacy diagnostic for book verse-register wrappers under the old conservative source-run rule. It is not the Q1 lineation oracle and not the split IR spec; every reported mismatch must be classified as Q1 lineation loss, Q2 register disagreement, or stale legacy-rule overreach before action.",
+    why: "Over-wrapped prose ships in the wrong voice; missed register may flatten a litany. The audit also keeps watching the signature/epigraph right-alignment drift class, but it cannot decide the new flowing/lineated-prose/verse ontology by itself.",
+    repair: "Inspect the DOCX source and rendered surface, classify the delta, then fix the owning layer: Q1 lineation, Q2 register promotion, or the legacy audit/golden expectation. Do not update committed Markdown solely to satisfy this diagnostic.",
   },
   {
     id: "PAN006B-source-text-fidelity",

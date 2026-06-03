@@ -326,16 +326,13 @@ def _frontmatter_cover_exists(work_dir: Path, cover: object) -> bool:
     return (work_dir / cover[2:]).is_file()
 
 
-def _find_cover(work_dir: Path, lang: str) -> tuple[str | None, bool]:
-    same_lang = sorted(work_dir.glob(f"cover.{lang}.*"))
-    for path in same_lang:
+def _find_cover(work_dir: Path, lang: str) -> str | None:
+    """The work's own `cover.<lang>.<ext>`, or None — render and download export
+    fall back to the default-locale cover themselves, so no cross-locale pointer."""
+    for path in sorted(work_dir.glob(f"cover.{lang}.*")):
         if path.suffix.lower() in IMAGE_EXTS:
-            return f"./{path.name}", False
-    ru_cover = sorted(work_dir.glob("cover.ru.*"))
-    for path in ru_cover:
-        if path.suffix.lower() in IMAGE_EXTS:
-            return f"./{path.name}", lang != "ru"
-    return None, False
+            return f"./{path.name}"
+    return None
 
 
 def _prepare_cover(
@@ -345,8 +342,7 @@ def _prepare_cover(
     write_dir: Path,
     lang: str,
     existing_lang: CatalogEntry | None,
-    reference: CatalogEntry | None,
-) -> tuple[str | None, bool]:
+) -> str | None:
     """Resolve the bundle cover: existing covers are read from `read_dir` (the real
     bundle, for additive --into), a new --cover is written into `write_dir` (the scratch
     stage), so the writer stays the only thing that touches the real target."""
@@ -359,20 +355,12 @@ def _prepare_cover(
         ext = ".jpg" if src.suffix.lower() in {".jpeg", ".jpe"} else src.suffix.lower()
         dst = write_dir / f"cover.{lang}{ext}"
         _copy_if_needed(src, dst)
-        return f"./{dst.name}", False
+        return f"./{dst.name}"
 
     if existing_lang and _frontmatter_cover_exists(read_dir, existing_lang.frontmatter.get("cover")):
-        return str(existing_lang.frontmatter["cover"]), bool(existing_lang.frontmatter.get("cover_is_placeholder"))
+        return str(existing_lang.frontmatter["cover"])
 
-    found, placeholder = _find_cover(read_dir, lang)
-    if found:
-        return found, placeholder
-
-    if reference and _frontmatter_cover_exists(read_dir, reference.frontmatter.get("cover")):
-        cover = str(reference.frontmatter["cover"])
-        return cover, lang != reference.lang
-
-    return None, False
+    return _find_cover(read_dir, lang)
 
 
 def _translation_source(existing_lang: CatalogEntry | None, lang: str, override: str | None) -> str:
@@ -422,7 +410,6 @@ def _frontmatter_for_import(
     description: str,
     lang: str,
     cover: str | None,
-    cover_is_placeholder: bool,
     existing_lang: CatalogEntry | None,
     reference: CatalogEntry | None,
     converted: ConvertedDocx,
@@ -451,10 +438,6 @@ def _frontmatter_for_import(
             pass
 
     fm["cover"] = cover
-    if cover_is_placeholder:
-        fm["cover_is_placeholder"] = True
-    else:
-        fm.pop("cover_is_placeholder", None)
 
     cross_refs = _merge_cross_refs(existing_lang, converted)
     if cross_refs:
@@ -566,13 +549,12 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
             media_out=media_out,
         )
 
-        cover, cover_is_placeholder = _prepare_cover(
+        cover = _prepare_cover(
             cover_arg=str(request.cover) if request.cover is not None else None,
             read_dir=real_work_dir,
             write_dir=stage_dir,
             lang=request.lang,
             existing_lang=existing_lang,
-            reference=reference,
         )
         fm = _frontmatter_for_import(
             request=request,
@@ -583,7 +565,6 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
             description=description,
             lang=request.lang,
             cover=cover,
-            cover_is_placeholder=cover_is_placeholder,
             existing_lang=existing_lang,
             reference=reference,
             converted=converted,
