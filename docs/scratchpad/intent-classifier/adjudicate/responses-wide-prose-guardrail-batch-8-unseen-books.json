@@ -1,0 +1,122 @@
+{
+  "title": "Wide prose-guardrail batch (8 unseen books)",
+  "completedAt": "2026-06-03T16:33:50.632Z",
+  "responses": {
+    "p00_b06": {
+      "lines": {
+        "118.0": "lineated",
+        "120.0": "lineated",
+        "121.0": "lineated",
+        "122.0": "lineated",
+        "123.0": "lineated",
+        "124.0": "lineated"
+      },
+      "note": "Prose looks better here, but i'm afraid docx is lineated, so for consistency with the other content i vote lineation (prior distribution for a book)."
+    },
+    "p01_b14": {
+      "lines": {
+        "2213.0": "prose",
+        "2214.0": "prose",
+        "2215.0": "prose",
+        "2216.0": "prose",
+        "2217.0": "prose",
+        "2218.0": "prose"
+      }
+    },
+    "p02_b23": {
+      "lines": {
+        "930.0": "prose",
+        "931.0": "prose",
+        "932.0": "prose",
+        "933.0": "prose",
+        "934.0": "prose",
+        "935.0": "prose"
+      }
+    },
+    "p03_b32": {
+      "lines": {
+        "30513.0": "lineated",
+        "30515.0": "lineated",
+        "30516.0": "lineated",
+        "30517.0": "lineated",
+        "30518.0": "lineated",
+        "30519.0": "lineated"
+      }
+    },
+    "p04_b33": {
+      "lines": {
+        "891.0": "prose",
+        "893.0": "prose",
+        "894.0": "prose",
+        "895.0": "prose",
+        "897.0": "prose",
+        "898.0": "prose"
+      },
+      "note": "I voted prose, however the book is lineated... I don't know. Honestly. But prose really looks better here, without \"ifs\""
+    },
+    "g16_b38": {
+      "lines": {
+        "2203.0": "lineated",
+        "2204.0": "lineated",
+        "2205.0": "lineated",
+        "2206.0": "lineated",
+        "2207.0": "lineated",
+        "2208.0": "lineated",
+        "2209.0": "lineated",
+        "2210.0": "lineated",
+        "2211.0": "lineated",
+        "2212.0": "lineated",
+        "2213.0": "lineated",
+        "2214.0": "lineated",
+        "2215.0": "lineated"
+      },
+      "note": "obviously lineated (verse-like structure)"
+    },
+    "g17_b14": {
+      "lines": {
+        "1289.0": "lineated",
+        "1290.0": "lineated",
+        "1291.0": "lineated",
+        "1292.0": "lineated",
+        "1293.0": "lineated",
+        "1294.0": "lineated",
+        "1295.0": "lineated",
+        "1296.0": "lineated",
+        "1297.0": "lineated",
+        "1298.0": "lineated",
+        "1299.0": "lineated",
+        "1300.0": "lineated",
+        "1301.0": "lineated",
+        "1302.0": "lineated",
+        "1303.0": "lineated",
+        "1304.0": "lineated",
+        "1305.0": "lineated",
+        "1306.0": "lineated"
+      },
+      "note": "obviously (verse-like, short lines, mid-sentence breaks are strong indicators, and the old rule of \"can we separate this line/lines so that they don't look orphaned?)"
+    },
+    "g01_b57": {
+      "lines": {
+        "235.0": "lineated",
+        "236.0": "lineated",
+        "237.0": "lineated",
+        "238.0": "lineated",
+        "239.0": "lineated",
+        "240.0": "lineated",
+        "241.0": "lineated",
+        "242.0": "lineated",
+        "243.0": "lineated",
+        "244.0": "lineated",
+        "245.0": "lineated",
+        "246.0": "lineated",
+        "247.0": "lineated",
+        "248.0": "lineated",
+        "249.0": "lineated",
+        "250.0": "lineated",
+        "251.0": "lineated",
+        "252.0": "lineated"
+      },
+      "note": "Obvious song/verse-like, and again -- mid-sentence break, \"would the lines look orphraned if separated?\", breaks far earlier than wrapping occurs."
+    }
+  }
+}
