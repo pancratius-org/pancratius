@@ -1,7 +1,7 @@
 # research-only: the bridge CLI — load packaged regions + panel reps, gate, route, score, manifest.
 """The only gold-core module that touches disk. Subcommands:
 
-  aggregate  regions + reader reps → gate → <run>/gold.jsonl + needs_human.json + manifest.json
+  aggregate  regions + reader reps → gate → <run>/{gold.jsonl, needs_human, escalate, needs_rerun, manifest}
   score      reader reps vs a human truth file → per-reader + panel-decision balanced accuracy
   audit      sample a run's accepted gold lines for human spot-check → <run>/audit_sample.json
   manifest   (re)write the reproducibility contract for a run → <run>/manifest.json
@@ -24,8 +24,18 @@ from pathlib import Path
 from . import audit as audit_mod
 from . import registry
 from .aggregate import decide_region, panel_majority, reader_verdict
-from .manifest import Manifest, build_manifest
-from .types import AuditLine, Gates, Label, LineKey, ReaderId, Reason, Status, Vote
+from .manifest import Manifest, build_manifest, sha256_file, sha256_text
+from .types import (
+    AuditLine,
+    Gates,
+    Label,
+    LineKey,
+    ReaderId,
+    Reason,
+    Status,
+    Vote,
+    normalize_label,
+)
 
 HERE = Path(__file__).resolve().parent
 DATA = HERE.parents[1] / "data"
@@ -50,30 +60,76 @@ def docx_for(book: str) -> Path | None:
 
 
 def run_dir(dataset: str, run_id: str) -> Path:
-    p = DATA / dataset / "gold" / run_id
-    p.mkdir(parents=True, exist_ok=True)
-    return p
+    return DATA / dataset / "gold" / run_id
 
 
 def load_regions(dataset: str) -> list[dict]:
     return json.loads((DATA / dataset / "reader_pkg.json").read_text())
 
 
+def rep_files(dataset: str, reader: str, prefix: str) -> list[Path]:
+    return sorted((DATA / dataset / "bench").glob(f"reader_{reader}_{prefix}*.jsonl"))
+
+
 def load_reps(dataset: str, reader: str, prefix: str) -> list[dict[tuple, Vote]]:
-    """One dict per rep file (reader_<reader>_<prefix>*.jsonl): (rid, idx, sub) → (label, conf-or-None)."""
+    """One dict per rep file (reader_<reader>_<prefix>*.jsonl): (rid, idx, sub) → (label, conf).
+
+    HARD-validates each row: label is canonical (`normalize_label`, accepts `flowing`), conf is
+    None or in [0,1], and no (rid,idx,sub) repeats within a rep file (a duplicate would silently
+    overwrite a vote). A bad row aborts — never silently coerced."""
     reps: list[dict[tuple, Vote]] = []
-    for p in sorted((DATA / dataset / "bench").glob(f"reader_{reader}_{prefix}*.jsonl")):
+    for p in rep_files(dataset, reader, prefix):
         rep: dict[tuple, Vote] = {}
-        for line in p.read_text().splitlines():
-            if line.strip():
-                r = json.loads(line)
-                rep[(r["rid"], r["idx"], r["sub"])] = (r["label"], r.get("conf"))
+        for n, line in enumerate(p.read_text().splitlines(), 1):
+            if not line.strip():
+                continue
+            r = json.loads(line)
+            try:
+                addr = (r["rid"], int(r["idx"]), int(r["sub"]))
+                label = normalize_label(r["label"])
+            except (KeyError, ValueError, TypeError) as e:
+                raise SystemExit(f"{p.name}:{n}: bad reader row ({e}): {line[:120]}") from e
+            conf = r.get("conf")
+            if conf is not None and not (isinstance(conf, int | float) and 0.0 <= conf <= 1.0):
+                raise SystemExit(f"{p.name}:{n}: conf out of [0,1]: {conf!r}")
+            if addr in rep:
+                raise SystemExit(f"{p.name}:{n}: duplicate line {addr} — one vote per line per rep")
+            rep[addr] = (label, conf)
         reps.append(rep)
     return reps
 
 
 def all_reps(dataset: str, readers: Sequence[str], prefix: str) -> dict[ReaderId, list[dict[tuple, Vote]]]:
     return {r: load_reps(dataset, r, prefix) for r in readers}
+
+
+def reps_digest(dataset: str, readers: Sequence[str], prefix: str) -> str | None:
+    """Combined sha256 of the EXACT rep files this run consumes — the precise reproducibility
+    anchor for the gold decisions (run-specific, unlike the shared append-only raw log)."""
+    parts = [f"{p.name}:{sha256_file(p)}"
+             for r in readers for p in rep_files(dataset, r, prefix)]
+    return sha256_text("\n".join(sorted(parts))) if parts else None
+
+
+def write_run_raw(dataset: str, readers: Sequence[str], prefix: str, dest: Path) -> Path | None:
+    """Filter the shared bench/raw_replies.jsonl down to THIS run's rows (core readers, this prefix)
+    and write a per-run copy, so the manifest hashes only this run's raw output."""
+    src = DATA / dataset / "bench" / "raw_replies.jsonl"
+    if not src.exists():
+        return None
+    core = set(readers)
+    rows = []
+    for line in src.read_text().splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        run = str(row.get("run", "")).lstrip("_")
+        if row.get("tag") in core and (run.startswith(prefix) if prefix else True):
+            rows.append(line)
+    if not rows:
+        return None
+    dest.write_text("\n".join(rows) + "\n")
+    return dest
 
 
 def votes_for(region: dict, key: LineKey, reps: Mapping[ReaderId, list[dict[tuple, Vote]]]) -> dict[ReaderId, list[Vote]]:
@@ -83,12 +139,13 @@ def votes_for(region: dict, key: LineKey, reps: Mapping[ReaderId, list[dict[tupl
 
 def _write_manifest(args: argparse.Namespace, gates: Gates, rids: Sequence[str], out: Path) -> None:
     brief = Path(args.brief) if getattr(args, "brief", None) else _default_brief(args.dataset)
-    raw = DATA / args.dataset / "bench" / "raw_replies.jsonl"
     books = {book_of(r) for r in rids}
+    raw = write_run_raw(args.dataset, gates.core, args.prefix, out / "raw_replies.jsonl")
     m = build_manifest(
         run_id=args.run_id, repo=REPO, brief=brief, models=registry.model_ids(gates.core),
         docx_paths={b: p for b in sorted(books) if (p := docx_for(b))},
-        gates=gates, seed=getattr(args, "seed", 0), sample_rids=rids, raw_replies=raw,
+        gates=gates, seed=getattr(args, "seed", 0), sample_rids=rids,
+        reps_sha256=reps_digest(args.dataset, gates.core, args.prefix), raw_replies=raw,
     )
     m.write(out / "manifest.json")
     if m.git_dirty:
@@ -105,16 +162,45 @@ def _default_brief(dataset: str) -> Path:
 
 # ---- aggregate -------------------------------------------------------------------------------
 
+# the gate's terminal sinks, each its own downstream queue (no mixing human + automated work)
+_ROUTE_FILES = {Status.ROUTE_HUMAN: "needs_human.json",
+                Status.ESCALATE: "escalate.json",
+                Status.NEEDS_RERUN: "needs_rerun.json"}
+
+
+def _scope(regions: list[dict], rids: Sequence[str] | None) -> list[dict]:
+    """Restrict to a requested rid subset (sample-manifest scope); abort on an unknown rid."""
+    if not rids:
+        return regions
+    by_rid = {e["rid"]: e for e in regions}
+    if missing := [r for r in rids if r not in by_rid]:
+        raise SystemExit(f"--rids not in reader_pkg.json: {missing}")
+    return [by_rid[r] for r in rids]
+
+
 def cmd_aggregate(args: argparse.Namespace) -> int:
     gates = _gates(args)
-    regions = load_regions(args.dataset)
+    regions = _scope(load_regions(args.dataset), args.rids)
     reps = all_reps(args.dataset, gates.core, args.prefix)
     soft = _load_keyset(args.soft)
     needs_review = _load_keyset(args.needs_review)
     out = run_dir(args.dataset, args.run_id)
 
+    # overwrite guard — a re-used run id must not silently clobber a prior run's results
+    if (out / "gold.jsonl").exists() and not args.force:
+        raise SystemExit(f"run '{args.run_id}' already exists at {out} — use --force to overwrite")
+
+    # batch-coverage guard — a region with NO reps at this prefix is out-of-batch (e.g. --prefix w
+    # over a `pw` region), and would be silently scored all-missing.
+    uncovered = [region["rid"] for region in regions
+                 if not any((region["rid"], k[0], k[1]) in rep
+                            for r in gates.core for rep in reps[r] for k in region["keys"])]
+    if uncovered and not args.force:
+        raise SystemExit(f"{len(uncovered)} region(s) have no '{args.prefix}' reps (out-of-batch): "
+                         f"{uncovered[:8]} — scope with --rids, fix --prefix, or --force.")
+
     gold: list[dict] = []
-    routed: dict[str, dict] = {}
+    routes: dict[Status, dict[str, dict]] = {s: {} for s in _ROUTE_FILES}
     status_count: Counter = Counter()
     reason_count: Counter = Counter()
     by_stratum: dict[str, Counter] = defaultdict(Counter)
@@ -136,16 +222,26 @@ def cmd_aggregate(args: argparse.Namespace) -> int:
                 gold.append({"rid": rid, "idx": d.key.idx, "sub": d.key.sub, "label": d.label,
                              "stratum": region["stratum"]})
             else:
-                entry = routed.setdefault(rid, {"composite": region.get("composite"),
-                                                "stratum": region["stratum"], "lines": []})
+                entry = routes[d.status].setdefault(
+                    rid, {"composite": region.get("composite"), "stratum": region["stratum"], "lines": []})
                 entry["lines"].append({
-                    "idx": d.key.idx, "sub": d.key.sub, "status": d.status.value,
-                    "label": d.label, "reasons": [r.value for r in d.reasons],
+                    "idx": d.key.idx, "sub": d.key.sub, "label": d.label,
+                    "reasons": [r.value for r in d.reasons],
                     "verdicts": d.verdicts, "lead_conf": d.lead_conf, "rep_count": d.rep_count,
                 })
 
+    # conf-missing is an UNSAFE default, not a warning: abort before writing unless explicitly allowed
+    n_conf_missing = reason_count.get(Reason.CONF_MISSING, 0)
+    if gates.conf_floor > 0 and n_conf_missing and not args.allow_conf_missing:
+        raise SystemExit(
+            f"ABORT: {n_conf_missing} lines have no per-line confidence but conf_floor="
+            f"{gates.conf_floor}. These reps predate conf capture. Re-run readers preserving conf, "
+            f"or pass --conf-floor 0 (structure-only gate) or --allow-conf-missing (accept the gap).")
+
+    out.mkdir(parents=True, exist_ok=True)
     (out / "gold.jsonl").write_text("".join(json.dumps(g, ensure_ascii=False) + "\n" for g in gold))
-    (out / "needs_human.json").write_text(json.dumps(routed, ensure_ascii=False, indent=2))
+    for st, fname in _ROUTE_FILES.items():
+        (out / fname).write_text(json.dumps(routes[st], ensure_ascii=False, indent=2))
     _write_manifest(args, gates, [e["rid"] for e in regions], out)
 
     total = sum(status_count.values())
@@ -155,7 +251,9 @@ def cmd_aggregate(args: argparse.Namespace) -> int:
         n = status_count[st]
         print(f"    {st.value:12} {n:4}  ({n / total:.0%})" if total else f"    {st.value:12} {n:4}")
     print(f"  accepted → {len(gold)} gold lines; "
-          f"routed → {sum(len(v['lines']) for v in routed.values())} lines / {len(routed)} regions")
+          f"to-human {sum(len(v['lines']) for v in routes[Status.ROUTE_HUMAN].values())} · "
+          f"escalate {sum(len(v['lines']) for v in routes[Status.ESCALATE].values())} · "
+          f"rerun {sum(len(v['lines']) for v in routes[Status.NEEDS_RERUN].values())}")
     if reason_count:
         print("  non-accept reasons:", ", ".join(f"{r.value}×{n}" for r, n in reason_count.most_common()))
     print("  per-stratum accept rate:")
@@ -163,11 +261,10 @@ def cmd_aggregate(args: argparse.Namespace) -> int:
         c = by_stratum[s]
         tot = sum(c.values())
         print(f"    {s:10} {c[Status.ACCEPT]:3}/{tot:<3} ({c[Status.ACCEPT] / tot:.0%})")
-    print(f"  wrote {out}/{{gold.jsonl,needs_human.json,manifest.json}}")
-    if gates.conf_floor > 0 and reason_count.get(Reason.CONF_MISSING):
-        print(f"  !! {reason_count[Reason.CONF_MISSING]} lines hit conf-missing — these reps carry no "
-              f"per-line confidence; re-run readers preserving conf, or pass --conf-floor 0 for a "
-              f"structure-only (diagnostic) gate.")
+    print(f"  wrote {out}/{{gold.jsonl,needs_human.json,escalate.json,needs_rerun.json,manifest.json}}")
+    if gates.conf_floor > 0 and n_conf_missing:
+        print(f"  !! {n_conf_missing} conf-missing lines were ALLOWED (--allow-conf-missing).")
+    return 0
     return 0
 
 
@@ -255,6 +352,7 @@ def cmd_manifest(args: argparse.Namespace) -> int:
     gates = _gates(args)
     regions = load_regions(args.dataset)
     out = run_dir(args.dataset, args.run_id)
+    out.mkdir(parents=True, exist_ok=True)
     _write_manifest(args, gates, [e["rid"] for e in regions], out)
     mf = Manifest.read(out / "manifest.json")
     print(f"manifest [{args.run_id}] → {out/'manifest.json'}\n"
@@ -298,8 +396,12 @@ def main() -> int:
     ap = argparse.ArgumentParser(prog="gold.run", parents=[common])
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    a = sub.add_parser("aggregate", parents=[common], help="gate regions → run-scoped gold + needs_human")
+    a = sub.add_parser("aggregate", parents=[common], help="gate regions → run-scoped gold + routed queues")
     a.add_argument("--run-id", required=True)
+    a.add_argument("--rids", nargs="+", help="scope to a region subset (sample manifest)")
+    a.add_argument("--force", action="store_true", help="overwrite an existing run / ignore the batch-coverage guard")
+    a.add_argument("--allow-conf-missing", action="store_true", dest="allow_conf_missing",
+                   help="accept lines with no per-line confidence (default: abort when conf_floor>0)")
     a.add_argument("--brief", help="brief file to record in the manifest (default: v5)")
     a.add_argument("--seed", type=int, default=0)
     a.add_argument("--soft", help="json {rid:[[idx,sub]]} of prior-dependent lines")
