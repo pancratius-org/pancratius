@@ -1,0 +1,35 @@
+# Stage 2: the 34 already-packaged phaseb regions NOT used by the canary (23 books, 532 lines).
+# Real gold growth + a scale test of the production path; no new packaging needed. Fresh content,
+# so no soft/needs_review priors — the gate routes splits / low-conf / operational gaps itself.
+name = "phaseb-rest"
+description = "stage 2: 34 packaged phaseb regions beyond the canary (23 books, 532 lines)"
+dataset = "phaseb"
+prefix = "rest"
+brief = "data/phaseb/reader_brief_v5.txt"
+notes = "stage 2 of accruing gold. stage 3 = package the 45 untouched corpus books, own recipe."
+
+[panel]
+core = ["grok", "gemini-pro", "ds-flash-text"]   # gemini-pro kept in core: it is the prose-bias
+diagnostic = ["glm"]                              # detector that makes grok/panel splits meaningful
+reps_initial = 1                                  # STAGE 1 of adaptive 1→3 (escalate.json = stage-2 queue)
+reps_cap = 3
+
+[gates]
+conf_floor = 0.7
+min_agree = 2
+escalate_reps = 3
+
+[audit]
+rate = 0.08
+seed = 7
+prose_bias = 2.0
+
+[regions]
+rids = [
+  "g00_b64_t0", "g00_b64_t1", "g00_b64_t3", "g05_b37", "g06_b40", "g09_b16_t2",
+  "g18_b60_t0", "g18_b60_t1", "g18_b60_t3", "g18_b60_t4", "g22_b31_t1", "g22_b31_t3",
+  "g22_b31_t4", "g22_b31_t5", "g27_b67_t0", "g27_b67_t1", "g27_b67_t2", "g29_b69_t1",
+  "g31_b13", "g33_b66", "g34_b63", "g38_b28", "g35_b41", "g19_b24",
+  "g28_b71", "g26_b30", "g07_b47", "g13_b01", "p01_b14", "p02_b23",
+  "p03_b32", "g16_b38", "g17_b14", "g01_b57",
+]
