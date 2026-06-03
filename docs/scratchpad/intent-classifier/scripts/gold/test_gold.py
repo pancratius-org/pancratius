@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from . import aggregate as agg
 from . import audit, blocks
+from . import spec as spec_mod
 from .types import AuditLine, Gates, LineKey, Reason, Status, normalize_label
 
 G = Gates()
@@ -201,6 +202,47 @@ def test_normalize_label_legacy_alias() -> None:
     except ValueError:
         return
     raise AssertionError("normalize_label('verse') should raise")
+
+
+# ---- recipe validation ------------------------------------------------------------------------
+
+_GOOD = """
+name = "t"
+description = "d"
+dataset = "phaseb"
+prefix = "t"
+brief = "b.txt"
+[panel]
+core = ["grok", "gemini-pro", "ds-flash-text"]
+[regions]
+rids = ["g00_b01", "g01_b02"]
+"""
+
+
+def test_recipe_loads_valid() -> None:
+    s = spec_mod.loads(_GOOD)
+    assert s.panel.core[0] == "grok" and s.gates().conf_floor == 0.7 and len(s.rids) == 2
+
+
+def test_recipe_rejects_malformations() -> None:
+    bad = {
+        "unknown top key": _GOOD + "\nbogus = 1\n",
+        "unknown panel key": _GOOD + "\n[panel.x]\n",                       # nested → unknown
+        "unsafe prefix": _GOOD.replace('prefix = "t"', 'prefix = "../evil"'),
+        "empty core": _GOOD.replace('["grok", "gemini-pro", "ds-flash-text"]', "[]"),
+        "reps inverted": _GOOD.replace(
+            'core = ["grok", "gemini-pro", "ds-flash-text"]',
+            'core = ["grok", "gemini-pro", "ds-flash-text"]\nreps_initial = 5\nreps_cap = 3'),
+        "bad audit rate": _GOOD + "\n[audit]\nrate = 2.0\n",
+        "duplicate rids": _GOOD.replace('["g00_b01", "g01_b02"]', '["g00_b01", "g00_b01"]'),
+        "missing brief key": _GOOD.replace('brief = "b.txt"\n', ""),
+    }
+    for label, text in bad.items():
+        try:
+            spec_mod.loads(text)
+        except ValueError:
+            continue
+        raise AssertionError(f"recipe should have rejected: {label}")
 
 
 def main() -> int:

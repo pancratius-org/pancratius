@@ -144,12 +144,15 @@ def votes_for(region: dict, key: LineKey, reps: Mapping[ReaderId, list[dict[tupl
 def _write_manifest(args: argparse.Namespace, gates: Gates, rids: Sequence[str], out: Path) -> None:
     brief = Path(args.brief) if getattr(args, "brief", None) else _default_brief(args.dataset)
     books = {book_of(r) for r in rids}
-    raw = write_run_raw(args.dataset, gates.core, args.prefix, out / "raw_replies.jsonl")
+    # provenance covers EVERY reader run (core + diagnostic) so the cost/quality report reproduces;
+    # `gates.core` separately records who actually gated.
+    readers = (*gates.core, *getattr(args, "diagnostic", ()))
+    raw = write_run_raw(args.dataset, readers, args.prefix, out / "raw_replies.jsonl")
     m = build_manifest(
-        run_id=args.run_id, repo=REPO, brief=brief, models=registry.model_ids(gates.core),
+        run_id=args.run_id, repo=REPO, brief=brief, models=registry.model_ids(readers),
         docx_paths={b: p for b in sorted(books) if (p := docx_for(b))},
         gates=gates, seed=getattr(args, "seed", 0), sample_rids=rids,
-        reps_sha256=reps_digest(args.dataset, gates.core, args.prefix), raw_replies=raw,
+        reps_sha256=reps_digest(args.dataset, readers, args.prefix), raw_replies=raw,
     )
     m.write(out / "manifest.json")
     if m.git_dirty:
@@ -368,25 +371,32 @@ def cmd_manifest(args: argparse.Namespace) -> int:
 
 # ---- recipe (declarative run) + panel (paid reads) -------------------------------------------
 
-def _resolve(dataset_root: Path, p: str | None) -> str | None:
+def _resolve(p: str | None) -> str | None:
     """A recipe path is relative to the intent-classifier dir; pass through if absolute/None."""
     if not p:
         return None
     pp = Path(p)
-    return str(pp if pp.is_absolute() else dataset_root / pp)
+    return str(pp if pp.is_absolute() else DATA.parent / pp)
+
+
+def _require_files(spec: spec_mod.RunSpec) -> None:
+    """Fail before any work if a referenced brief/flag file is missing."""
+    for label, raw in (("brief", spec.brief), ("soft", spec.soft), ("needs_review", spec.needs_review)):
+        if raw and not Path(_resolve(raw)).exists():  # type: ignore[arg-type]
+            raise SystemExit(f"recipe {label} file not found: {raw}")
 
 
 def cmd_recipe(args: argparse.Namespace) -> int:
     """Run the DETERMINISTIC pipeline (aggregate → audit → manifest) from a TOML recipe."""
     spec = spec_mod.load(args.recipe)
-    root = DATA.parent
+    _require_files(spec)
     print(f"recipe '{spec.name}': {spec.description}")
     agg_ns = SimpleNamespace(
         dataset=spec.dataset, prefix=spec.prefix, core=list(spec.panel.core),
-        conf_floor=spec.conf_floor, min_agree=spec.min_agree, rids=list(spec.rids) or None,
-        run_id=spec.name, force=args.force, allow_conf_missing=args.allow_conf_missing,
-        brief=_resolve(root, spec.brief), seed=spec.audit.seed,
-        soft=_resolve(root, spec.soft), needs_review=_resolve(root, spec.needs_review),
+        diagnostic=spec.panel.diagnostic, conf_floor=spec.conf_floor, min_agree=spec.min_agree,
+        rids=list(spec.rids) or None, run_id=spec.name, force=args.force,
+        allow_conf_missing=args.allow_conf_missing, brief=_resolve(spec.brief),
+        seed=spec.audit.seed, soft=_resolve(spec.soft), needs_review=_resolve(spec.needs_review),
     )
     cmd_aggregate(agg_ns)
     audit_ns = SimpleNamespace(dataset=spec.dataset, run_id=spec.name, rate=spec.audit.rate,
@@ -396,21 +406,26 @@ def cmd_recipe(args: argparse.Namespace) -> int:
 
 
 def cmd_panel(args: argparse.Namespace) -> int:
-    """Drive the PAID reader step from a recipe: run bench_models for the panel (core + diagnostic),
-    `reps_initial` reps, writing conf-bearing reps at the recipe's prefix. --dry-run prints only."""
+    """Drive the PAID reader step from a recipe: bench_models for the panel (core + diagnostic),
+    `reps_initial` reps, writing conf-bearing reps at the recipe's prefix.
+
+    SAFE BY DEFAULT: prints the commands and spends nothing unless --execute is given."""
     spec = spec_mod.load(args.recipe)
+    _require_files(spec)
     if not spec.rids:
         raise SystemExit("recipe has no [regions].rids — refusing an unbounded paid run")
-    brief = _resolve(DATA.parent, spec.brief)
+    brief = _resolve(spec.brief)
     for rep in range(1, spec.panel.reps_initial + 1):
         cmd = ["uv", "run", "--with", "python-dotenv", "--with", "requests", "--with", "pillow",
                "python", "bench_models.py", "--set", spec.dataset,
                "--models", *spec.panel.readers, "--rids", *spec.rids,
                "--tag-suffix", f"_{spec.prefix}{rep}", "--brief", brief]
-        print(f"[panel rep {rep}/{spec.panel.reps_initial}] {' '.join(cmd)}")
-        if args.dry_run:
-            continue
-        subprocess.run(cmd, cwd=HERE.parent, check=True)
+        tag = "EXECUTE" if args.execute else "dry-run"
+        print(f"[panel rep {rep}/{spec.panel.reps_initial} · {tag}] {' '.join(cmd)}")
+        if args.execute:
+            subprocess.run(cmd, cwd=HERE.parent, check=True)
+    if not args.execute:
+        print("  (dry-run: nothing spent. Re-run with --execute to make the paid calls.)")
     return 0
 
 
@@ -488,9 +503,9 @@ def main() -> int:
     rc.add_argument("--allow-conf-missing", action="store_true", dest="allow_conf_missing")
     rc.set_defaults(func=cmd_recipe)
 
-    pn = sub.add_parser("panel", help="PAID: drive bench_models reads from a TOML run-recipe")
+    pn = sub.add_parser("panel", help="drive bench_models reads from a recipe (DRY-RUN by default)")
     pn.add_argument("recipe", help="path to a runs/*.toml recipe")
-    pn.add_argument("--dry-run", action="store_true", dest="dry_run", help="print the commands, don't spend")
+    pn.add_argument("--execute", action="store_true", help="actually make the paid calls (default: dry-run)")
     pn.set_defaults(func=cmd_panel)
 
     args = ap.parse_args()
