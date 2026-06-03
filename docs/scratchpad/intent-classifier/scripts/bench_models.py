@@ -1,0 +1,227 @@
+# research-only: frozen model-rotation benchmark on the PROBLEMATIC contested regions.
+"""Tries candidate OpenRouter models on the hardest Phase-B regions (regressions + never-solved
++ a few clean gains for contrast), with the SAME prompt/package/truth join as the panel.
+Parallel across model x region (ThreadPoolExecutor — the panel's sequential urllib was slow).
+Reports per model: coverage, parse failures, latency, token cost, prose-recall, lineated-recall,
+balanced accuracy; and per-region panel-vs-model deltas. Does NOT touch the gold or the rebuild.
+
+Run: uv run --with python-dotenv --with requests python bench_models.py
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+
+import requests
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import openrouter_reader as orr  # reuse _api_key, _img_data_url, _parse_labels, API  # noqa: E402
+
+DATA = HERE.parent / "data"
+ADJ = HERE.parent / "adjudicate"
+
+# Candidate models to evaluate for rotation. {tag: (model_id, vision)} — vision=True sends the
+# composite image + structure; vision=False sends the per-line structure only (text-reader path,
+# how deepseek/owl run in the panel). deepseek is probed in BOTH modes to see if the image helps.
+CANDIDATES = {
+    "qwen3": ("qwen/qwen3-235b-a22b-2507", True),
+    "glm": ("z-ai/glm-4.7-flash", True),
+    "nemotron": ("nvidia/nemotron-3-super-120b-a12b", True),
+    "step": ("stepfun/step-3.7-flash", True),
+    "perceptron": ("perceptron/perceptron-mk1", True),
+    "ring": ("inclusionai/ring-2.6-1t", True),
+    "gemini-lite": ("google/gemini-3.1-flash-lite", True),
+    "gemini-flash": ("google/gemini-3.5-flash", True),
+    # deepseek both modes (flash = the incumbent text reader; pro = the new tier)
+    "ds-flash-text": ("deepseek/deepseek-v4-flash", False),
+    "ds-flash-vis": ("deepseek/deepseek-v4-flash", True),
+    "ds-pro-text": ("deepseek/deepseek-v4-pro", False),
+    "ds-pro-vis": ("deepseek/deepseek-v4-pro", True),
+}
+
+# The PROBLEMATIC overlap: panel regressions, never-solved, big gains, AND the prose-bearing
+# regions (so prose-recall / the costly over-lineation error is actually measurable).
+PROBLEM_RIDS = [
+    "g00_b64_t2", "g29_b69_t0", "g05_b37", "g18_b60_t3",        # regressions (lineated)
+    "g22_b31_t5", "g24_b28", "g31_b13", "g33_b66",              # never solved (lineated, 0/x)
+    "g00_b64_t1", "g34_b63", "g27_b67_t2",                      # big gains (lineated, contrast)
+    "g09_b16_t2", "g23_b17", "g10_b19",                         # the PROSE lines (costly error)
+]
+# incumbent panel readers to show alongside the candidates (scored from their phaseb labels).
+INCUMBENTS = ["grok", "deepseek", "gemini"]
+
+
+def book_of(rid: str) -> str | None:
+    m = re.search(r"_b(\d+)", rid.removeprefix("audit_"))
+    return m.group(1) if m else None
+
+
+def load_truth() -> dict:
+    adj = json.loads((ADJ / "responses-lineation-adjudication-gold-block2-contested-lines.json"
+                      ).read_text())["responses"]
+    truth = {}
+    for rid, v in adj.items():
+        for k, lab in v.get("lines", {}).items():
+            i, s = k.split(".")
+            truth[(book_of(rid), int(i), int(s))] = lab
+    return truth
+
+
+def build_ask(brief: str, region: dict, vision: bool) -> str:
+    evidence = ("The image shows three columns: the DOCX PAGE (authority), then PROSE and "
+                "LINEATED candidate renderings. Use it with the per-line structure below."
+                if vision else
+                "You are given ONLY the per-line text structure below (no image): the text, "
+                "whether each line WRAPS at the reading column, inline emphasis, and the hard "
+                "structural markers. Judge prose vs lineated from this.")
+    return (f"{brief}\n\n=== REGION {region['rid']} ===\n{evidence}\n\nStructure (label ONLY these "
+            f"body lines):\n\n{region['structure']}\n\n"
+            f"Return ONLY a JSON array, one object per body line listed above:\n"
+            f'[{{"idx": <int>, "sub": <int>, "label": "prose"|"lineated", "conf": <0..1>}}]\n'
+            f"Label every body line. No prose, no code fence — just the JSON array.")
+
+
+def call(key: str, model: str, ask: str, img_url: str | None, max_tokens: int = 8192) -> dict:
+    """One request. Returns {content, finish_reason, usage, latency, error}. img_url=None ⇒ text-only."""
+    content: list = [{"type": "text", "text": ask}]
+    if img_url is not None:
+        content.append({"type": "image_url", "image_url": {"url": img_url}})
+    payload = {"model": model, "temperature": 0, "max_tokens": max_tokens,
+               "usage": {"include": True},
+               "messages": [{"role": "user", "content": content}]}
+    h = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    t0 = time.time()
+    last = ""
+    for attempt in range(4):
+        try:
+            r = requests.post(orr.API, headers=h, json=payload, timeout=180)
+            if r.status_code == 200:
+                j = r.json()
+                ch = j.get("choices") or []
+                c = ch[0].get("message", {}).get("content") if ch else None
+                if c:
+                    return {"content": c, "finish_reason": ch[0].get("finish_reason"),
+                            "usage": j.get("usage") or {}, "latency": time.time() - t0, "error": None}
+                last = f"empty: {r.text[:120]}"
+            elif 400 <= r.status_code < 500 and r.status_code != 429:
+                return {"content": "", "usage": {}, "latency": time.time() - t0,
+                        "error": f"{r.status_code}: {r.text[:120]}"}
+            else:
+                last = f"{r.status_code}: {r.text[:120]}"
+        except (requests.RequestException, json.JSONDecodeError) as e:
+            last = f"{type(e).__name__}: {e}"
+        time.sleep(2 * (attempt + 1))
+    return {"content": "", "usage": {}, "latency": time.time() - t0, "error": last}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--set", dest="dataset", default="phaseb")
+    ap.add_argument("--models", nargs="+", default=sorted(CANDIDATES))
+    args = ap.parse_args()
+    key = orr._api_key()
+    data = DATA / args.dataset
+    brief = (data / "reader_brief.txt").read_text()
+    pkg = {e["rid"]: e for e in json.loads((data / "reader_pkg.json").read_text())}
+    regions = [pkg[r] for r in PROBLEM_RIDS if r in pkg]
+    print(f"benchmark: {len(args.models)} models x {len(regions)} problematic regions "
+          f"(missing from pkg: {[r for r in PROBLEM_RIDS if r not in pkg]})")
+    # pre-encode images once per region
+    imgs = {e["rid"]: orr._img_data_url(e["composite"]) for e in regions}
+
+    jobs = [(tag, *CANDIDATES[tag], e) for tag in args.models for e in regions]
+    results: dict[str, list[dict]] = {tag: [] for tag in args.models}
+    meta: dict[str, dict] = {tag: {"lat": [], "ptok": 0, "ctok": 0, "cost": 0.0,
+                                   "fail": 0, "parsefail": 0} for tag in args.models}
+
+    def work(tag, model, vision, e):
+        ask = build_ask(brief, e, vision)
+        res = call(key, model, ask, imgs[e["rid"]] if vision else None)
+        return tag, e, res
+
+    with ThreadPoolExecutor(max_workers=10) as ex:
+        futs = [ex.submit(work, t, m, v, e) for (t, m, v, e) in jobs]
+        for fut in as_completed(futs):
+            tag, e, res = fut.result()
+            mt = meta[tag]
+            mt["lat"].append(res["latency"])
+            u = res.get("usage") or {}
+            mt["ptok"] += u.get("prompt_tokens", 0) or 0
+            mt["ctok"] += u.get("completion_tokens", 0) or 0
+            mt["cost"] += (u.get("cost") or 0.0)
+            if res["error"]:
+                mt["fail"] += 1
+                continue
+            labels = orr._parse_labels(res["content"])
+            keyset = {tuple(k) for k in e["keys"]}
+            got = set()
+            for o in labels:
+                try:
+                    k = (int(o["idx"]), int(o["sub"]))
+                    lab = o["label"]
+                except (KeyError, TypeError, ValueError):
+                    continue
+                if k in keyset and lab in ("prose", "lineated") and k not in got:
+                    got.add(k)
+                    results[tag].append({"rid": e["rid"], "idx": k[0], "sub": k[1], "label": lab})
+            if not got:
+                mt["parsefail"] += 1
+
+    # persist labels
+    bdir = data / "bench"
+    bdir.mkdir(exist_ok=True)
+    for tag in args.models:
+        (bdir / f"reader_{tag}.jsonl").write_text(
+            "\n".join(json.dumps(r, ensure_ascii=False) for r in results[tag]) + "\n")
+
+    # score
+    truth = load_truth()
+    tkeys = [(book_of(e["rid"]), k[0], k[1]) for e in regions for k in e["keys"]]
+    tkeys = [k for k in tkeys if k in truth]
+    n_prose = sum(truth[k] == "prose" for k in tkeys)
+    n_lin = sum(truth[k] == "lineated" for k in tkeys)
+    print(f"\nproblematic truth lines: {len(tkeys)} ({n_prose} prose, {n_lin} lineated)\n")
+    def metrics(lab: dict) -> tuple[float, float, float, float]:
+        pk = [k for k in tkeys if truth[k] == "prose" and k in lab]
+        lk = [k for k in tkeys if truth[k] == "lineated" and k in lab]
+        cov = len([k for k in tkeys if k in lab]) / len(tkeys) if tkeys else 0.0
+        pr = sum(lab[k] == "prose" for k in pk) / len(pk) if pk else float("nan")
+        lr = sum(lab[k] == "lineated" for k in lk) / len(lk) if lk else float("nan")
+        bal = (pr + lr) / 2 if pk and lk else float("nan")
+        return cov, pr, lr, bal
+
+    print(f"{'model':12} {'cov':>5} {'pfail':>5} {'lat(s)':>7} {'ptok':>7} {'ctok':>6} "
+          f"{'cost$':>7} | {'prose-r':>7} {'lin-r':>6} {'bal-acc':>7}")
+    for tag in args.models:
+        lab = {(book_of(r["rid"]), r["idx"], r["sub"]): r["label"] for r in results[tag]}
+        cov, pr, lr, bal = metrics(lab)
+        mt = meta[tag]
+        avlat = sum(mt["lat"]) / len(mt["lat"]) if mt["lat"] else 0
+        print(f"{tag:12} {cov:>4.0%} {mt['parsefail']:>3}/{mt['fail']:<1} {avlat:>7.1f} "
+              f"{mt['ptok']:>7} {mt['ctok']:>6} {mt['cost']:>7.4f} | "
+              f"{pr:>6.0%} {lr:>5.0%} {bal:>6.0%}")
+    print(f"\n-- incumbents (scored from {args.dataset} labels, same subset) --")
+    for tag in INCUMBENTS:
+        f = data / f"reader_{tag}.jsonl"
+        if not f.exists():
+            continue
+        lab = {}
+        for line in f.read_text().splitlines():
+            if line.strip():
+                r = json.loads(line)
+                lab[(book_of(r["rid"]), r["idx"], r["sub"])] = r["label"]
+        cov, pr, lr, bal = metrics(lab)
+        print(f"{tag:12} {cov:>4.0%} {'   -':>5} {'-':>7} {'-':>7} {'-':>6} {'-':>7} | "
+              f"{pr:>6.0%} {lr:>5.0%} {bal:>6.0%}")
+    print("\n(pfail = parse-failures/api-failures; cost from OpenRouter usage when reported)")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
