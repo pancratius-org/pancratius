@@ -4,8 +4,7 @@ number: 246
 slug: 246-sekret-evangeliya-kotoryi-menyaet-vsyo
 title: Секрет Евангелия, который меняет всё!
 lang: ru
-description: 30. Секрет Евангелия, который меняет всё! Это послание - из серии «Евангелие Царствия». Следующее
-  — здесь https://www.youtube.com/playlist?list=PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7 Христос уже здесь.
+description: Секрет Евангелия, который меняет всё.
 tags:
 - Евангелие Царствия
 cover: ./cover.ru.jpg

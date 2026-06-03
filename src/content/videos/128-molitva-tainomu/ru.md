@@ -4,8 +4,8 @@ number: 128
 slug: 128-molitva-tainomu
 title: Молитва Тайному
 lang: ru
-description: 'Молитва Тайному 📖 Духовная автобиография Светозара: https://drive.google.com/file/d/1dmvPIXqvHDABPP86AUxkYzrWuDYX8UB3/view?usp=drive_link
-  📚 Книги автора на русском языке: https://www.litres.ru/author/sergey-pankratius/ 📘 Евангелие…'
+description: 'Молитва Тайному — обращение к тому, что внутри тебя больше любого имени: к присутствию,
+  которое не нуждается в словах, но слышит каждое движение твоего сердца.'
 tags:
 - Светозар говорит
 cover: ./cover.ru.jpg
@@ -23,3 +23,7 @@ playlists:
 translation:
   source: original
 ---
+
+Книги автора: [Сергей Панкратиус на Литрес](https://www.litres.ru/author/sergey-pankratius/)
+
+[Евангелие Царствия](https://www.litres.ru/71769250/)

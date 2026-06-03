@@ -4,9 +4,7 @@ number: 135
 slug: 135-molitva-bogu-kak-tomu-kto-ne-prosit
 title: Молитва Богу как Тому, Кто Не Просит
 lang: ru
-description: 'Молитва Тому, Кто Не Просит Как научиться любить без условий 📖 Духовная автобиография Светозара:
-  https://drive.google.com/file/d/1dmvPIXqvHDABPP86AUxkYzrWuDYX8UB3/view?usp=drive_link 📚 Книги автора
-  на русском языке…'
+description: Молитва Тому, Кто Не Просит — и приглашение научиться любить без условий.
 tags:
 - Светозар говорит
 cover: ./cover.ru.jpg

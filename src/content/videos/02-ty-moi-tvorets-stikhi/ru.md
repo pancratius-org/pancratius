@@ -4,7 +4,7 @@ number: 2
 slug: 02-ty-moi-tvorets-stikhi
 title: Ты - мой Творец... стихи
 lang: ru
-description: стихи о любви к Богу, Творцу всего сущего
+description: Стихи о любви к Богу, Творцу всего сущего.
 tags: []
 cover: ./cover.ru.jpg
 published_at: '2024-10-07'

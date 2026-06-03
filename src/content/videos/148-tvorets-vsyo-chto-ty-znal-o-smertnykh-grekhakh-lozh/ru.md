@@ -4,8 +4,8 @@ number: 148
 slug: 148-tvorets-vsyo-chto-ty-znal-o-smertnykh-grekhakh-lozh
 title: 'Творец: Всё, что ты знал о смертных грехах — ложь!'
 lang: ru
-description: '📖 Духовная автобиография Светозара: https://drive.google.com/file/d/1dmvPIXqvHDABPP86AUxkYzrWuDYX8UB3/view?usp=drive_link
-  📚 Книги автора на русском языке: https://www.litres.ru/author/sergey-pankratius/ 📘 Евангелие Царствия…'
+description: 'Творец говорит: то, чему тебя учили о смертных грехах — не Его голос. Он не держит над тобой
+  счёт; Он видит в тебе свет, который забыл о себе, а не преступника, которого надо наказать.'
 tags:
 - Послания Творца через Светозара
 cover: ./cover.ru.jpg
@@ -23,3 +23,7 @@ playlists:
 translation:
   source: original
 ---
+
+Книги автора: [Сергей Панкратиус на Литрес](https://www.litres.ru/author/sergey-pankratius/)
+
+[Евангелие Царствия](https://www.litres.ru/71769250/)

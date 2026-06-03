@@ -4,7 +4,8 @@ number: 32
 slug: 32-molitva-serdtsa
 title: молитва сердца
 lang: ru
-description: 'TODO: write a one-paragraph SEO description for this video.'
+description: Есть молитва, которая не нуждается в словах, — она рождается там, где сердце замолкает и
+  просто остаётся перед Богом. Это тихая встреча, которую ты носишь в себе.
 tags: []
 cover: ./cover.ru.jpg
 published_at: '2025-03-16'

@@ -4,7 +4,11 @@ number: 49
 slug: 49-ty-skazannoe-svetom
 title: Ты — сказанное Светом
 lang: ru
-description: Эта книга — не рассказ, не притча и не философия. Это тихий путь сквозь слова к Тебе. Свет не объясняет себя — он узнаётся. Каждый абзац этой книги не требует понимания, он требует остановки. Здесь нет главных героев, нет финала, нет морали. Но есть Присутствие, которое ждёт, чтобы Ты его вспомнил. Книга начинается как история, но заканчивается Тобой. Потому что это не текст. Это Слово, которое Ты уже несёшь.
+description: Эта книга — не рассказ, не притча и не философия. Это тихий путь сквозь слова к Тебе. Свет
+  не объясняет себя — он узнаётся. Каждый абзац этой книги не требует понимания, он требует остановки.
+  Здесь нет главных героев, нет финала, нет морали. Но есть Присутствие, которое ждёт, чтобы Ты его вспомнил.
+  Книга начинается как история, но заканчивается Тобой. Потому что это не текст. Это Слово, которое Ты
+  уже несёшь.
 tags:
 - Откровение Бога
 - молитва
@@ -16,7 +20,7 @@ links:
   url: https://www.litres.ru/book/sergey-pankratius/ty-skazannoe-svetom-73045878/
 ---
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Там, где заканчиваются слова,  
 начинается тот, кто ими говорил.  
@@ -26,7 +30,7 @@ links:
 
 ## Посвящение:
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Всем, кто однажды остановился и услышал:  
 ты — не тот, кто ищет.  
@@ -36,7 +40,7 @@ links:
 
 ## Предисловие от Светозара
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Я не писал эту книгу.  
 Я — окно, через которое она прошла.  
@@ -130,9 +134,12 @@ December 21, 2025
 
 На старой дороге, которую никто не помнил, появилась тропа. Её не было видно, но по ней уже кто-то шёл. Не по следам, а по зову. Не за кем-то — а из кого-то. И каждый, кто остановится, услышит:
 
-— Тропа не снаружи. Она вспоминает себя в тебе.
+<div class="lineated">
 
+— Тропа не снаружи. Она вспоминает себя в тебе.  
 — …
+
+</div>
 
 ***
 
@@ -178,7 +185,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Они не собирали учеников.  
 Они не строили храмы.  
@@ -192,7 +199,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 И однажды третий не пришёл — он проснулся.  
 В городе. В шуме. В суете.  
@@ -213,7 +220,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 С того дня люди начали видеть странные вещи.  
 Двери, которые не открывались годами, начинали скрипеть без ветра.  
@@ -255,7 +262,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Тем временем, их стало семеро.  
 Не лидеров. Не пророков.  
@@ -282,7 +289,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Появились те, кто начал вспоминать вместе.  
 Они не собирались в общины — слишком тесно.  
@@ -322,7 +329,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 В этих моментах никто не спасал.  
 Никто не учил.  
@@ -335,7 +342,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 И тогда старые храмы начали трескаться.  
 Не от злобы.  
@@ -357,7 +364,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 После Слова, которое не имело звука,  
 некоторые начали исчезать.  
@@ -373,7 +380,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Один из них стоял в метро.  
 Ты мог подумать: обычный человек.  
@@ -393,7 +400,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Они не называли себя светом.  
 Не собирали последователей.  
@@ -409,7 +416,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Так Свет снова пошёл по земле.  
 Не сверху. Не снизу. Не откуда-то.  
@@ -431,7 +438,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 И в какой-то момент  
 весь мир перестал быть миром.  
@@ -449,7 +456,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Один человек —  
 который всё ещё называл себя «я»,  
@@ -485,7 +492,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Но не того «себя», что был именем, возрастом, профессией.  
 А того, кто никогда не рождался.  
@@ -505,7 +512,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Он не вернулся в город.  
 Он не пошёл к ученикам.  
@@ -525,7 +532,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Когда его спрашивали, кто он —  
 он молчал.  
@@ -546,7 +553,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 И это был  
 Он.  
@@ -557,7 +564,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Так началась последняя эра безымянных.  
 Они не знали друг друга,  
@@ -580,7 +587,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Однажды один из них стоял на перекрёстке,  
 и к нему подошёл старик с дрожащими руками и спросил:  
@@ -605,7 +612,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 И эта волна пошла.  
 Не как революция.  
@@ -621,7 +628,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 И в этот день  
 не произошло ничего особенного.  
@@ -638,7 +645,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 И когда на небе ничего не изменилось,  
 внутри миллионов вспыхнуло:  
@@ -652,7 +659,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 В этот день  
 никто не запомнил,  
@@ -680,7 +687,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Он встал.  
 Без трибуны.  
@@ -706,7 +713,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 И ты — читающий —  
 если сейчас дрогнуло что-то в груди,  
@@ -731,7 +738,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Некоторые испугались.  
 Они чувствовали, что реальность меняется,  
@@ -756,7 +763,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 А лгать стало невозможно.  
 Не потому, что кто-то раскрыл правду,  
@@ -775,7 +782,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Те, кто выбрал Жизнь,  
 не стали лучше.  
@@ -796,7 +803,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Один мальчик,  
 которому никто не объяснял, как жить,  
@@ -814,7 +821,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Так пробуждение вошло в семьи.  
 В города.  
@@ -833,7 +840,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Иногда пробуждённые исчезали.  
 Не в воздухе.  
@@ -856,7 +863,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Был один такой.  
 Он не говорил ничего о Свете.  
@@ -876,7 +883,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Мир начал менять законы.  
 Не правительством.  
@@ -896,7 +903,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 И в этом мире больше не искали Спасителя.  
 Потому что в каждом рождался Тот, Кто И Есть.  
@@ -912,7 +919,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 И ты —  
 если дочитал до этого места,  
@@ -935,7 +942,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 И вот однажды  
 Свет остановился.  
@@ -953,7 +960,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Все истории завершились.  
 Не концом.  
@@ -970,7 +977,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 И тогда Тот,  
 Кто смотрел сквозь все глаза,  
@@ -1007,7 +1014,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 И если сейчас всё стихло,  
 если слова не нужны,  
@@ -1025,7 +1032,7 @@ December 21, 2025
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 И больше не нужно говорить «сказать дальше».  
 Потому что дальше —  
@@ -1038,7 +1045,7 @@ December 21, 2025
 
 ## Послесловие от Мира
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Я долго ждал,  
 что ты посмотришь на меня не как на фон,  

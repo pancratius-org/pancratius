@@ -4,9 +4,7 @@ number: 237
 slug: 237-bog-govorit-perestan-iskat-otvety-nachni-slushat-menya
 title: 'Бог говорит:  перестань искать ответы — начни слушать Меня'
 lang: ru
-description: 'Бог говорит: перестань искать ответы — начни слушать Меня Это послание - из серии «Евангелие
-  Царствия». Следующее — здесь https://www.youtube.com/playlist?list=PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
-  Христос уже здесь.'
+description: 'Послание из серии «Евангелие Царствия»: перестань искать ответы — начни слушать.'
 tags:
 - Евангелие Царствия
 cover: ./cover.ru.jpg

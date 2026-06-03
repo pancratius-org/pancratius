@@ -4,8 +4,9 @@ number: 201
 slug: 201-pochemu-ty-ne-mozhesh-voiti-v-rai-pyat-prichin
 title: Почему Ты Не Можешь Войти в Рай? Пять Причин
 lang: ru
-description: Почему Ты Не Можешь Войти в Рай? Пять Причин Why Can't You Enter Heaven? Five Reason https://youtube.com/shorts/8E7Hf_906PQ
-  Часть 1 из 8. Ты в шаге от Рая, но не входишь.
+description: 'Ты в шаге от Рая, но не входишь. Пять чувств держат тебя в упряжке: зрение цепляется за
+  формы, слух верит словам, но не слышит Истину, обоняние забыло запах Света, вкус насыщает тело, но не
+  душу, осязание касается мира, но не Себя.'
 tags:
 - Панкратиус говорит
 cover: ./cover.ru.jpg
@@ -23,3 +24,5 @@ playlists:
 translation:
   source: original
 ---
+
+Это не грех. Но пока чувства управляют тобой — ты раб.

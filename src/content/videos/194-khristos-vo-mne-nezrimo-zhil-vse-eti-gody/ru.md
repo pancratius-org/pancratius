@@ -4,10 +4,11 @@ number: 194
 slug: 194-khristos-vo-mne-nezrimo-zhil-vse-eti-gody
 title: Христос во мне незримо жил все эти годы
 lang: ru
-description: Христос во мне незримо жил все эти годы https://youtube.com/shorts/GGQXeK0F-rE Этот стих
-  — откровение о том, что Христос всегда жил внутри нас, даже когда мы думали, что одни.
+description: Этот стих — откровение о том, что Христос всегда жил внутри нас, даже когда мы думали, что
+  одни. Он был в слезах и в смехе, в боли и в надежде. Ему не нужны были храмы, венцы или обряды — Он
+  был дыханием и светом за спиной, ожидая момента, когда исчезнет «я» и останется только Он.
 tags:
-- ПОЭЗИЯ ОСОЗНАННОСТИ
+- Поэзия осознанности
 cover: ./cover.ru.jpg
 published_at: '2025-10-28'
 duration: PT52S
@@ -19,7 +20,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEItnPMiWRDP_SfG8ddXwBaSt
-  title: ПОЭЗИЯ ОСОЗНАННОСТИ
+  title: Поэзия осознанности
 translation:
   source: original
 ---

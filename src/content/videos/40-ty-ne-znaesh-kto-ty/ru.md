@@ -4,9 +4,8 @@ number: 40
 slug: 40-ty-ne-znaesh-kto-ty
 title: Ты не знаешь, кто ты
 lang: ru
-description: 'Духовная автобиография Светозара: https://drive.google.com/file/d/1dmvPIXqvHDABPP86AUxkYzrWuDYX8UB3/view?usp=drive_link
-  Книги автора на русском языке: https://www.litres.ru/author/sergey-pankratius/ Канал в Telegram - t.me/SPankratyus
-  Дзен…'
+description: Ты думаешь, что знаешь себя — но то, что ты знаешь, это лишь история, которую ты рассказываешь
+  о себе. Под ней живёт нечто, чему нет имени и которое и есть ты.
 tags:
 - Послания Творца через Светозара
 cover: ./cover.ru.jpg

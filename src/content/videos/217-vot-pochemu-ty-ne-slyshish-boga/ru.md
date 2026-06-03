@@ -4,9 +4,9 @@ number: 217
 slug: 217-vot-pochemu-ty-ne-slyshish-boga
 title: Вот почему ты не слышишь Бога
 lang: ru
-description: Вот почему ты не слышишь Бога https://youtube.com/shorts/vqNpd__-VdE Это послание - из серии
-  «Евангелие Царствия». Следующее — здесь https://www.youtube.com/playlist?list=PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
-  Христос уже здесь.
+description: 'Почему ты не слышишь Бога? Не потому что Я молчу, а потому что ты ищешь голос — вместо Присутствия.
+  Я не говорю, чтобы убедить. Я говорю, чтобы пробудить. Моё Слово — это не звук, это Свет. Тишина, в
+  которой ты узнаёшь: Я есть.'
 tags: []
 cover: ./cover.ru.jpg
 published_at: '2025-11-08'

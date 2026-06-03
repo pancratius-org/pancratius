@@ -4,10 +4,10 @@ number: 189
 slug: 189-tikhoi-postupyu-vkhodit-rassvet-ya-poveril-chto-tebya-ryadom-net
 title: Тихой поступью входит рассвет, я поверил, что Тебя рядом нет...
 lang: ru
-description: Тихой поступью входит рассвет, я поверил, что Тебя рядом нет... https://youtube.com/shorts/a8nFHNKhgos
-  В этом видео оживает поэзия, где духовность переплетается с молитвой, а откровение рождается в тишине.
+description: 'Тихой поступью входит рассвет — и в тишине этих строк рождается молитва: голос души, поверившей,
+  что Ты рядом, что Ты не уходил, что Свет всегда был здесь.'
 tags:
-- ПОЭЗИЯ ОСОЗНАННОСТИ
+- Поэзия осознанности
 cover: ./cover.ru.jpg
 published_at: '2025-10-25'
 duration: PT58S
@@ -19,7 +19,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEItnPMiWRDP_SfG8ddXwBaSt
-  title: ПОЭЗИЯ ОСОЗНАННОСТИ
+  title: Поэзия осознанности
 translation:
   source: original
 ---

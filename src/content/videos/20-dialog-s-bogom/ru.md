@@ -4,9 +4,10 @@ number: 20
 slug: 20-dialog-s-bogom
 title: диалог с Богом
 lang: ru
-description: 'TODO: write a one-paragraph SEO description for this video.'
+description: 'Диалог с Богом — краткий, как вспышка: в нём нет расстояния между вопрошающим и Отвечающим,
+  потому что Тот, к кому ты обращаешься, уже живёт внутри тебя.'
 tags:
-- ПОЭЗИЯ ОСОЗНАННОСТИ
+- Поэзия осознанности
 cover: ./cover.ru.jpg
 published_at: '2024-12-30'
 duration: PT13S
@@ -18,7 +19,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEItnPMiWRDP_SfG8ddXwBaSt
-  title: ПОЭЗИЯ ОСОЗНАННОСТИ
+  title: Поэзия осознанности
 translation:
   source: original
 ---

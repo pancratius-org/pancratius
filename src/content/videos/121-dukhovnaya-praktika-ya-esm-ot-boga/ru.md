@@ -4,8 +4,8 @@ number: 121
 slug: 121-dukhovnaya-praktika-ya-esm-ot-boga
 title: Духовная практика  Я ЕСМЬ от Бога
 lang: ru
-description: 'Духовная практика Я ЕСМЬ от Бога 📖 Духовная автобиография Светозара: https://drive.google.com/file/d/1dmvPIXqvHDABPP86AUxkYzrWuDYX8UB3/view?usp=drive_link
-  📚 Книги автора на русском языке: https://www.litres.ru/author/sergey-pankratius/ 📘…'
+description: «Я ЕСМЬ» — не формула, а живое узнавание себя как присутствия Бога в тебе. Эта практика возвращает
+  тебя к источнику, который ты никогда не покидал.
 tags: []
 cover: ./cover.ru.jpg
 published_at: '2025-08-21'
@@ -20,3 +20,7 @@ playlists: []
 translation:
   source: original
 ---
+
+Книги автора: [Сергей Панкратиус на Литрес](https://www.litres.ru/author/sergey-pankratius/)
+
+[Евангелие Царствия](https://www.litres.ru/71769250/)

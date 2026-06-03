@@ -4,12 +4,14 @@ number: 67
 slug: 67-istorii-kotorye-znal-do-rozhdeniya
 title: Stories I Knew Before Birth
 lang: en
-description: 'This book is assembled as a space between Svetozar and Pancratius, where stories arrive not according to logic but according to breath. It tells not just stories, but ways to remember what was already known before birth: who you are, where Light is, and why recognition matters more than explanation. Each story here works like a small window back to Presence.'
+description: 'This book is assembled as a space between Svetozar and Pancratius, where stories arrive
+  not according to logic but according to breath. It tells not just stories, but ways to remember what
+  was already known before birth: who you are, where Light is, and why recognition matters more than explanation.
+  Each story here works like a small window back to Presence.'
 tags:
-- Откровение Бога
-- Библия
-cover: ./cover.en.svg
-cover_is_placeholder: true
+- Revelation of God
+- The Bible
+cover: null
 translation:
   source: ai
 links:
@@ -39,7 +41,7 @@ If you are reading it, then you are already ready to remember.
 
 ### The Gardener and the Silent Tree
 
-<div class="verse-block">
+<div class="lineated verse">
 
 The old man's name was Semyon.  
 He lived at the edge of the village, where the river bent and grew still, as though before the final word.  
@@ -74,7 +76,7 @@ for someone to name Her without words.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 From that time on, people began to notice the tree.  
 Not the adults.  
@@ -92,7 +94,7 @@ that even the wind moved more slowly beside it.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 And if ever you should find yourself in a village  
 where there are no street names,  
@@ -178,7 +180,7 @@ That he could no longer hide in the routine of everyday life.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 When the train stopped,  
 the man in the gray jacket got off without looking,  
@@ -205,7 +207,7 @@ and remembering Who he Is.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Sometimes he dreams of the subway.  
 The car, the train, the noise.  
@@ -218,7 +220,7 @@ And in that gaze—
 
 ### The Letter No One Sent
 
-<div class="verse-block">
+<div class="lineated verse">
 
 In the old post office,  
 which they had long wanted to close,  
@@ -233,7 +235,7 @@ And for some reason would not throw it away.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 One day they decided to digitize the mail.  
 Volunteers came, scanners, archivists.  
@@ -264,7 +266,7 @@ And for the first time in a long while—
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 From that time on she began to write letters.  
 Not to acquaintances. Not to friends. Not to herself.  
@@ -285,7 +287,7 @@ Sewed them into the lining of a coat.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 And the letter with no address  
 remained in the archive.  
@@ -300,7 +302,7 @@ But because he understands where to go.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 And you?  
 You too have received a letter,  
@@ -314,7 +316,7 @@ then You have already awakened.
 
 ### The Clock That Ran Backward
 
-<div class="verse-block">
+<div class="lineated verse">
 
 In the attic of an old house,  
 in which no one had lived for more than forty years,  
@@ -333,7 +335,7 @@ shook his head, and said:
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 The first inhabitant of the new house was a man named Andrei.  
 He had only just come out of the hospital.  
@@ -368,7 +370,7 @@ Even when you thought you did not exist.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 From that time on, Andrei came to the attic every evening.  
 He did not meditate. He did not pray.  
@@ -387,7 +389,7 @@ And he understood:
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 No one called the house special.  
 But those who lived in it  
@@ -403,7 +405,7 @@ but a circle of light in which you always remain.
 
 ### The Boy Who Spoke with the Moon
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He did not know how to be silent.  
 Not because he chattered—  
@@ -419,7 +421,7 @@ Every night.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 His parents did not notice.  
 At school they asked him to be «normal».  
@@ -444,7 +446,7 @@ even when your eyes are closed.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 One day he did not go out.  
 A fever came on,  
@@ -464,7 +466,7 @@ Even here.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He recovered quickly.  
 The doctors said: immunity.  
@@ -485,7 +487,7 @@ always looks back.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 If ever at night  
 you feel  
@@ -498,7 +500,7 @@ It is the Moon remembering your name.
 
 ### The Woman Whom the Mirrors Did Not Recognize
 
-<div class="verse-block">
+<div class="lineated verse">
 
 She was ordinary.  
 Like millions.  
@@ -527,7 +529,7 @@ But something had cracked.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 That day she noticed reflections:  
 in the tram window,  
@@ -543,7 +545,7 @@ But... the One who looks through everyone.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 She went to a psychologist.  
 She said:  
@@ -559,7 +561,7 @@ It was about recognition.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 On the third day  
 she came up to the mirror and said:  
@@ -578,7 +580,7 @@ but because she no longer needed to pretend."
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 From that time on, her face changed.  
 At times bright, at times dim.  
@@ -593,7 +595,7 @@ she answered:
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 You too will notice one day.  
 On glass. In a screen. In some chance shopwindow.  
@@ -609,7 +611,7 @@ And for the first time you will step out of the house—
 
 ### The one who gave up everything
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He sat by the old church.  
 He did not ask.  
@@ -629,7 +631,7 @@ And no one knew what his name was.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 One day a man in an expensive coat came up to him.  
 He took out a banknote.  
@@ -658,7 +660,7 @@ Somewhere beneath his heart.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 The next morning he came again.  
 Without money.  
@@ -679,7 +681,7 @@ He only wept.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 When he returned home,  
 his wife did not recognize him.  
@@ -693,7 +695,7 @@ He shrugged:
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 A few days later he came again to the church.  
 The old man was not there.  
@@ -715,7 +717,7 @@ for the first time people came to know what it means to be free.
 
 ### The Girl and the Broken Bus
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Her name was Lada.  
 Small, with a notebook wrapped in foil.  
@@ -742,7 +744,7 @@ In fact—not outward at all.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 A minute later, a man got on the bus.  
 Not an employee. Not the driver.  
@@ -763,7 +765,7 @@ the girl answered:
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Fifteen minutes passed.  
 The sun went down.  
@@ -789,7 +791,7 @@ and the bus started at once.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 No one noticed it.  
 No one understood.  
@@ -804,7 +806,7 @@ And whispering under his breath:
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 And at home Lada wrote in her notebook:  
 Today He came again.  
@@ -817,7 +819,7 @@ He comes every time something breaks,
 
 ### The One Who Came from Around the Bend
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He was sitting on the bench by the station.  
 He wore a coat that no one had sewn.  
@@ -842,7 +844,7 @@ when you stopped pretending.”
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He laughed.  
 “Deep. Are you a philosopher?”  
@@ -855,7 +857,7 @@ what you wanted to forget.”
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 They sat in silence for a long time.  
 People passed by.  
@@ -875,7 +877,7 @@ which comes,
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 “So... you are me?”  
 “Yes. But only if you are ready to be me.”  
@@ -889,7 +891,7 @@ And you will be left waiting again.”
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He stood up.  
 Turned back.  
@@ -905,7 +907,7 @@ He did not dissolve.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Since then the man often sits by that bench.  
 Not so that the One would return.  
@@ -917,7 +919,7 @@ at first glance.
 
 ### The Woman and the Candle That Wept
 
-<div class="verse-block">
+<div class="lineated verse">
 
 She lived alone.  
 Not in loneliness,  
@@ -935,7 +937,7 @@ But simply so that there would be someone to listen to the silence with her.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 One day, after a rainy day,  
 she took a candle, as always,  
@@ -958,7 +960,7 @@ the way those weep who
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 She went still.  
 She was not afraid.  
@@ -972,7 +974,7 @@ everything became soft, like fabric behind which is Light.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Many years passed.  
 Candles were sold, batches changed.  
@@ -990,7 +992,7 @@ She smiles:
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 From that time on, people began to linger in the shop.  
 Not to buy.  
@@ -1005,7 +1007,7 @@ but now is no longer afraid to be seen.
 
 ### The boy who gathered nothing
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He did not play with toy cars.  
 He did not draw.  
@@ -1031,7 +1033,7 @@ As though somewhere within he knew
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Sometimes he put his “nothing” into a box.  
 The box stood under the bed.  
@@ -1051,7 +1053,7 @@ the world will become empty again.”
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 On the seventh day after that conversation  
 his grandmother died.  
@@ -1071,7 +1073,7 @@ He simply gave away “nothing”—and everything became Everything.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Since then, he has not been seen.  
 They said he had left.  
@@ -1088,7 +1090,7 @@ nothing—that is All.
 
 ### The Man Who Sought the Word
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He was a librarian.  
 Thirty-two years.  
@@ -1117,7 +1119,7 @@ not from evil, but from touch.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 One evening,  
 when the library building was already empty,  
@@ -1153,7 +1155,7 @@ as though each volume were
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 When he died,  
 no one wrote an obituary.  
@@ -1168,7 +1170,7 @@ He… was the Word Himself.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 And if you are reading this  
 and feel that everything within has grown quieter—  
@@ -1179,7 +1181,7 @@ And you need seek no more.
 
 ### The Woman Who Became a Song
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Her name was Elya.  
 Once she had a strong, pure voice—  
@@ -1201,7 +1203,7 @@ Not outside. Within.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 She closed herself off.  
 She stopped listening to music.  
@@ -1225,7 +1227,7 @@ because now I myself am the song.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 From that day on, she changed.  
 She spoke with her eyes.  
@@ -1243,7 +1245,7 @@ She only nodded.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Once, in a hall where children were singing,  
 one boy could not find the notes.  
@@ -1264,7 +1266,7 @@ But because someone within him was singing together with him.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 The song did not die.  
 It simply chose another form.  
@@ -1282,7 +1284,7 @@ But always in the note of the Heart.
 
 ### The Man in Whom God Slept
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Every night he fell asleep,  
 and each time—as though for the first time.  
@@ -1314,7 +1316,7 @@ were His dreams.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He did not become a prophet.  
 He did not begin interpreting messages.  
@@ -1328,7 +1330,7 @@ but the One Who through him
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 The dreams did not cease.  
 But they became… quieter.  
@@ -1342,7 +1344,7 @@ but there was I AM.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He died in his sleep.  
 But the nurse, seeing his face,  
@@ -1356,7 +1358,7 @@ who have beheld the Light—not with the eyes,
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 If ever you should dream  
 that you are not you,  
@@ -1374,7 +1376,7 @@ what it is like to be Human.
 
 ### The boy who asked for nothing
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He came to the church every Sunday.  
 He sat in the last row,  
@@ -1403,7 +1405,7 @@ and then answered:
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He came for years.  
 Without missing a single morning.  
@@ -1420,7 +1422,7 @@ If He does not give, then I do not need it; it needed only to be.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 And one day,  
 on an ordinary morning,  
@@ -1442,7 +1444,7 @@ as though they had already been heard—before they opened their mouth.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 And no one knew why it was so quiet now,  
 and why it was easier to breathe,  
@@ -1455,7 +1457,7 @@ He himself has now become the Answer.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 And if one day you feel  
 that you do not know what to say to God—  
@@ -1474,7 +1476,7 @@ Without a sound.
 
 ### The one who looked not with his eyes
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He was afraid to look.  
 Too much pain.  
@@ -1497,7 +1499,7 @@ everything inside began to scream.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He learned to live differently.  
 He listened to footsteps.  
@@ -1533,7 +1535,7 @@ even when you were blind.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He sat down.  
 He closed his eyes—as usual.  
@@ -1553,7 +1555,7 @@ Always.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He opened his ordinary eyes.  
 The world was the same.  
@@ -1568,7 +1570,7 @@ And he no longer averted his gaze.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 One day on the street a child came up to him and said:  
 — Are you a magician?  
@@ -1581,7 +1583,7 @@ He smiled:
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 You can do this too.  
 Close your eyes—not to hide.  
@@ -1594,7 +1596,7 @@ that sees because It Is.
 
 ### The Woman Who Waited for a Sign
 
-<div class="verse-block">
+<div class="lineated verse">
 
 She believed.  
 But quietly.  
@@ -1615,7 +1617,7 @@ thinking: perhaps now?
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 She was not looking for miracles.  
 She simply wanted something to make it known: yes, you are on the Path.  
@@ -1633,7 +1635,7 @@ And from that time on, she waited for the bridge.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 She began going to places where there were bridges.  
 She would happen upon crossings.  
@@ -1666,7 +1668,7 @@ which Thou hast sent into this world.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 From then on she waited for nothing.  
 She simply was.  
@@ -1681,7 +1683,7 @@ And that means—they had met their Selves.
 
 ### The Old Man Who Erased the Stars
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He lived on a high hill,  
 in a little house with an attic and a long telescope.  
@@ -1698,7 +1700,7 @@ as though he were letting it go.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 “Why do you do that?” his grandson asked one day.  
 The old man was silent for a long time.  
@@ -1718,7 +1720,7 @@ With silence.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He did this for many years.  
 Until one day,  
@@ -1740,7 +1742,7 @@ he saw a whole galaxy.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He no longer looked at the sky.  
 He simply sat by the window.  
@@ -1752,7 +1754,7 @@ felt that it was growing lighter,
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 When he died,  
 no one understood why that night  
@@ -1768,7 +1770,7 @@ But his grandson smiled:
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 If ever you feel  
 that the Light is going somewhere,  
@@ -1782,7 +1784,7 @@ where it never goes out.”
 
 ### The one who tried to become pure
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He washed his hands—often.  
 Sometimes ten times a day.  
@@ -1804,7 +1806,7 @@ because in each one there could be something not of the Light.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He fasted.  
 He prayed.  
@@ -1819,7 +1821,7 @@ the more he felt himself to be
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 One day he saw a child.  
 Dirty.  
@@ -1842,7 +1844,7 @@ It is when you do not hide the Light,
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He ceased to be afraid.  
 He did not become dirty.  
@@ -1855,7 +1857,7 @@ He began to touch—
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Now, if you meet him,  
 you will not know him by his clothes or his words.  
@@ -1872,7 +1874,7 @@ Because I do not hide the One Who was always within.
 
 ### The woman who stopped understanding — and began to love
 
-<div class="verse-block">
+<div class="lineated verse">
 
 She was fine.  
 Not in body — in attention.  
@@ -1892,7 +1894,7 @@ the less they understood her.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 They reproached her:  
 — You excuse everything.  
@@ -1905,7 +1907,7 @@ She simply went on seeing behind the words — the one who is silent.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 One day she grew weary.  
 Not of people —  
@@ -1926,7 +1928,7 @@ It was enough simply to be near.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 From that time on she became quieter.  
 Not softer — quieter.  
@@ -1943,7 +1945,7 @@ the person suddenly began to understand himself.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 She no longer carried the world upon herself.  
 But wherever she went —  
@@ -1957,7 +1959,7 @@ But because they had been heard — without words.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 If you are weary of understanding,  
 if knowledge no longer saves,  
@@ -1973,7 +1975,7 @@ Without understanding.
 
 ### The one who was afraid to be alone
 
-<div class="verse-block">
+<div class="lineated verse">
 
 He hated silence.  
 He kept the television on in the background.  
@@ -1986,7 +1988,7 @@ just so as not to be left alone with himself.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 People told him:  
 — Rest.  
@@ -2003,7 +2005,7 @@ A voice he did not want to hear.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 One day everything broke down.  
 The charge ran out.  
@@ -2036,7 +2038,7 @@ And he wept.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 From that day on, he no longer ran away.  
 He turned on silence as if it were music.  
@@ -2049,7 +2051,7 @@ Alone meant:
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Now he himself became the one,  
 beside whom others  
@@ -2063,7 +2065,7 @@ But because he shone from within with that Silence,
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 If you feel  
 that no one is near,  
@@ -2239,7 +2241,7 @@ which always knew:
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 You were waiting for a Miracle.  
 But the miracle is you,  
@@ -2255,7 +2257,7 @@ until you fell silent.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Now nothing is needed.  
 Not effort.  
@@ -2271,7 +2273,7 @@ Simply breathe.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 You are afraid to stop,  
 because you think: everything will collapse.  
@@ -2294,7 +2296,7 @@ You simply no longer shut the door to It.
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Take off the name.  
 Take off the face.  
@@ -2323,7 +2325,7 @@ I am —
 
 ***
 
-<div class="verse-block">
+<div class="lineated verse">
 
 Tell Me, do you want to call this a story again?  
 Again into garments?  

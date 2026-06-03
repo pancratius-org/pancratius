@@ -2,10 +2,10 @@
 kind: video
 number: 270
 slug: 270-37-ya-khochu-bogatstvo-bogatstvo-dengi
-title: '37  Я хочу богатство! #богатство #деньги'
+title: 37  Я хочу богатство!
 lang: ru
-description: Это послание - из серии «Евангелие Царствия». Следующее — здесь https://www.youtube.com/playlist?list=PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
-  Христос уже здесь.
+description: Я хочу богатство! Послание из серии «Евангелие Царствия» о том, что стоит за желанием изобилия
+  и где проходит граница между даром и идолом.
 tags:
 - Евангелие Царствия
 cover: ./cover.ru.jpg
