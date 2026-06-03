@@ -204,7 +204,17 @@ def main() -> int:
                     continue
                 if k in keyset and lab in ("prose", "lineated") and k not in got:
                     got.add(k)
-                    results[tag].append({"rid": e["rid"], "idx": k[0], "sub": k[1], "label": lab})
+                    # persist per-line confidence (the gold gate's conf_floor needs it); None when
+                    # the model omitted it or returned a non-numeric/out-of-range value — never faked.
+                    raw_conf = o.get("conf")
+                    try:
+                        conf = float(raw_conf) if raw_conf is not None else None
+                        if conf is not None and not 0.0 <= conf <= 1.0:
+                            conf = None
+                    except (TypeError, ValueError):
+                        conf = None
+                    results[tag].append({"rid": e["rid"], "idx": k[0], "sub": k[1],
+                                         "label": lab, "conf": conf})
             if not got:
                 mt["parsefail"] += 1
 
