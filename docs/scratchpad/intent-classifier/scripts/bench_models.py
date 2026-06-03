@@ -46,6 +46,9 @@ CANDIDATES = {
     "ds-flash-vis": ("deepseek/deepseek-v4-flash", True),
     "ds-pro-text": ("deepseek/deepseek-v4-pro", False),
     "ds-pro-vis": ("deepseek/deepseek-v4-pro", True),
+    # incumbent keepers (for the brief-fix A/B): grok/gemini-pro vision, deepseek-flash = ds-flash-text
+    "grok": ("x-ai/grok-4.3", True),
+    "gemini-pro": ("google/gemini-3.1-pro-preview", True),
 }
 
 # The PROBLEMATIC overlap: panel regressions, never-solved, big gains, AND the prose-bearing
@@ -130,10 +133,12 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--set", dest="dataset", default="phaseb")
     ap.add_argument("--models", nargs="+", default=sorted(CANDIDATES))
+    ap.add_argument("--brief", default=None, help="override brief file (for the brief-fix A/B)")
+    ap.add_argument("--tag-suffix", default="", help="suffix appended to output reader_<tag><suffix>")
     args = ap.parse_args()
     key = orr._api_key()
     data = DATA / args.dataset
-    brief = (data / "reader_brief.txt").read_text()
+    brief = Path(args.brief).read_text() if args.brief else (data / "reader_brief.txt").read_text()
     pkg = {e["rid"]: e for e in json.loads((data / "reader_pkg.json").read_text())}
     regions = [pkg[r] for r in PROBLEM_RIDS if r in pkg]
     print(f"benchmark: {len(args.models)} models x {len(regions)} problematic regions "
@@ -191,7 +196,7 @@ def main() -> int:
 
     # persist labels + the full raw log (replies, finish_reason, errors, usage, latency)
     for tag in args.models:
-        (bdir / f"reader_{tag}.jsonl").write_text(
+        (bdir / f"reader_{tag}{args.tag_suffix}.jsonl").write_text(
             "\n".join(json.dumps(r, ensure_ascii=False) for r in results[tag]) + "\n")
     with (bdir / "raw_replies.jsonl").open("a") as fh:   # APPEND — never erase prior audit metadata
         for r in raw_log:
