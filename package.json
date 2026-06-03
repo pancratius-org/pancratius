@@ -23,8 +23,9 @@
     "shots:viewport": "node --experimental-strip-types tests/visual/capture-viewports.ts",
     "shots:projects": "node --experimental-strip-types tests/visual/capture-projects.ts",
     "lint": "eslint \"{src,build,audit,tests}/**/*.{ts,tsx,astro,js,mjs,cjs}\"",
+    "lint:css": "stylelint \"src/**/*.{astro,css}\"",
     "dead": "knip",
-    "check:js": "npm run typecheck:tooling && npm run lint && npm run dead && npm run test:unit",
+    "check:js": "npm run typecheck:tooling && npm run lint && npm run lint:css && npm run dead && npm run test:unit",
     "typecheck:tooling": "tsc -p tsconfig.tooling.json",
     "check:ts": "npm run typecheck:tooling && npm run test:unit",
     "check:py": "uv run ruff check . && uv run ty check && uv run pytest tests/python -q",
@@ -59,6 +60,9 @@
     "eslint": "^10.4.0",
     "eslint-plugin-astro": "^1.7.0",
     "knip": "^6.14.2",
+    "postcss-html": "^1.8.1",
+    "stylelint": "^17.12.0",
+    "stylelint-config-recommended": "^18.0.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.60.0"
   }

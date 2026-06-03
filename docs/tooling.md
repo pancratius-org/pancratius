@@ -29,8 +29,9 @@ site.
 | `npm run preview` | Astro preview of the built site. |
 | `npm run check` | Prebuild derivations plus Astro content/type checks. |
 | `npm run lint` | ESLint over site, build, audit, and test TypeScript/Astro/JavaScript. |
+| `npm run lint:css` | Stylelint over CSS files and Astro component style blocks. |
 | `npm run dead` | Knip dead-code/dependency/export analysis for the site/tooling surface. |
-| `npm run check:js` | Type-check TS tooling, lint, run Knip, and run Node unit tests. |
+| `npm run check:js` | Type-check TS tooling, lint TS/CSS, run Knip, and run Node unit tests. |
 | `npm run check:ts` | Focused TS tooling type-check plus Node unit tests. |
 | `npm run verify` | Local equivalent of the PR gate (`pr.yml` minus Playwright). |
 | `npm run audit` | Architectural contract harness; see [`audit-harness.md`](./audit-harness.md). |

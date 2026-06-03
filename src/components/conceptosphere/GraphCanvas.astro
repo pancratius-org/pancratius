@@ -106,6 +106,7 @@ const configJson = jsonForScript({
   /* Stage and graph canvas. The stage is the full-bleed area; the graph div
      is its absolutely-positioned child so the canvas resizes with the stage. */
   .cs-stage {
+    display: none;
     position: relative;
     overflow: hidden;
     background: var(--cs-stage-bg);
@@ -159,7 +160,6 @@ const configJson = jsonForScript({
      show the static list instead of an empty canvas. The runtime sets
      `html.cs-js` once it boots, and that — paired with the desktop
      breakpoint — turns the stage back on. */
-  .cs-stage { display: none; }
   @media (min-width: 840px) {
     :global(html.cs-js) .cs-stage { display: block; }
   }
