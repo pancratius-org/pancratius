@@ -11,8 +11,9 @@ notes = "control run, not dataset growth — expand to a new stratified sample o
 [panel]
 core = ["grok", "gemini-pro", "ds-flash-text"]   # acceptance gate; grok leads
 diagnostic = ["glm"]                              # run alongside, NOT in the gate
-reps_initial = 1                                  # adaptive 1→3: start at 1, escalate only where needed
-reps_cap = 3
+reps_initial = 1                                  # STAGE 1 of adaptive 1→3 (auto-escalation of
+reps_cap = 3                                      # reps 2–3 is not yet automated; escalate.json is
+                                                  # the stage-2 queue to re-run manually for now)
 
 [gates]
 conf_floor = 0.7
