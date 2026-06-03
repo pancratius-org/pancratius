@@ -14,14 +14,24 @@ corpus, and (b) feed the production converter's lineation pass. Verse register i
 - **Reader brief:** **v5** (`data/phaseb/reader_brief_v5.txt`) — structure-first, un-capped; generalizes to unseen books (prose held 100% across 4 prose books, lineated up). Frozen as production brief.
 - **Panel readers:** **grok** (best: FRESH lineated 83%, prose 100%), gemini-pro, deepseek-v4-flash(text). glm only as extra (over-lineates prose SOLO — never solo for prose). Drop owl/mimo/minimax.
 - **Aggregation (recommended, not theorem):** **grok-led decision**; the rest of the panel as a
-  **disagreement detector**. 5-rep gate-strict per reader (>=3/5 agree else abstain; abstain/missing → needs-review).
-- **Single-pass noise ~19%** → 5-rep aggregation is mandatory.
+  **disagreement detector**. **ADAPTIVE gate-strict reps** (protocol below) — NOT uniform 5-rep.
+- **Single-pass noise ~19%** → multi-rep needed, but ADAPTIVE: measured 3-vs-5-rep difference is ~0pp
+  for grok/gemini-pro/ds-flash (only glm gains, +13pp, and glm is the weakest reader). So uniform
+  5-rep×every-reader×every-region is a ~15-20× call multiplier for negligible gain.
+
+## Adaptive rep protocol (replaces uniform 5-rep)
+1. **1 initial rep** per core reader (grok + gemini-pro + ds-flash) on every region.
+2. **Accept** a line when grok and the panel agree clearly (high-margin) — no extra reps.
+3. **Escalate to 3 reps** only on: grok/panel disagreement, low-margin/uncertain calls, parse failures, or `needs_review`/soft cases.
+4. **Cap at 3 reps** for most contested regions.
+5. **5 reps** reserved for calibration batches, model audits, or stubborn ambiguous regions only.
+6. **Route persistent grok/panel splits (and soft/prior-dependent cases) to the human.**
 
 ## Pipeline (per region)
 1. `frame` (free): segment all books; stratify (wrap_prose / hardbreak / mid_gap / mid_flat / tiny / toc). `n_review` surfaced.
 2. `sample`: stratified sample of runs (TOC excluded; tile long runs). Decide N per stratum.
 3. `package --force` (free, heavy LibreOffice): composite per region = DOCX page | prose render | lineated render + structure listing. (renders verified faithful.)
-4. **Panel (paid):** each reader (grok, gemini-pro, deepseek-flash) × **5 reps** with **v5 brief**, gate-strict aggregate per reader.
+4. **Panel (paid):** core readers (grok, gemini-pro, deepseek-flash) with **v5 brief**, **adaptive reps** (1 → escalate to 3 on disagreement/uncertainty; 5 only for audit), gate-strict aggregate per reader.
 5. **Decision:** grok-led label per line. **Route to HUMAN** when: grok and the panel-majority DISAGREE; OR the line is `needs_review` (unmapped/mixed); OR it's a soft/prior-dependent case (book-consistency-driven, e.g. dense prose in a lineated book — flag, don't auto-decide).
 6. **Consensus gold** = grok-led-where-confident + human-adjudicated-where-routed.
 7. **Distill** a student on the gold; student labels the full corpus; feed the converter.
@@ -32,8 +42,10 @@ corpus, and (b) feed the production converter's lineation pass. Verse register i
 - Open: target gold size (lines)? per-book floor? how much human-routing budget (human time)?
 
 ## Cost tiering (paid steps = panel)
-- Panel cost ≈ readers × reps × regions × per-call. grok/gemini are vision (pricier); deepseek-flash text (cheap).
-- Tier the run: cheap text readers first as a screen, then the vision readers; stop early on failures (the bench HARD-GUARDS empty output now).
+- Panel cost ≈ readers × reps × regions × per-call. The **adaptive rep protocol** is the main cost
+  lever: most regions cost 1 rep/reader; only the contested minority escalate to 3 (and ~none to 5).
+- grok/gemini are vision (pricier); deepseek-flash text (cheap). Tier: cheap text reader first as a
+  screen, then the vision readers; stop early on failures (the bench HARD-GUARDS empty output now).
 - Budget is a hard ceiling — fail loud, never silently.
 
 ## Reporting discipline (carried from this validation)
