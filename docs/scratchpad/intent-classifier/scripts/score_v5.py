@@ -31,10 +31,19 @@ def load(p: Path) -> dict:
 
 
 def maj3(reader: str, pre: str) -> dict:
-    runs = [load(BENCH / f"reader_{reader}_{pre}{i}.jsonl") for i in "123"]
+    """GATE-STRICT N-run aggregation (reads ALL reps reader_<reader>_<pre>*.jsonl, e.g. 3 or 5):
+    a label only with a STRICT MAJORITY of the present runs AND >=3 runs present; otherwise the key
+    is ABSTAINED (omitted). No tie-to-prose, no single-run labels. Missing/abstained keys count as
+    WRONG by the recall denominator (all class keys), so low coverage is penalised; coverage reported."""
+    runs = [load(p) for p in sorted(BENCH.glob(f"reader_{reader}_{pre}*.jsonl"))]
     keys = set().union(*[set(r) for r in runs]) if runs else set()
-    return {k: ("lineated" if [r[k] for r in runs if k in r].count("lineated")
-                > len([r for r in runs if k in r]) / 2 else "prose") for k in keys}
+    out = {}
+    for k in keys:
+        votes = [r[k] for r in runs if k in r]
+        nl, npr = votes.count("lineated"), votes.count("prose")
+        if len(votes) >= 3 and max(nl, npr) > len(votes) / 2:    # strict majority of >=3 present
+            out[k] = "lineated" if nl > npr else "prose"
+    return out
 
 
 def truth_all() -> dict:
@@ -70,20 +79,24 @@ def main() -> int:
         tgt = keys_in(tgt_rids, truth, pkg, "lineated")
         grd = keys_in(grd_rids, truth, pkg, "prose")
         print(f"\n== {title}  (lineated={len(tgt)}, prose={len(grd)}) ==")
-        print(f"{'reader':14} | lin-rec c->v5 | prose-rec c->v5 | BAL-ACC c->v5")
+        print(f"{'reader':14} | lin-rec c->v5 | prose-rec c->v5 | BAL-ACC c->v5 | cov c/v5")
+        # GATE-STRICT recall: denominator is ALL class keys, so abstained/missing keys count as
+        # wrong. cov = fraction of class keys that got a confident (>=2/3) label.
+        def rec(d: dict, ks: list, want: str) -> float:
+            return sum(d.get(k) == want for k in ks) / len(ks) if ks else float("nan")
+        def cov(d: dict, ks: list) -> float:
+            return sum(k in d for k in ks) / len(ks) if ks else float("nan")
         for rdr in READERS:
             c, w = maj3(rdr, "c"), maj3(rdr, "w")
             if not c or not w:
                 print(f"{rdr:14} | (missing runs)")
                 continue
-            def rec(d: dict, ks: list, want: str) -> float:
-                kk = [k for k in ks if k in d]
-                return sum(d[k] == want for k in kk) / len(kk) if kk else float("nan")
             tc, tw = rec(c, tgt, "lineated"), rec(w, tgt, "lineated")
             gc, gw = rec(c, grd, "prose"), rec(w, grd, "prose")
             bc, bw = (tc + gc) / 2, (tw + gw) / 2
+            allks = tgt + grd
             print(f"{rdr:14} | {tc:>4.0%}->{tw:>4.0%}  | {gc:>4.0%}->{gw:>4.0%}   | "
-                  f"{bc:>4.0%}->{bw:>4.0%} ({bw - bc:>+4.0%})")
+                  f"{bc:>4.0%}->{bw:>4.0%} ({bw - bc:>+4.0%}) | {cov(c, allks):>3.0%}/{cov(w, allks):>3.0%}")
 
     block("ALL (eval + fresh)", EVAL_TARGET + FRESH, EVAL_GUARD + FRESH)
     block("EVAL only (in-sample)", EVAL_TARGET, EVAL_GUARD)
