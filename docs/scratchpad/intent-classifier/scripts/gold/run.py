@@ -17,12 +17,15 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from types import SimpleNamespace
 
 from . import audit as audit_mod
 from . import registry
+from . import spec as spec_mod
 from .aggregate import decide_region, panel_majority, reader_verdict
 from .manifest import Manifest, build_manifest, sha256_file, sha256_text
 from .types import (
@@ -335,7 +338,8 @@ def cmd_audit(args: argparse.Namespace) -> int:
         AuditLine(g["rid"], LineKey(g["idx"], g["sub"]), g["label"], g.get("stratum", "?"))
         for g in (json.loads(x) for x in gold_path.read_text().splitlines() if x.strip())
     ]
-    sample = audit_mod.sample_accepted(lines, rate=args.rate, seed=args.seed)
+    sample = audit_mod.sample_accepted(lines, rate=args.rate, seed=args.seed,
+                                       prose_bias=getattr(args, "prose_bias", 2.0))
     payload = {"seed": args.seed, "rate": args.rate,
                "lines": [{"rid": s.rid, "idx": s.key.idx, "sub": s.key.sub, "label": s.label,
                           "stratum": s.stratum} for s in sample]}
@@ -359,6 +363,54 @@ def cmd_manifest(args: argparse.Namespace) -> int:
     print(f"manifest [{args.run_id}] → {out/'manifest.json'}\n"
           f"  git={mf.git_sha} dirty={mf.git_dirty} brief_sha={mf.brief_sha256}\n"
           f"  docx_digests={len(mf.docx_digests)} books; models={mf.models}\n  gates={mf.gates}")
+    return 0
+
+
+# ---- recipe (declarative run) + panel (paid reads) -------------------------------------------
+
+def _resolve(dataset_root: Path, p: str | None) -> str | None:
+    """A recipe path is relative to the intent-classifier dir; pass through if absolute/None."""
+    if not p:
+        return None
+    pp = Path(p)
+    return str(pp if pp.is_absolute() else dataset_root / pp)
+
+
+def cmd_recipe(args: argparse.Namespace) -> int:
+    """Run the DETERMINISTIC pipeline (aggregate → audit → manifest) from a TOML recipe."""
+    spec = spec_mod.load(args.recipe)
+    root = DATA.parent
+    print(f"recipe '{spec.name}': {spec.description}")
+    agg_ns = SimpleNamespace(
+        dataset=spec.dataset, prefix=spec.prefix, core=list(spec.panel.core),
+        conf_floor=spec.conf_floor, min_agree=spec.min_agree, rids=list(spec.rids) or None,
+        run_id=spec.name, force=args.force, allow_conf_missing=args.allow_conf_missing,
+        brief=_resolve(root, spec.brief), seed=spec.audit.seed,
+        soft=_resolve(root, spec.soft), needs_review=_resolve(root, spec.needs_review),
+    )
+    cmd_aggregate(agg_ns)
+    audit_ns = SimpleNamespace(dataset=spec.dataset, run_id=spec.name, rate=spec.audit.rate,
+                               seed=spec.audit.seed, prose_bias=spec.audit.prose_bias)
+    cmd_audit(audit_ns)
+    return 0
+
+
+def cmd_panel(args: argparse.Namespace) -> int:
+    """Drive the PAID reader step from a recipe: run bench_models for the panel (core + diagnostic),
+    `reps_initial` reps, writing conf-bearing reps at the recipe's prefix. --dry-run prints only."""
+    spec = spec_mod.load(args.recipe)
+    if not spec.rids:
+        raise SystemExit("recipe has no [regions].rids — refusing an unbounded paid run")
+    brief = _resolve(DATA.parent, spec.brief)
+    for rep in range(1, spec.panel.reps_initial + 1):
+        cmd = ["uv", "run", "--with", "python-dotenv", "--with", "requests", "--with", "pillow",
+               "python", "bench_models.py", "--set", spec.dataset,
+               "--models", *spec.panel.readers, "--rids", *spec.rids,
+               "--tag-suffix", f"_{spec.prefix}{rep}", "--brief", brief]
+        print(f"[panel rep {rep}/{spec.panel.reps_initial}] {' '.join(cmd)}")
+        if args.dry_run:
+            continue
+        subprocess.run(cmd, cwd=HERE.parent, check=True)
     return 0
 
 
@@ -429,6 +481,17 @@ def main() -> int:
     mf.add_argument("--brief")
     mf.add_argument("--seed", type=int, default=0)
     mf.set_defaults(func=cmd_manifest)
+
+    rc = sub.add_parser("recipe", help="run the deterministic pipeline from a TOML run-recipe")
+    rc.add_argument("recipe", help="path to a runs/*.toml recipe")
+    rc.add_argument("--force", action="store_true", help="overwrite an existing run / ignore coverage guard")
+    rc.add_argument("--allow-conf-missing", action="store_true", dest="allow_conf_missing")
+    rc.set_defaults(func=cmd_recipe)
+
+    pn = sub.add_parser("panel", help="PAID: drive bench_models reads from a TOML run-recipe")
+    pn.add_argument("recipe", help="path to a runs/*.toml recipe")
+    pn.add_argument("--dry-run", action="store_true", dest="dry_run", help="print the commands, don't spend")
+    pn.set_defaults(func=cmd_panel)
 
     args = ap.parse_args()
     return args.func(args)
