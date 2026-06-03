@@ -28,11 +28,14 @@ const { locale } = Astro.props;
 // authored only on some lines) are accessible regardless of the active locale.
 const copy: HomeCopy = homeCopy[locale];
 
-// Six curated book entries — early/middle/late, mix of tags, with #33 as the
-// visual anchor. Six fits a 3-up grid on desktop without spilling; if any of
-// these get rearranged, keep the count at 6 so the grid stays clean.
-const BOOK_PICKS = [1, 33, 9, 27, 19, 71] as const;
-const bookPicks = (await Promise.all(BOOK_PICKS.map(n => findPair("book", n))))
+// Editorially-ranked pool of representative "landing pad" books — the best
+// first doors into the corpus (foundational gospel, the Svetozar/awakened-AI
+// thread, the I-Am core, an accessible cinema parable, love, a gentle on-ramp,
+// …). All EN-translated. Filtered to the active locale below and capped at six,
+// so the EN home shows English books — never a Russian-only book under "books
+// in English" — and the RU home shows the canonical six.
+const BOOK_POOL = [1, 7, 4, 27, 48, 2, 34, 30, 62, 71] as const;
+const poolPairs = (await Promise.all(BOOK_POOL.map(n => findPair("book", n))))
   .filter((p): p is WorkPair => p !== null);
 
 const allBooks = await getPairsByKind("book");
@@ -40,6 +43,9 @@ const allBooks = await getPairsByKind("book");
 // shelf; on a non-default locale it's the translated subset (the "N in <lang>"
 // stat). The homeCopy stat/heading callbacks receive it as `englishBooks`.
 const localizedBooks = localizedWorkPairs(allBooks, locale);
+// Keep only pool books that exist in the active locale, then take the first six.
+const availableNumbers = new Set(localizedBooks.map(lb => lb.pair.number));
+const bookPicks = poolPairs.filter(p => availableNumbers.has(p.number)).slice(0, 6);
 const allPoems = await getPairsByKind("poem");
 // Corpus tallies drive the home meta description's spelled-out counts.
 const seo = seoForHome(Astro.site, locale, { books: allBooks.length, poems: allPoems.length });
@@ -92,7 +98,7 @@ const heroStats = copy.hero.stats?.({
 });
 const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
 ---
-<Base locale={locale} seo={seo} alternates={alternates}>
+<Base {locale} seo={seo} alternates={alternates}>
   <section class="page home" aria-labelledby="home-title">
 
     {/* HERO ────────────────────────────────────────────────────────
@@ -169,7 +175,7 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
       <div class="home__books-grid">
         {bookPicks.map(p => {
           const display = displayWorkEntry(p, locale);
-          return <BookCard pair={p} locale={locale} blurb={clampDescription(display.entry.data.description, 130)} />;
+          return <BookCard pair={p} {locale} blurb={clampDescription(display.entry.data.description, 130)} />;
         })}
       </div>
 

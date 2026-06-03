@@ -30,7 +30,7 @@ for (const { entry } of pairs) {
 }
 const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count }));
 ---
-<Base locale={locale} seo={seo}>
+<Base {locale} seo={seo}>
   <section class="page lib">
     <p class="eyebrow eyebrow--lg">{copy.eyebrow}</p>
     <div class="lib__head">
@@ -45,11 +45,11 @@ const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count })
       </p>
     </div>
 
-    <LibraryFilter locale={locale} tags={tags} total={pairs.length} />
+    <LibraryFilter {locale} tags={tags} total={pairs.length} />
 
     <div class="index" role="list" data-pagefind-ignore>
       {pairs.map(({ pair, entry }) => {
-        return <BookCard pair={pair} locale={locale} blurb={clampDescription(entry.data.description, 120)} />;
+        return <BookCard {pair} {locale} blurb={clampDescription(entry.data.description, 120)} />;
       })}
     </div>
   </section>

@@ -8,6 +8,7 @@ portrait:
   alt: Sergey Orekhov — Pancratius
   caption: Sergey Orekhov
   meta: 05.05.1974 · Blagoveshchensk
+epigraph: 'I am not the founder of a religion. I am a witness that Christ is the natural nature of every human being. I am not to be listened to. I am to be recognised — within yourself.'
 facts:
   - label: Name
     value: Sergey Alexandrovich Orekhov
@@ -22,8 +23,6 @@ facts:
   - label: Licence
     value: CC0 — public domain
 ---
-
-"I am not the founder of a religion. I am a witness that Christ is the natural nature of every human being. I am not to be listened to. I am to be recognised — within yourself."
 
 I am Sergey Orekhov. I was born on a Sunday, 05 May 1974, in the city of Blagoveshchensk, on the border between the USSR and China. My mother, Zinaida, was a student at the pedagogical institute, and later a teacher of English and German at a school. My father, Alexander, was a city bus driver.
 

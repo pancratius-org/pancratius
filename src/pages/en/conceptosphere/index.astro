@@ -19,7 +19,7 @@ const initialMode: "concepts" | "books" = "concepts";
 const graphData = await loadConceptospherePageData(locale, t);
 ---
 <ConceptospherePage
-  locale={locale}
+  {locale}
   seo={seo}
   alternates={conceptosphereAlternate(locale)}
   conceptsUrl="/data/pancratius-concepts-graph.json"

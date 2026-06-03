@@ -24,6 +24,11 @@ import {
 
 export type DownloadFormat = "md" | "txt" | "docx" | "pdf" | "epub";
 
+/** Human-readable label for each format — proper names, not localized. */
+export const FORMAT_LABEL: Record<DownloadFormat, string> = {
+  md: "Markdown", txt: "TXT", docx: "DOCX", pdf: "PDF", epub: "EPUB",
+};
+
 /**
  * Formats that may exist for each kind, per the contract. Only WORKS
  * (books/poems) have downloads — projects are themed sections, not works, and

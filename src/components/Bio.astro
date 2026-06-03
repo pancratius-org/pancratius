@@ -1,10 +1,10 @@
 ---
-// Bio block for /about/ — the bespoke author-bio composition shared by the RU
-// and EN about routes: an optimized portrait figure + the bio prose (in the
-// `prose--bio` register) + a vital-statistics facts <dl>. Owns the route-local
-// validation of about's bespoke frontmatter and the two-column bio grid, so the
-// about routes stay thin and the layout is defined once. The default slot
-// receives the rendered Markdown body.
+// Bio block for /about/ — the bespoke author profile shared by the RU and EN
+// about routes. An editorial hero (a commanding portrait beside the epigraph)
+// followed by the life narrative in a single reading column, with the
+// vital-statistics facts at its foot. Owns the route-local validation of
+// about's bespoke frontmatter (portrait, epigraph, facts) and its own layout,
+// so the about routes stay thin. The default slot receives the rendered body.
 import { Image } from "astro:assets";
 import { z } from "astro/zod";
 
@@ -13,7 +13,7 @@ import type { PageEntry } from "@/lib/pages";
 
 // Portrait lives in the about bundle and is rendered through astro:assets so it
 // ships as an optimized, hashed `_astro/*` asset. One file serves both locales;
-// the alt/caption/meta come from each locale's frontmatter.
+// the alt/caption/meta/epigraph come from each locale's frontmatter.
 import portrait from "@/content/pages/about/portrait.png";
 
 // Route-local schema for /about/'s bespoke frontmatter. The shared `pages`
@@ -25,6 +25,7 @@ const aboutExtras = z.object({
     caption: z.string().optional(),
     meta: z.string().optional(),
   }),
+  epigraph: z.string().optional(),
   facts: z
     .array(z.object({ label: z.string().min(1), value: z.string().min(1) }))
     .default([]),
@@ -35,17 +36,20 @@ interface Props {
 }
 
 const { page } = Astro.props;
-const { portrait: portraitMeta, facts } = aboutExtras.parse(page.data);
+const { portrait: portraitMeta, epigraph, facts } = aboutExtras.parse(page.data);
 ---
-<figure class="static__portrait">
-  <Image src={portrait} alt={portraitMeta.alt} widths={[280, 560]} sizes="280px" loading="lazy" />
-  {(portraitMeta.caption || portraitMeta.meta) && (
-    <figcaption>
-      {portraitMeta.caption && <span>{portraitMeta.caption}</span>}
-      {portraitMeta.meta    && <span>{portraitMeta.meta}</span>}
-    </figcaption>
-  )}
-</figure>
+<div class="bio__hero">
+  <figure class="bio__portrait">
+    <Image src={portrait} alt={portraitMeta.alt} widths={[320, 640]} sizes="(max-width: 700px) 17rem, 20rem" loading="eager" />
+    {(portraitMeta.caption || portraitMeta.meta) && (
+      <figcaption>
+        {portraitMeta.caption && <span>{portraitMeta.caption}</span>}
+        {portraitMeta.meta    && <span>{portraitMeta.meta}</span>}
+      </figcaption>
+    )}
+  </figure>
+  {epigraph && <blockquote class="bio__epigraph">{epigraph}</blockquote>}
+</div>
 
 <Prose class="prose--bio">
   <slot />
@@ -62,26 +66,42 @@ const { portrait: portraitMeta, facts } = aboutExtras.parse(page.data);
 </Prose>
 
 <style>
-  .static__portrait {
-    margin: 0 auto;
-    max-width: 280px;
+  /* The about article (rendered by <PageShell>) carries PageShell's scope, so
+     its container is reached via :global; the bespoke children below carry this
+     component's scope. The profile is one centred column wider than the default
+     reading measure, so the hero band has room to breathe. */
+  /* `.static.static--bio` (not just `.static--bio`) so this beats PageShell's
+     base `.static` width on specificity, not source order. */
+  :global(.static.static--bio) { max-width: 56rem; }
+
+  /* Hero: the tall candlelit portrait set against the epigraph, which fills its
+     height — a paired opening rather than a small photo stranded in a margin. */
+  .bio__hero {
+    display: grid;
+    grid-template-columns: minmax(0, 18rem) 1fr;
+    gap: clamp(1.8rem, 4vw, 3.2rem);
+    align-items: center;
   }
-  .static__portrait :global(img) {
+  .bio__portrait { margin: 0; }
+  .bio__portrait :global(img) {
     display: block;
     width: 100%;
     height: auto;
     background: var(--bg-rise);
+    border-radius: 2px;
     box-shadow:
       0 1px 0 rgba(0, 0, 0, 0.45),
-      0 40px 60px -30px rgba(0, 0, 0, 0.55);
-    filter: saturate(0.95) contrast(1.02);
+      0 50px 70px -34px rgba(0, 0, 0, 0.6);
+    /* The source is a candlelit, low-key portrait — a touch of lift so the face
+       reads at this size without losing the lamp-lit mood. */
+    filter: brightness(1.05) contrast(1.05) saturate(0.97);
   }
-  :global([data-theme="light"]) .static__portrait :global(img) {
+  :global([data-theme="light"]) .bio__portrait :global(img) {
     box-shadow:
       0 1px 0 rgba(20, 17, 13, 0.06),
-      0 30px 50px -25px rgba(60, 45, 20, 0.30);
+      0 36px 56px -30px rgba(60, 45, 20, 0.32);
   }
-  .static__portrait figcaption {
+  .bio__portrait figcaption {
     font-family: var(--sans);
     font-size: 11px;
     font-weight: 500;
@@ -93,26 +113,32 @@ const { portrait: portraitMeta, facts } = aboutExtras.parse(page.data);
     flex-direction: column;
     gap: 0.25rem;
   }
-  .static__portrait figcaption span:first-child { color: var(--ink-soft); }
+  .bio__portrait figcaption span:first-child { color: var(--ink-soft); }
 
-  /* Bio two-column grid: masthead spans, portrait left (sticky), prose right.
-     The `.static`/`.static--bio` article is rendered by <PageShell>, so it
-     carries PageShell's scope, not this component's — target it via :global and
-     anchor the bespoke children (which DO carry this component's scope) under
-     it. */
-  @media (min-width: 900px) {
-    :global(.static--bio) {
-      max-width: 64rem;
-      grid-template-columns: 280px minmax(0, 1fr);
-      grid-template-areas:
-        "head    head"
-        "portrait body";
-      gap: 2.5rem 3.2rem;
-      align-items: start;
+  .bio__epigraph {
+    margin: 0;
+    padding-left: 1.4rem;
+    border-left: 2px solid var(--accent);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.35rem, 2.3vw, 1.8rem);
+    line-height: 1.36;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+
+  /* The narrative reads at a fixed measure under the wider hero. */
+  :global(.static.static--bio .prose) { max-width: 42rem; }
+
+  @media (max-width: 700px) {
+    .bio__hero {
+      grid-template-columns: 1fr;
+      gap: 1.6rem;
+      justify-items: start;
     }
-    :global(.static--bio .static__head) { grid-area: head; }
-    :global(.static--bio) .static__portrait { grid-area: portrait; position: sticky; top: 6rem; }
-    :global(.static--bio .prose)        { grid-area: body; max-width: none; }
+    .bio__portrait { max-width: 17rem; }
+    .bio__epigraph { padding-left: 1.1rem; font-size: clamp(1.3rem, 6vw, 1.6rem); }
   }
 
   /* Vital-statistics list at the foot of the bio. */

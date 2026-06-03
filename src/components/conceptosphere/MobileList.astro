@@ -42,10 +42,10 @@ const initialPlaceholder = t.modes[initialMode].searchPlaceholder;
 const numberLocale = t.numberLocale;
 ---
 <section class="cs-mobile-tools">
-  <ModeToggle variant="mobile" locale={locale} activeMode={initialMode} />
+  <ModeToggle variant="mobile" {locale} activeMode={initialMode} />
   <SearchInput
     variant="mobile"
-    locale={locale}
+    {locale}
     placeholder={initialPlaceholder}
   />
 </section>

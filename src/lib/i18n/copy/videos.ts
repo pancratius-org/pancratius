@@ -33,27 +33,16 @@ export const videosIndexCopy = {
 
 export interface VideoCardCopy {
   coverAltPrefix: string;
-  bothLangsBadge: string;
-  fallbackBadge: string;
 }
 
 export const videoCardCopy = {
-  ru: {
-    coverAltPrefix: "Превью",
-    bothLangsBadge: "RU · EN",
-    fallbackBadge:  "Russian only",
-  },
-  en: {
-    coverAltPrefix: "Thumbnail",
-    bothLangsBadge: "RU · EN",
-    fallbackBadge:  "Russian only",
-  },
+  ru: { coverAltPrefix: "Превью" },
+  en: { coverAltPrefix: "Thumbnail" },
 } satisfies Record<Locale, VideoCardCopy>;
 
 export interface VideoPageCopy {
   back(total: number): string;
   meta: string;
-  coverAlt(title: string): string;
   watchOn(platform: string): string;
   mirrorsLabel: string;
   publishedLabel: string;
@@ -89,7 +78,6 @@ export const videoPageCopy = {
   ru: {
     back: (total) => `← к ${total} видео`,
     meta: "Видео",
-    coverAlt: (title) => `Превью видео: ${title}`,
     watchOn: (platform) => `Смотреть на ${platform}`,
     mirrorsLabel: "Также:",
     publishedLabel: "Опубликовано:",
@@ -104,7 +92,6 @@ export const videoPageCopy = {
   en: {
     back: () => "← back to videos",
     meta: "Video",
-    coverAlt: (title) => `Thumbnail: ${title}`,
     watchOn: (platform) => `Watch on ${platform}`,
     mirrorsLabel: "Also:",
     publishedLabel: "Published:",

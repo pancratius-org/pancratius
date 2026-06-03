@@ -42,23 +42,11 @@ export const libraryFilterCopy = {
 export interface BookCardCopy {
   /** Prefix for the cover image alt text, e.g. "Cover" / "Обложка". */
   coverAltPrefix: string;
-  /** Badge shown on the default-locale index when a translation also exists. */
-  bothLangsBadge: string;
-  /** Badge shown on a non-default index when only the default-locale work exists. */
-  fallbackBadge: string;
 }
 
 export const bookCardCopy = {
-  ru: {
-    coverAltPrefix: "Обложка",
-    bothLangsBadge: "RU · EN",
-    fallbackBadge:  "Russian only",
-  },
-  en: {
-    coverAltPrefix: "Cover",
-    bothLangsBadge: "RU · EN",
-    fallbackBadge:  "Russian only",
-  },
+  ru: { coverAltPrefix: "Обложка" },
+  en: { coverAltPrefix: "Cover" },
 } satisfies Record<Locale, BookCardCopy>;
 
 export interface BooksIndexCopy {
@@ -107,8 +95,14 @@ export const relatedCopy = {
   },
 } satisfies Record<Locale, RelatedCopy>;
 
+// The label before a list of download links — one source for every surface
+// that offers downloads (work actions, colophon).
+export const downloadLabelCopy: Record<Locale, string> = {
+  ru: "Скачать:",
+  en: "Download:",
+};
+
 export interface ColophonCopy {
-  download: string;
   rights_before: string;
   rights_link: string;
   rights_after: string;
@@ -118,7 +112,6 @@ export interface ColophonCopy {
 
 export const colophonCopy = {
   ru: {
-    download: "Скачать:",
     rights_before: "Все тексты — в ",
     rights_link: "общественном достоянии (CC0)",
     rights_after: ". Берите. Переводите. Передавайте.",
@@ -126,7 +119,6 @@ export const colophonCopy = {
     original: "Оригинал",
   },
   en: {
-    download: "Download:",
     rights_before: "All texts are in the ",
     rights_link: "public domain (CC0)",
     rights_after: ". Take them. Translate. Pass them on.",
@@ -140,10 +132,6 @@ export interface BookPageCopy {
   meta: string;
   coverAlt(title: string): string;
   srPrefix(number: string): string;
-  downloadLabel: string;
-  share: string;
-  shareCopied: string;
-  shareFailed: string;
   pagerAria: string;
 }
 
@@ -153,10 +141,6 @@ export const bookPageCopy = {
     meta: "Книга",
     coverAlt: (title) => `Обложка книги: ${title}`,
     srPrefix: (number) => `Книга ${number}. `,
-    downloadLabel: "Скачать:",
-    share: "Поделиться",
-    shareCopied: "Скопировано",
-    shareFailed: "Не получилось",
     pagerAria: "Другие книги",
   },
   en: {
@@ -164,10 +148,6 @@ export const bookPageCopy = {
     meta: "Book",
     coverAlt: (title) => `Cover: ${title}`,
     srPrefix: (number) => `Book ${number}. `,
-    downloadLabel: "Download:",
-    share: "Share",
-    shareCopied: "Copied",
-    shareFailed: "Failed",
     pagerAria: "Other books",
   },
 } satisfies Record<Locale, BookPageCopy>;
@@ -175,28 +155,16 @@ export const bookPageCopy = {
 export interface PoemPageCopy {
   back: string;
   meta: string;
-  downloadLabel: string;
-  share: string;
-  shareCopied: string;
-  shareFailed: string;
 }
 
 export const poemPageCopy = {
   ru: {
     back: "← к стихам",
     meta: "Стихотворение",
-    downloadLabel: "Скачать:",
-    share: "Поделиться",
-    shareCopied: "Скопировано",
-    shareFailed: "Не получилось",
   },
   en: {
     back: "← back to poetry",
     meta: "Poem",
-    downloadLabel: "Download:",
-    share: "Share",
-    shareCopied: "Copied",
-    shareFailed: "Failed",
   },
 } satisfies Record<Locale, PoemPageCopy>;
 

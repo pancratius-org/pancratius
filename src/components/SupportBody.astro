@@ -43,11 +43,11 @@ const channels = support.channels.map(c => ({
   ...(c.caption === undefined ? {} : { caption: c.caption }),
 }));
 ---
-<Prose><slot /></Prose>
+<Prose class="prose--note"><slot /></Prose>
 
 {channels.length > 0 && (
   <div class="support-widget">
-    <SupportChannels channels={channels} locale={locale} />
+    <SupportChannels channels={channels} {locale} />
     <svg
       class="support-seal"
       viewBox="0 0 32 32"
@@ -75,7 +75,6 @@ const channels = support.channels.map(c => ({
     padding: 0;
     margin: 0 0 2rem;
     text-wrap: balance;
-    max-width: none;
   }
   :global(.static--support .prose blockquote p) {
     margin: 0;
@@ -83,7 +82,6 @@ const channels = support.channels.map(c => ({
   }
   :global(.static--support .prose p) {
     color: var(--ink-soft);
-    max-width: none;
   }
   :global(.static--support .prose > p:last-child) {
     margin-top: 1.6rem;
@@ -108,7 +106,11 @@ const channels = support.channels.map(c => ({
   }
 
   @media (min-width: 920px) {
-    :global(.static--support) {
+    /* `.static.static--support` (not just `.static--support`) so this beats
+       PageShell's base `.static` width + `grid-template-columns: 1fr` on
+       specificity, not source order — the two live in different component
+       scopes, so a bare tie let PageShell win and crushed the body column. */
+    :global(.static.static--support) {
       max-width: 68rem;
       grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr);
       grid-template-areas:
@@ -118,11 +120,11 @@ const channels = support.channels.map(c => ({
       align-items: start;
     }
     :global(.static--support .static__head) { grid-area: head; }
-    :global(.static--support .prose)        { grid-area: body; max-width: none; }
+    :global(.static--support .prose)        { grid-area: body; }
     :global(.static--support) .support-widget { grid-area: widget; position: sticky; top: 6rem; }
   }
   @media (min-width: 1180px) {
-    :global(.static--support) {
+    :global(.static.static--support) {
       grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
     }
   }

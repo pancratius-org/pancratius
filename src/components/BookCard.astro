@@ -2,7 +2,7 @@
 import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE, workUrl } from "@/lib/i18n";
 import { authoredWorkPairs, displayWorkEntry, type WorkPair } from "@/lib/works";
-import { bookCardCopy } from "@/lib/i18n/copy";
+import { bookCardCopy, localeBadge } from "@/lib/i18n/copy";
 import BookCover from "./BookCover.astro";
 
 interface Props {
@@ -39,13 +39,13 @@ const altPrefix = copy.coverAltPrefix;
   data-tags={tags.join("|")}
   data-number={pair.number}
 >
-  <BookCover pair={pair} locale={locale} alt={`${altPrefix}: ${entry.data.title}`} />
+  <BookCover {pair} {locale} alt={`${altPrefix}: ${entry.data.title}`} />
   <div class="book__body">
     <span class="book__num">{String(pair.number).padStart(2, "0")}</span>
     <h2 class="book__title">{entry.data.title}</h2>
     {blurb && <p class="book__annot">{blurb}</p>}
-    {hasTranslationBadge && <span class="book__lang">{copy.bothLangsBadge}</span>}
-    {localeFallback && <span class="book__lang book__lang--fallback">{copy.fallbackBadge}</span>}
+    {hasTranslationBadge && <span class="book__lang">{localeBadge.both}</span>}
+    {localeFallback && <span class="book__lang book__lang--fallback">{localeBadge.russianOnly}</span>}
   </div>
 </a>
 

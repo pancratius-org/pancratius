@@ -34,8 +34,8 @@ const labels = relatedCopy[locale];
       <div class="sim__grid">
         {crossRefs.map(r => (
           r.snippet === undefined
-            ? <BookCard pair={r.target} locale={locale} />
-            : <BookCard pair={r.target} locale={locale} blurb={r.snippet} />
+            ? <BookCard pair={r.target} {locale} />
+            : <BookCard pair={r.target} {locale} blurb={r.snippet} />
         ))}
       </div>
     </section>
@@ -47,7 +47,7 @@ const labels = relatedCopy[locale];
       <div class="sim__grid">
         {algorithmic.map(p => (
           <div class="sim__wrap">
-            <BookCard pair={p.pair} locale={locale} />
+            <BookCard pair={p.pair} {locale} />
             {p.convergent && (
               <span class="sim__star" aria-label={labels.star} title={labels.star}>★</span>
             )}
