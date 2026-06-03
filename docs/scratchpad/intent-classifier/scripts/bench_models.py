@@ -91,10 +91,13 @@ def build_ask(brief: str, region: dict, vision: bool) -> str:
 
 
 def call(key: str, model: str, ask: str, img_url: str | None, max_tokens: int = 8192) -> dict:
-    """One request. Returns {content, finish_reason, usage, latency, error}. img_url=None ⇒ text-only."""
-    content: list = [{"type": "text", "text": ask}]
-    if img_url is not None:
-        content.append({"type": "image_url", "image_url": {"url": img_url}})
+    """One request. Returns {content, finish_reason, usage, latency, error}. img_url=None ⇒ text-only.
+
+    Text-only models get the prompt as a PLAIN STRING — some (e.g. qwen3) parse a single-element
+    multimodal content-array as empty (prompt_tokens=8, "message incomplete"). Vision needs the array.
+    """
+    content: str | list = ask if img_url is None else [
+        {"type": "text", "text": ask}, {"type": "image_url", "image_url": {"url": img_url}}]
     payload = {"model": model, "temperature": 0, "max_tokens": max_tokens,
                "usage": {"include": True},
                "messages": [{"role": "user", "content": content}]}
@@ -190,8 +193,9 @@ def main() -> int:
     for tag in args.models:
         (bdir / f"reader_{tag}.jsonl").write_text(
             "\n".join(json.dumps(r, ensure_ascii=False) for r in results[tag]) + "\n")
-    (bdir / "raw_replies.jsonl").write_text(
-        "\n".join(json.dumps(r, ensure_ascii=False) for r in raw_log) + "\n")
+    with (bdir / "raw_replies.jsonl").open("a") as fh:   # APPEND — never erase prior audit metadata
+        for r in raw_log:
+            fh.write(json.dumps(r, ensure_ascii=False) + "\n")
 
     # score
     truth = load_truth()
