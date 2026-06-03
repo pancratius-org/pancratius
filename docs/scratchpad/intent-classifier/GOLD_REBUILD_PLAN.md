@@ -65,8 +65,26 @@ Record, so any gold line is traceable to exact inputs: docx package hash(es); v5
 4. Substrate Slice-1+ (clean SourceFate) deferred; `needs_review` routed/flagged, not silently trusted.
 5. Block reconstruction from per-line labels can mis-segment — boundary-F1 + render-diff catch it.
 
+## Tooling (built)
+`scripts/gold/` — the typed, pure, tested adjudication core (mirrors the target `ml/lineation/`
+so promotion is a move, not a rewrite). Modules: `types` (Label/LineKey/Status/Reason/Gates/
+LineDecision/AuditLine/Block) · `aggregate` (gate-strict per-reader → grok-led panel → accept/
+escalate/route_human/needs_rerun) · `blocks` (reconstruct + boundary-F1 + exact-block-match) ·
+`audit` (stratified, prose-biased, seeded sample of accepted lines) · `manifest` (git sha + dirty
+flag + docx/brief/raw-reply digests + models + gates + seed) · `registry` (frozen panel ids) ·
+`run` (the only impure module; run-scoped CLI: `aggregate`/`score`/`audit`/`manifest`). Core is
+import-pure and unit-tested (`python3 -m gold.test_gold`, 21 cases incl. the false-accept
+boundaries). `score` reproduces the validated v5 numbers byte-for-byte. Operational gaps
+(missing/parse-fail reader output) route to `needs_rerun`, never to the human.
+
 ## Immediate next actions (on user go)
 1. Promote v5 → production brief.
 2. Decide gold scope (size, per-book floor, human-routing + audit budget).
-3. Build production-grade aggregation + routing + audit + manifest tooling (current `score_*` are scratchpad-grade).
+3. **Runner prerequisite before a real conf-gated run:** the panel runner must PERSIST per-line
+   confidence into the rep files. `openrouter_reader` already captures `conf`; `bench_models`
+   drops it, so the legacy bench reps carry none and the default `conf_floor=0.7` gate routes
+   everything (correct-but-useless). Either re-run readers writing `conf`, or run with
+   `--conf-floor 0` for a structure-only diagnostic gate. Canonical region schema is
+   `reader_pkg.json` (`keys[]`, labels `prose|lineated`); the legacy `data/gold_lineation`
+   (`lines[]`, `flowing`) is not a rebuild input (`normalize_label` adapts `flowing→prose` if reused).
 4. Run tiered (triage → vision → aggregate → route → human → consensus → distill).
