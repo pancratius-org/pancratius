@@ -139,12 +139,22 @@ def main() -> int:
     ap.add_argument("--models", nargs="+", default=sorted(CANDIDATES))
     ap.add_argument("--brief", default=None, help="override brief file (for the brief-fix A/B)")
     ap.add_argument("--tag-suffix", default="", help="suffix appended to output reader_<tag><suffix>")
+    ap.add_argument("--rids", nargs="+", default=None, help="override the region set (default PROBLEM_RIDS)")
     args = ap.parse_args()
+    global PROBLEM_RIDS
+    if args.rids:
+        # accept both `--rids a b c` and a single `--rids "a b c"` (zsh doesn't word-split $var)
+        PROBLEM_RIDS = [x for arg in args.rids for x in arg.split()]
     key = orr._api_key()
     data = DATA / args.dataset
     brief = Path(args.brief).read_text() if args.brief else (data / "reader_brief.txt").read_text()
     pkg = {e["rid"]: e for e in json.loads((data / "reader_pkg.json").read_text())}
+    missing = [r for r in PROBLEM_RIDS if r not in pkg]
     regions = [pkg[r] for r in PROBLEM_RIDS if r in pkg]
+    # HARD GUARD: never silently write empty output (poisons benchmarks). Fail loud, write nothing.
+    if missing or not regions:
+        raise SystemExit(f"ABORT: {len(missing)} requested rids not in pkg ({missing[:5]}); "
+                         f"{len(regions)} regions resolved — refusing to run and write empty files.")
     print(f"benchmark: {len(args.models)} models x {len(regions)} problematic regions "
           f"(missing from pkg: {[r for r in PROBLEM_RIDS if r not in pkg]})")
     # pre-encode images once per region
@@ -170,7 +180,7 @@ def main() -> int:
         futs = [ex.submit(work, t, m, v, e) for (t, m, v, e) in jobs]
         for fut in as_completed(futs):
             tag, vision, e, res = fut.result()
-            raw_log.append({"tag": tag, "rid": e["rid"], "vision": vision,
+            raw_log.append({"tag": tag, "run": args.tag_suffix, "rid": e["rid"], "vision": vision,
                             "finish_reason": res.get("finish_reason"), "error": res["error"],
                             "usage": res.get("usage") or {}, "latency": round(res["latency"], 2),
                             "content": res["content"]})
