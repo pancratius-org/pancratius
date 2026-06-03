@@ -1,0 +1,25 @@
+---
+// The "← back to this page's listing" link every detail page carries. Pure
+// presentation: each page passes its already-localized label and the href.
+interface Props {
+  href: string;
+  label: string;
+}
+
+const { href, label } = Astro.props;
+---
+<a class="back-link" href={href}>{label}</a>
+
+<style>
+  .back-link {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    color: var(--ink-mute);
+    display: inline-block;
+    margin-bottom: 2.5rem;
+    text-decoration: none;
+    transition: color 0.18s var(--ease);
+  }
+  .back-link:hover { color: var(--accent); }
+</style>

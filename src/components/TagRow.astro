@@ -1,0 +1,24 @@
+---
+// A middot-separated row of topic tags, shared by every detail masthead.
+// Renders nothing when there are no tags. Surrounding spacing is the caller's.
+interface Props {
+  tags: readonly string[];
+  ariaLabel?: string;
+}
+
+const { tags, ariaLabel } = Astro.props;
+---
+{tags.length > 0 && (
+  <p class="tag-row" aria-label={ariaLabel}>{tags.map(t => <span>{t}</span>)}</p>
+)}
+
+<style>
+  .tag-row {
+    font-family: var(--sans);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--ink-mute);
+    margin: 0;
+  }
+  .tag-row span + span::before { content: " · "; color: var(--rule-2); }
+</style>

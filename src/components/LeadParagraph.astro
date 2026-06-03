@@ -1,0 +1,24 @@
+---
+// Promotes the first substantial body paragraph of a `.prose[data-leadable]`
+// block to a drop-cap lead. Shared by every leadable page so the heuristic
+// (skip headings/rules/lineated verse; bail on a leading quote/figure/aside;
+// require a real opening paragraph) lives in exactly one place.
+---
+<script is:inline>
+  (function () {
+    const prose = document.querySelector(".prose[data-leadable]");
+    if (!prose) return;
+    for (const child of Array.from(prose.children)) {
+      const tag = child.tagName;
+      if (tag === "H2" || tag === "H3" || tag === "H4" || tag === "HR") continue;
+      if (tag === "DIV" && child.classList.contains("lineated")) continue;
+      if (tag === "BLOCKQUOTE" || tag === "FIGURE" || tag === "ASIDE") return;
+      if (tag !== "P") continue;
+      if (child.className) continue;
+      const text = (child.textContent || "").trim();
+      if (text.length < 60) continue;
+      child.classList.add("lead");
+      return;
+    }
+  })();
+</script>

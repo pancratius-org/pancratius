@@ -1,0 +1,43 @@
+---
+import type { Locale } from "@/lib/i18n";
+import { shareCopy } from "@/lib/i18n/copy";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const c = shareCopy[locale];
+---
+{/* Behaviour is a single delegated `[data-share]` listener in Base.astro:
+    native share sheet where available, else copy-link with a 1.6 s label flip. */}
+<button
+  type="button"
+  class="share"
+  data-share
+  data-share-copied={c.copied}
+  data-share-failed={c.failed}
+>
+  {c.label}
+</button>
+
+<style>
+  .share {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    cursor: pointer;
+    transition: color 0.18s var(--ease);
+  }
+  .share:hover,
+  .share:focus-visible { color: var(--accent); }
+  .share[data-state="done"] { color: var(--accent); cursor: default; }
+</style>
