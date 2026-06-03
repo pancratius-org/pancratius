@@ -19,8 +19,8 @@ export const downloadsPageCopy = {
     size: "Размер",
     numberLocale: "ru-RU",
     blurb: {
-      md: "Чистый Markdown всех книг, стихов и проектов.",
-      pdf: "Книги, стихи и проекты в PDF - для печати и офлайн-чтения.",
+      md: "Чистый Markdown всех книг и стихов.",
+      pdf: "Книги и стихи в PDF - для печати и офлайн-чтения.",
       epub: "Книги в EPUB - для электронных читалок.",
     },
   },
@@ -32,8 +32,8 @@ export const downloadsPageCopy = {
     size: "Size",
     numberLocale: "en-US",
     blurb: {
-      md: "Clean Markdown for every book, poem, and project.",
-      pdf: "Books, poems, and projects as PDFs for print and offline reading.",
+      md: "Clean Markdown for every book and poem.",
+      pdf: "Books and poems as PDFs for print and offline reading.",
       epub: "Books as EPUB files for e-readers.",
     },
   },

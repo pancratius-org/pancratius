@@ -40,7 +40,7 @@ export interface FooterLink {
 export const FOOTER_LINKS: readonly FooterLink[] = [
   { path: "/license/", label: { ru: "Лицензия", en: "License" }, pageSlug: "license" },
   { path: "/support/", label: { ru: "Поддержать", en: "Support" }, pageSlug: "support" },
-  { path: "/downloads/", label: { ru: "Скачать всё", en: "Download all" }, pageSlug: "downloads" },
+  { path: "/downloads/", label: { ru: "Скачать произведения", en: "Download works" }, pageSlug: "downloads" },
 ] as const;
 
 /**
