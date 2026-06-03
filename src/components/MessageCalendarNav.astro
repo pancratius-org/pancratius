@@ -1,0 +1,315 @@
+---
+import type { Locale } from "@/lib/i18n";
+import { kindIndexUrl, routedUrl } from "@/lib/i18n";
+import { formatMessageDate, messagePageCopy, monthHeading } from "@/lib/i18n/copy";
+import type { LocalizedMessagePair, MonthGroup } from "@/lib/messages";
+
+interface Props {
+  groups:        readonly MonthGroup<LocalizedMessagePair>[];
+  currentNumber: number;
+  today:         string;
+  locale:        Locale;
+}
+
+const { groups, currentNumber, today, locale } = Astro.props;
+const copy = messagePageCopy[locale];
+
+// The post published today, if any — surfaced as a standing "Сегодня" anchor at
+// the top of the rail. The newest one wins when a day carries several.
+const todayItem = groups
+  .flatMap(g => g.items)
+  .find(it => it.iso === today);
+const todayIsCurrent = todayItem?.value.pair.number === currentNumber;
+
+function href(slug: string): string {
+  return routedUrl("message", slug, locale);
+}
+
+// Flatten newest-first, locate the reader's own letter, and keep only a bounded
+// window around it — the rail stays roughly the height of the article instead
+// of unrolling the whole archive. Everything outside lives behind "Все послания".
+interface FlatItem { iso: string; value: LocalizedMessagePair; year: number; month: number; }
+const flat: FlatItem[] = groups.flatMap(g =>
+  g.items.map(it => ({ iso: it.iso, value: it.value, year: g.year, month: g.month })));
+const total = flat.length;
+const here = flat.findIndex(e => e.value.pair.number === currentNumber);
+const curIdx = here < 0 ? 0 : here;
+const start = Math.max(0, curIdx - 4);
+const end = Math.min(total, curIdx + 7);
+const hiddenNewer = start;
+const hiddenOlder = total - end;
+
+// Regroup the window back into month sections for rendering.
+interface WinGroup { year: number; month: number; items: FlatItem[]; }
+const winGroups: WinGroup[] = [];
+for (const e of flat.slice(start, end)) {
+  const last = winGroups.at(-1);
+  if (last && last.year === e.year && last.month === e.month) last.items.push(e);
+  else winGroups.push({ year: e.year, month: e.month, items: [e] });
+}
+---
+<aside class="cnav">
+  <p class="cnav__label">{copy.navLabel}</p>
+
+  {todayItem && (
+    <a
+      class:list={["cnav__today", { "is-current": todayIsCurrent }]}
+      href={href(todayItem.value.entry.data.slug)}
+      aria-current={todayIsCurrent ? "page" : undefined}
+    >
+      <span class="cnav__today-dot" aria-hidden="true"></span>
+      <span class="cnav__today-label">{copy.todayLabel}</span>
+      <span class="cnav__today-title">{todayItem.value.entry.data.title}</span>
+    </a>
+  )}
+
+  <nav class="cnav__index" aria-label={copy.navLabel}>
+    {hiddenNewer > 0 && <p class="cnav__more" aria-hidden="true">⋯</p>}
+    {winGroups.map(group => {
+      const hasCurrent = group.items.some(e => e.value.pair.number === currentNumber);
+      return (
+        <section class:list={["cnav__month", { "is-here": hasCurrent }]}>
+          <h2 class="cnav__mh">{monthHeading(locale, group.year, group.month)}</h2>
+          <ol class="cnav__list" role="list">
+            {group.items.map(({ iso, value }) => {
+              const isCurrent = value.pair.number === currentNumber;
+              return (
+                <li class="cnav__item">
+                  <a
+                    class:list={["cnav__link", { "is-current": isCurrent }]}
+                    href={href(value.entry.data.slug)}
+                    aria-current={isCurrent ? "page" : undefined}
+                  >
+                    <span class="cnav__date">{formatMessageDate(locale, iso)}</span>
+                    <span class="cnav__title">{value.entry.data.title}</span>
+                  </a>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      );
+    })}
+    {hiddenOlder > 0 && <p class="cnav__more" aria-hidden="true">⋯</p>}
+  </nav>
+
+  <a class="cnav__all" href={kindIndexUrl("message", locale)}>
+    <span class="cnav__all-label">{copy.allLink}</span>
+    <span class="cnav__all-count">{total}</span>
+    <span class="cnav__all-arrow" aria-hidden="true">→</span>
+  </a>
+</aside>
+
+<script is:inline>
+  // Progressive enhancement: on desktop the rail is sticky, so trim it to the
+  // shorter of the article and the viewport — it should never dangle past the
+  // letter it accompanies. No-JS keeps the bounded SSR window. The current
+  // letter is never trimmed; a trailing ⋯ marks where the rail was clipped.
+  (function () {
+    const nav = document.querySelector(".cnav");
+    const col = document.querySelector(".mp__main");
+    const index = nav && nav.querySelector(".cnav__index");
+    if (!nav || !col || !index) return;
+    const items = Array.from(index.querySelectorAll(".cnav__item"));
+    const curLink = index.querySelector(".cnav__link.is-current");
+    const current = curLink && curLink.closest(".cnav__item");
+    let jsMore = null;
+
+    function trailingSsrMore() {
+      const last = index.lastElementChild;
+      return last && last.classList.contains("cnav__more") && !last.classList.contains("cnav__more--js");
+    }
+    function mark(show) {
+      if (show && !trailingSsrMore()) {
+        if (!jsMore) {
+          jsMore = document.createElement("p");
+          jsMore.className = "cnav__more cnav__more--js";
+          jsMore.setAttribute("aria-hidden", "true");
+          jsMore.textContent = "⋯";
+          index.appendChild(jsMore);
+        }
+        jsMore.hidden = false;
+      } else if (jsMore) {
+        jsMore.hidden = true;
+      }
+    }
+
+    function fit() {
+      items.forEach((li) => { li.hidden = false; });
+      index.querySelectorAll(".cnav__month").forEach((m) => { m.hidden = false; });
+      mark(false);
+      if (window.innerWidth < 1100) return; // sticky only on desktop
+      const avail = Math.min(col.offsetHeight, window.innerHeight - 140);
+      let hid = false;
+      for (let i = items.length - 1; i >= 0 && nav.offsetHeight > avail; i--) {
+        if (items[i] === current) continue;
+        items[i].hidden = true;
+        hid = true;
+      }
+      index.querySelectorAll(".cnav__month").forEach((m) => {
+        const visible = Array.from(m.querySelectorAll(".cnav__item")).some((li) => !li.hidden);
+        m.hidden = !visible;
+      });
+      if (hid) mark(true);
+    }
+
+    fit();
+    window.addEventListener("load", fit);
+    let t;
+    window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(fit, 150); });
+  })();
+</script>
+
+<style>
+  .cnav {
+    font-family: var(--sans);
+    border-left: 1px solid var(--rule);
+    padding-left: 1.2rem;
+  }
+  /* Sticky rail that scrolls WITH the document — it never owns its own
+     scrollbar. The месяцеслов index is as tall as it is; when it outruns the
+     viewport the page carries it, so a reader never gets a trapped inner gutter
+     where the outer wheel stops working. */
+  @media (min-width: 1100px) {
+    .cnav {
+      position: sticky;
+      top: 4.5rem;
+      align-self: start;
+    }
+  }
+  .cnav__label {
+    margin: 0 0 1rem;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+
+  .cnav__today {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.1rem 0.5rem;
+    align-items: center;
+    text-decoration: none;
+    padding: 0.6rem 0.7rem;
+    margin-bottom: 1.3rem;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--accent-mute);
+    transition: border-color 0.18s var(--ease);
+  }
+  .cnav__today:hover { border-color: var(--accent-soft); }
+  .cnav__today-dot {
+    grid-row: 1 / 3;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent-deep);
+    box-shadow: 0 0 8px var(--accent-soft);
+  }
+  .cnav__today-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .cnav__today-title {
+    grid-column: 2;
+    font-family: var(--serif);
+    font-size: 0.95rem;
+    line-height: 1.2;
+    color: var(--ink);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .cnav__today.is-current { border-color: var(--accent-soft); }
+
+  .cnav__index { display: block; }
+  .cnav__month { margin-bottom: 1.4rem; }
+  .cnav__mh {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 0.95rem;
+    color: var(--ink-mute);
+    margin: 0 0 0.5rem;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+  }
+  /* The month the reader is inside gets a struck heading — the rail's "you are
+     here", echoing the lit feast-day on the месяцеслов. */
+  .cnav__month.is-here .cnav__mh { color: var(--accent); font-style: normal; }
+
+  /* No markers — the rail is a list of links, not a bulleted list. */
+  .cnav__list { list-style: none; margin: 0; padding: 0; }
+  .cnav__item { list-style: none; }
+  .cnav__item::marker { content: ""; }
+  /* Days are indented under their month heading; the current-day accent bar
+     sits at the month's left edge, so the rail reads month → its dates. */
+  .cnav__link {
+    display: block;
+    padding: 0.38rem 0 0.38rem 1.15rem;
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: border-color 0.18s var(--ease);
+  }
+  .cnav__date {
+    display: block;
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+    color: var(--ink-mute);
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    margin-bottom: 1px;
+  }
+  .cnav__title {
+    display: block;
+    font-family: var(--serif);
+    font-size: 0.92rem;
+    line-height: 1.28;
+    color: var(--ink-soft);
+    transition: color 0.18s var(--ease);
+  }
+  .cnav__link:hover { border-left-color: var(--rule-2); }
+  .cnav__link:hover .cnav__title { color: var(--accent); }
+  /* "You are here" reads through the accent rule, the amber date, and an inked
+     title — no filled chip, so it stays of a piece with the typographic rail. */
+  .cnav__link.is-current { border-left-color: var(--accent); }
+  .cnav__link.is-current .cnav__title { color: var(--ink); font-weight: 500; }
+  .cnav__link.is-current .cnav__date { color: var(--accent); }
+
+  /* A muted ellipsis where the window is clipped — the rest is one click away. */
+  .cnav__more {
+    margin: 0.2rem 0;
+    padding-left: 1.2rem;
+    color: var(--ink-mute);
+    opacity: 0.55;
+    letter-spacing: 0.1em;
+    line-height: 1;
+    user-select: none;
+  }
+
+  /* The obvious way to the whole archive — accent-inked, not a muted footnote. */
+  .cnav__all {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule);
+    font-family: var(--sans);
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    color: var(--accent);
+    text-decoration: none;
+    transition: color 0.18s var(--ease), gap 0.18s var(--ease);
+  }
+  .cnav__all-count {
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    color: var(--ink-mute);
+  }
+  .cnav__all-arrow { margin-left: auto; }
+  .cnav__all:hover { color: var(--mark-ink); gap: 0.65rem; }
+</style>

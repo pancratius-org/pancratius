@@ -1,0 +1,18 @@
+---
+import type { GetStaticPaths } from "astro";
+
+import MessagePage from "@/components/MessagePage.astro";
+import { DEFAULT_LOCALE } from "@/lib/i18n";
+import { defaultMessageEntry, getAllMessagePairs } from "@/lib/messages";
+
+export const getStaticPaths = (async () => {
+  const pairs = await getAllMessagePairs();
+  return pairs.map(p => ({
+    params: { slug: defaultMessageEntry(p).data.slug },
+    props: { pair: p },
+  }));
+}) satisfies GetStaticPaths;
+
+const { pair } = Astro.props;
+---
+<MessagePage {pair} locale={DEFAULT_LOCALE} />

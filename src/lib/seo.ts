@@ -13,7 +13,9 @@ import {
   kindIndexUrl,
   localizePath,
   pageUrl,
+  plRu,
   routedUrl,
+  RU_PLURALS,
   spellEnglishCardinal,
   spellRussianCardinal,
   workUrl,
@@ -36,6 +38,12 @@ import {
   videoWatchLinks,
   type VideoPair,
 } from "./videos";
+import {
+  authoredMessagePairs,
+  defaultMessageEntry,
+  entryForAuthoredMessageLocale,
+  type MessagePair,
+} from "./messages";
 
 const AUTHOR_NAME = "Сергей Орехов";
 const AUTHOR_ALIAS = "Панкратиус";
@@ -126,24 +134,6 @@ export interface CorpusCounts {
   poems: number;
 }
 
-// RU declensions used in the home meta sentence ("книги/книг", "стихотворения").
-function ruBooksWord(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 14) return "книг";
-  if (mod10 === 1) return "книга";
-  if (mod10 >= 2 && mod10 <= 4) return "книги";
-  return "книг";
-}
-function ruPoemsWord(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 14) return "стихотворений";
-  if (mod10 === 1) return "стихотворение";
-  if (mod10 >= 2 && mod10 <= 4) return "стихотворения";
-  return "стихотворений";
-}
-
 /**
  * Home meta description, derived from live corpus tallies so the spelled-out
  * counts ("Семьдесят две книги. Сорок три стихотворения.") can never go stale.
@@ -152,7 +142,7 @@ function homeDescription(locale: Locale, counts: CorpusCounts): string {
   if (locale === "en") {
     return `${spellEnglishCardinal(counts.books)} books. ${spellEnglishCardinal(counts.poems)} poems. Free — for humans and for language models. All texts in the public domain (CC0).`;
   }
-  return `${spellRussianCardinal(counts.books, { feminine: true })} ${ruBooksWord(counts.books)}. ${spellRussianCardinal(counts.poems, { feminine: true })} ${ruPoemsWord(counts.poems)}. Свободно — людям и языковым моделям. Тексты в общественном достоянии (CC0).`;
+  return `${spellRussianCardinal(counts.books, { feminine: true })} ${plRu(counts.books, RU_PLURALS.book)}. ${spellRussianCardinal(counts.poems, { feminine: true })} ${plRu(counts.poems, RU_PLURALS.poem)}. Свободно — людям и языковым моделям. Тексты в общественном достоянии (CC0).`;
 }
 
 export function seoForHome(site: URL | undefined, locale: Locale, counts: CorpusCounts): SeoMeta {
@@ -190,6 +180,7 @@ export function seoForKindIndex(
     poem:    { ru: "Поэзия — Панкратиус",   en: "Poetry — Pancratius" },
     project: { ru: "Проекты — Панкратиус",  en: "Projects — Pancratius" },
     video:   { ru: "Видео — Панкратиус",    en: "Video — Pancratius" },
+    message: { ru: "Послания — Панкратиус", en: "Epistles — Pancratius" },
   };
   // Counts are derived from the live corpus and threaded through here so the
   // numeric meta descriptions never go stale when a work is added or removed.
@@ -197,13 +188,13 @@ export function seoForKindIndex(
   const descriptions: Record<RoutedKind, Record<Locale, string>> = {
     book:    {
       ru: n != null
-        ? `${n} ${ruBooksWord(n)} Панкратиуса — полное собрание. Свободно — людям и языковым моделям.`
+        ? `${n} ${plRu(n, RU_PLURALS.book)} Панкратиуса — полное собрание. Свободно — людям и языковым моделям.`
         : "Книги Панкратиуса — полное собрание. Свободно — людям и языковым моделям.",
       en: "English translations of Pancratius's books — free for humans and for language models.",
     },
     poem: {
       ru: n != null
-        ? `${n} ${ruPoemsWord(n)} Панкратиуса. Свободно — людям и языковым моделям.`
+        ? `${n} ${plRu(n, RU_PLURALS.poem)} Панкратиуса. Свободно — людям и языковым моделям.`
         : "Стихотворения Панкратиуса. Свободно — людям и языковым моделям.",
       en: n != null
         ? `All ${n} poems by Pancratius — free for humans and for language models.`
@@ -220,6 +211,14 @@ export function seoForKindIndex(
       en: n != null
         ? `${n} catalogued videos by Pancratius. Talks and series — each on its own page, with written commentary where authored.`
         : "Catalogued videos by Pancratius: talks, series, commentary.",
+    },
+    message: {
+      ru: n != null
+        ? `${n} ${plRu(n, RU_PLURALS.message)} Панкратиуса — письма по дням, собранные в месяцеслов. Свободно — людям и языковым моделям.`
+        : "Послания Панкратиуса — письма по дням. Свободно — людям и языковым моделям.",
+      en: n != null
+        ? `${n} dated epistles by Pancratius, gathered into a calendar. Free — for humans and for language models.`
+        : "Dated epistles by Pancratius. Free — for humans and for language models.",
     },
   };
   return {
@@ -577,6 +576,79 @@ export function seoForVideo(site: URL | undefined, input: VideoSeoInput): SeoMet
     ogImage:     coverUrl,
     ogType:      "article",
     alternates:  alternatesForVideo(site, pair),
+    jsonLd:      ld,
+    locale,
+    ...ogMeta(locale),
+  };
+}
+
+function alternatesForMessage(site: URL | undefined, pair: MessagePair): AlternateLink[] {
+  const xs: AlternateLink[] = [];
+  for (const { entry, locale: loc } of authoredMessagePairs(pair)) {
+    xs.push({ hreflang: loc, href: absUrl(site, routedUrl("message", entry.data.slug, loc)) });
+  }
+  const canonical = defaultMessageEntry(pair);
+  xs.push({
+    hreflang: "x-default",
+    href: absUrl(site, routedUrl("message", canonical.data.slug, DEFAULT_LOCALE)),
+  });
+  return xs;
+}
+
+export interface MessageSeoInput {
+  pair:   MessagePair;
+  locale: Locale;
+}
+
+/** Localized name of the Послания blog the `isPartOf` JSON-LD points back to. */
+const MESSAGES_BLOG_NAME: Record<Locale, string> = {
+  ru: "Послания — Панкратиус",
+  en: "Epistles — Pancratius",
+};
+
+/**
+ * SEO metadata for a послание. A dated `Article` (not a `CreativeWork` — these
+ * are editorial posts, not corpus works), scoped to the corpus series, with
+ * `datePublished` so search engines can surface the date. Послания carry no
+ * cover, so there is no OG image.
+ */
+export function seoForMessage(site: URL | undefined, input: MessageSeoInput): SeoMeta {
+  const { pair, locale } = input;
+  const entry = entryForAuthoredMessageLocale(pair, locale);
+  if (!entry) {
+    throw new Error(`seoForMessage: no ${locale} entry for послание #${pair.number}`);
+  }
+  const data = entry.data;
+  const canonical = absUrl(site, routedUrl("message", data.slug, locale));
+  const description = clampDescription(data.description);
+  const ld: Record<string, unknown> = {
+    "@context":      "https://schema.org",
+    "@type":         "Article",
+    "headline":      data.title,
+    "description":   description,
+    "datePublished": data.published_at,
+    "url":           canonical,
+    "inLanguage":    locale,
+    "author":        {
+      "@type":         "Person",
+      "name":          AUTHOR_NAME,
+      "alternateName": AUTHOR_ALIAS,
+    },
+    "license":       LICENSE_URL,
+    "isPartOf":      {
+      "@type": "Blog",
+      "name":  MESSAGES_BLOG_NAME[locale],
+      "url":   absUrl(site, kindIndexUrl("message", DEFAULT_LOCALE)),
+    },
+  };
+  if (data.tags.length > 0) ld.keywords = data.tags.join(", ");
+  return {
+    title:       `${data.title} — ${siteLabel(locale)}`,
+    description,
+    canonical,
+    ogImage:     null,
+    ogType:      "article",
+    alternates:  alternatesForMessage(site, pair),
     jsonLd:      ld,
     locale,
     ...ogMeta(locale),

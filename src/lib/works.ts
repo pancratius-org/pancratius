@@ -247,10 +247,11 @@ export async function resolveCrossRefs(
   if (refs.length === 0) return [];
   const resolved: ResolvedCrossRef[] = [];
   for (const ref of refs) {
-    // Work cross_refs only resolve to works (books/poems). Project or video
-    // targets would be content bugs — the work-pair machinery doesn't carry
-    // either (projects: `src/lib/projects.ts`; videos: `src/lib/videos.ts`).
-    if (ref.target.kind === "project" || ref.target.kind === "video") {
+    // Work cross_refs only resolve to works (books/poems). Project, video, or
+    // message targets would be content bugs — the work-pair machinery carries
+    // none of them (projects: `src/lib/projects.ts`; videos: `src/lib/videos.ts`;
+    // messages: `src/lib/messages.ts`).
+    if (ref.target.kind === "project" || ref.target.kind === "video" || ref.target.kind === "message") {
       throw new Error(
         `cross_refs from ${entry.id} targets a ${ref.target.kind} (#${ref.target.number}); ` +
         `works can only cross-reference books or poems`,

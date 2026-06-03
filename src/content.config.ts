@@ -41,7 +41,7 @@ const translation = z.discriminatedUnion("source", [
 ]);
 
 const targetRef = z.object({
-  kind: z.enum(["book", "poem", "project", "video"]),
+  kind: z.enum(["book", "poem", "project", "video", "message"]),
   number: z.number().int().positive(),
 });
 
@@ -66,7 +66,7 @@ const baseWorkFields = {
     .optional(),
 };
 
-const workEntryId = (kind: "book" | "poem" | "project" | "video") =>
+const workEntryId = (kind: "book" | "poem" | "project" | "video" | "message") =>
   ({ entry }: { entry: string }) => {
     const m = entry.match(LOCALE_FILE_RE);
     if (!m) throw new Error(`Unexpected ${kind} path: ${entry}`);
@@ -378,6 +378,47 @@ const videos = defineCollection({
   }),
 });
 
+// ─────────────────────────────────────────────────────────────────────
+// Послания — dated, blog-like messages rendered at /messages/.
+//
+// A routed kind but NOT a corpus work (like videos): no DOCX-import flow, no
+// download matrix. Posts pair across locales by `(kind, number)` exactly like
+// videos — each locale's entry is its own page. The identity is the invariant
+// `number`; `published_at` is the editorial date that places the post on the
+// месяцеслов (the calendar centerpiece) and orders the archive.
+//
+// Relations: a post points at the videos it accompanies through
+// `related_videos` (video `number`s, resolved to cards in `src/lib/messages.ts`),
+// and at books/poems through the shared `cross_refs`. Послания carry no cover —
+// they are letters, not catalogued media — so there is no `cover` field.
+// ─────────────────────────────────────────────────────────────────────
+const messages = defineCollection({
+  loader: glob({
+    pattern: "**/*.md",
+    base: "./src/content/messages",
+    generateId: workEntryId("message"),
+  }),
+  schema: z.object({
+    kind: z.literal("message"),
+    // Invariant editorial identity; `(kind, number)` pairs across locales.
+    number: z.number().int().positive(),
+    slug: asciiSlug,
+    title: z.string().min(1),
+    lang,
+    description: z.string().min(1),
+    // Drives the LibraryFilter-style chips and the per-post tag line.
+    tags: z.array(z.string()).default([]),
+    // The date the post is placed on. Mandatory: it is the post's location on
+    // the calendar and the archive sort key.
+    published_at: isoDate,
+    // Accompanying videos by editorial `number`, rendered as a related-video
+    // widget. Unknown numbers are skipped at resolve time (never a build error).
+    related_videos: z.array(z.number().int().positive()).optional(),
+    translation,
+    cross_refs: z.array(crossRefEntry).optional(),
+  }),
+});
+
 // Channels — small authored sidecar. Two consumers: the site renders a
 // channel strip at the top of `/videos/`; the Python scanner uses these
 // definitions to decide what to poll. Lives at
@@ -400,4 +441,4 @@ const videoChannels = defineCollection({
   }),
 });
 
-export const collections = { books, poetry, projects, pages, videos, videoChannels };
+export const collections = { books, poetry, projects, pages, videos, videoChannels, messages };

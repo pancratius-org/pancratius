@@ -8,18 +8,18 @@ dict equals the ``SEGMENT_OF`` map in ``src/lib/kinds.ts``.
 
 from __future__ import annotations
 
-# Routed content kind -> structural-noun URL segment (also the content-collection
-# name). Includes `project` (themed sections under /projects/) and `video`
-# (catalogued YouTube/other-platform videos under /videos/) and `message`
-# (dated «Послания» posts under /poslaniya/) — all route and appear in the
-# sitemap. Routing breadth != convertible-work scope. `message`'s segment is a
-# transliterated-Russian stem (svetozar precedent), not an English noun.
+# Routed content kind -> structural-noun URL segment. Includes `project` (themed
+# sections under /projects/) and `video` (catalogued YouTube/other-platform
+# videos under /videos/) and `message` (dated posts under /messages/, labelled
+# «Послания» / Epistles in the UI) — all route and appear in the sitemap.
+# Routing breadth != convertible-work scope. Every segment is an English noun;
+# the displayed section label is localized separately.
 SEGMENT_OF: dict[str, str] = {
     "book": "books",
     "poem": "poetry",
     "project": "projects",
     "video": "videos",
-    "message": "poslaniya",
+    "message": "messages",
 }
 
 # The kinds that are convertible/downloadable corpus works — the source of truth

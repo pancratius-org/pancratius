@@ -1,8 +1,9 @@
 ---
-import type { Locale } from "@/lib/i18n";
+import type { Locale, RoutedKind } from "@/lib/i18n";
 import { HEADER_NAV, homeUrl, localizePath } from "@/lib/i18n";
 import { chromeCopy } from "@/lib/i18n/copy";
 import { getPage } from "@/lib/pages";
+import { hasMessagesInLocale } from "@/lib/messages";
 import LanguageSwitcher from "./LanguageSwitcher.astro";
 
 interface Props {
@@ -16,12 +17,23 @@ const homeHref = homeUrl(locale);
 const currentRoute = currentPath;
 const copy = chromeCopy[locale];
 
-// Drop nav items whose `pageSlug` isn't authored in the current locale.
+// Resolvers for `kindGate`: a routed kind shows in the nav only where it has
+// authored content in this locale. Each routed kind that can gate registers its
+// "is anything authored here" check; kinds absent from the map never gate.
+const KIND_GATE: Partial<Record<RoutedKind, (locale: Locale) => Promise<boolean>>> = {
+  message: hasMessagesInLocale,
+};
+
+// Drop nav items whose backing content isn't authored in the current locale:
+// `pageSlug` items need their page, `kindGate` items need ≥1 entry of that kind.
 const navItems = await Promise.all(
   HEADER_NAV.map(async item => {
     if (item.pageSlug) {
       const page = await getPage(item.pageSlug, locale);
       if (!page) return null;
+    }
+    if (item.kindGate && !(await KIND_GATE[item.kindGate]?.(locale) ?? true)) {
+      return null;
     }
     return item;
   }),

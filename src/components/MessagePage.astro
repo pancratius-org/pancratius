@@ -1,0 +1,345 @@
+---
+import { render } from "astro:content";
+
+import Base from "@/layouts/Base.astro";
+import MessageCalendarNav from "@/components/MessageCalendarNav.astro";
+import VideoCard from "@/components/VideoCard.astro";
+import Share from "@/components/Share.astro";
+import BackLink from "@/components/BackLink.astro";
+import TagRow from "@/components/TagRow.astro";
+import LeadParagraph from "@/components/LeadParagraph.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { kindIndexUrl, routedUrl } from "@/lib/i18n";
+import { neighbors } from "@/lib/neighbors";
+import { formatMessageDate, messagePageCopy, monthHeading } from "@/lib/i18n/copy";
+import { seoForMessage } from "@/lib/seo";
+import {
+  entryForAuthoredMessageLocale,
+  getAllMessagePairs,
+  groupByMonthDesc,
+  localizedMessagePairs,
+  messageTags,
+  relatedVideosFor,
+  todayISO,
+  type MessagePair,
+} from "@/lib/messages";
+
+interface Props {
+  pair:   MessagePair;
+  locale: Locale;
+}
+
+const { pair, locale } = Astro.props;
+const entry = entryForAuthoredMessageLocale(pair, locale);
+if (!entry) {
+  throw new Error(`MessagePage: no ${locale} entry for послание #${pair.number}`);
+}
+
+const copy = messagePageCopy[locale];
+const { Content } = await render(entry);
+const seo = seoForMessage(Astro.site, { pair, locale });
+const tags = messageTags(entry);
+const backHref = kindIndexUrl("message", locale);
+const today = todayISO();
+const dateLabel = formatMessageDate(locale, entry.data.published_at, { withYear: true });
+// Date as a struck seal — the day numeral echoes the месяцеслов the reader
+// arrived from, so a letter opens like a letter.
+const [sealY, sealM, sealD] = entry.data.published_at.split("-");
+const sealDay = Number(sealD);
+const sealMonth = monthHeading(locale, Number(sealY), Number(sealM));
+
+const allPairs = await getAllMessagePairs();
+const pagerPairs = localizedMessagePairs(allPairs, locale);
+const groups = groupByMonthDesc(pagerPairs);
+// Newest-first array, so the older letter is the *next* index and the newer is
+// the *prev*. Pager reads chronologically — older «‹», newer «›».
+const { prev: newer, next: older } = neighbors(pagerPairs, pair.number);
+
+const relatedVideos = await relatedVideosFor(entry);
+---
+<Base {locale} seo={seo}>
+  <article class="message-page">
+    <BackLink href={backHref} label={copy.back(pagerPairs.length)} />
+
+    <header class="mp__masthead">
+      <p class="mp__meta"><span class="mp__kind">{copy.meta}</span></p>
+      <time class="sr-only" datetime={entry.data.published_at}>{dateLabel}</time>
+      <div class="mp__seal" aria-hidden="true">
+        <span class="mp__seal-day">{sealDay}</span>
+        <span class="mp__seal-month">{sealMonth}</span>
+      </div>
+      <div class="mp__head-body">
+        <h1 class="mp__title" id="mp-title">{entry.data.title}</h1>
+        <p class="mp__desc">{entry.data.description}</p>
+        <TagRow tags={tags} ariaLabel={copy.tagsLabel} />
+        <p class="mp__actions"><Share {locale} /></p>
+      </div>
+    </header>
+
+    <div class="message-page__layout">
+      <MessageCalendarNav groups={groups} currentNumber={pair.number} today={today} {locale} />
+      <div class="mp__main">
+        <div
+          class="prose"
+          data-pagefind-body
+          data-pagefind-meta={`title:${entry.data.title}`}
+          data-leadable
+        >
+          <Content />
+        </div>
+
+        {relatedVideos.length > 0 && (
+          <aside class="mp__related" data-pagefind-ignore>
+            <h2 class="mp__related-h">{copy.relatedVideosHeading(relatedVideos.length)}</h2>
+            <div class="mp__related-grid" role="list">
+              {relatedVideos.map(vp => <VideoCard pair={vp} {locale} />)}
+            </div>
+          </aside>
+        )}
+      </div>
+    </div>
+
+    <LeadParagraph />
+
+    {(older || newer) && (
+      <nav class="mp__pager" aria-label={copy.pagerAria}>
+        <div class="mp__pager-slot mp__pager-slot--prev">
+          {older && (
+            <a class="mp__pager-link mp__pager-link--prev" href={routedUrl("message", older.entry.data.slug, locale)} aria-label={copy.prevAria}>
+              <span class="mp__pager-arrow" aria-hidden="true">‹</span>
+              <span class="mp__pager-text">
+                <span class="mp__pager-date">{formatMessageDate(locale, older.entry.data.published_at)}</span>
+                <span class="mp__pager-title">{older.entry.data.title}</span>
+              </span>
+            </a>
+          )}
+        </div>
+        <a class="mp__pager-all" href={backHref}>{copy.allLink}</a>
+        <div class="mp__pager-slot mp__pager-slot--next">
+          {newer && (
+            <a class="mp__pager-link mp__pager-link--next" href={routedUrl("message", newer.entry.data.slug, locale)} aria-label={copy.nextAria}>
+              <span class="mp__pager-text">
+                <span class="mp__pager-date">{formatMessageDate(locale, newer.entry.data.published_at)}</span>
+                <span class="mp__pager-title">{newer.entry.data.title}</span>
+              </span>
+              <span class="mp__pager-arrow" aria-hidden="true">›</span>
+            </a>
+          )}
+        </div>
+      </nav>
+    )}
+  </article>
+</Base>
+
+<style>
+  .message-page {
+    max-width: 70rem;
+    margin: 0 auto;
+    padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
+    /* One rail width and gap shared by the masthead and the body grid, so the
+       date-seal sits over the месяцеслов and the title over the prose — a single
+       vertical seam down the page rather than two unrelated grids. */
+    --mp-rail: 15.5rem;
+    --mp-gap: 3.5rem;
+  }
+
+  .mp__masthead {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    /* The eyebrow sits over the title; the seal aligns to the title row beneath
+       it — so the date reads *with* the title, not floating at the page top. */
+    grid-template-areas:
+      ".    eyebrow"
+      "seal head";
+    column-gap: 2.25rem;
+    align-items: start;
+    margin-bottom: 3rem;
+    padding-bottom: 2.25rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  @media (min-width: 1100px) {
+    .mp__masthead {
+      grid-template-columns: var(--mp-rail) minmax(0, 1fr);
+      column-gap: var(--mp-gap);
+    }
+  }
+  .mp__meta { grid-area: eyebrow; }
+  .mp__seal { grid-area: seal; }
+  .mp__head-body { grid-area: head; }
+  /* The struck date-seal — focal oxblood numeral echoing the месяцеслов.
+     Right-aligned in the rail column so the date hugs the gutter beside the
+     title (a marginal folio), rather than stranded at the far-left edge. */
+  .mp__seal {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    padding-top: 0.3rem;
+  }
+  .mp__seal-day {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-feature-settings: "onum" 1, "lnum" 0, "kern" 1;
+    font-size: clamp(3.6rem, 8vw, 5.4rem);
+    line-height: 0.86;
+    color: var(--accent-deep);
+    letter-spacing: -0.02em;
+  }
+  .mp__seal-month {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-top: 0.5rem;
+    white-space: nowrap;
+  }
+  .mp__head-body { min-width: 0; }
+  .mp__meta { margin: 0 0 1.1rem; font-family: var(--sans); }
+  .mp__kind {
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  @media (max-width: 560px) {
+    .mp__masthead {
+      grid-template-columns: 1fr;
+      grid-template-areas: "eyebrow" "seal" "head";
+      row-gap: 1.1rem;
+    }
+    .mp__seal { flex-direction: row; align-items: baseline; gap: 0.6rem; padding-top: 0; }
+    .mp__seal-month { margin-top: 0; }
+  }
+  .mp__title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(2.3rem, 5vw, 3.6rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0 0 1rem;
+    text-wrap: balance;
+    font-feature-settings: "onum" 1, "lnum" 0, "kern" 1;
+  }
+  .mp__desc {
+    margin: 0 0 1.1rem;
+    color: var(--ink-soft);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.05rem, 1.7vw, 1.2rem);
+    line-height: 1.55;
+    max-width: 38rem;
+  }
+  .mp__actions { margin: 1.4rem 0 0; }
+
+  .message-page__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+  .mp__main { min-width: 0; }
+  @media (min-width: 1100px) {
+    .message-page__layout {
+      grid-template-columns: var(--mp-rail) minmax(0, 1fr);
+      gap: var(--mp-gap);
+      align-items: start;
+    }
+    .message-page > .mp__pager { margin-left: calc(var(--mp-rail) + var(--mp-gap)); }
+  }
+
+  /* ─── related video widget ─────────────────────────────────────────── */
+  .mp__related {
+    margin-top: 3.5rem;
+    padding-top: 1.6rem;
+    border-top: 1px solid var(--rule);
+  }
+  .mp__related-h {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0 0 1.5rem;
+  }
+  .mp__related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+    gap: 2rem 1.7rem;
+    /* A single related video shouldn't stretch into a lonely full-width band;
+       cap the first row so one card keeps a poster's natural proportion. */
+    max-width: 760px;
+  }
+  /* The card's catalog number ("62") is an internal editorial handle, arbitrary
+     to a reader arriving from a letter — drop it here. */
+  .mp__related-grid :global(.vid__num) { display: none; }
+
+  /* ─── pager ────────────────────────────────────────────────────────── */
+  .mp__pager {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1.2rem;
+    margin-top: 3.5rem;
+    padding-top: 1.6rem;
+    border-top: 1px solid var(--rule);
+  }
+  .mp__pager-slot--next { justify-self: end; text-align: right; }
+  .mp__pager-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    text-decoration: none;
+    color: var(--ink-soft);
+    font-family: var(--sans);
+  }
+  .mp__pager-arrow { color: var(--ink-mute); font-size: 1.5rem; line-height: 1; }
+  .mp__pager-link:hover .mp__pager-arrow { color: var(--accent); }
+  .mp__pager-text { display: grid; gap: 1px; }
+  .mp__pager-date {
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    font-variant-numeric: oldstyle-nums proportional-nums;
+  }
+  .mp__pager-title {
+    font-family: var(--serif);
+    font-size: 1.02rem;
+    line-height: 1.2;
+    color: var(--ink);
+    transition: color 0.18s var(--ease);
+  }
+  .mp__pager-link:hover .mp__pager-title { color: var(--accent); }
+  .mp__pager-all {
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 0.18s var(--ease);
+  }
+  .mp__pager-all:hover { color: var(--accent); }
+  @media (max-width: 640px) {
+    .mp__pager { grid-template-columns: 1fr; gap: 1.4rem; }
+    .mp__pager-slot--next { justify-self: start; text-align: left; }
+    .mp__pager-link--next { flex-direction: row-reverse; }
+    .mp__pager-all { order: 3; justify-self: center; }
+  }
+</style>
