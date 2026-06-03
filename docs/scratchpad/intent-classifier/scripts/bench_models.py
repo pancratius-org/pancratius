@@ -53,11 +53,12 @@ CANDIDATES = {
 
 # The PROBLEMATIC overlap: panel regressions, never-solved, big gains, AND the prose-bearing
 # regions (so prose-recall / the costly over-lineation error is actually measurable).
+# g23_b17 is HELD OUT (used as a few-shot prose example), so the prose guardrail is g09+g10.
 PROBLEM_RIDS = [
     "g00_b64_t2", "g29_b69_t0", "g05_b37", "g18_b60_t3",        # regressions (lineated)
     "g22_b31_t5", "g24_b28", "g31_b13", "g33_b66",              # never solved (lineated, 0/x)
     "g00_b64_t1", "g34_b63", "g27_b67_t2",                      # big gains (lineated, contrast)
-    "g09_b16_t2", "g23_b17", "g10_b19",                         # the PROSE lines (costly error)
+    "g09_b16_t2", "g10_b19",                                    # the PROSE guardrail (costly error)
 ]
 # incumbent panel readers to show alongside the candidates (scored from their phaseb labels).
 INCUMBENTS = ["grok", "deepseek", "gemini"]
