@@ -54,7 +54,7 @@ def main() -> int:
         keys = [k for k in truth if k in old[t] and k in new[t]]
         pk = [k for k in keys if truth[k] == "prose"]
         lk = [k for k in keys if truth[k] == "lineated"]
-        def r(d, ks, lab):
+        def r(d: dict, ks: list, lab: str) -> float:
             return (sum(d[k] == lab for k in ks) / len(ks)) if ks else float("nan")
         po, pn = r(old[t], pk, "prose"), r(new[t], pk, "prose")
         lo, ln = r(old[t], lk, "lineated"), r(new[t], lk, "lineated")
@@ -62,32 +62,37 @@ def main() -> int:
         print(f"{t:9} {len(keys):>4} | n_p={len(pk):>2} {po:>4.0%} {pn:>4.0%} "
               f"| n_l={len(lk):>3} {lo:>4.0%} {ln:>4.0%} | {bo:>4.0%} {bn:>4.0%}")
 
-    # panel majority per region
-    def maj(votes):
-        return "lineated" if votes.count("lineated") > len(votes) / 2 else "prose"
+    # panel majority per region — a TIE is an abstain (None), NOT a prose decision (Codex)
+    def maj(votes: list[str]) -> str | None:
+        nl, np_ = votes.count("lineated"), votes.count("prose")
+        return None if nl == np_ else ("lineated" if nl > np_ else "prose")
     regions: dict[str, list] = {}
     for k in truth:
         regions.setdefault(truth_region[k], []).append(k)
-    print("\n== PER REGION (panel majority correct, OLD -> NEW) — biggest moves ==")
+    print("\n== PER REGION (panel majority correct / ties, OLD -> NEW) — biggest moves ==")
     rows = []
     for rid, keys in regions.items():
-        oc = nc = n = 0
+        oc = nc = n = oties = nties = 0
         for k in keys:
             ov = [old[t][k] for t in READERS if k in old[t]]
             nv = [new[t][k] for t in READERS if k in new[t]]
             if not ov or not nv:
                 continue
             n += 1
-            oc += maj(ov) == truth[k]
-            nc += maj(nv) == truth[k]
+            om, nm = maj(ov), maj(nv)
+            oties += om is None
+            nties += nm is None
+            oc += om == truth[k]
+            nc += nm == truth[k]
         if n:
-            rows.append((nc - oc, rid, oc, nc, n, truth[keys[0]]))
-    for d, rid, oc, nc, n, lab in sorted(rows):
+            rows.append((nc - oc, rid, oc, nc, n, oties, nties, truth[keys[0]]))
+    for d, rid, oc, nc, n, ot, nt, lab in sorted(rows):
         flag = "  <== REGRESSION" if d < 0 else ("  (gain)" if d > 0 else "")
-        print(f"  {rid:16} {lab:8} {oc:>2}/{n} -> {nc:>2}/{n}  ({d:+d}){flag}")
+        print(f"  {rid:16} {lab:8} {oc:>2}/{n}(t{ot}) -> {nc:>2}/{n}(t{nt})  ({d:+d}){flag}")
 
     # grok indent-bias: of grok's regressions (old right, new wrong), how many indented?
     import glob
+
     import ir_view as iv
     keys_g = [k for k in truth if k in old["grok"] and k in new["grok"]]
     regr = [k for k in keys_g if old["grok"][k] == truth[k] and new["grok"][k] != truth[k]]

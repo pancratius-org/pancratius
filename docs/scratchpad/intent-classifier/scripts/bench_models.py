@@ -5,7 +5,8 @@ Parallel across model x region (ThreadPoolExecutor — the panel's sequential ur
 Reports per model: coverage, parse failures, latency, token cost, prose-recall, lineated-recall,
 balanced accuracy; and per-region panel-vs-model deltas. Does NOT touch the gold or the rebuild.
 
-Run: uv run --with python-dotenv --with requests python bench_models.py
+Run: uv run --with python-dotenv --with requests --with pillow python bench_models.py
+(requests for the API, pillow for composite image encoding, python-dotenv for the key.)
 """
 from __future__ import annotations
 
@@ -30,12 +31,14 @@ ADJ = HERE.parent / "adjudicate"
 # composite image + structure; vision=False sends the per-line structure only (text-reader path,
 # how deepseek/owl run in the panel). deepseek is probed in BOTH modes to see if the image helps.
 CANDIDATES = {
-    "qwen3": ("qwen/qwen3-235b-a22b-2507", True),
-    "glm": ("z-ai/glm-4.7-flash", True),
-    "nemotron": ("nvidia/nemotron-3-super-120b-a12b", True),
+    # qwen3/glm/nemotron/ring are TEXT-ONLY LLMs — they reject the composite image, so they
+    # are run text-only (structure listing). gemini/step/perceptron are multimodal.
+    "qwen3": ("qwen/qwen3-235b-a22b-2507", False),
+    "glm": ("z-ai/glm-4.7-flash", False),
+    "nemotron": ("nvidia/nemotron-3-super-120b-a12b", False),
+    "ring": ("inclusionai/ring-2.6-1t", False),
     "step": ("stepfun/step-3.7-flash", True),
     "perceptron": ("perceptron/perceptron-mk1", True),
-    "ring": ("inclusionai/ring-2.6-1t", True),
     "gemini-lite": ("google/gemini-3.1-flash-lite", True),
     "gemini-flash": ("google/gemini-3.5-flash", True),
     # deepseek both modes (flash = the incumbent text reader; pro = the new tier)
@@ -140,15 +143,25 @@ def main() -> int:
     meta: dict[str, dict] = {tag: {"lat": [], "ptok": 0, "ctok": 0, "cost": 0.0,
                                    "fail": 0, "parsefail": 0} for tag in args.models}
 
-    def work(tag, model, vision, e):
+    def work(tag: str, model: str, vision: bool, e: dict) -> tuple:
         ask = build_ask(brief, e, vision)
-        res = call(key, model, ask, imgs[e["rid"]] if vision else None)
-        return tag, e, res
+        img = imgs[e["rid"]] if vision else None
+        res = call(key, model, ask, img)
+        if res.get("finish_reason") == "length" and not res["error"]:
+            res = call(key, model, ask, img, max_tokens=16384)   # truncated → bigger budget, one retry
+        return tag, vision, e, res
 
+    bdir = data / "bench"
+    bdir.mkdir(exist_ok=True)
+    raw_log: list[dict] = []   # every call's raw reply + metadata, for audit (Codex: too lossy before)
     with ThreadPoolExecutor(max_workers=10) as ex:
         futs = [ex.submit(work, t, m, v, e) for (t, m, v, e) in jobs]
         for fut in as_completed(futs):
-            tag, e, res = fut.result()
+            tag, vision, e, res = fut.result()
+            raw_log.append({"tag": tag, "rid": e["rid"], "vision": vision,
+                            "finish_reason": res.get("finish_reason"), "error": res["error"],
+                            "usage": res.get("usage") or {}, "latency": round(res["latency"], 2),
+                            "content": res["content"]})
             mt = meta[tag]
             mt["lat"].append(res["latency"])
             u = res.get("usage") or {}
@@ -173,12 +186,12 @@ def main() -> int:
             if not got:
                 mt["parsefail"] += 1
 
-    # persist labels
-    bdir = data / "bench"
-    bdir.mkdir(exist_ok=True)
+    # persist labels + the full raw log (replies, finish_reason, errors, usage, latency)
     for tag in args.models:
         (bdir / f"reader_{tag}.jsonl").write_text(
             "\n".join(json.dumps(r, ensure_ascii=False) for r in results[tag]) + "\n")
+    (bdir / "raw_replies.jsonl").write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in raw_log) + "\n")
 
     # score
     truth = load_truth()
@@ -187,13 +200,16 @@ def main() -> int:
     n_prose = sum(truth[k] == "prose" for k in tkeys)
     n_lin = sum(truth[k] == "lineated" for k in tkeys)
     print(f"\nproblematic truth lines: {len(tkeys)} ({n_prose} prose, {n_lin} lineated)\n")
+    all_p = [k for k in tkeys if truth[k] == "prose"]
+    all_l = [k for k in tkeys if truth[k] == "lineated"]
+
     def metrics(lab: dict) -> tuple[float, float, float, float]:
-        pk = [k for k in tkeys if truth[k] == "prose" and k in lab]
-        lk = [k for k in tkeys if truth[k] == "lineated" and k in lab]
+        # recall denominators are ALL class keys (a MISSING label counts as wrong), so a model
+        # cannot look good by skipping hard/prose regions (Codex). Coverage is also reported.
         cov = len([k for k in tkeys if k in lab]) / len(tkeys) if tkeys else 0.0
-        pr = sum(lab[k] == "prose" for k in pk) / len(pk) if pk else float("nan")
-        lr = sum(lab[k] == "lineated" for k in lk) / len(lk) if lk else float("nan")
-        bal = (pr + lr) / 2 if pk and lk else float("nan")
+        pr = sum(lab.get(k) == "prose" for k in all_p) / len(all_p) if all_p else float("nan")
+        lr = sum(lab.get(k) == "lineated" for k in all_l) / len(all_l) if all_l else float("nan")
+        bal = (pr + lr) / 2
         return cov, pr, lr, bal
 
     print(f"{'model':12} {'cov':>5} {'pfail':>5} {'lat(s)':>7} {'ptok':>7} {'ctok':>6} "

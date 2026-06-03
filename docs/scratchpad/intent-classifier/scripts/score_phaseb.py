@@ -69,16 +69,23 @@ def main() -> int:
             panel_old.setdefault(k, []).append(old[k])
             panel_new.setdefault(k, []).append(new[k])
 
-    # panel majority vote per line (ties → prose, the safe default)
-    def majority(votes: list[str]) -> str:
-        return "lineated" if votes.count("lineated") > len(votes) / 2 else "prose"
+    # panel majority vote per line. A TIE is an ABSTAIN (None), not a prose decision (Codex):
+    # in this set 48 keys tie, 47 of them truly lineated, so scoring ties as prose understates
+    # lineated-recall badly. Report accuracy over DECIDED lines + the tie count separately.
+    def majority(votes: list[str]) -> str | None:
+        nl, np_ = votes.count("lineated"), votes.count("prose")
+        return None if nl == np_ else ("lineated" if nl > np_ else "prose")
 
     common = [k for k in truth if k in panel_old and k in panel_new]
     if common:
-        oa = sum(majority(panel_old[k]) == truth[k] for k in common) / len(common)
-        na = sum(majority(panel_new[k]) == truth[k] for k in common) / len(common)
-        print(f"\nPANEL majority vote over {len(common)} lines: "
-              f"OLD {oa:.1%} -> NEW {na:.1%} ({na - oa:+.1%})")
+        def decided_acc(panel: dict) -> tuple[float, int]:
+            dec = [k for k in common if majority(panel[k]) is not None]
+            acc = sum(majority(panel[k]) == truth[k] for k in dec) / len(dec) if dec else 0.0
+            return acc, len(common) - len(dec)
+        oa, ot = decided_acc(panel_old)
+        na, nt = decided_acc(panel_new)
+        print(f"\nPANEL majority over {len(common)} lines (ties excluded as abstain): "
+              f"OLD {oa:.1%} ({ot} ties) -> NEW {na:.1%} ({nt} ties)")
     return 0
 
 
