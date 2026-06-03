@@ -26,10 +26,13 @@
 interface Props {
   /** Extra register class(es) appended after the base `prose` class. */
   class?: string;
+  /** Mark the body so a `<LeadParagraph>` can promote the opening paragraph to
+   *  a drop-cap lead (opt-in; the heuristic guards short fragments). */
+  leadable?: boolean;
 }
 
-const { class: extraClass } = Astro.props;
+const { class: extraClass, leadable } = Astro.props;
 ---
-<div class:list={["prose", extraClass]}>
+<div class:list={["prose", extraClass]} data-leadable={leadable ? "" : undefined}>
   <slot />
 </div>

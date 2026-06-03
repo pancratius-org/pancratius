@@ -32,9 +32,9 @@ for (const loc of authoredLocales) {
 
 const useToc = headings.some(h => h.depth >= 2 && h.depth <= 3);
 ---
-<Base locale={locale} seo={seo} alternates={alternates}>
-  <PageShell {...pageShellProps(page, useToc ? "static--with-toc" : undefined)}>
-    {useToc && <TableOfContents headings={headings} locale={locale} />}
+<Base {locale} seo={seo} alternates={alternates}>
+  <PageShell {...pageShellProps(page, useToc ? "static--with-toc" : undefined)} width="text">
+    {useToc && <TableOfContents headings={headings} {locale} />}
     <Prose class="prose--svet"><Content /></Prose>
   </PageShell>
 </Base>

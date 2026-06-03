@@ -2,8 +2,11 @@
 import { render } from "astro:content";
 
 import Base from "@/layouts/Base.astro";
+import Column from "@/components/Column.astro";
 import Colophon from "@/components/Colophon.astro";
 import WorkDownloadActions from "@/components/WorkDownloadActions.astro";
+import Share from "@/components/Share.astro";
+import BackLink from "@/components/BackLink.astro";
 
 import { coverAbsoluteUrl } from "@/lib/covers";
 import type { Locale } from "@/lib/i18n";
@@ -34,9 +37,9 @@ const seo = seoForWork(Astro.site, {
 const backHref = kindIndexUrl("poem", locale);
 const date = poemDate(entry);
 ---
-<Base locale={locale} seo={seo}>
-  <article class="poem-page">
-    <a class="poem-page__back" href={backHref}>{copy.back}</a>
+<Base {locale} seo={seo}>
+  <Column as="article" size="text" class="poem-page">
+    <BackLink href={backHref} label={copy.back} />
 
     <header class="poem-page__head">
       <p class="poem-page__meta">
@@ -45,7 +48,10 @@ const date = poemDate(entry);
         {date && <time datetime={date}>· {date}</time>}
       </p>
       <h1 class="poem-page__title">{entry.data.title}</h1>
-      <WorkDownloadActions pair={pair} entry={entry} locale={locale} copy={copy} downloadAttribute />
+      <div class="poem-page__actions">
+        <WorkDownloadActions {pair} {entry} {locale} downloadAttribute />
+        <Share {locale} />
+      </div>
     </header>
 
     <div
@@ -58,22 +64,11 @@ const date = poemDate(entry);
 
     <div class="poem-page__end" aria-hidden="true">·  ·  ·</div>
 
-    <Colophon pair={pair} locale={locale} />
-  </article>
+    <Colophon {pair} {locale} />
+  </Column>
 </Base>
 
 <style>
-  .poem-page { max-width: 50rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
-  .poem-page__back {
-    font-family: var(--sans);
-    font-size: 12.5px;
-    letter-spacing: 0.08em;
-    color: var(--ink-mute);
-    display: inline-block;
-    margin-bottom: 2.5rem;
-    text-decoration: none;
-  }
-  .poem-page__back:hover { color: var(--accent); }
   .poem-page__head { margin-bottom: 2rem; }
   .poem-page__meta {
     font-family: var(--sans);
@@ -102,12 +97,19 @@ const date = poemDate(entry);
     margin: 0;
     letter-spacing: -0.012em;
   }
+  .poem-page__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.45rem 1.1rem;
+    margin: 1.2rem 0 0;
+  }
   .poem-page__head :global(.work-actions) {
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem;
     align-items: baseline;
-    margin: 1.2rem 0 0;
+    margin: 0;
     font-family: var(--sans);
     font-size: 12px;
     letter-spacing: 0.08em;

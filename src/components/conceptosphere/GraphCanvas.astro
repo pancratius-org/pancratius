@@ -75,18 +75,18 @@ const configJson = jsonForScript({
     </noscript>
   </div>
 
-  <Legend locale={locale} />
+  <Legend {locale} />
 
   <div class="cs-modebar">
-    <ModeToggle variant="desktop" locale={locale} activeMode={initialMode} />
+    <ModeToggle variant="desktop" {locale} activeMode={initialMode} />
     <SearchInput
       variant="desktop"
-      locale={locale}
+      {locale}
       placeholder={initialPlaceholder}
     />
   </div>
 
-  <SidePanel locale={locale} />
+  <SidePanel {locale} />
 </section>
 
 <!-- The config payload is materialised into a JSON island so the TS module

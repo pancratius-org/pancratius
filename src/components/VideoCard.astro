@@ -2,7 +2,7 @@
 import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE, routedUrl } from "@/lib/i18n";
 import { authoredVideoPairs, displayVideoEntry, formatDuration, videoTags, type VideoPair } from "@/lib/videos";
-import { videoCardCopy } from "@/lib/i18n/copy";
+import { videoCardCopy, localeBadge } from "@/lib/i18n/copy";
 import VideoCover from "./VideoCover.astro";
 
 interface Props {
@@ -33,13 +33,13 @@ const duration = formatDuration(entry.data.duration);
   data-tags={tags.join("|")}
   data-number={pair.number}
 >
-  <VideoCover pair={pair} locale={locale} alt={`${altPrefix}: ${entry.data.title}`} badge={duration} />
+  <VideoCover {pair} {locale} alt={`${altPrefix}: ${entry.data.title}`} badge={duration} />
   <div class="vid__body">
     <span class="vid__num">{String(pair.number).padStart(2, "0")}</span>
     <h2 class="vid__title">{entry.data.title}</h2>
     {blurb && <p class="vid__annot">{blurb}</p>}
-    {hasTranslationBadge && <span class="vid__lang">{copy.bothLangsBadge}</span>}
-    {localeFallback && <span class="vid__lang vid__lang--fallback">{copy.fallbackBadge}</span>}
+    {hasTranslationBadge && <span class="vid__lang">{localeBadge.both}</span>}
+    {localeFallback && <span class="vid__lang vid__lang--fallback">{localeBadge.russianOnly}</span>}
   </div>
 </a>
 

@@ -64,19 +64,21 @@
   --sans:  "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
   --mono:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-  /* Reading measure.
-     `--measure` is the body-prose target: ~60 Cyrillic characters per
-     line, the classic editorial range for Russian. `ch` units measure
-     the width of the `0` glyph, which differs per font-size, so when
-     two surfaces with DIFFERENT font sizes share `var(--measure)` they
-     resolve to DIFFERENT pixel widths — and the eye sees the two
-     columns as unrelated. For surfaces that have to align visually
-     (the book-page description vs the prose body directly below it),
-     use `--book-measure` (a fixed rem) instead, so both produce the
-     exact same column width. */
-  --measure:        60ch;
-  --measure-wide:   70ch;
-  --book-measure:   38rem;
+  /* Column scale — the single source of horizontal reading widths.
+     Width is OWNED by a column element (the <Column> primitive, PageShell's
+     `.static`, or a page's own top-level wrapper). Flowing content — `.prose`,
+     lists, search results — FILLS its column and never sets its own
+     `max-width`, so a page's masthead and its body, sharing one size, line up
+     at the same edge. The scale is fixed rem, never `ch`: a `ch` width
+     resolves to different pixels at different font sizes, so two surfaces
+     sharing a `ch` token drift out of alignment. Reach for a size here rather
+     than writing a bare `Nrem` cap on a container. (A deliberate decorative
+     inset narrower than its column — an epigraph, a pull-quote — is a
+     different thing and may still set its own width.) */
+  --col-text:   38rem;  /* single reading column — poem / essay / message body + its masthead */
+  --col-page:   50rem;  /* informational single column — license, downloads, search */
+  --col-wide:   64rem;  /* two-column reading layout — ToC rail + body */
+  --col-bleed:  72rem;  /* widest canvas — landing and index grids */
   --gutter:       clamp(1.25rem, 4vw, 2.75rem);
   --rail:         clamp(1.25rem, 5vw, 3.5rem);
   --ease:         cubic-bezier(0.2, 0.6, 0.2, 1);

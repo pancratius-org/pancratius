@@ -1,9 +1,9 @@
 ---
 import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE, downloadUrl, pageUrl, workUrl } from "@/lib/i18n";
-import { colophonCopy } from "@/lib/i18n/copy";
+import { colophonCopy, downloadLabelCopy } from "@/lib/i18n/copy";
 import { defaultWorkEntry, entryForAuthoredLocale, type WorkPair } from "@/lib/works";
-import { availableFormatsForWork, type DownloadFormat } from "@/lib/downloads";
+import { availableFormatsForWork, FORMAT_LABEL, type DownloadFormat } from "@/lib/downloads";
 
 interface Props {
   pair:   WorkPair;
@@ -23,14 +23,6 @@ const formats: DownloadFormat[] = availableFormatsForWork(pair, locale);
 const licenseHref = pageUrl("license", locale);
 
 const copy = colophonCopy[locale];
-
-const FORMAT_LABEL: Record<DownloadFormat, string> = {
-  md:   "Markdown",
-  txt:  "TXT",
-  docx: "DOCX",
-  pdf:  "PDF",
-  epub: "EPUB",
-};
 ---
 <aside class="colophon">
   {entry.data.translation.source === "ai" && (
@@ -39,7 +31,7 @@ const FORMAT_LABEL: Record<DownloadFormat, string> = {
     </p>
   )}
   <p class="row">
-    <b>{copy.download}</b>{" "}
+    <b>{downloadLabelCopy[locale]}</b>{" "}
     {formats.map((fmt, i) => (
       <>
         {i > 0 && " · "}
@@ -54,7 +46,7 @@ const FORMAT_LABEL: Record<DownloadFormat, string> = {
 
 <style>
   .colophon {
-    max-width: var(--measure);
+    max-width: var(--col-text);
     margin: 4rem 0 0;
     padding: 1.5rem 0 0;
     border-top: 1px solid var(--rule);

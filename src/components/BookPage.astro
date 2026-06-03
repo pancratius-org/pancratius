@@ -7,9 +7,15 @@ import Colophon from "@/components/Colophon.astro";
 import SimilarPair from "@/components/SimilarPair.astro";
 import TableOfContents from "@/components/TableOfContents.astro";
 import WorkDownloadActions from "@/components/WorkDownloadActions.astro";
+import Share from "@/components/Share.astro";
+import BackLink from "@/components/BackLink.astro";
+import TagRow from "@/components/TagRow.astro";
+import LeadParagraph from "@/components/LeadParagraph.astro";
+import Pager from "@/components/Pager.astro";
 
 import type { Locale } from "@/lib/i18n";
 import { kindIndexUrl, workUrl } from "@/lib/i18n";
+import { neighbors } from "@/lib/neighbors";
 import { bookPageCopy } from "@/lib/i18n/copy";
 import { coverAbsoluteUrl } from "@/lib/covers";
 import { seoForWork } from "@/lib/seo";
@@ -50,22 +56,19 @@ const backHref = kindIndexUrl("book", locale);
 const allBookPairs = await getPairsByKind("book");
 // Existence: the pager only walks books that exist in the current locale.
 const pagerPairs = localizedWorkPairs(allBookPairs, locale);
-const here = pagerPairs.findIndex(({ pair: p }) => p.number === pair.number);
-const prev = here > 0 ? pagerPairs[here - 1] : null;
-const next = here >= 0 && here < pagerPairs.length - 1 ? pagerPairs[here + 1] : null;
+const { prev, next } = neighbors(pagerPairs, pair.number);
 const number = String(pair.number).padStart(2, "0");
+const pad = (n: number) => String(n).padStart(2, "0");
 ---
-<Base locale={locale} seo={seo}>
+<Base {locale} seo={seo}>
   <article class="book-page">
-    <a class="book-page__back" href={backHref}>
-      {copy.back(pagerPairs.length)}
-    </a>
+    <BackLink href={backHref} label={copy.back(pagerPairs.length)} />
 
     <header class="book-page__masthead">
       <p class="book-page__meta">{copy.meta}</p>
 
       <div class="book-page__cover">
-        <BookCover pair={pair} locale={locale} alt={copy.coverAlt(entry.data.title)} loading="eager" />
+        <BookCover {pair} {locale} alt={copy.coverAlt(entry.data.title)} loading="eager" />
       </div>
       <div class="book-page__body">
         <div class="book-page__num" aria-hidden="true">{number}</div>
@@ -73,17 +76,16 @@ const number = String(pair.number).padStart(2, "0");
           <span class="sr-only">{copy.srPrefix(number)}</span>{entry.data.title}
         </h1>
         <p class="book-page__description">{entry.data.description}</p>
-        {tags.length > 0 && (
-          <p class="book-page__tags">
-            {tags.map(t => <span>{t}</span>)}
-          </p>
-        )}
-        <WorkDownloadActions pair={pair} entry={entry} locale={locale} copy={copy} />
+        <TagRow tags={tags} />
+        <div class="book-page__actions">
+          <WorkDownloadActions {pair} {entry} {locale} />
+          <Share {locale} />
+        </div>
       </div>
     </header>
 
     <div class="book-page__layout">
-      {useToc && <TableOfContents headings={headings} locale={locale} />}
+      {useToc && <TableOfContents headings={headings} {locale} />}
       <div
         class="prose"
         data-pagefind-body
@@ -94,47 +96,17 @@ const number = String(pair.number).padStart(2, "0");
       </div>
     </div>
 
-    <script is:inline>
-      (function () {
-        const prose = document.querySelector(".book-page .prose[data-leadable]");
-        if (!prose) return;
-        for (const child of Array.from(prose.children)) {
-          const tag = child.tagName;
-          if (tag === "H2" || tag === "H3" || tag === "H4" || tag === "HR") continue;
-          if (tag === "DIV" && child.classList.contains("verse-block")) continue;
-          if (tag === "BLOCKQUOTE" || tag === "FIGURE") return;
-          if (tag !== "P") continue;
-          if (child.className) continue;
-          const text = (child.textContent || "").trim();
-          if (text.length < 60) continue;
-          child.classList.add("lead");
-          return;
-        }
-      })();
-    </script>
+    <LeadParagraph />
 
-    <Colophon pair={pair} locale={locale} />
+    <Colophon {pair} {locale} />
 
-    {prev || next ? (
-      <nav class="book-page__pager" aria-label={copy.pagerAria}>
-        {prev && (
-          <a class="book-page__pager-link book-page__pager-link--prev" href={workUrl("book", prev.entry.data.slug, locale)}>
-            <span class="book-page__pager-arrow">←</span>
-            <span class="book-page__pager-num">{String(prev.pair.number).padStart(2, "0")}</span>
-            <span class="book-page__pager-title">{prev.entry.data.title}</span>
-          </a>
-        )}
-        {next && (
-          <a class="book-page__pager-link book-page__pager-link--next" href={workUrl("book", next.entry.data.slug, locale)}>
-            <span class="book-page__pager-num">{String(next.pair.number).padStart(2, "0")}</span>
-            <span class="book-page__pager-title">{next.entry.data.title}</span>
-            <span class="book-page__pager-arrow">→</span>
-          </a>
-        )}
-      </nav>
-    ) : null}
+    <Pager
+      ariaLabel={copy.pagerAria}
+      prev={prev && { href: workUrl("book", prev.entry.data.slug, locale), label: pad(prev.pair.number), title: prev.entry.data.title }}
+      next={next && { href: workUrl("book", next.entry.data.slug, locale), label: pad(next.pair.number), title: next.entry.data.title }}
+    />
 
-    <SimilarPair entry={entry} locale={locale} crossRefs={crossRefs} />
+    <SimilarPair {entry} {locale} crossRefs={crossRefs} />
   </article>
 </Base>
 
@@ -144,16 +116,6 @@ const number = String(pair.number).padStart(2, "0");
     margin: 0 auto;
     padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
   }
-  .book-page__back {
-    font-family: var(--sans);
-    font-size: 12.5px;
-    letter-spacing: 0.08em;
-    color: var(--ink-mute);
-    display: inline-block;
-    margin-bottom: 2.5rem;
-    text-decoration: none;
-  }
-  .book-page__back:hover { color: var(--accent); }
 
   .book-page__masthead {
     display: grid;
@@ -237,18 +199,16 @@ const number = String(pair.number).padStart(2, "0");
     font-size: clamp(1rem, 1.6vw, 1.12rem);
     line-height: 1.6;
   }
-  .book-page__layout .prose { max-width: none; }
-  .book-page__tags {
-    font-family: var(--sans);
-    font-size: 12px;
-    letter-spacing: 0.06em;
-    color: var(--ink-mute);
-    margin: 0;
-  }
-  .book-page__tags span + span::before { content: " · "; color: var(--rule-2); }
 
-  .book-page__body :global(.work-actions) {
+  .book-page__actions {
     margin: 0.9rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5em 1.1rem;
+  }
+  .book-page__body :global(.work-actions) {
+    margin: 0;
     font-family: var(--sans);
     font-size: 12.5px;
     color: var(--ink-soft);
@@ -284,7 +244,7 @@ const number = String(pair.number).padStart(2, "0");
       align-items: start;
     }
     .book-page > :global(.colophon),
-    .book-page > .book-page__pager,
+    .book-page > :global(.pager),
     .book-page > :global(.sim) {
       margin-left: calc(220px + 3rem);
     }

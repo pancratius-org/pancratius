@@ -25,11 +25,19 @@ interface Props {
   sub?: string;
   /** Extra layout class(es) on the `<article>` (e.g. a route's bespoke grid). */
   class?: string;
+  /**
+   * Column width from the `--col-*` scale. `page` (default) is the
+   * informational column (license); `text` is the single reading column,
+   * where the masthead and the body share the reading measure (mission,
+   * svetozar). A `static--with-toc` layout owns its own width on top of this.
+   */
+  width?: "text" | "page" | "wide";
 }
 
-const { title, eyebrow, sub, class: extraClass } = Astro.props;
+const { title, eyebrow, sub, class: extraClass, width = "page" } = Astro.props;
+const widthClass = width === "text" ? "static--read" : width === "wide" ? "static--wide" : undefined;
 ---
-<article class:list={["static", extraClass]}>
+<article class:list={["static", widthClass, extraClass]}>
   <header class="static__head">
     {eyebrow && <p class="eyebrow eyebrow--lg">{eyebrow}</p>}
     <h1 class="static__title">{title}</h1>
@@ -41,13 +49,17 @@ const { title, eyebrow, sub, class: extraClass } = Astro.props;
 
 <style>
   .static {
-    max-width: 44rem;
+    max-width: var(--col-page);
     margin: 0 auto;
     padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
     display: grid;
     grid-template-columns: 1fr;
     gap: 2.5rem;
   }
+  /* Single reading column: the masthead and the body share the reading
+     measure, so their edges align (no wide masthead over a narrow body). */
+  .static--read { max-width: var(--col-text); }
+  .static--wide { max-width: var(--col-wide); }
   .static__head { margin-bottom: 0.5rem; }
   .static__title {
     font-family: var(--serif);
@@ -74,11 +86,15 @@ const { title, eyebrow, sub, class: extraClass } = Astro.props;
      never use this variant. */
   @media (min-width: 1100px) {
     .static--with-toc {
-      grid-template-columns: 220px 1fr;
+      /* The body track is pinned to the reading measure (`--col-text`), so the
+         prose column matches the single-column reading pages; the rail takes
+         the slack. `max-content` shrink-wraps rail + body and `margin: auto`
+         centres the pair. */
+      grid-template-columns: 13.75rem var(--col-text);
       grid-template-areas:
         "head head"
         "toc  body";
-      max-width: 64rem;
+      max-width: max-content;
       gap: 2.5rem 3rem;
     }
     .static--with-toc .static__head { grid-area: head; }

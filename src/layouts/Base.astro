@@ -43,11 +43,11 @@ const switcherAlternates = alternates ?? switcherAlternatesFromSeo(seo);
   </head>
   <body>
     <a href="#main" class="skip">{copy.skip}</a>
-    <Header locale={locale} currentPath={currentPath} alternates={switcherAlternates} />
+    <Header {locale} currentPath={currentPath} alternates={switcherAlternates} />
     <main id="main" class={mainClass}>
       <slot />
     </main>
-    <Footer locale={locale} />
+    <Footer {locale} />
 
     <script is:inline>
       // Share buttons (`<button data-share>`). Try the Web Share API first
