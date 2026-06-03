@@ -25,6 +25,26 @@ export const chromeCopy = {
   },
 } satisfies Record<Locale, ChromeCopy>;
 
+// Sharing the current page's URL — a chrome-level affordance every detail page
+// carries, independent of whether the page also offers downloads.
+export interface ShareCopy {
+  label: string;
+  copied: string;
+  failed: string;
+}
+
+export const shareCopy = {
+  ru: { label: "Поделиться", copied: "Скопировано", failed: "Не получилось" },
+  en: { label: "Share", copied: "Copied", failed: "Failed" },
+} satisfies Record<Locale, ShareCopy>;
+
+// Corpus-language badges on cards: which locales a work exists in. These name
+// the *corpus's* languages, not the UI's, so they read the same in any locale.
+export const localeBadge = {
+  both: "RU · EN",
+  russianOnly: "Russian only",
+} as const;
+
 export interface FooterCopy {
   cc0_before: string;
   cc0_link: string;
