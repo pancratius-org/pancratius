@@ -146,9 +146,12 @@ def _block_html(members: list[iv.Para], cls: RenderClass) -> str:
     wrap_cls = "lineated verse" if cls == "verse" else "lineated"
     out = [f'<div class="{wrap_cls}">']
     for s in stanzas:
-        lines = "<br>\n".join(_emph(ln) for p in s for ln in p.lines)
-        indent = si if (s and all(p.indented for p in s)) else ""   # indent a wholly-indented stanza
-        out.append(f"<p{indent}>{lines}</p>")
+        # indent PER SOURCE PARAGRAPH, not per stanza: in a mixed stanza the indented
+        # paragraph's lines shift while a non-indented neighbour stays at the margin, so the
+        # selective source-indent cue survives. Stanza grouping/gaps are unchanged (one <p>).
+        parts = [f'<span style="padding-left:1.6em">{_emph(ln)}</span>' if p.indented else _emph(ln)
+                 for p in s for ln in p.lines]
+        out.append("<p>" + "<br>\n".join(parts) + "</p>")
     out.append("</div>")
     return "\n".join(out)
 
