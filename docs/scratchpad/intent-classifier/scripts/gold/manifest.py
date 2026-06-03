@@ -64,7 +64,8 @@ class Manifest:
     git_sha: str | None = None
     git_dirty: bool | None = None
     brief_sha256: str | None = None        # the frozen v5 reader brief
-    raw_replies_sha256: str | None = None  # the panel's raw reply log (every model output)
+    reps_sha256: str | None = None         # digest of the EXACT rep files this run consumed
+    raw_replies_sha256: str | None = None  # this run's filtered raw reply log (every model output)
     models: dict[str, str] = field(default_factory=dict)        # reader tag → OpenRouter model id
     docx_digests: dict[str, str] = field(default_factory=dict)  # book → sha256 (whole file; §2.2)
     gates: dict[str, object] = field(default_factory=dict)
@@ -94,6 +95,7 @@ def build_manifest(
     gates: Gates,
     seed: int,
     sample_rids: Sequence[str],
+    reps_sha256: str | None = None,
     raw_replies: Path | None = None,
 ) -> Manifest:
     return Manifest(
@@ -101,6 +103,7 @@ def build_manifest(
         git_sha=git_sha(repo),
         git_dirty=git_dirty(repo),
         brief_sha256=sha256_file(brief) if brief.exists() else None,
+        reps_sha256=reps_sha256,
         raw_replies_sha256=sha256_file(raw_replies) if raw_replies and raw_replies.exists() else None,
         models=dict(models),
         docx_digests={book: sha256_file(p) for book, p in docx_paths.items() if p.exists()},
