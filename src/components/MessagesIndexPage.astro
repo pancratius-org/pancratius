@@ -1,0 +1,429 @@
+---
+import Base from "@/layouts/Base.astro";
+
+import type { Locale } from "@/lib/i18n";
+import { DEFAULT_LOCALE, kindIndexUrl, routedUrl } from "@/lib/i18n";
+import {
+  formatMessageDate,
+  messagesIndexCopy,
+  monthHeading,
+  WEEKDAYS_SHORT,
+  type MessagesIndexCopy,
+} from "@/lib/i18n/copy";
+import { seoForKindIndex, clampDescription } from "@/lib/seo";
+import {
+  buildCalendar,
+  getAllMessagePairs,
+  localizedMessagePairs,
+  todayISO,
+  type CalendarDay,
+  type LocalizedMessagePair,
+} from "@/lib/messages";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const copy: MessagesIndexCopy = messagesIndexCopy[locale];
+const allPairs = await getAllMessagePairs();
+const pairs = localizedMessagePairs(allPairs, locale);
+const seo = seoForKindIndex(Astro.site, "message", locale, { total: allPairs.length });
+const defaultHref = kindIndexUrl("message", DEFAULT_LOCALE);
+
+// A whisper of the letter beside its title — enough voice to choose by.
+const LETTER_BLURB = 120;
+
+const today = todayISO();
+const calendar = buildCalendar(pairs, today);
+
+// The almanac reads newest-month-first: it unrolls downward from the current
+// leaf, like leafing a месяцеслов backwards through the year.
+const feed = [...calendar.months].reverse();
+const currentKey = today.slice(0, 7);
+const weekdays = WEEKDAYS_SHORT[locale];
+
+type Day = CalendarDay<LocalizedMessagePair>;
+
+/** A month's marked days, newest first — the named feasts beside its grid. */
+function lettersOf(cells: readonly (Day | null)[]): Day[] {
+  return cells.filter((c): c is Day => c !== null && c.items.length > 0).reverse();
+}
+
+/** A lit day's target: its letter when alone, else the dated group it anchors. */
+function dayHref(day: Day): string {
+  if (day.items.length === 1) return routedUrl("message", day.items[0]!.entry.data.slug, locale);
+  return `#m-${day.iso}`;
+}
+function dayAria(day: Day): string {
+  return `${formatMessageDate(locale, day.iso, { withYear: true })} — ${copy.postsOnDay(day.items.length)}`;
+}
+---
+<Base {locale} seo={seo}>
+  <section class="page messages">
+    <p class="eyebrow eyebrow--lg">{copy.eyebrow}</p>
+    <div class="pl__head">
+      <h1><b>{pairs.length}</b> {copy.headingLabel(pairs.length)}</h1>
+      <p class="pl__sub">
+        {pairs.length > 0 ? copy.sub(pairs.length) : copy.emptySub}
+        {pairs.length === 0 && copy.fullCatalogLink && (
+          <Fragment> <a href={defaultHref}>{copy.fullCatalogLink}</a></Fragment>
+        )}
+      </p>
+    </div>
+
+    {pairs.length > 0 && (
+      <div class="almanac" aria-label={copy.calendarAria}>
+        {feed.map(month => {
+          const isCurrent = month.key === currentKey;
+          const heading = monthHeading(locale, month.year, month.month);
+
+          // A month with no letters never grows a grid — it rests as one quiet
+          // ruled line the eye glides past, so the almanac opens on writing.
+          if (month.itemCount === 0) {
+            return (
+              <div class:list={["rest", { "rest--now": isCurrent }]}>
+                <div class="rest__lead">
+                  {isCurrent && <span class="rest__now">{copy.todayChip}</span>}
+                  <h2 class="rest__mh">{heading}</h2>
+                </div>
+                <span class="rest__rule" aria-hidden="true"></span>
+                <span class="rest__tally">{copy.emptyMonth}</span>
+              </div>
+            );
+          }
+
+          const letters = lettersOf(month.cells);
+          return (
+            <article class:list={["month", { "month--now": isCurrent }]} data-month={month.key}>
+              <header class="month__head">
+                <div class="month__lead">
+                  <h2 class="month__mh">{heading}</h2>
+                  {isCurrent && <span class="month__now">{copy.todayChip}</span>}
+                </div>
+                <span class="month__rule" aria-hidden="true"></span>
+                <span class="month__tally">{copy.postsOnDay(month.itemCount)}</span>
+              </header>
+
+              <div class="month__body">
+                <div class="cal" aria-hidden="true">
+                  <div class="cal__wd">
+                    {weekdays.map(w => <span>{w}</span>)}
+                  </div>
+                  <div class="cal__grid">
+                    {month.cells.map(cell => (
+                      cell === null
+                        ? <span class="cal__pad"></span>
+                        : cell.items.length > 0
+                          ? <a
+                              class:list={["cal__day", "cal__day--lit", { "is-today": cell.isToday }]}
+                              href={dayHref(cell)}
+                              aria-label={dayAria(cell)}
+                            >
+                              <span class="cal__n">{cell.day}</span>
+                              <span class="cal__ember"></span>
+                            </a>
+                          : <span class:list={["cal__day", { "is-today": cell.isToday }]}>
+                              <span class="cal__n">{cell.day}</span>
+                            </span>
+                    ))}
+                  </div>
+                </div>
+
+                <ol class="letters">
+                  {letters.map(day => (
+                    <li class="letter" id={`m-${day.iso}`}>
+                      <time class="letter__date" datetime={day.iso}>
+                        {formatMessageDate(locale, day.iso)}
+                      </time>
+                      <div class="letter__items">
+                        {day.items.map(({ entry }) => (
+                          <a class="letter__link" href={routedUrl("message", entry.data.slug, locale)}>
+                            <span class="letter__title">{entry.data.title}</span>
+                            {entry.data.description && (
+                              <span class="letter__desc">
+                                {clampDescription(entry.data.description, LETTER_BLURB)}
+                              </span>
+                            )}
+                          </a>
+                        ))}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    )}
+  </section>
+</Base>
+
+<style>
+  .pl__head {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    margin-bottom: 3.4rem;
+  }
+  .pl__head h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(3rem, 7.4vw, 5.4rem);
+    line-height: 0.96;
+    margin: 0;
+    letter-spacing: -0.024em;
+  }
+  .pl__head h1 b {
+    font-weight: 500;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-style: italic;
+    color: var(--accent);
+  }
+  .pl__sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.05rem, 1.4vw, 1.2rem);
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 40rem;
+  }
+  .pl__sub :global(a) {
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+    text-underline-offset: 3px;
+  }
+  .pl__sub :global(a:hover) { color: var(--accent); }
+
+  /* ─── the almanac: printed leaves, ruled and open — not stacked cards ─── */
+  .almanac { margin-bottom: 4.5rem; }
+
+  /* A spent month: a single ruled line, title to tally, that one reads past. */
+  .rest {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: baseline;
+    gap: 0 0.9rem;
+    padding: 1.15rem 0;
+    border-top: 1px solid var(--rule);
+  }
+  /* Title + optional «сегодня» chip share one grid track, so the leader rule
+     and tally never shift when the chip is absent. */
+  .rest__lead, .month__lead {
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    min-width: 0;
+  }
+  .rest__mh {
+    margin: 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(1.15rem, 2.4vw, 1.45rem);
+    color: var(--ink-mute);
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-feature-settings: "onum" 1, "lnum" 0;
+  }
+  .rest__rule {
+    align-self: center;
+    height: 0;
+    border-bottom: 1px dotted var(--rule-2);
+  }
+  .rest__tally {
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: lowercase;
+    color: var(--ink-mute);
+    opacity: 0.85;
+  }
+  .rest__now {
+    order: -1;
+    font-family: var(--sans);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .rest--now .rest__mh { color: var(--ink-soft); font-style: normal; }
+
+  /* A living month: a section rule, then its grid beside its named letters. */
+  .month { padding-top: 1.5rem; margin-bottom: 2.8rem; }
+  .month + .month, .month + .rest, .rest + .month { border-top: 1px solid var(--rule); }
+
+  .month__head {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: baseline;
+    gap: 0 0.85rem;
+    margin-bottom: 1.6rem;
+  }
+  .month__mh {
+    margin: 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(1.55rem, 3.4vw, 2.05rem);
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-feature-settings: "onum" 1, "lnum" 0;
+  }
+  .month--now .month__mh { color: var(--accent); }
+  .month__now {
+    font-family: var(--sans);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent-soft);
+    border-radius: 2px;
+    padding: 0.2rem 0.44rem;
+    line-height: 1;
+    align-self: center;
+  }
+  .month__rule {
+    align-self: center;
+    height: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .month__tally {
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: lowercase;
+    color: var(--ink-mute);
+    white-space: nowrap;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+  }
+
+  .month__body {
+    display: grid;
+    grid-template-columns: 15.5rem minmax(0, 1fr);
+    gap: clamp(2rem, 4vw, 3.4rem);
+    align-items: start;
+  }
+
+  /* ─── the grid: compact, light; only the lit feasts hold the eye ─────── */
+  .cal__wd,
+  .cal__grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+  .cal__wd { margin-bottom: 0.45rem; }
+  .cal__wd span {
+    text-align: center;
+    font-family: var(--sans);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    opacity: 0.7;
+  }
+  .cal__pad { aspect-ratio: 1; }
+  .cal__day {
+    position: relative;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    text-decoration: none;
+    font-family: var(--serif);
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-feature-settings: "onum" 1, "lnum" 0;
+  }
+  .cal__n {
+    position: relative;
+    z-index: 1;
+    font-size: 0.9rem;
+    line-height: 1;
+    color: var(--ink-faint, color-mix(in srgb, var(--ink-mute) 60%, transparent));
+  }
+  /* Today with no letter: a faint ring, "now" within the month. */
+  .cal__day.is-today:not(.cal__day--lit) .cal__n { color: var(--ink-soft); }
+  .cal__day.is-today:not(.cal__day--lit) { box-shadow: inset 0 0 0 1px var(--rule-2); }
+
+  /* A lit feast-day — a warm ember alight behind the numeral, even at rest. */
+  .cal__day--lit { color: var(--accent); transition: transform 0.18s var(--ease); }
+  .cal__day--lit .cal__n { color: var(--accent); }
+  .cal__ember {
+    position: absolute;
+    inset: 0;
+    border-radius: 3px;
+    background: radial-gradient(circle at 50% 42%, var(--accent-mute) 0%, transparent 66%);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 26%, transparent);
+    transition: background 0.18s var(--ease), box-shadow 0.18s var(--ease);
+  }
+  .cal__day--lit:hover { transform: translateY(-1px); }
+  .cal__day--lit:hover .cal__n { color: var(--mark-ink); }
+  .cal__day--lit:hover .cal__ember {
+    background: radial-gradient(circle at 50% 42%, var(--accent-soft) 0%, transparent 72%);
+    box-shadow: inset 0 0 0 1px var(--accent-soft), 0 6px 16px -8px var(--accent-soft);
+  }
+  .cal__day--lit.is-today .cal__ember { box-shadow: inset 0 0 0 1px var(--accent-deep); }
+
+  /* ─── the named letters, beside the grid ───────────────────────────── */
+  .letters { list-style: none; margin: 0; padding: 0; }
+  .letter {
+    padding: 0 0 1.4rem;
+  }
+  .letter + .letter {
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--rule);
+  }
+  .letter:last-child { padding-bottom: 0; }
+  .letter:target .letter__date { color: var(--accent); }
+  .letter__date {
+    display: block;
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+    color: var(--ink-mute);
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    margin-bottom: 0.5rem;
+  }
+  .letter__items { display: grid; gap: 1.1rem; }
+  .letter__link { display: block; text-decoration: none; color: inherit; }
+  .letter__title {
+    display: block;
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(1.2rem, 1.9vw, 1.4rem);
+    line-height: 1.18;
+    letter-spacing: -0.014em;
+    color: var(--ink);
+    text-wrap: balance;
+    transition: color 0.18s var(--ease);
+  }
+  .letter__link:hover .letter__title { color: var(--accent); }
+  .letter__desc {
+    display: block;
+    margin-top: 0.4rem;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 42rem;
+  }
+
+  /* ─── narrow: the grid is decoration; the writing carries alone ─────── */
+  @media (max-width: 720px) {
+    .month__body { grid-template-columns: 1fr; gap: 1.4rem; }
+    .cal { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cal__day--lit, .cal__ember { transition: none; }
+  }
+</style>

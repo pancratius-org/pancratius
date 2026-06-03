@@ -1,0 +1,15 @@
+---
+import type { GetStaticPaths } from "astro";
+
+import MessagePage from "@/components/MessagePage.astro";
+import { getAllMessagePairs, localizedMessagePairs } from "@/lib/messages";
+
+export const getStaticPaths = (async () => {
+  const pairs = await getAllMessagePairs();
+  return localizedMessagePairs(pairs, "en")
+    .map(({ pair, entry }) => ({ params: { slug: entry.data.slug }, props: { pair } }));
+}) satisfies GetStaticPaths;
+
+const { pair } = Astro.props;
+---
+<MessagePage {pair} locale="en" />

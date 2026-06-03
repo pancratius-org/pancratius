@@ -5,7 +5,7 @@
 // `audit/python/kind_segments.py`.
 
 /** The routable content kinds, in canonical order. */
-export const ROUTED_KINDS = ["book", "poem", "project", "video"] as const;
+export const ROUTED_KINDS = ["book", "poem", "project", "video", "message"] as const;
 
 /** A single routable content kind. */
 export type RoutedKind = typeof ROUTED_KINDS[number];
@@ -17,14 +17,17 @@ export const CORPUS_WORK_KINDS = ["book", "poem"] as const;
 export type CorpusWorkKind = typeof CORPUS_WORK_KINDS[number];
 
 /** The URL segments a routed kind can map to. */
-export type RoutedSegment = "books" | "poetry" | "projects" | "videos";
+export type RoutedSegment = "books" | "poetry" | "projects" | "videos" | "messages";
 
-/** Routed kind → URL segment. */
+/** Routed kind → URL segment. Every segment is a structural English noun; the
+ * displayed section label is localized separately («Послания» / Epistles for
+ * messages). */
 export const SEGMENT_OF: Record<RoutedKind, RoutedSegment> = {
   book:    "books",
   poem:    "poetry",
   project: "projects",
   video:   "videos",
+  message: "messages",
 };
 
 /** URL segment → routed kind (inverse of `SEGMENT_OF`). */
@@ -33,4 +36,5 @@ export const KIND_OF_SEGMENT: Record<string, RoutedKind> = {
   poetry:   "poem",
   projects: "project",
   videos:   "video",
+  messages: "message",
 };

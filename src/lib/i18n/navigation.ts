@@ -1,3 +1,4 @@
+import type { RoutedKind } from "../kinds";
 import type { Locale } from "../locales";
 
 export interface NavItem {
@@ -9,11 +10,18 @@ export interface NavItem {
    * shows only in locales where authored content for that page exists.
    */
   pageSlug?: string;
+  /**
+   * Routed kind backing this item. When set, the item shows only in locales
+   * where at least one entry of that kind is authored — so a RU-only section
+   * (Послания today) does not advertise an empty EN shelf.
+   */
+  kindGate?: RoutedKind;
 }
 
 export const HEADER_NAV: readonly NavItem[] = [
   { path: "/books/", label: { ru: "Книги", en: "Books" } },
   { path: "/poetry/", label: { ru: "Поэзия", en: "Poetry" } },
+  { path: "/messages/", label: { ru: "Послания", en: "Epistles" }, kindGate: "message" },
   { path: "/videos/", label: { ru: "Видео", en: "Video" } },
   { path: "/projects/", label: { ru: "Проекты", en: "Projects" } },
   { path: "/conceptosphere/", label: { ru: "Концептосфера", en: "Concept map" } },
@@ -44,6 +52,7 @@ export const RESERVED_PAGE_SLUGS = new Set([
   "poetry",
   "projects",
   "videos",
+  "messages",
   "conceptosphere",
   "search",
   "feed",
