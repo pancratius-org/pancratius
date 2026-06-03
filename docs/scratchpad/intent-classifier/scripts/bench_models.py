@@ -59,6 +59,9 @@ PROBLEM_RIDS = [
     "g22_b31_t5", "g24_b28", "g31_b13", "g33_b66",              # never solved (lineated, 0/x)
     "g00_b64_t1", "g34_b63", "g27_b67_t2",                      # big gains (lineated, contrast)
     "g09_b16_t2", "g10_b19",                                    # the PROSE guardrail (costly error)
+    # FRESH unseen-book batch (human-adjudicated): g28_b71=17 prose (generalization guardrail),
+    # the rest=35 lineated across 5 unseen books (bonus lineated-recall generalization).
+    "g35_b41", "g19_b24", "g28_b71", "g26_b30", "g07_b47", "g13_b01",
 ]
 # incumbent panel readers to show alongside the candidates (scored from their phaseb labels).
 INCUMBENTS = ["grok", "deepseek", "gemini"]

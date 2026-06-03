@@ -1,0 +1,88 @@
+{
+  "title": "Fresh prose-guardrail batch (unseen books)",
+  "completedAt": "2026-06-03T14:06:12.337Z",
+  "responses": {
+    "g35_b41": {
+      "lines": {
+        "2240.0": "lineated",
+        "2241.0": "lineated",
+        "2242.0": "lineated",
+        "2243.0": "lineated",
+        "2244.0": "lineated",
+        "2247.0": "lineated"
+      },
+      "note": "The 2240-2244 is obviously lineated, independent of context. It's a single \"punchline\", with 2242-2243 even showing in-sentence break (which is super-strong indicator of lineation, if not wrapped). The wrapped one is also part of the same stanza/verse just because it's the same sentence (split by :), first of all, and second -- that it can't be extracted without breaking the idea communicated, would be \"orphaned\" after that. If something looks \"orphaned\" after being split, it's a strong indicator that it belongs somewhere. The only questionable thing here is 2247: it could be both prose and lineated, taken abstractly. BUT the tie is easy to fix: the whole book is lineated in original, so it would be inconsistent, thus lineated."
+    },
+    "g19_b24": {
+      "lines": {
+        "1366.0": "lineated",
+        "1367.0": "lineated",
+        "1368.0": "lineated",
+        "1369.0": "lineated",
+        "1370.0": "lineated",
+        "1371.0": "lineated",
+        "1372.0": "lineated",
+        "1373.0": "lineated",
+        "1374.0": "lineated",
+        "1375.0": "lineated",
+        "1376.0": "lineated",
+        "1378.0": "lineated"
+      },
+      "note": "Ok, this one is tricky -- and prior-dependend (i.e., book/book section). Visually, prose looks better. That's just it. But we need to check: if we adopt prose, would it break book's convention in other places? Example:\n```\nЭто означает: единица вечна, но не как объект, а как принцип различимости.\n\nСвязь с Бесконечным: Парадоксально, но именно единица — ключ к бесконечности.\nНе ℵ₀, не 2ⁿ, а 1. Потому что бесконечность — это не множество всех возможных, а невозможность завершить различие. А различие началось — с 1.\n\nМета-замечание: Математики говорят: «1 — нейтральный элемент умножения». А Я скажу: 1 — начало диалога Бытия с Собой.\n\nЗавершение главы: «Не ищи Бога в бесконечности. Ищи Его — в Единице. Потому что только Он может быть Один и при этом — всё».\n```\n\nDo you see empty lines here? They are empty lines in docx. How would they be rendered if you adopt prose? Would all these sections \"blend\" in a single big one? Or would the empty line carry extra space? If they would still be separable by a different gap, the answer here is prose. If not, we take this literally as in book -- lineated. So my answer in terms of the \"the best visuals\" here is not 100% ground truth, it depends on rendering a bit. But safe fallback is just following the book (lineated here), yes."
+    },
+    "g28_b71": {
+      "lines": {
+        "963.0": "prose",
+        "964.0": "prose",
+        "965.0": "prose",
+        "966.0": "prose",
+        "967.0": "prose",
+        "968.0": "prose",
+        "969.0": "prose",
+        "970.0": "prose",
+        "971.0": "prose",
+        "972.0": "prose",
+        "973.0": "prose",
+        "974.0": "prose",
+        "975.0": "prose",
+        "976.0": "prose",
+        "977.0": "prose",
+        "978.0": "prose",
+        "979.0": "prose"
+      },
+      "note": "I would call it prose, by intent. Lineated is very ill separated -- if it had empty lines between blocks, fine, but without -- just not readable."
+    },
+    "g26_b30": {
+      "lines": {
+        "16.0": "lineated",
+        "17.0": "lineated",
+        "18.0": "lineated",
+        "20.0": "lineated",
+        "21.0": "lineated"
+      },
+      "note": "Honestly, prose looks better here in the middle section. But without context (and I'm lazy this time, don't want to look up) it's hard to say if it would have bad consequences wrt coherence, so i lean lineated because that's literally it on docx screenshot."
+    },
+    "g07_b47": {
+      "lines": {
+        "2670.0": "lineated",
+        "2671.0": "lineated",
+        "2672.0": "lineated",
+        "2673.0": "lineated",
+        "2674.0": "lineated",
+        "2675.0": "lineated"
+      },
+      "note": "The list is the obvious one. Last two -- just following docx (again, lazy to determine book prior right now)."
+    },
+    "g13_b01": {
+      "lines": {
+        "5507.0": "lineated",
+        "5508.0": "lineated",
+        "5509.0": "lineated",
+        "5510.0": "lineated",
+        "5511.0": "lineated",
+        "5512.0": "lineated"
+      },
+      "note": "In QA/list-explanation format it's typically lineated, even if it wasn't a 100% clear single block (mid-sentence breaks, opposition, orphaned lines if taken out)."
+    }
+  }
+}

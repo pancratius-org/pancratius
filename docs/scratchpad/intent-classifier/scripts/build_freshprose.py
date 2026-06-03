@@ -40,14 +40,18 @@ def main() -> int:
     withsub = [e for e in fresh.values() if has_sub(e) and e["stratum"] in prose_strata]
     # pick a spread: 2 dense wrap_prose + 2 narrative mid_flat + up to 2 prose-with-.sub, ~30 lines
     chosen, seen, seen_books, nlines = [], set(), set(), 0
-    def take(cands, n):
+    def take(cands: list, n: int) -> None:
         nonlocal nlines
         c = 0
         for e in sorted(cands, key=lambda x: len(x["keys"])):   # smaller first → more books, less load
-            bk = book(e["rid"])
-            if e["rid"] in seen or bk in seen_books or nlines >= 55 or len(e["keys"]) < 4:
+            b = book(e["rid"])
+            if e["rid"] in seen or b in seen_books or nlines >= 55 or len(e["keys"]) < 4:
                 continue
-            chosen.append(e); seen.add(e["rid"]); seen_books.add(bk); nlines += len(e["keys"]); c += 1
+            chosen.append(e)
+            seen.add(e["rid"])
+            seen_books.add(b)
+            nlines += len(e["keys"])
+            c += 1
             if c >= n:
                 break
     take(withsub, 1)   # prose-with-.sub if any exist in fresh books (likely none)
