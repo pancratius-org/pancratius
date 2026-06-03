@@ -9,6 +9,9 @@ import { getCollection, type CollectionEntry } from "astro:content";
 
 import type { CorpusWorkKind, Locale, RoutedKind } from "./i18n";
 import { DEFAULT_LOCALE, LOCALE_META, LOCALES } from "./i18n";
+import { parseCoverPath, type CoverRef } from "./cover-path";
+
+export type { CoverRef } from "./cover-path";
 
 /**
  * Kinds the WORK-PAIR machinery handles. A strict subset of `RoutedKind` —
@@ -194,70 +197,26 @@ export async function findPair(kind: WorkPairKind, number: number): Promise<Work
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Cover resolution.
-//
-// Per the asset-naming policy, a cover lives at
-// `src/content/<kind>/<work>/cover.<lang>.<ext>` and is referenced from
-// frontmatter as a relative path like `./cover.ru.jpg`.
-// We reject `/media/<hash>` shapes here so the rule has a single enforcement point.
+// Cover resolution. The naming policy itself lives in `cover-path.ts`; here we
+// only resolve which entry's cover to use, with the default-locale fallback.
 // ─────────────────────────────────────────────────────────────────────
-
-const ALLOWED_COVER_RE = new RegExp(
-  `^\\./cover\\.(${LOCALES.join("|")})\\.(jpe?g|png|webp|avif|svg)$`,
-  "i",
-);
-
-export interface CoverRef {
-  /** The relative path as it appears in frontmatter, e.g. `./cover.ru.jpg`. */
-  rel: string;
-  /** Resolved language hint inferred from the filename. */
-  lang: Locale;
-  /** File extension lowercased without leading dot. */
-  ext: string;
-}
-
-/** Parse and validate a `cover:` frontmatter value. Returns null if absent. */
-function parseCoverRef(value: string | null | undefined): CoverRef | null {
-  if (!value) return null;
-  const match = ALLOWED_COVER_RE.exec(value.trim());
-  if (!match) {
-    throw new Error(
-      `Cover path ${JSON.stringify(value)} violates asset-naming policy. ` +
-      `Expected ./cover.<${LOCALES.join("|")}>.<jpg|png|webp|avif> inside the work bundle.`,
-    );
-  }
-  const lang = match[1];
-  const ext = match[2];
-  if (lang === undefined || ext === undefined) {
-    throw new Error(`Cover path ${JSON.stringify(value)} matched without locale or extension`);
-  }
-  return {
-    rel: value.trim(),
-    lang: lang.toLowerCase() as Locale,
-    ext: ext.toLowerCase(),
-  };
-}
 
 /**
  * Resolve a cover for a `(kind, slug, locale)` triple, falling back to the
- * default-locale cover when the locale-specific one isn't authored or is a
- * placeholder. Returns null if no cover frontmatter exists at all (we treat
- * that as "draw an empty card with a subtle placeholder" in the UI).
+ * default-locale cover when the locale-specific one isn't authored. Returns
+ * null if no cover frontmatter exists at all (the UI draws an empty card).
  *
  * This is DISPLAY data — the fallback to the default-locale cover is intended.
- *
- * `cover_is_placeholder: true` on an entry counts as "no real cover yet" and
- * triggers the default-locale fallback.
  */
 export function resolveCover(pair: WorkPair, locale: Locale): CoverRef | null {
   const primary = pair.entries[locale];
-  if (primary && primary.data.cover_is_placeholder !== true) {
-    const ref = parseCoverRef(primary.data.cover);
+  if (primary) {
+    const ref = parseCoverPath(primary.data.cover, { context: "Cover path", allowSvg: true });
     if (ref) return ref;
   }
   if (locale !== DEFAULT_LOCALE) {
     const fallback = defaultWorkEntry(pair);
-    const ref = parseCoverRef(fallback.data.cover);
+    const ref = parseCoverPath(fallback.data.cover, { context: "Cover path", allowSvg: true });
     if (ref) return ref;
   }
   return null;

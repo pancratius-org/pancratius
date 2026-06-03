@@ -12,6 +12,7 @@
 import { getCollection, render, type CollectionEntry } from "astro:content";
 
 import { DEFAULT_LOCALE, LOCALE_META, LOCALES, type Locale } from "./i18n";
+import { parseCoverPath, type CoverRef } from "./cover-path";
 import { layoutFor, localizedEmbedUrl } from "./video-format";
 
 // Re-export the pure formatter so callers `import { formatDuration } from "@/lib/videos"`.
@@ -238,49 +239,25 @@ export async function channelForEntry(entry: VideoEntry): Promise<VideoChannel |
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Cover resolution. Mirrors `works.ts` — videos use the same on-disk shape
-// (`cover.<lang>.<ext>` in the bundle) so the rule is the same; the cache
-// just needs to glob a different content root.
+// Cover resolution. The naming policy lives in `cover-path.ts` (shared with
+// works); here we only resolve which entry's cover to use and glob the video
+// content root for the built asset URL. Videos don't permit SVG covers.
 // ─────────────────────────────────────────────────────────────────────
-
-const ALLOWED_COVER_RE = new RegExp(
-  `^\\./cover\\.(${LOCALES.join("|")})\\.(jpe?g|png|webp|avif)$`,
-  "i",
-);
 
 const VIDEO_COVER_URLS = import.meta.glob<string>(
   "/src/content/videos/**/cover.*.{jpg,jpeg,png,webp,avif}",
   { eager: true, query: "?url", import: "default" },
 );
 
-interface VideoCoverRef { rel: string; lang: Locale; ext: string; }
-
-function parseVideoCover(value: string | null | undefined): VideoCoverRef | null {
-  if (!value) return null;
-  const match = ALLOWED_COVER_RE.exec(value.trim());
-  if (!match) {
-    throw new Error(
-      `Video cover path ${JSON.stringify(value)} violates asset-naming policy. ` +
-      `Expected ./cover.<${LOCALES.join("|")}>.<jpg|png|webp|avif> inside the video bundle.`,
-    );
-  }
-  const lang = match[1];
-  const ext = match[2];
-  if (lang === undefined || ext === undefined) {
-    throw new Error(`Video cover path ${JSON.stringify(value)} matched without locale or extension`);
-  }
-  return { rel: value.trim(), lang: lang.toLowerCase() as Locale, ext: ext.toLowerCase() };
-}
-
-function resolveVideoCover(pair: VideoPair, locale: Locale): VideoCoverRef | null {
+function resolveVideoCover(pair: VideoPair, locale: Locale): CoverRef | null {
   const localized = entryForAuthoredVideoLocale(pair, locale);
-  if (localized !== null && localized.data.cover_is_placeholder !== true) {
-    const ref = parseVideoCover(localized.data.cover);
+  if (localized !== null) {
+    const ref = parseCoverPath(localized.data.cover, { context: "Video cover path" });
     if (ref) return ref;
   }
   if (locale !== DEFAULT_LOCALE) {
     const fallback = defaultVideoEntry(pair);
-    const ref = parseVideoCover(fallback.data.cover);
+    const ref = parseCoverPath(fallback.data.cover, { context: "Video cover path" });
     if (ref) return ref;
   }
   return null;

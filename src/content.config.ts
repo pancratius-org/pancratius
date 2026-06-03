@@ -56,7 +56,6 @@ const baseWorkFields = {
   lang,
   description: z.string().min(1),
   translation,
-  cover_is_placeholder: z.boolean().optional(),
   cross_refs: z.array(crossRefEntry).optional(),
   // External editions / store mirrors of this work (KindBook, Litres, Google
   // Play, Apple Books, …). Preserved from import provenance — these used to live
@@ -359,7 +358,6 @@ const videos = defineCollection({
     // LibraryFilter chips on `/videos/`, same as books `tags`.
     tags: z.array(z.string()).default([]),
     cover: z.string().nullable().optional(),
-    cover_is_placeholder: z.boolean().optional(),
     // Source publication date on the primary platform.
     published_at: isoDate,
     // ISO 8601 duration (e.g. `PT8M42S`).
