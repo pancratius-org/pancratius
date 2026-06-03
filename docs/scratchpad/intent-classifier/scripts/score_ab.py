@@ -2,6 +2,7 @@
 # WITHOUT degrading the genuine-prose guardrails? Baseline = current brief; treatment = _lp brief.
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
@@ -34,16 +35,19 @@ def keys_for(rids: list, truth: dict, pkg: dict, lab_wanted: str) -> list:
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--suffix", default="_lp", help="treatment file suffix (e.g. _lp, _lp2)")
+    sfx = ap.parse_args().suffix
     truth = bm.load_truth()
     pkg = {e["rid"]: e for e in json.loads((DATA / "reader_pkg.json").read_text())}
     tgt = keys_for(TARGET, truth, pkg, "lineated")    # want these labeled LINEATED
     grd = keys_for(GUARD, truth, pkg, "prose")         # want these to STAY prose
     print(f"target (lineated-prose) lines: {len(tgt)} | prose guardrail lines: {len(grd)}\n")
-    print(f"{'reader':14} | target lineated-recall  | guardrail prose-recall")
-    print(f"{'':14} | base -> _lp   (delta)   | base -> _lp   (delta)")
+    print(f"{'reader':14} | target lineated-recall  | guardrail prose-recall  [treatment {sfx}]")
+    print(f"{'':14} | base -> trt   (delta)   | base -> trt   (delta)")
     for t in KEEPERS:
         base = load(DATA / "bench" / f"reader_{t}.jsonl")
-        lp = load(DATA / "bench" / f"reader_{t}_lp.jsonl")
+        lp = load(DATA / "bench" / f"reader_{t}{sfx}.jsonl")
         if not base or not lp:
             print(f"{t:14} | (missing run)")
             continue
