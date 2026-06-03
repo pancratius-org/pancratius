@@ -1,10 +1,12 @@
-"""Verify book verse-block decisions are faithful to the DOCX source (I4).
+"""Legacy diagnostic for book verse-register decisions (I4).
 
 Poems have ``poetry_stanzas.py``; books had NOTHING — a blind spot that let a
-verse signature-drift bug nearly ship. This audit is the permanent DOCX-source
-oracle for BOOK verse, the executable spec for the IR detection in
-``pancratius/ir/normalize.py`` (``verse_blocks`` / ``_run_kind`` /
-``_is_lineated_line``).
+verse signature-drift bug nearly ship. This audit is now a legacy REGISTER
+diagnostic, not the source of truth for Q1 lineation and not the executable spec
+for the split importer. The importer now separates Q1 lineation
+(``lineated_blocks``) from Q2 register promotion (``promote_verse_register``);
+``LineatedBlock`` line/wrapper preservation is covered by IR/lowering tests and by
+``audit/lineation_breaks.py``.
 
 It reads each book's DOCX structure INDEPENDENTLY of the importer (pandoc's
 ``docx+empty_paragraphs`` AST for paragraphs, empties, and hard ``LineBreak``s,
@@ -12,17 +14,22 @@ plus the OOXML ``w:jc`` right-alignment for signature/epigraph), derives the
 EXPECTED verse / signature / epigraph structure under a clear conservative rule,
 then compares it to the CONVERTED Markdown — flagging BOTH:
 
-  * OVER-detection — the IR wrapped a verse-block the source rule does not call a
-    confident verse run (an isolated short line, a `Speaker:` / `Speaker (qual):`
-    label line, a prose-length line, one prose sentence after a label).
+  * OVER-detection — the IR applied a verse register the source rule does not call
+    a confident verse run (an isolated short line, a `Speaker:` /
+    `Speaker (qual):` label line, a prose-length line, one prose sentence after a
+    label).
   * UNDER-detection — the source has a confident verse run the IR left as prose.
+
+This checks only whether the legacy conservative rule would expect a
+``VerseBlock`` register. A mismatch must be classified before action: Q1
+lineation loss, Q2 register disagreement, or stale legacy-rule overreach. Do not
+update committed Markdown or goldens solely because this audit says over/under.
 
 It ALSO asserts every converted signature/epigraph is DRAWN FROM the right-aligned
 (``w:jc``) source — a block built from non-right-aligned text is the symptom of the
 C1 ``w:jc``-realignment drift — so it doubles as the C1 / I2 regression guard.
 
-The verse rule (the SPEC — mirrored by the IR, unit-tested in
-``tests/audit/test_book_verse.py`` and ``tests/test_ir_verse.py``):
+The legacy verse rule (historical diagnostic, not the split IR spec):
 
   * A *verse run* is >=2 consecutive SHORT lineated display-lines whose lineation
     comes from the SOURCE — a hard ``LineBreak`` (``<w:br/>``) inside one
@@ -35,19 +42,15 @@ The verse rule (the SPEC — mirrored by the IR, unit-tested in
     don't separate a short couplet from two prose sentences, so a 2-line run with
     no hard break (a couplet that is just as likely two prose sentences) is left to
     prose. A hard ``<w:br/>`` line is a CONFIDENT signal on its own and counts at
-    >=2. (These two floors mirror the IR's ``_run_kind``: the empty-paragraph path
-    requires the >=3 weak-signal floor; the hard-break path counts at >=2.)
+    >=2.
   * NOT a verse line: an explicit SPEAKER/SOURCE turn (`Speaker:` /
     `Speaker: content`); a LONG (prose-length) line; a numbered Q/A heading; a
     list item; an image/table/link line.
 
-Tiering: this is a ``heuristic`` (agent-tier, non-blocking) audit, like
-``poetry_stanzas`` — it runs in ``npm run audit:agent`` and never gates the PR
-core or a deploy. Rationale: the source rule is conservative and matches the IR
-today (over/under-detection both ~0), but book verse is partly an editorial call
-(a litany boundary the lead signs off on), so it is GUIDANCE until the rule has
-proven a hard contract and earned a both-polarity fixture — the same promotion
-path ``content-model.md`` records for ``poetry_stanzas``.
+Tiering: this remains a ``heuristic`` (agent-tier, non-blocking) audit. During the
+lineation/register split it is guidance only; the benchmark must move to the
+3-way ontology (flowing / lineated-prose / verse) before this can become a hard
+contract again.
 """
 from __future__ import annotations
 
@@ -329,7 +332,10 @@ def expected_verse_runs(docx: Path) -> list[list[str]]:
 # converted-Markdown read (the actual IR output)
 # ---------------------------------------------------------------------------
 
-_VERSE_RE = re.compile(r'<div class="verse-block">\n(.*?)\n</div>', re.S)
+_VERSE_RE = re.compile(
+    r'<div\s+class=(["\'])lineated\s+verse\1>\n(.*?)\n</div>',
+    re.S,
+)
 _TAG_RE = re.compile(r"<[^>]+>")
 
 
@@ -338,10 +344,13 @@ def _norm(line: str) -> str:
 
 
 def actual_block_lines(md_body: str) -> set[str]:
-    """The normalized lines the IR placed inside ``verse-block`` divs."""
+    """The normalized lines the IR placed inside verse-register divs.
+
+    Canonical output is ``class="lineated verse"``.
+    """
     verse: set[str] = set()
     for m in _VERSE_RE.finditer(md_body):
-        for raw in m.group(1).splitlines():
+        for raw in m.group(2).splitlines():
             line = _norm(raw)
             if line and line != "***":
                 verse.add(line)
@@ -384,7 +393,7 @@ def source_right_aligned_words(docx: Path) -> set[str]:
 
 
 def prose_lines(md_body: str) -> set[str]:
-    """The set of normalized lines OUTSIDE any verse block — the body's
+    """The set of normalized lines OUTSIDE any verse register — the body's
     prose (and heading/label) lines. Used to confirm an UNDER-detection: a source
     verse run is only "missed" if its lines survived in the body AS PROSE (so a
     scrubbed/demoted/canonicalized source line — gone from the body entirely — is
@@ -441,14 +450,14 @@ def _compare(number: int, docx: Path, md_body: str) -> list[str]:
 
     Two robust, independent directions:
 
-      * OVER-detection — every line the IR actually wrapped in a verse-block must
+      * OVER-detection — every line the IR actually wrapped in a verse register must
         ITSELF be a valid verse line (`is_verse_line`): not a `Speaker:` label, not
         a prose-length line, not a numbered Q&A heading / list item. This needs no
         source re-derivation (the line text is the converted output), so it is the
         primary, drift-proof check — it is exactly the spec's over-detection.
 
       * UNDER-detection — a confident source verse RUN whose lines ALL survived in
-        the converted body AS PROSE (present, but none inside a verse-block) was
+        the converted body AS PROSE (present, but none inside a verse register) was
         left ungrouped. Guarding on "present as prose" excludes any source line the
         normalizer legitimately removed/changed before verse detection (rights
         scrub, TOC/bibliography lift, heading demotion, dialogue-label canon), so
@@ -457,7 +466,7 @@ def _compare(number: int, docx: Path, md_body: str) -> list[str]:
     out: list[str] = []
 
     actual = actual_block_lines(md_body)
-    # OVER-detection: a verse-block line that is UNAMBIGUOUSLY not verse —
+    # OVER-detection: a verse-register line that is UNAMBIGUOUSLY not verse —
     # a SPEAKER TURN (`Панкратиус: …` / `Ответ от Творца (…): …`), a PROSE-LENGTH
     # line (> the short-line cap), or a numbered Q&A heading. A bare terminal-colon
     # phrase (`Спроси:` / `Молитва узнавания:`) is NOT flagged: it legitimately
@@ -474,8 +483,8 @@ def _compare(number: int, docx: Path, md_body: str) -> list[str]:
     over = sorted(ln for ln in actual if over_line(ln))
     if over:
         out.append(
-            f"book #{number:02d}: OVER-detection — {len(over)} line(s) wrapped as "
-            f"verse that are not verse lines (label / prose-length / Q&A heading):"
+            f"book #{number:02d}: OVER-detection — {len(over)} line(s) in the "
+            f"verse register are not verse lines (label / prose-length / Q&A heading):"
         )
         out.extend(f"      + {ln[:90]}" for ln in over[:6])
 
@@ -576,13 +585,13 @@ def _check_from_ir() -> int:
 
 def _report(checked: int, failures: list[str], mode: str = "committed content") -> int:
     if failures:
-        print(f"FAIL: book verse-block source-fidelity mismatches ({mode})")
+        print(f"FAIL: book verse-register source-fidelity mismatches ({mode})")
         for failure in failures[:60]:
             print(" ", failure)
         if len(failures) > 60:
             print(f"  ... {len(failures) - 60} more")
         return 1
-    print(f"checked {checked} books via {mode}; verse-block decisions match the DOCX source rule")
+    print(f"checked {checked} books via {mode}; verse-register decisions match the DOCX source rule")
     return 0
 
 

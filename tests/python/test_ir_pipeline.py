@@ -416,9 +416,215 @@ def test_verse_block_from_short_lineated_run_after_named_heading() -> None:
     ]
     out = normalize.verse_blocks(blocks)
     verse = [b for b in out if isinstance(b, ir.VerseBlock)]
-    assert verse and verse[0].role == "verse-block"
+    assert verse and verse[0].role == "verse"
     lines = [normalize.inline_plain(line) for s in verse[0].stanzas for line in s]
     assert lines == ["Свет мой тихий", "в сердце горит", "и не гаснет"]
+
+
+def test_lineation_stage_builds_lineated_block_before_register_promotion() -> None:
+    blocks: list[ir.Block] = [
+        ir.Heading(level=2, inlines=[ir.Text("Молитва")]),
+        ir.Paragraph(inlines=[ir.Text("Свет мой тихий")]),
+        ir.Paragraph(inlines=[ir.Text("в сердце горит")]),
+    ]
+
+    lineated = normalize.lineated_blocks(blocks)
+    assert isinstance(lineated[1], ir.LineatedBlock)
+    assert lineated[1].evidence == ir.LineationEvidence(inferred_source_rows=True)
+    assert not any(isinstance(b, ir.VerseBlock) for b in lineated)
+
+    promoted = normalize.verse_blocks(blocks)
+    assert isinstance(promoted[1], ir.VerseBlock)
+
+    staged_promoted = normalize.verse_blocks(lineated)
+    assert isinstance(staged_promoted[1], ir.VerseBlock)
+
+
+def test_register_promotion_does_not_create_lineation() -> None:
+    blocks: list[ir.Block] = [
+        ir.Heading(level=2, inlines=[ir.Text("Молитва")]),
+        ir.Paragraph(inlines=[ir.Text("Свет мой тихий")]),
+        ir.Paragraph(inlines=[ir.Text("в сердце горит")]),
+    ]
+
+    promoted = normalize.promote_verse_register(blocks)
+
+    assert [type(b).__name__ for b in promoted] == ["Heading", "Paragraph", "Paragraph"]
+
+
+def test_lineation_stage_preserves_source_row_inference_for_register_promotion() -> None:
+    blocks: list[ir.Block] = [
+        ir.Paragraph(inlines=[ir.Text("Я — Свет.")], lineation_group=7),
+        ir.Paragraph(inlines=[ir.Text("Я — Слово.")], lineation_group=7),
+        ir.Paragraph(inlines=[ir.Text("Я — Дыхание.")], lineation_group=7),
+    ]
+
+    lineated = normalize.lineated_blocks(blocks)
+    direct = normalize.verse_blocks(blocks)
+    staged = normalize.verse_blocks(lineated)
+
+    assert isinstance(lineated[0], ir.LineatedBlock)
+    assert lineated[0].evidence == ir.LineationEvidence(inferred_source_rows=True)
+    assert [type(b).__name__ for b in direct] == ["VerseBlock"]
+    assert [type(b).__name__ for b in staged] == ["VerseBlock"]
+
+
+def test_lineation_stage_combines_source_spans() -> None:
+    out = normalize.lineated_blocks([
+        ir.Heading(level=2, inlines=[ir.Text("Глава")], source_span=ir.SourceSpan(9, 9)),
+        ir.Paragraph(inlines=[ir.Text("Я — Свет.")], source_span=ir.SourceSpan(10, 10)),
+        ir.Paragraph(inlines=[ir.Text("Я — Слово.")], source_span=ir.SourceSpan(11, 11)),
+    ])
+
+    assert isinstance(out[1], ir.LineatedBlock)
+    assert out[1].source_span == ir.SourceSpan(10, 11)
+
+
+def test_lineation_stage_keeps_internal_empty_paragraph_in_source_span() -> None:
+    out = normalize.lineated_blocks([
+        ir.Paragraph(
+            inlines=[ir.Text("первая строка")],
+            source_span=ir.SourceSpan(1, 1),
+        ),
+        ir.Paragraph(inlines=[], empty=True, source_span=ir.SourceSpan(2, 2)),
+        ir.Paragraph(
+            inlines=[ir.Text("вторая строка")],
+            source_span=ir.SourceSpan(3, 3),
+        ),
+        ir.Paragraph(
+            inlines=[ir.Text("третья строка")],
+            source_span=ir.SourceSpan(4, 4),
+        ),
+    ])
+
+    assert isinstance(out[0], ir.LineatedBlock)
+    assert out[0].source_span == ir.SourceSpan(1, 4)
+
+
+def test_lineation_stage_ignores_edge_empty_paragraphs_for_source_span() -> None:
+    out = normalize.lineated_blocks([
+        ir.Paragraph(
+            inlines=[ir.Text("первая строка")],
+            source_span=ir.SourceSpan(10, 10),
+        ),
+        ir.Paragraph(
+            inlines=[ir.Text("вторая строка")],
+            source_span=ir.SourceSpan(11, 11),
+        ),
+        ir.Paragraph(inlines=[], empty=True, source_span=None),
+    ])
+
+    assert isinstance(out[0], ir.LineatedBlock)
+    assert out[0].source_span == ir.SourceSpan(10, 11)
+
+
+def test_merged_source_span_requires_complete_provenance() -> None:
+    assert ir.merge_source_spans([
+        ir.SourceSpan(10, 10),
+        None,
+        ir.SourceSpan(12, 12),
+    ]) is None
+
+
+def test_explicit_hard_break_lineation_survives_without_verse_register() -> None:
+    long_line = "Это намеренно длинная прозаическая строка, которая намного длиннее стихотворной строки и не должна получать стиховой регистр."
+    assert len(long_line) > normalize.VERSE_SHORT_LINE_MAX
+    blocks: list[ir.Block] = [
+        ir.Paragraph(inlines=[ir.Text(long_line), ir.LineBreak(), ir.Text("короткая строка")]),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+
+    assert len(out) == 1
+    assert isinstance(out[0], ir.LineatedBlock)
+    body = lower.lower(ir.Document(blocks=out), "ru")
+    assert f"{long_line}  \nкороткая строка" in body
+    assert 'class="lineated verse"' not in body
+
+
+def test_blank_paragraph_is_internal_stanza_break_only_between_lineated_neighbors() -> None:
+    prose = (
+        "Это длинное прозаическое предложение закрывает lineated run and must "
+        "remain a normal paragraph afterwards, because it is too long to be a "
+        "lineated source line."
+    )
+    blocks: list[ir.Block] = [
+        ir.Paragraph(inlines=[ir.Text("первая строка")]),
+        ir.Paragraph(inlines=[], empty=True),
+        ir.Paragraph(inlines=[ir.Text("вторая строка")]),
+        ir.Paragraph(inlines=[], empty=True),
+        ir.Paragraph(inlines=[ir.Text(prose)]),
+    ]
+
+    out = normalize.lineated_blocks(blocks)
+
+    assert isinstance(out[0], ir.LineatedBlock)
+    assert [
+        [normalize.inline_plain(line) for line in stanza]
+        for stanza in out[0].stanzas
+    ] == [["первая строка"], ["вторая строка"]]
+    assert isinstance(out[1], ir.Paragraph)
+    assert normalize.inline_plain(out[1].inlines) == prose
+
+
+def test_leading_blank_boundary_is_not_lineation_or_register_evidence() -> None:
+    prose = (
+        "Это длинное прозаическое предложение открывает обычный прозаический "
+        "контекст и не должно превращать следующий короткий фрагмент в стихи."
+    )
+    blocks: list[ir.Block] = [
+        ir.Paragraph(inlines=[ir.Text(prose)]),
+        ir.Paragraph(inlines=[], empty=True),
+        ir.Paragraph(inlines=[ir.Text("первая короткая строка")]),
+        ir.Paragraph(inlines=[ir.Text("вторая короткая строка")]),
+        ir.Paragraph(inlines=[ir.Text("третья короткая строка")]),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+
+    assert not any(isinstance(b, (ir.LineatedBlock, ir.VerseBlock)) for b in out)
+
+
+def test_compact_strong_opener_callout_preserves_lineation_without_verse_register() -> None:
+    blocks: list[ir.Block] = [
+        ir.Paragraph(inlines=[ir.Emphasis("strong", [ir.Text("Что Я хочу, чтобы ты знал:")])]),
+        ir.Paragraph(inlines=[ir.Text("Он не один.")]),
+        ir.Paragraph(inlines=[ir.Text("Я с ним.")]),
+        ir.Paragraph(inlines=[ir.Text("Я в нём.")]),
+        ir.Paragraph(inlines=[ir.Text("Я через него.")]),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+
+    assert len(out) == 1
+    assert isinstance(out[0], ir.LineatedBlock)
+    assert [
+        normalize.inline_plain(line)
+        for stanza in out[0].stanzas
+        for line in stanza
+    ] == [
+        "Что Я хочу, чтобы ты знал:",
+        "Он не один.",
+        "Я с ним.",
+        "Я в нём.",
+        "Я через него.",
+    ]
+
+
+def test_indented_strong_opener_callout_stays_prose() -> None:
+    blocks: list[ir.Block] = [
+        ir.Paragraph(
+            inlines=[ir.Emphasis("strong", [ir.Text("Что Я хочу, чтобы ты знал:")])],
+            indented=True,
+        ),
+        ir.Paragraph(inlines=[ir.Text("Он не один.")], indented=True),
+        ir.Paragraph(inlines=[ir.Text("Я с ним.")], indented=True),
+        ir.Paragraph(inlines=[ir.Text("Я в нём.")], indented=True),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+
+    assert not any(isinstance(b, (ir.LineatedBlock, ir.VerseBlock)) for b in out)
 
 
 # ---------------------------------------------------------------------------
@@ -461,7 +667,7 @@ def test_inline_lines_recurses_into_emphasis_for_nested_linebreaks() -> None:
 
 def test_softbreak_only_paragraph_stays_prose() -> None:
     # C2: a paragraph whose only breaks are SoftBreaks (prose wrapping, no <w:br/>)
-    # is NOT a verse candidate — a run of them stays prose, not a verse-block.
+    # is NOT a verse candidate — a run of them stays prose, not a verse register.
     blocks: list[ir.Block] = [
         ir.Heading(level=2, inlines=[ir.Text("Глава")]),
         ir.Paragraph(inlines=[ir.Text("Свет не был сотворён."), ir.SoftBreak(), ir.Text("Он не возник."), ir.SoftBreak(), ir.Text("Он — Есть.")]),
@@ -549,6 +755,22 @@ def test_lower_footnote_appendix_generated_at_tail() -> None:
     assert "[^1]: the note body" in body
     # the def is at the tail, after the reference
     assert body.index("[^1]:") > body.index("See[^1]")
+
+
+def test_lower_ignores_source_span_metadata() -> None:
+    with_span = ir.Document(blocks=[
+        ir.Paragraph(inlines=[ir.Text("same text")], source_span=ir.SourceSpan(10, 10)),
+        ir.LineatedBlock(
+            stanzas=[[[ir.Text("line one")], [ir.Text("line two")]]],
+            source_span=ir.SourceSpan(11, 12),
+        ),
+    ])
+    without_span = ir.Document(blocks=[
+        ir.Paragraph(inlines=[ir.Text("same text")]),
+        ir.LineatedBlock(stanzas=[[[ir.Text("line one")], [ir.Text("line two")]]]),
+    ])
+
+    assert lower.lower(with_span, "ru") == lower.lower(without_span, "ru")
 
 
 def test_lower_directional_span_keeps_dir_attribute() -> None:
@@ -657,13 +879,77 @@ def test_lower_real_ordered_list_still_renders_as_list() -> None:
     assert "1\\." not in body
 
 
+def test_lower_lineated_block_emits_base_wrapper_with_hard_break_lines() -> None:
+    # Lineated prose preserves authored line boundaries using the same two-space
+    # hard-break encoding as verse, but carries only the base `.lineated` wrapper.
+    lb = ir.LineatedBlock(stanzas=[
+        [[ir.Text("line one")], [ir.Text("line "), ir.Emphasis("strong", [ir.Text("two")])]],
+        [[ir.Text("third line")]],
+    ])
+    body = lower.lower(ir.Document(blocks=[lb]), "ru")
+    assert body == '<div class="lineated">\n\nline one  \nline **two**\n\nthird line\n\n</div>\n'
+    assert 'class="lineated verse"' not in body
+
+
+def test_lower_lineated_image_interrupts_wrapper_as_standalone_block() -> None:
+    # A DOCX drawing can be anchored into the same source paragraph as text, but
+    # canonical Markdown keeps body images as standalone blocks. The lineated
+    # wrapper must therefore split around the image instead of producing
+    # `text ![](…)` inside `.lineated`.
+    lb = ir.LineatedBlock(stanzas=[
+        [[
+            ir.Text("before"),
+            ir.ImageInline(src="media/pic.jpg", alt="", asset_id="abc123.jpg"),
+            ir.Text("after"),
+        ], [ir.Text("tail")]],
+    ])
+    body = lower.lower(ir.Document(blocks=[lb]), "ru")
+    assert body == (
+        '<div class="lineated">\n\n'
+        "before\n\n"
+        "</div>\n\n"
+        "![Иллюстрация](./images/abc123.jpg)\n\n"
+        '<div class="lineated">\n\n'
+        "after  \n"
+        "tail\n\n"
+        "</div>\n"
+    )
+
+
+def test_lower_lineated_block_escapes_structural_markers() -> None:
+    # Lineated prose is parsed as ordinary Markdown inside its wrapper, so literal
+    # source lines that look like headings/lists must be escaped just like verse
+    # lines.
+    lb = ir.LineatedBlock(stanzas=[
+        [[ir.Text("### not a heading")], [ir.Text("1. not a list")], [ir.Text("- not a bullet")]],
+    ])
+    body = lower.lower(ir.Document(blocks=[lb]), "ru")
+    assert "\\### not a heading  " in body
+    assert "1\\. not a list  " in body
+    assert "\\- not a bullet" in body
+
+
+def test_lower_lineated_block_escapes_literal_inline_markup() -> None:
+    # A lineated-prose line is still Markdown inside its wrapper, so literal DOCX
+    # text must be inert: no raw HTML and no accidental markdown link should
+    # survive from Text nodes.
+    lb = ir.LineatedBlock(stanzas=[
+        [[ir.Text("<script>alert(1)</script>")], [ir.Text("[not a link](https://example.com)")]],
+    ])
+    body = lower.lower(ir.Document(blocks=[lb]), "ru")
+    assert "<script>" not in body
+    assert "\\<script\\>alert(1)\\</script\\>" in body
+    assert "[not a link](https://example.com)" not in body
+    assert "\\[not a link\\]" in body
+
+
 def test_lower_verse_block_emits_div_with_lines() -> None:
     # The cross-consumer canonical encoding: a blank line after `<div>` (so
     # CommonMark parses the inside), two TRAILING SPACES on every non-final stanza
     # line (the hard break), the final line bare, and a blank line before `</div>`.
-    vb = ir.VerseBlock(stanzas=[[[ir.Text("line one")], [ir.Text("line two")]]], role="verse-block")
+    vb = ir.VerseBlock(stanzas=[[[ir.Text("line one")], [ir.Text("line two")]]], role="verse")
     body = lower.lower(ir.Document(blocks=[vb]), "ru")
-    assert body == '<div class="verse-block">\n\nline one  \nline two\n\n</div>\n'
+    assert body == '<div class="lineated verse">\n\nline one  \nline two\n\n</div>\n'
 
 
 def test_lower_verse_block_markdown_emphasis_and_stanza_break() -> None:
@@ -673,15 +959,28 @@ def test_lower_verse_block_markdown_emphasis_and_stanza_break() -> None:
         [[ir.Text("plain "), ir.Emphasis("strong", [ir.Text("bold")])]],
         [[ir.Text("***")]],
         [[ir.Emphasis("emph", [ir.Text("ital")]), ir.Text(" tail")]],
-    ], role="verse-block")
+    ], role="verse")
     body = lower.lower(ir.Document(blocks=[vb]), "ru")
     assert body == (
-        '<div class="verse-block">\n\n'
+        '<div class="lineated verse">\n\n'
         "plain **bold**\n\n"
         "***\n\n"
         "*ital* tail\n\n"
         "</div>\n"
     )
+
+
+def test_lower_verse_block_escapes_leading_markdown_markers() -> None:
+    # The blank line after `<div>` makes verse contents parse as Markdown. Literal
+    # source lines that look like block syntax must therefore be escaped so they do
+    # not become headings/lists and pollute the generated page ToC.
+    vb = ir.VerseBlock(stanzas=[
+        [[ir.Text("### not a heading")], [ir.Text("1. not a list")], [ir.Text("- not a bullet")]],
+    ], role="verse")
+    body = lower.lower(ir.Document(blocks=[vb]), "ru")
+    assert "\\### not a heading  " in body
+    assert "1\\. not a list  " in body
+    assert "\\- not a bullet" in body
 
 
 def test_lower_signature_emits_p_signature() -> None:
@@ -888,20 +1187,44 @@ def test_asset_legit_src_under_media_root_still_planned(tmp_path: Path) -> None:
     assert isinstance(img, ir.ImageInline) and img.asset_id is not None
 
 
+def test_asset_inline_image_inside_lineated_block_is_planned(tmp_path: Path) -> None:
+    # `LineatedBlock` participates in the shared inline traversal, so images nested
+    # in its display lines are resolved and rewritten just like prose/verse images.
+    media_root = tmp_path / "media"
+    media_root.mkdir()
+    img_file = media_root / "pic.png"
+    img_file.write_bytes(b"\x89PNG\r\n\x1a\nlineated-image")
+
+    doc = ir.Document(blocks=[
+        ir.LineatedBlock(stanzas=[
+            [[ir.Text("see "), ir.ImageInline(src="pic.png", alt="caption")]],
+        ]),
+    ])
+    planned = lower.assign_assets(doc, media_root, "ru")
+
+    assert len(planned) == 1
+    assert isinstance(doc.blocks[0], ir.LineatedBlock)
+    img = doc.blocks[0].stanzas[0][0][1]
+    assert isinstance(img, ir.ImageInline)
+    assert img.asset_id is not None
+    assert f"./images/{img.asset_id}" in lower.lower(doc, "ru")
+
+
 # ---------------------------------------------------------------------------
-# Bug 4: a LineBlock is verse content (not dropped); a genuinely-unknown block
+# Bug 4: a LineBlock is lineated content (not dropped); a genuinely-unknown block
 # PRESERVES its readable text AND surfaces a diagnostic (never silently dropped).
 # ---------------------------------------------------------------------------
 
 
-def test_lower_line_block_produces_verse_lines() -> None:
-    # Bug 4(a): a LineBlock (mapped to a VerseBlock by the adapter) lowers to a
-    # non-empty verse `<div>` preserving its lines — not empty output.
-    vb = ir.VerseBlock(stanzas=[[[ir.Text("Roses are red,")], [ir.Text("violets are blue.")]]])
-    body = lower.lower(ir.Document(blocks=[vb]), "ru")
+def test_lower_line_block_produces_lineated_lines() -> None:
+    # Bug 4(a): a LineBlock (mapped to a LineatedBlock by the adapter) lowers to
+    # non-empty hard-break Markdown preserving its lines — not empty output.
+    lb = ir.LineatedBlock(stanzas=[[[ir.Text("Roses are red,")], [ir.Text("violets are blue.")]]])
+    body = lower.lower(ir.Document(blocks=[lb]), "ru")
     assert "Roses are red," in body
     assert "violets are blue." in body
-    assert '<div class="verse-block">' in body
+    assert 'class="lineated verse"' not in body
+    assert "Roses are red,  \n" in body
 
 
 def test_lower_unknown_block_preserves_text_and_emits_diagnostic() -> None:
@@ -1016,6 +1339,18 @@ def test_unsafe_link_in_verse_drops_target_keeps_text() -> None:
     assert "javascript:" not in body
     assert "<a " not in body  # the anchor element is gone
     assert ">x<" not in body or "x" in body  # the text remains
+
+
+def test_unsafe_link_in_lineated_block_drops_target_keeps_text() -> None:
+    lb = ir.LineatedBlock(stanzas=[
+        [[ir.Text("before "), ir.Link([ir.Text("x")], "javascript:alert(1)")]],
+    ])
+    doc = ir.Document(blocks=[lb])
+    body = lower.lower(doc, "ru")
+    assert "javascript:" not in body
+    assert "before x" in body
+    assert "](" not in body
+    _assert_diagnostic(doc, "warning", "import.unsafe-url")
 
 
 def test_unsafe_scheme_image_is_dropped_with_warning() -> None:

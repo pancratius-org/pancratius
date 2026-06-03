@@ -112,7 +112,8 @@ def test_export_markdown_allows_canonical_html_wrappers(tmp_path: Path) -> None:
         tmp_path,
         "\n\n".join(
             [
-                '<div class="verse-block">\nLine <strong>one</strong>\n</div>',
+                '<div class="lineated">\nLineated one  \nLineated two\n</div>',
+                '<div class="lineated verse">\nVerse one  \nVerse two\n</div>',
                 '<blockquote class="epigraph">\n'
                 '<p>Quote <em>text</em><br>next <a href="https://example.test">link</a></p>\n'
                 '<footer>Source <span dir="rtl">YHWH</span></footer>\n'
@@ -126,9 +127,19 @@ def test_export_markdown_allows_canonical_html_wrappers(tmp_path: Path) -> None:
     render_downloads._write_export_markdown(entry, dest, {})
 
     rendered = dest.read_text(encoding="utf-8")
-    assert '<div class="verse-block">' in rendered
+    assert '<div class="lineated">' in rendered
+    assert '<div class="lineated verse">' in rendered
     assert '<blockquote class="epigraph">' in rendered
     assert '<p class="signature">' in rendered
+
+
+@pytest.mark.parametrize("class_name", ["verse", "verse-block"])
+def test_export_markdown_refuses_undocumented_div_wrapper(tmp_path: Path, class_name: str) -> None:
+    entry = _work_entry(tmp_path, f'<div class="{class_name}">\nLine one  \nLine two\n</div>')
+    dest = tmp_path / "out.md"
+
+    with pytest.raises(render_downloads.DownloadRenderError, match="expected class"):
+        render_downloads._write_export_markdown(entry, dest, {})
 
 
 def test_current_work_corpus_download_html_allowlist() -> None:

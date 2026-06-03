@@ -163,19 +163,19 @@ The current contract:
 - **drop cap is opt-in only** via `<p class="lead">`. The corpus often opens
   with a dedication, dialogue, or short liturgical fragment; automatic drop
   caps mis-type those openings.
-- **verse / divine-voice sections are explicit.** The converter reads the DOCX
-  through Pandoc's `docx+empty_paragraphs` JSON AST, detects named and
-  structural short-line runs, and emits a `<div class="verse-block">` containing
-  natural source lines and blank-line stanza breaks. CSS styles that explicit
-  structure. It does not guess verse from arbitrary italic paragraphs at render
-  time, and authors are not asked to hand-write `<p>` / `<br>` line markup.
-  Inline emphasis inside that raw HTML wrapper uses HTML tags because CommonMark
-  does not parse `**...**` inside raw HTML blocks.
-- **there is one lineated block shape.** Numbered sections, catechetical
-  answers, prayers, and divine-voice short-line runs all use
-  `<div class="verse-block">` when the source is lineated. The converter does not
-  maintain a separate answer-wrapper taxonomy unless the site gives that register a
-  genuinely different visual and semantic treatment.
+- **lineation and verse register are separate.** The converter preserves source
+  line/stanza structure first. Lineated prose lowers to
+  `<div class="lineated">` with ordinary Markdown two-space hard breaks; only
+  high-confidence verse-register runs add the `verse` class, producing
+  `<div class="lineated verse">` around the same line/stanza shape. CSS styles
+  the base lineation and the additive register separately, and lineation is never
+  inferred from raw newlines at render time.
+- **there is one lineation encoding, not one register.** Numbered sections,
+  catechetical answers, prayers, and divine-voice short-line runs all share the
+  same two-space hard-break lineation. Some are `.lineated` prose; some are
+  promoted to `.lineated.verse`. The converter does not maintain a separate
+  answer-wrapper taxonomy unless the site gives that register a genuinely
+  different visual and semantic treatment.
 - **right-aligned DOCX paragraphs are preserved as semantics only when the
   source makes the role clear.** Standalone author/source lines become
   `p.signature`; scripture and epigraph groups become
@@ -225,7 +225,7 @@ those routes/components, not as branches in a shared renderer.
 If editorial wants slug-specific classes (`.lead`, `.signature`, `.ornament`)
 they may be authored directly in the Markdown. The converter emits only
 structural classes it can justify from source shape and section name, such as
-`.verse-block`.
+`.lineated` and `.lineated.verse`.
 
 ## Verse Source Contract
 
@@ -248,35 +248,36 @@ page, project verse subpages, any future lineated body:
   literal newline beside each `<br>`) — CSS never infers lineation from a raw
   newline.
 - **REGISTER** (prose voice vs verse voice) is orthogonal and comes from the
-  `.verse-block` wrapper (prose books), `kind: poem` / the poem component (poems),
-  or the `<Verse>` component / `weight: verse` (the manifesto and project verse
-  subpages) — never from CSS reading raw newlines. `<Prose>` keeps normal
-  CommonMark semantics; flowing-prose bodies are left untouched.
+  additive `.verse` class on the `.lineated` wrapper (prose books),
+  `kind: poem` / the poem component (poems), or the `<Verse>` component /
+  `weight: verse` (the manifesto and project verse subpages) — never from CSS
+  reading raw newlines. `<Prose>` keeps normal CommonMark semantics; flowing-prose
+  bodies are left untouched.
 
 A `***` line is the thematic/verse separator (CommonMark `<hr>`); `---` is NOT
 used, because under a text line it parses as a setext heading in Astro. A guard
-audit (PAN006B-lineation-breaks) fails if ANY lineated body — verse-block, poem,
-mission page, or verse subpage — loses its two-space breaks; `.editorconfig`
-carries `[*.md] trim_trailing_whitespace = false` so a formatter cannot silently
-strip them. The download exporters read this one encoding through a single plain
-pandoc reader (no poem-only `+hard_line_breaks`).
+audit (PAN006B-lineation-breaks) fails if ANY lineated body — `.lineated`
+wrappers, poems, mission page, or verse subpage — loses its two-space breaks;
+`.editorconfig` carries `[*.md] trim_trailing_whitespace = false` so a formatter
+cannot silently strip them. The download exporters read this one encoding through
+a single plain pandoc reader (no poem-only `+hard_line_breaks`).
 
 The converter must treat stanza boundaries as editorial data. DOCX poems and
 book lineation are read through Pandoc's `docx+empty_paragraphs` JSON AST,
 because empty Word paragraphs survive there as explicit empty paragraph nodes.
-Poems emit whole-body verse in the generated encoding above; book sections and
-confident short-line runs emit a minimal `.verse-block` wrapper around natural
-lines so stanza structure is explicit on normal prose pages. A confident run is short
-lineated lines (each ≤120 characters) carrying a source-lineation signal: ≥2 lines
-on a strong signal (a hard `<w:br/>`, heading, or thematic separator), else ≥3
-lines on the weak empty-paragraph-only signal. Short colon openers remain inside
-the lineated run; explicit speaker/source turns end it. The converter must not
-infer stanza structure from plain Pandoc GFM after the empty-paragraph signal has been
-lost, and it must not silently flatten all poems into one stanza. The 120-char
-threshold is duplicated in `pancratius/ir/normalize.py` (`VERSE_SHORT_LINE_MAX`)
-and `audit/book_verse.py` (`SHORT_LINE_MAX`) — the audit is the
-independent DOCX-source oracle for the IR rule, so the two values must stay in
-sync.
+Poems emit whole-body verse in the generated encoding above. Books split the old
+one-stage "verse run" decision into two questions: Q1 preserves/folds source rows
+as lineation (`LineatedBlock`) using explicit hard breaks and isolated,
+documented source-row inference; Q2 may then add the `.verse` register to an
+already-lineated block. Headings, titles, and thematic separators may influence Q2
+register, but they are not themselves proof that Q1 hard breaks exist. The
+converter must not infer stanza structure from plain Pandoc GFM after the
+empty-paragraph signal has been lost, and it must not silently flatten all poems
+into one stanza. The 120-char threshold still appears in
+`pancratius/ir/normalize.py` (`VERSE_SHORT_LINE_MAX`) and the legacy
+`audit/book_verse.py` (`SHORT_LINE_MAX`), but that audit is now a register
+diagnostic pending the 3-way flowing / lineated-prose / verse benchmark, not the
+lineation oracle.
 
 ## Conceptosphere page-layout selectors are global
 
@@ -318,7 +319,7 @@ suppression.
 
 ## Import is the publish gate: harden authored content, not the renderer
 
-The site's Markdown renderer carries no sanitizer — verse-blocks, signatures, and
+The site's Markdown renderer carries no sanitizer — lineated wrappers, signatures, and
 bidi spans are converter-emitted raw HTML the pages depend on, so a sanitizer
 can't be added without breaking them. The import is therefore the single gate:
 literal authored text must not become unintended active markup in published pages.

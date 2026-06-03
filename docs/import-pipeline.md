@@ -138,6 +138,13 @@ footnote, image-role, and source-span information; a full source AST is too broa
 for the Pancratius model. Add a block type when structure is real. Do not smuggle
 structure through string conventions.
 
+`source_span` is provenance, not structure: when the DOCX adapter can prove which
+top-level `word/document.xml` paragraphs produced a block, it records the
+inclusive ordinal range on that block. Normalization combines or copies that span
+when it wraps, merges, or splits source-derived blocks. Lowering ignores it.
+Diagnostics such as `pancratius docx inspect` use it to map IR decisions back to
+the exact DOCX slice; missing provenance must stay missing rather than guessed.
+
 ### One adapter now: DOCX
 
 The parser turns one source format into the IR. **Only the DOCX adapter exists.**
@@ -207,7 +214,7 @@ a diagnostic.
 
 ## Import is the content-safety boundary
 
-The published Markdown is rendered without a sanitizer — verse-blocks,
+The published Markdown is rendered without a sanitizer — lineated wrappers,
 signatures, and bidi spans carry converter-emitted raw HTML the pages depend on.
 The importer is therefore the boundary that makes authored content safe before it
 reaches the corpus: literal `Text` is escaped (Markdown/HTML metacharacters,
@@ -250,7 +257,7 @@ tree.
 **Tests** (pytest / `node:test`): golden fixtures from real corpus works (updated
 only on deliberate behavior changes, with the diff reviewed); idempotency
 (import twice → byte-identical); invariants (every footnote resolves, no
-cover-as-body, no machine-local paths, verse blocks non-empty); `WritePlan`
+cover-as-body, no machine-local paths, lineated wrappers non-empty); `WritePlan`
 rejection cases (absolute, `..`, symlink, existing-without-replace, out-of-scope,
 delete-in-normal-import) with no filesystem; writer integration on a temp tree
 (atomic replace, manifest written, author neighbors untouched, dry-run writes

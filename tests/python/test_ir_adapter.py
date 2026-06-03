@@ -179,17 +179,17 @@ def test_figure_unwraps_content_and_caption() -> None:
     assert kinds.count("Paragraph") == 2
 
 
-def test_line_block_maps_to_verse_lines_not_unknown() -> None:
-    # Bug 4(a): a Pandoc LineBlock is verse-like lines — it must map to REAL content
-    # (a VerseBlock with each line preserved), not an UnknownBlock that lowering
-    # drops. LineBlock c = [[inlines for line 1], [inlines for line 2], ...].
+def test_line_block_maps_to_lineated_lines_not_unknown() -> None:
+    # Bug 4(a): a Pandoc LineBlock is structurally lineated reading content. It
+    # must map to REAL content (not an UnknownBlock lowering would drop), but the
+    # adapter must not assign verse register by itself.
     ctx = adapter._Ctx()
     node = {"t": "LineBlock", "c": [
         [_str("Roses are red,")],
         [_str("violets are blue.")],
     ]}
     b = adapter._block(node, ctx)
-    assert isinstance(b, ir.VerseBlock), f"LineBlock should map to VerseBlock, got {type(b).__name__}"
+    assert isinstance(b, ir.LineatedBlock), f"LineBlock should map to LineatedBlock, got {type(b).__name__}"
     lines = [line for stanza in b.stanzas for line in stanza]
     assert len(lines) == 2
     assert lines[0] == [ir.Text("Roses are red,")]
@@ -298,7 +298,13 @@ def _groups(records: list[adapter._JcRecord]) -> list[int | None]:
 def test_read_w_jc_returns_alignment_per_body_paragraph() -> None:
     path = _docx_with_paragraphs("right", None, "center")
     try:
-        assert _aligns(adapter.read_w_jc(path)) == ["right", "", "center"]
+        records = adapter.read_w_jc(path)
+        assert _aligns(records) == ["right", "", "center"]
+        assert [record.source_span for record in records] == [
+            ir.SourceSpan(0, 0),
+            ir.SourceSpan(1, 1),
+            ir.SourceSpan(2, 2),
+        ]
     finally:
         path.unlink()
 
@@ -423,6 +429,29 @@ def test_read_w_jc_style_spacing_overrides_doc_default_spacing() -> None:
         path.unlink()
 
 
+def test_read_w_jc_marks_structural_empty_paragraphs() -> None:
+    document = (
+        '<?xml version="1.0"?>'
+        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        '<w:p><w:r><w:t>before</w:t></w:r></w:p>'
+        "<w:p/>"
+        '<w:p><w:r><w:t>after</w:t></w:r></w:p>'
+        "</w:body></w:document>"
+    )
+    path = _docx_from_document(document)
+    try:
+        records = adapter.read_w_jc(path)
+        assert [r.text for r in records] == ["before", "", "after"]
+        assert [r.empty for r in records] == [False, True, False]
+        assert [r.source_span for r in records] == [
+            ir.SourceSpan(0, 0),
+            ir.SourceSpan(1, 1),
+            ir.SourceSpan(2, 2),
+        ]
+    finally:
+        path.unlink()
+
+
 def test_read_w_jc_visual_group_does_not_bridge_list_item() -> None:
     document = (
         '<?xml version="1.0"?>'
@@ -522,11 +551,136 @@ def test_reconcile_alignment_merged_right_paragraphs() -> None:
     )
     assert isinstance(para, ir.Paragraph)
     records = [
-        adapter._JcRecord(align="right", text="Тогда волк"),
-        adapter._JcRecord(align="right", text="будет жить"),
+        adapter._JcRecord(align="right", text="Тогда волк", source_span=ir.SourceSpan(5, 5)),
+        adapter._JcRecord(align="right", text="будет жить", source_span=ir.SourceSpan(6, 6)),
     ]
+    adapter._assign_source_spans([para], records)
     assigned = adapter.reconcile_alignment([para], records)
     assert para.align == "right" and assigned == 1
+    assert para.source_span == ir.SourceSpan(5, 6)
+
+
+def test_reconcile_alignment_refuses_fusion_across_source_gap() -> None:
+    """A fused Pandoc paragraph must not claim a span across skipped source blocks."""
+    ctx = adapter._Ctx()
+    para = adapter._block(
+        _para(_str("before list"), {"t": "LineBreak"}, _str("after list")), ctx
+    )
+    assert isinstance(para, ir.Paragraph)
+    records = [
+        adapter._JcRecord(align="right", text="before list", source_span=ir.SourceSpan(5, 5)),
+        adapter._JcRecord(align="right", text="after list", source_span=ir.SourceSpan(7, 7)),
+    ]
+
+    assigned = adapter.reconcile_alignment([para], records)
+
+    assert assigned == 0
+    assert para.align == ""
+    assert para.source_span is None
+
+
+def test_reconcile_alignment_refuses_fusion_across_table_boundary() -> None:
+    """Tables are not paragraph ordinals, so segment metadata must block fusion."""
+    ctx = adapter._Ctx()
+    para = adapter._block(
+        _para(_str("before table"), {"t": "LineBreak"}, _str("after table")), ctx
+    )
+    assert isinstance(para, ir.Paragraph)
+    records = [
+        adapter._JcRecord(
+            align="right",
+            text="before table",
+            source_span=ir.SourceSpan(5, 5),
+            source_segment=0,
+        ),
+        adapter._JcRecord(
+            align="right",
+            text="after table",
+            source_span=ir.SourceSpan(6, 6),
+            source_segment=1,
+        ),
+    ]
+
+    assigned = adapter.reconcile_alignment([para], records)
+
+    assert assigned == 0
+    assert para.align == ""
+    assert para.source_span is None
+
+
+def test_source_span_assignment_keeps_punctuation_only_structural_paragraph() -> None:
+    block = ir.Paragraph(inlines=[ir.Text("***")])
+    records = [
+        adapter._JcRecord(align="", text="***", source_span=ir.SourceSpan(12, 12)),
+    ]
+
+    assigned = adapter._assign_source_spans([block], records)
+
+    assert assigned == 1
+    assert block.source_span == ir.SourceSpan(12, 12)
+
+
+def test_source_span_assignment_matches_blockquote_before_duplicate_later_text() -> None:
+    blocks: list[ir.Block] = [
+        ir.Paragraph(inlines=[ir.Text("Title")]),
+        ir.BlockQuote(blocks=[ir.Paragraph(inlines=[ir.Text("Repeated dedication")])]),
+        ir.Heading(level=2, inlines=[ir.Text("Chapter")]),
+        ir.Paragraph(inlines=[ir.Text("Repeated dedication")]),
+    ]
+    records = [
+        adapter._JcRecord(align="", text="Title", source_span=ir.SourceSpan(1, 1)),
+        adapter._JcRecord(
+            align="",
+            text="Repeated dedication",
+            source_span=ir.SourceSpan(2, 2),
+        ),
+        adapter._JcRecord(align="", text="Chapter", source_span=ir.SourceSpan(3, 3)),
+        adapter._JcRecord(
+            align="",
+            text="Repeated dedication",
+            source_span=ir.SourceSpan(4, 4),
+        ),
+    ]
+
+    assigned = adapter._assign_source_spans(blocks, records)
+
+    assert assigned == 4
+    assert [block.source_span for block in blocks] == [
+        ir.SourceSpan(1, 1),
+        ir.SourceSpan(2, 2),
+        ir.SourceSpan(3, 3),
+        ir.SourceSpan(4, 4),
+    ]
+    paragraphs = [block for block in blocks if isinstance(block, ir.Paragraph)]
+    adapter.reconcile_alignment(paragraphs, records)
+    assert [block.source_span for block in blocks] == [
+        ir.SourceSpan(1, 1),
+        ir.SourceSpan(2, 2),
+        ir.SourceSpan(3, 3),
+        ir.SourceSpan(4, 4),
+    ]
+
+
+def test_source_span_assignment_keeps_structural_empty_paragraph() -> None:
+    blocks: list[ir.Block] = [
+        ir.Paragraph(inlines=[ir.Text("before")]),
+        ir.Paragraph(inlines=[], empty=True),
+        ir.Paragraph(inlines=[ir.Text("after")]),
+    ]
+    records = [
+        adapter._JcRecord(align="", text="before", source_span=ir.SourceSpan(1, 1)),
+        adapter._JcRecord(align="", text="", source_span=ir.SourceSpan(2, 2), empty=True),
+        adapter._JcRecord(align="", text="after", source_span=ir.SourceSpan(3, 3)),
+    ]
+
+    assigned = adapter._assign_source_spans(blocks, records)
+
+    assert assigned == 3
+    assert [block.source_span for block in blocks] == [
+        ir.SourceSpan(1, 1),
+        ir.SourceSpan(2, 2),
+        ir.SourceSpan(3, 3),
+    ]
 
 
 def test_reconcile_alignment_no_match_assigns_nothing() -> None:

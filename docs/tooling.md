@@ -71,6 +71,8 @@ functions in process. It does not shell out to other Python CLIs.
 | `pancratius video sync [--channel KEY] [--dry-run]` | `pancratius.video_scan.scan` |
 | `pancratius downloads render [--book N]` | `pancratius.render_downloads` |
 | `pancratius docx optimize [paths...]` | `pancratius.docx_optimize` |
+| `pancratius docx inspect <docx> [--contains TEXT|--around TEXT|--range LO:HI|--verse-only|--lineated-only]` | `pancratius.docx_inspect` |
+| `pancratius docx render-slice <docx> (--around TEXT|--range LO:HI) --out <png>` | `pancratius.docx_render` |
 | `pancratius docx merge <parts...> --out <docx> [--part TITLE::MARKER]` | `pancratius.docx_merge` |
 | `pancratius conceptosphere graph generate [--only concepts|books]` | `pancratius.conceptosphere.generate_graph` |
 | `pancratius conceptosphere embed generate` | `pancratius.conceptosphere_embed.generate_embeddings` |
@@ -86,7 +88,19 @@ The grammar carries the content model:
   `YOUTUBE_API_KEY`) and scaffolds frontmatter + a `cover.<lang>.jpg`
   thumbnail for each new video. Commentary in the body is editorial. Re-runs
   never touch known entries.
-- `docx merge` composes source parts and validates the resulting DOCX package
+- `docx inspect` is read-only source diagnostics. It prints per-paragraph OOXML
+  and importer classification signals for debugging DOCX import behavior. When
+  repeated text maps to multiple IR roles, it reports the row as ambiguous
+  rather than guessing; when IR blocks carry source provenance, merged block spans
+  appear as `ir=LO..HI` in the signal column. It does not create, edit, optimize,
+  or convert corpus files.
+- `docx render-slice` is an explicit visual QA diagnostic, not a download renderer
+  and not a render of the original page. It builds a temporary DOCX containing the
+  selected paragraph range, asks LibreOffice to render that slice, and rasterizes
+  the PDF to PNG for human comparison with `docx inspect`. `--around` must match
+  exactly one paragraph; use `docx inspect --around` first and then `--range` for
+  repeated text.
+- `docx merge` composes the source parts and validates the resulting DOCX package
   structure (ZIP, XML, relationships, media references). Optional
   `--part TITLE::MARKER` arguments insert real source part headings during the
   merge. Office-suite load checks are outside the first-class merge path; use
@@ -94,6 +108,22 @@ The grammar carries the content model:
 - Graph and embedding generation live here because they produce committed
   Python-only data products. Copying those products into `public/data/` is npm
   build work.
+
+DOCX diagnostic examples:
+
+```sh
+# Grep-like source/importer inspection around text in a committed book source.
+uv run pancratius docx inspect --book 30 --around "Если готов" --context 8
+
+# Render the same neighborhood as an isolated visual slice for human comparison.
+uv run pancratius docx render-slice --book 30 --around "Если готов" \
+  --context 8 --out /tmp/book30-ready.png
+
+# Inspect a precise paragraph range, then render exactly that range.
+uv run pancratius docx inspect --book 25 --range 180:205
+uv run pancratius docx render-slice --book 25 --range 180:205 \
+  --out /tmp/book25-180-205.png
+```
 
 DOCX merge example:
 

@@ -166,11 +166,24 @@ describe("renderPublicWorkMarkdown raw HTML policy", () => {
     }
   });
 
+  test("refuses undocumented div wrappers", () => {
+    for (const className of ["verse", "verse-block"]) {
+      assert.throws(
+        () => renderPublicWorkMarkdown(
+          `<div class="${className}">\nLine one  \nLine two\n</div>\n`,
+          { origin: ORIGIN, work: { kind: "book", bundleKey: "work-1" } },
+        ),
+        /Unsupported raw HTML/,
+      );
+    }
+  });
+
   test("renders canonical work HTML wrappers and inline publication tags", () => {
     const rendered = renderPublicWorkMarkdown(
       [
-        '<div class="verse-block">Line <strong>one</strong><br><span dir="rtl">RTL text</span></div>',
-        '<blockquote class="epigraph"><p>Quote <em>text</em><br>next '
+        '<div class="lineated">\n\nLineated <strong>one</strong>  \nLineated two\n\n</div>',
+        '<div class="lineated verse">\n\nVerse <strong>one</strong>  \n<span dir="rtl">RTL text</span>\n\n</div>',
+        '<blockquote class="epigraph"><p>Quote <em>text</em>\nnext '
           + '<a href="https://example.test/ref?x=1&amp;y=2">link</a></p><footer>Source</footer></blockquote>',
         '<p class="signature">Name</p>',
         '<img src="./images/pic.jpg" alt="Image &amp; sign">',
@@ -181,7 +194,11 @@ describe("renderPublicWorkMarkdown raw HTML policy", () => {
     assert.equal(
       rendered,
       [
-        "Line **one**  ",
+        "Lineated **one**  ",
+        "Lineated two",
+        "",
+        "",
+        "Verse **one**  ",
         "RTL text",
         "",
         "",
@@ -223,20 +240,34 @@ describe("renderPublicWorkMarkdown raw HTML policy", () => {
 });
 
 describe("renderPublicWorkMarkdown lineation and corpus smoke", () => {
-  test("infers poem hard breaks from kind", () => {
+  test("preserves canonical hard breaks without inferring them from kind or wrapper", () => {
     assert.equal(
       renderPublicWorkMarkdown(
-        "First line\nSecond line\n\nNext stanza\n",
+        "First line  \nSecond line\n\nNext stanza\n",
         { origin: ORIGIN, work: { kind: "poem", bundleKey: "poem-1" } },
       ),
       "First line  \nSecond line\n\nNext stanza\n",
     );
     assert.equal(
       renderPublicWorkMarkdown(
-        '<div class="verse-block"><p>Line one<br>Line two</p></div>',
+        '<div class="lineated verse">\n\nLine one  \nLine two\n\n</div>',
         { origin: ORIGIN, work: { kind: "book", bundleKey: "book-1" } },
       ),
       "Line one  \nLine two\n",
+    );
+    assert.equal(
+      renderPublicWorkMarkdown(
+        '<div class="lineated">\n\nLine one  \nLine two\n\n</div>',
+        { origin: ORIGIN, work: { kind: "book", bundleKey: "book-1" } },
+      ),
+      "Line one  \nLine two\n",
+    );
+    assert.equal(
+      renderPublicWorkMarkdown(
+        "First line\nSecond line\n",
+        { origin: ORIGIN, work: { kind: "poem", bundleKey: "poem-1" } },
+      ),
+      "First line\nSecond line\n",
     );
   });
 

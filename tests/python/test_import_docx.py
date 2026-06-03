@@ -57,6 +57,13 @@ def test_import_new_docx_creates_bundle_paths_and_frontmatter(
 ) -> None:
     docx = make_docx("source-ru.docx", "# Личность и эго\n\nТекст.")
     content_root = tmp_path / "src" / "content"
+    video_dir = content_root / "videos" / "draft-video"
+    video_dir.mkdir(parents=True)
+    (video_dir / "ru.md").write_text(
+        "---\nkind: video\ntitle: broken: draft\n---\n\nDraft.\n",
+        encoding="utf-8",
+    )
+
     report = import_docx.import_work(import_docx.ImportRequest(
         docx=docx,
         lang="ru",

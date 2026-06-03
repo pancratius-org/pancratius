@@ -1,13 +1,13 @@
-"""Source-faithful book verse detection (I4).
+"""Focused coverage for book verse-register promotion (I4).
 
-These are the TDD spec for the verse-detection rule in `pancratius.ir.normalize` — written
-to FAIL against the pre-I4 detection and pass after the fix. The rule (also the
-executable spec encoded in `audit/book_verse.py`):
+These tests predate the lineation/register split and now cover Q2 promotion
+behavior around known regressions, not the full source of truth for Q1 lineation.
+The importer first preserves/folds lineation as `LineatedBlock`, then promotes an
+already-lineated block to `VerseBlock` only when register evidence warrants it.
+`audit/book_verse.py` is a legacy diagnostic, not the split IR spec.
 
-  * A *verse run* is >=2 consecutive SHORT lineated display-lines whose lineation
-    comes from the SOURCE — a hard `LineBreak` (`<w:br/>`) inside one paragraph,
-    or a run of short standalone paragraphs. Each line must be under the
-    short-line length threshold (`pancratius.ir.normalize.VERSE_SHORT_LINE_MAX`).
+  * A *verse-register run* is an already-lineated block whose display lines are
+    short enough for the verse voice under the current conservative Q2 rule.
   * NOT verse: an ISOLATED short line amid prose (a single short paragraph between
     long ones); an explicit SPEAKER/SOURCE turn (`Speaker:` / `Speaker: text`);
     a LONG (prose-length) line; a numbered Q/A heading.
@@ -15,7 +15,7 @@ executable spec encoded in `audit/book_verse.py`):
 The two regressions this guards (verified during the IR cutover):
   * OVER-detection — a parenthetical-qualified label (`Ответ от Творца (режим
     проводника):`) plus an isolated `да.` and one prose sentence were wrapped in a
-    verse-block. The parenthetical defeated the label rejection.
+    verse register. The parenthetical defeated the label rejection.
   * UNDER-detection — a genuine litany (`Ты спросил: кто они? / Они — ты, когда ты
     не разделён. / …`) was left as prose because the mid-sentence colon lines were
     rejected as if they were labels, breaking the run.
@@ -153,7 +153,7 @@ def test_isolated_short_line_amid_prose_stays_prose() -> None:
 
 def test_speaker_turn_lines_do_not_fold_into_verse() -> None:
     # A run of `Speaker: …` dialogue turns separated by empty paragraphs must NOT
-    # fold into a verse-block (the book23 over-detection a too-broad colon allowance
+    # fold into a verse register (the book23 over-detection a too-broad colon allowance
     # reintroduced — `Панкратиус: <prose>` is a dialogue turn, never a verse line,
     # even though it has a mid-sentence colon like a litany line).
     blocks: list[ir.Block] = [
@@ -223,7 +223,7 @@ def test_litany_run_of_short_standalone_paras_is_one_verse_block() -> None:
     ]
     out = normalize.verse_blocks(blocks)
     verse = [b for b in out if isinstance(b, ir.VerseBlock)]
-    assert len(verse) == 1, f"expected one verse-block for the litany, got {len(verse)}"
+    assert len(verse) == 1, f"expected one verse register for the litany, got {len(verse)}"
     assert _verse_lines(verse[0]) == [
         "Ты спросил: кто они?",
         "Они — ты, когда ты не разделён.",

@@ -41,7 +41,7 @@ def test_speaker_turn_rejects_dialogue_and_source_turns_keeps_verse_colon() -> N
 
 
 def test_is_verse_line_rejects_speaker_turn() -> None:
-    # A speaker turn folding into a verse-block is the over-detection a too-broad
+    # A speaker turn folding into a verse register is the over-detection a too-broad
     # colon allowance reintroduced; the verse-line predicate must reject it.
     assert not bv.is_verse_line("Панкратиус: Дальше.")
     assert not bv.is_verse_line("Ответ от Творца (режим Проводник): Ты видишь точно.")
@@ -169,9 +169,9 @@ def test_heading_context_makes_book30_item23_one_expected_run() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_actual_block_lines_extracts_verse_and_strips_tags() -> None:
+def test_actual_block_lines_extracts_verse_register_and_strips_tags() -> None:
     body = (
-        '<div class="verse-block">\n'
+        '<div class="lineated verse">\n'
         "<em>Я — Свет.</em>\n"
         "Я — Образ.\n"
         "</div>\n"
@@ -198,7 +198,7 @@ def test_actual_structural_blocks_extracts_signature_and_epigraph_text() -> None
 def test_prose_lines_excludes_verse_block_content() -> None:
     body = (
         "Это прозаический абзац.\n\n"
-        '<div class="verse-block">\n'
+        '<div class="lineated verse">\n'
         "Я — Свет.\n"
         "Я — Образ.\n"
         "</div>\n\n"
@@ -207,4 +207,4 @@ def test_prose_lines_excludes_verse_block_content() -> None:
     prose = bv.prose_lines(body)
     assert "Это прозаический абзац." in prose
     assert "И ещё проза." in prose
-    assert "Я — Свет." not in prose  # it is in the verse-block, not prose
+    assert "Я — Свет." not in prose  # it is in the verse register, not prose

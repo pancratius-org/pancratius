@@ -85,7 +85,6 @@ STRUCTURAL_FM_KEYS = (
     "lang",
     "tags",
     "cover",
-    "cover_is_placeholder",
     "translation",
     "cross_refs",
     "date",
