@@ -439,6 +439,28 @@ def cmd_panel(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_review(args: argparse.Namespace) -> int:
+    """Build a blind adjudication task (+ ingestion sidecar) from one or more runs' human + audit
+    queues, for adjudicate.html."""
+    from . import review
+    specs = [spec_mod.load(r) for r in args.recipes]
+    run_dirs = [(s.dataset, run_dir(s.dataset, s.name)) for s in specs]
+    for _ds, rd in run_dirs:
+        if not (rd / "needs_human.json").exists():
+            raise SystemExit(f"no run at {rd} — run its recipe first")
+    pkg_of = {s.dataset: {r["rid"]: r for r in load_regions(s.dataset)} for s in specs}
+    task, sidecar, stats = review.build(run_dirs, pkg_of)
+    adj = DATA.parent / "adjudicate"
+    adj.mkdir(exist_ok=True)
+    (adj / f"assessment_{args.name}.json").write_text(json.dumps(task, ensure_ascii=False))
+    (adj / f"review_{args.name}.json").write_text(json.dumps(sidecar, ensure_ascii=False, indent=2))
+    print(f"review '{args.name}': {stats['regions']} regions, {stats['lines']} lines to adjudicate "
+          f"({stats['human']} human-split + {stats['audit']} audit)")
+    print(f"  task   → {adj/f'assessment_{args.name}.json'}  (open in adjudicate.html)")
+    print(f"  sidecar→ {adj/f'review_{args.name}.json'}  (roles + accepted labels, for ingestion)")
+    return 0
+
+
 def _max_rep(dataset: str, lead: str, prefix: str) -> int:
     """Highest rep index already on disk for the lead at this prefix (0 if none)."""
     reps = []
@@ -588,6 +610,11 @@ def main() -> int:
     es.add_argument("recipe", help="path to a runs/*.toml recipe (its run must already exist)")
     es.add_argument("--execute", action="store_true", help="actually make the paid calls (default: dry-run)")
     es.set_defaults(func=cmd_escalate)
+
+    rv = sub.add_parser("review", help="build a blind adjudication task from runs' human + audit queues")
+    rv.add_argument("recipes", nargs="+", help="one or more runs/*.toml recipes whose runs exist")
+    rv.add_argument("--name", required=True, help="output name → adjudicate/assessment_<name>.json")
+    rv.set_defaults(func=cmd_review)
 
     args = ap.parse_args()
     return args.func(args)
