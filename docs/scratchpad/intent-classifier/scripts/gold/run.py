@@ -461,6 +461,35 @@ def cmd_review(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ingest(args: argparse.Namespace) -> int:
+    """Fold a human responses-*.json (+ its review_*.json sidecar) into human gold + an audit report."""
+    from . import ingest as ingest_mod
+    adj = DATA.parent / "adjudicate"
+    responses = json.loads(Path(args.responses).read_text())
+    responses = responses.get("responses", responses)
+    sidecar = json.loads((adj / f"review_{args.name}.json").read_text())
+    stratum_of = {e["rid"]: e["stratum"] for e in load_regions(args.dataset)}
+    result = ingest_mod.ingest(responses, sidecar, stratum_of)
+
+    out = adj / f"ingested_{args.name}.json"
+    out.write_text(json.dumps(result, ensure_ascii=False, indent=2))
+    a = result["audit"]
+    print(f"ingest '{args.name}': {len(result['human_gold'])} human-resolved split lines → gold "
+          f"(method=blind_per_line)")
+    print(f"  AUDIT: {a['agree']}/{a['n']} agree with the gate "
+          f"({a['n'] - a['agree']} disagreement(s))")
+    for s, st in sorted(a["by_stratum"].items()):
+        flag = "  !! systematic" if st["error_rate"] else ""
+        print(f"    {s:10} {int(st['n']) - int(st['wrong'])}/{int(st['n'])} ok "
+              f"(err {st['error_rate']:.0%}){flag}")
+    for d in a["disagreements"]:
+        print(f"    DISAGREE {d['key']}: gate={d['accepted']} human={d['human']}")
+    if result["reopen"]:
+        print(f"  REOPEN (audit-disagreeing regions): {result['reopen']}")
+    print(f"  wrote {out}")
+    return 0
+
+
 def _max_rep(dataset: str, lead: str, prefix: str) -> int:
     """Highest rep index already on disk for the lead at this prefix (0 if none)."""
     reps = []
@@ -615,6 +644,12 @@ def main() -> int:
     rv.add_argument("recipes", nargs="+", help="one or more runs/*.toml recipes whose runs exist")
     rv.add_argument("--name", required=True, help="output name → adjudicate/assessment_<name>.json")
     rv.set_defaults(func=cmd_review)
+
+    ig = sub.add_parser("ingest", help="fold a human responses file into gold + an audit report")
+    ig.add_argument("responses", help="path to the human responses-*.json")
+    ig.add_argument("--name", required=True, help="the review name (loads adjudicate/review_<name>.json)")
+    ig.add_argument("--set", dest="dataset", default="phaseb")
+    ig.set_defaults(func=cmd_ingest)
 
     args = ap.parse_args()
     return args.func(args)
