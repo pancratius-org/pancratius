@@ -96,9 +96,19 @@ def test_reader_missing_routes_to_rerun_not_human() -> None:
     assert d3.status is Status.NEEDS_RERUN   # operational gap persists → re-run, not editorial
 
 
-def test_conf_missing() -> None:
+def test_conf_missing_only_when_lead_voted() -> None:
+    # lead voted but gave no conf → genuine CONF_MISSING
     d = agg.decide_line(K(1, 0), {r: [("prose", None)] for r in G.core}, gates=G)
     assert Reason.CONF_MISSING in d.reasons and not d.accepted
+    # lead MISSING entirely → operational only, NOT conf_missing (no awkward bypass needed)
+    reps = {"gemini-pro": _votes("prose"), "ds-flash-text": _votes("prose")}  # grok absent
+    d2 = agg.decide_line(K(1, 0), reps, gates=G)
+    assert Reason.READER_MISSING in d2.reasons and Reason.CONF_MISSING not in d2.reasons
+    # lead ABSTAINS (2 split reps → no verdict) → core_abstain, NOT conf_missing
+    reps3 = {"grok": _votes("prose", "lineated"), "gemini-pro": _votes("prose"),
+             "ds-flash-text": _votes("prose")}
+    d3 = agg.decide_line(K(1, 0), reps3, gates=G)
+    assert Reason.CORE_ABSTAIN in d3.reasons and Reason.CONF_MISSING not in d3.reasons
 
 
 def test_conf_floor_zero_disables_conf_gate() -> None:

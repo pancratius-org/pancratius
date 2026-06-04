@@ -107,7 +107,10 @@ def decide_line(
         n_agree = sum(verdicts[r] == majority for r in gates.core)
         if n_agree < gates.min_core_agree:
             reasons.append(Reason.INSUFFICIENT_AGREEMENT)
-    if gates.conf_floor > 0:           # conf_floor == 0 disables the confidence gate
+    # Confidence only gates a line where the LEAD actually voted — a missing lead is already an
+    # operational reason (reader_missing/abstain) and can't enter gold, so conf is moot there.
+    # This keeps CONF_MISSING for the genuine "lead voted but gave no confidence" case only.
+    if gates.conf_floor > 0 and lead_v is not None:
         if lead_conf is None:
             reasons.append(Reason.CONF_MISSING)
         elif lead_conf < gates.conf_floor:
