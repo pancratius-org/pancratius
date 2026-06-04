@@ -140,6 +140,8 @@ def main() -> int:
     ap.add_argument("--brief", default=None, help="override brief file (for the brief-fix A/B)")
     ap.add_argument("--tag-suffix", default="", help="suffix appended to output reader_<tag><suffix>")
     ap.add_argument("--rids", nargs="+", default=None, help="override the region set (default PROBLEM_RIDS)")
+    ap.add_argument("--workers", type=int, default=24,
+                    help="concurrent API calls (I/O-bound; higher overlaps the slow models)")
     args = ap.parse_args()
     global PROBLEM_RIDS
     if args.rids:
@@ -176,7 +178,7 @@ def main() -> int:
     bdir = data / "bench"
     bdir.mkdir(exist_ok=True)
     raw_log: list[dict] = []   # every call's raw reply + metadata, for audit (Codex: too lossy before)
-    with ThreadPoolExecutor(max_workers=10) as ex:
+    with ThreadPoolExecutor(max_workers=args.workers) as ex:
         futs = [ex.submit(work, t, m, v, e) for (t, m, v, e) in jobs]
         for fut in as_completed(futs):
             tag, vision, e, res = fut.result()
