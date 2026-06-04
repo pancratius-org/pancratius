@@ -18,9 +18,12 @@ from pathlib import Path
 from .types import Gates
 
 _NAME = re.compile(r"[A-Za-z0-9_-]+")
+# prefix becomes part of a `_`-delimited rep filename (reader_<lead>_<prefix><N>.jsonl), so it must
+# NOT contain `_` — else the rep-number parse breaks and escalation can overwrite rep 1.
+_PREFIX = re.compile(r"[A-Za-z0-9-]+")
 _TOP = {"name", "description", "dataset", "prefix", "brief", "notes",
         "panel", "audit", "gates", "regions", "flags"}
-_SECTIONS = {"panel": {"core", "diagnostic", "reps_initial", "reps_cap"},
+_SECTIONS = {"panel": {"core", "diagnostic", "reps_initial", "reps_cap", "workers"},
              "audit": {"rate", "seed", "prose_bias"},
              "gates": {"conf_floor", "min_agree", "escalate_reps"},
              "regions": {"rids"},
@@ -33,6 +36,7 @@ class Panel:
     diagnostic: tuple[str, ...] = ()     # run alongside but NOT in the gate (e.g. glm)
     reps_initial: int = 1                # adaptive protocol's first stage
     reps_cap: int = 3                    # escalation ceiling
+    workers: int = 12                    # concurrent API calls per panel run (recipe-tunable)
 
     @property
     def readers(self) -> tuple[str, ...]:
@@ -82,9 +86,10 @@ def loads(text: str) -> RunSpec:
             raise ValueError(f"missing required key: {k}")
     for sec, allowed in _SECTIONS.items():
         _check_keys(d.get(sec, {}), allowed, f"[{sec}]")
-    for k in ("name", "prefix"):
-        if not _NAME.fullmatch(d[k]):
-            raise ValueError(f"{k} must be [A-Za-z0-9_-]+ (no paths/spaces): {d[k]!r}")
+    if not _NAME.fullmatch(d["name"]):
+        raise ValueError(f"name must be [A-Za-z0-9_-]+ (no paths/spaces): {d['name']!r}")
+    if not _PREFIX.fullmatch(d["prefix"]):
+        raise ValueError(f"prefix must be [A-Za-z0-9-]+ (no '_'/paths/spaces): {d['prefix']!r}")
 
     p, a, g, r, f = (d.get(s, {}) for s in ("panel", "audit", "gates", "regions", "flags"))
     core = tuple(p.get("core", ()))
@@ -93,6 +98,9 @@ def loads(text: str) -> RunSpec:
     ri, rc = p.get("reps_initial", 1), p.get("reps_cap", 3)
     if not 1 <= ri <= rc:
         raise ValueError(f"reps_initial ({ri}) must be in 1..reps_cap ({rc})")
+    workers = p.get("workers", 12)
+    if workers < 1:
+        raise ValueError(f"[panel].workers must be ≥ 1: {workers}")
     rate = a.get("rate", 0.08)
     if not 0 < rate <= 1:
         raise ValueError(f"[audit].rate must be in (0,1]: {rate}")
@@ -106,7 +114,7 @@ def loads(text: str) -> RunSpec:
         name=d["name"], description=d["description"], dataset=d["dataset"],
         prefix=d["prefix"], brief=d["brief"],
         panel=Panel(core=core, diagnostic=tuple(p.get("diagnostic", ())),
-                    reps_initial=ri, reps_cap=rc),
+                    reps_initial=ri, reps_cap=rc, workers=p.get("workers", 12)),
         audit=AuditSpec(rate=rate, seed=a.get("seed", 7), prose_bias=a.get("prose_bias", 2.0)),
         rids=rids, conf_floor=g.get("conf_floor", 0.7), min_agree=g.get("min_agree", 2),
         escalate_reps=g.get("escalate_reps", 3),

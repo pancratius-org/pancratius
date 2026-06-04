@@ -272,7 +272,6 @@ def cmd_aggregate(args: argparse.Namespace) -> int:
     if gates.conf_floor > 0 and n_conf_missing:
         print(f"  !! {n_conf_missing} conf-missing lines were ALLOWED (--allow-conf-missing).")
     return 0
-    return 0
 
 
 # ---- score -----------------------------------------------------------------------------------
@@ -386,23 +385,42 @@ def _require_files(spec: spec_mod.RunSpec) -> None:
             raise SystemExit(f"recipe {label} file not found: {raw}")
 
 
-def cmd_recipe(args: argparse.Namespace) -> int:
-    """Run the DETERMINISTIC pipeline (aggregate → audit → manifest) from a TOML recipe."""
-    spec = spec_mod.load(args.recipe)
-    _require_files(spec)
-    print(f"recipe '{spec.name}': {spec.description}")
+def _aggregate_from_spec(spec: spec_mod.RunSpec, *, force: bool, allow_conf_missing: bool) -> None:
+    """Deterministic aggregate + audit from a spec (shared by `recipe` and the escalation loop)."""
     agg_ns = SimpleNamespace(
         dataset=spec.dataset, prefix=spec.prefix, core=list(spec.panel.core),
         diagnostic=spec.panel.diagnostic, conf_floor=spec.conf_floor, min_agree=spec.min_agree,
-        rids=list(spec.rids) or None, run_id=spec.name, force=args.force,
-        allow_conf_missing=args.allow_conf_missing, brief=_resolve(spec.brief),
+        rids=list(spec.rids) or None, run_id=spec.name, force=force,
+        allow_conf_missing=allow_conf_missing, brief=_resolve(spec.brief),
         seed=spec.audit.seed, soft=_resolve(spec.soft), needs_review=_resolve(spec.needs_review),
     )
     cmd_aggregate(agg_ns)
     audit_ns = SimpleNamespace(dataset=spec.dataset, run_id=spec.name, rate=spec.audit.rate,
                                seed=spec.audit.seed, prose_bias=spec.audit.prose_bias)
     cmd_audit(audit_ns)
+
+
+def cmd_recipe(args: argparse.Namespace) -> int:
+    """Run the DETERMINISTIC pipeline (aggregate → audit → manifest) from a TOML recipe."""
+    spec = spec_mod.load(args.recipe)
+    _require_files(spec)
+    print(f"recipe '{spec.name}': {spec.description}")
+    _aggregate_from_spec(spec, force=args.force, allow_conf_missing=args.allow_conf_missing)
     return 0
+
+
+def _bench(spec: spec_mod.RunSpec, readers: Sequence[str], rids: Sequence[str], rep: int,
+           *, execute: bool) -> None:
+    """Build (and, with execute, run) the paid bench_models call for `readers`×`rids` at rep `rep`."""
+    cmd = ["uv", "run", "--with", "python-dotenv", "--with", "requests", "--with", "pillow",
+           "python", "bench_models.py", "--set", spec.dataset,
+           "--models", *readers, "--rids", *rids,
+           "--tag-suffix", f"_{spec.prefix}{rep}", "--brief", _resolve(spec.brief),
+           "--workers", str(spec.panel.workers)]
+    print(f"  [{'EXECUTE' if execute else 'dry-run'}] rep {rep}, {len(readers)} readers × "
+          f"{len(rids)} regions: {' '.join(cmd)}")
+    if execute:
+        subprocess.run(cmd, cwd=HERE.parent, check=True)
 
 
 def cmd_panel(args: argparse.Namespace) -> int:
@@ -414,18 +432,76 @@ def cmd_panel(args: argparse.Namespace) -> int:
     _require_files(spec)
     if not spec.rids:
         raise SystemExit("recipe has no [regions].rids — refusing an unbounded paid run")
-    brief = _resolve(spec.brief)
     for rep in range(1, spec.panel.reps_initial + 1):
-        cmd = ["uv", "run", "--with", "python-dotenv", "--with", "requests", "--with", "pillow",
-               "python", "bench_models.py", "--set", spec.dataset,
-               "--models", *spec.panel.readers, "--rids", *spec.rids,
-               "--tag-suffix", f"_{spec.prefix}{rep}", "--brief", brief]
-        tag = "EXECUTE" if args.execute else "dry-run"
-        print(f"[panel rep {rep}/{spec.panel.reps_initial} · {tag}] {' '.join(cmd)}")
-        if args.execute:
-            subprocess.run(cmd, cwd=HERE.parent, check=True)
+        _bench(spec, spec.panel.readers, spec.rids, rep, execute=args.execute)
     if not args.execute:
         print("  (dry-run: nothing spent. Re-run with --execute to make the paid calls.)")
+    return 0
+
+
+def _max_rep(dataset: str, lead: str, prefix: str) -> int:
+    """Highest rep index already on disk for the lead at this prefix (0 if none)."""
+    reps = []
+    for p in (DATA / dataset / "bench").glob(f"reader_{lead}_{prefix}*.jsonl"):
+        if m := re.fullmatch(re.escape(prefix) + r"(\d+)", p.stem.split("_")[-1]):
+            reps.append(int(m.group(1)))
+    return max(reps, default=0)
+
+
+def _line_status(out: Path) -> dict[tuple[str, int, int], str]:
+    """Current status of every line in a run: accepted (gold) or its routed queue."""
+    status: dict[tuple[str, int, int], str] = {}
+    for g in (json.loads(x) for x in (out / "gold.jsonl").read_text().splitlines() if x.strip()):
+        status[(g["rid"], g["idx"], g["sub"])] = "accepted"
+    for fname, label in (("needs_human.json", "route_human"), ("escalate.json", "escalate"),
+                         ("needs_rerun.json", "needs_rerun")):
+        for rid, v in json.loads((out / fname).read_text()).items():
+            for line in v["lines"]:
+                status[(rid, line["idx"], line["sub"])] = label
+    return status
+
+
+def cmd_escalate(args: argparse.Namespace) -> int:
+    """Close the adaptive loop: re-run ONLY the escalated regions at the next rep(s) up to reps_cap,
+    re-aggregating each round, and report which escalated lines became accepted / human / rerun.
+
+    Never overwrites earlier rep files (writes _<prefix>{N+1}…). SAFE BY DEFAULT (--execute to spend)."""
+    spec = spec_mod.load(args.recipe)
+    _require_files(spec)
+    out = run_dir(spec.dataset, spec.name)
+    esc_path = out / "escalate.json"
+    if not esc_path.exists():
+        raise SystemExit(f"no escalate.json at {out} — run `recipe {args.recipe}` first")
+
+    esc = json.loads(esc_path.read_text())   # snapshot the baseline once
+    start_keys = {(rid, line["idx"], line["sub"]) for rid, v in esc.items() for line in v["lines"]}
+    rids = sorted(esc)
+    if not rids:
+        print("no escalations — adaptive loop already settled.")
+        return 0
+    cur = _max_rep(spec.dataset, spec.panel.core[0], spec.prefix)
+    print(f"escalate '{spec.name}': {len(start_keys)} lines over {len(rids)} regions; "
+          f"reps {cur} → up to {spec.panel.reps_cap} (prefix {spec.prefix!r}); core readers only")
+
+    while cur < spec.panel.reps_cap and rids:
+        cur += 1
+        _bench(spec, spec.panel.core, rids, cur, execute=args.execute)   # core only — diagnostic doesn't gate
+        if not args.execute:
+            break
+        # allow_conf_missing only suppresses the run-level abort; per-line CONF_MISSING still blocks
+        # acceptance, so no conf-missing line can slip into gold here.
+        _aggregate_from_spec(spec, force=True, allow_conf_missing=True)
+        rids = sorted(json.loads(esc_path.read_text()))   # regions still escalating shrink each round
+    if not args.execute:
+        print("  (dry-run: nothing spent. Re-run with --execute to drive the escalation.)")
+        return 0
+
+    delta: Counter = Counter(_line_status(out).get(k, "gone") for k in start_keys)
+    print(f"\nescalation settled at rep {cur}. Of {len(start_keys)} initially-escalated lines:")
+    for st in ("accepted", "route_human", "escalate", "needs_rerun", "gone"):
+        if delta.get(st):
+            mark = "  !! (status lost — check output files)" if st == "gone" else ""
+            print(f"    → {st:12} {delta[st]}{mark}")
     return 0
 
 
@@ -507,6 +583,11 @@ def main() -> int:
     pn.add_argument("recipe", help="path to a runs/*.toml recipe")
     pn.add_argument("--execute", action="store_true", help="actually make the paid calls (default: dry-run)")
     pn.set_defaults(func=cmd_panel)
+
+    es = sub.add_parser("escalate", help="close the adaptive loop: re-run escalated regions to reps_cap")
+    es.add_argument("recipe", help="path to a runs/*.toml recipe (its run must already exist)")
+    es.add_argument("--execute", action="store_true", help="actually make the paid calls (default: dry-run)")
+    es.set_defaults(func=cmd_escalate)
 
     args = ap.parse_args()
     return args.func(args)
