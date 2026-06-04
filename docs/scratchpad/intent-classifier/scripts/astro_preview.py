@@ -138,10 +138,11 @@ def _block_html(members: list[iv.Para], cls: RenderClass) -> str:
     # inline style only (no production CSS change). NEVER a lineation label rule.
     si = ' style="padding-left:1.6em"'
     if cls == "prose":
-        # one <p> per SOURCE paragraph (this corpus separates paragraphs by spacing, not
-        # blank lines) — each set with prose typography; within-paragraph soft-wrapped lines
-        # flow together. Not whole-run fusion.
-        return "\n".join(f"<p{si if p.indented else ''}>{' '.join(_emph(ln) for ln in p.lines)}</p>"
+        # one <p> per SOURCE paragraph (this corpus separates paragraphs by spacing, not blank
+        # lines). A hard <w:br> WITHIN a paragraph is a deliberate author break → rendered as <br>,
+        # never collapsed to a space (which would glue e.g. a "1. Вода" title onto its body). A
+        # genuine flowing prose paragraph is a single line, so it is unaffected.
+        return "\n".join(f"<p{si if p.indented else ''}>{'<br>'.join(_emph(ln) for ln in p.lines)}</p>"
                          for s in stanzas for p in s)
     wrap_cls = "lineated verse" if cls == "verse" else "lineated"
     out = [f'<div class="{wrap_cls}">']
