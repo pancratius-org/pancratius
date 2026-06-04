@@ -13,17 +13,19 @@ bug.
 **Observed (user):** on the DOCX page each enumerated item sits on its OWN line. The `prose`
 CANDIDATE render mangles them into a single flowing paragraph — the line boundaries are lost.
 
-**Two consequences:**
-1. **A shared false-accept.** `g05_b37 392.1` (the body under "**3. Птица**") was ACCEPTED by the
-   gate as prose; the human (page authority) corrected it to LINEATED. The audit caught it — but its
-   siblings `388.1 / 390.1 / 394.1` were not sampled and are almost certainly the same wrongly-
-   accepted prose. **Reopen the whole g05 enumerated block before treating it as clean gold.**
-2. The mangled prose candidate biased the lead: grok read it and voted prose where the page is
-   lineated. (Argues for learned per-reader weights by stratum, not a fixed grok-led heuristic.)
+**RESOLVED (region-level review, user from the book):** each item is a **title line + a flowing
+prose body**. The four bodies `388.1/390.1/392.1/394.1` are **PROSE**; only the titles
+`388.0/390.0/392.0/394.0` are lineated labels. So:
+- The gate's accepted PROSE for the bodies was **CORRECT** — `392.1` was **not** a false-accept. The
+  audit "disagreement" was a wrong HUMAN blind-per-line guess (confounded by the mangled prose
+  preview + the per-line framing), overturned by region-level review. g05 gold stands; reopen cleared.
+- Lesson: the audit flags disagreements to INVESTIGATE, not to assume the gate is wrong. And the
+  book prior ("whole book is lineated") would have WRONGLY pushed these bodies to lineated — live
+  proof that book-dominant-register must never auto-label. [[lineation_is_hierarchical_prior]]
 
-**Likely cause (to verify):** the numbered-list / `1.`-label paragraph shape (architecture §12 G2
-"no typed numbered-label+body item") isn't preserved at display-line grain in the candidate prose
-render. Confirm against the render path — and reproduce on real site output before escalating.
-
-**Action:** reopen the g05 block (region-level); the human reads it as lineated. Do not call book
-37's accepted gold clean until swept. [[lineation_is_hierarchical_prior]]
+**The render issue is still real (just not a gate error here).** The prose preview glues a paragraph's
+`<w:br>` segments with spaces, so a `bold-title` `<br>` `body` paragraph renders as `**1. Вода** Мир…`.
+Vision readers (grok, gemini-pro) vote on that composite, so a mangled prose candidate confounds the
+PANEL'S evidence on heading+body shapes — worth making faithful (keep a leading bold heading line its
+own line in prose mode). Cosmetic for data integrity (substrate is correct), real for panel evidence.
+Reproduce on actual site output before calling anything a production compiler bug.
