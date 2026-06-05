@@ -30,7 +30,7 @@ export const GET: APIRoute = ({ params }) => {
   }
   const path = resolvePath(cacheDir, file);
   if (!existsSync(path)) {
-    return new Response("Archive has not been generated. Run `npm run prebuild:bulk-archives`.", {
+    return new Response("Archive has not been generated. Run `npm run generate:bulk-archives`.", {
       status: 404,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });

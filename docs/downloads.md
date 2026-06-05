@@ -115,11 +115,11 @@ The production site ships **one** bulk archive: `all-md.zip` — every work as p
 
 The archive is not a raw copy of `src/content/**/*.md`. It contains the public export form only: frontmatter is removed, converter-only HTML wrappers are removed, inline HTML emphasis is converted to Markdown syntax where possible, and body image references become absolute Markdown image links.
 
-Bulk PDF and EPUB archives are **not** shipped on the production host because they duplicate ~317 MB of bytes already served per-work, and the host has a 1 GB ceiling. They can still be built off-host via `node --experimental-strip-types build/bulk-archives.ts --formats=md,pdf,epub` for upload to GitHub Releases, the Internet Archive, or a Hugging Face dataset.
+Bulk PDF and EPUB archives are **not** shipped on the production host because they duplicate ~317 MB of bytes already served per-work, and the host has a 1 GB ceiling. They can still be built off-host via `npm run generate:bulk-archives -- --formats=md,pdf,epub` for upload to GitHub Releases, the Internet Archive, or a Hugging Face dataset.
 
 The `/downloads/` page is a short index with size and `sha256` for verification.
 
-"Built" here means packaging already-committed artifacts. It does not mean rendering PDFs/EPUBs during CI. The prebuild archive step writes `.cache/bulk-archives/all-md.zip` plus `data/bulk-archives.json`; Astro then emits `/downloads/all-md.zip` through a static endpoint so local dev and production use the same URL.
+"Built" here means packaging already-committed artifacts. It does not mean rendering PDFs/EPUBs during CI. The generate archive step writes `.cache/bulk-archives/all-md.zip` plus `data/bulk-archives.json`; Astro then emits `/downloads/all-md.zip` through a static endpoint so local dev and production use the same URL.
 
 Per-work artifacts never live under `/downloads/` — that's the bulk surface only.
 

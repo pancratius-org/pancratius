@@ -1,4 +1,4 @@
-#!/usr/bin/env -S node --experimental-strip-types
+#!/usr/bin/env node
 // Drive Lighthouse against the running preview and print a compact Markdown
 // scorecard. Uses the Lighthouse CLI via `npx` so we don't wire chrome-launcher
 // in by hand.
@@ -10,7 +10,7 @@
 // design. Making it a locked check would mean pinning lighthouse as a dependency.
 //
 // Usage:
-//   node --experimental-strip-types tests/visual/lighthouse-report.ts
+//   node tests/visual/lighthouse-report.ts
 //
 // Writes per-page JSON to .cache/visual-audit/lighthouse/<viewport>-<name>.json
 // plus a summary.json, and prints the scorecard table.

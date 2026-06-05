@@ -1,11 +1,11 @@
-#!/usr/bin/env -S node --experimental-strip-types
+#!/usr/bin/env node
 // Viewport-sized snapshots (above-the-fold) at the top and middle of each page,
 // sized so each image stays under the reader-tool 2000×2000 limit. Use this when
 // you want to eyeball results rather than gate a regression.
 //
 // Usage:
-//   node --experimental-strip-types tests/visual/capture-viewports.ts
-//   node --experimental-strip-types tests/visual/capture-viewports.ts --tag after-vp
+//   node tests/visual/capture-viewports.ts
+//   node tests/visual/capture-viewports.ts --tag after-vp
 //
 // Writes .cache/visual-audit/<tag>/<theme>-<viewport>-<route>-{top,mid}.png
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env -S node --experimental-strip-types
+#!/usr/bin/env node
 // The both-polarity self-test (`npm run audit:selftest`). A rotted audit is false
 // confidence (docs/audit-harness.md → "Self-Tests"), so every gating rule ships
 // with two tiny fixtures and this runner enforces them:

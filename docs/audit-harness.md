@@ -12,7 +12,7 @@ assets, and the split between library work and site work.
 
 | Command | Scope |
 | --- | --- |
-| `npm run audit` | Core fatal rules. This is the normal PR gate. |
+| `npm run audit:repo` | Core fatal rules. This is the normal repo audit gate. |
 | `npm run audit:agent` | Core rules plus non-blocking heuristic checks. |
 | `npm run audit:post-build` | Rules that need an emitted `dist/`. |
 | `npm run audit:selftest` | Known-good/known-bad fixtures for the harness. |

@@ -11,7 +11,7 @@ import { walk, read, exists, isDir, abs, type WalkOptions } from "./repo.ts";
 
 /**
  * When a rule runs, and therefore whether CI can fail on it:
- * - `core`     — fast, deterministic; runs on `npm run audit` (the PR gate) and
+ * - `core`     — fast, deterministic; runs on `npm run audit:repo` and
  *                in agent mode. The only tier whose findings gate CI.
  * - `heuristic`— non-blocking agent guidance (literals, css, cohesion, …); runs
  *                only in agent mode. Never fatal (the doc forbids it).
