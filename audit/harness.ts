@@ -1,8 +1,8 @@
-#!/usr/bin/env -S node --experimental-strip-types
-// The audit runner (`npm run audit`). Selects rules by tier for the requested
+#!/usr/bin/env node
+// The audit runner (`npm run audit:repo`). Selects rules by tier for the requested
 // mode, runs each pure scanner against the repo root, prints the report, and
 // exits non-zero only when a fatal finding is present. See docs/audit-harness.md
-// and docs/tooling.md (audit is the site door: `npm run audit` is canonical).
+// and docs/tooling.md (audit is the site door: `npm run audit:repo` is canonical).
 
 import type { Finding } from "./lib/finding.ts";
 import type { Rule, Tier } from "./lib/rule.ts";

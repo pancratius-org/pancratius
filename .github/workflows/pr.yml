@@ -2,8 +2,8 @@ name: PR verify
 
 # Pull-request quality gate. Runs the same `npm run verify` that maintainers
 # run locally (npm audit + JS/TS tooling checks + Astro check + Python checks
-# + audit core + audit selftest + build + audit:post-build), then a
-# Playwright smoke against the freshly built `dist/`.
+# + audit core + audit selftest + build + audit:post-build), then
+# Playwright e2e tests against the freshly built `dist/`.
 #
 # `verify` is the contract from docs/tooling.md; CI mirrors it so "passes
 # locally" and "passes in CI" mean the same thing. One place to edit when a
@@ -55,8 +55,8 @@ jobs:
       - name: Install Playwright browser (chromium only)
         run: npx playwright install --with-deps chromium
 
-      - name: Run smoke tests
-        run: npx playwright test
+      - name: Run e2e tests
+        run: npm run test:e2e
 
       - name: Upload Playwright report on failure
         if: failure()

@@ -1,4 +1,4 @@
-#!/usr/bin/env -S node --experimental-strip-types
+#!/usr/bin/env node
 // Full-page snapshot GENERATOR: writes one full-page screenshot per
 // theme × viewport × route to .cache/visual-audit/<tag>/, for human design
 // review. This is NOT a pass/fail gate — the console-error and overflow checks
@@ -6,8 +6,8 @@
 // (tests/visual_audit.spec.ts). This script only captures pixels.
 //
 // Usage:
-//   node --experimental-strip-types tests/visual/capture-fullpage.ts                 # dark+light, desktop+mobile
-//   node --experimental-strip-types tests/visual/capture-fullpage.ts --tag after     # label the output folder
+//   node tests/visual/capture-fullpage.ts                 # dark+light, desktop+mobile
+//   node tests/visual/capture-fullpage.ts --tag after     # label the output folder
 //
 // Writes .cache/visual-audit/<tag>/<theme>-<viewport>-<route>.png
 

@@ -24,21 +24,24 @@ site.
 
 | Command | Owns |
 | --- | --- |
-| `npm run dev` | Prebuild derivations, Pagefind dev sync, Astro dev server. |
-| `npm run build` | Prebuild derivations, static build, Pagefind index. |
+| `npm run dev` | Generate deterministic site inputs, sync Pagefind for local dev, start Astro dev server. |
+| `npm run build` | Generate deterministic site inputs, build the static site, then build the Pagefind search index. |
+| `npm run generate` | Build-time derivations: slug map, public graph payloads, and bulk archive manifest/cache. |
 | `npm run preview` | Astro preview of the built site. |
-| `npm run check` | Prebuild derivations plus Astro content/type checks. |
-| `npm run lint` | ESLint over site, build, audit, and test TypeScript/Astro/JavaScript. |
-| `npm run lint:css` | Stylelint over CSS files and Astro component style blocks. |
-| `npm run dead` | Knip dead-code/dependency/export analysis for the site/tooling surface. |
-| `npm run check:js` | Type-check TS tooling, lint TS/CSS, run Knip, and run Node unit tests. |
-| `npm run check:ts` | Focused TS tooling type-check plus Node unit tests. |
+| `npm run check` | Full non-build verification: code/tooling checks, Astro site checks, and Python checks. |
+| `npm run check:site` | Generate site inputs, then run Astro content/type checks. |
+| `npm run check:code` | Type-check TS tooling, lint code and styles, run Knip, and run Node unit tests. |
+| `npm run check:unused` | Knip unused file/dependency/export analysis for the site/tooling surface. |
+| `npm run lint` | ESLint plus Stylelint. |
+| `npm run lint:code` | ESLint over site, build, audit, and test TypeScript/Astro/JavaScript. |
+| `npm run lint:style` | Stylelint over CSS files and Astro component style blocks. |
 | `npm run verify` | Local equivalent of the PR gate (`pr.yml` minus Playwright). |
-| `npm run audit` | Architectural contract harness; see [`audit-harness.md`](./audit-harness.md). |
+| `npm run audit:deps` | npm vulnerability audit at the high-severity release gate. |
+| `npm run audit:repo` | Architectural contract harness; see [`audit-harness.md`](./audit-harness.md). |
 | `npm run audit:agent` | Core audit plus non-blocking heuristic checks. |
 | `npm run audit:post-build` | Rules that need an emitted `dist/` (PAN014 link crawl, PAN008 `/assets/` URL contract). |
 | `npm run audit:selftest` | Harness fixtures proving audit polarity. |
-| `npm run test:smoke` | Playwright smoke/e2e specs. |
+| `npm run test:e2e` | Playwright e2e specs. |
 | `npm run test:visual` | Playwright visual gate. |
 | `npm run check:py` | Ruff annotations + `ty` types + pytest behaviour for the Python tooling. |
 

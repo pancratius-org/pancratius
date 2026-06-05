@@ -1,10 +1,10 @@
-#!/usr/bin/env -S node --experimental-strip-types
+#!/usr/bin/env node
 // Project mini-site design-review screenshots: full-page captures of the project
 // landing and the two project sections at desktop and mobile, both themes, at 2×
 // for crisp review.
 //
 // Usage:
-//   node --experimental-strip-types tests/visual/capture-projects.ts
+//   node tests/visual/capture-projects.ts
 //
 // Writes .cache/visual-audit/projects/<theme>-<viewport>-<route>.png
 

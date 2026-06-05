@@ -1,7 +1,7 @@
 // Non-blocking content-quality + conversion-fidelity audits, folded from the
 // existing Python checks under audit/ (docs/audit-harness.md →
 // "Relationship To Existing Audits"). These are `heuristic` tier: they run ONLY
-// in `npm run audit:agent` (agent guidance), NEVER gate `npm run audit` (the PR
+// in `npm run audit:agent` (agent guidance), NEVER gate `npm run audit:repo`
 // core) or a deploy. So they are classified — given a stable id, severity, and
 // category — without being promoted to fatal: the doc keeps style/quality/
 // fidelity smells non-blocking until one proves a hard contract and earns a

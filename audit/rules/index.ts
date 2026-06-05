@@ -27,7 +27,7 @@ import {
 import { contentQualityRules } from "./content_quality.ts";
 
 export const RULES: readonly Rule[] = [
-  // Fatal core (run on `npm run audit` — the PR gate):
+  // Fatal core (run on `npm run audit:repo`):
   pan001PathBoundary,
   pan002,
   pan003Locales,

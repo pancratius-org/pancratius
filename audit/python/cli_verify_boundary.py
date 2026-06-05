@@ -5,7 +5,7 @@ the `pancratius` console-script MUTATES the corpus; verification (`check`, `test
 `audit`) is PURE and lives behind the `npm` site door. So the `pancratius` door
 must expose NO verification verb — concretely, no `audit` group/verb and no `site`
 proxy group (the two rejected alternatives tooling.md names). A `pancratius site
-audit → npm run audit` proxy would invert the doc's cut at the grammar level.
+audit → npm run audit:repo` proxy would invert the doc's cut at the grammar level.
 
 This audit asserts that `pancratius/cli.py` registers no argparse sub-parser whose
 name is a site-door verb (at ANY nesting level), so the boundary can't silently
