@@ -48,6 +48,7 @@ CANDIDATES = {
     "ds-pro-vis": ("deepseek/deepseek-v4-pro", True),
     # incumbent keepers (for the brief-fix A/B): grok/gemini-pro vision, deepseek-flash = ds-flash-text
     "grok": ("x-ai/grok-4.3", True),
+    "grok-text": ("x-ai/grok-4.3", False),   # grok run TEXT-ONLY (φ-listing test, no image)
     "gemini-pro": ("google/gemini-3.1-pro-preview", True),
 }
 
@@ -73,13 +74,17 @@ def book_of(rid: str) -> str | None:
 
 
 def load_truth() -> dict:
-    adj = json.loads((ADJ / "responses-lineation-adjudication-gold-block2-contested-lines.json"
-                      ).read_text())["responses"]
+    # Merge all adjudicated human-truth files: block2 contested + the fresh unseen-book prose
+    # guardrail batch (those 6 regions are absent from block2, so without it 6/19 bench regions
+    # score against an empty truth set). Keys are globally unique by (book, idx, sub).
+    files = ["responses-lineation-adjudication-gold-block2-contested-lines.json",
+             "responses-fresh-prose-guardrail-batch-unseen-books.json"]
     truth = {}
-    for rid, v in adj.items():
-        for k, lab in v.get("lines", {}).items():
-            i, s = k.split(".")
-            truth[(book_of(rid), int(i), int(s))] = lab
+    for fn in files:
+        for rid, v in json.loads((ADJ / fn).read_text())["responses"].items():
+            for k, lab in v.get("lines", {}).items():
+                i, s = k.split(".")
+                truth[(book_of(rid), int(i), int(s))] = lab
     return truth
 
 
