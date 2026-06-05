@@ -1,0 +1,57 @@
+# research-pure: the LLM panel's per-line votes — loaded from the canonical artifact.
+"""The LLM panel votes (grok, deepseek, gemini, owl, mimo, minimax) on `prose`/`lineated`.
+
+Each vote is one reader's call on one line: a `LineId`, the reader `tag`, the `label`, and an
+optional `conf`. The build path (the standalone one-shot tool) re-keyed the panel's original
+structural-view calls onto `LineId`s via the SAME record join the truth re-key used (unmapped /
+missing calls flagged and counted, never silently dropped); the on-disk artifact is already
+LineId-keyed, so loading and joining here is by `LineId` — no legacy key in this path.
+
+`load()` reads the per-book `panel_votes.jsonl` the build emitted and groups them by reader, so
+`compare`/`contested` score each reader against the truth on the lines they share — joined by
+`LineId`, the one identity. It FAILS LOUD via the artifact layer on a missing store; it never
+rebuilds.
+"""
+from __future__ import annotations
+
+from collections.abc import Mapping
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Self
+
+from . import artifact, paths
+from .identity import LineId
+
+READERS = ("grok", "deepseek", "gemini", "owl", "mimo", "minimax")
+
+
+@dataclass(frozen=True, slots=True)
+class PanelVote:
+    id: LineId
+    tag: str          # the reader (grok | deepseek | …)
+    label: str        # prose | lineated
+    conf: float | None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"id": self.id.as_key(), "tag": self.tag, "label": self.label, "conf": self.conf}
+
+    @classmethod
+    def from_dict(cls, d: Mapping[str, Any]) -> Self:
+        return cls(id=LineId.from_key(d["id"]), tag=d["tag"], label=d["label"],
+                   conf=d.get("conf"))
+
+
+def load(*, annotations: Path | None = None) -> list[PanelVote]:
+    """Every panel vote from the committed `panel_votes.jsonl` truth. FAILS LOUD if the file is
+    missing; never rebuilds."""
+    path = (annotations or paths.ANNOTATIONS) / artifact.PANEL_VOTES_FILE
+    return [PanelVote.from_dict(d) for d in artifact.read_jsonl(path)]
+
+
+def by_reader(*, annotations: Path | None = None) -> dict[str, dict[LineId, str]]:
+    """`{reader_tag: {LineId: label}}` — the panel's calls keyed by line identity, ready to
+    join against the truth and the student on the SAME `LineId`s."""
+    out: dict[str, dict[LineId, str]] = {tag: {} for tag in READERS}
+    for v in load(annotations=annotations):
+        out.setdefault(v.tag, {})[v.id] = v.label
+    return out

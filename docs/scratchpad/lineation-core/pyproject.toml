@@ -1,0 +1,23 @@
+# Scratchpad research package. It imports `pancratius` (the production library); nothing in
+# `pancratius` imports it — the scratchpad→production boundary is one-directional. Not shipped.
+[project]
+name = "lineation-core"
+version = "0.1.0"
+description = "Per-source-line lineation (prose vs lineated) for bilingual DOCX — research package."
+requires-python = ">=3.13"
+dependencies = [
+  "pancratius",
+  "scikit-learn>=1.4",
+  "numpy>=1.26",
+  "pillow>=10.4",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lineation_core"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.uv.sources]
+pancratius = { path = "../../..", editable = true }
