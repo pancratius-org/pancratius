@@ -1,0 +1,277 @@
+/*
+ * Markdown-generated elements inside the reading surface.
+ */
+
+/* GFM footnote backrefs are small navigation affordances, not body text. */
+.prose .data-footnote-backref {
+  margin-left: 0.4em;
+  font-size: 0.75em;
+  color: var(--accent-soft);
+  text-decoration: none;
+  vertical-align: super;
+}
+
+.prose .data-footnote-backref:hover { color: var(--accent); }
+
+/* h2: chapter opener. */
+.prose h2 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-style: normal;
+  font-size: clamp(1.95rem, 3.4vw, 2.55rem);
+  line-height: 1.15;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+  text-align: center;
+  text-wrap: balance;
+  margin: 5.5rem 0 1.8rem;
+  padding-top: 2.4rem;
+  position: relative;
+  font-feature-settings: "lnum" 0, "onum" 1, "kern" 1;
+}
+
+.prose h2::before {
+  content: "";
+  position: absolute;
+  top: 0.6rem;
+  left: 50%;
+  width: 84px;
+  height: 1px;
+  background: var(--accent);
+  transform: translateX(-50%);
+}
+
+.prose h2::after {
+  content: "";
+  position: absolute;
+  top: calc(0.6rem - 3px);
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translateX(-50%);
+}
+
+.prose > h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.prose > h2:first-child::before,
+.prose > h2:first-child::after { display: none; }
+
+/* Inline emphasis/link defaults. */
+.prose strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.prose em {
+  font-style: italic;
+}
+
+.prose a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-2);
+  text-underline-offset: 3px;
+}
+
+.prose a:hover {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+}
+
+/* h3: section heading. */
+.prose h3 {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-style: normal;
+  font-size: clamp(1.3rem, 1.85vw, 1.55rem);
+  line-height: 1.25;
+  letter-spacing: -0.008em;
+  color: var(--ink);
+  text-align: center;
+  text-wrap: balance;
+  margin: 3rem 0 1rem;
+}
+
+.prose h3::before {
+  content: "";
+  display: block;
+  width: 32px;
+  height: 1px;
+  background: var(--accent);
+  margin: 0 auto 0.7rem;
+}
+
+/* Markdown sometimes produces `<h3><strong>...`; the heading owns its weight. */
+.prose h3 strong { font-weight: inherit; }
+
+/* Rehype autolink heading anchors. */
+.prose .heading-anchor {
+  margin-left: 0.4em;
+  color: var(--accent);
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 0.6em;
+  font-style: normal;
+  letter-spacing: 0;
+  text-decoration: none;
+  vertical-align: 0.18em;
+  opacity: 0;
+  transition: opacity 0.16s var(--ease), color 0.16s var(--ease);
+}
+
+.prose .heading-anchor::after { content: "#"; }
+
+.prose .heading-anchor:hover { color: var(--ink); }
+
+.prose .heading-anchor:focus-visible {
+  opacity: 1;
+}
+
+.prose :is(h2, h3, h4):hover .heading-anchor {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .prose .heading-anchor { opacity: 0.45; }
+}
+
+/* h4: sub-section label. */
+.prose h4 {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-align: left;
+  margin: 2.2rem 0 0.7rem;
+}
+
+.prose blockquote {
+  margin: 1.4em 0 1.4em 0;
+  padding: 0.1em 0 0.1em 1.2em;
+  border-left: 1px solid var(--accent-soft);
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.prose blockquote p {
+  text-indent: 0;
+  margin: 0 0 0.6em;
+}
+
+.prose blockquote p:last-child { margin-bottom: 0; }
+
+.prose hr {
+  border: 0;
+  text-align: center;
+  margin: 1.6rem 0;
+  height: auto;
+  overflow: visible;
+  line-height: 1;
+}
+
+.prose hr::before {
+  content: "* * *";
+  display: inline-block;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 1.25rem;
+  letter-spacing: 0.55em;
+  transform: translateY(-0.2em);
+  padding-left: 0.55em;
+  color: var(--accent);
+}
+
+.prose ul,
+.prose ol {
+  margin: 0.6em 0 1em 1.6em;
+  padding: 0;
+}
+
+.prose ul li,
+.prose ol li {
+  text-indent: 0;
+  margin: 0.2em 0;
+}
+
+.prose img {
+  margin: 1.8em auto;
+  max-width: 100%;
+  border: 1px solid var(--rule);
+}
+
+.prose code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  background: var(--accent-mute);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.prose pre {
+  font-family: var(--mono);
+  background: var(--bg-rise);
+  border: 1px solid var(--rule);
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1.5em 0;
+  text-indent: 0;
+}
+
+.prose pre code {
+  background: none;
+  padding: 0;
+}
+
+.prose sup {
+  font-size: 0.7em;
+  vertical-align: super;
+  line-height: 0;
+}
+
+.prose sup :where(a) {
+  color: var(--accent);
+  text-decoration: none;
+  padding: 0 0.15em;
+}
+
+.prose sup :where(a:hover) { text-decoration: underline; }
+
+.prose .footnotes {
+  margin-top: 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.92em;
+  color: var(--ink-soft);
+}
+
+.prose .footnotes ol { margin-left: 1.2rem; }
+.prose .footnotes :where(p) { margin: 0 0 0.6em; }
+
+/* GFM emits an accessible h2 label for footnotes; keep it for screen readers. */
+.prose .footnotes > h2 {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 720px) {
+  /* Converter tables are bare Markdown tables; constrain horizontal overflow to
+     the table instead of widening the document. */
+  .prose table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

@@ -1,0 +1,23 @@
+/*
+ * Whole-body verse registers.
+ *
+ * `.prose--verse` is used by <Verse> for whole-body verse pages and verse-weight
+ * project subpages. `.prose--poem` is used by imported poem pages. Both use the
+ * shared corpus lineation encoding: CommonMark hard breaks rendered as `<br>`.
+ */
+
+.prose--verse p,
+.prose--poem p {
+  text-indent: 0;
+  margin: 0 0 1.1em;
+  text-align: left;
+  font-size: 1.1rem;
+  line-height: 1.85;
+}
+
+.prose--poem :is(p.lead)::first-letter,
+.prose--verse :is(p.lead)::first-letter,
+.prose--poem > :is(p:first-child, p:first-of-type, h2:first-child + p)::first-letter,
+.prose--verse > :is(p:first-child, p:first-of-type, h2:first-child + p)::first-letter {
+  all: unset;
+}

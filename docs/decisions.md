@@ -141,9 +141,9 @@ conversion must not recreate Cyrillic folders.
 
 ## Reading-Page Prose Styling
 
-`src/styles/prose.css` is imported from `global.css` and applied wherever the
-`<Prose>` / `<Verse>` components wrap Markdown-rendered body content — book and
-poem pages, project landings and sub-pages, and the dedicated static-page routes.
+`src/styles/reading/` is imported from `global.css` and applied wherever a
+Markdown-rendered body uses the `.prose` reading surface — book and poem pages,
+project landings and sub-pages, and the dedicated static-page routes.
 
 It encodes a reading register designed for the *actual* markup our pandoc
 pipeline emits, not for the hand-authored markup of the v4/v5/v7 mockups.
@@ -154,12 +154,18 @@ v7 register (justified text + 1.4em first-line indent + chapter-italic
 justify + indent on one-line paragraphs produces a staircase, and centred
 italic `<h2>` mis-types Word "Heading 2" section labels as chapter openers.
 
+The reading system is split by ownership: base `.prose` rhythm, Markdown element
+defaults, explicit lineation, imported semantic classes, and stable body
+registers (`prose--poem`, `prose--verse`, `prose--manifesto`, `prose--note`,
+`prose--bio`, `prose--svet`, `prose--project`).
+
 The current contract:
 
-- **ragged-right, no hyphens, no first-line indent.** Paragraph rhythm is
-  vertical (`margin-bottom: 0.95em`), not horizontal indent. This reads
-  as flowing prose on long paragraphs and as cleanly stacked short lines
-  on paratactic ones, with no fake-Word inter-word gaps.
+- **ragged-right, manual hyphenation, indent-led flowing prose.** Normal
+  paragraphs use a first-line indent plus a tight vertical gap; the first
+  paragraph and paragraphs after structural breaks sit flush. Explicit
+  `.lineated` structures carry dense authored display lines instead of asking
+  base prose to infer lineation from paragraph length.
 - **drop cap is opt-in only** via `<p class="lead">`. The corpus often opens
   with a dedication, dialogue, or short liturgical fragment; automatic drop
   caps mis-type those openings.
@@ -184,37 +190,37 @@ The current contract:
 - **standalone `***` is a thematic break.** Pandoc sometimes escapes the
   asterisks; the converter normalizes escaped or unescaped `***`-only lines to
   a real GFM thematic break so the site renders the intended ornament.
-- **`<h2>` is small-cap sans eyebrow in accent**, left-aligned with a
-  hairline underline. It reads as Word "Heading 2", which is what mid-book
-  section labels actually are. `<h3>` keeps a quiet italic-serif register
-  for chapter sub-sections.
+- **book-register `<h2>` is an ornamented chapter opener.** Project headings
+  override this in the project register, where `h2` is a left-aligned editorial
+  section with a generated `§` eyebrow.
 - **`<hr>` is an ornament rule.** Author-supplied `p.ornament` and
   `p.signature` classes are honoured if present.
 
-### Body renderers: `<Prose>` and `<Verse>` (no "register" abstraction)
+### Body renderers: `<Prose>` and `<Verse>` (no slug dispatcher)
 
-Two body-renderer components express the two registers — there is no `register`
-enum and no slug-dispatcher. They take a `class` prop so a route can layer a
-page-local modifier (`prose--bio`, `prose--svet`, `prose--project`); that is the
-only per-page knob, and the component never branches on what the class means.
+Two body-renderer components express the common body surfaces — there is no
+slug-dispatcher. They take a `class` prop so a route can layer a finite,
+documented modifier (`prose--bio`, `prose--svet`, `prose--project`,
+`prose--manifesto`, `prose--note`); that is the only per-page knob, and the
+component never branches on what the class means.
 
 - **`<Prose>`** — flowing prose (the contract above): paragraph rhythm, opt-in
-  drop cap, eyebrow `<h2>`.
-- **`<Verse>`** — the lineation-preserving register for the mission/manifesto and
-  project verse subpages: `prose--manifesto`. Left-aligned, no drop cap.
-  "Manifesto" was never a separate mode, only a label on the verse renderer. Its
-  lineation is the one corpus-wide encoding — CommonMark two-trailing-space hard
-  breaks rendered as `<br>` — so it does NOT use `white-space: pre-line`; the
-  sibling `prose--poem` register (generated poems) shares the same rules. See
-  "Verse Source Contract" below.
+  drop cap, book heading defaults unless a register overrides them.
+- **`<Verse>`** — the whole-body verse register: `prose--verse`. Left-aligned,
+  no drop cap, stanza paragraph-gap rhythm. Mission adds `prose--manifesto` for
+  its lede/signature accents; project verse subpages add `prose--project` for
+  project heading/theme context without inheriting mission-specific gestures.
+  The lineation is the one corpus-wide encoding — CommonMark two-trailing-space
+  hard breaks rendered as `<br>` — so it does NOT use `white-space: pre-line`;
+  the sibling `prose--poem` register (generated poems) shares the same rules.
+  See "Verse Source Contract" below.
 
 **Scope (current):** these components are used by the **static pages and project
-sub-pages** — the mission page is the one `<Verse>` user today. **Work pages
-still render the prose register directly**: `BookPage.astro` emits
-`class="prose"` and the poem route emits `class="prose prose--poem"`; they are
-not on the shared components yet. Migrating book/poem bodies onto
-`<Prose>`/`<Verse>` is a follow-up — the components were built so that adoption
-is clean.
+sub-pages**. **Work pages still render the prose register directly**:
+`BookPage.astro` emits `class="prose"` and the poem route emits
+`class="prose prose--poem"`; they are not on the shared components yet.
+Migrating book/poem bodies onto `<Prose>`/`<Verse>` is a follow-up — the
+components were built so that adoption is clean.
 
 There is no generic `[slug].astro` modifier-picker (it was deleted). Each static
 page is its own dedicated route that composes `<Prose>` or `<Verse>` and owns any

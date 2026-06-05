@@ -1,0 +1,23 @@
+/*
+ * Reading system.
+ *
+ * Applied via `.prose` around Markdown-rendered bodies. Components own page
+ * layout, mastheads, rails, and project chrome; this directory owns the reading
+ * surface: Markdown typography, explicit lineation, imported semantic classes,
+ * and stable register modifiers.
+ *
+ * Lineation is structural. The converter emits `.lineated` wrappers and
+ * CommonMark hard breaks; CSS styles those structures and never guesses breaks
+ * from raw text shape.
+ */
+
+@import "./base.css";
+@import "./elements.css";
+@import "./lineation.css";
+@import "./semantics.css";
+@import "./registers/note.css";
+@import "./registers/verse.css";
+@import "./registers/manifesto.css";
+@import "./registers/bio.css";
+@import "./registers/svet.css";
+@import "./registers/project.css";

@@ -21,9 +21,9 @@ export function isPoemTitleLine(line: string, title: string): boolean {
 function poemBodyLines(bodyMarkdown: string, title: string): string[] {
   const body = parseMarkdownDocument(bodyMarkdown).body.trim();
   // Generated poem bodies encode lineation as two-trailing-space CommonMark hard
-  // breaks. These previews are PLAIN TEXT (not Markdown-rendered): they rejoin the
-  // lines with "\n" and rely on `white-space: pre-line` to show the breaks, so the
-  // trailing hard-break spaces are stripped here to keep the extracted text clean.
+  // breaks. These previews are plain text, not Markdown-rendered, so they keep
+  // newline-separated display lines while stripping the Markdown-only hard-break
+  // spaces from each extracted line.
   const lines = dropLeadingBlankLines(body.split("\n").map(line => line.replace(/ +$/, "")));
   const firstLine = lines[0];
   if (firstLine !== undefined && isPoemTitleLine(firstLine, title)) {

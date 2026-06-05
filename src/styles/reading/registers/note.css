@@ -1,0 +1,6 @@
+/* Short informational/utility pages: license, downloads, video commentary. */
+
+.prose--note p {
+  text-indent: 0;
+  margin: 0 0 1em;
+}

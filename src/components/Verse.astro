@@ -3,19 +3,19 @@
  * Verse — the lineation-preserving body register.
  *
  * The second of the two body renderers (the other is <Prose>). Wraps a
- * rendered Markdown body in `<div class="prose prose--manifesto">`, the
+ * rendered Markdown body in `<div class="prose prose--verse">`, the whole-body
  * verse register: left-aligned, no drop cap, stanza paragraph-gap rhythm.
  * Lineation is CommonMark two-trailing-space hard breaks (rendered as `<br>`),
  * the one corpus-wide encoding — the CSS does NOT use `white-space: pre-line`,
  * so it never infers a break from a raw newline. That CSS lives in
- * `src/styles/prose.css` under the shared `.prose--manifesto` / `.prose--poem`
+ * `src/styles/reading/` under the shared `.prose--verse` / `.prose--poem`
  * rules.
  *
  * Dumb by design: no slug logic, no page-specific branching. The component
- * identity *is* the register — there is no `register` prop. The current
- * `.prose--manifesto` rules also carry the manifesto's lede-opener and
- * trailing-signature gestures (first/last paragraph), which apply to the
- * mission body verbatim.
+ * identity *is* the register — there is no `register` prop. The mission page
+ * adds `prose--manifesto` for its lede-opener and
+ * trailing-signature gestures. Project verse subpages can add `prose--project`
+ * without inheriting those mission-only accents.
  *
  * Usage — render the page's `<Content/>` into the default slot:
  *
@@ -35,6 +35,6 @@ interface Props {
 
 const { class: extraClass } = Astro.props;
 ---
-<div class:list={["prose", "prose--manifesto", extraClass]}>
+<div class:list={["prose", "prose--verse", extraClass]}>
   <slot />
 </div>

@@ -1,0 +1,43 @@
+/*
+ * Mission manifesto accents.
+ *
+ * These are page-specific gestures layered on top of the generic whole-body
+ * verse register. Project verse subpages use `.prose--verse` without this
+ * modifier, so they do not inherit the mission opener/signature treatment.
+ */
+
+.prose--manifesto > p:first-of-type {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.25em;
+  line-height: 1.45;
+  color: var(--ink);
+  margin: 0 0 2.4em;
+  padding: 0.2rem 0 0.2rem 1.1rem;
+  border-left: 2px solid var(--accent);
+  text-wrap: balance;
+  white-space: normal;
+  text-align: left;
+}
+
+.prose--manifesto > p:last-of-type {
+  font-family: var(--serif);
+  font-style: italic;
+  text-align: right;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--ink-mute);
+  margin: 2.6em 0 0;
+  white-space: normal;
+  letter-spacing: 0.02em;
+  position: relative;
+}
+
+.prose--manifesto > p:last-of-type::before {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 1px;
+  background: var(--accent);
+  margin: 0 0 1em auto;
+}
