@@ -1,0 +1,109 @@
+/*
+ * Project reading register. Project components own mastheads, theme scope, and
+ * bespoke blocks; this file owns Markdown body voice inside `.prose--project`.
+ */
+
+.prose--project {
+  counter-reset: project-section;
+  font-size: 1.075rem;
+  line-height: 1.75;
+}
+
+/* Project prose owns paragraph rhythm; project verse keeps the verse register. */
+.prose--project:not(.prose--verse) p {
+  margin: 0 0 1.05em;
+  text-indent: 0;
+  text-align: left;
+  text-wrap: pretty;
+  white-space: normal;
+}
+
+.prose--project:not(.prose--verse) > p:first-of-type::first-letter,
+.prose--project:not(.prose--verse) > p:first-child::first-letter,
+.prose--project:not(.prose--verse) > h2:first-of-type + p::first-letter {
+  all: unset;
+}
+
+.prose--project h2 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-style: normal;
+  font-size: clamp(1.6rem, 2.6vw, 2rem);
+  line-height: 1.18;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+  text-align: left;
+  text-wrap: balance;
+  margin: 3.6rem 0 1.2rem;
+  padding: 0;
+  position: relative;
+  counter-increment: project-section;
+}
+
+.prose--project h2::after {
+  display: none;
+  content: none;
+}
+
+.prose--project h2::before {
+  content: "§ " counter(project-section, upper-roman) ".";
+  position: static;
+  display: block;
+  width: auto;
+  height: auto;
+  background: transparent;
+  transform: none;
+  font-family: var(--sans);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+  margin: 0 0 0.6rem;
+  padding: 0;
+}
+
+.prose--project blockquote.project-pull {
+  margin: 2.6rem auto;
+  padding: 1.4rem 0;
+  max-width: 50rem;
+  border: 0;
+  border-top: 1px solid var(--accent-soft);
+  border-bottom: 1px solid var(--accent-soft);
+  text-align: center;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(1.15rem, 1.8vw, 1.35rem);
+  line-height: 1.45;
+  letter-spacing: -0.004em;
+  position: relative;
+}
+
+.prose--project blockquote.project-pull p {
+  margin: 0;
+  text-indent: 0;
+  text-wrap: balance;
+  font-style: italic;
+}
+
+.prose--project blockquote.project-pull p + p { margin-top: 0.8em; }
+
+.prose--project blockquote.project-pull::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translateX(-50%);
+}
+
+@media (max-width: 720px) {
+  .prose--project blockquote.project-pull {
+    margin: 2rem 0;
+    padding: 1.2rem 0;
+  }
+}

@@ -1,5 +1,5 @@
 @import "./tokens.css";
-@import "./prose.css";
+@import "./reading/index.css";
 @import "./project-themes.css";
 
 *,
@@ -162,16 +162,4 @@ h3 {
 
 @media (max-width: 720px) {
   body { font-size: 16px; }
-
-  /* Reading-page tables ship from the converter as bare <table>; their
-     min-content exceeds the phone viewport on rows with long Russian
-     phrases. Display:block + overflow-x:auto contains the scroll to the
-     table itself instead of widening the document. */
-  .prose table {
-    display: block;
-    max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
 }
-

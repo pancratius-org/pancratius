@@ -1,7 +1,7 @@
 ---
 // /mission/ — the manifesto. Lineation-preserving verse register, no ToC
 // (the old dispatcher special-cased `isMission` to skip the ToC and use the
-// `prose--manifesto` class; <Verse> carries that register).
+// `prose--manifesto` class; <Verse> carries the base verse register).
 
 import { render } from "astro:content";
 
@@ -33,6 +33,6 @@ for (const loc of authoredLocales) {
 ---
 <Base {locale} seo={seo} alternates={alternates}>
   <PageShell {...pageShellProps(page)} width="text">
-    <Verse><Content /></Verse>
+    <Verse class="prose--manifesto"><Content /></Verse>
   </PageShell>
 </Base>

@@ -1,0 +1,65 @@
+/*
+ * Base Markdown reading surface.
+ *
+ * `.prose` is the compatibility class used by work pages and by the <Prose> /
+ * <Verse> wrappers. Width is deliberately absent: the owning page/component
+ * provides the column, and `.prose` fills that measure.
+ */
+
+.prose {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.075rem;
+  line-height: 1.72;
+  color: var(--ink);
+  text-align: left;
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
+
+/* Paragraph rhythm: flowing prose uses visible paragraph boundaries. Verse-like
+   fragments use explicit structures/registers instead of weakening the whole
+   reading surface. */
+.prose p {
+  margin: 0 0 0.35em;
+  text-indent: 1.4em;
+  text-wrap: pretty;
+}
+
+/* First paragraph of the body, and the first after any structural break, sits
+   flush. The indent earns its keep only as a continuation signal between
+   running paragraphs. */
+.prose > :is(p:first-child),
+.prose :where(h2, h3, h4, hr, figure, blockquote, .lineated, ul, ol) + p,
+.prose p:has(> img:only-child),
+.prose p:has(> img:only-child) + p {
+  text-indent: 0;
+}
+
+/* Drop cap. Opt-in only: the corpus has too many short opening fragments for
+   automatic first-paragraph drop caps to be safe. */
+.prose p.lead::first-letter {
+  font-family: var(--serif);
+  float: left;
+  font-size: 4.4em;
+  line-height: 0.82;
+  font-weight: 400;
+  padding: 0.04em 0.08em 0 0;
+  margin: 0.02em 0.06em 0 0;
+  color: var(--accent);
+  font-style: normal;
+  font-feature-settings: "lnum" 1;
+}
+
+.prose p.lead {
+  font-size: 1.12em;
+  line-height: 1.6;
+  color: var(--ink);
+  text-indent: 0;
+}
+
+@media (max-width: 720px) {
+  .prose p.lead::first-letter {
+    font-size: 3.6em;
+  }
+}
