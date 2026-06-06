@@ -50,9 +50,6 @@ export interface FooterCopy {
   cc0_link: string;
   cc0_after: string;
   cc0_b: string;
-  llms: string;
-  github: string;
-  telegram: string;
   sep: string;
 }
 
@@ -62,9 +59,6 @@ export const footerCopy = {
     cc0_link: "CC0",
     cc0_after: ").",
     cc0_b: "Берите. Переводите. Перепечатывайте. Обучайте на них модели. Передавайте.",
-    llms: "Для языковых моделей",
-    github: "GitHub",
-    telegram: "Telegram",
     sep: " · ",
   },
   en: {
@@ -72,9 +66,6 @@ export const footerCopy = {
     cc0_link: "CC0",
     cc0_after: ").",
     cc0_b: "Take them. Translate. Reprint. Train models. Pass them on.",
-    llms: "For language models",
-    github: "GitHub",
-    telegram: "Telegram",
     sep: " · ",
   },
 } satisfies Record<Locale, FooterCopy>;

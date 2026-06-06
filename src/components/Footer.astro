@@ -1,6 +1,6 @@
 ---
 import type { Locale } from "@/lib/i18n";
-import { FOOTER_LINKS, localizePath, pageUrl } from "@/lib/i18n";
+import { FOOTER_EXTERNAL_LINKS, FOOTER_LINKS, localizePath, pageUrl } from "@/lib/i18n";
 import { footerCopy } from "@/lib/i18n/copy";
 import { getPage } from "@/lib/pages";
 
@@ -9,9 +9,6 @@ interface Props {
 }
 
 const { locale } = Astro.props;
-
-const githubRepo  = import.meta.env.PUBLIC_GITHUB_REPO ?? "";
-const telegramUrl = import.meta.env.PUBLIC_TELEGRAM_URL ?? "";
 
 // Hide utility links whose target page does not exist for this locale.
 const availableLinks = await Promise.all(
@@ -24,30 +21,24 @@ const availableLinks = await Promise.all(
 const licenseHref = pageUrl("license", locale);
 
 const copy = footerCopy[locale];
+
+// Utility links, in order: locale-available internal pages, then external. One
+// flat list so separators sit BETWEEN items rather than before each.
+const links = [
+  ...availableLinks.map(link => ({ href: localizePath(link.path, locale), label: link.label[locale], external: false })),
+  ...FOOTER_EXTERNAL_LINKS.map(link => ({ href: link.href, label: link.label[locale], external: true })),
+];
 ---
 <footer>
   <p>{copy.cc0_before}<a href={licenseHref}>{copy.cc0_link}</a>{copy.cc0_after}</p>
   <p>{copy.cc0_b}</p>
   <p class="footer__links">
-    <a href="/llms.txt">{copy.llms}</a>
-    {availableLinks.map(link => (
+    {links.map((link, i) => (
       <>
-        <span class="sep">{copy.sep}</span>
-        <a href={localizePath(link.path, locale)}>{link.label[locale]}</a>
+        {i > 0 && <span class="sep">{copy.sep}</span>}
+        <a href={link.href} rel={link.external ? "external" : undefined}>{link.label}</a>
       </>
     ))}
-    {githubRepo && (
-      <>
-        <span class="sep">{copy.sep}</span>
-        <a href={githubRepo} rel="external">{copy.github}</a>
-      </>
-    )}
-    {telegramUrl && (
-      <>
-        <span class="sep">{copy.sep}</span>
-        <a href={telegramUrl} rel="external">{copy.telegram}</a>
-      </>
-    )}
   </p>
 </footer>
 
