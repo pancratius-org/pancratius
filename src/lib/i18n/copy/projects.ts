@@ -46,30 +46,25 @@ export interface ProjectComponentsCopy {
   featuredMoreHeading: string;
   /** Accessible label for a revelation block (read register). */
   revelationAria: string;
-  /** Strings for the <AwakeningQuestions> interactive practice. */
+  /** Strings for the <AwakeningQuestions> readable practice. */
   awakening: AwakeningCopy;
-  /** Strings for the <SelfInquiryCycle> interactive practice. */
+  /** Strings for the <SelfInquiryCycle> readable protocol. */
   selfInquiry: SelfInquiryCopy;
 }
 
-/** Copy for the <AwakeningQuestions> meditative draw. */
+/** Copy for the <AwakeningQuestions> readable question bank. */
 interface AwakeningCopy {
+  /** Heading above the full question list. */
   heading: string;
-  /** Label before the ступень/tier picker. */
-  tierLabel: string;
-  /** Option that draws from every tier. */
-  allTiers: string;
-  /** The "draw another" control. */
-  next: string;
-  /** The fidelity hint under the drawn question (no answer, just reflect). */
-  hint: string;
-  /** Lead line above the static / no-JS full question list. */
+  /** Lead line above the question list (the practice instruction). */
   staticLead: string;
-  /** Total-count line at the foot of the static list. */
+  /** Total-count line at the foot of the list. */
   count(n: number): string;
+  /** Prefix for the link to the source book (the testimony). */
+  sourceCta: string;
 }
 
-/** Copy for the <SelfInquiryCycle> recursive «Кто я?» walk. */
+/** Copy for the <SelfInquiryCycle> readable «Кто я?» protocol. */
 interface SelfInquiryCopy {
   heading: string;
   /** The recurring question that anchors every cycle. */
@@ -80,19 +75,12 @@ interface SelfInquiryCopy {
   stepWord: string;
   /** The four steps of one cycle. */
   steps: { n: number; title: string; body: string }[];
-  /** Title + body for the loop note (static list). */
+  /** Title + body for the loop note. */
   loopTitle: string;
   loopBody: string;
   /** The resting state «ТО, ЧТО НЕ УПАЛО». */
   restTitle: string;
   restBody: string;
-  /** Walk controls. */
-  next: string;     // advance within a cycle
-  toRest: string;   // advance from the last step into the resting state
-  again: string;    // "Новый цикл" — drop everything, begin again
-  prev: string;     // step back within a cycle
-  /** Mirror of `next` for the script island (advance within a cycle). */
-  nextStep: string;
 }
 
 export const projectComponentsCopy = {
@@ -115,15 +103,12 @@ export const projectComponentsCopy = {
     featuredMoreHeading: "Ещё из этого круга",
     revelationAria: "Откровение",
     awakening: {
-      heading: "Вытяни вопрос",
-      tierLabel: "Ступень",
-      allTiers: "Все вопросы",
-      next: "Следующий вопрос",
-      hint: "Не ищи ответа. Позволь вопросу отразиться в тебе, как Лику в воде.",
+      heading: "Вопросы по ступеням",
       staticLead:
         "Это не тест и не анкета. Каждый вопрос — настройка внимания, а не задача. " +
         "Читай по одному и оставайся с ним в тишине; ответа не требуется.",
       count: (n) => `Всего вопросов: ${n}`,
+      sourceCta: "Читать свидетельство",
     },
     selfInquiry: {
       heading: "Цикл «Кто я?»",
@@ -171,11 +156,6 @@ export const projectComponentsCopy = {
       restBody:
         "То, что нельзя убрать. То, что осталось, когда всё убрано. Никакого красивого итога, " +
         "объяснения или вывода не требуется — только честная фиксация того, что осталось, когда кончились все ответы.",
-      next: "Следующий шаг",
-      nextStep: "Следующий шаг",
-      toRest: "К тому, что не упало",
-      again: "Новый цикл",
-      prev: "Назад",
     },
   },
   en: {
@@ -199,15 +179,12 @@ export const projectComponentsCopy = {
     // EN strings exist for type completeness; the practice pages are RU-only
     // until an English body is authored.
     awakening: {
-      heading: "Draw a question",
-      tierLabel: "Rung",
-      allTiers: "All questions",
-      next: "Next question",
-      hint: "Do not seek an answer. Let the question reflect within you, like a face in water.",
+      heading: "The questions, by rung",
       staticLead:
         "This is not a quiz or a form. Each question is a tuning of attention, not a task. " +
         "Read one at a time and stay with it in silence; no answer is required.",
       count: (n) => `Total questions: ${n}`,
+      sourceCta: "Read the testimony",
     },
     selfInquiry: {
       heading: "The «Who am I?» cycle",
@@ -255,11 +232,6 @@ export const projectComponentsCopy = {
       restBody:
         "What cannot be removed. What remains when everything is removed. No beautiful conclusion, " +
         "explanation, or verdict is required — only the honest noting of what remains when the answers run out.",
-      next: "Next step",
-      nextStep: "Next step",
-      toRest: "To what did not fall",
-      again: "New cycle",
-      prev: "Back",
     },
   },
 } satisfies Record<Locale, ProjectComponentsCopy>;
