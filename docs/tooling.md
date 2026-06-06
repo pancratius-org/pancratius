@@ -39,6 +39,8 @@ site.
 | `npm run audit:deps` | npm vulnerability audit at the high-severity release gate. |
 | `npm run audit:repo` | Architectural contract harness; see [`audit-harness.md`](./audit-harness.md). |
 | `npm run audit:agent` | Core audit plus non-blocking heuristic checks. |
+| `npm run audit:css-values` | Diagnostic PostCSS report for repeated CSS literals and layout/spacing/type drift. |
+| `npm run audit:layout-fill` | Diagnostic Playwright sweep for under-filled reading columns; run against a local site with `BASE_URL` or the default `http://localhost:4321`. |
 | `npm run audit:post-build` | Rules that need an emitted `dist/` (PAN014 link crawl, PAN008 `/assets/` URL contract). |
 | `npm run audit:selftest` | Harness fixtures proving audit polarity. |
 | `npm run test:e2e` | Playwright e2e specs. |
