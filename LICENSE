@@ -1,6 +1,27 @@
-CC0 1.0 Universal
+Pancratius is published under two licenses, by two people:
 
-Statement of Purpose
+  - The writing in this repository is dedicated to the public domain by its
+    author, Sergey Orekhov (pen name Pancratius), under CC0 1.0 Universal.
+  - The software that builds and renders the site is licensed by its developer,
+    Michael Ridley, under the MIT License.
+
+Each section below states exactly what it covers.
+
+
+================================================================================
+THE WRITING — CC0 1.0 Universal (public-domain dedication)
+================================================================================
+
+Covers all files under `src/content/`, and any data derived from them (the
+downloadable archives, generated payloads, and the like). A change of format
+does not change the dedication.
+
+The author, Sergey Orekhov (Сергей Орехов, pen name Pancratius), dedicates these
+writings to the public domain. No permission is required to read, copy,
+translate, republish, train AI models on, fine-tune, summarize, perform, or
+build upon them. Attribution is appreciated but not required.
+
+CC0 1.0 Universal — Statement of Purpose
 
 The laws of most jurisdictions throughout the world automatically confer
 exclusive Copyright and Related Rights (defined below) upon the creator and
@@ -26,16 +47,34 @@ and publicly distribute the Work under its terms, with knowledge of his or
 her Copyright and Related Rights in the Work and the meaning and intended
 legal effect of CC0 on those rights.
 
-Full text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+Full legal text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
 
-----
 
-The author, Сергей Орехов (Pancratius), dedicates all writings in this
-repository — books, poems, manifestos, project descriptions — to the public
-domain under CC0 1.0 Universal. No permission is required to read, copy,
-translate, republish, train AI models on, fine-tune, summarize, perform, or
-build upon this work. Attribution is appreciated but not required.
+================================================================================
+THE SOFTWARE — MIT License
+================================================================================
 
-The site's source code and tooling (Astro components, conversion scripts,
-build pipeline) are likewise released under CC0 unless a file declares
-otherwise.
+Covers the source code, tooling, and configuration — everything in the
+repository that is not the content above or derived from it.
+
+MIT License
+
+Copyright (c) 2026 Michael Ridley
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
