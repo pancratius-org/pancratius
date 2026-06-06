@@ -45,8 +45,8 @@ const t = conceptosphereStrings(locale);
 ---
 <Base
   {locale}
-  seo={seo}
-  alternates={alternates}
+  {seo}
+  {alternates}
   mainClass="cs-main"
 >
   <header class="cs-page-head">
@@ -67,20 +67,20 @@ const t = conceptosphereStrings(locale);
 
   <GraphCanvas
     {locale}
-    conceptsUrl={conceptsUrl}
-    booksUrl={booksUrl}
-    initialMode={initialMode}
-    modeCounts={modeCounts}
-    bookSlugInfo={bookSlugInfo}
-    coverUrls={coverUrls}
+    {conceptsUrl}
+    {booksUrl}
+    {initialMode}
+    {modeCounts}
+    {bookSlugInfo}
+    {coverUrls}
   />
 
   <MobileList
     {locale}
-    initialMode={initialMode}
-    booksIndexHref={booksIndexHref}
-    conceptSections={conceptSections}
-    bookSections={bookSections}
+    {initialMode}
+    {booksIndexHref}
+    {conceptSections}
+    {bookSections}
   />
 </Base>
 

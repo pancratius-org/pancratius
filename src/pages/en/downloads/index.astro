@@ -29,8 +29,8 @@ for (const loc of authoredLocales) {
 }
 const { archives, generatedAt } = loadArchiveManifest();
 ---
-<Base {locale} seo={seo} alternates={alternates}>
-  <DownloadsPage {locale} {page} archives={archives} generatedAt={generatedAt}>
+<Base {locale} {seo} {alternates}>
+  <DownloadsPage {locale} {page} {archives} {generatedAt}>
     <Content />
   </DownloadsPage>
 </Base>

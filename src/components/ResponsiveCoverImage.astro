@@ -33,22 +33,22 @@ const {
   <Image
     class={className}
     src={src.image}
-    alt={alt}
-    widths={widths}
-    sizes={sizes}
-    loading={loading}
-    decoding={decoding}
-    fetchpriority={fetchpriority}
+    {alt}
+    {widths}
+    {sizes}
+    {loading}
+    {decoding}
+    {fetchpriority}
   />
 ) : (
   <img
     class={className}
     src={src.url}
-    alt={alt}
-    loading={loading}
-    decoding={decoding}
-    width={width}
-    height={height}
-    fetchpriority={fetchpriority}
+    {alt}
+    {loading}
+    {decoding}
+    {width}
+    {height}
+    {fetchpriority}
   />
 )}

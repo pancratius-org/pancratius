@@ -31,7 +31,7 @@ for (const loc of authoredLocales) {
   if (loc !== locale) alternates[loc] = pageUrl(SLUG, loc);
 }
 ---
-<Base {locale} seo={seo} alternates={alternates}>
+<Base {locale} {seo} {alternates}>
   <PageShell {...pageShellProps(page)} width="text">
     <Verse class="prose--manifesto"><Content /></Verse>
   </PageShell>

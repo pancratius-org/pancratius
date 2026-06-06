@@ -19,8 +19,8 @@ const url = videoCoverAssetUrl(pair, locale);
   {url ? (
     <img
       src={url}
-      alt={alt}
-      loading={loading}
+      {alt}
+      {loading}
       decoding="async"
       width="1280"
       height="720"
