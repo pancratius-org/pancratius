@@ -58,7 +58,7 @@ already committed. Their meeting point is committed source.
 - **Search**: Pagefind (static; ships with the build).
 - **Library-management tools**: pandoc, typst, pymorphy3, Qwen3-Embedding via
   MLX. These are local/admin tools, not deploy tools.
-- **License**: CC0 1.0 Universal across content and code.
+- **License**: corpus content is CC0 1.0 Universal; site/tooling software is MIT.
 
 ## Site Shape
 
@@ -167,7 +167,8 @@ merged algorithmic **Похожие книги** list on book pages. Data contra
 
 - The site exists to be read. Components earn their place by serving the reading, not by performing.
 - No analytics tracker, no auth, no comments, no payment provider.
-- CC0 throughout. The license text lives in `LICENSE` and is restated in voice on `/license/`.
+- Corpus content is CC0. The license text lives in `LICENSE` and is restated
+  in voice on `/license/`.
 
 ## What is not architecture
 
