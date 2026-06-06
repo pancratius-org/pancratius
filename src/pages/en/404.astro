@@ -19,8 +19,8 @@ const seo = {
   siteName:    LOCALE_META[locale].siteLabel,
 };
 ---
-<Base {locale} seo={seo} alternates={{}}>
-  <section class="nf">
+<Base {locale} {seo} alternates={{}}>
+  <section class="l-canvas l-canvas--text nf">
     <p class="eyebrow">{copy.eyebrow}</p>
     <h1>{copy.heading}</h1>
     <p>{copy.body}</p>
@@ -36,9 +36,7 @@ const seo = {
 
 <style>
   .nf {
-    max-width: 36rem;
-    margin: 0 auto;
-    padding: clamp(5rem, 12vw, 9rem) var(--rail);
+    padding-block: clamp(5rem, 12vw, 9rem);
     text-align: center;
   }
   .nf .eyebrow { color: var(--accent); }

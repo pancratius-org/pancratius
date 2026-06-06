@@ -59,12 +59,12 @@ function dayAria(day: Day): string {
   return `${formatMessageDate(locale, day.iso, { withYear: true })} — ${copy.postsOnDay(day.items.length)}`;
 }
 ---
-<Base {locale} seo={seo}>
-  <section class="page messages">
+<Base {locale} {seo}>
+  <section class="l-canvas l-canvas--spread messages">
     <p class="eyebrow eyebrow--lg">{copy.eyebrow}</p>
     <div class="pl__head">
       <h1><b>{pairs.length}</b> {copy.headingLabel(pairs.length)}</h1>
-      <p class="pl__sub">
+      <p class="pl__sub l-measure l-measure--start">
         {pairs.length > 0 ? copy.sub(pairs.length) : copy.emptySub}
         {pairs.length === 0 && copy.fullCatalogLink && (
           <Fragment> <a href={defaultHref}>{copy.fullCatalogLink}</a></Fragment>
@@ -141,7 +141,7 @@ function dayAria(day: Day): string {
                           <a class="letter__link" href={routedUrl("message", entry.data.slug, locale)}>
                             <span class="letter__title">{entry.data.title}</span>
                             {entry.data.description && (
-                              <span class="letter__desc">
+                              <span class="letter__desc l-measure l-measure--start">
                                 {clampDescription(entry.data.description, LETTER_BLURB)}
                               </span>
                             )}
@@ -188,7 +188,6 @@ function dayAria(day: Day): string {
     line-height: 1.5;
     color: var(--ink-soft);
     margin: 0;
-    max-width: 40rem;
   }
   .pl__sub :global(a) {
     color: var(--ink-soft);
@@ -414,7 +413,6 @@ function dayAria(day: Day): string {
     font-size: 1rem;
     line-height: 1.5;
     color: var(--ink-soft);
-    max-width: 42rem;
   }
 
   /* ─── narrow: the grid is decoration; the writing carries alone ─────── */

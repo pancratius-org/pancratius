@@ -152,8 +152,6 @@ const projectLanding = z.object({
   // Short editorial tagline rendered under the title on the project masthead.
   tagline: z.string().optional(),
   cover: z.string().nullable().optional(),
-  // Visual-identity hook — a theme key a later wave maps to a colour/treatment.
-  theme: z.string().optional(),
   // Books this project leans on, by editorial number, with an optional blurb.
   featured_books: z
     .array(

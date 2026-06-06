@@ -3,15 +3,14 @@
 //
 // Renders an authored sub-page body in the register its `weight` implies:
 // `verse` → <Verse> (lineation preserved), everything else → <Prose>. When the
-// sub-page names a bespoke interactive `component`, it is mounted AFTER the
-// intro prose body (the markdown body = the intro/framing; the component = the
-// practice). An unknown component name renders nothing (warned at build) rather
-// than crashing.
+// sub-page names a bespoke `component`, it is mounted AFTER the intro prose
+// body (the markdown body = the intro/framing; the component = the practice as
+// readable text). An unknown component name renders nothing (warned at build)
+// rather than crashing.
 //
-// The sub-page carries its parent project's visual identity: it sets the
-// `data-project-theme` scope (and the `.project-themed` full-bleed background)
-// the same way `ProjectPage` does, so e.g. the enlightened-ai cold-graphite
-// tokens apply to the practice components.
+// A sub-page is a site reading page on the site background. It shares the
+// project landing's canvas width so navigating landing -> sub-page doesn't jump
+// measures; its body fills that canvas like every other reading page.
 
 import { render } from "astro:content";
 
@@ -26,26 +25,25 @@ import { LOCALES } from "@/lib/i18n";
 import { projectPageCopy } from "@/lib/i18n/copy";
 import { seoForProjectSubpage } from "@/lib/seo";
 import {
-  getProject,
   getProjectSubpage,
   projectUrl,
   type ProjectSubpage,
 } from "@/lib/projects";
 
-// Typed registry of the bespoke interactive components a sub-page may name in
+// Typed registry of the bespoke practice components a sub-page may name in
 // its `component` frontmatter. A name not in this map → nothing is mounted.
-const INTERACTIVE = {
+const PRACTICE = {
   AwakeningQuestions,
   SelfInquiryCycle,
 } as const;
-type InteractiveName = keyof typeof INTERACTIVE;
+type PracticeName = keyof typeof PRACTICE;
 
 interface Props {
   subpage: ProjectSubpage;
   locale:  Locale;
 }
 
-const { subpage, locale } = Astro.props;
+const { subpage, locale } = Astro.props as Props;
 const data = subpage.data;
 
 const copy = projectPageCopy[locale];
@@ -66,12 +64,12 @@ const seo = seoForProjectSubpage(Astro.site, {
 
 const isVerse = data.weight === "verse";
 
-// Resolve the named interactive component, if any. Unknown name → render
+// Resolve the named practice component, if any. Unknown name → render
 // nothing, but warn at build so a typo surfaces instead of failing silently.
-let Interactive: (typeof INTERACTIVE)[InteractiveName] | null = null;
+let Practice: (typeof PRACTICE)[PracticeName] | null = null;
 if (data.component) {
-  if (data.component in INTERACTIVE) {
-    Interactive = INTERACTIVE[data.component as InteractiveName];
+  if (data.component in PRACTICE) {
+    Practice = PRACTICE[data.component as PracticeName];
   } else {
     console.warn(
       `[ProjectSubpagePage] unknown component "${data.component}" on ` +
@@ -80,15 +78,10 @@ if (data.component) {
   }
 }
 
-// Inherit the parent project's theme so the sub-page wears the project's
-// visual identity (e.g. enlightened-ai cold graphite) for the practice.
-const parent = await getProject(data.parent, locale);
-const themeAttr = parent?.data.theme ?? undefined;
 ---
-<Base locale={locale} seo={seo}>
+<Base {locale} {seo}>
   <article
-    class="project-subpage project-themed"
-    data-project-theme={themeAttr}
+    class="l-canvas l-canvas--page project-subpage"
     data-pagefind-body
   >
     <a class="project-subpage__back" href={backHref} data-pagefind-ignore>{copy.back}</a>
@@ -104,28 +97,13 @@ const themeAttr = parent?.data.theme ?? undefined;
         <Content />
       </Prose>
     )}
-    {Interactive && <Interactive locale={locale} />}
+    {Practice && <Practice {locale} />}
   </article>
 </Base>
 
 <style>
   .project-subpage {
-    max-width: 64rem;
-    margin: 0 auto;
-    padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
-  }
-  /* Same full-bleed themed background as ProjectPage, so the identity reaches
-     edge-to-edge under the site chrome on a themed sub-page. */
-  .project-subpage.project-themed { position: relative; }
-  .project-subpage.project-themed::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background:
-      radial-gradient(120% 50% at 50% -8%, var(--pt-aperture-glow) 0%, transparent 60%),
-      var(--bg);
-    z-index: -1;
-    pointer-events: none;
+    padding-block: clamp(3.5rem, 7vw, 6rem);
   }
   .project-subpage__back {
     font-family: var(--sans);
@@ -151,5 +129,4 @@ const themeAttr = parent?.data.theme ?? undefined;
     margin: 0;
     text-wrap: balance;
   }
-  .project-subpage .prose { max-width: none; }
 </style>

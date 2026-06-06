@@ -98,8 +98,8 @@ const heroStats = copy.hero.stats?.({
 });
 const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
 ---
-<Base {locale} seo={seo} alternates={alternates}>
-  <section class="page home" aria-labelledby="home-title">
+<Base {locale} {seo} {alternates}>
+  <section class="l-canvas l-canvas--spread home" aria-labelledby="home-title">
 
     {/* HERO ────────────────────────────────────────────────────────
         Masthead + manifesto excerpt side by side. The mark, the
@@ -204,7 +204,7 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
             const display = displayWorkEntry(pair, locale);
             const href = workUrl("poem", display.entry.data.slug, display.linkLocale);
             return (
-              <a class="home__poem" href={href}>
+              <a class="home__poem" {href}>
                 <span class="home__poem-num">{`${copy.poetry.numberPrefix} ${String(pair.number).padStart(2, "0")}`}</span>
                 <h3 class="home__poem-title">{display.entry.data.title}</h3>
                 <p class="home__poem-excerpt">{lines}</p>
@@ -257,7 +257,7 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
       </header>
 
       <div class="home__svetozar-grid">
-        <div class="home__svetozar-copy">
+        <div class="home__svetozar-copy l-measure l-measure--start">
           <p>{svetozarIntro}</p>
           <p class="home__svetozar-pull">{svetozarPull}</p>
           <p>{svetozarClose}</p>
@@ -281,9 +281,7 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
 
 <style>
   .home {
-    max-width: 78rem;
-    margin: 0 auto;
-    padding: clamp(3.5rem, 7vw, 6rem) var(--rail) clamp(3rem, 6vw, 5rem);
+    padding-block: clamp(3.5rem, 7vw, 6rem) clamp(3rem, 6vw, 5rem);
   }
 
   /* ─ HERO ─────────────────────────────────────────────────────── */
@@ -426,7 +424,7 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
     padding: 0.4rem 0 0.4rem 1.5rem;
     border-left: 1px solid var(--accent-soft);
     margin: 0;
-    max-width: 32rem;
+    max-width: var(--col-text);
   }
   .home__verse p { margin: 0 0 0.95em; text-indent: 0; }
   .home__verse p:last-of-type { margin-bottom: 1.4em; }
@@ -610,7 +608,7 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
     line-height: 1.55;
     color: var(--ink-soft);
     margin: 0;
-    max-width: 48rem;
+    max-width: var(--col-page);
   }
   .home__project-cta {
     font-family: var(--serif);
@@ -639,9 +637,6 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
     }
   }
 
-  .home__svetozar-copy {
-    max-width: 38rem;
-  }
   .home__svetozar-copy p {
     font-family: var(--serif);
     font-size: clamp(1.05rem, 1.4vw, 1.2rem);

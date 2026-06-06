@@ -1,8 +1,7 @@
 ---
 // /about/ ("Человек") — author bio. Thin route: load the page, derive SEO +
 // alternates, and compose the shared <Bio> block (portrait + bio prose + facts)
-// inside <PageShell>. The bespoke layout, validation, and styling live in
-// <Bio> so the RU/EN routes don't duplicate them.
+// inside a wide <PageShell>.
 
 import { render } from "astro:content";
 
@@ -32,8 +31,8 @@ for (const loc of authoredLocales) {
   if (loc !== locale) alternates[loc] = pageUrl(SLUG, loc);
 }
 ---
-<Base {locale} seo={seo} alternates={alternates}>
-  <PageShell {...pageShellProps(page, "static--bio")}>
+<Base {locale} {seo} {alternates}>
+  <PageShell {...pageShellProps(page)} width="page">
     <Bio {page}><Content /></Bio>
   </PageShell>
 </Base>

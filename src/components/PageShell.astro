@@ -1,19 +1,15 @@
 ---
 /*
- * PageShell — shared masthead + centred reading column for static pages.
+ * PageShell — shared masthead + centred canvas for static pages.
  *
  * A building block, not a dispatcher: it renders the eyebrow / title / sub
  * masthead and the base `.static` grid container, then yields its default
  * slot for whatever blocks a dedicated route composes (Prose, Verse, a
- * portrait figure, a facts <dl>, a support widget…). It carries NO
- * per-page branching — the grid template that a bespoke page needs (bio
- * two-column, support sidebar) is owned by that page's own route via the
- * `class` prop + the route's own `<style>`.
+ * portrait figure, a facts <dl>, a support widget…). Bespoke page bodies own
+ * their internal layout inside the slot; they do not restyle the shell.
  *
- * The only layout this shell owns is the universal chrome shared by every
- * static page: the centred column, the masthead typography, and the
- * `static--with-toc` two-column variant (used by plain pages that grew
- * headings). Anything page-specific layers on top via `class`.
+ * The shell owns only the shared chrome: canvas size, masthead typography, and
+ * the `static--with-toc` two-column variant for plain pages with headings.
  */
 
 interface Props {
@@ -23,25 +19,24 @@ interface Props {
   eyebrow?: string;
   /** Optional italic sub-line under the title. */
   sub?: string;
-  /** Extra layout class(es) on the `<article>` (e.g. a route's bespoke grid). */
+  /** Extra class(es) on the `<article>`; used for shell-owned variants. */
   class?: string;
   /**
-   * Column width from the `--col-*` scale. `page` (default) is the
+   * Canvas size from the `--col-*` scale. `page` (default) is the
    * informational column (license); `text` is the single reading column,
    * where the masthead and the body share the reading measure (mission,
-   * svetozar). A `static--with-toc` layout owns its own width on top of this.
+   * svetozar).
    */
-  width?: "text" | "page" | "wide";
+  width?: "text" | "page" | "wide" | "spread";
 }
 
 const { title, eyebrow, sub, class: extraClass, width = "page" } = Astro.props;
-const widthClass = width === "text" ? "static--read" : width === "wide" ? "static--wide" : undefined;
 ---
-<article class:list={["static", widthClass, extraClass]}>
+<article class:list={["l-canvas", `l-canvas--${width}`, "static", extraClass]}>
   <header class="static__head">
     {eyebrow && <p class="eyebrow eyebrow--lg">{eyebrow}</p>}
     <h1 class="static__title">{title}</h1>
-    {sub && <p class="static__sub">{sub}</p>}
+    {sub && <p class="static__sub l-measure l-measure--start">{sub}</p>}
   </header>
 
   <slot />
@@ -49,17 +44,11 @@ const widthClass = width === "text" ? "static--read" : width === "wide" ? "stati
 
 <style>
   .static {
-    max-width: var(--col-page);
-    margin: 0 auto;
-    padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
+    padding-block: clamp(3.5rem, 7vw, 6rem);
     display: grid;
     grid-template-columns: 1fr;
     gap: 2.5rem;
   }
-  /* Single reading column: the masthead and the body share the reading
-     measure, so their edges align (no wide masthead over a narrow body). */
-  .static--read { max-width: var(--col-text); }
-  .static--wide { max-width: var(--col-wide); }
   .static__head { margin-bottom: 0.5rem; }
   .static__title {
     font-family: var(--serif);
@@ -77,24 +66,20 @@ const widthClass = width === "text" ? "static--read" : width === "wide" ? "stati
     line-height: 1.45;
     color: var(--accent);
     margin: 0.6rem 0 0;
-    max-width: 36rem;
     text-wrap: balance;
   }
 
   /* Plain-prose page that grew h2/h3 headings: a left ToC rail. The bespoke
-     pages (bio, support) own their own grid templates in their routes and
+     pages (bio, support) own their own grid templates inside the slot and
      never use this variant. */
   @media (min-width: 1100px) {
     .static--with-toc {
-      /* The body track is pinned to the reading measure (`--col-text`), so the
-         prose column matches the single-column reading pages; the rail takes
-         the slack. `max-content` shrink-wraps rail + body and `margin: auto`
-         centres the pair. */
+      /* Rail + body pair, centered as one canvas. */
       grid-template-columns: 13.75rem var(--col-text);
       grid-template-areas:
         "head head"
         "toc  body";
-      max-width: max-content;
+      --l-canvas-size: calc(13.75rem + 3rem + var(--col-text));
       gap: 2.5rem 3rem;
     }
     .static--with-toc .static__head { grid-area: head; }

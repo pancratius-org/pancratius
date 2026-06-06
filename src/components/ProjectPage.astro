@@ -120,7 +120,6 @@ const revelations = await Promise.all(
   }),
 );
 
-const themeAttr = data.theme ?? undefined;
 const heroProps = {
   eyebrow: copy.meta,
   title: data.title,
@@ -135,14 +134,14 @@ function projectFolder(id: string): string {
   return localeSeparator === -1 ? id : id.slice(0, localeSeparator);
 }
 ---
-<Base locale={locale} seo={seo}>
-  <article class="project-page project-themed" data-project-theme={themeAttr}>
+<Base {locale} {seo}>
+  <article class="l-canvas l-canvas--page project-page">
     <a class="project-page__back" href={backHref}>{copy.back}</a>
 
     <ProjectHero {...heroProps} />
 
     {data.negation && data.negation.length > 0 && (
-      <Negation lines={data.negation} locale={locale} />
+      <Negation lines={data.negation} {locale} />
     )}
 
     <div
@@ -154,28 +153,26 @@ function projectFolder(id: string): string {
     </div>
 
     {data.ladder && data.ladder.length > 0 && (
-      <ConsciousnessLadder rungs={data.ladder} locale={locale} anchorBase={ladderAnchorBase} />
+      <ConsciousnessLadder rungs={data.ladder} {locale} anchorBase={ladderAnchorBase} />
     )}
 
     {revelations.map(r => (
-      <RevelationBlock {...r} locale={locale} />
+      <RevelationBlock {...r} {locale} />
     ))}
 
-    <SubpageGrid doors={doors} locale={locale} />
+    <SubpageGrid {doors} {locale} />
 
-    <FeaturedBooks primary={featured} more={featuredMore} locale={locale} />
+    <FeaturedBooks primary={featured} more={featuredMore} {locale} />
 
     {data.faq && data.faq.length > 0 && (
-      <FAQ items={data.faq} locale={locale} />
+      <FAQ items={data.faq} {locale} />
     )}
   </article>
 </Base>
 
 <style>
   .project-page {
-    max-width: 64rem;
-    margin: 0 auto;
-    padding: clamp(2.5rem, 6vw, 4.5rem) var(--rail) clamp(3.5rem, 7vw, 6rem);
+    padding-block: clamp(2.5rem, 6vw, 4.5rem) clamp(3.5rem, 7vw, 6rem);
   }
   .project-page__back {
     font-family: var(--sans);
@@ -188,21 +185,4 @@ function projectFolder(id: string): string {
   }
   .project-page__back:hover { color: var(--accent); }
 
-  /* The themed scope owns the WHOLE surface, not a card. The reading column
-     stays centred + measured, but a full-bleed pseudo-element paints the
-     theme's background (and a faint top-pooled aperture glow) behind it, so
-     the identity reaches edge-to-edge under the site chrome. */
-  .project-page.project-themed { position: relative; }
-  .project-page.project-themed::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background:
-      radial-gradient(120% 50% at 50% -8%, var(--pt-aperture-glow) 0%, transparent 60%),
-      var(--bg);
-    z-index: -1;
-    pointer-events: none;
-  }
-
-  .project-page .prose { max-width: none; }
 </style>

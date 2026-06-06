@@ -64,17 +64,17 @@ if (showHero) {
   }
 }
 ---
-<Base {locale} seo={seo} alternates={alternates}>
-  <section class="page poetry-index">
+<Base {locale} {seo} {alternates}>
+  <section class="l-canvas l-canvas--page poetry-index">
     <p class="eyebrow eyebrow--lg">{copy.eyebrow(pairs.length)}</p>
     <div class="poetry-index__head">
       <h1><b>{pairs.length}</b> {copy.headingLabel(pairs.length)}</h1>
-      <p class="poetry-index__intro">{copy.intro}</p>
+      <p class="poetry-index__intro l-measure l-measure--start">{copy.intro}</p>
     </div>
 
     {showHero && heroRow && heroStanza && (
       <a class="poetry-hero" href={workUrl("poem", heroRow.entry.data.slug, heroRow.linkLocale)}>
-        <p class="poetry-hero__stanza">{heroStanza}</p>
+        <p class="poetry-hero__stanza l-measure l-measure--start">{heroStanza}</p>
         <p class="poetry-hero__attr">
           {copy.heroAttrPrefix}{String(heroRow.pair.number).padStart(2, "0")} «{heroRow.entry.data.title}»
         </p>
@@ -100,7 +100,7 @@ if (showHero) {
 </Base>
 
 <style>
-  .poetry-index { max-width: 56rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
+  .poetry-index { padding-block: clamp(3.5rem, 7vw, 6rem); }
   .poetry-index__head {
     display: flex;
     flex-direction: column;
@@ -127,7 +127,6 @@ if (showHero) {
     font-size: clamp(1.05rem, 1.4vw, 1.18rem);
     line-height: 1.5;
     color: var(--ink-soft);
-    max-width: 38rem;
     margin: 0;
   }
 
@@ -150,7 +149,6 @@ if (showHero) {
     margin: 0 0 1rem;
     white-space: pre-line;
     text-wrap: balance;
-    max-width: 38rem;
   }
   .poetry-hero__attr {
     font-family: var(--sans);

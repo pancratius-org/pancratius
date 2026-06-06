@@ -1,13 +1,10 @@
 ---
 /*
- * <ProjectHero> — the mini-site masthead and the identity hook.
+ * <ProjectHero> — the project landing masthead.
  *
- * Eyebrow (project label) · title · tagline · cover, framed by the per-theme
- * VERTICAL APERTURE — a shaft of light the type sits within. The shaft is the
- * one shared identity gesture across both projects (it echoes the literal
- * shaft of light in both covers), tinted cold for enlightened-ai and warm-dawn
- * for holy-rus by the theme variables (`--pt-aperture`, `--pt-light`). No
- * decoration beyond it: the masthead serves the reading.
+ * Eyebrow (project label) · title · tagline · cover, in the site's masthead
+ * register (shared serif title, accent eyebrow). No decoration: the masthead
+ * serves the reading and sits on the site background like every page.
  *
  * The cover asset is resolved by the caller (ProjectPage) and passed in, so
  * cover resolution stays in one place.
@@ -31,9 +28,8 @@ const { eyebrow, title, tagline, cover, number, locale } = Astro.props;
 const copy = projectPageCopy[locale];
 ---
 <header class="hero">
-  <div class="hero__shaft" aria-hidden="true"></div>
   <div class="hero__inner">
-    <div class="hero__text">
+    <div class="hero__text l-measure l-measure--start">
       <p class="hero__eyebrow">{eyebrow}</p>
       <h1 class="hero__title">{title}</h1>
       {tagline && <p class="hero__tagline">{tagline}</p>}
@@ -61,26 +57,9 @@ const copy = projectPageCopy[locale];
 
 <style>
   .hero {
-    position: relative;
     margin: 0 0 clamp(2.5rem, 5vw, 4rem);
     padding: clamp(2rem, 5vw, 4rem) 0 clamp(2.5rem, 5vw, 3.5rem);
     border-bottom: 1px solid var(--rule);
-    isolation: isolate;
-  }
-  /* The aperture: a soft vertical band of light behind the title column,
-     wider on desktop, tinted by the theme. It never reads as a hard edge —
-     it's a glow the type sits inside. */
-  .hero__shaft {
-    position: absolute;
-    inset: 0 auto 0 0;
-    left: clamp(2rem, 14vw, 9rem);
-    width: clamp(8rem, 26vw, 18rem);
-    background: var(--pt-aperture);
-    /* Feather the band so it's a shaft, not a column. */
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 35%, #000 65%, transparent);
-    mask-image: linear-gradient(90deg, transparent, #000 35%, #000 65%, transparent);
-    z-index: -1;
-    pointer-events: none;
   }
 
   .hero__inner {
@@ -95,7 +74,6 @@ const copy = projectPageCopy[locale];
       row-gap: 1.8rem;
     }
     .hero__cover { order: -1; max-width: 190px; }
-    .hero__shaft { left: 0; width: clamp(7rem, 60vw, 14rem); }
   }
 
   .hero__text { min-width: 0; }
@@ -130,9 +108,6 @@ const copy = projectPageCopy[locale];
     margin: 0 0 1.2rem;
     text-wrap: balance;
     font-feature-settings: "lnum" 0, "onum" 1, "kern" 1;
-    /* A faint lift of the cold/warm light off the title — the type catching
-       the shaft. Kept subtle so it never glows. */
-    text-shadow: 0 0 36px color-mix(in srgb, var(--pt-light) 18%, transparent);
   }
   .hero__tagline {
     font-family: var(--serif);
@@ -141,13 +116,12 @@ const copy = projectPageCopy[locale];
     line-height: 1.5;
     color: var(--ink-soft);
     margin: 0;
-    max-width: 38rem;
     text-wrap: pretty;
   }
 
   .hero__cover {
     aspect-ratio: 2 / 3;
-    border: 1px solid var(--pt-glass-edge, var(--rule));
+    border: 1px solid var(--rule);
     overflow: hidden;
     background: var(--bg-rise);
     box-shadow:

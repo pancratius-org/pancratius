@@ -70,7 +70,7 @@ export async function getProjects(locale: Locale): Promise<ProjectLanding[]> {
 }
 
 /** The landing for `slug` in `locale`, or null if not authored in that locale. */
-export async function getProject(
+async function getProject(
   slug: string,
   locale: Locale,
 ): Promise<ProjectLanding | null> {

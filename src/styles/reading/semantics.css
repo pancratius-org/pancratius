@@ -3,7 +3,7 @@
  */
 
 .prose blockquote.epigraph {
-  max-width: 42rem;
+  max-width: var(--col-text);
   margin: 1.8em 0 2em auto;
   padding: 0;
   border-left: 0;

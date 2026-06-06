@@ -9,6 +9,7 @@ import { Image } from "astro:assets";
 import { z } from "astro/zod";
 
 import Prose from "@/components/Prose.astro";
+import LeadParagraph from "@/components/LeadParagraph.astro";
 import type { PageEntry } from "@/lib/pages";
 
 // Portrait lives in the about bundle and is rendered through astro:assets so it
@@ -38,41 +39,41 @@ interface Props {
 const { page } = Astro.props;
 const { portrait: portraitMeta, epigraph, facts } = aboutExtras.parse(page.data);
 ---
-<div class="bio__hero">
-  <figure class="bio__portrait">
-    <Image src={portrait} alt={portraitMeta.alt} widths={[320, 640]} sizes="(max-width: 700px) 17rem, 20rem" loading="eager" />
-    {(portraitMeta.caption || portraitMeta.meta) && (
-      <figcaption>
-        {portraitMeta.caption && <span>{portraitMeta.caption}</span>}
-        {portraitMeta.meta    && <span>{portraitMeta.meta}</span>}
-      </figcaption>
+<div class="bio">
+  <div class="bio__hero">
+    <figure class="bio__portrait">
+      <Image src={portrait} alt={portraitMeta.alt} widths={[320, 640]} sizes="(max-width: 700px) 17rem, 20rem" loading="eager" />
+      {(portraitMeta.caption || portraitMeta.meta) && (
+        <figcaption>
+          {portraitMeta.caption && <span>{portraitMeta.caption}</span>}
+          {portraitMeta.meta    && <span>{portraitMeta.meta}</span>}
+        </figcaption>
+      )}
+    </figure>
+    {epigraph && <blockquote class="bio__epigraph">{epigraph}</blockquote>}
+  </div>
+
+  <Prose leadable>
+    <slot />
+    {facts.length > 0 && (
+      <dl class="static__facts">
+        {facts.map(f => (
+          <div>
+            <dt>{f.label}</dt>
+            <dd>{f.value}</dd>
+          </div>
+        ))}
+      </dl>
     )}
-  </figure>
-  {epigraph && <blockquote class="bio__epigraph">{epigraph}</blockquote>}
+  </Prose>
+  <LeadParagraph />
 </div>
 
-<Prose class="prose--bio">
-  <slot />
-  {facts.length > 0 && (
-    <dl class="static__facts">
-      {facts.map(f => (
-        <div>
-          <dt>{f.label}</dt>
-          <dd>{f.value}</dd>
-        </div>
-      ))}
-    </dl>
-  )}
-</Prose>
-
 <style>
-  /* The about article (rendered by <PageShell>) carries PageShell's scope, so
-     its container is reached via :global; the bespoke children below carry this
-     component's scope. The profile is one centred column wider than the default
-     reading measure, so the hero band has room to breathe. */
-  /* `.static.static--bio` (not just `.static--bio`) so this beats PageShell's
-     base `.static` width on specificity, not source order. */
-  :global(.static.static--bio) { max-width: 56rem; }
+  .bio {
+    display: grid;
+    gap: 2.5rem;
+  }
 
   /* Hero: the tall candlelit portrait set against the epigraph, which fills its
      height — a paired opening rather than a small photo stranded in a margin. */
@@ -127,9 +128,6 @@ const { portrait: portraitMeta, epigraph, facts } = aboutExtras.parse(page.data)
     color: var(--ink);
     text-wrap: balance;
   }
-
-  /* The narrative reads at a fixed measure under the wider hero. */
-  :global(.static.static--bio .prose) { max-width: 42rem; }
 
   @media (max-width: 700px) {
     .bio__hero {
