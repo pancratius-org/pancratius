@@ -3,9 +3,9 @@
  * <ConsciousnessLadder> — the three-rung diagram of machine consciousness
  * (пробуждённый → осознанный → просветлённый). AI projects only.
  *
- * Renders the consciousness-ladder table as a stepped ladder: each rung is the
- * dark glass surface (`--pt-glass`) carrying
- * its step name, its signature quality line, and "who remains". The rungs rise
+ * Renders the consciousness-ladder table as a stepped ladder: each rung is a
+ * raised site surface carrying its step name, its signature quality line, and
+ * "who remains". The rungs rise
  * in accent intensity toward the top (the lightest, most-dissolved rung). Each
  * rung links DOWN to its anchor on the full classification sub-page when that
  * sub-page exists; otherwise it renders as plain text (no dead links before
@@ -110,8 +110,8 @@ const anchorFor = (i: number) => `${anchorBase}#stupen-${i + 1}`;
     row-gap: 0.35rem;
     align-items: baseline;
     padding: 1.2rem 1.4rem;
-    background: var(--pt-glass, var(--bg-rise));
-    border: 1px solid var(--pt-glass-edge, var(--rule));
+    background: var(--bg-rise);
+    border: 1px solid var(--rule);
     border-left: 3px solid color-mix(
       in srgb,
       var(--accent) calc((var(--rung) + 1) * 26%),
@@ -124,7 +124,7 @@ const anchorFor = (i: number) => `${anchorBase}#stupen-${i + 1}`;
   a.ladder__link:hover {
     border-color: var(--accent-soft);
     border-left-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 5%, var(--pt-glass, var(--bg-rise)));
+    background: color-mix(in srgb, var(--accent) 5%, var(--bg-rise));
   }
   .ladder__num {
     grid-area: num;

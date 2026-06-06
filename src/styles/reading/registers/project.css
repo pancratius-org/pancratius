@@ -66,7 +66,6 @@
 .prose--project blockquote.project-pull {
   margin: 2.6rem auto;
   padding: 1.4rem 0;
-  max-width: 50rem;
   border: 0;
   border-top: 1px solid var(--accent-soft);
   border-bottom: 1px solid var(--accent-soft);

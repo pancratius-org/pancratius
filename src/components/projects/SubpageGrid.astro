@@ -34,7 +34,7 @@ const copy = projectComponentsCopy[locale];
 ---
 {doors.length > 0 && (
   <section class="doors" aria-labelledby="doors-h">
-    <header class="doors__head">
+    <header class="doors__head l-measure l-measure--start">
       <h2 class="doors__h" id="doors-h">{copy.subpagesHeading}</h2>
       <p class="doors__sub">{copy.subpagesSub}</p>
     </header>
@@ -82,7 +82,6 @@ const copy = projectComponentsCopy[locale];
     line-height: 1.5;
     color: var(--ink-soft);
     margin: 0;
-    max-width: 46rem;
   }
   .doors__grid {
     display: grid;
@@ -93,8 +92,8 @@ const copy = projectComponentsCopy[locale];
     position: relative;
     display: block;
     padding: 1.4rem 1.5rem 2.6rem;
-    background: var(--pt-glass, var(--bg-rise));
-    border: 1px solid var(--pt-glass-edge, var(--rule));
+    background: var(--bg-rise);
+    border: 1px solid var(--rule);
     text-decoration: none;
     color: inherit;
     transition: border-color 0.18s var(--ease), transform 0.18s var(--ease);

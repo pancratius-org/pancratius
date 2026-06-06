@@ -1,6 +1,6 @@
 @import "./tokens.css";
+@import "./layout.css";
 @import "./reading/index.css";
-@import "./project-themes.css";
 
 *,
 *::before,
@@ -95,10 +95,6 @@ mark {
 .skip:focus { left: 1rem; top: 1rem; }
 
 main { padding-bottom: 6rem; }
-
-.page {
-  padding: clamp(3.5rem, 7vw, 6rem) var(--rail) clamp(3rem, 6vw, 5rem);
-}
 
 .eyebrow {
   font-family: var(--sans);

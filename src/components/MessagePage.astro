@@ -58,8 +58,8 @@ const { prev: newer, next: older } = neighbors(pagerPairs, pair.number);
 
 const relatedVideos = await relatedVideosFor(entry);
 ---
-<Base {locale} seo={seo}>
-  <article class="message-page">
+<Base {locale} {seo}>
+  <article class="l-canvas l-canvas--wide message-page">
     <BackLink href={backHref} label={copy.back(pagerPairs.length)} />
 
     <header class="mp__masthead">
@@ -71,14 +71,14 @@ const relatedVideos = await relatedVideosFor(entry);
       </div>
       <div class="mp__head-body">
         <h1 class="mp__title" id="mp-title">{entry.data.title}</h1>
-        <p class="mp__desc">{entry.data.description}</p>
-        <TagRow tags={tags} ariaLabel={copy.tagsLabel} />
+        <p class="mp__desc l-measure l-measure--start">{entry.data.description}</p>
+        <TagRow {tags} ariaLabel={copy.tagsLabel} />
         <p class="mp__actions"><Share {locale} /></p>
       </div>
     </header>
 
     <div class="message-page__layout">
-      <MessageCalendarNav groups={groups} currentNumber={pair.number} today={today} {locale} />
+      <MessageCalendarNav {groups} currentNumber={pair.number} {today} {locale} />
       <div class="mp__main">
         <div
           class="prose"
@@ -134,9 +134,7 @@ const relatedVideos = await relatedVideosFor(entry);
 
 <style>
   .message-page {
-    max-width: 70rem;
-    margin: 0 auto;
-    padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
+    padding-block: clamp(3.5rem, 7vw, 6rem);
     /* One rail width and gap shared by the masthead and the body grid, so the
        date-seal sits over the месяцеслов and the title over the prose — a single
        vertical seam down the page rather than two unrelated grids. */
@@ -240,7 +238,6 @@ const relatedVideos = await relatedVideosFor(entry);
     font-style: italic;
     font-size: clamp(1.05rem, 1.7vw, 1.2rem);
     line-height: 1.55;
-    max-width: 38rem;
   }
   .mp__actions { margin: 1.4rem 0 0; }
 

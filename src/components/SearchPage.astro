@@ -14,10 +14,10 @@ const { locale } = Astro.props;
 const copy = searchPageCopy[locale];
 const seo = seoForSearch(Astro.site, locale);
 ---
-<Base {locale} seo={seo}>
-  <section class="page search-page">
+<Base {locale} {seo}>
+  <section class="l-canvas l-canvas--page search-page">
     <h1>{copy.heading}</h1>
-    <p class="search-page__intro">{copy.intro}</p>
+    <p class="search-page__intro l-measure l-measure--start">{copy.intro}</p>
     <PagefindSearch {locale} />
     <p class="search-page__hint">
       <span>{copy.hintLabel}</span>
@@ -27,7 +27,7 @@ const seo = seoForSearch(Astro.site, locale);
 </Base>
 
 <style>
-  .search-page { max-width: var(--col-page); margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); min-height: 60vh; }
+  .search-page { padding-block: clamp(3.5rem, 7vw, 6rem); min-height: 60vh; }
   .search-page h1 {
     font-family: var(--serif);
     font-weight: 400;
@@ -40,7 +40,6 @@ const seo = seoForSearch(Astro.site, locale);
     font-family: var(--serif);
     font-style: italic;
     color: var(--ink-soft);
-    max-width: 36rem;
     margin: 0 0 2.5rem;
   }
   .search-page__hint {

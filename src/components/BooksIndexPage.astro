@@ -30,12 +30,12 @@ for (const { entry } of pairs) {
 }
 const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count }));
 ---
-<Base {locale} seo={seo}>
-  <section class="page lib">
+<Base {locale} {seo}>
+  <section class="l-canvas l-canvas--spread lib">
     <p class="eyebrow eyebrow--lg">{copy.eyebrow}</p>
     <div class="lib__head">
       <h1><b>{pairs.length}</b> {copy.headingLabel(pairs.length)}</h1>
-      <p class="lib__sub">
+      <p class="lib__sub l-measure l-measure--start">
         {copy.sub(allPairs.length, pairs.length)}
         {copy.fullCatalogLink && (
           <Fragment>
@@ -45,7 +45,7 @@ const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count })
       </p>
     </div>
 
-    <LibraryFilter {locale} tags={tags} total={pairs.length} />
+    <LibraryFilter {locale} {tags} total={pairs.length} />
 
     <div class="index" role="list" data-pagefind-ignore>
       {pairs.map(({ pair, entry }) => {
@@ -83,7 +83,6 @@ const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count })
     line-height: 1.5;
     color: var(--ink-soft);
     margin: 0;
-    max-width: 40rem;
   }
   .lib__sub :global(a) {
     color: var(--ink-soft);

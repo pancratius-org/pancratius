@@ -291,8 +291,9 @@ The conceptosphere pages set `class="cs-main"` on `<main>` via the Base
 layout's `mainClass` prop. Astro's scoped-style attribute is added to the
 page's own template, not to the layout slot, so a scoped `.cs-main { … }`
 rule never matches the live `<main>`. Phase 6 ships those rules with explicit
-`:global(.cs-main)` selectors; the same pattern applies for any future page
-that needs to style the slotted `<main>` from the layout.
+`:global(.cs-main)` selectors. This is only for Base-owned shell elements
+named through explicit shell props; it is not a pattern for child components to
+style parent layout or slotted page structure.
 
 ## Python type enforcement: ruff + ty (Astral), not mypy/pyright
 

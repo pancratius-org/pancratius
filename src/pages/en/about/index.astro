@@ -30,8 +30,8 @@ for (const loc of authoredLocales) {
   if (loc !== locale) alternates[loc] = pageUrl(SLUG, loc);
 }
 ---
-<Base {locale} seo={seo} alternates={alternates}>
-  <PageShell {...pageShellProps(page, "static--bio")}>
+<Base {locale} {seo} {alternates}>
+  <PageShell {...pageShellProps(page)} width="page">
     <Bio {page}><Content /></Bio>
   </PageShell>
 </Base>

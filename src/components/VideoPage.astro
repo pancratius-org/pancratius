@@ -61,8 +61,8 @@ const duration = formatDuration(entry.data.duration);
 const watchLinks = videoWatchLinks(entry);
 const channel = await channelForEntry(entry);
 ---
-<Base {locale} seo={seo}>
-  <article class:list={["video-page", `video-page--${layout}`]}>
+<Base {locale} {seo}>
+  <article class:list={["l-canvas", "video-page", `video-page--${layout}`]}>
     <BackLink href={backHref} label={copy.back(pagerPairs.length)} />
 
     {layout === "compact" ? (
@@ -98,7 +98,7 @@ const channel = await channelForEntry(entry);
             </span>
           )}
         </p>
-        <TagRow tags={tags} />
+        <TagRow {tags} />
         <p class="vp-compact__actions"><Share {locale} /></p>
         {hasBody && (
           <div class="prose prose--note vp-compact__body"><Content /></div>
@@ -112,7 +112,7 @@ const channel = await channelForEntry(entry);
             <div class="video-page__num" aria-hidden="true">{number}</div>
             <h1 class="video-page__title" id="vp-title">{entry.data.title}</h1>
             <div class="video-page__description"><RichText text={entry.data.description} collapse={{ more: copy.showMore, less: copy.showLess }} /></div>
-            <TagRow tags={tags} />
+            <TagRow {tags} />
             <p class="video-page__watch">
               <a href={watchLinks.primary.url} rel="noopener" target="_blank">
                 {copy.watchOn(copy.platformLabel(watchLinks.primary.platform))} →
@@ -138,7 +138,7 @@ const channel = await channelForEntry(entry);
         </div>
 
         <div class:list={["video-page__layout", { "video-page__layout--toc": useToc }]}>
-          {useToc && <TableOfContents headings={headings} {locale} />}
+          {useToc && <TableOfContents {headings} {locale} />}
           <div
             class="prose prose--note"
             data-pagefind-body
@@ -160,15 +160,14 @@ const channel = await channelForEntry(entry);
 
 <style>
   .video-page {
-    max-width: 70rem;
-    margin: 0 auto;
-    padding: clamp(3.5rem, 7vw, 6rem) var(--rail);
+    padding-block: clamp(3.5rem, 7vw, 6rem);
   }
   /* Blog video is ONE reading column: masthead, embed, and commentary share a
      single measure, so the page has one boundary instead of the old full-bleed
      embed vs. narrow text mismatch. A contents rail (rare) widens it. */
-  .video-page--blog { max-width: 46rem; }
-  .video-page--blog:has(.video-page__layout--toc) { max-width: 66rem; }
+  .video-page--compact,
+  .video-page--blog { --l-canvas-size: var(--col-page); }
+  .video-page--blog:has(.video-page__layout--toc) { --l-canvas-size: var(--col-wide); }
 
   .video-page__meta {
     font-family: var(--sans);
@@ -182,8 +181,6 @@ const channel = await channelForEntry(entry);
 
   /* ─── COMPACT layout ────────────────────────────────────────────────── */
   .vp-compact {
-    max-width: 44rem;
-    margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 1.4rem;

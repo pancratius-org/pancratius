@@ -2,7 +2,6 @@
 import { render } from "astro:content";
 
 import Base from "@/layouts/Base.astro";
-import Column from "@/components/Column.astro";
 import Colophon from "@/components/Colophon.astro";
 import WorkDownloadActions from "@/components/WorkDownloadActions.astro";
 import Share from "@/components/Share.astro";
@@ -37,8 +36,8 @@ const seo = seoForWork(Astro.site, {
 const backHref = kindIndexUrl("poem", locale);
 const date = poemDate(entry);
 ---
-<Base {locale} seo={seo}>
-  <Column as="article" size="text" class="poem-page">
+<Base {locale} {seo}>
+  <article class="l-canvas l-canvas--text poem-page">
     <BackLink href={backHref} label={copy.back} />
 
     <header class="poem-page__head">
@@ -65,10 +64,11 @@ const date = poemDate(entry);
     <div class="poem-page__end" aria-hidden="true">·  ·  ·</div>
 
     <Colophon {pair} {locale} />
-  </Column>
+  </article>
 </Base>
 
 <style>
+  .poem-page { padding-block: clamp(3.5rem, 7vw, 6rem); }
   .poem-page__head { margin-bottom: 2rem; }
   .poem-page__meta {
     font-family: var(--sans);

@@ -29,15 +29,15 @@ const copy = projectComponentsCopy[locale];
 ---
 {primary.length > 0 && (
   <aside class="featured" aria-labelledby="featured-h">
-    <header class="featured__head">
+    <header class="featured__head l-measure l-measure--start">
       <h2 class="featured__h" id="featured-h">{labels.projectHeading}</h2>
       <p class="featured__sub">{labels.projectSub}</p>
     </header>
     <div class="featured__grid">
       {primary.map(f => (
         f.blurb === undefined
-          ? <BookCard pair={f.pair} locale={locale} />
-          : <BookCard pair={f.pair} locale={locale} blurb={f.blurb} />
+          ? <BookCard pair={f.pair} {locale} />
+          : <BookCard pair={f.pair} {locale} blurb={f.blurb} />
       ))}
     </div>
 
@@ -46,7 +46,7 @@ const copy = projectComponentsCopy[locale];
         <h3 class="featured__more-h">{copy.featuredMoreHeading}</h3>
         <div class="featured__more-grid">
           {more.map(pair => (
-            <BookCard pair={pair} locale={locale} />
+            <BookCard {pair} {locale} />
           ))}
         </div>
       </div>
@@ -87,7 +87,6 @@ const copy = projectComponentsCopy[locale];
     line-height: 1.5;
     color: var(--ink-soft);
     margin: 0;
-    max-width: 50rem;
   }
   .featured__grid {
     display: grid;

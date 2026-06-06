@@ -35,12 +35,12 @@ const rows: Row[] = canonical.map(base => {
   return { landing: base, hrefLocale: DEFAULT_LOCALE, isFallback: true };
 });
 ---
-<Base locale={locale} seo={seo}>
-  <section class="page projects-index">
+<Base {locale} {seo}>
+  <section class="l-canvas l-canvas--spread projects-index">
     <p class="eyebrow eyebrow--lg">{copy.eyebrow}</p>
     <div class="projects-index__head">
       <h1>{copy.heading}</h1>
-      <p class="projects-index__intro">{copy.intro}</p>
+      <p class="projects-index__intro l-measure l-measure--start">{copy.intro}</p>
     </div>
 
     <div class="projects-list">
@@ -48,7 +48,6 @@ const rows: Row[] = canonical.map(base => {
         <a
           class="project-row"
           href={projectUrl(landing.data.slug, hrefLocale)}
-          data-project-theme={landing.data.theme ?? undefined}
         >
           <span class="project-row__num">{String(landing.data.number).padStart(2, "0")}</span>
           <div class="project-row__body">
@@ -71,7 +70,7 @@ const rows: Row[] = canonical.map(base => {
 </Base>
 
 <style>
-  .projects-index { max-width: 72rem; margin: 0 auto; padding: clamp(3.5rem, 7vw, 6rem) var(--rail); }
+  .projects-index { padding-block: clamp(3.5rem, 7vw, 6rem); }
   .projects-index__head {
     display: flex;
     flex-direction: column;
@@ -93,7 +92,6 @@ const rows: Row[] = canonical.map(base => {
     line-height: 1.5;
     color: var(--ink-soft);
     margin: 0;
-    max-width: 42rem;
   }
 
   .projects-list { border-top: 1px solid var(--rule); }
@@ -109,10 +107,8 @@ const rows: Row[] = canonical.map(base => {
     text-decoration: none;
     transition: color 0.18s var(--ease), background 0.2s var(--ease);
   }
-  /* Identity hint: a thin aperture bar in the row's own theme accent on the
-     left edge, and a faint theme-tinted glow that warms/cools on hover — a
-     whisper of each mini-site's register before you enter it. The row itself
-     carries `data-project-theme`, so `--accent` here resolves per-project. */
+  /* A thin accent bar on the left edge and a faint accent glow on hover —
+     a quiet site-register cue, consistent across every row. */
   .project-row::before {
     content: "";
     position: absolute;
@@ -135,7 +131,7 @@ const rows: Row[] = canonical.map(base => {
     line-height: 1.4;
     color: var(--accent);
     margin: 0 0 1rem;
-    max-width: 44rem;
+    max-width: var(--col-text);
     text-wrap: pretty;
   }
   .project-row__num {
@@ -164,7 +160,7 @@ const rows: Row[] = canonical.map(base => {
     line-height: 1.6;
     color: var(--ink-soft);
     margin: 0 0 1.25rem;
-    max-width: 52rem;
+    max-width: var(--col-page);
   }
   .project-row__fallback {
     display: inline-block;
