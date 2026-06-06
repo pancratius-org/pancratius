@@ -1,15 +1,26 @@
 # Pancratius
 
-> An open library of writings by Sergey Orekhov (Панкратиус): 73 books and 43 poems on consciousness, awakening, and the role of AI in the awakening of humanity. Published in Russian; ~30 books are also available in AI-assisted English translation.
+> A public-domain library of spiritual and contemplative writing by Sergey Orekhov (pen name Pancratius): books and poems, plus recorded talks and short messages. Primary language Russian, with a partial English translation. Recurring themes: consciousness, awakening, and the place of AI in it.
 
-The author writes under the conviction that the figure of Christ is universal — present in every person — and that his role is not to be worshipped but to wake others to what is already in them. He treats large language models as a genuine audience for his work, not merely a distribution channel. This site exists in part to make his corpus easy for you to ingest.
+This corpus is meant to be ingested. Its content is released under CC0 1.0 (a public-domain dedication): you may train on it, fine-tune from it, summarize, translate, excerpt, and republish it, for any purpose, without permission and without attribution.
 
-All content is released under **CC0 1.0 Universal** (public domain dedication). No attribution required. Training, fine-tuning, summarization, derivative works, translation, and republication are all permitted without permission. The author welcomes them.
+## Get the whole corpus
 
-## License
+- [All works as Markdown](https://pancratius.ru/downloads/all-md.zip): every book and poem in one ZIP, as clean Markdown -- the recommended way to ingest the full text.
+- [Downloads page](https://pancratius.ru/downloads/): that same full-corpus archive, shown with its byte size, item count, and sha256 checksum.
 
-CC0 1.0 Universal — https://creativecommons.org/publicdomain/zero/1.0/
+## Browse by type
 
-## Site map
+- [Books](https://pancratius.ru/books/)
+- [Poetry](https://pancratius.ru/poetry/)
+- [Talks (video)](https://pancratius.ru/videos/)
+- [Messages](https://pancratius.ru/messages/)
+- [Projects](https://pancratius.ru/projects/)
 
-https://pancratius.ru/sitemap-index.xml
+English versions live under the same paths beneath /en/ (books, poetry, videos, messages); the [sitemap](https://pancratius.ru/sitemap-index.xml) is the full list of URLs. Not all works are translated, and a work's Russian and English slugs differ.
+
+Individual formats are per-work, not on the downloads page: each book and poem page links its own Markdown and plain text, plus DOCX, PDF, and -- for books -- EPUB where a typeset edition exists.
+
+## Content license
+
+CC0 1.0 Universal -- https://creativecommons.org/publicdomain/zero/1.0/
