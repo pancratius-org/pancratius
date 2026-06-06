@@ -8,7 +8,7 @@ interface Props {
 
 const { href, label } = Astro.props;
 ---
-<a class="back-link" href={href}>{label}</a>
+<a class="back-link" {href}>{label}</a>
 
 <style>
   .back-link {

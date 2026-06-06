@@ -20,11 +20,11 @@ const graphData = await loadConceptospherePageData(locale, t);
 ---
 <ConceptospherePage
   {locale}
-  seo={seo}
+  {seo}
   alternates={conceptosphereAlternate(locale)}
   conceptsUrl="/data/pancratius-concepts-graph.json"
   booksUrl="/data/pancratius-books-graph.json"
-  initialMode={initialMode}
+  {initialMode}
   modeCounts={graphData.modeCounts}
   bookSlugInfo={graphData.bookSlugInfo}
   coverUrls={graphData.coverUrls}

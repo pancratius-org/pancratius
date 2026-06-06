@@ -36,10 +36,10 @@ const coverImageProps = loading === "eager"
   {cover ? (
     <ResponsiveCoverImage
       src={cover}
-      alt={alt}
+      {alt}
       widths={[96, 160, 220, 320, 440, 720]}
       sizes="(max-width: 720px) 200px, 220px"
-      loading={loading}
+      {loading}
       decoding="async"
       {...coverImageProps}
     />

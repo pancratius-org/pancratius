@@ -31,7 +31,7 @@ const copy = languageSwitcherCopy[currentLocale];
     }
     if (hasAlt) {
       return (
-        <a class="lang__btn" href={href} hreflang={loc} aria-label={accLabel}>
+        <a class="lang__btn" {href} hreflang={loc} aria-label={accLabel}>
           {label}
         </a>
       );

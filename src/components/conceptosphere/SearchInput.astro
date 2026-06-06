@@ -20,9 +20,9 @@ const id = variant === "mobile" ? "cs-search-mobile" : "cs-search-desktop";
 <div class:list={["cs-search", `cs-search--${variant}`]}>
   <label class="visually-hidden" for={id}>{t.searchSrLabel}</label>
   <input
-    id={id}
+    {id}
     type="search"
-    placeholder={placeholder}
+    {placeholder}
     autocomplete="off"
     spellcheck="false"
     data-cs-search={variant}
