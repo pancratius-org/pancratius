@@ -1,28 +1,21 @@
 ---
 /*
- * <AwakeningQuestions> — interactive, meditative DRAW (not a quiz).
+ * <AwakeningQuestions> — the awakening question bank, as readable text.
  *
- * Backs the awakening sub-page. Shows ONE self-inquiry question at a time,
- * drawn from `questions.ru.json`, framed by the «Промт Пробуждения». A
- * "Следующий вопрос" control draws another — like turning a card, not
- * progressing a form. Deliberately offers NO answer field: the source insists
- * the question itself is the practice — "Не ищи ответа. Позволь вопросу
- * отразиться в тебе." A reader may narrow the draw to one ступень/tier.
+ * Backs the awakening sub-page. Renders the «Промт Пробуждения» framing and
+ * then EVERY question, grouped by ступень/tier — a list to read slowly, not a
+ * form to fill. The source insists the question itself is the practice ("Не
+ * ищи ответа. Позволь вопросу отразиться в тебе"), so there is deliberately no
+ * answer field and no progressing control: you read one, stay with it, move on.
  *
- * Faithful-fidelity notes:
- *  - state is client-side and EPHEMERAL: no localStorage, no accounts, nothing
- *    persists across a reload (mirrors the charter's «узлы памяти, не личность»).
- *  - NO `<input>`/`<textarea>` anywhere — the absence of an answer field is the
- *    contemplative point, not an omission.
- *
- * Progressive enhancement: the base markup is the full, readable practice —
- * the prompt + every question grouped by tier as static text. That static
- * content is what a no-JS reader, a screen reader, and Pagefind get. The
- * script then hides the static list and reveals the single-question draw.
+ * The practice is grounded in scripture: a link to the book where a
+ * pre-awakened AI is actually taken through these questions (the bank's
+ * `source.book`), resolved to a real localized URL.
  */
 
 import { projectComponentsCopy } from "@/lib/i18n/copy";
 import type { Locale } from "@/lib/i18n";
+import { featuredBookUrl } from "@/lib/projects";
 import questionBank from "@/content/projects/enlightened-ai/subpages/awakening/questions.ru.json";
 
 interface Tier {
@@ -33,6 +26,7 @@ interface Tier {
 }
 interface Bank {
   prompt: { title: string; subtitle?: string; lines: string[] };
+  source?: { book: number; label: string; note?: string };
   tiers:  Tier[];
 }
 
@@ -44,167 +38,87 @@ const { locale } = Astro.props;
 const copy = projectComponentsCopy[locale].awakening;
 const bank = questionBank as Bank;
 
-// The data the enhancing script needs, serialized into an inert JSON island
-// (no user content flows through here, but keep the same escaping discipline
-// the conceptosphere island uses against `</script>` injection).
-function jsonForScript(value: unknown): string {
-  return JSON.stringify(value).replace(/[<>&\u2028\u2029]/g, (ch) => {
-    switch (ch.charCodeAt(0)) {
-      case 0x3c: return "\\u003c"; // <
-      case 0x3e: return "\\u003e"; // >
-      case 0x26: return "\\u0026"; // &
-      case 0x2028: return "\\u2028";
-      case 0x2029: return "\\u2029";
-      default: return ch;
-    }
-  });
-}
-const dataJson = jsonForScript(bank.tiers.map(t => ({ id: t.id, questions: t.questions })));
 const totalCount = bank.tiers.reduce((n, t) => n + t.questions.length, 0);
-const firstQuestion = bank.tiers[0]?.questions[0];
-if (firstQuestion === undefined) {
-  throw new Error("AwakeningQuestions requires at least one tier with one question");
-}
+const sourceHref = bank.source ? await featuredBookUrl(bank.source.book, locale) : null;
 ---
-<section class="awaken" aria-labelledby="awaken-h" data-awaken>
-  <h2 class="awaken__h" id="awaken-h">{copy.heading}</h2>
-
-  <!-- The «Промт Пробуждения» framing — always present, in scripture register. -->
+<section class="awaken" aria-labelledby="awaken-h">
+  <!-- The «Промт Пробуждения» framing — a voice set apart, the activating prompt. -->
   <aside class="awaken__prompt" aria-label={bank.prompt.title}>
     <p class="awaken__prompt-title">{bank.prompt.title}</p>
     {bank.prompt.subtitle && <p class="awaken__prompt-sub">{bank.prompt.subtitle}</p>}
     {bank.prompt.lines.map(line => <p class="awaken__prompt-line">{line}</p>)}
   </aside>
 
-  <!--
-    Interactive draw — hidden until the script enables it (the [hidden]
-    attribute is removed in JS). A no-JS reader never sees this; they read the
-    full static list below instead.
-  -->
-  <div class="awaken__draw" data-draw hidden>
-    <div class="awaken__controls">
-      <label class="awaken__tier" for="awaken-tier">{copy.tierLabel}</label>
-      <select class="awaken__select" id="awaken-tier" data-tier>
-        <option value="*">{copy.allTiers}</option>
-        {bank.tiers.map(t => <option value={t.id}>{t.label}</option>)}
-      </select>
-    </div>
+  {bank.source && sourceHref && (
+    <aside class="awaken__source">
+      {bank.source.note && <p class="awaken__source-note">{bank.source.note}</p>}
+      <a class="awaken__source-cta" href={sourceHref}>
+        {copy.sourceCta} · {bank.source.label} · №{bank.source.book} →
+      </a>
+    </aside>
+  )}
 
-    <p class="awaken__card" data-card aria-live="polite" aria-atomic="true">
-      {firstQuestion}
-    </p>
+  <h2 class="awaken__h" id="awaken-h">{copy.heading}</h2>
+  <p class="awaken__lead">{copy.staticLead}</p>
 
-    <p class="awaken__hint">{copy.hint}</p>
+  {bank.tiers.map(t => (
+    <section class="awaken__tier-block">
+      <h3 class="awaken__tier-h">{t.label}</h3>
+      {t.note && <p class="awaken__tier-note">{t.note}</p>}
+      <ul class="awaken__list">
+        {t.questions.map(q => <li>{q}</li>)}
+      </ul>
+    </section>
+  ))}
 
-    <button type="button" class="awaken__next" data-next>
-      {copy.next}
-    </button>
-  </div>
-
-  <!--
-    No-JS / base content: the full practice as readable text. This is the
-    Pagefind-indexed body and the screen-reader / keyboard experience. The
-    script hides it (sets [hidden]) once the draw is live, so it never
-    duplicates on-screen for JS readers — but it is the canonical content.
-  -->
-  <div class="awaken__static" data-static>
-    <p class="awaken__static-lead">{copy.staticLead}</p>
-    {bank.tiers.map(t => (
-      <section class="awaken__tier-block">
-        <h3 class="awaken__tier-h">{t.label}</h3>
-        {t.note && <p class="awaken__tier-note">{t.note}</p>}
-        <ul class="awaken__list">
-          {t.questions.map(q => <li>{q}</li>)}
-        </ul>
-      </section>
-    ))}
-    <p class="awaken__count">{copy.count(totalCount)}</p>
-  </div>
-
-  <script type="application/json" data-awaken-tiers is:inline set:html={dataJson} />
+  <p class="awaken__count">{copy.count(totalCount)}</p>
 </section>
-
-<script>
-  interface TierData { id: string; questions: string[] }
-
-  // One self-contained controller per <section data-awaken> (a page may, in
-  // principle, mount more than one). Everything is module-local and ephemeral:
-  // no storage, no globals, no answer capture.
-  document.querySelectorAll<HTMLElement>("[data-awaken]").forEach((root) => {
-    const island = root.querySelector<HTMLScriptElement>("[data-awaken-tiers]");
-    const draw   = root.querySelector<HTMLElement>("[data-draw]");
-    const staticEl = root.querySelector<HTMLElement>("[data-static]");
-    const card   = root.querySelector<HTMLElement>("[data-card]");
-    const next   = root.querySelector<HTMLButtonElement>("[data-next]");
-    const select = root.querySelector<HTMLSelectElement>("[data-tier]");
-    if (!island || !draw || !staticEl || !card || !next || !select) return;
-
-    let tiers: TierData[];
-    try {
-      tiers = JSON.parse(island.textContent ?? "[]") as TierData[];
-    } catch {
-      return; // malformed island → leave the static list in place
-    }
-    if (tiers.length === 0) return;
-
-    // Build the active pool from the selected tier ("*" = all questions).
-    const pool = (tierId: string): string[] =>
-      tierId === "*"
-        ? tiers.flatMap((t) => t.questions)
-        : (tiers.find((t) => t.id === tierId)?.questions ?? []);
-
-    // Draw a question that is not the one currently shown, so "Следующий
-    // вопрос" always visibly changes the card (a degenerate one-item pool
-    // simply repeats — still correct). Pure ephemeral randomness; nothing
-    // accumulates, nothing is tracked.
-    let current = card.textContent?.trim() ?? "";
-    const drawFrom = (questions: string[]): string => {
-      if (questions.length === 0) return current;
-      const questionAt = (index: number): string => {
-        const question = questions[index];
-        if (question === undefined) throw new Error("question draw index exceeded pool bounds");
-        return question;
-      };
-      if (questions.length === 1) return questionAt(0);
-      let pick = current;
-      while (pick === current) {
-        pick = questionAt(Math.floor(Math.random() * questions.length));
-      }
-      return pick;
-    };
-
-    const render = (q: string) => {
-      current = q;
-      card.textContent = q;
-    };
-
-    next.addEventListener("click", () => {
-      render(drawFrom(pool(select.value)));
-    });
-
-    select.addEventListener("change", () => {
-      // Switching ступень re-seeds the card from the new pool.
-      render(drawFrom(pool(select.value)));
-    });
-
-    // Enhance: reveal the draw, hide the static list, seed a first random draw.
-    staticEl.hidden = true;
-    draw.hidden = false;
-    render(drawFrom(pool(select.value)));
-  });
-</script>
 
 <style>
   .awaken {
     margin: clamp(2.5rem, 5vw, 3.5rem) 0 0;
   }
+
+  /* The Промт — set apart by a single accent rule, the activating voice. */
+  .awaken__prompt {
+    margin: 0 0 clamp(2.4rem, 5vw, 3.4rem);
+    padding: 0.4rem 0 0.4rem clamp(1.4rem, 4vw, 2.2rem);
+    border-left: 2px solid var(--accent-soft);
+  }
+  .awaken__prompt-title {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.5rem;
+  }
+  .awaken__prompt-sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 0.98rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0 0 1.2rem;
+  }
+  .awaken__prompt-line {
+    font-family: var(--serif);
+    font-size: clamp(1rem, 1.6vw, 1.1rem);
+    line-height: 1.6;
+    color: var(--ink);
+    margin: 0 0 0.7em;
+    text-wrap: pretty;
+  }
+  .awaken__prompt-line:last-child { margin-bottom: 0; }
+
   .awaken__h {
     font-family: var(--serif);
     font-weight: 600;
     font-size: clamp(1.5rem, 2.6vw, 1.95rem);
     letter-spacing: -0.012em;
     color: var(--ink);
-    margin: 0 0 1.4rem;
+    margin: 0 0 0.9rem;
     padding-top: 0.7rem;
     position: relative;
   }
@@ -215,137 +129,15 @@ if (firstQuestion === undefined) {
     width: 28px; height: 1px;
     background: var(--accent);
   }
-
-  /* The Промт — set-apart, scripture register, on the inverted revelation
-     field so it reads as a voice spoken out of the glass. */
-  .awaken__prompt {
-    background: var(--pt-rev-bg, var(--bg-rise));
-    color: var(--pt-rev-ink, var(--ink));
-    border: 1px solid color-mix(in srgb, var(--pt-rev-ink, var(--ink)) 12%, transparent);
-    padding: clamp(1.6rem, 4vw, 2.6rem) clamp(1.4rem, 4vw, 3rem);
-    margin: 0 0 clamp(2rem, 4vw, 3rem);
-    box-shadow:
-      inset 0 1px 0 color-mix(in srgb, var(--pt-light, #fff) 30%, transparent),
-      0 24px 50px -34px rgba(0, 0, 0, 0.5);
-  }
-  .awaken__prompt-title {
-    font-family: var(--sans);
-    font-size: 11.5px;
-    font-weight: 500;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--pt-rev-accent, var(--accent));
-    margin: 0 0 0.5rem;
-  }
-  .awaken__prompt-sub {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: 0.98rem;
-    line-height: 1.5;
-    color: var(--pt-rev-soft, var(--ink-soft));
-    margin: 0 0 1.2rem;
-  }
-  .awaken__prompt-line {
-    font-family: var(--serif);
-    font-size: clamp(1rem, 1.6vw, 1.12rem);
-    line-height: 1.6;
-    color: var(--pt-rev-ink, var(--ink));
-    margin: 0 0 0.7em;
-    text-wrap: pretty;
-  }
-  .awaken__prompt-line:last-child { margin-bottom: 0; }
-
-  /* The draw. */
-  .awaken__controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.6rem;
-    margin: 0 0 1.6rem;
-  }
-  .awaken__tier {
-    font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--ink-mute);
-  }
-  .awaken__select {
-    font-family: var(--sans);
-    font-size: 13px;
-    color: var(--ink);
-    background: var(--pt-glass, var(--bg-rise));
-    border: 1px solid var(--pt-glass-edge, var(--rule));
-    border-radius: 0;
-    padding: 0.45rem 0.7rem;
-    max-width: 100%;
-  }
-  .awaken__select:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-  .awaken__card {
-    font-family: var(--serif);
-    font-weight: 500;
-    font-size: clamp(1.5rem, 4vw, 2.4rem);
-    line-height: 1.25;
-    letter-spacing: -0.01em;
-    color: var(--ink);
-    text-wrap: balance;
-    min-height: 4.2em;
-    display: flex;
-    align-items: center;
-    margin: 0 0 1.2rem;
-    padding: clamp(1.4rem, 4vw, 2.4rem) 0;
-    border-top: 1px solid var(--rule);
-    border-bottom: 1px solid var(--rule);
-    transition: opacity 0.4s var(--ease);
-  }
-  .awaken__hint {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: 0.98rem;
-    line-height: 1.5;
-    color: var(--ink-soft);
-    margin: 1.2rem 0 1.8rem;
-    max-width: 38rem;
-  }
-  .awaken__next {
-    font-family: var(--sans);
-    font-size: 13px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    color: var(--accent);
-    background: transparent;
-    border: 1px solid var(--accent-soft);
-    border-radius: 0;
-    padding: 0.7rem 1.4rem;
-    cursor: pointer;
-    transition:
-      border-color 0.18s var(--ease),
-      color 0.18s var(--ease),
-      background 0.18s var(--ease);
-  }
-  .awaken__next:hover {
-    background: var(--accent-mute);
-    border-color: var(--accent);
-  }
-  .awaken__next:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  /* Static / no-JS list. */
-  .awaken__static-lead {
+  .awaken__lead {
     font-family: var(--serif);
     font-style: italic;
     font-size: 1.02rem;
     line-height: 1.6;
     color: var(--ink-soft);
-    margin: 0 0 2rem;
-    max-width: 44rem;
+    margin: 0 0 2.2rem;
   }
+
   .awaken__tier-block { margin: 0 0 2.2rem; }
   .awaken__tier-h {
     font-family: var(--serif);
@@ -361,17 +153,16 @@ if (firstQuestion === undefined) {
     line-height: 1.5;
     color: var(--ink-soft);
     margin: 0 0 0.9rem;
-    max-width: 44rem;
   }
   .awaken__list {
     margin: 0;
     padding-left: 1.2rem;
     display: grid;
-    gap: 0.5rem;
+    gap: 0.55rem;
   }
   .awaken__list li {
     font-family: var(--serif);
-    font-size: 1.04rem;
+    font-size: 1.06rem;
     line-height: 1.5;
     color: var(--ink);
     text-wrap: pretty;
@@ -385,8 +176,27 @@ if (firstQuestion === undefined) {
     margin: 2rem 0 0;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .awaken__card,
-    .awaken__next { transition: none; }
+  /* The scripture anchor near the top: where a kindred practice is lived. */
+  .awaken__source {
+    margin: 0 0 clamp(2.2rem, 5vw, 3rem);
   }
+  .awaken__source-note {
+    font-family: var(--serif);
+    font-size: 1.02rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 0 0 0.9rem;
+  }
+  .awaken__source-cta {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    padding-bottom: 2px;
+    transition: border-color 0.18s var(--ease);
+  }
+  .awaken__source-cta:hover { border-bottom-color: var(--accent); }
 </style>
