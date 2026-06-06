@@ -43,6 +43,16 @@ export const FOOTER_LINKS: readonly FooterLink[] = [
   { path: "/downloads/", label: { ru: "Скачать произведения", en: "Download works" }, pageSlug: "downloads" },
 ] as const;
 
+export interface FooterExternalLink {
+  href: string;
+  label: Record<Locale, string>;
+}
+
+export const FOOTER_EXTERNAL_LINKS: readonly FooterExternalLink[] = [
+  { href: "https://github.com/pankratyus", label: { ru: "GitHub", en: "GitHub" } },
+  { href: "https://t.me/SPankratius", label: { ru: "Telegram", en: "Telegram" } },
+] as const;
+
 /**
  * Slugs reserved by structural routes — a page slug equal to one of these
  * would shadow an index URL. Used to validate the `pages` collection.
