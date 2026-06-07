@@ -19,18 +19,12 @@ line where readers/humans gave conflicting labels (the `contested` set). The hum
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from . import labels, producer, store
 from .identity import LineId
 from .records import LineFeatures, LineRecord
-
-
-def records_for(book_id: str, lang: str = "ru") -> list[LineRecord]:
-    """A book's records read through the on-disk ARTIFACT (load-only, hash-railed) — so every
-    consumer is a view over the artifact, never a live producer call. FAILS LOUD on a missing
-    or stale artifact (build the store first); it does not re-emit."""
-    return store.load_records(book_id, lang)
 
 
 @dataclass
@@ -45,8 +39,7 @@ class Dataset:
     n_skipped_unmapped: int
 
 
-def build_dataset(labelset: labels.LabelSet | None = None) -> Dataset:
-    labelset = labelset if labelset is not None else labels.load()
+def build_dataset(records: Mapping[str, list[LineRecord]], labelset: labels.LabelSet) -> Dataset:
     label_by_id = {g.id: g for g in labelset.labels}
     books = sorted({g.id.book_id for g in labelset.labels})
 
@@ -59,7 +52,7 @@ def build_dataset(labelset: labels.LabelSet | None = None) -> Dataset:
     cols = list(producer.vector_columns())
 
     for book_id in books:
-        recs = {r.id: r for r in records_for(book_id)}
+        recs = {r.id: r for r in records[book_id]}
         for lid, g in label_by_id.items():
             if lid.book_id != book_id:
                 continue
@@ -226,7 +219,8 @@ def train_cv(ds: Dataset, *, seed: int = 0) -> CVResult:
     )
 
 
-def oof_smoothed(ds: Dataset, *, alpha: float = 0.75, seed: int = 0):
+def oof_smoothed(ds: Dataset, records: Mapping[str, list[LineRecord]], *,
+                 alpha: float = 0.75, seed: int = 0):
     """Book-held-out run-SMOOTHED prediction (`sequence.LineDecision`) for every votable line in
     the labeled books. For each held-out book: fit on the others, score the book's lines in ONE
     batch, then `smooth_runs` over the book's record document (runs bound correctly). alpha=0
@@ -238,11 +232,10 @@ def oof_smoothed(ds: Dataset, *, alpha: float = 0.75, seed: int = 0):
 
     M, yv = _matrix(ds)
     groups = np.array(ds.groups)
-    docs = {b: records_for(b) for b in sorted(set(ds.groups))}
     out: dict[LineId, sequence.LineDecision] = {}
     for tr, te in LeaveOneGroupOut().split(M, yv, groups):
         model = _fit(M[tr], yv[tr], seed=seed, columns=ds.columns)
-        recs = docs[groups[te][0]]
+        recs = records[groups[te][0]]
         votable = [(i, r) for i, r in enumerate(recs) if r.votable]
         probs = model.posteriors([r.features for _, r in votable])      # batched per book
         base = [0.0] * len(recs)
@@ -263,7 +256,8 @@ class SequenceCV:
 
 
 def evaluate_alpha_cv(
-    ds: Dataset, labelset: labels.LabelSet, *, alpha: float, seed: int = 0,
+    ds: Dataset, labelset: labels.LabelSet, records: Mapping[str, list[LineRecord]], *,
+    alpha: float, seed: int = 0,
 ) -> SequenceCV:
     """Book-grouped CV of `predict_document` at a given alpha. For each held-out book: fit on
     the OTHER books, build that book's full record document (so runs bound correctly), run
@@ -278,7 +272,6 @@ def evaluate_alpha_cv(
     M, yv = _matrix(ds)
     groups = np.array(ds.groups)
     truth = {g.id: g.label for g in labelset.labels}
-    docs = {b: records_for(b) for b in sorted(set(ds.groups))}
 
     y_true: list[int] = []
     y_iid: list[int] = []
@@ -286,8 +279,8 @@ def evaluate_alpha_cv(
     for tr, te in LeaveOneGroupOut().split(M, yv, groups):
         book = groups[te][0]
         model = _fit(M[tr], yv[tr], seed=seed, columns=ds.columns)
-        decisions = sequence.predict_document(docs[book], model, alpha=alpha)
-        iid = sequence.predict_document(docs[book], model, alpha=0.0)
+        decisions = sequence.predict_document(records[book], model, alpha=alpha)
+        iid = sequence.predict_document(records[book], model, alpha=0.0)
         iid_by_id = {d.id: d.label for d in iid}
         for d in decisions:
             if d.id in truth:
@@ -305,16 +298,18 @@ def evaluate_alpha_cv(
     )
 
 
-def tune_alpha(ds: Dataset, labelset: labels.LabelSet, *, grid=(0.0, 0.25, 0.5, 0.75, 1.0),
+def tune_alpha(ds: Dataset, labelset: labels.LabelSet,
+               records: Mapping[str, list[LineRecord]], *, grid=(0.0, 0.25, 0.5, 0.75, 1.0),
                seed: int = 0) -> list[SequenceCV]:
     """Sweep alpha under book-grouped CV. alpha=0 is the i.i.d. baseline; a higher alpha is
     worth adopting only if it improves the held-out metric WITHOUT collapsing prose recall."""
-    return [evaluate_alpha_cv(ds, labelset, alpha=a, seed=seed) for a in grid]
+    return [evaluate_alpha_cv(ds, labelset, records, alpha=a, seed=seed) for a in grid]
 
 
 if __name__ == "__main__":
     labelset = labels.load()
-    ds = build_dataset(labelset)
+    records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
+    ds = build_dataset(records, labelset)
     print(f"dataset: {ds.n_joined} labeled lines over {len(set(ds.groups))} books "
           f"(rejected {ds.n_skipped_unmapped} unmapped); {len(ds.columns)} feature columns")
     print("class balance:", dict(Counter(ds.y)))
@@ -337,6 +332,6 @@ if __name__ == "__main__":
     print()
     print("=== sequence-shaped: run-level soft smoothing, alpha swept under book-grouped CV ===")
     print(f"  {'alpha':>6} {'balAcc':>8} {'macroF1':>8} {'proseRec':>9} {'flips_vs_iid':>13}")
-    for s in tune_alpha(ds, labelset):
+    for s in tune_alpha(ds, labelset, records):
         print(f"  {s.alpha:>6.2f} {s.balanced_accuracy:>8.3f} {s.macro_f1:>8.3f} "
               f"{s.prose_recall:>9.3f} {s.n_changed_vs_iid:>13}")

@@ -12,6 +12,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 _ROOT = Path(__file__).resolve().parents[1]
 _SRC = _ROOT / "src"
 if str(_SRC) not in sys.path:
@@ -32,3 +34,13 @@ def _require_store() -> None:
 
 
 _require_store()
+
+
+@pytest.fixture(scope="session")
+def corpus():
+    """Committed labels + the records for their books, loaded once at the test edge — domain
+    functions take this data as arguments; they never read it themselves."""
+    from lineation_core import labels, store
+    labelset = labels.load()
+    records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
+    return records, labelset

@@ -15,10 +15,12 @@ never saw the labels).
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass
 
-from . import labels, panel_votes, student
+from . import labels, panel_votes, store, student
 from .identity import LineId
+from .records import LineRecord
 
 _READERS = panel_votes.READERS
 
@@ -63,12 +65,11 @@ class ReaderScore:
 
 def score_readers(
     truth: dict[LineId, str], student_pred: dict[LineId, str],
-    panel: dict[str, dict[LineId, str]] | None = None,
+    panel: dict[str, dict[LineId, str]],
 ) -> list[ReaderScore]:
     """For each reader, the lines it shares with both `truth` and the student, scored both
     ways on that identical shared set — so every row is apples-to-apples. All joins are by
     `LineId`."""
-    panel = panel if panel is not None else panel_votes.by_reader()
     rows: list[ReaderScore] = []
     for tag in _READERS:
         reader = panel.get(tag, {})
@@ -90,24 +91,23 @@ class Comparison:
     n_labels_shared: int
 
 
-def compare(*, alpha: float = 0.75) -> Comparison:
-    labelset = labels.load()
-    ds = student.build_dataset(labelset)
-    oof = student.oof_smoothed(ds, alpha=alpha)   # the default run-smoothed student (alpha=0 = i.i.d.)
+def score(records: Mapping[str, list[LineRecord]], labelset: labels.LabelSet,
+          votes: dict[str, dict[LineId, str]], *, alpha: float = 0.75) -> Comparison:
+    ds = student.build_dataset(records, labelset)
+    oof = student.oof_smoothed(ds, records, alpha=alpha)  # run-smoothed student (alpha=0 = i.i.d.)
 
     truth: dict[LineId, str] = {g.id: g.label for g in labelset.labels}
     student_pred: dict[LineId, str] = {
         g.id: oof[g.id].label for g in labelset.labels if g.id in oof}
 
-    panel = panel_votes.by_reader()
-    n_shared_any = len({k for tag in _READERS for k in panel.get(tag, {}) if k in truth})
-    return Comparison(rows=score_readers(truth, student_pred, panel),
+    n_shared_any = len({k for tag in _READERS for k in votes.get(tag, {}) if k in truth})
+    return Comparison(rows=score_readers(truth, student_pred, votes),
                       n_labels_shared=n_shared_any)
 
 
 def format_row(row: ReaderScore) -> str:
     """One reader-vs-student table line: reader (balAcc/mF1/pRec) | student (same). Shared by
-    `compare` and `contested` so the head-to-head table has one renderer, not two."""
+    `compare.score` and `contested.evaluate` so the head-to-head table has one renderer."""
     def triple(m: Metrics) -> str:
         return f"{m.balanced_acc:>7.3f} {m.macro_f1:>6.3f} {m.prose_recall:>6.3f}"
     return (f"{row.reader:9} {row.n_shared:>4} {str(row.label_dist):>22} | "
@@ -115,7 +115,9 @@ def format_row(row: ReaderScore) -> str:
 
 
 if __name__ == "__main__":
-    cmp = compare()
+    labelset = labels.load()
+    records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
+    cmp = score(records, labelset, panel_votes.by_reader())
     print(f"labeled lines covered by >=1 reader: {cmp.n_labels_shared}\n")
     print(f"{'reader':9} {'n':>4} {'labels':>22} | {'READER':^22} | {'STUDENT(OOF)':^22}")
     print(f"{'':9} {'':>4} {'':>22} | {'balAcc':>7} {'mF1':>6} {'pRec':>6} | "

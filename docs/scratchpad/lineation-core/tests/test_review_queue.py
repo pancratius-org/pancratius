@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from lineation_core import labels, review_queue, student
+from lineation_core import review_queue, store, student
 
 
 def _stub(src_ordinal: int, sub: int, text: str):
@@ -28,10 +28,10 @@ def test_context_marks_the_line_and_respects_radius():
     assert len(edge) == 3 and edge[0].startswith("-> ")
 
 
-def test_queue_invariants_on_real_data():
-    labelset = labels.load()
+def test_queue_invariants_on_real_data(corpus):
+    records, labelset = corpus
     label_ids = {g.id for g in labelset.labels}
-    q = review_queue.build_queue(top_acquire=25, books=["37", "16"])
+    q = review_queue.build_queue(records, labelset, top_acquire=25, books=["37", "16"])
 
     # AUDIT: every item is a LABELED line whose student (out-of-fold) call disagrees with truth.
     for it in q.audit:
@@ -52,11 +52,11 @@ def test_queue_invariants_on_real_data():
     assert q.n_votable > 0
 
 
-def test_fit_full_posteriors_batch_matches_single():
-    labelset = labels.load()
-    ds = student.build_dataset(labelset)
+def test_fit_full_posteriors_batch_matches_single(corpus):
+    records, labelset = corpus
+    ds = student.build_dataset(records, labelset)
     model = student.fit_full(ds)
-    recs = student.records_for("37")
+    recs = store.load_records("37")
     feats = [r.features for r in recs if r.votable][:20]
     batch = model.posteriors(feats)
     singles = [model.posterior(f) for f in feats]
@@ -80,16 +80,16 @@ def _restrict(ds: student.Dataset, books: list[str], *, flip: str | None = None)
     )
 
 
-def test_oof_smoothed_no_leakage():
+def test_oof_smoothed_no_leakage(corpus):
     """The book-held-out smoothed prediction of a line must NOT depend on that line's own book's
     labels (the model that judges book B was fit on the other books). Flip ALL of one book's
     labels and assert its own predictions are byte-identical."""
-    labelset = labels.load()
-    ds = student.build_dataset(labelset)
+    records, labelset = corpus
+    ds = student.build_dataset(records, labelset)
     books = sorted(set(ds.groups))[:3]              # a small, fast slice
     target = books[0]
-    before = student.oof_smoothed(_restrict(ds, books), alpha=0.75)
-    after = student.oof_smoothed(_restrict(ds, books, flip=target), alpha=0.75)
+    before = student.oof_smoothed(_restrict(ds, books), records, alpha=0.75)
+    after = student.oof_smoothed(_restrict(ds, books, flip=target), records, alpha=0.75)
     target_ids = [lid for lid in before if lid.book_id == target]
     assert target_ids, "expected predictions for the target book"
     for lid in target_ids:                          # target book never entered its own fit

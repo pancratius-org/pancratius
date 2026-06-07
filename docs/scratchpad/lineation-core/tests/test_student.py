@@ -8,8 +8,9 @@ from lineation_core import producer, student
 
 
 @pytest.fixture(scope="module")
-def ds():
-    return student.build_dataset()
+def ds(corpus):
+    records, labelset = corpus
+    return student.build_dataset(records, labelset)
 
 
 @pytest.fixture(scope="module")

@@ -20,12 +20,14 @@ UNCERTAINTY (a low-margin posterior); see `student` for that distinction.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
 from . import labels, panel_votes, store, student
 from .compare import Metrics, ReaderScore, balanced, score_readers
 from .identity import LineId
+from .records import LineRecord
 
 
 def load_contested(*, annotations: Path | None = None) -> dict[LineId, str]:
@@ -46,16 +48,13 @@ class ContestedResult:
     rows: list[ReaderScore]       # per-reader, on the lines shared with that reader
 
 
-def evaluate(*, alpha: float = 0.75, labelset=None, ds=None) -> ContestedResult:
+def evaluate(records: Mapping[str, list[LineRecord]], labelset: labels.LabelSet,
+             votes: dict[str, dict[LineId, str]], contested: dict[LineId, str], *,
+             alpha: float = 0.75) -> ContestedResult:
     """Score the student on the contested hard lines. `alpha` is the run-smoothing weight of the
-    OUT-OF-FOLD prediction (alpha=0 = the i.i.d. per-line student; alpha=0.75 = run-aware).
-    labelset/ds may be passed in to avoid rebuilding them across alphas."""
-    labelset = labelset if labelset is not None else labels.load()
-    ds = ds if ds is not None else student.build_dataset(labelset)
-    oof = student.oof_smoothed(ds, alpha=alpha)   # book-held-out, run-smoothed (alpha=0 == i.i.d.)
-
-    contested = load_contested()
-    panel = panel_votes.by_reader()
+    OUT-OF-FOLD prediction (alpha=0 = the i.i.d. per-line student; alpha=0.75 = run-aware)."""
+    ds = student.build_dataset(records, labelset)
+    oof = student.oof_smoothed(ds, records, alpha=alpha)  # book-held-out, run-smoothed (alpha=0 == i.i.d.)
 
     consensus: dict[LineId, str] = {g.id: g.label for g in labelset.labels}
     student_pred: dict[LineId, str] = {
@@ -69,7 +68,7 @@ def evaluate(*, alpha: float = 0.75, labelset=None, ds=None) -> ContestedResult:
         n_contested=len(contested), n_with_student=len(scorable),
         n_revised_vs_consensus=n_revised, label_dist=dict(Counter(yt)),
         student=balanced(yt, [student_pred[k] for k in scorable]),
-        rows=score_readers(contested, student_pred, panel),
+        rows=score_readers(contested, student_pred, votes),
     )
 
 
@@ -77,9 +76,11 @@ if __name__ == "__main__":
     from .compare import format_row
 
     labelset = labels.load()
-    ds = student.build_dataset(labelset)
-    base = evaluate(alpha=0.0, labelset=labelset, ds=ds)    # i.i.d. per-line baseline
-    r = evaluate(alpha=0.75, labelset=labelset, ds=ds)      # run-smoothed (the candidate default)
+    records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
+    votes = panel_votes.by_reader()
+    contested = load_contested()
+    base = evaluate(records, labelset, votes, contested, alpha=0.0)    # i.i.d. per-line baseline
+    r = evaluate(records, labelset, votes, contested, alpha=0.75)      # run-smoothed default
     print(f"human-adjudicated contested lines: {r.n_contested}")
     print(f"  scorable by the student: {r.n_with_student}")
     print(f"  of those, REVISED vs consensus (human != consensus): {r.n_revised_vs_consensus}")
