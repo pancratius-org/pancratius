@@ -147,6 +147,34 @@ def load_panel_reps(run_id: str, *, annotations: Path | None = None) -> list[dic
     return list(artifact.read_jsonl(_must(ann / PANEL_RUNS_DIR / f"{run_id}.jsonl")))
 
 
+# --- resumable raw calls: one persisted (item, reader, rep) reply per LLM call (derived) ------
+
+CALLS_FILE = "calls.jsonl"     # derived: append-once raw replies, the run's resume log
+
+
+def save_panel_call(task_id: str, row: dict[str, Any], *, store: Path | None = None) -> None:
+    """APPEND one completed call's raw reply (`{item_id, tag, rep, model, content, finish_reason}`)
+    to the run's resume log under `_teacher/`. Persisted the instant the call returns, BEFORE
+    parsing, so a malformed reply survives and a re-run reuses it instead of re-paying for it. The
+    log is derived (regenerable by re-calling), so it lives beside the payload, not in committed
+    truth."""
+    st = store or paths.TEACHER_STORE
+    path = st / task_id / CALLS_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def load_panel_calls(task_id: str, *, store: Path | None = None) -> list[dict[str, Any]]:
+    """Every saved raw call for a task (empty if none yet) — the resume cache. Last write wins per
+    `(item_id, tag, rep)` is the caller's job; this returns rows in append order."""
+    st = store or paths.TEACHER_STORE
+    path = st / task_id / CALLS_FILE
+    if not path.is_file():
+        return []
+    return list(artifact.read_jsonl(path))
+
+
 # --- promotion: resolved rows → the committed truth the eval half loads (atomic) ---------------
 
 def _atomic_text(path: Path, text: str) -> None:

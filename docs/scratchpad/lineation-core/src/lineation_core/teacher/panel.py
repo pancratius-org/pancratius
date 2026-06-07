@@ -11,7 +11,7 @@ into the PROMPT (the model input)."""
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -56,12 +56,15 @@ class PanelConfig:
 
 @dataclass(frozen=True, slots=True)
 class PanelRep:
-    """One reader's one rep on one item: the parsed response + which rep + the model + whether the
-    reply was truncated. The per-rep evidence behind the resolved `votes.jsonl`."""
+    """One reader's one rep on one item: the RAW completion text, its parse, which rep, the model,
+    and whether the reply was truncated. `content` is the unparsed reply kept verbatim — so a
+    malformed JSON / empty / all-reasoning answer survives as evidence even when `response.rows` is
+    empty. The per-rep record behind the resolved `votes.jsonl`."""
     item_id: str
     tag: ReaderTag
     rep: int
     model: ModelId
+    content: str
     response: RawReaderResponse
     finish_reason: str | None
 
@@ -83,18 +86,34 @@ def build_prompt(item: TaskItem, reader: ReaderConfig, instructions: str) -> lis
     return [{"role": "user", "content": parts}]
 
 
-def run_panel(task: Task, cfg: PanelConfig, completer: ChatCompleter) -> list[PanelRep]:
-    """For each reader × rep × item: build_prompt → completer.complete → parse. Returns per-rep
-    parsed responses (resolution + rep aggregation are separate). Pure given the completer."""
+type CallKey = tuple[str, ReaderTag, int, ModelId]   # (item_id, reader tag, rep, model) — call identity
+type CallCache = dict[CallKey, ChatReply]            # already-completed calls to RESUME from
+type OnCall = Callable[[CallKey, ChatReply], None]   # persist a fresh reply the instant it lands
+
+
+def run_panel(task: Task, cfg: PanelConfig, completer: ChatCompleter, *,
+              cached: CallCache | None = None, on_call: OnCall | None = None) -> list[PanelRep]:
+    """For each reader × rep × item: REUSE a saved reply from `cached`, else build_prompt →
+    completer.complete → (persist via `on_call`) → parse. `cached`+`on_call` make a run RESUMABLE:
+    a saved `(item, reader, rep)` reply is never re-fetched, and a fresh one is persisted BEFORE it
+    is parsed, so a crash mid-run loses no paid call. Returns per-rep records (resolution + rep
+    aggregation are separate). Pure given the completer."""
+    cache = cached or {}
     reps: list[PanelRep] = []
     for reader in cfg.readers:
         for rep in range(cfg.reps):
             for item in task.items:
-                reply = completer.complete(
-                    model=reader.model, messages=build_prompt(item, reader, task.instructions),
-                    temperature=reader.temperature, max_tokens=reader.max_tokens)
+                key: CallKey = (item.id, reader.tag, rep, reader.model)   # model in key: a model
+                reply = cache.get(key)                                    # change re-calls, never reuses
+                if reply is None:
+                    reply = completer.complete(
+                        model=reader.model, messages=build_prompt(item, reader, task.instructions),
+                        temperature=reader.temperature, max_tokens=reader.max_tokens)
+                    if on_call is not None:                 # persist before parse — evidence survives
+                        on_call(key, reply)
                 reps.append(PanelRep(
                     item_id=item.id, tag=reader.tag, rep=rep, model=reader.model,
+                    content=reply.content,
                     response=parse_reader_reply(item.id, reader.tag, reply.content),
                     finish_reason=reply.finish_reason))
     return reps
