@@ -12,8 +12,7 @@ from pathlib import Path
 
 from .. import store
 from ..identity import BookId, LineId, ModelId, ReaderTag
-from ..records import LineRecord
-from ..sequence import Run, runs
+from ..records import LineRecord, Run, runs
 from . import panel as panel_mod
 from . import promote, responses, tasks
 from .tasks import AssetKind, ItemSpec, Modality

@@ -10,7 +10,7 @@ the two can never drift.
 from __future__ import annotations
 
 import dataclasses
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Self
@@ -26,6 +26,11 @@ type FeatureVector = dict[FeatureName, float]
 # Records keyed by book — the whole-corpus map domain functions take as data (loaded once at the
 # shell by `store.load_records_many`) instead of reaching for each book themselves.
 type RecordsByBook = dict[BookId, list["LineRecord"]]
+
+# A run = the indices of one maximal BODY block (an authorial unit). `runs()` is the foundation
+# grouping the sequence model AND the teacher tiler both read, so "run" means one thing.
+type RecordIndex = int           # a 0-based position into a records sequence — NOT a src_ordinal
+type Run = list[RecordIndex]
 
 
 class IndentVsBook(StrEnum):
@@ -235,3 +240,23 @@ class FeatureSchema:
         """Fields that NEVER varied in the corpus — they must remain VISIBLE in analysis
         (the speaker-label=0 lesson), never silently dropped."""
         return [k for k, v in self.feature_support.items() if v == 0]
+
+
+def runs(records: Sequence[LineRecord]) -> list[Run]:
+    """Indices grouped into runs: maximal spans of consecutive BODY lines (`role == BODY`),
+    bounded by any structural record — the block level of the hierarchy, and the SAME predicate
+    the producer's `run_len`/`run_pos` features use, so the two notions of "run" agree. An
+    interior unmapped body line (`role == BODY` but `votable == False`) CONTINUES its stanza
+    rather than splitting it; `smooth_runs` averages over the votable members only, and the teacher
+    tiler keeps a whole run together as one authorial unit."""
+    out: list[Run] = []
+    cur: Run = []
+    for i, r in enumerate(records):
+        if r.role is Role.BODY:
+            cur.append(i)
+        elif cur:
+            out.append(cur)
+            cur = []
+    if cur:
+        out.append(cur)
+    return out

@@ -7,7 +7,7 @@ import json
 
 import pytest
 
-from lineation_core import sequence, store
+from lineation_core import records, store
 from lineation_core.teacher import recipes
 from lineation_core.teacher.tasks import AssetKind, EvidenceAsset, Modality
 
@@ -29,7 +29,7 @@ def test_tile_never_splits_a_run_across_regions():
     selected = {r.id for r in _first_votable(20)}
     specs = recipes.tile_regions("57", recs, selected, target=4)   # small target stresses splitting
     region_votables = [s.votable for s in specs]
-    for run in sequence.runs(recs):
+    for run in records.runs(recs):
         run_sel = {recs[i].id for i in run} & selected
         if run_sel:
             homes = [rv for rv in region_votables if run_sel & rv]
@@ -153,7 +153,7 @@ def test_build_vision_render_missing_a_composite_fails_loud(tmp_path):
 
 def test_tile_distant_runs_become_separate_regions():
     recs = store.load_records("57")
-    rns = [run for run in sequence.runs(recs) if any(recs[i].votable for i in run)]
+    rns = [run for run in records.runs(recs) if any(recs[i].votable for i in run)]
     far = next((run for run in rns[1:] if run[0] - rns[0][-1] - 1 > 8), None)
     assert far is not None                                     # the book has a run > max_gap away
     first = next(recs[i].id for i in rns[0] if recs[i].votable)
