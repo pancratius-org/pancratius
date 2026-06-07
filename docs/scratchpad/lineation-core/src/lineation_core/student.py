@@ -21,7 +21,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 
-from . import artifact, labels, paths, producer
+from . import labels, producer, store
 from .identity import LineId
 from .records import LineFeatures, LineRecord
 
@@ -30,8 +30,7 @@ def records_for(book_id: str, lang: str = "ru") -> list[LineRecord]:
     """A book's records read through the on-disk ARTIFACT (load-only, hash-railed) — so every
     consumer is a view over the artifact, never a live producer call. FAILS LOUD on a missing
     or stale artifact (build the store first); it does not re-emit."""
-    return artifact.load_records_artifact(paths.book_docx(book_id, lang), lang, book_id,
-                                          store=paths.ARTIFACT_STORE)
+    return store.load_records(book_id, lang)
 
 
 @dataclass

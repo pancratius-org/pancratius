@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Self
 
-from . import artifact, paths
+from . import store
 from .identity import LineId
 
 READERS = ("grok", "deepseek", "gemini", "owl", "mimo", "minimax")
@@ -44,8 +44,7 @@ class PanelVote:
 def load(*, annotations: Path | None = None) -> list[PanelVote]:
     """Every panel vote from the committed `panel_votes.jsonl` truth. FAILS LOUD if the file is
     missing; never rebuilds."""
-    path = (annotations or paths.ANNOTATIONS) / artifact.PANEL_VOTES_FILE
-    return [PanelVote.from_dict(d) for d in artifact.read_jsonl(path)]
+    return [PanelVote.from_dict(d) for d in store.load_vote_rows(annotations=annotations)]
 
 
 def by_reader(*, annotations: Path | None = None) -> dict[str, dict[LineId, str]]:

@@ -23,7 +23,7 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import artifact, labels, panel_votes, paths, student
+from . import labels, panel_votes, store, student
 from .compare import Metrics, ReaderScore, balanced, score_readers
 from .identity import LineId
 
@@ -32,8 +32,8 @@ def load_contested(*, annotations: Path | None = None) -> dict[LineId, str]:
     """The human page-grounded labels on contested lines, `{LineId: label}`, read from the
     committed `contested_labels.jsonl` truth. LineId-keyed already; FAILS LOUD if the file is
     missing, never rebuilds."""
-    path = (annotations or paths.ANNOTATIONS) / artifact.CONTESTED_FILE
-    return {LineId.from_key(d["id"]): d["label"] for d in artifact.read_jsonl(path)}
+    return {LineId.from_key(d["id"]): d["label"]
+            for d in store.load_contested_rows(annotations=annotations)}
 
 
 @dataclass(frozen=True)
