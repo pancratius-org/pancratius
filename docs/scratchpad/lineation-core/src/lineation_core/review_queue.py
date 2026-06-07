@@ -19,7 +19,9 @@ carries its run-neighbours so a reviewer judges the unit, not a line in isolatio
 """
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
 from . import labels, sequence, store, student
@@ -112,6 +114,39 @@ def build_queue(records: RecordsByBook, labelset: labels.LabelSet, *,
     return ReviewQueue(audit, acquire, n_votable, n_scored, prose_leaning, book_ids)
 
 
+def commit_acquire(name: str = "acquire", *, top_acquire: int = 300, alpha: float = 0.75,
+                   annotations: Path | None = None) -> ReviewQueue:
+    """Build the acquire queue over the labeled books' UNLABELED votable lines and COMMIT its
+    LineIds as a selection the teacher consumes (`store.save_selection` → the eval→file→teacher
+    handoff, no teacher import). Returns the queue so the caller can report the distribution BEFORE
+    spending on a paid panel run."""
+    labelset = labels.load(annotations=annotations)
+    records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
+    q = build_queue(records, labelset, top_acquire=top_acquire, alpha=alpha)
+    store.save_selection(name, [item.id.as_key() for item in q.acquire], annotations=annotations)
+    return q
+
+
+def acquire_distribution(q: ReviewQueue) -> str:
+    """A pre-spend summary of the acquire set: size, by-book counts, the student's predicted-class
+    split, and the margin spread (least-confident first, so the head buys the most). The numbers a
+    reviewer checks before authorizing a paid panel."""
+    by_book = Counter(item.id.book_id for item in q.acquire)
+    by_class = Counter(item.student_label for item in q.acquire)
+    margins = [item.margin for item in q.acquire]
+    lines = [
+        f"acquire: {len(q.acquire)} lines over {len(by_book)} books "
+        f"(scanned {q.n_votable} votable, {q.n_labeled_scored} labeled+scored)",
+        f"  predicted class: {by_class['prose']} prose / {by_class['lineated']} lineated "
+        f"({q.prose_leaning_acquire} lean prose — the corner to widen)",
+    ]
+    if margins:
+        lines.append(f"  margin |p-0.5|: min {min(margins):.3f}  "
+                     f"median {margins[len(margins) // 2]:.3f}  max {max(margins):.3f}")
+    lines.append("  by book: " + ", ".join(f"{b}:{n}" for b, n in sorted(by_book.items())))
+    return "\n".join(lines)
+
+
 def _print_item(q: QueueItem) -> None:
     tag = (f"label={q.existing_label} student={q.student_label}"
            if q.kind == "disagreement" else f"student={q.student_label}")
@@ -122,16 +157,13 @@ def _print_item(q: QueueItem) -> None:
 
 
 if __name__ == "__main__":
-    labelset = labels.load()
-    records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
-    q = build_queue(records, labelset)
-    print(f"scanned {q.n_votable} votable body lines over {len(q.books)} books "
-          f"({q.n_labeled_scored} labeled+scored)\n")
-    print(f"=== AUDIT: {len(q.audit)} labeled disagreements (student book-held-out vs human) — "
+    q = commit_acquire()
+    print("committed acquire selection → annotations/selections/acquire.json\n")
+    print(acquire_distribution(q) + "\n")
+    print(f"=== AUDIT: {len(q.audit)} labeled disagreements (book-held-out vs human), "
           f"most confident first (likely label errors / hardest cases) ===")
     for item in q.audit[:15]:
         _print_item(item)
-    print(f"\n=== ACQUIRE: top {len(q.acquire)} least-confident UNLABELED lines "
-          f"({q.prose_leaning_acquire} lean prose — the corner to widen) ===")
+    print(f"\n=== ACQUIRE head: {min(15, len(q.acquire))} least-confident UNLABELED lines ===")
     for item in q.acquire[:15]:
         _print_item(item)

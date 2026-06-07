@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import pytest
 from lineation_core import artifact, store
+from lineation_core.identity import LineId
 
 
 def test_annotation_rows_load_from_committed_store():
@@ -30,3 +31,18 @@ def test_records_load_through_the_edge():
 def test_records_load_fails_loud_on_missing_cache(tmp_path):
     with pytest.raises((FileNotFoundError, artifact.HashMismatch)):
         store.load_records("57", store=tmp_path)        # empty cache -> loud, no re-emit
+
+
+def test_selection_round_trips(tmp_path):
+    # each key is LineId.as_key() = [lang, book_id, src_ordinal, sub]; order preserved
+    keys = [LineId.mapped("ru", "57", 10, 0).as_key(), LineId.mapped("en", "16", 3, 1).as_key()]
+    store.save_selection("acquire", keys, annotations=tmp_path)
+    loaded = store.load_selection("acquire", annotations=tmp_path)
+    assert loaded == keys
+    assert [LineId.from_key(k) for k in loaded] == [LineId.mapped("ru", "57", 10, 0),
+                                                    LineId.mapped("en", "16", 3, 1)]
+
+
+def test_load_selection_fails_loud_on_missing(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        store.load_selection("nope", annotations=tmp_path)
