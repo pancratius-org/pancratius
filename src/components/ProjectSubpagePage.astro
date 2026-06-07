@@ -81,7 +81,7 @@ if (data.component) {
 ---
 <Base {locale} {seo}>
   <article
-    class="l-canvas l-canvas--page project-subpage"
+    class="l-canvas l-canvas--page l-page-block project-subpage"
     data-pagefind-body
   >
     <a class="project-subpage__back" href={backHref} data-pagefind-ignore>{copy.back}</a>
@@ -102,9 +102,6 @@ if (data.component) {
 </Base>
 
 <style>
-  .project-subpage {
-    padding-block: clamp(3.5rem, 7vw, 6rem);
-  }
   .project-subpage__back {
     font-family: var(--sans);
     font-size: 12.5px;

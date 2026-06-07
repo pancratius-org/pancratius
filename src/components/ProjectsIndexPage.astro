@@ -36,7 +36,7 @@ const rows: Row[] = canonical.map(base => {
 });
 ---
 <Base {locale} {seo}>
-  <section class="l-canvas l-canvas--spread projects-index">
+  <section class="l-canvas l-canvas--spread l-page-block projects-index">
     <p class="eyebrow eyebrow--lg">{copy.eyebrow}</p>
     <div class="projects-index__head">
       <h1>{copy.heading}</h1>
@@ -70,7 +70,6 @@ const rows: Row[] = canonical.map(base => {
 </Base>
 
 <style>
-  .projects-index { padding-block: clamp(3.5rem, 7vw, 6rem); }
   .projects-index__head {
     display: flex;
     flex-direction: column;
