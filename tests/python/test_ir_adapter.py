@@ -259,20 +259,18 @@ def test_table_unknown_shape_keeps_raw_with_empty_rows() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _docx_from_document(document: str, *, styles: str | None = None) -> Path:
-    """Wrap a `word/document.xml` string into a minimal in-memory .docx temp file."""
-    import tempfile
-    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as fd:
-        with zipfile.ZipFile(fd, "w") as zf:
-            zf.writestr("word/document.xml", document)
-            if styles is not None:
-                zf.writestr("word/styles.xml", styles)
-        return Path(fd.name)
+def _docx_from_document(tmp_path: Path, document: str, *, styles: str | None = None) -> Path:
+    """Wrap a `word/document.xml` string into a minimal .docx file."""
+    path = tmp_path / "fixture.docx"
+    with zipfile.ZipFile(path, "w") as zf:
+        zf.writestr("word/document.xml", document)
+        if styles is not None:
+            zf.writestr("word/styles.xml", styles)
+    return path
 
 
-def _docx_with_paragraphs(*jcs: str | None) -> Path:
-    """Build a minimal in-memory .docx whose body has one `w:p` per `jcs` entry
-    (a `w:jc` with that val when not None). Returned as a temp file path."""
+def _docx_with_paragraphs(tmp_path: Path, *jcs: str | None) -> Path:
+    """Build a minimal .docx whose body has one `w:p` per `jcs` entry."""
     paras = []
     for jc in jcs:
         ppr = f'<w:pPr><w:jc w:val="{jc}"/></w:pPr>' if jc is not None else ""
@@ -283,7 +281,7 @@ def _docx_with_paragraphs(*jcs: str | None) -> Path:
         + "".join(paras)
         + "</w:body></w:document>"
     )
-    return _docx_from_document(document)
+    return _docx_from_document(tmp_path, document)
 
 
 def _aligns(records: list[adapter._JcRecord]) -> list[str]:
@@ -294,21 +292,18 @@ def _groups(records: list[adapter._JcRecord]) -> list[int | None]:
     return [r.lineation_group for r in records]
 
 
-def test_read_w_jc_returns_alignment_per_body_paragraph() -> None:
-    path = _docx_with_paragraphs("right", None, "center")
-    try:
-        records = adapter.read_w_jc(path)
-        assert _aligns(records) == ["right", "", "center"]
-        assert [record.source_span for record in records] == [
-            ir.SourceSpan(0, 0),
-            ir.SourceSpan(1, 1),
-            ir.SourceSpan(2, 2),
-        ]
-    finally:
-        path.unlink()
+def test_read_w_jc_returns_alignment_per_body_paragraph(tmp_path: Path) -> None:
+    path = _docx_with_paragraphs(tmp_path, "right", None, "center")
+    records = adapter.read_w_jc(path)
+    assert _aligns(records) == ["right", "", "center"]
+    assert [record.source_span for record in records] == [
+        ir.SourceSpan(0, 0),
+        ir.SourceSpan(1, 1),
+        ir.SourceSpan(2, 2),
+    ]
 
 
-def test_read_w_jc_skips_table_paragraphs() -> None:
+def test_read_w_jc_skips_table_paragraphs(tmp_path: Path) -> None:
     # A w:tbl in the body must NOT contribute alignment entries (its cell paras are
     # not top-level AST paragraphs), so the records stay lined up with the AST.
     document = (
@@ -320,14 +315,11 @@ def test_read_w_jc_skips_table_paragraphs() -> None:
         '<w:p><w:r><w:t>b</w:t></w:r></w:p>'
         "</w:body></w:document>"
     )
-    path = _docx_from_document(document)
-    try:
-        assert _aligns(adapter.read_w_jc(path)) == ["right", ""]  # the table para is skipped
-    finally:
-        path.unlink()
+    path = _docx_from_document(tmp_path, document)
+    assert _aligns(adapter.read_w_jc(path)) == ["right", ""]  # the table para is skipped
 
 
-def test_read_w_jc_skips_list_item_paragraphs() -> None:
+def test_read_w_jc_skips_list_item_paragraphs(tmp_path: Path) -> None:
     # A list-item w:p (carrying w:numPr) is collapsed by Pandoc into a single List
     # block, so it never surfaces as a top-level Para. It must NOT contribute an
     # alignment record, or the vector lags by one per list item (the dominant C1
@@ -343,16 +335,13 @@ def test_read_w_jc_skips_list_item_paragraphs() -> None:
         '<w:p><w:pPr><w:jc w:val="right"/></w:pPr><w:r><w:t>after</w:t></w:r></w:p>'
         "</w:body></w:document>"
     )
-    path = _docx_from_document(document)
-    try:
-        records = adapter.read_w_jc(path)
-        assert _aligns(records) == ["", "right"]  # the two list items are skipped
-        assert [r.text for r in records] == ["before", "after"]
-    finally:
-        path.unlink()
+    path = _docx_from_document(tmp_path, document)
+    records = adapter.read_w_jc(path)
+    assert _aligns(records) == ["", "right"]  # the two list items are skipped
+    assert [r.text for r in records] == ["before", "after"]
 
 
-def test_read_w_jc_marks_contextual_spacing_visual_group() -> None:
+def test_read_w_jc_marks_contextual_spacing_visual_group(tmp_path: Path) -> None:
     document = (
         '<?xml version="1.0"?>'
         f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
@@ -364,16 +353,13 @@ def test_read_w_jc_marks_contextual_spacing_visual_group() -> None:
         '<w:r><w:t>third line</w:t></w:r></w:p>'
         "</w:body></w:document>"
     )
-    path = _docx_from_document(document)
-    try:
-        records = adapter.read_w_jc(path)
-        assert [r.text for r in records] == ["first line", "second line", "third line"]
-        assert _groups(records) == [1, 1, 1]
-    finally:
-        path.unlink()
+    path = _docx_from_document(tmp_path, document)
+    records = adapter.read_w_jc(path)
+    assert [r.text for r in records] == ["first line", "second line", "third line"]
+    assert _groups(records) == [1, 1, 1]
 
 
-def test_read_w_jc_uses_doc_default_spacing_for_visual_group() -> None:
+def test_read_w_jc_uses_doc_default_spacing_for_visual_group(tmp_path: Path) -> None:
     styles = (
         '<?xml version="1.0"?>'
         f'<w:styles xmlns:w="{adapter.W_NS}">'
@@ -390,16 +376,13 @@ def test_read_w_jc_uses_doc_default_spacing_for_visual_group() -> None:
         '<w:r><w:t>second line</w:t></w:r></w:p>'
         "</w:body></w:document>"
     )
-    path = _docx_from_document(document, styles=styles)
-    try:
-        records = adapter.read_w_jc(path)
-        assert [r.text for r in records] == ["first line", "second line"]
-        assert _groups(records) == [1, 1]
-    finally:
-        path.unlink()
+    path = _docx_from_document(tmp_path, document, styles=styles)
+    records = adapter.read_w_jc(path)
+    assert [r.text for r in records] == ["first line", "second line"]
+    assert _groups(records) == [1, 1]
 
 
-def test_read_w_jc_style_spacing_overrides_doc_default_spacing() -> None:
+def test_read_w_jc_style_spacing_overrides_doc_default_spacing(tmp_path: Path) -> None:
     styles = (
         '<?xml version="1.0"?>'
         f'<w:styles xmlns:w="{adapter.W_NS}">'
@@ -419,16 +402,13 @@ def test_read_w_jc_style_spacing_overrides_doc_default_spacing() -> None:
         '<w:r><w:t>second paragraph</w:t></w:r></w:p>'
         "</w:body></w:document>"
     )
-    path = _docx_from_document(document, styles=styles)
-    try:
-        records = adapter.read_w_jc(path)
-        assert [r.text for r in records] == ["first paragraph", "second paragraph"]
-        assert _groups(records) == [None, None]
-    finally:
-        path.unlink()
+    path = _docx_from_document(tmp_path, document, styles=styles)
+    records = adapter.read_w_jc(path)
+    assert [r.text for r in records] == ["first paragraph", "second paragraph"]
+    assert _groups(records) == [None, None]
 
 
-def test_read_w_jc_marks_structural_empty_paragraphs() -> None:
+def test_read_w_jc_marks_structural_empty_paragraphs(tmp_path: Path) -> None:
     document = (
         '<?xml version="1.0"?>'
         f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
@@ -437,21 +417,18 @@ def test_read_w_jc_marks_structural_empty_paragraphs() -> None:
         '<w:p><w:r><w:t>after</w:t></w:r></w:p>'
         "</w:body></w:document>"
     )
-    path = _docx_from_document(document)
-    try:
-        records = adapter.read_w_jc(path)
-        assert [r.text for r in records] == ["before", "", "after"]
-        assert [r.empty for r in records] == [False, True, False]
-        assert [r.source_span for r in records] == [
-            ir.SourceSpan(0, 0),
-            ir.SourceSpan(1, 1),
-            ir.SourceSpan(2, 2),
-        ]
-    finally:
-        path.unlink()
+    path = _docx_from_document(tmp_path, document)
+    records = adapter.read_w_jc(path)
+    assert [r.text for r in records] == ["before", "", "after"]
+    assert [r.empty for r in records] == [False, True, False]
+    assert [r.source_span for r in records] == [
+        ir.SourceSpan(0, 0),
+        ir.SourceSpan(1, 1),
+        ir.SourceSpan(2, 2),
+    ]
 
 
-def test_read_w_jc_visual_group_does_not_bridge_list_item() -> None:
+def test_read_w_jc_visual_group_does_not_bridge_list_item(tmp_path: Path) -> None:
     document = (
         '<?xml version="1.0"?>'
         f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
@@ -464,16 +441,13 @@ def test_read_w_jc_visual_group_does_not_bridge_list_item() -> None:
         '<w:r><w:t>after list</w:t></w:r></w:p>'
         "</w:body></w:document>"
     )
-    path = _docx_from_document(document)
-    try:
-        records = adapter.read_w_jc(path)
-        assert [r.text for r in records] == ["before list", "after list"]
-        assert _groups(records) == [None, None]
-    finally:
-        path.unlink()
+    path = _docx_from_document(tmp_path, document)
+    records = adapter.read_w_jc(path)
+    assert [r.text for r in records] == ["before list", "after list"]
+    assert _groups(records) == [None, None]
 
 
-def test_paragraph_text_drops_mc_fallback_duplicate() -> None:
+def test_paragraph_text_drops_mc_fallback_duplicate(tmp_path: Path) -> None:
     # A run with both an mc:Choice and an mc:Fallback rendering of the SAME text
     # must be counted ONCE (walking every w:t would double it and desync matching).
     mc = "http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -488,12 +462,9 @@ def test_paragraph_text_drops_mc_fallback_duplicate() -> None:
         "</w:r></w:p>"
         "</w:body></w:document>"
     )
-    path = _docx_from_document(document)
-    try:
-        records = adapter.read_w_jc(path)
-        assert [r.text for r in records] == ["Title"]  # not "TitleTitle"
-    finally:
-        path.unlink()
+    path = _docx_from_document(tmp_path, document)
+    records = adapter.read_w_jc(path)
+    assert [r.text for r in records] == ["Title"]  # not "TitleTitle"
 
 
 # ---------------------------------------------------------------------------
