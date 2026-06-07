@@ -69,7 +69,7 @@ export interface MessagesIndexCopy {
 
 export const messagesIndexCopy = {
   ru: {
-    eyebrow: "Послания",
+    eyebrow: "Месяцеслов",
     headingLabel: (count) => plRu(count, RU_PLURALS.message),
     sub: () => "Письма, что приходят по дням. Откройте день — и он откликнется.",
     emptySub: "Послания пока только на русском.",
@@ -79,7 +79,7 @@ export const messagesIndexCopy = {
     emptyMonth: "тишина",
   },
   en: {
-    eyebrow: "Epistles",
+    eyebrow: "Almanac",
     headingLabel: (count) => (count === 1 ? "epistle" : "epistles"),
     sub: () => "Letters that arrive by the day. Open a day and it answers.",
     emptySub: "The epistles are in Russian for now.",
