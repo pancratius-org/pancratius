@@ -68,6 +68,9 @@ def _region_asset(spec: ItemSpec, render_page: PageRenderer, docx_for: DocxFor) 
     if not mapped:
         raise RenderError(f"region {spec.region_id!r}: no mapped lines to render a page from")
     book_id, lang = mapped[0].book_id, mapped[0].lang
+    if any((lid.book_id, lid.lang) != (book_id, lang) for lid in mapped):   # render is a trust edge
+        raise RenderError(f"region {spec.region_id!r}: mixes book/lang across lines — one region "
+                          f"must be a single (book, lang) to anchor one authored page span")
     lo = min(lid.src_ordinal for lid in mapped)
     hi = max(lid.src_ordinal for lid in mapped)
     docx = docx_for(book_id, lang)

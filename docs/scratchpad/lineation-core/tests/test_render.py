@@ -103,3 +103,16 @@ def test_renderer_producing_no_pages_fails_loud():
     compose = render.make_compositor(empty, docx_for=_docx_for_stub([]))
     with pytest.raises(render.RenderError, match="no page image"):
         compose([spec])
+
+
+def test_region_mixing_book_or_lang_fails_loud():
+    # render is a trust boundary: a region whose mapped lines span two books cannot anchor one
+    # authored page slice, so it must fail loud rather than slice the first line's book silently.
+    rp = _stub_renderer()
+    mixed_book = _spec("x", [LineId.mapped("ru", "57", 10, 0), LineId.mapped("ru", "16", 11, 0)])
+    mixed_lang = _spec("y", [LineId.mapped("ru", "57", 10, 0), LineId.mapped("en", "57", 11, 0)])
+    compose = render.make_compositor(rp, docx_for=_docx_for_stub([]))
+    for spec in (mixed_book, mixed_lang):
+        with pytest.raises(render.RenderError, match="mixes book/lang"):
+            compose([spec])
+    assert rp.calls == []                                   # never reached the renderer
