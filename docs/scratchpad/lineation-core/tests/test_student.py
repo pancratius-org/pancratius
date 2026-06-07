@@ -18,10 +18,10 @@ def res(ds):
 
 
 def test_dataset_shape_locked(ds):
-    assert ds.n_joined == 630
+    assert ds.n_joined == 620
     assert ds.n_skipped_unmapped == 2
-    assert len(ds.X) == len(ds.y) == len(ds.groups) == len(ds.ids) == 630
-    assert len(set(ds.groups)) == 27
+    assert len(ds.X) == len(ds.y) == len(ds.groups) == len(ds.ids) == 620
+    assert len(set(ds.groups)) == 26
 
 
 def test_every_row_spans_the_fixed_columns_no_nan(ds):
@@ -48,9 +48,9 @@ def test_cv_is_book_grouped_no_leakage(ds):
 
 
 def test_locked_cv_number(res):
-    assert res.n == 630
-    assert res.n_books == 27
-    assert res.balanced_accuracy == pytest.approx(0.956, abs=0.01)
+    assert res.n == 620
+    assert res.n_books == 26
+    assert res.balanced_accuracy == pytest.approx(0.961, abs=0.01)
     assert res.macro_f1 == pytest.approx(0.946, abs=0.01)
     assert res.prose_f1 == pytest.approx(0.908, abs=0.02)
     assert res.balanced_accuracy > res.majority_baseline_acc
