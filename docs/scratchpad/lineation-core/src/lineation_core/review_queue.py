@@ -19,9 +19,10 @@ carries its run-neighbours so a reviewer judges the unit, not a line in isolatio
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
-from . import labels, sequence, student
+from . import labels, sequence, store, student
 from .identity import LineId
 from .records import LineRecord
 
@@ -59,25 +60,29 @@ def _context(body: list[LineRecord], k: int, *, radius: int = 2) -> tuple[str, .
                  for j in range(lo, hi))
 
 
-def build_queue(*, top_acquire: int = 300, seed: int = 0, alpha: float = 0.75,
+def build_queue(records: Mapping[str, list[LineRecord]], labelset: labels.LabelSet, *,
+                top_acquire: int = 300, seed: int = 0, alpha: float = 0.75,
                 books: list[str] | None = None) -> ReviewQueue:
-    """Build the review queue with RUN-AWARE (smoothed) confidence. `books` defaults to the
-    labeled books (most context + the most unlabeled neighbours); widen it to acquire elsewhere.
-    Audit uses the book-held-out smoothed OOF; acquire uses the full model + the same run
-    smoothing — so a line judged against its block surfaces as low-confidence, not as a confident
-    error (the i.i.d. failure mode). alpha=0 reproduces the per-line queue."""
-    labelset = labels.load()
-    ds = student.build_dataset(labelset)
-    oof = student.oof_smoothed(ds, alpha=alpha, seed=seed)   # smoothed, book-held-out (no leakage)
+    """Build the review queue with RUN-AWARE (smoothed) confidence. `books` defaults to the labeled
+    books; it must be a subset of the loaded `records` map (load a wider map at the edge to acquire
+    over more books). Audit uses the book-held-out smoothed OOF; acquire uses the full model + the
+    same run smoothing — so a line judged against its block surfaces as low-confidence, not as a
+    confident error (the i.i.d. failure mode). alpha=0 reproduces the per-line queue."""
+    ds = student.build_dataset(records, labelset)
+    oof = student.oof_smoothed(ds, records, alpha=alpha, seed=seed)  # smoothed, book-held-out (no leakage)
     full = student.fit_full(ds, seed=seed)
     label_by_id = {g.id: g for g in labelset.labels}
     book_ids = books if books is not None else sorted(set(ds.groups))
+    missing = [b for b in book_ids if b not in records]
+    if missing:
+        raise ValueError(f"build_queue: no records loaded for books {missing}; "
+                         f"load a records map covering `books` at the edge")
 
     audit: list[QueueItem] = []
     acquire: list[QueueItem] = []
     n_votable = n_scored = 0
     for book in book_ids:
-        recs = student.records_for(book)
+        recs = records[book]
         vidx = [i for i, r in enumerate(recs) if r.votable]
         base = [0.0] * len(recs)
         for i, p in zip(vidx, full.posteriors([recs[i].features for i in vidx]), strict=True):
@@ -117,7 +122,9 @@ def _print_item(q: QueueItem) -> None:
 
 
 if __name__ == "__main__":
-    q = build_queue()
+    labelset = labels.load()
+    records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
+    q = build_queue(records, labelset)
     print(f"scanned {q.n_votable} votable body lines over {len(q.books)} books "
           f"({q.n_labeled_scored} labeled+scored)\n")
     print(f"=== AUDIT: {len(q.audit)} labeled disagreements (student book-held-out vs human) — "
