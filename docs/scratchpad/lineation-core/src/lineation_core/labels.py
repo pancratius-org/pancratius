@@ -20,7 +20,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any, Self
 
-from . import artifact, paths
+from . import store
 from .identity import LineId
 
 
@@ -44,7 +44,7 @@ class LineLabel:
     audit_status: str
     notes: str
     provenance: Mapping[str, Any]
-    line_text_hash: str | None = None  # the line text this label was attached to, if known
+    line_text_hash: str | None = None  # hash of the line text this label applies to, if known
 
     def __post_init__(self) -> None:
         if self.label not in ("prose", "lineated"):
@@ -83,10 +83,9 @@ def load(*, annotations: Path | None = None) -> LabelSet:
     """Read the committed `line_labels.jsonl` truth (the single store-level annotation file),
     reject unmapped-line labels (surfaced count), and return the trainable `LabelSet`. FAILS LOUD
     if the file is missing — it never rebuilds; the truth is committed, not derived."""
-    path = (annotations or paths.ANNOTATIONS) / artifact.LABELS_FILE
     kept: list[LineLabel] = []
     n_rejected = 0
-    for d in artifact.read_jsonl(path):
+    for d in store.load_label_rows(annotations=annotations):
         g = LineLabel.from_dict(d)
         if not g.id.is_mapped:
             n_rejected += 1

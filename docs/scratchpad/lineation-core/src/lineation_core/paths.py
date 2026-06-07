@@ -32,8 +32,7 @@ BOOKS = REPO_ROOT / "src" / "content" / "books"
 ARTIFACT_STORE = REPO_ROOT / "docs" / "scratchpad" / "lineation-core" / "_artifacts"
 
 # the committed annotation TRUTH (human labels, LLM panel votes, human re-adjudications), each a
-# single LineId-keyed `*.jsonl`. The one-shot converter that re-keyed these from the prior study
-# is retired, so THESE FILES are the irreplaceable source of truth — committed, never rebuilt.
+# single LineId-keyed `*.jsonl`. The irreplaceable source of truth — committed, never rebuilt.
 ANNOTATIONS = REPO_ROOT / "docs" / "scratchpad" / "lineation-core" / "annotations"
 
 
