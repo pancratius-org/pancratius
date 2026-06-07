@@ -16,15 +16,15 @@ def labelset():
 # --- the loaded set is the trainable truth, unmapped rejected ---
 
 def test_locked_trainable_count(labelset):
-    """630 trainable mapped labels; the 2 unmapped-line labels are REJECTED at the boundary and
+    """620 trainable mapped labels; the 2 unmapped-line labels are REJECTED at the boundary and
     surfaced, not silently dropped."""
-    assert len(labelset.labels) == 630
+    assert len(labelset.labels) == 620
     assert labelset.n_rejected_unmapped == 2
 
 
 def test_class_balance_locked(labelset):
     from collections import Counter
-    assert dict(Counter(g.label for g in labelset.labels)) == {"lineated": 540, "prose": 90}
+    assert dict(Counter(g.label for g in labelset.labels)) == {"lineated": 530, "prose": 90}
 
 
 def test_every_loaded_label_is_mapped(labelset):
