@@ -16,9 +16,9 @@ def _votable(book: str = "57", n: int = 7):
 
 
 def _one_region(recs, n_vote: int = 5):
-    vote = tuple(r.id for r in recs[:n_vote])
-    ctx = tuple(r.id for r in recs[n_vote:])
-    return ItemSpec(region_id="b57-r0", vote_ids=vote, context_ids=ctx), recs
+    region = tuple(r.id for r in recs)                  # all shown, in order
+    votable = frozenset(r.id for r in recs[:n_vote])    # first n_vote polled; the rest are context
+    return ItemSpec(region_id="b57-r0", region=region, votable=votable), recs
 
 
 def test_build_task_mints_contiguous_opaque_keys():
@@ -76,9 +76,21 @@ def test_manifest_roundtrips_and_captures_text_hash():
 
 def test_keys_continue_across_items_not_reset_per_region():
     recs = _votable(n=8)
-    a = ItemSpec(region_id="b57-r0", vote_ids=tuple(r.id for r in recs[:3]))
-    b = ItemSpec(region_id="b57-r1", vote_ids=tuple(r.id for r in recs[3:6]))
+    a = ItemSpec.all_votable("b57-r0", [r.id for r in recs[:3]])
+    b = ItemSpec.all_votable("b57-r1", [r.id for r in recs[3:6]])
     task = tasks.build_task(title="t", instructions="i", specs=[a, b],
                             records={"57": store.load_records("57")})
     assert [ln.key for ln in task.items[0].lines] == ["L001", "L002", "L003"]
     assert [ln.key for ln in task.items[1].lines] == ["L004", "L005", "L006"]   # not reset
+
+
+def test_region_is_rendered_in_caller_order_never_sorted():
+    recs = _votable(n=3)
+    rev = list(reversed(recs))                          # deliberately NOT document order
+    spec = ItemSpec.all_votable("b57-r0", [r.id for r in rev])
+    task = tasks.build_task(title="t", instructions="i", specs=[spec],
+                            records={"57": store.load_records("57")})
+    assert task.manifest.by_key["L001"] == rev[0].id    # L001 = the FIRST id the caller gave...
+    assert task.manifest.by_key["L003"] == rev[2].id    # ...not the document-first (no re-sort)
+    ctx = task.items[0].context
+    assert ctx.index("L001") < ctx.index("L002") < ctx.index("L003")   # rendered in caller order

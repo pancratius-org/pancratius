@@ -7,8 +7,12 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from lineation_core import labels as labels_mod
 from lineation_core import store
+from lineation_core.identity import LineId
+from lineation_core.panel_votes import PanelVote
 from lineation_core.teacher import panel, promote, responses, tasks
 from lineation_core.teacher.panel import ChatReply, PanelConfig, ReaderConfig
 from lineation_core.teacher.tasks import ItemSpec, Modality
@@ -33,7 +37,7 @@ def test_create_task_then_fake_panel_and_human_reach_committed_truth(tmp_path):
     recs = store.load_records("57")
     records = {"57": recs}
     votable = [r for r in recs if r.votable][:4]
-    spec = ItemSpec(region_id="b57-r0", vote_ids=tuple(r.id for r in votable))
+    spec = ItemSpec.all_votable("b57-r0", [r.id for r in votable])
     task = tasks.build_task(title="acquire-test", instructions="prose vs lineated",
                             specs=[spec], records=records)
 
@@ -73,7 +77,7 @@ def test_promote_is_idempotent(tmp_path):
     recs = store.load_records("57")
     records = {"57": recs}
     votable = [r for r in recs if r.votable][:3]
-    spec = ItemSpec(region_id="b57-r0", vote_ids=tuple(r.id for r in votable))
+    spec = ItemSpec.all_votable("b57-r0", [r.id for r in votable])
     task = tasks.build_task(title="t", instructions="i", specs=[spec], records=records)
     reply = json.dumps([{"key": k, "label": "prose"} for k in sorted(task.manifest.by_key)])
     reps = panel.run_panel(task, _grok(), _Canned(reply))
@@ -81,3 +85,11 @@ def test_promote_is_idempotent(tmp_path):
     promote.promote_votes(rv.votes, annotations=ann)
     promote.promote_votes(rv.votes, annotations=ann)            # re-promote the same task
     assert len(store.load_vote_rows(annotations=ann)) == 3      # merged by (id, tag), not doubled
+
+
+def test_promote_votes_rejects_raw_multi_rep(tmp_path):
+    lid = LineId.mapped("ru", "57", 5, 0)
+    dup = [PanelVote(id=lid, tag="grok", label="prose", conf=None),
+           PanelVote(id=lid, tag="grok", label="lineated", conf=None)]   # two reps, same (id, tag)
+    with pytest.raises(ValueError):
+        promote.promote_votes(dup, annotations=tmp_path / "a")           # must not silently collapse

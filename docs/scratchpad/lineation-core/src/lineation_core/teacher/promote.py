@@ -23,7 +23,15 @@ def _existing(load, *, annotations: Path | None) -> list:
 
 def promote_votes(votes: Sequence[PanelVote], *, annotations: Path | None = None) -> int:
     """Merge resolved panel votes into `votes.jsonl` (one row per (LineId, reader); new wins).
-    Returns the count promoted. Idempotent — re-promoting the same task overwrites in place."""
+    The INPUT must already be one vote per (reader, line) — raw multi-rep is REJECTED so reps can't
+    silently collapse (aggregate them first). Idempotent across re-promotes."""
+    seen: set[tuple] = set()
+    for v in votes:
+        if (v.id, v.tag) in seen:
+            raise ValueError(
+                f"duplicate (LineId, reader) in promote input — {v.id} / {v.tag}; aggregate reps "
+                f"to one vote per reader before promoting")
+        seen.add((v.id, v.tag))
     merged: dict[tuple, PanelVote] = {}
     for d in _existing(store.load_vote_rows, annotations=annotations):
         v = PanelVote.from_dict(d)
