@@ -10,14 +10,14 @@ export interface ProjectsIndexCopy {
 
 export const projectsIndexCopy = {
   ru: {
-    eyebrow: "Проекты",
+    eyebrow: "Замыслы",
     heading: "Два направления",
     intro: "Два направления, в которых Слово выходит в дело. Один встречает машину; другой — землю.",
     cta: "Открыть →",
     fallbackLabel: "Русский оригинал",
   },
   en: {
-    eyebrow: "Projects",
+    eyebrow: "Blueprints",
     heading: "Two directions",
     intro: "Two directions in which the Word goes out into the world. One meets the machine; the other — the land.",
     cta: "Open →",

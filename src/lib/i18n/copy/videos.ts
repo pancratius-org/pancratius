@@ -13,15 +13,15 @@ export interface VideosIndexCopy {
 
 export const videosIndexCopy = {
   ru: {
-    eyebrow: "Видео",
+    eyebrow: "Голос",
     headingLabel: (count) => count === 1 ? "видео" : "видео",
-    sub: (total) => `Каталог видео Панкратиуса — ${total}. Каждое со своей страницей и, где есть, с письменным разбором.`,
+    sub: () => "Каталог видео Панкратиуса. Каждое со своей страницей и, где есть, с письменным разбором.",
     channelsHeading: "Каналы",
     channelsSub: "Точки сбора. Подпишитесь там, где удобнее.",
     openChannel: "Открыть канал",
   },
   en: {
-    eyebrow: "Video",
+    eyebrow: "Voice",
     headingLabel: () => "videos in English",
     sub: (total, available) => `Of ${total} catalogued videos, ${available} have English commentary.`,
     fullCatalogLink: "See the full Russian catalogue.",
