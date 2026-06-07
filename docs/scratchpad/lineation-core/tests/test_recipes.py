@@ -9,7 +9,7 @@ import pytest
 
 from lineation_core import sequence, store
 from lineation_core.teacher import recipes
-from lineation_core.teacher.tasks import Modality
+from lineation_core.teacher.tasks import AssetKind, EvidenceAsset, Modality
 
 
 def _first_votable(n: int):
@@ -123,3 +123,51 @@ def test_build_persists_a_task_bundle_with_the_selected_lines(tmp_path):
     payload, _ = store.load_task_bundle("t1", annotations=ann, store=st)
     assert "manifest" not in payload and payload["items"]
     assert all("image" not in it for it in payload["items"])    # text recipe → no composites
+
+
+def _vision_recipe() -> recipes.Recipe:
+    return recipes.Recipe(task_id="v", title="T", instructions="i", books=("57",), selector="all",
+                          readers=(recipes.ReaderSpec("grok", "x/grok", Modality.VISION),), target=8)
+
+
+def test_build_vision_without_render_fails_loud(tmp_path):
+    with pytest.raises(ValueError):                            # no silent text fallback
+        recipes.build(_vision_recipe(), annotations=tmp_path / "a", teacher_store=tmp_path / "s")
+
+
+def test_build_vision_with_render_attaches_a_composite_to_every_item(tmp_path):
+    def render(specs, records):
+        return {s.region_id: (EvidenceAsset(kind=AssetKind.COMPOSITE,
+                                            data_uri="data:image/png;base64,AA"),) for s in specs}
+    recipes.build(_vision_recipe(), annotations=tmp_path / "a", teacher_store=tmp_path / "s",
+                  render=render)
+    payload, _ = store.load_task_bundle("v", annotations=tmp_path / "a", store=tmp_path / "s")
+    assert payload["items"] and all("image" in it for it in payload["items"])
+
+
+def test_build_vision_render_missing_a_composite_fails_loud(tmp_path):
+    with pytest.raises(ValueError):
+        recipes.build(_vision_recipe(), annotations=tmp_path / "a", teacher_store=tmp_path / "s",
+                      render=lambda specs, records: {})        # renders nothing
+
+
+def test_tile_distant_runs_become_separate_regions():
+    recs = store.load_records("57")
+    rns = [run for run in sequence.runs(recs) if any(recs[i].votable for i in run)]
+    far = next((run for run in rns[1:] if run[0] - rns[0][-1] - 1 > 8), None)
+    assert far is not None                                     # the book has a run > max_gap away
+    first = next(recs[i].id for i in rns[0] if recs[i].votable)
+    distant = next(recs[i].id for i in far if recs[i].votable)
+    specs = recipes.tile_regions("57", recs, {first, distant}, target=10, max_gap=8)
+    assert len(specs) == 2 and all(len(s.votable) == 1 for s in specs)   # not one giant span
+
+
+def test_select_lines_raises_on_out_of_scope_book(tmp_path):
+    ann = tmp_path / "annotations"
+    picks = [x.id for x in store.load_records("57") if x.votable][:3]
+    (ann / "selections").mkdir(parents=True)
+    (ann / "selections" / "acq.json").write_text(json.dumps([lid.as_key() for lid in picks]))
+    r = recipes.Recipe(task_id="t", title="T", instructions="i", books=("13",),  # 13, not 57
+                       selector="selection_file:acq", readers=(recipes.ReaderSpec("g", "m"),))
+    with pytest.raises(ValueError):
+        recipes.select_lines(r, annotations=ann)
