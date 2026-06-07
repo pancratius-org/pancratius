@@ -2,6 +2,7 @@
 # Records are rebuilt fail-loud from the committed DOCX (`build_records`); the irreplaceable
 # annotation truth lives in `annotations/` (committed), NOT here.
 _artifacts/
+_teacher/
 .venv/
 __pycache__/
 .pytest_cache/
