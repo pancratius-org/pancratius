@@ -64,7 +64,6 @@ const { prev, next, ariaLabel } = Astro.props;
   }
   .pager__link--next { grid-template-columns: 1fr auto auto; }
   .pager__link:hover { color: var(--accent); }
-  .pager__link:hover .pager__title { color: var(--accent); }
   .pager__arrow { color: var(--ink-mute); }
   .pager__num {
     font-variant-numeric: oldstyle-nums proportional-nums;
@@ -81,6 +80,7 @@ const { prev, next, ariaLabel } = Astro.props;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+  .pager__link:hover .pager__title { color: var(--accent); }
   @media (max-width: 720px) {
     .pager { grid-template-columns: 1fr; gap: 1rem; }
     .pager__slot--next { justify-self: start; text-align: left; }

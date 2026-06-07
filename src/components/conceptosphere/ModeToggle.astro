@@ -64,7 +64,6 @@ const t = conceptosphereStrings(locale);
     border-radius: 1px;
     transition: color 120ms ease, background-color 120ms ease;
   }
-  .cs-mode-toggle button:hover { color: var(--cs-ink); }
   .cs-mode-toggle button[aria-pressed="true"] {
     background: var(--cs-toggle-active-bg, color-mix(in srgb, var(--accent) 16%, transparent));
     color: var(--accent);
@@ -72,4 +71,5 @@ const t = conceptosphereStrings(locale);
 
   .cs-mode-toggle--mobile { width: 100%; margin: 0 0 10px; }
   .cs-mode-toggle--mobile button { flex: 1; padding: 8px 10px; }
+  .cs-mode-toggle button:where(:hover) { color: var(--cs-ink); }
 </style>

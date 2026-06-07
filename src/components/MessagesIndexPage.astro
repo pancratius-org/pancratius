@@ -347,10 +347,6 @@ function dayAria(day: Day): string {
     line-height: 1;
     color: var(--ink-faint, color-mix(in srgb, var(--ink-mute) 60%, transparent));
   }
-  /* Today with no letter: a faint ring, "now" within the month. */
-  .cal__day.is-today:not(.cal__day--lit) .cal__n { color: var(--ink-soft); }
-  .cal__day.is-today:not(.cal__day--lit) { box-shadow: inset 0 0 0 1px var(--rule-2); }
-
   /* A lit feast-day — a warm ember alight behind the numeral, even at rest. */
   .cal__day--lit { color: var(--accent); transition: transform 0.18s var(--ease); }
   .cal__day--lit .cal__n { color: var(--accent); }
@@ -370,6 +366,10 @@ function dayAria(day: Day): string {
   }
   .cal__day--lit.is-today .cal__ember { box-shadow: inset 0 0 0 1px var(--accent-deep); }
 
+  /* Today with no letter: a faint ring, "now" within the month. */
+  .cal__day.is-today:not(.cal__day--lit) .cal__n { color: var(--ink-soft); }
+  .cal__day.is-today:not(.cal__day--lit) { box-shadow: inset 0 0 0 1px var(--rule-2); }
+
   /* ─── the named letters, beside the grid ───────────────────────────── */
   .letters { list-style: none; margin: 0; padding: 0; }
   .letter {
@@ -380,7 +380,6 @@ function dayAria(day: Day): string {
     border-top: 1px solid var(--rule);
   }
   .letter:last-child { padding-bottom: 0; }
-  .letter:target .letter__date { color: var(--accent); }
   .letter__date {
     display: block;
     font-family: var(--sans);
@@ -391,6 +390,7 @@ function dayAria(day: Day): string {
     font-variant-numeric: oldstyle-nums proportional-nums;
     margin-bottom: 0.5rem;
   }
+  .letter:target .letter__date { color: var(--accent); }
   .letter__items { display: grid; gap: 1.1rem; }
   .letter__link { display: block; text-decoration: none; color: inherit; }
   .letter__title {
