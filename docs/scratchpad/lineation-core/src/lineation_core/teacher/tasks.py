@@ -121,6 +121,23 @@ class Task:
             "items": [_item_payload(it, self.line_options) for it in self.items],
         }
 
+    @classmethod
+    def from_bundle(cls, payload: Mapping[str, Any], manifest: Mapping[str, Any]) -> Self:
+        """Rebuild a Task from a persisted payload + manifest — enough to RE-RUN the panel and
+        RESOLVE (items + instructions + the manifest). The composite asset is reconstructed from the
+        payload's `image`, so a vision re-run still attaches it."""
+        items = tuple(
+            TaskItem(
+                id=it["id"], modality=Modality.VISION if it.get("image") else Modality.TEXT,
+                context=it.get("structure", ""),
+                lines=tuple(TaskLine(key=ln["key"], text=ln["text"], hint=ln.get("hint", ""))
+                            for ln in it.get("lines", [])),
+                assets=((EvidenceAsset(kind=AssetKind.COMPOSITE, data_uri=it["image"]),)
+                        if it.get("image") else ()))
+            for it in payload.get("items", []))
+        return cls(title=payload.get("title", ""), instructions=payload.get("instructions", ""),
+                   items=items, manifest=TaskManifest.from_dict(manifest))
+
 
 def _item_payload(it: TaskItem, options: tuple[LineOption, ...]) -> dict[str, Any]:
     payload: dict[str, Any] = {

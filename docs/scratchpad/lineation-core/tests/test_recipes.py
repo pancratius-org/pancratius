@@ -171,3 +171,37 @@ def test_select_lines_raises_on_out_of_scope_book(tmp_path):
                        selector="selection_file:acq", readers=(recipes.ReaderSpec("g", "m"),))
     with pytest.raises(ValueError):
         recipes.select_lines(r, annotations=ann)
+
+
+def test_recipe_panel_and_ingest_reach_committed_truth(tmp_path):
+    import re
+
+    from lineation_core import labels as labels_mod
+    from lineation_core.teacher.panel import ChatReply
+
+    ann, st = tmp_path / "annotations", tmp_path / "_teacher"
+    picks = [x.id for x in store.load_records("57") if x.votable][:5]
+    (ann / "selections").mkdir(parents=True)
+    (ann / "selections" / "acq.json").write_text(json.dumps([lid.as_key() for lid in picks]))
+    r = recipes.Recipe(task_id="acq", title="A", instructions="prose vs lineated", books=("57",),
+                       selector="selection_file:acq",
+                       readers=(recipes.ReaderSpec("grok", "x/grok"),), target=8)
+    recipes.build(r, annotations=ann, teacher_store=st)
+
+    class Echo:                                   # answers exactly the keys it is shown
+        def complete(self, *, model, messages, temperature, max_tokens):
+            listing = messages[0]["content"][0]["text"].split("Return ONLY")[0]   # not the example
+            keys = sorted(set(re.findall(r"\bL\d+\b", listing)))
+            return ChatReply(content=json.dumps([{"key": k, "label": "lineated"} for k in keys]))
+
+    assert recipes.panel(r, Echo(), annotations=ann, teacher_store=st) == 5
+    assert len(store.load_vote_rows(annotations=ann)) == 5
+    assert store.load_panel_reps("acq", annotations=ann)        # per-rep evidence kept
+
+    payload, _ = store.load_task_bundle("acq", annotations=ann, store=st)
+    human = {"responses": {it["id"]: {"lines": {ln["key"]: "prose" for ln in it["lines"]}}
+                           for it in payload["items"]}}
+    store.save_human_responses("acq", human, annotations=ann)
+    assert recipes.ingest(r, annotations=ann, teacher_store=st) == 5
+    ls = labels_mod.load(annotations=ann)
+    assert len(ls.labels) == 5 and all(g.label == "prose" for g in ls.labels)

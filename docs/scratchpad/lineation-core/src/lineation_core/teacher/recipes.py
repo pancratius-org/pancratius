@@ -13,7 +13,8 @@ from .. import store
 from ..identity import BookId, LineId, ModelId, ReaderTag
 from ..records import LineRecord
 from ..sequence import Run, runs
-from . import tasks
+from . import panel as panel_mod
+from . import promote, responses, tasks
 from .tasks import AssetKind, ItemSpec, Modality
 
 
@@ -169,3 +170,48 @@ def build(recipe: Recipe, *, annotations=None, teacher_store=None,
     store.save_task_bundle(recipe.task_id, task.to_payload(), task.manifest.to_dict(),
                            annotations=annotations, store=teacher_store)
     return task
+
+
+def panel(recipe: Recipe, completer: panel_mod.ChatCompleter, *,
+          annotations=None, teacher_store=None) -> int:
+    """Run the panel for a built task: load the bundle → readers × reps → resolve each rep →
+    aggregate to ONE vote per (reader, line) → save the per-rep evidence and promote the aggregated
+    votes. Returns the count of canonical votes promoted. Network is the injected `completer`."""
+    payload, manifest_d = store.load_task_bundle(recipe.task_id, annotations=annotations,
+                                                 store=teacher_store)
+    task = tasks.Task.from_bundle(payload, manifest_d)
+    records = {b: store.load_records(b, recipe.lang) for b in recipe.books}
+    cfg = panel_mod.PanelConfig(
+        readers=tuple(panel_mod.ReaderConfig(r.tag, r.model, r.modality) for r in recipe.readers),
+        reps=recipe.reps)
+    reps = panel_mod.run_panel(task, cfg, completer)
+    store.save_panel_reps(recipe.task_id, _rep_rows(reps), annotations=annotations)
+    by_rep: dict[int, list[responses.RawReaderResponse]] = {}
+    for rep in reps:
+        by_rep.setdefault(rep.rep, []).append(rep.response)
+    per_rep = [responses.resolve_panel(task.manifest, rs, records).votes
+               for _, rs in sorted(by_rep.items())]
+    return promote.promote_votes(panel_mod.aggregate_reps(per_rep), annotations=annotations)
+
+
+def ingest(recipe: Recipe, *, annotations=None, teacher_store=None) -> int:
+    """Ingest the human adjudication for a built task: load the responses → parse → resolve against
+    the manifest → promote labels. Returns the count of labels promoted."""
+    _, manifest_d = store.load_task_bundle(recipe.task_id, annotations=annotations,
+                                           store=teacher_store)
+    manifest = tasks.TaskManifest.from_dict(manifest_d)
+    records = {b: store.load_records(b, recipe.lang) for b in recipe.books}
+    parsed = responses.parse_ui_responses(store.load_human_responses(recipe.task_id,
+                                                                      annotations=annotations))
+    resolved = responses.resolve_adjudication(manifest, parsed, records, title=recipe.title,
+                                              complete=True)
+    return promote.promote_labels(resolved.labels, annotations=annotations)
+
+
+def _rep_rows(reps: Sequence[panel_mod.PanelRep]) -> list[dict]:
+    """Flatten per-rep panel output to committed evidence rows (model + rep + key + verdict +
+    status) — the raw reps kept in `panel_runs` behind the resolved `votes.jsonl`."""
+    return [{"item_id": rep.item_id, "tag": rep.tag, "rep": rep.rep, "model": rep.model,
+             "key": row.key, "label": row.label, "conf": row.conf,
+             "finish_reason": rep.finish_reason}
+            for rep in reps for row in rep.response.rows]
