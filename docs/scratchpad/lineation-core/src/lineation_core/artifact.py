@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Self
 
-from .identity import LineId, text_hash
+from .identity import BookId, LineId, text_hash
 from .records import FeatureSchema, LineRecord, feature_field_names
 
 # Bumped when the feature set changes shape (a feature added/removed/renamed) or the
@@ -49,7 +49,7 @@ class Manifest:
     feature_schema_version: str
     docx_package_hash: str
     lang: str
-    book_id: str
+    book_id: BookId
     n_records: int
 
     def to_dict(self) -> dict[str, Any]:
@@ -119,7 +119,7 @@ def build_schema(records: Iterable[LineRecord]) -> FeatureSchema:
 
 
 def emit(
-    out_dir: Path, records: list[LineRecord], *, lang: str, book_id: str, docx_hash: str,
+    out_dir: Path, records: list[LineRecord], *, lang: str, book_id: BookId, docx_hash: str,
 ) -> Manifest:
     """Write the record artifact for one (book, lang): records + feature schema + manifest.
     Returns the manifest written. The annotation TRUTH is committed separately in `annotations/`
@@ -168,12 +168,12 @@ def load_artifact(
                         live_docx_hash=live_docx_hash, migration=migration)
 
 
-def artifact_dir(store: Path, book_id: str, lang: str) -> Path:
+def artifact_dir(store: Path, book_id: BookId, lang: str) -> Path:
     return store / f"{book_id}-{lang}"
 
 
 def build_records_artifact(
-    docx: Path, lang: str, book_id: str, *, store: Path,
+    docx: Path, lang: str, book_id: BookId, *, store: Path,
 ) -> list[LineRecord]:
     """THE build path — the only place the producer runs and a record artifact is emitted.
     Renders the records for (book, lang), writes them into `store/<book>-<lang>/`, then loads
@@ -188,7 +188,7 @@ def build_records_artifact(
     return load_artifact(out_dir, live_docx_hash=docx_hash)
 
 
-def load_records_artifact(docx: Path, lang: str, book_id: str, *, store: Path) -> list[LineRecord]:
+def load_records_artifact(docx: Path, lang: str, book_id: BookId, *, store: Path) -> list[LineRecord]:
     """THE consumer read path: load the on-disk records for (book, lang), validated against
     the live docx through the fail-loud rails. NEVER emits — a missing or stale artifact
     raises (HashMismatch / FileNotFoundError) rather than triggering a render. Build the store

@@ -11,17 +11,18 @@ from __future__ import annotations
 
 from . import artifact, labels, panel_votes, paths
 from .contested import load_contested
+from .identity import BookId
 
 
-def annotation_books() -> list[str]:
+def annotation_books() -> list[BookId]:
     """The books any committed annotation refers to — the set whose records must exist."""
-    books: set[str] = {g.id.book_id for g in labels.load().labels}
+    books: set[BookId] = {g.id.book_id for g in labels.load().labels}
     books |= {v.id.book_id for v in panel_votes.load()}
     books |= {lid.book_id for lid in load_contested()}
     return sorted(books)
 
 
-def build(*, lang: str = "ru") -> list[str]:
+def build(*, lang: str = "ru") -> list[BookId]:
     books = annotation_books()
     for book_id in books:
         artifact.build_records_artifact(

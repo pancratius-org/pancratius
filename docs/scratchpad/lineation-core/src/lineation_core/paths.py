@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .identity import BookId
+
 
 def _find_repo_root(start: Path) -> Path:
     for d in (start, *start.parents):
@@ -36,7 +38,7 @@ ARTIFACT_STORE = REPO_ROOT / "docs" / "scratchpad" / "lineation-core" / "_artifa
 ANNOTATIONS = REPO_ROOT / "docs" / "scratchpad" / "lineation-core" / "annotations"
 
 
-def book_docx(book_id: str, lang: str = "ru") -> Path:
+def book_docx(book_id: BookId, lang: str = "ru") -> Path:
     """The source DOCX for a book folder number (`"37"`) — the read-only substrate a record
     artifact is validated against on load."""
     matches = sorted(BOOKS.glob(f"{book_id}-*"))

@@ -21,27 +21,27 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Protocol
 
-from .identity import LineId
+from .identity import Label, LineId
 from .records import LineFeatures, LineRecord, Role
 
 
 @dataclass(frozen=True, slots=True)
 class LineDecision:
     id: LineId
-    label: str            # prose | lineated  (votable lines only)
+    label: Label          # prose | lineated  (votable lines only)
     posterior: float      # smoothed P(lineated)
     base_posterior: float # the per-line P(lineated) before smoothing
     run_id: int           # which run/block this line belongs to (-1 = not votable)
 
 
-class Posterior:
-    """Anything that maps features → P(lineated). A fitted model implements this via a thin adapter
-    (`student.FittedModel`); kept as a protocol-by-duck-typing so this module has NO
-    sklearn/numpy dependency and stays unit-testable with a stub."""
+class Posterior(Protocol):
+    """Anything that maps features → P(lineated). A fitted model satisfies it structurally
+    (`student.FittedModel`), so this module keeps NO sklearn/numpy dependency and stays
+    unit-testable with a stub — no implementer imports or subclasses this."""
 
-    def __call__(self, features: LineFeatures) -> float:  # pragma: no cover - interface
-        raise NotImplementedError
+    def __call__(self, features: LineFeatures) -> float: ...
 
 
 def _runs(records: Sequence[LineRecord]) -> list[list[int]]:

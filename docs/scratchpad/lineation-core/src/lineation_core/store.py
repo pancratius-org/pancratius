@@ -15,7 +15,8 @@ from pathlib import Path
 from typing import Any
 
 from . import artifact, paths
-from .records import LineRecord
+from .identity import BookId
+from .records import LineRecord, RecordsByBook
 
 LABELS_FILE = "labels.jsonl"   # the resolved per-line truth
 VOTES_FILE = "votes.jsonl"     # the LLM panel votes
@@ -52,7 +53,7 @@ def load_eval_set(name: str, *, annotations: Path | None = None) -> list[dict[st
 
 # --- derived record CACHE (load-only, hash-railed; built by `build_records`) -------------------
 
-def load_records(book_id: str, lang: str = "ru", *, store: Path | None = None) -> list[LineRecord]:
+def load_records(book_id: BookId, lang: str = "ru", *, store: Path | None = None) -> list[LineRecord]:
     """A book's records via the on-disk cache, validated against the live docx. FAILS LOUD on a
     missing/stale artifact — never re-emits (build the cache with `build_records`)."""
     return artifact.load_records_artifact(
@@ -60,8 +61,8 @@ def load_records(book_id: str, lang: str = "ru", *, store: Path | None = None) -
 
 
 def load_records_many(
-    book_ids: Iterable[str], lang: str = "ru", *, store: Path | None = None,
-) -> dict[str, list[LineRecord]]:
+    book_ids: Iterable[BookId], lang: str = "ru", *, store: Path | None = None,
+) -> RecordsByBook:
     """Records for several books, keyed by book_id — loaded once at the shell so domain code can
     take the whole `{book: records}` map as data instead of reaching for each book itself."""
     return {b: load_records(b, lang, store=store) for b in book_ids}

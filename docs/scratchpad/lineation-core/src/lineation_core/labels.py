@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any, Self
 
 from . import store
-from .identity import LineId
+from .identity import Label, LineId
 
 
 class LabelSource(StrEnum):
@@ -38,7 +38,7 @@ class LineLabel:
     opaque lineage carried on disk — no consumer joins on it (the join key is `id`)."""
 
     id: LineId
-    label: str  # prose | lineated
+    label: Label  # prose | lineated
     source: LabelSource
     confidence: float | None
     audit_status: str

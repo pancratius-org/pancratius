@@ -15,12 +15,11 @@ never saw the labels).
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Mapping
 from dataclasses import dataclass
 
 from . import labels, panel_votes, store, student
-from .identity import LineId
-from .records import LineRecord
+from .identity import Label, LabelByLine, PanelVotes, ReaderTag
+from .records import RecordsByBook
 
 _READERS = panel_votes.READERS
 
@@ -36,7 +35,7 @@ class Metrics:
     lineated_recall: float
 
 
-def balanced(y_true: list[str], y_pred: list[str]) -> Metrics:
+def balanced(y_true: list[Label], y_pred: list[Label]) -> Metrics:
     """Balanced accuracy + macro-F1 computed from scratch (no sklearn) on prose/lineated."""
     recalls: list[float] = []
     f1s: list[float] = []
@@ -56,16 +55,15 @@ def balanced(y_true: list[str], y_pred: list[str]) -> Metrics:
 class ReaderScore:
     """One row of the head-to-head: a reader and the student scored on the SAME shared lines."""
 
-    reader: str
+    reader: ReaderTag
     n_shared: int
-    label_dist: dict[str, int]
+    label_dist: dict[Label, int]
     reader_metrics: Metrics
     student_metrics: Metrics
 
 
 def score_readers(
-    truth: dict[LineId, str], student_pred: dict[LineId, str],
-    panel: dict[str, dict[LineId, str]],
+    truth: LabelByLine, student_pred: LabelByLine, panel: PanelVotes,
 ) -> list[ReaderScore]:
     """For each reader, the lines it shares with both `truth` and the student, scored both
     ways on that identical shared set — so every row is apples-to-apples. All joins are by
@@ -91,13 +89,13 @@ class Comparison:
     n_labels_shared: int
 
 
-def score(records: Mapping[str, list[LineRecord]], labelset: labels.LabelSet,
-          votes: dict[str, dict[LineId, str]], *, alpha: float = 0.75) -> Comparison:
+def score(records: RecordsByBook, labelset: labels.LabelSet,
+          votes: PanelVotes, *, alpha: float = 0.75) -> Comparison:
     ds = student.build_dataset(records, labelset)
     oof = student.oof_smoothed(ds, records, alpha=alpha)  # run-smoothed student (alpha=0 = i.i.d.)
 
-    truth: dict[LineId, str] = {g.id: g.label for g in labelset.labels}
-    student_pred: dict[LineId, str] = {
+    truth: LabelByLine = {g.id: g.label for g in labelset.labels}
+    student_pred: LabelByLine = {
         g.id: oof[g.id].label for g in labelset.labels if g.id in oof}
 
     n_shared_any = len({k for tag in _READERS for k in votes.get(tag, {}) if k in truth})

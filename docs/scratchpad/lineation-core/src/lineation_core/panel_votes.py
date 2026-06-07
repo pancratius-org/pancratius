@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Self
 
 from . import store
-from .identity import LineId
+from .identity import Label, LineId, PanelVotes, ReaderTag
 
 READERS = ("grok", "deepseek", "gemini", "owl", "mimo", "minimax")
 
@@ -25,8 +25,8 @@ READERS = ("grok", "deepseek", "gemini", "owl", "mimo", "minimax")
 @dataclass(frozen=True, slots=True)
 class PanelVote:
     id: LineId
-    tag: str          # the reader (grok | deepseek | …)
-    label: str        # prose | lineated
+    tag: ReaderTag    # the reader (grok | deepseek | …)
+    label: Label      # prose | lineated
     conf: float | None
 
     def to_dict(self) -> dict[str, Any]:
@@ -44,10 +44,10 @@ def load(*, annotations: Path | None = None) -> list[PanelVote]:
     return [PanelVote.from_dict(d) for d in store.load_vote_rows(annotations=annotations)]
 
 
-def by_reader(*, annotations: Path | None = None) -> dict[str, dict[LineId, str]]:
+def by_reader(*, annotations: Path | None = None) -> PanelVotes:
     """`{reader_tag: {LineId: label}}` — the panel's calls keyed by line identity, ready to
     join against the truth and the student on the SAME `LineId`s."""
-    out: dict[str, dict[LineId, str]] = {tag: {} for tag in READERS}
+    out: PanelVotes = {tag: {} for tag in READERS}
     for v in load(annotations=annotations):
         out.setdefault(v.tag, {})[v.id] = v.label
     return out
