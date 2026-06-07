@@ -14,7 +14,7 @@ from ..identity import BookId, LineId, ModelId, ReaderTag
 from ..records import LineRecord
 from ..sequence import Run, runs
 from . import tasks
-from .tasks import ItemSpec, Modality
+from .tasks import AssetKind, ItemSpec, Modality
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,13 +69,15 @@ def load_recipe(toml_text: str) -> Recipe:
 
 
 def tile_regions(book_id: BookId, records: Sequence[LineRecord], selected: set[LineId], *,
-                 target: int = 10, context_radius: int = 1,
+                 target: int = 10, context_radius: int = 1, max_gap: int = 8,
                  modality: Modality = Modality.TEXT) -> list[ItemSpec]:
     """Group `selected` votable lines of one book into task regions. A region accumulates WHOLE runs
     (a run = a maximal BODY block — a stanza / paragraph-group / display-line group) up to ~`target`
-    votable lines and NEVER splits one, so an authorial unit stays intact even past the target. Each
-    region shows its runs' lines plus `context_radius` neighbours (un-keyed context); the selected
-    lines are the votable ones, in document order. Region ids are deterministic."""
+    votable lines and NEVER splits one, so an authorial unit stays intact even past the target. It
+    ALSO breaks when the next active run is more than `max_gap` records away, so a sparse selection
+    (distant uncertain lines) yields separate regions, not one giant span. Each region shows its
+    runs' lines plus `context_radius` neighbours (un-keyed context); the selected lines are the
+    votable ones, in document order. Region ids are deterministic."""
     sel = set(selected)
     active = [run for run in runs(records) if any(records[i].id in sel for i in run)]
     regions: list[ItemSpec] = []
@@ -95,6 +97,8 @@ def tile_regions(book_id: BookId, records: Sequence[LineRecord], selected: set[L
         cur, cur_votes = [], 0
 
     for run in active:
+        if cur and run[0] - cur[-1][-1] - 1 > max_gap:     # next run too far — don't span the gap
+            flush()
         cur.append(run)
         cur_votes += sum(1 for i in run if records[i].id in sel)
         if cur_votes >= target:
@@ -126,19 +130,27 @@ def select_lines(recipe: Recipe, *, annotations=None) -> Selection:
     else:
         raise ValueError(f"unknown selector: {recipe.selector!r}")
     books = set(recipe.books)
+    stray = sorted({lid.book_id for lid in ids if lid.book_id not in books})
+    if stray:
+        raise ValueError(f"selection has lines from books {stray} not in recipe.books "
+                         f"{sorted(books)} — likely a recipe scope bug")
     out: Selection = {b: set() for b in recipe.books}
     for lid in ids:
-        if lid.book_id in books:
-            out[lid.book_id].add(lid)
+        out[lid.book_id].add(lid)
     return out
 
 
 def build(recipe: Recipe, *, annotations=None, teacher_store=None,
           render: RenderFn | None = None) -> tasks.Task:
     """Resolve selection → tile into regions → build + persist the task bundle (manifest committed,
-    payload derived). Records come from the record cache; vision composites come from the injected
-    `render` builder (`render.py`), none → a text task. The recipe's deterministic, reproducible
-    task build — the provenance layer the derived payload can be rebuilt from."""
+    payload derived). Records come from the record cache. A VISION recipe MUST be given a `render`
+    builder and every region MUST get a COMPOSITE — a vision task with no images is REFUSED (a
+    silent text fallback would corrupt the panel). The recipe's deterministic, reproducible task
+    build — the provenance layer the derived payload can be rebuilt from."""
+    if recipe.vision and render is None:
+        raise ValueError(
+            f"recipe {recipe.task_id!r} reads vision but no render builder was given — refusing to "
+            f"build a vision task with no images")
     selected = select_lines(recipe, annotations=annotations)
     records = {b: store.load_records(b, recipe.lang) for b in recipe.books}
     modality = Modality.VISION if recipe.vision else Modality.TEXT
@@ -146,7 +158,12 @@ def build(recipe: Recipe, *, annotations=None, teacher_store=None,
     for b in recipe.books:
         specs.extend(tile_regions(b, records[b], selected[b], target=recipe.target,
                                    context_radius=recipe.context_radius, modality=modality))
-    assets = render(specs, records) if (recipe.vision and render is not None) else {}
+    assets = render(specs, records) if recipe.vision else {}
+    if recipe.vision:
+        bare = [s.region_id for s in specs
+                if not any(a.kind is AssetKind.COMPOSITE for a in assets.get(s.region_id, ()))]
+        if bare:
+            raise ValueError(f"vision recipe: render produced no COMPOSITE for regions {bare}")
     task = tasks.build_task(title=recipe.title, instructions=recipe.instructions,
                             specs=specs, records=records, assets=assets)
     store.save_task_bundle(recipe.task_id, task.to_payload(), task.manifest.to_dict(),
