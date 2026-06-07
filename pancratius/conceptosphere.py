@@ -239,8 +239,7 @@ def clean_markdown(text: str) -> str:
     text = URL_RE.sub(" ", text)
     text = MD_LINK_RE.sub(" ", text)
     text = MD_HEADING_RE.sub("", text)
-    text = MD_BOLD_ITALIC_RE.sub("", text)
-    return text
+    return MD_BOLD_ITALIC_RE.sub("", text)
 
 
 def split_sentences(text: str) -> list[str]:
@@ -306,9 +305,7 @@ def is_content_token(lemma: str, pos: str) -> bool:
     # Foreign POS-less Latin tokens (ChatGPT, AI) — pymorphy3 won't tag them
     # but we still want them in. Must be > 2 chars (already filtered) and not
     # one of the HTML attribute fragments we explicitly blacklist.
-    if not pos and re2.match(r"^[a-zA-Z]+$", lemma):
-        return True
-    return False
+    return bool(not pos and re2.match(r"^[a-zA-Z]+$", lemma))
 
 
 # ---------------------------------------------------------------------------

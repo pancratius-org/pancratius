@@ -229,9 +229,7 @@ def _is_lineated_line(text: str) -> bool:
         return False
     if _SPEAKER_TURN_RE.match(s):
         return False
-    if "http://" in s or "https://" in s:
-        return False
-    return True
+    return "http://" not in s and "https://" not in s
 
 
 # ---------------------------------------------------------------------------
@@ -426,9 +424,13 @@ def _renders_as_html_table(t: ir.Table) -> bool:
         if not isinstance(rows, list):
             return False
         for row in rows:
-            if isinstance(row, list) and len(row) > 1 and isinstance(row[1], list):
-                if any(cell_forces_html(cell) for cell in row[1]):
-                    return True
+            if (
+                isinstance(row, list)
+                and len(row) > 1
+                and isinstance(row[1], list)
+                and any(cell_forces_html(cell) for cell in row[1])
+            ):
+                return True
         return False
 
     if isinstance(thead, list) and len(thead) > 1 and any_row_forces_html(thead[1]):
@@ -722,9 +724,7 @@ def _is_signature(lines: list[str]) -> bool:
         return True
     if all(_SIGNATURE_LINE_RE.match(line.strip()) for line in lines):
         return True
-    if len(lines) == 1 and re.fullmatch(r"[—-]\s*[\wА-Яа-яЁё .]{2,80}", lines[0]):
-        return True
-    return False
+    return len(lines) == 1 and re.fullmatch(r"[—-]\s*[\wА-Яа-яЁё .]{2,80}", lines[0]) is not None
 
 
 def _is_epigraph(lines: list[str], italic_count: int) -> bool:
@@ -873,7 +873,7 @@ def _emit_dialogue_segment(
         # wrongly separate the glyph from what it opens (`«` + `Почему` → `« Почему`).
         head_body = m.group(2).strip()
         joiner = "" if head_body and head_body[-1] in "«“„([{‹" else " "
-        body_inlines: list[ir.Inline] = [ir.Text(head_body + joiner)] + tail
+        body_inlines: list[ir.Inline] = [ir.Text(head_body + joiner), *tail]
         return [
             ir.DialogueLabel(speaker=m.group(1), source_span=source_span),
             ir.Paragraph(inlines=body_inlines, source_span=source_span),
@@ -1420,9 +1420,7 @@ def _should_infer_source_row_lineation(
         and not any(_CODA_PSEUDO_HEADING_RE.match(line) for line in lines)
     ):
         return True
-    if any(p.empty for p in run) and len(lines) >= 3 and avg <= 120:
-        return True
-    return False
+    return any(p.empty for p in run) and len(lines) >= 3 and avg <= 120
 
 
 def _run_evidence(run: list[ir.Paragraph]) -> ir.LineationEvidence:

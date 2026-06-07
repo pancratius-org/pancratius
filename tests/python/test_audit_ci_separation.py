@@ -41,6 +41,7 @@ def _run(root: Path) -> subprocess.CompletedProcess[str]:
         env={"PANCRATIUS_AUDIT_ROOT": str(root), "PATH": "/usr/bin:/bin"},
         capture_output=True,
         text=True,
+        check=False,
     )
 
 

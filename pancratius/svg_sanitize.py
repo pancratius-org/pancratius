@@ -54,8 +54,7 @@ def _strip_all(payload: bytes) -> bytes:
     out = _FOREIGN_OBJECT_RE.sub(b"", out)
     out = _FOREIGN_OBJECT_SELF_CLOSE_RE.sub(b"", out)
     out = _ON_HANDLER_RE.sub(b"", out)
-    out = _UNSAFE_HREF_RE.sub(b"", out)
-    return out
+    return _UNSAFE_HREF_RE.sub(b"", out)
 
 
 def is_svg_name(name: str) -> bool:

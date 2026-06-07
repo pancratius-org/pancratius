@@ -84,10 +84,23 @@ select = [
   "B",
   "BLE",
   "I",
+  "PLE",
+  "PLW1510",
+  "RET504",
+  "RET505",
+  "SIM102",
+  "SIM103",
+  "SIM105",
+  "SIM115",
+  "SIM117",
   "UP",
+  "RUF005",
   "RUF100",
   "RUF013",
   "RUF018",
+  "RUF022",
+  "RUF043",
+  "RUF046",
 ]
 
 [tool.ruff.lint.flake8-annotations]

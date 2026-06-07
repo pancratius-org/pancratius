@@ -15,6 +15,7 @@ from __future__ import annotations
 import io
 import os
 import tempfile
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Literal, assert_never
@@ -83,10 +84,8 @@ def _atomic_write(dest: Path, payload: bytes) -> None:
             fh.write(payload)
         os.replace(tmp, dest)
     except BaseException:
-        try:
+        with suppress(OSError):
             tmp.unlink()
-        except OSError:
-            pass
         raise
 
 

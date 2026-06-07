@@ -77,7 +77,7 @@ def run_pandoc_json(docx: Path, media_dir: Path) -> tuple[dict[str, Any], str]:
     ]
     try:
         proc = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=PANDOC_TIMEOUT_SECONDS
+            cmd, capture_output=True, text=True, timeout=PANDOC_TIMEOUT_SECONDS, check=False
         )
     except subprocess.TimeoutExpired as exc:
         raise RuntimeError(
