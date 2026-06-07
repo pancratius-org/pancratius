@@ -172,11 +172,28 @@ def build(recipe: Recipe, *, annotations=None, teacher_store=None,
     return task
 
 
+class PanelRefused(Exception):
+    """A live panel run that is NOT safe to promote. Raised — never a silent partial promote — when
+    a rep was truncated, produced no parseable rows, or the resolution surfaced any fault. The
+    per-rep evidence and the raw calls are already persisted, so the refusal is investigable and the
+    next run RESUMES from the saved replies."""
+
+
 def panel(recipe: Recipe, completer: panel_mod.ChatCompleter, *,
           annotations=None, teacher_store=None) -> int:
-    """Run the panel for a built task: load the bundle → readers × reps → resolve each rep →
-    aggregate to ONE vote per (reader, line) → save the per-rep evidence and promote the aggregated
-    votes. Returns the count of canonical votes promoted. Network is the injected `completer`."""
+    """Run the panel for a built task and promote ONLY if the run is clean. Loads the bundle →
+    readers × reps (RESUMING any saved `(item, reader, rep)` reply, persisting each fresh one before
+    parse) → save the per-rep evidence → REFUSE to promote on any unclean condition → else resolve,
+    aggregate to one vote per (reader, line), and promote. Returns the count of canonical votes
+    promoted. Network is the injected `completer`.
+
+    Refuses (raises `PanelRefused`, never a silent subset) when ANY:
+      - a rep's `finish_reason == "length"` (truncated output, under-covered);
+      - any `(reader, item, rep)` parsed ZERO rows (empty / malformed / all-reasoning reply);
+      - `resolve_panel(..., complete=True)` returns ANY fault (unmapped/dup/bad-label/text-drift/
+        missing/unknown-item/key-mismatch).
+    A call that fails mid-run raises out of `run_panel` before any promote; the calls saved so far
+    are the resumable record (re-run reuses them, re-calling only the missing tuples)."""
     payload, manifest_d = store.load_task_bundle(recipe.task_id, annotations=annotations,
                                                  store=teacher_store)
     task = tasks.Task.from_bundle(payload, manifest_d)
@@ -184,14 +201,56 @@ def panel(recipe: Recipe, completer: panel_mod.ChatCompleter, *,
     cfg = panel_mod.PanelConfig(
         readers=tuple(panel_mod.ReaderConfig(r.tag, r.model, r.modality) for r in recipe.readers),
         reps=recipe.reps)
-    reps = panel_mod.run_panel(task, cfg, completer)
+
+    cached = _load_call_cache(recipe.task_id, teacher_store=teacher_store)
+    on_call = _call_saver(recipe.task_id, teacher_store=teacher_store)
+    reps = panel_mod.run_panel(task, cfg, completer, cached=cached, on_call=on_call)
     store.save_panel_reps(recipe.task_id, _rep_rows(reps), annotations=annotations)
+
+    truncated = [(r.item_id, r.tag, r.rep) for r in reps if r.finish_reason == "length"]
+    if truncated:
+        raise PanelRefused(f"refusing to promote {recipe.task_id!r}: truncated reps "
+                           f"(finish_reason=length): {truncated}")
+    empty = [(r.item_id, r.tag, r.rep) for r in reps if not r.response.rows]
+    if empty:
+        raise PanelRefused(f"refusing to promote {recipe.task_id!r}: reps with ZERO parsed rows "
+                           f"(empty/malformed reply): {empty}")
+
     by_rep: dict[int, list[responses.RawReaderResponse]] = {}
     for rep in reps:
         by_rep.setdefault(rep.rep, []).append(rep.response)
-    per_rep = [responses.resolve_panel(task.manifest, rs, records).votes
-               for _, rs in sorted(by_rep.items())]
-    return promote.promote_votes(panel_mod.aggregate_reps(per_rep), annotations=annotations)
+    resolved = [responses.resolve_panel(task.manifest, rs, records, complete=True)
+                for _, rs in sorted(by_rep.items())]
+    faults = [f for rv in resolved for f in rv.faults]
+    if faults:
+        raise PanelRefused(f"refusing to promote {recipe.task_id!r}: {len(faults)} resolution "
+                           f"fault(s), e.g. {[f'{f.fault}:{f.key or f.item_id}' for f in faults[:5]]}")
+    return promote.promote_votes(
+        panel_mod.aggregate_reps([rv.votes for rv in resolved]), annotations=annotations)
+
+
+def _load_call_cache(task_id: str, *, teacher_store=None) -> panel_mod.CallCache:
+    """The saved raw replies of a prior (possibly crashed) run, as a `(item, tag, rep) → ChatReply`
+    cache — last-saved wins per tuple. The resume source: `run_panel` reuses these instead of
+    re-paying for the call."""
+    cache: panel_mod.CallCache = {}
+    for row in store.load_panel_calls(task_id, store=teacher_store):
+        cache[(row["item_id"], row["tag"], int(row["rep"]), row["model"])] = panel_mod.ChatReply(
+            content=row.get("content", ""), finish_reason=row.get("finish_reason"))
+    return cache
+
+
+def _call_saver(task_id: str, *, teacher_store=None):
+    """A `run_panel` `on_call` that appends each fresh reply to the resume log the instant it lands
+    (before parse), so a crash mid-run loses no paid call."""
+    def save(key: panel_mod.CallKey, reply: panel_mod.ChatReply) -> None:
+        item_id, tag, rep, model = key
+        store.save_panel_call(
+            task_id, {"item_id": item_id, "tag": tag, "rep": rep, "model": model,
+                      "content": reply.content, "finish_reason": reply.finish_reason},
+            store=teacher_store)
+
+    return save
 
 
 def ingest(recipe: Recipe, *, annotations=None, teacher_store=None) -> int:
@@ -209,19 +268,29 @@ def ingest(recipe: Recipe, *, annotations=None, teacher_store=None) -> int:
 
 
 def _rep_rows(reps: Sequence[panel_mod.PanelRep]) -> list[dict]:
-    """Flatten per-rep panel output to committed evidence rows (model + rep + key + verdict +
-    status) — the raw reps kept in `panel_runs` behind the resolved `votes.jsonl`."""
-    return [{"item_id": rep.item_id, "tag": rep.tag, "rep": rep.rep, "model": rep.model,
-             "key": row.key, "label": row.label, "conf": row.conf,
-             "finish_reason": rep.finish_reason}
-            for rep in reps for row in rep.response.rows]
+    """Flatten per-rep panel output to committed evidence rows in `panel_runs`, behind the resolved
+    `votes.jsonl`. Each rep emits ONE header row carrying the RAW completion `content` + finish
+    status (so a malformed/empty reply leaves evidence even with no parsed rows), then one verdict
+    row per parsed `{key, label, conf}`."""
+    out: list[dict] = []
+    for rep in reps:
+        base = {"item_id": rep.item_id, "tag": rep.tag, "rep": rep.rep, "model": rep.model,
+                "finish_reason": rep.finish_reason}
+        out.append({**base, "kind": "raw", "content": rep.content,
+                    "n_rows": len(rep.response.rows)})
+        out.extend({**base, "kind": "verdict", "key": row.key, "label": row.label, "conf": row.conf}
+                   for row in rep.response.rows)
+    return out
 
 
 def _main() -> None:
-    """CLI: `python -m lineation_core.teacher.recipes <build|panel|ingest> <recipe.toml>`. `build`
-    persists the task bundle (text recipes; a vision recipe needs `render.py` wired); `panel` runs
-    the live OpenRouter panel and promotes votes; `ingest` resolves the downloaded human responses
-    and promotes labels."""
+    """CLI: `uv run python -m lineation_core.teacher.recipes <build|panel|ingest> <recipe.toml>`.
+    `build` persists the task bundle (text recipes; a vision recipe needs `render.py` wired);
+    `panel` runs the live OpenRouter panel and promotes votes ONLY if the run is clean (a truncated/
+    empty/faulted run raises `PanelRefused` and promotes nothing — re-run resumes from saved
+    replies); `ingest` resolves the downloaded human responses and promotes labels. A live `panel`
+    run needs the SDK extra:
+        `uv run --extra live python -m lineation_core.teacher.recipes panel <recipe.toml>`."""
     import argparse
     from pathlib import Path
 

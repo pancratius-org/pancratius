@@ -12,6 +12,13 @@ dependencies = [
   "pillow>=10.4",
 ]
 
+# The live teacher panel calls OpenRouter through its official SDK. It is an OPTIONAL extra so the
+# default/test environment (and the import-time get_type_hints sweep) stays SDK-free — the adapter
+# imports it lazily, only a live run needs it. Install with `uv sync --extra live`, or a one-off
+# `uv run --extra live python -m lineation_core.teacher.recipes panel <recipe.toml>`.
+[project.optional-dependencies]
+live = ["openrouter>=0.9,<1"]   # pin to the 0.9.x API the adapter is written against
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/lineation_core"]
 
