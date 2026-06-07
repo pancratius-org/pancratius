@@ -31,6 +31,9 @@ from typing import Any, Self
 type Label = str        # "prose" | "lineated" — the two-class verdict for one line
 type ReaderTag = str    # one panel reader: grok | deepseek | gemini | owl | mimo | minimax
 type BookId = str       # zero-padded book folder number ("01", "64") — the CV group + join key
+type ListingKey = str   # the OUTWARD key shown for a line in a rendered listing — opaque to the
+                        # renderer; the caller picks the scheme (teacher: task-local "L001"; debug:
+                        # "src_ordinal.sub"). NOT a stable identity — that is `LineId`.
 
 # line → label maps. `LabelByLine` is the shared scoring surface: a truth map, a prediction map,
 # the contested eval slice — all interchangeable as either side of a per-line join. `ReaderCalls`

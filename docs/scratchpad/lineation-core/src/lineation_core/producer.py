@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 from bisect import bisect_left
+from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -23,7 +24,7 @@ from statistics import median
 from pancratius import docx_inspect as di
 
 from . import identity, records, source_view
-from .identity import BookId
+from .identity import BookId, LineId, ListingKey
 from .records import (
     EndPunct,
     FeatureName,
@@ -328,17 +329,21 @@ def vectorize_fixed(features: LineFeatures) -> FeatureVector:
     return {c: sparse.get(c, 0.0) for c in vector_columns()}
 
 
-def render_listing(records_in: list[LineRecord], *, with_features: bool) -> str:
-    """The ONE listing builder (replaces the three hand-synced ones). Each votable body line
-    keyed `src_ordinal.sub`; structural roles shown as separators. With `with_features`, the feature
+def render_listing(records_in: list[LineRecord], *, keys: Mapping[LineId, ListingKey],
+                   with_features: bool) -> str:
+    """The ONE listing builder (replaces the three hand-synced ones). Each body line shows its
+    caller-chosen `ListingKey` from `keys`; a body line absent from `keys` is context (shown for
+    orientation, no vote key). Structural roles are separators. With `with_features`, the feature
     columns are formatted from the SAME `record.features` the vector reads — so the teacher's
-    evidence and the student's vector are provably one feature set."""
+    evidence and the student's vector are provably one feature set. The caller owns the key scheme
+    (teacher mints task-local `L001`; debug uses `src_ordinal_keys`), so a source ordinal never
+    reaches a reader/UI payload through here."""
     lines: list[str] = []
     for r in records_in:
         if r.role != Role.BODY:
             lines.append(f"  ---- [{r.role.value}]" + (f" {r.text[:60]}" if r.text else ""))
             continue
-        key = f"{r.id.src_ordinal}.{r.id.sub}"
+        key = keys.get(r.id, "·")            # absent ⇒ a context body line, no vote key
         flag = "" if r.votable else "  (not voted)"
         if with_features:
             lines.append(f"  {key}  [{_feature_tokens(r.features)}] {r.text}{flag}")
@@ -346,6 +351,13 @@ def render_listing(records_in: list[LineRecord], *, with_features: bool) -> str:
             w = "WRAPS " if r.features.wraps else "nowrap"
             lines.append(f"  {key}  {w} | {r.text}{flag}")
     return "\n".join(lines)
+
+
+def src_ordinal_keys(records_in: list[LineRecord]) -> dict[LineId, ListingKey]:
+    """`src_ordinal.sub` listing keys for human-readable DEBUG dumps ONLY. A source ordinal must
+    never reach a reader/UI payload, so the teacher mints task-local keys instead — this is the
+    explicit, debug-only opt-in to ordinal keying."""
+    return {r.id: f"{r.id.src_ordinal}.{r.id.sub}" for r in records_in}
 
 
 def _feature_tokens(f: LineFeatures) -> str:
