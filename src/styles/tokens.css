@@ -69,6 +69,7 @@
   --col-page:   50rem;  /* informational single column — license, downloads, search */
   --col-wide:   64rem;  /* two-column reading layout — ToC rail + body */
   --col-spread: 72rem;  /* widest ordinary canvas — landing and index grids */
+  --space-page-block: clamp(3.5rem, 7vw, 6rem);
   --gutter:       clamp(1.25rem, 4vw, 2.75rem);
   --rail:         clamp(1.25rem, 5vw, 3.5rem);
   --ease:         cubic-bezier(0.2, 0.6, 0.2, 1);

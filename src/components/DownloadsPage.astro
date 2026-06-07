@@ -21,7 +21,7 @@ const FORMAT_LABEL: Record<ArchiveInfo["format"], string> = {
   epub: "EPUB",
 };
 ---
-<article class="l-canvas l-canvas--page dl">
+<article class="l-canvas l-canvas--page l-page-block dl">
   <header class="dl__head">
     {page.data.eyebrow && <p class="eyebrow eyebrow--lg">{page.data.eyebrow}</p>}
     <h1>{page.data.title}</h1>
@@ -69,7 +69,6 @@ const FORMAT_LABEL: Record<ArchiveInfo["format"], string> = {
 </article>
 
 <style>
-  .dl { padding-block: clamp(3.5rem, 7vw, 6rem); }
   .dl__head h1 {
     font-family: var(--serif);
     font-weight: 400;

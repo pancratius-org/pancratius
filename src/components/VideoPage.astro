@@ -62,7 +62,7 @@ const watchLinks = videoWatchLinks(entry);
 const channel = await channelForEntry(entry);
 ---
 <Base {locale} {seo}>
-  <article class:list={["l-canvas", "video-page", `video-page--${layout}`]}>
+  <article class:list={["l-canvas", "l-page-block", "video-page", `video-page--${layout}`]}>
     <BackLink href={backHref} label={copy.back(pagerPairs.length)} />
 
     {layout === "compact" ? (
@@ -159,9 +159,6 @@ const channel = await channelForEntry(entry);
 </Base>
 
 <style>
-  .video-page {
-    padding-block: clamp(3.5rem, 7vw, 6rem);
-  }
   /* Blog video is ONE reading column: masthead, embed, and commentary share a
      single measure, so the page has one boundary instead of the old full-bleed
      embed vs. narrow text mismatch. A contents rail (rare) widens it. */

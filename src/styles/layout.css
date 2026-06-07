@@ -1,5 +1,5 @@
-/* .l-canvas* owns outer width and centering; .l-measure owns inner reading
-   width inside wider composition; leaves own no page measure. */
+/* .l-canvas* owns outer width and centering; .l-page-block owns page
+   vertical breathing; .l-measure owns inner reading width. Leaves own no page measure. */
 .l-canvas {
   --l-canvas-size: var(--col-page);
   inline-size: min(var(--l-canvas-size), calc(100% - var(--rail) - var(--rail)));
@@ -10,6 +10,10 @@
 .l-canvas--page { --l-canvas-size: var(--col-page); }
 .l-canvas--wide { --l-canvas-size: var(--col-wide); }
 .l-canvas--spread { --l-canvas-size: var(--col-spread); }
+
+.l-page-block {
+  padding-block: var(--space-page-block);
+}
 
 .l-measure {
   max-inline-size: var(--col-text);

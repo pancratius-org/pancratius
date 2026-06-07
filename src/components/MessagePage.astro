@@ -59,7 +59,7 @@ const { prev: newer, next: older } = neighbors(pagerPairs, pair.number);
 const relatedVideos = await relatedVideosFor(entry);
 ---
 <Base {locale} {seo}>
-  <article class="l-canvas l-canvas--wide message-page">
+  <article class="l-canvas l-canvas--wide l-page-block message-page">
     <BackLink href={backHref} label={copy.back(pagerPairs.length)} />
 
     <header class="mp__masthead">
@@ -134,7 +134,6 @@ const relatedVideos = await relatedVideosFor(entry);
 
 <style>
   .message-page {
-    padding-block: clamp(3.5rem, 7vw, 6rem);
     /* One rail width and gap shared by the masthead and the body grid, so the
        date-seal sits over the месяцеслов and the title over the prose — a single
        vertical seam down the page rather than two unrelated grids. */

@@ -61,7 +61,7 @@ const number = String(pair.number).padStart(2, "0");
 const pad = (n: number) => String(n).padStart(2, "0");
 ---
 <Base {locale} {seo}>
-  <article class="l-canvas l-canvas--wide book-page">
+  <article class="l-canvas l-canvas--wide l-page-block book-page">
     <BackLink href={backHref} label={copy.back(pagerPairs.length)} />
 
     <header class="book-page__masthead">
@@ -111,10 +111,6 @@ const pad = (n: number) => String(n).padStart(2, "0");
 </Base>
 
 <style>
-  .book-page {
-    padding-block: clamp(3.5rem, 7vw, 6rem);
-  }
-
   .book-page__masthead {
     display: grid;
     grid-template-columns: 220px 1fr;

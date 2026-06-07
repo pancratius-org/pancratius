@@ -37,7 +37,7 @@ const backHref = kindIndexUrl("poem", locale);
 const date = poemDate(entry);
 ---
 <Base {locale} {seo}>
-  <article class="l-canvas l-canvas--text poem-page">
+  <article class="l-canvas l-canvas--text l-page-block poem-page">
     <BackLink href={backHref} label={copy.back} />
 
     <header class="poem-page__head">
@@ -68,7 +68,6 @@ const date = poemDate(entry);
 </Base>
 
 <style>
-  .poem-page { padding-block: clamp(3.5rem, 7vw, 6rem); }
   .poem-page__head { margin-bottom: 2rem; }
   .poem-page__meta {
     font-family: var(--sans);

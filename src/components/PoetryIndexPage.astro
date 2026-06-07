@@ -65,7 +65,7 @@ if (showHero) {
 }
 ---
 <Base {locale} {seo} {alternates}>
-  <section class="l-canvas l-canvas--page poetry-index">
+  <section class="l-canvas l-canvas--page l-page-block poetry-index">
     <p class="eyebrow eyebrow--lg">{copy.eyebrow(pairs.length)}</p>
     <div class="poetry-index__head">
       <h1><b>{pairs.length}</b> {copy.headingLabel(pairs.length)}</h1>
@@ -100,7 +100,6 @@ if (showHero) {
 </Base>
 
 <style>
-  .poetry-index { padding-block: clamp(3.5rem, 7vw, 6rem); }
   .poetry-index__head {
     display: flex;
     flex-direction: column;

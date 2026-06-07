@@ -32,7 +32,7 @@ interface Props {
 
 const { title, eyebrow, sub, class: extraClass, width = "page" } = Astro.props;
 ---
-<article class:list={["l-canvas", `l-canvas--${width}`, "static", extraClass]}>
+<article class:list={["l-canvas", `l-canvas--${width}`, "l-page-block", "static", extraClass]}>
   <header class="static__head">
     {eyebrow && <p class="eyebrow eyebrow--lg">{eyebrow}</p>}
     <h1 class="static__title">{title}</h1>
@@ -44,7 +44,6 @@ const { title, eyebrow, sub, class: extraClass, width = "page" } = Astro.props;
 
 <style>
   .static {
-    padding-block: clamp(3.5rem, 7vw, 6rem);
     display: grid;
     grid-template-columns: 1fr;
     gap: 2.5rem;
