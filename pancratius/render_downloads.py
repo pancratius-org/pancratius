@@ -373,9 +373,7 @@ def _font_paths() -> list[Path]:
 def _is_jpeg_safe(img: Image.Image) -> bool:
     if img.mode in ("1", "P"):
         return False
-    if "A" in img.getbands():
-        return False
-    return True
+    return "A" not in img.getbands()
 
 
 def _resize_for_export(img: Image.Image) -> Image.Image:

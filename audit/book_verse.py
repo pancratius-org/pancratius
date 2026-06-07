@@ -127,9 +127,7 @@ def is_verse_line(line: str) -> bool:
         return False
     if is_speaker_turn(s):
         return False
-    if "http://" in s or "https://" in s:
-        return False
-    return True
+    return "http://" not in s and "https://" not in s
 
 
 # A non-``Para`` body block (heading / table / list / image / blockquote) — a

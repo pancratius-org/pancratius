@@ -62,9 +62,12 @@ def _load_kinds() -> tuple[tuple[str, ...], dict[str, str]]:
 def _imports_sot_from_kinds(tree: ast.Module) -> bool:
     """True if the module imports the corpus work-kinds SoT from pancratius.kinds."""
     for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom) and node.module == "pancratius.kinds":
-            if any(alias.name == SOT_NAME for alias in node.names):
-                return True
+        if (
+            isinstance(node, ast.ImportFrom)
+            and node.module == "pancratius.kinds"
+            and any(alias.name == SOT_NAME for alias in node.names)
+        ):
+            return True
     return False
 
 

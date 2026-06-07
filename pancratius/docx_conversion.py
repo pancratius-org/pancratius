@@ -67,8 +67,7 @@ def to_ascii_slug(value: str) -> str:
     s = unicodedata.normalize("NFKD", s)
     s = s.encode("ascii", "ignore").decode("ascii")
     s = _SLUG_NONALNUM.sub("-", s.lower())
-    s = _SLUG_DASHES.sub("-", s).strip("-")
-    return s
+    return _SLUG_DASHES.sub("-", s).strip("-")
 
 
 # ---------------------------------------------------------------------------

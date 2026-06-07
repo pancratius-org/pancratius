@@ -113,9 +113,11 @@ def test_docx_integrity_rejects_wrong_root_office_document_target(tmp_path: Path
 def test_docx_integrity_rejects_duplicate_zip_part_names(tmp_path: Path) -> None:
     root = _content_root(tmp_path)
     docx = _write_docx(root)
-    with zipfile.ZipFile(docx, "a", compression=zipfile.ZIP_DEFLATED) as zf:
-        with pytest.warns(UserWarning, match="Duplicate name"):
-            zf.writestr("word/document.xml", b"<duplicate-document />")
+    with (
+        zipfile.ZipFile(docx, "a", compression=zipfile.ZIP_DEFLATED) as zf,
+        pytest.warns(UserWarning, match="Duplicate name"),
+    ):
+        zf.writestr("word/document.xml", b"<duplicate-document />")
 
     result = _run_audit(root)
 

@@ -143,9 +143,7 @@ def is_jpeg_safe(img: Image.Image, in_size: int) -> bool:
     if not (large_by_dim or large_by_bytes):
         return False
     # Backstop: if it looks like a hard-edge diagram, keep PNG.
-    if edge_density(img) > EDGE_DENSITY_DIAGRAM_MIN:
-        return False
-    return True
+    return edge_density(img) <= EDGE_DENSITY_DIAGRAM_MIN
 
 
 def downscale_if_needed(img: Image.Image, max_long_edge: int = MAX_LONG_EDGE) -> Image.Image:
@@ -154,7 +152,7 @@ def downscale_if_needed(img: Image.Image, max_long_edge: int = MAX_LONG_EDGE) ->
     if long_edge <= max_long_edge:
         return img
     scale = max_long_edge / long_edge
-    new_size = (max(1, int(round(w * scale))), max(1, int(round(h * scale))))
+    new_size = (max(1, round(w * scale)), max(1, round(h * scale)))
     return img.resize(new_size, Image.LANCZOS)
 
 
@@ -220,20 +218,18 @@ def process_image(
         if photographic:
             img = downscale_if_needed(img, max_long_edge)
             new_bytes = encode_jpeg(img)
-            if len(new_bytes) >= in_size:
-                if not needs_resize:
-                    return data, None, "kept-not-smaller"
+            if len(new_bytes) >= in_size and not needs_resize:
+                return data, None, "kept-not-smaller"
             new_name = base + ".jpg"
             tag = "resize+jpeg" if needs_resize else "jpeg"
             return new_bytes, new_name, tag
-        else:
-            if needs_resize:
-                img = downscale_if_needed(img, max_long_edge)
-                return encode_png(img), None, "resize+png"
-            new_bytes = encode_png(img)
-            if len(new_bytes) < in_size:
-                return new_bytes, None, "png-opt"
-            return data, None, "kept-png-already-small"
+        if needs_resize:
+            img = downscale_if_needed(img, max_long_edge)
+            return encode_png(img), None, "resize+png"
+        new_bytes = encode_png(img)
+        if len(new_bytes) < in_size:
+            return new_bytes, None, "png-opt"
+        return data, None, "kept-png-already-small"
 
     if fmt == "JPEG":
         if needs_resize:

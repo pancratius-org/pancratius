@@ -262,13 +262,12 @@ def test_table_unknown_shape_keeps_raw_with_empty_rows() -> None:
 def _docx_from_document(document: str, *, styles: str | None = None) -> Path:
     """Wrap a `word/document.xml` string into a minimal in-memory .docx temp file."""
     import tempfile
-    fd = tempfile.NamedTemporaryFile(suffix=".docx", delete=False)
-    with zipfile.ZipFile(fd, "w") as zf:
-        zf.writestr("word/document.xml", document)
-        if styles is not None:
-            zf.writestr("word/styles.xml", styles)
-    fd.close()
-    return Path(fd.name)
+    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as fd:
+        with zipfile.ZipFile(fd, "w") as zf:
+            zf.writestr("word/document.xml", document)
+            if styles is not None:
+                zf.writestr("word/styles.xml", styles)
+        return Path(fd.name)
 
 
 def _docx_with_paragraphs(*jcs: str | None) -> Path:
@@ -729,5 +728,5 @@ def test_run_pandoc_timeout_raises_clear_error(monkeypatch: pytest.MonkeyPatch, 
         raise subprocess.TimeoutExpired(cmd, float(timeout) if isinstance(timeout, (int, float)) else 0.0)
 
     monkeypatch.setattr(subprocess, "run", fake_run)
-    with pytest.raises(RuntimeError, match="(?i)timed out|timeout"):
+    with pytest.raises(RuntimeError, match=r"(?i)timed out|timeout"):
         adapter.run_pandoc_json(tmp_path / "x.docx", tmp_path / "media")

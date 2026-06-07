@@ -75,8 +75,8 @@ _BANNED_LIB_MODULES = (
     "writeplan",  # the pure WritePlan + validation
     "writer",  # the ONLY src/content mutator
 )
-_BANNED_MODULES = _BANNED_OWNER_MODULES + _BANNED_LIB_MODULES
-_BANNED_PATH_MODULES = _BANNED_MODULES + ("ir/nodes", "ir/normalize", "ir/lower")
+_BANNED_MODULES = (*_BANNED_OWNER_MODULES, *_BANNED_LIB_MODULES)
+_BANNED_PATH_MODULES = (*_BANNED_MODULES, "ir/nodes", "ir/normalize", "ir/lower")
 _CORPUS_VERBS = r"(?:work|project|downloads|docx|conceptosphere)"
 
 _RUN_BANNED: tuple[tuple[str, re.Pattern[str]], ...] = (
