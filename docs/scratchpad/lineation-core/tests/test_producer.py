@@ -134,8 +134,8 @@ def test_vector_columns_fixed_and_include_zero_support(recs57):
 # --- golden snapshot (regression lock) on a known region ---
 
 def test_golden_snapshot_book57_first_body_lines(recs57):
-    """Regression lock: the producer's output on a known region is frozen. Captured from a
-    verified read on 2026-06; if the substrate or φ logic shifts these values, this fails."""
+    """Regression lock: the producer's output on a known region is frozen; if the substrate or
+    φ logic shifts these values, this fails."""
     body = [r for r in recs57 if r.role == Role.BODY][:5]
     snap = [(r.id.src_ordinal, r.id.sub, r.text, round(r.features.fill, 3),
              r.features.wraps, r.features.end_punct.value) for r in body]

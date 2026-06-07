@@ -21,9 +21,9 @@ if str(_SRC) not in sys.path:
 
 
 def _require_store() -> None:
-    from lineation_core import artifact, paths
+    from lineation_core import artifact, paths, store
 
-    if not (paths.ANNOTATIONS / artifact.LABELS_FILE).is_file():
+    if not (paths.ANNOTATIONS / store.LABELS_FILE).is_file():
         raise RuntimeError(
             f"committed annotation truth missing at {paths.ANNOTATIONS} — it is source data, not "
             f"rebuilt; restore it before running the suite.")

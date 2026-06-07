@@ -31,8 +31,8 @@ BOOKS = REPO_ROOT / "src" / "content" / "books"
 # gitignored — safe to delete and rebuild; NOT source of truth.
 ARTIFACT_STORE = REPO_ROOT / "docs" / "scratchpad" / "lineation-core" / "_artifacts"
 
-# the committed annotation TRUTH (human labels, LLM panel votes, human re-adjudications), each a
-# single LineId-keyed `*.jsonl`. The irreplaceable source of truth — committed, never rebuilt.
+# the committed annotation TRUTH: labels.jsonl + votes.jsonl (LineId-keyed) and eval slices under
+# eval_sets/*.json. The irreplaceable source of truth — committed, never rebuilt.
 ANNOTATIONS = REPO_ROOT / "docs" / "scratchpad" / "lineation-core" / "annotations"
 
 

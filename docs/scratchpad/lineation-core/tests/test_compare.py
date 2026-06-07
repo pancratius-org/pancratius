@@ -1,6 +1,6 @@
 # research-pure: compare.score scores every panel reader vs the student on shared labeled lines.
 """Locks the head-to-head coverage + the OOF student metric — the byte-identical guard for
-`compare.score`. Locked from a verified run on 2026-06."""
+`compare.score`."""
 from __future__ import annotations
 
 import pytest

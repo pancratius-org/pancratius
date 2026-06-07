@@ -10,11 +10,11 @@ from lineation_core import artifact, store
 def test_annotation_rows_load_from_committed_store():
     labels = store.load_label_rows()
     votes = store.load_vote_rows()
-    contested = store.load_contested_rows()
+    contested = store.load_eval_set("contested")
     assert labels and votes and contested              # the committed truth is present
     assert all("id" in r and "label" in r for r in labels)
     assert all("id" in r and "tag" in r and "label" in r for r in votes)
-    assert all("id" in r and "label" in r for r in contested)
+    assert all("id" in r and "label" in r for r in contested)   # {id, label} eval rows
 
 
 def test_annotation_load_fails_loud_on_missing_file(tmp_path):

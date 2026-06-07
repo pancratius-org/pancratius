@@ -1,7 +1,7 @@
 # research-pure: proves the loaded per-line labels are LineId-keyed, trainable, lineage-kept.
-"""`labels.load()` reads the canonical `line_labels.jsonl` artifacts and is the package's ONLY
-truth path — no migration, no source-shard read. It REJECTS unmapped-line labels at the boundary
-(surfaced count). Numbers are locked from a verified build on 2026-06."""
+"""`labels.load()` reads the committed `labels.jsonl` truth and is the package's ONLY truth path —
+no migration, no source-shard read. It REJECTS unmapped-line labels at the boundary (surfaced
+count)."""
 from __future__ import annotations
 
 import pytest

@@ -2,8 +2,8 @@
 """The fairest head-to-head — on the CONTESTED set.
 
 `compare.py` scores everyone on the full labels (which include easy strata). This module
-restricts to the CONTESTED lines: the ones a human RE-ADJUDICATED on the page (the canonical
-`contested_labels.jsonl`, built from the union of the page re-adjudications), exactly the
+restricts to the CONTESTED lines: the ones a human RE-ADJUDICATED on the page (the committed
+`eval_sets/contested.json` slice — an EVAL truth, never folded into training), exactly the
 discriminator the prior ranking used. On these lines:
 
   TRUTH    = the human's page-grounded label (NOT the consensus label — on contested lines
@@ -31,11 +31,11 @@ from .records import LineRecord
 
 
 def load_contested(*, annotations: Path | None = None) -> dict[LineId, str]:
-    """The human page-grounded labels on contested lines, `{LineId: label}`, read from the
-    committed `contested_labels.jsonl` truth. LineId-keyed already; FAILS LOUD if the file is
-    missing, never rebuilds."""
+    """The contested eval slice (`eval_sets/contested.json`): `{LineId: human label}` on the hard
+    re-adjudicated lines — an EVAL-only truth (not training); the student is scored against it on
+    the lines it can predict."""
     return {LineId.from_key(d["id"]): d["label"]
-            for d in store.load_contested_rows(annotations=annotations)}
+            for d in store.load_eval_set("contested", annotations=annotations)}
 
 
 @dataclass(frozen=True)
@@ -51,17 +51,18 @@ class ContestedResult:
 def evaluate(records: Mapping[str, list[LineRecord]], labelset: labels.LabelSet,
              votes: dict[str, dict[LineId, str]], contested: dict[LineId, str], *,
              alpha: float = 0.75) -> ContestedResult:
-    """Score the student on the contested hard lines. `alpha` is the run-smoothing weight of the
-    OUT-OF-FOLD prediction (alpha=0 = the i.i.d. per-line student; alpha=0.75 = run-aware)."""
+    """Score the student on the contested hard lines. `contested` is the EVAL truth `{LineId:
+    label}` (the human re-adjudication); the student is scored against it on the lines it can
+    predict. `alpha` is the run-smoothing weight (0 = i.i.d.)."""
+    by_id = {g.id: g for g in labelset.labels}
     ds = student.build_dataset(records, labelset)
     oof = student.oof_smoothed(ds, records, alpha=alpha)  # book-held-out, run-smoothed (alpha=0 == i.i.d.)
 
-    consensus: dict[LineId, str] = {g.id: g.label for g in labelset.labels}
     student_pred: dict[LineId, str] = {
         g.id: oof[g.id].label for g in labelset.labels if g.id in oof}
 
     scorable = [k for k in contested if k in student_pred]
-    n_revised = sum(1 for k in scorable if consensus.get(k) != contested[k])
+    n_revised = sum(1 for k in scorable if by_id[k].label != contested[k])
     yt = [contested[k] for k in scorable]
 
     return ContestedResult(
