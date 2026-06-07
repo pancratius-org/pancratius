@@ -24,7 +24,7 @@ class FakeCompleter:
 def _task(n: int = 3):
     recs = store.load_records("57")
     votable = [r for r in recs if r.votable][:n]
-    spec = ItemSpec(region_id="b57-r0", vote_ids=tuple(r.id for r in votable))
+    spec = ItemSpec.all_votable("b57-r0", [r.id for r in votable])
     return tasks.build_task(title="t", instructions="decide prose vs lineated",
                             specs=[spec], records={"57": recs})
 

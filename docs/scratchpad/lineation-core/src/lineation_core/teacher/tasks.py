@@ -145,12 +145,20 @@ def _line_payload(ln: TaskLine) -> dict[str, Any]:
 
 @dataclass(frozen=True, slots=True)
 class ItemSpec:
-    """Declarative spec for one task item: the votable lines to poll (document order), the
-    neighbouring lines shown un-keyed for orientation, and the reader modality."""
+    """One task item: the region's lines IN THE ORDER they are shown (the caller/selector owns this
+    order — it is rendered verbatim, never re-sorted), and which of them are votable (get an `L00N`
+    key). A region line that is not votable is context, shown un-keyed for orientation."""
     region_id: RegionId
-    vote_ids: tuple[LineId, ...]
-    context_ids: tuple[LineId, ...] = ()
+    region: tuple[LineId, ...]
+    votable: frozenset[LineId]
     modality: Modality = Modality.TEXT
+
+    @classmethod
+    def all_votable(cls, region_id: RegionId, ids: Sequence[LineId], *,
+                    modality: Modality = Modality.TEXT) -> Self:
+        """A region with no separate context — every shown line is polled, in the given order."""
+        return cls(region_id=region_id, region=tuple(ids), votable=frozenset(ids),
+                   modality=modality)
 
 
 def _key(n: int, width: int) -> TaskKey:
@@ -162,12 +170,13 @@ def build_task(
     with_features: bool = True,
     assets: Mapping[RegionId, tuple[EvidenceAsset, ...]] | None = None,
 ) -> Task:
-    """Mint a Task. `L001…L00N` are assigned PER TASK in document order across all items — the ONE
-    place a key is born. Each votable line's record supplies its text + line-text hash (the
-    manifest) and the region listing (via `producer.render_listing` with the minted key map).
-    `records` is the `{book: records}` data the shell loads; this stays pure."""
+    """Mint a Task. `L001…L00N` are assigned PER TASK in the caller's region order across all items
+    — the ONE place a key is born. Each votable line's record supplies its text + line-text hash
+    (the manifest) and the region listing (via `producer.render_listing` with the minted key map).
+    `records` is the `{book: records}` data the shell loads; this stays pure. The region is rendered
+    VERBATIM in the order the selector passed — never re-sorted."""
     by_id = {r.id: r for book in records.values() for r in book}
-    width = max(3, len(str(sum(len(s.vote_ids) for s in specs))))
+    width = max(3, len(str(sum(len(s.votable) for s in specs))))
     assets = assets or {}
 
     by_key: dict[TaskKey, LineId] = {}
@@ -178,7 +187,9 @@ def build_task(
     for spec in specs:
         key_by_id: dict[LineId, ListingKey] = {}
         lines: list[TaskLine] = []
-        for lid in sorted(spec.vote_ids):              # mint in document (reading) order
+        for lid in spec.region:                        # the caller's order, verbatim
+            if lid not in spec.votable:
+                continue                               # a context line — shown un-keyed
             rec = by_id[lid]
             n += 1
             key = _key(n, width)
@@ -187,7 +198,7 @@ def build_task(
             text_hash_by_key[key] = rec.line_text_hash
             item_by_key[key] = spec.region_id
             lines.append(TaskLine(key=key, text=rec.text))
-        region = [by_id[lid] for lid in sorted({*spec.vote_ids, *spec.context_ids})]  # reading order
+        region = [by_id[lid] for lid in spec.region]   # rendered in the caller's order — never sorted
         context = producer.render_listing(region, keys=key_by_id, with_features=with_features)
         items.append(TaskItem(
             id=spec.region_id, modality=spec.modality, context=context,

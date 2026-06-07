@@ -17,7 +17,7 @@ from lineation_core.teacher.tasks import ItemSpec
 def _task(n: int = 5):
     recs = store.load_records("57")
     votable = [r for r in recs if r.votable][:n]
-    spec = ItemSpec(region_id="b57-r0", vote_ids=tuple(r.id for r in votable))
+    spec = ItemSpec.all_votable("b57-r0", [r.id for r in votable])
     return tasks.build_task(title="adj", instructions="i", specs=[spec], records={"57": recs}), \
         {"57": recs}
 
@@ -25,8 +25,8 @@ def _task(n: int = 5):
 def _two_item_task():
     recs = store.load_records("57")
     v = [r for r in recs if r.votable][:6]
-    a = ItemSpec(region_id="b57-r0", vote_ids=tuple(r.id for r in v[:3]))
-    b = ItemSpec(region_id="b57-r1", vote_ids=tuple(r.id for r in v[3:6]))
+    a = ItemSpec.all_votable("b57-r0", [r.id for r in v[:3]])
+    b = ItemSpec.all_votable("b57-r1", [r.id for r in v[3:6]])
     return tasks.build_task(title="adj", instructions="i", specs=[a, b], records={"57": recs}), \
         {"57": recs}
 
