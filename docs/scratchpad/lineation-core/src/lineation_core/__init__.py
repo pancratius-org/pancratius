@@ -5,7 +5,7 @@ ONE canonical per-line feature artifact (`LineRecord`), produced once and consum
 identically by teacher annotation, an interpretable distilled student, and serve-time.
 
 Layout (one home per concern):
-    identity     LineId + content hashes (the join key and safety rails)
+    identity     LineId + content hashes + the shared domain vocabulary (Label, ReaderTag, …)
     records      LineRecord + LineFeatures + Role/SourceFate + the feature schema
     physics      the per-line LibreOffice wrap simulator (the one primitive production lacks)
     source_view  the per-<w:br>-line structural view — one production pipeline pass
@@ -16,8 +16,8 @@ Layout (one home per concern):
     panel_votes  the LLM panel's per-line votes, loaded via the store edge
     student      the interpretable per-line student + book-grouped CV
     sequence     the sequence-shaped prediction API (predict_document) + run smoothing
-    compare      student vs LLM readers on shared labeled lines
-    contested    student vs LLM readers on the human-adjudicated contested lines
+    teacher/     PRODUCES annotations — panel votes + human page-adjudications (task-local ids)
+    evaluation/  JUDGES quality — student vs LLM readers on shared + contested lines
 
 The committed TRUTH (`annotations/`: labels + votes + the contested eval set) and the derived
 record CACHE (`_artifacts/`) are reached through the `store` edge by `LineId`; every consumer

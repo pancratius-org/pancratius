@@ -23,10 +23,10 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import labels, panel_votes, store, student
+from .. import labels, panel_votes, store, student
 from .compare import Metrics, ReaderScore, balanced, score_readers
-from .identity import Label, LabelByLine, LineId, PanelVotes
-from .records import RecordsByBook
+from ..identity import Label, LabelByLine, LineId, PanelVotes
+from ..records import RecordsByBook
 
 
 def load_contested(*, annotations: Path | None = None) -> LabelByLine:

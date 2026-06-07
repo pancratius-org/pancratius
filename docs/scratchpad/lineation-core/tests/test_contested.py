@@ -4,7 +4,8 @@ module __main__ prints the same numbers)."""
 from __future__ import annotations
 
 import pytest
-from lineation_core import contested, panel_votes
+from lineation_core import panel_votes
+from lineation_core.evaluation import contested
 
 
 def test_contested_locked(corpus):

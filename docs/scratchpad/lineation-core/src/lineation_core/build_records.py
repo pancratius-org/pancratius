@@ -10,7 +10,7 @@ contested), so the load side always finds the records its truth needs.
 from __future__ import annotations
 
 from . import artifact, labels, panel_votes, paths
-from .contested import load_contested
+from .evaluation.contested import load_contested
 from .identity import BookId
 
 

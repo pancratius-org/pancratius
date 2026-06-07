@@ -17,9 +17,9 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 
-from . import labels, panel_votes, store, student
-from .identity import Label, LabelByLine, PanelVotes, ReaderTag
-from .records import RecordsByBook
+from .. import labels, panel_votes, store, student
+from ..identity import Label, LabelByLine, PanelVotes, ReaderTag
+from ..records import RecordsByBook
 
 _READERS = panel_votes.READERS
 
