@@ -72,23 +72,35 @@ class TaskItem:
 
 @dataclass(frozen=True, slots=True)
 class TaskManifest:
-    """The PRIVATE resolution table: task-local key → `LineId`, plus the line-text hash captured at
-    mint time (so resolution can fail loud if the corpus drifted under a replayed task). Never in
-    the reader/UI payload; persisted SEPARATELY and read only by `responses`."""
+    """The PRIVATE resolution table: task-local key → `LineId`, the line-text hash captured at mint
+    time (so resolution fails loud if the corpus drifted under a replayed task), and the item each
+    key belongs to (so a verdict returned under the wrong item is caught). Resolution needs ONLY
+    this — not the whole `Task` — so ingest just loads the manifest. Never in the reader/UI payload;
+    persisted SEPARATELY and read only by `responses`."""
     by_key: dict[TaskKey, LineId]
     text_hash_by_key: dict[TaskKey, str]
+    item_by_key: dict[TaskKey, RegionId]
 
     def resolve(self, key: TaskKey) -> LineId | None:
         return self.by_key.get(key)
 
+    @property
+    def item_ids(self) -> frozenset[RegionId]:
+        return frozenset(self.item_by_key.values())
+
+    def keys_for_item(self, item_id: RegionId) -> frozenset[TaskKey]:
+        return frozenset(k for k, it in self.item_by_key.items() if it == item_id)
+
     def to_dict(self) -> dict[str, Any]:
         return {"by_key": {k: lid.as_key() for k, lid in self.by_key.items()},
-                "text_hash_by_key": dict(self.text_hash_by_key)}
+                "text_hash_by_key": dict(self.text_hash_by_key),
+                "item_by_key": dict(self.item_by_key)}
 
     @classmethod
     def from_dict(cls, d: Mapping[str, Any]) -> Self:
         return cls(by_key={k: LineId.from_key(v) for k, v in d["by_key"].items()},
-                   text_hash_by_key=dict(d["text_hash_by_key"]))
+                   text_hash_by_key=dict(d["text_hash_by_key"]),
+                   item_by_key=dict(d["item_by_key"]))
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,23 +172,26 @@ def build_task(
 
     by_key: dict[TaskKey, LineId] = {}
     text_hash_by_key: dict[TaskKey, str] = {}
+    item_by_key: dict[TaskKey, RegionId] = {}
     items: list[TaskItem] = []
     n = 0
     for spec in specs:
         key_by_id: dict[LineId, ListingKey] = {}
         lines: list[TaskLine] = []
-        for lid in spec.vote_ids:
+        for lid in sorted(spec.vote_ids):              # mint in document (reading) order
             rec = by_id[lid]
             n += 1
             key = _key(n, width)
             key_by_id[lid] = key
             by_key[key] = lid
             text_hash_by_key[key] = rec.line_text_hash
+            item_by_key[key] = spec.region_id
             lines.append(TaskLine(key=key, text=rec.text))
-        region = [by_id[lid] for lid in sorted({*spec.vote_ids, *spec.context_ids})]
+        region = [by_id[lid] for lid in sorted({*spec.vote_ids, *spec.context_ids})]  # reading order
         context = producer.render_listing(region, keys=key_by_id, with_features=with_features)
         items.append(TaskItem(
             id=spec.region_id, modality=spec.modality, context=context,
             lines=tuple(lines), assets=tuple(assets.get(spec.region_id, ()))))
     return Task(title=title, instructions=instructions, items=tuple(items),
-                manifest=TaskManifest(by_key=by_key, text_hash_by_key=text_hash_by_key))
+                manifest=TaskManifest(by_key=by_key, text_hash_by_key=text_hash_by_key,
+                                      item_by_key=item_by_key))

@@ -10,6 +10,7 @@ returned as validated `LineRecord`s through the existing hash-railed `artifact` 
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -136,19 +137,30 @@ def load_panel_reps(run_id: str, *, annotations: Path | None = None) -> list[dic
     return list(artifact.read_jsonl(_must(ann / PANEL_RUNS_DIR / f"{run_id}.jsonl")))
 
 
-# --- promotion: resolved rows → the committed truth the eval half loads ------------------------
+# --- promotion: resolved rows → the committed truth the eval half loads (atomic) ---------------
+
+def _atomic_text(path: Path, text: str) -> None:
+    """Write via a temp file + atomic replace, so a committed-truth file is never left half-written
+    if a promote crashes mid-write."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text)
+    os.replace(tmp, path)
+
+
+def _jsonl(rows: list[dict[str, Any]]) -> str:
+    return "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows)
+
 
 def write_label_rows(rows: list[dict[str, Any]], *, annotations: Path | None = None) -> None:
-    artifact.write_jsonl((annotations or paths.ANNOTATIONS) / LABELS_FILE, rows)
+    _atomic_text((annotations or paths.ANNOTATIONS) / LABELS_FILE, _jsonl(rows))
 
 
 def write_vote_rows(rows: list[dict[str, Any]], *, annotations: Path | None = None) -> None:
-    artifact.write_jsonl((annotations or paths.ANNOTATIONS) / VOTES_FILE, rows)
+    _atomic_text((annotations or paths.ANNOTATIONS) / VOTES_FILE, _jsonl(rows))
 
 
 def write_eval_set(name: str, rows: list[dict[str, Any]], *,
                    annotations: Path | None = None) -> None:
-    ann = annotations or paths.ANNOTATIONS
-    (ann / "eval_sets").mkdir(parents=True, exist_ok=True)
-    (ann / "eval_sets" / f"{name}.json").write_text(
-        json.dumps(rows, ensure_ascii=False, indent=2))
+    _atomic_text((annotations or paths.ANNOTATIONS) / "eval_sets" / f"{name}.json",
+                 json.dumps(rows, ensure_ascii=False, indent=2))
