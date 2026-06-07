@@ -15,12 +15,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
-from ..identity import ReaderTag
+from ..identity import ModelId, ReaderTag
 from ..panel_votes import PanelVote, VoteKey
 from .responses import RawReaderResponse, parse_reader_reply
 from .tasks import AssetKind, Modality, Task, TaskItem
 
-type ModelId = str          # an OpenRouter model id, e.g. "x-ai/grok-4"
 type Message = dict         # an OpenAI-style chat message: {"role", "content"}
 
 

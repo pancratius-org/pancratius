@@ -30,6 +30,7 @@ from typing import Any, Self
 
 type Label = str        # "prose" | "lineated" — the two-class verdict for one line
 type ReaderTag = str    # one panel reader: grok | deepseek | gemini | owl | mimo | minimax
+type ModelId = str      # an OpenRouter model id behind a reader, e.g. "x-ai/grok-4"
 type BookId = str       # zero-padded book folder number ("01", "64") — the CV group + join key
 type ListingKey = str   # the OUTWARD key shown for a line in a rendered listing — opaque to the
                         # renderer; the caller picks the scheme (teacher: task-local "L001"; debug:
