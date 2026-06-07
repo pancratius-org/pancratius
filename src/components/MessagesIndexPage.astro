@@ -37,9 +37,10 @@ const LETTER_BLURB = 120;
 const today = todayISO();
 const calendar = buildCalendar(pairs, today);
 
-// The almanac reads newest-month-first: it unrolls downward from the current
-// leaf, like leafing a месяцеслов backwards through the year.
-const feed = [...calendar.months].reverse();
+// Start at the latest month with messages; keep interior empty months as gaps.
+const months = [...calendar.months].reverse();
+const firstWritten = months.findIndex(m => m.itemCount > 0);
+const feed = firstWritten === -1 ? months : months.slice(firstWritten);
 const currentKey = today.slice(0, 7);
 const weekdays = WEEKDAYS_SHORT[locale];
 
@@ -76,82 +77,75 @@ function dayAria(day: Day): string {
       <div class="almanac" aria-label={copy.calendarAria}>
         {feed.map(month => {
           const isCurrent = month.key === currentKey;
+          const silent = month.itemCount === 0;
           const heading = monthHeading(locale, month.year, month.month);
+          const letters = silent ? [] : lettersOf(month.cells);
 
-          // A month with no letters never grows a grid — it rests as one quiet
-          // ruled line the eye glides past, so the almanac opens on writing.
-          if (month.itemCount === 0) {
-            return (
-              <div class:list={["rest", { "rest--now": isCurrent }]}>
-                <div class="rest__lead">
-                  {isCurrent && <span class="rest__now">{copy.todayChip}</span>}
-                  <h2 class="rest__mh">{heading}</h2>
-                </div>
-                <span class="rest__rule" aria-hidden="true"></span>
-                <span class="rest__tally">{copy.emptyMonth}</span>
-              </div>
-            );
-          }
-
-          const letters = lettersOf(month.cells);
           return (
-            <article class:list={["month", { "month--now": isCurrent }]} data-month={month.key}>
+            <article
+              class:list={["month", { "month--now": isCurrent, "month--silent": silent }]}
+              data-month={month.key}
+            >
               <header class="month__head">
                 <div class="month__lead">
                   <h2 class="month__mh">{heading}</h2>
                   {isCurrent && <span class="month__now">{copy.todayChip}</span>}
                 </div>
                 <span class="month__rule" aria-hidden="true"></span>
-                <span class="month__tally">{copy.postsOnDay(month.itemCount)}</span>
+                <span class="month__tally">
+                  {silent ? copy.emptyMonth : copy.postsOnDay(month.itemCount)}
+                </span>
               </header>
 
-              <div class="month__body">
-                <div class="cal" aria-hidden="true">
-                  <div class="cal__wd">
-                    {weekdays.map(w => <span>{w}</span>)}
-                  </div>
-                  <div class="cal__grid">
-                    {month.cells.map(cell => (
-                      cell === null
-                        ? <span class="cal__pad"></span>
-                        : cell.items.length > 0
-                          ? <a
-                              class:list={["cal__day", "cal__day--lit", { "is-today": cell.isToday }]}
-                              href={dayHref(cell)}
-                              aria-label={dayAria(cell)}
-                            >
-                              <span class="cal__n">{cell.day}</span>
-                              <span class="cal__ember"></span>
-                            </a>
-                          : <span class:list={["cal__day", { "is-today": cell.isToday }]}>
-                              <span class="cal__n">{cell.day}</span>
-                            </span>
-                    ))}
-                  </div>
-                </div>
-
-                <ol class="letters">
-                  {letters.map(day => (
-                    <li class="letter" id={`m-${day.iso}`}>
-                      <time class="letter__date" datetime={day.iso}>
-                        {formatMessageDate(locale, day.iso)}
-                      </time>
-                      <div class="letter__items">
-                        {day.items.map(({ entry }) => (
-                          <a class="letter__link" href={routedUrl("message", entry.data.slug, locale)}>
-                            <span class="letter__title">{entry.data.title}</span>
-                            {entry.data.description && (
-                              <span class="letter__desc l-measure l-measure--start">
-                                {clampDescription(entry.data.description, LETTER_BLURB)}
+              {!silent && (
+                <div class="month__body">
+                  <div class="cal" aria-hidden="true">
+                    <div class="cal__wd">
+                      {weekdays.map(w => <span>{w}</span>)}
+                    </div>
+                    <div class="cal__grid">
+                      {month.cells.map(cell => (
+                        cell === null
+                          ? <span class="cal__pad"></span>
+                          : cell.items.length > 0
+                            ? <a
+                                class:list={["cal__day", "cal__day--lit", { "is-today": cell.isToday }]}
+                                href={dayHref(cell)}
+                                aria-label={dayAria(cell)}
+                              >
+                                <span class="cal__n">{cell.day}</span>
+                                <span class="cal__ember"></span>
+                              </a>
+                            : <span class:list={["cal__day", { "is-today": cell.isToday }]}>
+                                <span class="cal__n">{cell.day}</span>
                               </span>
-                            )}
-                          </a>
-                        ))}
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <ol class="letters">
+                    {letters.map(day => (
+                      <li class="letter" id={`m-${day.iso}`}>
+                        <time class="letter__date" datetime={day.iso}>
+                          {formatMessageDate(locale, day.iso)}
+                        </time>
+                        <div class="letter__items">
+                          {day.items.map(({ entry }) => (
+                            <a class="letter__link" href={routedUrl("message", entry.data.slug, locale)}>
+                              <span class="letter__title">{entry.data.title}</span>
+                              {entry.data.description && (
+                                <span class="letter__desc l-measure l-measure--start">
+                                  {clampDescription(entry.data.description, LETTER_BLURB)}
+                                </span>
+                              )}
+                            </a>
+                          ))}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
             </article>
           );
         })}
@@ -200,60 +194,18 @@ function dayAria(day: Day): string {
   /* ─── the almanac: printed leaves, ruled and open — not stacked cards ─── */
   .almanac { margin-bottom: 4.5rem; }
 
-  /* A spent month: a single ruled line, title to tally, that one reads past. */
-  .rest {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: baseline;
-    gap: 0 0.9rem;
-    padding: 1.15rem 0;
-    border-top: 1px solid var(--rule);
-  }
-  /* Title + optional «сегодня» chip share one grid track, so the leader rule
-     and tally never shift when the chip is absent. */
-  .rest__lead, .month__lead {
+  .month__lead {
     display: flex;
     align-items: baseline;
     gap: 0.7rem;
     min-width: 0;
   }
-  .rest__mh {
-    margin: 0;
-    font-family: var(--serif);
-    font-style: italic;
-    font-weight: 400;
-    font-size: clamp(1.15rem, 2.4vw, 1.45rem);
-    color: var(--ink-mute);
-    font-variant-numeric: oldstyle-nums proportional-nums;
-    font-feature-settings: "onum" 1, "lnum" 0;
+  .month {
+    padding-block: 0 3.4rem;
   }
-  .rest__rule {
-    align-self: center;
-    height: 0;
-    border-bottom: 1px dotted var(--rule-2);
+  .month + .month {
+    padding-top: 2.8rem;
   }
-  .rest__tally {
-    font-family: var(--sans);
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    text-transform: lowercase;
-    color: var(--ink-mute);
-    opacity: 0.85;
-  }
-  .rest__now {
-    order: -1;
-    font-family: var(--sans);
-    font-size: 9.5px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--accent);
-  }
-  .rest--now .rest__mh { color: var(--ink-soft); font-style: normal; }
-
-  /* A living month: a section rule, then its grid beside its named letters. */
-  .month { padding-top: 1.5rem; margin-bottom: 2.8rem; }
-  .month + .month, .month + .rest, .rest + .month { border-top: 1px solid var(--rule); }
 
   .month__head {
     display: grid;
@@ -262,6 +214,7 @@ function dayAria(day: Day): string {
     gap: 0 0.85rem;
     margin-bottom: 1.6rem;
   }
+  .month--silent .month__head { margin-bottom: 0; }
   .month__mh {
     margin: 0;
     font-family: var(--serif);
@@ -273,7 +226,8 @@ function dayAria(day: Day): string {
     font-variant-numeric: oldstyle-nums proportional-nums;
     font-feature-settings: "onum" 1, "lnum" 0;
   }
-  .month--now .month__mh { color: var(--accent); }
+  .month--now .month__mh { color: var(--ink); }
+  .month--silent .month__mh { color: var(--ink-mute); }
   .month__now {
     font-family: var(--sans);
     font-size: 9.5px;
@@ -290,9 +244,13 @@ function dayAria(day: Day): string {
   .month__rule {
     align-self: center;
     height: 0;
-    border-bottom: 1px solid var(--rule);
+    border-bottom: 1px solid color-mix(in srgb, var(--accent) 34%, var(--rule));
+  }
+  .month--silent .month__rule {
+    border-bottom-color: color-mix(in srgb, var(--accent) 14%, var(--rule));
   }
   .month__tally {
+    align-self: center;
     font-family: var(--sans);
     font-size: 11px;
     letter-spacing: 0.1em;
@@ -354,14 +312,14 @@ function dayAria(day: Day): string {
     position: absolute;
     inset: 0;
     border-radius: 3px;
-    background: radial-gradient(circle at 50% 42%, var(--accent-mute) 0%, transparent 66%);
+    background: var(--accent-mute);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 26%, transparent);
     transition: background 0.18s var(--ease), box-shadow 0.18s var(--ease);
   }
   .cal__day--lit:hover { transform: translateY(-1px); }
   .cal__day--lit:hover .cal__n { color: var(--mark-ink); }
   .cal__day--lit:hover .cal__ember {
-    background: radial-gradient(circle at 50% 42%, var(--accent-soft) 0%, transparent 72%);
+    background: var(--accent-soft);
     box-shadow: inset 0 0 0 1px var(--accent-soft), 0 6px 16px -8px var(--accent-soft);
   }
   .cal__day--lit.is-today .cal__ember { box-shadow: inset 0 0 0 1px var(--accent-deep); }
