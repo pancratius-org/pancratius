@@ -18,7 +18,7 @@ import time
 from ..identity import ModelId
 from .panel import ChatReply, Message
 
-_REFERER = "https://github.com/litdocs/pancratius"   # OpenRouter app-attribution headers (rankings)
+_REFERER = "https://github.com/pankratyus"           # OpenRouter app-attribution headers (rankings)
 _TITLE = "pancratius-lineation"
 
 
