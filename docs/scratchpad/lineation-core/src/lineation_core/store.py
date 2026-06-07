@@ -34,6 +34,13 @@ def _rows(path: Path) -> list[dict[str, Any]]:
     return list(artifact.read_jsonl(path))
 
 
+def _must(path: Path) -> Path:
+    """A committed/derived file that must already exist; FAILS LOUD with its path if not."""
+    if not path.is_file():
+        raise FileNotFoundError(f"expected file missing: {path}")
+    return path
+
+
 def load_label_rows(*, annotations: Path | None = None) -> list[dict[str, Any]]:
     return _rows((annotations or paths.ANNOTATIONS) / LABELS_FILE)
 
@@ -66,3 +73,82 @@ def load_records_many(
     """Records for several books, keyed by book_id — loaded once at the shell so domain code can
     take the whole `{book: records}` map as data instead of reaching for each book itself."""
     return {b: load_records(b, lang, store=store) for b in book_ids}
+
+
+# --- teacher loop IO: task bundles (manifest committed, payload derived) + promotion -----------
+
+TASKS_DIR = "tasks"            # committed: <task_id>.manifest.json — resolves L001→LineId
+RESPONSES_DIR = "responses"    # committed: <task_id>.json — raw human adjudications
+PANEL_RUNS_DIR = "panel_runs"  # committed: <run_id>.jsonl — per-rep panel votes (evidence)
+
+
+def save_task_bundle(task_id: str, payload: dict[str, Any], manifest: dict[str, Any], *,
+                     annotations: Path | None = None, store: Path | None = None) -> None:
+    """Persist a task: the MANIFEST (committed source — the only thing that resolves the opaque
+    keys) under `annotations/tasks/`, and the reader/UI PAYLOAD (derived — regenerable from
+    records + recipe) under `_teacher/`."""
+    ann = annotations or paths.ANNOTATIONS
+    st = store or paths.TEACHER_STORE
+    (ann / TASKS_DIR).mkdir(parents=True, exist_ok=True)
+    (ann / TASKS_DIR / f"{task_id}.manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2))
+    (st / task_id).mkdir(parents=True, exist_ok=True)
+    (st / task_id / "payload.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+def load_task_bundle(task_id: str, *, annotations: Path | None = None,
+                     store: Path | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
+    """The `(payload, manifest)` for a task — payload from the derived store, manifest from the
+    committed source. FAILS LOUD if either is missing."""
+    ann = annotations or paths.ANNOTATIONS
+    st = store or paths.TEACHER_STORE
+    payload = json.loads(_must(st / task_id / "payload.json").read_text())
+    manifest = json.loads(_must(ann / TASKS_DIR / f"{task_id}.manifest.json").read_text())
+    return payload, manifest
+
+
+def save_human_responses(task_id: str, data: dict[str, Any], *,
+                         annotations: Path | None = None) -> None:
+    """A human adjudication export (`adjudicate.html` output) — irreplaceable source, committed."""
+    ann = annotations or paths.ANNOTATIONS
+    (ann / RESPONSES_DIR).mkdir(parents=True, exist_ok=True)
+    (ann / RESPONSES_DIR / f"{task_id}.json").write_text(
+        json.dumps(data, ensure_ascii=False, indent=2))
+
+
+def load_human_responses(task_id: str, *, annotations: Path | None = None) -> dict[str, Any]:
+    ann = annotations or paths.ANNOTATIONS
+    return json.loads(_must(ann / RESPONSES_DIR / f"{task_id}.json").read_text())
+
+
+def save_panel_reps(run_id: str, rows: list[dict[str, Any]], *,
+                    annotations: Path | None = None) -> None:
+    """Per-rep parsed panel votes — committed EVIDENCE (run-to-run instability is real data, not
+    fluff). The canonical resolved view is `votes.jsonl`; this keeps the reps behind it."""
+    ann = annotations or paths.ANNOTATIONS
+    (ann / PANEL_RUNS_DIR).mkdir(parents=True, exist_ok=True)
+    artifact.write_jsonl(ann / PANEL_RUNS_DIR / f"{run_id}.jsonl", rows)
+
+
+def load_panel_reps(run_id: str, *, annotations: Path | None = None) -> list[dict[str, Any]]:
+    ann = annotations or paths.ANNOTATIONS
+    return list(artifact.read_jsonl(_must(ann / PANEL_RUNS_DIR / f"{run_id}.jsonl")))
+
+
+# --- promotion: resolved rows → the committed truth the eval half loads ------------------------
+
+def write_label_rows(rows: list[dict[str, Any]], *, annotations: Path | None = None) -> None:
+    artifact.write_jsonl((annotations or paths.ANNOTATIONS) / LABELS_FILE, rows)
+
+
+def write_vote_rows(rows: list[dict[str, Any]], *, annotations: Path | None = None) -> None:
+    artifact.write_jsonl((annotations or paths.ANNOTATIONS) / VOTES_FILE, rows)
+
+
+def write_eval_set(name: str, rows: list[dict[str, Any]], *,
+                   annotations: Path | None = None) -> None:
+    ann = annotations or paths.ANNOTATIONS
+    (ann / "eval_sets").mkdir(parents=True, exist_ok=True)
+    (ann / "eval_sets" / f"{name}.json").write_text(
+        json.dumps(rows, ensure_ascii=False, indent=2))
