@@ -24,10 +24,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from .identity import Label, LineId
-from .records import LineFeatures, LineRecord, Role
-
-type RecordIndex = int           # a 0-based position into a records sequence — NOT a src_ordinal
-type Run = list[RecordIndex]     # one run's record indices: a maximal BODY block (an authorial unit)
+from .records import LineFeatures, LineRecord, runs
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,26 +42,6 @@ class Posterior(Protocol):
     unit-testable with a stub — no implementer imports or subclasses this."""
 
     def __call__(self, features: LineFeatures) -> float: ...
-
-
-def runs(records: Sequence[LineRecord]) -> list[Run]:
-    """Indices grouped into runs: maximal spans of consecutive BODY lines (`role == BODY`),
-    bounded by any structural record — the block level of the hierarchy, and the SAME predicate
-    the producer's `run_len`/`run_pos` features use, so the two notions of "run" agree. An
-    interior unmapped body line (`role == BODY` but `votable == False`) CONTINUES its stanza
-    rather than splitting it; `smooth_runs` averages over the votable members only, and the teacher
-    tiler keeps a whole run together as one authorial unit."""
-    runs: list[list[int]] = []
-    cur: list[int] = []
-    for i, r in enumerate(records):
-        if r.role is Role.BODY:
-            cur.append(i)
-        elif cur:
-            runs.append(cur)
-            cur = []
-    if cur:
-        runs.append(cur)
-    return runs
 
 
 def smooth_runs(
