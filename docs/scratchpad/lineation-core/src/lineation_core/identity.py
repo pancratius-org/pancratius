@@ -21,14 +21,14 @@ import re
 import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Self
+from typing import Any, Literal, Self
 
 # --- domain vocabulary (the greppable names every module shares) ------------------------------
 # Plain `str` aliases, not Literal/NewType: labels come from JSON and `LineLabel.__post_init__`
 # is the runtime enforcer of `prose | lineated`, so a Literal would only force casts at the
 # boundary without adding a guarantee the runtime check does not already give.
 
-type Label = str        # "prose" | "lineated" — the two-class verdict for one line
+type Label = Literal["prose", "lineated"]   # the two-class verdict for one line (validated)
 type ReaderTag = str    # one panel reader: grok | deepseek | gemini | owl | mimo | minimax
 type ModelId = str      # an OpenRouter model id behind a reader, e.g. "x-ai/grok-4"
 type BookId = str       # zero-padded book folder number ("01", "64") — the CV group + join key
@@ -43,6 +43,15 @@ type ListingKey = str   # the OUTWARD key shown for a line in a rendered listing
 type LabelByLine = dict[LineId, Label]
 type ReaderCalls = LabelByLine
 type PanelVotes = dict[ReaderTag, ReaderCalls]
+
+
+def to_label(value: str) -> Label:
+    """The single str→`Label` gate: validate a raw string into one of the two verdicts, fail loud
+    otherwise. Used at every JSON / reader-reply boundary so a `Label`-typed value is always
+    validated, while raw untrusted reader output stays plain `str`."""
+    if value == "prose" or value == "lineated":
+        return value
+    raise ValueError(f"label must be prose|lineated, got {value!r}")
 
 _HEX = 16  # hash prefix length kept on disk: 16 hex = 64 bits, collision-safe for a corpus
 

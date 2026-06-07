@@ -25,7 +25,7 @@ from pathlib import Path
 
 from .. import labels, panel_votes, store, student
 from .compare import Metrics, ReaderScore, balanced, score_readers
-from ..identity import Label, LabelByLine, LineId, PanelVotes
+from ..identity import Label, LabelByLine, LineId, PanelVotes, to_label
 from ..records import RecordsByBook
 
 
@@ -33,7 +33,7 @@ def load_contested(*, annotations: Path | None = None) -> LabelByLine:
     """The contested eval slice (`eval_sets/contested.json`): `{LineId: human label}` on the hard
     re-adjudicated lines — an EVAL-only truth (not training); the student is scored against it on
     the lines it can predict."""
-    return {LineId.from_key(d["id"]): d["label"]
+    return {LineId.from_key(d["id"]): to_label(d["label"])
             for d in store.load_eval_set("contested", annotations=annotations)}
 
 

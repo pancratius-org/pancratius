@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any, Self
 
 from . import store
-from .identity import Label, LineId
+from .identity import Label, LineId, to_label
 
 
 class LabelSource(StrEnum):
@@ -61,7 +61,7 @@ class LineLabel:
     @classmethod
     def from_dict(cls, d: Mapping[str, Any]) -> Self:
         return cls(
-            id=LineId.from_key(d["id"]), label=d["label"],
+            id=LineId.from_key(d["id"]), label=to_label(d["label"]),
             source=LabelSource(d["source"]), confidence=d.get("confidence"),
             audit_status=d.get("audit_status", ""), notes=d.get("notes", ""),
             provenance=dict(d.get("provenance", {})),

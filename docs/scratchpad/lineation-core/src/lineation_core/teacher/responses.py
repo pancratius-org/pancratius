@@ -18,13 +18,11 @@ import math
 from dataclasses import dataclass
 from enum import StrEnum
 
-from ..identity import Label, LineId, ReaderTag
+from ..identity import Label, LineId, ReaderTag, to_label
 from ..labels import LabelSource, LineLabel
 from ..panel_votes import PanelVote
 from ..records import RecordsByBook
 from .tasks import RegionId, TaskKey, TaskManifest
-
-_LABELS: frozenset[Label] = frozenset({"prose", "lineated"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,7 +30,7 @@ class RawReaderRow:
     """What a reader/adjudicator returns for one line: an OPAQUE key + verdict. `conf` is optional
     (a human emits none; a model's is stored verbatim, never a fabricated default)."""
     key: TaskKey
-    label: Label
+    label: str          # the RAW reader output — validated to a `Label` only at resolution
     conf: float | None = None
 
 
@@ -87,8 +85,10 @@ class ResolvedLabels:
 class _Resolved:
     item_id: RegionId
     tag: ReaderTag
+    key: TaskKey
     id: LineId
-    row: RawReaderRow
+    label: Label        # validated at the choke point via `to_label`
+    conf: float | None
 
 
 def _resolve(
@@ -121,7 +121,9 @@ def _resolve(
                 faults.append(ResolveFaultRow(resp.item_id, row.key, ResolveFault.DUP_KEY))
                 continue
             seen.add(row.key)
-            if row.label not in _LABELS:
+            try:
+                label = to_label(row.label)
+            except ValueError:
                 faults.append(ResolveFaultRow(resp.item_id, row.key, ResolveFault.BAD_LABEL,
                                               row.label))
                 continue
@@ -129,7 +131,7 @@ def _resolve(
             if cur_hash.get(lid) != mint_hash.get(row.key):
                 faults.append(ResolveFaultRow(resp.item_id, row.key, ResolveFault.TEXT_DRIFT))
                 continue
-            resolved.append(_Resolved(resp.item_id, resp.tag, lid, row))
+            resolved.append(_Resolved(resp.item_id, resp.tag, row.key, lid, label, row.conf))
         answered.setdefault(resp.item_id, set()).update(seen)
 
     to_check = items if complete else answered.keys()      # full run flags every item; else answered
@@ -149,7 +151,7 @@ def resolve_panel(
     """Resolve panel responses into LineId-keyed `PanelVote`s (one per resolved row; rep
     aggregation is a later, separate step). `conf` is the reader's verbatim self-report."""
     resolved, faults, n_expected = _resolve(manifest, responses, records, complete=complete)
-    votes = tuple(PanelVote(id=r.id, tag=r.tag, label=r.row.label, conf=r.row.conf)
+    votes = tuple(PanelVote(id=r.id, tag=r.tag, label=r.label, conf=r.conf)
                   for r in resolved)
     return ResolvedVotes(votes=votes, faults=tuple(faults),
                          n_expected=n_expected, n_resolved=len(votes))
@@ -165,9 +167,9 @@ def resolve_adjudication(
     resolved, faults, n_expected = _resolve(manifest, responses, records, complete=complete)
     by_id = {r.id: r for book in records.values() for r in book}
     labels = tuple(
-        LineLabel(id=r.id, label=r.row.label, source=source, confidence=None,
+        LineLabel(id=r.id, label=r.label, source=source, confidence=None,
                   audit_status=audit_status, notes="",
-                  provenance={"task_key": r.row.key, "item_id": r.item_id, "task": title},
+                  provenance={"task_key": r.key, "item_id": r.item_id, "task": title},
                   line_text_hash=by_id[r.id].line_text_hash)
         for r in resolved)
     notes = {resp.item_id: resp.note for resp in responses if resp.note}

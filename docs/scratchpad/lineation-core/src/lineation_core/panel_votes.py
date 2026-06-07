@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Self
 
 from . import store
-from .identity import Label, LineId, PanelVotes, ReaderTag
+from .identity import Label, LineId, PanelVotes, ReaderTag, to_label
 
 READERS = ("grok", "deepseek", "gemini", "owl", "mimo", "minimax")
 
@@ -36,7 +36,7 @@ class PanelVote:
 
     @classmethod
     def from_dict(cls, d: Mapping[str, Any]) -> Self:
-        return cls(id=LineId.from_key(d["id"]), tag=d["tag"], label=d["label"],
+        return cls(id=LineId.from_key(d["id"]), tag=d["tag"], label=to_label(d["label"]),
                    conf=d.get("conf"))
 
 
