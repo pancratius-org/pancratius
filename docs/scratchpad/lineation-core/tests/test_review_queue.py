@@ -2,9 +2,26 @@
 out-of-fold; acquire is unlabeled, least-confident)."""
 from __future__ import annotations
 
+from collections import Counter
 from types import SimpleNamespace
 
 from lineation_core import review_queue, store, student
+
+
+def _qitem(book: str, margin: float) -> review_queue.QueueItem:
+    return review_queue.QueueItem(
+        id=SimpleNamespace(book_id=book), text="", posterior=0.5, margin=margin,
+        kind="acquire", existing_label=None, student_label="prose", context=())
+
+
+def test_cap_per_book_bounds_each_book_and_keeps_order():
+    items = [_qitem("A", 0.01), _qitem("A", 0.02), _qitem("A", 0.03),
+             _qitem("B", 0.04), _qitem("C", 0.05)]                 # already least-confident first
+    out = review_queue._cap_per_book(items, top=4, per_book_cap=2)
+    per = Counter(it.id.book_id for it in out)
+    assert per["A"] == 2 and len(out) == 4                        # A capped at 2; filled from B, C
+    assert [it.margin for it in out] == sorted(it.margin for it in out)   # input order preserved
+    assert review_queue._cap_per_book(items, top=4, per_book_cap=None) == items[:4]   # None = plain head
 
 
 def _stub(src_ordinal: int, sub: int, text: str):

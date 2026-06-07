@@ -62,9 +62,27 @@ def _context(body: list[LineRecord], k: int, *, radius: int = 2) -> tuple[str, .
                  for j in range(lo, hi))
 
 
+def _cap_per_book(items: list[QueueItem], top: int, per_book_cap: int | None) -> list[QueueItem]:
+    """Take up to `top` items in the given (least-confident-first) order, but no more than
+    `per_book_cap` from any one book — so a few ambiguous books cannot dominate a labeling batch.
+    Without a cap, the plain least-confidence head."""
+    if per_book_cap is None:
+        return items[:top]
+    out: list[QueueItem] = []
+    per: Counter[BookId] = Counter()
+    for it in items:
+        if per[it.id.book_id] >= per_book_cap:
+            continue
+        out.append(it)
+        per[it.id.book_id] += 1
+        if len(out) >= top:
+            break
+    return out
+
+
 def build_queue(records: RecordsByBook, labelset: labels.LabelSet, *,
-                top_acquire: int = 300, seed: int = 0, alpha: float = 0.75,
-                books: list[BookId] | None = None) -> ReviewQueue:
+                top_acquire: int = 300, per_book_cap: int | None = None, seed: int = 0,
+                alpha: float = 0.75, books: list[BookId] | None = None) -> ReviewQueue:
     """Build the review queue with RUN-AWARE (smoothed) confidence. `books` defaults to the labeled
     books; it must be a subset of the loaded `records` map (load a wider map at the edge to acquire
     over more books). Audit uses the book-held-out smoothed OOF; acquire uses the full model + the
@@ -109,20 +127,22 @@ def build_queue(records: RecordsByBook, labelset: labels.LabelSet, *,
 
     audit.sort(key=lambda q: -q.margin)          # most-confident disagreement first
     acquire.sort(key=lambda q: q.margin)         # least-confident first
-    acquire = acquire[:top_acquire]
+    acquire = _cap_per_book(acquire, top_acquire, per_book_cap)
     prose_leaning = sum(1 for q in acquire if q.posterior < 0.5)
     return ReviewQueue(audit, acquire, n_votable, n_scored, prose_leaning, book_ids)
 
 
-def commit_acquire(name: str = "acquire", *, top_acquire: int = 300, alpha: float = 0.75,
-                   annotations: Path | None = None) -> ReviewQueue:
+def commit_acquire(name: str = "acquire", *, top_acquire: int = 300, per_book_cap: int | None = 40,
+                   alpha: float = 0.75, annotations: Path | None = None) -> ReviewQueue:
     """Build the acquire queue over the labeled books' UNLABELED votable lines and COMMIT its
     LineIds as a selection the teacher consumes (`store.save_selection` → the eval→file→teacher
-    handoff, no teacher import). Returns the queue so the caller can report the distribution BEFORE
-    spending on a paid panel run."""
+    handoff, no teacher import). `per_book_cap` (default 40) bounds how many lines any one book
+    contributes, so the first paid batch is not dominated by a couple of ambiguous books — the
+    margin cost is tiny and the coverage gain large; pass None for the plain least-confidence head.
+    Returns the queue so the caller can report the distribution BEFORE spending on a paid panel."""
     labelset = labels.load(annotations=annotations)
     records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
-    q = build_queue(records, labelset, top_acquire=top_acquire, alpha=alpha)
+    q = build_queue(records, labelset, top_acquire=top_acquire, per_book_cap=per_book_cap, alpha=alpha)
     store.save_selection(name, [item.id.as_key() for item in q.acquire], annotations=annotations)
     return q
 
