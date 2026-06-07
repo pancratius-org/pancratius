@@ -202,3 +202,12 @@ def write_eval_set(name: str, rows: list[dict[str, Any]], *,
                    annotations: Path | None = None) -> None:
     _atomic_text((annotations or paths.ANNOTATIONS) / "eval_sets" / f"{name}.json",
                  json.dumps(rows, ensure_ascii=False, indent=2))
+
+
+def save_selection(name: str, keys: list[Any], *, annotations: Path | None = None) -> None:
+    """Commit a `LineId`-key list (each key is `LineId.as_key()` = `[lang, book_id, src_ordinal,
+    sub]`) as `selections/<name>.json` — e.g. the active-learning acquire set the teacher reads via
+    `selector="selection_file:<name>"`. Written by the eval/student side as DATA, so the teacher
+    consumes it without importing the student. The read side is `load_selection`."""
+    _atomic_text((annotations or paths.ANNOTATIONS) / "selections" / f"{name}.json",
+                 json.dumps(keys, ensure_ascii=False, indent=2))
