@@ -215,3 +215,33 @@ def _rep_rows(reps: Sequence[panel_mod.PanelRep]) -> list[dict]:
              "key": row.key, "label": row.label, "conf": row.conf,
              "finish_reason": rep.finish_reason}
             for rep in reps for row in rep.response.rows]
+
+
+def _main() -> None:
+    """CLI: `python -m lineation_core.teacher.recipes <build|panel|ingest> <recipe.toml>`. `build`
+    persists the task bundle (text recipes; a vision recipe needs `render.py` wired); `panel` runs
+    the live OpenRouter panel and promotes votes; `ingest` resolves the downloaded human responses
+    and promotes labels."""
+    import argparse
+    from pathlib import Path
+
+    parser = argparse.ArgumentParser(prog="lineation-teacher",
+                                     description="build / panel / ingest a lineation recipe")
+    parser.add_argument("command", choices=("build", "panel", "ingest"))
+    parser.add_argument("recipe", help="path to a recipe .toml")
+    args = parser.parse_args()
+    recipe = load_recipe(Path(args.recipe).read_text())
+
+    if args.command == "build":
+        task = build(recipe)
+        print(f"built {recipe.task_id}: {len(task.items)} items, "
+              f"{len(task.manifest.by_key)} votable lines")
+    elif args.command == "panel":
+        from .openrouter import OpenRouterCompleter
+        print(f"promoted {panel(recipe, OpenRouterCompleter())} panel votes for {recipe.task_id}")
+    else:
+        print(f"promoted {ingest(recipe)} human labels for {recipe.task_id}")
+
+
+if __name__ == "__main__":
+    _main()
