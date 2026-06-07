@@ -17,6 +17,7 @@ import pancratius.ir.normalize as normalize
 from pancratius import cross_refs, docx_adapter, footnotes, ir, ooxml
 from pancratius.content_catalog import IndexHit, dump_frontmatter
 from pancratius.paths import CACHE_ROOT
+from pancratius.poem_chrome import PoemChrome, clean_poem_chrome
 from pancratius.writeplan import AssetTransform, Diagnostic, PlannedAsset, Role, WriteOp, WritePlan
 from pancratius.writer import WriteReport
 from pancratius.writer import apply as apply_plan
@@ -42,6 +43,8 @@ class ConvertedDocx:
     # FATAL rides into the WritePlan and blocks the write; flattening to `warnings`
     # would lose severity.
     diagnostics: list[ir.Diagnostic] = field(default_factory=list)
+    # Metadata lifted from a poem body; None for non-poem kinds.
+    poem_chrome: PoemChrome | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -231,12 +234,14 @@ def convert_single_docx(
     lower.sanitize_urls(doc)
     assets = lower.assign_assets(doc, media_out)
     body = lower.lower(doc, lang, poem=(kind == "poem"))
+    poem_chrome: PoemChrome | None = None
     if kind == "poem":
         # A poem DOCX that opens with a title paragraph repeats the masthead title in
         # its first stanza; drop it on bold/line-break source signals, not a guess.
         body = _strip_source_duplicate_poem_title(
             body, title, ooxml.read_docx_paragraph_meta(docx)
         )
+        body, poem_chrome = clean_poem_chrome(body)
     refs = cross_refs.extract_cross_refs(body, work_key, title_index)
     # Forward pandoc warnings plus any surfaced warning/fatal diagnostic, so the
     # documented "fail loud" actually fires.
@@ -256,6 +261,7 @@ def convert_single_docx(
         warnings=warnings,
         assets=assets,
         diagnostics=list(doc.diagnostics),
+        poem_chrome=poem_chrome,
     )
 
 

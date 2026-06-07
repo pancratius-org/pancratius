@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any, TypedDict
 
-from pancratius import footnotes
+from pancratius import footnotes, ir
 from pancratius.content_catalog import (
     KIND_DIRS,
     CatalogEntry,
@@ -432,8 +432,19 @@ def _frontmatter_for_import(
                 tags = reference.frontmatter.get("tags") if reference else []
             fm["tags"] = tags if isinstance(tags, list) else []
         case "poem":
-            if "date" not in fm:
-                fm["date"] = reference.frontmatter.get("date") if reference else None
+            # The body sign-off date fills a missing date (preferred over the less
+            # reliable reference) but never overwrites a committed one; mismatch warns.
+            lifted = converted.poem_chrome.source_date if converted.poem_chrome else None
+            if fm.get("date") is None:
+                ref_date = reference.frontmatter.get("date") if reference else None
+                fm["date"] = lifted or ref_date
+            final_date = fm.get("date")
+            if lifted and final_date and lifted != final_date:
+                converted.diagnostics.append(ir.Diagnostic(
+                    "warning", "import.poem-date-mismatch",
+                    f"poem #{number}: kept date {final_date!r} disagrees with "
+                    f"body sign-off {lifted!r}",
+                ))
         case _:
             pass
 

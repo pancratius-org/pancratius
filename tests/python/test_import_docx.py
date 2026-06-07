@@ -10,7 +10,48 @@ from pathlib import Path
 import pytest
 
 from pancratius import import_docx
-from pancratius.content_catalog import split_frontmatter
+from pancratius.content_catalog import CatalogEntry, split_frontmatter
+from pancratius.docx_conversion import ConvertedDocx
+from pancratius.poem_chrome import PoemChrome
+
+
+def _poem_fm(
+    *, source_date: str | None, existing: dict | None = None, ref: dict | None = None
+) -> tuple[dict, list]:
+    """Build poem frontmatter via `_frontmatter_for_import`, returning (fm, diagnostics)."""
+    def entry(fm: dict) -> CatalogEntry:
+        return CatalogEntry(
+            kind="poem", number=1, slug="01-x", title="X", lang="ru", description="d",
+            work_key="poem:1", work_dir=Path("."), md_path=Path("x.md"), frontmatter=fm,
+        )
+    converted = ConvertedDocx(body="стих\n", poem_chrome=PoemChrome(source_date=source_date))
+    fm = import_docx._frontmatter_for_import(
+        request=import_docx.ImportRequest(docx=Path("x.docx"), lang="ru", out_content=Path(".")),
+        kind="poem", number=1, slug="01-x", title="X", description="d", lang="ru", cover=None,
+        existing_lang=entry(existing) if existing is not None else None,
+        reference=entry(ref) if ref is not None else None,
+        converted=converted,
+    )
+    return fm, converted.diagnostics
+
+
+def test_poem_signoff_date_fills_missing() -> None:
+    fm, diags = _poem_fm(source_date="2025-03-14")
+    assert fm["date"] == "2025-03-14"
+    assert diags == []
+
+
+def test_poem_signoff_date_preferred_over_reference() -> None:
+    fm, diags = _poem_fm(source_date="2025-03-14", ref={"date": "2026-04-26"})
+    assert fm["date"] == "2025-03-14"
+    assert diags == []
+
+
+def test_poem_signoff_date_never_overwrites_and_warns_on_mismatch() -> None:
+    fm, diags = _poem_fm(source_date="2026-08-10", existing={"date": "2026-03-10"})
+    assert fm["date"] == "2026-03-10"
+    assert [d.code for d in diags] == ["import.poem-date-mismatch"]
+
 
 requires_docx_import = pytest.mark.skipif(
     shutil.which("pandoc") is None or importlib.util.find_spec("PIL") is None,
