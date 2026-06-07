@@ -6,8 +6,7 @@ a flowing-prose line WRAPS to >=2 rendered lines, while a discrete verse/litany 
 We reproduce LibreOffice's greedy line-fill (LiberationSerif at docDefaults size into the section
 column) to compute, per display line, `fill` (single-line advance / column width) and `wraps`.
 
-Vendored from the proven `intent-classifier/scripts/wrap.py` core (its `__main__` validation harness
-dropped). This is the ONE primitive production lacks — production ships whole paragraphs to
+This is the one primitive production lacks — production ships whole paragraphs to
 LibreOffice for real rendering and never needed a per-line simulator. It belongs upstream eventually
 (next to `docx_render`); kept here while the artifact contract stabilises.
 """

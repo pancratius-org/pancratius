@@ -331,7 +331,7 @@ def vectorize_fixed(features: LineFeatures) -> FeatureVector:
 
 def render_listing(records_in: list[LineRecord], *, keys: Mapping[LineId, ListingKey],
                    with_features: bool) -> str:
-    """The ONE listing builder (replaces the three hand-synced ones). Each body line shows its
+    """The ONE listing builder. Each body line shows its
     caller-chosen `ListingKey` from `keys`; a body line absent from `keys` is context (shown for
     orientation, no vote key). Structural roles are separators. With `with_features`, the feature
     columns are formatted from the SAME `record.features` the vector reads — so the teacher's
