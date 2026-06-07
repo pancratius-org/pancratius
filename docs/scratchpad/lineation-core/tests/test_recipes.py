@@ -3,8 +3,11 @@
 shows context neighbours un-keyed, covers every selected line exactly once, in document order."""
 from __future__ import annotations
 
+import pytest
+
 from lineation_core import sequence, store
 from lineation_core.teacher import recipes
+from lineation_core.teacher.tasks import Modality
 
 
 def _first_votable(n: int):
@@ -43,3 +46,45 @@ def test_tile_shows_context_unkeyed_and_is_a_deterministic_document_span():
     pos = {r.id: i for i, r in enumerate(recs)}
     idxs = [pos[lid] for lid in s.region]
     assert idxs == list(range(idxs[0], idxs[-1] + 1))  # a contiguous document-order span, not sorted apart
+
+
+_FULL = """
+task_id = "acq-1"
+title = "Acquire"
+instructions = "prose vs lineated"
+reps = 3
+
+[selection]
+books = ["13", "37"]
+selector = "eval_set:contested"
+target = 8
+
+[[readers]]
+tag = "grok"
+model = "x-ai/grok-4"
+modality = "vision"
+
+[[readers]]
+tag = "deepseek"
+model = "deepseek/chat"
+"""
+
+
+def test_load_recipe_parses_a_full_toml():
+    r = recipes.load_recipe(_FULL)
+    assert r.task_id == "acq-1" and r.books == ("13", "37") and r.reps == 3
+    assert r.selector == "eval_set:contested" and r.target == 8 and r.lang == "ru"
+    assert [x.tag for x in r.readers] == ["grok", "deepseek"]
+    assert r.readers[0].modality is Modality.VISION and r.readers[1].modality is Modality.TEXT
+    assert r.vision is True                              # a vision reader present
+
+
+def test_load_recipe_rejects_empty_books_dupe_readers_and_bad_modality():
+    with pytest.raises(ValueError):
+        recipes.load_recipe('task_id="x"\n[selection]\nbooks=[]\n')
+    with pytest.raises(ValueError):
+        recipes.load_recipe('task_id="x"\n[selection]\nbooks=["13"]\n'
+                            '[[readers]]\ntag="g"\nmodel="m"\n[[readers]]\ntag="g"\nmodel="m2"\n')
+    with pytest.raises(ValueError):
+        recipes.load_recipe('task_id="x"\n[selection]\nbooks=["13"]\n'
+                            '[[readers]]\ntag="g"\nmodel="m"\nmodality="bogus"\n')
