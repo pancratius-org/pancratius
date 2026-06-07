@@ -59,10 +59,6 @@ const id = variant === "mobile" ? "cs-search-mobile" : "cs-search-desktop";
     -webkit-backdrop-filter: blur(6px);
     transition: border-color 120ms ease;
   }
-  .cs-search input:focus {
-    border-color: var(--accent);
-    outline: none;
-  }
   .cs-search input::placeholder {
     color: var(--cs-ink-trace);
     font-style: italic;
@@ -81,6 +77,10 @@ const id = variant === "mobile" ? "cs-search-mobile" : "cs-search-desktop";
 
   .cs-search--mobile { display: block; margin: 0 0 12px; }
   .cs-search--mobile input { width: 100%; }
+  .cs-search input:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
 
   .visually-hidden {
     position: absolute;

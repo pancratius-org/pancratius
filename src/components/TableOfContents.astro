@@ -146,6 +146,8 @@ const label = tocCopy[locale].label;
     transition: color 0.18s var(--ease);
     line-height: 1.35;
   }
+  .toc__d3 { padding-left: 1rem; font-size: 12px; color: var(--ink-mute); }
+  .toc__d3 a { color: var(--ink-mute); }
   .toc__item a:hover { color: var(--accent); }
   .toc__item a[aria-current="location"] {
     color: var(--ink);
@@ -153,7 +155,5 @@ const label = tocCopy[locale].label;
     padding-left: 0.6rem;
     margin-left: -0.6rem;
   }
-  .toc__d3 { padding-left: 1rem; font-size: 12px; color: var(--ink-mute); }
-  .toc__d3 a { color: var(--ink-mute); }
   .toc__d3 a[aria-current="location"] { color: var(--ink-soft); }
 </style>

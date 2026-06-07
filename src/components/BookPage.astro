@@ -128,6 +128,15 @@ const pad = (n: number) => String(n).padStart(2, "0");
     padding-bottom: 2.25rem;
     border-bottom: 1px solid var(--rule);
   }
+  .book-page__meta {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0;
+  }
   .book-page__masthead .book-page__meta  { grid-area: meta;  }
   .book-page__masthead .book-page__cover { grid-area: cover; }
   .book-page__masthead .book-page__body  { grid-area: body;  }
@@ -150,15 +159,6 @@ const pad = (n: number) => String(n).padStart(2, "0");
     box-shadow: 0 1px 0 rgba(20, 17, 13, 0.06), 0 40px 70px -38px rgba(60, 45, 20, 0.40);
   }
 
-  .book-page__meta {
-    font-family: var(--sans);
-    font-size: 11.5px;
-    font-weight: 500;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--ink-mute);
-    margin: 0;
-  }
   .book-page__num {
     font-family: var(--serif);
     font-style: italic;

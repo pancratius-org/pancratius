@@ -221,8 +221,8 @@ const channel = await channelForEntry(entry);
     margin: 0;
   }
   .vp-compact__meta dd { margin: 2px 0 0; color: var(--ink-soft); }
-  .vp-compact__meta dd a { color: var(--ink-soft); text-decoration: underline; text-decoration-color: var(--rule-2); }
-  .vp-compact__meta dd a:hover { color: var(--accent); }
+  .vp-compact__meta :where(dd) a { color: var(--ink-soft); text-decoration: underline; text-decoration-color: var(--rule-2); }
+  .vp-compact__meta :where(dd) a:where(:hover) { color: var(--accent); }
   .vp-compact__watch {
     margin: 0;
     font-family: var(--sans);
@@ -237,7 +237,7 @@ const channel = await channelForEntry(entry);
     text-decoration: underline;
     text-decoration-color: var(--rule-2);
   }
-  .vp-compact__watch > a:hover { color: var(--accent); }
+  .vp-compact__watch > a:where(:hover) { color: var(--accent); }
   .vp-compact__mirrors-label {
     color: var(--ink-mute);
     letter-spacing: 0.08em;
@@ -303,7 +303,7 @@ const channel = await channelForEntry(entry);
     text-decoration: underline;
     text-decoration-color: var(--rule-2);
   }
-  .video-page__watch > a:hover { color: var(--accent); }
+  .video-page__watch > a:where(:hover) { color: var(--accent); }
   .video-page__mirrors-label {
     color: var(--ink-mute);
     letter-spacing: 0.08em;

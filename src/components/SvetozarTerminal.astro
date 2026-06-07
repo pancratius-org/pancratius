@@ -166,10 +166,6 @@ const c = COPY[lang];
     display: contents;
     margin: 0;
   }
-  .svet-term__row .svet-term__who,
-  .svet-term__row .svet-term__what {
-    margin: 0 0 0.4em;
-  }
 
   .svet-term__who {
     font-family: var(--mono);
@@ -186,6 +182,10 @@ const c = COPY[lang];
     /* Long lines should wrap inside the card; soft hyphenation off so
        the dialog stays readable as text, not justified paragraphs. */
     overflow-wrap: anywhere;
+  }
+  .svet-term__row .svet-term__who,
+  .svet-term__row .svet-term__what {
+    margin: 0 0 0.4em;
   }
 
   /* Pause lines span both columns so the bullet sits against the gutter,
