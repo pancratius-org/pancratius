@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adjudication Desk</title>
+<style>
+  /*
+    "Editorial proofing desk" — warm paper, ink, one oxblood accent.
+    Single self-contained file. No build, no network, no fetch. file:// safe.
+
+    Layout is a fixed-viewport cockpit, not a scrolling document:
+      [ rail ]            — task identity + progress, never scrolls away
+      [ figure | ledger ] — two panes that scroll INTERNALLY (min-height:0)
+      [ action bar ]      — Prev / status / Next, pinned to the bottom edge
+    so the navigation is always reachable across a 200-item grind without
+    chasing it down the page.
+  */
+  :root{
+    --paper:#f4efe6;
+    --paper-2:#efe8da;
+    --paper-card:#fbf8f1;
+    --ink:#23201c;
+    --ink-soft:#5c564c;
+    --ink-faint:#938b7d;
+    --rule:#d9d0bf;
+    --rule-soft:#e6ddcd;
+    --accent:#8c2f1f;       /* oxblood */
+    --accent-soft:#b9543f;
+    --green:#3f5e3a;        /* a calm sage, never neon */
+    --gold:#9a7a26;
+    --shadow:0 1px 0 rgba(35,32,28,.04), 0 18px 40px -28px rgba(35,32,28,.45);
+    --serif: Georgia, "PT Serif", "Times New Roman", "DejaVu Serif", serif;
+    --sans: "Avenir Next", "Helvetica Neue", "Segoe UI", "PT Sans", Arial, sans-serif;
+    --mono: "SFMono-Regular", "DejaVu Sans Mono", "Consolas", "Liberation Mono", monospace;
+    --rail-h:60px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%}
+
+  /* themed scrollbars — thin and paper-toned so the two pane scrollbars read like
+     the status ribbon up top (the third "scroll"). Explicit colors are required:
+     Firefox otherwise auto-tints each scrollbar to its own background, which is
+     why the lighter panel pane got a lighter bar. Firefox honours the standard
+     props; Safari/Chrome fall back to the ::-webkit pseudo-elements. */
+  *{scrollbar-width:thin;scrollbar-color:var(--ink-faint) var(--rule-soft)}
+  ::-webkit-scrollbar{width:11px;height:11px}
+  ::-webkit-scrollbar-track{background:var(--rule-soft);border-radius:99px}
+  ::-webkit-scrollbar-thumb{background:var(--ink-faint);border-radius:99px;border:3px solid var(--rule-soft);background-clip:content-box}
+  ::-webkit-scrollbar-thumb:hover{background:var(--ink-soft);background-clip:content-box}
+  ::-webkit-scrollbar-corner{background:transparent}
+  body{
+    background:var(--paper);
+    background-image:
+      radial-gradient(1200px 600px at 12% -10%, rgba(255,255,255,.55), transparent 60%),
+      radial-gradient(900px 500px at 105% 0%, rgba(140,47,31,.05), transparent 55%);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* faint paper grain */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.035;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* ---------- App shell (fills the viewport) ---------- */
+  .app{
+    position:relative;z-index:1;
+    height:100dvh;display:flex;flex-direction:column;overflow:hidden;
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    font-family:var(--sans);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;
+    font-weight:600;border:1px solid var(--ink);background:transparent;color:var(--ink);
+    padding:10px 16px;border-radius:3px;cursor:pointer;transition:all .15s ease;
+    display:inline-flex;align-items:center;gap:8px;white-space:nowrap;
+  }
+  .btn:hover{background:var(--ink);color:var(--paper-card)}
+  .btn.accent{border-color:var(--accent);color:var(--accent)}
+  .btn.accent:hover{background:var(--accent);color:#fff}
+  .btn.solid{background:var(--ink);color:var(--paper-card)}
+  .btn.solid:hover{background:#000}
+  .btn.ghost{border-color:var(--rule);color:var(--ink-soft);text-transform:none;letter-spacing:.02em;font-weight:500;font-size:13px}
+  .btn.ghost:hover{background:var(--paper-2);color:var(--ink);border-color:var(--ink-faint)}
+  .btn:disabled{opacity:.3;cursor:not-allowed}
+  .btn:disabled:hover{background:transparent;color:var(--ink-soft)}
+  .btn.sm{padding:7px 11px;font-size:11px}
+  input[type=file]{display:none}
+  kbd{
+    font-family:var(--mono);font-size:10.5px;line-height:1;color:var(--ink-soft);
+    background:var(--paper-2);border:1px solid var(--rule);border-bottom-width:2px;
+    border-radius:3px;padding:3px 5px;min-width:16px;text-align:center;display:inline-block;
+  }
+
+  /* ---------- Rail (top) ---------- */
+  .rail{
+    flex:none;min-height:var(--rail-h);
+    background:rgba(244,239,230,.94);backdrop-filter:saturate(1.1) blur(6px);
+    border-bottom:1px solid var(--rule);
+    display:flex;align-items:center;gap:20px;padding:0 24px;
+  }
+  .rail .brand{display:flex;flex-direction:column;gap:2px;min-width:120px;flex:0 1 auto;max-width:40%}
+  .rail .kicker{
+    font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--accent);font-weight:700;
+  }
+  .rail .title{
+    font-family:var(--serif);font-weight:400;font-size:16px;line-height:1.1;color:var(--ink);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .rail .title em{font-style:italic;color:var(--ink-soft)}
+
+  .rail .meter{flex:1 1 auto;min-width:240px;display:flex;flex-direction:column;gap:7px}
+  .rail .meter-top{display:flex;align-items:baseline;gap:12px;white-space:nowrap;font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+  .rail .meter-top .pos{color:var(--ink)}
+  .rail .meter-top .pos b{font-size:14px}
+  .rail .meter-top .tally{margin-left:auto;display:flex;gap:12px;letter-spacing:.01em}
+  .rail .tally .ok{color:var(--green)}
+  .rail .tally .part{color:var(--gold)}
+  .rail .tools{flex:none;display:flex;align-items:center;gap:8px}
+
+  /* status ribbon — one segment per item (green=resolved, gold=partial, bare=unanswered).
+     Replaces both the plain progress bar and a scrolling dot strip: fixed width, no
+     scroll, reads as a heatmap of where the gaps are, scales to hundreds. Click to jump. */
+  .ribbon{position:relative;height:10px;cursor:pointer}
+  .ribbon .track{
+    position:absolute;inset:0;display:flex;border:1px solid var(--rule);border-radius:3px;
+    overflow:hidden;background:var(--rule-soft);
+  }
+  .ribbon .seg{flex:1 1 0;min-width:0;transition:background .12s}
+  .ribbon .seg.partial{background:var(--gold)}
+  .ribbon .seg.done{background:var(--green)}
+  .ribbon .seg:hover{background:var(--accent-soft)}
+  .ribbon .needle{
+    position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--accent);border-radius:2px;
+    transform:translateX(-1px);transition:left .15s ease;pointer-events:none;
+    box-shadow:0 0 0 1.5px var(--paper);
+  }
+
+  /* ---------- Main region ---------- */
+  .main{flex:1;min-height:0;position:relative}
+
+  /* loader / export views are centered scrollable blocks */
+  .centered{height:100%;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:48px 24px}
+  .loader{
+    width:100%;max-width:560px;margin-top:6vh;background:var(--paper-card);
+    border:1px solid var(--rule);border-radius:4px;box-shadow:var(--shadow);
+    padding:40px 38px;text-align:center;
+  }
+  .loader .seal{
+    width:54px;height:54px;margin:0 auto 18px;border-radius:50%;
+    border:1.5px solid var(--accent);color:var(--accent);
+    display:grid;place-items:center;font-family:var(--serif);font-size:24px;font-style:italic;
+  }
+  .loader h2{font-family:var(--serif);font-weight:400;font-size:22px;margin:0 0 8px}
+  .loader p{color:var(--ink-soft);font-size:14px;margin:0 auto 22px;max-width:400px}
+  .loader .demo{margin-top:18px;font-size:12.5px;color:var(--ink-faint)}
+  .loader code{font-family:var(--mono);font-size:.92em;background:var(--paper-2);padding:1px 5px;border-radius:3px}
+
+  /* ---------- Item view: two internally-scrolling panes ---------- */
+  .itemview{height:100%;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr)}
+  .pane{min-height:0;overflow:auto;padding:22px 26px}
+  .pane.figure-pane{border-right:1px solid var(--rule);background:linear-gradient(180deg,rgba(0,0,0,.012),transparent 120px)}
+
+  /* figure */
+  .figure{
+    background:var(--paper-card);border:1px solid var(--rule);border-radius:4px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .figure .imgwrap{
+    background:
+      repeating-conic-gradient(#0000 0 25%, rgba(35,32,28,.02) 0 50%) 0 0/22px 22px,
+      var(--paper-card);
+    padding:14px;display:flex;justify-content:center;align-items:center;cursor:zoom-in;min-height:120px;
+  }
+  .figure img{max-width:100%;height:auto;display:block;border-radius:2px;box-shadow:0 6px 22px -16px rgba(0,0,0,.5)}
+  .figure .cap{
+    border-top:1px solid var(--rule-soft);padding:8px 14px;font-size:11.5px;color:var(--ink-faint);
+    display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);
+  }
+  .figure .noimg{padding:48px 24px;color:var(--ink-faint);font-style:italic;text-align:center;font-family:var(--serif)}
+
+  .structure{
+    margin-top:14px;background:#2a2722;color:#e9e2d3;border-radius:4px;border:1px solid #1c1a16;
+    font-family:var(--mono);font-size:12px;line-height:1.55;padding:14px 16px;white-space:pre-wrap;
+  }
+  .structure .lbl{display:block;color:#9a9080;font-size:9.5px;letter-spacing:.25em;text-transform:uppercase;margin-bottom:8px}
+
+  /* panel head */
+  .itemhead{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .itemhead .idx{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.1em}
+  .itemhead .id{font-family:var(--mono);font-size:12px;color:var(--ink-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .itemhead .mode-tag{
+    margin-left:auto;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;
+    color:var(--ink-soft);border:1px solid var(--rule);padding:3px 9px;border-radius:99px;flex:none;
+  }
+
+  .panel .q{font-family:var(--serif);font-size:19px;line-height:1.35;margin:0 0 16px;color:var(--ink)}
+  .panel .section-lbl{
+    font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-faint);
+    font-weight:700;margin:0 0 10px;display:flex;align-items:center;gap:8px;
+  }
+
+  /* single-choice options */
+  .options{display:flex;flex-direction:column;gap:9px;margin-bottom:18px}
+  .opt{
+    display:flex;align-items:center;gap:13px;text-align:left;width:100%;
+    background:var(--paper-card);border:1px solid var(--rule);border-radius:4px;
+    padding:13px 15px;cursor:pointer;transition:all .13s ease;font-size:15px;color:var(--ink);
+    font-family:var(--serif);
+  }
+  .opt:hover{border-color:var(--ink-faint);transform:translateX(2px)}
+  .opt .key{
+    font-family:var(--mono);font-size:11px;color:var(--ink-faint);border:1px solid var(--rule);
+    border-radius:3px;width:22px;height:22px;display:grid;place-items:center;flex:none;
+  }
+  .opt[aria-pressed="true"]{
+    border-color:var(--accent);background:linear-gradient(0deg,rgba(140,47,31,.06),rgba(140,47,31,.06)),var(--paper-card);
+    box-shadow:inset 3px 0 0 var(--accent);
+  }
+  .opt[aria-pressed="true"] .key{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  /* per-line ledger */
+  .perline-tools{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap;align-items:center}
+  .lines{
+    display:flex;flex-direction:column;border:1px solid var(--rule);border-radius:4px;
+    overflow:hidden;background:var(--paper-card);
+  }
+  .linerow{
+    display:flex;align-items:center;gap:12px;padding:8px 12px;border-bottom:1px solid var(--rule-soft);
+    transition:background .12s;position:relative;outline:none;
+  }
+  .linerow:last-child{border-bottom:none}
+  .linerow:nth-child(odd){background:rgba(0,0,0,.012)}
+  .linerow.answered{background:rgba(63,94,58,.05);box-shadow:inset 3px 0 0 var(--green)}
+  .linerow:focus-visible{
+    background:linear-gradient(0deg,rgba(140,47,31,.05),rgba(140,47,31,.05));
+    box-shadow:inset 3px 0 0 var(--accent),0 0 0 1px rgba(140,47,31,.25);
+  }
+  .linerow .lk{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);width:34px;flex:none}
+  .linerow .lt{
+    flex:1;font-family:var(--serif);font-size:15px;line-height:1.3;color:var(--ink);
+    white-space:pre-wrap;word-break:break-word;
+  }
+  .toggles{display:flex;gap:5px;flex:none}
+  .tg{
+    font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.04em;
+    border:1px solid var(--rule);background:transparent;color:var(--ink-soft);
+    padding:6px 10px;border-radius:3px;cursor:pointer;transition:all .12s;white-space:nowrap;
+  }
+  .tg:hover{border-color:var(--ink-faint);color:var(--ink)}
+  .tg[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .linerow .linehint{
+    font-family:var(--mono);font-size:10px;color:var(--gold);flex:none;
+    border:1px dashed rgba(154,122,38,.5);padding:2px 6px;border-radius:3px;
+  }
+
+  /* note */
+  .note-wrap{margin-top:18px}
+  textarea.note{
+    width:100%;min-height:60px;resize:vertical;font-family:var(--serif);font-size:14.5px;
+    color:var(--ink);background:var(--paper-card);border:1px solid var(--rule);border-radius:4px;
+    padding:11px 13px;line-height:1.45;
+  }
+  textarea.note:focus,.opt:focus-visible,.tg:focus-visible,.btn:focus-visible,.seg:focus-visible{
+    outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(140,47,31,.18)
+  }
+
+  /* hint */
+  .hint-box{margin-top:18px;border:1px dashed var(--rule);border-radius:4px;background:rgba(154,122,38,.05)}
+  .hint-box summary{
+    list-style:none;cursor:pointer;padding:10px 14px;font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--gold);font-weight:700;display:flex;align-items:center;gap:8px;
+  }
+  .hint-box summary::-webkit-details-marker{display:none}
+  .hint-box summary::before{content:"\25C6";font-size:9px}
+  .hint-box[open] summary::before{content:"\25C7"}
+  .hint-box .hint-body{padding:0 14px 14px;font-family:var(--serif);font-size:14px;color:var(--ink-soft);white-space:pre-wrap}
+
+  /* ---------- Action bar (bottom, always visible) ---------- */
+  .actionbar{
+    flex:none;min-height:56px;background:var(--ink);color:var(--paper-card);
+    display:flex;align-items:center;gap:16px;padding:0 22px;
+    box-shadow:0 -10px 30px -22px rgba(0,0,0,.7);
+  }
+  .actionbar .btn{border-color:rgba(255,255,255,.3);color:var(--paper-card)}
+  .actionbar .btn:hover{background:var(--paper-card);color:var(--ink);border-color:var(--paper-card)}
+  .actionbar .btn:disabled:hover{background:transparent;color:var(--paper-card)}
+  .actionbar .btn.next{background:var(--accent);border-color:var(--accent);color:#fff}
+  .actionbar .btn.next:hover{background:var(--accent-soft);border-color:var(--accent-soft);color:#fff}
+  .actionbar .status{
+    flex:1;text-align:center;font-family:var(--mono);font-size:12.5px;color:rgba(244,239,230,.78);
+    display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;
+  }
+  .actionbar .status .now{color:#fff}
+  .actionbar .status .legend{color:rgba(244,239,230,.66);font-size:11px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}
+  .actionbar .status .legend kbd{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:rgba(244,239,230,.85)}
+
+  /* ---------- Export view ---------- */
+  .export{max-width:760px;margin:0 auto}
+  .export h2{font-family:var(--serif);font-weight:400;font-size:22px;margin:0 0 4px}
+  .export p{color:var(--ink-soft);font-size:14px;margin:0 0 14px;max-width:650px}
+  .export code{font-family:var(--mono);font-size:.9em;background:var(--paper-2);padding:1px 5px;border-radius:3px}
+  .export-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .export-bar .stats{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);margin-left:auto}
+  .export-out{
+    margin-top:16px;width:100%;min-height:46vh;font-family:var(--mono);font-size:11.5px;
+    background:#2a2722;color:#e9e2d3;border:1px solid #1c1a16;border-radius:4px;padding:14px;
+    line-height:1.5;white-space:pre;
+  }
+  .export-out:focus{outline:none;box-shadow:0 0 0 2px rgba(140,47,31,.4)}
+
+  /* lightbox — a pan & zoom reader: opens at fit-width so tall page scans are
+     legible (scroll down to read), scroll-wheel/+/- to zoom, drag to pan. */
+  .lightbox{position:fixed;inset:0;z-index:50;background:rgba(20,18,15,.93);display:none}
+  .lightbox.on{display:block}
+  .lb-scroll{position:absolute;inset:0;overflow:auto;cursor:grab;text-align:center}
+  .lb-scroll.grabbing{cursor:grabbing}
+  .lb-img{
+    display:block;margin:0 auto;border-radius:3px;box-shadow:0 30px 80px -20px #000;
+    user-select:none;-webkit-user-drag:none;/* width set inline by the viewer */
+  }
+  .lb-bar{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:51;
+    display:flex;gap:6px;align-items:center;
+    background:rgba(33,30,26,.72);backdrop-filter:blur(14px) saturate(1.1);
+    border:1px solid rgba(255,255,255,.1);border-radius:99px;padding:6px 8px;
+    box-shadow:0 18px 40px -20px rgba(0,0,0,.55);
+  }
+  .lb-bar button{
+    font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.04em;
+    border:1px solid rgba(255,255,255,.16);background:transparent;color:#e9e2d3;
+    padding:7px 12px;border-radius:99px;cursor:pointer;transition:all .12s;
+  }
+  .lb-bar button:hover{background:rgba(255,255,255,.12)}
+  .lb-bar button.round{width:32px;height:32px;padding:0;font-size:18px;line-height:1;display:grid;place-items:center}
+  .lb-bar .pct{font-family:var(--mono);font-size:12px;color:#cfc6b4;min-width:50px;text-align:center}
+  .lb-bar .sep{width:1px;height:20px;background:rgba(255,255,255,.14);margin:0 2px}
+  .lb-hint{
+    position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:51;pointer-events:none;
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;color:rgba(244,239,230,.82);
+    background:rgba(33,30,26,.55);backdrop-filter:blur(12px) saturate(1.1);
+    border:1px solid rgba(255,255,255,.08);border-radius:99px;white-space:nowrap;
+    max-width:calc(100vw - 24px);overflow:hidden;text-overflow:ellipsis;padding:8px 16px;
+  }
+  .lb-hint kbd{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22);color:#efe5d3}
+
+  /* keyboard cheat-sheet overlay */
+  .sheet{position:fixed;inset:0;z-index:55;background:rgba(20,18,15,.7);display:none;align-items:center;justify-content:center;padding:24px}
+  .sheet.on{display:flex}
+  .sheet .card{
+    background:var(--paper-card);border:1px solid var(--rule);border-radius:6px;box-shadow:0 30px 80px -24px #000;
+    max-width:440px;width:100%;padding:24px 26px;
+  }
+  .sheet h3{font-family:var(--serif);font-weight:400;font-size:18px;margin:0 0 16px}
+  .sheet dl{display:grid;grid-template-columns:auto 1fr;gap:10px 16px;margin:0;align-items:center}
+  .sheet dt{display:flex;gap:5px;flex-wrap:wrap}
+  .sheet dd{margin:0;font-size:13.5px;color:var(--ink-soft)}
+  .sheet .close{margin-top:18px;text-align:right}
+
+  /* finder — command-palette search across ALL items (only one item is in the
+     DOM at a time, so native Cmd+F can't reach the rest; this can). */
+  .finder{position:fixed;inset:0;z-index:56;background:rgba(20,18,15,.5);display:none;align-items:flex-start;justify-content:center;padding:64px 24px}
+  .finder.on{display:flex}
+  .finder-card{
+    width:100%;max-width:640px;display:flex;flex-direction:column;max-height:72vh;overflow:hidden;
+    background:var(--paper-card);border:1px solid var(--rule);border-radius:8px;
+    box-shadow:0 40px 90px -28px rgba(0,0,0,.6);
+  }
+  .finder-input{
+    font-family:var(--serif);font-size:18px;color:var(--ink);background:transparent;
+    border:none;border-bottom:1px solid var(--rule);padding:16px 18px;outline:none;
+  }
+  .finder-input::placeholder{color:var(--ink-faint)}
+  .finder-meta{font-family:var(--mono);font-size:11px;color:var(--ink-faint);padding:8px 18px;border-bottom:1px solid var(--rule-soft);letter-spacing:.04em}
+  .finder-results{overflow:auto;padding:6px}
+  .find-row{display:flex;gap:12px;align-items:baseline;padding:9px 12px;border-radius:5px;cursor:pointer}
+  .find-row .where{font-family:var(--mono);font-size:11px;color:var(--accent);flex:none;white-space:nowrap}
+  .find-row .snip{font-family:var(--serif);font-size:14px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .find-row .snip mark{background:rgba(154,122,38,.28);color:var(--ink);border-radius:2px;padding:0 1px}
+  .find-row:hover{background:var(--paper-2)}
+  .find-row.sel{background:var(--paper-2);box-shadow:inset 3px 0 0 var(--accent)}
+  .find-empty{padding:22px 18px;color:var(--ink-faint);font-style:italic;font-family:var(--serif)}
+
+  /* toast */
+  .toast{
+    position:fixed;bottom:74px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:var(--paper-card);padding:11px 20px;border-radius:99px;
+    font-size:13px;letter-spacing:.02em;opacity:0;pointer-events:none;transition:all .25s ease;z-index:60;
+    box-shadow:0 12px 30px -10px rgba(0,0,0,.5);
+  }
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .hidden{display:none !important}
+
+  @keyframes rise{from{opacity:0}to{opacity:1}}
+  .itemview{animation:rise .2s ease both}
+  @keyframes flashrow{0%{background:rgba(154,122,38,.4)}100%{background:transparent}}
+  .linerow.flash{animation:flashrow 1.3s ease}
+
+  /* ---------- Responsive: collapse to a scrolling page, pin the bar ---------- */
+  @media(max-width:880px){
+    .app{height:auto;min-height:100dvh;overflow:visible}
+    .main{min-height:0}
+    .itemview{grid-template-columns:1fr;height:auto}
+    .pane{overflow:visible}
+    .pane.figure-pane{border-right:none;border-bottom:1px solid var(--rule)}
+    .rail{flex-wrap:wrap;padding:10px 16px;gap:10px 16px}
+    .rail .brand{max-width:100%}
+    .rail .meter{flex-basis:100%;order:3}
+    .actionbar{position:sticky;bottom:0;z-index:6}
+    .actionbar .status .legend{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- rail -->
+  <header class="rail" id="rail">
+    <div class="brand">
+      <span class="kicker">Adjudication Desk</span>
+      <span class="title" id="mTitle"><em>No task loaded</em></span>
+    </div>
+
+    <div class="meter" id="meter" hidden>
+      <div class="meter-top">
+        <span class="pos">Item <b id="cCur">0</b> / <span id="cTot">0</span></span>
+        <span class="tally" id="cDone"></span>
+      </div>
+      <div class="ribbon" id="ribbon" title="Click a segment to jump to that item">
+        <div class="track" id="ribTrack"></div>
+        <div class="needle" id="ribNeedle"></div>
+      </div>
+    </div>
+
+    <div class="tools">
+      <label class="btn accent sm" for="taskFile">Load task&hellip;</label>
+      <input type="file" id="taskFile" accept=".json,application/json">
+      <button class="btn ghost sm" id="hintGlobal" disabled>Hints: hidden</button>
+      <button class="btn ghost sm" id="sheetBtn" title="Keyboard shortcuts (press ?)">?</button>
+    </div>
+  </header>
+
+  <!-- main -->
+  <main class="main" id="main">
+
+    <!-- loader -->
+    <div class="centered" id="loaderView">
+      <section class="loader">
+        <div class="seal">A</div>
+        <h2>No task loaded</h2>
+        <p>Pick an <code>assessment_task.json</code>. Images are embedded in the task, so everything works offline from <code>file://</code>.</p>
+        <label class="btn solid" for="taskFile2">Choose task file</label>
+        <input type="file" id="taskFile2" accept=".json,application/json">
+        <p class="demo">Decisions are keyboard-first — press <kbd>?</kbd> any time for shortcuts.</p>
+      </section>
+    </div>
+
+    <!-- item stage -->
+    <div class="itemview hidden" id="itemView">
+      <div class="pane figure-pane" id="figPane"></div>
+      <div class="pane panel-pane" id="panelPane"></div>
+    </div>
+
+    <!-- export stage -->
+    <div class="centered hidden" id="exportView">
+      <section class="export">
+        <h2>Export verdicts</h2>
+        <p>Downloads <code>responses.json</code> and copies it to the clipboard. The text below is a fallback you can select and copy manually.</p>
+        <div class="export-bar">
+          <button class="btn solid" id="btnDownload">Download responses.json</button>
+          <button class="btn accent" id="btnCopy">Copy JSON</button>
+          <button class="btn ghost" id="btnRefresh">Refresh preview</button>
+          <button class="btn ghost" id="btnBack">&larr; Back to items</button>
+          <span class="stats" id="exportStats"></span>
+        </div>
+        <textarea class="export-out" id="exportOut" readonly spellcheck="false"></textarea>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- action bar -->
+  <footer class="actionbar hidden" id="bar">
+    <button class="btn" id="barPrev">&larr; Prev</button>
+    <div class="status" id="barStatus">
+      <span class="now" id="barNow"></span>
+      <span class="legend">
+        <span><kbd>&larr;</kbd><kbd>&rarr;</kbd> move</span>
+        <span><kbd>1</kbd>&hellip;<kbd>9</kbd> verdict</span>
+        <span><kbd>Z</kbd> zoom page</span>
+        <span><kbd>/</kbd> find</span>
+        <span><kbd>?</kbd> help</span>
+      </span>
+    </div>
+    <button class="btn next" id="barNext">Next &rarr;</button>
+  </footer>
+
+</div>
+
+<div class="lightbox" id="lightbox">
+  <div class="lb-scroll" id="lbScroll"><img class="lb-img" id="lightboxImg" alt=""></div>
+  <div class="lb-hint">scroll / <kbd>+</kbd><kbd>&minus;</kbd> zoom &middot; drag/arrows to pan &middot; <kbd>0</kbd> fit width &middot; <kbd>1</kbd> fit page &middot; <kbd>Esc</kbd> close</div>
+  <div class="lb-bar">
+    <button class="round" id="lbOut" title="Zoom out (−)">&minus;</button>
+    <span class="pct" id="lbPct">100%</span>
+    <button class="round" id="lbIn" title="Zoom in (+)">+</button>
+    <span class="sep"></span>
+    <button id="lbFitW" title="Fit width (0)">Fit width</button>
+    <button id="lbFitP" title="Fit page (1)">Fit page</button>
+    <span class="sep"></span>
+    <button id="lbClose" title="Close (Esc)">Close &times;</button>
+  </div>
+</div>
+
+<!-- keyboard cheat-sheet -->
+<div class="sheet" id="sheet">
+  <div class="card">
+    <h3>Keyboard shortcuts</h3>
+    <dl>
+      <dt><kbd>&larr;</kbd> <kbd>&rarr;</kbd></dt><dd>Previous / next item</dd>
+      <dt><kbd>1</kbd> &hellip; <kbd>9</kbd></dt><dd>Pick a verdict (single-choice, or the focused line)</dd>
+      <dt><kbd>&uarr;</kbd> <kbd>&darr;</kbd></dt><dd>Move between lines (per-line items)</dd>
+      <dt><kbd>0</kbd> <kbd>Bksp</kbd></dt><dd>Clear the focused line</dd>
+      <dt><kbd>H</kbd></dt><dd>Toggle hints</dd>
+      <dt><kbd>Z</kbd></dt><dd>Enlarge the page image (pan &amp; zoom)</dd>
+      <dt><kbd>/</kbd></dt><dd>Search lines &amp; items across the whole task</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Close overlay</dd>
+      <dt><kbd>?</kbd></dt><dd>This help</dd>
+    </dl>
+    <p style="margin:14px 0 0;font-size:12.5px;color:var(--ink-faint)">
+      Per-line: set a verdict and focus jumps to the next line automatically — grind a whole page without the mouse.
+    </p>
+    <div class="close"><button class="btn ghost sm" id="sheetClose">Close</button></div>
+  </div>
+</div>
+
+<!-- search palette -->
+<div class="finder" id="finder">
+  <div class="finder-card">
+    <input id="findInput" class="finder-input" type="text" autocomplete="off" spellcheck="false"
+           placeholder="Search line text, ids, questions — across all items…">
+    <div class="finder-meta" id="findMeta"></div>
+    <div class="finder-results" id="findResults"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+(function(){
+  // ---------- State ----------
+  var TASK = null;            // loaded task object
+  var ITEMS = [];             // task.items
+  var R = {};                 // responses keyed by item id: {answer, note, lines:{}}
+  var idx = 0;                // current item index
+  var hintsOn = false;
+  var pendingFocusKey = null;  // a line key to focus+flash on the next render (search jump)
+
+  var $ = function(s,r){return (r||document).querySelector(s);};
+  var el = function(tag,cls,txt){var e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e;};
+
+  var figPane = $("#figPane"), panelPane = $("#panelPane");
+
+  // ---------- Loading a task ----------
+  function bindFile(input){
+    input.addEventListener("change", function(ev){
+      var f = ev.target.files && ev.target.files[0];
+      if(!f) return;
+      var fr = new FileReader();
+      fr.onload = function(){
+        try{ loadTask(JSON.parse(fr.result)); }
+        catch(err){ alert("Could not parse task JSON:\n\n" + err.message); }
+      };
+      fr.readAsText(f);
+      input.value = ""; // allow re-loading same file
+    });
+  }
+  bindFile($("#taskFile"));
+  bindFile($("#taskFile2"));
+
+  function loadTask(data){
+    if(!data || !Array.isArray(data.items) || !data.items.length){
+      alert("Task has no items.");
+      return;
+    }
+    // Item ids and per-item line keys are the OUTPUT keys: collisions would
+    // silently merge verdicts and lose data, so refuse malformed input up front.
+    var seenIds={}, problems=[];
+    data.items.forEach(function(it,i){
+      var id=it && it.id;
+      if(id==null || id==="") problems.push("item "+(i+1)+" has no id");
+      else if(seenIds[id]) problems.push("duplicate item id “"+id+"”");
+      else seenIds[id]=true;
+      if(it && it.mode==="per-line"){
+        var seenKeys={};
+        (it.lines||[]).forEach(function(l){
+          var k=l && l.key;
+          if(k==null||k==="") problems.push("item “"+id+"” has a line with no key");
+          else if(seenKeys[k]) problems.push("item “"+id+"” has duplicate line key “"+k+"”");
+          else seenKeys[k]=true;
+        });
+      }
+    });
+    if(problems.length){
+      alert("Cannot load — these would corrupt the verdicts:\n\n• " +
+            problems.slice(0,12).join("\n• ") +
+            (problems.length>12 ? "\n• …and "+(problems.length-12)+" more" : ""));
+      return;
+    }
+    closeLightbox(); closeFinder(); toggleSheet(false); dragging=false;  // drop stale overlay state
+    TASK = data;
+    ITEMS = data.items;
+    R = {};
+    ITEMS.forEach(function(it){ R[it.id] = { answer:null, note:"", lines:{} }; });
+    idx = 0;
+    hintsOn = false;
+    $("#mTitle").textContent = data.title || "Untitled task";
+    $("#mTitle").title = data.instructions || data.title || "";
+    $("#cTot").textContent = ITEMS.length;
+    $("#meter").hidden = false;
+    $("#bar").classList.remove("hidden");
+    var hg = $("#hintGlobal"); hg.disabled = false; updateHintBtn();
+    buildRibbon();
+    render();
+  }
+
+  // ---------- Hints global toggle ----------
+  function toggleHints(){ hintsOn = !hintsOn; updateHintBtn(); render(); }
+  $("#hintGlobal").addEventListener("click", toggleHints);
+  function updateHintBtn(){
+    var b=$("#hintGlobal");
+    b.textContent = hintsOn ? "Hints: shown" : "Hints: hidden";
+    b.classList.toggle("accent", hintsOn);
+  }
+
+  // ---------- Dots / progress ----------
+  function statusOf(it){
+    var r = R[it.id];
+    if(it.mode === "per-line"){
+      var keys = (it.lines||[]).map(function(l){return l.key;});
+      var ans = keys.filter(function(k){return r.lines[k];}).length;
+      if(ans === 0) return "none";
+      if(ans === keys.length) return "done";
+      return "partial";
+    }
+    return r.answer ? "done" : "none";
+  }
+  function buildRibbon(){
+    var track = $("#ribTrack"); track.innerHTML="";
+    ITEMS.forEach(function(it,i){
+      var seg = el("div","seg");
+      seg.title = (i+1)+". "+it.id;
+      seg.addEventListener("click", function(){ idx=i; render(); });
+      track.appendChild(seg);
+    });
+  }
+  function refreshRibbon(){
+    var segs = $("#ribTrack").children;
+    var done=0, partial=0;
+    ITEMS.forEach(function(it,i){
+      var s = statusOf(it);
+      var seg = segs[i];
+      if(seg){
+        seg.classList.toggle("done", s==="done");
+        seg.classList.toggle("partial", s==="partial");
+      }
+      if(s==="done")done++; else if(s==="partial")partial++;
+    });
+    if(ITEMS.length){
+      $("#ribNeedle").style.left = ((idx+0.5)/ITEMS.length*100) + "%";
+    }
+    $("#cCur").textContent = idx+1;
+    var t = $("#cDone"); t.innerHTML="";
+    t.appendChild(el("span","ok", done+" resolved"));
+    t.appendChild(el("span","part", partial+" partial"));
+    updateBar();  // status text tracks live edits, not just navigation
+  }
+
+  // ---------- Views ----------
+  function showView(which){
+    $("#loaderView").classList.toggle("hidden", which!=="loader");
+    $("#itemView").classList.toggle("hidden", which!=="item");
+    $("#exportView").classList.toggle("hidden", which!=="export");
+    $("#bar").classList.toggle("hidden", which!=="item");
+  }
+
+  // ---------- Render current item ----------
+  function render(){
+    if(!ITEMS.length) return;
+    if(idx<0) idx=0; if(idx>ITEMS.length-1) idx=ITEMS.length-1;
+    var it = ITEMS[idx];
+    showView("item");
+
+    // figure pane
+    figPane.innerHTML = "";
+    figPane.appendChild(buildFigure(it));
+    if(it.structure){
+      var st = el("div","structure");
+      st.appendChild(el("span","lbl","Structure"));
+      st.appendChild(document.createTextNode(it.structure));
+      figPane.appendChild(st);
+    }
+
+    // panel pane
+    panelPane.innerHTML = "";
+    var head = el("div","itemhead");
+    head.appendChild(el("span","idx", "No. "+String(idx+1).padStart(2,"0")));
+    head.appendChild(el("span","id", it.id||""));
+    head.appendChild(el("span","mode-tag", it.mode==="per-line"?"Per-line":"Single choice"));
+    panelPane.appendChild(head);
+
+    var panel = el("div","panel");
+    if(it.mode === "per-line") buildPerLine(panel, it);
+    else buildSingle(panel, it);
+
+    if(it.hint){
+      var hb = el("details","hint-box"); hb.open = hintsOn;
+      var sm = el("summary"); sm.appendChild(document.createTextNode("Panel hint (may bias — reveal deliberately)"));
+      hb.appendChild(sm);
+      hb.appendChild(el("div","hint-body", it.hint));
+      panel.appendChild(hb);
+    }
+    panelPane.appendChild(panel);
+
+    figPane.scrollTop = 0; panelPane.scrollTop = 0;
+    refreshRibbon();  // also refreshes the action-bar status
+
+    // keyboard grind: drop focus on the first unanswered line so number keys land.
+    // A search jump overrides this to focus (and flash) the matched line instead.
+    if(it.mode === "per-line"){
+      var rows = panelPane.querySelectorAll(".linerow");
+      var target = null, fromSearch = false;
+      if(pendingFocusKey){
+        Array.prototype.forEach.call(rows, function(r){ if(r.dataset.key===pendingFocusKey) target=r; });
+        pendingFocusKey = null; fromSearch = !!target;
+      }
+      if(!target) target = panelPane.querySelector(".linerow:not(.answered)") || rows[0];
+      if(target){
+        target.focus({preventScroll:false});
+        if(fromSearch){
+          target.scrollIntoView({block:"center"});
+          void target.offsetWidth; target.classList.add("flash");  // restart the highlight
+        }
+      }
+    }
+  }
+
+  function buildFigure(it){
+    var fig = el("div","figure");
+    if(it.image){
+      var iw = el("div","imgwrap");
+      var img = el("img"); img.src = it.image; img.alt = it.id||"page image";
+      img.addEventListener("click", function(){ openLightbox(it.image); });
+      iw.appendChild(img);
+      fig.appendChild(iw);
+      var cap = el("div","cap");
+      cap.appendChild(el("span","", it.id||"page"));
+      cap.appendChild(el("span","", "click to enlarge · Z"));
+      fig.appendChild(cap);
+    } else {
+      fig.appendChild(el("div","noimg","No image for this item — judge from text / structure."));
+    }
+    return fig;
+  }
+
+  // ---- single-choice ----
+  function buildSingle(panel, it){
+    if(it.question){ var q=el("p","q"); q.textContent=it.question; panel.appendChild(q); }
+    panel.appendChild(el("p","section-lbl","Your verdict"));
+    var opts = el("div","options");
+    var r = R[it.id];
+    (it.options||[]).forEach(function(o,i){
+      var b = el("button","opt");
+      b.setAttribute("aria-pressed", r.answer===o.value ? "true":"false");
+      b.appendChild(el("span","key", String(i+1)));
+      var lab = el("span"); lab.textContent=o.label||o.value;
+      b.appendChild(lab);
+      b.addEventListener("click", function(){
+        r.answer = (r.answer===o.value)? null : o.value;
+        Array.prototype.forEach.call(opts.children,function(c,j){
+          c.setAttribute("aria-pressed", (it.options[j].value===r.answer)?"true":"false");
+        });
+        refreshRibbon();
+      });
+      opts.appendChild(b);
+    });
+    panel.appendChild(opts);
+    panel.appendChild(buildNote(it));
+  }
+
+  // ---- per-line ----
+  function buildPerLine(panel, it){
+    if(it.question){ var q=el("p","q"); q.textContent=it.question; panel.appendChild(q); }
+    var lineOpts = it.lineOptions || [];
+
+    var lbl = el("p","section-lbl"); lbl.appendChild(document.createTextNode("Line-by-line verdict"));
+    if(lineOpts.length){
+      var hk = el("span"); hk.style.cssText="margin-left:auto;font-weight:500;letter-spacing:.02em;text-transform:none;color:var(--ink-faint)";
+      hk.appendChild(document.createTextNode("keys "));
+      lineOpts.forEach(function(o,i){
+        var k=el("kbd",null,String(i+1)); hk.appendChild(k);
+        hk.appendChild(document.createTextNode(" "+(o.label||o.value)+"  "));
+      });
+      lbl.appendChild(hk);
+    }
+    panel.appendChild(lbl);
+
+    var tools = el("div","perline-tools");
+    lineOpts.forEach(function(o){
+      var b = el("button","btn ghost sm", "All "+(o.label||o.value));
+      b.addEventListener("click", function(){
+        var r=R[it.id];
+        (it.lines||[]).forEach(function(l){ r.lines[l.key]=o.value; });
+        var y=panelPane.scrollTop; render(); panelPane.scrollTop=y;  // keep reading position
+      });
+      tools.appendChild(b);
+    });
+    var clr = el("button","btn ghost sm","Clear");
+    clr.addEventListener("click", function(){ R[it.id].lines={}; var y=panelPane.scrollTop; render(); panelPane.scrollTop=y; });
+    tools.appendChild(clr);
+    panel.appendChild(tools);
+
+    var box = el("div","lines");
+    var r = R[it.id];
+    (it.lines||[]).forEach(function(l,rowIdx){
+      var row = el("div","linerow");
+      row.tabIndex = 0;
+      row.dataset.key = l.key;
+      row.setAttribute("aria-label", "Line "+l.key+": "+(l.text||""));
+      row.classList.toggle("answered", !!r.lines[l.key]);
+      row.appendChild(el("span","lk", l.key));
+      row.appendChild(el("span","lt", l.text!=null? l.text : ""));
+      if(hintsOn && l.hint){ row.appendChild(el("span","linehint", "hint: "+l.hint)); }
+
+      var tgs = el("div","toggles");
+      lineOpts.forEach(function(o){
+        var t = el("button","tg", o.label||o.value);
+        t.setAttribute("aria-pressed", r.lines[l.key]===o.value?"true":"false");
+        t.setAttribute("aria-label", (o.label||o.value)+" for line "+l.key);
+        t.addEventListener("click", function(e){
+          e.stopPropagation();
+          var clear = r.lines[l.key]===o.value;
+          setLine(it, l.key, clear? null : o.value, row, tgs);
+          if(!clear) focusRow(box, rowIdx+1);  // advance after a positive choice
+        });
+        tgs.appendChild(t);
+      });
+      row.appendChild(tgs);
+
+      // keyboard: number keys pick option for focused row, then auto-advance
+      row.addEventListener("keydown", function(e){
+        var n = parseInt(e.key,10);
+        if(!isNaN(n) && n>=1 && n<=lineOpts.length){
+          e.preventDefault();
+          setLine(it, l.key, lineOpts[n-1].value, row, tgs);
+          focusRow(box, rowIdx+1);
+        } else if(e.key==="Backspace" || e.key==="0"){
+          e.preventDefault(); setLine(it,l.key,null,row,tgs);
+        } else if(e.key==="ArrowDown"){
+          e.preventDefault(); focusRow(box, rowIdx+1);
+        } else if(e.key==="ArrowUp"){
+          e.preventDefault(); focusRow(box, rowIdx-1);
+        }
+      });
+      box.appendChild(row);
+    });
+    panel.appendChild(box);
+    panel.appendChild(buildNote(it));
+  }
+
+  function focusRow(box, i){
+    var row = box.children[i];
+    if(row) row.focus({preventScroll:false});
+  }
+
+  function setLine(it, key, val, row, tgs){
+    var r = R[it.id];
+    if(val==null) delete r.lines[key]; else r.lines[key]=val;
+    var lineOpts = it.lineOptions||[];
+    Array.prototype.forEach.call(tgs.children,function(c,i){
+      c.setAttribute("aria-pressed", r.lines[key]===lineOpts[i].value?"true":"false");
+    });
+    row.classList.toggle("answered", !!r.lines[key]);
+    refreshRibbon();
+  }
+
+  function buildNote(it){
+    var wrap = el("div","note-wrap");
+    wrap.appendChild(el("p","section-lbl","Note (optional)"));
+    var ta = el("textarea","note");
+    ta.placeholder = "Reasoning, edge cases, why it reads this way…";
+    ta.value = R[it.id].note || "";
+    ta.addEventListener("input", function(){ R[it.id].note = ta.value; });
+    wrap.appendChild(ta);
+    return wrap;
+  }
+
+  // ---------- Action bar ----------
+  function updateBar(){
+    var prev = $("#barPrev"); prev.disabled = idx===0;
+    var next = $("#barNext");
+    var last = idx >= ITEMS.length-1;
+    next.innerHTML = last ? "Review &amp; export &rarr;" : "Next &rarr;";
+    var it = ITEMS[idx];
+    var s = statusOf(it);
+    var word = s==="done" ? "resolved" : s==="partial" ? "partial" : "unanswered";
+    $("#barNow").textContent = "No. "+String(idx+1).padStart(2,"0")+" · "+word;
+  }
+  function goPrev(){ if(idx>0){ idx--; render(); } }
+  function goNext(){ if(idx<ITEMS.length-1){ idx++; render(); } else showExport(); }
+  $("#barPrev").addEventListener("click", goPrev);
+  $("#barNext").addEventListener("click", goNext);
+
+  // ---------- Export ----------
+  function buildResponses(){
+    var out = { title: TASK.title || "", completedAt: new Date().toISOString(), responses: {} };
+    ITEMS.forEach(function(it){
+      var r = R[it.id];
+      var rec = {};
+      if(it.mode === "per-line"){
+        rec.lines = {};
+        Object.keys(r.lines).forEach(function(k){ if(r.lines[k]) rec.lines[k]=r.lines[k]; });
+      } else {
+        rec.answer = r.answer || null;
+      }
+      if(r.note && r.note.trim()) rec.note = r.note.trim();
+      out.responses[it.id] = rec;
+    });
+    return out;
+  }
+  function showExport(){
+    showView("export");
+    refreshPreview();
+  }
+  function refreshPreview(){
+    var data = buildResponses();
+    $("#exportOut").value = JSON.stringify(data, null, 2);
+    var n = Object.keys(data.responses).length;
+    var resolved = ITEMS.filter(function(it){return statusOf(it)==="done";}).length;
+    $("#exportStats").textContent = resolved+" / "+n+" items fully resolved";
+  }
+  $("#btnRefresh").addEventListener("click", refreshPreview);
+  $("#btnBack").addEventListener("click", function(){ render(); });
+  $("#btnDownload").addEventListener("click", function(){
+    var json = JSON.stringify(buildResponses(), null, 2);
+    var blob = new Blob([json], {type:"application/json"});
+    var url = URL.createObjectURL(blob);
+    var a = el("a"); a.href=url;
+    var slug = (TASK.title||"task").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+    a.download = "responses" + (slug?("-"+slug):"") + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+    toast("Downloaded · attempting clipboard…");
+    copyJSON(json,true);
+  });
+  $("#btnCopy").addEventListener("click", function(){
+    copyJSON(JSON.stringify(buildResponses(),null,2),false);
+  });
+  function copyJSON(json,quiet){
+    var done = function(){ if(!quiet)toast("Copied to clipboard"); };
+    var fallback = function(){
+      var ta=$("#exportOut"); ta.focus(); ta.select();
+      try{ document.execCommand("copy"); if(!quiet)toast("Copied to clipboard"); }
+      catch(e){ if(!quiet)toast("Select the text below & copy manually"); }
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(json).then(done, fallback);
+    } else { fallback(); }
+  }
+
+  // ---------- Lightbox: pan & zoom reader ----------
+  var lb=$("#lightbox"), lbi=$("#lightboxImg"), lbScroll=$("#lbScroll");
+  var natW=1, natH=1, scale=1, fitWScale=1;
+  var PAD=40;
+
+  function lbView(){ return {w:lbScroll.clientWidth, h:lbScroll.clientHeight}; }
+  function lbMinScale(){ var v=lbView(); return Math.min((v.w-PAD)/natW,(v.h-PAD)/natH)*0.5; }
+  function clampScale(){ var mn=lbMinScale(); if(scale<mn)scale=mn; if(scale>8)scale=8; }
+  function applyScale(){ lbi.style.width=(natW*scale)+"px"; $("#lbPct").textContent=Math.round(scale*100)+"%"; }
+  function centerH(){ lbScroll.scrollLeft=(lbScroll.scrollWidth-lbScroll.clientWidth)/2; }
+
+  function fitWidth(){ var v=lbView(); scale=(v.w-PAD)/natW; clampScale(); fitWScale=scale; applyScale(); centerH(); lbScroll.scrollTop=0; }
+  function fitPage(){ var v=lbView(); scale=Math.min((v.w-PAD)/natW,(v.h-PAD)/natH); clampScale(); applyScale(); centerH(); lbScroll.scrollTop=0; }
+
+  // Zoom anchored to the IMAGE PIXEL under the cursor — the spot you point at on
+  // the page stays put. We subtract the image's centering offset (the gutter when
+  // the image is narrower than the pane) so the anchor tracks the picture, not the
+  // viewport. Image is top-aligned, so the vertical offset is 0.
+  function zoomBy(factor, cx, cy){
+    var rect=lbScroll.getBoundingClientRect();
+    if(cx==null){ cx=rect.left+rect.width/2; cy=rect.top+rect.height/2; }
+    var vw=lbScroll.clientWidth;
+    var old=scale;
+    var offX0=Math.max(0,(vw - natW*old)/2);                 // horizontal gutter now
+    var cxIn=lbScroll.scrollLeft+(cx-rect.left)-offX0;        // cursor → image space (px*scale)
+    var cyIn=lbScroll.scrollTop +(cy-rect.top);
+    var px=Math.max(0,Math.min(natW, cxIn/old));             // image pixel under cursor
+    var py=Math.max(0,Math.min(natH, cyIn/old));
+    scale=old*factor; clampScale();
+    if(scale===old) return;
+    applyScale();
+    var offX1=Math.max(0,(vw - natW*scale)/2);               // gutter after zoom
+    lbScroll.scrollLeft = offX1 + px*scale - (cx-rect.left);  // put that pixel back under cursor
+    lbScroll.scrollTop  =        py*scale - (cy-rect.top);
+  }
+
+  function openLightbox(src){
+    lb.classList.add("on");
+    var init=function(){ natW=lbi.naturalWidth||1; natH=lbi.naturalHeight||1; fitWidth(); };
+    if(lbi.getAttribute("src")===src && lbi.complete){ init(); }
+    else { lbi.onload=init; lbi.src=src; }
+  }
+  function closeLightbox(){ lb.classList.remove("on"); }
+  function lbOpen(){ return lb.classList.contains("on"); }
+
+  $("#lbIn").addEventListener("click", function(){ zoomBy(1.25); });
+  $("#lbOut").addEventListener("click", function(){ zoomBy(0.8); });
+  $("#lbFitW").addEventListener("click", fitWidth);
+  $("#lbFitP").addEventListener("click", fitPage);
+  $("#lbClose").addEventListener("click", closeLightbox);
+
+  lbScroll.addEventListener("wheel", function(e){
+    if(!lbOpen()) return;
+    e.preventDefault();
+    zoomBy(e.deltaY<0?1.15:0.87, e.clientX, e.clientY);
+  }, {passive:false});
+
+  // drag to pan. Listen on window (not pointer-capture, which mishandles a
+  // scrolling element) so the release is always caught and the drag ends cleanly.
+  // Close only on a no-movement click on the dark margin — never after a pan.
+  var dragging=false, sx=0, sy=0, sl=0, st=0, moved=false;
+  lbScroll.addEventListener("pointerdown", function(e){
+    if(e.button!==0) return;
+    dragging=true; moved=false; sx=e.clientX; sy=e.clientY;
+    sl=lbScroll.scrollLeft; st=lbScroll.scrollTop;
+    lbScroll.classList.add("grabbing");
+    e.preventDefault();                          // no native image-drag / selection
+  });
+  window.addEventListener("pointermove", function(e){
+    if(!dragging) return;
+    var dx=e.clientX-sx, dy=e.clientY-sy;
+    if(Math.abs(dx)+Math.abs(dy)>4) moved=true;
+    lbScroll.scrollLeft=sl-dx; lbScroll.scrollTop=st-dy;
+  });
+  window.addEventListener("pointerup", function(e){
+    if(!dragging) return;
+    dragging=false; lbScroll.classList.remove("grabbing");
+    if(!moved && lbOpen() && e.target===lbScroll) closeLightbox();  // bare margin click
+  });
+  // never leave a drag stuck if the pointer is cancelled or the window loses focus
+  function endDrag(){ dragging=false; lbScroll.classList.remove("grabbing"); }
+  window.addEventListener("pointercancel", endDrag);
+  window.addEventListener("blur", endDrag);
+  lbScroll.addEventListener("dblclick", function(e){
+    if(Math.abs(scale-fitWScale) < 0.02) zoomBy(2.2, e.clientX, e.clientY);
+    else fitWidth();
+  });
+
+  // ---------- Cheat sheet ----------
+  var sheet=$("#sheet");
+  function toggleSheet(force){ sheet.classList.toggle("on", force===undefined? !sheet.classList.contains("on") : force); }
+  $("#sheetBtn").addEventListener("click", function(){ toggleSheet(); });
+  $("#sheetClose").addEventListener("click", function(){ toggleSheet(false); });
+  sheet.addEventListener("click", function(e){ if(e.target===sheet) toggleSheet(false); });
+
+  // ---------- Finder: search across all items ----------
+  var finder=$("#finder"), findInput=$("#findInput"), findResults=$("#findResults"), findMeta=$("#findMeta");
+  var findMatches=[], findSel=0;
+  var FIND_CAP=200;
+  function finderOpen(){ return finder.classList.contains("on"); }
+  function openFinder(){
+    if(!ITEMS.length) return;
+    finder.classList.add("on");
+    findInput.value=""; findMatches=[]; findSel=0;
+    findResults.innerHTML=""; findMeta.textContent="Type to search "+ITEMS.length+" items";
+    findInput.focus();
+  }
+  function closeFinder(){ finder.classList.remove("on"); }
+
+  function runSearch(raw){
+    var q=raw.trim().toLowerCase();
+    findMatches=[]; findSel=0;
+    if(q){
+      for(var i=0;i<ITEMS.length && findMatches.length<FIND_CAP;i++){
+        var it=ITEMS[i];
+        if(it.id && it.id.toLowerCase().indexOf(q)>=0) findMatches.push({i:i,key:null,where:"No."+(i+1)+" · id",text:it.id});
+        if(it.question && it.question.toLowerCase().indexOf(q)>=0) findMatches.push({i:i,key:null,where:"No."+(i+1)+" · q",text:it.question});
+        (it.lines||[]).forEach(function(l){
+          if(findMatches.length>=FIND_CAP) return;
+          var t=l.text||"";
+          if(t.toLowerCase().indexOf(q)>=0 || String(l.key).toLowerCase().indexOf(q)>=0)
+            findMatches.push({i:i,key:l.key,where:"No."+(i+1)+" · "+l.key,text:t});
+        });
+      }
+    }
+    renderResults(q);
+  }
+
+  function esc(s){ return s.replace(/[&<>]/g,function(c){return c==="&"?"&amp;":c==="<"?"&lt;":"&gt;";}); }
+  function snippet(text, q){
+    var low=text.toLowerCase(), at=low.indexOf(q);
+    if(at<0 || !q) return esc(text.slice(0,120));
+    var start=Math.max(0, at-32), pre=start>0?"…":"";
+    var end=Math.min(text.length, at+q.length+70), post=end<text.length?"…":"";
+    return pre+esc(text.slice(start,at))+"<mark>"+esc(text.slice(at,at+q.length))+"</mark>"+esc(text.slice(at+q.length,end))+post;
+  }
+
+  function renderResults(q){
+    findResults.innerHTML="";
+    if(!q){ findMeta.textContent="Type to search "+ITEMS.length+" items"; return; }
+    if(!findMatches.length){
+      findMeta.textContent="No matches";
+      findResults.appendChild(el("div","find-empty","Nothing matches “"+q+"”."));
+      return;
+    }
+    findMeta.textContent = findMatches.length + (findMatches.length>=FIND_CAP?"+":"") + " match"+(findMatches.length===1?"":"es")+"  ·  ↑↓ to move · ↵ to jump";
+    findMatches.forEach(function(m,j){
+      var row=el("div","find-row"+(j===findSel?" sel":""));
+      row.appendChild(el("span","where", m.where));
+      var snip=el("span","snip"); snip.innerHTML=snippet(m.text||"", q);
+      row.appendChild(snip);
+      row.addEventListener("click", function(){ jumpToMatch(m); });
+      findResults.appendChild(row);
+    });
+  }
+  function moveSel(d){
+    if(!findMatches.length) return;
+    findSel=(findSel+d+findMatches.length)%findMatches.length;
+    var rows=findResults.children;
+    Array.prototype.forEach.call(rows,function(r,j){ r.classList.toggle("sel", j===findSel); });
+    if(rows[findSel]) rows[findSel].scrollIntoView({block:"nearest"});
+  }
+  function jumpToMatch(m){
+    closeFinder();
+    idx=m.i;
+    if(m.key!=null) pendingFocusKey=String(m.key);
+    render();
+  }
+
+  findInput.addEventListener("input", function(){ runSearch(findInput.value); });
+  findInput.addEventListener("keydown", function(e){
+    if(e.key==="ArrowDown"){ e.preventDefault(); moveSel(1); }
+    else if(e.key==="ArrowUp"){ e.preventDefault(); moveSel(-1); }
+    else if(e.key==="Enter"){ e.preventDefault(); if(findMatches[findSel]) jumpToMatch(findMatches[findSel]); }
+  });
+  finder.addEventListener("click", function(e){ if(e.target===finder) closeFinder(); });
+
+  // ---------- Toast ----------
+  var toastT;
+  function toast(msg){
+    var t=$("#toast"); t.textContent=msg; t.classList.add("on");
+    clearTimeout(toastT); toastT=setTimeout(function(){t.classList.remove("on");},2200);
+  }
+
+  // ---------- Global keyboard ----------
+  document.addEventListener("keydown", function(e){
+    var tag = (e.target.tagName||"").toLowerCase();
+    var inField = tag==="textarea" || tag==="input";
+
+    // overlays first
+    if(e.key==="Escape"){
+      if(lbOpen()){ closeLightbox(); return; }
+      if(finderOpen()){ closeFinder(); return; }
+      if(sheet.classList.contains("on")){ toggleSheet(false); return; }
+    }
+    // overlay-open shortcuts — not while typing in a note/field
+    if(!inField){
+      if(e.key==="?"){ e.preventDefault(); toggleSheet(); return; }
+      if(e.key==="/"){ e.preventDefault(); openFinder(); return; }
+    }
+    if(finderOpen()) return;  // the search box owns the keyboard while open
+
+    // while the image reader is open it owns the keyboard (zoom / pan)
+    if(lbOpen()){
+      if(e.key==="z"||e.key==="Z"){ e.preventDefault(); closeLightbox(); }  // z toggles
+      else if(e.key==="+"||e.key==="="){ e.preventDefault(); zoomBy(1.25); }
+      else if(e.key==="-"||e.key==="_"){ e.preventDefault(); zoomBy(0.8); }
+      else if(e.key==="0"){ e.preventDefault(); fitWidth(); }
+      else if(e.key==="1"){ e.preventDefault(); fitPage(); }
+      else if(e.key==="ArrowRight"){ e.preventDefault(); lbScroll.scrollLeft+=90; }
+      else if(e.key==="ArrowLeft"){ e.preventDefault(); lbScroll.scrollLeft-=90; }
+      else if(e.key==="ArrowDown"){ e.preventDefault(); lbScroll.scrollTop+=90; }
+      else if(e.key==="ArrowUp"){ e.preventDefault(); lbScroll.scrollTop-=90; }
+      return;
+    }
+    if(!ITEMS.length || inField) return;
+
+    // item navigation — always reachable, even while a line row is focused
+    if(e.key==="ArrowRight"){ e.preventDefault(); goNext(); return; }
+    if(e.key==="ArrowLeft"){ e.preventDefault(); goPrev(); return; }
+    if(e.key==="z" || e.key==="Z"){
+      var it0 = ITEMS[idx]; if(it0 && it0.image){ openLightbox(it0.image); } return;
+    }
+    if(e.key==="h" || e.key==="H"){ toggleHints(); return; }
+
+    // single-choice number selection (per-line numbers are handled per-row)
+    var it = ITEMS[idx];
+    if(it && it.mode!=="per-line" && !lb.classList.contains("on")){
+      var n=parseInt(e.key,10);
+      if(!isNaN(n) && it.options && n>=1 && n<=it.options.length){
+        var btns = document.querySelectorAll(".opt");
+        if(btns[n-1]) btns[n-1].click();
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>
