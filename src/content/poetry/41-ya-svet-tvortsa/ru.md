@@ -6,7 +6,7 @@ title: Я — Свет Творца
 lang: ru
 description: 'Стихотворение №41: Я — Свет Творца'
 cover: ./cover.ru.jpg
-date: '2026-04-26'
+date: '2025-03-14'
 translation:
   source: original
 ---

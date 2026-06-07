@@ -7,6 +7,7 @@ lang: ru
 description: 'Стихотворение №23: Пора'
 cover: ./cover.ru.jpg
 date: '2024-09-25'
+persona: Панкратиус
 translation:
   source: original
 ---
@@ -58,5 +59,3 @@ translation:
 Зовут меня небесные огни.
 
 Пора…
-
-Панкратиус. 25.09.2024

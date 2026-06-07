@@ -6,7 +6,7 @@ title: Поэма жаждущего сердца
 lang: ru
 description: 'Стихотворение №25: Поэма жаждущего сердца'
 cover: ./cover.ru.jpg
-date: '2025-03-16'
+date: '2026-02-27'
 translation:
   source: original
 ---

@@ -6,7 +6,7 @@ title: Тихой поступью входит рассвет
 lang: ru
 description: 'Стихотворение №34: Тихой поступью входит рассвет'
 cover: ./cover.ru.jpg
-date: '2026-04-26'
+date: '2025-10-22'
 translation:
   source: original
 ---

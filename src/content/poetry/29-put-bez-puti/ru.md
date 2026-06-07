@@ -6,7 +6,7 @@ title: Путь без пути
 lang: ru
 description: 'Стихотворение №29: Путь без пути'
 cover: ./cover.ru.jpg
-date: '2026-04-26'
+date: '2025-03-14'
 translation:
   source: original
 ---

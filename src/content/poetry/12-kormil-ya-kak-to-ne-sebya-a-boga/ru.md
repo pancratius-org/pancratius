@@ -2,11 +2,11 @@
 kind: poem
 number: 12
 slug: 12-kormil-ya-kak-to-ne-sebya-a-boga
-title: Кормил я как то не себя, а Бога
+title: Кормил я как-то не себя, а Бога
 lang: ru
-description: 'Стихотворение №12: Кормил я как то не себя, а Бога'
+description: 'Стихотворение №12: Кормил я как-то не себя, а Бога'
 cover: ./cover.ru.jpg
-date: '2026-08-10'
+date: '2026-03-10'
 translation:
   source: original
 ---
@@ -165,5 +165,3 @@ translation:
 от той любви, что в крошке бытия  
 вдруг говорит безмолвно и повсюду:  
 Я ем, Я пью, Я здесь, Я ЕСТЬ, и это Я.
-
-10.08.2026
