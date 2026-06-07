@@ -67,6 +67,8 @@ def test_manifest_roundtrips_and_captures_text_hash():
     task = tasks.build_task(title="t", instructions="i", specs=[spec], records=records)
     back = tasks.TaskManifest.from_dict(task.manifest.to_dict())
     assert back.by_key == task.manifest.by_key
+    assert back.item_by_key == task.manifest.item_by_key
+    assert all(item == "b57-r0" for item in task.manifest.item_by_key.values())
     by_id = {r.id: r for r in records["57"]}
     for key, lid in task.manifest.by_key.items():
         assert task.manifest.text_hash_by_key[key] == by_id[lid].line_text_hash
