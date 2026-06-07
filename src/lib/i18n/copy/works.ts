@@ -172,8 +172,6 @@ export interface PoetryIndexCopy {
   eyebrow(count: number): string;
   headingLabel(count: number): string;
   intro: string;
-  /** Hero attribution prefix, e.g. "← Стихотворение №" / "← Poem No.". */
-  heroAttrPrefix: string;
   fallbackBanner?: string;
   /** Month abbreviations for "<month> <year>" date formatting (index 0 = January). */
   months: readonly string[];
@@ -184,7 +182,6 @@ export const poetryIndexCopy: Record<Locale, PoetryIndexCopy> = {
     eyebrow: () => "Псалмы наших дней",
     headingLabel: (count) => plRu(count, RU_PLURALS.poem),
     intro: "Тексты, не оторванные от молитвы. Стихи, рождённые в тишине.",
-    heroAttrPrefix: "← Стихотворение №",
     months: [
       "янв.", "фев.", "мар.", "апр.", "мая", "июня",
       "июля", "авг.", "сент.", "окт.", "нояб.", "дек.",
@@ -194,7 +191,6 @@ export const poetryIndexCopy: Record<Locale, PoetryIndexCopy> = {
     eyebrow: spellEnglishCardinal,
     headingLabel: () => "poems",
     intro: "The originals are in Russian. Each row links to the poem; English translations will land here as they are authored.",
-    heroAttrPrefix: "← Poem No.",
     fallbackBanner: "Original Russian — translations forthcoming.",
     months: [
       "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -202,22 +198,3 @@ export const poetryIndexCopy: Record<Locale, PoetryIndexCopy> = {
     ],
   },
 };
-
-/**
- * Format an ISO date (`2025-09-30`) as "<month> <year>" using the locale's
- * month abbreviations. Falls back to the raw year (or the input) when the date
- * can't be parsed. Keeps Russian month names off `/en/` pages.
- */
-export function formatMonthYear(iso: string, months: readonly string[]): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-  if (!m) return iso;
-  const year = m[1];
-  const monthText = m[2];
-  if (year === undefined || monthText === undefined) {
-    throw new Error("ISO date parser matched without year or month captures");
-  }
-  const month = parseInt(monthText, 10);
-  const monthName = months[month - 1];
-  if (month >= 1 && month <= 12 && monthName !== undefined) return `${monthName} ${year}`;
-  return year;
-}

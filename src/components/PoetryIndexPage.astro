@@ -2,8 +2,8 @@
 import Base from "@/layouts/Base.astro";
 
 import { DEFAULT_LOCALE, LOCALES, type Locale, kindIndexUrl, workUrl } from "@/lib/i18n";
-import { formatMonthYear, poetryIndexCopy } from "@/lib/i18n/copy";
-import { isPoemTitleLine, poemFirstStanza } from "@/lib/publication/poetry";
+import { poetryIndexCopy } from "@/lib/i18n/copy";
+import { poemIncipit, poemLeadStanza } from "@/lib/publication/poetry";
 import { seoForKindIndex } from "@/lib/seo";
 import {
   defaultWorkEntry,
@@ -24,6 +24,15 @@ interface PoetryRow {
   entry: WorkEntry;
   linkLocale: Locale;
   date: string | null;
+  incipit: string;
+}
+
+/** A month of writing — the poet works in waves, so groups are uneven by design. */
+interface MonthGroup {
+  key: string; // "2026-04", or "" for undated
+  month: string; // localized month label, e.g. "апр." / "Apr"
+  year: string;
+  rows: PoetryRow[];
 }
 
 const { locale } = Astro.props;
@@ -39,30 +48,48 @@ const rows: PoetryRow[] = pairs.map(pair => {
   const display: DisplayWorkEntry = locale === DEFAULT_LOCALE
     ? { entry: defaultWorkEntry(pair), linkLocale: DEFAULT_LOCALE }
     : displayWorkEntry(pair, locale);
-  return { pair, entry: display.entry, linkLocale: display.linkLocale, date: poemDate(display.entry) };
+  return {
+    pair,
+    entry: display.entry,
+    linkLocale: display.linkLocale,
+    date: poemDate(display.entry),
+    incipit: poemIncipit(display.entry.body ?? "", display.entry.data.title),
+  };
 });
 
 const showHero = locale === DEFAULT_LOCALE;
-const showDates = locale === DEFAULT_LOCALE;
 const fallbackBanner = rows.some(row => row.linkLocale !== locale) ? copy.fallbackBanner : undefined;
 
-let heroRow = rows[0] ?? null;
-let heroStanza = "";
-if (showHero) {
-  for (const row of rows) {
-    const stanza = poemFirstStanza(row.entry.body ?? "", row.entry.data.title);
-    if (!stanza) continue;
-    const firstLine = stanza.split(/\n/, 1)[0] ?? "";
-    if (!isPoemTitleLine(firstLine, row.entry.data.title)) {
-      heroRow = row;
-      heroStanza = stanza;
-      break;
-    }
-  }
-  if (!heroStanza && heroRow) {
-    heroStanza = poemFirstStanza(heroRow.entry.body ?? "", heroRow.entry.data.title);
-  }
+// Curated hero stanza, kept verbatim (poem 03's first line is its title, which the
+// preview helper would strip).
+const HERO_SLUG = "03-ya-svet-chto-v-tishine-parit";
+const heroRow = showHero
+  ? (rows.find(row => row.entry.data.slug === HERO_SLUG) ?? rows[0] ?? null)
+  : null;
+const heroStanza = heroRow ? poemLeadStanza(heroRow.entry.body ?? "") : "";
+
+// Months, newest first; within a month, latest first, then catalog order. The hero
+// poem also stays in its month — the masthead features it, the catalog stays whole.
+const buckets = new Map<string, PoetryRow[]>();
+for (const row of rows) {
+  const key = row.date ? row.date.slice(0, 7) : "";
+  const bucket = buckets.get(key) ?? [];
+  bucket.push(row);
+  buckets.set(key, bucket);
 }
+const months: MonthGroup[] = [...buckets.entries()]
+  .map(([key, groupRows]) => {
+    groupRows.sort((a, b) =>
+      (b.date ?? "").localeCompare(a.date ?? "") || a.pair.number - b.pair.number);
+    const monthIndex = key ? Number(key.slice(5, 7)) - 1 : -1;
+    return {
+      key,
+      month: copy.months[monthIndex] ?? "",
+      year: key.slice(0, 4),
+      rows: groupRows,
+    };
+  })
+  .sort((a, b) => b.key.localeCompare(a.key)); // undated ("") sorts last
 ---
 <Base {locale} {seo} {alternates}>
   <section class="l-canvas l-canvas--page l-page-block poetry-index">
@@ -76,26 +103,33 @@ if (showHero) {
       <a class="poetry-hero" href={workUrl("poem", heroRow.entry.data.slug, heroRow.linkLocale)}>
         <p class="poetry-hero__stanza l-measure l-measure--start">{heroStanza}</p>
         <p class="poetry-hero__attr">
-          {copy.heroAttrPrefix}{String(heroRow.pair.number).padStart(2, "0")} «{heroRow.entry.data.title}»
+          {heroRow.entry.data.title}<span class="poetry-hero__go" aria-hidden="true"> →</span>
         </p>
       </a>
     )}
 
     {fallbackBanner && <p class="poetry-index__banner">{fallbackBanner}</p>}
 
-    <ol class:list={["poems", { "poems--after-banner": Boolean(fallbackBanner) }]}>
-      {rows.map(row => (
-        <li>
-          <a href={workUrl("poem", row.entry.data.slug, row.linkLocale)}>
-            <span class="poems__num">{String(row.pair.number).padStart(2, "0")}</span>
-            <span class="poems__title">{row.entry.data.title}</span>
-            {showDates && row.date && (
-              <time class="poems__date" datetime={row.date}>{formatMonthYear(row.date, copy.months)}</time>
-            )}
-          </a>
-        </li>
+    <div class="notebook">
+      {months.map(group => (
+        <section class="month">
+          <div class="month__date" aria-hidden={group.month ? undefined : "true"}>
+            <span class="month__mon">{group.month || "—"}</span>
+            {group.year && <span class="month__yr">{group.year}</span>}
+          </div>
+          <ol class="month__poems">
+            {group.rows.map(row => (
+              <li>
+                <a class="poem" href={workUrl("poem", row.entry.data.slug, row.linkLocale)}>
+                  <span class="poem__title">{row.entry.data.title}</span>
+                  {row.incipit && <span class="poem__incipit">{row.incipit}</span>}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </section>
       ))}
-    </ol>
+    </div>
   </section>
 </Base>
 
@@ -159,6 +193,14 @@ if (showHero) {
     margin: 0;
   }
   .poetry-hero:hover .poetry-hero__attr { color: var(--accent); }
+  .poetry-hero__go {
+    display: inline-block;
+    transition: transform 0.18s var(--ease);
+  }
+  .poetry-hero:hover .poetry-hero__go { transform: translateX(3px); }
+  @media (prefers-reduced-motion: reduce) {
+    .poetry-hero__go { transition: none; }
+  }
 
   .poetry-index__banner {
     font-family: var(--sans);
@@ -173,41 +215,93 @@ if (showHero) {
     border-bottom: 1px solid var(--rule);
   }
 
-  .poems {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  /* Month as a left-margin date-stamp; its poems hang in the column beside it. */
+  .month {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: clamp(1.5rem, 4vw, 2.75rem);
+    align-items: start;
+    padding-top: 2.5rem;
     border-top: 1px solid var(--rule);
   }
-  .poems--after-banner { border-top: 0; }
-  .poems li a {
-    display: grid;
-    grid-template-columns: 3.5rem 1fr auto;
-    gap: 1rem;
-    align-items: baseline;
-    padding: 0.9rem 0;
-    color: inherit;
-    text-decoration: none;
-    border-bottom: 1px solid var(--rule);
-    transition: color 0.18s var(--ease), border-color 0.18s var(--ease);
+  .month + .month { margin-top: 2.5rem; }
+
+  /* The date-stamp floats beside its cluster while a long month scrolls past. */
+  .month__date {
+    position: sticky;
+    top: 5rem;
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
   }
-  .poems li a:hover { color: var(--accent); border-bottom-color: var(--accent-soft); }
-  .poems__num {
+  .month__mon {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.4rem;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    font-variant-numeric: oldstyle-nums proportional-nums;
+  }
+  .month__yr {
+    margin-top: 0.5rem;
     font-family: var(--sans);
     font-size: 11px;
     font-weight: 500;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.16em;
     color: var(--ink-mute);
+    font-variant-numeric: oldstyle-nums proportional-nums;
   }
-  .poems__title {
+
+  .month__poems {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1.7rem;
+  }
+  .poem {
+    display: flex;
+    flex-direction: column;
+    gap: 0.32rem;
+    color: inherit;
+    text-decoration: none;
+  }
+  .poem__title {
     font-family: var(--serif);
-    font-size: 1.1rem;
+    font-weight: 500;
+    font-size: 1.32rem;
+    line-height: 1.2;
+    letter-spacing: -0.014em;
     color: var(--ink);
+    text-wrap: balance;
+    transition: color 0.18s var(--ease);
   }
-  .poems__date {
-    font-family: var(--sans);
-    font-size: 11.5px;
-    color: var(--ink-mute);
-    letter-spacing: 0.04em;
+  .poem:hover .poem__title,
+  .poem:focus-visible .poem__title { color: var(--accent); }
+  .poem__incipit {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.02rem;
+    line-height: 1.4;
+    color: var(--ink-soft);
+    text-wrap: balance;
+  }
+
+  /* ─── narrow: the date steps up as a small running head over its poems ─── */
+  @media (max-width: 720px) {
+    .month {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      padding-top: 1.8rem;
+    }
+    .month + .month { margin-top: 1.8rem; }
+    .month__date {
+      position: static;
+      flex-direction: row;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+    .month__yr { margin-top: 0; }
   }
 </style>
