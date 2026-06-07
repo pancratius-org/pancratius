@@ -221,7 +221,7 @@ def read_view(docx: Path) -> list[Para]:
             for p in out[before:]:
                 p.src_start = sp.start
 
-    # refine body roles by the normalize classification (replaces the second-adapt mask).
+    # refine body roles by the normalize classification.
     for p in out:
         if p.role != Role.BODY:
             continue

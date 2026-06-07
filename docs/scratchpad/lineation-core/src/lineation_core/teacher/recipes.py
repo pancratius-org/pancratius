@@ -8,6 +8,7 @@ from __future__ import annotations
 import tomllib
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 from .. import store
 from ..identity import BookId, LineId, ModelId, ReaderTag
@@ -115,7 +116,7 @@ type RenderFn = Callable[[Sequence[ItemSpec], dict[BookId, list[LineRecord]]],
                          dict[str, tuple]]               # specs+records → {region_id: assets} (render.py)
 
 
-def select_lines(recipe: Recipe, *, annotations=None) -> Selection:
+def select_lines(recipe: Recipe, *, annotations: Path | None = None) -> Selection:
     """Resolve the recipe's selector to the votable LineIds to poll, per book. Selection is DATA:
     `all` = every votable line of the books; `eval_set:<name>` reads a committed eval slice;
     `selection_file:<name>` reads a committed LineId list (e.g. the active-learning acquire set,
@@ -141,7 +142,7 @@ def select_lines(recipe: Recipe, *, annotations=None) -> Selection:
     return out
 
 
-def build(recipe: Recipe, *, annotations=None, teacher_store=None,
+def build(recipe: Recipe, *, annotations: Path | None = None, teacher_store: Path | None = None,
           render: RenderFn | None = None) -> tasks.Task:
     """Resolve selection → tile into regions → build + persist the task bundle (manifest committed,
     payload derived). Records come from the record cache. A VISION recipe MUST be given a `render`
@@ -180,7 +181,7 @@ class PanelRefused(Exception):
 
 
 def panel(recipe: Recipe, completer: panel_mod.ChatCompleter, *,
-          annotations=None, teacher_store=None) -> int:
+          annotations: Path | None = None, teacher_store: Path | None = None) -> int:
     """Run the panel for a built task and promote ONLY if the run is clean. Loads the bundle →
     readers × reps (RESUMING any saved `(item, reader, rep)` reply, persisting each fresh one before
     parse) → save the per-rep evidence → REFUSE to promote on any unclean condition → else resolve,
@@ -229,7 +230,7 @@ def panel(recipe: Recipe, completer: panel_mod.ChatCompleter, *,
         panel_mod.aggregate_reps([rv.votes for rv in resolved]), annotations=annotations)
 
 
-def _load_call_cache(task_id: str, *, teacher_store=None) -> panel_mod.CallCache:
+def _load_call_cache(task_id: str, *, teacher_store: Path | None = None) -> panel_mod.CallCache:
     """The saved raw replies of a prior (possibly crashed) run, as a `(item, tag, rep) → ChatReply`
     cache — last-saved wins per tuple. The resume source: `run_panel` reuses these instead of
     re-paying for the call."""
@@ -240,7 +241,7 @@ def _load_call_cache(task_id: str, *, teacher_store=None) -> panel_mod.CallCache
     return cache
 
 
-def _call_saver(task_id: str, *, teacher_store=None):
+def _call_saver(task_id: str, *, teacher_store: Path | None = None) -> panel_mod.OnCall:
     """A `run_panel` `on_call` that appends each fresh reply to the resume log the instant it lands
     (before parse), so a crash mid-run loses no paid call."""
     def save(key: panel_mod.CallKey, reply: panel_mod.ChatReply) -> None:
@@ -253,7 +254,8 @@ def _call_saver(task_id: str, *, teacher_store=None):
     return save
 
 
-def ingest(recipe: Recipe, *, annotations=None, teacher_store=None) -> int:
+def ingest(recipe: Recipe, *, annotations: Path | None = None,
+           teacher_store: Path | None = None) -> int:
     """Ingest the human adjudication for a built task: load the responses → parse → resolve against
     the manifest → promote labels. Returns the count of labels promoted."""
     _, manifest_d = store.load_task_bundle(recipe.task_id, annotations=annotations,
@@ -292,7 +294,6 @@ def _main() -> None:
     run needs the SDK extra:
         `uv run --extra live python -m lineation_core.teacher.recipes panel <recipe.toml>`."""
     import argparse
-    from pathlib import Path
 
     parser = argparse.ArgumentParser(prog="lineation-teacher",
                                      description="build / panel / ingest a lineation recipe")

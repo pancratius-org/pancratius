@@ -59,7 +59,7 @@ def load_eval_set(name: str, *, annotations: Path | None = None) -> list[dict[st
     return json.loads(path.read_text())
 
 
-def load_selection(name: str, *, annotations: Path | None = None) -> list:
+def load_selection(name: str, *, annotations: Path | None = None) -> list[Any]:
     """A committed `LineId`-key list (`selections/<name>.json`) — e.g. the active-learning acquire
     set, written as DATA by the eval/student side so the teacher consumes it without importing it.
     FAILS LOUD if missing."""

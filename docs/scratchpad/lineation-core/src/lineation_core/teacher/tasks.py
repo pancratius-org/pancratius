@@ -81,9 +81,6 @@ class TaskManifest:
     text_hash_by_key: dict[TaskKey, str]
     item_by_key: dict[TaskKey, RegionId]
 
-    def resolve(self, key: TaskKey) -> LineId | None:
-        return self.by_key.get(key)
-
     @property
     def item_ids(self) -> frozenset[RegionId]:
         return frozenset(self.item_by_key.values())
