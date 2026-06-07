@@ -10,8 +10,9 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from .. import store
+from ..identity import LineId
 from ..labels import LineLabel
-from ..panel_votes import PanelVote
+from ..panel_votes import PanelVote, VoteKey
 
 
 def _existing(load, *, annotations: Path | None) -> list:
@@ -25,19 +26,19 @@ def promote_votes(votes: Sequence[PanelVote], *, annotations: Path | None = None
     """Merge resolved panel votes into `votes.jsonl` (one row per (LineId, reader); new wins).
     The INPUT must already be one vote per (reader, line) — raw multi-rep is REJECTED so reps can't
     silently collapse (aggregate them first). Idempotent across re-promotes."""
-    seen: set[tuple] = set()
+    seen: set[VoteKey] = set()
     for v in votes:
-        if (v.id, v.tag) in seen:
+        if (v.tag, v.id) in seen:
             raise ValueError(
-                f"duplicate (LineId, reader) in promote input — {v.id} / {v.tag}; aggregate reps "
+                f"duplicate (reader, LineId) in promote input — {v.tag} / {v.id}; aggregate reps "
                 f"to one vote per reader before promoting")
-        seen.add((v.id, v.tag))
-    merged: dict[tuple, PanelVote] = {}
+        seen.add((v.tag, v.id))
+    merged: dict[VoteKey, PanelVote] = {}
     for d in _existing(store.load_vote_rows, annotations=annotations):
         v = PanelVote.from_dict(d)
-        merged[(v.id, v.tag)] = v
+        merged[(v.tag, v.id)] = v
     for v in votes:
-        merged[(v.id, v.tag)] = v
+        merged[(v.tag, v.id)] = v
     rows = [v.to_dict() for v in sorted(merged.values(), key=lambda v: (v.id, v.tag))]
     store.write_vote_rows(rows, annotations=annotations)
     return len(votes)
@@ -46,7 +47,7 @@ def promote_votes(votes: Sequence[PanelVote], *, annotations: Path | None = None
 def promote_labels(labels: Sequence[LineLabel], *, annotations: Path | None = None) -> int:
     """Merge resolved human labels into `labels.jsonl` (one row per LineId; new wins). Rejects an
     unmapped line (a span-dropped line is not a trainable target). Returns the count promoted."""
-    merged: dict = {}
+    merged: dict[LineId, LineLabel] = {}
     for d in _existing(store.load_label_rows, annotations=annotations):
         g = LineLabel.from_dict(d)
         merged[g.id] = g

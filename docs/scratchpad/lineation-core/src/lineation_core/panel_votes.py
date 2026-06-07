@@ -21,6 +21,8 @@ from .identity import Label, LineId, PanelVotes, ReaderTag
 
 READERS = ("grok", "deepseek", "gemini", "owl", "mimo", "minimax")
 
+type VoteKey = tuple[ReaderTag, LineId]   # the (reader, line) identity of a vote — its dedup key
+
 
 @dataclass(frozen=True, slots=True)
 class PanelVote:

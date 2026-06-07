@@ -10,10 +10,13 @@ sees) — there is no separate "brief". `build_prompt` assembles those instructi
 into the PROMPT (the model input)."""
 from __future__ import annotations
 
+from collections import Counter, defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
 from ..identity import ReaderTag
+from ..panel_votes import PanelVote, VoteKey
 from .responses import RawReaderResponse, parse_reader_reply
 from .tasks import AssetKind, Modality, Task, TaskItem
 
@@ -96,3 +99,24 @@ def run_panel(task: Task, cfg: PanelConfig, completer: ChatCompleter) -> list[Pa
                     response=parse_reader_reply(item.id, reader.tag, reply.content),
                     finish_reason=reply.finish_reason))
     return reps
+
+
+def aggregate_reps(per_rep: Sequence[Sequence[PanelVote]]) -> tuple[PanelVote, ...]:
+    """Collapse RESOLVED per-rep votes to ONE canonical vote per (reader, LineId): the strict
+    majority label among the reps that voted (a tie or no-majority ABSTAINS — the line is rerun /
+    escalated, never guessed). `conf` = mean conf of the agreeing reps (None if none reported).
+    Run-to-run instability stays in `panel_runs`; this is the promotable per-reader view, with no
+    duplicate (reader, line), so it is safe to promote directly."""
+    by_key: dict[VoteKey, list[PanelVote]] = defaultdict(list)
+    for rep in per_rep:
+        for v in rep:
+            by_key[(v.tag, v.id)].append(v)
+    out: list[PanelVote] = []
+    for (tag, lid), votes in by_key.items():
+        top, n = Counter(v.label for v in votes).most_common(1)[0]
+        if n * 2 <= len(votes):                      # not a strict majority → abstain
+            continue
+        confs = [v.conf for v in votes if v.label == top and v.conf is not None]
+        out.append(PanelVote(id=lid, tag=tag, label=top,
+                             conf=sum(confs) / len(confs) if confs else None))
+    return tuple(sorted(out, key=lambda v: (v.id, v.tag)))
