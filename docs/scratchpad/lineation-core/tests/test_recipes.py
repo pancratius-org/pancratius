@@ -3,6 +3,8 @@
 shows context neighbours un-keyed, covers every selected line exactly once, in document order."""
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from lineation_core import sequence, store
@@ -88,3 +90,36 @@ def test_load_recipe_rejects_empty_books_dupe_readers_and_bad_modality():
     with pytest.raises(ValueError):
         recipes.load_recipe('task_id="x"\n[selection]\nbooks=["13"]\n'
                             '[[readers]]\ntag="g"\nmodel="m"\nmodality="bogus"\n')
+
+
+def _recipe(selector: str = "all", books: tuple = ("57",)) -> recipes.Recipe:
+    return recipes.Recipe(task_id="t1", title="T", instructions="prose vs lineated",
+                          books=books, selector=selector,
+                          readers=(recipes.ReaderSpec("grok", "x/grok"),), target=8)
+
+
+def test_select_lines_all_returns_every_votable_line():
+    sel = recipes.select_lines(_recipe(selector="all"))
+    recs = store.load_records("57")
+    assert sel["57"] == {x.id for x in recs if x.votable}
+
+
+def test_select_lines_from_a_committed_selection_file(tmp_path):
+    ann = tmp_path / "annotations"
+    picks = [x.id for x in store.load_records("57") if x.votable][:5]
+    (ann / "selections").mkdir(parents=True)
+    (ann / "selections" / "acq.json").write_text(json.dumps([lid.as_key() for lid in picks]))
+    sel = recipes.select_lines(_recipe(selector="selection_file:acq"), annotations=ann)
+    assert sel["57"] == set(picks)
+
+
+def test_build_persists_a_task_bundle_with_the_selected_lines(tmp_path):
+    ann, st = tmp_path / "annotations", tmp_path / "_teacher"
+    task = recipes.build(_recipe(selector="all"), annotations=ann, teacher_store=st)
+    assert (ann / "tasks" / "t1.manifest.json").is_file()      # manifest committed
+    assert (st / "t1" / "payload.json").is_file()              # payload derived
+    votable = {x.id for x in store.load_records("57") if x.votable}
+    assert set(task.manifest.by_key.values()) == votable        # every votable line tiled in
+    payload, _ = store.load_task_bundle("t1", annotations=ann, store=st)
+    assert "manifest" not in payload and payload["items"]
+    assert all("image" not in it for it in payload["items"])    # text recipe → no composites
