@@ -19,24 +19,24 @@ carries its run-neighbours so a reviewer judges the unit, not a line in isolatio
 """
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Literal
 
 from . import labels, sequence, store, student
-from .identity import LineId
-from .records import LineRecord
+from .identity import BookId, Label, LineId
+from .records import LineRecord, RecordsByBook
 
 
 @dataclass(frozen=True)
 class QueueItem:
     id: LineId
     text: str
-    posterior: float                 # P(lineated)
-    margin: float                    # |posterior - 0.5| — lower = less confident
-    kind: str                        # "disagreement" (audit) | "acquire"
-    existing_label: str | None       # the human label, for audit items
-    student_label: str               # what the student says (prose | lineated)
-    context: tuple[str, ...]         # rendered run-neighbours, this line marked "->"
+    posterior: float                       # P(lineated)
+    margin: float                          # |posterior - 0.5| — lower = less confident
+    kind: Literal["disagreement", "acquire"]  # audit disagreement vs active-learning acquire
+    existing_label: Label | None           # the human label, for audit items
+    student_label: Label                   # what the student says (prose | lineated)
+    context: tuple[str, ...]               # rendered run-neighbours, this line marked "->"
 
 
 @dataclass
@@ -46,10 +46,10 @@ class ReviewQueue:
     n_votable: int                   # votable body lines scanned
     n_labeled_scored: int            # of those, labeled + out-of-fold scored
     prose_leaning_acquire: int       # acquire items the student calls prose (the corner to grow)
-    books: list[str]
+    books: list[BookId]
 
 
-def _label(p: float) -> str:
+def _label(p: float) -> Label:
     return "lineated" if p >= 0.5 else "prose"
 
 
@@ -60,9 +60,9 @@ def _context(body: list[LineRecord], k: int, *, radius: int = 2) -> tuple[str, .
                  for j in range(lo, hi))
 
 
-def build_queue(records: Mapping[str, list[LineRecord]], labelset: labels.LabelSet, *,
+def build_queue(records: RecordsByBook, labelset: labels.LabelSet, *,
                 top_acquire: int = 300, seed: int = 0, alpha: float = 0.75,
-                books: list[str] | None = None) -> ReviewQueue:
+                books: list[BookId] | None = None) -> ReviewQueue:
     """Build the review queue with RUN-AWARE (smoothed) confidence. `books` defaults to the labeled
     books; it must be a subset of the loaded `records` map (load a wider map at the edge to acquire
     over more books). Audit uses the book-held-out smoothed OOF; acquire uses the full model + the

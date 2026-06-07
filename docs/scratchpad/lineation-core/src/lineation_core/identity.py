@@ -23,6 +23,23 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any, Self
 
+# --- domain vocabulary (the greppable names every module shares) ------------------------------
+# Plain `str` aliases, not Literal/NewType: labels come from JSON and `LineLabel.__post_init__`
+# is the runtime enforcer of `prose | lineated`, so a Literal would only force casts at the
+# boundary without adding a guarantee the runtime check does not already give.
+
+type Label = str        # "prose" | "lineated" — the two-class verdict for one line
+type ReaderTag = str    # one panel reader: grok | deepseek | gemini | owl | mimo | minimax
+type BookId = str       # zero-padded book folder number ("01", "64") — the CV group + join key
+
+# line → label maps. `LabelByLine` is the shared scoring surface: a truth map, a prediction map,
+# the contested eval slice — all interchangeable as either side of a per-line join. `ReaderCalls`
+# names the SAME shape in its distinct role of ONE reader's calls, so `PanelVotes` reads as what
+# it is (reader → that reader's calls) rather than a bare double-nested dict.
+type LabelByLine = dict[LineId, Label]
+type ReaderCalls = LabelByLine
+type PanelVotes = dict[ReaderTag, ReaderCalls]
+
 _HEX = 16  # hash prefix length kept on disk: 16 hex = 64 bits, collision-safe for a corpus
 
 

@@ -19,36 +19,35 @@ line where readers/humans gave conflicting labels (the `contested` set). The hum
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Mapping
 from dataclasses import dataclass
 
 from . import labels, producer, store
-from .identity import LineId
-from .records import LineFeatures, LineRecord
+from .identity import BookId, Label, LabelByLine, LineId
+from .records import FeatureName, FeatureVector, LineFeatures, RecordsByBook
 
 
 @dataclass
 class Dataset:
-    X: list[dict[str, float]]   # per-line fixed-column feature vectors
-    y: list[str]                # prose | lineated
-    groups: list[str]           # book_id (for grouped CV)
-    columns: list[str]
-    feature_support: dict[str, int]
+    X: list[FeatureVector]      # per-line fixed-column feature vectors
+    y: list[Label]              # prose | lineated
+    groups: list[BookId]        # book_id (for grouped CV)
+    columns: list[FeatureName]
+    feature_support: dict[FeatureName, int]
     ids: list[LineId]
     n_joined: int
     n_skipped_unmapped: int
 
 
-def build_dataset(records: Mapping[str, list[LineRecord]], labelset: labels.LabelSet) -> Dataset:
+def build_dataset(records: RecordsByBook, labelset: labels.LabelSet) -> Dataset:
     label_by_id = {g.id: g for g in labelset.labels}
     books = sorted({g.id.book_id for g in labelset.labels})
 
-    X: list[dict[str, float]] = []
-    y: list[str] = []
-    groups: list[str] = []
+    X: list[FeatureVector] = []
+    y: list[Label] = []
+    groups: list[BookId] = []
     ids: list[LineId] = []
     n_joined = 0
-    support: Counter[str] = Counter()
+    support: Counter[FeatureName] = Counter()
     cols = list(producer.vector_columns())
 
     for book_id in books:
@@ -97,7 +96,7 @@ class FittedModel:
 
     scaler: object
     clf: object
-    columns: list[str]
+    columns: list[FeatureName]
     single_class: int | None = None  # set iff the train fold had one class (degenerate fold)
 
     def posterior(self, features: LineFeatures) -> float:
@@ -123,7 +122,7 @@ class FittedModel:
     __call__ = posterior  # a FittedModel IS a sequence.Posterior
 
 
-def _fit(M, y, *, seed: int, columns: list[str]) -> FittedModel:
+def _fit(M, y, *, seed: int, columns: list[FeatureName]) -> FittedModel:
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import StandardScaler
     scaler = StandardScaler().fit(M)
@@ -153,11 +152,11 @@ class CVResult:
     lineated_f1: float
     prose_precision: float
     prose_recall: float
-    confusion: dict[str, int]
+    confusion: dict[str, int]        # confusion-cell name (prose_as_lineated, …) -> count
     majority_baseline_acc: float
-    coefficients: list[tuple[str, float]]
-    zero_support_columns: list[str]
-    oof_pred: dict[LineId, str]      # out-of-fold predicted label per line (book held out)
+    coefficients: list[tuple[FeatureName, float]]
+    zero_support_columns: list[FeatureName]
+    oof_pred: LabelByLine            # out-of-fold predicted label per line (book held out)
 
 
 def train_cv(ds: Dataset, *, seed: int = 0) -> CVResult:
@@ -180,7 +179,7 @@ def train_cv(ds: Dataset, *, seed: int = 0) -> CVResult:
 
     y_true_all: list[int] = []
     y_pred_all: list[int] = []
-    oof: dict[LineId, str] = {}
+    oof: LabelByLine = {}
     for tr, te in logo.split(M, yv, groups):
         model = _fit(M[tr], yv[tr], seed=seed, columns=ds.columns)
         proba = np.array([model.clf.predict_proba(model.scaler.transform(M[te]))[:, 1]
@@ -219,7 +218,7 @@ def train_cv(ds: Dataset, *, seed: int = 0) -> CVResult:
     )
 
 
-def oof_smoothed(ds: Dataset, records: Mapping[str, list[LineRecord]], *,
+def oof_smoothed(ds: Dataset, records: RecordsByBook, *,
                  alpha: float = 0.75, seed: int = 0):
     """Book-held-out run-SMOOTHED prediction (`sequence.LineDecision`) for every votable line in
     the labeled books. For each held-out book: fit on the others, score the book's lines in ONE
@@ -256,7 +255,7 @@ class SequenceCV:
 
 
 def evaluate_alpha_cv(
-    ds: Dataset, labelset: labels.LabelSet, records: Mapping[str, list[LineRecord]], *,
+    ds: Dataset, labelset: labels.LabelSet, records: RecordsByBook, *,
     alpha: float, seed: int = 0,
 ) -> SequenceCV:
     """Book-grouped CV of `predict_document` at a given alpha. For each held-out book: fit on
@@ -299,7 +298,7 @@ def evaluate_alpha_cv(
 
 
 def tune_alpha(ds: Dataset, labelset: labels.LabelSet,
-               records: Mapping[str, list[LineRecord]], *, grid=(0.0, 0.25, 0.5, 0.75, 1.0),
+               records: RecordsByBook, *, grid=(0.0, 0.25, 0.5, 0.75, 1.0),
                seed: int = 0) -> list[SequenceCV]:
     """Sweep alpha under book-grouped CV. alpha=0 is the i.i.d. baseline; a higher alpha is
     worth adopting only if it improves the held-out metric WITHOUT collapsing prose recall."""

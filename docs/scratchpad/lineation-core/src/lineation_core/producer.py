@@ -23,8 +23,11 @@ from statistics import median
 from pancratius import docx_inspect as di
 
 from . import identity, records, source_view
+from .identity import BookId
 from .records import (
     EndPunct,
+    FeatureName,
+    FeatureVector,
     IndentVsBook,
     InlineRun,
     LineFeatures,
@@ -101,7 +104,7 @@ def _starts_lower(text: str) -> bool:
 _CACHE: dict[tuple[str, str, str], list[LineRecord]] = {}
 
 
-def read_lines(docx: Path, lang: str, book_id: str) -> list[LineRecord]:
+def read_lines(docx: Path, lang: str, book_id: BookId) -> list[LineRecord]:
     """All LineRecords for one (book, lang), cached by docx CONTENT hash (never path/mtime)."""
     key = (identity.docx_package_hash(docx), lang, book_id)
     cached = _CACHE.get(key)
@@ -143,7 +146,7 @@ def _slots(paras: list[source_view.Para]) -> list[_Slot]:
     return out
 
 
-def _read_lines(docx: Path, lang: str, book_id: str) -> list[LineRecord]:
+def _read_lines(docx: Path, lang: str, book_id: BookId) -> list[LineRecord]:
     """All LineRecords for one (book, lang). Features computed once per line.
 
     Physics is read off the source line, NEVER recomputed on joined paragraph text. Layout
@@ -274,11 +277,11 @@ def _read_lines(docx: Path, lang: str, book_id: str) -> list[LineRecord]:
 # ---------------------------------------------------------------------------
 
 
-def to_vector(features: LineFeatures) -> dict[str, float]:
+def to_vector(features: LineFeatures) -> FeatureVector:
     """Flatten the features to a numeric feature map (the student/serve input). Categorical enums are
     one-hot expanded; bools→0/1. Reads `features` only — no docx, no recompute. The KEYS are
     derived from the dataclass so the vector can never silently drift from the schema."""
-    out: dict[str, float] = {}
+    out: FeatureVector = {}
     d = features.to_dict()
     for name in records.feature_field_names():
         v = d[name]
@@ -292,7 +295,7 @@ def to_vector(features: LineFeatures) -> dict[str, float]:
 
 
 # the categorical vocab (so a zero-support category still yields a column even if unseen)
-_CAT_VOCAB: dict[str, list[str]] = {
+_CAT_VOCAB: dict[FeatureName, list[str]] = {
     "end_punct": [e.value for e in EndPunct],
     "align": ["left", "just", "right", "center"],
     "indent_vs_book": [e.value for e in IndentVsBook],
@@ -301,13 +304,13 @@ _CAT_VOCAB: dict[str, list[str]] = {
 
 
 @lru_cache(maxsize=1)
-def vector_columns() -> tuple[str, ...]:
+def vector_columns() -> tuple[FeatureName, ...]:
     """The full, fixed column space of `to_vector` — every numeric field plus every
     categorical level (including zero-support ones). Stable across books so a model matrix is
     well-defined and zero-support columns stay visible. A pure function of the schema +
     categorical vocab, so it is computed once and cached; `vectorize_fixed` consults it per
     line."""
-    cols: list[str] = []
+    cols: list[FeatureName] = []
     d_default = _DEFAULT_FEATURES.to_dict()
     for name in records.feature_field_names():
         v = d_default[name]
@@ -318,7 +321,7 @@ def vector_columns() -> tuple[str, ...]:
     return tuple(cols)
 
 
-def vectorize_fixed(features: LineFeatures) -> dict[str, float]:
+def vectorize_fixed(features: LineFeatures) -> FeatureVector:
     """`to_vector` projected onto the fixed `vector_columns()` space (missing categorical
     levels = 0.0). This is what the student matrix uses."""
     sparse = to_vector(features)

@@ -20,17 +20,16 @@ UNCERTAINTY (a low-margin posterior); see `student` for that distinction.
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
 from . import labels, panel_votes, store, student
 from .compare import Metrics, ReaderScore, balanced, score_readers
-from .identity import LineId
-from .records import LineRecord
+from .identity import Label, LabelByLine, LineId, PanelVotes
+from .records import RecordsByBook
 
 
-def load_contested(*, annotations: Path | None = None) -> dict[LineId, str]:
+def load_contested(*, annotations: Path | None = None) -> LabelByLine:
     """The contested eval slice (`eval_sets/contested.json`): `{LineId: human label}` on the hard
     re-adjudicated lines — an EVAL-only truth (not training); the student is scored against it on
     the lines it can predict."""
@@ -43,13 +42,13 @@ class ContestedResult:
     n_contested: int
     n_with_student: int
     n_revised_vs_consensus: int   # contested lines where human != consensus label
-    label_dist: dict[str, int]
+    label_dist: dict[Label, int]
     student: Metrics              # student over ALL scorable contested lines
     rows: list[ReaderScore]       # per-reader, on the lines shared with that reader
 
 
-def evaluate(records: Mapping[str, list[LineRecord]], labelset: labels.LabelSet,
-             votes: dict[str, dict[LineId, str]], contested: dict[LineId, str], *,
+def evaluate(records: RecordsByBook, labelset: labels.LabelSet,
+             votes: PanelVotes, contested: LabelByLine, *,
              alpha: float = 0.75) -> ContestedResult:
     """Score the student on the contested hard lines. `contested` is the EVAL truth `{LineId:
     label}` (the human re-adjudication); the student is scored against it on the lines it can
@@ -58,7 +57,7 @@ def evaluate(records: Mapping[str, list[LineRecord]], labelset: labels.LabelSet,
     ds = student.build_dataset(records, labelset)
     oof = student.oof_smoothed(ds, records, alpha=alpha)  # book-held-out, run-smoothed (alpha=0 == i.i.d.)
 
-    student_pred: dict[LineId, str] = {
+    student_pred: LabelByLine = {
         g.id: oof[g.id].label for g in labelset.labels if g.id in oof}
 
     scorable = [k for k in contested if k in student_pred]

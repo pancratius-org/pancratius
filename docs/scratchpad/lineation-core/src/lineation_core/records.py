@@ -15,7 +15,17 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Self
 
-from .identity import LineId
+from .identity import BookId, LineId
+
+# A flattened one-line feature vector: column name → numeric value (bools→0/1, categoricals
+# one-hot expanded). `FeatureName` is one such column. Produced by `producer.vectorize_fixed`,
+# consumed by the student matrix.
+type FeatureName = str
+type FeatureVector = dict[FeatureName, float]
+
+# Records keyed by book — the whole-corpus map domain functions take as data (loaded once at the
+# shell by `store.load_records_many`) instead of reaching for each book themselves.
+type RecordsByBook = dict[BookId, list["LineRecord"]]
 
 
 class IndentVsBook(StrEnum):
@@ -192,7 +202,7 @@ class LineRecord:
 # ---------------------------------------------------------------------------
 
 
-def feature_field_names() -> list[str]:
+def feature_field_names() -> list[FeatureName]:
     """The feature field order — the schema. Derived from the dataclass so it can never drift
     from `to_vector`."""
     return [f.name for f in dataclasses.fields(LineFeatures)]
@@ -202,8 +212,8 @@ def feature_field_names() -> list[str]:
 class FeatureSchema:
     feature_schema_version: str
     producer_version: str
-    fields: list[str]
-    feature_support: dict[str, int]  # field -> count of rows where it is non-default/observed
+    fields: list[FeatureName]
+    feature_support: dict[FeatureName, int]  # column -> count of rows where it is non-default/observed
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -221,7 +231,7 @@ class FeatureSchema:
             feature_support=dict(d["feature_support"]),
         )
 
-    def zero_support(self) -> list[str]:
+    def zero_support(self) -> list[FeatureName]:
         """Fields that NEVER varied in the corpus — they must remain VISIBLE in analysis
         (the speaker-label=0 lesson), never silently dropped."""
         return [k for k, v in self.feature_support.items() if v == 0]
