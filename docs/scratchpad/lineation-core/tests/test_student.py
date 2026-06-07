@@ -1,6 +1,5 @@
 # research-pure: proves the student dataset/CV is leakage-free and book-grouped (real labels).
-"""One build_dataset() + one train_cv() (module-scoped — the slow part) back every assertion.
-Locked numbers from a verified run on 2026-06."""
+"""One build_dataset() + one train_cv() (module-scoped — the slow part) back every assertion."""
 from __future__ import annotations
 
 import pytest

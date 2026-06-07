@@ -9,12 +9,16 @@ Annotation files are returned as RAW rows (list of dicts); interpreting them int
 returned as validated `LineRecord`s through the existing hash-railed `artifact` loader."""
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
 from . import artifact, paths
 from .records import LineRecord
+
+LABELS_FILE = "labels.jsonl"   # the resolved per-line truth
+VOTES_FILE = "votes.jsonl"     # the LLM panel votes
 
 
 # --- committed annotation TRUTH (source; never rebuilt) ---------------------------------------
@@ -30,15 +34,20 @@ def _rows(path: Path) -> list[dict[str, Any]]:
 
 
 def load_label_rows(*, annotations: Path | None = None) -> list[dict[str, Any]]:
-    return _rows((annotations or paths.ANNOTATIONS) / artifact.LABELS_FILE)
+    return _rows((annotations or paths.ANNOTATIONS) / LABELS_FILE)
 
 
 def load_vote_rows(*, annotations: Path | None = None) -> list[dict[str, Any]]:
-    return _rows((annotations or paths.ANNOTATIONS) / artifact.PANEL_VOTES_FILE)
+    return _rows((annotations or paths.ANNOTATIONS) / VOTES_FILE)
 
 
-def load_contested_rows(*, annotations: Path | None = None) -> list[dict[str, Any]]:
-    return _rows((annotations or paths.ANNOTATIONS) / artifact.CONTESTED_FILE)
+def load_eval_set(name: str, *, annotations: Path | None = None) -> list[dict[str, Any]]:
+    """Raw `{id, label}` rows of a named evaluation slice (`eval_sets/<name>.json`) — a committed
+    hard-case subpopulation to score the student against. FAILS LOUD if missing."""
+    path = (annotations or paths.ANNOTATIONS) / "eval_sets" / f"{name}.json"
+    if not path.is_file():
+        raise FileNotFoundError(f"committed eval set missing: {path}")
+    return json.loads(path.read_text())
 
 
 # --- derived record CACHE (load-only, hash-railed; built by `build_records`) -------------------

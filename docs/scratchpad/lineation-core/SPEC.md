@@ -57,16 +57,23 @@ LineFeatures:
   NOT a feature: raw book_id, raw style_id (→ meta). [style-DERIVED geometry may become one later if proven.]
 ```
 
-## Artifacts (the product; functions are VIEWS over these)
+## Artifacts (functions are VIEWS over these)
+The committed TRUTH (`annotations/`) and the derived record CACHE (`_artifacts/`) are reached
+through ONE `store` edge; consumers load by `LineId` and fail loud on a missing/stale store.
+
+derived per-book cache — `_artifacts/<book.lang>/`:
 ```
 line_records.jsonl       all LineRecords for (book, lang)
 feature_schema.json      feature schema + feature_schema_version + feature_support
                          (feature_support MUST list ZERO-support features explicitly — they may
                           not vanish from analysis; the speaker-label=0 lesson)
-line_labels.jsonl        LineLabel records WITH provenance (the human per-line truth)
-panel_votes.jsonl        the LLM panel's per-line votes (reader tag + label + conf)
-contested_labels.jsonl   human page-grounded labels on the re-adjudicated contested lines
 manifest.json            producer_version, schema_version, hashes, langs, counts
+```
+committed truth — `annotations/`:
+```
+labels.jsonl             LineLabel records WITH provenance (the per-line TRAINING truth)
+votes.jsonl              the LLM panel's per-line votes (reader tag + label + conf)
+eval_sets/contested.json the page re-adjudication EVAL slice ({LineId, label}) — never training
 ```
 ```
 LineLabel:
@@ -97,7 +104,7 @@ read_lines(docx, lang) -> [LineRecord]
 teacher_input = page/render evidence + render_listing(records, keyed, with_features=True)   # LUPI
 student_input = to_vector(features)
 serve_input   = to_vector(features)
-render_listing(records, keyed, with_phi)   # the ONE listing builder (replaces the 3 today)
+render_listing(records, keyed, with_features)   # the ONE listing builder (replaces the 3 today)
 ```
 
 ## Prediction API (sequence-shaped, not i.i.d.)

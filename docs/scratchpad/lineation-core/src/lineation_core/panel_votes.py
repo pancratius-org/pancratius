@@ -2,15 +2,12 @@
 """The LLM panel votes (grok, deepseek, gemini, owl, mimo, minimax) on `prose`/`lineated`.
 
 Each vote is one reader's call on one line: a `LineId`, the reader `tag`, the `label`, and an
-optional `conf`. The build path (the standalone one-shot tool) re-keyed the panel's original
-structural-view calls onto `LineId`s via the SAME record join the truth re-key used (unmapped /
-missing calls flagged and counted, never silently dropped); the on-disk artifact is already
-LineId-keyed, so loading and joining here is by `LineId` — no legacy key in this path.
+optional `conf`. The committed votes are already `LineId`-keyed, so loading and joining here is by
+`LineId` — the one identity.
 
-`load()` reads the per-book `panel_votes.jsonl` the build emitted and groups them by reader, so
-`compare`/`contested` score each reader against the truth on the lines they share — joined by
-`LineId`, the one identity. It FAILS LOUD via the artifact layer on a missing store; it never
-rebuilds.
+`load()` reads the committed `votes.jsonl` through the `store` edge and groups votes by reader, so
+`compare`/`contested` score each reader against the truth on the lines they share. It FAILS LOUD
+on a missing store; it never rebuilds.
 """
 from __future__ import annotations
 
@@ -42,7 +39,7 @@ class PanelVote:
 
 
 def load(*, annotations: Path | None = None) -> list[PanelVote]:
-    """Every panel vote from the committed `panel_votes.jsonl` truth. FAILS LOUD if the file is
+    """Every panel vote from the committed `votes.jsonl` truth. FAILS LOUD if the file is
     missing; never rebuilds."""
     return [PanelVote.from_dict(d) for d in store.load_vote_rows(annotations=annotations)]
 

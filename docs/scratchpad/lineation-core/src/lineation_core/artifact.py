@@ -1,14 +1,12 @@
 # research-pure: the on-disk artifact — built once, read many, fail loud on drift.
-"""The canonical on-disk artifact (the SPEC product). Records, schema, annotations, and a
-manifest are written to disk ONCE per (book, lang) by the explicit BUILD path; every
-consumer is a VIEW over the read-back artifact, never a live `read_lines`.
+"""The canonical on-disk record artifact (the SPEC product). Records, schema, and a manifest are
+written to disk ONCE per (book, lang) by the explicit BUILD path; every consumer is a VIEW over
+the read-back artifact, never a live `read_lines`. The annotation TRUTH (labels/votes/eval sets)
+is store-level committed data in `annotations/`, not a per-book artifact — `store` owns it.
 
 Files in an artifact directory:
     line_records.jsonl       all LineRecords for (book, lang)
     feature_schema.json      feature schema + version + feature_support (zero-support listed)
-    line_labels.jsonl        LineLabels with provenance (only labeled books)
-    panel_votes.jsonl        per (reader, line) panel votes (only books a panel read)
-    contested_labels.jsonl   human page-grounded labels on contested lines (only those books)
     manifest.json            producer/schema versions, docx hash, lang, counts
 
 Build vs load are SEPARATE: `build_records_artifact` is the one place the producer runs and
@@ -37,9 +35,6 @@ PRODUCER_VERSION = "read_lines-2"
 
 RECORDS_FILE = "line_records.jsonl"
 SCHEMA_FILE = "feature_schema.json"
-LABELS_FILE = "line_labels.jsonl"
-PANEL_VOTES_FILE = "panel_votes.jsonl"
-CONTESTED_FILE = "contested_labels.jsonl"
 MANIFEST_FILE = "manifest.json"
 
 

@@ -6,11 +6,11 @@ human|gate|panel|override), how sure (`confidence`), and an opaque `provenance` 
 pre-canonical key etc.) so a correction stays reasoned about. Training projects each label to
 `{LineId: label}`, but the stored truth keeps its lineage.
 
-`load()` reads the per-book `line_labels.jsonl` artifacts the build path emitted (LineId-keyed
-already — there is NO key remap here, and no source-shard reader). It REJECTS any label whose
-line is unmapped (a §14-P1 span-drop has no real source ordinal, so it is not a trainable
-target) at the boundary, surfacing the rejected count — never silently. The labels are committed
-`LineId`-keyed artifacts; this package only loads them, never re-derives the truth.
+`load()` reads the committed `labels.jsonl` truth through the `store` edge (already `LineId`-keyed
+— no key remap, no source-shard reader). It REJECTS any label whose line is unmapped (a §14-P1
+span-drop has no real source ordinal, so it is not a trainable target) at the boundary, surfacing
+the rejected count — never silently. The truth is committed `LineId`-keyed; this package only
+loads it, never re-derives it.
 """
 from __future__ import annotations
 
@@ -80,7 +80,7 @@ class LabelSet:
 
 
 def load(*, annotations: Path | None = None) -> LabelSet:
-    """Read the committed `line_labels.jsonl` truth (the single store-level annotation file),
+    """Read the committed `labels.jsonl` truth (the single store-level annotation file),
     reject unmapped-line labels (surfaced count), and return the trainable `LabelSet`. FAILS LOUD
     if the file is missing — it never rebuilds; the truth is committed, not derived."""
     kept: list[LineLabel] = []

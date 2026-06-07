@@ -1,6 +1,6 @@
 # research-pure: contested.evaluate scores the student vs the panel on the human-adjudicated lines.
 """Locks the contested head-to-head — the byte-identical guard for `contested.evaluate` (the
-module __main__ prints the same numbers). Locked from a verified run on 2026-06."""
+module __main__ prints the same numbers)."""
 from __future__ import annotations
 
 import pytest
