@@ -26,6 +26,9 @@ from typing import Protocol
 from .identity import Label, LineId
 from .records import LineFeatures, LineRecord, Role
 
+type RecordIndex = int           # a 0-based position into a records sequence — NOT a src_ordinal
+type Run = list[RecordIndex]     # one run's record indices: a maximal BODY block (an authorial unit)
+
 
 @dataclass(frozen=True, slots=True)
 class LineDecision:
@@ -44,12 +47,13 @@ class Posterior(Protocol):
     def __call__(self, features: LineFeatures) -> float: ...
 
 
-def _runs(records: Sequence[LineRecord]) -> list[list[int]]:
+def runs(records: Sequence[LineRecord]) -> list[Run]:
     """Indices grouped into runs: maximal spans of consecutive BODY lines (`role == BODY`),
     bounded by any structural record — the block level of the hierarchy, and the SAME predicate
     the producer's `run_len`/`run_pos` features use, so the two notions of "run" agree. An
     interior unmapped body line (`role == BODY` but `votable == False`) CONTINUES its stanza
-    rather than splitting it; `smooth_runs` then averages over the votable members only."""
+    rather than splitting it; `smooth_runs` averages over the votable members only, and the teacher
+    tiler keeps a whole run together as one authorial unit."""
     runs: list[list[int]] = []
     cur: list[int] = []
     for i, r in enumerate(records):
@@ -75,7 +79,7 @@ def smooth_runs(
     if not 0.0 <= alpha <= 1.0:
         raise ValueError(f"alpha must be in [0,1], got {alpha}")
     out: list[LineDecision] = []
-    for rid, run in enumerate(_runs(records)):
+    for rid, run in enumerate(runs(records)):
         votable = [i for i in run if records[i].votable]
         if not votable:                       # an all-unmapped block — nothing to decide
             continue

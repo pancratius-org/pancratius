@@ -3,7 +3,11 @@
 `build_prompt` shows the opaque-keyed listing + (vision) the composite image, asking for keys ONLY."""
 from __future__ import annotations
 
+import pytest
+
 from lineation_core import store
+from lineation_core.identity import LineId
+from lineation_core.panel_votes import PanelVote
 from lineation_core.teacher import panel, tasks
 from lineation_core.teacher.panel import ChatReply, PanelConfig, ReaderConfig
 from lineation_core.teacher.tasks import (AssetKind, EvidenceAsset, ItemSpec, Modality, TaskItem,
@@ -67,3 +71,26 @@ def test_vision_reader_gets_the_composite_image():
 def test_text_reader_ignores_the_image_even_on_a_vision_item():
     msgs = panel.build_prompt(_vision_item(), ReaderConfig("d", "x/d", Modality.TEXT), "b")
     assert all(p["type"] == "text" for p in msgs[0]["content"])    # modality is the reader's choice
+
+
+def test_aggregate_reps_strict_majority_and_abstain_on_tie():
+    lid = LineId.mapped("ru", "57", 1, 0)
+
+    def v(tag, label, conf=None):
+        return PanelVote(id=lid, tag=tag, label=label, conf=conf)
+
+    per_rep = [[v("grok", "prose", 0.8), v("deepseek", "prose", 0.6)],
+               [v("grok", "prose", 0.7), v("deepseek", "lineated", 0.9)],
+               [v("grok", "lineated", 0.5)]]
+    out = {x.tag: x for x in panel.aggregate_reps(per_rep)}
+    assert out["grok"].label == "prose"                        # 2 of 3 reps → strict majority
+    assert out["grok"].conf == pytest.approx((0.8 + 0.7) / 2)  # mean of the AGREEING (prose) reps
+    assert "deepseek" not in out                               # 1-1 tie → abstains (no vote)
+
+
+def test_aggregate_reps_single_rep_passes_through_without_duplicates():
+    a, b = LineId.mapped("ru", "57", 1, 0), LineId.mapped("ru", "57", 2, 0)
+    per_rep = [[PanelVote(id=a, tag="grok", label="prose", conf=None),
+                PanelVote(id=b, tag="grok", label="lineated", conf=0.9)]]
+    out = panel.aggregate_reps(per_rep)
+    assert {(x.tag, x.id) for x in out} == {("grok", a), ("grok", b)} and len(out) == 2
