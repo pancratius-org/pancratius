@@ -4,7 +4,8 @@
 from __future__ import annotations
 
 import pytest
-from lineation_core import compare, panel_votes
+from lineation_core import panel_votes
+from lineation_core.evaluation import compare
 
 
 def test_compare_locked(corpus):
