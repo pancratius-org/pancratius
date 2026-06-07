@@ -254,10 +254,18 @@ def _call_saver(task_id: str, *, teacher_store: Path | None = None) -> panel_mod
     return save
 
 
+class IngestRefused(Exception):
+    """A human adjudication that is NOT safe to promote. Raised — never a silent partial promote —
+    when resolving the downloaded responses against the manifest surfaces ANY fault (unmapped/dup/
+    bad-label/text-drift/missing/unknown-item/key-mismatch), symmetric with `PanelRefused`. The raw
+    responses are already committed, so the refusal is investigable and fixable."""
+
+
 def ingest(recipe: Recipe, *, annotations: Path | None = None,
            teacher_store: Path | None = None) -> int:
     """Ingest the human adjudication for a built task: load the responses → parse → resolve against
-    the manifest → promote labels. Returns the count of labels promoted."""
+    the manifest → REFUSE to promote on any resolution fault → else promote labels. Returns the
+    count of labels promoted."""
     _, manifest_d = store.load_task_bundle(recipe.task_id, annotations=annotations,
                                            store=teacher_store)
     manifest = tasks.TaskManifest.from_dict(manifest_d)
@@ -266,6 +274,10 @@ def ingest(recipe: Recipe, *, annotations: Path | None = None,
                                                                       annotations=annotations))
     resolved = responses.resolve_adjudication(manifest, parsed, records, title=recipe.title,
                                               complete=True)
+    if resolved.faults:
+        raise IngestRefused(
+            f"refusing to promote {recipe.task_id!r}: {len(resolved.faults)} resolution "
+            f"fault(s), e.g. {[f'{f.fault}:{f.key or f.item_id}' for f in resolved.faults[:5]]}")
     return promote.promote_labels(resolved.labels, annotations=annotations)
 
 
