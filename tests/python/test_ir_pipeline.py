@@ -1139,7 +1139,7 @@ def test_asset_absolute_src_is_rejected_with_diagnostic(tmp_path: Path) -> None:
     doc = ir.Document(blocks=[
         ir.Paragraph(inlines=[ir.ImageInline(src=str(outside), alt="")]),
     ])
-    planned = lower.assign_assets(doc, media_root, "ru")
+    planned = lower.assign_assets(doc, media_root)
 
     # No asset planned for the escaping ref; the ref is DROPPED (not kept).
     assert planned == []
@@ -1160,7 +1160,7 @@ def test_asset_parent_escaping_src_is_rejected_with_diagnostic(tmp_path: Path) -
     doc = ir.Document(blocks=[
         ir.Paragraph(inlines=[ir.ImageInline(src="../../secret.png", alt="")]),
     ])
-    planned = lower.assign_assets(doc, media_root, "ru")
+    planned = lower.assign_assets(doc, media_root)
 
     assert planned == []
     assert _para(doc.blocks[0]).inlines == [], "the parent-escaping image ref must be dropped"
@@ -1179,7 +1179,7 @@ def test_asset_legit_src_under_media_root_still_planned(tmp_path: Path) -> None:
     doc = ir.Document(blocks=[
         ir.Paragraph(inlines=[ir.ImageInline(src="sub/pic.png", alt="")]),
     ])
-    planned = lower.assign_assets(doc, media_root, "ru")
+    planned = lower.assign_assets(doc, media_root)
 
     assert len(planned) == 1
     assert planned[0].rel_within.startswith("images/")
@@ -1200,7 +1200,7 @@ def test_asset_inline_image_inside_lineated_block_is_planned(tmp_path: Path) -> 
             [[ir.Text("see "), ir.ImageInline(src="pic.png", alt="caption")]],
         ]),
     ])
-    planned = lower.assign_assets(doc, media_root, "ru")
+    planned = lower.assign_assets(doc, media_root)
 
     assert len(planned) == 1
     assert isinstance(doc.blocks[0], ir.LineatedBlock)
@@ -1378,7 +1378,7 @@ def test_unresolvable_local_image_is_fatal_and_ref_not_emitted(tmp_path: Path) -
     media.mkdir()
     img = ir.ImageInline(src="media/missing.png", alt="x")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("before "), img, ir.Text(" after")])])
-    lower.assign_assets(doc, media, "ru")
+    lower.assign_assets(doc, media)
     _assert_diagnostic(doc, "fatal", "import.image-unresolved")
     body = lower.lower(doc, "ru")
     assert "missing.png" not in body, "no dangling local image ref may reach the body"
@@ -1392,7 +1392,7 @@ def test_escaping_absolute_image_is_fatal_and_ref_not_emitted(tmp_path: Path) ->
     media.mkdir()
     img = ir.ImageInline(src="/etc/passwd.png", alt="x")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[img])])
-    lower.assign_assets(doc, media, "ru")
+    lower.assign_assets(doc, media)
     _assert_diagnostic(doc, "fatal", "import.image-unresolved")
     body = lower.lower(doc, "ru")
     assert "/etc/passwd" not in body
@@ -1405,7 +1405,7 @@ def test_resolvable_local_image_assigns_asset_and_is_not_fatal(tmp_path: Path) -
     (media / "image1.png").write_bytes(b"\x89PNGfakebytes")
     img = ir.ImageInline(src="media/image1.png", alt="x")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[img])])
-    planned = lower.assign_assets(doc, tmp_path / "media", "ru")
+    planned = lower.assign_assets(doc, tmp_path / "media")
     assert planned, "a resolvable image must produce a planned asset"
     assert not [d for d in doc.diagnostics if d.severity == "fatal"]
     body = lower.lower(doc, "ru")
@@ -1437,7 +1437,7 @@ def test_remote_http_image_is_kept_not_fatal(tmp_path: Path) -> None:
     media.mkdir()
     img = ir.ImageInline(src="https://example.org/a.png", alt="x")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[img])])
-    lower.assign_assets(doc, media, "ru")
+    lower.assign_assets(doc, media)
     assert not [d for d in doc.diagnostics if d.severity == "fatal"]
     body = lower.lower(doc, "ru")
     assert "https://example.org/a.png" in body

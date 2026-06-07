@@ -105,7 +105,7 @@ def _heading1_style_ids(styles_root: ET.Element) -> set[str]:
     return out
 
 
-def _preferred_heading1_style_id(styles_root: ET.Element, heading1_ids: set[str]) -> str:
+def _preferred_heading1_style_id(heading1_ids: set[str]) -> str:
     for preferred in ("1", "Heading1"):
         if preferred in heading1_ids:
             return preferred
@@ -281,7 +281,7 @@ def apply_part_outline(
     body, children = _body_children(document_root)
     children, removed_toc = _drop_generated_toc_blocks(children)
     heading1_ids = _heading1_style_ids(styles_root)
-    heading1_id = _preferred_heading1_style_id(styles_root, heading1_ids)
+    heading1_id = _preferred_heading1_style_id(heading1_ids)
     heading2_id = _ensure_heading2_style(styles_root, heading1_id)
     insertions = _part_insertions(children, parts)
     demoted, cleared = _demote_heading1_paragraphs(

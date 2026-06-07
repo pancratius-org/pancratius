@@ -167,8 +167,8 @@ def test_converter_fatal_diagnostic_blocks_the_write(
 
     real_assign = lower.assign_assets
 
-    def fatal_assign(doc: ir.Document, media_root: Path, lang: str) -> list:
-        out = real_assign(doc, media_root, lang)
+    def fatal_assign(doc: ir.Document, media_root: Path) -> list[lower.PlannedAsset]:
+        out = real_assign(doc, media_root)
         doc.diagnostics.append(ir.Diagnostic("fatal", "import.image-unresolved", "synthetic fatal"))
         return out
 
@@ -208,7 +208,6 @@ def test_converter_typed_diagnostics_carry_severity(
     converted = convert_single_docx(
         docx,
         kind="book", lang="ru", work_key="91-probe", title="Probe",
-        work_dir=tmp_path / "stage",
         title_index=content_catalog.build_title_index([]),
         media_out=media,
     )

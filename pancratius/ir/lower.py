@@ -230,7 +230,7 @@ class _KeepRemote:
 type _ImageResolution = _ResolvedAsset | _DropImage | _KeepRemote
 
 
-def assign_assets(doc: ir.Document, media_root: Path, lang: str) -> list[PlannedAsset]:
+def assign_assets(doc: ir.Document, media_root: Path) -> list[PlannedAsset]:
     """Resolve every body image, assign its content-hash `<hash>.<ext>` asset id,
     and return the deduped `PlannedAsset`s for the writer to copy.
 
@@ -409,7 +409,7 @@ def _inline_md(n: ir.Inline, lang: str) -> str:
             return _inline_code_md(n.value)
         case ir.Quoted():
             inner = _inlines_md(n.children, lang)
-            return f"'{inner}'" if n.single else f"«{inner}»"
+            return f"'{inner}'" if n.kind == "single" else f"«{inner}»"
         case ir.Link():
             label = _inlines_md(n.children, lang).strip()
             return f"[{label}]({n.target})" if label else ""

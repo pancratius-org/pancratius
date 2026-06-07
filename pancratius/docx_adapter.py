@@ -200,9 +200,14 @@ def _style_chain(style: str, styles: dict[str, _StyleInfo]) -> list[_StyleInfo]:
 
 
 def _resolved_contextual_spacing(
-    style: str, styles: dict[str, _StyleInfo], direct: bool
+    style: str,
+    styles: dict[str, _StyleInfo],
+    *,
+    direct_contextual_spacing: bool,
 ) -> bool:
-    return direct or any(info.contextual_spacing for info in _style_chain(style, styles))
+    return direct_contextual_spacing or any(
+        info.contextual_spacing for info in _style_chain(style, styles)
+    )
 
 
 def _resolved_spacing(
@@ -309,19 +314,19 @@ def _paragraph_text(p: ET.Element) -> str:
     counterpart."""
     parts: list[str] = []
 
-    def walk(el: ET.Element, in_fallback: bool) -> None:
+    def walk(el: ET.Element, *, in_fallback: bool) -> None:
         for child in el:
             if child.tag == MC_FALLBACK:
-                walk(child, True)
+                walk(child, in_fallback=True)
             elif child.tag == f"{W}t":
                 if not in_fallback:
                     parts.append(child.text or "")
             elif child.tag in {f"{W}br", f"{W}cr", f"{W}tab"}:
                 parts.append(" ")
             else:
-                walk(child, in_fallback)
+                walk(child, in_fallback=in_fallback)
 
-    walk(p, False)
+    walk(p, in_fallback=False)
     return "".join(parts)
 
 
@@ -382,7 +387,11 @@ def read_w_jc(docx: Path) -> list[_JcRecord]:
                     contextual_spacing=_resolved_contextual_spacing(
                         style,
                         styles,
-                        ppr.find(f"{W}contextualSpacing") is not None if ppr is not None else False,
+                        direct_contextual_spacing=(
+                            ppr.find(f"{W}contextualSpacing") is not None
+                            if ppr is not None
+                            else False
+                        ),
                     ),
                     spacing={
                         **doc_default_spacing,
@@ -810,8 +819,10 @@ def _inline(node: dict[str, Any], ctx: _Ctx) -> list[ir.Inline]:
             return _inlines(c if isinstance(c, list) else [], ctx)
         case "Quoted" if isinstance(c, list):
             qt, quoted = c
-            single = isinstance(qt, dict) and qt.get("t") == "SingleQuote"
-            return [ir.Quoted(single, _inlines(quoted, ctx))]
+            kind: ir.QuoteKind = (
+                "single" if isinstance(qt, dict) and qt.get("t") == "SingleQuote" else "double"
+            )
+            return [ir.Quoted(kind, _inlines(quoted, ctx))]
         case "Code" if isinstance(c, list):
             return [ir.Code(str(c[1]))]
         case "Link" if isinstance(c, list):

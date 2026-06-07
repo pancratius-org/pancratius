@@ -90,7 +90,7 @@ def inline_plain(inlines: list[ir.Inline]) -> str:
             case ir.SoftBreak() | ir.LineBreak():
                 out.append(" ")
             case ir.Quoted():
-                o, c = ("'", "'") if n.single else ("«", "»")
+                o, c = ("'", "'") if n.kind == "single" else ("«", "»")
                 out.append(o + inline_plain(n.children) + c)
             case ir.Code():
                 out.append(n.value)

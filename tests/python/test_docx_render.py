@@ -170,6 +170,9 @@ def test_docx_render_reports_libreoffice_output_when_no_pdf(
         capture_output: bool,
         text: bool,
     ) -> subprocess.CompletedProcess[str]:
+        assert check
+        assert capture_output
+        assert text
         if cmd[0] == "soffice":
             return subprocess.CompletedProcess(cmd, 0, "", "Error: source file could not be loaded")
         raise AssertionError(f"unexpected command: {cmd}")  # pragma: no cover
