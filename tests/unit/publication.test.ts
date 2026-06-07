@@ -6,7 +6,8 @@ import { describe, test } from "node:test";
 import { markdownToPlainText } from "../../src/lib/publication/plain-text.ts";
 import {
   isPoemTitleLine,
-  poemFirstStanza,
+  poemIncipit,
+  poemLeadStanza,
   poemPreviewLines,
 } from "../../src/lib/publication/poetry.ts";
 import {
@@ -302,19 +303,37 @@ describe("poetry excerpts", () => {
     assert.equal(preview, "Первая\nВторая");
   });
 
-  test("returns the first stanza after the preview start", () => {
-    const stanza = poemFirstStanza("Title\n\nLine one\nLine two\n\nLine three\n", "Title");
-    assert.equal(stanza, "Line one\nLine two");
+  test("skips a header block (date stamp, bold title) and strips markdown", () => {
+    const body = "March 14, 2025 11:10 PM  \n**Сон Бога**\n\nБог видит сон сквозь мир,  \nГде свет скользит.\n";
+    assert.equal(poemPreviewLines(body, "Бог видит сон", 2), "Бог видит сон сквозь мир,\nГде свет скользит.");
+    // A bold first verse line that repeats the title is stripped; verse follows.
+    const bold = "**Мы потерялись,**\nКак тени в сумерках.\n";
+    assert.equal(poemPreviewLines(bold, "Мы потерялись", 1), "Как тени в сумерках.");
   });
 
-  test("strips two-space hard-break encoding from generated poem previews", () => {
+  test("keeps the verbatim opening stanza for a curated hero (no title strip)", () => {
+    const stanza = poemLeadStanza("Заголовок\nВторая строка\n\nТретья\n");
+    assert.equal(stanza, "Заголовок\nВторая строка");
+  });
+
+  test("strips two-space hard-break encoding from generated poem text", () => {
     // Generated poem bodies carry two-trailing-space CommonMark hard breaks; the
-    // plain-text preview rejoins with "\n" (rendered via pre-line), so the
+    // plain-text extracts rejoin with "\n" (rendered via pre-line), so the
     // trailing hard-break spaces must not leak into the extracted text.
-    const stanza = poemFirstStanza("Title\n\nLine one  \nLine two\n\nLine three\n", "Title");
-    assert.equal(stanza, "Line one\nLine two");
+    const stanza = poemLeadStanza("Раз  \nДва  \n\nТри\n");
+    assert.equal(stanza, "Раз\nДва");
     const preview = poemPreviewLines("Title\n\nLine one  \nLine two  \nLine three\n", "Title", 2);
     assert.equal(preview, "Line one\nLine two");
+  });
+
+  test("incipit trades trailing punctuation for an inviting ellipsis", () => {
+    // Comma, period, and em dash all give way to a single trailing ellipsis.
+    assert.equal(poemIncipit("Не угасает свет звезды,\nОн за пределами.\n", "Вечность"), "Не угасает свет звезды…");
+    assert.equal(poemIncipit("Кормил я как-то не себя, а Бога.\n", "Кормил я"), "Кормил я как-то не себя, а Бога…");
+    assert.equal(poemIncipit("раздумья —\nдальше.\n", "Фрост"), "раздумья…");
+    // An interior hyphen (как-то, above) survives; a clean line just gains "…".
+    assert.equal(poemIncipit("Путь без пути\n", "Путь"), "Путь без пути…");
+    assert.equal(poemIncipit("", "Пусто"), "");
   });
 
   test("shares title-line comparison across poetry previews", () => {
