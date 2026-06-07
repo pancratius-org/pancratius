@@ -6,7 +6,7 @@ title: кто я? так это ты
 lang: ru
 description: 'Стихотворение №13: кто я? так это ты'
 cover: ./cover.ru.jpg
-date: '2024-10-01'
+date: '2024-10-27'
 translation:
   source: original
 ---

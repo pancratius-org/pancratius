@@ -11,7 +11,6 @@ translation:
   source: original
 ---
 
-March 14, 2025 11:10 PM  
 **Сон Бога**
 
 Бог видит сон сквозь этот мир,  

@@ -6,7 +6,7 @@ title: Фиолетовая пудра
 lang: ru
 description: 'Стихотворение №39: Фиолетовая пудра'
 cover: ./cover.ru.jpg
-date: '2024-11-18'
+date: '2024-11-19'
 translation:
   source: original
 ---
