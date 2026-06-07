@@ -111,8 +111,9 @@ def tile_regions(book_id: BookId, records: Sequence[LineRecord], selected: set[L
 # --- the orchestration shell: selector → records → tiled task bundle --------------------------
 
 type Selection = dict[BookId, set[LineId]]               # the votable lines to poll, per book
-type RenderFn = Callable[[Sequence[ItemSpec], dict[BookId, list[LineRecord]]],
-                         dict[str, tuple]]               # specs+records → {region_id: assets} (render.py)
+# specs → {region_id: assets}; the authored page render comes from each region's src_ordinal span,
+# so the renderer needs only the specs (implemented in render.py, injected when a recipe is vision).
+type RenderFn = Callable[[Sequence[ItemSpec]], dict[tasks.RegionId, tuple[tasks.EvidenceAsset, ...]]]
 
 
 def select_lines(recipe: Recipe, *, annotations: Path | None = None) -> Selection:
@@ -159,7 +160,7 @@ def build(recipe: Recipe, *, annotations: Path | None = None, teacher_store: Pat
     for b in recipe.books:
         specs.extend(tile_regions(b, records[b], selected[b], target=recipe.target,
                                    context_radius=recipe.context_radius, modality=modality))
-    assets = render(specs, records) if recipe.vision else {}
+    assets = render(specs) if recipe.vision else {}
     if recipe.vision:
         bare = [s.region_id for s in specs
                 if not any(a.kind is AssetKind.COMPOSITE for a in assets.get(s.region_id, ()))]
@@ -302,7 +303,11 @@ def _main() -> None:
     recipe = load_recipe(Path(args.recipe).read_text())
 
     if args.command == "build":
-        task = build(recipe)
+        render_fn = None
+        if recipe.vision:                       # vision builds need LibreOffice (the page authority)
+            from . import render as render_mod
+            render_fn = render_mod.make_compositor(render_mod.libreoffice_pages())
+        task = build(recipe, render=render_fn)
         print(f"built {recipe.task_id}: {len(task.items)} items, "
               f"{len(task.manifest.by_key)} votable lines")
     elif args.command == "panel":

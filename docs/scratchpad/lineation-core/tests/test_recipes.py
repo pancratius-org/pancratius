@@ -136,7 +136,7 @@ def test_build_vision_without_render_fails_loud(tmp_path):
 
 
 def test_build_vision_with_render_attaches_a_composite_to_every_item(tmp_path):
-    def render(specs, records):
+    def render(specs):
         return {s.region_id: (EvidenceAsset(kind=AssetKind.COMPOSITE,
                                             data_uri="data:image/png;base64,AA"),) for s in specs}
     recipes.build(_vision_recipe(), annotations=tmp_path / "a", teacher_store=tmp_path / "s",
@@ -148,7 +148,7 @@ def test_build_vision_with_render_attaches_a_composite_to_every_item(tmp_path):
 def test_build_vision_render_missing_a_composite_fails_loud(tmp_path):
     with pytest.raises(ValueError):
         recipes.build(_vision_recipe(), annotations=tmp_path / "a", teacher_store=tmp_path / "s",
-                      render=lambda specs, records: {})        # renders nothing
+                      render=lambda specs: {})                 # renders nothing
 
 
 def test_tile_distant_runs_become_separate_regions():

@@ -30,10 +30,7 @@ class Modality(StrEnum):
 
 
 class AssetKind(StrEnum):
-    DOCX_PAGE = "docx_page"            # the authored page render — the authority
-    CANDIDATE_PROSE = "cand_prose"
-    CANDIDATE_LINEATED = "cand_lineated"
-    COMPOSITE = "composite"           # the docx | prose | lineated tile shown to a vision reader
+    COMPOSITE = "composite"           # the authored page render shown to a vision reader
 
 
 type LineOption = tuple[str, str]     # (value, display label) for the UI's per-line picker
