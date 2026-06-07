@@ -103,6 +103,8 @@ const poetry = defineCollection({
     title: z.string().min(1),
     cover: z.string().nullable().optional(),
     date: z.string().nullable().optional(),
+    persona: z.string().min(1).optional(), // pen name the poem is signed with
+    note: z.string().min(1).optional(),    // authored style note, e.g. "в духе Есенина"
     ...baseWorkFields,
   }),
 });
