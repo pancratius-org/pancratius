@@ -58,10 +58,14 @@ from community import (
 
 from pancratius.paths import CONTENT_ROOT, DATA_ROOT
 
-# A logging sink: ``print`` in normal runs, a no-op lambda under ``--quiet``.
+# A logging sink: ``print`` in normal runs, a no-op function under ``--quiet``.
 # It is called purely for its side effect, so the honest signature is
 # "accepts anything, returns nothing".
 LogFn = Callable[..., None]
+
+
+def _noop_log(*_args: object, **_kwargs: object) -> None:
+    pass
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -1192,7 +1196,7 @@ def generate_graph(
 
     Owns the run timing so EVERY caller (the `pancratius conceptosphere graph generate` door
     gets the `[time]` line."""
-    log: LogFn = print if not quiet else (lambda *a, **k: None)
+    log: LogFn = print if not quiet else _noop_log
     t0 = time.time()
     bundle = process_corpus(log)
     errors: list[GraphGenerationError] = []

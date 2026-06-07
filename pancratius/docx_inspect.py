@@ -171,8 +171,13 @@ def read_rows(docx: Path) -> list[ParaRow]:
                 heading = bool(re.fullmatch(r"(?:Heading\d+|[1-9])", direct_style))
                 thematic = txt in {"***", "* * *", "---"}
                 contextual = da._resolved_contextual_spacing(
-                    style, styles,
-                    ppr.find(f"{W}contextualSpacing") is not None if ppr is not None else False,
+                    style,
+                    styles,
+                    direct_contextual_spacing=(
+                        ppr.find(f"{W}contextualSpacing") is not None
+                        if ppr is not None
+                        else False
+                    ),
                 )
                 indented = ppr.find(f"{W}ind") is not None if ppr is not None else False
                 bordered = ppr.find(f"{W}pBdr") is not None if ppr is not None else False

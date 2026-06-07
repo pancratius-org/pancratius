@@ -29,7 +29,7 @@ import importlib.util
 import re
 import shutil
 import sys
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from types import ModuleType
 
@@ -367,6 +367,17 @@ def conceptosphere_module() -> Iterator[ModuleType]:
         sys.modules.pop("pancratius.conceptosphere", None)
 
 
+def _fake_corpus_bundle(_log: object) -> object:
+    return object()
+
+
+def _record_projection(ran: list[str], label: str) -> Callable[..., None]:
+    def record(*_args: object, **_kwargs: object) -> None:
+        ran.append(label)
+
+    return record
+
+
 def test_generate_graph_none_runs_both_projections(
     conceptosphere_module: ModuleType, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -374,9 +385,9 @@ def test_generate_graph_none_runs_both_projections(
     run_books_mode off a single corpus scan — the migration's behaviour contract."""
     cs = conceptosphere_module
     ran: list[str] = []
-    monkeypatch.setattr(cs, "process_corpus", lambda log: object())
-    monkeypatch.setattr(cs, "run_concepts_mode", lambda *a, **k: ran.append("concepts") or 0)
-    monkeypatch.setattr(cs, "run_books_mode", lambda *a, **k: ran.append("books") or 0)
+    monkeypatch.setattr(cs, "process_corpus", _fake_corpus_bundle)
+    monkeypatch.setattr(cs, "run_concepts_mode", _record_projection(ran, "concepts"))
+    monkeypatch.setattr(cs, "run_books_mode", _record_projection(ran, "books"))
 
     cs.generate_graph(only=None)
     assert ran == ["concepts", "books"], "only=None must run both projections, once each"
@@ -389,9 +400,9 @@ def test_generate_graph_only_runs_single_projection(
     """generate_graph(only=X) must run ONLY projection X (single-mode preserved)."""
     cs = conceptosphere_module
     ran: list[str] = []
-    monkeypatch.setattr(cs, "process_corpus", lambda log: object())
-    monkeypatch.setattr(cs, "run_concepts_mode", lambda *a, **k: ran.append("concepts") or 0)
-    monkeypatch.setattr(cs, "run_books_mode", lambda *a, **k: ran.append("books") or 0)
+    monkeypatch.setattr(cs, "process_corpus", _fake_corpus_bundle)
+    monkeypatch.setattr(cs, "run_concepts_mode", _record_projection(ran, "concepts"))
+    monkeypatch.setattr(cs, "run_books_mode", _record_projection(ran, "books"))
     cs.generate_graph(only=only)
     assert ran == expected
 
@@ -408,9 +419,9 @@ def test_generate_graph_projection_error_propagates_after_both_runs(
         ran.append("concepts")
         raise cs.GraphGenerationError("synthetic concepts failure")
 
-    monkeypatch.setattr(cs, "process_corpus", lambda log: object())
+    monkeypatch.setattr(cs, "process_corpus", _fake_corpus_bundle)
     monkeypatch.setattr(cs, "run_concepts_mode", fail_concepts)
-    monkeypatch.setattr(cs, "run_books_mode", lambda *a, **k: ran.append("books"))
+    monkeypatch.setattr(cs, "run_books_mode", _record_projection(ran, "books"))
     with pytest.raises(cs.GraphGenerationError):
         cs.generate_graph(only=None)
     assert ran == ["concepts", "books"], "books must still run after a concepts failure"

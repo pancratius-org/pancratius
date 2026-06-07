@@ -203,7 +203,6 @@ def convert_single_docx(
     lang: str,
     work_key: str,
     title: str,
-    work_dir: Path,
     title_index: dict[str, IndexHit],
     media_out: Path,
 ) -> ConvertedDocx:
@@ -230,7 +229,7 @@ def convert_single_docx(
     # Neutralize unsafe URL schemes before the asset pass hashes any image, so an
     # unsafe-scheme src never reaches asset resolution; `lower` re-runs idempotently.
     lower.sanitize_urls(doc)
-    assets = lower.assign_assets(doc, media_out, lang)
+    assets = lower.assign_assets(doc, media_out)
     body = lower.lower(doc, lang, poem=(kind == "poem"))
     if kind == "poem":
         # A poem DOCX that opens with a title paragraph repeats the masthead title in
@@ -262,7 +261,6 @@ def convert_single_docx(
 
 def write_bibliography_sidecar(
     work_dir: Path,
-    kind: str,
     lang: str,
     bibliography: list[BibliographyEntry],
 ) -> None:
@@ -424,7 +422,6 @@ def scaffold_subpage(
             lang=lang,
             work_key=subpage_slug,
             title=subpage_slug,
-            work_dir=stage_dir,
             title_index={},
             media_out=media_out,
         )
@@ -447,7 +444,7 @@ def scaffold_subpage(
         (stage_dir / f"{lang}.md").write_text(
             dump_frontmatter(fm) + converted.body, encoding="utf-8"
         )
-        write_bibliography_sidecar(stage_dir, "project", lang, converted.bibliography)
+        write_bibliography_sidecar(stage_dir, lang, converted.bibliography)
 
         # Footnote-fatal / typed-diagnostic safety: an orphaned footnote reference or a
         # converter-side FATAL refuses the write.

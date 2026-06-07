@@ -90,16 +90,16 @@ def test_style_wrapper_unwraps_to_plain_text(tag: str, text: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("quote_type", "text", "single"),
+    ("quote_type", "text", "kind"),
     [
-        ("DoubleQuote", "d", False),
-        ("SingleQuote", "s", True),
+        ("DoubleQuote", "d", "double"),
+        ("SingleQuote", "s", "single"),
     ],
 )
-def test_quoted_carries_single_flag(quote_type: str, text: str, single: bool) -> None:
+def test_quoted_carries_quote_kind(quote_type: str, text: str, kind: ir.QuoteKind) -> None:
     ctx = adapter._Ctx()
     out = adapter._inline({"t": "Quoted", "c": [{"t": quote_type}, [_str(text)]]}, ctx)
-    assert out == [ir.Quoted(single, [ir.Text(text)])]
+    assert out == [ir.Quoted(kind, [ir.Text(text)])]
 
 
 def test_span_unwraps_to_children() -> None:
@@ -682,6 +682,7 @@ def test_run_pandoc_passes_a_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: 
         stderr = ""
 
     def fake_run(cmd: list[str], **kwargs: object) -> _FakeProc:
+        assert cmd[0] == "pandoc"
         captured.update(kwargs)
         return _FakeProc()
 

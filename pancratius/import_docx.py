@@ -544,7 +544,6 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
             lang=request.lang,
             work_key=target.work_key,
             title=title,
-            work_dir=stage_dir,
             title_index=title_index,
             media_out=media_out,
         )
@@ -574,7 +573,7 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
             dump_frontmatter(fm) + converted.body, encoding="utf-8"
         )
         _write_docx_artifact(docx, stage_dir / f"{request.lang}.docx")
-        write_bibliography_sidecar(stage_dir, target.kind, request.lang, converted.bibliography)
+        write_bibliography_sidecar(stage_dir, request.lang, converted.bibliography)
 
         # Footnote-fatal safety: an orphaned `[^id]` reference rides into the plan as a
         # FATAL the writer refuses on; unused/duplicate defs are non-blocking warnings.

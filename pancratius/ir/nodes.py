@@ -25,6 +25,7 @@ from typing import Literal, assert_never
 # tags to it) and the lowering (mapping it to Markdown/HTML) share ONE source of
 # truth for the closed set, instead of each re-spelling the string literals.
 EmphKind = Literal["strong", "emph", "strike", "sup", "sub"]
+QuoteKind = Literal["single", "double"]
 # The only verse register emitted into canonical Markdown. Structural lineation
 # without verse register is represented by `LineatedBlock`; `VerseBlock` adds this
 # register on top of the same lineation wrapper.
@@ -119,10 +120,9 @@ class ImageInline:
 
 @dataclass(frozen=True)
 class Quoted:
-    """A typographically quoted span (Pandoc `Quoted`); `single` selects the
-    quote glyphs at lowering time."""
+    """A typographically quoted span (Pandoc `Quoted`)."""
 
-    single: bool
+    kind: QuoteKind
     children: list[Inline]
 
 
@@ -227,7 +227,7 @@ def rebuild_container(node: ContainerInlineNode, children: list[Inline]) -> Inli
         case Link():
             return Link(children, node.target)
         case Quoted():
-            return Quoted(node.single, children)
+            return Quoted(node.kind, children)
         case DirectionalSpan():
             return DirectionalSpan(node.direction, children)
         case UnknownInline():
