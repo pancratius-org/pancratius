@@ -83,12 +83,14 @@ def test_record_fill_is_per_line_not_per_paragraph():
 def test_parity_listing_and_vector_share_one_feature_object(recs57):
     body = next(r for r in recs57 if r.votable)
     base_vec = producer.to_vector(body.features)
-    base_listing = producer.render_listing([body], with_features=True)
+    base_listing = producer.render_listing([body], keys=producer.src_ordinal_keys([body]),
+                                           with_features=True)
     perturbed_feats = dataclasses.replace(body.features, fill=body.features.fill + 0.5,
                                           wraps=not body.features.wraps)
     perturbed = dataclasses.replace(body, features=perturbed_feats)
     pv = producer.to_vector(perturbed.features)
-    pl = producer.render_listing([perturbed], with_features=True)
+    pl = producer.render_listing([perturbed], keys=producer.src_ordinal_keys([perturbed]),
+                                 with_features=True)
     assert pv["fill"] == pytest.approx(base_vec["fill"] + 0.5)
     assert pv["wraps"] != base_vec["wraps"]
     assert pl != base_listing
