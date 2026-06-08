@@ -12,6 +12,7 @@ LibreOffice for real rendering and never needed a per-line simulator. It belongs
 """
 from __future__ import annotations
 
+import hashlib
 import xml.etree.ElementTree as ET
 import zipfile
 from dataclasses import dataclass
@@ -21,14 +22,34 @@ from pathlib import Path
 from PIL import ImageFont
 
 _W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
-_LIBERATION_SERIF = ("/Applications/LibreOffice.app/Contents/Resources/fonts/truetype/"
-                     "LiberationSerif-Regular.ttf")
+
+# The metric oracle. The simulator must measure with the exact font LibreOffice lays the docx out
+# in (Liberation Serif, its default serif) — the `fill`/`wraps` signal is only as faithful as these
+# advances. So the font is vendored and hash-pinned, not read from a system LibreOffice: that keeps
+# the feature reproducible off-macOS and turns a LibreOffice upgrade that shifts metrics into a loud
+# failure, not silently drifted labels. Liberation Serif 2.1 as bundled with LibreOffice (SIL OFL,
+# see `vendor/OFL.txt`); `tests/test_physics_font.py` re-asserts the pin against the live bundle.
+_LIBERATION_SERIF = Path(__file__).resolve().parent / "vendor" / "LiberationSerif-Regular.ttf"
+_LIBERATION_SHA256 = "058ea80864aef09a23f45cbec2bb5400bc3dfbdea01c3f10538a21fcb497fb74"
 _PX_PER_PT = 10.0   # render at 10px/pt for stable hinting; the fill RATIO is scale-free
+
+
+def _verify_font() -> Path:
+    """Fail loud if the vendored oracle is missing or its bytes drift from the pin."""
+    digest = hashlib.sha256(_LIBERATION_SERIF.read_bytes()).hexdigest()
+    if digest != _LIBERATION_SHA256:
+        raise RuntimeError(
+            f"metric font {_LIBERATION_SERIF.name} hash {digest} != pinned {_LIBERATION_SHA256}; "
+            "the physics oracle drifted — refusing to emit features against an unknown font")
+    return _LIBERATION_SERIF
+
+
+_FONT_FILE = _verify_font()
 
 
 @lru_cache(maxsize=8)
 def _font(size_pt: float) -> ImageFont.FreeTypeFont:
-    return ImageFont.truetype(_LIBERATION_SERIF, int(round(size_pt * _PX_PER_PT)))
+    return ImageFont.truetype(str(_FONT_FILE), int(round(size_pt * _PX_PER_PT)))
 
 
 @dataclass(frozen=True)
