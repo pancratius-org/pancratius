@@ -19,3 +19,42 @@
   --type-index-masthead-title-leading: 0.96;
   --type-index-masthead-title-tracking: -0.024em;
 }
+
+/* Uppercase kicker — the small sans label above a heading or carrying work
+   metadata. `.eyebrow` adds the accent-rule ornament and section spacing;
+   `.kicker` is the bare label (detail mastheads own their own layout). One
+   recipe, two roles. */
+.kicker,
+.eyebrow {
+  font-family: var(--sans);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.eyebrow {
+  margin: 0 0 1.25rem;
+  display: inline-block;
+}
+.eyebrow::before {
+  content: "";
+  display: inline-block;
+  width: 22px;
+  height: 1px;
+  background: var(--accent);
+  vertical-align: middle;
+  margin-right: 0.85rem;
+}
+/* Wider rule for hero section heads — 22px reads too small at that scale. */
+.eyebrow--lg { font-size: 12.5px; }
+.eyebrow--lg::before { width: 36px; margin-right: 1rem; }
+
+/* Footer / colophon quiet copy — shared legal and context note. No tracking:
+   the two differed by a sub-perceptual 0.01–0.02em, which was drift. */
+.footer-note {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--ink-mute);
+}

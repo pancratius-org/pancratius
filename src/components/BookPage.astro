@@ -65,7 +65,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
     <BackLink href={backHref} label={copy.back(pagerPairs.length)} />
 
     <header class="book-page__masthead">
-      <p class="book-page__meta">{copy.meta}</p>
+      <p class="book-page__meta kicker">{copy.meta}</p>
 
       <div class="book-page__cover">
         <BookCover {pair} {locale} alt={copy.coverAlt(entry.data.title)} loading="eager" />
@@ -124,15 +124,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
     padding-bottom: 2.25rem;
     border-bottom: 1px solid var(--rule);
   }
-  .book-page__meta {
-    font-family: var(--sans);
-    font-size: 11.5px;
-    font-weight: 500;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--ink-mute);
-    margin: 0;
-  }
+  .book-page__meta { margin: 0; }
   .book-page__masthead .book-page__meta  { grid-area: meta;  }
   .book-page__masthead .book-page__cover { grid-area: cover; }
   .book-page__masthead .book-page__body  { grid-area: body;  }

@@ -63,7 +63,7 @@ const relatedVideos = await relatedVideosFor(entry);
     <BackLink href={backHref} label={copy.back(pagerPairs.length)} />
 
     <header class="mp__masthead">
-      <p class="mp__meta"><span class="mp__kind">{copy.meta}</span></p>
+      <p class="mp__meta"><span class="mp__kind kicker">{copy.meta}</span></p>
       <time class="sr-only" datetime={entry.data.published_at}>{dateLabel}</time>
       <div class="mp__seal" aria-hidden="true">
         <span class="mp__seal-day">{sealDay}</span>
@@ -194,14 +194,7 @@ const relatedVideos = await relatedVideosFor(entry);
     white-space: nowrap;
   }
   .mp__head-body { grid-area: head; min-width: 0; }
-  .mp__meta { grid-area: eyebrow; margin: 0 0 1.1rem; font-family: var(--sans); }
-  .mp__kind {
-    font-size: 11.5px;
-    font-weight: 500;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--ink-mute);
-  }
+  .mp__meta { grid-area: eyebrow; margin: 0 0 1.1rem; }
   .sr-only {
     position: absolute;
     width: 1px; height: 1px;

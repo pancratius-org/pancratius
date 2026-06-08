@@ -97,35 +97,7 @@ mark {
 
 main { padding-bottom: 6rem; }
 
-.eyebrow {
-  font-family: var(--sans);
-  font-size: 11.5px;
-  font-weight: 500;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--ink-mute);
-  margin: 0 0 1.25rem;
-  display: inline-block;
-}
-.eyebrow::before {
-  content: "";
-  display: inline-block;
-  width: 22px;
-  height: 1px;
-  background: var(--accent);
-  vertical-align: middle;
-  margin-right: 0.85rem;
-}
-/* Larger eyebrow for section heads on big pages. Wider rule pulls the
-   accent forward; matches the v1 hairline-plate impression that the
-   default 22px rule is too small for at hero scale. */
-.eyebrow--lg {
-  font-size: 12.5px;
-}
-.eyebrow--lg::before {
-  width: 36px;
-  margin-right: 1rem;
-}
+/* The .eyebrow / .kicker uppercase-label roles live in typography.css. */
 
 /* Global heading defaults. Pages can still override per-route, but
    anything that doesn't (about, 404, static utility pages) now lands on
