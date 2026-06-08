@@ -61,8 +61,8 @@ pandoc <md> -o <pdf>
   --template pancratius/download_assets/templates/book.typ
   --pdf-engine-opt=--root=/
   --pdf-engine-opt=--ignore-system-fonts
-  --pdf-engine-opt=--font-path=<abs>/downloads-fonts/source-serif-4
-  --pdf-engine-opt=--font-path=<abs>/downloads-fonts/inter
+  --pdf-engine-opt=--font-path=<abs>/download_assets/fonts/source-serif-4
+  --pdf-engine-opt=--font-path=<abs>/download_assets/fonts/inter
   --metadata title=<title>
   --metadata lang=<ru|en>
   --metadata author=Сергей Орехов (Панкратиус)

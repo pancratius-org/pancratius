@@ -153,6 +153,14 @@ PDF/EPUB rendering and DOCX optimization are local library work.
 `pancratius downloads render` may refresh presentation artifacts before commit;
 CI only packages and publishes what is already present in `src/content/`.
 
+## Font assets
+
+Three owners, no shared binary: a font's identity (family + OFL license) is shared, its bytes are not.
+
+- **Site** (site build): self-hosted via Astro's Fonts API — no third-party request, no committed binary.
+- **Downloads** (`pancratius/`): static faces Typst embeds into PDF/EPUB, matched by family name with system fonts ignored for reproducible renders.
+- **Metrics** (lineation research package): the font the source was laid out in, vendored and hash-pinned so the wrap simulator measures real glyph advances.
+
 ## Search
 
 Pagefind, built into the static output. Use defaults; Pagefind supports Russian with built-in stemming. Wrap each work body in `<article data-pagefind-body>` so the page-body is indexed cleanly. UI surfaces: inline filter on `/books/` plus a global `/search/` page. Confirm real-corpus recall in QA before adding morphology hacks.
