@@ -77,6 +77,22 @@ already committed. Their meeting point is committed source.
   Cloudflare Pages. The FTP host sets `Content-Type` from file extension;
   Astro `Response` headers do not carry over to deployed static files.
 
+## Styling
+
+- **Styling lives in `src/styles/`** (design tokens, typography roles, layout
+  primitives) plus component-scoped `<style>` blocks. `global.css` imports the
+  shared layers; components own their local styling.
+- **Typography is two tiers.** Shared *roles* live in `src/styles/typography.css`
+  — named custom properties and classes for treatments that recur across
+  unrelated surfaces (index masthead title, kicker/eyebrow, footer note, work
+  card sub-roles, static and utility titles). Each role is documented where it is
+  defined; that file is the registry.
+- **Local registers own their own type.** Reading, projects, conceptosphere,
+  home, almanac, and terminal define typography locally and are not folded into
+  shared roles. A repeated *number* is not a role; a role names a shared
+  *meaning*. Reference a role instead of copying its literal, and do not promote a
+  local value just because the number recurs.
+
 ## Content
 
 - **Source of truth lives in `src/content/`** as Markdown plus sibling source/release artifacts (DOCX, PDF, EPUB, covers, images). See [`content-model.md`](./content-model.md).
