@@ -60,8 +60,11 @@
 
 :root {
   /* shared, theme-independent */
-  --serif: "Source Serif 4", "PT Serif", Georgia, "Times New Roman", serif;
-  --sans:  "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
+  /* `--font-serif` / `--font-sans` are defined by Astro's Fonts API (see
+     astro.config.ts): each carries the self-hosted family plus a metric-matched
+     fallback. The human tail stays as the no-font safety net. */
+  --serif: var(--font-serif), "PT Serif", Georgia, "Times New Roman", serif;
+  --sans:  var(--font-sans), -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
   --mono:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   /* Layout width scale. */
