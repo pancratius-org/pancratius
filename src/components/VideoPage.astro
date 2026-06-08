@@ -71,7 +71,7 @@ const channel = await channelForEntry(entry);
         data-pagefind-body
         data-pagefind-meta={`title:${entry.data.title}`}
       >
-        <p class="video-page__meta">{copy.meta}</p>
+        <p class="video-page__meta kicker">{copy.meta}</p>
         <h1 class="vp-compact__title" id="vp-title">{entry.data.title}</h1>
         <div class="vp-compact__desc"><RichText text={entry.data.description} collapse={{ more: copy.showMore, less: copy.showLess }} /></div>
         <div class="vp-compact__embed">
@@ -107,7 +107,7 @@ const channel = await channelForEntry(entry);
     ) : (
       <Fragment>
         <header class="video-page__masthead">
-          <p class="video-page__meta">{copy.meta}</p>
+          <p class="video-page__meta kicker">{copy.meta}</p>
           <div class="video-page__body">
             <div class="video-page__num" aria-hidden="true">{number}</div>
             <h1 class="video-page__title" id="vp-title">{entry.data.title}</h1>
@@ -166,15 +166,7 @@ const channel = await channelForEntry(entry);
   .video-page--blog { --l-canvas-size: var(--col-page); }
   .video-page--blog:has(.video-page__layout--toc) { --l-canvas-size: var(--col-wide); }
 
-  .video-page__meta {
-    font-family: var(--sans);
-    font-size: 11.5px;
-    font-weight: 500;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--ink-mute);
-    margin: 0;
-  }
+  .video-page__meta { margin: 0; }
 
   /* ─── COMPACT layout ────────────────────────────────────────────────── */
   .vp-compact {
