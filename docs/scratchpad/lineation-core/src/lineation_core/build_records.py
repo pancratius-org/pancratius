@@ -9,15 +9,17 @@ contested), so the load side always finds the records its truth needs.
 """
 from __future__ import annotations
 
-from . import artifact, labels, panel_votes, paths
+from . import artifact, paths
+from .annotations import load as load_labels
+from .annotations import load_votes
 from .evaluation.contested import load_contested
 from .identity import BookId
 
 
 def annotation_books() -> list[BookId]:
     """The books any committed annotation refers to — the set whose records must exist."""
-    books: set[BookId] = {g.id.book_id for g in labels.load().labels}
-    books |= {v.id.book_id for v in panel_votes.load()}
+    books: set[BookId] = {g.id.book_id for g in load_labels().labels}
+    books |= {v.id.book_id for v in load_votes()}
     books |= {lid.book_id for lid in load_contested()}
     return sorted(books)
 

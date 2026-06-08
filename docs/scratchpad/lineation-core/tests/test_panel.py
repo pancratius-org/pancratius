@@ -6,8 +6,8 @@ from __future__ import annotations
 import pytest
 
 from lineation_core import store
+from lineation_core.annotations import PanelVote
 from lineation_core.identity import LineId
-from lineation_core.panel_votes import PanelVote
 from lineation_core.teacher import panel, tasks
 from lineation_core.teacher.panel import ChatReply, PanelConfig, ReaderConfig
 from lineation_core.teacher.tasks import (AssetKind, EvidenceAsset, ItemSpec, Modality, TaskItem,

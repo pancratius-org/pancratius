@@ -15,8 +15,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
+from ..annotations import PanelVote, VoteKey
 from ..identity import ModelId, ReaderTag
-from ..panel_votes import PanelVote, VoteKey
 from .responses import RawReaderResponse, parse_reader_reply
 from .tasks import AssetKind, Modality, Task, TaskItem
 

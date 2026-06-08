@@ -24,7 +24,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from . import labels, sequence, store, student
+from . import sequence, store, student
+from .annotations import LabelSet, load
 from .identity import BookId, Label, LineId
 from .records import LineRecord, RecordsByBook
 
@@ -80,7 +81,7 @@ def _cap_per_book(items: list[QueueItem], top: int, per_book_cap: int | None) ->
     return out
 
 
-def build_queue(records: RecordsByBook, labelset: labels.LabelSet, *,
+def build_queue(records: RecordsByBook, labelset: LabelSet, *,
                 top_acquire: int = 300, per_book_cap: int | None = None, seed: int = 0,
                 alpha: float = 0.75, books: list[BookId] | None = None) -> ReviewQueue:
     """Build the review queue with RUN-AWARE (smoothed) confidence. `books` defaults to the labeled
@@ -140,7 +141,7 @@ def commit_acquire(name: str = "acquire", *, top_acquire: int = 300, per_book_ca
     contributes, so the first paid batch is not dominated by a couple of ambiguous books — the
     margin cost is tiny and the coverage gain large; pass None for the plain least-confidence head.
     Returns the queue so the caller can report the distribution BEFORE spending on a paid panel."""
-    labelset = labels.load(annotations=annotations)
+    labelset = load(annotations=annotations)
     records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
     q = build_queue(records, labelset, top_acquire=top_acquire, per_book_cap=per_book_cap, alpha=alpha)
     store.save_selection(name, [item.id.as_key() for item in q.acquire], annotations=annotations)

@@ -21,7 +21,8 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 
-from . import labels, producer, store
+from . import producer, store
+from .annotations import LabelSet, load
 from .identity import BookId, Label, LabelByLine, LineId
 from .records import FeatureName, FeatureVector, LineFeatures, RecordsByBook
 
@@ -38,7 +39,7 @@ class Dataset:
     n_skipped_unmapped: int
 
 
-def build_dataset(records: RecordsByBook, labelset: labels.LabelSet) -> Dataset:
+def build_dataset(records: RecordsByBook, labelset: LabelSet) -> Dataset:
     label_by_id = {g.id: g for g in labelset.labels}
     books = sorted({g.id.book_id for g in labelset.labels})
 
@@ -255,7 +256,7 @@ class SequenceCV:
 
 
 def evaluate_alpha_cv(
-    ds: Dataset, labelset: labels.LabelSet, records: RecordsByBook, *,
+    ds: Dataset, labelset: LabelSet, records: RecordsByBook, *,
     alpha: float, seed: int = 0,
 ) -> SequenceCV:
     """Book-grouped CV of `predict_document` at a given alpha. For each held-out book: fit on
@@ -297,7 +298,7 @@ def evaluate_alpha_cv(
     )
 
 
-def tune_alpha(ds: Dataset, labelset: labels.LabelSet,
+def tune_alpha(ds: Dataset, labelset: LabelSet,
                records: RecordsByBook, *, grid=(0.0, 0.25, 0.5, 0.75, 1.0),
                seed: int = 0) -> list[SequenceCV]:
     """Sweep alpha under book-grouped CV. alpha=0 is the i.i.d. baseline; a higher alpha is
@@ -306,7 +307,7 @@ def tune_alpha(ds: Dataset, labelset: labels.LabelSet,
 
 
 if __name__ == "__main__":
-    labelset = labels.load()
+    labelset = load()
     records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
     ds = build_dataset(records, labelset)
     print(f"dataset: {ds.n_joined} labeled lines over {len(set(ds.groups))} books "

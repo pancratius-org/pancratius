@@ -23,7 +23,8 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
-from .. import labels, panel_votes, store, student
+from .. import store, student
+from ..annotations import LabelSet, by_reader, load
 from .compare import Metrics, ReaderScore, balanced, score_readers
 from ..identity import Label, LabelByLine, LineId, PanelVotes, to_label
 from ..records import RecordsByBook
@@ -47,7 +48,7 @@ class ContestedResult:
     rows: list[ReaderScore]       # per-reader, on the lines shared with that reader
 
 
-def evaluate(records: RecordsByBook, labelset: labels.LabelSet,
+def evaluate(records: RecordsByBook, labelset: LabelSet,
              votes: PanelVotes, contested: LabelByLine, *,
              alpha: float = 0.75) -> ContestedResult:
     """Score the student on the contested hard lines. `contested` is the EVAL truth `{LineId:
@@ -75,9 +76,9 @@ def evaluate(records: RecordsByBook, labelset: labels.LabelSet,
 if __name__ == "__main__":
     from .compare import format_row
 
-    labelset = labels.load()
+    labelset = load()
     records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
-    votes = panel_votes.by_reader()
+    votes = by_reader()
     contested = load_contested()
     base = evaluate(records, labelset, votes, contested, alpha=0.0)    # i.i.d. per-line baseline
     r = evaluate(records, labelset, votes, contested, alpha=0.75)      # run-smoothed default

@@ -6,8 +6,8 @@ anchor is outvoted; the equal-majority control gives the anchor no privilege. Di
 never decide."""
 from __future__ import annotations
 
+from lineation_core.annotations import PanelVote
 from lineation_core.identity import LineId
-from lineation_core.panel_votes import PanelVote
 from lineation_core.teacher import decision
 from lineation_core.teacher.decision import (
     AnchorLedGates,

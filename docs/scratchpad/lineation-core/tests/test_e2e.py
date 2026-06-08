@@ -9,10 +9,10 @@ import json
 
 import pytest
 
-from lineation_core import labels as labels_mod
 from lineation_core import store
+from lineation_core.annotations import PanelVote
+from lineation_core.annotations import load as load_labels
 from lineation_core.identity import LineId
-from lineation_core.panel_votes import PanelVote
 from lineation_core.teacher import panel, promote, responses, tasks
 from lineation_core.teacher.panel import ChatReply, PanelConfig, ReaderConfig
 from lineation_core.teacher.tasks import ItemSpec, Modality
@@ -66,7 +66,7 @@ def test_create_task_then_fake_panel_and_human_reach_committed_truth(tmp_path):
     assert promote.promote_labels(rl.labels, annotations=ann) == 4
 
     # the committed truth is exactly what the eval-half loader reads
-    ls = labels_mod.load(annotations=ann)
+    ls = load_labels(annotations=ann)
     assert len(ls.labels) == 4
     assert all(g.label == "prose" and g.source.value == "human" for g in ls.labels)
     assert {g.id for g in ls.labels} == set(manifest.by_key.values())

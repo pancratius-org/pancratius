@@ -17,11 +17,12 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 
-from .. import labels, panel_votes, store, student
+from .. import store, student
+from ..annotations import READERS, LabelSet, by_reader, load
 from ..identity import Label, LabelByLine, PanelVotes, ReaderTag
 from ..records import RecordsByBook
 
-_READERS = panel_votes.READERS
+_READERS = READERS
 
 
 @dataclass(frozen=True)
@@ -89,7 +90,7 @@ class Comparison:
     n_labels_shared: int
 
 
-def score(records: RecordsByBook, labelset: labels.LabelSet,
+def score(records: RecordsByBook, labelset: LabelSet,
           votes: PanelVotes, *, alpha: float = 0.75) -> Comparison:
     ds = student.build_dataset(records, labelset)
     oof = student.oof_smoothed(ds, records, alpha=alpha)  # run-smoothed student (alpha=0 = i.i.d.)
@@ -113,9 +114,9 @@ def format_row(row: ReaderScore) -> str:
 
 
 if __name__ == "__main__":
-    labelset = labels.load()
+    labelset = load()
     records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
-    cmp = score(records, labelset, panel_votes.by_reader())
+    cmp = score(records, labelset, by_reader())
     print(f"labeled lines covered by >=1 reader: {cmp.n_labels_shared}\n")
     print(f"{'reader':9} {'n':>4} {'labels':>22} | {'READER':^22} | {'STUDENT(OOF)':^22}")
     print(f"{'':9} {'':>4} {'':>22} | {'balAcc':>7} {'mF1':>6} {'pRec':>6} | "

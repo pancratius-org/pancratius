@@ -18,9 +18,8 @@ import math
 from dataclasses import dataclass
 from enum import StrEnum
 
+from ..annotations import LabelSource, LineLabel, PanelVote
 from ..identity import Label, LineId, ReaderTag, to_label
-from ..labels import LabelSource, LineLabel
-from ..panel_votes import PanelVote
 from ..records import RecordsByBook
 from .tasks import RegionId, TaskKey, TaskManifest
 

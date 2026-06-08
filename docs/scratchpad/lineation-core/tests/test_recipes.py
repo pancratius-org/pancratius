@@ -176,7 +176,7 @@ def test_select_lines_raises_on_out_of_scope_book(tmp_path):
 def test_recipe_panel_and_ingest_reach_committed_truth(tmp_path):
     import re
 
-    from lineation_core import labels as labels_mod
+    from lineation_core.annotations import load as load_labels
     from lineation_core.teacher.panel import ChatReply
 
     ann, st = tmp_path / "annotations", tmp_path / "_teacher"
@@ -203,5 +203,5 @@ def test_recipe_panel_and_ingest_reach_committed_truth(tmp_path):
                            for it in payload["items"]}}
     store.save_human_responses("acq", human, annotations=ann)
     assert recipes.ingest(r, annotations=ann, teacher_store=st) == 5
-    ls = labels_mod.load(annotations=ann)
+    ls = load_labels(annotations=ann)
     assert len(ls.labels) == 5 and all(g.label == "prose" for g in ls.labels)

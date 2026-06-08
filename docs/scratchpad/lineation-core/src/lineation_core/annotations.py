@@ -1,5 +1,7 @@
-# research-pure: per-line truth labels (with provenance) — loaded from the canonical artifact.
-"""Per-line truth: a `prose`/`lineated` LABEL for a line, with provenance and lineage.
+# research-pure: the per-line annotation model — truth labels and panel votes, loaded from the artifact.
+"""One typed annotation model: `LineLabel` (truth) and `PanelVote` (evidence), co-located but distinct.
+
+Per-line truth — a `prose`/`lineated` LABEL for a line, with provenance and lineage:
 
 `LineLabel` is a label attached to a `LineId`, plus where it came from (`source` =
 human|gate|panel|override), how sure (`confidence`), and an opaque `provenance` record (the
@@ -11,6 +13,17 @@ pre-canonical key etc.) so a correction stays reasoned about. Training projects 
 span-drop has no real source ordinal, so it is not a trainable target) at the boundary, surfacing
 the rejected count — never silently. The truth is committed `LineId`-keyed; this package only
 loads it, never re-derives it.
+
+Per-line evidence — the LLM panel votes (grok, deepseek, gemini, owl, mimo, minimax) on
+`prose`/`lineated`:
+
+Each vote is one reader's call on one line: a `LineId`, the reader `tag`, the `label`, and an
+optional `conf`. The committed votes are already `LineId`-keyed, so loading and joining here is by
+`LineId` — the one identity.
+
+`load_votes()` reads the committed `votes.jsonl` through the `store` edge and `by_reader()` groups
+votes by reader, so `compare`/`contested` score each reader against the truth on the lines they
+share. It FAILS LOUD on a missing store; it never rebuilds.
 """
 from __future__ import annotations
 
@@ -21,7 +34,7 @@ from pathlib import Path
 from typing import Any, Self
 
 from . import store
-from .identity import Label, LineId, to_label
+from .identity import Label, LineId, PanelVotes, ReaderTag, to_label
 
 
 class LabelSource(StrEnum):
@@ -93,3 +106,39 @@ def load(*, annotations: Path | None = None) -> LabelSet:
         kept.append(g)
     kept.sort(key=lambda g: g.id)
     return LabelSet(labels=kept, n_rejected_unmapped=n_rejected)
+
+
+READERS = ("grok", "deepseek", "gemini", "owl", "mimo", "minimax")
+
+type VoteKey = tuple[ReaderTag, LineId]   # the (reader, line) identity of a vote — its dedup key
+
+
+@dataclass(frozen=True, slots=True)
+class PanelVote:
+    id: LineId
+    tag: ReaderTag    # the reader (grok | deepseek | …)
+    label: Label      # prose | lineated
+    conf: float | None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"id": self.id.as_key(), "tag": self.tag, "label": self.label, "conf": self.conf}
+
+    @classmethod
+    def from_dict(cls, d: Mapping[str, Any]) -> Self:
+        return cls(id=LineId.from_key(d["id"]), tag=d["tag"], label=to_label(d["label"]),
+                   conf=d.get("conf"))
+
+
+def load_votes(*, annotations: Path | None = None) -> list[PanelVote]:
+    """Every panel vote from the committed `votes.jsonl` truth. FAILS LOUD if the file is
+    missing; never rebuilds."""
+    return [PanelVote.from_dict(d) for d in store.load_vote_rows(annotations=annotations)]
+
+
+def by_reader(*, annotations: Path | None = None) -> PanelVotes:
+    """`{reader_tag: {LineId: label}}` — the panel's calls keyed by line identity, ready to
+    join against the truth and the student on the SAME `LineId`s."""
+    out: PanelVotes = {tag: {} for tag in READERS}
+    for v in load_votes(annotations=annotations):
+        out.setdefault(v.tag, {})[v.id] = v.label
+    return out

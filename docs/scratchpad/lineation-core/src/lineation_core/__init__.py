@@ -12,8 +12,7 @@ Layout (one home per concern):
     producer     read_lines (the ONE feature producer) + to_vector / render_listing (thin views)
     artifact     the on-disk record artifact: build once, load many, fail loud on drift
     store        the single IO edge — committed truth + record cache, joined by LineId
-    labels       per-line truth labels (with provenance), loaded via the store edge
-    panel_votes  the LLM panel's per-line votes, loaded via the store edge
+    annotations  per-line truth labels + the LLM panel's votes, loaded via the store edge
     student      the interpretable per-line student + book-grouped CV
     sequence     the sequence-shaped prediction API (predict_document) + run smoothing
     teacher/     PRODUCES annotations — panel votes + human page-adjudications (task-local ids)
