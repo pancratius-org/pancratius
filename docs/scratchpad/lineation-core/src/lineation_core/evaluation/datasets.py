@@ -15,11 +15,20 @@ This module does NOT decide anything — it only assembles the (truth, votes) th
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 
 from ..annotations import PanelVote, load_labels, load_votes
 from ..identity import Label, LineId
 from .. import store
+
+
+class Stratum(StrEnum):
+    """A line's evaluation difficulty bucket. `CONTESTED` lines are in the committed
+    `eval_sets/contested` slice the human re-adjudicated; everything else is `EASY`. Every aligned
+    line has exactly one — the field is never absent."""
+    CONTESTED = "contested"
+    EASY = "easy"
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,7 +39,7 @@ class AlignedLine:
     id: LineId
     truth: Label
     votes: tuple[PanelVote, ...]
-    stratum: str | None
+    stratum: Stratum
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,7 +76,7 @@ def from_store(*, annotations: Path | None = None) -> AlignedSet:
         votes = tuple(sorted(votes_by_line[lid], key=lambda v: v.tag))   # stable reader order
         lines.append(AlignedLine(
             id=lid, truth=truth[lid], votes=votes,
-            stratum="contested" if lid in contested else "easy"))
+            stratum=Stratum.CONTESTED if lid in contested else Stratum.EASY))
 
     n_prose = sum(ln.truth == "prose" for ln in lines)
     return AlignedSet(lines=tuple(lines), n_prose=n_prose, n_lineated=len(lines) - n_prose)

@@ -6,15 +6,18 @@ a task is idempotent) and VALIDATING before the write (a label must be on a mapp
 two-class constraint is enforced by `LineLabel` itself). All IO is at the `store` edge."""
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from .. import store
 from ..annotations import LineLabel, PanelVote, VoteKey
-from ..identity import LineId
+from ..identity import JsonRow, LineId
+
+# A store row-loader keyed by the annotations dir — `store.load_vote_rows` / `load_label_rows`.
+type RowLoader = Callable[..., list[JsonRow]]
 
 
-def _existing(read_rows, *, annotations: Path | None) -> list:
+def _existing(read_rows: RowLoader, *, annotations: Path | None) -> list[JsonRow]:
     try:
         return read_rows(annotations=annotations)
     except FileNotFoundError:

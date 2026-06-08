@@ -6,10 +6,10 @@ interpretable student via **seeded, pool-based active learning**). Transient sta
 contracts are `SPEC.md` (data/algorithm) and `ARCHITECTURE.md` (code layout + the active-learning loop).
 
 ## Where we are (one line)
-The clean-room package, the teacher half (text+vision), the student, and the **eval harness** are
-built and green (180 tests). The decision **policy is settled** (legacy anchor-led wins). What's left
-is wiring the live decision loop, extracting the validated prompt + orphan labels from the legacy
-tree, and the paid 300-line acquire run (needs your API key).
+The clean-room package, the teacher half (text+vision), the student, the **eval harness**, and now
+the **live decision step** (`recipes route`) are built and green (189 tests). The decision **policy
+is settled** (legacy anchor-led wins) and **wired live**. What's left is extracting the validated
+prompt + orphan labels from the legacy tree, and the paid 300-line acquire run (needs your API key).
 
 ## What WORKS (validated / adopted)
 - **Clean-room package** — one per-line `LineRecord` (id+text+inlines+role+votable+source_fate+φ+meta),
@@ -31,7 +31,21 @@ tree, and the paid 300-line acquire run (needs your API key).
   the old `scripts/gold/registry.py` (grok→x-ai/grok-4.3, gemini-pro→google/gemini-3.1-pro-preview,
   ds-flash-text→deepseek/deepseek-v4-flash). The panel is **recipe TOML config**, never hardcoded.
 - **The decision policy** (`teacher/decision.py`) — pluggable `AnchorLedPolicy`/`EqualMajorityPolicy` +
-  `route_with`; mechanism named for its role (anchor is roster config, not "grok").
+  `route_with`; mechanism named for its role (anchor is roster config, not "grok"). The roster +
+  policy TOML grammar (`parse_roster`/`policy_from_toml`/`POLICY_KINDS`, typed `*Table` TypedDicts)
+  lives HERE, so both the eval harness and the live recipe build policies from it — no `recipes →
+  evaluation` import (the forbidden direction).
+- **The LIVE decision step** (`teacher/recipes.py::route` + `route`/`ingest --task-id` CLI) — reads a
+  routed recipe's `[roster]`/`[decision]`, restricts `votes.jsonl` to the task's lines **AND to votes
+  this task produced** (each `PanelVote` is stamped with its `task` at promote), applies the settled
+  policy, **auto-accepts → `gate` labels** (anchor conf + roster/diagnostic vote provenance) and
+  **routes the rest → a `<task_id>-adjudication` sub-task** the existing `adjudicate.html`/`ingest`
+  path consumes. Precedence-safe (never clobbers/re-queues a human/override label — also the
+  eval-leakage guard); refuses a re-route that would re-mint an in-flight human queue's keys; and
+  since `panel` promotes all-or-nothing, **REFUSES on partial coverage** (a task line with no
+  this-task vote ⇒ the panel didn't run; re-panel, or `allow_partial`) rather than route on stale/
+  partial evidence. Surfaces `uncovered` + the operational-vs-terminal split instead of the adaptive-
+  reps loop (still deferred — it's the paid-run-coupled wrapper, see DEFERRED).
 - **The eval harness** (`evaluation/{datasets,metrics,policy_replay}` + TOML) — replays policies on the
   515-line aligned set (truth ⋈ votes); multi-dimensional metrics (accept-quality vs human-load, kept
   separate; **total-population capture**, not misleading accept-set recall).
@@ -66,6 +80,12 @@ is settled on the *historical* protocol; monitor on the future page-only/live pr
 - The whole **intent-classifier/** tree — clean-room rewritten; eviction pending (see below).
 
 ## DEFERRED (intentional, not forgotten)
+- **Single-use adjudication auto-retire** — an `<task_id>-adjudication` sub-task is consume-once
+  (route builds it → human fills it → ingest promotes). `route` refuses to re-mint it over a CHANGED
+  line set (safe-fail), but it does NOT auto-archive the responses + manifest after `ingest`, so a
+  re-route of the SAME task post-ingest must be cleared by hand. Not on the loop's happy path (each
+  round uses a fresh `task_id`). Harden by having `ingest` archive the consumed responses + retire the
+  bundle (Codex finding 2; left explicit, not built).
 - **The live escalation driver** — `decision.py` is offline ACCEPT/HUMAN only; live needs
   `ACCEPT/ESCALATE/ROUTE_HUMAN/NEEDS_RERUN` + adaptive reps (run 1, escalate to ~5 on big inter-LLM
   disagreement). Decide `CONF_MISSING`/`LOW_CONFIDENCE` terminal-vs-rerun then (currently TERMINAL,
@@ -76,10 +96,12 @@ is settled on the *historical* protocol; monitor on the future page-only/live pr
 - **`809a07c` commit message reword** — blocked: a concurrent site-fonts commit (`6dbd7b2`) landed on
   top, rebase-i is unavailable; safe only once that agent is done.
 
-## ROADMAP — what's left (Codex's order)
-1. **Wire the decision live** — `votes.jsonl → route_with(AnchorLedPolicy[legacy], roster) → accepted +
-   human queues → adjudicate.html → labels.jsonl`. Build the escalation statuses first (see deferred).
-   *Buildable now, no inputs.*
+## ROADMAP — what's left
+1. **Wire the decision live** — ✅ DONE (`recipes route`, see "What WORKS"). The OFFLINE accept/route
+   split + the `votes.jsonl → gate labels + adjudication sub-task → ingest → labels.jsonl` loop is
+   built and tested (`tests/test_route.py`). The adaptive-reps **escalation** wrapper stays deferred
+   (it belongs to the paid live run — `route` surfaces the operational/`uncovered` seam it would act
+   on; see DEFERRED). NB: the live config grammar moved into `teacher/decision.py` (not eval).
 2. **Extract-before-evict** — pull `reader_brief_v5.txt` + the orphan human guardrail labels
    (`responses-fresh-prose-guardrail-*`, `responses-wide-prose-guardrail-*`, `review_gold-stage12.json`
    audit corrections; **exclude book 73** — intentionally pruned political content) from

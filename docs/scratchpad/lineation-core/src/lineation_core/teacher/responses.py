@@ -19,9 +19,12 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from ..annotations import LabelSource, LineLabel, PanelVote
-from ..identity import Label, LineId, ReaderTag, to_label
+from ..identity import JsonObject, Label, LineId, LineTextHash, ReaderTag, to_label
 from ..records import RecordsByBook
 from .tasks import RegionId, TaskKey, TaskManifest
+
+
+ADJUDICATED_AUDIT_STATUS = "adjudicated"   # the `audit_status` a human-adjudicated label carries
 
 
 @dataclass(frozen=True, slots=True)
@@ -159,7 +162,7 @@ def resolve_panel(
 def resolve_adjudication(
     manifest: TaskManifest, responses: list[RawReaderResponse], records: RecordsByBook, *,
     title: str = "", complete: bool = False,
-    source: LabelSource = LabelSource.HUMAN, audit_status: str = "adjudicated",
+    source: LabelSource = LabelSource.HUMAN, audit_status: str = ADJUDICATED_AUDIT_STATUS,
 ) -> ResolvedLabels:
     """Resolve human adjudications into LineId-keyed `LineLabel`s. `confidence` is `None` (a human
     emits no probability); provenance carries the task-local key + item + task title as lineage."""
@@ -178,7 +181,7 @@ def resolve_adjudication(
 
 # --- parsers: raw wire → typed rows (resolution is separate) -----------------------------------
 
-def parse_ui_responses(data: dict, *, tag: ReaderTag = "human") -> list[RawReaderResponse]:
+def parse_ui_responses(data: JsonObject, *, tag: ReaderTag = "human") -> list[RawReaderResponse]:
     """`adjudicate.html` export → typed responses. The UI shape is
     `{"responses": {item_id: {"lines": {key: label}, "note": str}}}` — opaque keys throughout."""
     out: list[RawReaderResponse] = []
