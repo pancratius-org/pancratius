@@ -1,16 +1,28 @@
-# research-pure: the grok-led cross-reader decision — accept on full support, route splits to human.
-"""Locks the validated policy: the anchor (grok) leads, core support (gemini-pro, ds-flash-text) is a
-disagreement detector, diagnostic readers (glm) never decide. ACCEPT only when the anchor has a
-stable vote, enough support voted, it clears the optional confidence floor, AND no support reader
-splits from it; otherwise ROUTE TO HUMAN. Equal-majority is deliberately NOT the rule."""
+# research-pure: the pluggable cross-reader decision policies — anchor-led (unanimous + legacy) + control.
+"""Locks the policies over a fixed roster (anchor + a support pair + a diagnostic — the readers are
+test config). The default unanimous anchor-led rule accepts only when every present support agrees;
+the legacy gate tolerates one dissent (`min_core_agree=2`, `conf_floor=0.7`) and routes when the
+anchor is outvoted; the equal-majority control gives the anchor no privilege. Diagnostic readers
+never decide."""
 from __future__ import annotations
 
 from lineation_core.identity import LineId
 from lineation_core.panel_votes import PanelVote
 from lineation_core.teacher import decision
-from lineation_core.teacher.decision import Outcome, PanelRoster, Reason
+from lineation_core.teacher.decision import (
+    AnchorLedGates,
+    AnchorLedPolicy,
+    EqualMajorityPolicy,
+    Outcome,
+    PanelRoster,
+    Reason,
+)
 
-ROSTER = PanelRoster(anchor="grok", support=("gemini-pro", "ds-flash-text"), diagnostic=("glm",))
+LEGACY = AnchorLedPolicy("legacy", AnchorLedGates(min_support=2, min_core_agree=2, conf_floor=0.7,
+                                              require_no_split=False))
+CONTROL = EqualMajorityPolicy("equal_majority")
+
+ROSTER = PanelRoster(anchor="grok", support=("gemini-pro", "ds-flash-text"))   # glm votes but isn't in the roster
 LID = LineId.mapped("ru", "57", 10, 0)
 
 
@@ -72,3 +84,38 @@ def test_route_partitions_lines_and_ignores_diagnostic():
     r = decision.route(votes, ROSTER)
     assert [d.id for d in r.accepted] == [a] and r.accepted[0].label == "lineated"
     assert [d.id for d in r.human] == [b] and r.human[0].reason is Reason.SUPPORT_DISAGREES
+
+
+# --- the pluggable policies: legacy anchor-led gate + the equal-majority control -----------------
+
+def test_legacy_gate_accepts_a_tolerated_split():
+    # 2-1 split, anchor in the majority: legacy (min_core_agree=2) ACCEPTS; unanimous routes to human.
+    by = _by(_v("grok", "lineated", conf=0.9), _v("gemini-pro", "lineated"), _v("ds-flash-text", "prose"))
+    d = LEGACY.decide(LID, by, ROSTER)
+    assert d.outcome is Outcome.ACCEPT and d.reason is Reason.ACCEPTED_MAJORITY and d.label == "lineated"
+    assert decision.decide_line(LID, by, ROSTER).reason is Reason.SUPPORT_DISAGREES  # unanimous differs
+
+
+def test_legacy_gate_routes_when_anchor_is_outvoted():
+    # anchor in the minority (both support disagree): a majority exists but anchor-led → human.
+    by = _by(_v("grok", "lineated", conf=0.9), _v("gemini-pro", "prose"), _v("ds-flash-text", "prose"))
+    d = LEGACY.decide(LID, by, ROSTER)
+    assert d.outcome is Outcome.HUMAN and d.reason is Reason.ANCHOR_PANEL_SPLIT
+
+
+def test_legacy_gate_low_anchor_confidence_routes_human():
+    by = _by(_v("grok", "lineated", conf=0.5), _v("gemini-pro", "lineated"), _v("ds-flash-text", "lineated"))
+    assert LEGACY.decide(LID, by, ROSTER).reason is Reason.LOW_CONFIDENCE      # conf_floor=0.7
+
+
+def test_equal_majority_accepts_against_the_anchor():
+    # the control gives the anchor no privilege: a 2-1 majority against it is accepted.
+    by = _by(_v("grok", "lineated"), _v("gemini-pro", "prose"), _v("ds-flash-text", "prose"))
+    d = CONTROL.decide(LID, by, ROSTER)
+    assert d.outcome is Outcome.ACCEPT and d.label == "prose"
+
+
+def test_route_with_runs_any_policy():
+    votes = [_v("grok", "lineated"), _v("gemini-pro", "lineated"), _v("ds-flash-text", "prose")]
+    assert decision.route_with(LEGACY, votes, ROSTER).accepted                 # legacy tolerates it
+    assert decision.route_with(AnchorLedPolicy("u"), votes, ROSTER).human       # unanimous routes it
