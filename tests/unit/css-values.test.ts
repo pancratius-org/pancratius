@@ -60,6 +60,32 @@ describe("analyzeCssValues", () => {
     assert.ok(report.typography.some((group) => group.value === "1.1rem" && group.count === 2));
     assert.ok(report.largePixels.some((group) => group.value === "320px" && group.count === 1));
   });
+
+  test("reports unitless line-height and declarations packed onto one line", () => {
+    const files = new Map([
+      [
+        "src/a.astro",
+        [
+          "<style>",
+          ".a { font-size: 1.5rem; line-height: 0.96; }",
+          ".b { line-height: 0.96; }",
+          ".c { line-height: 0.96; }",
+          "</style>",
+        ].join("\n"),
+      ],
+    ]);
+    const ctx = makeContext("/unused");
+    const report = analyzeCssValues({
+      ...ctx,
+      walk: () => [...files.keys()],
+      read: (file) => files.get(file) ?? "",
+    }, { minCount: 1, limit: 10, examples: 4 });
+
+    // Unitless leading must now be visible to the typography report.
+    assert.ok(report.typography.some((group) => group.value === "0.96" && group.count === 3));
+    // A declaration packed inline next to another on one line is still parsed.
+    assert.ok(report.typography.some((group) => group.value === "1.5rem"));
+  });
 });
 
 describe("formatCssValueReport", () => {

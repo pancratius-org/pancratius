@@ -88,10 +88,10 @@ const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count })
   .lib__head h1 {
     font-family: var(--serif);
     font-weight: 400;
-    font-size: clamp(3rem, 7.4vw, 5.4rem);
-    line-height: 0.96;
+    font-size: var(--type-index-masthead-title-size);
+    line-height: var(--type-index-masthead-title-leading);
     margin: 0;
-    letter-spacing: -0.024em;
+    letter-spacing: var(--type-index-masthead-title-tracking);
   }
   .lib__head h1 b {
     font-weight: 500;

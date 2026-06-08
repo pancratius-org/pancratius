@@ -201,9 +201,9 @@ function isSpacingLiteral(use: CssUse): boolean {
 }
 
 function isTypographyLiteral(use: CssUse): boolean {
-  if (use.property !== "font-size" && use.property !== "line-height" && use.property !== "letter-spacing") {
-    return false;
-  }
+  // Leading is usually unitless (`line-height: 0.96`); don't require a unit here.
+  if (use.property === "line-height") return /[-+]?(?:\d*\.)?\d+/.test(use.value);
+  if (use.property !== "font-size" && use.property !== "letter-spacing") return false;
   return /[-+]?(?:\d*\.)?\d+(?:px|rem|em)/i.test(use.value);
 }
 

@@ -1,0 +1,28 @@
+/*
+ * Shared typography roles.
+ *
+ * Each role names a repeated, cross-surface text treatment so its value is
+ * owned in one place instead of copied per page. A role exposes the type
+ * triplet — size, leading, tracking — as custom properties; consumers read them
+ * through var(). Custom properties (not utility classes) inherit across Astro
+ * scoped-style boundaries and avoid the specificity traps that have bitten
+ * page/layout styling.
+ *
+ * Scope: roles here are genuinely shared by unrelated surfaces. Local registers
+ * (reading, projects, conceptosphere, home, almanac, terminal) own their own
+ * typography and must NOT be folded into these roles — see
+ * docs/scratchpad/typography-role-migration-plan.md.
+ *
+ * A role carries only the properties that actually recur. Family, weight, and
+ * voice (italic, accent colour) stay with the consumer when they are not the
+ * scattered value being named.
+ */
+:root {
+  /* Collection / index masthead title — the display heading shared by the
+     books, poetry, projects, videos, and messages index chromes. Tight leading
+     and negative tracking are a display-scale treatment, distinct from the
+     global h1. */
+  --type-index-masthead-title-size: clamp(3rem, 7.4vw, 5.4rem);
+  --type-index-masthead-title-leading: 0.96;
+  --type-index-masthead-title-tracking: -0.024em;
+}
