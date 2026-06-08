@@ -29,7 +29,7 @@ const links = [
   ...FOOTER_EXTERNAL_LINKS.map(link => ({ href: link.href, label: link.label[locale], external: true })),
 ];
 ---
-<footer>
+<footer class="footer-note">
   <p>{copy.cc0_before}<a href={licenseHref}>{copy.cc0_link}</a>{copy.cc0_after}</p>
   <p>{copy.cc0_b}</p>
   <p class="footer__links">
@@ -46,11 +46,6 @@ const links = [
   footer {
     padding: 2.5rem var(--rail) 3rem;
     border-top: 1px solid var(--rule);
-    font-family: var(--sans);
-    font-size: 12.5px;
-    line-height: 1.7;
-    letter-spacing: 0.01em;
-    color: var(--ink-mute);
   }
   footer p { margin: 0; max-width: var(--col-page); }
   footer p + p { margin-top: 0.3rem; }
