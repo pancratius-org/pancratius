@@ -31,10 +31,25 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Self
+from typing import Self
 
 from . import store
-from .identity import Label, LineId, PanelVotes, ReaderTag, to_label
+from .identity import (
+    JsonObject,
+    Label,
+    LineId,
+    LineTextHash,
+    PanelVotes,
+    ReaderTag,
+    TaskId,
+    to_label,
+)
+
+# Opaque lineage carried on a label/vote on disk (the pre-canonical key, the gate's policy+reason+
+# votes, the task title…). No consumer joins on it — the join key is the `LineId` — so it stays an
+# open object map by design; named so it reads as "lineage, do not branch on its shape" rather than
+# an anonymous `Mapping[str, Any]`.
+type Provenance = Mapping[str, object]
 
 
 class LabelSource(StrEnum):
@@ -56,14 +71,14 @@ class LineLabel:
     confidence: float | None
     audit_status: str
     notes: str
-    provenance: Mapping[str, Any]
-    line_text_hash: str | None = None  # hash of the line text this label applies to, if known
+    provenance: Provenance
+    line_text_hash: LineTextHash | None = None  # hash of the line text this label applies to, if known
 
     def __post_init__(self) -> None:
         if self.label not in ("prose", "lineated"):
             raise ValueError(f"label must be prose|lineated, got {self.label!r}")
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> JsonObject:
         return {
             "id": self.id.as_key(), "label": self.label, "source": self.source.value,
             "confidence": self.confidence, "audit_status": self.audit_status,
@@ -72,7 +87,7 @@ class LineLabel:
         }
 
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> Self:
+    def from_dict(cls, d: JsonObject) -> Self:
         return cls(
             id=LineId.from_key(d["id"]), label=to_label(d["label"]),
             source=LabelSource(d["source"]), confidence=d.get("confidence"),
@@ -117,14 +132,18 @@ class PanelVote:
     tag: ReaderTag    # the reader (grok | deepseek | …)
     label: Label      # prose | lineated
     conf: float | None
+    task: TaskId | None = None   # the campaign that produced this vote — `route` consumes only its own
+                                 # task's votes, so a superseded older campaign's row reads as uncovered.
+                                 # None on legacy/eval rows committed before task-stamping.
 
-    def to_dict(self) -> dict[str, Any]:
-        return {"id": self.id.as_key(), "tag": self.tag, "label": self.label, "conf": self.conf}
+    def to_dict(self) -> JsonObject:
+        return {"id": self.id.as_key(), "tag": self.tag, "label": self.label, "conf": self.conf,
+                "task": self.task}
 
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> Self:
+    def from_dict(cls, d: JsonObject) -> Self:
         return cls(id=LineId.from_key(d["id"]), tag=d["tag"], label=to_label(d["label"]),
-                   conf=d.get("conf"))
+                   conf=d.get("conf"), task=d.get("task"))
 
 
 def load_votes(*, annotations: Path | None = None) -> list[PanelVote]:

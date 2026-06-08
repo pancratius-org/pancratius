@@ -13,10 +13,9 @@ import json
 import os
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any
 
 from . import artifact, paths
-from .identity import BookId
+from .identity import BookId, JsonObject, JsonRow, LineKey, RunId, TaskId
 from .records import LineRecord, RecordsByBook
 
 LABELS_FILE = "labels.jsonl"   # the resolved per-line truth
@@ -25,7 +24,7 @@ VOTES_FILE = "votes.jsonl"     # the LLM panel votes
 
 # --- committed annotation TRUTH (source; never rebuilt) ---------------------------------------
 
-def _rows(path: Path) -> list[dict[str, Any]]:
+def _rows(path: Path) -> list[JsonRow]:
     """Every jsonl row of a committed annotation file. FAILS LOUD with a clear message if the
     file is missing — it is irreplaceable source truth, not a derived cache to rebuild."""
     if not path.is_file():
@@ -42,15 +41,15 @@ def _must(path: Path) -> Path:
     return path
 
 
-def load_label_rows(*, annotations: Path | None = None) -> list[dict[str, Any]]:
+def load_label_rows(*, annotations: Path | None = None) -> list[JsonRow]:
     return _rows((annotations or paths.ANNOTATIONS) / LABELS_FILE)
 
 
-def load_vote_rows(*, annotations: Path | None = None) -> list[dict[str, Any]]:
+def load_vote_rows(*, annotations: Path | None = None) -> list[JsonRow]:
     return _rows((annotations or paths.ANNOTATIONS) / VOTES_FILE)
 
 
-def load_eval_set(name: str, *, annotations: Path | None = None) -> list[dict[str, Any]]:
+def load_eval_set(name: str, *, annotations: Path | None = None) -> list[JsonRow]:
     """Raw `{id, label}` rows of a named evaluation slice (`eval_sets/<name>.json`) — a committed
     hard-case subpopulation to score the student against. FAILS LOUD if missing."""
     path = (annotations or paths.ANNOTATIONS) / "eval_sets" / f"{name}.json"
@@ -59,9 +58,10 @@ def load_eval_set(name: str, *, annotations: Path | None = None) -> list[dict[st
     return json.loads(path.read_text())
 
 
-def load_selection(name: str, *, annotations: Path | None = None) -> list[Any]:
+def load_selection(name: str, *, annotations: Path | None = None) -> list[LineKey]:
     """A committed `LineId`-key list (`selections/<name>.json`) — e.g. the active-learning acquire
     set, written as DATA by the eval/student side so the teacher consumes it without importing it.
+    Each entry is a `LineId.as_key()` 4-list, resolved via `LineId.from_key` by the reader.
     FAILS LOUD if missing."""
     path = (annotations or paths.ANNOTATIONS) / "selections" / f"{name}.json"
     if not path.is_file():
@@ -93,7 +93,7 @@ RESPONSES_DIR = "responses"    # committed: <task_id>.json — raw human adjudic
 PANEL_RUNS_DIR = "panel_runs"  # committed: <run_id>.jsonl — per-rep panel votes (evidence)
 
 
-def save_task_bundle(task_id: str, payload: dict[str, Any], manifest: dict[str, Any], *,
+def save_task_bundle(task_id: TaskId, payload: JsonObject, manifest: JsonObject, *,
                      annotations: Path | None = None, store: Path | None = None) -> None:
     """Persist a task: the MANIFEST (committed source — the only thing that resolves the opaque
     keys) under `annotations/tasks/`, and the reader/UI PAYLOAD (derived — regenerable from
@@ -108,8 +108,8 @@ def save_task_bundle(task_id: str, payload: dict[str, Any], manifest: dict[str, 
         json.dumps(payload, ensure_ascii=False, indent=2))
 
 
-def load_task_bundle(task_id: str, *, annotations: Path | None = None,
-                     store: Path | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
+def load_task_bundle(task_id: TaskId, *, annotations: Path | None = None,
+                     store: Path | None = None) -> tuple[JsonObject, JsonObject]:
     """The `(payload, manifest)` for a task — payload from the derived store, manifest from the
     committed source. FAILS LOUD if either is missing."""
     ann = annotations or paths.ANNOTATIONS
@@ -119,7 +119,14 @@ def load_task_bundle(task_id: str, *, annotations: Path | None = None,
     return payload, manifest
 
 
-def save_human_responses(task_id: str, data: dict[str, Any], *,
+def task_manifest_exists(task_id: TaskId, *, annotations: Path | None = None) -> bool:
+    """Whether a task's committed manifest is already on disk — the predicate `route` consults before
+    it would re-mint an adjudication sub-task's keys (re-minting over live human responses corrupts
+    them)."""
+    return ((annotations or paths.ANNOTATIONS) / TASKS_DIR / f"{task_id}.manifest.json").is_file()
+
+
+def save_human_responses(task_id: TaskId, data: JsonObject, *,
                          annotations: Path | None = None) -> None:
     """A human adjudication export (`adjudicate.html` output) — irreplaceable source, committed."""
     ann = annotations or paths.ANNOTATIONS
@@ -128,12 +135,12 @@ def save_human_responses(task_id: str, data: dict[str, Any], *,
         json.dumps(data, ensure_ascii=False, indent=2))
 
 
-def load_human_responses(task_id: str, *, annotations: Path | None = None) -> dict[str, Any]:
+def load_human_responses(task_id: TaskId, *, annotations: Path | None = None) -> JsonObject:
     ann = annotations or paths.ANNOTATIONS
     return json.loads(_must(ann / RESPONSES_DIR / f"{task_id}.json").read_text())
 
 
-def save_panel_reps(run_id: str, rows: list[dict[str, Any]], *,
+def save_panel_reps(run_id: RunId, rows: list[JsonRow], *,
                     annotations: Path | None = None) -> None:
     """Per-rep parsed panel votes — committed EVIDENCE (run-to-run instability is real data, not
     fluff). The canonical resolved view is `votes.jsonl`; this keeps the reps behind it."""
@@ -142,7 +149,7 @@ def save_panel_reps(run_id: str, rows: list[dict[str, Any]], *,
     artifact.write_jsonl(ann / PANEL_RUNS_DIR / f"{run_id}.jsonl", rows)
 
 
-def load_panel_reps(run_id: str, *, annotations: Path | None = None) -> list[dict[str, Any]]:
+def load_panel_reps(run_id: RunId, *, annotations: Path | None = None) -> list[JsonRow]:
     ann = annotations or paths.ANNOTATIONS
     return list(artifact.read_jsonl(_must(ann / PANEL_RUNS_DIR / f"{run_id}.jsonl")))
 
@@ -152,7 +159,7 @@ def load_panel_reps(run_id: str, *, annotations: Path | None = None) -> list[dic
 CALLS_FILE = "calls.jsonl"     # derived: append-once raw replies, the run's resume log
 
 
-def save_panel_call(task_id: str, row: dict[str, Any], *, store: Path | None = None) -> None:
+def save_panel_call(task_id: TaskId, row: JsonRow, *, store: Path | None = None) -> None:
     """APPEND one completed call's raw reply (`{item_id, tag, rep, model, content, finish_reason}`)
     to the run's resume log under `_teacher/`. Persisted the instant the call returns, BEFORE
     parsing, so a malformed reply survives and a re-run reuses it instead of re-paying for it. The
@@ -165,7 +172,7 @@ def save_panel_call(task_id: str, row: dict[str, Any], *, store: Path | None = N
         fh.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def load_panel_calls(task_id: str, *, store: Path | None = None) -> list[dict[str, Any]]:
+def load_panel_calls(task_id: TaskId, *, store: Path | None = None) -> list[JsonRow]:
     """Every saved raw call for a task (empty if none yet) — the resume cache. Last write wins per
     `(item_id, tag, rep)` is the caller's job; this returns rows in append order."""
     st = store or paths.TEACHER_STORE
@@ -186,25 +193,25 @@ def _atomic_text(path: Path, text: str) -> None:
     os.replace(tmp, path)
 
 
-def _jsonl(rows: list[dict[str, Any]]) -> str:
+def _jsonl(rows: list[JsonRow]) -> str:
     return "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows)
 
 
-def write_label_rows(rows: list[dict[str, Any]], *, annotations: Path | None = None) -> None:
+def write_label_rows(rows: list[JsonRow], *, annotations: Path | None = None) -> None:
     _atomic_text((annotations or paths.ANNOTATIONS) / LABELS_FILE, _jsonl(rows))
 
 
-def write_vote_rows(rows: list[dict[str, Any]], *, annotations: Path | None = None) -> None:
+def write_vote_rows(rows: list[JsonRow], *, annotations: Path | None = None) -> None:
     _atomic_text((annotations or paths.ANNOTATIONS) / VOTES_FILE, _jsonl(rows))
 
 
-def write_eval_set(name: str, rows: list[dict[str, Any]], *,
+def write_eval_set(name: str, rows: list[JsonRow], *,
                    annotations: Path | None = None) -> None:
     _atomic_text((annotations or paths.ANNOTATIONS) / "eval_sets" / f"{name}.json",
                  json.dumps(rows, ensure_ascii=False, indent=2))
 
 
-def save_selection(name: str, keys: list[Any], *, annotations: Path | None = None) -> None:
+def save_selection(name: str, keys: list[LineKey], *, annotations: Path | None = None) -> None:
     """Commit a `LineId`-key list (each key is `LineId.as_key()` = `[lang, book_id, src_ordinal,
     sub]`) as `selections/<name>.json` — e.g. the active-learning acquire set the teacher reads via
     `selector="selection_file:<name>"`. Written by the eval/student side as DATA, so the teacher

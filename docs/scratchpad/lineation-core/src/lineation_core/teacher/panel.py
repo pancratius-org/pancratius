@@ -13,20 +13,32 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Protocol
 
 from ..annotations import PanelVote, VoteKey
 from ..identity import ModelId, ReaderTag
 from .responses import RawReaderResponse, parse_reader_reply
-from .tasks import AssetKind, Modality, Task, TaskItem
+from .tasks import AssetKind, Modality, RegionId, Task, TaskItem
 
-type Message = dict         # an OpenAI-style chat message: {"role", "content"}
+type Message = dict[str, object]   # an OpenAI-style chat message: {"role", "content"}
+
+
+class FinishReason(StrEnum):
+    """The OpenAI/OpenRouter completion stop reasons the panel branches on. `LENGTH` means the
+    model hit `max_tokens` mid-answer — a truncated, under-covered reply the run REFUSES to promote.
+    Stored verbatim as the raw `str` on `ChatReply` (an unknown provider value passes through
+    untouched); this enum is the named value to compare against, never re-parsed from the wire."""
+    STOP = "stop"
+    LENGTH = "length"
+    CONTENT_FILTER = "content_filter"
+    TOOL_CALLS = "tool_calls"
 
 
 @dataclass(frozen=True, slots=True)
 class ChatReply:
     content: str
-    finish_reason: str | None = None    # "length" ⇒ truncated; the caller may retry larger
+    finish_reason: str | None = None    # LENGTH ⇒ truncated; the caller may retry larger
 
 
 class ChatCompleter(Protocol):
@@ -60,7 +72,7 @@ class PanelRep:
     and whether the reply was truncated. `content` is the unparsed reply kept verbatim — so a
     malformed JSON / empty / all-reasoning answer survives as evidence even when `response.rows` is
     empty. The per-rep record behind the resolved `votes.jsonl`."""
-    item_id: str
+    item_id: RegionId
     tag: ReaderTag
     rep: int
     model: ModelId
@@ -86,7 +98,7 @@ def build_prompt(item: TaskItem, reader: ReaderConfig, instructions: str) -> lis
     return [{"role": "user", "content": parts}]
 
 
-type CallKey = tuple[str, ReaderTag, int, ModelId]   # (item_id, reader tag, rep, model) — call identity
+type CallKey = tuple[RegionId, ReaderTag, int, ModelId]   # (item_id, reader tag, rep, model) — call identity
 type CallCache = dict[CallKey, ChatReply]            # already-completed calls to RESUME from
 type OnCall = Callable[[CallKey, ChatReply], None]   # persist a fresh reply the instant it lands
 

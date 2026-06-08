@@ -13,9 +13,9 @@ import dataclasses
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Self
+from typing import Self
 
-from .identity import BookId, LineId
+from .identity import BookId, JsonObject, LineId, LineTextHash, ParagraphTextHash
 
 # A flattened one-line feature vector: column name → numeric value (bools→0/1, categoricals
 # one-hot expanded). `FeatureName` is one such column. Produced by `producer.vectorize_fixed`,
@@ -31,6 +31,16 @@ type RecordsByBook = dict[BookId, list["LineRecord"]]
 # grouping the sequence model AND the teacher tiler both read, so "run" means one thing.
 type RecordIndex = int           # a 0-based position into a records sequence — NOT a src_ordinal
 type Run = list[RecordIndex]
+
+
+class Align(StrEnum):
+    """A line's paragraph alignment, normalized to a closed vocabulary (the producer's `_align`
+    folds Word's `both`/`""` into `just`/`left`). One-hot expanded in the vector; `LEFT` is the
+    silent default in the listing."""
+    LEFT = "left"
+    JUST = "just"
+    RIGHT = "right"
+    CENTER = "center"
 
 
 class IndentVsBook(StrEnum):
@@ -73,7 +83,7 @@ class LineFeatures:
     enjambs: bool
     colon_opens: bool
     # layout (within-book DIRECTIONED)
-    align: str                       # left | just | right | center
+    align: Align
     indent_vs_book: IndentVsBook
     spacing_after_vs_book: SpacingVsBook
     align_is_book_default: bool
@@ -87,8 +97,8 @@ class LineFeatures:
     next_structural: bool
     fill_pctile_in_book: float
 
-    def to_dict(self) -> dict[str, Any]:
-        out: dict[str, Any] = {}
+    def to_dict(self) -> JsonObject:
+        out: JsonObject = {}
         for f in dataclasses.fields(self):
             v = getattr(self, f.name)
             out[f.name] = v.value if isinstance(v, StrEnum) else v
@@ -121,7 +131,7 @@ class InlineRun:
     text: str
     emphasis: str  # "" | strong | emph | strike | code
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> JsonObject:
         return {"text": self.text, "emphasis": self.emphasis}
 
 
@@ -136,12 +146,12 @@ class LineMeta:
     block_index: int        # the structural-view block index this line came from (label idx space)
     src_ordinal: int | None  # the real source <w:p> ordinal, or None if unmapped
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> JsonObject:
         return {"style_id": self.style_id, "block_index": self.block_index,
                 "src_ordinal": self.src_ordinal}
 
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> Self:
+    def from_dict(cls, d: Mapping[str, object]) -> Self:
         return cls(style_id=d.get("style_id", ""), block_index=int(d["block_index"]),
                    src_ordinal=d["src_ordinal"])
 
@@ -159,11 +169,11 @@ class LineRecord:
     votable: bool
     source_fate: SourceFate
     features: LineFeatures
-    paragraph_text_hash: str
-    line_text_hash: str
+    paragraph_text_hash: ParagraphTextHash
+    line_text_hash: LineTextHash
     meta: LineMeta
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> JsonObject:
         return {
             "id": self.id.as_key(),
             "text": self.text,
@@ -178,13 +188,13 @@ class LineRecord:
         }
 
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> Self:
+    def from_dict(cls, d: Mapping[str, object]) -> Self:
         f = d["features"]
         feats = LineFeatures(
             fill=f["fill"], wraps=f["wraps"], char_len=f["char_len"],
             word_count=f["word_count"], end_punct=EndPunct(f["end_punct"]),
             starts_lower=f["starts_lower"], next_line_lower=f["next_line_lower"],
-            enjambs=f["enjambs"], colon_opens=f["colon_opens"], align=f["align"],
+            enjambs=f["enjambs"], colon_opens=f["colon_opens"], align=Align(f["align"]),
             indent_vs_book=IndentVsBook(f["indent_vs_book"]),
             spacing_after_vs_book=SpacingVsBook(f["spacing_after_vs_book"]),
             align_is_book_default=f["align_is_book_default"], numbered=f["numbered"],
@@ -220,7 +230,7 @@ class FeatureSchema:
     fields: list[FeatureName]
     feature_support: dict[FeatureName, int]  # column -> count of rows where it is non-default/observed
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> JsonObject:
         return {
             "feature_schema_version": self.feature_schema_version,
             "producer_version": self.producer_version,
@@ -229,7 +239,7 @@ class FeatureSchema:
         }
 
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> Self:
+    def from_dict(cls, d: Mapping[str, object]) -> Self:
         return cls(
             feature_schema_version=d["feature_schema_version"],
             producer_version=d["producer_version"], fields=list(d["fields"]),

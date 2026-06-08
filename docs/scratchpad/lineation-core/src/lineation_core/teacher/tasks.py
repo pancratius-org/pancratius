@@ -14,10 +14,10 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Self
+from typing import Self
 
 from .. import producer
-from ..identity import LineId, ListingKey
+from ..identity import JsonObject, LineId, LineTextHash, ListingKey
 from ..records import LineRecord, RecordsByBook
 
 type TaskKey = ListingKey   # a task-local opaque key ("L001") — a ListingKey minted per task
@@ -75,7 +75,7 @@ class TaskManifest:
     this — not the whole `Task` — so ingest just loads the manifest. Never in the reader/UI payload;
     persisted SEPARATELY and read only by `responses`."""
     by_key: dict[TaskKey, LineId]
-    text_hash_by_key: dict[TaskKey, str]
+    text_hash_by_key: dict[TaskKey, LineTextHash]
     item_by_key: dict[TaskKey, RegionId]
 
     @property
@@ -85,13 +85,13 @@ class TaskManifest:
     def keys_for_item(self, item_id: RegionId) -> frozenset[TaskKey]:
         return frozenset(k for k, it in self.item_by_key.items() if it == item_id)
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> JsonObject:
         return {"by_key": {k: lid.as_key() for k, lid in self.by_key.items()},
                 "text_hash_by_key": dict(self.text_hash_by_key),
                 "item_by_key": dict(self.item_by_key)}
 
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> Self:
+    def from_dict(cls, d: Mapping[str, object]) -> Self:
         return cls(by_key={k: LineId.from_key(v) for k, v in d["by_key"].items()},
                    text_hash_by_key=dict(d["text_hash_by_key"]),
                    item_by_key=dict(d["item_by_key"]))
@@ -107,7 +107,7 @@ class Task:
     manifest: TaskManifest
     line_options: tuple[LineOption, ...] = _DEFAULT_OPTIONS
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> JsonObject:
         """The reader/UI-facing JSON — opaque keys ONLY, the manifest OMITTED."""
         return {
             "title": self.title,
@@ -116,7 +116,7 @@ class Task:
         }
 
     @classmethod
-    def from_bundle(cls, payload: Mapping[str, Any], manifest: Mapping[str, Any]) -> Self:
+    def from_bundle(cls, payload: Mapping[str, object], manifest: Mapping[str, object]) -> Self:
         """Rebuild a Task from a persisted payload + manifest — enough to RE-RUN the panel and
         RESOLVE (items + instructions + the manifest). The composite asset is reconstructed from the
         payload's `image`, so a vision re-run still attaches it."""
@@ -133,8 +133,8 @@ class Task:
                    items=items, manifest=TaskManifest.from_dict(manifest))
 
 
-def _item_payload(it: TaskItem, options: tuple[LineOption, ...]) -> dict[str, Any]:
-    payload: dict[str, Any] = {
+def _item_payload(it: TaskItem, options: tuple[LineOption, ...]) -> JsonObject:
+    payload: JsonObject = {
         "id": it.id,
         "mode": "per-line",
         "structure": it.context,
@@ -147,8 +147,8 @@ def _item_payload(it: TaskItem, options: tuple[LineOption, ...]) -> dict[str, An
     return payload
 
 
-def _line_payload(ln: TaskLine) -> dict[str, Any]:
-    row: dict[str, Any] = {"key": ln.key, "text": ln.text}
+def _line_payload(ln: TaskLine) -> JsonObject:
+    row: JsonObject = {"key": ln.key, "text": ln.text}
     if ln.hint:
         row["hint"] = ln.hint
     return row
@@ -191,7 +191,7 @@ def build_task(
     assets = assets or {}
 
     by_key: dict[TaskKey, LineId] = {}
-    text_hash_by_key: dict[TaskKey, str] = {}
+    text_hash_by_key: dict[TaskKey, LineTextHash] = {}
     item_by_key: dict[TaskKey, RegionId] = {}
     items: list[TaskItem] = []
     n = 0

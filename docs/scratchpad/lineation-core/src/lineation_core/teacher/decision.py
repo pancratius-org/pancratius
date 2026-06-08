@@ -22,10 +22,10 @@ escalation loop is a LIVE-run concern that wraps a policy, never part of it."""
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Protocol
+from typing import NotRequired, Protocol, TypedDict
 
 from ..annotations import PanelVote
 from ..identity import Label, LineId, ReaderTag
@@ -187,6 +187,102 @@ class EqualMajorityPolicy:
             return LineDecision(**base, outcome=Outcome.HUMAN,
                                 reason=Reason.NO_PANEL_MAJORITY, label=None)
         return LineDecision(**base, outcome=Outcome.ACCEPT, reason=Reason.ACCEPTED_MAJORITY, label=maj)
+
+
+# --- TOML → policy: the config grammar the live recipe and the eval harness SHARE -------------
+# A `kind` string selects a policy CLASS; the `[params]` sub-table supplies that instance's params.
+# New classes register in `POLICY_KINDS` ONCE; no caller names a Python class (instance-in-TOML,
+# class-in-Python). This lives WITH the policies — not in `evaluation/` — so the live teacher path
+# (`teacher.recipes`) can build a policy without importing the eval (the forbidden teacher→eval
+# direction). The `*Table` TypedDicts pin each toml table's shape, so the parsers narrow at the
+# `tomllib` edge ONCE and the bodies are statically clean (no per-field cast/ignore).
+
+
+class RosterTable(TypedDict):
+    """The `[roster]` toml table: the anchor reader, and the support readers that detect its
+    disagreement (`support` defaults to empty and is then rejected by `parse_roster`)."""
+    anchor: ReaderTag
+    support: NotRequired[list[ReaderTag]]
+
+
+class AnchorLedParams(TypedDict, total=False):
+    """`[params]` for `kind="anchor_led"`. All optional — an omitted key takes the
+    `AnchorLedGates` default; `require_no_split=true` selects the unanimous rule, else the legacy
+    gate (`min_core_agree`/`conf_floor`)."""
+    min_support: int
+    min_core_agree: int
+    conf_floor: float | None
+    require_no_split: bool
+
+
+class EqualMajorityParams(TypedDict, total=False):
+    """`[params]` for `kind="equal_majority"`."""
+    min_voters: int
+
+
+class PolicyTable(TypedDict):
+    """One policy toml table (`[[policy]]` in an eval recipe, `[decision]` in a live one): a `name`,
+    a `kind` (a key into `POLICY_KINDS`), and the kind's `[params]` sub-table (open by kind, defaults
+    to empty)."""
+    name: str
+    kind: str
+    params: NotRequired[Mapping[str, object]]
+
+
+def _anchor_led(name: str, params: AnchorLedParams) -> DecisionPolicy:
+    """`kind="anchor_led"` → anchor-led. The unanimous rule (`require_no_split=true`) or the legacy
+    gate (`min_core_agree`/`conf_floor`) is chosen by the params, NOT by a second kind."""
+    return AnchorLedPolicy(
+        name=name,
+        gates=AnchorLedGates(
+            min_support=params.get("min_support", 1),
+            min_core_agree=params.get("min_core_agree", 0),
+            conf_floor=params.get("conf_floor"),
+            require_no_split=params.get("require_no_split", True)))
+
+
+def _equal_majority(name: str, params: EqualMajorityParams) -> DecisionPolicy:
+    """`kind="equal_majority"` → the control: a strict majority of all deciding readers, anchor
+    unprivileged."""
+    return EqualMajorityPolicy(name=name, min_voters=params.get("min_voters", 1))
+
+
+# A kind builder: the policy's name + its (kind-specific) params sub-table → the policy instance.
+# Each builder reads its OWN params TypedDict; the registry erases that to the shared open `Mapping`
+# (the per-kind shape is the builder's private contract), so a new kind adds one row and one builder.
+type PolicyBuilder = Callable[[str, Mapping[str, object]], DecisionPolicy]
+POLICY_KINDS: dict[str, PolicyBuilder] = {
+    "anchor_led": _anchor_led, "equal_majority": _equal_majority}
+
+
+def policy_from_toml(table: PolicyTable) -> DecisionPolicy:
+    """One `PolicyTable` → a `DecisionPolicy`: `name` + `kind` (a registered class) + a `params`
+    sub-table. FAILS LOUD on an unknown kind so a typo never silently picks a default rule."""
+    kind = table["kind"]
+    if kind not in POLICY_KINDS:
+        raise ValueError(f"unknown policy kind {kind!r}; known: {sorted(POLICY_KINDS)}")
+    return POLICY_KINDS[kind](table["name"], table.get("params", {}))
+
+
+def parse_roster(table: RosterTable, *, known: frozenset[ReaderTag] | None = None,
+                 known_desc: str = "the known readers") -> PanelRoster:
+    """A `[roster]` table → `PanelRoster`. STRUCTURAL validation always (anchor ∉ support, support
+    non-empty — an anchor-led rule needs a disagreement detector). When `known` is given (the readers
+    that may decide — a live recipe's readers, or the readers that actually voted in the data), every
+    roster reader must be among them, so a roster that would decide on nothing FAILS LOUD; `known_desc`
+    frames that error for the caller's context (`the data` / `the recipe's readers`)."""
+    anchor: ReaderTag = table["anchor"]
+    support = tuple(table.get("support", ()))
+    if anchor in support:
+        raise ValueError(f"roster anchor {anchor!r} also appears in support {support}")
+    if not support:
+        raise ValueError("roster.support is empty — an anchor-led policy needs a disagreement detector")
+    if known is not None:
+        missing = sorted({anchor, *support} - known)
+        if missing:
+            raise ValueError(f"roster readers {missing} are not present in {known_desc} "
+                             f"(present: {sorted(known)})")
+    return PanelRoster(anchor=anchor, support=support)
 
 
 def route_with(policy: DecisionPolicy, votes: Sequence[PanelVote], roster: PanelRoster) -> Routing:

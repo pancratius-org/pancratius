@@ -26,6 +26,7 @@ from pancratius import docx_inspect as di
 from . import identity, records, source_view
 from .identity import BookId, LineId, ListingKey
 from .records import (
+    Align,
     EndPunct,
     FeatureName,
     FeatureVector,
@@ -52,9 +53,11 @@ _ROLE = {
 _WORD = re.compile(r"\w+", re.UNICODE)
 
 
-def _align(raw: str) -> str:
-    return {"both": "just", "": "left", "left": "left",
-            "center": "center", "right": "right"}.get(raw, raw or "left")
+def _align(raw: str) -> Align:
+    """Word's raw alignment token → the normalized `Align` vocabulary (`both`→`just`, blank→`left`,
+    anything unrecognized→`left`)."""
+    return {"both": Align.JUST, "": Align.LEFT, "left": Align.LEFT,
+            "center": Align.CENTER, "right": Align.RIGHT}.get(raw, Align.LEFT)
 
 
 def _twips(d: dict[str, str], k: str) -> int:
@@ -158,7 +161,7 @@ def _read_lines(docx: Path, lang: str, book_id: BookId) -> list[LineRecord]:
     # within-book references (on BODY lines only).
     body_paras = [p for p in paras if p.role == source_view.Role.BODY and p.src_start is not None]
     aligns = [_align(rows[p.src_start].align) for p in body_paras if p.src_start in rows]
-    default_align = max(set(aligns), key=aligns.count) if aligns else "left"
+    default_align = max(set(aligns), key=aligns.count) if aligns else Align.LEFT
     body_fills = sorted(ln.fill for p in body_paras for ln in p.lines) or [0.0]
     sp_after = [_twips(rows[p.src_start].spacing, "after")
                 for p in body_paras if p.src_start in rows]
@@ -298,7 +301,7 @@ def to_vector(features: LineFeatures) -> FeatureVector:
 # the categorical vocab (so a zero-support category still yields a column even if unseen)
 _CAT_VOCAB: dict[FeatureName, list[str]] = {
     "end_punct": [e.value for e in EndPunct],
-    "align": ["left", "just", "right", "center"],
+    "align": [e.value for e in Align],
     "indent_vs_book": [e.value for e in IndentVsBook],
     "spacing_after_vs_book": [e.value for e in SpacingVsBook],
 }
@@ -365,8 +368,8 @@ def _feature_tokens(f: LineFeatures) -> str:
     vector flattens. Default layout is silent; the values are identical to `to_vector`'s."""
     parts = [f"fill={f.fill:.2f}", "WRAP" if f.wraps else "nowr",
              f"fill_pctile_in_book={f.fill_pctile_in_book:.2f}"]
-    if f.align != "left":
-        parts.append(f"align={f.align}")
+    if f.align is not Align.LEFT:
+        parts.append(f"align={f.align.value}")
     if not f.align_is_book_default:
         parts.append("align-unusual-for-book")
     if f.indent_vs_book is not IndentVsBook.DEFAULT:
@@ -384,7 +387,7 @@ def _feature_tokens(f: LineFeatures) -> str:
 _DEFAULT_FEATURES = LineFeatures(
     fill=0.0, wraps=False, char_len=0, word_count=0, end_punct=EndPunct.NONE,
     starts_lower=False, next_line_lower=False, enjambs=False, colon_opens=False,
-    align="left", indent_vs_book=IndentVsBook.DEFAULT,
+    align=Align.LEFT, indent_vs_book=IndentVsBook.DEFAULT,
     spacing_after_vs_book=SpacingVsBook.TYPICAL, align_is_book_default=True,
     numbered=False, sub=0, n_subs=1, run_len=1, run_pos=0, prev_structural=False,
     next_structural=False, fill_pctile_in_book=0.5,

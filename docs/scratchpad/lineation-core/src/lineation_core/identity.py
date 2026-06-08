@@ -21,7 +21,8 @@ import re
 import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Literal, Self
+from pathlib import Path
+from typing import Literal, Self
 
 # --- domain vocabulary (the greppable names every module shares) ------------------------------
 # Plain `str` aliases, not Literal/NewType: labels come from JSON and `LineLabel.__post_init__`
@@ -36,6 +37,21 @@ type ListingKey = str   # the OUTWARD key shown for a line in a rendered listing
                         # renderer; the caller picks the scheme (teacher: task-local "L001"; debug:
                         # "src_ordinal.sub"). NOT a stable identity — that is `LineId`.
 
+# Content hashes — the SAFETY RAILS. Three DISTINCT roles, named so a reader/agent never has to
+# guess which `str` is which: each is a `_sha` hex prefix of a different scope (see the functions
+# below). They are NOT interchangeable — a line-text hash equals a paragraph-text hash only for a
+# one-line paragraph, by coincidence, never by contract — so they get distinct names even though
+# the bytes are the same shape.
+type LineTextHash = str       # `text_hash` of ONE source line's text — the per-line drift rail
+type ParagraphTextHash = str  # `text_hash` of a whole <w:p>'s text — the paragraph-level rail
+type DocxPackageHash = str    # `docx_package_hash` of the whole .docx bytes — the coarsest rail
+
+# Teacher-loop identifiers. A `TaskId` names a built task bundle (its manifest resolves the opaque
+# keys); a `RunId` names a saved panel run's per-rep evidence. Distinct concepts that both spell a
+# bare `str` otherwise — naming them keeps a task bundle and a panel run greppable apart.
+type TaskId = str
+type RunId = str
+
 # line → label maps. `LabelByLine` is the shared scoring surface: a truth map, a prediction map,
 # the contested eval slice — all interchangeable as either side of a per-line join. `ReaderCalls`
 # names the SAME shape in its distinct role of ONE reader's calls, so `PanelVotes` reads as what
@@ -43,6 +59,19 @@ type ListingKey = str   # the OUTWARD key shown for a line in a rendered listing
 type LabelByLine = dict[LineId, Label]
 type ReaderCalls = LabelByLine
 type PanelVotes = dict[ReaderTag, ReaderCalls]
+
+# The serialized `LineId` — the heterogeneous 4-list `[lang, book_id, src_ordinal, sub]` that is
+# the on-disk key shape. Named (not bare `list[Any]`) so the disk↔`LineId` boundary is explicit and
+# every loader that reads a key reads the SAME documented tuple shape.
+type LineKey = list[object]
+
+# The raw JSON boundary. `JsonObject` is one decoded JSON object; `JsonRow` is the SAME shape in its
+# role as ONE jsonl row at the `store` IO edge — deliberately open (`object` values, not `Any`), so
+# a reader sees "untyped wire data, narrow it before use" and the typed interpretation lives in the
+# owning model's `from_dict` (`annotations.py`, `records.py`, …), never leaks inward as `dict[str,
+# Any]`. Use a `TypedDict` instead wherever the keys are actually known and fixed.
+type JsonObject = dict[str, object]
+type JsonRow = dict[str, object]
 
 
 def to_label(value: str) -> Label:
@@ -60,14 +89,15 @@ def _sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()[:_HEX]
 
 
-def text_hash(text: str) -> str:
+def text_hash(text: str) -> LineTextHash | ParagraphTextHash:
     """Stable content hash of a text unit (paragraph or line). NFC-normalized so a
     cosmetic unicode re-encoding of the same glyphs does not spuriously fail the rail,
-    but any real character change does."""
+    but any real character change does. The caller pins which role the result plays (a
+    line vs a paragraph) by the field it stores it in."""
     return _sha(unicodedata.normalize("NFC", text).encode("utf-8"))
 
 
-def docx_package_hash(docx) -> str:
+def docx_package_hash(docx: Path) -> DocxPackageHash:
     """Hash of the DOCX package bytes — the coarsest rail. If the file changes at all,
     this changes, and the loader refuses stored labels/records until migration."""
     return _sha(docx.read_bytes())
@@ -123,11 +153,11 @@ class LineId:
     def is_mapped(self) -> bool:
         return self.src_ordinal < _UNMAPPED_BAND
 
-    def as_key(self) -> list[Any]:
+    def as_key(self) -> LineKey:
         return [self.lang, self.book_id, self.src_ordinal, self.sub]
 
     @classmethod
-    def from_key(cls, key: Iterable[Any]) -> Self:
+    def from_key(cls, key: Iterable[object]) -> Self:
         lang, book_id, src_ordinal, sub = key
         return cls(str(lang), str(book_id), int(src_ordinal), int(sub))
 

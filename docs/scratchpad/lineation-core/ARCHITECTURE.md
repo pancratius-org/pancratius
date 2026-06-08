@@ -28,6 +28,17 @@ code-organization contract.)
 Inference (predict + estimate uncertainty) and training (update) are distinct STAGES but both are the
 student, so they share the `student/` home.
 
+The **privileged-teach** stage is itself a small pipeline of `teacher.recipes` steps, each a file
+boundary, ending at the committed truth the judge reads:
+
+    build → panel ── votes.jsonl ──(route)──┬─ ACCEPT → gate labels ──────────────────────→ labels.jsonl
+                                            └─ HUMAN  → <task_id>-adjudication ─(adjudicate.html)─(ingest)─→ labels.jsonl
+
+`route` applies the settled cross-reader policy (`teacher.decision`) to a task's votes: it auto-accepts
+the confident agreements as `gate` truth and tiles the rest into a single-use human sub-task. It is
+scoped to ITS task (votes carry their producing `task`) and refuses to proceed on partial coverage —
+the live decision driver, distinct from the offline policy `evaluation/` judges.
+
 ## Bootstrapping vs active learning
 
 This is **seeded, pool-based active learning** — round 0 has no student.

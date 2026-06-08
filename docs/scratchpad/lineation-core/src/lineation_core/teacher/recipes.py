@@ -6,15 +6,19 @@ what a reader is shown is deterministic and OWNED here, not reconstructed by sor
 from __future__ import annotations
 
 import tomllib
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from collections import Counter, defaultdict
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from .. import store
-from ..identity import BookId, LineId, ModelId, ReaderTag
+from ..annotations import LabelSource, LineLabel, PanelVote, load_votes
+from ..identity import BookId, JsonRow, Label, LineId, LineTextHash, ModelId, ReaderTag, TaskId
 from ..records import LineRecord, Run, runs
+from . import decision as decision_mod
 from . import panel as panel_mod
 from . import promote, responses, tasks
+from .decision import DecisionPolicy, LineDecision, PanelRoster
 from .tasks import AssetKind, ItemSpec, Modality
 
 
@@ -32,7 +36,7 @@ class Recipe:
     deterministically rebuild the derived task payload: the bundle id, the books + line selector,
     the reader-facing instructions, the panel readers + reps, and the tiling parameters. The task's
     vision-ness is derived from the readers — composites are rendered iff any reader reads vision."""
-    task_id: str
+    task_id: TaskId
     title: str
     instructions: str
     books: tuple[BookId, ...]
@@ -42,6 +46,12 @@ class Recipe:
     reps: int = 1
     target: int = 10
     context_radius: int = 1
+    # The decision config — present together iff the recipe is ROUTED (`build`/`panel` ignore them;
+    # `route` requires them). `roster` names which readers decide (anchor + disagreement detectors);
+    # `decision` is the ONE settled live policy (the legacy anchor-led gate). Both come from the same
+    # TOML grammar the eval harness uses, so a routed recipe and its policy-eval stay in lockstep.
+    roster: PanelRoster | None = None
+    decision: DecisionPolicy | None = None
 
     @property
     def vision(self) -> bool:
@@ -50,7 +60,9 @@ class Recipe:
 
 def load_recipe(toml_text: str) -> Recipe:
     """Parse + validate a recipe toml. FAILS LOUD on a missing required field, an unknown reader
-    modality, empty books, or duplicate reader tags."""
+    modality, empty books, or duplicate reader tags. The optional `[roster]`/`[decision]` tables (a
+    ROUTED recipe) are validated together — both or neither — with the roster confined to the
+    recipe's own readers, so a routed recipe can never decide on a reader it did not run."""
     d = tomllib.loads(toml_text)
     readers = tuple(ReaderSpec(tag=r["tag"], model=r["model"],
                                modality=Modality(r.get("modality", "text")))
@@ -62,11 +74,18 @@ def load_recipe(toml_text: str) -> Recipe:
     books = tuple(str(b) for b in sel["books"])
     if not books:
         raise ValueError("recipe selection.books is empty")
+    if ("roster" in d) != ("decision" in d):
+        raise ValueError("a routed recipe needs BOTH [roster] and [decision] (or neither)")
+    roster = (decision_mod.parse_roster(d["roster"], known=frozenset(tags),
+                                        known_desc="the recipe's readers")
+              if "roster" in d else None)
+    dec = decision_mod.policy_from_toml(d["decision"]) if "decision" in d else None
     return Recipe(
         task_id=d["task_id"], title=d.get("title", ""), instructions=d.get("instructions", ""),
         books=books, selector=sel.get("selector", "all"), readers=readers,
         lang=sel.get("lang", "ru"), reps=int(d.get("reps", 1)),
-        target=int(sel.get("target", 10)), context_radius=int(sel.get("context_radius", 1)))
+        target=int(sel.get("target", 10)), context_radius=int(sel.get("context_radius", 1)),
+        roster=roster, decision=dec)
 
 
 def tile_regions(book_id: BookId, records: Sequence[LineRecord], selected: set[LineId], *,
@@ -142,23 +161,23 @@ def select_lines(recipe: Recipe, *, annotations: Path | None = None) -> Selectio
     return out
 
 
-def build(recipe: Recipe, *, annotations: Path | None = None, teacher_store: Path | None = None,
-          render: RenderFn | None = None) -> tasks.Task:
-    """Resolve selection → tile into regions → build + persist the task bundle (manifest committed,
-    payload derived). Records come from the record cache. A VISION recipe MUST be given a `render`
-    builder and every region MUST get a COMPOSITE — a vision task with no images is REFUSED (a
-    silent text fallback would corrupt the panel). The recipe's deterministic, reproducible task
-    build — the provenance layer the derived payload can be rebuilt from."""
+def _build_and_save(recipe: Recipe, selection: Selection, task_id: TaskId, *,
+                    annotations: Path | None, teacher_store: Path | None,
+                    render: RenderFn | None) -> tasks.Task:
+    """Tile a per-book `selection` into regions → build + persist the task bundle under `task_id`
+    (manifest committed, payload derived). A VISION recipe MUST be given a `render` builder and every
+    region MUST get a COMPOSITE — a vision task with no images is REFUSED (a silent text fallback
+    would corrupt the panel). The ONE bundle builder, shared by the initial `build` and the
+    `route`-derived human-adjudication sub-task, so both mint keys + render identically."""
     if recipe.vision and render is None:
         raise ValueError(
             f"recipe {recipe.task_id!r} reads vision but no render builder was given — refusing to "
             f"build a vision task with no images")
-    selected = select_lines(recipe, annotations=annotations)
     records = {b: store.load_records(b, recipe.lang) for b in recipe.books}
     modality = Modality.VISION if recipe.vision else Modality.TEXT
     specs: list[ItemSpec] = []
     for b in recipe.books:
-        specs.extend(tile_regions(b, records[b], selected[b], target=recipe.target,
+        specs.extend(tile_regions(b, records[b], selection.get(b, set()), target=recipe.target,
                                    context_radius=recipe.context_radius, modality=modality))
     assets = render(specs) if recipe.vision else {}
     if recipe.vision:
@@ -168,9 +187,19 @@ def build(recipe: Recipe, *, annotations: Path | None = None, teacher_store: Pat
             raise ValueError(f"vision recipe: render produced no COMPOSITE for regions {bare}")
     task = tasks.build_task(title=recipe.title, instructions=recipe.instructions,
                             specs=specs, records=records, assets=assets)
-    store.save_task_bundle(recipe.task_id, task.to_payload(), task.manifest.to_dict(),
+    store.save_task_bundle(task_id, task.to_payload(), task.manifest.to_dict(),
                            annotations=annotations, store=teacher_store)
     return task
+
+
+def build(recipe: Recipe, *, annotations: Path | None = None, teacher_store: Path | None = None,
+          render: RenderFn | None = None) -> tasks.Task:
+    """Resolve the recipe's selector → the votable lines to poll → tile + persist the task bundle.
+    Records come from the record cache; the deterministic, reproducible task build is the provenance
+    layer the derived payload can be rebuilt from."""
+    selected = select_lines(recipe, annotations=annotations)
+    return _build_and_save(recipe, selected, recipe.task_id, annotations=annotations,
+                           teacher_store=teacher_store, render=render)
 
 
 class PanelRefused(Exception):
@@ -208,10 +237,11 @@ def panel(recipe: Recipe, completer: panel_mod.ChatCompleter, *,
     reps = panel_mod.run_panel(task, cfg, completer, cached=cached, on_call=on_call)
     store.save_panel_reps(recipe.task_id, _rep_rows(reps), annotations=annotations)
 
-    truncated = [(r.item_id, r.tag, r.rep) for r in reps if r.finish_reason == "length"]
+    truncated = [(r.item_id, r.tag, r.rep) for r in reps
+                 if r.finish_reason == panel_mod.FinishReason.LENGTH]
     if truncated:
         raise PanelRefused(f"refusing to promote {recipe.task_id!r}: truncated reps "
-                           f"(finish_reason=length): {truncated}")
+                           f"(finish_reason={panel_mod.FinishReason.LENGTH}): {truncated}")
     empty = [(r.item_id, r.tag, r.rep) for r in reps if not r.response.rows]
     if empty:
         raise PanelRefused(f"refusing to promote {recipe.task_id!r}: reps with ZERO parsed rows "
@@ -226,11 +256,13 @@ def panel(recipe: Recipe, completer: panel_mod.ChatCompleter, *,
     if faults:
         raise PanelRefused(f"refusing to promote {recipe.task_id!r}: {len(faults)} resolution "
                            f"fault(s), e.g. {[f'{f.fault}:{f.key or f.item_id}' for f in faults[:5]]}")
-    return promote.promote_votes(
-        panel_mod.aggregate_reps([rv.votes for rv in resolved]), annotations=annotations)
+    # stamp each canonical vote with THIS campaign so `route` consumes only its own task's evidence
+    votes = [replace(v, task=recipe.task_id)
+             for v in panel_mod.aggregate_reps([rv.votes for rv in resolved])]
+    return promote.promote_votes(votes, annotations=annotations)
 
 
-def _load_call_cache(task_id: str, *, teacher_store: Path | None = None) -> panel_mod.CallCache:
+def _load_call_cache(task_id: TaskId, *, teacher_store: Path | None = None) -> panel_mod.CallCache:
     """The saved raw replies of a prior (possibly crashed) run, as a `(item, tag, rep) → ChatReply`
     cache — last-saved wins per tuple. The resume source: `run_panel` reuses these instead of
     re-paying for the call."""
@@ -241,7 +273,7 @@ def _load_call_cache(task_id: str, *, teacher_store: Path | None = None) -> pane
     return cache
 
 
-def _call_saver(task_id: str, *, teacher_store: Path | None = None) -> panel_mod.OnCall:
+def _call_saver(task_id: TaskId, *, teacher_store: Path | None = None) -> panel_mod.OnCall:
     """A `run_panel` `on_call` that appends each fresh reply to the resume log the instant it lands
     (before parse), so a crash mid-run loses no paid call."""
     def save(key: panel_mod.CallKey, reply: panel_mod.ChatReply) -> None:
@@ -261,35 +293,209 @@ class IngestRefused(Exception):
     responses are already committed, so the refusal is investigable and fixable."""
 
 
-def ingest(recipe: Recipe, *, annotations: Path | None = None,
+def ingest(recipe: Recipe, *, task_id: TaskId | None = None, annotations: Path | None = None,
            teacher_store: Path | None = None) -> int:
     """Ingest the human adjudication for a built task: load the responses → parse → resolve against
     the manifest → REFUSE to promote on any resolution fault → else promote labels. Returns the
-    count of labels promoted."""
-    _, manifest_d = store.load_task_bundle(recipe.task_id, annotations=annotations,
-                                           store=teacher_store)
+    count of labels promoted. `task_id` defaults to the recipe's own task; pass the
+    `<task_id>-adjudication` sub-task id to ingest the queue `route` produced (same recipe, same
+    books/lang/title — only the bundle differs)."""
+    tid = task_id or recipe.task_id
+    _, manifest_d = store.load_task_bundle(tid, annotations=annotations, store=teacher_store)
     manifest = tasks.TaskManifest.from_dict(manifest_d)
     records = {b: store.load_records(b, recipe.lang) for b in recipe.books}
-    parsed = responses.parse_ui_responses(store.load_human_responses(recipe.task_id,
-                                                                      annotations=annotations))
+    parsed = responses.parse_ui_responses(store.load_human_responses(tid, annotations=annotations))
     resolved = responses.resolve_adjudication(manifest, parsed, records, title=recipe.title,
                                               complete=True)
     if resolved.faults:
         raise IngestRefused(
-            f"refusing to promote {recipe.task_id!r}: {len(resolved.faults)} resolution "
+            f"refusing to promote {tid!r}: {len(resolved.faults)} resolution "
             f"fault(s), e.g. {[f'{f.fault}:{f.key or f.item_id}' for f in resolved.faults[:5]]}")
     return promote.promote_labels(resolved.labels, annotations=annotations)
 
 
-def _rep_rows(reps: Sequence[panel_mod.PanelRep]) -> list[dict]:
+# --- route: the SETTLED decision policy, wired into the live promote path ----------------------
+
+ADJUDICATION_SUFFIX = "-adjudication"   # the human-queue sub-task id is <task_id> + this
+GATE_AUDIT_STATUS = "gate_accepted"     # the `audit_status` a gate-accepted label carries
+_PROTECTED_SOURCES = frozenset({LabelSource.HUMAN, LabelSource.OVERRIDE})
+
+
+@dataclass(frozen=True, slots=True)
+class RouteResult:
+    """The outcome of routing a campaign's panel votes through the live decision policy. `accepted`
+    lines became `gate` truth in `labels.jsonl`; `queued_human` lines were written to the
+    `adjudication_task_id` sub-task for `adjudicate.html`. `accepts_protected`/`human_protected`
+    count lines the gate would have accepted/queued but a HUMAN/override label already settled — never
+    overwritten, never re-adjudicated (this is also what keeps a frozen eval-set adjudication out of
+    the loop). `operational` is the count of queued routes whose reason is a coverage gap a live
+    re-run could ESCALATE with more reps (vs a terminal ambiguity only a human resolves); `by_reason`
+    breaks the queue down. `uncovered` counts the task's votable lines NO deciding reader voted on —
+    they get no decision and are surfaced here rather than silently dropped (an under-covered panel;
+    the live fix is to re-panel, not to invent a label). The escalation LOOP itself is a deferred
+    live-run concern — this only surfaces the seam."""
+    accepted: int
+    accepts_protected: int
+    queued_human: int
+    human_protected: int
+    operational: int
+    uncovered: int
+    by_reason: dict[str, int]
+    adjudication_task_id: TaskId | None
+
+
+def _prior_queued_lines(adj_task_id: TaskId, *, annotations: Path | None,
+                        teacher_store: Path | None) -> set[LineId] | None:
+    """The line set an existing adjudication sub-task was minted over, or None if none exists yet.
+    `route` compares it to the lines it is about to queue: an identical set re-mints identical keys
+    (tiling is deterministic) so the rebuild is safe, but a CHANGED set would reassign keys under any
+    human responses already filed against the old manifest — so route refuses that."""
+    if not store.task_manifest_exists(adj_task_id, annotations=annotations):
+        return None
+    _, manifest_d = store.load_task_bundle(adj_task_id, annotations=annotations, store=teacher_store)
+    return set(tasks.TaskManifest.from_dict(manifest_d).by_key.values())
+
+
+def _existing_labels(*, annotations: Path | None) -> dict[LineId, LineLabel]:
+    """The committed truth keyed by line, or empty on a fresh store — the precedence lookup `route`
+    consults before it lets the gate write or queue a line."""
+    try:
+        rows = store.load_label_rows(annotations=annotations)
+    except FileNotFoundError:
+        return {}
+    return {g.id: g for g in (LineLabel.from_dict(d) for d in rows)}
+
+
+def _is_protected(label: LineLabel | None) -> bool:
+    """A line a human (or an explicit override) already settled — the gate must not touch it."""
+    return label is not None and label.source in _PROTECTED_SOURCES
+
+
+def _gate_label(d: LineDecision, line_votes: Mapping[ReaderTag, PanelVote], *, task_id: TaskId,
+                roster: PanelRoster, policy_name: str, text_hash: LineTextHash | None) -> LineLabel:
+    """An ACCEPT decision → a `gate`-sourced `LineLabel`. The confidence is the anchor's self-report
+    (the gate's confidence proxy); the provenance records the policy, the reason, the anchor role, and
+    the per-reader votes — the DECIDING (roster) votes under `votes`, any diagnostic readers' votes
+    separately under `diagnostic_votes`, so the audit trail says what the gate actually weighed vs
+    what was merely observed. The roster + policy are the ones `route` already resolved."""
+    assert d.label is not None                  # ACCEPT always carries a label
+    deciding = {roster.anchor, *roster.support}
+    anchor_vote = line_votes.get(roster.anchor)
+    provenance: dict[str, object] = {
+        "task": task_id, "policy": policy_name, "reason": d.reason.value, "anchor": roster.anchor,
+        "votes": {t: line_votes[t].label for t in sorted(line_votes) if t in deciding}}
+    diagnostic = {t: line_votes[t].label for t in sorted(line_votes) if t not in deciding}
+    if diagnostic:
+        provenance["diagnostic_votes"] = diagnostic
+    return LineLabel(
+        id=d.id, label=d.label, source=LabelSource.GATE,
+        confidence=anchor_vote.conf if anchor_vote else None,
+        audit_status=GATE_AUDIT_STATUS, notes="", provenance=provenance, line_text_hash=text_hash)
+
+
+def route(recipe: Recipe, *, allow_partial: bool = False, annotations: Path | None = None,
+          teacher_store: Path | None = None, render: RenderFn | None = None) -> RouteResult:
+    """Wire the SETTLED decision policy into the live promote path: take THIS campaign's promoted panel
+    votes (`votes.jsonl`, restricted to the task's votable lines AND to votes the task itself
+    produced), apply the recipe's `decision` policy over its `roster`, and split the result — ACCEPT
+    lines are promoted as `gate` truth, HUMAN lines are tiled into a `<task_id>-adjudication` sub-task
+    `adjudicate.html` consumes (then `ingest` brings the human verdicts back). Precedence-safe: a line
+    a human/override already settled is never relabeled by the gate nor re-queued. Re-running on
+    UNCHANGED votes is idempotent (gate labels merge; the human sub-task re-mints identically); a
+    re-route whose human set CHANGED is refused, since re-minting the sub-task's keys would corrupt
+    human responses already filed against it.
+
+    Because `panel` promotes all-or-nothing, a SUCCESSFUL panel covers every task line — so a line with
+    no vote from this task means the panel did not (successfully) run. `route` REFUSES on any such
+    `uncovered` line (re-run the panel) unless `allow_partial`, rather than route on stale or partial
+    evidence. Pure decision logic lives in `teacher.decision`; this is its live IO shell."""
+    if recipe.roster is None or recipe.decision is None:
+        raise ValueError(f"recipe {recipe.task_id!r} is not routed — it has no [roster]/[decision]; "
+                         f"route needs the settled decision config")
+    roster, policy = recipe.roster, recipe.decision
+    _, manifest_d = store.load_task_bundle(recipe.task_id, annotations=annotations,
+                                           store=teacher_store)
+    task_lines = set(tasks.TaskManifest.from_dict(manifest_d).by_key.values())
+
+    all_votes = [v for v in load_votes(annotations=annotations)
+                 if v.id in task_lines and v.task == recipe.task_id]
+    by_line: dict[LineId, dict[ReaderTag, PanelVote]] = defaultdict(dict)
+    for v in all_votes:
+        by_line[v.id][v.tag] = v
+    routing = decision_mod.route_with(policy, all_votes, roster)
+
+    existing = _existing_labels(annotations=annotations)
+    records = store.load_records_many(recipe.books, recipe.lang)
+    hash_by_id = {r.id: r.line_text_hash for recs in records.values() for r in recs}
+
+    # Pure pass first — decide every line; perform NO writes until all the raise-prone validation
+    # (the re-route key-stability guard, a vision recipe's render precondition) has passed, so a
+    # misconfigured route can never half-write truth.
+    gate_labels: list[LineLabel] = []
+    accepts_protected = 0
+    for d in routing.accepted:
+        if _is_protected(existing.get(d.id)):
+            accepts_protected += 1
+            continue
+        gate_labels.append(_gate_label(d, by_line[d.id], task_id=recipe.task_id, roster=roster,
+                                       policy_name=policy.name, text_hash=hash_by_id.get(d.id)))
+
+    human_sel: Selection = {b: set() for b in recipe.books}
+    human_protected = 0
+    operational = 0
+    by_reason: Counter[str] = Counter()
+    for d in routing.human:
+        if _is_protected(existing.get(d.id)):
+            human_protected += 1
+            continue
+        human_sel[d.id.book_id].add(d.id)
+        by_reason[d.reason.value] += 1
+        if d.reason in decision_mod.OPERATIONAL_REASONS:
+            operational += 1
+
+    decided = {d.id for d in routing.accepted} | {d.id for d in routing.human}
+    uncovered = len(task_lines - decided)               # no vote from this task's panel covered them
+    if uncovered and not allow_partial:
+        raise ValueError(
+            f"route {recipe.task_id!r}: {uncovered} of {len(task_lines)} votable lines have no vote "
+            f"from this task's panel — re-run the panel (it promotes all-or-nothing) so coverage is "
+            f"complete, or pass allow_partial=True to route only the covered lines")
+    queued_ids = {lid for ids in human_sel.values() for lid in ids}
+
+    # Build the human queue (the raise-prone step) BEFORE promoting accepts. Re-minting the sub-task's
+    # opaque keys over a DIFFERENT line set would silently corrupt any human responses already filed
+    # against the old manifest — so refuse a changed set; an identical set re-mints identically (safe).
+    adj_task_id = f"{recipe.task_id}{ADJUDICATION_SUFFIX}"
+    prior = _prior_queued_lines(adj_task_id, annotations=annotations, teacher_store=teacher_store)
+    if prior is not None and prior != queued_ids:
+        raise ValueError(
+            f"adjudication sub-task {adj_task_id!r} already exists for a different line set "
+            f"(was {len(prior)}, now {len(queued_ids)}) — it is single-use: ingest it, then remove the "
+            f"bundle, before re-routing. Re-minting its keys would corrupt human responses already "
+            f"filed against the old manifest")
+    adjudication_task_id = None
+    if queued_ids:
+        _build_and_save(recipe, human_sel, adj_task_id, annotations=annotations,
+                        teacher_store=teacher_store, render=render)
+        adjudication_task_id = adj_task_id
+    if gate_labels:
+        promote.promote_labels(gate_labels, annotations=annotations)
+
+    return RouteResult(accepted=len(gate_labels), accepts_protected=accepts_protected,
+                       queued_human=len(queued_ids), human_protected=human_protected,
+                       operational=operational, uncovered=uncovered, by_reason=dict(by_reason),
+                       adjudication_task_id=adjudication_task_id)
+
+
+def _rep_rows(reps: Sequence[panel_mod.PanelRep]) -> list[JsonRow]:
     """Flatten per-rep panel output to committed evidence rows in `panel_runs`, behind the resolved
     `votes.jsonl`. Each rep emits ONE header row carrying the RAW completion `content` + finish
     status (so a malformed/empty reply leaves evidence even with no parsed rows), then one verdict
     row per parsed `{key, label, conf}`."""
-    out: list[dict] = []
+    out: list[JsonRow] = []
     for rep in reps:
-        base = {"item_id": rep.item_id, "tag": rep.tag, "rep": rep.rep, "model": rep.model,
-                "finish_reason": rep.finish_reason}
+        base: JsonRow = {"item_id": rep.item_id, "tag": rep.tag, "rep": rep.rep, "model": rep.model,
+                         "finish_reason": rep.finish_reason}
         out.append({**base, "kind": "raw", "content": rep.content,
                     "n_rows": len(rep.response.rows)})
         out.extend({**base, "kind": "verdict", "key": row.key, "label": row.label, "conf": row.conf}
@@ -297,36 +503,62 @@ def _rep_rows(reps: Sequence[panel_mod.PanelRep]) -> list[dict]:
     return out
 
 
+def _render_fn(recipe: Recipe) -> RenderFn | None:
+    """The LibreOffice page compositor a VISION recipe needs (the page is the authority), or None for
+    a text recipe. Built lazily so the import + LibreOffice are only touched on a vision run."""
+    if not recipe.vision:
+        return None
+    from . import render as render_mod
+    return render_mod.make_compositor(render_mod.libreoffice_pages())
+
+
 def _main() -> None:
-    """CLI: `uv run python -m lineation_core.teacher.recipes <build|panel|ingest> <recipe.toml>`.
-    `build` persists the task bundle (text recipes; a vision recipe needs `render.py` wired);
-    `panel` runs the live OpenRouter panel and promotes votes ONLY if the run is clean (a truncated/
-    empty/faulted run raises `PanelRefused` and promotes nothing — re-run resumes from saved
-    replies); `ingest` resolves the downloaded human responses and promotes labels. A live `panel`
-    run needs the SDK extra:
+    """CLI: `uv run python -m lineation_core.teacher.recipes <build|panel|route|ingest> <recipe.toml>`.
+    `build` persists the task bundle (text recipes; a vision recipe needs `render.py` wired); `panel`
+    runs the live OpenRouter panel and promotes votes ONLY if the run is clean (a truncated/empty/
+    faulted run raises `PanelRefused` and promotes nothing — re-run resumes from saved replies);
+    `route` applies the recipe's settled decision policy to the promoted votes — auto-accepting `gate`
+    labels and tiling the rest into a `<task_id>-adjudication` sub-task; `ingest` resolves the
+    downloaded human responses and promotes labels (`--task-id` targets the adjudication sub-task). A
+    live `panel` run needs the SDK extra:
         `uv run --extra live python -m lineation_core.teacher.recipes panel <recipe.toml>`."""
     import argparse
 
     parser = argparse.ArgumentParser(prog="lineation-teacher",
-                                     description="build / panel / ingest a lineation recipe")
-    parser.add_argument("command", choices=("build", "panel", "ingest"))
+                                     description="build / panel / route / ingest a lineation recipe")
+    parser.add_argument("command", choices=("build", "panel", "route", "ingest"))
     parser.add_argument("recipe", help="path to a recipe .toml")
+    parser.add_argument("--task-id", default=None,
+                        help="ingest: the task bundle to resolve (default: the recipe's own task; "
+                             "pass <task_id>-adjudication for the route queue)")
+    parser.add_argument("--allow-partial", action="store_true",
+                        help="route: proceed even if some task lines have no vote from this task's "
+                             "panel (default: refuse and ask you to re-run the panel)")
     args = parser.parse_args()
     recipe = load_recipe(Path(args.recipe).read_text())
 
     if args.command == "build":
-        render_fn = None
-        if recipe.vision:                       # vision builds need LibreOffice (the page authority)
-            from . import render as render_mod
-            render_fn = render_mod.make_compositor(render_mod.libreoffice_pages())
-        task = build(recipe, render=render_fn)
+        task = build(recipe, render=_render_fn(recipe))
         print(f"built {recipe.task_id}: {len(task.items)} items, "
               f"{len(task.manifest.by_key)} votable lines")
     elif args.command == "panel":
         from .openrouter import OpenRouterCompleter
         print(f"promoted {panel(recipe, OpenRouterCompleter())} panel votes for {recipe.task_id}")
+    elif args.command == "route":
+        r = route(recipe, allow_partial=args.allow_partial, render=_render_fn(recipe))
+        print(f"routed {recipe.task_id}: accepted {r.accepted} (gate), "
+              f"queued {r.queued_human} to human"
+              + (f" → {r.adjudication_task_id}" if r.adjudication_task_id else "")
+              + (f"; {r.operational} escalatable" if r.operational else "")
+              + (f"; protected {r.accepts_protected + r.human_protected} (human/override)"
+                 if r.accepts_protected or r.human_protected else "")
+              + (f"; {r.uncovered} UNCOVERED (re-panel)" if r.uncovered else ""))
+        if r.by_reason:
+            print("  human routes by reason: "
+                  + ", ".join(f"{k}={v}" for k, v in sorted(r.by_reason.items())))
     else:
-        print(f"promoted {ingest(recipe)} human labels for {recipe.task_id}")
+        print(f"promoted {ingest(recipe, task_id=args.task_id)} human labels "
+              f"for {args.task_id or recipe.task_id}")
 
 
 if __name__ == "__main__":

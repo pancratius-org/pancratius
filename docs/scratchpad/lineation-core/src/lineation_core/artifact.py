@@ -23,9 +23,9 @@ import json
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Self
+from typing import Self
 
-from .identity import BookId, LineId, text_hash
+from .identity import BookId, DocxPackageHash, JsonObject, JsonRow, LineId, text_hash
 from .records import FeatureSchema, LineRecord, feature_field_names
 
 # Bumped when the feature set changes shape (a feature added/removed/renamed) or the
@@ -47,12 +47,12 @@ class HashMismatch(RuntimeError):
 class Manifest:
     producer_version: str
     feature_schema_version: str
-    docx_package_hash: str
+    docx_package_hash: DocxPackageHash
     lang: str
     book_id: BookId
     n_records: int
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> JsonObject:
         return {
             "producer_version": self.producer_version,
             "feature_schema_version": self.feature_schema_version,
@@ -61,7 +61,7 @@ class Manifest:
         }
 
     @classmethod
-    def from_dict(cls, d: Mapping[str, Any]) -> Self:
+    def from_dict(cls, d: Mapping[str, object]) -> Self:
         return cls(
             producer_version=d["producer_version"],
             feature_schema_version=d["feature_schema_version"],
@@ -69,7 +69,7 @@ class Manifest:
             book_id=d["book_id"], n_records=d["n_records"],
         )
 
-    def check(self, *, live_docx_hash: str, migration: bool = False) -> None:
+    def check(self, *, live_docx_hash: DocxPackageHash, migration: bool = False) -> None:
         """Fail loud unless the artifact matches the running producer/schema/docx. With
         `migration=True` the docx-hash rail is relaxed (an explicit, logged remap), but a
         producer/schema version skew is ALWAYS fatal — those mean the features on disk are a
@@ -87,14 +87,14 @@ class Manifest:
                 f"for book {self.book_id} {self.lang}; pass migration=True to override")
 
 
-def write_jsonl(path: Path, rows: Iterable[Mapping[str, Any]]) -> None:
+def write_jsonl(path: Path, rows: Iterable[Mapping[str, object]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as fh:
         for row in rows:
             fh.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def read_jsonl(path: Path) -> Iterator[dict[str, Any]]:
+def read_jsonl(path: Path) -> Iterator[JsonRow]:
     with path.open(encoding="utf-8") as fh:
         for line in fh:
             line = line.strip()
@@ -119,7 +119,8 @@ def build_schema(records: Iterable[LineRecord]) -> FeatureSchema:
 
 
 def emit(
-    out_dir: Path, records: list[LineRecord], *, lang: str, book_id: BookId, docx_hash: str,
+    out_dir: Path, records: list[LineRecord], *, lang: str, book_id: BookId,
+    docx_hash: DocxPackageHash,
 ) -> Manifest:
     """Write the record artifact for one (book, lang): records + feature schema + manifest.
     Returns the manifest written. The annotation TRUTH is committed separately in `annotations/`
@@ -135,7 +136,8 @@ def emit(
 
 
 def load_records(
-    records_path: Path, manifest_path: Path, *, live_docx_hash: str, migration: bool = False
+    records_path: Path, manifest_path: Path, *, live_docx_hash: DocxPackageHash,
+    migration: bool = False,
 ) -> list[LineRecord]:
     """Load records, FAILING LOUD if the manifest's hashes do not match the live docx or
     the running producer/schema. Per-record hashes are NOT silently trusted: every record
@@ -161,7 +163,7 @@ def load_records(
 
 
 def load_artifact(
-    out_dir: Path, *, live_docx_hash: str, migration: bool = False
+    out_dir: Path, *, live_docx_hash: DocxPackageHash, migration: bool = False
 ) -> list[LineRecord]:
     """Load a whole artifact directory's records by its standard file names."""
     return load_records(out_dir / RECORDS_FILE, out_dir / MANIFEST_FILE,

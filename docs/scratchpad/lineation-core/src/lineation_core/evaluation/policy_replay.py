@@ -17,22 +17,20 @@ from __future__ import annotations
 
 import tomllib
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
 
 from ..identity import BookId, Label, ReaderTag
 from ..teacher.decision import (
     OPERATIONAL_REASONS,
-    AnchorLedGates,
-    AnchorLedPolicy,
     DecisionPolicy,
-    EqualMajorityPolicy,
     LineDecision,
     Outcome,
     PanelRoster,
+    parse_roster,
+    policy_from_toml,
 )
-from .datasets import AlignedSet
+from .datasets import AlignedSet, Stratum
 from .metrics import (
     Breakdown,
     PolicyMetrics,
@@ -59,7 +57,7 @@ class PolicyOutcome:
     `PolicyMetrics` so the decisions stay inspectable (which lines it routed, and why)."""
 
     spec: PolicySpec
-    decisions: tuple[tuple[LineDecision, Label, BookId, str | None], ...]
+    decisions: tuple[tuple[LineDecision, Label, BookId, Stratum], ...]
 
 
 def replay(aligned: AlignedSet, specs: tuple[PolicySpec, ...]) -> tuple[PolicyOutcome, ...]:
@@ -67,7 +65,7 @@ def replay(aligned: AlignedSet, specs: tuple[PolicySpec, ...]) -> tuple[PolicyOu
     collect the routed decisions alongside the truth/book/stratum needed to score them. Pure."""
     outcomes: list[PolicyOutcome] = []
     for spec in specs:
-        rows: list[tuple[LineDecision, Label, BookId, str | None]] = []
+        rows: list[tuple[LineDecision, Label, BookId, Stratum]] = []
         for line in aligned.lines:
             by_tag = {v.tag: v for v in line.votes}
             d = spec.policy.decide(line.id, by_tag, spec.roster)
@@ -76,14 +74,14 @@ def replay(aligned: AlignedSet, specs: tuple[PolicySpec, ...]) -> tuple[PolicyOu
     return tuple(outcomes)
 
 
-def _accept_by(rows: list[tuple[LineDecision, Label, BookId, str | None]],
-               key) -> Breakdown:
+def _accept_by(rows: list[tuple[LineDecision, Label, BookId, Stratum]],
+               key: Callable[[BookId, Stratum], str]) -> Breakdown:
     """Accept-metrics sliced by a per-row key (book or stratum), computed only over ACCEPTED lines —
     a slice with no accepts is simply absent (an all-zero row would imply a measured 0.0 accuracy)."""
     buckets: dict[str, list[tuple[Label, Label]]] = defaultdict(list)
     for d, truth, book, stratum in rows:
         if d.outcome is Outcome.ACCEPT and d.label is not None:
-            buckets[str(key(book, stratum))].append((truth, d.label))
+            buckets[key(book, stratum)].append((truth, d.label))
     return {k: accept_metrics(pairs) for k, pairs in sorted(buckets.items())}
 
 
@@ -109,7 +107,7 @@ def score(outcome: PolicyOutcome, aligned: AlignedSet) -> PolicyMetrics:
     return PolicyMetrics(
         name=outcome.spec.name, accept=accept, capture=capture, load=load,
         by_book=_accept_by(rows, lambda book, stratum: book),
-        by_stratum=_accept_by(rows, lambda book, stratum: stratum),
+        by_stratum=_accept_by(rows, lambda book, stratum: str(stratum)),
         coverage=accept.n_accepted / n_total if n_total else 0.0)
 
 
@@ -120,66 +118,27 @@ def replay_and_score(aligned: AlignedSet,
     return tuple(score(o, aligned) for o in replay(aligned, specs))
 
 
-# --- the TOML config: class-in-Python, instance-in-TOML (mirrors `teacher.recipes.load_recipe`) ---
-# A `kind` string selects a policy CLASS; the TOML supplies that instance's params + the shared
-# roster. New policy classes register here once; a recipe never names a Python class.
-
-def _anchor_led(params: Mapping[str, Any]) -> DecisionPolicy:
-    """`kind="anchor_led"` → anchor-led. The unanimous rule (`require_no_split=true`) or the legacy
-    gate (`min_core_agree`/`conf_floor`) is chosen by the params, NOT by a second kind."""
-    return AnchorLedPolicy(
-        name=str(params["name"]),
-        gates=AnchorLedGates(
-            min_support=int(params.get("min_support", 1)),
-            min_core_agree=int(params.get("min_core_agree", 0)),
-            conf_floor=params.get("conf_floor"),
-            require_no_split=bool(params.get("require_no_split", True))))
-
-
-def _equal_majority(params: Mapping[str, Any]) -> DecisionPolicy:
-    """`kind="equal_majority"` → the control: a strict majority of all deciding readers, anchor
-    unprivileged."""
-    return EqualMajorityPolicy(name=str(params["name"]),
-                               min_voters=int(params.get("min_voters", 1)))
-
-
-_POLICY_KINDS: dict[str, Any] = {"anchor_led": _anchor_led, "equal_majority": _equal_majority}
-
+# --- the TOML config: class-in-Python, instance-in-TOML ---------------------------------------
+# The roster + per-policy grammar lives in `teacher.decision` (the policy module owns its config), so
+# the live teacher path can build a policy without importing the eval. The eval's only addition is
+# the MANY-policy framing: a shared `[roster]` + one or more `[[policy]]` tables to compare.
 
 def load_policy_specs(toml_text: str, *,
                       present_readers: frozenset[ReaderTag] | None = None) -> tuple[PolicySpec, ...]:
     """Parse a policy-eval recipe (a `[roster]` table + one or more `[[policy]]` tables) into
-    `PolicySpec`s. Each `[[policy]]` is `name`, `kind` (a registered class), and a `[policy.params]`
-    table. FAILS LOUD on an unknown kind, an anchor that is also in support, an empty roster, a
-    duplicate policy name, or — when `present_readers` is given (the readers actually in the data) —
-    a roster reader that never voted (a config that silently decides on nothing)."""
+    `PolicySpec`s — each `[[policy]]` bound to the shared roster. FAILS LOUD (via the shared parsers)
+    on an unknown kind, an anchor that is also in support, an empty roster, or — when `present_readers`
+    is given — a roster reader that never voted; and here on a duplicate policy name or no policies."""
     d = tomllib.loads(toml_text)
-    r = d["roster"]
-    anchor: ReaderTag = str(r["anchor"])
-    support = tuple(str(s) for s in r.get("support", ()))
-    if anchor in support:
-        raise ValueError(f"roster anchor {anchor!r} also appears in support {support}")
-    if not support:
-        raise ValueError("roster.support is empty — an anchor-led policy needs a disagreement detector")
-    if present_readers is not None:
-        missing = sorted({anchor, *support} - present_readers)
-        if missing:
-            raise ValueError(f"roster readers {missing} are not present in the data "
-                             f"(present: {sorted(present_readers)})")
-    roster = PanelRoster(anchor=anchor, support=support)
-
+    roster = parse_roster(d["roster"], known=present_readers, known_desc="the data")
     specs: list[PolicySpec] = []
     seen: set[str] = set()
     for p in d.get("policy", ()):
-        kind = p["kind"]
-        if kind not in _POLICY_KINDS:
-            raise ValueError(f"unknown policy kind {kind!r}; known: {sorted(_POLICY_KINDS)}")
         name = str(p["name"])
         if name in seen:
             raise ValueError(f"duplicate policy name {name!r}")
         seen.add(name)
-        params = {"name": name, **p.get("params", {})}
-        specs.append(PolicySpec(name=name, roster=roster, policy=_POLICY_KINDS[kind](params)))
+        specs.append(PolicySpec(name=name, roster=roster, policy=policy_from_toml(p)))
     if not specs:
         raise ValueError("no [[policy]] tables in the recipe")
     return tuple(specs)
