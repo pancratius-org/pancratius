@@ -18,11 +18,9 @@ from collections import Counter
 from dataclasses import dataclass
 
 from .. import store, student
-from ..annotations import READERS, LabelSet, by_reader, load
+from ..annotations import LabelSet, by_reader, load_labels
 from ..identity import Label, LabelByLine, PanelVotes, ReaderTag
 from ..records import RecordsByBook
-
-_READERS = READERS
 
 
 @dataclass(frozen=True)
@@ -68,10 +66,11 @@ def score_readers(
 ) -> list[ReaderScore]:
     """For each reader, the lines it shares with both `truth` and the student, scored both
     ways on that identical shared set — so every row is apples-to-apples. All joins are by
-    `LineId`."""
+    `LineId`. Readers are taken from the panel present (deterministic sorted order); no roster
+    is hard-coded."""
     rows: list[ReaderScore] = []
-    for tag in _READERS:
-        reader = panel.get(tag, {})
+    for tag in sorted(panel):
+        reader = panel[tag]
         shared = [k for k in truth if k in reader and k in student_pred]
         if not shared:
             continue
@@ -99,7 +98,7 @@ def score(records: RecordsByBook, labelset: LabelSet,
     student_pred: LabelByLine = {
         g.id: oof[g.id].label for g in labelset.labels if g.id in oof}
 
-    n_shared_any = len({k for tag in _READERS for k in votes.get(tag, {}) if k in truth})
+    n_shared_any = len({k for reader in votes.values() for k in reader if k in truth})
     return Comparison(rows=score_readers(truth, student_pred, votes),
                       n_labels_shared=n_shared_any)
 
@@ -114,7 +113,7 @@ def format_row(row: ReaderScore) -> str:
 
 
 if __name__ == "__main__":
-    labelset = load()
+    labelset = load_labels()
     records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
     cmp = score(records, labelset, by_reader())
     print(f"labeled lines covered by >=1 reader: {cmp.n_labels_shared}\n")

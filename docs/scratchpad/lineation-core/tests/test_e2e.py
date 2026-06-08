@@ -10,8 +10,7 @@ import json
 import pytest
 
 from lineation_core import store
-from lineation_core.annotations import PanelVote
-from lineation_core.annotations import load as load_labels
+from lineation_core.annotations import PanelVote, load_labels
 from lineation_core.identity import LineId
 from lineation_core.teacher import panel, promote, responses, tasks
 from lineation_core.teacher.panel import ChatReply, PanelConfig, ReaderConfig

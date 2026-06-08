@@ -1,5 +1,5 @@
-"""The review queue: ranking + the no-leakage invariants (audit is labeled disagreements scored
-out-of-fold; acquire is unlabeled, least-confident)."""
+"""`selection.py`: the acquisition queue — ranking + the no-leakage invariants (audit is labeled
+disagreements scored out-of-fold; acquire is unlabeled, least-confident)."""
 from __future__ import annotations
 
 from collections import Counter

@@ -22,7 +22,7 @@ from collections import Counter
 from dataclasses import dataclass
 
 from . import producer, store
-from .annotations import LabelSet, load
+from .annotations import LabelSet, load_labels
 from .identity import BookId, Label, LabelByLine, LineId
 from .records import FeatureName, FeatureVector, LineFeatures, RecordsByBook
 
@@ -307,7 +307,7 @@ def tune_alpha(ds: Dataset, labelset: LabelSet,
 
 
 if __name__ == "__main__":
-    labelset = load()
+    labelset = load_labels()
     records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
     ds = build_dataset(records, labelset)
     print(f"dataset: {ds.n_joined} labeled lines over {len(set(ds.groups))} books "
