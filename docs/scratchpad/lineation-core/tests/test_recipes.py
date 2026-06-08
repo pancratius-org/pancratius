@@ -176,7 +176,7 @@ def test_select_lines_raises_on_out_of_scope_book(tmp_path):
 def test_recipe_panel_and_ingest_reach_committed_truth(tmp_path):
     import re
 
-    from lineation_core.annotations import load as load_labels
+    from lineation_core.annotations import load_labels
     from lineation_core.teacher.panel import ChatReply
 
     ann, st = tmp_path / "annotations", tmp_path / "_teacher"

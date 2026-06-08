@@ -8,14 +8,14 @@ human|gate|panel|override), how sure (`confidence`), and an opaque `provenance` 
 pre-canonical key etc.) so a correction stays reasoned about. Training projects each label to
 `{LineId: label}`, but the stored truth keeps its lineage.
 
-`load()` reads the committed `labels.jsonl` truth through the `store` edge (already `LineId`-keyed
-— no key remap, no source-shard reader). It REJECTS any label whose line is unmapped (a §14-P1
+`load_labels()` reads the committed `labels.jsonl` truth through the `store` edge (already
+`LineId`-keyed — no key remap, no source-shard reader). It REJECTS any label whose line is unmapped (a §14-P1
 span-drop has no real source ordinal, so it is not a trainable target) at the boundary, surfacing
 the rejected count — never silently. The truth is committed `LineId`-keyed; this package only
 loads it, never re-derives it.
 
-Per-line evidence — the LLM panel votes (grok, deepseek, gemini, owl, mimo, minimax) on
-`prose`/`lineated`:
+Per-line evidence — the LLM panel votes on `prose`/`lineated` (the readers present are whatever
+the campaign recipe ran; this model does not hard-code a panel):
 
 Each vote is one reader's call on one line: a `LineId`, the reader `tag`, the `label`, and an
 optional `conf`. The committed votes are already `LineId`-keyed, so loading and joining here is by
@@ -92,7 +92,7 @@ class LabelSet:
     n_rejected_unmapped: int
 
 
-def load(*, annotations: Path | None = None) -> LabelSet:
+def load_labels(*, annotations: Path | None = None) -> LabelSet:
     """Read the committed `labels.jsonl` truth (the single store-level annotation file),
     reject unmapped-line labels (surfaced count), and return the trainable `LabelSet`. FAILS LOUD
     if the file is missing — it never rebuilds; the truth is committed, not derived."""
@@ -107,8 +107,6 @@ def load(*, annotations: Path | None = None) -> LabelSet:
     kept.sort(key=lambda g: g.id)
     return LabelSet(labels=kept, n_rejected_unmapped=n_rejected)
 
-
-READERS = ("grok", "deepseek", "gemini", "owl", "mimo", "minimax")
 
 type VoteKey = tuple[ReaderTag, LineId]   # the (reader, line) identity of a vote — its dedup key
 
@@ -137,8 +135,9 @@ def load_votes(*, annotations: Path | None = None) -> list[PanelVote]:
 
 def by_reader(*, annotations: Path | None = None) -> PanelVotes:
     """`{reader_tag: {LineId: label}}` — the panel's calls keyed by line identity, ready to
-    join against the truth and the student on the SAME `LineId`s."""
-    out: PanelVotes = {tag: {} for tag in READERS}
+    join against the truth and the student on the SAME `LineId`s. The readers are DERIVED from
+    the votes present — no panel roster is baked into this model."""
+    out: PanelVotes = {}
     for v in load_votes(annotations=annotations):
         out.setdefault(v.tag, {})[v.id] = v.label
     return out

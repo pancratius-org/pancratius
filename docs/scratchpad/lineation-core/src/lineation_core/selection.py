@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Literal
 
 from . import sequence, store, student
-from .annotations import LabelSet, load
+from .annotations import LabelSet, load_labels
 from .identity import BookId, Label, LineId
 from .records import LineRecord, RecordsByBook
 
@@ -141,7 +141,7 @@ def commit_acquire(name: str = "acquire", *, top_acquire: int = 300, per_book_ca
     contributes, so the first paid batch is not dominated by a couple of ambiguous books — the
     margin cost is tiny and the coverage gain large; pass None for the plain least-confidence head.
     Returns the queue so the caller can report the distribution BEFORE spending on a paid panel."""
-    labelset = load(annotations=annotations)
+    labelset = load_labels(annotations=annotations)
     records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
     q = build_queue(records, labelset, top_acquire=top_acquire, per_book_cap=per_book_cap, alpha=alpha)
     store.save_selection(name, [item.id.as_key() for item in q.acquire], annotations=annotations)

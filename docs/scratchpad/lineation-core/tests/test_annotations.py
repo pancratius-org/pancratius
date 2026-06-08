@@ -1,17 +1,17 @@
 # research-pure: proves the loaded per-line labels are LineId-keyed, trainable, lineage-kept.
-"""`annotations.load()` reads the committed `labels.jsonl` truth and is the package's ONLY truth
-path — no migration, no source-shard read. It REJECTS unmapped-line labels at the boundary
+"""`annotations.load_labels()` reads the committed `labels.jsonl` truth and is the package's ONLY
+truth path — no migration, no source-shard read. It REJECTS unmapped-line labels at the boundary
 (surfaced count)."""
 from __future__ import annotations
 
 import pytest
 from lineation_core import identity, paths, producer
-from lineation_core.annotations import LabelSource, load
+from lineation_core.annotations import LabelSource, load_labels
 
 
 @pytest.fixture(scope="module")
 def labelset():
-    return load()
+    return load_labels()
 
 
 # --- the loaded set is the trainable truth, unmapped rejected ---

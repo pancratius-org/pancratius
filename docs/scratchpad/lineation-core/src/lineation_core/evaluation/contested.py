@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .. import store, student
-from ..annotations import LabelSet, by_reader, load
+from ..annotations import LabelSet, by_reader, load_labels
 from .compare import Metrics, ReaderScore, balanced, score_readers
 from ..identity import Label, LabelByLine, LineId, PanelVotes, to_label
 from ..records import RecordsByBook
@@ -76,7 +76,7 @@ def evaluate(records: RecordsByBook, labelset: LabelSet,
 if __name__ == "__main__":
     from .compare import format_row
 
-    labelset = load()
+    labelset = load_labels()
     records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
     votes = by_reader()
     contested = load_contested()

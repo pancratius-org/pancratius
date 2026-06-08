@@ -14,9 +14,9 @@ from ..annotations import LineLabel, PanelVote, VoteKey
 from ..identity import LineId
 
 
-def _existing(load, *, annotations: Path | None) -> list:
+def _existing(read_rows, *, annotations: Path | None) -> list:
     try:
-        return load(annotations=annotations)
+        return read_rows(annotations=annotations)
     except FileNotFoundError:
         return []          # first promote into a fresh store — start from empty
 
