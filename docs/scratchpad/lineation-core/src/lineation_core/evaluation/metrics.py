@@ -66,8 +66,8 @@ class AcceptMetrics:
     n_accepted: int
     acc: float
     balanced_acc: float
-    prose_recall: float
-    lineated_recall: float
+    accepted_prose_recall: float             # recall WITHIN accepted lines — NOT global prose capture
+    accepted_lineated_recall: float          # (a policy can show 1.000 here yet route most prose away)
     false_accepts: int                       # accepted lines whose label != truth
     false_accept_prose_as_lineated: int      # truth=prose, accepted=lineated (the costly mistake)
     false_accept_lineated_as_prose: int      # truth=lineated, accepted=prose
@@ -81,9 +81,40 @@ def accept_metrics(pairs: list[tuple[Label, Label]]) -> AcceptMetrics:
     fa_l_as_p = sum(t == "lineated" and p == "prose" for t, p in pairs)
     return AcceptMetrics(
         n_accepted=len(pairs), acc=m.acc, balanced_acc=m.balanced_acc,
-        prose_recall=m.prose_recall, lineated_recall=m.lineated_recall,
+        accepted_prose_recall=m.prose_recall, accepted_lineated_recall=m.lineated_recall,
         false_accepts=fa_p_as_l + fa_l_as_p,
         false_accept_prose_as_lineated=fa_p_as_l, false_accept_lineated_as_prose=fa_l_as_p)
+
+
+@dataclass(frozen=True, slots=True)
+class CaptureMetrics:
+    """The GLOBAL, total-population view (NOT accept-set recall): of ALL the truly-prose lines in the
+    aligned set, the fraction the policy AUTO-captured correctly (accepted AND labelled prose), and
+    how many it routed to a human instead. This is the number to read for 'how much true prose did
+    the policy actually decide' — `AcceptMetrics.accepted_prose_recall` only ranges over accepts and
+    will read 1.000 even when most prose was routed away."""
+
+    total_prose: int
+    total_lineated: int
+    auto_prose_capture: float       # accepted-correct-prose / total_prose
+    auto_lineated_capture: float    # accepted-correct-lineated / total_lineated
+    routed_prose: int               # truly-prose lines sent to a human (not auto-captured)
+    routed_lineated: int
+
+
+def capture_metrics(rows: list[tuple[Label, Label | None]]) -> CaptureMetrics:
+    """`rows` is `(truth, accepted_label_or_None)` for EVERY aligned line — `None` = routed to human.
+    Pairs with `accept_metrics` (which sees accepts only) to give the total-population capture."""
+    total_p = sum(t == "prose" for t, _ in rows)
+    total_l = sum(t == "lineated" for t, _ in rows)
+    auto_p = sum(t == "prose" and p == "prose" for t, p in rows)
+    auto_l = sum(t == "lineated" and p == "lineated" for t, p in rows)
+    return CaptureMetrics(
+        total_prose=total_p, total_lineated=total_l,
+        auto_prose_capture=auto_p / total_p if total_p else 0.0,
+        auto_lineated_capture=auto_l / total_l if total_l else 0.0,
+        routed_prose=sum(t == "prose" and p is None for t, p in rows),
+        routed_lineated=sum(t == "lineated" and p is None for t, p in rows))
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,6 +151,7 @@ class PolicyMetrics:
 
     name: str
     accept: AcceptMetrics
+    capture: CaptureMetrics
     load: LoadMetrics
     by_book: Breakdown
     by_stratum: Breakdown
@@ -127,15 +159,17 @@ class PolicyMetrics:
 
 
 def compare(metrics: tuple[PolicyMetrics, ...]) -> str:
-    """A TABLE, one row per policy: balanced_acc | lineated_recall | prose_recall | false_accepts |
-    human_rate | coverage. The correctness×load tradeoff stays VISIBLE across columns — there is no
-    single 'best' column, by design (a policy wins on accuracy XOR on load, and the reader judges)."""
-    head = (f"{'policy':16} {'balAcc':>7} {'linRec':>7} {'proRec':>7} "
-            f"{'falseAcc':>9} {'humanRt':>8} {'coverage':>9}")
+    """A TABLE, one row per policy: accept-set balanced_acc | GLOBAL auto-capture of prose & lineated
+    | the costly prose→lineated false-accepts | human load | coverage. It shows the TOTAL-POPULATION
+    capture (NOT accept-set recall, which reads 1.000 even when most prose is routed away) so no row
+    can be overclaimed; correctness×load stays VISIBLE across columns — no single 'best' column."""
+    head = (f"{'policy':16} {'balAcc':>7} {'autoPro':>8} {'autoLin':>8} "
+            f"{'P->L':>5} {'humanRt':>8} {'cover':>6}")
     lines = [head, "-" * len(head)]
     for m in metrics:
-        a = m.accept
         lines.append(
-            f"{m.name:16} {a.balanced_acc:>7.3f} {a.lineated_recall:>7.3f} {a.prose_recall:>7.3f} "
-            f"{a.false_accepts:>9} {m.load.human_rate:>8.3f} {m.coverage:>9.3f}")
+            f"{m.name:16} {m.accept.balanced_acc:>7.3f} "
+            f"{m.capture.auto_prose_capture:>8.3f} {m.capture.auto_lineated_capture:>8.3f} "
+            f"{m.accept.false_accept_prose_as_lineated:>5} {m.load.human_rate:>8.3f} "
+            f"{m.coverage:>6.3f}")
     return "\n".join(lines)

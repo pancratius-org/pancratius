@@ -152,9 +152,14 @@ def test_real_policy_comparison_locks_the_finding():
     assert legacy.accept.balanced_acc >= equal.accept.balanced_acc
     assert legacy.accept.false_accepts < equal.accept.false_accepts
 
-    # finding 3: the costly mistake is ZERO — no prose accepted as lineated, all 63 prose captured.
+    # finding 3: the costly mistake is ZERO and ALL true prose is auto-captured (GLOBAL, not accept-set).
     assert legacy.accept.false_accept_prose_as_lineated == 0
-    assert legacy.accept.prose_recall == pytest.approx(1.0)
+    assert legacy.capture.auto_prose_capture == pytest.approx(1.0)   # 63/63 true prose auto-decided
+    assert legacy.capture.routed_prose == 0
+    # unanimous's accept-SET recall also reads 1.0, but it ROUTES most prose away — the global capture
+    # exposes that gap, which is exactly why accepted_*_recall must not be read as total capture.
+    assert unanimous.accept.accepted_prose_recall == pytest.approx(1.0)
+    assert unanimous.capture.auto_prose_capture < 0.9 and unanimous.capture.routed_prose > 0
 
     # the brief's measured shape (robust bands around the probe's 482 / 33 / 367 / 148 / 514 counts).
     assert 470 <= legacy.accept.n_accepted <= 490
