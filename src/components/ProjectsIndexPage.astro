@@ -40,7 +40,7 @@ const rows: Row[] = canonical.map(base => {
     <p class="eyebrow eyebrow--lg">{copy.eyebrow}</p>
     <div class="projects-index__head">
       <h1>{copy.heading}</h1>
-      <p class="projects-index__intro l-measure l-measure--start">{copy.intro}</p>
+      <p class="projects-index__intro index-lede l-measure l-measure--start">{copy.intro}</p>
     </div>
 
     <div class="projects-list">
@@ -83,14 +83,6 @@ const rows: Row[] = canonical.map(base => {
     line-height: var(--type-index-masthead-title-leading);
     margin: 0;
     letter-spacing: var(--type-index-masthead-title-tracking);
-  }
-  .projects-index__intro {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: clamp(1.05rem, 1.4vw, 1.18rem);
-    line-height: 1.5;
-    color: var(--ink-soft);
-    margin: 0;
   }
 
   .projects-list { border-top: 1px solid var(--rule); }
