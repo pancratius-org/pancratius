@@ -10,9 +10,8 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from .. import store
+from ..annotations import LineLabel, PanelVote, VoteKey
 from ..identity import LineId
-from ..labels import LineLabel
-from ..panel_votes import PanelVote, VoteKey
 
 
 def _existing(load, *, annotations: Path | None) -> list:

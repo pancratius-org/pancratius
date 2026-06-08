@@ -5,11 +5,11 @@ from __future__ import annotations
 from collections import Counter
 from types import SimpleNamespace
 
-from lineation_core import review_queue, store, student
+from lineation_core import selection, store, student
 
 
-def _qitem(book: str, margin: float) -> review_queue.QueueItem:
-    return review_queue.QueueItem(
+def _qitem(book: str, margin: float) -> selection.QueueItem:
+    return selection.QueueItem(
         id=SimpleNamespace(book_id=book), text="", posterior=0.5, margin=margin,
         kind="acquire", existing_label=None, student_label="prose", context=())
 
@@ -17,11 +17,11 @@ def _qitem(book: str, margin: float) -> review_queue.QueueItem:
 def test_cap_per_book_bounds_each_book_and_keeps_order():
     items = [_qitem("A", 0.01), _qitem("A", 0.02), _qitem("A", 0.03),
              _qitem("B", 0.04), _qitem("C", 0.05)]                 # already least-confident first
-    out = review_queue._cap_per_book(items, top=4, per_book_cap=2)
+    out = selection._cap_per_book(items, top=4, per_book_cap=2)
     per = Counter(it.id.book_id for it in out)
     assert per["A"] == 2 and len(out) == 4                        # A capped at 2; filled from B, C
     assert [it.margin for it in out] == sorted(it.margin for it in out)   # input order preserved
-    assert review_queue._cap_per_book(items, top=4, per_book_cap=None) == items[:4]   # None = plain head
+    assert selection._cap_per_book(items, top=4, per_book_cap=None) == items[:4]   # None = plain head
 
 
 def _stub(src_ordinal: int, sub: int, text: str):
@@ -29,26 +29,26 @@ def _stub(src_ordinal: int, sub: int, text: str):
 
 
 def test_label_boundary():
-    assert review_queue._label(0.5) == "lineated"
-    assert review_queue._label(0.49) == "prose"
-    assert review_queue._label(0.99) == "lineated"
+    assert selection._label(0.5) == "lineated"
+    assert selection._label(0.49) == "prose"
+    assert selection._label(0.99) == "lineated"
 
 
 def test_context_marks_the_line_and_respects_radius():
     body = [_stub(10 + i, 0, f"line{i}") for i in range(6)]
-    ctx = review_queue._context(body, 3, radius=2)
+    ctx = selection._context(body, 3, radius=2)
     assert len(ctx) == 5                      # 1..5
     assert ctx[2].startswith("-> ")           # the focal line is marked
     assert all(not c.startswith("-> ") for i, c in enumerate(ctx) if i != 2)
     assert "line3" in ctx[2]
-    edge = review_queue._context(body, 0, radius=2)  # clamps at the start
+    edge = selection._context(body, 0, radius=2)  # clamps at the start
     assert len(edge) == 3 and edge[0].startswith("-> ")
 
 
 def test_queue_invariants_on_real_data(corpus):
     records, labelset = corpus
     label_ids = {g.id for g in labelset.labels}
-    q = review_queue.build_queue(records, labelset, top_acquire=25, books=["37", "16"])
+    q = selection.build_queue(records, labelset, top_acquire=25, books=["37", "16"])
 
     # AUDIT: every item is a LABELED line whose student (out-of-fold) call disagrees with truth.
     for it in q.audit:

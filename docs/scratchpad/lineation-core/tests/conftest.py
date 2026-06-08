@@ -40,7 +40,8 @@ _require_store()
 def corpus():
     """Committed labels + the records for their books, loaded once at the test edge — domain
     functions take this data as arguments; they never read it themselves."""
-    from lineation_core import labels, store
-    labelset = labels.load()
+    from lineation_core import store
+    from lineation_core.annotations import load
+    labelset = load()
     records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
     return records, labelset

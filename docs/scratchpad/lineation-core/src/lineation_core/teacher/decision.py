@@ -27,8 +27,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Protocol
 
+from ..annotations import PanelVote
 from ..identity import Label, LineId, ReaderTag
-from ..panel_votes import PanelVote
 
 
 class Outcome(StrEnum):

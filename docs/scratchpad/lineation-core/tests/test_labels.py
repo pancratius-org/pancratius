@@ -1,16 +1,17 @@
 # research-pure: proves the loaded per-line labels are LineId-keyed, trainable, lineage-kept.
-"""`labels.load()` reads the committed `labels.jsonl` truth and is the package's ONLY truth path —
-no migration, no source-shard read. It REJECTS unmapped-line labels at the boundary (surfaced
-count)."""
+"""`annotations.load()` reads the committed `labels.jsonl` truth and is the package's ONLY truth
+path — no migration, no source-shard read. It REJECTS unmapped-line labels at the boundary
+(surfaced count)."""
 from __future__ import annotations
 
 import pytest
-from lineation_core import identity, labels, paths, producer
+from lineation_core import identity, paths, producer
+from lineation_core.annotations import LabelSource, load
 
 
 @pytest.fixture(scope="module")
 def labelset():
-    return labels.load()
+    return load()
 
 
 # --- the loaded set is the trainable truth, unmapped rejected ---
@@ -50,7 +51,7 @@ def test_all_labels_are_ru(labelset):
 def test_lineage_preserved_with_provenance(labelset):
     for g in labelset.labels:
         assert {"rid", "idx", "sub", "shard"} <= set(g.provenance.keys())
-        assert g.source == labels.LabelSource.HUMAN
+        assert g.source == LabelSource.HUMAN
         assert g.line_text_hash is not None
 
 

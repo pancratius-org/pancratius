@@ -8,7 +8,7 @@ import dataclasses
 
 from lineation_core import store
 from lineation_core.identity import text_hash
-from lineation_core.labels import LabelSource
+from lineation_core.annotations import LabelSource
 from lineation_core.teacher import responses, tasks
 from lineation_core.teacher.responses import RawReaderResponse, RawReaderRow, ResolveFault
 from lineation_core.teacher.tasks import ItemSpec

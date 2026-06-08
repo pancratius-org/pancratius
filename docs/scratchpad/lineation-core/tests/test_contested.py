@@ -4,13 +4,13 @@ module __main__ prints the same numbers)."""
 from __future__ import annotations
 
 import pytest
-from lineation_core import panel_votes
+from lineation_core.annotations import by_reader
 from lineation_core.evaluation import contested
 
 
 def test_contested_locked(corpus):
     records, labelset = corpus
-    r = contested.evaluate(records, labelset, panel_votes.by_reader(),
+    r = contested.evaluate(records, labelset, by_reader(),
                            contested.load_contested(), alpha=0.75)
     assert r.n_contested == 425
     assert r.n_with_student == 342

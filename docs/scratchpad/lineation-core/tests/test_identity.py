@@ -8,7 +8,7 @@ import json
 import pytest
 from lineation_core import artifact, identity
 from lineation_core.identity import LineId
-from lineation_core.labels import LabelSource, LineLabel
+from lineation_core.annotations import LabelSource, LineLabel
 from lineation_core.records import (
     EndPunct,
     FeatureSchema,
