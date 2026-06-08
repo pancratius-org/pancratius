@@ -37,6 +37,7 @@ from .metrics import (
     Breakdown,
     PolicyMetrics,
     accept_metrics,
+    capture_metrics,
     load_metrics,
 )
 
@@ -97,12 +98,16 @@ def score(outcome: PolicyOutcome, aligned: AlignedSet) -> PolicyMetrics:
                       if d.outcome is Outcome.ACCEPT and d.label is not None]
     accept = accept_metrics(accepted_pairs)
 
+    # total-population capture: every line as (truth, accepted_label-or-None) — None = routed to human.
+    capture = capture_metrics([(truth, d.label if d.outcome is Outcome.ACCEPT else None)
+                               for d, truth, _, _ in rows])
+
     human = [d for d, _, _, _ in rows if d.outcome is Outcome.HUMAN]
     escalatable = sum(d.reason in OPERATIONAL_REASONS for d in human)
     load = load_metrics(n_total=n_total, human_routed=len(human), escalatable_routed=escalatable)
 
     return PolicyMetrics(
-        name=outcome.spec.name, accept=accept, load=load,
+        name=outcome.spec.name, accept=accept, capture=capture, load=load,
         by_book=_accept_by(rows, lambda book, stratum: book),
         by_stratum=_accept_by(rows, lambda book, stratum: stratum),
         coverage=accept.n_accepted / n_total if n_total else 0.0)
