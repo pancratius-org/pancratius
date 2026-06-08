@@ -46,13 +46,16 @@ class Reason(StrEnum):
     NO_PANEL_MAJORITY = "no_panel_majority"        # human: deciding readers tied
     INSUFFICIENT_COVERAGE = "insufficient_coverage"  # human: too few core readers voted
     LOW_CONFIDENCE = "low_confidence"              # human: anchor confidence below the floor
+    CONF_MISSING = "conf_missing"                  # human: a conf floor is set but the anchor reported no conf
 
 
 # A reason is TERMINAL (intrinsic ambiguity → a human, more reps cannot help) or OPERATIONAL (a
 # coverage gap → a live run can ESCALATE more reps; the offline harness just counts it as load).
+# CONF_MISSING is TERMINAL: the anchor DID vote, it just declined to report a confidence — re-running
+# the same reader cannot manufacture a number it chose not to give, so the line goes to a human.
 TERMINAL_REASONS = frozenset({Reason.SUPPORT_DISAGREES, Reason.ANCHOR_PANEL_SPLIT,
                               Reason.INSUFFICIENT_AGREEMENT, Reason.NO_PANEL_MAJORITY,
-                              Reason.LOW_CONFIDENCE})
+                              Reason.LOW_CONFIDENCE, Reason.CONF_MISSING})
 OPERATIONAL_REASONS = frozenset({Reason.ANCHOR_ABSTAIN, Reason.INSUFFICIENT_COVERAGE})
 
 
@@ -105,7 +108,9 @@ class AnchorLedGates:
     """Parameterized anchor-led acceptance. `require_no_split=True` is the unanimous rule (any present
     core support split → human); else the legacy gate (accept the majority iff the anchor is in it
     and ≥`min_core_agree` core agree). `min_support` = min present core support readers; `conf_floor`
-    (if set) is the anchor-confidence floor (skipped when the anchor reported no conf)."""
+    (if set) is the anchor-confidence floor — the anchor must report a conf AT OR ABOVE it; an anchor
+    that voted but reported NO conf faults the floor (→ human, `CONF_MISSING`), matching the validated
+    legacy gate, rather than silently passing."""
     min_support: int = 1
     min_core_agree: int = 0
     conf_floor: float | None = None
@@ -133,8 +138,11 @@ class AnchorLedPolicy:
             return human(Reason.ANCHOR_ABSTAIN)
         if len(support) < g.min_support:
             return human(Reason.INSUFFICIENT_COVERAGE)
-        if g.conf_floor is not None and anchor.conf is not None and anchor.conf < g.conf_floor:
-            return human(Reason.LOW_CONFIDENCE)
+        if g.conf_floor is not None:
+            if anchor.conf is None:
+                return human(Reason.CONF_MISSING)
+            if anchor.conf < g.conf_floor:
+                return human(Reason.LOW_CONFIDENCE)
 
         if g.require_no_split:
             if any(v.label != anchor.label for v in support):

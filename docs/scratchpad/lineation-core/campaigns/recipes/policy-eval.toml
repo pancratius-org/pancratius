@@ -1,0 +1,37 @@
+# Policy-eval recipe: replay decision policies over the committed aligned (truth ⋈ votes) set and
+# compare their accept-accuracy vs human load. Run with:
+#   PYTHONPATH=src uv run python -m lineation_core.evaluation.policy_replay campaigns/recipes/policy-eval.toml
+#
+# The roster names which reader is the ANCHOR and which are the disagreement-detecting SUPPORT; the
+# rule itself (unanimous vs the legacy gate vs the control) is per-policy params below. Readers NOT
+# in the roster (e.g. owl / mimo / minimax) voted but are diagnostic — they never decide.
+
+[roster]
+anchor = "grok"
+support = ["deepseek", "gemini"]
+
+# The validated legacy gate: accept the panel majority iff the anchor is in it, >=2 core agree, and
+# the anchor's confidence is at/above 0.7 (a missing conf faults the floor). Tolerates one dissent.
+[[policy]]
+name = "legacy"
+kind = "anchor_led"
+  [policy.params]
+  min_support = 2
+  min_core_agree = 2
+  conf_floor = 0.7
+  require_no_split = false
+
+# The strict unanimous rule: accept only when every present core support agrees with the anchor; any
+# split routes to a human. Higher precision, far more human load.
+[[policy]]
+name = "unanimous"
+kind = "anchor_led"
+  [policy.params]
+  min_support = 2
+  require_no_split = true
+
+# The control: a strict majority of all deciding readers, anchor unprivileged. Demonstrates why
+# anchor-led exists — it under-lineates the hard prose-shaped lineated lines.
+[[policy]]
+name = "equal_majority"
+kind = "equal_majority"

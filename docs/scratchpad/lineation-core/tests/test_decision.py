@@ -108,6 +108,17 @@ def test_legacy_gate_low_anchor_confidence_routes_human():
     assert LEGACY.decide(LID, by, ROSTER).reason is Reason.LOW_CONFIDENCE      # conf_floor=0.7
 
 
+def test_legacy_gate_missing_anchor_conf_routes_human():
+    # the anchor voted but reported NO conf: with a floor set, the validated legacy gate FAULTS this
+    # (CONF_MISSING, terminal) rather than silently passing the floor.
+    by = _by(_v("grok", "lineated", conf=None), _v("gemini-pro", "lineated"), _v("ds-flash-text", "lineated"))
+    d = LEGACY.decide(LID, by, ROSTER)
+    assert d.outcome is Outcome.HUMAN and d.reason is Reason.CONF_MISSING
+    assert Reason.CONF_MISSING in decision.TERMINAL_REASONS
+    # with no floor (the default unanimous policy) a missing conf is irrelevant — it still accepts.
+    assert decision.decide_line(LID, by, ROSTER).outcome is Outcome.ACCEPT
+
+
 def test_equal_majority_accepts_against_the_anchor():
     # the control gives the anchor no privilege: a 2-1 majority against it is accepted.
     by = _by(_v("grok", "lineated"), _v("gemini-pro", "prose"), _v("ds-flash-text", "prose"))
@@ -116,6 +127,7 @@ def test_equal_majority_accepts_against_the_anchor():
 
 
 def test_route_with_runs_any_policy():
-    votes = [_v("grok", "lineated"), _v("gemini-pro", "lineated"), _v("ds-flash-text", "prose")]
+    # grok carries a passing conf so this exercises LEGACY's split-tolerance, not its conf gate.
+    votes = [_v("grok", "lineated", conf=0.9), _v("gemini-pro", "lineated"), _v("ds-flash-text", "prose")]
     assert decision.route_with(LEGACY, votes, ROSTER).accepted                 # legacy tolerates it
     assert decision.route_with(AnchorLedPolicy("u"), votes, ROSTER).human       # unanimous routes it
