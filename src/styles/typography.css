@@ -58,3 +58,39 @@
   line-height: 1.7;
   color: var(--ink-mute);
 }
+
+/* Work card sub-roles — shared by book and video cards. The card title stays
+   local (book/video sizes differ by layout and never sit in one grid). */
+.work-card-num {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--ink-mute);
+  display: block;
+}
+.work-card-teaser {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.work-card-badge {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  color: var(--ink-mute);
+  margin-top: 0.55rem;
+  display: inline-block;
+}
+.work-card-badge--fallback {
+  color: var(--accent-soft);
+  border-bottom: 1px dashed var(--rule-2);
+}
