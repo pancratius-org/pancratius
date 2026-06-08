@@ -99,9 +99,38 @@ describe("formatCssValueReport", () => {
       spacing: [],
       typography: [],
       largePixels: [],
+      roleDrift: [],
     });
 
     assert.match(output, /CSS value diagnostic/);
     assert.match(output, /Layout literals/);
+    assert.match(output, /Typography role drift\n {2}none/);
+  });
+});
+
+describe("role drift", () => {
+  test("flags a raw clamp that duplicates a typography-role token, not local values", () => {
+    const files = new Map([
+      ["src/styles/typography.css", ":root { --type-x-size: clamp(3rem, 7.4vw, 5.4rem); }"],
+      ["src/components/A.astro", "<style>.a { font-size: clamp(3rem, 7.4vw, 5.4rem); }</style>"],
+      // honest local value that must NOT be flagged
+      ["src/components/B.astro", "<style>.b { font-size: 0.98; line-height: 0.98; }</style>"],
+    ]);
+    const ctx = makeContext("/unused");
+    const report = analyzeCssValues({
+      ...ctx,
+      walk: () => [...files.keys()],
+      read: (file) => files.get(file) ?? "",
+      exists: (file) => files.has(file),
+    }, { minCount: 1, limit: 10, examples: 4 });
+
+    assert.equal(report.roleDrift.length, 1);
+    const [drift] = report.roleDrift;
+    if (drift === undefined) throw new Error("expected one drift group");
+    assert.equal(drift.value, "clamp(3rem, 7.4vw, 5.4rem)");
+    assert.equal(drift.token, "--type-x-size");
+    assert.equal(drift.uses[0]?.file, "src/components/A.astro");
+    // the token definition itself is not drift
+    assert.ok(drift.uses.every((u) => u.file !== "src/styles/typography.css"));
   });
 });

@@ -37,7 +37,19 @@ export interface CssValueReport {
   spacing: CssValueGroup[];
   typography: CssValueGroup[];
   largePixels: CssValueGroup[];
+  roleDrift: RoleDriftGroup[];
 }
+
+/** A raw literal that duplicates an approved typography-role token value. */
+interface RoleDriftGroup {
+  value: string;
+  token: string;
+  uses: CssUse[];
+}
+
+// Where the shared typography roles are defined. The drift check reads the role
+// token values from here so it stays correct as roles are added — no hardcoding.
+const ROLE_TOKENS_FILE = "src/styles/typography.css";
 
 export interface CssValueOptions {
   minCount: number;
@@ -73,7 +85,38 @@ export function analyzeCssValues(ctx: RuleContext, options: Partial<CssValueOpti
     spacing: groupValues(declarations.filter(isSpacingLiteral), opts),
     typography: groupValues(declarations.filter(isTypographyLiteral), opts),
     largePixels: groupValues(declarations.flatMap(largePixelUses), { ...opts, minCount: 1 }),
+    roleDrift: roleDrift(ctx, declarations),
   };
+}
+
+// A future agent re-typing a role's literal (e.g. the index-title clamp) instead
+// of its var() silently reintroduces the scatter the roles removed. We flag only
+// the distinctive clamp display sizes: plain numbers like `0.98` recur in honest
+// local roles, so matching them would be noise. Leading/tracking stay uncovered
+// on purpose.
+function roleTokenValues(ctx: RuleContext): Map<string, string> {
+  const byValue = new Map<string, string>();
+  if (!ctx.exists(ROLE_TOKENS_FILE)) return byValue;
+  postcss.parse(ctx.read(ROLE_TOKENS_FILE), { from: ROLE_TOKENS_FILE }).walkDecls((decl) => {
+    if (!decl.prop.startsWith("--type-") || !decl.value.includes("clamp(")) return;
+    byValue.set(normalizeValue(decl.value), decl.prop);
+  });
+  return byValue;
+}
+
+function roleDrift(ctx: RuleContext, declarations: readonly CssUse[]): RoleDriftGroup[] {
+  const tokens = roleTokenValues(ctx);
+  if (tokens.size === 0) return [];
+  const byValue = new Map<string, RoleDriftGroup>();
+  for (const use of declarations) {
+    if (use.file === ROLE_TOKENS_FILE || use.property !== "font-size") continue;
+    const token = tokens.get(use.value);
+    if (token === undefined) continue;
+    const group = byValue.get(use.value);
+    if (group === undefined) byValue.set(use.value, { value: use.value, token, uses: [use] });
+    else group.uses.push(use);
+  }
+  return [...byValue.values()].sort((a, b) => b.uses.length - a.uses.length);
 }
 
 export function formatCssValueReport(report: CssValueReport, options: Partial<CssValueOptions> = {}): string {
@@ -84,6 +127,7 @@ export function formatCssValueReport(report: CssValueReport, options: Partial<Cs
     renderSection("Typography literals", report.typography, opts),
     renderSection("Large pixel anchors", report.largePixels, opts),
     renderSection("Repeated raw design values", report.repeated, opts),
+    renderRoleDrift(report.roleDrift, opts),
   ];
 
   return [
@@ -92,6 +136,21 @@ export function formatCssValueReport(report: CssValueReport, options: Partial<Cs
     "",
     ...sections,
   ].join("\n");
+}
+
+function renderRoleDrift(groups: readonly RoleDriftGroup[], options: CssValueOptions): string {
+  if (groups.length === 0) return "Typography role drift\n  none\n";
+
+  const lines = ["Typography role drift"];
+  for (const group of groups) {
+    lines.push(`  ${group.value} — ${group.uses.length} raw use(s); use var(${group.token})`);
+    for (const use of group.uses.slice(0, options.examples)) {
+      const selector = use.selector === "" ? "" : ` ${use.selector}`;
+      lines.push(`    ${use.file}:${use.line} ${use.property}${selector}`);
+    }
+  }
+  lines.push("");
+  return lines.join("\n");
 }
 
 export function extractCssBlocks(file: string, source: string): CssBlock[] {
