@@ -25,7 +25,8 @@ from pathlib import Path
 
 from .. import store, student
 from ..annotations import LabelSet, by_reader, load_labels
-from .compare import Metrics, ReaderScore, balanced, score_readers
+from .compare import ReaderScore, score_readers
+from .metrics import Metrics, balanced
 from ..identity import Label, LabelByLine, LineId, PanelVotes, to_label
 from ..records import RecordsByBook
 

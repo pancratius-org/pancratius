@@ -21,33 +21,7 @@ from .. import store, student
 from ..annotations import LabelSet, by_reader, load_labels
 from ..identity import Label, LabelByLine, PanelVotes, ReaderTag
 from ..records import RecordsByBook
-
-
-@dataclass(frozen=True)
-class Metrics:
-    """Two-class (prose/lineated) scores for one set of predictions against one truth."""
-
-    acc: float
-    balanced_acc: float
-    macro_f1: float
-    prose_recall: float
-    lineated_recall: float
-
-
-def balanced(y_true: list[Label], y_pred: list[Label]) -> Metrics:
-    """Balanced accuracy + macro-F1 computed from scratch (no sklearn) on prose/lineated."""
-    recalls: list[float] = []
-    f1s: list[float] = []
-    for c in ("prose", "lineated"):
-        tp = sum(t == c and p == c for t, p in zip(y_true, y_pred))
-        fn = sum(t == c and p != c for t, p in zip(y_true, y_pred))
-        fp = sum(t != c and p == c for t, p in zip(y_true, y_pred))
-        recalls.append(tp / (tp + fn) if tp + fn else 0.0)
-        prec = tp / (tp + fp) if tp + fp else 0.0
-        f1s.append(2 * prec * recalls[-1] / (prec + recalls[-1]) if prec + recalls[-1] else 0.0)
-    acc = sum(t == p for t, p in zip(y_true, y_pred)) / len(y_true) if y_true else 0.0
-    return Metrics(acc=acc, balanced_acc=sum(recalls) / 2, macro_f1=sum(f1s) / 2,
-                   prose_recall=recalls[0], lineated_recall=recalls[1])
+from .metrics import Metrics, balanced   # the two-class metric lives in metrics.py (one home)
 
 
 @dataclass(frozen=True)
