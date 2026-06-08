@@ -18,6 +18,19 @@
   --type-index-masthead-title-size: clamp(3rem, 7.4vw, 5.4rem);
   --type-index-masthead-title-leading: 0.96;
   --type-index-masthead-title-tracking: -0.024em;
+
+  /* Static shell title — informational pages built on PageShell, plus the
+     downloads page that mirrors that treatment. (Search is intentionally
+     smaller and stays local; detail mastheads are literary and stay local.) */
+  --type-static-shell-title-size: clamp(2.8rem, 5.8vw, 4.3rem);
+  --type-static-shell-title-leading: 0.98;
+  --type-static-shell-title-tracking: -0.022em;
+
+  /* Utility / empty-state title — the larger, dramatic 404 display, shared by
+     the RU and EN not-found pages. */
+  --type-utility-title-size: clamp(3.2rem, 8.2vw, 5.4rem);
+  --type-utility-title-leading: 0.98;
+  --type-utility-title-tracking: -0.024em;
 }
 
 /* Uppercase kicker — the small sans label above a heading or carrying work

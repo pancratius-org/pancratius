@@ -52,10 +52,10 @@ const { title, eyebrow, sub, class: extraClass, width = "page" } = Astro.props;
   .static__title {
     font-family: var(--serif);
     font-weight: 400;
-    font-size: clamp(2.8rem, 5.8vw, 4.3rem);
-    line-height: 0.98;
+    font-size: var(--type-static-shell-title-size);
+    line-height: var(--type-static-shell-title-leading);
     margin: 0;
-    letter-spacing: -0.022em;
+    letter-spacing: var(--type-static-shell-title-tracking);
     text-wrap: balance;
   }
   .static__sub {
