@@ -96,7 +96,7 @@ const months: MonthGroup[] = [...buckets.entries()]
     <p class="eyebrow eyebrow--lg">{copy.eyebrow(pairs.length)}</p>
     <div class="poetry-index__head">
       <h1><b>{pairs.length}</b> {copy.headingLabel(pairs.length)}</h1>
-      <p class="poetry-index__intro l-measure l-measure--start">{copy.intro}</p>
+      <p class="poetry-index__intro index-lede l-measure l-measure--start">{copy.intro}</p>
     </div>
 
     {showHero && heroRow && heroStanza && (
@@ -153,14 +153,6 @@ const months: MonthGroup[] = [...buckets.entries()]
     font-variant-numeric: oldstyle-nums proportional-nums;
     font-style: italic;
     color: var(--accent);
-  }
-  .poetry-index__intro {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: clamp(1.05rem, 1.4vw, 1.18rem);
-    line-height: 1.5;
-    color: var(--ink-soft);
-    margin: 0;
   }
 
   .poetry-hero {

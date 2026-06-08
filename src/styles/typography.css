@@ -33,6 +33,18 @@
   --type-utility-title-tracking: -0.024em;
 }
 
+/* Index masthead lede — the italic standfirst paragraph under the index title
+   (books, poetry, projects, videos, messages). Pairs with
+   --type-index-masthead-title-*; each page keeps its own link styles. */
+.index-lede {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(1.05rem, 1.4vw, 1.18rem);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
 /* Uppercase kicker — the small sans label above a heading or carrying work
    metadata. `.eyebrow` adds the accent-rule ornament and section spacing;
    `.kicker` is the bare label (detail mastheads own their own layout). One

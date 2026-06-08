@@ -35,7 +35,7 @@ const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count })
     <p class="eyebrow eyebrow--lg">{copy.eyebrow}</p>
     <div class="lib__head">
       <h1><b>{pairs.length}</b> {copy.headingLabel(pairs.length)}</h1>
-      <p class="lib__sub l-measure l-measure--start">
+      <p class="lib__sub index-lede l-measure l-measure--start">
         {copy.sub(allPairs.length, pairs.length)}
         {copy.fullCatalogLink && (
           <Fragment>
@@ -98,14 +98,6 @@ const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count })
     font-variant-numeric: oldstyle-nums proportional-nums;
     font-style: italic;
     color: var(--accent);
-  }
-  .lib__sub {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: clamp(1.05rem, 1.4vw, 1.18rem);
-    line-height: 1.5;
-    color: var(--ink-soft);
-    margin: 0;
   }
   .lib__sub :global(a) {
     color: var(--ink-soft);

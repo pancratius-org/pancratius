@@ -65,7 +65,7 @@ function dayAria(day: Day): string {
     <p class="eyebrow eyebrow--lg">{copy.eyebrow}</p>
     <div class="pl__head">
       <h1><b>{pairs.length}</b> {copy.headingLabel(pairs.length)}</h1>
-      <p class="pl__sub l-measure l-measure--start">
+      <p class="pl__sub index-lede l-measure l-measure--start">
         {pairs.length > 0 ? copy.sub(pairs.length) : copy.emptySub}
         {pairs.length === 0 && copy.fullCatalogLink && (
           <Fragment> <a href={defaultHref}>{copy.fullCatalogLink}</a></Fragment>
@@ -174,14 +174,6 @@ function dayAria(day: Day): string {
     font-variant-numeric: oldstyle-nums proportional-nums;
     font-style: italic;
     color: var(--accent);
-  }
-  .pl__sub {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: clamp(1.05rem, 1.4vw, 1.2rem);
-    line-height: 1.5;
-    color: var(--ink-soft);
-    margin: 0;
   }
   .pl__sub :global(a) {
     color: var(--ink-soft);
