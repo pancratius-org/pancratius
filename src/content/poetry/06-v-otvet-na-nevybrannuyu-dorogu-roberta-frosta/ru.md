@@ -141,8 +141,6 @@ translation:
 лишь рябь на том, что цельно сквозь века  
 глядит на мир нездешними глазами.
 
-13.03.2026
-
 оригинал стихотворения **Robert Frost — “The Road Not Taken”**:
 
 Two roads diverged in a yellow wood,  
