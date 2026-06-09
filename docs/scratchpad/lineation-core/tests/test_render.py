@@ -1,8 +1,9 @@
-# research-pure: render.py composes the authored page render into a COMPOSITE data-URI.
+# research-pure: render.py turns the authored page render into one COMPOSITE data-URI per page.
 """Locks the vision evidence builder WITHOUT LibreOffice: the page renderer is stubbed, so these
-prove the composition + encoding + the src_ordinal span logic, not the LibreOffice render itself.
+prove the per-page labeling + encoding + the src_ordinal span logic, not the LibreOffice render itself.
 The slice span comes from the region's MAPPED lines only (unmapped context cannot anchor a `<w:p>`
-range); a multi-page region stacks; an empty/unmappable region fails LOUD (never a silent text task)."""
+range); a multi-page region yields one image per page; an empty/unmappable region fails LOUD (never a
+silent text task)."""
 from __future__ import annotations
 
 import base64
@@ -77,13 +78,42 @@ def test_span_is_min_max_of_mapped_lines_only():
     assert captured == [("57", "ru")]
 
 
-def test_multipage_region_stacks_vertically():
+def test_render_window_hugs_the_votable_lines_not_the_whole_region_span():
+    # tile_regions keeps a whole authorial run as context, so a region's span can be huge (1000..3000)
+    # while its VOTABLE lines are a tight cluster (2010..2014). The rendered slice must hug the votable
+    # window (+ margin) — rendering the 2000-line span would be a many-page, oversized image a vision
+    # model rejects ("unable to process input image").
+    context = [LineId.mapped("ru", "57", o, 0) for o in (1000, 2010, 2012, 2014, 3000)]
+    votable = [LineId.mapped("ru", "57", o, 0) for o in (2010, 2014)]
+    rp = _stub_renderer()
+    render.make_compositor(rp, docx_for=_docx_for_stub([]))([_spec("b57-r0", context, votable=votable)])
+    _, lo, hi = rp.calls[0]
+    assert (lo, hi) == (2007, 2017)                  # votable [2010..2014] ± margin 3, NOT [1000..3000]
+
+
+def test_render_fails_loud_when_votable_lines_exceed_one_page():
+    # if the votable lines themselves span more than max_span, a single bounded page cannot show them
+    # all — FAIL LOUD rather than silently render a window that excludes endpoints (wrong evidence).
+    votable = [LineId.mapped("ru", "57", 1000, 0), LineId.mapped("ru", "57", 1400, 0)]   # 400 > 120
+    rp = _stub_renderer()
+    compose = render.make_compositor(rp, docx_for=_docx_for_stub([]))
+    with pytest.raises(render.RenderError, match="too wide for one authored page"):
+        compose([_spec("b57-r0", votable, votable=votable)])
+    assert rp.calls == []                            # never rendered a misleading window
+
+
+def test_multipage_region_yields_one_image_per_page():
+    # a region straddling a page break gives ONE labeled image PER PAGE (separate parts), not one tall
+    # stack — so a per-image-budget vision reader sees each page at full resolution.
     spec = _spec("b57-r0", [LineId.mapped("ru", "57", o, 0) for o in (10, 11)])
     compose = render.make_compositor(_stub_renderer(n_pages=2, size=(80, 30)),
                                      docx_for=_docx_for_stub([]))
-    img = _decode(compose([spec])["b57-r0"][0].data_uri)
-    assert img.width == 80
-    assert img.height == render._BAR_H + 30 + render._PAGE_GAP + 30
+    assets = compose([spec])["b57-r0"]
+    assert len(assets) == 2
+    for a in assets:
+        assert a.kind is AssetKind.COMPOSITE and a.caption == "b57-r0"
+        img = _decode(a.data_uri)
+        assert img.width == 80 and img.height == render._BAR_H + 30   # one page under its own bar
 
 
 def test_region_with_no_mapped_lines_fails_loud():

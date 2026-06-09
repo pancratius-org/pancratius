@@ -10,14 +10,17 @@ sees) — there is no separate "brief". `build_prompt` assembles those instructi
 into the PROMPT (the model input)."""
 from __future__ import annotations
 
+import hashlib
+import threading
 from collections import Counter, defaultdict
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Protocol
 
 from ..annotations import PanelVote, VoteKey
-from ..identity import ModelId, ReaderTag
+from ..identity import ListingKey, ModelId, PromptFingerprint, ReaderTag
 from .responses import RawReaderResponse, parse_reader_reply
 from .tasks import AssetKind, Modality, RegionId, Task, TaskItem
 
@@ -39,14 +42,17 @@ class FinishReason(StrEnum):
 class ChatReply:
     content: str
     finish_reason: str | None = None    # LENGTH ⇒ truncated; the caller may retry larger
+    usage: dict[str, object] | None = None   # provider token/cost accounting, verbatim; None if absent
 
 
 class ChatCompleter(Protocol):
     """Messages → a completion. The ONE injectable LLM boundary: the OpenRouter adapter implements
-    it for real; tests pass a fake. Nothing in the panel core imports an HTTP client."""
+    it for real; tests pass a fake. Nothing in the panel core imports an HTTP client. `response_format`
+    is an optional OpenRouter structured-output schema (`verdict_schema`); an adapter that cannot honor
+    it ignores it and the free-text parse still applies."""
 
     def complete(self, *, model: ModelId, messages: list[Message], temperature: float,
-                 max_tokens: int) -> ChatReply: ...
+                 max_tokens: int, response_format: dict[str, object] | None = None) -> ChatReply: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,56 +85,168 @@ class PanelRep:
     content: str
     response: RawReaderResponse
     finish_reason: str | None
+    usage: dict[str, object] | None = None   # provider token/cost accounting, carried from the reply
 
 
-_RETURN = ('Return ONLY a JSON array, one object per line key shown:\n'
-           '[{"key": "L001", "label": "prose" | "lineated", "conf": 0.0-1.0}]')
+# The format example uses a PLACEHOLDER key, never a real one like "L001": a literal real key both
+# collides with item 1's key and primes the model to echo / continue the L-sequence (observed
+# key_item_mismatch faults from readers inventing keys past the ones shown). The explicit "only the
+# keys shown, do not invent" is the instruction-side guard for that hallucination — and `verdict_schema`
+# enforces it structurally for adapters that honor structured outputs (the `key` enum). The object
+# wrapper (`{"verdicts": […]}`) matches that schema (a top-level array is not allowed there).
+_RETURN = ('Return ONLY a JSON object {"verdicts": [ … ]}, one entry per line key shown — use the EXACT '
+           'keys shown above, do NOT invent keys or continue the numbering:\n'
+           '{"verdicts": [{"key": "<one of the keys shown>", "label": "prose" | "lineated", '
+           '"conf": 0.0-1.0}]}')
+
+
+def verdict_schema(keys: Sequence[ListingKey]) -> dict[str, object]:
+    """An OpenRouter structured-output `response_format` that CONSTRAINS the reply to one verdict per
+    SHOWN key: `key` is an enum of exactly these keys — so an invented or sequence-continued key is
+    structurally impossible under strict decoding — `label` ∈ {prose, lineated}, `conf` ∈ [0,1].
+    Object-wrapped because a top-level array is not allowed. `strict`+`additionalProperties:false` are
+    the enforcement. (Coverage — that EVERY key is answered — is not guaranteed by the schema; the
+    resolver still checks it.)"""
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "lineation_verdicts",
+            "strict": True,
+            "schema_": {            # serialized to "schema" by the SDK (pydantic alias)
+                "type": "object",
+                "properties": {
+                    "verdicts": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "key": {"type": "string", "enum": list(keys)},
+                                "label": {"type": "string", "enum": ["prose", "lineated"]},
+                                "conf": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+                            },
+                            "required": ["key", "label", "conf"],
+                            "additionalProperties": False,
+                        },
+                    },
+                },
+                "required": ["verdicts"],
+                "additionalProperties": False,
+            },
+        },
+    }
 
 
 def build_prompt(item: TaskItem, reader: ReaderConfig, instructions: str) -> list[Message]:
     """The reader-facing messages for one item. The opaque-keyed listing carries the structure (its
-    feature tokens ARE a text reader's view of it); a vision reader also gets the composite image.
-    The prompt asks for the item's keys ONLY — no idx/src_ordinal can appear, by construction."""
+    feature tokens ARE a text reader's view of it); a vision reader also gets one page image per
+    rendered page. The prompt asks for the item's keys ONLY — no idx/src_ordinal can appear, by
+    construction."""
     text = f"{instructions}\n\nLines to judge (answer EVERY key shown):\n{item.context}\n\n{_RETURN}"
     parts: list[dict] = [{"type": "text", "text": text}]
     if reader.modality is Modality.VISION:
-        composite = next((a for a in item.assets if a.kind is AssetKind.COMPOSITE), None)
-        if composite is not None:
-            parts.append({"type": "image_url", "image_url": {"url": composite.data_uri}})
+        parts += [{"type": "image_url", "image_url": {"url": a.data_uri}}
+                  for a in item.assets if a.kind is AssetKind.COMPOSITE]   # one part per page
     return [{"role": "user", "content": parts}]
 
 
-type CallKey = tuple[RegionId, ReaderTag, int, ModelId]   # (item_id, reader tag, rep, model) — call identity
+# The call identity INCLUDES a fingerprint of the exact prompt sent (see `prompt_fingerprint`): a
+# model/prompt change must re-call, never silently reuse a reply made under a different prompt — the
+# resume cache is per task_id, and the prompt (instructions + listing) can change under a fixed id.
+type CallKey = tuple[RegionId, ReaderTag, int, ModelId, PromptFingerprint]   # the call identity
 type CallCache = dict[CallKey, ChatReply]            # already-completed calls to RESUME from
 type OnCall = Callable[[CallKey, ChatReply], None]   # persist a fresh reply the instant it lands
 
 
+def prompt_fingerprint(messages: list[Message]) -> PromptFingerprint:
+    """A short stable hash of the WHOLE prompt the model sees — the text parts (instructions +
+    opaque-keyed listing) AND any image part's data-URI. The cache key carries it so a reply is reused
+    ONLY for an identical prompt: editing the instructions OR changing the rendered page image both
+    shift the fingerprint, so neither silently reuses a stale reply (the render slice can change under
+    a fixed task)."""
+    h = hashlib.sha256()
+    for m in messages:
+        content = m.get("content")
+        for p in (content if isinstance(content, list) else []):
+            if not isinstance(p, dict):
+                continue
+            if p.get("type") == "text":
+                h.update(b"\x00T" + str(p.get("text", "")).encode())
+            elif p.get("type") == "image_url":
+                url = p.get("image_url", {})
+                ref = url.get("url", "") if isinstance(url, dict) else ""
+                h.update(b"\x00I" + str(ref).encode())
+    return h.hexdigest()[:16]
+
+
+@dataclass(frozen=True, slots=True)
+class _Call:
+    """One planned panel call: who/what to ask and the resume key. Built for EVERY reader×rep×item
+    up front so the network fetches can fan out while the assembled result stays in this order."""
+    reader: ReaderConfig
+    rep: int
+    item: TaskItem
+    messages: list[Message]
+    key: CallKey
+
+
 def run_panel(task: Task, cfg: PanelConfig, completer: ChatCompleter, *,
-              cached: CallCache | None = None, on_call: OnCall | None = None) -> list[PanelRep]:
+              cached: CallCache | None = None, on_call: OnCall | None = None,
+              instructions_by_modality: Mapping[Modality, str] | None = None,
+              max_workers: int = 1) -> list[PanelRep]:
     """For each reader × rep × item: REUSE a saved reply from `cached`, else build_prompt →
     completer.complete → (persist via `on_call`) → parse. `cached`+`on_call` make a run RESUMABLE:
-    a saved `(item, reader, rep)` reply is never re-fetched, and a fresh one is persisted BEFORE it
-    is parsed, so a crash mid-run loses no paid call. Returns per-rep records (resolution + rep
-    aggregation are separate). Pure given the completer."""
+    a saved `(item, reader, rep, model, prompt_fp)` reply is never re-fetched, and a fresh one is
+    persisted BEFORE it is parsed, so a crash mid-run loses no paid call. A reply is reused ONLY for
+    the SAME prompt (the key carries the prompt fingerprint), so editing the prompt re-calls.
+
+    `instructions_by_modality` lets each reader get a MODALITY-appropriate prompt — a vision reader the
+    page-authority prompt, a text reader a listing/structure-authority one (a text reader cannot use a
+    page it never receives). A reader's modality not in the map falls back to `task.instructions`.
+
+    `max_workers` runs the cache-MISS fetches on a thread pool (the calls are I/O-bound on the
+    completer) — `1` is the plain sequential path. Results are assembled in reader×rep×item order
+    REGARDLESS of completion order, so the output is deterministic; `on_call` is invoked under a lock,
+    so a single-file resume log stays line-atomic. Requires a thread-safe completer for `>1`.
+    Returns per-rep records (resolution + rep aggregation are separate). Pure given the completer."""
     cache = cached or {}
-    reps: list[PanelRep] = []
+    by_modality = instructions_by_modality or {}
+    calls: list[_Call] = []
     for reader in cfg.readers:
+        instructions = by_modality.get(reader.modality, task.instructions)
         for rep in range(cfg.reps):
             for item in task.items:
-                key: CallKey = (item.id, reader.tag, rep, reader.model)   # model in key: a model
-                reply = cache.get(key)                                    # change re-calls, never reuses
-                if reply is None:
-                    reply = completer.complete(
-                        model=reader.model, messages=build_prompt(item, reader, task.instructions),
-                        temperature=reader.temperature, max_tokens=reader.max_tokens)
-                    if on_call is not None:                 # persist before parse — evidence survives
-                        on_call(key, reply)
-                reps.append(PanelRep(
-                    item_id=item.id, tag=reader.tag, rep=rep, model=reader.model,
-                    content=reply.content,
-                    response=parse_reader_reply(item.id, reader.tag, reply.content),
-                    finish_reason=reply.finish_reason))
-    return reps
+                messages = build_prompt(item, reader, instructions)
+                key: CallKey = (item.id, reader.tag, rep, reader.model, prompt_fingerprint(messages))
+                calls.append(_Call(reader, rep, item, messages, key))
+
+    replies: dict[CallKey, ChatReply] = {c.key: cache[c.key] for c in calls if c.key in cache}
+    misses = [c for c in calls if c.key not in cache]
+    lock = threading.Lock()
+
+    def fetch(c: _Call) -> tuple[CallKey, ChatReply]:
+        reply = completer.complete(
+            model=c.reader.model, messages=c.messages,
+            temperature=c.reader.temperature, max_tokens=c.reader.max_tokens,
+            response_format=verdict_schema([ln.key for ln in c.item.lines]))
+        if on_call is not None:                             # persist before parse — evidence survives
+            with lock:
+                on_call(c.key, reply)
+        return c.key, reply
+
+    if max_workers > 1 and len(misses) > 1:
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:
+            for key, reply in ex.map(fetch, misses):
+                replies[key] = reply
+    else:
+        for c in misses:
+            key, reply = fetch(c)
+            replies[key] = reply
+
+    return [PanelRep(
+        item_id=c.item.id, tag=c.reader.tag, rep=c.rep, model=c.reader.model,
+        content=replies[c.key].content,
+        response=parse_reader_reply(c.item.id, c.reader.tag, replies[c.key].content),
+        finish_reason=replies[c.key].finish_reason, usage=replies[c.key].usage) for c in calls]
 
 
 def aggregate_reps(per_rep: Sequence[Sequence[PanelVote]]) -> tuple[PanelVote, ...]:

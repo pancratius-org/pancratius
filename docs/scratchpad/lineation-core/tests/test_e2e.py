@@ -23,7 +23,7 @@ class _Canned:
     def __init__(self, content: str):
         self.content = content
 
-    def complete(self, *, model, messages, temperature, max_tokens):
+    def complete(self, *, model, messages, temperature, max_tokens, response_format=None):
         return ChatReply(content=self.content)
 
 

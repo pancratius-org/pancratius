@@ -528,7 +528,7 @@
       <dt><kbd>&uarr;</kbd> <kbd>&darr;</kbd></dt><dd>Move between lines (per-line items)</dd>
       <dt><kbd>0</kbd> <kbd>Bksp</kbd></dt><dd>Clear the focused line</dd>
       <dt><kbd>H</kbd></dt><dd>Toggle hints</dd>
-      <dt><kbd>Z</kbd></dt><dd>Enlarge the page image (pan &amp; zoom)</dd>
+      <dt><kbd>Z</kbd></dt><dd>Enlarge the page image (pan &amp; zoom); press again to page through a multi-page item, then close</dd>
       <dt><kbd>/</kbd></dt><dd>Search lines &amp; items across the whole task</dd>
       <dt><kbd>Esc</kbd></dt><dd>Close overlay</dd>
       <dt><kbd>?</kbd></dt><dd>This help</dd>
@@ -752,16 +752,22 @@
     }
   }
 
+  function itemImages(it){ return it.images || (it.image ? [it.image] : []); }
+
   function buildFigure(it){
     var fig = el("div","figure");
-    if(it.image){
-      var iw = el("div","imgwrap");
-      var img = el("img"); img.src = it.image; img.alt = it.id||"page image";
-      img.addEventListener("click", function(){ openLightbox(it.image); });
-      iw.appendChild(img);
-      fig.appendChild(iw);
+    var imgs = itemImages(it);
+    if(imgs.length){
+      imgs.forEach(function(src, i){
+        var iw = el("div","imgwrap");
+        var img = el("img"); img.src = src;
+        img.alt = (it.id||"page") + " p" + (i+1) + "/" + imgs.length;
+        img.addEventListener("click", function(){ openImage(src); });
+        iw.appendChild(img);
+        fig.appendChild(iw);
+      });
       var cap = el("div","cap");
-      cap.appendChild(el("span","", it.id||"page"));
+      cap.appendChild(el("span","", (it.id||"page") + (imgs.length>1 ? " · "+imgs.length+" pages" : "")));
       cap.appendChild(el("span","", "click to enlarge · Z"));
       fig.appendChild(cap);
     } else {
@@ -1011,12 +1017,20 @@
     lbScroll.scrollTop  =        py*scale - (cy-rect.top);
   }
 
+  var LB_PAGES=[], LB_PI=0;                                   // the open item's page images + current page
   function openLightbox(src){
     lb.classList.add("on");
     var init=function(){ natW=lbi.naturalWidth||1; natH=lbi.naturalHeight||1; fitWidth(); };
     if(lbi.getAttribute("src")===src && lbi.complete){ init(); }
     else { lbi.onload=init; lbi.src=src; }
   }
+  function openImage(src){ LB_PAGES=[src]; LB_PI=0; openLightbox(src); }   // a single clicked page
+  function openItemImages(it){                                // all of an item's pages, page 1 first
+    LB_PAGES = itemImages(it); LB_PI = 0;
+    if(LB_PAGES.length){ openLightbox(LB_PAGES[0]); }
+  }
+  function lbHasNextPage(){ return LB_PI < LB_PAGES.length-1; }
+  function lbNextPage(){ if(lbHasNextPage()){ LB_PI++; openLightbox(LB_PAGES[LB_PI]); } }
   function closeLightbox(){ lb.classList.remove("on"); }
   function lbOpen(){ return lb.classList.contains("on"); }
 
@@ -1179,7 +1193,7 @@
 
     // while the image reader is open it owns the keyboard (zoom / pan)
     if(lbOpen()){
-      if(e.key==="z"||e.key==="Z"){ e.preventDefault(); closeLightbox(); }  // z toggles
+      if(e.key==="z"||e.key==="Z"){ e.preventDefault(); if(lbHasNextPage()){ lbNextPage(); } else { closeLightbox(); } }  // z advances pages, then closes
       else if(e.key==="+"||e.key==="="){ e.preventDefault(); zoomBy(1.25); }
       else if(e.key==="-"||e.key==="_"){ e.preventDefault(); zoomBy(0.8); }
       else if(e.key==="0"){ e.preventDefault(); fitWidth(); }
@@ -1196,7 +1210,7 @@
     if(e.key==="ArrowRight"){ e.preventDefault(); goNext(); return; }
     if(e.key==="ArrowLeft"){ e.preventDefault(); goPrev(); return; }
     if(e.key==="z" || e.key==="Z"){
-      var it0 = ITEMS[idx]; if(it0 && it0.image){ openLightbox(it0.image); } return;
+      var it0 = ITEMS[idx]; if(it0){ openItemImages(it0); } return;
     }
     if(e.key==="h" || e.key==="H"){ toggleHints(); return; }
 
