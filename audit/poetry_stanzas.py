@@ -18,6 +18,8 @@ from typing import Any
 
 ROOT = Path(os.environ.get("PANCRATIUS_AUDIT_ROOT", Path(__file__).resolve().parents[1])).resolve()
 CONTENT = ROOT / "src" / "content" / "poetry"
+# Drops the unified `DD.MM.YYYY, <pen name>` sign-off so the oracle counts verse.
+SIGNOFF_FILTER = Path(__file__).resolve().parent / "poem_signoff.lua"
 
 
 def _inlines_to_text(inlines: list[dict[str, Any]]) -> str:
@@ -54,66 +56,27 @@ def _is_strong_only(block: dict[str, Any]) -> bool:
     return block.get("t") == "Para" and len(block.get("c") or []) == 1 and block["c"][0].get("t") == "Strong"
 
 
-def _count_breaks(inlines: list[dict[str, Any]]) -> int:
-    total = 0
-    for item in inlines:
-        typ = item.get("t")
-        val: Any = item.get("c")  # Pandoc AST payload: shape depends on `typ`
-        if typ in {"SoftBreak", "LineBreak"}:
-            total += 1
-        elif typ in {"Strong", "Emph", "Underline", "SmallCaps", "Strikeout"}:
-            total += _count_breaks(val or [])
-        elif typ == "Quoted":
-            total += _count_breaks(val[1])
-        elif typ == "Link":
-            total += _count_breaks(val[1])
-        elif typ == "Span":
-            total += _count_breaks(val[1])
-        elif isinstance(val, list):
-            total += _count_breaks(val)
-    return total
-
-
 def _title_key(s: str) -> str:
-    s = re.sub(r"^[#>*_`\s-]+|[*_`\s-]+$", "", s.strip())
-    s = s.replace("…", "...")
-    s = re.sub(r"[.,;:!?]+$", "", s)
-    return re.sub(r"\s+", " ", s).casefold().strip()
-
-
-def _source_duplicate_title(blocks: list[dict[str, Any]], title: str) -> bool:
-    key = _title_key(title)
-    if not key:
-        return False
-    nonempty: list[dict[str, Any]] = []
-    for block in blocks:
-        if block.get("t") != "Para":
-            continue
-        text = _inlines_to_text(block.get("c") or [])
-        if text.strip():
-            nonempty.append(block)
-        if len(nonempty) >= 2:
-            break
-    if not nonempty:
-        return False
-    first = nonempty[0]
-    first_inlines = first.get("c") or []
-    if _title_key(_inlines_to_text(first_inlines)) != key:
-        return False
-    second_breaks = _count_breaks(nonempty[1].get("c") or []) if len(nonempty) > 1 else 0
-    second_text = _inlines_to_text(nonempty[1].get("c") or []) if len(nonempty) > 1 else ""
-    second_is_section = bool(re.match(r"^(?:[IVXLCDM]+\.|[А-ЯA-Z]\.)\s+\S", second_text.strip(), re.I))
-    return _is_strong_only(first) or _count_breaks(first_inlines) > 0 or second_breaks > 0 or second_is_section
+    """A loose comparison key for a poem title: case-folded, with a trailing style
+    note, markup characters, and punctuation removed. Note-tolerant so a self-sufficient
+    DOCX title line ("Весна (в духе Есенина)") keys equal to the frontmatter title."""
+    s = s.casefold()
+    s = re.sub(r"\s*\(\s*в\s+(?:духе|стиле)\b[^)]*\)", "", s)  # "(в духе Есенина)"
+    s = re.sub(r"[*_`«»“”„\"'…]", "", s)                       # markup / quote chars
+    s = re.sub(r"[^\w\s]", " ", s)                              # other punctuation
+    return re.sub(r"\s+", " ", s).strip()
 
 
 def expected_groups(docx: Path, title: str) -> list[int]:
     proc = subprocess.run(
-        ["pandoc", "--from", "docx+empty_paragraphs", "--to", "json", str(docx)],
+        ["pandoc", "--from", "docx+empty_paragraphs", "--lua-filter", str(SIGNOFF_FILTER),
+         "--to", "json", str(docx)],
         capture_output=True,
         text=True,
         check=True,
     )
     blocks = json.loads(proc.stdout).get("blocks") or []
+    key = _title_key(title)
     groups: list[list[str]] = []
     current: list[str] = []
     seen = False
@@ -136,9 +99,10 @@ def expected_groups(docx: Path, title: str) -> list[int]:
         if not lines:
             flush()
             continue
-        if not seen and _is_strong_only(block):
-            flush()
-            groups.append(lines)
+        # One rule, shared with the converter: a leading fully-bold paragraph whose key
+        # matches the frontmatter title is the title — drop it. An incipit's first line
+        # is plain verse (not Strong), so it is kept.
+        if not seen and _is_strong_only(block) and _title_key("\n".join(lines)) == key:
             seen = True
             continue
         seen = True
@@ -151,8 +115,6 @@ def expected_groups(docx: Path, title: str) -> list[int]:
         else:
             current.append(lines[0])
     flush()
-    if groups and _source_duplicate_title(blocks, title) and len(groups[0]) == 1 and _title_key(groups[0][0]) == _title_key(title):
-        groups = groups[1:]
     return [len(g) for g in groups]
 
 
@@ -220,7 +182,6 @@ def actual_groups_from_ir() -> int:
     checked = 0
     for number, title, slug in _committed_poem_meta():
         docx = source_docx(number)
-        exp = expected_groups(docx, title)
         with tempfile.TemporaryDirectory(prefix="poetry-ir-") as td:
             content_root = Path(td) / "src" / "content"
             request = import_docx.ImportRequest(
@@ -239,6 +200,7 @@ def actual_groups_from_ir() -> int:
                 continue
             work_key = slug if re.match(r"^\d{1,4}-", slug) else f"{number:02d}-{slug}"
             got = actual_groups(content_root / "poetry" / work_key / "ru.md")
+        exp = expected_groups(docx, title)
         checked += 1
         if exp != got:
             failures.append(
