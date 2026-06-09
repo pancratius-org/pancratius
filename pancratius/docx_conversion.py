@@ -6,7 +6,6 @@ import unicodedata
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from itertools import islice
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -79,21 +78,16 @@ def to_ascii_slug(value: str) -> str:
 
 
 def _poem_title_key(s: str) -> str:
+    """A loose comparison key for a poem title: markup, a trailing style note, and
+    edge punctuation removed, case-folded. Note-tolerant so a self-sufficient DOCX
+    title line ("Весна (в духе Есенина)") keys equal to the frontmatter title
+    ("Весна") — the note lives in frontmatter, the title carries it for display."""
     s = re.sub(r"<[^>]+>", "", s)
+    s = re.sub(r"\s*\(\s*в\s+(?:духе|стиле)\b[^)]*\)", "", s, flags=re.IGNORECASE)
     s = re.sub(r"^[#>*_`\s-]+|[*_`\s-]+$", "", s.strip())
     s = s.replace("…", "...")
     s = re.sub(r"[.,;:!?]+$", "", s)
     return re.sub(r"\s+", " ", s).casefold().strip()
-
-
-def _first_nonempty_docx_paras(
-    paras: list[ooxml.DocxParagraphMeta], limit: int = 2
-) -> list[ooxml.DocxParagraphMeta]:
-    return list(islice((para for para in paras if not para.is_empty), limit))
-
-
-def _is_poem_section_heading_text(s: str) -> bool:
-    return bool(re.match(r"^(?:[IVXLCDM]+\.|[А-ЯA-Z]\.)\s+\S", s.strip(), re.IGNORECASE))
 
 
 def _strip_source_duplicate_poem_title(
@@ -101,25 +95,16 @@ def _strip_source_duplicate_poem_title(
     title: str,
     docx_paras: list[ooxml.DocxParagraphMeta],
 ) -> str:
-    """Drop a DOCX title paragraph from a poem body, but never an incipit.
+    """Drop the leading title paragraph from a poem body.
 
-    A first verse line can legitimately equal the title/refrain ("А если буду я не
-    прав?"), so strip only when the DOCX itself proves a title paragraph: the first
-    non-empty paragraph matches the title AND is bold or followed by a line-break stanza.
+    One rule, shared with the stanza oracle: the leading DOCX paragraph is the title
+    iff it is BOLD. An incipit poem (where the first verse line is the title) has no
+    bold paragraph, so its first line is plain verse and is kept. The title-key match
+    is a safety guard against a future messy import bolding a stray line.
     """
     key = _poem_title_key(title)
-    first_two = _first_nonempty_docx_paras(docx_paras, 2)
-    if not key or not first_two or _poem_title_key(first_two[0].text) != key:
-        return body
-    first = first_two[0]
-    second = first_two[1] if len(first_two) > 1 else None
-    source_says_title = (
-        first.bold
-        or first.line_breaks > 0
-        or bool(second and second.line_breaks > 0)
-        or bool(second and _is_poem_section_heading_text(second.text))
-    )
-    if not source_says_title:
+    first = next((para for para in docx_paras if not para.is_empty), None)
+    if not key or first is None or not first.bold or _poem_title_key(first.text) != key:
         return body
 
     blocks = re.split(r"\n\s*\n", body.strip(), maxsplit=1)
@@ -236,8 +221,8 @@ def convert_single_docx(
     body = lower.lower(doc, lang, poem=(kind == "poem"))
     poem_chrome: PoemChrome | None = None
     if kind == "poem":
-        # A poem DOCX that opens with a title paragraph repeats the masthead title in
-        # its first stanza; drop it on bold/line-break source signals, not a guess.
+        # A poem DOCX that opens with a bold title paragraph repeats the masthead title
+        # in its first stanza; drop that one bold paragraph (an incipit is plain verse).
         body = _strip_source_duplicate_poem_title(
             body, title, ooxml.read_docx_paragraph_meta(docx)
         )

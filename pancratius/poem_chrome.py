@@ -80,13 +80,14 @@ def persona_of(text: str) -> str | None:
 
 def _is_signoff_line(line: str) -> bool:
     """A publication / sign-off line: it carries a date, and once the date, clock,
-    an optional pen name, and punctuation are removed, nothing is left."""
+    an optional pen name, emphasis markup, and punctuation are removed, nothing is
+    left. The emphasis markers cover the unified `*DD.MM.YYYY, <name>*` sign-off."""
     rest = line.strip()
     if not (_DOTTED_RE.search(rest) or _RU_LONG_RE.search(rest) or _EN_LONG_RE.search(rest)):
         return False
     for pat in (_DOTTED_RE, _RU_LONG_RE, _EN_LONG_RE, _EN_CLOCK_RE, _PERSONA_RE):
         rest = pat.sub("", rest)
-    return re.sub(r"[.,\sг—–-]", "", rest, flags=re.IGNORECASE) == ""
+    return re.sub(r"[.,\sг—–*_-]", "", rest, flags=re.IGNORECASE) == ""
 
 
 def _leading_style_note(line: str) -> str | None:

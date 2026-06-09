@@ -2,9 +2,9 @@
 """Read narrow DOCX paragraph-level signals that Pandoc's Markdown writer drops.
 
 Pandoc is the content converter; this module only captures source signals that
-are otherwise lost — paragraph alignment, the source line-break count, bold/italic
-runs, and the Word paragraph style. The IR adapter and the poem source-duplicate
-title strip consume these to make decisions the Markdown alone cannot support.
+are otherwise lost — paragraph alignment, bold/italic runs, and the Word paragraph
+style. The IR adapter and the poem source-duplicate title strip consume these to
+make decisions the Markdown alone cannot support.
 
 PURE: this opens the DOCX with `zipfile` for READ only (`ZipFile`/`read`) and
 parses `word/document.xml`. It mutates nothing on disk.
@@ -28,7 +28,6 @@ class DocxParagraphMeta:
     style: str
     bold: bool
     italic: bool
-    line_breaks: int
 
     @property
     def is_empty(self) -> bool:
@@ -50,20 +49,18 @@ def _run_prop_enabled(el: ET.Element | None) -> bool:
 
 def read_docx_paragraph_meta(docx: Path) -> list[DocxParagraphMeta]:
     """Read paragraph-level Word metadata that Markdown cannot carry — alignment,
-    style, bold/italic runs, source line-break count — in document order."""
+    style, bold/italic runs — in document order."""
     with zipfile.ZipFile(docx) as zf:
         root = ET.fromstring(zf.read("word/document.xml"))
 
     paras: list[DocxParagraphMeta] = []
     for p in root.iter(f"{W}p"):
         text_parts: list[str] = []
-        line_breaks = 0
         for el in p.iter():
             if el.tag == f"{W}t":
                 text_parts.append(el.text or "")
             elif el.tag in {f"{W}br", f"{W}cr"}:
                 text_parts.append("\n")
-                line_breaks += 1
             elif el.tag == f"{W}tab":
                 text_parts.append("\t")
 
@@ -78,6 +75,5 @@ def read_docx_paragraph_meta(docx: Path) -> list[DocxParagraphMeta]:
             style=style,
             bold=bold,
             italic=italic,
-            line_breaks=line_breaks,
         ))
     return paras
