@@ -18,7 +18,7 @@ from typing import Self
 
 from .. import producer
 from ..identity import JsonObject, LineId, LineTextHash, ListingKey
-from ..records import LineRecord, RecordsByBook
+from ..records import RecordsByBook
 
 type TaskKey = ListingKey   # a task-local opaque key ("L001") — a ListingKey minted per task
 type RegionId = str         # stable human-readable region tag (book + range); the UI's item id
@@ -118,16 +118,16 @@ class Task:
     @classmethod
     def from_bundle(cls, payload: Mapping[str, object], manifest: Mapping[str, object]) -> Self:
         """Rebuild a Task from a persisted payload + manifest — enough to RE-RUN the panel and
-        RESOLVE (items + instructions + the manifest). The composite asset is reconstructed from the
-        payload's `image`, so a vision re-run still attaches it."""
+        RESOLVE (items + instructions + the manifest). The composite assets are reconstructed from the
+        payload's `images` (one per page), so a vision re-run still attaches every page."""
         items = tuple(
             TaskItem(
-                id=it["id"], modality=Modality.VISION if it.get("image") else Modality.TEXT,
+                id=it["id"], modality=Modality.VISION if it.get("images") else Modality.TEXT,
                 context=it.get("structure", ""),
                 lines=tuple(TaskLine(key=ln["key"], text=ln["text"], hint=ln.get("hint", ""))
                             for ln in it.get("lines", [])),
-                assets=((EvidenceAsset(kind=AssetKind.COMPOSITE, data_uri=it["image"]),)
-                        if it.get("image") else ()))
+                assets=tuple(EvidenceAsset(kind=AssetKind.COMPOSITE, data_uri=u)
+                             for u in it.get("images", [])))
             for it in payload.get("items", []))
         return cls(title=payload.get("title", ""), instructions=payload.get("instructions", ""),
                    items=items, manifest=TaskManifest.from_dict(manifest))
@@ -141,9 +141,9 @@ def _item_payload(it: TaskItem, options: tuple[LineOption, ...]) -> JsonObject:
         "lineOptions": [{"value": v, "label": label} for v, label in options],
         "lines": [_line_payload(ln) for ln in it.lines],
     }
-    composite = next((a for a in it.assets if a.kind is AssetKind.COMPOSITE), None)
-    if composite is not None:                       # vision only — the listing carries text mode
-        payload["image"] = composite.data_uri
+    images = [a.data_uri for a in it.assets if a.kind is AssetKind.COMPOSITE]
+    if images:                                      # vision only — one page image per part; text=none
+        payload["images"] = images
     return payload
 
 

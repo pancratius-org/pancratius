@@ -122,7 +122,7 @@ def test_build_persists_a_task_bundle_with_the_selected_lines(tmp_path):
     assert set(task.manifest.by_key.values()) == votable        # every votable line tiled in
     payload, _ = store.load_task_bundle("t1", annotations=ann, store=st)
     assert "manifest" not in payload and payload["items"]
-    assert all("image" not in it for it in payload["items"])    # text recipe → no composites
+    assert all("images" not in it for it in payload["items"])   # text recipe → no composites
 
 
 def _vision_recipe() -> recipes.Recipe:
@@ -135,14 +135,14 @@ def test_build_vision_without_render_fails_loud(tmp_path):
         recipes.build(_vision_recipe(), annotations=tmp_path / "a", teacher_store=tmp_path / "s")
 
 
-def test_build_vision_with_render_attaches_a_composite_to_every_item(tmp_path):
+def test_build_vision_with_render_attaches_composites_to_every_item(tmp_path):
     def render(specs):
         return {s.region_id: (EvidenceAsset(kind=AssetKind.COMPOSITE,
                                             data_uri="data:image/png;base64,AA"),) for s in specs}
     recipes.build(_vision_recipe(), annotations=tmp_path / "a", teacher_store=tmp_path / "s",
                   render=render)
     payload, _ = store.load_task_bundle("v", annotations=tmp_path / "a", store=tmp_path / "s")
-    assert payload["items"] and all("image" in it for it in payload["items"])
+    assert payload["items"] and all(it.get("images") for it in payload["items"])
 
 
 def test_build_vision_render_missing_a_composite_fails_loud(tmp_path):
@@ -189,7 +189,7 @@ def test_recipe_panel_and_ingest_reach_committed_truth(tmp_path):
     recipes.build(r, annotations=ann, teacher_store=st)
 
     class Echo:                                   # answers exactly the keys it is shown
-        def complete(self, *, model, messages, temperature, max_tokens):
+        def complete(self, *, model, messages, temperature, max_tokens, response_format=None):
             listing = messages[0]["content"][0]["text"].split("Return ONLY")[0]   # not the example
             keys = sorted(set(re.findall(r"\bL\d+\b", listing)))
             return ChatReply(content=json.dumps([{"key": k, "label": "lineated"} for k in keys]))
@@ -205,3 +205,22 @@ def test_recipe_panel_and_ingest_reach_committed_truth(tmp_path):
     assert recipes.ingest(r, annotations=ann, teacher_store=st) == 5
     ls = load_labels(annotations=ann)
     assert len(ls.labels) == 5 and all(g.label == "prose" for g in ls.labels)
+
+
+def test_load_recipe_reads_per_modality_prompt_files(tmp_path):
+    (tmp_path / "vis.md").write_text("PAGE-AUTHORITY PROMPT")
+    (tmp_path / "txt.md").write_text("LISTING-AUTHORITY PROMPT")
+    toml = ('task_id = "t"\n[prompts]\nvision = "vis.md"\ntext = "txt.md"\n'
+            '[selection]\nbooks = ["57"]\n[[readers]]\ntag = "grok"\nmodel = "x/g"\nmodality = "vision"\n')
+    r = recipes.load_recipe(toml, prompts_dir=tmp_path)
+    assert r.prompts[Modality.VISION] == "PAGE-AUTHORITY PROMPT"
+    assert r.prompts[Modality.TEXT] == "LISTING-AUTHORITY PROMPT"
+    assert r.instructions == "PAGE-AUTHORITY PROMPT"          # vision = the default (human + fallback)
+
+
+def test_load_recipe_rejects_both_prompts_and_inline_instructions(tmp_path):
+    (tmp_path / "v.md").write_text("V")
+    toml = ('task_id = "t"\ninstructions = "inline"\n[prompts]\nvision = "v.md"\n'
+            '[selection]\nbooks = ["57"]\n')
+    with pytest.raises(ValueError, match="both"):
+        recipes.load_recipe(toml, prompts_dir=tmp_path)

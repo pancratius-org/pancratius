@@ -132,3 +132,15 @@ def test_parse_reader_reply_is_robust_and_range_checks_conf():
     assert rows["L002"].conf is None        # out-of-range conf dropped, not persisted
     assert rows["L003"].conf is None        # absent conf is None
     assert responses.parse_reader_reply("x", "grok", "no json").rows == ()
+
+
+def test_duplicate_key_same_label_is_tolerated():
+    # a reader RESTATES the same verdict for a key (models sometimes do) — keep the first, NO fault;
+    # only a CONFLICTING repeat (different label) is the genuine ambiguity that faults.
+    task, records = _task()
+    rows = [(k, "prose", None) for k in sorted(task.manifest.by_key)]   # every key, all prose
+    rows.insert(1, ("L001", "prose", 0.8))                              # a benign restatement of L001
+    r = responses.resolve_panel(task.manifest, [_resp("b57-r0", rows)], records, complete=True)
+    assert not _faults(r)                                              # no DUP_KEY, no MISSING_KEY
+    by_lid = {v.id: v for v in r.votes}
+    assert by_lid[task.manifest.by_key["L001"]].label == "prose"       # first kept, run not killed

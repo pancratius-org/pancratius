@@ -45,6 +45,8 @@ type ListingKey = str   # the OUTWARD key shown for a line in a rendered listing
 type LineTextHash = str       # `text_hash` of ONE source line's text — the per-line drift rail
 type ParagraphTextHash = str  # `text_hash` of a whole <w:p>'s text — the paragraph-level rail
 type DocxPackageHash = str    # `docx_package_hash` of the whole .docx bytes — the coarsest rail
+type PromptFingerprint = str  # short hash of the EXACT prompt (instructions+listing+image) a reader
+                              # was sent — the resume-cache key carries it so an edited prompt re-calls
 
 # Teacher-loop identifiers. A `TaskId` names a built task bundle (its manifest resolves the opaque
 # keys); a `RunId` names a saved panel run's per-rep evidence. Distinct concepts that both spell a

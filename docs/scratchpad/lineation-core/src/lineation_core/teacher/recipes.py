@@ -8,12 +8,12 @@ from __future__ import annotations
 import tomllib
 from collections import Counter, defaultdict
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from .. import store
 from ..annotations import LabelSource, LineLabel, PanelVote, load_votes
-from ..identity import BookId, JsonRow, Label, LineId, LineTextHash, ModelId, ReaderTag, TaskId
+from ..identity import BookId, JsonRow, LineId, LineTextHash, ModelId, ReaderTag, TaskId
 from ..records import LineRecord, Run, runs
 from . import decision as decision_mod
 from . import panel as panel_mod
@@ -38,7 +38,7 @@ class Recipe:
     vision-ness is derived from the readers — composites are rendered iff any reader reads vision."""
     task_id: TaskId
     title: str
-    instructions: str
+    instructions: str              # the default prompt (vision / human-adjudicator); see `prompts`
     books: tuple[BookId, ...]
     selector: str                  # "all" | "eval_set:<name>" | "selection_file:<path>"
     readers: tuple[ReaderSpec, ...]
@@ -46,6 +46,13 @@ class Recipe:
     reps: int = 1
     target: int = 10
     context_radius: int = 1
+    # panel fetch concurrency — the calls are I/O-bound on the completer, so a small worker pool is the
+    # default; `1` forces the sequential path. Config (TOML), never a hardcoded global in the runner.
+    max_workers: int = 8
+    # per-MODALITY reader prompts (from a `[prompts]` table referencing files in campaigns/prompts/):
+    # a vision reader gets the page-authority prompt, a text reader a listing/structure-authority one
+    # (a text reader cannot use a page it never receives). Empty ⇒ all readers use `instructions`.
+    prompts: Mapping[Modality, str] = field(default_factory=dict)
     # The decision config — present together iff the recipe is ROUTED (`build`/`panel` ignore them;
     # `route` requires them). `roster` names which readers decide (anchor + disagreement detectors);
     # `decision` is the ONE settled live policy (the legacy anchor-led gate). Both come from the same
@@ -58,11 +65,14 @@ class Recipe:
         return any(r.modality is Modality.VISION for r in self.readers)
 
 
-def load_recipe(toml_text: str) -> Recipe:
+def load_recipe(toml_text: str, *, prompts_dir: Path | None = None) -> Recipe:
     """Parse + validate a recipe toml. FAILS LOUD on a missing required field, an unknown reader
     modality, empty books, or duplicate reader tags. The optional `[roster]`/`[decision]` tables (a
     ROUTED recipe) are validated together — both or neither — with the roster confined to the
-    recipe's own readers, so a routed recipe can never decide on a reader it did not run."""
+    recipe's own readers. An optional `[prompts]` table maps a MODALITY to a prompt FILE in
+    `prompts_dir` (default `campaigns/prompts/`), read at load — so a 3-reader vision+text panel gives
+    each reader the right authority; `instructions` is the vision/default (and the human's). A recipe
+    gives EITHER `[prompts]` OR an inline `instructions`."""
     d = tomllib.loads(toml_text)
     readers = tuple(ReaderSpec(tag=r["tag"], model=r["model"],
                                modality=Modality(r.get("modality", "text")))
@@ -80,12 +90,18 @@ def load_recipe(toml_text: str) -> Recipe:
                                         known_desc="the recipe's readers")
               if "roster" in d else None)
     dec = decision_mod.policy_from_toml(d["decision"]) if "decision" in d else None
+    if d.get("prompts") and "instructions" in d:
+        raise ValueError("recipe gives both [prompts] and inline instructions — choose one")
+    prompts = {Modality(mod): store.load_prompt(fname, prompts_dir=prompts_dir)
+               for mod, fname in d.get("prompts", {}).items()}     # via the store boundary, fail-loud
+    instructions = d.get("instructions") or prompts.get(Modality.VISION) or next(iter(prompts.values()), "")
     return Recipe(
-        task_id=d["task_id"], title=d.get("title", ""), instructions=d.get("instructions", ""),
+        task_id=d["task_id"], title=d.get("title", ""), instructions=instructions,
         books=books, selector=sel.get("selector", "all"), readers=readers,
         lang=sel.get("lang", "ru"), reps=int(d.get("reps", 1)),
         target=int(sel.get("target", 10)), context_radius=int(sel.get("context_radius", 1)),
-        roster=roster, decision=dec)
+        max_workers=int(d.get("max_workers", 8)),
+        roster=roster, decision=dec, prompts=prompts)
 
 
 def tile_regions(book_id: BookId, records: Sequence[LineRecord], selected: set[LineId], *,
@@ -234,7 +250,9 @@ def panel(recipe: Recipe, completer: panel_mod.ChatCompleter, *,
 
     cached = _load_call_cache(recipe.task_id, teacher_store=teacher_store)
     on_call = _call_saver(recipe.task_id, teacher_store=teacher_store)
-    reps = panel_mod.run_panel(task, cfg, completer, cached=cached, on_call=on_call)
+    reps = panel_mod.run_panel(task, cfg, completer, cached=cached, on_call=on_call,
+                               instructions_by_modality=recipe.prompts or None,
+                               max_workers=recipe.max_workers)
     store.save_panel_reps(recipe.task_id, _rep_rows(reps), annotations=annotations)
 
     truncated = [(r.item_id, r.tag, r.rep) for r in reps
@@ -256,6 +274,21 @@ def panel(recipe: Recipe, completer: panel_mod.ChatCompleter, *,
     if faults:
         raise PanelRefused(f"refusing to promote {recipe.task_id!r}: {len(faults)} resolution "
                            f"fault(s), e.g. {[f'{f.fault}:{f.key or f.item_id}' for f in faults[:5]]}")
+    # per-READER coverage: `resolve_panel`'s MISSING_KEY check counts a key answered if ANY reader
+    # answered it, so a reader silently OMITTING a key another reader covered slips through (the
+    # structured-output enum forbids invalid keys, not omission). Under the gate that can thin the
+    # deciding panel or flip a line's routing invisibly — so refuse if any reader left a votable line
+    # unanswered in any rep.
+    votable = set(task.manifest.by_key.values())
+    tags = {r.tag for r in recipe.readers}
+    for rv in resolved:
+        covered: dict[ReaderTag, set[LineId]] = defaultdict(set)
+        for v in rv.votes:
+            covered[v.tag].add(v.id)
+        gaps = sorted((tag, str(lid)) for tag in tags for lid in votable - covered[tag])
+        if gaps:
+            raise PanelRefused(f"refusing to promote {recipe.task_id!r}: {len(gaps)} (reader, line) "
+                               f"votes missing — a reader omitted keys: {gaps[:5]}")
     # stamp each canonical vote with THIS campaign so `route` consumes only its own task's evidence
     votes = [replace(v, task=recipe.task_id)
              for v in panel_mod.aggregate_reps([rv.votes for rv in resolved])]
@@ -263,24 +296,30 @@ def panel(recipe: Recipe, completer: panel_mod.ChatCompleter, *,
 
 
 def _load_call_cache(task_id: TaskId, *, teacher_store: Path | None = None) -> panel_mod.CallCache:
-    """The saved raw replies of a prior (possibly crashed) run, as a `(item, tag, rep) → ChatReply`
-    cache — last-saved wins per tuple. The resume source: `run_panel` reuses these instead of
-    re-paying for the call."""
+    """The saved raw replies of a prior (possibly crashed) run, as a
+    `(item, tag, rep, model, prompt_fp) → ChatReply` cache — last-saved wins per tuple. The resume
+    source: `run_panel` reuses these instead of re-paying. A row from before prompt-fingerprinting
+    has no `prompt_hash`; it gets `""`, which cannot match a live fingerprint — so it safely re-calls
+    rather than reuse a reply whose prompt is unknown."""
     cache: panel_mod.CallCache = {}
     for row in store.load_panel_calls(task_id, store=teacher_store):
-        cache[(row["item_id"], row["tag"], int(row["rep"]), row["model"])] = panel_mod.ChatReply(
-            content=row.get("content", ""), finish_reason=row.get("finish_reason"))
+        cache[(row["item_id"], row["tag"], int(row["rep"]), row["model"],
+               row.get("prompt_hash", ""))] = panel_mod.ChatReply(
+            content=row.get("content", ""), finish_reason=row.get("finish_reason"),
+            usage=row.get("usage"))
     return cache
 
 
 def _call_saver(task_id: TaskId, *, teacher_store: Path | None = None) -> panel_mod.OnCall:
     """A `run_panel` `on_call` that appends each fresh reply to the resume log the instant it lands
-    (before parse), so a crash mid-run loses no paid call."""
+    (before parse), so a crash mid-run loses no paid call. Persists the prompt fingerprint with the
+    reply so the resume reuses it ONLY under the same prompt."""
     def save(key: panel_mod.CallKey, reply: panel_mod.ChatReply) -> None:
-        item_id, tag, rep, model = key
+        item_id, tag, rep, model, prompt_hash = key
         store.save_panel_call(
             task_id, {"item_id": item_id, "tag": tag, "rep": rep, "model": model,
-                      "content": reply.content, "finish_reason": reply.finish_reason},
+                      "prompt_hash": prompt_hash, "content": reply.content,
+                      "finish_reason": reply.finish_reason, "usage": reply.usage},
             store=teacher_store)
 
     return save
@@ -497,7 +536,7 @@ def _rep_rows(reps: Sequence[panel_mod.PanelRep]) -> list[JsonRow]:
         base: JsonRow = {"item_id": rep.item_id, "tag": rep.tag, "rep": rep.rep, "model": rep.model,
                          "finish_reason": rep.finish_reason}
         out.append({**base, "kind": "raw", "content": rep.content,
-                    "n_rows": len(rep.response.rows)})
+                    "n_rows": len(rep.response.rows), "usage": rep.usage})
         out.extend({**base, "kind": "verdict", "key": row.key, "label": row.label, "conf": row.conf}
                    for row in rep.response.rows)
     return out

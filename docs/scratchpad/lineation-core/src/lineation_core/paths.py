@@ -42,6 +42,11 @@ ANNOTATIONS = REPO_ROOT / "docs" / "scratchpad" / "lineation-core" / "annotation
 # recipe. Gitignored like the record cache; the irreplaceable manifests/responses are committed.
 TEACHER_STORE = REPO_ROOT / "docs" / "scratchpad" / "lineation-core" / "_teacher"
 
+# authored campaign inputs: run recipes (TOML) + the model-facing reader prompts they reference by
+# filename. Committed source — a recipe names a prompt; the loader reads it from PROMPTS.
+CAMPAIGNS = REPO_ROOT / "docs" / "scratchpad" / "lineation-core" / "campaigns"
+PROMPTS = CAMPAIGNS / "prompts"
+
 
 def book_docx(book_id: BookId, lang: str = "ru") -> Path:
     """The source DOCX for a book folder number (`"37"`) — the read-only substrate a record

@@ -13,6 +13,7 @@ and on a non-retryable error surfaces the HTTP/SDK error BODY rather than swallo
 from __future__ import annotations
 
 import os
+import threading
 import time
 
 from ..identity import ModelId
@@ -37,30 +38,44 @@ class OpenRouterCompleter:
         self._max_retries = max_retries
         self._backoff_base = backoff_base
         self._client = None    # built on first complete() — keeps the SDK import lazy
+        self._client_lock = threading.Lock()   # one client build even under a worker pool
 
     def _sdk(self):
         """Lazily import the SDK and build the client. Importing here (not at module top) keeps the
-        module importable without the SDK; only a live call pays for it."""
+        module importable without the SDK; only a live call pays for it. The lock makes the one-time
+        build safe when `run_panel` fans calls across threads (the SDK's HTTP client itself is shared
+        concurrently after that — it is built for it)."""
         if self._client is None:
-            from openrouter import OpenRouter   # lazy: a live run only
-            self._client = OpenRouter(
-                api_key=self._key, http_referer=_REFERER, x_open_router_title=_TITLE,
-                timeout_ms=self._timeout_ms)
+            with self._client_lock:
+                if self._client is None:                    # double-checked: build exactly once
+                    from openrouter import OpenRouter       # lazy: a live run only
+                    self._client = OpenRouter(
+                        api_key=self._key, http_referer=_REFERER, x_open_router_title=_TITLE,
+                        timeout_ms=self._timeout_ms)
         return self._client
 
     def complete(self, *, model: ModelId, messages: list[Message], temperature: float,
-                 max_tokens: int) -> ChatReply:
-        """One chat completion through the SDK. Retries the transient cases the SDK does not (429
-        and no-response network errors) with linear backoff; any other error (4xx, exhausted
-        retries) is raised with its captured body."""
+                 max_tokens: int, response_format: dict[str, object] | None = None) -> ChatReply:
+        """One chat completion through the SDK. When `response_format` is given (a structured-output
+        JSON schema) it is sent as-is. We do NOT set `provider.require_parameters` — empirically the
+        target models HONOR the schema on the default route (verified: the `key` enum forbids
+        out-of-set keys), but they are not advertised for require_parameters
+        ROUTING, so that flag 404s ("no endpoints handle the requested parameters"). The resolver is
+        the backstop: were a provider ever to ignore the schema, an out-of-set/extra key surfaces as a
+        fault rather than silently corrupting truth. Retries the transient cases the SDK does not (429
+        and no-response network errors) with linear backoff; any other error (4xx, exhausted retries)
+        is raised with its captured body."""
         from openrouter import errors      # lazy: the typed SDK errors, a live run only
 
+        extra: dict[str, object] = {}
+        if response_format is not None:
+            extra["response_format"] = response_format
         last = ""
         for attempt in range(self._max_retries):
             try:
                 res = self._sdk().chat.send(
                     model=model, messages=messages, temperature=temperature,
-                    max_completion_tokens=max_tokens)
+                    max_completion_tokens=max_tokens, **extra)
                 return _reply(res)
             except errors.TooManyRequestsResponseError as e:    # 429 — retryable rate limit
                 last = _err(e)
@@ -84,13 +99,29 @@ def _err(e) -> str:
 
 def _reply(res) -> ChatReply:
     """Map an SDK `ChatResult` to the panel's `ChatReply`. `content` may be `None` or a content-part
-    list on some models; coerce to the plain text the parser expects, never fabricating text."""
+    list on some models; coerce to the plain text the parser expects, never fabricating text. A
+    structured-output SAFETY REFUSAL arrives as `content=None` + a `refusal` string — surface that as
+    the content so it survives as evidence (it parses to zero rows, which the panel refuses on). The
+    provider `usage` (token counts + OpenRouter `cost`) is carried verbatim for spend accounting."""
     choice = res.choices[0]
     content = choice.message.content
     if isinstance(content, list):                  # content parts (dicts or SDK models) → text
         content = "".join(_part_text(p) for p in content)
-    return ChatReply(content=content if isinstance(content, str) else "",
-                     finish_reason=choice.finish_reason)
+    if not isinstance(content, str) or not content:
+        content = getattr(choice.message, "refusal", None) or ""
+    return ChatReply(content=content, finish_reason=choice.finish_reason, usage=_usage(res))
+
+
+def _usage(res) -> dict[str, object] | None:
+    """The provider usage record as a plain dict — token counts and (OpenRouter) the call `cost` in
+    USD. Pulled defensively (an SDK model or dict, or absent) so spend logging never crashes a run."""
+    u = getattr(res, "usage", None)
+    if u is None:
+        return None
+    if isinstance(u, dict):
+        return dict(u)
+    return {k: getattr(u, k) for k in ("prompt_tokens", "completion_tokens", "total_tokens", "cost")
+            if getattr(u, k, None) is not None}
 
 
 def _part_text(part) -> str:

@@ -19,10 +19,9 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from ..annotations import LabelSource, LineLabel, PanelVote
-from ..identity import JsonObject, Label, LineId, LineTextHash, ReaderTag, to_label
+from ..identity import JsonObject, Label, LineId, ReaderTag, to_label
 from ..records import RecordsByBook
 from .tasks import RegionId, TaskKey, TaskManifest
-
 
 ADJUDICATED_AUDIT_STATUS = "adjudicated"   # the `audit_status` a human-adjudicated label carries
 
@@ -110,7 +109,7 @@ def _resolve(
         if resp.item_id not in items:
             faults.append(ResolveFaultRow(resp.item_id, "", ResolveFault.UNKNOWN_ITEM))
             continue
-        seen: set[TaskKey] = set()
+        seen: dict[TaskKey, str] = {}        # key -> the first verdict's raw label (for dup compare)
         for row in resp.rows:
             if row.key not in by_key:
                 faults.append(ResolveFaultRow(resp.item_id, row.key, ResolveFault.UNMAPPED_KEY))
@@ -120,9 +119,14 @@ def _resolve(
                                               item_by_key[row.key]))
                 continue
             if row.key in seen:
-                faults.append(ResolveFaultRow(resp.item_id, row.key, ResolveFault.DUP_KEY))
+                # a repeated key: tolerate a BENIGN repeat (same verdict — models sometimes restate a
+                # line) by keeping the first; fault only a CONFLICTING repeat (two different labels for
+                # one line — a genuine ambiguity the first-kept rule would hide).
+                if row.label.strip().lower() != seen[row.key]:
+                    faults.append(ResolveFaultRow(resp.item_id, row.key, ResolveFault.DUP_KEY,
+                                                  f"{seen[row.key]} != {row.label.strip().lower()}"))
                 continue
-            seen.add(row.key)
+            seen[row.key] = row.label.strip().lower()
             try:
                 label = to_label(row.label)
             except ValueError:
@@ -193,8 +197,11 @@ def parse_ui_responses(data: JsonObject, *, tag: ReaderTag = "human") -> list[Ra
 
 
 def parse_reader_reply(item_id: RegionId, tag: ReaderTag, raw_text: str) -> RawReaderResponse:
-    """An LLM reply (a JSON array of `{key, label, conf}`, tolerating code fences / leading prose /
-    stray brackets) → typed rows. `conf` is kept verbatim, `None` when absent or out of range."""
+    """An LLM reply → typed rows. The verdicts are a JSON array of `{key, label, conf}`; under
+    structured outputs it arrives OBJECT-WRAPPED (`{"verdicts": [ … ]}`) and unfenced, but the parser
+    extracts the inner array either way (it scans for the last balanced key-bearing array, tolerating
+    the wrapper / code fences / leading prose). `conf` is kept verbatim, `None` when absent or out of
+    range."""
     rows = tuple(
         RawReaderRow(key=str(o["key"]), label=o.get("label", ""), conf=_conf(o.get("conf")))
         for o in _json_array(raw_text) if isinstance(o, dict) and "key" in o)

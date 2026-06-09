@@ -69,6 +69,17 @@ def load_selection(name: str, *, annotations: Path | None = None) -> list[LineKe
     return json.loads(path.read_text())
 
 
+def load_prompt(filename: str, *, prompts_dir: Path | None = None) -> str:
+    """A committed model-facing reader prompt (`campaigns/prompts/<filename>`) a recipe references by
+    name. The store is the one disk boundary, so the recipe loader reads prompts through here, not
+    directly. FAILS LOUD if missing — a recipe naming a prompt that isn't there is a config error,
+    never a silent empty prompt."""
+    path = (prompts_dir or paths.PROMPTS) / filename
+    if not path.is_file():
+        raise FileNotFoundError(f"recipe prompt file missing: {path}")
+    return path.read_text()
+
+
 # --- derived record CACHE (load-only, hash-railed; built by `build_records`) -------------------
 
 def load_records(book_id: BookId, lang: str = "ru", *, store: Path | None = None) -> list[LineRecord]:

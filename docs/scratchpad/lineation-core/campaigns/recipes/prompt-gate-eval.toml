@@ -1,0 +1,57 @@
+# Production-gate validation recipe — score the live decision pipeline on a FROZEN slice.
+#
+# Runs the real anchor-led panel over `eval_sets/prompt_structural.json` (the committed, stratified,
+# class-balanced prompt-eval slice), then applies the settled legacy gate. The point is the GATE's
+# behaviour, not a single reader: accept-quality on what it auto-accepts vs the human-routed load —
+# the real config before the paid 300-acquire run.
+#
+# Per-modality prompts (Codex): the vision readers get the page-authority prompt; the text reader gets
+# a listing/structure-authority prompt (it never receives the page). One reader is NOT shown evidence
+# it cannot use.
+#   build:  uv run --extra live python -m lineation_core.teacher.recipes build  <this>
+#   panel:  uv run --extra live python -m lineation_core.teacher.recipes panel  <this>   (paid)
+#   route:  uv run --extra live python -m lineation_core.teacher.recipes route  <this>
+
+task_id = "prompt-gate-eval"
+title = "Prompt + gate validation (frozen prompt_structural slice)"
+
+[prompts]
+vision = "lineation-page.md"            # grok, gemini-lite — the authored page is the authority
+text   = "lineation-structure-text.md"  # deepseek — the structure listing is the authority (no page)
+
+[selection]
+selector = "eval_set:prompt_structural"
+books = ["14", "19", "28", "30", "31", "32", "41", "63", "69"]
+lang = "ru"
+target = 10
+context_radius = 2
+
+[[readers]]
+tag = "grok"
+model = "x-ai/grok-4.3"
+modality = "vision"
+
+[[readers]]
+tag = "gemini"
+model = "google/gemini-3.1-flash-lite"
+modality = "vision"
+
+[[readers]]
+tag = "deepseek"
+model = "deepseek/deepseek-v4-flash"
+modality = "text"
+
+# The settled legacy anchor-led gate (validated in evaluation/policy_replay): accept the panel
+# majority iff the anchor (grok) is in it, >=2 core agree, and anchor conf >= 0.7; else route to human.
+[roster]
+anchor = "grok"
+support = ["deepseek", "gemini"]
+
+[decision]
+name = "legacy"
+kind = "anchor_led"
+  [decision.params]
+  min_support = 2
+  min_core_agree = 2
+  conf_floor = 0.7
+  require_no_split = false
