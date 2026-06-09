@@ -24,6 +24,7 @@ import {
   pan018WriterOnlyMutation,
   pan019CliVerifyBoundary,
 } from "./imports.ts";
+import { pan020TypographyRoleDrift } from "./typography.ts";
 import { contentQualityRules } from "./content_quality.ts";
 
 export const RULES: readonly Rule[] = [
@@ -45,6 +46,7 @@ export const RULES: readonly Rule[] = [
   pan017ImportWorkKinds,
   pan018WriterOnlyMutation,
   pan019CliVerifyBoundary,
+  pan020TypographyRoleDrift,
   // Post-build tier (need dist/; run only on `npm run audit:post-build`):
   pan008PublicMarkdownAssets,
   pan014InternalLinks,

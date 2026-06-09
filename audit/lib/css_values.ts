@@ -13,7 +13,7 @@ const LAYOUT_PROPS = new Set([
 ]);
 const LARGE_PIXEL_RE = /\b(?:220|320|480|608|720|960|1100|1200)px\b/g;
 
-interface CssUse {
+export interface CssUse {
   file: string;
   line: number;
   property: string;
@@ -41,7 +41,7 @@ export interface CssValueReport {
 }
 
 /** A raw literal that duplicates an approved typography-role token value. */
-interface RoleDriftGroup {
+export interface RoleDriftGroup {
   value: string;
   token: string;
   uses: CssUse[];
@@ -102,6 +102,14 @@ function roleTokenValues(ctx: RuleContext): Map<string, string> {
     byValue.set(normalizeValue(decl.value), decl.prop);
   });
   return byValue;
+}
+
+/** Role-drift groups for `ctx`, gathered standalone (for the gating audit rule). */
+export function typographyRoleDrift(ctx: RuleContext): RoleDriftGroup[] {
+  const declarations = cssSourceFiles(ctx)
+    .flatMap((file) => extractCssBlocks(file, ctx.read(file)))
+    .flatMap(readDeclarations);
+  return roleDrift(ctx, declarations);
 }
 
 function roleDrift(ctx: RuleContext, declarations: readonly CssUse[]): RoleDriftGroup[] {
