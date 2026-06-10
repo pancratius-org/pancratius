@@ -46,6 +46,9 @@ class Recipe:
     reps: int = 1
     target: int = 10
     context_radius: int = 1
+    # the structured-output SHAPE every reader returns — array (free-enum key) or keyed_object (keys
+    # ARE the schema). Default array preserves the current panel behavior; from the TOML, optional.
+    contract: panel_mod.ResponseContract = panel_mod.ResponseContract.ARRAY
     # panel fetch concurrency — the calls are I/O-bound on the completer, so a small worker pool is the
     # default; `1` forces the sequential path. Config (TOML), never a hardcoded global in the runner.
     max_workers: int = 8
@@ -95,12 +98,13 @@ def load_recipe(toml_text: str, *, prompts_dir: Path | None = None) -> Recipe:
     prompts = {Modality(mod): store.load_prompt(fname, prompts_dir=prompts_dir)
                for mod, fname in d.get("prompts", {}).items()}     # via the store boundary, fail-loud
     instructions = d.get("instructions") or prompts.get(Modality.VISION) or next(iter(prompts.values()), "")
+    contract = panel_mod.ResponseContract(d.get("contract", panel_mod.ResponseContract.ARRAY.value))
     return Recipe(
         task_id=d["task_id"], title=d.get("title", ""), instructions=instructions,
         books=books, selector=sel.get("selector", "all"), readers=readers,
         lang=sel.get("lang", "ru"), reps=int(d.get("reps", 1)),
         target=int(sel.get("target", 10)), context_radius=int(sel.get("context_radius", 1)),
-        max_workers=int(d.get("max_workers", 8)),
+        max_workers=int(d.get("max_workers", 8)), contract=contract,
         roster=roster, decision=dec, prompts=prompts)
 
 
@@ -246,14 +250,14 @@ def panel(recipe: Recipe, completer: panel_mod.ChatCompleter, *,
     records = {b: store.load_records(b, recipe.lang) for b in recipe.books}
     cfg = panel_mod.PanelConfig(
         readers=tuple(panel_mod.ReaderConfig(r.tag, r.model, r.modality) for r in recipe.readers),
-        reps=recipe.reps)
+        reps=recipe.reps, contract=recipe.contract)
 
     cached = _load_call_cache(recipe.task_id, teacher_store=teacher_store)
     on_call = _call_saver(recipe.task_id, teacher_store=teacher_store)
     reps = panel_mod.run_panel(task, cfg, completer, cached=cached, on_call=on_call,
                                instructions_by_modality=recipe.prompts or None,
                                max_workers=recipe.max_workers)
-    store.save_panel_reps(recipe.task_id, _rep_rows(reps), annotations=annotations)
+    store.save_panel_reps(recipe.task_id, _rep_rows(reps, recipe.contract), annotations=annotations)
 
     truncated = [(r.item_id, r.tag, r.rep) for r in reps
                  if r.finish_reason == panel_mod.FinishReason.LENGTH]
@@ -304,23 +308,17 @@ def _load_call_cache(task_id: TaskId, *, teacher_store: Path | None = None) -> p
     cache: panel_mod.CallCache = {}
     for row in store.load_panel_calls(task_id, store=teacher_store):
         cache[(row["item_id"], row["tag"], int(row["rep"]), row["model"],
-               row.get("prompt_hash", ""))] = panel_mod.ChatReply(
-            content=row.get("content", ""), finish_reason=row.get("finish_reason"),
-            usage=row.get("usage"))
+               row.get("prompt_hash", ""))] = panel_mod.CompletionRequest.reply_from_row(row)
     return cache
 
 
 def _call_saver(task_id: TaskId, *, teacher_store: Path | None = None) -> panel_mod.OnCall:
     """A `run_panel` `on_call` that appends each fresh reply to the resume log the instant it lands
-    (before parse), so a crash mid-run loses no paid call. Persists the prompt fingerprint with the
-    reply so the resume reuses it ONLY under the same prompt."""
-    def save(key: panel_mod.CallKey, reply: panel_mod.ChatReply) -> None:
-        item_id, tag, rep, model, prompt_hash = key
-        store.save_panel_call(
-            task_id, {"item_id": item_id, "tag": tag, "rep": rep, "model": model,
-                      "prompt_hash": prompt_hash, "content": reply.content,
-                      "finish_reason": reply.finish_reason, "usage": reply.usage},
-            store=teacher_store)
+    (before parse), so a crash mid-run loses no paid call. The request owns the row shape
+    (`to_row`) — every identity field the resume reuse keys on (incl. the prompt fingerprint) is
+    serialized in one place, so the resume reuses a reply ONLY under the same request."""
+    def save(req: panel_mod.CompletionRequest, reply: panel_mod.ChatReply) -> None:
+        store.save_panel_call(task_id, req.to_row(reply), store=teacher_store)
 
     return save
 
@@ -526,15 +524,16 @@ def route(recipe: Recipe, *, allow_partial: bool = False, annotations: Path | No
                        adjudication_task_id=adjudication_task_id)
 
 
-def _rep_rows(reps: Sequence[panel_mod.PanelRep]) -> list[JsonRow]:
+def _rep_rows(reps: Sequence[panel_mod.PanelRep],
+              contract: panel_mod.ResponseContract) -> list[JsonRow]:
     """Flatten per-rep panel output to committed evidence rows in `panel_runs`, behind the resolved
     `votes.jsonl`. Each rep emits ONE header row carrying the RAW completion `content` + finish
-    status (so a malformed/empty reply leaves evidence even with no parsed rows), then one verdict
-    row per parsed `{key, label, conf}`."""
+    status + the response `contract` it was shaped under (so a malformed/empty reply leaves evidence
+    even with no parsed rows), then one verdict row per parsed `{key, label, conf}`."""
     out: list[JsonRow] = []
     for rep in reps:
         base: JsonRow = {"item_id": rep.item_id, "tag": rep.tag, "rep": rep.rep, "model": rep.model,
-                         "finish_reason": rep.finish_reason}
+                         "finish_reason": rep.finish_reason, "contract": contract.value}
         out.append({**base, "kind": "raw", "content": rep.content,
                     "n_rows": len(rep.response.rows), "usage": rep.usage})
         out.extend({**base, "kind": "verdict", "key": row.key, "label": row.label, "conf": row.conf}

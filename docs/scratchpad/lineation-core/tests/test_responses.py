@@ -10,6 +10,7 @@ from lineation_core import store
 from lineation_core.identity import text_hash
 from lineation_core.annotations import LabelSource
 from lineation_core.teacher import responses, tasks
+from lineation_core.teacher.panel import ResponseContract
 from lineation_core.teacher.responses import RawReaderResponse, RawReaderRow, ResolveFault
 from lineation_core.teacher.tasks import ItemSpec
 
@@ -127,11 +128,35 @@ def test_parse_reader_reply_is_robust_and_range_checks_conf():
            '[{"key":"L001","label":"lineated","conf":0.9},'
            '{"key":"L002","label":"prose","conf":1.7},'
            '{"key":"L003","label":"prose"}]\n```')
-    rows = {r.key: r for r in responses.parse_reader_reply("b57-r0", "grok", raw).rows}
+    rows = {r.key: r for r in
+            responses.parse_reader_reply(ResponseContract.ARRAY, "b57-r0", "grok", raw).rows}
     assert rows["L001"].conf == 0.9
     assert rows["L002"].conf is None        # out-of-range conf dropped, not persisted
     assert rows["L003"].conf is None        # absent conf is None
-    assert responses.parse_reader_reply("x", "grok", "no json").rows == ()
+    assert responses.parse_reader_reply(ResponseContract.ARRAY, "x", "grok", "no json").rows == ()
+
+
+def test_keyed_object_parse_round_trips_keys_and_drops_conf():
+    """The KEYED_OBJECT contract parses a `{key: label}` object — one row per property, `conf` None
+    (the keyed shape carries none); tolerant of fences / leading prose like the array path."""
+    raw = 'reasoning…\n```json\n{"L001": "lineated", "L002": "prose"}\n```'
+    rows = {r.key: r for r in
+            responses.parse_reader_reply(ResponseContract.KEYED_OBJECT, "b57-r0", "grok", raw).rows}
+    assert {k: r.label for k, r in rows.items()} == {"L001": "lineated", "L002": "prose"}
+    assert all(r.conf is None for r in rows.values())
+
+
+def test_keyed_object_parse_preserves_duplicate_keys_so_dup_key_fires():
+    """A key REPEATED in a keyed-object reply must surface as `DUP_KEY` exactly like the array path —
+    so the parser keeps duplicate pairs (raw json.loads would silently drop all but the last)."""
+    task, records = _task()
+    keys = sorted(task.manifest.by_key)
+    body = "{" + ", ".join(f'"{k}":"prose"' for k in keys) + ', "L001":"lineated"}'  # L001 repeated
+    parsed = responses.parse_reader_reply(ResponseContract.KEYED_OBJECT, "b57-r0", "grok", body)
+    assert sum(1 for r in parsed.rows if r.key == "L001") == 2   # both pairs kept, not collapsed
+    r = responses.resolve_panel(task.manifest, [parsed], records, complete=True)
+    assert len(r.votes) == len(keys) and r.votes  # all keys resolve, first L001 verdict kept
+    assert ("L001", ResolveFault.DUP_KEY) in _faults(r)          # conflicting repeat faults
 
 
 def test_duplicate_key_same_label_is_tolerated():
