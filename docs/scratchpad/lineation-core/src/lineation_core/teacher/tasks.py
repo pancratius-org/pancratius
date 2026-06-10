@@ -184,6 +184,13 @@ class ItemSpec:
                    modality=modality)
 
 
+# The one-page votable-span cap (source paragraphs): a region whose mapped votable lines span more than
+# this cannot be rendered on one page. ONE source of truth for both the splitter (`recipes.page_size_
+# regions`) and the renderer (`render.make_compositor`/`_region_assets`), here in the shared lower layer
+# both import without a cycle, so the split bound and the render bound provably agree.
+PAGE_SPAN_CAP = 120
+
+
 def _key(n: int, width: int) -> TaskKey:
     return f"L{n:0{width}d}"
 

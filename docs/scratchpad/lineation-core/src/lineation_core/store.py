@@ -9,8 +9,11 @@ Annotation files are returned as RAW rows (list of dicts); interpreting them int
 returned as validated `LineRecord`s through the existing hash-railed `artifact` loader."""
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import subprocess
+import tomllib
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -69,6 +72,38 @@ def load_selection(name: str, *, annotations: Path | None = None) -> list[LineKe
     return json.loads(path.read_text())
 
 
+# --- study provenance: git SHA + file fingerprints (read-only) ---------------------------------
+
+def git_sha(*, repo: Path | None = None) -> str:
+    """The repo's `HEAD` commit SHA, with `+dirty` appended if the working tree has uncommitted
+    changes — the provenance stamp a study writes into its manifest so a scorecard is traceable to the
+    exact code that produced it. Read-only; the shell passes the result in, never the manifest builder."""
+    root = repo or paths.REPO_ROOT
+    sha = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"],
+                         capture_output=True, text=True, check=True).stdout.strip()
+    dirty = subprocess.run(["git", "-C", str(root), "status", "--porcelain"],
+                           capture_output=True, text=True, check=True).stdout.strip()
+    return f"{sha}+dirty" if dirty else sha
+
+
+def sha256_file(path: Path) -> str:
+    """The sha256 hex of a file's bytes — the fingerprint a manifest pins for the eval set / prompts,
+    so a replayed study fails loud if its inputs drifted. FAILS LOUD if the file is missing."""
+    return hashlib.sha256(_must(path).read_bytes()).hexdigest()
+
+
+def load_prices(*, path: Path | None = None) -> JsonObject:
+    """The committed OpenRouter price table (`evaluation/prices.toml`) as the RAW parsed dict — a
+    `version` stamp + per-model `{prompt, completion}` $/token. The one disk read for pricing; the
+    caller (`evaluation.prices.PriceTable.from_dict`) parses it into the typed table, so this disk
+    boundary never imports up into `evaluation/`. FAILS LOUD if missing — pricing is committed data,
+    not derived."""
+    p = path or (Path(__file__).resolve().parent / "evaluation" / "prices.toml")
+    if not p.is_file():
+        raise FileNotFoundError(f"committed price table missing: {p}")
+    return tomllib.loads(p.read_text())
+
+
 def load_prompt(filename: str, *, prompts_dir: Path | None = None) -> str:
     """A committed model-facing reader prompt (`campaigns/prompts/<filename>`) a recipe references by
     name. The store is the one disk boundary, so the recipe loader reads prompts through here, not
@@ -78,6 +113,61 @@ def load_prompt(filename: str, *, prompts_dir: Path | None = None) -> str:
     if not path.is_file():
         raise FileNotFoundError(f"recipe prompt file missing: {path}")
     return path.read_text()
+
+
+# --- study experiment folders: durable evidence + a derived reply resume cache ----------------
+# A study writes ONLY here (never `annotations/`): the three durable files atomically, and an
+# append-once `replies.jsonl` resume cache so a re-run re-pays for NOTHING already fetched.
+
+SCORECARD_FILE = "scorecard.json"
+REPORT_FILE = "report.md"
+EXPERIMENT_MANIFEST_FILE = "manifest.json"
+REPLIES_FILE = "replies.jsonl"
+
+
+def write_experiment(experiment_id: str, *, scorecard: JsonObject, report: str,
+                     manifest: JsonObject, experiments: Path | None = None) -> Path:
+    """Persist a study's durable result into its folder (created if absent): `scorecard.json` +
+    `report.md` + `manifest.json`, each written atomically. Returns the folder. The ONLY writer of an
+    experiment folder; it never touches `annotations/` — a study produces evidence, not truth."""
+    folder = (experiments or paths.EXPERIMENTS) / experiment_id
+    folder.mkdir(parents=True, exist_ok=True)
+    _atomic_text(folder / SCORECARD_FILE, json.dumps(scorecard, ensure_ascii=False, indent=2))
+    _atomic_text(folder / REPORT_FILE, report)
+    _atomic_text(folder / EXPERIMENT_MANIFEST_FILE, json.dumps(manifest, ensure_ascii=False, indent=2))
+    return folder
+
+
+def load_experiment_timestamp(experiment_id: str, *,
+                              experiments: Path | None = None) -> str | None:
+    """A prior run's manifest timestamp, if one exists — so a replay preserves WHEN THE EVIDENCE WAS
+    FIRST PRODUCED (a $0 re-run over a complete cache rewrites byte-identical files, never re-stamping
+    a replay as if it were fresh)."""
+    path = (experiments or paths.EXPERIMENTS) / experiment_id / EXPERIMENT_MANIFEST_FILE
+    if not path.is_file():
+        return None
+    ts = json.loads(path.read_text()).get("timestamp")
+    return str(ts) if ts else None
+
+
+def save_experiment_reply(experiment_id: str, row: JsonRow, *,
+                          experiments: Path | None = None) -> None:
+    """APPEND one fresh panel reply to the experiment folder's `replies.jsonl` resume cache, the
+    instant it lands (before parse), so a crashed/interrupted study re-pays for nothing. Derived
+    (regenerable by re-calling), so gitignored unless a claim needs it to reproduce."""
+    folder = (experiments or paths.EXPERIMENTS) / experiment_id
+    folder.mkdir(parents=True, exist_ok=True)
+    with (folder / REPLIES_FILE).open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def load_experiment_replies(experiment_id: str, *,
+                            experiments: Path | None = None) -> list[JsonRow]:
+    """Every saved reply for a study (empty if none yet) — the resume cache, in append order."""
+    path = (experiments or paths.EXPERIMENTS) / experiment_id / REPLIES_FILE
+    if not path.is_file():
+        return []
+    return list(artifact.read_jsonl(path))
 
 
 # --- derived record CACHE (load-only, hash-railed; built by `build_records`) -------------------

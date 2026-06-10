@@ -56,6 +56,28 @@ Two acquisition signals feed the human oracle, at two stages: **student uncertai
 are FROZEN as committed `eval_sets/` and NEVER folded into training, so they score prompts/policies
 without leakage.
 
+## Authored configs — three TOML roles
+
+Authored TOML shares grammar (readers/prompts/selection from a recipe; roster/decision from a policy)
+but splits into three roles, DISTINCT in what each may produce:
+
+- **Teacher recipe** (`campaigns/recipes/`) — operational, privileged: "run these readers on these
+  lines." MAY create panel calls, votes, routes, human tasks, and labels. The ONLY role that makes
+  truth.
+- **Policy-eval config** (judge side) — replay-only: "given existing votes + human truth, compare
+  decision policies." No paid calls, no new truth.
+- **Experiment / study** (`evaluation/experiments/<date-slug>/`) — the lab-notebook unit: a research
+  question + hypothesis + frozen dataset + sweep + metrics. MAY invoke the teacher panel as an
+  INSTRUMENT, but its output is EVIDENCE (a scorecard), never truth.
+
+An experiment folder is self-contained: `experiment.toml` (authored + committed, hypothesis in the top
+comment), `scorecard.json` + `report.md` (the durable result), `manifest.json` (provenance — git SHA,
+prompt/eval-set/response-contract fingerprints, model ids, sampling, price-table version), and a
+derived `replies.jsonl` resume cache (committed only when a claim needs it to reproduce). It is run by
+a STUDY runner, not the recipe runner — the name keeps "produces evidence" apart from "produces truth".
+
+A production LABELLING campaign is a teacher recipe + a committed selection — never an experiment.
+
 ## Tree
 
     campaigns/                  authored run definitions
@@ -74,6 +96,7 @@ without leakage.
       teacher/                  # teach
       student/                  # predict + update (the student + sequence)
       evaluation/               # judge (incl. acquisition = the strategy eval)
+        experiments/<slug>/     # lab-notebook units: experiment.toml + scorecard.json/report.md + manifest.json
 
 The produce/store/select core stays flat: those modules are the cohesive substrate, and foldering
 tightly-coupled produce modules buys nothing. Only the multi-module roles (teach / predict / judge)
@@ -91,3 +114,6 @@ earn folders.
   the system is a teacher labelling a student.
 - One annotation model: `LineLabel` (truth) and `PanelVote` (evidence) are distinct types in
   `annotations.py`, co-located but never conflated.
+- An **experiment produces evidence, never truth** — only a teacher recipe (+ a committed selection)
+  makes labels. A study may call the teacher panel as an instrument; its committed output is a
+  scorecard + provenance manifest, scored against a FROZEN `eval_set`, so research and truth never blur.

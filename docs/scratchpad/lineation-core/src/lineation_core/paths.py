@@ -47,6 +47,12 @@ TEACHER_STORE = REPO_ROOT / "docs" / "scratchpad" / "lineation-core" / "_teacher
 CAMPAIGNS = REPO_ROOT / "docs" / "scratchpad" / "lineation-core" / "campaigns"
 PROMPTS = CAMPAIGNS / "prompts"
 
+# the lab-notebook units: one folder per experiment, holding experiment.toml + the durable scorecard/
+# report/manifest + a derived replies.jsonl resume cache. A study writes ONLY here, never into
+# ANNOTATIONS — it produces EVIDENCE, never truth.
+EXPERIMENTS = REPO_ROOT / "docs" / "scratchpad" / "lineation-core" / \
+    "src" / "lineation_core" / "evaluation" / "experiments"
+
 
 def book_docx(book_id: BookId, lang: str = "ru") -> Path:
     """The source DOCX for a book folder number (`"37"`) — the read-only substrate a record

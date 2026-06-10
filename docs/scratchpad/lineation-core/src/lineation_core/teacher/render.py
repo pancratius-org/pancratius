@@ -25,7 +25,7 @@ from pancratius import docx_render
 
 from .. import paths
 from ..identity import BookId
-from .tasks import AssetKind, EvidenceAsset, ItemSpec, RegionId
+from .tasks import PAGE_SPAN_CAP, AssetKind, EvidenceAsset, ItemSpec, RegionId
 
 # (docx, lo, hi, out_png) → the rendered page PNG path(s) in document order. The ONLY LibreOffice
 # seam: the real one wraps `pancratius.docx_render`; a test passes a stub that writes fixture PNGs.
@@ -51,7 +51,7 @@ def libreoffice_pages(*, dpi: int = 140) -> PageRenderer:
 
 
 def make_compositor(render_page: PageRenderer, *, docx_for: DocxFor = paths.book_docx,
-                    max_span: int = 120, margin: int = 3) -> Compositor:
+                    max_span: int = PAGE_SPAN_CAP, margin: int = 3) -> Compositor:
     """A `RenderFn` that gives each region ONE COMPOSITE asset PER PAGE of the authored `<w:p>` span
     it covers — separate page images, not one tall stack. The page renderer is injected (the
     LibreOffice seam); the docx resolver defaults to the committed source tree. `max_span`/`margin`
@@ -70,7 +70,7 @@ def make_compositor(render_page: PageRenderer, *, docx_for: DocxFor = paths.book
 
 
 def _region_assets(spec: ItemSpec, render_page: PageRenderer, docx_for: DocxFor, *,
-                   max_span: int = 120, margin: int = 3) -> tuple[EvidenceAsset, ...]:
+                   max_span: int = PAGE_SPAN_CAP, margin: int = 3) -> tuple[EvidenceAsset, ...]:
     """Render the authored-page WINDOW around the region's VOTABLE lines — `[min..max votable
     src_ordinal]` widened by `margin` paragraphs, clamped to the region's own mapped span, and capped
     at `max_span` source paragraphs — and return ONE asset per rendered page (the window may straddle
