@@ -13,7 +13,7 @@ const LAYOUT_PROPS = new Set([
 ]);
 const LARGE_PIXEL_RE = /\b(?:220|320|480|608|720|960|1100|1200)px\b/g;
 
-export interface CssUse {
+interface CssUse {
   file: string;
   line: number;
   property: string;

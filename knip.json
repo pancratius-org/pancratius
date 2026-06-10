@@ -8,5 +8,9 @@
     "dist/**",
     "docs/scratchpad/**"
   ],
-  "ignoreBinaries": ["uv"]
+  "ignoreBinaries": ["uv"],
+  "ignoreDependencies": [
+    "@fontsource-variable/inter",
+    "@fontsource-variable/source-serif-4"
+  ]
 }
