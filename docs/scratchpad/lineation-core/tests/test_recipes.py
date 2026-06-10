@@ -234,3 +234,63 @@ def test_load_recipe_rejects_both_prompts_and_inline_instructions(tmp_path):
             '[selection]\nbooks = ["57"]\n')
     with pytest.raises(ValueError, match="both"):
         recipes.load_recipe(toml, prompts_dir=tmp_path)
+
+
+# --- page-sizing post-pass: split an over-page region while keeping every votable line --------
+
+from dataclasses import dataclass as _dataclass  # noqa: E402
+
+from lineation_core.identity import LineId  # noqa: E402
+from lineation_core.teacher.tasks import ItemSpec  # noqa: E402
+
+
+@_dataclass(frozen=True)
+class _Rec:
+    """A minimal record stand-in — `page_size_regions` reads only `.id` (and the LineId's ordinal)."""
+    id: LineId
+
+
+def _consecutive_records(n: int):
+    return [_Rec(LineId.mapped("ru", "57", i, 0)) for i in range(n)]
+
+
+def test_page_size_splits_an_over_page_region_keeping_every_votable_line():
+    recs = _consecutive_records(300)                       # ordinals 0..299
+    votable = [recs[i].id for i in range(0, 300, 2)]       # 150 votable, span 0..298 > 120
+    spec = ItemSpec(region_id="big", region=tuple(r.id for r in recs),
+                    votable=frozenset(votable))
+    out = recipes.page_size_regions([spec], recs, max_span=120, context_radius=2)
+    assert len(out) > 1                                    # split into page-sized sub-regions
+    covered = [lid for s in out for lid in s.votable]
+    assert sorted(covered) == sorted(votable)              # every votable line kept, none dup'd
+    assert len(covered) == len(set(covered))
+    for s in out:                                          # each cluster fits within one page
+        ords = sorted(lid.src_ordinal for lid in s.votable)
+        assert ords[-1] - ords[0] <= 120
+
+
+def test_page_size_passes_an_in_page_region_through_unchanged():
+    recs = _consecutive_records(40)
+    spec = ItemSpec(region_id="small", region=tuple(r.id for r in recs),
+                    votable=frozenset(r.id for r in recs[:20]))   # span 0..19 ≤ 120
+    out = recipes.page_size_regions([spec], recs, max_span=120, context_radius=2)
+    assert out == [spec]                                   # identical object, untouched
+
+
+def test_page_size_carries_unmapped_votables_through_a_split():
+    # a mixed mapped+unmapped over-page region: the mapped votables span > max_span (so it splits) and
+    # the region also holds UNMAPPED votables (§14-P1 span-drops). The split must keep EVERY votable —
+    # union of sub-region votables == spec.votable — not silently drop the unmapped ones.
+    mapped = [LineId.mapped("ru", "57", o, 0) for o in range(0, 300, 2)]       # span 0..298 > 120
+    unmapped = [LineId.unmapped("ru", "57", d, 0) for d in (10, 150, 290)]     # no source ordinal
+    # records carry both kinds so each id has a document position to bin the unmapped lines by.
+    ids = sorted([*mapped, *unmapped], key=lambda x: x.src_ordinal)
+    recs = [_Rec(lid) for lid in ids]
+    spec = ItemSpec(region_id="mixed", region=tuple(r.id for r in recs),
+                    votable=frozenset([*mapped, *unmapped]))
+    out = recipes.page_size_regions([spec], recs, max_span=120, context_radius=2)
+    assert len(out) > 1                                    # the mapped span forces a split
+    covered = [lid for s in out for lid in s.votable]
+    assert sorted(covered) == sorted(spec.votable)         # every votable kept, none dup'd
+    assert len(covered) == len(set(covered))
+    assert set(unmapped) <= set(covered)                   # the unmapped span-drops survived the split

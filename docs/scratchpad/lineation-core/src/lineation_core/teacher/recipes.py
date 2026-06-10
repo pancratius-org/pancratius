@@ -19,7 +19,7 @@ from . import decision as decision_mod
 from . import panel as panel_mod
 from . import promote, responses, tasks
 from .decision import DecisionPolicy, LineDecision, PanelRoster
-from .tasks import AssetKind, ItemSpec, Modality
+from .tasks import PAGE_SPAN_CAP, AssetKind, ItemSpec, Modality
 
 
 @dataclass(frozen=True, slots=True)
@@ -145,6 +145,52 @@ def tile_regions(book_id: BookId, records: Sequence[LineRecord], selected: set[L
             flush()
     flush()
     return regions
+
+
+def page_size_regions(specs: Sequence[ItemSpec], records: Sequence[LineRecord], *,
+                      max_span: int = PAGE_SPAN_CAP, context_radius: int = 1) -> list[ItemSpec]:
+    """Split any region whose votable lines span more source paragraphs than fits on one rendered page
+    into consecutive page-sized sub-regions, keeping every votable line. `tile_regions` never splits an
+    authorial run, so a long single-block work (a 100+ line litany) can yield one region wider than the
+    render's page cap — which the renderer REFUSES. A region already within a page passes through
+    unchanged. The pure post-pass a VISION study runs over `tile_regions` so it never re-implements
+    page sizing; document order and votable membership are preserved."""
+    return [out for spec in specs
+            for out in _page_size(spec, records, max_span=max_span, context_radius=context_radius)]
+
+
+def _page_size(spec: ItemSpec, records: Sequence[LineRecord], *, max_span: int,
+               context_radius: int) -> list[ItemSpec]:
+    """One region → its page-sized sub-regions (one per cluster of votable lines within `max_span`
+    source paragraphs), each with `context_radius` neighbours; a within-page region passes through.
+    UNMAPPED votable lines (§14-P1 span-drops, which carry no source ordinal to bin by) are carried
+    through too — each attached to the cluster nearest it in DOCUMENT position — so the union of the
+    sub-regions' votables is exactly `spec.votable`, never a silent drop."""
+    pos = {r.id: i for i, r in enumerate(records)}
+    mapped = sorted((lid for lid in spec.votable if lid.is_mapped), key=lambda x: x.src_ordinal)
+    unmapped = [lid for lid in spec.votable if not lid.is_mapped]
+    if not mapped or mapped[-1].src_ordinal - mapped[0].src_ordinal <= max_span:
+        return [spec]
+    clusters: list[list[LineId]] = [[mapped[0]]]
+    for lid in mapped[1:]:
+        if lid.src_ordinal - clusters[-1][0].src_ordinal <= max_span:
+            clusters[-1].append(lid)
+        else:
+            clusters.append([lid])
+    extra: list[list[LineId]] = [[] for _ in clusters]   # unmapped votables, binned to nearest cluster
+    for lid in unmapped:
+        k = min(range(len(clusters)),
+                key=lambda i: min(abs(pos[lid] - pos[c]) for c in clusters[i]))
+        extra[k].append(lid)
+    out: list[ItemSpec] = []
+    for k, cl in enumerate(clusters):
+        members = [*cl, *extra[k]]                        # mapped cluster + its nearest unmapped votables
+        lo = max(0, min(pos[m] for m in members) - context_radius)
+        hi = min(len(records) - 1, max(pos[m] for m in members) + context_radius)
+        out.append(ItemSpec(region_id=f"{spec.region_id}s{k}",
+                            region=tuple(records[i].id for i in range(lo, hi + 1)),
+                            votable=frozenset(members), modality=spec.modality))
+    return out
 
 
 # --- the orchestration shell: selector → records → tiled task bundle --------------------------

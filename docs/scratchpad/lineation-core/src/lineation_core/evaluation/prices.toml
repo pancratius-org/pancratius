@@ -1,0 +1,14 @@
+# OpenRouter per-token prices ($/token) for the models a study may run, captured 2026-06-09.
+# Pricing DRIFTS — so it is externalized here (unlike the response schemas, which are code). A study
+# stamps `version` into its manifest, so a scorecard's cost is reproducible against the table it used.
+# `PriceTable.price(model)` FAILS LOUD on a model not listed here: a study that cannot price a reader
+# must never report its cost as $0.
+version = "2026-06-09"
+
+[models]
+"x-ai/grok-4.3" = { prompt = 1.25e-6, completion = 2.5e-6 }
+"google/gemini-3.1-flash-lite" = { prompt = 0.25e-6, completion = 1.5e-6 }
+"deepseek/deepseek-v4-flash" = { prompt = 0.0983e-6, completion = 0.1966e-6 }
+"qwen/qwen3-235b-a22b-2507" = { prompt = 0.09e-6, completion = 0.10e-6 }
+"z-ai/glm-4.5-air" = { prompt = 0.125e-6, completion = 0.85e-6 }
+"openai/gpt-5.4-nano" = { prompt = 0.20e-6, completion = 1.25e-6 }
