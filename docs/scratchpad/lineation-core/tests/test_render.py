@@ -15,7 +15,7 @@ from PIL import Image
 
 from lineation_core.identity import LineId
 from lineation_core.teacher import render
-from lineation_core.teacher.tasks import AssetKind, ItemSpec, Modality
+from lineation_core.teacher.tasks import AssetKind, ItemSpec
 
 
 def _stub_renderer(*, n_pages: int = 1, size: tuple[int, int] = (100, 40)):
@@ -45,8 +45,7 @@ def _docx_for_stub(captured: list[tuple[str, str]]):
 
 def _spec(region_id: str, ids: list[LineId], *, votable: list[LineId] | None = None) -> ItemSpec:
     return ItemSpec(region_id=region_id, region=tuple(ids),
-                    votable=frozenset(votable if votable is not None else ids),
-                    modality=Modality.VISION)
+                    votable=frozenset(votable if votable is not None else ids))
 
 
 def _decode(data_uri: str) -> Image.Image:

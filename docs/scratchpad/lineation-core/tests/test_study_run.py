@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from lineation_core import store
 from lineation_core.evaluation.reader_metrics import PriceTable
 from lineation_core.evaluation.study import load_experiment, run_study
-from lineation_core.teacher.panel import ChatReply
+from lineation_core.teacher.panel import ChatReply, ReaderConfig
 
 
 class CannedCompleter:
@@ -29,7 +29,7 @@ class CannedCompleter:
         # deepseek says prose, grok says lineated — distinct so per-reader scores differ.
         label = "prose" if "deepseek" in model else "lineated"
         usage = {"prompt_tokens": 100, "completion_tokens": 20}
-        return ChatReply(content=json.dumps([{"key": k, "label": label} for k in keys]),
+        return ChatReply(content=json.dumps([{"key": k, "lineation_label": label} for k in keys]),
                          finish_reason="stop", usage=usage)
 
 
@@ -58,7 +58,7 @@ context_radius = 2
 instructions = "decide prose vs lineated"
 
 [sweep]
-contract = ["array", "keyed_object"]
+contract = ["json_array", "json_keyed"]
 
 [[readers]]
 tag = "grok"
@@ -88,11 +88,11 @@ def _run(tmp_path, completer):
 def test_run_study_yields_one_result_per_reader_per_point(tmp_path):
     fake = CannedCompleter()
     scorecard, _ = _run(tmp_path, fake)
-    assert set(scorecard.results) == {"array", "keyed_object"}
+    assert set(scorecard.results) == {"json_array", "json_keyed"}
     for point, readers in scorecard.results.items():
         assert {r.tag for r in readers} == {"grok", "ds"}
-    grok = next(r for r in scorecard.results["array"] if r.tag == "grok")
-    ds = next(r for r in scorecard.results["array"] if r.tag == "ds")
+    grok = next(r for r in scorecard.results["json_array"] if r.tag == "grok")
+    ds = next(r for r in scorecard.results["json_array"] if r.tag == "ds")
     assert grok.quality.lineated_recall == 1.0          # grok says lineated; all truth lineated
     assert ds.quality.lineated_recall == 0.0            # ds says prose → every line a miss
     assert grok.cost.usd > 0 and grok.health.coverage == 1.0
@@ -127,7 +127,7 @@ class FaultyGrokCompleter:
         keys = sorted(set(re.findall(r"\bL\d+\b", listing)))
         label = "GARBAGE" if "grok" in model else "lineated"   # grok's label is not prose|lineated
         usage = {"prompt_tokens": 100, "completion_tokens": 20}
-        return ChatReply(content=json.dumps([{"key": k, "label": label} for k in keys]),
+        return ChatReply(content=json.dumps([{"key": k, "lineation_label": label} for k in keys]),
                          finish_reason="stop", usage=usage)
 
 
@@ -136,8 +136,8 @@ def test_per_reader_faults_are_not_smeared_across_readers(tmp_path):
     # resolution each reader's faults are ITS OWN — grok carries bad_label, ds carries none. A task-level
     # resolve (the bug) would give BOTH readers the same fault dict.
     scorecard, _ = _run(tmp_path, FaultyGrokCompleter())
-    grok = next(r for r in scorecard.results["array"] if r.tag == "grok")
-    ds = next(r for r in scorecard.results["array"] if r.tag == "ds")
+    grok = next(r for r in scorecard.results["json_array"] if r.tag == "grok")
+    ds = next(r for r in scorecard.results["json_array"] if r.tag == "ds")
     assert grok.health.faults.get("bad_label", 0) > 0      # grok's own invalid labels
     assert "bad_label" not in ds.health.faults             # ds is clean — NOT grok's fault
     assert grok.health.faults != ds.health.faults          # different profiles, not one smeared dict
@@ -184,7 +184,7 @@ class TempSensitiveCompleter:
         keys = sorted(set(re.findall(r"\bL\d+\b", listing)))
         label = "lineated" if temperature == 0.0 else "prose"   # diverge by sampling temperature
         usage = {"prompt_tokens": 100, "completion_tokens": 20}
-        return ChatReply(content=json.dumps([{"key": k, "label": label} for k in keys]),
+        return ChatReply(content=json.dumps([{"key": k, "lineation_label": label} for k in keys]),
                          finish_reason="stop", usage=usage)
 
 
@@ -251,10 +251,10 @@ def test_vision_build_specs_splits_an_over_page_region_and_attaches_assets(tmp_p
 
     recipe = recipes.Recipe(
         task_id="vstudy", title="V", instructions="prose vs lineated", books=("57",),
-        selector="eval_set:wide",
-        readers=(recipes.ReaderSpec("grok", "x-ai/grok-4.3", Modality.VISION),),
+        selector=recipes.EvalSet("wide"),
+        readers=(ReaderConfig("grok", "x-ai/grok-4.3", Modality.VISION),),
         target=1000, context_radius=2)
-    assert recipe.vision is True
+    assert recipe.vision is True                           # vision-ness derives from the READERS
 
     specs, records = study._build_specs(recipe, annotations=ann)
     assert len(specs) > 1                                  # the over-page region split into pages
@@ -262,16 +262,14 @@ def test_vision_build_specs_splits_an_over_page_region_and_attaches_assets(tmp_p
     assert sub                                             # at least one page-size sub-region (…sN)
     covered = {lid for s in specs for lid in s.votable}
     assert covered == set(wide)                            # the split kept every votable line
-    assert all(s.modality is Modality.VISION for s in specs)
     for s in specs:                                        # every sub-region fits within one page
         ords = sorted(lid.src_ordinal for lid in s.votable if lid.is_mapped)
         assert not ords or ords[-1] - ords[0] <= 120
 
     # the per-page asset attachment runs over those specs with a STUB page renderer (no LibreOffice).
     rp = _stub_page_renderer()
-    captured: list = []
     assets = render.make_compositor(
-        rp, docx_for=lambda b, l: Path(f"/nonexistent/{b}/{l}.docx"))(specs)
+        rp, docx_for=lambda b, lang: Path(f"/nonexistent/{b}/{lang}.docx"))(specs)
     for s in specs:
         page_assets = assets[s.region_id]
         assert page_assets and all(a.kind is AssetKind.COMPOSITE for a in page_assets)

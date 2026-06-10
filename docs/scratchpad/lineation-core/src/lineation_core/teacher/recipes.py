@@ -10,24 +10,57 @@ from collections import Counter, defaultdict
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
+from typing import assert_never
 
 from .. import store
 from ..annotations import LabelSource, LineLabel, PanelVote, load_votes
-from ..identity import BookId, JsonRow, LineId, LineTextHash, ModelId, ReaderTag, TaskId
+from ..identity import BookId, JsonRow, LineId, LineTextHash, ReaderTag, TaskId
 from ..records import LineRecord, Run, runs
 from . import decision as decision_mod
 from . import panel as panel_mod
 from . import promote, responses, tasks
 from .decision import DecisionPolicy, LineDecision, PanelRoster
+from .panel import ReaderConfig
 from .tasks import PAGE_SPAN_CAP, AssetKind, ItemSpec, Modality
 
 
+# Where the lines to poll come from — the closed selection ADT. Authored as a string
+# ("all" | "eval_set:<name>" | "selection_file:<name>") parsed ONCE at the toml edge
+# (`parse_selector`); everything downstream matches on the ADT, never re-parses the grammar.
+
 @dataclass(frozen=True, slots=True)
-class ReaderSpec:
-    """One panel reader in a recipe: its tag, the model behind it, and the modality it reads in."""
-    tag: ReaderTag
-    model: ModelId
-    modality: Modality = Modality.TEXT
+class AllVotable:
+    """Every votable line of the recipe's books."""
+
+
+@dataclass(frozen=True, slots=True)
+class EvalSet:
+    """A committed frozen eval slice (`eval_sets/<name>.json`)."""
+    name: str
+
+
+@dataclass(frozen=True, slots=True)
+class SelectionFile:
+    """A committed LineId list (`selections/<name>.json`) — e.g. the active-learning acquire set,
+    written as DATA by the student/eval side, never imported here."""
+    name: str
+
+
+type Selector = AllVotable | EvalSet | SelectionFile
+
+
+def parse_selector(text: str) -> Selector:
+    """The author syntax → the ADT, at the toml edge ONLY. FAILS LOUD on an unknown kind or a
+    missing name."""
+    kind, _, arg = text.partition(":")
+    match kind, arg:
+        case "all", "":
+            return AllVotable()
+        case "eval_set", name if name:
+            return EvalSet(name)
+        case "selection_file", name if name:
+            return SelectionFile(name)
+    raise ValueError(f"unknown selector: {text!r}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,15 +73,17 @@ class Recipe:
     title: str
     instructions: str              # the default prompt (vision / human-adjudicator); see `prompts`
     books: tuple[BookId, ...]
-    selector: str                  # "all" | "eval_set:<name>" | "selection_file:<path>"
-    readers: tuple[ReaderSpec, ...]
+    selector: Selector             # where the lines to poll come from (parsed at the toml edge)
+    # the panel's readers, sampling included — the SAME spec `run_panel` queries with; the toml may
+    # set `temperature`/`max_tokens` top-level (all readers) or per reader.
+    readers: tuple[ReaderConfig, ...]
     lang: str = "ru"
     reps: int = 1
     target: int = 10
     context_radius: int = 1
-    # the structured-output SHAPE every reader returns — array (free-enum key) or keyed_object (keys
-    # ARE the schema). Default array preserves the current panel behavior; from the TOML, optional.
-    contract: panel_mod.ResponseContract = panel_mod.ResponseContract.ARRAY
+    # the response CONTRACT every reader returns — json_array (free-enum key), json_keyed (keys ARE
+    # the schema), or tsv (schemaless). See `teacher.contracts`. Default json_array; from the TOML.
+    contract: panel_mod.ResponseContract = panel_mod.ResponseContract.JSON_ARRAY
     # panel fetch concurrency — the calls are I/O-bound on the completer, so a small worker pool is the
     # default; `1` forces the sequential path. Config (TOML), never a hardcoded global in the runner.
     max_workers: int = 8
@@ -69,16 +104,25 @@ class Recipe:
 
 
 def load_recipe(toml_text: str, *, prompts_dir: Path | None = None) -> Recipe:
-    """Parse + validate a recipe toml. FAILS LOUD on a missing required field, an unknown reader
-    modality, empty books, or duplicate reader tags. The optional `[roster]`/`[decision]` tables (a
-    ROUTED recipe) are validated together — both or neither — with the roster confined to the
-    recipe's own readers. An optional `[prompts]` table maps a MODALITY to a prompt FILE in
-    `prompts_dir` (default `campaigns/prompts/`), read at load — so a 3-reader vision+text panel gives
-    each reader the right authority; `instructions` is the vision/default (and the human's). A recipe
-    gives EITHER `[prompts]` OR an inline `instructions`."""
-    d = tomllib.loads(toml_text)
-    readers = tuple(ReaderSpec(tag=r["tag"], model=r["model"],
-                               modality=Modality(r.get("modality", "text")))
+    """Recipe toml text → `Recipe`; parsing + validation live in `recipe_from_dict`."""
+    return recipe_from_dict(tomllib.loads(toml_text), prompts_dir=prompts_dir)
+
+
+def recipe_from_dict(d: Mapping[str, object], *, prompts_dir: Path | None = None) -> Recipe:
+    """Validate a parsed recipe dict (the toml grammar; the study runner passes its augmented dict
+    directly). FAILS LOUD on a missing required field, an unknown reader modality, empty books, or
+    duplicate reader tags. The optional `[roster]`/`[decision]` tables (a ROUTED recipe) are
+    validated together — both or neither — with the roster confined to the recipe's own readers. An
+    optional `[prompts]` table maps a MODALITY to a prompt FILE in `prompts_dir` (default
+    `campaigns/prompts/`), read at load — so a 3-reader vision+text panel gives each reader the
+    right authority; an explicit `human` key names the adjudicator's prompt, else the vision prompt
+    doubles as it. A recipe gives EITHER `[prompts]` OR an inline `instructions`."""
+    temperature = float(d.get("temperature", panel_mod.DEFAULT_TEMPERATURE))
+    max_tokens = int(d.get("max_tokens", panel_mod.DEFAULT_MAX_TOKENS))
+    readers = tuple(ReaderConfig(tag=r["tag"], model=r["model"],
+                                 modality=Modality(r.get("modality", "text")),
+                                 temperature=float(r.get("temperature", temperature)),
+                                 max_tokens=int(r.get("max_tokens", max_tokens)))
                     for r in d.get("readers", []))
     tags = [r.tag for r in readers]
     if len(set(tags)) != len(tags):
@@ -95,13 +139,17 @@ def load_recipe(toml_text: str, *, prompts_dir: Path | None = None) -> Recipe:
     dec = decision_mod.policy_from_toml(d["decision"]) if "decision" in d else None
     if d.get("prompts") and "instructions" in d:
         raise ValueError("recipe gives both [prompts] and inline instructions — choose one")
+    prompt_files = {str(k): str(v) for k, v in d.get("prompts", {}).items()}
+    human_file = prompt_files.pop("human", None)       # the adjudicator's prompt, named explicitly
     prompts = {Modality(mod): store.load_prompt(fname, prompts_dir=prompts_dir)
-               for mod, fname in d.get("prompts", {}).items()}     # via the store boundary, fail-loud
-    instructions = d.get("instructions") or prompts.get(Modality.VISION) or next(iter(prompts.values()), "")
-    contract = panel_mod.ResponseContract(d.get("contract", panel_mod.ResponseContract.ARRAY.value))
+               for mod, fname in prompt_files.items()}             # via the store boundary, fail-loud
+    instructions = (d.get("instructions")
+                    or (store.load_prompt(human_file, prompts_dir=prompts_dir) if human_file else None)
+                    or prompts.get(Modality.VISION) or next(iter(prompts.values()), ""))
+    contract = panel_mod.ResponseContract(d.get("contract", panel_mod.ResponseContract.JSON_ARRAY.value))
     return Recipe(
         task_id=d["task_id"], title=d.get("title", ""), instructions=instructions,
-        books=books, selector=sel.get("selector", "all"), readers=readers,
+        books=books, selector=parse_selector(sel.get("selector", "all")), readers=readers,
         lang=sel.get("lang", "ru"), reps=int(d.get("reps", 1)),
         target=int(sel.get("target", 10)), context_radius=int(sel.get("context_radius", 1)),
         max_workers=int(d.get("max_workers", 8)), contract=contract,
@@ -109,8 +157,7 @@ def load_recipe(toml_text: str, *, prompts_dir: Path | None = None) -> Recipe:
 
 
 def tile_regions(book_id: BookId, records: Sequence[LineRecord], selected: set[LineId], *,
-                 target: int = 10, context_radius: int = 1, max_gap: int = 8,
-                 modality: Modality = Modality.TEXT) -> list[ItemSpec]:
+                 target: int = 10, context_radius: int = 1, max_gap: int = 8) -> list[ItemSpec]:
     """Group `selected` votable lines of one book into task regions. A region accumulates WHOLE runs
     (a run = a maximal BODY block — a stanza / paragraph-group / display-line group) up to ~`target`
     votable lines and NEVER splits one, so an authorial unit stays intact even past the target. It
@@ -133,7 +180,7 @@ def tile_regions(book_id: BookId, records: Sequence[LineRecord], selected: set[L
         region = tuple(records[i].id for i in range(lo, hi + 1))
         votable = frozenset(records[i].id for run in cur for i in run if records[i].id in sel)
         regions.append(ItemSpec(region_id=f"b{book_id}-r{len(regions)}",
-                                region=region, votable=votable, modality=modality))
+                                region=region, votable=votable))
         cur, cur_votes = [], 0
 
     for run in active:
@@ -189,7 +236,7 @@ def _page_size(spec: ItemSpec, records: Sequence[LineRecord], *, max_span: int,
         hi = min(len(records) - 1, max(pos[m] for m in members) + context_radius)
         out.append(ItemSpec(region_id=f"{spec.region_id}s{k}",
                             region=tuple(records[i].id for i in range(lo, hi + 1)),
-                            votable=frozenset(members), modality=spec.modality))
+                            votable=frozenset(members)))
     return out
 
 
@@ -202,20 +249,19 @@ type RenderFn = Callable[[Sequence[ItemSpec]], dict[tasks.RegionId, tuple[tasks.
 
 
 def select_lines(recipe: Recipe, *, annotations: Path | None = None) -> Selection:
-    """Resolve the recipe's selector to the votable LineIds to poll, per book. Selection is DATA:
-    `all` = every votable line of the books; `eval_set:<name>` reads a committed eval slice;
-    `selection_file:<name>` reads a committed LineId list (e.g. the active-learning acquire set,
-    written by the student/eval side — never imported here)."""
-    kind, _, arg = recipe.selector.partition(":")
-    if kind == "all":
-        return {b: {r.id for r in store.load_records(b, recipe.lang) if r.votable}
-                for b in recipe.books}
-    if kind == "eval_set":
-        ids = [LineId.from_key(d["id"]) for d in store.load_eval_set(arg, annotations=annotations)]
-    elif kind == "selection_file":
-        ids = [LineId.from_key(k) for k in store.load_selection(arg, annotations=annotations)]
-    else:
-        raise ValueError(f"unknown selector: {recipe.selector!r}")
+    """Resolve the recipe's selector to the votable LineIds to poll, per book. Selection is DATA —
+    a committed eval slice / LineId list is read through the store, never imported."""
+    match recipe.selector:
+        case AllVotable():
+            return {b: {r.id for r in store.load_records(b, recipe.lang) if r.votable}
+                    for b in recipe.books}
+        case EvalSet(name):
+            ids = [LineId.from_key(d["id"])
+                   for d in store.load_eval_set(name, annotations=annotations)]
+        case SelectionFile(name):
+            ids = [LineId.from_key(k) for k in store.load_selection(name, annotations=annotations)]
+        case _:
+            assert_never(recipe.selector)
     books = set(recipe.books)
     stray = sorted({lid.book_id for lid in ids if lid.book_id not in books})
     if stray:
@@ -240,11 +286,10 @@ def _build_and_save(recipe: Recipe, selection: Selection, task_id: TaskId, *,
             f"recipe {recipe.task_id!r} reads vision but no render builder was given — refusing to "
             f"build a vision task with no images")
     records = {b: store.load_records(b, recipe.lang) for b in recipe.books}
-    modality = Modality.VISION if recipe.vision else Modality.TEXT
     specs: list[ItemSpec] = []
     for b in recipe.books:
         specs.extend(tile_regions(b, records[b], selection.get(b, set()), target=recipe.target,
-                                   context_radius=recipe.context_radius, modality=modality))
+                                  context_radius=recipe.context_radius))
     assets = render(specs) if recipe.vision else {}
     if recipe.vision:
         bare = [s.region_id for s in specs
@@ -294,15 +339,16 @@ def panel(recipe: Recipe, completer: panel_mod.ChatCompleter, *,
                                                  store=teacher_store)
     task = tasks.Task.from_bundle(payload, manifest_d)
     records = {b: store.load_records(b, recipe.lang) for b in recipe.books}
-    cfg = panel_mod.PanelConfig(
-        readers=tuple(panel_mod.ReaderConfig(r.tag, r.model, r.modality) for r in recipe.readers),
-        reps=recipe.reps, contract=recipe.contract)
+    cfg = panel_mod.PanelConfig(readers=recipe.readers, reps=recipe.reps, contract=recipe.contract)
 
-    cached = _load_call_cache(recipe.task_id, teacher_store=teacher_store)
-    on_call = _call_saver(recipe.task_id, teacher_store=teacher_store)
-    reps = panel_mod.run_panel(task, cfg, completer, cached=cached, on_call=on_call,
-                               instructions_by_modality=recipe.prompts or None,
-                               max_workers=recipe.max_workers)
+    # resume: reuse saved replies; persist each fresh one (the row shape is the request's `to_row`)
+    # the instant it lands, before parse, so a crash mid-run loses no paid call.
+    cached = panel_mod.resume_cache(store.load_panel_calls(recipe.task_id, store=teacher_store))
+    reps = panel_mod.run_panel(
+        task, cfg, completer, cached=cached,
+        on_call=lambda req, reply: store.save_panel_call(recipe.task_id, req.to_row(reply),
+                                                         store=teacher_store),
+        instructions_by_modality=recipe.prompts or None, max_workers=recipe.max_workers)
     store.save_panel_reps(recipe.task_id, _rep_rows(reps, recipe.contract), annotations=annotations)
 
     truncated = [(r.item_id, r.tag, r.rep) for r in reps
@@ -343,30 +389,6 @@ def panel(recipe: Recipe, completer: panel_mod.ChatCompleter, *,
     votes = [replace(v, task=recipe.task_id)
              for v in panel_mod.aggregate_reps([rv.votes for rv in resolved])]
     return promote.promote_votes(votes, annotations=annotations)
-
-
-def _load_call_cache(task_id: TaskId, *, teacher_store: Path | None = None) -> panel_mod.CallCache:
-    """The saved raw replies of a prior (possibly crashed) run, as a
-    `(item, tag, rep, model, prompt_fp) → ChatReply` cache — last-saved wins per tuple. The resume
-    source: `run_panel` reuses these instead of re-paying. A row from before prompt-fingerprinting
-    has no `prompt_hash`; it gets `""`, which cannot match a live fingerprint — so it safely re-calls
-    rather than reuse a reply whose prompt is unknown."""
-    cache: panel_mod.CallCache = {}
-    for row in store.load_panel_calls(task_id, store=teacher_store):
-        cache[(row["item_id"], row["tag"], int(row["rep"]), row["model"],
-               row.get("prompt_hash", ""))] = panel_mod.CompletionRequest.reply_from_row(row)
-    return cache
-
-
-def _call_saver(task_id: TaskId, *, teacher_store: Path | None = None) -> panel_mod.OnCall:
-    """A `run_panel` `on_call` that appends each fresh reply to the resume log the instant it lands
-    (before parse), so a crash mid-run loses no paid call. The request owns the row shape
-    (`to_row`) — every identity field the resume reuse keys on (incl. the prompt fingerprint) is
-    serialized in one place, so the resume reuses a reply ONLY under the same request."""
-    def save(req: panel_mod.CompletionRequest, reply: panel_mod.ChatReply) -> None:
-        store.save_panel_call(task_id, req.to_row(reply), store=teacher_store)
-
-    return save
 
 
 class IngestRefused(Exception):

@@ -125,25 +125,29 @@ def test_parse_ui_responses_reads_opaque_keys():
 
 def test_parse_reader_reply_is_robust_and_range_checks_conf():
     raw = ('reasoning [not json]\n```json\n'
-           '[{"key":"L001","label":"lineated","conf":0.9},'
-           '{"key":"L002","label":"prose","conf":1.7},'
-           '{"key":"L003","label":"prose"}]\n```')
+           '[{"key":"L001","lineation_label":"lineated","confidence":0.9},'
+           '{"key":"L002","lineation_label":"prose","confidence":1.7},'
+           '{"key":"L003","lineation_label":"prose"}]\n```')
     rows = {r.key: r for r in
-            responses.parse_reader_reply(ResponseContract.ARRAY, "b57-r0", "grok", raw).rows}
+            responses.parse_reader_reply(ResponseContract.JSON_ARRAY, "b57-r0", "grok", raw).rows}
     assert rows["L001"].conf == 0.9
     assert rows["L002"].conf is None        # out-of-range conf dropped, not persisted
     assert rows["L003"].conf is None        # absent conf is None
-    assert responses.parse_reader_reply(ResponseContract.ARRAY, "x", "grok", "no json").rows == ()
+    assert responses.parse_reader_reply(ResponseContract.JSON_ARRAY, "x", "grok", "no json").rows == ()
 
 
-def test_keyed_object_parse_round_trips_keys_and_drops_conf():
-    """The KEYED_OBJECT contract parses a `{key: label}` object — one row per property, `conf` None
-    (the keyed shape carries none); tolerant of fences / leading prose like the array path."""
-    raw = 'reasoning…\n```json\n{"L001": "lineated", "L002": "prose"}\n```'
+def test_keyed_object_parse_reads_label_and_conf():
+    """The JSON_KEYED contract parses `{key: {label, conf}}` — one row per property, conf CARRIED (so
+    it feeds the conf-using gate like the array contract); a reader that returns a bare `{key: label}`
+    degrades to label-only, conf None; tolerant of fences / leading prose like the array path."""
+    raw = ('reasoning…\n```json\n{"L001": {"lineation_label":"lineated","confidence":0.8}, '
+           '"L002": {"lineation_label":"prose","confidence":0.3}}\n```')
     rows = {r.key: r for r in
-            responses.parse_reader_reply(ResponseContract.KEYED_OBJECT, "b57-r0", "grok", raw).rows}
-    assert {k: r.label for k, r in rows.items()} == {"L001": "lineated", "L002": "prose"}
-    assert all(r.conf is None for r in rows.values())
+            responses.parse_reader_reply(ResponseContract.JSON_KEYED, "b57-r0", "grok", raw).rows}
+    assert {k: (r.label, r.conf) for k, r in rows.items()} == {"L001": ("lineated", 0.8),
+                                                               "L002": ("prose", 0.3)}
+    bare = responses.parse_reader_reply(ResponseContract.JSON_KEYED, "b", "grok", '{"L001":"prose"}').rows
+    assert [(r.key, r.label, r.conf) for r in bare] == [("L001", "prose", None)]   # bare → conf None
 
 
 def test_keyed_object_parse_preserves_duplicate_keys_so_dup_key_fires():
@@ -152,11 +156,43 @@ def test_keyed_object_parse_preserves_duplicate_keys_so_dup_key_fires():
     task, records = _task()
     keys = sorted(task.manifest.by_key)
     body = "{" + ", ".join(f'"{k}":"prose"' for k in keys) + ', "L001":"lineated"}'  # L001 repeated
-    parsed = responses.parse_reader_reply(ResponseContract.KEYED_OBJECT, "b57-r0", "grok", body)
+    parsed = responses.parse_reader_reply(ResponseContract.JSON_KEYED, "b57-r0", "grok", body)
     assert sum(1 for r in parsed.rows if r.key == "L001") == 2   # both pairs kept, not collapsed
     r = responses.resolve_panel(task.manifest, [parsed], records, complete=True)
     assert len(r.votes) == len(keys) and r.votes  # all keys resolve, first L001 verdict kept
     assert ("L001", ResolveFault.DUP_KEY) in _faults(r)          # conflicting repeat faults
+
+
+def test_tsv_parse_reads_the_last_tab_block_and_keeps_dup_keys():
+    """TSV read: the LAST contiguous tab-separated block wins (reasoning / fences / an earlier draft
+    are skipped); duplicate keys are preserved so DUP_KEY fires at resolution; a non-numeric or
+    out-of-range conf is None."""
+    raw = ("thinking about it…\n"
+           "L001\tprose\t0.4\n"                       # an earlier draft block
+           "\nfinal answer:\n"
+           "L001\tlineated\t0.9\n"
+           "L002\tprose\thigh\n"                      # non-numeric conf → None
+           "L002\tlineated\t1.7\n"                    # dup key, conflicting + out-of-range conf
+           "L003\tprose")
+    rows = responses.parse_reader_reply(ResponseContract.TSV, "b57-r0", "grok", raw).rows
+    assert [(r.key, r.label, r.conf) for r in rows] == [
+        ("L001", "lineated", 0.9), ("L002", "prose", None), ("L002", "lineated", None),
+        ("L003", "prose", None)]
+    assert responses.parse_reader_reply(ResponseContract.TSV, "x", "grok", "no tabs here").rows == ()
+    # the final tab block FOLLOWED BY trailing prose is still captured (the flush branch, not eof)
+    trailed = "L001\tprose\nL002\tlineated\n\nThat is my final answer."
+    rows2 = responses.parse_reader_reply(ResponseContract.TSV, "b", "grok", trailed).rows
+    assert [(r.key, r.label) for r in rows2] == [("L001", "prose"), ("L002", "lineated")]
+
+
+def test_tsv_dup_key_resolves_to_a_fault():
+    task, records = _task()
+    keys = sorted(task.manifest.by_key)
+    body = "\n".join(f"{k}\tprose" for k in keys) + "\nL001\tlineated"   # L001 conflicting repeat
+    parsed = responses.parse_reader_reply(ResponseContract.TSV, "b57-r0", "grok", body)
+    r = responses.resolve_panel(task.manifest, [parsed], records, complete=True)
+    assert len(r.votes) == len(keys)                                   # first verdicts kept
+    assert ("L001", ResolveFault.DUP_KEY) in _faults(r)
 
 
 def test_duplicate_key_same_label_is_tolerated():

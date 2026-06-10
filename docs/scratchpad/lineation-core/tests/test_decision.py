@@ -21,6 +21,7 @@ from lineation_core.teacher.decision import (
 LEGACY = AnchorLedPolicy("legacy", AnchorLedGates(min_support=2, min_core_agree=2, conf_floor=0.7,
                                               require_no_split=False))
 CONTROL = EqualMajorityPolicy("equal_majority")
+UNANIMOUS = AnchorLedPolicy("unanimous")        # the default gates: any support split routes to human
 
 ROSTER = PanelRoster(anchor="grok", support=("gemini-pro", "ds-flash-text"))   # glm votes but isn't in the roster
 LID = LineId.mapped("ru", "57", 10, 0)
@@ -35,42 +36,42 @@ def _by(*votes: PanelVote) -> dict[str, PanelVote]:
 
 
 def test_accept_when_anchor_and_all_support_agree():
-    d = decision.decide_line(LID, _by(_v("grok", "lineated"), _v("gemini-pro", "lineated"),
+    d = UNANIMOUS.decide(LID, _by(_v("grok", "lineated"), _v("gemini-pro", "lineated"),
                                       _v("ds-flash-text", "lineated")), ROSTER)
     assert d.outcome is Outcome.ACCEPT and d.reason is Reason.FULL_SUPPORT and d.label == "lineated"
 
 
 def test_any_support_split_routes_human():
-    d = decision.decide_line(LID, _by(_v("grok", "lineated"), _v("gemini-pro", "lineated"),
+    d = UNANIMOUS.decide(LID, _by(_v("grok", "lineated"), _v("gemini-pro", "lineated"),
                                       _v("ds-flash-text", "prose")), ROSTER)
     assert d.outcome is Outcome.HUMAN and d.reason is Reason.SUPPORT_DISAGREES and d.label is None
 
 
 def test_anchor_abstain_routes_human():
-    d = decision.decide_line(LID, _by(_v("gemini-pro", "prose"), _v("ds-flash-text", "prose")), ROSTER)
+    d = UNANIMOUS.decide(LID, _by(_v("gemini-pro", "prose"), _v("ds-flash-text", "prose")), ROSTER)
     assert d.outcome is Outcome.HUMAN and d.reason is Reason.ANCHOR_ABSTAIN
 
 
 def test_insufficient_coverage_routes_human():
-    d = decision.decide_line(LID, _by(_v("grok", "lineated")), ROSTER, min_support=1)
+    d = UNANIMOUS.decide(LID, _by(_v("grok", "lineated")), ROSTER)
     assert d.outcome is Outcome.HUMAN and d.reason is Reason.INSUFFICIENT_COVERAGE
 
 
 def test_glm_is_diagnostic_only():
     # glm disagreeing must NOT route to human...
-    d = decision.decide_line(LID, _by(_v("grok", "lineated"), _v("gemini-pro", "lineated"),
+    d = UNANIMOUS.decide(LID, _by(_v("grok", "lineated"), _v("gemini-pro", "lineated"),
                                       _v("ds-flash-text", "lineated"), _v("glm", "prose")), ROSTER)
     assert d.outcome is Outcome.ACCEPT
     # ...and glm cannot stand in for missing core support.
-    d2 = decision.decide_line(LID, _by(_v("grok", "lineated"), _v("glm", "lineated")), ROSTER)
+    d2 = UNANIMOUS.decide(LID, _by(_v("grok", "lineated"), _v("glm", "lineated")), ROSTER)
     assert d2.reason is Reason.INSUFFICIENT_COVERAGE
 
 
 def test_confidence_floor_routes_human_only_when_set():
     by = _by(_v("grok", "lineated", conf=0.4), _v("gemini-pro", "lineated"),
              _v("ds-flash-text", "lineated"))
-    assert decision.decide_line(LID, by, ROSTER, min_conf=0.6).reason is Reason.LOW_CONFIDENCE
-    assert decision.decide_line(LID, by, ROSTER).outcome is Outcome.ACCEPT      # no floor by default
+    assert AnchorLedPolicy("floored", AnchorLedGates(conf_floor=0.6)).decide(LID, by, ROSTER).reason is Reason.LOW_CONFIDENCE
+    assert UNANIMOUS.decide(LID, by, ROSTER).outcome is Outcome.ACCEPT      # no floor by default
 
 
 def test_route_partitions_lines_and_ignores_diagnostic():
@@ -81,7 +82,7 @@ def test_route_partitions_lines_and_ignores_diagnostic():
         _v("grok", "lineated", lid=b), _v("gemini-pro", "prose", lid=b),
         _v("ds-flash-text", "lineated", lid=b), _v("glm", "prose", lid=b),  # b: a support split → human
     ]
-    r = decision.route(votes, ROSTER)
+    r = decision.route_with(UNANIMOUS, votes, ROSTER)
     assert [d.id for d in r.accepted] == [a] and r.accepted[0].label == "lineated"
     assert [d.id for d in r.human] == [b] and r.human[0].reason is Reason.SUPPORT_DISAGREES
 
@@ -93,7 +94,7 @@ def test_legacy_gate_accepts_a_tolerated_split():
     by = _by(_v("grok", "lineated", conf=0.9), _v("gemini-pro", "lineated"), _v("ds-flash-text", "prose"))
     d = LEGACY.decide(LID, by, ROSTER)
     assert d.outcome is Outcome.ACCEPT and d.reason is Reason.ACCEPTED_MAJORITY and d.label == "lineated"
-    assert decision.decide_line(LID, by, ROSTER).reason is Reason.SUPPORT_DISAGREES  # unanimous differs
+    assert UNANIMOUS.decide(LID, by, ROSTER).reason is Reason.SUPPORT_DISAGREES  # unanimous differs
 
 
 def test_legacy_gate_routes_when_anchor_is_outvoted():
@@ -116,7 +117,7 @@ def test_legacy_gate_missing_anchor_conf_routes_human():
     assert d.outcome is Outcome.HUMAN and d.reason is Reason.CONF_MISSING
     assert Reason.CONF_MISSING in decision.TERMINAL_REASONS
     # with no floor (the default unanimous policy) a missing conf is irrelevant — it still accepts.
-    assert decision.decide_line(LID, by, ROSTER).outcome is Outcome.ACCEPT
+    assert UNANIMOUS.decide(LID, by, ROSTER).outcome is Outcome.ACCEPT
 
 
 def test_equal_majority_accepts_against_the_anchor():

@@ -48,7 +48,7 @@ def test_create_task_then_fake_panel_and_human_reach_committed_truth(tmp_path):
     keys = sorted(manifest.by_key)
 
     # panel path: fake reply → reps → resolve → promote votes
-    reply = json.dumps([{"key": k, "label": "lineated", "conf": 0.8} for k in keys])
+    reply = json.dumps([{"key": k, "lineation_label": "lineated", "confidence": 0.8} for k in keys])
     reps = panel.run_panel(task, _grok(), _Canned(reply))
     rv = responses.resolve_panel(manifest, [r.response for r in reps], records, complete=True)
     assert not rv.faults and len(rv.votes) == 4
@@ -78,7 +78,7 @@ def test_promote_is_idempotent(tmp_path):
     votable = [r for r in recs if r.votable][:3]
     spec = ItemSpec.all_votable("b57-r0", [r.id for r in votable])
     task = tasks.build_task(title="t", instructions="i", specs=[spec], records=records)
-    reply = json.dumps([{"key": k, "label": "prose"} for k in sorted(task.manifest.by_key)])
+    reply = json.dumps([{"key": k, "lineation_label": "prose"} for k in sorted(task.manifest.by_key)])
     reps = panel.run_panel(task, _grok(), _Canned(reply))
     rv = responses.resolve_panel(task.manifest, [r.response for r in reps], records, complete=True)
     promote.promote_votes(rv.votes, annotations=ann)

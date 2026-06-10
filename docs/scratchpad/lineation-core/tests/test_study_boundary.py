@@ -43,7 +43,7 @@ class _Canned:
     def complete(self, *, model, messages, temperature, max_tokens, response_format=None):
         listing = messages[0]["content"][0]["text"].split("Return ONLY")[0]
         keys = sorted(set(re.findall(r"\bL\d+\b", listing)))
-        return ChatReply(content=json.dumps([{"key": k, "label": "lineated"} for k in keys]),
+        return ChatReply(content=json.dumps([{"key": k, "lineation_label": "lineated"} for k in keys]),
                          finish_reason="stop", usage={"prompt_tokens": 10, "completion_tokens": 5})
 
 
@@ -55,7 +55,7 @@ source = "eval_set"
 name = "tiny"
 instructions = "decide"
 [sweep]
-contract = ["array"]
+contract = ["json_array"]
 [[readers]]
 tag = "ds"
 model = "deepseek/deepseek-v4-flash"

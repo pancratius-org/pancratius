@@ -8,7 +8,7 @@ import re
 
 from lineation_core import store
 from lineation_core.teacher import tasks
-from lineation_core.teacher.tasks import AssetKind, EvidenceAsset, ItemSpec, Modality
+from lineation_core.teacher.tasks import AssetKind, EvidenceAsset, ItemSpec
 
 
 def _votable(book: str = "57", n: int = 7):
@@ -98,9 +98,9 @@ def test_region_is_rendered_in_caller_order_never_sorted():
 
 def test_multipage_images_survive_the_payload_roundtrip_in_order():
     # a vision region renders one image per page; to_payload → from_bundle must carry EVERY page, in
-    # order, so a re-run/resume attaches the full evidence (not just page 1) — and stays VISION.
+    # order, so a re-run/resume attaches the full evidence (not just page 1).
     recs = _votable(n=3)
-    spec = ItemSpec.all_votable("b57-r0", [r.id for r in recs], modality=Modality.VISION)
+    spec = ItemSpec.all_votable("b57-r0", [r.id for r in recs])
     pages = tuple(EvidenceAsset(kind=AssetKind.COMPOSITE, data_uri=f"data:image/png;base64,P{n}")
                   for n in range(3))
     task = tasks.build_task(title="t", instructions="i", specs=[spec],
@@ -109,5 +109,5 @@ def test_multipage_images_survive_the_payload_roundtrip_in_order():
     assert payload["items"][0]["images"] == [a.data_uri for a in pages]      # all pages, in order
     back = tasks.Task.from_bundle(payload, task.manifest.to_dict())
     item = back.items[0]
-    assert item.modality is Modality.VISION
+    assert item.assets and all(a.kind is AssetKind.COMPOSITE for a in item.assets)
     assert [a.data_uri for a in item.assets] == [a.data_uri for a in pages]  # reconstructed in order

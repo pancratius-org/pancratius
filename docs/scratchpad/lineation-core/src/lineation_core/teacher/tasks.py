@@ -19,9 +19,9 @@ from typing import Self
 from .. import producer
 from ..identity import JsonObject, LineId, LineTextHash, ListingKey
 from ..records import RecordsByBook
-
-type TaskKey = ListingKey   # a task-local opaque key ("L001") — a ListingKey minted per task
-type RegionId = str         # stable human-readable region tag (book + range); the UI's item id
+# `TaskKey`/`RegionId`/`ResponseContract` live in `contracts` (the wire protocol owns the
+# wire-visible names); re-exported here so task-model consumers keep one import home.
+from .contracts import RegionId, ResponseContract, TaskKey  # noqa: F401
 
 
 class Modality(StrEnum):
@@ -31,18 +31,6 @@ class Modality(StrEnum):
 
 class AssetKind(StrEnum):
     COMPOSITE = "composite"           # the authored page render shown to a vision reader
-
-
-class ResponseContract(StrEnum):
-    """The structured-output SHAPE a reader is asked to return — folded into the call identity (the
-    panel) so a contract change re-calls, never silently reuses a reply shaped under a different
-    schema; the parse (the responses choke point) dispatches on it. Lives here, beside `Modality`, as
-    a contract the panel and the resolver share without a cycle.
-    ARRAY: `{"verdicts":[{key,label,conf}]}` — `key` is a free enum string (coverage unenforced).
-    KEYED_OBJECT: `{"L001":"prose", …}` — one REQUIRED property per shown key, so the keys ARE the
-    schema (none invented, none missing, none duplicated under strict decoding); no `conf`."""
-    ARRAY = "array"
-    KEYED_OBJECT = "keyed_object"
 
 
 type LineOption = tuple[str, str]     # (value, display label) for the UI's per-line picker
@@ -71,9 +59,9 @@ class TaskLine:
 class TaskItem:
     """A region judged as a unit. `context` is the feature-rich listing of the whole region
     (votable lines keyed, neighbours un-keyed for orientation); `lines` are the votable lines to
-    poll; `assets` is empty for TEXT modality."""
+    poll; `assets` carries the page renders (empty for a text-only task) — what a reader receives
+    is the READER's modality choice, not the item's."""
     id: RegionId
-    modality: Modality
     context: str
     lines: tuple[TaskLine, ...]
     assets: tuple[EvidenceAsset, ...] = ()
@@ -134,8 +122,7 @@ class Task:
         payload's `images` (one per page), so a vision re-run still attaches every page."""
         items = tuple(
             TaskItem(
-                id=it["id"], modality=Modality.VISION if it.get("images") else Modality.TEXT,
-                context=it.get("structure", ""),
+                id=it["id"], context=it.get("structure", ""),
                 lines=tuple(TaskLine(key=ln["key"], text=ln["text"], hint=ln.get("hint", ""))
                             for ln in it.get("lines", [])),
                 assets=tuple(EvidenceAsset(kind=AssetKind.COMPOSITE, data_uri=u)
@@ -174,14 +161,11 @@ class ItemSpec:
     region_id: RegionId
     region: tuple[LineId, ...]
     votable: frozenset[LineId]
-    modality: Modality = Modality.TEXT
 
     @classmethod
-    def all_votable(cls, region_id: RegionId, ids: Sequence[LineId], *,
-                    modality: Modality = Modality.TEXT) -> Self:
+    def all_votable(cls, region_id: RegionId, ids: Sequence[LineId]) -> Self:
         """A region with no separate context — every shown line is polled, in the given order."""
-        return cls(region_id=region_id, region=tuple(ids), votable=frozenset(ids),
-                   modality=modality)
+        return cls(region_id=region_id, region=tuple(ids), votable=frozenset(ids))
 
 
 # The one-page votable-span cap (source paragraphs): a region whose mapped votable lines span more than
@@ -231,7 +215,7 @@ def build_task(
         region = [by_id[lid] for lid in spec.region]   # rendered in the caller's order — never sorted
         context = producer.render_listing(region, keys=key_by_id, with_features=with_features)
         items.append(TaskItem(
-            id=spec.region_id, modality=spec.modality, context=context,
+            id=spec.region_id, context=context,
             lines=tuple(lines), assets=tuple(assets.get(spec.region_id, ()))))
     return Task(title=title, instructions=instructions, items=tuple(items),
                 manifest=TaskManifest(by_key=by_key, text_hash_by_key=text_hash_by_key,

@@ -16,9 +16,9 @@ def _manifest(git_sha: str, timestamp: str) -> Manifest:
         eval_set_sha256="deadbeef",
         prompts={"vision": PromptFingerprint("page.md", "aaaa"),
                  "text": PromptFingerprint("struct.md", "bbbb")},
-        response_contract="array", models={"grok": "x-ai/grok-4.3", "ds": "deepseek/deepseek-v4-flash"},
+        base_response_contract="json_array", models={"grok": "x-ai/grok-4.3", "ds": "deepseek/deepseek-v4-flash"},
         temperature=0.5, max_tokens=8192, reps=3, seed=0, price_table_version="2026-06-09",
-        sweep_axis="contract", sweep_points=("array", "keyed_object"))
+        sweep_axis="contract", sweep_points=("json_array", "json_keyed"))
 
 
 def test_manifest_round_trips():
