@@ -16,7 +16,7 @@ Passes, in `normalize` order:
   * thematic breaks         — `***` paragraphs → `ThematicBreak`
   * empty headings          — drop DOCX heading paragraphs with no reading text
   * heading demotion        — source H1 → H2 (page title is the only H1)
-  * formatting-artifact strip — empty-emphasis husks (`** **`)
+  * formatting-artifact strip — empty-emphasis husks / hidden form markers
   * signatures / epigraphs   — from right alignment (the `w:jc` payload)
   * dialogue labels          — canonicalize `**Speaker:**` (incl. mixed inline)
   * lineated / verse blocks  — fold source lineation first, then apply verse register
@@ -684,13 +684,32 @@ def _drop_empty_emphasis(inlines: list[ir.Inline]) -> list[ir.Inline]:
     return out
 
 
+def _is_form_marker_text(text: str) -> bool:
+    collapsed = re.sub(r"[\s\xa0]+", "", text).casefold()
+    return collapsed in {
+        "началоформы",
+        "конецформы",
+        "beginningoftheform",
+        "endoftheform",
+        "startofform",
+        "endofform",
+    }
+
+
 def strip_formatting_artifacts(blocks: list[ir.Block]) -> list[ir.Block]:
-    """Drop empty-emphasis artifacts: whole husk paragraphs vanish; a trailing or
-    embedded `** **` inside a content paragraph is removed in place."""
+    """Drop import-only formatting artifacts.
+
+    Whole empty-emphasis husks vanish; trailing or embedded `** **` inside content
+    is removed in place. Word/HTML form sentinels are also dropped when they are
+    the whole paragraph: in DOCX they are hidden control text, but Pandoc exposes
+    them as reading text.
+    """
     out: list[ir.Block] = []
     for b in blocks:
         if isinstance(b, ir.Paragraph) and not b.empty:
             b.inlines = _drop_empty_emphasis(b.inlines)
+            if _is_form_marker_text(inline_plain(b.inlines)):
+                continue
             if not inline_plain(b.inlines) and all(
                 isinstance(n, (ir.SoftBreak, ir.LineBreak)) for n in b.inlines
             ):
