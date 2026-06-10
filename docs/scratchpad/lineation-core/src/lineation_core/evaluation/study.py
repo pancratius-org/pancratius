@@ -9,7 +9,7 @@ teacher panel as an INSTRUMENT and writes ONLY into the experiment folder (`scor
 Two layers, like `policy_replay`:
 
   - the config layer (`load_experiment`/`sweep_recipes`) — pure parse of the experiment toml, reusing
-    `load_recipe` for the panel half (`[[readers]]`/`[prompts]`/`reps`/`contract`/`temperature`);
+    `recipe_from_dict` for the panel half (`[[readers]]`/`[prompts]`/`reps`/`contract`/`temperature`);
   - the run shell (`run_study`) — select → tile → page-size → render(if vision) → panel(resumable) →
     resolve → score per reader → stamp the manifest → write the durable files. The network is the
     injected `ChatCompleter`; the price table is injected.
@@ -28,9 +28,10 @@ from pathlib import Path
 from .. import paths, store
 from ..identity import BookId, Label, LineId, ReaderTag
 from ..teacher import recipes, responses, tasks
-from ..teacher.panel import (ChatCompleter, PanelConfig, ReaderConfig, ResponseContract, run_panel)
+from ..teacher.panel import (ChatCompleter, PanelConfig, ReaderConfig, ResponseContract,
+                             resume_cache, run_panel)
 from ..teacher.recipes import Recipe
-from ..teacher.tasks import ItemSpec, Modality
+from ..teacher.tasks import ItemSpec
 from .manifest import Manifest, PromptFingerprint
 from .prices import PriceTable
 from .reader_metrics import (DecisionQuality, ProtocolHealth, ReaderResult, class_recall, coverage,
@@ -43,9 +44,6 @@ SWEEP_AXES = frozenset({"contract", "temperature"})
 METRICS = frozenset({"balanced_acc", "prose_recall", "lineated_recall", "instability",
                      "coverage", "truncated", "usd", "usd_per_1k_lines"})
 DATASET_SOURCES = frozenset({"eval_set"})   # the only dataset kind in v1
-# the per-reader max_tokens the run shell uses (the panel `ReaderConfig` default), stamped into the
-# manifest; named here so the manifest value and the readers it built stay one source.
-_DEFAULT_MAX_TOKENS = ReaderConfig("", "", Modality.TEXT).max_tokens
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,18 +67,16 @@ class Sweep:
 
 @dataclass(frozen=True, slots=True)
 class Experiment:
-    """A parsed experiment: its header, the base panel `Recipe` (readers/prompts/reps/contract/
-    temperature + the eval-set selector with books derived from the dataset), the dataset name, the
-    sweep, and the requested metrics. `sweep_recipes` expands `base` along the sweep into one Recipe
-    per point."""
+    """A parsed experiment: its header, the base panel `Recipe` (readers — sampling included —
+    /prompts/reps/contract + the eval-set selector with books derived from the dataset), the dataset
+    name, the sweep, and the requested metrics. `sweep_recipes` expands `base` along the sweep into
+    one Recipe per point."""
     meta: ExperimentMeta
     base: Recipe
     dataset_name: str
     sweep: Sweep
     metrics: tuple[str, ...]
     prompt_files: Mapping[str, str]    # modality value → prompt filename (for the manifest fingerprint)
-    base_temperature: float = 0.0      # sampling temp for non-temperature sweeps (a contract sweep holds
-                                       # it fixed across points); a temperature sweep overrides per point
 
 
 def load_experiment(toml_text: str, *, prompts_dir: Path | None = None,
@@ -120,7 +116,7 @@ def load_experiment(toml_text: str, *, prompts_dir: Path | None = None,
         seed=int(exp_d.get("seed", 0)))
     prompt_files = {str(mod): str(fname) for mod, fname in d.get("prompts", {}).items()}
     return Experiment(meta=meta, base=base, dataset_name=dataset_name, sweep=sweep, metrics=metrics,
-                      prompt_files=prompt_files, base_temperature=float(d.get("temperature", 0.0)))
+                      prompt_files=prompt_files)
 
 
 def _dataset_books(name: str, *, annotations: Path | None) -> tuple[BookId, ...]:
@@ -132,47 +128,26 @@ def _dataset_books(name: str, *, annotations: Path | None) -> tuple[BookId, ...]
 
 def _base_recipe(d: Mapping[str, object], exp_d: Mapping[str, object], dataset_name: str,
                  books: tuple[BookId, ...], *, prompts_dir: Path | None) -> Recipe:
-    """The base panel recipe: load the panel half via `load_recipe` over a toml augmented with the
-    derived `[selection]` (`eval_set:<name>`, the derived books, the tiling params) and the
-    experiment's id as `task_id`, so the panel config (readers/prompts/reps/contract/temperature)
-    parses through the ONE recipe loader, not a second grammar."""
+    """The base panel recipe: the experiment dict augmented with the derived `[selection]` (the
+    derived books, the tiling params) and the experiment's id as `task_id`, validated through the
+    ONE recipe loader (`recipe_from_dict`), not a second grammar. The selector is the dataset
+    itself — constructed as the `EvalSet` ADT directly, never re-spelled in the author grammar."""
     sel = d.get("selection", {})
     aug = dict(d)
     aug["task_id"] = str(exp_d.get("id", d.get("task_id", "experiment")))
     aug["selection"] = {
-        "books": list(books), "selector": f"eval_set:{dataset_name}",
+        "books": list(books),
         "target": int(sel.get("target", 10)), "context_radius": int(sel.get("context_radius", 2)),
         "lang": str(sel.get("lang", "ru"))}
-    return recipes.load_recipe(_dumps(aug), prompts_dir=prompts_dir)
-
-
-def _dumps(d: Mapping[str, object]) -> str:
-    """Round-trip a parsed-then-augmented toml dict back to text for `load_recipe` (which parses text).
-    A minimal emitter over the shapes a recipe uses — tables, arrays-of-tables, scalars."""
-    import json as _json
-
-    lines: list[str] = []
-    scalars = {k: v for k, v in d.items() if not isinstance(v, (dict, list))}
-    for k, v in scalars.items():
-        lines.append(f"{k} = {_json.dumps(v)}")
-    for k, v in d.items():
-        if isinstance(v, dict):
-            lines.append(f"\n[{k}]")
-            for kk, vv in v.items():
-                lines.append(f"{kk} = {_json.dumps(vv)}")
-        elif isinstance(v, list) and v and all(isinstance(e, dict) for e in v):
-            for e in v:
-                lines.append(f"\n[[{k}]]")
-                for kk, vv in e.items():
-                    lines.append(f"{kk} = {_json.dumps(vv)}")
-    return "\n".join(lines) + "\n"
+    return replace(recipes.recipe_from_dict(aug, prompts_dir=prompts_dir),
+                   selector=recipes.EvalSet(dataset_name))
 
 
 def sweep_recipes(exp: Experiment) -> list[tuple[str, Recipe]]:
     """Expand the base recipe along the sweep into `[(point_label, Recipe)]` — one Recipe per point.
-    The CONTRACT axis varies `Recipe.contract`; the TEMPERATURE axis is applied per-reader at
-    PanelConfig build time (temperature lives on `ReaderConfig`, not `Recipe`), so here it leaves a
-    marker point label the run shell reads — the Recipe itself is unchanged across temperature points."""
+    The CONTRACT axis varies `Recipe.contract`; the TEMPERATURE axis is applied per reader by
+    `_readers_at` (temperature lives on each `ReaderConfig`), so here it leaves a marker point label
+    — the Recipe itself is unchanged across temperature points."""
     out: list[tuple[str, Recipe]] = []
     for point in exp.sweep.points:
         if exp.sweep.axis == "contract":
@@ -237,12 +212,10 @@ def _build_specs(recipe: Recipe, *, annotations: Path | None) -> tuple[list[Item
     every votable line). Returns the specs + the `{book: records}` the task build needs."""
     selection = recipes.select_lines(recipe, annotations=annotations)
     records = store.load_records_many(recipe.books, recipe.lang)
-    modality = Modality.VISION if recipe.vision else Modality.TEXT
     specs: list[ItemSpec] = []
     for book in recipe.books:
         tiled = recipes.tile_regions(book, records[book], selection.get(book, set()),
-                                     target=recipe.target, context_radius=recipe.context_radius,
-                                     modality=modality)
+                                     target=recipe.target, context_radius=recipe.context_radius)
         specs.extend(recipes.page_size_regions(tiled, records[book],
                                                context_radius=recipe.context_radius))
     return specs, records
@@ -255,14 +228,13 @@ def _render_assets(specs: Sequence[ItemSpec]):
     return render_mod.make_compositor(render_mod.libreoffice_pages())(specs)
 
 
-def _readers_at(recipe: Recipe, point_label: str, axis: str,
-                base_temperature: float) -> tuple[ReaderConfig, ...]:
-    """The panel readers for one sweep point: the recipe's readers as `ReaderConfig`s. A temperature
-    sweep sets each reader's temp to the point; any other axis holds it at the experiment's base
-    temperature (so a contract sweep compares the schemas at ONE fixed sampling temperature)."""
-    temp = float(point_label) if axis == "temperature" else base_temperature
-    return tuple(ReaderConfig(r.tag, r.model, r.modality, temperature=temp)
-                 for r in recipe.readers)
+def _readers_at(recipe: Recipe, point_label: str, axis: str) -> tuple[ReaderConfig, ...]:
+    """The panel readers for one sweep point. A temperature sweep overrides each reader's temp with
+    the point; any other axis runs the readers exactly as authored (the experiment's top-level
+    `temperature`/`max_tokens` already inherited into them through the ONE recipe loader)."""
+    if axis != "temperature":
+        return recipe.readers
+    return tuple(replace(r, temperature=float(point_label)) for r in recipe.readers)
 
 
 def run_study(exp: Experiment, completer: ChatCompleter, prices: PriceTable, *,
@@ -275,7 +247,9 @@ def run_study(exp: Experiment, completer: ChatCompleter, prices: PriceTable, *,
     the PASSED-IN `now`/`git_sha`. Writes `scorecard.json`+`report.md`+`manifest.json`. NEVER writes
     `annotations/`. Network is the injected `completer`; pricing the injected `prices`."""
     truth, eval_lines = _eval_truth(exp.dataset_name, annotations=annotations)
-    cached = _load_reply_cache(exp.meta.id, experiments_dir=experiments_dir)
+    # resume from the folder's replies.jsonl; persist each fresh reply (the request's `to_row`) the
+    # instant it lands, before parse — a re-run over a complete cache costs $0.
+    cached = resume_cache(store.load_experiment_replies(exp.meta.id, experiments=experiments_dir))
 
     results: dict[str, tuple[ReaderResult, ...]] = {}
     models: dict[ReaderTag, str] = {}
@@ -284,12 +258,13 @@ def run_study(exp: Experiment, completer: ChatCompleter, prices: PriceTable, *,
         assets = _render_assets(specs) if recipe.vision else {}
         task = tasks.build_task(title=exp.meta.id, instructions=recipe.instructions,
                                 specs=specs, records=records, assets=assets)
-        readers = _readers_at(recipe, point_label, exp.sweep.axis, exp.base_temperature)
+        readers = _readers_at(recipe, point_label, exp.sweep.axis)
         cfg = PanelConfig(readers=readers, reps=recipe.reps, contract=recipe.contract)
-        reps = run_panel(task, cfg, completer, cached=cached,
-                         on_call=_reply_saver(exp.meta.id, experiments_dir=experiments_dir),
-                         instructions_by_modality=recipe.prompts or None,
-                         max_workers=recipe.max_workers)
+        reps = run_panel(
+            task, cfg, completer, cached=cached,
+            on_call=lambda req, reply: store.save_experiment_reply(
+                exp.meta.id, req.to_row(reply), experiments=experiments_dir),
+            instructions_by_modality=recipe.prompts or None, max_workers=recipe.max_workers)
         results[point_label] = _score_readers(task.manifest, reps, records, readers, truth,
                                               eval_lines, prices)
         models.update({r.tag: r.model for r in readers})
@@ -350,72 +325,57 @@ def _stamp_manifest(exp: Experiment, models: Mapping[ReaderTag, str], prices: Pr
     SHA and timestamp are resolved by the caller (timestamp = when the evidence was first produced)."""
     eval_path = (annotations or paths.ANNOTATIONS) / "eval_sets" / f"{exp.dataset_name}.json"
     prompt_fps: dict[str, PromptFingerprint] = {}
-    for modality, filename in _prompt_filenames(exp).items():
+    for modality, filename in exp.prompt_files.items():
         path = (prompts_dir or paths.PROMPTS) / filename
         prompt_fps[modality] = PromptFingerprint(filename=filename, sha256=store.sha256_file(path))
+    temperature, max_tokens = _sampling(exp)
     return Manifest(
         git_sha=git_sha, timestamp=timestamp, eval_set=exp.dataset_name,
         eval_set_sha256=store.sha256_file(eval_path), prompts=prompt_fps,
-        response_contract=exp.base.contract.value, models=dict(sorted(models.items())),
-        temperature=_base_temperature(exp), max_tokens=_DEFAULT_MAX_TOKENS,
+        base_response_contract=exp.base.contract.value, models=dict(sorted(models.items())),
+        temperature=temperature, max_tokens=max_tokens,
         reps=exp.base.reps, seed=exp.meta.seed, price_table_version=prices.version,
         sweep_axis=exp.sweep.axis, sweep_points=exp.sweep.points)
 
 
-def _prompt_filenames(exp: Experiment) -> dict[str, str]:
-    """The per-modality prompt FILENAMES the recipe loaded (for the manifest fingerprint), from the
-    toml's `[prompts]` table; empty if the recipe used inline instructions."""
-    return dict(exp.prompt_files)
-
-
-def _base_temperature(exp: Experiment) -> float:
-    """The base temperature stamped into the manifest: the first temperature sweep point if the study
-    sweeps temperature, else the experiment's fixed base temperature."""
+def _sampling(exp: Experiment) -> tuple[float, int]:
+    """The sampling config the manifest stamps — the readers' REAL values, never an assumed default.
+    A temperature sweep's base is its first point (`sweep_points` is the authoritative record).
+    Mixed per-reader values cannot be honestly stamped in the manifest's one slot — fail loud."""
+    temps = {r.temperature for r in exp.base.readers}
+    tokens = {r.max_tokens for r in exp.base.readers}
+    if len(temps) != 1 or len(tokens) != 1:
+        raise ValueError(f"manifest stamps ONE sampling config but the experiment's readers mix "
+                         f"temperatures {sorted(temps)} / max_tokens {sorted(tokens)}")
     if exp.sweep.axis == "temperature" and exp.sweep.points:
-        return float(exp.sweep.points[0])
-    return exp.base_temperature
+        return float(exp.sweep.points[0]), tokens.pop()
+    return temps.pop(), tokens.pop()
 
 
 def _report(scorecard: Scorecard, exp: Experiment) -> str:
     """A human-readable report.md: the research question + a per-reader × sweep-point table of the
-    headline numbers (balanced accuracy, per-class recall, coverage, instability, truncations, cost)."""
+    headline numbers (balanced accuracy, per-class recall, coverage, protocol FAULTS, instability,
+    truncations, cost) — faults are the protocol-health signal, never omitted from the table."""
     lines = [f"# {scorecard.experiment_id}", "", f"**Question.** {scorecard.question}", "",
              f"Sweep axis: `{scorecard.sweep_axis}` over {list(exp.sweep.points)}; "
              f"eval set `{exp.dataset_name}`; git `{scorecard.manifest.git_sha}`.", ""]
-    head = "| point | reader | modality | balAcc | prose | lin | cover | instab | trunc | $/1k |"
-    rule = "|" + "|".join(["---"] * 10) + "|"
+    head = "| point | reader | modality | balAcc | prose | lin | cover | faults | instab | trunc | $/1k |"
+    rule = "|" + "|".join(["---"] * 11) + "|"
     lines += [head, rule]
     for point, readers in scorecard.results.items():
         for r in readers:
             lines.append(
                 f"| {point} | {r.tag} | {r.modality.value} | {r.quality.balanced_acc:.3f} | "
                 f"{r.quality.prose_recall:.3f} | {r.quality.lineated_recall:.3f} | "
-                f"{r.health.coverage:.3f} | {r.quality.instability:.2f} | {r.health.truncated} | "
+                f"{r.health.coverage:.3f} | {_faults_cell(r.health.faults)} | "
+                f"{r.quality.instability:.2f} | {r.health.truncated} | "
                 f"{r.cost.usd_per_1k_lines:.4f} |")
     return "\n".join(lines) + "\n"
 
 
-# --- the resumable reply cache (experiment-folder replies.jsonl) -------------------------------
-
-def _load_reply_cache(experiment_id: str, *, experiments_dir: Path | None):
-    """The study's saved replies as a panel `CallCache` — last-saved wins per call identity. The
-    resume source: `run_panel` reuses these instead of re-paying. A row from before prompt
-    fingerprinting has no `prompt_hash` → `""`, which cannot match a live fingerprint (safely re-calls)."""
-    from ..teacher.panel import CompletionRequest
-
-    cache = {}
-    for row in store.load_experiment_replies(experiment_id, experiments=experiments_dir):
-        cache[(row["item_id"], row["tag"], int(row["rep"]), row["model"],
-               row.get("prompt_hash", ""))] = CompletionRequest.reply_from_row(row)
-    return cache
-
-
-def _reply_saver(experiment_id: str, *, experiments_dir: Path | None):
-    """A `run_panel` `on_call` that appends each fresh reply to the folder's `replies.jsonl` resume
-    cache the instant it lands (before parse). The request owns the row shape (`to_row`)."""
-    def save(req, reply) -> None:
-        store.save_experiment_reply(experiment_id, req.to_row(reply), experiments=experiments_dir)
-    return save
+def _faults_cell(faults: Mapping[str, int]) -> str:
+    """A compact `key:count` rendering of a reader's resolution faults — `clean` when none."""
+    return " ".join(f"{k}:{v}" for k, v in sorted(faults.items())) if faults else "clean"
 
 
 def _main() -> None:

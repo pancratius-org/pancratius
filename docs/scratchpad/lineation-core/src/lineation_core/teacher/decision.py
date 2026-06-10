@@ -297,21 +297,3 @@ def route_with(policy: DecisionPolicy, votes: Sequence[PanelVote], roster: Panel
     decisions = [policy.decide(lid, by_line[lid], roster) for lid in sorted(by_line)]
     return Routing(accepted=tuple(d for d in decisions if d.outcome is Outcome.ACCEPT),
                    human=tuple(d for d in decisions if d.outcome is Outcome.HUMAN))
-
-
-# Back-compat shims: the live `promote`/recipe path and tests call these; they are the default
-# (unanimous) anchor-led policy expressed as free functions. The pluggable policies above supersede them.
-def _default(min_support: int, min_conf: float | None) -> AnchorLedPolicy:
-    return AnchorLedPolicy(name="anchor_led",
-                         gates=AnchorLedGates(min_support=min_support, conf_floor=min_conf,
-                                            require_no_split=True))
-
-
-def decide_line(lid: LineId, by_tag: Mapping[ReaderTag, PanelVote], roster: PanelRoster, *,
-                min_support: int = 1, min_conf: float | None = None) -> LineDecision:
-    return _default(min_support, min_conf).decide(lid, by_tag, roster)
-
-
-def route(votes: Sequence[PanelVote], roster: PanelRoster, *, min_support: int = 1,
-          min_conf: float | None = None) -> Routing:
-    return route_with(_default(min_support, min_conf), votes, roster)

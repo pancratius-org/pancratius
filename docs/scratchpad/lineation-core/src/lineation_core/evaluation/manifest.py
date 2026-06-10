@@ -33,14 +33,15 @@ class PromptFingerprint:
 class Manifest:
     """A study run's full provenance. `git_sha`/`timestamp` are stamped by the shell (the runner passes
     them in). `eval_set_sha256` pins the frozen dataset, `prompts` the per-modality reader text,
-    `response_contract` the base output shape; `models` resolves each reader tag to its model id;
-    `sweep_axis`/`sweep_points` record what was varied."""
+    `base_response_contract` the DEFAULT output shape (the AUTHORITATIVE contract provenance is
+    `sweep_axis`/`sweep_points` when the study sweeps `contract`); `models` resolves each reader tag to
+    its model id; `sweep_axis`/`sweep_points` record what was varied."""
     git_sha: str
     timestamp: str                  # ISO8601, passed in by the shell — never hardcoded
     eval_set: str
     eval_set_sha256: str
     prompts: Mapping[str, PromptFingerprint]    # modality value → prompt fingerprint
-    response_contract: str
+    base_response_contract: str     # the recipe default; a contract sweep's points are authoritative
     models: Mapping[ReaderTag, ModelId]
     temperature: float
     max_tokens: int
@@ -57,7 +58,7 @@ class Manifest:
             "eval_set": self.eval_set,
             "eval_set_sha256": self.eval_set_sha256,
             "prompts": {mod: fp.to_dict() for mod, fp in self.prompts.items()},
-            "response_contract": self.response_contract,
+            "base_response_contract": self.base_response_contract,
             "models": dict(self.models),
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
@@ -77,7 +78,7 @@ class Manifest:
             eval_set_sha256=str(d["eval_set_sha256"]),
             prompts={str(mod): PromptFingerprint.from_dict(fp)
                      for mod, fp in d["prompts"].items()},
-            response_contract=str(d["response_contract"]),
+            base_response_contract=str(d["base_response_contract"]),
             models={str(t): str(m) for t, m in d["models"].items()},
             temperature=float(d["temperature"]),
             max_tokens=int(d["max_tokens"]),

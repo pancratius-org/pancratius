@@ -57,19 +57,19 @@ class OpenRouterCompleter:
     def complete(self, *, model: ModelId, messages: list[Message], temperature: float,
                  max_tokens: int, response_format: dict[str, object] | None = None) -> ChatReply:
         """One chat completion through the SDK. When `response_format` is given (a structured-output
-        JSON schema) it is sent as-is. We do NOT set `provider.require_parameters` — empirically the
-        target models HONOR the schema on the default route (verified: the `key` enum forbids
-        out-of-set keys), but they are not advertised for require_parameters
-        ROUTING, so that flag 404s ("no endpoints handle the requested parameters"). The resolver is
-        the backstop: were a provider ever to ignore the schema, an out-of-set/extra key surfaces as a
-        fault rather than silently corrupting truth. Retries the transient cases the SDK does not (429
-        and no-response network errors) with linear backoff; any other error (4xx, exhausted retries)
-        is raised with its captured body."""
+        JSON schema) it is sent as-is. We do NOT set `provider.require_parameters` — these models are
+        not advertised for require_parameters ROUTING, so that flag 404s ("no endpoints handle the
+        requested parameters"). Schema support is therefore BEST-EFFORT (the providers honor it on the
+        default route to varying degrees, NOT constrained decoding) — so out-of-set/extra keys are
+        still expected and the resolver is the real guard: an invalid key surfaces as a fault rather
+        than silently corrupting truth. Retries the transient cases the SDK does not (429 and
+        no-response network errors) with linear backoff; any other error (4xx, exhausted retries) is
+        raised with its captured body."""
         from openrouter import errors      # lazy: the typed SDK errors, a live run only
 
         extra: dict[str, object] = {}
         if response_format is not None:
-            extra["response_format"] = response_format
+            extra["response_format"] = _sdk_response_format(response_format)
         last = ""
         for attempt in range(self._max_retries):
             try:
@@ -89,6 +89,16 @@ class OpenRouterCompleter:
             if attempt < self._max_retries - 1:                 # no pointless sleep before the raise
                 time.sleep(self._backoff_base * (attempt + 1))  # linear backoff between retries
         raise RuntimeError(f"{model}: exhausted {self._max_retries} retries — {last}")
+
+
+def _sdk_response_format(rf: dict[str, object]) -> dict[str, object]:
+    """The core emits standard JSON-Schema spelling (`"schema"`); the SDK's pydantic model names that
+    field `schema_`. Rename at THIS one adapter boundary so the SDK quirk never leaks into the pure
+    contract schemas."""
+    js = rf.get("json_schema")
+    if not isinstance(js, dict) or "schema" not in js:
+        return rf
+    return {**rf, "json_schema": {("schema_" if k == "schema" else k): v for k, v in js.items()}}
 
 
 def _err(e) -> str:

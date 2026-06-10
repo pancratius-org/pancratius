@@ -9,6 +9,7 @@ import pytest
 
 from lineation_core import records, store
 from lineation_core.teacher import recipes
+from lineation_core.teacher.panel import ReaderConfig
 from lineation_core.teacher.tasks import AssetKind, EvidenceAsset, Modality
 
 
@@ -75,7 +76,7 @@ model = "deepseek/chat"
 def test_load_recipe_parses_a_full_toml():
     r = recipes.load_recipe(_FULL)
     assert r.task_id == "acq-1" and r.books == ("13", "37") and r.reps == 3
-    assert r.selector == "eval_set:contested" and r.target == 8 and r.lang == "ru"
+    assert r.selector == recipes.EvalSet("contested") and r.target == 8 and r.lang == "ru"
     assert [x.tag for x in r.readers] == ["grok", "deepseek"]
     assert r.readers[0].modality is Modality.VISION and r.readers[1].modality is Modality.TEXT
     assert r.vision is True                              # a vision reader present
@@ -83,12 +84,35 @@ def test_load_recipe_parses_a_full_toml():
 
 def test_load_recipe_defaults_contract_to_array_and_parses_an_override():
     from lineation_core.teacher.panel import ResponseContract
-    assert recipes.load_recipe(_FULL).contract is ResponseContract.ARRAY   # absent ⇒ array default
-    keyed = ('task_id = "x"\ncontract = "keyed_object"\n[selection]\nbooks = ["13"]\n'
+    assert recipes.load_recipe(_FULL).contract is ResponseContract.JSON_ARRAY   # absent ⇒ array default
+    keyed = ('task_id = "x"\ncontract = "json_keyed"\n[selection]\nbooks = ["13"]\n'
              '[[readers]]\ntag = "g"\nmodel = "m"\n')
-    assert recipes.load_recipe(keyed).contract is ResponseContract.KEYED_OBJECT
+    assert recipes.load_recipe(keyed).contract is ResponseContract.JSON_KEYED
     with pytest.raises(ValueError):                                         # an unknown contract fails loud
         recipes.load_recipe('task_id="x"\ncontract="bogus"\n[selection]\nbooks=["13"]\n')
+
+
+def test_load_recipe_parses_sampling_with_per_reader_override():
+    # a recipe can AUTHOR sampling: top-level temperature/max_tokens inherit into every reader; a
+    # per-reader value overrides. Absent both, the panel defaults apply.
+    toml = ('task_id = "x"\ntemperature = 0.5\nmax_tokens = 4096\n[selection]\nbooks = ["13"]\n'
+            '[[readers]]\ntag = "g"\nmodel = "m"\n'
+            '[[readers]]\ntag = "h"\nmodel = "m2"\ntemperature = 0.0\nmax_tokens = 1024\n')
+    r = recipes.load_recipe(toml)
+    assert (r.readers[0].temperature, r.readers[0].max_tokens) == (0.5, 4096)   # inherited
+    assert (r.readers[1].temperature, r.readers[1].max_tokens) == (0.0, 1024)   # per-reader override
+    plain = recipes.load_recipe(_FULL)
+    assert all((x.temperature, x.max_tokens) == (0.0, 8192) for x in plain.readers)  # the defaults
+
+
+def test_parse_selector_grammar_and_unknown_fails_loud():
+    # the string is AUTHOR syntax only — parsed once at the toml edge into the closed ADT.
+    assert recipes.parse_selector("all") == recipes.AllVotable()
+    assert recipes.parse_selector("eval_set:contested") == recipes.EvalSet("contested")
+    assert recipes.parse_selector("selection_file:acq") == recipes.SelectionFile("acq")
+    for bad in ("bogus", "eval_set:", "all:extra"):
+        with pytest.raises(ValueError, match="unknown selector"):
+            recipes.parse_selector(bad)
 
 
 def test_load_recipe_rejects_empty_books_dupe_readers_and_bad_modality():
@@ -102,14 +126,14 @@ def test_load_recipe_rejects_empty_books_dupe_readers_and_bad_modality():
                             '[[readers]]\ntag="g"\nmodel="m"\nmodality="bogus"\n')
 
 
-def _recipe(selector: str = "all", books: tuple = ("57",)) -> recipes.Recipe:
+def _recipe(selector: recipes.Selector = recipes.AllVotable(), books: tuple = ("57",)) -> recipes.Recipe:
     return recipes.Recipe(task_id="t1", title="T", instructions="prose vs lineated",
                           books=books, selector=selector,
-                          readers=(recipes.ReaderSpec("grok", "x/grok"),), target=8)
+                          readers=(ReaderConfig("grok", "x/grok"),), target=8)
 
 
 def test_select_lines_all_returns_every_votable_line():
-    sel = recipes.select_lines(_recipe(selector="all"))
+    sel = recipes.select_lines(_recipe(selector=recipes.AllVotable()))
     recs = store.load_records("57")
     assert sel["57"] == {x.id for x in recs if x.votable}
 
@@ -119,13 +143,13 @@ def test_select_lines_from_a_committed_selection_file(tmp_path):
     picks = [x.id for x in store.load_records("57") if x.votable][:5]
     (ann / "selections").mkdir(parents=True)
     (ann / "selections" / "acq.json").write_text(json.dumps([lid.as_key() for lid in picks]))
-    sel = recipes.select_lines(_recipe(selector="selection_file:acq"), annotations=ann)
+    sel = recipes.select_lines(_recipe(selector=recipes.SelectionFile("acq")), annotations=ann)
     assert sel["57"] == set(picks)
 
 
 def test_build_persists_a_task_bundle_with_the_selected_lines(tmp_path):
     ann, st = tmp_path / "annotations", tmp_path / "_teacher"
-    task = recipes.build(_recipe(selector="all"), annotations=ann, teacher_store=st)
+    task = recipes.build(_recipe(selector=recipes.AllVotable()), annotations=ann, teacher_store=st)
     assert (ann / "tasks" / "t1.manifest.json").is_file()      # manifest committed
     assert (st / "t1" / "payload.json").is_file()              # payload derived
     votable = {x.id for x in store.load_records("57") if x.votable}
@@ -136,8 +160,9 @@ def test_build_persists_a_task_bundle_with_the_selected_lines(tmp_path):
 
 
 def _vision_recipe() -> recipes.Recipe:
-    return recipes.Recipe(task_id="v", title="T", instructions="i", books=("57",), selector="all",
-                          readers=(recipes.ReaderSpec("grok", "x/grok", Modality.VISION),), target=8)
+    return recipes.Recipe(task_id="v", title="T", instructions="i", books=("57",),
+                          selector=recipes.AllVotable(),
+                          readers=(ReaderConfig("grok", "x/grok", Modality.VISION),), target=8)
 
 
 def test_build_vision_without_render_fails_loud(tmp_path):
@@ -178,7 +203,7 @@ def test_select_lines_raises_on_out_of_scope_book(tmp_path):
     (ann / "selections").mkdir(parents=True)
     (ann / "selections" / "acq.json").write_text(json.dumps([lid.as_key() for lid in picks]))
     r = recipes.Recipe(task_id="t", title="T", instructions="i", books=("13",),  # 13, not 57
-                       selector="selection_file:acq", readers=(recipes.ReaderSpec("g", "m"),))
+                       selector=recipes.SelectionFile("acq"), readers=(ReaderConfig("g", "m"),))
     with pytest.raises(ValueError):
         recipes.select_lines(r, annotations=ann)
 
@@ -194,15 +219,15 @@ def test_recipe_panel_and_ingest_reach_committed_truth(tmp_path):
     (ann / "selections").mkdir(parents=True)
     (ann / "selections" / "acq.json").write_text(json.dumps([lid.as_key() for lid in picks]))
     r = recipes.Recipe(task_id="acq", title="A", instructions="prose vs lineated", books=("57",),
-                       selector="selection_file:acq",
-                       readers=(recipes.ReaderSpec("grok", "x/grok"),), target=8)
+                       selector=recipes.SelectionFile("acq"),
+                       readers=(ReaderConfig("grok", "x/grok"),), target=8)
     recipes.build(r, annotations=ann, teacher_store=st)
 
     class Echo:                                   # answers exactly the keys it is shown
         def complete(self, *, model, messages, temperature, max_tokens, response_format=None):
             listing = messages[0]["content"][0]["text"].split("Return ONLY")[0]   # not the example
             keys = sorted(set(re.findall(r"\bL\d+\b", listing)))
-            return ChatReply(content=json.dumps([{"key": k, "label": "lineated"} for k in keys]))
+            return ChatReply(content=json.dumps([{"key": k, "lineation_label": "lineated"} for k in keys]))
 
     assert recipes.panel(r, Echo(), annotations=ann, teacher_store=st) == 5
     assert len(store.load_vote_rows(annotations=ann)) == 5
@@ -226,6 +251,17 @@ def test_load_recipe_reads_per_modality_prompt_files(tmp_path):
     assert r.prompts[Modality.VISION] == "PAGE-AUTHORITY PROMPT"
     assert r.prompts[Modality.TEXT] == "LISTING-AUTHORITY PROMPT"
     assert r.instructions == "PAGE-AUTHORITY PROMPT"          # vision = the default (human + fallback)
+
+
+def test_load_recipe_reads_an_explicit_human_prompt(tmp_path):
+    # an explicit `human` key names the adjudicator's prompt; modality keys stay reader prompts.
+    (tmp_path / "vis.md").write_text("PAGE-AUTHORITY PROMPT")
+    (tmp_path / "adj.md").write_text("ADJUDICATOR PROMPT")
+    toml = ('task_id = "t"\n[prompts]\nvision = "vis.md"\nhuman = "adj.md"\n'
+            '[selection]\nbooks = ["57"]\n[[readers]]\ntag = "g"\nmodel = "m"\nmodality = "vision"\n')
+    r = recipes.load_recipe(toml, prompts_dir=tmp_path)
+    assert r.instructions == "ADJUDICATOR PROMPT"             # the human's own prompt
+    assert r.prompts == {Modality.VISION: "PAGE-AUTHORITY PROMPT"}   # human is NOT a reader modality
 
 
 def test_load_recipe_rejects_both_prompts_and_inline_instructions(tmp_path):

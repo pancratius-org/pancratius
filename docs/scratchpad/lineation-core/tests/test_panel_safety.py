@@ -12,7 +12,7 @@ import pytest
 
 from lineation_core import store
 from lineation_core.teacher import recipes
-from lineation_core.teacher.panel import ChatReply
+from lineation_core.teacher.panel import ChatReply, ReaderConfig
 
 
 def _build(tmp_path, n: int = 5):
@@ -22,8 +22,8 @@ def _build(tmp_path, n: int = 5):
     (ann / "selections").mkdir(parents=True)
     (ann / "selections" / "acq.json").write_text(json.dumps([lid.as_key() for lid in picks]))
     r = recipes.Recipe(task_id="acq", title="A", instructions="prose vs lineated", books=("57",),
-                       selector="selection_file:acq",
-                       readers=(recipes.ReaderSpec("grok", "x/grok"),), target=8)
+                       selector=recipes.SelectionFile("acq"),
+                       readers=(ReaderConfig("grok", "x/grok"),), target=8)
     recipes.build(r, annotations=ann, teacher_store=st)
     return r, ann, st
 
@@ -44,7 +44,7 @@ class _Answer:
         self.calls += 1
         if self.content_override is not None:
             return ChatReply(content=self.content_override, finish_reason=self.finish_reason)
-        body = json.dumps([{"key": k, "label": self.label} for k in _keys(messages)])
+        body = json.dumps([{"key": k, "lineation_label": self.label} for k in _keys(messages)])
         return ChatReply(content=body, finish_reason=self.finish_reason)
 
 
@@ -85,7 +85,7 @@ def test_missing_key_refuses(tmp_path):
     class _Partial:
         def complete(self, *, model, messages, temperature, max_tokens, response_format=None):
             k = _keys(messages)[0]
-            return ChatReply(content=json.dumps([{"key": k, "label": "prose"}]))
+            return ChatReply(content=json.dumps([{"key": k, "lineation_label": "prose"}]))
 
     with pytest.raises(recipes.PanelRefused, match="resolution"):
         recipes.panel(r, _Partial(), annotations=ann, teacher_store=st)
@@ -138,9 +138,9 @@ def test_partial_per_reader_coverage_refuses(tmp_path):
     (ann / "selections").mkdir(parents=True)
     (ann / "selections" / "acq.json").write_text(json.dumps([lid.as_key() for lid in picks]))
     r = recipes.Recipe(task_id="acq", title="A", instructions="prose vs lineated", books=("57",),
-                       selector="selection_file:acq",
-                       readers=(recipes.ReaderSpec("grok", "x/grok"),
-                                recipes.ReaderSpec("deepseek", "x/ds")), target=8)
+                       selector=recipes.SelectionFile("acq"),
+                       readers=(ReaderConfig("grok", "x/grok"),
+                                ReaderConfig("deepseek", "x/ds")), target=8)
     recipes.build(r, annotations=ann, teacher_store=st)
 
     class _OneOmits:
@@ -148,7 +148,7 @@ def test_partial_per_reader_coverage_refuses(tmp_path):
             keys = _keys(messages)
             if model == "x/ds":
                 keys = keys[:-1]                       # deepseek silently drops one shown key
-            return ChatReply(content=json.dumps([{"key": k, "label": "prose"} for k in keys]))
+            return ChatReply(content=json.dumps([{"key": k, "lineation_label": "prose"} for k in keys]))
 
     with pytest.raises(recipes.PanelRefused, match="votes missing"):
         recipes.panel(r, _OneOmits(), annotations=ann, teacher_store=st)

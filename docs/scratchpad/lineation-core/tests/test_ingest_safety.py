@@ -12,6 +12,7 @@ import pytest
 
 from lineation_core import store
 from lineation_core.teacher import recipes, tasks
+from lineation_core.teacher.panel import ReaderConfig
 
 
 def _build(tmp_path, n: int = 5):
@@ -21,8 +22,8 @@ def _build(tmp_path, n: int = 5):
     (ann / "selections").mkdir(parents=True)
     (ann / "selections" / "acq.json").write_text(json.dumps([lid.as_key() for lid in picks]))
     r = recipes.Recipe(task_id="acq", title="A", instructions="prose vs lineated", books=("57",),
-                       selector="selection_file:acq",
-                       readers=(recipes.ReaderSpec("grok", "x/grok"),), target=8)
+                       selector=recipes.SelectionFile("acq"),
+                       readers=(ReaderConfig("grok", "x/grok"),), target=8)
     recipes.build(r, annotations=ann, teacher_store=st)
     return r, ann, st
 

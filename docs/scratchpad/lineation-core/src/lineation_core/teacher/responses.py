@@ -13,37 +13,18 @@ warning, the rest still resolves). `complete=True` flags every unanswered item (
 `complete=False` flags only answered items (a partial batch)."""
 from __future__ import annotations
 
-import json
-import math
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import assert_never
 
 from ..annotations import LabelSource, LineLabel, PanelVote
 from ..identity import JsonObject, Label, LineId, ReaderTag, to_label
 from ..records import RecordsByBook
-from .tasks import RegionId, ResponseContract, TaskKey, TaskManifest
+# `RawReaderRow`/`RawReaderResponse` ARE the contract's output shape, so they live in `contracts`;
+# re-exported here because resolution consumes them.
+from .contracts import RawReaderResponse, RawReaderRow, ResponseContract, spec_for  # noqa: F401
+from .tasks import RegionId, TaskKey, TaskManifest
 
 ADJUDICATED_AUDIT_STATUS = "adjudicated"   # the `audit_status` a human-adjudicated label carries
-
-
-@dataclass(frozen=True, slots=True)
-class RawReaderRow:
-    """What a reader/adjudicator returns for one line: an OPAQUE key + verdict. `conf` is optional
-    (a human emits none; a model's is stored verbatim, never a fabricated default)."""
-    key: TaskKey
-    label: str          # the RAW reader output — validated to a `Label` only at resolution
-    conf: float | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class RawReaderResponse:
-    """One reader's verdicts on one task item. `tag` is the panel reader, or "human" for an
-    adjudication; `note` is the human's per-item free text."""
-    item_id: RegionId
-    tag: ReaderTag
-    rows: tuple[RawReaderRow, ...]
-    note: str = ""
 
 
 class ResolveFault(StrEnum):
@@ -199,88 +180,6 @@ def parse_ui_responses(data: JsonObject, *, tag: ReaderTag = "human") -> list[Ra
 
 def parse_reader_reply(contract: ResponseContract, item_id: RegionId, tag: ReaderTag,
                        raw_text: str) -> RawReaderResponse:
-    """An LLM reply → typed rows, dispatched on the response `contract`.
-
-    ARRAY: a JSON array of `{key, label, conf}`; under structured outputs it arrives OBJECT-WRAPPED
-    (`{"verdicts": [ … ]}`) and unfenced, but the parser extracts the inner array either way (it scans
-    for the last balanced key-bearing array, tolerating the wrapper / code fences / leading prose).
-    `conf` is kept verbatim, `None` when absent or out of range.
-
-    KEYED_OBJECT: a `{key: label}` object (`{"L001":"prose", …}`); the last balanced object is parsed
-    with duplicate keys PRESERVED (one row per pair), so a repeated key still surfaces as `DUP_KEY` at
-    resolution exactly as in the array path. `conf` is always `None` (the keyed shape carries none)."""
-    match contract:
-        case ResponseContract.KEYED_OBJECT:
-            rows = tuple(RawReaderRow(key=str(k), label=_raw_label(v), conf=None)
-                         for k, v in _json_object_pairs(raw_text))
-        case ResponseContract.ARRAY:
-            rows = tuple(
-                RawReaderRow(key=str(o["key"]), label=_raw_label(o.get("label")),
-                             conf=_conf(o.get("conf")))
-                for o in _json_array(raw_text) if isinstance(o, dict) and "key" in o)
-        case _:
-            assert_never(contract)
-    return RawReaderResponse(item_id=item_id, tag=tag, rows=rows)
-
-
-def _raw_label(v: object) -> str:
-    """A label is text; a non-string model value (number, object, null) is NO label — coerced to '' so
-    it surfaces as `BAD_LABEL` at resolution and never violates `RawReaderRow.label: str`. The ONE
-    raw-label coercion both contracts go through, so the two parse paths behave identically."""
-    return v if isinstance(v, str) else ""
-
-
-def _conf(v: object) -> float | None:
-    """A reader's self-reported confidence: a finite probability, or `None`. Never a fabricated
-    default; an out-of-range or NaN value is dropped to `None` rather than persisted."""
-    if isinstance(v, bool) or not isinstance(v, (int, float)):
-        return None
-    c = float(v)
-    return c if math.isfinite(c) and 0.0 <= c <= 1.0 else None
-
-
-def _json_object_pairs(text: str) -> list[tuple[str, object]]:
-    """The (key, value) PAIRS of the last balanced JSON object in a reply, DUPLICATES PRESERVED.
-    Scans brace depth (tolerating ``` fences / leading prose / a trailing stray `}`) and keeps the last
-    object that parses — an unmatched OPENING `{` in reasoning still defeats it, same as `_json_array`.
-    Uses `object_pairs_hook` so a key repeated in the reply yields two pairs — raw `json.loads` would
-    silently keep only the last, hiding the conflict the resolver must fault as `DUP_KEY`."""
-    best: list[tuple[str, object]] = []
-    depth = start = 0
-    for i, ch in enumerate(text):
-        if ch == "{":
-            if depth == 0:
-                start = i
-            depth += 1
-        elif ch == "}" and depth > 0:
-            depth -= 1
-            if depth == 0:
-                try:
-                    pairs = json.loads(text[start:i + 1], object_pairs_hook=list)
-                except json.JSONDecodeError:
-                    continue
-                if isinstance(pairs, list):     # the TOP-LEVEL object is the pair list
-                    best = [(str(k), v) for k, v in pairs]
-    return best
-
-
-def _json_array(text: str) -> list:
-    """The LAST balanced JSON array of `key`-bearing objects in a model reply. Scans bracket depth
-    (so a stray `[` in reasoning can't truncate it) and ignores ``` fences and leading arrays."""
-    best: list = []
-    depth = start = 0
-    for i, ch in enumerate(text):
-        if ch == "[":
-            if depth == 0:
-                start = i
-            depth += 1
-        elif ch == "]" and depth > 0:
-            depth -= 1
-            if depth == 0:
-                try:
-                    data = json.loads(text[start:i + 1])
-                except json.JSONDecodeError:
-                    continue
-                if isinstance(data, list) and any(isinstance(o, dict) and "key" in o for o in data):
-                    best = data
-    return best
+    """An LLM reply → typed rows: the contract's READ behavior (`contracts.spec_for(...).parse`),
+    bound to the item + reader it answers for."""
+    return RawReaderResponse(item_id=item_id, tag=tag, rows=spec_for(contract).parse(raw_text))

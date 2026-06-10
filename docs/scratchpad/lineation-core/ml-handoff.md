@@ -25,8 +25,10 @@ prompt + orphan labels from the legacy tree, and the paid 300-line acquire run (
   resolution choke point, fail-loud faults), `panel` (ChatCompleter + safe-promote), `recipes`
   (selectors + tiling + CLI), `openrouter` (the OpenRouter SDK adapter), `promote` (validated merge),
   `render` (authored-page vision composites via `pancratius.docx_render`).
-- **The brief** — **v5** (structure-first) is the validated production prompt: generalizes to unseen
-  books (prose-recall 100% across 4 fresh prose books). Lives in `pancratius-prerewrite-full/.../data/phaseb/reader_brief_v5.txt`.
+- **The prompts** — the live reader prompts are committed in `campaigns/prompts/` (`lineation-page.md`
+  for vision, `lineation-structure-text.md` for text). The legacy `reader_brief_v5.txt` (structure-first)
+  is NOT production — it carries the known-bad g05 caveat (see §2 below); its structure-first framing
+  informed the current prompts, but no single legacy brief is the chosen prompt.
 - **The panel** — core readers **grok / gemini-pro / ds-flash-text** (glm diagnostic-only); slugs in
   the old `scripts/gold/registry.py` (grok→x-ai/grok-4.3, gemini-pro→google/gemini-3.1-pro-preview,
   ds-flash-text→deepseek/deepseek-v4-flash). The panel is **recipe TOML config**, never hardcoded.
@@ -102,12 +104,50 @@ is settled on the *historical* protocol; monitor on the future page-only/live pr
    built and tested (`tests/test_route.py`). The adaptive-reps **escalation** wrapper stays deferred
    (it belongs to the paid live run — `route` surfaces the operational/`uncovered` seam it would act
    on; see DEFERRED). NB: the live config grammar moved into `teacher/decision.py` (not eval).
-2. **Extract-before-evict** — pull `reader_brief_v5.txt` + the orphan human guardrail labels
-   (`responses-fresh-prose-guardrail-*`, `responses-wide-prose-guardrail-*`, `review_gold-stage12.json`
-   audit corrections; **exclude book 73** — intentionally pruned political content) from
-   `pancratius-prerewrite-full/docs/scratchpad/intent-classifier/`. Then eviction is safe.
-3. **Live 300-acquire run** — needs **OPENROUTER_API_KEY** + the ~3 reader model ids + the v5 prompt in
-   a recipe (vision, the 19 acquire books). Build with `recipes build`, then `panel` (paid).
+2. **Extract-before-evict** — INVESTIGATED; little to extract. The legacy lives in the **SIBLING backup
+   checkout** `/Users/lr/projects/misc/pancratius-prerewrite-full/docs/scratchpad/intent-classifier/`
+   (the in-repo untracked `docs/scratchpad/intent-classifier/` is PARTIAL — no v5). The backup is NOT
+   being evicted, so nothing here is at risk; "extract" = decide what (if anything) to bring forward.
+   - **The page-only prompt** — NO production prompt is chosen yet; two page-only DRAFTS exist, both
+     UNVALIDATED. The legacy `reader_brief_v5.txt` is the COMPOSITE brief (page + *candidate render
+     tiles* + idx.sub listing): candidate tiles are REJECTED (vision is page-only) AND v5 carries the
+     KNOWN-BAD g05 caveat ("1. Вода body can still be PROSE / judge each line by its own shape").
+     `reader_brief_v6.txt` is the validated CORRECTION — **UNIT BEFORE LINE** (a numbered/titled item's
+     title/body break is intentional lineation; WRAPS is prose evidence only within the unit). Drafts:
+     `campaigns/prompts/lineation-v6-page.md` (v6 reasoning + the 2-source page hierarchy: page=visual-
+     intent authority, listing=identity/keys, page-decides-verdict/listing-decides-identity; opaque
+     keys) and `lineation-v5-page.md` (the known-bad CONTROL).
+     - ⚠️ **RETRACTION:** an earlier A/B/C "all 3 prompts IDENTICAL (0.667) / adopt v5-page / borderline"
+       was the INSTRUMENT, not the prompt (a 2-reader insertion-order tie-break MASKED the per-reader
+       effect; a hallucinated-key fault bug; a tiny non-random sample). After fixing those (structured-
+       output `key` enum → 0 faults; bounded render; per-reader scoring; balanced 32-line/9-book
+       stratified sample) the CLEAN A/B/C (grok+gemini, 1 rep, balAcc) is:
+         `v5-page grok .781/gem .750 · v6-page grok .750/gem .906 · v3-terse grok .938/gem .812`.
+     - **ROBUST conclusion:** v5's stale caveat is BAD; **UNIT BEFORE LINE helps** — mechanistically on
+       the structural cases (dialogue/speaker-tags/numbered items) v5 marks prose. It does NOT prove v6
+       or v3 is production: the effect is READER-DEPENDENT (v6's explicit rule lifts gemini; v3's terse
+       framing lifts grok), and v3's lineated gain costs prose-recall (grok-v3 over-lineates a few prose
+       lines). Discrimination rides on ~6 lines / 1 rep — suggestive, not final.
+     - **NEXT** (do NOT re-run the same 66-call test): author ONE hybrid (v3-concise framing + v6's
+       explicit UNIT-BEFORE-LINE + a compact prose guardrail), and/or validate under the PRODUCTION
+       gate (real 3-reader roster + anchor-led decision + a frozen stratified eval slice). NB the gate
+       anchors on grok (strongest under v3-terse), so prompt choice interacts with the gate.
+   - **Orphan human labels** — DO NOT fold the guardrail batches (`responses-fresh-prose-guardrail-*`,
+     `responses-wide-prose-guardrail-*`) into `labels.jsonl`. Reading the humans' own notes, they are a
+     mixed-criterion GENERALIZATION-TEST artifact — several are explicitly uncertain / "lazy" / voted
+     by book-prior against the per-line judgment ("for consistency i vote lineation (prior
+     distribution)"). Per the eval invariant, held-out guardrail slices are eval, never training. If
+     wanted, keep as raw guardrail evidence or a curated `eval_sets/` slice — not per-line truth. The
+     `review_gold-stage12.json` audit corrections already AGREE with current truth (migration applied
+     them); no action. (Mapping, when needed, is by NORMALIZED exact text — strip `*` md emphasis,
+     collapse whitespace — to the clean-room line, then carry its `line_text_hash`; NOT a hash join,
+     and the legacy `idx` is NOT trusted. A one-off dry-run extractor confirmed: of 183 rows, 148
+     already in truth, 25 cleanly new-mapped, 10 book-64 text collisions, 6 conflict with existing
+     human truth.)
+3. **Live 300-acquire run** — needs **OPENROUTER_API_KEY** (reachable via `source .env`) + the ~3 reader
+   model ids + the chosen **UNIT-BEFORE-LINE page-only prompt** (step 2 — a hybrid/finalist, NOT yet
+   locked) in a routed recipe (vision, the 19 acquire books). Build with `recipes build`, then `panel`
+   (paid), then `route`.
 4. **Step 6 — the active-learning loop** (the GOAL): panel-label the 300 acquire lines (legacy policy +
    route splits to human), update the student, the confidence-vs-disagreement diagnostic, repeat.
 5. **Evict intent-classifier** — after (2); `git rm` tracked + `rm -rf` ~800 untracked / ~1.2 GB.

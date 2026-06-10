@@ -10,6 +10,7 @@ import pytest
 
 from lineation_core import store
 from lineation_core.evaluation.study import load_experiment, sweep_recipes
+from lineation_core.teacher import recipes
 from lineation_core.teacher.panel import ResponseContract
 
 
@@ -28,7 +29,7 @@ _TOML = """
 [experiment]
 id = "exp-1"
 kind = "reader"
-question = "does the keyed_object contract cut faults vs the array schema?"
+question = "does the json_keyed contract cut faults vs the json_array schema?"
 round = 0
 seed = 0
 
@@ -41,7 +42,7 @@ target = 8
 context_radius = 2
 
 [sweep]
-contract = ["array", "keyed_object"]
+contract = ["json_array", "json_keyed"]
 
 [metrics]
 report = ["balanced_acc", "prose_recall", "usd"]
@@ -63,12 +64,12 @@ def test_load_experiment_parses_and_derives_books(tmp_path):
     _frozen_eval_set(ann)
     exp = load_experiment(_TOML, annotations=ann)
     assert exp.meta.id == "exp-1" and exp.meta.kind == "reader"
-    assert "keyed_object" in exp.meta.question
+    assert "json_keyed" in exp.meta.question
     assert exp.dataset_name == "tiny"
     assert exp.base.books == ("13", "57")                  # DERIVED from the eval set, sorted
-    assert exp.base.selector == "eval_set:tiny"
+    assert exp.base.selector == recipes.EvalSet("tiny")    # the ADT, constructed directly
     assert [r.tag for r in exp.base.readers] == ["grok", "ds"]
-    assert exp.sweep.axis == "contract" and exp.sweep.points == ("array", "keyed_object")
+    assert exp.sweep.axis == "contract" and exp.sweep.points == ("json_array", "json_keyed")
     assert exp.metrics == ("balanced_acc", "prose_recall", "usd")
 
 
@@ -77,16 +78,16 @@ def test_sweep_recipes_yields_one_recipe_per_contract_point(tmp_path):
     _frozen_eval_set(ann)
     exp = load_experiment(_TOML, annotations=ann)
     recs = sweep_recipes(exp)
-    assert [label for label, _ in recs] == ["array", "keyed_object"]
-    assert recs[0][1].contract is ResponseContract.ARRAY
-    assert recs[1][1].contract is ResponseContract.KEYED_OBJECT
+    assert [label for label, _ in recs] == ["json_array", "json_keyed"]
+    assert recs[0][1].contract is ResponseContract.JSON_ARRAY
+    assert recs[1][1].contract is ResponseContract.JSON_KEYED
 
 
 def test_sweep_two_keys_fails_loud(tmp_path):
     ann = tmp_path / "annotations"
     _frozen_eval_set(ann)
-    bad = _TOML.replace("[sweep]\ncontract = [\"array\", \"keyed_object\"]",
-                        "[sweep]\ncontract = [\"array\"]\ntemperature = [0.0, 0.5]")
+    bad = _TOML.replace("[sweep]\ncontract = [\"json_array\", \"json_keyed\"]",
+                        "[sweep]\ncontract = [\"json_array\"]\ntemperature = [0.0, 0.5]")
     with pytest.raises(ValueError, match="ONE axis"):
         load_experiment(bad, annotations=ann)
 
@@ -94,7 +95,7 @@ def test_sweep_two_keys_fails_loud(tmp_path):
 def test_unknown_sweep_axis_fails_loud(tmp_path):
     ann = tmp_path / "annotations"
     _frozen_eval_set(ann)
-    bad = _TOML.replace('[sweep]\ncontract = ["array", "keyed_object"]',
+    bad = _TOML.replace('[sweep]\ncontract = ["json_array", "json_keyed"]',
                         '[sweep]\nbogus = ["a", "b"]')
     with pytest.raises(ValueError, match="unknown sweep axis"):
         load_experiment(bad, annotations=ann)
@@ -118,13 +119,15 @@ def test_unknown_dataset_source_fails_loud(tmp_path):
 
 
 def test_contract_sweep_holds_a_configured_base_temperature(tmp_path):
-    # a contract sweep must run at the experiment's base temperature (not a hardcoded 0.0), so the
-    # schemas are compared at one realistic sampling temp and the manifest records it.
-    from lineation_core.evaluation.study import _base_temperature, _readers_at
+    # a contract sweep must run at the experiment's base temperature (not a hardcoded 0.0): the
+    # top-level `temperature` inherits into every reader through the ONE recipe loader, and the
+    # manifest stamps the readers' REAL sampling values.
+    from lineation_core.evaluation.study import _readers_at, _sampling
     ann = tmp_path / "annotations"
     _frozen_eval_set(ann)
     exp = load_experiment("temperature = 0.5\n" + _TOML, annotations=ann)
-    assert exp.base_temperature == 0.5
-    assert _base_temperature(exp) == 0.5                         # stamped into the manifest
-    readers = _readers_at(exp.base, "array", exp.sweep.axis, exp.base_temperature)
-    assert {r.temperature for r in readers} == {0.5}            # every reader at the base temp
+    assert {r.temperature for r in exp.base.readers} == {0.5}    # inherited, one loader
+    readers = _readers_at(exp.base, "json_array", exp.sweep.axis)
+    assert {r.temperature for r in readers} == {0.5}             # every reader at the base temp
+    temperature, max_tokens = _sampling(exp)                     # the manifest's stamp
+    assert temperature == 0.5 and max_tokens == exp.base.readers[0].max_tokens

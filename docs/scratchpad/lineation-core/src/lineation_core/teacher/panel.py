@@ -1,9 +1,11 @@
 # research-pure: the LLM panel runner — an injectable ChatCompleter, opaque keys on the wire.
 """Runs the reader panel over a task: for each reader × rep × item, build a prompt that shows the
-opaque-keyed listing (and, for a vision reader, the composite image) and asks for a JSON array of
-`{key, label, conf}` over the item's keys ONLY — never an idx or src_ordinal. The network is a
-single injected `ChatCompleter` boundary, so the panel is unit-testable with a fake completer and
-imports no HTTP library; an OpenAI-compatible OpenRouter adapter is the one impl that does I/O.
+opaque-keyed listing (and, for a vision reader, the composite image) and asks for verdicts in the
+panel's response CONTRACT, over the item's keys ONLY — never an idx or src_ordinal. The contract
+(`teacher.contracts`) owns all three response behaviors — the instruction appended here, the
+`response_format` schema sent, and the parse applied. The network is a single injected
+`ChatCompleter` boundary, so the panel is unit-testable with a fake completer and imports no HTTP
+library; an OpenAI-compatible OpenRouter adapter is the one impl that does I/O.
 
 The criteria shown to readers are the task's `instructions` (the same text the human adjudicator
 sees) — there is no separate "brief". `build_prompt` assembles those instructions + the listing
@@ -13,19 +15,20 @@ from __future__ import annotations
 import hashlib
 import threading
 from collections import Counter, defaultdict
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Protocol, assert_never
+from typing import Protocol
 
 from ..annotations import PanelVote, VoteKey
 from ..identity import JsonRow, ListingKey, ModelId, PromptFingerprint, ReaderTag
-from .responses import RawReaderResponse, parse_reader_reply
-from .tasks import AssetKind, Modality, RegionId, ResponseContract, Task, TaskItem
+# `ResponseContract` is DEFINED in `contracts` (the wire protocol, the lowest teacher layer);
+# re-exported as the panel's public surface.
+from .contracts import RawReaderResponse, ResponseContract, ResponseFormat, spec_for
+from .responses import parse_reader_reply
+from .tasks import AssetKind, Modality, RegionId, Task, TaskItem
 
-# `ResponseContract` is DEFINED in `tasks` (the shared lower layer, beside `Modality`) so the panel and
-# the `responses` choke point name it without an import cycle; re-exported as the panel's public surface.
 __all__ = ["ResponseContract"]
 
 type Message = dict[str, object]   # an OpenAI-style chat message: {"role", "content"}
@@ -59,22 +62,28 @@ class ChatCompleter(Protocol):
                  max_tokens: int, response_format: dict[str, object] | None = None) -> ChatReply: ...
 
 
+# The sampling defaults a recipe may override — top-level (all readers) or per reader.
+DEFAULT_TEMPERATURE = 0.0
+DEFAULT_MAX_TOKENS = 8192
+
+
 @dataclass(frozen=True, slots=True)
 class ReaderConfig:
-    """One panel reader: its tag, the model behind it, and the modality it reads in (a text reader
-    gets no image even when the task carries one)."""
+    """One panel reader: its tag, the model behind it, the modality it reads in (a text reader gets
+    no image even when the task carries one), and its sampling config. The ONE reader query spec —
+    the recipe loader builds these directly; nothing re-derives them."""
     tag: ReaderTag
     model: ModelId
-    modality: Modality
-    temperature: float = 0.0
-    max_tokens: int = 8192
+    modality: Modality = Modality.TEXT
+    temperature: float = DEFAULT_TEMPERATURE
+    max_tokens: int = DEFAULT_MAX_TOKENS
 
 
 @dataclass(frozen=True, slots=True)
 class PanelConfig:
     readers: tuple[ReaderConfig, ...]
     reps: int = 1                       # repetitions per reader per item (instability evidence)
-    contract: ResponseContract = ResponseContract.ARRAY   # the structured-output shape every reader returns
+    contract: ResponseContract = ResponseContract.JSON_ARRAY   # the structured-output shape every reader returns
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,81 +102,22 @@ class PanelRep:
     usage: dict[str, object] | None = None   # provider token/cost accounting, carried from the reply
 
 
-# The format example uses a PLACEHOLDER key, never a real one like "L001": a literal real key both
-# collides with item 1's key and primes the model to echo / continue the L-sequence (observed
-# key_item_mismatch faults from readers inventing keys past the ones shown). The explicit "only the
-# keys shown, do not invent" is the instruction-side guard for that hallucination — and `verdict_schema`
-# enforces it structurally for adapters that honor structured outputs (the `key` enum). The object
-# wrapper (`{"verdicts": […]}`) matches that schema (a top-level array is not allowed there).
-_RETURN = ('Return ONLY a JSON object {"verdicts": [ … ]}, one entry per line key shown — use the EXACT '
-           'keys shown above, do NOT invent keys or continue the numbering:\n'
-           '{"verdicts": [{"key": "<one of the keys shown>", "label": "prose" | "lineated", '
-           '"conf": 0.0-1.0}]}')
+def verdict_schema(contract: ResponseContract, keys: Sequence[ListingKey]) -> ResponseFormat | None:
+    """The contract's CONSTRAIN behavior, scoped to the SHOWN keys: an OpenRouter structured-output
+    `response_format`, or `None` for a schemaless contract (the instruction is the sole constraint).
+    A thin view onto `contracts.spec_for`."""
+    return spec_for(contract).schema(keys)
 
 
-def verdict_schema(contract: ResponseContract, keys: Sequence[ListingKey]) -> dict[str, object]:
-    """An OpenRouter structured-output `response_format` scoped to the SHOWN keys, dispatched on
-    `contract`. ARRAY constrains a `{key,label,conf}` array (`key` an enum of exactly these keys, so an
-    invented/continued key is structurally impossible; coverage is NOT enforced — the resolver checks
-    it). KEYED_OBJECT makes the keys themselves the schema: one REQUIRED string property per key, so a
-    compliant reply has exactly one label per shown key — no invent, no miss, no dup.
-    `strict`+`additionalProperties:false` are the enforcement either way."""
-    match contract:
-        case ResponseContract.KEYED_OBJECT:
-            return {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "lineation_by_key",
-                    "strict": True,
-                    "schema_": {            # serialized to "schema" by the SDK (pydantic alias)
-                        "type": "object",
-                        "properties": {
-                            k: {"type": "string", "enum": ["prose", "lineated"],
-                                "description": "Author's lineation intent for this line."}
-                            for k in keys},
-                        "required": list(keys),
-                        "additionalProperties": False,
-                    },
-                },
-            }
-        case ResponseContract.ARRAY:
-            return {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "lineation_verdicts",
-                    "strict": True,
-                    "schema_": {            # serialized to "schema" by the SDK (pydantic alias)
-                        "type": "object",
-                        "properties": {
-                            "verdicts": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "key": {"type": "string", "enum": list(keys)},
-                                        "label": {"type": "string", "enum": ["prose", "lineated"]},
-                                        "conf": {"type": "number", "minimum": 0.0, "maximum": 1.0},
-                                    },
-                                    "required": ["key", "label", "conf"],
-                                    "additionalProperties": False,
-                                },
-                            },
-                        },
-                        "required": ["verdicts"],
-                        "additionalProperties": False,
-                    },
-                },
-            }
-        case _:
-            assert_never(contract)
-
-
-def build_prompt(item: TaskItem, reader: ReaderConfig, instructions: str) -> list[Message]:
+def build_prompt(item: TaskItem, reader: ReaderConfig, instructions: str,
+                 contract: ResponseContract) -> list[Message]:
     """The reader-facing messages for one item. The opaque-keyed listing carries the structure (its
     feature tokens ARE a text reader's view of it); a vision reader also gets one page image per
-    rendered page. The prompt asks for the item's keys ONLY — no idx/src_ordinal can appear, by
-    construction."""
-    text = f"{instructions}\n\nLines to judge (answer EVERY key shown):\n{item.context}\n\n{_RETURN}"
+    rendered page. The `contract`'s ASK instruction closes the prompt — the same protocol whose
+    schema constrains and whose parse reads the reply. The prompt asks for the item's keys ONLY —
+    no idx/src_ordinal can appear, by construction."""
+    text = (f"{instructions}\n\nLines to judge (answer EVERY key shown):\n{item.context}\n\n"
+            f"{spec_for(contract).instruction}")
     parts: list[dict] = [{"type": "text", "text": text}]
     if reader.modality is Modality.VISION:
         parts += [{"type": "image_url", "image_url": {"url": a.data_uri}}
@@ -247,8 +197,25 @@ class CompletionRequest:
                          finish_reason=row.get("finish_reason"),  # type: ignore[arg-type]
                          usage=row.get("usage"))  # type: ignore[arg-type]
 
+    @staticmethod
+    def key_from_row(row: JsonRow) -> CallKey:
+        """A resume-log row → the `CallKey` it was saved under — the identity inverse of `to_row`,
+        owned HERE so no loader hand-rebuilds the 5-tuple. A row from before prompt-fingerprinting
+        has no `prompt_hash`; it gets `""`, which cannot match a live fingerprint — so it safely
+        re-calls rather than reuse a reply whose prompt is unknown."""
+        return (str(row["item_id"]), str(row["tag"]), int(row["rep"]),
+                str(row["model"]), str(row.get("prompt_hash", "")))
+
 
 type OnCall = Callable[[CompletionRequest, ChatReply], None]   # persist a fresh reply the instant it lands
+
+
+def resume_cache(rows: Iterable[JsonRow]) -> CallCache:
+    """Saved resume-log rows → the `CallCache` `run_panel` reuses instead of re-paying — last-saved
+    wins per call identity. The ONE row→cache fold; both resume logs (a recipe task's `calls.jsonl`,
+    a study folder's `replies.jsonl`) load through it."""
+    return {CompletionRequest.key_from_row(row): CompletionRequest.reply_from_row(row)
+            for row in rows}
 
 
 @dataclass(frozen=True, slots=True)
@@ -287,7 +254,7 @@ def run_panel(task: Task, cfg: PanelConfig, completer: ChatCompleter, *,
             for item in task.items:
                 req = CompletionRequest(
                     item_id=item.id, tag=reader.tag, rep=rep, model=reader.model,
-                    messages=tuple(build_prompt(item, reader, instructions)),
+                    messages=tuple(build_prompt(item, reader, instructions, cfg.contract)),
                     temperature=reader.temperature, max_tokens=reader.max_tokens,
                     contract=cfg.contract)
                 calls.append(_Call(item, req))
