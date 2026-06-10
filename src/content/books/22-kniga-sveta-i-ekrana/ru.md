@@ -616,7 +616,5 @@ links:
 <div class="lineated verse">
 
 *Конец.*  
-Начало формы  
-Конец формы
 
 </div>
