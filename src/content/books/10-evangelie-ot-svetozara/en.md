@@ -13401,7 +13401,6 @@ Not on duty.
 Not on command.  
 **It's about Love.**  
 **Which is you.**  
-Beginning of the form
 
 </div>
 
