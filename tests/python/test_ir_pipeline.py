@@ -249,6 +249,28 @@ def test_strip_formatting_artifacts_removes_trailing_empty_emphasis_in_content()
     assert lower._inlines_md(_para(out[0]).inlines, "ru").strip() == "real text"
 
 
+def test_strip_formatting_artifacts_drops_hidden_form_markers() -> None:
+    blocks: list[ir.Block] = [
+        ir.Paragraph(inlines=[ir.Text("Н    ачало"), ir.SoftBreak(), ir.Text("формы")]),
+        ir.Paragraph(inlines=[ir.Text("Конец формы")]),
+        ir.Paragraph(inlines=[ir.Text("Beginning of the form")]),
+        ir.Paragraph(inlines=[ir.Text("End of the form")]),
+        ir.Paragraph(inlines=[ir.Text("Start of Form")]),
+        ir.Paragraph(inlines=[ir.Text("End"), ir.Text(" of "), ir.Text("Form")]),
+    ]
+
+    assert normalize.strip_formatting_artifacts(blocks) == []
+
+
+def test_strip_formatting_artifacts_keeps_real_form_prose() -> None:
+    para = ir.Paragraph(inlines=[ir.Text("Начало формы жизни — не шаблон.")])
+
+    out = normalize.strip_formatting_artifacts([para])
+
+    assert len(out) == 1
+    assert normalize.inline_plain(_para(out[0]).inlines) == "Начало формы жизни — не шаблон."
+
+
 # ---------------------------------------------------------------------------
 # AI-alt scrub uses the shared production constant
 # ---------------------------------------------------------------------------
