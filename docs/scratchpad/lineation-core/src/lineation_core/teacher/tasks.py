@@ -33,6 +33,18 @@ class AssetKind(StrEnum):
     COMPOSITE = "composite"           # the authored page render shown to a vision reader
 
 
+class ResponseContract(StrEnum):
+    """The structured-output SHAPE a reader is asked to return — folded into the call identity (the
+    panel) so a contract change re-calls, never silently reuses a reply shaped under a different
+    schema; the parse (the responses choke point) dispatches on it. Lives here, beside `Modality`, as
+    a contract the panel and the resolver share without a cycle.
+    ARRAY: `{"verdicts":[{key,label,conf}]}` — `key` is a free enum string (coverage unenforced).
+    KEYED_OBJECT: `{"L001":"prose", …}` — one REQUIRED property per shown key, so the keys ARE the
+    schema (none invented, none missing, none duplicated under strict decoding); no `conf`."""
+    ARRAY = "array"
+    KEYED_OBJECT = "keyed_object"
+
+
 type LineOption = tuple[str, str]     # (value, display label) for the UI's per-line picker
 _DEFAULT_OPTIONS: tuple[LineOption, ...] = (("prose", "Prose"), ("lineated", "Lineated"))
 

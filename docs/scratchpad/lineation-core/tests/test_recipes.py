@@ -81,6 +81,16 @@ def test_load_recipe_parses_a_full_toml():
     assert r.vision is True                              # a vision reader present
 
 
+def test_load_recipe_defaults_contract_to_array_and_parses_an_override():
+    from lineation_core.teacher.panel import ResponseContract
+    assert recipes.load_recipe(_FULL).contract is ResponseContract.ARRAY   # absent ⇒ array default
+    keyed = ('task_id = "x"\ncontract = "keyed_object"\n[selection]\nbooks = ["13"]\n'
+             '[[readers]]\ntag = "g"\nmodel = "m"\n')
+    assert recipes.load_recipe(keyed).contract is ResponseContract.KEYED_OBJECT
+    with pytest.raises(ValueError):                                         # an unknown contract fails loud
+        recipes.load_recipe('task_id="x"\ncontract="bogus"\n[selection]\nbooks=["13"]\n')
+
+
 def test_load_recipe_rejects_empty_books_dupe_readers_and_bad_modality():
     with pytest.raises(ValueError):
         recipes.load_recipe('task_id="x"\n[selection]\nbooks=[]\n')

@@ -15,14 +15,18 @@ import threading
 from collections import Counter, defaultdict
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Protocol
+from typing import Protocol, assert_never
 
 from ..annotations import PanelVote, VoteKey
-from ..identity import ListingKey, ModelId, PromptFingerprint, ReaderTag
+from ..identity import JsonRow, ListingKey, ModelId, PromptFingerprint, ReaderTag
 from .responses import RawReaderResponse, parse_reader_reply
-from .tasks import AssetKind, Modality, RegionId, Task, TaskItem
+from .tasks import AssetKind, Modality, RegionId, ResponseContract, Task, TaskItem
+
+# `ResponseContract` is DEFINED in `tasks` (the shared lower layer, beside `Modality`) so the panel and
+# the `responses` choke point name it without an import cycle; re-exported as the panel's public surface.
+__all__ = ["ResponseContract"]
 
 type Message = dict[str, object]   # an OpenAI-style chat message: {"role", "content"}
 
@@ -70,6 +74,7 @@ class ReaderConfig:
 class PanelConfig:
     readers: tuple[ReaderConfig, ...]
     reps: int = 1                       # repetitions per reader per item (instability evidence)
+    contract: ResponseContract = ResponseContract.ARRAY   # the structured-output shape every reader returns
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,40 +105,61 @@ _RETURN = ('Return ONLY a JSON object {"verdicts": [ … ]}, one entry per line 
            '"conf": 0.0-1.0}]}')
 
 
-def verdict_schema(keys: Sequence[ListingKey]) -> dict[str, object]:
-    """An OpenRouter structured-output `response_format` that CONSTRAINS the reply to one verdict per
-    SHOWN key: `key` is an enum of exactly these keys — so an invented or sequence-continued key is
-    structurally impossible under strict decoding — `label` ∈ {prose, lineated}, `conf` ∈ [0,1].
-    Object-wrapped because a top-level array is not allowed. `strict`+`additionalProperties:false` are
-    the enforcement. (Coverage — that EVERY key is answered — is not guaranteed by the schema; the
-    resolver still checks it.)"""
-    return {
-        "type": "json_schema",
-        "json_schema": {
-            "name": "lineation_verdicts",
-            "strict": True,
-            "schema_": {            # serialized to "schema" by the SDK (pydantic alias)
-                "type": "object",
-                "properties": {
-                    "verdicts": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "key": {"type": "string", "enum": list(keys)},
-                                "label": {"type": "string", "enum": ["prose", "lineated"]},
-                                "conf": {"type": "number", "minimum": 0.0, "maximum": 1.0},
-                            },
-                            "required": ["key", "label", "conf"],
-                            "additionalProperties": False,
-                        },
+def verdict_schema(contract: ResponseContract, keys: Sequence[ListingKey]) -> dict[str, object]:
+    """An OpenRouter structured-output `response_format` scoped to the SHOWN keys, dispatched on
+    `contract`. ARRAY constrains a `{key,label,conf}` array (`key` an enum of exactly these keys, so an
+    invented/continued key is structurally impossible; coverage is NOT enforced — the resolver checks
+    it). KEYED_OBJECT makes the keys themselves the schema: one REQUIRED string property per key, so a
+    compliant reply has exactly one label per shown key — no invent, no miss, no dup.
+    `strict`+`additionalProperties:false` are the enforcement either way."""
+    match contract:
+        case ResponseContract.KEYED_OBJECT:
+            return {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "lineation_by_key",
+                    "strict": True,
+                    "schema_": {            # serialized to "schema" by the SDK (pydantic alias)
+                        "type": "object",
+                        "properties": {
+                            k: {"type": "string", "enum": ["prose", "lineated"],
+                                "description": "Author's lineation intent for this line."}
+                            for k in keys},
+                        "required": list(keys),
+                        "additionalProperties": False,
                     },
                 },
-                "required": ["verdicts"],
-                "additionalProperties": False,
-            },
-        },
-    }
+            }
+        case ResponseContract.ARRAY:
+            return {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "lineation_verdicts",
+                    "strict": True,
+                    "schema_": {            # serialized to "schema" by the SDK (pydantic alias)
+                        "type": "object",
+                        "properties": {
+                            "verdicts": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "key": {"type": "string", "enum": list(keys)},
+                                        "label": {"type": "string", "enum": ["prose", "lineated"]},
+                                        "conf": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+                                    },
+                                    "required": ["key", "label", "conf"],
+                                    "additionalProperties": False,
+                                },
+                            },
+                        },
+                        "required": ["verdicts"],
+                        "additionalProperties": False,
+                    },
+                },
+            }
+        case _:
+            assert_never(contract)
 
 
 def build_prompt(item: TaskItem, reader: ReaderConfig, instructions: str) -> list[Message]:
@@ -149,21 +175,16 @@ def build_prompt(item: TaskItem, reader: ReaderConfig, instructions: str) -> lis
     return [{"role": "user", "content": parts}]
 
 
-# The call identity INCLUDES a fingerprint of the exact prompt sent (see `prompt_fingerprint`): a
-# model/prompt change must re-call, never silently reuse a reply made under a different prompt — the
-# resume cache is per task_id, and the prompt (instructions + listing) can change under a fixed id.
-type CallKey = tuple[RegionId, ReaderTag, int, ModelId, PromptFingerprint]   # the call identity
-type CallCache = dict[CallKey, ChatReply]            # already-completed calls to RESUME from
-type OnCall = Callable[[CallKey, ChatReply], None]   # persist a fresh reply the instant it lands
-
-
-def prompt_fingerprint(messages: list[Message]) -> PromptFingerprint:
-    """A short stable hash of the WHOLE prompt the model sees — the text parts (instructions +
-    opaque-keyed listing) AND any image part's data-URI. The cache key carries it so a reply is reused
-    ONLY for an identical prompt: editing the instructions OR changing the rendered page image both
-    shift the fingerprint, so neither silently reuses a stale reply (the render slice can change under
-    a fixed task)."""
+def _fingerprint(messages: Sequence[Message], *, temperature: float, max_tokens: int,
+                 contract: ResponseContract) -> PromptFingerprint:
+    """A short stable hash of the WHOLE request the model sees — the prompt text parts (instructions +
+    opaque-keyed listing), any image part's data-URI, the sampling config (temperature, max_tokens),
+    AND the response contract. The cache key carries it so a reply is reused ONLY for an identical
+    request: editing the instructions, changing the rendered page image, the sampling params, OR the
+    output schema each shift the fingerprint, so none silently reuses a reply made under a different
+    config (the render slice, the sampling params, and the contract can all change under a fixed task)."""
     h = hashlib.sha256()
+    h.update(f"\x00G{temperature!r}|{max_tokens}|{contract.value}".encode())  # request config
     for m in messages:
         content = m.get("content")
         for p in (content if isinstance(content, list) else []):
@@ -178,15 +199,64 @@ def prompt_fingerprint(messages: list[Message]) -> PromptFingerprint:
     return h.hexdigest()[:16]
 
 
+# The call identity (see `CompletionRequest`): a model/prompt/sampling/contract change must re-call,
+# never silently reuse a reply made under a different request. The resume cache stays keyed by the
+# stable 5-tuple `cache_key` shape (per task_id; the prompt, sampling, and contract all fold into the
+# `fingerprint` term of that key).
+type CallKey = tuple[RegionId, ReaderTag, int, ModelId, PromptFingerprint]   # the call identity
+type CallCache = dict[CallKey, ChatReply]            # already-completed calls to RESUME from
+
+
+@dataclass(frozen=True, slots=True)
+class CompletionRequest:
+    """One planned panel call: the FULL request to send + the identity/(de)serialization it owns.
+    Built for EVERY reader×rep×item up front so the network fetches can fan out while the assembled
+    result stays in this order. `fingerprint` hashes the whole request (prompt + image + sampling +
+    contract); `cache_key` is the stable resume-cache key; `to_row`/`reply_from_row` are the ONE
+    (de)serializer for the resume log — no consumer reassembles this identity by hand."""
+    item_id: RegionId
+    tag: ReaderTag
+    rep: int
+    model: ModelId
+    messages: tuple[Message, ...]
+    temperature: float
+    max_tokens: int
+    contract: ResponseContract
+    fingerprint: PromptFingerprint = field(init=False)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "fingerprint", _fingerprint(
+            self.messages, temperature=self.temperature, max_tokens=self.max_tokens,
+            contract=self.contract))
+
+    @property
+    def cache_key(self) -> CallKey:
+        return (self.item_id, self.tag, self.rep, self.model, self.fingerprint)
+
+    def to_row(self, reply: ChatReply) -> JsonRow:
+        """The resume-log row for a fresh reply — every identity field the resume reuse keys on,
+        plus the reply payload. The ONE serializer; `reply_from_row` is its inverse."""
+        return {"item_id": self.item_id, "tag": self.tag, "rep": self.rep, "model": self.model,
+                "prompt_hash": self.fingerprint, "contract": self.contract.value,
+                "content": reply.content, "finish_reason": reply.finish_reason, "usage": reply.usage}
+
+    @staticmethod
+    def reply_from_row(row: JsonRow) -> ChatReply:
+        """A resume-log row → the `ChatReply` it persisted — the ONE reply deserializer."""
+        return ChatReply(content=str(row.get("content", "")),
+                         finish_reason=row.get("finish_reason"),  # type: ignore[arg-type]
+                         usage=row.get("usage"))  # type: ignore[arg-type]
+
+
+type OnCall = Callable[[CompletionRequest, ChatReply], None]   # persist a fresh reply the instant it lands
+
+
 @dataclass(frozen=True, slots=True)
 class _Call:
-    """One planned panel call: who/what to ask and the resume key. Built for EVERY reader×rep×item
-    up front so the network fetches can fan out while the assembled result stays in this order."""
-    reader: ReaderConfig
-    rep: int
+    """A planned call paired with its item — the item carries the keys the schema is scoped to and
+    the order the result assembles in; the request owns everything sent + the resume identity."""
     item: TaskItem
-    messages: list[Message]
-    key: CallKey
+    req: CompletionRequest
 
 
 def run_panel(task: Task, cfg: PanelConfig, completer: ChatCompleter, *,
@@ -215,23 +285,27 @@ def run_panel(task: Task, cfg: PanelConfig, completer: ChatCompleter, *,
         instructions = by_modality.get(reader.modality, task.instructions)
         for rep in range(cfg.reps):
             for item in task.items:
-                messages = build_prompt(item, reader, instructions)
-                key: CallKey = (item.id, reader.tag, rep, reader.model, prompt_fingerprint(messages))
-                calls.append(_Call(reader, rep, item, messages, key))
+                req = CompletionRequest(
+                    item_id=item.id, tag=reader.tag, rep=rep, model=reader.model,
+                    messages=tuple(build_prompt(item, reader, instructions)),
+                    temperature=reader.temperature, max_tokens=reader.max_tokens,
+                    contract=cfg.contract)
+                calls.append(_Call(item, req))
 
-    replies: dict[CallKey, ChatReply] = {c.key: cache[c.key] for c in calls if c.key in cache}
-    misses = [c for c in calls if c.key not in cache]
+    replies: dict[CallKey, ChatReply] = {c.req.cache_key: cache[c.req.cache_key]
+                                         for c in calls if c.req.cache_key in cache}
+    misses = [c for c in calls if c.req.cache_key not in cache]
     lock = threading.Lock()
 
     def fetch(c: _Call) -> tuple[CallKey, ChatReply]:
         reply = completer.complete(
-            model=c.reader.model, messages=c.messages,
-            temperature=c.reader.temperature, max_tokens=c.reader.max_tokens,
-            response_format=verdict_schema([ln.key for ln in c.item.lines]))
+            model=c.req.model, messages=list(c.req.messages),
+            temperature=c.req.temperature, max_tokens=c.req.max_tokens,
+            response_format=verdict_schema(c.req.contract, [ln.key for ln in c.item.lines]))
         if on_call is not None:                             # persist before parse — evidence survives
             with lock:
-                on_call(c.key, reply)
-        return c.key, reply
+                on_call(c.req, reply)
+        return c.req.cache_key, reply
 
     if max_workers > 1 and len(misses) > 1:
         with ThreadPoolExecutor(max_workers=max_workers) as ex:
@@ -243,10 +317,12 @@ def run_panel(task: Task, cfg: PanelConfig, completer: ChatCompleter, *,
             replies[key] = reply
 
     return [PanelRep(
-        item_id=c.item.id, tag=c.reader.tag, rep=c.rep, model=c.reader.model,
-        content=replies[c.key].content,
-        response=parse_reader_reply(c.item.id, c.reader.tag, replies[c.key].content),
-        finish_reason=replies[c.key].finish_reason, usage=replies[c.key].usage) for c in calls]
+        item_id=c.req.item_id, tag=c.req.tag, rep=c.req.rep, model=c.req.model,
+        content=replies[c.req.cache_key].content,
+        response=parse_reader_reply(cfg.contract, c.req.item_id, c.req.tag,
+                                    replies[c.req.cache_key].content),
+        finish_reason=replies[c.req.cache_key].finish_reason,
+        usage=replies[c.req.cache_key].usage) for c in calls]
 
 
 def aggregate_reps(per_rep: Sequence[Sequence[PanelVote]]) -> tuple[PanelVote, ...]:

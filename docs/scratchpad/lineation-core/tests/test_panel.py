@@ -72,7 +72,8 @@ def test_run_panel_concurrent_is_deterministic_and_persists_every_call_once():
     fake = ThreadSafeFake()
     saved: list = []
     cfg = PanelConfig(readers=(ReaderConfig("grok", "x/grok", Modality.TEXT),), reps=5)
-    reps = panel.run_panel(task, cfg, fake, on_call=lambda k, r: saved.append(k), max_workers=4)
+    reps = panel.run_panel(task, cfg, fake, on_call=lambda req, r: saved.append(req.cache_key),
+                           max_workers=4)
     assert [r.rep for r in reps] == [0, 1, 2, 3, 4]          # ordered despite concurrent completion
     assert fake.n == 5 and len(saved) == 5 == len(set(saved))  # every call made + persisted once
     assert all(len(r.response.rows) == 3 for r in reps)
@@ -84,7 +85,8 @@ def test_run_panel_concurrent_reuses_cache_without_refetching():
     cfg = PanelConfig(readers=(ReaderConfig("grok", "x/grok", Modality.TEXT),), reps=3)
     warm = FakeCompleter('[{"key":"L001","label":"prose"}]')
     cache: dict = {}
-    panel.run_panel(task, cfg, warm, on_call=lambda k, r: cache.__setitem__(k, r), max_workers=4)
+    panel.run_panel(task, cfg, warm, on_call=lambda req, r: cache.__setitem__(req.cache_key, r),
+                    max_workers=4)
 
     class Boom:
         def complete(self, **kw):
@@ -138,7 +140,8 @@ def test_run_panel_reuses_same_prompt_but_recalls_when_the_prompt_changes():
     cache: dict = {}
 
     task_a = tasks.build_task(title="t", instructions="CRITERIA A", specs=[spec], records={"57": recs})
-    panel.run_panel(task_a, cfg, fake, cached={}, on_call=lambda k, r: cache.__setitem__(k, r))
+    panel.run_panel(task_a, cfg, fake, cached={},
+                    on_call=lambda req, r: cache.__setitem__(req.cache_key, r))
     assert len(fake.calls) == 1                                  # one fresh call, persisted to cache
     panel.run_panel(task_a, cfg, fake, cached=cache)
     assert len(fake.calls) == 1                                  # same prompt → served from cache
@@ -170,26 +173,61 @@ def test_run_panel_uses_per_modality_instructions():
     assert "LISTING-AUTHORITY" in sent["x/d"] and "PAGE-AUTHORITY" not in sent["x/d"]
 
 
+def _fp(messages, *, temperature=0.0, max_tokens=8192, contract=panel.ResponseContract.ARRAY):
+    """The request fingerprint, via the type that owns it (no item needed for the hash)."""
+    return panel.CompletionRequest(item_id="r", tag="t", rep=0, model="m",
+                                   messages=tuple(messages), temperature=temperature,
+                                   max_tokens=max_tokens, contract=contract).fingerprint
+
+
 def test_prompt_fingerprint_changes_when_the_image_changes():
     """A vision reply must NOT be reused after the rendered page changes — the fingerprint hashes the
     image data-URI, not only the text (render slices can change under a fixed task/instructions)."""
     def msg(img):
         return [{"role": "user", "content": [{"type": "text", "text": "same listing"},
                                              {"type": "image_url", "image_url": {"url": img}}]}]
-    a, b = panel.prompt_fingerprint(msg("data:image/png;base64,AAAA")), \
-        panel.prompt_fingerprint(msg("data:image/png;base64,BBBB"))
+    a, b = _fp(msg("data:image/png;base64,AAAA")), _fp(msg("data:image/png;base64,BBBB"))
     assert a != b                                           # different image ⇒ different cache key
-    assert panel.prompt_fingerprint(msg("data:image/png;base64,AAAA")) == a   # stable for same prompt
+    assert _fp(msg("data:image/png;base64,AAAA")) == a      # stable for same prompt
+
+
+def test_prompt_fingerprint_changes_when_the_sampling_config_changes():
+    """A reply sampled at one temperature/max_tokens must NOT be reused under another — the fingerprint
+    folds the sampling config in, so a temp/token change re-calls instead of returning a stale reply."""
+    msgs = [{"role": "user", "content": [{"type": "text", "text": "same prompt"}]}]
+    base = _fp(msgs, temperature=0.0, max_tokens=8192)
+    assert _fp(msgs, temperature=0.5, max_tokens=8192) != base   # temp matters
+    assert _fp(msgs, temperature=0.0, max_tokens=4096) != base   # max_tokens too
+    assert _fp(msgs, temperature=0.0, max_tokens=8192) == base   # stable otherwise
+
+
+def test_prompt_fingerprint_changes_when_the_contract_changes():
+    """A reply shaped under one response contract must NOT be reused under another — the fingerprint
+    folds the contract in, so an ARRAY→KEYED_OBJECT switch re-calls instead of reusing a stale reply."""
+    msgs = [{"role": "user", "content": [{"type": "text", "text": "same prompt"}]}]
+    assert _fp(msgs, contract=panel.ResponseContract.ARRAY) \
+        != _fp(msgs, contract=panel.ResponseContract.KEYED_OBJECT)
 
 
 def test_verdict_schema_constrains_key_to_the_shown_keys():
     """The structured-output schema makes an invented/continued key STRUCTURALLY impossible: `key` is
     an enum of exactly the shown keys, `label` is the 2-class enum, extras are forbidden."""
-    items = panel.verdict_schema(["L005", "L006", "L007"])["json_schema"]["schema_"] \
-        ["properties"]["verdicts"]["items"]
+    items = panel.verdict_schema(panel.ResponseContract.ARRAY, ["L005", "L006", "L007"]) \
+        ["json_schema"]["schema_"]["properties"]["verdicts"]["items"]
     assert items["properties"]["key"]["enum"] == ["L005", "L006", "L007"]
     assert items["properties"]["label"]["enum"] == ["prose", "lineated"]
     assert items["additionalProperties"] is False
+
+
+def test_verdict_schema_keyed_object_makes_keys_the_schema():
+    """The KEYED_OBJECT contract makes the shown keys themselves the schema: one REQUIRED string
+    property per key, value the 2-class enum, no extras — so none can be invented, missed, or dup'd."""
+    schema = panel.verdict_schema(panel.ResponseContract.KEYED_OBJECT, ["L001", "L002"]) \
+        ["json_schema"]["schema_"]
+    assert set(schema["properties"]) == {"L001", "L002"}
+    assert schema["required"] == ["L001", "L002"]
+    assert schema["properties"]["L001"]["enum"] == ["prose", "lineated"]
+    assert schema["additionalProperties"] is False
 
 
 def test_run_panel_passes_response_format_scoped_to_this_items_keys():

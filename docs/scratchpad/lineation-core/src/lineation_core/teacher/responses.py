@@ -17,11 +17,12 @@ import json
 import math
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import assert_never
 
 from ..annotations import LabelSource, LineLabel, PanelVote
 from ..identity import JsonObject, Label, LineId, ReaderTag, to_label
 from ..records import RecordsByBook
-from .tasks import RegionId, TaskKey, TaskManifest
+from .tasks import RegionId, ResponseContract, TaskKey, TaskManifest
 
 ADJUDICATED_AUDIT_STATUS = "adjudicated"   # the `audit_status` a human-adjudicated label carries
 
@@ -196,16 +197,37 @@ def parse_ui_responses(data: JsonObject, *, tag: ReaderTag = "human") -> list[Ra
     return out
 
 
-def parse_reader_reply(item_id: RegionId, tag: ReaderTag, raw_text: str) -> RawReaderResponse:
-    """An LLM reply → typed rows. The verdicts are a JSON array of `{key, label, conf}`; under
-    structured outputs it arrives OBJECT-WRAPPED (`{"verdicts": [ … ]}`) and unfenced, but the parser
-    extracts the inner array either way (it scans for the last balanced key-bearing array, tolerating
-    the wrapper / code fences / leading prose). `conf` is kept verbatim, `None` when absent or out of
-    range."""
-    rows = tuple(
-        RawReaderRow(key=str(o["key"]), label=o.get("label", ""), conf=_conf(o.get("conf")))
-        for o in _json_array(raw_text) if isinstance(o, dict) and "key" in o)
+def parse_reader_reply(contract: ResponseContract, item_id: RegionId, tag: ReaderTag,
+                       raw_text: str) -> RawReaderResponse:
+    """An LLM reply → typed rows, dispatched on the response `contract`.
+
+    ARRAY: a JSON array of `{key, label, conf}`; under structured outputs it arrives OBJECT-WRAPPED
+    (`{"verdicts": [ … ]}`) and unfenced, but the parser extracts the inner array either way (it scans
+    for the last balanced key-bearing array, tolerating the wrapper / code fences / leading prose).
+    `conf` is kept verbatim, `None` when absent or out of range.
+
+    KEYED_OBJECT: a `{key: label}` object (`{"L001":"prose", …}`); the last balanced object is parsed
+    with duplicate keys PRESERVED (one row per pair), so a repeated key still surfaces as `DUP_KEY` at
+    resolution exactly as in the array path. `conf` is always `None` (the keyed shape carries none)."""
+    match contract:
+        case ResponseContract.KEYED_OBJECT:
+            rows = tuple(RawReaderRow(key=str(k), label=_raw_label(v), conf=None)
+                         for k, v in _json_object_pairs(raw_text))
+        case ResponseContract.ARRAY:
+            rows = tuple(
+                RawReaderRow(key=str(o["key"]), label=_raw_label(o.get("label")),
+                             conf=_conf(o.get("conf")))
+                for o in _json_array(raw_text) if isinstance(o, dict) and "key" in o)
+        case _:
+            assert_never(contract)
     return RawReaderResponse(item_id=item_id, tag=tag, rows=rows)
+
+
+def _raw_label(v: object) -> str:
+    """A label is text; a non-string model value (number, object, null) is NO label — coerced to '' so
+    it surfaces as `BAD_LABEL` at resolution and never violates `RawReaderRow.label: str`. The ONE
+    raw-label coercion both contracts go through, so the two parse paths behave identically."""
+    return v if isinstance(v, str) else ""
 
 
 def _conf(v: object) -> float | None:
@@ -215,6 +237,31 @@ def _conf(v: object) -> float | None:
         return None
     c = float(v)
     return c if math.isfinite(c) and 0.0 <= c <= 1.0 else None
+
+
+def _json_object_pairs(text: str) -> list[tuple[str, object]]:
+    """The (key, value) PAIRS of the last balanced JSON object in a reply, DUPLICATES PRESERVED.
+    Scans brace depth (tolerating ``` fences / leading prose / a trailing stray `}`) and keeps the last
+    object that parses — an unmatched OPENING `{` in reasoning still defeats it, same as `_json_array`.
+    Uses `object_pairs_hook` so a key repeated in the reply yields two pairs — raw `json.loads` would
+    silently keep only the last, hiding the conflict the resolver must fault as `DUP_KEY`."""
+    best: list[tuple[str, object]] = []
+    depth = start = 0
+    for i, ch in enumerate(text):
+        if ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}" and depth > 0:
+            depth -= 1
+            if depth == 0:
+                try:
+                    pairs = json.loads(text[start:i + 1], object_pairs_hook=list)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(pairs, list):     # the TOP-LEVEL object is the pair list
+                    best = [(str(k), v) for k, v in pairs]
+    return best
 
 
 def _json_array(text: str) -> list:
