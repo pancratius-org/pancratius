@@ -1,5 +1,4 @@
 import type { Locale } from "../../locales";
-import { spellEnglishCardinal } from "../numbers";
 import { plRu, RU_PLURALS } from "../plural";
 
 export interface LibraryFilterCopy {
@@ -106,7 +105,7 @@ export interface ColophonCopy {
   rights_before: string;
   rights_link: string;
   rights_after: string;
-  machineTranslation: string;
+  translatedFrom: string;
   original: string;
 }
 
@@ -115,15 +114,15 @@ export const colophonCopy = {
     rights_before: "Все тексты — в ",
     rights_link: "общественном достоянии (CC0)",
     rights_after: ". Берите. Переводите. Передавайте.",
-    machineTranslation: "Машинный перевод с русского.",
-    original: "Оригинал",
+    translatedFrom: "Перевод с",
+    original: "оригинала",
   },
   en: {
     rights_before: "All texts are in the ",
     rights_link: "public domain (CC0)",
     rights_after: ". Take them. Translate. Pass them on.",
-    machineTranslation: "Machine translation from Russian.",
-    original: "Original",
+    translatedFrom: "Translated from",
+    original: "the Russian original",
   },
 } satisfies Record<Locale, ColophonCopy>;
 
@@ -169,10 +168,9 @@ export const poemPageCopy = {
 } satisfies Record<Locale, PoemPageCopy>;
 
 export interface PoetryIndexCopy {
-  eyebrow(count: number): string;
+  eyebrow(): string;
   headingLabel(count: number): string;
   intro: string;
-  fallbackBanner?: string;
   /** Month abbreviations for "<month> <year>" date formatting (index 0 = January). */
   months: readonly string[];
 }
@@ -188,10 +186,9 @@ export const poetryIndexCopy: Record<Locale, PoetryIndexCopy> = {
     ],
   },
   en: {
-    eyebrow: spellEnglishCardinal,
+    eyebrow: () => "Psalms of our days",
     headingLabel: () => "poems",
-    intro: "The originals are in Russian. Each row links to the poem; English translations will land here as they are authored.",
-    fallbackBanner: "Original Russian — translations forthcoming.",
+    intro: "Texts not severed from prayer. Verse born in the silence.",
     months: [
       "Jan", "Feb", "Mar", "Apr", "May", "Jun",
       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",

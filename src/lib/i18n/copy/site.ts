@@ -18,7 +18,7 @@ export const chromeCopy = {
   },
   en: {
     brand: "Pancratius",
-    tagline: "Light recognising itself.",
+    tagline: "Light recognizing itself",
     navAria: "Sections",
     themeAria: "Toggle theme",
     skip: "Skip to content",

@@ -1,16 +1,14 @@
 ---
 import Base from "@/layouts/Base.astro";
 
-import { DEFAULT_LOCALE, LOCALES, type Locale, kindIndexUrl, workUrl } from "@/lib/i18n";
+import { LOCALES, type Locale, kindIndexUrl, workUrl } from "@/lib/i18n";
 import { poetryIndexCopy } from "@/lib/i18n/copy";
 import { poemIncipit, poemLeadStanza } from "@/lib/publication/poetry";
 import { seoForKindIndex } from "@/lib/seo";
 import {
-  defaultWorkEntry,
-  displayWorkEntry,
   getPairsByKind,
+  localizedWorkPairs,
   poemDate,
-  type DisplayWorkEntry,
   type WorkEntry,
   type WorkPair,
 } from "@/lib/works";
@@ -44,28 +42,19 @@ for (const loc of LOCALES) {
   if (loc !== locale) alternates[loc] = kindIndexUrl("poem", loc);
 }
 
-const rows: PoetryRow[] = pairs.map(pair => {
-  const display: DisplayWorkEntry = locale === DEFAULT_LOCALE
-    ? { entry: defaultWorkEntry(pair), linkLocale: DEFAULT_LOCALE }
-    : displayWorkEntry(pair, locale);
-  return {
-    pair,
-    entry: display.entry,
-    linkLocale: display.linkLocale,
-    date: poemDate(display.entry),
-    incipit: poemIncipit(display.entry.body ?? "", display.entry.data.title),
-  };
-});
+// Only poems authored in the active locale (whole set on the default locale).
+const rows: PoetryRow[] = localizedWorkPairs(pairs, locale).map(({ pair, entry }) => ({
+  pair,
+  entry,
+  linkLocale: locale,
+  date: poemDate(entry),
+  incipit: poemIncipit(entry.body ?? "", entry.data.title),
+}));
 
-const showHero = locale === DEFAULT_LOCALE;
-const fallbackBanner = rows.some(row => row.linkLocale !== locale) ? copy.fallbackBanner : undefined;
-
-// Curated hero stanza, kept verbatim (poem 03's first line is its title, which the
-// preview helper would strip).
-const HERO_SLUG = "03-ya-svet-chto-v-tishine-parit";
-const heroRow = showHero
-  ? (rows.find(row => row.entry.data.slug === HERO_SLUG) ?? rows[0] ?? null)
-  : null;
+// Curated hero stanza (poem 03's first line is its title, which the preview helper
+// would strip). Matched by number — slugs differ per locale.
+const HERO_NUMBER = 3;
+const heroRow = rows.find(row => row.pair.number === HERO_NUMBER) ?? rows[0] ?? null;
 const heroStanza = heroRow ? poemLeadStanza(heroRow.entry.body ?? "") : "";
 
 // Months, newest first; within a month, latest first, then catalog order. The hero
@@ -93,13 +82,13 @@ const months: MonthGroup[] = [...buckets.entries()]
 ---
 <Base {locale} {seo} {alternates}>
   <section class="l-canvas l-canvas--page l-page-block poetry-index">
-    <p class="eyebrow eyebrow--lg">{copy.eyebrow(pairs.length)}</p>
+    <p class="eyebrow eyebrow--lg">{copy.eyebrow()}</p>
     <div class="poetry-index__head">
-      <h1><b>{pairs.length}</b> {copy.headingLabel(pairs.length)}</h1>
+      <h1><b>{rows.length}</b> {copy.headingLabel(rows.length)}</h1>
       <p class="poetry-index__intro index-lede l-measure l-measure--start">{copy.intro}</p>
     </div>
 
-    {showHero && heroRow && heroStanza && (
+    {heroRow && heroStanza && (
       <a class="poetry-hero" href={workUrl("poem", heroRow.entry.data.slug, heroRow.linkLocale)}>
         <p class="poetry-hero__stanza l-measure l-measure--start">{heroStanza}</p>
         <p class="poetry-hero__attr">
@@ -107,8 +96,6 @@ const months: MonthGroup[] = [...buckets.entries()]
         </p>
       </a>
     )}
-
-    {fallbackBanner && <p class="poetry-index__banner">{fallbackBanner}</p>}
 
     <div class="notebook">
       {months.map(group => (
@@ -192,19 +179,6 @@ const months: MonthGroup[] = [...buckets.entries()]
   .poetry-hero:hover .poetry-hero__go { transform: translateX(3px); }
   @media (prefers-reduced-motion: reduce) {
     .poetry-hero__go { transition: none; }
-  }
-
-  .poetry-index__banner {
-    font-family: var(--sans);
-    font-size: 11.5px;
-    font-weight: 500;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--ink-mute);
-    margin: 0 0 1.4rem;
-    padding: 0.7rem 0;
-    border-top: 1px solid var(--rule);
-    border-bottom: 1px solid var(--rule);
   }
 
   /* Month as a left-margin date-stamp; its poems hang in the column beside it. */

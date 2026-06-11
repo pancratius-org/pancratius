@@ -27,7 +27,7 @@ const copy = colophonCopy[locale];
 <aside class="colophon footer-note">
   {entry.data.translation.source === "ai" && (
     <p class="row">
-      {copy.machineTranslation} <a href={workUrl(pair.kind, originalEntry.data.slug, DEFAULT_LOCALE)}>{copy.original}</a>.
+      {copy.translatedFrom} <a href={workUrl(pair.kind, originalEntry.data.slug, DEFAULT_LOCALE)}>{copy.original}</a>.
     </p>
   )}
   <p class="row">

@@ -10,7 +10,6 @@ import { clampDescription } from "@/lib/seo";
 import { seoForHome } from "@/lib/seo";
 import { poemPreviewLines } from "@/lib/publication/poetry";
 import {
-  defaultWorkEntry,
   displayWorkEntry,
   findPair,
   getPairsByKind,
@@ -47,6 +46,9 @@ const localizedBooks = localizedWorkPairs(allBooks, locale);
 const availableNumbers = new Set(localizedBooks.map(lb => lb.pair.number));
 const bookPicks = poolPairs.filter(p => availableNumbers.has(p.number)).slice(0, 6);
 const allPoems = await getPairsByKind("poem");
+// Poems available in the active locale (whole set on the default locale; the
+// translated subset otherwise) — drives the home poetry count/stat.
+const localizedPoems = localizedWorkPairs(allPoems, locale);
 // Corpus tallies drive the home meta description's spelled-out counts.
 const seo = seoForHome(Astro.site, locale, { books: allBooks.length, poems: allPoems.length });
 // Projects are sections, not works — sourced from the projects lib. The
@@ -63,18 +65,18 @@ const projects = canonicalProjects.map((base): { landing: typeof base; linkLocal
     : { landing: base, linkLocale: DEFAULT_LOCALE };
 });
 
-// Two featured poems — first stanza fits in a card. Hand-picked across
-// early/late so the pair feels like a range, not a sequence.
-const POEM_PICKS = [2, 43];
+// Two featured poems — first stanza fits in a card. Per locale: RU leads with
+// the I-AM core; EN opens on universal, inviting poems for a cold reader.
+const POEM_PICKS = locale === DEFAULT_LOCALE ? [2, 43] : [11, 33];
 const poemPicks = (await Promise.all(POEM_PICKS.map(n => findPair("poem", n))))
   .filter((p): p is NonNullable<typeof p> => p !== null);
 
-// Poems are authored in the default locale; preview from the canonical entry.
+// Preview from the active locale's entry, so the EN home shows English verse.
 const poemPreviews = poemPicks.map(p => {
-  const canonical = defaultWorkEntry(p);
+  const entry = displayWorkEntry(p, locale).entry;
   return {
     pair:  p,
-    lines: poemPreviewLines(canonical.body ?? "", canonical.data.title, 4),
+    lines: poemPreviewLines(entry.body ?? "", entry.data.title, 4),
   };
 });
 
@@ -94,7 +96,7 @@ const bookHeading = copy.books.headingCount(allBooks.length, localizedBooks.leng
 const heroStats = copy.hero.stats?.({
   totalBooks: allBooks.length,
   englishBooks: localizedBooks.length,
-  poems: allPoems.length,
+  poems: localizedPoems.length,
 });
 const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
 ---
@@ -192,15 +194,15 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
         <header class="home__section-head">
           <p class="eyebrow">{copy.poetry.eyebrow}</p>
           <h2 id="home-poetry" class="home__section-title">
-            <span class="home__section-count">{allPoems.length}</span>{" "}
-            {copy.poetry.headingLabel(allPoems.length)}.{" "}
+            <span class="home__section-count">{localizedPoems.length}</span>{" "}
+            {copy.poetry.headingLabel(localizedPoems.length)}.{" "}
             <span class="home__section-sub">{copy.poetry.sub}</span>
           </h2>
         </header>
 
         <div class="home__poems">
           {poemPreviews.map(({ pair, lines }) => {
-            // Poems are default-locale only; display + link the canonical entry.
+            // Display + link the active locale's entry (falls back to default if untranslated).
             const display = displayWorkEntry(pair, locale);
             const href = workUrl("poem", display.entry.data.slug, display.linkLocale);
             return (
@@ -216,7 +218,7 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
 
         <p class="home__more">
           <a href={kindIndexUrl("poem", locale)}>
-            {copy.poetry.more(allPoems.length)}
+            {copy.poetry.more(localizedPoems.length)}
           </a>
         </p>
       </section>
