@@ -2,7 +2,7 @@
 kind: video
 number: 259
 slug: 259-i-m-choosing-the-wrong-ones-how-to-heal-the-loneliness-scenario-a-gospel-for-men-and-women-part-6
-title: 'I''m Choosing the Wrong Ones: How to Heal the Loneliness Scenario? A Gospel for Men and Women,
+title: 'I’m Choosing the Wrong Ones: How to Heal the Loneliness Scenario? A Gospel for Men and Women,
   Part 6'
 lang: en
 description: If you feel like you are losing yourself in a relationship, or that you keep choosing people

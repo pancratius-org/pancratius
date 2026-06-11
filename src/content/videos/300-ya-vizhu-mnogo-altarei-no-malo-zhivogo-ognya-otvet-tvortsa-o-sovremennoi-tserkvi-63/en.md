@@ -2,9 +2,9 @@
 kind: video
 number: 300
 slug: 300-i-see-many-altars-but-little-living-fire-the-creator-s-answer-about-the-modern-church-63
-title: '"I see many altars, but little Living Fire." The Creator''s answer about the modern Church 63'
+title: '"I see many altars, but little Living Fire." The Creator’s answer about the modern Church 63'
 lang: en
-description: 'How does the Father see the Church today? This message carries the Creator''s direct answer:
+description: 'How does the Father see the Church today? This message carries the Creator’s direct answer:
   "I see many altars, but little Living Fire." The True Church is not a building, a denomination, or a
   structure of power — it is the state of the heart where Love dwells and where there is no division between
   "us" and "them."'

@@ -7,7 +7,7 @@ lang: en
 description: 'You thought you were living freely. But look more carefully: five pairs of oxen are harnessed
   to you — the five senses, each paired with a habit of the mind. Sight paired with imagination: you picture,
   but do not truly see. Hearing paired with interpretation: you take offence, but do not truly hear. Smell
-  paired with memory. Taste paired with craving. Touch paired with desire. These are the rich man''s five
+  paired with memory. Taste paired with craving. Touch paired with desire. These are the rich man’s five
   brothers. This is your slavery. Part 3 of 8.'
 tags:
 - Pankratius Speaks

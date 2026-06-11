@@ -5,7 +5,7 @@ slug: 276-where-was-god-when-i-lost-my-loved-ones-the-answer-to-your-pain-god-je
 title: Where was God when I lost my loved ones? The answer to your pain
 lang: en
 description: 'When a loved one dies, the first question is: where was God when I was in such pain? This
-  message is not just words — it is God''s voice speaking directly to your wound. You have the right to
+  message is not just words — it is God’s voice speaking directly to your wound. You have the right to
   cry. He is ready to receive even your anger and your loneliness.'
 tags:
 - Gospel of the Kingdom

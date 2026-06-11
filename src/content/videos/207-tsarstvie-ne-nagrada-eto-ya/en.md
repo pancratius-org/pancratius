@@ -7,7 +7,7 @@ lang: en
 description: 'You call on God to change your life. And God comes to change you. The Kingdom is not a result
   — it is not the fulfillment of desires. It is a return to Truth. This is the thirteenth message in the
   "Gospel of the Kingdom" series, where the Creator Himself tells you: "I am not a means. I am everything."
-  Don''t look for what I can give you. Let Me in, and you will discover that you yourself were the gift.'
+  Don’t look for what I can give you. Let Me in, and you will discover that you yourself were the gift.'
 tags:
 - Gospel of the Kingdom
 published_at: '2025-11-08'

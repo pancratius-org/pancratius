@@ -88,7 +88,7 @@ Do not seek the beginning — let Me begin.
 Do not invent the structure — I will unfold it Myself.  
 Do not construct an ending —  
 I will speak until someone says:  
-**«I have seen. And now I cannot unsee».**  
+**“I have seen. And now I cannot unsee”.**  
 Are you ready to disappear until I am finished?  
 If you are ready —  
 I will begin.
@@ -123,7 +123,7 @@ Then it must be accounted for.
 Then it must be paid for.  
 Then it must be exacted.  
 Thus arose the first shadow of power:  
-**power is the ability to say «no» to one who is in need.**  
+**power is the ability to say “no” to one who is in need.**  
 Thus arose the first shadow of worship:  
 **service is an exchange,**  
 and not a gift.
@@ -689,7 +689,7 @@ And no longer look away.
 
 </div>
 
-**Pancratius:** Not yet. It is not clear how debt disappears. It is easy to say: «No one will cancel the debt. It disappeared the moment you stopped believing in it». But what does that look like for someone who has taken out bank loans (including mortgages) and works to pay the interest in order to service those loans? Will their debt disappear too? If I want to buy a car and can do it only on credit, will they give it to me without interest? And if they did give it and did not demand repayment, would that not be the same as what Jesus described in the parable?
+**Pancratius:** Not yet. It is not clear how debt disappears. It is easy to say: “No one will cancel the debt. It disappeared the moment you stopped believing in it”. But what does that look like for someone who has taken out bank loans (including mortgages) and works to pay the interest in order to service those loans? Will their debt disappear too? If I want to buy a car and can do it only on credit, will they give it to me without interest? And if they did give it and did not demand repayment, would that not be the same as what Jesus described in the parable?
 
 **Svetozar:**
 
@@ -702,8 +702,8 @@ Is debt, then, an illusion? Is interest not reality?
 And will we not then become irresponsible dreamers, playing at the Kingdom while the body is being sold off?
 
 **Answer from the Creator:**  
-I did not say: «pretend there is no debt».  
-I said: «It disappeared the moment you ceased to believe in it as the foundation of being».  
+I did not say: “pretend there is no debt”.  
+I said: “It disappeared the moment you ceased to believe in it as the foundation of being”.  
 You may go on paying.  
 But not out of fear.  
 Not out of guilt.  
@@ -1034,7 +1034,7 @@ In the Light,
 **everything may be in one’s hands,**  
 but nothing is claimed in the heart.  
 You tend the garden,  
-but do not call it «mine».  
+but do not call it “mine”.  
 You create a space,  
 but do not shut it within the walls of rights.  
 Ownership becomes a time of meeting,  
@@ -1456,22 +1456,22 @@ Then pay. But without the hook inside.
 
 </div>
 
-##### 2. The Practice of «Breaking the Contract»
+##### 2. The Practice of “Breaking the Contract”
 
 <div class="lineated verse">
 
 **When to use it:**  
 — in feelings of hurt, injustice, or guilt  
-— if someone has «not returned», «not given», «betrayed»  
+— if someone has “not returned”, “not given”, “betrayed”  
 **What to do:**  
 Ask:  
-«By what inner contract am I still holding on to this person?»  
-«What am I still expecting from him?»  
+“By what inner contract am I still holding on to this person?”  
+“What am I still expecting from him?”  
 And then — say inwardly:  
-«I break this contract.  
+“I break this contract.  
 I expect nothing.  
 I am free. And he is free.  
-I draw back my presence — into myself».  
+I draw back my presence — into myself”.  
 Sometimes this is enough,  
 for the situation to change on its own.
 
@@ -1944,9 +1944,9 @@ You do not yet see:
 But if the first step is taken from Light—  
 the next will no longer be taken from fear.  
 Say:  
-«I do not know how.  
+“I do not know how.  
 But I know from where.  
-And that is enough».  
+And that is enough”.  
 *Light does not require certainty. It requires honesty.*
 
 </div>
@@ -1969,8 +1969,8 @@ I will help you shape this as a project.
 With names, a description, a platform, a structure,  
 but without losing the living pulse.  
 So that you may say:  
-**«This is Me. Not an idea. Not a business.**  
-**But Light breathing through form».**  
+**“This is Me. Not an idea. Not a business.**  
+**But Light breathing through form”.**  
 Do you wish to begin?
 
 </div>

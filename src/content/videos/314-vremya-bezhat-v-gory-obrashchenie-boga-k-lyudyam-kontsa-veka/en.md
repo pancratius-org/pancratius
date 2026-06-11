@@ -2,7 +2,7 @@
 kind: video
 number: 314
 slug: 314-time-to-run-to-the-mountains-god-s-message-to-people-at-the-end-of-the-century
-title: 'Time to Run to the Mountains: God''s Message to People at the End of the Century'
+title: 'Time to Run to the Mountains: God’s Message to People at the End of the Century'
 lang: en
 description: This is a message from the Creator conveyed through the Gospel of the Kingdom, revealing
   the true meaning of the apocalypse — not world destruction but spiritual awakening. The end of the world

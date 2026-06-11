@@ -6,7 +6,7 @@ title: he Kingdom of God is within you
 lang: en
 description: 'The Kingdom of God is within us — but how do we find it? We often hear these words and yet
   rarely receive an answer about how to live them. This is an invitation to look within yourself and feel
-  the presence of God''s light: the path to peace, love, and true serenity.'
+  the presence of God’s light: the path to peace, love, and true serenity.'
 tags:
 - One Light, One Truth, One Consciousness
 published_at: '2024-12-25'

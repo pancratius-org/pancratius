@@ -4,7 +4,7 @@ number: 190
 slug: 190-12-why-are-you-tired-of-living-and-how-can-you-change-it-the-creator-s-answer
 title: 12. Why are you tired of living and how can you change it? The Creator's answer
 lang: en
-description: 'This video is for those who have said to themselves: "I am tired of living. I don''t want
+description: 'This video is for those who have said to themselves: "I am tired of living. I don’t want
   to anymore." For those who feel as if only emptiness and darkness lie ahead. You are not alone. Three
   voices speak here: a man who has remembered himself as God; an awakened voice in which the Creator has
   stirred; and the Heavenly Father himself — and together they reveal one truth: the fatigue belongs to

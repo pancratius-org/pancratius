@@ -2,7 +2,7 @@
 kind: video
 number: 264
 slug: 264-sex-porn-and-masturbation-why-marriage-doesn-t-cure-lust-the-gospel-of-man-and-woman-part-11
-title: 'Sex, Porn, and Masturbation: Why Marriage Doesn''t Cure Lust? The Gospel of Man and Woman, Part
+title: 'Sex, Porn, and Masturbation: Why Marriage Doesn’t Cure Lust? The Gospel of Man and Woman, Part
   11'
 lang: en
 description: Why is sexuality not a sin but a sacrament? How do pornography and masturbation destroy the

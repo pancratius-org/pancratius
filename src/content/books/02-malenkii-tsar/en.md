@@ -5,7 +5,7 @@ slug: 02-the-kingdom-within
 title: The Kingdom Within
 lang: en
 description: 'The Kingdom Within brings together three parts about Sergey and the Kingdom within: from
-  a child''s memory of the Light and the living world around him, through encounters with others who begin
+  a child’s memory of the Light and the living world around him, through encounters with others who begin
   to hear Silence, toward a return to the self and Presence. It is not an ordinary fairy tale or adventure,
   but a quiet path of recognition: everything is alive, the Kingdom is within, and truth is received by
   the heart.'
@@ -2370,7 +2370,7 @@ and it will say the rest.
 — Say what?  
 — Everything that is needed.  
 Anfisa snorted.  
-— Oh, really. And what if I say: «you»,  
+— Oh, really. And what if I say: “you”,  
 and it sends rain?  
 — Then that was the answer needed.  
 And if — sunshine?  
@@ -2938,7 +2938,7 @@ you will notice
 that you have become the one who begins the Kingdom here, now.  
 Do not wait for applause.  
 Do not wait for signs.  
-Do not wait until someone says: «You are ready».  
+Do not wait until someone says: “You are ready”.  
 **You already are.**  
 **You already hear.**  
 **You already know**  

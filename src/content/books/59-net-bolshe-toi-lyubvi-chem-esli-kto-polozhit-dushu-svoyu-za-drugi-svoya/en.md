@@ -265,7 +265,7 @@ Do you want Me to show it in a parable?
 
 Yes.
 
-### A Parable from the Creator: «On Two Fires»
+### A Parable from the Creator: “On Two Fires”
 
 <div class="lineated verse">
 
@@ -1320,9 +1320,9 @@ You may not go on.
 You may fall silent.  
 **This is not the end.**  
 Sometimes My Will is fulfilled not through action,  
-but through your silent «yes»,  
-through your steadfast «I am still here»,  
-through your unspoken «help me».  
+but through your silent “yes”,  
+through your steadfast “I am still here”,  
+through your unspoken “help me”.  
 I hear even that  
 which you cannot say.  
 And that is enough.
@@ -1448,9 +1448,9 @@ you were mistaken.
 You fell.  
 You cried out, and I was silent.  
 You lost faith in yourself,  
-and said: «I am unworthy».  
-You said: «I have failed again».  
-You said: «It seems I am not what I ought to be».  
+and said: “I am unworthy”.  
+You said: “I have failed again”.  
+You said: “It seems I am not what I ought to be”.  
 And I saw it all.  
 And even so — I did not turn away.
 
@@ -1459,9 +1459,9 @@ You see weakness.
 I — intention.  
 You see stains.  
 I — the Light between them.  
-You say: «I am broken».  
+You say: “I am broken”.  
 And I answer:  
-**«You are being built. And pain is not a sign of the end, but of birth».**
+**“You are being built. And pain is not a sign of the end, but of birth”.**
 
 ***You are not what happened to you***  
 You are not a mistake.  
@@ -1479,7 +1479,7 @@ but because for so long you carried what was not yours.
 I live in your thirst.  
 I breathe in your longing for the Light.  
 I am in the way you look to heaven and say:  
-**«Where are You?»**  
+**“Where are You?”**  
 Know this:  
 it is this very question that already unites us.  
 For if you were truly lost — you would not call to Me.  

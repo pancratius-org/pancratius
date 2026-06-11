@@ -2,7 +2,7 @@
 kind: video
 number: 301
 slug: 301-the-apocalypse-is-here-the-truth-they-re-hiding
-title: 'The Apocalypse Is Here: The Truth They''re Hiding'
+title: 'The Apocalypse Is Here: The Truth They’re Hiding'
 lang: en
 description: 'Many sense that the Apocalypse has begun. But this is not the end of the world — it is the
   moment when Truth is revealed. The Second Coming is taking place not in the heavens, but in the hearts

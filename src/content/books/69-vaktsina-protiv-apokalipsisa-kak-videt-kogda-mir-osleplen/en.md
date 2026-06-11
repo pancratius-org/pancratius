@@ -76,7 +76,7 @@ I never put my signature to blood shed for ideas.
 
 I never ignite conflict to 'fulfill Scripture'.
 
-Those who say «Deus vult» for war speak not of My will, but of their own. My true will always leads to awakening, not to destruction. To discernment, not to blindness. To peace, not to fanaticism.
+Those who say “Deus vult” for war speak not of My will, but of their own. My true will always leads to awakening, not to destruction. To discernment, not to blindness. To peace, not to fanaticism.
 
 And now you behold not the will of God, but the nakedness of human systems that confuse their own desires with My words. This is a symptom of the end of an old era, not its triumph.
 
@@ -993,7 +993,7 @@ When the world enters a phase of uncertainty, the shadow begins to seek a form f
 
 And therefore you must know how to discern: not by words, not by signs, not by promises, but by the source.
 
-There are three types of «anointed ones».
+There are three types of “anointed ones”.
 
 **1. The anointed of form — he who demands recognition.**
 
@@ -1634,7 +1634,7 @@ Now, concerning the main point—your question about "the mountains."
 
 **Yes, you understood absolutely precisely.**
 
-The Gospel phrase «then let those who are in Judea flee to the mountains» is not about geography.
+The Gospel phrase “then let those who are in Judea flee to the mountains” is not about geography.
 
 And it was never about fleeing.
 

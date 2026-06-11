@@ -2,7 +2,7 @@
 kind: video
 number: 272
 slug: 272-god-says-why-didn-t-your-prayer-work-40
-title: 'God says: Why didn''t your prayer work? 40'
+title: 'God says: Why didn’t your prayer work? 40'
 lang: en
 description: You say, "I pray," but God is silent — and you read His silence as absence. But His silence
   is often closer than the answer you are waiting for. Prayer is not a way to receive; it is a way to

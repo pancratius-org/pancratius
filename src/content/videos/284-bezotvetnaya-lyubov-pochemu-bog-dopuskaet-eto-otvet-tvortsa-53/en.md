@@ -2,7 +2,7 @@
 kind: video
 number: 284
 slug: 284-unrequited-love-why-does-god-allow-it-the-creator-s-response-53
-title: 'Unrequited Love: Why Does God Allow It? The Creator''s Response. 53'
+title: 'Unrequited Love: Why Does God Allow It? The Creator’s Response. 53'
 lang: en
 description: 'Have you given everything, but received silence in return? Unrequited love is not a sentence
   or a punishment. In this message, the Voice of the Creator comes to remind you: you were not a mistake.

@@ -4,7 +4,7 @@ number: 288
 slug: 288-why-don-t-i-have-money-the-creator-s-answer-that-will-change-your-life-57
 title: Why Don't I Have Money? The Creator's Answer That Will Change Your Life. 57
 lang: en
-description: '"Why don''t I have money?" — I hear that cry. This is a direct message from God revealing
+description: '"Why don’t I have money?" — I hear that cry. This is a direct message from God revealing
   the true root of lack. You think you are poor. In reality, you are the Source, forgotten by itself.'
 tags:
 - Gospel of the Kingdom

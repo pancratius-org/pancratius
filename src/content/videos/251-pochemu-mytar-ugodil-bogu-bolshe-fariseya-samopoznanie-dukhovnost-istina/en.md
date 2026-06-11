@@ -4,7 +4,7 @@ number: 251
 slug: 251-why-did-the-publican-please-god-more-than-the-pharisee-self-knowledge-spirituality-truth
 title: Why did the publican please God more than the Pharisee?
 lang: en
-description: 'True spirituality begins with an honest look into one''s own soul — not with the display
+description: 'True spirituality begins with an honest look into one’s own soul — not with the display
   of external merits. Jesus teaches: be like the publican.'
 tags:
 - Gospel of the Kingdom

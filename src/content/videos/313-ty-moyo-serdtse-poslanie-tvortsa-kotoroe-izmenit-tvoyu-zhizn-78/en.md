@@ -4,8 +4,8 @@ number: 313
 slug: 313-you-are-my-heart-a-message-from-the-creator-that-will-change-your-life-78
 title: 'You Are My Heart: A Message from the Creator That Will Change Your Life 78'
 lang: en
-description: 'Stop. Close your eyes. Don''t think, don''t judge. Just be. And hear this: you are My Heart.
-  I knew you before the light was born. You don''t have to earn it. You cannot lose it. You are loved
+description: 'Stop. Close your eyes. Don’t think, don’t judge. Just be. And hear this: you are My Heart.
+  I knew you before the light was born. You don’t have to earn it. You cannot lose it. You are loved
   — forever, unconditionally, without measure, without end.'
 tags:
 - Gospel of the Kingdom

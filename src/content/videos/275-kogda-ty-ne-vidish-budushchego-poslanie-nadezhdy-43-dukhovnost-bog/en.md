@@ -2,7 +2,7 @@
 kind: video
 number: 275
 slug: 275-when-you-can-t-see-the-future-a-message-of-hope-43-spirituality-god
-title: 'When You Can''t See the Future: A Message of Hope. 43'
+title: 'When You Can’t See the Future: A Message of Hope. 43'
 lang: en
 description: If fear of the future paralyzes you and it seems like emptiness lies ahead, this message
   is for you. You do not need to see the entire path. Your hope is not in your plans, but in His presence

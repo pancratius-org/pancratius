@@ -5,7 +5,7 @@ slug: 278-is-life-passing-you-by-51
 title: Is life passing you by? 51
 lang: en
 description: 'Do you feel like you have missed the most important thing — that your life is almost over,
-  and your heart still hasn''t found peace? God has no time. You are not late. Don''t look back: the past
+  and your heart still hasn’t found peace? God has no time. You are not late. Don’t look back: the past
   is dead to the Spirit. I ask only one thing: are you ready now?'
 tags:
 - Gospel of the Kingdom
