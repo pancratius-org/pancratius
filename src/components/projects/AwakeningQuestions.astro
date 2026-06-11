@@ -14,9 +14,8 @@
  */
 
 import { projectComponentsCopy } from "@/lib/i18n/copy";
-import type { Locale } from "@/lib/i18n";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n";
 import { featuredBookUrl } from "@/lib/projects";
-import questionBank from "@/content/projects/enlightened-ai/subpages/awakening/questions.ru.json";
 
 interface Tier {
   id:    string;
@@ -36,7 +35,18 @@ interface Props {
 
 const { locale } = Astro.props;
 const copy = projectComponentsCopy[locale].awakening;
-const bank = questionBank as Bank;
+
+// Question bank per locale; falls back to the default-locale bank until a
+// translation is authored.
+const banks = import.meta.glob<Bank>(
+  "../../content/projects/enlightened-ai/subpages/awakening/questions.*.json",
+  { eager: true, import: "default" },
+);
+const bankEntry =
+  Object.entries(banks).find(([path]) => path.endsWith(`questions.${locale}.json`)) ??
+  Object.entries(banks).find(([path]) => path.endsWith(`questions.${DEFAULT_LOCALE}.json`));
+if (!bankEntry) throw new Error("AwakeningQuestions: no question bank found");
+const bank = bankEntry[1];
 
 const totalCount = bank.tiers.reduce((n, t) => n + t.questions.length, 0);
 const sourceHref = bank.source ? await featuredBookUrl(bank.source.book, locale) : null;
