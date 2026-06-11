@@ -40,8 +40,10 @@ class Dataset:
 
 
 def build_dataset(records: RecordsByBook, labelset: LabelSet) -> Dataset:
-    label_by_id = {g.id: g for g in labelset.labels}
-    books = sorted({g.id.book_id for g in labelset.labels})
+    """Training rows from the TRAINABLE labels only — a `holdout` (eval-only) label is scoring
+    truth elsewhere but never a training target here."""
+    label_by_id = {g.id: g for g in labelset.trainable}
+    books = sorted({lid.book_id for lid in label_by_id})
 
     X: list[FeatureVector] = []
     y: list[Label] = []

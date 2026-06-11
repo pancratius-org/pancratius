@@ -13,15 +13,16 @@ from lineation_core.evaluation.reader_metrics import PriceTable
 
 def test_load_prices_returns_the_raw_dict():
     raw = store.load_prices()                       # the disk boundary parses no domain type
-    assert isinstance(raw, dict) and raw["version"] == "2026-06-09"
+    assert isinstance(raw, dict) and raw["version"] == "2026-06-10"
     assert "models" in raw
 
 
 def test_load_prices_round_trips_seeded_models():
     pt = PriceTable.from_dict(store.load_prices())
-    assert pt.version == "2026-06-09"
+    assert pt.version == "2026-06-10"
     assert pt.price("x-ai/grok-4.3") == (1.25e-6, 2.5e-6)
     assert pt.price("deepseek/deepseek-v4-flash") == (0.0983e-6, 0.1966e-6)
+    assert pt.price("qwen/qwen3.6-flash") == (0.1875e-6, 1.125e-6)
 
 
 def test_price_fails_loud_on_unknown_model():

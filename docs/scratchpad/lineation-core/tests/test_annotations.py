@@ -16,16 +16,22 @@ def labelset():
 
 # --- the loaded set is the trainable truth, unmapped rejected ---
 
-def test_locked_trainable_count(labelset):
-    """620 trainable mapped labels; the 2 unmapped-line labels are REJECTED at the boundary and
-    surfaced, not silently dropped."""
-    assert len(labelset.labels) == 620
+def test_locked_label_counts(labelset):
+    """702 mapped labels = 620 trainable + 82 holdout (the homed contested-only human
+    adjudications — eval-only truth); the 2 unmapped-line labels are REJECTED at the boundary
+    and surfaced, not silently dropped."""
+    assert len(labelset.labels) == 702
+    assert len(labelset.trainable) == 620
+    assert sum(g.holdout for g in labelset.labels) == 82
     assert labelset.n_rejected_unmapped == 2
 
 
 def test_class_balance_locked(labelset):
+    """21 labels (16 trainable + 5 holdout) are recency-resolved: where human adjudication passes
+    disagree on a line, the latest-mtime pass is the verdict (18 →lineated, 3 →prose)."""
     from collections import Counter
-    assert dict(Counter(g.label for g in labelset.labels)) == {"lineated": 530, "prose": 90}
+    assert dict(Counter(g.label for g in labelset.trainable)) == {"lineated": 540, "prose": 80}
+    assert dict(Counter(g.label for g in labelset.labels)) == {"lineated": 605, "prose": 97}
 
 
 def test_every_loaded_label_is_mapped(labelset):
@@ -49,8 +55,14 @@ def test_all_labels_are_ru(labelset):
 
 
 def test_lineage_preserved_with_provenance(labelset):
+    """Every label keeps its lineage: the original migration cohort carries the legacy shard key
+    (rid/idx/sub/shard); the homed contested-only cohort points at the legacy human adjudication
+    export that produced it (adjudication/rid/key)."""
     for g in labelset.labels:
-        assert {"rid", "idx", "sub", "shard"} <= set(g.provenance.keys())
+        if g.holdout:
+            assert {"adjudication", "rid", "key"} <= set(g.provenance.keys())
+        else:
+            assert {"rid", "idx", "sub", "shard"} <= set(g.provenance.keys())
         assert g.source == LabelSource.HUMAN
         assert g.line_text_hash is not None
 
@@ -60,7 +72,7 @@ def test_idx_to_src_mapping_is_real_for_every_g05_line(labelset):
     block_index (the join the one-shot migration did, re-validated here on read). g05_b37 is a
     hardbreak region (a human noted an IR render bug there) — exactly where a mis-join would be
     silent and dangerous. We verify the FULL set, reading the labels FROM the loaded artifact."""
-    g05 = [g for g in labelset.labels if g.provenance.get("rid") == "g05_b37"]
+    g05 = [g for g in labelset.trainable if g.provenance.get("rid") == "g05_b37"]
     assert len(g05) >= 5, "expected the g05_b37 hardbreak labels"
     recs = {r.id: r for r in producer.read_lines(paths.book_docx("37"), "ru", "37")}
     for g in g05:

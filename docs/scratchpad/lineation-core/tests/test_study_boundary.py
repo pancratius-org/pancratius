@@ -74,8 +74,10 @@ def test_run_study_leaves_real_annotations_byte_unchanged(tmp_path):
     ann = tmp_path / "annotations"
     (ann / "eval_sets").mkdir(parents=True)
     picks = [x.id for x in store.load_records("57") if x.votable][:3]
-    (ann / "eval_sets" / "tiny.json").write_text(
-        json.dumps([{"id": lid.as_key(), "label": "lineated"} for lid in picks]))
+    (ann / "eval_sets" / "tiny.json").write_text(json.dumps([lid.as_key() for lid in picks]))
+    (ann / "labels.jsonl").write_text("".join(
+        json.dumps({"id": lid.as_key(), "label": "lineated", "source": "human"}) + "\n"
+        for lid in picks))
     exp = load_experiment(_TOML, annotations=ann)
     run_study(exp, _Canned(), PriceTable(version="t", models={"deepseek/deepseek-v4-flash": (1e-6, 1e-6)}),
               now=datetime(2026, 6, 9, tzinfo=UTC), git_sha="abc",

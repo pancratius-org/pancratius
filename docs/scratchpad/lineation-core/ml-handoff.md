@@ -16,8 +16,11 @@ prompt + orphan labels from the legacy tree, and the paid 300-line acquire run (
   ONE producer (`producer.read_lines`), `LineId(lang,book_id,src_ordinal,sub)` joined by src_ordinal
   with docx/paragraph/line **hash rails**; functional-core / imperative-shell with `store.py` the only
   IO edge. Replaced the old intent-classifier pipeline (a landmine field).
-- **Interpretable student** — logistic, φ-only, book-held-out OOF, ~**0.96 balanced-acc** on the
-  contested set; **run-smoothing α=0.75** (a composable layer; matches grok, beats other readers).
+- **Interpretable student** — logistic, φ-only, book-held-out OOF; **run-smoothing α=0.75** (a
+  composable layer). ⚠️ Under the recency-resolved truth (see "ONE truth store") the student is
+  markedly weaker than the old ~0.96 claim: **0.844 CV balanced-acc / 0.867 contested** — the
+  resolved lines are φ-prose-shaped but human-lineated, so they poison the prose boundary
+  (prose_f1 0.91 → 0.71). Honest number; the active-learning loop is what closes it.
 - **Reproducible physics** — `fill`/`wraps` features measured with a **vendored, hash-pinned Liberation
   Serif** (`src/lineation_core/vendor/`), with a drift-guard vs the live LibreOffice; packaged into the
   wheel/sdist (clone-build-run works).
@@ -49,22 +52,52 @@ prompt + orphan labels from the legacy tree, and the paid 300-line acquire run (
   partial evidence. Surfaces `uncovered` + the operational-vs-terminal split instead of the adaptive-
   reps loop (still deferred — it's the paid-run-coupled wrapper, see DEFERRED).
 - **The eval harness** (`evaluation/{datasets,metrics,policy_replay}` + TOML) — replays policies on the
-  515-line aligned set (truth ⋈ votes); multi-dimensional metrics (accept-quality vs human-load, kept
+  529-line aligned set (truth ⋈ votes); multi-dimensional metrics (accept-quality vs human-load, kept
   separate; **total-population capture**, not misleading accept-set recall).
+- **ONE truth store** — `labels.jsonl` holds EVERY label (704 rows = 620 trainable + 82 `holdout`
+  eval-only + 2 unmapped-rejected); `eval_sets/*.json` are MEMBERSHIP-only key lists, truth always
+  read through `evaluation.datasets.eval_slice` (fail-loud on a member with no label). The 83
+  contested-only labels were provenance-traced to the legacy human adjudication exports
+  (pilot/gold-block2/queue-audit/wide-prose-guardrail, by normalized text) and homed as
+  `holdout` human labels — 82 homed, 1 dropped (`ru:33:894.0` — a legacy idx written as an
+  ordinal; the line is unmapped `ru:33:9000894.0` in the corpus). A study manifest pins
+  `eval_set_sha256` (membership) AND `truth_sha256` (the joined truth as scored).
+- **RECENCY-RESOLVED truth (2026-06-11)** — the adjudication passes overrule each other; the
+  owner's precedence rule is **latest-mtime human verdict wins** (the export files' mtimes are
+  the original adjudication times; verified spread Jun 1 12:25 → Jun 3 21:54, corroborated by
+  embedded `completedAt`). The unification had reconciled the double-judged lines toward the
+  STALE side; **21 labels were corrected** (16 trainable + 5 holdout; 18 →lineated, 3 →prose):
+  b19:8155→prose, b23:933/935→prose, b28:1697-99, b30:17/18, b32:30513, b33:891/893/895/897/898
+  (holdout), b37:414.1, b41:2247, b66:55-59 →lineated. Each corrected row is
+  `audit_status: recency_resolved` with the winning export + mtime, the `overturned` prior and
+  the full pass history in `provenance`. Join was by normalized text + `line_text_hash` rails
+  (legacy `idx` untrusted — the same line appears under different idx spaces across exports).
+  ⚠️ `ru:37:414.1` is the one judgment call: the latest verdict (queue-audit 21:40, lineated)
+  was never overruled, but the 21:54 stage12 ingest recorded it as an audit disagreement and
+  REOPENED `g05_b37` (render-bug note) instead of folding it — applied latest-wins; re-adjudicate
+  on a fixed render if the reopen was meant as a veto. Contested baseline under this truth:
+  **0.941** for the stale-trained student re-scored (the review's number, confirmed exactly:
+  0.9412) and **0.867** retrained on the corrected labels — the committed lock. No committed
+  experiment manifest pins `truth_sha256` (all predate the pin), so none needed recomputing; the
+  `experiments/` scorecards are historical pre-fix numbers.
 - **The acquire set** — `annotations/selections/acquire.json`: 300 least-confident lines, **≤40/book**
   (19 books, broad), razor-uncertain (margin max 0.011).
 
 ## SETTLED result — which decision policy
-Replay on the 515 historical aligned lines (candidate-composite vote artifact):
+Replay on the 529 aligned lines under the RECENCY-RESOLVED truth (candidate-composite vote artifact):
 
-    policy            balAcc  autoProse  autoLin  P->L  humanRt
-    legacy(2,0.7)      0.969   1.000      0.870     0    0.064     ← WINNER
-    unanimous          0.969   0.746      0.664     0    0.287
-    equal_majority     0.948   1.000      0.894     0    0.002
+    policy            balAcc  autoProseCap  P->L  humanRt
+    legacy(2,0.7)      0.947   58/59          1    39       ← still the pick, no longer free
+    unanimous          0.957   0.729          0    157
+    equal_majority     0.929   58/59          1    1
 
-**Legacy anchor-led (min_core_agree=2, conf_floor=0.7)** — same accuracy as the unanimous default but
-4.5× less human load, captures all 63 true prose, zero prose-mislabeled. Use it live. **Caveat:** this
-is settled on the *historical* protocol; monitor on the future page-only/live protocol.
+**Legacy anchor-led (min_core_agree=2, conf_floor=0.7)** stays the live policy, but the recency fix
+changed its headline: it now gives up **~0.010 balanced-acc** to unanimous and makes **one**
+prose→lineated false accept (a line the panel called lineated confidently; the latest human pass
+settled prose) for the 4× human-load cut. The old "same accuracy, zero prose-mislabeled, all 63
+prose captured" claim was an artifact of the stale truth. Re-examine if prose false-accepts are
+costlier than load. **Caveat:** settled on the *historical* protocol; monitor on the future
+page-only/live protocol.
 
 ## What we TRIED and REJECTED (don't re-tread)
 - **Briefs v1/v2/v3** — only slid the prose/lineated threshold. **v6/v7/v8** — later experiments, NEVER
@@ -133,17 +166,18 @@ is settled on the *historical* protocol; monitor on the future page-only/live pr
        gate (real 3-reader roster + anchor-led decision + a frozen stratified eval slice). NB the gate
        anchors on grok (strongest under v3-terse), so prompt choice interacts with the gate.
    - **Orphan human labels** — DO NOT fold the guardrail batches (`responses-fresh-prose-guardrail-*`,
-     `responses-wide-prose-guardrail-*`) into `labels.jsonl`. Reading the humans' own notes, they are a
-     mixed-criterion GENERALIZATION-TEST artifact — several are explicitly uncertain / "lazy" / voted
-     by book-prior against the per-line judgment ("for consistency i vote lineation (prior
-     distribution)"). Per the eval invariant, held-out guardrail slices are eval, never training. If
-     wanted, keep as raw guardrail evidence or a curated `eval_sets/` slice — not per-line truth. The
-     `review_gold-stage12.json` audit corrections already AGREE with current truth (migration applied
-     them); no action. (Mapping, when needed, is by NORMALIZED exact text — strip `*` md emphasis,
-     collapse whitespace — to the clean-room line, then carry its `line_text_hash`; NOT a hash join,
-     and the legacy `idx` is NOT trusted. A one-off dry-run extractor confirmed: of 183 rows, 148
-     already in truth, 25 cleanly new-mapped, 10 book-64 text collisions, 6 conflict with existing
-     human truth.)
+     `responses-wide-prose-guardrail-*`) into `labels.jsonl` *as trainable truth*. Reading the humans'
+     own notes, they are a mixed-criterion GENERALIZATION-TEST artifact — several are explicitly
+     uncertain / "lazy" / voted by book-prior against the per-line judgment ("for consistency i vote
+     lineation (prior distribution)"). Per the eval invariant, held-out guardrail slices are eval,
+     never training. (RESOLVED for the contested slice: its 83 store-orphaned labels are homed in
+     `labels.jsonl` as `holdout` eval-only rows — see "ONE truth store" above; the wider guardrail
+     batches beyond the contested membership remain unfolded.) Where a guardrail/audit pass
+     re-judged an ALREADY-LABELED line, recency precedence applies (see "RECENCY-RESOLVED truth");
+     the stage12 audit's one disagreement (`g05_b37|392.1`) is resolved there. (Mapping is by
+     NORMALIZED exact text — strip `*` md emphasis, collapse whitespace — to the clean-room line,
+     then carry its `line_text_hash`; NOT a hash join, and the legacy `idx` is NOT trusted. The
+     book-64 text collisions disambiguate by `block_index==idx` / `src_ordinal==idx` agreement.)
 3. **Live 300-acquire run** — needs **OPENROUTER_API_KEY** (reachable via `source .env`) + the ~3 reader
    model ids + the chosen **UNIT-BEFORE-LINE page-only prompt** (step 2 — a hybrid/finalist, NOT yet
    locked) in a routed recipe (vision, the 19 acquire books). Build with `recipes build`, then `panel`

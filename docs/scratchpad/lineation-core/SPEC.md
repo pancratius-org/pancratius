@@ -71,22 +71,40 @@ manifest.json            producer_version, schema_version, hashes, langs, counts
 ```
 committed truth — `annotations/`:
 ```
-labels.jsonl             LineLabel records WITH provenance (the per-line TRAINING truth)
+labels.jsonl             THE one truth store: every LineLabel WITH provenance. Trainable truth =
+                         the non-holdout subset; holdout labels are eval-only (scored, never trained)
 votes.jsonl              the LLM panel's per-line votes (reader tag + label + conf)
-eval_sets/contested.json the page re-adjudication EVAL slice ({LineId, label}) — never training
+eval_sets/<name>.json    a frozen eval slice's MEMBERSHIP — LineId keys ONLY. Its truth is always
+                         the labels.jsonl join (`evaluation.datasets.eval_slice`, fail-loud on a
+                         member with no label); a slice never carries a second copy of the labels
 ```
 ```
 LineLabel:
   id: LineId
   label: prose|lineated
-  source: human|gate|panel|override
+  source: human|gate|panel|override|transfer   # transfer = derived (e.g. RU→EN ordinal carry)
   confidence: float|null
   audit_status: …
   notes: str
   provenance: …        # opaque lineage — so corrections (e.g. g05) remain reasoned about
+  holdout: bool        # true = eval-only truth (e.g. a frozen acceptance slice's labels,
+                       #        or adjudications minted for an eval design) — never a training target
 ```
-Training projects to `{LineId: label}`, but **stored truth keeps lineage.** Every annotation
-artifact is `LineId`-keyed; consumers join by `LineId` — there is no structural-view key.
+Training projects the non-holdout labels to `{LineId: label}`, but **stored truth keeps
+lineage.** Every annotation artifact is `LineId`-keyed; consumers join by `LineId` — there is no
+structural-view key. **One truth, two pins:** an eval is frozen by pinning, not by copying — a
+study manifest records the membership file sha256 AND `truth_sha256` (the joined `{LineId:
+label}` as scored), so a corrected label after the fact is a loud audit mismatch, never a silent
+re-score.
+
+**Adjudication precedence is RECENCY.** Human adjudication passes re-judge lines and may overrule
+each other; a line's authoritative label is its **latest-mtime** human verdict (the adjudication
+exports' mtimes are the original adjudication times). A line judged once stands. A recency-resolved
+row (`audit_status: recency_resolved`) carries the winning export + its mtime
+(`provenance.adjudication`/`adjudicated_at`), the `overturned` prior label, and the full pass
+history (`other_adjudications`). Joining a legacy export entry to a `LineId` is by NORMALIZED exact
+text (strip `*` emphasis, collapse whitespace) against the book's line records, cross-checked by
+`line_text_hash` — the legacy `idx` is never trusted (idx-vs-ordinal key spaces differ per export).
 
 ## Producer (exactly one)
 ```

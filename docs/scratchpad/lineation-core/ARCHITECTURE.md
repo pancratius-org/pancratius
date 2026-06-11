@@ -53,8 +53,9 @@ This is **seeded, pool-based active learning** — round 0 has no student.
 Two acquisition signals feed the human oracle, at two stages: **student uncertainty** (`selection.py`
 — which *unlabelled* lines to send the panel) and **panel/committee disagreement**
 (`teacher/decision.py` — which *panel-labelled* lines to send the human). Held-out validation slices
-are FROZEN as committed `eval_sets/` and NEVER folded into training, so they score prompts/policies
-without leakage.
+are FROZEN as committed `eval_sets/` MEMBERSHIPS (LineId keys only); their truth lives in
+`labels.jsonl` like all truth, marked `holdout` where it must never become a training target, so
+they score prompts/policies without leakage and without a second label store.
 
 ## Authored configs — three TOML roles
 

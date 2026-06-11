@@ -11,6 +11,10 @@ from lineation_core.evaluation import compare
 def test_compare_locked(corpus):
     records, labelset = corpus
     cmp = compare.score(records, labelset, by_reader())
-    assert cmp.n_labels_shared == 515
+    # 529 = the historical 515 + 14 voted lines whose human labels were homed from the contested
+    # eval set into labels.jsonl (holdout) — a deliberate re-lock of the shared population.
+    assert cmp.n_labels_shared == 529
     grok = next(r for r in cmp.rows if r.reader == "grok")
-    assert grok.student_metrics.balanced_acc == pytest.approx(0.963, abs=0.01)
+    # 0.811 under the recency-resolved truth — the student retrained on the corrected labels loses
+    # prose recall on the shared population (see test_contested for the same effect).
+    assert grok.student_metrics.balanced_acc == pytest.approx(0.811, abs=0.01)

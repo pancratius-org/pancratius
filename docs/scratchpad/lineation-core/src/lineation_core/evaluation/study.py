@@ -26,6 +26,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .. import paths, store
+from . import datasets
 from ..identity import BookId, Label, LineId, ReaderTag
 from ..teacher import recipes, responses, tasks
 from ..teacher.panel import (ChatCompleter, PanelConfig, ReaderConfig, ResponseContract,
@@ -120,10 +121,10 @@ def load_experiment(toml_text: str, *, prompts_dir: Path | None = None,
 
 
 def _dataset_books(name: str, *, annotations: Path | None) -> tuple[BookId, ...]:
-    """The books a frozen eval set spans, from its own LineIds — so the author need not re-list them
-    (and a stale author list can't diverge from the data)."""
-    rows = store.load_eval_set(name, annotations=annotations)
-    return tuple(sorted({LineId.from_key(r["id"]).book_id for r in rows}))
+    """The books a frozen eval slice spans, from its own LineIds — so the author need not re-list
+    them (and a stale author list can't diverge from the data)."""
+    keys = store.load_eval_set(name, annotations=annotations)
+    return tuple(sorted({LineId.from_key(k).book_id for k in keys}))
 
 
 def _base_recipe(d: Mapping[str, object], exp_d: Mapping[str, object], dataset_name: str,
@@ -196,15 +197,12 @@ type Truth = Mapping[LineId, Label]
 
 
 def _eval_truth(dataset_name: str, *, annotations: Path | None) -> tuple[Truth, list[LineId]]:
-    """The frozen eval set's `{LineId: truth}` and its line list — the scoring denominator."""
-    rows = store.load_eval_set(dataset_name, annotations=annotations)
-    truth: dict[LineId, Label] = {}
-    lines: list[LineId] = []
-    for r in rows:
-        lid = LineId.from_key(r["id"])
-        truth[lid] = r["label"]
-        lines.append(lid)
-    return truth, lines
+    """The frozen eval slice's `{LineId: truth}` and its line list — the scoring denominator.
+    Truth comes from `labels.jsonl` through the ONE join (`datasets.eval_slice`); the slice file
+    is membership only, so a study and a policy replay can never score the same line against two
+    different stores."""
+    s = datasets.eval_slice(dataset_name, annotations=annotations)
+    return s.truth, list(s.lines)
 
 
 def _build_specs(recipe: Recipe, *, annotations: Path | None) -> tuple[list[ItemSpec], dict]:
@@ -321,17 +319,20 @@ def _score_readers(manifest, reps, records, readers: Sequence[ReaderConfig], tru
 def _stamp_manifest(exp: Experiment, models: Mapping[ReaderTag, str], prices: PriceTable, *,
                     timestamp: str, git_sha: str, annotations: Path | None,
                     prompts_dir: Path | None) -> Manifest:
-    """Build the provenance manifest, fingerprinting the eval set + the per-modality prompts; the git
-    SHA and timestamp are resolved by the caller (timestamp = when the evidence was first produced)."""
+    """Build the provenance manifest, fingerprinting the eval slice (membership file AND the joined
+    truth) + the per-modality prompts; the git SHA and timestamp are resolved by the caller
+    (timestamp = when the evidence was first produced)."""
     eval_path = (annotations or paths.ANNOTATIONS) / "eval_sets" / f"{exp.dataset_name}.json"
     prompt_fps: dict[str, PromptFingerprint] = {}
     for modality, filename in exp.prompt_files.items():
         path = (prompts_dir or paths.PROMPTS) / filename
         prompt_fps[modality] = PromptFingerprint(filename=filename, sha256=store.sha256_file(path))
     temperature, max_tokens = _sampling(exp)
+    truth_sha = datasets.truth_fingerprint(
+        datasets.eval_slice(exp.dataset_name, annotations=annotations))
     return Manifest(
         git_sha=git_sha, timestamp=timestamp, eval_set=exp.dataset_name,
-        eval_set_sha256=store.sha256_file(eval_path), prompts=prompt_fps,
+        eval_set_sha256=store.sha256_file(eval_path), truth_sha256=truth_sha, prompts=prompt_fps,
         base_response_contract=exp.base.contract.value, models=dict(sorted(models.items())),
         temperature=temperature, max_tokens=max_tokens,
         reps=exp.base.reps, seed=exp.meta.seed, price_table_version=prices.version,
