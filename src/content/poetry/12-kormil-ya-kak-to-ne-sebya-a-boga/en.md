@@ -24,7 +24,7 @@ looks on the fruit, the bread, the warm soft cheese…
 God is one. But to become a touch,  
 to enter taste, and breath, and heat, and crunch,  
 He became you, He became my own attention,  
-He is set inside the human like a vessel.
+He is placed within the human as within a vessel.
 
 Not so that He might hide Himself behind us,  
 not so that He might own us as His own, —  
@@ -154,7 +154,7 @@ to enter the taste of all that God has made.
 He is God's way to touch the world with lips.  
 He is the world's way to grow dear to God.  
 And if we'll stay, even a moment, with ourselves,  
-then maybe God, too, will abide with Him.
+then maybe God, too, will abide with us.
 
 And maybe, at the very quietest of meals,  
 where there are no speeches, only light and bread,  

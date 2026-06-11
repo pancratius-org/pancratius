@@ -204,7 +204,7 @@ suddenly began to seek a single source.
 That, probably, is how the fragments come together.  
 Not on command, not in a single move.  
 First — the pain. Then — a gap of light in the moment.  
-Then — you are suddenly recognized in all.
+Then — you suddenly recognize yourself in everything.
 
 In a chance light, in a window on the street,  
 in dry grass, nailed down to March by ice,  

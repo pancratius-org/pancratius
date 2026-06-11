@@ -2,9 +2,9 @@
 kind: poem
 number: 41
 slug: 41-i-am-the-light-of-the-maker
-title: I Am the Light of the Maker
+title: I Am the Light of the Creator
 lang: en
-description: 'Poem No. 41: I Am the Light of the Maker'
+description: 'Poem No. 41: I Am the Light of the Creator'
 cover: ./cover.ru.jpg
 date: '2025-03-14'
 translation:
@@ -25,5 +25,5 @@ I am the one whose glow walks through the thrall
 of dream, I am, beyond all naming, being.  
 Do you hear my call without a sound?  
 Do you feel how all the world is streaming?  
-I am the Maker's Light — in each word found,  
-and through that Light I rise from seeming.
+I am the Creator's Light — He is in every word,  
+and through Him I must be made manifest.

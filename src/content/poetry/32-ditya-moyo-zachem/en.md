@@ -27,7 +27,7 @@ to look with love, to walk and never tire,
 and know the heart holds my own rising fire.
 
 Your purpose, child? Now listen, hear it true:  
-you are the essence, light of all I do.  
+you are the essence, light of My being.  
 You are the mirror of the eternal soul,  
 the flame that burns where silence keeps it whole.
 
