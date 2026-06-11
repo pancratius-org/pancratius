@@ -4,7 +4,7 @@ number: 294
 slug: 294-the-second-coming-is-already-in-you-revelation-kingdom
 title: The Second Coming is already in you
 lang: en
-description: 'The Creator''s gaze has no conditions. It does not compare, does not judge, does not wait
+description: 'The Creator’s gaze has no conditions. It does not compare, does not judge, does not wait
   for you to be different. "I see you — and immediately: I love you. I see — and immediately: I Am." This
   message asks why we seek proof of our worth in the external world, when the answer is always within
   — and how to begin to see ourselves through the eyes of God.'

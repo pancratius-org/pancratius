@@ -2,7 +2,7 @@
 kind: video
 number: 283
 slug: 283-don-t-confuse-desire-with-love-5-signs-of-a-man-for-the-covenant-48
-title: 'Don''t Confuse Desire with Love: 5 Signs of a Man for the Covenant. 48'
+title: 'Don’t Confuse Desire with Love: 5 Signs of a Man for the Covenant. 48'
 lang: en
 description: 'Many wonder how to find the right person, but the deeper question is: how do you recognize
   the one sent by God? A true union between a man and a woman is not a set of rules — it is a profound

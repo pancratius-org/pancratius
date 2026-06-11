@@ -4,7 +4,7 @@ number: 249
 slug: 249-funny-animals-or-you
 title: funny animals or you?
 lang: en
-description: 'This video isn''t about animals. A raccoon frightened by its own reflection, a dog barking
+description: 'This video isn’t about animals. A raccoon frightened by its own reflection, a dog barking
   at itself, a monkey posing before a mirror — we recognize ourselves in every one of these moments: the
   fear, the resistance, the urge to appear better than we are.'
 tags:

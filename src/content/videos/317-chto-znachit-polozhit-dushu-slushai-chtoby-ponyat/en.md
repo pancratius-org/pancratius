@@ -2,7 +2,7 @@
 kind: video
 number: 317
 slug: 317-what-does-it-mean-to-lay-down-one-s-soul-listen-to-understand
-title: 'What does it mean to "lay down one''s soul": listen to understand!'
+title: 'What does it mean to "lay down one’s soul": listen to understand!'
 lang: en
 description: What happens when a person truly listens — not to respond, not to defend themselves, but
   simply to understand? In that moment, something stills within. We stop preparing arguments and allow

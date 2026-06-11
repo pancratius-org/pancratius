@@ -4,9 +4,9 @@ number: 223
 slug: 223-why-can-t-you-enter-heaven-five-reasons-part-8
 title: Why Can't You Enter Heaven? Five Reasons. Part 8
 lang: en
-description: 'You heard. You didn''t fully comprehend — but you recognized. You didn''t add to your knowledge
+description: 'You heard. You didn’t fully comprehend — but you recognized. You didn’t add to your knowledge
   — you met yourself. And now you ask: how do I not lose this? How do I remain in the Light? The answer
-  is: don''t do — live. Don''t hold on — trust. Don''t go — stay.'
+  is: don’t do — live. Don’t hold on — trust. Don’t go — stay.'
 tags: []
 published_at: '2025-11-13'
 duration: PT1M52S

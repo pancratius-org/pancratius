@@ -2,7 +2,7 @@
 kind: video
 number: 273
 slug: 273-when-you-don-t-want-to-live-the-creator-s-response
-title: 'When You Don''t Want to Live: The Creator''s Response'
+title: 'When You Don’t Want to Live: The Creator’s Response'
 lang: en
 description: If you are in a severe crisis and the words "I don't want to live" are ringing within you
   — stop here. This is the living Word of the Creator speaking directly to your heart in a moment of despair.

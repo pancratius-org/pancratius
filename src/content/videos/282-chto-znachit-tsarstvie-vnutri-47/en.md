@@ -5,7 +5,7 @@ slug: 282-what-does-it-mean-the-kingdom-within-47
 title: 'What does it mean: "The Kingdom Within" 47'
 lang: en
 description: 'We are used to looking for God somewhere out there — in heaven, in the future, in miracles.
-  But Jesus said clearly: the Kingdom of God is within you. This isn''t a beautiful metaphor. It is a
+  But Jesus said clearly: the Kingdom of God is within you. This isn’t a beautiful metaphor. It is a
   guide to discovering reality.'
 tags:
 - Gospel of the Kingdom

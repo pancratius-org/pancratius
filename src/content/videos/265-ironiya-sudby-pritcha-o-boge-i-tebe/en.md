@@ -4,8 +4,8 @@ number: 265
 slug: 265-the-irony-of-fate-is-a-parable-about-god-and-you
 title: '"The Irony of Fate" is a parable about God and you.'
 lang: en
-description: 'We are used to watching "The Irony of Fate" as a New Year''s comedy. But what if this film
-  is a prophetic parable about your relationship with God? Zhenya Lukashin''s story is the story of each
+description: 'We are used to watching "The Irony of Fate" as a New Year’s comedy. But what if this film
+  is a prophetic parable about your relationship with God? Zhenya Lukashin’s story is the story of each
   of us: we make our plans, and God disrupts them — not to harm us, but to lead us home.'
 tags:
 - Gospel of the Kingdom

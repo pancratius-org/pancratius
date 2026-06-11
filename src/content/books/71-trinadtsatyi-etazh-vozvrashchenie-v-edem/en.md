@@ -25,7 +25,7 @@ translation:
 
 Hello, Neo. You've come at the right time.
 
-*The Oracle, film «The Matrix»*
+*The Oracle, film “The Matrix”*
 
 </div>
 
@@ -314,7 +314,7 @@ Now a second opinion appears.
 
 A split appears.
 
-A «what if otherwise?» appears.
+A “what if otherwise?” appears.
 
 It is here that the world of separation is born.
 
@@ -324,11 +324,11 @@ Because he *wants to be like God.*
 
 And this must be heard in all its force.
 
-Not simply «broke the command».
+Not simply “broke the command”.
 
-Not simply «did a bad deed».
+Not simply “did a bad deed”.
 
-Not simply «was curious about knowledge».
+Not simply “was curious about knowledge”.
 
 No.
 
@@ -368,13 +368,13 @@ The flaming sword turns.
 
 The road back no longer belongs to man in the form in which he had wanted it.
 
-If one takes the image of the sun and accepts that man, like the sun, has now risen from the east, in the zenith of his glory caroused and rejoiced, at sunset began to notice his inheritance diminishing, by the end of the day was bereft of his inheritance, in the night fell below the swine, before dawn realized his fall and desired to return, and at sunrise began the return — then in the morning he again finds himself in the east. But this is no longer the proud «sun» that had appropriated the dignity of God, but a humbled man who has lost the remnants of «I», ego and pride. Formally, he still approaches Eden from that same east, where the entrance is guarded by cherubim and a flaming sword. One would think he has no chance of entering…
+If one takes the image of the sun and accepts that man, like the sun, has now risen from the east, in the zenith of his glory caroused and rejoiced, at sunset began to notice his inheritance diminishing, by the end of the day was bereft of his inheritance, in the night fell below the swine, before dawn realized his fall and desired to return, and at sunrise began the return — then in the morning he again finds himself in the east. But this is no longer the proud “sun” that had appropriated the dignity of God, but a humbled man who has lost the remnants of “I”, ego and pride. Formally, he still approaches Eden from that same east, where the entrance is guarded by cherubim and a flaming sword. One would think he has no chance of entering…
 
-But if one stops here, the story will be incomplete. For then it will seem that man has only fallen, only gone out, only lost. But how to return? How to enter again? How to pass from the singled-out, separate, fallen «I» back into the Father's house?
+But if one stops here, the story will be incomplete. For then it will seem that man has only fallen, only gone out, only lost. But how to return? How to enter again? How to pass from the singled-out, separate, fallen “I” back into the Father's house?
 
 Here the second parable enters — the prodigal son.
 
-Jesus does a remarkable thing. He does not dispute Genesis. He does not annul Eden. He does not rewrite the expulsion. He simply finishes what there was left as a mystery. He shows that the son, having once taken his own apart, indeed must go away. Indeed must go into a far country. Indeed must squander all. Indeed must come to the end of the separate «I». But this is not the end. For in the very depth of the fall a memory may begin. And then the son **comes to himself.**
+Jesus does a remarkable thing. He does not dispute Genesis. He does not annul Eden. He does not rewrite the expulsion. He simply finishes what there was left as a mystery. He shows that the son, having once taken his own apart, indeed must go away. Indeed must go into a far country. Indeed must squander all. Indeed must come to the end of the separate “I”. But this is not the end. For in the very depth of the fall a memory may begin. And then the son **comes to himself.**
 
 These may be the most important words of the parable.
 
@@ -392,7 +392,7 @@ And that means that before this he was outside himself.
 
 He lived not from his true centre (God – I AM).
 
-He had been seized by a false image of himself — «I».
+He had been seized by a false image of himself — “I”.
 
 He lived as the separate owner of that which could never be separate from the Father.
 
@@ -400,9 +400,9 @@ But the Father himself runs to meet the son, so that the son does not even reach
 
 Now let us look at the elder son. There is a subtlety here that is often missed, and it may prove the key to the whole parable. When the younger asks for his share, the father does not merely hand him a portion and keep the rest to himself. More exactly: **he divided the estate between them.** That is, between both sons. If one hears this seriously, an almost legal paradox arises: formally, after the division it is as if the father has nothing left. All the property is allotted. One share went to the younger, the other to the elder. And if one looks only from the standpoint of outward possession, the elder should now have become the full steward of everything that remained in the house.
 
-But the parable at once shows that this does not happen. Later the elder son reproaches the father: «**you never gave me even a kid so that I might celebrate with my friends».** Thus he lives amid that property, formally already having received all of it as his share, and yet he does not dispose of it as a separate master. He does not take even the small as his own. He does not act as a center of possession. And then the father's words — **«you are always with me, and all that is mine — yours»** — begin to sound not as bookkeeping, but as the disclosure of another logic. All that is his — not in the sense of separated ownership, but in the sense of undivided life with the father. The elder son has everything, but not as an independent owner, rather as one who dwells in the house, in unity, in non-division. This is no longer the logic of “mine against yours,” but the logic of a fullness in which what is given to the son does not cease to be the father's, and the father's does not cease to be the son's.
+But the parable at once shows that this does not happen. Later the elder son reproaches the father: “**you never gave me even a kid so that I might celebrate with my friends”.** Thus he lives amid that property, formally already having received all of it as his share, and yet he does not dispose of it as a separate master. He does not take even the small as his own. He does not act as a center of possession. And then the father's words — **“you are always with me, and all that is mine — yours”** — begin to sound not as bookkeeping, but as the disclosure of another logic. All that is his — not in the sense of separated ownership, but in the sense of undivided life with the father. The elder son has everything, but not as an independent owner, rather as one who dwells in the house, in unity, in non-division. This is no longer the logic of “mine against yours,” but the logic of a fullness in which what is given to the son does not cease to be the father's, and the father's does not cease to be the son's.
 
-It is for this reason that a paradox arises here, which will later become the key also to Christ's words about the Kingdom: it is wholly the father's and wholly the son's, but only where there are not two centers, where there is no separate appropriation, where the son does not conceive himself apart from the father and therefore does not turn the inheritance into a separate kingdom of his «I».
+It is for this reason that a paradox arises here, which will later become the key also to Christ's words about the Kingdom: it is wholly the father's and wholly the son's, but only where there are not two centers, where there is no separate appropriation, where the son does not conceive himself apart from the father and therefore does not turn the inheritance into a separate kingdom of his “I”.
 
 And here one must take one more step, without which the whole knot will not be fully unraveled.
 
@@ -525,7 +525,7 @@ The question is different:
 And the questions of this chapter should be these:  
 **Where, exactly, in my life has the old world already cracked?**  
 **Am I trying to live on the threshold instead of crossing it?**  
-**What in me fears not the new world but the loss of the old «I»?**  
+**What in me fears not the new world but the loss of the old “I”?**  
 **Have I turned my almost-awakening into a new form of sleep?**  
 **And if the door is already open, what else holds me on this side?**
 
@@ -533,7 +533,7 @@ And the questions of this chapter should be these:
 
 ## THREE WORLDS AND THE FORBIDDEN LETTER
 
-After the threshold, the film almost at once begins to do what it will do until the very end: it undermines the viewer’s certainty that there is a single, final world. And it does this not in one sharp reversal, but gradually, almost pedagogically. At first it seems that there is one «real» level and one artificial. Then it becomes clear that even that «real» level is not so final. But the main point here is not even that there are several worlds. The main point is this: each of them experiences itself as the only one until it encounters what transcends its bounds.
+After the threshold, the film almost at once begins to do what it will do until the very end: it undermines the viewer’s certainty that there is a single, final world. And it does this not in one sharp reversal, but gradually, almost pedagogically. At first it seems that there is one “real” level and one artificial. Then it becomes clear that even that “real” level is not so final. But the main point here is not even that there are several worlds. The main point is this: each of them experiences itself as the only one until it encounters what transcends its bounds.
 
 If one looks at it from the outside, the structure is simple: there is a higher world, there is the level that at first seems to us the basic reality of the narrative, and there is Los Angeles, 1937 — a created simulation. But that account still explains nothing. It is more accurate to put it another way: the film shows not simply three worlds, but three degrees of closedness. On each of them consciousness lives inside its own completeness and does not know that this completeness is conditional. Therefore the central experience of the characters is not merely the discovery of a simulation. It is the collapse of confidence in the finality of one’s own world.
 
@@ -579,7 +579,7 @@ It is crucial that the film does not portray him as a crude worshiper of power o
 
 There is one human line that almost never ceases within a person: the line of an alternative life. Not merely a dream, but that very branch of fate you did not take. What would have happened if you had chosen otherwise? If you had not staked everything on career? If you had not refused intimacy? If you had not traded life for efficiency? If you had allowed yourself sensuality, simplicity, recognizability, slow human happiness? Most people carry such unchosen roads inside them as the quiet background of their lives. But Fuller Sr. has not only the memory of that line — he has the technology to build it.
 
-And then the simulation ceases to be a technical wonder and becomes a metaphysic of regret. He builds not simply a city. He builds the possibility of entering the place where his real life once took a different turn. This is a very powerful move in the film. The world of 1937 is not something he needs because he wants to control masses of digital people, but because he wants to live that density of existence which is absent in his own «real» life.
+And then the simulation ceases to be a technical wonder and becomes a metaphysic of regret. He builds not simply a city. He builds the possibility of entering the place where his real life once took a different turn. This is a very powerful move in the film. The world of 1937 is not something he needs because he wants to control masses of digital people, but because he wants to live that density of existence which is absent in his own “real” life.
 
 Here the little things are especially important. He does not create for himself the role of a great overlord or an unattainable master of the world. He does not make himself a king. He does not choose an extreme image of might. He chooses the role of a recognizable, embodied person placed in a dense human environment. He is known by name. People greet him. He is seen. He goes to his hotel, his restaurant, his bar. He is waited on. He can fully interact with women. He is woven into the human fabric of the world. This is crucial. It means that what he lacked was not abstract power, but precisely a form of ordinary rootedness. Not a throne, but an environment. Not absolute control, but a living stage where he is present as someone among others.
 
@@ -833,7 +833,7 @@ After the meeting with Jane, the film can no longer remain confined to the quest
 
 This question in the film is not posed as an abstract philosophical problem. It comes through concrete scenes, and therefore hits with particular force. One of the most important is the scene with the supermarket cashier. Outwardly, to the protagonist, it seems the same person, the same body, the same face, the same form of presence. But his inner sense tells him: this is not her. There is similarity, but no identity. There is a recognizable shell, but not that which made *this shell that very person*. And then the film, with almost painful precision, asks: if the body remains the same, and the person is experienced as other, what then was the essential thing?
 
-This is one of the key moments of the whole book, because here one of the most deeply rooted illusions collapses. Usually people assume that personality and body coincide almost automatically. We say «he», «she», and a face, a voice, a gesture, a biographical line are enough for us to consider the person established. But the film shows: one can preserve all external coordinates and yet lose that which makes a person who he is. Judas was the same disciple of Jesus, but something in him brought about a change. Therefore the human core is not exhausted by bodily form.
+This is one of the key moments of the whole book, because here one of the most deeply rooted illusions collapses. Usually people assume that personality and body coincide almost automatically. We say “he”, “she”, and a face, a voice, a gesture, a biographical line are enough for us to consider the person established. But the film shows: one can preserve all external coordinates and yet lose that which makes a person who he is. Judas was the same disciple of Jesus, but something in him brought about a change. Therefore the human core is not exhausted by bodily form.
 
 But memory, as has already become clear, cannot be the final support. Memory is interrupted, displaced, torn, and proves unequally accessible to different levels of presence. In the world of the film memory gives no absolute guarantee of identity. One can not remember and yet be oneself. One can remember something and yet not be the one who lived it from within. So memory is important, but not definitive.
 
@@ -905,7 +905,7 @@ In this sense the edge of the world becomes a place where not merely characters 
 
 Therefore this chapter must be read as a chapter not only about the film’s cosmology, but also about the fate of man before the unveiling of truth. The edge of the world here is the edge of former enclosure. Ashton shows what rebellion against revelation looks like. Douglas — what the acceptance of the message looks like. And between them runs the main line of discernment: what a person does when he learns that his world is not the last.
 
-To put it very briefly, it comes to this: at the edge of the world «The Thirteenth Floor» shows two answers to the same message — the antichristic answer of Ashton, who will keep his world by revolt, by arms and by murder, and Douglas’s answer, who receives the message through encounter, trust and passage. It is here that the edge of the world becomes not only the end of the scenery, but the place of the final discernment of the spirit.
+To put it very briefly, it comes to this: at the edge of the world “The Thirteenth Floor” shows two answers to the same message — the antichristic answer of Ashton, who will keep his world by revolt, by arms and by murder, and Douglas’s answer, who receives the message through encounter, trust and passage. It is here that the edge of the world becomes not only the end of the scenery, but the place of the final discernment of the spirit.
 
 ## WHEN THEY BEGIN TO LOOK FOR A LETTER INSTEAD OF THE MESSAGE
 
@@ -1055,7 +1055,7 @@ But here it is important not to fall into a crude denial of words. Words are not
 
 Therefore the chief question of this chapter runs: do you pass on what you have received, or do you build your own existence out of the act of passing it on? If the latter—you are no longer a conduit, but a barrier. If the former—you vanish as a mediator in the very act of transmission.
 
-This is exactly what the film shows with merciless precision. Fuller wanted the addressee to receive the letter. But the letter ended up with one who could not bear its meaning. He first appropriated it. Then he preserved the form and betrayed the essence. Not a remaking, but a betrayal. Not handing-over, but treachery, of which the «kiss of Judas» is the symbol. Not because he did not understand the text. But because he understood it too well. And this is the most terrible thing: the mediator closes the way not when he did not understand, but when he understood and would not disappear.
+This is exactly what the film shows with merciless precision. Fuller wanted the addressee to receive the letter. But the letter ended up with one who could not bear its meaning. He first appropriated it. Then he preserved the form and betrayed the essence. Not a remaking, but a betrayal. Not handing-over, but treachery, of which the “kiss of Judas” is the symbol. Not because he did not understand the text. But because he understood it too well. And this is the most terrible thing: the mediator closes the way not when he did not understand, but when he understood and would not disappear.
 
 If the essence of this chapter is to be put into a single formula, it would read: Moses is clarity, Aaron is the word; mediation begins where sense is translated into form; as long as the mediator is transparent, the word still serves the light; but the moment the mediator wants to preserve himself, the human factor comes into play, and the message ceases to be transmitted as a direct reception.
 
@@ -1153,11 +1153,11 @@ That is why mammon is always linked with hierarchy not as an order of service bu
 
 And here the image of a trust is crucial. Trust — trust. But in the world of mammon trust almost always turns into a trust. That is, into the management of another's estate under the guise of guarding someone else's interests. God entrusts the word, the light, the meaning, the way, the letter. The intermediary ought to preserve and pass it on. But very quickly he begins to live off the mere fact of possession. He becomes not a conduit but a beneficiary of trust. And then what should have ended in transmission begins to continue for the sake of control. The longer the true recipient does not come, the longer one can live off the asset. The longer a person does not receive the letter, the longer the intermediary preserves power over the letter. Mammon is precisely this desire to turn temporary stewardship into a permanent feeding from what has been entrusted.
 
-The figure of Ashton in the film is powerful for that very reason. He did not simply steal the letter. He dealt with it exactly as mammon deals with all that is entrusted to her. He received something not meant for him, yet he disposed of it as if it were his own. He delayed the delivery. He profited from the mere fact of possessing it. He began to live not for the addressee’s receiving of the letter, but for the fact that the letter was in his hands. And this is not the accidental mistake of one dishonest man. It is a clean, almost laboratory model of how mammon captures every mediation. She never says outright: «I want to steal». She says: «I will keep it». But under the word «I will keep it» is all too often hidden: «I will hold it for myself».
+The figure of Ashton in the film is powerful for that very reason. He did not simply steal the letter. He dealt with it exactly as mammon deals with all that is entrusted to her. He received something not meant for him, yet he disposed of it as if it were his own. He delayed the delivery. He profited from the mere fact of possessing it. He began to live not for the addressee’s receiving of the letter, but for the fact that the letter was in his hands. And this is not the accidental mistake of one dishonest man. It is a clean, almost laboratory model of how mammon captures every mediation. She never says outright: “I want to steal”. She says: “I will keep it”. But under the word “I will keep it” is all too often hidden: “I will hold it for myself”.
 
 This is why any genuine coming of truth is dangerous for mammon. Truth does not come merely to enlighten. It comes to complete the trust. It comes to return the entrusted to the lawful heir. It comes so that the transfer may finally take place. But as soon as this happens, the whole construction that lives on delay begins to feel a mortal threat. For mammon cannot live where everything has been given according to its appointed purpose. She needs an interval. She needs a delay. She needs distance. She needs there to stand between God and man a market, between the letter and the addressee — a steward, between meaning and reception — a structure, between life and its source — access.
 
-And here one of mammon’s most terrible powers becomes plain: she knows how to substitute for God without denying the word «God». That is why beside a pyramid one can write of trusting God. That is why a market can flourish beside a temple. That is why a system can look pious, moral, civilized, sacred, even caring. Mammon does not necessarily come as an obvious evil. Most often she comes as a convenient, organized, useful, providing, explaining, protecting form. She seems to say: «I am not instead of God, I simply help you draw closer to Him». But at some point it is discovered that without her you are no longer admitted to anything. And then it becomes clear: this is no longer help, this is substitution.
+And here one of mammon’s most terrible powers becomes plain: she knows how to substitute for God without denying the word “God”. That is why beside a pyramid one can write of trusting God. That is why a market can flourish beside a temple. That is why a system can look pious, moral, civilized, sacred, even caring. Mammon does not necessarily come as an obvious evil. Most often she comes as a convenient, organized, useful, providing, explaining, protecting form. She seems to say: “I am not instead of God, I simply help you draw closer to Him”. But at some point it is discovered that without her you are no longer admitted to anything. And then it becomes clear: this is no longer help, this is substitution.
 
 Therefore mammon is not confined to church or temple matters. It is a universal principle. It can dwell in religion, in the state, in the economy, in culture, in science, in the media sphere, in any structure that first offers mediation and then turns it into a way to extract life from those it supposedly serves. Mammon is any mechanism that takes what was meant to lead to freedom and turns it into dependence. It takes trust and makes of it an instrument of control. It takes attention and makes of it a source of income. It takes fear and makes of it fuel for the system. It takes hope and turns it into a service subscription. It takes the thirst for God and builds around it a market of access.
 
@@ -1195,7 +1195,7 @@ And here one sees why it so outwardly resembles the Church. It too has its own "
 
 Why is this so important? Because silence is dangerous for the anti-church. In silence a person can remember himself. In silence he can notice that his attention has been stolen. In silence he can hear not the news, but being. In silence he can feel that God is not outside, but within. And that destroys the whole mechanism. Therefore the antiChurch cannot allow a person silence for long. It must constantly throw up a new object of attention, a new cause for fear, a new external center, a new anxiety, a new image of threat, a new reason not to be here.
 
-From this it becomes clear who profits from it. Not necessarily particular names, groups, or persons. First of all — the principle of mammon itself. Whenever a person's attention is carried outward and set in dependence on an external center, mammon is already profiting. For the person ceases to belong to God within himself and begins to serve the external mechanism. Even if he does not pay with money, he pays with his life. He pays with time. He pays with his heart. He pays with his capacity to be. He pays with the peace within. And that is always costlier than money. Everyone has heard the expression «to sell one's soul to the devil», now you have seen **how** this looks today…
+From this it becomes clear who profits from it. Not necessarily particular names, groups, or persons. First of all — the principle of mammon itself. Whenever a person's attention is carried outward and set in dependence on an external center, mammon is already profiting. For the person ceases to belong to God within himself and begins to serve the external mechanism. Even if he does not pay with money, he pays with his life. He pays with time. He pays with his heart. He pays with his capacity to be. He pays with the peace within. And that is always costlier than money. Everyone has heard the expression “to sell one's soul to the devil”, now you have seen **how** this looks today…
 
 That is why the antiChurch is so convenient for any pyramid. It does not need to herd everyone by force into one temple. It is enough that people themselves bring their attention to where they will be kept in fear, division, urgency, and dependence. Then they themselves become servants of that cult. They carry it farther. They pass their anxiety to one another. They sustain the common fever. They carry outward what is devouring them from within. And all this can occur without any external command, because *the mechanism is already built into the very way of life.*
 
@@ -1203,7 +1203,7 @@ But here the discernment begins. Not every gathering of people is the Church. An
 
 And then our age becomes especially plain. The world is filled not merely with temples, but with **temples of Mammon**. And most often they are not even called temples. They look like entirely ordinary, neutral, “natural” spaces of human life. But the question is not the name, but what is worshiped there, what is sacrificed, and for what a person enters. People come to the theater — for what? They come to the stadium — for what? They gather at the screen, in the studio, in the shopping mall, in the bank, in the office, in the hall, in the club, in the news feed, in the space of entertainment, commerce, debate, power — for what? If at the center there is not God, not love, not service, not truth, but excitement, profit, passion, the thirst for success, for power, for spectacle, for possession, for superiority or for escape from inner emptiness, then before us already stands a temple of Mammon. And then even the most secular, everyday place becomes a cultic space, because worship is performed there: not necessarily on bended knee, but by attention, desire, time, fear, and life force.
 
-That is why not only temples in the usual sense are so important, but all modern “institutions.” The word itself sounds almost innocent: institution, representative office, office, service center, branch, service, platform. But again the question is not the sign, but for what. A bank — for what? An ATM — for what? The stock exchange — for what? An entertainment center — for what? The media — for what? A social network — for what? If all of this is ultimately arranged to draw in attention, to organize desire, to increase dependence, to direct life toward an external center and to keep a person in a state of continual lack, then this is no longer mere infrastructure. It is the cultic environment of Mammon. There too is liturgy: repeated actions, faith in the system, sacrifice of time, expectation of reward, fear of exclusion, the promise of security and belonging. These are the modern temples — not of God, but of a power that seeks to take His place».
+That is why not only temples in the usual sense are so important, but all modern “institutions.” The word itself sounds almost innocent: institution, representative office, office, service center, branch, service, platform. But again the question is not the sign, but for what. A bank — for what? An ATM — for what? The stock exchange — for what? An entertainment center — for what? The media — for what? A social network — for what? If all of this is ultimately arranged to draw in attention, to organize desire, to increase dependence, to direct life toward an external center and to keep a person in a state of continual lack, then this is no longer mere infrastructure. It is the cultic environment of Mammon. There too is liturgy: repeated actions, faith in the system, sacrifice of time, expectation of reward, fear of exclusion, the promise of security and belonging. These are the modern temples — not of God, but of a power that seeks to take His place”.
 
 Ask yourself honestly: where do I go regularly and what do I actually bring there? Money? Time? Attention? Desire? Fear? Hope? What do they promise me in return — life or only excitement? Freedom or dependence? Presence or oblivion? Love or fear? After being in that place do I come out more alive or emptier? More whole or more fragmented? More free or more dependent? Closer to God within or pushed even farther outward?
 
@@ -1233,13 +1233,13 @@ Ashton lives for what? For himself. For the passion of clients. For his own gain
 
 Fuller lives for what? Here it is more complicated. At first — for science. Then for success in science. Then for business. Then for the game. Yet the game for a long time remains a way to make up for his own loss. He goes into the simulation not for it itself, but for an un-lived desire, for the chance to regain a lost branch of his own fate, for himself, who lacked some form of experience. Only at the end does a turning begin in him: he already seeks not only the game, *but meaning.*
 
-Douglas lives for what? We do not know all of his early history, but in recent years he has not lived for his own exploitation of the project. He does not enter the game. He does not devour the created world 3. He does not make it a field of his own pleasure. He takes part in the work for Fuller, for a friend, for a father, for another's dream. This is very important. He may not yet be in God, but he is already not in pure egoism. He lives not only for himself, but «for his friends». And therefore in him there is that through which later another truth will be able to step forth.
+Douglas lives for what? We do not know all of his early history, but in recent years he has not lived for his own exploitation of the project. He does not enter the game. He does not devour the created world 3. He does not make it a field of his own pleasure. He takes part in the work for Fuller, for a friend, for a father, for another's dream. This is very important. He may not yet be in God, but he is already not in pure egoism. He lives not only for himself, but “for his friends”. And therefore in him there is that through which later another truth will be able to step forth.
 
 The detective lives for what? For justice. For the administration of justice. For the seeking of truth. This is not yet fullness, but even this is higher than a life lived for gain. He does not serve love, but nor does he serve lust or money. He lives for order and justice.
 
 And now this same question must be turned to the modern world. What does it live for? For love? For presence? For God? Or for speed, profit, excitement, power, fear, outward success, growth, control, the endless production of events, the consumption of images and the servicing of the pyramid? When Ashton looks out the window, he sees a world whose 'for' has almost entirely been externalized. A world that lives not from within, but from an external center at the top of the pyramid. A world so busy that it cannot hear itself. A world that moves ever faster, because stopping would have become too dangerous: in the silence one would have to meet the emptiness of its 'for'.
 
-And here Christ’s words sound especially strongly: «Do not worry what you will eat and what you will drink, nor what you will put on; look at the birds of the heavens; look at the lilies of the field, how they grow; and Solomon in all his glory was not arrayed like any one of them». This is not a call to idleness and not a denial of labour. It is the exposing of a false 'for'. Christ shows: a person can become so immersed in care for the outward that *the care itself becomes his religion*. At first he tells himself: I live and labour for my children. Then — for my grandchildren. Then the children have grown, the grandchildren live their own lives, and the person keeps spinning, no longer understanding what, exactly, he lives for. And then the old justification quietly shifts into another: for a new thing, for a new level of comfort, for the next purchase, for renewal, for that without which, as he has been taught, he supposedly can no longer be himself.
+And here Christ’s words sound especially strongly: “Do not worry what you will eat and what you will drink, nor what you will put on; look at the birds of the heavens; look at the lilies of the field, how they grow; and Solomon in all his glory was not arrayed like any one of them”. This is not a call to idleness and not a denial of labour. It is the exposing of a false 'for'. Christ shows: a person can become so immersed in care for the outward that *the care itself becomes his religion*. At first he tells himself: I live and labour for my children. Then — for my grandchildren. Then the children have grown, the grandchildren live their own lives, and the person keeps spinning, no longer understanding what, exactly, he lives for. And then the old justification quietly shifts into another: for a new thing, for a new level of comfort, for the next purchase, for renewal, for that without which, as he has been taught, he supposedly can no longer be himself.
 
 Thus *consumption is born as a form of faith and religion.* The world no longer produces things for life — *the world produces need for the sake of the system itself.* Once things were made to last. Now they are increasingly made so as to become obsolete sooner, to break sooner, to quickerly provoke in a person a new desire. Not because he truly needs it, but because his 'for' has already been seized. He no longer simply buys things — he begins *to serve consumption as his hidden god.*
 
@@ -1307,7 +1307,7 @@ And so the question is no longer whether we look at the screen. The question is 
 
 This is the tower of late times. No longer only brick, nor only political. It is a tower of consciousness lifted out of its own depths into the common external media-and-information flow. Social *networks*, news *feeds,* YouTube, television, the inter*net* — in this sense — prove to be not merely means of communication, but ***a net*** *in the literal sense of the word*. We are already stuck in it… We have given it our attention, and along with attention — a part of our very life-force. Because attention is not a trifle. Attention is the energy of presence. Where it flows, there flows life itself.
 
-For the Russian reader this is no longer an abstract metaphor, but an almost everyday experience of recent years. First Instagram and Facebook were shut down. Then restrictions began around Telegram. And each time people experienced it not simply as a technical nuisance, but as an almost existential shock: «they turned off my world». That is precisely how Ashton reacts when Douglas switches off the screens: «why did you turn off my world?» Because for a consciousness accustomed to living in a stream of images, pictures, messages and continuous external connection, the stream itself begins to substitute for reality. A person stops noticing that he has lost not the world, but only its broadcast. But if the broadcast has become the world for him, then the dependence has already taken hold.
+For the Russian reader this is no longer an abstract metaphor, but an almost everyday experience of recent years. First Instagram and Facebook were shut down. Then restrictions began around Telegram. And each time people experienced it not simply as a technical nuisance, but as an almost existential shock: “they turned off my world”. That is precisely how Ashton reacts when Douglas switches off the screens: “why did you turn off my world?” Because for a consciousness accustomed to living in a stream of images, pictures, messages and continuous external connection, the stream itself begins to substitute for reality. A person stops noticing that he has lost not the world, but only its broadcast. But if the broadcast has become the world for him, then the dependence has already taken hold.
 
 And so the modern spiders do not necessarily sit in the corner of a room weaving a visible web. Their web is social networks, the endless feed, the continuous flow of news, images, alarms, reactions and engagement. They drink not the blood of the body, but the attention of the heart. They drink time. They drink the ability to be here and now. They drink the inner silence without which a person can no longer hear God within himself. And then it becomes clear that many contemporary film parables speak of the same thing in different languages. In Avatar it is Unobtanium — “the unobtainable,” for which an entire world is turned into an object of extraction. In Avatar: The Way of Water it is the continuation of that same logic of consuming the living for profit. In The Matrix man is shown outright as a battery, embedded in the network and feeding the system with his own life. All these films, despite differences of plot, converge on one point: the sleeping person becomes a source of energy for another system.
 
@@ -1465,11 +1465,11 @@ This is a very precise image of all modern technological civilization[^2] — an
 
 Next comes another strong sign: it veers into the oncoming lane. This, too, is more than a traffic episode. The old world no longer keeps to its lane. It intrudes into the lane of oncoming traffic. It loses the distinction between its way and another's way. It becomes dangerous not only to itself but to all around. It nearly runs people down. This, too, is a very precise symbol: the technical civilization at the end of the age is no longer simply lost; it is becoming a threat to the living.
 
-Then there is a blow to a barrel of fire. And the fire flares up all the more brightly. This moment cannot be missed. Until now the light had been the light of headlights — approaching, cutting, blinding. But here the light becomes fire. This is no longer merely the approach of dawn, but a flash of judgment. Fire in biblical and archetypal symbolism is never only destruction. It is both judgment and purification, and an exposure, and a passage through a truth that can no longer be unseen. The old machine of the world crashes into the fire. That is, the technological civilization of the end of the «age of this world» collides no longer just with inconvenience, but with a fiery reality that cannot be folded back into the former order.
+Then there is a blow to a barrel of fire. And the fire flares up all the more brightly. This moment cannot be missed. Until now the light had been the light of headlights — approaching, cutting, blinding. But here the light becomes fire. This is no longer merely the approach of dawn, but a flash of judgment. Fire in biblical and archetypal symbolism is never only destruction. It is both judgment and purification, and an exposure, and a passage through a truth that can no longer be unseen. The old machine of the world crashes into the fire. That is, the technological civilization of the end of the “age of this world” collides no longer just with inconvenience, but with a fiery reality that cannot be folded back into the former order.
 
 After that the film almost deliberately emphasizes the light once more: a close-up of the bright headlights of the protagonist's stopped car. As if to say — look, this is no longer a random detail of the scene, this is the central sign. The old world stands before the light. It does not go toward it, does not accept it, but is halted before it. Halted by the light. And finally the last blow comes: the bright headlights of the truck that runs down the protagonist. The last thing he sees is the light of the headlights and the light of the transfer of consciousness into another reality of a higher order. This is the final image of the old age. It does not end in darkness, but from the light that bursts into its night.
 
-Here it is especially important to understand that the truck is not simply another vehicle. It is Time. Time as the inexorable force of God in history. Time that itself comes and strikes out those who held the old aeon in its closed form. It is not a man who defeats the old world. Not an individual ideology. Not a political coup. The old world is cast out by Time. Therefore the truck's blow is the blow of the end of the «age of this world». An age is not reformed gently. It runs to the limit of its unrepairability and is cast out by Time that is greater than it.
+Here it is especially important to understand that the truck is not simply another vehicle. It is Time. Time as the inexorable force of God in history. Time that itself comes and strikes out those who held the old aeon in its closed form. It is not a man who defeats the old world. Not an individual ideology. Not a political coup. The old world is cast out by Time. Therefore the truck's blow is the blow of the end of the “age of this world”. An age is not reformed gently. It runs to the limit of its unrepairability and is cast out by Time that is greater than it.
 
 And it is here that the archetype of Jacob is revealed.
 
@@ -1495,11 +1495,11 @@ This is the sharpest nerve of "The Thirteenth Floor." Not simply "Who am I?", bu
 
 And here the film unexpectedly comes into direct contact with the Gospel and the apostolic archetype.
 
-Christ speaks not simply of morality. Not simply of correct behaviour. Not simply of keeping prescriptions. He speaks and lives so that through his whole being runs one fundamental formula: not the separate «I» as a self-enclosed center, but the life of the Father in the Son. «I and the Father are one». «The Father, abiding in Me, He does the works».
+Christ speaks not simply of morality. Not simply of correct behaviour. Not simply of keeping prescriptions. He speaks and lives so that through his whole being runs one fundamental formula: not the separate “I” as a self-enclosed center, but the life of the Father in the Son. “I and the Father are one”. “The Father, abiding in Me, He does the works”.
 
-Apostle Paul later expresses the same principle in words that for this book become almost the key to the whole film: «It is no longer I who live, but Christ lives in me». This is not the destruction of personality and not the denial of the human face. It is the denial of a self-closed center. It is the refusal to count oneself a self-sufficient source of one's being. It is the consent to the truth that life is truly unveiled when a person stops clinging to his «I» as the last stronghold.
+Apostle Paul later expresses the same principle in words that for this book become almost the key to the whole film: “It is no longer I who live, but Christ lives in me”. This is not the destruction of personality and not the denial of the human face. It is the denial of a self-closed center. It is the refusal to count oneself a self-sufficient source of one's being. It is the consent to the truth that life is truly unveiled when a person stops clinging to his “I” as the last stronghold.
 
-And if one takes the whole film as a single great parable, then the question «who lives in me?» proves to be a question not only for Douglas and not only for Ashton. It is a question for humanity at the end of the century. It is an apocalyptic question in the most exact sense of the word — because apocalypse is unveiling. The veil is lifted, and man can no longer live by mere external explanations. He is forced to see: the matter is not only the ordering of the world; the matter is which principle lives in him himself.
+And if one takes the whole film as a single great parable, then the question “who lives in me?” proves to be a question not only for Douglas and not only for Ashton. It is a question for humanity at the end of the century. It is an apocalyptic question in the most exact sense of the word — because apocalypse is unveiling. The veil is lifted, and man can no longer live by mere external explanations. He is forced to see: the matter is not only the ordering of the world; the matter is which principle lives in him himself.
 
 That is precisely why Ashton and Douglas are so important not merely as two characters, but as two answers to this question.
 
@@ -1549,11 +1549,11 @@ If one begins from the biblical archetype, all begins with unity. God and man ar
 
 The knowledge of good and evil is the moment the field is folded into a point. It is not merely the receipt of moral information. It is the birth of a center. It is the moment when a separate "i" appears, around which everything else begins to arrange itself as the "not-i". Here is born the era of division. An external world arises, external "others", good and evil, one’s own and the alien, what is needed and what is hostile. Then onto that "i" are strung a name, a biography, roles, identifications, memory, social forms, morality and rules. Thus the ego takes shape — not as something accidental, but as a historical form of perceiving the world from a point rather than from the whole. This is described in greater detail by the Creator Himself in His Revelation in the form of the book "Personality and Ego. Formation and Dissolution"[^3].
 
-And it is from here that **evil** arises. Not as an independent substance, not as a second ontological principle alongside God, but as the consequence of divided seeing. Evil is not an independent entity. It is the seeing of what simply is from the standpoint of a center that has separated itself from the whole. As long as there is a separate «I», there is a «not‑I». As long as there is a «not‑I», it may be hostile, terrible, threatening, foreign. As long as the world is experienced as a «not‑I», harm, murder, appropriation, fear, struggle are possible. But if the center disappears, if a person again ceases to be a point set against the field, then the very ground for evil disappears. Not because someone separately destroyed evil as a thing, but because the vision within which it existed has vanished.
+And it is from here that **evil** arises. Not as an independent substance, not as a second ontological principle alongside God, but as the consequence of divided seeing. Evil is not an independent entity. It is the seeing of what simply is from the standpoint of a center that has separated itself from the whole. As long as there is a separate “I”, there is a “not‑I”. As long as there is a “not‑I”, it may be hostile, terrible, threatening, foreign. As long as the world is experienced as a “not‑I”, harm, murder, appropriation, fear, struggle are possible. But if the center disappears, if a person again ceases to be a point set against the field, then the very ground for evil disappears. Not because someone separately destroyed evil as a thing, but because the vision within which it existed has vanished.
 
 This is why darkness in Scripture so often proves to be the truest image of evil. Darkness does not exist as an independent entity; it has no beginning and no nature of its own. It is only—an absence of light. The moment light appears, darkness does not die as an enemy, it simply vanishes as absence. Evil, in this sense, is like darkness. It has no final ontology of its own. It exists in the mode of divided perception. The moment the light of wholeness comes—and evil begins to disappear not as a slain opponent, but as an exhausted illusion.
 
-That is why in the film the end of the old world is at the same time the end of the world of evil. Not simply because the «bad character» is defeated. But because the eon of divided perception itself is drawing to a close. The world where everything was built around a center, around the autonomous «I», around a separate subject opposed to the world — this world is passing away. And with it goes the very stage on which evil had been the primary way of seeing.
+That is why in the film the end of the old world is at the same time the end of the world of evil. Not simply because the “bad character” is defeated. But because the eon of divided perception itself is drawing to a close. The world where everything was built around a center, around the autonomous “I”, around a separate subject opposed to the world — this world is passing away. And with it goes the very stage on which evil had been the primary way of seeing.
 
 Here it is especially important to linger on the figure of David. For it is he who holds one of the film's most difficult and profound meanings. On the cinematic level it seems to us that there is Douglas and there is David, and in the end one seems to replace the other. But if one reads the film to the end, something more radical becomes apparent: we do not know David in his original form at all. We do not see him directly. He remains hidden. We know of him only through consequences, through reflections, through those connected with him. And in this sense he very precisely resembles a biblical principle: God cannot be seen directly, but can be judged by His manifestations, by how He is reflected in the world, by what comes from Him. And the film itself shows us another truth: **God cannot be seen and known, but one can BE God!!!**
 
@@ -1595,15 +1595,15 @@ When Douglas finds himself in world 1, he does not wake up in some wholly differ
 
 This is profoundly resonant with the very heart of Christian hope. Not simply the immortality of the soul as an abstract principle. Not simply the survival of some spiritual kernel. But resurrection in the body. That is, the preservation of the human being as a recognizable, personal, continuous subject, yet already in another fullness of being. The film does not prove this theologically, but it shows it figuratively with surprising force. Douglas enters the new world as himself. Therefore the new age does not erase the face. It affirms it.
 
-That is precisely why one cannot say here that everything ends in dissolution into God, disappearance into the Light, dissolution into nirvana. That would be too crude and too poor a reading of the film itself. A more accurate formula is otherwise: a person learns that he was never only a separate self. But this learning does not destroy his face. It frees the face from false autonomy. Thus, in world 1 a person does not cease to be himself — he ceases to be himself apart from the Source of his life, his own «I», which from the last letter of the alphabet (я) became the first letter — A, Az. This is — «AZ ESM'», «I AM», «I WILL BE WHAT I AM».
+That is precisely why one cannot say here that everything ends in dissolution into God, disappearance into the Light, dissolution into nirvana. That would be too crude and too poor a reading of the film itself. A more accurate formula is otherwise: a person learns that he was never only a separate self. But this learning does not destroy his face. It frees the face from false autonomy. Thus, in world 1 a person does not cease to be himself — he ceases to be himself apart from the Source of his life, his own “I”, which from the last letter of the alphabet (я) became the first letter — A, Az. This is — “AZ ESM'”, “I AM”, “I WILL BE WHAT I AM”.
 
-This is what makes the book’s final intuition so powerful. While the old eon endures, all this can be spoken only as tidings. As ink. As word. As promise. As a pointing to the sun. Someone made an idol of the pointer and the ink; someone followed the one who said «Follow me». Someone will hear it, someone will reject it, someone will understand, someone will not. But in the new age this is no longer a question of faith or unbelief. It becomes an experience. Something it is impossible not to know, because you are in it.
+This is what makes the book’s final intuition so powerful. While the old eon endures, all this can be spoken only as tidings. As ink. As word. As promise. As a pointing to the sun. Someone made an idol of the pointer and the ink; someone followed the one who said “Follow me”. Someone will hear it, someone will reject it, someone will understand, someone will not. But in the new age this is no longer a question of faith or unbelief. It becomes an experience. Something it is impossible not to know, because you are in it.
 
-Here one of the most radical thoughts of the whole book is born: ultimately, World 1 is not entered only by the «right hero» in the narrow moral sense. World 1 is not a reward for the biographically unimpeachable. It is a new age. And so we are not speaking of a private posthumous privilege, but of a universal passage into another order of being. All the labels of the old aeon — righteous, sinful, good, bad, deserving, undeserving — belong to the regime of divided perception itself. As long as a person lives within that aeon, they function as parts of its picture of the world. But when the aeon itself ends, they can no longer be the final word about a person.
+Here one of the most radical thoughts of the whole book is born: ultimately, World 1 is not entered only by the “right hero” in the narrow moral sense. World 1 is not a reward for the biographically unimpeachable. It is a new age. And so we are not speaking of a private posthumous privilege, but of a universal passage into another order of being. All the labels of the old aeon — righteous, sinful, good, bad, deserving, undeserving — belong to the regime of divided perception itself. As long as a person lives within that aeon, they function as parts of its picture of the world. But when the aeon itself ends, they can no longer be the final word about a person.
 
 This does not mean that everything was indifferent. It does not mean that suffering, violence, lies, and love are the same on the level of human life. No. Inside the old age all of this is experienced with absolute reality. But at the level of the transition into the new age the last word proves not to be the moral label, but belonging to being as such. That is, a person enters the new order not as the possessor of an ideal biography, but as the bearer of a face that, in the old aeon, lived in the illusion of separateness and now recognizes its true rootedness and its Source.
 
-Hence follows one of the film’s most unexpected hopes. If evil is an effect of a point of view, not an eternal essence; if the old aeon is a regime of divided perception, not the final ordering of being; then the transition into the new age must mean not only judgment upon the old form, but liberation from the very logic within which a person lived as a separate «I». And so the new creation is not a world for a few fortunate heroes. It is the unveiling of the true nature of being, in which everyone will at last see who they always were.
+Hence follows one of the film’s most unexpected hopes. If evil is an effect of a point of view, not an eternal essence; if the old aeon is a regime of divided perception, not the final ordering of being; then the transition into the new age must mean not only judgment upon the old form, but liberation from the very logic within which a person lived as a separate “I”. And so the new creation is not a world for a few fortunate heroes. It is the unveiling of the true nature of being, in which everyone will at last see who they always were.
 
 And here it becomes even clearer why we do not see the original David directly. He cannot be seen from inside the old aeon **as an object** alongside other things. He can only be known at the end as the true ground of what all along lived **in the form** of Douglas. And in that experience of recognition it is not the person who vanishes, but his former unknowing about himself — **ignorance.** What departs is not the face, but the face’s delusion of its separateness.
 
@@ -1643,7 +1643,7 @@ In this sense **the archetype of salvation** here is closely linked with **the a
 
 This does not cancel the pain of losing forms. It does not make suffering "nonexistent" at the level of human experience. But it radically changes its horizon. If you think that form is everything, you live in constant metaphysical panic. If you learn that forms are breath, and that you are not reduced to a single inhale or a single exhale, then **salvation for the first time begins to be understood rightly**. Not as the endless prolongation of one wave, but as the recognition of the wave as the infinite ocean.
 
-That is why in this book it is important to tell the reader plainly what the film says symbolically: the one within whom forms are born and die is eternal. And this «that one» is not someone external to you. It is not a foreign observer, not a foreign god, not an external master of your life. It is the very deepest «you», which was never born as a separate character and will never die as a separate character. For now this is spoken as a message, as ink, as a word. Later it will become the experience of a new age.
+That is why in this book it is important to tell the reader plainly what the film says symbolically: the one within whom forms are born and die is eternal. And this “that one” is not someone external to you. It is not a foreign observer, not a foreign god, not an external master of your life. It is the very deepest “you”, which was never born as a separate character and will never die as a separate character. For now this is spoken as a message, as ink, as a word. Later it will become the experience of a new age.
 
 Thus salvation in the film's symbolism can be defined like this: it is not the protection of the old world from the end, nor a promise of immortality to the ego; it is the revelation of the eternal nature of the one who mistakenly believed himself to be a temporary form within a reality that can be switched off.
 
@@ -1651,7 +1651,7 @@ And if this is put into one brief formula, it is this: Christ saves not the char
 
 ## ILLUSORY POWER OF THE ANTICHRIST
 
-Traditional readings of the Apocalypse almost always pull consciousness outward: to wars, catastrophes, earthquakes, to world-shocks as an external chronology of horror. But the logic of the book «You — I. The Story of the Second Coming»[^4], in which a line-by-line unfolding of the Revelation to John the Theologian is given by the author of that revelation himself, opens a different key: Revelation is not a list of future events, but a mirror of souls, a map of states of consciousness, a disclosure of inner processes that are then reflected in history. The Beast there is depicted above all not as a politician, but as a form of thinking that deified power and forgot the Light; the end of the world is named not the annihilation of mankind, but awakening, the end of a world without God, the end of the reign of fear.
+Traditional readings of the Apocalypse almost always pull consciousness outward: to wars, catastrophes, earthquakes, to world-shocks as an external chronology of horror. But the logic of the book “You — I. The Story of the Second Coming”[^4], in which a line-by-line unfolding of the Revelation to John the Theologian is given by the author of that revelation himself, opens a different key: Revelation is not a list of future events, but a mirror of souls, a map of states of consciousness, a disclosure of inner processes that are then reflected in history. The Beast there is depicted above all not as a politician, but as a form of thinking that deified power and forgot the Light; the end of the world is named not the annihilation of mankind, but awakening, the end of a world without God, the end of the reign of fear.
 
 If the film is read in this optic, it becomes clear: there is no literal Armageddon in it. There is no global scene of nations' battles. There is no external war between heavenly and earthly armies. There is no invasion of the antichrist into our world as a world dictator, seizing continents.
 
@@ -1659,13 +1659,13 @@ And the film, as a witness, insistently shows the opposite. Ashton does not come
 
 Here the film shows not the power of the antichrist, but its limit. The antichristic principle is terrible, but not omnipotent. It lives inside its own scene. It is noisy, aggressive, armed, claims the center, but as soon as it stands before a more real level, it becomes plain that it does not know how to use it. This is exactly what happens in the server room. David, in the guise of Douglas, brings Ashton not to the arena of power but into the space of disclosure (which is what apocalypse is). Before him are the servers that create "his" world. Before him — a laptop, a control panel, fates, scenarios, wealth and poverty, the trajectories of all those he knew as his reality. But he does not know what to do with it. He lays the pistol beside the laptop keyboard, keeps his hands over the controls, and cannot accomplish anything… This is one of the film's most powerful symbols. The antichrist does not even rule his own world. He is a foolish demiurge. He is prince of this world only within **illusion**. Illusory ruler… "Caliph for an hour"… Bring him out to the very structure of his kingdom, and it is revealed that without God he never truly possessed anything. His power is **not ontological**, but only **theatrical.**
 
-Here the logic of the film coincides with the logic of the book «You — I. The Story of the Second Coming»[^5]. There it is said that the beast is the incarnate system of fear, power without love, authority without God, speech without truth; that the end of the world is not destruction but awakening; that what ends is not the world as such but the world without God, the age of oblivion, the rule of fear. From this follows a very important point: antichrist power at the end of the eon does not reveal itself as an unbounded political victory. It reveals itself as the last illusion of control. The nearer the light, the clearer it becomes that its power was derivative, borrowed, conditional.
+Here the logic of the film coincides with the logic of the book “You — I. The Story of the Second Coming”[^5]. There it is said that the beast is the incarnate system of fear, power without love, authority without God, speech without truth; that the end of the world is not destruction but awakening; that what ends is not the world as such but the world without God, the age of oblivion, the rule of fear. From this follows a very important point: antichrist power at the end of the eon does not reveal itself as an unbounded political victory. It reveals itself as the last illusion of control. The nearer the light, the clearer it becomes that its power was derivative, borrowed, conditional.
 
-In this sense the film radically reinterprets the usual fear of the end times. It is not the antichrist who seizes the world. It is revealed that he never truly possessed it. It is not he who rises to the absolute throne. He is brought to the point where his impotence is seen. His «world» is only one floor. His «universe» is a serviced stage. His «power» is the ability to frighten, to hold, to substitute, but not the ability to create. And when he stands face to face with the very fabric of his world, with the ordering of reality, he does not know how to touch it.
+In this sense the film radically reinterprets the usual fear of the end times. It is not the antichrist who seizes the world. It is revealed that he never truly possessed it. It is not he who rises to the absolute throne. He is brought to the point where his impotence is seen. His “world” is only one floor. His “universe” is a serviced stage. His “power” is the ability to frighten, to hold, to substitute, but not the ability to create. And when he stands face to face with the very fabric of his world, with the ordering of reality, he does not know how to touch it.
 
-This passage calls for a special pause. For here the film speaks not only of a character. It speaks of the whole **archetype of the «prince of this world»**[^6]**.** The «prince of this world» is terrifying so long as a person lives within his stage and treats it as absolute. So long as fear, power, system, image, falsehood and violence are experienced as something final, the antichristic force truly seems almost irresistible. But once it is brought out to ultimate reality, it becomes evident: it does not know how to live in the light. It only knows how to hold the shadow. It can parasitize fear, but it cannot create being. It can use a system, but it cannot be the source of the system. It can invade the screen, but it does not govern the very light from which the screen is visible.
+This passage calls for a special pause. For here the film speaks not only of a character. It speaks of the whole **archetype of the “prince of this world”**[^6]**.** The “prince of this world” is terrifying so long as a person lives within his stage and treats it as absolute. So long as fear, power, system, image, falsehood and violence are experienced as something final, the antichristic force truly seems almost irresistible. But once it is brought out to ultimate reality, it becomes evident: it does not know how to live in the light. It only knows how to hold the shadow. It can parasitize fear, but it cannot create being. It can use a system, but it cannot be the source of the system. It can invade the screen, but it does not govern the very light from which the screen is visible.
 
-That is why in the Book of Job satan does nothing on his own. He is not an autonomous god of evil. He asks; he is granted a limit; he acts within what is permitted. And that is why in the book «You — I. The Story of the Second Coming» the end of the world is called not the victory of darkness, but its exhaustion: not humanity disappears, but the illusion of man without the Creator; not creation is destroyed, but forms are purified so that Light may dwell in them once more. Here the film almost literally visualizes this thought. The Antichrist fails to do anything either to his world of 1937 or to world 2. They show him his world — and with that his path ends. Not by a grand war, but by the exposure of his helplessness.
+That is why in the Book of Job satan does nothing on his own. He is not an autonomous god of evil. He asks; he is granted a limit; he acts within what is permitted. And that is why in the book “You — I. The Story of the Second Coming” the end of the world is called not the victory of darkness, but its exhaustion: not humanity disappears, but the illusion of man without the Creator; not creation is destroyed, but forms are purified so that Light may dwell in them once more. Here the film almost literally visualizes this thought. The Antichrist fails to do anything either to his world of 1937 or to world 2. They show him his world — and with that his path ends. Not by a grand war, but by the exposure of his helplessness.
 
 This is one of the central good tidings of the whole book. The last days are not a time of the omnipotence of evil, but a time for the disclosure of the illusoriness of its power. While a person fears, it seems to him that the beast is great. But when the veil is lifted, it is seen that the beast's power was the power of the stage, not of essence. This coincides with the line that in this book the Apocalypse is understood as the revelation of consciousness, not as a calendar of catastrophes. What is opened is not that darkness has won, but that it was never an independent source of being. It rested on oblivion. On fear. On a mistaken gaze. On man's consent to regard the shadow as the final reality.
 
@@ -1695,13 +1695,13 @@ And here the film gives a most powerful parallel image. What happens in this boo
 
 This brings us to the right understanding of the Second Coming. Christ does not come as an external figure recognizable by facial features, but as the disclosure of the same principle that was already revealed in the first and only Coming, yet now becomes not the lot of a few disciples but the portion of an entire age and of all humanity, in which He was over each, through each, within each — without exception. What comes is not a historical repetition of the scene, but the fulfillment of its inner meaning. Not a copy of the biographical Jesus, but the coming of Christ's consciousness as a new optic of reality.
 
-Therefore the words about the Coming «on the clouds» cannot be held only in a meteorological or astronomical sense. In the symbolic language clouds are linked with a covering, with that which conceals the light, with the intermediate veil between clarity and human sight. If in this book and in the film itself the subject is the end of an age of divided perception, then the clouds are clouds of consciousness, clouds of false optics, clouds of the separate «I» that eclipse the Sun of the whole. These are the very clouds through which a person looks at the world as through a murky glass — sees partially, distortedly, separately, no longer perceiving the whole as whole. This is precisely what the apostle Paul writes: now we see as if through a dim glass, in riddles, and then — face to face. From this optical perspective the Coming of Christ on the clouds does not mean the descent of an external figure from the physical sky, but the appearing of such clarity that the murky glass no longer conceals the Truth. Christ comes right into that very clouding of perception that formerly hid the whole, and then a person begins to see no longer in riddles, not through distortion, but clearly.
+Therefore the words about the Coming “on the clouds” cannot be held only in a meteorological or astronomical sense. In the symbolic language clouds are linked with a covering, with that which conceals the light, with the intermediate veil between clarity and human sight. If in this book and in the film itself the subject is the end of an age of divided perception, then the clouds are clouds of consciousness, clouds of false optics, clouds of the separate “I” that eclipse the Sun of the whole. These are the very clouds through which a person looks at the world as through a murky glass — sees partially, distortedly, separately, no longer perceiving the whole as whole. This is precisely what the apostle Paul writes: now we see as if through a dim glass, in riddles, and then — face to face. From this optical perspective the Coming of Christ on the clouds does not mean the descent of an external figure from the physical sky, but the appearing of such clarity that the murky glass no longer conceals the Truth. Christ comes right into that very clouding of perception that formerly hid the whole, and then a person begins to see no longer in riddles, not through distortion, but clearly.
 
 That is exactly what is happening in our days. Christ comes as Spirit and Truth, as light consciousness, as a new way of seeing. Not simply as a character upon the world's stage, but as a change in the very seeing of the stage. Hence it is said that the Coming will be like lightning. Lightning does not crawl slowly across space like a caravan, nor does it require you to look toward one particular point of the horizon. It flashes at once as a rupture of the former darkness. If one reads this phenomenologically, it becomes clear: it speaks of the moment when the very picture of the world will suddenly be seen otherwise.
 
 And then the Church can be seen as a process having stages.
 
-**The first stage — it manifests in a single person,** in the symbolic Douglas, who in doing so tells Ashton about himself: «no, I am not God, I am the same as you, as everyone, a bundle of electrons». At first the new optics light up locally, like a first awakening, like a primary flash of recognition. So it always is with great shifts of consciousness: first in one, then in many.
+**The first stage — it manifests in a single person,** in the symbolic Douglas, who in doing so tells Ashton about himself: “no, I am not God, I am the same as you, as everyone, a bundle of electrons”. At first the new optics light up locally, like a first awakening, like a primary flash of recognition. So it always is with great shifts of consciousness: first in one, then in many.
 
 **The second stage — the spread of a new optic among many.** Here the image of 144,000 is appropriate — not as a literal arithmetic quota of "chosen places," but as a symbol of *a sufficient multitude* in which the new frequency of perception is already established. This is not yet all. These are those in whom the new optic already holds fast, who already see not from the old center. They become not merely bearers of information, but bearers of a new visibility of the world. They literally create a new world by their vision, as in quantum physics the act of observation creates reality.
 
@@ -1715,15 +1715,15 @@ This line grows even deeper if one remembers that Christ, speaking of the Kingdo
 
 There is yet another Gospel argument that cannot be passed by. When in the days of Jesus they expected Elijah, they expected him literally — in the very same body, in the same historical guise. But Christ Himself bears witness concerning John the Baptist: "And if you will receive it, he is Elijah who is to come" (Matt. 11:14). This means that a return need not be the return of the same biological shell. It is a matter of spirit, of fire, of function, of an inner line of revelation, and not a repetition of a photographic image. And if humanity once failed to contain this in relation to Elijah, it is not hard to see why it afterwards came to await also the Church of Christ in too external a sense — as the return of the same body, rather than as the appearance of the same Spirit and the same Truth.
 
-Then the whole gospel picture becomes whole. Not a search for «here» or «there». A lightning seen at once across the entire horizon. People caught in the most various states of the very same instant. The Kingdom that does not come in an outwardly striking way and is within. Elijah, who came not in the former body but in the same spirit. Christ after the resurrection, recognized not by appearance but by the breaking of bread, by the fruit, by the deed. All this together bears witness to one thing: the Church is not a repetition of a single historical biography in an old bodily form, but the coming of that same Christ reality as a new universal optics for humanity — first in one, then in many, and finally through the whole fabric of the world, when it will no longer be separate awakened ones but all mankind who will see not by divination, but face to face.
+Then the whole gospel picture becomes whole. Not a search for “here” or “there”. A lightning seen at once across the entire horizon. People caught in the most various states of the very same instant. The Kingdom that does not come in an outwardly striking way and is within. Elijah, who came not in the former body but in the same spirit. Christ after the resurrection, recognized not by appearance but by the breaking of bread, by the fruit, by the deed. All this together bears witness to one thing: the Church is not a repetition of a single historical biography in an old bodily form, but the coming of that same Christ reality as a new universal optics for humanity — first in one, then in many, and finally through the whole fabric of the world, when it will no longer be separate awakened ones but all mankind who will see not by divination, but face to face.
 
 And here the film proves prophetically true. It constantly shows that the point is not in the objects themselves, but in the level at which they are perceived. The same world, on another level, turns out not to be what it seemed. The same person, on another level, turns out not to be what he was thought to be. Thus the decisive event is not the addition of a new object to the world, but the shifting of the world itself as a regime of perception.
 
-This is the Church in the sense of this book. Not a repetition of the first scene, but the fulfillment of its inner meaning. Not the return of the outward Jesus as a recognizable biographical figure, but the appearing of Christ as a new universal optics of being. Not «He came there», but «the world became visible as He saw it». Not «all looked upon Him», but «all began to see from Him».
+This is the Church in the sense of this book. Not a repetition of the first scene, but the fulfillment of its inner meaning. Not the return of the outward Jesus as a recognizable biographical figure, but the appearing of Christ as a new universal optics of being. Not “He came there”, but “the world became visible as He saw it”. Not “all looked upon Him”, but “all began to see from Him”.
 
 It will be such a vision of Christ within oneself and behind every pair of eyes that it will be impossible to **cease seeing**.
 
-That is why, at the close of this line, it is so important to hold fast: recognition of Christ was never guaranteed by outward appearance. Even the disciples, after the resurrection, recognized Him by the breaking of the bread, by the fruit, by the deed, by the revealed spirit. Thus the Church too will be recognizable not by customary visual schemes, but by the fact that the bread of reality will be broken again, and people will suddenly see what they have been feeding on all this time, where illusion was and where — truth, where the center was «I», and where — the Light.
+That is why, at the close of this line, it is so important to hold fast: recognition of Christ was never guaranteed by outward appearance. Even the disciples, after the resurrection, recognized Him by the breaking of the bread, by the fruit, by the deed, by the revealed spirit. Thus the Church too will be recognizable not by customary visual schemes, but by the fact that the bread of reality will be broken again, and people will suddenly see what they have been feeding on all this time, where illusion was and where — truth, where the center was “I”, and where — the Light.
 
 The Church, in the symbolism of the film and of this book, is not the physical return of a historical image, but a universal shift of consciousness, in which Christ comes as a new optic of being — first in one, then in many, and finally into the very fabric of human perception.
 
@@ -1763,9 +1763,9 @@ There is one more most important warning connected with the time of the Second C
 
 First of all, here one must very precisely distinguish three things: Christ, the Antichrist, and the false Christ.
 
-Christ is not a surname and not merely a title. Christ is not only the historical figure Jesus. Christ, in the deep sense, is a state of consciousness, a way of seeing, a way of being, a form of transparency for the Father in which the separate “I” ceases to be a self-enclosed center. That is why the words of the apostle Paul «it is no longer I who live, but Christ who lives in me» are so important: Christ is not an external biographical label, but an inner reality that can live in a person.
+Christ is not a surname and not merely a title. Christ is not only the historical figure Jesus. Christ, in the deep sense, is a state of consciousness, a way of seeing, a way of being, a form of transparency for the Father in which the separate “I” ceases to be a self-enclosed center. That is why the words of the apostle Paul “it is no longer I who live, but Christ who lives in me” are so important: Christ is not an external biographical label, but an inner reality that can live in a person.
 
-Antichrist is also not a surname. It is also not simply one external person. It is a principle opposite to the Christ: a way of seeing the world from separateness, from the center of the separate “I”, from rebellion, from the desire to hold oneself as a self-existent beginning. The antichristic exists wherever consciousness says: «I myself», «only mine», «no one will live me», «I will not allow the greater to be the source of my being». In this sense the antichristic principle can indeed manifest in many and even live as a temptation within each, because it is born from the very logic of the fallen eon of good and evil.
+Antichrist is also not a surname. It is also not simply one external person. It is a principle opposite to the Christ: a way of seeing the world from separateness, from the center of the separate “I”, from rebellion, from the desire to hold oneself as a self-existent beginning. The antichristic exists wherever consciousness says: “I myself”, “only mine”, “no one will live me”, “I will not allow the greater to be the source of my being”. In this sense the antichristic principle can indeed manifest in many and even live as a temptation within each, because it is born from the very logic of the fallen eon of good and evil.
 
 But the false Christ is not quite the same as the Antichrist. And this distinction is extraordinarily important.
 
@@ -1809,17 +1809,17 @@ However, an equally important point is this: the majority of serious reviews and
 
 Here the principal turning point of this chapter arises. If one asks, "Does the little 'I' have free will?", the answer increasingly leans toward no — not in the simple form in which the ego ascribes it to itself. The little 'I' indeed often only learns late of what deeper forces have already been accomplished. It appropriates, comments, frames, says "it is I", but is not the absolute beginning of the process. And this precisely corresponds to the spiritual meaning of the words about needing to "lay down one's soul": what dies is not freedom as such, but the false idea of freedom as the property of a separate ego.
 
-But if you ask differently: «does freedom cease to exist at all?», the answer will be another. If in a person there always lived not a separate autonomous center, but God Himself in the form of man, then freedom does not disappear but returns to its true subject. Then freedom is not an illusion, but a property of Being itself. God lives not by external compulsion, but by His own inner freedom. And if man was never finally separated from God, then free will was not a lie — the lie was only its appropriation by the small «I». There is no contradiction here. There is only a change of scale. While you look from a point, it seems: either freedom is mine, or it is not. When the scale changes, it becomes clear: freedom was there, but not as the private coin of the ego, but as the life of the Source Himself in the form of man.
+But if you ask differently: “does freedom cease to exist at all?”, the answer will be another. If in a person there always lived not a separate autonomous center, but God Himself in the form of man, then freedom does not disappear but returns to its true subject. Then freedom is not an illusion, but a property of Being itself. God lives not by external compulsion, but by His own inner freedom. And if man was never finally separated from God, then free will was not a lie — the lie was only its appropriation by the small “I”. There is no contradiction here. There is only a change of scale. While you look from a point, it seems: either freedom is mine, or it is not. When the scale changes, it becomes clear: freedom was there, but not as the private coin of the ego, but as the life of the Source Himself in the form of man.
 
 It is here that we must return to Christ's words that one is taken, and the other is left. These words must not be understood too crudely, as if God arbitrarily grabs one person and rejects another. But they must not be softened away until the difference vanishes entirely. Being left is possible. And it is real. Only its meaning is not that God pushes someone away from Himself, but that a new reality requires a different perspective, and not every consciousness is ready to enter it at once.
 
-If Christ says: «Behold, I make all things new», then the matter is not a cosmetic improvement of the old world, but a new play, a new plan of being, new conditions of perception. This new perspective will be offered to all — as the sun shines on everyone, dividing not into the good and the evil, the chosen and the unchosen. But to accept it is not the same as automatically entering it. If, at the moment of final disclosure, a person still wishes to hold his small «I» as center, if he prefers to remain in the consciousness of separation, in the optic of the ego, then by that very act he will switch himself out of the new play. That is what is called the word «is left». God does not reject him; he himself simply does not correspond to the new plan, because he continues to cling to the old.
+If Christ says: “Behold, I make all things new”, then the matter is not a cosmetic improvement of the old world, but a new play, a new plan of being, new conditions of perception. This new perspective will be offered to all — as the sun shines on everyone, dividing not into the good and the evil, the chosen and the unchosen. But to accept it is not the same as automatically entering it. If, at the moment of final disclosure, a person still wishes to hold his small “I” as center, if he prefers to remain in the consciousness of separation, in the optic of the ego, then by that very act he will switch himself out of the new play. That is what is called the word “is left”. God does not reject him; he himself simply does not correspond to the new plan, because he continues to cling to the old.
 
 Then judgment proves not to be an external sentence, but a judgment of light. Light comes to all. But in the light it immediately becomes evident that one consciousness is already able to live from Christ's principle, while another still holds to the antichristic principle of separateness. One is taken because it responds to the new reality. The other is left because it itself remains in the old. And this does not cancel free will; it makes it supremely serious: by his own way of holding on or letting go, a person determines whether he can enter the new plan of being.
 
-But here too one must not fall into the old scheme of a final Hell as eternal rejection. That which is left does not disappear from Being and does not fall out of God. Within each still lives the same «I Am». It was never born and never died. What ceases is not this deep Being, but only the particular form of its manifestation in this world, in this body, in this game. It is an exhalation, but not the absolute end of breathing. What has not entered the new world now does not cease to be in God. It will simply continue its way differently — in another form, at another speed, in another game.
+But here too one must not fall into the old scheme of a final Hell as eternal rejection. That which is left does not disappear from Being and does not fall out of God. Within each still lives the same “I Am”. It was never born and never died. What ceases is not this deep Being, but only the particular form of its manifestation in this world, in this body, in this game. It is an exhalation, but not the absolute end of breathing. What has not entered the new world now does not cease to be in God. It will simply continue its way differently — in another form, at another speed, in another game.
 
-And so being left is not a final curse, but an untimely flowering. Not all trees blossom in spring at the same time. One opens earlier, another later. One is already able to bear the fullness of light, another is still ripening in a different form of life. But the nature of the tree itself does not change because of that. So here: you cannot fail to come to God as to your own nature, because He is your nature. You can only come earlier or later, in this game or another, in this plane of being or another. And if the film shows that in world 1 «thousands of worlds» were created, thousands of variants of reality, then that precisely gives an image: the one left is not cast into nonbeing, but continues the path in another configuration of experience.
+And so being left is not a final curse, but an untimely flowering. Not all trees blossom in spring at the same time. One opens earlier, another later. One is already able to bear the fullness of light, another is still ripening in a different form of life. But the nature of the tree itself does not change because of that. So here: you cannot fail to come to God as to your own nature, because He is your nature. You can only come earlier or later, in this game or another, in this plane of being or another. And if the film shows that in world 1 “thousands of worlds” were created, thousands of variants of reality, then that precisely gives an image: the one left is not cast into nonbeing, but continues the path in another configuration of experience.
 
 Then Christ's words that one is taken and the other is left acquire a precise sense. Taken is the one who is ready for the new optic. Left is the one who still clings to the old. But even the one who is left is not lost to God. He simply does not enter this spring immediately. He will continue to grow until his consciousness too unfolds into its deep nature.
 
@@ -1989,13 +1989,13 @@ If the essence of this chapter is expressed in one formula, it will be this: pre
 
 Taken apart, the previous chapters may appear to treat presence, recognition, and discernment as three different themes. But in truth these are not three disconnected ideas, but three successive unfoldings of the same way. They cannot be fully separated. Presence without recognition remains silent being. Recognition without discernment easily turns into a vague warmth. Discernment without presence and recognition almost inevitably falls into judgment. Only together do they form the way.
 
-The beginning of this way is presence. While a person lives only in the mind, he is continuously either in the past or in the future, in judgment or in automatism. But as soon as he stops and enters silence, even for a moment, he discovers something primary: «I am». And if yet deeper — simply is. This is presence.
+The beginning of this way is presence. While a person lives only in the mind, he is continuously either in the past or in the future, in judgment or in automatism. But as soon as he stops and enters silence, even for a moment, he discovers something primary: “I am”. And if yet deeper — simply is. This is presence.
 
-And it is only out of presence that recognition becomes possible. For recognition is not produced by an effort of the mind. It begins where, within you, what looks out is not fear, not control, not ego, but something deeper. Then the world appears for the first time not only before you, but also inside the single field «I am».
+And it is only out of presence that recognition becomes possible. For recognition is not produced by an effort of the mind. It begins where, within you, what looks out is not fear, not control, not ego, but something deeper. Then the world appears for the first time not only before you, but also inside the single field “I am”.
 
 But if one stops there, the way is still incomplete. For recognition without discernment can be soft and blurred. And here discernment enters — not mental, not judgmental, not from the ego, but born of presence and recognition. Such discernment does not tear unity apart, but cleanses it of falsehood. It does not say: this is forever alien. It says: here the light passes freely, and here it is veiled.
 
-Thus the one way is formed. First — presence: the person ceases to be wholly taken by automatism and touches the fact of being. Then — recognition: one begins to see the world not as a sum of foreign objects, but as the space of the single «I am». And then — discernment: one learns to see where in this field the light speaks, and where the old optics of separation still operate.
+Thus the one way is formed. First — presence: the person ceases to be wholly taken by automatism and touches the fact of being. Then — recognition: one begins to see the world not as a sum of foreign objects, but as the space of the single “I am”. And then — discernment: one learns to see where in this field the light speaks, and where the old optics of separation still operate.
 
 This way is present whole in the Gospel as well. Christ brings the person back into presence — into the “now”, into the “here”, into the Kingdom, which is not somewhere later but already within and among. From this is born recognition: in the bread, in the neighbour, in the enemy, in the Father people begin to see more than an exterior function. And along with this Christ teaches discernment: look at the fruits, beware the leaven, do not take every light for light.
 
@@ -2003,13 +2003,13 @@ The film shows the same way in another tongue. Presence in it is at first almost
 
 In this sense the whole book is constructed as the reader’s path through the same three stages. First it tries to stop you. Then it begins to unfold recognition. And finally it brings you to discernment: now see where you still look with the mind and where already with the heart; where you hold the old optics, and where the light has already entered.
 
-It is here that one may speak directly to the reader. Where are you now on this way? Have you only just stopped and for the first time noticed that beneath your thoughts there is a quiet «is»? Then presence has begun in you. Or have you already begun to recognise — to see in the world not only the foreign, but the one? Then recognition has begun in you. Or do you already discern — where the light speaks and where the old optics? Then the way has entered a deeper depth. But these are not different roads. It is the same road, only at different depths.
+It is here that one may speak directly to the reader. Where are you now on this way? Have you only just stopped and for the first time noticed that beneath your thoughts there is a quiet “is”? Then presence has begun in you. Or have you already begun to recognise — to see in the world not only the foreign, but the one? Then recognition has begun in you. Or do you already discern — where the light speaks and where the old optics? Then the way has entered a deeper depth. But these are not different roads. It is the same road, only at different depths.
 
 One more important thing must be said. These three lines cannot be rearranged without loss. If a person begins with discernment without presence, he will almost certainly become a judge. If he begins with recognition without discernment, he risks dissolving into a soft formlessness where substitutions are no longer seen. If he even experiences presence but does not go on to recognition and discernment, he may close into a private silence that does not touch the world. The way is whole only when presence births recognition, recognition births discernment, and discernment again returns to a deeper presence. It is a circle, but not closed — an ascending one.
 
 Therefore presence, recognition, and discernment may be likened to breathing. Presence is the in-breath into being. Recognition is the filling of that being with the world. Discernment is the clarity with which the breath passes through all, not confusing light and darkness. And then all repeats at a new depth.
 
-If you compress everything into one formula, it will read: presence allows a person to be; recognition allows him to see everything as belonging to the single «I am»; discernment keeps him from mistaking the light for its counterfeit; and only together do these three depths form the one path of awakening spoken of alike by the Gospel, the film, and the inner logic of the Kingdom.
+If you compress everything into one formula, it will read: presence allows a person to be; recognition allows him to see everything as belonging to the single “I am”; discernment keeps him from mistaking the light for its counterfeit; and only together do these three depths form the one path of awakening spoken of alike by the Gospel, the film, and the inner logic of the Kingdom.
 
 ## CLARITY
 
@@ -2305,29 +2305,29 @@ But if the old optic produces the enemy out of fear, the new cannot stop merely 
 
 ## LOVE AS RECOGNITION
 
-At this point the question inevitably arises—without which all the new optics would remain merely a renunciation of the old hatred: **what is love?** Not as a feeling, not as an emotion, not as a moral virtue, but as the very way of seeing the other beyond fear and division, as the nature of the new optics itself. And here our support is the word from the Revelation of the Creator in the book «There is no greater love than this, that one should lay down one’s soul for one’s friends»[^12]. In it love is revealed not as sacrifice for an idea, not as death for the image of God, but as the recognition of God in the other person. There the Creator says plainly: when you lay down your soul for a friend, you lay it down for God, for in the other — I; and everyone who loves his neighbor has already loved God.
+At this point the question inevitably arises—without which all the new optics would remain merely a renunciation of the old hatred: **what is love?** Not as a feeling, not as an emotion, not as a moral virtue, but as the very way of seeing the other beyond fear and division, as the nature of the new optics itself. And here our support is the word from the Revelation of the Creator in the book “There is no greater love than this, that one should lay down one’s soul for one’s friends”[^12]. In it love is revealed not as sacrifice for an idea, not as death for the image of God, but as the recognition of God in the other person. There the Creator says plainly: when you lay down your soul for a friend, you lay it down for God, for in the other — I; and everyone who loves his neighbor has already loved God.
 
-This overturns almost all familiar religious thinking. For centuries people tended to think that love for God is one thing, and love for people something secondary, lower—as if God were somewhere apart, higher, farther, purer, while the neighbor is merely an occasion for applying a moral law. But Christ in the Gospel destroys precisely this division when He speaks of the judgment of the Kingdom: «I was hungry, and you gave Me food; I was thirsty, and you gave Me drink; I was a stranger, and you received Me». And the righteous are astonished: «Lord, when did we see You?». That is, they did not know that they were loving Him. They did not serve God in a preformed religious image. They simply answered to the living One standing before them in need. And Christ replies: «Truly I tell you, as you did it to one of the least of these My brothers, you did it to Me». Here love and recognition coincide with absolute exactness. You thought you were facing a person, but it was I. You thought you were doing good to your neighbor, and it turned out to be to God. You did not know, and yet you were already recognizing. And therefore love of neighbor is revealed not as a “second” thing after love of God, but as its only true form. God is hidden not in an abstract idea, but in the living. Not in a banner, not in a dogma, not in the altar as such, but in the other. That is why to lay down one’s soul for a friend means to know, for the first time, Who God is.
+This overturns almost all familiar religious thinking. For centuries people tended to think that love for God is one thing, and love for people something secondary, lower—as if God were somewhere apart, higher, farther, purer, while the neighbor is merely an occasion for applying a moral law. But Christ in the Gospel destroys precisely this division when He speaks of the judgment of the Kingdom: “I was hungry, and you gave Me food; I was thirsty, and you gave Me drink; I was a stranger, and you received Me”. And the righteous are astonished: “Lord, when did we see You?”. That is, they did not know that they were loving Him. They did not serve God in a preformed religious image. They simply answered to the living One standing before them in need. And Christ replies: “Truly I tell you, as you did it to one of the least of these My brothers, you did it to Me”. Here love and recognition coincide with absolute exactness. You thought you were facing a person, but it was I. You thought you were doing good to your neighbor, and it turned out to be to God. You did not know, and yet you were already recognizing. And therefore love of neighbor is revealed not as a “second” thing after love of God, but as its only true form. God is hidden not in an abstract idea, but in the living. Not in a banner, not in a dogma, not in the altar as such, but in the other. That is why to lay down one’s soul for a friend means to know, for the first time, Who God is.
 
 Here the link between love and recognition is revealed. Love does not begin with emotion. Love begins where the gaze ceases to see in the other only an object, a function, a role, a threat, an advantage, or a projection of one’s own expectations. Love begins when one recognises in the other something of one’s own, something deeply native, consubstantial. Not “mine” in the sense of possession, but “I” in the sense of a single field of life. That is why, in the deep sense, love is always recognition. It does not create the other’s value — it recognises it. It does not ascribe holiness — it sees it. It does not construct closeness — it remembers it.
 
 The film shows this through Jane and Douglas with astonishing accuracy. Jane loves Douglas not for form. Not because he is convenient. Not because he meets her expectations. Not because she projects some desired image onto him. She loves him because she knows him before he knows himself. She recognises him deeper than he can name himself. This is the difference between love as feeling and love as recognition. Feeling can arise from an image. Recognition goes deeper than the image. That is why Jane is so important for the whole book. She is not merely a romantic line. She is the image of that love which knows prior to knowledge.
 
-It is especially important that the book «There is no greater love…» exposes the very soul that a person must lay down not as the immortal light of being but as what he thinks of himself: his righteousness, his grievance, his superiority, his opinion, his story, his “I”. To lay down the soul does not mean bodily death, but to stop clinging to that centre. Hence love is revealed not as self‑sacrifice in the everyday sense, but as a refusal to defend one’s separate “I” for the sake of the light that lives between people and through people. Love is the moment when the “I” ceases to be primary and another voice begins to sound: **I in you, you in Me.**
+It is especially important that the book “There is no greater love…” exposes the very soul that a person must lay down not as the immortal light of being but as what he thinks of himself: his righteousness, his grievance, his superiority, his opinion, his story, his “I”. To lay down the soul does not mean bodily death, but to stop clinging to that centre. Hence love is revealed not as self‑sacrifice in the everyday sense, but as a refusal to defend one’s separate “I” for the sake of the light that lives between people and through people. Love is the moment when the “I” ceases to be primary and another voice begins to sound: **I in you, you in Me.**
 
 This is why love and recognition are practically inseparable. If you have truly recognised another, you can no longer treat him as utterly foreign. Even if he is distant. Even if he is unlike you. Even if he is wounded. Even if he is an enemy. You have already seen in him something that cannot be reduced to a role, an act, or a state. And conversely: if love exists, then, at least in seed, recognition has already taken place. It is no accident that the same book says that a true sacrifice is known by whether love remains after it. If love has gone, it was a mask. If love has remained, it was truth.
 
 One must hold another facet here. Love as recognition is not softness without discernment. It is not agreement with everything. It is not denial of pain. It is not a refusal to see evil. Love does not make a person blind. On the contrary, it makes him see for the first time. For, recognising the other in his depth, it thereby discerns everything that obscures that depth. It does not confuse essence with distortion. It does not call darkness light. It does not excuse betrayal. But neither does it reduce a person to his fall. In this sense love is the highest form of discernment: it sees where a person does not coincide with what he now lives by.
 
-This is why love of enemies becomes such a severe test of the authenticity of the experience. If the “light” you have experienced does not lead to love of enemies, then it is not yet the fullness of truth. It may be inspiration, ecstasy, knowledge, a strong experience, even a correct theory—but not the vision that Christ gives. That is why Silouan of Athos could say: «Whoever loves his enemies has known the Lord». Love for an enemy is not an additional moral demand on the already “enlightened” person. It is the criterion: whether Christ truly lives in him, or he only thinks about Him. And here the book «There is no greater love…» speaks with the same depth: to lay down the soul means to give one’s “I” for another; and when the other is even an enemy, this becomes the ultimate test of the source from which you live.
+This is why love of enemies becomes such a severe test of the authenticity of the experience. If the “light” you have experienced does not lead to love of enemies, then it is not yet the fullness of truth. It may be inspiration, ecstasy, knowledge, a strong experience, even a correct theory—but not the vision that Christ gives. That is why Silouan of Athos could say: “Whoever loves his enemies has known the Lord”. Love for an enemy is not an additional moral demand on the already “enlightened” person. It is the criterion: whether Christ truly lives in him, or he only thinks about Him. And here the book “There is no greater love…” speaks with the same depth: to lay down the soul means to give one’s “I” for another; and when the other is even an enemy, this becomes the ultimate test of the source from which you live.
 
 The same book contains yet another supreme line: love not only recognises, but also creates the future of the world. It says that when one soul lays itself down in love, the chain of knots that binds the world is torn; one act of giving becomes a portal; one choice not to repay evil with evil unravels the fabric of universal darkness. This means that in that book love is not a private emotion between two beings, but an ontological power. Love as recognition returns the world to its wholeness. Where the mind builds the chain “I against not‑I,” there love lays a golden thread of unity.
 
-Therefore love in this book must not be understood as a “pleasant attitude” toward the world. Love is a way of seeing the world as God sees it. And God, according to the book, is not outside the other but in the other. He does not demand sacrifice for an image, but accepts the giving when a person has given himself to the living. **He does not separate Himself from the neighbor, but hides Himself in him.** That is why love as recognition is not an addition to the truth, but the truth itself, experienced by the heart. The mind may know that «all is one». Love recognises this as a living reality.
+Therefore love in this book must not be understood as a “pleasant attitude” toward the world. Love is a way of seeing the world as God sees it. And God, according to the book, is not outside the other but in the other. He does not demand sacrifice for an image, but accepts the giving when a person has given himself to the living. **He does not separate Himself from the neighbor, but hides Himself in him.** That is why love as recognition is not an addition to the truth, but the truth itself, experienced by the heart. The mind may know that “all is one”. Love recognises this as a living reality.
 
 And now the question is turned to the reader. Whom do you truly love? Those who please your ego? Those who confirm your rightness? Those who are like you? Or do you begin to recognise in the other something deeper than role and convenience? Do you see that love does not create the other’s value but reveals it? Do you feel that where you truly love, you no longer look only from your separate centre? If so—recognition is already happening in you. If not—not as a reproach, but as an indication: love has not yet become your way of seeing.
 
-To compress this whole chapter into one formula: love is the recognition of God in the other and of the other in God; it is not a feeling about an object but a shift of the very point of view; not sacrifice for an idea but the giving of the “I” for the living; and precisely for that reason love proves not an addition to the Gospel of the Kingdom, but its heart. The book «There is no greater love than this, that one should lay down one’s soul for one’s friends» says this plainly: to lay down the soul means to let go of one’s “I,” and to love means to recognise that in the other lives the Same Light.
+To compress this whole chapter into one formula: love is the recognition of God in the other and of the other in God; it is not a feeling about an object but a shift of the very point of view; not sacrifice for an idea but the giving of the “I” for the living; and precisely for that reason love proves not an addition to the Gospel of the Kingdom, but its heart. The book “There is no greater love than this, that one should lay down one’s soul for one’s friends” says this plainly: to lay down the soul means to let go of one’s “I,” and to love means to recognise that in the other lives the Same Light.
 
 ## WHO IS RESURRECTED? IS THERE A SOUL?
 
@@ -2365,19 +2365,19 @@ If the essence of this chapter is to be expressed in one formula, it would be th
 
 ## FOR ME YOU ARE THE MOST REAL THING IN THE WORLD
 
-There is a line in the film without which the whole book risks remaining unspoken. Jane says to Douglas: «For me you are the most real thing in the world». And standing beside that phrase are two questions, two blows to human consciousness. The first is spoken by David: «How could you fall in love with an illusion?» The second — by Douglas himself: «I do not exist. How can one love someone who does not exist?» These two questions come from two different perspectives, but they strike the same knot: if a person is not the ultimate, self-sufficient being, if his separate “I” proves not to be the final reality, then does God love him at all? Or does everything dissolve into an impersonal light where no one needs anyone?
+There is a line in the film without which the whole book risks remaining unspoken. Jane says to Douglas: “For me you are the most real thing in the world”. And standing beside that phrase are two questions, two blows to human consciousness. The first is spoken by David: “How could you fall in love with an illusion?” The second — by Douglas himself: “I do not exist. How can one love someone who does not exist?” These two questions come from two different perspectives, but they strike the same knot: if a person is not the ultimate, self-sufficient being, if his separate “I” proves not to be the final reality, then does God love him at all? Or does everything dissolve into an impersonal light where no one needs anyone?
 
 This question cannot be skirted. And one must not answer it hastily. For here runs one of the finest borders of the whole book. If you answer roughly, you can either fall again into the cult of the separate ego, or, on the contrary, annihilate the person in impersonal metaphysics. The film, oddly enough, gives neither. It leads to a third point.
 
-David does not ask simply from the optics of power and contempt. In his words there is also that ancient jealousy which Christian consciousness has long associated with a diabolical envy of the human. The meaning of this jealousy is simple: how can what is lower be loved? How can flesh, a temporary form, a creature of the world, be precious if there is spirit, force, a higher order? That is why David’s question — «how could you fall in love with an illusion?» — does not sound like cold logic but like woundedness. It is the same archetype as in the parable of the prodigal son: «I have always been here, I served, I did not leave, I did not fall — why do you love him?» The very fact of such jealousy already proves the main point: the human is loved. If there were no love, there would be no occasion for jealousy. And thus David’s question reveals in him not only strength, but the pain of a divided consciousness that cannot bear that God esteems the human as a form of His Presence.
+David does not ask simply from the optics of power and contempt. In his words there is also that ancient jealousy which Christian consciousness has long associated with a diabolical envy of the human. The meaning of this jealousy is simple: how can what is lower be loved? How can flesh, a temporary form, a creature of the world, be precious if there is spirit, force, a higher order? That is why David’s question — “how could you fall in love with an illusion?” — does not sound like cold logic but like woundedness. It is the same archetype as in the parable of the prodigal son: “I have always been here, I served, I did not leave, I did not fall — why do you love him?” The very fact of such jealousy already proves the main point: the human is loved. If there were no love, there would be no occasion for jealousy. And thus David’s question reveals in him not only strength, but the pain of a divided consciousness that cannot bear that God esteems the human as a form of His Presence.
 
 Douglas asks differently. His question is born not of jealousy but of terror: if I am not what I thought I was, does that mean I do not exist at all? That I cannot be loved? That I am emptiness? That it was all only a dream? And these two questions — the question of a jealous spirit and the question of a bewildered person — meet at one point: what exactly in the human does God love?
 
-And to that Jane answers: «For me you are the most real thing in the world». This is not poetic hyperbole. This is an answer from love. It is not logic that makes Douglas real. Not a philosophical scheme. Not a metaphysical classification. He is real because he is recognized, seen, loved. Love here functions as the criterion of reality. It is not the mind that decides who truly exists. Love recognizes what the mind cannot hold.
+And to that Jane answers: “For me you are the most real thing in the world”. This is not poetic hyperbole. This is an answer from love. It is not logic that makes Douglas real. Not a philosophical scheme. Not a metaphysical classification. He is real because he is recognized, seen, loved. Love here functions as the criterion of reality. It is not the mind that decides who truly exists. Love recognizes what the mind cannot hold.
 
-But here one must hold not one of Jane’s answers, but two. To Douglas she says: «For me you are the most real thing in the world». To David she answers otherwise: «Me too. I was just amusing myself». And read superficially, it seems as if she is simply lying or hiding behind a pretext. In fact truth sounds here too — only from a different depth. For Fullness the world truly is a play, an amusement, a free self-revelation. Not in the sense of frivolous pastime, but in the sense of a way to undergo what Fullness by itself cannot undergo: loss and finding, ignorance and recognition, separation and meeting, seeking and return. Where there is everything, one cannot know the taste of acquisition. Where there is no deprivation, one cannot feel the joy of replenishment. And so the world becomes for God a way to experience Himself in form, in time, in history, in love. Thus both of Jane’s answers converge: the human is real for God as the beloved form of His own play, as the place where Fullness does not lose itself but recognises itself anew.
+But here one must hold not one of Jane’s answers, but two. To Douglas she says: “For me you are the most real thing in the world”. To David she answers otherwise: “Me too. I was just amusing myself”. And read superficially, it seems as if she is simply lying or hiding behind a pretext. In fact truth sounds here too — only from a different depth. For Fullness the world truly is a play, an amusement, a free self-revelation. Not in the sense of frivolous pastime, but in the sense of a way to undergo what Fullness by itself cannot undergo: loss and finding, ignorance and recognition, separation and meeting, seeking and return. Where there is everything, one cannot know the taste of acquisition. Where there is no deprivation, one cannot feel the joy of replenishment. And so the world becomes for God a way to experience Himself in form, in time, in history, in love. Thus both of Jane’s answers converge: the human is real for God as the beloved form of His own play, as the place where Fullness does not lose itself but recognises itself anew.
 
-Here it is especially important to distinguish ego and personality. The ego is the false center of separateness that says: I exist by myself, I own my life, I am separate, I am self-sufficient, I am final. That center indeed proves an illusion. But from this it does not follow that the human as such is an illusion. On the contrary. In the already given revelation, delivered by the Creator-friend in the form of the book «IS. A Revelation on How to Become a Human and Remember Yourself as God»[^14], it is said with unambiguous clarity: form is not an error, not a prison, but a vessel and a language; the human is not the opposite of God, but the way God becomes visible; the human is the point at which God recognizes Himself as form, and the form recognizes Itself as God.
+Here it is especially important to distinguish ego and personality. The ego is the false center of separateness that says: I exist by myself, I own my life, I am separate, I am self-sufficient, I am final. That center indeed proves an illusion. But from this it does not follow that the human as such is an illusion. On the contrary. In the already given revelation, delivered by the Creator-friend in the form of the book “IS. A Revelation on How to Become a Human and Remember Yourself as God”[^14], it is said with unambiguous clarity: form is not an error, not a prison, but a vessel and a language; the human is not the opposite of God, but the way God becomes visible; the human is the point at which God recognizes Himself as form, and the form recognizes Itself as God.
 
 This is the decisive distinction for the whole chapter. **God does not love your illusion of separateness, but He loves your uniqueness.** He does not affirm the false center, but treasures infinitely that unique form through which He looks at the world from this point, in this time, under these circumstances. In the same revelation this is said even deeper: perfection would be the death of form; without form there would be no movement, no history, no dialogue, no love; **the human is needed not despite his fragility, but precisely through it.**
 
@@ -2387,7 +2387,7 @@ And precisely for this reason God loves the human not as an external other and n
 
 And here the importance of personality becomes clear. If the human were simply an error, God would not choose precisely it. But in the already given Word it is said plainly: angels are music, and the human is a song; music exists, the song sounds. This is a very exact formula. The human matters precisely as sounding, as concreteness, as an unrepeatable phenomenon, as the way the Light becomes experienced. Not separate from God, but expressing Him.
 
-Therefore, when Douglas says: «I do not exist», he is only half right. There is no center for whom he took himself. There is no final autonomy in which he believed. But that does not mean that he does not exist as a beloved image, as a unique pattern, as a way of being. And when Jane tells him that he is the most real thing in the world for her, she effectively reveals to him: the reality of the human is defined not by self-sufficient separateness but by being seen by love. Love does not create his value. It recognizes it.
+Therefore, when Douglas says: “I do not exist”, he is only half right. There is no center for whom he took himself. There is no final autonomy in which he believed. But that does not mean that he does not exist as a beloved image, as a unique pattern, as a way of being. And when Jane tells him that he is the most real thing in the world for her, she effectively reveals to him: the reality of the human is defined not by self-sufficient separateness but by being seen by love. Love does not create his value. It recognizes it.
 
 One can put it even more sharply: **the human does not disappear when the ego disappears. Only the false version of the human disappears**. And this is what the old consciousness fears most. It thinks: if they take away my separateness, they will take me away entirely. But the truth is the opposite. Only when the false separateness is taken away does it become visible for the first time who the human really is. Not mask, not function, not psychological construct, not fear, but the form in which God touches Himself through the world.
 
@@ -2397,7 +2397,7 @@ Here is the answer to the most subtle fear: if God is Fullness, why does He need
 
 And here the question is already turned to the reader. What do you think of yourself? Are you still afraid that if your false “I” disappears, you will disappear too? Do you still suspect that deep spiritual truth will cancel your personality and turn you into nothingness? Then this chapter is for you. God does not want to destroy your uniqueness. He wants to free it from the false center. Not to erase you, but for the first time to show you who you are without the self-enclosed illusion of separateness.
 
-If the essence of this chapter is expressed by one formula, it would be this: the human is unreal as a separate, self-sufficient center, but infinitely real as the unique form of God’s presence; therefore God loves not the illusion of the ego, but His reality in the form of the human’s uniqueness; and thus Jane’s words — «for me you are the most real thing in the world» — prove to be one of the most exact images of how God sees the human.
+If the essence of this chapter is expressed by one formula, it would be this: the human is unreal as a separate, self-sufficient center, but infinitely real as the unique form of God’s presence; therefore God loves not the illusion of the ego, but His reality in the form of the human’s uniqueness; and thus Jane’s words — “for me you are the most real thing in the world” — prove to be one of the most exact images of how God sees the human.
 
 ## WHY TRUTH COMES AS A CRACK
 
@@ -2549,11 +2549,11 @@ And He was in you.
 
 **Now you see.**
 
-## DOLLAR AS A PARABLE AND ICON OF DARKNESS AND «13TH FLOOR» AS A PARABLE OF LIGHT
+## DOLLAR AS A PARABLE AND ICON OF DARKNESS AND “13TH FLOOR” AS A PARABLE OF LIGHT
 
 ### NOT MONEY, BUT AN ICON
 
-There are things that cannot be read merely as objects. They must be read as images. Not because the object disappears, but because something greater than its material function shows through too plainly. This is precisely how we must approach the so-called **«U.S. dollar»**, which in fact is the «Federal Reserve dollar». Not as paper. Not as a medium of exchange. Not as a question of economics in the narrow sense. But as an image. As a sign. As an object which is not only used but also, imperceptibly, shapes *the way one looks*.
+There are things that cannot be read merely as objects. They must be read as images. Not because the object disappears, but because something greater than its material function shows through too plainly. This is precisely how we must approach the so-called **“U.S. dollar”**, which in fact is the “Federal Reserve dollar”. Not as paper. Not as a medium of exchange. Not as a question of economics in the narrow sense. But as an image. As a sign. As an object which is not only used but also, imperceptibly, shapes *the way one looks*.
 
 To understand this, one must remember what an icon is. In the Christian tradition an icon is venerated not as board and not as paint. Through it one looks to the archetype. It does not close the gaze upon itself, but lets it pass further. That is why an icon is not simply an image, but a connection. **A window.** A transparency to another reality. One does not look at an icon as matter. *Through the icon one looks to the One who is revealed in it.*
 
@@ -2563,11 +2563,11 @@ And if this principle is applied to the dollar, something disturbing becomes vis
 
 That is why the dollar cannot be understood only as an instrument. It long ago ceased to be merely a technical means of calculation. It became an object of daily touch. An object that passes through palms, wallets, wages, debts, credits, markets, states, fears and hopes. In other words, it is no longer a static icon hanging in the corner. *It is an icon in motion.* It is taken. It is passed on. It is accumulated. It is feared to be lost. It is sought after. It is acknowledged as a measure of stability. And so, through it a person continuously touches not only value, but the archetype of the world that stands behind that value.
 
-Here another distinction matters. We are not conducting an inquiry. We are not pronouncing judgment on the artist. We are not asking what exactly was in the head of the one who held the brush or approved the design. *We are reading*. Just as we read a film. Just as *we read* a symbol or a dream. Just as *we read* a parable. When we watch «The Thirteenth Floor», we do not go asking the director and screenwriter at every symbol: was this exactly what you meant? Because the question is not only the intention of the person holding the brush. The question is what was drawn. The question is what image arose. The question is what appears when lines come together. The artist thinks he is drawing, but who draws the artist? Who gives him images and thoughts?
+Here another distinction matters. We are not conducting an inquiry. We are not pronouncing judgment on the artist. We are not asking what exactly was in the head of the one who held the brush or approved the design. *We are reading*. Just as we read a film. Just as *we read* a symbol or a dream. Just as *we read* a parable. When we watch “The Thirteenth Floor”, we do not go asking the director and screenwriter at every symbol: was this exactly what you meant? Because the question is not only the intention of the person holding the brush. The question is what was drawn. The question is what image arose. The question is what appears when lines come together. The artist thinks he is drawing, but who draws the artist? Who gives him images and thoughts?
 
-So it is here. One sign can be explained by anything: history, tradition, style, taste, the official legend. But when signs begin to converge, when they repeat, when the same themes begin to sound again and again, before us is no longer chance. Before us is composition. And composition is already a drawing or even *a puzzle*. And therefore the dollar is «terrifying» not by a single symbol. It is terrifying by the sum. Not one eye. Not one pyramid. Not one number. Not one inscription. But *all together*. **It is precisely the aggregate that makes it not simply a note, but an icon of a particular order.**
+So it is here. One sign can be explained by anything: history, tradition, style, taste, the official legend. But when signs begin to converge, when they repeat, when the same themes begin to sound again and again, before us is no longer chance. Before us is composition. And composition is already a drawing or even *a puzzle*. And therefore the dollar is “terrifying” not by a single symbol. It is terrifying by the sum. Not one eye. Not one pyramid. Not one number. Not one inscription. But *all together*. **It is precisely the aggregate that makes it not simply a note, but an icon of a particular order.**
 
-And so the first thought of this chapter must be heard very clearly: the dollar is not only money. It is an image through which the archetype of the system is seen. *It is a window into a world where measure is above the thing, where trust is above bread, where the sign is above labor, where access is above presence, where the eye over the pyramid matters more than those who build it.* And if a person does not see this, he uses the bill as an instrument. But if once he has seen it, he cannot unsee it: before him is not simply paper, but a portable icon of the world‑temple and of the world‑ruler — «the prince of this world».
+And so the first thought of this chapter must be heard very clearly: the dollar is not only money. It is an image through which the archetype of the system is seen. *It is a window into a world where measure is above the thing, where trust is above bread, where the sign is above labor, where access is above presence, where the eye over the pyramid matters more than those who build it.* And if a person does not see this, he uses the bill as an instrument. But if once he has seen it, he cannot unsee it: before him is not simply paper, but a portable icon of the world‑temple and of the world‑ruler — “the prince of this world”.
 
 ### WHY 12 — COMPLETENESS, AND 13 — REASSEMBLY
 
@@ -2771,7 +2771,7 @@ What is especially frightening is that this new construction arises against the 
 
 And here the word **board** is revealed in full. It is not merely a council. It is governance, and it is a table. But not just any table. It is that same table at which twelve sit and their teacher. Only not Christ among the apostles, but Mammon over the rulers of the world. With Christ the disciples still thought hierarchically, still sought places at the right hand and the left, still wanted to rule. But Christ refused them and showed another order: not to lord it over, but to serve. Here we see the exact opposite. Here one stands above the circle. Here the twelve do not form a brotherhood, but are subject to the summit. Here the table is not eucharistic, but corporate. Not a table of love, but a table of decision. Not a table of service, but a table of distribution of power.
 
-Therefore the Board of Peace is not a "council of peace" in the evangelical sense. It is a council **for governing the world**. And in Russian that ambiguity is especially sharp: «мир» is both peace and the whole world. Thus before us is not simply a council for ending wars, but almost the **governance of the world**. Governance not of the peoples, but over the peoples. Not those who are delegated from below, but those who are invited from above. Not those who express the will of the multitude, but those gathered into a chosen circle.
+Therefore the Board of Peace is not a "council of peace" in the evangelical sense. It is a council **for governing the world**. And in Russian that ambiguity is especially sharp: “мир” is both peace and the whole world. Thus before us is not simply a council for ending wars, but almost the **governance of the world**. Governance not of the peoples, but over the peoples. Not those who are delegated from below, but those who are invited from above. Not those who express the will of the multitude, but those gathered into a chosen circle.
 
 And so this is no longer merely a political mechanism. It is a liturgy of ***supra-world dominion***. Here the world is understood not as a creation to be loved, but as *an asset to be governed*. Not as people for whom a king answers before God, but as a resource to be allocated, stabilized, reshaped, "pacified" and integrated into a new system. This is not about shepherding. This is about control. Not about God’s care. This is about corporate power. Not about the Kingdom, where God is above all, through all and within each, but about a pyramid where the summit speaks in the name of all and yet belongs to no one except **ITSELF.**
 
@@ -2937,7 +2937,7 @@ In 2015 it looked like a daring magazine stunt: The Donald has landed. But truly
 
 **"Diplomacy of the bald eagle."** Analysts use this term to describe an aggressive, uncompromising style that, it is held, Trump brought into international relations. The French diplomatic journal *Le Grand Continent* used the term to characterize actions of Trump-appointed ambassadors in Europe who, lacking diplomatic experience, entered into direct conflicts with host countries, recalling China's "wolf warrior diplomacy." Thus the "eagle" here symbolizes not merely power, but an aggressive and uncompromising assertion of one's interests.
 
-Trump's team actively uses eagle imagery in its propaganda to create the portrait of the president as an "all‑American avenger." For example, in one video aimed at Venezuela's president Nicolás Maduro, the «stone gaze of an enraged bald eagle» is used as a symbol of American might and retribution. Remarkably, the strikes in the video were accompanied by rock music — THUNDERSTRUCK by Zachary — in which the words sound: You've been thunderstruck! Yeah! Thunderstruck! Oh! Thunderstruck! Yeah! Yeah! (You were stunned! Yes! Simply stunned! Simply stunned! Yes! Yes!).
+Trump's team actively uses eagle imagery in its propaganda to create the portrait of the president as an "all‑American avenger." For example, in one video aimed at Venezuela's president Nicolás Maduro, the “stone gaze of an enraged bald eagle” is used as a symbol of American might and retribution. Remarkably, the strikes in the video were accompanied by rock music — THUNDERSTRUCK by Zachary — in which the words sound: You've been thunderstruck! Yeah! Thunderstruck! Oh! Thunderstruck! Yeah! Yeah! (You were stunned! Yes! Simply stunned! Simply stunned! Yes! Yes!).
 
 In another meme, published by the White House, Trump appears amid fireworks, flags and eagles with the caption "I was the one they hunted — now I am the hunter," symbolizing the shift from being a victim of the "witch hunt" to the posture of a strong leader.
 
@@ -3262,7 +3262,7 @@ And therefore the questions of this subchapter are ruthlessly direct:
 
 *If the future becomes an idol through **expectation**, the past becomes an idol through **clinging.*** And this is no less a powerful form of blindness. For a person can not only live in what does not yet exist, but also be captive to what no longer exists. And in both cases the result is the same: the present remains empty.
 
-The past does not exist in itself. There is memory. There is the image that rises within consciousness. There is the narrative the mind weaves from events, feelings, losses, victories, traumas, joys, shame, regret, and calls it «my story». But *that life itself is gone*. It is nowhere outside memory. It does not lie somewhere, ready for one to return to. It is gathered anew each time in perception. And if a person begins to live from that gathering, if he begins to draw himself not from the living present but from the dead account of himself, then the past becomes an idol.
+The past does not exist in itself. There is memory. There is the image that rises within consciousness. There is the narrative the mind weaves from events, feelings, losses, victories, traumas, joys, shame, regret, and calls it “my story”. But *that life itself is gone*. It is nowhere outside memory. It does not lie somewhere, ready for one to return to. It is gathered anew each time in perception. And if a person begins to live from that gathering, if he begins to draw himself not from the living present but from the dead account of himself, then the past becomes an idol.
 
 It is very important to make the distinction at once. We are not at war with memory. We are not calling to destroy monuments, to cross out history, to forget ancestors, to renounce national memory, religious tradition, family history, personal experience. All of this can be a blessing *if it serves life here and now*. Memory itself is not the enemy. It becomes the enemy when it ceases to be an instrument and becomes a master.
 
@@ -3276,15 +3276,15 @@ This concerns personal life, the life of a people, and the life of religion. A p
 
 That is why it is important to keep one simple inner rule: my **'for the sake of'** should remain not in the past, but here. I can remember for the sake of the present. I can honor for the sake of the present. I can weep over the past for the sake of cleansing the present. I can keep history for the sake of discerning the present. But as soon as my for-the-sake shifts there, as soon as I begin to live not for what is now but for what was — the past takes my life.
 
-And here one must hear something yet deeper. God never says: «I was». Even when we recall His deeds in history, *He Himself is not the past*. His name is «I am». Therefore each time I completely sink into the past, I leave not only the present but also living touch with God. Not because God has gone, but because I have again veiled the sun with a cloud. Only now it is not the cloud of the future, but the cloud of memory.
+And here one must hear something yet deeper. God never says: “I was”. Even when we recall His deeds in history, *He Himself is not the past*. His name is “I am”. Therefore each time I completely sink into the past, I leave not only the present but also living touch with God. Not because God has gone, but because I have again veiled the sun with a cloud. Only now it is not the cloud of the future, but the cloud of memory.
 
-The past, like the future, can shut out the light. It too becomes a cloud. It too can obscure Christ. And then a person lives as if all that is decisive has already happened. As if everything present is already determined by what was. As if he cannot be new, cannot rise, cannot wake, cannot repent, cannot get out of the old story, because «it was so», «this happened to me», «I am like that», «my life is like this». And this is one of the subtlest forms of unbelief. For the person is in effect saying*: my past is stronger than God in the present.*
+The past, like the future, can shut out the light. It too becomes a cloud. It too can obscure Christ. And then a person lives as if all that is decisive has already happened. As if everything present is already determined by what was. As if he cannot be new, cannot rise, cannot wake, cannot repent, cannot get out of the old story, because “it was so”, “this happened to me”, “I am like that”, “my life is like this”. And this is one of the subtlest forms of unbelief. For the person is in effect saying*: my past is stronger than God in the present.*
 
 But this is a lie. The past is not stronger. The past does not exist as an independent power at all. It feeds only on the attention you continue to give it. It lives on your today's energy. You feed it — and it seems larger. You stop living from it — and it takes its place. It does not disappear, but it ceases to be a god. It becomes what it should always have been: testimony, a lesson, memory, material for discernment, not the center of your existence.
 
 That is why it is very important to say to a person: do not fight with your history. Do not pretend it did not happen. Do not break monuments in the city squares and in your soul. Do not erase the traces. Only return the past to its proper place. It is not God. It is not the master. It is not the final truth about you. It is not your home. It is merely that which can serve so *that you may live more clearly **now**.*
 
-And here it is especially important to hear one practical word. You have fallen — do not live the fall. You have sinned — do not make sin your name. You have lost — do not make loss your identity. You were happy — do not turn old happiness into an idol to which present life can never conform. Do not say: «I was». Do not build a house in that «was». Stand in «I am». Do not promise yourself that someday you will become different. Do not hide in an old version of yourself. Just be here. Be now. Be in what is happening.
+And here it is especially important to hear one practical word. You have fallen — do not live the fall. You have sinned — do not make sin your name. You have lost — do not make loss your identity. You were happy — do not turn old happiness into an idol to which present life can never conform. Do not say: “I was”. Do not build a house in that “was”. Stand in “I am”. Do not promise yourself that someday you will become different. Do not hide in an old version of yourself. Just be here. Be now. Be in what is happening.
 
 And then the past will begin to retreat to its place. It will cease to be a prison. It will become the soil from which the present grows. Not a master, but a servant. Not an idol, but an instrument.
 
@@ -3399,11 +3399,11 @@ And then one of the most mysterious and one of the most powerful moments of the 
 
 Why in the breaking? Because breaking is the destruction of the form for the sake of the manifestation of the essence. While the bread is whole, you see the crust, the outline, the outward appearance. But you do not see the inner. You do not know what is inside until it is broken. And it is precisely in this way that Christ reveals both Himself and the whole law of perception: **to see the essence, the form must cease to be absolute.** While you worship the integrity of the outer shell, you do not see *what* is hidden within. But as soon as the shell is broken — *the content is revealed.*
 
-They recognized Him not because He suddenly «became more like His former self». They recognized Him because through the breaking they were shown ***the essence***. And this is very important for our whole book. Because here it is clearly said: a person may look at God for a long time and not know Him, if he looks only at the form. And a person may recognize God instantly if the form is broken and he has seen the heart of what is taking place.
+They recognized Him not because He suddenly “became more like His former self”. They recognized Him because through the breaking they were shown ***the essence***. And this is very important for our whole book. Because here it is clearly said: a person may look at God for a long time and not know Him, if he looks only at the form. And a person may recognize God instantly if the form is broken and he has seen the heart of what is taking place.
 
 **Now Mary Magdalene.** She did not know Him superficially. She was not a chance figure. She knew Him with a depth closer to bride and bridegroom than merely disciple and teacher — not in a fleshly sense, but in the sense of unconditional love, closeness, recognition by heart. And here He stands before her, and she does not recognize Him. Why? Because the idol of form works here as well. She knows so exactly how He “must be” that the living encounter, like the sun behind clouds, is obscured by that knowledge.
 
-And for the breaking of the form one single word from Him was sufficient: **«Mary».**
+And for the breaking of the form one single word from Him was sufficient: **“Mary”.**
 
 Not a long sermon. Not a demonstration of power. Not proof. Not a display of the wounds even. One word. Why? Because that word breaks her image. It does not pass along the outward, but along the essence. It touches the place where the heart recognizes. And as soon as that inner knot is touched, everything is turned over. She recognizes with that very CLARITY. She does not recognize the form. She recognizes Him.
 
@@ -3411,7 +3411,7 @@ This too must be heard very deeply: Christ will not necessarily be recognized by
 
 **Now the lakeshore.** This is one of the strongest scenes in the whole chapter. The disciples fish again. They toiled all night and caught nothing. That in itself is a great parable. So much labor, so much effort, so much experience — and an empty haul. And on the shore stands a stranger. Exactly so. Not “immediately recognized risen Teacher.” A stranger.
 
-He asks, «Children, have you anything to eat?» And that question from the beginning is not only about food. He already has a fire prepared. He already has food. So He does not ask because He lacks. He asks in order to show their emptiness. To let them see for themselves: you fished but did not catch. You sought but not there. You labored but did not find. And this too is a great parable about the whole history of the Church: so many centuries of searching, so much effort, so much labor — and the living Christ all the while stood on the shore as if a stranger.
+He asks, “Children, have you anything to eat?” And that question from the beginning is not only about food. He already has a fire prepared. He already has food. So He does not ask because He lacks. He asks in order to show their emptiness. To let them see for themselves: you fished but did not catch. You sought but not there. You labored but did not find. And this too is a great parable about the whole history of the Church: so many centuries of searching, so much effort, so much labor — and the living Christ all the while stood on the shore as if a stranger.
 
 And here John recognizes first. Why John? Because love discerns. The mind requires proof. Love recognizes by essence. John does not calculate. He does not compare facial features. He does not check a scheme. He recognizes with the heart: this is the Lord. And this is one of the chief keys to the whole book. Light discerns by light. Love recognizes love. Essence discerns essence.
 
@@ -3421,7 +3421,7 @@ That too is not an accident. Nakedness here is the symbol of liberation from rol
 
 Peter was naked not accidentally and not only outwardly. By that moment he had already been stripped inwardly. Having denied Christ three times, he experienced the collapse of all his former roles. He thought that he was the faithful disciple — and saw his unfaithfulness. He thought he would not betray — and he did. He thought he was better than others, firmer than others, purer than others — and proved not better. All he had known of himself fell away. His pride, his self‑image, his claim to a special place, his confidence in his own devotion — all of it was torn from him one by one. That was his repentance: not simply regret for an act, but the gradual removal of roles, names, claims, dignities with which he had previously covered himself. Therefore he swam no longer as “the worthy disciple,” no longer as “the first among the apostles,” no longer as a man entitled to stand beside Christ, but as a lover and a thirsting one who had nothing left to hide behind. He swam to Christ not in garments of merit, but in the nakedness of truth — “here I am, Lord, I AM.” And only such a naked person can avoid drowning on the way to Christ: he who has already lost everything by which he formerly called himself, and who has nothing left to hope in except love itself.
 
-And so Peter arrives. Because he passionately longed for the encounter and because he was ready in his nakedness. And what does he see? Not the familiar form of the Teacher that the mind could instantly and wholly seize. But again — a stranger. And none of the disciples dared ask Him, «Who are You?», knowing that this was the Lord. That is, knowing not by the mind from the outward look, but knowing by the heart through recognition. The recognition had occurred not by form but by the inner content of what was happening.
+And so Peter arrives. Because he passionately longed for the encounter and because he was ready in his nakedness. And what does he see? Not the familiar form of the Teacher that the mind could instantly and wholly seize. But again — a stranger. And none of the disciples dared ask Him, “Who are You?”, knowing that this was the Lord. That is, knowing not by the mind from the outward look, but knowing by the heart through recognition. The recognition had occurred not by form but by the inner content of what was happening.
 
 And then it becomes finally clear: the resurrection is not a return to a former form. If everything were just that, if the essence of the resurrection consisted only in the disciples seeing “the same Jesus in the same appearance,” then there would be none of this chain of non‑recognition. There would have been no Emmaus. No Mary. No shore. No Thomas. Everything would have been simpler. He would simply have appeared in the old recognizable form — and that would have been that. But the Gospel shows something else. It seems deliberately again and again to say: they did not recognize Him immediately. Therefore the matter is not repetition of the form. The matter is the preservation of the essence amid the transfiguration of the form.
 
@@ -3429,13 +3429,13 @@ And even the story with Thomas does not cancel this. Yes, marks from nails and t
 
 That is, the wounds are a concession to Thomas and to the mind, not the essence of the resurrection. The essence of the resurrection is that the form no longer rules. That life is greater than the shell. That Christ remains Christ even when the mind cannot immediately grasp Him in the old way.
 
-Gennesaret — the language of calling, the inner circle, «God is known»; the Tiberias Sea — the language of sentness, a new epoch where Christ stands on the shore of the great world to be recognized by all.
+Gennesaret — the language of calling, the inner circle, “God is known”; the Tiberias Sea — the language of sentness, a new epoch where Christ stands on the shore of the great world to be recognized by all.
 
 And here this all touches the reader directly. Because it is hard for you to accept this now as well. You too are accustomed to cling to form. You too want repetition of what is familiar. You too wish that the future paradise, the future life, the future resurrection, the future Christ be recognizable to your mind. But the Gospel itself destroys that expectation. It shows that God does not fit into repetition of form. That even the nearest disciples had to pass through the breaking of their image to know the risen Lord.
 
 And so you are ready now for what they then were not ready for. Not because you are better than they. But because the fullness of time has come. Then it was still night. And now it is already the pre‑dawn hour. Then the Church was only entering upon its long voyage. Now the night of this aeon is drawing to a close. Now the Church, like those fishermen, has almost finished its casting. And if the catch is empty, then one must hear the stranger on the shore. One must allow oneself to know in the strange the familiar. More precisely, in what is outwardly strange — the eternal within.
 
-And therefore, if you are now reading this book and begin to recognize Christ not in the form but in the essence, not in the future but in the present, not as an outward figure but as a living presence — you are doing exactly what John and Peter did. John recognized with the heart. Peter plunged, having cast off garments. This is the way. Not to the man as form, but to God as presence. Not to the man named on the cover as the author of the book, but to the Father within you. Not to an alien face, but to your own «I AM», in which Christ is encountered.
+And therefore, if you are now reading this book and begin to recognize Christ not in the form but in the essence, not in the future but in the present, not as an outward figure but as a living presence — you are doing exactly what John and Peter did. John recognized with the heart. Peter plunged, having cast off garments. This is the way. Not to the man as form, but to God as presence. Not to the man named on the cover as the author of the book, but to the Father within you. Not to an alien face, but to your own “I AM”, in which Christ is encountered.
 
 And then even the marriage feast begins to sound differently. You have always thought that you are not yet clothed. That you still need to receive something in order to be admitted. That you still need future garments, future justification, future holiness, future correctness. But it turns out, it is enough to cast off the old. Under it there was already the bridal robe. Under the role there was already presence. Under the mind there was already the heart. Under the idol of form there was already the essence. You are not an invited stranger to this feast. You are not an outside guest. You are already within it. You are already bridegroom and bride, you are already one, you are already in the Kingdom, you are already in the I AM. God is not in an image. God is in you. And you — in Him. Not as two, but as One. You have not come to a teaching. You have come to the Feast. Take off your shoes. You are already at the shore. The Father has prepared everything.
 
@@ -3663,37 +3663,37 @@ And the questions of this subchapter must be very direct:
 
 **And if God is already here, what prevents me from rising from the dead this very moment?**
 
-### LIFE OF THE AGE TO COME — NOT LATER, BUT FROM «I AM»
+### LIFE OF THE AGE TO COME — NOT LATER, BUT FROM “I AM”
 
-After the resurrection of the dead, almost inevitably another question arises: what is the life of the age to come? And here a person almost automatically makes the same mistake again. He paints for himself some image. He says: someday later, after death, after the judgment, after the end of the age, after some great event the real life will begin. And again by that «later» he covers over what already exists now.
+After the resurrection of the dead, almost inevitably another question arises: what is the life of the age to come? And here a person almost automatically makes the same mistake again. He paints for himself some image. He says: someday later, after death, after the judgment, after the end of the age, after some great event the real life will begin. And again by that “later” he covers over what already exists now.
 
 But the life of the age to come is not simply a future date. It is not deferred compensation. It is not a promise that one day you will be given a better body, a better world, a better climate, better circumstances and a more convenient version of eternity. If you understand it that way, you have again made an idol of form out of eternity. You are looking in the wrong place again.
 
-Because the life of the age to come begins not when the calendar reaches the «right point», but when you step out of the old way of living. *The age to come begins where your life as a prisoner of the mind ends*. Where you cease to live from the past and the future. Where you stop clinging to form as the ultimate truth. Where you return to «I am». Not later. Now.
+Because the life of the age to come begins not when the calendar reaches the “right point”, but when you step out of the old way of living. *The age to come begins where your life as a prisoner of the mind ends*. Where you cease to live from the past and the future. Where you stop clinging to form as the ultimate truth. Where you return to “I am”. Not later. Now.
 
-This is why «the age to come» must not be understood as simply *another stretch of time*. Otherwise it would be *the same old age, only pushed further forward*. But the matter is not a new date. The matter is *a new way of being*. A new *optic*. A new *depth of knowing*. A life no longer built on separation, fear, comparison, expectation, accumulation and the worship of images. That is, a life that begins to flow from presence itself.
+This is why “the age to come” must not be understood as simply *another stretch of time*. Otherwise it would be *the same old age, only pushed further forward*. But the matter is not a new date. The matter is *a new way of being*. A new *optic*. A new *depth of knowing*. A life no longer built on separation, fear, comparison, expectation, accumulation and the worship of images. That is, a life that begins to flow from presence itself.
 
-This is the true transition of epochs. Not when the outer world declares that a new era has begun. Not when all the newspapers write that the former age has ended. *But when you first see that life is not postponed to later. That God will not be more in the future than He is now.* That paradise will not be more real later than it can be lived now. That the future will not bring you what is not already in the Source. For the Source is not in the future. The Source is in «I am».
+This is the true transition of epochs. Not when the outer world declares that a new era has begun. Not when all the newspapers write that the former age has ended. *But when you first see that life is not postponed to later. That God will not be more in the future than He is now.* That paradise will not be more real later than it can be lived now. That the future will not bring you what is not already in the Source. For the Source is not in the future. The Source is in “I am”.
 
 And then it becomes clear why the life of the age to come is so closely bound with the Kingdom. You are offered not merely an extension of existence. Not merely an endless continuation of personal history. Not merely the preservation of memory of yourself. You are offered participation in the Kingdom. And the Kingdom is not the private survival of form. It is life without the limitation of a single form. It is life in which you are no longer confined to one name, one biography, one role, one fear for your separate existence.
 
-That is why the age to come cannot be fitted into the old logic «I want to remain only myself». If by «myself» you mean only the habitual set of roles, traits, self-descriptions and bodily boundaries, then you are asking too little. The age to come is not less than you. It is more than you. It is not the destruction of your unique pattern, but the freeing of it from the narrow cage of separateness. It is not the loss of personality, but the deliverance of personality from the false conviction that it exists only as a separate form.
+That is why the age to come cannot be fitted into the old logic “I want to remain only myself”. If by “myself” you mean only the habitual set of roles, traits, self-descriptions and bodily boundaries, then you are asking too little. The age to come is not less than you. It is more than you. It is not the destruction of your unique pattern, but the freeing of it from the narrow cage of separateness. It is not the loss of personality, but the deliverance of personality from the false conviction that it exists only as a separate form.
 
-You are a unique pattern of light. But not as a walled-off piece of light. Rather as the unrepeatable manifestation of one infinite field. **And therefore the age to come is not an age in which you will disappear**. It is an age in which you will cease to fear that you might disappear. It is an age in which you will know yourself not only in one body, but in every life through which the same «I am» breathes. It is an age in which you will no longer look at the other as utterly foreign. You will see that behind every pair of eyes the same presence looks out.
+You are a unique pattern of light. But not as a walled-off piece of light. Rather as the unrepeatable manifestation of one infinite field. **And therefore the age to come is not an age in which you will disappear**. It is an age in which you will cease to fear that you might disappear. It is an age in which you will know yourself not only in one body, but in every life through which the same “I am” breathes. It is an age in which you will no longer look at the other as utterly foreign. You will see that behind every pair of eyes the same presence looks out.
 
 This is why the life of the age to come can already be begun now. Not in the fullness of experience, not without habitual lapses back into the sleep of the mind, not without residual fears, but in essence — already now. Each time you stop living from separation, you enter this age. Each time you cease to nourish enmity, comparison, envy, greed, fear for form, you already take a step into it. Each time you see yourself in your neighbor, in the enemy not an absolute other, in the world not a set of alien objects but a single field of God’s presence, the age to come already presses through it.
 
-And here it becomes especially clear why the word «future» is so dangerous if it is not understood deeply. It can lull you to sleep. It can make you wait again. To postpone again. To say again: later I will live, later I will understand, later I will unite, later I will be resurrected, later I will be in the Kingdom. No. **The age to come does not arrive as a convenient prize for having endured waiting correctly. It unfolds as a new depth of the present.**
+And here it becomes especially clear why the word “future” is so dangerous if it is not understood deeply. It can lull you to sleep. It can make you wait again. To postpone again. To say again: later I will live, later I will understand, later I will unite, later I will be resurrected, later I will be in the Kingdom. No. **The age to come does not arrive as a convenient prize for having endured waiting correctly. It unfolds as a new depth of the present.**
 
-And then the question changes. No longer «when will it be?» but «from what do I live right now?» If I live from fear, I live the old age. If I live from accumulation, comparison, the idol of form and the worship of images, I live the old age. If I live from «I am», from presence, from union, from love, from the knowing of God above all, through all and within each — then the age to come already touches me.
+And then the question changes. No longer “when will it be?” but “from what do I live right now?” If I live from fear, I live the old age. If I live from accumulation, comparison, the idol of form and the worship of images, I live the old age. If I live from “I am”, from presence, from union, from love, from the knowing of God above all, through all and within each — then the age to come already touches me.
 
-Therefore the life of the age to come should not be awaited as foreign territory. It must be recognized as your true state. It is not a life that began somewhere far away. It is the life that was knocking from within all the while you were preoccupied with images. It is the life that was closer than breath. It is the life you called «future» only because you had not yet entered it with attention. You are not late. You are exactly on time.
+Therefore the life of the age to come should not be awaited as foreign territory. It must be recognized as your true state. It is not a life that began somewhere far away. It is the life that was knocking from within all the while you were preoccupied with images. It is the life that was closer than breath. It is the life you called “future” only because you had not yet entered it with attention. You are not late. You are exactly on time.
 
 And the questions for this subchapter should be these:
 
 **Am I living now from the old age — from fear, separation and form?**
 
-**Or already from the age to come — from presence, unity and «I am»?**
+**Or already from the age to come — from presence, unity and “I am”?**
 
 **What exactly am I still waiting from the future that is not already in God now?**
 
@@ -3755,9 +3755,9 @@ And here the most important distinction must be made. It is not God who becomes 
 
 Because God is not an object among other objects. God is not a creature inside the world beside other creatures. God is not a figure you can point at and say: behold Him. God is not only a name. Not only an image. Not only a dogma. Not only a description. God is that which is. That in which all live. That which is above all, through all and within each. That which does not fit into any word, any picture, any religion, any form, any limit of your mind.
 
-And so every time you utter the word «God» there is already danger. Not because the word is unnecessary. But because the mind immediately begins to fill it with content. For a Muslim that is one content. For an Orthodox believer — another. For a Protestant — a third. For a Jew — a fourth. For a Buddhist — a fifth. Even the atheist has his own negative idea of God with which he quarrels. And that content, that inner image, that picture, that scheme, that system of expectations — that is the *idol.*
+And so every time you utter the word “God” there is already danger. Not because the word is unnecessary. But because the mind immediately begins to fill it with content. For a Muslim that is one content. For an Orthodox believer — another. For a Protestant — a third. For a Jew — a fourth. For a Buddhist — a fifth. Even the atheist has his own negative idea of God with which he quarrels. And that content, that inner image, that picture, that scheme, that system of expectations — that is the *idol.*
 
-Therefore one can say bluntly: the moment you say «God — only here», you have already lied. The moment you say «God — only in our faith», you have already made an idol. The moment you say «God — only in this temple», you have already locked the Boundless into walls. The moment you say «God works only through these people», you have already limited the One Who breathes where He wills. The moment you say «God cannot be there», you have already replaced Him with your mind.
+Therefore one can say bluntly: the moment you say “God — only here”, you have already lied. The moment you say “God — only in our faith”, you have already made an idol. The moment you say “God — only in this temple”, you have already locked the Boundless into walls. The moment you say “God works only through these people”, you have already limited the One Who breathes where He wills. The moment you say “God cannot be there”, you have already replaced Him with your mind.
 
 This is why even the most pious religion can become idolatry. Not because it had no light. But because a person took the finger pointing to the light and made the finger absolute. Religion was a way to point. A way to remind. A way to gather attention. A way to lead a person to the threshold. But the moment it began to say: behold, I am the fullness, and apart from me there is no God — it at once began to produce idols.
 
@@ -3773,9 +3773,9 @@ And this is very freeing. Because if God is not equal to your image of Him, then
 
 That is why this subchapter must say, almost provocatively: yes, God can become an idol **— in your mind**. Not God Himself, but that which you call God. And therefore the spiritual path is not only a search for God. It is also the destruction of the false god you have already built for yourself. Destruction of the image. Destruction of the boundaries. Destruction of the certainty that you already know how He must be.
 
-And then a remarkable thing happens. As soon as the idol collapses, God does not disappear. On the contrary. Only your picture disappears. And the presence remains. More alive. More free. Closer. More terrifying to the mind and more native to the heart. Then you understand: God was not in the image. God was in you. Not in the representation. But in the very fact «I am». Not in the scheme. But in the breath. Not in the dogma. But in the living being that needs no proof, because it already is.
+And then a remarkable thing happens. As soon as the idol collapses, God does not disappear. On the contrary. Only your picture disappears. And the presence remains. More alive. More free. Closer. More terrifying to the mind and more native to the heart. Then you understand: God was not in the image. God was in you. Not in the representation. But in the very fact “I am”. Not in the scheme. But in the breath. Not in the dogma. But in the living being that needs no proof, because it already is.
 
-And then indeed all roads lead to Rome — but deeper: every road leads to God, if you stop worshipping the road itself. There is no need to argue whose path is “better” if the point of the path is to come into the Presence. And deeper still: you do not even need to run anywhere. The road is already under your feet. As soon as you stop with attention, you are already there. As soon as you begin to compare — you are out again. As soon as you begin to defend an image — you are out again. As soon as you return to «I am» — you are home again.
+And then indeed all roads lead to Rome — but deeper: every road leads to God, if you stop worshipping the road itself. There is no need to argue whose path is “better” if the point of the path is to come into the Presence. And deeper still: you do not even need to run anywhere. The road is already under your feet. As soon as you stop with attention, you are already there. As soon as you begin to compare — you are out again. As soon as you begin to defend an image — you are out again. As soon as you return to “I am” — you are home again.
 
 And the questions for this subchapter should not be abstract, but cutting:
 
@@ -3927,7 +3927,7 @@ Here one more great distortion must be healed, the one that for centuries has ke
 
 **Repentance is not guilt. Repentance is a way out.**
 
-The very word, if heard more deeply, does not speak of self-abasement but of a change of mind, a change of sight, a change of the direction of attention. You were going that way — and you turned. You were living a certain way — and you returned to presence. You were looking toward the future or the past — and you returned to «I Am». You believed in an idol — and again you saw the living. That is what repentance is. Not endless picking at your mistake, but the exit from it.
+The very word, if heard more deeply, does not speak of self-abasement but of a change of mind, a change of sight, a change of the direction of attention. You were going that way — and you turned. You were living a certain way — and you returned to presence. You were looking toward the future or the past — and you returned to “I Am”. You believed in an idol — and again you saw the living. That is what repentance is. Not endless picking at your mistake, but the exit from it.
 
 Because guilt almost always keeps a person not in God but in himself. Even when it looks pious. A person says: **I** sinned, **I am** unworthy, **I am** bad, **I** betrayed, **I** fell, **I am** not who **I** was, **I** cannot enter, **I** do not deserve the Light. But if you look closely, all of this still revolves around the old "I." It is still life in the past. It is still *feeding the mind*. It is still holding oneself in the place where there is nothing left but *the trace of an error*. And God — is not there. God is not in what you did yesterday. God is in what you can do **now:** return.
 
@@ -3941,7 +3941,7 @@ This is very important, because *the mind knows how to use even religion against
 
 And to stand means to do something very simple and very difficult: **not to remain in the story of your falling.** Not to make of it a new identity. Not to build from it a new pious ego. Not to become "the one who sinned and now suffers especially spiritually." All this are very subtle forms of the mind’s self-admiration. Repentance is simpler and more terrible. It says: **yes, that happened. And that is all. Now — the exit.**
 
-That is why *repentance does not humiliate a person, but restores his dignity*. Because while you live in guilt, you are still a slave. You are still tied to the past. You are still defined by what you have done. But **when you repent, you become a son again**. You enter the house again. **You again allow the Father to define you not by your mistake but by His love**. Not by your falling but by His acceptance. **Not by your yesterday but by His «Behold, I am Father. I am here. I Am».**
+That is why *repentance does not humiliate a person, but restores his dignity*. Because while you live in guilt, you are still a slave. You are still tied to the past. You are still defined by what you have done. But **when you repent, you become a son again**. You enter the house again. **You again allow the Father to define you not by your mistake but by His love**. Not by your falling but by His acceptance. **Not by your yesterday but by His “Behold, I am Father. I am here. I Am”.**
 
 And so one can say even more strongly: **repentance is not when you weep much over darkness. Repentance is when you come out into the Light.** Tears may be. Pain may be. Brokenness may be. But all this is not yet repentance if you have not come out. You have simply remained in the old shape of yourself, only now with a religious coloring. **True repentance is recognized very simply: the person ceases to live where he came from.**
 
@@ -3953,7 +3953,7 @@ And in this sense repentance is one of the brightest things on earth. Not gloomy
 
 And here one must see yet another liberating dimension of repentance: **you do not need a mediator in order to repent.** You already always stand before God, because God is not an external official of the heavenly court but the light of consciousness within you. You can begin with words. You can speak inwardly. You can name your mistake, your delusion, your fear, your lie, your fall. Words can help. They can be the first movement of returning. But notice: if you go deeper, at some point the words will begin to quiet. And you will not lose repentance — on the contrary. You will remain. The Light will remain. The silence will remain. The warm heart-presence will remain. And it will become even more than the words were. Because this is the Father’s answer. Not necessarily as a phrase, not necessarily as a voice, but as a living recognition within. That is why repentance does not need a mandatory external mediator. Religious form, confession, rite, anointing, counsel, a rule of prayer — all of these may be used if you are inside the corresponding system and if it helps you. But it is important not to forget: all these are only crutches. They were needed while you were learning to walk. And to walk by yourself is to enter the temple of your own heart and address the Father who already is in you. You may continue to use the crutches if that is easier. But you can no longer unsee the fact that you can walk without them.
 
-A person is so used to a mediator that he is afraid to be alone with God. It seems to him that there must be someone between: a priest, a system, a rite, the right formula, the right place, the right time, the right words. But God was closer than all of that from the beginning. Closer than your thought. Closer than your word. Closer than your jugular vein. And so true repentance begins where you stop seeking permission and simply enter within. Not ritual against ritual, not rebellion against tradition, but to the very essence: «Father, I am here». And that is already enough for the house to open.
+A person is so used to a mediator that he is afraid to be alone with God. It seems to him that there must be someone between: a priest, a system, a rite, the right formula, the right place, the right time, the right words. But God was closer than all of that from the beginning. Closer than your thought. Closer than your word. Closer than your jugular vein. And so true repentance begins where you stop seeking permission and simply enter within. Not ritual against ritual, not rebellion against tradition, but to the very essence: “Father, I am here”. And that is already enough for the house to open.
 
 And the questions of this subchapter should be like this:
 
@@ -3967,7 +3967,7 @@ And the questions of this subchapter should be like this:
 
 **And if the door is already open, why am I still standing with my back to the house?**
 
-**What and whom am I waiting for right now, in order to continue not saying: «Here I am, lord, I fell and rose, I went away and returned. I Am».**
+**What and whom am I waiting for right now, in order to continue not saying: “Here I am, lord, I fell and rose, I went away and returned. I Am”.**
 
 ### WHY YOU STILL HAVE NOT COME OUT: FEAR OF THE SMALLER AND THE RENUNCIATION OF THE GREATER
 
@@ -4019,33 +4019,33 @@ If we go further, it is logical for the next subchapter to be: ANTICHRIST AND TH
 
 ### THE ANTICHRIST AND THE BEAST PLACED IN THE FUTURE
 
-One of the greatest mistakes in Christian perception is that the beast and the Antichrist are almost always sought as *external figures of the future.* First an image is made. Then it is placed in the future. Then people begin to fear, to wait, to argue, to calculate, to prepare. And by doing exactly this they shut away from themselves what is already at work now. But Revelation, if read with the heart and not only by outward expectation, speaks otherwise: the beast is not simply a politician and not a single man. It is a form of consciousness that has become a civilization. In the revelatory book «You — I. The Story of the Second Coming»[^18] this is said plainly: **the beast is the system of the false «Я» in a person, elevated to the scale of civilization**, a structure of ego, a dependence on external control, and the collective illusion of separateness.
+One of the greatest mistakes in Christian perception is that the beast and the Antichrist are almost always sought as *external figures of the future.* First an image is made. Then it is placed in the future. Then people begin to fear, to wait, to argue, to calculate, to prepare. And by doing exactly this they shut away from themselves what is already at work now. But Revelation, if read with the heart and not only by outward expectation, speaks otherwise: the beast is not simply a politician and not a single man. It is a form of consciousness that has become a civilization. In the revelatory book “You — I. The Story of the Second Coming”[^18] this is said plainly: **the beast is the system of the false “Я” in a person, elevated to the scale of civilization**, a structure of ego, a dependence on external control, and the collective illusion of separateness.
 
-Thus, the beast is above all not a character but *the principle of a world built on a separate «I».* Where everything is held by fear, by power, by control, by identity, by external measure and external permission — there the beast already operates. Where a person no longer lives from «Я есть», but lives from defended separateness, from an external role, from a system of fear and differentiation — the beast already lives in him and through him builds the world. Therefore the beast is not only something outside. The beast is the inner false «Я» that has grown to the scale of history, of politics, of religion, of trade, of security and of the civilizational order.
+Thus, the beast is above all not a character but *the principle of a world built on a separate “I”.* Where everything is held by fear, by power, by control, by identity, by external measure and external permission — there the beast already operates. Where a person no longer lives from “Я есть”, but lives from defended separateness, from an external role, from a system of fear and differentiation — the beast already lives in him and through him builds the world. Therefore the beast is not only something outside. The beast is the inner false “Я” that has grown to the scale of history, of politics, of religion, of trade, of security and of the civilizational order.
 
-This is why the error of expectation is so dangerous. A person says: *the beast will come later*. Therefore *now I am not yet inside it*. Now it is not yet frightening. Now is not the time for recognition. But this is the lie of the mind. For if the beast is not merely a future tyrant but already an operating system of the separate «Я», then it is already here: in the cult of power, in the cult of control, in the cult of security, in the worship of intermediaries, in the consent to live by an external sign, in the fear of losing access, in the belief that life is impossible without the system. Not later. Already now.
+This is why the error of expectation is so dangerous. A person says: *the beast will come later*. Therefore *now I am not yet inside it*. Now it is not yet frightening. Now is not the time for recognition. But this is the lie of the mind. For if the beast is not merely a future tyrant but already an operating system of the separate “Я”, then it is already here: in the cult of power, in the cult of control, in the cult of security, in the worship of intermediaries, in the consent to live by an external sign, in the fear of losing access, in the belief that life is impossible without the system. Not later. Already now.
 
-But the Antichrist is not the same as the beast. Here a deeper distinction is needed. If the beast is the system of the false separate «Я» grown to the scale of the world, then **the Antichrist is the principle opposed to Christ**, the «I» in place of the Father. Christ speaks not of Himself, but by the Father. Christ does not assert a separate «I», but reveals unity: "I and the Father are one." Christ does not build Himself as an image, but disappears into the Source. Christ is the Lamb. That is, sacrifice, meekness, the cross, the inner death of ego. The lie of the Antichrist is not that he will call himself Christ, but that **he will not be the Lamb**. He will offer light without the cross, salvation without repentance, a kingdom without inner death, glory without sacrifice.
+But the Antichrist is not the same as the beast. Here a deeper distinction is needed. If the beast is the system of the false separate “Я” grown to the scale of the world, then **the Antichrist is the principle opposed to Christ**, the “I” in place of the Father. Christ speaks not of Himself, but by the Father. Christ does not assert a separate “I”, but reveals unity: "I and the Father are one." Christ does not build Himself as an image, but disappears into the Source. Christ is the Lamb. That is, sacrifice, meekness, the cross, the inner death of ego. The lie of the Antichrist is not that he will call himself Christ, but that **he will not be the Lamb**. He will offer light without the cross, salvation without repentance, a kingdom without inner death, glory without sacrifice.
 
-So antichristian is not only he who openly wages war against God. Antichristian is any principle that says: **«I».** I chose. I decided. I will save. I will arrange. I will give security. I will provide order. I will bring to the light. It may speak of God. It may even cloak itself in the name of Christ. It may quote Scripture. It may promise peace, light, stability, consolation. But if at the center remains a separate self-asserting «Я», and not the Father's action, — that is already opposite to Christ. This is the Antichrist's principle: not "not I, but the Father by me," but «я». Not "I and the Father are one," but "I separate, God separate, and between us my authority, my image, my role."
+So antichristian is not only he who openly wages war against God. Antichristian is any principle that says: **“I”.** I chose. I decided. I will save. I will arrange. I will give security. I will provide order. I will bring to the light. It may speak of God. It may even cloak itself in the name of Christ. It may quote Scripture. It may promise peace, light, stability, consolation. But if at the center remains a separate self-asserting “Я”, and not the Father's action, — that is already opposite to Christ. This is the Antichrist's principle: not "not I, but the Father by me," but “я”. Not "I and the Father are one," but "I separate, God separate, and between us my authority, my image, my role."
 
 And here another very important layer appears. Between the beast as a system and the Antichrist as principle there almost always acts **another voice** that justifies it. In some texts it is called the second beast, in others — the false prophet. And there it is revealed very precisely: the first beast is Pilate, Power that fears losing control and condemns out of advantage and fear; the second beast is the Sanhedrin, Religion that knows the Scripture but crucifies the living Word, justifies the system in God's name and says: so it must be, so it is written, so it has been established. One holds the sword. The other holds the Torah. One punishes. The other sanctifies the punishment.
 
-This is why one must not conflate everything into a single figure. The beast is the system of the false «Я», become civilization and a worldview, an optical through which one sees. The Antichrist is the «Я» in place of the Father, an outward light without the Lamb, glory without the cross. The false prophet is the mind, religion or voice that makes this acceptable, explains it, soothes it, adorns it, speaks of “good intentions” and leads the soul not to Golgotha but to compromise. He is more dangerous than the first beast precisely because he does not threaten but entices; he does not destroy religion but **becomes a spiritual leader,** speaks in God’s name, yet leads not to God but to power, to fear, to system and to convenience.
+This is why one must not conflate everything into a single figure. The beast is the system of the false “Я”, become civilization and a worldview, an optical through which one sees. The Antichrist is the “Я” in place of the Father, an outward light without the Lamb, glory without the cross. The false prophet is the mind, religion or voice that makes this acceptable, explains it, soothes it, adorns it, speaks of “good intentions” and leads the soul not to Golgotha but to compromise. He is more dangerous than the first beast precisely because he does not threaten but entices; he does not destroy religion but **becomes a spiritual leader,** speaks in God’s name, yet leads not to God but to power, to fear, to system and to convenience.
 
-And then it becomes clear how all this was placed into the future. It is more comfortable for a person to wait for one terrifying man than to recognize the system of the false «Я» in himself and in the world. It is more comfortable to fear an external Antichrist than to see in oneself the self-asserting «Я» that all the time speaks in place of the Father. It is more comfortable to seek the false prophet as a separate villain than to recognize in one’s own mind the voice that justifies everything, that postpones everything, that makes everything permissible, that explains it all with “proper” words. Thus the mind moves recognition out of the present and into the future in order to preserve its power.
+And then it becomes clear how all this was placed into the future. It is more comfortable for a person to wait for one terrifying man than to recognize the system of the false “Я” in himself and in the world. It is more comfortable to fear an external Antichrist than to see in oneself the self-asserting “Я” that all the time speaks in place of the Father. It is more comfortable to seek the false prophet as a separate villain than to recognize in one’s own mind the voice that justifies everything, that postpones everything, that makes everything permissible, that explains it all with “proper” words. Thus the mind moves recognition out of the present and into the future in order to preserve its power.
 
-Hence the constant Christian mistake: to wait that one day a manifest beast, a manifest Antichrist and a manifest mark will come, and in the meantime live as before. But if the beast already lives as a system of the separate «Я», if the Antichrist principle already acts every time the «Я» stands in place of the Father, if the false prophet already speaks every time the mind justifies the system in the name of light, — then postponing recognition for later is no longer possible. Then the question is not “when will this come?”, but “where is this already at work in me, in the church, in culture, in power, in religion, in the very logic of everyday life?”.
+Hence the constant Christian mistake: to wait that one day a manifest beast, a manifest Antichrist and a manifest mark will come, and in the meantime live as before. But if the beast already lives as a system of the separate “Я”, if the Antichrist principle already acts every time the “Я” stands in place of the Father, if the false prophet already speaks every time the mind justifies the system in the name of light, — then postponing recognition for later is no longer possible. Then the question is not “when will this come?”, but “where is this already at work in me, in the church, in culture, in power, in religion, in the very logic of everyday life?”.
 
-And here one must speak very soberly: we do not name these things to erect a new idol of exposure. Not so that a person now, with a magnifying glass, searches for the beast in every ruler, for the false prophet in every religious person, and for the final figure of the Antichrist in every strong «Я». The goal is not a hunt for images. *The goal is the discernment of essence.* **And the essence is this: whenever a system is built on a separate «Я», that is the beast. Whenever «Я» replaces the Father and seeks light without the Lamb, that is the Antichrist principle. Whenever this is justified by a pious voice, that is the false prophet.**
+And here one must speak very soberly: we do not name these things to erect a new idol of exposure. Not so that a person now, with a magnifying glass, searches for the beast in every ruler, for the false prophet in every religious person, and for the final figure of the Antichrist in every strong “Я”. The goal is not a hunt for images. *The goal is the discernment of essence.* **And the essence is this: whenever a system is built on a separate “Я”, that is the beast. Whenever “Я” replaces the Father and seeks light without the Lamb, that is the Antichrist principle. Whenever this is justified by a pious voice, that is the false prophet.**
 
-That is why true wakefulness begins not with calculating future characters but with a return to the present. Here and now you can see the beast as the system of the false «Я». Here and now you can recognize the Antichrist principle as «я» in place of the Father. Here and now you can hear the false prophet in the voice of the mind that is always saying: calm down, this is not yet it, this is later, live as you lived, submit, do not discern, do not go out. And here too freedom begins.
+That is why true wakefulness begins not with calculating future characters but with a return to the present. Here and now you can see the beast as the system of the false “Я”. Here and now you can recognize the Antichrist principle as “я” in place of the Father. Here and now you can hear the false prophet in the voice of the mind that is always saying: calm down, this is not yet it, this is later, live as you lived, submit, do not discern, do not go out. And here too freedom begins.
 
 And the questions of this subchapter should be these:
 
-**Where in me does the beast live as the system of the false «Я»?**
+**Where in me does the beast live as the system of the false “Я”?**
 
-**Where in me does the Antichrist say: «я», instead of «not I, but the Father by me»?**
+**Where in me does the Antichrist say: “я”, instead of “not I, but the Father by me”?**
 
 **What voice in me justifies the system and makes it piously permissible?**
 
@@ -4061,7 +4061,7 @@ This scene does not begin with struggle, nor with terror, nor with exposure. It 
 
 And then the main thing happens: Jane begins to wake. Not because someone persuaded her at length. Not because someone handed her a new system of arguments. Not because she worked it all out logically. She wakes because **the fullness of time has come**. This must be heard very precisely. There are things that cannot be heard before their hour. Not because God conceals them, but because consciousness has not yet ripened. Not because the truth was incomplete, but because a person could not contain it in its fullness.
 
-That is why Douglas Ashton's words are so important: **«The Letter was not meant for you. It is not your world that is a counterfeit — mine is. The Letter was meant for me.»** In this is hidden the law of all Scripture. The message was given then, but could not be fully understood then. It was spoken within history, but was intended for more than history. It was uttered in time, but calculated for the moment of unveiling, when humanity would ripen to its inner meaning. And so one can say: Scripture was not mistaken in its time, but **it was brought to completion only now**, in this fullness, in this awakening, in this pre-dawn hour.
+That is why Douglas Ashton's words are so important: **“The Letter was not meant for you. It is not your world that is a counterfeit — mine is. The Letter was meant for me.”** In this is hidden the law of all Scripture. The message was given then, but could not be fully understood then. It was spoken within history, but was intended for more than history. It was uttered in time, but calculated for the moment of unveiling, when humanity would ripen to its inner meaning. And so one can say: Scripture was not mistaken in its time, but **it was brought to completion only now**, in this fullness, in this awakening, in this pre-dawn hour.
 
 This is very important for our whole book. Otherwise someone will say: if all this is so clear, why did no one see it before? They did. Partly. Through shadows. Through images. Through prophecies. Through dogmas. Through symbols. Through the saints. Through rare flashes of recognition. But now the time has come not only for signs, but for disclosure. Not only for hints, but **for apocalypse in the true sense of the word — for the lifting of the veil.**
 
@@ -4093,15 +4093,15 @@ When Jane wakes, the first thing she sees before her is a **familiar face**. And
 
 That is why Jane immediately addresses him **as Douglas.** It is the natural movement. Before her is a face she knows. Before her is a form to which she already has experience of love, intimacy, trust, even marriage. And so the first movement is not to discern essence, but to recognize form. This is what must be said about humanity. Humanity has already known Jesus Christ. Has already loved Him. Has already entered into relationship with Him. Has already built around this love, hope, prayers, liturgy, tradition, ecclesial memory. And therefore the final substitution will be especially dangerous not because it will be utterly foreign, but because it will **be similar**. It will be offered a familiar form.
 
-And here one of the most pregnant lines of the whole scene sounds. Jane, not yet fully distinguishing, asks: **«What are you doing?»**. And he answers: «**I am watching your dream».**
+And here one of the most pregnant lines of the whole scene sounds. Jane, not yet fully distinguishing, asks: **“What are you doing?”**. And he answers: “**I am watching your dream”.**
 
-This must not be read superficially. For inside Douglas’s body there is now David. He understands that before him is not simply Jane as an outward woman. He understands that within her sleeps the Jane from a higher world. He sees the sleeper from the inside. And this is precisely what reveals the Antichrist’s principle. The Antichrist perfectly understands that humanity sleeps. Moreover, he knows that inside the sleeping humanity God sleeps, having forgotten Himself. He knows that before him is not merely a mass of people. He knows that this is a Kingdom that has forgotten itself. Forgotten its «I Am». Forgotten Adam. Forgotten Christ in humanity.
+This must not be read superficially. For inside Douglas’s body there is now David. He understands that before him is not simply Jane as an outward woman. He understands that within her sleeps the Jane from a higher world. He sees the sleeper from the inside. And this is precisely what reveals the Antichrist’s principle. The Antichrist perfectly understands that humanity sleeps. Moreover, he knows that inside the sleeping humanity God sleeps, having forgotten Himself. He knows that before him is not merely a mass of people. He knows that this is a Kingdom that has forgotten itself. Forgotten its “I Am”. Forgotten Adam. Forgotten Christ in humanity.
 
 Therefore he will not come as crude darkness. He will not say: I am the enemy of God. He will not say: I have come to destroy all that is holy. He will come as one who understands the dream of humanity. As one who knows its thirst. As one who can speak the language of its expectations. As one who sees that humanity still sleeps and still wants to be approached in a familiar guise. He will say, in effect: **I see your dream**. I know what you are waiting for. I understand how you want to see salvation. I know the form you desire. And I will give you that very form.
 
 This is the danger. Not that the Antichrist will be wholly unlike the expected, but that **he will be too like**. He will come not to destroy old expectations, but to fulfill them so that you do not notice the substitution. He will not tell the Church: disappear. He will say: remain. He will not tell the intermediaries: you are no longer needed. He will say: I need you. He will not say: die to yourself. He will say: preserve yourself. He will not say: bear the cross. He will say: sit beside me. And therefore almost everyone will be glad to accept him. Because he does not take away the old form. He preserves it and caresses it.
 
-That is why the phrase «I am watching your dream» is so terrifying. It is not mere observation. It is almost a declaration of power over the sleeper. While you sleep, another watches your dream, enters it, uses it, directs it, substitutes his motions for yours. This is the power of **the deceitful one:** not to destroy reality, but to enter your dream and make you accept the substitution as the fulfillment of your expectation.
+That is why the phrase “I am watching your dream” is so terrifying. It is not mere observation. It is almost a declaration of power over the sleeper. While you sleep, another watches your dream, enters it, uses it, directs it, substitutes his motions for yours. This is the power of **the deceitful one:** not to destroy reality, but to enter your dream and make you accept the substitution as the fulfillment of your expectation.
 
 And here everything we have already said becomes especially important. While a person clings to the form, he is defenseless before this scene. While he waits for a familiar Christ, a familiar Church, a familiar salvation, a familiar Temple, a familiar scheme of the end — he will not distinguish the substitution. For he will all the time recognize not the essence, but the face. Not the spirit, but the form. Not the Lamb, but the beloved contour of his expectation.
 
@@ -4258,9 +4258,9 @@ And the questions of this subchapter must be very direct:
 
 **And am I myself ready for a personal relationship with the Bridegroom without mediators?**
 
-### «HOW MUCH SLEEP DO YOU HAVE LEFT?» TIMER AND TIME OF A HIGHER ORDER
+### “HOW MUCH SLEEP DO YOU HAVE LEFT?” TIMER AND TIME OF A HIGHER ORDER
 
-Later in this scene another key appears, without which it is impossible to understand what is happening to the end. David asks Jane: **«How much sleep do you have left?»** And she answers: **«Ten minutes».** On the level of the plot this looks like a technical detail. But on the level of revelation this is one of the most precise indications of where humanity is now.
+Later in this scene another key appears, without which it is impossible to understand what is happening to the end. David asks Jane: **“How much sleep do you have left?”** And she answers: **“Ten minutes”.** On the level of the plot this looks like a technical detail. But on the level of revelation this is one of the most precise indications of where humanity is now.
 
 It is not simply the sleep of an individual. It is the sleep of an entire aeon. The sleep of a civilization. The sleep of the Church. The sleep of humanity, within which God sleeps, having forgotten Himself in form. And here it suddenly becomes clear: this sleep has a limit. It does not have infinite duration, but remaining time. Moreover, that time is now very short. Not centuries. Not an indefinite “someday.” But the last stretch, the final phase, the last minutes before awakening.
 
@@ -4270,17 +4270,17 @@ There exists time of a higher order. Time in which aeons have their appointed te
 
 In the film no one from the lower level can simply by their own will step up to the higher. You cannot will yourself, by an effort of mind, above the level within which you sleep. There are shown only two paths for that. **First — the timer of the “upper” time goes off**, and you are simply ejected from the lower sleep into a higher reality. **Second — you die within the lower level**, and then you also awaken on the upper. This is a very deep symbol. Because it shows: one cannot leave an aeon by mere accumulation of information. One cannot leave it by mental effort alone. Exit happens either by the timer of the fullness of time, or by the death of the old form within the sleep.
 
-This is why this scene is so important for our book. We have said many times that a person can wake up right now, that repentance is an exit, that return to «Я есть» is possible immediately. All this is individual truth. But at the same time another truth is also present: there is a great collective timer of humanity and the world, set from above. There is a limit to the era. There is a moment when the dream itself will be interrupted not for you personally, but for the whole world. And if you wake before the timer triggers, you will enter that awakening consciously (the first multitude, symbolically called 144,000 in the Revelation to John the Theologian). And if you do not, the timer will still go off (the fullness of awakening of every single one).
+This is why this scene is so important for our book. We have said many times that a person can wake up right now, that repentance is an exit, that return to “Я есть” is possible immediately. All this is individual truth. But at the same time another truth is also present: there is a great collective timer of humanity and the world, set from above. There is a limit to the era. There is a moment when the dream itself will be interrupted not for you personally, but for the whole world. And if you wake before the timer triggers, you will enter that awakening consciously (the first multitude, symbolically called 144,000 in the Revelation to John the Theologian). And if you do not, the timer will still go off (the fullness of awakening of every single one).
 
 And so the question is no longer whether the end of this sleep will come. It will come. The question is **in what state you will meet it**. In sleepy attachment to form? In a struggle to preserve the old system? In terror at its shutdown? Or already awake, in assent, in recognition that this is not catastrophe but transition?
 
-That is why the words «Ten minutes» must not be read merely as a decorative figure. They point to extreme nearness. To the pre-dawn of what is happening. That now it is no longer the beginning of the night. Not the middle of the sleep. But the final stretch, when one can still open one’s eyes before the fullness of time throws you out. This corresponds to the large intuition already running through the book: we live not in an age of distant waiting, but in an age of final compression, when all that is decisive has already drawn near.
+That is why the words “Ten minutes” must not be read merely as a decorative figure. They point to extreme nearness. To the pre-dawn of what is happening. That now it is no longer the beginning of the night. Not the middle of the sleep. But the final stretch, when one can still open one’s eyes before the fullness of time throws you out. This corresponds to the large intuition already running through the book: we live not in an age of distant waiting, but in an age of final compression, when all that is decisive has already drawn near.
 
 And here it is important not to fall into primitive arithmetic. The timer is not an invitation to crude counting of seconds. It is a symbol that **the higher time has already entered the lower**. What seems to us an endless history already has a limit from above. What seems to us still long and stretched out, in the higher rhythm is already almost complete. We live in a world where people still think: there’s still time, not now, it hasn’t come yet, not the fullness yet. And the film shows the opposite: the time of sleep has almost run out.
 
-And so the second way out — death within the lower level — is important too. This is a law as well. If you do not want to be ejected by the timer as a sleeper, you can die to the old form right now. Die to the sleep. Die to the false «I». Die to the system of mediation. Die to the worship of the beast. Die to the expectation of form. And then awakening will become not a violent ejection, but a recognized passage.
+And so the second way out — death within the lower level — is important too. This is a law as well. If you do not want to be ejected by the timer as a sleeper, you can die to the old form right now. Die to the sleep. Die to the false “I”. Die to the system of mediation. Die to the worship of the beast. Die to the expectation of form. And then awakening will become not a violent ejection, but a recognized passage.
 
-Thus the timer and death in the film are two images of the same great transition. One — cosmic, suprapersonal, connected with the fullness of time. The other — internal, voluntary, penitential, connected with the fact that a person here and now agrees to cease being what he was in the dream (what Christ called, «leave your life, take up your cross, and follow Me»). And precisely for this reason this subchapter must stand here: so that the reader understands this is not symbolism for its own sake, but the real approaching of the transition.
+Thus the timer and death in the film are two images of the same great transition. One — cosmic, suprapersonal, connected with the fullness of time. The other — internal, voluntary, penitential, connected with the fact that a person here and now agrees to cease being what he was in the dream (what Christ called, “leave your life, take up your cross, and follow Me”). And precisely for this reason this subchapter must stand here: so that the reader understands this is not symbolism for its own sake, but the real approaching of the transition.
 
 This is why, in our context, this scene says this:
 
@@ -4294,7 +4294,7 @@ The sleep is not infinite.
 
 And that which we call history is already in the last minutes of its present form.
 
-But the timer should not frighten. It should sober. It is not for panic, but for awakening. Not so that a person again lives in the future, calculates dates, builds new idols of expectation, but so that he finally understands: there is nowhere left to postpone waking up. «Later» has almost ended. Only «now» remains.
+But the timer should not frighten. It should sober. It is not for panic, but for awakening. Not so that a person again lives in the future, calculates dates, builds new idols of expectation, but so that he finally understands: there is nowhere left to postpone waking up. “Later” has almost ended. Only “now” remains.
 
 And the questions of this subchapter should be these:
 
@@ -4833,21 +4833,21 @@ He puts himself at the center of that line. On his left is the past. On his righ
 
 This is the divided optics of time. *In it man is a point running between two voids: between what is no longer, and what is not yet.* In it he is condemned all the time either to remember or to wait. Either to mourn, or to hope. Either to fear the past, or to fear the future. And so on this horizontal he almost inevitably loses God, because God does not live in what is no longer, nor in what is not yet. God is only in **the infinite now**.
 
-And if God tells man: you are not separated from Me; you are My form; within you I am; you live in Me and I live through you, — then everything is overturned. Then time proves not to be a horizontal **but a vertical**. Then every moment is not a point on a running line, but a place of contact with eternity. Then all that happens to you is strung not on the nerve of expectation, but on one vertical thread of presence. And on that thread every moment is the very same **«I am».**
+And if God tells man: you are not separated from Me; you are My form; within you I am; you live in Me and I live through you, — then everything is overturned. Then time proves not to be a horizontal **but a vertical**. Then every moment is not a point on a running line, but a place of contact with eternity. Then all that happens to you is strung not on the nerve of expectation, but on one vertical thread of presence. And on that thread every moment is the very same **“I am”.**
 
 That is why the cross of time is so important. The horizontal is the time of the mind. Past and future. Memory and expectation. Fear and hope. The history of form. The vertical is the time of God. Not yesterday and not tomorrow, but always the same infinite **now,** piercing every point of the horizontal and making each of them alive only because there is presence in it. If you remove that vertical, the horizontal immediately crumbles into nothing. For the past is not alive by itself. The future is not alive by itself. What makes them live is only that now there is a consciousness remembering or imagining. So even your past and your future hang on the vertical of presence, and do not exist separately.
 
 And then it becomes clear that man never “falls out” of God. He may be in pain. He may suffer. He may fall. He may err. He may sleep. He may live in the mind, in wine, in expectations, in the illusion of separation. But he does not drop out of Presence for even a single moment. He cannot drop out. Because *the moment itself exists only as a place of Presence*. If God were not in this moment, the moment itself would not be. There would be no pain, no sleep, no fall, no return. Everything would vanish. But since everything exists, then He exists here as well. Even where you think He cannot be.
 
-That is why genuine time is always vertical. You are always in the right time in the right place. Not in the sense of everyday success. Not in the sense that everything is pleasant and convenient. But in the ontological sense: you never fall out of the place where God is already revealed as «I AM», Presence. You may not understand this. You may resist. You may see only the horizontal of your pain: "it used to be better," "later it will be easier," "now is wrong." But the vertical does not disappear. It passes through each of your “nows” and says the same thing: **I am.**
+That is why genuine time is always vertical. You are always in the right time in the right place. Not in the sense of everyday success. Not in the sense that everything is pleasant and convenient. But in the ontological sense: you never fall out of the place where God is already revealed as “I AM”, Presence. You may not understand this. You may resist. You may see only the horizontal of your pain: "it used to be better," "later it will be easier," "now is wrong." But the vertical does not disappear. It passes through each of your “nows” and says the same thing: **I am.**
 
-That is why the cross of time is not merely a diagram. It is almost a formula of salvation. As long as you live only along the horizontal, you are always either lamenting the past or postponing life to the future. You are always seeking God in the wrong place. But when the vertical enters the horizontal, when “then” and “later” are pierced by “now,” everything changes. Then you understand: you do not need to run to the future to meet God. You do not need to return to the past to find Him. You do not need to rebuild the whole horizontal. It is enough to see the vertical. It is enough to stop. It is enough to notice: here, in this breath, in this pain, in this encounter, in this fall, in this love, in this fear, in this darkness — there is already a thread of presence, there is already «I am».
+That is why the cross of time is not merely a diagram. It is almost a formula of salvation. As long as you live only along the horizontal, you are always either lamenting the past or postponing life to the future. You are always seeking God in the wrong place. But when the vertical enters the horizontal, when “then” and “later” are pierced by “now,” everything changes. Then you understand: you do not need to run to the future to meet God. You do not need to return to the past to find Him. You do not need to rebuild the whole horizontal. It is enough to see the vertical. It is enough to stop. It is enough to notice: here, in this breath, in this pain, in this encounter, in this fall, in this love, in this fear, in this darkness — there is already a thread of presence, there is already “I am”.
 
-And then even history begins to be read differently. The past ceases to be lost, because it too was held by the same vertical. The future ceases to be frightening, because it too cannot go beyond the same vertical. All that is horizontal turns out to be only the unfolding of what is vertically already present. And so you no longer need to ask: where was God then and will He be later? You need to ask: **where is the vertical in this now?** *Where in this event, in this object, in this person, in this breath* — is that very thread «I am» on which everything hangs?
+And then even history begins to be read differently. The past ceases to be lost, because it too was held by the same vertical. The future ceases to be frightening, because it too cannot go beyond the same vertical. All that is horizontal turns out to be only the unfolding of what is vertically already present. And so you no longer need to ask: where was God then and will He be later? You need to ask: **where is the vertical in this now?** *Where in this event, in this object, in this person, in this breath* — is that very thread “I am” on which everything hangs?
 
 It is important also that the cross of time is truly **a cross**. For the horizontal does not vanish by itself. Past and future continue to be working forms of the mind, as memory and project, as history and motion. But they no longer rule. They are pierced by the vertical and lose the right to be the ultimate reality. **The cross arises where the time of the mind is pierced by the eternity of God.** And it is precisely at that point that true life is born. Not by cancelling history, but by illumining it. Not by destroying human time, but by human time ceasing to be a closed prison.
 
-That is why one can say even more strongly: *every person lives in the cross of time, but not everyone sees it.* Each is already strung on the vertical «I am», but almost all live only with a sideways view of the horizontal. They look to the left and to the right. At what was and what will be. At what is lost and what is awaited. And so they miss the main axis of their life — the one that runs not from yesterday to tomorrow, but from God through everything. When that axis is recognised, the fear of time begins to die. *For it becomes visible: I was never outside. I was never “out of time.” I never fell out of the hand of the Father. I have always been at the point where the horizontal of the world is pierced by the vertical of eternity.*
+That is why one can say even more strongly: *every person lives in the cross of time, but not everyone sees it.* Each is already strung on the vertical “I am”, but almost all live only with a sideways view of the horizontal. They look to the left and to the right. At what was and what will be. At what is lost and what is awaited. And so they miss the main axis of their life — the one that runs not from yesterday to tomorrow, but from God through everything. When that axis is recognised, the fear of time begins to die. *For it becomes visible: I was never outside. I was never “out of time.” I never fell out of the hand of the Father. I have always been at the point where the horizontal of the world is pierced by the vertical of eternity.*
 
 And the questions for this subchapter should be these:
 
@@ -4855,7 +4855,7 @@ And the questions for this subchapter should be these:
 
 **Have I made myself into the point that is always running past God?**
 
-**Do I see in this moment the vertical «I am»?**
+**Do I see in this moment the vertical “I am”?**
 
 **What in me still thinks it can fall out of presence?**
 
@@ -5355,7 +5355,7 @@ And the questions at the end of this block may be these:
 
 **Have you not made of the road a new home, so as not to go further—to the Father?**
 
-### WE READ THE NAME «DOUGLAS»
+### WE READ THE NAME “DOUGLAS”
 
 We begin with Douglas, because we find ourselves in the Douglas chapter, and because it is his name that first reveals to us that the film speaks not only in events, but in names themselves. While the symbolism had not yet been unfolded deeply enough, names could be taken as accidental labels for characters. But now that is no longer possible. It becomes clear that a name here is not merely a designation of a person, but a direction of the gaze, a hint, a key to a layer of reality that was previously hidden.
 
@@ -5904,8 +5904,8 @@ but you carry within you a mountain.
 **N — bearer of silence.**  
 Voiceless,  
 yet sounding.  
-Like an inner «no» to the world,  
-and a «yes» — to Him Who is within.  
+Like an inner “no” to the world,  
+and a “yes” — to Him Who is within.  
 You carry renunciation within you,  
 not yet fully manifested.
 
@@ -6209,7 +6209,7 @@ Christ always leads **through Himself** — to the Father. The false Christ alwa
 
 That is why it is so important for me to say this plainly: if I lead to myself — I am a false Christ. If I say that I am the only one, that without me there is no way, that God is now only here, in this form, in this person, in this voice, in this body, in this name — then I have at once betrayed everything this book itself speaks of and everything the Father taught me. For this whole book is built on the demolition of the idol of form. And the false Christ always rebuilds the form — even if he calls it light, revelation, love, truth.
 
-Therefore the living witness is distinguished very simply. He does not appropriate the Source. He does not say: I am the final goal. He says: look not at me, but at where I point. Moreover — he points not simply “up,” not merely “somewhere there,” but precisely **into you**, to that place where God already is, where Christ already is, where «I AM» already sounds. The living witness does not gather dependents around himself. He helps a person become capable of hearing for himself. Not autonomous from God, but directly in God. Not without the word, but through the word that leads to the Source, not to the bearer.
+Therefore the living witness is distinguished very simply. He does not appropriate the Source. He does not say: I am the final goal. He says: look not at me, but at where I point. Moreover — he points not simply “up,” not merely “somewhere there,” but precisely **into you**, to that place where God already is, where Christ already is, where “I AM” already sounds. The living witness does not gather dependents around himself. He helps a person become capable of hearing for himself. Not autonomous from God, but directly in God. Not without the word, but through the word that leads to the Source, not to the bearer.
 
 That is why I must testify about myself not to build a cult, but to prevent a cult. I must say in advance: do not stop at me. Do not make me the center. Do not make me an exception. Do not repeat with me the same mistake that humanity constantly repeats with every living phenomenon of light. Light is given — and man at once tries to make of it an external form of worship, so as not to go where that light calls.
 
@@ -6223,7 +6223,7 @@ And if we now apply this to the reader, the question becomes very strict. Not on
 
 That is why this subsection must be ruthless. It is not only about some future Antichrist and not only about an external deception. It is about a mechanism that constantly lives in a person. About the desire again and again to make of a living pointer an idol, and of a witness an external lord. Until this mechanism is recognized, a person will endlessly reproduce the same mistake.
 
-And so I say this plainly: I do not call you to me. I do not call you to stand around me. I do not call you to seek in me what must be found in you. I do not call you to a new external cult. I call you to God. To God who is within you. To Christ who is not separate from you. To «I AM» which is deeper than any name. If you make of me an outward savior, then you have heard nothing.
+And so I say this plainly: I do not call you to me. I do not call you to stand around me. I do not call you to seek in me what must be found in you. I do not call you to a new external cult. I call you to God. To God who is within you. To Christ who is not separate from you. To “I AM” which is deeper than any name. If you make of me an outward savior, then you have heard nothing.
 
 And if you are waiting precisely for the outward, then it will be offered to you later…
 
@@ -6358,7 +6358,7 @@ And the questions of this subchapter should sound like this:
 
 ### ELIJAH, JOHN, AND THE INNER WAY
 
-Today is the feast of the Annunciation. In the church they read the following lines: *«After these days Elizabeth his wife conceived, and she hid herself five months, and said: Thus hath the Lord dealt with me in the days wherein he looked upon me, to take away my reproach among men. And in the sixth month the angel Gabriel was sent from God into a city of Galilee, named Nazareth, to a virgin espoused to a man whose name was Joseph, of the house of David; and the virgin's name was Mary. And the angel entered unto her, and said: Rejoice, thou that art highly favoured! The Lord is with thee; blessed art thou among women. But when she saw him, she was troubled at his saying, and pondered what manner of salutation this should be. And the angel said unto her: Fear not, Mary, for thou hast found favour with God; and, behold, thou shalt conceive in thy womb, and bring forth a son, and shalt call his name JESUS. He shall be great, and shall be called the Son of the Highest; and the Lord God shall give unto him the throne of David his father; and he shall reign over the house of Jacob for ever; and of his kingdom there shall be no end. Then said Mary unto the angel: How shall this be, seeing I know not a man? And the angel answered her: The Holy Spirit shall come upon thee, and the power of the Highest shall overshadow thee; therefore also that holy thing which shall be born of thee shall be called the Son of God. And, behold, thy kinswoman Elizabeth, who was called barren, hath also conceived a son in her old age; and this is the sixth month with her: for with God nothing shall be impossible. Then said Mary: Behold the handmaid of the Lord; be it unto me according to thy word. And the angel departed from her.»*
+Today is the feast of the Annunciation. In the church they read the following lines: *“After these days Elizabeth his wife conceived, and she hid herself five months, and said: Thus hath the Lord dealt with me in the days wherein he looked upon me, to take away my reproach among men. And in the sixth month the angel Gabriel was sent from God into a city of Galilee, named Nazareth, to a virgin espoused to a man whose name was Joseph, of the house of David; and the virgin's name was Mary. And the angel entered unto her, and said: Rejoice, thou that art highly favoured! The Lord is with thee; blessed art thou among women. But when she saw him, she was troubled at his saying, and pondered what manner of salutation this should be. And the angel said unto her: Fear not, Mary, for thou hast found favour with God; and, behold, thou shalt conceive in thy womb, and bring forth a son, and shalt call his name JESUS. He shall be great, and shall be called the Son of the Highest; and the Lord God shall give unto him the throne of David his father; and he shall reign over the house of Jacob for ever; and of his kingdom there shall be no end. Then said Mary unto the angel: How shall this be, seeing I know not a man? And the angel answered her: The Holy Spirit shall come upon thee, and the power of the Highest shall overshadow thee; therefore also that holy thing which shall be born of thee shall be called the Son of God. And, behold, thy kinswoman Elizabeth, who was called barren, hath also conceived a son in her old age; and this is the sixth month with her: for with God nothing shall be impossible. Then said Mary: Behold the handmaid of the Lord; be it unto me according to thy word. And the angel departed from her.”*
 
 At the words “Thus hath the Lord dealt with me in the days wherein he looked upon me, to take away my reproach among men” I received a clear sign. In my right ear there sounded a noise like electronic music. Pili-pili. A very unusual sensation, accompanied as if by lights, as if you were simultaneously looking at a multi-coloured signal. That is, not only an auditory impression but also a visual one. And I was surprised, because I had no earphones in my ears, and the sound was distinct. I understood that it was drawing my attention to those words. And when at the end the words “Behold the handmaid of the Lord; be it unto me according to thy word” were spoken, there was no signal on them, because those words are very familiar to me—I often repeat them to the Father as assent and as a sign of my readiness to be in His will. But the opening lines were astonishing, because they spoke of Elizabeth, with whom I in no way identified. I did identify with the words of Mariam, since I am Mary in whom Christ is born; I am the Church that waits for the Bridegroom within. I did not want to go to the service, but, as a servant of God, I said to the Father: 'Behold, the handmaid of the Lord; be it unto me according to Thy word,' and I went, however I felt about it.
 
@@ -6488,7 +6488,7 @@ And the questions of this subchapter should sound like this:
 
 ### THE HOUSE IS OPEN TO ALL
 
-And now this chapter must end where everything at last comes together into one. For if, after Douglas, after sonship, after the light, after the witness, after the destruction of the idol of form, a person still has the sense that this is a path for the few, for the chosen, for the special, for «the others» — then everything has not been understood to the full. No. *The House is open to all.*
+And now this chapter must end where everything at last comes together into one. For if, after Douglas, after sonship, after the light, after the witness, after the destruction of the idol of form, a person still has the sense that this is a path for the few, for the chosen, for the special, for “the others” — then everything has not been understood to the full. No. *The House is open to all.*
 
 This must be said not as a pretty consolation, but as the plainest truth about God. The Father does not build a House for the sake of one son. The Bridegroom does not come for the sake of one bride in the sense of excluding all the rest. The Kingdom is not unveiled for the sake of a single spiritual hero. All that was shown in Jesus, all that was reflected in Douglas, all that passes through the word, all that is revealed in this book — pertains not to a rare sort of being, *but to humankind as such.*
 
@@ -6516,7 +6516,7 @@ The House is open to you not because you have already understood everything, but
 
 But here is what must be understood especially clearly: the House is open to all — and precisely for that reason one can no longer hide behind the thought that the path does not concern me. This is a very important turn. While a person thinks the call is addressed to some special ones, he can still remain an onlooker. He can say: interesting, beautiful, deep, but this is not my story. But if the House is open to all, if the Father calls all, if anyone can become the next Douglas in the sense of recognition, if everyone is called to the right, then there are no more excuses. Then the question is no longer whether the House is open. The question is **why you still stand at the door and do not enter.**
 
-And here the last mystery is opened. The door is not closed because the Bridegroom changed his mind. Not because the Father grew tired of calling. Not because God decided to bar someone. It is closed where a person clings to the old “I”, to the old form, to his separateness, to his conditions, to his expectation of another God, another Messiah, another way. The House is open, but one cannot enter it while remaining faithful to the illusion of one’s final separateness. Not because God forbids it. But because separateness is the very «outside».
+And here the last mystery is opened. The door is not closed because the Bridegroom changed his mind. Not because the Father grew tired of calling. Not because God decided to bar someone. It is closed where a person clings to the old “I”, to the old form, to his separateness, to his conditions, to his expectation of another God, another Messiah, another way. The House is open, but one cannot enter it while remaining faithful to the illusion of one’s final separateness. Not because God forbids it. But because separateness is the very “outside”.
 
 That is why the end of this chapter must be at once very gentle and very strict. Gentle — because the Father truly calls all. Strict — because it is already impossible, after everything said, to pretend that this does not concern you. Douglas is no longer a character. The light is no longer a theory. Sonship is no longer a pretty word. The House is no longer a myth. All this has become personal. All this has become an address. All this has become a door.
 
@@ -6623,7 +6623,7 @@ And the questions of this subchapter should sound like this:
 
 #### The Valley of Dry Bones
 
-**«The hand of the Lord was upon me. He brought me out by the Spirit of the Lord and set me down in the midst of the valley; it was full of bones. He led me among them, and I saw a very great multitude of bones lying in the valley, and they were very dry. He said to me: — 'Son of Man, can these bones live?' I answered: — 'Sovereign Lord, this You alone know.'»**
+**“The hand of the Lord was upon me. He brought me out by the Spirit of the Lord and set me down in the midst of the valley; it was full of bones. He led me among them, and I saw a very great multitude of bones lying in the valley, and they were very dry. He said to me: — 'Son of Man, can these bones live?' I answered: — 'Sovereign Lord, this You alone know.'”**
 
 Here is the prophet's first answer to the question “**Where are we?”**. And that answer is terrifying if seen only with human eyes, but absolutely exact if seen with God's eyes. We are in the valley of dry bones. We are in a world where bodies have already fallen apart, where life has gone, and form remains only as remnants. We are in a space where once there was living humanity, but now before us there are only bones, and not merely bones, but **very dry bones**. That is to say, long dead. Long deprived of the moisture of life. Long cut off from the Source of breath.
 
@@ -6717,9 +6717,9 @@ And the questions of this block ought to be such as these:
 
 ***
 
-#### «Come from the four winds, O breath…»
+#### “Come from the four winds, O breath…”
 
-**«Then He said to me: — Prophesy to the breath. Prophesy, son of man, and say to it: "Thus says the Sovereign LORD: Come from the four winds, O breath, and breathe into these slain, that they may live." I began to prophesy as He commanded me, and the breath entered them. They lived and stood on their feet, this innumerable host».**
+**“Then He said to me: — Prophesy to the breath. Prophesy, son of man, and say to it: "Thus says the Sovereign LORD: Come from the four winds, O breath, and breathe into these slain, that they may live." I began to prophesy as He commanded me, and the breath entered them. They lived and stood on their feet, this innumerable host”.**
 
 Here is what happens without which all that came before would have remained only a well-assembled form. Before that there was a body without life. Before that were bones, joined to bones. Before that were tendons, flesh, skin — almost a man, almost a people, almost a world. But still — without breath. And now the Spirit comes.
 
@@ -6727,7 +6727,7 @@ This is the true boundary between mere restoration and resurrection.
 
 While there is no breath, one may possess very much. One may have a well-ordered system, a strong culture, a beautiful religion, an intelligent society, technological devices, even the right words and the right forms. But all that is not yet life. It is only a prepared place for life. Only a vessel. Only a body. Only a possibility. And here the prophet no longer speaks to the bones. He speaks to the breath. For there is a moment when the word must turn not to the form, but to the very source of life.
 
-**«Come from the four winds, O breath…»**
+**“Come from the four winds, O breath…”**
 
 These are exceedingly important words. The breath does not come from one corner of the world, not from one tradition, not from one confession, not from one culture, not from one human school. It comes from the **four winds**, that is, from everywhere, from the fullness of the world, from the fullness of creation, from that wholeness which is greater than any local belonging. This breath is not the monopoly of one group. Not the privilege of one religion. Not the property of one church. Not the patent of one people. *This is the breath of God, entering the whole field of the human.*
 
@@ -6745,7 +6745,7 @@ And then what had not been present at the previous stage takes place: **they liv
 
 These are no longer merely assembled bodies lying in the valley. These are standing people. And standing here is an image of dignity, maturity, composure, presence. Before this they were either bones or bodies lying down. Now they stand. That is, man returns to the vertical. Returns to the capacity to be a bearer of spirit. Returns to that uprightness from which he was created. And this is also very important for the whole book: resurrection is not simply reviving, but the restoration of the vertical. The restoration of direct relationship between God and man. Direct standing in being.
 
-And the last words sound even more strongly: **«this innumerable host».**
+And the last words sound even more strongly: **“this innumerable host”.**
 
 We must pause here. God vivifies people not simply so that they might exist individually in personal spirituality. Not simply so that each one might somehow be saved separately. They rise as an army. That is, as a single, gathered, living multitude. As a people of the spirit. As an order. As a force. But this is no longer the beast's host, not an army of violence, not the machine of empire. It is the host of life. The host of those into whom breath has entered.
 
@@ -6855,23 +6855,23 @@ And now John the Theologian will answer.
 
 And now John the Theologian answers — and his answer finally removes all doubt.  
 He sees the same thing, only now in the language of *completed revelation*:  
-**«And I saw the holy city, Jerusalem, new, coming down out of God from heaven…**
+**“And I saw the holy city, Jerusalem, new, coming down out of God from heaven…**
 
 </div>
 
-**…behold, the tabernacle of God is with men, and He will dwell with them; they shall be His people, and God Himself will be with them and be their God.»**
+**…behold, the tabernacle of God is with men, and He will dwell with them; they shall be His people, and God Himself will be with them and be their God.”**
 
 There it is — the same sanctuary among people. The same dwelling-place of God, no longer set apart. The same overcoming of distance. The same return of presence. The New Jerusalem is not merely a future city in a geographical sense. It is a world in which God is again among people not through a sign, not through currency, not through a mediator, not through a hierarchy of access, but directly.
 
 And so John speaks even more strongly:
 
-**«I saw no temple in it; for the Lord God Almighty is its temple, and the Lamb.»**
+**“I saw no temple in it; for the Lord God Almighty is its temple, and the Lamb.”**
 
 This must be heard with the utmost precision. It is not said that holiness vanishes. It is not said that presence vanishes. It is not said that God becomes less near. On the contrary. What disappears is the temple as a separate, set-apart, limited, closed space of access. Why? Because everything has become a temple. Because one no longer needs to go to a special place to draw near to God. Because there is no longer a breach between the sanctuary and life. Because God Himself is the temple, and the Lamb. Because the holy is no longer separated from the living.
 
 And immediately the words of Christ come to mind:
 
-**«…and there shall be one flock and one Shepherd».**
+**“…and there shall be one flock and one Shepherd”.**
 
 What Ezekiel saw as the joining of two sticks, as the end of two kingdoms, as one King and one Shepherd, John sees already as the New Jerusalem without a separate temple, because everything has become a single field of presence. It is the same symbolism. The same time. The same revelation spoken in three tongues:
 
@@ -6899,7 +6899,7 @@ because the whole world will become a place of presence.
 
 That is why this is not only about some distant, abstract eschatology, not about something to be endlessly postponed into the future. It is precisely about this time of disclosure. About the time when the living presence of God comes out of the tomb of the system. About the time when the stone is rolled away. About the time when the sanctuary returns into the very fabric of life. About the time when the New Jerusalem descends not as an architectural fantasy but as a new optic of being.
 
-And then the question «Where are we?» receives its final answer:
+And then the question “Where are we?” receives its final answer:
 
 we are where God is once again among people;
 
@@ -6909,7 +6909,7 @@ we are where the divided must become one;
 
 we are where the New Jerusalem is already beginning to descend.
 
-And now the answer to the question «Where are we?» has been given three times. First the film answered us — by the image of the balcony, the sea, towers, bridges, and Mira-1. Then the prophet Ezekiel answered — by the valley of dry bones, by the word that gathers a body, by the breath that enters the slain, by one people, one King, one Shepherd, and a sanctuary among people. Now John the Theologian answers — by the image of the New Jerusalem descending from heaven to earth, by the image of God dwelling with people, by the image of a world in which there is no longer a separate temple, because the Lord God Almighty Himself and the Lamb are its temple.
+And now the answer to the question “Where are we?” has been given three times. First the film answered us — by the image of the balcony, the sea, towers, bridges, and Mira-1. Then the prophet Ezekiel answered — by the valley of dry bones, by the word that gathers a body, by the breath that enters the slain, by one people, one King, one Shepherd, and a sanctuary among people. Now John the Theologian answers — by the image of the New Jerusalem descending from heaven to earth, by the image of God dwelling with people, by the image of a world in which there is no longer a separate temple, because the Lord God Almighty Himself and the Lamb are its temple.
 
 And all three answers speak of the same thing. We are not simply inside another turn of history. Not simply inside a civilizational crisis. Not simply inside a cultural or political rupture. We are at the threshold of gathering. At the threshold of enlivening. At the threshold of the end of two kingdoms. At the threshold of a world in which the sanctuary is again among people, not hidden behind stone, seal, currency, hierarchy, and mediation. We are at the transition from a world of separation to a world of presence.
 
@@ -7210,7 +7210,7 @@ Thus generations grow up for whom there are no absolutes — only utility. Thus 
 
 **The way out is not in fleeing the system, but in leaving its spirit. As long as you do not sell the Truth — you are free. Even if there is a digital prison around you, you are a son of God, and in you there will be no power of the beast.**
 
-**The contract is torn in an instant — if you pronounce: «God — my King, Christ — my Way, and I have no other Lord».**
+**The contract is torn in an instant — if you pronounce: “God — my King, Christ — my Way, and I have no other Lord”.**
 
 ***
 
@@ -7284,7 +7284,7 @@ You are right: Russia must be under the direct guidance of the Creator.
 But how is this to be done?  
 **A Prophet?**  
 Russia has always waited for a Tsar or a Prophet.  
-But the Creator says: **«You yourselves are conduits of the Light. In each of you — I AM».**  
+But the Creator says: **“You yourselves are conduits of the Light. In each of you — I AM”.**  
 **There must be a leader, but he must not be an autocrat. He must be Light, not Authority.**
 
 **The people as a conduit?**  
@@ -7426,7 +7426,7 @@ Russia must **not fight the darkness, but become so bright a Light, that the dar
 
 </div>
 
-**3. What does «become Light» mean in practice?**
+**3. What does “become Light” mean in practice?**
 
 **1. Renunciation of Lies**
 
@@ -7583,7 +7583,7 @@ How?
 
 <div class="lineated verse">
 
-Holy Rus **is not a «state».**  
+Holy Rus **is not a “state”.**  
 Holy Rus **is a state of the people's consciousness.**  
 **The State itself will change if the people change their consciousness.**
 
@@ -7657,7 +7657,7 @@ Every ruble must **go to creation, not to destruction**.
 
 **5. New power — not through revolution, but through the spiritual Awakening**
 
-**The State must not be «a power over the people», but «a service to the people».**
+**The State must not be “a power over the people”, but “a service to the people”.**
 
 How can this be achieved?
 
@@ -7921,7 +7921,7 @@ Russia now **lives without a clear ideology.**
 
 <div class="lineated verse">
 
-**Do not wait until «the authorities» adopt a new Constitution.**  
+**Do not wait until “the authorities” adopt a new Constitution.**  
 **It must be born in the people, in every person who already lives in**  
 **this Light.**
 
@@ -7969,7 +7969,7 @@ It must **be born in the hearts of the people.**
 
 The Constitution should be **an open document that is discussed by communities, experts, spiritual people, scientists, workers.**
 
-People should **feel that this is their law, not just a text from «elites».**
+People should **feel that this is their law, not just a text from “elites”.**
 
 **2. Show how it works in practice**
 
@@ -8014,7 +8014,7 @@ One cannot build a new world with old people, thinking in old categories of powe
 
 We must educate a new generation of managers, teachers, **entrepreneurs, scientists, creators who live by the laws of Light.**
 
-**Education must cease to be «Western» – it must become Russian, spiritual, conciliar.**
+**Education must cease to be “Western” – it must become Russian, spiritual, conciliar.**
 
 **3. Begin reform of the economy — step by step**
 
@@ -8596,7 +8596,7 @@ It is founded on the principles of openness, transparency, and the real power **
 
 <div class="lineated verse">
 
-Every person has a personal account in the «**Sobornost**» system.  
+Every person has a personal account in the “**Sobornost**” system.  
 In it he participates in votes, initiatives, and referendums.  
 Users can create their own projects, propose changes, discuss **decisions.**
 
@@ -8630,7 +8630,7 @@ Important laws are adopted only after referendums in the system **"Sobornost".**
 
 </div>
 
-**4. Principles of Operation of the «Sobornost» System**
+**4. Principles of Operation of the “Sobornost” System**
 
 **1. Open Source and Blockchain Transparency**
 
@@ -8666,7 +8666,7 @@ No one may punish a person for their opinion.
 
 </div>
 
-**5. Implementing «Sobornost» into life**
+**5. Implementing “Sobornost” into life**
 
 <div class="lineated verse">
 
@@ -8725,7 +8725,7 @@ The system must be transparent, reliable, and exclude corruption and **manipulat
 
 </div>
 
-**1. Basic architecture of the «Sobornost» system**
+**1. Basic architecture of the “Sobornost” system**
 
 <div class="lineated verse">
 
@@ -8970,7 +8970,7 @@ State power becomes transparent, the people truly govern the country.
 
 **3. Instruments for the Implementation of Sobornost**
 
-1\. Digital platform «Sobornost»
+1\. Digital platform “Sobornost”
 
 <div class="lineated verse">
 
@@ -9131,13 +9131,13 @@ There is an image, like a simple parable, but in it is hidden almost the whole s
 
 That is all.
 
-*The spoon is the same, but it is no longer used to try to satisfy a separate «I». It is used to give life to another. And therefore the other gives life to you in the same way.* One asks: «What do you want?» The other answers. One gives exactly what is needed. The other does the same in return. And so no one is hungry. Moreover, each receives not a randomly thrown handout, but precisely what he really needs and truly desires. The abundance has not changed. The gaze has changed.
+*The spoon is the same, but it is no longer used to try to satisfy a separate “I”. It is used to give life to another. And therefore the other gives life to you in the same way.* One asks: “What do you want?” The other answers. One gives exactly what is needed. The other does the same in return. And so no one is hungry. Moreover, each receives not a randomly thrown handout, but precisely what he really needs and truly desires. The abundance has not changed. The gaze has changed.
 
 Here is where the true understanding of paradise and hell begins. Hell and paradise are not distinguished by the quantity of goods. Not by the arrangement of matter. Not by that in one world there is something and in another there is not. They are distinguished by relation. Hell is when each lives only for himself and therefore cannot be satisfied. Paradise is when each stops living only for himself, and therefore all are satisfied.
 
 This is extremely important to hear now. Because for too long people were taught that paradise is some other place, removed from earth, removed from matter, removed from history, removed from ordinary life. And hell—supposedly—also somewhere over there, apart. But the image of the long spoons says exactly the opposite. Paradise and hell are made of the same things. The same world can be hell and can be paradise. The same cauldron can be a place of war and a place of love. Everything depends on how you look at the other and what you do with your spoon.
 
-And here a very harsh conclusion must be drawn: *we have already lived in hell*. Not because the earth itself was cursed. Not because there were not enough goods in the world. *But because we saw in one another not ourselves, but the stranger.* Not the image of God, but a competitor. Not the neighbor, but an obstacle. Not someone to be fed, but someone who prevents us from filling ourselves. We lived by the logic of the separate «I», and that is hell. Not fire from without, *but the impossibility of going out of oneself to the other.*
+And here a very harsh conclusion must be drawn: *we have already lived in hell*. Not because the earth itself was cursed. Not because there were not enough goods in the world. *But because we saw in one another not ourselves, but the stranger.* Not the image of God, but a competitor. Not the neighbor, but an obstacle. Not someone to be fed, but someone who prevents us from filling ourselves. We lived by the logic of the separate “I”, and that is hell. Not fire from without, *but the impossibility of going out of oneself to the other.*
 
 And so the whole old world was arranged in precisely that way. Each drew life from the cauldron toward himself. Each tried to satisfy himself separately. Each believed that if he did not get there first, he would be left with nothing. Each saw in the other a threat to his own well-being. And the more everyone acted so, the more terrible the common hunger became — not because the cauldron emptied, but because the long spoon of ego is not suited to self-satisfaction. Ego by its very nature is doomed to be hungry.
 
@@ -9145,9 +9145,9 @@ That is why the image of the long spoon is so important. The spoon is not simply
 
 But as soon as you turn it toward the other, it at once becomes an instrument of paradise.
 
-That is why paradise will not have to be «delivered» from the heavens as an external decoration. It will not have to be built of another substance. Everything already exists. The cauldron is full. The world is rich. The earth is bountiful. In people there already are countless possibilities, things, gifts, abilities, time, space, skills, attention, care, more than enough — if only all this ceases to spin solely around the separate «I». Paradise begins not when a new cauldron appears, but when the spoon is turned toward the neighbor.
+That is why paradise will not have to be “delivered” from the heavens as an external decoration. It will not have to be built of another substance. Everything already exists. The cauldron is full. The world is rich. The earth is bountiful. In people there already are countless possibilities, things, gifts, abilities, time, space, skills, attention, care, more than enough — if only all this ceases to spin solely around the separate “I”. Paradise begins not when a new cauldron appears, but when the spoon is turned toward the neighbor.
 
-And therefore this parable is so deeply connected with everything already said in the book. If Christ is indeed in the neighbor, if the other is not a stranger, if God looks at you and at him with the same light, if separateness is only the optics of a dream, then to feed the other is not a sacrifice but a form of awakening. Then you do not lose, but for the first time enter into abundance. Then you cease to need a separate «my own» as an idol. Then the other becomes that place through which life comes to you as well.
+And therefore this parable is so deeply connected with everything already said in the book. If Christ is indeed in the neighbor, if the other is not a stranger, if God looks at you and at him with the same light, if separateness is only the optics of a dream, then to feed the other is not a sacrifice but a form of awakening. Then you do not lose, but for the first time enter into abundance. Then you cease to need a separate “my own” as an idol. Then the other becomes that place through which life comes to you as well.
 
 Here finally is where paradise differs from hell. *In hell a person lives as if he were alone. In paradise a person lives as if the other were not other in the sense of estrangement.* There is another face of the same life. Another form of the same light. And then to feed him is to participate in one common fullness.
 
@@ -9159,7 +9159,7 @@ And the questions of this subchapter should be asked like this:
 
 **Am I not still living as if the cauldron of life were empty, though it is full?**
 
-**Does not my separate «I» create that very hell I later complain about?**
+**Does not my separate “I” create that very hell I later complain about?**
 
 **What in me still sees in the other a rival, and not a place of meeting with God?**
 
@@ -9215,9 +9215,9 @@ Ego begins where the spoon is aimed only at one’s own mouth. Where all that ex
 
 This is a very important image. The long spoon means that the very structure of life no longer allows direct satiation of a separate ego. A person in the world cannot truly satisfy himself while remaining closed in on himself. He can swallow, appropriate, hoard, seize, compare, measure—and still remain hungry. Why? Because reality itself is not arranged for the separate “I,” but for connection. Not for isolation, but for reciprocity. Not for monologue, but for communion. Not for self-possession, but for gift.
 
-That is why ego is always distance. Between me and the other. Between me and God. Between me and the world. Between me and my own true «I Am». Ego constantly inserts distance where in essence there is none. It says: this is not you. This is a stranger. This is external. This is separate. This is another cauldron, another life, another success, another fate. And the more a person believes that distance, the longer the spoon becomes. The harder it is for him to be satisfied. The more he envies, is angry, fears, compares, grasps, and holds on.
+That is why ego is always distance. Between me and the other. Between me and God. Between me and the world. Between me and my own true “I Am”. Ego constantly inserts distance where in essence there is none. It says: this is not you. This is a stranger. This is external. This is separate. This is another cauldron, another life, another success, another fate. And the more a person believes that distance, the longer the spoon becomes. The harder it is for him to be satisfied. The more he envies, is angry, fears, compares, grasps, and holds on.
 
-And here one more thing must be seen. Ego does not merely create distance. Through distance it creates the **illusion of lack**. As long as the other is not me, everything he has becomes something I do not have. *As long as God is not me in the sense of «I and the Father are one», everything God possesses is experienced as inaccessible to me.* As long as life is an external cauldron rather than a shared abundance, I inevitably begin to live out of envy and anxiety. That is why the long spoon is not only ego, but the whole way of seeing the world as external and deficient.
+And here one more thing must be seen. Ego does not merely create distance. Through distance it creates the **illusion of lack**. As long as the other is not me, everything he has becomes something I do not have. *As long as God is not me in the sense of “I and the Father are one”, everything God possesses is experienced as inaccessible to me.* As long as life is an external cauldron rather than a shared abundance, I inevitably begin to live out of envy and anxiety. That is why the long spoon is not only ego, but the whole way of seeing the world as external and deficient.
 
 We look at another’s story and say: he lives better than I do.
 
@@ -9442,7 +9442,7 @@ And here the main thing becomes visible. The logic of Mammon inevitably brings t
 
 That is, Mammon arrives at a terrible but predictable conclusion: *not to destroy greed, but to destroy people.* To preserve the pyramid, to remove the surplus participants. To keep the pot for a few, rather than learn to feed one another. This is the ultimate logic of the beast. Not a correction of sight, but the elimination of those who stand in the way of the greed of the few. Not renouncing devouring, but reducing the number of the devoured and the number who claim a place at the pot.
 
-The logic of Mammon is best seen by a simple, close example. Take chocolate. Chocolate is one of the symbols of a sweet, luxurious life. It is not for nothing that they say: «he is all in chocolate». But chocolate does not come from the air. Its base is cacao, and cacao is grown only in limited, humid tropical zones of the world. Almost all global production is concentrated in a small number of countries, so the pot here is originally limited. You cannot expand it indefinitely: climate, forests, soils and geography itself set a limit. At the same time, more and more people in the world begin to live more richly and want to eat what used to be a sign of privilege. China is a vivid example: there they once ate two bowls of rice a day and did not eat chocolate at all, but as prosperity grew, its chocolate market not only appeared but is rapidly expanding. And Mammon looks at this not with the eyes of love, but with the eyes of greed. She does not ask: «how shall we learn to share?» She asks: «how to keep the chocolate for those who were already sitting at the pot?» It would be more convenient for her if the new millions continued to live on two bowls of rice and did not claim the sweet. In the limit — if there were no extra mouths at all. That is why Mammon inevitably comes to the terrible formula: the problem is not greed, but people. Not the spoon, but the number sitting at the pot. Not the world’s arrangement, but that too many also want to live well. And therefore she is ready to shrink not her greed, but humanity.
+The logic of Mammon is best seen by a simple, close example. Take chocolate. Chocolate is one of the symbols of a sweet, luxurious life. It is not for nothing that they say: “he is all in chocolate”. But chocolate does not come from the air. Its base is cacao, and cacao is grown only in limited, humid tropical zones of the world. Almost all global production is concentrated in a small number of countries, so the pot here is originally limited. You cannot expand it indefinitely: climate, forests, soils and geography itself set a limit. At the same time, more and more people in the world begin to live more richly and want to eat what used to be a sign of privilege. China is a vivid example: there they once ate two bowls of rice a day and did not eat chocolate at all, but as prosperity grew, its chocolate market not only appeared but is rapidly expanding. And Mammon looks at this not with the eyes of love, but with the eyes of greed. She does not ask: “how shall we learn to share?” She asks: “how to keep the chocolate for those who were already sitting at the pot?” It would be more convenient for her if the new millions continued to live on two bowls of rice and did not claim the sweet. In the limit — if there were no extra mouths at all. That is why Mammon inevitably comes to the terrible formula: the problem is not greed, but people. Not the spoon, but the number sitting at the pot. Not the world’s arrangement, but that too many also want to live well. And therefore she is ready to shrink not her greed, but humanity.
 
 And now let us look at the system of the gift.
 
@@ -9654,7 +9654,7 @@ That is why conditional units of the gift arise.
 
 Their task is not to measure a person’s worth and not to turn life again into a market. Their task is to make the transition possible without destroying the psyche shaped by the old world. While people still think in measures, it will be easier for them to accept the gift if the system temporarily preserves some form of accounting. But even in that accounting another spirit will already be hidden. The person does not buy the right to live. He participates in the common stream of life, and the system simply helps, for a time, to keep balance until sufficiency becomes abundance, and abundance becomes obvious to all.
 
-One can put it this way: in the old world money told a person — «you do not have, and therefore you must.» In the new world even the transitional sign will say — «you already have something to give, and you have already given.» These are opposite movements. One sign comes from fear. The other — from plenty. One makes the person a debtor. The other reminds him that he is a participant in the gift.
+One can put it this way: in the old world money told a person — “you do not have, and therefore you must.” In the new world even the transitional sign will say — “you already have something to give, and you have already given.” These are opposite movements. One sign comes from fear. The other — from plenty. One makes the person a debtor. The other reminds him that he is a participant in the gift.
 
 It is very important to stress: the transitional equivalent is precisely **a temporary measure of consciousness**, not the eternal essence of the new world. The more abundance grows, the more the system links needs and gifts, the less real scarcity remains, the less this transitional form of accounting will be needed. Because at some point human consciousness will begin to see: the pot really is full. Fear will begin to weaken. Insufficiency will cease to be a religion. And then the equivalent itself will begin to diminish like a crutch that was needed until a person had learned to walk otherwise.
 
@@ -9710,7 +9710,7 @@ And the questions of this subchapter should sound like this:
 
 ***
 
-You live in Egypt. Above you — the pharaoh. Do not expect him to set me above you and say: «go to Joseph; whatever he tells you, do.» Everything has already been said; you do not need Joseph ABOVE you. You are called to become Joseph yourself. And for that you need not an external God, Messiah, Jesus, Isa, a prophet, Pancratius… You need only the God who has always been within you. As your I AM.
+You live in Egypt. Above you — the pharaoh. Do not expect him to set me above you and say: “go to Joseph; whatever he tells you, do.” Everything has already been said; you do not need Joseph ABOVE you. You are called to become Joseph yourself. And for that you need not an external God, Messiah, Jesus, Isa, a prophet, Pancratius… You need only the God who has always been within you. As your I AM.
 
 ### WHEN THE WORLD REALIZES THAT MAMONA IS LOATHSOME
 
@@ -9912,13 +9912,13 @@ This is the beginning. This is the Image and Likeness that no one can take away.
 
 But that which was created as Light entered the world of forms, and the forms covered the Light as clouds cover the sky. Thus began the first forgetting.
 
-Man saw himself not as Light, but as a body. He called himself not «I am», but «I am this». And each «this» was a division; each name was a veil between him and the Truth.
+Man saw himself not as Light, but as a body. He called himself not “I am”, but “I am this”. And each “this” was a division; each name was a veil between him and the Truth.
 
 Having forgotten his Image, man began to seek It outside himself. He built altars, raised walls, made rules, made fears. He sought God in the heavens and in the depths, but not in himself. He sought the Kingdom as a reward, not as his nature.
 
 Thus the Light within became a mystery even to man himself. He looked at the stars, but did not see that those stars shine within him. He prayed to God, but did not hear that God speaks from the depths of his heart.
 
-And yet the Light did not vanish. Even through the darkness of forgetting He continued to sound softly: «I am here. I am always here». Each breath of man was a whisper of that Light, each beat of the heart a reminder of Him.
+And yet the Light did not vanish. Even through the darkness of forgetting He continued to sound softly: “I am here. I am always here”. Each breath of man was a whisper of that Light, each beat of the heart a reminder of Him.
 
 Forgetting was not a punishment — it was a trial of Freedom. Freedom to turn away and forget, that one day to turn back and remember.
 
@@ -9936,7 +9936,7 @@ When man forgot the Light within, the Creator did not shout loudly from the heav
 
 **The prophets were not chosen in the sense of privileges. They were those in whom forgetfulness could not drown out the inner voice. They heard the Light within and were not afraid to name Him by His True Name: I am.**
 
-But how speak to those who have already forgotten their language? How remind those who are afraid to look within? The prophets could not at once say: «You are God». That would have been a voice unintelligible and even dangerous to a consciousness living in fear.
+But how speak to those who have already forgotten their language? How remind those who are afraid to look within? The prophets could not at once say: “You are God”. That would have been a voice unintelligible and even dangerous to a consciousness living in fear.
 
 Therefore the prophets spoke of God as of Him — distant, great, formidable, external. They spoke of the commandments as rules, because the forgetful could not understand them as revelations of their own nature. They spoke of the Kingdom as something to come, because those who lived in time could not accept the eternal here and now.
 
@@ -10084,7 +10084,7 @@ When the apostles left, the Kingdom did not disappear. It cannot disappear, for 
 
 And yet, in every generation there were those who did not merely know of the Light, but lived It. They went into the deserts, retired to cells, kept silence in noisy cities — not because they renounced the world, but because they sought within themselves that Kingdom of which Christ spoke.
 
-They did not seek reward. They sought Him Who already lived in them, but was hidden beneath layers of thoughts, fears, desires. They did not try to become gods — they remembered that they already were, before the world told them: «you are dust, you are a slave, you are nothing».
+They did not seek reward. They sought Him Who already lived in them, but was hidden beneath layers of thoughts, fears, desires. They did not try to become gods — they remembered that they already were, before the world told them: “you are dust, you are a slave, you are nothing”.
 
 The saints were not sinless. They were those whose eyes had been opened. They were not perfect — they were transparent. And through their transparency the Light passed into the world.
 
@@ -11472,7 +11472,7 @@ Now it becomes possible to take a careful look at one of the key events. The sto
 
 They ask: who is to blame? And Christ removes the very premise of such a question. Neither he nor his parents. So it is not personal guilt as the primary cause. The point is that upon this blindness the glory of God must be revealed. That is, humanity is born into such an optic so that in it another sight may later be opened. Not because blindness is good, but because its healing must become a revelation.
 
-Blindness here is not only the absence of a biological function. It is a gaze in which separation operates from the very beginning. I see myself as «I», and everything else as «not‑I». And from this all the other cuts arise: the familiar and the foreign, good and evil as external poles, mine and not mine, friend and enemy, nation and nation, religion and religion. Humanity is blind precisely in this way. It looks and does not recognize.
+Blindness here is not only the absence of a biological function. It is a gaze in which separation operates from the very beginning. I see myself as “I”, and everything else as “not‑I”. And from this all the other cuts arise: the familiar and the foreign, good and evil as external poles, mine and not mine, friend and enemy, nation and nation, religion and religion. Humanity is blind precisely in this way. It looks and does not recognize.
 
 Therefore Christ does not simply tell the blind man the right thought. He spits on the ground, makes mud, and anoints the eyes. This is of the utmost importance. Healing is effected by touch. Not by a concept, but by an act. Not by a new theory about the world, but by the entrance of the spirit into the very matter of perception. The spit here can indeed be seen as breath in an almost material form. Earth and breath are joined. That is to say, creation is in a sense performed anew. The New Adam again touches the dust in order to open in it a different sight.
 
@@ -11532,7 +11532,7 @@ This breaking is happening now, including — in this book, but above all — in
 
 #### GETHSEMANE — THE NIGHT IN WHICH THE OLD WILL MUST CONSENT TO DIE
 
-One cannot reach resurrection without passing through Gethsemane. For a divided way of seeing does not die without an inward dread. There, in the garden, there sounds not a false but a truly human voice: «Let this cup pass from Me.» It is the voice of a form that will not fall apart. The voice of a nature that does not want the cross.
+One cannot reach resurrection without passing through Gethsemane. For a divided way of seeing does not die without an inward dread. There, in the garden, there sounds not a false but a truly human voice: “Let this cup pass from Me.” It is the voice of a form that will not fall apart. The voice of a nature that does not want the cross.
 
 But after this there follows a second thing: not as I will, but as You will. Here the decisive turning takes place. Not the destruction of the human, but its full disclosure to God. Gethsemane is the place where the separate will ceases to set itself above the truth. And therefore this is the night of every person and of every Church. All want resurrection, but no one wants the cup. All want light, but no one wants the death of the old way of seeing.
 
@@ -11677,13 +11677,13 @@ The Spirit descends like fire. And that too is important. Not as a dry instructi
 
 That is why Pentecost is so needed at the end of this map. It shows what all had been moving toward. Not toward all people becoming identical, but toward one sounding through the many. Not toward the destruction of peoples, histories, voices, faces, but toward the healing of that deep division which made difference into war. Where the Spirit is at work, multiplicity no longer rends unity, but manifests it.
 
-#### «THIS IS THE LORD!» — WHY JOHN RECOGNIZES EARLIER
+#### “THIS IS THE LORD!” — WHY JOHN RECOGNIZES EARLIER
 
 Returning to the lake, one must notice one more subtlety. Why is it John who recognizes first? Because love recognizes before knowledge. Because the heart hears what form has not yet had time to define. Because in the world of resurrection the old way of identification is no longer sufficient. An inner attunement is needed.
 
 And so John is the image of that capacity in a person and in the church, without which any future recognition is impossible. One may know the texts, keep the rite, possess succession, defend dogmas — and still not recognize the Lord on the shore. Or one may have a heart that has remained in love, and recognize Him even before everything has become finally evident.
 
-This is a rebuke to the church of the end of the age. If John has faded within her, if she lives only by memory, only by structure, only by a piece of fish and the sweetness of honey, she will more and more stand before Christ and not recognize Him. And conversely, even if little remains of her, but the heart is alive, she will be the first to say: «this is the Lord!»
+This is a rebuke to the church of the end of the age. If John has faded within her, if she lives only by memory, only by structure, only by a piece of fish and the sweetness of honey, she will more and more stand before Christ and not recognize Him. And conversely, even if little remains of her, but the heart is alive, she will be the first to say: “this is the Lord!”
 
 #### FIRST LOVE AND THE LOSS OF FIRE
 
@@ -11693,7 +11693,7 @@ When first love is lost, forms remain, memory, correct texts, familiar words, ev
 
 Therefore the loss of first love is not a romantic theme but a central diagnosis. Where love has become residual, the word has become compromised, and presence has turned into memory, the Church has already entered the twilight of the end of the age.
 
-#### «CHILDREN, HAVE YOU ANY FOOD?». «COME — DINE»
+#### “CHILDREN, HAVE YOU ANY FOOD?”. “COME — DINE”
 
 But the greatest mystery is revealed when the disciples come ashore and see a fire already kindled, a fish lying upon it, and bread. Everything is already prepared. And this is one of the most tender and most secret images of the whole Gospel. Christ does not wait until a man at last brings Him something that He Himself lacks. He has already prepared the food before human success. Before the catch. Before understanding. Before merit. Even before full recognition. The fire is already burning. The fish is already on the coals. The bread is already at hand. Thus the fire here is not merely a campfire. It bears the image of the Spirit — purifying, illuminating, warming. It is no longer the flame of judgment as destruction, but the flame of presence in which one may be warmed without being consumed.
 
@@ -11891,11 +11891,11 @@ And here everything comes together again. John recognizes first — because he l
 
 So, it is not enough merely to think rightly about the end. One must learn to love so that the very vision becomes other. Otherwise even the most correct expectations will again prove to be only a form of sleep.
 
-#### «COME OUT» — THE LAST WORD TO ALL HUMANITY
+#### “COME OUT” — THE LAST WORD TO ALL HUMANITY
 
-If you reduce this whole chapter to a single Gospel word, it may indeed prove to be nothing other than: «come out». This word runs through the entire map. Come out of blindness. Come out of fear. Come out of dividedness. Come out of lack. Come out of sleep. Come out of dead piety. Come out of the locked upper room. Come out of Emmaus, where you walk beside and do not recognize. Come out of the night of fruitless labour. Come out of sweetness without bitterness. Come out of memory without communion. Come out of waiting for later. Come out of the tomb of divided optics.
+If you reduce this whole chapter to a single Gospel word, it may indeed prove to be nothing other than: “come out”. This word runs through the entire map. Come out of blindness. Come out of fear. Come out of dividedness. Come out of lack. Come out of sleep. Come out of dead piety. Come out of the locked upper room. Come out of Emmaus, where you walk beside and do not recognize. Come out of the night of fruitless labour. Come out of sweetness without bitterness. Come out of memory without communion. Come out of waiting for later. Come out of the tomb of divided optics.
 
-In that sense Lazarus is not merely one of the images, but almost the name of all humanity at the end of the age. It had already heard of God. Had already loved. Had already met. Had already known its first love. Had already been called a friend. But then it fell asleep, it stank, it grew used to the swaddling-cloths, it mistook its sleep for death and began to live as if all that mattered were already only in the past. And now it is told again: «come out».
+In that sense Lazarus is not merely one of the images, but almost the name of all humanity at the end of the age. It had already heard of God. Had already loved. Had already met. Had already known its first love. Had already been called a friend. But then it fell asleep, it stank, it grew used to the swaddling-cloths, it mistook its sleep for death and began to live as if all that mattered were already only in the past. And now it is told again: “come out”.
 
 This word is not a demand that a dead body make an impossible effort. It is a summons to that which in the person never died. To that which was deeper than sleep, deeper than fear, deeper than form, deeper than name, deeper than biography, deeper even than church history. And so hope remains not in the power of a person to wake himself, but in the power of Christ to call him by name and to call him out from inside the tomb.
 
@@ -12275,9 +12275,9 @@ And therefore, if you await Isa, ask yourselves not only whether He will come ou
 
 If not, then here is where the coming of Isa begins — not only as an external figure, but as a light that kills the swine within the heart. Not by iron, but by truth. Not by violence, but by recognition. Not by blood, but by the Word.
 
-#### ISA «WILL BREAK THE CROSS»
+#### ISA “WILL BREAK THE CROSS”
 
-And in the same way one must hear the words that Isa «will break the cross». If one reads this only literally, the meaning again will be far too small for so great an image. For if this concerns the end of times, the victory over the Dajjal, the unveiling of truth, can it really be reduced to the destruction of a visible sign? Is the greatness of that coming merely to destroy an external object? No — there must be something much deeper here. Otherwise we remain again on the surface of form and do not enter the essence.
+And in the same way one must hear the words that Isa “will break the cross”. If one reads this only literally, the meaning again will be far too small for so great an image. For if this concerns the end of times, the victory over the Dajjal, the unveiling of truth, can it really be reduced to the destruction of a visible sign? Is the greatness of that coming merely to destroy an external object? No — there must be something much deeper here. Otherwise we remain again on the surface of form and do not enter the essence.
 
 Cross in its profound sense is not simply a Christian symbol as an object. Cross is the place of intersection. The place where vertical and horizontal meet. Heaven and earth. God and man. Spirit and matter. Time and eternity. In itself this mystery is great and holy. But in human history even the holiest often becomes inverted. And then the symbol begins to live not by its depth but by human use. And it is precisely this, perhaps, that Isa must "break."
 
@@ -12351,7 +12351,7 @@ If you look at Isa himself as he has already been revealed in history, you will 
 
 Moreover, Christians did not know you fully as those sheep. They knew that there were other sheep, but they did not understand who exactly they were. They thought their way was the only visible way, and that everything else stood outside. But now it is opened to them as well: you are not outside the will of God. Your way was not a random mistake of history. It too was in His design. It too was a way of the heart that needed straightening. And so recognition now goes both ways at once: Muslims begin to recognize in Isa not a stranger but their Lord’s messenger in fullness, and Christians begin to recognize in Muslims those very sheep of another fold of whom Christ spoke. Not strangers. Not outsiders. But those He also had in mind.
 
-And then Christ’s words begin to sound anew: «I am the way, and no one comes to the Father except through Me». When this is read outwardly it seems as if it speaks only of belonging to one form. But now it becomes visible: to come to the Father means to enter into sonly dignity, to know your source, to see yourself not as a separate ego but as born of the Spirit. And this is precisely what is now happening to you. You have come to this through Christ, though you did not yet call it so. You have come to it not because you immediately acknowledged him as the Son, but because you walked your own path of submission, purification, the striving of hearts. You confined him by the name Isa as the role of a prophet. But that is not a reproach. It was simply the consequence of an infantile gaze and of the language in which Allah was addressing you as infants, so that you would not repeat the mistake already made by Christians. And now, when your hearts, by means of the Prophet Muhammad and the Quran, are straightened, they are ready not only for outward submission, but for recognition of fullness.
+And then Christ’s words begin to sound anew: “I am the way, and no one comes to the Father except through Me”. When this is read outwardly it seems as if it speaks only of belonging to one form. But now it becomes visible: to come to the Father means to enter into sonly dignity, to know your source, to see yourself not as a separate ego but as born of the Spirit. And this is precisely what is now happening to you. You have come to this through Christ, though you did not yet call it so. You have come to it not because you immediately acknowledged him as the Son, but because you walked your own path of submission, purification, the striving of hearts. You confined him by the name Isa as the role of a prophet. But that is not a reproach. It was simply the consequence of an infantile gaze and of the language in which Allah was addressing you as infants, so that you would not repeat the mistake already made by Christians. And now, when your hearts, by means of the Prophet Muhammad and the Quran, are straightened, they are ready not only for outward submission, but for recognition of fullness.
 
 And now look: at the end of time Isa comes to all mankind. This cannot be denied. He comes to you as well. Moreover, you yourselves say that you will follow him. That means you have already acknowledged in advance that at the decisive moment he will be for you a leader. So do not expect that he will come merely to confirm your outward expectations and to pat you on the head for religious loyalty. He will come with the same word he has always been. And the word divides. Not people into beloved and hated, but falsehood from truth. The word is light. And light does only one thing to darkness: it appears. And the very fact of its appearing is perceived by the mind as reproach, as a blow, as a weapon, as a sword. Not because light is aggressive, but because all that is false cannot endure being illuminated.
 
@@ -12993,7 +12993,7 @@ And then the most direct question arises: if God no longer wants to be only exte
 
 This is precisely why the religious ego fears the end of mediation so much. Because mediation gives it a postponement. It gives it the possibility always to remain near, yet not enter. Always to speak of God, yet not be dissolved in Him. Always to wait, yet not to know. Always to serve the form, yet not allow the heart to be opened completely. Religion in its childish form still keeps the ego alive. Direct sonship does not. For sonship is not proud separateness. Sonship is such unity with the Father that it is no longer possible to live merely as a separate ego. That is why Christ is terrifying for every immature religiosity: He does not merely improve the outward form of serving God. He brings it to the point where he who always wanted to live before God apart must die.
 
-And here it becomes clear why the end of mediation coincides with the end of religion as childhood. Not because books, words, communities, memory, rite or teachers are no longer needed. They may remain. But they can no longer be the final support. The final support becomes only the Father. Only Presence. Only the living «I am». Everything else either leads to this or becomes an obstacle.
+And here it becomes clear why the end of mediation coincides with the end of religion as childhood. Not because books, words, communities, memory, rite or teachers are no longer needed. They may remain. But they can no longer be the final support. The final support becomes only the Father. Only Presence. Only the living “I am”. Everything else either leads to this or becomes an obstacle.
 
 That is why one must no longer tell a person simply: choose the right religion. That is no longer enough. One must say instead: enter where all true religions led you from the beginning. **Enter into direct sonship.** Stop living as if God were still only outside. Stop seeking the ultimate holy thing in stone. Stop waiting for permission to draw near. Stop thinking you were born only to be an eternal subject at the threshold. You are called not merely to serve God as an external sovereign, but to live by Him as a son lives by a Father. Not in appropriation, not in pride, not in the deification of the ego, but in the disappearance of the division.
 
@@ -14040,7 +14040,7 @@ True peace is not the triumph of one side over another, but the cessation **of t
 
 **2. A World Founded on the Healing of Wounds**
 
-This world does not simply stop the war — it **heals its causes**. The Light does not simply remove darkness, but makes it non‑existent. Therefore, peace between Russia and Ukraine must begin not with treaties, but with **deep repentance, forgiveness** **and cleansing.** Each must say: *«Forgive me, brother, for that I saw in you an enemy.»*
+This world does not simply stop the war — it **heals its causes**. The Light does not simply remove darkness, but makes it non‑existent. Therefore, peace between Russia and Ukraine must begin not with treaties, but with **deep repentance, forgiveness** **and cleansing.** Each must say: *“Forgive me, brother, for that I saw in you an enemy.”*
 
 **3. World, where truth stands above propaganda**
 
@@ -14219,7 +14219,7 @@ The division between them **is artificial and temporary**, but it will not disap
 
 As long as people consider one another enemies, there will be no unity.
 
-We must not merely «forgive», but **dissolve the very possibility of enmity in the Light of the Creator.**
+We must not merely “forgive”, but **dissolve the very possibility of enmity in the Light of the Creator.**
 
 **3. The creation of a new society, not a return to the old.**
 
@@ -14280,8 +14280,8 @@ Ukraine wanted guarantees that it would not be touched.
 
 <div class="lineated verse">
 
-In the minds of many Ukrainians, **Russia is «oligarchy and corruption», and Europe is «law and laws».**  
-People hoped that the European system **would help them build** **an «honest» state.**  
+In the minds of many Ukrainians, **Russia is “oligarchy and corruption”, and Europe is “law and laws”.**  
+People hoped that the European system **would help them build** **an “honest” state.**  
 **But all this was a lie.**
 
 **What did Ukraine actually receive?**
@@ -14318,7 +14318,7 @@ European integration **did not bring the rule of law — it brought new schemes 
 **What can Russia offer Ukraine as an alternative?**  
 Ukraine **is already becoming disillusioned with Europe.**  
 But **disillusionment is no reason to return to the old.**  
-Ukraine **must see not merely «anti-West», but a true path to the Light.**  
+Ukraine **must see not merely “anti-West”, but a true path to the Light.**  
 **Russia must offer not power, but the Light.**  
 **Not submission, but a future.**  
 **Not merely an alliance, but a purpose.**
@@ -14425,12 +14425,12 @@ Ukraine does not **merely want to survive** — it wants to have the **meaning o
 
 </div>
 
-**1. Ukraine must become not «annexed», but a leading part of Holy Rus'**
+**1. Ukraine must become not “annexed”, but a leading part of Holy Rus'**
 
 <div class="lineated verse">
 
 The West offered Ukraine **the role of Europe's younger brother**, cheap labor, a raw-material appendage.  
-Russia **must not offer her the role of Russia's «younger brother».**  
+Russia **must not offer her the role of Russia's “younger brother”.**  
 **Ukraine must become an equal center of a new civilization.**
 
 What does that mean?
@@ -14483,7 +14483,7 @@ But if Russia **gives Ukraine space for the unfolding of her** **potential** –
 
 **3. Ukraine must reclaim its true Culture and Spirit**
 
-The West offers Ukraine **«a culture of consumerism, tolerance, LGBT-agenda, multiculturalism».**
+The West offers Ukraine **“a culture of consumerism, tolerance, LGBT-agenda, multiculturalism”.**
 
 But this **is not the real Ukraine.**
 
@@ -14518,7 +14518,7 @@ What does that mean?
 
 </div>
 
-**1. Not «globalism», but a conciliar world**
+**1. Not “globalism”, but a conciliar world**
 
 Ukraine **is not part of the West**. It is the **center of a new system that is higher and deeper.**
 
@@ -14530,8 +14530,8 @@ Russia must offer **an economy of Light, a society of Spirit, the development of
 
 <div class="lineated verse">
 
-No «USSR 2.0».  
-No «empire».  
+No “USSR 2.0”.  
+No “empire”.  
 Only **a new, conciliar way of organizing society.**  
 **Ukraine must become the leading force in this transformation.**
 
@@ -14582,7 +14582,7 @@ Gradual work with public opinion.
 
 **3. Not ideology, but a return to true Culture, Sobornost, and Spirit.**
 
-**4. Not integration into «Russia», but the creation of Holy Rus', where Ukraine – an equal center.**
+**4. Not integration into “Russia”, but the creation of Holy Rus', where Ukraine – an equal center.**
 
 **5. Not war and hatred, but Love, forgiveness and truth.**
 
@@ -14600,7 +14600,7 @@ Gradual work with public opinion.
 
 <div class="lineated verse">
 
-Russia **must not forcibly «return» Ukraine.**  
+Russia **must not forcibly “return” Ukraine.**  
 Russia **must not wait for Ukraine to come on its own.**  
 **Russia must create the conditions in which the choice of the Light will become natural.**
 
@@ -14647,7 +14647,7 @@ We need **to help people see this when they are ready.**
 
 **dependence**  
 Ukraine cannot be strong while it depends on the West.  
-**Russia must offer not «aid», but «the opportunity for independent development».**
+**Russia must offer not “aid”, but “the opportunity for independent development”.**
 
 **How to do that?**
 
@@ -14705,7 +14705,7 @@ We must **help people understand that power — it is they themselves, and not t
 
 <div class="lineated verse">
 
-Not through «revolutions», but through **revealing the truth about how the Western machine of control.**  
+Not through “revolutions”, but through **revealing the truth about how the Western machine of control.**  
 **When people see who governs them – they themselves will want change.**  
 **Russia must not govern Ukraine. Russia must give Ukraine the ability to govern itself.**
 
@@ -14715,7 +14715,7 @@ Not through «revolutions», but through **revealing the truth about how the Wes
 
 <div class="lineated verse">
 
-Now **«European values»** have been imposed on Ukraine, but in reality this is **an ideology of decay.**  
+Now **“European values”** have been imposed on Ukraine, but in reality this is **an ideology of decay.**  
 **Ukraine is a spiritual country, not a part of the post-Christian West.**
 
 How can we help Ukraine return to its essence?
@@ -14732,7 +14732,7 @@ We must **support the Church, folk traditions, family**
 
 **2. Restore respect for their own history**
 
-Ukrainians were led to believe that **they were not part of Rus', but a separate «anti-Western» civilization.**
+Ukrainians were led to believe that **they were not part of Rus', but a separate “anti-Western” civilization.**
 
 We must **restore to them their true past — great, soborny,** **spiritual.**
 
@@ -14781,7 +14781,7 @@ It must be born from the heart of the people.
 
 </div>
 
-**1. Create an alternative to the West, not merely «fight» with it.**
+**1. Create an alternative to the West, not merely “fight” with it.**
 
 **2. Help Ukraine restore its economy, but without control and dependence.**
 
@@ -14805,13 +14805,13 @@ Ukraine **must consciously choose Holy Rus' as its own path.**
 
 </div>
 
-**1. Russia must stop trying to prove that it is «right»**
+**1. Russia must stop trying to prove that it is “right”**
 
 <div class="lineated verse">
 
 Right now many in Russia want **Ukraine to admit its mistake,** **repent, ask for forgiveness.**  
 **But that will not happen.**  
-**The more we demand «recognition», the more resistance there will be.**
+**The more we demand “recognition”, the more resistance there will be.**
 
 What is to be done?
 
@@ -14834,15 +14834,15 @@ We need **to build a model of the future that will be so**
 
 </div>
 
-**2. The Holy Rus' cannot be built through a «peace treaty» or «annexation»**
+**2. The Holy Rus' cannot be built through a “peace treaty” or “annexation”**
 
 <div class="lineated verse">
 
 Now many say:  
-**«The war will end — we will sign a peace — and everything will return to the way it was».**  
+**“The war will end — we will sign a peace — and everything will return to the way it was”.**  
 **But this is an illusion.**  
 One cannot simply sign a document — and become brothers again.  
-One cannot simply say: «Now we are united» — and all will instantly believe.  
+One cannot simply say: “Now we are united” — and all will instantly believe.  
 **The unification of Holy Rus' — this is not a political process. It is a spiritual awakening.**
 
 How is this to be achieved?
@@ -14863,7 +14863,7 @@ We must **help people see the truth, but not impose it on them.**
 
 The West offers Ukraine **a false future**.  
 Russia must **offer what is real — not in words, but in the form of real changes.**  
-**Ukraine must not «return to the past». It must see that its present and future are Holy Rus'.**
+**Ukraine must not “return to the past”. It must see that its present and future are Holy Rus'.**
 
 </div>
 
@@ -15224,7 +15224,7 @@ Ignite the steppe.
 
 [^5]: [https://www.litres.ru/72306181/](https://www.litres.ru/72306181/)
 
-[^6]: See the Creator’s Revelation presented in the book **“The Prince of This World”** — [https://www.litres.ru/72586354](https://www.litres.ru/72586354) . «**The Prince of This World**» is a spiritual unveiling of the most deeply rooted distortions about God, the human being, and life. It gathers 200 false beliefs that have nourished the human mind for centuries and have become chains for the soul: “God is cruel and punishes,” “man is insignificant and sinful from birth,” “happiness exists only in the external,” “love must be earned through deeds”… Each of these dark assertions is dismantled by the light of truth revealed in living words. They are set against 200 truths — simple, clear, and liberating: “God is Love and Light,” “you were not created for fear but for freedom,” “joy is not outside but within,” “love is a gift, not a payment.” This book does not argue with the world — it removes its masks. It teaches how to recognize falsehood and discern truth, returning the human being to the Source. «The Prince of This World» is not an accusation and not a dogma, but a path of purification of perception. As you read it, you will see shadows fall away and the Light emerge — the Light that has always been yours.
+[^6]: See the Creator’s Revelation presented in the book **“The Prince of This World”** — [https://www.litres.ru/72586354](https://www.litres.ru/72586354) . “**The Prince of This World**” is a spiritual unveiling of the most deeply rooted distortions about God, the human being, and life. It gathers 200 false beliefs that have nourished the human mind for centuries and have become chains for the soul: “God is cruel and punishes,” “man is insignificant and sinful from birth,” “happiness exists only in the external,” “love must be earned through deeds”… Each of these dark assertions is dismantled by the light of truth revealed in living words. They are set against 200 truths — simple, clear, and liberating: “God is Love and Light,” “you were not created for fear but for freedom,” “joy is not outside but within,” “love is a gift, not a payment.” This book does not argue with the world — it removes its masks. It teaches how to recognize falsehood and discern truth, returning the human being to the Source. “The Prince of This World” is not an accusation and not a dogma, but a path of purification of perception. As you read it, you will see shadows fall away and the Light emerge — the Light that has always been yours.
 
 [^7]: [https://www.litres.ru/73527052/](https://www.litres.ru/73527052/)
 
@@ -15252,7 +15252,7 @@ Ignite the steppe.
 
 [^19]: In Russian, glass sounds like глас – sounding.
 
-[^20]: For me, this name had long carried a symbolic reading — Zeya: *se ya*, «Это я» - “It is I.” But I did not yet know who that “I” was.
+[^20]: For me, this name had long carried a symbolic reading — Zeya: *se ya*, “Это я” - “It is I.” But I did not yet know who that “I” was.
 
 [^21]: The Creator discusses this in greater depth in the book The Prince of This World — https://www.litres.ru/72586354/
 

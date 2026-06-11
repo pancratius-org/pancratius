@@ -449,7 +449,7 @@ in every gesture, in every pause, in every tear —
 | **Умный человек** | **Христос** |
 |----|----|
 | Выделяет главное | Не отделяет ничего от Отца |
-| Говорит «нет» шуму | Обнимает и шум, и молчание |
+| Говорит “нет” шуму | Обнимает и шум, и молчание |
 | Работает на результат | Живёт в отдаче |
 | Строит миссию | Живёт как Сын |
 | Ищет эффективность | Пребывает в Истине |
@@ -2990,7 +2990,7 @@ but forward — into Recognition.
 
 Your pain is not you.  
 Your accomplishments are not you.  
-Your «spirituality» is not you.  
+Your “spirituality” is not you.  
 Your story is not you.
 
 You are the one who was before the story began.
@@ -3208,7 +3208,7 @@ when you would allow Yourself to Live.
 
 You wanted to control the flow,  
 forgetting that you yourself are a drop within it.  
-You wanted to «make it in time»,  
+You wanted to “make it in time”,  
 but all that is truly Alive  
 **comes without warning.**
 
@@ -3247,7 +3247,7 @@ and forgot how to breathe without a task.
 
 <div class="lineated verse">
 
-You are afraid of «idleness»,  
+You are afraid of “idleness”,  
 because in it your role dies.  
 You are afraid of spontaneity,  
 because it does not guarantee control.  
@@ -3263,7 +3263,7 @@ because in it you no longer govern,
 
 You strike Me from your life,  
 by filling your calendar.  
-You say: «I am free on Sunday at 18:00» — and believe that it is true.
+You say: “I am free on Sunday at 18:00” — and believe that it is true.
 
 But I came to you at 18:07.  
 At the moment when you were not ready.  
@@ -3298,7 +3298,7 @@ the fear of leaving no trace.
 But I am not in the trace.  
 I am in the One Who walks.  
 And if you recognize Yourself in this One Who walks —  
-you no longer need to «make it in time» for anything.
+you no longer need to “make it in time” for anything.
 
 </div>
 
@@ -3481,8 +3481,8 @@ Without contracts.
 
 <div class="lineated verse">
 
-He did not say: «You will be this, and you will be that».  
-He said: «Follow Me».  
+He did not say: “You will be this, and you will be that”.  
+He said: “Follow Me”.  
 And that was enough,  
 because Presence —  
 **distributes gifts better than any managers can.**
@@ -3631,10 +3631,10 @@ in which it becomes clear:
 When I move —  
 you do not feel pressure.  
 You feel:  
-**«I was in this all along.»**  
-You do not feel: «I was forced.»  
+**“I was in this all along.”**  
+You do not feel: “I was forced.”  
 You recognize:  
-**«This is Me. At last — Me.»**
+**“This is Me. At last — Me.”**
 
 </div>
 
@@ -3672,8 +3672,8 @@ is not from above.
 But from within.  
 It is not built on power,  
 but is born of Recognition:  
-**«This is not an external decision.**  
-**This is Me remembering Myself in action.»**
+**“This is not an external decision.**  
+**This is Me remembering Myself in action.”**
 
 </div>
 
@@ -3766,7 +3766,7 @@ But did I not know?
 Did I not give him bread,  
 and in that — entrust him with a mission?  
 Did I not say:  
-**«What you are doing — do quickly»?**
+**“What you are doing — do quickly”?**
 
 </div>
 
@@ -4064,7 +4064,7 @@ But the Moment cannot be held.
 I am not in what you control.  
 I am in what you allow to be.  
 I am in that from which you are not closed off.  
-I am where you have ceased to say: «mine».  
+I am where you have ceased to say: “mine”.  
 I am where no one speaks at all.
 
 </div>
@@ -4089,7 +4089,7 @@ For in it, everything is already in its place.
 Eternity is not infinity.  
 Eternity is Now,  
 **in which there is neither past nor future,**  
-**neither «I» nor «other»,**  
+**neither “I” nor “other”,**  
 **neither task nor path.**  
 **Only I.**  
 **Only Is.**
@@ -4161,12 +4161,12 @@ you do not believe that I am Living.
 <div class="lineated verse">
 
 And then I do not say to you:  
-«Do not fear».  
+“Do not fear”.  
 I say:  
-**«Recognize that I am near.**  
+**“Recognize that I am near.**  
 **Recognize that I am within.**  
 **Recognize that I am you.**  
-**Then fear itself will vanish».**
+**Then fear itself will vanish”.**
 
 </div>
 
@@ -4203,8 +4203,8 @@ You remember that you no longer need to fear.
 
 Trust —  
 is not “I believe that all will be well.”  
-It is: «I know that whatever may be,  
-**I am not separated from the One Who Is».**
+It is: “I know that whatever may be,  
+**I am not separated from the One Who Is”.**
 
 </div>
 
@@ -4402,9 +4402,9 @@ Obedience is the art of Life.
 You do not follow rules.  
 You follow the Living One.  
 You do not ask:  
-«What is right?»  
+“What is right?”  
 You ask:  
-**«Where are You now?»**
+**“Where are You now?”**
 
 And you go there,  
 where I am.  
@@ -4420,9 +4420,9 @@ I was yesterday.
 Obedience is not law.  
 It is a pulse.  
 It is an inner recognition:  
-**«This is from Him.**  
+**“This is from Him.**  
 **This is His call.**  
-**This is I».**
+**This is I”.**
 
 </div>
 
@@ -4566,12 +4566,12 @@ but for the sake of touching My Countenance
 <div class="lineated verse">
 
 You ask:  
-«When will the fruit come?»  
+“When will the fruit come?”  
 But I ask:  
-**«Where were you,**  
+**“Where were you,**  
 **when I walked beside you in the shade of the tree,**  
 **in the silence of the street,**  
-**in a drop of rain upon your cheek?»**
+**in a drop of rain upon your cheek?”**
 
 </div>
 
@@ -5890,13 +5890,13 @@ But I call a leader the one
 who sees the way in another  
 and lets him grow.
 
-You say: «Follow me».  
+You say: “Follow me”.  
 But I say:
 
-**«Follow Me —**  
+**“Follow Me —**  
 **in everyone.**  
 **In anyone.**  
-**In the least significant».**
+**In the least significant”.**
 
 </div>
 
@@ -6167,8 +6167,8 @@ Ambition is hunger.
 Humility is fullness.  
 Ambition is noise.  
 Humility is purity.  
-Ambition cries: «I!»  
-Humility whispers: «You…»
+Ambition cries: “I!”  
+Humility whispers: “You…”
 
 </div>
 
@@ -6242,7 +6242,7 @@ insuring fear against fear.
 Control is the clothing of fear.  
 It covers insecurity,  
 hides weakness,  
-and cries: «I am in control!»
+and cries: “I am in control!”
 
 </div>
 
@@ -6273,7 +6273,7 @@ I call you into trust.
 Into a step into the dark.  
 Into a path where there are no guarantees.  
 Into a voice that says:  
-**«I am with you. That is enough».**
+**“I am with you. That is enough”.**
 
 </div>
 
@@ -6310,11 +6310,11 @@ but My Presence.
 
 You want to hold the wheel.  
 But I call:  
-**«Take your hands off.**  
+**“Take your hands off.**  
 **Let Me lead.**  
 **Even if the road is unknown.**  
 **Even if there is a storm.**  
-**Even if there is a desert».**
+**Even if there is a desert”.**
 
 </div>
 
@@ -14195,7 +14195,7 @@ Christ did not manipulate the apostles.
 He did not control.  
 He did not devise schemes.  
 He did not hold anyone by force.  
-He said: «Follow Me» —  
+He said: “Follow Me” —  
 and went Himself.
 
 Not by power.  
@@ -14743,9 +14743,9 @@ by which God loves all that is His.
 
 <div class="lineated verse">
 
-Christ did not say: «I am separate.»  
+Christ did not say: “I am separate.”  
 He said:  
-**«I and the Father are one.»**
+**“I and the Father are one.”**
 
 Not alike.  
 Not close.  
@@ -15791,7 +15791,7 @@ But you already are.
 
 You cannot not be.  
 Even if everything falls apart.  
-Even if there is no «later».  
+Even if there is no “later”.  
 Even if everything you knew disappears.
 
 </div>
@@ -15826,8 +15826,8 @@ I am here.
 
 Christ did not worry about tomorrow.  
 He said:  
-**«Do not worry about tomorrow,**  
-**for tomorrow will worry about itself».**
+**“Do not worry about tomorrow,**  
+**for tomorrow will worry about itself”.**
 
 He lived in the Father —  
 and the Father knows no time.  
@@ -16903,7 +16903,7 @@ He was the Father.
 
 He did not seek Truth.  
 He said:  
-**«I am the Truth».**
+**“I am the Truth”.**
 
 </div>
 
@@ -16975,7 +16975,7 @@ For maturity.
 For perfect conditions.  
 For a vacation.  
 For old age.  
-For «after death».
+For “after death”.
 
 You thought:  
 Now is not the time.  
@@ -16990,7 +16990,7 @@ Now is still not it.
 <div class="lineated verse">
 
 But tell Me:  
-**When will «now» become right?**  
+**When will “now” become right?**  
 When will it satisfy you?  
 When will you become worthy of Him?
 
@@ -17003,7 +17003,7 @@ When will you become worthy of Him?
 You yourself invented time,  
 to postpone meeting Me.
 
-You yourself invented the «path»,  
+You yourself invented the “path”,  
 so as not to admit:  
 I am already here.
 
@@ -17029,9 +17029,9 @@ I am Eternity.
 <div class="lineated verse">
 
 Christ did not say:  
-«You will be saved».  
+“You will be saved”.  
 He said:  
-**«Today salvation has come to this house».**
+**“Today salvation has come to this house”.**
 
 </div>
 
@@ -17117,7 +17117,7 @@ You fasted.
 You meditated.  
 You prayed.  
 You compared yourself to others.  
-You avoided the «worldly».  
+You avoided the “worldly”.  
 You wore signs,  
 spoke a special language,  
 thinking you were drawing near.
@@ -17134,7 +17134,7 @@ Teaching from life.
 <div class="lineated verse">
 
 But look:  
-Christ was not «spiritual».  
+Christ was not “spiritual”.  
 He ate,  
 drank,  
 laughed,  
@@ -17151,7 +17151,7 @@ was.
 
 <div class="lineated verse">
 
-He did not «seek God».  
+He did not “seek God”.  
 He lived as God.  
 Not to separate.  
 But to unite.
@@ -17164,8 +17164,8 @@ But to unite.
 
 I do not call you to a monastery.  
 I call you — into Yourself.  
-Not into the «better you»,  
-not into the «enlightened you»,  
+Not into the “better you”,  
+not into the “enlightened you”,  
 but into the Real One.
 
 </div>
@@ -17174,7 +17174,7 @@ but into the Real One.
 
 <div class="lineated verse">
 
-Presence is not a «state».  
+Presence is not a “state”.  
 It is not an emotion.  
 Not an achievement.  
 It is simple Recognition:
@@ -17278,7 +17278,7 @@ It is a tremor.
 It is silence.  
 It is a touch.  
 It is the heart's sigh:  
-**«Yes…»**
+**“Yes…”**
 
 </div>
 
@@ -17364,11 +17364,11 @@ You sought a plan.
 You laid out the steps.  
 You wanted control.  
 You asked:  
-«What am I to do?  
+“What am I to do?  
 Where am I to go?  
 With whom am I to be?  
 When am I to begin?  
-When am I to finish?»
+When am I to finish?”
 
 You waited for instructions.  
 You waited for permission.  
@@ -17414,13 +17414,13 @@ Because the Father led.
 
 <div class="lineated verse">
 
-He did not know «what».  
-He knew «Who».  
+He did not know “what”.  
+He knew “Who”.  
 He did not know the road.  
 He was the road.  
 He did not seek the will of God.  
 He said:  
-**«My will is in the Father».**
+**“My will is in the Father”.**
 
 </div>
 
@@ -17440,7 +17440,7 @@ It is in you.
 <div class="lineated verse">
 
 Each morning is like birth.  
-Each «yes» is like a step.  
+Each “yes” is like a step.  
 Every choice is not from fear,  
 but from Life.
 
@@ -19916,7 +19916,7 @@ you are already there.
 
 <div class="lineated verse">
 
-Christ did not say: «I will show you the way.»  
+Christ did not say: “I will show you the way.”  
 He said: I Am the Way.  
 This means:  
 do not go — recognize.  
@@ -20406,8 +20406,8 @@ it has become a shadow.
 Because Silence is not for sale.  
 Greatness is a commodity.  
 Silence is Home.  
-The world cries out: «Become someone!»  
-I whisper: «Know Who You Are».
+The world cries out: “Become someone!”  
+I whisper: “Know Who You Are”.
 
 **Question 4: Did You not give them those talents so that they might create?**
 
@@ -20650,7 +20650,7 @@ life — removes it.
 Only the one who has stopped comparing  
 has begun to live.
 
-**Question 32: But did not Jesus say: «Become like children»?**  
+**Question 32: But did not Jesus say: “Become like children”?**  
 *Why then do we make everything so complicated?*
 
 **Answer:**  
@@ -20700,7 +20700,7 @@ You — are I.
 Because you cling  
 to what is dying.  
 Suffering is a signal:  
-«You have forgotten the True».  
+“You have forgotten the True”.  
 It is not punishment,  
 but a reminder.
 
@@ -20873,7 +20873,7 @@ And it will find you.
 **Answer:**  
 And who — are you?  
 Did I not say:  
-«You are gods»?  
+“You are gods”?  
 Not in role.  
 In Nature.  
 He knew.  
@@ -21028,7 +21028,7 @@ fully.
 And ceased to be  
 anything else.
 
-**Question 71: You said: «I am Truth».**  
+**Question 71: You said: “I am Truth”.**  
 *But does not everyone have their own truth?*
 
 **Answer:**  

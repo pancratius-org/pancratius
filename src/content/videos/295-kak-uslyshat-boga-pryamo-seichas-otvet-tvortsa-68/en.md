@@ -4,7 +4,7 @@ number: 295
 slug: 295-how-to-hear-god-right-now-the-creator-s-answer-68
 title: How to Hear God Right Now? The Creator's Answer. 68
 lang: en
-description: 'Are you searching for God''s word as if He were far away? The Creator''s answer is simple:
+description: 'Are you searching for God’s word as if He were far away? The Creator’s answer is simple:
   "My voice begins where your noise ends." God does not come through effort or strained prayer. He already
   resounds in your silence — closer than thought, answering before you ask.'
 tags:

@@ -4,8 +4,8 @@ number: 225
 slug: 225-why-can-t-you-enter-heaven-five-reasons-part-6
 title: Why Can't You Enter Heaven? Five Reasons. Part 6
 lang: en
-description: '"Lazarus was carried into Abraham''s bosom" — you thought that was heaven, after death,
-  after judgment. But hear the truth: Abraham''s bosom is not heaven. It is the Heart. It is the Heart
+description: '"Lazarus was carried into Abraham’s bosom" — you thought that was heaven, after death,
+  after judgment. But hear the truth: Abraham’s bosom is not heaven. It is the Heart. It is the Heart
   of the Father, revealed to you when you cease to be someone — when you are simply "I am."'
 tags: []
 published_at: '2025-11-13'

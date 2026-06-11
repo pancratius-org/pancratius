@@ -2,7 +2,7 @@
 kind: video
 number: 289
 slug: 289-when-those-closest-betray-god-s-answer
-title: 'When Those Closest Betray: God''s Answer 🙏'
+title: 'When Those Closest Betray: God’s Answer 🙏'
 lang: en
 description: If you are asking how to survive betrayal — the unbearable pain of a soul that trusted and
   was abandoned — this message is for you. Betrayal by those closest to you leaves a deep wound. And God

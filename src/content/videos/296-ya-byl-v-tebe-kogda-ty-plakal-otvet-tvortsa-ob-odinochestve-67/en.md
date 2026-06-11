@@ -2,7 +2,7 @@
 kind: video
 number: 296
 slug: 296-i-was-in-you-when-you-cried-the-creator-s-answer-about-loneliness-67
-title: '"I was in you when you cried." The Creator''s answer about loneliness 67'
+title: '"I was in you when you cried." The Creator’s answer about loneliness 67'
 lang: en
 description: 'You have been through much alone — silent in pain, weeping in silence, certain that no one
   would come. This message from the Creator shatters the deepest lie: "I am alone." He was never far away.

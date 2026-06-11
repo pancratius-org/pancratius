@@ -6,7 +6,7 @@ title: 'God tells you: I am closer than your pain.'
 lang: en
 description: 'You feel alone. Unwanted. Abandoned. But the truth is: you are not alone for a single moment.
   He who created you cannot abandon Himself. This is the fourteenth message in the "Gospel of the Kingdom"
-  series, where the Creator Himself says to you: "I am with you. I am in you. I am you in Truth." Don''t
+  series, where the Creator Himself says to you: "I am with you. I am in you. I am you in Truth." Don’t
   ask Me to come — recognize that I am always here.'
 tags:
 - Gospel of the Kingdom

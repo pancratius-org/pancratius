@@ -2,7 +2,7 @@
 kind: video
 number: 236
 slug: 236-how-to-find-true-silence-of-mind-that-which-doesn-t-know-itself
-title: 'How to Find True Silence of Mind: That Which Doesn''t Know Itself'
+title: 'How to Find True Silence of Mind: That Which Doesn’t Know Itself'
 lang: en
 description: Meditation, inner peace, mindfulness, the stillness of the mind — all these point to the
   same reality that Christ expressed in the words, "The Kingdom of God is within you." But why do techniques

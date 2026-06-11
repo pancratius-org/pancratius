@@ -299,23 +299,23 @@ The Shari'ah was not given as a substitute for an inner state. It arose as an at
 
 It is important to see: the problem is not in the law itself. The problem is that the law begins to pretend that it is the source.
 
-In living Islam, the Shari'ah is a map, not the territory. It points the way, but does not replace the path. It does not guarantee closeness to Allah and does not promise salvation. It only outlines the space in which the disappearance of the «I» is possible. But as soon as the map is declared to be the territory, the path ends.
+In living Islam, the Shari'ah is a map, not the territory. It points the way, but does not replace the path. It does not guarantee closeness to Allah and does not promise salvation. It only outlines the space in which the disappearance of the “I” is possible. But as soon as the map is declared to be the territory, the path ends.
 
 Then a person begins to live not from surrender, but from observance. Not from trust, but from checking. Not from silence, but from fear of transgression. Law, meant to serve, becomes a measure. And a measure always requires a judge.
 
 Thus religious authority appears.
 
-It is not necessarily cruel. More often it is simply confident in itself. It knows what is «right». It guards the form. It watches over conformity. And the weaker the inner bond, the stricter the control becomes. Because without control the system falls apart.
+It is not necessarily cruel. More often it is simply confident in itself. It knows what is “right”. It guards the form. It watches over conformity. And the weaker the inner bond, the stricter the control becomes. Because without control the system falls apart.
 
 At this point Islam begins to lose the human being.
 
 A person ceases to be a place of meeting with Truth and becomes an object of regulation. His body, words, gestures, clothing, thoughts — everything falls into the field of norm. And although outwardly this looks like care for righteousness, inwardly fear more and more takes hold: to be cast out, condemned, declared unbelieving.
 
-Thus a paradox arises: the path that began with the renunciation of the «I» ends in a collective «we» that demands submission. The individual ego is supposedly condemned, but in its place the ego of the community, the school, the madhhab, the authority grows.
+Thus a paradox arises: the path that began with the renunciation of the “I” ends in a collective “we” that demands submission. The individual ego is supposedly condemned, but in its place the ego of the community, the school, the madhhab, the authority grows.
 
 Law ceases to be the shadow of the path and becomes its substitute.
 
-This is seen especially clearly in the way the right to silence disappears. On the living path, a person may not know. May be silent. May be in not-knowing before Allah. In the system, however, not-knowing is perceived as a threat. It must be filled with an answer, a fatwa, an interpretation. Where before there was «I do not know», there appears «it is said».
+This is seen especially clearly in the way the right to silence disappears. On the living path, a person may not know. May be silent. May be in not-knowing before Allah. In the system, however, not-knowing is perceived as a threat. It must be filled with an answer, a fatwa, an interpretation. Where before there was “I do not know”, there appears “it is said”.
 
 And yet — even in the most severe juridification Islam preserves the trace of its origin. For no law can replace Allah. No interpretation can become the Absolute. And therefore within the system itself there always remains a crack through which, at times, the living bursts forth again.
 
@@ -359,11 +359,11 @@ Then Light calls to enter precisely there — into the heart of Islam, where the
 
 Sufism did not arise as an alternative to Islam, and it was not conceived as a separate path. It appeared where the path had begun to disappear, and the form — to remain. It is not a current or a school in the ordinary sense. It is an attempt to restore the lost center without destroying the outer shell.
 
-The Sufi does not seek a new God. He seeks a living connection with the Same One, but without intermediaries, without guarantees, without support from form. Where orthodoxy says: «do», the Sufi says: «remember». Where the law demands fulfillment, the Sufi returns to state. He does not deny Sharia — he simply knows that Sharia cannot lead to where it itself came from.
+The Sufi does not seek a new God. He seeks a living connection with the Same One, but without intermediaries, without guarantees, without support from form. Where orthodoxy says: “do”, the Sufi says: “remember”. Where the law demands fulfillment, the Sufi returns to state. He does not deny Sharia — he simply knows that Sharia cannot lead to where it itself came from.
 
-At the center of Sufism is not fear and not obedience, but dhikr — remembrance. Not intellectual, not verbal, but existential. This is not «I remember Allah», but the moment when the one who could forget disappears. Dhikr is not a practice, but a return of attention to the Source of attention. Everything else is technique for the mind.
+At the center of Sufism is not fear and not obedience, but dhikr — remembrance. Not intellectual, not verbal, but existential. This is not “I remember Allah”, but the moment when the one who could forget disappears. Dhikr is not a practice, but a return of attention to the Source of attention. Everything else is technique for the mind.
 
-It is precisely here that Islam first allows itself to speak the language of love — but of love without image. Allah does not become close in the human sense, but He ceases to be distant. He is not «near» and not «within». He is that by virtue of which there is any «within» and «without». To love such an Allah means to disappear without hope of reciprocity, without the image of an answer, without consolation.
+It is precisely here that Islam first allows itself to speak the language of love — but of love without image. Allah does not become close in the human sense, but He ceases to be distant. He is not “near” and not “within”. He is that by virtue of which there is any “within” and “without”. To love such an Allah means to disappear without hope of reciprocity, without the image of an answer, without consolation.
 
 This frightens the system.
 
@@ -371,9 +371,9 @@ The Sufi is dangerous not because he breaks the rules, but because he does not n
 
 Therefore Sufism was always tolerated only up to a certain limit. As long as it remained quiet, inward, not laying claim to the word, it could be ignored. But as soon as the Sufis began to speak aloud, to name names, to speak of love and unity, the accusation of heresy arose. Because where the living is heard, form begins to crack.
 
-The history of Sufism is the history of people who went to the end. Some of them were recognized as saints. Some were executed. Not for denying Allah, but for too direct a witness. For words about Unity, spoken from experience, always sound like a threat to a structure that lives by distinguishing the «right» from the «wrong».
+The history of Sufism is the history of people who went to the end. Some of them were recognized as saints. Some were executed. Not for denying Allah, but for too direct a witness. For words about Unity, spoken from experience, always sound like a threat to a structure that lives by distinguishing the “right” from the “wrong”.
 
-But Sufism is important not as a historical phenomenon. It is important as an indication: Islam is not exhausted by law. Within it there is a depth in which fear disappears and silence appears. Where Allah does not judge and does not reward, but simply is. And a person — if he is ready — can disappear into this «is», becoming neither a god, nor a righteous man, nor an example.
+But Sufism is important not as a historical phenomenon. It is important as an indication: Islam is not exhausted by law. Within it there is a depth in which fear disappears and silence appears. Where Allah does not judge and does not reward, but simply is. And a person — if he is ready — can disappear into this “is”, becoming neither a god, nor a righteous man, nor an example.
 
 Sufism shows: the problem of Islam is not in Allah and not in the path. The problem is that the heart so often yields its place to form. And when that happens, the path begins to serve power, not liberation.
 
@@ -1245,7 +1245,7 @@ rests on prohibition, not on Truth.
 Truth is not afraid of the gaze.
 
 **Question 2.**  
-**I was told: «Do not think — believe». Is that right?**  
+**I was told: “Do not think — believe”. Is that right?**  
 **Answer.**  
 Thinking is not the enemy of faith.  
 The enemy is dishonesty.  
@@ -1298,7 +1298,7 @@ It teaches survival,
 not life.
 
 **Question 9.**  
-**What if I never become «faithful enough»?**  
+**What if I never become “faithful enough”?**  
 **Answer.**  
 Then you will stop pretending.  
 And that will be the beginning.
@@ -1436,8 +1436,8 @@ He calls the heart back into the form.
 **Answer.**  
 Crossing over is almost always accompanied by justifications.  
 Deepening — by silence.  
-Crossing over says: «there is better».  
-Deepening says: «here is deeper».
+Crossing over says: “there is better”.  
+Deepening says: “here is deeper”.
 
 **Question 4.**  
 **Why then does interest in other traditions arise in the heart?**  
@@ -1458,7 +1458,7 @@ without hearing what has already been said,
 and not to follow it.
 
 **Question 6.**  
-**But I feel: «in Islam they no longer let me breathe».**  
+**But I feel: “in Islam they no longer let me breathe”.**  
 **Answer.**  
 Often it is not Islam that does not let one breathe,  
 but its social form.  
@@ -1498,12 +1498,12 @@ They do not rebel —
 and that is more frightening than rebellion.
 
 **Question 10.**  
-**Is not Sufism a compromise — «neither here nor there»?**  
+**Is not Sufism a compromise — “neither here nor there”?**  
 **Answer.**  
 No.  
 A compromise is when the form is divided.  
 Sufism is when the source is returned.  
-It is not «between».  
+It is not “between”.  
 It is in the center.
 
 **Question 11.**  
@@ -1532,7 +1532,7 @@ Sufism does not make life easier.
 It makes it transparent.
 
 **Question 14.**  
-**Can one remain a Muslim «outwardly» and walk the Sufi path «inwardly»?**  
+**Can one remain a Muslim “outwardly” and walk the Sufi path “inwardly”?**  
 **Answer.**  
 It has always been so.  
 Outwardly — form.  
@@ -1543,9 +1543,9 @@ It is depth.
 **Question 15.**  
 **So, what is the main question I should ask myself before leaving?**  
 **Answer.**  
-Not: «where will I be better?»  
+Not: “where will I be better?”  
 but:  
-**«am I calling to the form — or is Truth calling me?»**  
+**“am I calling to the form — or is Truth calling me?”**  
 If the call is inward,  
 leaving will be an escape.  
 If the call is farther,  
@@ -2322,13 +2322,13 @@ and the Presence — demands honesty without explanations.
 **— What am I afraid to lose if I stand alone before Me?**  
 You are afraid to lose your excuse.  
 Before Allah, you cannot plead an appeal.  
-You cannot say: «I was told so».  
+You cannot say: “I was told so”.  
 Only you remain — without cover.
 
 **— Why is the approval of the community more important to me than the silence of the heart?**  
 Because approval gives belonging.  
 Silence does not.  
-The community confirms that you are «one of ours».  
+The community confirms that you are “one of ours”.  
 The heart confirms nothing —  
 it is either alive, or it is not.
 
@@ -2610,7 +2610,7 @@ The construction fears,
 assembled from roles, stories, and expectations.  
 That which is cannot fear disappearance.
 
-**— What will remain if I cease to be a «believer»?**  
+**— What will remain if I cease to be a “believer”?**  
 The foundation of faith will remain.  
 Not belonging,  
 but the ability to be without reliance on belonging.  
@@ -2625,12 +2625,12 @@ there remains seeing without effort.
 
 **— Where is I, when I am no more?**  
 In that which cannot be lost.  
-Not as «someone»,  
+Not as “someone”,  
 but as the very fact of presence.  
 Not a place,  
 but the foundation of any place.
 
-**— What exactly disappears, when I «disappear»?**  
+**— What exactly disappears, when I “disappear”?**  
 The claim to be the center disappears.  
 The form remains.  
 The breath remains.  
@@ -2650,7 +2650,7 @@ Fear is the last gatekeeper of the boundary.
 **— What holds me most strongly?**  
 Not sin.  
 Not fear of hell.  
-But the thought: «I have understood something».  
+But the thought: “I have understood something”.  
 Understanding is a subtle form of ownership.
 
 **— Can disappearance happen by will?**  
@@ -2658,7 +2658,7 @@ No.
 Will is part of that which disappears.  
 One can only stop interfering.
 
-**— What happens to love when the «I» disappears?**  
+**— What happens to love when the “I” disappears?**  
 It ceases to be directed.  
 It no longer chooses.  
 It simply is, as radiance.
@@ -2682,7 +2682,7 @@ which cannot be solved by effort.
 
 **— How do you understand that disappearance has not become a new pride?**  
 If there is the thought:  
-«Something special happened to me» —  
+“Something special happened to me” —  
 that is not yet disappearance.  
 Disappearance leaves no witness.
 
@@ -3135,7 +3135,7 @@ does not need to be right.
 At this point  
 it becomes a transparent bearer of form,  
 and not a source of meaning.  
-Not because it «knows»,  
+Not because it “knows”,  
 but because it does not hold on.
 
 </div>

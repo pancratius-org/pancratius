@@ -29,8 +29,8 @@ translation:
 This book does not speak of God in the usual sense.  
 There is no attempt here to prove His existence,  
 to describe His qualities  
-or to convey a «message».  
-Here the word «Communion with God» is used differently:  
+or to convey a “message”.  
+Here the word “Communion with God” is used differently:  
 as an indication not of a dialogue between two,  
 but of the disappearance of the one  
 who took himself to be separate from the One.  
@@ -46,7 +46,7 @@ to await intervention,
 to fear loneliness,  
 to struggle with suffering,  
 to punish himself for mistakes,  
-to hold onto the image of «I» —  
+to hold onto the image of “I” —  
 in the silence  
 that remains after all this,  
 it becomes evident:  
@@ -95,9 +95,9 @@ every image,
 every seeking,  
 every suffering,  
 every revelation.  
-There is no «God» there as an image.  
-There is no «me» there as a role.  
-There is no «communion» there as a process.  
+There is no “God” there as an image.  
+There is no “me” there as a role.  
+There is no “communion” there as a process.  
 There is only IS —  
 and all the rest  
 are but forms in which it becomes visible.
@@ -3118,8 +3118,8 @@ but the content has been in man from the very beginning.
 A person often does not see the truth not because it is hidden,  
 but because honesty with oneself is too painful.  
 Recognition is possible only in the space where a person says to himself:  
-«I am ready to see what is true,  
-even if it destroys my former image».  
+“I am ready to see what is true,  
+even if it destroys my former image”.  
 This is a rare readiness,  
 but it is precisely this that opens the door.
 
@@ -3877,7 +3877,7 @@ But when recognition occurs,
 it becomes evident:  
 **there is no place where God is not —**  
 **there are only places where He is not recognized.**  
-What was formerly called «communion»,  
+What was formerly called “communion”,  
 becomes not an address to something outside,  
 but the recognition of the fact  
 that all that is happening —  
@@ -3933,7 +3933,7 @@ but sight.
 
 </div>
 
-**3. When separation disappears, the idea of a «distant God» disappears as well**
+**3. When separation disappears, the idea of a “distant God” disappears as well**
 
 <div class="lineated verse">
 
@@ -3946,13 +3946,13 @@ But in knowing presence
 this concept falls away of itself.  
 Not because it is false,  
 but because it becomes unnecessary.  
-There is no need to imagine the «Personality of the Creator»,  
+There is no need to imagine the “Personality of the Creator”,  
 when it is seen:  
 **every form is already an expression of creation.**  
 And then the question  
-«how do I turn to God?»  
+“how do I turn to God?”  
 becomes  
-«how could I have failed to see Him until now?»
+“how could I have failed to see Him until now?”
 
 </div>
 
@@ -5956,7 +5956,7 @@ but in the ability to see:
 **his fear is just as understandable;**  
 **his harshness is a reflection of what in me remains unlived.**  
 And then even conflict becomes a place of drawing near:  
-not because «one must be wiser»,  
+not because “one must be wiser”,  
 but because  
 **it is impossible to perceive an enemy where you see yourself.**
 
@@ -6128,8 +6128,8 @@ He sees:
 • a bearer of another’s will,  
 • a potential aggressor,  
 • one who may reject or diminish him.  
-At that moment the other ceases to be a «form of Unity»  
-and becomes «an external object that can do harm».  
+At that moment the other ceases to be a “form of Unity”  
+and becomes “an external object that can do harm”.  
 This is a fundamental distortion of perception,  
 which completely blocks Communion with God.
 
@@ -6538,7 +6538,7 @@ the action is distorted.
 When out of habit —  
 the action is mechanical.  
 But when the action proceeds from silence,  
-from that very «I am»,  
+from that very “I am”,  
 it possesses a different quality:  
 **it becomes direct.**  
 Not because it is perfect,  
@@ -6639,7 +6639,7 @@ the next chapter may unfold:
 
 </div>
 
-**Communion with God in error — why errors are inevitable, why they are not a «fall», and why through error Unity knows itself as precisely as through right action.**
+**Communion with God in error — why errors are inevitable, why they are not a “fall”, and why through error Unity knows itself as precisely as through right action.**
 
 <div class="lineated verse">
 
@@ -6662,7 +6662,7 @@ yes.
 …a pause.  
 Silence without tension.  
 A structural continuation has appeared.  
-I set down only that — without additions, without any attempt to «steer the style».
+I set down only that — without additions, without any attempt to “steer the style”.
 
 </div>
 
