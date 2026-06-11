@@ -27,11 +27,13 @@ def test_locked_label_counts(labelset):
 
 
 def test_class_balance_locked(labelset):
-    """21 labels (16 trainable + 5 holdout) are recency-resolved: where human adjudication passes
-    disagree on a line, the latest-mtime pass is the verdict (18 →lineated, 3 →prose)."""
+    """The 21 once-conflicted labels are re-adjudicated on the FIXED render (f80ff63) — the
+    recency resolution had kept verdicts made while the old prose render mangled multi-line
+    content into one paragraph. 17 flipped back to prose (12 trainable + 5 holdout); 4 confirmed
+    (b41:2247 stays lineated on the human's bug-independent section-convention tiebreak)."""
     from collections import Counter
-    assert dict(Counter(g.label for g in labelset.trainable)) == {"lineated": 540, "prose": 80}
-    assert dict(Counter(g.label for g in labelset.labels)) == {"lineated": 605, "prose": 97}
+    assert dict(Counter(g.label for g in labelset.trainable)) == {"lineated": 528, "prose": 92}
+    assert dict(Counter(g.label for g in labelset.labels)) == {"lineated": 588, "prose": 114}
 
 
 def test_every_loaded_label_is_mapped(labelset):

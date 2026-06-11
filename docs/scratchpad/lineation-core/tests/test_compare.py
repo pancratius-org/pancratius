@@ -15,6 +15,6 @@ def test_compare_locked(corpus):
     # eval set into labels.jsonl (holdout) — a deliberate re-lock of the shared population.
     assert cmp.n_labels_shared == 529
     grok = next(r for r in cmp.rows if r.reader == "grok")
-    # 0.811 under the recency-resolved truth — the student retrained on the corrected labels loses
-    # prose recall on the shared population (see test_contested for the same effect).
-    assert grok.student_metrics.balanced_acc == pytest.approx(0.811, abs=0.01)
+    # 0.979 under the FIXED-render re-adjudicated truth — the recency-era 0.811 was the
+    # render-bug contamination dragging prose recall down (see test_contested, same effect).
+    assert grok.student_metrics.balanced_acc == pytest.approx(0.979, abs=0.01)

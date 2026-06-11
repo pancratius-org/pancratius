@@ -97,14 +97,30 @@ study manifest records the membership file sha256 AND `truth_sha256` (the joined
 label}` as scored), so a corrected label after the fact is a loud audit mismatch, never a silent
 re-score.
 
-**Adjudication precedence is RECENCY.** Human adjudication passes re-judge lines and may overrule
-each other; a line's authoritative label is its **latest-mtime** human verdict (the adjudication
-exports' mtimes are the original adjudication times). A line judged once stands. A recency-resolved
-row (`audit_status: recency_resolved`) carries the winning export + its mtime
+**Adjudication precedence is RECENCY — between sound passes.** Human adjudication passes re-judge
+lines and may overrule each other; a line's authoritative label is its **latest-mtime** human verdict
+(the adjudication exports' mtimes are the original adjudication times). A line judged once stands. A
+recency-resolved row (`audit_status: recency_resolved`) carries the winning export + its mtime
 (`provenance.adjudication`/`adjudicated_at`), the `overturned` prior label, and the full pass
 history (`other_adjudications`). Joining a legacy export entry to a `LineId` is by NORMALIZED exact
 text (strip `*` emphasis, collapse whitespace) against the book's line records, cross-checked by
 `line_text_hash` — the legacy `idx` is never trusted (idx-vs-ordinal key spaces differ per export).
+
+Two principles qualify recency (both recur ~a dozen times in the human's own adjudication notes):
+- **A verdict is only as good as the render it judged.** Verdicts cast while the old prose render
+  mangled multi-line/enumerated content into one paragraph (fixed in `f80ff63`) compensated for
+  the bug, not the text ("I lean lineated because that's literally it on the docx screenshot").
+  The once-conflicted rows were re-judged on the fixed render: `audit_status:
+  readjudicated_fixed_render`, the displaced label in `provenance.overturned`, and the basis —
+  the fixed-render verdict (`fixed_render`), the convention applied (`section_convention`), and
+  the bug-independent part of the human's note (`readjudication`) — recorded per row. The fixed
+  render is REFERENCE evidence, never ground truth: deferring to it wholesale would be circular
+  (it is the system the truth scores).
+- **Lineation truth is convention-relative.** A line that reads both ways in isolation is decided
+  by its surrounding book/section convention — the human's stated tiebreak ("both work, but in
+  the book it's lineated"; "should follow the book's convention/flow"). The SECTION outranks the
+  book: a prose catalog inside a lineated book is prose. When the tiebreak decides a label,
+  `provenance.section_convention` records the convention applied.
 
 ## Producer (exactly one)
 ```

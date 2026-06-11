@@ -22,11 +22,11 @@ def test_contested_locked(corpus):
     # 424 = the historical 425 minus one corrupt-id row (its line is unmapped in the corpus).
     # Scorable rose 342 → 382: the homed holdout labels (never trainable) are scored too now —
     # the old 0.975 was computed on a population that silently excluded the hardest lines.
-    # 0.867 under the recency-resolved truth (latest-mtime human pass wins). The same truth scored
-    # against the stale-trained student gives 0.941 — retraining on the corrected labels COSTS
-    # contested prose recall (the flipped lines are φ-prose-shaped but human-lineated).
+    # 0.954 under the FIXED-render re-adjudicated truth: the recency-era 0.867 (prose_recall
+    # 0.816) was the render-bug contamination — the flipped lines were re-judged prose on the
+    # fixed render, and both the truth and the retrained student moved together.
     assert r.n_contested == 424
     assert r.n_with_student == 382
-    assert r.student.balanced_acc == pytest.approx(0.867, abs=0.01)
-    assert r.student.prose_recall == pytest.approx(0.816, abs=0.01)
+    assert r.student.balanced_acc == pytest.approx(0.954, abs=0.01)
+    assert r.student.prose_recall == pytest.approx(0.989, abs=0.01)
     assert r.rows                                       # per-reader head-to-head rows present
