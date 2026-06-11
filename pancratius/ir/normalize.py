@@ -675,6 +675,33 @@ def _is_empty_emphasis(n: ir.Inline) -> bool:
     return isinstance(n, ir.Emphasis) and inline_plain(n.children) == ""
 
 
+def _hoist_boundary_breaks(inlines: list[ir.Inline]) -> list[ir.Inline]:
+    """Move a `LineBreak`/`SoftBreak` at the edge of an emphasis span outside it
+    (recursing into containers). Word styles the break run along with the styled
+    text, but a Markdown emphasis delimiter next to a newline cannot close, so
+    `*line  \\n*next` would leak broken markers across the verse break."""
+    out: list[ir.Inline] = []
+    for n in inlines:
+        if not isinstance(n, ir.ContainerInline):
+            out.append(n)
+            continue
+        children = _hoist_boundary_breaks(n.children)
+        if not isinstance(n, ir.Emphasis):
+            out.append(ir.rebuild_container(n, children))
+            continue
+        head = 0
+        while head < len(children) and isinstance(children[head], (ir.LineBreak, ir.SoftBreak)):
+            head += 1
+        tail = len(children)
+        while tail > head and isinstance(children[tail - 1], (ir.LineBreak, ir.SoftBreak)):
+            tail -= 1
+        out.extend(children[:head])
+        if children[head:tail]:
+            out.append(ir.rebuild_container(n, children[head:tail]))
+        out.extend(children[tail:])
+    return out
+
+
 def _drop_empty_emphasis(inlines: list[ir.Inline]) -> list[ir.Inline]:
     """Remove empty-emphasis husks anywhere in an inline list (recursing into
     surviving spans), so `…text** **` loses the trailing `** **` while real text
@@ -713,7 +740,7 @@ def strip_formatting_artifacts(blocks: list[ir.Block]) -> list[ir.Block]:
     out: list[ir.Block] = []
     for b in blocks:
         if isinstance(b, ir.Paragraph) and not b.empty:
-            b.inlines = _drop_empty_emphasis(b.inlines)
+            b.inlines = _drop_empty_emphasis(_hoist_boundary_breaks(b.inlines))
             if _is_form_marker_text(inline_plain(b.inlines)):
                 continue
             if not inline_plain(b.inlines) and all(

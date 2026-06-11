@@ -249,6 +249,30 @@ def test_strip_formatting_artifacts_removes_trailing_empty_emphasis_in_content()
     assert lower._inlines_md(_para(out[0]).inlines, "ru").strip() == "real text"
 
 
+def test_strip_formatting_artifacts_hoists_boundary_break_out_of_emphasis() -> None:
+    # Word styles the break run with the styled line; the break must leave the span
+    # so the closing delimiter stays on the emphasized line.
+    para = ir.Paragraph(inlines=[
+        ir.Emphasis("emph", [ir.Text("— А что для Вадима Мария есть?"), ir.LineBreak()]),
+        ir.Text("— Она — как опора."),
+    ])
+    out = normalize.strip_formatting_artifacts([para])
+    assert lower._inlines_md(_para(out[0]).inlines, "ru") == (
+        "*— А что для Вадима Мария есть?*\n— Она — как опора."
+    )
+
+
+def test_strip_formatting_artifacts_keeps_break_of_break_only_emphasis() -> None:
+    # `Emph([LineBreak])` between two verse lines: the husk goes, the break stays.
+    para = ir.Paragraph(inlines=[
+        ir.Text("строка раз"),
+        ir.Emphasis("strong", [ir.LineBreak()]),
+        ir.Text("строка два"),
+    ])
+    out = normalize.strip_formatting_artifacts([para])
+    assert lower._inlines_md(_para(out[0]).inlines, "ru") == "строка раз\nстрока два"
+
+
 def test_strip_formatting_artifacts_drops_hidden_form_markers() -> None:
     blocks: list[ir.Block] = [
         ir.Paragraph(inlines=[ir.Text("Н    ачало"), ir.SoftBreak(), ir.Text("формы")]),
