@@ -82,7 +82,7 @@
 .prose--project blockquote.project-pull p {
   margin: 0;
   text-indent: 0;
-  text-wrap: balance;
+  text-wrap: pretty;
   font-style: italic;
 }
 
