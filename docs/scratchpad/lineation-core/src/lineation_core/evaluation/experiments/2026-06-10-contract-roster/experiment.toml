@@ -1,0 +1,104 @@
+# ============================================================================================
+# RESPONSE-CONTRACT × ROSTER — json_array vs json_keyed, the full text panel, at temp 0.5
+# ============================================================================================
+# QUESTION
+#   Which response contract should each reader use? Concretely: does json_keyed (the line keys ARE
+#   the schema's required properties) reduce `unmapped_key` faults for key-UNSTABLE readers without
+#   costing accuracy — and does any reader REGRESS under it — so we can assign a contract PER READER.
+#
+# WHY NOW (this supersedes the earlier array-vs-keyed study, which had two confounds, both now fixed)
+#   1. The prompt's return instruction was the ARRAY format for BOTH points — only the schema differed.
+#      Now the instruction is contract-aware (`teacher.contracts.spec_for(contract).instruction`), so
+#      each point asks for the shape it constrains.
+#   2. json_keyed carried no confidence, while json_array did — an unfair conf-conditioning difference,
+#      and keyed couldn't feed the conf-using gate. json_keyed now carries confidence as a nested
+#      `{lineation_label, confidence}` value (keys still required → fault-proofing intact), so the two
+#      contracts differ ONLY in wire shape. This is a clean A/B; the contract is in the call
+#      fingerprint, so no reply is shared across the two points.
+#
+# HYPOTHESES (from the confounded prior — to confirm or overturn under the fixed setup)
+#   H1  keyed cuts qwen-235b's `unmapped_key` faults ~13× (278→21 in the prior) at ≈0 accuracy cost.
+#   H2  ds-flash REGRESSES under keyed (prior: instab 0.12→0.30, cost ~2×, balAcc 0.914→0.900).
+#   H3  grok / gemini-lite stay clean (≈unchanged) in BOTH contracts.
+#   H4  qwen3.6-flash (NEVER benched) — unknown; this is its first measurement. Does the flash qwen
+#       share the big qwen's key-instability, or is it clean like ds-flash?
+#   H5  MODALITY × contract. grok and gemini-lite are the panel's VISION readers (gold = LUPI, vision-
+#       privileged), so they appear TWICE: once as text (off-native, for the within-model contract A/B
+#       on the same input as the others) and once as vision (`grok-vision`/`gemini-vision`, their
+#       native role — page render + lineation-page.md). Reads two things: (a) does the contract finding
+#       hold in vision, and (b) the text-vs-vision accuracy gap for the same model. Vision accuracy is
+#       the honest panel number for these two; the text rows are a controlled contract probe only.
+#
+# DESIGN
+#   Single axis: contract ∈ {json_array, json_keyed}. Fixed temp 0.5 (validated best for ds-flash in
+#   2026-06-10-dsflash-temp; DEFAULT_TEMPERATURE is 0.0, so it is set explicitly). reps = 3 — single-
+#   pass labels are noisy; aggregate across reps before ranking. Full `reader_bench` eval set (books
+#   derived from the set's own LineIds). max_workers = 48 (I/O-bound fan-out; raise only until qwen
+#   starts 429-ing — past that the limit is provider-side and more workers do not help).
+#
+# MEASURES (per reader × contract): balAcc, prose/lineated recall, coverage, faults (especially
+#   `unmapped_key` per reader — the key-fidelity signal), instability across reps, truncations, $/1k.
+# DECISION: a per-reader contract assignment (not a single global contract — the prior showed keyed is
+#   not universally better).
+# SCOPE: NOT TSV. The 2026-06-10-tsv-smoke run was a NEGATIVE result (coverage 0.748, unmapped_key 383
+#   on ds-flash, our cleanest reader) — TSV is parked pending a key-echo prompt fix, not swept here.
+# ============================================================================================
+reps        = 3
+temperature = 0.5
+contract    = "json_array"   # base; the sweep overrides it per point
+max_workers = 48
+
+[experiment]
+id       = "2026-06-10-contract-roster"
+kind     = "response_contract"
+question = "Per reader, does json_keyed cut unmapped_key faults at no accuracy cost — and which readers regress — so we can assign a contract per reader?"
+round    = 0
+seed     = 0
+
+[dataset]
+source = "eval_set"
+name   = "reader_bench"
+
+[sweep]
+contract = ["json_array", "json_keyed"]
+
+[prompts]
+text   = "lineation-structure-text.md"
+vision = "lineation-page.md"
+
+[[readers]]
+tag      = "grok"
+model    = "x-ai/grok-4.3"
+modality = "text"
+
+[[readers]]
+tag      = "gemini-lite"
+model    = "google/gemini-3.1-flash-lite"
+modality = "text"
+
+[[readers]]
+tag      = "ds-flash"
+model    = "deepseek/deepseek-v4-flash"
+modality = "text"
+
+[[readers]]
+tag      = "qwen-235b"
+model    = "qwen/qwen3-235b-a22b-2507"
+modality = "text"
+
+[[readers]]
+tag      = "qwen-flash"
+model    = "qwen/qwen3.6-flash"
+modality = "text"
+
+# the panel's VISION readers in their NATIVE modality (page render + lineation-page.md) — the honest
+# panel numbers for grok/gemini, and the modality half of H5.
+[[readers]]
+tag      = "grok-vision"
+model    = "x-ai/grok-4.3"
+modality = "vision"
+
+[[readers]]
+tag      = "gemini-vision"
+model    = "google/gemini-3.1-flash-lite"
+modality = "vision"

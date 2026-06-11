@@ -1,0 +1,28 @@
+{
+  "git_sha": "b780d9ec8f1e2ac754425d405690e19299eb3471+dirty",
+  "timestamp": "2026-06-10T15:52:22.596938+00:00",
+  "eval_set": "reader_bench",
+  "eval_set_sha256": "63d2beb6e85e2b98ad38ad097e66c6c219c56fb8e4e615d3aa90147eb37c71bd",
+  "prompts": {
+    "text": {
+      "filename": "lineation-structure-text.md",
+      "sha256": "ba6cb4c5833580091c5b93889f47a33187f326450c37e6549f628e19bde465c6"
+    }
+  },
+  "base_response_contract": "json_array",
+  "models": {
+    "ds-flash": "deepseek/deepseek-v4-flash"
+  },
+  "temperature": 0.0,
+  "max_tokens": 8192,
+  "reps": 3,
+  "seed": 0,
+  "price_table_version": "2026-06-09",
+  "sweep_axis": "temperature",
+  "sweep_points": [
+    "0.0",
+    "0.3",
+    "0.5",
+    "0.7"
+  ]
+}

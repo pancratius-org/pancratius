@@ -1,0 +1,87 @@
+{
+  "experiment_id": "2026-06-10-qwen235b-keyed-temp",
+  "question": "Does qwen-235b under json_keyed at 0.0 give both clean protocol and its ~0.922 accuracy (the corner that would qualify it)?",
+  "sweep_axis": "temperature",
+  "results": {
+    "0.0": [
+      {
+        "tag": "qwen-235b",
+        "modality": "text",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 2,
+          "faults": {
+            "unmapped_key": 16
+          }
+        },
+        "quality": {
+          "balanced_acc": 0.8888888888888888,
+          "prose_recall": 0.9,
+          "lineated_recall": 0.8777777777777778,
+          "instability": 0.06666666666666667,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.040484389999999995,
+          "prompt_tokens": 406711,
+          "completion_tokens": 38804,
+          "usd_per_1k_lines": 0.14994218518518515
+        }
+      }
+    ],
+    "0.5": [
+      {
+        "tag": "qwen-235b",
+        "modality": "text",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 6,
+          "faults": {
+            "unmapped_key": 18
+          }
+        },
+        "quality": {
+          "balanced_acc": 0.9,
+          "prose_recall": 0.9333333333333333,
+          "lineated_recall": 0.8666666666666667,
+          "instability": 0.13333333333333333,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.04209086,
+          "prompt_tokens": 390424,
+          "completion_tokens": 69527,
+          "usd_per_1k_lines": 0.15589207407407407
+        }
+      }
+    ]
+  },
+  "manifest": {
+    "git_sha": "a127402ecc9ea809a95366f6c5f7522fcbfd3e25+dirty",
+    "timestamp": "2026-06-10T18:15:08.699222+00:00",
+    "eval_set": "reader_bench",
+    "eval_set_sha256": "63d2beb6e85e2b98ad38ad097e66c6c219c56fb8e4e615d3aa90147eb37c71bd",
+    "prompts": {
+      "text": {
+        "filename": "lineation-structure-text.md",
+        "sha256": "ba6cb4c5833580091c5b93889f47a33187f326450c37e6549f628e19bde465c6"
+      }
+    },
+    "base_response_contract": "json_keyed",
+    "models": {
+      "qwen-235b": "qwen/qwen3-235b-a22b-2507"
+    },
+    "temperature": 0.0,
+    "max_tokens": 8192,
+    "reps": 3,
+    "seed": 0,
+    "price_table_version": "2026-06-10",
+    "sweep_axis": "temperature",
+    "sweep_points": [
+      "0.0",
+      "0.5"
+    ]
+  }
+}

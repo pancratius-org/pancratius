@@ -1,0 +1,36 @@
+{
+  "git_sha": "a127402ecc9ea809a95366f6c5f7522fcbfd3e25+dirty",
+  "timestamp": "2026-06-10T16:28:50.791587+00:00",
+  "eval_set": "reader_bench",
+  "eval_set_sha256": "63d2beb6e85e2b98ad38ad097e66c6c219c56fb8e4e615d3aa90147eb37c71bd",
+  "prompts": {
+    "text": {
+      "filename": "lineation-structure-text.md",
+      "sha256": "ba6cb4c5833580091c5b93889f47a33187f326450c37e6549f628e19bde465c6"
+    },
+    "vision": {
+      "filename": "lineation-page.md",
+      "sha256": "a980789a612b53adce45f9bf63d16da216c4e3e1f375b87f6f751ce188cd6e94"
+    }
+  },
+  "base_response_contract": "json_array",
+  "models": {
+    "ds-flash": "deepseek/deepseek-v4-flash",
+    "gemini-lite": "google/gemini-3.1-flash-lite",
+    "gemini-vision": "google/gemini-3.1-flash-lite",
+    "grok": "x-ai/grok-4.3",
+    "grok-vision": "x-ai/grok-4.3",
+    "qwen-235b": "qwen/qwen3-235b-a22b-2507",
+    "qwen-flash": "qwen/qwen3.6-flash"
+  },
+  "temperature": 0.5,
+  "max_tokens": 8192,
+  "reps": 3,
+  "seed": 0,
+  "price_table_version": "2026-06-10",
+  "sweep_axis": "contract",
+  "sweep_points": [
+    "json_array",
+    "json_keyed"
+  ]
+}

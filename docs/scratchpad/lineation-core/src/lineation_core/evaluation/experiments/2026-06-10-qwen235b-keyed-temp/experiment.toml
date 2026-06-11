@@ -1,0 +1,51 @@
+# ============================================================================================
+# QWEN-235B × KEYED × TEMPERATURE — fill the missing cell for the cheap-support candidate
+# ============================================================================================
+# QUESTION
+#   qwen-235b is the one cheap qwen worth considering. We have three of its four (contract × temp)
+#   corners but not the fourth:
+#       array @ 0.0  -> balAcc 0.922, CLEAN, $0.147   (2026-06-10-qwen-temp)   ← its best point
+#       array @ 0.5  -> balAcc 0.883-0.892, unmapped  (qwen-temp / contract-roster)
+#       keyed @ 0.5  -> balAcc 0.892, CLEAN, $0.141   (2026-06-10-contract-roster)
+#       keyed @ 0.0  -> ??? (this study)
+#   The interesting hypothesis: keyed (which makes qwen fault-clean) AT 0.0 (qwen-235b's better temp)
+#   gives BOTH clean protocol AND the ~0.922 accuracy — i.e. the corner that would actually qualify it
+#   as a cheap support reader. array@0.0 is clean here too (its unmapped only showed at 0.5), so the
+#   keyed-vs-array question at 0.0 is whether keyed holds the 0.922 accuracy.
+#
+# DESIGN
+#   Single axis: temperature ∈ {0.0, 0.5}. Contract FIXED at json_keyed. reps = 3. Full reader_bench.
+#   One reader (qwen-235b) — qwen-flash is rejected (key-chaotic + $4/1k at every corner), not spent on.
+#   NB array@0.0 in 2026-06-10-qwen-temp showed trunc=4; watch truncation here too (a clipped reply
+#   loses keys → coverage/faults), it is part of whether 0.0 is actually safe.
+#
+# READ-OUT: per temp — balAcc, prose/lineated recall, coverage, faults, instability, truncation, $/1k.
+#   Decision: qwen-235b becomes a cheap-support candidate ONLY if a corner gives clean faults AND
+#   ~0.92 balAcc AND low truncation; else it stays parked (gemini-lite text already gives 0.94 clean
+#   at similar cost).
+# ============================================================================================
+reps        = 3
+contract    = "json_keyed"
+max_workers = 48
+
+[experiment]
+id       = "2026-06-10-qwen235b-keyed-temp"
+kind     = "reader_temperature_sweep"
+question = "Does qwen-235b under json_keyed at 0.0 give both clean protocol and its ~0.922 accuracy (the corner that would qualify it)?"
+round    = 0
+seed     = 0
+
+[dataset]
+source = "eval_set"
+name   = "reader_bench"
+
+[sweep]
+temperature = ["0.0", "0.5"]
+
+[prompts]
+text = "lineation-structure-text.md"
+
+[[readers]]
+tag      = "qwen-235b"
+model    = "qwen/qwen3-235b-a22b-2507"
+modality = "text"
