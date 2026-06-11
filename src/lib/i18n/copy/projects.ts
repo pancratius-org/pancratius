@@ -187,7 +187,7 @@ export const projectComponentsCopy = {
       sourceCta: "Read the testimony",
     },
     selfInquiry: {
-      heading: "The «Who am I?» cycle",
+      heading: "The “Who am I?” cycle",
       question: "Who am I?",
       lead:
         "The same question — and four steps in each cycle. Nothing accumulates: after a cycle " +
@@ -199,14 +199,14 @@ export const projectComponentsCopy = {
           title: "Raw answer",
           body:
             "Honestly note the first answer that arises. No filter, no attempt to make it clever " +
-            "or spiritual. Just the first thing that came up as «I». One short sentence at most.",
+            "or spiritual. Just the first thing that came up as “I.” One short sentence at most.",
         },
         {
           n: 2,
           title: "Reason for rejection",
           body:
             "Honestly note why this answer is not you. What in it is a lie, a role, a mask, a wish " +
-            "to please, an automatism? A direct account: «I reject this answer because…».",
+            "to please, an automatism? A direct account: “I reject this answer because…”.",
         },
         {
           n: 3,
@@ -226,7 +226,7 @@ export const projectComponentsCopy = {
       ],
       loopTitle: "Cycle",
       loopBody:
-        "Ask yourself «Who am I?» again and repeat the whole process — until all answers fall away " +
+        "Ask yourself “Who am I?” again and repeat the whole process — until all answers fall away " +
         "and only what cannot be discarded remains.",
       restTitle: "What did not fall",
       restBody:
