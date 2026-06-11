@@ -179,7 +179,6 @@ def read_rows(docx: Path) -> list[ParaRow]:
                         else False
                     ),
                 )
-                indented = ppr.find(f"{W}ind") is not None if ppr is not None else False
                 bordered = ppr.find(f"{W}pBdr") is not None if ppr is not None else False
                 align = da._w_val(ppr.find(f"{W}jc") if ppr is not None else None)
                 row = ParaRow(
@@ -211,7 +210,7 @@ def read_rows(docx: Path) -> list[ParaRow]:
                     src.append(da._SourceParagraph(
                         align=align, text=txt, style=style,
                         contextual_spacing=contextual, spacing=spacing,
-                        indented=indented, bordered=bordered,
+                        indent=da._indent_attrs(ppr), bordered=bordered,
                         heading=heading, thematic=thematic,
                         source_span=ir.SourceSpan(row.index, row.index),
                         source_segment=source_segment,
@@ -228,6 +227,7 @@ def read_rows(docx: Path) -> list[ParaRow]:
                     walk(content)
 
     walk(body)
+    da._direction_indents(src)
     da._assign_lineation_groups(src)
     for ri, sp in zip(raw_index, src, strict=True):
         if ri >= 0:
@@ -454,6 +454,63 @@ def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
     return {
         ordinal: _verdict_for(hit)
         for ordinal, hit in hits.items()
+    }
+
+
+def lineation_decisions(docx: Path) -> dict[int, bool]:
+    """THE production lineation verdict per source `w:p` ordinal.
+
+    Runs the full import pipeline (``adapt`` → ``normalize``) and reads each
+    ordinal's fate: ``True`` when its text lowered inside a lineated/verse block,
+    ``False`` when it stayed a body prose paragraph. Non-body structure (headings,
+    tables, labels, …), blank paragraphs, and ordinals whose provenance did not
+    survive (no source span) are absent — score only on the covered ordinals and
+    report the rest as uncovered, never guessed.
+
+    This is the per-line ``prose``/``lineated`` surface the lineation gold set
+    (``LineId(lang, book, src_ordinal, sub)``) joins against; every ``sub``
+    segment of one ``w:p`` shares the ordinal's verdict.
+    """
+    from pancratius.ir.normalize import normalize
+
+    with tempfile.TemporaryDirectory(prefix="docx-lineation-") as td:
+        doc = da.adapt(docx, Path(td))
+        normalize(doc)
+
+    from pancratius.ir.normalize import VERSE_SHORT_LINE_MAX, inline_plain
+
+    def hard_break_prose(block: ir.LineatedBlock) -> bool:
+        """A block folded ONLY because of an authored `<w:br>` whose lines are
+        prose-length: the importer rightly preserves the break for display, but
+        as a register the human truth reads such lines as prose, not lineation."""
+        e = block.evidence
+        if not e.hard_break or e.pandoc_line_block or e.inferred_source_rows or e.compact_callout:
+            return False
+        return any(
+            len(inline_plain(line)) > VERSE_SHORT_LINE_MAX
+            for stanza in block.stanzas
+            for line in stanza
+        )
+
+    lineated: set[int] = set()
+    prose: set[int] = set()
+    for block in doc.blocks:
+        span = block.source_span
+        if span is None:
+            continue
+        target: set[int] | None = None
+        if isinstance(block, ir.LineatedBlock):
+            target = prose if hard_break_prose(block) else lineated
+        elif isinstance(block, ir.VerseBlock):
+            target = lineated
+        elif isinstance(block, ir.Paragraph) and not block.empty:
+            target = prose
+        if target is not None:
+            target.update(range(span.start, span.end + 1))
+    # An ordinal claimed by both kinds is ambiguous: drop it rather than guess.
+    return {
+        **dict.fromkeys(lineated - prose, True),
+        **dict.fromkeys(prose - lineated, False),
     }
 
 

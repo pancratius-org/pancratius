@@ -260,10 +260,11 @@ class Paragraph:
     id. It may bound source-row inference, but it is not itself lineation truth or
     verse-register evidence. `empty` marks a Word empty paragraph — meaningful as
     a stanza break, so it is captured in the IR before any Markdown output could
-    lose it. `indented` records source paragraph indentation: indented short
-    paragraphs are usually running prose, while unindented compact callouts can be
-    source lineation. `italic` records that every text-bearing run carried italic
-    (an epigraph signal).
+    lose it. `indented` records a source indent DEPARTING from the book-dominant
+    paragraph shape (within-book directioned, not the raw presence of `w:ind`):
+    such short paragraphs are usually running prose, while undeparting compact
+    callouts can be source lineation. `italic` records that every text-bearing
+    run carried italic (an epigraph signal).
     """
 
     inlines: list[Inline]

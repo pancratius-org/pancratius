@@ -22,7 +22,8 @@ import re
 import subprocess
 import xml.etree.ElementTree as ET
 import zipfile
-from dataclasses import dataclass
+from bisect import bisect_left
+from dataclasses import dataclass, field
 from itertools import pairwise
 from pathlib import Path
 from typing import Any, cast
@@ -94,33 +95,27 @@ def run_pandoc_json(docx: Path, media_dir: Path) -> tuple[dict[str, Any], str]:
 # ---------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)
-class _JcRecord:
-    """One body `w:p`'s metadata plus its reading text, for content reconciliation
-    against the AST paragraph sequence."""
-
-    align: str
-    text: str
-    lineation_group: int | None = None
-    indented: bool = False
-    source_span: ir.SourceSpan | None = None
-    source_segment: int = 0
-    empty: bool = False
-
-
 @dataclass
 class _SourceParagraph:
-    """Top-level source paragraph metadata before reconciliation onto Pandoc IR."""
+    """One top-level source `w:p`: its reading text plus the OOXML signals the
+    importer reconciles onto Pandoc IR by content.
+
+    `indented` is within-book DIRECTIONED, not the raw presence of `w:ind`: in a
+    book whose body default carries a first-line indent on every paragraph, the
+    raw bit discriminates nothing (verse rows carry it too). It is set by
+    `_direction_indents` only where the paragraph's indent signature departs from
+    the book-dominant one."""
 
     align: str
     text: str
-    style: str
-    contextual_spacing: bool
-    spacing: dict[str, str]
-    indented: bool
-    bordered: bool
-    heading: bool
-    thematic: bool
+    style: str = ""
+    contextual_spacing: bool = False
+    spacing: dict[str, str] = field(default_factory=dict)
+    indent: tuple[tuple[str, str], ...] = ()
+    indented: bool = False
+    bordered: bool = False
+    heading: bool = False
+    thematic: bool = False
     source_span: ir.SourceSpan | None = None
     source_segment: int = 0
     empty: bool = False
@@ -128,11 +123,36 @@ class _SourceParagraph:
     lineation_group: int | None = None
 
 
+def _direction_indents(records: list[_SourceParagraph]) -> None:
+    """Set `indented` to "indent departs from the book default".
+
+    The dominant indent signature over text-bearing body records is the book's
+    default paragraph shape; a paragraph is `indented` only when it carries an
+    indent that is neither absent nor that default. Runs before lineation-group
+    assignment and reconciliation so every consumer reads the directioned bit.
+    """
+    body = [p for p in records if p.reconcile and p.text.strip()]
+    counts: dict[tuple[tuple[str, str], ...], int] = {}
+    for p in body:
+        counts[p.indent] = counts.get(p.indent, 0) + 1
+    dominant = max(counts, key=lambda sig: counts[sig], default=())
+    for p in records:
+        p.indented = bool(p.indent) and p.indent != dominant
+
+
 @dataclass(frozen=True)
 class _StyleInfo:
     based_on: str
     contextual_spacing: bool
     spacing: dict[str, str]
+
+
+def _indent_attrs(ppr: ET.Element | None) -> tuple[tuple[str, str], ...]:
+    """The `w:ind` attrs of a paragraph as a canonical signature (sorted pairs)."""
+    ind = ppr.find(f"{W}ind") if ppr is not None else None
+    if ind is None:
+        return ()
+    return tuple(sorted((k.removeprefix(W), v) for k, v in ind.attrib.items()))
 
 
 def _spacing_attrs(ppr: ET.Element | None) -> dict[str, str]:
@@ -295,13 +315,6 @@ def _source_boundary(
     return _SourceParagraph(
         align="",
         text="",
-        style="",
-        contextual_spacing=False,
-        spacing={},
-        indented=False,
-        bordered=False,
-        heading=False,
-        thematic=False,
         source_span=source_span,
         source_segment=source_segment,
         reconcile=False,
@@ -311,7 +324,10 @@ def _source_boundary(
 def _paragraph_text(p: ET.Element) -> str:
     """The reading text of a `w:p` (its `w:t` runs, hard breaks as spaces,
     `mc:Fallback` duplicates dropped). Used only to MATCH the paragraph to its AST
-    counterpart."""
+    counterpart, so it must render the same glyphs Pandoc does: a `w:noBreakHyphen`/
+    `w:softHyphen` is a textless element Pandoc surfaces as U+2011/U+00AD, and
+    dropping it would fuse the words it sits between (`кто‑то`→`ктото`), desyncing
+    the fingerprint and costing that paragraph its source span."""
     parts: list[str] = []
 
     def walk(el: ET.Element, *, in_fallback: bool) -> None:
@@ -323,6 +339,10 @@ def _paragraph_text(p: ET.Element) -> str:
                     parts.append(child.text or "")
             elif child.tag in {f"{W}br", f"{W}cr", f"{W}tab"}:
                 parts.append(" ")
+            elif child.tag == f"{W}noBreakHyphen":
+                parts.append("‑")
+            elif child.tag == f"{W}softHyphen":
+                parts.append("­")
             else:
                 walk(child, in_fallback=in_fallback)
 
@@ -338,8 +358,8 @@ def _paragraph_is_empty_source(p: ET.Element, text: str) -> bool:
     return not text.strip() and not any(el.tag in _NON_TEXT_SOURCE_CONTENT for el in p.iter())
 
 
-def read_w_jc(docx: Path) -> list[_JcRecord]:
-    """Per-body-paragraph `(align, text, lineation_group)` records in document order.
+def read_w_jc(docx: Path) -> list[_SourceParagraph]:
+    """Per-body-paragraph source records in document order.
 
     Only top-level body paragraphs are walked: the body's direct `w:p` children plus
     those nested in `w:sdt` content controls, skipping `w:tbl` contents (table cells
@@ -349,7 +369,7 @@ def read_w_jc(docx: Path) -> list[_JcRecord]:
     `w:p` into one `OrderedList`/`BulletList` block, so they never surface as
     top-level `Para`s and emitting an entry per item would desync this vector from
     the AST sequence. The other collapse/fusion shapes are absorbed by the content
-    reconciliation in `reconcile_alignment`, not enumerated here.
+    reconciliation in `reconcile_source`, not enumerated here.
     """
     with zipfile.ZipFile(docx) as zf:
         styles, default_style = _paragraph_styles(zf)
@@ -397,7 +417,7 @@ def read_w_jc(docx: Path) -> list[_JcRecord]:
                         **doc_default_spacing,
                         **_resolved_spacing(style, styles, direct_spacing),
                     },
-                    indented=ppr.find(f"{W}ind") is not None if ppr is not None else False,
+                    indent=_indent_attrs(ppr),
                     bordered=ppr.find(f"{W}pBdr") is not None if ppr is not None else False,
                     heading=bool(re.fullmatch(r"(?:Heading\d+|[1-9])", direct_style)),
                     thematic=txt in {"***", "* * *", "---"},
@@ -415,20 +435,9 @@ def read_w_jc(docx: Path) -> list[_JcRecord]:
                     walk(content)
 
     walk(body)
+    _direction_indents(records)
     _assign_lineation_groups(records)
-    return [
-        _JcRecord(
-            align=p.align,
-            text=p.text,
-            lineation_group=p.lineation_group,
-            indented=p.indented,
-            source_span=p.source_span,
-            source_segment=p.source_segment,
-            empty=p.empty,
-        )
-        for p in records
-        if p.reconcile
-    ]
+    return [p for p in records if p.reconcile]
 
 
 def _fingerprint(text: str) -> str:
@@ -448,7 +457,7 @@ def _source_match_key(text: str) -> str:
     return _fingerprint(text) or re.sub(r"\s+", " ", text).strip().casefold()
 
 
-def _has_contiguous_source_spans(records: list[_JcRecord]) -> bool:
+def _has_contiguous_source_spans(records: list[_SourceParagraph]) -> bool:
     """True when records prove adjacent source paragraph ordinals."""
     if not records or records[0].source_span is None:
         return False
@@ -462,11 +471,7 @@ def _has_contiguous_source_spans(records: list[_JcRecord]) -> bool:
     return True
 
 
-def _source_span(records: list[_JcRecord]) -> ir.SourceSpan | None:
-    return ir.merge_source_spans(record.source_span for record in records)
-
-
-def _assign_bracketed_empty_spans(blocks: list[ir.Block], records: list[_JcRecord]) -> int:
+def _assign_bracketed_empty_spans(blocks: list[ir.Block], records: list[_SourceParagraph]) -> int:
     """Attach source spans to empty IR paragraphs only when neighbors prove them.
 
     Empty paragraphs have no text key, so matching them during the main content walk
@@ -557,29 +562,72 @@ def _block_plain_for_source_span(block: ir.Block) -> str:
             return ""
 
 
-def _assign_source_spans(blocks: list[ir.Block], records: list[_JcRecord]) -> int:
-    """Attach proven raw DOCX paragraph ordinals to source-derived top-level blocks.
+@dataclass(frozen=True)
+class _Match:
+    """One reconciled correspondence: the AST block at `block` carries the text of
+    `n_records` consecutive source records starting at `first_record` (n > 1 when
+    Pandoc fused several `w:p` into one block)."""
 
-    This is provenance only. It mirrors the content reconciliation discipline:
-    exact fingerprint matches and exact multi-record fusions get spans; ambiguous
-    or collapsed shapes stay ``None`` rather than inventing a source location.
-    """
-    if not records:
-        return 0
-    a_fps = [_source_match_key(_block_plain_for_source_span(block)) for block in blocks]
-    rec_fps = [_source_match_key(record.text) for record in records]
-    n = len(a_fps)
-    assigned = 0
-    cursor = 0
-    ri = 0
+    block: int
+    first_record: int
+    n_records: int
+
+
+def _monotone_anchors(pairs: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    """The longest subsequence of `(record, block)` pairs (already in record order)
+    whose block indices strictly increase — the consistent anchor set. A text that
+    truly moved (a non-monotone pair) is dropped rather than allowed to fold the
+    alignment back on itself."""
+    if not pairs:
+        return []
+    tails: list[int] = []          # tails[k] = smallest block ending an LIS of length k+1
+    back: list[int] = []           # back[i] = predecessor pair index
+    tail_idx: list[int] = []       # pair index achieving tails[k]
+    for i, (_ri, bi) in enumerate(pairs):
+        k = bisect_left(tails, bi)
+        back.append(tail_idx[k - 1] if k else -1)
+        if k == len(tails):
+            tails.append(bi)
+            tail_idx.append(i)
+        else:
+            tails[k] = bi
+            tail_idx[k] = i
+    out: list[tuple[int, int]] = []
+    i = tail_idx[len(tails) - 1]
+    while i >= 0:
+        out.append(pairs[i])
+        i = back[i]
+    out.reverse()
+    return out
+
+
+def _match_window(
+    block_fps: list[str],
+    rec_fps: list[str],
+    records: list[_SourceParagraph],
+    *,
+    blocks_range: range,
+    records_range: range,
+    out: list[_Match],
+) -> None:
+    """Greedy order-preserving scan inside one inter-anchor window. For each record
+    in order, the cursor advances to the next block carrying its text, accepting
+    EXACT first so a record never binds to an unrelated block sharing a prefix:
+
+      * EXACT fingerprint — a standalone `w:p` → one block;
+      * a FUSION — consecutive `w:p` Pandoc joined into one block whose fingerprint
+        equals the records' concatenation (full equality, never a bare prefix),
+        consuming them all; fusion never crosses a source gap (list/table boundary).
+
+    A record whose text never surfaces in the window is skipped (collapsed away)."""
 
     def fusion_len(scan: int, start_ri: int) -> int:
-        block_fp = a_fps[scan]
+        block_fp = block_fps[scan]
         built = rec_fps[start_ri]
         if not built or not block_fp.startswith(built):
             return 0
         k = start_ri + 1
-        while k < len(records) and len(built) < len(block_fp):
+        while k < records_range.stop and len(built) < len(block_fp):
             if not _has_contiguous_source_spans(records[start_ri:k + 1]):
                 break
             nxt = rec_fps[k]
@@ -589,187 +637,107 @@ def _assign_source_spans(blocks: list[ir.Block], records: list[_JcRecord]) -> in
             k += 1
         return (k - start_ri) if built == block_fp else 0
 
-    while ri < len(records):
+    cursor = blocks_range.start
+    ri = records_range.start
+    while ri < records_range.stop:
         if not rec_fps[ri]:
             ri += 1
             continue
         scan = cursor
         consumed = 1
-        while scan < n:
-            if a_fps[scan] == rec_fps[ri]:
+        while scan < blocks_range.stop:
+            if block_fps[scan] == rec_fps[ri]:
                 break
             if fl := fusion_len(scan, ri):
                 consumed = fl
                 break
             scan += 1
-        if scan >= n:
+        if scan >= blocks_range.stop:
             ri += 1
             continue
-        span = _source_span(records[ri:ri + consumed])
-        if span is not None:
-            blocks[scan].source_span = span
-            assigned += 1
+        out.append(_Match(block=scan, first_record=ri, n_records=consumed))
         cursor = scan + 1
         ri += consumed
-    return assigned + _assign_bracketed_empty_spans(blocks, records)
 
 
-def reconcile_alignment(
-    paragraphs: list[ir.Paragraph], records: list[_JcRecord]
-) -> int:
-    """Assign each AST `Paragraph` its source OOXML metadata by CONTENT, returning
-    the count given a non-default alignment.
+def _align_records(block_fps: list[str], rec_fps: list[str], records: list[_SourceParagraph]) -> list[_Match]:
+    """THE source↔AST alignment: match every source record onto its AST block once.
 
-    Position cannot be trusted: Pandoc collapses some `w:p` out of the top-level
-    sequence (lists, `Div`s, `Figure`s, image-only paragraphs) and FUSES others
-    (several short right-aligned `w:p` become one multi-line `Para`), so a positional
-    zip drifts and drops a later right-aligned signature/epigraph.
-
-    Only right/end alignment is reconciled — the sole alignment any downstream pass
-    reads (signature/epigraph detection); center/left/justify are inert, so a
-    document with no right-aligned source paragraph does nothing (the common case).
-
-    A single order-preserving forward pass over the AST fingerprints — near-linear
-    where a paragraph `difflib` would be O(n·m). For each right record in order, the
-    cursor advances to the next paragraph carrying its text, accepting EXACT first so
-    a record never binds to an unrelated paragraph sharing a prefix:
-
-      * EXACT fingerprint — a standalone right `w:p` → one `Para`;
-      * a FUSION — consecutive right `w:p` Pandoc joined into one multi-line `Para`,
-        whose fingerprint equals the concatenated records', consuming them all.
-
-    A record whose text never surfaces is skipped; a paragraph keeps `""` when no
-    reconciled record carried a right `w:jc`. `lineation_group` is assigned by the
-    same content match so verse detection can read the source visual-continuity
-    signal without a DOCX rewrite."""
-    if not records:
-        return 0
-
-    a_fps = [_fingerprint(_paragraph_plain(p)) for p in paragraphs]
-    rec_fps = [_fingerprint(r.text) for r in records]
-    rec_right = [r.align in {"right", "end"} for r in records]
-
-    n = len(a_fps)
-
-    def fusion_len(scan: int, ri: int) -> int:
-        """How many consecutive records starting at `ri` the paragraph at `scan`
-        consumes when their concatenated fingerprints EXACTLY equal it (else 0). Full
-        equality, not a prefix, so a record never binds to an unrelated paragraph
-        that merely shares a word prefix."""
-        para = a_fps[scan]
-        built = rec_fps[ri]
-        if not built or not para.startswith(built):
-            return 0
-        k = ri + 1
-        while k < len(records) and len(built) < len(para):
-            if not _has_contiguous_source_spans(records[ri:k + 1]):
-                break
-            nxt = rec_fps[k]
-            if not nxt or not para.startswith(f"{built} {nxt}"):
-                break
-            built = f"{built} {nxt}"
-            k += 1
-        return (k - ri) if built == para else 0
-
-    assigned = 0
-    cursor = 0
-    ri = 0
-    nr = len(records)
-    handled: set[int] = set()  # right-record indices the forward pass located
-    while ri < nr:
-        if not rec_fps[ri]:
-            ri += 1
-            continue
-        target = rec_fps[ri]
-        # Scan forward for an EXACT match or a confirmed fusion — never a bare prefix.
-        scan = cursor
-        consumed = 1
-        while scan < n:
-            if a_fps[scan] == target:
-                break
-            fl = fusion_len(scan, ri)
-            if fl:
-                consumed = fl
-                break
-            scan += 1
-        if scan >= n:
-            ri += 1  # this record's text never surfaced (collapsed away)
-            continue
-        consumed_records = records[ri:ri + consumed]
-        if any(r.indented for r in consumed_records):
-            paragraphs[scan].indented = True
-        if any(r.lineation_group is not None for r in consumed_records):
-            groups = {r.lineation_group for r in consumed_records if r.lineation_group is not None}
-            if len(groups) == 1:
-                paragraphs[scan].lineation_group = groups.pop()
-        if any(rec_right[ri:ri + consumed]) and not paragraphs[scan].align:
-            paragraphs[scan].align = "right"
-            assigned += 1
-        handled.update(range(ri, ri + consumed))
-        cursor = scan + 1
-        ri += consumed
-    return assigned + _recover_overshot_right(paragraphs, records, a_fps, rec_fps, rec_right, handled)
-
-
-def _recover_overshot_right(
-    paragraphs: list[ir.Paragraph],
-    records: list[_JcRecord],
-    a_fps: list[str],
-    rec_fps: list[str],
-    rec_right: list[bool],
-    handled: set[int],
-) -> int:
-    """Re-attach right-alignment for right records the forward cursor SKIPPED.
-
-    On a very large document a duplicate prose fingerprint can advance the single
-    global cursor PAST an early signature/epigraph, so its right `w:p` never matches
-    (book #32: 0 of 21 reconciled though all 21 texts are present). This pass picks
-    those missed right records up by fingerprint.
-
-    It is a strict no-op when the forward pass already matched every right record
-    (every working book), so it changes nothing there. The recovery is constrained
-    to be unambiguous: a missed right record is only re-attached when EVERY AST
-    paragraph carrying its fingerprint is itself a right record — so the text is an
-    entirely right-aligned phenomenon and we can never grab an unrelated prose
-    duplicate that merely shares the words (a signature name reused in dialogue)."""
-    missed = [ri for ri in range(len(records)) if rec_right[ri] and rec_fps[ri] and ri not in handled]
-    if not missed:
-        return 0
-    ast_pos: dict[str, list[int]] = {}
-    for i, fp in enumerate(a_fps):
+    Position alone cannot be trusted (Pandoc collapses some `w:p` — lists, `Div`s,
+    `Figure`s, image-only paragraphs — and FUSES others), and a single global greedy
+    cursor cannot either: a duplicate prose fingerprint can advance it PAST an early
+    signature/epigraph, silently costing that block its metadata (book #32). So the
+    alignment is anchored: fingerprints unique on BOTH sides pair up first (kept
+    monotone), and the greedy exact-or-fusion scan runs only inside the small
+    windows between anchors, where a duplicate can no longer overshoot globally."""
+    block_count: dict[str, int] = {}
+    for fp in block_fps:
         if fp:
-            ast_pos.setdefault(fp, []).append(i)
-    right_fp_count: dict[str, int] = {}
-    for ri, fp in enumerate(rec_fps):
-        if rec_right[ri] and fp:
-            right_fp_count[fp] = right_fp_count.get(fp, 0) + 1
-    used = {i for i, p in enumerate(paragraphs) if p.align in {"right", "end"}}
-    recovered = 0
-    for ri in missed:
-        fp = rec_fps[ri]
-        occ = ast_pos.get(fp, [])
-        if not occ or len(occ) != right_fp_count.get(fp, 0):
-            continue  # the text also surfaces as non-right prose: ambiguous, skip
-        cand = [i for i in occ if i not in used]
-        if not cand:
+            block_count[fp] = block_count.get(fp, 0) + 1
+    rec_count: dict[str, int] = {}
+    for fp in rec_fps:
+        if fp:
+            rec_count[fp] = rec_count.get(fp, 0) + 1
+    block_at = {fp: i for i, fp in enumerate(block_fps) if block_count.get(fp) == 1}
+    anchors = _monotone_anchors([
+        (ri, block_at[fp])
+        for ri, fp in enumerate(rec_fps)
+        if rec_count.get(fp) == 1 and fp in block_at
+    ])
+
+    matches: list[_Match] = []
+    prev_r = 0
+    prev_b = 0
+    for ri, bi in [*anchors, (len(records), len(block_fps))]:
+        _match_window(
+            block_fps, rec_fps, records,
+            blocks_range=range(prev_b, bi),
+            records_range=range(prev_r, ri),
+            out=matches,
+        )
+        if ri < len(records):
+            matches.append(_Match(block=bi, first_record=ri, n_records=1))
+        prev_r = ri + 1
+        prev_b = bi + 1
+    return matches
+
+
+def reconcile_source(blocks: list[ir.Block], records: list[_SourceParagraph]) -> tuple[int, int]:
+    """Reconcile source `w:p` records onto AST blocks by CONTENT, in one alignment.
+
+    Each matched block gets its proven source span (provenance); a matched
+    `Paragraph` additionally gets the OOXML metadata Pandoc drops: right/end `w:jc`
+    (the sole alignment any downstream pass reads — signature/epigraph detection),
+    `indented`, and the visual-continuity `lineation_group` (only when unambiguous).
+    Ambiguous or collapsed shapes stay unset rather than inventing a source.
+
+    Returns `(spans_assigned, right_assigned)`.
+    """
+    if not records:
+        return 0, 0
+    block_fps = [_source_match_key(_block_plain_for_source_span(b)) for b in blocks]
+    rec_fps = [_source_match_key(r.text) for r in records]
+    spans = 0
+    right = 0
+    for m in _align_records(block_fps, rec_fps, records):
+        consumed = records[m.first_record:m.first_record + m.n_records]
+        block = blocks[m.block]
+        span = ir.merge_source_spans(r.source_span for r in consumed)
+        if span is not None:
+            block.source_span = span
+            spans += 1
+        if not isinstance(block, ir.Paragraph):
             continue
-        i = cand[0]
-        paragraphs[i].align = "right"
-        if records[ri].indented:
-            paragraphs[i].indented = True
-        used.add(i)
-        recovered += 1
-        if records[ri].lineation_group is not None and paragraphs[i].lineation_group is None:
-            paragraphs[i].lineation_group = records[ri].lineation_group
-    return recovered
-
-
-def _paragraph_plain(para: ir.Paragraph) -> str:
-    """The reading text of an IR paragraph (lazy import of the normalize helper to
-    avoid a parse↔normalize import cycle)."""
-    from pancratius.ir.normalize import inline_plain
-
-    return inline_plain(para.inlines)
+        if any(r.indented for r in consumed):
+            block.indented = True
+        groups = {r.lineation_group for r in consumed if r.lineation_group is not None}
+        if len(groups) == 1:
+            block.lineation_group = groups.pop()
+        if any(r.align in {"right", "end"} for r in consumed) and not block.align:
+            block.align = "right"
+            right += 1
+    spans += _assign_bracketed_empty_spans(blocks, records)
+    return spans, right
 
 
 # ---------------------------------------------------------------------------
@@ -1093,7 +1061,7 @@ def adapt(docx: Path, media_dir: Path) -> ir.Document:
     """Parse `docx` into an `ir.Document`, extracting media into `media_dir`.
 
     `w:jc` alignment and visual lineation groups are assigned onto the top-level
-    `Paragraph` blocks by CONTENT (`reconcile_alignment`); a `warning` fires when
+    `Paragraph` blocks by CONTENT (`reconcile_source`); a `warning` fires when
     right-aligned source paragraphs exist but none reconcile, so a future drift
     can't ship silently. Footnote definitions collected during the inline walk are
     attached densely renumbered.
@@ -1112,9 +1080,8 @@ def adapt(docx: Path, media_dir: Path) -> ir.Document:
     for node in raw_blocks:
         doc.blocks.append(_block(node, ctx))
 
-    span_assigned = _assign_source_spans(doc.blocks, records)
+    span_assigned, assigned = reconcile_source(doc.blocks, records)
     paragraphs = [b for b in doc.blocks if isinstance(b, ir.Paragraph)]
-    assigned = reconcile_alignment(paragraphs, records)
 
     right_records = sum(1 for r in records if r.align in {"right", "end"} and r.text.strip())
     right_assigned = sum(1 for p in paragraphs if p.align in {"right", "end"})
