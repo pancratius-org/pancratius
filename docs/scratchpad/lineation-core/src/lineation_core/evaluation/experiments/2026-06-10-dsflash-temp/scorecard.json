@@ -1,0 +1,137 @@
+{
+  "experiment_id": "2026-06-10-dsflash-temp",
+  "question": "Does ds-flash get less stable / less accurate as temperature rises (is it effectively 0.0-tuned)?",
+  "sweep_axis": "temperature",
+  "results": {
+    "0.0": [
+      {
+        "tag": "ds-flash",
+        "modality": "text",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 2,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.8833333333333333,
+          "prose_recall": 0.9111111111111111,
+          "lineated_recall": 0.8555555555555555,
+          "instability": 0.1111111111111111,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.0735141465,
+          "prompt_tokens": 368265,
+          "completion_tokens": 189795,
+          "usd_per_1k_lines": 0.27227461666666664
+        }
+      }
+    ],
+    "0.3": [
+      {
+        "tag": "ds-flash",
+        "modality": "text",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 0,
+          "faults": {
+            "dup_key": 12
+          }
+        },
+        "quality": {
+          "balanced_acc": 0.9166666666666666,
+          "prose_recall": 0.9444444444444444,
+          "lineated_recall": 0.8888888888888888,
+          "instability": 0.18888888888888888,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.12395040199999999,
+          "prompt_tokens": 368570,
+          "completion_tokens": 446185,
+          "usd_per_1k_lines": 0.4590755629629629
+        }
+      }
+    ],
+    "0.5": [
+      {
+        "tag": "ds-flash",
+        "modality": "text",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 0,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.9333333333333333,
+          "prose_recall": 0.9333333333333333,
+          "lineated_recall": 0.9333333333333333,
+          "instability": 0.15555555555555556,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.1245924976,
+          "prompt_tokens": 368412,
+          "completion_tokens": 449530,
+          "usd_per_1k_lines": 0.46145369481481485
+        }
+      }
+    ],
+    "0.7": [
+      {
+        "tag": "ds-flash",
+        "modality": "text",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 1,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.8777777777777778,
+          "prose_recall": 0.9333333333333333,
+          "lineated_recall": 0.8222222222222222,
+          "instability": 0.0962962962962963,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.1206370039,
+          "prompt_tokens": 368379,
+          "completion_tokens": 429427,
+          "usd_per_1k_lines": 0.4468037181481482
+        }
+      }
+    ]
+  },
+  "manifest": {
+    "git_sha": "b780d9ec8f1e2ac754425d405690e19299eb3471+dirty",
+    "timestamp": "2026-06-10T15:52:22.596938+00:00",
+    "eval_set": "reader_bench",
+    "eval_set_sha256": "63d2beb6e85e2b98ad38ad097e66c6c219c56fb8e4e615d3aa90147eb37c71bd",
+    "prompts": {
+      "text": {
+        "filename": "lineation-structure-text.md",
+        "sha256": "ba6cb4c5833580091c5b93889f47a33187f326450c37e6549f628e19bde465c6"
+      }
+    },
+    "base_response_contract": "json_array",
+    "models": {
+      "ds-flash": "deepseek/deepseek-v4-flash"
+    },
+    "temperature": 0.0,
+    "max_tokens": 8192,
+    "reps": 3,
+    "seed": 0,
+    "price_table_version": "2026-06-09",
+    "sweep_axis": "temperature",
+    "sweep_points": [
+      "0.0",
+      "0.3",
+      "0.5",
+      "0.7"
+    ]
+  }
+}

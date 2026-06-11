@@ -1,0 +1,51 @@
+# ============================================================================================
+# QWEN TEMPERATURE PROBE — are the qwens effectively 0.0-tuned? (mirror of the ds-flash probe)
+# ============================================================================================
+# QUESTION
+#   Does either qwen get less accurate / less stable away from temp 0.0? Some models sample poorly
+#   above zero; the panel runs readers at 0.5, so we check the qwens at that operating point against
+#   0.0. The ds-flash probe (2026-06-10-dsflash-temp) REFUTED the 0.0-tuned worry for ds-flash (best
+#   at 0.5); this is the same test for the qwens, the panel's upgrade candidates.
+#
+# DESIGN
+#   Single axis: temperature ∈ {0.0, 0.5} (the sweep overrides each reader's temp per point). Contract
+#   held FIXED at json_array — isolates the temperature axis, and matches the ds-flash probe so the two
+#   are comparable. reps = 3 (aggregate before ranking). Both qwens. Full `reader_bench`. workers 48.
+#   NB qwen on json_array is key-unstable (it emits `unmapped_key` faults) — that is CONTROLLED here
+#   (contract is constant across the two temp points); the contract question is the separate
+#   2026-06-10-contract-roster study. Read this probe for the temp EFFECT (accuracy + instability),
+#   not for absolute fault counts.
+#
+# READ-OUT: per qwen × temp — balAcc, prose/lineated recall, coverage, faults, instability, $/1k.
+#   A drop from 0.0→0.5 means 0.0-tuned (use 0.0 for that reader); flat-or-better confirms 0.5 is safe.
+# ============================================================================================
+reps        = 3
+contract    = "json_array"
+max_workers = 48
+
+[experiment]
+id       = "2026-06-10-qwen-temp"
+kind     = "reader_temperature_sweep"
+question = "Are the qwens effectively 0.0-tuned (do they degrade in accuracy/stability from 0.0 to 0.5)?"
+round    = 0
+seed     = 0
+
+[dataset]
+source = "eval_set"
+name   = "reader_bench"
+
+[sweep]
+temperature = ["0.0", "0.5"]
+
+[prompts]
+text = "lineation-structure-text.md"
+
+[[readers]]
+tag      = "qwen-235b"
+model    = "qwen/qwen3-235b-a22b-2507"
+modality = "text"
+
+[[readers]]
+tag      = "qwen-flash"
+model    = "qwen/qwen3.6-flash"
+modality = "text"

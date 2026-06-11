@@ -1,0 +1,381 @@
+{
+  "experiment_id": "2026-06-10-contract-roster",
+  "question": "Per reader, does json_keyed cut unmapped_key faults at no accuracy cost — and which readers regress — so we can assign a contract per reader?",
+  "sweep_axis": "contract",
+  "results": {
+    "json_array": [
+      {
+        "tag": "grok",
+        "modality": "text",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 0,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.9555555555555555,
+          "prose_recall": 0.9333333333333333,
+          "lineated_recall": 0.9777777777777777,
+          "instability": 0.02962962962962963,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.6791825,
+          "prompt_tokens": 370920,
+          "completion_tokens": 86213,
+          "usd_per_1k_lines": 2.515490740740741
+        }
+      },
+      {
+        "tag": "gemini-lite",
+        "modality": "text",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 0,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.9388888888888889,
+          "prose_recall": 0.9444444444444444,
+          "lineated_recall": 0.9333333333333333,
+          "instability": 0.03333333333333333,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.14542425,
+          "prompt_tokens": 404505,
+          "completion_tokens": 29532,
+          "usd_per_1k_lines": 0.5386083333333334
+        }
+      },
+      {
+        "tag": "ds-flash",
+        "modality": "text",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 2,
+          "faults": {
+            "dup_key": 2
+          }
+        },
+        "quality": {
+          "balanced_acc": 0.9111111111111111,
+          "prose_recall": 0.9111111111111111,
+          "lineated_recall": 0.9111111111111111,
+          "instability": 0.11481481481481481,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.07270169700000001,
+          "prompt_tokens": 368244,
+          "completion_tokens": 185673,
+          "usd_per_1k_lines": 0.26926554444444445
+        }
+      },
+      {
+        "tag": "qwen-235b",
+        "modality": "text",
+        "health": {
+          "coverage": 0.9962962962962963,
+          "truncated": 0,
+          "faults": {
+            "unmapped_key": 45,
+            "missing_key": 1
+          }
+        },
+        "quality": {
+          "balanced_acc": 0.8916666666666666,
+          "prose_recall": 0.9,
+          "lineated_recall": 0.8833333333333333,
+          "instability": 0.11895910780669144,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.03706205,
+          "prompt_tokens": 383225,
+          "completion_tokens": 25718,
+          "usd_per_1k_lines": 0.13726685185185183
+        }
+      },
+      {
+        "tag": "qwen-flash",
+        "modality": "text",
+        "health": {
+          "coverage": 0.9407407407407408,
+          "truncated": 3,
+          "faults": {
+            "unmapped_key": 1233,
+            "key_item_mismatch": 11,
+            "missing_key": 16
+          }
+        },
+        "quality": {
+          "balanced_acc": 0.8916666666666666,
+          "prose_recall": 0.9333333333333333,
+          "lineated_recall": 0.85,
+          "instability": 0.07480314960629922,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 1.1501015625000002,
+          "prompt_tokens": 368709,
+          "completion_tokens": 960861,
+          "usd_per_1k_lines": 4.259635416666668
+        }
+      },
+      {
+        "tag": "grok-vision",
+        "modality": "vision",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 0,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.9222222222222223,
+          "prose_recall": 0.9111111111111111,
+          "lineated_recall": 0.9333333333333333,
+          "instability": 0.07777777777777778,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 1.03821125,
+          "prompt_tokens": 656979,
+          "completion_tokens": 86795,
+          "usd_per_1k_lines": 3.845226851851852
+        }
+      },
+      {
+        "tag": "gemini-vision",
+        "modality": "vision",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 0,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.9305555555555556,
+          "prose_recall": 0.9888888888888889,
+          "lineated_recall": 0.8722222222222222,
+          "instability": 0.014814814814814815,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.19966874999999998,
+          "prompt_tokens": 638379,
+          "completion_tokens": 26716,
+          "usd_per_1k_lines": 0.7395138888888888
+        }
+      }
+    ],
+    "json_keyed": [
+      {
+        "tag": "grok",
+        "modality": "text",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 0,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.9527777777777777,
+          "prose_recall": 0.9333333333333333,
+          "lineated_recall": 0.9722222222222222,
+          "instability": 0.014814814814814815,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.7586012500000001,
+          "prompt_tokens": 437121,
+          "completion_tokens": 84880,
+          "usd_per_1k_lines": 2.8096342592592594
+        }
+      },
+      {
+        "tag": "gemini-lite",
+        "modality": "text",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 0,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.9444444444444444,
+          "prose_recall": 0.9444444444444444,
+          "lineated_recall": 0.9444444444444444,
+          "instability": 0.040740740740740744,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.15258225,
+          "prompt_tokens": 449739,
+          "completion_tokens": 26765,
+          "usd_per_1k_lines": 0.5651194444444445
+        }
+      },
+      {
+        "tag": "ds-flash",
+        "modality": "text",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 3,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.9277777777777778,
+          "prose_recall": 0.9444444444444444,
+          "lineated_recall": 0.9111111111111111,
+          "instability": 0.17407407407407408,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.0597227548,
+          "prompt_tokens": 366606,
+          "completion_tokens": 120475,
+          "usd_per_1k_lines": 0.22119538814814815
+        }
+      },
+      {
+        "tag": "qwen-235b",
+        "modality": "text",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 2,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.8916666666666666,
+          "prose_recall": 0.9,
+          "lineated_recall": 0.8833333333333333,
+          "instability": 0.10740740740740741,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.03804079,
+          "prompt_tokens": 380701,
+          "completion_tokens": 37777,
+          "usd_per_1k_lines": 0.1408918148148148
+        }
+      },
+      {
+        "tag": "qwen-flash",
+        "modality": "text",
+        "health": {
+          "coverage": 0.9333333333333333,
+          "truncated": 3,
+          "faults": {
+            "unmapped_key": 1473,
+            "missing_key": 18
+          }
+        },
+        "quality": {
+          "balanced_acc": 0.8888888888888888,
+          "prose_recall": 0.9444444444444444,
+          "lineated_recall": 0.8333333333333334,
+          "instability": 0.04365079365079365,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 1.1549340000000001,
+          "prompt_tokens": 366540,
+          "completion_tokens": 965518,
+          "usd_per_1k_lines": 4.277533333333334
+        }
+      },
+      {
+        "tag": "grok-vision",
+        "modality": "vision",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 0,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.9583333333333333,
+          "prose_recall": 0.9444444444444444,
+          "lineated_recall": 0.9722222222222222,
+          "instability": 0.07037037037037037,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 1.115795,
+          "prompt_tokens": 723180,
+          "completion_tokens": 84728,
+          "usd_per_1k_lines": 4.132574074074074
+        }
+      },
+      {
+        "tag": "gemini-vision",
+        "modality": "vision",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 0,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.7250000000000001,
+          "prose_recall": 0.5888888888888889,
+          "lineated_recall": 0.8611111111111112,
+          "instability": 0.14074074074074075,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.18621424999999997,
+          "prompt_tokens": 581555,
+          "completion_tokens": 27217,
+          "usd_per_1k_lines": 0.6896824074074074
+        }
+      }
+    ]
+  },
+  "manifest": {
+    "git_sha": "a127402ecc9ea809a95366f6c5f7522fcbfd3e25+dirty",
+    "timestamp": "2026-06-10T16:28:50.791587+00:00",
+    "eval_set": "reader_bench",
+    "eval_set_sha256": "63d2beb6e85e2b98ad38ad097e66c6c219c56fb8e4e615d3aa90147eb37c71bd",
+    "prompts": {
+      "text": {
+        "filename": "lineation-structure-text.md",
+        "sha256": "ba6cb4c5833580091c5b93889f47a33187f326450c37e6549f628e19bde465c6"
+      },
+      "vision": {
+        "filename": "lineation-page.md",
+        "sha256": "a980789a612b53adce45f9bf63d16da216c4e3e1f375b87f6f751ce188cd6e94"
+      }
+    },
+    "base_response_contract": "json_array",
+    "models": {
+      "ds-flash": "deepseek/deepseek-v4-flash",
+      "gemini-lite": "google/gemini-3.1-flash-lite",
+      "gemini-vision": "google/gemini-3.1-flash-lite",
+      "grok": "x-ai/grok-4.3",
+      "grok-vision": "x-ai/grok-4.3",
+      "qwen-235b": "qwen/qwen3-235b-a22b-2507",
+      "qwen-flash": "qwen/qwen3.6-flash"
+    },
+    "temperature": 0.5,
+    "max_tokens": 8192,
+    "reps": 3,
+    "seed": 0,
+    "price_table_version": "2026-06-10",
+    "sweep_axis": "contract",
+    "sweep_points": [
+      "json_array",
+      "json_keyed"
+    ]
+  }
+}

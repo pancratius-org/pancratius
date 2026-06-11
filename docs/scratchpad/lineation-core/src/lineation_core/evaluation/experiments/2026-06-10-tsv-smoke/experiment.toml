@@ -1,0 +1,26 @@
+# TSV SMOKE — prove the schemaless TSV contract end-to-end against a live provider (1 cheap reader).
+# Not a research result; validates the new tsv parse path before any panel-wide TSV run.
+reps     = 1
+contract = "tsv"
+
+[experiment]
+id       = "2026-06-10-tsv-smoke"
+kind     = "smoke"
+question = "Does the schemaless TSV contract parse correctly against a live provider?"
+round    = 0
+seed     = 0
+
+[dataset]
+source = "eval_set"
+name   = "reader_bench"
+
+[sweep]
+contract = ["tsv"]
+
+[prompts]
+text = "lineation-structure-text.md"
+
+[[readers]]
+tag      = "ds-flash"
+model    = "deepseek/deepseek-v4-flash"
+modality = "text"

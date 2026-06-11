@@ -1,0 +1,139 @@
+{
+  "experiment_id": "2026-06-10-qwen-temp",
+  "question": "Are the qwens effectively 0.0-tuned (do they degrade in accuracy/stability from 0.0 to 0.5)?",
+  "sweep_axis": "temperature",
+  "results": {
+    "0.0": [
+      {
+        "tag": "qwen-235b",
+        "modality": "text",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 4,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.9222222222222223,
+          "prose_recall": 0.9111111111111111,
+          "lineated_recall": 0.9333333333333333,
+          "instability": 0.09259259259259259,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.03980195,
+          "prompt_tokens": 380665,
+          "completion_tokens": 55421,
+          "usd_per_1k_lines": 0.14741462962962965
+        }
+      },
+      {
+        "tag": "qwen-flash",
+        "modality": "text",
+        "health": {
+          "coverage": 0.9296296296296296,
+          "truncated": 8,
+          "faults": {
+            "unmapped_key": 961,
+            "missing_key": 19
+          }
+        },
+        "quality": {
+          "balanced_acc": 0.8416666666666666,
+          "prose_recall": 0.8555555555555555,
+          "lineated_recall": 0.8277777777777777,
+          "instability": 0.07171314741035857,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 1.1934185625,
+          "prompt_tokens": 367935,
+          "completion_tokens": 999494,
+          "usd_per_1k_lines": 4.4200687499999995
+        }
+      }
+    ],
+    "0.5": [
+      {
+        "tag": "qwen-235b",
+        "modality": "text",
+        "health": {
+          "coverage": 1.0,
+          "truncated": 2,
+          "faults": {
+            "unmapped_key": 72
+          }
+        },
+        "quality": {
+          "balanced_acc": 0.8833333333333333,
+          "prose_recall": 0.9111111111111111,
+          "lineated_recall": 0.8555555555555555,
+          "instability": 0.05925925925925926,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 0.03350366,
+          "prompt_tokens": 325764,
+          "completion_tokens": 41849,
+          "usd_per_1k_lines": 0.12408762962962962
+        }
+      },
+      {
+        "tag": "qwen-flash",
+        "modality": "text",
+        "health": {
+          "coverage": 0.9333333333333333,
+          "truncated": 3,
+          "faults": {
+            "unmapped_key": 1535,
+            "key_item_mismatch": 1,
+            "missing_key": 18
+          }
+        },
+        "quality": {
+          "balanced_acc": 0.8694444444444445,
+          "prose_recall": 0.9333333333333333,
+          "lineated_recall": 0.8055555555555556,
+          "instability": 0.08333333333333333,
+          "n_prose": 90,
+          "n_lineated": 180
+        },
+        "cost": {
+          "usd": 1.1103946875000001,
+          "prompt_tokens": 367935,
+          "completion_tokens": 925695,
+          "usd_per_1k_lines": 4.112572916666667
+        }
+      }
+    ]
+  },
+  "manifest": {
+    "git_sha": "a127402ecc9ea809a95366f6c5f7522fcbfd3e25+dirty",
+    "timestamp": "2026-06-10T17:10:28.596987+00:00",
+    "eval_set": "reader_bench",
+    "eval_set_sha256": "63d2beb6e85e2b98ad38ad097e66c6c219c56fb8e4e615d3aa90147eb37c71bd",
+    "prompts": {
+      "text": {
+        "filename": "lineation-structure-text.md",
+        "sha256": "ba6cb4c5833580091c5b93889f47a33187f326450c37e6549f628e19bde465c6"
+      }
+    },
+    "base_response_contract": "json_array",
+    "models": {
+      "qwen-235b": "qwen/qwen3-235b-a22b-2507",
+      "qwen-flash": "qwen/qwen3.6-flash"
+    },
+    "temperature": 0.0,
+    "max_tokens": 8192,
+    "reps": 3,
+    "seed": 0,
+    "price_table_version": "2026-06-10",
+    "sweep_axis": "temperature",
+    "sweep_points": [
+      "0.0",
+      "0.5"
+    ]
+  }
+}

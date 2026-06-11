@@ -1,0 +1,109 @@
+{
+  "experiment_id": "2026-06-10-contested-gate",
+  "question": "Does the legacy anchor-led gate (conf_floor=0.7, min_core_agree=2) hold on the contested hard population with the production roster?",
+  "sweep_axis": "contract",
+  "results": {
+    "json_keyed": [
+      {
+        "tag": "grok-vision",
+        "modality": "vision",
+        "health": {
+          "coverage": 0.9976470588235294,
+          "truncated": 0,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.8765349523221513,
+          "prose_recall": 0.9418604651162791,
+          "lineated_recall": 0.8112094395280236,
+          "instability": 0.15566037735849056,
+          "n_prose": 86,
+          "n_lineated": 339
+        },
+        "cost": {
+          "usd": 1.4928412500000001,
+          "prompt_tokens": 964515,
+          "completion_tokens": 114879,
+          "usd_per_1k_lines": 3.512567647058824
+        }
+      },
+      {
+        "tag": "gemini-lite",
+        "modality": "text",
+        "health": {
+          "coverage": 0.9976470588235294,
+          "truncated": 0,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.8442580777937847,
+          "prose_recall": 0.9186046511627907,
+          "lineated_recall": 0.7699115044247787,
+          "instability": 0.08726415094339622,
+          "n_prose": 86,
+          "n_lineated": 339
+        },
+        "cost": {
+          "usd": 0.20588725000000002,
+          "prompt_tokens": 584917,
+          "completion_tokens": 39772,
+          "usd_per_1k_lines": 0.4844405882352942
+        }
+      },
+      {
+        "tag": "ds-flash",
+        "modality": "text",
+        "health": {
+          "coverage": 0.9976470588235294,
+          "truncated": 1,
+          "faults": {}
+        },
+        "quality": {
+          "balanced_acc": 0.8799135624614118,
+          "prose_recall": 0.8837209302325582,
+          "lineated_recall": 0.8761061946902655,
+          "instability": 0.08490566037735849,
+          "n_prose": 86,
+          "n_lineated": 339
+        },
+        "cost": {
+          "usd": 0.069970923,
+          "prompt_tokens": 501696,
+          "completion_tokens": 105057,
+          "usd_per_1k_lines": 0.16463746588235295
+        }
+      }
+    ]
+  },
+  "manifest": {
+    "git_sha": "a127402ecc9ea809a95366f6c5f7522fcbfd3e25+dirty",
+    "timestamp": "2026-06-11T02:30:36.003240+00:00",
+    "eval_set": "contested",
+    "eval_set_sha256": "2fb6681d1fe6416c58310d351accc5ec047502ac21a46bdf90e175cc84c1ebef",
+    "prompts": {
+      "text": {
+        "filename": "lineation-structure-text.md",
+        "sha256": "ba6cb4c5833580091c5b93889f47a33187f326450c37e6549f628e19bde465c6"
+      },
+      "vision": {
+        "filename": "lineation-page.md",
+        "sha256": "a980789a612b53adce45f9bf63d16da216c4e3e1f375b87f6f751ce188cd6e94"
+      }
+    },
+    "base_response_contract": "json_keyed",
+    "models": {
+      "ds-flash": "deepseek/deepseek-v4-flash",
+      "gemini-lite": "google/gemini-3.1-flash-lite",
+      "grok-vision": "x-ai/grok-4.3"
+    },
+    "temperature": 0.5,
+    "max_tokens": 8192,
+    "reps": 3,
+    "seed": 0,
+    "price_table_version": "2026-06-10",
+    "sweep_axis": "contract",
+    "sweep_points": [
+      "json_keyed"
+    ]
+  }
+}

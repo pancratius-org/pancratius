@@ -1,0 +1,52 @@
+# ============================================================================================
+# CONTESTED GATE CALIBRATION — production roster on the hard population, to finish blocker #2
+# ============================================================================================
+# The reader_bench calibration (cached, $0) showed the legacy gate (conf_floor=0.7, min_core_agree=2)
+# transfers to the production roster: 98.0% accept-acc, 5.6% human load. But reader_bench is only 270
+# lines and conf_floor=0.7 was INERT there (grok-vision never reported conf < 0.75). The `contested`
+# eval set (425 human-re-adjudicated hard lines) has NO new-roster votes — so the gate has never been
+# tested on the full hard population. This run produces those votes; the gate sweep is then re-run on
+# reader_bench ∪ contested to confirm the operating point before any corpus work.
+#
+# Production roster, native modalities: grok = vision + json_keyed (anchor; the keyed-vision collapse
+# is gemini's landmine, NOT grok's — grok-vision keyed was the top reader at 0.958); gemini-lite and
+# ds-flash = text + json_keyed. reps=3, aggregate before deciding. Single trivial sweep point (the
+# study requires one axis); no contract A/B here — this is a calibration panel, not a contrast.
+# ============================================================================================
+reps        = 3
+temperature = 0.5
+contract    = "json_keyed"
+max_workers = 48
+
+[experiment]
+id       = "2026-06-10-contested-gate"
+kind     = "gate_calibration"
+question = "Does the legacy anchor-led gate (conf_floor=0.7, min_core_agree=2) hold on the contested hard population with the production roster?"
+round    = 0
+seed     = 0
+
+[dataset]
+source = "eval_set"
+name   = "contested"
+
+[sweep]
+contract = ["json_keyed"]
+
+[prompts]
+text   = "lineation-structure-text.md"
+vision = "lineation-page.md"
+
+[[readers]]
+tag      = "grok-vision"
+model    = "x-ai/grok-4.3"
+modality = "vision"
+
+[[readers]]
+tag      = "gemini-lite"
+model    = "google/gemini-3.1-flash-lite"
+modality = "text"
+
+[[readers]]
+tag      = "ds-flash"
+model    = "deepseek/deepseek-v4-flash"
+modality = "text"

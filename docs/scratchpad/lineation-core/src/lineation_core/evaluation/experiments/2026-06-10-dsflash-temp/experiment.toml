@@ -1,0 +1,28 @@
+# DS-FLASH TEMPERATURE SENSITIVITY — does ds-flash degrade (instability / accuracy) as temperature
+# rises? Some models are 0.0-tuned and sample poorly above it. Fixed contract (json_array), one reader,
+# sweep temperature — isolates the temperature axis (the array-vs-keyed regression was at FIXED 0.5).
+reps        = 3
+contract    = "json_array"
+max_workers = 32
+
+[experiment]
+id       = "2026-06-10-dsflash-temp"
+kind     = "reader_temperature_sweep"
+question = "Does ds-flash get less stable / less accurate as temperature rises (is it effectively 0.0-tuned)?"
+round    = 0
+seed     = 0
+
+[dataset]
+source = "eval_set"
+name   = "reader_bench"
+
+[sweep]
+temperature = ["0.0", "0.3", "0.5", "0.7"]
+
+[prompts]
+text = "lineation-structure-text.md"
+
+[[readers]]
+tag      = "ds-flash"
+model    = "deepseek/deepseek-v4-flash"
+modality = "text"

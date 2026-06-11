@@ -1,0 +1,31 @@
+{
+  "git_sha": "a127402ecc9ea809a95366f6c5f7522fcbfd3e25+dirty",
+  "timestamp": "2026-06-11T02:30:36.003240+00:00",
+  "eval_set": "contested",
+  "eval_set_sha256": "2fb6681d1fe6416c58310d351accc5ec047502ac21a46bdf90e175cc84c1ebef",
+  "prompts": {
+    "text": {
+      "filename": "lineation-structure-text.md",
+      "sha256": "ba6cb4c5833580091c5b93889f47a33187f326450c37e6549f628e19bde465c6"
+    },
+    "vision": {
+      "filename": "lineation-page.md",
+      "sha256": "a980789a612b53adce45f9bf63d16da216c4e3e1f375b87f6f751ce188cd6e94"
+    }
+  },
+  "base_response_contract": "json_keyed",
+  "models": {
+    "ds-flash": "deepseek/deepseek-v4-flash",
+    "gemini-lite": "google/gemini-3.1-flash-lite",
+    "grok-vision": "x-ai/grok-4.3"
+  },
+  "temperature": 0.5,
+  "max_tokens": 8192,
+  "reps": 3,
+  "seed": 0,
+  "price_table_version": "2026-06-10",
+  "sweep_axis": "contract",
+  "sweep_points": [
+    "json_keyed"
+  ]
+}
