@@ -22,7 +22,7 @@ from enum import StrEnum
 from typing import Protocol
 
 from ..annotations import PanelVote, VoteKey
-from ..identity import JsonRow, ListingKey, ModelId, PromptFingerprint, ReaderTag
+from ..identity import JsonRow, ListingKey, ModelId, RequestFingerprint, ReaderTag
 # `ResponseContract` is DEFINED in `contracts` (the wire protocol, the lowest teacher layer);
 # re-exported as the panel's public surface.
 from .contracts import RawReaderResponse, ResponseContract, ResponseFormat, spec_for
@@ -126,7 +126,7 @@ def build_prompt(item: TaskItem, reader: ReaderConfig, instructions: str,
 
 
 def _fingerprint(messages: Sequence[Message], *, temperature: float, max_tokens: int,
-                 contract: ResponseContract) -> PromptFingerprint:
+                 contract: ResponseContract) -> RequestFingerprint:
     """A short stable hash of the WHOLE request the model sees — the prompt text parts (instructions +
     opaque-keyed listing), any image part's data-URI, the sampling config (temperature, max_tokens),
     AND the response contract. The cache key carries it so a reply is reused ONLY for an identical
@@ -153,7 +153,7 @@ def _fingerprint(messages: Sequence[Message], *, temperature: float, max_tokens:
 # never silently reuse a reply made under a different request. The resume cache stays keyed by the
 # stable 5-tuple `cache_key` shape (per task_id; the prompt, sampling, and contract all fold into the
 # `fingerprint` term of that key).
-type CallKey = tuple[RegionId, ReaderTag, int, ModelId, PromptFingerprint]   # the call identity
+type CallKey = tuple[RegionId, ReaderTag, int, ModelId, RequestFingerprint]   # the call identity
 type CallCache = dict[CallKey, ChatReply]            # already-completed calls to RESUME from
 
 
@@ -172,7 +172,7 @@ class CompletionRequest:
     temperature: float
     max_tokens: int
     contract: ResponseContract
-    fingerprint: PromptFingerprint = field(init=False)
+    fingerprint: RequestFingerprint = field(init=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "fingerprint", _fingerprint(

@@ -35,7 +35,7 @@ class AllVotable:
 
 @dataclass(frozen=True, slots=True)
 class EvalSet:
-    """A committed frozen eval slice (`eval_sets/<name>.json`)."""
+    """A committed frozen eval slice's membership (`eval_sets/<name>.json` — LineId keys)."""
     name: str
 
 
@@ -256,8 +256,7 @@ def select_lines(recipe: Recipe, *, annotations: Path | None = None) -> Selectio
             return {b: {r.id for r in store.load_records(b, recipe.lang) if r.votable}
                     for b in recipe.books}
         case EvalSet(name):
-            ids = [LineId.from_key(d["id"])
-                   for d in store.load_eval_set(name, annotations=annotations)]
+            ids = [LineId.from_key(k) for k in store.load_eval_set(name, annotations=annotations)]
         case SelectionFile(name):
             ids = [LineId.from_key(k) for k in store.load_selection(name, annotations=annotations)]
         case _:

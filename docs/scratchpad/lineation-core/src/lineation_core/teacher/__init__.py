@@ -1,6 +1,6 @@
 # research-pure: the teacher half — PRODUCES annotations (panel votes + human adjudications).
 """Produces the committed truth the `student` learns from and `evaluation` judges: LLM-panel
-votes (`votes.jsonl`) and human page-adjudications (`labels.jsonl`, `eval_sets/*.json`).
+votes (`votes.jsonl`) and human page-adjudications (`labels.jsonl` — the one truth store).
 
 The load-bearing invariant: a reader/adjudicator only ever sees and returns TASK-LOCAL opaque
 keys (`L001`); the parser resolves them to `LineId` at one choke point before anything persists,

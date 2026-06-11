@@ -56,7 +56,7 @@ class ResolvedVotes:
 
 @dataclass(frozen=True, slots=True)
 class ResolvedLabels:
-    """Human-adjudication resolution: LineId-keyed `LineLabel`s for `labels.jsonl`/`eval_sets`."""
+    """Human-adjudication resolution: LineId-keyed `LineLabel`s for `labels.jsonl`."""
     labels: tuple[LineLabel, ...]
     faults: tuple[ResolveFaultRow, ...]
     notes: dict[RegionId, str]

@@ -13,7 +13,7 @@ from lineation_core.evaluation.manifest import Manifest, PromptFingerprint
 def _manifest(git_sha: str, timestamp: str) -> Manifest:
     return Manifest(
         git_sha=git_sha, timestamp=timestamp, eval_set="reader_bench",
-        eval_set_sha256="deadbeef",
+        eval_set_sha256="deadbeef", truth_sha256="cafebabe",
         prompts={"vision": PromptFingerprint("page.md", "aaaa"),
                  "text": PromptFingerprint("struct.md", "bbbb")},
         base_response_contract="json_array", models={"grok": "x-ai/grok-4.3", "ds": "deepseek/deepseek-v4-flash"},

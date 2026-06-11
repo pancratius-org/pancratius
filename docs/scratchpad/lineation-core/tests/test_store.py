@@ -15,7 +15,8 @@ def test_annotation_rows_load_from_committed_store():
     assert labels and votes and contested              # the committed truth is present
     assert all("id" in r and "label" in r for r in labels)
     assert all("id" in r and "tag" in r and "label" in r for r in votes)
-    assert all("id" in r and "label" in r for r in contested)   # {id, label} eval rows
+    # an eval set is MEMBERSHIP only — LineId keys, no second copy of the labels.
+    assert all(LineId.from_key(k).is_mapped for k in contested)
 
 
 def test_annotation_load_fails_loud_on_missing_file(tmp_path):

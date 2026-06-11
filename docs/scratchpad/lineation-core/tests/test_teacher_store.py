@@ -38,7 +38,7 @@ def test_promotion_writes_the_committed_truth_shapes(tmp_path):
     ann = tmp_path / "annotations"
     labels = [{"id": ["ru", "57", 1, 0], "label": "prose", "source": "human"}]
     votes = [{"id": ["ru", "57", 1, 0], "tag": "grok", "label": "lineated", "conf": 0.8}]
-    eset = [{"id": ["ru", "57", 1, 0], "label": "prose"}]
+    eset = [["ru", "57", 1, 0]]    # membership only — the label lives in labels.jsonl
     store.write_label_rows(labels, annotations=ann)
     store.write_vote_rows(votes, annotations=ann)
     store.write_eval_set("contested", eset, annotations=ann)

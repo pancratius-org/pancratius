@@ -4,9 +4,11 @@
 Per-line truth — a `prose`/`lineated` LABEL for a line, with provenance and lineage:
 
 `LineLabel` is a label attached to a `LineId`, plus where it came from (`source` =
-human|gate|panel|override), how sure (`confidence`), and an opaque `provenance` record (the
-pre-canonical key etc.) so a correction stays reasoned about. Training projects each label to
-`{LineId: label}`, but the stored truth keeps its lineage.
+human|gate|panel|override|transfer), how sure (`confidence`), whether it is eval-only
+(`holdout`), and an opaque `provenance` record (the pre-canonical key etc.) so a correction
+stays reasoned about. Training projects the non-holdout labels to `{LineId: label}`, but the
+stored truth keeps its lineage. This file is THE truth store: every eval reads its labels from
+here — a committed eval set is membership only, never a second copy of the labels.
 
 `load_labels()` reads the committed `labels.jsonl` truth through the `store` edge (already
 `LineId`-keyed — no key remap, no source-shard reader). It REJECTS any label whose line is unmapped (a §14-P1
@@ -53,17 +55,23 @@ type Provenance = Mapping[str, object]
 
 
 class LabelSource(StrEnum):
-    HUMAN = "human"
-    GATE = "gate"
-    PANEL = "panel"
-    OVERRIDE = "override"
+    HUMAN = "human"          # a human page adjudication — the strongest truth tier
+    GATE = "gate"            # auto-accepted by the decision policy over panel votes
+    PANEL = "panel"          # a raw panel consensus (no gate, no human)
+    OVERRIDE = "override"    # a reasoned correction of an earlier label
+    TRANSFER = "transfer"    # derived truth carried across an alignment (e.g. RU→EN ordinal
+                             # transfer) — never independent evidence for the source label
 
 
 @dataclass(frozen=True, slots=True)
 class LineLabel:
     """One per-line truth record. `label` projects to training; the rest is provenance and
     lineage so a correction (e.g. the g05 IR-bug note) stays reasoned about. `provenance` is
-    opaque lineage carried on disk — no consumer joins on it (the join key is `id`)."""
+    opaque lineage carried on disk — no consumer joins on it (the join key is `id`).
+
+    `holdout=True` marks EVAL-ONLY truth: it scores readers/policies/the student but is never a
+    training target (`build_dataset` skips it). Set at promote time — e.g. labels minted for a
+    frozen acceptance slice, or adjudications whose criterion was an eval design, not training."""
 
     id: LineId
     label: Label  # prose | lineated
@@ -73,6 +81,7 @@ class LineLabel:
     notes: str
     provenance: Provenance
     line_text_hash: LineTextHash | None = None  # hash of the line text this label applies to, if known
+    holdout: bool = False    # True = eval-only truth, never a training target
 
     def __post_init__(self) -> None:
         if self.label not in ("prose", "lineated"):
@@ -83,7 +92,7 @@ class LineLabel:
             "id": self.id.as_key(), "label": self.label, "source": self.source.value,
             "confidence": self.confidence, "audit_status": self.audit_status,
             "notes": self.notes, "provenance": dict(self.provenance),
-            "line_text_hash": self.line_text_hash,
+            "line_text_hash": self.line_text_hash, "holdout": self.holdout,
         }
 
     @classmethod
@@ -94,22 +103,29 @@ class LineLabel:
             audit_status=d.get("audit_status", ""), notes=d.get("notes", ""),
             provenance=dict(d.get("provenance", {})),
             line_text_hash=d.get("line_text_hash"),
+            holdout=bool(d.get("holdout", False)),
         )
 
 
 @dataclass(frozen=True)
 class LabelSet:
-    """The trainable per-line truth, loaded from the canonical artifact. `labels` holds ONLY
-    mapped lines — labels on unmapped (span-dropped) lines are REJECTED at the boundary and
-    counted in `n_rejected_unmapped`, surfaced rather than silently kept or dropped."""
+    """The per-line truth, loaded from the canonical artifact. `labels` holds ONLY mapped lines —
+    labels on unmapped (span-dropped) lines are REJECTED at the boundary and counted in
+    `n_rejected_unmapped`, surfaced rather than silently kept or dropped. ALL labels are scoring
+    truth; only the non-`holdout` subset (`trainable`) may become training targets."""
 
     labels: list[LineLabel]
     n_rejected_unmapped: int
 
+    @property
+    def trainable(self) -> list[LineLabel]:
+        """The training-eligible labels — every label not held out for eval-only use."""
+        return [g for g in self.labels if not g.holdout]
+
 
 def load_labels(*, annotations: Path | None = None) -> LabelSet:
     """Read the committed `labels.jsonl` truth (the single store-level annotation file),
-    reject unmapped-line labels (surfaced count), and return the trainable `LabelSet`. FAILS LOUD
+    reject unmapped-line labels (surfaced count), and return the `LabelSet`. FAILS LOUD
     if the file is missing — it never rebuilds; the truth is committed, not derived."""
     kept: list[LineLabel] = []
     n_rejected = 0

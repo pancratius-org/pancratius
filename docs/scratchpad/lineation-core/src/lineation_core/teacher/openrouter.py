@@ -8,8 +8,9 @@ The SDK is imported LAZILY (inside `__init__`/`complete`), never at module impor
 installed; only a live run needs it (`uv run --extra live`).
 
 The SDK already retries 5xx with backoff internally; this adapter adds retry/backoff for the
-transient cases it does NOT (HTTP 429 rate-limit, and connection-level failures with no response),
-and on a non-retryable error surfaces the HTTP/SDK error BODY rather than swallowing it."""
+transient cases it does NOT (HTTP 429 rate-limit, connection-level failures with no response, and raw
+httpx transport drops mid-stream — e.g. an incomplete chunked read on a long completion, which the SDK
+does not type), and on a non-retryable error surfaces the HTTP/SDK error BODY rather than swallowing it."""
 from __future__ import annotations
 
 import os
@@ -65,6 +66,7 @@ class OpenRouterCompleter:
         than silently corrupting truth. Retries the transient cases the SDK does not (429 and
         no-response network errors) with linear backoff; any other error (4xx, exhausted retries) is
         raised with its captured body."""
+        import httpx                        # lazy: the SDK's transport; its transient errors aren't SDK-typed
         from openrouter import errors      # lazy: the typed SDK errors, a live run only
 
         extra: dict[str, object] = {}
@@ -86,6 +88,8 @@ class OpenRouterCompleter:
                     raise RuntimeError(f"{model}: {_err(e)}") from e
             except errors.NoResponseError as e:                 # connection-level failure — retryable
                 last = f"NoResponseError: {e}"
+            except httpx.TransportError as e:                   # mid-stream drop / read-timeout / connect — retryable
+                last = f"{type(e).__name__}: {e}"
             if attempt < self._max_retries - 1:                 # no pointless sleep before the raise
                 time.sleep(self._backoff_base * (attempt + 1))  # linear backoff between retries
         raise RuntimeError(f"{model}: exhausted {self._max_retries} retries — {last}")

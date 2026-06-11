@@ -33,8 +33,9 @@ BOOKS = REPO_ROOT / "src" / "content" / "books"
 # gitignored — safe to delete and rebuild; NOT source of truth.
 ARTIFACT_STORE = REPO_ROOT / "docs" / "scratchpad" / "lineation-core" / "_artifacts"
 
-# the committed annotation TRUTH: labels.jsonl + votes.jsonl (LineId-keyed), eval slices under
-# eval_sets/*.json, and the teacher loop's irreplaceable source — task manifests (resolve the
+# the committed annotation TRUTH: labels.jsonl (the ONE label store) + votes.jsonl (LineId-keyed),
+# eval-slice memberships under eval_sets/*.json (keys only — their truth is labels.jsonl), and the
+# teacher loop's irreplaceable source — task manifests (resolve the
 # opaque keys), raw human responses, per-rep panel votes. Committed, never rebuilt.
 ANNOTATIONS = REPO_ROOT / "docs" / "scratchpad" / "lineation-core" / "annotations"
 

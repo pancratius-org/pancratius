@@ -34,10 +34,14 @@ class CannedCompleter:
 
 
 def _frozen_eval_set(annotations):
+    """A membership-only eval slice + the labels.jsonl truth its lines join to."""
     picks = [x.id for x in store.load_records("57") if x.votable][:4]
-    rows = [{"id": lid.as_key(), "label": "lineated"} for lid in picks]
     (annotations / "eval_sets").mkdir(parents=True, exist_ok=True)
-    (annotations / "eval_sets" / "tiny.json").write_text(json.dumps(rows))
+    (annotations / "eval_sets" / "tiny.json").write_text(
+        json.dumps([lid.as_key() for lid in picks]))
+    rows = [{"id": lid.as_key(), "label": "lineated", "source": "human"} for lid in picks]
+    (annotations / "labels.jsonl").write_text(
+        "".join(json.dumps(r) + "\n" for r in rows))
 
 
 _TOML = """
@@ -113,9 +117,9 @@ def test_run_study_writes_the_three_durable_files(tmp_path):
 
 def test_run_study_writes_nothing_into_annotations(tmp_path):
     _, ann = _run(tmp_path, CannedCompleter())
-    # only the eval_sets/ the test seeded — no labels.jsonl/votes.jsonl/tasks/ etc.
+    # only what the test seeded (the slice + its truth) — no votes.jsonl/tasks/ etc.
     written = sorted(p.name for p in ann.iterdir())
-    assert written == ["eval_sets"]
+    assert written == ["eval_sets", "labels.jsonl"]
 
 
 class FaultyGrokCompleter:
@@ -246,8 +250,7 @@ def test_vision_build_specs_splits_an_over_page_region_and_attaches_assets(tmp_p
     wide = [r.id for r in store.load_records("57")
             if r.votable and r.id.is_mapped and r.id.src_ordinal <= 200]
     (ann / "eval_sets").mkdir(parents=True, exist_ok=True)
-    (ann / "eval_sets" / "wide.json").write_text(
-        json.dumps([{"id": lid.as_key(), "label": "lineated"} for lid in wide]))
+    (ann / "eval_sets" / "wide.json").write_text(json.dumps([lid.as_key() for lid in wide]))
 
     recipe = recipes.Recipe(
         task_id="vstudy", title="V", instructions="prose vs lineated", books=("57",),

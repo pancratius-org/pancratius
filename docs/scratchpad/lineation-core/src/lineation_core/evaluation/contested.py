@@ -3,11 +3,11 @@
 
 `compare.py` scores everyone on the full labels (which include easy strata). This module
 restricts to the CONTESTED lines: the ones a human RE-ADJUDICATED on the page (the committed
-`eval_sets/contested.json` slice — an EVAL truth, never folded into training), exactly the
-discriminator the prior ranking used. On these lines:
+`eval_sets/contested.json` membership), exactly the discriminator the prior ranking used. On
+these lines:
 
-  TRUTH    = the human's page-grounded label (NOT the consensus label — on contested lines
-             the human revised it, and that revision is the better truth).
+  TRUTH    = the human's page-grounded label from `labels.jsonl` (the one truth store; the
+             contested-only adjudications live there as `holdout` eval-only labels).
   STUDENT  = its OUT-OF-FOLD prediction (book held out — never trained on this line).
   TEACHER  = the reader's label.
 
@@ -26,24 +26,23 @@ from pathlib import Path
 from .. import store, student
 from ..annotations import LabelSet, by_reader, load_labels
 from .compare import ReaderScore, score_readers
+from .datasets import eval_slice
 from .metrics import Metrics, balanced
-from ..identity import Label, LabelByLine, LineId, PanelVotes, to_label
+from ..identity import Label, LabelByLine, PanelVotes
 from ..records import RecordsByBook
 
 
 def load_contested(*, annotations: Path | None = None) -> LabelByLine:
-    """The contested eval slice (`eval_sets/contested.json`): `{LineId: human label}` on the hard
-    re-adjudicated lines — an EVAL-only truth (not training); the student is scored against it on
-    the lines it can predict."""
-    return {LineId.from_key(d["id"]): to_label(d["label"])
-            for d in store.load_eval_set("contested", annotations=annotations)}
+    """The contested eval slice: `{LineId: human label}` on the hard re-adjudicated lines. The
+    slice file is membership only — the labels come from `labels.jsonl` through the one truth
+    join (`datasets.eval_slice`), the same store every other eval reads."""
+    return dict(eval_slice("contested", annotations=annotations).truth)
 
 
 @dataclass(frozen=True)
 class ContestedResult:
     n_contested: int
     n_with_student: int
-    n_revised_vs_consensus: int   # contested lines where human != consensus label
     label_dist: dict[Label, int]
     student: Metrics              # student over ALL scorable contested lines
     rows: list[ReaderScore]       # per-reader, on the lines shared with that reader
@@ -52,10 +51,10 @@ class ContestedResult:
 def evaluate(records: RecordsByBook, labelset: LabelSet,
              votes: PanelVotes, contested: LabelByLine, *,
              alpha: float = 0.75) -> ContestedResult:
-    """Score the student on the contested hard lines. `contested` is the EVAL truth `{LineId:
-    label}` (the human re-adjudication); the student is scored against it on the lines it can
-    predict. `alpha` is the run-smoothing weight (0 = i.i.d.)."""
-    by_id = {g.id: g for g in labelset.labels}
+    """Score the student on the contested hard lines. `contested` is the slice truth `{LineId:
+    label}` (the human re-adjudication, read from `labels.jsonl`); the student is scored against
+    it on the lines it can predict — its training never saw the holdout members, and the rest are
+    book-held-out OOF. `alpha` is the run-smoothing weight (0 = i.i.d.)."""
     ds = student.build_dataset(records, labelset)
     oof = student.oof_smoothed(ds, records, alpha=alpha)  # book-held-out, run-smoothed (alpha=0 == i.i.d.)
 
@@ -63,12 +62,11 @@ def evaluate(records: RecordsByBook, labelset: LabelSet,
         g.id: oof[g.id].label for g in labelset.labels if g.id in oof}
 
     scorable = [k for k in contested if k in student_pred]
-    n_revised = sum(1 for k in scorable if by_id[k].label != contested[k])
     yt = [contested[k] for k in scorable]
 
     return ContestedResult(
         n_contested=len(contested), n_with_student=len(scorable),
-        n_revised_vs_consensus=n_revised, label_dist=dict(Counter(yt)),
+        label_dist=dict(Counter(yt)),
         student=balanced(yt, [student_pred[k] for k in scorable]),
         rows=score_readers(contested, student_pred, votes),
     )
@@ -85,7 +83,6 @@ if __name__ == "__main__":
     r = evaluate(records, labelset, votes, contested, alpha=0.75)      # run-smoothed default
     print(f"human-adjudicated contested lines: {r.n_contested}")
     print(f"  scorable by the student: {r.n_with_student}")
-    print(f"  of those, REVISED vs consensus (human != consensus): {r.n_revised_vs_consensus}")
     print(f"  label dist (human truth): {r.label_dist}\n")
     print("STUDENT on the contested hard subset — i.i.d. (alpha=0) vs run-smoothed (alpha=0.75):")
     print(f"    {'metric':16} {'iid':>8} {'smoothed':>9}")

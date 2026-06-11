@@ -18,10 +18,18 @@ def res(ds):
 
 
 def test_dataset_shape_locked(ds):
+    # 620 = the trainable labels, byte-identical to before the holdout cohort was homed in
+    # labels.jsonl — homing eval-only truth must never grow the training set.
     assert ds.n_joined == 620
     assert ds.n_skipped_unmapped == 2
     assert len(ds.X) == len(ds.y) == len(ds.groups) == len(ds.ids) == 620
     assert len(set(ds.groups)) == 26
+
+
+def test_holdout_labels_are_never_training_rows(ds, corpus):
+    _, labelset = corpus
+    holdout = {g.id for g in labelset.labels if g.holdout}
+    assert holdout and not holdout & set(ds.ids)
 
 
 def test_every_row_spans_the_fixed_columns_no_nan(ds):
@@ -48,12 +56,19 @@ def test_cv_is_book_grouped_no_leakage(ds):
 
 
 def test_locked_cv_number(res):
+    """Under the recency-resolved truth the φ-only student is markedly weaker: 13 trainable lines
+    flipped prose→lineated are φ-prose-shaped (wraps/fill say prose, the latest human pass says
+    lineated), which poisons the prose boundary — prose_f1 0.91 → 0.71. Locked honestly; closing
+    this gap is the active-learning loop's job, not a metric to massage."""
     assert res.n == 620
     assert res.n_books == 26
-    assert res.balanced_accuracy == pytest.approx(0.961, abs=0.01)
-    assert res.macro_f1 == pytest.approx(0.946, abs=0.01)
-    assert res.prose_f1 == pytest.approx(0.908, abs=0.02)
-    assert res.balanced_accuracy > res.majority_baseline_acc
+    assert res.balanced_accuracy == pytest.approx(0.844, abs=0.01)
+    assert res.macro_f1 == pytest.approx(0.833, abs=0.01)
+    assert res.prose_f1 == pytest.approx(0.711, abs=0.02)
+    # all-lineated scores 0.5 balanced; the student is far from degenerate even after the hit —
+    # but its balanced acc now sits BELOW the majority PLAIN acc (0.844 < 0.871), surfaced here.
+    assert res.balanced_accuracy > 0.5
+    assert res.balanced_accuracy < res.majority_baseline_acc
 
 
 def test_zero_support_columns_reported_not_dropped(res, ds):

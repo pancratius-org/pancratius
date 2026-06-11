@@ -15,13 +15,16 @@ from lineation_core.teacher.panel import ResponseContract
 
 
 def _frozen_eval_set(annotations, name="tiny"):
-    """Freeze a 4-line synthetic eval set (books 57 + 13) into a tmp annotations dir."""
+    """Freeze a 4-line synthetic eval slice (books 57 + 13) + its labels.jsonl truth into a tmp
+    annotations dir — membership and truth in their one home each."""
     picks_57 = [x.id for x in store.load_records("57") if x.votable][:3]
     picks_13 = [x.id for x in store.load_records("13") if x.votable][:1]
-    rows = ([{"id": lid.as_key(), "label": "lineated"} for lid in picks_57]
-            + [{"id": lid.as_key(), "label": "prose"} for lid in picks_13])
     (annotations / "eval_sets").mkdir(parents=True, exist_ok=True)
-    (annotations / "eval_sets" / f"{name}.json").write_text(json.dumps(rows))
+    (annotations / "eval_sets" / f"{name}.json").write_text(
+        json.dumps([lid.as_key() for lid in picks_57 + picks_13]))
+    rows = ([{"id": lid.as_key(), "label": "lineated", "source": "human"} for lid in picks_57]
+            + [{"id": lid.as_key(), "label": "prose", "source": "human"} for lid in picks_13])
+    (annotations / "labels.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
     return picks_57 + picks_13
 
 

@@ -4,9 +4,11 @@ path lives here. The committed annotation TRUTH (`annotations/`) and the derived
 (`_artifacts/`) are both reached through this module, so a layout change touches one file and a
 domain function can never read a path behind the caller's back.
 
-Annotation files are returned as RAW rows (list of dicts); interpreting them into typed records
-(reject unmapped, group by reader, …) is pure and lives in `annotations.py`. Record artifacts are
-returned as validated `LineRecord`s through the existing hash-railed `artifact` loader."""
+Annotation files are returned RAW (label/vote rows as dicts; eval-set memberships and selections
+as `LineId`-key lists); interpreting them into typed records (reject unmapped, group by reader,
+join slice truth, …) is pure and lives in `annotations.py` / `evaluation.datasets`. Record
+artifacts are returned as validated `LineRecord`s through the existing hash-railed `artifact`
+loader."""
 from __future__ import annotations
 
 import hashlib
@@ -52,9 +54,11 @@ def load_vote_rows(*, annotations: Path | None = None) -> list[JsonRow]:
     return _rows((annotations or paths.ANNOTATIONS) / VOTES_FILE)
 
 
-def load_eval_set(name: str, *, annotations: Path | None = None) -> list[JsonRow]:
-    """Raw `{id, label}` rows of a named evaluation slice (`eval_sets/<name>.json`) — a committed
-    hard-case subpopulation to score the student against. FAILS LOUD if missing."""
+def load_eval_set(name: str, *, annotations: Path | None = None) -> list[LineKey]:
+    """The committed MEMBERSHIP of a named eval slice (`eval_sets/<name>.json`) — a frozen
+    `LineId`-key list naming WHICH lines an eval scores. Membership only: the truth for these
+    lines is always read from `labels.jsonl` (see `evaluation.datasets.eval_slice`), so the same
+    line can never be scored against two stores. FAILS LOUD if missing."""
     path = (annotations or paths.ANNOTATIONS) / "eval_sets" / f"{name}.json"
     if not path.is_file():
         raise FileNotFoundError(f"committed eval set missing: {path}")
@@ -306,10 +310,11 @@ def write_vote_rows(rows: list[JsonRow], *, annotations: Path | None = None) -> 
     _atomic_text((annotations or paths.ANNOTATIONS) / VOTES_FILE, _jsonl(rows))
 
 
-def write_eval_set(name: str, rows: list[JsonRow], *,
+def write_eval_set(name: str, keys: list[LineKey], *,
                    annotations: Path | None = None) -> None:
+    """Commit an eval slice's MEMBERSHIP (`LineId` keys only — its truth lives in `labels.jsonl`)."""
     _atomic_text((annotations or paths.ANNOTATIONS) / "eval_sets" / f"{name}.json",
-                 json.dumps(rows, ensure_ascii=False, indent=2))
+                 json.dumps(keys, ensure_ascii=False, indent=2))
 
 
 def save_selection(name: str, keys: list[LineKey], *, annotations: Path | None = None) -> None:
