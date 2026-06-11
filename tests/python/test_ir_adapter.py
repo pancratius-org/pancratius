@@ -284,11 +284,11 @@ def _docx_with_paragraphs(tmp_path: Path, *jcs: str | None) -> Path:
     return _docx_from_document(tmp_path, document)
 
 
-def _aligns(records: list[adapter._JcRecord]) -> list[str]:
+def _aligns(records: list[adapter._SourceParagraph]) -> list[str]:
     return [r.align for r in records]
 
 
-def _groups(records: list[adapter._JcRecord]) -> list[int | None]:
+def _groups(records: list[adapter._SourceParagraph]) -> list[int | None]:
     return [r.lineation_group for r in records]
 
 
@@ -467,6 +467,55 @@ def test_paragraph_text_drops_mc_fallback_duplicate(tmp_path: Path) -> None:
     assert [r.text for r in records] == ["Title"]  # not "TitleTitle"
 
 
+def test_paragraph_text_keeps_no_break_hyphen(tmp_path: Path) -> None:
+    # Word stores a non-breaking hyphen as a textless `w:noBreakHyphen` between two
+    # `w:t` runs; Pandoc renders it U+2011. Dropping it here fuses `кто‑то`→`ктото`,
+    # so the match fingerprint diverges from the AST, the paragraph never matches its
+    # source `w:p`, and its span stays None → the line is UNMAPPED, hence non-votable.
+    # (Fingerprint-desync, distinct from the §14-P1 verse-merge MIXED case.) Survive it.
+    document = (
+        '<?xml version="1.0"?>'
+        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        "<w:p><w:r><w:t>кто</w:t><w:noBreakHyphen/><w:t>то</w:t></w:r></w:p>"
+        "</w:body></w:document>"
+    )
+    path = _docx_from_document(tmp_path, document)
+    records = adapter.read_w_jc(path)
+    assert [r.text for r in records] == ["кто‑то"]  # not "ктото"
+
+
+def test_paragraph_text_keeps_soft_hyphen(tmp_path: Path) -> None:
+    # The same desync via Word's optional hyphen: a textless `w:softHyphen` renders
+    # U+00AD in Pandoc. Dropping it fuses the flanking words just like the non-breaking
+    # hyphen, so the record must key on the same glyph.
+    document = (
+        '<?xml version="1.0"?>'
+        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        "<w:p><w:r><w:t>кто</w:t><w:softHyphen/><w:t>то</w:t></w:r></w:p>"
+        "</w:body></w:document>"
+    )
+    path = _docx_from_document(tmp_path, document)
+    records = adapter.read_w_jc(path)
+    assert [r.text for r in records] == ["кто­то"]  # soft hyphen kept, not "ктото"
+
+
+def test_no_break_hyphen_paragraph_keeps_source_span(tmp_path: Path) -> None:
+    # End-to-end: the fingerprint match must survive a non-breaking hyphen so the
+    # paragraph keeps a source span. The AST carries Pandoc's U+2011 rendering and the
+    # raw record (read from the XML) must key on the SAME glyph, not a fused word.
+    para = adapter._block(_para(_str("кто‑то")), adapter._Ctx())
+    assert isinstance(para, ir.Paragraph)
+    document = (
+        '<?xml version="1.0"?>'
+        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        "<w:p><w:r><w:t>кто</w:t><w:noBreakHyphen/><w:t>то</w:t></w:r></w:p>"
+        "</w:body></w:document>"
+    )
+    records = adapter.read_w_jc(_docx_from_document(tmp_path, document))
+    adapter.reconcile_source([para], records)
+    assert para.source_span == ir.SourceSpan(0, 0)
+
+
 # ---------------------------------------------------------------------------
 # C1: alignment is reconciled by CONTENT, not position — a collapsed list /
 # image-only paragraph before a right-aligned paragraph no longer drifts the zip.
@@ -497,16 +546,16 @@ def test_reconcile_alignment_survives_list_and_image_before_right_para() -> None
     # skipped by read_w_jc, but the image-only paragraph stays — and the only
     # right-aligned record is the signature.
     records = [
-        adapter._JcRecord(align="", text="Opening prose paragraph."),
-        adapter._JcRecord(align="", text=""),  # the image-only paragraph
-        adapter._JcRecord(align="right", text="Signed Pankratius"),
+        adapter._SourceParagraph(align="", text="Opening prose paragraph."),
+        adapter._SourceParagraph(align="", text=""),  # the image-only paragraph
+        adapter._SourceParagraph(align="right", text="Signed Pankratius"),
     ]
+    _spans, right = adapter.reconcile_source(blocks, records)
     paragraphs = [b for b in blocks if isinstance(b, ir.Paragraph)]
-    assigned = adapter.reconcile_alignment(paragraphs, records)
     # The signature paragraph (the only Para carrying that text) is align='right'.
     sig = next(p for p in paragraphs if ir.Text("Signed Pankratius") in p.inlines)
     assert sig.align == "right"
-    assert assigned == 1
+    assert right == 1
     # The opening prose paragraph keeps the default alignment.
     opening = next(p for p in paragraphs if ir.Text("Opening prose paragraph.") in p.inlines)
     assert opening.align == ""
@@ -521,12 +570,11 @@ def test_reconcile_alignment_merged_right_paragraphs() -> None:
     )
     assert isinstance(para, ir.Paragraph)
     records = [
-        adapter._JcRecord(align="right", text="Тогда волк", source_span=ir.SourceSpan(5, 5)),
-        adapter._JcRecord(align="right", text="будет жить", source_span=ir.SourceSpan(6, 6)),
+        adapter._SourceParagraph(align="right", text="Тогда волк", source_span=ir.SourceSpan(5, 5)),
+        adapter._SourceParagraph(align="right", text="будет жить", source_span=ir.SourceSpan(6, 6)),
     ]
-    adapter._assign_source_spans([para], records)
-    assigned = adapter.reconcile_alignment([para], records)
-    assert para.align == "right" and assigned == 1
+    spans, right = adapter.reconcile_source([para], records)
+    assert para.align == "right" and right == 1 and spans == 1
     assert para.source_span == ir.SourceSpan(5, 6)
 
 
@@ -538,13 +586,13 @@ def test_reconcile_alignment_refuses_fusion_across_source_gap() -> None:
     )
     assert isinstance(para, ir.Paragraph)
     records = [
-        adapter._JcRecord(align="right", text="before list", source_span=ir.SourceSpan(5, 5)),
-        adapter._JcRecord(align="right", text="after list", source_span=ir.SourceSpan(7, 7)),
+        adapter._SourceParagraph(align="right", text="before list", source_span=ir.SourceSpan(5, 5)),
+        adapter._SourceParagraph(align="right", text="after list", source_span=ir.SourceSpan(7, 7)),
     ]
 
-    assigned = adapter.reconcile_alignment([para], records)
+    spans, right = adapter.reconcile_source([para], records)
 
-    assert assigned == 0
+    assert (spans, right) == (0, 0)
     assert para.align == ""
     assert para.source_span is None
 
@@ -557,13 +605,13 @@ def test_reconcile_alignment_refuses_fusion_across_table_boundary() -> None:
     )
     assert isinstance(para, ir.Paragraph)
     records = [
-        adapter._JcRecord(
+        adapter._SourceParagraph(
             align="right",
             text="before table",
             source_span=ir.SourceSpan(5, 5),
             source_segment=0,
         ),
-        adapter._JcRecord(
+        adapter._SourceParagraph(
             align="right",
             text="after table",
             source_span=ir.SourceSpan(6, 6),
@@ -571,9 +619,9 @@ def test_reconcile_alignment_refuses_fusion_across_table_boundary() -> None:
         ),
     ]
 
-    assigned = adapter.reconcile_alignment([para], records)
+    spans, right = adapter.reconcile_source([para], records)
 
-    assert assigned == 0
+    assert (spans, right) == (0, 0)
     assert para.align == ""
     assert para.source_span is None
 
@@ -581,12 +629,12 @@ def test_reconcile_alignment_refuses_fusion_across_table_boundary() -> None:
 def test_source_span_assignment_keeps_punctuation_only_structural_paragraph() -> None:
     block = ir.Paragraph(inlines=[ir.Text("***")])
     records = [
-        adapter._JcRecord(align="", text="***", source_span=ir.SourceSpan(12, 12)),
+        adapter._SourceParagraph(align="", text="***", source_span=ir.SourceSpan(12, 12)),
     ]
 
-    assigned = adapter._assign_source_spans([block], records)
+    spans, _right = adapter.reconcile_source([block], records)
 
-    assert assigned == 1
+    assert spans == 1
     assert block.source_span == ir.SourceSpan(12, 12)
 
 
@@ -598,31 +646,23 @@ def test_source_span_assignment_matches_blockquote_before_duplicate_later_text()
         ir.Paragraph(inlines=[ir.Text("Repeated dedication")]),
     ]
     records = [
-        adapter._JcRecord(align="", text="Title", source_span=ir.SourceSpan(1, 1)),
-        adapter._JcRecord(
+        adapter._SourceParagraph(align="", text="Title", source_span=ir.SourceSpan(1, 1)),
+        adapter._SourceParagraph(
             align="",
             text="Repeated dedication",
             source_span=ir.SourceSpan(2, 2),
         ),
-        adapter._JcRecord(align="", text="Chapter", source_span=ir.SourceSpan(3, 3)),
-        adapter._JcRecord(
+        adapter._SourceParagraph(align="", text="Chapter", source_span=ir.SourceSpan(3, 3)),
+        adapter._SourceParagraph(
             align="",
             text="Repeated dedication",
             source_span=ir.SourceSpan(4, 4),
         ),
     ]
 
-    assigned = adapter._assign_source_spans(blocks, records)
+    spans, _right = adapter.reconcile_source(blocks, records)
 
-    assert assigned == 4
-    assert [block.source_span for block in blocks] == [
-        ir.SourceSpan(1, 1),
-        ir.SourceSpan(2, 2),
-        ir.SourceSpan(3, 3),
-        ir.SourceSpan(4, 4),
-    ]
-    paragraphs = [block for block in blocks if isinstance(block, ir.Paragraph)]
-    adapter.reconcile_alignment(paragraphs, records)
+    assert spans == 4
     assert [block.source_span for block in blocks] == [
         ir.SourceSpan(1, 1),
         ir.SourceSpan(2, 2),
@@ -638,14 +678,14 @@ def test_source_span_assignment_keeps_structural_empty_paragraph() -> None:
         ir.Paragraph(inlines=[ir.Text("after")]),
     ]
     records = [
-        adapter._JcRecord(align="", text="before", source_span=ir.SourceSpan(1, 1)),
-        adapter._JcRecord(align="", text="", source_span=ir.SourceSpan(2, 2), empty=True),
-        adapter._JcRecord(align="", text="after", source_span=ir.SourceSpan(3, 3)),
+        adapter._SourceParagraph(align="", text="before", source_span=ir.SourceSpan(1, 1)),
+        adapter._SourceParagraph(align="", text="", source_span=ir.SourceSpan(2, 2), empty=True),
+        adapter._SourceParagraph(align="", text="after", source_span=ir.SourceSpan(3, 3)),
     ]
 
-    assigned = adapter._assign_source_spans(blocks, records)
+    spans, _right = adapter.reconcile_source(blocks, records)
 
-    assert assigned == 3
+    assert spans == 3
     assert [block.source_span for block in blocks] == [
         ir.SourceSpan(1, 1),
         ir.SourceSpan(2, 2),
@@ -660,9 +700,55 @@ def test_reconcile_alignment_no_match_assigns_nothing() -> None:
     ctx = adapter._Ctx()
     para = adapter._block(_para(_str("completely different prose")), ctx)
     assert isinstance(para, ir.Paragraph)
-    records = [adapter._JcRecord(align="right", text="unrelated source words")]
-    assigned = adapter.reconcile_alignment([para], records)
-    assert assigned == 0 and para.align == ""
+    records = [adapter._SourceParagraph(align="right", text="unrelated source words")]
+    _spans, right = adapter.reconcile_source([para], records)
+    assert right == 0 and para.align == ""
+
+
+def test_reconcile_source_duplicate_text_does_not_overshoot_early_right_para() -> None:
+    """The book#32 failure class: a duplicated prose text whose FIRST AST occurrence
+    sits ahead of an early right-aligned signature. A single global greedy cursor
+    binds the duplicate's record to the early occurrence and overshoots the
+    signature; the anchored alignment windows the scan so both reconcile."""
+    ctx = adapter._Ctx()
+    blocks = [
+        adapter._block(_para(_str("Repeated chorus line")), ctx),     # 1st occurrence
+        adapter._block(_para(_str("Signed Pankratius")), ctx),        # early signature
+        adapter._block(_para(_str("Unique middle paragraph")), ctx),  # anchor
+        adapter._block(_para(_str("Repeated chorus line")), ctx),     # 2nd occurrence
+    ]
+    records = [
+        adapter._SourceParagraph(align="", text="Repeated chorus line", source_span=ir.SourceSpan(0, 0)),
+        adapter._SourceParagraph(align="right", text="Signed Pankratius", source_span=ir.SourceSpan(1, 1)),
+        adapter._SourceParagraph(align="", text="Unique middle paragraph", source_span=ir.SourceSpan(2, 2)),
+        adapter._SourceParagraph(align="", text="Repeated chorus line", source_span=ir.SourceSpan(3, 3)),
+    ]
+    spans, right = adapter.reconcile_source(blocks, records)
+    assert spans == 4 and right == 1
+    assert [b.source_span for b in blocks] == [
+        ir.SourceSpan(0, 0), ir.SourceSpan(1, 1), ir.SourceSpan(2, 2), ir.SourceSpan(3, 3),
+    ]
+    sig = blocks[1]
+    assert isinstance(sig, ir.Paragraph) and sig.align == "right"
+
+
+def test_direction_indents_book_default_indent_is_not_indented(tmp_path: Path) -> None:
+    """`indented` is within-book directioned: when (almost) every body paragraph
+    carries the same first-line indent, that indent is the book default and
+    discriminates nothing; only a DEPARTING indent marks a paragraph."""
+    ind = '<w:pPr><w:ind w:firstLine="708"/></w:pPr>'
+    other = '<w:pPr><w:ind w:left="720"/></w:pPr>'
+    paras = [f"<w:p>{ind}<w:r><w:t>body {i}</w:t></w:r></w:p>" for i in range(3)]
+    paras.append(f"<w:p>{other}<w:r><w:t>block quote</w:t></w:r></w:p>")
+    paras.append("<w:p><w:r><w:t>plain</w:t></w:r></w:p>")
+    document = (
+        '<?xml version="1.0"?>'
+        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        + "".join(paras)
+        + "</w:body></w:document>"
+    )
+    records = adapter.read_w_jc(_docx_from_document(tmp_path, document))
+    assert [r.indented for r in records] == [False, False, False, True, False]
 
 
 # ---------------------------------------------------------------------------

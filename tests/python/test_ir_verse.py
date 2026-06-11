@@ -421,6 +421,62 @@ def test_pseudo_heading_fragments_after_verse_do_not_append() -> None:
     )
 
 
+def test_enumerated_bold_section_heading_does_not_fold_into_stanza() -> None:
+    """book23: `**I. Зачатие образа «я»…**` is an enumerated section heading;
+    like an arabic list item it is not a verse line, so it must not ride a
+    gap-separated unit as its closing stanza."""
+    blocks: list[ir.Block] = [
+        _strong_para("Как это ощущается изнутри"),
+        _strong_para("Какие признаки видны со стороны"),
+        _strong_para("Главная ловушка"),
+        _strong_para("Возможность для выхода"),
+        _empty(),
+        _strong_para("I. Зачатие образа «я» (0–2 года) — бессознательное рождение"),
+        _para(
+            "Внутри: нет ощущения «меня» как отдельного. Есть только чистое переживание"
+            " — тепло, голод, свет, звук. Всё воспринимается как одно целое.",
+        ),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+    folded = [b for b in out if isinstance(b, (ir.LineatedBlock, ir.VerseBlock))]
+
+    assert all(
+        "Зачатие" not in normalize.inline_plain(line)
+        for b in folded
+        for stanza in b.stanzas
+        for line in stanza
+    )
+    assert any(
+        isinstance(b, ir.Paragraph)
+        and normalize.inline_plain(b.inlines).startswith("I. Зачатие")
+        for b in out
+    )
+
+
+def test_prose_lead_paragraph_does_not_drag_bold_heading_into_verse() -> None:
+    """book23: a prose-register lead sentence must not fold, taking the
+    following bold pseudo-heading (`**Продолжение главы…**`) with it as verse."""
+    blocks: list[ir.Block] = [
+        _para(
+            "Тогда продолжу прямо внутри той же главы, как будто читатель"
+            " остаётся в этом разговоре.",
+        ),
+        _empty(),
+        _strong_para("Продолжение главы: «Тот, кто шепчет изнутри»"),
+        _para("Ученик: Учитель, как Христос победил дьявола в пустыне?"),
+        _para(
+            "Учитель: Он не воевал. Он видел. Он не спорил, чтобы переубедить —"
+            " Он видел ложь в основании самого вопроса. Каждое искушение"
+            " начиналось с одного и того же.",
+        ),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+
+    assert not [b for b in out if isinstance(b, (ir.LineatedBlock, ir.VerseBlock))]
+
+
 def test_speaker_turn_after_verse_does_not_append_as_coda() -> None:
     blocks: list[ir.Block] = [
         ir.Heading(level=4, inlines=[ir.Text("Псалом")]),
@@ -438,7 +494,11 @@ def test_speaker_turn_after_verse_does_not_append_as_coda() -> None:
     assert _verse_stanzas(verse[0]) == [["Я — Свет.", "Я — Слово."]]
 
 
-def test_visual_coda_without_following_structural_boundary_does_not_append() -> None:
+def test_gap_separated_grouped_couplets_fold_as_one_unit() -> None:
+    """The couplet/seam class: `contextualSpacing` continuity restarts at every
+    blank row, so one poem arrives as one group PER STANZA. Gap-separated
+    couplet groups are stanzas of one decision unit, never per-couplet units
+    (a 2-line unit has no ladder path and would flatten authored verse)."""
     blocks: list[ir.Block] = [
         ir.Heading(level=4, inlines=[ir.Text("Псалом")]),
         _para("Я — Свет.", lineation_group=1),
@@ -454,7 +514,120 @@ def test_visual_coda_without_following_structural_boundary_does_not_append() -> 
     out = normalize.verse_blocks(blocks)
     verse = [b for b in out if isinstance(b, ir.VerseBlock)]
 
-    assert _verse_stanzas(verse[0]) == [["Я — Свет.", "Я — Слово."]]
+    assert len(verse) == 1
+    assert _verse_stanzas(verse[0]) == [
+        ["Я — Свет.", "Я — Слово."],
+        ["Кто автор?", "Тот, кто смотрит."],
+        ["Как она была явлена? —", "через тишину."],
+    ]
+
+
+def test_mid_poem_couplet_stanza_between_folding_stanzas_stays_verse() -> None:
+    """A dying couplet between two folding stanzas of one poem (book25:
+    `Это невозможно сказать. / Но можно замолчать.`) folds with them."""
+    blocks: list[ir.Block] = [
+        _para("Ты — присутствие.", lineation_group=1),
+        _para("Ты — бытие.", lineation_group=1),
+        _para("Ты — нет.", lineation_group=1),
+        _para("Ты — есть.", lineation_group=1),
+        _empty(),
+        _para("Это невозможно сказать.", lineation_group=2),
+        _para("Но можно замолчать.", lineation_group=2),
+        _empty(),
+        _para("И в этом Молчании", lineation_group=3),
+        _para("— узнай:", lineation_group=3),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+    folded = [b for b in out if isinstance(b, (ir.LineatedBlock, ir.VerseBlock))]
+
+    assert len(folded) == 1
+    assert [
+        [normalize.inline_plain(line) for line in stanza] for stanza in folded[0].stanzas
+    ] == [
+        ["Ты — присутствие.", "Ты — бытие.", "Ты — нет.", "Ты — есть."],
+        ["Это невозможно сказать.", "Но можно замолчать."],
+        ["И в этом Молчании", "— узнай:"],
+    ]
+
+
+def test_ungrouped_litany_rows_between_grouped_runs_stay_in_the_unit() -> None:
+    """Group ids restart on any spacing inconsistency; ungrouped short rows
+    directly between grouped runs (book59/en: `In the last. / In the hungry.`)
+    are the same flow, not per-fragment units that all die."""
+    blocks: list[ir.Block] = [
+        _para("That is why I hid Myself in the Friend.", lineation_group=1),
+        _para("who is in need of mercy.", lineation_group=1),
+        _para("In the neighbor."),
+        _para("In the slain."),
+        _para("In the last."),
+        _para("In the hungry."),
+        _para("but because he is a brother.", lineation_group=2),
+        _para("Thus the commandment is fulfilled:", lineation_group=2),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+    folded = [b for b in out if isinstance(b, (ir.LineatedBlock, ir.VerseBlock))]
+
+    assert len(folded) == 1
+    assert sum(len(stanza) for stanza in folded[0].stanzas) == 8
+
+
+def test_spanless_stanza_gap_does_not_poison_fold_provenance() -> None:
+    """An interior empty row often has no source span; the folded block's
+    provenance comes from its TEXT rows, or whole multi-stanza poems would
+    drop out of the per-ordinal lineation surface."""
+    def spanned(text: str, ordinal: int, group: int) -> ir.Paragraph:
+        return ir.Paragraph(
+            inlines=[ir.Text(text)],
+            lineation_group=group,
+            source_span=ir.SourceSpan(start=ordinal, end=ordinal),
+        )
+
+    blocks: list[ir.Block] = [
+        spanned("Я — Свет.", 10, 1),
+        spanned("Я — Слово.", 11, 1),
+        ir.Paragraph(inlines=[], empty=True),  # no span
+        spanned("Кто автор?", 13, 2),
+        spanned("Тот, кто смотрит.", 14, 2),
+    ]
+
+    out = normalize.lineated_blocks(blocks)
+    folded = [b for b in out if isinstance(b, ir.LineatedBlock)]
+
+    assert len(folded) == 1
+    assert folded[0].source_span == ir.SourceSpan(start=10, end=14)
+
+
+def test_directly_abutting_distinct_groups_stay_separate_units() -> None:
+    """Two DIFFERENT visual groups with no blank row between them are Word's
+    one real seam (fused rows, a spacing change, then fused rows): two units."""
+    first = [
+        _para("Я — Свет.", lineation_group=1),
+        _para("Я — Слово.", lineation_group=1),
+        _para("Я — Путь.", lineation_group=1),
+    ]
+    second = [
+        _para(
+            "Здесь мы говорим о начале пути, о его цене и о том, что открывается идущему.",
+            lineation_group=2,
+        ),
+        _para(
+            "Каждый шаг открывает новое измерение опыта, которого не было в прежней жизни.",
+            lineation_group=2,
+        ),
+        _para(
+            "И каждый честный ответ рождает следующий вопрос, ещё глубже предыдущего.",
+            lineation_group=2,
+        ),
+    ]
+    out = normalize.lineated_blocks([*first, *second])
+
+    folded = [b for b in out if isinstance(b, ir.LineatedBlock)]
+    assert len(folded) == 1
+    assert [
+        normalize.inline_plain(line) for stanza in folded[0].stanzas for line in stanza
+    ] == ["Я — Свет.", "Я — Слово.", "Я — Путь."]
 
 
 def test_next_song_preview_before_heading_does_not_append_as_coda() -> None:
@@ -634,3 +807,135 @@ def test_c3_linebreak_in_emphasis_paragraph_becomes_verse_after_fix() -> None:
         "Фотон — только отпечаток взгляда.",
         "Когда ты ищешь поле, ты приближаешься.",
     ]
+
+
+# ---------------------------------------------------------------------------
+# Visual-continuity groups are first-class lineation evidence
+# ---------------------------------------------------------------------------
+
+
+def test_mid_document_visual_group_of_short_lines_is_lineated() -> None:
+    # The de-lineated-interior-stanza repair: a poem stanza authored as a
+    # `w:contextualSpacing` visual group sits mid-prose with no boundary and no
+    # interior gap; the fused-rows signal alone must fold it (book55/63/69 gold).
+    prose = "Это длинное прозаическое предложение, которое заведомо длиннее любой стихотворной строки и читается как обычный абзац без всякой лиричности."
+    blocks: list[ir.Block] = [
+        ir.Paragraph(inlines=[ir.Text(prose)]),
+        _empty(),
+        _para("Но всё это — зыбко.", lineation_group=171),
+        _para("Меняется.", lineation_group=171),
+        _para("Теряется.", lineation_group=171),
+        _para("Проходит.", lineation_group=171),
+        _empty(),
+        ir.Paragraph(inlines=[ir.Text(prose)]),
+    ]
+    out = normalize.verse_blocks(blocks)
+    folded = [b for b in out if isinstance(b, (ir.LineatedBlock, ir.VerseBlock))]
+    assert len(folded) == 1
+    assert _verse_lines(folded[0]) == [
+        "Но всё это — зыбко.", "Меняется.", "Теряется.", "Проходит.",
+    ]
+
+
+def test_blank_separated_prose_sentences_after_heading_stay_prose() -> None:
+    # Chapter prose is stored one sentence per w:p with blank rows between: gaps
+    # around SINGLE-line stanzas prove nothing, and medium-length sentences must
+    # not fold even right after a heading (the book23 over-detection class).
+    blocks: list[ir.Block] = [
+        ir.Heading(level=3, inlines=[ir.Text("Глава 8. Свобода от свободы")]),
+        _para("Пока ты ждёшь следующее предложение — наблюдай. Остановись."),
+        _empty(),
+        _para("Кто сейчас хочет «ещё»? Кто тянется за «дальше»? Кто — чувствует, что не хватает?"),
+        _empty(),
+        _para("Это не ты. Это — образ, пытающийся не исчезнуть."),
+        _empty(),
+    ]
+    out = normalize.verse_blocks(blocks)
+    assert not any(isinstance(b, (ir.LineatedBlock, ir.VerseBlock)) for b in out)
+
+
+# ---------------------------------------------------------------------------
+# bilingual parity: the EN editions exercise the same structural rules
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "Answer from the Creator (guide mode):",
+        "Answer from the Creator:",
+        "Response from the Creator:",
+        "The Creator's Answer:",
+        "The Creator’s Answer:",
+        "The Word of the Creator:",
+        "Pancratius: And why did you say that?",
+        "Pankratius to AI Svetozar: Name me the passages",
+        "I:",
+    ],
+)
+def test_explicit_speaker_line_is_not_lineated_en(line: str) -> None:
+    # The same speaker turns the RU editions reject, in the wording the EN
+    # translations actually use.
+    assert not normalize._is_lineated_line(line)
+
+
+def test_en_speaker_turn_does_not_ride_a_lineated_run() -> None:
+    # book69 EN: a `Response from the Creator:` opener row shares a visual group
+    # with two answer sentences. The turn is rejected like RU `Ответ от Творца:`,
+    # and the two remaining grouped sentences are below the fold minimum.
+    blocks: list[ir.Block] = [
+        _para("Response from the Creator:", lineation_group=1),
+        _para(
+            "What I called the 'first draft' does not mean that I desire verbosity.",
+            lineation_group=1,
+        ),
+        _para(
+            "I never strive for length of text — only for accuracy of perception.",
+            lineation_group=1,
+        ),
+    ]
+    out = normalize.verse_blocks(blocks)
+    assert not any(isinstance(b, (ir.LineatedBlock, ir.VerseBlock)) for b in out)
+
+
+def test_en_pseudo_heading_fragments_after_verse_do_not_append() -> None:
+    # `Ответ` is rendered as both `Answer` and `Response` across the EN editions;
+    # a trailing `Response:` fragment is the next section's furniture, never the
+    # poem's closing stanza.
+    blocks: list[ir.Block] = [
+        ir.Heading(level=4, inlines=[ir.Text("137. The previous answer")]),
+        _para("I am the Light.", lineation_group=1),
+        _para("I am the Word.", lineation_group=1),
+        _empty(),
+        _strong_para("138", lineation_group=2),
+        _strong_para("Response:", lineation_group=2),
+    ]
+
+    out = normalize.verse_blocks(blocks)
+    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+
+    assert len(verse) == 1
+    assert _verse_stanzas(verse[0]) == [["I am the Light.", "I am the Word."]]
+    assert any(
+        isinstance(b, ir.Paragraph) and normalize.inline_plain(b.inlines) == "Response:"
+        for b in out
+    )
+
+
+def test_litany_folds_identically_across_languages() -> None:
+    # Lineation is structural: the same authored shape folds the same way in
+    # both editions of one book (book69's closing litany, both as published).
+    editions = (
+        ["Бегите внутрь.", "Бегите в тишину.",
+         "Бегите в то, что не может быть разрушено."],
+        ["Flee inward.", "Flee into silence.",
+         "Flee into that which cannot be destroyed."],
+    )
+    for lines in editions:
+        blocks: list[ir.Block] = [
+            *(_para(s, lineation_group=1) for s in lines),
+            _empty(),
+        ]
+        out = normalize.verse_blocks(blocks)
+        verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+        assert verse and _verse_lines(verse[0]) == lines

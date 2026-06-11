@@ -308,3 +308,64 @@ def test_votability_mask_keys_per_ordinal_and_leaves_unmapped_absent(
     # the verse block's merged ordinals 2..4 each resolve to a clean BODY
     assert mask[2] is mask[3] is mask[4] is MaskVerdict.BODY
     assert 5 not in mask   # unmapped ordinal is absent → the caller defaults it to REVIEW
+
+
+@pandoc_required
+def test_lineation_decisions_per_ordinal_surface(tmp_path: Path) -> None:
+    """The per-`w:p`-ordinal prose/lineated surface the lineation gold joins on:
+    prose stays False, an authored hard break with a prose-length line is reported
+    prose (the break is display, not register), structure is absent, and a folded
+    couplet after a heading is True."""
+    from docx import Document
+
+    doc = Document()
+    doc.add_paragraph(
+        "Это длинное прозаическое предложение, которое заведомо длиннее любой "
+        "стихотворной строки и читается как обычный абзац без всякой лиричности."
+    )
+    broken = doc.add_paragraph()
+    run = broken.add_run("1. Вода")
+    run.add_break()
+    broken.add_run("Мир — как река. " * 12)
+    doc.add_heading("Псалом", level=2)
+    doc.add_paragraph("Свет мой тихий,")
+    doc.add_paragraph("в сердце горит.")
+    path = tmp_path / "fixture.docx"
+    doc.save(str(path))
+
+    decisions = docx_inspect.lineation_decisions(path)
+
+    assert decisions[0] is False
+    assert decisions[1] is False  # hard break preserved for display, prose register
+    assert 2 not in decisions     # the heading is structure, not a votable body line
+    assert decisions[3] is True and decisions[4] is True
+
+
+@pandoc_required
+def test_lineation_decisions_en_edition_mirrors_ru(tmp_path: Path) -> None:
+    """The EN editions get the same per-ordinal surface: EN prose stays False,
+    an EN speaker turn (`Answer from the Creator:`) is structure — absent, never
+    a verse line — and an EN couplet after a heading folds True."""
+    from docx import Document
+
+    doc = Document()
+    doc.add_paragraph(
+        "This is a long prose sentence that is obviously longer than any line of "
+        "verse and reads like an ordinary paragraph without any lyricism at all."
+    )
+    turn = doc.add_paragraph()
+    turn.add_run("Answer from the Creator:").bold = True
+    doc.add_paragraph("A plain single answer sentence follows the speaker label.")
+    doc.add_heading("Psalm", level=2)
+    doc.add_paragraph("My quiet light,")
+    doc.add_paragraph("burns in the heart.")
+    path = tmp_path / "fixture-en.docx"
+    doc.save(str(path))
+
+    decisions = docx_inspect.lineation_decisions(path)
+
+    assert decisions[0] is False
+    assert decisions.get(1) is not True   # the speaker turn is never lineated
+    assert decisions[2] is False
+    assert 3 not in decisions             # the heading is structure
+    assert decisions[4] is True and decisions[5] is True
