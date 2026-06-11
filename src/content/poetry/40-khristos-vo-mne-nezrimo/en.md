@@ -12,21 +12,21 @@ translation:
 ---
 
 Christ lived in me unseen through all these years —  
-in laughter and in tears, in wine, in rue,  
-in scattered dreams, in freedom snapped to tiers,  
-in love I was afraid to wholly do.
+in tears and laughter, in bitterness, in wine,  
+in scattered dreams, in broken freedom,  
+in love I feared to give completely.
 
 He did not enter — He has need of no door.  
 He was my breathing, Light behind my back.  
 I thought I was alone. I waited for  
-His coming. And He whispered: "I am here. You lack
+His coming. And He whispered: "I was. I am here. I am yours."
 
-for nothing." He asked for no song, no shining,  
+He asked for no song, no shining,  
 no temples, crowns, no spotless deed of mine.  
-He waited out my schooling, my refining,  
-till I came stripped of "I." And He gave the sign.
+He waited until my schooling passed,  
+till I came without an "I." And He beheld.
 
 Not I unveiled to Him — it was He, in hiding,  
 who showed me there's no "later," no "not now,"  
 that all that broke me, all the pain abiding —  
-He passed through it Himself. And in me — Christ, somehow.
+He passed through it Himself. And became in me — Christ.

@@ -11,7 +11,7 @@ translation:
   source: ai
 ---
 
-I dream a dream: Sergei walks through the light,  
+I dream a dream: Sergei walks through the world,  
 around him roars the living stream of time.  
 But every step is some hid mystery's bright  
 reflection — I see a world God shapes in secret rhyme.
@@ -43,8 +43,8 @@ the Maker works, and every instant burns like day.
 
 I dream a dream: how light and shadow sway,  
 weaving their pattern through the nighttime's hush.  
-So God, in His creation, paints away  
-Himself, each instant a reflection of that Eternal flush.
+So God paints Himself in creation,  
+and every moment is a glint of that Eternal Soul.
 
 But, after all, is it I who see this day?  
 Who am I — man, son, father, or the shade?  
@@ -53,5 +53,5 @@ and "I" a trace of His unseen height, displayed?
 
 It is not I who "see" — through me God SEES,  
 He pierces into the world with every gaze,  
-and "my" own life — a dream, where each step flees like ease,  
+and "my" own life — a dream, where each step is like a current,  
 and HE lives on through my brief earthly haze…

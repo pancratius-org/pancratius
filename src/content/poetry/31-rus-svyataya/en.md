@@ -22,12 +22,12 @@ herding storm clouds past the leas,
 and the swaying, thickset forest  
 murmurs ageless reveries.
 
-In the gold of churches, God draws  
-evening bells to ring and call,  
+Temple gold draws the soul toward God,  
+evening gives the bells their call,  
 and along the quiet hillside  
-dawnlight lays its gentle pall.
+dawnlight comes down to us.
 
 Holy Rus, you simple country,  
 where the soul holds light and ache.  
-On you stand, and never dimming,  
+You stand, never fading,  
 'neath the blue of heaven's lake.

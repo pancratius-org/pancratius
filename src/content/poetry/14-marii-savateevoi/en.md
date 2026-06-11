@@ -21,8 +21,8 @@ and the light in this name made the path shine bright.
 In her purity my own repose is mirrored,  
 and in her I revealed my image to the world.
 
-*— And what is Maria to Vadim?  
-*— She is like a foothold, a faithful good word.  
+*— And what is Maria to Vadim?*  
+— She is like a foothold, a faithful good word.  
 She is gladness itself, an honest, true laughter,  
 her warmth breathes inspiration into success.
 
@@ -36,8 +36,8 @@ she is his song, that sounds within a dream.
 With her each daybreak is a luminous flight,  
 she is his strength, that leads him on toward eternity.
 
-*— And what does her name mean unto the children?  
-*— Ivan through his mother came to know his strength,  
+*— And what does her name mean to the children?*  
+— Ivan through his mother came to know his strength,  
 like morning — he is bright, like wind — he is bold.  
 And Elizaveta finds in her her wings,  
 her beauty is like a luminous, far frontier.
@@ -47,8 +47,8 @@ she'll teach them how to shine out like a star.
 In her warm tenderness the green shoots open,  
 she is their beginning, their essence, their fate.
 
-*— And what will You say of her, of her beauty?  
-*— In her sincerity the soul shines through,  
+*— And what will You say of her, of her beauty?*  
+— In her sincerity the soul shines through,  
 she is like the spring, both warm and fresh.  
 Her laughter is a song, her gaze is like the light,  
 no beauty in the world can equal hers.
@@ -59,7 +59,7 @@ In all the cares she carries she reflects
 that everlasting truth that's given to the world.
 
 And in her honest heart there dwells the grace  
-in which it is so simple to forgive, to take.  
+in which it is so simple to forgive and accept.  
 Her kindness is a bridge across the age,  
 in her the light of my three people is reflected.
 

@@ -14,7 +14,7 @@ translation:
 ***I. The Calling***
 
 O Holy Spirit, breath of Life,  
-You are the dawn-light in the dense of night,  
+You are dawn-light in the thickest night,  
 like a ray of sun above the abyss of thought,  
 like rain in the desert, the peace of my heart.
 
@@ -36,8 +36,8 @@ as the earth is thirsting for the rain of spring!
 ***II. The Longing***  
 I tear my heart, but I am barren,  
 like a vine that is dead without a root.  
-O Spirit, kindle within me Yourself,  
-the fire of Love, that is my head!
+O Spirit, You Yourself kindle in me  
+the Fire of Love, my ruling flame!
 
 I — am restlessness, I — am dread,  
 I — a day without sun, a night without sleep.  
@@ -67,7 +67,7 @@ O, Spirit of Love, that sets all ablaze,
 enter the temple, fulfill the day!
 
 You whisper to me, but it is not enough,  
-I wait — to come as storm, as whirlwind!  
+I wait for You as storm, as whirlwind!  
 You know that I want it otherwise —  
 I am not off to the side, I am not quiet!
 
@@ -85,12 +85,12 @@ rush to me, they burn in me!
 
 I cannot! I will not be able!  
 O, Spirit, You are devouring me!  
-O… ?! You — are "I," and I — am You,  
+O… ?! You are "I," and I am You,  
 and the whole of "I" — into Light I disappear!?
 
 You are within me! O, glory be to God!  
 I have become breath, I have become wind,  
-I have become a candle in the Maker's hand,  
+I have become a candle in the Creator's hand,  
 I have become a river, I have become Light!
 
 … I was nothing — now I am a Song,  
@@ -181,7 +181,7 @@ You — are not above the cloud-borne stream.
 You — are in every breath, You — are in the blood,  
 You — are even in the heart that has gone still.
 
-***IX. The Eternity of Merging***
+***IX. Eternal Union***
 
 Now I am — eternity, I live,  
 now there is for me no end and no border!  
@@ -190,11 +190,11 @@ as light dissolves into the dawn.
 
 I was a bridegroom, I called for the bride,  
 but the two of us are no more.  
-I — am You, You — am I, and we forever  
+I am You, You are I, and we forever  
 are Light, are Life, are the Highest Light!
 
 **The End?**  
 O, no! No, there is no end,  
-no words that are able to **describe!  
-**There is only Light, there is only Flame,  
+no words can **describe it!**  
+There is only Light, there is only Flame,  
 there is only the Spirit — and **grace!..**

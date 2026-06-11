@@ -18,7 +18,7 @@ You make the heart grow strong in days of woe.
 
 Beneath the shelter of Your wings is rest,  
 where the heart finds grace and is made whole.  
-You bid Your angels carry forth the vow,  
+You command Your angels to keep their charge,  
 that evil dare not tempt the soul to fall.
 
 And should the dark of enmity prepare its blow,  
