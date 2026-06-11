@@ -17,10 +17,11 @@ prompt + orphan labels from the legacy tree, and the paid 300-line acquire run (
   with docx/paragraph/line **hash rails**; functional-core / imperative-shell with `store.py` the only
   IO edge. Replaced the old intent-classifier pipeline (a landmine field).
 - **Interpretable student** — logistic, φ-only, book-held-out OOF; **run-smoothing α=0.75** (a
-  composable layer). ⚠️ Under the recency-resolved truth (see "ONE truth store") the student is
-  markedly weaker than the old ~0.96 claim: **0.844 CV balanced-acc / 0.867 contested** — the
-  resolved lines are φ-prose-shaped but human-lineated, so they poison the prose boundary
-  (prose_f1 0.91 → 0.71). Honest number; the active-learning loop is what closes it.
+  composable layer). Under the FIXED-RENDER re-adjudicated truth (see "RE-ADJUDICATED truth"):
+  **0.929 CV balanced-acc / 0.954 contested** (prose_f1 0.854, macro_f1 0.914; clears the 0.852
+  majority plain-acc again). The recency-era dip (0.844/0.867, prose_f1 0.71) was the render-bug
+  contamination — the "φ-prose-shaped but human-lineated" lines WERE prose; re-judged on the fixed
+  render, truth and student moved together.
 - **Reproducible physics** — `fill`/`wraps` features measured with a **vendored, hash-pinned Liberation
   Serif** (`src/lineation_core/vendor/`), with a drift-guard vs the live LibreOffice; packaged into the
   wheel/sdist (clone-build-run works).
@@ -62,42 +63,51 @@ prompt + orphan labels from the legacy tree, and the paid 300-line acquire run (
   `holdout` human labels — 82 homed, 1 dropped (`ru:33:894.0` — a legacy idx written as an
   ordinal; the line is unmapped `ru:33:9000894.0` in the corpus). A study manifest pins
   `eval_set_sha256` (membership) AND `truth_sha256` (the joined truth as scored).
-- **RECENCY-RESOLVED truth (2026-06-11)** — the adjudication passes overrule each other; the
-  owner's precedence rule is **latest-mtime human verdict wins** (the export files' mtimes are
-  the original adjudication times; verified spread Jun 1 12:25 → Jun 3 21:54, corroborated by
-  embedded `completedAt`). The unification had reconciled the double-judged lines toward the
-  STALE side; **21 labels were corrected** (16 trainable + 5 holdout; 18 →lineated, 3 →prose):
-  b19:8155→prose, b23:933/935→prose, b28:1697-99, b30:17/18, b32:30513, b33:891/893/895/897/898
-  (holdout), b37:414.1, b41:2247, b66:55-59 →lineated. Each corrected row is
-  `audit_status: recency_resolved` with the winning export + mtime, the `overturned` prior and
-  the full pass history in `provenance`. Join was by normalized text + `line_text_hash` rails
-  (legacy `idx` untrusted — the same line appears under different idx spaces across exports).
-  ⚠️ `ru:37:414.1` is the one judgment call: the latest verdict (queue-audit 21:40, lineated)
-  was never overruled, but the 21:54 stage12 ingest recorded it as an audit disagreement and
-  REOPENED `g05_b37` (render-bug note) instead of folding it — applied latest-wins; re-adjudicate
-  on a fixed render if the reopen was meant as a veto. Contested baseline under this truth:
-  **0.941** for the stale-trained student re-scored (the review's number, confirmed exactly:
-  0.9412) and **0.867** retrained on the corrected labels — the committed lock. No committed
+- **RE-ADJUDICATED truth (2026-06-11, supersedes the recency resolution)** — recency
+  (latest-mtime human verdict wins; mtimes verified Jun 1 12:25 → Jun 3 21:54, corroborated by
+  embedded `completedAt`) resolved the 21 double-judged lines, but it was CONTAMINATED: most of
+  the winning lineated verdicts were cast while the OLD prose render mangled multi-line/
+  enumerated content into one paragraph (fixed in IR `f80ff63`) — the human's own notes say so
+  ("prose renderer mangled it into a single p, so hard to say", "I lean lineated because that's
+  literally it on the docx screenshot", "note that prose rendering or IR pipeline has a bug").
+  All 21 rows were re-judged on the FIXED render, in order: fixed-render verdict
+  (`docx_inspect.lineation_decisions`, reference not ground truth), docx source structure,
+  the book/SECTION convention (the human's stated tiebreak), and the bug-independent part of
+  the human's note. Outcome: **17 → prose** (b28:1697-99, b30:17/18, b32:30513, b37:414.1,
+  b66:55-59 trainable; b33:891/893/895/897/898 holdout) and **4 confirmed** (b19:8155 +
+  b23:933/935 stay prose; **b41:2247 stays lineated** — its note's in-sentence-break punchline +
+  section-convention reasoning is genuine and bug-independent, the only verdict that survives
+  the render fix). Each row: `audit_status: readjudicated_fixed_render`, displaced label in
+  `provenance.overturned`, basis in `provenance.readjudication` (+ `fixed_render`,
+  `section_convention`), full pass history retained. `ru:37:414.1` (the flagged judgment call)
+  is hereby settled: the queue-audit lineated flip was the bug compensation; the parable body
+  is prose like its gold siblings 410.1/412.1/416.1. Contested baseline under this truth:
+  **0.954** retrained (the recency-era 0.867 lock was the contamination's cost). No committed
   experiment manifest pins `truth_sha256` (all predate the pin), so none needed recomputing; the
   `experiments/` scorecards are historical pre-fix numbers.
+  ⚠️ FLAG for the `pancratius/ir` owner (read-only here): on the fixed render `ru:41:2247`
+  lowers as prose while the identically-shaped offer lines 2237/2259 in the same lineated
+  region lower as lineated — an importer inconsistency worth a look, NOT patched from here.
 - **The acquire set** — `annotations/selections/acquire.json`: 300 least-confident lines, **≤40/book**
-  (19 books, broad), razor-uncertain (margin max 0.011).
+  (19 books, broad), razor-uncertain (margin max 0.011). ⚠️ Selected under the recency-era
+  (contaminated) student; re-derive from the re-adjudicated-truth student before the paid run.
 
 ## SETTLED result — which decision policy
-Replay on the 529 aligned lines under the RECENCY-RESOLVED truth (candidate-composite vote artifact):
+Replay on the 529 aligned lines under the RE-ADJUDICATED truth (candidate-composite vote artifact;
+68 prose / 461 lineated):
 
     policy            balAcc  autoProseCap  P->L  humanRt
-    legacy(2,0.7)      0.947   58/59          1    39       ← still the pick, no longer free
-    unanimous          0.957   0.729          0    157
-    equal_majority     0.929   58/59          1    1
+    legacy(2,0.7)      0.958   67/68          1    39       ← still the pick, still not free
+    unanimous          0.969   0.750          0    157
+    equal_majority     0.938   67/68          1    1
 
-**Legacy anchor-led (min_core_agree=2, conf_floor=0.7)** stays the live policy, but the recency fix
-changed its headline: it now gives up **~0.010 balanced-acc** to unanimous and makes **one**
-prose→lineated false accept (a line the panel called lineated confidently; the latest human pass
-settled prose) for the 4× human-load cut. The old "same accuracy, zero prose-mislabeled, all 63
-prose captured" claim was an artifact of the stale truth. Re-examine if prose false-accepts are
-costlier than load. **Caveat:** settled on the *historical* protocol; monitor on the future
-page-only/live protocol.
+**Legacy anchor-led (min_core_agree=2, conf_floor=0.7)** stays the live policy; the re-adjudication
+lifts every policy's accuracy (the panel had been scored against contaminated prose→lineated flips
+it rightly called prose) but preserves the trade-off shape: legacy gives up **~0.010 balanced-acc**
+to unanimous and makes **one** prose→lineated false accept for the 4× human-load cut. The old
+"same accuracy, zero prose-mislabeled, all prose captured" claim was an artifact of the stale
+truth. Re-examine if prose false-accepts are costlier than load. **Caveat:** settled on the
+*historical* protocol; monitor on the future page-only/live protocol.
 
 ## What we TRIED and REJECTED (don't re-tread)
 - **Briefs v1/v2/v3** — only slid the prose/lineated threshold. **v6/v7/v8** — later experiments, NEVER
@@ -173,8 +183,9 @@ page-only/live protocol.
      never training. (RESOLVED for the contested slice: its 83 store-orphaned labels are homed in
      `labels.jsonl` as `holdout` eval-only rows — see "ONE truth store" above; the wider guardrail
      batches beyond the contested membership remain unfolded.) Where a guardrail/audit pass
-     re-judged an ALREADY-LABELED line, recency precedence applies (see "RECENCY-RESOLVED truth");
-     the stage12 audit's one disagreement (`g05_b37|392.1`) is resolved there. (Mapping is by
+     re-judged an ALREADY-LABELED line, recency precedence applies — qualified by the fixed-render
+     re-adjudication (see "RE-ADJUDICATED truth"); the stage12 audit's one disagreement
+     (`g05_b37|392.1`) is settled there (prose). (Mapping is by
      NORMALIZED exact text — strip `*` md emphasis, collapse whitespace — to the clean-room line,
      then carry its `line_text_hash`; NOT a hash join, and the legacy `idx` is NOT trusted. The
      book-64 text collisions disambiguate by `block_index==idx` / `src_ordinal==idx` agreement.)

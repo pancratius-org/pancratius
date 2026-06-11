@@ -12,9 +12,9 @@ def test_aligned_set_join_locked():
     # 529 = the historical 515 + 14 voted lines whose human labels lived only in the contested
     # eval set until they were homed in labels.jsonl (holdout) — a deliberate re-lock.
     assert a.n_total == 529                            # lines with BOTH a label and >=1 vote
-    # 59/470 after the recency resolution (latest-mtime human pass wins): 11 aligned lines went
-    # prose→lineated and 3 lineated→prose.
-    assert a.n_prose == 59 and a.n_lineated == 470     # the imbalance surfaced up front
+    # 68/461 after the fixed-render re-adjudication: 9 aligned lines the recency pass had flipped
+    # prose→lineated on render-bug verdicts were re-judged prose on the fixed render (f80ff63).
+    assert a.n_prose == 68 and a.n_lineated == 461     # the imbalance surfaced up front
     assert a.n_prose + a.n_lineated == a.n_total
     # every aligned line has truth, >=1 vote, and a difficulty stratum.
     assert all(ln.votes and ln.truth in ("prose", "lineated") for ln in a.lines)

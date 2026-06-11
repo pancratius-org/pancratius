@@ -4,8 +4,8 @@
   - the TOML config loader + the pure replay/score on small synthetic data (fast, exact);
   - the HEADLINE LOCK on the REAL committed aligned set (~515 lines) for the three example policies,
     asserting the better-or-worse FINDING as robust directional invariants (legacy routes far less
-    than unanimous; legacy is at least as accurate as the equal-majority control; legacy makes ZERO
-    prose→lineated false accepts) plus that the policies are genuinely RANKABLE (they diverge on >30
+    than unanimous; legacy is at least as accurate as the equal-majority control; legacy makes ONE
+    prose→lineated false accept) plus that the policies are genuinely RANKABLE (they diverge on >30
     lines), rather than brittle exact counts the data could legitimately shift.
 """
 from __future__ import annotations
@@ -144,33 +144,33 @@ def test_real_policy_comparison_locks_the_finding():
     assert unanimous.load.human_routed - legacy.load.human_routed > 30
     assert equal.accept.n_accepted - legacy.accept.n_accepted > 30
 
-    # finding 1: legacy routes FAR LESS human work than unanimous. Under the recency-resolved
-    # truth this is no longer free: legacy gives up ~0.010 balanced acc to unanimous
-    # (0.947 vs 0.957) for the 4× load cut — a real trade-off, locked as such.
+    # finding 1: legacy routes FAR LESS human work than unanimous, and gives up ~0.010 balanced
+    # acc to unanimous (0.958 vs 0.969 under the fixed-render re-adjudicated truth) for the 4×
+    # load cut — the same real trade-off the recency-era numbers showed (0.947 vs 0.957).
     assert legacy.load.human_routed * 3 < unanimous.load.human_routed
-    assert legacy.accept.balanced_acc == pytest.approx(0.947, abs=0.01)
-    assert unanimous.accept.balanced_acc == pytest.approx(0.957, abs=0.01)
+    assert legacy.accept.balanced_acc == pytest.approx(0.958, abs=0.01)
+    assert unanimous.accept.balanced_acc == pytest.approx(0.969, abs=0.01)
 
     # finding 2: legacy is at least as accurate as the equal-majority control, with fewer false accepts.
     assert legacy.accept.balanced_acc >= equal.accept.balanced_acc
     assert legacy.accept.false_accepts < equal.accept.false_accepts
 
-    # finding 3: prose capture is near-total but NOT perfect under the recency-resolved truth —
-    # legacy auto-accepts ONE true-prose line as lineated (58/59 captured; the panel was
-    # confidently wrong on a line a later human pass settled as prose). Routed prose stays zero.
+    # finding 3: prose capture is near-total but NOT perfect — legacy auto-accepts ONE true-prose
+    # line as lineated (67/68 captured; the panel was confidently wrong on a line the human
+    # settled as prose). Routed prose stays zero.
     assert legacy.accept.false_accept_prose_as_lineated == 1
-    assert legacy.capture.auto_prose_capture == pytest.approx(58 / 59)
+    assert legacy.capture.auto_prose_capture == pytest.approx(67 / 68)
     assert legacy.capture.routed_prose == 0
     # unanimous's accept-SET recall reads 1.0, but it ROUTES most prose away — the global capture
     # exposes that gap, which is exactly why accepted_*_recall must not be read as total capture.
     assert unanimous.accept.accepted_prose_recall == pytest.approx(1.0)
     assert unanimous.capture.auto_prose_capture < 0.9 and unanimous.capture.routed_prose > 0
 
-    # the measured shape under the recency-resolved truth (robust bands, not brittle counts).
-    assert 470 <= legacy.accept.n_accepted <= 490
-    assert legacy.accept.acc == pytest.approx(0.920, abs=0.02)
+    # the measured shape under the fixed-render re-adjudicated truth (robust bands, not brittle counts).
+    assert 480 <= legacy.accept.n_accepted <= 500
+    assert legacy.accept.acc == pytest.approx(0.939, abs=0.02)
     assert equal.accept.n_accepted >= 510
-    assert equal.accept.acc == pytest.approx(0.886, abs=0.02)
+    assert equal.accept.acc == pytest.approx(0.903, abs=0.02)
 
     # both strata are scored in the per-stratum breakdown.
     assert set(legacy.by_stratum) == {"contested", "easy"}

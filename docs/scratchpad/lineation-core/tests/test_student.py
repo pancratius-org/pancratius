@@ -56,19 +56,20 @@ def test_cv_is_book_grouped_no_leakage(ds):
 
 
 def test_locked_cv_number(res):
-    """Under the recency-resolved truth the φ-only student is markedly weaker: 13 trainable lines
-    flipped prose→lineated are φ-prose-shaped (wraps/fill say prose, the latest human pass says
-    lineated), which poisons the prose boundary — prose_f1 0.91 → 0.71. Locked honestly; closing
-    this gap is the active-learning loop's job, not a metric to massage."""
+    """Under the FIXED-render re-adjudicated truth the prose boundary recovers: the 12 trainable
+    lines the recency pass had flipped prose→lineated were render-bug verdicts (the old prose
+    render mangled multi-line content into one paragraph), not φ-noise — re-judged prose, the
+    poisoning vanishes (prose_f1 0.71 → 0.85, balanced 0.844 → 0.929). The old "the flips are
+    φ-prose-shaped but human-lineated" story was the contamination talking."""
     assert res.n == 620
     assert res.n_books == 26
-    assert res.balanced_accuracy == pytest.approx(0.844, abs=0.01)
-    assert res.macro_f1 == pytest.approx(0.833, abs=0.01)
-    assert res.prose_f1 == pytest.approx(0.711, abs=0.02)
-    # all-lineated scores 0.5 balanced; the student is far from degenerate even after the hit —
-    # but its balanced acc now sits BELOW the majority PLAIN acc (0.844 < 0.871), surfaced here.
+    assert res.balanced_accuracy == pytest.approx(0.929, abs=0.01)
+    assert res.macro_f1 == pytest.approx(0.914, abs=0.01)
+    assert res.prose_f1 == pytest.approx(0.854, abs=0.02)
+    # all-lineated scores 0.5 balanced; the student now clears the majority PLAIN acc again
+    # (0.929 > 0.852) — the recency-era inversion was an artifact of the contaminated truth.
     assert res.balanced_accuracy > 0.5
-    assert res.balanced_accuracy < res.majority_baseline_acc
+    assert res.balanced_accuracy > res.majority_baseline_acc
 
 
 def test_zero_support_columns_reported_not_dropped(res, ds):
