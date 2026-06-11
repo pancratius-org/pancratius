@@ -348,11 +348,8 @@ number: 14                               # invariant identity; pairs across loca
 slug: 14-jacob-and-esau                  # per-locale ASCII slug
 title: "Jacob & Esau — what the story really says"
 lang: en
-description: |                           # mandatory; the FULL source description
-  The whole YouTube description, kept intact (paragraphs and links and all).
-  The scanner stores it whole — the model keeps the full message. The VIEW
-  decides how much to show: cards and SEO clamp it (`clampDescription`), the
-  video page renders it in full as paragraphs with linkified URLs.
+description: |                           # mandatory; editorial copy (SEO / cards / OG)
+  Authored copy describing the video.
 tags: [Bible, Apocalypse]                # like books; the scanner seeds these
                                          # from YouTube playlist titles.
 cover: ./cover.en.jpg                    # optional; falls back to RU
