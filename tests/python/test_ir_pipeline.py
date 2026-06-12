@@ -242,43 +242,43 @@ def test_dialogue_single_hard_break_segment_not_over_split() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_strip_formatting_artifacts_drops_whole_husk_paragraph() -> None:
+def test_strip_artifacts_drops_whole_husk_paragraph() -> None:
     husk = ir.Paragraph(inlines=[ir.Emphasis("strong", [ir.LineBreak()])])
-    assert scrub.strip_formatting_artifacts([husk]) == []
+    assert scrub.strip_artifacts([husk]) == []
 
 
-def test_strip_formatting_artifacts_removes_trailing_empty_emphasis_in_content() -> None:
+def test_strip_artifacts_removes_trailing_empty_emphasis_in_content() -> None:
     para = ir.Paragraph(inlines=[ir.Text("real text "), ir.Emphasis("strong", [ir.Text(" ")])])
-    out = scrub.strip_formatting_artifacts([para])
+    out = scrub.strip_artifacts([para])
     assert len(out) == 1
     assert lower._inlines_md(_para(out[0]).inlines, "ru").strip() == "real text"
 
 
-def test_strip_formatting_artifacts_hoists_boundary_break_out_of_emphasis() -> None:
+def test_strip_artifacts_hoists_boundary_break_out_of_emphasis() -> None:
     # Word styles the break run with the styled line; the break must leave the span
     # so the closing delimiter stays on the emphasized line.
     para = ir.Paragraph(inlines=[
         ir.Emphasis("emph", [ir.Text("— А что для Вадима Мария есть?"), ir.LineBreak()]),
         ir.Text("— Она — как опора."),
     ])
-    out = scrub.strip_formatting_artifacts([para])
+    out = scrub.strip_artifacts([para])
     assert lower._inlines_md(_para(out[0]).inlines, "ru") == (
         "*— А что для Вадима Мария есть?*\n— Она — как опора."
     )
 
 
-def test_strip_formatting_artifacts_keeps_break_of_break_only_emphasis() -> None:
+def test_strip_artifacts_keeps_break_of_break_only_emphasis() -> None:
     # `Emph([LineBreak])` between two verse lines: the husk goes, the break stays.
     para = ir.Paragraph(inlines=[
         ir.Text("строка раз"),
         ir.Emphasis("strong", [ir.LineBreak()]),
         ir.Text("строка два"),
     ])
-    out = scrub.strip_formatting_artifacts([para])
+    out = scrub.strip_artifacts([para])
     assert lower._inlines_md(_para(out[0]).inlines, "ru") == "строка раз\nстрока два"
 
 
-def test_strip_formatting_artifacts_drops_hidden_form_markers() -> None:
+def test_strip_artifacts_drops_hidden_form_markers() -> None:
     blocks: list[ir.Block] = [
         ir.Paragraph(inlines=[ir.Text("Н    ачало"), ir.SoftBreak(), ir.Text("формы")]),
         ir.Paragraph(inlines=[ir.Text("Конец формы")]),
@@ -288,13 +288,13 @@ def test_strip_formatting_artifacts_drops_hidden_form_markers() -> None:
         ir.Paragraph(inlines=[ir.Text("End"), ir.Text(" of "), ir.Text("Form")]),
     ]
 
-    assert scrub.strip_formatting_artifacts(blocks) == []
+    assert scrub.strip_artifacts(blocks) == []
 
 
-def test_strip_formatting_artifacts_keeps_real_form_prose() -> None:
+def test_strip_artifacts_keeps_real_form_prose() -> None:
     para = ir.Paragraph(inlines=[ir.Text("Начало формы жизни — не шаблон.")])
 
-    out = scrub.strip_formatting_artifacts([para])
+    out = scrub.strip_artifacts([para])
 
     assert len(out) == 1
     assert inline_plain(_para(out[0]).inlines) == "Начало формы жизни — не шаблон."
@@ -342,7 +342,7 @@ def test_strip_bare_bibliography_heading_keeps_real_section() -> None:
     assert endmatter.strip_bare_bibliography_heading(blocks) == blocks
 
 
-def test_strip_endmatter_sections_drops_tail_biblio_contacts_and_copyright() -> None:
+def test_strip_endmatter_drops_tail_biblio_contacts_and_copyright() -> None:
     blocks: list[ir.Block] = [
         ir.Heading(level=1, inlines=[ir.Text("Book")]),
         *[
@@ -357,7 +357,7 @@ def test_strip_endmatter_sections_drops_tail_biblio_contacts_and_copyright() -> 
         ir.Paragraph(inlines=[ir.Text("© Сергей Орехов (Панкратиус), 2025, 2026")]),
     ]
 
-    out = endmatter.strip_endmatter_sections(blocks)
+    out = endmatter.strip_endmatter(blocks)
 
     text = "\n".join(_block_texts(out))
     assert "body 19" in text
@@ -369,7 +369,7 @@ def test_strip_endmatter_sections_drops_tail_biblio_contacts_and_copyright() -> 
     assert "© Сергей" not in text
 
 
-def test_strip_endmatter_sections_keeps_mid_document_contact_section() -> None:
+def test_strip_endmatter_keeps_mid_document_contact_section() -> None:
     blocks: list[ir.Block] = [
         ir.Heading(level=1, inlines=[ir.Text("Book")]),
         *[
@@ -384,10 +384,10 @@ def test_strip_endmatter_sections_keeps_mid_document_contact_section() -> None:
         ],
     ]
 
-    assert endmatter.strip_endmatter_sections(blocks) == blocks
+    assert endmatter.strip_endmatter(blocks) == blocks
 
 
-def test_strip_endmatter_sections_drops_mid_document_bibliography_section() -> None:
+def test_strip_endmatter_drops_mid_document_bibliography_section() -> None:
     blocks: list[ir.Block] = [
         ir.Heading(level=1, inlines=[ir.Text("Book")]),
         ir.Paragraph(inlines=[ir.Text("body before")]),
@@ -397,7 +397,7 @@ def test_strip_endmatter_sections_drops_mid_document_bibliography_section() -> N
         ir.Paragraph(inlines=[ir.Text("body after")]),
     ]
 
-    assert _block_texts(endmatter.strip_endmatter_sections(blocks)) == [
+    assert _block_texts(endmatter.strip_endmatter(blocks)) == [
         "Book",
         "body before",
         "Next chapter",
