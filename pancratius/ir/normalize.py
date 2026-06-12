@@ -1914,4 +1914,25 @@ def normalize(
     if stop_before_lineation:
         return doc
     doc.blocks = verse_blocks(doc.blocks, lineation_overrides=lineation_overrides)
+    _check_overrides_held(doc.blocks, lineation_overrides or {})
     return doc
+
+
+def _check_overrides_held(blocks: list[ir.Block],
+                          overrides: Mapping[int, ir.LineationRegister]) -> None:
+    """Prove every prose-pinned ordinal stayed out of lineation — the seam has several fold
+    paths, so the FATE is asserted, not the mechanism. Limitation: a block with no source span
+    (an adapter-emitted LineBlock) is invisible here; the correction exporter cannot mint an
+    override for such an ordinal (it is uncovered), so only a hand-written sidecar could reach
+    that gap."""
+    pinned = {o for o, r in overrides.items() if r == "prose"}
+    if not pinned:
+        return
+    for b in blocks:
+        if not isinstance(b, (ir.LineatedBlock, ir.VerseBlock)) or b.source_span is None:
+            continue
+        if held := sorted(pinned & set(range(b.source_span.start, b.source_span.end + 1))):
+            raise RuntimeError(
+                f"lineation override not honored: ordinals {held} pinned to prose but lowered "
+                f"inside a {type(b).__name__} spanning "
+                f"{b.source_span.start}..{b.source_span.end}")

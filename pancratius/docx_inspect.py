@@ -458,7 +458,7 @@ def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
     }
 
 
-def lineation_decisions(docx: Path) -> dict[int, bool]:
+def lineation_decisions(docx: Path, *, apply_overrides: bool = True) -> dict[int, bool]:
     """THE production lineation verdict per source `w:p` ordinal.
 
     Runs the full import pipeline (``adapt`` → ``normalize``) and reads each
@@ -467,6 +467,11 @@ def lineation_decisions(docx: Path) -> dict[int, bool]:
     tables, labels, …), blank paragraphs, and ordinals whose provenance did not
     survive (no source span) are absent — score only on the covered ordinals and
     report the rest as uncovered, never guessed.
+
+    ``apply_overrides=False`` reads the importer's OWN verdict with the editorial
+    correction sidecar ignored — the baseline a correction exporter diffs truth
+    against (diffing against the corrected verdict would erase its own domain) and
+    an eval's view of the uncorrected ladder.
 
     This is the per-line ``prose``/``lineated`` surface the lineation gold set
     (``LineId(lang, book, src_ordinal, sub)``) joins against; every ``sub``
@@ -477,7 +482,7 @@ def lineation_decisions(docx: Path) -> dict[int, bool]:
 
     with tempfile.TemporaryDirectory(prefix="docx-lineation-") as td:
         doc = da.adapt(docx, Path(td))
-        normalize(doc, lineation_overrides=load_overrides(docx))
+        normalize(doc, lineation_overrides=load_overrides(docx) if apply_overrides else None)
 
     from pancratius.ir.normalize import VERSE_SHORT_LINE_MAX, inline_plain
 

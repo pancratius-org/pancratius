@@ -12,13 +12,14 @@ import pytest
 from lineation_core.evaluation import det_regression
 
 # (balanced_acc, prose_recall) floors per frozen membership — measured 2026-06-12 with the first
-# correction sidecars applied (importer + corrections IS the scored system), truncated to 6
-# decimals so the exact value passes and any real drop fails. prose_recall = 1.0 everywhere:
-# the trusted direction is perfect on gold; any false-lineated regression fails immediately.
+# correction sidecars applied (importer + corrections IS the scored system; holdout-derived
+# corrections are withheld so no slice scores its own answer), truncated to 6 decimals so the
+# exact value passes and any real drop fails. contested keeps one false-lineated: its correction
+# is holdout truth, exportable only post-E4.
 FLOORS = {
-    "det-gate": (0.972537, 1.0),
-    "reader_bench": (0.963483, 1.0),
-    "contested": (0.918960, 1.0),
+    "det-gate": (0.974431, 1.0),
+    "reader_bench": (0.969101, 1.0),
+    "contested": (0.916863, 0.989690),
     "prompt_structural": (0.812500, 1.0),
 }
 
