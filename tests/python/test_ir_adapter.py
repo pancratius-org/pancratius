@@ -516,6 +516,44 @@ def test_no_break_hyphen_paragraph_keeps_source_span(tmp_path: Path) -> None:
     assert para.source_span == ir.SourceSpan(0, 0)
 
 
+def _bordered_para(text: str, *sides: str, val: str = "single") -> str:
+    edges = "".join(f'<w:{side} w:val="{val}" w:sz="4"/>' for side in sides)
+    pbdr = f"<w:pPr><w:pBdr>{edges}</w:pBdr></w:pPr>" if sides else ""
+    return f"<w:p>{pbdr}<w:r><w:t>{text}</w:t></w:r></w:p>"
+
+
+def test_read_w_jc_classifies_border_kind(tmp_path: Path) -> None:
+    # The two editorially meaningful w:pBdr gestures: a full four-side box
+    # (framed/quoted canonical text) and a left-rule bar (set-apart inset).
+    # Other side combinations are "other"; val="none" sides do not count.
+    document = (
+        '<?xml version="1.0"?>'
+        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        + _bordered_para("boxed", "top", "bottom", "left", "right")
+        + _bordered_para("ruled", "left")
+        + _bordered_para("topped", "top")
+        + _bordered_para("noned", "top", "bottom", "left", "right", val="none")
+        + _bordered_para("plain")
+        + "</w:body></w:document>"
+    )
+    records = adapter.read_w_jc(_docx_from_document(tmp_path, document))
+    assert [r.border for r in records] == ["box", "rule", "other", "", ""]
+
+
+def test_reconcile_assigns_border_kind(tmp_path: Path) -> None:
+    para = adapter._block(_para(_str("set-apart inset passage")), adapter._Ctx())
+    assert isinstance(para, ir.Paragraph)
+    document = (
+        '<?xml version="1.0"?>'
+        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        + _bordered_para("set-apart inset passage", "left")
+        + "</w:body></w:document>"
+    )
+    records = adapter.read_w_jc(_docx_from_document(tmp_path, document))
+    adapter.reconcile_source([para], records)
+    assert para.border == "rule"
+
+
 # ---------------------------------------------------------------------------
 # C1: alignment is reconciled by CONTENT, not position — a collapsed list /
 # image-only paragraph before a right-aligned paragraph no longer drifts the zip.

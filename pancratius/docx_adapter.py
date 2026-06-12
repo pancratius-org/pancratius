@@ -113,7 +113,7 @@ class _SourceParagraph:
     spacing: dict[str, str] = field(default_factory=dict)
     indent: tuple[tuple[str, str], ...] = ()
     indented: bool = False
-    bordered: bool = False
+    border: ir.BorderKind = ""
     heading: bool = False
     thematic: bool = False
     source_span: ir.SourceSpan | None = None
@@ -205,6 +205,34 @@ def _w_val(el: ET.Element | None) -> str:
     return str(el.get(f"{W}val") or "")
 
 
+_BORDER_SIDES = ("top", "bottom", "left", "right")
+
+
+def border_kind(ppr: ET.Element | None) -> ir.BorderKind:
+    """The paragraph's `w:pBdr` gesture kind.
+
+    Reduced to the two side combinations that carry editorial meaning in this
+    corpus: a full four-side box ("box") and a left-rule-only bar ("rule").
+    `w:between`/`w:bar` edges and `val="none"` sides are not block-set-apart
+    gestures and do not count."""
+    pbdr = ppr.find(f"{W}pBdr") if ppr is not None else None
+    if pbdr is None:
+        return ""
+    sides = {
+        side
+        for side in _BORDER_SIDES
+        if (el := pbdr.find(f"{W}{side}")) is not None
+        and el.get(f"{W}val", "none") not in {"none", "nil"}
+    }
+    if not sides:
+        return ""
+    if len(sides) == 4:
+        return "box"
+    if sides == {"left"}:
+        return "rule"
+    return "other"
+
+
 def _style_chain(style: str, styles: dict[str, _StyleInfo]) -> list[_StyleInfo]:
     out: list[_StyleInfo] = []
     seen: set[str] = set()
@@ -279,7 +307,7 @@ def _source_paragraphs_join(a: _SourceParagraph, b: _SourceParagraph) -> bool:
         return False
     if a.heading or b.heading or a.thematic or b.thematic:
         return False
-    if a.indented or b.indented or a.bordered or b.bordered:
+    if a.indented or b.indented or a.border or b.border:
         return False
     if a.align != b.align:
         return False
@@ -418,7 +446,7 @@ def read_w_jc(docx: Path) -> list[_SourceParagraph]:
                         **_resolved_spacing(style, styles, direct_spacing),
                     },
                     indent=_indent_attrs(ppr),
-                    bordered=ppr.find(f"{W}pBdr") is not None if ppr is not None else False,
+                    border=border_kind(ppr),
                     heading=bool(re.fullmatch(r"(?:Heading\d+|[1-9])", direct_style)),
                     thematic=txt in {"***", "* * *", "---"},
                     source_span=source_span,
@@ -708,7 +736,8 @@ def reconcile_source(blocks: list[ir.Block], records: list[_SourceParagraph]) ->
     Each matched block gets its proven source span (provenance); a matched
     `Paragraph` additionally gets the OOXML metadata Pandoc drops: right/end `w:jc`
     (the sole alignment any downstream pass reads — signature/epigraph detection),
-    `indented`, and the visual-continuity `lineation_group` (only when unambiguous).
+    `indented`, the `w:pBdr` `border` kind (only when the consumed records agree
+    on one), and the visual-continuity `lineation_group` (only when unambiguous).
     Ambiguous or collapsed shapes stay unset rather than inventing a source.
 
     Returns `(spans_assigned, right_assigned)`.
@@ -730,6 +759,9 @@ def reconcile_source(blocks: list[ir.Block], records: list[_SourceParagraph]) ->
             continue
         if any(r.indented for r in consumed):
             block.indented = True
+        borders = {r.border for r in consumed if r.border}
+        if len(borders) == 1:
+            block.border = borders.pop()
         groups = {r.lineation_group for r in consumed if r.lineation_group is not None}
         if len(groups) == 1:
             block.lineation_group = groups.pop()
