@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -46,12 +47,13 @@ def _image_count(ast: dict) -> int:
 
     def walk(x: object) -> None:
         if isinstance(x, dict):
-            if x.get("t") == "Image":
+            node = cast("dict[str, object]", x)
+            if node.get("t") == "Image":
                 seen[0] += 1
-            for v in x.values():
+            for v in node.values():
                 walk(v)
         elif isinstance(x, list):
-            for v in x:
+            for v in cast("list[object]", x):
                 walk(v)
 
     walk(ast.get("blocks", []))
@@ -65,11 +67,12 @@ def test_pandoc_recovers_images_from_a_generic_prefix_docx(tmp_path: Path) -> No
 
 
 def _body_words(docx: Path, media: Path) -> list[str]:
+    from pancratius import ir
     from pancratius.ir.normalize import inline_plain
 
     doc = da.adapt(docx, media)
     text = " ".join(inline_plain(b.inlines) for b in doc.blocks
-                    if hasattr(b, "inlines") and b.inlines)
+                    if isinstance(b, ir.Paragraph) and b.inlines)
     return text.split()
 
 

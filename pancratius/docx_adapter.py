@@ -98,17 +98,13 @@ def _needs_canonicalization(bindings: Mapping[str, str]) -> bool:
 
 def _reserialize_canonical(document_xml: bytes) -> bytes:
     """Re-serialize `document.xml` forcing conventional prefixes for the drawing URIs. The
-    URIs — and therefore the meaning — are unchanged; only prefixes move. `register_namespace`
-    mutates ET module-global state, so the map is snapshotted and restored: this function is
-    transparent to every other ET serializer in the package."""
-    saved = dict(ET._namespace_map)   # the global register_namespace mutates — restore it after
-    try:
-        for uri, prefix in _CANONICAL_NS.items():
-            ET.register_namespace(prefix, uri)
-        return ET.tostring(ET.fromstring(document_xml), encoding="UTF-8", xml_declaration=True)
-    finally:
-        ET._namespace_map.clear()
-        ET._namespace_map.update(saved)
+    URIs — and therefore the meaning — are unchanged; only prefixes move. Per the package's
+    register-before-serialize convention (`docx_render`, `docx_outline`), the canonical prefixes
+    are registered immediately before `tostring`; they are the STANDARD OOXML prefixes, so the
+    last-wins global registry only ever yields conventional, valid XML for any later serializer."""
+    for uri, prefix in _CANONICAL_NS.items():
+        ET.register_namespace(prefix, uri)
+    return ET.tostring(ET.fromstring(document_xml), encoding="UTF-8", xml_declaration=True)
 
 
 def _canonical_pandoc_input(docx: Path, work_dir: Path) -> Path:
