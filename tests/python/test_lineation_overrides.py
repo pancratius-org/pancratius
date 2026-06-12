@@ -158,7 +158,7 @@ def test_lineation_decisions_honor_the_sidecar(tmp_path: Path) -> None:
     assert all(after.get(o) is True for o in (1, 2, 3))
 
 
-def test_mid_run_override_demotes_the_whole_unit_today():
+def test_mid_run_override_demotes_the_whole_unit_today() -> None:
     # Splitting at row 11 leaves [10] (single line, <2) and [12,13] (no boundary/gap evidence):
     # one human verdict on one row demotes its neighbours too — the conservative consequence,
     # pinned here so a future re-qualification of remnants is a deliberate change.
@@ -166,7 +166,7 @@ def test_mid_run_override_demotes_the_whole_unit_today():
     assert not any(isinstance(b, ir.LineatedBlock) for b in out)
 
 
-def test_fate_assertion_catches_an_unhonored_override():
+def test_fate_assertion_catches_an_unhonored_override() -> None:
     blocks = [ir.LineatedBlock(stanzas=[[[ir.Text("строка")]]],
                                source_span=ir.SourceSpan(start=5, end=7))]
     with pytest.raises(RuntimeError, match="not honored"):
@@ -179,11 +179,11 @@ def test_loader_rejects_duplicate_and_noncanonical_keys(tmp_path: Path) -> None:
     _write_docx(docx, ["Один.", "Два."])
     sha = paragraph_sha("Два.")
     p = overrides_path(docx)
-    p.write_text('{"1": {"register": "prose", "text_sha": "%s"}, '
-                 '"1": {"register": "prose", "text_sha": "%s"}}' % (sha, sha))
+    p.write_text(f'{{"1": {{"register": "prose", "text_sha": "{sha}"}}, '
+                 f'"1": {{"register": "prose", "text_sha": "{sha}"}}}}')
     with pytest.raises(ValueError, match="duplicate"):
         load_overrides(docx)
-    p.write_text('{"01": {"register": "prose", "text_sha": "%s"}}' % sha)
+    p.write_text(f'{{"01": {{"register": "prose", "text_sha": "{sha}"}}}}')
     with pytest.raises(ValueError, match="canonical"):
         load_overrides(docx)
     p.write_text('[1, 2]')
