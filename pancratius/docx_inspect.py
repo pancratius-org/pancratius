@@ -247,12 +247,23 @@ def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", _TAG_RE.sub("", text)).strip()
 
 
+def _block_kind_name(block: ir.Block) -> str:
+    """The inspector's kind vocabulary. External tooling joins on these names, so
+    they are derived from the register, not the node class: a verse-registered
+    `LineatedBlock` is "VerseBlock", a `QuoteBlock` is "BlockQuote"."""
+    if isinstance(block, ir.LineatedBlock):
+        return "VerseBlock" if block.register is ir.Register.VERSE else "LineatedBlock"
+    if isinstance(block, ir.QuoteBlock):
+        return "BlockQuote"
+    return type(block).__name__
+
+
 def _block_lines(block: ir.Block) -> list[str]:
     """The normalized reading lines a block contributes, for membership lookup."""
     from pancratius.ir.normalize import inline_plain
 
     match block:
-        case ir.LineatedBlock() | ir.VerseBlock():
+        case ir.LineatedBlock():
             return [_norm(inline_plain(line)) for stanza in block.stanzas for line in stanza]
         case ir.Signature():
             return [_norm(s) for s in block.lines]
@@ -324,7 +335,7 @@ def classify_blocks(docx: Path) -> BlockClassifications:
     kind_of: dict[str, set[str]] = {}
     by_source = _SourceClassificationBuilder()
     for block in doc.blocks:
-        name = type(block).__name__
+        name = _block_kind_name(block)
         for line in _block_lines(block):
             if line:
                 kind_of.setdefault(line, set()).add(name)
@@ -448,7 +459,7 @@ def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
     for block in blocks:
         span = block.source_span
         if span is not None:
-            by_source.add(name=type(block).__name__, span=span)
+            by_source.add(name=_block_kind_name(block), span=span)
     # `add()` already keys every ordinal a span covers, so `hits` is complete per-ordinal.
     hits = by_source.build()
     return {
@@ -514,12 +525,15 @@ def lineation_decisions(docx: Path) -> dict[int, bool]:
             return
         target: set[int] | None = None
         if isinstance(block, ir.LineatedBlock):
-            target = prose if hard_break_prose(block) else lineated
-        elif isinstance(block, ir.VerseBlock):
-            target = lineated
+            if block.register is ir.Register.VERSE:
+                target = lineated
+            else:
+                target = prose if hard_break_prose(block) else lineated
         elif isinstance(block, ir.Paragraph) and not block.empty:
             target = paragraph_verdict(block)
-        elif isinstance(block, ir.BlockQuote) and block.role in {"scripture", "inset"}:
+        elif isinstance(block, ir.QuoteBlock) and block.register in {
+            ir.Register.SCRIPTURE, ir.Register.INSET,
+        }:
             # The display-register pass wraps source paragraphs; their per-line
             # lineation truth must keep its coverage (the lineation gold set
             # joins on these ordinals).

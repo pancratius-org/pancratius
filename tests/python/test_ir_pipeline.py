@@ -12,7 +12,7 @@ detection, ordered-list start preservation, and the generated footnote appendix.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
+from typing import Literal, TypeIs
 
 import pancratius.ir.lower as lower
 import pancratius.ir.normalize as normalize
@@ -39,9 +39,13 @@ def _first_image_alt(block: ir.Block) -> str:
     return img.alt
 
 
-def _blockquote(block: ir.Block) -> ir.BlockQuote:
-    assert isinstance(block, ir.BlockQuote)
+def _blockquote(block: ir.Block) -> ir.QuoteBlock:
+    assert isinstance(block, ir.QuoteBlock)
     return block
+
+
+def _is_verse(block: ir.Block) -> TypeIs[ir.LineatedBlock]:
+    return isinstance(block, ir.LineatedBlock) and block.register is ir.Register.VERSE
 
 
 def _block_texts(blocks: list[ir.Block]) -> list[str]:
@@ -304,10 +308,10 @@ def test_scrub_ai_alt_uses_production_constant_and_recurses_containers() -> None
     frag = AI_ALT_FRAGMENTS[0]
     img = ir.ImageInline(src="x.png", alt=f"{frag} extra")
     para = ir.Paragraph(inlines=[img])
-    container = ir.BlockQuote(blocks=[ir.Paragraph(inlines=[ir.ImageInline(src="y.png", alt=frag)])], role="_div")
+    container = ir.QuoteBlock(blocks=[ir.Paragraph(inlines=[ir.ImageInline(src="y.png", alt=frag)])])
     out = normalize.scrub_ai_alt([para, container])
     assert _first_image_alt(out[0]) == ""  # scrubbed in a top-level paragraph
-    assert _first_image_alt(_blockquote(out[1]).blocks[0]) == ""  # inside an unwrapped Figure/Div
+    assert _first_image_alt(_blockquote(out[1]).blocks[0]) == ""  # inside a quote container
 
 
 def test_scrub_ai_alt_keeps_real_alt() -> None:
@@ -461,8 +465,9 @@ def test_verse_block_from_short_lineated_run_after_named_heading() -> None:
         ir.Paragraph(inlines=[ir.Text("и не гаснет")]),
     ]
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
-    assert verse and verse[0].role == "verse"
+    verse = [b for b in out if _is_verse(b)]
+    assert verse and isinstance(verse[0], ir.LineatedBlock)
+    assert verse[0].register is ir.Register.VERSE
     lines = [normalize.inline_plain(line) for s in verse[0].stanzas for line in s]
     assert lines == ["Свет мой тихий", "в сердце горит", "и не гаснет"]
 
@@ -477,13 +482,13 @@ def test_lineation_stage_builds_lineated_block_before_register_promotion() -> No
     lineated = normalize.lineated_blocks(blocks)
     assert isinstance(lineated[1], ir.LineatedBlock)
     assert lineated[1].evidence == ir.LineationEvidence(inferred_source_rows=True)
-    assert not any(isinstance(b, ir.VerseBlock) for b in lineated)
+    assert not any(_is_verse(b) for b in lineated)
 
     promoted = normalize.verse_blocks(blocks)
-    assert isinstance(promoted[1], ir.VerseBlock)
+    assert _is_verse(promoted[1])
 
     staged_promoted = normalize.verse_blocks(lineated)
-    assert isinstance(staged_promoted[1], ir.VerseBlock)
+    assert _is_verse(staged_promoted[1])
 
 
 def test_register_promotion_does_not_create_lineation() -> None:
@@ -511,8 +516,8 @@ def test_lineation_stage_preserves_source_row_inference_for_register_promotion()
 
     assert isinstance(lineated[0], ir.LineatedBlock)
     assert lineated[0].evidence == ir.LineationEvidence(inferred_source_rows=True)
-    assert [type(b).__name__ for b in direct] == ["VerseBlock"]
-    assert [type(b).__name__ for b in staged] == ["VerseBlock"]
+    assert len(direct) == 1 and _is_verse(direct[0])
+    assert len(staged) == 1 and _is_verse(staged[0])
 
 
 def test_lineation_stage_combines_source_spans() -> None:
@@ -628,7 +633,7 @@ def test_leading_blank_boundary_is_not_lineation_or_register_evidence() -> None:
 
     out = normalize.verse_blocks(blocks)
 
-    assert not any(isinstance(b, (ir.LineatedBlock, ir.VerseBlock)) for b in out)
+    assert not any(isinstance(b, ir.LineatedBlock) for b in out)
 
 
 def test_compact_strong_opener_callout_preserves_lineation_without_verse_register() -> None:
@@ -670,7 +675,7 @@ def test_indented_strong_opener_callout_stays_prose() -> None:
 
     out = normalize.verse_blocks(blocks)
 
-    assert not any(isinstance(b, (ir.LineatedBlock, ir.VerseBlock)) for b in out)
+    assert not any(isinstance(b, ir.LineatedBlock) for b in out)
 
 
 # ---------------------------------------------------------------------------
@@ -721,7 +726,7 @@ def test_softbreak_only_paragraph_stays_prose() -> None:
         ir.Paragraph(inlines=[ir.Text("Он не движется."), ir.SoftBreak(), ir.Text("Он просто светит.")]),
     ]
     out = normalize.verse_blocks(blocks)
-    assert not any(isinstance(b, ir.VerseBlock) for b in out)
+    assert not any(_is_verse(b) for b in out)
 
 
 def test_linebreak_in_emphasis_paragraph_becomes_verse() -> None:
@@ -734,7 +739,7 @@ def test_linebreak_in_emphasis_paragraph_becomes_verse() -> None:
         ])])
     blocks: list[ir.Block] = [verse_para()]
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
     assert verse, "an Emph-nested-LineBreak paragraph must be detected as verse"
     lines = [normalize.inline_plain(line) for s in verse[0].stanzas for line in s]
     assert lines == [
@@ -835,10 +840,11 @@ def test_lower_directional_span_keeps_dir_attribute() -> None:
 def test_lower_directional_span_in_verse_line() -> None:
     # The same bidi span survives the verse HTML-line path (verse blocks render
     # inlines to balanced HTML lines, not prose markdown).
-    vb = ir.VerseBlock(stanzas=[[[
+    vb = ir.LineatedBlock(stanzas=[[[
         ir.DirectionalSpan(direction="rtl", children=[ir.Text("יהוה")]),
-    ]]])
-    out = lower._verse_md(vb, "ru")
+    ]]], register=ir.Register.VERSE)
+    out = lower._lineated_md(vb, "ru")
+    assert out is not None
     assert '<span dir="rtl">יהוה</span>' in out
 
 
@@ -993,7 +999,10 @@ def test_lower_verse_block_emits_div_with_lines() -> None:
     # The cross-consumer canonical encoding: a blank line after `<div>` (so
     # CommonMark parses the inside), two TRAILING SPACES on every non-final stanza
     # line (the hard break), the final line bare, and a blank line before `</div>`.
-    vb = ir.VerseBlock(stanzas=[[[ir.Text("line one")], [ir.Text("line two")]]], role="verse")
+    vb = ir.LineatedBlock(
+        stanzas=[[[ir.Text("line one")], [ir.Text("line two")]]],
+        register=ir.Register.VERSE,
+    )
     body = lower.lower(ir.Document(blocks=[vb]), "ru")
     assert body == '<div class="lineated verse">\n\nline one  \nline two\n\n</div>\n'
 
@@ -1001,11 +1010,11 @@ def test_lower_verse_block_emits_div_with_lines() -> None:
 def test_lower_verse_block_markdown_emphasis_and_stanza_break() -> None:
     # Emphasis lowers to Markdown `*`/`**` (not HTML), stanzas are blank-line
     # separated, and a `***` separator stanza becomes a thematic-break line.
-    vb = ir.VerseBlock(stanzas=[
+    vb = ir.LineatedBlock(stanzas=[
         [[ir.Text("plain "), ir.Emphasis("strong", [ir.Text("bold")])]],
         [[ir.Text("***")]],
         [[ir.Emphasis("emph", [ir.Text("ital")]), ir.Text(" tail")]],
-    ], role="verse")
+    ], register=ir.Register.VERSE)
     body = lower.lower(ir.Document(blocks=[vb]), "ru")
     assert body == (
         '<div class="lineated verse">\n\n'
@@ -1020,9 +1029,9 @@ def test_lower_verse_block_escapes_leading_markdown_markers() -> None:
     # The blank line after `<div>` makes verse contents parse as Markdown. Literal
     # source lines that look like block syntax must therefore be escaped so they do
     # not become headings/lists and pollute the generated page ToC.
-    vb = ir.VerseBlock(stanzas=[
+    vb = ir.LineatedBlock(stanzas=[
         [[ir.Text("### not a heading")], [ir.Text("1. not a list")], [ir.Text("- not a bullet")]],
-    ], role="verse")
+    ], register=ir.Register.VERSE)
     body = lower.lower(ir.Document(blocks=[vb]), "ru")
     assert "\\### not a heading  " in body
     assert "1\\. not a list  " in body
@@ -1379,7 +1388,10 @@ def test_relative_and_anchor_and_mailto_links_preserved() -> None:
 
 def test_unsafe_link_in_verse_drops_target_keeps_text() -> None:
     # The verse/HTML lowering path must apply the same allowlist (it emits raw <a>).
-    vb = ir.VerseBlock(stanzas=[[[ir.Link([ir.Text("x")], "javascript:alert(1)")]]])
+    vb = ir.LineatedBlock(
+        stanzas=[[[ir.Link([ir.Text("x")], "javascript:alert(1)")]]],
+        register=ir.Register.VERSE,
+    )
     doc = ir.Document(blocks=[vb])
     body = lower.lower(doc, "ru")
     assert "javascript:" not in body
@@ -1495,6 +1507,13 @@ def test_container_forms_in_sync() -> None:
     from typing import get_args
 
     assert set(get_args(ir.ContainerInlineNode.__value__)) == set(ir.ContainerInline)
+
+
+def test_register_lowering_tables_total() -> None:
+    # Both register->emission registries must cover every Register member (a
+    # Mapping is not exhaustiveness-checked by the type checker, so pin it here).
+    assert set(lower.LINEATED_CLASS) == set(ir.Register)
+    assert set(lower.QUOTE_LOWERING) == set(ir.Register)
 
 
 def test_emph_tables_total() -> None:

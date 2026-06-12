@@ -181,7 +181,7 @@ def _collect_unit(
 
 
 def fold_lineation(blocks: list[ir.Block]) -> list[ir.Block]:
-    """Q1: fold source rows into `LineatedBlock`s, never `VerseBlock`s.
+    """Q1: fold source rows into `LineatedBlock`s, never deciding a register.
 
     Explicit/mechanical lineation is axiomatic: Pandoc `LineBlock`s already arrive
     as `LineatedBlock`, and paragraphs with hard `<w:br/>` boundaries are folded
@@ -213,7 +213,7 @@ def fold_lineation(blocks: list[ir.Block]) -> list[ir.Block]:
             i += 1
             continue
         if not isinstance(b, ir.Paragraph):
-            after_lineated = isinstance(b, (ir.LineatedBlock, ir.VerseBlock))
+            after_lineated = isinstance(b, ir.LineatedBlock)
             out.append(b)
             after_boundary = False
             boundary_group = None

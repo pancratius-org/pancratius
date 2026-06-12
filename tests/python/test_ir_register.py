@@ -29,9 +29,9 @@ def test_box_run_wraps_as_scripture() -> None:
         _p("after"),
     ]
     out = display_register_blocks(blocks)
-    quotes = [b for b in out if isinstance(b, ir.BlockQuote)]
+    quotes = [b for b in out if isinstance(b, ir.QuoteBlock)]
     assert len(quotes) == 1
-    assert quotes[0].role == "scripture"
+    assert quotes[0].register is ir.Register.SCRIPTURE
     assert len(quotes[0].blocks) == 2
     assert quotes[0].source_span == ir.SourceSpan(8, 9)
 
@@ -39,16 +39,16 @@ def test_box_run_wraps_as_scripture() -> None:
 def test_rule_run_wraps_as_inset() -> None:
     blocks: list[ir.Block] = [*_filler(8), _p("Set-apart passage.", "rule")]
     out = display_register_blocks(blocks)
-    quotes = [b for b in out if isinstance(b, ir.BlockQuote)]
+    quotes = [b for b in out if isinstance(b, ir.QuoteBlock)]
     assert len(quotes) == 1
-    assert quotes[0].role == "inset"
+    assert quotes[0].register is ir.Register.INSET
 
 
 def test_baseline_border_kind_is_left_alone() -> None:
     # A border kind covering >= 30% of text paragraphs is the book's own frame.
     blocks: list[ir.Block] = [_p(f"boxed {i}", "box") for i in range(5)] + _filler(5)
     out = display_register_blocks(blocks)
-    assert not any(isinstance(b, ir.BlockQuote) for b in out)
+    assert not any(isinstance(b, ir.QuoteBlock) for b in out)
 
 
 def test_interior_empty_continues_run_trailing_stays_out() -> None:
@@ -61,7 +61,7 @@ def test_interior_empty_continues_run_trailing_stays_out() -> None:
         _p("plain after"),
     ]
     out = display_register_blocks(blocks)
-    quotes = [b for b in out if isinstance(b, ir.BlockQuote)]
+    quotes = [b for b in out if isinstance(b, ir.QuoteBlock)]
     assert len(quotes) == 1
     assert len(quotes[0].blocks) == 3  # para, empty, para
     # The trailing empty did not enter the wrapper.
@@ -77,14 +77,14 @@ def test_adjacent_different_kinds_split() -> None:
         _p("ruled inset", "rule"),
     ]
     out = display_register_blocks(blocks)
-    roles = [b.role for b in out if isinstance(b, ir.BlockQuote)]
-    assert roles == ["scripture", "inset"]
+    registers = [b.register for b in out if isinstance(b, ir.QuoteBlock)]
+    assert registers == [ir.Register.SCRIPTURE, ir.Register.INSET]
 
 
 def test_scripture_lowering_is_classed_html_blockquote() -> None:
-    quote = ir.BlockQuote(
+    quote = ir.QuoteBlock(
         blocks=[_p("7 Се, грядет с облаками."), _p("8 Аминь.")],
-        role="scripture",
+        register=ir.Register.SCRIPTURE,
     )
     md = _block_md(quote, "ru")
     assert md is not None
@@ -95,9 +95,9 @@ def test_scripture_lowering_is_classed_html_blockquote() -> None:
 
 
 def test_inset_lowering_is_plain_quote_with_block_separators() -> None:
-    quote = ir.BlockQuote(
+    quote = ir.QuoteBlock(
         blocks=[_p("Первый абзац."), _empty(), _p("Второй абзац.")],
-        role="inset",
+        register=ir.Register.INSET,
     )
     md = _block_md(quote, "ru")
     assert md == "> Первый абзац.\n>\n> Второй абзац."
@@ -109,7 +109,7 @@ def test_quote_member_hard_breaks_become_display_lines() -> None:
         ir.LineBreak(),
         ir.Text("но во всех формах живу."),
     ])
-    quote = ir.BlockQuote(blocks=[para], role="inset")
+    quote = ir.QuoteBlock(blocks=[para], register=ir.Register.INSET)
     md = _block_md(quote, "ru")
     assert md == "> Я — не форма,  \n> но во всех формах живу."
 
@@ -120,7 +120,7 @@ def test_quote_member_lines_escape_leading_list_markers() -> None:
         ir.LineBreak(),
         ir.Text("- и тишина после."),
     ])
-    quote = ir.BlockQuote(blocks=[para], role="inset")
+    quote = ir.QuoteBlock(blocks=[para], register=ir.Register.INSET)
     md = _block_md(quote, "ru")
     assert md is not None
     # Neither line may parse as a Markdown list inside the quote.
@@ -133,7 +133,7 @@ def test_quote_member_soft_breaks_stay_prose() -> None:
         ir.SoftBreak(),
         ir.Text("перенесённая в источнике."),
     ])
-    quote = ir.BlockQuote(blocks=[para], role="inset")
+    quote = ir.QuoteBlock(blocks=[para], register=ir.Register.INSET)
     md = _block_md(quote, "ru")
     assert md == "> обычная строка, перенесённая в источнике."
 
