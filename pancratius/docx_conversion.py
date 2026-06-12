@@ -15,6 +15,7 @@ import pancratius.ir.lower as lower
 import pancratius.ir.normalize as normalize
 from pancratius import cross_refs, docx_adapter, footnotes, intent, ir, ooxml
 from pancratius.content_catalog import IndexHit, dump_frontmatter
+from pancratius.passes.pipeline import POEM_PASSES, Context, run
 from pancratius.paths import CACHE_ROOT
 from pancratius.poem_chrome import PoemChrome, clean_poem_chrome
 from pancratius.writeplan import AssetTransform, Diagnostic, PlannedAsset, Role, WriteOp, WritePlan
@@ -207,10 +208,7 @@ def convert_single_docx(
     if kind == "poem":
         # Verse end-to-end: skip heading demotion, bibliography lift, and verse
         # detection (the whole AST is verse); only light cleanup applies.
-        doc.blocks = normalize.drop_toc(doc.blocks)
-        doc.blocks = normalize.scrub_ai_alt(doc.blocks)
-        doc.blocks = normalize.thematic_breaks(doc.blocks)
-        doc.blocks = normalize.strip_formatting_artifacts(doc.blocks)
+        run(doc, Context(lang=lang), POEM_PASSES)
     else:
         normalize.normalize(doc, demote_levels=1, slug_lookup=title_index)
         intent.apply_verse_register(doc, lang=lang)

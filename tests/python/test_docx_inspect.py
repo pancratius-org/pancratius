@@ -299,7 +299,7 @@ def test_votability_mask_keys_per_ordinal_and_leaves_unmapped_absent(
         ir.VerseBlock(stanzas=[[[ir.Text("v")]]], source_span=ir.SourceSpan(2, 4)),
     ])
     monkeypatch.setattr(docx_inspect.da, "adapt", lambda _docx, _media: doc)
-    monkeypatch.setattr("pancratius.ir.normalize.normalize", lambda d, **_k: d)
+    monkeypatch.setattr("pancratius.docx_inspect.run", lambda d, _ctx, **_kw: d)
 
     mask = votability_mask(Path("source.docx"))
 
