@@ -208,10 +208,14 @@ def test_converter_fatal_diagnostic_blocks_the_write(
 
     real_assign = lower.assign_assets
 
-    def fatal_assign(doc: ir.Document, media_root: Path) -> list[lower.PlannedAsset]:
-        out = real_assign(doc, media_root)
-        doc.diagnostics.append(ir.Diagnostic("fatal", "import.image-unresolved", "synthetic fatal"))
-        return out
+    def fatal_assign(
+        doc: ir.Document, media_root: Path
+    ) -> tuple[ir.Document, list[lower.PlannedAsset]]:
+        out_doc, planned = real_assign(doc, media_root)
+        out_doc.diagnostics.append(
+            ir.Diagnostic("fatal", "import.image-unresolved", "synthetic fatal")
+        )
+        return out_doc, planned
 
     monkeypatch.setattr(lower, "assign_assets", fatal_assign)
 

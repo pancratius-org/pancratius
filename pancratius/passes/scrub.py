@@ -5,6 +5,7 @@ thematic breaks, empty/demoted headings, formatting artifacts."""
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 
 from pancratius import ir
 from pancratius.ir.inlines import inline_plain, walk_inlines
@@ -152,15 +153,15 @@ def _scrub_alt_in_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
 
 
 def scrub_ai_alt(blocks: list[ir.Block]) -> list[ir.Block]:
+    out: list[ir.Block] = []
     for b in blocks:
         # An `ImageBlock`'s alt is a block field the shared inline-descent can't
-        # reach; scrub it here. Every inline-list leaf is reached by the skeleton.
+        # reach; rebuild it here. Every inline-list leaf is reached by the skeleton.
         if isinstance(b, ir.ImageBlock):
-            if _is_ai_alt(b.alt):
-                b.alt = ""
+            out.append(replace(b, alt="") if _is_ai_alt(b.alt) else b)
         else:
-            ir.map_block_inlines(b, _scrub_alt_in_inlines)
-    return blocks
+            out.append(ir.map_block_inlines(b, _scrub_alt_in_inlines))
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -188,10 +189,10 @@ def thematic_breaks(blocks: list[ir.Block]) -> list[ir.Block]:
 def demote_headings(blocks: list[ir.Block], levels: int = 1) -> list[ir.Block]:
     if levels <= 0:
         return blocks
-    for b in blocks:
-        if isinstance(b, ir.Heading):
-            b.level = min(6, b.level + levels)
-    return blocks
+    return [
+        replace(b, level=min(6, b.level + levels)) if isinstance(b, ir.Heading) else b
+        for b in blocks
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -271,7 +272,7 @@ def strip_formatting_artifacts(blocks: list[ir.Block]) -> list[ir.Block]:
     out: list[ir.Block] = []
     for b in blocks:
         if isinstance(b, ir.Paragraph) and not b.empty:
-            b.inlines = _drop_empty_emphasis(_hoist_boundary_breaks(b.inlines))
+            b = replace(b, inlines=_drop_empty_emphasis(_hoist_boundary_breaks(b.inlines)))
             if _is_form_marker_text(inline_plain(b.inlines)):
                 continue
             if not inline_plain(b.inlines) and all(

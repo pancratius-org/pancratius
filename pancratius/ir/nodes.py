@@ -18,7 +18,7 @@ writer-only-mutation contract.
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import Literal, assert_never
 
@@ -180,9 +180,19 @@ type Inline = (
     | LineBreak | SoftBreak | DirectionalSpan | UnknownInline
 )
 
+
 # Shared lineated-block shape: stanzas -> display lines -> inline content.
-type DisplayLine = list[Inline]
-type Stanza = list[DisplayLine]
+@dataclass(frozen=True)
+class Line:
+    """One display line of a lineated run. `span` is the source ``w:p``
+    ordinal(s) the line came from; lines split from one hard-break paragraph
+    share that paragraph's span."""
+
+    inlines: list[Inline]
+    span: SourceSpan | None = None
+
+
+type Stanza = list[Line]
 type LineatedStanzas = list[Stanza]
 
 
@@ -254,7 +264,7 @@ class Register(StrEnum):
     VOICE = "voice"
 
 
-@dataclass
+@dataclass(frozen=True)
 class Heading:
     """A section heading at `level` (1..6)."""
 
@@ -263,9 +273,10 @@ class Heading:
     source_span: SourceSpan | None = None
 
 
-@dataclass
-class Paragraph:
-    """A body paragraph.
+@dataclass(frozen=True)
+class SourceFacts:
+    """The OOXML facts the frontend (extraction + reconciliation) records on a
+    paragraph; read-only afterwards.
 
     `align` is the OOXML `w:jc` alignment reconciled by the adapter (`""` for the
     default); it drives signature/epigraph detection. `lineation_group` is a
@@ -283,17 +294,51 @@ class Paragraph:
     rule), meaningful only against the book's own border baseline.
     """
 
-    inlines: list[Inline]
     align: str = ""
     empty: bool = False
     italic: bool = False
-    lineation_group: int | None = None
     indented: bool = False
     border: BorderKind = ""
+    lineation_group: int | None = None
+
+
+@dataclass(frozen=True)
+class Paragraph:
+    """A body paragraph: inlines plus the frontend-written `SourceFacts`.
+
+    The read-only properties below delegate to `facts` so readers stay
+    construction-agnostic."""
+
+    inlines: list[Inline]
+    facts: SourceFacts = field(default_factory=SourceFacts)
     source_span: SourceSpan | None = None
 
+    @property
+    def align(self) -> str:
+        return self.facts.align
 
-@dataclass
+    @property
+    def empty(self) -> bool:
+        return self.facts.empty
+
+    @property
+    def italic(self) -> bool:
+        return self.facts.italic
+
+    @property
+    def indented(self) -> bool:
+        return self.facts.indented
+
+    @property
+    def border(self) -> BorderKind:
+        return self.facts.border
+
+    @property
+    def lineation_group(self) -> int | None:
+        return self.facts.lineation_group
+
+
+@dataclass(frozen=True)
 class LineatedBlock:
     """A lineated run: stanzas of display lines, each line a list of inlines.
 
@@ -311,7 +356,7 @@ class LineatedBlock:
     source_span: SourceSpan | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class Signature:
     """A right-aligned authorial signature block (`<p class="signature">`)."""
 
@@ -319,7 +364,7 @@ class Signature:
     source_span: SourceSpan | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class Epigraph:
     """A right-aligned epigraph: a quote plus an attribution footer
     (`<blockquote class="epigraph">`)."""
@@ -329,7 +374,7 @@ class Epigraph:
     source_span: SourceSpan | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class DialogueLabel:
     """A canonicalized speaker label (lowered as `**Speaker:**`)."""
 
@@ -337,14 +382,14 @@ class DialogueLabel:
     source_span: SourceSpan | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class ThematicBreak:
     """A `***` thematic break."""
 
     source_span: SourceSpan | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class QuoteBlock:
     """A set-apart run of blocks. `register` selects the emission through
     `lower.QUOTE_LOWERING`: `ORDINARY` is the Pandoc-born Word-Quote-style quote
@@ -355,7 +400,7 @@ class QuoteBlock:
     source_span: SourceSpan | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class ListBlock:
     """An ordered or bullet list; each item is its own block list. `start` is the
     first ordinal of an ordered list (preserved from the source: Pandoc may split
@@ -368,7 +413,7 @@ class ListBlock:
     source_span: SourceSpan | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class CodeBlock:
     """A fenced code block."""
 
@@ -376,7 +421,7 @@ class CodeBlock:
     source_span: SourceSpan | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class Table:
     """A table. `rows` is structured cell content — rows of cells, each cell a list
     of inlines — so reading-content tables flow through the same AI-alt scrub and
@@ -393,7 +438,7 @@ class Table:
     source_span: SourceSpan | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class ImageBlock:
     """A block-level image."""
 
@@ -403,7 +448,7 @@ class ImageBlock:
     source_span: SourceSpan | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class UnknownBlock:
     """A block kind the adapter does not model. `note` records the source kind;
     `text` carries the block's best-effort plain reading text so lowering can
@@ -427,32 +472,34 @@ type Block = (
 BlockQuote = QuoteBlock
 
 
-def map_block_inlines(block: Block, fn: Callable[[list[Inline]], list[Inline]]) -> None:
+def map_block_inlines(block: Block, fn: Callable[[list[Inline]], list[Inline]]) -> Block:
     """Walk the container-block skeleton of `block`, applying `fn` to every leaf
-    inline list it reaches, mutating IN PLACE.
+    inline list it reaches, REBUILDING: returns a new block, never mutating.
 
     Leaf inline lists: a `Heading`/`Paragraph`'s `inlines`, each display line in
-    a `LineatedBlock`'s `stanzas`, each `Table` cell;
-    `QuoteBlock`/`ListBlock` recurse. `fn` returns the replacement list. Blocks
-    with no inline list (image and footnote leaves, the inline-free kinds) are
-    skipped — their leaf content is handled by the caller, hence `case _` rather
-    than `assert_never`."""
+    a `LineatedBlock`'s `stanzas` (rebuilt as `Line`s preserving each `span`),
+    each `Table` cell; `QuoteBlock`/`ListBlock` recurse. `fn` returns the
+    replacement list. Blocks with no inline list (image and footnote leaves, the
+    inline-free kinds) are returned unchanged — their leaf content is handled by
+    the caller, hence `case _` rather than `assert_never`."""
     match block:
         case Heading() | Paragraph():
-            block.inlines = fn(block.inlines)
+            return replace(block, inlines=fn(block.inlines))
         case LineatedBlock():
-            block.stanzas = [[fn(line) for line in stanza] for stanza in block.stanzas]
+            return replace(block, stanzas=[
+                [Line(fn(line.inlines), line.span) for line in stanza]
+                for stanza in block.stanzas
+            ])
         case Table():
-            block.rows = [[fn(cell) for cell in row] for row in block.rows]
+            return replace(block, rows=[[fn(cell) for cell in row] for row in block.rows])
         case QuoteBlock():
-            for inner in block.blocks:
-                map_block_inlines(inner, fn)
+            return replace(block, blocks=[map_block_inlines(inner, fn) for inner in block.blocks])
         case ListBlock():
-            for item in block.items:
-                for inner in item:
-                    map_block_inlines(inner, fn)
+            return replace(block, items=[
+                [map_block_inlines(inner, fn) for inner in item] for item in block.items
+            ])
         case _:
-            pass  # inline-free block kinds carry no mappable inline list
+            return block  # inline-free block kinds carry no mappable inline list
 
 
 # ---------------------------------------------------------------------------
@@ -480,7 +527,7 @@ class Diagnostic:
     message: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class Document:
     """The IR document. Blocks plus footnotes, bibliography, and diagnostics
     travel SIDE BY SIDE — never inside the prose. The body images the lowering

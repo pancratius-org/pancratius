@@ -9,11 +9,11 @@ from pancratius.ir.register import display_register_blocks
 
 def _p(text: str, border: ir.BorderKind = "", *, ord_: int | None = None) -> ir.Paragraph:
     span = ir.SourceSpan(ord_, ord_) if ord_ is not None else None
-    return ir.Paragraph(inlines=[ir.Text(text)], border=border, source_span=span)
+    return ir.Paragraph(inlines=[ir.Text(text)], facts=ir.SourceFacts(border=border), source_span=span)
 
 
 def _empty() -> ir.Paragraph:
-    return ir.Paragraph(inlines=[], empty=True)
+    return ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True))
 
 
 def _filler(n: int) -> list[ir.Block]:

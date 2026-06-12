@@ -679,9 +679,12 @@ def _build_lineated(
     *,
     evidence: ir.LineationEvidence | None = None,
 ) -> ir.LineatedBlock:
-    """Build stanzas: an empty paragraph is a stanza break."""
-    stanzas: list[list[list[ir.Inline]]] = []
-    current: list[list[ir.Inline]] = []
+    """Build stanzas: an empty paragraph is a stanza break.
+
+    Each display line carries its source paragraph's span; lines split from one
+    hard-break `w:p` share that paragraph's span."""
+    stanzas: ir.LineatedStanzas = []
+    current: ir.Stanza = []
 
     def flush() -> None:
         nonlocal current
@@ -695,7 +698,7 @@ def _build_lineated(
             flush()
             continue
         for ln in _block_lines(p):
-            current.append(ln)
+            current.append(ir.Line(ln, span=p.source_span))
     flush()
     return ir.LineatedBlock(
         stanzas=stanzas,

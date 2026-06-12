@@ -257,10 +257,10 @@ def iter_with_register_context(
 
 def lineated_lines(block: ir.LineatedBlock) -> list[str]:
     return [
-        inline_plain(line)
+        inline_plain(line.inlines)
         for stanza in block.stanzas
         for line in stanza
-        if inline_plain(line)
+        if inline_plain(line.inlines)
     ]
 
 
@@ -277,7 +277,7 @@ def verse_register_features(
     lens = [len(x) for x in lines] or [0]
     mean_len = sum(lens) / len(lens)
     stanza_sizes = [
-        size for st in stanzas if (size := sum(1 for line in st if inline_plain(line)))
+        size for st in stanzas if (size := sum(1 for line in st if inline_plain(line.inlines)))
     ]
     rate = (lambda pred: sum(1 for x in lines if pred(x)) / n) if n else (lambda _pred: 0.0)
     return {
@@ -384,8 +384,7 @@ def assign_register(doc: ir.Document, ctx: Context) -> ir.Document:
     if model is not None:
         stats = book_stats(doc.blocks)
         feats_ctx = {id(b): c for b, c in iter_with_register_context(doc.blocks)}
-    doc.blocks = _promote(doc.blocks, model, feats_ctx, stats)
-    return doc
+    return replace(doc, blocks=_promote(doc.blocks, model, feats_ctx, stats))
 
 
 def promote_verse_register(blocks: list[ir.Block]) -> list[ir.Block]:
@@ -540,10 +539,10 @@ def _existing_verse_coda_segment(
 
 def _lineated_block_lines(block: ir.LineatedBlock) -> list[str]:
     return [
-        inline_plain(line)
+        inline_plain(line.inlines)
         for stanza in block.stanzas
         for line in stanza
-        if inline_plain(line)
+        if inline_plain(line.inlines)
     ]
 
 
