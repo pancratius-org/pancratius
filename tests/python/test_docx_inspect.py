@@ -208,8 +208,9 @@ def test_docx_inspect_classifies_empty_rows_from_real_block_span(
 
     def fake_adapt(_docx: Path, _media_dir: Path) -> ir.Document:
         return ir.Document(blocks=[
-            ir.VerseBlock(
+            ir.LineatedBlock(
                 stanzas=[[[ir.Text("before")]], [[ir.Text("after")]]],
+                register=ir.Register.VERSE,
                 source_span=ir.SourceSpan(4, 6),
             )
         ])
@@ -296,7 +297,10 @@ def test_votability_mask_keys_per_ordinal_and_leaves_unmapped_absent(
     doc = ir.Document(blocks=[
         ir.Paragraph(inlines=[ir.Text("prose")], source_span=ir.SourceSpan(0, 0)),
         ir.Heading(level=1, inlines=[ir.Text("H")], source_span=ir.SourceSpan(1, 1)),
-        ir.VerseBlock(stanzas=[[[ir.Text("v")]]], source_span=ir.SourceSpan(2, 4)),
+        ir.LineatedBlock(
+            stanzas=[[[ir.Text("v")]]], register=ir.Register.VERSE,
+            source_span=ir.SourceSpan(2, 4),
+        ),
     ])
     monkeypatch.setattr(docx_inspect.da, "adapt", lambda _docx, _media: doc)
     monkeypatch.setattr("pancratius.docx_inspect.run", lambda d, _ctx, **_kw: d)

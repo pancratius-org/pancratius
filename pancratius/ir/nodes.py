@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import Literal, assert_never
 
 # The emphasis kinds the IR models. Exported so the adapter (mapping Pandoc node
@@ -26,10 +27,6 @@ from typing import Literal, assert_never
 # truth for the closed set, instead of each re-spelling the string literals.
 EmphKind = Literal["strong", "emph", "strike", "sup", "sub"]
 QuoteKind = Literal["single", "double"]
-# The only verse register emitted into canonical Markdown. Structural lineation
-# without verse register is represented by `LineatedBlock`; `VerseBlock` adds this
-# register on top of the same lineation wrapper.
-VerseRole = Literal["verse"]
 # Paragraph border gesture (OOXML `w:pBdr`), reduced to the two editorially
 # meaningful kinds: a full four-side box ("box" — quoted/framed canonical text)
 # and a left-rule bar ("rule" — a set-apart inset passage). Any other side
@@ -245,6 +242,18 @@ def rebuild_container(node: ContainerInlineNode, children: list[Inline]) -> Inli
 # ---------------------------------------------------------------------------
 
 
+class Register(StrEnum):
+    """The open display-register axis on the run-bearing substrates
+    (`LineatedBlock`/`QuoteBlock`); substrates stay the closed ADT. Lowering
+    dispatches on it through total mapping tables, never on node class."""
+
+    ORDINARY = "ordinary"
+    VERSE = "verse"
+    SCRIPTURE = "scripture"
+    INSET = "inset"
+    VOICE = "voice"
+
+
 @dataclass
 class Heading:
     """A section heading at `level` (1..6)."""
@@ -286,33 +295,18 @@ class Paragraph:
 
 @dataclass
 class LineatedBlock:
-    """Lineated prose run.
+    """A lineated run: stanzas of display lines, each line a list of inlines.
 
-    Preserves authored/intended display lines and stanza breaks without applying
-    the verse register. It lowers to a `<div class="lineated">` wrapper whose
+    A `***` stanza separator is a one-line stanza whose single line is
+    `[Text("***")]`. It lowers to a `<div class="lineated …">` wrapper whose
     body uses Markdown hard breaks (two trailing spaces) and blank-line stanza
-    separators.
+    separators; `register` selects the wrapper class through
+    `lower.LINEATED_CLASS`. `evidence` is the run's Q1 lineation provenance —
+    register flips carry it unchanged.
     """
 
     stanzas: LineatedStanzas
-    evidence: LineationEvidence = field(default_factory=LineationEvidence)
-    source_span: SourceSpan | None = None
-
-
-@dataclass
-class VerseBlock:
-    """Lineated verse run.
-
-    `stanzas` is a list of stanzas; each stanza is a list of display lines; each
-    line is a list of inlines. A `***` stanza separator is represented as a
-    one-line stanza whose single line is `[Text("***")]`. The `verse` role is an
-    additive register layered onto the base `lineated` wrapper at lowering.
-    `evidence` is the promoted block's Q1 lineation provenance, carried through
-    the register promotion.
-    """
-
-    stanzas: LineatedStanzas
-    role: VerseRole = "verse"
+    register: Register = Register.ORDINARY
     evidence: LineationEvidence = field(default_factory=LineationEvidence)
     source_span: SourceSpan | None = None
 
@@ -351,13 +345,13 @@ class ThematicBreak:
 
 
 @dataclass
-class BlockQuote:
-    """A blockquote. `role == "_div"` marks a transparent container the adapter
-    used to flatten a Pandoc `Div` (production unwraps Divs); such a container is
-    lowered as its children with no `>` prefix."""
+class QuoteBlock:
+    """A set-apart run of blocks. `register` selects the emission through
+    `lower.QUOTE_LOWERING`: `ORDINARY` is the Pandoc-born Word-Quote-style quote
+    (plain `>` lowering), `SCRIPTURE`/`INSET` are the bordered registers."""
 
     blocks: list[Block]
-    role: str | None = None
+    register: Register = Register.ORDINARY
     source_span: SourceSpan | None = None
 
 
@@ -391,12 +385,11 @@ class Table:
     bibliography classifier (it needs the hrefs and image alts the flattened cells
     would drop); it is typed `JsonObject | None` — a JSON object whose schema the
     pure IR makes no claim about, not the bare `object` it was — so the
-    classifier still narrows it itself. `role == "bibliography"` once classified
-    (then lifted, not lowered)."""
+    classifier still narrows it itself. The classifier lifts a bibliography table
+    in the same pass that recognizes it, so no verdict is stored here."""
 
     rows: list[list[list[Inline]]]
     raw: JsonObject | None = None
-    role: str | None = None
     source_span: SourceSpan | None = None
 
 
@@ -425,10 +418,13 @@ class UnknownBlock:
 
 
 type Block = (
-    Heading | Paragraph | LineatedBlock | VerseBlock | Signature | Epigraph | DialogueLabel
-    | ThematicBreak | BlockQuote | ListBlock | CodeBlock | Table | ImageBlock
+    Heading | Paragraph | LineatedBlock | Signature | Epigraph | DialogueLabel
+    | ThematicBreak | QuoteBlock | ListBlock | CodeBlock | Table | ImageBlock
     | UnknownBlock
 )
+
+# Compat alias for the renamed substrate; importers should use `QuoteBlock`.
+BlockQuote = QuoteBlock
 
 
 def map_block_inlines(block: Block, fn: Callable[[list[Inline]], list[Inline]]) -> None:
@@ -436,19 +432,19 @@ def map_block_inlines(block: Block, fn: Callable[[list[Inline]], list[Inline]]) 
     inline list it reaches, mutating IN PLACE.
 
     Leaf inline lists: a `Heading`/`Paragraph`'s `inlines`, each display line in
-    a `LineatedBlock`/`VerseBlock`'s `stanzas`, each `Table` cell;
-    `BlockQuote`/`ListBlock` recurse. `fn` returns the replacement list. Blocks
+    a `LineatedBlock`'s `stanzas`, each `Table` cell;
+    `QuoteBlock`/`ListBlock` recurse. `fn` returns the replacement list. Blocks
     with no inline list (image and footnote leaves, the inline-free kinds) are
     skipped — their leaf content is handled by the caller, hence `case _` rather
     than `assert_never`."""
     match block:
         case Heading() | Paragraph():
             block.inlines = fn(block.inlines)
-        case LineatedBlock() | VerseBlock():
+        case LineatedBlock():
             block.stanzas = [[fn(line) for line in stanza] for stanza in block.stanzas]
         case Table():
             block.rows = [[fn(cell) for cell in row] for row in block.rows]
-        case BlockQuote():
+        case QuoteBlock():
             for inner in block.blocks:
                 map_block_inlines(inner, fn)
         case ListBlock():

@@ -3,7 +3,7 @@
 These tests predate the lineation/register split and now cover Q2 promotion
 behavior around known regressions, not the full source of truth for Q1 lineation.
 The importer first preserves/folds lineation as `LineatedBlock`, then promotes an
-already-lineated block to `VerseBlock` only when register evidence warrants it.
+already-lineated block to the verse register only when evidence warrants it.
 `audit/book_verse.py` is a legacy diagnostic, not the split IR spec.
 
   * A *verse-register run* is an already-lineated block whose display lines are
@@ -32,13 +32,19 @@ import pancratius.ir.normalize as normalize
 from pancratius import ir
 
 
+def _is_verse(block: ir.Block) -> bool:
+    return isinstance(block, ir.LineatedBlock) and block.register is ir.Register.VERSE
+
+
 def _verse_lines(block: ir.Block) -> list[str]:
-    assert isinstance(block, ir.VerseBlock)
+    assert _is_verse(block)
+    assert isinstance(block, ir.LineatedBlock)
     return [normalize.inline_plain(line) for stanza in block.stanzas for line in stanza]
 
 
 def _verse_stanzas(block: ir.Block) -> list[list[str]]:
-    assert isinstance(block, ir.VerseBlock)
+    assert _is_verse(block)
+    assert isinstance(block, ir.LineatedBlock)
     return [
         [normalize.inline_plain(line) for line in stanza]
         for stanza in block.stanzas
@@ -148,7 +154,7 @@ def test_isolated_short_line_amid_prose_stays_prose() -> None:
         ir.Paragraph(inlines=[ir.Text(prose)]),
     ]
     out = normalize.verse_blocks(blocks)
-    assert not any(isinstance(b, ir.VerseBlock) for b in out)
+    assert not any(_is_verse(b) for b in out)
 
 
 def test_speaker_turn_lines_do_not_fold_into_verse() -> None:
@@ -164,7 +170,7 @@ def test_speaker_turn_lines_do_not_fold_into_verse() -> None:
         ir.Paragraph(inlines=[ir.Text("Панкратиус: Продолжи чем желаешь.")]),
     ]
     out = normalize.verse_blocks(blocks)
-    assert not any(isinstance(b, ir.VerseBlock) for b in out)
+    assert not any(_is_verse(b) for b in out)
 
 
 def test_verse_colon_line_still_folds_despite_speaker_turn_rejection() -> None:
@@ -177,7 +183,7 @@ def test_verse_colon_line_still_folds_despite_speaker_turn_rejection() -> None:
         _empty(),
     ]
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
     assert verse and len(_verse_lines(verse[0])) == 3
 
 
@@ -192,7 +198,7 @@ def test_label_plus_one_prose_sentence_stays_prose() -> None:
         _para("Ниже — точные, нейтральные определения без образности."),
     ]
     out = normalize.verse_blocks(blocks)
-    assert not any(isinstance(b, ir.VerseBlock) for b in out), (
+    assert not any(_is_verse(b) for b in out), (
         "label + isolated line + one prose sentence must not be wrapped as verse"
     )
 
@@ -222,7 +228,7 @@ def test_litany_run_of_short_standalone_paras_is_one_verse_block() -> None:
         _empty(),
     ]
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
     assert len(verse) == 1, f"expected one verse register for the litany, got {len(verse)}"
     assert _verse_lines(verse[0]) == [
         "Ты спросил: кто они?",
@@ -244,7 +250,7 @@ def test_two_line_short_run_is_verse() -> None:
         _para("в сердце горит."),
     ]
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
     assert verse and _verse_lines(verse[0]) == ["Свет мой тихий,", "в сердце горит."]
 
 
@@ -259,7 +265,7 @@ def test_short_line_poem_ish_run_is_verse() -> None:
         _empty(),
     ]
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
     assert verse and _verse_lines(verse[0]) == [
         "Храм был тенью.", "Я — Свет.", "Храм был прообразом.", "Я — Образ.",
     ]
@@ -288,7 +294,7 @@ def test_book30_item23_stays_one_verse_block_across_colon_and_quote() -> None:
         _para("Дальше."),
     ]
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
     assert len(verse) == 1
     assert _verse_lines(verse[0])[0] == "Я не люблю тебя как другой."
     assert _verse_lines(verse[0])[-1] == "Дальше."
@@ -306,7 +312,7 @@ def test_book30_item28_stays_one_verse_block_after_colon_opener() -> None:
         _para("разве не ложь — не признать Истину?"),
     ]
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
     assert len(verse) == 1
     assert _verse_lines(verse[0]) == [
         "Он говорил:",
@@ -341,7 +347,7 @@ def test_book30_item3_visual_suffix_after_long_citation_becomes_verse() -> None:
         _para("Дальше.", lineation_group=30),
     ]
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
     assert len(verse) == 1
     assert _verse_lines(verse[0]) == [
         "Но Адам был создан без отца и матери.",
@@ -369,7 +375,7 @@ def test_visual_two_line_coda_after_verse_appends_as_new_stanza() -> None:
     ]
 
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
 
     assert len(verse) == 1
     assert _verse_stanzas(verse[0]) == [
@@ -391,7 +397,7 @@ def test_visual_two_line_coda_before_thematic_break_appends_as_new_stanza() -> N
     ]
 
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
 
     assert len(verse) == 1
     assert _verse_stanzas(verse[0]) == [
@@ -411,7 +417,7 @@ def test_pseudo_heading_fragments_after_verse_do_not_append() -> None:
     ]
 
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
 
     assert len(verse) == 1
     assert _verse_stanzas(verse[0]) == [["Я — Свет.", "Я — Слово."]]
@@ -439,7 +445,7 @@ def test_enumerated_bold_section_heading_does_not_fold_into_stanza() -> None:
     ]
 
     out = normalize.verse_blocks(blocks)
-    folded = [b for b in out if isinstance(b, (ir.LineatedBlock, ir.VerseBlock))]
+    folded = [b for b in out if isinstance(b, ir.LineatedBlock)]
 
     assert all(
         "Зачатие" not in normalize.inline_plain(line)
@@ -474,7 +480,7 @@ def test_prose_lead_paragraph_does_not_drag_bold_heading_into_verse() -> None:
 
     out = normalize.verse_blocks(blocks)
 
-    assert not [b for b in out if isinstance(b, (ir.LineatedBlock, ir.VerseBlock))]
+    assert not [b for b in out if isinstance(b, ir.LineatedBlock)]
 
 
 def test_speaker_turn_after_verse_does_not_append_as_coda() -> None:
@@ -488,7 +494,7 @@ def test_speaker_turn_after_verse_does_not_append_as_coda() -> None:
     ]
 
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
 
     assert len(verse) == 1
     assert _verse_stanzas(verse[0]) == [["Я — Свет.", "Я — Слово."]]
@@ -512,7 +518,7 @@ def test_gap_separated_grouped_couplets_fold_as_one_unit() -> None:
     ]
 
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
 
     assert len(verse) == 1
     assert _verse_stanzas(verse[0]) == [
@@ -539,7 +545,7 @@ def test_mid_poem_couplet_stanza_between_folding_stanzas_stays_verse() -> None:
     ]
 
     out = normalize.verse_blocks(blocks)
-    folded = [b for b in out if isinstance(b, (ir.LineatedBlock, ir.VerseBlock))]
+    folded = [b for b in out if isinstance(b, ir.LineatedBlock)]
 
     assert len(folded) == 1
     assert [
@@ -567,7 +573,7 @@ def test_ungrouped_litany_rows_between_grouped_runs_stay_in_the_unit() -> None:
     ]
 
     out = normalize.verse_blocks(blocks)
-    folded = [b for b in out if isinstance(b, (ir.LineatedBlock, ir.VerseBlock))]
+    folded = [b for b in out if isinstance(b, ir.LineatedBlock)]
 
     assert len(folded) == 1
     assert sum(len(stanza) for stanza in folded[0].stanzas) == 8
@@ -648,7 +654,7 @@ def test_next_song_preview_before_heading_does_not_append_as_coda() -> None:
     ]
 
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
 
     assert len(verse) == 1
     assert _verse_stanzas(verse[0]) == [["Тело — это не обременение.", "Это — Мой Храм."]]
@@ -660,7 +666,10 @@ def test_next_song_preview_before_heading_does_not_append_as_coda() -> None:
 
 
 def test_visual_coda_does_not_mutate_existing_verse_block() -> None:
-    existing = ir.VerseBlock(stanzas=[[[ir.Text("Я — Свет.")], [ir.Text("Я — Слово.")]]])
+    existing = ir.LineatedBlock(
+        stanzas=[[[ir.Text("Я — Свет.")], [ir.Text("Я — Слово.")]]],
+        register=ir.Register.VERSE,
+    )
     blocks: list[ir.Block] = [
         existing,
         _empty(),
@@ -672,7 +681,7 @@ def test_visual_coda_does_not_mutate_existing_verse_block() -> None:
     out = normalize.verse_blocks(blocks)
 
     assert _verse_stanzas(existing) == [["Я — Свет.", "Я — Слово."]]
-    assert isinstance(out[0], ir.VerseBlock)
+    assert _is_verse(out[0])
     assert _verse_stanzas(out[0]) == [
         ["Я — Свет.", "Я — Слово."],
         ["Если готов —", "Я поведу тебя дальше."],
@@ -704,7 +713,7 @@ def test_book30_early_speaker_and_list_prose_are_not_overwrapped() -> None:
         _para("Она остаётся прозой."),
     ]
     out = normalize.verse_blocks(blocks)
-    assert not any(isinstance(b, ir.VerseBlock) for b in out)
+    assert not any(_is_verse(b) for b in out)
 
 
 def test_book02_standalone_dash_ends_verse_block() -> None:
@@ -737,7 +746,7 @@ def test_book02_standalone_dash_ends_verse_block() -> None:
         ]),
     ]
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
     assert verse
     assert "—" not in [line for block in verse for line in _verse_lines(block)]
     first_dialogue = next(
@@ -769,7 +778,7 @@ def test_run_of_long_prose_sentences_stays_prose() -> None:
         ir.Paragraph(inlines=[ir.Text(p2)]),
     ]
     out = normalize.verse_blocks(blocks)
-    assert not any(isinstance(b, ir.VerseBlock) for b in out)
+    assert not any(_is_verse(b) for b in out)
 
 
 # ---------------------------------------------------------------------------
@@ -790,7 +799,7 @@ def test_c2_softbreak_only_paragraph_stays_prose_after_fix() -> None:
         ]),
     ]
     out = normalize.verse_blocks(blocks)
-    assert not any(isinstance(b, ir.VerseBlock) for b in out)
+    assert not any(_is_verse(b) for b in out)
 
 
 def test_c3_linebreak_in_emphasis_paragraph_becomes_verse_after_fix() -> None:
@@ -800,7 +809,7 @@ def test_c3_linebreak_in_emphasis_paragraph_becomes_verse_after_fix() -> None:
         ir.Text("Когда ты ищешь поле, ты приближаешься."),
     ])])
     out = normalize.verse_blocks([para])
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
     assert verse, "an Emph-nested-LineBreak paragraph must still be detected as verse"
     assert _verse_lines(verse[0]) == [
         "Свет — не фотон. Свет — это Я.",
@@ -830,7 +839,7 @@ def test_mid_document_visual_group_of_short_lines_is_lineated() -> None:
         ir.Paragraph(inlines=[ir.Text(prose)]),
     ]
     out = normalize.verse_blocks(blocks)
-    folded = [b for b in out if isinstance(b, (ir.LineatedBlock, ir.VerseBlock))]
+    folded = [b for b in out if isinstance(b, ir.LineatedBlock)]
     assert len(folded) == 1
     assert _verse_lines(folded[0]) == [
         "Но всё это — зыбко.", "Меняется.", "Теряется.", "Проходит.",
@@ -851,7 +860,7 @@ def test_blank_separated_prose_sentences_after_heading_stay_prose() -> None:
         _empty(),
     ]
     out = normalize.verse_blocks(blocks)
-    assert not any(isinstance(b, (ir.LineatedBlock, ir.VerseBlock)) for b in out)
+    assert not any(isinstance(b, ir.LineatedBlock) for b in out)
 
 
 # ---------------------------------------------------------------------------
@@ -895,7 +904,7 @@ def test_en_speaker_turn_does_not_ride_a_lineated_run() -> None:
         ),
     ]
     out = normalize.verse_blocks(blocks)
-    assert not any(isinstance(b, (ir.LineatedBlock, ir.VerseBlock)) for b in out)
+    assert not any(isinstance(b, ir.LineatedBlock) for b in out)
 
 
 def test_en_pseudo_heading_fragments_after_verse_do_not_append() -> None:
@@ -912,7 +921,7 @@ def test_en_pseudo_heading_fragments_after_verse_do_not_append() -> None:
     ]
 
     out = normalize.verse_blocks(blocks)
-    verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+    verse = [b for b in out if _is_verse(b)]
 
     assert len(verse) == 1
     assert _verse_stanzas(verse[0]) == [["I am the Light.", "I am the Word."]]
@@ -937,5 +946,5 @@ def test_litany_folds_identically_across_languages() -> None:
             _empty(),
         ]
         out = normalize.verse_blocks(blocks)
-        verse = [b for b in out if isinstance(b, ir.VerseBlock)]
+        verse = [b for b in out if _is_verse(b)]
         assert verse and _verse_lines(verse[0]) == lines

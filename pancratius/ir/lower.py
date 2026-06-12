@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import html
 import re
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import assert_never
 
@@ -290,19 +291,22 @@ def _lineated_wrapper_md(classes: str, stanzas: ir.LineatedStanzas, lang: str) -
     flush_wrapper()
     return "\n\n".join(chunks) or None
 
+# The register→wrapper-class registry for lineated runs. Total over `Register`
+# (test-pinned, like the emphasis tables); registers without a product CSS
+# contract take the conservative base class — under-styling is the cheap failure.
+LINEATED_CLASS: Mapping[ir.Register, str] = {
+    ir.Register.ORDINARY: "lineated",
+    ir.Register.VERSE: "lineated verse",
+    ir.Register.SCRIPTURE: "lineated",
+    ir.Register.INSET: "lineated",
+    ir.Register.VOICE: "lineated",
+}
+
+
 def _lineated_md(lb: ir.LineatedBlock, lang: str) -> str | None:
-    """Lower lineated prose to the explicit base lineation wrapper."""
-    return _lineated_wrapper_md("lineated", lb.stanzas, lang)
-
-
-def _verse_md(vb: ir.VerseBlock, lang: str) -> str:
-    """Lower a verse-register block to the cross-consumer canonical encoding.
-
-    Verse is lineated content plus the additive `verse` register, not a separate
-    lineation encoding. The wrapper is therefore `<div class="lineated verse">`.
-    """
-    rendered = _lineated_wrapper_md(f"lineated {vb.role}", vb.stanzas, lang)
-    return rendered or ""
+    """Lower a lineated run to the cross-consumer canonical encoding: the
+    `<div class="lineated …">` wrapper, classed by register."""
+    return _lineated_wrapper_md(LINEATED_CLASS[lb.register], lb.stanzas, lang)
 
 
 def _signature_md(s: ir.Signature) -> str:
@@ -340,40 +344,49 @@ def _quote_member_md(blk: ir.Block, lang: str) -> str | None:
     return _block_md(blk, lang)
 
 
-def _blockquote_md(b: ir.BlockQuote, lang: str) -> str | None:
-    """Lower a quote block.
-
-    `_div` is the adapter's transparent Div container (unwrapped, no quoting).
-    `scripture` — quoted canonical text (the boxed `w:pBdr` register) — lowers
-    to a classed HTML blockquote whose inside is parsed Markdown (the blank
-    line after the opening tag is load-bearing, as in the lineated wrapper).
-    `inset` — a set-apart passage in another voice (the left-rule register) —
-    is a plain portable Markdown quote; member blocks are separated by a bare
-    `>` line so they stay distinct paragraphs instead of fusing by lazy
-    continuation, and authored hard breaks inside members stay display lines.
-
-    A roleless quote (Pandoc-born, from a Word Quote style/indent) keeps the
-    line-prefix join: its members fuse by lazy continuation."""
-    if b.role == "_div":
-        return "\n\n".join(filter(None, (_block_md(x, lang) for x in b.blocks))) or None
-    if b.role == "scripture":
-        members = [md for blk in b.blocks if (md := _quote_member_md(blk, lang))]
-        if not members:
-            return None
-        return "\n".join(
-            ['<blockquote class="scripture">', "", "\n\n".join(members), "", "</blockquote>"]
-        )
-    if b.role == "inset":
-        members = [md for blk in b.blocks if (md := _quote_member_md(blk, lang))]
-        if not members:
-            return None
-        return "\n>\n".join(
-            "\n".join("> " + line for line in md.splitlines()) for md in members
-        )
+def _plain_quote_md(b: ir.QuoteBlock, lang: str) -> str | None:
+    """An ordinary quote (Pandoc-born, from a Word Quote style/indent): the
+    line-prefix join, whose members fuse by lazy continuation."""
     inner = "\n".join(
         "> " + line for blk in b.blocks for line in (_block_md(blk, lang) or "").splitlines()
     )
     return inner or None
+
+
+def _scripture_quote_md(b: ir.QuoteBlock, lang: str) -> str | None:
+    """Quoted canonical text (the boxed `w:pBdr` register): a classed HTML
+    blockquote whose inside is parsed Markdown (the blank line after the
+    opening tag is load-bearing, as in the lineated wrapper)."""
+    members = [md for blk in b.blocks if (md := _quote_member_md(blk, lang))]
+    if not members:
+        return None
+    return "\n".join(
+        ['<blockquote class="scripture">', "", "\n\n".join(members), "", "</blockquote>"]
+    )
+
+
+def _inset_quote_md(b: ir.QuoteBlock, lang: str) -> str | None:
+    """A set-apart passage in another voice (the left-rule register): a plain
+    portable Markdown quote; member blocks are separated by a bare `>` line so
+    they stay distinct paragraphs instead of fusing by lazy continuation, and
+    authored hard breaks inside members stay display lines."""
+    members = [md for blk in b.blocks if (md := _quote_member_md(blk, lang))]
+    if not members:
+        return None
+    return "\n>\n".join(
+        "\n".join("> " + line for line in md.splitlines()) for md in members
+    )
+
+
+# The register→emission registry for quote blocks. Total over `Register`
+# (test-pinned); registers without a quote treatment take the plain emission.
+QUOTE_LOWERING: Mapping[ir.Register, Callable[[ir.QuoteBlock, str], str | None]] = {
+    ir.Register.ORDINARY: _plain_quote_md,
+    ir.Register.VERSE: _plain_quote_md,
+    ir.Register.SCRIPTURE: _scripture_quote_md,
+    ir.Register.INSET: _inset_quote_md,
+    ir.Register.VOICE: _plain_quote_md,
+}
 
 
 def _table_md(t: ir.Table, lang: str) -> str | None:
@@ -492,8 +505,6 @@ def _block_md(b: ir.Block, lang: str, *, poem: bool = False) -> str | None:
             return _escape_leading_list_marker(text) or None
         case ir.LineatedBlock():
             return _lineated_md(b, lang)
-        case ir.VerseBlock():
-            return _verse_md(b, lang)
         case ir.Signature():
             return _signature_md(b)
         case ir.Epigraph():
@@ -508,8 +519,8 @@ def _block_md(b: ir.Block, lang: str, *, poem: bool = False) -> str | None:
                 return None  # a dropped (unresolvable-local) block image emits nothing
             alt = b.alt or _body_image_alt(lang)
             return f"![{_escape_markdown_alt(alt)}]({target})"
-        case ir.BlockQuote():
-            return _blockquote_md(b, lang)
+        case ir.QuoteBlock():
+            return QUOTE_LOWERING[b.register](b, lang)
         case ir.ListBlock():
             parts: list[str] = []
             for idx, item in enumerate(b.items):
@@ -605,10 +616,10 @@ def _lower_poem_body(doc: ir.Document, lang: str) -> str:
             flush()
             stanzas.append(["***"])
             continue
-        if isinstance(b, ir.BlockQuote):
+        if isinstance(b, ir.QuoteBlock):
             # The poem lowering renders ONLY top-level `Para`/`Plain`; a
-            # `BlockQuote` flushes and is not emitted. In the
-            # corpus a poem `BlockQuote` only ever wraps the poem TITLE (the page
+            # `QuoteBlock` flushes and is not emitted. In the
+            # corpus a poem `QuoteBlock` only ever wraps the poem TITLE (the page
             # masthead already renders that title), so this drop is a title-duplicate
             # drop, not reading-content loss — and it keeps the head stanza count
             # equal to the DOCX stanza oracle (#08 head 2→1).
@@ -693,7 +704,7 @@ def _surface_unknown_block_diagnostics(doc: ir.Document) -> None:
     def visit(b: ir.Block) -> None:
         # Deliberately PARTIAL (a `case _` no-op, NOT `assert_never`): only an
         # `UnknownBlock` surfaces a diagnostic, and only the container blocks
-        # (`BlockQuote`/`ListBlock`) nest others to descend into; every other block
+        # (`QuoteBlock`/`ListBlock`) nest others to descend into; every other block
         # kind is a non-nesting leaf with nothing to surface, so it is skipped.
         match b:
             case ir.UnknownBlock():
@@ -703,7 +714,7 @@ def _surface_unknown_block_diagnostics(doc: ir.Document) -> None:
                     f"unmodeled block kind {b.note!r} ({preserved}); surfaced rather than "
                     "silently dropped.",
                 ))
-            case ir.BlockQuote():
+            case ir.QuoteBlock():
                 for inner in b.blocks:
                     visit(inner)
             case ir.ListBlock():

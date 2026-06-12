@@ -556,7 +556,7 @@ def _block_plain_for_source_span(block: ir.Block) -> str:
     match block:
         case ir.Heading() | ir.Paragraph():
             return inline_plain(block.inlines)
-        case ir.LineatedBlock() | ir.VerseBlock():
+        case ir.LineatedBlock():
             return " ".join(
                 inline_plain(line)
                 for stanza in block.stanzas
@@ -570,7 +570,7 @@ def _block_plain_for_source_span(block: ir.Block) -> str:
             return block.speaker
         case ir.ThematicBreak():
             return "***"
-        case ir.BlockQuote():
+        case ir.QuoteBlock():
             return " ".join(_block_plain_for_source_span(child) for child in block.blocks)
         case ir.ListBlock():
             return " ".join(
@@ -968,7 +968,7 @@ def _block(node: dict[str, Any], ctx: _Ctx) -> ir.Block:
         case "HorizontalRule":
             return ir.ThematicBreak()
         case "BlockQuote" if isinstance(c, list):
-            return ir.BlockQuote(blocks=_blocks(c, ctx))
+            return ir.QuoteBlock(blocks=_blocks(c, ctx), register=ir.Register.ORDINARY)
         case "BulletList" if isinstance(c, list):
             return ir.ListBlock(ordered=False, items=[_blocks(item, ctx) for item in c])
         case "OrderedList" if isinstance(c, list):

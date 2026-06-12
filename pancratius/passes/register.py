@@ -22,7 +22,7 @@ import json
 import math
 import re
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -49,7 +49,10 @@ if TYPE_CHECKING:
 # baseline case (book 10's 95% template box) sat far above.
 _BASELINE_RATE = 0.30
 
-_ROLE_BY_BORDER: dict[ir.BorderKind, str] = {"box": "scripture", "rule": "inset"}
+_REGISTER_BY_BORDER: dict[ir.BorderKind, ir.Register] = {
+    "box": ir.Register.SCRIPTURE,
+    "rule": ir.Register.INSET,
+}
 
 
 def _border_rates(blocks: list[ir.Block]) -> dict[ir.BorderKind, float]:
@@ -66,13 +69,15 @@ def _border_rates(blocks: list[ir.Block]) -> dict[ir.BorderKind, float]:
     return {kind: n / len(text_paras) for kind, n in counts.items()}
 
 
-def _run_role(blocks: list[ir.Block], i: int, contrastive: set[ir.BorderKind]) -> str | None:
+def _run_register(
+    blocks: list[ir.Block], i: int, contrastive: set[ir.BorderKind],
+) -> ir.Register | None:
     b = blocks[i]
     if not isinstance(b, ir.Paragraph) or b.empty:
         return None
     if b.border not in contrastive:
         return None
-    return _ROLE_BY_BORDER[b.border]
+    return _REGISTER_BY_BORDER[b.border]
 
 
 def fold_quote_registers(blocks: list[ir.Block]) -> list[ir.Block]:
@@ -84,7 +89,7 @@ def fold_quote_registers(blocks: list[ir.Block]) -> list[ir.Block]:
     """
     rates = _border_rates(blocks)
     contrastive = {
-        kind for kind in _ROLE_BY_BORDER
+        kind for kind in _REGISTER_BY_BORDER
         if 0.0 < rates.get(kind, 0.0) < _BASELINE_RATE
     }
     if not contrastive:
@@ -94,8 +99,8 @@ def fold_quote_registers(blocks: list[ir.Block]) -> list[ir.Block]:
     i = 0
     n = len(blocks)
     while i < n:
-        role = _run_role(blocks, i, contrastive)
-        if role is None:
+        register = _run_register(blocks, i, contrastive)
+        if register is None:
             out.append(blocks[i])
             i += 1
             continue
@@ -119,9 +124,9 @@ def fold_quote_registers(blocks: list[ir.Block]) -> list[ir.Block]:
             pending.clear()
             members.append(nxt)
             j += 1
-        out.append(ir.BlockQuote(
+        out.append(ir.QuoteBlock(
             blocks=list(members),
-            role=role,
+            register=register,
             source_span=ir.merge_source_spans(
                 p.source_span for p in members if not p.empty
             ),
@@ -214,7 +219,7 @@ def book_stats(blocks: list[ir.Block]) -> BookStats:
         for b in blocks
         if isinstance(b, ir.Paragraph) and not b.empty
     ]
-    lineated = sum(1 for b in blocks if isinstance(b, (ir.LineatedBlock, ir.VerseBlock)))
+    lineated = sum(1 for b in blocks if isinstance(b, ir.LineatedBlock))
     total = len(para_lens) + lineated
     return BookStats(
         mean_para_len=sum(para_lens) / len(para_lens) if para_lens else 0.0,
@@ -250,7 +255,7 @@ def iter_with_register_context(
             ctx = RegisterContext()
 
 
-def lineated_lines(block: ir.LineatedBlock | ir.VerseBlock) -> list[str]:
+def lineated_lines(block: ir.LineatedBlock) -> list[str]:
     return [
         inline_plain(line)
         for stanza in block.stanzas
@@ -414,12 +419,20 @@ def _promote(
             out.append(b)
             i += 1
             continue
-        if isinstance(b, ir.LineatedBlock):
+        if isinstance(b, ir.LineatedBlock) and b.register is ir.Register.VERSE:
+            if (segment := _existing_verse_coda_segment(blocks, i)) is not None:
+                verse, next_i = segment
+                out.append(verse)
+                ctx = _NEUTRAL_CONTEXT
+                i = next_i
+                continue
+            ctx = _NEUTRAL_CONTEXT
+            out.append(b)
+            i += 1
+            continue
+        if isinstance(b, ir.LineatedBlock) and b.register is ir.Register.ORDINARY:
             if _verdict(b, ctx, model, feats_ctx, stats):
-                verse = ir.VerseBlock(
-                    stanzas=b.stanzas, evidence=b.evidence,
-                    source_span=b.source_span,
-                )
+                verse = replace(b, register=ir.Register.VERSE)
                 if (segment := _lineated_coda_segment(blocks, i + 1, verse)) is not None:
                     verse, next_i = segment
                     out.append(verse)
@@ -430,17 +443,6 @@ def _promote(
             else:
                 out.append(b)
             ctx = _NEUTRAL_CONTEXT
-            i += 1
-            continue
-        if isinstance(b, ir.VerseBlock):
-            if (segment := _existing_verse_coda_segment(blocks, i)) is not None:
-                verse, next_i = segment
-                out.append(verse)
-                ctx = _NEUTRAL_CONTEXT
-                i = next_i
-                continue
-            ctx = _NEUTRAL_CONTEXT
-            out.append(b)
             i += 1
             continue
         ctx = _NEUTRAL_CONTEXT
@@ -489,7 +491,7 @@ def _lineated_coda_candidate(
         return None
 
     first = blocks[i] if i < len(blocks) else None
-    if not isinstance(first, ir.LineatedBlock):
+    if not isinstance(first, ir.LineatedBlock) or first.register is not ir.Register.ORDINARY:
         return None
     i += 1
 
@@ -507,11 +509,10 @@ def _lineated_coda_candidate(
     return first, boundary_i
 
 
-def _append_coda_copy(prev: ir.VerseBlock, coda: ir.LineatedBlock) -> ir.VerseBlock:
-    return ir.VerseBlock(
+def _append_coda_copy(prev: ir.LineatedBlock, coda: ir.LineatedBlock) -> ir.LineatedBlock:
+    return replace(
+        prev,
         stanzas=[*prev.stanzas, *coda.stanzas],
-        role=prev.role,
-        evidence=prev.evidence,
         source_span=ir.merge_source_spans((prev.source_span, coda.source_span)),
     )
 
@@ -519,8 +520,8 @@ def _append_coda_copy(prev: ir.VerseBlock, coda: ir.LineatedBlock) -> ir.VerseBl
 def _lineated_coda_segment(
     blocks: list[ir.Block],
     i: int,
-    prev: ir.VerseBlock,
-) -> tuple[ir.VerseBlock, int] | None:
+    prev: ir.LineatedBlock,
+) -> tuple[ir.LineatedBlock, int] | None:
     candidate = _lineated_coda_candidate(blocks, i)
     if candidate is None:
         return None
@@ -531,9 +532,9 @@ def _lineated_coda_segment(
 def _existing_verse_coda_segment(
     blocks: list[ir.Block],
     i: int,
-) -> tuple[ir.VerseBlock, int] | None:
+) -> tuple[ir.LineatedBlock, int] | None:
     prev = blocks[i]
-    assert isinstance(prev, ir.VerseBlock)
+    assert isinstance(prev, ir.LineatedBlock) and prev.register is ir.Register.VERSE
     return _lineated_coda_segment(blocks, i + 1, prev)
 
 
@@ -550,7 +551,7 @@ def _kind_for_lines(
     lines: list[str],
     evidence: ir.LineationEvidence,
     ctx: _PrecedingContext,
-) -> ir.VerseRole | None:
+) -> ir.Register | None:
     """The geometry ladder. Callers have already applied the shared guards."""
     def _passes(avg_max: float, line_max: int | None = None) -> bool:
         """The run's mean line length is within `avg_max` and (when given) every line
@@ -563,17 +564,17 @@ def _kind_for_lines(
         return None
     avg = sum(lengths) / len(lengths)
     if ctx.named:
-        return "verse" if _passes(150) else None
+        return ir.Register.VERSE if _passes(150) else None
     if ctx.separator and len(lines) <= 32:
-        return "verse" if _passes(110, 160) else None
+        return ir.Register.VERSE if _passes(110, 160) else None
     if ctx.heading and len(lines) <= 32:
-        return "verse" if _passes(95, 150) else None
+        return ir.Register.VERSE if _passes(95, 150) else None
     if evidence.compact_callout:
         return None
     if evidence.hard_break:
-        return "verse"
+        return ir.Register.VERSE
     if evidence.stanza_break and len(lines) >= 3 and _passes(120):
-        return "verse"
+        return ir.Register.VERSE
     if evidence.inferred_source_rows and len(lines) >= 3 and _passes(95, 120):
-        return "verse"
+        return ir.Register.VERSE
     return None

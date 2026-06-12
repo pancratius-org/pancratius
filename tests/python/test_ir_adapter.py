@@ -698,7 +698,7 @@ def test_source_span_assignment_keeps_punctuation_only_structural_paragraph() ->
 def test_source_span_assignment_matches_blockquote_before_duplicate_later_text() -> None:
     blocks: list[ir.Block] = [
         ir.Paragraph(inlines=[ir.Text("Title")]),
-        ir.BlockQuote(blocks=[ir.Paragraph(inlines=[ir.Text("Repeated dedication")])]),
+        ir.QuoteBlock(blocks=[ir.Paragraph(inlines=[ir.Text("Repeated dedication")])]),
         ir.Heading(level=2, inlines=[ir.Text("Chapter")]),
         ir.Paragraph(inlines=[ir.Text("Repeated dedication")]),
     ]
