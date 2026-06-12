@@ -321,3 +321,113 @@ def test_existing_verse_blocks_keep_coda_machinery() -> None:
     assert isinstance(first, ir.LineatedBlock)
     assert first.register is ir.Register.VERSE
     assert len(first.stanzas) == 2  # the compact coda folded into the verse block
+
+
+# ---------------------------------------------------------------------------
+# wrap_scripture: unfenced canonical quotations (Q2c)
+# ---------------------------------------------------------------------------
+
+from pancratius.passes.register import is_scripture_quote, wrap_scripture  # noqa: E402
+
+
+def _para(text: str, *, ord_: int | None = None) -> ir.Paragraph:
+    span = ir.SourceSpan(ord_, ord_) if ord_ is not None else None
+    return ir.Paragraph(inlines=[ir.Text(text)], source_span=span)
+
+
+def test_logion_speech_anchor_is_scripture() -> None:
+    assert is_scripture_quote(
+        "«Иисус сказал: Блажен лев, которого человек съест, и лев станет человеком»."
+    )
+    assert is_scripture_quote("«И сказал Бог Моисею: Я ЕСМЬ Сущий».")
+
+
+def test_cited_whole_quote_is_scripture() -> None:
+    assert is_scripture_quote("«Возведите очи ваши и посмотрите на нивы» (Ин. 4:35).")
+    assert is_scripture_quote("«Воистину, подобие Исы перед Аллахом — как подобие Адама» (Коран 3:59).")
+
+
+def test_ref_led_quote_is_scripture() -> None:
+    assert is_scripture_quote("— Откр. 19:11: «И увидел я небо отверстое, и вот конь белый…»")
+
+
+def test_bare_whole_quote_is_not_scripture() -> None:
+    # REFUTED channel: rhetorical/inner speech dominates bare whole-paragraph quotes.
+    assert not is_scripture_quote("«Зачем мне всё это?» — подумал он.")
+    assert not is_scripture_quote("«Я просто хочу тишины».")
+
+
+def test_exegesis_riff_on_quoted_word_is_not_scripture() -> None:
+    # Opens and closes with quotes but is the book's own commentary in between.
+    assert not is_scripture_quote("«Блажен» — значит не просто счастлив, а «освещён Светом»")
+
+
+def test_bold_numbered_subheading_is_not_scripture() -> None:
+    # REFUTED channel: numbered section sub-headings.
+    assert not is_scripture_quote("3. Бог — не Отец, и у Него нет сына")
+
+
+def test_wrap_scripture_groups_contiguous_run_with_interior_blank() -> None:
+    blocks: list[ir.Block] = [
+        _para("Обычный абзац вокруг.", ord_=1),
+        _para("«Иисус сказал: Кто ищет — найдёт».", ord_=2),
+        ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True)),
+        _para("«Иисус сказал: Царство Отца подобно горчичному зерну».", ord_=4),
+        _para("Комментарий Творца к логию.", ord_=5),
+    ]
+    out = wrap_scripture(blocks)
+    assert [type(b).__name__ for b in out] == ["Paragraph", "QuoteBlock", "Paragraph"]
+    quote = out[1]
+    assert isinstance(quote, ir.QuoteBlock)
+    assert quote.register is ir.Register.SCRIPTURE
+    assert quote.source_span == ir.SourceSpan(2, 4)
+    assert len(quote.blocks) == 3  # two logia + the transparent interior blank
+
+
+def test_wrap_scripture_trailing_blank_stays_outside() -> None:
+    blocks: list[ir.Block] = [
+        _para("«Иисус сказал: Я свет миру» (Ин. 8:12).", ord_=1),
+        ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True)),
+        _para("Дальше — обычная речь книги.", ord_=3),
+    ]
+    out = wrap_scripture(blocks)
+    assert [type(b).__name__ for b in out] == ["QuoteBlock", "Paragraph", "Paragraph"]
+
+
+def test_cite_adjacent_whole_quote_wraps_with_its_citation_line() -> None:
+    blocks: list[ir.Block] = [
+        _para("Обычный абзац вокруг.", ord_=1),
+        _para("«Они не убили его и не распяли, а им только показалось так».", ord_=2),
+        _para("Сура 4:157–158 (ан-Ниса)", ord_=3),
+        _para("Дальше — комментарий книги.", ord_=4),
+    ]
+    out = wrap_scripture(blocks)
+    assert [type(b).__name__ for b in out] == ["Paragraph", "QuoteBlock", "Paragraph"]
+    quote = out[1]
+    assert isinstance(quote, ir.QuoteBlock)
+    assert quote.source_span == ir.SourceSpan(2, 3)
+
+
+def test_bare_whole_quote_without_citation_stays_plain() -> None:
+    blocks: list[ir.Block] = [
+        _para("«Я ЕСМЬ ТОТ, КТО Я ЕСМЬ».", ord_=1),
+        _para("Дальше — комментарий книги.", ord_=2),
+    ]
+    out = wrap_scripture(blocks)
+    assert [type(b).__name__ for b in out] == ["Paragraph", "Paragraph"]
+
+
+def test_first_person_dictation_quote_is_not_scripture() -> None:
+    assert not is_scripture_quote(
+        "«Отец постоянно говорит мне: «ты не пророк». И я не могу не принимать это слово»."
+    )
+
+
+def test_citation_line_does_not_pull_a_quote_across_a_heading() -> None:
+    blocks: list[ir.Block] = [
+        _para("«Они не убили его и не распяли, а им только показалось так».", ord_=1),
+        ir.Heading(level=2, inlines=[ir.Text("Глава")]),
+        _para("Сура 4:157–158 (ан-Ниса)", ord_=3),
+    ]
+    out = wrap_scripture(blocks)
+    assert [type(b).__name__ for b in out] == ["Paragraph", "Heading", "Paragraph"]

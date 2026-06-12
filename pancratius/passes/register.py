@@ -132,6 +132,200 @@ def fold_quote_registers(blocks: list[ir.Block]) -> list[ir.Block]:
 
 
 # ---------------------------------------------------------------------------
+# Q2c: unfenced canonical quotations -> scripture quote blocks
+# ---------------------------------------------------------------------------
+
+# Citation tokens: bible-book abbreviations with chapter:verse, sura/ayat refs.
+# The body-text sibling of structure._SCRIPTURE_REF_RE (which anchors whole
+# epigraph lines; this one finds the token inside running prose).
+_SCRIPTURE_CITE_RE = re.compile(
+    r"(?:\b(?:Ин|Иоанн?а?|Мф|Матфе[яй]|Мк|Марк[а]?|Лк|Лук[аи]|Откр(?:овение)?|"
+    r"Быт(?:ие)?|Пс(?:ал(?:ом|тирь)?)?|Кор(?:инфянам)?|Рим(?:лянам)?|Евр(?:еям)?|"
+    r"Ис(?:а[ий]я)?|Иер(?:еми[яи])?|Втор(?:озаконие)?|Исх(?:од)?|Дан(?:иил)?|"
+    r"Деян(?:ия)?|Гал(?:атам)?|Еф(?:есянам)?|Флп|Кол(?:оссянам)?|Иак(?:ов)?|Пет(?:р)?)"
+    r"\.?\s*\d{1,3}\s*[:.,]\s*\d{1,3}"
+    r"|\bсур[аеыу]\b|\bая[тм]\w*\b|\bКоран\w*\b)",
+    re.IGNORECASE,
+)
+# A speech-introduction formula opening the quotation itself: «Иисус сказал: …»,
+# «И сказал Бог Моисею: …» — the logion/canonical-narration shape. The narrated
+# scene is third-person; a first/second-person participant («говорит мне: …»)
+# is the author's own dictation experience, not canon.
+_SPEECH_ANCHOR_RE = re.compile(
+    r"^[«\"„“](?![^«»\":]{0,40}?\b(?:мне|нам|тебе|вам|мной|нами|тобой|вами)\b)"
+    r"[^«»\":]{0,40}?"
+    r"(?:сказал[аио]?|говорит|говорил[аи]?|спросил[аи]?|ответил[аи]?)"
+    r"(?![^«»\":]{0,40}?\b(?:мне|нам|тебе|вам|мной|нами|тобой|вами)\b)"
+    r"[^«»\":]{0,40}:",
+)
+# A paragraph led by a citation, then the quoted text: `— Откр. 19:11: «И увидел…»`.
+# The quote must CLOSE the paragraph (checked by the caller): a quote followed
+# by the book's own words is the book's dialogue citing scripture, not a
+# canonical block.
+_REF_LED_QUOTE_RE = re.compile(
+    r"^[—–-]?\s*\(?(?:[1-3]\s*)?[А-ЯЁ][А-Яа-яЁё.]{1,16}\.?\s*\d{1,3}\s*[:.,]\s*\d{1,3}"
+    r"(?:\s*[–—-]\s*\d{1,3})?\)?\s*[:.]?\s*(?=[«\"„“])",
+)
+_TRAILING_CITE_RE = re.compile(r"\(([^()]{2,60})\)\s*$")
+# A paragraph that IS a citation: `Сура 4:157–158 (ан-Ниса)`, `Матфея 3:16–17`,
+# `Откровение 6:1–2`, `Коран, сура 41:53`.
+_BARE_CITE_RE = re.compile(
+    r"^[—–-]?\s*\(?(?:(?:[1-3]\s*)?[А-ЯЁ][А-Яа-яЁё.]{1,16}\.?|Коран,?\s*сура|Сура|Коран)\s*"
+    r"\d{1,3}\s*[:.,]\s*\d{1,3}(?:\s*[–—-]\s*\d{1,3})?\)?\s*(?:\([^)]{1,40}\))?\s*[:.]?$"
+)
+_QUOTE_TRAIL = ".,;:!?…—– "
+
+
+def _split_trailing_cite(text: str) -> tuple[str, str]:
+    """Split a trailing parenthetical citation: `«…» (Ин. 4:23).` ->
+    (`«…»`, `Ин. 4:23`); no parenthetical -> (text, "")."""
+    text = text.strip()
+    body = text.rstrip(_QUOTE_TRAIL)
+    m = _TRAILING_CITE_RE.search(body)
+    if not m:
+        return text, ""
+    return body[: m.start()].rstrip(_QUOTE_TRAIL), m.group(1)
+
+
+def _is_whole_quote(text: str) -> bool:
+    """The text is ONE quotation: opens with «, and that same quote closes at
+    the very end (guillemet depth never returns to zero before the last char)."""
+    text = text.strip().rstrip(_QUOTE_TRAIL)
+    if len(text) < 3 or text[0] != "«" or text[-1] != "»":
+        return False
+    depth = 0
+    for i, ch in enumerate(text):
+        if ch == "«":
+            depth += 1
+        elif ch == "»":
+            depth -= 1
+            if depth == 0 and i < len(text) - 1:
+                return False
+    return depth == 0
+
+
+def is_scripture_quote(text: str) -> bool:
+    """One prose paragraph's scripture verdict (teacher-validated channels).
+
+    A paragraph is a canonical quotation when it is a whole-paragraph quote
+    that names its own provenance: a speech-introduction formula inside the
+    quote (logion shape), a citation token (in the quote or as a trailing
+    parenthetical), or a leading citation introducing the quote. Bare quotes,
+    bold, and leading numbers are NOT evidence (refuted: rhetorical/inner
+    speech and numbered sub-headings dominate those shapes)."""
+    text = text.strip()
+    if not text:
+        return False
+    body, cite = _split_trailing_cite(text)
+    if _is_whole_quote(body):
+        if _SPEECH_ANCHOR_RE.match(body):
+            return True
+        if _SCRIPTURE_CITE_RE.search(body) or _SCRIPTURE_CITE_RE.search(cite):
+            return True
+    if (m := _REF_LED_QUOTE_RE.match(text)) is not None:
+        led_body, _led_cite = _split_trailing_cite(text[m.end():])
+        if _is_whole_quote(led_body):
+            return True
+    return False
+
+
+def _is_bare_cite(text: str) -> bool:
+    """The paragraph IS a citation line (`Сура 4:157–158 (ан-Ниса)`)."""
+    text = text.strip()
+    return bool(_BARE_CITE_RE.match(text)) and bool(_SCRIPTURE_CITE_RE.search(text))
+
+
+def _scripture_verdicts(blocks: list[ir.Block]) -> set[int]:
+    """Block indexes that lower as scripture: per-paragraph verdicts, plus the
+    cite-adjacency channel — a whole-paragraph quote whose neighboring
+    paragraph (across transparent blanks) is a bare citation line names its
+    provenance just as surely as a trailing parenthetical; the citation line
+    belongs to the quotation apparatus and is wrapped with it."""
+    runs: list[list[int]] = []  # maximal body-paragraph runs (blanks transparent)
+    current: list[int] = []
+    for i, b in enumerate(blocks):
+        if isinstance(b, ir.Paragraph) and b.empty:
+            continue
+        if isinstance(b, ir.Paragraph):
+            current.append(i)
+        elif current:
+            runs.append(current)
+            current = []
+    if current:
+        runs.append(current)
+
+    texts: dict[int, str] = {}
+    for run in runs:
+        for i in run:
+            block = blocks[i]
+            assert isinstance(block, ir.Paragraph)
+            texts[i] = inline_plain(block.inlines)
+    verdicts = {i for i in texts if is_scripture_quote(texts[i])}
+    cites = {i for i in texts if _is_bare_cite(texts[i])}
+    quotes = {i for i in texts if _is_whole_quote(_split_trailing_cite(texts[i])[0])}
+    for run in runs:
+        for pos, i in enumerate(run):
+            if i not in quotes:
+                continue
+            neighbors = [run[p] for p in (pos - 1, pos + 1) if 0 <= p < len(run)]
+            if any(n in cites for n in neighbors):
+                verdicts.add(i)
+                verdicts.update(n for n in neighbors if n in cites)
+    return verdicts
+
+
+def wrap_scripture(blocks: list[ir.Block]) -> list[ir.Block]:
+    """Wrap contiguous scripture-verdict prose runs into scripture quote blocks.
+
+    The unfenced-recall sibling of `fold_quote_registers`: same run shape
+    (interior empties continue a run, never open or close it), applied to
+    body paragraphs whose own text carries canonical-quotation evidence.
+    Runs after lineation, so Q1 verdicts and verse decisions are untouched;
+    per-ordinal observers keep coverage through the wrapper (members are
+    claimed recursively)."""
+    verdicts = _scripture_verdicts(blocks)
+    if not verdicts:
+        return blocks
+    out: list[ir.Block] = []
+    i = 0
+    n = len(blocks)
+    while i < n:
+        first = blocks[i]
+        if i not in verdicts:
+            out.append(first)
+            i += 1
+            continue
+        assert isinstance(first, ir.Paragraph)
+        members: list[ir.Paragraph] = [first]
+        j = i + 1
+        pending: list[ir.Paragraph] = []
+        while j < n:
+            nxt = blocks[j]
+            if not isinstance(nxt, ir.Paragraph):
+                break
+            if nxt.empty:
+                pending.append(nxt)
+                j += 1
+                continue
+            if j not in verdicts:
+                break
+            members.extend(pending)
+            pending.clear()
+            members.append(nxt)
+            j += 1
+        out.append(ir.QuoteBlock(
+            blocks=list(members),
+            register=ir.Register.SCRIPTURE,
+            source_span=ir.merge_source_spans(
+                p.source_span for p in members if not p.empty
+            ),
+        ))
+        out.extend(pending)
+        i = j
+    return out
+
+
+# ---------------------------------------------------------------------------
 # section-title vocab + scaffold guards (shared by ladder and model paths)
 # ---------------------------------------------------------------------------
 
