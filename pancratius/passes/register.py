@@ -11,9 +11,11 @@ set-apart gesture.
 `assign_register` decides the verse register over lineated blocks: hard
 editorial guards first (named verse sections promote, scaffold shapes never
 do), then the trained register model where the composition point injected one
-(`Context.register_model`), the geometry ladder otherwise. The feature
-producer and the model codec live here too — extraction, training, and this
-pass read one φ.
+(`Context.register_model`), the geometry ladder otherwise. A verse run is
+then segmented (`segment_lineated`): scaffold sub-runs (equations, dash
+enumerations) split out as `ORDINARY` fragments with honest line-derived
+spans. The feature producer and the model codec live here too — extraction,
+training, and this pass read one φ.
 """
 
 from __future__ import annotations
@@ -21,8 +23,9 @@ from __future__ import annotations
 import json
 import math
 import re
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, replace
+from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -173,6 +176,167 @@ def is_dash_scaffold(lines: list[str]) -> bool:
     verse lines."""
     body = lines[1:] if lines and lines[0].rstrip().endswith(":") else lines
     return len(body) >= 2 and all(_DASH_LINE_RE.match(line) for line in body)
+
+
+# ---------------------------------------------------------------------------
+# mixed-run segmentation: split one lineated run at register boundaries
+# ---------------------------------------------------------------------------
+
+
+class SpanLabel(StrEnum):
+    """A per-line register class inside one lineated run — the segmentation
+    vocabulary. `VERSE` keeps the run's register; `SCAFFOLD` resolves to
+    `ORDINARY` (math/enumeration is never the verse register)."""
+
+    VERSE = "verse"
+    SCAFFOLD = "scaffold"
+
+
+_REGISTER_BY_LABEL: dict[SpanLabel, ir.Register] = {
+    SpanLabel.VERSE: ir.Register.VERSE,
+    SpanLabel.SCAFFOLD: ir.Register.ORDINARY,
+}
+
+# A scaffold sub-run must reach this many contiguous lines (or wholly own its
+# stanza) to split out; a single dash line inside a litany is verse texture
+# (see `is_dash_scaffold`).
+_SCAFFOLD_SUBRUN_MIN = 2
+
+
+def scaffold_line_labeler(block: ir.LineatedBlock) -> Callable[[ir.Line], SpanLabel]:
+    """The rules-only line classifier for `block`, from the two scaffold
+    classes that already exist as run predicates.
+
+    Equation lines are scaffold on their own (math is never the verse
+    register). Dash lines are scaffold only when their WHOLE stanza is a dash
+    scaffold (`is_dash_scaffold`, colon opener included): a dash line mixed
+    with verse lines inside one stanza is litany/dialogue texture, the exact
+    shape the looser per-line dash demotion was refuted on."""
+    dash_stanza_lines: set[int] = set()
+    for stanza in block.stanzas:
+        texts = [t for line in stanza if (t := inline_plain(line.inlines))]
+        if is_dash_scaffold(texts):
+            dash_stanza_lines.update(id(line) for line in stanza)
+
+    def label(line: ir.Line) -> SpanLabel:
+        text = inline_plain(line.inlines)
+        if text and _is_equation_line(text):
+            return SpanLabel.SCAFFOLD
+        if id(line) in dash_stanza_lines:
+            return SpanLabel.SCAFFOLD
+        return SpanLabel.VERSE
+
+    return label
+
+
+def _segment_labels(
+    block: ir.LineatedBlock,
+    label_of: Callable[[ir.Line], SpanLabel],
+) -> list[SpanLabel]:
+    """Per-line labels over the flattened run, islands resolved: a scaffold
+    sub-run below `_SCAFFOLD_SUBRUN_MIN` lines that is not itself a whole
+    stanza rejoins the run's verse label."""
+    stanza_of = [si for si, stanza in enumerate(block.stanzas) for _ in stanza]
+    labels = [label_of(line) for stanza in block.stanzas for line in stanza]
+    stanza_sizes = [len(stanza) for stanza in block.stanzas]
+    i = 0
+    while i < len(labels):
+        if labels[i] is not SpanLabel.SCAFFOLD:
+            i += 1
+            continue
+        j = i
+        while j < len(labels) and labels[j] is SpanLabel.SCAFFOLD:
+            j += 1
+        whole_stanza = j - i == 1 and stanza_sizes[stanza_of[i]] == 1
+        if j - i < _SCAFFOLD_SUBRUN_MIN and not whole_stanza:
+            labels[i:j] = [SpanLabel.VERSE] * (j - i)
+        i = j
+    return labels
+
+
+def _segment_fragment(
+    parent: ir.LineatedBlock,
+    members: list[tuple[int, ir.Line]],
+    label: SpanLabel,
+) -> ir.LineatedBlock:
+    """One fragment of a split run: member lines regrouped into stanzas at the
+    parent's stanza boundaries, evidence copied (all fragments share the Q1
+    fold), span merged from member line spans."""
+    stanzas: ir.LineatedStanzas = []
+    current: ir.Stanza = []
+    current_si: int | None = None
+    for si, line in members:
+        if current and si != current_si:
+            stanzas.append(current)
+            current = []
+        current_si = si
+        current.append(line)
+    if current:
+        stanzas.append(current)
+    return ir.LineatedBlock(
+        stanzas=stanzas,
+        register=_REGISTER_BY_LABEL[label],
+        evidence=parent.evidence,
+        source_span=ir.merge_source_spans(line.span for _, line in members),
+    )
+
+
+def segment_lineated(
+    block: ir.LineatedBlock,
+    label_of: Callable[[ir.Line], SpanLabel],
+) -> list[ir.Block]:
+    """Split one lineated run at register boundaries.
+
+    Classifies every line, groups maximal contiguous same-label runs (a stanza
+    splits mid-stanza only where labels differ inside it), and returns one
+    `LineatedBlock` per run: register from the run's label, evidence copied
+    from the parent, `source_span` merged from member `Line.span`s. A
+    label-uniform run keeps the whole block (and its fold-derived span), only
+    resolving its register.
+
+    Fragments tile the parent's span: a fragment extends through the source
+    gap rows up to the next fragment's start (the fold's trailing-empties
+    convention), so the per-ordinal surfaces keep the parent's coverage
+    through the split.
+    """
+    indexed = [
+        (si, line) for si, stanza in enumerate(block.stanzas) for line in stanza
+    ]
+    labels = _segment_labels(block, label_of)
+    if len(set(labels)) <= 1:
+        register = _REGISTER_BY_LABEL[labels[0]] if labels else block.register
+        return [
+            block if register is block.register
+            else replace(block, register=register)
+        ]
+    fragments: list[ir.LineatedBlock] = []
+    start = 0
+    for end in range(1, len(indexed) + 1):
+        if end == len(indexed) or labels[end] is not labels[start]:
+            fragments.append(
+                _segment_fragment(block, indexed[start:end], labels[start])
+            )
+            start = end
+    return list(_tile_fragment_spans(fragments))
+
+
+def _tile_fragment_spans(
+    fragments: list[ir.LineatedBlock],
+) -> Iterator[ir.LineatedBlock]:
+    """Extend each fragment's span through the gap rows before the next
+    fragment with proven provenance; spanless fragments stay spanless."""
+    starts = [f.source_span.start if f.source_span else None for f in fragments]
+    for i, fragment in enumerate(fragments):
+        span = fragment.source_span
+        next_start = next(
+            (s for s in starts[i + 1:] if s is not None), None,
+        )
+        if span is None or next_start is None or next_start <= span.end + 1:
+            yield fragment
+            continue
+        yield replace(
+            fragment, source_span=ir.SourceSpan(span.start, next_start - 1),
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -448,12 +612,12 @@ def _promote(
         if isinstance(b, ir.LineatedBlock) and b.register is ir.Register.VERSE:
             if (segment := _lineated_coda_segment(blocks, i + 1, b)) is not None:
                 verse, next_i = segment
-                out.append(verse)
+                out.extend(segment_lineated(verse, scaffold_line_labeler(verse)))
                 ctx = _NEUTRAL_CONTEXT
                 i = next_i
                 continue
             ctx = _NEUTRAL_CONTEXT
-            out.append(b)
+            out.extend(segment_lineated(b, scaffold_line_labeler(b)))
             i += 1
             continue
         if isinstance(b, ir.LineatedBlock) and b.register is ir.Register.ORDINARY:
@@ -461,11 +625,11 @@ def _promote(
                 verse = replace(b, register=ir.Register.VERSE)
                 if (segment := _lineated_coda_segment(blocks, i + 1, verse)) is not None:
                     verse, next_i = segment
-                    out.append(verse)
+                    out.extend(segment_lineated(verse, scaffold_line_labeler(verse)))
                     ctx = _NEUTRAL_CONTEXT
                     i = next_i
                     continue
-                out.append(verse)
+                out.extend(segment_lineated(verse, scaffold_line_labeler(verse)))
             else:
                 out.append(b)
             ctx = _NEUTRAL_CONTEXT
