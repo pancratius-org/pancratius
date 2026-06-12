@@ -121,7 +121,11 @@ class _KeepRemote:
 type _ImageResolution = _ResolvedAsset | _DropImage | _KeepRemote
 
 
-def plan_assets(doc: ir.Document, media_root: Path) -> tuple[ir.Document, list[PlannedAsset]]:
+def plan_assets(
+    doc: ir.Document,
+    media_root: Path,
+    diagnostics: list[ir.Diagnostic],
+) -> tuple[ir.Document, list[PlannedAsset]]:
     """Resolve every body image, assign its content-hash `<hash>.<ext>` asset id,
     and return the rebuilt document plus the deduped `PlannedAsset`s for the
     writer to copy.
@@ -155,7 +159,7 @@ def plan_assets(doc: ir.Document, media_root: Path) -> tuple[ir.Document, list[P
             # under the media dir. The documented FATAL: surface it and drop the ref
             # (the writer refuses the whole write; the body never leaks the path).
             escaped = _escapes_media_root(src, media_root)
-            doc.diagnostics.append(ir.Diagnostic(
+            diagnostics.append(ir.Diagnostic(
                 "fatal", "import.image-unresolved",
                 f"local image source {src!r} "
                 + ("escapes the media-extraction dir" if escaped else "does not resolve to a readable image under the media dir")

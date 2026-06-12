@@ -209,10 +209,10 @@ def test_converter_fatal_diagnostic_blocks_the_write(
     real_assign = lower.assign_assets
 
     def fatal_assign(
-        doc: ir.Document, media_root: Path
+        doc: ir.Document, media_root: Path, diagnostics: list[ir.Diagnostic]
     ) -> tuple[ir.Document, list[lower.PlannedAsset]]:
-        out_doc, planned = real_assign(doc, media_root)
-        out_doc.diagnostics.append(
+        out_doc, planned = real_assign(doc, media_root, diagnostics)
+        diagnostics.append(
             ir.Diagnostic("fatal", "import.image-unresolved", "synthetic fatal")
         )
         return out_doc, planned

@@ -695,7 +695,9 @@ def _stanza_md(lines: list[str]) -> str:
     )
 
 
-def _surface_unknown_block_diagnostics(doc: ir.Document) -> None:
+def _surface_unknown_block_diagnostics(
+    doc: ir.Document, diagnostics: list[ir.Diagnostic]
+) -> None:
     """Append one `warning` diagnostic per `UnknownBlock` reachable in `doc.blocks`
     (descending into the container blocks that nest others), so an unmodeled block is
     SURFACED, never silently dropped — the design's "unknown → preserve content /
@@ -710,7 +712,7 @@ def _surface_unknown_block_diagnostics(doc: ir.Document) -> None:
         match b:
             case ir.UnknownBlock():
                 preserved = "preserved its text" if b.text.strip() else "no recoverable text"
-                doc.diagnostics.append(ir.Diagnostic(
+                diagnostics.append(ir.Diagnostic(
                     "warning", "import.unknown-block",
                     f"unmodeled block kind {b.note!r} ({preserved}); surfaced rather than "
                     "silently dropped.",
@@ -729,17 +731,24 @@ def _surface_unknown_block_diagnostics(doc: ir.Document) -> None:
         visit(b)
 
 
-def lower(doc: ir.Document, lang: str, *, poem: bool = False) -> str:
+def lower(
+    doc: ir.Document,
+    lang: str,
+    diagnostics: list[ir.Diagnostic],
+    *,
+    poem: bool = False,
+) -> str:
     """Lower the document to the canonical Markdown body string.
 
-    `poem` selects verse lowering for the work-as-a-whole: paragraphs become
-    stanza-grouped verse lines (one line each, stanzas split on empty paragraphs)
-    rather than prose, in a line-per-line shape."""
+    `diagnostics` is the composition point's sink (unsafe-url and unknown-block
+    findings land there). `poem` selects verse lowering for the work-as-a-whole:
+    paragraphs become stanza-grouped verse lines (one line each, stanzas split on
+    empty paragraphs) rather than prose, in a line-per-line shape."""
     # Neutralize unsafe link/image schemes BEFORE any Markdown/HTML is emitted (the
     # import is the only sanitizer the unsanitized renderer has). Idempotent — the
     # converter also runs it before the asset pass, and a re-run finds nothing left.
-    doc = sanitize_urls(doc)
-    _surface_unknown_block_diagnostics(doc)
+    doc = sanitize_urls(doc, diagnostics)
+    _surface_unknown_block_diagnostics(doc, diagnostics)
     if poem:
         body = _lower_poem_body(doc, lang)
         appendix = _footnote_appendix(doc, lang)

@@ -57,12 +57,12 @@ def _block_texts(blocks: list[ir.Block]) -> list[str]:
 
 
 def _assert_diagnostic(
-    doc: ir.Document,
+    diagnostics: list[ir.Diagnostic],
     severity: Literal["fatal", "warning", "info"],
     code: str,
 ) -> None:
-    assert any(d.severity == severity and d.code == code for d in doc.diagnostics), (
-        f"expected {severity} {code}; got {doc.diagnostics!r}"
+    assert any(d.severity == severity and d.code == code for d in diagnostics), (
+        f"expected {severity} {code}; got {diagnostics!r}"
     )
 
 
@@ -438,7 +438,7 @@ def test_bold_heading_with_trailing_break_has_no_trailing_space() -> None:
             ],
         ),
     ])
-    assert lower.lower(doc, "en") == "#### Title\n"
+    assert lower.lower(doc, "en", []) == "#### Title\n"
 
 
 # ---------------------------------------------------------------------------
@@ -589,7 +589,7 @@ def test_explicit_hard_break_lineation_survives_without_verse_register() -> None
 
     assert len(out) == 1
     assert isinstance(out[0], ir.LineatedBlock)
-    body = lower.lower(ir.Document(blocks=out), "ru")
+    body = lower.lower(ir.Document(blocks=out), "ru", [])
     assert f"{long_line}  \nкороткая строка" in body
     assert 'class="lineated verse"' not in body
 
@@ -771,7 +771,7 @@ def test_poem_one_paragraph_per_stanza_yields_n_stanzas() -> None:
         stanza("Сошла метель, растаял лёд,", "И ручейки бегут игриво."),
         stanza("Грачи в колодцах пьют рассвет,", "И солнце в лужах улыбается."),
     ])
-    body = lower.lower(doc, "ru", poem=True)
+    body = lower.lower(doc, "ru", [], poem=True)
     stanzas = [s for s in body.strip().split("\n\n") if s.strip()]
     assert len(stanzas) == 3, f"expected 3 stanzas, got {len(stanzas)}: {body!r}"
     assert all(len(s.splitlines()) == 2 for s in stanzas)
@@ -784,7 +784,7 @@ def test_poem_strong_only_title_is_its_own_stanza() -> None:
         ir.Paragraph(inlines=[ir.Emphasis("strong", [ir.Text("Заголовок")])]),
         ir.Paragraph(inlines=[ir.Text("первая строка"), ir.LineBreak(), ir.Text("вторая строка")]),
     ])
-    body = lower.lower(doc, "ru", poem=True)
+    body = lower.lower(doc, "ru", [], poem=True)
     stanzas = [s for s in body.strip().split("\n\n") if s.strip()]
     assert stanzas[0] == "**Заголовок**"
     # Within-stanza lineation is two-trailing-space hard breaks (the cross-consumer
@@ -802,7 +802,7 @@ def test_lower_footnote_appendix_generated_at_tail() -> None:
         blocks=[ir.Paragraph(inlines=[ir.Text("See"), ir.FootnoteRef(raw_index=1, id=1)])],
         footnotes=[ir.FootnoteDef(id=1, blocks=[ir.Paragraph(inlines=[ir.Text("the note body")])])],
     )
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     assert "See[^1]" in body
     assert "[^1]: the note body" in body
     # the def is at the tail, after the reference
@@ -822,7 +822,7 @@ def test_lower_ignores_source_span_metadata() -> None:
         ir.LineatedBlock(stanzas=[[ir.Line([ir.Text("line one")]), ir.Line([ir.Text("line two")])]]),
     ])
 
-    assert lower.lower(with_span, "ru") == lower.lower(without_span, "ru")
+    assert lower.lower(with_span, "ru", []) == lower.lower(without_span, "ru", [])
 
 
 def test_lower_directional_span_keeps_dir_attribute() -> None:
@@ -834,7 +834,7 @@ def test_lower_directional_span_keeps_dir_attribute() -> None:
         ir.DirectionalSpan(direction="rtl", children=[ir.Text("פקד")]),
         ir.Text(" appears."),
     ])])
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     assert 'The Name <span dir="rtl">פקד</span> appears.' in body
 
 
@@ -867,7 +867,7 @@ def test_lower_heading_preserves_footnote_ref() -> None:
         ],
         footnotes=[ir.FootnoteDef(id=1, blocks=[ir.Paragraph(inlines=[ir.Text("the note")])])],
     )
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     assert "### Глава 25[^1]. Число" in body
     assert "[^1]: the note" in body
 
@@ -878,12 +878,12 @@ def test_lower_heading_keeps_partial_emphasis_strips_full_bold() -> None:
     partial = ir.Document(blocks=[
         ir.Heading(level=2, inlines=[ir.Text("О "), ir.Emphasis("strong", [ir.Text("Слове")])]),
     ])
-    assert "## О **Слове**" in lower.lower(partial, "ru")
+    assert "## О **Слове**" in lower.lower(partial, "ru", [])
 
     full = ir.Document(blocks=[
         ir.Heading(level=2, inlines=[ir.Emphasis("strong", [ir.Text("Глава 1")])]),
     ])
-    assert "## Глава 1" in lower.lower(full, "ru")
+    assert "## Глава 1" in lower.lower(full, "ru", [])
 
 
 def test_lower_preserves_ordered_list_start() -> None:
@@ -891,7 +891,7 @@ def test_lower_preserves_ordered_list_start() -> None:
         [ir.Paragraph(inlines=[ir.Text("four")])],
         [ir.Paragraph(inlines=[ir.Text("five")])],
     ])
-    body = lower.lower(ir.Document(blocks=[lst]), "ru")
+    body = lower.lower(ir.Document(blocks=[lst]), "ru", [])
     assert "4. four" in body and "5. five" in body
 
 
@@ -907,7 +907,7 @@ def test_lower_literal_numbered_prose_escapes_ordinal() -> None:
         ir.Paragraph(inlines=[ir.Text("1. Евангелие говорит: Его распяли.")]),
         ir.Paragraph(inlines=[ir.Text("2) Коран говорит иначе.")]),
     ])
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     assert "1\\. Евангелие говорит" in body
     assert "2\\) Коран говорит" in body
 
@@ -916,7 +916,7 @@ def test_lower_does_not_escape_leading_date() -> None:
     # A date like "25.06.2025" is `25.` followed by a DIGIT (no space) — never a
     # list marker — so it must NOT be escaped.
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("25.06.2025, Сочи")])])
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     assert body.strip() == "25.06.2025, Сочи"
 
 
@@ -927,7 +927,7 @@ def test_lower_real_ordered_list_still_renders_as_list() -> None:
         [ir.Paragraph(inlines=[ir.Text("first")])],
         [ir.Paragraph(inlines=[ir.Text("second")])],
     ])
-    body = lower.lower(ir.Document(blocks=[lst]), "ru")
+    body = lower.lower(ir.Document(blocks=[lst]), "ru", [])
     assert "1. first" in body and "2. second" in body
     assert "1\\." not in body
 
@@ -939,7 +939,7 @@ def test_lower_lineated_block_emits_base_wrapper_with_hard_break_lines() -> None
         [ir.Line([ir.Text("line one")]), ir.Line([ir.Text("line "), ir.Emphasis("strong", [ir.Text("two")])])],
         [ir.Line([ir.Text("third line")])],
     ])
-    body = lower.lower(ir.Document(blocks=[lb]), "ru")
+    body = lower.lower(ir.Document(blocks=[lb]), "ru", [])
     assert body == '<div class="lineated">\n\nline one  \nline **two**\n\nthird line\n\n</div>\n'
     assert 'class="lineated verse"' not in body
 
@@ -956,7 +956,7 @@ def test_lower_lineated_image_interrupts_wrapper_as_standalone_block() -> None:
             ir.Text("after"),
         ]), ir.Line([ir.Text("tail")])],
     ])
-    body = lower.lower(ir.Document(blocks=[lb]), "ru")
+    body = lower.lower(ir.Document(blocks=[lb]), "ru", [])
     assert body == (
         '<div class="lineated">\n\n'
         "before\n\n"
@@ -976,7 +976,7 @@ def test_lower_lineated_block_escapes_structural_markers() -> None:
     lb = ir.LineatedBlock(stanzas=[
         [ir.Line([ir.Text("### not a heading")]), ir.Line([ir.Text("1. not a list")]), ir.Line([ir.Text("- not a bullet")])],
     ])
-    body = lower.lower(ir.Document(blocks=[lb]), "ru")
+    body = lower.lower(ir.Document(blocks=[lb]), "ru", [])
     assert "\\### not a heading  " in body
     assert "1\\. not a list  " in body
     assert "\\- not a bullet" in body
@@ -989,7 +989,7 @@ def test_lower_lineated_block_escapes_literal_inline_markup() -> None:
     lb = ir.LineatedBlock(stanzas=[
         [ir.Line([ir.Text("<script>alert(1)</script>")]), ir.Line([ir.Text("[not a link](https://example.com)")])],
     ])
-    body = lower.lower(ir.Document(blocks=[lb]), "ru")
+    body = lower.lower(ir.Document(blocks=[lb]), "ru", [])
     assert "<script>" not in body
     assert "\\<script\\>alert(1)\\</script\\>" in body
     assert "[not a link](https://example.com)" not in body
@@ -1004,7 +1004,7 @@ def test_lower_verse_block_emits_div_with_lines() -> None:
         stanzas=[[ir.Line([ir.Text("line one")]), ir.Line([ir.Text("line two")])]],
         register=ir.Register.VERSE,
     )
-    body = lower.lower(ir.Document(blocks=[vb]), "ru")
+    body = lower.lower(ir.Document(blocks=[vb]), "ru", [])
     assert body == '<div class="lineated verse">\n\nline one  \nline two\n\n</div>\n'
 
 
@@ -1016,7 +1016,7 @@ def test_lower_verse_block_markdown_emphasis_and_stanza_break() -> None:
         [ir.Line([ir.Text("***")])],
         [ir.Line([ir.Emphasis("emph", [ir.Text("ital")]), ir.Text(" tail")])],
     ], register=ir.Register.VERSE)
-    body = lower.lower(ir.Document(blocks=[vb]), "ru")
+    body = lower.lower(ir.Document(blocks=[vb]), "ru", [])
     assert body == (
         '<div class="lineated verse">\n\n'
         "plain **bold**\n\n"
@@ -1033,14 +1033,14 @@ def test_lower_verse_block_escapes_leading_markdown_markers() -> None:
     vb = ir.LineatedBlock(stanzas=[
         [ir.Line([ir.Text("### not a heading")]), ir.Line([ir.Text("1. not a list")]), ir.Line([ir.Text("- not a bullet")])],
     ], register=ir.Register.VERSE)
-    body = lower.lower(ir.Document(blocks=[vb]), "ru")
+    body = lower.lower(ir.Document(blocks=[vb]), "ru", [])
     assert "\\### not a heading  " in body
     assert "1\\. not a list  " in body
     assert "\\- not a bullet" in body
 
 
 def test_lower_signature_emits_p_signature() -> None:
-    body = lower.lower(ir.Document(blocks=[ir.Signature(lines=["Панкратиус"])]), "ru")
+    body = lower.lower(ir.Document(blocks=[ir.Signature(lines=["Панкратиус"])]), "ru", [])
     assert body.strip() == '<p class="signature">\nПанкратиус\n</p>'
 
 
@@ -1055,14 +1055,14 @@ def test_lower_poem_keeps_lines_and_stanza_breaks() -> None:
         ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True)),
         ir.Paragraph(inlines=[ir.Text("third line")]),
     ])
-    body = lower.lower(doc, "ru", poem=True)
+    body = lower.lower(doc, "ru", [], poem=True)
     assert body == "first line  \nsecond line\n\nthird line\n"
 
 
 def test_lower_body_image_default_alt_and_hash_ref() -> None:
     img = ir.ImageInline(src="m/img.png", alt="", asset_id="abc123.png")
     para = ir.Paragraph(inlines=[img])
-    body = lower.lower(ir.Document(blocks=[para]), "ru")
+    body = lower.lower(ir.Document(blocks=[para]), "ru", [])
     assert body.strip() == "![Иллюстрация](./images/abc123.png)"
 
 
@@ -1081,7 +1081,7 @@ def test_literal_bracket_link_text_does_not_render_as_link() -> None:
     # parses as a real Markdown link. Lowered, the `[` `]` `(` are escaped so it
     # renders as plain text, not an anchor.
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("[not a link](https://example.com)")])])
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     # the open bracket is escaped so no `[label](url)` link survives
     assert "\\[not a link\\]" in body
     assert "[not a link](https://example.com)" not in body
@@ -1091,7 +1091,7 @@ def test_literal_html_script_is_inert() -> None:
     # A literal `<script>alert(1)</script>` Text run must not pass through as raw
     # HTML — the angle brackets are escaped so it renders as inert text.
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("<script>alert(1)</script>")])])
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     assert "<script>" not in body
     assert "\\<script\\>alert(1)\\</script\\>" in body
 
@@ -1100,7 +1100,7 @@ def test_literal_emphasis_stars_are_escaped() -> None:
     # A literal `*not emphasis*` Text run must not become emphasis; the `*` are
     # escaped so the asterisks render verbatim.
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("*not emphasis*")])])
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     assert "\\*not emphasis\\*" in body
 
 
@@ -1108,9 +1108,9 @@ def test_literal_leading_hash_and_quote_are_escaped() -> None:
     # A literal leading `#` (would parse as a heading) and a leading `>` (a
     # blockquote) at the start of a prose paragraph are escaped.
     h = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("# not a heading")])])
-    assert "\\# not a heading" in lower.lower(h, "ru")
+    assert "\\# not a heading" in lower.lower(h, "ru", [])
     q = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("> not a quote")])])
-    assert "\\> not a quote" in lower.lower(q, "ru")
+    assert "\\> not a quote" in lower.lower(q, "ru", [])
 
 
 def test_intentional_link_node_still_renders_as_working_link() -> None:
@@ -1119,7 +1119,7 @@ def test_intentional_link_node_still_renders_as_working_link() -> None:
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[
         ir.Link(children=[ir.Text("Anthropic")], target="https://anthropic.com"),
     ])])
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     assert "[Anthropic](https://anthropic.com)" in body
     assert "\\[" not in body
 
@@ -1133,7 +1133,7 @@ def test_intentional_emphasis_node_still_renders() -> None:
         ir.Text(" and "),
         ir.Emphasis("emph", [ir.Text("that")]),
     ])])
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     assert "**this**" in body
     assert "*that*" in body
 
@@ -1143,7 +1143,7 @@ def test_intentional_code_node_text_not_escaped() -> None:
     # Markdown-escaped (backticks already make it literal), so a `*` inside code
     # stays a `*`.
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Code("a*b_c")])])
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     assert "`a*b_c`" in body
 
 
@@ -1152,7 +1152,7 @@ def test_literal_pipe_in_table_cell_is_escaped() -> None:
     # grid, and other literal markup chars in the cell are escaped too.
     t = ir.Table(rows=[[[ir.Text("a|b")], [ir.Text("*c*")]]])
     doc = ir.Document(blocks=[t])
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     assert "a\\|b" in body
     assert "\\*c\\*" in body
 
@@ -1164,7 +1164,7 @@ def test_literal_markup_in_footnote_body_is_escaped() -> None:
         blocks=[ir.Paragraph(inlines=[ir.Text("ref"), ir.FootnoteRef(raw_index=1, id=1)])],
         footnotes=[ir.FootnoteDef(id=1, blocks=[ir.Paragraph(inlines=[ir.Text("see [x](y)")])])],
     )
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     assert "[^1]: see \\[x\\](y)" in body
 
 
@@ -1172,7 +1172,7 @@ def test_literal_markup_in_heading_text_is_escaped() -> None:
     # A heading whose literal Text carries markup chars escapes them, while a real
     # FootnoteRef / Emphasis node in the SAME heading still renders.
     doc = ir.Document(blocks=[ir.Heading(level=2, inlines=[ir.Text("A*B and [c]")])])
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     assert "## A\\*B and \\[c\\]" in body
 
 
@@ -1195,15 +1195,16 @@ def test_asset_absolute_src_is_rejected_with_diagnostic(tmp_path: Path) -> None:
     doc = ir.Document(blocks=[
         ir.Paragraph(inlines=[ir.ImageInline(src=str(outside), alt="")]),
     ])
-    doc, planned = lower.assign_assets(doc, media_root)
+    diags: list[ir.Diagnostic] = []
+    doc, planned = lower.assign_assets(doc, media_root, diags)
 
     # No asset planned for the escaping ref; the ref is DROPPED (not kept).
     assert planned == []
     assert _para(doc.blocks[0]).inlines == [], "the escaping image ref must be dropped"
     # A FATAL diagnostic surfaced (not a silent read of the outside file).
-    _assert_diagnostic(doc, "fatal", "import.image-unresolved")
+    _assert_diagnostic(diags, "fatal", "import.image-unresolved")
     # And the body never leaks the absolute path.
-    assert str(outside) not in lower.lower(doc, "ru")
+    assert str(outside) not in lower.lower(doc, "ru", [])
 
 
 def test_asset_parent_escaping_src_is_rejected_with_diagnostic(tmp_path: Path) -> None:
@@ -1216,12 +1217,13 @@ def test_asset_parent_escaping_src_is_rejected_with_diagnostic(tmp_path: Path) -
     doc = ir.Document(blocks=[
         ir.Paragraph(inlines=[ir.ImageInline(src="../../secret.png", alt="")]),
     ])
-    doc, planned = lower.assign_assets(doc, media_root)
+    diags: list[ir.Diagnostic] = []
+    doc, planned = lower.assign_assets(doc, media_root, diags)
 
     assert planned == []
     assert _para(doc.blocks[0]).inlines == [], "the parent-escaping image ref must be dropped"
-    _assert_diagnostic(doc, "fatal", "import.image-unresolved")
-    assert "../../secret.png" not in lower.lower(doc, "ru")
+    _assert_diagnostic(diags, "fatal", "import.image-unresolved")
+    assert "../../secret.png" not in lower.lower(doc, "ru", [])
 
 
 def test_asset_legit_src_under_media_root_still_planned(tmp_path: Path) -> None:
@@ -1235,7 +1237,7 @@ def test_asset_legit_src_under_media_root_still_planned(tmp_path: Path) -> None:
     doc = ir.Document(blocks=[
         ir.Paragraph(inlines=[ir.ImageInline(src="sub/pic.png", alt="")]),
     ])
-    doc, planned = lower.assign_assets(doc, media_root)
+    doc, planned = lower.assign_assets(doc, media_root, [])
 
     assert len(planned) == 1
     assert planned[0].rel_within.startswith("images/")
@@ -1256,14 +1258,14 @@ def test_asset_inline_image_inside_lineated_block_is_planned(tmp_path: Path) -> 
             [ir.Line([ir.Text("see "), ir.ImageInline(src="pic.png", alt="caption")])],
         ]),
     ])
-    doc, planned = lower.assign_assets(doc, media_root)
+    doc, planned = lower.assign_assets(doc, media_root, [])
 
     assert len(planned) == 1
     assert isinstance(doc.blocks[0], ir.LineatedBlock)
     img = doc.blocks[0].stanzas[0][0].inlines[1]
     assert isinstance(img, ir.ImageInline)
     assert img.asset_id is not None
-    assert f"./images/{img.asset_id}" in lower.lower(doc, "ru")
+    assert f"./images/{img.asset_id}" in lower.lower(doc, "ru", [])
 
 
 # ---------------------------------------------------------------------------
@@ -1276,7 +1278,7 @@ def test_lower_line_block_produces_lineated_lines() -> None:
     # Bug 4(a): a LineBlock (mapped to a LineatedBlock by the adapter) lowers to
     # non-empty hard-break Markdown preserving its lines — not empty output.
     lb = ir.LineatedBlock(stanzas=[[ir.Line([ir.Text("Roses are red,")]), ir.Line([ir.Text("violets are blue.")])]])
-    body = lower.lower(ir.Document(blocks=[lb]), "ru")
+    body = lower.lower(ir.Document(blocks=[lb]), "ru", [])
     assert "Roses are red," in body
     assert "violets are blue." in body
     assert 'class="lineated verse"' not in body
@@ -1287,9 +1289,10 @@ def test_lower_unknown_block_preserves_text_and_emits_diagnostic() -> None:
     # Bug 4(b): a genuinely-unknown block must NOT be silently dropped — its readable
     # text is emitted AND a diagnostic is surfaced on the document.
     doc = ir.Document(blocks=[ir.UnknownBlock(note="Bogus", text="important reading content")])
-    body = lower.lower(doc, "ru")
+    diags: list[ir.Diagnostic] = []
+    body = lower.lower(doc, "ru", diags)
     assert "important reading content" in body
-    _assert_diagnostic(doc, "warning", "import.unknown-block")
+    _assert_diagnostic(diags, "warning", "import.unknown-block")
 
 
 def test_lower_empty_unknown_block_still_emits_diagnostic() -> None:
@@ -1297,8 +1300,9 @@ def test_lower_empty_unknown_block_still_emits_diagnostic() -> None:
     # reading content, but its presence is still surfaced as a diagnostic — the
     # importer never drops a block silently.
     doc = ir.Document(blocks=[ir.UnknownBlock(note="Null", text="")])
-    lower.lower(doc, "ru")
-    _assert_diagnostic(doc, "warning", "import.unknown-block")
+    diags: list[ir.Diagnostic] = []
+    lower.lower(doc, "ru", diags)
+    _assert_diagnostic(diags, "warning", "import.unknown-block")
 
 
 # ---------------------------------------------------------------------------
@@ -1366,24 +1370,25 @@ def test_javascript_link_drops_target_keeps_text_with_warning() -> None:
     # `javascript:`-scheme link target would become an active anchor. An unsafe
     # scheme must drop the link (keeping its visible text) and surface a warning.
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Link([ir.Text("click me")], "javascript:alert(1)")])])
-    body = lower.lower(doc, "ru")
+    diags: list[ir.Diagnostic] = []
+    body = lower.lower(doc, "ru", diags)
     assert "click me" in body
     assert "javascript:" not in body
     assert "](" not in body  # no markdown link syntax survives
-    _assert_diagnostic(doc, "warning", "import.unsafe-url")
+    _assert_diagnostic(diags, "warning", "import.unsafe-url")
 
 
 def test_https_link_is_preserved() -> None:
     # A normal http(s) link is untouched.
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Link([ir.Text("home")], "https://example.org/x")])])
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     assert "[home](https://example.org/x)" in body
 
 
 def test_relative_and_anchor_and_mailto_links_preserved() -> None:
     for target in ("./other", "/works/x", "#section", "mailto:a@b.org"):
         doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Link([ir.Text("L")], target)])])
-        body = lower.lower(doc, "ru")
+        body = lower.lower(doc, "ru", [])
         assert f"[L]({target})" in body, target
 
 
@@ -1394,7 +1399,7 @@ def test_unsafe_link_in_verse_drops_target_keeps_text() -> None:
         register=ir.Register.VERSE,
     )
     doc = ir.Document(blocks=[vb])
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
     assert "javascript:" not in body
     assert "<a " not in body  # the anchor element is gone
     assert ">x<" not in body or "x" in body  # the text remains
@@ -1405,11 +1410,12 @@ def test_unsafe_link_in_lineated_block_drops_target_keeps_text() -> None:
         [ir.Line([ir.Text("before "), ir.Link([ir.Text("x")], "javascript:alert(1)")])],
     ])
     doc = ir.Document(blocks=[lb])
-    body = lower.lower(doc, "ru")
+    diags: list[ir.Diagnostic] = []
+    body = lower.lower(doc, "ru", diags)
     assert "javascript:" not in body
     assert "before x" in body
     assert "](" not in body
-    _assert_diagnostic(doc, "warning", "import.unsafe-url")
+    _assert_diagnostic(diags, "warning", "import.unsafe-url")
 
 
 def test_unsafe_scheme_image_is_dropped_with_warning() -> None:
@@ -1417,11 +1423,12 @@ def test_unsafe_scheme_image_is_dropped_with_warning() -> None:
     # javascript:) must be dropped entirely (no <img>, no ![]() ) with a warning.
     img = ir.ImageInline(src="javascript:alert(1)", alt="bad")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("before "), img, ir.Text(" after")])])
-    body = lower.lower(doc, "ru")
+    diags: list[ir.Diagnostic] = []
+    body = lower.lower(doc, "ru", diags)
     assert "javascript:" not in body
     assert "![" not in body
     assert "before" in body and "after" in body
-    _assert_diagnostic(doc, "warning", "import.unsafe-url")
+    _assert_diagnostic(diags, "warning", "import.unsafe-url")
 
 
 # ---------------------------------------------------------------------------
@@ -1437,9 +1444,10 @@ def test_unresolvable_local_image_is_fatal_and_ref_not_emitted(tmp_path: Path) -
     media.mkdir()
     img = ir.ImageInline(src="media/missing.png", alt="x")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("before "), img, ir.Text(" after")])])
-    doc, _planned = lower.assign_assets(doc, media)
-    _assert_diagnostic(doc, "fatal", "import.image-unresolved")
-    body = lower.lower(doc, "ru")
+    diags: list[ir.Diagnostic] = []
+    doc, _planned = lower.assign_assets(doc, media, diags)
+    _assert_diagnostic(diags, "fatal", "import.image-unresolved")
+    body = lower.lower(doc, "ru", [])
     assert "missing.png" not in body, "no dangling local image ref may reach the body"
     assert "before" in body and "after" in body
 
@@ -1451,9 +1459,10 @@ def test_escaping_absolute_image_is_fatal_and_ref_not_emitted(tmp_path: Path) ->
     media.mkdir()
     img = ir.ImageInline(src="/etc/passwd.png", alt="x")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[img])])
-    doc, _planned = lower.assign_assets(doc, media)
-    _assert_diagnostic(doc, "fatal", "import.image-unresolved")
-    body = lower.lower(doc, "ru")
+    diags: list[ir.Diagnostic] = []
+    doc, _planned = lower.assign_assets(doc, media, diags)
+    _assert_diagnostic(diags, "fatal", "import.image-unresolved")
+    body = lower.lower(doc, "ru", [])
     assert "/etc/passwd" not in body
 
 
@@ -1464,10 +1473,11 @@ def test_resolvable_local_image_assigns_asset_and_is_not_fatal(tmp_path: Path) -
     (media / "image1.png").write_bytes(b"\x89PNGfakebytes")
     img = ir.ImageInline(src="media/image1.png", alt="x")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[img])])
-    doc, planned = lower.assign_assets(doc, tmp_path / "media")
+    diags: list[ir.Diagnostic] = []
+    doc, planned = lower.assign_assets(doc, tmp_path / "media", diags)
     assert planned, "a resolvable image must produce a planned asset"
-    assert not [d for d in doc.diagnostics if d.severity == "fatal"]
-    body = lower.lower(doc, "ru")
+    assert not [d for d in diags if d.severity == "fatal"]
+    body = lower.lower(doc, "ru", [])
     assert "./images/" in body
 
 
@@ -1475,7 +1485,7 @@ def test_inline_body_image_lowers_as_standalone_block() -> None:
     img = ir.ImageInline(src="m/img.png", alt="", asset_id="abc123.png")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("before "), img, ir.Text(" after")])])
 
-    body = lower.lower(doc, "ru")
+    body = lower.lower(doc, "ru", [])
 
     assert body == "before\n\n![Иллюстрация](./images/abc123.png)\n\nafter\n"
 
@@ -1484,7 +1494,7 @@ def test_poem_inline_body_image_lowers_as_standalone_block() -> None:
     img = ir.ImageInline(src="m/img.png", alt="", asset_id="abc123.png")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("before"), img, ir.Text("after")])])
 
-    body = lower.lower(doc, "en", poem=True)
+    body = lower.lower(doc, "en", [], poem=True)
 
     assert body == "before\n\n![Illustration](./images/abc123.png)\n\nafter\n"
 
@@ -1496,9 +1506,10 @@ def test_remote_http_image_is_kept_not_fatal(tmp_path: Path) -> None:
     media.mkdir()
     img = ir.ImageInline(src="https://example.org/a.png", alt="x")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[img])])
-    doc, _planned = lower.assign_assets(doc, media)
-    assert not [d for d in doc.diagnostics if d.severity == "fatal"]
-    body = lower.lower(doc, "ru")
+    diags: list[ir.Diagnostic] = []
+    doc, _planned = lower.assign_assets(doc, media, diags)
+    assert not [d for d in diags if d.severity == "fatal"]
+    body = lower.lower(doc, "ru", [])
     assert "https://example.org/a.png" in body
 
 

@@ -1113,20 +1113,20 @@ def _table(node: dict[str, Any], ctx: _Ctx) -> ir.Table:
 # ---------------------------------------------------------------------------
 
 
-def adapt(docx: Path, media_dir: Path) -> ir.Document:
+def adapt(docx: Path, media_dir: Path, diagnostics: list[ir.Diagnostic]) -> ir.Document:
     """Parse `docx` into an `ir.Document`, extracting media into `media_dir`.
 
-    `w:jc` alignment and visual lineation groups are assigned onto the top-level
-    `Paragraph` blocks by CONTENT (`reconcile_source`); a `warning` fires when
-    right-aligned source paragraphs exist but none reconcile, so a future drift
-    can't ship silently. Footnote definitions collected during the inline walk are
-    attached densely renumbered.
+    `diagnostics` is the caller's sink — the same one the passes and the backend
+    take. `w:jc` alignment and visual lineation groups are assigned onto the
+    top-level `Paragraph` blocks by CONTENT (`reconcile_source`); a `warning`
+    fires when right-aligned source paragraphs exist but none reconcile, so a
+    future drift can't ship silently. Footnote definitions collected during the
+    inline walk are attached densely renumbered.
     """
     ast, warns = run_pandoc_json(docx, media_dir)
     records = read_w_jc(docx)
 
     ctx = _Ctx()
-    diagnostics: list[ir.Diagnostic] = []
     if warns:
         diagnostics.append(ir.Diagnostic("info", "import.pandoc-warn", warns))
 
@@ -1158,5 +1158,4 @@ def adapt(docx: Path, media_dir: Path) -> ir.Document:
     return ir.Document(
         blocks=blocks,
         footnotes=[ir.FootnoteDef(id=i, blocks=bs) for i, bs in ctx.fn_defs],
-        diagnostics=diagnostics,
     )

@@ -42,9 +42,9 @@ def _is_safe_url(target: str) -> bool:
     return m.group(1).lower() in _ALLOWED_URL_SCHEMES
 
 
-def sanitize_urls(doc: ir.Document) -> ir.Document:
+def sanitize_urls(doc: ir.Document, diagnostics: list[ir.Diagnostic]) -> ir.Document:
     """Drop unsafe link/image targets across the document, returning the
-    sanitized document (diagnostics are appended to the shared sink list).
+    sanitized document (diagnostics are appended to the caller's sink).
 
     For each reachable inline: an `ir.Link` with an unsafe target is replaced by
     its child inlines (the link text is KEPT, only the active target is dropped);
@@ -61,14 +61,14 @@ def sanitize_urls(doc: ir.Document) -> ir.Document:
             # isinstance, not match: the container arm tests `ir.ContainerInline`
             # (a runtime tuple), which can't appear in a `case`.
             if isinstance(n, ir.Link) and not _is_safe_url(n.target):
-                doc.diagnostics.append(ir.Diagnostic(
+                diagnostics.append(ir.Diagnostic(
                     "warning", "import.unsafe-url",
                     f"link target {n.target!r} uses a disallowed URL scheme; dropped "
                     "the link, kept its text.",
                 ))
                 out.extend(visit_inlines(n.children))
             elif isinstance(n, ir.ImageInline) and not _is_safe_url(n.src):
-                doc.diagnostics.append(ir.Diagnostic(
+                diagnostics.append(ir.Diagnostic(
                     "warning", "import.unsafe-url",
                     f"image source {n.src!r} uses a disallowed URL scheme; dropped "
                     "the image.",

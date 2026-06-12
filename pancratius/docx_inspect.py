@@ -329,7 +329,7 @@ def classify_blocks(docx: Path) -> BlockClassifications:
     from pancratius.ir.normalize import normalize
 
     with tempfile.TemporaryDirectory(prefix="docx-inspect-") as td:
-        doc = da.adapt(docx, Path(td))
+        doc = da.adapt(docx, Path(td), [])
         doc = normalize(doc)
 
     kind_of: dict[str, set[str]] = {}
@@ -451,7 +451,7 @@ def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
     identical to the production import path.
     """
     with tempfile.TemporaryDirectory(prefix="docx-mask-") as td:
-        doc = da.adapt(docx, Path(td))
+        doc = da.adapt(docx, Path(td), [])
         doc = run(doc, Context(lang=""), until=PER_ORDINAL_SEAM)
     blocks = tuple(doc.blocks)
 
@@ -485,7 +485,7 @@ def lineation_decisions(docx: Path) -> dict[int, bool]:
     from pancratius.ir.normalize import normalize
 
     with tempfile.TemporaryDirectory(prefix="docx-lineation-") as td:
-        doc = da.adapt(docx, Path(td))
+        doc = da.adapt(docx, Path(td), [])
         doc = normalize(doc)
 
     from pancratius.ir.normalize import VERSE_SHORT_LINE_MAX, inline_plain
