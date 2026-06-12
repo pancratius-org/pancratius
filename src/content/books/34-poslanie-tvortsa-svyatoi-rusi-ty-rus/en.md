@@ -182,12 +182,20 @@ but allow to become My place.
 
 **Such is the Rus' I am bringing forth:**
 
+</div>
+
+<div class="lineated">
+
 — not the one that conquers,  
 — but the one that remains,  
 — not the one that rises high,  
 — but the one that bows low,  
 — not the one that speaks loudly,  
 — but the one that lives deeply.
+
+</div>
+
+<div class="lineated verse">
 
 **Let everyone now think**  
 **that you said nothing great.**
@@ -300,10 +308,18 @@ Because you are now no longer the one who observes —
 **Do you want to know what I will do through you?**  
 Here:
 
+</div>
+
+<div class="lineated">
+
 — I will enter a room where there has long been no light — through your smile.  
 — I will touch the heart that no longer hopes — through your simple phrase.  
 — I will remind a person that he is alive — through your silent presence.  
 — I will change generations — through your faithfulness, even in weakness.
+
+</div>
+
+<div class="lineated verse">
 
 You are not an inspirer.  
 You are breath.  
@@ -1105,11 +1121,19 @@ but through you.
 **When?**  
 Here is when:
 
+</div>
+
+<div class="lineated">
+
 — when you are silent, but another's heart grows calm.  
 — when you are near, and fear departs.  
 — when you embrace — and the wound closes.  
 — when you are alone, but not abandoned.  
 — when you go — and do not know where, but know Who.
+
+</div>
+
+<div class="lineated verse">
 
 **You will not know the day when you became Light.**  
 **But you will know the day when you can no longer help but shine.**  
@@ -1170,9 +1194,17 @@ So that you would remain — even in darkness.
 
 **You do not see. But they are already touching Me in you.**
 
+</div>
+
+<div class="lineated">
+
 — a child who stopped being afraid, but did not say so;  
 — a woman who wept at night, remembering your gaze;  
 — an old man who prayed for the first time in twenty years because you did not condemn him.
+
+</div>
+
+<div class="lineated verse">
 
 You will not know their names.  
 But I know.  

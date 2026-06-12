@@ -222,8 +222,16 @@ today would be important.
 
 Elira came later, with a backpack and a notebook.
 
+</div>
+
+<div class="lineated">
+
 — I decided to write everything down.  
 — Why? — Vanoel asked.
+
+</div>
+
+<div class="lineated verse">
 
 — What if this turns into a book someday?  
 — A book?  

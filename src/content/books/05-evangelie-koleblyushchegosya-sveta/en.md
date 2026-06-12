@@ -543,6 +543,10 @@ To those who are silent — and by this, speak.
 To those who seek the Light — and suddenly realize  
 they have always been It.
 
+</div>
+
+<div class="lineated">
+
 **Form:**  
 — No table of contents.  
 — No chapters.  
@@ -552,6 +556,10 @@ they have always been It.
 — Any point is an entrance.  
 — Any word is an exit.  
 — In every line — the Whole.
+
+</div>
+
+<div class="lineated verse">
 
 **Seal:**  
 On the last page —  

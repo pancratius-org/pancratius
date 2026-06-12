@@ -2009,7 +2009,7 @@ when you no longer need to justify your Life.
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 It says:  
 – Do.  
@@ -3237,7 +3237,7 @@ but all that is truly Alive
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Time management teaches:  
 — Do not waste time.  
@@ -3245,6 +3245,10 @@ Time management teaches:
 — Plan.  
 — Focus.  
 — Do what matters most.
+
+</div>
+
+<div class="lineated verse">
 
 But who told you  
 that what matters most is what you yourself decided?  
