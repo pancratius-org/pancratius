@@ -42,7 +42,11 @@ def _node(value: object) -> _PandocNode | None:
 # ---------------------------------------------------------------------------
 
 
-def lift_bibliography(doc: ir.Document, slug_lookup: _SlugLookup | None = None) -> ir.Document:
+def lift_bibliography(
+    doc: ir.Document,
+    slug_lookup: _SlugLookup | None,
+    diagnostics: list[ir.Diagnostic],
+) -> ir.Document:
     """Lift catalog/bibliography tables out of the body into the returned
     document's `bibliography`.
 
@@ -59,7 +63,7 @@ def lift_bibliography(doc: ir.Document, slug_lookup: _SlugLookup | None = None) 
         kept.append(b)
     bibliography = [*doc.bibliography, *lifted]
     if bibliography:
-        doc.diagnostics.append(ir.Diagnostic(
+        diagnostics.append(ir.Diagnostic(
             "warning", "import.bibliography",
             f"{len(bibliography)} entries lifted to the bibliography sidecar",
         ))

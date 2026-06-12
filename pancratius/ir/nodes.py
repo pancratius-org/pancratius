@@ -3,7 +3,8 @@
 
 This is the semantic boundary from `docs/import-pipeline.md` ("The block IR"):
 after the DOCX adapter, nothing is DOCX-shaped — it is blocks, inlines, footnote
-definitions, assets, and diagnostics. Lowering turns this typed structure into
+definitions, and assets; diagnostics flow through the pass-context sink, not the
+document. Lowering turns this typed structure into
 canonical Markdown exactly once; no Markdown string exists before then.
 
 The model is deliberately minimal: only the block and inline kinds the Pancratius
@@ -529,10 +530,11 @@ class Diagnostic:
 
 @dataclass(frozen=True)
 class Document:
-    """The IR document. Blocks plus footnotes, bibliography, and diagnostics
-    travel SIDE BY SIDE — never inside the prose. The body images the lowering
-    references are returned as `PlannedAsset`s from the asset pass (the writer
-    copies them); they are not stored on the document.
+    """The IR document — pure content. Blocks plus footnotes and bibliography
+    travel SIDE BY SIDE, never inside the prose. Diagnostics flow through the
+    one sink on the pass `Context`, not the document. The body images the
+    lowering references are returned as `PlannedAsset`s from the asset pass
+    (the writer copies them); they are not stored on the document.
 
     `bibliography` is an open record: the sidecar can grow fields without the IR
     pretending to own a closed schema."""
@@ -540,4 +542,3 @@ class Document:
     blocks: list[Block] = field(default_factory=list)
     footnotes: list[FootnoteDef] = field(default_factory=list)
     bibliography: list[BibliographyEntry] = field(default_factory=list)
-    diagnostics: list[Diagnostic] = field(default_factory=list)

@@ -9,7 +9,7 @@ orchestrator.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
 from pancratius import ir
@@ -18,6 +18,10 @@ from pancratius.passes import endmatter, lineation, register, sanitize, scrub, s
 
 if TYPE_CHECKING:
     from pancratius.passes.register import RegisterModel
+
+# The one diagnostics sink: producers (frontend, passes, backend) append; the
+# composition point routes by severity after the run.
+type DiagnosticSink = list[ir.Diagnostic]
 
 
 @dataclass(frozen=True)
@@ -28,6 +32,7 @@ class Context:
     demote_levels: int = 1
     slug_lookup: Mapping[str, IndexHit] | None = None
     register_model: RegisterModel | None = None
+    diagnostics: DiagnosticSink = field(default_factory=list)
 
 
 type PassFn = Callable[[ir.Document, Context], ir.Document]
@@ -44,15 +49,15 @@ def _blocks(fn: Callable[[list[ir.Block]], list[ir.Block]]) -> PassFn:
 
 
 def _lift_bibliography(doc: ir.Document, ctx: Context) -> ir.Document:
-    return endmatter.lift_bibliography(doc, ctx.slug_lookup)
+    return endmatter.lift_bibliography(doc, ctx.slug_lookup, ctx.diagnostics)
 
 
 def _demote_headings(doc: ir.Document, ctx: Context) -> ir.Document:
     return replace(doc, blocks=scrub.demote_headings(doc.blocks, ctx.demote_levels))
 
 
-def _sanitize_urls(doc: ir.Document, _ctx: Context) -> ir.Document:
-    return sanitize.sanitize_urls(doc)
+def _sanitize_urls(doc: ir.Document, ctx: Context) -> ir.Document:
+    return sanitize.sanitize_urls(doc, ctx.diagnostics)
 
 
 BOOK_PASSES: tuple[Pass, ...] = (

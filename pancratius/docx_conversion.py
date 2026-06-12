@@ -215,25 +215,29 @@ def convert_single_docx(
     this call until the writer copies them. Pure after the adapter.
     """
     media_out.mkdir(parents=True, exist_ok=True)
-    doc = docx_adapter.adapt(docx, media_out)
+    # ONE diagnostics sink for the whole conversion: the adapter, every pass (via
+    # `Context`), and the backend tail all append into it.
+    diagnostics: list[ir.Diagnostic] = []
+    doc = docx_adapter.adapt(docx, media_out, diagnostics)
 
     if kind == "poem":
         # Verse end-to-end: skip heading demotion, bibliography lift, and verse
         # detection (the whole AST is verse); only light cleanup applies.
-        doc = run(doc, Context(lang=lang), POEM_PASSES)
+        doc = run(doc, Context(lang=lang, diagnostics=diagnostics), POEM_PASSES)
     else:
         doc = run(doc, Context(
             lang=lang,
             demote_levels=1,
             slug_lookup=title_index,
             register_model=load_register_model_for(lang),
+            diagnostics=diagnostics,
         ))
 
     # Neutralize unsafe URL schemes before the asset pass hashes any image, so an
     # unsafe-scheme src never reaches asset resolution; `lower` re-runs idempotently.
-    doc = lower.sanitize_urls(doc)
-    doc, assets = lower.assign_assets(doc, media_out)
-    body = lower.lower(doc, lang, poem=(kind == "poem"))
+    doc = lower.sanitize_urls(doc, diagnostics)
+    doc, assets = lower.assign_assets(doc, media_out, diagnostics)
+    body = lower.lower(doc, lang, diagnostics, poem=(kind == "poem"))
     poem_chrome: PoemChrome | None = None
     if kind == "poem":
         # A poem DOCX that opens with a bold title paragraph repeats the masthead title
@@ -246,11 +250,11 @@ def convert_single_docx(
     # Forward pandoc warnings plus any surfaced warning/fatal diagnostic, so the
     # documented "fail loud" actually fires.
     warning_messages = [
-        d.message for d in doc.diagnostics if d.code == "import.pandoc-warn"
+        d.message for d in diagnostics if d.code == "import.pandoc-warn"
     ]
     warning_messages.extend(
         f"[{d.code}] {d.message}"
-        for d in doc.diagnostics
+        for d in diagnostics
         if d.severity in {"warning", "fatal"}
     )
     warnings = "\n".join(warning_messages)
@@ -260,7 +264,7 @@ def convert_single_docx(
         cross_refs=refs,
         warnings=warnings,
         assets=assets,
-        diagnostics=list(doc.diagnostics),
+        diagnostics=list(diagnostics),
         poem_chrome=poem_chrome,
     )
 
