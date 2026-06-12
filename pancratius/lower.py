@@ -10,7 +10,7 @@ canonical author-facing shape:
   * `<p class="signature">` and `<blockquote class="epigraph">`
   * footnote refs `[^N]` inline plus a generated `[^N]:` appendix AT THE TAIL —
     generated last, from typed `FootnoteDef`s, so a definition can never be lost
-    to tail-stripping (the Phase-4 win, now structural)
+    to tail-stripping
   * `./images/<hash>.<ext>` body image refs + planned assets (the writer copies)
   * bibliography already lifted to the sidecar; reading-content tables kept as GFM
 """
@@ -45,9 +45,9 @@ def _escape_markdown_alt(alt: str) -> str:
 # ---------------------------------------------------------------------------
 
 # Emphasis-kind lowerings: the Markdown delimiter pair per `EmphKind`.
-# `test_emph_tables_total` pins it to the full `EmphKind` set. Lineated-wrapper emphasis
-# now lowers through this same Markdown path (the blank line after `<div>` lets
-# CommonMark parse the inside), so there is no longer a separate HTML-tag table.
+# `test_emph_tables_total` pins it to the full `EmphKind` set. Lineated-wrapper
+# emphasis lowers through this same Markdown path (the blank line after `<div>`
+# lets CommonMark parse the inside), so this is the one emphasis table.
 _EMPH_MD: dict[ir.EmphKind, tuple[str, str]] = {
     "strong": ("**", "**"), "emph": ("*", "*"), "strike": ("~~", "~~"),
     "sup": ("^", "^"), "sub": ("~", "~"),
@@ -343,12 +343,20 @@ def _quote_member_md(blk: ir.Block, lang: str) -> str | None:
     return _block_md(blk, lang)
 
 
+def _quote_member_mds(b: ir.QuoteBlock, lang: str) -> list[str]:
+    """The non-empty lowered member blocks of a quote."""
+    return [md for blk in b.blocks if (md := _quote_member_md(blk, lang))]
+
+
+def _gt_prefixed(md: str) -> str:
+    """Every line of `md` behind the `>` quote prefix."""
+    return "\n".join("> " + line for line in md.splitlines())
+
+
 def _plain_quote_md(b: ir.QuoteBlock, lang: str) -> str | None:
     """An ordinary quote (Pandoc-born, from a Word Quote style/indent): the
     line-prefix join, whose members fuse by lazy continuation."""
-    inner = "\n".join(
-        "> " + line for blk in b.blocks for line in (_block_md(blk, lang) or "").splitlines()
-    )
+    inner = "\n".join(_gt_prefixed(md) for blk in b.blocks if (md := _block_md(blk, lang)))
     return inner or None
 
 
@@ -356,7 +364,7 @@ def _scripture_quote_md(b: ir.QuoteBlock, lang: str) -> str | None:
     """Quoted canonical text (the boxed `w:pBdr` register): a classed HTML
     blockquote whose inside is parsed Markdown (the blank line after the
     opening tag is load-bearing, as in the lineated wrapper)."""
-    members = [md for blk in b.blocks if (md := _quote_member_md(blk, lang))]
+    members = _quote_member_mds(b, lang)
     if not members:
         return None
     return "\n".join(
@@ -369,12 +377,10 @@ def _inset_quote_md(b: ir.QuoteBlock, lang: str) -> str | None:
     portable Markdown quote; member blocks are separated by a bare `>` line so
     they stay distinct paragraphs instead of fusing by lazy continuation, and
     authored hard breaks inside members stay display lines."""
-    members = [md for blk in b.blocks if (md := _quote_member_md(blk, lang))]
+    members = _quote_member_mds(b, lang)
     if not members:
         return None
-    return "\n>\n".join(
-        "\n".join("> " + line for line in md.splitlines()) for md in members
-    )
+    return "\n>\n".join(_gt_prefixed(md) for md in members)
 
 
 # The register→emission registry for quote blocks. Total over `Register`
@@ -591,7 +597,7 @@ def _lower_poem_body(doc: ir.Document, lang: str) -> str:
       * a non-empty paragraph that yields a SINGLE line ACCUMULATES into the
         current stanza, which is flushed only at the next empty paragraph.
 
-    The multi-line-paragraph-is-its-own-stanza rule is the C1 fix: many poems
+    The multi-line-paragraph-is-its-own-stanza rule matters because many poems
     store ONE STANZA PER non-empty Word paragraph (the stanza's lines live as
     internal hard breaks, with NO empty paragraph between stanzas). A paragraph
     boundary between two multi-line verse paragraphs IS a stanza break (without
@@ -703,7 +709,7 @@ def _surface_unknown_block_diagnostics(
     makes its presence visible to the caller (which forwards `warning`/`fatal`)."""
 
     def visit(b: ir.Block) -> None:
-        # Deliberately PARTIAL (a `case _` no-op, NOT `assert_never`): only an
+        # PARTIAL (a `case _` no-op, NOT `assert_never`): only an
         # `UnknownBlock` surfaces a diagnostic, and only the container blocks
         # (`QuoteBlock`/`ListBlock`) nest others to descend into; every other block
         # kind is a non-nesting leaf with nothing to surface, so it is skipped.
@@ -749,16 +755,8 @@ def lower(
     _surface_unknown_block_diagnostics(doc, diagnostics)
     if poem:
         body = _lower_poem_body(doc, lang)
-        appendix = _footnote_appendix(doc, lang)
-        if appendix:
-            body = body.rstrip("\n") + "\n\n" + appendix
-        return re.sub(r"\n{3,}", "\n\n", body).strip() + "\n"
-    pieces: list[str] = []
-    for b in doc.blocks:
-        md = _block_md(b, lang)
-        if md is not None and md != "":
-            pieces.append(md)
-    body = "\n\n".join(pieces)
+    else:
+        body = "\n\n".join(md for b in doc.blocks if (md := _block_md(b, lang)))
     appendix = _footnote_appendix(doc, lang)
     if appendix:
         body = body.rstrip("\n") + "\n\n" + appendix
