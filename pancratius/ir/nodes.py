@@ -30,6 +30,9 @@ QuoteKind = Literal["single", "double"]
 # without verse register is represented by `LineatedBlock`; `VerseBlock` adds this
 # register on top of the same lineation wrapper.
 VerseRole = Literal["verse"]
+# The two-class per-source-paragraph lineation verdict an editorial correction
+# (`lineation.<lang>.json` sidecar) can pin against the importer's own ladder.
+LineationRegister = Literal["prose", "lineated"]
 # Open JSON-ish records at the IR boundary. Pandoc table raw nodes stay opaque;
 # bibliography entries are structured enough to name, but intentionally open-ended.
 type JsonObject = dict[str, object]

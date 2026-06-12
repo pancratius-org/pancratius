@@ -315,10 +315,11 @@ def classify_blocks(docx: Path) -> BlockClassifications:
     text ambiguity explicitly.
     """
     from pancratius.ir.normalize import normalize
+    from pancratius.lineation_overrides import load_overrides
 
     with tempfile.TemporaryDirectory(prefix="docx-inspect-") as td:
         doc = da.adapt(docx, Path(td))
-        normalize(doc)
+        normalize(doc, lineation_overrides=load_overrides(docx))
 
     kind_of: dict[str, set[str]] = {}
     by_source = _SourceClassificationBuilder()
@@ -472,10 +473,11 @@ def lineation_decisions(docx: Path) -> dict[int, bool]:
     segment of one ``w:p`` shares the ordinal's verdict.
     """
     from pancratius.ir.normalize import normalize
+    from pancratius.lineation_overrides import load_overrides
 
     with tempfile.TemporaryDirectory(prefix="docx-lineation-") as td:
         doc = da.adapt(docx, Path(td))
-        normalize(doc)
+        normalize(doc, lineation_overrides=load_overrides(docx))
 
     from pancratius.ir.normalize import VERSE_SHORT_LINE_MAX, inline_plain
 
