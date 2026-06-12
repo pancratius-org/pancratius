@@ -39,7 +39,8 @@ and gives tests a stable semantic surface.
 source + companions
   -> acquire        resolve sources; scratch only, never src/content
   -> parse          DOCX/OOXML adapter -> Block IR; format-specific stops here
-  -> normalize      editorial mechanics over the IR; pure
+  -> normalize      editorial mechanics over the IR; pure, deterministic
+  -> enrich         learned passes over the IR (pancratius/intent); model-driven
   -> analyze        diagnostics over the normalized IR; pure
   -> place          target from explicit command intent, not from the document
   -> lower          IR -> canonical Markdown + planned assets; pure
@@ -50,6 +51,15 @@ source + companions
 Every stage before `write` is pure or writes only to scratch. Stages may be
 fused in code so long as the two boundaries hold; the contract is the boundaries,
 not a fixed function count.
+
+The `normalize`/`enrich` split is by decision source, not by topic: a rule that
+is deterministic from source facts is a normalize pass; a decision driven by a
+trained artifact or corpus statistics is an enrichment pass in
+`pancratius/intent`. IR nodes carry source facts and provenance only; feature
+vectors are derived by `intent` at decision time, never stored on the IR.
+Enrichment passes are plain functions over the document, composed explicitly
+by the conversion pipeline in a fixed order; `intent` imports `ir`, never the
+reverse, and a missing model artifact makes an enrichment pass a no-op.
 
 ## `WritePlan`
 
