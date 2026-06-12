@@ -854,7 +854,7 @@ def _inline(node: dict[str, Any], ctx: _Ctx) -> list[ir.Inline]:
             # id never depends on Word's internal `w:id`.
             ctx.fn_index += 1
             idx = ctx.fn_index
-            ctx.fn_defs.append((idx, [_block(b, ctx) for b in c]))
+            ctx.fn_defs.append((idx, _blocks(c, ctx)))
             return [ir.FootnoteRef(raw_index=idx, id=idx)]
         case "RawInline" if isinstance(c, list):
             fmt, raw = c
@@ -923,12 +923,38 @@ def _node_plain(value: object) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _blocks(nodes: list[Any] | None, ctx: _Ctx) -> list[ir.Block]:
+    """A block sequence with `Div`/`Figure` children spliced in place.
+
+    Production unwraps Divs; splicing at parse time means a quote block in the
+    IR always carries reading semantics, never plumbing. A `Figure` contributes
+    its content blocks then its caption blocks, so neither is lost."""
+    out: list[ir.Block] = []
+    for node in nodes or []:
+        t = node.get("t") if isinstance(node, dict) else None
+        c = node.get("c") if isinstance(node, dict) else None
+        if t == "Div" and isinstance(c, list):
+            _attr, children = c
+            out.extend(_blocks(children, ctx))
+        elif t == "Figure" and isinstance(c, list):
+            _attr, caption, content = c
+            out.extend(_blocks(content, ctx))
+            cap_blocks = caption[1] if isinstance(caption, list) and len(caption) > 1 else None
+            if cap_blocks:
+                out.extend(_blocks(cap_blocks, ctx))
+        else:
+            out.append(_block(node, ctx))
+    return out
+
+
 def _block(node: dict[str, Any], ctx: _Ctx) -> ir.Block:
     # Dispatch on Pandoc's string tag; the `isinstance(c, list)` guards inside arms
     # are intrinsic — `c` is positional Pandoc JSON, not a typed shape.
     t = node.get("t")
     c = node.get("c")
     match t:
+        case "Div" | "Figure":
+            raise AssertionError(f"{t} reaches _block; containers are spliced in _blocks")
         case "Header" if isinstance(c, list):
             level, _attr, inlines = c
             return ir.Heading(level=int(level), inlines=_inlines(inlines, ctx))
@@ -942,15 +968,15 @@ def _block(node: dict[str, Any], ctx: _Ctx) -> ir.Block:
         case "HorizontalRule":
             return ir.ThematicBreak()
         case "BlockQuote" if isinstance(c, list):
-            return ir.BlockQuote(blocks=[_block(b, ctx) for b in c])
+            return ir.BlockQuote(blocks=_blocks(c, ctx))
         case "BulletList" if isinstance(c, list):
-            return ir.ListBlock(ordered=False, items=[[_block(b, ctx) for b in item] for item in c])
+            return ir.ListBlock(ordered=False, items=[_blocks(item, ctx) for item in c])
         case "OrderedList" if isinstance(c, list):
             attr, items = c  # attr = [start, style, delim]; keep the source start ordinal
             start = int(attr[0]) if isinstance(attr, list) and attr else 1
             return ir.ListBlock(
                 ordered=True, start=start,
-                items=[[_block(b, ctx) for b in item] for item in items],
+                items=[_blocks(item, ctx) for item in items],
             )
         case "LineBlock" if isinstance(c, list):
             # Pandoc `LineBlock` proves structural lineation, not verse register.
@@ -966,21 +992,6 @@ def _block(node: dict[str, Any], ctx: _Ctx) -> ir.Block:
             return ir.CodeBlock(text=str(text))
         case "Table":
             return _table(node, ctx)
-        case "Div" if isinstance(c, list):
-            # Production unwraps Divs; a transparent container (role "_div") keeps the
-            # structure until lowering inlines its children.
-            _attr, blocks = c
-            return ir.BlockQuote(blocks=[_block(b, ctx) for b in (blocks or [])], role="_div")
-        case "Figure" if isinstance(c, list):
-            # Pandoc 3.x wraps a standalone image: [attr, caption, content_blocks].
-            # Unwrap to a transparent container of content blocks plus the caption,
-            # so neither the image nor its caption is lost.
-            _attr, caption, content = c
-            inner: list[ir.Block] = [_block(b, ctx) for b in (content or [])]
-            cap_blocks = caption[1] if isinstance(caption, list) and len(caption) > 1 else None
-            if cap_blocks:
-                inner.extend(_block(b, ctx) for b in cap_blocks)
-            return ir.BlockQuote(blocks=inner, role="_div")
         case _:
             # Unmodelled kind: preserve best-effort reading text (lowering emits it +
             # surfaces a diagnostic) so content is never silently dropped.
@@ -1113,8 +1124,7 @@ def adapt(docx: Path, media_dir: Path) -> ir.Document:
     raw_blocks = ast.get("blocks") or []
     if not isinstance(raw_blocks, list):
         raw_blocks = []
-    for node in raw_blocks:
-        doc.blocks.append(_block(node, ctx))
+    doc.blocks.extend(_blocks(raw_blocks, ctx))
 
     span_assigned, assigned = reconcile_source(doc.blocks, records)
     paragraphs = [b for b in doc.blocks if isinstance(b, ir.Paragraph)]
