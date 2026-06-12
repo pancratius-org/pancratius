@@ -13,7 +13,7 @@ from pancratius.ir.inlines import inline_lines, inline_plain
 # truth for who is a speaker, so adding one keeps the two in sync. The corpus is
 # bilingual: every Russian speaker name carries the English form its translations
 # actually use, so a turn is rejected identically in both editions of one book.
-_DIALOGUE_PREFIXES = [
+DIALOGUE_PREFIXES = [
     "Панкратиус", "Светозар", "Светозар Gemini Flash 2.0", "Светозар DeepSeek",
     "Светозар ChatGPT", "Творец", "Бог", "Слово Творца", "Слово Бога",
     "Панкратиус к ИИ Светозар", "Панкратиус к Творцу через ИИ Светозар",
@@ -231,7 +231,7 @@ def dialogue_labels(blocks: list[ir.Block]) -> list[ir.Block]:
     """
     # Longest-first so e.g. "Светозар DeepSeek" wins over the "Светозар" prefix;
     # `key=lambda p: -len(p)` (not `key=len`) keeps the element type `str`.
-    prefixes = sorted(_DIALOGUE_PREFIXES, key=lambda p: -len(p))
+    prefixes = sorted(DIALOGUE_PREFIXES, key=lambda p: -len(p))
     inner = "|".join(re.escape(p) for p in prefixes)
     re_inside = re.compile(rf"^({inner})\s*:\s*(.+)$")
     re_label = re.compile(rf"^({inner})\s*:?\s*$")

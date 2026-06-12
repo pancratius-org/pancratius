@@ -12,7 +12,7 @@ from typing import Any, cast
 from pancratius import ir
 from pancratius.content_catalog import IndexHit
 from pancratius.ir.inlines import inline_plain
-from pancratius.passes.scrub import _is_ai_alt
+from pancratius.passes.scrub import head_region_end, is_ai_alt
 
 # The slug→(slug, number, kind) corpus index the bibliography lift resolves
 # titles against; an entry resolves to a `{kind, number}` target.
@@ -170,7 +170,7 @@ def _parse_biblio(t: ir.Table, slug_lookup: _SlugLookup) -> list[dict[str, objec
             elif node.get("t") == "Image" and isinstance(payload, list) and len(payload) == 3:
                 _attr, label, _target = payload
                 alt = _flat(label)
-                if alt and len(alt) > 2 and not _is_ai_alt(alt):
+                if alt and len(alt) > 2 and not is_ai_alt(alt):
                     titles.append((alt, None))
             if isinstance(payload, list):
                 for v in payload:
@@ -257,12 +257,6 @@ def _is_endmatter_heading(title: str) -> bool:
     )
 
 
-def _head_region_end(blocks: list[ir.Block]) -> int:
-    n = len(blocks)
-    first_h1 = next((i for i, b in enumerate(blocks) if isinstance(b, ir.Heading) and b.level == 1), n)
-    return min(first_h1, max(20, int(n * 0.03)))
-
-
 def _tail_region_start(blocks: list[ir.Block]) -> int:
     n = len(blocks)
     return max(0, min(int(n * 0.75), n - 80))
@@ -280,7 +274,7 @@ def strip_endmatter_sections(blocks: list[ir.Block]) -> list[ir.Block]:
     n = len(blocks)
     if n == 0:
         return blocks
-    head_end = _head_region_end(blocks)
+    head_end = head_region_end(blocks)
     tail_start = _tail_region_start(blocks)
     out: list[ir.Block] = []
     i = 0

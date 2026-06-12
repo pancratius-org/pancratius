@@ -9,7 +9,7 @@ from typing import cast
 
 from pancratius import ir
 from pancratius.ir.inlines import inline_lines, inline_plain, walk_inlines
-from pancratius.passes.structure import _DIALOGUE_PREFIXES
+from pancratius.passes.structure import DIALOGUE_PREFIXES
 
 # A display line longer than this is prose-length, not verse: it separates genuine
 # verse lines (well under 120 chars) from one-sentence-per-paragraph prose
@@ -22,8 +22,8 @@ def _speaker_turn_re() -> re.Pattern[str]:
     content (a dialogue/source TURN, never verse). Only a speaker name or a
     parenthetical-qualified speaker before the colon is rejected, not an arbitrary
     verb phrase, so a mid-sentence colon (`Ты спросил: кто они?`) stays verse.
-    Built from `_DIALOGUE_PREFIXES` so adding a speaker keeps this in sync."""
-    prefixes = sorted(_DIALOGUE_PREFIXES, key=lambda p: -len(p))
+    Built from `DIALOGUE_PREFIXES` so adding a speaker keeps this in sync."""
+    prefixes = sorted(DIALOGUE_PREFIXES, key=lambda p: -len(p))
     inner = "|".join(re.escape(p) for p in prefixes)
     return re.compile(
         rf"^\**\s*(?:(?:{inner})|[A-ZА-ЯЁ][\wА-Яа-яЁё.\- ]{{0,40}}\s*\([^)]{{1,40}}\))"
@@ -108,7 +108,7 @@ def _para_structurally_lineated(p: ir.Paragraph) -> bool:
 
 
 # `ответ` is rendered as both `answer` and `response` across the EN editions.
-_CODA_PSEUDO_HEADING_RE = re.compile(
+CODA_PSEUDO_HEADING_RE = re.compile(
     r"^(?:\d{1,4}|вопрос|ответ|question|answer|response)\s*:?\s*$",
     re.IGNORECASE,
 )
@@ -126,7 +126,7 @@ def _all_lines(paras: list[ir.Paragraph]) -> list[str]:
     return [inline_plain(ln) for p in paras for ln in _block_lines(p)]
 
 
-def _is_compact_coda(lines: list[str]) -> bool:
+def is_compact_coda(lines: list[str]) -> bool:
     """A coda is a compact closing couplet, not two prose preview sentences."""
     if len(lines) != 2:
         return False
@@ -263,7 +263,7 @@ def fold_lineation(blocks: list[ir.Block]) -> list[ir.Block]:
     return out
 
 
-def _skip_empty_paragraphs(blocks: list[ir.Block], i: int) -> tuple[int, bool]:
+def skip_empty_paragraphs(blocks: list[ir.Block], i: int) -> tuple[int, bool]:
     start = i
     while i < len(blocks) and isinstance((p := blocks[i]), ir.Paragraph) and p.empty:
         i += 1
@@ -271,7 +271,7 @@ def _skip_empty_paragraphs(blocks: list[ir.Block], i: int) -> tuple[int, bool]:
 
 
 def _has_source_boundary_after_gap(blocks: list[ir.Block], i: int) -> bool:
-    i, _saw_gap = _skip_empty_paragraphs(blocks, i)
+    i, _saw_gap = skip_empty_paragraphs(blocks, i)
     return i >= len(blocks) or isinstance(blocks[i], (ir.Heading, ir.ThematicBreak))
 
 
@@ -324,7 +324,7 @@ def _trim_prose_register_tail(
         return sum(len(line) for line in lines) / len(lines)
 
     def departs(edge: tuple[int, int], rest: list[tuple[int, int]]) -> bool:
-        # Only a TWO-LINE tail (the closing-couplet position `_is_compact_coda`
+        # Only a TWO-LINE tail (the closing-couplet position `is_compact_coda`
         # already owns) can be a preview pair; longer tails are stanza structure.
         edge_lines = seg_lines(edge)
         if len(edge_lines) != 2:
@@ -336,7 +336,7 @@ def _trim_prose_register_tail(
         )
 
     while tail > 1 and all(
-        _CODA_PSEUDO_HEADING_RE.match(line) for line in seg_lines(spans[tail - 1])
+        CODA_PSEUDO_HEADING_RE.match(line) for line in seg_lines(spans[tail - 1])
     ):
         tail -= 1
     while tail > 1 and departs(spans[tail - 1], spans[:tail - 1]):
@@ -639,8 +639,8 @@ def _should_infer_source_row_lineation(
         after_lineated
         and before_source_boundary
         and len(lines) == 2
-        and _is_compact_coda(lines)
-        and not any(_CODA_PSEUDO_HEADING_RE.match(line) for line in lines)
+        and is_compact_coda(lines)
+        and not any(CODA_PSEUDO_HEADING_RE.match(line) for line in lines)
     ):
         return True
     if not (any(p.empty for p in run) and len(lines) >= 3):

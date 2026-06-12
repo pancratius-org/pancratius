@@ -18,7 +18,7 @@ from pathlib import Path, PurePosixPath
 from typing import assert_never
 
 from pancratius import ir
-from pancratius.passes.sanitize import _URL_SCHEME_RE
+from pancratius.passes.sanitize import URL_SCHEME_RE
 from pancratius.writeplan import PlannedAsset
 
 # ---------------------------------------------------------------------------
@@ -95,7 +95,7 @@ def _is_remote_url(src: str) -> bool:
     """True for a safe remote (http/https) image url, kept as-is. Unsafe schemes are
     dropped upstream by `sanitize_urls`, so surviving scheme-bearing srcs are
     http/https."""
-    m = _URL_SCHEME_RE.match(src.strip())
+    m = URL_SCHEME_RE.match(src.strip())
     return m is not None and m.group(1).lower() in {"http", "https"}
 
 

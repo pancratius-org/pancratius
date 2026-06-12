@@ -106,6 +106,15 @@ def drop_empty_headings(blocks: list[ir.Block]) -> list[ir.Block]:
 # ---------------------------------------------------------------------------
 
 
+def head_region_end(blocks: list[ir.Block]) -> int:
+    """The exclusive end of the source headmatter window: up to the first H1, but
+    never past the first ~3% of the document (with a 20-block floor). Shared by
+    the rights scrub and the endmatter strip so both read one head region."""
+    n = len(blocks)
+    first_h1 = next((i for i, b in enumerate(blocks) if isinstance(b, ir.Heading) and b.level == 1), n)
+    return min(first_h1, max(20, int(n * 0.03)))
+
+
 def scrub_rights(blocks: list[ir.Block]) -> list[ir.Block]:
     """Drop rights boilerplate without touching ordinary book body text.
 
@@ -117,8 +126,7 @@ def scrub_rights(blocks: list[ir.Block]) -> list[ir.Block]:
     n = len(blocks)
     if n == 0:
         return blocks
-    first_h1 = next((i for i, b in enumerate(blocks) if isinstance(b, ir.Heading) and b.level == 1), n)
-    window_end = min(first_h1, max(20, int(n * 0.03)))
+    window_end = head_region_end(blocks)
     out: list[ir.Block] = []
     for i, b in enumerate(blocks):
         if i < window_end and isinstance(b, ir.Paragraph) and not b.empty:
@@ -134,7 +142,7 @@ def scrub_rights(blocks: list[ir.Block]) -> list[ir.Block]:
 # ---------------------------------------------------------------------------
 
 
-def _is_ai_alt(alt: str) -> bool:
+def is_ai_alt(alt: str) -> bool:
     return any(frag in alt for frag in AI_ALT_FRAGMENTS)
 
 
@@ -143,7 +151,7 @@ def _scrub_alt_in_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
     for n in inlines:
         # isinstance, not match: the container arm tests `ir.ContainerInline`
         # (a runtime tuple), which can't appear in a `case`.
-        if isinstance(n, ir.ImageInline) and _is_ai_alt(n.alt):
+        if isinstance(n, ir.ImageInline) and is_ai_alt(n.alt):
             out.append(ir.ImageInline(src=n.src, alt="", asset_id=n.asset_id))
         elif isinstance(n, ir.ContainerInline):
             out.append(ir.rebuild_container(n, _scrub_alt_in_inlines(n.children)))
@@ -158,7 +166,7 @@ def scrub_ai_alt(blocks: list[ir.Block]) -> list[ir.Block]:
         # An `ImageBlock`'s alt is a block field the shared inline-descent can't
         # reach; rebuild it here. Every inline-list leaf is reached by the skeleton.
         if isinstance(b, ir.ImageBlock):
-            out.append(replace(b, alt="") if _is_ai_alt(b.alt) else b)
+            out.append(replace(b, alt="") if is_ai_alt(b.alt) else b)
         else:
             out.append(ir.map_block_inlines(b, _scrub_alt_in_inlines))
     return out
