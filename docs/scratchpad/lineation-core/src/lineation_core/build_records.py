@@ -31,6 +31,36 @@ def build(*, lang: str = "ru") -> list[BookId]:
     return books
 
 
+def _build_one(book_id: BookId, lang: str) -> tuple[BookId, str, int]:
+    """Pool worker: build one (book, lang) artifact; returns its record count."""
+    recs = artifact.build_records_artifact(
+        paths.book_docx(book_id, lang), lang, book_id, store=paths.ARTIFACT_STORE)
+    return book_id, lang, len(recs)
+
+
+def build_corpus() -> list[tuple[BookId, str, int]]:
+    """Rebuild the record cache for EVERY committed DOCX (both languages), in parallel —
+    the substrate a corpus-wide scan (`recon`) loads. Idempotent like `build`."""
+    from concurrent.futures import ProcessPoolExecutor, as_completed
+
+    pairs = [(b, lang) for lang in ("ru", "en") for b in paths.corpus_books(lang)]
+    out: list[tuple[BookId, str, int]] = []
+    with ProcessPoolExecutor() as pool:
+        futures = [pool.submit(_build_one, b, lang) for b, lang in pairs]
+        for i, fut in enumerate(as_completed(futures), 1):
+            book_id, lang, n = fut.result()
+            out.append((book_id, lang, n))
+            print(f"[{i}/{len(pairs)}] built {book_id}-{lang}: {n} records", flush=True)
+    return sorted(out)
+
+
 if __name__ == "__main__":
-    built = build()
-    print(f"built records for {len(built)} books: {built}")
+    import sys
+
+    if "--corpus" in sys.argv:
+        built_all = build_corpus()
+        print(f"built records for {len(built_all)} (book, lang) pairs, "
+              f"{sum(n for _, _, n in built_all)} records")
+    else:
+        built = build()
+        print(f"built records for {len(built)} books: {built}")

@@ -324,3 +324,26 @@ def save_selection(name: str, keys: list[LineKey], *, annotations: Path | None =
     consumes it without importing the student. The read side is `load_selection`."""
     _atomic_text((annotations or paths.ANNOTATIONS) / "selections" / f"{name}.json",
                  json.dumps(keys, ensure_ascii=False, indent=2))
+
+
+# --- recon maps: derived per-book tier-0/tier-1 rows (free signals), beside the record cache ----
+
+RECON_DIR = "recon"   # under the artifact store — derived like records, rebuilt by `recon`
+
+
+def save_recon_rows(book_id: BookId, lang: str, rows: list[JsonRow], *,
+                    store: Path | None = None) -> None:
+    """Persist one book's recon rows (`recon/<book>-<lang>.jsonl` in the artifact store). Derived
+    data — rebuilt for free by `python -m lineation_core.recon`, never committed."""
+    _atomic_text((store or paths.ARTIFACT_STORE) / RECON_DIR / f"{book_id}-{lang}.jsonl",
+                 _jsonl(rows))
+
+
+def load_recon_rows(book_id: BookId, lang: str, *, store: Path | None = None) -> list[JsonRow]:
+    """One book's recon rows. FAILS LOUD if missing — derived data with a rebuilder, so the
+    remedy is a re-run, never a restore."""
+    path = (store or paths.ARTIFACT_STORE) / RECON_DIR / f"{book_id}-{lang}.jsonl"
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"recon rows missing: {path} — rebuild with `python -m lineation_core.recon`")
+    return list(artifact.read_jsonl(path))
