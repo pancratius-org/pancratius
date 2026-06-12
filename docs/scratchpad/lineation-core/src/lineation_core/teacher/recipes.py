@@ -266,6 +266,11 @@ def select_lines(recipe: Recipe, *, annotations: Path | None = None) -> Selectio
     if stray:
         raise ValueError(f"selection has lines from books {stray} not in recipe.books "
                          f"{sorted(books)} — likely a recipe scope bug")
+    stray_lang = sorted({lid.lang for lid in ids if lid.lang != recipe.lang})
+    if stray_lang:
+        raise ValueError(f"selection has {stray_lang} lines but the recipe reads "
+                         f"lang={recipe.lang!r} — a book bucket would silently absorb them; "
+                         f"commit one selection per language")
     out: Selection = {b: set() for b in recipe.books}
     for lid in ids:
         out[lid.book_id].add(lid)
@@ -287,8 +292,11 @@ def _build_and_save(recipe: Recipe, selection: Selection, task_id: TaskId, *,
     records = {b: store.load_records(b, recipe.lang) for b in recipe.books}
     specs: list[ItemSpec] = []
     for b in recipe.books:
-        specs.extend(tile_regions(b, records[b], selection.get(b, set()), target=recipe.target,
-                                  context_radius=recipe.context_radius))
+        tiled = tile_regions(b, records[b], selection.get(b, set()), target=recipe.target,
+                             context_radius=recipe.context_radius)
+        if recipe.vision:   # a run wider than one rendered page must split before the renderer
+            tiled = page_size_regions(tiled, records[b], context_radius=recipe.context_radius)
+        specs.extend(tiled)
     assets = render(specs) if recipe.vision else {}
     if recipe.vision:
         bare = [s.region_id for s in specs

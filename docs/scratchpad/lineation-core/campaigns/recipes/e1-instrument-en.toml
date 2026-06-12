@@ -1,0 +1,53 @@
+# E1 — the keystone instrument (en): 1,500 corpus-random votable lines (this file: the en
+# stratum), proportionally stratified language x book x tier-0 verdict, drawn by
+# `selection.commit_instrument` (seed 0) from the corpus recon rows. One sample, three jobs:
+# frozen acceptance half (NEVER trained/tuned on; labels promoted holdout), AL round-1 seed,
+# and the unbiased substrate for the E2 signal bakeoff.
+# Panel = the contested-gate-validated production roster + contract + sampling; gate = the
+# settled legacy anchor-led policy.
+#   build:  uv run python -m lineation_core.teacher.recipes build  campaigns/recipes/e1-instrument-en.toml
+#   panel:  uv run --extra live python -m lineation_core.teacher.recipes panel  campaigns/recipes/e1-instrument-en.toml   (paid)
+#   route:  uv run python -m lineation_core.teacher.recipes route  campaigns/recipes/e1-instrument-en.toml
+
+task_id = "e1-instrument-en"
+title = "E1 instrument — random corpus sample (en)"
+reps = 3
+temperature = 0.5
+contract = "json_keyed"
+
+[prompts]
+vision = "lineation-page.md"            # grok — the authored page is the authority
+text   = "lineation-structure-text.md"  # gemini-lite + ds-flash — the structure listing (no page)
+
+[selection]
+selector = "selection_file:e1-instrument-en"
+books = ["01", "02", "03", "04", "06", "07", "10", "27", "30", "34", "35", "47", "48", "50", "51", "52", "59", "60", "62", "63", "64", "65", "66", "67", "68", "69", "70", "71"]
+lang = "en"
+target = 10
+context_radius = 2
+
+[[readers]]
+tag = "grok"
+model = "x-ai/grok-4.3"
+modality = "vision"
+
+[[readers]]
+tag = "gemini"
+model = "google/gemini-3.1-flash-lite"
+
+[[readers]]
+tag = "deepseek"
+model = "deepseek/deepseek-v4-flash"
+
+[roster]
+anchor = "grok"
+support = ["deepseek", "gemini"]
+
+[decision]
+name = "legacy"
+kind = "anchor_led"
+  [decision.params]
+  min_support = 2
+  min_core_agree = 2
+  conf_floor = 0.7
+  require_no_split = false

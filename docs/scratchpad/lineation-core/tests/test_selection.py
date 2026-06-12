@@ -6,6 +6,7 @@ from collections import Counter
 from types import SimpleNamespace
 
 from lineation_core import selection, store, student
+from lineation_core.identity import LineId
 
 
 def _qitem(book: str, margin: float) -> selection.QueueItem:
@@ -114,3 +115,44 @@ def test_oof_smoothed_no_leakage(corpus):
     # sanity: flipping DID change the OTHER books' predictions (target was in their training fit)
     assert any(before[lid].label != after[lid].label
                for lid in before if lid.book_id != target)
+
+
+# --- the random instrument sampler (pure halves) ------------------------------------------------
+
+
+def _ids(book: str, n: int, *, lang: str = "ru") -> list[LineId]:
+    return [LineId(lang, book, 10 + i, 0) for i in range(n)]
+
+
+def test_stratified_sample_is_proportional_exact_and_deterministic():
+    strata = {"ru:01:prose": _ids("01", 600), "ru:02:lineated": _ids("02", 300),
+              "en:75:lineated": _ids("75", 100, lang="en")}
+    out = selection.stratified_sample(strata, 100, seed=0)
+    assert {k: len(v) for k, v in out.items()} == {
+        "ru:01:prose": 60, "ru:02:lineated": 30, "en:75:lineated": 10}
+    flat = [lid for v in out.values() for lid in v]
+    assert len(set(flat)) == 100
+    for k, lines in out.items():
+        assert set(lines) <= set(strata[k])
+    assert selection.stratified_sample(strata, 100, seed=0) == out      # deterministic
+    assert selection.stratified_sample(strata, 100, seed=1) != out      # seed matters
+
+
+def test_stratified_sample_largest_remainder_sums_exactly():
+    strata = {"a": _ids("01", 11), "b": _ids("02", 7), "c": _ids("03", 5)}
+    out = selection.stratified_sample(strata, 10, seed=0)
+    assert sum(len(v) for v in out.values()) == 10
+    assert all(len(out.get(k, [])) <= len(v) for k, v in strata.items())
+
+
+def test_split_halves_balanced_within_every_stratum_and_globally():
+    # many odd strata: the surplus must not pile onto one half
+    strata = {f"ru:{i:02d}:prose": _ids(f"{i:02d}", 3) for i in range(1, 41)}
+    sampled = selection.stratified_sample(strata, 120, seed=0)
+    frozen, working = selection.split_halves(sampled, seed=0)
+    assert not set(frozen) & set(working)
+    assert sorted([*frozen, *working]) == sorted(lid for v in sampled.values() for lid in v)
+    for k, lines in sampled.items():
+        nf = sum(1 for lid in frozen if lid in set(lines))
+        assert abs(nf - (len(lines) - nf)) <= 1, k
+    assert abs(len(frozen) - len(working)) <= 1

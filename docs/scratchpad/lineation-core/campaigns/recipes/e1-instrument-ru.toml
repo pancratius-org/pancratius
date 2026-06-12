@@ -1,0 +1,53 @@
+# E1 — the keystone instrument (ru): 1,500 corpus-random votable lines (this file: the ru
+# stratum), proportionally stratified language x book x tier-0 verdict, drawn by
+# `selection.commit_instrument` (seed 0) from the corpus recon rows. One sample, three jobs:
+# frozen acceptance half (NEVER trained/tuned on; labels promoted holdout), AL round-1 seed,
+# and the unbiased substrate for the E2 signal bakeoff.
+# Panel = the contested-gate-validated production roster + contract + sampling; gate = the
+# settled legacy anchor-led policy.
+#   build:  uv run python -m lineation_core.teacher.recipes build  campaigns/recipes/e1-instrument-ru.toml
+#   panel:  uv run --extra live python -m lineation_core.teacher.recipes panel  campaigns/recipes/e1-instrument-ru.toml   (paid)
+#   route:  uv run python -m lineation_core.teacher.recipes route  campaigns/recipes/e1-instrument-ru.toml
+
+task_id = "e1-instrument-ru"
+title = "E1 instrument — random corpus sample (ru)"
+reps = 3
+temperature = 0.5
+contract = "json_keyed"
+
+[prompts]
+vision = "lineation-page.md"            # grok — the authored page is the authority
+text   = "lineation-structure-text.md"  # gemini-lite + ds-flash — the structure listing (no page)
+
+[selection]
+selector = "selection_file:e1-instrument-ru"
+books = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "70", "71", "72", "74", "75"]
+lang = "ru"
+target = 10
+context_radius = 2
+
+[[readers]]
+tag = "grok"
+model = "x-ai/grok-4.3"
+modality = "vision"
+
+[[readers]]
+tag = "gemini"
+model = "google/gemini-3.1-flash-lite"
+
+[[readers]]
+tag = "deepseek"
+model = "deepseek/deepseek-v4-flash"
+
+[roster]
+anchor = "grok"
+support = ["deepseek", "gemini"]
+
+[decision]
+name = "legacy"
+kind = "anchor_led"
+  [decision.params]
+  min_support = 2
+  min_core_agree = 2
+  conf_floor = 0.7
+  require_no_split = false
