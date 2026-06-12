@@ -29,11 +29,11 @@ from typing import TYPE_CHECKING
 from pancratius import ir
 from pancratius.ir.inlines import inline_plain
 from pancratius.passes.lineation import (
-    _CODA_PSEUDO_HEADING_RE,
+    CODA_PSEUDO_HEADING_RE,
     VERSE_SHORT_LINE_MAX,
-    _is_compact_coda,
-    _skip_empty_paragraphs,
+    is_compact_coda,
     is_lineated_line,
+    skip_empty_paragraphs,
 )
 
 if TYPE_CHECKING:
@@ -494,7 +494,7 @@ def _lineated_coda_candidate(
     candidate must be compact; this keeps prose previews before the next heading in
     prose without naming their words.
     """
-    i, saw_gap = _skip_empty_paragraphs(blocks, i)
+    i, saw_gap = skip_empty_paragraphs(blocks, i)
     if not saw_gap:
         return None
 
@@ -504,12 +504,12 @@ def _lineated_coda_candidate(
     i += 1
 
     coda_lines = lineated_lines(first)
-    if not _is_compact_coda(coda_lines):
+    if not is_compact_coda(coda_lines):
         return None
-    if any(_CODA_PSEUDO_HEADING_RE.match(line) for line in coda_lines):
+    if any(CODA_PSEUDO_HEADING_RE.match(line) for line in coda_lines):
         return None
 
-    boundary_i, _saw_trailing_gap = _skip_empty_paragraphs(blocks, i)
+    boundary_i, _saw_trailing_gap = skip_empty_paragraphs(blocks, i)
     boundary = blocks[boundary_i] if boundary_i < len(blocks) else None
     if not isinstance(boundary, (ir.Heading, ir.ThematicBreak)):
         return None

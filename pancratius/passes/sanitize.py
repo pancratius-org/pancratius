@@ -22,7 +22,7 @@ _ALLOWED_URL_SCHEMES: frozenset[str] = frozenset({"http", "https", "mailto"})
 # A leading `scheme:` per RFC 3986 (ALPHA then *(ALPHA / DIGIT / "+" / "-" / ".")),
 # matched case-insensitively. A target with NO such prefix is relative/anchor and
 # is allowed; one WITH a prefix is allowed only when the scheme is in the set.
-_URL_SCHEME_RE = re.compile(r"^([a-zA-Z][a-zA-Z0-9+.\-]*):")
+URL_SCHEME_RE = re.compile(r"^([a-zA-Z][a-zA-Z0-9+.\-]*):")
 
 
 def _is_safe_url(target: str) -> bool:
@@ -36,7 +36,7 @@ def _is_safe_url(target: str) -> bool:
     (a `\\tjavascript:` evasion) are stripped before the scheme is read, mirroring
     how a browser would parse the attribute."""
     stripped = target.strip().lstrip("\x00\t\n\r ")
-    m = _URL_SCHEME_RE.match(stripped)
+    m = URL_SCHEME_RE.match(stripped)
     if m is None:
         return True  # relative / anchor / scheme-less
     return m.group(1).lower() in _ALLOWED_URL_SCHEMES

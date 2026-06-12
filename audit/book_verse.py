@@ -79,12 +79,12 @@ _NUMBERED_QUESTION_RE = re.compile(r"^\d{1,3}[.)]\s+\S.*[?？]\s*$")
 def _speaker_turn_re() -> re.Pattern[str]:
     """A SPEAKER-led colon line (a dialogue/source TURN, never verse): a known
     dialogue prefix + colon, OR `<Name> (qualifier):` + content. Built from the IR
-    dialogue prefixes (`passes.structure._DIALOGUE_PREFIXES`, the dialogue SoT) so the
+    dialogue prefixes (`passes.structure.DIALOGUE_PREFIXES`, the dialogue SoT) so the
     audit's speaker set tracks the IR's. Distinct from a mid-sentence colon in a
     verse line (`Ты спросил: кто они?`), which is NOT rejected."""
-    from pancratius.passes.structure import _DIALOGUE_PREFIXES
+    from pancratius.passes.structure import DIALOGUE_PREFIXES
 
-    prefixes = sorted(_DIALOGUE_PREFIXES, key=lambda p: -len(p))
+    prefixes = sorted(DIALOGUE_PREFIXES, key=lambda p: -len(p))
     inner = "|".join(re.escape(p) for p in prefixes)
     return re.compile(
         rf"^\**\s*(?:(?:{inner})|[A-ZА-ЯЁ][\wА-Яа-яЁё.\- ]{{0,40}}\s*\([^)]{{1,40}}\))"
