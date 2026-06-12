@@ -1774,12 +1774,27 @@ def _run_evidence(run: list[ir.Paragraph]) -> ir.LineationEvidence:
     )
 
 
+_DASH_LINE_RE = re.compile(r"^[—–-]\s")
+
+
+def _is_dash_scaffold(lines: list[str]) -> bool:
+    """A pure dash-led enumeration («— возражения…», optionally after a colon
+    opener): list scaffolding that keeps its line structure but is never the
+    elevated verse register. Deliberately strict — a PARTIALLY dash-led run is
+    kept, because anaphoric litanies inside oracle passages mix dash lines
+    with framing verse lines."""
+    body = lines[1:] if lines and lines[0].rstrip().endswith(":") else lines
+    return len(body) >= 2 and all(_DASH_LINE_RE.match(line) for line in body)
+
+
 def _kind_for_lines(
     lines: list[str],
     evidence: ir.LineationEvidence,
     ctx: _PrecedingContext,
 ) -> ir.VerseRole | None:
     if len(lines) < 2 or not all(_is_lineated_line(line) for line in lines):
+        return None
+    if _is_dash_scaffold(lines):
         return None
     def _passes(avg_max: float, line_max: int | None = None) -> bool:
         """The run's mean line length is within `avg_max` and (when given) every line
