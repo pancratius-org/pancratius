@@ -1,0 +1,39 @@
+# research-pure: pins the production importer's lineation floors — the converter-change gate.
+"""Any `pancratius/` change that can move the importer's lineation verdict must hold these
+floors. They are exact measurements (the importer is deterministic, the truth committed), so a
+breach is a real regression, never noise; an intentional improvement ratchets the floor UP in
+the same change. `prose_recall` guards the trusted direction — "det=lineated is essentially
+never wrong" is the budget ladder's load-bearing beam — and `n_uncovered == 0` proves every
+truth line still receives a verdict."""
+from __future__ import annotations
+
+import pytest
+
+from lineation_core.evaluation import det_regression
+
+# (balanced_acc, prose_recall) floors per truth set — the 2026-06-11 post-IR-rework measurement
+# truncated to 6 decimals, so the exact value passes and any real drop fails.
+FLOORS = {
+    "trainable-gold": (0.963562, 0.978260),
+    "reader_bench": (0.958231, 0.978260),
+    "contested": (0.916863, 0.989690),
+    "prompt_structural": (0.812500, 1.000000),
+}
+
+
+@pytest.fixture(scope="module")
+def scores() -> dict[str, det_regression.DetScore]:
+    return {s.name: s for s in det_regression.score_all()}
+
+
+def test_every_truth_set_is_scored(scores):
+    assert set(scores) == set(FLOORS)
+
+
+@pytest.mark.parametrize("name", sorted(FLOORS))
+def test_det_verdict_holds_its_floor(scores, name):
+    s = scores[name]
+    bal_floor, prose_floor = FLOORS[name]
+    assert s.n_uncovered == 0, f"{name}: {s.n_uncovered} truth lines lost their verdict"
+    assert s.metrics.balanced_acc >= bal_floor, (name, s.metrics)
+    assert s.metrics.prose_recall >= prose_floor, (name, s.metrics)
