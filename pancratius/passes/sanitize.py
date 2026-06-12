@@ -42,7 +42,7 @@ def _is_safe_url(target: str) -> bool:
     return m.group(1).lower() in _ALLOWED_URL_SCHEMES
 
 
-def sanitize_urls(doc: ir.Document, diagnostics: list[ir.Diagnostic]) -> ir.Document:
+def sanitize_urls(doc: ir.Document, diagnostics: ir.DiagnosticSink) -> ir.Document:
     """Drop unsafe link/image targets across the document, returning the
     sanitized document (diagnostics are appended to the caller's sink).
 

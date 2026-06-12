@@ -1113,7 +1113,7 @@ def _table(node: dict[str, Any], ctx: _Ctx) -> ir.Table:
 # ---------------------------------------------------------------------------
 
 
-def adapt(docx: Path, media_dir: Path, diagnostics: list[ir.Diagnostic]) -> ir.Document:
+def adapt(docx: Path, media_dir: Path, diagnostics: ir.DiagnosticSink) -> ir.Document:
     """Parse `docx` into an `ir.Document`, extracting media into `media_dir`.
 
     `diagnostics` is the caller's sink — the same one the passes and the backend

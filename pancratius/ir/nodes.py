@@ -220,12 +220,6 @@ type ContainerInlineNode = Emphasis | Link | Quoted | DirectionalSpan | UnknownI
 ContainerInline = (Emphasis, Link, Quoted, DirectionalSpan, UnknownInline)
 
 
-def is_container_inline(node: Inline) -> bool:
-    """True when `node` nests a `children` inline list (Emphasis/Link/Quoted/
-    DirectionalSpan/UnknownInline) — the kinds a recursive inline pass descends into."""
-    return isinstance(node, ContainerInline)
-
-
 def rebuild_container(node: ContainerInlineNode, children: list[Inline]) -> Inline:
     """Return a copy of a container inline with its `children` replaced, preserving
     the kind's other fields. The ONE place the container shapes are reconstructed,
@@ -523,6 +517,11 @@ class Diagnostic:
     severity: Literal["fatal", "warning", "info"]
     code: str
     message: str
+
+
+# The one diagnostics sink: producers (frontend, passes, backend) append; the
+# composition point routes by severity after the run.
+type DiagnosticSink = list[Diagnostic]
 
 
 @dataclass(frozen=True)

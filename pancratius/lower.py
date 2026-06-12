@@ -700,7 +700,7 @@ def _stanza_md(lines: list[str]) -> str:
 
 
 def _surface_unknown_block_diagnostics(
-    doc: ir.Document, diagnostics: list[ir.Diagnostic]
+    doc: ir.Document, diagnostics: ir.DiagnosticSink
 ) -> None:
     """Append one `warning` diagnostic per `UnknownBlock` reachable in `doc.blocks`
     (descending into the container blocks that nest others), so an unmodeled block is
@@ -738,7 +738,7 @@ def _surface_unknown_block_diagnostics(
 def lower(
     doc: ir.Document,
     lang: str,
-    diagnostics: list[ir.Diagnostic],
+    diagnostics: ir.DiagnosticSink,
     *,
     poem: bool = False,
 ) -> str:
