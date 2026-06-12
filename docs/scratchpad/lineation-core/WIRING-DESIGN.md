@@ -20,15 +20,20 @@ Regenerating book md against the committed importer (the IR rework never regener
 the site renders pre-rework lineation) was attempted and verified: 101 books change; 67 are
 plain-text identical (pure lineation re-shaping — the intended catch-up). It cannot land yet:
 
-1. **5 ru books lose all images** (25: 2, 27: 1, 61: 66, 71: 33, 72: 1 — 103 images; book 74
-   GAINS one). Likely the poem-fixed "missing image anchors" class (a500592) present in book
-   docx; converter RCA required.
-2. **EN typography reverts**: `3e2e73e` minted curly quotes into en.md but the en docx still
-   carries «guillemets» (mixed: e.g. book 30 en.docx has 94 «» vs 146 “”), so a regen undoes
-   committed editorial work. Either the docx gets the typography pass (source fix) or the
-   importer owns EN quote normalization (rule fix). Decide before regenerating en books.
+1. ~~**5 ru books lose all images**~~ **FIXED (2026-06-12, commit 180a776)**: root cause was
+   pandoc 3.9 dropping images from DOCX with generic namespace prefixes (9 books corpus-wide);
+   the adapter now canonicalizes prefixes before pandoc. Image recovery is strictly additive,
+   golden-protected (book27).
+2. ~~**EN typography reverts**~~ **FIXED (2026-06-12)**: root cause was the importer itself
+   lowering every double-`Quoted` to `«»` regardless of language; `lower.py` is now locale-aware
+   (EN → American curly doubles, RU → guillemets) and normalizes literal EN guillemets too. So a
+   regen no longer reverts `3e2e73e` — the rule lives in the producer.
 
-Both are E3 converter-RCA entries; the regen re-runs after they land.
+Both blockers cleared. The remaining gate on the en (and ru) md regen is **lineation
+validation** — a regen also carries the IR-rework's lineation reshaping (e.g. book-30 Surah
+citations de-lineated), which is exactly what E1's en stratum + E3 validate. The typography and
+image fixes are committed independently of that content regen; the regen itself runs once the
+lineation surface is trusted (post-E1/E3), not before.
 
 ## What exists
 

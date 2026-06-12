@@ -246,6 +246,13 @@ Do not infer these from rendered CSS, italic-only paragraphs, or arbitrary
 short-line runs. The signal must come from the DOCX structure or an explicit
 source marker.
 
+Quotation marks are locale typography applied at import, not hand-edited into the
+derived Markdown (which a re-import would revert). Russian text uses guillemets
+(`«…»`); English text uses American curly double quotes (`“…”`). The rule covers
+both a parsed `Quoted` inline and a literal guillemet typed into English source
+(English has no guillemets, so it is a mistyped quote normalized to the same curly
+double). Single quotes follow the same locale split.
+
 ## Relations
 
 Not every list of books means the same thing. The storage model keeps provenance
