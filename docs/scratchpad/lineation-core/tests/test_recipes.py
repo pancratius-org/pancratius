@@ -330,3 +330,55 @@ def test_page_size_carries_unmapped_votables_through_a_split():
     assert sorted(covered) == sorted(spec.votable)         # every votable kept, none dup'd
     assert len(covered) == len(set(covered))
     assert set(unmapped) <= set(covered)                   # the unmapped span-drops survived the split
+
+
+def test_select_lines_refuses_a_wrong_language_selection(tmp_path):
+    ann = tmp_path / "annotations"
+    picks = [x.id for x in store.load_records("57") if x.votable][:3]
+    keys = [["en", lid.book_id, lid.src_ordinal, lid.sub] for lid in picks]  # en ids, ru recipe
+    (ann / "selections").mkdir(parents=True)
+    (ann / "selections" / "acq.json").write_text(json.dumps(keys))
+    with pytest.raises(ValueError, match="lang"):
+        recipes.select_lines(_recipe(selector=recipes.SelectionFile("acq")), annotations=ann)
+
+
+def test_route_and_ingest_stamp_holdout_from_the_recipe_membership():
+    from lineation_core.annotations import LabelSource, LineLabel
+    from lineation_core.identity import LineId
+    from lineation_core.teacher.recipes import _holdout_members
+    from dataclasses import replace as drep
+
+    lid = LineId("ru", "57", 5, 0)
+    rec = _recipe(selector=recipes.AllVotable())
+    assert _holdout_members(rec, annotations=None) == frozenset()   # no membership declared
+
+    rec2 = drep(rec, holdout_eval_set="frozen-x")
+    import tempfile, pathlib
+    with tempfile.TemporaryDirectory() as td:
+        ann = pathlib.Path(td)
+        (ann / "eval_sets").mkdir()
+        (ann / "eval_sets" / "frozen-x.json").write_text(json.dumps([lid.as_key()]))
+        members = _holdout_members(rec2, annotations=ann)
+    assert members == frozenset({lid})
+
+
+def test_holdout_eval_set_parses_from_the_toml():
+    d = {"task_id": "t", "selection": {"books": ["57"]}, "holdout_eval_set": "e1-frozen"}
+    assert recipes.recipe_from_dict(d).holdout_eval_set == "e1-frozen"
+    d2 = {"task_id": "t", "selection": {"books": ["57"]}}
+    assert recipes.recipe_from_dict(d2).holdout_eval_set is None
+
+
+def test_build_page_sizes_oversized_runs_for_text_recipes_too(tmp_path):
+    # a selection spanning a giant run must not produce a region wider than the page cap
+    recs = store.load_records("57")
+    from lineation_core.teacher.tasks import PAGE_SPAN_CAP
+    votable = [r for r in recs if r.votable]
+    picks = {votable[0].id, votable[-1].id}
+    tiled = recipes.tile_regions("57", recs, picks, target=10, context_radius=1, max_gap=10**9)
+    assert any(s.region[-1].src_ordinal - s.region[0].src_ordinal > PAGE_SPAN_CAP for s in tiled)
+    sized = recipes.page_size_regions(tiled, recs, context_radius=1)
+    for s in sized:
+        mapped = [x for x in s.votable if x.is_mapped]
+        assert max(x.src_ordinal for x in mapped) - min(x.src_ordinal for x in mapped) <= PAGE_SPAN_CAP
+    assert {x for s in sized for x in s.votable} == picks

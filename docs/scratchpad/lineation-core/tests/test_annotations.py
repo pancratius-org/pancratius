@@ -83,3 +83,15 @@ def test_idx_to_src_mapping_is_real_for_every_g05_line(labelset):
         assert rec.meta.block_index == g.provenance["idx"]
         assert rec.id.sub == g.provenance["sub"]
         assert g.label in ("prose", "lineated")
+
+
+def test_frozen_instrument_labels_are_always_holdout():
+    """The e1 frozen acceptance half is eval-only BY CONSTRUCTION: any label that ever lands on a
+    member must carry `holdout=True` (route/ingest stamp it from the recipe's `holdout_eval_set`).
+    A non-holdout member label means the acceptance set leaked into training — fail loud."""
+    from lineation_core import store
+    from lineation_core.identity import LineId
+
+    frozen = {LineId.from_key(k) for k in store.load_eval_set("e1-instrument-frozen")}
+    leaked = [g.id for g in load_labels().labels if g.id in frozen and not g.holdout]
+    assert not leaked, f"frozen-instrument labels leaked into training: {leaked[:5]}"
