@@ -63,7 +63,7 @@ def _empty() -> ir.Paragraph:
 
 
 # ---------------------------------------------------------------------------
-# _is_lineated_line: the per-line predicate (speaker rejection + colon handling)
+# is_lineated_line: the per-line predicate (speaker rejection + colon handling)
 # ---------------------------------------------------------------------------
 
 
@@ -80,7 +80,7 @@ def _empty() -> ir.Paragraph:
 )
 def test_explicit_speaker_line_is_not_lineated(line: str) -> None:
     # Explicit speaker/source turns are never verse lines.
-    assert not normalize._is_lineated_line(line)
+    assert not normalize.is_lineated_line(line)
 
 
 @pytest.mark.parametrize(
@@ -93,7 +93,7 @@ def test_explicit_speaker_line_is_not_lineated(line: str) -> None:
 def test_mid_sentence_colon_line_is_lineated(line: str) -> None:
     # A colon MID-sentence (text after it) is a normal verse line, NOT a label —
     # rejecting it broke the litany run (the under-detection root cause).
-    assert normalize._is_lineated_line(line)
+    assert normalize.is_lineated_line(line)
 
 
 @pytest.mark.parametrize(
@@ -106,14 +106,14 @@ def test_mid_sentence_colon_line_is_lineated(line: str) -> None:
 def test_short_colon_opener_line_is_lineated(line: str) -> None:
     # Book sections often use a short opener before scripture/answer lines. It is
     # part of the lineated run, not a generic label boundary.
-    assert normalize._is_lineated_line(line)
+    assert normalize.is_lineated_line(line)
 
 
 def test_long_prose_line_is_not_lineated() -> None:
     # A prose-length line (over the short-line cap) is not a verse line.
     long_line = "Именно поэтому я так ценю твои вопросы и твои сомнения. " * 3
     assert len(long_line) > normalize.VERSE_SHORT_LINE_MAX
-    assert not normalize._is_lineated_line(long_line)
+    assert not normalize.is_lineated_line(long_line)
 
 
 @pytest.mark.parametrize(
@@ -124,12 +124,12 @@ def test_long_prose_line_is_not_lineated() -> None:
     ],
 )
 def test_short_line_under_cap_is_lineated(line: str) -> None:
-    assert normalize._is_lineated_line(line)
+    assert normalize.is_lineated_line(line)
 
 
 @pytest.mark.parametrize("line", ["—", "–", "-"])
 def test_standalone_dash_separator_is_not_lineated(line: str) -> None:
-    assert not normalize._is_lineated_line(line)
+    assert not normalize.is_lineated_line(line)
 
 
 # ---------------------------------------------------------------------------
@@ -876,7 +876,7 @@ def test_blank_separated_prose_sentences_after_heading_stay_prose() -> None:
 def test_explicit_speaker_line_is_not_lineated_en(line: str) -> None:
     # The same speaker turns the RU editions reject, in the wording the EN
     # translations actually use.
-    assert not normalize._is_lineated_line(line)
+    assert not normalize.is_lineated_line(line)
 
 
 def test_en_speaker_turn_does_not_ride_a_lineated_run() -> None:

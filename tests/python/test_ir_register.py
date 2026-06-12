@@ -139,12 +139,12 @@ def test_quote_member_soft_breaks_stay_prose() -> None:
 
 
 def test_equation_scaffold_never_promotes_to_verse() -> None:
-    from pancratius.ir.normalize import _is_equation_scaffold
+    from pancratius.ir.normalize import is_equation_scaffold
 
-    assert _is_equation_scaffold(["143 = 11 × 13", "а 153 = 9 × 17"])
-    assert _is_equation_scaffold(["1² + 5² + 3² = 1 + 25 + 9 = 35", "и снова: 3 + 5 = 8"])
-    assert not _is_equation_scaffold(["Я — не форма,", "но во всех формах живу."])
-    assert not _is_equation_scaffold(["Свет мой тихий,", "в сердце горит."])
+    assert is_equation_scaffold(["143 = 11 × 13", "а 153 = 9 × 17"])
+    assert is_equation_scaffold(["1² + 5² + 3² = 1 + 25 + 9 = 35", "и снова: 3 + 5 = 8"])
+    assert not is_equation_scaffold(["Я — не форма,", "но во всех формах живу."])
+    assert not is_equation_scaffold(["Свет мой тихий,", "в сердце горит."])
 
 
 def test_downloads_scripture_degrades_to_plain_quote() -> None:

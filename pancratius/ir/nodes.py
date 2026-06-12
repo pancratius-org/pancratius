@@ -307,10 +307,13 @@ class VerseBlock:
     line is a list of inlines. A `***` stanza separator is represented as a
     one-line stanza whose single line is `[Text("***")]`. The `verse` role is an
     additive register layered onto the base `lineated` wrapper at lowering.
+    `evidence` is the promoted block's Q1 lineation provenance, carried through
+    the register promotion.
     """
 
     stanzas: LineatedStanzas
     role: VerseRole = "verse"
+    evidence: LineationEvidence = field(default_factory=LineationEvidence)
     source_span: SourceSpan | None = None
 
 
