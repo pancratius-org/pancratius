@@ -160,23 +160,25 @@ def test_ordered_list_preserves_start_ordinal() -> None:
     assert isinstance(b, ir.ListBlock) and b.ordered and b.start == 4 and len(b.items) == 2
 
 
-def test_div_becomes_transparent_container() -> None:
+def test_div_children_are_spliced_in_place() -> None:
     ctx = adapter._Ctx()
-    b = adapter._block({"t": "Div", "c": [["", [], []], [_para(_str("d"))]]}, ctx)
-    assert isinstance(b, ir.BlockQuote) and b.role == "_div"
+    blocks = adapter._blocks([
+        _para(_str("before")),
+        {"t": "Div", "c": [["", [], []], [_para(_str("inside"))]]},
+        _para(_str("after")),
+    ], ctx)
+    assert [type(b).__name__ for b in blocks] == ["Paragraph"] * 3
 
 
-def test_figure_unwraps_content_and_caption() -> None:
+def test_figure_splices_content_then_caption() -> None:
     ctx = adapter._Ctx()
     img: dict[str, object] = {"t": "Image", "c": [["", [], []], [], ["m/p.png", ""]]}
     figure = {"t": "Figure", "c": [["", [], []],
                                    [None, [_para(_str("the caption"))]],
                                    [_para(img)]]}
-    b = adapter._block(figure, ctx)
-    assert isinstance(b, ir.BlockQuote) and b.role == "_div"
-    # neither the image nor the caption text is lost
-    kinds = [type(x).__name__ for x in b.blocks]
-    assert kinds.count("Paragraph") == 2
+    blocks = adapter._blocks([figure], ctx)
+    # neither the image nor the caption text is lost; no container survives
+    assert [type(b).__name__ for b in blocks] == ["Paragraph", "Paragraph"]
 
 
 def test_line_block_maps_to_lineated_lines_not_unknown() -> None:
