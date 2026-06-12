@@ -330,24 +330,39 @@ class RegisterModel:
 
 
 def load_register_model(path: Path) -> RegisterModel | None:
-    """The exported model artifact, or ``None`` when not shipped."""
+    """The exported model artifact, or ``None`` when not shipped.
+
+    Validates eagerly so a malformed artifact fails at the load site with a
+    contextual error, never later inside ``probability``."""
     if not path.exists():
         return None
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    if tuple(raw["features"]) != FEATURE_NAMES:
-        raise ValueError(
-            "register model artifact feature schema drifted from the producer"
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        features = tuple(raw["features"])
+        mean = tuple(float(x) for x in raw["mean"])
+        std = tuple(float(x) for x in raw["std"])
+        coef = tuple(float(x) for x in raw["coef"])
+        model = RegisterModel(
+            version=int(raw.get("version", 0)),
+            langs=tuple(raw.get("langs", ())),
+            features=features,
+            mean=mean,
+            std=std,
+            coef=coef,
+            intercept=float(raw["intercept"]),
+            threshold=float(raw["threshold"]),
         )
-    return RegisterModel(
-        version=int(raw.get("version", 0)),
-        langs=tuple(raw.get("langs", ())),
-        features=tuple(raw["features"]),
-        mean=tuple(raw["mean"]),
-        std=tuple(raw["std"]),
-        coef=tuple(raw["coef"]),
-        intercept=float(raw["intercept"]),
-        threshold=float(raw["threshold"]),
-    )
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise ValueError(f"malformed register model artifact {path}: {exc}") from exc
+    if model.features != FEATURE_NAMES:
+        raise ValueError(
+            f"register model artifact {path}: feature schema drifted from the producer"
+        )
+    if not (len(model.mean) == len(model.std) == len(model.coef) == len(model.features)):
+        raise ValueError(f"register model artifact {path}: vector lengths disagree")
+    if any(sd <= 0 for sd in model.std):
+        raise ValueError(f"register model artifact {path}: non-positive feature std")
+    return model
 
 
 # ---------------------------------------------------------------------------
@@ -379,6 +394,9 @@ def assign_register(doc: ir.Document, ctx: Context) -> ir.Document:
         feats_ctx = {id(b): c for b, c in iter_with_register_context(doc.blocks)}
     decided = _promote(doc.blocks, model, feats_ctx, stats)
     if model is not None:
+        # The rules-only re-run exists for the diagnostic below; ~2x this pass's
+        # cost, accepted for batch CLI (coda merges depend on verdicts, so a
+        # cheaper per-block comparison would miscount).
         def verse_count(blocks: list[ir.Block]) -> int:
             return sum(
                 1 for b in blocks
