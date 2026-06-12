@@ -109,6 +109,18 @@ function cleanPublicMarkdownBody(
   const context = publicMarkdownContext(work);
   let out = body.replace(/\r\n?/g, "\n");
 
+  // Scripture wrappers degrade to a plain portable quote: the inside is already
+  // Markdown (paragraphs separated by blank lines, hard breaks as two trailing
+  // spaces), so each content line gains a `> ` prefix and each blank line a bare
+  // `>` so member paragraphs stay distinct.
+  out = out.replace(/<blockquote\s+class=(["'])scripture\1>\s*([\s\S]*?)\s*<\/blockquote>/gi, (_match, _quote: string, inner: string) => {
+    const text = htmlInlineToMarkdown(inner, context)
+      .split("\n")
+      .map(line => (line.trim() ? `> ${line}` : ">"))
+      .join("\n");
+    return `\n\n${text}\n\n`;
+  });
+
   out = out.replace(/<blockquote\s+class=(["'])epigraph\1>\s*([\s\S]*?)\s*<\/blockquote>/gi, (_match, _quote: string, inner: string) => {
     const footer = inner.match(/<footer>([\s\S]*?)<\/footer>/i)?.[1] ?? "";
     const withoutFooter = inner.replace(/<footer>[\s\S]*?<\/footer>/i, "");

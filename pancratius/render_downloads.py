@@ -275,7 +275,7 @@ def _validate_download_html_allowlist(body: str, source: Path) -> None:
         if name == "blockquote":
             if self_closing:
                 raise _html_error(tag, source, match_line, "blockquote wrapper cannot be self-closing")
-            role = _require_class(attrs_text, {"epigraph"}, tag, source, match_line)
+            role = _require_class(attrs_text, {"epigraph", "scripture"}, tag, source, match_line)
             stack.append((name, role, tag, match_line))
             continue
 

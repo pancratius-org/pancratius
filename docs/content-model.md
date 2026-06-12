@@ -220,8 +220,8 @@ lineation. If a numbered Q/A answer is lineated, it may remain
 verse-register evidence.
 
 DOCX paragraph metadata is also source data. Pandoc's Markdown writer does not
-carry Word paragraph alignment, so the converter reads `word/document.xml`
-directly for narrow semantic cases:
+carry Word paragraph alignment or paragraph borders, so the converter reads
+`word/document.xml` directly for narrow semantic cases:
 
 - right-aligned signature paragraphs become `<p class="signature">`;
 - right-aligned scripture / epigraph groups become
@@ -232,6 +232,30 @@ directly for narrow semantic cases:
 Do not infer these from rendered CSS, italic-only paragraphs, or arbitrary
 short-line runs. The signal must come from the DOCX structure or an explicit
 source marker.
+
+### Display registers (set-apart blocks)
+
+Beyond lineation, the author sets some passages APART from the running body
+with paragraph borders (`w:pBdr`). The gesture kind carries the register, and
+both are within-book contrastive: a border kind covering a large share of a
+book's paragraphs is that book's own frame (a template choice) and lowers as
+ordinary content, never as a register.
+
+- a contrastive **full-box** run — quoted canonical text (scripture, logia,
+  numbered verses) — becomes `<blockquote class="scripture">` (a raw wrapper
+  whose inside is parsed Markdown, like the lineated wrapper; authored bold
+  and refs survive);
+- a contrastive **left-rule** run — an inset passage in a voice or provenance
+  distinct from the body (dictation, framed reflection, commentary) — becomes
+  a plain Markdown blockquote (`>`), unifying with the Word Quote-style
+  channel Pandoc already lowers to `>`; member paragraphs stay distinct
+  (separated by a bare `>` line) and authored hard breaks inside members stay
+  two-space display lines.
+
+Register is a parallel axis to lineation, not a sub-question of it: most
+set-apart passages in the corpus are prose, not lineated. The existing
+`signature` / `epigraph` / `ornament` classes and the `verse` lineation
+register stay separate; a passage gets ONE primary register.
 
 ## Relations
 
