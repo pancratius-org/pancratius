@@ -36,6 +36,8 @@ from pathlib import Path
 
 from pancratius import docx_adapter as da
 from pancratius import ir
+from pancratius.ir.inlines import inline_lines, inline_plain
+from pancratius.passes.lineation import VERSE_SHORT_LINE_MAX
 from pancratius.passes.pipeline import PER_ORDINAL_SEAM, Context, run
 
 W = da.W
@@ -260,8 +262,6 @@ def _block_kind_name(block: ir.Block) -> str:
 
 def _block_lines(block: ir.Block) -> list[str]:
     """The normalized reading lines a block contributes, for membership lookup."""
-    from pancratius.ir.inlines import inline_plain
-
     match block:
         case ir.LineatedBlock():
             return [_norm(inline_plain(line.inlines)) for stanza in block.stanzas for line in stanza]
@@ -484,9 +484,6 @@ def lineation_decisions(docx: Path) -> dict[int, bool]:
         doc = da.adapt(docx, Path(td), [])
         doc = run(doc, Context(lang=""))
 
-    from pancratius.ir.inlines import inline_plain
-    from pancratius.passes.lineation import VERSE_SHORT_LINE_MAX
-
     def hard_break_prose(block: ir.LineatedBlock) -> bool:
         """A block folded ONLY because of an authored `<w:br>` whose lines are
         prose-length: the importer rightly preserves the break for display, but
@@ -499,8 +496,6 @@ def lineation_decisions(docx: Path) -> dict[int, bool]:
             for stanza in block.stanzas
             for line in stanza
         )
-
-    from pancratius.ir.inlines import inline_lines
 
     def paragraph_verdict(p: ir.Paragraph) -> set[int]:
         """A paragraph's per-line truth: prose, unless it carries authored hard
