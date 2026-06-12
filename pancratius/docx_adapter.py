@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from pancratius import ir
+from pancratius.ir.inlines import inline_plain
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W = f"{{{W_NS}}}"
@@ -551,8 +552,6 @@ def _assign_bracketed_empty_spans(blocks: list[ir.Block], records: list[_SourceP
 
 def _block_plain_for_source_span(block: ir.Block) -> str:
     """Best-effort reading text for top-level source-span reconciliation."""
-    from pancratius.ir.inlines import inline_plain
-
     match block:
         case ir.Heading() | ir.Paragraph():
             return inline_plain(block.inlines)
