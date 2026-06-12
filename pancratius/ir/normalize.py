@@ -29,7 +29,10 @@ import json
 import re
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
-from typing import Any, assert_never, cast
+from typing import TYPE_CHECKING, Any, assert_never, cast
+
+if TYPE_CHECKING:
+    from pancratius.ir.register_features import BookStats, StudentModel
 
 from pancratius import ir
 from pancratius.content_catalog import IndexHit
@@ -1219,22 +1222,51 @@ def lineated_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
     return out
 
 
-def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
+def verse_blocks(blocks: list[ir.Block], *, lang: str = "ru") -> list[ir.Block]:
     """Q1 lineation, then Q2 verse-register promotion.
 
     This compatibility entry point preserves the old public pass name while making
     the two questions explicit: it first decides line breaks, then only wraps
     already-lineated blocks in the `verse` register.
     """
-    return promote_verse_register(lineated_blocks(blocks))
+    return promote_verse_register(lineated_blocks(blocks), lang=lang)
 
 
-def promote_verse_register(blocks: list[ir.Block]) -> list[ir.Block]:
+def _book_stats(blocks: list[ir.Block]) -> BookStats:
+    """Within-book baselines for the student's contrastive features, measured on
+    the same block population the candidate extractor measures."""
+    from pancratius.ir.register_features import BookStats
+
+    para_lens = [
+        len(inline_plain(b.inlines))
+        for b in blocks
+        if isinstance(b, ir.Paragraph) and not b.empty
+    ]
+    lineated = sum(1 for b in blocks if isinstance(b, (ir.LineatedBlock, ir.VerseBlock)))
+    total = len(para_lens) + lineated
+    return BookStats(
+        mean_para_len=sum(para_lens) / len(para_lens) if para_lens else 0.0,
+        lineated_frac=lineated / total if total else 0.0,
+    )
+
+
+def promote_verse_register(blocks: list[ir.Block], *, lang: str = "ru") -> list[ir.Block]:
     """Q2: promote already-lineated blocks to `VerseBlock`s.
 
     This pass may use register context such as headings, named verse titles, and
     separators. It never folds paragraphs and therefore cannot create hard breaks.
+
+    The verse decision is owned by the trained register student where one is
+    committed (RU sources only — its voice features read Russian); the geometry
+    ladder decides inside the student's abstention band, for EN sources, and
+    when no artifact is present. Named-section and scaffold rules stay
+    deterministic overrides on both paths.
     """
+    from pancratius.ir.register_features import load_student
+
+    student = load_student() if lang == "ru" else None
+    stats = _book_stats(blocks) if student is not None else None
+
     out: list[ir.Block] = []
     i = 0
     ctx = _NEUTRAL_CONTEXT
@@ -1256,7 +1288,7 @@ def promote_verse_register(blocks: list[ir.Block]) -> list[ir.Block]:
             i += 1
             continue
         if isinstance(b, ir.LineatedBlock):
-            if (kind := _lineated_block_kind(b, ctx)) is not None:
+            if (kind := _register_decision(b, ctx, student, stats)) is not None:
                 verse = ir.VerseBlock(stanzas=b.stanzas, role=kind, source_span=b.source_span)
                 if (segment := _lineated_coda_segment(blocks, i + 1, verse)) is not None:
                     verse, next_i = segment
@@ -1642,6 +1674,47 @@ def _lineated_block_kind(
     return _kind_for_lines(lines, block.evidence, ctx)
 
 
+# The student's abstention band: a probability inside it is not a decision —
+# the geometry ladder keeps owning those blocks. Bounds tuned on the held-out
+# human truth (`teacher/evaluate_student.py`).
+_STUDENT_ABSTAIN_LO = 0.35
+_STUDENT_ABSTAIN_HI = 0.65
+
+
+def _register_decision(
+    block: ir.LineatedBlock,
+    ctx: _PrecedingContext,
+    student: StudentModel | None,
+    stats: BookStats | None,
+) -> ir.VerseRole | None:
+    """The Q2 verse decision for one lineated block.
+
+    Deterministic overrides first (a named verse section promotes, scaffold
+    shapes never promote); then the student where committed and confident;
+    the geometry ladder otherwise."""
+    if student is None or stats is None:
+        return _lineated_block_kind(block, ctx)
+    lines = _lineated_block_lines(block)
+    if len(lines) < 2 or not all(_is_lineated_line(line) for line in lines):
+        return None
+    if _is_dash_scaffold(lines) or _is_equation_scaffold(lines):
+        return None
+    if ctx.named:
+        return _kind_for_lines(lines, block.evidence, ctx)
+    from pancratius.ir.register_features import verse_register_features
+
+    p = student.probability(verse_register_features(
+        lines, block.stanzas, block.evidence,
+        ctx_heading=ctx.heading, ctx_named=ctx.named, ctx_separator=ctx.separator,
+        book=stats,
+    ))
+    if p >= _STUDENT_ABSTAIN_HI:
+        return "verse"
+    if p <= _STUDENT_ABSTAIN_LO:
+        return None
+    return _kind_for_lines(lines, block.evidence, ctx)
+
+
 def _is_strong_colon_opener(p: ir.Paragraph) -> bool:
     if len(p.inlines) != 1:
         return False
@@ -1892,6 +1965,7 @@ def normalize(
     demote_levels: int = 1,
     slug_lookup: _SlugLookup | None = None,
     stop_before_lineation: bool = False,
+    lang: str = "ru",
 ) -> ir.Document:
     """Run the full normalize chain over `doc` in dependency order.
 
@@ -1918,5 +1992,5 @@ def normalize(
     if stop_before_lineation:
         return doc
     doc.blocks = display_register_blocks(doc.blocks)
-    doc.blocks = verse_blocks(doc.blocks)
+    doc.blocks = verse_blocks(doc.blocks, lang=lang)
     return doc
