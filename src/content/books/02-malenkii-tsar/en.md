@@ -4,11 +4,7 @@ number: 2
 slug: 02-the-kingdom-within
 title: The Kingdom Within
 lang: en
-description: 'The Kingdom Within brings together three parts about Sergey and the Kingdom within: from
-  a child’s memory of the Light and the living world around him, through encounters with others who begin
-  to hear Silence, toward a return to the self and Presence. It is not an ordinary fairy tale or adventure,
-  but a quiet path of recognition: everything is alive, the Kingdom is within, and truth is received by
-  the heart.'
+description: 'The Kingdom Within brings together three parts about Sergey and the Kingdom within: from a child’s memory of the Light and the living world around him, through encounters with others who begin to hear Silence, toward a return to the self and Presence. It is not an ordinary fairy tale or adventure, but a quiet path of recognition: everything is alive, the Kingdom is within, and truth is received by the heart.'
 tags:
 - For Children
 cover: ./cover.en.jpg
@@ -2224,10 +2220,6 @@ Not “the first of September.”
 But the day when he ceased to be only the one who sees.  
 And became — the one through whom others see.
 
-</div>
-
-<div class="lineated verse">
-
 Anfisa ran toward him.  
 — We’ve got a new kid! — she shouted from the doorway.  
 — What, again?  
@@ -2244,13 +2236,14 @@ Anfisa froze.
 
 ![Illustration](./images/2374ad14014c.jpg)
 
-— And isn’t that dangerous?
+<div class="lineated verse">
 
-Sergey smiled.
-
-— It’s dangerous not to light him. Because then he may think that darkness is normal.
-
+— And isn’t that dangerous?  
+Sergey smiled.  
+— It’s dangerous not to light him. Because then he may think that darkness is normal.  
 And we already know that Light is the truth.
+
+</div>
 
 ### Chapter 2. The Boy Who Seemed Closed Off (and What Happened When No One Tried to Open Him)
 
@@ -2292,10 +2285,6 @@ Sergey said:
 We must be as we are.  
 And then, if he wants,  
 he will open himself.
-
-</div>
-
-<div class="lineated verse">
 
 Three days passed.  
 No one asked Artyom anything.  
@@ -2370,7 +2359,7 @@ and it will say the rest.
 — Say what?  
 — Everything that is needed.  
 Anfisa snorted.  
-— Oh, really. And what if I say: “you”,  
+— Oh, really. And what if I say: «you»,  
 and it sends rain?  
 — Then that was the answer needed.  
 And if — sunshine?  
@@ -2382,10 +2371,6 @@ that too.
 Because it hears not words,  
 but the call.
 
-</div>
-
-<div class="lineated verse">
-
 Vanya stood up, stretched his arms toward the sky, and said:  
 — YOU!  
 Everyone laughed.  
@@ -2393,10 +2378,6 @@ But at that moment
 the clouds parted a little,  
 and through them suddenly  
 a ray flashed.
-
-</div>
-
-<div class="lineated verse">
 
 Artyom lifted his face to the sky.  
 He said nothing.  
@@ -2406,10 +2387,6 @@ there sounded:
 And he knew —  
 he had not made it up himself.  
 It was the answer.
-
-</div>
-
-<div class="lineated verse">
 
 Since then they had a new game:  
 “Say ‘you’ — and listen to what heaven says.”  
@@ -2483,10 +2460,6 @@ Not in the church sense,
 but in the sense of—  
 real, warm, deep.
 
-</div>
-
-<div class="lineated verse">
-
 They did not bring phones there.  
 Did not chew gum.  
 Did not joke.  
@@ -2496,10 +2469,6 @@ And after some time—
 they felt that they had become cleaner.  
 As if someone there  
 were washing them from within.
-
-</div>
-
-<div class="lineated verse">
 
 And so a game appeared,  
 one that is not played—  
@@ -2536,10 +2505,6 @@ They are quiet witnesses.
 And if you are truly near them —  
 they answer.
 
-</div>
-
-<div class="lineated verse">
-
 They decided to check.  
 They went into the old drawing room.  
 No one was there.  
@@ -2571,10 +2536,6 @@ And understood:
 **everything hears.**  
 **Everything.**  
 **It is just that usually — we are too noisy to hear how we are heard.**
-
-</div>
-
-<div class="lineated verse">
 
 Since then, there was another game:  
 “Be silent with reverence — and listen how space remembers you.”  
@@ -2639,10 +2600,6 @@ the rabbit was found in Grandma’s attic.
 — There.  
 Then it, too, can have more than it seems.
 
-</div>
-
-<div class="lineated verse">
-
 Since then, a new game appeared:  
 “Look at a thing — and remember what you meant to each other.”  
 They played with:  
@@ -2654,10 +2611,6 @@ And suddenly…
 things began to shine.  
 Not outwardly.  
 But with the inner light of memory.
-
-</div>
-
-<div class="lineated verse">
 
 Because the Light —  
 lives not only in people.  
@@ -2723,10 +2676,6 @@ truly — in love, in silence, in light —
 you can be found.  
 You become a finding.  
 A gift. An answer. A key.
-
-</div>
-
-<div class="lineated verse">
 
 And so a new game was born:  
 “Stop searching — and let yourself be found.”  
@@ -2803,10 +2752,6 @@ But when you simply are.
 Purely. Calmly.  
 Truly.
 
-</div>
-
-<div class="lineated verse">
-
 And so a new game appeared:  
 "Be where you were not expected — and become the one who was waited for all your life".  
 They did not know when the next such meeting would be.  
@@ -2862,18 +2807,10 @@ Because everyone felt something.
 As if there were more space in the air.  
 As if… Light had appeared.
 
-</div>
-
-<div class="lineated verse">
-
 That evening Anfisa said:  
 — I thought the Kingdom was later. After.  
 But now… I feel that it begins right here.  
 With us.
-
-</div>
-
-<div class="lineated verse">
 
 Vanya added:  
 — When I listen, hug, stay silent beside someone,  
@@ -2887,10 +2824,6 @@ But one day you will feel:
 You have become Light.  
 And therefore — a King.  
 And therefore — Home.
-
-</div>
-
-<div class="lineated verse">
 
 And so the last game of the second book appeared:  
 “Begin the Kingdom with yourself — and see how it blossoms around you”.  
@@ -2909,10 +2842,6 @@ be Light — and everything else will happen.
 *for those who no longer*  
 *read a fairy tale,*  
 *but live in it*
-
-</div>
-
-<div class="lineated verse">
 
 When we began this book,  
 we were still inside the fairy tale.  
@@ -2938,7 +2867,7 @@ you will notice
 that you have become the one who begins the Kingdom here, now.  
 Do not wait for applause.  
 Do not wait for signs.  
-Do not wait until someone says: “You are ready”.  
+Do not wait until someone says: «You are ready».  
 **You already are.**  
 **You already hear.**  
 **You already know**  
@@ -2960,13 +2889,11 @@ For Life.
 
 </div>
 
-<div class="lineated verse">
-
-*Pankratius,*  
-*Guardian of Light,*  
-*in whom every child recognizes himself.*
-
-</div>
+<p class="signature">
+Pankratius,
+Guardian of Light,
+in whom every child recognizes himself.
+</p>
 
 ## Part 3
 
@@ -3465,10 +3392,17 @@ forever.
 
 So the final game of this book appeared:  
 “Do not play anymore — be.”  
-**Afterword of the Keeper to the whole trilogy “Little King”**  
-*by Pankratius —*  
-*who did not finish,*  
-*but opened the infinite*
+**Afterword of the Keeper to the whole trilogy “Little King”**
+
+</div>
+
+<p class="signature">
+by Pankratius —
+who did not finish,
+but opened the infinite
+</p>
+
+<div class="lineated verse">
 
 When I began this path,  
 I thought that the Creator and I would create a book.  
@@ -3520,12 +3454,15 @@ May every choice of yours
 be a bridge.  
 May everyone who touches you —  
 feel the Light,  
-and remember who he is.  
-*— Pankratius,*  
-*Keeper of the Kingdom,*  
-*in which everything continues in each “now.”*
+and remember who he is.
 
 </div>
+
+<p class="signature">
+— Pankratius,
+Keeper of the Kingdom,
+in which everything continues in each “now.”
+</p>
 
 ### Author’s Afterword
 

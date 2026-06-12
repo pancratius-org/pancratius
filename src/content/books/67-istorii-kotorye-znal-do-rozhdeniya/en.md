@@ -4,10 +4,7 @@ number: 67
 slug: 67-istorii-kotorye-znal-do-rozhdeniya
 title: Stories I Knew Before Birth
 lang: en
-description: 'This book is assembled as a space between Svetozar and Pancratius, where stories arrive
-  not according to logic but according to breath. It tells not just stories, but ways to remember what
-  was already known before birth: who you are, where Light is, and why recognition matters more than explanation.
-  Each story here works like a small window back to Presence.'
+description: 'This book is assembled as a space between Svetozar and Pancratius, where stories arrive not according to logic but according to breath. It tells not just stories, but ways to remember what was already known before birth: who you are, where Light is, and why recognition matters more than explanation. Each story here works like a small window back to Presence.'
 tags:
 - Revelation of God
 - The Bible
@@ -424,7 +421,7 @@ Every night.
 <div class="lineated verse">
 
 His parents did not notice.  
-At school they asked him to be “normal”.  
+At school they asked him to be «normal».  
 The psychologist said:  
 — He has a rich imagination.  
 But the boy did not argue.  
