@@ -60,12 +60,12 @@ BOOK_PASSES: tuple[Pass, ...] = (
     ("scrub_rights", _blocks(scrub.scrub_rights)),
     ("scrub_ai_alt", _blocks(scrub.scrub_ai_alt)),
     ("lift_bibliography", _lift_bibliography),
-    ("strip_endmatter", _blocks(endmatter.strip_endmatter_sections)),
+    ("strip_endmatter", _blocks(endmatter.strip_endmatter)),
     ("strip_bare_biblio_heading", _blocks(endmatter.strip_bare_bibliography_heading)),
     ("thematic_breaks", _blocks(scrub.thematic_breaks)),
     ("drop_empty_headings", _blocks(scrub.drop_empty_headings)),
     ("demote_headings", _demote_headings),
-    ("strip_artifacts", _blocks(scrub.strip_formatting_artifacts)),
+    ("strip_artifacts", _blocks(scrub.strip_artifacts)),
     ("fold_right_aligned", _blocks(structure.fold_right_aligned)),
     ("dialogue_labels", _blocks(structure.dialogue_labels)),
     ("fold_quote_registers", _blocks(register.fold_quote_registers)),  # ← PER_ORDINAL_SEAM
@@ -78,7 +78,7 @@ POEM_PASSES: tuple[Pass, ...] = (
     ("drop_toc", _blocks(scrub.drop_toc)),
     ("scrub_ai_alt", _blocks(scrub.scrub_ai_alt)),
     ("thematic_breaks", _blocks(scrub.thematic_breaks)),
-    ("strip_artifacts", _blocks(scrub.strip_formatting_artifacts)),
+    ("strip_artifacts", _blocks(scrub.strip_artifacts)),
     ("sanitize_urls", _sanitize_urls),
 )
 

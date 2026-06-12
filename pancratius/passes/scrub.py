@@ -120,7 +120,7 @@ def scrub_rights(blocks: list[ir.Block]) -> list[ir.Block]:
 
     This pass only handles standalone boilerplate paragraphs near the beginning of
     a source. Heading-delimited sections are stripped later by
-    `strip_endmatter_sections`, after bibliography tables have had a chance to lift
+    `strip_endmatter`, after bibliography tables have had a chance to lift
     into the sidecar.
     """
     n = len(blocks)
@@ -269,7 +269,7 @@ def _is_form_marker_text(text: str) -> bool:
     }
 
 
-def strip_formatting_artifacts(blocks: list[ir.Block]) -> list[ir.Block]:
+def strip_artifacts(blocks: list[ir.Block]) -> list[ir.Block]:
     """Drop import-only formatting artifacts.
 
     Whole empty-emphasis husks vanish; trailing or embedded `** **` inside content

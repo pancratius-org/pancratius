@@ -262,7 +262,7 @@ def _tail_region_start(blocks: list[ir.Block]) -> int:
     return max(0, min(int(n * 0.75), n - 80))
 
 
-def strip_endmatter_sections(blocks: list[ir.Block]) -> list[ir.Block]:
+def strip_endmatter(blocks: list[ir.Block]) -> list[ir.Block]:
     """Drop heading-delimited publisher endmatter from import output.
 
     Copyright/contact sections are deliberately not an "anywhere" heading scrub:
