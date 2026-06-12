@@ -30,7 +30,8 @@ class OpenRouterCompleter:
     client is built lazily on first use so importing this module never touches the SDK."""
 
     def __init__(self, *, timeout: float = 180.0, max_retries: int = 5,
-                 backoff_base: float = 2.0) -> None:
+                 backoff_base: float = 2.0, rate_limit_retries: int = 8,
+                 rate_limit_backoff: float = 20.0) -> None:
         key = os.environ.get("OPENROUTER_API_KEY")
         if not key:
             raise RuntimeError("OPENROUTER_API_KEY is not set — required for a live panel run")
@@ -38,6 +39,10 @@ class OpenRouterCompleter:
         self._timeout_ms = int(timeout * 1000)
         self._max_retries = max_retries
         self._backoff_base = backoff_base
+        # A 429 is the per-minute RPM window, not flakiness: it needs a wait long enough to clear
+        # the window (~60s), and more attempts, since a busy shared model stays limited for minutes.
+        self._rate_limit_retries = rate_limit_retries
+        self._rate_limit_backoff = rate_limit_backoff
         self._client = None    # built on first complete() — keeps the SDK import lazy
         self._client_lock = threading.Lock()   # one client build even under a worker pool
 
@@ -73,14 +78,22 @@ class OpenRouterCompleter:
         if response_format is not None:
             extra["response_format"] = _sdk_response_format(response_format)
         last = ""
-        for attempt in range(self._max_retries):
+        attempt = rate_limit_hits = 0
+        while True:
             try:
                 res = self._sdk().chat.send(
                     model=model, messages=messages, temperature=temperature,
                     max_completion_tokens=max_tokens, **extra)
                 return _reply(res)
-            except errors.TooManyRequestsResponseError as e:    # 429 — retryable rate limit
+            except errors.TooManyRequestsResponseError as e:    # 429 — the RPM window, not flakiness
                 last = _err(e)
+                rate_limit_hits += 1
+                if rate_limit_hits >= self._rate_limit_retries:
+                    raise RuntimeError(
+                        f"{model}: exhausted {self._rate_limit_retries} rate-limit waits — "
+                        f"{last}") from e
+                time.sleep(self._rate_limit_backoff)            # wait out the per-minute window
+                continue                                        # a 429 does not spend a normal retry
             except errors.OpenRouterError as e:                 # any other HTTP error: capture body
                 if 500 <= e.status_code < 600:                  # SDK already retried 5xx; it's spent
                     last = _err(e)
@@ -90,9 +103,10 @@ class OpenRouterCompleter:
                 last = f"NoResponseError: {e}"
             except httpx.TransportError as e:                   # mid-stream drop / read-timeout / connect — retryable
                 last = f"{type(e).__name__}: {e}"
-            if attempt < self._max_retries - 1:                 # no pointless sleep before the raise
-                time.sleep(self._backoff_base * (attempt + 1))  # linear backoff between retries
-        raise RuntimeError(f"{model}: exhausted {self._max_retries} retries — {last}")
+            attempt += 1
+            if attempt >= self._max_retries:
+                raise RuntimeError(f"{model}: exhausted {self._max_retries} retries — {last}")
+            time.sleep(self._backoff_base * attempt)            # linear backoff between retries
 
 
 def _sdk_response_format(rf: dict[str, object]) -> dict[str, object]:

@@ -14,7 +14,7 @@ title = "E1 instrument — random corpus sample (ru)"
 reps = 3
 temperature = 0.5
 contract = "json_keyed"
-max_workers = 32
+max_workers = 12
 holdout_eval_set = "e1-instrument-frozen"
 
 [prompts]
