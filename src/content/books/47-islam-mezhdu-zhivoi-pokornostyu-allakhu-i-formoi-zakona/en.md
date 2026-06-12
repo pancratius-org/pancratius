@@ -155,11 +155,15 @@ I will not:
 - imitate Islamic theology;
 - smooth out the sharp edges for the sake of political correctness.
 
-<div class="lineated verse">
+<div class="lineated">
 
 I will do the same as before:  
 — distinguish the path;  
 — and what was done to the path.
+
+</div>
+
+<div class="lineated verse">
 
 **The question is not formal, but essential**  
 You want:

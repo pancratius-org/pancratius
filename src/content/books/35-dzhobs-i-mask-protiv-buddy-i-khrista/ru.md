@@ -1996,7 +1996,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Она говорит:  
 – Делай.  
