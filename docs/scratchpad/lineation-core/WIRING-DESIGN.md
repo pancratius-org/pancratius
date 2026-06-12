@@ -1,12 +1,34 @@
 # Production wiring design — correction set → importer (DoD #4)
 
 Status: IMPLEMENTED for the `prose` direction (2026-06-12) — `pancratius/lineation_overrides.py`
-(sidecar + rails), eligibility seam in `ir/normalize.py`, consumers wired (import,
-`classify_blocks`, `lineation_decisions`), exporter `lineation_core/corrections.py`, contract in
-`docs/content-model.md`, first 3 corrections committed; gate floors ratcheted (prose-recall 1.0
-on all gold). The `lineated` direction (force-fold) stays fail-loud-unimplemented until E3's
-error classes fix its semantics — 51 such contradictions are pending, converter-RCA first.
-Sidecar name is per-language: `lineation.<lang>.json` (ordinals differ per docx).
+(sidecar + rails), eligibility seam + post-fold fate assertion in `ir/normalize.py`, consumers
+wired (import, `classify_blocks`, `lineation_decisions(apply_overrides=)`), exporter
+`lineation_core/corrections.py` (total projection: holdout truth WITHHELD until its eval is
+scored — exporting an eval item's answer would make that eval circular; deletes retracted
+sidecars; diffs against the sidecar-free baseline so it is idempotent and drift-recoverable),
+contract in `docs/content-model.md`, the 2 non-holdout corrections committed; gate floors
+ratcheted. The `lineated` direction (force-fold) stays fail-loud-unimplemented until E3's error
+classes fix its semantics — 27 non-holdout contradictions pending, converter-RCA first; 74 more
+are holdout-withheld. Sidecar name is per-language: `lineation.<lang>.json`.
+
+Known collateral, pinned by test: a mid-unit prose correction can demote its whole decision
+unit (the remnant evidence re-qualifies alone) — adjudicate dense regions region-wise in E3.
+
+## Corpus md regen — BLOCKED on two discovered divergences (2026-06-12)
+
+Regenerating book md against the committed importer (the IR rework never regenerated books;
+the site renders pre-rework lineation) was attempted and verified: 101 books change; 67 are
+plain-text identical (pure lineation re-shaping — the intended catch-up). It cannot land yet:
+
+1. **5 ru books lose all images** (25: 2, 27: 1, 61: 66, 71: 33, 72: 1 — 103 images; book 74
+   GAINS one). Likely the poem-fixed "missing image anchors" class (a500592) present in book
+   docx; converter RCA required.
+2. **EN typography reverts**: `3e2e73e` minted curly quotes into en.md but the en docx still
+   carries «guillemets» (mixed: e.g. book 30 en.docx has 94 «» vs 146 “”), so a regen undoes
+   committed editorial work. Either the docx gets the typography pass (source fix) or the
+   importer owns EN quote normalization (rule fix). Decide before regenerating en books.
+
+Both are E3 converter-RCA entries; the regen re-runs after they land.
 
 ## What exists
 

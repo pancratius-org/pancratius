@@ -206,7 +206,12 @@ def convert_single_docx(
 
     if kind == "poem":
         # Verse end-to-end: skip heading demotion, bibliography lift, and verse
-        # detection (the whole AST is verse); only light cleanup applies.
+        # detection (the whole AST is verse); only light cleanup applies. A poem
+        # has no lineation DECISIONS to correct, so a sidecar beside it is a
+        # placement error — refuse rather than silently ignore it.
+        if (stray := lineation_overrides.overrides_path(docx)).is_file():
+            raise ValueError(f"poem import: {stray.name} found beside {docx.name}, but poems "
+                             f"take no lineation overrides — remove it")
         doc.blocks = normalize.drop_toc(doc.blocks)
         doc.blocks = normalize.scrub_ai_alt(doc.blocks)
         doc.blocks = normalize.thematic_breaks(doc.blocks)

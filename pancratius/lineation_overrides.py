@@ -37,17 +37,35 @@ def paragraph_sha(text: str) -> str:
 
 
 def load_overrides(docx: Path) -> dict[int, LineationRegister]:
-    """The validated corrections for one source DOCX (empty when no sidecar). FAILS LOUD on an
-    unknown register, an ordinal with no source paragraph, or a text-rail mismatch."""
+    """The validated corrections for one source DOCX (empty when no sidecar). FAILS LOUD on a
+    malformed sidecar, a non-canonical or duplicate ordinal key, an unknown register, an ordinal
+    with no source paragraph, or a text-rail mismatch."""
     path = overrides_path(docx)
     if not path.is_file():
         return {}
     from pancratius.docx_inspect import read_rows
 
+    def _no_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        d = dict(pairs)
+        if len(d) != len(pairs):
+            raise ValueError(f"{path.name}: duplicate key in sidecar object")
+        return d
+
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_no_duplicate_keys)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"{path.name}: not valid JSON — {e}") from e
+    if not isinstance(raw, dict):
+        raise ValueError(f"{path.name}: must be an object keyed by source ordinal")
+
     rows = {r.index: r for r in read_rows(docx)}
     out: dict[int, LineationRegister] = {}
-    for key, entry in json.loads(path.read_text(encoding="utf-8")).items():
+    for key, entry in raw.items():
+        if not (key.isdigit() and str(int(key)) == key):
+            raise ValueError(f"{path.name}: key {key!r} is not a canonical ordinal")
         ordinal = int(key)
+        if ordinal in out:
+            raise ValueError(f"{path.name}: duplicate ordinal {ordinal}")
         register, text_sha = entry["register"], entry["text_sha"]
         if register not in ("prose", "lineated"):
             raise ValueError(f"{path.name}: ordinal {ordinal} has register {register!r} "

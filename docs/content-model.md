@@ -226,9 +226,11 @@ paragraph ordinal with the adjudicated register (`prose` | `lineated`) and a
 content hash of the paragraph text the verdict was made against. Import honors
 the sidecar; the hash is a rail, never advisory — if the source text drifted
 under a correction, import fails rather than apply or silently skip a stale
-verdict. The sidecar is a projection of the research label store into content
-(labels and sidecar move together, like docx and md); it never encodes style,
-only the register verdict.
+verdict. Only the `prose` direction is appliable today; a `lineated` entry fails
+the import loudly rather than being ignored. Poems take no sidecar (their whole
+body is verse; a sidecar beside a poem docx fails the import). The sidecar is a
+projection of the research label store into content (labels and sidecar move
+together, like docx and md); it never encodes style, only the register verdict.
 
 DOCX paragraph metadata is also source data. Pandoc's Markdown writer does not
 carry Word paragraph alignment, so the converter reads `word/document.xml`
