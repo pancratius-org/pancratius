@@ -29,7 +29,7 @@ DIALOGUE_PREFIXES = [
 ]
 
 # ---------------------------------------------------------------------------
-# 9. signatures + epigraphs from right alignment (the OOXML w:jc payload)
+# signatures + epigraphs from right alignment (the OOXML w:jc payload)
 # ---------------------------------------------------------------------------
 
 _RIGHT = {"right", "end"}
@@ -134,7 +134,7 @@ def fold_right_aligned(blocks: list[ir.Block]) -> list[ir.Block]:
 
 
 # ---------------------------------------------------------------------------
-# 10. dialogue labels (incl. mixed leading-Strong inline split)
+# dialogue labels (incl. mixed leading-Strong inline split)
 # ---------------------------------------------------------------------------
 
 

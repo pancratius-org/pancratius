@@ -7,7 +7,7 @@ definitions, and assets; diagnostics flow through the pass-context sink, not the
 document. Lowering turns this typed structure into
 canonical Markdown exactly once; no Markdown string exists before then.
 
-The model is deliberately minimal: only the block and inline kinds the Pancratius
+The model is minimal: only the block and inline kinds the Pancratius
 canonical Markdown body actually needs, plus explicit `UnknownBlock`/`UnknownInline`
 escape hatches for anything the adapter does not recognize. Do not smuggle
 structure through string conventions — add a typed kind instead.
@@ -202,7 +202,7 @@ class LineationEvidence:
     """Q1 provenance for a structural lineated run.
 
     This records why the importer decided source rows should lower as line breaks.
-    It deliberately excludes register cues such as title text, headings, anaphora,
+    It excludes register cues such as title text, headings, anaphora,
     and visual style. Lowering ignores it; Q2 register promotion may consult it as
     lineation provenance, but it must not encode "almost verse" state here.
     """
@@ -424,8 +424,7 @@ class Table:
     keeps the opaque source node (the Pandoc Table JSON object, or `None`) for the
     bibliography classifier (it needs the hrefs and image alts the flattened cells
     would drop); it is typed `JsonObject | None` — a JSON object whose schema the
-    pure IR makes no claim about, not the bare `object` it was — so the
-    classifier still narrows it itself. The classifier lifts a bibliography table
+    pure IR makes no claim about — so the classifier still narrows it itself. The classifier lifts a bibliography table
     in the same pass that recognizes it, so no verdict is stored here."""
 
     rows: list[list[list[Inline]]]
@@ -503,7 +502,7 @@ def map_block_inlines(block: Block, fn: Callable[[list[Inline]], list[Inline]]) 
 class FootnoteDef:
     """A footnote definition: its dense id and its body blocks. Footnotes stay
     structured to lowering, where the appendix is generated last — so a definition
-    can never be tail-stripped (the Phase-4 win, now structural)."""
+    can never be tail-stripped."""
 
     id: int
     blocks: list[Block]

@@ -81,8 +81,8 @@ def _confined_media_source(src: str, media_root: Path) -> Path | None:
 
     Returns the resolved candidate iff it does NOT escape `media_root` and is a
     readable file; otherwise `None` (the caller drops the ref, with a diagnostic for
-    the escape case). The previous `Path(src)` arbitrary-path fallback is removed: a
-    ref that does not resolve safely UNDER `media_root` is never read."""
+    the escape case). A ref that does not resolve safely UNDER `media_root` is
+    never read."""
     if _escapes_media_root(src, media_root):
         return None
     cand = (media_root / src).resolve()
@@ -199,7 +199,7 @@ def plan_assets(
         return out
 
     def visit_block(b: ir.Block) -> ir.Block:
-        # Deliberately PARTIAL (a `case _` delegating to the shared skeleton, NOT
+        # PARTIAL (a `case _` delegating to the shared skeleton, NOT
         # `assert_never`): an `ImageBlock` is the one leaf the shared inline-descent
         # cannot express (its image is a block field, not an inline list), so it is
         # rebuilt here; every other block kind has its inline-list leaves handled by

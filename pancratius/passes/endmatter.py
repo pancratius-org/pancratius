@@ -38,7 +38,7 @@ def _node(value: object) -> _PandocNode | None:
 
 
 # ---------------------------------------------------------------------------
-# 4. bibliography table classification + lift
+# bibliography table classification + lift
 # ---------------------------------------------------------------------------
 
 
@@ -215,7 +215,7 @@ def _flat(label: object) -> str:  # opaque Pandoc inline list; narrowed below
 
 
 # ---------------------------------------------------------------------------
-# 5. bare bibliography heading strip (after the table was lifted)
+# bare bibliography heading strip (after the table was lifted)
 # ---------------------------------------------------------------------------
 
 
@@ -265,7 +265,7 @@ def _tail_region_start(blocks: list[ir.Block]) -> int:
 def strip_endmatter(blocks: list[ir.Block]) -> list[ir.Block]:
     """Drop heading-delimited publisher endmatter from import output.
 
-    Copyright/contact sections are deliberately not an "anywhere" heading scrub:
+    Copyright/contact sections are not an "anywhere" heading scrub:
     they must be anchored in source headmatter or tailmatter. Bibliography/catalog
     headings are different; body bibliography belongs in the sidecar, so any
     remaining heading-delimited bibliography section is removed. After the first

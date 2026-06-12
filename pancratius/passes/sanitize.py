@@ -13,7 +13,7 @@ from pancratius import ir
 # ---------------------------------------------------------------------------
 
 # The site's Markdown renderer has NO sanitizer (lineated <div>, <span dir>,
-# p.signature are emitted as raw HTML on purpose), so the IMPORT is the gate: a
+# p.signature are emitted as raw HTML), so the IMPORT is the gate: a
 # DOCX-authored link/image target must never become an active scheme in a
 # published page. Only these schemes — plus relative / anchor / scheme-less
 # targets — are allowed through; `javascript:`/`vbscript:`/`data:` (non-image) and
