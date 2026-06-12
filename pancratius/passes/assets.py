@@ -124,7 +124,7 @@ type _ImageResolution = _ResolvedAsset | _DropImage | _KeepRemote
 def plan_assets(
     doc: ir.Document,
     media_root: Path,
-    diagnostics: list[ir.Diagnostic],
+    diagnostics: ir.DiagnosticSink,
 ) -> tuple[ir.Document, list[PlannedAsset]]:
     """Resolve every body image, assign its content-hash `<hash>.<ext>` asset id,
     and return the rebuilt document plus the deduped `PlannedAsset`s for the

@@ -220,7 +220,7 @@ def convert_single_docx(
     media_out.mkdir(parents=True, exist_ok=True)
     # ONE diagnostics sink for the whole conversion: the adapter, every pass (via
     # `Context`), and the backend tail all append into it.
-    diagnostics: list[ir.Diagnostic] = []
+    diagnostics: ir.DiagnosticSink = []
     doc = docx_adapter.adapt(docx, media_out, diagnostics)
 
     if kind == "poem":

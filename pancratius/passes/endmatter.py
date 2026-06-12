@@ -45,7 +45,7 @@ def _node(value: object) -> _PandocNode | None:
 def lift_bibliography(
     doc: ir.Document,
     slug_lookup: _SlugLookup | None,
-    diagnostics: list[ir.Diagnostic],
+    diagnostics: ir.DiagnosticSink,
 ) -> ir.Document:
     """Lift catalog/bibliography tables out of the body into the returned
     document's `bibliography`.

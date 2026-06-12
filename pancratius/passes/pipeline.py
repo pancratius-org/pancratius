@@ -19,11 +19,6 @@ from pancratius.passes import endmatter, lineation, register, sanitize, scrub, s
 if TYPE_CHECKING:
     from pancratius.passes.register import RegisterModel
 
-# The one diagnostics sink: producers (frontend, passes, backend) append; the
-# composition point routes by severity after the run.
-type DiagnosticSink = list[ir.Diagnostic]
-
-
 @dataclass(frozen=True)
 class Context:
     """Pass parameters, injected by the composition point."""
@@ -32,7 +27,7 @@ class Context:
     demote_levels: int = 1
     slug_lookup: Mapping[str, IndexHit] | None = None
     register_model: RegisterModel | None = None
-    diagnostics: DiagnosticSink = field(default_factory=list)
+    diagnostics: ir.DiagnosticSink = field(default_factory=list)
 
 
 type PassFn = Callable[[ir.Document, Context], ir.Document]
