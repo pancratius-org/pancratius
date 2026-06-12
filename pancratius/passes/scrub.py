@@ -37,7 +37,7 @@ RIGHTS_PATTERNS = [
 ]
 
 # ---------------------------------------------------------------------------
-# 1. TOC drop — auto-generated table-of-contents link runs
+# TOC drop — auto-generated table-of-contents link runs
 # ---------------------------------------------------------------------------
 
 _TOC_HEADING_RE = re.compile(
@@ -102,7 +102,7 @@ def drop_empty_headings(blocks: list[ir.Block]) -> list[ir.Block]:
 
 
 # ---------------------------------------------------------------------------
-# 2. rights-boilerplate scrub
+# rights-boilerplate scrub
 # ---------------------------------------------------------------------------
 
 
@@ -138,7 +138,7 @@ def scrub_rights(blocks: list[ir.Block]) -> list[ir.Block]:
 
 
 # ---------------------------------------------------------------------------
-# 3. AI-alt scrub — strip machine-vision alt text
+# AI-alt scrub — strip machine-vision alt text
 # ---------------------------------------------------------------------------
 
 
@@ -173,7 +173,7 @@ def scrub_ai_alt(blocks: list[ir.Block]) -> list[ir.Block]:
 
 
 # ---------------------------------------------------------------------------
-# 6. thematic breaks: a Paragraph whose only text is *** -> ThematicBreak
+# thematic breaks: a Paragraph whose only text is *** -> ThematicBreak
 # ---------------------------------------------------------------------------
 
 _HR_TEXTS = {"***", "* * *", r"\*\*\*"}
@@ -190,7 +190,7 @@ def thematic_breaks(blocks: list[ir.Block]) -> list[ir.Block]:
 
 
 # ---------------------------------------------------------------------------
-# 7. heading demotion: source H1 -> H2 (page title is the only H1)
+# heading demotion: source H1 -> H2 (page title is the only H1)
 # ---------------------------------------------------------------------------
 
 
@@ -204,7 +204,7 @@ def demote_headings(blocks: list[ir.Block], levels: int = 1) -> list[ir.Block]:
 
 
 # ---------------------------------------------------------------------------
-# 8. formatting-artifact strip — empty-emphasis husks
+# formatting-artifact strip — empty-emphasis husks
 # ---------------------------------------------------------------------------
 
 
