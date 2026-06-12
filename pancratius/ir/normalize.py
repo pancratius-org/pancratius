@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, assert_never, cast
 
@@ -1918,7 +1918,7 @@ def normalize(
     return doc
 
 
-def _check_overrides_held(blocks: list[ir.Block],
+def _check_overrides_held(blocks: Sequence[ir.Block],
                           overrides: Mapping[int, ir.LineationRegister]) -> None:
     """Prove every prose-pinned ordinal stayed out of lineation — the seam has several fold
     paths, so the FATE is asserted, not the mechanism. Limitation: a block with no source span
