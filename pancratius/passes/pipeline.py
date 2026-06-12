@@ -10,11 +10,14 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from pancratius import ir
 from pancratius.content_catalog import IndexHit
-from pancratius.ir import normalize
 from pancratius.passes import endmatter, lineation, register, sanitize, scrub, structure
+
+if TYPE_CHECKING:
+    from pancratius.passes.register import RegisterModel
 
 
 @dataclass(frozen=True)
@@ -24,6 +27,7 @@ class Context:
     lang: str
     demote_levels: int = 1
     slug_lookup: Mapping[str, IndexHit] | None = None
+    register_model: RegisterModel | None = None
 
 
 type PassFn = Callable[[ir.Document, Context], ir.Document]
@@ -70,7 +74,7 @@ BOOK_PASSES: tuple[Pass, ...] = (
     ("dialogue_labels", _blocks(structure.dialogue_labels)),
     ("fold_quote_registers", _blocks(register.fold_quote_registers)),  # ← PER_ORDINAL_SEAM
     ("fold_lineation", _blocks(lineation.fold_lineation)),
-    ("assign_register", _blocks(normalize.promote_verse_register)),
+    ("assign_register", register.assign_register),
     ("sanitize_urls", _sanitize_urls),
 )
 
