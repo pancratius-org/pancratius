@@ -228,11 +228,19 @@ def convert_single_docx(
         # detection (the whole AST is verse); only light cleanup applies.
         doc = run(doc, Context(lang=lang, diagnostics=diagnostics), POEM_PASSES)
     else:
+        register_model = load_register_model_for(lang)
+        if register_model is None and not _REGISTER_MODEL_PATH.exists():
+            # An absent artifact FILE is a configuration state worth recording;
+            # a lang outside the artifact's validity domain is not.
+            diagnostics.append(ir.Diagnostic(
+                "info", "register.model",
+                f"no register model artifact at {_REGISTER_MODEL_PATH.name}; rules decide alone",
+            ))
         doc = run(doc, Context(
             lang=lang,
             demote_levels=1,
             slug_lookup=title_index,
-            register_model=load_register_model_for(lang),
+            register_model=register_model,
             diagnostics=diagnostics,
         ))
 

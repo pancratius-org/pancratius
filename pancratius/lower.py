@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import assert_never
 
 from pancratius import ir
-from pancratius.ir.inlines import inline_lines
+from pancratius.ir.inlines import inline_lines, inline_plain
 from pancratius.passes.sanitize import sanitize_urls
 
 
@@ -587,7 +587,7 @@ def _is_strong_only_para(b: ir.Block) -> bool:
     )
 
 
-def _lower_poem_body(doc: ir.Document, lang: str) -> str:
+def _lower_poem_body(doc: ir.Document, lang: str, diagnostics: ir.DiagnosticSink) -> str:
     """Lower a poem as stanza-grouped verse lines:
 
       * an empty paragraph is a stanza break (flush the accumulator);
@@ -627,7 +627,19 @@ def _lower_poem_body(doc: ir.Document, lang: str) -> str:
             # corpus a poem `QuoteBlock` only ever wraps the poem TITLE (the page
             # masthead already renders that title), so this drop is a title-duplicate
             # drop, not reading-content loss — and it keeps the head stanza count
-            # equal to the DOCX stanza oracle (#08 head 2→1).
+            # equal to the DOCX stanza oracle (#08 head 2→1). The diagnostic
+            # records what was dropped so a real quoted passage cannot vanish
+            # silently.
+            dropped = " ".join(
+                inline_plain(p.inlines)
+                for p in b.blocks
+                if isinstance(p, ir.Paragraph) and not p.empty
+            ).strip()
+            if dropped:
+                diagnostics.append(ir.Diagnostic(
+                    "info", "lower.poem-quote-drop",
+                    f"poem quote block dropped (title-duplicate rule): {dropped[:80]!r}",
+                ))
             flush()
             continue
         if isinstance(b, ir.Paragraph) and any(isinstance(node, ir.ImageInline) for node in b.inlines):
@@ -755,7 +767,7 @@ def lower(
     doc = sanitize_urls(doc, diagnostics)
     _surface_unknown_block_diagnostics(doc, diagnostics)
     if poem:
-        body = _lower_poem_body(doc, lang)
+        body = _lower_poem_body(doc, lang, diagnostics)
     else:
         body = "\n\n".join(md for b in doc.blocks if (md := _block_md(b, lang)))
     appendix = _footnote_appendix(doc, lang)

@@ -11,6 +11,7 @@ detection, ordered-list start preservation, and the generated footnote appendix.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Literal, TypeIs
 
@@ -1586,3 +1587,43 @@ def test_pipeline_never_mutates_its_input_document() -> None:
 
     assert out is not doc
     assert doc == snapshot, "a pass mutated the input document (aliased mutation)"
+
+
+# --- run(until=) seam contract ------------------------------------------------
+
+
+def test_run_until_excludes_the_named_pass() -> None:
+    from pancratius.passes.pipeline import Context, run
+
+    seen: list[str] = []
+
+    def tracer(name: str) -> Callable[[ir.Document, Context], ir.Document]:
+        def pass_fn(doc: ir.Document, _ctx: Context) -> ir.Document:
+            seen.append(name)
+            return doc
+        return pass_fn
+
+    pipeline = (("a", tracer("a")), ("b", tracer("b")), ("c", tracer("c")))
+    run(ir.Document(), Context(lang=""), pipeline, until="b")
+    assert seen == ["a"]  # `until` names the first pass NOT run
+
+
+def test_run_until_unknown_name_is_an_error() -> None:
+    import pytest
+
+    from pancratius.passes.pipeline import Context, run
+
+    with pytest.raises(ValueError, match="unknown pass name"):
+        run(ir.Document(), Context(lang=""), until="no-such-pass")
+
+
+def test_run_rejects_duplicate_pass_names() -> None:
+    import pytest
+
+    from pancratius.passes.pipeline import Context, run
+
+    def noop(doc: ir.Document, _ctx: Context) -> ir.Document:
+        return doc
+
+    with pytest.raises(AssertionError, match="duplicate pass names"):
+        run(ir.Document(), Context(lang=""), (("x", noop), ("x", noop)))

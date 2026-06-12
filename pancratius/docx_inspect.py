@@ -328,7 +328,7 @@ def classify_blocks(docx: Path) -> BlockClassifications:
     """
     with tempfile.TemporaryDirectory(prefix="docx-inspect-") as td:
         doc = da.adapt(docx, Path(td), [])
-        doc = run(doc, Context(lang=""))
+        doc = run(doc, Context(lang=""))  # rules-only: no register model (see lineation_decisions)
 
     kind_of: dict[str, set[str]] = {}
     by_source = _SourceClassificationBuilder()
@@ -450,7 +450,7 @@ def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
     """
     with tempfile.TemporaryDirectory(prefix="docx-mask-") as td:
         doc = da.adapt(docx, Path(td), [])
-        doc = run(doc, Context(lang=""), until=PER_ORDINAL_SEAM)
+        doc = run(doc, Context(lang=""), until=PER_ORDINAL_SEAM)  # rules-only observer
     blocks = tuple(doc.blocks)
 
     by_source = _SourceClassificationBuilder()
@@ -467,7 +467,12 @@ def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
 
 
 def lineation_decisions(docx: Path) -> dict[int, bool]:
-    """THE production lineation verdict per source `w:p` ordinal.
+    """The RULES-ONLY lineation verdict per source `w:p` ordinal.
+
+    Deliberately model-free: the labeling system this surface feeds anchors on
+    the deterministic instrument, and scoring a learned model against labels
+    influenced by a learned model would be circular. Production verdicts can
+    differ where the register model flips a block.
 
     Runs the full import pipeline (``adapt`` → ``run``) and reads each
     ordinal's fate: ``True`` when its text lowered inside a lineated/verse block,
@@ -482,7 +487,7 @@ def lineation_decisions(docx: Path) -> dict[int, bool]:
     """
     with tempfile.TemporaryDirectory(prefix="docx-lineation-") as td:
         doc = da.adapt(docx, Path(td), [])
-        doc = run(doc, Context(lang=""))
+        doc = run(doc, Context(lang=""))  # rules-only: no register model (see lineation_decisions)
 
     def hard_break_prose(block: ir.LineatedBlock) -> bool:
         """A block folded ONLY because of an authored `<w:br>` whose lines are
