@@ -33,6 +33,7 @@ from pathlib import Path, PurePosixPath
 from typing import assert_never
 
 from pancratius import ir
+from pancratius.ir.normalize import inline_lines
 from pancratius.writeplan import PlannedAsset
 
 # ---------------------------------------------------------------------------
@@ -605,6 +606,66 @@ def _epigraph_md(e: ir.Epigraph) -> str:
     return "\n".join(['<blockquote class="epigraph">', "<p>", q, "</p>", "<footer>", f, "</footer>", "</blockquote>"])
 
 
+def _quote_member_md(blk: ir.Block, lang: str) -> str | None:
+    """Lower one quote-member block, preserving authored hard line breaks.
+
+    The generic prose paragraph path collapses in-paragraph breaks to spaces;
+    inside a set-apart quote a hard `w:br` is an authored display line, encoded
+    as the corpus two-trailing-space hard break. Soft breaks remain prose
+    wrapping (joined as a space by `inline_lines`)."""
+    if (
+        isinstance(blk, ir.Paragraph)
+        and not blk.empty
+        and not any(isinstance(n, ir.ImageInline) for n in blk.inlines)
+    ):
+        lines = [
+            re.sub(r"\s*\n\s*", " ", _inlines_md(line, lang)).strip()
+            for line in inline_lines(blk.inlines, soft_break=False)
+        ]
+        lines = [ln for ln in lines if ln]
+        if len(lines) > 1:
+            return "  \n".join(lines)
+    return _block_md(blk, lang)
+
+
+def _blockquote_md(b: ir.BlockQuote, lang: str) -> str | None:
+    """Lower a quote block.
+
+    `_div` is the adapter's transparent Div container (unwrapped, no quoting).
+    `scripture` — quoted canonical text (the boxed `w:pBdr` register) — lowers
+    to a classed HTML blockquote whose inside is parsed Markdown (the blank
+    line after the opening tag is load-bearing, as in the lineated wrapper).
+    `inset` — a set-apart passage in another voice (the left-rule register) —
+    is a plain portable Markdown quote; member blocks are separated by a bare
+    `>` line so they stay distinct paragraphs instead of fusing by lazy
+    continuation, and authored hard breaks inside members stay display lines.
+
+    A roleless quote (Pandoc-born, from a Word Quote style/indent) keeps the
+    legacy line-prefix join — its members fuse by lazy continuation. Whether
+    those should preserve member boundaries is a separate lineation-in-quotes
+    decision; changing it here would silently rewrite every existing quote."""
+    if b.role == "_div":
+        return "\n\n".join(filter(None, (_block_md(x, lang) for x in b.blocks))) or None
+    if b.role == "scripture":
+        members = [md for blk in b.blocks if (md := _quote_member_md(blk, lang))]
+        if not members:
+            return None
+        return "\n".join(
+            ['<blockquote class="scripture">', "", "\n\n".join(members), "", "</blockquote>"]
+        )
+    if b.role == "inset":
+        members = [md for blk in b.blocks if (md := _quote_member_md(blk, lang))]
+        if not members:
+            return None
+        return "\n>\n".join(
+            "\n".join("> " + line for line in md.splitlines()) for md in members
+        )
+    inner = "\n".join(
+        "> " + line for blk in b.blocks for line in (_block_md(blk, lang) or "").splitlines()
+    )
+    return inner or None
+
+
 def _table_md(t: ir.Table, lang: str) -> str | None:
     """Render a non-bibliography (reading-content) table as a GFM pipe table —
     reading-content tables are kept in the body. Cells are rendered from their inlines
@@ -738,12 +799,7 @@ def _block_md(b: ir.Block, lang: str, *, poem: bool = False) -> str | None:
             alt = b.alt or _body_image_alt(lang)
             return f"![{_escape_markdown_alt(alt)}]({target})"
         case ir.BlockQuote():
-            if b.role == "_div":
-                return "\n\n".join(filter(None, (_block_md(x, lang) for x in b.blocks))) or None
-            inner = "\n".join(
-                "> " + line for blk in b.blocks for line in (_block_md(blk, lang) or "").splitlines()
-            )
-            return inner or None
+            return _blockquote_md(b, lang)
         case ir.ListBlock():
             parts: list[str] = []
             for idx, item in enumerate(b.items):

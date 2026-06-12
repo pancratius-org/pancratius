@@ -19,6 +19,7 @@ Passes, in `normalize` order:
   * formatting-artifact strip — empty-emphasis husks / hidden form markers
   * signatures / epigraphs   — from right alignment (the `w:jc` payload)
   * dialogue labels          — canonicalize `**Speaker:**` (incl. mixed inline)
+  * display registers        — contrastively bordered set-apart runs → scripture/inset quotes
   * lineated / verse blocks  — fold source lineation first, then apply verse register
 """
 
@@ -32,6 +33,7 @@ from typing import Any, assert_never, cast
 
 from pancratius import ir
 from pancratius.content_catalog import IndexHit
+from pancratius.ir.register import display_register_blocks
 
 # The slug→(slug, number, kind) corpus index the bibliography lift resolves
 # titles against; an entry resolves to a `{kind, number}` target.
@@ -1887,5 +1889,6 @@ def normalize(
     doc.blocks = dialogue_labels(doc.blocks)
     if stop_before_lineation:
         return doc
+    doc.blocks = display_register_blocks(doc.blocks)
     doc.blocks = verse_blocks(doc.blocks)
     return doc
