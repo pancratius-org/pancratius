@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from typing import cast
 
 from pancratius import ir
@@ -32,6 +33,10 @@ def _speaker_turn_re() -> re.Pattern[str]:
 
 _SPEAKER_TURN_RE = _speaker_turn_re()
 
+_WS_RE = re.compile(r"\s+")
+_BULLET_LEAD_RE = re.compile(r"^[-*+]\s+")
+_ORDINAL_LEAD_RE = re.compile(r"^(?:\d+|[IVXLCDM]+)[.)]\s+")
+
 
 def is_lineated_line(text: str) -> bool:
     """True for a single short source line that reads as a verse line rather
@@ -39,14 +44,14 @@ def is_lineated_line(text: str) -> bool:
 
     Short colon opener lines such as `Он говорил:` and `Разве не сказал Я:` stay
     in the run. Only explicit speaker/source turns are rejected."""
-    s = re.sub(r"\s+", " ", text).strip()
+    s = _WS_RE.sub(" ", text).strip()
     if not s or len(s) > VERSE_SHORT_LINE_MAX:
         return False
     if s in {"—", "–", "-"}:
         return False
     if s.startswith(("!", "<", "|", ">", "[]")):
         return False
-    if re.match(r"^[-*+]\s+", s) or re.match(r"^(?:\d+|[IVXLCDM]+)[.)]\s+", s):
+    if _BULLET_LEAD_RE.match(s) or _ORDINAL_LEAD_RE.match(s):
         return False
     if _SPEAKER_TURN_RE.match(s):
         return False
@@ -362,12 +367,7 @@ def _gate_and_build(
         before_source_boundary=before_source_boundary,
         after_lineated=after_lineated,
     ):
-        evidence = ir.LineationEvidence(
-            hard_break=evidence.hard_break,
-            inferred_source_rows=True,
-            stanza_break=evidence.stanza_break,
-            compact_callout=evidence.compact_callout,
-        )
+        evidence = replace(evidence, inferred_source_rows=True)
     if not (evidence.inferred_source_rows or evidence.compact_callout):
         return None
     return _build_lineated(run, evidence=evidence)
