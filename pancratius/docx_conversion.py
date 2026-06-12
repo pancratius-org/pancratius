@@ -212,7 +212,7 @@ def convert_single_docx(
         doc.blocks = normalize.thematic_breaks(doc.blocks)
         doc.blocks = normalize.strip_formatting_artifacts(doc.blocks)
     else:
-        normalize.normalize(doc, demote_levels=1, slug_lookup=title_index)
+        normalize.normalize(doc, demote_levels=1, slug_lookup=title_index, lang=lang)
 
     # Neutralize unsafe URL schemes before the asset pass hashes any image, so an
     # unsafe-scheme src never reaches asset resolution; `lower` re-runs idempotently.
