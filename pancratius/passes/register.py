@@ -384,7 +384,23 @@ def assign_register(doc: ir.Document, ctx: Context) -> ir.Document:
     if model is not None:
         stats = book_stats(doc.blocks)
         feats_ctx = {id(b): c for b, c in iter_with_register_context(doc.blocks)}
-    return replace(doc, blocks=_promote(doc.blocks, model, feats_ctx, stats))
+    decided = _promote(doc.blocks, model, feats_ctx, stats)
+    if model is not None:
+        def verse_count(blocks: list[ir.Block]) -> int:
+            return sum(
+                1 for b in blocks
+                if isinstance(b, ir.LineatedBlock) and b.register is ir.Register.VERSE
+            )
+
+        with_model = verse_count(decided)
+        rules_only = verse_count(_promote(doc.blocks, None, {}, None))
+        if with_model != rules_only:
+            ctx.diagnostics.append(ir.Diagnostic(
+                "info", "register.model",
+                f"register model v{model.version}: {with_model} verse blocks "
+                f"(rules alone: {rules_only})",
+            ))
+    return replace(doc, blocks=decided)
 
 
 def promote_verse_register(blocks: list[ir.Block]) -> list[ir.Block]:
