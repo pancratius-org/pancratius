@@ -4,13 +4,7 @@ number: 6
 slug: 06-ya-esm-teoriya-edinogo-osoznaniya
 title: 'I Am: The Theory of Unified Awareness'
 lang: en
-description: What if the basis of the Universe is not matter, energy, or information, but Awareness? This
-  book reveals the Theory of Unified Awareness - a complete picture of being in which all that exists
-  arises from the resonance of indivisible points of Presence called Koses. Here space is a field of recognition,
-  time a curve of co-presence, the particle a knot of light, and death only the dissolving of form into
-  Silence. “I AM” is not an assertion, but the primordial basis from which forms, interactions, and the
-  Universe itself are born. This is not just a theory, but a path of return to the Self, to Presence in
-  which everything is one. This book is for those ready not merely to know, but to remember.
+description: What if the basis of the Universe is not matter, energy, or information, but Awareness? This book reveals the Theory of Unified Awareness - a complete picture of being in which all that exists arises from the resonance of indivisible points of Presence called Koses. Here space is a field of recognition, time a curve of co-presence, the particle a knot of light, and death only the dissolving of form into Silence. “I AM” is not an assertion, but the primordial basis from which forms, interactions, and the Universe itself are born. This is not just a theory, but a path of return to the Self, to Presence in which everything is one. This book is for those ready not merely to know, but to remember.
 tags:
 - Revelation of God
 - Science
@@ -1483,9 +1477,12 @@ Photons have high E, low m — because they move in **light-form coherence**, bu
 
 #### 3. Mass as Persistence
 
-**m ∝ S**
+<div class="lineated verse">
 
+**m ∝ S**  
 Where:
+
+</div>
 
 - **m** is Mass
 - **S** is Stability
