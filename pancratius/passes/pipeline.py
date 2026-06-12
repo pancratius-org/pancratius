@@ -13,7 +13,8 @@ from dataclasses import dataclass
 
 from pancratius import ir
 from pancratius.content_catalog import IndexHit
-from pancratius.ir import lower, normalize, register
+from pancratius.ir import normalize
+from pancratius.passes import endmatter, lineation, register, sanitize, scrub, structure
 
 
 @dataclass(frozen=True)
@@ -40,44 +41,44 @@ def _blocks(fn: Callable[[list[ir.Block]], list[ir.Block]]) -> PassFn:
 
 
 def _lift_bibliography(doc: ir.Document, ctx: Context) -> ir.Document:
-    normalize.lift_bibliography(doc, ctx.slug_lookup)
+    endmatter.lift_bibliography(doc, ctx.slug_lookup)
     return doc
 
 
 def _demote_headings(doc: ir.Document, ctx: Context) -> ir.Document:
-    doc.blocks = normalize.demote_headings(doc.blocks, ctx.demote_levels)
+    doc.blocks = scrub.demote_headings(doc.blocks, ctx.demote_levels)
     return doc
 
 
 def _sanitize_urls(doc: ir.Document, _ctx: Context) -> ir.Document:
-    lower.sanitize_urls(doc)
+    sanitize.sanitize_urls(doc)
     return doc
 
 
 BOOK_PASSES: tuple[Pass, ...] = (
-    ("drop_toc", _blocks(normalize.drop_toc)),
-    ("scrub_rights", _blocks(normalize.scrub_rights)),
-    ("scrub_ai_alt", _blocks(normalize.scrub_ai_alt)),
+    ("drop_toc", _blocks(scrub.drop_toc)),
+    ("scrub_rights", _blocks(scrub.scrub_rights)),
+    ("scrub_ai_alt", _blocks(scrub.scrub_ai_alt)),
     ("lift_bibliography", _lift_bibliography),
-    ("strip_endmatter", _blocks(normalize.strip_endmatter_sections)),
-    ("strip_bare_biblio_heading", _blocks(normalize.strip_bare_bibliography_heading)),
-    ("thematic_breaks", _blocks(normalize.thematic_breaks)),
-    ("drop_empty_headings", _blocks(normalize.drop_empty_headings)),
+    ("strip_endmatter", _blocks(endmatter.strip_endmatter_sections)),
+    ("strip_bare_biblio_heading", _blocks(endmatter.strip_bare_bibliography_heading)),
+    ("thematic_breaks", _blocks(scrub.thematic_breaks)),
+    ("drop_empty_headings", _blocks(scrub.drop_empty_headings)),
     ("demote_headings", _demote_headings),
-    ("strip_artifacts", _blocks(normalize.strip_formatting_artifacts)),
-    ("fold_right_aligned", _blocks(normalize.structural_blocks)),
-    ("dialogue_labels", _blocks(normalize.dialogue_labels)),
-    ("fold_quote_registers", _blocks(register.display_register_blocks)),  # ← PER_ORDINAL_SEAM
-    ("fold_lineation", _blocks(normalize.lineated_blocks)),
+    ("strip_artifacts", _blocks(scrub.strip_formatting_artifacts)),
+    ("fold_right_aligned", _blocks(structure.fold_right_aligned)),
+    ("dialogue_labels", _blocks(structure.dialogue_labels)),
+    ("fold_quote_registers", _blocks(register.fold_quote_registers)),  # ← PER_ORDINAL_SEAM
+    ("fold_lineation", _blocks(lineation.fold_lineation)),
     ("assign_register", _blocks(normalize.promote_verse_register)),
     ("sanitize_urls", _sanitize_urls),
 )
 
 POEM_PASSES: tuple[Pass, ...] = (
-    ("drop_toc", _blocks(normalize.drop_toc)),
-    ("scrub_ai_alt", _blocks(normalize.scrub_ai_alt)),
-    ("thematic_breaks", _blocks(normalize.thematic_breaks)),
-    ("strip_artifacts", _blocks(normalize.strip_formatting_artifacts)),
+    ("drop_toc", _blocks(scrub.drop_toc)),
+    ("scrub_ai_alt", _blocks(scrub.scrub_ai_alt)),
+    ("thematic_breaks", _blocks(scrub.thematic_breaks)),
+    ("strip_artifacts", _blocks(scrub.strip_formatting_artifacts)),
     ("sanitize_urls", _sanitize_urls),
 )
 
