@@ -5,7 +5,7 @@ Two facts about each source line are needed: its geometry (the intact `<w:p>` se
 text + physics) and its structural role (is this `<w:p>` body, or a heading / signature /
 dialogue turn / dropped TOC?). The geometry is read from the adapted, *un-normalized*
 paragraphs — the physical line a reader sees, never re-cut. The role is read from a
-`normalize(stop_before_lineation=True)` classification of the SAME adapted document.
+`run(..., until=PER_ORDINAL_SEAM)` classification of the SAME adapted document.
 
 One `adapt` feeds both views: its blocks are the intact-line geometry, and a normalized copy
 of them yields the per-ordinal role verdict. The two structural reads (geometry, role) share
@@ -34,7 +34,8 @@ from pathlib import Path
 
 from pancratius import docx_adapter as da
 from pancratius import ir
-from pancratius.ir.normalize import inline_lines, inline_plain, normalize
+from pancratius.ir.normalize import inline_lines, inline_plain
+from pancratius.passes.pipeline import PER_ORDINAL_SEAM, Context, run
 
 from . import physics
 
@@ -142,7 +143,7 @@ def _verdict_for(kinds: frozenset[str], span: ir.SourceSpan) -> Verdict:
 
 
 def _classify(doc: ir.Document) -> dict[int, Verdict]:
-    """Per source-ordinal verdict from a normalize(stop_before_lineation) document. An
+    """Per source-ordinal verdict from a run(until=PER_ORDINAL_SEAM) document. An
     ordinal absent from the map is unmapped (dropped TOC/endmatter or §14-P1) → REVIEW."""
     kinds: dict[int, set[str]] = {}
     spans: dict[int, ir.SourceSpan] = {}
@@ -170,7 +171,9 @@ def read_view(docx: Path) -> list[Para]:
     geom = physics.page_geom(docx)
     with tempfile.TemporaryDirectory(prefix="lineation-core-") as td:
         doc = da.adapt(docx, Path(td))
-    verdicts = _classify(normalize(copy.deepcopy(doc), stop_before_lineation=True))
+    verdicts = _classify(
+        run(copy.deepcopy(doc), Context(lang=""), until=PER_ORDINAL_SEAM)
+    )
 
     out: list[Para] = []
     for idx, b in enumerate(doc.blocks):

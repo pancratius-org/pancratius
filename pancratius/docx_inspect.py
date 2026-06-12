@@ -36,6 +36,7 @@ from pathlib import Path
 
 from pancratius import docx_adapter as da
 from pancratius import ir
+from pancratius.passes.pipeline import PER_ORDINAL_SEAM, Context, run
 
 W = da.W
 
@@ -418,30 +419,29 @@ def _verdict_for(hit: BlockSourceHit | None) -> MaskVerdict:
 def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
     """Per source-paragraph-ordinal votability verdict from the production compiler.
 
-    Runs ``adapt`` then ``normalize`` ONCE — stopping at the structural seam
-    (``stop_before_lineation``: after dialogue labels, before ``verse_blocks``) —
-    and reduces each source ordinal's resulting IR block kind(s) to a conservative
-    ``MaskVerdict``. The caller looks a paragraph up by its ``SourceSpan`` start; an
-    ordinal absent from the returned map is unmapped and should be treated as
-    ``REVIEW`` (votable, flagged), never silently masked.
+    Runs ``adapt`` then the pass pipeline ONCE — stopping at the structural seam
+    (``until=PER_ORDINAL_SEAM``: after dialogue labels, before the span-merging
+    passes) — and reduces each source ordinal's resulting IR block kind(s) to a
+    conservative ``MaskVerdict``. The caller looks a paragraph up by its
+    ``SourceSpan`` start; an ordinal absent from the returned map is unmapped and
+    should be treated as ``REVIEW`` (votable, flagged), never silently masked.
 
-    Why the seam, not full normalize: ``verse_blocks`` merges lineated/verse runs
-    into one block, and ``merge_source_spans`` drops that block's provenance if any
-    member (e.g. an empty stanza-gap) lacks a span — poisoning provenance for whole
-    verse sections and falsely flagging thousands of real body lines. Observing
-    before that pass keeps each body line an addressable ``Paragraph`` AND avoids
-    surfacing the lineation verdict (it has not been computed yet). Structural roles
-    (heading/signature/dialogue-label/…) are already assigned by this point.
+    Why the seam, not the full pipeline: the lineation fold merges lineated/verse
+    runs into one block, and ``merge_source_spans`` drops that block's provenance if
+    any member (e.g. an empty stanza-gap) lacks a span — poisoning provenance for
+    whole verse sections and falsely flagging thousands of real body lines.
+    Observing before that pass keeps each body line an addressable ``Paragraph`` AND
+    avoids surfacing the lineation verdict (it has not been computed yet).
+    Structural roles (heading/signature/dialogue-label/…) are already assigned by
+    this point.
 
     ``slug_lookup`` is omitted (as in ``classify_blocks``): it only resolves
     bibliography cross-reference targets, never a block's kind, so verdicts are
     identical to the production import path.
     """
-    from pancratius.ir.normalize import normalize
-
     with tempfile.TemporaryDirectory(prefix="docx-mask-") as td:
         doc = da.adapt(docx, Path(td))
-        normalize(doc, stop_before_lineation=True)
+        run(doc, Context(lang=""), until=PER_ORDINAL_SEAM)
     blocks = tuple(doc.blocks)
 
     by_source = _SourceClassificationBuilder()
