@@ -9,6 +9,7 @@ that transform and lower this IR.
 from pancratius.ir.nodes import (
     Block,
     BlockQuote,
+    BorderKind,
     Code,
     CodeBlock,
     ContainerInline,
@@ -56,6 +57,7 @@ from pancratius.ir.nodes import (
 __all__ = (
     "Block",
     "BlockQuote",
+    "BorderKind",
     "Code",
     "CodeBlock",
     "ContainerInline",

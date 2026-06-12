@@ -217,6 +217,24 @@ describe("renderPublicWorkMarkdown raw HTML policy", () => {
     );
   });
 
+  test("degrades scripture wrappers to a plain portable quote", () => {
+    const rendered = renderPublicWorkMarkdown(
+      '<blockquote class="scripture">\n\n**7 Се, грядет с облаками.**\n\nЛиния раз  \nЛиния два\n\n</blockquote>',
+      { origin: ORIGIN, work: { kind: "book", bundleKey: "work-1" } },
+    );
+
+    assert.equal(
+      rendered,
+      [
+        "> **7 Се, грядет с облаками.**",
+        ">",
+        "> Линия раз  ",
+        "> Линия два",
+        "",
+      ].join("\n"),
+    );
+  });
+
   test("refuses raw HTML comments, declarations, and processing instructions", () => {
     for (const raw of ["<!-- hidden -->", "<!doctype html>", "<?xml version=\"1.0\"?>"]) {
       assert.throws(
