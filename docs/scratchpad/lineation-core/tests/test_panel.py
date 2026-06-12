@@ -358,3 +358,64 @@ def test_rate_limit_429_retries_on_a_separate_window_clearing_budget(monkeypatch
     assert reply.content == "prose"
     assert sent["n"] == 7                    # survived 6 windows that a 5-retry budget could not
     assert sleeps == [20.0] * 6              # window-clearing waits only, no linear backoff mixed in
+
+
+def test_reasoning_cap_changes_fingerprint_only_when_set():
+    # The cap is part of the request identity: a capped reader re-calls, but a reader with NO cap
+    # keeps the exact fingerprint it had before the feature existed — so existing caches stay valid.
+    from lineation_core.teacher.contracts import ResponseContract
+    from lineation_core.teacher.panel import _fingerprint
+
+    msgs = [{"role": "user", "content": [{"type": "text", "text": "x"}]}]
+    kw = dict(temperature=0.5, max_tokens=8192, contract=ResponseContract.JSON_KEYED)
+    base = _fingerprint(msgs, **kw)
+    assert _fingerprint(msgs, **kw, reasoning_max_tokens=None) == base   # cache preserved
+    assert _fingerprint(msgs, **kw, reasoning_max_tokens=3000) != base   # re-calls
+    assert _fingerprint(msgs, **kw, reasoning_max_tokens=3000) \
+        != _fingerprint(msgs, **kw, reasoning_max_tokens=2000)           # value matters
+
+
+def test_panel_passes_reasoning_cap_only_for_capped_readers():
+    # A capped reader's call carries `reasoning_max_tokens`; an uncapped reader's does not (so a
+    # completer/fake without the kwarg is never handed one).
+    seen: list[dict] = []
+
+    class _Rec:
+        def complete(self, **kw):
+            seen.append(kw)
+            return ChatReply(content=(
+                '[{"key":"L001","lineation_label":"prose"},'
+                '{"key":"L002","lineation_label":"prose"},'
+                '{"key":"L003","lineation_label":"prose"}]'))
+
+    task = _task()
+    readers = (ReaderConfig("plain", "m1", Modality.TEXT),
+               ReaderConfig("thinker", "m2", Modality.TEXT, reasoning_max_tokens=3000))
+    panel.run_panel(task, PanelConfig(readers=readers, reps=1), _Rec())
+    by_model = {kw["model"]: kw for kw in seen}
+    assert "reasoning_max_tokens" not in by_model["m1"]
+    assert by_model["m2"]["reasoning_max_tokens"] == 3000
+
+
+def test_resume_cache_excludes_truncated_and_empty_replies():
+    # A truncated (length) or empty reply carries no verdict; resume must NOT reuse it, so the call
+    # re-fetches next run (a fresh sampling usually succeeds). A later failure never masks a success.
+    from lineation_core.teacher.panel import resume_cache
+
+    def row(item, content, finish="stop"):
+        return {"item_id": item, "tag": "deepseek", "rep": 0, "model": "m",
+                "prompt_hash": f"fp-{item}", "contract": "json_keyed",
+                "content": content, "finish_reason": finish, "usage": None}
+
+    cache = resume_cache([
+        row("good", '{"L001":{}}'),
+        row("truncated", "", finish="length"),
+        row("empty", ""),
+        row("recovered", "", finish="length"),     # first attempt failed...
+        row("recovered", '{"L001":{}}'),            # ...then succeeded — success is kept
+        row("regressed", '{"L001":{}}'),            # earlier success...
+        row("regressed", "", finish="length"),      # ...later failure must NOT mask it
+    ])
+    keys = {k[0] for k in cache}
+    assert "good" in keys and "recovered" in keys and "regressed" in keys
+    assert "truncated" not in keys and "empty" not in keys

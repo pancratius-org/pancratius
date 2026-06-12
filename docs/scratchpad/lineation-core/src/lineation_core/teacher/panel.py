@@ -59,7 +59,8 @@ class ChatCompleter(Protocol):
     it ignores it and the free-text parse still applies."""
 
     def complete(self, *, model: ModelId, messages: list[Message], temperature: float,
-                 max_tokens: int, response_format: dict[str, object] | None = None) -> ChatReply: ...
+                 max_tokens: int, response_format: dict[str, object] | None = None,
+                 reasoning_max_tokens: int | None = None) -> ChatReply: ...
 
 
 # The sampling defaults a recipe may override — top-level (all readers) or per reader.
@@ -77,6 +78,9 @@ class ReaderConfig:
     modality: Modality = Modality.TEXT
     temperature: float = DEFAULT_TEMPERATURE
     max_tokens: int = DEFAULT_MAX_TOKENS
+    # Caps a REASONING model's hidden chain so it cannot burn the whole `max_tokens` budget on
+    # reasoning and return an empty answer (the ds-flash runaway). None = the provider default.
+    reasoning_max_tokens: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,7 +130,8 @@ def build_prompt(item: TaskItem, reader: ReaderConfig, instructions: str,
 
 
 def _fingerprint(messages: Sequence[Message], *, temperature: float, max_tokens: int,
-                 contract: ResponseContract) -> RequestFingerprint:
+                 contract: ResponseContract,
+                 reasoning_max_tokens: int | None = None) -> RequestFingerprint:
     """A short stable hash of the WHOLE request the model sees — the prompt text parts (instructions +
     opaque-keyed listing), any image part's data-URI, the sampling config (temperature, max_tokens),
     AND the response contract. The cache key carries it so a reply is reused ONLY for an identical
@@ -135,6 +140,8 @@ def _fingerprint(messages: Sequence[Message], *, temperature: float, max_tokens:
     config (the render slice, the sampling params, and the contract can all change under a fixed task)."""
     h = hashlib.sha256()
     h.update(f"\x00G{temperature!r}|{max_tokens}|{contract.value}".encode())  # request config
+    if reasoning_max_tokens is not None:    # absent term ⇒ identical to a request with no cap
+        h.update(f"\x00R{reasoning_max_tokens}".encode())
     for m in messages:
         content = m.get("content")
         for p in (content if isinstance(content, list) else []):
@@ -172,12 +179,13 @@ class CompletionRequest:
     temperature: float
     max_tokens: int
     contract: ResponseContract
+    reasoning_max_tokens: int | None = None
     fingerprint: RequestFingerprint = field(init=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "fingerprint", _fingerprint(
             self.messages, temperature=self.temperature, max_tokens=self.max_tokens,
-            contract=self.contract))
+            contract=self.contract, reasoning_max_tokens=self.reasoning_max_tokens))
 
     @property
     def cache_key(self) -> CallKey:
@@ -210,12 +218,26 @@ class CompletionRequest:
 type OnCall = Callable[[CompletionRequest, ChatReply], None]   # persist a fresh reply the instant it lands
 
 
+def _is_reusable(reply: ChatReply) -> bool:
+    """A reply worth resuming from: it actually produced an answer. A TRUNCATED reply
+    (`finish_reason=length` — a reasoning model that spent the whole budget thinking) or an empty
+    one carries no verdict, so reusing it would re-poison every run; excluding it here re-FETCHES
+    only those calls next run, where a fresh sampling (temp > 0) usually succeeds. The truncated
+    row is still LOGGED (evidence) — it is just not offered for reuse."""
+    return bool(reply.content) and reply.finish_reason != FinishReason.LENGTH.value
+
+
 def resume_cache(rows: Iterable[JsonRow]) -> CallCache:
     """Saved resume-log rows → the `CallCache` `run_panel` reuses instead of re-paying — last-saved
-    wins per call identity. The ONE row→cache fold; both resume logs (a recipe task's `calls.jsonl`,
-    a study folder's `replies.jsonl`) load through it."""
-    return {CompletionRequest.key_from_row(row): CompletionRequest.reply_from_row(row)
-            for row in rows}
+    wins per call identity, EXCLUDING truncated/empty replies (no verdict to reuse). The ONE
+    row→cache fold; both resume logs (a recipe task's `calls.jsonl`, a study folder's
+    `replies.jsonl`) load through it."""
+    cache: CallCache = {}
+    for row in rows:
+        reply = CompletionRequest.reply_from_row(row)
+        if _is_reusable(reply):         # a later FAILED re-attempt never masks an earlier success
+            cache[CompletionRequest.key_from_row(row)] = reply
+    return cache
 
 
 @dataclass(frozen=True, slots=True)
@@ -256,7 +278,7 @@ def run_panel(task: Task, cfg: PanelConfig, completer: ChatCompleter, *,
                     item_id=item.id, tag=reader.tag, rep=rep, model=reader.model,
                     messages=tuple(build_prompt(item, reader, instructions, cfg.contract)),
                     temperature=reader.temperature, max_tokens=reader.max_tokens,
-                    contract=cfg.contract)
+                    contract=cfg.contract, reasoning_max_tokens=reader.reasoning_max_tokens)
                 calls.append(_Call(item, req))
 
     replies: dict[CallKey, ChatReply] = {c.req.cache_key: cache[c.req.cache_key]
@@ -265,10 +287,15 @@ def run_panel(task: Task, cfg: PanelConfig, completer: ChatCompleter, *,
     lock = threading.Lock()
 
     def fetch(c: _Call) -> tuple[CallKey, ChatReply]:
+        # pass the reasoning cap ONLY when set, so a fake/adapter without the kwarg is unaffected
+        # and a no-cap call's signature (and fingerprint) is exactly as before.
+        extra = ({"reasoning_max_tokens": c.req.reasoning_max_tokens}
+                 if c.req.reasoning_max_tokens is not None else {})
         reply = completer.complete(
             model=c.req.model, messages=list(c.req.messages),
             temperature=c.req.temperature, max_tokens=c.req.max_tokens,
-            response_format=verdict_schema(c.req.contract, [ln.key for ln in c.item.lines]))
+            response_format=verdict_schema(c.req.contract, [ln.key for ln in c.item.lines]),
+            **extra)
         if on_call is not None:                             # persist before parse — evidence survives
             with lock:
                 on_call(c.req, reply)
