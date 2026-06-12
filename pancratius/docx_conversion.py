@@ -6,6 +6,7 @@ import unicodedata
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from functools import cache
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -13,7 +14,7 @@ import yaml
 
 from pancratius import cross_refs, docx_adapter, footnotes, ir, lower, ooxml
 from pancratius.content_catalog import IndexHit, dump_frontmatter
-from pancratius.passes import assets, sanitize
+from pancratius.passes import assets
 from pancratius.passes.pipeline import POEM_PASSES, Context, run
 from pancratius.passes.register import RegisterModel, load_register_model
 from pancratius.paths import CACHE_ROOT, REPO_ROOT
@@ -190,7 +191,9 @@ def _ordered_bibliography_entry(entry: BibliographyEntry) -> BibliographyEntry:
 _REGISTER_MODEL_PATH = REPO_ROOT / "data" / "models" / "verse_register_v1.json"
 
 
+@cache
 def load_register_model_for(lang: str) -> RegisterModel | None:
+    """The committed artifact when it covers `lang`, loaded once per process."""
     model = load_register_model(_REGISTER_MODEL_PATH)
     if model is None or lang not in model.langs:
         return None
@@ -233,9 +236,6 @@ def convert_single_docx(
             diagnostics=diagnostics,
         ))
 
-    # Neutralize unsafe URL schemes before the asset pass hashes any image, so an
-    # unsafe-scheme src never reaches asset resolution; `lower` re-runs idempotently.
-    doc = sanitize.sanitize_urls(doc, diagnostics)
     doc, planned_assets = assets.plan_assets(doc, media_out, diagnostics)
     body = lower.lower(doc, lang, diagnostics, poem=(kind == "poem"))
     poem_chrome: PoemChrome | None = None

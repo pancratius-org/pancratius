@@ -749,8 +749,9 @@ def lower(
     paragraphs become stanza-grouped verse lines (one line each, stanzas split on
     empty paragraphs) rather than prose, in a line-per-line shape."""
     # Neutralize unsafe link/image schemes BEFORE any Markdown/HTML is emitted (the
-    # import is the only sanitizer the unsanitized renderer has). Idempotent — the
-    # converter also runs it before the asset pass, and a re-run finds nothing left.
+    # import is the only sanitizer the unsanitized renderer has). Idempotent — on
+    # the production path the pipeline's sanitize pass has already run; this gate
+    # also covers direct `lower` callers.
     doc = sanitize_urls(doc, diagnostics)
     _surface_unknown_block_diagnostics(doc, diagnostics)
     if poem:
