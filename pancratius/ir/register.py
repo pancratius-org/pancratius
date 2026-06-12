@@ -11,9 +11,11 @@ bordered paragraph runs into `BlockQuote(role="scripture" | "inset")`.
 Border evidence is within-book contrastive: a kind covering a large share of
 the book's text paragraphs is the book's own frame (a template/baseline
 choice), not a set-apart gesture, and is left alone. The pass runs after
-`structural_blocks` (right-aligned signatures/epigraphs win first) and before
-dialogue labels and lineation folding, so the wrapped runs keep their source
-paragraphs intact and later passes treat each wrapper as one opaque unit.
+`structural_blocks` and `dialogue_labels` (right-aligned signatures/epigraphs
+and speaker labels win first — a bordered bare `**Speaker:**` paragraph
+becomes a label, not a one-line quote) and before lineation folding, so the
+wrapped runs keep their source paragraphs intact and later passes treat each
+wrapper as one opaque unit.
 """
 
 from __future__ import annotations

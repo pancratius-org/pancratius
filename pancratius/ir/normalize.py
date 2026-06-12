@@ -1775,6 +1775,19 @@ def _run_evidence(run: list[ir.Paragraph]) -> ir.LineationEvidence:
 
 
 _DASH_LINE_RE = re.compile(r"^[—–-]\s")
+_MATH_CHARS_RE = re.compile(r"[0-9=+×*²³√:.,()\s—–-]")
+
+
+def _is_equation_line(line: str) -> bool:
+    """A numerology/equation line (`153 = 9 × 17`): contains `=`/`×` and is
+    mostly digits and operators. Math is never the verse register."""
+    if "=" not in line and "×" not in line:
+        return False
+    return len(_MATH_CHARS_RE.findall(line)) / len(line) >= 0.6
+
+
+def _is_equation_scaffold(lines: list[str]) -> bool:
+    return all(_is_equation_line(line) for line in lines)
 
 
 def _is_dash_scaffold(lines: list[str]) -> bool:
@@ -1794,7 +1807,7 @@ def _kind_for_lines(
 ) -> ir.VerseRole | None:
     if len(lines) < 2 or not all(_is_lineated_line(line) for line in lines):
         return None
-    if _is_dash_scaffold(lines):
+    if _is_dash_scaffold(lines) or _is_equation_scaffold(lines):
         return None
     def _passes(avg_max: float, line_max: int | None = None) -> bool:
         """The run's mean line length is within `avg_max` and (when given) every line
