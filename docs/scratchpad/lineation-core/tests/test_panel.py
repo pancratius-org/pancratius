@@ -407,15 +407,17 @@ def test_resume_cache_excludes_truncated_and_empty_replies():
                 "prompt_hash": f"fp-{item}", "contract": "json_keyed",
                 "content": content, "finish_reason": finish, "usage": None}
 
+    good = '{"L001":{"lineation_label":"prose","confidence":0.9}}'
     cache = resume_cache([
-        row("good", '{"L001":{}}'),
+        row("good", good),
         row("truncated", "", finish="length"),
         row("empty", ""),
+        row("malformed", '{"L001":{"lineation_label":"pro'),   # mid-stream cut: parses to 0 rows
         row("recovered", "", finish="length"),     # first attempt failed...
-        row("recovered", '{"L001":{}}'),            # ...then succeeded — success is kept
-        row("regressed", '{"L001":{}}'),            # earlier success...
-        row("regressed", "", finish="length"),      # ...later failure must NOT mask it
+        row("recovered", good),                     # ...then succeeded — success is kept
+        row("regressed", good),                     # earlier success...
+        row("regressed", '{"L001":{"line'),         # ...later malformed must NOT mask it
     ])
     keys = {k[0] for k in cache}
     assert "good" in keys and "recovered" in keys and "regressed" in keys
-    assert "truncated" not in keys and "empty" not in keys
+    assert "truncated" not in keys and "empty" not in keys and "malformed" not in keys

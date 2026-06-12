@@ -218,24 +218,33 @@ class CompletionRequest:
 type OnCall = Callable[[CompletionRequest, ChatReply], None]   # persist a fresh reply the instant it lands
 
 
-def _is_reusable(reply: ChatReply) -> bool:
-    """A reply worth resuming from: it actually produced an answer. A TRUNCATED reply
-    (`finish_reason=length` — a reasoning model that spent the whole budget thinking) or an empty
-    one carries no verdict, so reusing it would re-poison every run; excluding it here re-FETCHES
-    only those calls next run, where a fresh sampling (temp > 0) usually succeeds. The truncated
-    row is still LOGGED (evidence) — it is just not offered for reuse."""
-    return bool(reply.content) and reply.finish_reason != FinishReason.LENGTH.value
+def _reusable_reply(row: JsonRow) -> ChatReply | None:
+    """The reply a resume-log row offers for REUSE, or None if it carries no usable verdict. The
+    real invariant is "it PARSES to ≥1 row under its contract" — which uniformly excludes a
+    truncated (`finish_reason=length`, a reasoning model that spent the budget thinking), an empty,
+    AND a malformed/incomplete reply (a mid-stream transport cut). Each of those re-FETCHES next
+    run, where a fresh sampling (temp > 0) usually succeeds. The bad row is still LOGGED (evidence)
+    — it is just not offered for reuse, so it can never re-poison a run."""
+    reply = CompletionRequest.reply_from_row(row)
+    if not reply.content or reply.finish_reason == FinishReason.LENGTH.value:
+        return None
+    contract = ResponseContract(str(row.get("contract", ResponseContract.JSON_ARRAY.value)))
+    try:
+        parsed = parse_reader_reply(contract, str(row["item_id"]), str(row["tag"]), reply.content)
+    except Exception:   # noqa: BLE001 — any parse failure means "no usable verdict", so re-fetch
+        return None
+    return reply if parsed.rows else None
 
 
 def resume_cache(rows: Iterable[JsonRow]) -> CallCache:
     """Saved resume-log rows → the `CallCache` `run_panel` reuses instead of re-paying — last-saved
-    wins per call identity, EXCLUDING truncated/empty replies (no verdict to reuse). The ONE
-    row→cache fold; both resume logs (a recipe task's `calls.jsonl`, a study folder's
-    `replies.jsonl`) load through it."""
+    wins per call identity, EXCLUDING any reply that does not parse to a verdict (truncated / empty
+    / malformed). The ONE row→cache fold; both resume logs (a recipe task's `calls.jsonl`, a study
+    folder's `replies.jsonl`) load through it."""
     cache: CallCache = {}
     for row in rows:
-        reply = CompletionRequest.reply_from_row(row)
-        if _is_reusable(reply):         # a later FAILED re-attempt never masks an earlier success
+        reply = _reusable_reply(row)
+        if reply is not None:           # a later FAILED re-attempt never masks an earlier success
             cache[CompletionRequest.key_from_row(row)] = reply
     return cache
 
