@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 
 from pancratius import ir
 
@@ -41,8 +42,9 @@ def _is_safe_url(target: str) -> bool:
     return m.group(1).lower() in _ALLOWED_URL_SCHEMES
 
 
-def sanitize_urls(doc: ir.Document) -> None:
-    """Drop unsafe link/image targets across the document, in place.
+def sanitize_urls(doc: ir.Document) -> ir.Document:
+    """Drop unsafe link/image targets across the document, returning the
+    sanitized document (diagnostics are appended to the shared sink list).
 
     For each reachable inline: an `ir.Link` with an unsafe target is replaced by
     its child inlines (the link text is KEPT, only the active target is dropped);
@@ -78,8 +80,11 @@ def sanitize_urls(doc: ir.Document) -> None:
                 out.append(n)
         return out
 
-    for b in doc.blocks:
-        ir.map_block_inlines(b, visit_inlines)
-    for fn in doc.footnotes:
-        for b in fn.blocks:
-            ir.map_block_inlines(b, visit_inlines)
+    return replace(
+        doc,
+        blocks=[ir.map_block_inlines(b, visit_inlines) for b in doc.blocks],
+        footnotes=[
+            replace(fn, blocks=[ir.map_block_inlines(b, visit_inlines) for b in fn.blocks])
+            for fn in doc.footnotes
+        ],
+    )

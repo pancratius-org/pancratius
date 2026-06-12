@@ -23,7 +23,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 import zipfile
 from bisect import bisect_left
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from itertools import pairwise
 from pathlib import Path
 from typing import Any, cast
@@ -533,7 +533,7 @@ def _assign_bracketed_empty_spans(blocks: list[ir.Block], records: list[_SourceP
             ):
                 break
             i += 1
-        empty_run = blocks[start:i]
+        run_indices = range(start, i)
         prev_span = blocks[start - 1].source_span if start > 0 else None
         next_span = blocks[i].source_span if i < len(blocks) else None
         if prev_span is None or next_span is None:
@@ -541,10 +541,10 @@ def _assign_bracketed_empty_spans(blocks: list[ir.Block], records: list[_SourceP
 
         source_ordinals = range(prev_span.end + 1, next_span.start)
         candidate_spans = [empty_spans[ordinal] for ordinal in source_ordinals if ordinal in empty_spans]
-        if len(candidate_spans) != len(empty_run):
+        if len(candidate_spans) != len(run_indices):
             continue
-        for empty_block, span in zip(empty_run, candidate_spans, strict=True):
-            empty_block.source_span = span
+        for idx, span in zip(run_indices, candidate_spans, strict=True):
+            blocks[idx] = replace(blocks[idx], source_span=span)
             assigned += 1
     return assigned
 
@@ -558,7 +558,7 @@ def _block_plain_for_source_span(block: ir.Block) -> str:
             return inline_plain(block.inlines)
         case ir.LineatedBlock():
             return " ".join(
-                inline_plain(line)
+                inline_plain(line.inlines)
                 for stanza in block.stanzas
                 for line in stanza
             )
@@ -733,12 +733,14 @@ def _align_records(block_fps: list[str], rec_fps: list[str], records: list[_Sour
 def reconcile_source(blocks: list[ir.Block], records: list[_SourceParagraph]) -> tuple[int, int]:
     """Reconcile source `w:p` records onto AST blocks by CONTENT, in one alignment.
 
-    Each matched block gets its proven source span (provenance); a matched
-    `Paragraph` additionally gets the OOXML metadata Pandoc drops: right/end `w:jc`
-    (the sole alignment any downstream pass reads — signature/epigraph detection),
-    `indented`, the `w:pBdr` `border` kind (only when the consumed records agree
-    on one), and the visual-continuity `lineation_group` (only when unambiguous).
-    Ambiguous or collapsed shapes stay unset rather than inventing a source.
+    Each matched block is REBUILT in its `blocks` slot (nodes are frozen; the
+    list is the adapter's own) with its proven source span (provenance); a
+    matched `Paragraph` additionally gets the OOXML facts Pandoc drops:
+    right/end `w:jc` (the sole alignment any downstream pass reads —
+    signature/epigraph detection), `indented`, the `w:pBdr` `border` kind (only
+    when the consumed records agree on one), and the visual-continuity
+    `lineation_group` (only when unambiguous). Ambiguous or collapsed shapes
+    stay unset rather than inventing a source.
 
     Returns `(spans_assigned, right_assigned)`.
     """
@@ -753,25 +755,29 @@ def reconcile_source(blocks: list[ir.Block], records: list[_SourceParagraph]) ->
         block = blocks[m.block]
         span = ir.merge_source_spans(r.source_span for r in consumed)
         if span is not None:
-            block.source_span = span
             spans += 1
+        else:
+            span = block.source_span
         if not isinstance(block, ir.Paragraph):
+            blocks[m.block] = replace(block, source_span=span)
             continue
+        facts = block.facts
         if any(r.indented for r in consumed):
-            block.indented = True
+            facts = replace(facts, indented=True)
         # Strict agreement: every text-bearing consumed record must carry the
         # SAME border kind. A Pandoc-fused block spanning bordered and plain
         # source rows stays unbordered — assigning the border would drag the
         # plain text into a set-apart register.
         text_borders = {r.border for r in consumed if r.text.strip()}
         if len(text_borders) == 1 and (kind := text_borders.pop()):
-            block.border = kind
+            facts = replace(facts, border=kind)
         groups = {r.lineation_group for r in consumed if r.lineation_group is not None}
         if len(groups) == 1:
-            block.lineation_group = groups.pop()
-        if any(r.align in {"right", "end"} for r in consumed) and not block.align:
-            block.align = "right"
+            facts = replace(facts, lineation_group=groups.pop())
+        if any(r.align in {"right", "end"} for r in consumed) and not facts.align:
+            facts = replace(facts, align="right")
             right += 1
+        blocks[m.block] = replace(block, facts=facts, source_span=span)
     spans += _assign_bracketed_empty_spans(blocks, records)
     return spans, right
 
@@ -961,10 +967,11 @@ def _block(node: dict[str, Any], ctx: _Ctx) -> ir.Block:
         case "Para" | "Plain":
             inlines = c if isinstance(c, list) else []
             if not inlines:
-                return ir.Paragraph(inlines=[], empty=True)
-            para = ir.Paragraph(inlines=_inlines(inlines, ctx))
-            para.italic = _all_italic(inlines)
-            return para
+                return ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True))
+            return ir.Paragraph(
+                inlines=_inlines(inlines, ctx),
+                facts=ir.SourceFacts(italic=_all_italic(inlines)),
+            )
         case "HorizontalRule":
             return ir.ThematicBreak()
         case "BlockQuote" if isinstance(c, list):
@@ -982,7 +989,9 @@ def _block(node: dict[str, Any], ctx: _Ctx) -> ir.Block:
             # Pandoc `LineBlock` proves structural lineation, not verse register.
             # Normalization may promote it later if surrounding register context
             # warrants that; the adapter only preserves the authored line shape.
-            stanza = [_inlines(line, ctx) for line in c if isinstance(line, list)]
+            # Spans are unknown at parse time; reconciliation never reaches inside
+            # a LineBlock, so its lines stay span-less.
+            stanza = [ir.Line(_inlines(line, ctx)) for line in c if isinstance(line, list)]
             return ir.LineatedBlock(
                 stanzas=[stanza],
                 evidence=ir.LineationEvidence(pandoc_line_block=True),
@@ -1117,21 +1126,21 @@ def adapt(docx: Path, media_dir: Path) -> ir.Document:
     records = read_w_jc(docx)
 
     ctx = _Ctx()
-    doc = ir.Document()
+    diagnostics: list[ir.Diagnostic] = []
     if warns:
-        doc.diagnostics.append(ir.Diagnostic("info", "import.pandoc-warn", warns))
+        diagnostics.append(ir.Diagnostic("info", "import.pandoc-warn", warns))
 
     raw_blocks = ast.get("blocks") or []
     if not isinstance(raw_blocks, list):
         raw_blocks = []
-    doc.blocks.extend(_blocks(raw_blocks, ctx))
+    blocks = _blocks(raw_blocks, ctx)
 
-    span_assigned, assigned = reconcile_source(doc.blocks, records)
-    paragraphs = [b for b in doc.blocks if isinstance(b, ir.Paragraph)]
+    span_assigned, assigned = reconcile_source(blocks, records)
+    paragraphs = [b for b in blocks if isinstance(b, ir.Paragraph)]
 
     right_records = sum(1 for r in records if r.align in {"right", "end"} and r.text.strip())
     right_assigned = sum(1 for p in paragraphs if p.align in {"right", "end"})
-    doc.diagnostics.append(ir.Diagnostic(
+    diagnostics.append(ir.Diagnostic(
         "info", "import.align-zip",
         f"w:jc records={len(records)} assigned={assigned} "
         f"right-records={right_records} right-assigned={right_assigned} "
@@ -1140,11 +1149,14 @@ def adapt(docx: Path, media_dir: Path) -> ir.Document:
     # Right-aligned source paragraphs that none reconciled onto the AST — a warning
     # the caller propagates so a future drift fails loud.
     if right_records and not right_assigned:
-        doc.diagnostics.append(ir.Diagnostic(
+        diagnostics.append(ir.Diagnostic(
             "warning", "import.align-unreconciled",
             f"{right_records} right-aligned source paragraph(s) but 0 reconciled "
             f"onto the AST — alignment-driven signatures/epigraphs may be lost",
         ))
 
-    doc.footnotes = [ir.FootnoteDef(id=i, blocks=bs) for i, bs in ctx.fn_defs]
-    return doc
+    return ir.Document(
+        blocks=blocks,
+        footnotes=[ir.FootnoteDef(id=i, blocks=bs) for i, bs in ctx.fn_defs],
+        diagnostics=diagnostics,
+    )

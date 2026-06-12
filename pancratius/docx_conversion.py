@@ -220,9 +220,9 @@ def convert_single_docx(
     if kind == "poem":
         # Verse end-to-end: skip heading demotion, bibliography lift, and verse
         # detection (the whole AST is verse); only light cleanup applies.
-        run(doc, Context(lang=lang), POEM_PASSES)
+        doc = run(doc, Context(lang=lang), POEM_PASSES)
     else:
-        run(doc, Context(
+        doc = run(doc, Context(
             lang=lang,
             demote_levels=1,
             slug_lookup=title_index,
@@ -231,8 +231,8 @@ def convert_single_docx(
 
     # Neutralize unsafe URL schemes before the asset pass hashes any image, so an
     # unsafe-scheme src never reaches asset resolution; `lower` re-runs idempotently.
-    lower.sanitize_urls(doc)
-    assets = lower.assign_assets(doc, media_out)
+    doc = lower.sanitize_urls(doc)
+    doc, assets = lower.assign_assets(doc, media_out)
     body = lower.lower(doc, lang, poem=(kind == "poem"))
     poem_chrome: PoemChrome | None = None
     if kind == "poem":

@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Mapping
+from dataclasses import replace
 from typing import Any, cast
 
 from pancratius import ir
@@ -41,25 +42,28 @@ def _node(value: object) -> _PandocNode | None:
 # ---------------------------------------------------------------------------
 
 
-def lift_bibliography(doc: ir.Document, slug_lookup: _SlugLookup | None = None) -> None:
-    """Lift catalog/bibliography tables out of the body into `doc.bibliography`.
+def lift_bibliography(doc: ir.Document, slug_lookup: _SlugLookup | None = None) -> ir.Document:
+    """Lift catalog/bibliography tables out of the body into the returned
+    document's `bibliography`.
 
     Classification is on the actual catalog signal (cover images / LitRes / kindbook
     URLs), not a row count: reading-content tables (scripture/archetype grids) carry
     neither and are kept in the body."""
     lookup = slug_lookup or {}
     kept: list[ir.Block] = []
+    lifted: list[dict[str, object]] = []
     for b in doc.blocks:
         if isinstance(b, ir.Table) and _looks_like_biblio(b):
-            doc.bibliography.extend(_parse_biblio(b, lookup))
+            lifted.extend(_parse_biblio(b, lookup))
             continue
         kept.append(b)
-    doc.blocks = kept
-    if doc.bibliography:
+    bibliography = [*doc.bibliography, *lifted]
+    if bibliography:
         doc.diagnostics.append(ir.Diagnostic(
             "warning", "import.bibliography",
-            f"{len(doc.bibliography)} entries lifted to the bibliography sidecar",
+            f"{len(bibliography)} entries lifted to the bibliography sidecar",
         ))
+    return replace(doc, blocks=kept, bibliography=bibliography)
 
 
 def _raw_table_text(node: object) -> str:

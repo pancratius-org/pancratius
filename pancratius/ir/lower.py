@@ -277,7 +277,8 @@ def _lineated_wrapper_md(classes: str, stanzas: ir.LineatedStanzas, lang: str) -
         wrapper_stanzas.clear()
 
     for stanza in stanzas:
-        for line_inlines in stanza:
+        for line in stanza:
+            line_inlines = line.inlines
             if len(line_inlines) == 1 and isinstance(line_inlines[0], ir.Text) and line_inlines[0].value == "***":
                 stanza_lines.append("***")
                 continue
@@ -737,7 +738,7 @@ def lower(doc: ir.Document, lang: str, *, poem: bool = False) -> str:
     # Neutralize unsafe link/image schemes BEFORE any Markdown/HTML is emitted (the
     # import is the only sanitizer the unsanitized renderer has). Idempotent — the
     # converter also runs it before the asset pass, and a re-run finds nothing left.
-    sanitize_urls(doc)
+    doc = sanitize_urls(doc)
     _surface_unknown_block_diagnostics(doc)
     if poem:
         body = _lower_poem_body(doc, lang)

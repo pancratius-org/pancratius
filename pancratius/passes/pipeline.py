@@ -9,7 +9,7 @@ orchestrator.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 from pancratius import ir
@@ -38,25 +38,21 @@ def _blocks(fn: Callable[[list[ir.Block]], list[ir.Block]]) -> PassFn:
     """Adapt a block-list transform to the Document-level pass signature."""
 
     def pass_fn(doc: ir.Document, _ctx: Context) -> ir.Document:
-        doc.blocks = fn(doc.blocks)
-        return doc
+        return replace(doc, blocks=fn(doc.blocks))
 
     return pass_fn
 
 
 def _lift_bibliography(doc: ir.Document, ctx: Context) -> ir.Document:
-    endmatter.lift_bibliography(doc, ctx.slug_lookup)
-    return doc
+    return endmatter.lift_bibliography(doc, ctx.slug_lookup)
 
 
 def _demote_headings(doc: ir.Document, ctx: Context) -> ir.Document:
-    doc.blocks = scrub.demote_headings(doc.blocks, ctx.demote_levels)
-    return doc
+    return replace(doc, blocks=scrub.demote_headings(doc.blocks, ctx.demote_levels))
 
 
 def _sanitize_urls(doc: ir.Document, _ctx: Context) -> ir.Document:
-    sanitize.sanitize_urls(doc)
-    return doc
+    return sanitize.sanitize_urls(doc)
 
 
 BOOK_PASSES: tuple[Pass, ...] = (

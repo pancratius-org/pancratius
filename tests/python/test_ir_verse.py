@@ -39,14 +39,14 @@ def _is_verse(block: ir.Block) -> bool:
 def _verse_lines(block: ir.Block) -> list[str]:
     assert _is_verse(block)
     assert isinstance(block, ir.LineatedBlock)
-    return [normalize.inline_plain(line) for stanza in block.stanzas for line in stanza]
+    return [normalize.inline_plain(line.inlines) for stanza in block.stanzas for line in stanza]
 
 
 def _verse_stanzas(block: ir.Block) -> list[list[str]]:
     assert _is_verse(block)
     assert isinstance(block, ir.LineatedBlock)
     return [
-        [normalize.inline_plain(line) for line in stanza]
+        [normalize.inline_plain(line.inlines) for line in stanza]
         for stanza in block.stanzas
     ]
 
@@ -54,18 +54,18 @@ def _verse_stanzas(block: ir.Block) -> list[list[str]]:
 def _para(*lines: str, lineation_group: int | None = None) -> ir.Paragraph:
     """A standalone single-line source paragraph (one Word paragraph per line)."""
     assert len(lines) == 1
-    return ir.Paragraph(inlines=[ir.Text(lines[0])], lineation_group=lineation_group)
+    return ir.Paragraph(inlines=[ir.Text(lines[0])], facts=ir.SourceFacts(lineation_group=lineation_group))
 
 
 def _strong_para(text: str, *, lineation_group: int | None = None) -> ir.Paragraph:
     return ir.Paragraph(
         inlines=[ir.Emphasis("strong", [ir.Text(text)])],
-        lineation_group=lineation_group,
+        facts=ir.SourceFacts(lineation_group=lineation_group),
     )
 
 
 def _empty() -> ir.Paragraph:
-    return ir.Paragraph(inlines=[], empty=True)
+    return ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True))
 
 
 # ---------------------------------------------------------------------------
@@ -448,7 +448,7 @@ def test_enumerated_bold_section_heading_does_not_fold_into_stanza() -> None:
     folded = [b for b in out if isinstance(b, ir.LineatedBlock)]
 
     assert all(
-        "Зачатие" not in normalize.inline_plain(line)
+        "Зачатие" not in normalize.inline_plain(line.inlines)
         for b in folded
         for stanza in b.stanzas
         for line in stanza
@@ -549,7 +549,7 @@ def test_mid_poem_couplet_stanza_between_folding_stanzas_stays_verse() -> None:
 
     assert len(folded) == 1
     assert [
-        [normalize.inline_plain(line) for line in stanza] for stanza in folded[0].stanzas
+        [normalize.inline_plain(line.inlines) for line in stanza] for stanza in folded[0].stanzas
     ] == [
         ["Ты — присутствие.", "Ты — бытие.", "Ты — нет.", "Ты — есть."],
         ["Это невозможно сказать.", "Но можно замолчать."],
@@ -586,14 +586,14 @@ def test_spanless_stanza_gap_does_not_poison_fold_provenance() -> None:
     def spanned(text: str, ordinal: int, group: int) -> ir.Paragraph:
         return ir.Paragraph(
             inlines=[ir.Text(text)],
-            lineation_group=group,
+            facts=ir.SourceFacts(lineation_group=group),
             source_span=ir.SourceSpan(start=ordinal, end=ordinal),
         )
 
     blocks: list[ir.Block] = [
         spanned("Я — Свет.", 10, 1),
         spanned("Я — Слово.", 11, 1),
-        ir.Paragraph(inlines=[], empty=True),  # no span
+        ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True)),  # no span
         spanned("Кто автор?", 13, 2),
         spanned("Тот, кто смотрит.", 14, 2),
     ]
@@ -632,7 +632,7 @@ def test_directly_abutting_distinct_groups_stay_separate_units() -> None:
     folded = [b for b in out if isinstance(b, ir.LineatedBlock)]
     assert len(folded) == 1
     assert [
-        normalize.inline_plain(line) for stanza in folded[0].stanzas for line in stanza
+        normalize.inline_plain(line.inlines) for stanza in folded[0].stanzas for line in stanza
     ] == ["Я — Свет.", "Я — Слово.", "Я — Путь."]
 
 
@@ -667,7 +667,7 @@ def test_next_song_preview_before_heading_does_not_append_as_coda() -> None:
 
 def test_visual_coda_does_not_mutate_existing_verse_block() -> None:
     existing = ir.LineatedBlock(
-        stanzas=[[[ir.Text("Я — Свет.")], [ir.Text("Я — Слово.")]]],
+        stanzas=[[ir.Line([ir.Text("Я — Свет.")]), ir.Line([ir.Text("Я — Слово.")])]],
         register=ir.Register.VERSE,
     )
     blocks: list[ir.Block] = [

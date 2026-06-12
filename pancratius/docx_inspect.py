@@ -264,7 +264,7 @@ def _block_lines(block: ir.Block) -> list[str]:
 
     match block:
         case ir.LineatedBlock():
-            return [_norm(inline_plain(line)) for stanza in block.stanzas for line in stanza]
+            return [_norm(inline_plain(line.inlines)) for stanza in block.stanzas for line in stanza]
         case ir.Signature():
             return [_norm(s) for s in block.lines]
         case ir.Epigraph():
@@ -330,7 +330,7 @@ def classify_blocks(docx: Path) -> BlockClassifications:
 
     with tempfile.TemporaryDirectory(prefix="docx-inspect-") as td:
         doc = da.adapt(docx, Path(td))
-        normalize(doc)
+        doc = normalize(doc)
 
     kind_of: dict[str, set[str]] = {}
     by_source = _SourceClassificationBuilder()
@@ -452,7 +452,7 @@ def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
     """
     with tempfile.TemporaryDirectory(prefix="docx-mask-") as td:
         doc = da.adapt(docx, Path(td))
-        run(doc, Context(lang=""), until=PER_ORDINAL_SEAM)
+        doc = run(doc, Context(lang=""), until=PER_ORDINAL_SEAM)
     blocks = tuple(doc.blocks)
 
     by_source = _SourceClassificationBuilder()
@@ -486,7 +486,7 @@ def lineation_decisions(docx: Path) -> dict[int, bool]:
 
     with tempfile.TemporaryDirectory(prefix="docx-lineation-") as td:
         doc = da.adapt(docx, Path(td))
-        normalize(doc)
+        doc = normalize(doc)
 
     from pancratius.ir.normalize import VERSE_SHORT_LINE_MAX, inline_plain
 
@@ -498,7 +498,7 @@ def lineation_decisions(docx: Path) -> dict[int, bool]:
         if not e.hard_break or e.pandoc_line_block or e.inferred_source_rows or e.compact_callout:
             return False
         return any(
-            len(inline_plain(line)) > VERSE_SHORT_LINE_MAX
+            len(inline_plain(line.inlines)) > VERSE_SHORT_LINE_MAX
             for stanza in block.stanzas
             for line in stanza
         )

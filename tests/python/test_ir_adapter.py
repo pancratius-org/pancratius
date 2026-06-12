@@ -194,8 +194,8 @@ def test_line_block_maps_to_lineated_lines_not_unknown() -> None:
     assert isinstance(b, ir.LineatedBlock), f"LineBlock should map to LineatedBlock, got {type(b).__name__}"
     lines = [line for stanza in b.stanzas for line in stanza]
     assert len(lines) == 2
-    assert lines[0] == [ir.Text("Roses are red,")]
-    assert lines[1] == [ir.Text("violets are blue.")]
+    assert lines[0] == ir.Line([ir.Text("Roses are red,")])
+    assert lines[1] == ir.Line([ir.Text("violets are blue.")])
 
 
 def test_unknown_block_preserves_plain_text_content() -> None:
@@ -514,8 +514,9 @@ def test_no_break_hyphen_paragraph_keeps_source_span(tmp_path: Path) -> None:
         "</w:body></w:document>"
     )
     records = adapter.read_w_jc(_docx_from_document(tmp_path, document))
-    adapter.reconcile_source([para], records)
-    assert para.source_span == ir.SourceSpan(0, 0)
+    blocks: list[ir.Block] = [para]
+    adapter.reconcile_source(blocks, records)
+    assert blocks[0].source_span == ir.SourceSpan(0, 0)
 
 
 def _bordered_para(text: str, *sides: str, val: str = "single") -> str:
@@ -555,8 +556,10 @@ def test_reconcile_fused_bordered_and_plain_stays_unbordered(tmp_path: Path) -> 
         + "</w:body></w:document>"
     )
     records = adapter.read_w_jc(_docx_from_document(tmp_path, document))
-    adapter.reconcile_source([para], records)
-    assert para.border == ""
+    blocks: list[ir.Block] = [para]
+    adapter.reconcile_source(blocks, records)
+    reconciled = blocks[0]
+    assert isinstance(reconciled, ir.Paragraph) and reconciled.border == ""
 
 
 def test_reconcile_assigns_border_kind(tmp_path: Path) -> None:
@@ -569,8 +572,10 @@ def test_reconcile_assigns_border_kind(tmp_path: Path) -> None:
         + "</w:body></w:document>"
     )
     records = adapter.read_w_jc(_docx_from_document(tmp_path, document))
-    adapter.reconcile_source([para], records)
-    assert para.border == "rule"
+    blocks: list[ir.Block] = [para]
+    adapter.reconcile_source(blocks, records)
+    reconciled = blocks[0]
+    assert isinstance(reconciled, ir.Paragraph) and reconciled.border == "rule"
 
 
 # ---------------------------------------------------------------------------
@@ -630,9 +635,12 @@ def test_reconcile_alignment_merged_right_paragraphs() -> None:
         adapter._SourceParagraph(align="right", text="Тогда волк", source_span=ir.SourceSpan(5, 5)),
         adapter._SourceParagraph(align="right", text="будет жить", source_span=ir.SourceSpan(6, 6)),
     ]
-    spans, right = adapter.reconcile_source([para], records)
-    assert para.align == "right" and right == 1 and spans == 1
-    assert para.source_span == ir.SourceSpan(5, 6)
+    blocks: list[ir.Block] = [para]
+    spans, right = adapter.reconcile_source(blocks, records)
+    reconciled = blocks[0]
+    assert isinstance(reconciled, ir.Paragraph)
+    assert reconciled.align == "right" and right == 1 and spans == 1
+    assert reconciled.source_span == ir.SourceSpan(5, 6)
 
 
 def test_reconcile_alignment_refuses_fusion_across_source_gap() -> None:
@@ -689,10 +697,11 @@ def test_source_span_assignment_keeps_punctuation_only_structural_paragraph() ->
         adapter._SourceParagraph(align="", text="***", source_span=ir.SourceSpan(12, 12)),
     ]
 
-    spans, _right = adapter.reconcile_source([block], records)
+    blocks: list[ir.Block] = [block]
+    spans, _right = adapter.reconcile_source(blocks, records)
 
     assert spans == 1
-    assert block.source_span == ir.SourceSpan(12, 12)
+    assert blocks[0].source_span == ir.SourceSpan(12, 12)
 
 
 def test_source_span_assignment_matches_blockquote_before_duplicate_later_text() -> None:
@@ -731,7 +740,7 @@ def test_source_span_assignment_matches_blockquote_before_duplicate_later_text()
 def test_source_span_assignment_keeps_structural_empty_paragraph() -> None:
     blocks: list[ir.Block] = [
         ir.Paragraph(inlines=[ir.Text("before")]),
-        ir.Paragraph(inlines=[], empty=True),
+        ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True)),
         ir.Paragraph(inlines=[ir.Text("after")]),
     ]
     records = [

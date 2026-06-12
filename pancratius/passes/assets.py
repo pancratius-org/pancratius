@@ -13,7 +13,7 @@ the plan-adjacent value type from `writeplan`.
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from typing import assert_never
 
@@ -121,9 +121,10 @@ class _KeepRemote:
 type _ImageResolution = _ResolvedAsset | _DropImage | _KeepRemote
 
 
-def plan_assets(doc: ir.Document, media_root: Path) -> list[PlannedAsset]:
+def plan_assets(doc: ir.Document, media_root: Path) -> tuple[ir.Document, list[PlannedAsset]]:
     """Resolve every body image, assign its content-hash `<hash>.<ext>` asset id,
-    and return the deduped `PlannedAsset`s for the writer to copy.
+    and return the rebuilt document plus the deduped `PlannedAsset`s for the
+    writer to copy.
 
     `media_root` is the directory pandoc extracted media into. An image whose source
     is a safe REMOTE url (http/https) is kept as-is. A LOCAL image whose source does
@@ -193,29 +194,27 @@ def plan_assets(doc: ir.Document, media_root: Path) -> list[PlannedAsset]:
                 out.append(n)
         return out
 
-    def visit_block(b: ir.Block) -> None:
+    def visit_block(b: ir.Block) -> ir.Block:
         # Deliberately PARTIAL (a `case _` delegating to the shared skeleton, NOT
         # `assert_never`): an `ImageBlock` is the one leaf the shared inline-descent
         # cannot express (its image is a block field, not an inline list), so it is
-        # resolved here; every other block kind has its inline-list leaves handled by
-        # `map_block_inlines`, so it falls through unchanged.
+        # rebuilt here; every other block kind has its inline-list leaves handled by
+        # `map_block_inlines`.
         match b:
             case ir.ImageBlock():
                 match resolve(b.src):
                     case _DropImage():
                         # An unresolvable local block image is FATAL; blank the src so
                         # the lowerer emits no dangling path (the write is refused).
-                        b.src = ""
-                        b.asset_id = None
+                        return replace(b, src="", asset_id=None)
                     case _ResolvedAsset(asset_id=asset_id):
-                        b.asset_id = asset_id
+                        return replace(b, asset_id=asset_id)
                     case _KeepRemote():
-                        pass  # a remote block image keeps its src; no asset id
+                        return b  # a remote block image keeps its src; no asset id
                     case unexpected:
                         assert_never(unexpected)
             case _:
-                ir.map_block_inlines(b, visit_inlines)
+                return ir.map_block_inlines(b, visit_inlines)
 
-    for b in doc.blocks:
-        visit_block(b)
-    return [planned[k] for k in sorted(planned)]
+    out_doc = replace(doc, blocks=[visit_block(b) for b in doc.blocks])
+    return out_doc, [planned[k] for k in sorted(planned)]
