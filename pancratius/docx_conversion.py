@@ -12,11 +12,11 @@ from typing import Any
 import yaml
 
 import pancratius.ir.lower as lower
-import pancratius.ir.normalize as normalize
-from pancratius import cross_refs, docx_adapter, footnotes, intent, ir, ooxml
+from pancratius import cross_refs, docx_adapter, footnotes, ir, ooxml
 from pancratius.content_catalog import IndexHit, dump_frontmatter
 from pancratius.passes.pipeline import POEM_PASSES, Context, run
-from pancratius.paths import CACHE_ROOT
+from pancratius.passes.register import RegisterModel, load_register_model
+from pancratius.paths import CACHE_ROOT, REPO_ROOT
 from pancratius.poem_chrome import PoemChrome, clean_poem_chrome
 from pancratius.writeplan import AssetTransform, Diagnostic, PlannedAsset, Role, WriteOp, WritePlan
 from pancratius.writer import WriteReport
@@ -185,6 +185,18 @@ def _ordered_bibliography_entry(entry: BibliographyEntry) -> BibliographyEntry:
     return ordered
 
 
+# The committed register-model artifact. The composition point owns artifact
+# location and injection; the artifact's own `langs` field bounds its validity.
+_REGISTER_MODEL_PATH = REPO_ROOT / "data" / "models" / "verse_register_v1.json"
+
+
+def load_register_model_for(lang: str) -> RegisterModel | None:
+    model = load_register_model(_REGISTER_MODEL_PATH)
+    if model is None or lang not in model.langs:
+        return None
+    return model
+
+
 def convert_single_docx(
     docx: Path,
     *,
@@ -210,8 +222,12 @@ def convert_single_docx(
         # detection (the whole AST is verse); only light cleanup applies.
         run(doc, Context(lang=lang), POEM_PASSES)
     else:
-        normalize.normalize(doc, demote_levels=1, slug_lookup=title_index)
-        intent.apply_verse_register(doc, lang=lang)
+        run(doc, Context(
+            lang=lang,
+            demote_levels=1,
+            slug_lookup=title_index,
+            register_model=load_register_model_for(lang),
+        ))
 
     # Neutralize unsafe URL schemes before the asset pass hashes any image, so an
     # unsafe-scheme src never reaches asset resolution; `lower` re-runs idempotently.
