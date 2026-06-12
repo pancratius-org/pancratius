@@ -17,12 +17,14 @@ stay pure. Footnotes arrive as inline `Note` nodes and are lowered to
 
 from __future__ import annotations
 
+import io
 import json
 import re
 import subprocess
 import xml.etree.ElementTree as ET
 import zipfile
 from bisect import bisect_left
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from itertools import pairwise
 from pathlib import Path
@@ -63,18 +65,99 @@ def _node(value: object) -> dict[str, Any] | None:
 # pathological input that would otherwise hang the import indefinitely.
 PANDOC_TIMEOUT_SECONDS = 300
 
+# The conventional OOXML prefixes pandoc 3.x resolves drawing/image embeds by. Some
+# source DOCX (tool-exported) bind these correct URIs to GENERIC prefixes
+# (`ns3:`/`ns5:`/`ns7:` …); pandoc then drops every image despite a spec-valid file.
+# `_canonical_pandoc_input` re-prefixes such a doc before pandoc reads it.
+_CANONICAL_NS = {
+    "http://schemas.openxmlformats.org/wordprocessingml/2006/main": "w",
+    "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing": "wp",
+    "http://schemas.openxmlformats.org/drawingml/2006/main": "a",
+    "http://schemas.openxmlformats.org/drawingml/2006/picture": "pic",
+    "http://schemas.openxmlformats.org/officeDocument/2006/relationships": "r",
+}
+_DOCUMENT_XML = "word/document.xml"
+
+
+def _ns_bindings(document_xml: bytes) -> dict[str, str]:
+    """Every `prefix -> uri` namespace binding declared in the document (last wins)."""
+    out: dict[str, str] = {}
+    for _event, (prefix, uri) in ET.iterparse(io.BytesIO(document_xml), events=("start-ns",)):
+        out[prefix] = uri
+    return out
+
+
+def _needs_canonicalization(bindings: Mapping[str, str]) -> bool:
+    """True when any conventional OOXML drawing URI is bound to a NON-conventional prefix —
+    the condition under which pandoc, resolving embeds by prefix, drops images. Keyed on the
+    embed-resolving URIs themselves (not mere prefix presence), so a doc that binds a canonical
+    URI to a generic alias is still caught."""
+    return any(uri in _CANONICAL_NS and prefix != _CANONICAL_NS[uri]
+               for prefix, uri in bindings.items())
+
+
+def _reserialize_canonical(document_xml: bytes) -> bytes:
+    """Re-serialize `document.xml` forcing conventional prefixes for the drawing URIs. The
+    URIs — and therefore the meaning — are unchanged; only prefixes move. `register_namespace`
+    mutates ET module-global state, so the map is snapshotted and restored: this function is
+    transparent to every other ET serializer in the package."""
+    saved = dict(ET._namespace_map)   # the global register_namespace mutates — restore it after
+    try:
+        for uri, prefix in _CANONICAL_NS.items():
+            ET.register_namespace(prefix, uri)
+        return ET.tostring(ET.fromstring(document_xml), encoding="UTF-8", xml_declaration=True)
+    finally:
+        ET._namespace_map.clear()
+        ET._namespace_map.update(saved)
+
+
+def _canonical_pandoc_input(docx: Path, work_dir: Path) -> Path:
+    """`docx` ready for pandoc's image reader: the original when its drawing namespaces
+    already use conventional prefixes, else a re-prefixed temp copy under `work_dir`.
+
+    The rewrite changes ONLY the namespace prefixes of `word/document.xml` (the URIs,
+    and therefore the meaning, are unchanged), so the recovered images are real and no
+    text is lost. Only `document.xml` is rewritten — images in this corpus live there, not
+    in headers/footers/notes. The OOXML side-channel reads (`read_w_jc`) match by URI and so
+    read the ORIGINAL docx — only pandoc, which resolves embeds by prefix, needs this form.
+
+    A docx that cannot be read as a zip/XML here is passed through unchanged: pandoc stays
+    the single authority on a malformed file, so this pre-pass never converts a clean pandoc
+    error into an obscure one.
+    """
+    try:
+        document_xml = zipfile.ZipFile(docx).read(_DOCUMENT_XML)
+    except (OSError, zipfile.BadZipFile, KeyError):
+        return docx
+    if not _needs_canonicalization(_ns_bindings(document_xml)):
+        return docx                      # already conventional — pandoc reads it directly
+
+    src = zipfile.ZipFile(docx)
+    parts = {name: src.read(name) for name in src.namelist()}
+    parts[_DOCUMENT_XML] = _reserialize_canonical(document_xml)
+    out_dir = work_dir / "_canonical_docx"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / f"{docx.stem}.docx"
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as dst:
+        for name, data in parts.items():
+            dst.writestr(name, data)
+    return out
+
 
 def run_pandoc_json(docx: Path, media_dir: Path) -> tuple[dict[str, Any], str]:
     """Parse `docx` to the Pandoc JSON AST, extracting media into `media_dir`.
 
     Returns `(ast, stderr)`. `+empty_paragraphs` preserves Word empty paragraphs
-    so stanza structure reaches the IR. Raises on a non-zero pandoc exit, and on a
-    `PANDOC_TIMEOUT_SECONDS` wall-clock overrun (a hung/pathological conversion is
-    turned into a clear error instead of an indefinite hang).
+    so stanza structure reaches the IR. A DOCX whose drawing namespaces use generic
+    prefixes is canonicalized first (`_canonical_pandoc_input`) so pandoc resolves its
+    images. Raises on a non-zero pandoc exit, and on a `PANDOC_TIMEOUT_SECONDS`
+    wall-clock overrun (a hung/pathological conversion is turned into a clear error
+    instead of an indefinite hang).
     """
+    pandoc_docx = _canonical_pandoc_input(docx, media_dir)
     cmd = [
         "pandoc", "--from", "docx+empty_paragraphs", "--to", "json",
-        "--extract-media", str(media_dir), str(docx),
+        "--extract-media", str(media_dir), str(pandoc_docx),
     ]
     try:
         proc = subprocess.run(
