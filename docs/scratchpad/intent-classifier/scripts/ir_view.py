@@ -42,7 +42,7 @@ import wrap as wrapmod  # noqa: E402
 from pancratius import docx_adapter as da  # noqa: E402
 from pancratius import docx_inspect as di  # noqa: E402
 from pancratius import ir  # noqa: E402
-from pancratius.ir.normalize import inline_lines, inline_plain  # noqa: E402
+from pancratius.ir.inlines import inline_lines, inline_plain  # noqa: E402
 
 _RIGHT = {"right", "end"}
 _THEMATIC_TEXTS = {"***", "* * *", "* * * *", "* * *  *"}  # a literal *** paragraph pandoc kept as text
@@ -236,7 +236,7 @@ def read_view(docx: Path, *, mask: dict[int, di.MaskVerdict] | None = None) -> l
     # them ROLE_BODY. Both views agree that verse content is still Paragraph here; that is why
     # the join holds. Adding verse_blocks to either side would drop spans and break it — do not.
     with tempfile.TemporaryDirectory(prefix="ir-view-") as td:
-        doc = da.adapt(docx, Path(td))
+        doc = da.adapt(docx, Path(td), [])
     out: list[Para] = []
     idx = 0
     for b in doc.blocks:

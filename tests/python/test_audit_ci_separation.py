@@ -51,14 +51,14 @@ def test_nested_ir_nodes_path_is_banned_in_isolation(tmp_path: Path) -> None:
     assert "converter/IR/writer module" in proc.stderr
 
 
-def test_nested_ir_normalize_path_is_banned_in_isolation(tmp_path: Path) -> None:
-    proc = _run(_workflow(tmp_path, "uv run pancratius/ir/normalize.py"))
+def test_nested_passes_pipeline_path_is_banned_in_isolation(tmp_path: Path) -> None:
+    proc = _run(_workflow(tmp_path, "uv run pancratius/passes/pipeline.py"))
     assert proc.returncode == 1
     assert "converter/IR/writer module" in proc.stderr
 
 
-def test_nested_ir_lower_path_is_banned_in_isolation(tmp_path: Path) -> None:
-    proc = _run(_workflow(tmp_path, "uv run pancratius/ir/lower.py"))
+def test_backend_lower_path_is_banned_in_isolation(tmp_path: Path) -> None:
+    proc = _run(_workflow(tmp_path, "uv run pancratius/lower.py"))
     assert proc.returncode == 1
     assert "converter/IR/writer module" in proc.stderr
 
@@ -69,14 +69,14 @@ def test_nested_ir_nodes_dotted_import_is_banned_in_isolation(tmp_path: Path) ->
     assert "converter/IR/writer module" in proc.stderr
 
 
-def test_nested_ir_normalize_dotted_import_is_banned_in_isolation(tmp_path: Path) -> None:
-    proc = _run(_workflow(tmp_path, "uv run python -c 'from pancratius.ir.normalize import normalize'"))
+def test_nested_passes_pipeline_dotted_import_is_banned_in_isolation(tmp_path: Path) -> None:
+    proc = _run(_workflow(tmp_path, "uv run python -c 'from pancratius.passes.pipeline import run'"))
     assert proc.returncode == 1
     assert "converter/IR/writer module" in proc.stderr
 
 
-def test_nested_ir_lower_dotted_import_is_banned_in_isolation(tmp_path: Path) -> None:
-    proc = _run(_workflow(tmp_path, "uv run python -c 'import pancratius.ir.lower'"))
+def test_backend_lower_dotted_import_is_banned_in_isolation(tmp_path: Path) -> None:
+    proc = _run(_workflow(tmp_path, "uv run python -c 'import pancratius.lower'"))
     assert proc.returncode == 1
     assert "converter/IR/writer module" in proc.stderr
 

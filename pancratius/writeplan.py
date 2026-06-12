@@ -35,7 +35,7 @@ _ALLOWED_OP_KINDS: frozenset[str] = frozenset(
 class PlannedAsset:
     """A deduped body image the conversion references; the writer copies it.
 
-    `pancratius.ir.lower.assign_assets` rewrites the Markdown ref to `./images/<hash>.<ext>`
+    `pancratius.passes.assets.plan_assets` rewrites the Markdown ref to `./images/<hash>.<ext>`
     (hash = content hash of the source bytes) and emits one of these per image; the
     importer turns it into a `transform_asset` op.
     """

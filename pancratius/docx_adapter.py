@@ -551,7 +551,7 @@ def _assign_bracketed_empty_spans(blocks: list[ir.Block], records: list[_SourceP
 
 def _block_plain_for_source_span(block: ir.Block) -> str:
     """Best-effort reading text for top-level source-span reconciliation."""
-    from pancratius.ir.normalize import inline_plain
+    from pancratius.ir.inlines import inline_plain
 
     match block:
         case ir.Heading() | ir.Paragraph():

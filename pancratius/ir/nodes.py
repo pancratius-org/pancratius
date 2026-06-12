@@ -469,9 +469,6 @@ type Block = (
     | UnknownBlock
 )
 
-# Compat alias for the renamed substrate; importers should use `QuoteBlock`.
-BlockQuote = QuoteBlock
-
 
 def map_block_inlines(block: Block, fn: Callable[[list[Inline]], list[Inline]]) -> Block:
     """Walk the container-block skeleton of `block`, applying `fn` to every leaf

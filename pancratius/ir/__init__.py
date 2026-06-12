@@ -1,14 +1,13 @@
 # import-pure: no filesystem mutation
 """Import-pipeline intermediate representation.
 
-`pancratius.ir` is the public node namespace. The implementation lives in
-`nodes.py`; the neighboring `normalize` and `lower` modules are the two passes
-that transform and lower this IR.
+`pancratius.ir` is the public node namespace: the nodes (`nodes.py`) and the
+inline walks (`inlines.py`). The passes live in `pancratius.passes`; the
+canonical-Markdown backend is `pancratius.lower`.
 """
 
 from pancratius.ir.nodes import (
     Block,
-    BlockQuote,
     BorderKind,
     Code,
     CodeBlock,
@@ -57,7 +56,6 @@ from pancratius.ir.nodes import (
 
 __all__ = (
     "Block",
-    "BlockQuote",
     "BorderKind",
     "Code",
     "CodeBlock",

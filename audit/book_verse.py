@@ -21,7 +21,7 @@ then compares it to the CONVERTED Markdown — flagging BOTH:
   * UNDER-detection — the source has a confident verse run the IR left as prose.
 
 This checks only whether the legacy conservative rule would expect a
-``VerseBlock`` register. A mismatch must be classified before action: Q1
+``VERSE`` register. A mismatch must be classified before action: Q1
 lineation loss, Q2 register disagreement, or stale legacy-rule overreach. Do not
 update committed Markdown or goldens solely because this audit says over/under.
 
@@ -67,7 +67,7 @@ ROOT = Path(os.environ.get("PANCRATIUS_AUDIT_ROOT") or Path(__file__).resolve().
 CONTENT = ROOT / "src" / "content" / "books"
 
 # The short-line length cap — a display line longer than this is "prose-length"
-# and is NOT a verse line. Mirrors ``ir.normalize.VERSE_SHORT_LINE_MAX``; the two
+# and is NOT a verse line. Mirrors ``passes.lineation.VERSE_SHORT_LINE_MAX``; the two
 # are kept in sync deliberately (the audit is the spec the IR implements).
 SHORT_LINE_MAX = 120
 
@@ -79,10 +79,10 @@ _NUMBERED_QUESTION_RE = re.compile(r"^\d{1,3}[.)]\s+\S.*[?？]\s*$")
 def _speaker_turn_re() -> re.Pattern[str]:
     """A SPEAKER-led colon line (a dialogue/source TURN, never verse): a known
     dialogue prefix + colon, OR `<Name> (qualifier):` + content. Built from the IR
-    dialogue prefixes (`ir.normalize._DIALOGUE_PREFIXES`, the dialogue SoT) so the
+    dialogue prefixes (`passes.structure._DIALOGUE_PREFIXES`, the dialogue SoT) so the
     audit's speaker set tracks the IR's. Distinct from a mid-sentence colon in a
     verse line (`Ты спросил: кто они?`), which is NOT rejected."""
-    from pancratius.ir.normalize import _DIALOGUE_PREFIXES
+    from pancratius.passes.structure import _DIALOGUE_PREFIXES
 
     prefixes = sorted(_DIALOGUE_PREFIXES, key=lambda p: -len(p))
     inner = "|".join(re.escape(p) for p in prefixes)
@@ -277,7 +277,7 @@ def _is_wrapped_prose(inlines: list[dict[str, Any]]) -> bool:
     """True when a paragraph's only in-run breaks are ``SoftBreak``s (prose
     wrapping, a literal ``\\r\\n`` in one ``<w:t>``) with NO hard ``LineBreak``.
     Such a paragraph is PROSE, never a verse line — its lineation was never
-    authored. Mirrors ``ir.normalize._is_wrapped_prose`` (the C2 over-detection
+    authored. Mirrors ``passes.lineation._is_wrapped_prose`` (the C2 over-detection
     fix), so the audit's expected set agrees with the IR on wrapped prose."""
     kinds = _inline_kinds(inlines)
     return "SoftBreak" in kinds and "LineBreak" not in kinds

@@ -34,7 +34,7 @@ from pathlib import Path
 
 from pancratius import docx_adapter as da
 from pancratius import ir
-from pancratius.ir.normalize import inline_lines, inline_plain
+from pancratius.ir.inlines import inline_lines, inline_plain
 from pancratius.passes.pipeline import PER_ORDINAL_SEAM, Context, run
 
 from . import physics
@@ -170,7 +170,7 @@ def read_view(docx: Path) -> list[Para]:
     paragraphs; role refined by the normalized per-ordinal classification."""
     geom = physics.page_geom(docx)
     with tempfile.TemporaryDirectory(prefix="lineation-core-") as td:
-        doc = da.adapt(docx, Path(td))
+        doc = da.adapt(docx, Path(td), [])
     verdicts = _classify(
         run(copy.deepcopy(doc), Context(lang=""), until=PER_ORDINAL_SEAM)
     )

@@ -203,21 +203,22 @@ def test_converter_fatal_diagnostic_blocks_the_write(
     # nothing written. Today the converter flattened diagnostics into a warning STRING,
     # so a fatal could not block. We inject the fatal at the asset pass (its real
     # trigger) and assert the whole bundle is refused.
-    import pancratius.ir.lower as lower
     from pancratius import ir
+    from pancratius.passes import assets
+    from pancratius.writeplan import PlannedAsset
 
-    real_assign = lower.assign_assets
+    real_plan = assets.plan_assets
 
-    def fatal_assign(
+    def fatal_plan(
         doc: ir.Document, media_root: Path, diagnostics: list[ir.Diagnostic]
-    ) -> tuple[ir.Document, list[lower.PlannedAsset]]:
-        out_doc, planned = real_assign(doc, media_root, diagnostics)
+    ) -> tuple[ir.Document, list[PlannedAsset]]:
+        out_doc, planned = real_plan(doc, media_root, diagnostics)
         diagnostics.append(
             ir.Diagnostic("fatal", "import.image-unresolved", "synthetic fatal")
         )
         return out_doc, planned
 
-    monkeypatch.setattr(lower, "assign_assets", fatal_assign)
+    monkeypatch.setattr(assets, "plan_assets", fatal_plan)
 
     content_root = tmp_path / "src" / "content"
     report = import_docx.import_work(import_docx.ImportRequest(

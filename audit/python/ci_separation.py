@@ -58,17 +58,20 @@ _BANNED_OWNER_MODULES = (
 )
 
 # The converter/IR/writer LIBRARY MODULES behind import_docx.py (docs/import-pipeline.md:
-# the DOCX adapter, the typed IR package + its normalize/lower passes, footnote/cross-ref
-# analysis, the WritePlan, and the writer — the sole src/content mutator). These have
-# no CLI of their own, so CI could only reach them by importing or `-m`-running them
-# (`python -m pancratius.writer`, `uv run python -c "from pancratius.ir.lower import …"`).
-# Matched in path form (`pancratius/<name>.py` or `pancratius/ir/<stage>.py`) and dotted
-# module form (`pancratius.<name>`), anchored to the import context so generic names
-# (writer, footnotes) can't misfire on unrelated prose in a run line.
+# the DOCX adapter, the typed IR package, the pass pipeline, the canonical-Markdown
+# backend, footnote/cross-ref analysis, the WritePlan, and the writer — the sole
+# src/content mutator). These have no CLI of their own, so CI could only reach them
+# by importing or `-m`-running them (`python -m pancratius.writer`,
+# `uv run python -c "from pancratius.lower import …"`). Matched in path form
+# (`pancratius/<name>.py` or `pancratius/<pkg>/<stage>.py`) and dotted module form
+# (`pancratius.<name>`), anchored to the import context so generic names
+# (writer, footnotes, lower) can't misfire on unrelated prose in a run line.
 _BANNED_LIB_MODULES = (
     "docx_conversion",  # convert_single_docx — the live typed-IR converter
     "docx_adapter",  # pandoc-JSON + OOXML w:jc adapter (shells to pandoc, reads the zip)
     "ir",  # the typed block IR package
+    "passes",  # the pass pipeline package (the middle-end)
+    "lower",  # the canonical-Markdown backend
     "footnotes",  # footnote definition/reference analysis
     "cross_refs",  # cross-reference extraction
     "ooxml",  # narrow OOXML reads
@@ -76,7 +79,19 @@ _BANNED_LIB_MODULES = (
     "writer",  # the ONLY src/content mutator
 )
 _BANNED_MODULES = (*_BANNED_OWNER_MODULES, *_BANNED_LIB_MODULES)
-_BANNED_PATH_MODULES = (*_BANNED_MODULES, "ir/nodes", "ir/normalize", "ir/lower")
+_BANNED_PATH_MODULES = (
+    *_BANNED_MODULES,
+    "ir/nodes",
+    "ir/inlines",
+    "passes/pipeline",
+    "passes/scrub",
+    "passes/endmatter",
+    "passes/structure",
+    "passes/lineation",
+    "passes/register",
+    "passes/sanitize",
+    "passes/assets",
+)
 _CORPUS_VERBS = r"(?:work|project|downloads|docx|conceptosphere)"
 
 _RUN_BANNED: tuple[tuple[str, re.Pattern[str]], ...] = (
