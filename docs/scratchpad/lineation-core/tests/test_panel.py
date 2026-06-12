@@ -3,6 +3,7 @@
 `build_prompt` shows the opaque-keyed listing + (vision) the composite image, asking for keys ONLY."""
 from __future__ import annotations
 
+import importlib.util
 import threading
 
 import pytest
@@ -308,3 +309,52 @@ def test_aggregate_reps_single_rep_passes_through_without_duplicates():
                 PanelVote(id=b, tag="grok", label="lineated", conf=0.9)]]
     out = panel.aggregate_reps(per_rep)
     assert {(x.tag, x.id) for x in out} == {("grok", a), ("grok", b)} and len(out) == 2
+
+
+
+_HAS_OPENROUTER = importlib.util.find_spec("openrouter") is not None
+
+
+@pytest.mark.skipif(not _HAS_OPENROUTER, reason="openrouter SDK (extra 'live') not installed")
+def test_rate_limit_429_retries_on_a_separate_window_clearing_budget(monkeypatch):
+    """A 429 is the per-minute RPM window, not flakiness: it waits long enough to clear the window
+    and retries on its OWN budget, never spending a normal (network) retry. The completer recovers
+    when the window clears."""
+    import time as _time
+    import types
+
+    from openrouter import errors
+
+    from lineation_core.teacher import openrouter as orc
+
+    sleeps: list[float] = []
+    monkeypatch.setattr(_time, "sleep", lambda s: sleeps.append(s))
+
+    class _Fake429(errors.TooManyRequestsResponseError):
+        # caught by `except errors.TooManyRequestsResponseError` (isinstance); the retry path reads
+        # only `status_code`/`body`. Override __init__ so the SDK's data/Response ctor is not needed.
+        def __init__(self) -> None:
+            self.status_code, self.body = 429, "rate limit"
+
+    ok = types.SimpleNamespace(choices=[types.SimpleNamespace(
+        message=types.SimpleNamespace(content="prose"), finish_reason="stop")], usage=None)
+
+    comp = orc.OpenRouterCompleter.__new__(orc.OpenRouterCompleter)
+    comp._max_retries, comp._backoff_base = 5, 2.0
+    comp._rate_limit_retries, comp._rate_limit_backoff = 8, 20.0
+
+    sent = {"n": 0}
+
+    def send(**_kw):
+        sent["n"] += 1
+        if sent["n"] <= 6:                  # six 429s (would blow the 5-retry network budget), then ok
+            raise _Fake429()
+        return ok
+
+    monkeypatch.setattr(comp, "_sdk", lambda: types.SimpleNamespace(
+        chat=types.SimpleNamespace(send=send)))
+
+    reply = comp.complete(model="m", messages=[], temperature=0.0, max_tokens=8)
+    assert reply.content == "prose"
+    assert sent["n"] == 7                    # survived 6 windows that a 5-retry budget could not
+    assert sleeps == [20.0] * 6              # window-clearing waits only, no linear backoff mixed in
