@@ -1,0 +1,217 @@
+{
+  "title": "Lineation gold review — human queue + audit",
+  "completedAt": "2026-06-04T01:40:06.473Z",
+  "responses": {
+    "g00_b64_t0": {
+      "lines": {
+        "33424.0": "lineated",
+        "33435.0": "lineated"
+      },
+      "note": "It's not hard case, it's obvious. Especially these two sentence fragments split by line break."
+    },
+    "g00_b64_t1": {
+      "lines": {
+        "33442.0": "lineated",
+        "33456.0": "lineated",
+        "33471.0": "lineated"
+      },
+      "note": "2804 in \"**2804.** Поэтому многие тексты\" is pseudo-header-ish a bit, by the way, but guess it doesn't count"
+    },
+    "g00_b64_t2": {
+      "lines": {
+        "33495.0": "lineated"
+      }
+    },
+    "g00_b64_t3": {
+      "lines": {
+        "33501.0": "lineated",
+        "33503.0": "lineated",
+        "33504.0": "lineated"
+      },
+      "note": "Sentence fragments, obvious"
+    },
+    "g01_b57": {
+      "lines": {
+        "245.0": "lineated",
+        "248.0": "lineated"
+      }
+    },
+    "g05_b37": {
+      "lines": {
+        "388.0": "lineated",
+        "390.0": "lineated",
+        "392.0": "lineated",
+        "392.1": "lineated",
+        "394.0": "lineated"
+      },
+      "note": "Important: note that prose rendering or IR pipeline has a bug. \"1. Вода\" and other 3 items (4 total) all are on a new line on the docx screenshot, but on the \"prose\" render they are mangled into the whole paragraph."
+    },
+    "g08_b55_t0": {
+      "lines": {
+        "1480.0": "lineated",
+        "1487.0": "lineated"
+      },
+      "note": "Both inside their enclosing stanzas"
+    },
+    "g09_b16_t2": {
+      "lines": {
+        "622.0": "prose",
+        "625.0": "prose",
+        "631.0": "prose",
+        "642.0": "prose"
+      }
+    },
+    "g14_b07": {
+      "lines": {
+        "625.3": "lineated",
+        "626.2": "lineated"
+      }
+    },
+    "g17_b14": {
+      "lines": {
+        "1289.0": "lineated",
+        "1290.0": "lineated"
+      }
+    },
+    "g18_b60_t0": {
+      "lines": {
+        "5149.0": "lineated",
+        "5152.0": "lineated",
+        "5161.0": "lineated",
+        "5168.0": "lineated"
+      }
+    },
+    "g18_b60_t3": {
+      "lines": {
+        "5254.0": "lineated"
+      }
+    },
+    "g18_b60_t4": {
+      "lines": {
+        "5257.0": "lineated",
+        "5261.0": "lineated",
+        "5277.0": "lineated"
+      }
+    },
+    "g19_b24": {
+      "lines": {
+        "1366.0": "prose",
+        "1367.0": "prose",
+        "1368.0": "prose",
+        "1369.0": "prose",
+        "1370.0": "prose",
+        "1371.0": "prose",
+        "1372.0": "prose",
+        "1373.0": "prose",
+        "1374.0": "prose"
+      }
+    },
+    "g22_b31_t1": {
+      "lines": {
+        "5874.0": "lineated",
+        "5882.0": "lineated",
+        "5906.0": "lineated",
+        "5908.0": "lineated"
+      }
+    },
+    "g22_b31_t3": {
+      "lines": {
+        "6052.0": "lineated"
+      }
+    },
+    "g22_b31_t5": {
+      "lines": {
+        "6148.0": "lineated"
+      }
+    },
+    "g23_b17": {
+      "lines": {
+        "131.0": "prose",
+        "137.0": "prose"
+      }
+    },
+    "g26_b30": {
+      "lines": {
+        "16.0": "lineated"
+      }
+    },
+    "g27_b67_t0": {
+      "lines": {
+        "128.0": "lineated",
+        "147.0": "lineated",
+        "153.0": "lineated"
+      }
+    },
+    "g27_b67_t1": {
+      "lines": {
+        "154.0": "lineated",
+        "167.0": "lineated",
+        "173.0": "lineated"
+      }
+    },
+    "g28_b71": {
+      "lines": {
+        "965.0": "prose"
+      }
+    },
+    "g29_b69_t0": {
+      "lines": {
+        "935.0": "lineated",
+        "943.0": "lineated",
+        "944.0": "lineated"
+      }
+    },
+    "g29_b69_t1": {
+      "lines": {
+        "953.0": "lineated",
+        "954.0": "lineated"
+      }
+    },
+    "g31_b13": {
+      "lines": {
+        "776.0": "prose",
+        "777.0": "prose",
+        "778.0": "prose",
+        "779.0": "prose"
+      }
+    },
+    "g34_b63": {
+      "lines": {
+        "20351.0": "lineated"
+      }
+    },
+    "g35_b41": {
+      "lines": {
+        "2240.0": "lineated"
+      }
+    },
+    "p00_b06": {
+      "lines": {
+        "118.0": "lineated",
+        "120.0": "lineated",
+        "121.0": "lineated",
+        "122.0": "lineated",
+        "123.0": "lineated",
+        "124.0": "lineated"
+      }
+    },
+    "p02_b23": {
+      "lines": {
+        "930.0": "prose",
+        "931.0": "prose",
+        "932.0": "prose",
+        "934.0": "prose"
+      }
+    },
+    "p04_b33": {
+      "lines": {
+        "891.0": "lineated",
+        "893.0": "lineated",
+        "894.0": "lineated",
+        "895.0": "lineated",
+        "897.0": "lineated",
+        "898.0": "lineated"
+      }
+    }
+  }
+}
