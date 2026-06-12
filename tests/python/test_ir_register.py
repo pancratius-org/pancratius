@@ -114,6 +114,19 @@ def test_quote_member_hard_breaks_become_display_lines() -> None:
     assert md == "> Я — не форма,  \n> но во всех формах живу."
 
 
+def test_quote_member_lines_escape_leading_list_markers() -> None:
+    para = ir.Paragraph(inlines=[
+        ir.Text("1. Подготовка через хаос"),
+        ir.LineBreak(),
+        ir.Text("- и тишина после."),
+    ])
+    quote = ir.BlockQuote(blocks=[para], role="inset")
+    md = _block_md(quote, "ru")
+    assert md is not None
+    # Neither line may parse as a Markdown list inside the quote.
+    assert "> 1\\." in md and "> \\-" in md
+
+
 def test_quote_member_soft_breaks_stay_prose() -> None:
     para = ir.Paragraph(inlines=[
         ir.Text("обычная строка,"),
@@ -123,3 +136,25 @@ def test_quote_member_soft_breaks_stay_prose() -> None:
     quote = ir.BlockQuote(blocks=[para], role="inset")
     md = _block_md(quote, "ru")
     assert md == "> обычная строка, перенесённая в источнике."
+
+
+def test_equation_scaffold_never_promotes_to_verse() -> None:
+    from pancratius.ir.normalize import _is_equation_scaffold
+
+    assert _is_equation_scaffold(["143 = 11 × 13", "а 153 = 9 × 17"])
+    assert _is_equation_scaffold(["1² + 5² + 3² = 1 + 25 + 9 = 35", "и снова: 3 + 5 = 8"])
+    assert not _is_equation_scaffold(["Я — не форма,", "но во всех формах живу."])
+    assert not _is_equation_scaffold(["Свет мой тихий,", "в сердце горит."])
+
+
+def test_downloads_scripture_degrades_to_plain_quote() -> None:
+    from pancratius.render_downloads import _scripture_to_quote
+
+    body = (
+        "Прозa до.\n\n"
+        '<blockquote class="scripture">\n\n**7 Се, грядет.**\n\nЛиния раз  \nЛиния два\n\n</blockquote>\n\n'
+        "Проза после."
+    )
+    out = _scripture_to_quote(body)
+    assert '<blockquote class="scripture">' not in out
+    assert "> **7 Се, грядет.**\n>\n> Линия раз  \n> Линия два" in out

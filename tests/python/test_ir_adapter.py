@@ -540,6 +540,23 @@ def test_read_w_jc_classifies_border_kind(tmp_path: Path) -> None:
     assert [r.border for r in records] == ["box", "rule", "other", "", ""]
 
 
+def test_reconcile_fused_bordered_and_plain_stays_unbordered(tmp_path: Path) -> None:
+    # A Pandoc-fused block consuming a bordered AND a plain source row must NOT
+    # inherit the border — that would drag plain text into a set-apart register.
+    para = adapter._block(_para(_str("framed words plain words")), adapter._Ctx())
+    assert isinstance(para, ir.Paragraph)
+    document = (
+        '<?xml version="1.0"?>'
+        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        + _bordered_para("framed words", "left")
+        + "<w:p><w:r><w:t>plain words</w:t></w:r></w:p>"
+        + "</w:body></w:document>"
+    )
+    records = adapter.read_w_jc(_docx_from_document(tmp_path, document))
+    adapter.reconcile_source([para], records)
+    assert para.border == ""
+
+
 def test_reconcile_assigns_border_kind(tmp_path: Path) -> None:
     para = adapter._block(_para(_str("set-apart inset passage")), adapter._Ctx())
     assert isinstance(para, ir.Paragraph)

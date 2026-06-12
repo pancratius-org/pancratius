@@ -465,11 +465,36 @@ def _rewrite_image_paths(body: str, image_map: dict[str, str]) -> str:
     return body
 
 
+_SCRIPTURE_WRAPPER_RE = re.compile(
+    r"<blockquote\s+class=([\"'])scripture\1>\s*([\s\S]*?)\s*</blockquote>",
+    re.IGNORECASE,
+)
+
+
+def _scripture_to_quote(body: str) -> str:
+    """Degrade scripture wrappers to plain Markdown quotes for PDF/EPUB.
+
+    Pandoc's typst writer drops raw HTML blocks, which would leave boxed
+    canonical quotations visually flat while the weaker `>` inset register
+    keeps its quote treatment — an inverted hierarchy. The wrapper's inside is
+    already Markdown, so each content line gains a `> ` prefix and blank lines
+    a bare `>` (member paragraphs stay distinct)."""
+    def repl(match: re.Match[str]) -> str:
+        inner = match.group(2)
+        quoted = "\n".join(
+            f"> {line}" if line.strip() else ">" for line in inner.split("\n")
+        )
+        return f"\n\n{quoted}\n\n"
+
+    return _SCRIPTURE_WRAPPER_RE.sub(repl, body)
+
+
 def _write_export_markdown(entry: WorkEntry, dest: Path, image_map: dict[str, str]) -> None:
     raw = entry.md.read_text(encoding="utf-8")
     _frontmatter, body = split_frontmatter(raw)
     body = body.lstrip()
     _validate_download_html_allowlist(body, entry.md)
+    body = _scripture_to_quote(body)
     body = _rewrite_image_paths(_html_images_to_markdown(body), image_map)
     dest.write_text(body, encoding="utf-8")
 

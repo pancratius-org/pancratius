@@ -342,6 +342,49 @@ def test_lineation_decisions_per_ordinal_surface(tmp_path: Path) -> None:
 
 
 @pandoc_required
+def test_lineation_decisions_cover_register_quote_members(tmp_path: Path) -> None:
+    """Paragraphs the display-register pass wraps (scripture/inset quotes) keep
+    their per-ordinal lineation coverage: a prose-length bordered paragraph is
+    still a False label, and a bordered hard-break couplet stays True — the
+    wrapped run must not vanish from the gold-join surface."""
+    from docx import Document
+    from docx.oxml.ns import qn
+    from docx.text.paragraph import Paragraph as DocxParagraph
+
+    def set_border(paragraph: DocxParagraph, *sides: str) -> None:
+        ppr = paragraph._p.get_or_add_pPr()  # fixture-only OOXML poke
+        pbdr = ppr.makeelement(qn("w:pBdr"), {})
+        for side in sides:
+            el = ppr.makeelement(qn(f"w:{side}"), {qn("w:val"): "single", qn("w:sz"): "4"})
+            pbdr.append(el)
+        ppr.append(pbdr)
+
+    doc = Document()
+    filler = (
+        "Это длинное прозаическое предложение, которое заведомо длиннее любой "
+        "стихотворной строки и читается как обычный абзац без всякой лиричности."
+    )
+    for _ in range(8):
+        doc.add_paragraph(filler)
+    boxed = doc.add_paragraph(
+        "7 Се, грядет с облаками, и узрит Его всякое око и те, которые пронзили Его."
+    )
+    set_border(boxed, "top", "bottom", "left", "right")
+    ruled = doc.add_paragraph()
+    run = ruled.add_run("Я — не форма,")
+    run.add_break()
+    ruled.add_run("но во всех формах живу.")
+    set_border(ruled, "left")
+    path = tmp_path / "fixture-borders.docx"
+    doc.save(str(path))
+
+    decisions = docx_inspect.lineation_decisions(path)
+
+    assert decisions[8] is False   # boxed prose verse: covered, prose register
+    assert decisions[9] is True    # ruled hard-break couplet: covered, lineated
+
+
+@pandoc_required
 def test_lineation_decisions_en_edition_mirrors_ru(tmp_path: Path) -> None:
     """The EN editions get the same per-ordinal surface: EN prose stays False,
     an EN speaker turn (`Answer from the Creator:`) is structure — absent, never

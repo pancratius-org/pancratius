@@ -492,21 +492,47 @@ def lineation_decisions(docx: Path) -> dict[int, bool]:
             for line in stanza
         )
 
+    from pancratius.ir.normalize import inline_lines
+
+    def paragraph_verdict(p: ir.Paragraph) -> set[int]:
+        """A paragraph's per-line truth: prose, unless it carries authored hard
+        breaks (a register-quote member keeps the verdict it had before the
+        display-register pass wrapped it — it folded to a hard-break
+        LineatedBlock then), with the same prose-length mirror as
+        ``hard_break_prose``."""
+        lines = inline_lines(p.inlines, soft_break=False)
+        if len(lines) <= 1:
+            return prose
+        if any(len(inline_plain(line)) > VERSE_SHORT_LINE_MAX for line in lines):
+            return prose
+        return lineated
+
     lineated: set[int] = set()
     prose: set[int] = set()
-    for block in doc.blocks:
+
+    def claim(block: ir.Block) -> None:
         span = block.source_span
         if span is None:
-            continue
+            return
         target: set[int] | None = None
         if isinstance(block, ir.LineatedBlock):
             target = prose if hard_break_prose(block) else lineated
         elif isinstance(block, ir.VerseBlock):
             target = lineated
         elif isinstance(block, ir.Paragraph) and not block.empty:
-            target = prose
+            target = paragraph_verdict(block)
+        elif isinstance(block, ir.BlockQuote) and block.role in {"scripture", "inset"}:
+            # The display-register pass wraps source paragraphs; their per-line
+            # lineation truth must keep its coverage (the lineation gold set
+            # joins on these ordinals).
+            for member in block.blocks:
+                claim(member)
+            return
         if target is not None:
             target.update(range(span.start, span.end + 1))
+
+    for block in doc.blocks:
+        claim(block)
     # An ordinal claimed by both kinds is ambiguous: drop it rather than guess.
     return {
         **dict.fromkeys(lineated - prose, True),

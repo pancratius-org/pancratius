@@ -759,9 +759,13 @@ def reconcile_source(blocks: list[ir.Block], records: list[_SourceParagraph]) ->
             continue
         if any(r.indented for r in consumed):
             block.indented = True
-        borders = {r.border for r in consumed if r.border}
-        if len(borders) == 1:
-            block.border = borders.pop()
+        # Strict agreement: every text-bearing consumed record must carry the
+        # SAME border kind. A Pandoc-fused block spanning bordered and plain
+        # source rows stays unbordered — assigning the border would drag the
+        # plain text into a set-apart register.
+        text_borders = {r.border for r in consumed if r.text.strip()}
+        if len(text_borders) == 1 and (kind := text_borders.pop()):
+            block.border = kind
         groups = {r.lineation_group for r in consumed if r.lineation_group is not None}
         if len(groups) == 1:
             block.lineation_group = groups.pop()

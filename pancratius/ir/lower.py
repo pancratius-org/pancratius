@@ -619,7 +619,9 @@ def _quote_member_md(blk: ir.Block, lang: str) -> str | None:
         and not any(isinstance(n, ir.ImageInline) for n in blk.inlines)
     ):
         lines = [
-            re.sub(r"\s*\n\s*", " ", _inlines_md(line, lang)).strip()
+            _escape_leading_list_marker(
+                re.sub(r"\s*\n\s*", " ", _inlines_md(line, lang)).strip()
+            )
             for line in inline_lines(blk.inlines, soft_break=False)
         ]
         lines = [ln for ln in lines if ln]
