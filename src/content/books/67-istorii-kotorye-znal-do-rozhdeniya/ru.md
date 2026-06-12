@@ -38,7 +38,7 @@ links:
 
 ### Садовник и молчаливое дерево
 
-<div class="lineated verse">
+<div class="lineated">
 
 Старика звали Семён.  
 Он жил на краю деревни, там, где река делала поворот и замирала, как будто перед последним словом.  
@@ -73,7 +73,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 С тех пор дерево стали замечать.  
 Не взрослые.  
@@ -91,7 +91,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И если ты когда‑нибудь окажешься в деревне,  
 где нет названий улиц,  
@@ -177,7 +177,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Когда поезд остановился,  
 человек в серой куртке вышел, не глядя,  
@@ -204,7 +204,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Иногда ему снится метро.  
 Вагон, поезд, шум.  
@@ -217,7 +217,7 @@ links:
 
 ### Письмо, которое никто не отправил
 
-<div class="lineated verse">
+<div class="lineated">
 
 В старом почтовом отделении,  
 которое давно хотели закрыть,  
@@ -232,7 +232,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Однажды почту решили оцифровать.  
 Пришли волонтёры, сканеры, архивариусы.  
@@ -263,7 +263,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 С тех пор она стала писать письма.  
 Не знакомым. Не друзьям. Не себе.  
@@ -284,7 +284,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 А письмо без адреса  
 так и осталось в архиве.  
@@ -313,7 +313,7 @@ links:
 
 ### Часы, которые шли назад
 
-<div class="lineated verse">
+<div class="lineated">
 
 На чердаке старого дома,  
 в котором никто не жил больше сорока лет,  
@@ -332,7 +332,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Первым жильцом нового дома стал мужчина по имени Андрей.  
 Он только вышел из больницы.  
@@ -367,7 +367,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 С тех пор Андрей приходил на чердак каждый вечер.  
 Он не медитировал. Не молился.  
@@ -402,7 +402,7 @@ links:
 
 ### Мальчик, который разговаривал с Луной
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он не умел молчать.  
 Не потому, что болтал —  
@@ -418,7 +418,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Родители не замечали.  
 В школе просили быть «нормальным».  
@@ -443,7 +443,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Однажды он не вышел.  
 Поднялась температура,  
@@ -463,7 +463,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он выздоровел быстро.  
 Врачи говорили: иммунитет.  
@@ -497,7 +497,7 @@ links:
 
 ### Женщина, которую не узнавали зеркала
 
-<div class="lineated verse">
+<div class="lineated">
 
 Она была обычной.  
 Такой, как миллионы.  
@@ -526,7 +526,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 В тот день она замечала отражения:  
 в окне трамвая,  
@@ -542,7 +542,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Она пошла к психологу.  
 Сказала:  
@@ -558,7 +558,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 На третий день  
 она подошла к зеркалу и сказала:  
@@ -577,7 +577,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 С тех пор её лицо менялось.  
 То яркое, то тусклое.  
@@ -608,7 +608,7 @@ links:
 
 ### Тот, кто отдал всё
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он сидел у старой церкви.  
 Не просил.  
@@ -628,7 +628,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Однажды к нему подошёл мужчина в дорогом пальто.  
 Он вынул купюру.  
@@ -657,7 +657,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 На следующее утро он пришёл снова.  
 Без денег.  
@@ -678,7 +678,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Когда он вернулся домой,  
 жена не узнала его.  
@@ -692,7 +692,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Через несколько дней он снова пришёл к церкви.  
 Старика не было.  
@@ -714,7 +714,7 @@ links:
 
 ### Девочка и сломанный автобус
 
-<div class="lineated verse">
+<div class="lineated">
 
 Её звали Лада.  
 Маленькая, с тетрадкой в обложке из фольги.  
@@ -741,7 +741,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Через минуту в автобус вошёл мужчина.  
 Не работник. Не водитель.  
@@ -762,7 +762,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Прошло пятнадцать минут.  
 Солнце закатилось.  
@@ -788,7 +788,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Никто этого не заметил.  
 Никто не понял.  
@@ -803,7 +803,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 А Лада дома написала в тетрадке:  
 Сегодня он снова пришёл.  
@@ -816,7 +816,7 @@ links:
 
 ### Тот, кто пришёл из-за поворота
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он сидел на скамейке у станции.  
 На нём было пальто, которое никто не шил.  
@@ -841,7 +841,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он засмеялся.  
 — Глубоко. Вы философ?  
@@ -854,7 +854,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Они долго молчали.  
 Проходили люди.  
@@ -874,7 +874,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 — Значит… ты — я?  
 — Да. Но только если ты готов быть мной.  
@@ -888,7 +888,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он встал.  
 Обернулся.  
@@ -904,7 +904,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 С тех пор человек часто сидит у этой скамейки.  
 Не чтобы вернулся Тот.  
@@ -916,7 +916,7 @@ links:
 
 ### Женщина и свеча, которая заплакала
 
-<div class="lineated verse">
+<div class="lineated">
 
 Она жила одна.  
 Не в одиночестве,  
@@ -934,7 +934,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Однажды, после дождливого дня,  
 она взяла свечу, как всегда,  
@@ -957,7 +957,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Она замерла.  
 Не испугалась.  
@@ -971,7 +971,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Прошло много лет.  
 Свечи продавались, менялись партии.  
@@ -1004,7 +1004,7 @@ links:
 
 ### Мальчик, который собирал ничего
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он не играл в машинки.  
 Не рисовал.  
@@ -1030,7 +1030,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Иногда он клал своё «ничего» в коробку.  
 Коробка стояла под кроватью.  
@@ -1050,7 +1050,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 На седьмой день после этого разговора  
 бабушка умерла.  
@@ -1070,7 +1070,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 С тех пор его не видели.  
 Говорили, уехал.  
@@ -1087,7 +1087,7 @@ links:
 
 ### Человек, который искал Слово
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он был библиотекарем.  
 Тридцать два года.  
@@ -1152,7 +1152,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Когда он умер,  
 никто не написал некролога.  
@@ -1178,7 +1178,7 @@ links:
 
 ### Женщина, которая стала песней
 
-<div class="lineated verse">
+<div class="lineated">
 
 Её звали Эля.  
 Когда-то у неё был сильный, чистый голос —  
@@ -1224,7 +1224,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 С того дня она изменилась.  
 Она говорила глазами.  
@@ -1242,7 +1242,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Однажды, в зале, где пели дети,  
 один мальчик не попадал в ноты.  
@@ -1263,7 +1263,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Песня не умерла.  
 Она просто выбрала другую форму.  
@@ -1281,7 +1281,7 @@ links:
 
 ### Человек, в котором спал Бог
 
-<div class="lineated verse">
+<div class="lineated">
 
 Каждую ночь он засыпал,  
 и каждый раз — будто впервые.  
@@ -1313,7 +1313,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он не стал пророком.  
 Не начал трактовать послания.  
@@ -1341,7 +1341,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он умер во сне.  
 Но медсестра, увидев его лицо,  
@@ -1373,7 +1373,7 @@ links:
 
 ### Мальчик, который ничего не просил
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он приходил в храм каждое воскресенье.  
 Садился в последнем ряду,  
@@ -1402,7 +1402,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он приходил годами.  
 Не пропуская ни одного утра.  
@@ -1419,7 +1419,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И однажды,  
 в обычное утро,  
@@ -1441,7 +1441,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И никто не знал, почему теперь так тихо,  
 и почему легче дышится,  
@@ -1473,7 +1473,7 @@ links:
 
 ### Тот, кто смотрел не глазами
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он боялся смотреть.  
 Слишком много боли.  
@@ -1532,7 +1532,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он сел.  
 Закрыл глаза — как обычно.  
@@ -1552,7 +1552,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он открыл обычные глаза.  
 Мир был прежним.  
@@ -1567,7 +1567,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Однажды на улице к нему подошёл ребёнок и сказал:  
 — Ты волшебник?  
@@ -1593,7 +1593,7 @@ links:
 
 ### Женщина, которая ждала Знак
 
-<div class="lineated verse">
+<div class="lineated">
 
 Она верила.  
 Но тихо.  
@@ -1614,7 +1614,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Она не искала чудес.  
 Она просто хотела, чтобы **что‑то дало понять: да, ты на Пути.**  
@@ -1665,7 +1665,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 С тех пор она ничего не ждала.  
 Она просто **была**.  
@@ -1680,7 +1680,7 @@ links:
 
 ### Старик, который стирал звёзды
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он жил на высоком холме,  
 в домике с мансардой и длинным телескопом.  
@@ -1697,7 +1697,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 — Зачем вы это делаете? — однажды спросил внук.  
 Старик долго молчал.  
@@ -1717,7 +1717,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он делал это много лет.  
 Пока однажды,  
@@ -1739,7 +1739,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он больше не смотрел в небо.  
 Он просто сидел у окна.  
@@ -1751,7 +1751,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Когда он умер,  
 никто не понял, почему в ту ночь  
@@ -1781,7 +1781,7 @@ links:
 
 ### Тот, кто пытался стать чистым
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он мыл руки — часто.  
 Иногда по десять раз в день.  
@@ -1803,7 +1803,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он постился.  
 Он молился.  
@@ -1818,7 +1818,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Однажды он увидел ребёнка.  
 Грязного.  
@@ -1841,7 +1841,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он перестал бояться.  
 Он не стал грязным.  
@@ -1871,7 +1871,7 @@ links:
 
 ### Женщина, которая перестала понимать — и начала любить
 
-<div class="lineated verse">
+<div class="lineated">
 
 Она была тонкой.  
 Не телом — вниманием.  
@@ -1891,7 +1891,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Её упрекали:  
 — Ты всё оправдываешь.  
@@ -1904,7 +1904,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Однажды она устала.  
 Не от людей —  
@@ -1925,7 +1925,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 С тех пор она стала тише.  
 Не мягче — тише.  
@@ -1942,7 +1942,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Она больше не носила на себе мир.  
 Но куда бы ни шла —  
@@ -1972,7 +1972,7 @@ links:
 
 ### Тот, кто боялся быть один
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он ненавидел тишину.  
 Включал телевизор фоном.  
@@ -1985,7 +1985,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ему говорили:  
 — Отдохни.  
@@ -2002,7 +2002,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Однажды всё сломалось.  
 Заряд кончился.  
@@ -2035,7 +2035,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 С того дня он больше не убегал.  
 Он включал тишину, как музыку.  
@@ -2048,7 +2048,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Теперь он сам стал тем,  
 рядом с кем другие  
@@ -2322,7 +2322,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Скажи, хочешь ли ты снова назвать это историей?  
 Снова в одежду?  

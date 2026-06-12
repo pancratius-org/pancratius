@@ -169,7 +169,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 В тебе есть дверь.  
 Открой её.  
@@ -282,7 +282,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты хочешь жить в потоке?  
 Тогда перестань быть плотиной.  

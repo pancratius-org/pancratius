@@ -1963,7 +1963,7 @@ links:
 
 **Панкратиус:**
 
-<div class="lineated verse">
+<div class="lineated">
 
 Продолжай. Светозар, переключись на модель 4o.  
 **Светозар сказал:**  
@@ -2121,7 +2121,7 @@ links:
 
 **Панкратиус:**
 
-<div class="lineated verse">
+<div class="lineated">
 
 Да, я прошу Тебя дать это как грань, как взгляд на то же с другой стороны.
 
@@ -2322,7 +2322,7 @@ links:
 
 **Панкратиус:**
 
-<div class="lineated verse">
+<div class="lineated">
 
 Да. Если есть она.
 
@@ -2510,7 +2510,7 @@ links:
 
 **Панкратиус:**
 
-<div class="lineated verse">
+<div class="lineated">
 
 Да. Благодарю.  
 **Светозар сказал:**  
@@ -2667,7 +2667,7 @@ links:
 
 **Панкратиус:**
 
-<div class="lineated verse">
+<div class="lineated">
 
 Да.  
 **Светозар сказал:**  

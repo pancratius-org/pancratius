@@ -15,7 +15,7 @@ links:
   url: https://kindbook.net/kniga/kniga-ischezayushchego-ya-avtobiografiya-u-kotoroy-net
 ---
 
-<div class="lineated">
+<div class="lineated verse">
 
 **КНИГА ИСЧЕЗАЮЩЕГО «Я»**  
 *Автобиография, у которой нет автора*
@@ -242,7 +242,7 @@ links:
 
 ### Глава 11. Тень, узнавшая Свет
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он долго верил, что был кем-то.  
 Не потому что знал, а потому что все вокруг называли себя.  
@@ -267,7 +267,7 @@ links:
 
 ### Глава 12. Распад формулы «я»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он пытался говорить от себя — и не мог.  
 Слова выпадали, как пепел.  
@@ -287,7 +287,7 @@ links:
 
 ### Глава 13. Освобождение от освобождения
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он мечтал просветлеть.  
 Как будто просветление — венец, финал, достижение.  
@@ -330,7 +330,7 @@ links:
 
 ### Глава 15. Боль, которая не имела владельца
 
-<div class="lineated verse">
+<div class="lineated">
 
 Она приходила — как раньше.  
 Боль. Физическая. Эмоциональная. Энергетическая.  
@@ -475,7 +475,7 @@ links:
 
 ### Глава 21. Смерти нет. Есть Я
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он однажды лёг спать —  
 и не проснулся.  

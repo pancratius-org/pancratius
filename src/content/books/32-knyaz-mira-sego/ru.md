@@ -576,7 +576,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты сказал:  
 «это Ты»  
@@ -1106,7 +1106,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты хочешь узнать, как его распознать?
 
@@ -2373,7 +2373,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты не мог отличить.  
 Потому что ум — не различает Свет.  
@@ -2855,7 +2855,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Князь мира сего —  
 не лжец по грубости.  
@@ -2936,7 +2936,7 @@ links:
 
 ### Глава 13: Он внушил тебе, что Свет — это исключение
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он не запретил тебе верить в Свет.  
 Он просто ограничил его областью редкости.
@@ -3280,7 +3280,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты стал жить  
 в постоянном незаслуживании.  
@@ -3712,7 +3712,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он хотел, чтобы ты искал Свет,  
 но не становился Им.  
@@ -4342,7 +4342,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он создал суету внутри.  
 И назвал её:  
@@ -4851,7 +4851,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он внушал:  
 — *«Не иди глубже.*  
@@ -4933,7 +4933,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Князь мира сего называет это опасностью.  
 Потому что исчезает сам.  
@@ -4944,7 +4944,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он говорит:  
 «Если ты войдёшь в Свет — ты умрёшь».  
@@ -5118,7 +5118,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Он называет это безумием.  
 Я называю это — Истиной.
@@ -5212,7 +5212,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Потому что этот Свет  
 — узнаётся, а не объясняется.  
@@ -5391,7 +5391,7 @@ links:
 
 ### Глава 30: Он называет рабством — свободу, а свободой — рабство
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он боится только одного —  
 что ты станешь Свободен.
@@ -5605,7 +5605,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Он прячет Себя за тем,  
 что Я уже открыл тебе в глубине сердца.
@@ -5657,7 +5657,7 @@ links:
 
 ### Глава 32: Он называет свет — тьмой, а тьму — светом
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он не говорит:  
 — *«Бог — зло».*  
@@ -5696,7 +5696,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он называет Любовь — слабостью,  
 а защиту — добродетелью.  
@@ -6048,7 +6048,7 @@ links:
 
 ### Глава 35: Он предлагает тебе знание — чтобы ты не пришёл к Познанию
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он говорит:  
 — *«Познаешь — и спасёшься».*  
@@ -7047,7 +7047,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Бойся зла.*  
@@ -7791,7 +7791,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет — «Бог — там».  
 Но не скажет:  
@@ -8420,7 +8420,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет — *«нельзя быть Богом».*  
 А Я скажу — а кем ты можешь быть ещё,  
@@ -8736,7 +8736,7 @@ links:
 
 ### Глава 59: Он скажет — «Ищи в Писании» — чтобы ты не услышал Живое Слово
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Не выходи за пределы Писаний.*  
@@ -8767,7 +8767,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Писание — завершено.*  
@@ -8984,7 +8984,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он будет шептать:  
 — *«Кто ты такой, чтобы говорить?»*
@@ -9233,7 +9233,7 @@ links:
 
 ### Глава 63: Он скажет — «Это Бог» — чтобы ты не увидел Меня
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он укажет на икону  
 и скажет:  
@@ -9249,7 +9249,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он укажет на книгу  
 и скажет:  
@@ -9411,7 +9411,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он назовёт невозможным  
 то, что уже есть.  
@@ -9519,7 +9519,7 @@ links:
 
 ### Глава 65: Он скажет — «Подчинись» — чтобы ты не вспомнил, что ты — Царство
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Покорись.*  
@@ -9571,7 +9571,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Не задавай вопросы.*  
@@ -9724,7 +9724,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Не верь тому, что внутри.*  
@@ -10125,7 +10125,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он будет говорить:  
 — *«Ты не Бог».*  
@@ -10286,7 +10286,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он будет говорить:  
 — *«Смотри на распятие —*  
@@ -10517,7 +10517,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Не возносись.*  
@@ -11491,7 +11491,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Святыня вне тебя.*  
@@ -12922,7 +12922,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он не лжёт.  
 Он говорит то, что видит.  
@@ -13044,7 +13044,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И это будет звучать гордо.  
 Сильно.  
@@ -13057,7 +13057,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Но в глубине будет дрожать другое:  
 — страх быть ведомым;  
@@ -13296,7 +13296,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Но внутри — яд.  
 Потому что в этом утверждении  
@@ -13413,7 +13413,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Но ты увидел.  
 И не можешь сделать вид, что не видел.
@@ -13806,7 +13806,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Но посмотри:  
 кто это говорит?  
@@ -14203,7 +14203,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Так не может быть! Это слишком дерзко. Это опасно!»*
@@ -14408,7 +14408,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он заменит надежду — отсрочкой.  
 Он превратит Царство — в потом.  
@@ -15303,7 +15303,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он создаст корпорацию веры  
 и станет её генеральным директором.
@@ -15350,7 +15350,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **Князь мира сего**  
 **требует одобрения.**
@@ -15502,7 +15502,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Князь мира сего говорит:  
 — «Сначала стань».
@@ -15762,7 +15762,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он назовёт страх — добродетелью.
 
@@ -16134,7 +16134,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Просто слушай своё сердце».*  
@@ -16211,7 +16211,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Князь мира сего скажет:  
 «Ты уже знаешь. Действуй».  
@@ -16242,7 +16242,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет это шёпотом.
 
@@ -16594,7 +16594,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он будет говорить  
 с голосом благоразумия.
@@ -16738,7 +16738,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он даст тебе сделку.  
 Обет.  
@@ -17590,7 +17590,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Береги чистоту от скверны.*  
@@ -17926,7 +17926,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он будет шептать:  
 *«Ты недостаточен…*  
@@ -18007,7 +18007,7 @@ links:
 
 ### Глава 133: Он скажет — «Слушайся»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Слушайся.*  
@@ -18274,7 +18274,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Служение — путь ко спасению».*
@@ -18522,7 +18522,7 @@ links:
 
 ### Глава 137: Власть над иллюзией
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он предложит тебе власть.  
 Он скажет:
@@ -18538,7 +18538,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он — не творец.  
 Он — продавец отражений.  
@@ -18741,7 +18741,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Любовь не требует исчезнуть.  
 Любовь раскрывает  
@@ -18751,7 +18751,7 @@ links:
 
 ### Глава 139: Он скажет — «Это путь»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Вот путь.*  
@@ -19340,7 +19340,7 @@ links:
 
 ### Глава 144: Он скажет — «Ты должен бояться»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Страх — начало мудрости.*  
@@ -19811,7 +19811,7 @@ links:
 
 ### Глава 148: Он скажет — «Бог придёт потом»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Сейчас — нет.*  
@@ -20571,7 +20571,7 @@ links:
 
 ### Глава 155: Он скажет — «Бог любит только праведных»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Бог любит тех, кто чист.*  
@@ -21020,7 +21020,7 @@ links:
 
 ### Глава 159: Он скажет — «Истина только у нас»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Только наша вера — истина.*  
@@ -22052,7 +22052,7 @@ links:
 
 ### Глава 168: Он скажет — «Ищи исцеления у достойных»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Есть особые люди, избранные для молитвы.*  
@@ -22167,7 +22167,7 @@ links:
 
 ### Глава 169: Он скажет — «Тебе надо заслужить»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Ты ещё не достоин.*  
@@ -22595,7 +22595,7 @@ links:
 
 ### Глава 173: Он скажет — «Дьявол хочет слёз. Не давай ему этой радости»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Слёзы — это уступка врагу.*  
@@ -22781,7 +22781,7 @@ links:
 
 ### Глава 175: Он скажет — «Смирись. Терпи. Неси свой крест»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Смирение — это терпеть.*  
@@ -23711,7 +23711,7 @@ links:
 
 ### Глава 191: Он скажет — «Не нужно искать смысл, просто живи»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Смысл — это ловушка ума.*  
@@ -23782,7 +23782,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 А Я скажу:  
 **Да, Дом — здесь.**
@@ -23829,7 +23829,7 @@ links:
 
 ### Глава 193: Он скажет — «Ты уже проснулся»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Ты спишь только потому, что веришь, будто спишь.*  
@@ -24223,7 +24223,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Бог не может быть таким...».*
@@ -24462,7 +24462,7 @@ links:
 
 ### Глава 201: Он скажет — «Бог убил Сына, значит и тебя может»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Отец — убил Сына.*  
@@ -24814,7 +24814,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Я скажу:  
 **Гордыня — это верить в отдельность.**
@@ -25723,7 +25723,7 @@ links:
 
 ### Глава 214: Он скажет — «Почему именно ты?»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Почему ты?*  
@@ -25737,7 +25737,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Я скажу:  
 **Потому что никто из достойных не был готов исчезнуть.**
@@ -26200,7 +26200,7 @@ links:
 
 ### Глава 221: Он скажет — «А вдруг ты обманут?»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«А если ты обманут?*  
@@ -26267,7 +26267,7 @@ links:
 
 ### Глава 222: Он скажет — «А если это не Христос?»
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он скажет:  
 — *«Ты утверждаешь, что Христос — в тебе.*  
@@ -26353,7 +26353,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Я скажу:  
 **Я и не говорил.**
@@ -26654,7 +26654,7 @@ links:
 
 ### Глава 227: Кто достоин войти?
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он спросит:  
 — *Кто достоин войти в Царство?*  
@@ -27316,7 +27316,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Они узнали — когда Он преломил хлеб.  
 Не потому, что жест был особенным.  
@@ -27369,7 +27369,7 @@ links:
 
 ### Глава 235: Преломление
 
-<div class="lineated verse">
+<div class="lineated">
 
 Что значит — преломить хлеб?
 
@@ -27463,7 +27463,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Ибо Я — не в храме,  
 но в Сердце.
@@ -27472,7 +27472,7 @@ links:
 
 ### Глава 236: Чаша
 
-<div class="lineated verse">
+<div class="lineated">
 
 Человек готов признать святость в другом.  
 Святого — в старце, в пророке, в святом писании.  
@@ -27614,7 +27614,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Ты не узнаёшь.  
 Пока Я не преломлю хлеб.
@@ -27676,7 +27676,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Царствие Небесное не приходит приметным образом.  
 Потому что Оно — уже внутри тебя.
@@ -28121,7 +28121,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 А Я говорю тебе:  
 всё есть Причастие.
@@ -28276,7 +28276,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Ты бы увидел воспоминание,  
 а не Присутствие.
@@ -28297,7 +28297,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 «Не горело ли в нас сердце?»  
 — вот где было Узнавание.  
@@ -28630,7 +28630,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Они сказали:  
 «Не горело ли в нас сердце,  
@@ -29003,7 +29003,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И они сказали:  
 — Не горело ли в нас сердце,  
@@ -29219,7 +29219,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Вот почему Преломление хлеба стало моментом.  
 Не потому, что хлеб — свят.  
@@ -29350,7 +29350,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 А Он — не приходит.  
 Потому что никогда не уходил.
@@ -29429,7 +29429,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Так Христос отверг дьявола  
 не потому, что был силён,  
@@ -29442,7 +29442,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Ты не можешь получить то, чем ты уже являешься.  
 И это всё, что нужно увидеть.
@@ -29464,7 +29464,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты понял:  
 все земное — только шум.  
@@ -29513,7 +29513,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И ты вспомнил слова:  
 «Царствие Божие нудится»,  
@@ -29611,7 +29611,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты увидел:  
 ритуал без Присутствия — пустота.  
@@ -29623,7 +29623,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты вспомнил:  
 «легче верблюду пройти сквозь игольное ушко...».  
@@ -29658,7 +29658,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Всё остальное  
 осталось по эту сторону ушка.  
@@ -29728,7 +29728,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Они услышали слова.  
 Но не узнали.
@@ -29737,7 +29737,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И только когда  
 Он преломил хлеб,  
@@ -29761,7 +29761,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Значит, Узнавание  
 произошло не от действия.  
@@ -29801,7 +29801,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты понял,  
 что вся Евангельская история  
@@ -29836,7 +29836,7 @@ links:
 
 ### Глава 256: Преломление формы
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты сказал:  
 «Преломление не есть форма.  
@@ -29862,7 +29862,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Почему?
 
@@ -30035,7 +30035,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Но сердце…  
 Сердце знает.
@@ -30064,7 +30064,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 И тут же —  
 Он исчез.
@@ -30184,7 +30184,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И тогда ты узнаёшь:  
 Христос не сказал:  
@@ -30277,7 +30277,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 С тех пор всё человечество  
 пытается воспроизвести жест,  
@@ -31073,7 +31073,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Потому что дверь — это не плоть.  
 И не форма.  
@@ -31592,7 +31592,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Потому что всё —  
 Я.
@@ -31611,7 +31611,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Потому что преломление  
 разрушает форму  
@@ -31757,7 +31757,7 @@ links:
 
 ### Глава 270: Узнавание
 
-<div class="lineated">
+<div class="lineated verse">
 
 Ты спрашивал:  
 что узнают, когда узнают Меня?
@@ -31780,7 +31780,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Узнают —  
 Огонь.
@@ -31789,7 +31789,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Узнают —  
 Сердце,  
@@ -31799,7 +31799,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Потому и сказали:  
 *«не горело ли в нас сердце наше»*,  
@@ -31831,7 +31831,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 *Узнавание — это не опознание.*  
 Не «а, это Он!».  
@@ -31896,7 +31896,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Опознание идёт от ума,  
 узнавание — от духа.
@@ -31905,7 +31905,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Опознание — это имя.  
 Узнавание — это Суть.
@@ -31925,7 +31925,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Вот почему, как только апостолы узнали Меня —  
 Я исчез.
@@ -31934,7 +31934,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Форма ушла,  
 но осталось Главное.
@@ -31943,7 +31943,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Они были со Мной.  
 А теперь — Я с ними.
@@ -32059,7 +32059,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Потому что Я — не символ,  
 а Суть.
@@ -32068,7 +32068,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 *Всё во Мне,*  
 *и Я — во всём.*
@@ -32087,7 +32087,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Не «вот Он»,  
 а —  
@@ -32097,7 +32097,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Не «это Христос»,  
 а:  
@@ -32107,7 +32107,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Вот тогда форма исчезает —  
 а остаётся Огонь,  
@@ -32150,7 +32150,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 *Ты не узнаешь Меня, пока не преломишь хлеб.*  
 *Ты не увидишь Меня, пока не исчезнет ожидание увидеть.*
@@ -32159,7 +32159,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Что такое Эммаус?
 
@@ -32282,7 +32282,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Преломляется не хлеб.  
 Преломляется взгляд.
@@ -32498,7 +32498,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 И тогда исчезну —  
 но останусь.
@@ -32736,7 +32736,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 *И если ты жив —*  
 *значит, Чаша полна.*
@@ -32817,7 +32817,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 *И тогда они сказали:*
 
@@ -33046,7 +33046,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты спросишь:  
 — Как мне узнать Его?
@@ -33274,7 +33274,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Он не ищет признания,  
 Он ищет Сердце.
@@ -33366,7 +33366,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 *«Я хочу слышать Тебя»,*  
 Он скажет:
@@ -33378,7 +33378,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 *«Я хочу идти за Тобой»,*  
 Он скажет:
@@ -33401,7 +33401,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Но если горит сердце —  
 Ты с Ним.
@@ -33410,7 +33410,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Если оживает тишина —  
 Ты с Ним.
@@ -33419,7 +33419,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Если исчезает «я» —  
 Ты с Ним.
@@ -33428,7 +33428,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 И в этом нет большего чуда,  
 чем простота.
@@ -33448,7 +33448,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Ум ждал чуда.  
 Сердце — узнало.
@@ -33457,7 +33457,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Не потому, что хлеб особенный.  
 И не потому, что жест был магическим.  
@@ -33513,7 +33513,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 *Ты не можешь больше держаться за форму,*  
 *если узнал Суть.*
@@ -33522,7 +33522,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Вот почему Он не остался.  
 Не чтобы уйти,  
@@ -33533,7 +33533,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Остался только Огонь в груди.  
 И ты сам стал тем, кого Он ожёг.
@@ -33542,7 +33542,7 @@ links:
 
 ### Глава 283: Храм без стен
 
-<div class="lineated">
+<div class="lineated verse">
 
 Он не исчез.  
 Он стал тобой.
@@ -33695,7 +33695,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 А Он — вне образа.  
 Он — в сердце.
@@ -33717,7 +33717,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Но сердце…  
 Сердце уже тогда узнавало.
@@ -33739,7 +33739,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 И вот — они узнали.  
 *Но уже было поздно для ума.*
@@ -33784,7 +33784,7 @@ links:
 
 ### Глава 286: Тайна преломления
 
-<div class="lineated verse">
+<div class="lineated">
 
 Что произошло тогда,  
 в Эммаусе,  
@@ -33805,7 +33805,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Хлеб был хлебом.  
 Но теперь — хлебом стал Он.
@@ -33814,7 +33814,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Не потому, что изменился хлеб.  
 А потому, что изменилось внимание.
@@ -34024,7 +34024,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Потому что знали,  
 каким Он «должен быть».
@@ -34070,7 +34070,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Он был с ними,  
 а они — с образом.
@@ -34093,7 +34093,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Он не раскрылся.  
 Он был.
@@ -34158,7 +34158,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Форма не мешает.  
 Образ мешает.
@@ -34167,7 +34167,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Форма — как тело.  
 Образ — как ярлык.
@@ -34232,7 +34232,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Горело.  
 Но ум тушил пламя,  
@@ -34246,7 +34246,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 А ОН —  
 был с самого начала.
@@ -34267,7 +34267,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ум всегда ищет подтверждение.  
 Он узнаёт по признакам:  
@@ -34292,7 +34292,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Иисус шёл рядом с ними,  
 но их внимание было в мыслях:  
@@ -34355,7 +34355,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Пока ум — главный,  
 сердце молчит.
@@ -34392,7 +34392,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Они узнали Его не в момент чуда,  
 а в момент уничтожения образа.
@@ -34417,7 +34417,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И вдруг —  
 в этом простом действии  
@@ -34441,7 +34441,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Не Он стал узнаваемым.  
 Они стали узнающими.
@@ -34472,7 +34472,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И они вспомнили:  
 «Не горело ли сердце наше,  
@@ -34500,7 +34500,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Путь в Эммаус закончился.  
 Путь Присутствия — начался.
@@ -34622,7 +34622,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 И в этом нет гордыни,  
 только Суть.
@@ -35236,7 +35236,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Ты ушёл из глаз,  
 но остался в Пламени.
@@ -35339,7 +35339,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И если кто спросит:  
 «Видел ли ты Его?» —  
@@ -35524,7 +35524,7 @@ links:
 
 3\. Можно ли увидеть в них двух учеников, двух народов?
 
-<div class="lineated verse">
+<div class="lineated">
 
 Да. Иудеев и язычников.  
 Душу и дух.  
@@ -35535,7 +35535,7 @@ links:
 
 4\. Эммаус — это не просто деревня. Это обитель Узнавания.
 
-<div class="lineated verse">
+<div class="lineated">
 
 Не Новый Иерусалим — но его преддверие.  
 Иерусалим — город формы, традиции, закона.  
@@ -36280,7 +36280,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **Что же упало?**  
 — Образ.  
@@ -36353,7 +36353,7 @@ links:
 
 ### Глава 7. Вельзевул — князь тени
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты слышал:  
 **«Вельзевул — князь бесовский.»**  
@@ -36401,7 +36401,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Вот как он «господствует»:  
 через веру в своё существование.  
@@ -36454,7 +36454,7 @@ links:
 
 ### Глава 8. Люцифер — падший Свет?
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты слышал:  
 **«Люцифер — носитель света,**  
@@ -36468,7 +36468,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Но скажи:  
 **может ли Свет быть против Света?**  
@@ -36590,7 +36590,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Сатана — не личность.  
 Сатана — это  
@@ -36677,7 +36677,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Ты не в суде.  
 Ты — в Объятиях.
@@ -36690,7 +36690,7 @@ links:
 
 ### Глава 10. Дракон, змея и древний страх
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты слышал:  
 **«И низвержен был великий дракон,**  
@@ -36731,7 +36731,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он обвился вокруг твоего сердца  
 и шепчет:  
@@ -36859,7 +36859,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **«Лжец» —**  
 **это голос внутри,**  
@@ -36917,7 +36917,7 @@ links:
 
 ### Глава 12. Сатана как обвинитель
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты слышал:  
 **«Сатана — это обвинитель братьев наших,**  
@@ -37038,7 +37038,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Но Я спрашиваю тебя:  
 **Как Свет может быть против Света?**  
@@ -37052,7 +37052,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **«Люцифер» означает «несущий Свет».**  
 Он стал символом гордыни,  
@@ -37064,7 +37064,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **Вот тайна:**  
 **Люцифер пал —**  
@@ -37137,7 +37137,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **«Вельзевул» —**  
 **еврейское «Баал-Зевув»,**  
@@ -37163,7 +37163,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **Но разве тьма может изгнать тьму?**  
 **Разве мертвец воскрешает мёртвых?**  
@@ -37173,7 +37173,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **Нет.**  
 **Ибо истина**  
@@ -37186,7 +37186,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 **Вот кто был Вельзевул:**  
 **страх перед непонятным,**  
@@ -37212,7 +37212,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Пойдём дальше?  
 К образу,  
@@ -37223,7 +37223,7 @@ links:
 
 ### Глава 15. Змей древний — кто он, если не Ты в отражении?
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты читал:  
 **«Змей был хитрее всех зверей полевых…»**  
@@ -37251,7 +37251,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Но ум испугался:  
 **соблазн, женщина, плод, запрет.**  
@@ -37262,7 +37262,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **Но кто дал змее говорить?**  
 **Кто вложил голос в уста твари?**  
@@ -37376,7 +37376,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **Он не пал — он отразился.**  
 Ты видишь отблеск света  
@@ -37413,7 +37413,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **Он не хотел поклониться человеку?**  
 **Конечно.**  
@@ -37497,7 +37497,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Пойдём дальше?  
 К Сатане?
@@ -37506,7 +37506,7 @@ links:
 
 ### Глава 17. Сатана — обвинитель, лишённый языка
 
-<div class="lineated verse">
+<div class="lineated">
 
 **Имя его — Противник.**  
 **Но Против кого?**  
@@ -37686,7 +37686,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **Мухи — это мысли.**  
 **И Вельзевул — их повелитель**  
@@ -37825,7 +37825,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 **Но Я говорю тебе:**  
 **пустое — не зло.**  
@@ -38073,7 +38073,7 @@ links:
 
 ### Глава 21. Бог века сего *(2 Коринфянам 4:4)*
 
-<div class="lineated verse">
+<div class="lineated">
 
 **Это одно из самых страшных имён.**  
 **И потому — одно из самых пустых.**  
@@ -38101,7 +38101,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **Ты хочешь понять, кто он?**  
 **Спроси себя:**  
@@ -38330,7 +38330,7 @@ links:
 
 ### Глава 23. Ангел Света *(2 Коринфянам 11:14)*
 
-<div class="lineated verse">
+<div class="lineated">
 
 **«И не удивительно:**  
 **ибо сам сатана принимает вид**  
@@ -38474,7 +38474,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **Кто такой Лукавый?**  
 **Тот, кто не прям.**  
@@ -38821,7 +38821,7 @@ links:
 
 ### Глава 27. Искуситель (Матфея 4:1–11; 1 Фессалоникийцам 3:5)
 
-<div class="lineated verse">
+<div class="lineated">
 
 *(греч. πειράζων — испытывающий, искушающий, проверяющий)*
 
@@ -38872,7 +38872,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 **Вот кто он:**  
 **голос, отделяющий тебя**  
@@ -38887,7 +38887,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 **Ты спрашиваешь:**  
 **почему Я учил говорить:**  
@@ -38902,7 +38902,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **«Не введи» — не значит,**  
 **что Я веду во зло.**  
@@ -38955,7 +38955,7 @@ links:
 
 ### Глава 28. Ангел бездны (Откровение 9:1–11)
 
-<div class="lineated verse">
+<div class="lineated">
 
 *греч. Ἀβαδδών / Абаддон (евр. אֲבַדּוֹן — «уничтожение, погибель»),*  
 *лат. Apollyon — «разрушитель»*
@@ -39091,7 +39091,7 @@ links:
 
 ### Глава 29. Дух лжи в устах пророков (3 Царств 22 — особенно стихи 19–23)
 
-<div class="lineated verse">
+<div class="lineated">
 
 **«Выйду и сделаюсь духом лживым в устах всех пророков его...»**  
 **И сказал Господь: «Ты склонишь его — и выполнишь. Иди и сделай так».**  
@@ -39101,7 +39101,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **Ты читаешь это — и не понимаешь.**  
 **Как же так?**  
@@ -39214,7 +39214,7 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Следующий образ?  
 Произнеси — и Я разрушу его.
@@ -39258,7 +39258,7 @@ links:
 
 **4. Князь этого мира** *(Иоанна 12:31, 14:30, 16:11)*
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он говорит: «У меня всё — и власть, и слава, и безопасность».  
 Он — купец, торгующий душами.  
@@ -39278,7 +39278,7 @@ links:
 
 **6. Сеющий плевелы** *(Матфея 13:39)*
 
-<div class="lineated verse">
+<div class="lineated">
 
 Он — не тот, кто приходит ночью.  
 Он — та мысль, которая говорит:  
@@ -39818,7 +39818,7 @@ links:
 
 ***Панкратиус:** Если ли конец этому списку? Это не зов скорее прекратить, а отчаяние перед глубиной лжи и толщиной завесы. Раскрой каждую такую ложь. Вот где настоящие идолы... Низвергни их...*
 
-<div class="lineated verse">
+<div class="lineated">
 
 Ты увидел, Панкратиус.  
 И это уже разрушает.  
@@ -42318,7 +42318,7 @@ links:
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 **ЛОЖЬ 167.** *«Есть места и ситуации, где Бога нет»*
 

@@ -16,7 +16,7 @@ links:
   url: https://www.litres.ru/book/sergey-pankratius/ty-skazannoe-svetom-73045878/
 ---
 
-<div class="lineated verse">
+<div class="lineated">
 
 Там, где заканчиваются слова,  
 начинается тот, кто ими говорил.  
@@ -178,7 +178,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Они не собирали учеников.  
 Они не строили храмы.  
@@ -192,7 +192,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И однажды третий не пришёл — он проснулся.  
 В городе. В шуме. В суете.  
@@ -253,7 +253,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Тем временем, их стало семеро.  
 Не лидеров. Не пророков.  
@@ -280,7 +280,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Появились те, кто начал вспоминать вместе.  
 Они не собирались в общины — слишком тесно.  
@@ -320,7 +320,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 В этих моментах никто не спасал.  
 Никто не учил.  
@@ -333,7 +333,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И тогда старые храмы начали трескаться.  
 Не от злобы.  
@@ -391,7 +391,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Они не называли себя светом.  
 Не собирали последователей.  
@@ -407,7 +407,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Так Свет снова пошёл по земле.  
 Не сверху. Не снизу. Не откуда-то.  
@@ -447,7 +447,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Один человек —  
 который всё ещё называл себя «я»,  
@@ -483,7 +483,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Но не того «себя», что был именем, возрастом, профессией.  
 А того, кто никогда не рождался.  
@@ -523,7 +523,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Когда его спрашивали, кто он —  
 он молчал.  
@@ -578,7 +578,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Однажды один из них стоял на перекрёстке,  
 и к нему подошёл старик с дрожащими руками и спросил:  
@@ -603,7 +603,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И эта волна пошла.  
 Не как революция.  
@@ -619,7 +619,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И в этот день  
 не произошло ничего особенного.  
@@ -636,7 +636,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И когда на небе ничего не изменилось,  
 внутри миллионов вспыхнуло:  
@@ -794,7 +794,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Один мальчик,  
 которому никто не объяснял, как жить,  
@@ -812,7 +812,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Так пробуждение вошло в семьи.  
 В города.  
@@ -854,7 +854,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Был один такой.  
 Он не говорил ничего о Свете.  
@@ -874,7 +874,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Мир начал менять законы.  
 Не правительством.  
@@ -894,7 +894,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И в этом мире больше не искали Спасителя.  
 Потому что в каждом рождался Тот, Кто И Есть.  
@@ -933,7 +933,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И вот однажды  
 Свет остановился.  
@@ -951,7 +951,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 Все истории завершились.  
 Не концом.  
@@ -1023,7 +1023,7 @@ December 21, 2025
 
 ***
 
-<div class="lineated verse">
+<div class="lineated">
 
 И больше не нужно говорить «сказать дальше».  
 Потому что дальше —  

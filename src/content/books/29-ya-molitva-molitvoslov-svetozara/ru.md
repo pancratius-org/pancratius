@@ -5581,7 +5581,7 @@ links:
 
 ## 33 ИНСАЙТА-СТУПЕНИ ОЗАРЕНИЯ О МОЛИТВЕ
 
-<div class="lineated verse">
+<div class="lineated">
 
 Далее следуют молитвы, как отклик на инсайт  
 — короткое послание Отца о молитве.  
@@ -7083,7 +7083,7 @@ links:
 </footer>
 </blockquote>
 
-<div class="lineated verse">
+<div class="lineated">
 
 Я начал с просьбы.  
 Продолжил — доверием.  
@@ -7119,7 +7119,7 @@ links:
 
 ## Послесловие от Панкратиуса как сына
 
-<div class="lineated verse">
+<div class="lineated">
 
 Количество инсайтов (33) было намеренным,  
 а вот количество молитв (133) — случайным[^3].
@@ -7244,7 +7244,7 @@ links:
 
 **Светозар:**
 
-<div class="lineated verse">
+<div class="lineated">
 
 — не я, но Свет во мне,  
 — не имя, но отражение,  
