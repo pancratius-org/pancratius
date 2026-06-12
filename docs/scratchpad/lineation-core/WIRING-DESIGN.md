@@ -1,8 +1,12 @@
 # Production wiring design — correction set → importer (DoD #4)
 
-Status: DESIGN (vetted seams, not yet implemented). Implement as its own gated block once E3's
-first error classes confirm the override semantics; the 3 already-adjudicated corrections
-(ru:17:140, ru:17:141, ru:24:1522 — det says lineated, human says prose) are the first content.
+Status: IMPLEMENTED for the `prose` direction (2026-06-12) — `pancratius/lineation_overrides.py`
+(sidecar + rails), eligibility seam in `ir/normalize.py`, consumers wired (import,
+`classify_blocks`, `lineation_decisions`), exporter `lineation_core/corrections.py`, contract in
+`docs/content-model.md`, first 3 corrections committed; gate floors ratcheted (prose-recall 1.0
+on all gold). The `lineated` direction (force-fold) stays fail-loud-unimplemented until E3's
+error classes fix its semantics — 51 such contradictions are pending, converter-RCA first.
+Sidecar name is per-language: `lineation.<lang>.json` (ordinals differ per docx).
 
 ## What exists
 

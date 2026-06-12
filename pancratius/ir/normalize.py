@@ -1093,6 +1093,7 @@ _NEUTRAL_CONTEXT = _PrecedingContext()
 def _collect_unit(
     blocks: list[ir.Block],
     i: int,
+    overrides: Mapping[int, ir.LineationRegister],
 ) -> tuple[list[ir.Paragraph], int]:
     """Collect ONE lineation decision unit, starting at an eligible paragraph.
 
@@ -1120,7 +1121,7 @@ def _collect_unit(
         if b.empty:
             i += 1
             continue
-        if not _para_structurally_lineated(b):
+        if not _para_structurally_lineated(b) or _overridden_prose(b, overrides):
             break
         prev = run[-1]  # pending_from == i implies run[-1] is the adjacent content row
         if (
@@ -1139,14 +1140,29 @@ def _collect_unit(
     return run, i
 
 
-def lineated_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
+def _overridden_prose(p: ir.Paragraph,
+                      overrides: Mapping[int, ir.LineationRegister]) -> bool:
+    """True when an editorial correction pins this paragraph's register to prose — it then
+    never enters a lineation unit, regardless of what the ladder's evidence says."""
+    span = p.source_span
+    if span is None:
+        return False
+    return any(overrides.get(o) == "prose" for o in range(span.start, span.end + 1))
+
+
+def lineated_blocks(
+    blocks: list[ir.Block], *,
+    lineation_overrides: Mapping[int, ir.LineationRegister] | None = None,
+) -> list[ir.Block]:
     """Q1: fold source rows into `LineatedBlock`s, never `VerseBlock`s.
 
     Explicit/mechanical lineation is axiomatic: Pandoc `LineBlock`s already arrive
     as `LineatedBlock`, and paragraphs with hard `<w:br/>` boundaries are folded
     here regardless of verse register. The only non-explicit path is the named
     `_should_infer_source_row_lineation` gate below; it is source-row inference,
-    not register promotion.
+    not register promotion. An editorial `lineation_overrides` correction pinning
+    a source paragraph to prose excludes it from every fold path here (the
+    `lineated` direction is not yet appliable — fail loud, never silently drop).
 
     The walk hands `_fold_unit` one decision unit at a time with its section
     context: `after_boundary` (the unit opens a heading/thematic section — empty
@@ -1155,6 +1171,11 @@ def lineated_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
     block attached to the boundary) and `before_boundary` (a boundary follows
     across at most a gap).
     """
+    overrides = lineation_overrides or {}
+    if unappliable := sorted(o for o, r in overrides.items() if r == "lineated"):
+        raise ValueError(
+            f"lineation overrides pin ordinals {unappliable} to 'lineated', which the importer "
+            f"cannot force yet — only false lineation can be corrected today")
     out: list[ir.Block] = []
     i = 0
     n = len(blocks)
@@ -1182,9 +1203,9 @@ def lineated_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
             out.append(b)
             i += 1
             continue
-        if _para_structurally_lineated(b):
+        if _para_structurally_lineated(b) and not _overridden_prose(b, overrides):
             gid = b.lineation_group
-            run, i = _collect_unit(blocks, i)
+            run, i = _collect_unit(blocks, i, overrides)
             folded = _fold_unit(
                 run,
                 after_source_boundary=after_boundary and boundary_group in (None, gid),
@@ -1217,14 +1238,18 @@ def lineated_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
     return out
 
 
-def verse_blocks(blocks: list[ir.Block]) -> list[ir.Block]:
+def verse_blocks(
+    blocks: list[ir.Block], *,
+    lineation_overrides: Mapping[int, ir.LineationRegister] | None = None,
+) -> list[ir.Block]:
     """Q1 lineation, then Q2 verse-register promotion.
 
     This compatibility entry point preserves the old public pass name while making
     the two questions explicit: it first decides line breaks, then only wraps
     already-lineated blocks in the `verse` register.
     """
-    return promote_verse_register(lineated_blocks(blocks))
+    return promote_verse_register(
+        lineated_blocks(blocks, lineation_overrides=lineation_overrides))
 
 
 def promote_verse_register(blocks: list[ir.Block]) -> list[ir.Block]:
@@ -1862,6 +1887,7 @@ def normalize(
     demote_levels: int = 1,
     slug_lookup: _SlugLookup | None = None,
     stop_before_lineation: bool = False,
+    lineation_overrides: Mapping[int, ir.LineationRegister] | None = None,
 ) -> ir.Document:
     """Run the full normalize chain over `doc` in dependency order.
 
@@ -1887,5 +1913,5 @@ def normalize(
     doc.blocks = dialogue_labels(doc.blocks)
     if stop_before_lineation:
         return doc
-    doc.blocks = verse_blocks(doc.blocks)
+    doc.blocks = verse_blocks(doc.blocks, lineation_overrides=lineation_overrides)
     return doc
