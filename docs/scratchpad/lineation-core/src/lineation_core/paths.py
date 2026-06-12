@@ -65,3 +65,10 @@ def book_docx(book_id: BookId, lang: str = "ru") -> Path:
     if not docx.is_file():
         raise FileNotFoundError(f"no {lang}.docx in {matches[0].name}")
     return docx
+
+
+def corpus_books(lang: str) -> list[BookId]:
+    """Every book folder number with a committed `<lang>.docx` — the whole corpus for that
+    language, enumerated from disk so no module hard-codes a book list."""
+    return sorted(d.name.split("-", 1)[0] for d in BOOKS.iterdir()
+                  if d.is_dir() and (d / f"{lang}.docx").is_file())
