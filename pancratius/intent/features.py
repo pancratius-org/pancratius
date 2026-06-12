@@ -1,26 +1,14 @@
-# import-pure: no filesystem mutation
-"""The verse-register feature producer and student scorer.
-
-ONE producer: the teacher extraction (research, `docs/scratchpad/display-register/
-teacher/`), training, and the production register decision all read THESE
-features — a feature either lives here or does not exist, so teacher and
-student can never drift apart.
-
-The student artifact is a standardized logistic regression exported as plain
-JSON (feature names, means, stds, coefficients, intercept, threshold); scoring
-is a dot product — no ML dependency enters the import pipeline.
-"""
+"""The verse-register feature producer: the one feature/context source the
+teacher extraction, training, and the enrichment pass all read."""
 
 from __future__ import annotations
 
-import json
-import math
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
-from functools import lru_cache
-from pathlib import Path
 
 from pancratius import ir
+from pancratius.ir.normalize import inline_plain, is_verse_section_title
 
 _TERM_RE = re.compile(r"[.!?…]\s*$")
 _DASH_RE = re.compile(r"^[—–-]\s")
@@ -29,8 +17,8 @@ _DIVINE_RE = re.compile(r"\b(Я|Меня|Мне|Мной|Мой|Моя|Моё|М
 _QUOTE_OPEN_RE = re.compile(r"^[«\"„]")
 _NUM_LEAD_RE = re.compile(r"^\d{1,4}[.:)\s]")
 
-# The exported feature order; the artifact pins the same list and the scorer
-# refuses a mismatch (fail loud on drift).
+# The exported feature order; the student artifact pins the same list and the
+# loader refuses a mismatch (fail loud on drift).
 FEATURE_NAMES = (
     "n_lines", "mean_len", "max_len", "cv_len", "term_rate", "dash_rate",
     "q2p_rate", "divine_rate", "quote_open_rate", "num_lead_rate",
@@ -49,19 +37,66 @@ class BookStats:
     lineated_frac: float
 
 
+def book_stats(blocks: list[ir.Block]) -> BookStats:
+    para_lens = [
+        len(inline_plain(b.inlines))
+        for b in blocks
+        if isinstance(b, ir.Paragraph) and not b.empty
+    ]
+    lineated = sum(1 for b in blocks if isinstance(b, (ir.LineatedBlock, ir.VerseBlock)))
+    total = len(para_lens) + lineated
+    return BookStats(
+        mean_para_len=sum(para_lens) / len(para_lens) if para_lens else 0.0,
+        lineated_frac=lineated / total if total else 0.0,
+    )
+
+
+@dataclass(frozen=True)
+class RegisterContext:
+    """What precedes a candidate block. Empty rows are TRANSPARENT: a heading
+    followed by a blank row still heads the next content block."""
+
+    heading: bool = False
+    named: bool = False
+    separator: bool = False
+
+
+def iter_with_register_context(
+    blocks: list[ir.Block],
+) -> Iterator[tuple[ir.Block, RegisterContext]]:
+    """Yield every block with its register context — the one walker both the
+    teacher extraction and the enrichment pass read."""
+    ctx = RegisterContext()
+    for b in blocks:
+        yield b, ctx
+        if isinstance(b, ir.Heading):
+            ctx = RegisterContext(heading=True, named=is_verse_section_title(inline_plain(b.inlines)))
+        elif isinstance(b, ir.ThematicBreak):
+            ctx = RegisterContext(separator=True)
+        elif isinstance(b, ir.Paragraph) and b.empty:
+            pass  # blank rows are transparent
+        else:
+            ctx = RegisterContext()
+
+
+def lineated_lines(block: ir.LineatedBlock | ir.VerseBlock) -> list[str]:
+    return [
+        inline_plain(line)
+        for stanza in block.stanzas
+        for line in stanza
+        if inline_plain(line)
+    ]
+
+
 def verse_register_features(
     lines: list[str],
     stanzas: ir.LineatedStanzas,
     evidence: ir.LineationEvidence,
     *,
-    ctx_heading: bool,
-    ctx_named: bool,
-    ctx_separator: bool,
+    ctx: RegisterContext,
     book: BookStats,
 ) -> dict[str, float]:
     """The block's register feature vector (keys = ``FEATURE_NAMES``)."""
-    from pancratius.ir.normalize import inline_plain
-
     n = len(lines)
     lens = [len(x) for x in lines] or [0]
     mean_len = sum(lens) / len(lens)
@@ -92,51 +127,9 @@ def verse_register_features(
         "ev_inferred": float(evidence.inferred_source_rows),
         "ev_stanza_break": float(evidence.stanza_break),
         "ev_compact_callout": float(evidence.compact_callout),
-        "ctx_heading": float(ctx_heading),
-        "ctx_named": float(ctx_named),
-        "ctx_separator": float(ctx_separator),
+        "ctx_heading": float(ctx.heading),
+        "ctx_named": float(ctx.named),
+        "ctx_separator": float(ctx.separator),
         "len_vs_book": mean_len / book.mean_para_len if book.mean_para_len else 0.0,
         "book_lineated_frac": book.lineated_frac,
     }
-
-
-@dataclass(frozen=True)
-class StudentModel:
-    """A standardized-logistic student: ``p(verse | features)``."""
-
-    features: tuple[str, ...]
-    mean: tuple[float, ...]
-    std: tuple[float, ...]
-    coef: tuple[float, ...]
-    intercept: float
-    threshold: float
-
-    def probability(self, feats: dict[str, float]) -> float:
-        z = self.intercept
-        for name, mu, sd, w in zip(self.features, self.mean, self.std, self.coef, strict=True):
-            z += w * ((feats[name] - mu) / sd)
-        return 1.0 / (1.0 + math.exp(-z))
-
-
-_MODEL_PATH = Path(__file__).parent / "verse_register_student.json"
-
-
-@lru_cache(maxsize=1)
-def load_student() -> StudentModel | None:
-    """The committed student artifact, or ``None`` when absent (the
-    deterministic ladder then owns the decision alone)."""
-    if not _MODEL_PATH.exists():
-        return None
-    raw = json.loads(_MODEL_PATH.read_text(encoding="utf-8"))
-    if tuple(raw["features"]) != FEATURE_NAMES:
-        raise ValueError(
-            "verse-register student artifact feature schema drifted from the producer"
-        )
-    return StudentModel(
-        features=tuple(raw["features"]),
-        mean=tuple(raw["mean"]),
-        std=tuple(raw["std"]),
-        coef=tuple(raw["coef"]),
-        intercept=float(raw["intercept"]),
-        threshold=float(raw["threshold"]),
-    )

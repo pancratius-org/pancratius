@@ -643,9 +643,7 @@ def _blockquote_md(b: ir.BlockQuote, lang: str) -> str | None:
     continuation, and authored hard breaks inside members stay display lines.
 
     A roleless quote (Pandoc-born, from a Word Quote style/indent) keeps the
-    legacy line-prefix join — its members fuse by lazy continuation. Whether
-    those should preserve member boundaries is a separate lineation-in-quotes
-    decision; changing it here would silently rewrite every existing quote."""
+    line-prefix join: its members fuse by lazy continuation."""
     if b.role == "_div":
         return "\n\n".join(filter(None, (_block_md(x, lang) for x in b.blocks))) or None
     if b.role == "scripture":

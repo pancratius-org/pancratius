@@ -496,10 +496,8 @@ def lineation_decisions(docx: Path) -> dict[int, bool]:
 
     def paragraph_verdict(p: ir.Paragraph) -> set[int]:
         """A paragraph's per-line truth: prose, unless it carries authored hard
-        breaks (a register-quote member keeps the verdict it had before the
-        display-register pass wrapped it — it folded to a hard-break
-        LineatedBlock then), with the same prose-length mirror as
-        ``hard_break_prose``."""
+        breaks with verse-length lines (the same prose-length mirror as
+        ``hard_break_prose``)."""
         lines = inline_lines(p.inlines, soft_break=False)
         if len(lines) <= 1:
             return prose
