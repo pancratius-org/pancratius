@@ -1,20 +1,20 @@
 # research-pure: pins the production importer's lineation floors — the converter-change gate.
 """Any `pancratius/` change that can move the importer's lineation verdict must hold these
-floors. They are exact measurements (the importer is deterministic, the truth committed), so a
-breach is a real regression, never noise; an intentional improvement ratchets the floor UP in
-the same change. `prose_recall` guards the trusted direction — "det=lineated is essentially
-never wrong" is the budget ladder's load-bearing beam — and `n_uncovered == 0` proves every
-truth line still receives a verdict."""
+floors. The memberships are FROZEN, so truth growth never moves the gate; only a converter
+change or a member's deliberate re-adjudication can — both are investigated, and an intentional
+improvement ratchets the floor UP in the same change. `prose_recall` guards the trusted
+direction — "det=lineated is essentially never wrong" is the budget ladder's load-bearing
+beam — and `n_uncovered == 0` proves every member line still receives a verdict."""
 from __future__ import annotations
 
 import pytest
 
 from lineation_core.evaluation import det_regression
 
-# (balanced_acc, prose_recall) floors per truth set — the 2026-06-11 post-IR-rework measurement
-# truncated to 6 decimals, so the exact value passes and any real drop fails.
+# (balanced_acc, prose_recall) floors per frozen membership — the 2026-06-11 post-IR-rework
+# measurement truncated to 6 decimals, so the exact value passes and any real drop fails.
 FLOORS = {
-    "trainable-gold": (0.963562, 0.978260),
+    "det-gate": (0.963562, 0.978260),
     "reader_bench": (0.958231, 0.978260),
     "contested": (0.916863, 0.989690),
     "prompt_structural": (0.812500, 1.000000),
