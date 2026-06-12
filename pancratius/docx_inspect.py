@@ -56,7 +56,7 @@ class ParaRow:
     spacing: dict[str, str]
     indent: dict[str, str]  # w:ind attrs (firstLine / left / hanging) — prose tell
     numbered: bool        # w:numPr — a list item
-    bordered: bool        # w:pBdr
+    border: ir.BorderKind  # w:pBdr gesture kind ("box"/"rule"/"other"; "" = none)
     heading: bool
     thematic: bool
     br_count: int         # hard <w:br/> inside the paragraph (authored lineation)
@@ -179,7 +179,7 @@ def read_rows(docx: Path) -> list[ParaRow]:
                         else False
                     ),
                 )
-                bordered = ppr.find(f"{W}pBdr") is not None if ppr is not None else False
+                border = da.border_kind(ppr)
                 align = da._w_val(ppr.find(f"{W}jc") if ppr is not None else None)
                 row = ParaRow(
                     index=len(rows),
@@ -191,7 +191,7 @@ def read_rows(docx: Path) -> list[ParaRow]:
                     spacing=spacing,
                     indent=_ind_attrs(ppr),
                     numbered=numbered,
-                    bordered=bordered,
+                    border=border,
                     heading=heading,
                     thematic=thematic,
                     br_count=_br_count(child),
@@ -210,7 +210,7 @@ def read_rows(docx: Path) -> list[ParaRow]:
                     src.append(da._SourceParagraph(
                         align=align, text=txt, style=style,
                         contextual_spacing=contextual, spacing=spacing,
-                        indent=da._indent_attrs(ppr), bordered=bordered,
+                        indent=da._indent_attrs(ppr), border=border,
                         heading=heading, thematic=thematic,
                         source_span=ir.SourceSpan(row.index, row.index),
                         source_segment=source_segment,
@@ -576,8 +576,8 @@ def _flags(row: ParaRow) -> str:
         out.append(f"br×{row.br_count}")
     if row.numbered:
         out.append("list")
-    if row.bordered:
-        out.append("bdr")
+    if row.border:
+        out.append(f"bdr:{row.border}")
     if row.heading:
         out.append("H")
     if row.thematic:

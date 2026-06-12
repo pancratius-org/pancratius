@@ -30,6 +30,11 @@ QuoteKind = Literal["single", "double"]
 # without verse register is represented by `LineatedBlock`; `VerseBlock` adds this
 # register on top of the same lineation wrapper.
 VerseRole = Literal["verse"]
+# Paragraph border gesture (OOXML `w:pBdr`), reduced to the two editorially
+# meaningful kinds: a full four-side box ("box" — quoted/framed canonical text)
+# and a left-rule bar ("rule" — a set-apart inset passage). Any other side
+# combination is "other"; no border is "".
+BorderKind = Literal["", "box", "rule", "other"]
 # Open JSON-ish records at the IR boundary. Pandoc table raw nodes stay opaque;
 # bibliography entries are structured enough to name, but intentionally open-ended.
 type JsonObject = dict[str, object]
@@ -264,7 +269,9 @@ class Paragraph:
     paragraph shape (within-book directioned, not the raw presence of `w:ind`):
     such short paragraphs are usually running prose, while undeparting compact
     callouts can be source lineation. `italic` records that every text-bearing
-    run carried italic (an epigraph signal).
+    run carried italic (an epigraph signal). `border` is the paragraph's
+    `w:pBdr` gesture kind — display-register evidence (scripture box / inset
+    rule), meaningful only against the book's own border baseline.
     """
 
     inlines: list[Inline]
@@ -273,6 +280,7 @@ class Paragraph:
     italic: bool = False
     lineation_group: int | None = None
     indented: bool = False
+    border: BorderKind = ""
     source_span: SourceSpan | None = None
 
 
