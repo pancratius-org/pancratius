@@ -25,9 +25,7 @@ from typing import assert_never
 
 from pancratius import ir
 from pancratius.ir.inlines import inline_lines
-from pancratius.passes.assets import plan_assets as assign_assets  # noqa: F401  re-export
 from pancratius.passes.sanitize import sanitize_urls
-from pancratius.writeplan import PlannedAsset  # noqa: F401  re-export
 
 
 def _body_image_alt(lang: str) -> str:

@@ -1,4 +1,4 @@
-"""Unit tests for the typed-IR import pipeline (ir / normalize / lower).
+"""Unit tests for the typed-IR import pipeline (ir / passes / lower).
 
 These exercise the pure stages directly on hand-built IR fixtures — no pandoc, no
 DOCX — so they run everywhere (``test_ir_adapter`` covers the adapter end-to-end
@@ -14,14 +14,15 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal, TypeIs
 
-import pancratius.ir.lower as lower
-import pancratius.ir.normalize as normalize
+import pancratius.lower as lower
 from pancratius import (
     docx_conversion,
     ir,
 )
 from pancratius.content_catalog import IndexHit
-from pancratius.ir.normalize import AI_ALT_FRAGMENTS
+from pancratius.ir.inlines import inline_lines, inline_plain
+from pancratius.passes import assets, endmatter, lineation, register, scrub, structure
+from pancratius.passes.scrub import AI_ALT_FRAGMENTS
 
 
 # Narrowing helpers: the IR Block/Inline unions need an isinstance check before a
@@ -52,7 +53,7 @@ def _block_texts(blocks: list[ir.Block]) -> list[str]:
     texts: list[str] = []
     for block in blocks:
         if isinstance(block, (ir.Heading, ir.Paragraph)):
-            texts.append(normalize.inline_plain(block.inlines))
+            texts.append(inline_plain(block.inlines))
     return texts
 
 
@@ -116,7 +117,7 @@ def test_bibliography_target_resolution_ignores_terminal_period() -> None:
             kind="book",
         ),
     }
-    assert normalize._resolve_target("Книга Бытия (живая)", lookup) == {
+    assert endmatter._resolve_target("Книга Бытия (живая)", lookup) == {
         "kind": "book",
         "number": 65,
     }
@@ -131,15 +132,15 @@ def test_inline_plain_flattens_emphasis_and_collapses_whitespace() -> None:
     inlines: list[ir.Inline] = [
         ir.Text("a "), ir.Emphasis("strong", [ir.Text("b")]), ir.SoftBreak(), ir.Text("c"),
     ]
-    assert normalize.inline_plain(inlines) == "a b c"
+    assert inline_plain(inlines) == "a b c"
 
 
 def test_inline_lines_splits_on_breaks() -> None:
     inlines: list[ir.Inline] = [
         ir.Text("one"), ir.LineBreak(), ir.Text("two"), ir.SoftBreak(), ir.Text("three"),
     ]
-    lines = normalize.inline_lines(inlines)
-    assert [normalize.inline_plain(ln) for ln in lines] == ["one", "two", "three"]
+    lines = inline_lines(inlines)
+    assert [inline_plain(ln) for ln in lines] == ["one", "two", "three"]
 
 
 # ---------------------------------------------------------------------------
@@ -149,14 +150,14 @@ def test_inline_lines_splits_on_breaks() -> None:
 
 def test_dialogue_label_whole_strong_with_body_splits() -> None:
     para = ir.Paragraph(inlines=[ir.Emphasis("strong", [ir.Text("Панкратиус: привет")])])
-    out = normalize.dialogue_labels([para])
+    out = structure.dialogue_labels([para])
     assert isinstance(out[0], ir.DialogueLabel) and out[0].speaker == "Панкратиус"
-    assert normalize.inline_plain(_para(out[1]).inlines) == "привет"
+    assert inline_plain(_para(out[1]).inlines) == "привет"
 
 
 def test_dialogue_label_bare_label_no_body() -> None:
     para = ir.Paragraph(inlines=[ir.Emphasis("strong", [ir.Text("Светозар:")])])
-    out = normalize.dialogue_labels([para])
+    out = structure.dialogue_labels([para])
     assert len(out) == 1 and isinstance(out[0], ir.DialogueLabel)
     assert out[0].speaker == "Светозар"
 
@@ -169,9 +170,9 @@ def test_dialogue_label_mixed_leading_strong_then_prose_splits() -> None:
         ir.Text(" body continues "),
         ir.Emphasis("emph", [ir.Text("here")]),
     ])
-    out = normalize.dialogue_labels([para])
+    out = structure.dialogue_labels([para])
     assert isinstance(out[0], ir.DialogueLabel) and out[0].speaker == "Творец"
-    assert normalize.inline_plain(_para(out[1]).inlines) == "body continues here"
+    assert inline_plain(_para(out[1]).inlines) == "body continues here"
 
 
 def test_dialogue_label_inside_body_ending_in_opening_quote_no_stray_space() -> None:
@@ -182,9 +183,9 @@ def test_dialogue_label_inside_body_ending_in_opening_quote_no_stray_space() -> 
         ir.Emphasis("strong", [ir.Text("Творец: «")]),
         ir.Text("Почему ты здесь?»"),
     ])
-    out = normalize.dialogue_labels([para])
+    out = structure.dialogue_labels([para])
     assert isinstance(out[0], ir.DialogueLabel) and out[0].speaker == "Творец"
-    assert normalize.inline_plain(_para(out[1]).inlines) == "«Почему ты здесь?»"
+    assert inline_plain(_para(out[1]).inlines) == "«Почему ты здесь?»"
 
 
 def test_dialogue_label_inside_body_normal_word_keeps_join_space() -> None:
@@ -193,13 +194,13 @@ def test_dialogue_label_inside_body_normal_word_keeps_join_space() -> None:
         ir.Emphasis("strong", [ir.Text("Творец: Смотри")]),
         ir.Text("внимательно."),
     ])
-    out = normalize.dialogue_labels([para])
-    assert normalize.inline_plain(_para(out[1]).inlines) == "Смотри внимательно."
+    out = structure.dialogue_labels([para])
+    assert inline_plain(_para(out[1]).inlines) == "Смотри внимательно."
 
 
 def test_dialogue_label_ignores_non_speaker_strong() -> None:
     para = ir.Paragraph(inlines=[ir.Emphasis("strong", [ir.Text("Заголовок главы")])])
-    out = normalize.dialogue_labels([para])
+    out = structure.dialogue_labels([para])
     assert out == [para]
 
 
@@ -212,14 +213,14 @@ def test_dialogue_multi_turn_paragraph_splits_on_hard_breaks() -> None:
         ir.Emphasis("strong", [ir.Text("Pankratius:")]), ir.Text(" Explain string theory."), ir.LineBreak(),
         ir.Emphasis("strong", [ir.Text("Svetozar:")]), ir.Text(" I will explain it simply."),
     ])
-    out = normalize.dialogue_labels([para])
+    out = structure.dialogue_labels([para])
     kinds = [type(b).__name__ for b in out]
     assert kinds == ["Paragraph", "DialogueLabel", "Paragraph", "DialogueLabel", "Paragraph"]
-    assert normalize.inline_plain(_para(out[0]).inlines) == "April 22, 2025"
+    assert inline_plain(_para(out[0]).inlines) == "April 22, 2025"
     assert isinstance(out[1], ir.DialogueLabel) and out[1].speaker == "Pankratius"
-    assert normalize.inline_plain(_para(out[2]).inlines) == "Explain string theory."
+    assert inline_plain(_para(out[2]).inlines) == "Explain string theory."
     assert isinstance(out[3], ir.DialogueLabel) and out[3].speaker == "Svetozar"
-    assert normalize.inline_plain(_para(out[4]).inlines) == "I will explain it simply."
+    assert inline_plain(_para(out[4]).inlines) == "I will explain it simply."
 
 
 def test_dialogue_single_hard_break_segment_not_over_split() -> None:
@@ -230,7 +231,7 @@ def test_dialogue_single_hard_break_segment_not_over_split() -> None:
         ir.Emphasis("strong", [ir.Text("Творец:")]), ir.Text(" первая строка"),
         ir.LineBreak(), ir.Text("вторая строка"),
     ])
-    out = normalize.dialogue_labels([para])
+    out = structure.dialogue_labels([para])
     assert isinstance(out[0], ir.DialogueLabel) and out[0].speaker == "Творец"
     # the body keeps both lines (single turn, not split into two turns)
     assert len([b for b in out if isinstance(b, ir.DialogueLabel)]) == 1
@@ -243,12 +244,12 @@ def test_dialogue_single_hard_break_segment_not_over_split() -> None:
 
 def test_strip_formatting_artifacts_drops_whole_husk_paragraph() -> None:
     husk = ir.Paragraph(inlines=[ir.Emphasis("strong", [ir.LineBreak()])])
-    assert normalize.strip_formatting_artifacts([husk]) == []
+    assert scrub.strip_formatting_artifacts([husk]) == []
 
 
 def test_strip_formatting_artifacts_removes_trailing_empty_emphasis_in_content() -> None:
     para = ir.Paragraph(inlines=[ir.Text("real text "), ir.Emphasis("strong", [ir.Text(" ")])])
-    out = normalize.strip_formatting_artifacts([para])
+    out = scrub.strip_formatting_artifacts([para])
     assert len(out) == 1
     assert lower._inlines_md(_para(out[0]).inlines, "ru").strip() == "real text"
 
@@ -260,7 +261,7 @@ def test_strip_formatting_artifacts_hoists_boundary_break_out_of_emphasis() -> N
         ir.Emphasis("emph", [ir.Text("— А что для Вадима Мария есть?"), ir.LineBreak()]),
         ir.Text("— Она — как опора."),
     ])
-    out = normalize.strip_formatting_artifacts([para])
+    out = scrub.strip_formatting_artifacts([para])
     assert lower._inlines_md(_para(out[0]).inlines, "ru") == (
         "*— А что для Вадима Мария есть?*\n— Она — как опора."
     )
@@ -273,7 +274,7 @@ def test_strip_formatting_artifacts_keeps_break_of_break_only_emphasis() -> None
         ir.Emphasis("strong", [ir.LineBreak()]),
         ir.Text("строка два"),
     ])
-    out = normalize.strip_formatting_artifacts([para])
+    out = scrub.strip_formatting_artifacts([para])
     assert lower._inlines_md(_para(out[0]).inlines, "ru") == "строка раз\nстрока два"
 
 
@@ -287,16 +288,16 @@ def test_strip_formatting_artifacts_drops_hidden_form_markers() -> None:
         ir.Paragraph(inlines=[ir.Text("End"), ir.Text(" of "), ir.Text("Form")]),
     ]
 
-    assert normalize.strip_formatting_artifacts(blocks) == []
+    assert scrub.strip_formatting_artifacts(blocks) == []
 
 
 def test_strip_formatting_artifacts_keeps_real_form_prose() -> None:
     para = ir.Paragraph(inlines=[ir.Text("Начало формы жизни — не шаблон.")])
 
-    out = normalize.strip_formatting_artifacts([para])
+    out = scrub.strip_formatting_artifacts([para])
 
     assert len(out) == 1
-    assert normalize.inline_plain(_para(out[0]).inlines) == "Начало формы жизни — не шаблон."
+    assert inline_plain(_para(out[0]).inlines) == "Начало формы жизни — не шаблон."
 
 
 # ---------------------------------------------------------------------------
@@ -309,14 +310,14 @@ def test_scrub_ai_alt_uses_production_constant_and_recurses_containers() -> None
     img = ir.ImageInline(src="x.png", alt=f"{frag} extra")
     para = ir.Paragraph(inlines=[img])
     container = ir.QuoteBlock(blocks=[ir.Paragraph(inlines=[ir.ImageInline(src="y.png", alt=frag)])])
-    out = normalize.scrub_ai_alt([para, container])
+    out = scrub.scrub_ai_alt([para, container])
     assert _first_image_alt(out[0]) == ""  # scrubbed in a top-level paragraph
     assert _first_image_alt(_blockquote(out[1]).blocks[0]) == ""  # inside a quote container
 
 
 def test_scrub_ai_alt_keeps_real_alt() -> None:
     para = ir.Paragraph(inlines=[ir.ImageInline(src="x.png", alt="A real caption")])
-    out = normalize.scrub_ai_alt([para])
+    out = scrub.scrub_ai_alt([para])
     assert _first_image_alt(out[0]) == "A real caption"
 
 
@@ -330,7 +331,7 @@ def test_strip_bare_bibliography_heading_after_lift() -> None:
         ir.Heading(level=2, inlines=[ir.Text("Библиография")]),
         ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True)),
     ]
-    assert normalize.strip_bare_bibliography_heading(blocks) == []
+    assert endmatter.strip_bare_bibliography_heading(blocks) == []
 
 
 def test_strip_bare_bibliography_heading_keeps_real_section() -> None:
@@ -338,7 +339,7 @@ def test_strip_bare_bibliography_heading_keeps_real_section() -> None:
         ir.Heading(level=2, inlines=[ir.Text("Bibliography")]),
         ir.Paragraph(inlines=[ir.Text("Real prose still here.")]),
     ]
-    assert normalize.strip_bare_bibliography_heading(blocks) == blocks
+    assert endmatter.strip_bare_bibliography_heading(blocks) == blocks
 
 
 def test_strip_endmatter_sections_drops_tail_biblio_contacts_and_copyright() -> None:
@@ -356,7 +357,7 @@ def test_strip_endmatter_sections_drops_tail_biblio_contacts_and_copyright() -> 
         ir.Paragraph(inlines=[ir.Text("© Сергей Орехов (Панкратиус), 2025, 2026")]),
     ]
 
-    out = normalize.strip_endmatter_sections(blocks)
+    out = endmatter.strip_endmatter_sections(blocks)
 
     text = "\n".join(_block_texts(out))
     assert "body 19" in text
@@ -383,7 +384,7 @@ def test_strip_endmatter_sections_keeps_mid_document_contact_section() -> None:
         ],
     ]
 
-    assert normalize.strip_endmatter_sections(blocks) == blocks
+    assert endmatter.strip_endmatter_sections(blocks) == blocks
 
 
 def test_strip_endmatter_sections_drops_mid_document_bibliography_section() -> None:
@@ -396,7 +397,7 @@ def test_strip_endmatter_sections_drops_mid_document_bibliography_section() -> N
         ir.Paragraph(inlines=[ir.Text("body after")]),
     ]
 
-    assert _block_texts(normalize.strip_endmatter_sections(blocks)) == [
+    assert _block_texts(endmatter.strip_endmatter_sections(blocks)) == [
         "Book",
         "body before",
         "Next chapter",
@@ -410,12 +411,12 @@ def test_strip_endmatter_sections_drops_mid_document_bibliography_section() -> N
 
 
 def test_thematic_break_from_stars_paragraph() -> None:
-    out = normalize.thematic_breaks([ir.Paragraph(inlines=[ir.Text("***")])])
+    out = scrub.thematic_breaks([ir.Paragraph(inlines=[ir.Text("***")])])
     assert len(out) == 1 and isinstance(out[0], ir.ThematicBreak)
 
 
 def test_empty_heading_is_dropped_before_markdown() -> None:
-    out = normalize.drop_empty_headings([
+    out = scrub.drop_empty_headings([
         ir.Heading(level=1, inlines=[ir.Text(" \n ")]),
         ir.Heading(level=2, inlines=[ir.Text("Real section")]),
     ])
@@ -424,7 +425,7 @@ def test_empty_heading_is_dropped_before_markdown() -> None:
 
 def test_demote_headings_h1_to_h2() -> None:
     h = ir.Heading(level=1, inlines=[ir.Text("Title")])
-    out = normalize.demote_headings([h], 1)
+    out = scrub.demote_headings([h], 1)
     demoted = out[0]
     assert isinstance(demoted, ir.Heading) and demoted.level == 2
 
@@ -448,7 +449,7 @@ def test_bold_heading_with_trailing_break_has_no_trailing_space() -> None:
 
 def test_right_aligned_signature_detected() -> None:
     para = ir.Paragraph(inlines=[ir.Text("Панкратиус")], facts=ir.SourceFacts(align="right"))
-    out = normalize.structural_blocks([para])
+    out = structure.fold_right_aligned([para])
     assert len(out) == 1 and isinstance(out[0], ir.Signature)
     assert out[0].lines == ["Панкратиус"]
 
@@ -465,11 +466,11 @@ def test_verse_block_from_short_lineated_run_after_named_heading() -> None:
         ir.Paragraph(inlines=[ir.Text("в сердце горит")]),
         ir.Paragraph(inlines=[ir.Text("и не гаснет")]),
     ]
-    out = normalize.verse_blocks(blocks)
+    out = register.promote_verse_register(lineation.fold_lineation(blocks))
     verse = [b for b in out if _is_verse(b)]
     assert verse and isinstance(verse[0], ir.LineatedBlock)
     assert verse[0].register is ir.Register.VERSE
-    lines = [normalize.inline_plain(line.inlines) for s in verse[0].stanzas for line in s]
+    lines = [inline_plain(line.inlines) for s in verse[0].stanzas for line in s]
     assert lines == ["Свет мой тихий", "в сердце горит", "и не гаснет"]
 
 
@@ -480,15 +481,15 @@ def test_lineation_stage_builds_lineated_block_before_register_promotion() -> No
         ir.Paragraph(inlines=[ir.Text("в сердце горит")]),
     ]
 
-    lineated = normalize.lineated_blocks(blocks)
+    lineated = lineation.fold_lineation(blocks)
     assert isinstance(lineated[1], ir.LineatedBlock)
     assert lineated[1].evidence == ir.LineationEvidence(inferred_source_rows=True)
     assert not any(_is_verse(b) for b in lineated)
 
-    promoted = normalize.verse_blocks(blocks)
+    promoted = register.promote_verse_register(lineation.fold_lineation(blocks))
     assert _is_verse(promoted[1])
 
-    staged_promoted = normalize.verse_blocks(lineated)
+    staged_promoted = register.promote_verse_register(lineation.fold_lineation(lineated))
     assert _is_verse(staged_promoted[1])
 
 
@@ -499,7 +500,7 @@ def test_register_promotion_does_not_create_lineation() -> None:
         ir.Paragraph(inlines=[ir.Text("в сердце горит")]),
     ]
 
-    promoted = normalize.promote_verse_register(blocks)
+    promoted = register.promote_verse_register(blocks)
 
     assert [type(b).__name__ for b in promoted] == ["Heading", "Paragraph", "Paragraph"]
 
@@ -511,9 +512,9 @@ def test_lineation_stage_preserves_source_row_inference_for_register_promotion()
         ir.Paragraph(inlines=[ir.Text("Я — Дыхание.")], facts=ir.SourceFacts(lineation_group=7)),
     ]
 
-    lineated = normalize.lineated_blocks(blocks)
-    direct = normalize.verse_blocks(blocks)
-    staged = normalize.verse_blocks(lineated)
+    lineated = lineation.fold_lineation(blocks)
+    direct = register.promote_verse_register(lineation.fold_lineation(blocks))
+    staged = register.promote_verse_register(lineation.fold_lineation(lineated))
 
     assert isinstance(lineated[0], ir.LineatedBlock)
     assert lineated[0].evidence == ir.LineationEvidence(inferred_source_rows=True)
@@ -522,7 +523,7 @@ def test_lineation_stage_preserves_source_row_inference_for_register_promotion()
 
 
 def test_lineation_stage_combines_source_spans() -> None:
-    out = normalize.lineated_blocks([
+    out = lineation.fold_lineation([
         ir.Heading(level=2, inlines=[ir.Text("Глава")], source_span=ir.SourceSpan(9, 9)),
         ir.Paragraph(inlines=[ir.Text("Я — Свет.")], source_span=ir.SourceSpan(10, 10)),
         ir.Paragraph(inlines=[ir.Text("Я — Слово.")], source_span=ir.SourceSpan(11, 11)),
@@ -533,7 +534,7 @@ def test_lineation_stage_combines_source_spans() -> None:
 
 
 def test_lineation_stage_keeps_internal_empty_paragraph_in_source_span() -> None:
-    out = normalize.lineated_blocks([
+    out = lineation.fold_lineation([
         ir.Paragraph(
             inlines=[ir.Text("первая строка")],
             source_span=ir.SourceSpan(1, 1),
@@ -554,7 +555,7 @@ def test_lineation_stage_keeps_internal_empty_paragraph_in_source_span() -> None
 
 
 def test_lineation_stage_ignores_edge_empty_paragraphs_for_source_span() -> None:
-    out = normalize.lineated_blocks([
+    out = lineation.fold_lineation([
         ir.Paragraph(
             inlines=[ir.Text("первая строка")],
             source_span=ir.SourceSpan(10, 10),
@@ -580,12 +581,12 @@ def test_merged_source_span_requires_complete_provenance() -> None:
 
 def test_explicit_hard_break_lineation_survives_without_verse_register() -> None:
     long_line = "Это намеренно длинная прозаическая строка, которая намного длиннее стихотворной строки и не должна получать стиховой регистр."
-    assert len(long_line) > normalize.VERSE_SHORT_LINE_MAX
+    assert len(long_line) > lineation.VERSE_SHORT_LINE_MAX
     blocks: list[ir.Block] = [
         ir.Paragraph(inlines=[ir.Text(long_line), ir.LineBreak(), ir.Text("короткая строка")]),
     ]
 
-    out = normalize.verse_blocks(blocks)
+    out = register.promote_verse_register(lineation.fold_lineation(blocks))
 
     assert len(out) == 1
     assert isinstance(out[0], ir.LineatedBlock)
@@ -608,15 +609,15 @@ def test_blank_paragraph_is_internal_stanza_break_only_between_lineated_neighbor
         ir.Paragraph(inlines=[ir.Text(prose)]),
     ]
 
-    out = normalize.lineated_blocks(blocks)
+    out = lineation.fold_lineation(blocks)
 
     assert isinstance(out[0], ir.LineatedBlock)
     assert [
-        [normalize.inline_plain(line.inlines) for line in stanza]
+        [inline_plain(line.inlines) for line in stanza]
         for stanza in out[0].stanzas
     ] == [["первая строка"], ["вторая строка"]]
     assert isinstance(out[1], ir.Paragraph)
-    assert normalize.inline_plain(out[1].inlines) == prose
+    assert inline_plain(out[1].inlines) == prose
 
 
 def test_leading_blank_boundary_is_not_lineation_or_register_evidence() -> None:
@@ -632,7 +633,7 @@ def test_leading_blank_boundary_is_not_lineation_or_register_evidence() -> None:
         ir.Paragraph(inlines=[ir.Text("третья короткая строка")]),
     ]
 
-    out = normalize.verse_blocks(blocks)
+    out = register.promote_verse_register(lineation.fold_lineation(blocks))
 
     assert not any(isinstance(b, ir.LineatedBlock) for b in out)
 
@@ -646,12 +647,12 @@ def test_compact_strong_opener_callout_preserves_lineation_without_verse_registe
         ir.Paragraph(inlines=[ir.Text("Я через него.")]),
     ]
 
-    out = normalize.verse_blocks(blocks)
+    out = register.promote_verse_register(lineation.fold_lineation(blocks))
 
     assert len(out) == 1
     assert isinstance(out[0], ir.LineatedBlock)
     assert [
-        normalize.inline_plain(line.inlines)
+        inline_plain(line.inlines)
         for stanza in out[0].stanzas
         for line in stanza
     ] == [
@@ -674,7 +675,7 @@ def test_indented_strong_opener_callout_stays_prose() -> None:
         ir.Paragraph(inlines=[ir.Text("Я в нём.")], facts=ir.SourceFacts(indented=True)),
     ]
 
-    out = normalize.verse_blocks(blocks)
+    out = register.promote_verse_register(lineation.fold_lineation(blocks))
 
     assert not any(isinstance(b, ir.LineatedBlock) for b in out)
 
@@ -690,12 +691,12 @@ def test_inline_lines_softbreak_is_space_in_verse_detection() -> None:
     inlines: list[ir.Inline] = [
         ir.Text("one"), ir.SoftBreak(), ir.Text("two"), ir.SoftBreak(), ir.Text("three"),
     ]
-    lines = normalize.inline_lines(inlines, soft_break=False)
-    assert [normalize.inline_plain(ln) for ln in lines] == ["one two three"]
+    lines = inline_lines(inlines, soft_break=False)
+    assert [inline_plain(ln) for ln in lines] == ["one two three"]
     # A hard LineBreak STILL splits, even with soft_break=False.
     inlines2: list[ir.Inline] = [ir.Text("a"), ir.LineBreak(), ir.Text("b")]
-    lines2 = normalize.inline_lines(inlines2, soft_break=False)
-    assert [normalize.inline_plain(ln) for ln in lines2] == ["a", "b"]
+    lines2 = inline_lines(inlines2, soft_break=False)
+    assert [inline_plain(ln) for ln in lines2] == ["a", "b"]
 
 
 def test_inline_lines_recurses_into_emphasis_for_nested_linebreaks() -> None:
@@ -708,8 +709,8 @@ def test_inline_lines_recurses_into_emphasis_for_nested_linebreaks() -> None:
             ir.Text("Я — Свет."),
         ]),
     ]
-    lines = normalize.inline_lines(para_inlines, soft_break=False)
-    assert [normalize.inline_plain(ln) for ln in lines] == [
+    lines = inline_lines(para_inlines, soft_break=False)
+    assert [inline_plain(ln) for ln in lines] == [
         "Свет — не фотон.", "Фотон — отпечаток.", "Я — Свет.",
     ]
     # each surviving fragment is still an Emphasis span (emphasis preserved)
@@ -726,7 +727,7 @@ def test_softbreak_only_paragraph_stays_prose() -> None:
         ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True)),
         ir.Paragraph(inlines=[ir.Text("Он не движется."), ir.SoftBreak(), ir.Text("Он просто светит.")]),
     ]
-    out = normalize.verse_blocks(blocks)
+    out = register.promote_verse_register(lineation.fold_lineation(blocks))
     assert not any(_is_verse(b) for b in out)
 
 
@@ -739,10 +740,10 @@ def test_linebreak_in_emphasis_paragraph_becomes_verse() -> None:
             ir.Text("Когда ты ищешь поле, ты приближаешься."),
         ])])
     blocks: list[ir.Block] = [verse_para()]
-    out = normalize.verse_blocks(blocks)
+    out = register.promote_verse_register(lineation.fold_lineation(blocks))
     verse = [b for b in out if _is_verse(b)]
     assert verse, "an Emph-nested-LineBreak paragraph must be detected as verse"
-    lines = [normalize.inline_plain(line.inlines) for s in verse[0].stanzas for line in s]
+    lines = [inline_plain(line.inlines) for s in verse[0].stanzas for line in s]
     assert lines == [
         "Свет — не фотон. Свет — это Я.",
         "Фотон — только отпечаток взгляда.",
@@ -852,7 +853,7 @@ def test_lower_directional_span_in_verse_line() -> None:
 def test_inline_plain_descends_into_directional_span() -> None:
     # The directional span is a container inline: plain-text flattening (used by
     # detection passes) must read through it, not drop its text.
-    assert normalize.inline_plain(
+    assert inline_plain(
         [ir.DirectionalSpan(direction="rtl", children=[ir.Text("שלום")])]
     ) == "שלום"
 
@@ -1196,7 +1197,7 @@ def test_asset_absolute_src_is_rejected_with_diagnostic(tmp_path: Path) -> None:
         ir.Paragraph(inlines=[ir.ImageInline(src=str(outside), alt="")]),
     ])
     diags: list[ir.Diagnostic] = []
-    doc, planned = lower.assign_assets(doc, media_root, diags)
+    doc, planned = assets.plan_assets(doc, media_root, diags)
 
     # No asset planned for the escaping ref; the ref is DROPPED (not kept).
     assert planned == []
@@ -1218,7 +1219,7 @@ def test_asset_parent_escaping_src_is_rejected_with_diagnostic(tmp_path: Path) -
         ir.Paragraph(inlines=[ir.ImageInline(src="../../secret.png", alt="")]),
     ])
     diags: list[ir.Diagnostic] = []
-    doc, planned = lower.assign_assets(doc, media_root, diags)
+    doc, planned = assets.plan_assets(doc, media_root, diags)
 
     assert planned == []
     assert _para(doc.blocks[0]).inlines == [], "the parent-escaping image ref must be dropped"
@@ -1237,7 +1238,7 @@ def test_asset_legit_src_under_media_root_still_planned(tmp_path: Path) -> None:
     doc = ir.Document(blocks=[
         ir.Paragraph(inlines=[ir.ImageInline(src="sub/pic.png", alt="")]),
     ])
-    doc, planned = lower.assign_assets(doc, media_root, [])
+    doc, planned = assets.plan_assets(doc, media_root, [])
 
     assert len(planned) == 1
     assert planned[0].rel_within.startswith("images/")
@@ -1258,7 +1259,7 @@ def test_asset_inline_image_inside_lineated_block_is_planned(tmp_path: Path) -> 
             [ir.Line([ir.Text("see "), ir.ImageInline(src="pic.png", alt="caption")])],
         ]),
     ])
-    doc, planned = lower.assign_assets(doc, media_root, [])
+    doc, planned = assets.plan_assets(doc, media_root, [])
 
     assert len(planned) == 1
     assert isinstance(doc.blocks[0], ir.LineatedBlock)
@@ -1445,7 +1446,7 @@ def test_unresolvable_local_image_is_fatal_and_ref_not_emitted(tmp_path: Path) -
     img = ir.ImageInline(src="media/missing.png", alt="x")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[ir.Text("before "), img, ir.Text(" after")])])
     diags: list[ir.Diagnostic] = []
-    doc, _planned = lower.assign_assets(doc, media, diags)
+    doc, _planned = assets.plan_assets(doc, media, diags)
     _assert_diagnostic(diags, "fatal", "import.image-unresolved")
     body = lower.lower(doc, "ru", [])
     assert "missing.png" not in body, "no dangling local image ref may reach the body"
@@ -1460,7 +1461,7 @@ def test_escaping_absolute_image_is_fatal_and_ref_not_emitted(tmp_path: Path) ->
     img = ir.ImageInline(src="/etc/passwd.png", alt="x")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[img])])
     diags: list[ir.Diagnostic] = []
-    doc, _planned = lower.assign_assets(doc, media, diags)
+    doc, _planned = assets.plan_assets(doc, media, diags)
     _assert_diagnostic(diags, "fatal", "import.image-unresolved")
     body = lower.lower(doc, "ru", [])
     assert "/etc/passwd" not in body
@@ -1474,7 +1475,7 @@ def test_resolvable_local_image_assigns_asset_and_is_not_fatal(tmp_path: Path) -
     img = ir.ImageInline(src="media/image1.png", alt="x")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[img])])
     diags: list[ir.Diagnostic] = []
-    doc, planned = lower.assign_assets(doc, tmp_path / "media", diags)
+    doc, planned = assets.plan_assets(doc, tmp_path / "media", diags)
     assert planned, "a resolvable image must produce a planned asset"
     assert not [d for d in diags if d.severity == "fatal"]
     body = lower.lower(doc, "ru", [])
@@ -1507,7 +1508,7 @@ def test_remote_http_image_is_kept_not_fatal(tmp_path: Path) -> None:
     img = ir.ImageInline(src="https://example.org/a.png", alt="x")
     doc = ir.Document(blocks=[ir.Paragraph(inlines=[img])])
     diags: list[ir.Diagnostic] = []
-    doc, _planned = lower.assign_assets(doc, media, diags)
+    doc, _planned = assets.plan_assets(doc, media, diags)
     assert not [d for d in diags if d.severity == "fatal"]
     body = lower.lower(doc, "ru", [])
     assert "https://example.org/a.png" in body

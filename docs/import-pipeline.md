@@ -18,12 +18,13 @@ mutation stay separated so a source-format adapter cannot quietly write into
 
 1. **`WritePlan` — filesystem boundary.** Import produces a plan; it does not
    write. Only the writer applies a plan. Every stage upstream of the writer is
-   pure or scratch-only, so adapters and normalizers cannot reach `src/content`.
+   pure or scratch-only, so adapters and passes cannot reach `src/content`.
 
 2. **Block IR — semantic boundary.** A small typed block model separates
-   source-format parsing from Pancratius normalization and lowering. After the
-   adapter, nothing is DOCX-shaped; it is blocks, footnotes, bibliography, and
-   diagnostics.
+   source-format parsing from the Pancratius passes and lowering. After the
+   adapter, nothing is DOCX-shaped; it is blocks, footnotes, and bibliography.
+   Diagnostics flow through one sink on the pass context to the composition
+   point, never on the document.
 
 > Import does not write files. Import produces a `WritePlan`. Only the writer
 > applies it.
@@ -39,9 +40,8 @@ and gives tests a stable semantic surface.
 source + companions
   -> acquire        resolve sources; scratch only, never src/content
   -> parse          DOCX/OOXML adapter -> Block IR; format-specific stops here
-  -> normalize      editorial mechanics over the IR; pure, deterministic
-  -> enrich         learned passes over the IR (pancratius/intent); model-driven
-  -> analyze        diagnostics over the normalized IR; pure
+  -> passes         the declared pass pipeline over the IR; pure, deterministic
+                    given the injected parameters
   -> place          target from explicit command intent, not from the document
   -> lower          IR -> canonical Markdown + planned assets; pure
   -> plan           canonical output -> WritePlan
@@ -52,14 +52,18 @@ Every stage before `write` is pure or writes only to scratch. Stages may be
 fused in code so long as the two boundaries hold; the contract is the boundaries,
 not a fixed function count.
 
-The `normalize`/`enrich` split is by decision source, not by topic: a rule that
-is deterministic from source facts is a normalize pass; a decision driven by a
-trained artifact or corpus statistics is an enrichment pass in
-`pancratius/intent`. IR nodes carry source facts and provenance only; feature
-vectors are derived by `intent` at decision time, never stored on the IR.
-Enrichment passes are plain functions over the document, composed explicitly
-by the conversion pipeline in a fixed order; `intent` imports `ir`, never the
-reverse, and a missing model artifact makes an enrichment pass a no-op.
+Passes are code; models and policies are **parameters**. Every pass is a plain
+function over the document; anything tunable — a trained register model, the
+slug lookup, demotion depth — is injected through the pass context at the
+composition point, and an absent model means the deterministic rules decide
+alone. IR nodes carry source facts and provenance only; feature vectors are
+derived at decision time, never stored on the IR. Research and training live
+outside the package; the package ships the passes and reads committed model
+artifacts.
+
+The pipeline is declared data: an ordered tuple of named passes. Observation
+happens at named pipeline positions — an observer runs the same pipeline
+`until=` a named pass — never via flags or a parallel orchestrator.
 
 ## `WritePlan`
 
@@ -126,13 +130,22 @@ converter-owned file, never to add a new one.
 ## Block IR
 
 A typed block model, not a compiler AST. It carries only the block and inline
-kinds Pancratius canonical Markdown actually needs — prose, verse with stanza
-structure, role-tagged blockquotes and tables, asset-id images, thematic breaks,
+kinds Pancratius canonical Markdown actually needs — prose, lineated runs with
+stanza structure, quotes, lists, tables, asset-id images, thematic breaks,
 emphasis, links, code, footnote references — plus an explicit *unknown* block and
 *unknown* inline for anything unrecognized. The authoritative kind set lives in
 code, not here; the contract is the shape, not the inventory. Footnote
-definitions, the lifted bibliography, and diagnostics travel beside the blocks,
-not inside the prose.
+definitions and the lifted bibliography travel beside the blocks, not inside the
+prose; diagnostics flow through the pass-context sink.
+
+Block semantics are two axes, encoded once. The **substrate** set (what a block
+*is*: paragraph, heading, lineated run, quote, …) is closed — extending it is a
+deliberate IR change. The **`Register`** field on the set-apart substrates (what
+voice a block speaks in: ordinary, verse, scripture, inset, …) is the open axis.
+Adding a register is a fixed-size change: one enum member, one row in each total
+register→emission mapping table (pinned by totality tests), one CSS contract for
+the emitted class. A register without a product CSS contract lowers to the
+conservative base emission — under-styling is the cheap failure.
 
 Frontmatter is seeded by the importer, not carried inside the IR. The importer
 starts from the existing bundle's `<lang>.md` frontmatter (so author-owned fields
@@ -150,7 +163,7 @@ structure through string conventions.
 
 `source_span` is provenance, not structure: when the DOCX adapter can prove which
 top-level `word/document.xml` paragraphs produced a block, it records the
-inclusive ordinal range on that block. Normalization combines or copies that span
+inclusive ordinal range on that block. Passes combine or copy that span
 when it wraps, merges, or splits source-derived blocks. Lowering ignores it.
 Diagnostics such as `pancratius docx inspect` use it to map IR decisions back to
 the exact DOCX slice; missing provenance must stay missing rather than guessed.
@@ -174,9 +187,11 @@ adapter does not parse to GFM and then patch the string.
 
 Detection, normalization, and lowering rules are the part that actually changes
 over time (how verse is detected, how a footnote lowers, how an epigraph is
-recognized). Each such rule is a local edit to a normalization or lowering pass —
+recognized). Each such rule is a local edit to one pass or one lowering table —
 it must not ripple through parse, placement, or write. If changing "how verse is
 detected" forces edits in the adapter or the writer, the boundary has leaked.
+Structurally: a register *rule* change is an edit in `passes/register.py`; a
+register *mapping* change is a table row in `lower.py`.
 
 The *substance* of these rules is the body contract in
 [`content-model.md`](./content-model.md#markdown-body-contract) and the styling
@@ -289,7 +304,7 @@ the code, not by guessing from its shape.
 ## Final rules
 
 1. Source adapters parse into the IR; they do not place or write.
-2. Normalizers and analyzers transform and diagnose; they do not write.
+2. Passes transform and diagnose; they do not write.
 3. Placement comes from explicit command intent, never from the source format.
 4. Lowering produces canonical source content, not public exports.
 5. Import produces a `WritePlan`; only the writer applies it.

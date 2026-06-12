@@ -6,7 +6,7 @@ per source body paragraph, the OOXML signals that verse / signature / epigraph
 detection consumes — resolved style, ``w:contextualSpacing``, spacing attrs,
 ``w:jc`` alignment, ``w:ind`` indent, ``w:numPr`` list, ``w:pBdr`` border, the
 hard ``<w:br/>`` count, and the assigned visual ``lineation_group`` — beside the
-IR block the paragraph actually became after the full ``adapt`` → ``normalize``
+IR block the paragraph actually became after the full ``adapt`` → pass
 pipeline. A human can then see WHY a run was (or was not) folded into a
 ``verse``: the source signals on the left, the classifier's verdict on the
 right.
@@ -260,7 +260,7 @@ def _block_kind_name(block: ir.Block) -> str:
 
 def _block_lines(block: ir.Block) -> list[str]:
     """The normalized reading lines a block contributes, for membership lookup."""
-    from pancratius.ir.normalize import inline_plain
+    from pancratius.ir.inlines import inline_plain
 
     match block:
         case ir.LineatedBlock():
@@ -326,11 +326,9 @@ def classify_blocks(docx: Path) -> BlockClassifications:
     legacy/unknown blocks without provenance and for tests that exercise repeated
     text ambiguity explicitly.
     """
-    from pancratius.ir.normalize import normalize
-
     with tempfile.TemporaryDirectory(prefix="docx-inspect-") as td:
         doc = da.adapt(docx, Path(td), [])
-        doc = normalize(doc)
+        doc = run(doc, Context(lang=""))
 
     kind_of: dict[str, set[str]] = {}
     by_source = _SourceClassificationBuilder()
@@ -471,7 +469,7 @@ def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
 def lineation_decisions(docx: Path) -> dict[int, bool]:
     """THE production lineation verdict per source `w:p` ordinal.
 
-    Runs the full import pipeline (``adapt`` → ``normalize``) and reads each
+    Runs the full import pipeline (``adapt`` → ``run``) and reads each
     ordinal's fate: ``True`` when its text lowered inside a lineated/verse block,
     ``False`` when it stayed a body prose paragraph. Non-body structure (headings,
     tables, labels, …), blank paragraphs, and ordinals whose provenance did not
@@ -482,13 +480,12 @@ def lineation_decisions(docx: Path) -> dict[int, bool]:
     (``LineId(lang, book, src_ordinal, sub)``) joins against; every ``sub``
     segment of one ``w:p`` shares the ordinal's verdict.
     """
-    from pancratius.ir.normalize import normalize
-
     with tempfile.TemporaryDirectory(prefix="docx-lineation-") as td:
         doc = da.adapt(docx, Path(td), [])
-        doc = normalize(doc)
+        doc = run(doc, Context(lang=""))
 
-    from pancratius.ir.normalize import VERSE_SHORT_LINE_MAX, inline_plain
+    from pancratius.ir.inlines import inline_plain
+    from pancratius.passes.lineation import VERSE_SHORT_LINE_MAX
 
     def hard_break_prose(block: ir.LineatedBlock) -> bool:
         """A block folded ONLY because of an authored `<w:br>` whose lines are
@@ -503,7 +500,7 @@ def lineation_decisions(docx: Path) -> dict[int, bool]:
             for line in stanza
         )
 
-    from pancratius.ir.normalize import inline_lines
+    from pancratius.ir.inlines import inline_lines
 
     def paragraph_verdict(p: ir.Paragraph) -> set[int]:
         """A paragraph's per-line truth: prose, unless it carries authored hard

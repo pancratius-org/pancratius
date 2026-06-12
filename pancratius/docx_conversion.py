@@ -11,9 +11,9 @@ from typing import Any
 
 import yaml
 
-import pancratius.ir.lower as lower
-from pancratius import cross_refs, docx_adapter, footnotes, ir, ooxml
+from pancratius import cross_refs, docx_adapter, footnotes, ir, lower, ooxml
 from pancratius.content_catalog import IndexHit, dump_frontmatter
+from pancratius.passes import assets, sanitize
 from pancratius.passes.pipeline import POEM_PASSES, Context, run
 from pancratius.passes.register import RegisterModel, load_register_model
 from pancratius.paths import CACHE_ROOT, REPO_ROOT
@@ -208,7 +208,7 @@ def convert_single_docx(
     media_out: Path,
 ) -> ConvertedDocx:
     """Convert one DOCX into author-facing Markdown body + sidecar data + planned
-    body assets, through the typed-IR pipeline (adapter → normalize → lower).
+    body assets, through the typed-IR pipeline (adapter → passes → lower).
 
     Copies no media: pandoc extracts into the caller's persistent `media_out` and the
     returned `ConvertedDocx.assets` reference those files, so `media_out` must outlive
@@ -235,8 +235,8 @@ def convert_single_docx(
 
     # Neutralize unsafe URL schemes before the asset pass hashes any image, so an
     # unsafe-scheme src never reaches asset resolution; `lower` re-runs idempotently.
-    doc = lower.sanitize_urls(doc, diagnostics)
-    doc, assets = lower.assign_assets(doc, media_out, diagnostics)
+    doc = sanitize.sanitize_urls(doc, diagnostics)
+    doc, planned_assets = assets.plan_assets(doc, media_out, diagnostics)
     body = lower.lower(doc, lang, diagnostics, poem=(kind == "poem"))
     poem_chrome: PoemChrome | None = None
     if kind == "poem":
@@ -263,7 +263,7 @@ def convert_single_docx(
         bibliography=_dedupe_bibliography(doc.bibliography),
         cross_refs=refs,
         warnings=warnings,
-        assets=assets,
+        assets=planned_assets,
         diagnostics=list(diagnostics),
         poem_chrome=poem_chrome,
     )
