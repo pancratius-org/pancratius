@@ -40,6 +40,8 @@ model = "google/gemini-3.1-flash-lite"
 [[readers]]
 tag = "deepseek"
 model = "deepseek/deepseek-v4-flash"
+reasoning_max_tokens = 3000  # ds-flash is a reasoning model — cap its hidden chain so a
+                             # runaway cannot burn max_tokens and return an empty answer
 
 [roster]
 anchor = "grok"

@@ -61,9 +61,12 @@ class OpenRouterCompleter:
         return self._client
 
     def complete(self, *, model: ModelId, messages: list[Message], temperature: float,
-                 max_tokens: int, response_format: dict[str, object] | None = None) -> ChatReply:
+                 max_tokens: int, response_format: dict[str, object] | None = None,
+                 reasoning_max_tokens: int | None = None) -> ChatReply:
         """One chat completion through the SDK. When `response_format` is given (a structured-output
-        JSON schema) it is sent as-is. We do NOT set `provider.require_parameters` — these models are
+        JSON schema) it is sent as-is. `reasoning_max_tokens` caps a reasoning model's hidden chain
+        (sent as the SDK `reasoning` param) so it cannot spend the whole budget thinking and return
+        empty — the ds-flash runaway. We do NOT set `provider.require_parameters` — these models are
         not advertised for require_parameters ROUTING, so that flag 404s ("no endpoints handle the
         requested parameters"). Schema support is therefore BEST-EFFORT (the providers honor it on the
         default route to varying degrees, NOT constrained decoding) — so out-of-set/extra keys are
@@ -77,6 +80,8 @@ class OpenRouterCompleter:
         extra: dict[str, object] = {}
         if response_format is not None:
             extra["response_format"] = _sdk_response_format(response_format)
+        if reasoning_max_tokens is not None:
+            extra["reasoning"] = {"max_tokens": reasoning_max_tokens}
         last = ""
         attempt = rate_limit_hits = 0
         while True:

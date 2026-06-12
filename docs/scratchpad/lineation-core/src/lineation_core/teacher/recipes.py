@@ -49,6 +49,11 @@ class SelectionFile:
 type Selector = AllVotable | EvalSet | SelectionFile
 
 
+def _opt_int(value: object) -> int | None:
+    """A TOML int field that may be absent (`None`) — kept None, else coerced to int."""
+    return None if value is None else int(value)
+
+
 def parse_selector(text: str) -> Selector:
     """The author syntax → the ADT, at the toml edge ONLY. FAILS LOUD on an unknown kind or a
     missing name."""
@@ -123,10 +128,13 @@ def recipe_from_dict(d: Mapping[str, object], *, prompts_dir: Path | None = None
     doubles as it. A recipe gives EITHER `[prompts]` OR an inline `instructions`."""
     temperature = float(d.get("temperature", panel_mod.DEFAULT_TEMPERATURE))
     max_tokens = int(d.get("max_tokens", panel_mod.DEFAULT_MAX_TOKENS))
+    reasoning_default = d.get("reasoning_max_tokens")
     readers = tuple(ReaderConfig(tag=r["tag"], model=r["model"],
                                  modality=Modality(r.get("modality", "text")),
                                  temperature=float(r.get("temperature", temperature)),
-                                 max_tokens=int(r.get("max_tokens", max_tokens)))
+                                 max_tokens=int(r.get("max_tokens", max_tokens)),
+                                 reasoning_max_tokens=_opt_int(
+                                     r.get("reasoning_max_tokens", reasoning_default)))
                     for r in d.get("readers", []))
     tags = [r.tag for r in readers]
     if len(set(tags)) != len(tags):
