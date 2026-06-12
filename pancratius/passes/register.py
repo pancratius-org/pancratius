@@ -69,17 +69,6 @@ def _border_rates(blocks: list[ir.Block]) -> dict[ir.BorderKind, float]:
     return {kind: n / len(text_paras) for kind, n in counts.items()}
 
 
-def _run_register(
-    blocks: list[ir.Block], i: int, contrastive: set[ir.BorderKind],
-) -> ir.Register | None:
-    b = blocks[i]
-    if not isinstance(b, ir.Paragraph) or b.empty:
-        return None
-    if b.border not in contrastive:
-        return None
-    return _REGISTER_BY_BORDER[b.border]
-
-
 def fold_quote_registers(blocks: list[ir.Block]) -> list[ir.Block]:
     """Wrap contiguous contrastively-bordered paragraph runs into quote blocks.
 
@@ -99,13 +88,16 @@ def fold_quote_registers(blocks: list[ir.Block]) -> list[ir.Block]:
     i = 0
     n = len(blocks)
     while i < n:
-        register = _run_register(blocks, i, contrastive)
-        if register is None:
-            out.append(blocks[i])
+        first = blocks[i]
+        if not (
+            isinstance(first, ir.Paragraph)
+            and not first.empty
+            and first.border in contrastive
+        ):
+            out.append(first)
             i += 1
             continue
-        first = blocks[i]
-        assert isinstance(first, ir.Paragraph)
+        register = _REGISTER_BY_BORDER[first.border]
         kind = first.border
         members: list[ir.Paragraph] = [first]
         j = i + 1
@@ -176,9 +168,9 @@ def is_equation_scaffold(lines: list[str]) -> bool:
 def is_dash_scaffold(lines: list[str]) -> bool:
     """A pure dash-led enumeration («— возражения…», optionally after a colon
     opener): list scaffolding that keeps its line structure but is never the
-    elevated verse register. Deliberately strict — a PARTIALLY dash-led run is
-    kept, because anaphoric litanies inside oracle passages mix dash lines
-    with framing verse lines."""
+    elevated verse register. Strict: a PARTIALLY dash-led run is kept, because
+    anaphoric litanies inside oracle passages mix dash lines with framing
+    verse lines."""
     body = lines[1:] if lines and lines[0].rstrip().endswith(":") else lines
     return len(body) >= 2 and all(_DASH_LINE_RE.match(line) for line in body)
 
@@ -256,11 +248,12 @@ def iter_with_register_context(
 
 
 def lineated_lines(block: ir.LineatedBlock) -> list[str]:
+    """The block's non-empty plain display lines."""
     return [
-        inline_plain(line.inlines)
+        text
         for stanza in block.stanzas
         for line in stanza
-        if inline_plain(line.inlines)
+        if (text := inline_plain(line.inlines))
     ]
 
 
@@ -404,7 +397,7 @@ def assign_register(doc: ir.Document, ctx: Context) -> ir.Document:
 
 
 def promote_verse_register(blocks: list[ir.Block]) -> list[ir.Block]:
-    """The ladder-only promotion (no model) — the rule policy and compat name."""
+    """Ladder-only promotion: the rule policy with no model injected."""
     return _promote(blocks, None, {}, None)
 
 
@@ -435,7 +428,7 @@ def _promote(
             i += 1
             continue
         if isinstance(b, ir.LineatedBlock) and b.register is ir.Register.VERSE:
-            if (segment := _existing_verse_coda_segment(blocks, i)) is not None:
+            if (segment := _lineated_coda_segment(blocks, i + 1, b)) is not None:
                 verse, next_i = segment
                 out.append(verse)
                 ctx = _NEUTRAL_CONTEXT
@@ -476,7 +469,7 @@ def _verdict(
     """One verse decision: hard guards, then the model where injected, the
     geometry ladder otherwise. Named verse sections always take the ladder —
     the structural prior outranks the model in both directions."""
-    lines = _lineated_block_lines(block)
+    lines = lineated_lines(block)
     if len(lines) < 2 or not all(is_lineated_line(line) for line in lines):
         return False
     if is_dash_scaffold(lines) or is_equation_scaffold(lines):
@@ -510,7 +503,7 @@ def _lineated_coda_candidate(
         return None
     i += 1
 
-    coda_lines = _lineated_block_lines(first)
+    coda_lines = lineated_lines(first)
     if not _is_compact_coda(coda_lines):
         return None
     if any(_CODA_PSEUDO_HEADING_RE.match(line) for line in coda_lines):
@@ -524,42 +517,22 @@ def _lineated_coda_candidate(
     return first, boundary_i
 
 
-def _append_coda_copy(prev: ir.LineatedBlock, coda: ir.LineatedBlock) -> ir.LineatedBlock:
-    return replace(
-        prev,
-        stanzas=[*prev.stanzas, *coda.stanzas],
-        source_span=ir.merge_source_spans((prev.source_span, coda.source_span)),
-    )
-
-
 def _lineated_coda_segment(
     blocks: list[ir.Block],
     i: int,
     prev: ir.LineatedBlock,
 ) -> tuple[ir.LineatedBlock, int] | None:
+    """`prev` extended with the coda segment found at `i`, or `None`."""
     candidate = _lineated_coda_candidate(blocks, i)
     if candidate is None:
         return None
     coda, next_i = candidate
-    return _append_coda_copy(prev, coda), next_i
-
-
-def _existing_verse_coda_segment(
-    blocks: list[ir.Block],
-    i: int,
-) -> tuple[ir.LineatedBlock, int] | None:
-    prev = blocks[i]
-    assert isinstance(prev, ir.LineatedBlock) and prev.register is ir.Register.VERSE
-    return _lineated_coda_segment(blocks, i + 1, prev)
-
-
-def _lineated_block_lines(block: ir.LineatedBlock) -> list[str]:
-    return [
-        inline_plain(line.inlines)
-        for stanza in block.stanzas
-        for line in stanza
-        if inline_plain(line.inlines)
-    ]
+    merged = replace(
+        prev,
+        stanzas=[*prev.stanzas, *coda.stanzas],
+        source_span=ir.merge_source_spans((prev.source_span, coda.source_span)),
+    )
+    return merged, next_i
 
 
 def _kind_for_lines(
