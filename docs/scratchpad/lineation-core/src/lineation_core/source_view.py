@@ -142,8 +142,9 @@ def _verdict_for(kinds: frozenset[str], span: ir.SourceSpan) -> Verdict:
 
 
 def _classify(doc: ir.Document) -> dict[int, Verdict]:
-    """Per source-ordinal verdict from a normalize(stop_before_lineation) document. An
-    ordinal absent from the map is unmapped (dropped TOC/endmatter or §14-P1) → REVIEW."""
+    """Per source-ordinal verdict from a normalize(stop_before_lineation) document. Only
+    ordinals a surviving block carries are in the map; an ordinal ABSENT was dropped by a
+    structural pass (ToC/endmatter/contacts) — `read_view` reads that absence as CONTEXT, not body."""
     kinds: dict[int, set[str]] = {}
     spans: dict[int, ir.SourceSpan] = {}
     for block in doc.blocks:
@@ -228,7 +229,14 @@ def read_view(docx: Path) -> list[Para]:
         if p.src_start is None:
             p.needs_review = True             # unmapped tail (§14-P1 span-drop)
             continue
-        verdict = verdicts.get(p.src_start, Verdict.REVIEW)
+        # An ordinal ABSENT from the normalized classification was REMOVED by a structural pass
+        # (drop_toc / strip_endmatter / scrub contacts/rights) — it is front/back matter the
+        # production importer does not emit as body, so it is CONTEXT (non-votable), NOT a votable
+        # review line. Only an ordinal the classifier saw and flagged MIXED/UNKNOWN is REVIEW. This
+        # aligns the producer's votable set with `docx_inspect.lineation_decisions` (both treat a
+        # dropped ordinal as non-body); the rare §14-P1 span-drop is excluded too — the safe
+        # direction (an unmappable line is not gold-worthy), not kept as votable junk.
+        verdict = verdicts.get(p.src_start, Verdict.CONTEXT)
         if verdict is Verdict.CONTEXT:
             p.role = Role.CONTEXT
         elif verdict is Verdict.REVIEW:
