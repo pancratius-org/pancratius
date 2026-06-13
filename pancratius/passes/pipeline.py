@@ -31,6 +31,10 @@ class Context:
     # source `w:p` ordinal; the fold pass honors them and the final check pass
     # proves they held.
     lineation_overrides: Mapping[int, ir.LineationRegister] | None = None
+    # Unmarked-canon scripture pins (`scripture.<lang>.json` sidecar), keyed by
+    # source `w:p` ordinal, valued by the named canonical source; `wrap_scripture`
+    # honors them and fails loud when a pin no longer lands on a prose paragraph.
+    scripture_overrides: Mapping[int, str] | None = None
     diagnostics: ir.DiagnosticSink = field(default_factory=list)
 
 
@@ -69,6 +73,11 @@ def _check_lineation_overrides(doc: ir.Document, ctx: Context) -> ir.Document:
     return doc
 
 
+def _wrap_scripture(doc: ir.Document, ctx: Context) -> ir.Document:
+    return replace(doc, blocks=register.wrap_scripture(
+        doc.blocks, pinned=ctx.scripture_overrides or {}))
+
+
 BOOK_PASSES: tuple[Pass, ...] = (
     ("drop_toc", _blocks(scrub.drop_toc)),
     ("scrub_rights", _blocks(scrub.scrub_rights)),
@@ -85,7 +94,7 @@ BOOK_PASSES: tuple[Pass, ...] = (
     ("fold_quote_registers", _blocks(register.fold_quote_registers)),  # ← PER_ORDINAL_SEAM
     ("fold_lineation", _fold_lineation),
     ("assign_register", register.assign_register),
-    ("wrap_scripture", _blocks(register.wrap_scripture)),
+    ("wrap_scripture", _wrap_scripture),
     ("sanitize_urls", _sanitize_urls),
     ("check_lineation_overrides", _check_lineation_overrides),
 )

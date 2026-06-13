@@ -232,6 +232,17 @@ body is verse; a sidecar beside a poem docx fails the import). The sidecar is a
 projection of the research label store into content (labels and sidecar move
 together, like docx and md); it never encodes style, only the register verdict.
 
+Unmarked canonical quotations follow the same sidecar pattern on the scripture
+axis. Most scripture is recognized structurally at import (borders, citation
+formulas), but some canonical quotes carry no marker at all and are
+recognizable only by knowing the canonical texts themselves. A
+source-adjudicated verdict is committed as `scripture.<lang>.json` beside
+`<lang>.docx`, keyed by source paragraph ordinal with the named canonical
+source (e.g. `Откр 3:11`) and a content hash of the paragraph text. Import
+wraps pinned paragraphs as scripture quote blocks; the hash is a rail (drift
+fails the import), and a pin that no longer lands on a top-level prose
+paragraph fails loudly rather than dissolve. Poems take no scripture sidecar.
+
 DOCX paragraph metadata is also source data. Pandoc's Markdown writer does not
 carry Word paragraph alignment or paragraph borders, so the converter reads
 `word/document.xml` directly for narrow semantic cases:

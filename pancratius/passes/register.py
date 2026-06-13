@@ -23,7 +23,7 @@ from __future__ import annotations
 import json
 import math
 import re
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass, replace
 from enum import StrEnum
 from pathlib import Path
@@ -274,16 +274,45 @@ def _scripture_verdicts(blocks: list[ir.Block]) -> set[int]:
     return verdicts
 
 
-def wrap_scripture(blocks: list[ir.Block]) -> list[ir.Block]:
+def _pinned_verdicts(blocks: list[ir.Block], pinned: Mapping[int, str]) -> set[int]:
+    """Block indexes claimed by sidecar pins: a top-level non-empty paragraph
+    whose source span covers a pinned ordinal. A pin no ordinal claims FAILS
+    LOUD — the pinned paragraph moved out of prose (lineated, merged, dropped),
+    so the adjudicated verdict no longer lands where it was made."""
+    verdicts: set[int] = set()
+    claimed: set[int] = set()
+    for i, b in enumerate(blocks):
+        if not (isinstance(b, ir.Paragraph) and not b.empty and b.source_span):
+            continue
+        hits = {o for o in range(b.source_span.start, b.source_span.end + 1) if o in pinned}
+        if hits:
+            verdicts.add(i)
+            claimed.update(hits)
+    if stray := set(pinned) - claimed:
+        raise ValueError(
+            f"scripture pins {sorted(stray)} claim no top-level prose paragraph — "
+            f"the source or the pipeline moved under the sidecar; re-adjudicate"
+        )
+    return verdicts
+
+
+def wrap_scripture(
+    blocks: list[ir.Block],
+    pinned: Mapping[int, str] | None = None,
+) -> list[ir.Block]:
     """Wrap contiguous scripture-verdict prose runs into scripture quote blocks.
 
     The unfenced-recall sibling of `fold_quote_registers`: same run shape
     (interior empties continue a run, never open or close it), applied to
-    body paragraphs whose own text carries canonical-quotation evidence.
+    body paragraphs whose own text carries canonical-quotation evidence — plus
+    the sidecar-pinned paragraphs (`scripture.<lang>.json`): unmarked canonical
+    quotations adjudicated by source knowledge, which no text rule can carry.
     Runs after lineation, so Q1 verdicts and verse decisions are untouched;
     per-ordinal observers keep coverage through the wrapper (members are
     claimed recursively)."""
     verdicts = _scripture_verdicts(blocks)
+    if pinned:
+        verdicts |= _pinned_verdicts(blocks, pinned)
     if not verdicts:
         return blocks
     out: list[ir.Block] = []
