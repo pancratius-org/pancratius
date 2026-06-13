@@ -69,6 +69,9 @@ def load_overrides(docx: Path) -> dict[int, str]:
         if row is None:
             raise ValueError(f"{path.name}: ordinal {ordinal} has no source paragraph in "
                              f"{docx.name} — the pin is stale; re-adjudicate or remove it")
+        if not row.text.strip():
+            raise ValueError(f"{path.name}: ordinal {ordinal} is a blank paragraph — "
+                             f"a pin must land on quotation text")
         if paragraph_sha(row.text) != text_sha:
             raise ValueError(f"{path.name}: ordinal {ordinal} text drifted under the pin "
                              f"(rail {text_sha} != live {paragraph_sha(row.text)}) — "
