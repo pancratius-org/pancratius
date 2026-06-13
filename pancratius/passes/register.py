@@ -284,6 +284,8 @@ def _pinned_verdicts(blocks: list[ir.Block], pinned: Mapping[int, str]) -> set[i
     for i, b in enumerate(blocks):
         if not (isinstance(b, ir.Paragraph) and not b.empty and b.source_span):
             continue
+        # A top-level Paragraph owns one ordinal today; the range covers the
+        # unexpected-merge case so a pin inside a fused span still claims it.
         hits = {o for o in range(b.source_span.start, b.source_span.end + 1) if o in pinned}
         if hits:
             verdicts.add(i)

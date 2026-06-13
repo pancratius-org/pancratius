@@ -77,6 +77,14 @@ def test_stale_ordinal_fails_the_load(tmp_path: Path) -> None:
         load_overrides(docx)
 
 
+def test_blank_paragraph_pin_fails_the_load(tmp_path: Path) -> None:
+    docx = tmp_path / "ru.docx"
+    _write_docx(docx, ["", "Се, гряду скоро."])
+    _write_sidecar(docx, {0: {"source": "Откр 22:7", "text_sha": paragraph_sha("")}})
+    with pytest.raises(ValueError, match="blank paragraph"):
+        load_overrides(docx)
+
+
 def test_missing_source_name_fails_the_load(tmp_path: Path) -> None:
     docx = tmp_path / "ru.docx"
     _write_docx(docx, ["Се, гряду скоро."])
