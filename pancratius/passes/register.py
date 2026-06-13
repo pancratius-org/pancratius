@@ -274,11 +274,31 @@ def _scripture_verdicts(blocks: list[ir.Block]) -> set[int]:
     return verdicts
 
 
+def _in_verse_pin_ordinals(blocks: list[ir.Block]) -> set[int]:
+    """Pin ordinals already wrapped as scripture INSIDE a lineated run — the
+    per-line scripture quotes `segment_lineated` split out as scripture
+    `QuoteBlock`s whose member is a `LineatedBlock`. Those pins were honored
+    upstream (`assign_register`), so they are not stray for this prose pass."""
+    ordinals: set[int] = set()
+    for b in blocks:
+        if not (isinstance(b, ir.QuoteBlock) and b.register is ir.Register.SCRIPTURE):
+            continue
+        for member in b.blocks:
+            if isinstance(member, ir.LineatedBlock):
+                for stanza in member.stanzas:
+                    for line in stanza:
+                        ordinals.update(_line_ordinals(line))
+    return ordinals
+
+
 def _pinned_verdicts(blocks: list[ir.Block], pinned: Mapping[int, str]) -> set[int]:
     """Block indexes claimed by sidecar pins: a top-level non-empty paragraph
-    whose source span covers a pinned ordinal. A pin no ordinal claims FAILS
-    LOUD — the pinned paragraph moved out of prose (lineated, merged, dropped),
-    so the adjudicated verdict no longer lands where it was made."""
+    whose source span covers a pinned ordinal. A pin no PROSE ordinal claims and
+    no in-verse scripture quote already wraps FAILS LOUD — the pinned paragraph
+    moved out of prose (merged, dropped, or onto an unexpected substrate), so the
+    adjudicated verdict no longer lands where it was made. A pin whose line was
+    split out as an in-verse scripture quote is already honored upstream, not
+    stray."""
     verdicts: set[int] = set()
     claimed: set[int] = set()
     for i, b in enumerate(blocks):
@@ -290,10 +310,11 @@ def _pinned_verdicts(blocks: list[ir.Block], pinned: Mapping[int, str]) -> set[i
         if hits:
             verdicts.add(i)
             claimed.update(hits)
+    claimed |= _in_verse_pin_ordinals(blocks) & set(pinned)
     if stray := set(pinned) - claimed:
         raise ValueError(
-            f"scripture pins {sorted(stray)} claim no top-level prose paragraph — "
-            f"the source or the pipeline moved under the sidecar; re-adjudicate"
+            f"scripture pins {sorted(stray)} claim no scripture paragraph or in-verse "
+            f"quote — the source or the pipeline moved under the sidecar; re-adjudicate"
         )
     return verdicts
 
@@ -411,16 +432,15 @@ def is_dash_scaffold(lines: list[str]) -> bool:
 class SpanLabel(StrEnum):
     """A per-line register class inside one lineated run — the segmentation
     vocabulary. `VERSE` keeps the run's register; `SCAFFOLD` resolves to
-    `ORDINARY` (math/enumeration is never the verse register)."""
+    `ORDINARY` (math/enumeration is never the verse register); `SCRIPTURE`
+    splits a contiguous run of canonical-quote lines out as a scripture quote
+    block (the same wrapper `wrap_scripture` produces for prose, applied at
+    line grain inside a lineated run)."""
 
     VERSE = "verse"
     SCAFFOLD = "scaffold"
+    SCRIPTURE = "scripture"
 
-
-_REGISTER_BY_LABEL: dict[SpanLabel, ir.Register] = {
-    SpanLabel.VERSE: ir.Register.VERSE,
-    SpanLabel.SCAFFOLD: ir.Register.ORDINARY,
-}
 
 # A scaffold sub-run must reach this many contiguous lines (or wholly own its
 # stanza) to split out; a single dash line inside a litany is verse texture
@@ -428,20 +448,85 @@ _REGISTER_BY_LABEL: dict[SpanLabel, ir.Register] = {
 _SCAFFOLD_SUBRUN_MIN = 2
 
 
-def scaffold_line_labeler(block: ir.LineatedBlock) -> Callable[[ir.Line], SpanLabel]:
-    """The rules-only line classifier for `block`, from the two scaffold
-    classes that already exist as run predicates.
+def _line_ordinals(line: ir.Line) -> range:
+    """The source `w:p` ordinals a line covers (empty when spanless)."""
+    if line.span is None:
+        return range(0, 0)
+    return range(line.span.start, line.span.end + 1)
+
+
+def _is_cited_quote_line(text: str) -> bool:
+    """A single display line that IS a whole canonical quotation naming its own
+    provenance — the `is_scripture_quote` channels applied at line grain (a
+    speech-introduction logion, a citation token in the quote or a trailing
+    parenthetical, a leading citation). The recall sibling of `wrap_scripture`'s
+    prose channel for a quote line standing inside a lineated run; bare «…»
+    lines (no citation, no source-naming) are NOT evidence here either."""
+    return is_scripture_quote(text)
+
+
+def _is_ref_line(text: str) -> bool:
+    """A bare scripture-citation line (`Сура 4:157`, `Ин. 4:23`) standing as its
+    own display line inside the run — the line-grain `_is_bare_cite`."""
+    return _is_bare_cite(text)
+
+
+def _whole_quote_line_indices(texts: list[str]) -> set[int]:
+    """Flat-line indices whose text is one whole «…» quotation (no citation
+    required) — the cite-adjacency channel's candidate lines."""
+    return {
+        i for i, t in enumerate(texts)
+        if t and _is_whole_quote(_split_trailing_cite(t)[0])
+    }
+
+
+def _scripture_line_ids(block: ir.LineatedBlock, pinned: frozenset[int]) -> set[int]:
+    """`id(line)` of every line that lowers as scripture inside `block`.
+
+    Three channels, mirroring the prose `wrap_scripture`:
+    * a pinned source ordinal (sidecar canon-knowledge — the LUPI rail no text
+      rule can carry; an in-verse quote line whose ordinal the round adjudicated);
+    * a cited/anchored whole-quote line (`is_scripture_quote` at line grain);
+    * cite-adjacency — a whole «…» quote line whose neighboring display line
+      (an equation/blank line is transparent to neither; immediate neighbor) is
+      a bare citation line."""
+    flat = [line for stanza in block.stanzas for line in stanza]
+    texts = [inline_plain(line.inlines) for line in flat]
+    ids: set[int] = set()
+    for line, text in zip(flat, texts, strict=True):
+        if pinned and any(o in pinned for o in _line_ordinals(line)):
+            ids.add(id(line))
+        elif text and _is_cited_quote_line(text):
+            ids.add(id(line))
+    quotes = _whole_quote_line_indices(texts)
+    refs = {i for i, t in enumerate(texts) if t and _is_ref_line(t)}
+    for i in quotes:
+        if any(0 <= j < len(flat) and j in refs for j in (i - 1, i + 1)):
+            ids.add(id(flat[i]))
+            ids.update(id(flat[j]) for j in (i - 1, i + 1) if j in refs)
+    return ids
+
+
+def scaffold_line_labeler(
+    block: ir.LineatedBlock, scripture_pins: frozenset[int] = frozenset(),
+) -> Callable[[ir.Line], SpanLabel]:
+    """The rules-only line classifier for `block`, from the scaffold and
+    scripture line-classes that already exist as run/prose predicates.
 
     Equation lines are scaffold on their own (math is never the verse
     register). Dash lines are scaffold only when their WHOLE stanza is a dash
     scaffold (`is_dash_scaffold`, colon opener included): a dash line mixed
     with verse lines inside one stanza is litany/dialogue texture, the exact
-    shape the looser per-line dash demotion was refuted on."""
+    shape the looser per-line dash demotion was refuted on. Scaffold wins over
+    scripture (an equation line is never a canonical quote). `scripture_pins`
+    are source ordinals adjudicated as in-verse canon; with the line-grain
+    citation channels they mark scripture quote lines (`_scripture_line_ids`)."""
     dash_stanza_lines: set[int] = set()
     for stanza in block.stanzas:
         texts = [t for line in stanza if (t := inline_plain(line.inlines))]
         if is_dash_scaffold(texts):
             dash_stanza_lines.update(id(line) for line in stanza)
+    scripture_lines = _scripture_line_ids(block, scripture_pins)
 
     def label(line: ir.Line) -> SpanLabel:
         text = inline_plain(line.inlines)
@@ -449,6 +534,8 @@ def scaffold_line_labeler(block: ir.LineatedBlock) -> Callable[[ir.Line], SpanLa
             return SpanLabel.SCAFFOLD
         if id(line) in dash_stanza_lines:
             return SpanLabel.SCAFFOLD
+        if id(line) in scripture_lines:
+            return SpanLabel.SCRIPTURE
         return SpanLabel.VERSE
 
     return label
@@ -479,14 +566,8 @@ def _segment_labels(
     return labels
 
 
-def _segment_fragment(
-    parent: ir.LineatedBlock,
-    members: list[tuple[int, ir.Line]],
-    label: SpanLabel,
-) -> ir.LineatedBlock:
-    """One fragment of a split run: member lines regrouped into stanzas at the
-    parent's stanza boundaries, evidence copied (all fragments share the Q1
-    fold), span merged from member line spans."""
+def _fragment_stanzas(members: list[tuple[int, ir.Line]]) -> ir.LineatedStanzas:
+    """Member lines regrouped into stanzas at the parent's stanza boundaries."""
     stanzas: ir.LineatedStanzas = []
     current: ir.Stanza = []
     current_si: int | None = None
@@ -498,11 +579,46 @@ def _segment_fragment(
         current.append(line)
     if current:
         stanzas.append(current)
+    return stanzas
+
+
+# A segmentation fragment carries proven provenance: a verse/scaffold
+# `LineatedBlock` or a scripture `QuoteBlock`. Both expose `source_span`, so the
+# span-tiler stays total over the fragment kinds.
+type _Fragment = ir.LineatedBlock | ir.QuoteBlock
+
+
+def _segment_fragment(
+    parent: ir.LineatedBlock,
+    members: list[tuple[int, ir.Line]],
+    label: SpanLabel,
+) -> _Fragment:
+    """One fragment of a split run: member lines regrouped into stanzas at the
+    parent's stanza boundaries, evidence copied (all fragments share the Q1
+    fold), span merged from member line spans.
+
+    A `SCRIPTURE` fragment lowers as a scripture quote — the same `QuoteBlock`
+    `wrap_scripture` emits for prose — wrapping the quote lines as a base
+    `lineated` member so authored line breaks survive inside the apparatus. A
+    `VERSE` fragment KEEPS the parent's register (verse stays verse; an ordinary
+    run whose only split was a scripture line stays ordinary), a `SCAFFOLD`
+    fragment demotes to `ORDINARY` — math/enumeration is never elevated."""
+    stanzas = _fragment_stanzas(members)
+    span = ir.merge_source_spans(line.span for _, line in members)
+    if label is SpanLabel.SCRIPTURE:
+        member = ir.LineatedBlock(
+            stanzas=stanzas, register=ir.Register.ORDINARY,
+            evidence=parent.evidence, source_span=span,
+        )
+        return ir.QuoteBlock(
+            blocks=[member], register=ir.Register.SCRIPTURE, source_span=span,
+        )
+    register = parent.register if label is SpanLabel.VERSE else ir.Register.ORDINARY
     return ir.LineatedBlock(
         stanzas=stanzas,
-        register=_REGISTER_BY_LABEL[label],
+        register=register,
         evidence=parent.evidence,
-        source_span=ir.merge_source_spans(line.span for _, line in members),
+        source_span=span,
     )
 
 
@@ -514,10 +630,12 @@ def segment_lineated(
 
     Classifies every line, groups maximal contiguous same-label runs (a stanza
     splits mid-stanza only where labels differ inside it), and returns one
-    `LineatedBlock` per run: register from the run's label, evidence copied
-    from the parent, `source_span` merged from member `Line.span`s. A
-    label-uniform run keeps the whole block (and its fold-derived span), only
-    resolving its register.
+    fragment per run: a `LineatedBlock` (register from the run's label) for a
+    verse/scaffold run, a scripture `QuoteBlock` for a scripture run; evidence
+    copied from the parent, `source_span` merged from member `Line.span`s. A
+    uniform verse/scaffold run keeps the whole block (and its fold-derived
+    span), only resolving its register; a uniform scripture run still rebuilds
+    as a quote block.
 
     Fragments tile the parent's span: a fragment extends through the source
     gap rows up to the next fragment's start (the fold's trailing-empties
@@ -528,13 +646,19 @@ def segment_lineated(
         (si, line) for si, stanza in enumerate(block.stanzas) for line in stanza
     ]
     labels = _segment_labels(block, label_of)
-    if len(set(labels)) <= 1:
-        register = _REGISTER_BY_LABEL[labels[0]] if labels else block.register
+    if len(set(labels)) <= 1 and (not labels or labels[0] is not SpanLabel.SCRIPTURE):
+        # A uniform run keeps its block. `VERSE` keeps the parent's register;
+        # `SCAFFOLD` demotes to ORDINARY (math/enumeration is never elevated).
+        register = (
+            block.register
+            if not labels or labels[0] is SpanLabel.VERSE
+            else ir.Register.ORDINARY
+        )
         return [
             block if register is block.register
             else replace(block, register=register)
         ]
-    fragments: list[ir.LineatedBlock] = []
+    fragments: list[_Fragment] = []
     start = 0
     for end in range(1, len(indexed) + 1):
         if end == len(indexed) or labels[end] is not labels[start]:
@@ -546,8 +670,8 @@ def segment_lineated(
 
 
 def _tile_fragment_spans(
-    fragments: list[ir.LineatedBlock],
-) -> Iterator[ir.LineatedBlock]:
+    fragments: list[_Fragment],
+) -> Iterator[_Fragment]:
     """Extend each fragment's span through the gap rows before the next
     fragment with proven provenance; spanless fragments stay spanless."""
     starts = [f.source_span.start if f.source_span else None for f in fragments]
@@ -781,7 +905,8 @@ def assign_register(doc: ir.Document, ctx: Context) -> ir.Document:
     if model is not None:
         stats = book_stats(doc.blocks)
         feats_ctx = {id(b): c for b, c in iter_with_register_context(doc.blocks)}
-    decided = _promote(doc.blocks, model, feats_ctx, stats)
+    pins = frozenset(ctx.scripture_overrides or {})
+    decided = _promote(doc.blocks, model, feats_ctx, stats, pins)
     if model is not None:
         # The rules-only re-run exists for the diagnostic below; ~2x this pass's
         # cost, accepted for batch CLI (coda merges depend on verdicts, so a
@@ -793,7 +918,7 @@ def assign_register(doc: ir.Document, ctx: Context) -> ir.Document:
             )
 
         with_model = verse_count(decided)
-        rules_only = verse_count(_promote(doc.blocks, None, {}, None))
+        rules_only = verse_count(_promote(doc.blocks, None, {}, None, pins))
         if with_model != rules_only:
             ctx.diagnostics.append(ir.Diagnostic(
                 "info", "register.model",
@@ -805,7 +930,33 @@ def assign_register(doc: ir.Document, ctx: Context) -> ir.Document:
 
 def promote_verse_register(blocks: list[ir.Block]) -> list[ir.Block]:
     """Ladder-only promotion: the rule policy with no model injected."""
-    return _promote(blocks, None, {}, None)
+    return _promote(blocks, None, {}, None, frozenset())
+
+
+def _block_pins(block: ir.LineatedBlock, pins: frozenset[int]) -> frozenset[int]:
+    """The subset of `pins` whose ordinal a line of `block` covers — the
+    in-verse canon pins this block owns. Empty when none, so the labeler's
+    scripture channels run only where a pin or a citation could match."""
+    if not pins:
+        return frozenset()
+    covered = {
+        o
+        for stanza in block.stanzas
+        for line in stanza
+        for o in _line_ordinals(line)
+    }
+    return frozenset(pins & covered)
+
+
+def _segment(block: ir.LineatedBlock, pins: frozenset[int]) -> list[ir.Block]:
+    """Segment a lineated run with the pin-aware scripture labeler."""
+    return segment_lineated(block, scaffold_line_labeler(block, _block_pins(block, pins)))
+
+
+def _has_scripture_line(block: ir.LineatedBlock, pins: frozenset[int]) -> bool:
+    """Whether `block` carries any scripture quote line (pin or citation
+    channel) — the gate for splitting an un-promoted ordinary run."""
+    return bool(_scripture_line_ids(block, _block_pins(block, pins)))
 
 
 def _promote(
@@ -813,6 +964,7 @@ def _promote(
     model: RegisterModel | None,
     feats_ctx: dict[int, RegisterContext],
     stats: BookStats | None,
+    pins: frozenset[int],
 ) -> list[ir.Block]:
     out: list[ir.Block] = []
     i = 0
@@ -837,12 +989,12 @@ def _promote(
         if isinstance(b, ir.LineatedBlock) and b.register is ir.Register.VERSE:
             if (segment := _lineated_coda_segment(blocks, i + 1, b)) is not None:
                 verse, next_i = segment
-                out.extend(segment_lineated(verse, scaffold_line_labeler(verse)))
+                out.extend(_segment(verse, pins))
                 ctx = _NEUTRAL_CONTEXT
                 i = next_i
                 continue
             ctx = _NEUTRAL_CONTEXT
-            out.extend(segment_lineated(b, scaffold_line_labeler(b)))
+            out.extend(_segment(b, pins))
             i += 1
             continue
         if isinstance(b, ir.LineatedBlock) and b.register is ir.Register.ORDINARY:
@@ -850,11 +1002,16 @@ def _promote(
                 verse = replace(b, register=ir.Register.VERSE)
                 if (segment := _lineated_coda_segment(blocks, i + 1, verse)) is not None:
                     verse, next_i = segment
-                    out.extend(segment_lineated(verse, scaffold_line_labeler(verse)))
+                    out.extend(_segment(verse, pins))
                     ctx = _NEUTRAL_CONTEXT
                     i = next_i
                     continue
-                out.extend(segment_lineated(verse, scaffold_line_labeler(verse)))
+                out.extend(_segment(verse, pins))
+            elif _has_scripture_line(b, pins):
+                # An un-promoted ordinary lineated run still splits its scripture
+                # quote lines out (the rest stays base lineated): canon recall is
+                # independent of the verse verdict.
+                out.extend(_segment(b, pins))
             else:
                 out.append(b)
             ctx = _NEUTRAL_CONTEXT
