@@ -272,7 +272,8 @@ def test_vision_build_specs_splits_an_over_page_region_and_attaches_assets(tmp_p
     # the per-page asset attachment runs over those specs with a STUB page renderer (no LibreOffice).
     rp = _stub_page_renderer()
     assets = render.make_compositor(
-        rp, docx_for=lambda b, lang: Path(f"/nonexistent/{b}/{lang}.docx"))(specs)
+        rp, docx_for=lambda b, lang: Path(f"/nonexistent/{b}/{lang}.docx"),
+        page_boundaries=lambda _docx: frozenset())(specs)   # stub: the path is never parsed
     for s in specs:
         page_assets = assets[s.region_id]
         assert page_assets and all(a.kind is AssetKind.COMPOSITE for a in page_assets)
