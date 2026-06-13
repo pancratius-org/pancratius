@@ -17,13 +17,24 @@ def res(ds):
     return student.train_cv(ds)
 
 
-def test_dataset_shape_locked(ds):
-    # 620 = the trainable labels, byte-identical to before the holdout cohort was homed in
-    # labels.jsonl — homing eval-only truth must never grow the training set.
-    assert ds.n_joined == 620
-    assert ds.n_skipped_unmapped == 2
-    assert len(ds.X) == len(ds.y) == len(ds.groups) == len(ds.ids) == 620
-    assert len(set(ds.groups)) == 26
+def test_dataset_joins_every_trainable_label(ds, corpus):
+    """The dataset is exactly the trainable truth — no silent shrinkage. A label whose line is
+    missing from the records map must surface (a stale artifact or a broken join), and unmapped
+    rejections stay visible end-to-end."""
+    _, labelset = corpus
+    assert ds.n_joined == len(labelset.trainable)
+    assert ds.n_skipped_unmapped == labelset.n_rejected_unmapped == 2
+    assert len(ds.X) == len(ds.y) == len(ds.groups) == len(ds.ids) == ds.n_joined
+
+
+def test_dataset_is_bilingual_and_groups_split_by_lang(ds):
+    """The (lang, book) re-key: en labels JOIN (the bare-book_id join silently dropped them) and
+    ru:NN / en:NN are DISTINCT CV groups — one shared folder number never folds two books."""
+    assert {lid.lang for lid in ds.ids} == {"ru", "en"}
+    assert set(ds.groups) == {lid.book_key for lid in ds.ids}
+    both = ({g.book_id for g in ds.groups if g.lang == "ru"}
+            & {g.book_id for g in ds.groups if g.lang == "en"})
+    assert both, "expected at least one folder number labeled in both languages"
 
 
 def test_holdout_labels_are_never_training_rows(ds, corpus):
@@ -55,19 +66,19 @@ def test_cv_is_book_grouped_no_leakage(ds):
     assert set(res.oof_pred.values()) <= {"prose", "lineated"}
 
 
-def test_locked_cv_number(res):
-    """Under the FIXED-render re-adjudicated truth the prose boundary recovers: the 12 trainable
-    lines the recency pass had flipped prose→lineated were render-bug verdicts (the old prose
-    render mangled multi-line content into one paragraph), not φ-noise — re-judged prose, the
-    poisoning vanishes (prose_f1 0.71 → 0.85, balanced 0.844 → 0.929). The old "the flips are
-    φ-prose-shaped but human-lineated" story was the contamination talking."""
-    assert res.n == 620
-    assert res.n_books == 26
-    assert res.balanced_accuracy == pytest.approx(0.929, abs=0.01)
-    assert res.macro_f1 == pytest.approx(0.914, abs=0.01)
-    assert res.prose_f1 == pytest.approx(0.854, abs=0.02)
-    # all-lineated scores 0.5 balanced; the student now clears the majority PLAIN acc again
-    # (0.929 > 0.852) — the recency-era inversion was an artifact of the contaminated truth.
+def test_locked_cv_number(res, corpus):
+    """The bilingual gate-era cohort (migration 620 + E1 working-half gate 726 + live
+    adjudications): balanced 0.919 / macro-F1 0.902 / prose-F1 0.828 under (lang, book)-grouped
+    LOO CV. Slightly below the human-cohort-only 0.929 — the E1 random instrument adds
+    representative (not curated) lines, including the gate-routed hard tail; the dip is the
+    honest price of an unbiased substrate, not a regression. Re-derive (run
+    `python -m lineation_core.student`) when truth grows; investigate any UNEXPLAINED drop."""
+    _, labelset = corpus
+    assert res.n == len(labelset.trainable)
+    assert res.n_books == len({g.id.book_key for g in labelset.trainable})
+    assert res.balanced_accuracy == pytest.approx(0.919, abs=0.01)
+    assert res.macro_f1 == pytest.approx(0.902, abs=0.01)
+    assert res.prose_f1 == pytest.approx(0.828, abs=0.02)
     assert res.balanced_accuracy > 0.5
     assert res.balanced_accuracy > res.majority_baseline_acc
 

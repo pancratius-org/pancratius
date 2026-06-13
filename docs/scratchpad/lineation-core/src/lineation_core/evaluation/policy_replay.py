@@ -20,7 +20,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from ..identity import BookId, Label, ReaderTag
+from ..identity import BookKey, Label, ReaderTag
 from ..teacher.decision import (
     OPERATIONAL_REASONS,
     DecisionPolicy,
@@ -57,7 +57,7 @@ class PolicyOutcome:
     `PolicyMetrics` so the decisions stay inspectable (which lines it routed, and why)."""
 
     spec: PolicySpec
-    decisions: tuple[tuple[LineDecision, Label, BookId, Stratum], ...]
+    decisions: tuple[tuple[LineDecision, Label, BookKey, Stratum], ...]
 
 
 def replay(aligned: AlignedSet, specs: tuple[PolicySpec, ...]) -> tuple[PolicyOutcome, ...]:
@@ -65,17 +65,17 @@ def replay(aligned: AlignedSet, specs: tuple[PolicySpec, ...]) -> tuple[PolicyOu
     collect the routed decisions alongside the truth/book/stratum needed to score them. Pure."""
     outcomes: list[PolicyOutcome] = []
     for spec in specs:
-        rows: list[tuple[LineDecision, Label, BookId, Stratum]] = []
+        rows: list[tuple[LineDecision, Label, BookKey, Stratum]] = []
         for line in aligned.lines:
             by_tag = {v.tag: v for v in line.votes}
             d = spec.policy.decide(line.id, by_tag, spec.roster)
-            rows.append((d, line.truth, line.id.book_id, line.stratum))
+            rows.append((d, line.truth, line.id.book_key, line.stratum))
         outcomes.append(PolicyOutcome(spec=spec, decisions=tuple(rows)))
     return tuple(outcomes)
 
 
-def _accept_by(rows: list[tuple[LineDecision, Label, BookId, Stratum]],
-               key: Callable[[BookId, Stratum], str]) -> Breakdown:
+def _accept_by(rows: list[tuple[LineDecision, Label, BookKey, Stratum]],
+               key: Callable[[BookKey, Stratum], str]) -> Breakdown:
     """Accept-metrics sliced by a per-row key (book or stratum), computed only over ACCEPTED lines —
     a slice with no accepts is simply absent (an all-zero row would imply a measured 0.0 accuracy)."""
     buckets: dict[str, list[tuple[Label, Label]]] = defaultdict(list)
@@ -106,7 +106,7 @@ def score(outcome: PolicyOutcome, aligned: AlignedSet) -> PolicyMetrics:
 
     return PolicyMetrics(
         name=outcome.spec.name, accept=accept, capture=capture, load=load,
-        by_book=_accept_by(rows, lambda book, stratum: book),
+        by_book=_accept_by(rows, lambda book, stratum: str(book)),
         by_stratum=_accept_by(rows, lambda book, stratum: str(stratum)),
         coverage=accept.n_accepted / n_total if n_total else 0.0)
 

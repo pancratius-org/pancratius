@@ -32,7 +32,9 @@ from typing import Literal, Self
 type Label = Literal["prose", "lineated"]   # the two-class verdict for one line (validated)
 type ReaderTag = str    # one panel reader: grok | deepseek | gemini | owl | mimo | minimax
 type ModelId = str      # an OpenRouter model id behind a reader, e.g. "x-ai/grok-4"
-type BookId = str       # zero-padded book folder number ("01", "64") — the CV group + join key
+type BookId = str       # zero-padded book folder number ("01", "64") — one language's folder name;
+                        # NOT unique across languages (ru:01 vs en:01) — cross-language code keys
+                        # by `BookKey`, never bare `BookId`
 type ListingKey = str   # the OUTWARD key shown for a line in a rendered listing — opaque to the
                         # renderer; the caller picks the scheme (teacher: task-local "L001"; debug:
                         # "src_ordinal.sub"). NOT a stable identity — that is `LineId`.
@@ -116,6 +118,20 @@ _UNMAPPED_BAND = 9_000_000
 
 
 @dataclass(frozen=True, slots=True, order=True)
+class BookKey:
+    """Identity of one book edition: (lang, book_id). THE cross-language book key — the CV group,
+    the `RecordsByBook` key, the per-book cap unit. A bare `BookId` collides across languages
+    (ru:01 vs en:01), so anything that spans both corpora keys by this instead. `order=True` so
+    groups sort deterministically; `str()` reads "ru:01", matching `LineId`'s prefix."""
+
+    lang: str
+    book_id: BookId
+
+    def __str__(self) -> str:
+        return f"{self.lang}:{self.book_id}"
+
+
+@dataclass(frozen=True, slots=True, order=True)
 class LineId:
     """Address of one source line. `order=True` so records sort document-order within
     a (lang, book). Serializes as a 4-element list `[lang, book_id, src_ordinal, sub]`
@@ -156,6 +172,11 @@ class LineId:
     @property
     def is_mapped(self) -> bool:
         return self.src_ordinal < _UNMAPPED_BAND
+
+    @property
+    def book_key(self) -> BookKey:
+        """The line's book edition — the cross-language join/CV key."""
+        return BookKey(self.lang, self.book_id)
 
     def as_key(self) -> LineKey:
         return [self.lang, self.book_id, self.src_ordinal, self.sub]
