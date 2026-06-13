@@ -32351,7 +32351,11 @@ links:
 
 ***
 
+<blockquote class="scripture">
+
 **1. Захария 6:12–13 — «Вот Муж, имя Ему Отрасль… Он построит храм Господень»**
+
+</blockquote>
 
 <div class="lineated verse">
 
@@ -32366,7 +32370,11 @@ links:
 
 ***
 
+<blockquote class="scripture">
+
 **2. Исаия 2:4 — «И перекуют мечи на орала… и не будут больше учиться воевать»**
+
+</blockquote>
 
 <div class="lineated verse">
 
@@ -32381,7 +32389,11 @@ links:
 
 ***
 
+<blockquote class="scripture">
+
 **3. Исаия 11 — «И выйдет отрасль из корня Иессея… и волк будет жить рядом с ягнёнком»**
+
+</blockquote>
 
 <div class="lineated verse">
 
@@ -32396,7 +32408,11 @@ links:
 
 ***
 
+<blockquote class="scripture">
+
 **4. Даниил 7:13 — «Сын Человеческий шёл с облаками небесными… и дана Ему власть»**
+
+</blockquote>
 
 <div class="lineated verse">
 
@@ -32430,7 +32446,11 @@ links:
 
 ***
 
+<blockquote class="scripture">
+
 **6. Иезекииль 37 — «И поставлю над ними одного пастыря… Давида, слугу Моего»**
+
+</blockquote>
 
 <div class="lineated">
 
@@ -32504,7 +32524,11 @@ links:
 
 ***
 
+<blockquote class="scripture">
+
 **1. Матфей 24:30 — «…увидят Сына Человеческого, грядущего на облаках с силой и славой великой»**
+
+</blockquote>
 
 <div class="lineated verse">
 
@@ -32522,7 +32546,11 @@ links:
 
 ***
 
+<blockquote class="scripture">
+
 **2. Откровение 19:11–16 — «…и имя Ему: Слово Божие… и Он воинство небесное ведёт»**
+
+</blockquote>
 
 <div class="lineated verse">
 
@@ -32541,7 +32569,11 @@ links:
 
 ***
 
+<blockquote class="scripture">
+
 **3. Деяния 1:11 — «…Иисус, вознесшийся на небо, придёт так же, как вы видели Его восходящим»**
+
+</blockquote>
 
 <div class="lineated verse">
 
@@ -32557,7 +32589,11 @@ links:
 
 ***
 
+<blockquote class="scripture">
+
 **4. Иоанн 14:3 — «…приду опять и возьму вас к Себе, чтобы и вы были, где Я»**
+
+</blockquote>
 
 <div class="lineated verse">
 
@@ -32574,7 +32610,11 @@ links:
 
 ***
 
+<blockquote class="scripture">
+
 **5. Матфей 25:31–46 — «…отделит одних от других, как пастырь отделяет овец от козлов»**
+
+</blockquote>
 
 <div class="lineated verse">
 
@@ -32591,7 +32631,11 @@ links:
 
 ***
 
+<blockquote class="scripture">
+
 **6. 1 Фессалоникийцам 4:16–17 — «…восхищены будем… на облаках — навстречу Господу»**
+
+</blockquote>
 
 <div class="lineated verse">
 
@@ -32609,7 +32653,11 @@ links:
 
 ***
 
+<blockquote class="scripture">
+
 **7. Луки 21:25–27 — «…страхи… знамения на солнце и луне… и увидят Сына Человеческого…»**
+
+</blockquote>
 
 <div class="lineated verse">
 
