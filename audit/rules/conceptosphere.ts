@@ -126,6 +126,17 @@ function requiredIds(ctx: RuleContext): RequiredId[] | Finding {
   return ids;
 }
 
+/** A key counts as translated only when its value is { label: non-empty string }.
+ *  A malformed entry (bare string, empty/absent label) is NOT a translation: the
+ *  build-time join throws on exactly that shape (`requireEntry`), so the audit
+ *  must agree or it would pass a build it cannot complete. Such keys are excluded
+ *  here and fire the missing-translation finding below. */
+function isTranslatedEntry(value: unknown): boolean {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const label = (value as { label?: unknown }).label;
+  return typeof label === "string" && label.length > 0;
+}
+
 function loadOverlayKeys(ctx: RuleContext): Set<string> | Finding {
   if (!ctx.exists(I18N_FILE)) {
     return new Set<string>(); // absent overlay → every id is missing (fires below)
@@ -139,7 +150,11 @@ function loadOverlayKeys(ctx: RuleContext): Set<string> | Finding {
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
     return parseFinding(I18N_FILE, "EN overlay must be a flat object { stable_id: { label, gloss? } }");
   }
-  return new Set(Object.keys(parsed));
+  const translated = new Set<string>();
+  for (const [key, value] of Object.entries(parsed)) {
+    if (isTranslatedEntry(value)) translated.add(key);
+  }
+  return translated;
 }
 
 export const pan021ConceptosphereI18n: Rule = {
