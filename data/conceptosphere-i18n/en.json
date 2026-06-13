@@ -1,6 +1,1337 @@
 {
-  "concept:свет": { "label": "Light", "gloss": "Divine light; the central image of the corpus." },
-  "concept:творец": { "label": "the Creator" },
-  "concept:истина": { "label": "Truth" },
-  "community:d79063b4": { "label": "Light & the Creator" }
+  "community:0053b6b6": {
+    "label": "You and I"
+  },
+  "community:0fdbdd70": {
+    "label": "Eye and Vision"
+  },
+  "community:1e211634": {
+    "label": "Man and God"
+  },
+  "community:27ae7707": {
+    "label": "Artificial Intelligence"
+  },
+  "community:28e38ed3": {
+    "label": "TriLogos"
+  },
+  "community:2d972dda": {
+    "label": "The Great Pyramid and the Gospel of the Kingdom"
+  },
+  "community:3867bf5c": {
+    "label": "Separation and Self"
+  },
+  "community:4422268d": {
+    "label": "Stillness and Voice"
+  },
+  "community:46516db4": {
+    "label": "Presence and Love"
+  },
+  "community:4cd6e957": {
+    "label": "Spirit and Discernment"
+  },
+  "community:675a65ad": {
+    "label": "Consciousness and Reality"
+  },
+  "community:7d98f4a8": {
+    "label": "Temple and Form"
+  },
+  "community:8514181e": {
+    "label": "Creator and Word"
+  },
+  "community:8c0a0ed0": {
+    "label": "Life and Death"
+  },
+  "community:97f33ad8": {
+    "label": "Christ and Return"
+  },
+  "community:99d2b32b": {
+    "label": "The Gaze"
+  },
+  "community:9a4029db": {
+    "label": "Book and Revelation"
+  },
+  "community:a7701394": {
+    "label": "The Kingdom"
+  },
+  "community:a7c34ab5": {
+    "label": "Man and Woman"
+  },
+  "community:bd720452": {
+    "label": "Subject and World"
+  },
+  "community:c296488a": {
+    "label": "Personality and Ego"
+  },
+  "community:c44f36e7": {
+    "label": "Fear and Truth"
+  },
+  "community:ca6699a6": {
+    "label": "Rider, Horse and Sword"
+  },
+  "community:d79063b4": {
+    "label": "Light and Darkness"
+  },
+  "community:ed39f7c7": {
+    "label": "Inner and Outer"
+  },
+  "concept:автор": {
+    "label": "Author"
+  },
+  "concept:белый": {
+    "label": "White"
+  },
+  "concept:бог": {
+    "label": "God"
+  },
+  "concept:божий": {
+    "label": "Of God"
+  },
+  "concept:боль": {
+    "label": "Pain"
+  },
+  "concept:бороться": {
+    "label": "To Wrestle"
+  },
+  "concept:бояться": {
+    "label": "To Fear"
+  },
+  "concept:будущее": {
+    "label": "Future"
+  },
+  "concept:буква": {
+    "label": "Letter"
+  },
+  "concept:бытие": {
+    "label": "Being"
+  },
+  "concept:вдох": {
+    "label": "Inbreath"
+  },
+  "concept:ведать": {
+    "label": "To Know"
+  },
+  "concept:век": {
+    "label": "Age"
+  },
+  "concept:великий": {
+    "label": "Great"
+  },
+  "concept:вера": {
+    "label": "Faith"
+  },
+  "concept:вести": {
+    "label": "To Lead"
+  },
+  "concept:вечность": {
+    "label": "Eternity"
+  },
+  "concept:вечный": {
+    "label": "Eternal"
+  },
+  "concept:взгляд": {
+    "label": "Gaze"
+  },
+  "concept:вид": {
+    "label": "Aspect"
+  },
+  "concept:видение": {
+    "label": "Vision"
+  },
+  "concept:вина": {
+    "label": "Guilt"
+  },
+  "concept:власть": {
+    "label": "Power"
+  },
+  "concept:внешний": {
+    "label": "Outer"
+  },
+  "concept:внимание": {
+    "label": "Attention"
+  },
+  "concept:внутренний": {
+    "label": "Inner"
+  },
+  "concept:вода": {
+    "label": "Water"
+  },
+  "concept:возвращать": {
+    "label": "To Return"
+  },
+  "concept:возвращаться": {
+    "label": "To Return"
+  },
+  "concept:возвращение": {
+    "label": "Return"
+  },
+  "concept:возможность": {
+    "label": "Possibility"
+  },
+  "concept:возникать": {
+    "label": "To Arise"
+  },
+  "concept:войти": {
+    "label": "To Enter"
+  },
+  "concept:воля": {
+    "label": "Will"
+  },
+  "concept:вопрос": {
+    "label": "Question"
+  },
+  "concept:воскресение": {
+    "label": "Resurrection"
+  },
+  "concept:восприятие": {
+    "label": "Perception"
+  },
+  "concept:враг": {
+    "label": "Enemy"
+  },
+  "concept:время": {
+    "label": "Time"
+  },
+  "concept:всадник": {
+    "label": "Rider"
+  },
+  "concept:вспоминать": {
+    "label": "To Remember"
+  },
+  "concept:встреча": {
+    "label": "Encounter"
+  },
+  "concept:второе": {
+    "label": "The Second"
+  },
+  "concept:второй": {
+    "label": "Second"
+  },
+  "concept:вход": {
+    "label": "Entrance"
+  },
+  "concept:входить": {
+    "label": "To Enter"
+  },
+  "concept:выбирать": {
+    "label": "To Choose"
+  },
+  "concept:выбор": {
+    "label": "Choice"
+  },
+  "concept:выгода": {
+    "label": "Gain"
+  },
+  "concept:выйти": {
+    "label": "To Go Out"
+  },
+  "concept:выходить": {
+    "label": "To Come Forth"
+  },
+  "concept:глаз": {
+    "label": "Eye"
+  },
+  "concept:глубина": {
+    "label": "Depth"
+  },
+  "concept:глубокий": {
+    "label": "Deep"
+  },
+  "concept:говорящий": {
+    "label": "The Speaker"
+  },
+  "concept:год": {
+    "label": "Year"
+  },
+  "concept:голос": {
+    "label": "Voice"
+  },
+  "concept:гореть": {
+    "label": "To Burn"
+  },
+  "concept:город": {
+    "label": "City"
+  },
+  "concept:готовый": {
+    "label": "Ready"
+  },
+  "concept:граница": {
+    "label": "Boundary"
+  },
+  "concept:грех": {
+    "label": "Sin"
+  },
+  "concept:дар": {
+    "label": "Gift"
+  },
+  "concept:дверь": {
+    "label": "Door"
+  },
+  "concept:движение": {
+    "label": "Movement"
+  },
+  "concept:действие": {
+    "label": "Action"
+  },
+  "concept:действовать": {
+    "label": "To Act"
+  },
+  "concept:делить": {
+    "label": "To Divide"
+  },
+  "concept:день": {
+    "label": "Day"
+  },
+  "concept:дерево": {
+    "label": "Tree"
+  },
+  "concept:держать": {
+    "label": "To Hold"
+  },
+  "concept:доверие": {
+    "label": "Trust"
+  },
+  "concept:доказательство": {
+    "label": "Proof"
+  },
+  "concept:дом": {
+    "label": "Home"
+  },
+  "concept:древо": {
+    "label": "The Tree"
+  },
+  "concept:друг": {
+    "label": "Friend"
+  },
+  "concept:дух": {
+    "label": "Spirit"
+  },
+  "concept:духовный": {
+    "label": "Spiritual"
+  },
+  "concept:душа": {
+    "label": "Soul"
+  },
+  "concept:дыхание": {
+    "label": "Breath"
+  },
+  "concept:дышать": {
+    "label": "To Breathe"
+  },
+  "concept:дьявол": {
+    "label": "Devil"
+  },
+  "concept:евангелие": {
+    "label": "Gospel"
+  },
+  "concept:египет": {
+    "label": "Egypt"
+  },
+  "concept:единственный": {
+    "label": "The Only One"
+  },
+  "concept:единство": {
+    "label": "Unity"
+  },
+  "concept:единый": {
+    "label": "The One"
+  },
+  "concept:естественный": {
+    "label": "Natural"
+  },
+  "concept:ждать": {
+    "label": "To Wait"
+  },
+  "concept:желание": {
+    "label": "Desire"
+  },
+  "concept:женщина": {
+    "label": "Woman"
+  },
+  "concept:жертва": {
+    "label": "Sacrifice"
+  },
+  "concept:живой": {
+    "label": "Living"
+  },
+  "concept:жизнь": {
+    "label": "Life"
+  },
+  "concept:жить": {
+    "label": "To Live"
+  },
+  "concept:забыть": {
+    "label": "To Forget"
+  },
+  "concept:завершение": {
+    "label": "Completion"
+  },
+  "concept:завершить": {
+    "label": "To Complete"
+  },
+  "concept:завет": {
+    "label": "Covenant"
+  },
+  "concept:зависеть": {
+    "label": "To Depend"
+  },
+  "concept:задавать": {
+    "label": "To Ask"
+  },
+  "concept:задать": {
+    "label": "To Pose"
+  },
+  "concept:заканчиваться": {
+    "label": "To End"
+  },
+  "concept:закон": {
+    "label": "Law"
+  },
+  "concept:закрытый": {
+    "label": "Closed"
+  },
+  "concept:закрыть": {
+    "label": "To Close"
+  },
+  "concept:запрос": {
+    "label": "Request"
+  },
+  "concept:защита": {
+    "label": "Defense"
+  },
+  "concept:звать": {
+    "label": "To Call"
+  },
+  "concept:зверь": {
+    "label": "Beast"
+  },
+  "concept:звук": {
+    "label": "Sound"
+  },
+  "concept:звучать": {
+    "label": "To Resound"
+  },
+  "concept:земля": {
+    "label": "Earth"
+  },
+  "concept:зеркало": {
+    "label": "Mirror"
+  },
+  "concept:зло": {
+    "label": "Evil"
+  },
+  "concept:знак": {
+    "label": "Sign"
+  },
+  "concept:знамение": {
+    "label": "Sign"
+  },
+  "concept:знание": {
+    "label": "Knowledge"
+  },
+  "concept:значение": {
+    "label": "Meaning"
+  },
+  "concept:зов": {
+    "label": "The Call"
+  },
+  "concept:зрение": {
+    "label": "Sight"
+  },
+  "concept:иаков": {
+    "label": "Jacob"
+  },
+  "concept:игра": {
+    "label": "Play"
+  },
+  "concept:играть": {
+    "label": "To Play"
+  },
+  "concept:идол": {
+    "label": "Idol"
+  },
+  "concept:иерусалим": {
+    "label": "Jerusalem"
+  },
+  "concept:изменить": {
+    "label": "To Change"
+  },
+  "concept:измениться": {
+    "label": "To Change"
+  },
+  "concept:израиль": {
+    "label": "Israel"
+  },
+  "concept:иисус": {
+    "label": "Jesus"
+  },
+  "concept:иллюзия": {
+    "label": "Illusion"
+  },
+  "concept:иметь": {
+    "label": "To Have"
+  },
+  "concept:имя": {
+    "label": "Name"
+  },
+  "concept:интеллект": {
+    "label": "Intelligence"
+  },
+  "concept:иоанн": {
+    "label": "John"
+  },
+  "concept:иса": {
+    "label": "Isa"
+  },
+  "concept:искать": {
+    "label": "To Seek"
+  },
+  "concept:искусственный": {
+    "label": "Artificial"
+  },
+  "concept:ислам": {
+    "label": "Islam"
+  },
+  "concept:истина": {
+    "label": "Truth"
+  },
+  "concept:истинный": {
+    "label": "True"
+  },
+  "concept:история": {
+    "label": "Story"
+  },
+  "concept:источник": {
+    "label": "Source"
+  },
+  "concept:исчезать": {
+    "label": "To Vanish"
+  },
+  "concept:исчезновение": {
+    "label": "Vanishing"
+  },
+  "concept:исчезнуть": {
+    "label": "To Disappear"
+  },
+  "concept:казаться": {
+    "label": "To Seem"
+  },
+  "concept:камень": {
+    "label": "Stone"
+  },
+  "concept:книга": {
+    "label": "Book"
+  },
+  "concept:колено": {
+    "label": "Tribe"
+  },
+  "concept:конец": {
+    "label": "End"
+  },
+  "concept:контроль": {
+    "label": "Control"
+  },
+  "concept:конь": {
+    "label": "Horse"
+  },
+  "concept:крест": {
+    "label": "Cross"
+  },
+  "concept:культура": {
+    "label": "Culture"
+  },
+  "concept:лицо": {
+    "label": "Face"
+  },
+  "concept:личность": {
+    "label": "Personality"
+  },
+  "concept:лодка": {
+    "label": "Boat"
+  },
+  "concept:ложный": {
+    "label": "False"
+  },
+  "concept:ложь": {
+    "label": "Falsehood"
+  },
+  "concept:луч": {
+    "label": "Ray"
+  },
+  "concept:любить": {
+    "label": "To Love"
+  },
+  "concept:любовь": {
+    "label": "Love"
+  },
+  "concept:маска": {
+    "label": "Mask"
+  },
+  "concept:мать": {
+    "label": "Mother"
+  },
+  "concept:менять": {
+    "label": "To Change"
+  },
+  "concept:меняться": {
+    "label": "To Change"
+  },
+  "concept:мессия": {
+    "label": "Messiah"
+  },
+  "concept:место": {
+    "label": "Place"
+  },
+  "concept:меч": {
+    "label": "Sword"
+  },
+  "concept:мир": {
+    "label": "World"
+  },
+  "concept:модель": {
+    "label": "Model"
+  },
+  "concept:моисей": {
+    "label": "Moses"
+  },
+  "concept:молитва": {
+    "label": "Prayer"
+  },
+  "concept:молчание": {
+    "label": "Silence"
+  },
+  "concept:молчать": {
+    "label": "To Be Silent"
+  },
+  "concept:море": {
+    "label": "Sea"
+  },
+  "concept:мужчина": {
+    "label": "Man"
+  },
+  "concept:мысль": {
+    "label": "Thought"
+  },
+  "concept:мёртвый": {
+    "label": "Dead"
+  },
+  "concept:надежда": {
+    "label": "Hope"
+  },
+  "concept:назвать": {
+    "label": "To Name"
+  },
+  "concept:найти": {
+    "label": "To Find"
+  },
+  "concept:наказание": {
+    "label": "Punishment"
+  },
+  "concept:написать": {
+    "label": "To Write"
+  },
+  "concept:наполнить": {
+    "label": "To Fill"
+  },
+  "concept:напряжение": {
+    "label": "Tension"
+  },
+  "concept:народ": {
+    "label": "People"
+  },
+  "concept:настоящий": {
+    "label": "Real"
+  },
+  "concept:начало": {
+    "label": "Beginning"
+  },
+  "concept:начинаться": {
+    "label": "To Begin"
+  },
+  "concept:небесный": {
+    "label": "Heavenly"
+  },
+  "concept:небо": {
+    "label": "Heaven"
+  },
+  "concept:необходимость": {
+    "label": "Necessity"
+  },
+  "concept:нести": {
+    "label": "To Carry"
+  },
+  "concept:новый": {
+    "label": "New"
+  },
+  "concept:носитель": {
+    "label": "Bearer"
+  },
+  "concept:ночь": {
+    "label": "Night"
+  },
+  "concept:нужда": {
+    "label": "Need"
+  },
+  "concept:нуждаться": {
+    "label": "To Need"
+  },
+  "concept:облако": {
+    "label": "Cloud"
+  },
+  "concept:образ": {
+    "label": "Image"
+  },
+  "concept:объект": {
+    "label": "Object"
+  },
+  "concept:объяснить": {
+    "label": "To Explain"
+  },
+  "concept:обычный": {
+    "label": "Ordinary"
+  },
+  "concept:огонь": {
+    "label": "Fire"
+  },
+  "concept:одиночество": {
+    "label": "Loneliness"
+  },
+  "concept:ожидание": {
+    "label": "Expectation"
+  },
+  "concept:океан": {
+    "label": "Ocean"
+  },
+  "concept:опора": {
+    "label": "Support"
+  },
+  "concept:оптика": {
+    "label": "Optics"
+  },
+  "concept:опыт": {
+    "label": "Experience"
+  },
+  "concept:осознанность": {
+    "label": "Awareness"
+  },
+  "concept:ответ": {
+    "label": "Answer"
+  },
+  "concept:отвечать": {
+    "label": "To Answer"
+  },
+  "concept:отдельный": {
+    "label": "Separate"
+  },
+  "concept:отец": {
+    "label": "Father"
+  },
+  "concept:откровение": {
+    "label": "Revelation"
+  },
+  "concept:откроить": {
+    "label": "To Unveil"
+  },
+  "concept:открывать": {
+    "label": "To Open"
+  },
+  "concept:открытый": {
+    "label": "Open"
+  },
+  "concept:открыть": {
+    "label": "To Open"
+  },
+  "concept:отражение": {
+    "label": "Reflection"
+  },
+  "concept:отсутствие": {
+    "label": "Absence"
+  },
+  "concept:ошибка": {
+    "label": "Error"
+  },
+  "concept:ощущение": {
+    "label": "Sensation"
+  },
+  "concept:панкратиус": {
+    "label": "Pancratius"
+  },
+  "concept:пауза": {
+    "label": "Pause"
+  },
+  "concept:первый": {
+    "label": "First"
+  },
+  "concept:переживание": {
+    "label": "Experience"
+  },
+  "concept:переживать": {
+    "label": "To Experience"
+  },
+  "concept:песня": {
+    "label": "Song"
+  },
+  "concept:печать": {
+    "label": "Seal"
+  },
+  "concept:пирамида": {
+    "label": "Pyramid"
+  },
+  "concept:писание": {
+    "label": "Scripture"
+  },
+  "concept:писать": {
+    "label": "To Write"
+  },
+  "concept:письмо": {
+    "label": "Letter"
+  },
+  "concept:плод": {
+    "label": "Fruit"
+  },
+  "concept:плоть": {
+    "label": "Flesh"
+  },
+  "concept:подглава": {
+    "label": "Subchapter"
+  },
+  "concept:подтверждение": {
+    "label": "Confirmation"
+  },
+  "concept:позволить": {
+    "label": "To Allow"
+  },
+  "concept:показать": {
+    "label": "To Show"
+  },
+  "concept:показывать": {
+    "label": "To Show"
+  },
+  "concept:поклонение": {
+    "label": "Worship"
+  },
+  "concept:покой": {
+    "label": "Rest"
+  },
+  "concept:поле": {
+    "label": "Field"
+  },
+  "concept:полнота": {
+    "label": "Fullness"
+  },
+  "concept:пользователь": {
+    "label": "User"
+  },
+  "concept:понять": {
+    "label": "To Understand"
+  },
+  "concept:попытка": {
+    "label": "Attempt"
+  },
+  "concept:последний": {
+    "label": "Last"
+  },
+  "concept:посредник": {
+    "label": "Mediator"
+  },
+  "concept:построить": {
+    "label": "To Build"
+  },
+  "concept:потеря": {
+    "label": "Loss"
+  },
+  "concept:потерять": {
+    "label": "To Lose"
+  },
+  "concept:поток": {
+    "label": "Flow"
+  },
+  "concept:появиться": {
+    "label": "To Appear"
+  },
+  "concept:появляться": {
+    "label": "To Appear"
+  },
+  "concept:право": {
+    "label": "Right"
+  },
+  "concept:предел": {
+    "label": "Limit"
+  },
+  "concept:прекращение": {
+    "label": "Cessation"
+  },
+  "concept:привычный": {
+    "label": "Habitual"
+  },
+  "concept:принести": {
+    "label": "To Bring"
+  },
+  "concept:приносить": {
+    "label": "To Bring"
+  },
+  "concept:принять": {
+    "label": "To Accept"
+  },
+  "concept:природа": {
+    "label": "Nature"
+  },
+  "concept:присутствие": {
+    "label": "Presence"
+  },
+  "concept:причина": {
+    "label": "Cause"
+  },
+  "concept:пришествие": {
+    "label": "Coming"
+  },
+  "concept:пробуждение": {
+    "label": "Awakening"
+  },
+  "concept:продолжаться": {
+    "label": "To Continue"
+  },
+  "concept:продолжение": {
+    "label": "Continuation"
+  },
+  "concept:прозрачный": {
+    "label": "Transparent"
+  },
+  "concept:пройти": {
+    "label": "To Pass Through"
+  },
+  "concept:пророк": {
+    "label": "Prophet"
+  },
+  "concept:просить": {
+    "label": "To Ask"
+  },
+  "concept:простой": {
+    "label": "Simple"
+  },
+  "concept:пространство": {
+    "label": "Space"
+  },
+  "concept:прошлое": {
+    "label": "The Past"
+  },
+  "concept:проявление": {
+    "label": "Manifestation"
+  },
+  "concept:проявляться": {
+    "label": "To Manifest"
+  },
+  "concept:пустота": {
+    "label": "Emptiness"
+  },
+  "concept:путь": {
+    "label": "Way"
+  },
+  "concept:пытаться": {
+    "label": "To Try"
+  },
+  "concept:радость": {
+    "label": "Joy"
+  },
+  "concept:разделение": {
+    "label": "Separation"
+  },
+  "concept:разделить": {
+    "label": "To Separate"
+  },
+  "concept:различение": {
+    "label": "Discernment"
+  },
+  "concept:разный": {
+    "label": "Different"
+  },
+  "concept:разрушать": {
+    "label": "To Destroy"
+  },
+  "concept:разрушить": {
+    "label": "To Destroy"
+  },
+  "concept:раскрыть": {
+    "label": "To Unveil"
+  },
+  "concept:реальность": {
+    "label": "Reality"
+  },
+  "concept:ребёнок": {
+    "label": "Child"
+  },
+  "concept:река": {
+    "label": "River"
+  },
+  "concept:религия": {
+    "label": "Religion"
+  },
+  "concept:ритм": {
+    "label": "Rhythm"
+  },
+  "concept:рождаться": {
+    "label": "To Be Born"
+  },
+  "concept:рождение": {
+    "label": "Birth"
+  },
+  "concept:роль": {
+    "label": "Role"
+  },
+  "concept:россия": {
+    "label": "Russia"
+  },
+  "concept:рука": {
+    "label": "Hand"
+  },
+  "concept:русь": {
+    "label": "Holy Rus"
+  },
+  "concept:рыба": {
+    "label": "Fish"
+  },
+  "concept:свет": {
+    "label": "Light"
+  },
+  "concept:светить": {
+    "label": "To Shine"
+  },
+  "concept:светозар": {
+    "label": "Svetozar"
+  },
+  "concept:свобода": {
+    "label": "Freedom"
+  },
+  "concept:святой": {
+    "label": "Holy"
+  },
+  "concept:сердце": {
+    "label": "Heart"
+  },
+  "concept:сеть": {
+    "label": "Net"
+  },
+  "concept:сидеть": {
+    "label": "To Sit"
+  },
+  "concept:сила": {
+    "label": "Power"
+  },
+  "concept:символ": {
+    "label": "Symbol"
+  },
+  "concept:система": {
+    "label": "System"
+  },
+  "concept:сиять": {
+    "label": "To Shine"
+  },
+  "concept:слабость": {
+    "label": "Weakness"
+  },
+  "concept:слово": {
+    "label": "Word"
+  },
+  "concept:слушать": {
+    "label": "To Listen"
+  },
+  "concept:смерть": {
+    "label": "Death"
+  },
+  "concept:смирение": {
+    "label": "Humility"
+  },
+  "concept:смысл": {
+    "label": "Meaning"
+  },
+  "concept:собственный": {
+    "label": "One's Own"
+  },
+  "concept:событие": {
+    "label": "Event"
+  },
+  "concept:совершенство": {
+    "label": "Perfection"
+  },
+  "concept:согласие": {
+    "label": "Consent"
+  },
+  "concept:создавать": {
+    "label": "To Create"
+  },
+  "concept:создать": {
+    "label": "To Create"
+  },
+  "concept:сознание": {
+    "label": "Consciousness"
+  },
+  "concept:солнце": {
+    "label": "Sun"
+  },
+  "concept:сомнение": {
+    "label": "Doubt"
+  },
+  "concept:сон": {
+    "label": "Dream"
+  },
+  "concept:сопротивление": {
+    "label": "Resistance"
+  },
+  "concept:состояние": {
+    "label": "State"
+  },
+  "concept:сосуд": {
+    "label": "Vessel"
+  },
+  "concept:сотворить": {
+    "label": "To Create"
+  },
+  "concept:способ": {
+    "label": "Means"
+  },
+  "concept:способность": {
+    "label": "Capacity"
+  },
+  "concept:способный": {
+    "label": "Capable"
+  },
+  "concept:спрашивать": {
+    "label": "To Question"
+  },
+  "concept:старое": {
+    "label": "The Old"
+  },
+  "concept:старый": {
+    "label": "Old"
+  },
+  "concept:стена": {
+    "label": "Wall"
+  },
+  "concept:стоить": {
+    "label": "To Be Worth"
+  },
+  "concept:сторона": {
+    "label": "Side"
+  },
+  "concept:страдание": {
+    "label": "Suffering"
+  },
+  "concept:страх": {
+    "label": "Fear"
+  },
+  "concept:строить": {
+    "label": "To Build"
+  },
+  "concept:строка": {
+    "label": "Line"
+  },
+  "concept:структура": {
+    "label": "Structure"
+  },
+  "concept:субъект": {
+    "label": "Subject"
+  },
+  "concept:суд": {
+    "label": "Judgment"
+  },
+  "concept:судьба": {
+    "label": "Destiny"
+  },
+  "concept:суть": {
+    "label": "Essence"
+  },
+  "concept:существо": {
+    "label": "Being"
+  },
+  "concept:существовать": {
+    "label": "To Exist"
+  },
+  "concept:считать": {
+    "label": "To Consider"
+  },
+  "concept:сын": {
+    "label": "Son"
+  },
+  "concept:тайна": {
+    "label": "Mystery"
+  },
+  "concept:творец": {
+    "label": "Creator"
+  },
+  "concept:творить": {
+    "label": "To Create"
+  },
+  "concept:текст": {
+    "label": "Text"
+  },
+  "concept:тело": {
+    "label": "Body"
+  },
+  "concept:тень": {
+    "label": "Shadow"
+  },
+  "concept:терять": {
+    "label": "To Lose"
+  },
+  "concept:течь": {
+    "label": "To Flow"
+  },
+  "concept:тишина": {
+    "label": "Stillness"
+  },
+  "concept:точка": {
+    "label": "Point"
+  },
+  "concept:точный": {
+    "label": "Exact"
+  },
+  "concept:традиция": {
+    "label": "Tradition"
+  },
+  "concept:требовать": {
+    "label": "To Demand"
+  },
+  "concept:третий": {
+    "label": "Third"
+  },
+  "concept:трещина": {
+    "label": "Crack"
+  },
+  "concept:тысяча": {
+    "label": "Thousand"
+  },
+  "concept:тьма": {
+    "label": "Darkness"
+  },
+  "concept:увидеть": {
+    "label": "To See"
+  },
+  "concept:удержать": {
+    "label": "To Hold"
+  },
+  "concept:удерживать": {
+    "label": "To Hold On"
+  },
+  "concept:узнавание": {
+    "label": "Recognition"
+  },
+  "concept:указывать": {
+    "label": "To Point"
+  },
+  "concept:умереть": {
+    "label": "To Die"
+  },
+  "concept:умирать": {
+    "label": "To Die"
+  },
+  "concept:уровень": {
+    "label": "Level"
+  },
+  "concept:усилие": {
+    "label": "Effort"
+  },
+  "concept:условие": {
+    "label": "Condition"
+  },
+  "concept:услышать": {
+    "label": "To Hear"
+  },
+  "concept:ухо": {
+    "label": "Ear"
+  },
+  "concept:ученик": {
+    "label": "Disciple"
+  },
+  "concept:учитель": {
+    "label": "Teacher"
+  },
+  "concept:факт": {
+    "label": "Fact"
+  },
+  "concept:феноменология": {
+    "label": "Phenomenology"
+  },
+  "concept:фильм": {
+    "label": "Film"
+  },
+  "concept:форма": {
+    "label": "Form"
+  },
+  "concept:фраза": {
+    "label": "Phrase"
+  },
+  "concept:хлеб": {
+    "label": "Bread"
+  },
+  "concept:храм": {
+    "label": "Temple"
+  },
+  "concept:христос": {
+    "label": "Christ"
+  },
+  "concept:царствие": {
+    "label": "Kingdom"
+  },
+  "concept:царство": {
+    "label": "Kingdom"
+  },
+  "concept:царь": {
+    "label": "King"
+  },
+  "concept:цель": {
+    "label": "Purpose"
+  },
+  "concept:центр": {
+    "label": "Center"
+  },
+  "concept:церковь": {
+    "label": "Church"
+  },
+  "concept:человек": {
+    "label": "Human"
+  },
+  "concept:человеческий": {
+    "label": "Human"
+  },
+  "concept:человечество": {
+    "label": "Humanity"
+  },
+  "concept:число": {
+    "label": "Number"
+  },
+  "concept:чистый": {
+    "label": "Pure"
+  },
+  "concept:читатель": {
+    "label": "Reader"
+  },
+  "concept:читать": {
+    "label": "To Read"
+  },
+  "concept:чувство": {
+    "label": "Feeling"
+  },
+  "concept:чувствовать": {
+    "label": "To Feel"
+  },
+  "concept:чудо": {
+    "label": "Miracle"
+  },
+  "concept:шаг": {
+    "label": "Step"
+  },
+  "concept:шум": {
+    "label": "Noise"
+  },
+  "concept:эго": {
+    "label": "Ego"
+  },
+  "concept:эмоция": {
+    "label": "Emotion"
+  },
+  "concept:язык": {
+    "label": "Language"
+  },
+  "concept:ясность": {
+    "label": "Clarity"
+  }
 }
