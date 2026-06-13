@@ -20,7 +20,7 @@ from lineation_core.evaluation.policy_replay import (
     replay,
     replay_and_score,
 )
-from lineation_core.identity import LineId
+from lineation_core.identity import BookKey, LineId
 from lineation_core.teacher.decision import (
     AnchorLedGates,
     AnchorLedPolicy,
@@ -128,13 +128,21 @@ def test_replay_keeps_decisions_inspectable():
     [outcome] = replay(aligned, (PolicySpec("u", roster, AnchorLedPolicy("u")),))
     assert len(outcome.decisions) == 1
     d, truth, book, stratum = outcome.decisions[0]
-    assert d.id == a and truth == "lineated" and book == "57" and stratum == "easy"
+    assert d.id == a and truth == "lineated" and book == BookKey("ru", "57") and stratum == "easy"
 
 
 # --- the HEADLINE LOCK on the real committed aligned set ----------------------------------------
 
 def test_real_policy_comparison_locks_the_finding():
-    aligned = datasets.from_store()
+    # Pin the HISTORICAL instrument: the pre-campaign (task-unstamped) votes the finding was
+    # derived on. Later campaigns add voted lines SELECTED by a policy (e.g. the 48 E1 lines the
+    # legacy gate itself routed), which would bias this comparison's load ratios by construction.
+    full = datasets.from_store()
+    legacy_lines = tuple(ln for ln in full.lines if all(v.task is None for v in ln.votes))
+    aligned = AlignedSet(lines=legacy_lines,
+                         n_prose=sum(ln.truth == "prose" for ln in legacy_lines),
+                         n_lineated=sum(ln.truth == "lineated" for ln in legacy_lines))
+    assert aligned.n_total == 529                  # the frozen population, byte-stable
     specs = load_policy_specs(RECIPE,
                               present_readers=frozenset(v.tag for ln in aligned.lines for v in ln.votes))
     results = {m.name: m for m in replay_and_score(aligned, specs)}

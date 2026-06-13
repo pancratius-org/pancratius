@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Self
 
-from .identity import BookId, JsonObject, LineId, LineTextHash, ParagraphTextHash
+from .identity import BookId, BookKey, JsonObject, LineId, LineTextHash, ParagraphTextHash
 
 # A flattened one-line feature vector: column name → numeric value (bools→0/1, categoricals
 # one-hot expanded). `FeatureName` is one such column. Produced by `producer.vectorize_fixed`,
@@ -23,9 +23,15 @@ from .identity import BookId, JsonObject, LineId, LineTextHash, ParagraphTextHas
 type FeatureName = str
 type FeatureVector = dict[FeatureName, float]
 
-# Records keyed by book — the whole-corpus map domain functions take as data (loaded once at the
-# shell by `store.load_records_many`) instead of reaching for each book themselves.
-type RecordsByBook = dict[BookId, list["LineRecord"]]
+# Records keyed by book edition — the CROSS-LANGUAGE whole-corpus map domain functions take as
+# data (loaded once at the shell by `store.load_records_many`) instead of reaching for each book
+# themselves. Keyed by `BookKey`, never bare `BookId` (ru:01 and en:01 are different books).
+type RecordsByBook = dict[BookKey, list["LineRecord"]]
+
+# Records for ONE language's books — a recipe's scope (`recipe.lang` fixes the language, so the
+# bare folder number is unambiguous there). Distinct from `RecordsByBook` so the cross-language
+# boundary stays visible in signatures.
+type BookRecords = dict[BookId, list["LineRecord"]]
 
 # A run = the indices of one maximal BODY block (an authorial unit). `runs()` is the foundation
 # grouping the sequence model AND the teacher tiler both read, so "run" means one thing.

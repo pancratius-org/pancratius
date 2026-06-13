@@ -82,6 +82,7 @@ BOOK_PASSES: tuple[Pass, ...] = (
     ("drop_toc", _blocks(scrub.drop_toc)),
     ("scrub_rights", _blocks(scrub.scrub_rights)),
     ("scrub_ai_alt", _blocks(scrub.scrub_ai_alt)),
+    ("scrub_chatgpt_citations", _blocks(scrub.scrub_chatgpt_citations)),
     ("lift_bibliography", _lift_bibliography),
     ("strip_endmatter", _blocks(endmatter.strip_endmatter)),
     ("strip_bare_biblio_heading", _blocks(endmatter.strip_bare_bibliography_heading)),

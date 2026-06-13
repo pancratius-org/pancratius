@@ -43,5 +43,5 @@ def corpus():
     from lineation_core import store
     from lineation_core.annotations import load_labels
     labelset = load_labels()
-    records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
+    records = store.load_records_many(sorted({g.id.book_key for g in labelset.labels}))
     return records, labelset

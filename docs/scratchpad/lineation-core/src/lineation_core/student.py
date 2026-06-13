@@ -23,7 +23,7 @@ from dataclasses import dataclass
 
 from . import producer, store
 from .annotations import LabelSet, load_labels
-from .identity import BookId, Label, LabelByLine, LineId
+from .identity import BookKey, Label, LabelByLine, LineId
 from .records import FeatureName, FeatureVector, LineFeatures, RecordsByBook
 
 
@@ -31,7 +31,7 @@ from .records import FeatureName, FeatureVector, LineFeatures, RecordsByBook
 class Dataset:
     X: list[FeatureVector]      # per-line fixed-column feature vectors
     y: list[Label]              # prose | lineated
-    groups: list[BookId]        # book_id (for grouped CV)
+    groups: list[BookKey]       # book edition (for grouped CV — ru:01 and en:01 never share a fold)
     columns: list[FeatureName]
     feature_support: dict[FeatureName, int]
     ids: list[LineId]
@@ -41,22 +41,23 @@ class Dataset:
 
 def build_dataset(records: RecordsByBook, labelset: LabelSet) -> Dataset:
     """Training rows from the TRAINABLE labels only — a `holdout` (eval-only) label is scoring
-    truth elsewhere but never a training target here."""
+    truth elsewhere but never a training target here. FAILS LOUD on a labeled book missing from
+    `records` — a silently skipped book would shrink the dataset without a trace."""
     label_by_id = {g.id: g for g in labelset.trainable}
-    books = sorted({lid.book_id for lid in label_by_id})
+    books = sorted({lid.book_key for lid in label_by_id})
 
     X: list[FeatureVector] = []
     y: list[Label] = []
-    groups: list[BookId] = []
+    groups: list[BookKey] = []
     ids: list[LineId] = []
     n_joined = 0
     support: Counter[FeatureName] = Counter()
     cols = list(producer.vector_columns())
 
-    for book_id in books:
-        recs = {r.id: r for r in records[book_id]}
+    for book_key in books:
+        recs = {r.id: r for r in records[book_key]}
         for lid, g in label_by_id.items():
-            if lid.book_id != book_id:
+            if lid.book_key != book_key:
                 continue
             rec = recs.get(lid)
             if rec is None:
@@ -64,7 +65,7 @@ def build_dataset(records: RecordsByBook, labelset: LabelSet) -> Dataset:
             vec = producer.vectorize_fixed(rec.features)
             X.append(vec)
             y.append(g.label)
-            groups.append(book_id)
+            groups.append(book_key)
             ids.append(lid)
             n_joined += 1
             for c, v in vec.items():
@@ -177,7 +178,7 @@ def train_cv(ds: Dataset, *, seed: int = 0) -> CVResult:
     from sklearn.model_selection import LeaveOneGroupOut
 
     M, yv = _matrix(ds)
-    groups = np.array(ds.groups)
+    groups = np.array([str(g) for g in ds.groups])   # sklearn group labels; "ru:01" ≠ "en:01"
     logo = LeaveOneGroupOut()
 
     y_true_all: list[int] = []
@@ -233,11 +234,11 @@ def oof_smoothed(ds: Dataset, records: RecordsByBook, *,
     from . import sequence
 
     M, yv = _matrix(ds)
-    groups = np.array(ds.groups)
+    groups = np.array([str(g) for g in ds.groups])
     out: dict[LineId, sequence.LineDecision] = {}
     for tr, te in LeaveOneGroupOut().split(M, yv, groups):
         model = _fit(M[tr], yv[tr], seed=seed, columns=ds.columns)
-        recs = records[groups[te][0]]
+        recs = records[ds.groups[te[0]]]
         votable = [(i, r) for i, r in enumerate(recs) if r.votable]
         probs = model.posteriors([r.features for _, r in votable])      # batched per book
         base = [0.0] * len(recs)
@@ -272,14 +273,14 @@ def evaluate_alpha_cv(
     from . import sequence
 
     M, yv = _matrix(ds)
-    groups = np.array(ds.groups)
+    groups = np.array([str(g) for g in ds.groups])
     truth = {g.id: g.label for g in labelset.labels}
 
     y_true: list[int] = []
     y_iid: list[int] = []
     y_seq: list[int] = []
     for tr, te in LeaveOneGroupOut().split(M, yv, groups):
-        book = groups[te][0]
+        book = ds.groups[te[0]]
         model = _fit(M[tr], yv[tr], seed=seed, columns=ds.columns)
         decisions = sequence.predict_document(records[book], model, alpha=alpha)
         iid = sequence.predict_document(records[book], model, alpha=0.0)
@@ -310,7 +311,7 @@ def tune_alpha(ds: Dataset, labelset: LabelSet,
 
 if __name__ == "__main__":
     labelset = load_labels()
-    records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
+    records = store.load_records_many(sorted({g.id.book_key for g in labelset.labels}))
     ds = build_dataset(records, labelset)
     print(f"dataset: {ds.n_joined} labeled lines over {len(set(ds.groups))} books "
           f"(rejected {ds.n_skipped_unmapped} unmapped); {len(ds.columns)} feature columns")
