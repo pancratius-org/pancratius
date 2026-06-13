@@ -129,18 +129,20 @@ def test_adjacent_pins_form_one_run_across_a_blank() -> None:
 
 def test_unclaimed_pin_fails_loud() -> None:
     blocks: list[ir.Block] = [_para("Свой голос книги.", 1)]
-    with pytest.raises(ValueError, match="claim no top-level prose paragraph"):
+    with pytest.raises(ValueError, match="claim no scripture paragraph or in-verse quote"):
         wrap_scripture(blocks, pinned={7: "Откр 3:11"})
 
 
 def test_pin_inside_lineated_block_fails_loud() -> None:
-    # A pin adjudicated on prose must not silently dissolve when the paragraph
-    # later folds into a lineated run.
+    # A pin whose line folded into a lineated run but was NOT split out as a
+    # scripture quote (no in-verse scripture wrapper claims it) is still stray:
+    # the verdict no longer lands where it was made. (Honored in-verse pins are
+    # exempted via the upstream scripture QuoteBlock; see assign_register.)
     line = ir.Line(inlines=[ir.Text("Се, гряду скоро.")], span=ir.SourceSpan(2, 2))
     blocks: list[ir.Block] = [
         ir.LineatedBlock(stanzas=[[line]], source_span=ir.SourceSpan(2, 2)),
     ]
-    with pytest.raises(ValueError, match="claim no top-level prose paragraph"):
+    with pytest.raises(ValueError, match="claim no scripture paragraph or in-verse quote"):
         wrap_scripture(blocks, pinned={2: "Откр 22:7"})
 
 

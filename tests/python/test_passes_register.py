@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from pancratius import ir
 from pancratius.passes.pipeline import Context
 from pancratius.passes.register import (
     FEATURE_NAMES,
     RegisterModel,
+    SpanLabel,
     assign_register,
     scaffold_line_labeler,
     segment_lineated,
@@ -321,6 +324,143 @@ def test_existing_verse_blocks_keep_coda_machinery() -> None:
     assert isinstance(first, ir.LineatedBlock)
     assert first.register is ir.Register.VERSE
     assert len(first.stanzas) == 2  # the compact coda folded into the verse block
+
+
+# ---------------------------------------------------------------------------
+# SCRIPTURE line-class: in-verse canonical quote lines (segmentation × scripture)
+# ---------------------------------------------------------------------------
+
+
+def _pin_labeler(
+    block: ir.LineatedBlock, *ords: int
+) -> Callable[[ir.Line], SpanLabel]:
+    return scaffold_line_labeler(block, frozenset(ords))
+
+
+def test_segment_verse_scripture_verse_sandwich() -> None:
+    # A pinned canonical quote line between two verse lines -> three fragments,
+    # the middle a scripture QuoteBlock, the verse lines unchanged.
+    block = _verse_block([
+        _spanned_line("Иисус говорит с женщиной,", 594),
+        _spanned_line("а прямо, просто, близко:", 596),
+        _spanned_line("«Отец ищет Себе поклонников…»", 597),
+        _spanned_line("Никто так не говорил.", 599),
+        _spanned_line("Пророки взывали к Богу.", 600),
+    ])
+    fragments = segment_lineated(block, _pin_labeler(block, 597))
+    assert len(fragments) == 3
+    head, middle, tail = fragments
+    assert isinstance(head, ir.LineatedBlock) and head.register is ir.Register.VERSE
+    assert isinstance(middle, ir.QuoteBlock) and middle.register is ir.Register.SCRIPTURE
+    assert isinstance(tail, ir.LineatedBlock) and tail.register is ir.Register.VERSE
+    member = middle.blocks[0]
+    assert isinstance(member, ir.LineatedBlock)
+    assert member.stanzas[0][0].inlines == [ir.Text("«Отец ищет Себе поклонников…»")]
+
+
+def test_segment_scripture_fragment_tiles_span() -> None:
+    # The scripture fragment carries the quote line's own ordinal; the head and
+    # tail fragments tile the parent span without losing coverage.
+    block = _verse_block([
+        _spanned_line("а прямо, просто, близко:", 596),
+        _spanned_line("«Отец ищет Себе поклонников…»", 597),
+        _spanned_line("«будут поклоняться Отцу в духе и истине…»", 598),
+        _spanned_line("Никто так не говорил.", 599),
+    ])
+    head, mid, tail = segment_lineated(block, _pin_labeler(block, 597, 598))
+    assert head.source_span == ir.SourceSpan(596, 596)
+    assert isinstance(mid, ir.QuoteBlock) and mid.source_span == ir.SourceSpan(597, 598)
+    assert tail.source_span == ir.SourceSpan(599, 599)
+
+
+def test_segment_single_scripture_line_island_splits() -> None:
+    # Unlike a lone scaffold line (which rejoins the verse run), a lone scripture
+    # quote line always splits out — canon recall is never dissolved as texture.
+    block = _verse_block([
+        _spanned_line("И когда Христос говорил:", 2460),
+        _spanned_line("«Плод в жизнь вечную уже собран»,", 2461),
+        _spanned_line("Он говорил это о них —", 2462),
+    ])
+    head, mid, tail = segment_lineated(block, _pin_labeler(block, 2461))
+    assert isinstance(head, ir.LineatedBlock) and head.register is ir.Register.VERSE
+    assert isinstance(mid, ir.QuoteBlock) and mid.register is ir.Register.SCRIPTURE
+    assert isinstance(tail, ir.LineatedBlock) and tail.register is ir.Register.VERSE
+
+
+def test_segment_own_voice_line_stays_verse() -> None:
+    # No pin and no citation channel -> a bare «…» line stays a verse line; the
+    # whole run is uniform verse and is returned unchanged.
+    block = _verse_block([
+        _spanned_line("И Христос говорит:", 854),
+        _spanned_line("«Она станет источником в тебе…»", 855),
+        _spanned_line("и это о духе.", 856),
+    ])
+    assert segment_lineated(block, _pin_labeler(block)) == [block]
+
+
+def test_segment_cited_quote_line_is_scripture_without_a_pin() -> None:
+    # The line-grain citation channel: a whole quote line carrying a citation
+    # token splits out as scripture even with no sidecar pin.
+    block = _verse_block([
+        _spanned_line("Он повторил слова:", 10),
+        _spanned_line("«Я есмь путь и истина» (Ин. 14:6).", 11),
+        _spanned_line("и шёл дальше.", 12),
+    ])
+    _head, mid, _tail = segment_lineated(block, scaffold_line_labeler(block))
+    assert isinstance(mid, ir.QuoteBlock) and mid.register is ir.Register.SCRIPTURE
+
+
+def test_segment_uniform_scripture_run_becomes_quote_block() -> None:
+    # A run that is wholly scripture lines still rebuilds as a scripture quote
+    # block, not a SCRIPTURE-registered LineatedBlock (which would lower flat).
+    block = _verse_block([
+        _spanned_line("«Отец ищет Себе поклонников…»", 597),
+        _spanned_line("«будут поклоняться Отцу в духе и истине…»", 598),
+    ])
+    fragments = segment_lineated(block, _pin_labeler(block, 597, 598))
+    assert len(fragments) == 1
+    assert isinstance(fragments[0], ir.QuoteBlock)
+
+
+def test_segment_equation_line_beats_scripture_pin() -> None:
+    # Scaffold wins over scripture: an equation line is never a canonical quote
+    # even if its ordinal is (spuriously) pinned.
+    block = _verse_block([
+        _spanned_line("Свет мой тихий,", 10),
+        _spanned_line("143 = 11 × 13", 11),
+        _spanned_line("153 = 9 × 17", 12),
+        _spanned_line("в сердце горит.", 13),
+    ])
+    _head, mid, _tail = segment_lineated(block, _pin_labeler(block, 11))
+    assert isinstance(mid, ir.LineatedBlock) and mid.register is ir.Register.ORDINARY
+
+
+def test_assign_register_splits_in_verse_scripture_pin() -> None:
+    # End to end through the pass with a sidecar pin: a promoted verse run with
+    # one pinned canonical line comes out verse / scripture-quote / verse, and
+    # wrap_scripture does NOT fail loud (the in-verse pin is honored upstream).
+    from pancratius.passes.register import wrap_scripture as _wrap
+    block = ir.LineatedBlock(
+        stanzas=[[
+            _spanned_line("Иисус говорит с женщиной,", 594),
+            _spanned_line("а прямо, просто, близко:", 596),
+            _spanned_line("«Отец ищет Себе поклонников…»", 597),
+            _spanned_line("Никто так не говорил.", 599),
+            _spanned_line("Пророки взывали к Богу.", 600),
+        ]],
+        evidence=ir.LineationEvidence(stanza_break=True),
+        source_span=ir.SourceSpan(594, 600),
+    )
+    ctx = Context(lang="ru", scripture_overrides={597: "Ин 4:23"})
+    doc = assign_register(_doc(block), ctx)
+    kinds = [(type(b).__name__, getattr(b, "register", None)) for b in doc.blocks]
+    assert kinds == [
+        ("LineatedBlock", ir.Register.VERSE),
+        ("QuoteBlock", ir.Register.SCRIPTURE),
+        ("LineatedBlock", ir.Register.VERSE),
+    ]
+    # The prose scripture pass then runs without raising on the consumed pin.
+    assert _wrap(doc.blocks, pinned={597: "Ин 4:23"}) == doc.blocks
 
 
 # ---------------------------------------------------------------------------

@@ -273,7 +273,11 @@ def test_short_line_poem_ish_run_is_verse() -> None:
     ]
 
 
-def test_book30_item23_stays_one_verse_block_across_colon_and_quote() -> None:
+def test_book30_item23_splits_only_the_in_verse_scripture_citation() -> None:
+    # The colon-led run stays one lineated fold, but the in-verse line that IS a
+    # cited Quran quotation («…» + (Сура 19:96)) splits out as a scripture quote
+    # block (the segmentation × scripture recall channel); the verse lines on
+    # either side keep their verse register.
     blocks: list[ir.Block] = [
         ir.Heading(level=4, inlines=[ir.Text("23. Я — Любовь. Это не имя. Это природа.")]),
         _para("Я не люблю тебя как другой."),
@@ -297,9 +301,18 @@ def test_book30_item23_stays_one_verse_block_across_colon_and_quote() -> None:
     ]
     out = promote_verse_register(fold_lineation(blocks))
     verse = [b for b in out if _is_verse(b)]
-    assert len(verse) == 1
+    scripture = [
+        b for b in out
+        if isinstance(b, ir.QuoteBlock) and b.register is ir.Register.SCRIPTURE
+    ]
+    assert len(scripture) == 1
     assert _verse_lines(verse[0])[0] == "Я не люблю тебя как другой."
-    assert _verse_lines(verse[0])[-1] == "Дальше."
+    assert _verse_lines(verse[-1])[-1] == "Дальше."
+    member = scripture[0].blocks[0]
+    assert isinstance(member, ir.LineatedBlock)
+    assert member.stanzas[0][0].inlines[0] == ir.Text(
+        "«Тех, кто уверовал и творили добро, Милостивый наполнит любовью» (Сура 19:96)."
+    )
 
 
 def test_book30_item28_stays_one_verse_block_after_colon_opener() -> None:
