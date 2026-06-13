@@ -27,6 +27,10 @@ class Context:
     demote_levels: int = 1
     slug_lookup: Mapping[str, IndexHit] | None = None
     register_model: RegisterModel | None = None
+    # Editorial lineation corrections (`lineation.<lang>.json` sidecar), keyed by
+    # source `w:p` ordinal; the fold pass honors them and the final check pass
+    # proves they held.
+    lineation_overrides: Mapping[int, ir.LineationRegister] | None = None
     diagnostics: ir.DiagnosticSink = field(default_factory=list)
 
 
@@ -55,6 +59,16 @@ def _sanitize_urls(doc: ir.Document, ctx: Context) -> ir.Document:
     return sanitize.sanitize_urls(doc, ctx.diagnostics)
 
 
+def _fold_lineation(doc: ir.Document, ctx: Context) -> ir.Document:
+    return replace(doc, blocks=lineation.fold_lineation(
+        doc.blocks, lineation_overrides=ctx.lineation_overrides))
+
+
+def _check_lineation_overrides(doc: ir.Document, ctx: Context) -> ir.Document:
+    lineation.check_overrides_held(doc.blocks, ctx.lineation_overrides or {})
+    return doc
+
+
 BOOK_PASSES: tuple[Pass, ...] = (
     ("drop_toc", _blocks(scrub.drop_toc)),
     ("scrub_rights", _blocks(scrub.scrub_rights)),
@@ -69,10 +83,11 @@ BOOK_PASSES: tuple[Pass, ...] = (
     ("fold_right_aligned", _blocks(structure.fold_right_aligned)),
     ("dialogue_labels", _blocks(structure.dialogue_labels)),
     ("fold_quote_registers", _blocks(register.fold_quote_registers)),  # ← PER_ORDINAL_SEAM
-    ("fold_lineation", _blocks(lineation.fold_lineation)),
+    ("fold_lineation", _fold_lineation),
     ("assign_register", register.assign_register),
     ("wrap_scripture", _blocks(register.wrap_scripture)),
     ("sanitize_urls", _sanitize_urls),
+    ("check_lineation_overrides", _check_lineation_overrides),
 )
 
 POEM_PASSES: tuple[Pass, ...] = (

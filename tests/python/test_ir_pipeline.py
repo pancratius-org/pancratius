@@ -1627,3 +1627,23 @@ def test_run_rejects_duplicate_pass_names() -> None:
 
     with pytest.raises(AssertionError, match="duplicate pass names"):
         run(ir.Document(), Context(lang=""), (("x", noop), ("x", noop)))
+
+
+def test_quoted_inline_lowers_to_locale_marks() -> None:
+    # A `Quoted` carries quote SEMANTICS; the marks are locale typography. RU doubles are
+    # guillemets, EN doubles are American curly quotes; both single forms are language-specific.
+    double = ir.Quoted("double", [ir.Text("x")])
+    single = ir.Quoted("single", [ir.Text("y")])
+    assert lower._inline_md(double, "ru") == "«x»"
+    assert lower._inline_md(double, "en") == "“x”"
+    assert lower._inline_md(single, "ru") == "'y'"
+    assert lower._inline_md(single, "en") == "‘y’"
+
+
+def test_en_literal_guillemets_normalize_to_curly_doubles() -> None:
+    # A literal guillemet typed into EN source is a mistyped quote (English has none) — it
+    # normalizes to the SAME curly double a `Quoted` lowers to, so EN output is consistent
+    # whichever way the author entered the quote. RU literal guillemets are preserved.
+    en = ir.Text("«word»")
+    assert lower._inline_md(en, "en") == "“word”"
+    assert lower._inline_md(en, "ru") == "«word»"

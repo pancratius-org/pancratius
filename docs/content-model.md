@@ -219,6 +219,19 @@ lineation. If a numbered Q/A answer is lineated, it may remain
 `class="lineated"` unless the import stage has separate high-confidence
 verse-register evidence.
 
+The importer's lineation reading is structural inference and can be wrong on
+genuinely ambiguous paragraphs. A human-adjudicated correction is committed as a
+per-book sidecar, `lineation.<lang>.json` beside `<lang>.docx`, keyed by source
+paragraph ordinal with the adjudicated register (`prose` | `lineated`) and a
+content hash of the paragraph text the verdict was made against. Import honors
+the sidecar; the hash is a rail, never advisory — if the source text drifted
+under a correction, import fails rather than apply or silently skip a stale
+verdict. Only the `prose` direction is appliable today; a `lineated` entry fails
+the import loudly rather than being ignored. Poems take no sidecar (their whole
+body is verse; a sidecar beside a poem docx fails the import). The sidecar is a
+projection of the research label store into content (labels and sidecar move
+together, like docx and md); it never encodes style, only the register verdict.
+
 DOCX paragraph metadata is also source data. Pandoc's Markdown writer does not
 carry Word paragraph alignment or paragraph borders, so the converter reads
 `word/document.xml` directly for narrow semantic cases:
@@ -232,6 +245,13 @@ carry Word paragraph alignment or paragraph borders, so the converter reads
 Do not infer these from rendered CSS, italic-only paragraphs, or arbitrary
 short-line runs. The signal must come from the DOCX structure or an explicit
 source marker.
+
+Quotation marks are locale typography applied at import, not hand-edited into the
+derived Markdown (which a re-import would revert). Russian text uses guillemets
+(`«…»`); English text uses American curly double quotes (`“…”`). The rule covers
+both a parsed `Quoted` inline and a literal guillemet typed into English source
+(English has no guillemets, so it is a mistyped quote normalized to the same curly
+double). Single quotes follow the same locale split.
 
 ### Display registers (set-apart blocks)
 

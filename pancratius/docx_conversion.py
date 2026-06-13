@@ -12,7 +12,7 @@ from typing import Any
 
 import yaml
 
-from pancratius import cross_refs, docx_adapter, footnotes, ir, lower, ooxml
+from pancratius import cross_refs, docx_adapter, footnotes, ir, lineation_overrides, lower, ooxml
 from pancratius.content_catalog import IndexHit, dump_frontmatter
 from pancratius.passes import assets
 from pancratius.passes.pipeline import POEM_PASSES, Context, run
@@ -225,7 +225,12 @@ def convert_single_docx(
 
     if kind == "poem":
         # Verse end-to-end: skip heading demotion, bibliography lift, and verse
-        # detection (the whole AST is verse); only light cleanup applies.
+        # detection (the whole AST is verse); only light cleanup applies. A poem
+        # has no lineation DECISIONS to correct, so a sidecar beside it is a
+        # placement error — refuse rather than silently ignore it.
+        if (stray := lineation_overrides.overrides_path(docx)).is_file():
+            raise ValueError(f"poem import: {stray.name} found beside {docx.name}, but poems "
+                             f"take no lineation overrides — remove it")
         doc = run(doc, Context(lang=lang, diagnostics=diagnostics), POEM_PASSES)
     else:
         register_model = load_register_model_for(lang)
@@ -241,6 +246,7 @@ def convert_single_docx(
             demote_levels=1,
             slug_lookup=title_index,
             register_model=register_model,
+            lineation_overrides=lineation_overrides.load_overrides(docx),
             diagnostics=diagnostics,
         ))
 

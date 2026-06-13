@@ -1,4 +1,4 @@
-# research-pure: scores the production importer's lineation verdict against every committed truth.
+# research-pure: scores the production importer's lineation verdict against the frozen truth sets.
 """The deterministic regression — the gate every converter-rule change must pass.
 
 The production importer is the corpus's free tier-0 labeler (`docx_inspect.lineation_decisions`,
@@ -7,10 +7,12 @@ never wrong; its error mass is verse it failed to detect — is the load-bearing
 budget ladder, so any `pancratius/` change that could move these numbers re-runs this scoring
 and must keep prose-recall at its floor while never regressing the easy sets.
 
-Scores against the four committed truth sets: the trainable labels plus the three frozen eval
-slices. A truth line whose ordinal has no verdict is counted `uncovered`, never guessed.
-Pure given the truth + per-book verdict maps; `score_all` is the IO shell (labels + DOCX, no
-records). `python -m lineation_core.evaluation.det_regression` prints the table;
+Scores FROZEN memberships only (`det-gate` — the trainable truth as of the floors' measurement —
+plus the three eval slices), so truth GROWTH never moves the gate: a new label changes nothing
+here, while a converter change or a member's re-adjudication moves a floor and is investigated.
+A member line whose ordinal has no verdict is counted `uncovered`, never guessed. Pure given the
+truth + per-book verdict maps; `score_all` is the IO shell (labels + DOCX, no records).
+`python -m lineation_core.evaluation.det_regression` prints the table;
 `tests/test_det_regression.py` pins the floors."""
 from __future__ import annotations
 
@@ -19,15 +21,14 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 from .. import paths
-from ..annotations import load_labels
 from ..identity import Label, LineId
 from .datasets import eval_slice
 from .metrics import Metrics, balanced
 
-EVAL_SLICES = ("reader_bench", "contested", "prompt_structural")
+GATE_SLICES = ("det-gate", "reader_bench", "contested", "prompt_structural")
 
 
-@lru_cache(maxsize=None)
+@lru_cache(maxsize=None)   # ≤103 books, one-shot process; stale only if a docx changes mid-run
 def _book_decisions(lang: str, book_id: str) -> Mapping[int, bool]:
     from pancratius.docx_inspect import lineation_decisions
 
@@ -61,14 +62,9 @@ def score_truth(name: str, truth: Mapping[LineId, Label]) -> DetScore:
 
 
 def score_all() -> list[DetScore]:
-    """All four truth sets, trainable labels first. The eval slices join through the one truth
-    store (`eval_slice` fails loud on a member with no label)."""
-    sets: dict[str, Mapping[LineId, Label]] = {
-        "trainable-gold": {g.id: g.label for g in load_labels().trainable},
-    }
-    for name in EVAL_SLICES:
-        sets[name] = eval_slice(name).truth
-    return [score_truth(n, t) for n, t in sets.items()]
+    """The four frozen gate memberships, joined through the one truth store (`eval_slice` fails
+    loud on a member with no label)."""
+    return [score_truth(name, eval_slice(name).truth) for name in GATE_SLICES]
 
 
 if __name__ == "__main__":
