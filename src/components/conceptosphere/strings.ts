@@ -90,6 +90,10 @@ export interface ConceptosphereStrings {
   convergenceLabel: string;
   /** Wraps a cover-image link in books-mode hero. */
   openBookLabel:    string;
+  /** Badge on a RU-only book node served under /en/ — declares it the Russian original. */
+  russianOriginalBadge: string;
+  /** CTA label for a RU-only book on /en/: the link opens the Russian page. */
+  openInRussianLabel:   string;
   /** Similarity row caption: "сходство 84%". `{pct}` placeholder. */
   similarityCaption: string;
 
@@ -167,6 +171,8 @@ const RU = {
   convergenceFoot:  "— в обоих списках",
   convergenceLabel: "в обоих списках",
   openBookLabel:    "Открыть книгу",
+  russianOriginalBadge: "Оригинал на русском",
+  openInRussianLabel:   "Открыть на русском",
   similarityCaption: "сходство {pct}%",
 
   mobileListAriaLabel:     "Концептосфера — список",
@@ -238,6 +244,8 @@ const EN = {
   convergenceFoot:  "— present in both lists",
   convergenceLabel: "present in both lists",
   openBookLabel:    "Open the book",
+  russianOriginalBadge: "Russian original",
+  openInRussianLabel:   "Open in Russian",
   similarityCaption: "{pct}% similar",
 
   mobileListAriaLabel:     "Conceptosphere — list",

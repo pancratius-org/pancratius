@@ -14,7 +14,7 @@ export interface PageConfig {
    * `href` is resolved at build time, so runtime code never has to invent
    * locale-specific book URLs.
    */
-  bookSlugInfo: Record<string, { number: number; title: string; href: string }>;
+  bookSlugInfo: Record<string, { number: number; title: string; href: string; localized: boolean }>;
   coverUrls: Record<string, string>;
   strings: ConceptosphereStrings;
 }
@@ -67,6 +67,8 @@ function isConceptosphereStrings(value: unknown): value is ConceptosphereStrings
       "convergenceFoot",
       "convergenceLabel",
       "openBookLabel",
+      "russianOriginalBadge",
+      "openInRussianLabel",
       "similarityCaption",
       "bookNumberPrefix",
       "loadErrorPrefix",
@@ -93,7 +95,8 @@ function isBookSlugInfo(value: unknown): value is PageConfig["bookSlugInfo"] {
     && typeof item.number === "number"
     && Number.isFinite(item.number)
     && typeof item.title === "string"
-    && typeof item.href === "string",
+    && typeof item.href === "string"
+    && typeof item.localized === "boolean",
   );
 }
 

@@ -30,7 +30,7 @@ interface Props {
    * Per-book slug → display metadata. The page resolves hrefs at build time
    * so the graph script never invents locale-specific work URLs.
    */
-  bookSlugInfo: Record<string, { number: number; title: string; href: string }>;
+  bookSlugInfo: Record<string, { number: number; title: string; href: string; localized: boolean }>;
   /**
    * Per-book cover URL produced by the Astro build. The script looks up by
    * `book:<ru-slug>` so panels render real book-bundle covers, not raw
