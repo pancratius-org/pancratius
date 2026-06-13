@@ -13,7 +13,7 @@ import { communityColor } from "./palette.ts";
 import type { ConceptosphereStrings } from "./strings.ts";
 import type { ConceptosphereMode } from "./graph-types.ts";
 
-type BookSlugInfo = Record<string, { number: number; title: string; href: string }>;
+type BookSlugInfo = Record<string, { number: number; title: string; href: string; localized: boolean }>;
 type BooksGraphNode = BooksGraph["nodes"][number];
 type ConceptsGraphNode = ConceptsGraph["nodes"][number];
 
@@ -40,6 +40,7 @@ export type ConceptosphereBookRow = {
   tags: readonly string[];
   href: string;
   coverUrl: string | null;
+  localized: boolean;
   topConcepts: { label: string }[];
   searchHay: string;
 };
@@ -68,6 +69,8 @@ interface LocalizedBookCatalogEntry {
   title: string;
   href: string;
   coverUrl: string | null;
+  /** True when the link resolves to the requested locale; false for a RU-only book served on /en/. */
+  localized: boolean;
 }
 
 type LocalizedBookCatalog = ReadonlyMap<string, LocalizedBookCatalogEntry>;
@@ -156,12 +159,18 @@ async function resolveLocalizedBook(
     title: entry.data.title,
     href: workUrl("book", entry.data.slug, linkLocale),
     coverUrl: coverAssetUrl(pair, locale),
+    // The link is "localized" only when it resolves to the requested locale.
+    // A RU-only book on /en/ falls back to RU (linkLocale "ru" ≠ "en") → badge.
+    localized: linkLocale === locale,
   };
 }
 
 function bookSlugInfoRecord(catalog: LocalizedBookCatalog): BookSlugInfo {
   return Object.fromEntries(
-    [...catalog].map(([slug, info]) => [slug, { number: info.number, title: info.title, href: info.href }]),
+    [...catalog].map(([slug, info]) => [
+      slug,
+      { number: info.number, title: info.title, href: info.href, localized: info.localized },
+    ]),
   );
 }
 
@@ -184,6 +193,7 @@ function bookRow(node: BooksGraphNode, catalog: LocalizedBookCatalog): Conceptos
     tags: node.tags,
     href: info.href,
     coverUrl: info.coverUrl,
+    localized: info.localized,
     topConcepts: allConcepts.slice(0, 8).map((concept) => ({ label: concept.label })),
     searchHay: bookSearchHay(node, info.title),
   };

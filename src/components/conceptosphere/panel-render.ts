@@ -33,6 +33,7 @@ const PANEL_CLASS = {
   bigCover: "cs-big-cover",
   heroMeta: "cs-h-meta",
   heroNumber: "cs-h-number",
+  russianBadge: "cs-ru-badge",
   bookTitleHeading: "cs-book-title-heading",
   bookTitleLink: "cs-book-title-link",
   tags: "cs-tags",
@@ -135,22 +136,31 @@ function bookHero(ctx: PanelHost, attrs: ConceptNodeAttributes, selfLink: string
   const strings = ctx.cfg.strings;
   const slug = attrs.slug ?? "";
   const coverUrl = ctx.cfg.coverUrls[`book:${slug}`];
+  // A RU-only book on /en/ links to its Russian page; the link declares that.
+  const localized = ctx.cfg.bookSlugInfo[slug]?.localized ?? true;
   const coverLink = link(selfLink, "", PANEL_CLASS.bookCoverLink);
-  coverLink.setAttribute("aria-label", strings.openBookLabel);
+  coverLink.setAttribute("aria-label", localized ? strings.openBookLabel : strings.openInRussianLabel);
   coverLink.append(bigCover(coverUrl));
+
+  const meta: (Node | string)[] = [
+    element("div", {
+      className: PANEL_CLASS.heroNumber,
+      text: `${strings.bookNumberPrefix} ${attrs.number ?? "—"}`,
+    }),
+  ];
+  if (!localized) {
+    meta.push(element("span", { className: PANEL_CLASS.russianBadge, text: strings.russianOriginalBadge }));
+  }
+  meta.push(
+    element("h3", { className: PANEL_CLASS.bookTitleHeading }, [
+      link(selfLink, attrs.title ?? attrs.label, PANEL_CLASS.bookTitleLink),
+    ]),
+    tagList(attrs.tags),
+  );
 
   return element("div", { className: PANEL_CLASS.bookHero }, [
     coverLink,
-    element("div", { className: PANEL_CLASS.heroMeta }, [
-      element("div", {
-        className: PANEL_CLASS.heroNumber,
-        text: `${strings.bookNumberPrefix} ${attrs.number ?? "—"}`,
-      }),
-      element("h3", { className: PANEL_CLASS.bookTitleHeading }, [
-        link(selfLink, attrs.title ?? attrs.label, PANEL_CLASS.bookTitleLink),
-      ]),
-      tagList(attrs.tags),
-    ]),
+    element("div", { className: PANEL_CLASS.heroMeta }, meta),
   ]);
 }
 
