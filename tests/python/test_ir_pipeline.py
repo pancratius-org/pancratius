@@ -317,6 +317,46 @@ def test_scrub_ai_alt_keeps_real_alt() -> None:
 
 
 # ---------------------------------------------------------------------------
+# ChatGPT-citation scrub
+# ---------------------------------------------------------------------------
+
+
+def _cite(url: str) -> ir.Link:
+    return ir.Link(children=[ir.Text(value="pill")], target=url)
+
+
+def test_scrub_chatgpt_citation_trailing_and_parenthesized() -> None:
+    utm = "https://en.wikipedia.org/wiki/X?utm_source=chatgpt.com"
+    # trailing pill: `дхарму. [pill](utm)` → the lead-in space goes with it
+    trailing = ir.Paragraph(inlines=[ir.Text(value="дхарму."), ir.Text(value=" "), _cite(utm)])
+    # parenthesized: `жизнью. ([pill](utm))` → the wrapping parens go too
+    parened = ir.Paragraph(inlines=[
+        ir.Text(value="жизнью."), ir.Text(value=" "),
+        ir.Text(value="("), _cite(utm), ir.Text(value=")")])
+    out = normalize.scrub_chatgpt_citations([trailing, parened])
+    assert normalize.inline_plain(_para(out[0]).inlines) == "дхарму."
+    assert normalize.inline_plain(_para(out[1]).inlines) == "жизнью."
+
+
+def test_scrub_chatgpt_citation_keeps_author_conversation_links() -> None:
+    # an author-typed share link carries NO utm tag — it must survive untouched.
+    share = "https://chatgpt.com/share/abc"
+    para = ir.Paragraph(inlines=[ir.Text(value="see: "), _cite(share)])
+    out = normalize.scrub_chatgpt_citations([para])
+    links = [n for n in _para(out[0]).inlines if isinstance(n, ir.Link)]
+    assert [n.target for n in links] == [share]
+
+
+def test_scrub_chatgpt_citation_mid_sentence_leaves_one_space() -> None:
+    utm = "https://www.britannica.com/x?utm_source=chatgpt.com"
+    para = ir.Paragraph(inlines=[
+        ir.Text(value="before"), ir.Text(value=" "), _cite(utm),
+        ir.Text(value=" "), ir.Text(value="after")])
+    out = normalize.scrub_chatgpt_citations([para])
+    assert normalize.inline_plain(_para(out[0]).inlines) == "before after"
+
+
+# ---------------------------------------------------------------------------
 # bare bibliography heading strip
 # ---------------------------------------------------------------------------
 
