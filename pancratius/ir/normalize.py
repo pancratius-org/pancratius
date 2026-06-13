@@ -367,6 +367,71 @@ def scrub_ai_alt(blocks: list[ir.Block]) -> list[ir.Block]:
 
 
 # ---------------------------------------------------------------------------
+# 3b. ChatGPT-citation scrub — strip auto-injected web-search citations
+# ---------------------------------------------------------------------------
+
+# ChatGPT appends this tracking tag to every web-search citation URL it injects. No
+# author-typed URL carries it, so it is an exact, safe discriminator: the author's own
+# conversation links (`chatgpt.com/share/…`, `…/c/…`) have no `utm_source`, so they stay.
+_CHATGPT_CITATION_TAG = "utm_source=chatgpt.com"
+
+
+def _is_citation_link(n: ir.Inline) -> bool:
+    return isinstance(n, ir.Link) and _CHATGPT_CITATION_TAG in n.target
+
+
+def _is_ws_text(n: ir.Inline) -> bool:
+    return isinstance(n, ir.Text) and n.value.isspace()
+
+
+def _is_literal(n: ir.Inline, ch: str) -> bool:
+    return isinstance(n, ir.Text) and n.value == ch
+
+
+def _drop_lead_ws(out: list[ir.Inline]) -> None:
+    """Drop the single whitespace run that led into a just-removed citation, so the
+    sentence closes cleanly (`дхарму. [pill](url)` → `дхарму.`)."""
+    if out and _is_ws_text(out[-1]):
+        out.pop()
+
+
+def _scrub_citations_in_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
+    out: list[ir.Inline] = []
+    i = 0
+    while i < len(inlines):
+        node = inlines[i]
+        nxt = inlines[i + 1] if i + 1 < len(inlines) else None
+        nxt2 = inlines[i + 2] if i + 2 < len(inlines) else None
+        # a parenthesized citation `([pill](url))` — drop the wrapping parens with it
+        if _is_literal(node, "(") and nxt is not None and _is_citation_link(nxt) \
+                and nxt2 is not None and _is_literal(nxt2, ")"):
+            _drop_lead_ws(out)
+            i += 3
+            continue
+        if _is_citation_link(node):
+            _drop_lead_ws(out)
+            i += 1
+            continue
+        if isinstance(node, ir.ContainerInline):
+            node = ir.rebuild_container(node, _scrub_citations_in_inlines(node.children))
+        out.append(node)
+        i += 1
+    return out
+
+
+def scrub_chatgpt_citations(blocks: list[ir.Block]) -> list[ir.Block]:
+    """Remove ChatGPT's auto-injected web-search citation links (`[pill](url?utm_source=
+    chatgpt.com)`, e.g. a `Википедия+2` / `Encyclopedia Britannica` pill). Pandoc used to drop
+    these; the namespace-canonicalization image recovery now carries them forward, so they are
+    scrubbed here at the IR boundary — the author's own conversation links carry no tracking tag
+    and are kept. The pass also removes a `(...)` wrapper and the lead-in space around a removed
+    citation so the surrounding prose closes cleanly."""
+    for b in blocks:
+        ir.map_block_inlines(b, _scrub_citations_in_inlines)
+    return blocks
+
+
+# ---------------------------------------------------------------------------
 # 4. bibliography table classification + lift
 # ---------------------------------------------------------------------------
 
@@ -1902,6 +1967,7 @@ def normalize(
     doc.blocks = drop_toc(doc.blocks)
     doc.blocks = scrub_rights(doc.blocks)
     doc.blocks = scrub_ai_alt(doc.blocks)
+    doc.blocks = scrub_chatgpt_citations(doc.blocks)
     lift_bibliography(doc, slug_lookup)
     doc.blocks = strip_endmatter_sections(doc.blocks)
     doc.blocks = strip_bare_bibliography_heading(doc.blocks)
