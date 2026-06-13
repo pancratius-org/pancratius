@@ -1,4 +1,8 @@
 {
+ "64": {
+  "source": "Коран 5:17",
+  "text_sha": "ef2d3f5a7dc7ccc3"
+ },
  "82": {
   "source": "Коран 19:30",
   "text_sha": "b75a4bd27cda4ce2"
@@ -6,5 +10,9 @@
  "91": {
   "source": "Коран 5:116",
   "text_sha": "a96fd2404d2f5035"
+ },
+ "511": {
+  "source": "Ин 8:58",
+  "text_sha": "0ec99a136db43e22"
  }
 }

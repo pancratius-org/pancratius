@@ -1,4 +1,36 @@
 {
+ "1606": {
+  "source": "Мф 26:28",
+  "text_sha": "67edcccfb8343cdc"
+ },
+ "4932": {
+  "source": "Пс 21:17,19",
+  "text_sha": "2a0efd54446cf78c"
+ },
+ "5269": {
+  "source": "Рим. 9:6",
+  "text_sha": "764a2400f267be2a"
+ },
+ "9103": {
+  "source": "Песн 1:2",
+  "text_sha": "fc24702863f09fe2"
+ },
+ "9857": {
+  "source": "Ис 53:7",
+  "text_sha": "d0792d0bd5f524e4"
+ },
+ "12492": {
+  "source": "Быт. 2:8",
+  "text_sha": "bce05c85f7b909a9"
+ },
+ "12746": {
+  "source": "Мф 24:2",
+  "text_sha": "dc6aa2e46bd20cd9"
+ },
+ "13110": {
+  "source": "Лк 1:38",
+  "text_sha": "8f61a854b61a7b18"
+ },
  "13637": {
   "source": "Быт 1:2",
   "text_sha": "e7863bd118b56db0"
@@ -15,8 +47,20 @@
   "source": "Исх 4:12",
   "text_sha": "beafcdfaafbe728b"
  },
+ "15107": {
+  "source": "Исх 4:12",
+  "text_sha": "584271faa8041d0e"
+ },
  "15149": {
   "source": "Мф 3:17",
   "text_sha": "1c3c8d5b639d2390"
+ },
+ "15416": {
+  "source": "Мф 4:11",
+  "text_sha": "0f226a6744902b58"
+ },
+ "15450": {
+  "source": "Мф 4:10",
+  "text_sha": "2462f9aaa2564648"
  }
 }
