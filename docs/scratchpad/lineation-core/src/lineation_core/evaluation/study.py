@@ -108,8 +108,8 @@ def load_experiment(toml_text: str, *, prompts_dir: Path | None = None,
     if unknown:
         raise ValueError(f"unknown metric(s) {unknown}; known: {sorted(METRICS)}")
 
-    books = _dataset_books(dataset_name, annotations=annotations)
-    base = _base_recipe(d, exp_d, dataset_name, books, prompts_dir=prompts_dir)
+    lang, books = _dataset_books(dataset_name, annotations=annotations)
+    base = _base_recipe(d, exp_d, dataset_name, lang, books, prompts_dir=prompts_dir)
 
     meta = ExperimentMeta(
         id=str(exp_d.get("id", base.task_id)), kind=str(exp_d.get("kind", "reader")),
@@ -120,26 +120,34 @@ def load_experiment(toml_text: str, *, prompts_dir: Path | None = None,
                       prompt_files=prompt_files)
 
 
-def _dataset_books(name: str, *, annotations: Path | None) -> tuple[BookId, ...]:
-    """The books a frozen eval slice spans, from its own LineIds — so the author need not re-list
-    them (and a stale author list can't diverge from the data)."""
-    keys = store.load_eval_set(name, annotations=annotations)
-    return tuple(sorted({LineId.from_key(k).book_id for k in keys}))
+def _dataset_books(name: str, *, annotations: Path | None) -> tuple[str, tuple[BookId, ...]]:
+    """The (lang, books) a frozen eval slice spans, from its own LineIds — so the author need not
+    re-list them (and a stale author list can't diverge from the data). A panel Recipe is
+    single-language, so a slice mixing ru and en FAILS LOUD here: the books would be rendered with
+    one language's records, silently corrupting half the lines."""
+    ids = [LineId.from_key(k) for k in store.load_eval_set(name, annotations=annotations)]
+    langs = {lid.lang for lid in ids}
+    if len(langs) > 1:
+        raise ValueError(f"eval slice {name!r} mixes languages {sorted(langs)} — a study recipe is "
+                         f"single-language; split the slice per language")
+    lang = next(iter(langs), "ru")
+    return lang, tuple(sorted({lid.book_id for lid in ids}))
 
 
 def _base_recipe(d: Mapping[str, object], exp_d: Mapping[str, object], dataset_name: str,
-                 books: tuple[BookId, ...], *, prompts_dir: Path | None) -> Recipe:
+                 lang: str, books: tuple[BookId, ...], *, prompts_dir: Path | None) -> Recipe:
     """The base panel recipe: the experiment dict augmented with the derived `[selection]` (the
-    derived books, the tiling params) and the experiment's id as `task_id`, validated through the
-    ONE recipe loader (`recipe_from_dict`), not a second grammar. The selector is the dataset
-    itself — constructed as the `EvalSet` ADT directly, never re-spelled in the author grammar."""
+    derived books + lang, the tiling params) and the experiment's id as `task_id`, validated
+    through the ONE recipe loader (`recipe_from_dict`), not a second grammar. The selector is the
+    dataset itself — constructed as the `EvalSet` ADT directly, never re-spelled in the author
+    grammar. `lang` is derived from the slice too (not an author knob that could diverge)."""
     sel = d.get("selection", {})
     aug = dict(d)
     aug["task_id"] = str(exp_d.get("id", d.get("task_id", "experiment")))
     aug["selection"] = {
         "books": list(books),
         "target": int(sel.get("target", 10)), "context_radius": int(sel.get("context_radius", 2)),
-        "lang": str(sel.get("lang", "ru"))}
+        "lang": lang}
     return replace(recipes.recipe_from_dict(aug, prompts_dir=prompts_dir),
                    selector=recipes.EvalSet(dataset_name))
 
