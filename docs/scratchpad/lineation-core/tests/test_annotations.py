@@ -16,18 +16,30 @@ def labelset():
 
 # --- the loaded set is the trainable truth, unmapped rejected ---
 
-def _human(labelset):
-    """The irreplaceable human migration cohort — the labels these locks guard. The E1 gate
-    cohort (`source=gate`, bilingual, machine-promoted) coexists and grows; it has its own
-    invariants (holdout split, leak test) and must not be folded into the human-cohort locks."""
-    return [g for g in labelset.labels if g.source == LabelSource.HUMAN]
+def _migration(labelset):
+    """The irreplaceable human migration cohort — the labels these locks guard, identified by its
+    legacy lineage (`rid` provenance), NOT by `source=human`: live adjudication keeps minting new
+    human-source labels (task-keyed provenance), and the E1 gate cohort (`source=gate`, bilingual,
+    machine-promoted) coexists and grows. Each newer cohort has its own invariants (holdout split,
+    leak test, task lineage) and must not be folded into the migration-cohort locks."""
+    return [g for g in labelset.labels
+            if g.source == LabelSource.HUMAN and "rid" in g.provenance]
+
+
+def _adjudication(labelset):
+    """The live human-adjudication cohort: human-source labels minted by the studio loop
+    (`ingest`), carrying task lineage instead of legacy `rid` lineage. Grows with every
+    adjudicated queue — invariants, never count locks."""
+    return [g for g in labelset.labels
+            if g.source == LabelSource.HUMAN and "rid" not in g.provenance]
 
 
 def test_locked_human_label_counts(labelset):
-    """The human cohort = 702 mapped labels = 620 trainable + 82 holdout (the homed contested-only
-    human adjudications — eval-only truth); the 2 unmapped-line labels are REJECTED at the boundary
-    and surfaced, not silently dropped. Stable regardless of how many gate labels E1+ adds."""
-    human = _human(labelset)
+    """The migration cohort = 702 mapped labels = 620 trainable + 82 holdout (the homed
+    contested-only human adjudications — eval-only truth); the 2 unmapped-line labels are REJECTED
+    at the boundary and surfaced, not silently dropped. Stable regardless of how many gate or
+    live-adjudication labels E1+ adds."""
+    human = _migration(labelset)
     assert len(human) == 702
     assert sum(not g.holdout for g in human) == 620
     assert sum(g.holdout for g in human) == 82
@@ -40,7 +52,7 @@ def test_human_class_balance_locked(labelset):
     content into one paragraph. 17 flipped back to prose (12 trainable + 5 holdout); 4 confirmed
     (b41:2247 stays lineated on the human's bug-independent section-convention tiebreak)."""
     from collections import Counter
-    human = _human(labelset)
+    human = _migration(labelset)
     trainable = [g for g in human if not g.holdout]
     assert dict(Counter(g.label for g in trainable)) == {"lineated": 528, "prose": 92}
     assert dict(Counter(g.label for g in human)) == {"lineated": 588, "prose": 114}
@@ -62,23 +74,35 @@ def test_loaded_ids_unique(labelset):
     assert len(ids) == len(set(ids))
 
 
-def test_human_cohort_is_ru_only(labelset):
+def test_migration_cohort_is_ru_only(labelset):
     """The human migration cohort is ru-only (the original study labeled the ru corpus). EN truth
-    arrives later as gate/transfer labels, NOT in this cohort."""
-    assert all(g.id.lang == "ru" for g in _human(labelset))
+    arrives later as gate/adjudication labels, NOT in this cohort."""
+    assert all(g.id.lang == "ru" for g in _migration(labelset))
 
 
-def test_human_lineage_preserved_with_provenance(labelset):
-    """Every HUMAN-cohort label keeps its lineage: the original migration cohort carries the legacy
-    shard key (rid/idx/sub/shard); the homed contested-only cohort points at the legacy human
-    adjudication export that produced it (adjudication/rid/key). Gate labels carry their own
+def test_migration_lineage_preserved_with_provenance(labelset):
+    """Every migration-cohort label keeps its lineage: the original migration cohort carries the
+    legacy shard key (rid/idx/sub/shard); the homed contested-only cohort points at the legacy
+    human adjudication export that produced it (adjudication/rid/key). Gate labels carry their own
     `anchor`/`task`/`votes` provenance, checked where the gate is tested."""
-    for g in _human(labelset):
+    for g in _migration(labelset):
         if g.holdout:
             assert {"adjudication", "rid", "key"} <= set(g.provenance.keys())
         else:
             assert {"rid", "idx", "sub", "shard"} <= set(g.provenance.keys())
         assert g.line_text_hash is not None
+
+
+def test_adjudication_cohort_carries_task_lineage(labelset):
+    """Every live-adjudication label traces to the studio task that produced it: the task-local
+    key, the region, and the task title — the manifest is the committed resolver, so this lineage
+    makes each verdict replayable to its exact rendered context. Hash-railed like everything."""
+    adj = _adjudication(labelset)
+    assert adj, "the E1 adjudication cohort exists (en ingested 2026-06-12)"
+    for g in adj:
+        assert {"task_key", "item_id", "task"} <= set(g.provenance.keys())
+        assert g.line_text_hash is not None
+        assert g.audit_status == "adjudicated"
 
 
 def test_idx_to_src_mapping_is_real_for_every_g05_line(labelset):
