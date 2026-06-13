@@ -59,11 +59,14 @@ class ParaRow:
     bordered: bool        # w:pBdr
     heading: bool
     thematic: bool
-    br_count: int         # hard <w:br/> inside the paragraph (authored lineation)
+    br_count: int         # hard <w:br/>/<w:cr/> LINE breaks (authored lineation; page and
+                          # column breaks are pagination, not lineation — excluded)
     empty: bool
     lineation_group: int | None = None
     block_kind: str = "?"  # the IR block this paragraph's text landed in
     block_source_span: ir.SourceSpan | None = None
+    page_break_before: bool = False  # w:pPr/w:pageBreakBefore — starts a new page
+    page_break_inline: bool = False  # a run-level <w:br w:type="page"/> inside the paragraph
 
 
 class DocxInspectError(ValueError):
@@ -130,8 +133,25 @@ def _ind_attrs(ppr: ET.Element | None) -> dict[str, str]:
     return {k.removeprefix(W): v for k, v in ind.attrib.items()}
 
 
+_PAGINATION_BR_TYPES = {"page", "column"}
+
+
 def _br_count(p: ET.Element) -> int:
-    return sum(1 for el in p.iter() if el.tag in {f"{W}br", f"{W}cr"})
+    """Authored LINE breaks only: a `<w:br>` with no type (or textWrapping) and `<w:cr>`.
+    Page/column breaks are pagination, never lineation."""
+    return sum(
+        1 for el in p.iter()
+        if (el.tag == f"{W}br" and el.get(f"{W}type") not in _PAGINATION_BR_TYPES)
+        or el.tag == f"{W}cr")
+
+
+def _page_break_inline(p: ET.Element) -> bool:
+    return any(el.tag == f"{W}br" and el.get(f"{W}type") == "page" for el in p.iter())
+
+
+def _page_break_before(ppr: ET.Element | None) -> bool:
+    el = ppr.find(f"{W}pageBreakBefore") if ppr is not None else None
+    return el is not None and el.get(f"{W}val") not in {"false", "0", "none"}
 
 
 def read_rows(docx: Path) -> list[ParaRow]:
@@ -196,6 +216,8 @@ def read_rows(docx: Path) -> list[ParaRow]:
                     thematic=thematic,
                     br_count=_br_count(child),
                     empty=not txt,
+                    page_break_before=_page_break_before(ppr),
+                    page_break_inline=_page_break_inline(child),
                 )
                 rows.append(row)
                 # The source-paragraph record the importer would build (list items
