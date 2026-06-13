@@ -1,6 +1,3 @@
-{"id": ["en", "01", 53, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
-{"id": ["en", "01", 53, 0], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
-{"id": ["en", "01", 53, 0], "tag": "grok", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
 {"id": ["en", "01", 293, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "01", 293, 0], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "01", 293, 0], "tag": "grok", "label": "lineated", "conf": 0.8833333333333333, "task": "e1-instrument-en"}
@@ -112,18 +109,12 @@
 {"id": ["en", "04", 507, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9166666666666666, "task": "e1-instrument-en"}
 {"id": ["en", "04", 507, 0], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "04", 507, 0], "tag": "grok", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
-{"id": ["en", "05", 26, 0], "tag": "deepseek", "label": "lineated", "conf": 0.95, "task": "e1-instrument-en"}
-{"id": ["en", "05", 26, 0], "tag": "gemini", "label": "lineated", "conf": 0.9333333333333332, "task": "e1-instrument-en"}
-{"id": ["en", "05", 26, 0], "tag": "grok", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
 {"id": ["en", "05", 50, 3], "tag": "deepseek", "label": "lineated", "conf": 0.95, "task": "e1-instrument-en"}
 {"id": ["en", "05", 50, 3], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "05", 50, 3], "tag": "grok", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
 {"id": ["en", "05", 63, 0], "tag": "deepseek", "label": "prose", "conf": 0.9333333333333332, "task": "e1-instrument-en"}
 {"id": ["en", "05", 63, 0], "tag": "gemini", "label": "prose", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "05", 63, 0], "tag": "grok", "label": "prose", "conf": 0.8833333333333333, "task": "e1-instrument-en"}
-{"id": ["en", "06", 39, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
-{"id": ["en", "06", 39, 0], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
-{"id": ["en", "06", 39, 0], "tag": "grok", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
 {"id": ["en", "06", 246, 3], "tag": "deepseek", "label": "lineated", "conf": 0.9333333333333332, "task": "e1-instrument-en"}
 {"id": ["en", "06", 246, 3], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "06", 246, 3], "tag": "grok", "label": "lineated", "conf": 0.85, "task": "e1-instrument-en"}
@@ -265,9 +256,6 @@
 {"id": ["en", "27", 630, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9166666666666666, "task": "e1-instrument-en"}
 {"id": ["en", "27", 630, 0], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "27", 630, 0], "tag": "grok", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
-{"id": ["en", "30", 40, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9166666666666666, "task": "e1-instrument-en"}
-{"id": ["en", "30", 40, 0], "tag": "gemini", "label": "prose", "conf": 0.95, "task": "e1-instrument-en"}
-{"id": ["en", "30", 40, 0], "tag": "grok", "label": "lineated", "conf": 0.8833333333333333, "task": "e1-instrument-en"}
 {"id": ["en", "30", 838, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "30", 838, 0], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "30", 838, 0], "tag": "grok", "label": "lineated", "conf": 0.9333333333333332, "task": "e1-instrument-en"}
@@ -388,9 +376,6 @@
 {"id": ["en", "35", 15421, 0], "tag": "deepseek", "label": "lineated", "conf": 1.0, "task": "e1-instrument-en"}
 {"id": ["en", "35", 15421, 0], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "35", 15421, 0], "tag": "grok", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
-{"id": ["en", "47", 102, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
-{"id": ["en", "47", 102, 0], "tag": "gemini", "label": "lineated", "conf": 0.9333333333333332, "task": "e1-instrument-en"}
-{"id": ["en", "47", 102, 0], "tag": "grok", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
 {"id": ["en", "47", 385, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9333333333333332, "task": "e1-instrument-en"}
 {"id": ["en", "47", 385, 0], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "47", 385, 0], "tag": "grok", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
@@ -448,9 +433,6 @@
 {"id": ["en", "50", 799, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "50", 799, 0], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "50", 799, 0], "tag": "grok", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
-{"id": ["en", "51", 95, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
-{"id": ["en", "51", 95, 0], "tag": "gemini", "label": "lineated", "conf": 0.9333333333333332, "task": "e1-instrument-en"}
-{"id": ["en", "51", 95, 0], "tag": "grok", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
 {"id": ["en", "51", 738, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9166666666666666, "task": "e1-instrument-en"}
 {"id": ["en", "51", 738, 0], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "51", 738, 0], "tag": "grok", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
@@ -520,9 +502,6 @@
 {"id": ["en", "51", 9223, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9333333333333332, "task": "e1-instrument-en"}
 {"id": ["en", "51", 9223, 0], "tag": "gemini", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
 {"id": ["en", "51", 9223, 0], "tag": "grok", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
-{"id": ["en", "52", 113, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9333333333333332, "task": "e1-instrument-en"}
-{"id": ["en", "52", 113, 0], "tag": "gemini", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
-{"id": ["en", "52", 113, 0], "tag": "grok", "label": "lineated", "conf": 0.8833333333333333, "task": "e1-instrument-en"}
 {"id": ["en", "52", 460, 0], "tag": "deepseek", "label": "prose", "conf": 0.9166666666666666, "task": "e1-instrument-en"}
 {"id": ["en", "52", 460, 0], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "52", 460, 0], "tag": "grok", "label": "lineated", "conf": 0.85, "task": "e1-instrument-en"}
@@ -991,9 +970,6 @@
 {"id": ["en", "63", 24362, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
 {"id": ["en", "63", 24362, 0], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "63", 24362, 0], "tag": "grok", "label": "lineated", "conf": 0.7999999999999999, "task": "e1-instrument-en"}
-{"id": ["en", "64", 32, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
-{"id": ["en", "64", 32, 0], "tag": "gemini", "label": "lineated", "conf": 0.95, "task": "e1-instrument-en"}
-{"id": ["en", "64", 32, 0], "tag": "grok", "label": "lineated", "conf": 0.9, "task": "e1-instrument-en"}
 {"id": ["en", "64", 1107, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "64", 1107, 0], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "64", 1107, 0], "tag": "grok", "label": "lineated", "conf": 0.8666666666666667, "task": "e1-instrument-en"}
@@ -4511,9 +4487,6 @@
 {"id": ["ru", "51", 9198, 0], "tag": "deepseek", "label": "prose", "conf": 0.9166666666666666, "task": "e1-instrument-ru"}
 {"id": ["ru", "51", 9198, 0], "tag": "gemini", "label": "prose", "conf": 0.9499999999999998, "task": "e1-instrument-ru"}
 {"id": ["ru", "51", 9198, 0], "tag": "grok", "label": "prose", "conf": 0.8500000000000001, "task": "e1-instrument-ru"}
-{"id": ["ru", "52", 119, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-ru"}
-{"id": ["ru", "52", 119, 0], "tag": "gemini", "label": "lineated", "conf": 0.95, "task": "e1-instrument-ru"}
-{"id": ["ru", "52", 119, 0], "tag": "grok", "label": "lineated", "conf": 0.9166666666666666, "task": "e1-instrument-ru"}
 {"id": ["ru", "52", 167, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-ru"}
 {"id": ["ru", "52", 167, 0], "tag": "gemini", "label": "lineated", "conf": 0.9666666666666667, "task": "e1-instrument-ru"}
 {"id": ["ru", "52", 167, 0], "tag": "grok", "label": "lineated", "conf": 0.85, "task": "e1-instrument-ru"}
@@ -7581,9 +7554,6 @@
 {"id": ["ru", "70", 3108, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-ru"}
 {"id": ["ru", "70", 3108, 0], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-ru"}
 {"id": ["ru", "70", 3108, 0], "tag": "grok", "label": "lineated", "conf": 0.9166666666666666, "task": "e1-instrument-ru"}
-{"id": ["ru", "71", 169, 0], "tag": "deepseek", "label": "lineated", "conf": 0.9166666666666666, "task": "e1-instrument-ru"}
-{"id": ["ru", "71", 169, 0], "tag": "gemini", "label": "prose", "conf": 0.925, "task": "e1-instrument-ru"}
-{"id": ["ru", "71", 169, 0], "tag": "grok", "label": "lineated", "conf": 0.8833333333333333, "task": "e1-instrument-ru"}
 {"id": ["ru", "71", 654, 0], "tag": "deepseek", "label": "prose", "conf": 0.9499999999999998, "task": "e1-instrument-ru"}
 {"id": ["ru", "71", 654, 0], "tag": "gemini", "label": "prose", "conf": 1.0, "task": "e1-instrument-ru"}
 {"id": ["ru", "71", 654, 0], "tag": "grok", "label": "prose", "conf": 0.9, "task": "e1-instrument-ru"}
