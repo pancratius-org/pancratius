@@ -9,12 +9,13 @@ from lineation_core.evaluation import datasets
 
 def test_aligned_set_join_locked():
     a = datasets.from_store()
-    # 529 = the historical 515 + 14 voted lines whose human labels lived only in the contested
-    # eval set until they were homed in labels.jsonl (holdout) — a deliberate re-lock.
-    assert a.n_total == 529                            # lines with BOTH a label and >=1 vote
-    # 68/461 after the fixed-render re-adjudication: 9 aligned lines the recency pass had flipped
-    # prose→lineated on render-bug verdicts were re-judged prose on the fixed render (f80ff63).
-    assert a.n_prose == 68 and a.n_lineated == 461     # the imbalance surfaced up front
+    # 577 = the historical 529 (515 + 14 homed contested-only labels) + the 48 E1-instrument human
+    # adjudications (votes from the E1 panel, truth from the studio). Truth is PANEL-INDEPENDENT by
+    # default (human/override): the 1,442 E1 gate labels also sit on voted lines, but a gate label
+    # is a policy's own output — letting it grade policies would be self-grading.
+    assert a.n_total == 577                            # lines with BOTH a label and >=1 vote
+    # 68/461 after the fixed-render re-adjudication, +3/+45 from the E1 adjudications.
+    assert a.n_prose == 71 and a.n_lineated == 506     # the imbalance surfaced up front
     assert a.n_prose + a.n_lineated == a.n_total
     # every aligned line has truth, >=1 vote, and a difficulty stratum.
     assert all(ln.votes and ln.truth in ("prose", "lineated") for ln in a.lines)

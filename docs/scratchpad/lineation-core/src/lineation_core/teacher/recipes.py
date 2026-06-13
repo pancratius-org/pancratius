@@ -564,7 +564,7 @@ def route(recipe: Recipe, *, allow_partial: bool = False, annotations: Path | No
     routing = decision_mod.route_with(policy, all_votes, roster)
 
     existing = _existing_labels(annotations=annotations)
-    records = store.load_records_many(recipe.books, recipe.lang)
+    records = {b: store.load_records(b, recipe.lang) for b in recipe.books}
     hash_by_id = {r.id: r.line_text_hash for recs in records.values() for r in recs}
 
     # Pure pass first — decide every line; perform NO writes until all the raise-prone validation

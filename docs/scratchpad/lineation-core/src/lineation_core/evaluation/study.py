@@ -209,7 +209,7 @@ def _build_specs(recipe: Recipe, *, annotations: Path | None) -> tuple[list[Item
     """Select the eval lines → tile into regions → page-size (so an over-page region splits, keeping
     every votable line). Returns the specs + the `{book: records}` the task build needs."""
     selection = recipes.select_lines(recipe, annotations=annotations)
-    records = store.load_records_many(recipe.books, recipe.lang)
+    records = {b: store.load_records(b, recipe.lang) for b in recipe.books}
     specs: list[ItemSpec] = []
     for book in recipe.books:
         tiled = recipes.tile_regions(book, records[book], selection.get(book, set()),

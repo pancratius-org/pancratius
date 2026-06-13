@@ -18,7 +18,7 @@ from enum import StrEnum
 
 from ..annotations import LabelSource, LineLabel, PanelVote
 from ..identity import JsonObject, Label, LineId, ReaderTag, to_label
-from ..records import RecordsByBook
+from ..records import BookRecords
 # `RawReaderRow`/`RawReaderResponse` ARE the contract's output shape, so they live in `contracts`;
 # re-exported here because resolution consumes them.
 from .contracts import RawReaderResponse, RawReaderRow, ResponseContract, spec_for  # noqa: F401
@@ -75,7 +75,7 @@ class _Resolved:
 
 
 def _resolve(
-    manifest: TaskManifest, responses: list[RawReaderResponse], records: RecordsByBook, *,
+    manifest: TaskManifest, responses: list[RawReaderResponse], records: BookRecords, *,
     complete: bool,
 ) -> tuple[list[_Resolved], list[ResolveFaultRow], int]:
     """The choke point: map each response row through `manifest` to a `LineId`, flagging every
@@ -133,7 +133,7 @@ def _resolve(
 
 
 def resolve_panel(
-    manifest: TaskManifest, responses: list[RawReaderResponse], records: RecordsByBook, *,
+    manifest: TaskManifest, responses: list[RawReaderResponse], records: BookRecords, *,
     complete: bool = False,
 ) -> ResolvedVotes:
     """Resolve panel responses into LineId-keyed `PanelVote`s (one per resolved row; rep
@@ -146,21 +146,23 @@ def resolve_panel(
 
 
 def resolve_adjudication(
-    manifest: TaskManifest, responses: list[RawReaderResponse], records: RecordsByBook, *,
+    manifest: TaskManifest, responses: list[RawReaderResponse], records: BookRecords, *,
     title: str = "", complete: bool = False,
     source: LabelSource = LabelSource.HUMAN, audit_status: str = ADJUDICATED_AUDIT_STATUS,
 ) -> ResolvedLabels:
     """Resolve human adjudications into LineId-keyed `LineLabel`s. `confidence` is `None` (a human
-    emits no probability); provenance carries the task-local key + item + task title as lineage."""
+    emits no probability); provenance carries the task-local key + item + task title as lineage.
+    The region's free-text note rides on every label it covers — the human's reasoning (convention
+    ties, render-bug reports) is part of the verdict, not UI exhaust."""
     resolved, faults, n_expected = _resolve(manifest, responses, records, complete=complete)
     by_id = {r.id: r for book in records.values() for r in book}
+    notes = {resp.item_id: resp.note for resp in responses if resp.note}
     labels = tuple(
         LineLabel(id=r.id, label=r.label, source=source, confidence=None,
-                  audit_status=audit_status, notes="",
+                  audit_status=audit_status, notes=notes.get(r.item_id, ""),
                   provenance={"task_key": r.key, "item_id": r.item_id, "task": title},
                   line_text_hash=by_id[r.id].line_text_hash)
         for r in resolved)
-    notes = {resp.item_id: resp.note for resp in responses if resp.note}
     return ResolvedLabels(labels=labels, faults=tuple(faults), notes=notes,
                           n_expected=n_expected, n_resolved=len(labels))
 
