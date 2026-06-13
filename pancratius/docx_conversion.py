@@ -12,7 +12,16 @@ from typing import Any
 
 import yaml
 
-from pancratius import cross_refs, docx_adapter, footnotes, ir, lineation_overrides, lower, ooxml
+from pancratius import (
+    cross_refs,
+    docx_adapter,
+    footnotes,
+    ir,
+    lineation_overrides,
+    lower,
+    ooxml,
+    scripture_overrides,
+)
 from pancratius.content_catalog import IndexHit, dump_frontmatter
 from pancratius.passes import assets
 from pancratius.passes.pipeline import POEM_PASSES, Context, run
@@ -231,6 +240,9 @@ def convert_single_docx(
         if (stray := lineation_overrides.overrides_path(docx)).is_file():
             raise ValueError(f"poem import: {stray.name} found beside {docx.name}, but poems "
                              f"take no lineation overrides — remove it")
+        if (stray := scripture_overrides.overrides_path(docx)).is_file():
+            raise ValueError(f"poem import: {stray.name} found beside {docx.name}, but poems "
+                             f"take no scripture pins — remove it")
         doc = run(doc, Context(lang=lang, diagnostics=diagnostics), POEM_PASSES)
     else:
         register_model = load_register_model_for(lang)
@@ -247,6 +259,7 @@ def convert_single_docx(
             slug_lookup=title_index,
             register_model=register_model,
             lineation_overrides=lineation_overrides.load_overrides(docx),
+            scripture_overrides=scripture_overrides.load_overrides(docx),
             diagnostics=diagnostics,
         ))
 

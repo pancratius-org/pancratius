@@ -327,11 +327,16 @@ def classify_blocks(docx: Path) -> BlockClassifications:
     text ambiguity explicitly.
     """
     from pancratius.lineation_overrides import load_overrides
+    from pancratius.scripture_overrides import load_overrides as load_scripture_pins
 
     with tempfile.TemporaryDirectory(prefix="docx-inspect-") as td:
         doc = da.adapt(docx, Path(td), [])
         # rules-only: no register model (see lineation_decisions)
-        doc = run(doc, Context(lang="", lineation_overrides=load_overrides(docx)))
+        doc = run(doc, Context(
+            lang="",
+            lineation_overrides=load_overrides(docx),
+            scripture_overrides=load_scripture_pins(docx),
+        ))
 
     kind_of: dict[str, set[str]] = {}
     by_source = _SourceClassificationBuilder()
@@ -494,6 +499,7 @@ def lineation_decisions(docx: Path, *, apply_overrides: bool = True) -> dict[int
     segment of one ``w:p`` shares the ordinal's verdict.
     """
     from pancratius.lineation_overrides import load_overrides
+    from pancratius.scripture_overrides import load_overrides as load_scripture_pins
 
     with tempfile.TemporaryDirectory(prefix="docx-lineation-") as td:
         doc = da.adapt(docx, Path(td), [])
@@ -501,6 +507,7 @@ def lineation_decisions(docx: Path, *, apply_overrides: bool = True) -> dict[int
         doc = run(doc, Context(
             lang="",
             lineation_overrides=load_overrides(docx) if apply_overrides else None,
+            scripture_overrides=load_scripture_pins(docx),
         ))
 
     def hard_break_prose(block: ir.LineatedBlock) -> bool:
