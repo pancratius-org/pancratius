@@ -5,8 +5,10 @@
 //   1. Minify the RU-keyed source graphs (data/*.json) → public/data/*.json.
 //      RU is prefix-less site-wide, so these keep their un-suffixed names.
 //   2. Join each graph's topology with the authored EN overlay
-//      (data/conceptosphere-i18n/en.json, { stable_id: { label, gloss? } })
-//      and emit public/data/pancratius-{concepts,books}-graph.en.json. The EN
+//      (data/conceptosphere-i18n/en.json, { kind_prefixed_key: { label, gloss? } }
+//      — `concept:<concept_id>` / `community:<key>`, so a concept id can never
+//      collide with a community key) and emit
+//      public/data/pancratius-{concepts,books}-graph.en.json. The EN
 //      route fetches these so the client stays a one-fetch pure consumer that
 //      renders labels verbatim — no runtime locale logic, no second fetch.
 //
@@ -109,9 +111,9 @@ function requireEntry(overlay: Overlay, stableId: string, what: string): Overlay
 export function joinLocalePayload(graph: Graph, overlay: Overlay, nodesAreConcepts: boolean): Graph {
   const nodes = (graph.nodes ?? []).map((node) => {
     if (!nodesAreConcepts) return node;
-    const stableId = conceptStableId(node);
-    if (stableId === null) return node;
-    const entry = requireEntry(overlay, stableId, "concept");
+    const conceptId = conceptStableId(node);
+    if (conceptId === null) return node;
+    const entry = requireEntry(overlay, `concept:${conceptId}`, "concept");
     const joined: GraphNode = { ...node, label: entry.label };
     if (entry.gloss !== undefined) joined.gloss = entry.gloss;
     return joined;
@@ -122,7 +124,7 @@ export function joinLocalePayload(graph: Graph, overlay: Overlay, nodesAreConcep
     // generator emits it; payloads predating the regen keep their RU label and
     // are caught by the PAN021 audit once keyed).
     if (!isString(com.key)) return com;
-    const entry = requireEntry(overlay, com.key, "community");
+    const entry = requireEntry(overlay, `community:${com.key}`, "community");
     return { ...com, label: entry.label };
   });
 

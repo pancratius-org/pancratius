@@ -1,5 +1,5 @@
 {
-  "свет": { "label": "Light", "gloss": "Divine light." },
-  "тьма": { "label": "Darkness" },
-  "c0ffee01": { "label": "Light & Darkness" }
+  "concept:свет": { "label": "Light", "gloss": "Divine light." },
+  "concept:тьма": { "label": "Darkness" },
+  "community:c0ffee01": { "label": "Light & Darkness" }
 }

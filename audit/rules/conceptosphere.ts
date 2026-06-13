@@ -10,7 +10,9 @@
 // This rule IS the drift detector. It enumerates every stable id present in the
 // committed graphs — each concept's `concept_id` (the lemma; falls back to the
 // node `id`, which equals the lemma) and each community's content-fingerprint
-// `key` — and fires fatal for any that lacks an entry in en.json. A drifted
+// `key` — and fires fatal for any that lacks an entry in en.json. Overlay keys
+// encode the KIND so a concept_id can never collide with a community key:
+// `concept:<concept_id>` and `community:<key>`. A drifted
 // community gets a new `key`, has no entry, and fires here; there is no separate
 // detector. This mirrors the tag-localization audit's INTENT and fail-semantics
 // (glossary-as-source-of-truth, untranslated key = hard failure) but is its own
@@ -61,7 +63,7 @@ interface Graph {
 }
 
 interface RequiredId {
-  /** The stable id that must have an EN entry. */
+  /** The kind-prefixed overlay key (`concept:<id>` / `community:<key>`) that must have an EN entry. */
   readonly stableId: string;
   /** The entity kind (for the finding text). */
   readonly entity: string;
@@ -81,12 +83,12 @@ function conceptIds(graph: Graph, file: string): RequiredId[] {
   const out: RequiredId[] = [];
   for (const raw of graph.nodes) {
     const node = raw as ConceptNode;
-    const stableId = isString(node.concept_id) ? node.concept_id : isString(node.id) ? node.id : null;
-    if (stableId === null) continue;
+    const conceptId = isString(node.concept_id) ? node.concept_id : isString(node.id) ? node.id : null;
+    if (conceptId === null) continue;
     out.push({
-      stableId,
+      stableId: `concept:${conceptId}`,
       entity: "concept",
-      ruLabel: isString(node.label) ? node.label : stableId,
+      ruLabel: isString(node.label) ? node.label : conceptId,
       file,
     });
   }
@@ -101,7 +103,7 @@ function communityKeys(graph: Graph, file: string): RequiredId[] {
     const com = raw as Community;
     if (!isString(com.key)) continue;
     out.push({
-      stableId: com.key,
+      stableId: `community:${com.key}`,
       entity: "community",
       ruLabel: isString(com.label) ? com.label : com.key,
       file,

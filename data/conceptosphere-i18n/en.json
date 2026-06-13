@@ -1,6 +1,6 @@
 {
-  "свет": { "label": "Light", "gloss": "Divine light; the central image of the corpus." },
-  "творец": { "label": "the Creator" },
-  "истина": { "label": "Truth" },
-  "755407fc": { "label": "Light & the Creator" }
+  "concept:свет": { "label": "Light", "gloss": "Divine light; the central image of the corpus." },
+  "concept:творец": { "label": "the Creator" },
+  "concept:истина": { "label": "Truth" },
+  "community:d79063b4": { "label": "Light & the Creator" }
 }
