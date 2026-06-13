@@ -27,6 +27,33 @@ def _write_docx(path: Path, paragraphs: list[str]) -> None:
     doc.save(str(path))
 
 
+def test_read_rows_separates_line_breaks_from_page_breaks(tmp_path: Path) -> None:
+    """A `<w:br/>` line break is authored LINEATION (counted in br_count); a page or column
+    break is PAGINATION (excluded from br_count, surfaced on page_break_* instead). Conflating
+    them made the vision render open a near-blank page on a chapter break (E1, book 36)."""
+    from docx import Document
+    from docx.enum.text import WD_BREAK
+
+    doc = Document()
+    line = doc.add_paragraph("first")
+    line.add_run().add_break(WD_BREAK.LINE)           # an authored line break — lineation
+    line.add_run("second")
+    pg = doc.add_paragraph("before-break")
+    pg.add_run().add_break(WD_BREAK.PAGE)             # an inline page break — pagination
+    after = doc.add_paragraph("on-next-page")
+    after.paragraph_format.page_break_before = True   # a pageBreakBefore — pagination
+    path = tmp_path / "breaks.docx"
+    doc.save(str(path))
+
+    rows = docx_inspect.read_rows(path)
+    line_row = next(r for r in rows if r.text.startswith("first"))
+    assert line_row.br_count == 1 and not line_row.page_break_inline
+    pg_row = next(r for r in rows if r.text == "before-break")
+    assert pg_row.br_count == 0 and pg_row.page_break_inline
+    after_row = next(r for r in rows if r.text == "on-next-page")
+    assert after_row.page_break_before and after_row.br_count == 0
+
+
 pandoc_required = pytest.mark.skipif(
     shutil.which("pandoc") is None,
     reason="pandoc is required for importer-backed DOCX inspection",
