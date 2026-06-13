@@ -139,14 +139,16 @@ def test_golden_snapshot_book57_first_body_lines(recs57):
     """Regression lock: the producer's output on a known region is frozen; if the substrate or
     φ logic shifts these values, this fails."""
     body = [r for r in recs57 if r.role == Role.BODY][:5]
-    snap = [(r.id.src_ordinal, r.id.sub, r.text, round(r.features.fill, 3),
+    snap = [(r.id.src_ordinal, r.id.sub, r.text[:40], round(r.features.fill, 3),
              r.features.wraps, r.features.end_punct.value) for r in body]
+    # The ToC ("Рождение книги 2" … "Глава 15…") is now correctly NON-body (dropped by a
+    # structural pass → CONTEXT), so the first BODY line is the real opening, not a contents entry.
     expected = [
-        (1, 0, "Рождение книги 2", 0.198, False, "none"),
-        (2, 0, "КНИГА ОТДАЧИ 7", 0.219, False, "none"),
-        (3, 0, "(Начало) 7", 0.116, False, "none"),
-        (4, 0, "Глава 1. Не десятину 8", 0.249, False, "none"),
-        (5, 0, "Глава 2. Всё 9", 0.153, False, "none"),
+        (24, 0, "Панкратиус: Отец, сегодня 30 января 2026", 23.493, True, "sentence"),
+        (26, 0, "Ты увидел, и это было Мной.", 0.322, False, "sentence"),
+        (27, 0, "Ты различил четыре формы — и не ошибся, ", 0.867, False, "sentence"),
+        (28, 0, "Но послушай:", 0.153, False, "colon"),
+        (29, 0, "Это не лестница, по которой поднимаются.", 1.286, True, "sentence"),
     ]
     assert snap == expected
 
@@ -155,8 +157,8 @@ def test_golden_total_counts_book57(recs57):
     """Lock the gross shape too — count drift is the cheapest regression signal."""
     from collections import Counter
     assert len(recs57) == 560
-    assert sum(r.votable for r in recs57) == 469
+    assert sum(r.votable for r in recs57) == 449   # 20 ToC entries correctly excluded from body
     fates = Counter(r.source_fate.value for r in recs57)
-    assert fates == {"normal": 476, "mixed": 24, "unmapped": 60}
+    assert fates == {"normal": 496, "mixed": 4, "unmapped": 60}
     assert all(not r.votable for r in recs57 if r.source_fate == SourceFate.UNMAPPED)
-    assert sum(r.votable for r in recs57 if r.source_fate == SourceFate.MIXED) == 24
+    assert sum(r.votable for r in recs57 if r.source_fate == SourceFate.MIXED) == 4

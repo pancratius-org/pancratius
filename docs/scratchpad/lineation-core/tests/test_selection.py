@@ -156,3 +156,13 @@ def test_split_halves_balanced_within_every_stratum_and_globally():
         nf = sum(1 for lid in frozen if lid in set(lines))
         assert abs(nf - (len(lines) - nf)) <= 1, k
     assert abs(len(frozen) - len(working)) <= 1
+
+
+def test_stratified_sample_gives_every_cell_nonzero_inclusion_probability():
+    # 1 leftover; the tiny cell's fraction is small but must win it under SOME seed —
+    # a deterministic largest-remainder would exclude it with certainty
+    strata = {"big": _ids("01", 199), "tiny": _ids("02", 4)}
+    n = 29  # big: 28.43..., tiny: 0.57...
+    tiny_hits = sum(bool(selection.stratified_sample(strata, n, seed=s).get("tiny"))
+                    for s in range(40))
+    assert 0 < tiny_hits < 40

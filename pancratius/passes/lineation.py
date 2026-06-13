@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import replace
 from typing import cast
 
@@ -139,6 +140,7 @@ def is_compact_coda(lines: list[str]) -> bool:
 def _collect_unit(
     blocks: list[ir.Block],
     i: int,
+    overrides: Mapping[int, ir.LineationRegister],
 ) -> tuple[list[ir.Paragraph], int]:
     """Collect ONE lineation decision unit, starting at an eligible paragraph.
 
@@ -166,7 +168,7 @@ def _collect_unit(
         if b.empty:
             i += 1
             continue
-        if not _para_structurally_lineated(b):
+        if not _para_structurally_lineated(b) or _overridden_prose(b, overrides):
             break
         prev = run[-1]  # pending_from == i implies run[-1] is the adjacent content row
         if (
@@ -185,14 +187,29 @@ def _collect_unit(
     return run, i
 
 
-def fold_lineation(blocks: list[ir.Block]) -> list[ir.Block]:
+def _overridden_prose(p: ir.Paragraph,
+                      overrides: Mapping[int, ir.LineationRegister]) -> bool:
+    """True when an editorial correction pins this paragraph's register to prose — it then
+    never enters a lineation unit, regardless of what the ladder's evidence says."""
+    span = p.source_span
+    if span is None:
+        return False
+    return any(overrides.get(o) == "prose" for o in range(span.start, span.end + 1))
+
+
+def fold_lineation(
+    blocks: list[ir.Block], *,
+    lineation_overrides: Mapping[int, ir.LineationRegister] | None = None,
+) -> list[ir.Block]:
     """Q1: fold source rows into `LineatedBlock`s, never deciding a register.
 
     Explicit/mechanical lineation is axiomatic: Pandoc `LineBlock`s already arrive
     as `LineatedBlock`, and paragraphs with hard `<w:br/>` boundaries are folded
     here regardless of verse register. The only non-explicit path is the named
     `_should_infer_source_row_lineation` gate below; it is source-row inference,
-    not register promotion.
+    not register promotion. An editorial `lineation_overrides` correction pinning
+    a source paragraph to prose excludes it from every fold path here (the
+    `lineated` direction is not yet appliable — fail loud, never silently drop).
 
     The walk hands `_fold_unit` one decision unit at a time with its section
     context: `after_boundary` (the unit opens a heading/thematic section — empty
@@ -201,6 +218,11 @@ def fold_lineation(blocks: list[ir.Block]) -> list[ir.Block]:
     block attached to the boundary) and `before_boundary` (a boundary follows
     across at most a gap).
     """
+    overrides = lineation_overrides or {}
+    if unappliable := sorted(o for o, r in overrides.items() if r == "lineated"):
+        raise ValueError(
+            f"lineation overrides pin ordinals {unappliable} to 'lineated', which the importer "
+            f"cannot force yet — only false lineation can be corrected today")
     out: list[ir.Block] = []
     i = 0
     n = len(blocks)
@@ -228,9 +250,9 @@ def fold_lineation(blocks: list[ir.Block]) -> list[ir.Block]:
             out.append(b)
             i += 1
             continue
-        if _para_structurally_lineated(b):
+        if _para_structurally_lineated(b) and not _overridden_prose(b, overrides):
             gid = b.lineation_group
-            run, i = _collect_unit(blocks, i)
+            run, i = _collect_unit(blocks, i, overrides)
             folded = _fold_unit(
                 run,
                 after_source_boundary=after_boundary and boundary_group in (None, gid),
@@ -261,6 +283,37 @@ def fold_lineation(blocks: list[ir.Block]) -> list[ir.Block]:
         out.append(b)
         i += 1
     return out
+
+
+def _lineated_folds(blocks: Sequence[ir.Block]) -> Iterator[ir.LineatedBlock]:
+    """Every lineated fold in the document, register irrelevant, wrapper included
+    (a `QuoteBlock`'s prose MEMBER paragraphs are not folds; a lineated block
+    inside one still is)."""
+    for b in blocks:
+        if isinstance(b, ir.LineatedBlock):
+            yield b
+        elif isinstance(b, ir.QuoteBlock):
+            yield from _lineated_folds(b.blocks)
+
+
+def check_overrides_held(blocks: Sequence[ir.Block],
+                         overrides: Mapping[int, ir.LineationRegister]) -> None:
+    """Prove every prose-pinned ordinal stayed out of lineation — the seam has several fold
+    paths, so the FATE is asserted, not the mechanism. Limitation: a block with no source span
+    (an adapter-emitted LineBlock) is invisible here; the correction exporter cannot mint an
+    override for such an ordinal (it is uncovered), so only a hand-written sidecar could reach
+    that gap."""
+    pinned = {o for o, r in overrides.items() if r == "prose"}
+    if not pinned:
+        return
+    for b in _lineated_folds(blocks):
+        if b.source_span is None:
+            continue
+        if held := sorted(pinned & set(range(b.source_span.start, b.source_span.end + 1))):
+            raise RuntimeError(
+                f"lineation override not honored: ordinals {held} pinned to prose but lowered "
+                f"inside a {type(b).__name__} spanning "
+                f"{b.source_span.start}..{b.source_span.end}")
 
 
 def skip_empty_paragraphs(blocks: list[ir.Block], i: int) -> tuple[int, bool]:

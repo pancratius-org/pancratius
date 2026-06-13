@@ -49,6 +49,11 @@ class SelectionFile:
 type Selector = AllVotable | EvalSet | SelectionFile
 
 
+def _opt_int(value: object) -> int | None:
+    """A TOML int field that may be absent (`None`) — kept None, else coerced to int."""
+    return None if value is None else int(value)
+
+
 def parse_selector(text: str) -> Selector:
     """The author syntax → the ADT, at the toml edge ONLY. FAILS LOUD on an unknown kind or a
     missing name."""
@@ -97,6 +102,10 @@ class Recipe:
     # TOML grammar the eval harness uses, so a routed recipe and its policy-eval stay in lockstep.
     roster: PanelRoster | None = None
     decision: DecisionPolicy | None = None
+    # a committed eval-set membership whose lines are EVAL-ONLY: every label this campaign mints
+    # for a member — gate or human — is promoted `holdout=True`, so a frozen acceptance slice can
+    # ride the normal build→panel→route→ingest loop without ever becoming a training target.
+    holdout_eval_set: str | None = None
 
     @property
     def vision(self) -> bool:
@@ -119,10 +128,13 @@ def recipe_from_dict(d: Mapping[str, object], *, prompts_dir: Path | None = None
     doubles as it. A recipe gives EITHER `[prompts]` OR an inline `instructions`."""
     temperature = float(d.get("temperature", panel_mod.DEFAULT_TEMPERATURE))
     max_tokens = int(d.get("max_tokens", panel_mod.DEFAULT_MAX_TOKENS))
+    reasoning_default = d.get("reasoning_max_tokens")
     readers = tuple(ReaderConfig(tag=r["tag"], model=r["model"],
                                  modality=Modality(r.get("modality", "text")),
                                  temperature=float(r.get("temperature", temperature)),
-                                 max_tokens=int(r.get("max_tokens", max_tokens)))
+                                 max_tokens=int(r.get("max_tokens", max_tokens)),
+                                 reasoning_max_tokens=_opt_int(
+                                     r.get("reasoning_max_tokens", reasoning_default)))
                     for r in d.get("readers", []))
     tags = [r.tag for r in readers]
     if len(set(tags)) != len(tags):
@@ -153,7 +165,8 @@ def recipe_from_dict(d: Mapping[str, object], *, prompts_dir: Path | None = None
         lang=sel.get("lang", "ru"), reps=int(d.get("reps", 1)),
         target=int(sel.get("target", 10)), context_radius=int(sel.get("context_radius", 1)),
         max_workers=int(d.get("max_workers", 8)), contract=contract,
-        roster=roster, decision=dec, prompts=prompts)
+        roster=roster, decision=dec, prompts=prompts,
+        holdout_eval_set=(str(d["holdout_eval_set"]) if "holdout_eval_set" in d else None))
 
 
 def tile_regions(book_id: BookId, records: Sequence[LineRecord], selected: set[LineId], *,
@@ -294,9 +307,9 @@ def _build_and_save(recipe: Recipe, selection: Selection, task_id: TaskId, *,
     for b in recipe.books:
         tiled = tile_regions(b, records[b], selection.get(b, set()), target=recipe.target,
                              context_radius=recipe.context_radius)
-        if recipe.vision:   # a run wider than one rendered page must split before the renderer
-            tiled = page_size_regions(tiled, records[b], context_radius=recipe.context_radius)
-        specs.extend(tiled)
+        # unconditional, like the study runner: a run wider than one page must split before the
+        # renderer, and a text listing that wide would blow the reply budget the same way
+        specs.extend(page_size_regions(tiled, records[b], context_radius=recipe.context_radius))
     assets = render(specs) if recipe.vision else {}
     if recipe.vision:
         bare = [s.region_id for s in specs
@@ -423,7 +436,10 @@ def ingest(recipe: Recipe, *, task_id: TaskId | None = None, annotations: Path |
         raise IngestRefused(
             f"refusing to promote {tid!r}: {len(resolved.faults)} resolution "
             f"fault(s), e.g. {[f'{f.fault}:{f.key or f.item_id}' for f in resolved.faults[:5]]}")
-    return promote.promote_labels(resolved.labels, annotations=annotations)
+    holdout_members = _holdout_members(recipe, annotations=annotations)
+    labels = [replace(lab, holdout=True) if lab.id in holdout_members else lab
+              for lab in resolved.labels]
+    return promote.promote_labels(labels, annotations=annotations)
 
 
 # --- route: the SETTLED decision policy, wired into the live promote path ----------------------
@@ -483,8 +499,18 @@ def _is_protected(label: LineLabel | None) -> bool:
     return label is not None and label.source in _PROTECTED_SOURCES
 
 
+def _holdout_members(recipe: Recipe, *, annotations: Path | None) -> frozenset[LineId]:
+    """The recipe's eval-only lines (empty when the recipe declares none). FAILS LOUD on a
+    missing membership file — a typo here would silently un-freeze an acceptance slice."""
+    if recipe.holdout_eval_set is None:
+        return frozenset()
+    return frozenset(LineId.from_key(k) for k in
+                     store.load_eval_set(recipe.holdout_eval_set, annotations=annotations))
+
+
 def _gate_label(d: LineDecision, line_votes: Mapping[ReaderTag, PanelVote], *, task_id: TaskId,
-                roster: PanelRoster, policy_name: str, text_hash: LineTextHash | None) -> LineLabel:
+                roster: PanelRoster, policy_name: str, text_hash: LineTextHash | None,
+                holdout: bool) -> LineLabel:
     """An ACCEPT decision → a `gate`-sourced `LineLabel`. The confidence is the anchor's self-report
     (the gate's confidence proxy); the provenance records the policy, the reason, the anchor role, and
     the per-reader votes — the DECIDING (roster) votes under `votes`, any diagnostic readers' votes
@@ -502,7 +528,8 @@ def _gate_label(d: LineDecision, line_votes: Mapping[ReaderTag, PanelVote], *, t
     return LineLabel(
         id=d.id, label=d.label, source=LabelSource.GATE,
         confidence=anchor_vote.conf if anchor_vote else None,
-        audit_status=GATE_AUDIT_STATUS, notes="", provenance=provenance, line_text_hash=text_hash)
+        audit_status=GATE_AUDIT_STATUS, notes="", provenance=provenance, line_text_hash=text_hash,
+        holdout=holdout)
 
 
 def route(recipe: Recipe, *, allow_partial: bool = False, annotations: Path | None = None,
@@ -543,6 +570,7 @@ def route(recipe: Recipe, *, allow_partial: bool = False, annotations: Path | No
     # Pure pass first — decide every line; perform NO writes until all the raise-prone validation
     # (the re-route key-stability guard, a vision recipe's render precondition) has passed, so a
     # misconfigured route can never half-write truth.
+    holdout_members = _holdout_members(recipe, annotations=annotations)
     gate_labels: list[LineLabel] = []
     accepts_protected = 0
     for d in routing.accepted:
@@ -550,7 +578,8 @@ def route(recipe: Recipe, *, allow_partial: bool = False, annotations: Path | No
             accepts_protected += 1
             continue
         gate_labels.append(_gate_label(d, by_line[d.id], task_id=recipe.task_id, roster=roster,
-                                       policy_name=policy.name, text_hash=hash_by_id.get(d.id)))
+                                       policy_name=policy.name, text_hash=hash_by_id.get(d.id),
+                                       holdout=d.id in holdout_members))
 
     human_sel: Selection = {b: set() for b in recipe.books}
     human_protected = 0

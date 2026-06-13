@@ -170,6 +170,16 @@ CASES: tuple[GoldenCase, ...] = (
         title="Евангелие от Иисуса",
         signals=("prose/Q&A",),
     ),
+    GoldenCase(
+        name="book27",
+        docx="src/content/books/27-mikki-17/ru.docx",
+        kind="book",
+        lang="ru",
+        number=27,
+        slug="mikki-17",
+        title="Микки 17",
+        signals=("generic-namespace-prefixes", "body-image-via-canonicalization"),
+    ),
 )
 
 # All cases get a stored body/frontmatter/assets/biblio snapshot under

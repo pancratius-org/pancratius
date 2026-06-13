@@ -275,22 +275,22 @@ def _scan_and_save(book_id: BookId, lang: str, model: FittedModel | None) -> Boo
 
 
 def fit_current_student() -> tuple[FittedModel, int]:
-    """The deployable student fitted on the trainable labels (`fit_full`) over the labeled
-    books' records — the tier-1 posterior source. The fit is ru-keyed (`load_records_many`
-    joins by bare book id); a non-ru label would be dropped SILENTLY by the dataset join,
-    so its presence fails loud here instead."""
+    """The deployable student fitted on the RU trainable labels — the tier-1 posterior source.
+    Scoped to ru ON PURPOSE: `build_dataset`/CV join and group records by BARE book id, which
+    collides across languages (ru:01 vs en:01), so a bilingual fit needs the (lang, book) re-key
+    deferred to E2. Until then en lines simply carry no posterior (suspicion falls back to 0.5),
+    which is honest — the recon's census/ledger is language-complete; only the student leg of the
+    two-view router is ru-only for now."""
+    from dataclasses import replace
+
     from . import student
     from .annotations import load_labels
 
     labelset = load_labels()
-    non_ru = [g.id for g in labelset.trainable if g.id.lang != "ru"]
-    if non_ru:
-        raise ValueError(
-            f"{len(non_ru)} non-ru trainable label(s) (first: {non_ru[0]}) — the records join "
-            f"keys by bare book id and would drop them silently; key it by (lang, book) first")
-    books = sorted({g.id.book_id for g in labelset.trainable})
+    ru_labelset = replace(labelset, labels=[g for g in labelset.labels if g.id.lang == "ru"])
+    books = sorted({g.id.book_id for g in ru_labelset.trainable})
     records = store.load_records_many(books)
-    ds = student.build_dataset(records, labelset)
+    ds = student.build_dataset(records, ru_labelset)
     return student.fit_full(ds), len(ds.y)
 
 

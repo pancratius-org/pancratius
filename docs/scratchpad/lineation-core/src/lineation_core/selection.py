@@ -135,57 +135,32 @@ def build_queue(records: RecordsByBook, labelset: LabelSet, *,
     return ReviewQueue(audit, acquire, n_votable, n_scored, prose_leaning, book_ids)
 
 
-def commit_acquire(name: str = "acquire", *, top_acquire: int = 300, per_book_cap: int | None = 40,
-                   alpha: float = 0.75, annotations: Path | None = None) -> ReviewQueue:
-    """Build the acquire queue over the labeled books' UNLABELED votable lines and COMMIT its
-    LineIds as a selection the teacher consumes (`store.save_selection` → the eval→file→teacher
-    handoff, no teacher import). `per_book_cap` (default 40) bounds how many lines any one book
-    contributes, so the first paid batch is not dominated by a couple of ambiguous books — the
-    margin cost is tiny and the coverage gain large; pass None for the plain least-confidence head.
-    Returns the queue so the caller can report the distribution BEFORE spending on a paid panel."""
-    labelset = load_labels(annotations=annotations)
-    records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
-    q = build_queue(records, labelset, top_acquire=top_acquire, per_book_cap=per_book_cap, alpha=alpha)
-    store.save_selection(name, [item.id.as_key() for item in q.acquire], annotations=annotations)
-    return q
-
-
-def acquire_distribution(q: ReviewQueue) -> str:
-    """A pre-spend summary of the acquire set: size, by-book counts, the student's predicted-class
-    split, and the margin spread (least-confident first, so the head buys the most). The numbers a
-    reviewer checks before authorizing a paid panel."""
-    by_book = Counter(item.id.book_id for item in q.acquire)
-    by_class = Counter(item.student_label for item in q.acquire)
-    margins = [item.margin for item in q.acquire]
-    lines = [
-        f"acquire: {len(q.acquire)} lines over {len(by_book)} books "
-        f"(scanned {q.n_votable} votable, {q.n_labeled_scored} labeled+scored)",
-        f"  predicted class: {by_class['prose']} prose / {by_class['lineated']} lineated "
-        f"({q.prose_leaning_acquire} lean prose — the corner to widen)",
-    ]
-    if margins:
-        lines.append(f"  margin |p-0.5|: min {min(margins):.3f}  "
-                     f"median {margins[len(margins) // 2]:.3f}  max {max(margins):.3f}")
-    lines.append("  by book: " + ", ".join(f"{b}:{n}" for b, n in sorted(by_book.items())))
-    return "\n".join(lines)
-
-
 # --- the random instrument: one sample, three jobs (acceptance set, AL seed, signal substrate) ---
 
 
 def stratified_sample(strata: Mapping[str, Sequence[LineId]], n: int,
                       *, seed: int) -> dict[str, list[LineId]]:
-    """A uniformly random sample of `n` lines, allocated across strata by proportional
-    largest-remainder (so the sample is self-weighting and sums to exactly `n`), drawn without
-    replacement within each stratum. Deterministic for a (strata, n, seed). Pure."""
+    """A self-weighting random sample of `n` lines: every line's inclusion probability is exactly
+    `n/total`, allocated across strata within ±1 of proportional and summing to exactly `n`, drawn
+    without replacement within each stratum. The fractional quotas are resolved by SYSTEMATIC
+    sampling over a randomly toured cumulative sum (each cell rounds up with probability equal to
+    its fraction) — a deterministic largest-remainder would give a low-remainder cell probability
+    ZERO, biasing the sample against small strata. Deterministic for a (strata, n, seed). Pure."""
     total = sum(len(v) for v in strata.values())
     if not 0 < n <= total:
         raise ValueError(f"cannot sample {n} of {total}")
-    quota = {k: len(v) * n // total for k, v in strata.items()}
-    remainders = sorted(strata, key=lambda k: (-(len(strata[k]) * n % total), k))
-    for k in remainders[: n - sum(quota.values())]:
-        quota[k] += 1
     rng = random.Random(seed)
+    quota = {k: len(strata[k]) * n // total for k in strata}
+    leftovers = n - sum(quota.values())
+    if leftovers:
+        tour = sorted(strata)
+        rng.shuffle(tour)
+        acc, offset, hits = 0.0, rng.random(), 0
+        for k in tour:
+            acc += (len(strata[k]) * n % total) / total   # the fractions sum to `leftovers`
+            if acc > offset + hits:
+                quota[k] += 1
+                hits += 1
     return {k: rng.sample(sorted(strata[k]), quota[k]) for k in sorted(strata) if quota[k]}
 
 
@@ -213,9 +188,18 @@ def commit_instrument(name: str = "e1-instrument", *, n: int = 1500, seed: int =
     """Mint the keystone instrument: `n` uniformly random votable lines over the whole corpus,
     stratified proportionally by language × book × tier-0 verdict (read from the recon rows),
     split into a frozen acceptance half and a working half. Commits ONE selection per language
-    (a teacher recipe is single-language) and the two split MEMBERSHIPS (their truth arrives via
-    the panel + human, into `labels.jsonl` — the frozen half's labels must be promoted
-    `holdout`). Returns the per-stratum sample sizes for the pre-spend report."""
+    (a teacher recipe is single-language) and the two split MEMBERSHIPS — the recipe's
+    `holdout_eval_set` must name the frozen one so its labels are promoted eval-only. REFUSES to
+    overwrite an existing instrument: the frozen membership is single-mint (recon rows are derived
+    and re-runnable, so a silent re-mint would quietly swap the acceptance set); delete the files
+    deliberately to re-mint. Returns the per-stratum sample sizes for the pre-spend report."""
+    for existing in (f"{name}-frozen", f"{name}-working"):
+        try:
+            store.load_eval_set(existing, annotations=annotations)
+        except FileNotFoundError:
+            continue
+        raise ValueError(f"instrument {name!r} is already minted ({existing} exists) — "
+                         f"it is single-mint; delete its files deliberately to re-mint")
     strata: dict[str, list[LineId]] = defaultdict(list)
     for lang in ("ru", "en"):
         for book_id in paths.corpus_books(lang):
@@ -247,13 +231,10 @@ def _print_item(q: QueueItem) -> None:
 
 
 if __name__ == "__main__":
-    q = commit_acquire()
-    print("committed acquire selection → annotations/selections/acquire.json\n")
-    print(acquire_distribution(q) + "\n")
+    labelset = load_labels()
+    records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
+    q = build_queue(records, labelset)
     print(f"=== AUDIT: {len(q.audit)} labeled disagreements (book-held-out vs human), "
           f"most confident first (likely label errors / hardest cases) ===")
     for item in q.audit[:15]:
-        _print_item(item)
-    print(f"\n=== ACQUIRE head: {min(15, len(q.acquire))} least-confident UNLABELED lines ===")
-    for item in q.acquire[:15]:
         _print_item(item)

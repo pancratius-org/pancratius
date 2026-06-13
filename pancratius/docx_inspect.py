@@ -326,9 +326,12 @@ def classify_blocks(docx: Path) -> BlockClassifications:
     legacy/unknown blocks without provenance and for tests that exercise repeated
     text ambiguity explicitly.
     """
+    from pancratius.lineation_overrides import load_overrides
+
     with tempfile.TemporaryDirectory(prefix="docx-inspect-") as td:
         doc = da.adapt(docx, Path(td), [])
-        doc = run(doc, Context(lang=""))  # rules-only: no register model (see lineation_decisions)
+        # rules-only: no register model (see lineation_decisions)
+        doc = run(doc, Context(lang="", lineation_overrides=load_overrides(docx)))
 
     kind_of: dict[str, set[str]] = {}
     by_source = _SourceClassificationBuilder()
@@ -466,7 +469,7 @@ def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
     }
 
 
-def lineation_decisions(docx: Path) -> dict[int, bool]:
+def lineation_decisions(docx: Path, *, apply_overrides: bool = True) -> dict[int, bool]:
     """The RULES-ONLY lineation verdict per source `w:p` ordinal.
 
     Deliberately model-free: the labeling system this surface feeds anchors on
@@ -481,13 +484,24 @@ def lineation_decisions(docx: Path) -> dict[int, bool]:
     survive (no source span) are absent — score only on the covered ordinals and
     report the rest as uncovered, never guessed.
 
+    ``apply_overrides=False`` reads the importer's OWN verdict with the editorial
+    correction sidecar ignored — the baseline a correction exporter diffs truth
+    against (diffing against the corrected verdict would erase its own domain) and
+    an eval's view of the uncorrected ladder.
+
     This is the per-line ``prose``/``lineated`` surface the lineation gold set
     (``LineId(lang, book, src_ordinal, sub)``) joins against; every ``sub``
     segment of one ``w:p`` shares the ordinal's verdict.
     """
+    from pancratius.lineation_overrides import load_overrides
+
     with tempfile.TemporaryDirectory(prefix="docx-lineation-") as td:
         doc = da.adapt(docx, Path(td), [])
-        doc = run(doc, Context(lang=""))  # rules-only: no register model (see lineation_decisions)
+        # rules-only: no register model (see the docstring); overrides ride the Context
+        doc = run(doc, Context(
+            lang="",
+            lineation_overrides=load_overrides(docx) if apply_overrides else None,
+        ))
 
     def hard_break_prose(block: ir.LineatedBlock) -> bool:
         """A block folded ONLY because of an authored `<w:br>` whose lines are

@@ -33,6 +33,9 @@ QuoteKind = Literal["single", "double"]
 # and a left-rule bar ("rule" — a set-apart inset passage). Any other side
 # combination is "other"; no border is "".
 BorderKind = Literal["", "box", "rule", "other"]
+# The two-class per-source-paragraph lineation verdict an editorial correction
+# (`lineation.<lang>.json` sidecar) can pin against the importer's own ladder.
+LineationRegister = Literal["prose", "lineated"]
 # Open JSON-ish records at the IR boundary. Pandoc table raw nodes stay opaque;
 # bibliography entries are structured enough to name, but intentionally open-ended.
 type JsonObject = dict[str, object]

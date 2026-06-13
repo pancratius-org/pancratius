@@ -32,6 +32,28 @@ def _body_image_alt(lang: str) -> str:
     return "Illustration" if lang == "en" else "Иллюстрация"
 
 
+# Quotation glyphs by language: a `Quoted` inline carries the quote SEMANTICS (single/double);
+# the marks are typographic and locale-specific. RU uses guillemets for doubles; EN uses American
+# curly quotes. Any other language falls back to RU (the corpus default).
+_QUOTE_MARKS: dict[str, dict[str, tuple[str, str]]] = {
+    "ru": {"double": ("«", "»"), "single": ("'", "'")},
+    "en": {"double": ("“", "”"), "single": ("‘", "’")},
+}
+
+
+def _quote_marks(lang: str, kind: str) -> tuple[str, str]:
+    return _QUOTE_MARKS.get(lang, _QUOTE_MARKS["ru"])[kind]
+
+
+# A literal guillemet in EN text is a mistyped quote (English has no guillemets), so it normalizes
+# to the same American curly double a `Quoted` inline lowers to. RU text keeps its guillemets.
+_EN_LITERAL_QUOTES = str.maketrans({"«": "“", "»": "”"})
+
+
+def _typographic_text(value: str, lang: str) -> str:
+    return value.translate(_EN_LITERAL_QUOTES) if lang == "en" else value
+
+
 def _escape_markdown_alt(alt: str) -> str:
     # Escape `[`/`]` in image alt text. `re.sub` (not str.replace) so the PAN018
     # purity scan — which flags the bare `.replace` attribute name, unable to tell
@@ -109,7 +131,7 @@ def _inline_code_md(value: str) -> str:
 def _inline_md(n: ir.Inline, lang: str) -> str:
     match n:
         case ir.Text():
-            return _escape_literal_text(n.value)
+            return _escape_literal_text(_typographic_text(n.value, lang))
         case ir.SoftBreak() | ir.LineBreak():
             return "\n"
         case ir.Emphasis():
@@ -118,8 +140,8 @@ def _inline_md(n: ir.Inline, lang: str) -> str:
         case ir.Code():
             return _inline_code_md(n.value)
         case ir.Quoted():
-            inner = _inlines_md(n.children, lang)
-            return f"'{inner}'" if n.kind == "single" else f"«{inner}»"
+            open_q, close_q = _quote_marks(lang, n.kind)
+            return f"{open_q}{_inlines_md(n.children, lang)}{close_q}"
         case ir.Link():
             label = _inlines_md(n.children, lang).strip()
             return f"[{label}]({n.target})" if label else ""
