@@ -165,8 +165,8 @@ is real (the human adjudications show it).
   teacher listing's features and the student vector's features derive from the SAME record — no recompute path
   exists.
 - **③ Real task:** load the `LineId`-keyed per-line labels (with lineage) + train an INTERPRETABLE
-  student on `prose/lineated`, book-grouped CV → a real number on the real task. Compare to the
-  LLM teacher.
+  student on `prose/lineated`, `(lang, book)`-grouped CV (the `BookKey` group — ru:NN and en:NN are
+  distinct books, never a shared fold) → a real number on the real task. Compare to the LLM teacher.
 
 ## Proof obligations (every step really proven, not self-reported)
 - helper unit tests (`end_punct`, `starts_lower`, within-book norms, boundary) on crafted + REAL
