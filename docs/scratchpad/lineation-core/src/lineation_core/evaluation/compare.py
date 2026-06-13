@@ -88,7 +88,7 @@ def format_row(row: ReaderScore) -> str:
 
 if __name__ == "__main__":
     labelset = load_labels()
-    records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
+    records = store.load_records_many(sorted({g.id.book_key for g in labelset.labels}))
     cmp = score(records, labelset, by_reader())
     print(f"labeled lines covered by >=1 reader: {cmp.n_labels_shared}\n")
     print(f"{'reader':9} {'n':>4} {'labels':>22} | {'READER':^22} | {'STUDENT(OOF)':^22}")

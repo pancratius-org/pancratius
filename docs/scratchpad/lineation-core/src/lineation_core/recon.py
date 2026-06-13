@@ -275,22 +275,17 @@ def _scan_and_save(book_id: BookId, lang: str, model: FittedModel | None) -> Boo
 
 
 def fit_current_student() -> tuple[FittedModel, int]:
-    """The deployable student fitted on the RU trainable labels — the tier-1 posterior source.
-    Scoped to ru ON PURPOSE: `build_dataset`/CV join and group records by BARE book id, which
-    collides across languages (ru:01 vs en:01), so a bilingual fit needs the (lang, book) re-key
-    deferred to E2. Until then en lines simply carry no posterior (suspicion falls back to 0.5),
-    which is honest — the recon's census/ledger is language-complete; only the student leg of the
-    two-view router is ru-only for now."""
-    from dataclasses import replace
-
+    """The deployable student fitted on ALL trainable labels — the tier-1 posterior source.
+    Bilingual since the (lang, book) re-key: the dataset joins and the CV groups key by
+    `BookKey`, so ru:01 and en:01 never collide and en lines carry real posteriors. The features
+    are structural (language-agnostic), so one model serves both corpora."""
     from . import student
     from .annotations import load_labels
 
     labelset = load_labels()
-    ru_labelset = replace(labelset, labels=[g for g in labelset.labels if g.id.lang == "ru"])
-    books = sorted({g.id.book_id for g in ru_labelset.trainable})
+    books = sorted({g.id.book_key for g in labelset.trainable})
     records = store.load_records_many(books)
-    ds = student.build_dataset(records, ru_labelset)
+    ds = student.build_dataset(records, labelset)
     return student.fit_full(ds), len(ds.y)
 
 

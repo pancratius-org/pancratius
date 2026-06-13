@@ -6,12 +6,12 @@ from collections import Counter
 from types import SimpleNamespace
 
 from lineation_core import selection, store, student
-from lineation_core.identity import LineId
+from lineation_core.identity import BookKey, LineId
 
 
 def _qitem(book: str, margin: float) -> selection.QueueItem:
     return selection.QueueItem(
-        id=SimpleNamespace(book_id=book), text="", posterior=0.5, margin=margin,
+        id=SimpleNamespace(book_id=book, book_key=book), text="", posterior=0.5, margin=margin,
         kind="acquire", existing_label=None, student_label="prose", context=())
 
 
@@ -49,7 +49,8 @@ def test_context_marks_the_line_and_respects_radius():
 def test_queue_invariants_on_real_data(corpus):
     records, labelset = corpus
     label_ids = {g.id for g in labelset.labels}
-    q = selection.build_queue(records, labelset, top_acquire=25, books=["37", "16"])
+    q = selection.build_queue(records, labelset, top_acquire=25,
+                              books=[BookKey("ru", "37"), BookKey("ru", "16")])
 
     # AUDIT: every item is a LABELED line whose student (out-of-fold) call disagrees with truth.
     for it in q.audit:
@@ -108,13 +109,13 @@ def test_oof_smoothed_no_leakage(corpus):
     target = books[0]
     before = student.oof_smoothed(_restrict(ds, books), records, alpha=0.75)
     after = student.oof_smoothed(_restrict(ds, books, flip=target), records, alpha=0.75)
-    target_ids = [lid for lid in before if lid.book_id == target]
+    target_ids = [lid for lid in before if lid.book_key == target]
     assert target_ids, "expected predictions for the target book"
     for lid in target_ids:                          # target book never entered its own fit
         assert before[lid].label == after[lid].label, f"leakage: {lid} moved when its book flipped"
     # sanity: flipping DID change the OTHER books' predictions (target was in their training fit)
     assert any(before[lid].label != after[lid].label
-               for lid in before if lid.book_id != target)
+               for lid in before if lid.book_key != target)
 
 
 # --- the random instrument sampler (pure halves) ------------------------------------------------

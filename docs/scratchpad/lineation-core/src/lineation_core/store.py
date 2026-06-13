@@ -20,7 +20,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from . import artifact, paths
-from .identity import BookId, JsonObject, JsonRow, LineKey, RunId, TaskId
+from .identity import BookId, BookKey, JsonObject, JsonRow, LineKey, RunId, TaskId
 from .records import LineRecord, RecordsByBook
 
 LABELS_FILE = "labels.jsonl"   # the resolved per-line truth
@@ -184,11 +184,12 @@ def load_records(book_id: BookId, lang: str = "ru", *, store: Path | None = None
 
 
 def load_records_many(
-    book_ids: Iterable[BookId], lang: str = "ru", *, store: Path | None = None,
+    books: Iterable[BookKey], *, store: Path | None = None,
 ) -> RecordsByBook:
-    """Records for several books, keyed by book_id — loaded once at the shell so domain code can
-    take the whole `{book: records}` map as data instead of reaching for each book itself."""
-    return {b: load_records(b, lang, store=store) for b in book_ids}
+    """Records for several book editions, keyed by `BookKey` — loaded once at the shell so
+    cross-language domain code can take the whole map as data instead of reaching for each book
+    itself. No language default: the key carries it."""
+    return {bk: load_records(bk.book_id, bk.lang, store=store) for bk in books}
 
 
 # --- teacher loop IO: task bundles (manifest committed, payload derived) + promotion -----------

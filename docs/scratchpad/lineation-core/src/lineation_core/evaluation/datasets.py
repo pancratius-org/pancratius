@@ -29,9 +29,13 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-from ..annotations import PanelVote, load_labels, load_votes
+from ..annotations import LabelSource, PanelVote, load_labels, load_votes
 from ..identity import Label, LineId
 from .. import store
+
+# Truth a decision policy may be GRADED against: labels no panel policy produced. A `gate` label
+# is a policy's own output — scoring a policy on it is self-grading.
+INDEPENDENT_TRUTH = frozenset({LabelSource.HUMAN, LabelSource.OVERRIDE})
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,13 +104,18 @@ class AlignedSet:
         return len(self.lines)
 
 
-def from_store(*, annotations: Path | None = None) -> AlignedSet:
+def from_store(*, annotations: Path | None = None,
+               truth_sources: frozenset[LabelSource] = INDEPENDENT_TRUTH) -> AlignedSet:
     """Join the committed truth (`labels.jsonl`) with the panel votes (`votes.jsonl`) on `LineId`,
     keeping the lines that have BOTH — the population a policy can be scored on (truth to grade
-    against, votes to decide from). A line's `stratum` is "contested" iff it is in the committed
+    against, votes to decide from). `truth_sources` defaults to PANEL-INDEPENDENT truth
+    (human/override): a `gate` label was MINTED from these very votes by a policy, so grading
+    policies against it is circular — widen the filter only for analyses that are not scoring a
+    decision policy. A line's `stratum` is "contested" iff it is in the committed
     `eval_sets/contested` slice, else "easy". Span-dropped (unmapped) labels are already rejected by
     `load_labels`, so every aligned line has a real source ordinal."""
-    truth: dict[LineId, Label] = {g.id: g.label for g in load_labels(annotations=annotations).labels}
+    truth: dict[LineId, Label] = {g.id: g.label for g in load_labels(annotations=annotations).labels
+                                  if g.source in truth_sources}
 
     votes_by_line: dict[LineId, list[PanelVote]] = {}
     for v in load_votes(annotations=annotations):

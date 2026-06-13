@@ -3,8 +3,10 @@
   "completedAt": "2026-06-13T00:58:26.562Z",
   "responses": {
     "b10-r0": {
-      "lines": {},
-      "note": "It's pseudo-header, kind of? Hard to say, both work IFF it's consistent across the neighbouring blocks/book section. I lean lineated because it's what rendered on the image."
+      "lines": {
+        "L001": "lineated"
+      },
+      "note": "It's pseudo-header, kind of? Hard to say, both work IFF it's consistent across the neighbouring blocks/book section. I lean lineated because it's what rendered on the image.\n[patched at the annotator's instruction 2026-06-13: verdict lineated, per the note's stated lean]"
     },
     "b12-r0": {
       "lines": {

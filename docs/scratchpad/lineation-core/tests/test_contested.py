@@ -20,13 +20,16 @@ def test_contested_locked(corpus):
     r = contested.evaluate(records, labelset, by_reader(),
                            contested.load_contested(), alpha=0.75)
     # 424 = the historical 425 minus one corrupt-id row (its line is unmapped in the corpus).
-    # Scorable rose 342 → 382: the homed holdout labels (never trainable) are scored too now —
-    # the old 0.975 was computed on a population that silently excluded the hardest lines.
-    # 0.954 under the FIXED-render re-adjudicated truth: the recency-era 0.867 (prose_recall
-    # 0.816) was the render-bug contamination — the flipped lines were re-judged prose on the
-    # fixed render, and both the truth and the retrained student moved together.
+    # Scorable rose 382 → 424 (all of them now): the E1 gate added ru labels in books the ru-only
+    # student didn't cover, so every contested line's book is now in the dataset and gets a
+    # book-held-out OOF prediction. The contested lines are human/holdout truth — never gate-labeled
+    # (route skips protected lines), so no training leak.
+    # 0.915 for the bilingual gate-era student (was 0.954): the wider, representative training half
+    # (gate + en) trades a little hard-line lineated-recall for coverage — the SAME shift as the
+    # student-CV lock. prose_recall HOLDS at 0.989: the asymmetric direction the DoD binds on (the
+    # importer's weak side) did not regress. Re-derive on truth growth; chase an unexplained drop.
     assert r.n_contested == 424
-    assert r.n_with_student == 382
-    assert r.student.balanced_acc == pytest.approx(0.954, abs=0.01)
+    assert r.n_with_student == 424
+    assert r.student.balanced_acc == pytest.approx(0.915, abs=0.01)
     assert r.student.prose_recall == pytest.approx(0.989, abs=0.01)
     assert r.rows                                       # per-reader head-to-head rows present

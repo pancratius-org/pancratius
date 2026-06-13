@@ -28,7 +28,7 @@ from typing import Literal
 
 from . import paths, recon, sequence, store, student
 from .annotations import LabelSet, load_labels
-from .identity import BookId, Label, LineId
+from .identity import BookKey, Label, LineId
 from .records import LineRecord, RecordsByBook
 
 
@@ -51,7 +51,7 @@ class ReviewQueue:
     n_votable: int                   # votable body lines scanned
     n_labeled_scored: int            # of those, labeled + out-of-fold scored
     prose_leaning_acquire: int       # acquire items the student calls prose (the corner to grow)
-    books: list[BookId]
+    books: list[BookKey]
 
 
 def _label(p: float) -> Label:
@@ -72,12 +72,12 @@ def _cap_per_book(items: list[QueueItem], top: int, per_book_cap: int | None) ->
     if per_book_cap is None:
         return items[:top]
     out: list[QueueItem] = []
-    per: Counter[BookId] = Counter()
+    per: Counter[BookKey] = Counter()
     for it in items:
-        if per[it.id.book_id] >= per_book_cap:
+        if per[it.id.book_key] >= per_book_cap:
             continue
         out.append(it)
-        per[it.id.book_id] += 1
+        per[it.id.book_key] += 1
         if len(out) >= top:
             break
     return out
@@ -85,7 +85,7 @@ def _cap_per_book(items: list[QueueItem], top: int, per_book_cap: int | None) ->
 
 def build_queue(records: RecordsByBook, labelset: LabelSet, *,
                 top_acquire: int = 300, per_book_cap: int | None = None, seed: int = 0,
-                alpha: float = 0.75, books: list[BookId] | None = None) -> ReviewQueue:
+                alpha: float = 0.75, books: list[BookKey] | None = None) -> ReviewQueue:
     """Build the review queue with RUN-AWARE (smoothed) confidence. `books` defaults to the labeled
     books; it must be a subset of the loaded `records` map (load a wider map at the edge to acquire
     over more books). Audit uses the book-held-out smoothed OOF; acquire uses the full model + the
@@ -232,7 +232,7 @@ def _print_item(q: QueueItem) -> None:
 
 if __name__ == "__main__":
     labelset = load_labels()
-    records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
+    records = store.load_records_many(sorted({g.id.book_key for g in labelset.labels}))
     q = build_queue(records, labelset)
     print(f"=== AUDIT: {len(q.audit)} labeled disagreements (book-held-out vs human), "
           f"most confident first (likely label errors / hardest cases) ===")

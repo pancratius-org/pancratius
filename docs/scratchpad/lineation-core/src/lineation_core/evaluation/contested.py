@@ -76,7 +76,7 @@ if __name__ == "__main__":
     from .compare import format_row
 
     labelset = load_labels()
-    records = store.load_records_many(sorted({g.id.book_id for g in labelset.labels}))
+    records = store.load_records_many(sorted({g.id.book_key for g in labelset.labels}))
     votes = by_reader()
     contested = load_contested()
     base = evaluate(records, labelset, votes, contested, alpha=0.0)    # i.i.d. per-line baseline

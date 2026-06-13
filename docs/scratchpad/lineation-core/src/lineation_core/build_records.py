@@ -12,22 +12,25 @@ from __future__ import annotations
 from . import artifact, paths
 from .annotations import load_labels, load_votes
 from .evaluation.contested import load_contested
-from .identity import BookId
+from .identity import BookId, BookKey
 
 
-def annotation_books() -> list[BookId]:
-    """The books any committed annotation refers to — the set whose records must exist."""
-    books: set[BookId] = {g.id.book_id for g in load_labels().labels}
-    books |= {v.id.book_id for v in load_votes()}
-    books |= {lid.book_id for lid in load_contested()}
+def annotation_books() -> list[BookKey]:
+    """The book EDITIONS any committed annotation refers to — the set whose records must exist.
+    Keyed by `BookKey`, not bare `book_id`: the truth is bilingual (ru:NN and en:NN are different
+    books), so a lang-stripped set would silently skip one language's editions on rebuild."""
+    books: set[BookKey] = {g.id.book_key for g in load_labels().labels}
+    books |= {v.id.book_key for v in load_votes()}
+    books |= {lid.book_key for lid in load_contested()}
     return sorted(books)
 
 
-def build(*, lang: str = "ru") -> list[BookId]:
+def build() -> list[BookKey]:
+    """Rebuild every annotated edition in its OWN language — bilingual by construction."""
     books = annotation_books()
-    for book_id in books:
+    for bk in books:
         artifact.build_records_artifact(
-            paths.book_docx(book_id, lang), lang, book_id, store=paths.ARTIFACT_STORE)
+            paths.book_docx(bk.book_id, bk.lang), bk.lang, bk.book_id, store=paths.ARTIFACT_STORE)
     return books
 
 

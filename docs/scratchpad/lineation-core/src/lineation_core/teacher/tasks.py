@@ -18,7 +18,7 @@ from typing import Self
 
 from .. import producer
 from ..identity import JsonObject, LineId, LineTextHash, ListingKey
-from ..records import RecordsByBook
+from ..records import BookRecords
 # `TaskKey`/`RegionId`/`ResponseContract` live in `contracts` (the wire protocol owns the
 # wire-visible names); re-exported here so task-model consumers keep one import home.
 from .contracts import RegionId, ResponseContract, TaskKey  # noqa: F401
@@ -180,7 +180,7 @@ def _key(n: int, width: int) -> TaskKey:
 
 
 def build_task(
-    *, title: str, instructions: str, specs: Sequence[ItemSpec], records: RecordsByBook,
+    *, title: str, instructions: str, specs: Sequence[ItemSpec], records: BookRecords,
     with_features: bool = True,
     assets: Mapping[RegionId, tuple[EvidenceAsset, ...]] | None = None,
 ) -> Task:
