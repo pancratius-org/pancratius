@@ -43,6 +43,11 @@ def _docx_for_stub(captured: list[tuple[str, str]]):
     return docx_for
 
 
+def _NO_BREAKS(_docx: Path) -> frozenset[int]:
+    """A boundary source for a docx with no page breaks (the stub paths are never parsed)."""
+    return frozenset()
+
+
 def _spec(region_id: str, ids: list[LineId], *, votable: list[LineId] | None = None) -> ItemSpec:
     return ItemSpec(region_id=region_id, region=tuple(ids),
                     votable=frozenset(votable if votable is not None else ids))
@@ -56,7 +61,7 @@ def _decode(data_uri: str) -> Image.Image:
 def test_composite_is_a_labeled_png_data_uri():
     spec = _spec("b57-r0", [LineId.mapped("ru", "57", o, 0) for o in (10, 11, 12)])
     compose = render.make_compositor(_stub_renderer(size=(120, 50)),
-                                     docx_for=_docx_for_stub([]))
+                                     docx_for=_docx_for_stub([]), page_boundaries=_NO_BREAKS)
     assets = compose([spec])
     (asset,) = assets["b57-r0"]
     assert asset.kind is AssetKind.COMPOSITE and asset.caption == "b57-r0"
@@ -72,7 +77,7 @@ def test_span_is_min_max_of_mapped_lines_only():
     spec = _spec("b57-r0", ids, votable=[ids[0], ids[2], ids[3]])
     rp = _stub_renderer()
     captured: list[tuple[str, str]] = []
-    render.make_compositor(rp, docx_for=_docx_for_stub(captured))([spec])
+    render.make_compositor(rp, docx_for=_docx_for_stub(captured), page_boundaries=_NO_BREAKS)([spec])
     assert rp.calls == [(Path("/nonexistent/57/ru.docx"), 10, 14)]
     assert captured == [("57", "ru")]
 
@@ -85,7 +90,7 @@ def test_render_window_hugs_the_votable_lines_not_the_whole_region_span():
     context = [LineId.mapped("ru", "57", o, 0) for o in (1000, 2010, 2012, 2014, 3000)]
     votable = [LineId.mapped("ru", "57", o, 0) for o in (2010, 2014)]
     rp = _stub_renderer()
-    render.make_compositor(rp, docx_for=_docx_for_stub([]))([_spec("b57-r0", context, votable=votable)])
+    render.make_compositor(rp, docx_for=_docx_for_stub([]), page_boundaries=_NO_BREAKS)([_spec("b57-r0", context, votable=votable)])
     _, lo, hi = rp.calls[0]
     assert (lo, hi) == (2007, 2017)                  # votable [2010..2014] ± margin 3, NOT [1000..3000]
 
@@ -95,7 +100,7 @@ def test_render_fails_loud_when_votable_lines_exceed_one_page():
     # all — FAIL LOUD rather than silently render a window that excludes endpoints (wrong evidence).
     votable = [LineId.mapped("ru", "57", 1000, 0), LineId.mapped("ru", "57", 1400, 0)]   # 400 > 120
     rp = _stub_renderer()
-    compose = render.make_compositor(rp, docx_for=_docx_for_stub([]))
+    compose = render.make_compositor(rp, docx_for=_docx_for_stub([]), page_boundaries=_NO_BREAKS)
     with pytest.raises(render.RenderError, match="too wide for one authored page"):
         compose([_spec("b57-r0", votable, votable=votable)])
     assert rp.calls == []                            # never rendered a misleading window
@@ -106,7 +111,7 @@ def test_multipage_region_yields_one_image_per_page():
     # stack — so a per-image-budget vision reader sees each page at full resolution.
     spec = _spec("b57-r0", [LineId.mapped("ru", "57", o, 0) for o in (10, 11)])
     compose = render.make_compositor(_stub_renderer(n_pages=2, size=(80, 30)),
-                                     docx_for=_docx_for_stub([]))
+                                     docx_for=_docx_for_stub([]), page_boundaries=_NO_BREAKS)
     assets = compose([spec])["b57-r0"]
     assert len(assets) == 2
     for a in assets:
@@ -118,7 +123,7 @@ def test_multipage_region_yields_one_image_per_page():
 def test_region_with_no_mapped_lines_fails_loud():
     spec = _spec("b57-r0", [LineId.unmapped("ru", "57", 1, 0), LineId.unmapped("ru", "57", 2, 0)],
                  votable=[])
-    compose = render.make_compositor(_stub_renderer(), docx_for=_docx_for_stub([]))
+    compose = render.make_compositor(_stub_renderer(), docx_for=_docx_for_stub([]), page_boundaries=_NO_BREAKS)
     with pytest.raises(render.RenderError, match="no mapped lines"):
         compose([spec])
 
@@ -129,7 +134,7 @@ def test_renderer_producing_no_pages_fails_loud():
     def empty(docx: Path, lo: int, hi: int, out_png: Path) -> list[Path]:
         return []
 
-    compose = render.make_compositor(empty, docx_for=_docx_for_stub([]))
+    compose = render.make_compositor(empty, docx_for=_docx_for_stub([]), page_boundaries=_NO_BREAKS)
     with pytest.raises(render.RenderError, match="no page image"):
         compose([spec])
 
@@ -140,8 +145,46 @@ def test_region_mixing_book_or_lang_fails_loud():
     rp = _stub_renderer()
     mixed_book = _spec("x", [LineId.mapped("ru", "57", 10, 0), LineId.mapped("ru", "16", 11, 0)])
     mixed_lang = _spec("y", [LineId.mapped("ru", "57", 10, 0), LineId.mapped("en", "57", 11, 0)])
-    compose = render.make_compositor(rp, docx_for=_docx_for_stub([]))
+    compose = render.make_compositor(rp, docx_for=_docx_for_stub([]), page_boundaries=_NO_BREAKS)
     for spec in (mixed_book, mixed_lang):
         with pytest.raises(render.RenderError, match="mixes book/lang"):
             compose([spec])
     assert rp.calls == []                                   # never reached the renderer
+
+
+# --- the cross-page context trim (found live in E1: book 36's chapter break drew an empty page) --
+
+def test_trim_drops_leading_context_behind_a_page_break():
+    # window [7708..7714], votable [7711..7714], boundary after 7709 (inline page break):
+    # paragraphs 7708-7709 live on an earlier page that renders nearly blank — drop them.
+    assert render.trim_cross_page_context(7708, 7714, 7711, 7714,
+                                          frozenset({7709})) == (7710, 7714)
+
+
+def test_trim_drops_trailing_context_beyond_a_page_break():
+    assert render.trim_cross_page_context(10, 20, 12, 15, frozenset({16})) == (10, 16)
+
+
+def test_trim_ignores_boundaries_inside_the_votable_span():
+    # the votable lines straddle the break: both pages carry decision content — keep them all.
+    assert render.trim_cross_page_context(10, 20, 12, 18, frozenset({14})) == (10, 20)
+
+
+def test_trim_takes_the_nearest_boundaries_on_each_side():
+    assert render.trim_cross_page_context(0, 30, 10, 12,
+                                          frozenset({2, 6, 20, 25})) == (7, 20)
+
+
+def test_trim_noop_without_boundaries():
+    assert render.trim_cross_page_context(5, 9, 6, 8, frozenset()) == (5, 9)
+
+
+def test_compositor_renders_only_the_votable_lines_page():
+    votable = [LineId.mapped("ru", "36", o, 0) for o in (7711, 7712)]
+    region = [LineId.mapped("ru", "36", o, 0) for o in (7709, 7710)] + votable
+    rp = _stub_renderer()
+    render.make_compositor(rp, docx_for=_docx_for_stub([]),
+                           page_boundaries=lambda _d: frozenset({7709}))(
+        [_spec("b36-r0", region, votable=votable)])
+    _, lo, hi = rp.calls[0]
+    assert (lo, hi) == (7710, 7712)        # the pre-break context line 7709 is out of the image
