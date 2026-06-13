@@ -59,7 +59,7 @@ describe("graphPayloadPath locale routing", () => {
       nodes: [{ id: "свет", concept_id: "свет", label: "Свет", lemma: "свет", community: 0 }],
       edges: [],
     };
-    const overlay: Overlay = { свет: { label: "Light" }, c0ffee01: { label: "Light & Darkness" } };
+    const overlay: Overlay = { "concept:свет": { label: "Light" }, "community:c0ffee01": { label: "Light & Darkness" } };
 
     writeFileSync(join(root, "data", "pancratius-concepts-graph.json"), JSON.stringify(ruGraph));
     const joined = joinLocalePayload(ruGraph, overlay, true);

@@ -4,9 +4,9 @@ import { describe, test } from "node:test";
 import { joinLocalePayload, type Graph, type Overlay } from "../../build/copy-graph-payloads.ts";
 
 const OVERLAY: Overlay = {
-  свет: { label: "Light", gloss: "Divine light." },
-  тьма: { label: "Darkness" },
-  c0ffee01: { label: "Light & Darkness" },
+  "concept:свет": { label: "Light", gloss: "Divine light." },
+  "concept:тьма": { label: "Darkness" },
+  "community:c0ffee01": { label: "Light & Darkness" },
 };
 
 function conceptsGraph(): Graph {
@@ -71,7 +71,7 @@ describe("joinLocalePayload", () => {
       nodes: [{ id: "страх", concept_id: "страх", label: "Страх", community: 0 }],
       communities: [],
     };
-    assert.throws(() => joinLocalePayload(graph, OVERLAY, true), /missing a label for concept "страх"/);
+    assert.throws(() => joinLocalePayload(graph, OVERLAY, true), /missing a label for concept "concept:страх"/);
   });
 
   test("throws on a missing community translation", () => {
@@ -79,7 +79,7 @@ describe("joinLocalePayload", () => {
       nodes: [],
       communities: [{ id: 0, key: "deadbeef", label: "Страх" }],
     };
-    assert.throws(() => joinLocalePayload(graph, OVERLAY, true), /missing a label for community "deadbeef"/);
+    assert.throws(() => joinLocalePayload(graph, OVERLAY, true), /missing a label for community "community:deadbeef"/);
   });
 
   test("does NOT translate book nodes (nodesAreConcepts=false), only their communities", () => {
