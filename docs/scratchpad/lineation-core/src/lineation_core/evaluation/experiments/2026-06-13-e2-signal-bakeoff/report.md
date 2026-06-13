@@ -1,0 +1,31 @@
+# E2 — signal bakeoff + φ-fork (e1-instrument-working, n=747)
+
+Target: `det ≠ truth` on the working half = **61** lines ({'lineated': 645, 'prose': 102}). Truth is mostly `gate` (panel); only **21** are human ground truth. Posterior = book-held-out OOF (alpha=0), never the in-sample fit.
+
+## (b) Signal ranking — detectors of `det ≠ truth`
+Oriented so higher = more suspect. AUC(all) over 747 (mostly det-vs-PANEL, can be gate-circular); AUC(human) over the 21 ground-truth lines — the only independent truth, and the one the router must hold up on:
+
+| signal | AUC(all) | AUC(human) |
+|---|---|---|
+| det_student_disagree | 0.9176 | 0.55 |
+| suspicion_v0 | 0.8664 | 0.8688 |
+| student_uncertainty | 0.646 | 0.525 |
+| panel_vote_spread | 0.5666 | 0.5 |
+
+Note the all/human split: `det_student_disagree` tops AUC(all)=0.9176 but only 0.55 on the 21 human lines — its AUC(all) edge comes only from ranking det=lineated by 1−posterior, so it is GATE-CIRCULAR and collapses to ~chance where truth is independent. `suspicion_v0` is robust on BOTH (all 0.8664 / human 0.8688), so it — not the AUC(all) leader — orders the sweep.
+
+## (c) The inside/outside-φ fork
+Spearman(student uncertainty, panel vote-spread) = **0.2391** (criterion ρ ≥ +0.3); terciles monotone: **False**; off-diagonal mass 0.647.
+Tercile cross-tab (rows = uncertainty 0..2, cols = vote-spread 0..2): [[84, 86, 79], [99, 80, 70], [66, 83, 100]]
+**Verdict: OUTSIDE-φ** — student uncertainty does NOT track panel disagreement; it stays audit-only.
+
+## Recommended E3 router
+**sweep the whole det=prose band; ORDER it by suspicion_v0 (robust on both gate AUC=0.8664 and human AUC=0.8688)**
+- E3 does not gate — it sweeps all 69194 det=prose lines (ds-flash, ~$4); the router only ORDERS the sweep. Chosen by robustness on independent truth: suspicion_v0 (gate 0.8664 / human 0.8688), NOT the AUC(all) leader det_student_disagree (AUC(all)=0.9176 but AUC(human)=0.55 — gate-circular, disqualified) whose edge is gate-circular. student uncertainty is audit-only (outside-φ).
+- corpus sweep ≈ **69194** lines (the whole det=prose band (69194) is swept; the suspicion_v0 ordering prioritizes the 32090 disagreement lines first. det=lineated disagreement (11813) stays AUDIT-ONLY).
+
+## Caveats
+- working half only; frozen scored once in E4
+- book-held-out OOF posterior (alpha=0) — never the in-sample fit_full
+- target det≠truth is mostly det-vs-PANEL (gate truth); only 21 human lines are ground truth
+- AUC on the human ground-truth subset reported separately and is tiny-N (caveat, not a claim)

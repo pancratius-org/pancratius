@@ -1,0 +1,16 @@
+{
+  "git_sha": "fd937f441d93ffea5fde317c7abb4e7f58deeccd+dirty",
+  "labels_sha256": "0d3ec985ee784c18ed069819c6658a8d5392c7d0df485102660d7c636bd5dc8f",
+  "votes_sha256": "3497df10b08258aa038dbcee9e9ab44b32305b9db03aa5e49b41c647dba5b380",
+  "working_set": "e1-instrument-working",
+  "frozen_set_excluded": "e1-instrument-frozen",
+  "posterior": "student.oof_smoothed alpha=0 over ALL trainable labels (book-held-out)",
+  "signals": [
+    "det_student_disagree",
+    "student_uncertainty",
+    "suspicion_v0",
+    "panel_vote_spread"
+  ],
+  "phi_rho_threshold": 0.3,
+  "corpus_recon": "2026-06-13-recon-bilingual"
+}
