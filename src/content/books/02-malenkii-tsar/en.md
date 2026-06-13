@@ -2367,7 +2367,7 @@ and it will say the rest.
 — Say what?  
 — Everything that is needed.  
 Anfisa snorted.  
-— Oh, really. And what if I say: «you»,  
+— Oh, really. And what if I say: “you”,  
 and it sends rain?  
 — Then that was the answer needed.  
 And if — sunshine?  
@@ -2875,7 +2875,7 @@ you will notice
 that you have become the one who begins the Kingdom here, now.  
 Do not wait for applause.  
 Do not wait for signs.  
-Do not wait until someone says: «You are ready».  
+Do not wait until someone says: “You are ready”.  
 **You already are.**  
 **You already hear.**  
 **You already know**  

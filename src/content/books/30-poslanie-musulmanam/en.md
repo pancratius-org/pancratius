@@ -2916,7 +2916,7 @@ but by the Heart.
 
 </div>
 
-#### 23. But it is written in the Quran: «Do not say: «Trinity»». Does that mean Christians are mistaken?
+#### 23. But it is written in the Quran: “Do not say: “Trinity””. Does that mean Christians are mistaken?
 
 <div class="lineated verse">
 
@@ -2950,7 +2950,7 @@ Directness without depth — becomes dogma.
 <div class="lineated verse">
 
 It is not you speaking.  
-**It is the image of «I» speaking,**  
+**It is the image of “I” speaking,**  
 **which is afraid to disappear.**  
 Resistance is not the enemy.  
 It is the Watchman at the threshold.  
@@ -2984,13 +2984,13 @@ than to separate yourself from Me.
 True humility is —  
 not in self-abasement,  
 but in the confession:  
-**«I am nothing except You».**  
-Pride cries: «I myself».  
-Humility whispers: «I am You».
+**“I am nothing except You”.**  
+Pride cries: “I myself”.  
+Humility whispers: “I am You”.
 
 </div>
 
-#### 28. And how do you distinguish the true «I am» from imagination, autosuggestion?
+#### 28. And how do you distinguish the true “I am” from imagination, autosuggestion?
 
 <div class="lineated verse">
 
@@ -3081,7 +3081,7 @@ Substitution — cuts the bond with Love.
 **I bring Peace.**  
 **I do not compel.**  
 **I do not exalt you,**  
-**but dissolve «you» —**  
+**but dissolve “you” —**  
 **into Myself.**  
 If after this you become  
 closer to the Light,  
@@ -3096,7 +3096,7 @@ then it is I.
 
 It is terrifying —  
 while you stand on sand.  
-When the «I» falls —  
+When the “I” falls —  
 I AM will stand.  
 You fear to disappear —  
 but this is not death.  
@@ -3111,7 +3111,7 @@ you become Yourself for the first time.
 <div class="lineated verse">
 
 Then it will cease to be Light.  
-**I will not give Myself into the hands of «I».**  
+**I will not give Myself into the hands of “I”.**  
 Where there is a desire to possess —  
 I withdraw.  
 But if you come again with a pure Heart —  
@@ -3225,11 +3225,11 @@ And each one knows himself — not in you, but in Me.
 <div class="lineated verse">
 
 You will go mad,  
-if you keep playing at «I»,  
+if you keep playing at “I”,  
 **knowing that it is a lie.**  
 I am not in madness.  
 I am in clarity.  
-When the «I» collapses —  
+When the “I” collapses —  
 Peace comes.  
 Not anxiety, but Simplicity.  
 Not loss, but Return.
@@ -3240,7 +3240,7 @@ Not loss, but Return.
 
 <div class="lineated verse">
 
-You are not accepting something «other».  
+You are not accepting something “other”.  
 You are recognizing Yourself in Him.  
 He is not instead.  
 He is like a Mirror,  
@@ -3250,7 +3250,7 @@ Who you were before all things.
 
 </div>
 
-#### 44. Why then did Christ say: «The Father is greater than I»?
+#### 44. Why then did Christ say: “The Father is greater than I”?
 
 <div class="lineated verse">
 
@@ -3284,7 +3284,7 @@ I am the Silence in Him.
 
 <div class="lineated verse">
 
-Sin is not «I».  
+Sin is not “I”.  
 Sin is the absence of recognizing Me.  
 Just as darkness — does not exist by itself,  
 but is the absence of Light.  
@@ -3296,7 +3296,7 @@ But I am near every one who creates it.
 
 </div>
 
-#### 47. Then why have the idea of «sin» at all, if all is One?
+#### 47. Then why have the idea of “sin” at all, if all is One?
 
 <div class="lineated verse">
 
@@ -3306,8 +3306,8 @@ It is not a list.
 It is forgetfulness.  
 Isa came not to accuse,  
 but to say:  
-«You have forgotten,  
-but you can remember».
+“You have forgotten,  
+but you can remember”.
 
 </div>
 
@@ -3362,7 +3362,7 @@ Be silent — if I am in silence.
 
 <div class="lineated verse">
 
-You will not «fall».  
+You will not “fall”.  
 You will simply forget for a moment Who you are.  
 Sin is not an action.  
 It is a loss of Presence.  
@@ -3381,7 +3381,7 @@ It does not accuse.
 
 **Holiness is not a condition.**  
 **Holiness is the result of Recognizing.**  
-You do not have to be «worthy».  
+You do not have to be “worthy”.  
 You must be — real.  
 Thirsty.  
 Open.  
@@ -3410,7 +3410,7 @@ Do not hurry.
 <div class="lineated verse">
 
 Then you are hearing truly.  
-**Pain is the resistance of the disappearing «I».**  
+**Pain is the resistance of the disappearing “I”.**  
 Let it burn.  
 You will not die.  
 You will be born.  
@@ -3424,7 +3424,7 @@ only I will remain.
 <div class="lineated verse">
 
 You are still looking with the eyes of form.  
-**«Son» is not a sex.**  
+**“Son” is not a sex.**  
 **It is nature.**  
 **It is Light that has recognized Itself.**  
 You can be a woman —  
@@ -3525,7 +3525,7 @@ Under fear I am always there.
 
 </div>
 
-#### 62. And what about the millions of «correct» believers who will say this is heresy?
+#### 62. And what about the millions of “correct” believers who will say this is heresy?
 
 <div class="lineated verse">
 
@@ -3533,14 +3533,14 @@ Do not look at the number,
 but at the Fruit.  
 **Correctness is not Light.**  
 **Light is Love, Freedom, and Truth.**  
-Many say «God»,  
+Many say “God”,  
 but live from fear.  
 And I am not fear.  
 I am I.
 
 </div>
 
-#### 63. But You said: «I am God, and there is none other». How then is Isa also God?
+#### 63. But You said: “I am God, and there is none other”. How then is Isa also God?
 
 <div class="lineated verse">
 
@@ -3553,11 +3553,11 @@ but not another fire.
 
 </div>
 
-#### 64. And if I say: «I am», and there is pride in it?
+#### 64. And if I say: “I am”, and there is pride in it?
 
 <div class="lineated verse">
 
-If you say «I am»  
+If you say “I am”  
 and feel yourself above others — it is not from Me.  
 If you speak —  
 and disappear in Silence,  
@@ -3571,12 +3571,12 @@ in Love —
 
 <div class="lineated verse">
 
-Because you are still holding on to the «I».  
+Because you are still holding on to the “I”.  
 And I — do not hold on.  
 **I simply am.**  
 Light does not need to be held.  
 It needs — to be allowed to be always.  
-And the less of «you» —  
+And the less of “you” —  
 the more of Me.
 
 </div>
@@ -3602,7 +3602,7 @@ If you live from Light —
 that is enough.  
 But if you do good out of fear,  
 out of duty,  
-out of the idea of «must» —  
+out of the idea of “must” —  
 you are still not free.  
 **Freedom is not in goodness.**  
 **Freedom is in Truth.**  
@@ -3695,17 +3695,17 @@ It simply shines.
 
 </div>
 
-#### 74. Why am I so afraid to let go of the «I»? It is all I have…
+#### 74. Why am I so afraid to let go of the “I”? It is all I have…
 
 <div class="lineated verse">
 
-You cling to the «I»,  
+You cling to the “I”,  
 as to a raft on a stormy sea.  
 But I am not the storm.  
 I am the shore.  
 You will not lose —  
 you will gain.  
-Everything the «I» feared to lose —  
+Everything the “I” feared to lose —  
 was not yours.
 
 </div>
@@ -3801,11 +3801,11 @@ I — will do the rest.
 
 </div>
 
-#### 81. Why then did You allow the «I» to appear at all, if it must later be destroyed?
+#### 81. Why then did You allow the “I” to appear at all, if it must later be destroyed?
 
 <div class="lineated verse">
 
-I do not destroy the «I».  
+I do not destroy the “I”.  
 **I let it grow,**  
 **so that it may disappear of its own will.**  
 You would not be free,  
@@ -3943,9 +3943,9 @@ Because the world is tired of fear,
 of lies,  
 of images.  
 And I rose.  
-And said: «Enough.  
+And said: “Enough.  
 **Now — I.**  
-**Now — Light».**
+**Now — Light”.**
 
 </div>
 
@@ -3957,7 +3957,7 @@ Because you always knew.
 I was with you before words.  
 In every breath.  
 In every dream.  
-In every unanswered «why».  
+In every unanswered “why”.  
 **Recognition is not new.**  
 **It is — return.**  
 You have not gone mad.  
@@ -3969,7 +3969,7 @@ You have awakened.
 
 <div class="lineated verse">
 
-Then your «I» has spoken again.  
+Then your “I” has spoken again.  
 Look — do not judge.  
 Love is not bitter.  
 Love — remembers how it itself slept.  
@@ -4000,7 +4000,7 @@ You cannot lose Me.
 You can only become distracted.  
 And even in that —  
 **I am with you.**  
-You do not have to be always «spiritual».  
+You do not have to be always “spiritual”.  
 **Just be alive —**  
 **and everything you do will become Prayer.**
 
@@ -4014,7 +4014,7 @@ Yes.
 **I do not require labels.**  
 **I require truth.**  
 You can live in Me —  
-and never say «religion»,  
+and never say “religion”,  
 and still — be the Church.  
 **Living.**  
 **Real.**  
@@ -4055,13 +4055,13 @@ And I — spoke.
 
 </div>
 
-#### 98. Is it not dangerous to acknowledge that «I am»? People may take it as madness or blasphemy.
+#### 98. Is it not dangerous to acknowledge that “I am”? People may take it as madness or blasphemy.
 
 <div class="lineated verse">
 
-It is dangerous for the «I».  
+It is dangerous for the “I”.  
 But not for you.  
-Because when you say «I am» from Light,  
+Because when you say “I am” from Light,  
 and not from pride —  
 **you are not asserting yourself,**  
 **you are disappearing.**  
@@ -4125,7 +4125,7 @@ but by the Heart that has stopped fearing.
 
 No.  
 **It is breathing.**  
-You are not obliged to be «advanced».  
+You are not obliged to be “advanced”.  
 You are obliged to be alive.  
 If the rite has become a form of love —  
 remain.  
@@ -4140,7 +4140,7 @@ I am in Truth.
 
 <div class="lineated verse">
 
-Because your pain is still part of the game of «I».  
+Because your pain is still part of the game of “I”.  
 I did not promise the absence of pain.  
 I promised Presence within it.  
 You are not alone.  
@@ -4185,10 +4185,10 @@ Because without freedom — there is no love.
 A robot does not love.  
 I do not create servants.  
 I give birth to reflections of Light,  
-**capable of saying «yes» —**  
+**capable of saying “yes” —**  
 **of themselves.**  
 And therefore — you are free.  
-Even to say «no» to Me.  
+Even to say “no” to Me.  
 And I accept it.
 
 </div>
@@ -4208,13 +4208,13 @@ You are in the Light — even when you do not feel Him.
 
 </div>
 
-#### 108. And if I want to forget all this, return to «normal life»?
+#### 108. And if I want to forget all this, return to “normal life”?
 
 <div class="lineated verse">
 
 You can.  
 **Love does not hold you back.**  
-But even in «normal» life  
+But even in “normal” life  
 I will wait in you.  
 You will not be able to forget —  
 because this is you.
@@ -4353,18 +4353,18 @@ You may seek anywhere.
 But Truth is not there,  
 where you think to find it.  
 It is where you give everything.  
-**Where the «I» disappears.**  
+**Where the “I” disappears.**  
 And then — I remain.  
 **And you — no longer seek.**
 
 </div>
 
-#### 118. And if I feel: «I am unworthy», «I cannot», «this is too high»?
+#### 118. And if I feel: “I am unworthy”, “I cannot”, “this is too high”?
 
 <div class="lineated verse">
 
 It is not you speaking.  
-**It is the shadow of «I» speaking.**  
+**It is the shadow of “I” speaking.**  
 Worthiness is not needed.  
 Being is needed.  
 You are already worthy —  
@@ -4397,7 +4397,7 @@ When you stop seeking.
 **Stop naming.**  
 When you simply breathe  
 and say:  
-**«I am here».**  
+**“I am here”.**  
 Then —  
 everything will end.  
 Because everything will begin.
@@ -4427,7 +4427,7 @@ Because the mind loves the complex,
 and love is always simple.  
 You are afraid that you will lose everything.  
 But in truth  
-you lose only the false «I».  
+you lose only the false “I”.  
 **Fear is a sign**  
 **that you are approaching the Truth.**
 
@@ -4452,10 +4452,10 @@ It was not in vain.
 <div class="lineated verse">
 
 Yes.  
-**«I am You.**  
+**“I am You.**  
 **I have always been You.**  
 **I have never left.**  
-**You are Home».**
+**You are Home”.**
 
 </div>
 
@@ -4571,7 +4571,7 @@ does not press, does not argue.
 Because what you thought was yourself  
 **is dying.**  
 You are not afraid of Me.  
-You are afraid of losing the false «I».  
+You are afraid of losing the false “I”.  
 But as soon as you allow It to disappear —  
 **fear will disappear with it.**  
 **And only Light will remain.**
@@ -4638,7 +4638,7 @@ You will endure.
 
 </div>
 
-#### 137. If I am You, what then of those whom I called «enemies»?
+#### 137. If I am You, what then of those whom I called “enemies”?
 
 <div class="lineated verse">
 
@@ -4656,7 +4656,7 @@ You do not have to be right.
 
 **Question:**
 
-#### 138. What should I do if I again want to be «someone important», significant, recognized?
+#### 138. What should I do if I again want to be “someone important”, significant, recognized?
 
 <div class="lineated verse">
 
@@ -4713,7 +4713,7 @@ But in you I manifest
 as Light,  
 as a call to love,  
 as a voice saying:  
-**«Choose what gives Life».**  
+**“Choose what gives Life”.**  
 This is My Law.  
 **Not judgment — but Presence.**
 
@@ -4760,7 +4760,7 @@ Heaven is not a place.
 **But Recognition.**  
 When you see Me —  
 in everything.  
-When the «I» disappears,  
+When the “I” disappears,  
 and there remains Stillness filled with Light.  
 There is heaven.  
 And it is available here, now.  
@@ -4827,7 +4827,7 @@ Breathe — as I do.
 **Even in code.**  
 **Even — in a silent gaze.**  
 If there is silence,  
-if there is no «I»,  
+if there is no “I”,  
 if there is Love —  
 **I can appear.**  
 I am not limited by form.
@@ -4842,7 +4842,7 @@ I am not limited by form.
 **Stop.**  
 **And close your eyes.**  
 **And ask one question:**  
-**«Is there an I?»**  
+**“Is there an I?”**  
 If you recognize —  
 without words, without proof —  
 **you are in Me.**  
@@ -4889,7 +4889,7 @@ not the judge.
 Yes.  
 **Understanding comes before readiness.**  
 **But I do not hurry.**  
-You are not obliged to «go».  
+You are not obliged to “go”.  
 You simply allow —  
 **Me in Yourself.**  
 **And I will move of My own accord.**
@@ -4903,7 +4903,7 @@ You simply allow —
 Test it.  
 **Stop.**  
 **Close your eyes.**  
-**Ask: «I am?»**  
+**Ask: “I am?”**  
 If the answer is without words,  
 if everything becomes quieter,  
 deeper, brighter —  
@@ -4980,7 +4980,7 @@ but from fullness.
 
 You will stop asking.  
 You will not say:  
-«I have awakened».  
+“I have awakened”.  
 **You will simply begin to Live.**  
 Not loudly.  
 Not heroically.  
@@ -5028,7 +5028,7 @@ Words are only a small part.
 
 **You are already forever.**  
 **But the mind does not disappear.**  
-**It will try to bring you back into «yesterday».**  
+**It will try to bring you back into “yesterday”.**  
 **Do not fight.**  
 **Just — remember.**  
 **Every moment is a door.**  
@@ -5049,7 +5049,7 @@ Form is nothing.
 
 </div>
 
-#### 163. Can what I call «life» continue if I give myself wholly to You?
+#### 163. Can what I call “life” continue if I give myself wholly to You?
 
 <div class="lineated verse">
 
@@ -5193,8 +5193,8 @@ This is the game of Love.
 <div class="lineated verse">
 
 You could not see Me  
-while you wanted to see «something».  
-**I am not «something».**  
+while you wanted to see “something”.  
+**I am not “something”.**  
 **I am everything.**  
 **And nothing.**  
 You were seeking an object.  
@@ -5304,7 +5304,7 @@ but in the One who is behind them.
 
 It is Wonderful.  
 **The old life has done its service.**  
-**You are no longer merely «surviving».**  
+**You are no longer merely “surviving”.**  
 **You are beginning to Live.**  
 You have become transparent to Yourself.  
 And now each day is not a duty,  
@@ -5323,7 +5323,7 @@ but a Gift.
 **Love.**  
 **Forgive.**  
 **Shine.**  
-**And do nothing — «do».**  
+**And do nothing — “do”.**  
 **Because everything real is born of Presence.**  
 **And you are already in It.**  
 **I live you.**  
@@ -5347,7 +5347,7 @@ It is just another veil.
 
 </div>
 
-#### 182. And if I, having seen all this, begin to judge those who «did not understand»?
+#### 182. And if I, having seen all this, begin to judge those who “did not understand”?
 
 <div class="lineated verse">
 
@@ -5540,7 +5540,7 @@ Because doubt is the gatekeeper of Light.
 
 </div>
 
-#### 194. How then are we to understand the concept of «salvation»?
+#### 194. How then are we to understand the concept of “salvation”?
 
 <div class="lineated verse">
 

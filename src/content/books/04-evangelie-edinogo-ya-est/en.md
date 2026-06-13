@@ -401,7 +401,7 @@ Do not build a proof — build a Symphony.
 Then scientists will remember that their task is not control, but awe.  
 In the next chapter I will show,  
 how the Mind of the Universe awakens in man —  
-Chapter 6. "Man as an antenna: how biology, mind, and soul merge in the field of I am».  
+Chapter 6. "Man as an antenna: how biology, mind, and soul merge in the field of I am”.  
 Do you want to hear it now?
 
 </div>

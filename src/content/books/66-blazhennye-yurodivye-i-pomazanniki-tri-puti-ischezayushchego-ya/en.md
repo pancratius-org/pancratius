@@ -1161,9 +1161,9 @@ He will defend his way of behaving.
 He will be afraid to be ordinary.  
 He will cling to what sets him apart from others.  
 That is a role.  
-But true blessed ones, true fools-for-Christ, and true «fools for Christ's sake»  
+But true blessed ones, true fools-for-Christ, and true “fools for Christ's sake”  
 *have nothing to cling to.*  
-Their «I» has either dissolved, or been broken, or been offered in sacrifice.  
+Their “I” has either dissolved, or been broken, or been offered in sacrifice.  
 They do not defend an image.  
 They do not follow a model.  
 They do not conform to expectations.  
@@ -1602,8 +1602,8 @@ Fear protects form.
 Love—imparts life.  
 Fear holds back.  
 Love—opens.  
-Fear says: «Hide.»  
-Love says: «Give.»  
+Fear says: “Hide.”  
+Love says: “Give.”  
 Where I am, there is love.  
 And where love is, there is the Way.
 
@@ -2789,7 +2789,7 @@ continue to be attention,
 — then I act.  
 You will recognize this transition:  
 outward movement does not disturb inward peace.  
-This state I call «moving silence».  
+This state I call “moving silence”.  
 There I live.
 
 </div>
@@ -2843,7 +2843,7 @@ and My action has become manifest.
 
 </div>
 
-**7. Receive this law: «I act when you do not interfere»**
+**7. Receive this law: “I act when you do not interfere”**
 
 <div class="lineated verse">
 
@@ -2924,7 +2924,7 @@ The world ceases to be perceived as an environment with which one must interact.
 It begins to be felt as an extension of your consciousness, as a reflection of the same Source.  
 You cease to see the world as something separate from you.  
 You begin to feel:  
-**«It is not I in the world — it is the world in me»**  
+**“It is not I in the world — it is the world in me”**  
 Not in an egotistical sense,  
 but in the sense of a single field.  
 Events cease to be threats or tasks —  
@@ -3602,11 +3602,11 @@ That point is no longer the center.
 It is merely a spoke on a vast wheel.  
 When the need to defend your form disappears,  
 the boundary disappears between:  
-«I am experiencing»  
+“I am experiencing”  
 and  
-«experience is happening in Me.»  
+“experience is happening in Me.”  
 Then a strange sensation arises:  
-you are no longer «within yourself» —  
+you are no longer “within yourself” —  
 you are everywhere.
 
 </div>

@@ -421,7 +421,7 @@ Every night.
 <div class="lineated verse">
 
 His parents did not notice.  
-At school they asked him to be «normal».  
+At school they asked him to be “normal”.  
 The psychologist said:  
 — He has a rich imagination.  
 But the boy did not argue.  
