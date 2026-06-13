@@ -149,29 +149,52 @@ function localeName(name: string, locale: string): string {
   return name.replace(/\.json$/, `.${locale}.json`);
 }
 
-/** Publish one source graph (RU verbatim + every locale join). Returns 1 on failure. */
-function publishPayload(spec: PayloadSpec): number {
-  let graph: Graph;
-  try {
-    graph = JSON.parse(readFileSync(join(SRC_DIR, spec.name), "utf-8")) as Graph;
-  } catch (err: unknown) {
-    stderr.write(`invalid graph payload JSON in data/${spec.name}: ${String(err)}\n`);
-    return 1;
+function readGraph(spec: PayloadSpec): Graph {
+  return JSON.parse(readFileSync(join(SRC_DIR, spec.name), "utf-8")) as Graph;
+}
+
+/**
+ * Write the RU payload verbatim (un-suffixed). RU is the source-of-truth and is
+ * never gated by the overlay: a broken or incomplete `en.json` must not suppress
+ * a RU artifact (conceptosphere-bilingual-design.md §2 — "the RU page is
+ * unaffected; the RU payload never consults en.json"). So every RU payload is
+ * written BEFORE any locale join runs, and a join failure can never abort it.
+ */
+function publishRu(graphs: ReadonlyMap<string, Graph>): void {
+  for (const spec of PAYLOADS) {
+    const graph = graphs.get(spec.name);
+    if (graph) writeIfChanged(join(DST_DIR, spec.name), JSON.stringify(graph), spec.name);
   }
+}
 
-  // RU payload — verbatim, un-suffixed.
-  writeIfChanged(join(DST_DIR, spec.name), JSON.stringify(graph), spec.name);
-
-  // Per-locale payloads — RU topology ⋈ overlay labels.
+/**
+ * Join each graph with each locale overlay and write the per-locale payload.
+ * A missing overlay is skipped (that locale simply has no payload yet); a
+ * present-but-incomplete/malformed overlay throws (fail loud — a missing
+ * translation is a build failure, not a silent RU fallback). Returns 1 on the
+ * first such failure, AFTER the RU payloads are already on disk.
+ */
+function publishLocales(graphs: ReadonlyMap<string, Graph>): number {
   for (const { locale, overlayPath } of LOCALES) {
     if (!existsSync(overlayPath)) continue;
+    let overlay: Overlay;
     try {
-      const joined = joinLocalePayload(graph, loadOverlay(overlayPath), spec.nodesAreConcepts);
-      const outName = localeName(spec.name, locale);
-      writeIfChanged(join(DST_DIR, outName), JSON.stringify(joined), outName);
+      overlay = loadOverlay(overlayPath);
     } catch (err: unknown) {
-      stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
+      stderr.write(`invalid conceptosphere ${locale} overlay JSON in ${relative(REPO_ROOT, overlayPath)}: ${String(err)}\n`);
       return 1;
+    }
+    for (const spec of PAYLOADS) {
+      const graph = graphs.get(spec.name);
+      if (!graph) continue;
+      try {
+        const joined = joinLocalePayload(graph, overlay, spec.nodesAreConcepts);
+        const outName = localeName(spec.name, locale);
+        writeIfChanged(join(DST_DIR, outName), JSON.stringify(joined), outName);
+      } catch (err: unknown) {
+        stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
+        return 1;
+      }
     }
   }
   return 0;
@@ -187,10 +210,20 @@ function main(): number {
     );
     return 1;
   }
+
+  const graphs = new Map<string, Graph>();
   for (const spec of PAYLOADS) {
-    if (publishPayload(spec) !== 0) return 1;
+    try {
+      graphs.set(spec.name, readGraph(spec));
+    } catch (err: unknown) {
+      stderr.write(`invalid graph payload JSON in data/${spec.name}: ${String(err)}\n`);
+      return 1;
+    }
   }
-  return 0;
+
+  // RU first and unconditionally; the overlay join can only fail AFTER RU is safe.
+  publishRu(graphs);
+  return publishLocales(graphs);
 }
 
 // Only run the I/O wrapper when invoked as a script, not when imported by tests.
