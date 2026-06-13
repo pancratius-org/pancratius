@@ -79,7 +79,7 @@ export async function loadConceptospherePageData(
   locale: Locale,
   strings: ConceptosphereStrings,
 ): Promise<ConceptospherePageData> {
-  const graphs = loadConceptosphereGraphs();
+  const graphs = loadConceptosphereGraphs(locale);
   const bookCatalog = await resolveLocalizedBookCatalog(graphs, locale);
   const bookRows = graphs.books.nodes.map((node) => bookRow(node, bookCatalog));
   const conceptRows = graphs.concepts.nodes.map((node) => conceptRow(node, bookCatalog));
@@ -104,10 +104,14 @@ export async function loadConceptospherePageData(
   };
 }
 
-function loadConceptosphereGraphs(): ConceptosphereGraphs {
+// The mobile list is server-rendered from these graphs, so it MUST read the
+// same per-locale payload the desktop graph fetches (the build-time RU⋈overlay
+// join) — not the RU source — or /en/ mobile would show Russian concept and
+// community labels under an English URL.
+function loadConceptosphereGraphs(locale: Locale): ConceptosphereGraphs {
   return {
-    books: loadBooksGraph(),
-    concepts: loadConceptsGraph(),
+    books: loadBooksGraph(locale),
+    concepts: loadConceptsGraph(locale),
   };
 }
 

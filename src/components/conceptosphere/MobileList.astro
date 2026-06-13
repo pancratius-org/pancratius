@@ -6,9 +6,12 @@
 // default mode immediately.
 //
 // Per the universal "respect the reader" constraint: this is not a fallback
-// notice, it is the same data made navigable without a graph. Graph node
-// labels remain in the original Russian because the corpus is Russian;
-// only the chrome around them localises.
+// notice, it is the same data made navigable without a graph. The rows are
+// built (in page-data.ts) from the SAME per-locale payload the desktop graph
+// fetches — the build-time RU⋈overlay join — so concept and community labels
+// render in the page's locale (English on /en/), never raw Russian under an
+// English URL. Book titles localise where an EN work pair exists; RU-only books
+// degrade to a "Russian original" badge + RU link.
 
 import type { Locale } from "@/lib/i18n";
 import ModeToggle from "./ModeToggle.astro";
