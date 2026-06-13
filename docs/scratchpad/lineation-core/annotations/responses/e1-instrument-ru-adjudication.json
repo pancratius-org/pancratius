@@ -1,0 +1,147 @@
+{
+  "title": "E1 instrument — random corpus sample (ru)",
+  "completedAt": "2026-06-13T00:58:26.562Z",
+  "responses": {
+    "b10-r0": {
+      "lines": {},
+      "note": "It's pseudo-header, kind of? Hard to say, both work IFF it's consistent across the neighbouring blocks/book section. I lean lineated because it's what rendered on the image."
+    },
+    "b12-r0": {
+      "lines": {
+        "L002": "lineated"
+      },
+      "note": "Same, context-dependent, but judging wrt the render so that it's at least consistent."
+    },
+    "b14-r0": {
+      "lines": {
+        "L003": "lineated",
+        "L004": "lineated"
+      }
+    },
+    "b16-r0": {
+      "lines": {
+        "L005": "prose"
+      },
+      "note": "Indent + long lines help here."
+    },
+    "b20-r0": {
+      "lines": {
+        "L006": "lineated"
+      },
+      "note": "It's pseudo-list, and if it doesn't have a special handling (as a list), lineation is safest for lists of short lines."
+    },
+    "b23-r0": {
+      "lines": {
+        "L007": "prose"
+      },
+      "note": "Same as the previous prose case."
+    },
+    "b25-r0": {
+      "lines": {
+        "L008": "lineated",
+        "L009": "lineated"
+      },
+      "note": "These lines are inside verse-like short-lined stanzas, obvious judgment."
+    },
+    "b31-r0": {
+      "lines": {
+        "L010": "lineated"
+      }
+    },
+    "b33-r0": {
+      "lines": {
+        "L011": "lineated"
+      },
+      "note": "Context-dependent (both work if judged consistently against other blocks), but lineated is the render's choice here + it looks good."
+    },
+    "b36-r0": {
+      "lines": {
+        "L012": "lineated"
+      },
+      "note": "Not relevant to judgment, but very important, BUG: The first line is \"Ответ от Творца:\" rendered as almost a header, than the whole empty page. Second page starts with \"Глава 45\". So, the first page is empty, sans the \"header\"."
+    },
+    "b52-r0": {
+      "lines": {
+        "L013": "lineated"
+      }
+    },
+    "b52-r1": {
+      "lines": {
+        "L014": "lineated"
+      }
+    },
+    "b54-r0": {
+      "lines": {
+        "L015": "lineated"
+      }
+    },
+    "b59-r0": {
+      "lines": {
+        "L016": "lineated"
+      },
+      "note": "Both work, consistency-judging."
+    },
+    "b60-r0s0": {
+      "lines": {
+        "L017": "lineated"
+      },
+      "note": "Part of stanza, even despite being bold (why not?)"
+    },
+    "b60-r0s1": {
+      "lines": {
+        "L018": "lineated"
+      },
+      "note": "Pseudo-header, so header-style dependent. Both options work. Judging lineated just for consistency with the render."
+    },
+    "b63-r0": {
+      "lines": {
+        "L019": "lineated",
+        "L020": "lineated"
+      }
+    },
+    "b64-r0": {
+      "lines": {
+        "L021": "lineated"
+      }
+    },
+    "b66-r0s0": {
+      "lines": {
+        "L022": "lineated",
+        "L023": "lineated"
+      }
+    },
+    "b66-r0s1": {
+      "lines": {
+        "L024": "lineated"
+      }
+    },
+    "b66-r0s2": {
+      "lines": {
+        "L025": "lineated"
+      },
+      "note": "Obviously lineated, if two lines above are considered (very short, statement-like, with commas). And the contested line is even a DIRECT continuation of the previous, lower-case, so it is strange that it is a contested case."
+    },
+    "b71-r0": {
+      "lines": {
+        "L026": "lineated"
+      },
+      "note": "Context-dependent, again: if other are judged prose, prose works here. Lineated also works. Judging as lineated ONLY for consistency (you may override)."
+    },
+    "b71-r1s0": {
+      "lines": {
+        "L027": "lineated",
+        "L028": "lineated"
+      }
+    },
+    "b71-r1s1": {
+      "lines": {
+        "L029": "lineated"
+      }
+    },
+    "b71-r2": {
+      "lines": {
+        "L030": "lineated"
+      }
+    }
+  }
+}
