@@ -1,0 +1,93 @@
+{
+  "title": "E1 instrument — random corpus sample (en)",
+  "completedAt": "2026-06-12T23:19:26.083Z",
+  "responses": {
+    "b02-r0": {
+      "lines": {
+        "L001": "lineated",
+        "L002": "lineated"
+      },
+      "note": "I don't know how other lines are judged? It's important, because both work, and consistency is very importtant. On the render, it's technically lineated, so i'd say so, but both work.\nThe second (L002) is more clearly lineated, because it's part of the stanza."
+    },
+    "b52-r0": {
+      "lines": {
+        "L003": "lineated"
+      },
+      "note": "On the render, it's lineation. And I think for such short lines, each separate, prose wouldn't work well."
+    },
+    "b62-r0": {
+      "lines": {
+        "L004": "lineated"
+      }
+    },
+    "b62-r1": {
+      "lines": {
+        "L005": "lineated"
+      }
+    },
+    "b63-r0": {
+      "lines": {
+        "L006": "lineated"
+      }
+    },
+    "b63-r1": {
+      "lines": {
+        "L007": "lineated"
+      },
+      "note": "context-dependent (how other stanzas are judged?), but purely on the render factor + stanza -- lineated"
+    },
+    "b63-r2": {
+      "lines": {
+        "L008": "lineated"
+      },
+      "note": "is it asking about the line as a run inside the p? If yes, then it's lineated, or prose, if the p is prose? Is the question asking consistent, btw?"
+    },
+    "b64-r0": {
+      "lines": {
+        "L009": "lineated"
+      }
+    },
+    "b64-r1": {
+      "lines": {
+        "L010": "lineated"
+      }
+    },
+    "b64-r2": {
+      "lines": {
+        "L011": "prose"
+      },
+      "note": "Both work here. The book is kind of \"prose, but without indent\"."
+    },
+    "b66-r0": {
+      "lines": {
+        "L012": "lineated",
+        "L013": "lineated"
+      }
+    },
+    "b67-r0": {
+      "lines": {
+        "L014": "lineated"
+      }
+    },
+    "b70-r0": {
+      "lines": {
+        "L015": "lineated"
+      }
+    },
+    "b71-r0": {
+      "lines": {
+        "L016": "lineated"
+      }
+    },
+    "b71-r1": {
+      "lines": {
+        "L017": "lineated"
+      }
+    },
+    "b71-r2": {
+      "lines": {
+        "L018": "lineated"
+      }
+    }
+  }
+}
