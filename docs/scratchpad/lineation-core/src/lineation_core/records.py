@@ -229,6 +229,13 @@ def feature_field_names() -> list[FeatureName]:
     return [f.name for f in dataclasses.fields(LineFeatures)]
 
 
+# Contract versions — bump when the producer or the feature set changes; stamped into the cache
+# manifest and read back as a drift rail. Pure constants (no IO), so any module needing the version
+# for provenance reads them here, not from the cache-IO module.
+FEATURE_SCHEMA_VERSION = "features-2"
+PRODUCER_VERSION = "read_lines-2"
+
+
 @dataclass(frozen=True)
 class FeatureSchema:
     feature_schema_version: str
