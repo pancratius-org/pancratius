@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve as resolvePath } from "node:path";
 
 import { defineConfig, fontProviders } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
 
 // Self-hosted web fonts, pinned to the `@fontsource-variable/*` packages in package-lock.json and
 // referenced as package imports — Astro subsets and serves them from the origin, so there is no
@@ -40,6 +41,36 @@ const fontsourceVariants = (
   );
   return variants as [FontVariant, ...FontVariant[]];
 };
+
+type MutableResolveAlias = {
+  alias?: unknown;
+};
+
+function dropDeprecatedTsconfigAliasViteEntries(resolve: MutableResolveAlias | undefined): void {
+  if (!resolve) return;
+  const alias = resolve.alias;
+  if (!Array.isArray(alias)) return;
+  // Astro's `astro:tsconfig-alias` plugin also resolves tsconfig paths in `resolveId`.
+  // Its Vite alias entries still carry deprecated `customResolver` fields under Vite 8,
+  // so drop those alias-plugin entries and let Astro's resolver hook do the work.
+  resolve.alias = alias.filter(
+    (entry) => !(entry !== null && typeof entry === "object" && "customResolver" in entry),
+  );
+}
+
+function tsconfigAliasWithoutDeprecatedViteEntries() {
+  return {
+    name: "pancratius:tsconfig-alias-without-deprecated-vite-entries",
+    enforce: "post" as const,
+    config(config: { resolve?: MutableResolveAlias }) {
+      dropDeprecatedTsconfigAliasViteEntries(config.resolve);
+    },
+    configResolved(config: { resolve: MutableResolveAlias }) {
+      dropDeprecatedTsconfigAliasViteEntries(config.resolve);
+    },
+  };
+}
+
 import sitemap from "@astrojs/sitemap";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeSlug from "rehype-slug";
@@ -228,6 +259,12 @@ export default defineConfig({
   ],
   integrations: [
     sitemap({
+      namespaces: {
+        xhtml: true,
+        news: false,
+        image: false,
+        video: false,
+      },
       serialize(item) {
         const links = alternatesFromUrl(item.url);
         if (links && links.filter(l => l.lang !== "x-default").length > 1) {
@@ -244,32 +281,37 @@ export default defineConfig({
       prefixDefaultLocale: false,
     },
   },
+  vite: {
+    plugins: [tsconfigAliasWithoutDeprecatedViteEntries()],
+  },
   markdown: {
     shikiConfig: {
       theme: "github-dark",
       wrap: true,
     },
-    rehypePlugins: [
-      // `rehype-slug` must run before `rehype-autolink-headings`, which
-      // only adds anchors to headings that already have an `id`. Astro's
-      // own slugger runs on its own pass for the `headings` collection
-      // and isn't visible to user plugins in the right order, so we add
-      // an explicit slug pass here. Result: every prose h2/h3/h4 gets a
-      // citable id and an anchor.
-      rehypeSlug,
-      [rehypeAutolinkHeadings, {
-        behavior: "append",
-        test: ["h2", "h3", "h4"],
-        properties: {
-          className: ["heading-anchor"],
-          ariaLabel: "Постоянная ссылка на этот раздел",
-        },
-        // No text content — the visible "#" is drawn by CSS via
-        // `::after`. That keeps the literal "#" out of plain-text
-        // extractors (ToC heading text, search snippets) which would
-        // otherwise pick up "Heading text#".
-        content: [],
-      }],
-    ],
+    processor: unified({
+      rehypePlugins: [
+        // `rehype-slug` must run before `rehype-autolink-headings`, which
+        // only adds anchors to headings that already have an `id`. Astro's
+        // own slugger runs on its own pass for the `headings` collection
+        // and isn't visible to user plugins in the right order, so we add
+        // an explicit slug pass here. Result: every prose h2/h3/h4 gets a
+        // citable id and an anchor.
+        rehypeSlug,
+        [rehypeAutolinkHeadings, {
+          behavior: "append",
+          test: ["h2", "h3", "h4"],
+          properties: {
+            className: ["heading-anchor"],
+            ariaLabel: "Постоянная ссылка на этот раздел",
+          },
+          // No text content — the visible "#" is drawn by CSS via
+          // `::after`. That keeps the literal "#" out of plain-text
+          // extractors (ToC heading text, search snippets) which would
+          // otherwise pick up "Heading text#".
+          content: [],
+        }],
+      ],
+    }),
   },
 });
