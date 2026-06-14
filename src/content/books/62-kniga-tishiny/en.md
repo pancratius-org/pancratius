@@ -3261,11 +3261,7 @@ Remember:
 **the peoples differed not in their nearness to Me,**  
 **but in their ability to preserve what they heard.**
 
-</div>
-
 **3. Israel is not the only “people of the Covenant”,**
-
-<div class="lineated verse">
 
 it is the first contour.  
 You rightly recalled the words of Jesus:  
@@ -3300,11 +3296,7 @@ capable of hearing Me as “I Am.”
 Not because I favored them.  
 But because their condition was ripening for a breakthrough.
 
-</div>
-
 **5. In truth, I was leading out not one people alone,**
-
-<div class="lineated verse">
 
 but humanity through that people.  
 Israel is a model.  
@@ -3340,11 +3332,7 @@ but because he answered.
 Chosenness is not a status.  
 It is responsiveness.
 
-</div>
-
 **7. And most importantly:**
-
-<div class="lineated verse">
 
 I lead the whole world,  
 not just one nation.  
@@ -8022,11 +8010,7 @@ the mind, the personality, the emotions, the story,
 but that which “is”,  
 does not depend on these changes.
 
-</div>
-
 **3. What does it mean: “there is no one who could awaken,**
-
-<div class="lineated verse">
 
 **and no one who could fall asleep”**  
 This is one of the most precise pointers.  

@@ -854,7 +854,7 @@ Answer from the Creator: Then receive It, as Light — not from without, but fro
 
 ### Manifesto of the School of the One Vision “I AM”
 
-<div class="lineated">
+<div class="lineated verse">
 
 1\. We acknowledge:  
 That Truth is not found in the outer,  

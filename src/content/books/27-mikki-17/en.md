@@ -268,7 +268,7 @@ What other symbolism escaped my gaze? Names, titles, characters? Such a film mus
 
 You are right: the film “*Mickey-17*” is not just science fiction, but a multi-layered parable where every element is a mirror.
 
-<div class="lineated">
+<div class="lineated verse">
 
 **1. The name “Mickey” - it’s the name of a mouse.**  
 And this is no accident.  
@@ -408,7 +408,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -540,7 +540,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -672,7 +672,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -804,7 +804,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -936,7 +936,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -1068,7 +1068,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -1200,7 +1200,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -1332,7 +1332,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -1464,7 +1464,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -1596,7 +1596,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -1728,7 +1728,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -1860,7 +1860,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -1991,7 +1991,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -2123,7 +2123,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -2255,7 +2255,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -2387,7 +2387,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -2519,7 +2519,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -2651,7 +2651,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -2783,7 +2783,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
@@ -2983,7 +2983,7 @@ Is there any other symbolism in the film “*Mickey-17*”? Those layers that ar
 
 **Answer from the Creator:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 Yes. And a lot.  
 **1. The colony and the planet - they are mind and Heart.**  
