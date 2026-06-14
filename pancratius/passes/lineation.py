@@ -285,6 +285,155 @@ def fold_lineation(
     return out
 
 
+# A recoverable numbered row is a verse line whose clause the FOLLOWING row
+# completes: it ends on an explicit continuation mark — a comma, an em/en dash, a
+# semicolon, or a colon introducing the continuation. A numbered row ending on a
+# letter, a closing quote, or sentence punctuation is a section TITLE / list item
+# that names its own thing, never a clause the next line finishes — the dominant
+# false-positive shape (book-62 «2. Почему даны "десять слов"», book-63 «3)
+# Zealots: center = …») the loose "lacks a terminator" rule wrongly admitted.
+# Requiring the positive continuation mark, not merely the absence of a stop, is
+# what separates a split verse line from a heading. One constant so the predicate
+# and its tests cannot drift.
+_CONTINUATION_TERMINATORS = (",", "—", "–", "-", ";", ":")
+
+
+def _is_numbered_row(text: str) -> bool:
+    """A row led by an ordinal marker (`1.`/`2)`/`IV.`) — the exact shape
+    `is_lineated_line` rejects via `_ORDINAL_LEAD_RE`."""
+    return bool(_ORDINAL_LEAD_RE.match(_WS_RE.sub(" ", text).strip()))
+
+
+def _recoverable_numbered_row(text: str) -> bool:
+    """True when a numbered row is a verse line wrongly split out, not a title.
+
+    It must END on an explicit continuation mark (`,`/`—`/`–`/`;`/`:`): the next
+    row completes the clause. The colon case is admitted on purpose — `1. Признай
+    правду:` flows into its verse; the math-section-title shape (`2. Условия
+    фотонности:` introducing list/equation scaffold) is excluded structurally (it
+    never sits inside a `LineatedBlock` sandwich). A numbered row ending on a
+    letter, a closing quote, or `.`/`!`/`?`/`…` is a heading or list item and is
+    refused."""
+    return _WS_RE.sub(" ", text).strip().rstrip().endswith(_CONTINUATION_TERMINATORS)
+
+
+def _bridge_recoverable(bridge: list[ir.Paragraph]) -> bool:
+    """Whether a sandwiched non-empty paragraph run is one fused lineation group
+    that the numbered-row rejection alone split out of its verse run.
+
+    All of:
+      * at least one row is numbered (the rejection trigger);
+      * every numbered row ends on a continuation mark (`_recoverable_numbered_row`)
+        — a heading/list item would split the run, so one such row vetoes the
+        whole bridge;
+      * the run shares ONE non-null `lineation_group` (a single fused group);
+      * no row is indented (a departing indent reads as running prose, never the
+        tight contiguous verse this repair targets).
+
+    The OOXML `w:numPr` list case never reaches here: real ordered lists adapt to
+    `ListBlock`, not bare `Paragraph`s, so they are absent from the block stream
+    this pass walks (asserted by the `numPr` counterexample test)."""
+    texts = [inline_plain(p.inlines) for p in bridge]
+    numbered = [t for t in texts if _is_numbered_row(t)]
+    if not numbered:
+        return False
+    if not all(_recoverable_numbered_row(t) for t in numbered):
+        return False
+    groups = {p.lineation_group for p in bridge}
+    if len(groups) != 1 or None in groups:
+        return False
+    return not any(p.indented for p in bridge)
+
+
+def _ordinal_contiguous(
+    before: ir.LineatedBlock, bridge: list[ir.Paragraph], after: ir.LineatedBlock,
+) -> bool:
+    """The sandwich is one unbroken source run: the fold before ends exactly one
+    ordinal before the bridge, the fold after starts exactly one ordinal after
+    it, and the bridge rows are themselves contiguous. Contiguity proves no blank
+    `<w:p>` (a stanza-break sub-section lead) and no other block sit between —
+    the visual-fusion signal the recovery requires."""
+    spans = [before.source_span, *(p.source_span for p in bridge), after.source_span]
+    if any(s is None for s in spans):
+        return False
+    bounds = cast("list[ir.SourceSpan]", spans)
+    # consecutive pairs: bounds[1:] is one shorter by construction.
+    return all(a.end + 1 == b.start for a, b in zip(bounds, bounds[1:], strict=False))
+
+
+def recover_numbered_rows(blocks: list[ir.Block]) -> list[ir.Block]:
+    """Q1 contextual repair: re-absorb numbered prose rows (and their collateral
+    fragments) that `is_lineated_line` rejected back into the fused lineated run
+    they belong to. The mirror of `segment_lineated`'s register split.
+
+    A run repairs only as a strict sandwich — `LineatedBlock` · non-empty
+    `Paragraph`(s) · `LineatedBlock`, ordinal-contiguous (no interior blank or
+    other block), the bridge one fused `lineation_group` with at least one
+    clause-incomplete numbered row (`_bridge_recoverable`). The three blocks fuse
+    into one `LineatedBlock`: the bridge rows become `Line`s carrying their own
+    `source_span` (as `_build_lineated` builds them), and the merged span recomputes
+    over the run. Evidence is inferred-source-rows (the repair asserts the rows are
+    source lineation) carried over the merge. Everything else is returned untouched;
+    under-recovery is the safe failure."""
+    out: list[ir.Block] = []
+    i = 0
+    n = len(blocks)
+    while i < n:
+        before = blocks[i]
+        if not isinstance(before, ir.LineatedBlock):
+            out.append(before)
+            i += 1
+            continue
+        j = i + 1
+        bridge: list[ir.Paragraph] = []
+        while j < n and isinstance((bj := blocks[j]), ir.Paragraph) and not bj.empty:
+            bridge.append(bj)
+            j += 1
+        after = blocks[j] if j < n else None
+        if (
+            bridge
+            and isinstance(after, ir.LineatedBlock)
+            and _bridge_recoverable(bridge)
+            and _ordinal_contiguous(before, bridge, after)
+        ):
+            out.append(_fuse_numbered_run(before, bridge, after))
+            i = j + 1
+            continue
+        out.append(before)
+        i += 1
+    return out
+
+
+def _fuse_numbered_run(
+    before: ir.LineatedBlock, bridge: list[ir.Paragraph], after: ir.LineatedBlock,
+) -> ir.LineatedBlock:
+    """Fuse a recovered sandwich into one `LineatedBlock`: the bridge rows become a
+    stanza of `Line`s between the two folds' stanzas, the span recomputes, and the
+    evidence carries inferred-source-rows (the repair's own provenance)."""
+    bridge_stanza: ir.Stanza = [
+        ir.Line(ln, span=p.source_span) for p in bridge for ln in _block_lines(p)
+    ]
+    # The merged run carries both folds' provenance, plus inferred-source-rows —
+    # this repair asserts the bridge rows ARE source lineation.
+    before_ev, after_ev = before.evidence, after.evidence
+    evidence = ir.LineationEvidence(
+        pandoc_line_block=before_ev.pandoc_line_block or after_ev.pandoc_line_block,
+        hard_break=before_ev.hard_break or after_ev.hard_break,
+        inferred_source_rows=True,
+        stanza_break=before_ev.stanza_break or after_ev.stanza_break,
+        compact_callout=before_ev.compact_callout or after_ev.compact_callout,
+    )
+    return ir.LineatedBlock(
+        stanzas=[*before.stanzas, bridge_stanza, *after.stanzas],
+        register=before.register,
+        evidence=evidence,
+        source_span=ir.merge_source_spans(
+            (before.source_span, after.source_span,
+             *(p.source_span for p in bridge)),
+        ),
+    )
+
+
 def _lineated_folds(blocks: Sequence[ir.Block]) -> Iterator[ir.LineatedBlock]:
     """Every lineated fold in the document, register irrelevant, wrapper included
     (a `QuoteBlock`'s prose MEMBER paragraphs are not folds; a lineated block
