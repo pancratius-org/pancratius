@@ -24,30 +24,30 @@ function conceptsGraph(): Graph {
 describe("joinLocalePayload", () => {
   test("substitutes EN concept labels by stable id", () => {
     const out = joinLocalePayload(conceptsGraph(), OVERLAY, true);
-    const labels = (out.nodes ?? []).map((n) => n.label);
+    const labels = out.nodes.map((n) => n.label);
     assert.deepEqual(labels, ["Light", "Darkness"]);
   });
 
   test("attaches gloss when present, omits it when absent", () => {
     const out = joinLocalePayload(conceptsGraph(), OVERLAY, true);
-    const [light, darkness] = out.nodes ?? [];
+    const [light, darkness] = out.nodes;
     assert.equal(light?.gloss, "Divine light.");
     assert.equal("gloss" in (darkness ?? {}), false);
   });
 
   test("substitutes community labels by fingerprint key", () => {
     const out = joinLocalePayload(conceptsGraph(), OVERLAY, true);
-    assert.equal(out.communities?.[0]?.label, "Light & Darkness");
+    assert.equal(out.communities[0]?.label, "Light & Darkness");
   });
 
   test("keeps language-invariant topology untouched (edges, ids, lemma, key)", () => {
     const out = joinLocalePayload(conceptsGraph(), OVERLAY, true);
     assert.deepEqual(out.edges, [{ source: "свет", target: "тьма", weight: 3 }]);
-    const light = out.nodes?.[0];
+    const light = out.nodes[0];
     assert.ok(light);
     assert.equal(light.id, "свет");
     assert.equal(light.lemma, "свет");
-    assert.equal(out.communities?.[0]?.key, "c0ffee01");
+    assert.equal(out.communities[0]?.key, "c0ffee01");
   });
 
   test("does not mutate the input graph", () => {
@@ -63,7 +63,7 @@ describe("joinLocalePayload", () => {
       communities: [],
     };
     const out = joinLocalePayload(graph, OVERLAY, true);
-    assert.equal(out.nodes?.[0]?.label, "Light");
+    assert.equal(out.nodes[0]?.label, "Light");
   });
 
   test("throws on a missing concept translation (no silent RU fallback)", () => {
@@ -98,15 +98,18 @@ describe("joinLocalePayload", () => {
     const out = joinLocalePayload(booksGraph, OVERLAY, false);
     // Book node title stays RU (it degrades via the badge, not translation here).
     const node = out.nodes[0];
+    assert(node);
     assert.equal(node.label, "Книга");
     // top_concepts labels ARE translated (same concept vocabulary).
     const tc = node.top_concepts as { label: string; lemma: string; count: number }[];
     assert.deepEqual(tc.map((c) => c.label), ["Light", "Darkness"]);
     // Topology under the ref (lemma, count) is preserved.
-    assert.equal(tc[0].lemma, "свет");
-    assert.equal(tc[0].count, 10);
+    const first = tc[0];
+    assert(first);
+    assert.equal(first.lemma, "свет");
+    assert.equal(first.count, 10);
     // Community label is translated.
-    assert.equal(out.communities?.[0]?.label, "Light & Darkness");
+    assert.equal(out.communities[0]?.label, "Light & Darkness");
   });
 
   test("throws on a book top-concept whose concept_id has no EN entry", () => {
@@ -136,7 +139,7 @@ describe("joinLocalePayload", () => {
       edges: [],
     };
     const out = joinLocalePayload(booksGraph, OVERLAY, false);
-    const tc = out.nodes?.[0]?.top_concepts as { label: string }[];
+    const tc = out.nodes[0]?.top_concepts as { label: string }[];
     assert.equal(tc[0]?.label, "Свет");
   });
 
@@ -146,6 +149,6 @@ describe("joinLocalePayload", () => {
       communities: [{ id: 0, label: "Свет" }],
     };
     const out = joinLocalePayload(graph, OVERLAY, true);
-    assert.equal(out.communities?.[0]?.label, "Свет");
+    assert.equal(out.communities[0]?.label, "Свет");
   });
 });
