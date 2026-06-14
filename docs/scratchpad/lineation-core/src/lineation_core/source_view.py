@@ -113,10 +113,14 @@ def _plain_line(s: str) -> Line:
 
 # IR block kinds that are non-body STRUCTURE: an ordinal that became ONLY these is
 # confidently not a prose/verse candidate. `Paragraph` is body; anything else not listed
-# is UNKNOWN → flagged (votable-with-review), never silently masked.
+# is UNKNOWN → flagged (votable-with-review), never silently masked. Keyed by the IR
+# CLASS name (`_classify` reads `type(block).__name__`), so a quote block is `QuoteBlock`
+# — NOT production `docx_inspect`'s external "BlockQuote" kind-vocabulary string. At the
+# seam scripture/inset are still bare `Paragraph`s (votable); only a genuine quote block
+# is a `QuoteBlock` here, which is CONTEXT, matching the production mask's verdict.
 _STRUCTURAL_KINDS = frozenset({
     "Heading", "ThematicBreak", "Table", "ListBlock", "Signature",
-    "Epigraph", "BlockQuote", "ImageBlock", "DialogueLabel",
+    "Epigraph", "QuoteBlock", "ImageBlock", "DialogueLabel",
 })
 
 
@@ -214,7 +218,7 @@ def read_view(docx: Path) -> list[Para]:
                 else:
                     out.append(Para(index=idx, role=Role.BODY, lines=lines, align=b.align,
                                     indented=b.indented))
-            case ir.BlockQuote():
+            case ir.QuoteBlock():
                 qlines = [_plain_line(inline_plain(blk.inlines))
                           for blk in b.blocks if hasattr(blk, "inlines")]
                 out.append(Para(index=idx, role=Role.BLOCKQUOTE, lines=qlines))
