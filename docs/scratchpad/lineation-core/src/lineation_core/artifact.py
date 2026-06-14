@@ -26,12 +26,13 @@ from pathlib import Path
 from typing import Self
 
 from .identity import BookId, DocxPackageHash, JsonObject, JsonRow, LineId, text_hash
-from .records import FeatureSchema, LineRecord, feature_field_names
-
-# Bumped when the feature set changes shape (a feature added/removed/renamed) or the
-# producer's structural semantics change. A loaded artifact whose version differs fails loud.
-FEATURE_SCHEMA_VERSION = "features-2"
-PRODUCER_VERSION = "read_lines-2"
+from .records import (
+    FEATURE_SCHEMA_VERSION,
+    PRODUCER_VERSION,
+    FeatureSchema,
+    LineRecord,
+    feature_field_names,
+)
 
 RECORDS_FILE = "line_records.jsonl"
 SCHEMA_FILE = "feature_schema.json"
