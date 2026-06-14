@@ -21,8 +21,9 @@ Tercile cross-tab (rows = uncertainty 0..2, cols = vote-spread 0..2): [[84, 86, 
 
 ## Recommended E3 router
 **sweep the whole det=prose band; ORDER it by suspicion_v0 (robust on both gate AUC=0.8664 and human AUC=0.8688)**
-- E3 does not gate — it sweeps all 69194 det=prose lines (ds-flash, ~$4); the router only ORDERS the sweep. Chosen by robustness on independent truth: suspicion_v0 (gate 0.8664 / human 0.8688), NOT the AUC(all) leader det_student_disagree (AUC(all)=0.9176 but AUC(human)=0.55 — gate-circular, disqualified) whose edge is gate-circular. student uncertainty is audit-only (outside-φ).
-- corpus sweep ≈ **69194** lines (the whole det=prose band (69194) is swept; the suspicion_v0 ordering prioritizes the 32090 disagreement lines first. det=lineated disagreement (11813) stays AUDIT-ONLY).
+- E3 does not gate — it sweeps all 69194 det=prose lines (ds-flash, ~$4); the router only ORDERS the sweep. Chosen by robustness on independent truth: suspicion_v0 (gate 0.8664 / human 0.8688), NOT the AUC(all) leader det_student_disagree (AUC(all)=0.9176 but AUC(human)=0.55 — gate-circular, disqualified) whose edge is gate-circular. That human-AUC verdict rests on only ~21 human / 5 det-disagreement-positive lines — fine for ORDERING the sweep, NOT for aggressive pruning/early-stop. student uncertainty is audit-only (outside-φ).
+- corpus sweep ≈ **69194** lines (the whole det=prose band (69194) is swept; the suspicion_v0 ordering prioritizes the 32090 disagreement lines first. det=lineated disagreement (11813) stays AUDIT-ONLY. NOTE: det⊕student here is NOT independent proof of the readout's 0.46 rate — the recon student is trained on the SAME gate labels, so det⊕student only SIZES a candidate suspect slice CONSISTENT with the working readout).
+- NOTE: this orders the det=prose band only. The EN-first det=lineated over-lineation audit needs its OWN ordering score (`suspicion_v0` scores det=lineated as 0.0 by design and cannot order it) — likely `1 − posterior` + REVIEW/lang priors — to be built in E3.
 
 ## Caveats
 - working half only; frozen scored once in E4

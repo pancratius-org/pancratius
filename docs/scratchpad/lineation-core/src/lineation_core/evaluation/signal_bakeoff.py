@@ -42,6 +42,7 @@ from .. import paths, store
 from ..annotations import LabelSource, PanelVote, load_labels, load_votes
 from ..identity import JsonObject, Label, LineId
 from ..recon import Mask, Tier0, suspicion_v0
+from .datasets import INDEPENDENT_TRUTH
 
 WORKING_SET = "e1-instrument-working"
 FROZEN_SET = "e1-instrument-frozen"
@@ -155,7 +156,7 @@ class LineSignals:
     id: LineId
     det: Tier0
     truth: Label
-    source: str                  # gate | human (the truth's provenance)
+    source: LabelSource          # the truth's provenance (gate | human | …); stringified only at JSON
     posterior: float             # book-held-out OOF P(lineated) — never the in-sample fit
     det_student_disagree: float  # posterior if det=prose else 1−posterior (pulls AGAINST det)
     student_uncertainty: float   # 1 − 2·|posterior−0.5|  (high = uncertain)
@@ -175,7 +176,7 @@ class LineSignals:
 
     def to_dict(self) -> JsonObject:
         return {"id": self.id.as_key(), "det": self.det.value, "truth": self.truth,
-                "source": self.source, "is_error": self.is_error,
+                "source": self.source.value, "is_error": self.is_error,
                 "posterior": round(self.posterior, 4),
                 **{n: round(self.signal(n), 4) for n in SIGNALS}}
 
@@ -213,8 +214,11 @@ def _r(x: float | None) -> float | None:
 def score_signal(name: str, rows: list[LineSignals]) -> SignalScore:
     scores = [r.signal(name) for r in rows]
     labels = [r.is_error for r in rows]
-    human = [(r.signal(name), r.is_error) for r in rows if r.source == LabelSource.HUMAN.value]
-    auc_h = roc_auc([s for s, _ in human], [y for _, y in human]) if human else None
+    # INDEPENDENT_TRUTH = {HUMAN, OVERRIDE}: panel-independent provenance (a `gate` label is the
+    # panel's own output). Today the working half holds 0 override labels, so this is the 21 human
+    # lines; the constant keeps the CONCEPT right if overrides ever land here.
+    indep = [(r.signal(name), r.is_error) for r in rows if r.source in INDEPENDENT_TRUTH]
+    auc_h = roc_auc([s for s, _ in indep], [y for _, y in indep]) if indep else None
     return SignalScore(name=name, auc_all=roc_auc(scores, labels), auc_human=auc_h)
 
 
@@ -293,10 +297,25 @@ class Bakeoff:
         }
 
 
-# corpus recon counts the E3 sweep is sized against (E2 brief / recon-bilingual scorecard).
-CORPUS_DET_PROSE = 69194           # the whole det=prose band E3 sweeps (ds-flash, ~$4)
-CORPUS_DISAGREE_PROSE = 32090      # det=prose, OOF/fit posterior ≥ 0.5 — the ordering prioritizes these
-CORPUS_DISAGREE_LINEATED = 11813   # det=lineated, posterior < 0.5 (audit-only)
+RECON_EXPERIMENT = "2026-06-13-recon-bilingual"
+
+
+@dataclass(frozen=True, slots=True)
+class CorpusRecon:
+    """The corpus-wide recon counts the E3 sweep is sized against — READ at runtime from the recon
+    scorecard's `totals` (never hard-coded), so the projection tracks the recon it cites and a
+    drifted recon fails an audit. The bakeoff manifest pins the recon scorecard's sha."""
+
+    det_prose: int          # the whole det=prose band E3 sweeps (ds-flash, ~$4)
+    disagree_prose: int     # det=prose, posterior ≥ 0.5 — the ordering prioritizes these
+    disagree_lineated: int  # det=lineated, posterior < 0.5 (audit-only)
+
+    @classmethod
+    def from_experiment(cls, experiment_id: str = RECON_EXPERIMENT) -> CorpusRecon:
+        totals = store.load_experiment_scorecard(experiment_id)["totals"]
+        return cls(det_prose=int(totals["det_prose"]),
+                   disagree_prose=int(totals["disagree_prose"]),
+                   disagree_lineated=int(totals["disagree_lineated"]))
 
 
 def _oof_posteriors(work: set[LineId]) -> dict[LineId, float]:
@@ -346,8 +365,9 @@ def _build_rows(*, annotations: Path | None) -> list[LineSignals]:
     if work & frozen:
         raise AssertionError(f"working∩frozen = {len(work & frozen)} ids — the split leaks")
 
-    truth = {g.id: (g.label, g.source.value)
-             for g in load_labels(annotations=annotations).labels if g.id in work}
+    truth: dict[LineId, tuple[Label, LabelSource]] = {
+        g.id: (g.label, g.source)
+        for g in load_labels(annotations=annotations).labels if g.id in work}
     posteriors = _oof_posteriors(work)
     det_mask = _det_and_mask(set(truth))
 
@@ -382,7 +402,8 @@ def _robust_on_human(s: SignalScore) -> bool:
     return s.auc_human is not None and s.auc_human >= HUMAN_COLLAPSE_FLOOR
 
 
-def _choose_router(scored: list[SignalScore], fork: PhiFork) -> tuple[str, str, int, str]:
+def _choose_router(scored: list[SignalScore], fork: PhiFork,
+                   recon: CorpusRecon) -> tuple[str, str, int, str]:
     """DERIVE the E3 router (router, rationale, corpus suspect size, basis) from the evidence.
 
     E3 does NOT gate on a router — the whole det=prose band is sweepable with ds-flash, so the
@@ -390,7 +411,10 @@ def _choose_router(scored: list[SignalScore], fork: PhiFork) -> tuple[str, str, 
     be ROBUST on independent truth: a signal that wins AUC(all) but collapses to ~chance on the human
     subset (det_student_disagree, whose edge is just ranking det=lineated by 1−posterior) is
     gate-circular and disqualified, though it stays in the table as evidence. Among the signals robust
-    on human truth, pick the strongest human-AUC."""
+    on human truth, pick the strongest human-AUC.
+
+    The robust-on-independent-truth verdict rests on only ~21 human / 5 det-disagreement-positive
+    lines — enough to ORDER a whole-band sweep, NOT enough for aggressive pruning or early-stop."""
     auc_leader = max(scored, key=lambda s: (s.auc_all if s.auc_all is not None else -1.0))
     robust = [s for s in scored if _robust_on_human(s)]
     if not robust:
@@ -404,27 +428,34 @@ def _choose_router(scored: list[SignalScore], fork: PhiFork) -> tuple[str, str, 
                  else "student uncertainty is audit-only (outside-φ)")
     router = (f"sweep the whole det=prose band; ORDER it by {chosen.name} "
               f"(robust on both gate AUC={_r(chosen.auc_all)} and human AUC={_r(chosen.auc_human)})")
-    rationale = (f"E3 does not gate — it sweeps all {CORPUS_DET_PROSE} det=prose lines (ds-flash, "
+    rationale = (f"E3 does not gate — it sweeps all {recon.det_prose} det=prose lines (ds-flash, "
                  f"~$4); the router only ORDERS the sweep. Chosen by robustness on independent "
                  f"truth: {chosen.name} (gate {_r(chosen.auc_all)} / human {_r(chosen.auc_human)}), "
                  f"NOT the AUC(all) leader {auc_leader.name} {circular}whose edge is gate-circular. "
+                 f"That human-AUC verdict rests on only ~21 human / 5 det-disagreement-positive "
+                 f"lines — fine for ORDERING the sweep, NOT for aggressive pruning/early-stop. "
                  f"{fork_note}.")
-    suspect = CORPUS_DET_PROSE
-    basis = (f"the whole det=prose band ({CORPUS_DET_PROSE}) is swept; the {chosen.name} ordering "
-             f"prioritizes the {CORPUS_DISAGREE_PROSE} disagreement lines first. det=lineated "
-             f"disagreement ({CORPUS_DISAGREE_LINEATED}) stays AUDIT-ONLY")
+    suspect = recon.det_prose
+    basis = (f"the whole det=prose band ({recon.det_prose}) is swept; the {chosen.name} ordering "
+             f"prioritizes the {recon.disagree_prose} disagreement lines first. det=lineated "
+             f"disagreement ({recon.disagree_lineated}) stays AUDIT-ONLY. NOTE: det⊕student here is "
+             f"NOT independent proof of the readout's 0.46 rate — the recon student is trained on the "
+             f"SAME gate labels, so det⊕student only SIZES a candidate suspect slice CONSISTENT with "
+             f"the working readout")
     return router, rationale, suspect, basis
 
 
-def compute(*, annotations: Path | None = None) -> Bakeoff:
+def compute(*, annotations: Path | None = None,
+            recon: CorpusRecon | None = None) -> Bakeoff:
     rows = _build_rows(annotations=annotations)
     scored = sorted((score_signal(n, rows) for n in SIGNALS),
                     key=lambda s: (s.auc_all if s.auc_all is not None else -1.0), reverse=True)
     fork = resolve_fork(rows)
-    router, rationale, suspect, basis = _choose_router(scored, fork)
+    router, rationale, suspect, basis = _choose_router(
+        scored, fork, recon or CorpusRecon.from_experiment())
     return Bakeoff(
         n=len(rows), n_error=sum(r.is_error for r in rows),
-        n_human=sum(r.source == LabelSource.HUMAN.value for r in rows),
+        n_human=sum(r.source in INDEPENDENT_TRUTH for r in rows),
         det_distribution=dict(Counter(r.det.value for r in rows)),
         signals=scored, fork=fork, router=router, router_rationale=rationale,
         corpus_suspect_size=suspect, corpus_basis=basis, rows=rows)
@@ -477,6 +508,9 @@ def report(b: Bakeoff) -> str:
         f"- {b.router_rationale}",
         f"- corpus sweep ≈ **{b.corpus_suspect_size}** lines "
         f"({b.corpus_basis}).",
+        "- NOTE: this orders the det=prose band only. The EN-first det=lineated over-lineation "
+        "audit needs its OWN ordering score (`suspicion_v0` scores det=lineated as 0.0 by design "
+        "and cannot order it) — likely `1 − posterior` + REVIEW/lang priors — to be built in E3.",
         "",
         "## Caveats", *(f"- {c}" for c in CAVEATS),
     ]
@@ -486,19 +520,34 @@ def report(b: Bakeoff) -> str:
 EXPERIMENT_ID = "2026-06-13-e2-signal-bakeoff"
 
 
+def _eval_set_path(name: str) -> Path:
+    return paths.ANNOTATIONS / "eval_sets" / f"{name}.json"
+
+
 if __name__ == "__main__":
+    from . import datasets
+
     b = compute()
     print(report(b))
     folder = store.write_experiment(
         EXPERIMENT_ID, scorecard=b.to_dict(), report=report(b),
         manifest={
+            # +dirty here is unrelated data/ graph files, not these modules — left as-is.
             "git_sha": store.git_sha(),
             "labels_sha256": store.sha256_file(paths.ANNOTATIONS / store.LABELS_FILE),
             "votes_sha256": store.sha256_file(paths.ANNOTATIONS / "votes.jsonl"),
+            # SPEC: pin the membership sha AND the scored-truth sha beside the inputs.
             "working_set": WORKING_SET, "frozen_set_excluded": FROZEN_SET,
+            "working_set_sha256": store.sha256_file(_eval_set_path(WORKING_SET)),
+            "frozen_set_sha256": store.sha256_file(_eval_set_path(FROZEN_SET)),
+            "truth_sha256": datasets.truth_fingerprint(datasets.eval_slice(WORKING_SET)),
             "posterior": "student.oof_smoothed alpha=0 over ALL trainable labels (book-held-out)",
             "signals": list(SIGNALS),
             "phi_rho_threshold": PHI_RHO_THRESHOLD,
-            "corpus_recon": "2026-06-13-recon-bilingual",
+            # the corpus projection reads this recon's totals at runtime; pin its sha so the
+            # projection is reproducible and a drifted recon fails an audit.
+            "corpus_recon": RECON_EXPERIMENT,
+            "corpus_recon_scorecard_sha256": store.sha256_file(
+                store.experiment_scorecard_path(RECON_EXPERIMENT)),
         })
     print(f"\nwrote {folder}")

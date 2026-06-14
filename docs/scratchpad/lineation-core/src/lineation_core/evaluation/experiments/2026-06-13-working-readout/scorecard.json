@@ -2,8 +2,8 @@
   "set": "e1-instrument-working",
   "n": 747,
   "det_distribution": {
-    "lineated": 645,
-    "prose": 102
+    "prose": 102,
+    "lineated": 645
   },
   "truth_source": {
     "gate": 726,

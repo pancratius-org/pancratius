@@ -115,6 +115,13 @@ def compute(*, annotations: Path | None = None) -> Readout:
     truth: dict[LineId, tuple[Label, str]] = {
         g.id: (g.label, g.source.value)
         for g in load_labels(annotations=annotations).labels if g.id in work}
+    # eval_sets are MEMBERSHIP; a member with no committed label FAILS LOUD — never a silently
+    # smaller denominator (the same contract `datasets.eval_slice` enforces).
+    missing = work - set(truth)
+    if missing:
+        raise ValueError(
+            f"{WORKING_SET} has {len(missing)} member line(s) with no label in labels.jsonl "
+            f"(e.g. {sorted(missing)[:3]}) — promote their labels or fix the membership")
     ids = set(truth)
     det = _det_by_line(ids)
 
@@ -167,12 +174,25 @@ def report(r: Readout) -> str:
     ]) + "\n"
 
 
+def _eval_set_path(name: str) -> Path:
+    return paths.ANNOTATIONS / "eval_sets" / f"{name}.json"
+
+
 if __name__ == "__main__":
+    from . import datasets
+
     r = compute()
     print(report(r))
     folder = store.write_experiment(
         "2026-06-13-working-readout", scorecard=r.to_dict(), report=report(r),
-        manifest={"git_sha": store.git_sha(),
-                  "labels_sha256": store.sha256_file(paths.ANNOTATIONS / store.LABELS_FILE),
-                  "working_set": WORKING_SET, "frozen_set_excluded": FROZEN_SET})
+        manifest={
+            # +dirty here is unrelated data/ graph files, not these modules — left as-is.
+            "git_sha": store.git_sha(),
+            "labels_sha256": store.sha256_file(paths.ANNOTATIONS / store.LABELS_FILE),
+            # SPEC: a study manifest pins the membership sha AND the scored-truth sha.
+            "working_set": WORKING_SET, "frozen_set_excluded": FROZEN_SET,
+            "working_set_sha256": store.sha256_file(_eval_set_path(WORKING_SET)),
+            "frozen_set_sha256": store.sha256_file(_eval_set_path(FROZEN_SET)),
+            "truth_sha256": datasets.truth_fingerprint(datasets.eval_slice(WORKING_SET)),
+        })
     print(f"\nwrote {folder}")

@@ -1,6 +1,6 @@
 # E1 working-half readout — e1-instrument-working (n=747)
 
-det: {'lineated': 645, 'prose': 102}   truth source: {'gate': 726, 'human': 21}
+det: {'prose': 102, 'lineated': 645}   truth source: {'gate': 726, 'human': 21}
 
 ## How wrong is the importer, by direction
 P(truth=lineated | det=prose)  [the weak side] : 47/102 = 0.461  |  gate 43/97 = 0.443  human 4/5 = 0.800  |  en 16/32 = 0.500  ru 31/70 = 0.443

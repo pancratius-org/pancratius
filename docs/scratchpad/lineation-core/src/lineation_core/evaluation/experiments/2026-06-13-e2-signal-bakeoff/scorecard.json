@@ -59,9 +59,9 @@
     "n": 747
   },
   "recommended_router": "sweep the whole det=prose band; ORDER it by suspicion_v0 (robust on both gate AUC=0.8664 and human AUC=0.8688)",
-  "router_rationale": "E3 does not gate — it sweeps all 69194 det=prose lines (ds-flash, ~$4); the router only ORDERS the sweep. Chosen by robustness on independent truth: suspicion_v0 (gate 0.8664 / human 0.8688), NOT the AUC(all) leader det_student_disagree (AUC(all)=0.9176 but AUC(human)=0.55 — gate-circular, disqualified) whose edge is gate-circular. student uncertainty is audit-only (outside-φ).",
+  "router_rationale": "E3 does not gate — it sweeps all 69194 det=prose lines (ds-flash, ~$4); the router only ORDERS the sweep. Chosen by robustness on independent truth: suspicion_v0 (gate 0.8664 / human 0.8688), NOT the AUC(all) leader det_student_disagree (AUC(all)=0.9176 but AUC(human)=0.55 — gate-circular, disqualified) whose edge is gate-circular. That human-AUC verdict rests on only ~21 human / 5 det-disagreement-positive lines — fine for ORDERING the sweep, NOT for aggressive pruning/early-stop. student uncertainty is audit-only (outside-φ).",
   "corpus_suspect_size": 69194,
-  "corpus_basis": "the whole det=prose band (69194) is swept; the suspicion_v0 ordering prioritizes the 32090 disagreement lines first. det=lineated disagreement (11813) stays AUDIT-ONLY",
+  "corpus_basis": "the whole det=prose band (69194) is swept; the suspicion_v0 ordering prioritizes the 32090 disagreement lines first. det=lineated disagreement (11813) stays AUDIT-ONLY. NOTE: det⊕student here is NOT independent proof of the readout's 0.46 rate — the recon student is trained on the SAME gate labels, so det⊕student only SIZES a candidate suspect slice CONSISTENT with the working readout",
   "caveats": [
     "working half only; frozen scored once in E4",
     "book-held-out OOF posterior (alpha=0) — never the in-sample fit_full",
