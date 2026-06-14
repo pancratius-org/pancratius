@@ -1,0 +1,67 @@
+---
+// The single, shared RU-only degradation treatment for server-rendered book
+// references on /en/.
+//
+// Anywhere a book under an English URL falls back to its Russian original (no
+// `en.md` exists), this pill + "Open in Russian" link makes the language flip
+// read as deliberate, never as a leak. The `localized` decision is NOT made
+// here — callers pass it from the one source (`displayWorkEntry`'s linkLocale).
+// `href` is the RU page (/books/<ru-slug>) the title already links to.
+//
+// The conceptosphere client runtime renders the identical markup from its DOM
+// helper (`src/components/conceptosphere/russian-badge.ts`); both read the same
+// copy (`localeBadge`) so the two surfaces cannot drift.
+
+import { localeBadge } from "@/lib/i18n/copy";
+
+interface Props {
+  /** The RU page the original lives on (/books/<ru-slug>). */
+  href: string;
+  /**
+   * Render the explicit "Open in Russian" link. Set false when the badge sits
+   * inside an enclosing anchor that already targets the RU page (nested anchors
+   * are invalid) — the pill still declares the fallback.
+   */
+  withOpenLink?: boolean;
+}
+
+const { href, withOpenLink = true } = Astro.props;
+---
+<span class="ru-original">
+  <span class="ru-original__pill">{localeBadge.russianOriginal}</span>
+  {withOpenLink && <a class="ru-original__open" {href}>{localeBadge.openInRussian}</a>}
+</span>
+
+<style>
+  .ru-original {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+    margin-top: 0.55rem;
+  }
+  .ru-original__pill {
+    display: inline-block;
+    padding: 1px 6px;
+    border: 1px solid var(--accent-soft);
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .ru-original__open {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-soft);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+  .ru-original__open:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent-soft);
+  }
+</style>

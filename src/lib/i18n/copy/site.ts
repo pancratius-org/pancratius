@@ -40,9 +40,17 @@ export const shareCopy = {
 
 // Corpus-language badges on cards: which locales a work exists in. These name
 // the *corpus's* languages, not the UI's, so they read the same in any locale.
+//
+// `russianOriginal` + `openInRussian` are the SINGLE source of the RU-only
+// degradation treatment used at every /en/ fallback site (book cards, similar
+// rows, conceptosphere panels and mobile list). They only ever render on /en/
+// — a RU-only book under a RU URL is not a fallback — so the English-naming
+// wording is correct everywhere it appears.
 export const localeBadge = {
   both: "RU · EN",
   russianOnly: "Russian only",
+  russianOriginal: "Russian original",
+  openInRussian: "Open in Russian",
 } as const;
 
 export interface FooterCopy {
