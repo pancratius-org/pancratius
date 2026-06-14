@@ -125,14 +125,13 @@ function conceptBookRow(
   // Russian page; it carries the same shared badge as every other fallback site.
   const localized = ctx.cfg.bookSlugInfo[book.slug]?.localized ?? true;
   const titleLink = link(href, book.title, PANEL_CLASS.bookTitle);
-  if (!localized) titleLink.setAttribute("aria-label", `${book.title} — ${ctx.cfg.strings.openInRussianLabel}`);
 
   const meta: Node[] = [titleLink];
   meta.push(element("div", {
     className: PANEL_CLASS.bookCount,
     text: `${(book.count ?? 0).toLocaleString(numberLocale)} ${ctx.cfg.strings.mentionsSuffix}`,
   }));
-  if (!localized) meta.push(russianOriginalBadge(ctx.cfg.strings, href));
+  if (!localized) meta.push(russianOriginalBadge(ctx.cfg.strings));
 
   return element("li", {}, [
     coverThumb(ctx.cfg.coverUrls[`book:${book.slug}`]),
@@ -151,7 +150,7 @@ function bookHero(ctx: PanelHost, attrs: ConceptNodeAttributes, selfLink: string
   // not the graph node's RU `tags`. RU-only books fall back to their RU tags.
   const tags = info?.tags ?? attrs.tags;
   const coverLink = link(selfLink, "", PANEL_CLASS.bookCoverLink);
-  coverLink.setAttribute("aria-label", localized ? strings.openBookLabel : strings.openInRussianLabel);
+  coverLink.setAttribute("aria-label", strings.openBookLabel);
   coverLink.append(bigCover(coverUrl));
 
   const meta: (Node | string)[] = [
@@ -164,7 +163,7 @@ function bookHero(ctx: PanelHost, attrs: ConceptNodeAttributes, selfLink: string
     ]),
     tagList(tags),
   ];
-  if (!localized) meta.push(russianOriginalBadge(strings, selfLink));
+  if (!localized) meta.push(russianOriginalBadge(strings));
 
   return element("div", { className: PANEL_CLASS.bookHero }, [
     coverLink,
@@ -228,14 +227,13 @@ function similarBookRow(
   const href = bookHrefFromCfg(ref.slug, ctx.cfg);
   const localized = ctx.cfg.bookSlugInfo[ref.slug]?.localized ?? true;
   const titleLink = link(href, ref.title, PANEL_CLASS.bookTitle);
-  if (!localized) titleLink.setAttribute("aria-label", `${ref.title} — ${strings.openInRussianLabel}`);
 
   const meta: Node[] = [element("div", { className: PANEL_CLASS.titleRow }, [titleLink, star])];
   meta.push(element("div", {
     className: PANEL_CLASS.bookCount,
     text: strings.similarityCaption.replace("{pct}", ((ref.weight ?? 0) * 100).toFixed(0)),
   }));
-  if (!localized) meta.push(russianOriginalBadge(strings, href));
+  if (!localized) meta.push(russianOriginalBadge(strings));
 
   return element("li", {}, [
     coverThumb(ctx.cfg.coverUrls[`book:${ref.slug}`]),

@@ -93,8 +93,6 @@ export interface ConceptosphereStrings {
   openBookLabel:    string;
   /** Badge on a RU-only book node served under /en/ — declares it the Russian original. */
   russianOriginalBadge: string;
-  /** CTA label for a RU-only book on /en/: the link opens the Russian page. */
-  openInRussianLabel:   string;
   /** Similarity row caption: "сходство 84%". `{pct}` placeholder. */
   similarityCaption: string;
 
@@ -175,7 +173,6 @@ const RU = {
   // RU-only degradation copy is corpus-language-naming and only renders on /en/,
   // so it shares the one source (`localeBadge`) with every other fallback site.
   russianOriginalBadge: localeBadge.russianOriginal,
-  openInRussianLabel:   localeBadge.openInRussian,
   similarityCaption: "сходство {pct}%",
 
   mobileListAriaLabel:     "Концептосфера — список",
@@ -248,7 +245,6 @@ const EN = {
   convergenceLabel: "present in both lists",
   openBookLabel:    "Open the book",
   russianOriginalBadge: localeBadge.russianOriginal,
-  openInRussianLabel:   localeBadge.openInRussian,
   similarityCaption: "{pct}% similar",
 
   mobileListAriaLabel:     "Conceptosphere — list",

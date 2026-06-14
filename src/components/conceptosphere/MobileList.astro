@@ -108,7 +108,7 @@ const numberLocale = t.numberLocale;
                         {row.topBooks.map((b) => (
                           <li>
                             <a href={b.href}>{b.title}</a>
-                            {!b.localized && <RussianOriginalBadge href={b.href} />}
+                            {!b.localized && <RussianOriginalBadge />}
                           </li>
                         ))}
                       </ul>
@@ -164,7 +164,7 @@ const numberLocale = t.numberLocale;
                 )}
                 <span class="cs-book-row-meta">
                   <span class="cs-freq">{t.bookNumberPrefix} {row.number}</span>
-                  {!row.localized && <RussianOriginalBadge href={row.href} withOpenLink={false} />}
+                  {!row.localized && <RussianOriginalBadge />}
                   <span class="cs-title">{row.title}</span>
                   {row.topConcepts.length > 0 && (
                     <span class="cs-book-row-concepts">

@@ -68,7 +68,6 @@ function isConceptosphereStrings(value: unknown): value is ConceptosphereStrings
       "convergenceLabel",
       "openBookLabel",
       "russianOriginalBadge",
-      "openInRussianLabel",
       "similarityCaption",
       "bookNumberPrefix",
       "loadErrorPrefix",
