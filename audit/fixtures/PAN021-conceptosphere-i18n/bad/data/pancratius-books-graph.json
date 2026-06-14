@@ -1,0 +1,22 @@
+{
+  "communities": [
+    { "id": 0, "key": "b00c0de1", "label": "Книги", "size": 1, "color_index": 0 }
+  ],
+  "nodes": [
+    {
+      "id": "01-kniga",
+      "slug": "01-kniga",
+      "number": 1,
+      "label": "Книга",
+      "title": "Книга",
+      "tags": ["надежда"],
+      "community": 0,
+      "top_concepts": [
+        { "concept_id": "надежда", "label": "Надежда", "lemma": "надежда", "count": 7 }
+      ],
+      "top_similar": [],
+      "top_similar_embed": []
+    }
+  ],
+  "edges": []
+}

@@ -89,11 +89,12 @@ def test_zero_support_columns_reported_not_dropped(res, ds):
         assert c in ds.columns
 
 
-def test_coefficients_are_interpretable_and_signed(res):
-    """The top features carry the domain-sane sign. wraps→prose (negative toward lineated),
+def test_model_explains_itself_with_signed_weights(ds):
+    """The interpretability readout is the fitted model's own (`FittedModel.explain`), not the CV
+    harness's. The top features carry the domain-sane sign: wraps→prose (negative toward lineated),
     starts_lower→lineated (positive), fill→prose. If these flip, the model learned something
     suspicious."""
-    w = dict(res.coefficients)
+    w = dict(student.fit_full(ds).explain())
     assert w["wraps"] < 0
     assert w["starts_lower"] > 0
     assert w["fill"] < 0

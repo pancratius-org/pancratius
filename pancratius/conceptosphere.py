@@ -56,6 +56,7 @@ from community import (
     community_louvain,  # python-louvain (kept for before/after modularity comparison)
 )
 
+from pancratius.conceptosphere_keys import community_key
 from pancratius.paths import CONTENT_ROOT, DATA_ROOT
 
 # A logging sink: ``print`` in normal runs, a no-op function under ``--quiet``.
@@ -711,6 +712,7 @@ def run_concepts_mode(config: GraphConfig, out: Path, log: LogFn, bundle: Corpus
     for n in G.nodes():
         nodes_out.append({
             "id": n,
+            "concept_id": n,
             "label": n.capitalize() if not n.isupper() else n,
             "lemma": n,
             "frequency": int(global_freq.get(n, 0)),
@@ -733,10 +735,17 @@ def run_concepts_mode(config: GraphConfig, out: Path, log: LogFn, bundle: Corpus
         })
     edges_out.sort(key=lambda e: e["weight"], reverse=True)
 
+    # Members per (remapped) community, for the content fingerprint. Membership
+    # is the concept_ids (= lemmas) — the same keys the translation overlay binds.
+    members_by_comm: dict[int, list[str]] = defaultdict(list)
+    for n, c in partition.items():
+        members_by_comm[c].append(n)
+
     communities_out = []
     for cid in sorted(set(partition.values())):
         communities_out.append({
             "id": cid,
+            "key": community_key(members_by_comm[cid]),
             "label": comm_label[cid],
             "size": comm_size[cid],
             "color_index": cid % 12,
@@ -1022,6 +1031,11 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
         scored.sort(key=lambda x: x[2], reverse=True)
         return [
             {
+                # The stable concept key (= lemma), so the build join can
+                # substitute the EN label by `concept:<concept_id>` exactly as
+                # it does for concept-graph nodes. Same vocabulary as the
+                # concepts graph; PAN021 covers both.
+                "concept_id": lemma,
                 "label": lemma.capitalize() if not lemma.isupper() else lemma,
                 "lemma": lemma,
                 "count": int(c),
@@ -1125,10 +1139,20 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
         })
     edges_out.sort(key=lambda e: e["weight"], reverse=True)
 
+    # Members per (remapped) community, for the content fingerprint. A book
+    # community's membership is its book numbers (editorial identity), which is
+    # what the translation overlay binds for book-community labels.
+    members_by_comm: dict[int, list[int]] = defaultdict(list)
+    for slug, c in partition.items():
+        bk = book_by_slug.get(slug)
+        if bk is not None and bk.number is not None:
+            members_by_comm[c].append(bk.number)
+
     communities_out = []
     for cid in sorted(set(partition.values())):
         communities_out.append({
             "id": cid,
+            "key": community_key(members_by_comm[cid]),
             "label": comm_label[cid],
             "size": comm_size[cid],
             "color_index": cid % 12,

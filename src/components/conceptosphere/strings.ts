@@ -8,6 +8,7 @@
 // Concept and community labels remain Russian because the corpus is Russian.
 // Book titles localise where a paired translated work exists.
 
+import { localeBadge } from "@/lib/i18n/copy";
 import type { Locale } from "@/lib/i18n";
 
 /**
@@ -90,6 +91,8 @@ export interface ConceptosphereStrings {
   convergenceLabel: string;
   /** Wraps a cover-image link in books-mode hero. */
   openBookLabel:    string;
+  /** Badge on a RU-only book node served under /en/ — declares it the Russian original. */
+  russianOriginalBadge: string;
   /** Similarity row caption: "сходство 84%". `{pct}` placeholder. */
   similarityCaption: string;
 
@@ -167,6 +170,9 @@ const RU = {
   convergenceFoot:  "— в обоих списках",
   convergenceLabel: "в обоих списках",
   openBookLabel:    "Открыть книгу",
+  // RU-only degradation copy is corpus-language-naming and only renders on /en/,
+  // so it shares the one source (`localeBadge`) with every other fallback site.
+  russianOriginalBadge: localeBadge.russianOriginal,
   similarityCaption: "сходство {pct}%",
 
   mobileListAriaLabel:     "Концептосфера — список",
@@ -238,6 +244,7 @@ const EN = {
   convergenceFoot:  "— present in both lists",
   convergenceLabel: "present in both lists",
   openBookLabel:    "Open the book",
+  russianOriginalBadge: localeBadge.russianOriginal,
   similarityCaption: "{pct}% similar",
 
   mobileListAriaLabel:     "Conceptosphere — list",

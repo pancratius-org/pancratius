@@ -6,11 +6,15 @@
 // default mode immediately.
 //
 // Per the universal "respect the reader" constraint: this is not a fallback
-// notice, it is the same data made navigable without a graph. Graph node
-// labels remain in the original Russian because the corpus is Russian;
-// only the chrome around them localises.
+// notice, it is the same data made navigable without a graph. The rows are
+// built (in page-data.ts) from the SAME per-locale payload the desktop graph
+// fetches — the build-time RU⋈overlay join — so concept and community labels
+// render in the page's locale (English on /en/), never raw Russian under an
+// English URL. Book titles localise where an EN work pair exists; RU-only books
+// degrade to a "Russian original" badge + RU link.
 
 import type { Locale } from "@/lib/i18n";
+import RussianOriginalBadge from "@/components/RussianOriginalBadge.astro";
 import ModeToggle from "./ModeToggle.astro";
 import SearchInput from "./SearchInput.astro";
 import { conceptosphereStrings } from "./strings";
@@ -102,7 +106,10 @@ const numberLocale = t.numberLocale;
                       <p class="cs-detail-h">{t.mobileAppearsInHeading}</p>
                       <ul class="cs-detail-books">
                         {row.topBooks.map((b) => (
-                          <li><a href={b.href}>{b.title}</a></li>
+                          <li>
+                            <a href={b.href}>{b.title}</a>
+                            {!b.localized && <RussianOriginalBadge />}
+                          </li>
                         ))}
                       </ul>
                     </>
@@ -157,6 +164,7 @@ const numberLocale = t.numberLocale;
                 )}
                 <span class="cs-book-row-meta">
                   <span class="cs-freq">{t.bookNumberPrefix} {row.number}</span>
+                  {!row.localized && <RussianOriginalBadge />}
                   <span class="cs-title">{row.title}</span>
                   {row.topConcepts.length > 0 && (
                     <span class="cs-book-row-concepts">
@@ -348,6 +356,7 @@ const numberLocale = t.numberLocale;
     min-width: 0;
   }
   .cs-book-row-meta .cs-freq { letter-spacing: 0.08em; text-transform: uppercase; }
+  .cs-book-row-meta :global(.ru-original) { margin: 2px 0; }
   .cs-book-row-meta .cs-title { font-size: 15px; color: var(--cs-ink); }
   .cs-book-row-concepts {
     margin-top: 4px;

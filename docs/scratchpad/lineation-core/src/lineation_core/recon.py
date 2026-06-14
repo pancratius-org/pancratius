@@ -29,9 +29,16 @@ from enum import StrEnum
 from statistics import median, quantiles
 from typing import Self
 
-from . import artifact, paths, store
+from . import paths, store
 from .identity import BookId, JsonObject, LineId
-from .records import Align, LineRecord, Role, SourceFate
+from .records import (
+    FEATURE_SCHEMA_VERSION,
+    PRODUCER_VERSION,
+    Align,
+    LineRecord,
+    Role,
+    SourceFate,
+)
 from .student import FittedModel
 
 
@@ -343,8 +350,8 @@ if __name__ == "__main__":
         "timestamp": datetime.now(UTC).isoformat(),
         "labels_sha256": store.sha256_file(paths.ANNOTATIONS / store.LABELS_FILE),
         "n_trainable_labels": n_trainable,
-        "producer_version": artifact.PRODUCER_VERSION,
-        "feature_schema_version": artifact.FEATURE_SCHEMA_VERSION,
+        "producer_version": PRODUCER_VERSION,
+        "feature_schema_version": FEATURE_SCHEMA_VERSION,
         "n_books": len(pairs),
         "n_failed": len(failed),
         "suspicion": "v0 (see recon.py docstring)",

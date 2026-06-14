@@ -25,6 +25,8 @@ import {
   pan019CliVerifyBoundary,
 } from "./imports.ts";
 import { pan020TypographyRoleDrift } from "./typography.ts";
+import { pan021ConceptosphereI18n } from "./conceptosphere.ts";
+import { pan022ConceptosphereDegradation } from "./degradation.ts";
 import { contentQualityRules } from "./content_quality.ts";
 
 export const RULES: readonly Rule[] = [
@@ -47,9 +49,11 @@ export const RULES: readonly Rule[] = [
   pan018WriterOnlyMutation,
   pan019CliVerifyBoundary,
   pan020TypographyRoleDrift,
+  pan021ConceptosphereI18n,
   // Post-build tier (need dist/; run only on `npm run audit:post-build`):
   pan008PublicMarkdownAssets,
   pan014InternalLinks,
+  pan022ConceptosphereDegradation,
   // Non-blocking heuristics (run only on `npm run audit:agent`):
   ...contentQualityRules,
 ];
