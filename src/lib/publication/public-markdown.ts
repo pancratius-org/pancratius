@@ -109,6 +109,12 @@ function cleanPublicMarkdownBody(
   const context = publicMarkdownContext(work);
   let out = body.replace(/\r\n?/g, "\n");
 
+  // Lineated divs first: a scripture quote of authored verse nests a
+  // `<div class="lineated">` inside its blockquote, so unwrap to plain Markdown
+  // lines before any wrapper quotes them (a standalone lineated div unwraps the
+  // same way — this pass is then idempotent for the rest of the body).
+  out = unwrapLineatedPublicationDivs(out, context);
+
   // Scripture wrappers degrade to a plain portable quote: the inside is already
   // Markdown (paragraphs separated by blank lines, hard breaks as two trailing
   // spaces), so each content line gains a `> ` prefix and each blank line a bare
@@ -133,8 +139,6 @@ function cleanPublicMarkdownBody(
     const source = footer.trim() ? `\n> — ${htmlInlineToMarkdown(footer, context).trim()}` : "";
     return `\n\n${text}${source}\n\n`;
   });
-
-  out = unwrapLineatedPublicationDivs(out, context);
 
   out = out.replace(/<p\s+class=(["'])signature\1>\s*([\s\S]*?)\s*<\/p>/gi, (_match, _quote: string, inner: string) => {
     return `\n\n${htmlInlineToMarkdown(inner, context).trim()}\n\n`;
