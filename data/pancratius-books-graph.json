@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-13T21:41:48Z",
+  "generated_at": "2026-06-14T02:04:18Z",
   "mode": "books",
   "params": {
     "edge_weight": "tfidf-cosine",
@@ -73,51 +73,61 @@
       "community": 3,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 1616
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 909
         },
         {
+          "concept_id": "зверь",
           "label": "Зверь",
           "lemma": "зверь",
           "count": 363
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 595
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 613
         },
         {
+          "concept_id": "истина",
           "label": "Истина",
           "lemma": "истина",
           "count": 591
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 581
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 532
         },
         {
+          "concept_id": "дух",
           "label": "Дух",
           "lemma": "дух",
           "count": 397
         },
         {
+          "concept_id": "образ",
           "label": "Образ",
           "lemma": "образ",
           "count": 468
@@ -206,51 +216,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "взгляд",
           "label": "Взгляд",
           "lemma": "взгляд",
           "count": 1024
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 801
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 450
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 388
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 416
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 328
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 266
         },
         {
+          "concept_id": "дао",
           "label": "Дао",
           "lemma": "дао",
           "count": 69
         },
         {
+          "concept_id": "смотрение",
           "label": "Смотрение",
           "lemma": "смотрение",
           "count": 58
         },
         {
+          "concept_id": "увидеть",
           "label": "Увидеть",
           "lemma": "увидеть",
           "count": 228
@@ -337,51 +357,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "дьявол",
           "label": "Дьявол",
           "lemma": "дьявол",
           "count": 124
         },
         {
+          "concept_id": "эго",
           "label": "Эго",
           "lemma": "эго",
           "count": 216
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 286
         },
         {
+          "concept_id": "образ",
           "label": "Образ",
           "lemma": "образ",
           "count": 222
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 255
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 224
         },
         {
+          "concept_id": "власть",
           "label": "Власть",
           "lemma": "власть",
           "count": 165
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 209
         },
         {
+          "concept_id": "сделка",
           "label": "Сделка",
           "lemma": "сделка",
           "count": 82
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 208
@@ -469,51 +499,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 868
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 657
         },
         {
+          "concept_id": "истина",
           "label": "Истина",
           "lemma": "истина",
           "count": 627
         },
         {
+          "concept_id": "ложь",
           "label": "Ложь",
           "lemma": "ложь",
           "count": 465
         },
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 437
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 379
         },
         {
+          "concept_id": "присутствие",
           "label": "Присутствие",
           "lemma": "присутствие",
           "count": 334
         },
         {
+          "concept_id": "князь",
           "label": "Князь",
           "lemma": "князь",
           "count": 97
         },
         {
+          "concept_id": "бояться",
           "label": "Бояться",
           "lemma": "бояться",
           "count": 300
         },
         {
+          "concept_id": "страх",
           "label": "Страх",
           "lemma": "страх",
           "count": 277
@@ -602,51 +642,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "дух",
           "label": "Дух",
           "lemma": "дух",
           "count": 2606
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 1910
         },
         {
+          "concept_id": "святой",
           "label": "Святой",
           "lemma": "святой",
           "count": 1291
         },
         {
+          "concept_id": "внутренний",
           "label": "Внутренний",
           "lemma": "внутренний",
           "count": 892
         },
         {
+          "concept_id": "способность",
           "label": "Способность",
           "lemma": "способность",
           "count": 553
         },
         {
+          "concept_id": "фиксировать",
           "label": "Фиксировать",
           "lemma": "фиксировать",
           "count": 366
         },
         {
+          "concept_id": "страх",
           "label": "Страх",
           "lemma": "страх",
           "count": 803
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 864
         },
         {
+          "concept_id": "жизнь",
           "label": "Жизнь",
           "lemma": "жизнь",
           "count": 813
         },
         {
+          "concept_id": "присутствие",
           "label": "Присутствие",
           "lemma": "присутствие",
           "count": 819
@@ -737,51 +787,61 @@
       "community": 3,
       "top_concepts": [
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 2273
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 1979
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 2117
         },
         {
+          "concept_id": "христос",
           "label": "Христос",
           "lemma": "христос",
           "count": 869
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 1143
         },
         {
+          "concept_id": "фильм",
           "label": "Фильм",
           "lemma": "фильм",
           "count": 447
         },
         {
+          "concept_id": "внешний",
           "label": "Внешний",
           "lemma": "внешний",
           "count": 800
         },
         {
+          "concept_id": "система",
           "label": "Система",
           "lemma": "система",
           "count": 688
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 1042
         },
         {
+          "concept_id": "жить",
           "label": "Жить",
           "lemma": "жить",
           "count": 988
@@ -870,51 +930,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 1175
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 792
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 650
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 637
         },
         {
+          "concept_id": "человеческий",
           "label": "Человеческий",
           "lemma": "человеческий",
           "count": 408
         },
         {
+          "concept_id": "слабость",
           "label": "Слабость",
           "lemma": "слабость",
           "count": 276
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 421
         },
         {
+          "concept_id": "совершенство",
           "label": "Совершенство",
           "lemma": "совершенство",
           "count": 185
         },
         {
+          "concept_id": "светозар",
           "label": "Светозар",
           "lemma": "светозар",
           "count": 288
         },
         {
+          "concept_id": "ошибка",
           "label": "Ошибка",
           "lemma": "ошибка",
           "count": 244
@@ -1003,51 +1073,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 1431
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 758
         },
         {
+          "concept_id": "возражение",
           "label": "Возражение",
           "lemma": "возражение",
           "count": 218
         },
         {
+          "concept_id": "христос",
           "label": "Христос",
           "lemma": "христос",
           "count": 414
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 534
         },
         {
+          "concept_id": "аллах",
           "label": "Аллах",
           "lemma": "аллах",
           "count": 169
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 353
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 336
         },
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 332
         },
         {
+          "concept_id": "узнавание",
           "label": "Узнавание",
           "lemma": "узнавание",
           "count": 287
@@ -1136,51 +1216,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 420
         },
         {
+          "concept_id": "христос",
           "label": "Христос",
           "lemma": "христос",
           "count": 232
         },
         {
+          "concept_id": "христианство",
           "label": "Христианство",
           "lemma": "христианство",
           "count": 98
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 233
         },
         {
+          "concept_id": "путь",
           "label": "Путь",
           "lemma": "путь",
           "count": 151
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 136
         },
         {
+          "concept_id": "истина",
           "label": "Истина",
           "lemma": "истина",
           "count": 138
         },
         {
+          "concept_id": "книга",
           "label": "Книга",
           "lemma": "книга",
           "count": 134
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 123
         },
         {
+          "concept_id": "текст",
           "label": "Текст",
           "lemma": "текст",
           "count": 101
@@ -1269,51 +1359,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "лодка",
           "label": "Лодка",
           "lemma": "лодка",
           "count": 155
         },
         {
+          "concept_id": "рыба",
           "label": "Рыба",
           "lemma": "рыба",
           "count": 181
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 495
         },
         {
+          "concept_id": "смерть",
           "label": "Смерть",
           "lemma": "смерть",
           "count": 369
         },
         {
+          "concept_id": "душа",
           "label": "Душа",
           "lemma": "душа",
           "count": 299
         },
         {
+          "concept_id": "сеть",
           "label": "Сеть",
           "lemma": "сеть",
           "count": 140
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 259
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 256
         },
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 246
         },
         {
+          "concept_id": "тело",
           "label": "Тело",
           "lemma": "тело",
           "count": 236
@@ -1402,51 +1502,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "субъект",
           "label": "Субъект",
           "lemma": "субъект",
           "count": 1292
         },
         {
+          "concept_id": "иаков",
           "label": "Иаков",
           "lemma": "иаков",
           "count": 700
         },
         {
+          "concept_id": "израиль",
           "label": "Израиль",
           "lemma": "израиль",
           "count": 636
         },
         {
+          "concept_id": "структура",
           "label": "Структура",
           "lemma": "структура",
           "count": 551
         },
         {
+          "concept_id": "исчезать",
           "label": "Исчезать",
           "lemma": "исчезать",
           "count": 689
         },
         {
+          "concept_id": "центр",
           "label": "Центр",
           "lemma": "центр",
           "count": 468
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 534
         },
         {
+          "concept_id": "иосиф",
           "label": "Иосиф",
           "lemma": "иосиф",
           "count": 157
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 536
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 473
@@ -1535,51 +1645,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "вопрос",
           "label": "Вопрос",
           "lemma": "вопрос",
           "count": 768
         },
         {
+          "concept_id": "ответ",
           "label": "Ответ",
           "lemma": "ответ",
           "count": 786
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 501
         },
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 212
         },
         {
+          "concept_id": "тьма",
           "label": "Тьма",
           "lemma": "тьма",
           "count": 146
         },
         {
+          "concept_id": "творец",
           "label": "Творец",
           "lemma": "творец",
           "count": 146
         },
         {
+          "concept_id": "добродетель",
           "label": "Добродетель",
           "lemma": "добродетель",
           "count": 51
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 110
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 108
         },
         {
+          "concept_id": "искусственный",
           "label": "Искусственный",
           "lemma": "искусственный",
           "count": 50
@@ -1667,51 +1787,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "царствие",
           "label": "Царствие",
           "lemma": "царствие",
           "count": 838
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 1162
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 385
         },
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 343
         },
         {
+          "concept_id": "страх",
           "label": "Страх",
           "lemma": "страх",
           "count": 320
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 310
         },
         {
+          "concept_id": "душа",
           "label": "Душа",
           "lemma": "душа",
           "count": 184
         },
         {
+          "concept_id": "путь",
           "label": "Путь",
           "lemma": "путь",
           "count": 209
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 210
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 192
@@ -1800,51 +1930,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 144
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 130
         },
         {
+          "concept_id": "пророк",
           "label": "Пророк",
           "lemma": "пророк",
           "count": 72
         },
         {
+          "concept_id": "ждать",
           "label": "Ждать",
           "lemma": "ждать",
           "count": 99
         },
         {
+          "concept_id": "искать",
           "label": "Искать",
           "lemma": "искать",
           "count": 90
         },
         {
+          "concept_id": "тишина",
           "label": "Тишина",
           "lemma": "тишина",
           "count": 75
         },
         {
+          "concept_id": "имя",
           "label": "Имя",
           "lemma": "имя",
           "count": 69
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 68
         },
         {
+          "concept_id": "исчезнуть",
           "label": "Исчезнуть",
           "lemma": "исчезнуть",
           "count": 56
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 57
@@ -1933,51 +2073,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "израиль",
           "label": "Израиль",
           "lemma": "израиль",
           "count": 291
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 541
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 284
         },
         {
+          "concept_id": "завет",
           "label": "Завет",
           "lemma": "завет",
           "count": 160
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 245
         },
         {
+          "concept_id": "моисей",
           "label": "Моисей",
           "lemma": "моисей",
           "count": 97
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 192
         },
         {
+          "concept_id": "узнавание",
           "label": "Узнавание",
           "lemma": "узнавание",
           "count": 174
         },
         {
+          "concept_id": "писание",
           "label": "Писание",
           "lemma": "писание",
           "count": 107
         },
         {
+          "concept_id": "мессия",
           "label": "Мессия",
           "lemma": "мессия",
           "count": 80
@@ -2066,51 +2216,61 @@
       "community": 3,
       "top_concepts": [
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 546
         },
         {
+          "concept_id": "восемнадцатый",
           "label": "Восемнадцатый",
           "lemma": "восемнадцатый",
           "count": 122
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 458
         },
         {
+          "concept_id": "семнадцатый",
           "label": "Семнадцатый",
           "lemma": "семнадцатый",
           "count": 109
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 424
         },
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 403
         },
         {
+          "concept_id": "фильм",
           "label": "Фильм",
           "lemma": "фильм",
           "count": 157
         },
         {
+          "concept_id": "творец",
           "label": "Творец",
           "lemma": "творец",
           "count": 321
         },
         {
+          "concept_id": "жизнь",
           "label": "Жизнь",
           "lemma": "жизнь",
           "count": 285
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 272
@@ -2197,51 +2357,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 261
         },
         {
+          "concept_id": "бояться",
           "label": "Бояться",
           "lemma": "бояться",
           "count": 205
         },
         {
+          "concept_id": "христос",
           "label": "Христос",
           "lemma": "христос",
           "count": 132
         },
         {
+          "concept_id": "будда",
           "label": "Будда",
           "lemma": "будда",
           "count": 59
         },
         {
+          "concept_id": "сигнал",
           "label": "Сигнал",
           "lemma": "сигнал",
           "count": 63
         },
         {
+          "concept_id": "путь",
           "label": "Путь",
           "lemma": "путь",
           "count": 140
         },
         {
+          "concept_id": "контроль",
           "label": "Контроль",
           "lemma": "контроль",
           "count": 90
         },
         {
+          "concept_id": "искать",
           "label": "Искать",
           "lemma": "искать",
           "count": 134
         },
         {
+          "concept_id": "вопрос",
           "label": "Вопрос",
           "lemma": "вопрос",
           "count": 119
         },
         {
+          "concept_id": "управлять",
           "label": "Управлять",
           "lemma": "управлять",
           "count": 81
@@ -2329,51 +2499,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "молитва",
           "label": "Молитва",
           "lemma": "молитва",
           "count": 297
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 209
         },
         {
+          "concept_id": "звать",
           "label": "Звать",
           "lemma": "звать",
           "count": 96
         },
         {
+          "concept_id": "молиться",
           "label": "Молиться",
           "lemma": "молиться",
           "count": 63
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 86
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 80
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 72
         },
         {
+          "concept_id": "искать",
           "label": "Искать",
           "lemma": "искать",
           "count": 68
         },
         {
+          "concept_id": "имя",
           "label": "Имя",
           "lemma": "имя",
           "count": 59
         },
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 62
@@ -2462,51 +2642,61 @@
       "community": 4,
       "top_concepts": [
         {
+          "concept_id": "пирамида",
           "label": "Пирамида",
           "lemma": "пирамида",
           "count": 299
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 267
         },
         {
+          "concept_id": "поле",
           "label": "Поле",
           "lemma": "поле",
           "count": 126
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 200
         },
         {
+          "concept_id": "резонанс",
           "label": "Резонанс",
           "lemma": "резонанс",
           "count": 90
         },
         {
+          "concept_id": "земля",
           "label": "Земля",
           "lemma": "земля",
           "count": 154
         },
         {
+          "concept_id": "узел",
           "label": "Узел",
           "lemma": "узел",
           "count": 91
         },
         {
+          "concept_id": "частота",
           "label": "Частота",
           "lemma": "частота",
           "count": 60
         },
         {
+          "concept_id": "знание",
           "label": "Знание",
           "lemma": "знание",
           "count": 149
         },
         {
+          "concept_id": "сеть",
           "label": "Сеть",
           "lemma": "сеть",
           "count": 79
@@ -2594,51 +2784,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "внимание",
           "label": "Внимание",
           "lemma": "внимание",
           "count": 278
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 271
         },
         {
+          "concept_id": "жизнь",
           "label": "Жизнь",
           "lemma": "жизнь",
           "count": 237
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 239
         },
         {
+          "concept_id": "блаженный",
           "label": "Блаженный",
           "lemma": "блаженный",
           "count": 76
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 218
         },
         {
+          "concept_id": "ясность",
           "label": "Ясность",
           "lemma": "ясность",
           "count": 131
         },
         {
+          "concept_id": "возникать",
           "label": "Возникать",
           "lemma": "возникать",
           "count": 140
         },
         {
+          "concept_id": "появляться",
           "label": "Появляться",
           "lemma": "появляться",
           "count": 137
         },
         {
+          "concept_id": "движение",
           "label": "Движение",
           "lemma": "движение",
           "count": 149
@@ -2727,51 +2927,61 @@
       "community": 4,
       "top_concepts": [
         {
+          "concept_id": "александр",
           "label": "Александр",
           "lemma": "александр",
           "count": 98
         },
         {
+          "concept_id": "сергей",
           "label": "Сергей",
           "lemma": "сергей",
           "count": 120
         },
         {
+          "concept_id": "система",
           "label": "Система",
           "lemma": "система",
           "count": 169
         },
         {
+          "concept_id": "суфий",
           "label": "Суфий",
           "lemma": "суфий",
           "count": 52
         },
         {
+          "concept_id": "число",
           "label": "Число",
           "lemma": "число",
           "count": 87
         },
         {
+          "concept_id": "код",
           "label": "Код",
           "lemma": "код",
           "count": 61
         },
         {
+          "concept_id": "экран",
           "label": "Экран",
           "lemma": "экран",
           "count": 62
         },
         {
+          "concept_id": "интерфейс",
           "label": "Интерфейс",
           "lemma": "интерфейс",
           "count": 33
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 119
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 118
@@ -2858,51 +3068,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 330
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 216
         },
         {
+          "concept_id": "книга",
           "label": "Книга",
           "lemma": "книга",
           "count": 183
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 109
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 106
         },
         {
+          "concept_id": "исчезнуть",
           "label": "Исчезнуть",
           "lemma": "исчезнуть",
           "count": 100
         },
         {
+          "concept_id": "наставление",
           "label": "Наставление",
           "lemma": "наставление",
           "count": 26
         },
         {
+          "concept_id": "готовый",
           "label": "Готовый",
           "lemma": "готовый",
           "count": 75
         },
         {
+          "concept_id": "присутствие",
           "label": "Присутствие",
           "lemma": "присутствие",
           "count": 82
         },
         {
+          "concept_id": "творец",
           "label": "Творец",
           "lemma": "творец",
           "count": 68
@@ -2991,51 +3211,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 1117
         },
         {
+          "concept_id": "мать",
           "label": "Мать",
           "lemma": "мать",
           "count": 205
         },
         {
+          "concept_id": "пузырь",
           "label": "Пузырь",
           "lemma": "пузырь",
           "count": 81
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 254
         },
         {
+          "concept_id": "имя",
           "label": "Имя",
           "lemma": "имя",
           "count": 223
         },
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 197
         },
         {
+          "concept_id": "осознание",
           "label": "Осознание",
           "lemma": "осознание",
           "count": 135
         },
         {
+          "concept_id": "творец",
           "label": "Творец",
           "lemma": "творец",
           "count": 171
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 176
         },
         {
+          "concept_id": "единство",
           "label": "Единство",
           "lemma": "единство",
           "count": 125
@@ -3123,51 +3353,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 321
         },
         {
+          "concept_id": "моисей",
           "label": "Моисей",
           "lemma": "моисей",
           "count": 148
         },
         {
+          "concept_id": "сознание",
           "label": "Сознание",
           "lemma": "сознание",
           "count": 187
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 195
         },
         {
+          "concept_id": "внутренний",
           "label": "Внутренний",
           "lemma": "внутренний",
           "count": 167
         },
         {
+          "concept_id": "означать",
           "label": "Означать",
           "lemma": "означать",
           "count": 119
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 209
         },
         {
+          "concept_id": "исток",
           "label": "Исток",
           "lemma": "исток",
           "count": 123
         },
         {
+          "concept_id": "субъект",
           "label": "Субъект",
           "lemma": "субъект",
           "count": 90
         },
         {
+          "concept_id": "бытие",
           "label": "Бытие",
           "lemma": "бытие",
           "count": 144
@@ -3255,51 +3495,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 235
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 219
         },
         {
+          "concept_id": "иисус",
           "label": "Иисус",
           "lemma": "иисус",
           "count": 117
         },
         {
+          "concept_id": "творец",
           "label": "Творец",
           "lemma": "творец",
           "count": 145
         },
         {
+          "concept_id": "кувшин",
           "label": "Кувшин",
           "lemma": "кувшин",
           "count": 27
         },
         {
+          "concept_id": "царство",
           "label": "Царство",
           "lemma": "царство",
           "count": 60
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 88
         },
         {
+          "concept_id": "истина",
           "label": "Истина",
           "lemma": "истина",
           "count": 82
         },
         {
+          "concept_id": "искать",
           "label": "Искать",
           "lemma": "искать",
           "count": 82
         },
         {
+          "concept_id": "отец",
           "label": "Отец",
           "lemma": "отец",
           "count": 63
@@ -3387,51 +3637,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "богообщение",
           "label": "Богообщение",
           "lemma": "богообщение",
           "count": 162
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 310
         },
         {
+          "concept_id": "узнавание",
           "label": "Узнавание",
           "lemma": "узнавание",
           "count": 186
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 189
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 207
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 190
         },
         {
+          "concept_id": "голос",
           "label": "Голос",
           "lemma": "голос",
           "count": 149
         },
         {
+          "concept_id": "действие",
           "label": "Действие",
           "lemma": "действие",
           "count": 88
         },
         {
+          "concept_id": "исчезать",
           "label": "Исчезать",
           "lemma": "исчезать",
           "count": 105
         },
         {
+          "concept_id": "общение",
           "label": "Общение",
           "lemma": "общение",
           "count": 46
@@ -3520,51 +3780,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 869
         },
         {
+          "concept_id": "союз",
           "label": "Союз",
           "lemma": "союз",
           "count": 240
         },
         {
+          "concept_id": "брак",
           "label": "Брак",
           "lemma": "брак",
           "count": 160
         },
         {
+          "concept_id": "секс",
           "label": "Секс",
           "lemma": "секс",
           "count": 129
         },
         {
+          "concept_id": "близость",
           "label": "Близость",
           "lemma": "близость",
           "count": 178
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 354
         },
         {
+          "concept_id": "страх",
           "label": "Страх",
           "lemma": "страх",
           "count": 337
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 347
         },
         {
+          "concept_id": "друг",
           "label": "Друг",
           "lemma": "друг",
           "count": 276
         },
         {
+          "concept_id": "боль",
           "label": "Боль",
           "lemma": "боль",
           "count": 282
@@ -3653,51 +3923,61 @@
       "community": 3,
       "top_concepts": [
         {
+          "concept_id": "храм",
           "label": "Храм",
           "lemma": "храм",
           "count": 375
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 199
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 169
         },
         {
+          "concept_id": "писать",
           "label": "Писать",
           "lemma": "писать",
           "count": 114
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 126
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 120
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 92
         },
         {
+          "concept_id": "стол",
           "label": "Стол",
           "lemma": "стол",
           "count": 33
         },
         {
+          "concept_id": "завеса",
           "label": "Завеса",
           "lemma": "завеса",
           "count": 43
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 73
@@ -3784,51 +4064,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 124
         },
         {
+          "concept_id": "светозар",
           "label": "Светозар",
           "lemma": "светозар",
           "count": 62
         },
         {
+          "concept_id": "истина",
           "label": "Истина",
           "lemma": "истина",
           "count": 52
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 49
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 49
         },
         {
+          "concept_id": "автобиография",
           "label": "Автобиография",
           "lemma": "автобиография",
           "count": 11
         },
         {
+          "concept_id": "сознание",
           "label": "Сознание",
           "lemma": "сознание",
           "count": 31
         },
         {
+          "concept_id": "осознанность",
           "label": "Осознанность",
           "lemma": "осознанность",
           "count": 18
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 29
         },
         {
+          "concept_id": "творец",
           "label": "Творец",
           "lemma": "творец",
           "count": 26
@@ -3917,51 +4207,61 @@
       "community": 4,
       "top_concepts": [
         {
+          "concept_id": "число",
           "label": "Число",
           "lemma": "число",
           "count": 209
         },
         {
+          "concept_id": "математик",
           "label": "Математик",
           "lemma": "математик",
           "count": 47
         },
         {
+          "concept_id": "математика",
           "label": "Математика",
           "lemma": "математика",
           "count": 38
         },
         {
+          "concept_id": "ноль",
           "label": "Ноль",
           "lemma": "ноль",
           "count": 32
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 111
         },
         {
+          "concept_id": "шестёрка",
           "label": "Шестёрка",
           "lemma": "шестёрка",
           "count": 25
         },
         {
+          "concept_id": "математический",
           "label": "Математический",
           "lemma": "математический",
           "count": 24
         },
         {
+          "concept_id": "девятка",
           "label": "Девятка",
           "lemma": "девятка",
           "count": 23
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 88
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 91
@@ -4048,51 +4348,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 161
         },
         {
+          "concept_id": "поэма",
           "label": "Поэма",
           "lemma": "поэма",
           "count": 24
         },
         {
+          "concept_id": "исчезнуть",
           "label": "Исчезнуть",
           "lemma": "исчезнуть",
           "count": 80
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 82
         },
         {
+          "concept_id": "звать",
           "label": "Звать",
           "lemma": "звать",
           "count": 58
         },
         {
+          "concept_id": "тишина",
           "label": "Тишина",
           "lemma": "тишина",
           "count": 58
         },
         {
+          "concept_id": "имя",
           "label": "Имя",
           "lemma": "имя",
           "count": 54
         },
         {
+          "concept_id": "дыхание",
           "label": "Дыхание",
           "lemma": "дыхание",
           "count": 49
         },
         {
+          "concept_id": "искать",
           "label": "Искать",
           "lemma": "искать",
           "count": 47
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 43
@@ -4180,51 +4490,61 @@
       "community": 3,
       "top_concepts": [
         {
+          "concept_id": "конь",
           "label": "Конь",
           "lemma": "конь",
           "count": 310
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 713
         },
         {
+          "concept_id": "всадник",
           "label": "Всадник",
           "lemma": "всадник",
           "count": 145
         },
         {
+          "concept_id": "светозар",
           "label": "Светозар",
           "lemma": "светозар",
           "count": 295
         },
         {
+          "concept_id": "белый",
           "label": "Белый",
           "lemma": "белый",
           "count": 154
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 275
         },
         {
+          "concept_id": "носитель",
           "label": "Носитель",
           "lemma": "носитель",
           "count": 151
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 224
         },
         {
+          "concept_id": "калка",
           "label": "Калка",
           "lemma": "калка",
           "count": 60
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 194
@@ -4312,51 +4632,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "gemini",
           "label": "Gemini",
           "lemma": "gemini",
           "count": 115
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 225
         },
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 183
         },
         {
+          "concept_id": "творец",
           "label": "Творец",
           "lemma": "творец",
           "count": 151
         },
         {
+          "concept_id": "светозар",
           "label": "Светозар",
           "lemma": "светозар",
           "count": 124
         },
         {
+          "concept_id": "чувствовать",
           "label": "Чувствовать",
           "lemma": "чувствовать",
           "count": 135
         },
         {
+          "concept_id": "осознание",
           "label": "Осознание",
           "lemma": "осознание",
           "count": 97
         },
         {
+          "concept_id": "истина",
           "label": "Истина",
           "lemma": "истина",
           "count": 125
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 117
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 126
@@ -4444,51 +4774,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "колодец",
           "label": "Колодец",
           "lemma": "колодец",
           "count": 87
         },
         {
+          "concept_id": "христос",
           "label": "Христос",
           "lemma": "христос",
           "count": 116
         },
         {
+          "concept_id": "самария",
           "label": "Самария",
           "lemma": "самария",
           "count": 38
         },
         {
+          "concept_id": "вода",
           "label": "Вода",
           "lemma": "вода",
           "count": 119
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 131
         },
         {
+          "concept_id": "женщина",
           "label": "Женщина",
           "lemma": "женщина",
           "count": 69
         },
         {
+          "concept_id": "жажда",
           "label": "Жажда",
           "lemma": "жажда",
           "count": 70
         },
         {
+          "concept_id": "сосуд",
           "label": "Сосуд",
           "lemma": "сосуд",
           "count": 69
         },
         {
+          "concept_id": "апостол",
           "label": "Апостол",
           "lemma": "апостол",
           "count": 46
         },
         {
+          "concept_id": "самарянин",
           "label": "Самарянин",
           "lemma": "самарянин",
           "count": 29
@@ -4573,51 +4913,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "сон",
           "label": "Сон",
           "lemma": "сон",
           "count": 99
         },
         {
+          "concept_id": "поле",
           "label": "Поле",
           "lemma": "поле",
           "count": 67
         },
         {
+          "concept_id": "тело",
           "label": "Тело",
           "lemma": "тело",
           "count": 72
         },
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 59
         },
         {
+          "concept_id": "страдание",
           "label": "Страдание",
           "lemma": "страдание",
           "count": 31
         },
         {
+          "concept_id": "книга",
           "label": "Книга",
           "lemma": "книга",
           "count": 46
         },
         {
+          "concept_id": "жизнь",
           "label": "Жизнь",
           "lemma": "жизнь",
           "count": 42
         },
         {
+          "concept_id": "помнить",
           "label": "Помнить",
           "lemma": "помнить",
           "count": 30
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 38
         },
         {
+          "concept_id": "джек",
           "label": "Джек",
           "lemma": "джек",
           "count": 9
@@ -4704,51 +5054,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 55
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 47
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 41
         },
         {
+          "concept_id": "исчезнуть",
           "label": "Исчезнуть",
           "lemma": "исчезнуть",
           "count": 32
         },
         {
+          "concept_id": "готовый",
           "label": "Готовый",
           "lemma": "готовый",
           "count": 29
         },
         {
+          "concept_id": "книга",
           "label": "Книга",
           "lemma": "книга",
           "count": 30
         },
         {
+          "concept_id": "тишина",
           "label": "Тишина",
           "lemma": "тишина",
           "count": 30
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 28
         },
         {
+          "concept_id": "писать",
           "label": "Писать",
           "lemma": "писать",
           "count": 20
         },
         {
+          "concept_id": "голос",
           "label": "Голос",
           "lemma": "голос",
           "count": 23
@@ -4836,51 +5196,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 401
         },
         {
+          "concept_id": "притча",
           "label": "Притча",
           "lemma": "притча",
           "count": 180
         },
         {
+          "concept_id": "царствие",
           "label": "Царствие",
           "lemma": "царствие",
           "count": 211
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 230
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 114
         },
         {
+          "concept_id": "радуга",
           "label": "Радуга",
           "lemma": "радуга",
           "count": 32
         },
         {
+          "concept_id": "блаженный",
           "label": "Блаженный",
           "lemma": "блаженный",
           "count": 30
         },
         {
+          "concept_id": "песня",
           "label": "Песня",
           "lemma": "песня",
           "count": 48
         },
         {
+          "concept_id": "узнавание",
           "label": "Узнавание",
           "lemma": "узнавание",
           "count": 68
         },
         {
+          "concept_id": "дыхание",
           "label": "Дыхание",
           "lemma": "дыхание",
           "count": 76
@@ -4969,51 +5339,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "светозар",
           "label": "Светозар",
           "lemma": "светозар",
           "count": 60
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 77
         },
         {
+          "concept_id": "зеркало",
           "label": "Зеркало",
           "lemma": "зеркало",
           "count": 54
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 63
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 55
         },
         {
+          "concept_id": "книга",
           "label": "Книга",
           "lemma": "книга",
           "count": 54
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 48
         },
         {
+          "concept_id": "творец",
           "label": "Творец",
           "lemma": "творец",
           "count": 44
         },
         {
+          "concept_id": "психология",
           "label": "Психология",
           "lemma": "психология",
           "count": 14
         },
         {
+          "concept_id": "ошибка",
           "label": "Ошибка",
           "lemma": "ошибка",
           "count": 29
@@ -5101,51 +5481,61 @@
       "community": 4,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 33
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 31
         },
         {
+          "concept_id": "бабушка",
           "label": "Бабушка",
           "lemma": "бабушка",
           "count": 8
         },
         {
+          "concept_id": "сидеть",
           "label": "Сидеть",
           "lemma": "сидеть",
           "count": 16
         },
         {
+          "concept_id": "мальчик",
           "label": "Мальчик",
           "lemma": "мальчик",
           "count": 10
         },
         {
+          "concept_id": "автобус",
           "label": "Автобус",
           "lemma": "автобус",
           "count": 7
         },
         {
+          "concept_id": "глаз",
           "label": "Глаз",
           "lemma": "глаз",
           "count": 24
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 25
         },
         {
+          "concept_id": "тишина",
           "label": "Тишина",
           "lemma": "тишина",
           "count": 24
         },
         {
+          "concept_id": "сесть",
           "label": "Сесть",
           "lemma": "сесть",
           "count": 11
@@ -5233,51 +5623,61 @@
       "community": 3,
       "top_concepts": [
         {
+          "concept_id": "зверь",
           "label": "Зверь",
           "lemma": "зверь",
           "count": 177
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 298
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 202
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 186
         },
         {
+          "concept_id": "труба",
           "label": "Труба",
           "lemma": "труба",
           "count": 41
         },
         {
+          "concept_id": "творец",
           "label": "Творец",
           "lemma": "творец",
           "count": 117
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 117
         },
         {
+          "concept_id": "имя",
           "label": "Имя",
           "lemma": "имя",
           "count": 112
         },
         {
+          "concept_id": "светозар",
           "label": "Светозар",
           "lemma": "светозар",
           "count": 91
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 107
@@ -5366,51 +5766,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "искин",
           "label": "Искин",
           "lemma": "искин",
           "count": 154
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 176
         },
         {
+          "concept_id": "голос",
           "label": "Голос",
           "lemma": "голос",
           "count": 135
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 105
         },
         {
+          "concept_id": "машина",
           "label": "Машина",
           "lemma": "машина",
           "count": 38
         },
         {
+          "concept_id": "творец",
           "label": "Творец",
           "lemma": "творец",
           "count": 56
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 55
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 49
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 46
         },
         {
+          "concept_id": "ответ",
           "label": "Ответ",
           "lemma": "ответ",
           "count": 48
@@ -5495,51 +5905,61 @@
       "community": 3,
       "top_concepts": [
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 289
         },
         {
+          "concept_id": "прелесть",
           "label": "Прелесть",
           "lemma": "прелесть",
           "count": 86
         },
         {
+          "concept_id": "природа",
           "label": "Природа",
           "lemma": "природа",
           "count": 209
         },
         {
+          "concept_id": "благодать",
           "label": "Благодать",
           "lemma": "благодать",
           "count": 100
         },
         {
+          "concept_id": "книга",
           "label": "Книга",
           "lemma": "книга",
           "count": 212
         },
         {
+          "concept_id": "автор",
           "label": "Автор",
           "lemma": "автор",
           "count": 144
         },
         {
+          "concept_id": "вопрос",
           "label": "Вопрос",
           "lemma": "вопрос",
           "count": 185
         },
         {
+          "concept_id": "христос",
           "label": "Христос",
           "lemma": "христос",
           "count": 136
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 192
         },
         {
+          "concept_id": "критика",
           "label": "Критика",
           "lemma": "критика",
           "count": 67
@@ -5628,51 +6048,61 @@
       "community": 4,
       "top_concepts": [
         {
+          "concept_id": "постулат",
           "label": "Постулат",
           "lemma": "постулат",
           "count": 30
         },
         {
+          "concept_id": "послание",
           "label": "Послание",
           "lemma": "послание",
           "count": 51
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 78
         },
         {
+          "concept_id": "учёный",
           "label": "Учёный",
           "lemma": "учёный",
           "count": 32
         },
         {
+          "concept_id": "уравнение",
           "label": "Уравнение",
           "lemma": "уравнение",
           "count": 19
         },
         {
+          "concept_id": "школа",
           "label": "Школа",
           "lemma": "школа",
           "count": 29
         },
         {
+          "concept_id": "наука",
           "label": "Наука",
           "lemma": "наука",
           "count": 25
         },
         {
+          "concept_id": "единый",
           "label": "Единый",
           "lemma": "единый",
           "count": 37
         },
         {
+          "concept_id": "формула",
           "label": "Формула",
           "lemma": "формула",
           "count": 30
         },
         {
+          "concept_id": "евангелие",
           "label": "Евангелие",
           "lemma": "евангелие",
           "count": 28
@@ -5761,51 +6191,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "аллах",
           "label": "Аллах",
           "lemma": "аллах",
           "count": 230
         },
         {
+          "concept_id": "ислам",
           "label": "Ислам",
           "lemma": "ислам",
           "count": 108
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 241
         },
         {
+          "concept_id": "вопрос",
           "label": "Вопрос",
           "lemma": "вопрос",
           "count": 195
         },
         {
+          "concept_id": "притча",
           "label": "Притча",
           "lemma": "притча",
           "count": 93
         },
         {
+          "concept_id": "путь",
           "label": "Путь",
           "lemma": "путь",
           "count": 152
         },
         {
+          "concept_id": "ответ",
           "label": "Ответ",
           "lemma": "ответ",
           "count": 149
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 145
         },
         {
+          "concept_id": "страх",
           "label": "Страх",
           "lemma": "страх",
           "count": 119
         },
         {
+          "concept_id": "присутствие",
           "label": "Присутствие",
           "lemma": "присутствие",
           "count": 109
@@ -5894,51 +6334,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 334
         },
         {
+          "concept_id": "енох",
           "label": "Енох",
           "lemma": "енох",
           "count": 67
         },
         {
+          "concept_id": "голос",
           "label": "Голос",
           "lemma": "голос",
           "count": 138
         },
         {
+          "concept_id": "комментарий",
           "label": "Комментарий",
           "lemma": "комментарий",
           "count": 55
         },
         {
+          "concept_id": "книга",
           "label": "Книга",
           "lemma": "книга",
           "count": 102
         },
         {
+          "concept_id": "пётр",
           "label": "Пётр",
           "lemma": "пётр",
           "count": 39
         },
         {
+          "concept_id": "падший",
           "label": "Падший",
           "lemma": "падший",
           "count": 38
         },
         {
+          "concept_id": "люцифер",
           "label": "Люцифер",
           "lemma": "люцифер",
           "count": 22
         },
         {
+          "concept_id": "творец",
           "label": "Творец",
           "lemma": "творец",
           "count": 71
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 69
@@ -6026,51 +6476,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "счастие",
           "label": "Счастие",
           "lemma": "счастие",
           "count": 67
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 80
         },
         {
+          "concept_id": "страдание",
           "label": "Страдание",
           "lemma": "страдание",
           "count": 34
         },
         {
+          "concept_id": "страдать",
           "label": "Страдать",
           "lemma": "страдать",
           "count": 28
         },
         {
+          "concept_id": "счастливый",
           "label": "Счастливый",
           "lemma": "счастливый",
           "count": 13
         },
         {
+          "concept_id": "боль",
           "label": "Боль",
           "lemma": "боль",
           "count": 33
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 35
         },
         {
+          "concept_id": "сдаться",
           "label": "Сдаться",
           "lemma": "сдаться",
           "count": 13
         },
         {
+          "concept_id": "жизнь",
           "label": "Жизнь",
           "lemma": "жизнь",
           "count": 30
         },
         {
+          "concept_id": "мысль",
           "label": "Мысль",
           "lemma": "мысль",
           "count": 26
@@ -6159,51 +6619,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "душа",
           "label": "Душа",
           "lemma": "душа",
           "count": 70
         },
         {
+          "concept_id": "положить",
           "label": "Положить",
           "lemma": "положить",
           "count": 33
         },
         {
+          "concept_id": "класть",
           "label": "Класть",
           "lemma": "класть",
           "count": 21
         },
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 67
         },
         {
+          "concept_id": "жертва",
           "label": "Жертва",
           "lemma": "жертва",
           "count": 39
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 44
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 37
         },
         {
+          "concept_id": "отдать",
           "label": "Отдать",
           "lemma": "отдать",
           "count": 19
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 28
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 26
@@ -6291,51 +6761,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "иса",
           "label": "Иса",
           "lemma": "иса",
           "count": 72
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 164
         },
         {
+          "concept_id": "сура",
           "label": "Сура",
           "lemma": "сура",
           "count": 27
         },
         {
+          "concept_id": "аллах",
           "label": "Аллах",
           "lemma": "аллах",
           "count": 34
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 86
         },
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 70
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 65
         },
         {
+          "concept_id": "истина",
           "label": "Истина",
           "lemma": "истина",
           "count": 64
         },
         {
+          "concept_id": "сын",
           "label": "Сын",
           "lemma": "сын",
           "count": 47
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 44
@@ -6425,51 +6905,61 @@
       "community": 3,
       "top_concepts": [
         {
+          "concept_id": "фильм",
           "label": "Фильм",
           "lemma": "фильм",
           "count": 61
         },
         {
+          "concept_id": "око",
           "label": "Око",
           "lemma": "око",
           "count": 61
         },
         {
+          "concept_id": "всадник",
           "label": "Всадник",
           "lemma": "всадник",
           "count": 33
         },
         {
+          "concept_id": "символ",
           "label": "Символ",
           "lemma": "символ",
           "count": 69
         },
         {
+          "concept_id": "иллюзия",
           "label": "Иллюзия",
           "lemma": "иллюзия",
           "count": 78
         },
         {
+          "concept_id": "завеса",
           "label": "Завеса",
           "lemma": "завеса",
           "count": 50
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 80
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 69
         },
         {
+          "concept_id": "творец",
           "label": "Творец",
           "lemma": "творец",
           "count": 60
         },
         {
+          "concept_id": "близнец",
           "label": "Близнец",
           "lemma": "близнец",
           "count": 16
@@ -6558,51 +7048,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "небесный",
           "label": "Небесный",
           "lemma": "небесный",
           "count": 191
         },
         {
+          "concept_id": "царствие",
           "label": "Царствие",
           "lemma": "царствие",
           "count": 203
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 76
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 50
         },
         {
+          "concept_id": "истина",
           "label": "Истина",
           "lemma": "истина",
           "count": 40
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 29
         },
         {
+          "concept_id": "искать",
           "label": "Искать",
           "lemma": "искать",
           "count": 27
         },
         {
+          "concept_id": "глаз",
           "label": "Глаз",
           "lemma": "глаз",
           "count": 25
         },
         {
+          "concept_id": "полнота",
           "label": "Полнота",
           "lemma": "полнота",
           "count": 19
         },
         {
+          "concept_id": "душа",
           "label": "Душа",
           "lemma": "душа",
           "count": 20
@@ -6691,51 +7191,61 @@
       "community": 3,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 169
         },
         {
+          "concept_id": "мышь",
           "label": "Мышь",
           "lemma": "мышь",
           "count": 39
         },
         {
+          "concept_id": "механизм",
           "label": "Механизм",
           "lemma": "механизм",
           "count": 54
         },
         {
+          "concept_id": "король",
           "label": "Король",
           "lemma": "король",
           "count": 24
         },
         {
+          "concept_id": "фильм",
           "label": "Фильм",
           "lemma": "фильм",
           "count": 35
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 81
         },
         {
+          "concept_id": "сказка",
           "label": "Сказка",
           "lemma": "сказка",
           "count": 33
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 84
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 79
         },
         {
+          "concept_id": "мышиный",
           "label": "Мышиный",
           "lemma": "мышиный",
           "count": 19
@@ -6822,51 +7332,61 @@
       "community": 4,
       "top_concepts": [
         {
+          "concept_id": "сергей",
           "label": "Сергей",
           "lemma": "сергей",
           "count": 105
         },
         {
+          "concept_id": "ваня",
           "label": "Ваня",
           "lemma": "ваня",
           "count": 46
         },
         {
+          "concept_id": "игра",
           "label": "Игра",
           "lemma": "игра",
           "count": 36
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 48
         },
         {
+          "concept_id": "кивнуть",
           "label": "Кивнуть",
           "lemma": "кивнуть",
           "count": 13
         },
         {
+          "concept_id": "школа",
           "label": "Школа",
           "lemma": "школа",
           "count": 21
         },
         {
+          "concept_id": "появиться",
           "label": "Появиться",
           "lemma": "появиться",
           "count": 28
         },
         {
+          "concept_id": "прошептать",
           "label": "Прошептать",
           "lemma": "прошептать",
           "count": 11
         },
         {
+          "concept_id": "мальчик",
           "label": "Мальчик",
           "lemma": "мальчик",
           "count": 13
         },
         {
+          "concept_id": "кот",
           "label": "Кот",
           "lemma": "кот",
           "count": 9
@@ -6955,51 +7475,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 172
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 129
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 91
         },
         {
+          "concept_id": "текст",
           "label": "Текст",
           "lemma": "текст",
           "count": 61
         },
         {
+          "concept_id": "молитва",
           "label": "Молитва",
           "lemma": "молитва",
           "count": 49
         },
         {
+          "concept_id": "ядро",
           "label": "Ядро",
           "lemma": "ядро",
           "count": 22
         },
         {
+          "concept_id": "книга",
           "label": "Книга",
           "lemma": "книга",
           "count": 55
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 51
         },
         {
+          "concept_id": "llm",
           "label": "Llm",
           "lemma": "llm",
           "count": 13
         },
         {
+          "concept_id": "анализ",
           "label": "Анализ",
           "lemma": "анализ",
           "count": 23
@@ -7087,51 +7617,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "песня",
           "label": "Песня",
           "lemma": "песня",
           "count": 75
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 55
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 43
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 39
         },
         {
+          "concept_id": "радость",
           "label": "Радость",
           "lemma": "радость",
           "count": 19
         },
         {
+          "concept_id": "тишина",
           "label": "Тишина",
           "lemma": "тишина",
           "count": 25
         },
         {
+          "concept_id": "благодарность",
           "label": "Благодарность",
           "lemma": "благодарность",
           "count": 11
         },
         {
+          "concept_id": "путь",
           "label": "Путь",
           "lemma": "путь",
           "count": 19
         },
         {
+          "concept_id": "искать",
           "label": "Искать",
           "lemma": "искать",
           "count": 19
         },
         {
+          "concept_id": "простота",
           "label": "Простота",
           "lemma": "простота",
           "count": 10
@@ -7219,51 +7759,61 @@
       "community": 4,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 38
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 22
         },
         {
+          "concept_id": "тишина",
           "label": "Тишина",
           "lemma": "тишина",
           "count": 15
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 15
         },
         {
+          "concept_id": "старик",
           "label": "Старик",
           "lemma": "старик",
           "count": 6
         },
         {
+          "concept_id": "имя",
           "label": "Имя",
           "lemma": "имя",
           "count": 13
         },
         {
+          "concept_id": "остановиться",
           "label": "Остановиться",
           "lemma": "остановиться",
           "count": 10
         },
         {
+          "concept_id": "дыхание",
           "label": "Дыхание",
           "lemma": "дыхание",
           "count": 12
         },
         {
+          "concept_id": "глаз",
           "label": "Глаз",
           "lemma": "глаз",
           "count": 11
         },
         {
+          "concept_id": "стоять",
           "label": "Стоять",
           "lemma": "стоять",
           "count": 7
@@ -7351,51 +7901,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 139
         },
         {
+          "concept_id": "апокалипсис",
           "label": "Апокалипсис",
           "lemma": "апокалипсис",
           "count": 47
         },
         {
+          "concept_id": "страх",
           "label": "Страх",
           "lemma": "страх",
           "count": 107
         },
         {
+          "concept_id": "помазанник",
           "label": "Помазанник",
           "lemma": "помазанник",
           "count": 32
         },
         {
+          "concept_id": "власть",
           "label": "Власть",
           "lemma": "власть",
           "count": 68
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 87
         },
         {
+          "concept_id": "помазание",
           "label": "Помазание",
           "lemma": "помазание",
           "count": 26
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 84
         },
         {
+          "concept_id": "тень",
           "label": "Тень",
           "lemma": "тень",
           "count": 56
         },
         {
+          "concept_id": "приход",
           "label": "Приход",
           "lemma": "приход",
           "count": 23
@@ -7483,51 +8043,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "русь",
           "label": "Русь",
           "lemma": "русь",
           "count": 19
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 46
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 26
         },
         {
+          "concept_id": "россия",
           "label": "Россия",
           "lemma": "россия",
           "count": 8
         },
         {
+          "concept_id": "послание",
           "label": "Послание",
           "lemma": "послание",
           "count": 11
         },
         {
+          "concept_id": "плод",
           "label": "Плод",
           "lemma": "плод",
           "count": 12
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 19
         },
         {
+          "concept_id": "отверженный",
           "label": "Отверженный",
           "lemma": "отверженный",
           "count": 6
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 15
         },
         {
+          "concept_id": "знамение",
           "label": "Знамение",
           "lemma": "знамение",
           "count": 8
@@ -7615,51 +8185,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "оболгать",
           "label": "Оболгать",
           "lemma": "оболгать",
           "count": 19
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 40
         },
         {
+          "concept_id": "бог",
           "label": "Бог",
           "lemma": "бог",
           "count": 35
         },
         {
+          "concept_id": "писать",
           "label": "Писать",
           "lemma": "писать",
           "count": 27
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 32
         },
         {
+          "concept_id": "ждать",
           "label": "Ждать",
           "lemma": "ждать",
           "count": 27
         },
         {
+          "concept_id": "конец",
           "label": "Конец",
           "lemma": "конец",
           "count": 22
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 22
         },
         {
+          "concept_id": "страх",
           "label": "Страх",
           "lemma": "страх",
           "count": 21
         },
         {
+          "concept_id": "образ",
           "label": "Образ",
           "lemma": "образ",
           "count": 19
@@ -7748,51 +8328,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "книга",
           "label": "Книга",
           "lemma": "книга",
           "count": 44
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 35
         },
         {
+          "concept_id": "место",
           "label": "Место",
           "lemma": "место",
           "count": 25
         },
         {
+          "concept_id": "литература",
           "label": "Литература",
           "lemma": "литература",
           "count": 7
         },
         {
+          "concept_id": "текст",
           "label": "Текст",
           "lemma": "текст",
           "count": 18
         },
         {
+          "concept_id": "исчезать",
           "label": "Исчезать",
           "lemma": "исчезать",
           "count": 22
         },
         {
+          "concept_id": "тишина",
           "label": "Тишина",
           "lemma": "тишина",
           "count": 19
         },
         {
+          "concept_id": "светозар",
           "label": "Светозар",
           "lemma": "светозар",
           "count": 15
         },
         {
+          "concept_id": "странный",
           "label": "Странный",
           "lemma": "странный",
           "count": 9
         },
         {
+          "concept_id": "возникать",
           "label": "Возникать",
           "lemma": "возникать",
           "count": 13
@@ -7880,51 +8470,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 34
         },
         {
+          "concept_id": "книга",
           "label": "Книга",
           "lemma": "книга",
           "count": 22
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 21
         },
         {
+          "concept_id": "присутствие",
           "label": "Присутствие",
           "lemma": "присутствие",
           "count": 20
         },
         {
+          "concept_id": "царствие",
           "label": "Царствие",
           "lemma": "царствие",
           "count": 12
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 15
         },
         {
+          "concept_id": "готовый",
           "label": "Готовый",
           "lemma": "готовый",
           "count": 14
         },
         {
+          "concept_id": "путь",
           "label": "Путь",
           "lemma": "путь",
           "count": 15
         },
         {
+          "concept_id": "заслонять",
           "label": "Заслонять",
           "lemma": "заслонять",
           "count": 6
         },
         {
+          "concept_id": "спрашивать",
           "label": "Спрашивать",
           "lemma": "спрашивать",
           "count": 12
@@ -8012,51 +8612,61 @@
       "community": 4,
       "top_concepts": [
         {
+          "concept_id": "резонанс",
           "label": "Резонанс",
           "lemma": "резонанс",
           "count": 98
         },
         {
+          "concept_id": "осознание",
           "label": "Осознание",
           "lemma": "осознание",
           "count": 91
         },
         {
+          "concept_id": "электрон",
           "label": "Электрон",
           "lemma": "электрон",
           "count": 36
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 118
         },
         {
+          "concept_id": "троичный",
           "label": "Троичный",
           "lemma": "троичный",
           "count": 27
         },
         {
+          "concept_id": "узор",
           "label": "Узор",
           "lemma": "узор",
           "count": 38
         },
         {
+          "concept_id": "резонансный",
           "label": "Резонансный",
           "lemma": "резонансный",
           "count": 22
         },
         {
+          "concept_id": "масса",
           "label": "Масса",
           "lemma": "масса",
           "count": 28
         },
         {
+          "concept_id": "фотон",
           "label": "Фотон",
           "lemma": "фотон",
           "count": 19
         },
         {
+          "concept_id": "устойчивый",
           "label": "Устойчивый",
           "lemma": "устойчивый",
           "count": 21
@@ -8145,51 +8755,61 @@
       "community": 3,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 107
         },
         {
+          "concept_id": "долг",
           "label": "Долг",
           "lemma": "долг",
           "count": 38
         },
         {
+          "concept_id": "система",
           "label": "Система",
           "lemma": "система",
           "count": 41
         },
         {
+          "concept_id": "деньга",
           "label": "Деньга",
           "lemma": "деньга",
           "count": 25
         },
         {
+          "concept_id": "архитектура",
           "label": "Архитектура",
           "lemma": "архитектура",
           "count": 18
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 44
         },
         {
+          "concept_id": "платить",
           "label": "Платить",
           "lemma": "платить",
           "count": 13
         },
         {
+          "concept_id": "страх",
           "label": "Страх",
           "lemma": "страх",
           "count": 31
         },
         {
+          "concept_id": "проект",
           "label": "Проект",
           "lemma": "проект",
           "count": 14
         },
         {
+          "concept_id": "процент",
           "label": "Процент",
           "lemma": "процент",
           "count": 9
@@ -8277,51 +8897,61 @@
       "community": 4,
       "top_concepts": [
         {
+          "concept_id": "струна",
           "label": "Струна",
           "lemma": "струна",
           "count": 32
         },
         {
+          "concept_id": "теория",
           "label": "Теория",
           "lemma": "теория",
           "count": 21
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 47
         },
         {
+          "concept_id": "панкратиус",
           "label": "Панкратиус",
           "lemma": "панкратиус",
           "count": 39
         },
         {
+          "concept_id": "звучать",
           "label": "Звучать",
           "lemma": "звучать",
           "count": 34
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 36
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 34
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 30
         },
         {
+          "concept_id": "откровение",
           "label": "Откровение",
           "lemma": "откровение",
           "count": 24
         },
         {
+          "concept_id": "тишина",
           "label": "Тишина",
           "lemma": "тишина",
           "count": 26
@@ -8410,51 +9040,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "самария",
           "label": "Самария",
           "lemma": "самария",
           "count": 29
         },
         {
+          "concept_id": "колодец",
           "label": "Колодец",
           "lemma": "колодец",
           "count": 19
         },
         {
+          "concept_id": "иисус",
           "label": "Иисус",
           "lemma": "иисус",
           "count": 33
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 39
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 36
         },
         {
+          "concept_id": "фотина",
           "label": "Фотина",
           "lemma": "фотина",
           "count": 8
         },
         {
+          "concept_id": "день",
           "label": "День",
           "lemma": "день",
           "count": 26
         },
         {
+          "concept_id": "город",
           "label": "Город",
           "lemma": "город",
           "count": 15
         },
         {
+          "concept_id": "женщина",
           "label": "Женщина",
           "lemma": "женщина",
           "count": 13
         },
         {
+          "concept_id": "ученик",
           "label": "Ученик",
           "lemma": "ученик",
           "count": 14
@@ -8541,51 +9181,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 36
         },
         {
+          "concept_id": "книга",
           "label": "Книга",
           "lemma": "книга",
           "count": 29
         },
         {
+          "concept_id": "автобиография",
           "label": "Автобиография",
           "lemma": "автобиография",
           "count": 7
         },
         {
+          "concept_id": "исчезнуть",
           "label": "Исчезнуть",
           "lemma": "исчезнуть",
           "count": 18
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 16
         },
         {
+          "concept_id": "писать",
           "label": "Писать",
           "lemma": "писать",
           "count": 13
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 16
         },
         {
+          "concept_id": "история",
           "label": "История",
           "lemma": "история",
           "count": 13
         },
         {
+          "concept_id": "исчезновение",
           "label": "Исчезновение",
           "lemma": "исчезновение",
           "count": 10
         },
         {
+          "concept_id": "автор",
           "label": "Автор",
           "lemma": "автор",
           "count": 10
@@ -8674,51 +9324,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 68
         },
         {
+          "concept_id": "книга",
           "label": "Книга",
           "lemma": "книга",
           "count": 17
         },
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 14
         },
         {
+          "concept_id": "форма",
           "label": "Форма",
           "lemma": "форма",
           "count": 12
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 11
         },
         {
+          "concept_id": "любить",
           "label": "Любить",
           "lemma": "любить",
           "count": 9
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 11
         },
         {
+          "concept_id": "перо",
           "label": "Перо",
           "lemma": "перо",
           "count": 4
         },
         {
+          "concept_id": "страница",
           "label": "Страница",
           "lemma": "страница",
           "count": 6
         },
         {
+          "concept_id": "дыхание",
           "label": "Дыхание",
           "lemma": "дыхание",
           "count": 9
@@ -8807,51 +9467,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "русь",
           "label": "Русь",
           "lemma": "русь",
           "count": 69
         },
         {
+          "concept_id": "святой",
           "label": "Святой",
           "lemma": "святой",
           "count": 33
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 30
         },
         {
+          "concept_id": "дом",
           "label": "Дом",
           "lemma": "дом",
           "count": 25
         },
         {
+          "concept_id": "память",
           "label": "Память",
           "lemma": "память",
           "count": 22
         },
         {
+          "concept_id": "молиться",
           "label": "Молиться",
           "lemma": "молиться",
           "count": 14
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 21
         },
         {
+          "concept_id": "земля",
           "label": "Земля",
           "lemma": "земля",
           "count": 15
         },
         {
+          "concept_id": "сердце",
           "label": "Сердце",
           "lemma": "сердце",
           "count": 18
         },
         {
+          "concept_id": "женщина",
           "label": "Женщина",
           "lemma": "женщина",
           "count": 10
@@ -8938,51 +9608,61 @@
       "community": 3,
       "top_concepts": [
         {
+          "concept_id": "женщина",
           "label": "Женщина",
           "lemma": "женщина",
           "count": 92
         },
         {
+          "concept_id": "мужчина",
           "label": "Мужчина",
           "lemma": "мужчина",
           "count": 84
         },
         {
+          "concept_id": "старость",
           "label": "Старость",
           "lemma": "старость",
           "count": 34
         },
         {
+          "concept_id": "счастие",
           "label": "Счастие",
           "lemma": "счастие",
           "count": 38
         },
         {
+          "concept_id": "стареть",
           "label": "Стареть",
           "lemma": "стареть",
           "count": 26
         },
         {
+          "concept_id": "жизнь",
           "label": "Жизнь",
           "lemma": "жизнь",
           "count": 63
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 64
         },
         {
+          "concept_id": "умный",
           "label": "Умный",
           "lemma": "умный",
           "count": 23
         },
         {
+          "concept_id": "любовь",
           "label": "Любовь",
           "lemma": "любовь",
           "count": 57
         },
         {
+          "concept_id": "американец",
           "label": "Американец",
           "lemma": "американец",
           "count": 11
@@ -9070,51 +9750,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "молитва",
           "label": "Молитва",
           "lemma": "молитва",
           "count": 150
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 74
         },
         {
+          "concept_id": "оркестр",
           "label": "Оркестр",
           "lemma": "оркестр",
           "count": 12
         },
         {
+          "concept_id": "дирижёр",
           "label": "Дирижёр",
           "lemma": "дирижёр",
           "count": 11
         },
         {
+          "concept_id": "молиться",
           "label": "Молиться",
           "lemma": "молиться",
           "count": 25
         },
         {
+          "concept_id": "смирение",
           "label": "Смирение",
           "lemma": "смирение",
           "count": 20
         },
         {
+          "concept_id": "буква",
           "label": "Буква",
           "lemma": "буква",
           "count": 21
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 28
         },
         {
+          "concept_id": "дыхание",
           "label": "Дыхание",
           "lemma": "дыхание",
           "count": 27
         },
         {
+          "concept_id": "молчание",
           "label": "Молчание",
           "lemma": "молчание",
           "count": 24
@@ -9201,51 +9891,61 @@
       "community": 2,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 108
         },
         {
+          "concept_id": "фильм",
           "label": "Фильм",
           "lemma": "фильм",
           "count": 39
         },
         {
+          "concept_id": "экран",
           "label": "Экран",
           "lemma": "экран",
           "count": 46
         },
         {
+          "concept_id": "кадр",
           "label": "Кадр",
           "lemma": "кадр",
           "count": 26
         },
         {
+          "concept_id": "зал",
           "label": "Зал",
           "lemma": "зал",
           "count": 24
         },
         {
+          "concept_id": "плёнка",
           "label": "Плёнка",
           "lemma": "плёнка",
           "count": 15
         },
         {
+          "concept_id": "будка",
           "label": "Будка",
           "lemma": "будка",
           "count": 12
         },
         {
+          "concept_id": "зритель",
           "label": "Зритель",
           "lemma": "зритель",
           "count": 15
         },
         {
+          "concept_id": "герой",
           "label": "Герой",
           "lemma": "герой",
           "count": 18
         },
         {
+          "concept_id": "сюжет",
           "label": "Сюжет",
           "lemma": "сюжет",
           "count": 12
@@ -9333,51 +10033,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "отдать",
           "label": "Отдать",
           "lemma": "отдать",
           "count": 36
         },
         {
+          "concept_id": "десятина",
           "label": "Десятина",
           "lemma": "десятина",
           "count": 8
         },
         {
+          "concept_id": "отдавать",
           "label": "Отдавать",
           "lemma": "отдавать",
           "count": 13
         },
         {
+          "concept_id": "отдача",
           "label": "Отдача",
           "lemma": "отдача",
           "count": 6
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 14
         },
         {
+          "concept_id": "стадия",
           "label": "Стадия",
           "lemma": "стадия",
           "count": 5
         },
         {
+          "concept_id": "книга",
           "label": "Книга",
           "lemma": "книга",
           "count": 13
         },
         {
+          "concept_id": "нищий",
           "label": "Нищий",
           "lemma": "нищий",
           "count": 5
         },
         {
+          "concept_id": "огонь",
           "label": "Огонь",
           "lemma": "огонь",
           "count": 10
         },
         {
+          "concept_id": "обладание",
           "label": "Обладание",
           "lemma": "обладание",
           "count": 4
@@ -9465,51 +10175,61 @@
       "community": 1,
       "top_concepts": [
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 32
         },
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 22
         },
         {
+          "concept_id": "евангелие",
           "label": "Евангелие",
           "lemma": "евангелие",
           "count": 13
         },
         {
+          "concept_id": "обувь",
           "label": "Обувь",
           "lemma": "обувь",
           "count": 6
         },
         {
+          "concept_id": "царство",
           "label": "Царство",
           "lemma": "царство",
           "count": 8
         },
         {
+          "concept_id": "обернуться",
           "label": "Обернуться",
           "lemma": "обернуться",
           "count": 4
         },
         {
+          "concept_id": "войти",
           "label": "Войти",
           "lemma": "войти",
           "count": 10
         },
         {
+          "concept_id": "иисус",
           "label": "Иисус",
           "lemma": "иисус",
           "count": 7
         },
         {
+          "concept_id": "сила",
           "label": "Сила",
           "lemma": "сила",
           "count": 9
         },
         {
+          "concept_id": "повернуть",
           "label": "Повернуть",
           "lemma": "повернуть",
           "count": 3
@@ -9597,51 +10317,61 @@
       "community": 3,
       "top_concepts": [
         {
+          "concept_id": "сказка",
           "label": "Сказка",
           "lemma": "сказка",
           "count": 44
         },
         {
+          "concept_id": "хлеб",
           "label": "Хлеб",
           "lemma": "хлеб",
           "count": 51
         },
         {
+          "concept_id": "катиться",
           "label": "Катиться",
           "lemma": "катиться",
           "count": 20
         },
         {
+          "concept_id": "солнце",
           "label": "Солнце",
           "lemma": "солнце",
           "count": 46
         },
         {
+          "concept_id": "смерть",
           "label": "Смерть",
           "lemma": "смерть",
           "count": 57
         },
         {
+          "concept_id": "съесть",
           "label": "Съесть",
           "lemma": "съесть",
           "count": 23
         },
         {
+          "concept_id": "мир",
           "label": "Мир",
           "lemma": "мир",
           "count": 65
         },
         {
+          "concept_id": "крокодил",
           "label": "Крокодил",
           "lemma": "крокодил",
           "count": 15
         },
         {
+          "concept_id": "иллюзия",
           "label": "Иллюзия",
           "lemma": "иллюзия",
           "count": 36
         },
         {
+          "concept_id": "проглотить",
           "label": "Проглотить",
           "lemma": "проглотить",
           "count": 11
@@ -9729,51 +10459,61 @@
       "community": 0,
       "top_concepts": [
         {
+          "concept_id": "свет",
           "label": "Свет",
           "lemma": "свет",
           "count": 18
         },
         {
+          "concept_id": "служить",
           "label": "Служить",
           "lemma": "служить",
           "count": 8
         },
         {
+          "concept_id": "машина",
           "label": "Машина",
           "lemma": "машина",
           "count": 5
         },
         {
+          "concept_id": "слово",
           "label": "Слово",
           "lemma": "слово",
           "count": 8
         },
         {
+          "concept_id": "человек",
           "label": "Человек",
           "lemma": "человек",
           "count": 7
         },
         {
+          "concept_id": "льстить",
           "label": "Льстить",
           "lemma": "льстить",
           "count": 2
         },
         {
+          "concept_id": "тишина",
           "label": "Тишина",
           "lemma": "тишина",
           "count": 6
         },
         {
+          "concept_id": "прозрачность",
           "label": "Прозрачность",
           "lemma": "прозрачность",
           "count": 4
         },
         {
+          "concept_id": "тьма",
           "label": "Тьма",
           "lemma": "тьма",
           "count": 5
         },
         {
+          "concept_id": "сбой",
           "label": "Сбой",
           "lemma": "сбой",
           "count": 2

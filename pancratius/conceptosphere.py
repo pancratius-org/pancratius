@@ -1031,6 +1031,11 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
         scored.sort(key=lambda x: x[2], reverse=True)
         return [
             {
+                # The stable concept key (= lemma), so the build join can
+                # substitute the EN label by `concept:<concept_id>` exactly as
+                # it does for concept-graph nodes. Same vocabulary as the
+                # concepts graph; PAN021 covers both.
+                "concept_id": lemma,
                 "label": lemma.capitalize() if not lemma.isupper() else lemma,
                 "lemma": lemma,
                 "count": int(c),
