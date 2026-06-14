@@ -184,7 +184,7 @@ if __name__ == "__main__":
     r = compute()
     print(report(r))
     folder = store.write_experiment(
-        "2026-06-13-working-readout", scorecard=r.to_dict(), report=report(r),
+        "2026-06-14-working-readout", scorecard=r.to_dict(), report=report(r),
         manifest={
             # +dirty here is unrelated data/ graph files, not these modules — left as-is.
             "git_sha": store.git_sha(),
