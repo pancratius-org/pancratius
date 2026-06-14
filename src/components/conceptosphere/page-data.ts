@@ -28,7 +28,10 @@ export type ConceptosphereConceptRow = {
   label: string;
   community: number;
   frequency: number;
-  topBooks: { slug: string; title: string; href: string }[];
+  // `localized` carries the same RU-only fallback decision book rows use, so a
+  // concept's top-book list can badge a Russian original on /en/. For a fallback
+  // book `href` already resolves to its Russian page (the badge's open link).
+  topBooks: { slug: string; title: string; href: string; localized: boolean }[];
   searchHay: string;
 };
 
@@ -233,6 +236,7 @@ function topBookRow(
     slug: book.slug,
     title: info.title,
     href: info.href,
+    localized: info.localized,
   };
 }
 

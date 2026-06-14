@@ -14,6 +14,7 @@
 // degrade to a "Russian original" badge + RU link.
 
 import type { Locale } from "@/lib/i18n";
+import RussianOriginalBadge from "@/components/RussianOriginalBadge.astro";
 import ModeToggle from "./ModeToggle.astro";
 import SearchInput from "./SearchInput.astro";
 import { conceptosphereStrings } from "./strings";
@@ -105,7 +106,10 @@ const numberLocale = t.numberLocale;
                       <p class="cs-detail-h">{t.mobileAppearsInHeading}</p>
                       <ul class="cs-detail-books">
                         {row.topBooks.map((b) => (
-                          <li><a href={b.href}>{b.title}</a></li>
+                          <li>
+                            <a href={b.href}>{b.title}</a>
+                            {!b.localized && <RussianOriginalBadge href={b.href} />}
+                          </li>
                         ))}
                       </ul>
                     </>
@@ -160,7 +164,7 @@ const numberLocale = t.numberLocale;
                 )}
                 <span class="cs-book-row-meta">
                   <span class="cs-freq">{t.bookNumberPrefix} {row.number}</span>
-                  {!row.localized && <span class="cs-ru-badge">{t.russianOriginalBadge}</span>}
+                  {!row.localized && <RussianOriginalBadge href={row.href} withOpenLink={false} />}
                   <span class="cs-title">{row.title}</span>
                   {row.topConcepts.length > 0 && (
                     <span class="cs-book-row-concepts">
@@ -352,18 +356,7 @@ const numberLocale = t.numberLocale;
     min-width: 0;
   }
   .cs-book-row-meta .cs-freq { letter-spacing: 0.08em; text-transform: uppercase; }
-  .cs-book-row-meta .cs-ru-badge {
-    align-self: flex-start;
-    margin: 2px 0;
-    padding: 1px 6px;
-    border: 1px solid var(--accent-soft);
-    border-radius: 3px;
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--cs-ink-trace);
-  }
+  .cs-book-row-meta :global(.ru-original) { margin: 2px 0; }
   .cs-book-row-meta .cs-title { font-size: 15px; color: var(--cs-ink); }
   .cs-book-row-concepts {
     margin-top: 4px;
