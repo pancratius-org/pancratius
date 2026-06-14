@@ -297,7 +297,7 @@ class Bakeoff:
         }
 
 
-RECON_EXPERIMENT = "2026-06-13-recon-bilingual"
+RECON_EXPERIMENT = "2026-06-14-recon-postmerge"
 
 
 @dataclass(frozen=True, slots=True)
@@ -517,7 +517,7 @@ def report(b: Bakeoff) -> str:
     return "\n".join(lines) + "\n"
 
 
-EXPERIMENT_ID = "2026-06-13-e2-signal-bakeoff"
+EXPERIMENT_ID = "2026-06-14-e2-signal-bakeoff"
 
 
 def _eval_set_path(name: str) -> Path:
