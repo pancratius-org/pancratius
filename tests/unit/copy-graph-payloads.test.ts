@@ -97,13 +97,14 @@ describe("joinLocalePayload", () => {
     };
     const out = joinLocalePayload(booksGraph, OVERLAY, false);
     // Book node title stays RU (it degrades via the badge, not translation here).
-    assert.equal(out.nodes?.[0]?.label, "Книга");
+    const node = out.nodes[0];
+    assert.equal(node.label, "Книга");
     // top_concepts labels ARE translated (same concept vocabulary).
-    const tc = out.nodes?.[0]?.top_concepts as { label: string; lemma: string; count: number }[];
+    const tc = node.top_concepts as { label: string; lemma: string; count: number }[];
     assert.deepEqual(tc.map((c) => c.label), ["Light", "Darkness"]);
     // Topology under the ref (lemma, count) is preserved.
-    assert.equal(tc[0]?.lemma, "свет");
-    assert.equal(tc[0]?.count, 10);
+    assert.equal(tc[0].lemma, "свет");
+    assert.equal(tc[0].count, 10);
     // Community label is translated.
     assert.equal(out.communities?.[0]?.label, "Light & Darkness");
   });
