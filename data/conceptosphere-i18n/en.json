@@ -123,7 +123,7 @@
     "label": "Grace"
   },
   "concept:блаженный": {
-    "label": "the Blessed"
+    "label": "Blessed One"
   },
   "concept:близнец": {
     "label": "Twin"
@@ -135,7 +135,7 @@
     "label": "God"
   },
   "concept:богообщение": {
-    "label": "Communion with God"
+    "label": "Communion With God"
   },
   "concept:божий": {
     "label": "Of God"
@@ -363,7 +363,7 @@
     "label": "Day"
   },
   "concept:деньга": {
-    "label": "Money"
+    "label": "Coin"
   },
   "concept:дерево": {
     "label": "Tree"
@@ -474,7 +474,7 @@
     "label": "To Complete"
   },
   "concept:завеса": {
-    "label": "the Veil"
+    "label": "Veil"
   },
   "concept:завет": {
     "label": "Covenant"
@@ -507,7 +507,7 @@
     "label": "Request"
   },
   "concept:заслонять": {
-    "label": "Concealing"
+    "label": "To Overshadow"
   },
   "concept:защита": {
     "label": "Defense"
@@ -654,13 +654,13 @@
     "label": "Stone"
   },
   "concept:катиться": {
-    "label": "Rolling"
+    "label": "To Roll"
   },
   "concept:кивнуть": {
-    "label": "Nodding"
+    "label": "To Nod"
   },
   "concept:класть": {
-    "label": "Laying Down"
+    "label": "To Lay Down"
   },
   "concept:книга": {
     "label": "Book"
@@ -699,13 +699,13 @@
     "label": "Cross"
   },
   "concept:критика": {
-    "label": "Critique"
+    "label": "Criticism"
   },
   "concept:крокодил": {
     "label": "Crocodile"
   },
   "concept:кувшин": {
-    "label": "Jar"
+    "label": "Pitcher"
   },
   "concept:культура": {
     "label": "Culture"
@@ -732,7 +732,7 @@
     "label": "Ray"
   },
   "concept:льстить": {
-    "label": "Flattery"
+    "label": "To Flatter"
   },
   "concept:любить": {
     "label": "To Love"
@@ -798,7 +798,7 @@
     "label": "Prayer"
   },
   "concept:молиться": {
-    "label": "Prayer"
+    "label": "To Pray"
   },
   "concept:молчание": {
     "label": "Silence"
@@ -816,7 +816,7 @@
     "label": "Thought"
   },
   "concept:мышиный": {
-    "label": "Mousey"
+    "label": "Mouse"
   },
   "concept:мышь": {
     "label": "Mouse"
@@ -897,7 +897,7 @@
     "label": "To Need"
   },
   "concept:обернуться": {
-    "label": "Turning Around"
+    "label": "To Turn Around"
   },
   "concept:обладание": {
     "label": "Possession"
@@ -906,7 +906,7 @@
     "label": "Cloud"
   },
   "concept:оболгать": {
-    "label": "Slander"
+    "label": "To Slander"
   },
   "concept:образ": {
     "label": "Image"
@@ -936,7 +936,7 @@
     "label": "Expectation"
   },
   "concept:означать": {
-    "label": "Meaning"
+    "label": "To Signify"
   },
   "concept:океан": {
     "label": "Ocean"
@@ -963,10 +963,10 @@
     "label": "Awareness"
   },
   "concept:остановиться": {
-    "label": "Stillness"
+    "label": "To Stop"
   },
   "concept:отверженный": {
-    "label": "the Outcast"
+    "label": "Outcast"
   },
   "concept:ответ": {
     "label": "Answer"
@@ -975,10 +975,10 @@
     "label": "To Answer"
   },
   "concept:отдавать": {
-    "label": "Giving"
+    "label": "To Give"
   },
   "concept:отдать": {
-    "label": "Giving"
+    "label": "To Give Away"
   },
   "concept:отдача": {
     "label": "Giving"
@@ -1017,7 +1017,7 @@
     "label": "Sensation"
   },
   "concept:падший": {
-    "label": "the Fallen"
+    "label": "Fallen"
   },
   "concept:память": {
     "label": "Memory"
@@ -1038,7 +1038,7 @@
     "label": "To Experience"
   },
   "concept:перо": {
-    "label": "Feather"
+    "label": "Quill"
   },
   "concept:песня": {
     "label": "Song"
@@ -1059,7 +1059,7 @@
     "label": "Letter"
   },
   "concept:платить": {
-    "label": "Payment"
+    "label": "To Pay"
   },
   "concept:плод": {
     "label": "Fruit"
@@ -1071,7 +1071,7 @@
     "label": "Film"
   },
   "concept:повернуть": {
-    "label": "Turning"
+    "label": "To Turn"
   },
   "concept:подглава": {
     "label": "Subchapter"
@@ -1101,7 +1101,7 @@
     "label": "Fullness"
   },
   "concept:положить": {
-    "label": "Laying Down"
+    "label": "To Lay Down"
   },
   "concept:пользователь": {
     "label": "User"
@@ -1110,10 +1110,10 @@
     "label": "Anointing"
   },
   "concept:помазанник": {
-    "label": "the Anointed"
+    "label": "The Anointed One"
   },
   "concept:помнить": {
-    "label": "Remembrance"
+    "label": "To Remember"
   },
   "concept:понять": {
     "label": "To Understand"
@@ -1164,7 +1164,7 @@
     "label": "Cessation"
   },
   "concept:прелесть": {
-    "label": "Delusion"
+    "label": "Spiritual Delusion"
   },
   "concept:привычный": {
     "label": "Habitual"
@@ -1188,7 +1188,7 @@
     "label": "Parable"
   },
   "concept:приход": {
-    "label": "Advent"
+    "label": "Coming"
   },
   "concept:причина": {
     "label": "Cause"
@@ -1200,7 +1200,7 @@
     "label": "Awakening"
   },
   "concept:проглотить": {
-    "label": "Swallowing"
+    "label": "To Swallow"
   },
   "concept:продолжаться": {
     "label": "To Continue"
@@ -1239,7 +1239,7 @@
     "label": "Interest"
   },
   "concept:прошептать": {
-    "label": "Whispering"
+    "label": "To Whisper"
   },
   "concept:прошлое": {
     "label": "The Past"
@@ -1362,10 +1362,10 @@
     "label": "Holy"
   },
   "concept:сдаться": {
-    "label": "Surrender"
+    "label": "To Surrender"
   },
   "concept:сделка": {
-    "label": "Deal"
+    "label": "Bargain"
   },
   "concept:секс": {
     "label": "Sex"
@@ -1380,7 +1380,7 @@
     "label": "Heart"
   },
   "concept:сесть": {
-    "label": "Sitting"
+    "label": "To Sit Down"
   },
   "concept:сеть": {
     "label": "Net"
@@ -1413,7 +1413,7 @@
     "label": "Word"
   },
   "concept:служить": {
-    "label": "Service"
+    "label": "To Serve"
   },
   "concept:слушать": {
     "label": "To Listen"
@@ -1491,10 +1491,10 @@
     "label": "Stage"
   },
   "concept:стареть": {
-    "label": "Aging"
+    "label": "To Grow Old"
   },
   "concept:старик": {
-    "label": "Elder"
+    "label": "Old Man"
   },
   "concept:старое": {
     "label": "The Old"
@@ -1518,13 +1518,13 @@
     "label": "Side"
   },
   "concept:стоять": {
-    "label": "Standing"
+    "label": "To Stand"
   },
   "concept:страдание": {
     "label": "Suffering"
   },
   "concept:страдать": {
-    "label": "Suffering"
+    "label": "To Suffer"
   },
   "concept:страница": {
     "label": "Page"
@@ -1575,13 +1575,13 @@
     "label": "Happiness"
   },
   "concept:счастливый": {
-    "label": "Blessed"
+    "label": "Happy"
   },
   "concept:считать": {
     "label": "To Consider"
   },
   "concept:съесть": {
-    "label": "Devouring"
+    "label": "To Eat"
   },
   "concept:сын": {
     "label": "Son"
@@ -1659,7 +1659,7 @@
     "label": "To Hold On"
   },
   "concept:узел": {
-    "label": "Node"
+    "label": "Knot"
   },
   "concept:узнавание": {
     "label": "Recognition"
@@ -1680,7 +1680,7 @@
     "label": "Clever"
   },
   "concept:управлять": {
-    "label": "Governance"
+    "label": "To Govern"
   },
   "concept:уравнение": {
     "label": "Equation"
@@ -1719,7 +1719,7 @@
     "label": "Phenomenology"
   },
   "concept:фиксировать": {
-    "label": "Recording"
+    "label": "To Fix"
   },
   "concept:фильм": {
     "label": "Film"
