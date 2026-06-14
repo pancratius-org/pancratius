@@ -654,15 +654,18 @@ def _fold_sub_units(
 # slightly stricter on EN — the conservative direction (refuses to fold).
 _COMPACT_SOURCE_LINE_MAX = 80
 
-# A SUSTAINED run of uniformly short lines is authored lineation on its own geometry —
-# verse set as bare consecutive `<w:p>` with no stanza gap and no section boundary. Two
-# signals must both hold. The line caps: at this width a flowing prose sentence would
-# wrap to a long line, so every member being short already rules out wrapped prose. The
-# length floor is the load-bearing half: SHORT prose clusters exist too (diary beats,
-# dialogue turns — a few short rows), so shortness alone is not verse; only a LONG run
-# is unambiguous, since prose never yields many consecutive short lines without
-# wrapping. The floor sits one past the longest such prose cluster observed in the
-# corpus (5 rows). Lengths in characters (EN ~10% longer than RU → stricter on EN).
+# A SUSTAINED run of uniformly short lines is read as authored lineation on its own
+# geometry — verse set as bare consecutive `<w:p>` with no stanza gap and no section
+# boundary. Two signals must both hold. The line caps: at this width a flowing prose
+# sentence wraps to a long line, so every member being short already rules out wrapped
+# prose. The length floor is the load-bearing half: SHORT prose clusters exist (diary
+# beats, dialogue turns — a few short rows), so shortness alone is not verse.
+# This is an EMPIRICAL compiler heuristic, NOT a textual law: a long run of short rows
+# is a strong-but-fallible verse signal. Expository prose set one-clause-per-line (book
+# 52) is a known residual that clears the floor — a precision tax the bare-run sampling
+# experiment bounds, not zero. The floor sits one past the longest prose cluster
+# observed (5 rows); raise it if the measured false-fold rate demands. Lengths in
+# characters (EN ~10% longer than RU → stricter on EN).
 _BARE_RUN_MIN_LINES = 6
 _BARE_RUN_LINE_MAX = 52
 _BARE_RUN_AVG_MAX = 30

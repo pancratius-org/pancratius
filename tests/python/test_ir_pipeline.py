@@ -15,6 +15,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Literal, TypeIs
 
+import pytest
+
 import pancratius.lower as lower
 from pancratius import (
     docx_conversion,
@@ -703,6 +705,76 @@ def test_compact_strong_opener_callout_preserves_lineation_without_verse_registe
         "Я в нём.",
         "Я через него.",
     ]
+
+
+# --- the SUSTAINED bare-run fold ----------------------------------------------------
+# A run of short rows with no stanza gap and no section boundary folds only when it is
+# LONG (>= _BARE_RUN_MIN_LINES): a sustained short-line run is authored verse, but a few
+# short rows are an ambiguous prose cluster (diary beat / dialogue turn) and stay prose.
+# The prose prefix below consumes the document-start boundary so these exercise the
+# bare-run clause specifically, not the ATTACHED (after-boundary) one.
+# Longer than VERSE_SHORT_LINE_MAX so it is ineligible prose (not a lineated line) and
+# consumes the document-start boundary, leaving the short run unframed.
+_PROSE = (
+    "Это достаточно длинное прозаическое предложение, которое открывает обычный "
+    "прозаический контекст и тем самым снимает граничную привязку у следующего фрагмента."
+)
+
+
+def _after_prose(*short: str) -> list[ir.Block]:
+    return [
+        ir.Paragraph(inlines=[ir.Text(_PROSE)]),
+        ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True)),
+        *(ir.Paragraph(inlines=[ir.Text(s)]) for s in short),
+    ]
+
+
+def test_sustained_bare_run_folds_without_gap_or_boundary() -> None:
+    # >= 6 uniform short rows, gapless, unframed — the trilogos/book-51 verse the rule
+    # recovers (without this clause it stayed prose for lack of a blank or heading).
+    out = lineation.fold_lineation(_after_prose(
+        "Он звал в неопределённость.", "Он не говорил так.", "Он говорил иначе.",
+        "Не о форме.", "А о шаге.", "К самому себе.",
+    ))
+    assert any(isinstance(b, ir.LineatedBlock) for b in out)
+
+
+def test_short_run_below_the_floor_stays_prose() -> None:
+    # 5 short rows (one below the floor) — a dialogue/diary cluster, not a sustained
+    # passage. This is the book-46 false-fold the floor excludes; shortness alone is not
+    # verse. Pinning the floor: 5 must NOT fold while 6 (above) must.
+    out = lineation.fold_lineation(_after_prose(
+        "Я выбираю круг.", "Тишина.", "И снова свет.", "Потом ничего.", "Да.",
+    ))
+    assert not any(isinstance(b, ir.LineatedBlock) for b in out)
+
+
+def test_bare_run_rejects_a_run_with_a_long_line() -> None:
+    # 6 rows, but one wraps past the line cap — a prose sentence among short rows, not a
+    # bare verse run. The longest-line cap, not just the mean, must reject it.
+    out = lineation.fold_lineation(_after_prose(
+        "Короткая строка.", "Ещё одна.", "И третья.",
+        "Это длинная прозаическая строка, которая выходит далеко за предел и доказывает прозу.",
+        "Снова коротко.", "И ещё короче.",
+    ))
+    assert not any(isinstance(b, ir.LineatedBlock) for b in out)
+
+
+@pytest.mark.xfail(
+    reason="KNOWN RESIDUAL: geometry caps fold >=6-row expository prose set one-clause-"
+    "per-line (book 52). Bounded by the bare-run precision experiment, not yet guarded. "
+    "When a content guard lands this should XPASS — promote it to a passing assertion then.",
+    strict=True,
+)
+def test_expository_short_run_is_not_a_false_fold() -> None:
+    # Expository teaching prose, one clause per line, >= 6 short rows — geometrically a
+    # bare verse run but linguistically prose. The aspirational invariant: it stays prose.
+    out = lineation.fold_lineation(_after_prose(
+        "Существуют не варианты будущего.", "Существуют состояния поля.",
+        "Это как океан возможностей,", "а ты точка, которая выбирает волну",
+        "через своё состояние.", "Механика проста.",
+    ))
+    assert not any(isinstance(b, ir.LineatedBlock) for b in out)
 
 
 def test_indented_strong_opener_callout_stays_prose() -> None:
