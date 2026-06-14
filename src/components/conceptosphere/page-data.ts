@@ -7,13 +7,13 @@
 import { coverAssetUrl } from "@/lib/covers";
 import { loadBooksGraph, loadConceptsGraph, type BooksGraph, type ConceptsGraph } from "@/lib/conceptosphere";
 import { kindIndexUrl, workUrl, type Locale } from "@/lib/i18n";
-import { displayWorkEntry, findPair } from "@/lib/works";
+import { displayWorkEntry, findPair, workTags } from "@/lib/works";
 
 import { communityColor } from "./palette.ts";
 import type { ConceptosphereStrings } from "./strings.ts";
 import type { ConceptosphereMode } from "./graph-types.ts";
 
-type BookSlugInfo = Record<string, { number: number; title: string; href: string }>;
+type BookSlugInfo = Record<string, { number: number; title: string; href: string; localized: boolean; tags: readonly string[] }>;
 type BooksGraphNode = BooksGraph["nodes"][number];
 type ConceptsGraphNode = ConceptsGraph["nodes"][number];
 
@@ -28,7 +28,10 @@ export type ConceptosphereConceptRow = {
   label: string;
   community: number;
   frequency: number;
-  topBooks: { slug: string; title: string; href: string }[];
+  // `localized` carries the same RU-only fallback decision book rows use, so a
+  // concept's top-book list can badge a Russian original on /en/. For a fallback
+  // book `href` already resolves to its Russian page (the badge's open link).
+  topBooks: { slug: string; title: string; href: string; localized: boolean }[];
   searchHay: string;
 };
 
@@ -40,6 +43,7 @@ export type ConceptosphereBookRow = {
   tags: readonly string[];
   href: string;
   coverUrl: string | null;
+  localized: boolean;
   topConcepts: { label: string }[];
   searchHay: string;
 };
@@ -68,6 +72,10 @@ interface LocalizedBookCatalogEntry {
   title: string;
   href: string;
   coverUrl: string | null;
+  /** True when the link resolves to the requested locale; false for a RU-only book served on /en/. */
+  localized: boolean;
+  /** Tags from the resolved-locale frontmatter: EN for an EN-paired book, RU for a RU-only one. */
+  tags: readonly string[];
 }
 
 type LocalizedBookCatalog = ReadonlyMap<string, LocalizedBookCatalogEntry>;
@@ -76,7 +84,7 @@ export async function loadConceptospherePageData(
   locale: Locale,
   strings: ConceptosphereStrings,
 ): Promise<ConceptospherePageData> {
-  const graphs = loadConceptosphereGraphs();
+  const graphs = loadConceptosphereGraphs(locale);
   const bookCatalog = await resolveLocalizedBookCatalog(graphs, locale);
   const bookRows = graphs.books.nodes.map((node) => bookRow(node, bookCatalog));
   const conceptRows = graphs.concepts.nodes.map((node) => conceptRow(node, bookCatalog));
@@ -101,10 +109,14 @@ export async function loadConceptospherePageData(
   };
 }
 
-function loadConceptosphereGraphs(): ConceptosphereGraphs {
+// The mobile list is server-rendered from these graphs, so it MUST read the
+// same per-locale payload the desktop graph fetches (the build-time RU⋈overlay
+// join) — not the RU source — or /en/ mobile would show Russian concept and
+// community labels under an English URL.
+function loadConceptosphereGraphs(locale: Locale): ConceptosphereGraphs {
   return {
-    books: loadBooksGraph(),
-    concepts: loadConceptsGraph(),
+    books: loadBooksGraph(locale),
+    concepts: loadConceptsGraph(locale),
   };
 }
 
@@ -156,12 +168,22 @@ async function resolveLocalizedBook(
     title: entry.data.title,
     href: workUrl("book", entry.data.slug, linkLocale),
     coverUrl: coverAssetUrl(pair, locale),
+    // The link is "localized" only when it resolves to the requested locale.
+    // A RU-only book on /en/ falls back to RU (linkLocale "ru" ≠ "en") → badge.
+    localized: linkLocale === locale,
+    // Tags come from the resolved-locale entry: an EN-paired book yields its EN
+    // frontmatter tags; a RU-only book stays RU (no EN frontmatter exists). This
+    // is why the graph node's own RU `tags` are NOT the source on /en/.
+    tags: workTags(entry),
   };
 }
 
 function bookSlugInfoRecord(catalog: LocalizedBookCatalog): BookSlugInfo {
   return Object.fromEntries(
-    [...catalog].map(([slug, info]) => [slug, { number: info.number, title: info.title, href: info.href }]),
+    [...catalog].map(([slug, info]) => [
+      slug,
+      { number: info.number, title: info.title, href: info.href, localized: info.localized, tags: info.tags },
+    ]),
   );
 }
 
@@ -181,11 +203,14 @@ function bookRow(node: BooksGraphNode, catalog: LocalizedBookCatalog): Conceptos
     number: node.number,
     title: info.title,
     community: node.community,
-    tags: node.tags,
+    // Resolved-locale frontmatter tags (EN for an EN-paired book), not the
+    // graph node's RU `tags`, so /en/ never leaks Russian tags under an EN URL.
+    tags: info.tags,
     href: info.href,
     coverUrl: info.coverUrl,
+    localized: info.localized,
     topConcepts: allConcepts.slice(0, 8).map((concept) => ({ label: concept.label })),
-    searchHay: bookSearchHay(node, info.title),
+    searchHay: bookSearchHay(node, info.title, info.tags),
   };
 }
 
@@ -211,15 +236,17 @@ function topBookRow(
     slug: book.slug,
     title: info.title,
     href: info.href,
+    localized: info.localized,
   };
 }
 
-function bookSearchHay(node: BooksGraphNode, localizedTitle: string): string {
+function bookSearchHay(node: BooksGraphNode, localizedTitle: string, localizedTags: readonly string[]): string {
   return haystack([
     localizedTitle,
     node.title,
     node.slug,
     String(node.number),
+    ...localizedTags,
     ...node.tags,
     ...node.top_concepts.flatMap((concept) => [concept.label, concept.lemma]),
   ]);

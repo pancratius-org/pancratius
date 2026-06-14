@@ -1,0 +1,23 @@
+{
+  "communities": [
+    { "id": 0, "key": "b00c0de1", "label": "Книги", "size": 1, "color_index": 0 }
+  ],
+  "nodes": [
+    {
+      "id": "01-kniga",
+      "slug": "01-kniga",
+      "number": 1,
+      "label": "Книга",
+      "title": "Книга",
+      "tags": ["свет"],
+      "community": 0,
+      "top_concepts": [
+        { "concept_id": "свет", "label": "Свет", "lemma": "свет", "count": 10 },
+        { "concept_id": "тьма", "label": "Тьма", "lemma": "тьма", "count": 5 }
+      ],
+      "top_similar": [],
+      "top_similar_embed": []
+    }
+  ],
+  "edges": []
+}

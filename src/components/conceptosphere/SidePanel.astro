@@ -234,6 +234,27 @@ const t = conceptosphereStrings(locale);
     color: var(--cs-ink-trace);
     text-transform: uppercase;
   }
+  /* Shared RU-only degradation treatment (RussianOriginalBadge.astro twin,
+     built in the DOM by russian-badge.ts). The panel uses the trace ink so it
+     sits quietly in the dense sidebar. */
+  .cs-panel :global(.ru-original) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 3px 8px;
+    margin-top: 4px;
+  }
+  .cs-panel :global(.ru-original__pill) {
+    display: inline-block;
+    padding: 1px 6px;
+    border: 1px solid var(--accent-soft);
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cs-ink-trace);
+  }
   .cs-panel :global(.cs-book-title-link) {
     color: inherit;
     text-decoration: none;

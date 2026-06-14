@@ -6,10 +6,10 @@
 // never reads them, and they are never copied into `dist/`.
 
 import { readFileSync } from "node:fs";
-import { resolve as resolvePath } from "node:path";
 
+import { graphPayloadPath } from "./conceptosphere-payload-path";
 import type { Locale, RoutedKind } from "./i18n";
-import { workUrl } from "./i18n";
+import { DEFAULT_LOCALE, workUrl } from "./i18n";
 import type { WorkEntry, WorkPair } from "./works";
 import { crossRefKeys, entryForAuthoredLocale, findPair, pairKey } from "./works";
 
@@ -102,24 +102,38 @@ export interface ConceptsGraph {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Loaders. Read once at build time, cache the parsed payload.
+// Loaders. Read once at build time, cache the parsed payload per locale.
+//
+// The default (RU) locale reads the un-suffixed source graph under `data/`.
+// A non-default locale reads the per-locale payload the build join already
+// emitted under `public/data/` (`build/copy-graph-payloads.ts` produces
+// `pancratius-*-graph.<locale>.json` = RU topology ⋈ the authored overlay).
+// That build-time join is the ONLY bridge: this loader CONSUMES its output,
+// it does not re-join. The desktop graph fetches the same `.<locale>.json`,
+// so the server-rendered mobile list and the client graph render identical
+// labels. A missing localized payload throws (no silent RU fallback under an
+// English URL); `npm run generate` emits it before any render.
 // ─────────────────────────────────────────────────────────────────────
 
-let _booksGraph:    BooksGraph | null = null;
-let _conceptsGraph: ConceptsGraph | null = null;
+const _booksGraph = new Map<Locale, BooksGraph>();
+const _conceptsGraph = new Map<Locale, ConceptsGraph>();
 
-export function loadBooksGraph(): BooksGraph {
-  if (_booksGraph) return _booksGraph;
-  const raw = readFileSync(resolvePath(REPO_ROOT, "data", "pancratius-books-graph.json"), "utf-8");
-  _booksGraph = JSON.parse(raw) as BooksGraph;
-  return _booksGraph;
+export function loadBooksGraph(locale: Locale = DEFAULT_LOCALE): BooksGraph {
+  const cached = _booksGraph.get(locale);
+  if (cached) return cached;
+  const path = graphPayloadPath("pancratius-books-graph", locale, REPO_ROOT);
+  const graph = JSON.parse(readFileSync(path, "utf-8")) as BooksGraph;
+  _booksGraph.set(locale, graph);
+  return graph;
 }
 
-export function loadConceptsGraph(): ConceptsGraph {
-  if (_conceptsGraph) return _conceptsGraph;
-  const raw = readFileSync(resolvePath(REPO_ROOT, "data", "pancratius-concepts-graph.json"), "utf-8");
-  _conceptsGraph = JSON.parse(raw) as ConceptsGraph;
-  return _conceptsGraph;
+export function loadConceptsGraph(locale: Locale = DEFAULT_LOCALE): ConceptsGraph {
+  const cached = _conceptsGraph.get(locale);
+  if (cached) return cached;
+  const path = graphPayloadPath("pancratius-concepts-graph", locale, REPO_ROOT);
+  const graph = JSON.parse(readFileSync(path, "utf-8")) as ConceptsGraph;
+  _conceptsGraph.set(locale, graph);
+  return graph;
 }
 
 // ─────────────────────────────────────────────────────────────────────

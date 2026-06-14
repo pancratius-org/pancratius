@@ -1,0 +1,10 @@
+{
+  "communities": [
+    { "id": 0, "key": "c0ffee01", "label": "Свет", "size": 2, "color_index": 0 }
+  ],
+  "nodes": [
+    { "id": "свет", "concept_id": "свет", "label": "Свет", "lemma": "свет", "community": 0 },
+    { "id": "тьма", "concept_id": "тьма", "label": "Тьма", "lemma": "тьма", "community": 0 }
+  ],
+  "edges": []
+}
