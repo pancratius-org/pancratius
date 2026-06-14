@@ -16,9 +16,10 @@
 // A missing translation is a build failure, never a silent RU fallback under
 // an English URL (conceptosphere-bilingual-design.md §2). The PAN021 audit is
 // the gate; this throw is the same contract at the publish seam so `npm run
-// generate` alone never emits a half-translated payload. Book NODES are not
-// translated here (they degrade via the "Russian original" badge, §4); only
-// their COMMUNITIES carry translatable labels.
+// generate` alone never emits a half-translated payload. Book NODE titles are
+// not translated here (they degrade via the "Russian original" badge, §4); but
+// their COMMUNITIES and their `top_concepts[]` refs (the same concept
+// vocabulary as the concepts graph) ARE joined to the EN label.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
@@ -63,11 +64,17 @@ export interface OverlayEntry {
 }
 export type Overlay = Record<string, OverlayEntry>;
 
+interface TopConceptRef {
+  concept_id?: unknown;
+  label?: unknown;
+  [key: string]: unknown;
+}
 interface GraphNode {
   id?: unknown;
   concept_id?: unknown;
   label?: unknown;
   gloss?: unknown;
+  top_concepts?: unknown;
   [key: string]: unknown;
 }
 interface GraphCommunity {
@@ -92,6 +99,21 @@ function conceptStableId(node: GraphNode): string | null {
   return null;
 }
 
+/**
+ * Translate a book node's `top_concepts[]` labels by stable id. A top-concept
+ * whose `concept_id` has no overlay entry throws — the same strict join (and
+ * the same vocabulary) as the concept nodes, so PAN021 keeps it complete.
+ */
+function joinBookNodeConcepts(node: GraphNode, overlay: Overlay): GraphNode {
+  if (!Array.isArray(node.top_concepts)) return node;
+  const top = (node.top_concepts as TopConceptRef[]).map((concept) => {
+    if (!isString(concept.concept_id)) return concept;
+    const entry = requireEntry(overlay, `concept:${concept.concept_id}`, "book top concept");
+    return { ...concept, label: entry.label };
+  });
+  return { ...node, top_concepts: top };
+}
+
 function requireEntry(overlay: Overlay, stableId: string, what: string): OverlayEntry {
   const entry = overlay[stableId];
   if (!entry || !isString(entry.label)) {
@@ -110,13 +132,18 @@ function requireEntry(overlay: Overlay, stableId: string, what: string): Overlay
  */
 export function joinLocalePayload(graph: Graph, overlay: Overlay, nodesAreConcepts: boolean): Graph {
   const nodes = (graph.nodes ?? []).map((node) => {
-    if (!nodesAreConcepts) return node;
-    const conceptId = conceptStableId(node);
-    if (conceptId === null) return node;
-    const entry = requireEntry(overlay, `concept:${conceptId}`, "concept");
-    const joined: GraphNode = { ...node, label: entry.label };
-    if (entry.gloss !== undefined) joined.gloss = entry.gloss;
-    return joined;
+    if (nodesAreConcepts) {
+      const conceptId = conceptStableId(node);
+      if (conceptId === null) return node;
+      const entry = requireEntry(overlay, `concept:${conceptId}`, "concept");
+      const joined: GraphNode = { ...node, label: entry.label };
+      if (entry.gloss !== undefined) joined.gloss = entry.gloss;
+      return joined;
+    }
+    // Book nodes are not translated, but their `top_concepts[]` reference the
+    // same concept vocabulary as the concepts graph; substitute the EN label by
+    // `concept:<concept_id>` so the EN side panel renders English top-concepts.
+    return joinBookNodeConcepts(node, overlay);
   });
 
   const communities = (graph.communities ?? []).map((com) => {

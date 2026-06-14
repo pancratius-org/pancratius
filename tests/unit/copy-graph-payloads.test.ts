@@ -82,18 +82,61 @@ describe("joinLocalePayload", () => {
     assert.throws(() => joinLocalePayload(graph, OVERLAY, true), /missing a label for community "community:deadbeef"/);
   });
 
-  test("does NOT translate book nodes (nodesAreConcepts=false), only their communities", () => {
+  test("does NOT translate book node titles, but DOES translate their top_concepts + communities", () => {
     const booksGraph: Graph = {
       mode: "books",
       communities: [{ id: 0, key: "c0ffee01", label: "Свет" }],
-      nodes: [{ id: "1-foo", slug: "1-foo", number: 1, label: "Книга", title: "Книга", community: 0 }],
+      nodes: [{
+        id: "1-foo", slug: "1-foo", number: 1, label: "Книга", title: "Книга", community: 0,
+        top_concepts: [
+          { concept_id: "свет", label: "Свет", lemma: "свет", count: 10 },
+          { concept_id: "тьма", label: "Тьма", lemma: "тьма", count: 5 },
+        ],
+      }],
       edges: [],
     };
     const out = joinLocalePayload(booksGraph, OVERLAY, false);
-    // Book node label stays RU (it degrades via the badge, not translation here).
+    // Book node title stays RU (it degrades via the badge, not translation here).
     assert.equal(out.nodes?.[0]?.label, "Книга");
+    // top_concepts labels ARE translated (same concept vocabulary).
+    const tc = out.nodes?.[0]?.top_concepts as { label: string; lemma: string; count: number }[];
+    assert.deepEqual(tc.map((c) => c.label), ["Light", "Darkness"]);
+    // Topology under the ref (lemma, count) is preserved.
+    assert.equal(tc[0]?.lemma, "свет");
+    assert.equal(tc[0]?.count, 10);
     // Community label is translated.
     assert.equal(out.communities?.[0]?.label, "Light & Darkness");
+  });
+
+  test("throws on a book top-concept whose concept_id has no EN entry", () => {
+    const booksGraph: Graph = {
+      mode: "books",
+      communities: [],
+      nodes: [{
+        id: "1-foo", slug: "1-foo", number: 1, label: "Книга", community: 0,
+        top_concepts: [{ concept_id: "страх", label: "Страх", lemma: "страх", count: 3 }],
+      }],
+      edges: [],
+    };
+    assert.throws(
+      () => joinLocalePayload(booksGraph, OVERLAY, false),
+      /missing a label for book top concept "concept:страх"/,
+    );
+  });
+
+  test("leaves a book top-concept without concept_id untouched (pre-regen refs)", () => {
+    const booksGraph: Graph = {
+      mode: "books",
+      communities: [],
+      nodes: [{
+        id: "1-foo", slug: "1-foo", number: 1, label: "Книга", community: 0,
+        top_concepts: [{ label: "Свет", lemma: "свет", count: 7 }],
+      }],
+      edges: [],
+    };
+    const out = joinLocalePayload(booksGraph, OVERLAY, false);
+    const tc = out.nodes?.[0]?.top_concepts as { label: string }[];
+    assert.equal(tc[0]?.label, "Свет");
   });
 
   test("skips communities without a fingerprint key (pre-regen payloads)", () => {
