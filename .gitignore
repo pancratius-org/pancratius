@@ -42,3 +42,7 @@ playwright-report/
 .venv/
 __pycache__/
 *.pyc
+
+# scratchpad is transient working space, except paths explicitly re-included below
+docs/scratchpad/*
+!docs/scratchpad/lineation-core/
