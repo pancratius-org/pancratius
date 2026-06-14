@@ -654,15 +654,18 @@ def _fold_sub_units(
 # slightly stricter on EN — the conservative direction (refuses to fold).
 _COMPACT_SOURCE_LINE_MAX = 80
 
-# A run whose every line stays under this, with a low mean, is authored lineation
-# on its own geometry — no stanza gap and no section boundary needed. At this width
-# a flowing prose sentence would wrap to a long line, so consecutive short `<w:p>`
-# rows are breaks the author set, not prose. The cap on the LONGEST line is what
-# separates uniformly-short verse (set as bare consecutive rows) from
-# one-sentence-per-line prose, whose sentences wrap past it. Measured in characters
-# (EN ~10% longer than RU → slightly stricter on EN, the conservative direction).
-_TIGHT_LINE_MAX = 52
-_TIGHT_AVG_MAX = 30
+# A SUSTAINED run of uniformly short lines is authored lineation on its own geometry —
+# verse set as bare consecutive `<w:p>` with no stanza gap and no section boundary. Two
+# signals must both hold. The line caps: at this width a flowing prose sentence would
+# wrap to a long line, so every member being short already rules out wrapped prose. The
+# length floor is the load-bearing half: SHORT prose clusters exist too (diary beats,
+# dialogue turns — a few short rows), so shortness alone is not verse; only a LONG run
+# is unambiguous, since prose never yields many consecutive short lines without
+# wrapping. The floor sits one past the longest such prose cluster observed in the
+# corpus (5 rows). Lengths in characters (EN ~10% longer than RU → stricter on EN).
+_BARE_RUN_MIN_LINES = 6
+_BARE_RUN_LINE_MAX = 52
+_BARE_RUN_AVG_MAX = 30
 
 
 def _split_at_prose_singletons(
@@ -867,11 +870,13 @@ def _should_infer_source_row_lineation(
         and not any(CODA_PSEUDO_HEADING_RE.match(line) for line in lines)
     ):
         return True
-    # TIGHT: uniformly short consecutive rows are lineation even with no stanza gap
-    # and no boundary to attach to — verse the author set as bare rows (no blank
-    # between lines). The longest-line cap keeps one-sentence-per-line prose out: its
-    # sentences wrap past `_TIGHT_LINE_MAX`.
-    if len(lines) >= 3 and max(lengths) <= _TIGHT_LINE_MAX and avg <= _TIGHT_AVG_MAX:
+    # SUSTAINED bare run: a long run of uniformly short rows is lineation even with no
+    # stanza gap and no boundary to attach to — verse the author set as bare consecutive
+    # rows. The length floor keeps short prose clusters (diary beats, dialogue turns)
+    # out; the line caps keep wrapped prose out.
+    if (len(lines) >= _BARE_RUN_MIN_LINES
+            and max(lengths) <= _BARE_RUN_LINE_MAX
+            and avg <= _BARE_RUN_AVG_MAX):
         return True
     if not (any(p.empty for p in run) and len(lines) >= 3):
         return False
