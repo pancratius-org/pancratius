@@ -46,7 +46,7 @@ const altPrefix = copy.coverAltPrefix;
     <h2 class="book__title">{entry.data.title}</h2>
     {blurb && <p class="work-card-teaser">{blurb}</p>}
     {hasTranslationBadge && <span class="work-card-badge">{localeBadge.both}</span>}
-    {localeFallback && <RussianOriginalBadge {href} />}
+    {localeFallback && <RussianOriginalBadge />}
   </div>
 </a>
 
