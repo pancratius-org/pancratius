@@ -88,6 +88,14 @@ export interface Graph {
   [key: string]: unknown;
 }
 
+/** A graph after locale projection. Unlike the loose input `Graph` (a permissive
+ *  view over raw JSON), the join always materialises `nodes` and `communities`,
+ *  so the output type guarantees both rather than understating the postcondition. */
+export interface LocalizedGraph extends Graph {
+  nodes: GraphNode[];
+  communities: GraphCommunity[];
+}
+
 function isString(value: unknown): value is string {
   return typeof value === "string" && value.length > 0;
 }
@@ -130,7 +138,7 @@ function requireEntry(overlay: Overlay, stableId: string, what: string): Overlay
  * by stable id. Returns a new object; the input is not mutated. Throws on the
  * first missing translation.
  */
-export function joinLocalePayload(graph: Graph, overlay: Overlay, nodesAreConcepts: boolean): Graph {
+export function joinLocalePayload(graph: Graph, overlay: Overlay, nodesAreConcepts: boolean): LocalizedGraph {
   const nodes = (graph.nodes ?? []).map((node) => {
     if (nodesAreConcepts) {
       const conceptId = conceptStableId(node);
