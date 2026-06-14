@@ -1,0 +1,20 @@
+{
+  "git_sha": "b81485d42984af77c2fa2e71a1ff8eba957979cd+dirty",
+  "labels_sha256": "0d3ec985ee784c18ed069819c6658a8d5392c7d0df485102660d7c636bd5dc8f",
+  "votes_sha256": "3497df10b08258aa038dbcee9e9ab44b32305b9db03aa5e49b41c647dba5b380",
+  "working_set": "e1-instrument-working",
+  "frozen_set_excluded": "e1-instrument-frozen",
+  "working_set_sha256": "e06057ce63090eb397fc8f08ca0d6f07d9f22fe56e4f3b9bf937738037a69c7b",
+  "frozen_set_sha256": "53c0c9cffba0ab71a4ebc7ba17ed85e2658477ff98d92e78c3ab5d1991c18fa9",
+  "truth_sha256": "1e522b30d8d775e2c727ba6848cfe2e60adb660501402425e52a5201bcce4e24",
+  "posterior": "student.oof_smoothed alpha=0 over ALL trainable labels (book-held-out)",
+  "signals": [
+    "det_student_disagree",
+    "student_uncertainty",
+    "suspicion_v0",
+    "panel_vote_spread"
+  ],
+  "phi_rho_threshold": 0.3,
+  "corpus_recon": "2026-06-13-recon-bilingual",
+  "corpus_recon_scorecard_sha256": "9f6b9b059ba1f50c148d008562a7c833649d8914c21cdeb705cad0d79cdf4f2a"
+}

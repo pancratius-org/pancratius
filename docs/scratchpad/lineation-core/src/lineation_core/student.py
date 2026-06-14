@@ -125,6 +125,19 @@ class FittedModel:
 
     __call__ = posterior  # a FittedModel IS a sequence.Posterior
 
+    def explain(self) -> list[tuple[FeatureName, float]]:
+        """This model's signed per-feature weights, largest |weight| first — the INTERPRETABLE
+        readout. Model-specific (a logistic regression's coefficients), so it lives on the model,
+        not in the CV harness: a different student carries its own `explain`. A degenerate
+        single-class fit has no weights → empty."""
+        if self.single_class is not None:
+            return []
+        # sort by the UNROUNDED weight (so rounding-tied features keep their true order), round
+        # only on emit.
+        ordered = sorted(zip(self.columns, self.clf.coef_[0]),
+                         key=lambda cw: abs(cw[1]), reverse=True)
+        return [(c, round(float(w), 3)) for c, w in ordered]
+
 
 def _fit(M, y, *, seed: int, columns: list[FeatureName]) -> FittedModel:
     from sklearn.linear_model import LogisticRegression
@@ -158,7 +171,6 @@ class CVResult:
     prose_recall: float
     confusion: dict[str, int]        # confusion-cell name (prose_as_lineated, …) -> count
     majority_baseline_acc: float
-    coefficients: list[tuple[FeatureName, float]]
     zero_support_columns: list[FeatureName]
     oof_pred: LabelByLine            # out-of-fold predicted label per line (book held out)
 
@@ -201,9 +213,6 @@ def train_cv(ds: Dataset, *, seed: int = 0) -> CVResult:
     bal = Counter(ds.y)
     maj = max(bal.values()) / sum(bal.values())
 
-    full = _fit(M, yv, seed=seed, columns=ds.columns)  # for interpretable coefficients
-    coefs = sorted(zip(ds.columns, full.clf.coef_[0]), key=lambda kv: abs(kv[1]), reverse=True)
-
     return CVResult(
         n=len(ds.y), n_books=len(set(ds.groups)),
         accuracy=float((yt == yp).mean()),
@@ -216,7 +225,6 @@ def train_cv(ds: Dataset, *, seed: int = 0) -> CVResult:
         confusion={"prose_as_prose": int(cm[0, 0]), "prose_as_lineated": int(cm[0, 1]),
                    "lineated_as_prose": int(cm[1, 0]), "lineated_as_lineated": int(cm[1, 1])},
         majority_baseline_acc=float(maj),
-        coefficients=[(c, round(w, 3)) for c, w in coefs],
         zero_support_columns=[c for c, n in ds.feature_support.items() if n == 0],
         oof_pred=oof,
     )
@@ -330,7 +338,7 @@ if __name__ == "__main__":
     print(f"  confusion           = {res.confusion}")
     print(f"  zero-support cols   = {res.zero_support_columns}")
     print("  top coefficients (|w|):")
-    for c, w in res.coefficients[:12]:
+    for c, w in fit_full(ds).explain()[:12]:
         print(f"     {w:+.3f}  {c}")
     print()
     print("=== sequence-shaped: run-level soft smoothing, alpha swept under book-grouped CV ===")
