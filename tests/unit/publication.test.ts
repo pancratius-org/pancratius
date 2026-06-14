@@ -235,6 +235,18 @@ describe("renderPublicWorkMarkdown raw HTML policy", () => {
     );
   });
 
+  test("degrades a scripture quote that wraps a lineated div", () => {
+    // The importer wraps an authored-verse scripture quote as a lineated div
+    // INSIDE the scripture blockquote; the lineated div must unwrap before the
+    // quote is portably quoted (no raw <div> may survive).
+    const rendered = renderPublicWorkMarkdown(
+      '<blockquote class="scripture">\n\n<div class="lineated">\n\n«Блаженны чистые сердцем».\n\n</div>\n\n</blockquote>',
+      { origin: ORIGIN, work: { kind: "book", bundleKey: "work-1" } },
+    );
+
+    assert.equal(rendered, ["> «Блаженны чистые сердцем».", ""].join("\n"));
+  });
+
   test("refuses raw HTML comments, declarations, and processing instructions", () => {
     for (const raw of ["<!-- hidden -->", "<!doctype html>", "<?xml version=\"1.0\"?>"]) {
       assert.throws(
