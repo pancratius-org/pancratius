@@ -128,6 +128,8 @@ the architecture contracts those rules cover.
 | PAN017 | `pancratius work import --kind` derives from `CORPUS_WORK_KINDS`; projects are not work kinds. |
 | PAN018 | Modules marked `# import-pure: no filesystem mutation` do not mutate the filesystem. |
 | PAN019 | The `pancratius` CLI exposes no site build/verify verbs. |
+| PAN021 | Every conceptosphere stable id (concept_id, community key) has an EN translation. |
+| PAN022 | Every `/en/` book-reference context with a Cyrillic (RU-only) title carries the shared "Russian original" badge; `/ru/` carries zero badges. |
 
 Content-quality checks are heuristic unless promoted with a deterministic
 contract and polarity coverage.

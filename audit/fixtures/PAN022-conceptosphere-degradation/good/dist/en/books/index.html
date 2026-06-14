@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <body>
+    <main role="list">
+      <!-- Localized EN book card: English title, no badge needed. -->
+      <a class="book" href="/en/books/the-way/" role="listitem">
+        <div class="bcv"></div>
+        <div class="book__body">
+          <span class="book__num work-card-num">01</span>
+          <h2 class="book__title">The Way</h2>
+        </div>
+      </a>
+      <!-- RU-only book card under /en/: Cyrillic title, correctly badged. -->
+      <a class="book" href="/books/put-very-russian/" role="listitem">
+        <div class="bcv"></div>
+        <div class="book__body">
+          <span class="book__num work-card-num">02</span>
+          <h2 class="book__title">Путь к свету</h2>
+          <span class="ru-original">
+            <span class="ru-original__pill">Russian original</span>
+            <a class="ru-original__open" href="/books/put-very-russian/">Open in Russian</a>
+          </span>
+        </div>
+      </a>
+    </main>
+  </body>
+</html>
