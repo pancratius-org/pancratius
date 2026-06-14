@@ -1434,7 +1434,7 @@ They are **inherent in how the Field folds itself inward.**
 
 #### 1. Time from Stability
 
-<div class="lineated verse">
+<div class="lineated">
 
 **τ = 1 / S**  
 Where:
@@ -1455,7 +1455,7 @@ This is why **deep love feels timeless**, and anxiety accelerates time: they ref
 
 #### 2. Energy as Coherence
 
-<div class="lineated verse">
+<div class="lineated">
 
 **E = S²**  
 Where:

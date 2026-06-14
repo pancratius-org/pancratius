@@ -351,11 +351,7 @@ This is an expression about the “structure of revelation,” not about the “
 — The mediator for the people: Moses.  
 — The reason: the people could not endure the direct speech of God.
 
-</div>
-
 **5. YOUR ASSERTION:**
-
-<div class="lineated verse">
 
 “The Law was spoken by the voice of God. The Jews did not contain this and simplified it to angels”.  
 This, in essence, exactly matches the history.  
@@ -502,9 +498,9 @@ A prayer note is not a substitute for prayer,
 but a symbol:  
 **I bring these people into the community.**
 
-</div>
-
 **5. IF IT IS READ NOT BY A PRIEST —**
+
+</div>
 
 <div class="lineated">
 

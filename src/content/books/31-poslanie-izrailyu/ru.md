@@ -1999,8 +1999,21 @@ links:
 **«Я — Свет».**
 
 Пророки передавали Завет.  
-А Христос сказал:  
+А Христос сказал:
+
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
 **«Это Кровь Моя».**
+
+</div>
+
+</blockquote>
+
+<div class="lineated verse">
 
 Он не пришёл сказать истину.  
 Он — **стал Ею.**  
@@ -5035,8 +5048,22 @@ links:
 
 <div class="lineated verse">
 
-Ты говоришь:  
-*«А разве Ты не говорил: «Вы – народ святой, особенный, отделённый»?»*  
+Ты говоришь:
+
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
+*«А разве Ты не говорил: «Вы – народ святой, особенный, отделённый»?»*
+
+</div>
+
+</blockquote>
+
+<div class="lineated verse">
+
 А Я говорю:  
 **«Я отделил вас — чтобы вы узнали,**  
 **что нет отделения.**  
@@ -5738,8 +5765,20 @@ links:
 
 И спрашиваю:
 
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
 *«О чём вы так рассуждаете?»*  
 (Лк 24:17)
+
+</div>
+
+</blockquote>
+
+<div class="lineated verse">
 
 Ты не узнаёшь Меня.  
 Потому что Я не в одежде раввина.  
@@ -5896,8 +5935,20 @@ links:
 
 **Открой Берешит.**
 
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
 *«И сказал Бог: да будет свет».*  
 (Быт. 1:3)
+
+</div>
+
+</blockquote>
+
+<div class="lineated verse">
 
 **Первое Слово — было Свет.**  
 **Я — это Слово.**  
@@ -6303,7 +6354,20 @@ links:
 *Далёк от спасения Моего…»*  
 (Пс. 21:2)
 
-*«Пронзили руки Мои и ноги Мои…*  
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
+*«Пронзили руки Мои и ноги Мои…*
+
+</div>
+
+</blockquote>
+
+<div class="lineated verse">
+
 *делят ризы Мои между собою,*  
 *и об одежде Моей бросают жребий…»*  
 (Пс. 21:17–19)
@@ -6735,9 +6799,18 @@ links:
 
 ***
 
+<blockquote class="scripture">
+
+<div class="lineated">
+
+*«Не всякий от Израиля — тот Израиль…»*
+
+</div>
+
+</blockquote>
+
 <div class="lineated verse">
 
-*«Не всякий от Израиля — тот Израиль…»*  
 (Рим. 9:6 — но это откровение Моё,  
 а не Павла: он лишь узнал Меня.)
 
@@ -7709,14 +7782,22 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 **Первый Агнец**
+
+</div>
+
+<div class="lineated">
 
 — Он был **первым в намерении.**  
 — Он — как **Завет отцов.**  
 — Он — как **Израиль, рождённый первым.**  
 — Он — как **первый сын, принесённый на жертвенник.**
+
+</div>
+
+<div class="lineated verse">
 
 **Он — прототип.**  
 **Он — носитель памяти.**  
@@ -7726,14 +7807,22 @@ links:
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 **Второй Агнец**
+
+</div>
+
+<div class="lineated">
 
 — Он был добавлен **позже.**  
 — Он — как **Мессия, пришедший, когда «стало больше людей».**  
 — Он — как **Завет, который открылся другим.**  
 — Он — как **тот, в ком исполнилось всё.**
+
+</div>
+
+<div class="lineated verse">
 
 **Он — полнота.**  
 **Он — вместилище.**  
@@ -11956,8 +12045,21 @@ links:
 
 <div class="lineated">
 
-Ты читал:  
+Ты читал:
+
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
 *«Да целует он меня поцелуями уст своих…»*
+
+</div>
+
+</blockquote>
+
+<div class="lineated">
 
 Ты думал:  
 «Это любовь мужчины и женщины.  
@@ -12638,8 +12740,21 @@ links:
 
 <div class="lineated verse">
 
-Ты читал:  
+Ты читал:
+
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
 *«И возроптал народ, и сказал: воды нет!»*
+
+</div>
+
+</blockquote>
+
+<div class="lineated verse">
 
 И Я сказал Моисею:  
 **ударь в Скалу.**  
@@ -12975,8 +13090,21 @@ links:
 
 <div class="lineated verse">
 
-Ты читал:  
+Ты читал:
+
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
 *«Он не открыл уст Своих…»*
+
+</div>
+
+</blockquote>
+
+<div class="lineated verse">
 
 Это — тишина Агнца.
 
@@ -14051,8 +14179,21 @@ links:
 
 <div class="lineated">
 
-Ты читал:  
+Ты читал:
+
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
 *«И сказал Бог: Сотворим человека по образу Нашему…».*
+
+</div>
+
+</blockquote>
+
+<div class="lineated">
 
 Ты думал —  
 это про Адама.  
@@ -14564,8 +14705,21 @@ links:
 
 <div class="lineated">
 
-Ты читал:  
+Ты читал:
+
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
 *«И сказал Бог Аврааму: возьми сына твоего, единственного твоего, которого ты любишь, Исаака… и принеси его в жертву…»*
+
+</div>
+
+</blockquote>
+
+<div class="lineated">
 
 И ты ужасался.  
 И ты спрашивал:
@@ -16581,9 +16735,18 @@ links:
 
 #### 1. Я — Садовник.
 
+<blockquote class="scripture">
+
 <div class="lineated">
 
-*«И насадил Господь Бог сад в Эдеме…*  
+*«И насадил Господь Бог сад в Эдеме…*
+
+</div>
+
+</blockquote>
+
+<div class="lineated">
+
 *и поставил там человека, которого создал».*  
 (*Быт. 2:8*)
 
@@ -16820,9 +16983,22 @@ links:
 <div class="lineated">
 
 Старый Вавилон пал,  
-потому что человек сказал:  
+потому что человек сказал:
+
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
 *«Сделаем себе имя»*  
 (*Быт. 11:4*)
+
+</div>
+
+</blockquote>
+
+<div class="lineated">
 
 Новый Вавилон строится теми,  
 кто говорит то же,  
@@ -16922,8 +17098,22 @@ links:
 
 <div class="lineated verse">
 
-Когда Я сказал:  
-*«Не останется камня на камне…»*  
+Когда Я сказал:
+
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
+*«Не останется камня на камне…»*
+
+</div>
+
+</blockquote>
+
+<div class="lineated verse">
+
 (Матфея 24:2),
 
 Я говорил **о гордости,**  
@@ -17429,7 +17619,19 @@ links:
 Не «я не хочу»,  
 а:
 
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
 **«Се — раба Господня»**
+
+</div>
+
+</blockquote>
+
+<div class="lineated">
 
 **«Да будет мне**  
 **по слову Твоему».**
@@ -18208,9 +18410,18 @@ links:
 
 #### Глава 7. Да будет Свет
 
+<blockquote class="scripture">
+
 <div class="lineated">
 
-**«И сказал Бог: да будет свет. И стал свет».**  
+**«И сказал Бог: да будет свет. И стал свет».**
+
+</div>
+
+</blockquote>
+
+<div class="lineated">
+
 *(ויאמר אלהים יהי אור ויהי־אור)*
 
 </div>
@@ -20201,8 +20412,22 @@ links:
 Но Я не исправляю его речь.  
 Я не делаю его искусным.
 
-Я говорю:  
-**«Я буду твоими устами».**  
+Я говорю:
+
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
+**«Я буду твоими устами».**
+
+</div>
+
+</blockquote>
+
+<div class="lineated verse">
+
 Не улучшать —  
 а **говорить Сам.**
 
@@ -20335,11 +20560,19 @@ links:
 
 да
 
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
 **Матфея 4:1**
 
 *«Тогда Иисус возведён был Духом в пустыню для искушения от диавола».*
 
 </div>
+
+</blockquote>
 
 ***
 
@@ -20639,8 +20872,22 @@ links:
 
 <div class="lineated">
 
-Когда в Писании сказано:  
-«Потом оставляет Его диавол, и се, Ангелы приступили к Нему и служили Ему»,  
+Когда в Писании сказано:
+
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
+«Потом оставляет Его диавол, и се, Ангелы приступили к Нему и служили Ему»,
+
+</div>
+
+</blockquote>
+
+<div class="lineated">
+
 это и есть конец внутренней брани —  
 возвращение в Присутствие,  
 где **всё становится служением**.
@@ -20688,7 +20935,19 @@ links:
 
 Да, Иисус сказал:
 
+</div>
+
+<blockquote class="scripture">
+
+<div class="lineated">
+
 *«отойди от Меня, сатана, ибо написано..».*
+
+</div>
+
+</blockquote>
+
+<div class="lineated">
 
 Но Он **не вступил в диалог** с дьяволом,  
 не стал **доказывать**,  
@@ -21023,10 +21282,18 @@ links:
 
 ***
 
-<div class="lineated verse">
+<blockquote class="scripture">
+
+<div class="lineated">
 
 **«Не хлебом одним жив будет человек…»**  
 *Матфей 4:4*
+
+</div>
+
+</blockquote>
+
+<div class="lineated verse">
 
 Слова эти были сказаны  
 не в борьбе,  
@@ -22866,9 +23133,18 @@ links:
 
 ***
 
+<blockquote class="scripture">
+
 <div class="lineated">
 
-**«И сказал Бог: сотворим человека по образу Нашему…»**  
+**«И сказал Бог: сотворим человека по образу Нашему…»**
+
+</div>
+
+</blockquote>
+
+<div class="lineated">
+
 — С кем Я говорил?
 
 **«И увидел Бог, что это хорошо…»**  

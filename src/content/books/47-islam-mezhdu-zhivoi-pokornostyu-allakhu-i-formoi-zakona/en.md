@@ -161,10 +161,6 @@ I will do the same as before:
 — distinguish the path;  
 — and what was done to the path.
 
-</div>
-
-<div class="lineated verse">
-
 **The question is not formal, but essential**  
 You want:
 
