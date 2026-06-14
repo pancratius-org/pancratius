@@ -142,6 +142,21 @@ def write_experiment(experiment_id: str, *, scorecard: JsonObject, report: str,
     return folder
 
 
+def experiment_scorecard_path(experiment_id: str, *, experiments: Path | None = None) -> Path:
+    """The path to a prior experiment's `scorecard.json` — so a downstream study can pin its sha
+    (`sha256_file`) for reproducibility."""
+    return (experiments or paths.EXPERIMENTS) / experiment_id / SCORECARD_FILE
+
+
+def load_experiment_scorecard(experiment_id: str, *,
+                              experiments: Path | None = None) -> JsonObject:
+    """A prior experiment's committed `scorecard.json`, so a downstream study can READ its sized
+    counts (e.g. the recon corpus totals an E3 sweep is projected against) at runtime instead of
+    hard-coding them. FAILS LOUD if the scorecard is missing — a study that depends on another's
+    evidence must not silently fall back to a stale constant."""
+    return json.loads(_must(experiment_scorecard_path(experiment_id, experiments=experiments)).read_text())
+
+
 def load_experiment_timestamp(experiment_id: str, *,
                               experiments: Path | None = None) -> str | None:
     """A prior run's manifest timestamp, if one exists — so a replay preserves WHEN THE EVIDENCE WAS

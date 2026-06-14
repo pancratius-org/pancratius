@@ -39,6 +39,9 @@ def _fork(*, inside: bool) -> sb.PhiFork:
     return sb.PhiFork(rho=None, table=table, diag_monotone=True, inside_phi=inside, n=3)
 
 
+_RECON = sb.CorpusRecon(det_prose=69194, disagree_prose=32090, disagree_lineated=11813)
+
+
 def test_router_rejects_gate_circular_auc_all_leader() -> None:
     """The router ORDERS a whole-slice sweep, so it must be robust on INDEPENDENT (human) truth. A
     signal that wins AUC(all) but collapses to ~chance on the human subset (the det_student_disagree
@@ -48,12 +51,21 @@ def test_router_rejects_gate_circular_auc_all_leader() -> None:
     robust = sb.SignalScore(name="suspicion_v0", auc_all=0.866, auc_human=0.869)
     scored = [circular, robust]  # the AUC(all) leader is the circular one
 
-    router, rationale, suspect, basis = sb._choose_router(scored, _fork(inside=False))
+    router, rationale, suspect, basis = sb._choose_router(scored, _fork(inside=False), _RECON)
     assert "suspicion_v0" in router            # the robust signal orders the sweep
     assert "det_student_disagree" not in router
     # the rationale names the disqualified leader and the whole-band sweep, not a gate
     assert "det_student_disagree" in rationale and "gate-circular" in rationale
-    assert suspect == sb.CORPUS_DET_PROSE      # sweep the WHOLE band, not a gated slice
+    assert suspect == _RECON.det_prose         # sweep the WHOLE band, sized from the recon counts
+
+
+def test_router_corpus_counts_come_from_recon() -> None:
+    """The corpus projection is READ from the recon scorecard, never hard-coded — a different recon
+    flows straight through to the suspect size and basis."""
+    recon = sb.CorpusRecon(det_prose=100, disagree_prose=40, disagree_lineated=20)
+    robust = sb.SignalScore(name="suspicion_v0", auc_all=0.8, auc_human=0.8)
+    _, rationale, suspect, basis = sb._choose_router([robust], _fork(inside=False), recon)
+    assert suspect == 100 and "100" in rationale and "40" in basis and "20" in basis
 
 
 def test_router_raises_when_no_signal_clears_human_floor() -> None:
@@ -62,7 +74,7 @@ def test_router_raises_when_no_signal_clears_human_floor() -> None:
     scored = [sb.SignalScore(name="a", auc_all=0.9, auc_human=0.5),
               sb.SignalScore(name="b", auc_all=0.8, auc_human=None)]
     with pytest.raises(AssertionError, match="chance floor"):
-        sb._choose_router(scored, _fork(inside=False))
+        sb._choose_router(scored, _fork(inside=False), _RECON)
 
 
 def test_spearman_monotone_and_constant() -> None:
