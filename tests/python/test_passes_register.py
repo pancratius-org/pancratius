@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from pancratius import ir
+from pancratius.ir.inlines import inline_plain
 from pancratius.passes.pipeline import Context
 from pancratius.passes.register import (
     FEATURE_NAMES,
@@ -103,6 +104,126 @@ def test_equations_are_never_promoted() -> None:
     doc = _doc(_lineated("143 = 11 × 13", "а 153 = 9 × 17"))
     doc = assign_register(doc, _ctx(PROMOTE))
     block = doc.blocks[0]
+    assert isinstance(block, ir.LineatedBlock)
+    assert block.register is ir.Register.ORDINARY
+
+
+# ---------------------------------------------------------------------------
+# scaffold-robust verse verdict: the verdict and the segmentation share ONE
+# line labeling, so a scaffold island embedded in a verse body no longer
+# poisons the verse decision of the body it sits in.
+# ---------------------------------------------------------------------------
+
+
+def _dash_poison_model() -> RegisterModel:
+    """A model whose probability collapses below threshold as the dash-line rate
+    rises: a verse body alone clears 0.6, the same body with a dash island sinks.
+    Used to prove the verdict reads the verse-candidate view, not the monolith."""
+    n = len(FEATURE_NAMES)
+    coef = [0.0] * n
+    coef[FEATURE_NAMES.index("dash_rate")] = -6.0
+    return RegisterModel(
+        version=0, langs=("ru",), features=FEATURE_NAMES,
+        mean=(0.0,) * n, std=(1.0,) * n, coef=tuple(coef),
+        intercept=1.0, threshold=0.6,
+    )
+
+
+def _stanza(*lines: str) -> list[ir.Line]:
+    return [ir.Line([ir.Text(t)]) for t in lines]
+
+
+def _multi(*stanzas: list[ir.Line]) -> ir.LineatedBlock:
+    return ir.LineatedBlock(stanzas=list(stanzas))
+
+
+def test_dash_island_no_longer_poisons_the_verse_verdict() -> None:
+    # A cadenced verse body with a whole-dash scaffold stanza between its two
+    # verse stanzas. The monolith's dash_rate sinks the model below threshold;
+    # the verse-candidate view (dash stanza dropped) clears it, so the body
+    # promotes and segmentation splits the island back out as ORDINARY.
+    doc = _doc(_multi(
+        _stanza("Свет мой тихий,", "в сердце горит."),
+        _stanza("— возражение одно,", "— возражение два,"),
+        _stanza("и не гаснет.", "и не молчит."),
+    ))
+    out = assign_register(doc, _ctx(_dash_poison_model())).blocks
+    kinds = [(type(b).__name__, getattr(b, "register", None)) for b in out]
+    assert kinds == [
+        ("LineatedBlock", ir.Register.VERSE),
+        ("LineatedBlock", ir.Register.ORDINARY),
+        ("LineatedBlock", ir.Register.VERSE),
+    ]
+    middle = out[1]
+    assert isinstance(middle, ir.LineatedBlock)
+    assert [inline_plain(line.inlines) for line in middle.stanzas[0]] == [
+        "— возражение одно,", "— возражение два,",
+    ]
+
+
+def test_book54_numbered_self_exam_promotes_with_the_verse_body() -> None:
+    # The book-54 «Проверь себя» shape: numbered self-exam rows that
+    # `recover_numbered_rows` re-absorbed are the verse body's own cadence, not a
+    # scaffold island — the guard tolerates the ordinal lead and the run promotes
+    # whole (the numbered rows stay VERSE, not split out).
+    doc = _doc(_multi(_stanza(
+        "Граница — это акт любви,",
+        "потому что сердце — святыня.",
+        "Проверь себя:",
+        "1. Ты говоришь «да» потому, что хочешь —",
+        "или потому, что боишься последствий «нет»?",
+        "2. Ты молчишь, потому что мудр —",
+        "или потому что сломлен?",
+    )))
+    out = assign_register(doc, _ctx(PROMOTE)).blocks
+    assert len(out) == 1
+    block = out[0]
+    assert isinstance(block, ir.LineatedBlock)
+    assert block.register is ir.Register.VERSE
+    # the numbered rows survive inside the verse block (not demoted/split)
+    texts = [inline_plain(line.inlines) for stanza in block.stanzas for line in stanza]
+    assert "1. Ты говоришь «да» потому, что хочешь —" in texts
+
+
+def test_genuinely_ordinary_numbered_run_stays_ordinary() -> None:
+    # A numbered run the model rejects on its verse-candidate view stays ordinary:
+    # the guard tolerating the ordinal lead does not force a promotion — the
+    # model/ladder remain the authority.
+    doc = _doc(_multi(_stanza(
+        "1. Распиши задачу на шаги.",
+        "2. Оцени каждый шаг.",
+        "3. Выполни по порядку.",
+    )))
+    out = assign_register(doc, _ctx(DEMOTE)).blocks
+    assert len(out) == 1
+    block = out[0]
+    assert isinstance(block, ir.LineatedBlock)
+    assert block.register is ir.Register.ORDINARY
+
+
+def test_pure_scaffold_run_stays_ordinary_even_with_a_confident_model() -> None:
+    # A run that is ENTIRELY scaffold has an empty verse-candidate view (every
+    # line dropped) → fewer than two candidate lines → never promotes, however
+    # confident the model.
+    doc = _doc(_multi(_stanza("143 = 11 × 13", "153 = 9 × 17", "289 = 17 × 17")))
+    out = assign_register(doc, _ctx(PROMOTE)).blocks
+    block = out[0]
+    assert isinstance(block, ir.LineatedBlock)
+    assert block.register is ir.Register.ORDINARY
+
+
+def test_long_prose_numbered_run_stays_ordinary() -> None:
+    # Book-32 gold-prose shape: a numbered run whose lines are long prose
+    # sentences. Even with the ordinal lead tolerated, the geometry ladder reads
+    # the lengths and refuses — numbered exposition is not verse.
+    long = "потому что ум различает только поведение, а не присутствие Света"
+    doc = _doc(_lineated(
+        f"1. Ты не мог отличить, {long}, {long}.",
+        f"2. И ты стал делателем, {long}, {long}.",
+        evidence=ir.LineationEvidence(stanza_break=True),
+    ))
+    out = assign_register(doc, _ctx(None)).blocks  # ladder only
+    block = out[0]
     assert isinstance(block, ir.LineatedBlock)
     assert block.register is ir.Register.ORDINARY
 

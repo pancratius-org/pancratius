@@ -35,7 +35,7 @@ from pancratius.passes.lineation import (
     CODA_PSEUDO_HEADING_RE,
     VERSE_SHORT_LINE_MAX,
     is_compact_coda,
-    is_lineated_line,
+    is_verse_candidate_line,
     skip_empty_paragraphs,
 )
 
@@ -998,7 +998,13 @@ def _promote(
             i += 1
             continue
         if isinstance(b, ir.LineatedBlock) and b.register is ir.Register.ORDINARY:
-            if _verdict(b, ctx, model, feats_ctx, stats):
+            # The verse decision and the segmentation share ONE line labeling:
+            # judge the run on the lines that will actually be verse (scaffold
+            # islands dropped), then let `segment_lineated` split those islands
+            # back out. A numbered/equation island no longer poisons the verdict
+            # of the verse body it is embedded in.
+            label_of = scaffold_line_labeler(b, _block_pins(b, pins))
+            if _verdict(_verse_candidate_view(b, label_of), ctx, model, feats_ctx, stats):
                 verse = replace(b, register=ir.Register.VERSE)
                 if (segment := _lineated_coda_segment(blocks, i + 1, verse)) is not None:
                     verse, next_i = segment
@@ -1006,7 +1012,7 @@ def _promote(
                     ctx = _NEUTRAL_CONTEXT
                     i = next_i
                     continue
-                out.extend(_segment(verse, pins))
+                out.extend(segment_lineated(verse, label_of))
             elif _has_scripture_line(b, pins):
                 # An un-promoted ordinary lineated run still splits its scripture
                 # quote lines out (the rest stays base lineated): canon recall is
@@ -1023,18 +1029,47 @@ def _promote(
     return out
 
 
+@dataclass(frozen=True)
+class _CandidateView:
+    """A block's verse-candidate view plus the id under which its feature-context
+    is recorded (the original block, before scaffold lines were dropped)."""
+
+    view: ir.LineatedBlock
+    feats_id: int
+
+
+def _verse_candidate_view(
+    block: ir.LineatedBlock, label_of: Callable[[ir.Line], SpanLabel],
+) -> _CandidateView:
+    """The verse-candidate view of `block`: the same run with its scaffold
+    islands removed, so the verdict reads only the lines that would actually be
+    verse. `label_of` is the one labeling `segment_lineated` will split on, so
+    the view and the split agree by construction. Empty stanzas are dropped; the
+    feature-context is keyed on the ORIGINAL block (the new stanzas have a fresh
+    identity)."""
+    stanzas = [
+        kept
+        for stanza in block.stanzas
+        if (kept := [line for line in stanza if label_of(line) is not SpanLabel.SCAFFOLD])
+    ]
+    view = replace(block, stanzas=stanzas)
+    return _CandidateView(view=view, feats_id=id(block))
+
+
 def _verdict(
-    block: ir.LineatedBlock,
+    candidate: _CandidateView,
     ctx: _PrecedingContext,
     model: RegisterModel | None,
     feats_ctx: dict[int, RegisterContext],
     stats: BookStats | None,
 ) -> bool:
-    """One verse decision: hard guards, then the model where injected, the
-    geometry ladder otherwise. Named verse sections always take the ladder —
-    the structural prior outranks the model in both directions."""
+    """One verse decision over a block's verse-candidate view (scaffold islands
+    already dropped): hard guards, then the model where injected, the geometry
+    ladder otherwise. Named verse sections always take the ladder — the
+    structural prior outranks the model in both directions."""
+    block = candidate.view
     lines = lineated_lines(block)
-    if len(lines) < 2 or not all(is_lineated_line(line) for line in lines):
+    if len(lines) < 2 or not all(is_verse_candidate_line(line) for line in lines):
         return False
     if is_dash_scaffold(lines) or is_equation_scaffold(lines):
         return False
@@ -1042,7 +1077,7 @@ def _verdict(
         return _kind_for_lines(lines, block.evidence, ctx) is not None
     p = model.probability(verse_register_features(
         lines, block.stanzas, block.evidence,
-        ctx=feats_ctx.get(id(block), RegisterContext()), book=stats,
+        ctx=feats_ctx.get(candidate.feats_id, RegisterContext()), book=stats,
     ))
     return p >= model.threshold
 
