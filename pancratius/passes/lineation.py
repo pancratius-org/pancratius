@@ -654,6 +654,16 @@ def _fold_sub_units(
 # slightly stricter on EN — the conservative direction (refuses to fold).
 _COMPACT_SOURCE_LINE_MAX = 80
 
+# A run whose every line stays under this, with a low mean, is authored lineation
+# on its own geometry — no stanza gap and no section boundary needed. At this width
+# a flowing prose sentence would wrap to a long line, so consecutive short `<w:p>`
+# rows are breaks the author set, not prose. The cap on the LONGEST line is what
+# separates uniformly-short verse (set as bare consecutive rows) from
+# one-sentence-per-line prose, whose sentences wrap past it. Measured in characters
+# (EN ~10% longer than RU → slightly stricter on EN, the conservative direction).
+_TIGHT_LINE_MAX = 52
+_TIGHT_AVG_MAX = 30
+
 
 def _split_at_prose_singletons(
     run: list[ir.Paragraph],
@@ -856,6 +866,12 @@ def _should_infer_source_row_lineation(
         and is_compact_coda(lines)
         and not any(CODA_PSEUDO_HEADING_RE.match(line) for line in lines)
     ):
+        return True
+    # TIGHT: uniformly short consecutive rows are lineation even with no stanza gap
+    # and no boundary to attach to — verse the author set as bare rows (no blank
+    # between lines). The longest-line cap keeps one-sentence-per-line prose out: its
+    # sentences wrap past `_TIGHT_LINE_MAX`.
+    if len(lines) >= 3 and max(lengths) <= _TIGHT_LINE_MAX and avg <= _TIGHT_AVG_MAX:
         return True
     if not (any(p.empty for p in run) and len(lines) >= 3):
         return False
