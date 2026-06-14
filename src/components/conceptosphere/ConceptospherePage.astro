@@ -20,7 +20,7 @@ interface Props {
   booksUrl: string;
   initialMode: "concepts" | "books";
   modeCounts: Record<"concepts" | "books", string>;
-  bookSlugInfo: Record<string, { number: number; title: string; href: string; localized: boolean }>;
+  bookSlugInfo: Record<string, { number: number; title: string; href: string; localized: boolean; tags: readonly string[] }>;
   coverUrls: Record<string, string>;
   booksIndexHref: string;
   conceptSections: ConceptosphereSection<ConceptosphereConceptRow>[];

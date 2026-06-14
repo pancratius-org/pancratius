@@ -14,7 +14,7 @@ export interface PageConfig {
    * `href` is resolved at build time, so runtime code never has to invent
    * locale-specific book URLs.
    */
-  bookSlugInfo: Record<string, { number: number; title: string; href: string; localized: boolean }>;
+  bookSlugInfo: Record<string, { number: number; title: string; href: string; localized: boolean; tags: readonly string[] }>;
   coverUrls: Record<string, string>;
   strings: ConceptosphereStrings;
 }
@@ -96,7 +96,9 @@ function isBookSlugInfo(value: unknown): value is PageConfig["bookSlugInfo"] {
     && Number.isFinite(item.number)
     && typeof item.title === "string"
     && typeof item.href === "string"
-    && typeof item.localized === "boolean",
+    && typeof item.localized === "boolean"
+    && Array.isArray(item.tags)
+    && item.tags.every((tag) => typeof tag === "string"),
   );
 }
 

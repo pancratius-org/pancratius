@@ -136,8 +136,12 @@ function bookHero(ctx: PanelHost, attrs: ConceptNodeAttributes, selfLink: string
   const strings = ctx.cfg.strings;
   const slug = attrs.slug ?? "";
   const coverUrl = ctx.cfg.coverUrls[`book:${slug}`];
+  const info = ctx.cfg.bookSlugInfo[slug];
   // A RU-only book on /en/ links to its Russian page; the link declares that.
-  const localized = ctx.cfg.bookSlugInfo[slug]?.localized ?? true;
+  const localized = info?.localized ?? true;
+  // Tags come from the resolved-locale frontmatter (EN for an EN-paired book),
+  // not the graph node's RU `tags`. RU-only books fall back to their RU tags.
+  const tags = info?.tags ?? attrs.tags;
   const coverLink = link(selfLink, "", PANEL_CLASS.bookCoverLink);
   coverLink.setAttribute("aria-label", localized ? strings.openBookLabel : strings.openInRussianLabel);
   coverLink.append(bigCover(coverUrl));
@@ -155,7 +159,7 @@ function bookHero(ctx: PanelHost, attrs: ConceptNodeAttributes, selfLink: string
     element("h3", { className: PANEL_CLASS.bookTitleHeading }, [
       link(selfLink, attrs.title ?? attrs.label, PANEL_CLASS.bookTitleLink),
     ]),
-    tagList(attrs.tags),
+    tagList(tags),
   );
 
   return element("div", { className: PANEL_CLASS.bookHero }, [
@@ -215,18 +219,24 @@ function similarBookRow(
   star.setAttribute("aria-label", strings.convergenceLabel);
   if (!convergentSet.has(ref.slug)) star.hidden = true;
 
+  // A RU-only neighbour on /en/ links to its Russian page and declares it with
+  // the same "Russian original" badge the book hero uses — never a fake-EN row.
+  const localized = ctx.cfg.bookSlugInfo[ref.slug]?.localized ?? true;
+  const titleLink = link(bookHrefFromCfg(ref.slug, ctx.cfg), ref.title, PANEL_CLASS.bookTitle);
+  if (!localized) titleLink.setAttribute("aria-label", `${ref.title} — ${strings.openInRussianLabel}`);
+
+  const meta: Node[] = [element("div", { className: PANEL_CLASS.titleRow }, [titleLink, star])];
+  if (!localized) {
+    meta.push(element("span", { className: PANEL_CLASS.russianBadge, text: strings.russianOriginalBadge }));
+  }
+  meta.push(element("div", {
+    className: PANEL_CLASS.bookCount,
+    text: strings.similarityCaption.replace("{pct}", ((ref.weight ?? 0) * 100).toFixed(0)),
+  }));
+
   return element("li", {}, [
     coverThumb(ctx.cfg.coverUrls[`book:${ref.slug}`]),
-    element("div", { className: PANEL_CLASS.bookMeta }, [
-      element("div", { className: PANEL_CLASS.titleRow }, [
-        link(bookHrefFromCfg(ref.slug, ctx.cfg), ref.title, PANEL_CLASS.bookTitle),
-        star,
-      ]),
-      element("div", {
-        className: PANEL_CLASS.bookCount,
-        text: strings.similarityCaption.replace("{pct}", ((ref.weight ?? 0) * 100).toFixed(0)),
-      }),
-    ]),
+    element("div", { className: PANEL_CLASS.bookMeta }, meta),
   ]);
 }
 
