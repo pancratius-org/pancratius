@@ -59,6 +59,18 @@ def is_lineated_line(text: str) -> bool:
     return "http://" not in s and "https://" not in s
 
 
+def is_verse_candidate_line(text: str) -> bool:
+    """`is_lineated_line` with an ordinal lead tolerated — the lexical guard the
+    Q2 verse verdict reads.
+
+    `is_lineated_line` rejects an ordinal lead because a numbered row is a list
+    item at Q1 fold time; but the only ordinal-led line that reaches a *lineated*
+    block is one `recover_numbered_rows` certified as a split verse line, so the
+    verse verdict must honour it (the model/ladder still judge the run). The Q1
+    primitive is unchanged — the lead is stripped only for this guard."""
+    return is_lineated_line(_ORDINAL_LEAD_RE.sub("", text, count=1))
+
+
 def _is_wrapped_prose(p: ir.Paragraph) -> bool:
     """True when a paragraph's only in-run breaks are `SoftBreak`s (prose wrapping,
     a literal `\\r\\n` in one `<w:t>`) with no hard `LineBreak`: its lineation was
