@@ -4,6 +4,7 @@ import { DEFAULT_LOCALE, workUrl } from "@/lib/i18n";
 import { authoredWorkPairs, displayWorkEntry, type WorkPair } from "@/lib/works";
 import { bookCardCopy, localeBadge } from "@/lib/i18n/copy";
 import BookCover from "./BookCover.astro";
+import RussianOriginalBadge from "./RussianOriginalBadge.astro";
 
 interface Props {
   pair:    WorkPair;
@@ -45,7 +46,7 @@ const altPrefix = copy.coverAltPrefix;
     <h2 class="book__title">{entry.data.title}</h2>
     {blurb && <p class="work-card-teaser">{blurb}</p>}
     {hasTranslationBadge && <span class="work-card-badge">{localeBadge.both}</span>}
-    {localeFallback && <span class="work-card-badge work-card-badge--fallback">{localeBadge.russianOnly}</span>}
+    {localeFallback && <RussianOriginalBadge {href} />}
   </div>
 </a>
 

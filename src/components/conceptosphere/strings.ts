@@ -8,6 +8,7 @@
 // Concept and community labels remain Russian because the corpus is Russian.
 // Book titles localise where a paired translated work exists.
 
+import { localeBadge } from "@/lib/i18n/copy";
 import type { Locale } from "@/lib/i18n";
 
 /**
@@ -171,8 +172,10 @@ const RU = {
   convergenceFoot:  "— в обоих списках",
   convergenceLabel: "в обоих списках",
   openBookLabel:    "Открыть книгу",
-  russianOriginalBadge: "Оригинал на русском",
-  openInRussianLabel:   "Открыть на русском",
+  // RU-only degradation copy is corpus-language-naming and only renders on /en/,
+  // so it shares the one source (`localeBadge`) with every other fallback site.
+  russianOriginalBadge: localeBadge.russianOriginal,
+  openInRussianLabel:   localeBadge.openInRussian,
   similarityCaption: "сходство {pct}%",
 
   mobileListAriaLabel:     "Концептосфера — список",
@@ -244,8 +247,8 @@ const EN = {
   convergenceFoot:  "— present in both lists",
   convergenceLabel: "present in both lists",
   openBookLabel:    "Open the book",
-  russianOriginalBadge: "Russian original",
-  openInRussianLabel:   "Open in Russian",
+  russianOriginalBadge: localeBadge.russianOriginal,
+  openInRussianLabel:   localeBadge.openInRussian,
   similarityCaption: "{pct}% similar",
 
   mobileListAriaLabel:     "Conceptosphere — list",

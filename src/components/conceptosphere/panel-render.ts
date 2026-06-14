@@ -1,5 +1,6 @@
 import { localizePath } from "@/lib/i18n";
 
+import { russianOriginalBadge } from "./russian-badge.ts";
 import type { CommunityCatalog } from "./graph-data.ts";
 import type { ConceptGraph, ConceptNodeAttributes } from "./graph-model.ts";
 import type { BookSimilarRef, ConceptosphereMode, SimilarRef } from "./graph-types.ts";
@@ -33,7 +34,6 @@ const PANEL_CLASS = {
   bigCover: "cs-big-cover",
   heroMeta: "cs-h-meta",
   heroNumber: "cs-h-number",
-  russianBadge: "cs-ru-badge",
   bookTitleHeading: "cs-book-title-heading",
   bookTitleLink: "cs-book-title-link",
   tags: "cs-tags",
@@ -120,15 +120,23 @@ function conceptBookRow(
   book: { slug: string; title: string; count?: number },
   numberLocale: string,
 ): HTMLLIElement {
+  const href = bookHrefFromCfg(book.slug, ctx.cfg);
+  // A RU-only book in a concept's top-books list on /en/ falls back to its
+  // Russian page; it carries the same shared badge as every other fallback site.
+  const localized = ctx.cfg.bookSlugInfo[book.slug]?.localized ?? true;
+  const titleLink = link(href, book.title, PANEL_CLASS.bookTitle);
+  if (!localized) titleLink.setAttribute("aria-label", `${book.title} — ${ctx.cfg.strings.openInRussianLabel}`);
+
+  const meta: Node[] = [titleLink];
+  meta.push(element("div", {
+    className: PANEL_CLASS.bookCount,
+    text: `${(book.count ?? 0).toLocaleString(numberLocale)} ${ctx.cfg.strings.mentionsSuffix}`,
+  }));
+  if (!localized) meta.push(russianOriginalBadge(ctx.cfg.strings, href));
+
   return element("li", {}, [
     coverThumb(ctx.cfg.coverUrls[`book:${book.slug}`]),
-    element("div", { className: PANEL_CLASS.bookMeta }, [
-      link(bookHrefFromCfg(book.slug, ctx.cfg), book.title, PANEL_CLASS.bookTitle),
-      element("div", {
-        className: PANEL_CLASS.bookCount,
-        text: `${(book.count ?? 0).toLocaleString(numberLocale)} ${ctx.cfg.strings.mentionsSuffix}`,
-      }),
-    ]),
+    element("div", { className: PANEL_CLASS.bookMeta }, meta),
   ]);
 }
 
@@ -151,16 +159,12 @@ function bookHero(ctx: PanelHost, attrs: ConceptNodeAttributes, selfLink: string
       className: PANEL_CLASS.heroNumber,
       text: `${strings.bookNumberPrefix} ${attrs.number ?? "—"}`,
     }),
-  ];
-  if (!localized) {
-    meta.push(element("span", { className: PANEL_CLASS.russianBadge, text: strings.russianOriginalBadge }));
-  }
-  meta.push(
     element("h3", { className: PANEL_CLASS.bookTitleHeading }, [
       link(selfLink, attrs.title ?? attrs.label, PANEL_CLASS.bookTitleLink),
     ]),
     tagList(tags),
-  );
+  ];
+  if (!localized) meta.push(russianOriginalBadge(strings, selfLink));
 
   return element("div", { className: PANEL_CLASS.bookHero }, [
     coverLink,
@@ -220,19 +224,18 @@ function similarBookRow(
   if (!convergentSet.has(ref.slug)) star.hidden = true;
 
   // A RU-only neighbour on /en/ links to its Russian page and declares it with
-  // the same "Russian original" badge the book hero uses — never a fake-EN row.
+  // the same shared badge every fallback site uses — never a fake-EN row.
+  const href = bookHrefFromCfg(ref.slug, ctx.cfg);
   const localized = ctx.cfg.bookSlugInfo[ref.slug]?.localized ?? true;
-  const titleLink = link(bookHrefFromCfg(ref.slug, ctx.cfg), ref.title, PANEL_CLASS.bookTitle);
+  const titleLink = link(href, ref.title, PANEL_CLASS.bookTitle);
   if (!localized) titleLink.setAttribute("aria-label", `${ref.title} — ${strings.openInRussianLabel}`);
 
   const meta: Node[] = [element("div", { className: PANEL_CLASS.titleRow }, [titleLink, star])];
-  if (!localized) {
-    meta.push(element("span", { className: PANEL_CLASS.russianBadge, text: strings.russianOriginalBadge }));
-  }
   meta.push(element("div", {
     className: PANEL_CLASS.bookCount,
     text: strings.similarityCaption.replace("{pct}", ((ref.weight ?? 0) * 100).toFixed(0)),
   }));
+  if (!localized) meta.push(russianOriginalBadge(strings, href));
 
   return element("li", {}, [
     coverThumb(ctx.cfg.coverUrls[`book:${ref.slug}`]),
