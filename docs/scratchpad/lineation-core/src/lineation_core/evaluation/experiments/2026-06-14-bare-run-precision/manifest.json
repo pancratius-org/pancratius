@@ -1,0 +1,60 @@
+{
+  "experiment": "2026-06-14-bare-run-precision",
+  "question": "corpus-wide FALSE-FOLD rate of the SUSTAINED bare-run lineation clause, with a Wilson bound; gates corpus regeneration",
+  "git_branch": "lineation/reground-merged-importer",
+  "git_sha": "7f91f165c27ffea024f239f81a3844488d368090",
+  "rule": {
+    "file": "pancratius/passes/lineation.py",
+    "clause": "SUSTAINED bare run",
+    "_BARE_RUN_MIN_LINES": 6,
+    "_BARE_RUN_LINE_MAX": 52,
+    "_BARE_RUN_AVG_MAX": 30
+  },
+  "population_method": "toggle _BARE_RUN_MIN_LINES 6<->inf per book; flip = lineated-with-clause AND prose-without; cross-checked vs recon snapshot (0 mismatches corpus-wide)",
+  "sampling": {
+    "seed": 0,
+    "target_n": 70,
+    "n_sampled": 91,
+    "strata": "lineated_pct{verse>=0.7,mid,prose<0.3} x len{6-8,9-20,21+}",
+    "oversample": "risk strata (prose<0.3 any len; all 6-8) floored at 8; weights recorded"
+  },
+  "rater": "single independent rater (Claude Opus, vision on canonical LibreOffice dpi=150 renders) - NOT the full teacher panel",
+  "headline_line_weighted_false_fold": {
+    "ambiguous_as_verse": {
+      "point": 0.0087,
+      "wilson95": [
+        0.001,
+        0.069
+      ]
+    },
+    "ambiguous_as_prose_conservative": {
+      "point": 0.2329,
+      "wilson95": [
+        0.1483,
+        0.3461
+      ]
+    }
+  },
+  "ship_threshold_line_weighted_upper": 0.02,
+  "ship": "NOT met at 95% under either convention; point ~0.9% but upper ~6.9% (realistic) to ~23% (strict)",
+  "confirmed_false_folds": [
+    [
+      "ru",
+      "52",
+      8019,
+      8045
+    ]
+  ],
+  "e1_truth_crosscheck": {
+    "n_in_flip_runs": 18,
+    "n_false": 0,
+    "wilson95_upper": 0.176
+  },
+  "sha256": {
+    "population.json": "2a1f144cd16996d4d2fb618f943cdb532ebe0965add6e9e4b3065e8d5553ba3e",
+    "sample.json": "ed773c38e533998c65fff3f02e2d0fe6b963f8fcc11dc5d9426aa47ca8b2bc56",
+    "scorecard.json": "232d4e964e88946d08e74f26e47d2fc17f3c1c8fcb30e542db592f380ec0363a",
+    "report.md": "b1a6c381e759ecb48d055a353b2b77a72fa5814e56d57f3a08e892982938ec3d"
+  },
+  "labels_sha256": "eb96d8dc780422bf30c3f7daa6c8cd4217ee9aa09806eff00cae8de08e0df5e8"
+}
