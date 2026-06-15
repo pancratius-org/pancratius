@@ -80,11 +80,9 @@ jobs:
         run: echo "ready=true" >> "$GITHUB_OUTPUT"
 
       # ── Deploy to primary host via rsync over SSH ───────────────────────
-      # One SSH connection with delta-transfer, not file-by-file FTPS (which
-      # couldn't finish the ~800 MB upload). `-c` skips by checksum, not mtime,
-      # because Astro rewrites every file's mtime each build. EXCLUDE `/.*` shields
-      # every top-level dotfile from `--delete` — the deploy user's home IS the
-      # docroot, so `.ssh/authorized_keys` (this job's own key) lives here.
+      # `-c`: match by checksum, not mtime (rebuilds churn mtimes). No `-p`/`D`-chmod:
+      # the docroot is root-owned, so perms go on files we own (F644), not the dir tree.
+      # EXCLUDE `/.*` keeps `--delete` off top-level dotfiles (incl. the `.ssh/` key).
       - name: Deploy to primary host via rsync
         id: deploy_rsync
         if: ${{ !cancelled() && steps.deploy_gate.outputs.ready == 'true' }}
@@ -97,7 +95,7 @@ jobs:
           REMOTE_PORT: ${{ vars.HOSTING_SSH_PORT || '22' }}
           SOURCE: "dist/"
           TARGET: ${{ vars.HOSTING_SSH_PATH }}
-          ARGS: "-rlpzc -i --delete --chmod=D755,F644"
+          ARGS: "-rlzc -i --delete --omit-dir-times --chmod=F644"
           EXCLUDE: "/.*"
 
       - name: Deploy to Cloudflare Pages
