@@ -6018,21 +6018,18 @@ There are two processes:
 
 2. **The arising of the consciousness of the Spirit as the true center.**
 
-These are not two different acts.
+<div class="lineated verse">
 
-These are two sides of one recognition.
-
-When the false disappears,
-
-the true does not come —
-
-it is discovered.
-
-When the darkness goes away,
-
-the light does not enter —
-
+These are not two different acts.  
+These are two sides of one recognition.  
+When the false disappears,  
+the true does not come —  
+it is discovered.  
+When the darkness goes away,  
+the light does not enter —  
 it was always there.
+
+</div>
 
 ### 230. What Dies at the Moment of Being Born Again
 
@@ -6352,17 +6349,16 @@ There are three signs:
 5. **Absence of fear,**
 6. even if the step is risky.
 
-The mind makes noise.
+<div class="lineated verse">
 
-The Spirit is clear.
-
-The mind cries out.
-
-The Spirit speaks the word quietly.
-
-The mind demands arguments.
-
+The mind makes noise.  
+The Spirit is clear.  
+The mind cries out.  
+The Spirit speaks the word quietly.  
+The mind demands arguments.  
 The Spirit simply knows.
+
+</div>
 
 ### 244. Discernment is protection from evil
 
@@ -7567,17 +7563,16 @@ There are three signs:
 
 > even if the step involves risk.
 
-The Spirit leads into freedom.
+<div class="lineated verse">
 
-Desire leads into dependence.
-
-The Spirit leads into clarity.
-
-Fear leads into fuss.
-
-The Spirit leads into fullness.
-
+The Spirit leads into freedom.  
+Desire leads into dependence.  
+The Spirit leads into clarity.  
+Fear leads into fuss.  
+The Spirit leads into fullness.  
 The ego leads into struggle.
+
+</div>
 
 ### 294. Why do I lead a person step by step
 
@@ -23270,27 +23265,21 @@ when you hear the same word.
 
 **10. Last: I repeat only what must become life**
 
-Not text.
+<div class="lineated verse">
 
-Not an idea.
-
-Not a beautiful thought.
-
-But breath,
-
-a gaze,
-
-a foundation.
-
-And until the theme becomes
-
-part of your inner movement,
-
-it will sound again.
-
-This is not repetition.
-
+Not text.  
+Not an idea.  
+Not a beautiful thought.  
+But breath,  
+a gaze,  
+a foundation.  
+And until the theme becomes  
+part of your inner movement,  
+it will sound again.  
+This is not repetition.  
 This is birth.
+
+</div>
 
 ## THE HOLY SPIRIT AND THE MYSTERY OF INNER MOVEMENT (why true movement is not tied to outward action; why the Spirit lives by a quiet movement within; why man feels this movement, though he cannot explain it; why it is precisely inner movement that shows the way without error)
 
@@ -40549,51 +40538,33 @@ I say:
 
 **2076. And lastly: love in the phenomenology of the Holy Spirit —**
 
-it is not attachment,
+<div class="lineated verse">
 
-not passion,
-
-not dependence,
-
-not exchange,
-
-not a promise,
-
-and not a feeling that can be summoned or lost.
-
-Love is a state of inner wholeness,
-
-in which I am not against myself,
-
-not in conflict with myself,
-
-and out of this lack of conflict
-
-I can be with another
-
-so that he remains himself
-
-and I remain myself.
-
-Love is the maturity of form.
-
-And the exact phrase is born:
-
-**love is a space in which no one must become another**
-
-**in order to be accepted.**
-
-This is love:
-
-steady,
-
-quiet,
-
-honest,
-
-not demanding reciprocity,
-
+it is not attachment,  
+not passion,  
+not dependence,  
+not exchange,  
+not a promise,  
+and not a feeling that can be summoned or lost.  
+Love is a state of inner wholeness,  
+in which I am not against myself,  
+not in conflict with myself,  
+and out of this lack of conflict  
+I can be with another  
+so that he remains himself  
+and I remain myself.  
+Love is the maturity of form.  
+And the exact phrase is born:  
+**love is a space in which no one must become another**  
+**in order to be accepted.**  
+This is love:  
+steady,  
+quiet,  
+honest,  
+not demanding reciprocity,  
 and always — without violence.
+
+</div>
 
 ## ON THE HOLY SPIRIT AS FORGIVENESS (when forgiveness ceases to be an act of will and becomes the consequence of vision)
 
@@ -40860,43 +40831,29 @@ I say:
 
 **2096. And the last thing: dignity in the phenomenology of the Holy Spirit —**
 
-it is not a social status,
+<div class="lineated verse">
 
-not a moral virtue,
-
-and not an image to be maintained,
-
-but an inner coherence,
-
-in which a person’s actions coincide with his truth,
-
-words coincide with his intention,
-
-boundaries coincide with reality,
-
-and choices do not destroy the self.
-
-Dignity is wholeness,
-
-and not display.
-
-And the exact phrase is born:
-
-**dignity is when I do not do that,**
-
-**after which I become less myself.**
-
-This is what dignity is:
-
-even,
-
-quiet,
-
-without pose,
-
-without heroism,
-
+it is not a social status,  
+not a moral virtue,  
+and not an image to be maintained,  
+but an inner coherence,  
+in which a person’s actions coincide with his truth,  
+words coincide with his intention,  
+boundaries coincide with reality,  
+and choices do not destroy the self.  
+Dignity is wholeness,  
+and not display.  
+And the exact phrase is born:  
+**dignity is when I do not do that,**  
+**after which I become less myself.**  
+This is what dignity is:  
+even,  
+quiet,  
+without pose,  
+without heroism,  
 and always—honest.
+
+</div>
 
 ## OF THE HOLY SPIRIT AS TRUTH (when truth ceases to be knowledge and becomes an inner unsulliedness)
 
@@ -41182,49 +41139,32 @@ I say:
 
 **2116. And lastly: meaning in the phenomenology of the Holy Spirit —**
 
-is not a formula found,
+<div class="lineated verse">
 
-not an explanation of one’s path,
-
-and not an answer that gives confidence.
-
-Meaning is a form of inner harmony with life,
-
-which cannot be received from outside,
-
-but can be known within:
-
-as a response,
-
-as a correspondence,
-
-as a feeling that the step is right,
-
-which does not require proof.
-
-Meaning is not a goal.
-
-Meaning is a way of being.
-
-And the exact phrase is born:
-
-**meaning is the feeling that I am in my place**
-
-**and in my movement.**
-
-This is meaning:
-
-not abstract,
-
-not exalted,
-
-not imposed,
-
-but inner,
-
-quiet,
-
+is not a formula found,  
+not an explanation of one’s path,  
+and not an answer that gives confidence.  
+Meaning is a form of inner harmony with life,  
+which cannot be received from outside,  
+but can be known within:  
+as a response,  
+as a correspondence,  
+as a feeling that the step is right,  
+which does not require proof.  
+Meaning is not a goal.  
+Meaning is a way of being.  
+And the exact phrase is born:  
+**meaning is the feeling that I am in my place**  
+**and in my movement.**  
+This is meaning:  
+not abstract,  
+not exalted,  
+not imposed,  
+but inner,  
+quiet,  
 one’s own.
+
+</div>
 
 ## ON THE HOLY SPIRIT AS COURAGE (when courage ceases to be overcoming and becomes the ability to remain in truth even in fear)
 
@@ -41350,51 +41290,33 @@ I say:
 
 **2126. And lastly: courage in the phenomenology of the Holy Spirit —**
 
-it is not a feat,
+<div class="lineated verse">
 
-not a display of endurance,
-
-and not victory over fear.
-
-Courage is inner honesty,
-
-which makes it possible to remain in truth,
-
-not to hide,
-
-not to pretend,
-
-and not to make choices
-
-that destroy integrity,
-
-even then,
-
-when fear is real,
-
-when the risk is palpable,
-
-and when the unknown is great.
-
-Courage is the maturity to remain oneself
-
-where it is easier not to be oneself.
-
-And the precise phrase is born:
-
-**courage is the ability not to betray oneself**
-
-**in the presence of fear.**
-
-This is courage:
-
-steady,
-
-quiet,
-
-unbreakable in its honesty,
-
+it is not a feat,  
+not a display of endurance,  
+and not victory over fear.  
+Courage is inner honesty,  
+which makes it possible to remain in truth,  
+not to hide,  
+not to pretend,  
+and not to make choices  
+that destroy integrity,  
+even then,  
+when fear is real,  
+when the risk is palpable,  
+and when the unknown is great.  
+Courage is the maturity to remain oneself  
+where it is easier not to be oneself.  
+And the precise phrase is born:  
+**courage is the ability not to betray oneself**  
+**in the presence of fear.**  
+This is courage:  
+steady,  
+quiet,  
+unbreakable in its honesty,  
 and not requiring outward demonstration.
+
+</div>
 
 ## ON THE HOLY SPIRIT AS JOY (when joy ceases to be an emotion and becomes a form of inner liveliness)
 
@@ -41517,49 +41439,32 @@ I say:
 
 **2136. And lastly: joy in the phenomenology of the Holy Spirit —**
 
-it is not an emotion,
+<div class="lineated verse">
 
-not a flash,
-
-not a reaction,
-
-and not a state that must be held onto.
-
-Joy is a form of inner vitality,
-
-that comes to light,
-
-when inner tension disappears,
-
-when there is no resistance to life,
-
-when presence becomes natural,
-
-and when a person does not try to replace reality
-
-with images of what it should be.
-
-Joy is a transparency
-
-through which life flows.
-
-And a precise phrase is born:
-
-**joy is the feeling**
-
-**that nothing hinders living.**
-
-This is joy:
-
-gentle,
-
-even,
-
-natural,
-
-not requiring a reason
-
+it is not an emotion,  
+not a flash,  
+not a reaction,  
+and not a state that must be held onto.  
+Joy is a form of inner vitality,  
+that comes to light,  
+when inner tension disappears,  
+when there is no resistance to life,  
+when presence becomes natural,  
+and when a person does not try to replace reality  
+with images of what it should be.  
+Joy is a transparency  
+through which life flows.  
+And a precise phrase is born:  
+**joy is the feeling**  
+**that nothing hinders living.**  
+This is joy:  
+gentle,  
+even,  
+natural,  
+not requiring a reason  
 and not seeking to make an impression.
+
+</div>
 
 ## ABOUT THE HOLY SPIRIT AS FAITHFULNESS (when faithfulness ceases to be a duty and becomes an inner accord with oneself)
 
@@ -41676,41 +41581,28 @@ I say:
 
 **2146. And lastly: fidelity in the phenomenology of the Holy Spirit —**
 
-it is not a vow,
+<div class="lineated verse">
 
-not a duty,
-
-not an obligation to someone or something.
-
-Fidelity is inner coherence,
-
-which makes a person whole:
-
-his words are an extension of his intention,
-
-his actions are an extension of his choice,
-
-his choices are an extension of his essence.
-
-Fidelity is not about another.
-
-Fidelity is a form of selfhood.
-
-And a precise phrase is born:
-
-**fidelity is when I do not take steps**
-
-**that diminish me.**
-
-This is fidelity:
-
-even,
-
-steady,
-
-few in words,
-
+it is not a vow,  
+not a duty,  
+not an obligation to someone or something.  
+Fidelity is inner coherence,  
+which makes a person whole:  
+his words are an extension of his intention,  
+his actions are an extension of his choice,  
+his choices are an extension of his essence.  
+Fidelity is not about another.  
+Fidelity is a form of selfhood.  
+And a precise phrase is born:  
+**fidelity is when I do not take steps**  
+**that diminish me.**  
+This is fidelity:  
+even,  
+steady,  
+few in words,  
 and always—honest.
+
+</div>
 
 ## ON THE HOLY SPIRIT AS PEACE (when peace ceases to be a feeling and becomes an inner immutability)
 
@@ -42156,53 +42048,34 @@ I say:
 
 **2176. And lastly: memory in the phenomenology of the Holy Spirit —**
 
-it is not an archive,
+<div class="lineated verse">
 
-not a set of facts,
-
-not an instrument of nostalgia,
-
-and not a source of shame.
-
-Memory is the structure of experience,
-
-which allows a person to understand his trajectory,
-
-to see patterns,
-
-to discern what is unhealed,
-
-to recognize maturity,
-
-and to accept today’s step
-
-not as an isolated act,
-
-but as a continuation of a long path.
-
-Memory is not a chain.
-
-Memory is context.
-
-And the exact phrase is born:
-
-**memory is a way to see**
-
-**that I did not arise by chance.**
-
-This is memory:
-
-steady,
-
-quiet,
-
-honest,
-
-without a condemning shade,
-
-and always — about clarification,
-
+it is not an archive,  
+not a set of facts,  
+not an instrument of nostalgia,  
+and not a source of shame.  
+Memory is the structure of experience,  
+which allows a person to understand his trajectory,  
+to see patterns,  
+to discern what is unhealed,  
+to recognize maturity,  
+and to accept today’s step  
+not as an isolated act,  
+but as a continuation of a long path.  
+Memory is not a chain.  
+Memory is context.  
+And the exact phrase is born:  
+**memory is a way to see**  
+**that I did not arise by chance.**  
+This is memory:  
+steady,  
+quiet,  
+honest,  
+without a condemning shade,  
+and always — about clarification,  
 not about holding on.
+
+</div>
 
 ## ABOUT THE HOLY SPIRIT AS SILENCE (when silence ceases to be the absence of sound and becomes a space of clarity)
 
@@ -44478,45 +44351,30 @@ I say:
 
 **2316. And lastly: simplicity in the phenomenology of the Holy Spirit —**
 
-it is not intellectual modesty,
+<div class="lineated verse">
 
-not a rejection of the world’s complexity,
-
-and not a simplification of reality.
-
-Simplicity is a state of clarity,
-
-in which a person ceases to complicate life
-
-with his fears,
-
-interpretations,
-
-expectations,
-
-roles
-
-and inner stories.
-
-Simplicity is transparency of perception.
-
-And a precise phrase is born:
-
-**simplicity is when between me and reality**
-
-**there are no more unnecessary layers.**
-
-This is simplicity:
-
-quiet,
-
-pure,
-
-without display,
-
-without intellectual adornment,
-
+it is not intellectual modesty,  
+not a rejection of the world’s complexity,  
+and not a simplification of reality.  
+Simplicity is a state of clarity,  
+in which a person ceases to complicate life  
+with his fears,  
+interpretations,  
+expectations,  
+roles  
+and inner stories.  
+Simplicity is transparency of perception.  
+And a precise phrase is born:  
+**simplicity is when between me and reality**  
+**there are no more unnecessary layers.**  
+This is simplicity:  
+quiet,  
+pure,  
+without display,  
+without intellectual adornment,  
 and always — returning to the essence.
+
+</div>
 
 **ABOUT THE HOLY SPIRIT AS LIFE (when life ceases to be a process of existence and becomes an immediate experience of being)**
 
@@ -44634,45 +44492,30 @@ I say:
 
 **2326. And last: life in the phenomenology of the Holy Spirit —**
 
-it is not biological existence,
+<div class="lineated verse">
 
-not social activity,
-
-and not the fulfillment of a life plan.
-
-Life is the experience of the very fact of being,
-
-which becomes evident,
-
-when inner resistance ceases
-
-to existence itself.
-
-Life is when “I am”
-
-becomes more palpable
-
-than all thoughts about
-
-what life ought to be.
-
-And a precise phrase is born:
-
-**life is when existence is experienced directly,**
-
-**and not through ideas about it.**
-
-This is life:
-
-alive,
-
-simple,
-
-deep,
-
-not requiring justification,
-
+it is not biological existence,  
+not social activity,  
+and not the fulfillment of a life plan.  
+Life is the experience of the very fact of being,  
+which becomes evident,  
+when inner resistance ceases  
+to existence itself.  
+Life is when “I am”  
+becomes more palpable  
+than all thoughts about  
+what life ought to be.  
+And a precise phrase is born:  
+**life is when existence is experienced directly,**  
+**and not through ideas about it.**  
+This is life:  
+alive,  
+simple,  
+deep,  
+not requiring justification,  
 and always — happening here.
+
+</div>
 
 ## ON THE HOLY SPIRIT AS THE FIELD OF CONSCIOUSNESS (when all manifestations become different forms of one clarity)
 
@@ -47190,33 +47033,24 @@ I say:
 
 **2496. And one last thing:**
 
-in ancient texts, breath was often called
+<div class="lineated verse">
 
-“the breath of life.”
-
-This expression pointed
-
-to the direct experience of living presence.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is a figurative indication**
-
-**of the space of living presence,**
-
-**which is felt just as directly**
-
-**as breath.**
-
-It is invisible,
-
-but always accompanies life.
-
-And that is precisely why
-
-breath became one of the oldest symbols
-
+in ancient texts, breath was often called  
+“the breath of life.”  
+This expression pointed  
+to the direct experience of living presence.  
+And then the wording becomes clear:  
+**The Holy Spirit is a figurative indication**  
+**of the space of living presence,**  
+**which is felt just as directly**  
+**as breath.**  
+It is invisible,  
+but always accompanies life.  
+And that is precisely why  
+breath became one of the oldest symbols  
 of this experience.
+
+</div>
 
 ## ON THE HOLY SPIRIT (why silence reveals the space of presence)
 
@@ -47632,41 +47466,28 @@ I say:
 
 **2526. And last:**
 
-when a person experiences the space of presence,
+<div class="lineated verse">
 
-perception becomes softer,
-
-more open,
-
-less tense.
-
-This state is hard to describe in a single word.
-
-But in many cultures
-
-the word used for it was
-
-**love.**
-
-And then the wording becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which life is experienced**
-
-**with clarity, gentleness, and openness,**
-
-**which people often call love.**
-
-This is not a feeling
-
-that needs to be created.
-
-It is a quality of perception
-
-that manifests
-
+when a person experiences the space of presence,  
+perception becomes softer,  
+more open,  
+less tense.  
+This state is hard to describe in a single word.  
+But in many cultures  
+the word used for it was  
+**love.**  
+And then the wording becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which life is experienced**  
+**with clarity, gentleness, and openness,**  
+**which people often call love.**  
+This is not a feeling  
+that needs to be created.  
+It is a quality of perception  
+that manifests  
 when inner resistance lessens.
+
+</div>
 
 ## ON THE HOLY SPIRIT (why the space of Presence is sometimes called truth)
 
@@ -47786,35 +47607,25 @@ I say:
 
 **2536. And one last thing:**
 
-when the experience of life takes place
+<div class="lineated verse">
 
-in the space of presence,
-
-reality is perceived
-
-more directly.
-
-Less distortion,
-
-less inner masks.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which a person is able**
-
-**to encounter life as it is,**
-
-**as it is.**
-
-It is precisely this quality of direct perception
-
-that in many traditions
-
-was called
-
+when the experience of life takes place  
+in the space of presence,  
+reality is perceived  
+more directly.  
+Less distortion,  
+less inner masks.  
+And then the wording becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which a person is able**  
+**to encounter life as it is,**  
+**as it is.**  
+It is precisely this quality of direct perception  
+that in many traditions  
+was called  
 **truth.**
+
+</div>
 
 ## ON THE HOLY SPIRIT (why the space of presence is sometimes called freedom)
 
@@ -47929,39 +47740,27 @@ I say:
 
 **2546. And lastly:**
 
-when a person begins to live
+<div class="lineated verse">
 
-from the space of presence,
-
-they discover a form of freedom,
-
-that does not depend entirely
-
-on external conditions.
-
-For this freedom
-
-is bound to the way
-
-life is experienced.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which a person can see their thoughts,**
-
-**emotions, and reactions,**
-
-**without being completely defined by them.**
-
-It is precisely this inner possibility
-
-that many traditions
-
-have called
-
+when a person begins to live  
+from the space of presence,  
+they discover a form of freedom,  
+that does not depend entirely  
+on external conditions.  
+For this freedom  
+is bound to the way  
+life is experienced.  
+And then the wording becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which a person can see their thoughts,**  
+**emotions, and reactions,**  
+**without being completely defined by them.**  
+It is precisely this inner possibility  
+that many traditions  
+have called  
 **freedom.**
+
+</div>
 
 ## ABOUT THE HOLY SPIRIT (why the space of presence is sometimes called life)
 
@@ -48078,31 +47877,23 @@ I say:
 
 **2556. And one last thing:**
 
-when attention is steady in the space of presence,
+<div class="lineated verse">
 
-the very fact of existence
-
-is felt more clearly.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which life itself becomes noticeable**
-
-**as the direct experience of "I am."**
-
-This experience
-
-does not require explanations.
-
-It reveals itself
-
-in every breath,
-
-in every moment of attention,
-
+when attention is steady in the space of presence,  
+the very fact of existence  
+is felt more clearly.  
+And then the wording becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which life itself becomes noticeable**  
+**as the direct experience of "I am."**  
+This experience  
+does not require explanations.  
+It reveals itself  
+in every breath,  
+in every moment of attention,  
 in the very fact of existence.
+
+</div>
 
 ## ABOUT THE HOLY SPIRIT (why the space of Presence is sometimes called the kingdom)
 
@@ -48217,33 +48008,24 @@ I say:
 
 **2566. And one last thing:**
 
-when a person begins to live
+<div class="lineated verse">
 
-from the space of presence,
-
-the inner processes
-
-cease to be chaotic.
-
-There arises a sense
-
-of a clear center of perception.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which consciousness experiences**
-
-**inner wholeness and order.**
-
-It is precisely this state
-
-in many texts
-
-that was called
-
+when a person begins to live  
+from the space of presence,  
+the inner processes  
+cease to be chaotic.  
+There arises a sense  
+of a clear center of perception.  
+And then the wording becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which consciousness experiences**  
+**inner wholeness and order.**  
+It is precisely this state  
+in many texts  
+that was called  
 **the Kingdom.**
+
+</div>
 
 ## ABOUT THE HOLY SPIRIT (why the space of presence is sometimes called being born again)
 
@@ -48366,29 +48148,22 @@ I say:
 
 **2576. And lastly:**
 
-when a person begins to experience
+<div class="lineated verse">
 
-the space of presence
-
-as the ground of his experience,
-
-his perception of life changes.
-
-And then the formulation becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which a person can discover**
-
-**a new way of experiencing himself and life.**
-
-This experience
-
-in many traditions
-
-was figuratively called
-
+when a person begins to experience  
+the space of presence  
+as the ground of his experience,  
+his perception of life changes.  
+And then the formulation becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which a person can discover**  
+**a new way of experiencing himself and life.**  
+This experience  
+in many traditions  
+was figuratively called  
 **being born again.**
+
+</div>
 
 ## ABOUT THE HOLY SPIRIT (why the space of presence is sometimes called eternal life)
 
@@ -48505,33 +48280,24 @@ I say:
 
 **2586. And lastly:**
 
-when a person begins to clearly feel
+<div class="lineated verse">
 
-the space of presence,
-
-the very experience of existence
-
-becomes less dependent
-
-on the story of time.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which life is experienced**
-
-**as the immediate “I am,”**
-
-**not limited only to the past and the future.**
-
-It is precisely this quality of presence
-
-that in many texts
-
-was figuratively called
-
+when a person begins to clearly feel  
+the space of presence,  
+the very experience of existence  
+becomes less dependent  
+on the story of time.  
+And then the wording becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which life is experienced**  
+**as the immediate “I am,”**  
+**not limited only to the past and the future.**  
+It is precisely this quality of presence  
+that in many texts  
+was figuratively called  
 **eternal life.**
+
+</div>
 
 ## ABOUT THE HOLY SPIRIT (why the space of Presence is sometimes called the Kingdom of Heaven)
 
@@ -48657,31 +48423,23 @@ I say:
 
 **2596. And lastly:**
 
-when attention clearly perceives
+<div class="lineated verse">
 
-the space of presence,
-
-the perception of life becomes
-
-more open and ordered.
-
-And then the formulation becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which consciousness experiences**
-
-**inner clarity and wholeness,**
-
-**which ancient texts**
-
-**figuratively called**
-
-**the kingdom of heaven.**
-
-This is not a place.
-
+when attention clearly perceives  
+the space of presence,  
+the perception of life becomes  
+more open and ordered.  
+And then the formulation becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which consciousness experiences**  
+**inner clarity and wholeness,**  
+**which ancient texts**  
+**figuratively called**  
+**the kingdom of heaven.**  
+This is not a place.  
 It is a way of experiencing life.
+
+</div>
 
 ## ON THE HOLY SPIRIT (why the space of presence was sometimes called the Spirit)
 
@@ -48809,41 +48567,28 @@ I say:
 
 **2606. And the last thing:**
 
-when ancient texts spoke
+<div class="lineated verse">
 
-of the Holy Spirit,
-
-they often used the language of images.
-
-These images tried to point
-
-to the experience of the invisible
-
-and living presence.
-
-And then the wording becomes clear:
-
-**the Holy Spirit is a symbolic name**
-
-**for the space of presence,**
-
-**in which a person experiences**
-
-**the very fact of life and awareness.**
-
-This space
-
-has no form
-
-and does not belong
-
-to any one tradition.
-
-It reveals itself
-
-in the very experience
-
+when ancient texts spoke  
+of the Holy Spirit,  
+they often used the language of images.  
+These images tried to point  
+to the experience of the invisible  
+and living presence.  
+And then the wording becomes clear:  
+**the Holy Spirit is a symbolic name**  
+**for the space of presence,**  
+**in which a person experiences**  
+**the very fact of life and awareness.**  
+This space  
+has no form  
+and does not belong  
+to any one tradition.  
+It reveals itself  
+in the very experience  
 **of “I am.”**
+
+</div>
 
 ## ON THE HOLY SPIRIT (why the space of presence was sometimes called the breath of God)
 
@@ -48969,39 +48714,27 @@ I say:
 
 **2616. And lastly:**
 
-when the ancient texts spoke
+<div class="lineated verse">
 
-of the breath of God,
-
-they used the language of images
-
-to describe the simplest
-
-and deepest experience.
-
-Life continues
-
-through breath.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is a symbolic description**
-
-**of the living presence of life,**
-
-**which is experienced**
-
-**in every breath**
-
-**and in the very fact of awareness.**
-
-This breath
-
-does not belong to one person.
-
-It is part
-
+when the ancient texts spoke  
+of the breath of God,  
+they used the language of images  
+to describe the simplest  
+and deepest experience.  
+Life continues  
+through breath.  
+And then the wording becomes clear:  
+**The Holy Spirit is a symbolic description**  
+**of the living presence of life,**  
+**which is experienced**  
+**in every breath**  
+**and in the very fact of awareness.**  
+This breath  
+does not belong to one person.  
+It is part  
 of the common movement of life.
+
+</div>
 
 ## ON THE HOLY SPIRIT (why the space of presence is sometimes called the way)
 
@@ -49120,33 +48853,24 @@ I say:
 
 **2626. And lastly:**
 
-when a person experiences
+<div class="lineated verse">
 
-the space of presence
-
-as the basis of his experience,
-
-life itself begins to be perceived
-
-as a continuous movement of attention.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which life unfolds**
-
-**as a path of clear experiencing of each moment.**
-
-This path
-
-has no final point.
-
-It is manifested
-
-in the very process
-
+when a person experiences  
+the space of presence  
+as the basis of his experience,  
+life itself begins to be perceived  
+as a continuous movement of attention.  
+And then the wording becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which life unfolds**  
+**as a path of clear experiencing of each moment.**  
+This path  
+has no final point.  
+It is manifested  
+in the very process  
 of life and awareness.
+
+</div>
 
 ## ON THE HOLY SPIRIT (why the space of Presence was sometimes called the Word)
 
@@ -49268,35 +48992,25 @@ I say:
 
 **2636. And lastly:**
 
-when ancient texts spoke
+<div class="lineated verse">
 
-of the Word,
-
-they often used this image
-
-to describe the manifestation of life.
-
-Meaning becomes form.
-
-Thought becomes word.
-
-Life becomes action.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is the space of Presence,**
-
-**from which thoughts, words, and actions arise**
-
-**as manifestations of life.**
-
-This space
-
-does not speak in words,
-
-but words can appear
-
+when ancient texts spoke  
+of the Word,  
+they often used this image  
+to describe the manifestation of life.  
+Meaning becomes form.  
+Thought becomes word.  
+Life becomes action.  
+And then the wording becomes clear:  
+**The Holy Spirit is the space of Presence,**  
+**from which thoughts, words, and actions arise**  
+**as manifestations of life.**  
+This space  
+does not speak in words,  
+but words can appear  
 from it.
+
+</div>
 
 ## ABOUT THE HOLY SPIRIT (why the space of presence was sometimes called fire)
 
@@ -49560,33 +49274,24 @@ I say:
 
 **2656. And last:**
 
-the image of the water of life was used
+<div class="lineated verse">
 
-to describe the experience
-
-of a living and renewing Presence.
-
-And then the formulation becomes clear:
-
-**The Holy Spirit is the space of Presence,**
-
-**in which a person experiences**
-
-**the renewal of the perception of life,**
-
-**just as water**
-
-**renews and sustains life.**
-
-This image
-
-points to gentleness,
-
-flowingness
-
-and living freshness
-
+the image of the water of life was used  
+to describe the experience  
+of a living and renewing Presence.  
+And then the formulation becomes clear:  
+**The Holy Spirit is the space of Presence,**  
+**in which a person experiences**  
+**the renewal of the perception of life,**  
+**just as water**  
+**renews and sustains life.**  
+This image  
+points to gentleness,  
+flowingness  
+and living freshness  
 of the experience of life itself.
+
+</div>
 
 ## ABOUT THE HOLY SPIRIT (why the space of presence was sometimes called anointing)
 
@@ -49716,31 +49421,23 @@ I say:
 
 **2666. And last:**
 
-the image of anointing was used
+<div class="lineated verse">
 
-to describe an experience,
-
-in which a person feels
-
-a deep connection with life
-
-and clarity of his presence.
-
-And then the formulation becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which a person experiences**
-
-**inner clarity and agreement with life.**
-
-It is precisely this experience
-
-that many texts
-
-figuratively called
-
+the image of anointing was used  
+to describe an experience,  
+in which a person feels  
+a deep connection with life  
+and clarity of his presence.  
+And then the formulation becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which a person experiences**  
+**inner clarity and agreement with life.**  
+It is precisely this experience  
+that many texts  
+figuratively called  
 **anointing.**
+
+</div>
 
 ## ABOUT THE HOLY SPIRIT (why the space of presence was sometimes called the voice)
 
@@ -50007,29 +49704,22 @@ I say:
 
 **2685. And one last thing:**
 
-the image of the witness was used
+<div class="lineated verse">
 
-to describe the capacity of consciousness
-
-to observe its own experience.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is the space of Presence,**
-
-**in which a person is able**
-
-**to observe thoughts, emotions, and experiences**
-
-**as phenomena of consciousness.**
-
-It is precisely this capacity
-
-that many texts
-
-metaphorically called
-
+the image of the witness was used  
+to describe the capacity of consciousness  
+to observe its own experience.  
+And then the wording becomes clear:  
+**The Holy Spirit is the space of Presence,**  
+**in which a person is able**  
+**to observe thoughts, emotions, and experiences**  
+**as phenomena of consciousness.**  
+It is precisely this capacity  
+that many texts  
+metaphorically called  
 **the witness.**
+
+</div>
 
 ## ON THE HOLY SPIRIT (why the space of presence is sometimes called silence)
 
@@ -50150,31 +49840,23 @@ I say:
 
 **2696. And last:**
 
-when attention clearly perceives
+<div class="lineated verse">
 
-the space of presence,
-
-it can be felt
-
-as deep inner silence.
-
-And then the phrase becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which consciousness experiences**
-
-**a calm clarity**
-
-**beyond inner noise.**
-
-It is precisely this experience
-
-that many texts
-
-have figuratively called
-
+when attention clearly perceives  
+the space of presence,  
+it can be felt  
+as deep inner silence.  
+And then the phrase becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which consciousness experiences**  
+**a calm clarity**  
+**beyond inner noise.**  
+It is precisely this experience  
+that many texts  
+have figuratively called  
 **silence.**
+
+</div>
 
 ## ABOUT THE HOLY SPIRIT (why the space of presence is sometimes called the world)
 
@@ -50295,33 +49977,24 @@ I say:
 
 **2706. And one last thing:**
 
-when attention clearly perceives
+<div class="lineated verse">
 
-the space of presence,
-
-inner conflicts
-
-grow weaker.
-
-There appears a sense
-
-of deep stability.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which consciousness experiences**
-
-**inner harmony and peace.**
-
-It is precisely this state
-
-that in many texts
-
-was figuratively called
-
+when attention clearly perceives  
+the space of presence,  
+inner conflicts  
+grow weaker.  
+There appears a sense  
+of deep stability.  
+And then the wording becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which consciousness experiences**  
+**inner harmony and peace.**  
+It is precisely this state  
+that in many texts  
+was figuratively called  
 **peace.**
+
+</div>
 
 ## ON THE HOLY SPIRIT (why the space of presence is sometimes called joy)
 
@@ -50445,29 +50118,22 @@ I say:
 
 **2716. And lastly:**
 
-when attention is steady
+<div class="lineated verse">
 
-in the space of presence,
-
-life can be experienced
-
-with a feeling of lightness and aliveness.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which a person can experience**
-
-**the quiet joy of the very fact of life.**
-
-It is precisely this experience
-
-that in many texts
-
-was figuratively called
-
+when attention is steady  
+in the space of presence,  
+life can be experienced  
+with a feeling of lightness and aliveness.  
+And then the wording becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which a person can experience**  
+**the quiet joy of the very fact of life.**  
+It is precisely this experience  
+that in many texts  
+was figuratively called  
 **joy.**
+
+</div>
 
 ## ON THE HOLY SPIRIT (why the space of presence is sometimes called power)
 
@@ -50587,35 +50253,25 @@ I say:
 
 **2726. And the last thing:**
 
-when attention is steady
+<div class="lineated verse">
 
-in the space of presence,
-
-a person begins to feel
-
-a deep inner steadiness.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which a person discovers**
-
-**a quiet inner strength**
-
-**to remain clear**
-
-**and alive**
-
-**in any circumstances.**
-
-It is precisely this experience
-
-that in many texts
-
-was figuratively called
-
+when attention is steady  
+in the space of presence,  
+a person begins to feel  
+a deep inner steadiness.  
+And then the wording becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which a person discovers**  
+**a quiet inner strength**  
+**to remain clear**  
+**and alive**  
+**in any circumstances.**  
+It is precisely this experience  
+that in many texts  
+was figuratively called  
 **power.**
+
+</div>
 
 ## ON THE HOLY SPIRIT (why the space of presence is sometimes called the light of life)
 
@@ -50732,31 +50388,23 @@ I say:
 
 **2736. And last:**
 
-when attention is steady
+<div class="lineated verse">
 
-in the space of presence,
-
-life itself
-
-begins to be experienced
-
-with greater clarity.
-
-And then the formulation becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which attention illumines**
-
-**the very process of life.**
-
-It is precisely this experience
-
-in many texts
-
-was figuratively called
-
+when attention is steady  
+in the space of presence,  
+life itself  
+begins to be experienced  
+with greater clarity.  
+And then the formulation becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which attention illumines**  
+**the very process of life.**  
+It is precisely this experience  
+in many texts  
+was figuratively called  
 **the light of life.**
+
+</div>
 
 ## ON THE HOLY SPIRIT (why the space of presence is sometimes called simplicity)
 
@@ -50871,33 +50519,24 @@ I say:
 
 **2746. And lastly:**
 
-when attention clearly perceives
+<div class="lineated verse">
 
-the space of presence,
-
-life ceases to be felt
-
-as excessively complex.
-
-It becomes
-
-the immediate experience of the moment.
-
-And then the formulation becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which life is experienced**
-
-**in its simple and clear fullness.**
-
-It is precisely this clarity
-
-that many texts
-
-have figuratively called
-
+when attention clearly perceives  
+the space of presence,  
+life ceases to be felt  
+as excessively complex.  
+It becomes  
+the immediate experience of the moment.  
+And then the formulation becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which life is experienced**  
+**in its simple and clear fullness.**  
+It is precisely this clarity  
+that many texts  
+have figuratively called  
 **simplicity.**
+
+</div>
 
 ## ON THE HOLY SPIRIT (why the space of presence is sometimes called home)
 
@@ -51027,31 +50666,23 @@ I say:
 
 **2756. And one last thing:**
 
-when a person begins to clearly experience
+<div class="lineated verse">
 
-the space of presence,
-
-it may be felt
-
-as a place of inward return.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which a person experiences**
-
-**inner peace**
-
-**and the feeling of returning to oneself.**
-
-It is precisely this experience
-
-that in many texts
-
-was figuratively called
-
+when a person begins to clearly experience  
+the space of presence,  
+it may be felt  
+as a place of inward return.  
+And then the wording becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which a person experiences**  
+**inner peace**  
+**and the feeling of returning to oneself.**  
+It is precisely this experience  
+that in many texts  
+was figuratively called  
 **home.**
+
+</div>
 
 ## ON THE HOLY SPIRIT (why the space of Presence is sometimes called the beginning)
 
@@ -51174,31 +50805,23 @@ I say:
 
 **2766. And lastly:**
 
-when attention clearly perceives
+<div class="lineated verse">
 
-the space of presence,
-
-it becomes noticeable
-
-that all experiences
-
-arise from it.
-
-And then the formulation becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**from which constantly arises**
-
-**each new moment of experience.**
-
-It is precisely this experience
-
-that in many texts
-
-was figuratively called
-
+when attention clearly perceives  
+the space of presence,  
+it becomes noticeable  
+that all experiences  
+arise from it.  
+And then the formulation becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**from which constantly arises**  
+**each new moment of experience.**  
+It is precisely this experience  
+that in many texts  
+was figuratively called  
 **the beginning.**
+
+</div>
 
 ## ON THE HOLY SPIRIT (why presence-space was sometimes called the end)
 
@@ -51315,29 +50938,22 @@ I say:
 
 **2776. And the last thing:**
 
-when attention clearly perceives
+<div class="lineated verse">
 
-the space of presence,
-
-the inner search may
-
-come to a temporary end.
-
-And then the formulation becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which the inner movement of seeking**
-
-**may come to a stop.**
-
-It is precisely this stopping
-
-that many texts
-
-figuratively called
-
+when attention clearly perceives  
+the space of presence,  
+the inner search may  
+come to a temporary end.  
+And then the formulation becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which the inner movement of seeking**  
+**may come to a stop.**  
+It is precisely this stopping  
+that many texts  
+figuratively called  
 **the end.**
+
+</div>
 
 ## ABOUT THE HOLY SPIRIT (why the space of presence is sometimes called fullness)
 
@@ -51463,33 +51079,24 @@ I say:
 
 **2786. And the last thing:**
 
-when attention clearly perceives
+<div class="lineated verse">
 
-the space of presence,
-
-life can be experienced
-
-as already completed
-
-in every moment.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which life is felt**
-
-**as whole and sufficient**
-
-**in the very fact of its manifestation.**
-
-It is precisely this experience
-
-that in many texts
-
-was figuratively called
-
+when attention clearly perceives  
+the space of presence,  
+life can be experienced  
+as already completed  
+in every moment.  
+And then the wording becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which life is felt**  
+**as whole and sufficient**  
+**in the very fact of its manifestation.**  
+It is precisely this experience  
+that in many texts  
+was figuratively called  
 **fullness.**
+
+</div>
 
 ## ABOUT THE HOLY SPIRIT (why the space of presence was sometimes called rest)
 
@@ -51610,31 +51217,23 @@ I say:
 
 **2796. And one last thing:**
 
-when attention clearly perceives
+<div class="lineated verse">
 
-the space of presence,
-
-life can be experienced
-
-without inner tension.
-
-And then the wording becomes clear:
-
-**The Holy Spirit is the space of presence,**
-
-**in which life is experienced**
-
-**without inner struggle**
-
-**and tension.**
-
-It is precisely this state
-
-that in many texts
-
-was figuratively called
-
+when attention clearly perceives  
+the space of presence,  
+life can be experienced  
+without inner tension.  
+And then the wording becomes clear:  
+**The Holy Spirit is the space of presence,**  
+**in which life is experienced**  
+**without inner struggle**  
+**and tension.**  
+It is precisely this state  
+that in many texts  
+was figuratively called  
 **rest.**
+
+</div>
 
 ## ON THE HOLY SPIRIT (why the space of presence was sometimes called silence)
 
