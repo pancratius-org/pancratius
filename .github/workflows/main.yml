@@ -35,7 +35,9 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # 50, not 25: the first full ~800 MB FTP upload needs headroom (the action writes
+    # its incremental sync-state only on completion); later deploys are diff-only and fast.
+    timeout-minutes: 50
 
     steps:
       - uses: actions/checkout@v6
