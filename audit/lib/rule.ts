@@ -43,6 +43,15 @@ export interface Rule {
   /** One-line human title shown in self-test output. */
   title: string;
   tier: Tier;
+  /**
+   * This rule's oracle re-derives structure from the source DOCX through pandoc,
+   * which CI deliberately never installs (it builds the site, never renders
+   * documents — docs/downloads.md). The rule self-skips at runtime when pandoc is
+   * absent, so it gates only where it can run (locally, at import time); the
+   * selftest likewise skips its fixture assertions when pandoc is absent, because a
+   * rule that cannot run cannot be self-tested.
+   */
+  requiresPandoc?: boolean;
   run(ctx: RuleContext): Finding[] | Promise<Finding[]>;
 }
 

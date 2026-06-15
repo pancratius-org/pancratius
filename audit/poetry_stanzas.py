@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -227,6 +228,17 @@ def main(argv: list[str] | None = None) -> int:
         "reading the committed (GFM-era) markdown.",
     )
     args = ap.parse_args(argv)
+
+    # The oracle re-derives stanza structure from the source DOCX through pandoc.
+    # CI ships no pandoc by contract — it builds the site, never renders documents
+    # (.github/workflows, docs/downloads.md) — so the oracle is uncomputable there and
+    # there is nothing to compare against: skip, as the pandoc-backed pytest paths do.
+    # The check still gates locally, where importing a poem (which needs pandoc) is the
+    # only thing that can introduce a stanza regression in the first place.
+    if shutil.which("pandoc") is None:
+        print("SKIP: pandoc unavailable — stanza oracle needs it (CI ships no pandoc)")
+        return 0
+
     if args.from_ir:
         return actual_groups_from_ir()
 

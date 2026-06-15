@@ -6,6 +6,7 @@ export const pan006bPoetryStanzas: Rule = {
   id: "PAN006B-poetry-stanzas",
   title: "PAN006B: poetry Markdown must preserve DOCX stanza structure",
   tier: "core",
+  requiresPandoc: true,
   run(ctx: RuleContext): Finding[] {
     return runPythonCheck(ctx, {
       id: "PAN006B-poetry-stanzas",

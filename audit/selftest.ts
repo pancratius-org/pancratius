@@ -14,6 +14,7 @@
 
 import { join } from "node:path";
 import { existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 
 import { type Finding, SEVERITIES } from "./lib/finding.ts";
 import type { Rule } from "./lib/rule.ts";
@@ -27,6 +28,14 @@ interface Result {
   ok: boolean;
   label: string;
   detail?: string;
+}
+
+let pandocAvailable: boolean | null = null;
+/** Whether pandoc is on PATH. CI never installs it (docs/downloads.md), so a
+ * `requiresPandoc` rule cannot run — and cannot be self-tested — there. */
+function hasPandoc(): boolean {
+  pandocAvailable ??= !spawnSync("pandoc", ["--version"], { stdio: "ignore" }).error;
+  return pandocAvailable;
 }
 
 function shapeError(f: Finding): string | null {
@@ -52,6 +61,13 @@ async function checkRule(rule: Rule): Promise<Result[]> {
 
   const fixtureIssue = fixturePresenceResult(rule, hasBad, hasGood);
   if (fixtureIssue) return [fixtureIssue];
+
+  // The fixtures must still EXIST (checked above), but a rule whose oracle needs
+  // pandoc cannot fire without it: skip the run, as the rule itself does, rather
+  // than read its forced silence as a dead audit. Locally (pandoc present) it runs.
+  if (rule.requiresPandoc && !hasPandoc()) {
+    return [{ ok: true, label: `${rule.id} (skipped — pandoc unavailable, cannot self-test)` }];
+  }
 
   const results: Result[] = [];
   if (hasBad) results.push(await checkBadFixture(rule, badDir));
