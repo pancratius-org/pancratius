@@ -35,8 +35,8 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # 50, not 25: the first full ~800 MB FTP upload needs headroom (the action writes
-    # its incremental sync-state only on completion); later deploys are diff-only and fast.
+    # 50 gives the first full ~800 MB rsync upload headroom; later deploys transfer
+    # only the changed files (delta sync) and finish well under the cap.
     timeout-minutes: 50
 
     steps:
@@ -79,25 +79,26 @@ jobs:
         id: deploy_gate
         run: echo "ready=true" >> "$GITHUB_OUTPUT"
 
-      # ── Deploy to primary FTP host ──────────────────────────────────────
-      - name: Deploy to primary host via FTP
-        id: deploy_ftp
+      # ── Deploy to primary host via rsync over SSH ───────────────────────
+      # One SSH connection with delta-transfer, not file-by-file FTPS (which
+      # couldn't finish the ~800 MB upload). `-c` skips by checksum, not mtime,
+      # because Astro rewrites every file's mtime each build. EXCLUDE `/.*` shields
+      # every top-level dotfile from `--delete` — the deploy user's home IS the
+      # docroot, so `.ssh/authorized_keys` (this job's own key) lives here.
+      - name: Deploy to primary host via rsync
+        id: deploy_rsync
         if: ${{ !cancelled() && steps.deploy_gate.outputs.ready == 'true' }}
         continue-on-error: true
-        uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
+        uses: easingthemes/ssh-deploy@5d8aeab1a56041e269567e67a08ce00df324a617 # v6.0.1
         with:
-          server: ${{ vars.HOSTING_FTP_HOST }}
-          username: ${{ secrets.HOSTING_FTP_USER }}
-          password: ${{ secrets.HOSTING_FTP_PASSWORD }}
-          local-dir: ./dist/
-          server-dir: ${{ vars.HOSTING_FTP_PATH }}
-          protocol: ${{ vars.HOSTING_FTP_PROTOCOL || 'ftps' }}
-          security: loose
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-          log-level: standard
+          SSH_PRIVATE_KEY: ${{ secrets.HOSTING_SSH_KEY }}
+          REMOTE_HOST: ${{ vars.HOSTING_SSH_HOST }}
+          REMOTE_USER: ${{ secrets.HOSTING_SSH_USER }}
+          REMOTE_PORT: ${{ vars.HOSTING_SSH_PORT || '22' }}
+          SOURCE: "dist/"
+          TARGET: ${{ vars.HOSTING_SSH_PATH }}
+          ARGS: "-rlpzc -i --delete --chmod=D755,F644"
+          EXCLUDE: "/.*"
 
       - name: Deploy to Cloudflare Pages
         id: deploy_cloudflare
@@ -115,10 +116,10 @@ jobs:
             !cancelled()
             && steps.deploy_gate.outputs.ready == 'true'
             && (
-              steps.deploy_ftp.outcome == 'failure'
+              steps.deploy_rsync.outcome == 'failure'
               || steps.deploy_cloudflare.outcome == 'failure'
             )
           }}
         run: |
-          echo "::error::At least one deploy target failed (ftp=${{ steps.deploy_ftp.outcome }}, cloudflare=${{ steps.deploy_cloudflare.outcome }})."
+          echo "::error::At least one deploy target failed (rsync=${{ steps.deploy_rsync.outcome }}, cloudflare=${{ steps.deploy_cloudflare.outcome }})."
           exit 1
