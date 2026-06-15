@@ -1512,23 +1512,19 @@ So many years passed.
 
 —
 
-One day he heard a voice.
+<div class="lineated verse">
 
-Not outward.
-
-Within.
-
-— Open your eyes.
-
-But not the ones on your face.
-
-He stopped.
-
-— Which ones, then?
-
-— The ones that were always looking,
-
+One day he heard a voice.  
+Not outward.  
+Within.  
+— Open your eyes.  
+But not the ones on your face.  
+He stopped.  
+— Which ones, then?  
+— The ones that were always looking,  
 even when you were blind.
+
+</div>
 
 ***
 

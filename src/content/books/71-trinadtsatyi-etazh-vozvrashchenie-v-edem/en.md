@@ -2530,21 +2530,18 @@ Not the whole film at once. Not the whole reel. Not the whole eternity. Not ever
 
 And therefore the finale here can be only very quiet. Not as a victorious chord. Not as the closing of a theme. Not as the feeling that everything is finished. But as a simple inward recognition.
 
-You were not separate.
+<div class="lineated verse">
 
-You were not forgotten.
-
-You were not condemned.
-
-You were seen.
-
-You were loved.
-
-You were in Him.
-
-And He was in you.
-
+You were not separate.  
+You were not forgotten.  
+You were not condemned.  
+You were seen.  
+You were loved.  
+You were in Him.  
+And He was in you.  
 **Now you see.**
+
+</div>
 
 ## DOLLAR AS A PARABLE AND ICON OF DARKNESS AND “13TH FLOOR” AS A PARABLE OF LIGHT
 
@@ -9416,17 +9413,16 @@ This is where the Kingdom leads. Not to poverty disguised as holiness. Not to lu
 
 And if this still seems like a utopia, it means we are still looking through the eyes of mammon. But the heart already knows: this is how it must be. Because the Father truly knows what we need. And when (not if) the world becomes His house again, it will inevitably begin to look exactly like this.
 
-Not like a market.
+<div class="lineated verse">
 
-Not like a prison of property.
-
-Not like a territory of fear.
-
-But like a field of giving.
-
-Like a valley of fruit.
-
+Not like a market.  
+Not like a prison of property.  
+Not like a territory of fear.  
+But like a field of giving.  
+Like a valley of fruit.  
 Like gratitude that has become the law of the heart.
+
+</div>
 
 And then it becomes clear that the dream was not only about Holy Rus. It was also about the human being. Because in the end it was said:
 
