@@ -21,7 +21,7 @@
     "generate:graph-payloads": "node build/copy-graph-payloads.ts",
     "generate:bulk-archives": "node build/bulk-archives.ts",
     "lint": "npm run lint:code && npm run lint:style",
-    "lint:code": "eslint \"{src,build,audit,tests}/**/*.{ts,tsx,astro,js,mjs,cjs}\"",
+    "lint:code": "astro sync && eslint \"{src,build,audit,tests}/**/*.{ts,tsx,astro,js,mjs,cjs}\"",
     "lint:style": "stylelint \"src/**/*.{astro,css}\"",
     "typecheck:tooling": "tsc -p tsconfig.tooling.json",
     "check:unused": "knip",
