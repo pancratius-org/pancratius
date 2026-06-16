@@ -10,7 +10,7 @@ One static `dist/` serves two regional mirrors, deployed by `.github/workflows/m
 
 | Origin | Host | Apex `/` | Default language |
 |--------|------|----------|------------------|
-| `pancratius.ru` | beget (rsync over SSH) | serves the baked `301 → /ru/` | Russian |
+| `pancratius.ru` | rsync over SSH | serves the baked `301 → /ru/` | Russian |
 | `pancratius.org` | Cloudflare Pages | edge rule `→ /en/` (below) | English |
 
 Every page is locale-prefixed (`/ru/…`, `/en/…`). The bare `/` carries no content;
@@ -18,8 +18,8 @@ each host redirects it to its default-locale home.
 
 ## Apex redirects
 
-- **`.ru` (beget): no config.** `dist/index.html` is an instant `301 → /ru/` baked by
-  `src/pages/index.astro`; beget serves it as-is.
+- **`.ru`: no config.** `dist/index.html` is an instant `301 → /ru/` baked by
+  `src/pages/index.astro`; the host serves it as-is.
 - **`.org` (Cloudflare): one zone Redirect Rule** (Rules → Redirects), required —
   without it `.org/` serves the baked `→ /ru/` and lands English visitors in Russian:
 
@@ -40,7 +40,7 @@ Run after a deploy or any apex/redirect change (a missing `.org` rule fails sile
 
 ## rsync `--delete` safety
 
-The beget deploy uses `--delete` with `EXCLUDE: "/.*"`, which protects every top-level
+The `.ru` deploy uses `--delete` with `EXCLUDE: "/.*"`, which protects every top-level
 remote dotfile/dir the build doesn't own — notably `.well-known/` (ACME/TLS renewal)
 and `.ssh/`. Do not narrow this exclude to ship a dotfile; the apex redirect is baked
 into `dist/index.html`, so nothing dot-prefixed needs to transfer.

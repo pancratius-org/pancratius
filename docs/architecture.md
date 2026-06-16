@@ -80,8 +80,7 @@ already committed. Their meeting point is committed source.
   serving host, so the artifact stays byte-identical across both. Language
   switching is same-origin; the cross-origin hreflang map is the SEO axis.
 - **Apex redirect is host-decided.** The build bakes `/ → /ru/` (meta-refresh);
-  each host adds a true 301 (beget `.htaccess` → `/ru/`; Cloudflare zone rule
-  → `/en/`). The apex is the only host-specific behavior; `dist/` carries no
+  each host adds a true 301 (`.ru` → `/ru/`, `.org` → `/en/`). The apex is the only host-specific behavior; `dist/` carries no
   host overlay.
 - **Deploy targets.** The same `dist/` ships to a plain SSH/rsync host (`.ru`)
   and to Cloudflare Pages (`.org`). The rsync host sets `Content-Type` from file
