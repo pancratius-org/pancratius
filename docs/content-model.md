@@ -381,7 +381,7 @@ sitemap emits their URLs and hreflang. That manifest is a *route index*, not the
 
 ## Videos
 
-Videos are catalogued at `/videos/{slug}/` (RU) and `/en/videos/{slug}/` (EN).
+Videos are catalogued at `/ru/videos/{slug}/` (RU) and `/en/videos/{slug}/` (EN).
 One folder per video, mirroring the work-bundle shape:
 
 ```txt
@@ -458,7 +458,7 @@ The shared schema is minimal — `slug`, `lang`, `title`, `description`,
 `eyebrow?`, `sub?` — and uses zod `.loose()` so a page may carry bespoke
 frontmatter (about's `portrait`/`facts`, support's `channels`) that its own
 dedicated route validates and renders. Each page is a thin dedicated route
-(`src/pages/<slug>/index.astro`, plus `/en/`) composing shared blocks
+(`src/pages/ru/<slug>/index.astro`, plus `/en/`) composing shared blocks
 (`<Prose>`, `<Verse>`, `PageShell`); there is no generic slug-dispatching
 renderer. A page's assets co-locate with it (about's portrait, support's QR), and
 renderable images go through `astro:assets`; `public/` is only for files needing

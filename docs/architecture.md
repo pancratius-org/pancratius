@@ -72,10 +72,20 @@ already committed. Their meeting point is committed source.
   [`i18n-routing.md`](./i18n-routing.md).
 - **Canonical URLs.** HTML ends in `/`; file downloads end in the extension.
   Shared URL helpers own this shape. Astro uses `trailingSlash: "ignore"` so
-  dynamic file endpoints such as `/books/{slug}.md` are not rewritten in dev.
-- **Deploy targets.** The same `dist/` ships to a plain FTP host and to
-  Cloudflare Pages. The FTP host sets `Content-Type` from file extension;
-  Astro `Response` headers do not carry over to deployed static files.
+  dynamic file endpoints such as `/ru/books/{slug}.md` are not rewritten in dev.
+- **Dual origin, one build.** Two domains are regional mirrors of the identical
+  full bilingual `dist/`: `pancratius.ru` (ccTLD, Russian audience) and
+  `pancratius.org` (gTLD, international). Canonical/hreflang/OG/JSON-LD origin is
+  a function of the resource's **locale** (`src/lib/origins.ts`), never of the
+  serving host, so the artifact stays byte-identical across both. Language
+  switching is same-origin; the cross-origin hreflang map is the SEO axis.
+- **Apex redirect is host-decided.** The build bakes `/ → /ru/` (meta-refresh);
+  each host adds a true 301 (beget `.htaccess` → `/ru/`; Cloudflare zone rule
+  → `/en/`). The apex is the only host-specific behavior; `dist/` carries no
+  host overlay.
+- **Deploy targets.** The same `dist/` ships to a plain SSH/rsync host (`.ru`)
+  and to Cloudflare Pages (`.org`). The rsync host sets `Content-Type` from file
+  extension; Astro `Response` headers do not carry over to deployed static files.
 
 ## Styling
 
@@ -142,8 +152,8 @@ explicit destructive maintenance command, not in the normal author workflow.
 
 ## Routing
 
-- Real locale folders (`src/pages/`, `src/pages/en/`), not a dynamic `[locale]` catch-all.
-- Pages and downloads share a URL stem: `/books/{slug}/` is the readable HTML; `/books/{slug}.pdf`, `.epub`, `.md`, `.txt`, `.docx` are alternate representations.
+- Real locale folders (`src/pages/ru/`, `src/pages/en/`), not a dynamic `[locale]` catch-all. The root `src/pages/index.astro` is the apex redirect stub Astro requires under prefix-all; `404.astro` is the generic host fallback alongside per-locale `ru/404.astro` and `en/404.astro`.
+- Pages and downloads share a URL stem: `/ru/books/{slug}/` is the readable HTML; `/ru/books/{slug}.pdf`, `.epub`, `.md`, `.txt`, `.docx` are alternate representations.
 - Download endpoints are Astro static endpoints (`[slug].[format].ts`). They emit existing bytes from the work bundle, or cheap text derivations from Markdown. They do not run document converters during the site build.
 
 ## Shared library
@@ -161,7 +171,7 @@ If route code duplicates lookup, locale pairing, graph resolution, SEO metadata,
 ## Downloads
 
 Per-work downloads are alternate representations of the work URL. The production
-bulk surface at `/downloads/` ships a single `all-md.zip` corpus archive; large
+bulk surface at `/ru/downloads/` ships a single `all-md.zip` corpus archive; large
 bulk PDF/EPUB archives are off-host archival/release artifacts, not production
 site payload. Details: [`downloads.md`](./downloads.md).
 
@@ -179,7 +189,7 @@ Three owners, no shared binary: a font's identity (family + OFL license) is shar
 
 ## Search
 
-Pagefind, built into the static output. Use defaults; Pagefind supports Russian with built-in stemming. Wrap each work body in `<article data-pagefind-body>` so the page-body is indexed cleanly. UI surfaces: inline filter on `/books/` plus a global `/search/` page. Confirm real-corpus recall in QA before adding morphology hacks.
+Pagefind, built into the static output. Use defaults; Pagefind supports Russian with built-in stemming. Wrap each work body in `<article data-pagefind-body>` so the page-body is indexed cleanly. UI surfaces: inline filter on `/ru/books/` plus a per-locale `/ru/search/` page. Confirm real-corpus recall in QA before adding morphology hacks.
 
 ## Conceptosphere
 
