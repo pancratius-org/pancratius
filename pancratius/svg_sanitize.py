@@ -19,15 +19,16 @@ from __future__ import annotations
 
 import re
 
-# A `<script ...>...</script>` element (including self-closing and unclosed-to-EOF),
-# case-insensitive, DOTALL so the body spans newlines.
-_SCRIPT_RE = re.compile(rb"<script\b[^>]*>.*?</script\s*>", re.IGNORECASE | re.DOTALL)
+# A `<script ...>...</script>` element (incl. self-closing and unclosed-to-EOF),
+# DOTALL so the body spans newlines. End tag is HTML grammar — `</script` up to
+# `>` (`</script foo>` closes too) — so `\b[^>]*>`, not `\s*>`.
+_SCRIPT_RE = re.compile(rb"<script\b[^>]*>.*?</script\b[^>]*>", re.IGNORECASE | re.DOTALL)
 _SCRIPT_SELF_CLOSE_RE = re.compile(rb"<script\b[^>]*/\s*>", re.IGNORECASE)
 _SCRIPT_UNCLOSED_RE = re.compile(rb"<script\b[^>]*>.*\Z", re.IGNORECASE | re.DOTALL)
 
 # A `<foreignObject ...>...</foreignObject>` element (it can host arbitrary HTML).
 _FOREIGN_OBJECT_RE = re.compile(
-    rb"<foreignObject\b[^>]*>.*?</foreignObject\s*>", re.IGNORECASE | re.DOTALL
+    rb"<foreignObject\b[^>]*>.*?</foreignObject\b[^>]*>", re.IGNORECASE | re.DOTALL
 )
 _FOREIGN_OBJECT_SELF_CLOSE_RE = re.compile(rb"<foreignObject\b[^>]*/\s*>", re.IGNORECASE)
 

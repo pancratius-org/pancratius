@@ -24,6 +24,12 @@ updates:
       interval: weekly
       day: sunday
     open-pull-requests-limit: 5
+    ignore:
+      # @types/node major must track the Node runtime (.nvmrc / engines.node);
+      # bump it together with those, never as a standalone major-version PR.
+      - dependency-name: "@types/node"
+        update-types:
+          - "version-update:semver-major"
     groups:
       astro:
         patterns:

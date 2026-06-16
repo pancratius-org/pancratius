@@ -26,6 +26,24 @@ def test_strips_unclosed_script_to_eof() -> None:
     assert b"<rect/>" in out
 
 
+def test_strips_script_with_junk_end_tag_keeps_siblings() -> None:
+    # `</script bar>` is a valid close — strip only the script, keep the siblings.
+    out = svg_sanitize.sanitize_svg(b'<svg><script>alert(1)</script bar><rect/></svg>')
+    assert b"<script" not in out
+    assert b"alert(1)" not in out
+    assert b"<rect/>" in out
+    assert b"</svg>" in out
+
+
+def test_strips_foreign_object_with_junk_end_tag_keeps_siblings() -> None:
+    out = svg_sanitize.sanitize_svg(
+        b'<svg><foreignObject><body>h</body></foreignObject id=x><rect/></svg>'
+    )
+    assert b"foreignObject" not in out
+    assert b"<body>" not in out
+    assert b"<rect/>" in out
+
+
 def test_strips_on_handler_attribute() -> None:
     out = svg_sanitize.sanitize_svg(b'<svg onload="x()"><rect onclick=\'y()\'/></svg>')
     assert b"onload" not in out

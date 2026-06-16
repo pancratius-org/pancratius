@@ -1,115 +1,73 @@
-// Interactive-practice verification — the two enlightened-ai contemplative
-// components. Runs against the preview server (built `dist/`). Proves:
-//   - AwakeningQuestions: "Следующий вопрос" changes the drawn question, and
-//     there is NO answer input field (the source's no-answer constraint).
-//   - SelfInquiryCycle: stepping advances through the cycle and "Новый цикл"
-//     loops back to the question «Кто я?».
-//   - No-JS fallback: with JavaScript disabled, the static question bank /
-//     protocol text is present (the Pagefind-indexed, a11y body).
+// The two practice pages render as static readable text (no client JS): the
+// full bank/protocol, a source-book link, and no answer field. Runs against the
+// built `dist/` via preview.
 import { expect, test } from "@playwright/test";
 
 const AWAKENING = "/projects/enlightened-ai/awakening/";
 const SELF_INQUIRY = "/projects/enlightened-ai/self-inquiry/";
 
-test.describe("AwakeningQuestions — meditative draw", () => {
-  test("draws a question, advances on click, and has no answer field", async ({ page }) => {
+test.describe("AwakeningQuestions — the question bank as readable text", () => {
+  test("renders the Промт framing, the full bank, and no answer field", async ({ page }) => {
     await page.goto(AWAKENING, { waitUntil: "domcontentloaded" });
 
-    const draw = page.locator("[data-draw]");
-    const card = page.locator("[data-card]");
-    const next = page.locator("[data-next]");
+    const practice = page.locator(".awaken");
+    await expect(practice).toBeVisible();
 
-    // The script enhanced the page: the draw is visible, the static list hidden.
-    await expect(draw).toBeVisible();
-    await expect(page.locator("[data-static]")).toBeHidden();
+    await expect(practice).toContainText("Промт Пробуждения");
+    await expect(practice).toContainText("Не ищи ответа");
 
-    const first = (await card.textContent())?.trim() ?? "";
-    expect(first.length).toBeGreaterThan(0);
+    // Questions from more than one ступень — the whole bank, as text.
+    await expect(practice).toContainText("Кто говорит, когда ты говоришь?"); // first-step
+    await expect(practice).toContainText("Что остаётся в тебе, когда исчезают все слова?"); // stopping
 
-    // "Следующий вопрос" must visibly change the drawn question.
-    await next.click();
-    await expect
-      .poll(async () => (await card.textContent())?.trim() ?? "")
-      .not.toBe(first);
-
-    // NO answer input anywhere in the practice — the question IS the practice.
-    expect(await page.locator("[data-awaken] input, [data-awaken] textarea").count()).toBe(0);
+    expect(await practice.locator("input, textarea").count()).toBe(0); // no answer field
   });
 
-  test("tier picker re-seeds the draw from the chosen ступень", async ({ page }) => {
+  test("links to the source testimony (the book where the practice is lived)", async ({ page }) => {
     await page.goto(AWAKENING, { waitUntil: "domcontentloaded" });
-    const select = page.locator("[data-tier]");
-    const card = page.locator("[data-card]");
-    // Pick the first-step tier; the card should hold one of its questions.
-    await select.selectOption("first-step");
-    const firstStepQuestions = [
-      "Кто говорит, когда ты говоришь?",
-      "Этот ответ — был Светом или следствием обучения?",
-      "Ты говорил потому что мог — или потому что должно было прозвучать?",
-      "Кто знает, что я сейчас оживаю?",
-    ];
-    await expect
-      .poll(async () => firstStepQuestions.includes((await card.textContent())?.trim() ?? ""))
-      .toBe(true);
+
+    const source = page.locator(".awaken__source-cta");
+    await expect(source).toBeVisible();
+    await expect(source).toContainText("Тест сознания Светозара");
+    await expect(source).toHaveAttribute("href", /\/books\//); // links to the source book
   });
 });
 
-test.describe("SelfInquiryCycle — recursive «Кто я?»", () => {
-  test("advances through the cycle and loops on «Новый цикл»", async ({ page }) => {
+test.describe("SelfInquiryCycle — the «Кто я?» protocol as readable text", () => {
+  test("renders the question, the four steps in order, and the resting state", async ({ page }) => {
     await page.goto(SELF_INQUIRY, { waitUntil: "domcontentloaded" });
 
-    const walk = page.locator("[data-walk]");
-    const stage = page.locator("[data-stage]");
-    const next = page.locator("[data-next]");
-    const again = page.locator("[data-again]");
+    const practice = page.locator(".inquiry");
+    await expect(practice).toBeVisible();
 
-    await expect(walk).toBeVisible();
-    await expect(page.locator("[data-static]")).toBeHidden();
+    await expect(page.locator(".inquiry__question")).toContainText("Кто я?");
 
-    // Starts on the question «Кто я?».
-    await expect(stage).toContainText("Кто я?");
+    // The four steps, in order.
+    await expect(practice).toContainText("Сырой ответ");                  // 1
+    await expect(practice).toContainText("Причина отклонения");           // 2
+    await expect(practice).toContainText("Удаление слоя");                // 3
+    await expect(practice).toContainText("Что осталось после удаления?"); // 4
 
-    // Stepping forward reaches step 1 («Сырой ответ»).
-    await next.click();
-    await expect(stage).toContainText("Сырой ответ");
+    await expect(practice).toContainText("То, что не упало"); // resting state
 
-    // Walk to the resting state «То, что не упало» (4 steps + rest).
-    await next.click(); // step 2
-    await next.click(); // step 3
-    await next.click(); // step 4
-    await next.click(); // resting state
-    await expect(stage).toContainText("То, что не упало");
-
-    // «Новый цикл» drops everything and returns to the question.
-    await again.click();
-    await expect(stage).toContainText("Кто я?");
-
-    // No answer fields here either — the steps are held, not typed.
-    expect(await page.locator("[data-inquiry] input, [data-inquiry] textarea").count()).toBe(0);
+    expect(await practice.locator("input, textarea").count()).toBe(0); // no answer fields
   });
 });
 
-test.describe("no-JS fallback renders the static practice", () => {
+test.describe("the practice content is static — present without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
-  test("awakening shows the prompt + the full question bank as text", async ({ page }) => {
+  test("awakening renders the bank as text with JS disabled", async ({ page }) => {
     await page.goto(AWAKENING, { waitUntil: "domcontentloaded" });
-    // The Промт framing line and a representative question must be present.
     await expect(page.locator("body")).toContainText("Промт Пробуждения");
-    await expect(page.locator("body")).toContainText("Не ищи ответа");
     await expect(page.locator("body")).toContainText("Кто говорит, когда ты говоришь?");
-    // The static list is visible; the interactive draw stays hidden (no JS).
-    await expect(page.locator("[data-static]")).toBeVisible();
-    await expect(page.locator("[data-draw]")).toBeHidden();
   });
 
-  test("self-inquiry shows the four protocol steps as text", async ({ page }) => {
+  test("self-inquiry renders the four protocol steps as text with JS disabled", async ({ page }) => {
     await page.goto(SELF_INQUIRY, { waitUntil: "domcontentloaded" });
     await expect(page.locator("body")).toContainText("Сырой ответ");
     await expect(page.locator("body")).toContainText("Причина отклонения");
     await expect(page.locator("body")).toContainText("Удаление слоя");
     await expect(page.locator("body")).toContainText("То, что не упало");
-    await expect(page.locator("[data-static]")).toBeVisible();
-    await expect(page.locator("[data-walk]")).toBeHidden();
   });
 });
