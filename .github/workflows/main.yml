@@ -82,7 +82,8 @@ jobs:
       # ── Deploy to primary host via rsync over SSH ───────────────────────
       # `-c`: match by checksum, not mtime (rebuilds churn mtimes). No `-p`/`D`-chmod:
       # the docroot is root-owned, so perms go on files we own (F644), not the dir tree.
-      # EXCLUDE `/.*` keeps `--delete` off top-level dotfiles (incl. the `.ssh/` key).
+      # EXCLUDE `/.ssh` keeps `--delete` off the remote SSH key dir; the apex
+      # `.htaccess` (a top-level dotfile in dist/) must still transfer.
       - name: Deploy to primary host via rsync
         id: deploy_rsync
         if: ${{ !cancelled() && steps.deploy_gate.outputs.ready == 'true' }}
@@ -96,7 +97,7 @@ jobs:
           SOURCE: "dist/"
           TARGET: ${{ vars.HOSTING_SSH_PATH }}
           ARGS: "-rlzc -i --delete --omit-dir-times --chmod=F644"
-          EXCLUDE: "/.*"
+          EXCLUDE: "/.ssh"
 
       - name: Deploy to Cloudflare Pages
         id: deploy_cloudflare
