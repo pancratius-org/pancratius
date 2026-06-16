@@ -1,17 +1,12 @@
 name: PR verify
 
-# Pull-request quality gate. Runs the same `npm run verify` that maintainers
-# run locally (npm audit + JS/TS tooling checks + Astro check + Python checks
-# + audit core + audit selftest + build + audit:post-build), then
-# Playwright e2e tests against the freshly built `dist/`.
+# Pull-request quality gate: `npm run verify` — the single gate from
+# docs/tooling.md (checks, audits, build, Playwright e2e). CI runs the exact
+# command maintainers run locally, so "passes locally" == "passes in CI".
 #
-# `verify` is the contract from docs/tooling.md; CI mirrors it so "passes
-# locally" and "passes in CI" mean the same thing. One place to edit when a
-# new gate is added.
-#
-# IMPORTANT: this workflow installs Node + uv only. It MUST NOT install pandoc
-# or typst — the build pipeline copies committed PDFs/EPUBs from `src/content/`
-# at build time, so CI never renders documents (see docs/downloads.md).
+# Installs Node, uv, and the Playwright chromium browser (verify runs e2e). It
+# MUST NOT install pandoc or typst — the build copies committed PDFs/EPUBs from
+# `src/content/`, so CI never renders documents (see docs/downloads.md).
 
 on:
   pull_request:
@@ -50,17 +45,11 @@ jobs:
       - name: Install Python deps (frozen lock)
         run: uv sync --frozen
 
-      - name: Verify (full local gate)
-        # Single command on purpose: `verify` is the documented quality gate
-        # (docs/tooling.md). Step labels are sacrificed for SSOT — the failing
-        # sub-command surfaces in the log on failure.
-        run: npm run verify
-
-      - name: Install Playwright browser (chromium only)
+      - name: Install Playwright browser (chromium)
         run: npx playwright install --with-deps chromium
 
-      - name: Run e2e tests
-        run: npm run test:e2e
+      - name: Verify (the gate — checks, audits, build, e2e)
+        run: npm run verify
 
       - name: Upload Playwright report on failure
         if: failure()

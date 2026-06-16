@@ -28,7 +28,7 @@ export default defineConfig({
   webServer: {
     command: `npx astro preview --port ${PORT} --host 127.0.0.1`,
     url: `http://127.0.0.1:${PORT}/`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !process.env.CI && !process.env.PW_GATE,  // PW_GATE (npm run verify) forces a fresh preview on its own port
     timeout: 120_000,
   },
 });
