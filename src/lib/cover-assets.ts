@@ -1,6 +1,7 @@
 import type { ImageMetadata } from "astro";
 
 import type { Locale } from "./i18n";
+import { originFor } from "./origins";
 import { COLLECTION_OF, resolveCover, workBundleKey, type WorkPair } from "./works";
 
 export type CoverAsset =
@@ -43,7 +44,6 @@ function coverAssetUrl(asset: CoverAsset): string {
   return asset.kind === "raster" ? asset.image.src : asset.url;
 }
 
-export function absoluteCoverAssetUrl(asset: CoverAsset, site: URL | undefined): string {
-  const url = coverAssetUrl(asset);
-  return site ? new URL(url, site).toString() : url;
+export function absoluteCoverAssetUrl(asset: CoverAsset, locale: Locale): string {
+  return new URL(coverAssetUrl(asset), originFor(locale)).toString();
 }

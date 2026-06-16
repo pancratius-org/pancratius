@@ -42,8 +42,8 @@ if (!entry) {
 
 const copy = bookPageCopy[locale];
 const { Content, headings } = await render(entry);
-const coverUrl = coverAbsoluteUrl(Astro.site, pair, locale);
-const seo = seoForWork(Astro.site, {
+const coverUrl = coverAbsoluteUrl(pair, locale);
+const seo = seoForWork({
   pair,
   locale,
   ...(coverUrl === null ? {} : { coverUrl }),

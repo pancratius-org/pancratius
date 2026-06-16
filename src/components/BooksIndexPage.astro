@@ -21,7 +21,7 @@ const allPairs = await getPairsByKind("book");
 // Existence: a non-default-locale index lists only works authored in it; the
 // default-locale index lists every work.
 const pairs = localizedWorkPairs(allPairs, locale);
-const seo = seoForKindIndex(Astro.site, "book", locale, { total: allPairs.length });
+const seo = seoForKindIndex("book", locale, { total: allPairs.length });
 const defaultHref = kindIndexUrl("book", DEFAULT_LOCALE);
 
 const tagCounts = new Map<string, number>();

@@ -3,6 +3,7 @@ import rss from "@astrojs/rss";
 
 import type { Locale } from "@/lib/i18n";
 import { workUrl } from "@/lib/i18n";
+import { originFor } from "@/lib/origins";
 import { getAllWorkPairs, localizedWorkPairs } from "@/lib/works";
 
 const locale: Locale = "en";
@@ -15,17 +16,12 @@ function pubDateFor(number: number, dateField: string | null | undefined): Date 
   return new Date(Date.UTC(2025, 0, 1 + number));
 }
 
-function configuredSite(site: URL | undefined): URL {
-  if (!site) throw new Error("RSS feed requires `site` in astro.config.ts");
-  return site;
-}
-
-export const GET: APIRoute = async (context) => {
+export const GET: APIRoute = async () => {
   const pairs = localizedWorkPairs(await getAllWorkPairs(), locale);
   return rss({
     title:       "Pancratius — new works",
     description: "Sergey Orekhov's writings in English translation. Free — for humans and for language models. CC0.",
-    site:        configuredSite(context.site),
+    site:        originFor(locale),
     items: pairs.map(({ pair, entry }) => {
       const date = pubDateFor(
         pair.number,

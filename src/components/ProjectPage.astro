@@ -62,11 +62,11 @@ const coverKey = data.cover ? contentCoverKey("projects", folder, data.cover) : 
 const cover = coverKey ? resolveCoverAsset(coverKey, COVER_ASSETS) : null;
 
 const authoredLocales = new Set(await authoredProjectLocales(data.slug));
-const seo = seoForProject(Astro.site, {
+const seo = seoForProject({
   project,
   locale,
   authoredLocales,
-  ...(cover === null ? {} : { coverUrl: absoluteCoverAssetUrl(cover, Astro.site) }),
+  ...(cover === null ? {} : { coverUrl: absoluteCoverAssetUrl(cover, locale) }),
 });
 
 // Featured books — primary strip (with blurbs) + optional secondary row.

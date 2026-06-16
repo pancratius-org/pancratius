@@ -27,8 +27,8 @@ if (!entry) {
 
 const copy = poemPageCopy[locale];
 const { Content } = await render(entry);
-const coverUrl = coverAbsoluteUrl(Astro.site, pair, locale);
-const seo = seoForWork(Astro.site, {
+const coverUrl = coverAbsoluteUrl(pair, locale);
+const seo = seoForWork({
   pair,
   locale,
   ...(coverUrl === null ? {} : { coverUrl }),

@@ -38,7 +38,7 @@ if (!entry) {
 
 const copy = messagePageCopy[locale];
 const { Content } = await render(entry);
-const seo = seoForMessage(Astro.site, { pair, locale });
+const seo = seoForMessage({ pair, locale });
 const tags = messageTags(entry);
 const backHref = kindIndexUrl("message", locale);
 const today = todayISO();

@@ -28,7 +28,7 @@ const { locale } = Astro.props;
 const copy: MessagesIndexCopy = messagesIndexCopy[locale];
 const allPairs = await getAllMessagePairs();
 const pairs = localizedMessagePairs(allPairs, locale);
-const seo = seoForKindIndex(Astro.site, "message", locale, { total: allPairs.length });
+const seo = seoForKindIndex("message", locale, { total: allPairs.length });
 const defaultHref = kindIndexUrl("message", DEFAULT_LOCALE);
 
 // A whisper of the letter beside its title — enough voice to choose by.

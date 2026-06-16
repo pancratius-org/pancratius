@@ -13,6 +13,7 @@ import { getCollection, render, type CollectionEntry } from "astro:content";
 
 import { DEFAULT_LOCALE, LOCALE_META, LOCALES, type Locale } from "./i18n";
 import { parseCoverPath, type CoverRef } from "./cover-path";
+import { originFor } from "./origins";
 import { layoutFor, localizedEmbedUrl } from "./video-format";
 
 // Re-export the pure formatter so callers `import { formatDuration } from "@/lib/videos"`.
@@ -270,15 +271,10 @@ export function videoCoverAssetUrl(pair: VideoPair, locale: Locale): string | nu
   return VIDEO_COVER_URLS[key] ?? null;
 }
 
-export function videoCoverAbsoluteUrl(
-  site: URL | undefined,
-  pair: VideoPair,
-  locale: Locale,
-): string | null {
+export function videoCoverAbsoluteUrl(pair: VideoPair, locale: Locale): string | null {
   const rel = videoCoverAssetUrl(pair, locale);
   if (rel === null) return null;
-  if (site === undefined) return rel;
-  return new URL(rel, site).toString();
+  return new URL(rel, originFor(locale)).toString();
 }
 
 // ─────────────────────────────────────────────────────────────────────

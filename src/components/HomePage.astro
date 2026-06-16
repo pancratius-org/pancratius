@@ -50,7 +50,7 @@ const allPoems = await getPairsByKind("poem");
 // translated subset otherwise) — drives the home poetry count/stat.
 const localizedPoems = localizedWorkPairs(allPoems, locale);
 // Corpus tallies drive the home meta description's spelled-out counts.
-const seo = seoForHome(Astro.site, locale, { books: allBooks.length, poems: allPoems.length });
+const seo = seoForHome(locale, { books: allBooks.length, poems: allPoems.length });
 // Projects are sections, not works — sourced from the projects lib. The
 // canonical set is the default-locale landings (each project always has one);
 // on a non-default locale, prefer that locale's landing and link to it,

@@ -12,7 +12,7 @@ interface Props {
 
 const { locale } = Astro.props;
 const copy = searchPageCopy[locale];
-const seo = seoForSearch(Astro.site, locale);
+const seo = seoForSearch(locale);
 ---
 <Base {locale} {seo}>
   <section class="l-canvas l-canvas--page l-page-block search-page">

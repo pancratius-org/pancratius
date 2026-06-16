@@ -56,7 +56,7 @@ const authored: Locale[] = [];
 for (const loc of LOCALES) {
   if (await getProjectSubpage(data.parent, data.slug, loc)) authored.push(loc);
 }
-const seo = seoForProjectSubpage(Astro.site, {
+const seo = seoForProjectSubpage({
   subpage,
   locale,
   authoredLocales: new Set(authored),

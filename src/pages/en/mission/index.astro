@@ -23,7 +23,7 @@ const authoredLocales = new Set<Locale>();
 for (const loc of LOCALES) {
   if (await getPage(SLUG, loc)) authoredLocales.add(loc);
 }
-const seo = seoForPage(Astro.site, page, authoredLocales);
+const seo = seoForPage(page, authoredLocales);
 const alternates: Partial<Record<Locale, string>> = {};
 for (const loc of authoredLocales) {
   if (loc !== locale) alternates[loc] = pageUrl(SLUG, loc);

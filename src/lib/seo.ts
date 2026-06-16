@@ -25,7 +25,6 @@ import type { PageEntry } from "./pages";
 import type { ProjectLanding, ProjectSubpage } from "./projects";
 import {
   authoredWorkPairs,
-  defaultWorkEntry,
   entryForAuthoredLocale,
   type WorkEntry,
   type WorkPair,
@@ -33,17 +32,16 @@ import {
 import {
   authoredVideoPairs,
   baseEmbedUrlFor,
-  defaultVideoEntry,
   entryForAuthoredVideoLocale,
   videoWatchLinks,
   type VideoPair,
 } from "./videos";
 import {
   authoredMessagePairs,
-  defaultMessageEntry,
   entryForAuthoredMessageLocale,
   type MessagePair,
 } from "./messages";
+import { originFor } from "./origins";
 
 const AUTHOR_NAME = "Сергей Орехов";
 const AUTHOR_ALIAS = "Панкратиус";
@@ -78,12 +76,22 @@ export interface SeoMeta {
 
 // ─────────────────────────────────────────────────────────────────────
 // Absolute URL helpers.
+//
+// Canonical origin is a function of the resource's LOCALE (`origins.ts`), and a
+// root-relative path now carries its locale in the leading prefix segment — so
+// the origin is derivable from the path alone. RU → pancratius.ru, EN →
+// pancratius.org; a locale-neutral path (the generic `/404`) takes the default.
 // ─────────────────────────────────────────────────────────────────────
 
-/** Read the site origin from Astro's config (provided to each route via `Astro.site`). */
-export function absUrl(site: URL | undefined, path: string): string {
-  if (!site) return path;
-  return new URL(path, site).toString();
+/** Locale of a root-relative path, read from its leading prefix segment. */
+function localeOfPath(path: string): Locale {
+  const segment = path.split("/")[1];
+  return LOCALES.find((loc) => LOCALE_META[loc].urlPrefix === segment) ?? DEFAULT_LOCALE;
+}
+
+/** Absolute canonical URL for a root-relative path, on the path locale's origin. */
+export function absUrl(path: string): string {
+  return new URL(path, originFor(localeOfPath(path))).toString();
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -145,14 +153,14 @@ function homeDescription(locale: Locale, counts: CorpusCounts): string {
   return `${spellRussianCardinal(counts.books, { feminine: true })} ${plRu(counts.books, RU_PLURALS.book)}. ${spellRussianCardinal(counts.poems, { feminine: true })} ${plRu(counts.poems, RU_PLURALS.poem)}. Свободно — людям и языковым моделям. Тексты в общественном достоянии (CC0).`;
 }
 
-export function seoForHome(site: URL | undefined, locale: Locale, counts: CorpusCounts): SeoMeta {
+export function seoForHome(locale: Locale, counts: CorpusCounts): SeoMeta {
   return {
     title:       homeTitle[locale],
     description: homeDescription(locale, counts),
-    canonical:  absUrl(site, homeUrl(locale)),
+    canonical:  absUrl(homeUrl(locale)),
     ogImage:    null,
     ogType:     "website",
-    alternates: alternatesForHome(site),
+    alternates: alternatesForHome(),
     jsonLd:     null,
     locale,
     ...ogMeta(locale),
@@ -170,7 +178,6 @@ export interface KindIndexCount {
 }
 
 export function seoForKindIndex(
-  site: URL | undefined,
   kind: RoutedKind,
   locale: Locale,
   count?: KindIndexCount,
@@ -224,38 +231,33 @@ export function seoForKindIndex(
   return {
     title:       titles[kind][locale],
     description: descriptions[kind][locale],
-    canonical:   absUrl(site, kindIndexUrl(kind, locale)),
+    canonical:   absUrl(kindIndexUrl(kind, locale)),
     ogImage:     null,
     ogType:      "website",
-    alternates:  alternatesForKindIndex(site, kind),
+    alternates:  alternatesForKindIndex(kind),
     jsonLd:      null,
     locale,
     ...ogMeta(locale),
   };
 }
 
-export function seoForSearch(site: URL | undefined, locale: Locale): SeoMeta {
+export function seoForSearch(locale: Locale): SeoMeta {
   const copy = searchPageCopy[locale];
   return {
     title: copy.title,
     description: clampDescription(copy.description),
-    canonical: absUrl(site, localizePath("/search/", locale)),
+    canonical: absUrl(localizePath("/search/", locale)),
     ogImage: null,
     ogType: "website",
-    alternates: alternatesForSearch(site),
+    alternates: alternatesForSearch(),
     jsonLd: null,
     locale,
     ...ogMeta(locale),
   };
 }
 
-function alternatesForSearch(site: URL | undefined): AlternateLink[] {
-  const xs: AlternateLink[] = [];
-  for (const loc of LOCALES) {
-    xs.push({ hreflang: loc, href: absUrl(site, localizePath("/search/", loc)) });
-  }
-  xs.push({ hreflang: "x-default", href: absUrl(site, localizePath("/search/", DEFAULT_LOCALE)) });
-  return xs;
+function alternatesForSearch(): AlternateLink[] {
+  return withXDefault(LOCALES.map((loc) => ({ hreflang: loc, href: absUrl(localizePath("/search/", loc)) })));
 }
 
 export interface WorkSeoInput {
@@ -265,7 +267,7 @@ export interface WorkSeoInput {
   coverUrl?: string;
 }
 
-export function seoForWork(site: URL | undefined, input: WorkSeoInput): SeoMeta {
+export function seoForWork(input: WorkSeoInput): SeoMeta {
   const { pair, locale, coverUrl = null } = input;
   // Existence: a work page in this locale only exists if the locale was
   // authored. Do NOT fall back — a missing entry here is a routing bug.
@@ -276,7 +278,7 @@ export function seoForWork(site: URL | undefined, input: WorkSeoInput): SeoMeta 
     );
   }
   const data = entry.data;
-  const canonical = absUrl(site, workUrl(pair.kind, data.slug, locale));
+  const canonical = absUrl(workUrl(pair.kind, data.slug, locale));
   const description = clampDescription(data.description);
   const title = `${data.title} — ${siteLabel(locale)}`;
   return {
@@ -285,7 +287,7 @@ export function seoForWork(site: URL | undefined, input: WorkSeoInput): SeoMeta 
     canonical,
     ogImage:    coverUrl,
     ogType:     "article",
-    alternates: alternatesForWork(site, pair),
+    alternates: alternatesForWork(pair),
     jsonLd:     creativeWorkLd({
       pair,
       entry,
@@ -293,7 +295,6 @@ export function seoForWork(site: URL | undefined, input: WorkSeoInput): SeoMeta 
       canonical,
       coverUrl,
       description,
-      site,
     }),
     locale,
     ...ogMeta(locale),
@@ -315,10 +316,10 @@ export interface ProjectSeoInput {
  * localized canonical, hreflang siblings for every authored landing locale, OG
  * `article`, and an `Article` JSON-LD scoped to the corpus series.
  */
-export function seoForProject(site: URL | undefined, input: ProjectSeoInput): SeoMeta {
+export function seoForProject(input: ProjectSeoInput): SeoMeta {
   const { project, locale, coverUrl = null, authoredLocales } = input;
   const data = project.data;
-  const canonical = absUrl(site, routedUrl("project", data.slug, locale));
+  const canonical = absUrl(routedUrl("project", data.slug, locale));
   const description = clampDescription(data.description);
   const title = `${data.title} — ${siteLabel(locale)}`;
   const ld: Record<string, unknown> = {
@@ -337,7 +338,7 @@ export function seoForProject(site: URL | undefined, input: ProjectSeoInput): Se
     "isPartOf":    {
       "@type":  "CreativeWorkSeries",
       "name":   CORPUS_NAME,
-      "url":    absUrl(site, homeUrl(DEFAULT_LOCALE)),
+      "url":    absUrl(homeUrl(DEFAULT_LOCALE)),
     },
   };
   if (coverUrl) ld.image = coverUrl;
@@ -347,7 +348,7 @@ export function seoForProject(site: URL | undefined, input: ProjectSeoInput): Se
     canonical,
     ogImage:     coverUrl,
     ogType:      "article",
-    alternates:  alternatesForProject(site, data.slug, authoredLocales),
+    alternates:  alternatesForProject(data.slug, authoredLocales),
     jsonLd:      ld,
     locale,
     ...ogMeta(locale),
@@ -363,13 +364,12 @@ export interface ProjectSubpageSeoInput {
 
 /** SEO metadata for a project SUB-PAGE. Localized article inside the section. */
 export function seoForProjectSubpage(
-  site: URL | undefined,
   input: ProjectSubpageSeoInput,
 ): SeoMeta {
   const { subpage, locale, authoredLocales } = input;
   const data = subpage.data;
   const path = `/projects/${data.parent}/${data.slug}/`;
-  const canonical = absUrl(site, localizePath(path, locale));
+  const canonical = absUrl(localizePath(path, locale));
   const description = clampDescription(data.description);
   return {
     title:       `${data.title} — ${siteLabel(locale)}`,
@@ -377,7 +377,7 @@ export function seoForProjectSubpage(
     canonical,
     ogImage:     null,
     ogType:      "article",
-    alternates:  alternatesForProjectSubpath(site, path, authoredLocales),
+    alternates:  alternatesForProjectSubpath(path, authoredLocales),
     jsonLd:      null,
     locale,
     ...ogMeta(locale),
@@ -385,43 +385,25 @@ export function seoForProjectSubpage(
 }
 
 function alternatesForProjectSubpath(
-  site: URL | undefined,
   path: string,
   authoredLocales: ReadonlySet<Locale>,
 ): AlternateLink[] {
-  const xs: AlternateLink[] = [];
-  let defaultHref: string | null = null;
-  for (const loc of LOCALES) {
-    if (authoredLocales.has(loc)) {
-      const href = absUrl(site, localizePath(path, loc));
-      xs.push({ hreflang: loc, href });
-      if (loc === DEFAULT_LOCALE) defaultHref = href;
-    }
-  }
-  if (defaultHref) {
-    xs.push({ hreflang: "x-default", href: defaultHref });
-  }
-  return xs;
+  const xs: AlternateLink[] = LOCALES.filter((loc) => authoredLocales.has(loc)).map((loc) => ({
+    hreflang: loc,
+    href: absUrl(localizePath(path, loc)),
+  }));
+  return withXDefault(xs);
 }
 
 function alternatesForProject(
-  site: URL | undefined,
   slug: string,
   authoredLocales: ReadonlySet<Locale>,
 ): AlternateLink[] {
-  const xs: AlternateLink[] = [];
-  let defaultHref: string | null = null;
-  for (const loc of LOCALES) {
-    if (authoredLocales.has(loc)) {
-      const href = absUrl(site, routedUrl("project", slug, loc));
-      xs.push({ hreflang: loc, href });
-      if (loc === DEFAULT_LOCALE) defaultHref = href;
-    }
-  }
-  if (defaultHref) {
-    xs.push({ hreflang: "x-default", href: defaultHref });
-  }
-  return xs;
+  const xs: AlternateLink[] = LOCALES.filter((loc) => authoredLocales.has(loc)).map((loc) => ({
+    hreflang: loc,
+    href: absUrl(routedUrl("project", slug, loc)),
+  }));
+  return withXDefault(xs);
 }
 
 /**
@@ -429,20 +411,19 @@ function alternatesForProject(
  * authored entry for this page so alternates list only real siblings.
  */
 export function seoForPage(
-  site: URL | undefined,
   page: PageEntry,
   authoredLocales: ReadonlySet<Locale>,
 ): SeoMeta {
   const data = page.data;
   const locale = data.lang;
-  const canonical = absUrl(site, pageUrl(data.slug, locale));
+  const canonical = absUrl(pageUrl(data.slug, locale));
   return {
     title:       `${data.title} — ${siteLabel(locale)}`,
     description: clampDescription(data.description),
     canonical,
     ogImage:     null,
     ogType:      "article",
-    alternates:  alternatesForPage(site, data.slug, authoredLocales),
+    alternates:  alternatesForPage(data.slug, authoredLocales),
     jsonLd:      null,
     locale,
     ...ogMeta(locale),
@@ -450,77 +431,58 @@ export function seoForPage(
 }
 
 function alternatesForPage(
-  site: URL | undefined,
   slug: string,
   authoredLocales: ReadonlySet<Locale>,
 ): AlternateLink[] {
-  const xs: AlternateLink[] = [];
-  let defaultHref: string | null = null;
-  for (const loc of LOCALES) {
-    if (authoredLocales.has(loc)) {
-      const href = absUrl(site, pageUrl(slug, loc));
-      xs.push({ hreflang: loc, href });
-      if (loc === DEFAULT_LOCALE) defaultHref = href;
-    }
-  }
-  if (defaultHref) {
-    xs.push({ hreflang: "x-default", href: defaultHref });
-  }
-  return xs;
+  const xs: AlternateLink[] = LOCALES.filter((loc) => authoredLocales.has(loc)).map((loc) => ({
+    hreflang: loc,
+    href: absUrl(pageUrl(slug, loc)),
+  }));
+  return withXDefault(xs);
 }
 
 // ─────────────────────────────────────────────────────────────────────
 // Alternates / hreflang.
 //
-// Per docs/i18n-routing.md every page lists every available translation plus
-// x-default pointing at the RU canonical. Pages missing a translation simply
-// omit the alternate — language switcher renders them as disabled.
+// Per docs/i18n-routing.md every page lists every authored translation. hreflang
+// hrefs are cross-origin (RU → .ru, EN → .org) via `absUrl`. `x-default` points
+// at the EN version when English is authored — the global face — else at the
+// default-locale (RU) version. Pages missing a translation simply omit the
+// alternate; the language switcher renders them as disabled.
 // ─────────────────────────────────────────────────────────────────────
 
-function alternatesForHome(site: URL | undefined): AlternateLink[] {
-  const xs: AlternateLink[] = [];
-  for (const loc of LOCALES) {
-    xs.push({ hreflang: loc, href: absUrl(site, homeUrl(loc)) });
-  }
-  xs.push({ hreflang: "x-default", href: absUrl(site, homeUrl(DEFAULT_LOCALE)) });
-  return xs;
+/** Append `x-default` → the EN alternate if present, else the default-locale one. */
+function withXDefault(alternates: AlternateLink[]): AlternateLink[] {
+  const fallback =
+    alternates.find((a) => a.hreflang === "en") ??
+    alternates.find((a) => a.hreflang === DEFAULT_LOCALE);
+  return fallback ? [...alternates, { hreflang: "x-default", href: fallback.href }] : alternates;
 }
 
-function alternatesForKindIndex(site: URL | undefined, kind: RoutedKind): AlternateLink[] {
-  const xs: AlternateLink[] = [];
-  for (const loc of LOCALES) {
-    xs.push({ hreflang: loc, href: absUrl(site, kindIndexUrl(kind, loc)) });
-  }
-  xs.push({ hreflang: "x-default", href: absUrl(site, kindIndexUrl(kind, DEFAULT_LOCALE)) });
-  return xs;
+function alternatesForHome(): AlternateLink[] {
+  return withXDefault(LOCALES.map((loc) => ({ hreflang: loc, href: absUrl(homeUrl(loc)) })));
 }
 
-function alternatesForWork(site: URL | undefined, pair: WorkPair): AlternateLink[] {
+function alternatesForKindIndex(kind: RoutedKind): AlternateLink[] {
+  return withXDefault(LOCALES.map((loc) => ({ hreflang: loc, href: absUrl(kindIndexUrl(kind, loc)) })));
+}
+
+function alternatesForWork(pair: WorkPair): AlternateLink[] {
   // Existence: list one alternate per locale that was actually authored, so a
   // missing translation simply has no hreflang entry (switcher disables it).
-  const xs: AlternateLink[] = [];
-  for (const { entry, locale: loc } of authoredWorkPairs(pair)) {
-    xs.push({ hreflang: loc, href: absUrl(site, workUrl(pair.kind, entry.data.slug, loc)) });
-  }
-  const canonical = defaultWorkEntry(pair);
-  xs.push({
-    hreflang: "x-default",
-    href: absUrl(site, workUrl(pair.kind, canonical.data.slug, DEFAULT_LOCALE)),
-  });
-  return xs;
+  const xs: AlternateLink[] = authoredWorkPairs(pair).map(({ entry, locale: loc }) => ({
+    hreflang: loc,
+    href: absUrl(workUrl(pair.kind, entry.data.slug, loc)),
+  }));
+  return withXDefault(xs);
 }
 
-function alternatesForVideo(site: URL | undefined, pair: VideoPair): AlternateLink[] {
-  const xs: AlternateLink[] = [];
-  for (const { entry, locale: loc } of authoredVideoPairs(pair)) {
-    xs.push({ hreflang: loc, href: absUrl(site, routedUrl("video", entry.data.slug, loc)) });
-  }
-  const canonical = defaultVideoEntry(pair);
-  xs.push({
-    hreflang: "x-default",
-    href: absUrl(site, routedUrl("video", canonical.data.slug, DEFAULT_LOCALE)),
-  });
-  return xs;
+function alternatesForVideo(pair: VideoPair): AlternateLink[] {
+  const xs: AlternateLink[] = authoredVideoPairs(pair).map(({ entry, locale: loc }) => ({
+    hreflang: loc,
+    href: absUrl(routedUrl("video", entry.data.slug, loc)),
+  }));
+  return withXDefault(xs);
 }
 
 export interface VideoSeoInput {
@@ -534,14 +496,14 @@ export interface VideoSeoInput {
  * (thumbnailUrl, uploadDate, duration, contentUrl/embedUrl) so search engines
  * can surface the video as a rich result.
  */
-export function seoForVideo(site: URL | undefined, input: VideoSeoInput): SeoMeta {
+export function seoForVideo(input: VideoSeoInput): SeoMeta {
   const { pair, locale, coverUrl = null } = input;
   const entry = entryForAuthoredVideoLocale(pair, locale);
   if (!entry) {
     throw new Error(`seoForVideo: no ${locale} entry for video #${pair.number}`);
   }
   const data = entry.data;
-  const canonical = absUrl(site, routedUrl("video", data.slug, locale));
+  const canonical = absUrl(routedUrl("video", data.slug, locale));
   const description = clampDescription(data.description);
   const watchLinks = videoWatchLinks(entry);
   const embedUrl = baseEmbedUrlFor(entry);
@@ -563,7 +525,7 @@ export function seoForVideo(site: URL | undefined, input: VideoSeoInput): SeoMet
     "isPartOf":     {
       "@type": "CreativeWorkSeries",
       "name":  CORPUS_NAME,
-      "url":   absUrl(site, homeUrl(DEFAULT_LOCALE)),
+      "url":   absUrl(homeUrl(DEFAULT_LOCALE)),
     },
   };
   if (coverUrl) ld.thumbnailUrl = coverUrl;
@@ -575,24 +537,19 @@ export function seoForVideo(site: URL | undefined, input: VideoSeoInput): SeoMet
     canonical,
     ogImage:     coverUrl,
     ogType:      "article",
-    alternates:  alternatesForVideo(site, pair),
+    alternates:  alternatesForVideo(pair),
     jsonLd:      ld,
     locale,
     ...ogMeta(locale),
   };
 }
 
-function alternatesForMessage(site: URL | undefined, pair: MessagePair): AlternateLink[] {
-  const xs: AlternateLink[] = [];
-  for (const { entry, locale: loc } of authoredMessagePairs(pair)) {
-    xs.push({ hreflang: loc, href: absUrl(site, routedUrl("message", entry.data.slug, loc)) });
-  }
-  const canonical = defaultMessageEntry(pair);
-  xs.push({
-    hreflang: "x-default",
-    href: absUrl(site, routedUrl("message", canonical.data.slug, DEFAULT_LOCALE)),
-  });
-  return xs;
+function alternatesForMessage(pair: MessagePair): AlternateLink[] {
+  const xs: AlternateLink[] = authoredMessagePairs(pair).map(({ entry, locale: loc }) => ({
+    hreflang: loc,
+    href: absUrl(routedUrl("message", entry.data.slug, loc)),
+  }));
+  return withXDefault(xs);
 }
 
 export interface MessageSeoInput {
@@ -612,14 +569,14 @@ const MESSAGES_BLOG_NAME: Record<Locale, string> = {
  * `datePublished` so search engines can surface the date. Послания carry no
  * cover, so there is no OG image.
  */
-export function seoForMessage(site: URL | undefined, input: MessageSeoInput): SeoMeta {
+export function seoForMessage(input: MessageSeoInput): SeoMeta {
   const { pair, locale } = input;
   const entry = entryForAuthoredMessageLocale(pair, locale);
   if (!entry) {
     throw new Error(`seoForMessage: no ${locale} entry for послание #${pair.number}`);
   }
   const data = entry.data;
-  const canonical = absUrl(site, routedUrl("message", data.slug, locale));
+  const canonical = absUrl(routedUrl("message", data.slug, locale));
   const description = clampDescription(data.description);
   const ld: Record<string, unknown> = {
     "@context":      "https://schema.org",
@@ -638,7 +595,7 @@ export function seoForMessage(site: URL | undefined, input: MessageSeoInput): Se
     "isPartOf":      {
       "@type": "Blog",
       "name":  MESSAGES_BLOG_NAME[locale],
-      "url":   absUrl(site, kindIndexUrl("message", DEFAULT_LOCALE)),
+      "url":   absUrl(kindIndexUrl("message", DEFAULT_LOCALE)),
     },
   };
   if (data.tags.length > 0) ld.keywords = data.tags.join(", ");
@@ -648,7 +605,7 @@ export function seoForMessage(site: URL | undefined, input: MessageSeoInput): Se
     canonical,
     ogImage:     null,
     ogType:      "article",
-    alternates:  alternatesForMessage(site, pair),
+    alternates:  alternatesForMessage(pair),
     jsonLd:      ld,
     locale,
     ...ogMeta(locale),
@@ -685,11 +642,10 @@ interface CreativeWorkInput {
   canonical:   string;
   coverUrl:    string | null;
   description: string;
-  site:        URL | undefined;
 }
 
 function creativeWorkLd(input: CreativeWorkInput): Record<string, unknown> {
-  const { pair, entry, locale, canonical, coverUrl, description, site } = input;
+  const { pair, entry, locale, canonical, coverUrl, description } = input;
   const ld: Record<string, unknown> = {
     "@context":   "https://schema.org",
     "@type":      "CreativeWork",
@@ -706,7 +662,7 @@ function creativeWorkLd(input: CreativeWorkInput): Record<string, unknown> {
     "isPartOf":   {
       "@type":  "CreativeWorkSeries",
       "name":   CORPUS_NAME,
-      "url":    absUrl(site, homeUrl(DEFAULT_LOCALE)),
+      "url":    absUrl(homeUrl(DEFAULT_LOCALE)),
     },
   };
   if (coverUrl) ld.image = coverUrl;

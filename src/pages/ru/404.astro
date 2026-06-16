@@ -9,7 +9,7 @@ const copy = notFoundCopy[locale];
 const seo = {
   title:       copy.title,
   description: copy.description,
-  canonical:   absUrl(Astro.site, "/ru/404"),
+  canonical:   absUrl("/ru/404"),
   ogImage:     null,
   ogType:      "website" as const,
   alternates:  [],
