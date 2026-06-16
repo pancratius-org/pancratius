@@ -17,21 +17,6 @@ Do not add wrapper commands across that boundary. In particular, `pancratius`
 must not grow `audit`, `check`, `test`, `build`, `dev`, `preview`, or `site`
 commands. PAN019 guards this.
 
-## Git Workflow
-
-Commit subjects use `type(scope): subject`; choose the scope by owner. Common
-types are `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `style`, `chore`,
-`ci`, `build`, and `revert`. `feat` includes new audit/diagnostic surfaces;
-`chore` is maintenance without a new capability. Use `wip:` only before
-autosquash/reword.
-
-Common scopes include `tooling`, `audit`, `import`, `cli`, `content`, `site`,
-`layout`, `styles`, `docx`, `lineation-core`, `projects`, `video`, `ci`,
-`python`, `conceptosphere`, and `publication`; add a scope when a new subsystem
-has clear ownership. Content examples: `feat(content): add ...`,
-`feat(content): extend ...`, `fix(content): correct ...`,
-`chore(content): normalize ...`.
-
 ## Site Operations
 
 Site operations are npm-native because the deploy artifact is an Astro static
