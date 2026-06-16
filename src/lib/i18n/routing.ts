@@ -2,14 +2,12 @@ import { SEGMENT_OF, type CorpusWorkKind, type RoutedKind } from "../kinds";
 import type { Locale } from "../locales";
 import { LOCALE_META } from "./locale-meta";
 
-/** Prefix a root-relative path with the locale segment, except for the default locale. */
+/** Prefix a root-relative path with the locale segment (every locale is prefixed). */
 export function localizePath(path: string, locale: Locale): string {
   if (!path.startsWith("/")) {
     throw new Error(`localizePath expects an absolute path, got ${JSON.stringify(path)}`);
   }
-  const prefix = LOCALE_META[locale].urlPrefix;
-  if (!prefix) return path;
-  return `/${prefix}${path}`;
+  return `/${LOCALE_META[locale].urlPrefix}${path}`;
 }
 
 /** Canonical routed-content URL for `(kind, slug)` in `locale`. Slug must be per-language. */
@@ -22,7 +20,7 @@ export function workUrl(kind: CorpusWorkKind, slug: string, locale: Locale): str
   return routedUrl(kind, slug, locale);
 }
 
-/** Canonical kind-index URL in `locale` (e.g. `/books/` or `/en/poetry/`). */
+/** Canonical kind-index URL in `locale` (e.g. `/ru/books/` or `/en/poetry/`). */
 export function kindIndexUrl(kind: RoutedKind, locale: Locale): string {
   return localizePath(`/${SEGMENT_OF[kind]}/`, locale);
 }
@@ -38,8 +36,7 @@ export function downloadUrl(kind: CorpusWorkKind, slug: string, format: string, 
   return `${base}${slug}.${format}`;
 }
 
-/** Home URL for `locale`. */
+/** Home URL for `locale` (e.g. `/ru/`, `/en/`). */
 export function homeUrl(locale: Locale): string {
-  const prefix = LOCALE_META[locale].urlPrefix;
-  return prefix ? `/${prefix}/` : "/";
+  return `/${LOCALE_META[locale].urlPrefix}/`;
 }
