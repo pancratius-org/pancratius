@@ -1,7 +1,6 @@
 ---
-import HomePage from "@/components/HomePage.astro";
-import type { Locale } from "@/lib/i18n";
-
-const locale: Locale = "ru";
+// Apex redirect stub. `i18n.redirectToDefaultLocale` requires a root `/` route
+// and bakes this `/ → /<default>/` redirect (meta-refresh) as the universal
+// fallback; a true 301 is added host-side (beget `.htaccess`, Cloudflare zone
+// rule). See docs/architecture.md.
 ---
-<HomePage {locale} />

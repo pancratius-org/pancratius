@@ -17,7 +17,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { SEGMENT_OF } from "../src/lib/kinds.ts";
-import { LOCALES, type Locale } from "../src/lib/locales.ts";
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "../src/lib/locales.ts";
 import { renderPublicWorkMarkdown } from "../src/lib/publication/public-markdown.ts";
 import { publicationOrigin } from "../src/lib/publication/site.ts";
 import { readFrontmatter, stringField } from "./frontmatter.ts";
@@ -175,7 +175,8 @@ function buildArchive(format: Format): ArchiveInfo | null {
   return {
     name: `all-${format}.zip`,
     format,
-    url: `/downloads/all-${format}.zip`,
+    // The archive endpoint lives under the default locale (`src/pages/ru/downloads/`).
+    url: `/${DEFAULT_LOCALE}/downloads/all-${format}.zip`,
     size,
     size_human: humanBytes(size),
     sha256: sha256Of(outPath),

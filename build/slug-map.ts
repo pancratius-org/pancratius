@@ -5,33 +5,36 @@ import { fileURLToPath } from "node:url";
 import { stderr } from "node:process";
 
 import { SEGMENT_OF, type RoutedKind } from "../src/lib/kinds.ts";
-import { DEFAULT_LOCALE, LOCALES, type Locale } from "../src/lib/locales.ts";
+import { LOCALES, type Locale } from "../src/lib/locales.ts";
+import { originFor } from "../src/lib/origins.ts";
 import { crossRefTargets, integerField, readFrontmatter, stringField } from "./frontmatter.ts";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CONTENT = join(REPO_ROOT, "src", "content");
 const OUTPUT = join(REPO_ROOT, "data", "slug-map.json");
 
+/** A language version's canonical URL: prefixed root-relative path + its SEO origin. */
+type LangUrl = { slug: string; url: string; origin: string };
+
 type RoutedEntry = {
   kind: RoutedKind;
   number: number;
-  languages: Partial<Record<Locale, { slug: string; url: string }>>;
+  languages: Partial<Record<Locale, LangUrl>>;
 };
 
 type PageEntry = {
   slug: string;
-  languages: Partial<Record<Locale, string>>;
+  languages: Partial<Record<Locale, Omit<LangUrl, "slug">>>;
 };
 
 type CrossRefTarget = { path: string; kind: string; number: number };
 
 function routedEntryUrl(kind: RoutedKind, slug: string, lang: Locale): string {
-  const segment = SEGMENT_OF[kind];
-  return lang === DEFAULT_LOCALE ? `/${segment}/${slug}/` : `/${lang}/${segment}/${slug}/`;
+  return `/${lang}/${SEGMENT_OF[kind]}/${slug}/`;
 }
 
 function routedPageUrl(slug: string, lang: Locale): string {
-  return lang === DEFAULT_LOCALE ? `/${slug}/` : `/${lang}/${slug}/`;
+  return `/${lang}/${slug}/`;
 }
 
 function collectMarkdown(root: string): string[] {
@@ -91,7 +94,7 @@ function addRoutedMarkdownEntry(
 
   const key = `${kind}:${number}`;
   const entry: RoutedEntry = bucket.get(key) ?? { kind, number, languages: {} };
-  entry.languages[lang] = { slug, url: routedEntryUrl(kind, slug, lang) };
+  entry.languages[lang] = { slug, url: routedEntryUrl(kind, slug, lang), origin: originFor(lang) };
   bucket.set(key, entry);
   for (const ref of crossRefTargets(fm)) crossRefs.push({ path: mdPath, ...ref });
 }
@@ -111,7 +114,7 @@ function collectPages(): PageEntry[] {
     const slug = stringField(fm, "slug");
     if (!slug) throw new Error(`${relative(REPO_ROOT, mdPath)}: missing slug`);
     const entry = bucket.get(slug) ?? { slug, languages: {} };
-    entry.languages[lang] = routedPageUrl(slug, lang);
+    entry.languages[lang] = { url: routedPageUrl(slug, lang), origin: originFor(lang) };
     bucket.set(slug, entry);
   }
   return [...bucket.values()].sort((a, b) => a.slug.localeCompare(b.slug));

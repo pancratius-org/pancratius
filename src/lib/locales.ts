@@ -1,7 +1,7 @@
 // Canonical locale list and default locale — the single TS source of truth.
 //
-// The site ships RU (default, unprefixed) and EN (at /en/). This module is the
-// one place the locale *codes* and their order live. `src/lib/i18n/` builds
+// The site ships RU (at /ru/) and EN (at /en/); every locale is prefixed. This
+// module is the one place the locale *codes* and their order live. `src/lib/i18n/` builds
 // the full `LOCALE_META` registry on top of this list (labels, names, URL
 // prefixes, OG codes, fallback chain); everything else derives from there.
 //
@@ -19,5 +19,5 @@ export const LOCALES = ["ru", "en"] as const;
 /** A single locale code. */
 export type Locale = typeof LOCALES[number];
 
-/** The default (unprefixed, canonical) locale. */
+/** The default locale — the apex `/` redirect target and the JSON-LD series home. */
 export const DEFAULT_LOCALE = "ru" satisfies Locale;

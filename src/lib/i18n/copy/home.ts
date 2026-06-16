@@ -65,9 +65,9 @@ export const homeCopy = {
       cite: "Сергей Орехов · Панкратиус",
       statsAria: "Библиотека в числах",
       stats: ({ totalBooks, poems }) => [
-        { value: totalBooks, label: plRu(totalBooks, RU_PLURALS.book), href: "/books/" },
-        { value: poems, label: plRu(poems, RU_PLURALS.poem), href: "/poetry/" },
-        { value: "CC0", label: "лицензия", href: "/license/" },
+        { value: totalBooks, label: plRu(totalBooks, RU_PLURALS.book), href: "/ru/books/" },
+        { value: poems, label: plRu(poems, RU_PLURALS.poem), href: "/ru/poetry/" },
+        { value: "CC0", label: "лицензия", href: "/ru/license/" },
       ],
     },
     books: {
