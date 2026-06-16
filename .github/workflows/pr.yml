@@ -17,6 +17,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Least privilege: this job only checks out and runs the gate — read is enough.
+permissions:
+  contents: read
+
 concurrency:
   group: pr-${{ github.ref }}
   cancel-in-progress: true

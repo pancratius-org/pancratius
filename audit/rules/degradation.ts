@@ -289,16 +289,32 @@ function elementText(element: string): string {
   return decodeEntities(inner.replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
 }
 
-function decodeEntities(text: string): string {
-  return text
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&#x([0-9a-fA-F]+);/g, (_s, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_s, dec: string) => String.fromCodePoint(parseInt(dec, 10)));
+/** Named entities Astro emits in text. */
+const NAMED_ENTITIES: Readonly<Record<string, string>> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+};
+
+/** Decode the few HTML entities Astro emits, in one pass so each decodes exactly
+ *  once — chained `.replace`s would double-unescape (`&amp;lt;` → `<`). */
+export function decodeEntities(text: string): string {
+  return text.replace(
+    /&(#x[0-9a-fA-F]+|#\d+|[a-zA-Z][a-zA-Z0-9]*);/g,
+    (match: string, body: string): string => {
+      if (body.startsWith("#")) {
+        const code =
+          body[1] === "x" || body[1] === "X"
+            ? parseInt(body.slice(2), 16)
+            : parseInt(body.slice(1), 10);
+        return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match;
+      }
+      return NAMED_ENTITIES[body] ?? match;
+    },
+  );
 }
 
 function addViolation(report: DegradationReport, v: Violation): void {
