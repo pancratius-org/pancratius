@@ -25,7 +25,14 @@
 *.tsx    text eol=lf
 *.js     text eol=lf
 *.mjs    text eol=lf
+*.cjs    text eol=lf
 *.css    text eol=lf
 *.html   text eol=lf
 *.astro  text eol=lf
 *.py     text eol=lf
+
+# GitHub Linguist: keep repository language stats focused on product source.
+# These trees intentionally contain generated outputs, bad/good source fixtures,
+# and retired research scripts; they should not imply production JavaScript.
+audit/fixtures/** linguist-vendored
+docs/scratchpad/** linguist-documentation
