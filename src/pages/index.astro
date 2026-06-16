@@ -1,8 +1,8 @@
 ---
 import { DEFAULT_LOCALE, homeUrl } from "@/lib/i18n";
 
-// The bare `/` has no content under prefix-all i18n. Redirect to the
-// default-locale home (301, instant). `.org` overrides this to `/en/` with an
-// edge rule; the `.ru` host serves this baked redirect as-is. See docs/deploy.md.
+// The bare `/` has no content under prefix-all i18n; redirect to the
+// default-locale home. Static output bakes this as an instant `<meta refresh>`
+// (no adapter → no real 301); `.org` upgrades to a true 301 at the edge. See docs/deploy.md.
 return Astro.redirect(homeUrl(DEFAULT_LOCALE), 301);
 ---

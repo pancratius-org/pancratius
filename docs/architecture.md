@@ -79,8 +79,9 @@ already committed. Their meeting point is committed source.
   a function of the resource's **locale** (`src/lib/origins.ts`), never of the
   serving host, so the artifact stays byte-identical across both. Language
   switching is same-origin; the cross-origin hreflang map is the SEO axis.
-- **Apex redirect is host-decided.** The build bakes `/ → /ru/` (meta-refresh);
-  each host adds a true 301 (`.ru` → `/ru/`, `.org` → `/en/`). The apex is the only host-specific behavior; `dist/` carries no
+- **Apex redirect is host-decided.** The build bakes the apex `/ → /ru/`
+  as a meta-refresh (static output → no real 301); only `.org` upgrades it to a
+  true 301 → `/en/` at the edge. The apex is the only host-specific behavior; `dist/` carries no
   host overlay.
 - **Deploy targets.** The same `dist/` ships to a plain SSH/rsync host (`.ru`)
   and to Cloudflare Pages (`.org`). The rsync host sets `Content-Type` from file
