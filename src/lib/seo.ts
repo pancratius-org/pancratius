@@ -11,6 +11,7 @@ import {
   LOCALE_META,
   homeUrl,
   kindIndexUrl,
+  localeFromPrefix,
   localizePath,
   pageUrl,
   plRu,
@@ -83,15 +84,9 @@ export interface SeoMeta {
 // pancratius.org; a locale-neutral path (the generic `/404`) takes the default.
 // ─────────────────────────────────────────────────────────────────────
 
-/** Locale of a root-relative path, read from its leading prefix segment. */
-function localeOfPath(path: string): Locale {
-  const segment = path.split("/")[1];
-  return LOCALES.find((loc) => LOCALE_META[loc].urlPrefix === segment) ?? DEFAULT_LOCALE;
-}
-
 /** Absolute canonical URL for a root-relative path, on the path locale's origin. */
 export function absUrl(path: string): string {
-  return new URL(path, originFor(localeOfPath(path))).toString();
+  return new URL(path, originFor(localeFromPrefix(path) ?? DEFAULT_LOCALE)).toString();
 }
 
 // ─────────────────────────────────────────────────────────────────────

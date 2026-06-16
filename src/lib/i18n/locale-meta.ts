@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, LOCALES, type Locale } from "../locales";
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "../locales.ts";
 
 export interface LocaleMeta {
   /** Short label rendered in chrome (header nav, footer, switcher). */
@@ -57,3 +57,9 @@ export const LOCALE_NAME: Record<Locale, Record<Locale, string>> = Object.fromEn
     Object.fromEntries(LOCALES.map(target => [target, LOCALE_META[target].name[ui]])),
   ]),
 ) as Record<Locale, Record<Locale, string>>;
+
+/** Locale whose URL prefix leads `path` (`/ru/…` → ru), or null when none does. */
+export function localeFromPrefix(path: string): Locale | null {
+  const segment = path.split("/")[1];
+  return LOCALES.find(locale => LOCALE_META[locale].urlPrefix === segment) ?? null;
+}

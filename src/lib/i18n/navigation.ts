@@ -71,5 +71,6 @@ export const RESERVED_PAGE_SLUGS = new Set([
   "llms.txt",
   "en",
   "ru",
-  "sitemap-index.xml",
+  "sitemap-ru.xml",
+  "sitemap-org.xml",
 ]);

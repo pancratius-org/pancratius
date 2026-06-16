@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 
 import { KIND_OF_SEGMENT, type RoutedKind } from "../src/lib/kinds.ts";
 import { LOCALES, DEFAULT_LOCALE, type Locale } from "../src/lib/locales.ts";
+import { LOCALE_META, localeFromPrefix } from "../src/lib/i18n/locale-meta.ts";
 import { originFor } from "../src/lib/origins.ts";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -56,14 +57,9 @@ function emittedPages(): string[] {
   return pages;
 }
 
-function localeOfPath(path: string): Locale | null {
-  const segment = path.split("/")[1];
-  return LOCALES.find((l) => l === segment) ?? null;
-}
-
 /** Strip the leading locale prefix, leaving the locale-neutral remainder (`/books/x/`). */
 function unprefixed(path: string, locale: Locale): string {
-  return path.slice(`/${locale}`.length);
+  return path.slice(`/${LOCALE_META[locale].urlPrefix}`.length);
 }
 
 function absolute(locale: Locale, path: string): string {
@@ -106,7 +102,7 @@ function parallelAlternates(path: string, locale: Locale, emitted: ReadonlySet<s
   const rest = unprefixed(path, locale);
   const out: Alternate[] = [];
   for (const loc of LOCALES) {
-    const sibling = `/${loc}${rest}`;
+    const sibling = `/${LOCALE_META[loc].urlPrefix}${rest}`;
     if (emitted.has(sibling)) out.push({ locale: loc, href: absolute(loc, sibling) });
   }
   return out;
@@ -156,7 +152,7 @@ function main(): number {
 
   const byLocale: Record<Locale, UrlNode[]> = { ru: [], en: [] };
   for (const path of pages) {
-    const locale = localeOfPath(path);
+    const locale = localeFromPrefix(path);
     if (!locale || !isSitemapPage(path, locale)) continue;
     const alternates =
       slugMapAlternates(path, locale, map) ?? parallelAlternates(path, locale, emitted);
