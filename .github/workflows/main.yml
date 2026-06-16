@@ -82,7 +82,9 @@ jobs:
       # ── Deploy to primary host via rsync over SSH ───────────────────────
       # `-c`: match by checksum, not mtime (rebuilds churn mtimes). No `-p`/`D`-chmod:
       # the docroot is root-owned, so perms go on files we own (F644), not the dir tree.
-      # EXCLUDE `/.*` keeps `--delete` off top-level dotfiles (incl. the `.ssh/` key).
+      # EXCLUDE `/.*` keeps `--delete` off ALL top-level remote dotfiles/dirs the
+      # build doesn't own — `.well-known/` (ACME/TLS), `.ssh/`, panel files. The apex
+      # redirect is baked into `dist/index.html`, so no dotfile needs to ship.
       - name: Deploy to primary host via rsync
         id: deploy_rsync
         if: ${{ !cancelled() && steps.deploy_gate.outputs.ready == 'true' }}

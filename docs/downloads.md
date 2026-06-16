@@ -1,6 +1,6 @@
 # Pancratius Downloads
 
-Per-work downloads are alternate representations of the work URL. Bulk archives live at `/downloads/`.
+Per-work downloads are alternate representations of the work URL. Bulk archives live at `/ru/downloads/` (the default-locale section).
 
 The clean boundary is:
 
@@ -9,7 +9,7 @@ The clean boundary is:
 
 ## Per-work downloads
 
-A work URL `/books/{slug}/` (or its English equivalent) has alternate representations addressable by extension:
+A work URL `/ru/books/{slug}/` (or its English equivalent) has alternate representations addressable by extension:
 
 | Extension | Source | Generation |
 |-----------|--------|------------|
@@ -45,7 +45,7 @@ DOCX files are source documents, not Markdown-rendered release artifacts. A work
 language has at most one active DOCX source, named `<lang>.docx`; if the author
 supplies parts, merge them before committing and ensure the merged source carries
 real DOCX part headings (`pancratius docx merge --part ...` inserts them during
-the physical merge). The public route `/books/{slug}.docx` copies that single
+the physical merge). The public route `/ru/books/{slug}.docx` copies that single
 source DOCX.
 
 The site build must not depend on pandoc or typst. If a work has no committed
@@ -109,7 +109,7 @@ LitRes or other external marketplace links belong in `bibliography.yaml`, not in
 algorithmic recommendation data and not in `cross_refs` unless the author
 explicitly cites that external URL in the body.
 
-## Bulk archives at `/downloads/`
+## Bulk archives at `/ru/downloads/`
 
 The production site ships **one** bulk archive: `all-md.zip` — every work as public Markdown, packaged with `<kind>/<lang>/<slug>.md` paths. Audience: LLM training, mirror sites, archival ingests. Markdown is the canonical text-first surface; PDF and EPUB are presentation renderings served per-work on each book's page.
 
@@ -117,11 +117,11 @@ The archive is not a raw copy of `src/content/**/*.md`. It contains the public e
 
 Bulk PDF and EPUB archives are **not** shipped on the production host because they duplicate ~317 MB of bytes already served per-work, and the host has a 1 GB ceiling. They can still be built off-host via `npm run generate:bulk-archives -- --formats=md,pdf,epub` for upload to GitHub Releases, the Internet Archive, or a Hugging Face dataset.
 
-The `/downloads/` page is a short index with size and `sha256` for verification.
+The `/ru/downloads/` page is a short index with size and `sha256` for verification.
 
-"Built" here means packaging already-committed artifacts. It does not mean rendering PDFs/EPUBs during CI. The generate archive step writes `.cache/bulk-archives/all-md.zip` plus `data/bulk-archives.json`; Astro then emits `/downloads/all-md.zip` through a static endpoint so local dev and production use the same URL.
+"Built" here means packaging already-committed artifacts. It does not mean rendering PDFs/EPUBs during CI. The generate archive step writes `.cache/bulk-archives/all-md.zip` plus `data/bulk-archives.json`; Astro then emits `/ru/downloads/all-md.zip` through a static endpoint so local dev and production use the same URL.
 
-Per-work artifacts never live under `/downloads/` — that's the bulk surface only.
+Per-work artifacts never live under `/ru/downloads/` — that's the bulk surface only.
 
 ## Out of scope here
 

@@ -6,6 +6,7 @@
 
 import type { Locale } from "./i18n";
 import { workCoverKey } from "./cover-assets";
+import { originFor } from "./origins";
 import type { WorkPair } from "./works";
 
 const COVER_URLS = import.meta.glob<string>(
@@ -19,13 +20,9 @@ export function coverAssetUrl(pair: WorkPair, locale: Locale): string | null {
   return key ? COVER_URLS[key] ?? null : null;
 }
 
-/** Absolute URL of the cover asset, suitable for og:image / JSON-LD image. */
-export function coverAbsoluteUrl(
-  site: URL | undefined,
-  pair: WorkPair,
-  locale: Locale,
-): string | null {
+/** Absolute URL of the cover asset on the page locale's origin, for og:image / JSON-LD image. */
+export function coverAbsoluteUrl(pair: WorkPair, locale: Locale): string | null {
   const rel = coverAssetUrl(pair, locale);
-  if (!rel || !site) return rel;
-  return new URL(rel, site).toString();
+  if (!rel) return null;
+  return new URL(rel, originFor(locale)).toString();
 }

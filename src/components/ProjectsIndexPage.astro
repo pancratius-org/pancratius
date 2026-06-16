@@ -13,7 +13,7 @@ interface Props {
 
 const { locale } = Astro.props;
 const copy = projectsIndexCopy[locale];
-const seo = seoForKindIndex(Astro.site, "project", locale);
+const seo = seoForKindIndex("project", locale);
 
 // The projects index lists EVERY project. The canonical set is the
 // default-locale landings (each project always has one). When the current

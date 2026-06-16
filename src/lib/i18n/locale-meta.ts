@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, LOCALES, type Locale } from "../locales";
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "../locales.ts";
 
 export interface LocaleMeta {
   /** Short label rendered in chrome (header nav, footer, switcher). */
@@ -10,8 +10,9 @@ export interface LocaleMeta {
    */
   name: Record<Locale, string>;
   /**
-   * URL prefix segment (no slashes). The default locale's prefix is "". Which
-   * locale is canonical is owned by `DEFAULT_LOCALE`, not by a flag here.
+   * URL prefix segment (no slashes). Every locale is prefixed; the apex `/` is
+   * a host-decided redirect, not a locale home. Which locale is canonical is
+   * owned by `DEFAULT_LOCALE`, not by a flag here.
    */
   urlPrefix: string;
   /** Open Graph `og:locale` code, e.g. "ru_RU". */
@@ -26,7 +27,7 @@ export const LOCALE_META: Record<Locale, LocaleMeta> = {
   ru: {
     label: "RU",
     name: { ru: "Русский", en: "Russian" },
-    urlPrefix: "",
+    urlPrefix: "ru",
     ogLocale: "ru_RU",
     siteLabel: "Панкратиус",
     fallback: DEFAULT_LOCALE,
@@ -56,3 +57,9 @@ export const LOCALE_NAME: Record<Locale, Record<Locale, string>> = Object.fromEn
     Object.fromEntries(LOCALES.map(target => [target, LOCALE_META[target].name[ui]])),
   ]),
 ) as Record<Locale, Record<Locale, string>>;
+
+/** Locale whose URL prefix leads `path` (`/ru/…` → ru), or null when none does. */
+export function localeFromPrefix(path: string): Locale | null {
+  const segment = path.split("/")[1];
+  return LOCALES.find(locale => LOCALE_META[locale].urlPrefix === segment) ?? null;
+}

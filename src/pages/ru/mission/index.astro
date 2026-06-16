@@ -1,20 +1,20 @@
 ---
-// /about/ ("Человек") — author bio. Thin route: load the page, derive SEO +
-// alternates, and compose the shared <Bio> block (portrait + bio prose + facts)
-// inside a wide <PageShell>.
+// /ru/mission/ — the manifesto. Lineation-preserving verse register, no ToC
+// (the old dispatcher special-cased `isMission` to skip the ToC and use the
+// `prose--manifesto` class; <Verse> carries the base verse register).
 
 import { render } from "astro:content";
 
 import Base from "@/layouts/Base.astro";
 import PageShell from "@/components/PageShell.astro";
-import Bio from "@/components/Bio.astro";
+import Verse from "@/components/Verse.astro";
 
 import type { Locale } from "@/lib/i18n";
 import { LOCALES, pageUrl } from "@/lib/i18n";
 import { getPage, pageShellProps } from "@/lib/pages";
 import { seoForPage } from "@/lib/seo";
 
-const SLUG = "about";
+const SLUG = "mission";
 const locale: Locale = "ru";
 
 const page = await getPage(SLUG, locale);
@@ -25,14 +25,14 @@ const authoredLocales = new Set<Locale>();
 for (const loc of LOCALES) {
   if (await getPage(SLUG, loc)) authoredLocales.add(loc);
 }
-const seo = seoForPage(Astro.site, page, authoredLocales);
+const seo = seoForPage(page, authoredLocales);
 const alternates: Partial<Record<Locale, string>> = {};
 for (const loc of authoredLocales) {
   if (loc !== locale) alternates[loc] = pageUrl(SLUG, loc);
 }
 ---
 <Base {locale} {seo} {alternates}>
-  <PageShell {...pageShellProps(page)} width="page">
-    <Bio {page}><Content /></Bio>
+  <PageShell {...pageShellProps(page)} width="text">
+    <Verse class="prose--manifesto"><Content /></Verse>
   </PageShell>
 </Base>

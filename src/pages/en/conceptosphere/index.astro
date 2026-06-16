@@ -16,7 +16,7 @@ import { conceptosphereStrings } from "@/components/conceptosphere/strings";
 
 const locale: Locale = "en";
 const t = conceptosphereStrings(locale);
-const seo = conceptosphereSeo(Astro.site, locale);
+const seo = conceptosphereSeo(locale);
 const initialMode: "concepts" | "books" = "concepts";
 const graphData = await loadConceptospherePageData(locale, t);
 ---

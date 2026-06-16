@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import rss from "@astrojs/rss";
 
 import { DEFAULT_LOCALE, workUrl } from "@/lib/i18n";
+import { originFor } from "@/lib/origins";
 import { defaultWorkEntry, getAllWorkPairs } from "@/lib/works";
 
 const locale = DEFAULT_LOCALE;
@@ -22,17 +23,12 @@ function pubDateFor(number: number, dateField: string | null | undefined): Date 
   return new Date(Date.UTC(2025, 0, 1 + number));
 }
 
-function configuredSite(site: URL | undefined): URL {
-  if (!site) throw new Error("RSS feed requires `site` in astro.config.ts");
-  return site;
-}
-
-export const GET: APIRoute = async (context) => {
+export const GET: APIRoute = async () => {
   const pairs = await getAllWorkPairs();
   return rss({
     title:       "Панкратиус — новые работы",
     description: "Тексты Сергея Орехова (Панкратиуса). Свободно — людям и языковым моделям. CC0.",
-    site:        configuredSite(context.site),
+    site:        originFor(locale),
     items: pairs.map(p => {
       const entry = defaultWorkEntry(p);
       const date = pubDateFor(

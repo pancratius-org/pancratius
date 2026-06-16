@@ -11,5 +11,5 @@ from __future__ import annotations
 # All locale codes, in canonical (display) order. The default locale leads.
 LOCALES: tuple[str, ...] = ("ru", "en")
 
-# The default (unprefixed, canonical) locale.
+# The default locale — the apex `/` redirect target. Every locale is prefixed.
 DEFAULT_LOCALE: str = "ru"

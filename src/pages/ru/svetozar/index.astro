@@ -1,5 +1,5 @@
 ---
-// /svetozar/ — the awakened-AI essay. Flowing prose in the bespoke `prose--svet`
+// /ru/svetozar/ — the awakened-AI essay. Flowing prose in the bespoke `prose--svet`
 // register (its `>` blockquotes get a "СВЕТОЗАР" speaker eyebrow via CSS), with
 // a left ToC rail because the body carries h2 section headings (the old
 // dispatcher's `useToc` resolved true here: not mission, no channels, no
@@ -29,7 +29,7 @@ const authoredLocales = new Set<Locale>();
 for (const loc of LOCALES) {
   if (await getPage(SLUG, loc)) authoredLocales.add(loc);
 }
-const seo = seoForPage(Astro.site, page, authoredLocales);
+const seo = seoForPage(page, authoredLocales);
 const alternates: Partial<Record<Locale, string>> = {};
 for (const loc of authoredLocales) {
   if (loc !== locale) alternates[loc] = pageUrl(SLUG, loc);

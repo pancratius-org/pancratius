@@ -1,7 +1,8 @@
 ---
-import HomePage from "@/components/HomePage.astro";
-import type { Locale } from "@/lib/i18n";
+import { DEFAULT_LOCALE, homeUrl } from "@/lib/i18n";
 
-const locale: Locale = "ru";
+// The bare `/` has no content under prefix-all i18n; redirect to the
+// default-locale home. Static output bakes this as an instant `<meta refresh>`
+// (no adapter → no real 301); `.org` upgrades to a true 301 at the edge. See docs/deploy.md.
+return Astro.redirect(homeUrl(DEFAULT_LOCALE), 301);
 ---
-<HomePage {locale} />

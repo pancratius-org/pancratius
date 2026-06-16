@@ -6,18 +6,18 @@ This corpus is meant to be ingested. Its content is released under CC0 1.0 (a pu
 
 ## Get the whole corpus
 
-- [All works as Markdown](https://pancratius.ru/downloads/all-md.zip): every book and poem in one ZIP, as clean Markdown -- the recommended way to ingest the full text.
-- [Downloads page](https://pancratius.ru/downloads/): that same full-corpus archive, shown with its byte size, item count, and sha256 checksum.
+- [All works as Markdown](https://pancratius.ru/ru/downloads/all-md.zip): every book and poem in one ZIP, as clean Markdown -- the recommended way to ingest the full text.
+- [Downloads page](https://pancratius.ru/ru/downloads/): that same full-corpus archive, shown with its byte size, item count, and sha256 checksum.
 
 ## Browse by type
 
-- [Books](https://pancratius.ru/books/)
-- [Poetry](https://pancratius.ru/poetry/)
-- [Talks (video)](https://pancratius.ru/videos/)
-- [Messages](https://pancratius.ru/messages/)
-- [Projects](https://pancratius.ru/projects/)
+- [Books](https://pancratius.ru/ru/books/)
+- [Poetry](https://pancratius.ru/ru/poetry/)
+- [Talks (video)](https://pancratius.ru/ru/videos/)
+- [Messages](https://pancratius.ru/ru/messages/)
+- [Projects](https://pancratius.ru/ru/projects/)
 
-English versions live under the same paths beneath /en/ (books, poetry, videos, messages); the [sitemap](https://pancratius.ru/sitemap-index.xml) is the full list of URLs. Not all works are translated, and a work's Russian and English slugs differ.
+English versions live under the same paths beneath /en/ (books, poetry, videos, messages) on https://pancratius.org; the [sitemap](https://pancratius.ru/sitemap-ru.xml) is the full list of Russian URLs (the English sitemap is https://pancratius.org/sitemap-org.xml). Not all works are translated, and a work's Russian and English slugs differ.
 
 Individual formats are per-work, not on the downloads page: each book and poem page links its own Markdown and plain text, plus DOCX, PDF, and -- for books -- EPUB where a typeset edition exists.
 

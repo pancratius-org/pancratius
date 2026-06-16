@@ -1,42 +1,38 @@
 ---
-// /license/ — CC0 notice. Plain flowing prose; a ToC appears only if the body
-// grows h2/h3 headings (it has none today, so none renders — matching the old
-// dispatcher's `useToc` rule for a plain page).
+// /ru/support/ ("Поддержка") — donation channels. Thin route: load the page,
+// derive SEO + alternates, and compose the shared <SupportBody> block (appeal
+// prose + channels widget) inside a spread <PageShell>.
 
 import { render } from "astro:content";
 
 import Base from "@/layouts/Base.astro";
 import PageShell from "@/components/PageShell.astro";
-import Prose from "@/components/Prose.astro";
-import TableOfContents from "@/components/TableOfContents.astro";
+import SupportBody from "@/components/SupportBody.astro";
 
 import type { Locale } from "@/lib/i18n";
 import { LOCALES, pageUrl } from "@/lib/i18n";
 import { getPage, pageShellProps } from "@/lib/pages";
 import { seoForPage } from "@/lib/seo";
 
-const SLUG = "license";
+const SLUG = "support";
 const locale: Locale = "ru";
 
 const page = await getPage(SLUG, locale);
 if (!page) throw new Error(`Missing src/content/pages/${SLUG}/${locale}.md`);
-const { Content, headings } = await render(page);
+const { Content } = await render(page);
 
 const authoredLocales = new Set<Locale>();
 for (const loc of LOCALES) {
   if (await getPage(SLUG, loc)) authoredLocales.add(loc);
 }
-const seo = seoForPage(Astro.site, page, authoredLocales);
+const seo = seoForPage(page, authoredLocales);
 const alternates: Partial<Record<Locale, string>> = {};
 for (const loc of authoredLocales) {
   if (loc !== locale) alternates[loc] = pageUrl(SLUG, loc);
 }
-
-const useToc = headings.some(h => h.depth >= 2 && h.depth <= 3);
 ---
 <Base {locale} {seo} {alternates}>
-  <PageShell {...pageShellProps(page, useToc ? "static--with-toc" : undefined)}>
-    {useToc && <TableOfContents {headings} {locale} />}
-    <Prose class="prose--note"><Content /></Prose>
+  <PageShell {...pageShellProps(page)} width="spread">
+    <SupportBody {page} {locale}><Content /></SupportBody>
   </PageShell>
 </Base>

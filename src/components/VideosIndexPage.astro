@@ -20,7 +20,7 @@ const copy: VideosIndexCopy = videosIndexCopy[locale];
 const allPairs = await getAllVideoPairs();
 // Existence: a non-default-locale index lists only videos authored in it.
 const pairs = localizedVideoPairs(allPairs, locale);
-const seo = seoForKindIndex(Astro.site, "video", locale, { total: allPairs.length });
+const seo = seoForKindIndex("video", locale, { total: allPairs.length });
 const defaultHref = kindIndexUrl("video", DEFAULT_LOCALE);
 const channels = await getChannels();
 

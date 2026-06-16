@@ -9,7 +9,7 @@ const copy = notFoundCopy[locale];
 const seo = {
   title:       copy.title,
   description: copy.description,
-  canonical:   absUrl(Astro.site, "/404"),
+  canonical:   absUrl("/404"),
   ogImage:     null,
   ogType:      "website" as const,
   alternates:  [],
@@ -25,11 +25,11 @@ const seo = {
     <h1>{copy.heading}</h1>
     <p>{copy.body}</p>
     <p class="nf__links">
-      <a href="/">{copy.toHome}</a>
+      <a href="/ru/">{copy.toHome}</a>
       <span class="sep">·</span>
-      <a href="/books/">{copy.toBooks}</a>
+      <a href="/ru/books/">{copy.toBooks}</a>
       <span class="sep">·</span>
-      <a href="/search/">{copy.toSearch}</a>
+      <a href="/ru/search/">{copy.toSearch}</a>
     </p>
   </section>
 </Base>

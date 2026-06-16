@@ -1,5 +1,5 @@
 ---
-// /downloads/ - bulk-archive index.
+// /ru/downloads/ — bulk-archive index.
 
 import { render } from "astro:content";
 
@@ -22,7 +22,7 @@ const authoredLocales = new Set<Locale>();
 for (const loc of LOCALES) {
   if (await getPage("downloads", loc)) authoredLocales.add(loc);
 }
-const seo = seoForPage(Astro.site, page, authoredLocales);
+const seo = seoForPage(page, authoredLocales);
 const alternates: Partial<Record<Locale, string>> = {};
 for (const loc of authoredLocales) {
   if (loc !== locale) alternates[loc] = pageUrl("downloads", loc);

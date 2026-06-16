@@ -1,7 +1,8 @@
 """Ensure public Markdown exports use work-scoped original asset URLs.
 
-This runs after ``npm run build``. It scans generated Markdown files and
-``dist/downloads/all-md.zip`` for local image URLs outside ``/assets/``.
+This runs after ``npm run build``. It scans generated Markdown files and the
+corpus archive (``dist/<default-locale>/downloads/all-md.zip``) for local image
+URLs outside ``/assets/``.
 
 Wrapped by the harness as PAN008 (audit/rules/downloads.ts); honours
 ``PANCRATIUS_AUDIT_ROOT`` so it can run against a fixture. Runs in the project
@@ -16,6 +17,8 @@ import zipfile
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+from pancratius.locales import DEFAULT_LOCALE
+
 
 def _audit_root() -> Path:
     env = os.environ.get("PANCRATIUS_AUDIT_ROOT")
@@ -25,7 +28,8 @@ def _audit_root() -> Path:
 
 ROOT = _audit_root()
 DIST = ROOT / "dist"
-ARCHIVE = DIST / "downloads" / "all-md.zip"
+# The archive endpoint lives under the default locale (`src/pages/<default>/downloads/`).
+ARCHIVE = DIST / DEFAULT_LOCALE / "downloads" / "all-md.zip"
 
 MARKDOWN_IMAGE = re.compile(r"!\[[^\]]*]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 

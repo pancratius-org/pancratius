@@ -14,9 +14,9 @@ body is not a fallback; it is the wrong resource at that URL.
 
 ## URL structure
 
-- **Russian is default and has no prefix.** `/` is the Russian home; `/ru/` is not a separate route.
-- **Other languages use a locale prefix.** English at `/en/`. Future locales at `/de/`, `/fr/`, etc.
-- **Structural nouns stay English** (`/books/`, `/poetry/`, `/projects/`). Cyrillic in URLs percent-encodes badly on shares.
+- **Every locale is prefixed.** Russian at `/ru/`, English at `/en/`, future locales at `/de/`, `/fr/`, etc. There is no unprefixed content tree.
+- **The apex `/` is a host-decided redirect.** The build bakes `/ → /ru/` (the default locale) as a meta-refresh; each host upgrades it to a true 301 (`.ru/ → /ru/`, `.org/ → /en/`). The apex serves no content.
+- **Structural nouns stay English** (`/ru/books/`, `/en/poetry/`). Cyrillic in URLs percent-encodes badly on shares.
 - **Slugs are ASCII-transliterated per language.** `01-evangelie-tsarstviya` (RU), `01-gospel-of-the-kingdom` (EN). Never Cyrillic in URLs.
 
 ### Per-language slug policy
@@ -68,13 +68,13 @@ Two buttons: `RU | EN`. Three or more locales will need a different control; def
 These two surfaces follow different rules:
 
 **Individual work pages** exist only when that work has authored content in that locale.
-- `/books/{slug}/` exists for every book.
+- `/ru/books/{slug}/` exists for every book.
 - `/en/books/{slug}/` exists only when an `en.md` exists for that book.
 - Never render Russian body content under an `/en/...` work URL — that URL claims to be the English representation of the book; if it contains no book, it shouldn't exist.
-- A request that lands on a missing `/en/books/{slug}/` resolves to the EN 404 / search page, which offers a link back to `/books/`.
+- A request that lands on a missing `/en/books/{slug}/` resolves to the EN 404 / search page, which offers a link back to `/en/books/`.
 
 **Locale indexes** may exist regardless of per-work coverage:
-- `/en/books/` is an English-language index of the library. It can either show only EN-available books, or clearly separate them into "with English translation" and "Russian originals," linking the latter back to `/books/{slug}/`.
+- `/en/books/` is an English-language index of the library. It can either show only EN-available books, or clearly separate them into "with English translation" and "Russian originals," linking the latter back to `/ru/books/{slug}/`.
 - Same shape for `/en/poetry/`, `/en/projects/`, `/en/search/`.
 
 The language switcher on a work page reflects this rule: if the alternate doesn't exist, the button is visibly disabled (`aria-disabled="true"`, dimmed, no `href`), not a silent redirect to the index.
@@ -84,23 +84,24 @@ The language switcher on a work page reflects this rule: if the alternate doesn'
 For every page:
 
 - `<html lang>` matches the page language.
-- `<link rel="canonical">` points at the page itself.
-- `<link rel="alternate" hreflang="...">` for every available translation, plus `x-default` pointing at the RU canonical.
+- `<link rel="canonical">` points at the page itself, on its locale's canonical origin. Origin is a function of the resource's **locale** (`src/lib/origins.ts`): RU → `pancratius.ru`, EN → `pancratius.org`, a new locale → the global `.org`. Independent of which mirror served the bytes.
+- `<link rel="alternate" hreflang="...">` for every authored translation, cross-origin (RU → `.ru`, EN → `.org`), plus `x-default` → the **EN** version when English is authored (the global face), else the default-locale (RU) version.
+- The canonical and hreflang links carry no extra attributes on the canonical, and the same-origin language switcher (`/ru/x ↔ /en/x`) is a separate, human-facing axis from the cross-origin hreflang map.
 - Localized Open Graph metadata (title, description). In v1, the work's `cover` field doubles as the OG image; per-work generated OG cards are a v2 upgrade.
 - Book, poem, and project pages emit JSON-LD `CreativeWork` structured data with localized `name`, `description`, `url`, `image`, `inLanguage`, `author`, `license`, and `isPartOf`. Use `author.name: "Сергей Орехов"` and `author.alternateName: "Панкратиус"`. Keep this in a shared `src/lib/seo.ts` helper, not ad hoc per route.
 
-### Sitemap pairing
+### Sitemaps
 
-`@astrojs/sitemap`'s built-in i18n alternate generation assumes parallel slugs across locales (`/books/foo/` ↔ `/en/books/foo/`). Pancratius's slugs differ per language. The sitemap therefore needs the integration's `i18n` block **plus** a custom `serialize` that attaches `links` per route using the `(kind, number)` pair resolver.
+Each origin gets its own sitemap, because a sitemap may only list URLs on its own host: `sitemap-ru.xml` (`pancratius.ru`) and `sitemap-org.xml` (`pancratius.org`). Each lists its locale's canonical URLs and carries reciprocal cross-origin `<xhtml:link>` hreflang alternates plus `x-default`. Both files ship to both mirrors (absolute URLs stay valid wherever the file sits); the shared `robots.txt` lists both.
 
-Implementation note: `astro.config.ts` cannot import from `astro:content`. Keep the alternates resolver pure (operate on a precomputed `data/slug-map.json` produced during the build pipeline), or generate a small build manifest just for sitemap consumption. Don't try to read content collections from inside the config.
+Slugs differ per language, so work/page alternates come from the precomputed `data/slug-map.json` (built by `build/slug-map.ts`); shared-path surfaces (indexes, home, project sub-pages) resolve alternates by swapping the locale prefix. The emitter is a build step (`build/sitemap.ts`) — `astro.config.ts` cannot read content collections, and the per-origin split fights `@astrojs/sitemap`'s single-`site` model.
 
 ## Page-language coverage
 
 | Surface | Locale rule |
 |---------|-------------|
 | home, books index, poetry index, projects index, about, mission, svetozar, license, downloads, support, search, feed, conceptosphere | locale index/nav pages may exist in EN; individual work pages exist only when authored content for that locale exists |
-| `/llms.txt`, `/robots.txt`, `/sitemap-index.xml` | root, language-agnostic |
+| `/llms.txt`, `/robots.txt`, `/sitemap-ru.xml`, `/sitemap-org.xml` | root, language-agnostic |
 
 The conceptosphere graph data is Russian (concept labels are RU lemmas; book
 titles use whichever translation is available). The UI chrome — mode toggle,

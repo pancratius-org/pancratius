@@ -3,7 +3,7 @@
 //
 // Two responsibilities, one seam:
 //   1. Minify the RU-keyed source graphs (data/*.json) → public/data/*.json.
-//      RU is prefix-less site-wide, so these keep their un-suffixed names.
+//      RU is the default locale, so its payload keeps the un-suffixed name.
 //   2. Join each graph's topology with the authored EN overlay
 //      (data/conceptosphere-i18n/en.json, { kind_prefixed_key: { label, gloss? } }
 //      — `concept:<concept_id>` / `community:<key>`, so a concept id can never

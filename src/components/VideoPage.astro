@@ -41,8 +41,8 @@ if (!entry) {
 
 const copy = videoPageCopy[locale];
 const { Content, headings } = await render(entry);
-const coverUrl = videoCoverAbsoluteUrl(Astro.site, pair, locale);
-const seo = seoForVideo(Astro.site, { pair, locale, coverUrl });
+const coverUrl = videoCoverAbsoluteUrl(pair, locale);
+const seo = seoForVideo({ pair, locale, coverUrl });
 const tags = videoTags(entry);
 const layout = await layoutForEntry(entry);
 // Commentary may be shorter than the blog-layout threshold yet still real; the

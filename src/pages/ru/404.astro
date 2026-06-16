@@ -1,15 +1,15 @@
 ---
 import Base from "@/layouts/Base.astro";
-import { LOCALE_META } from "@/lib/i18n";
+import { LOCALE_META, type Locale } from "@/lib/i18n";
 import { notFoundCopy } from "@/lib/i18n/copy";
 import { absUrl } from "@/lib/seo";
 
-const locale = "en" as const;
+const locale: Locale = "ru";
 const copy = notFoundCopy[locale];
 const seo = {
   title:       copy.title,
   description: copy.description,
-  canonical:   absUrl("/en/404"),
+  canonical:   absUrl("/ru/404"),
   ogImage:     null,
   ogType:      "website" as const,
   alternates:  [],
@@ -25,11 +25,11 @@ const seo = {
     <h1>{copy.heading}</h1>
     <p>{copy.body}</p>
     <p class="nf__links">
-      <a href="/en/">{copy.toHome}</a>
+      <a href="/ru/">{copy.toHome}</a>
       <span class="sep">·</span>
-      <a href="/en/books/">{copy.toBooks}</a>
+      <a href="/ru/books/">{copy.toBooks}</a>
       <span class="sep">·</span>
-      <a href="/en/search/">{copy.toSearch}</a>
+      <a href="/ru/search/">{copy.toSearch}</a>
     </p>
   </section>
 </Base>
