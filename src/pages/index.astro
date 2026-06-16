@@ -1,6 +1,8 @@
 ---
-// Apex redirect stub. `i18n.redirectToDefaultLocale` requires a root `/` route
-// and bakes this `/ → /<default>/` redirect (meta-refresh) as the universal
-// fallback; a true 301 is added host-side (beget `.htaccess`, Cloudflare zone
-// rule). See docs/architecture.md.
+import { DEFAULT_LOCALE, homeUrl } from "@/lib/i18n";
+
+// The bare `/` has no content under prefix-all i18n. Redirect to the
+// default-locale home (301, instant). `.org` overrides this to `/en/` with a
+// Cloudflare edge rule; beget serves this baked redirect as-is. See docs/deploy.md.
+return Astro.redirect(homeUrl(DEFAULT_LOCALE), 301);
 ---

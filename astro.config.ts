@@ -108,11 +108,10 @@ export default defineConfig({
     defaultLocale: DEFAULT_LOCALE,
     locales: [...LOCALES],
     routing: {
-      // Every locale is prefixed (`/ru/`, `/en/`); the apex `/` is baked as a
-      // redirect to the default locale. Real 301s are added host-side
-      // (beget `.htaccess`, Cloudflare zone rule) — see docs/architecture.md.
+      // Every locale is prefixed (`/ru/`, `/en/`). The apex `/` is owned by
+      // `src/pages/index.astro` (a 301 to the default-locale home), which `.org`
+      // overrides to `/en/` host-side — see docs/deploy.md.
       prefixDefaultLocale: true,
-      redirectToDefaultLocale: true,
     },
   },
   vite: {

@@ -1,7 +1,0 @@
-# Apex 301 for the .ru mirror (beget reads .htaccess; Cloudflare ignores it).
-# Astro bakes dist/index.html as a meta-refresh to /ru/; this upgrades the apex
-# to a true 301. The .org/ → /en/ apex redirect is a Cloudflare zone rule, not
-# an artifact file — see docs/architecture.md.
-RewriteEngine On
-RewriteCond %{HTTP_HOST} ^(www\.)?pancratius\.ru$ [NC]
-RewriteRule ^$ /ru/ [R=301,L]
