@@ -15,9 +15,9 @@
  */
 import { expect, test, type Page, type ConsoleMessage } from "@playwright/test";
 
-const PAIRED_BOOK_RU = "/books/01-evangelie-tsarstviya/";
+const PAIRED_BOOK_RU = "/ru/books/01-evangelie-tsarstviya/";
 const PAIRED_BOOK_EN = "/en/books/01-evangelie-tsarstviya/";
-const UNPAIRED_BOOK  = "/books/33-ya-esm-vsadnik-kon-i-mech/";
+const UNPAIRED_BOOK  = "/ru/books/33-ya-esm-vsadnik-kon-i-mech/";
 
 /**
  * Attach a console listener that fails the test on `console.error` /
@@ -36,7 +36,7 @@ function failOnConsoleErrors(page: Page): { messages: string[] } {
 }
 
 test.describe("homepage renders in both languages", () => {
-  for (const path of ["/", "/en/"]) {
+  for (const path of ["/ru/", "/en/"]) {
     test(`GET ${path}`, async ({ page }) => {
       const { messages } = failOnConsoleErrors(page);
       const resp = await page.goto(path, { waitUntil: "domcontentloaded" });
@@ -49,14 +49,14 @@ test.describe("homepage renders in both languages", () => {
 });
 
 test.describe("books index lists books", () => {
-  for (const path of ["/books/", "/en/books/"]) {
+  for (const path of ["/ru/books/", "/en/books/"]) {
     test(`GET ${path}`, async ({ page }) => {
       const { messages } = failOnConsoleErrors(page);
       await page.goto(path, { waitUntil: "domcontentloaded" });
       // Each book card links to a `/books/<slug>/` (or `/en/books/<slug>/`).
       // Counting >= 5 is plenty to confirm the listing wired up.
-      const localePrefix = path.startsWith("/en/") ? "/en/books/" : "/books/";
-      const cardLinks = page.locator(`a[href^="${localePrefix}"]:not([href$="/books/"]):not([href$="/en/books/"])`);
+      const localePrefix = path.startsWith("/en/") ? "/en/books/" : "/ru/books/";
+      const cardLinks = page.locator(`a[href^="${localePrefix}"]:not([href$="/ru/books/"]):not([href$="/en/books/"])`);
       expect(await cardLinks.count()).toBeGreaterThanOrEqual(5);
       expect(messages, messages.join("\n")).toEqual([]);
     });
@@ -67,7 +67,7 @@ test.describe("books index lists books", () => {
   // is on the page (hidden by default); when books are present it must stay
   // hidden once the filter init has run.
   test("library filter does not show empty state with books present", async ({ page }) => {
-    await page.goto("/books/", { waitUntil: "domcontentloaded" });
+    await page.goto("/ru/books/", { waitUntil: "domcontentloaded" });
     // Wait for the script to have run. Filter init runs on DOMContentLoaded
     // or immediately if document.readyState != "loading".
     await page.locator(".book").first().waitFor();
@@ -78,7 +78,7 @@ test.describe("books index lists books", () => {
 });
 
 test.describe("conceptosphere loads graph runtime", () => {
-  for (const path of ["/conceptosphere/", "/en/conceptosphere/"]) {
+  for (const path of ["/ru/conceptosphere/", "/en/conceptosphere/"]) {
     test(`GET ${path}`, async ({ page }) => {
       const { messages } = failOnConsoleErrors(page);
       await page.goto(path, { waitUntil: "domcontentloaded" });
@@ -113,7 +113,7 @@ test.describe("conceptosphere loads graph runtime", () => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const p = await ctx.newPage();
     const { messages } = failOnConsoleErrors(p);
-    await p.goto("/conceptosphere/", { waitUntil: "domcontentloaded" });
+    await p.goto("/ru/conceptosphere/", { waitUntil: "domcontentloaded" });
     await expect(p.locator(".cs-mobile").first()).toBeVisible();
     // Click into the mobile mode toggle to exercise wireMobile's event
     // listeners — that's where the TDZ ReferenceError used to fire.
@@ -126,7 +126,7 @@ test.describe("conceptosphere loads graph runtime", () => {
 });
 
 test.describe("representative book renders prose + colophon", () => {
-  test("GET /books/33-ya-esm-vsadnik-kon-i-mech/", async ({ page }) => {
+  test("GET /ru/books/33-ya-esm-vsadnik-kon-i-mech/", async ({ page }) => {
     const { messages } = failOnConsoleErrors(page);
     await page.goto(UNPAIRED_BOOK, { waitUntil: "domcontentloaded" });
     // Prose body lives in <article data-pagefind-body>; colophon is the
@@ -139,7 +139,7 @@ test.describe("representative book renders prose + colophon", () => {
 
 test.describe("theme toggle persists", () => {
   test("clicking #themeBtn flips data-theme and writes localStorage", async ({ page }) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.goto("/ru/", { waitUntil: "domcontentloaded" });
     const root = page.locator("html");
     const before = await root.getAttribute("data-theme");
     expect(before === "light" || before === "dark").toBeTruthy();

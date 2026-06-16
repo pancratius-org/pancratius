@@ -3,8 +3,8 @@
 // built `dist/` via preview.
 import { expect, test } from "@playwright/test";
 
-const AWAKENING = "/projects/enlightened-ai/awakening/";
-const SELF_INQUIRY = "/projects/enlightened-ai/self-inquiry/";
+const AWAKENING = "/ru/projects/enlightened-ai/awakening/";
+const SELF_INQUIRY = "/ru/projects/enlightened-ai/self-inquiry/";
 
 test.describe("AwakeningQuestions — the question bank as readable text", () => {
   test("renders the Промт framing, the full bank, and no answer field", async ({ page }) => {
