@@ -33,6 +33,7 @@
     "test": "npm run test:unit",
     "test:unit": "node --test \"tests/unit/*.test.ts\"",
     "test:e2e": "playwright test",
+    "test:e2e:gate": "PW_GATE=1 PORT=4399 playwright test",
     "test:visual": "VISUAL_AUDIT=1 playwright test tests/e2e/visual_audit.spec.ts",
     "test:perf": "node tests/visual/lighthouse-report.ts",
     "shots:audit": "node tests/visual/capture-fullpage.ts",
@@ -45,7 +46,7 @@
     "audit:layout-fill": "node audit/layout-fill.ts",
     "audit:post-build": "node audit/harness.ts post-build",
     "audit:selftest": "node audit/selftest.ts",
-    "verify": "npm run audit:deps && npm run check && npm run audit:repo && npm run audit:selftest && npm run build && npm run audit:post-build"
+    "verify": "npm run audit:deps && npm run check && npm run audit:repo && npm run audit:selftest && npm run build && npm run audit:post-build && npm run test:e2e:gate"
   },
   "dependencies": {
     "@astrojs/markdown-remark": "7.2.0",

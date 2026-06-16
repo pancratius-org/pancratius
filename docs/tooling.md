@@ -35,7 +35,7 @@ site.
 | `npm run lint` | ESLint plus Stylelint. |
 | `npm run lint:code` | ESLint over site, build, audit, and test TypeScript/Astro/JavaScript. |
 | `npm run lint:style` | Stylelint over CSS files and Astro component style blocks. |
-| `npm run verify` | Local equivalent of the PR gate (`pr.yml` minus Playwright). |
+| `npm run verify` | The full gate — checks, audits, build, and Playwright e2e; identical locally and in CI. |
 | `npm run audit:deps` | npm vulnerability audit at the high-severity release gate. |
 | `npm run audit:repo` | Architectural contract harness; see [`audit-harness.md`](./audit-harness.md). |
 | `npm run audit:agent` | Core audit plus non-blocking heuristic checks. |
