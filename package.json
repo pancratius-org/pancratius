@@ -14,7 +14,7 @@
     "build": "npm run generate && npm run build:site && npm run build:sitemap && npm run build:search-index",
     "build:site": "astro build",
     "build:sitemap": "node build/sitemap.ts",
-    "build:search-index": "pagefind --site dist",
+    "build:search-index": "node -e \"require('node:fs').rmSync('dist/pagefind',{recursive:true,force:true})\" && pagefind --site dist",
     "preview": "astro preview",
     "astro": "astro",
     "generate": "npm run generate:slug-map && npm run generate:graph-payloads && npm run generate:bulk-archives",
