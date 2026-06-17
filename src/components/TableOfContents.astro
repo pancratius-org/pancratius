@@ -2,6 +2,7 @@
 import type { MarkdownHeading } from "astro";
 import type { Locale } from "@/lib/i18n";
 import { tocCopy } from "@/lib/i18n/copy";
+import { tocHeadings, TOC_MIN_DEPTH, TOC_MAX_DEPTH } from "@/lib/toc";
 
 interface Props {
   headings: MarkdownHeading[];
@@ -11,13 +12,8 @@ interface Props {
   maxDepth?: number;
 }
 
-const { headings, locale, minDepth = 2, maxDepth = 3 } = Astro.props;
-// `footnote-label` is the screen-reader-only `<h2>` the GFM footnote
-// renderer drops in to label the footnotes section. It shouldn't appear
-// as a visible ToC entry.
-const items = headings.filter(h =>
-  h.depth >= minDepth && h.depth <= maxDepth && h.slug !== "footnote-label",
-);
+const { headings, locale, minDepth = TOC_MIN_DEPTH, maxDepth = TOC_MAX_DEPTH } = Astro.props;
+const items = tocHeadings(headings, minDepth, maxDepth);
 const label = tocCopy[locale].label;
 ---
 {items.length > 0 && (

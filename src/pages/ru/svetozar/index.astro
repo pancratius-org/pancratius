@@ -17,6 +17,7 @@ import type { Locale } from "@/lib/i18n";
 import { LOCALES, pageUrl } from "@/lib/i18n";
 import { getPage, pageShellProps } from "@/lib/pages";
 import { seoForPage } from "@/lib/seo";
+import { hasToc } from "@/lib/toc";
 
 const SLUG = "svetozar";
 const locale: Locale = "ru";
@@ -35,7 +36,7 @@ for (const loc of authoredLocales) {
   if (loc !== locale) alternates[loc] = pageUrl(SLUG, loc);
 }
 
-const useToc = headings.some(h => h.depth >= 2 && h.depth <= 3);
+const useToc = hasToc(headings);
 ---
 <Base {locale} {seo} {alternates}>
   <PageShell {...pageShellProps(page, useToc ? "static--with-toc" : undefined)} width="text">

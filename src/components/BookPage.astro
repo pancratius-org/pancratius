@@ -16,6 +16,7 @@ import Pager from "@/components/Pager.astro";
 import type { Locale } from "@/lib/i18n";
 import { kindIndexUrl, workUrl } from "@/lib/i18n";
 import { neighbors } from "@/lib/neighbors";
+import { hasToc } from "@/lib/toc";
 import { bookPageCopy } from "@/lib/i18n/copy";
 import { coverAbsoluteUrl } from "@/lib/covers";
 import { seoForWork } from "@/lib/seo";
@@ -50,7 +51,7 @@ const seo = seoForWork({
 });
 const crossRefs = await resolveCrossRefs(entry, locale);
 const tags = workTags(entry);
-const useToc = headings.some(h => h.depth >= 2 && h.depth <= 3);
+const useToc = hasToc(headings);
 const backHref = kindIndexUrl("book", locale);
 
 const allBookPairs = await getPairsByKind("book");
@@ -84,7 +85,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
       </div>
     </header>
 
-    <div class="book-page__layout">
+    <div class:list={["book-page__layout", { "book-page__layout--toc": useToc }]}>
       {useToc && <TableOfContents {headings} {locale} />}
       <div
         class="prose"
@@ -224,14 +225,14 @@ const pad = (n: number) => String(n).padStart(2, "0");
     gap: 2rem;
   }
   @media (min-width: 1100px) {
-    .book-page__layout {
+    .book-page__layout--toc {
       grid-template-columns: 220px minmax(0, 1fr);
       gap: 3rem;
       align-items: start;
     }
-    .book-page > :global(.colophon),
-    .book-page > :global(.pager),
-    .book-page > :global(.sim) {
+    .book-page:has(.book-page__layout--toc) > :global(.colophon),
+    .book-page:has(.book-page__layout--toc) > :global(.pager),
+    .book-page:has(.book-page__layout--toc) > :global(.sim) {
       margin-left: calc(220px + 3rem);
     }
   }
