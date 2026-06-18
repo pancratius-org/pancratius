@@ -52,7 +52,7 @@ jobs:
           cache: 'npm'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
 
       - name: Install npm dependencies
         run: npm ci
@@ -84,8 +84,9 @@ jobs:
         run: echo "ready=true" >> "$GITHUB_OUTPUT"
 
       # ── Deploy to primary host via rsync over SSH ───────────────────────
-      # `-c`: match by checksum, not mtime (rebuilds churn mtimes). No `-p`/`D`-chmod:
-      # the docroot is root-owned, so perms go on files we own (F644), not the dir tree.
+      # `-c`: match by checksum, not mtime (rebuilds churn mtimes). The hosted
+      # docroot ACL creates new SSH-deploy paths as 700/600, which Apache cannot
+      # serve, so rsync must normalize both directories and files on transfer.
       # EXCLUDE `/.*` keeps `--delete` off ALL top-level remote dotfiles/dirs the
       # build doesn't own — `.well-known/` (ACME/TLS), `.ssh/`, panel files. The apex
       # redirect is baked into `dist/index.html`, so no dotfile needs to ship.
@@ -93,7 +94,7 @@ jobs:
         id: deploy_rsync
         if: ${{ !cancelled() && steps.deploy_gate.outputs.ready == 'true' }}
         continue-on-error: true
-        uses: easingthemes/ssh-deploy@5d8aeab1a56041e269567e67a08ce00df324a617 # v6.0.1
+        uses: easingthemes/ssh-deploy@2cc5b27bf3029d0455dd5e09fe02633904031447 # v6.0.3
         with:
           SSH_PRIVATE_KEY: ${{ secrets.HOSTING_SSH_KEY }}
           REMOTE_HOST: ${{ vars.HOSTING_SSH_HOST }}
@@ -101,7 +102,7 @@ jobs:
           REMOTE_PORT: ${{ vars.HOSTING_SSH_PORT || '22' }}
           SOURCE: "dist/"
           TARGET: ${{ vars.HOSTING_SSH_PATH }}
-          ARGS: "-rlzc -i --delete --omit-dir-times --chmod=F644"
+          ARGS: "-rlzc -i --delete --omit-dir-times --chmod=D755,F644"
           EXCLUDE: "/.*"
 
       - name: Deploy to Cloudflare Pages

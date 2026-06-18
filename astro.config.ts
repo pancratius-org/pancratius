@@ -110,7 +110,7 @@ export default defineConfig({
     routing: {
       // Every locale is prefixed (`/ru/`, `/en/`). The apex `/` is owned by
       // `src/pages/index.astro` (a 301 to the default-locale home), which `.org`
-      // overrides to `/en/` host-side — see docs/deploy.md.
+      // overrides to `/en/` host-side — see docs/architecture.md (Apex redirect).
       prefixDefaultLocale: true,
     },
   },
