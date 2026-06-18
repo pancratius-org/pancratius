@@ -47,6 +47,23 @@ const copy = pagefindSearchCopy[locale];
     function loadPagefind() {
       if (!pagefindPromise) {
         pagefindPromise = import(pagefindPath)
+          .then(async pagefind => {
+            // Ranking tuned for a long-form corpus. pageLength softens BM25
+            // length normalization (default 0.75) so substantive works aren't
+            // buried under tiny clips — 0.4 is the floor, lower lets generic
+            // long books intrude on broad terms. termSaturation (default 1.4)
+            // rewards genuine repeated coverage over a single mention. title
+            // trims the 5.0 default so body text drives ranking without sinking
+            // focused short works that are themselves about the query term.
+            await pagefind.options({
+              ranking: {
+                pageLength: 0.4,
+                termSaturation: 2.0,
+                metaWeights: { title: 2.0 },
+              },
+            });
+            return pagefind;
+          })
           .catch(err => {
             pagefindPromise = null;
             throw err;

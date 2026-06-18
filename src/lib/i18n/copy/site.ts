@@ -90,20 +90,20 @@ export interface PagefindSearchCopy {
 
 export const pagefindSearchCopy = {
   ru: {
-    placeholder: "Поиск по корпусу",
+    placeholder: "Поиск произведений",
     empty: "Ничего не найдено.",
     searching: "Ищу…",
     prompt: "Введите слово или фразу.",
-    hits: "Найдено:",
+    hits: "Найдено произведений:",
     more: "Показать ещё",
     unavailable: "Поиск временно недоступен. Попробуйте позже.",
   },
   en: {
-    placeholder: "Search the corpus",
+    placeholder: "Search the works",
     empty: "Nothing matched.",
     searching: "Searching…",
     prompt: "Type a word or phrase.",
-    hits: "Found:",
+    hits: "Works found:",
     more: "Show more",
     unavailable: "Search is temporarily unavailable. Please try again later.",
   },
@@ -121,17 +121,17 @@ export interface SearchPageCopy {
 export const searchPageCopy = {
   ru: {
     title: "Поиск — Панкратиус",
-    description: "Полнотекстовый поиск по всему корпусу: книги, стихи, проекты. Работает без сервера и без передачи запросов на сторону.",
+    description: "Поиск произведений по тексту внутри них: книги, стихи, проекты. Работает в браузере, запросы не покидают устройство.",
     heading: "Поиск",
-    intro: "Полнотекстовый поиск по всему корпусу. Запросы остаются у вас в браузере.",
+    intro: "Находит произведения, в тексте которых есть ваш запрос. Поиск идёт в вашем браузере — запросы никуда не отправляются.",
     hintLabel: "Попробуйте:",
     hints: ["Иисус", "Светозар", "Царствие", "Святая Русь"],
   },
   en: {
     title: "Search — Pancratius",
-    description: "Full-text search across the entire corpus: books, poems, projects. Runs in your browser; queries are never sent anywhere.",
+    description: "Search the works by the text inside them: books, poems, projects. Runs in your browser; queries never leave your device.",
     heading: "Search",
-    intro: "Full-text search across the corpus. Queries stay in your browser.",
+    intro: "Finds the works whose text contains your query. Search runs in your browser — queries are never sent anywhere.",
     hintLabel: "Try:",
     hints: ["Jesus", "Svetozar", "Holy Rus", "Pancratius"],
   },
