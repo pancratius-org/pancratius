@@ -13,6 +13,7 @@ import Pager from "@/components/Pager.astro";
 import type { Locale } from "@/lib/i18n";
 import { kindIndexUrl, routedUrl } from "@/lib/i18n";
 import { neighbors } from "@/lib/neighbors";
+import { hasToc } from "@/lib/toc";
 import { videoPageCopy } from "@/lib/i18n/copy";
 import { seoForVideo } from "@/lib/seo";
 import {
@@ -48,7 +49,7 @@ const layout = await layoutForEntry(entry);
 // Commentary may be shorter than the blog-layout threshold yet still real; the
 // compact layout must show it too, so no body is ever hidden.
 const hasBody = (entry.body ?? "").trim().length > 0;
-const useToc = layout === "blog" && headings.some(h => h.depth >= 2 && h.depth <= 3);
+const useToc = layout === "blog" && hasToc(headings);
 const backHref = kindIndexUrl("video", locale);
 
 const allPairs = await getAllVideoPairs();
