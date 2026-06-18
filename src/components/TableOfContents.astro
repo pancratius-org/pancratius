@@ -2,6 +2,7 @@
 import type { MarkdownHeading } from "astro";
 import type { Locale } from "@/lib/i18n";
 import { tocCopy } from "@/lib/i18n/copy";
+import { tocHeadings, TOC_MIN_DEPTH, TOC_MAX_DEPTH } from "@/lib/toc";
 
 interface Props {
   headings: MarkdownHeading[];
@@ -11,13 +12,8 @@ interface Props {
   maxDepth?: number;
 }
 
-const { headings, locale, minDepth = 2, maxDepth = 3 } = Astro.props;
-// `footnote-label` is the screen-reader-only `<h2>` the GFM footnote
-// renderer drops in to label the footnotes section. It shouldn't appear
-// as a visible ToC entry.
-const items = headings.filter(h =>
-  h.depth >= minDepth && h.depth <= maxDepth && h.slug !== "footnote-label",
-);
+const { headings, locale, minDepth = TOC_MIN_DEPTH, maxDepth = TOC_MAX_DEPTH } = Astro.props;
+const items = tocHeadings(headings, minDepth, maxDepth);
 const label = tocCopy[locale].label;
 ---
 {items.length > 0 && (
@@ -53,17 +49,34 @@ const label = tocCopy[locale].label;
         function init() {
           const links = Array.from(document.querySelectorAll("[data-toc-link]"));
           if (!links.length) return;
+          const aside = document.querySelector(".toc-aside");
           const byId = new Map(links.map(a => [a.dataset.tocLink, a]));
           const headings = Array.from(byId.keys())
             .map(id => document.getElementById(id))
             .filter(Boolean);
           if (!headings.length) return;
 
+          // Keep the active link visible inside the rail's own scroll box
+          // (desktop only — the mobile ToC isn't a scroll container). Scroll
+          // the aside directly rather than scrollIntoView() so a hidden
+          // active link can never hijack the page scroll.
+          function reveal(el) {
+            if (!aside || aside.scrollHeight <= aside.clientHeight) return;
+            // On desktop the rail is the link's offsetParent, so offsetTop is
+            // already its position within the scroll box.
+            const top = el.offsetTop;
+            if (top < aside.scrollTop) {
+              aside.scrollTop = top;
+            } else if (top + el.offsetHeight > aside.scrollTop + aside.clientHeight) {
+              aside.scrollTop = top + el.offsetHeight - aside.clientHeight;
+            }
+          }
+
           let active = null;
           const setActive = (el) => {
             if (active === el) return;
             if (active) active.removeAttribute("aria-current");
-            if (el) el.setAttribute("aria-current", "location");
+            if (el) { el.setAttribute("aria-current", "location"); reveal(el); }
             active = el;
           };
 
@@ -107,6 +120,18 @@ const label = tocCopy[locale].label;
       position: sticky;
       top: 4.5rem;
       align-self: start;
+      /* Bound the rail to the viewport so a long ToC scrolls inside itself
+         instead of running off-screen unreachably. 0.75rem of breathing
+         room below the sticky offset keeps it off the bottom edge. */
+      max-height: calc(100vh - 4.5rem - 0.75rem);
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--rule-2) transparent;
+    }
+    .toc-aside::-webkit-scrollbar { width: 6px; }
+    .toc-aside::-webkit-scrollbar-thumb {
+      background: var(--rule-2);
+      border-radius: 3px;
     }
   }
 
