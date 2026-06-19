@@ -67,7 +67,7 @@ const configJson = jsonForScript({
   strings: t,
 });
 ---
-<section class="cs-stage" id="cs-stage" aria-label={t.stageAriaLabel}>
+<section class="cs-stage" id="cs-stage" data-cs-mode={initialMode} aria-label={t.stageAriaLabel}>
   <svg id="cs-hulls" aria-hidden="true"></svg>
   <div id="cs-graph" role="img" aria-label={t.graphAriaLabel}>
     <noscript>

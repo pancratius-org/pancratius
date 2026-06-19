@@ -18,10 +18,12 @@ import { isConceptosphereMode, type ConceptosphereMode } from "./graph-types.ts"
 import type { PageConfig } from "./page-config.ts";
 
 export interface DesktopRuntime {
+  setMode: (mode: ConceptosphereMode) => Promise<void>;
   dispose: () => void;
 }
 
 interface DesktopHost extends GraphInteractionHost {
+  stageShell: HTMLElement;
   stage: HTMLElement;
   hulls: SVGSVGElement;
   panelClose: HTMLElement;
@@ -146,7 +148,7 @@ class DesktopGraphRuntime implements DesktopRuntime {
     this.host.desktopSearch.select();
   }
 
-  private async setMode(mode: ConceptosphereMode): Promise<void> {
+  async setMode(mode: ConceptosphereMode): Promise<void> {
     if (this.disposed) return;
     this.renderChrome(mode);
     this.host.desktopSearch.placeholder = this.host.cfg.strings.modes[mode].searchPlaceholder;
@@ -174,6 +176,7 @@ class DesktopGraphRuntime implements DesktopRuntime {
   private renderChrome(mode: ConceptosphereMode): void {
     const strings = this.host.cfg.strings;
     const modeCopy = strings.modes[mode];
+    this.host.stageShell.dataset.csMode = mode;
     setModeButtons(document.querySelector(GRAPH_DOM_SELECTORS.modeToggleRoot) ?? document, mode);
     setText(GRAPH_DOM_IDS.pageHeading, modeCopy.h1);
     setText(GRAPH_DOM_IDS.pageLede, modeCopy.lede);
@@ -227,6 +230,7 @@ class DesktopGraphRuntime implements DesktopRuntime {
 function createDesktopHost(cfg: PageConfig): DesktopHost {
   return {
     cfg,
+    stageShell: requireElement(GRAPH_DOM_IDS.stageShell, HTMLElement),
     stage: requireElement(GRAPH_DOM_IDS.stage, HTMLElement),
     hulls: requireElement(GRAPH_DOM_IDS.hulls, SVGSVGElement),
     panel: requireElement(GRAPH_DOM_IDS.panel, HTMLElement),

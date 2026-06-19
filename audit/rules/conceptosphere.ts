@@ -9,9 +9,8 @@
 //
 // This rule IS the drift detector. It enumerates every stable id present in the
 // committed graphs — each concept's `concept_id` (the lemma; falls back to the
-// node `id`, which equals the lemma), each book node's `top_concepts[]`
-// concept refs (same vocabulary, rendered as the book panel's "Top concepts"),
-// and each community's content-fingerprint `key` — and fires fatal for any that
+// node `id`, which equals the lemma) and each community's content-fingerprint
+// `key` — and fires fatal for any that
 // lacks an entry in en.json. Overlay keys
 // encode the KIND so a concept_id can never collide with a community key:
 // `concept:<concept_id>` and `community:<key>`. A drifted
@@ -23,6 +22,9 @@
 //
 // Communities are checked only when they carry an explicit `key` (the generator
 // emits it; payloads predating the regen do not). Concepts are always checked.
+// Optional evidence refs such as book top concepts and shared-concept snippets
+// are joined when a translation exists and otherwise keep their original label
+// with an `untranslated` marker; they are not a required EN translation surface.
 
 import type { Rule, RuleContext } from "../lib/rule.ts";
 import type { Finding } from "../lib/finding.ts";
@@ -37,8 +39,7 @@ interface GraphSource {
   /**
    * Whether this graph's NODES are translatable concepts. The concepts graph's
    * nodes are concept lemmas (translated); the books graph's nodes are BOOKS
-   * (titles degrade via the "Russian original" badge, §4 — never translated),
-   * but their `top_concepts[]` refs are concept vocabulary and ARE checked.
+   * (titles degrade via the "Russian original" badge, §4 — never translated).
    * Both graphs' COMMUNITIES are always checked.
    */
   readonly nodesAreConcepts: boolean;
@@ -51,12 +52,6 @@ const GRAPH_SOURCES: readonly GraphSource[] = [
 
 interface ConceptNode {
   id?: unknown;
-  concept_id?: unknown;
-  label?: unknown;
-  top_concepts?: unknown;
-}
-
-interface TopConceptRef {
   concept_id?: unknown;
   label?: unknown;
 }
@@ -104,33 +99,6 @@ function conceptIds(graph: Graph, file: string): RequiredId[] {
   return out;
 }
 
-/**
- * Every `concept_id` referenced by a book node's `top_concepts[]`. The book
- * page's side panel renders these as its "Top concepts" list; they are the same
- * concept vocabulary as the concepts graph (already translated), so this stays
- * green — but a ref pointing at a concept absent from the concepts graph is a
- * real gap this surfaces. Refs predating the regen carry no `concept_id` and are
- * skipped (no id to translate; the build join leaves their RU label).
- */
-function bookTopConceptIds(graph: Graph, file: string): RequiredId[] {
-  if (!Array.isArray(graph.nodes)) return [];
-  const out: RequiredId[] = [];
-  for (const raw of graph.nodes) {
-    const node = raw as ConceptNode;
-    if (!Array.isArray(node.top_concepts)) continue;
-    for (const ref of node.top_concepts as TopConceptRef[]) {
-      if (!isString(ref.concept_id)) continue;
-      out.push({
-        stableId: `concept:${ref.concept_id}`,
-        entity: "book top concept",
-        ruLabel: isString(ref.label) ? ref.label : ref.concept_id,
-        file,
-      });
-    }
-  }
-  return out;
-}
-
 /** Every community `key` in a graph payload (skips payloads without keys). */
 function communityKeys(graph: Graph, file: string): RequiredId[] {
   if (!Array.isArray(graph.communities)) return [];
@@ -159,7 +127,6 @@ function requiredIds(ctx: RuleContext): RequiredId[] | Finding {
       return parseFinding(source.file, `graph payload is not valid JSON: ${String(err)}`);
     }
     if (source.nodesAreConcepts) ids.push(...conceptIds(graph, source.file));
-    else ids.push(...bookTopConceptIds(graph, source.file));
     ids.push(...communityKeys(graph, source.file));
   }
   return ids;

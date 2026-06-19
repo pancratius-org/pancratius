@@ -8,7 +8,7 @@ It has three jobs:
 | Surface | User question | Method |
 | --- | --- | --- |
 | **Концепты** | What ideas recur, and how do they relate? | Lemma co-occurrence graph, NPMI pruning, Leiden clusters |
-| **Книги** | Which books belong near each other? | Book vectors over key concepts, TF-IDF cosine, Leiden clusters |
+| **Книги** | Which books belong near each other? | Book vectors over nominal key concepts, TF-IDF cosine, Leiden clusters with evidence labels |
 | **Похожие книги** | What should I read after this book? | One merged recommendation ranker using TF-IDF concept overlap and Qwen3 embedding similarity |
 
 The embedding graph is not shown as a third public graph. Its value is in
@@ -48,7 +48,7 @@ changes after a rebuild; regenerate the JSON if you need fresh counts.
 | Output | Nodes | Edges | Clusters | Modularity |
 | --- | ---: | ---: | ---: | ---: |
 | Concepts | 418 | 1,119 | 21 | 0.7504 |
-| Books, TF-IDF | 75 | 346 | 5 | 0.3433 |
+| Books, TF-IDF | 74 | 328 | 5 | 0.3857 |
 
 A fresh embedding intermediate contains document nodes for books and poems plus
 discovered chunk topics. Projects are site sections, not works, so they are
@@ -90,16 +90,43 @@ Pipeline:
 
 1. Reuse the processed concept counts.
 2. Keep books only.
-3. Build per-book TF-IDF vectors over concepts.
+3. Build per-book TF-IDF vectors over a stricter nominal concept space:
+   nouns, named theological concepts, and a small curated set of adjectival
+   themes. Helper verbs and weak parts of speech stay out of the book graph even
+   though they may remain useful in the concept co-occurrence graph.
 4. Connect books by cosine similarity.
-5. Keep the top 5 neighbors per book, with a low cosine floor of 0.10.
-6. Use weighted PageRank for node size.
-7. Use Leiden for clusters.
-8. Attach `top_concepts`, `top_similar`, and, if available, `top_similar_embed`.
+5. A term must occur at least twice in a book before it contributes to that
+   book's vector. This prevents one-off rare-word overlap in long books from
+   dominating similarity.
+6. Keep the top 5 neighbors per book, with a low cosine floor of 0.10.
+7. Use weighted PageRank for node size.
+8. Use Leiden for clusters.
+9. Label each cluster from discriminative concepts shared by its members, not
+   from the most central book title.
+10. Attach `top_concepts`, `top_similar`, cluster `top_concepts`, and, if
+    available, `top_similar_embed`. `top_similar` is ordered by same-community
+    neighbors first, then cosine, so the graph explorer explains the visible
+    cluster before surfacing cross-cluster bridges.
 
 Why this shape: raw overlap and Jaccard over-reward long books. TF-IDF cosine
 keeps a short book and a long book comparable while preserving the editorial
-question: which books share conceptual vocabulary?
+question: which books share conceptual vocabulary? The nominal feature filter
+and per-book count floor remove the main keyword-stuffing failure mode: a very
+long book mentioning a rare term once no longer becomes a strong neighbor merely
+because the term is rare corpus-wide.
+
+The generated book graph carries evidence for inspection:
+
+- each book node's `top_concepts` are its strongest count × IDF concepts;
+- each book community's `top_concepts` are its cluster signature, with
+  `coverage` showing the share of member books that carry the concept;
+- each `top_similar` row carries `shared_concepts` for the visible
+  recommendation/explorer row.
+
+English payloads translate required graph labels strictly. Optional evidence refs
+are translated during the build-time locale join when an overlay entry exists;
+otherwise the original evidence label remains visible with an `untranslated`
+marker. Required concept nodes and community labels still fail loud.
 
 ## Semantic Recommendations
 
@@ -183,7 +210,8 @@ default. Use `--only concepts` or `--only books` for a narrower refresh.
 | --- | --- | --- |
 | Clustering | Leiden | Better community quality and connectedness guarantees than Louvain; Louvain stays as a comparison metric |
 | Concept centrality | PageRank | Sizes "gravity well" concepts better than betweenness for this public map |
-| Book edge weight | TF-IDF cosine | Normalizes book length and preserves conceptual overlap |
+| Book edge weight | TF-IDF cosine over nominal concepts | Normalizes book length, removes helper-word/verb noise, and preserves conceptual overlap |
+| Book cluster labels | Discriminative concept signatures | Labels explain why the cluster exists instead of borrowing an arbitrary central book title |
 | Semantic model | Qwen3-Embedding-0.6B via MLX | Good Russian coverage, cheap enough locally; 4B is the obvious production upgrade |
 | Mean-centering | On | Prevents homogeneous-corpus cosine collapse |
 | Public graph UI | Two graphs, not three | Concepts and books are distinct user questions; embeddings are a recommendation signal |

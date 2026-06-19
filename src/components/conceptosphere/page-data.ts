@@ -21,6 +21,7 @@ type ConceptosphereCommunityView = {
   id: number;
   label: string;
   color: string;
+  topConcepts: readonly { label: string }[];
 };
 
 export type ConceptosphereConceptRow = {
@@ -248,7 +249,7 @@ function bookSearchHay(node: BooksGraphNode, localizedTitle: string, localizedTa
     String(node.number),
     ...localizedTags,
     ...node.tags,
-    ...node.top_concepts.flatMap((concept) => [concept.label, concept.lemma]),
+    ...node.top_concepts.flatMap((concept) => [concept.label, concept.lemma ?? ""]),
   ]);
 }
 
@@ -322,7 +323,7 @@ function countLine(
 }
 
 function groupRows<Row>(
-  communities: { id: number; label: string }[],
+  communities: { id: number; label: string; top_concepts?: readonly { label?: string }[] }[],
   rows: Row[],
   communityFor: (row: Row) => number,
   sortRows: (a: Row, b: Row) => number,
@@ -338,7 +339,14 @@ function groupRows<Row>(
     .filter((c) => map.has(c.id))
     .sort((a, b) => (map.get(b.id)?.length ?? 0) - (map.get(a.id)?.length ?? 0))
     .map((c) => ({
-      com: { id: c.id, label: c.label, color: communityColor(c.id) },
+      com: {
+        id: c.id,
+        label: c.label,
+        color: communityColor(c.id),
+        topConcepts: (c.top_concepts ?? [])
+          .map((concept) => ({ label: concept.label ?? "" }))
+          .filter((concept) => concept.label.length > 0),
+      },
       rows: (map.get(c.id) ?? []).sort(sortRows),
     }));
 }

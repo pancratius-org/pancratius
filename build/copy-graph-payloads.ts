@@ -69,22 +69,34 @@ interface TopConceptRef {
   label?: unknown;
   [key: string]: unknown;
 }
+interface SimilarRef {
+  shared_concepts?: unknown;
+  [key: string]: unknown;
+}
 interface GraphNode {
   id?: unknown;
   concept_id?: unknown;
   label?: unknown;
   gloss?: unknown;
   top_concepts?: unknown;
+  top_similar?: unknown;
+  top_similar_embed?: unknown;
   [key: string]: unknown;
 }
 interface GraphCommunity {
   key?: unknown;
   label?: unknown;
+  top_concepts?: unknown;
+  [key: string]: unknown;
+}
+interface GraphEdge {
+  shared_concepts?: unknown;
   [key: string]: unknown;
 }
 export interface Graph {
   nodes?: GraphNode[];
   communities?: GraphCommunity[];
+  edges?: GraphEdge[];
   [key: string]: unknown;
 }
 
@@ -108,17 +120,13 @@ function conceptStableId(node: GraphNode): string | null {
 }
 
 /**
- * Translate a book node's `top_concepts[]` labels by stable id. A top-concept
- * whose `concept_id` has no overlay entry throws — the same strict join (and
- * the same vocabulary) as the concept nodes, so PAN021 keeps it complete.
+ * Translate a book node's optional evidence refs by stable id. Missing optional
+ * refs remain visible with their original label and an `untranslated` marker;
+ * required concept/community labels still fail loud via `requireEntry`.
  */
 function joinBookNodeConcepts(node: GraphNode, overlay: Overlay): GraphNode {
   if (!Array.isArray(node.top_concepts)) return node;
-  const top = (node.top_concepts as TopConceptRef[]).map((concept) => {
-    if (!isString(concept.concept_id)) return concept;
-    const entry = requireEntry(overlay, `concept:${concept.concept_id}`, "book top concept");
-    return { ...concept, label: entry.label };
-  });
+  const top = joinConceptRefs(node.top_concepts, overlay, "book top concept", "keep-original");
   return { ...node, top_concepts: top };
 }
 
@@ -133,6 +141,35 @@ function requireEntry(overlay: Overlay, stableId: string, what: string): Overlay
   return entry;
 }
 
+function joinConceptRefs(
+  value: unknown,
+  overlay: Overlay,
+  what: string,
+  missing: "require" | "keep-original" = "require",
+): unknown {
+  if (!Array.isArray(value)) return value;
+  const out: TopConceptRef[] = [];
+  for (const concept of value as TopConceptRef[]) {
+    if (!isString(concept.concept_id)) {
+      if (missing === "require") out.push(concept);
+      continue;
+    }
+    const stableId = `concept:${concept.concept_id}`;
+    const entry = overlay[stableId];
+    if (!entry || !isString(entry.label)) {
+      if (missing === "keep-original") {
+        out.push({ ...concept, untranslated: true });
+        continue;
+      }
+      const required = requireEntry(overlay, stableId, what);
+      out.push({ ...concept, label: required.label });
+      continue;
+    }
+    out.push({ ...concept, label: entry.label });
+  }
+  return out;
+}
+
 /**
  * Project a RU-keyed graph onto a locale by substituting overlay labels/glosses
  * by stable id. Returns a new object; the input is not mutated. Throws on the
@@ -140,18 +177,19 @@ function requireEntry(overlay: Overlay, stableId: string, what: string): Overlay
  */
 export function joinLocalePayload(graph: Graph, overlay: Overlay, nodesAreConcepts: boolean): LocalizedGraph {
   const nodes = (graph.nodes ?? []).map((node) => {
+    const withSharedSimilar = joinNodeSimilarConcepts(node, overlay);
     if (nodesAreConcepts) {
       const conceptId = conceptStableId(node);
-      if (conceptId === null) return node;
+      if (conceptId === null) return withSharedSimilar;
       const entry = requireEntry(overlay, `concept:${conceptId}`, "concept");
-      const joined: GraphNode = { ...node, label: entry.label };
+      const joined: GraphNode = { ...withSharedSimilar, label: entry.label };
       if (entry.gloss !== undefined) joined.gloss = entry.gloss;
       return joined;
     }
     // Book nodes are not translated, but their `top_concepts[]` reference the
     // same concept vocabulary as the concepts graph; substitute the EN label by
     // `concept:<concept_id>` so the EN side panel renders English top-concepts.
-    return joinBookNodeConcepts(node, overlay);
+    return joinBookNodeConcepts(withSharedSimilar, overlay);
   });
 
   const communities = (graph.communities ?? []).map((com) => {
@@ -160,10 +198,42 @@ export function joinLocalePayload(graph: Graph, overlay: Overlay, nodesAreConcep
     // are caught by the PAN021 audit once keyed).
     if (!isString(com.key)) return com;
     const entry = requireEntry(overlay, `community:${com.key}`, "community");
-    return { ...com, label: entry.label };
+    const joined = { ...com, label: entry.label };
+    if (Array.isArray(com.top_concepts)) {
+      joined.top_concepts = joinConceptRefs(com.top_concepts, overlay, "community top concept", "keep-original");
+    }
+    return joined;
   });
 
-  return { ...graph, nodes, communities };
+  const edges = (graph.edges ?? []).map((edge) => {
+    if (!Array.isArray(edge.shared_concepts)) return edge;
+    return {
+      ...edge,
+      shared_concepts: joinConceptRefs(edge.shared_concepts, overlay, "edge shared concept", "keep-original"),
+    };
+  });
+
+  return { ...graph, nodes, communities, edges };
+}
+
+function joinNodeSimilarConcepts(node: GraphNode, overlay: Overlay): GraphNode {
+  const joined = { ...node };
+  if (Array.isArray(node.top_similar)) joined.top_similar = joinSimilarRefs(node.top_similar, overlay);
+  if (Array.isArray(node.top_similar_embed)) {
+    joined.top_similar_embed = joinSimilarRefs(node.top_similar_embed, overlay);
+  }
+  return joined;
+}
+
+function joinSimilarRefs(value: unknown, overlay: Overlay): unknown {
+  if (!Array.isArray(value)) return value;
+  return (value as SimilarRef[]).map((ref) => {
+    if (!Array.isArray(ref.shared_concepts)) return ref;
+    return {
+      ...ref,
+      shared_concepts: joinConceptRefs(ref.shared_concepts, overlay, "similar-book shared concept", "keep-original"),
+    };
+  });
 }
 
 // ── I/O wrapper ─────────────────────────────────────────────────────────

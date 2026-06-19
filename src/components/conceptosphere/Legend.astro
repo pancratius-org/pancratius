@@ -40,6 +40,9 @@ const t = conceptosphereStrings(locale);
     padding: 12px 14px;
     border-radius: 2px;
   }
+  :global(#cs-stage[data-cs-mode="books"]) .cs-legend {
+    width: min(360px, calc(100vw - 32px));
+  }
   .cs-legend h2 {
     margin: 0 0 8px;
     font-family: var(--mono);
@@ -91,16 +94,32 @@ const t = conceptosphereStrings(locale);
     box-shadow: none;
   }
   .cs-legend :global(.cs-legend-item span:not(.cs-sw):not(.cs-sz)) {
+    flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  :global(#cs-stage[data-cs-mode="books"]) .cs-legend :global(.cs-legend-item) {
+    align-items: flex-start;
+    gap: 10px;
+    padding: 4px 0;
+  }
+  :global(#cs-stage[data-cs-mode="books"]) .cs-legend :global(.cs-legend-item span:not(.cs-sw):not(.cs-sz)) {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    line-height: 1.25;
+  }
   .cs-legend :global(.cs-legend-item .cs-sz) {
     margin-left: auto;
+    flex: 0 0 auto;
     font-family: var(--mono);
     font-size: 10.5px;
     color: var(--cs-ink-trace);
+  }
+  :global(#cs-stage[data-cs-mode="books"]) .cs-legend :global(.cs-legend-item .cs-sz) {
+    padding-top: 2px;
   }
   .cs-legend-clear {
     appearance: none;

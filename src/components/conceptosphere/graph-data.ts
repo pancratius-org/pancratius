@@ -8,6 +8,7 @@ export interface GraphCommunity {
   size: number;
   color: string;
   rgb: [number, number, number];
+  topConcepts: TopConceptRef[];
 }
 
 interface GraphNodeMetrics {
@@ -40,6 +41,7 @@ export interface GraphEdgeData {
   target: string;
   weight: number;
   npmi?: number;
+  sharedConcepts: TopConceptRef[];
 }
 
 export interface CommunityCatalog {
@@ -97,6 +99,7 @@ function normalizeGraphPayload(
     size: community.size,
     color: communityColor(community.id),
     rgb: communityRgb(community.id),
+    topConcepts: [...(community.top_concepts ?? [])],
   }));
   const communityById = new Map(communities.map((community) => [community.id, community]));
   const nodes = payload.nodes.map((node) => normalizeNode(node, mode, cfg, communityById));
@@ -194,6 +197,7 @@ function normalizeEdge(edge: PayloadEdge): GraphEdgeData {
     source: edge.source,
     target: edge.target,
     weight: edge.weight,
+    sharedConcepts: [...(edge.shared_concepts ?? [])],
     ...(edge.npmi !== undefined ? { npmi: edge.npmi } : {}),
   };
 }

@@ -24,6 +24,7 @@ interface BooksGraphCommunity {
   id:          number;
   label:       string;
   size:        number;
+  top_concepts?: ConceptRef[];
   // The payload also carries `color_index`, but production picks colour from
   // `PALETTE[id % PALETTE.length]` in both the desktop runtime and the
   // mobile list so the two surfaces never disagree. We deliberately omit
@@ -32,11 +33,23 @@ interface BooksGraphCommunity {
   // want to delegate palette choice back to the payload.
 }
 
+interface ConceptRef {
+  concept_id?: string;
+  label:       string;
+  lemma?:      string;
+  count?:      number;
+  score?:      number;
+  coverage?:   number;
+  weight?:     number;
+  untranslated?: boolean;
+}
+
 interface SimilarRef {
   slug:   string;
   kind:   RoutedKind;
   title:  string;
   weight: number;
+  shared_concepts?: ConceptRef[];
 }
 
 interface BooksGraphNode {
@@ -51,7 +64,7 @@ interface BooksGraphNode {
   weighted_degree:    number;
   centrality:         number;
   community:          number;
-  top_concepts:       { label: string; lemma: string; count: number }[];
+  top_concepts:       ConceptRef[];
   top_similar:        SimilarRef[];
   top_similar_embed?: SimilarRef[];
 }
@@ -60,6 +73,7 @@ interface BooksGraphEdge {
   source: string;
   target: string;
   weight: number;
+  shared_concepts?: ConceptRef[];
 }
 
 export interface BooksGraph {

@@ -81,7 +81,9 @@ describe("joinLocalePayload", () => {
     };
     assert.throws(() => joinLocalePayload(graph, OVERLAY, true), /missing a label for community "community:deadbeef"/);
   });
+});
 
+describe("joinLocalePayload book evidence", () => {
   test("does NOT translate book node titles, but DOES translate their top_concepts + communities", () => {
     const booksGraph: Graph = {
       mode: "books",
@@ -112,7 +114,7 @@ describe("joinLocalePayload", () => {
     assert.equal(out.communities[0]?.label, "Light & Darkness");
   });
 
-  test("throws on a book top-concept whose concept_id has no EN entry", () => {
+  test("keeps optional book evidence whose concept_id has no EN entry", () => {
     const booksGraph: Graph = {
       mode: "books",
       communities: [],
@@ -122,13 +124,17 @@ describe("joinLocalePayload", () => {
       }],
       edges: [],
     };
-    assert.throws(
-      () => joinLocalePayload(booksGraph, OVERLAY, false),
-      /missing a label for book top concept "concept:страх"/,
-    );
+    const out = joinLocalePayload(booksGraph, OVERLAY, false);
+    assert.deepEqual(out.nodes[0]?.top_concepts, [{
+      concept_id: "страх",
+      label: "Страх",
+      lemma: "страх",
+      count: 3,
+      untranslated: true,
+    }]);
   });
 
-  test("leaves a book top-concept without concept_id untouched (pre-regen refs)", () => {
+  test("skips optional book evidence without concept_id under locale projection", () => {
     const booksGraph: Graph = {
       mode: "books",
       communities: [],
@@ -139,8 +145,49 @@ describe("joinLocalePayload", () => {
       edges: [],
     };
     const out = joinLocalePayload(booksGraph, OVERLAY, false);
-    const tc = out.nodes[0]?.top_concepts as { label: string }[];
-    assert.equal(tc[0]?.label, "Свет");
+    assert.deepEqual(out.nodes[0]?.top_concepts, []);
+  });
+
+  test("does not add absent shared-concept evidence to similar-book rows", () => {
+    const booksGraph: Graph = {
+      mode: "books",
+      communities: [],
+      nodes: [{
+        id: "1-foo", slug: "1-foo", number: 1, label: "Книга", community: 0,
+        top_similar: [{ slug: "2-bar", title: "Другая книга", weight: 0.5 }],
+      }],
+      edges: [],
+    };
+    const out = joinLocalePayload(booksGraph, OVERLAY, false);
+    const similar = out.nodes[0]?.top_similar as { shared_concepts?: unknown }[] | undefined;
+    assert(similar?.[0]);
+    assert.equal(Object.hasOwn(similar[0], "shared_concepts"), false);
+  });
+
+  test("keeps untranslated shared-concept evidence on similar-book rows", () => {
+    const booksGraph: Graph = {
+      mode: "books",
+      communities: [],
+      nodes: [{
+        id: "1-foo", slug: "1-foo", number: 1, label: "Книга", community: 0,
+        top_similar: [{
+          slug: "2-bar",
+          title: "Другая книга",
+          weight: 0.5,
+          shared_concepts: [{ concept_id: "страх", label: "Страх", lemma: "страх", count: 3 }],
+        }],
+      }],
+      edges: [],
+    };
+    const out = joinLocalePayload(booksGraph, OVERLAY, false);
+    const similar = out.nodes[0]?.top_similar as { shared_concepts?: unknown }[] | undefined;
+    assert.deepEqual(similar?.[0]?.shared_concepts, [{
+      concept_id: "страх",
+      label: "Страх",
+      lemma: "страх",
+      count: 3,
+      untranslated: true,
+    }]);
   });
 
   test("skips communities without a fingerprint key (pre-regen payloads)", () => {

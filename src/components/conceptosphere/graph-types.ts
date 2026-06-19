@@ -11,14 +11,20 @@ export interface SimilarRef {
   kind: "book" | "poem" | "project";
   title: string;
   weight?: number;
+  shared_concepts?: TopConceptRef[];
 }
 
 export type BookSimilarRef = SimilarRef & { kind: "book" };
 
 export interface TopConceptRef {
+  concept_id?: string;
   label?: string;
   lemma?: string;
   count?: number;
+  score?: number;
+  coverage?: number;
+  weight?: number;
+  untranslated?: boolean;
 }
 
 export interface TopBookRef {

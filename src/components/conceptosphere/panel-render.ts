@@ -3,7 +3,7 @@ import { localizePath } from "@/lib/i18n";
 import { russianOriginalBadge } from "./russian-badge.ts";
 import type { CommunityCatalog } from "./graph-data.ts";
 import type { ConceptGraph, ConceptNodeAttributes } from "./graph-model.ts";
-import type { BookSimilarRef, ConceptosphereMode, SimilarRef } from "./graph-types.ts";
+import type { BookSimilarRef, ConceptosphereMode, SimilarRef, TopConceptRef } from "./graph-types.ts";
 import type { PageConfig } from "./page-config.ts";
 
 export interface PanelHost {
@@ -44,6 +44,7 @@ const PANEL_CLASS = {
   titleRow: "cs-b-title-row",
   convergence: "cs-conv",
   convergenceFoot: "cs-conv-foot",
+  shared: "cs-shared",
 } as const;
 
 export function showPanel(ctx: PanelHost, session: PanelSession, nodeId: string, pinned: boolean): void {
@@ -109,8 +110,9 @@ function renderBookPanel(
   return fragment(
     communityTag(community),
     bookHero(ctx, attrs, selfLink),
+    communityConceptBlock(strings.clusterTopConceptsHeading, community.topConcepts, strings.numberLocale),
     element("p", { className: PANEL_CLASS.booksHeading, text: strings.bookTopConceptsHeading }),
-    conceptList(attrs, strings.numberLocale),
+    conceptList(attrs.topConcepts, strings.numberLocale),
     similarBooksBlock(ctx, attrs),
   );
 }
@@ -171,11 +173,25 @@ function bookHero(ctx: PanelHost, attrs: ConceptNodeAttributes, selfLink: string
   ]);
 }
 
-function conceptList(attrs: ConceptNodeAttributes, numberLocale: string): HTMLUListElement {
-  return element("ul", { className: PANEL_CLASS.concepts }, attrs.topConcepts.slice(0, 10).map((concept) =>
+function communityConceptBlock(
+  heading: string,
+  concepts: readonly TopConceptRef[],
+  numberLocale: string,
+): DocumentFragment {
+  if (!concepts.length) return fragment();
+  return fragment(
+    element("p", { className: PANEL_CLASS.booksHeading, text: heading }),
+    conceptList(concepts.slice(0, 8), numberLocale),
+  );
+}
+
+function conceptList(concepts: readonly TopConceptRef[], numberLocale: string): HTMLUListElement {
+  return element("ul", { className: PANEL_CLASS.concepts }, concepts.slice(0, 10).map((concept) =>
     element("li", {}, [
-      concept.label ?? concept.lemma ?? "",
-      element("span", { className: PANEL_CLASS.count, text: (concept.count ?? 0).toLocaleString(numberLocale) }),
+      conceptLabelNode(concept),
+      concept.count === undefined
+        ? fragment()
+        : element("span", { className: PANEL_CLASS.count, text: concept.count.toLocaleString(numberLocale) }),
     ]),
   ));
 }
@@ -233,12 +249,32 @@ function similarBookRow(
     className: PANEL_CLASS.bookCount,
     text: strings.similarityCaption.replace("{pct}", ((ref.weight ?? 0) * 100).toFixed(0)),
   }));
+  if (ref.shared_concepts?.length) {
+    meta.push(sharedConceptLine(strings.sharedConceptsPrefix, ref.shared_concepts.slice(0, 3)));
+  }
   if (!localized) meta.push(russianOriginalBadge(strings));
 
   return element("li", {}, [
     coverThumb(ctx.cfg.coverUrls[`book:${ref.slug}`]),
     element("div", { className: PANEL_CLASS.bookMeta }, meta),
   ]);
+}
+
+function sharedConceptLine(prefix: string, concepts: readonly TopConceptRef[]): HTMLElement {
+  const children: (Node | string)[] = [prefix];
+  concepts.forEach((concept, index) => {
+    if (index > 0) children.push(" · ");
+    children.push(conceptLabelNode(concept));
+  });
+  return element("div", { className: PANEL_CLASS.shared }, children);
+}
+
+function conceptLabelNode(concept: TopConceptRef): Node | string {
+  const label = concept.label ?? concept.lemma ?? "";
+  if (!concept.untranslated) return label;
+  const span = element("span", { text: label });
+  span.lang = "ru";
+  return span;
 }
 
 function communityTag(community: { label: string; color: string }): HTMLElement {
@@ -291,11 +327,12 @@ function communityView(
   ctx: PanelHost,
   session: PanelSession,
   communityId: number,
-): { label: string; color: string } {
+): { label: string; color: string; topConcepts: readonly TopConceptRef[] } {
   const community = session.communities.byId.get(communityId);
   return {
     label: community?.label ?? ctx.cfg.strings.clusterFallbackLabel.replace("{n}", String(communityId)),
     color: community?.color ?? "#888",
+    topConcepts: community?.topConcepts ?? [],
   };
 }
 

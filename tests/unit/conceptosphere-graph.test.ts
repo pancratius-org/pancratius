@@ -304,8 +304,8 @@ function graphData(input: {
   edges: GraphEdgeData[];
 }): GraphData {
   const communities: GraphCommunity[] = [
-    { id: 1, label: "One", size: input.nodes.filter((node) => node.communityId === 1).length, color: "#a33", rgb: [170, 51, 51] },
-    { id: 2, label: "Two", size: input.nodes.filter((node) => node.communityId === 2).length, color: "#3a3", rgb: [51, 170, 51] },
+    { id: 1, label: "One", size: input.nodes.filter((node) => node.communityId === 1).length, color: "#a33", rgb: [170, 51, 51], topConcepts: [] },
+    { id: 2, label: "Two", size: input.nodes.filter((node) => node.communityId === 2).length, color: "#3a3", rgb: [51, 170, 51], topConcepts: [] },
   ];
   const nodesByCommunity = new Map<number, readonly GraphNodeData[]>(
     communities.map((community) => [
@@ -370,6 +370,7 @@ function edge(source: string, target: string, weight: number, npmi?: number): Gr
     source,
     target,
     weight,
+    sharedConcepts: [],
     ...(npmi !== undefined ? { npmi } : {}),
   };
 }
