@@ -81,6 +81,8 @@ export interface ConceptosphereStrings {
   mentionsSuffix:   string;
   /** Side panel: books-mode top concepts heading. */
   bookTopConceptsHeading: string;
+  /** Side panel: books-mode cluster signature heading. */
+  clusterTopConceptsHeading: string;
   /** Side panel: similar-by-tfidf heading. */
   similarByConceptsHeading: string;
   /** Side panel: similar-by-embedding heading. */
@@ -95,6 +97,8 @@ export interface ConceptosphereStrings {
   russianOriginalBadge: string;
   /** Similarity row caption: "сходство 84%". `{pct}` placeholder. */
   similarityCaption: string;
+  /** Prefix before shared concepts on a similar-book row. */
+  sharedConceptsPrefix: string;
 
   /** Mobile fallback. */
   mobileListAriaLabel:   string;
@@ -136,7 +140,7 @@ const RU = {
     books: {
       h1:   "Книгосфера",
       lede: "Карта книг Панкратиуса. Точка — книга; связь — сходство по ключевым понятиям.",
-      meth: "Книги связаны TF-IDF косинусом по векторам концептов (универсальные термины исключены); рёбра прорежены до 5 ближайших соседей с двух сторон. Кластеры — Leiden (модулярность); раскладка — ForceAtlas2.",
+      meth: "Книги связаны TF-IDF косинусом по векторам именных концептов: существительные, ключевые богословские термины и устойчивые темы-прилагательные; одноразовые упоминания внутри книги в вектор не входят. Универсальные слова и служебные глаголы отсекаются. Граф держит 5 сильнейших соседей книги при cosine ≥0.10; кластеры — Leiden. Названия и сигнатуры берутся из дискриминативных концептов кластера, а панели книг показывают общие концепты похожих книг.",
       toggleLabel:       "Книги",
       searchPlaceholder: "Найти книгу или концепт",
       countsNoun:        "книг",
@@ -165,6 +169,7 @@ const RU = {
   conceptTopBooksHeading: "Чаще всего встречается в",
   mentionsSuffix:         "упоминаний",
   bookTopConceptsHeading: "Главные концепты",
+  clusterTopConceptsHeading: "Сигнатура кластера",
   similarByConceptsHeading: "Похожие · по концептам",
   similarByMeaningHeading:  "Похожие · по смыслу",
   convergenceFoot:  "— в обоих списках",
@@ -174,6 +179,7 @@ const RU = {
   // so it shares the one source (`localeBadge`) with every other fallback site.
   russianOriginalBadge: localeBadge.russianOriginal,
   similarityCaption: "сходство {pct}%",
+  sharedConceptsPrefix: "общее: ",
 
   mobileListAriaLabel:     "Концептосфера — список",
   mobileNote:              "Граф доступен на большом экране; здесь те же данные в виде списка.",
@@ -210,7 +216,7 @@ const EN = {
     books: {
       h1:   "Book sphere",
       lede: "A map of Pancratius's books. A dot is a book; a connection is similarity by key concepts.",
-      meth: "Books are linked by TF-IDF cosine over concept vectors (universal terms excluded); edges are pruned to the 5 nearest neighbours on either side. Clusters are Leiden communities (modularity); the layout is ForceAtlas2. Book titles use the English pair where one exists.",
+      meth: "Books are linked by TF-IDF cosine over nominal concept vectors: nouns, named theological terms, and stable adjectival themes; one-off mentions inside a book do not enter the vector. Universal words and helper verbs are filtered out. The graph keeps each book's 5 strongest neighbours at cosine ≥0.10; clusters are Leiden communities. Cluster names and signatures come from discriminative concepts, and book panels show the shared concepts behind similar-book rows.",
       toggleLabel:       "Books",
       searchPlaceholder: "Find a book or concept",
       countsNoun:        "books",
@@ -239,6 +245,7 @@ const EN = {
   conceptTopBooksHeading: "Most often appears in",
   mentionsSuffix:         "mentions",
   bookTopConceptsHeading: "Top concepts",
+  clusterTopConceptsHeading: "Cluster signature",
   similarByConceptsHeading: "Similar · by concepts",
   similarByMeaningHeading:  "Similar · by meaning",
   convergenceFoot:  "— present in both lists",
@@ -246,6 +253,7 @@ const EN = {
   openBookLabel:    "Open the book",
   russianOriginalBadge: localeBadge.russianOriginal,
   similarityCaption: "{pct}% similar",
+  sharedConceptsPrefix: "shared: ",
 
   mobileListAriaLabel:     "Conceptosphere — list",
   mobileNote:              "The graph is available on a larger screen; here the same data appears as a list.",

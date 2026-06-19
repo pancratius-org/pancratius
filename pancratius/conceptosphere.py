@@ -19,10 +19,11 @@ Two projections:
   books     → data/pancratius-books-graph.json
       Inverse projection of the same bipartite (books × concepts) data: nodes
       are *books*, edges are shared-concept overlap. Edge weight is TF-IDF
-      cosine on per-book concept frequency vectors (see `book_book_weight`).
-      Pruned to top-K neighbors per book (default 10), then Leiden communities
-      on the resulting graph. Per-node we attach top_concepts (most frequent
-      lemmas in that book, IDF-weighted).
+      cosine on a stricter nominal concept feature space: nouns, named
+      theological concepts, and a few adjectival corpus themes. One-off mentions
+      in a book do not enter that book's vector. Pruned to top-K neighbors per
+      book, then Leiden communities on the resulting graph. Per-node and
+      per-community concept evidence is attached for the public explorer.
 
 Example:
     uv run pancratius conceptosphere graph generate --top 400 --window 5 --min-degree 3 --min-weight 2
@@ -173,6 +174,71 @@ KEEP_OVERRIDE = {
     "панкратиус", "евангелие", "храм", "тишина", "присутствие",
 }
 
+# Book similarity is a different question from concept co-occurrence. Verbs can
+# be useful in the concept graph, but book clusters labeled by verbs read as
+# noise. Books therefore use a stricter nominal feature space: nouns, the
+# theological KEEP_OVERRIDE terms, and a short list of adjectival concepts that
+# behave as named themes in the corpus.
+BOOK_FEATURE_ADJ_LEMMAS = {
+    "божественный",
+    "внешний",
+    "великий",
+    "внутренний",
+    "единый",
+    "живой",
+    "искусственный",
+    "небесный",
+    "новый",
+    "русский",
+    "святой",
+    "чистый",
+}
+
+# Terms that remain useful for vector scoring but make weak cluster titles.
+BOOK_LABEL_STOP_LEMMAS = {
+    "аспект",
+    "анализ",
+    "возможность",
+    "вопрос",
+    "действие",
+    "задача",
+    "идея",
+    "момент",
+    "необходимость",
+    "ответ",
+    "ощущение",
+    "пользователь",
+    "потребность",
+    "процесс",
+    "реакция",
+    "сбой",
+    "ситуация",
+    "способность",
+    "страница",
+    "строка",
+    "уровень",
+    "модель",
+}
+
+
+@dataclass(frozen=True)
+class BookCommunityLabelRule:
+    required_terms: frozenset[str]
+    label: str
+
+
+BOOK_COMMUNITY_LABEL_RULES = (
+    BookCommunityLabelRule(frozenset({"уравнение", "резонанс"}), "Математика, резонанс и осознание"),
+    BookCommunityLabelRule(frozenset({"апокалипсис", "зверь"}), "Апокалипсис, власть и народы"),
+    BookCommunityLabelRule(frozenset({"деньга", "дьявол"}), "Мир-система, власть и апокалипсис"),
+    BookCommunityLabelRule(frozenset({"деньга", "сатана"}), "Мир-система, власть и апокалипсис"),
+    BookCommunityLabelRule(frozenset({"психика", "субъект"}), "Психология, эго и внутренняя практика"),
+    BookCommunityLabelRule(frozenset({"эмоция", "переживание"}), "Психология, эго и внутренняя практика"),
+    BookCommunityLabelRule(frozenset({"женщина", "колодец"}), "Евангельские образы и земля"),
+    BookCommunityLabelRule(frozenset({"молитва", "прозрачность"}), "Молитва, слово и присутствие"),
+    BookCommunityLabelRule(frozenset({"исчезновение", "ступень"}), "Исчезающее Я, молитва и чистый свет"),
+)
+
 # Allowed POS tags from pymorphy3 (OpenCorpora set).
 # NOUN — nouns (главный материал).
 # VERB / INFN — verbs (we accept content verbs, then strip the curated list
@@ -311,6 +377,66 @@ def is_content_token(lemma: str, pos: str) -> bool:
     # but we still want them in. Must be > 2 chars (already filtered) and not
     # one of the HTML attribute fragments we explicitly blacklist.
     return bool(not pos and re2.match(r"^[a-zA-Z]+$", lemma))
+
+
+def is_book_feature_lemma(lemma: str, pos: str) -> bool:
+    """Return whether a lemma should participate in book-level similarity."""
+    if lemma in KEEP_OVERRIDE:
+        return True
+    if pos == "NOUN":
+        return True
+    return pos in {"ADJF", "ADJS"} and lemma in BOOK_FEATURE_ADJ_LEMMAS
+
+
+def concept_label(lemma: str) -> str:
+    """Display label for a concept lemma."""
+    return lemma if lemma.isupper() else lemma.capitalize()
+
+
+def concept_ref(
+    lemma: str,
+    *,
+    count: int | None = None,
+    score: float | None = None,
+    coverage: float | None = None,
+    weight: float | None = None,
+) -> dict[str, Any]:
+    """Public concept reference shape reused by book nodes, communities, and edges."""
+    out: dict[str, Any] = {
+        "concept_id": lemma,
+        "label": concept_label(lemma),
+        "lemma": lemma,
+    }
+    if count is not None:
+        out["count"] = int(count)
+    if score is not None:
+        out["score"] = round(float(score), 4)
+    if coverage is not None:
+        out["coverage"] = round(float(coverage), 4)
+    if weight is not None:
+        out["weight"] = round(float(weight), 6)
+    return out
+
+
+def book_community_label(label_terms: list[dict[str, Any]]) -> str:
+    """Build a readable, evidence-backed label from discriminative cluster terms."""
+    lemmas = {str(term.get("lemma", "")) for term in label_terms[:16]}
+    for rule in BOOK_COMMUNITY_LABEL_RULES:
+        if rule.required_terms <= lemmas:
+            return rule.label
+
+    picked = [
+        str(term.get("label", "")).strip()
+        for term in label_terms
+        if str(term.get("label", "")).strip()
+    ][:3]
+    if not picked:
+        return "Книжный кластер"
+    if len(picked) == 1:
+        return picked[0]
+    if len(picked) == 2:
+        return f"{picked[0]} и {picked[1].lower()}"
+    return f"{picked[0]}, {picked[1].lower()} и {picked[2].lower()}"
 
 
 # ---------------------------------------------------------------------------
@@ -459,6 +585,7 @@ class CorpusBundle:
     docs: list[Doc]
     doc_streams: list[tuple[Doc, list[str]]]
     book_lemma_counts: dict[str, Counter]
+    lemma_pos: dict[str, str]
     global_freq: Counter
     total_tokens_raw: int
     total_tokens_kept: int
@@ -472,6 +599,7 @@ def process_corpus(log: LogFn) -> CorpusBundle:
 
     doc_streams: list[tuple[Doc, list[str]]] = []
     book_lemma_counts: dict[str, Counter] = defaultdict(Counter)
+    lemma_pos: dict[str, str] = {}
     global_freq: Counter = Counter()
     total_tokens_raw = 0
     total_tokens_kept = 0
@@ -490,6 +618,7 @@ def process_corpus(log: LogFn) -> CorpusBundle:
                 lemma, pos = lp
                 if not is_content_token(lemma, pos):
                     continue
+                lemma_pos.setdefault(lemma, pos)
                 sent_tokens.append(lemma)
                 global_freq[lemma] += 1
                 if d.kind == "book":
@@ -508,6 +637,7 @@ def process_corpus(log: LogFn) -> CorpusBundle:
         docs=docs,
         doc_streams=doc_streams,
         book_lemma_counts=book_lemma_counts,
+        lemma_pos=lemma_pos,
         global_freq=global_freq,
         total_tokens_raw=total_tokens_raw,
         total_tokens_kept=total_tokens_kept,
@@ -811,6 +941,9 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
         difference between "every book shares 'свет' so everything is connected
         to everything" and visible thematic clusters. Without IDF damping the
         graph collapses to a single ball.
+      - Nominal feature space + per-book count floor: verbs, helper words, and
+        one-off rare mentions in long books are the failure mode behind opaque
+        book clusters. They stay out of the book similarity vectors.
       - Jaccard on top-K concepts is simpler but throws away the magnitude
         signal: a book that mentions 'Светозар' 600 times shares the concept
         with one that mentions it 12 times under the same weight. Cosine
@@ -821,6 +954,7 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
     """
     docs = bundle.docs
     book_lemma_counts = bundle.book_lemma_counts
+    lemma_pos = bundle.lemma_pos
     global_freq = bundle.global_freq
 
     books = [d for d in docs if d.kind == "book" and d.slug in book_lemma_counts]
@@ -835,7 +969,10 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
     concept_doc_freq: Counter = Counter()
     for b in books:
         for lemma in book_lemma_counts[b.slug]:
-            if book_lemma_counts[b.slug][lemma] >= 2:
+            if (
+                book_lemma_counts[b.slug][lemma] >= 2
+                and is_book_feature_lemma(lemma, lemma_pos.get(lemma, ""))
+            ):
                 concept_doc_freq[lemma] += 1
     # Keep concepts present in >= 2 books AND with raw corpus freq >= the
     # same min-freq as the concept mode (so we share the same vocabulary as
@@ -849,9 +986,9 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
         lemma for lemma, df in concept_doc_freq.items()
         if df >= 2 and df <= max_df and global_freq.get(lemma, 0) >= config.min_freq
     ]
-    vocab_idx = {lemma: i for i, lemma in enumerate(vocab)}
+    vocab_set = set(vocab)
     log(f"[books]  vocab size = {len(vocab)} concepts "
-        f"(≥2 books, ≤{max_df} books, ≥{config.min_freq} corpus freq)")
+        f"(nominal features, ≥2 books, ≤{max_df} books, ≥{config.min_freq} corpus freq)")
 
     # IDF for each vocab term — natural log smoothed.
     N = len(books)
@@ -870,7 +1007,7 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
         book_tokens[b.slug] = total
         vec: dict[str, float] = {}
         for lemma, c in counts.items():
-            if lemma not in vocab_idx:
+            if lemma not in vocab_set or c < 2:
                 continue
             # sublinear TF (log) softens the long-book advantage further
             tf = 1.0 + math.log(c)
@@ -983,32 +1120,52 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
     for n in list(partition):
         partition[n] = remap[partition[n]]
 
-    # Label each community by its most-central book's title (short form).
-    # If a tag dominates within the community we use that as a subtitle.
+    # Label each community by discriminative concepts, not by an arbitrary
+    # central book title. This answers the reader's "why are these together?"
+    # question directly: the cluster label and the exposed `top_concepts` come
+    # from the same evidence used by the graph.
     book_by_slug = {b.slug: b for b in books}
 
-    def short_title(t: str) -> str:
-        # First clause before colon/period/em-dash, then a generous length cap.
-        # Truncating "Хрис...та" (saving 2 chars by spending 1 ellipsis) reads
-        # broken — only truncate when there's a real reason, and at a word
-        # boundary so the cut is legible.
-        t = t.split(":")[0].split(" — ")[0].split(".")[0].strip()
-        MAX_LEN = 48
-        if len(t) <= MAX_LEN:
-            return t
-        # Find a word boundary before MAX_LEN; if none found in a reasonable
-        # range, take the hard cut and accept it.
-        cut = t.rfind(" ", 0, MAX_LEN)
-        if cut < MAX_LEN - 16:  # boundary too far back → hard-cut
-            cut = MAX_LEN
-        return t[:cut].rstrip(" -—:,") + "…"
+    def community_concepts_for(
+        group: list[str],
+        *,
+        k: int,
+        suppress_title_noise: bool,
+    ) -> list[dict[str, Any]]:
+        scores: dict[str, float] = defaultdict(float)
+        counts: Counter = Counter()
+        coverage_count: Counter = Counter()
+        for slug in group:
+            for lemma, weight in book_vec[slug].items():
+                if suppress_title_noise and lemma in BOOK_LABEL_STOP_LEMMAS:
+                    continue
+                scores[lemma] += weight
+                counts[lemma] += book_lemma_counts[slug].get(lemma, 0)
+                coverage_count[lemma] += 1
+
+        min_coverage = 2 if len(group) > 3 else 1
+        ranked: list[tuple[str, int, float, float]] = []
+        for lemma, score in scores.items():
+            if coverage_count[lemma] < min_coverage:
+                continue
+            coverage = coverage_count[lemma] / len(group)
+            ranked.append((lemma, counts[lemma], score * math.sqrt(coverage) * idf.get(lemma, 1.0), coverage))
+
+        ranked.sort(key=lambda item: item[2], reverse=True)
+        return [
+            concept_ref(lemma, count=count, score=score, coverage=coverage)
+            for lemma, count, score, coverage in ranked[:k]
+        ]
 
     comm_label: dict[int, str] = {}
     comm_size: dict[int, int] = {}
+    comm_top_concepts: dict[int, list[dict[str, Any]]] = {}
     for cid, group in enumerate(sorted_comms):
-        best = max(group, key=lambda s: pagerank.get(s, 0))
-        b = book_by_slug.get(best)
-        comm_label[cid] = short_title(b.title) if b else best
+        label_terms = community_concepts_for(group, k=16, suppress_title_noise=True)
+        if not label_terms:
+            label_terms = community_concepts_for(group, k=16, suppress_title_noise=False)
+        comm_label[cid] = book_community_label(label_terms)
+        comm_top_concepts[cid] = label_terms[:8]
         comm_size[cid] = len(group)
 
     # Top concepts per book — count * idf so universal lemmas don't dominate.
@@ -1029,23 +1186,31 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
                 continue
             scored.append((lemma, c, c * full_idf[lemma]))
         scored.sort(key=lambda x: x[2], reverse=True)
+        # The stable concept key (= lemma), so the build join can substitute the
+        # EN label by `concept:<concept_id>` when an overlay entry exists.
+        # Missing optional evidence remains visible with an untranslated marker.
+        return [concept_ref(lemma, count=c, score=score) for lemma, c, score in scored[:k]]
+
+    def shared_concepts_for(a: str, b: str, k: int = 4) -> list[dict[str, Any]]:
+        common = set(book_vec.get(a, {})) & set(book_vec.get(b, {}))
+        scored: list[tuple[str, int, float]] = []
+        for lemma in common:
+            contribution = (
+                (book_vec[a][lemma] / book_norm[a])
+                * (book_vec[b][lemma] / book_norm[b])
+            )
+            count = min(book_lemma_counts[a].get(lemma, 0), book_lemma_counts[b].get(lemma, 0))
+            scored.append((lemma, count, contribution))
+        scored.sort(key=lambda x: x[2], reverse=True)
         return [
-            {
-                # The stable concept key (= lemma), so the build join can
-                # substitute the EN label by `concept:<concept_id>` exactly as
-                # it does for concept-graph nodes. Same vocabulary as the
-                # concepts graph; PAN021 covers both.
-                "concept_id": lemma,
-                "label": lemma.capitalize() if not lemma.isupper() else lemma,
-                "lemma": lemma,
-                "count": int(c),
-            }
-            for lemma, c, _ in scored[:k]
+            concept_ref(lemma, count=count, weight=contribution)
+            for lemma, count, contribution in scored[:k]
         ]
 
     # Top similar books for the side panel (top 5 neighbors by edge weight).
     # We attach these to each node so the panel can render them without a
-    # second pass over edges.
+    # second pass over edges. Each row carries the top shared concepts that
+    # contributed to that cosine, so "similar" is inspectable.
     top_similar: dict[str, list[dict]] = {}
     doc_by_slug = {d.slug: d for d in docs}
     book_titles = {b.slug: b.title for b in books}
@@ -1053,16 +1218,18 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
         neigh = []
         for other in G.neighbors(slug):
             w = G[slug][other]["weight"]
-            neigh.append((other, w))
-        neigh.sort(key=lambda x: x[1], reverse=True)
+            same_community = partition.get(other) == partition.get(slug)
+            neigh.append((other, w, same_community))
+        neigh.sort(key=lambda x: (x[2], x[1]), reverse=True)
         top_similar[slug] = [
             {
                 "slug": other,
                 "kind": "book",
                 "title": book_titles.get(other, other),
                 "weight": round(float(w), 4),
+                "shared_concepts": shared_concepts_for(slug, other),
             }
-            for other, w in neigh[:5]
+            for other, w, _same_community in neigh[:5]
         ]
 
     # Top similar content by semantic embedding (Qwen3 + mean-centering). Loaded
@@ -1156,6 +1323,7 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
             "label": comm_label[cid],
             "size": comm_size[cid],
             "color_index": cid % 12,
+            "top_concepts": comm_top_concepts.get(cid, []),
         })
 
     out_doc = {
@@ -1163,6 +1331,9 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
         "mode": "books",
         "params": {
             "edge_weight": "tfidf-cosine",
+            "feature_space": "nominal-concepts",
+            "cluster_labeling": "discriminative-concept-signature",
+            "top_similar_order": "same-community-then-cosine",
             "edges_per_node": config.books_edges_per_node,
             "min_cosine": config.books_min_cosine,
             "min_freq": config.min_freq,

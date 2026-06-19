@@ -1,4 +1,5 @@
 export const GRAPH_DOM_IDS = {
+  stageShell: "cs-stage",
   stage: "cs-graph",
   hulls: "cs-hulls",
   panel: "cs-panel",

@@ -107,6 +107,7 @@ function createLegendButton(community: GraphCommunity): HTMLButtonElement {
   button.type = "button";
   button.className = GRAPH_DOM_CLASSES.legendItem;
   button.dataset.com = String(community.id);
+  button.title = community.label;
   button.setAttribute("aria-pressed", "false");
 
   const swatch = document.createElement("span");

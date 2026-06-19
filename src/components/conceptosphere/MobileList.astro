@@ -153,6 +153,11 @@ const numberLocale = t.numberLocale;
           {com.label}
           <span class="cs-sz" aria-label={`${t.mobileGroupSizeAriaPrefix} ${rows.length}`}>{rows.length}</span>
         </h2>
+        {com.topConcepts.length > 0 && (
+          <p class="cs-group-concepts">
+            {com.topConcepts.slice(0, 6).map((concept) => concept.label).join(" · ")}
+          </p>
+        )}
         <ul>
           {rows.map((row) => (
             <li data-cs-row data-search={row.searchHay}>
@@ -278,6 +283,15 @@ const numberLocale = t.numberLocale;
     font-weight: 400;
     font-size: 20px;
     margin: 0 0 8px;
+  }
+  .cs-group-concepts {
+    margin: -2px 0 10px 18px;
+    color: var(--cs-ink-trace);
+    font-family: var(--mono);
+    font-size: 10px;
+    line-height: 1.45;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
   .cs-mobile-group h2 .cs-sw {
     width: 12px;

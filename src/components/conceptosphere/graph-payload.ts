@@ -4,6 +4,7 @@ interface PayloadCommunity {
   id: number;
   label: string;
   size: number;
+  top_concepts?: TopConceptRef[];
 }
 
 export interface PayloadNode {
@@ -29,6 +30,7 @@ export interface PayloadEdge {
   target: string;
   weight: number;
   npmi?: number;
+  shared_concepts?: TopConceptRef[];
 }
 
 export interface GraphPayload {
@@ -78,7 +80,8 @@ function isCommunity(value: unknown): value is PayloadCommunity {
   return isRecord(value)
     && isNumber(value.id)
     && typeof value.label === "string"
-    && isNumber(value.size);
+    && isNumber(value.size)
+    && optionalArray(value.top_concepts, isTopConcept);
 }
 
 function isNode(value: unknown): value is PayloadNode {
@@ -120,14 +123,20 @@ function isEdge(value: unknown): value is PayloadEdge {
     && typeof value.source === "string"
     && typeof value.target === "string"
     && isNumber(value.weight)
-    && optionalNumber(value.npmi);
+    && optionalNumber(value.npmi)
+    && optionalArray(value.shared_concepts, isTopConcept);
 }
 
-function isTopConcept(value: unknown): value is { label?: string; lemma?: string; count?: number } {
+function isTopConcept(value: unknown): value is TopConceptRef {
   return isRecord(value)
+    && optionalString(value.concept_id)
     && optionalString(value.label)
     && optionalString(value.lemma)
-    && optionalNumber(value.count);
+    && optionalNumber(value.count)
+    && optionalNumber(value.score)
+    && optionalNumber(value.coverage)
+    && optionalNumber(value.weight)
+    && optionalBoolean(value.untranslated);
 }
 
 function isTopBook(value: unknown): value is { slug: string; kind?: "book"; title: string; count?: number } {
@@ -143,7 +152,8 @@ function isSimilarRef(value: unknown): value is SimilarRef {
     && typeof value.slug === "string"
     && (value.kind === "book" || value.kind === "poem" || value.kind === "project")
     && typeof value.title === "string"
-    && optionalNumber(value.weight);
+    && optionalNumber(value.weight)
+    && optionalArray(value.shared_concepts, isTopConcept);
 }
 
 function optionalArray<T>(value: unknown, guard: (item: unknown) => item is T): boolean {
@@ -160,6 +170,10 @@ function optionalString(value: unknown): boolean {
 
 function optionalNumber(value: unknown): boolean {
   return value === undefined || isNumber(value);
+}
+
+function optionalBoolean(value: unknown): boolean {
+  return value === undefined || typeof value === "boolean";
 }
 
 function isNumber(value: unknown): value is number {
