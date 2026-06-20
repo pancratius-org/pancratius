@@ -26,13 +26,16 @@ const localizedBySlug = new Map(localized.map(p => [p.data.slug, p]));
 interface Row {
   landing:    ProjectLanding;
   hrefLocale: Locale;
-  isFallback: boolean;
 }
 
+// Link to this locale's landing when it exists, otherwise fall back to the
+// canonical default-locale route. (Both projects are authored in every locale
+// today, so the fallback is a guard, not a visible state.)
 const rows: Row[] = canonical.map(base => {
   const own = localizedBySlug.get(base.data.slug);
-  if (own) return { landing: own, hrefLocale: locale, isFallback: false };
-  return { landing: base, hrefLocale: DEFAULT_LOCALE, isFallback: true };
+  return own
+    ? { landing: own, hrefLocale: locale }
+    : { landing: base, hrefLocale: DEFAULT_LOCALE };
 });
 ---
 <Base {locale} {seo}>
@@ -44,17 +47,14 @@ const rows: Row[] = canonical.map(base => {
     </div>
 
     <div class="projects-list">
-      {rows.map(({ landing, hrefLocale, isFallback }) => (
+      {rows.map(({ landing, hrefLocale }) => (
         <a
           class="project-row"
           href={projectUrl(landing.data.slug, hrefLocale)}
         >
           <span class="project-row__num">{String(landing.data.number).padStart(2, "0")}</span>
           <div class="project-row__body">
-            <h2 class="project-row__title">
-              {landing.data.title}
-              {isFallback && <span class="project-row__fallback">{copy.fallbackLabel}</span>}
-            </h2>
+            <h2 class="project-row__title">{landing.data.title}</h2>
             {landing.data.tagline && (
               <p class="project-row__tagline">{landing.data.tagline}</p>
             )}
@@ -152,20 +152,6 @@ const rows: Row[] = canonical.map(base => {
     color: var(--ink-soft);
     margin: 0 0 1.25rem;
     max-width: var(--col-page);
-  }
-  .project-row__fallback {
-    display: inline-block;
-    vertical-align: middle;
-    margin-left: 0.65rem;
-    padding: 0.16rem 0.42rem;
-    border: 1px solid var(--rule);
-    color: var(--ink-mute);
-    font-family: var(--sans);
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    line-height: 1.2;
-    text-transform: uppercase;
   }
   .project-row__cta {
     display: inline-block;

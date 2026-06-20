@@ -16,21 +16,6 @@ export function formatDuration(iso: string): string {
 }
 
 /**
- * Body-density layout heuristic: `blog` for substantive commentary, `compact`
- * for empty/short bodies. Caller passes the rendered headings count and the
- * raw body text length so this stays pure (no `astro:content` render).
- */
-export function layoutFor(
-  headingsCount: number,
-  bodyText: string,
-  thresholdChars = 600,
-): "compact" | "blog" {
-  if (headingsCount > 0) return "blog";
-  const cleaned = bodyText.replace(/<!--[\s\S]*?-->/g, "").replace(/[\[\]#*_>`()-]/g, "").trim();
-  return cleaned.length >= thresholdChars ? "blog" : "compact";
-}
-
-/**
  * Localize a YouTube embed URL: set the player UI language (`hl`); when
  * `forcedCaptionLanguage` is set, also prefer that caption track and force
  * captions on (`cc_lang_pref` + `cc_load_policy`). The caller passes a caption

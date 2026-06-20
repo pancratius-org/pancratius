@@ -7,6 +7,7 @@ import Base from "@/layouts/Base.astro";
 import PageShell from "@/components/PageShell.astro";
 import Prose from "@/components/Prose.astro";
 import TableOfContents from "@/components/TableOfContents.astro";
+import SvetozarBooks from "@/components/SvetozarBooks.astro";
 
 import type { Locale } from "@/lib/i18n";
 import { LOCALES, pageUrl } from "@/lib/i18n";
@@ -37,5 +38,6 @@ const useToc = hasToc(headings);
   <PageShell {...pageShellProps(page, useToc ? "static--with-toc" : undefined)} width="text">
     {useToc && <TableOfContents {headings} {locale} />}
     <Prose class="prose--svet"><Content /></Prose>
+    <SvetozarBooks {locale} />
   </PageShell>
 </Base>

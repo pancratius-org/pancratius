@@ -59,13 +59,13 @@ export const booksIndexCopy = {
   ru: {
     eyebrow: "Обсерватория Света",
     headingLabel: (total) => plRu(total, RU_PLURALS.book),
-    sub: (total) => `Полное собрание — от 01 до ${String(total).padStart(2, "0")}. По числу, по году, по метке. Каждая страница — отдельная книга. Читайте, скачивайте, делитесь.`,
+    sub: () => "Каждая книга — своя дверь, но за всеми — одна комната. Начните с любой.",
   },
   en: {
     eyebrow: "Observatory of Light",
-    headingLabel: () => "books in English",
-    sub: (total, available) => `Of ${total} books in the library, ${available} have been translated into English.`,
-    fullCatalogLink: "See the full Russian catalogue. Read, download, and share.",
+    headingLabel: () => "books",
+    sub: () => "Each book is its own door into the same room. Begin with any.",
+    fullCatalogLink: "See the full Russian catalogue.",
   },
 } satisfies Record<Locale, BooksIndexCopy>;
 
@@ -154,16 +154,19 @@ export const bookPageCopy = {
 export interface PoemPageCopy {
   back: string;
   meta: string;
+  coverAlt(title: string): string;
 }
 
 export const poemPageCopy = {
   ru: {
     back: "← к стихам",
     meta: "Стихотворение",
+    coverAlt: (title) => `Иллюстрация к стихотворению «${title}»`,
   },
   en: {
     back: "← back to poetry",
     meta: "Poem",
+    coverAlt: (title) => `Illustration for the poem “${title}”`,
   },
 } satisfies Record<Locale, PoemPageCopy>;
 

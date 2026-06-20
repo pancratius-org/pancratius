@@ -3,7 +3,6 @@ import { render } from "astro:content";
 
 import Base from "@/layouts/Base.astro";
 import RichText from "@/components/RichText.astro";
-import TableOfContents from "@/components/TableOfContents.astro";
 import VideoEmbed from "@/components/VideoEmbed.astro";
 import Share from "@/components/Share.astro";
 import BackLink from "@/components/BackLink.astro";
@@ -13,15 +12,13 @@ import Pager from "@/components/Pager.astro";
 import type { Locale } from "@/lib/i18n";
 import { kindIndexUrl, routedUrl } from "@/lib/i18n";
 import { neighbors } from "@/lib/neighbors";
-import { hasToc } from "@/lib/toc";
-import { videoPageCopy } from "@/lib/i18n/copy";
+import { videoPageCopy, formatMessageDate } from "@/lib/i18n/copy";
 import { seoForVideo } from "@/lib/seo";
 import {
   getAllVideoPairs,
   channelForEntry,
   entryForAuthoredVideoLocale,
   formatDuration,
-  layoutForEntry,
   localizedVideoPairs,
   videoCoverAbsoluteUrl,
   videoTags,
@@ -41,15 +38,14 @@ if (!entry) {
 }
 
 const copy = videoPageCopy[locale];
-const { Content, headings } = await render(entry);
+const { Content } = await render(entry);
 const coverUrl = videoCoverAbsoluteUrl(pair, locale);
 const seo = seoForVideo({ pair, locale, coverUrl });
 const tags = videoTags(entry);
-const layout = await layoutForEntry(entry);
-// Commentary may be shorter than the blog-layout threshold yet still real; the
-// compact layout must show it too, so no body is ever hidden.
+// One page for every video. The written commentary is optional; only its
+// presence adds a section — it never changes the chrome above it, so a
+// catalogue entry and a full essay open identically.
 const hasBody = (entry.body ?? "").trim().length > 0;
-const useToc = layout === "blog" && hasToc(headings);
 const backHref = kindIndexUrl("video", locale);
 
 const allPairs = await getAllVideoPairs();
@@ -59,96 +55,64 @@ const { prev, next } = neighbors(pagerPairs, pair.number);
 const pad = (n: number) => String(n).padStart(2, "0");
 const number = pad(pair.number);
 const duration = formatDuration(entry.data.duration);
+const published = formatMessageDate(locale, entry.data.published_at, { withYear: true });
 const watchLinks = videoWatchLinks(entry);
 const channel = await channelForEntry(entry);
 ---
 <Base {locale} {seo}>
-  <article class:list={["l-canvas", "l-page-block", "video-page", `video-page--${layout}`]}>
+  <article class="l-canvas l-canvas--page l-page-block video-page">
     <BackLink href={backHref} label={copy.back(pagerPairs.length)} />
 
-    {layout === "compact" ? (
-      <section
-        class="vp-compact"
-        data-pagefind-body
-        data-pagefind-meta={`title:${entry.data.title}`}
-      >
-        <p class="video-page__meta kicker">{copy.meta}</p>
-        <h1 class="vp-compact__title" id="vp-title">{entry.data.title}</h1>
-        <div class="vp-compact__desc"><RichText text={entry.data.description} collapse={{ more: copy.showMore, less: copy.showLess }} /></div>
-        <div class="vp-compact__embed">
-          <VideoEmbed {entry} {pair} {locale} loading="eager" />
+    <header class="video-page__head">
+      <p class="video-page__meta kicker">
+        {copy.meta}
+        <span class="video-page__num">№ {number}</span>
+        <time datetime={entry.data.published_at}>· {published}</time>
+      </p>
+      <div data-pagefind-body data-pagefind-meta={`title:${entry.data.title}`}>
+        <h1 class="video-page__title">{entry.data.title}</h1>
+        <div class="video-page__lede">
+          <RichText text={entry.data.description} collapse={{ more: copy.showMore, less: copy.showLess }} />
         </div>
-        <dl class="vp-compact__meta">
-          <div><dt>{copy.publishedLabel}</dt><dd>{entry.data.published_at}</dd></div>
-          <div><dt>{copy.durationLabel}</dt><dd>{duration}</dd></div>
-          {channel && <div><dt>{copy.channelLabel}</dt><dd><a href={channel.data.url} rel="noopener" target="_blank">{channel.data.title[locale]}</a></dd></div>}
-        </dl>
-        <p class="vp-compact__watch">
-          <a href={watchLinks.primary.url} rel="noopener" target="_blank">
-            {copy.watchOn(copy.platformLabel(watchLinks.primary.platform))} →
-          </a>
-          {watchLinks.mirrors.length > 0 && (
-            <span class="vp-compact__mirrors">
-              <span class="vp-compact__mirrors-label">{copy.mirrorsLabel}</span>
-              {watchLinks.mirrors.map((m, i) => (
-                <>
-                  {i > 0 && " · "}
-                  <a href={m.url} rel="noopener" target="_blank">{copy.platformLabel(m.platform)}</a>
-                </>
-              ))}
-            </span>
-          )}
-        </p>
-        <TagRow {tags} />
-        <p class="vp-compact__actions"><Share {locale} /></p>
-        {hasBody && (
-          <div class="prose prose--note vp-compact__body"><Content /></div>
+      </div>
+    </header>
+
+    <div class="video-page__embed">
+      <VideoEmbed {entry} {pair} {locale} loading="eager" badge={duration} />
+    </div>
+
+    <div class="video-page__bar">
+      <p class="video-page__watch">
+        <a href={watchLinks.primary.url} rel="noopener" target="_blank">
+          {copy.watchOn(copy.platformLabel(watchLinks.primary.platform))} →
+        </a>
+        {watchLinks.mirrors.length > 0 && (
+          <span class="video-page__mirrors">
+            <span class="video-page__mirrors-label">{copy.mirrorsLabel}</span>
+            {watchLinks.mirrors.map((m, i) => (
+              <>
+                {i > 0 && " · "}
+                <a href={m.url} rel="noopener" target="_blank">{copy.platformLabel(m.platform)}</a>
+              </>
+            ))}
+          </span>
         )}
-      </section>
-    ) : (
-      <Fragment>
-        <header class="video-page__masthead">
-          <p class="video-page__meta kicker">{copy.meta}</p>
-          <div class="video-page__body">
-            <div class="video-page__num" aria-hidden="true">{number}</div>
-            <h1 class="video-page__title" id="vp-title">{entry.data.title}</h1>
-            <div class="video-page__description"><RichText text={entry.data.description} collapse={{ more: copy.showMore, less: copy.showLess }} /></div>
-            <TagRow {tags} />
-            <p class="video-page__watch">
-              <a href={watchLinks.primary.url} rel="noopener" target="_blank">
-                {copy.watchOn(copy.platformLabel(watchLinks.primary.platform))} →
-              </a>
-              {watchLinks.mirrors.length > 0 && (
-                <span class="video-page__mirrors">
-                  <span class="video-page__mirrors-label">{copy.mirrorsLabel}</span>
-                  {watchLinks.mirrors.map((m, i) => (
-                    <>
-                      {i > 0 && " · "}
-                      <a href={m.url} rel="noopener" target="_blank">{copy.platformLabel(m.platform)}</a>
-                    </>
-                  ))}
-                </span>
-              )}
-            </p>
-            <p class="video-page__actions"><Share {locale} /></p>
-          </div>
-        </header>
+      </p>
+      {channel && (
+        <p class="video-page__channel">
+          <span class="video-page__channel-label">{copy.channelLabel}</span>
+          <a href={channel.data.url} rel="noopener" target="_blank">{channel.data.title[locale]}</a>
+        </p>
+      )}
+      <Share {locale} />
+    </div>
 
-        <div class="video-page__embed-wrap">
-          <VideoEmbed {entry} {pair} {locale} loading="eager" />
-        </div>
+    <TagRow {tags} />
 
-        <div class:list={["video-page__layout", { "video-page__layout--toc": useToc }]}>
-          {useToc && <TableOfContents {headings} {locale} />}
-          <div
-            class="prose prose--note"
-            data-pagefind-body
-            data-pagefind-meta={`title:${entry.data.title}`}
-          >
-            <Content />
-          </div>
-        </div>
-      </Fragment>
+    {hasBody && (
+      <div class="prose prose--note video-page__body" data-pagefind-body>
+        <Content />
+      </div>
     )}
 
     <Pager
@@ -160,178 +124,89 @@ const channel = await channelForEntry(entry);
 </Base>
 
 <style>
-  /* Blog video is ONE reading column: masthead, embed, and commentary share a
-     single measure, so the page has one boundary instead of the old full-bleed
-     embed vs. narrow text mismatch. A contents rail (rare) widens it. */
-  .video-page--compact,
-  .video-page--blog { --l-canvas-size: var(--col-page); }
-  .video-page--blog:has(.video-page__layout--toc) { --l-canvas-size: var(--col-wide); }
-
-  .video-page__meta { margin: 0; }
-
-  /* ─── COMPACT layout ────────────────────────────────────────────────── */
-  .vp-compact {
-    display: flex;
-    flex-direction: column;
-    gap: 1.4rem;
-  }
-  .vp-compact__title {
-    font-family: var(--serif);
-    font-weight: 500;
-    font-size: clamp(2rem, 4.2vw, 3rem);
-    line-height: 1.06;
-    letter-spacing: -0.018em;
-    margin: 0;
-    text-wrap: balance;
-  }
-  .vp-compact__desc {
-    margin: 0;
-    color: var(--ink-soft);
-    font-family: var(--serif);
-    font-size: clamp(1rem, 1.5vw, 1.1rem);
-    line-height: 1.6;
-  }
-  .vp-compact__embed { margin: 0.6rem 0; }
-  .vp-compact__body { margin-top: 1.4rem; }
-  .vp-compact__meta {
-    margin: 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 0.6rem 1.2rem;
-    font-family: var(--sans);
-    font-size: 12.5px;
-    color: var(--ink-soft);
-  }
-  .vp-compact__meta dt {
-    color: var(--ink-mute);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-size: 10.5px;
-    margin: 0;
-  }
-  .vp-compact__meta dd { margin: 2px 0 0; color: var(--ink-soft); }
-  .vp-compact__meta :where(dd) a { color: var(--ink-soft); text-decoration: underline; text-decoration-color: var(--rule-2); }
-  .vp-compact__meta :where(dd) a:where(:hover) { color: var(--accent); }
-  .vp-compact__watch {
-    margin: 0;
-    font-family: var(--sans);
-    font-size: 13px;
+  /* One reading column for every video — no body-density layout fork. */
+  .video-page__head { margin: 1.6rem 0 0; }
+  .video-page__meta {
+    margin: 0 0 0.9rem;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5em;
+    gap: 0.55rem;
     align-items: baseline;
   }
-  .vp-compact__watch > a {
-    color: var(--ink);
-    text-decoration: underline;
-    text-decoration-color: var(--rule-2);
-  }
-  .vp-compact__watch > a:where(:hover) { color: var(--accent); }
-  .vp-compact__mirrors-label {
-    color: var(--ink-mute);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-size: 11px;
-    margin-right: 0.3em;
-  }
-  .vp-compact__mirrors a {
-    color: var(--ink-soft);
-    text-decoration: underline;
-    text-decoration-color: var(--rule-2);
-  }
-
-  /* ─── BLOG layout ───────────────────────────────────────────────────── */
-  /* The cover is the embed below — the masthead is the written intro only, so it
-     never doubles the poster the reader is about to see in the player. */
-  .video-page__masthead {
-    margin-bottom: 2rem;
-    padding-bottom: 2.25rem;
-    border-bottom: 1px solid var(--rule);
-  }
-  .video-page__masthead .video-page__meta { margin-bottom: 1.4rem; }
-
   .video-page__num {
-    font-family: var(--serif);
+    color: var(--accent);
     font-style: italic;
     font-variant-numeric: oldstyle-nums proportional-nums;
-    font-size: clamp(3.4rem, 6vw, 5.2rem);
-    color: var(--accent);
-    font-weight: 400;
-    line-height: 0.92;
-    margin: 0 0 0.4rem;
+    text-transform: none;
+    letter-spacing: 0.04em;
+  }
+  .video-page__meta time {
+    text-transform: none;
+    letter-spacing: 0.02em;
+    color: var(--ink-mute);
+    font-variant-numeric: oldstyle-nums proportional-nums;
   }
   .video-page__title {
     font-family: var(--serif);
     font-weight: 500;
-    font-size: clamp(2rem, 4.4vw, 3.2rem);
+    font-size: clamp(2rem, 4.4vw, 3.1rem);
     line-height: 1.05;
     letter-spacing: -0.018em;
-    margin: 0 0 0.9rem;
+    margin: 0 0 1rem;
     text-wrap: balance;
   }
-  .video-page__description {
-    margin: 0 0 1.1rem;
+  .video-page__lede {
     color: var(--ink-soft);
     font-family: var(--serif);
-    font-size: clamp(1rem, 1.55vw, 1.1rem);
+    font-size: clamp(1.05rem, 1.6vw, 1.18rem);
     line-height: 1.6;
   }
+  .video-page__lede :global(p) { margin: 0 0 0.7em; }
+  .video-page__lede :global(p:last-child) { margin-bottom: 0; }
 
-  .video-page__watch {
-    margin: 0.9rem 0 0;
+  .video-page__embed { margin: 1.8rem 0 1.3rem; }
+
+  /* Meta bar under the embed: where to watch, the channel, and share. */
+  .video-page__bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1.6rem;
+    margin: 0 0 1.4rem;
     font-family: var(--sans);
     font-size: 12.5px;
     color: var(--ink-soft);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5em;
-    align-items: baseline;
   }
+  .video-page__watch,
+  .video-page__channel { margin: 0; }
   .video-page__watch > a {
     color: var(--ink);
     text-decoration: underline;
     text-decoration-color: var(--rule-2);
+    text-underline-offset: 3px;
   }
   .video-page__watch > a:where(:hover) { color: var(--accent); }
-  .video-page__mirrors-label {
+  .video-page__mirrors { margin-left: 0.6em; }
+  .video-page__mirrors-label,
+  .video-page__channel-label {
     color: var(--ink-mute);
     letter-spacing: 0.08em;
     text-transform: uppercase;
     font-size: 11px;
-    margin-right: 0.3em;
+    margin-right: 0.35em;
   }
-  .video-page__mirrors a {
+  .video-page__mirrors a,
+  .video-page__channel a {
     color: var(--ink-soft);
     text-decoration: underline;
     text-decoration-color: var(--rule-2);
   }
+  .video-page__mirrors a:where(:hover),
+  .video-page__channel a:where(:hover) { color: var(--accent); }
 
-  .video-page__actions { margin: 1.1rem 0 0; }
-  .vp-compact__actions { margin: 0; }
-
-  .video-page__embed-wrap {
-    margin: 2rem 0;
+  .video-page__body {
+    margin-top: 1.8rem;
+    padding-top: 1.8rem;
+    border-top: 1px solid var(--rule);
   }
-
-  .video-page__layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 2rem;
-  }
-  /* The commentary fills the single column; with a contents rail it sits in
-     the body track instead. (Prose owns no width — the column is the cap.) */
-  @media (min-width: 1100px) {
-    .video-page--blog .video-page__layout--toc {
-      grid-template-columns: 220px minmax(0, 1fr);
-      gap: 3rem;
-      align-items: start;
-    }
-    /* Rail case: align the masthead + embed with the body column, not the rail. */
-    .video-page--blog:has(.video-page__layout--toc) .video-page__masthead,
-    .video-page--blog:has(.video-page__layout--toc) .video-page__embed-wrap {
-      margin-left: calc(220px + 3rem);
-    }
-  }
-
 </style>

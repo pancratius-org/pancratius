@@ -291,10 +291,6 @@ const pages = defineCollection({
 // future). The scanner — `uv run pancratius video sync` — only seeds
 // frontmatter and downloads the source thumbnail as `cover.<lang>.jpg`;
 // commentary in the body is editorial and never touched by re-runs.
-//
-// Compact-vs-blog layout is derived from body density by default
-// (`src/lib/videos.ts:layoutForEntry`); an explicit `layout: compact | blog`
-// overrides.
 // ─────────────────────────────────────────────────────────────────────
 
 // ISO 8601 duration as YouTube reports it (`PT8M42S`, `PT1H3M`, `PT45S`, …).
@@ -369,10 +365,6 @@ const videos = defineCollection({
     playlists: z.array(videoPlaylist).optional(),
     // Optional cross-link to a book by editorial number (e.g. reading-of-X).
     related_book: z.number().int().positive().optional(),
-    // Layout override. When absent, `src/lib/videos.ts:layoutForEntry` derives
-    // it from body density: `compact` for empty/short bodies, `blog` for
-    // substantive commentary.
-    layout: z.enum(["compact", "blog"]).optional(),
     translation,
     cross_refs: z.array(crossRefEntry).optional(),
   }),

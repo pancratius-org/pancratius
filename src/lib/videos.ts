@@ -9,12 +9,12 @@
 // Route files import from here; they never touch `astro:content` directly so
 // the (kind, number) invariant and cover-resolution policy stay in one place.
 
-import { getCollection, render, type CollectionEntry } from "astro:content";
+import { getCollection, type CollectionEntry } from "astro:content";
 
 import { DEFAULT_LOCALE, LOCALE_META, LOCALES, type Locale } from "./i18n";
 import { parseCoverPath, type CoverRef } from "./cover-path";
 import { originFor } from "./origins";
-import { layoutFor, localizedEmbedUrl } from "./video-format";
+import { localizedEmbedUrl } from "./video-format";
 
 // Re-export the pure formatter so callers `import { formatDuration } from "@/lib/videos"`.
 export { formatDuration } from "./video-format";
@@ -275,27 +275,6 @@ export function videoCoverAbsoluteUrl(pair: VideoPair, locale: Locale): string |
   const rel = videoCoverAssetUrl(pair, locale);
   if (rel === null) return null;
   return new URL(rel, originFor(locale)).toString();
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// Layout decision — compact vs blog.
-//
-// Default: derive from body density. `compact` for empty / sparse bodies
-// (just an embed + frontmatter meta); `blog` for substantive commentary.
-// An explicit `layout:` in frontmatter overrides.
-//
-// Heuristic: `blog` iff the rendered body has at least one heading OR ≥600
-// characters of raw text. The threshold matches "this is a real post" rather
-// than "the editor jotted one line." The numbers are tuned to the same
-// register as `<Prose>` `data-leadable` (~300 chars for a lead paragraph).
-// ─────────────────────────────────────────────────────────────────────
-
-export type VideoLayout = "compact" | "blog";
-
-export async function layoutForEntry(entry: VideoEntry): Promise<VideoLayout> {
-  if (entry.data.layout) return entry.data.layout;
-  const { headings } = await render(entry);
-  return layoutFor(headings.length, entry.body ?? "");
 }
 
 // ─────────────────────────────────────────────────────────────────────
