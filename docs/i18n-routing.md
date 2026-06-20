@@ -87,7 +87,7 @@ For every page:
 - `<link rel="canonical">` points at the page itself, on its locale's canonical origin. Origin is a function of the resource's **locale** (`src/lib/origins.ts`): RU → `pancratius.ru`, EN → `pancratius.org`, a new locale → the global `.org`. Independent of which mirror served the bytes.
 - `<link rel="alternate" hreflang="...">` for every authored translation, cross-origin (RU → `.ru`, EN → `.org`), plus `x-default` → the **EN** version when English is authored (the global face), else the default-locale (RU) version.
 - The canonical and hreflang links carry no extra attributes on the canonical, and the same-origin language switcher (`/ru/x ↔ /en/x`) is a separate, human-facing axis from the cross-origin hreflang map.
-- Localized Open Graph metadata (title, description). In v1, the work's `cover` field doubles as the OG image; per-work generated OG cards are a v2 upgrade.
+- Localized Open Graph + Twitter card metadata (title, description, image). The image is a pure visual: content uses its own cover/thumbnail; cover-less surfaces share a committed brand image; the conceptosphere uses a still of its graph. → [`og-images.md`](./og-images.md).
 - Book, poem, and project pages emit JSON-LD `CreativeWork` structured data with localized `name`, `description`, `url`, `image`, `inLanguage`, `author`, `license`, and `isPartOf`. Use `author.name: "Сергей Орехов"` and `author.alternateName: "Панкратиус"`. Keep this in a shared `src/lib/seo.ts` helper, not ad hoc per route.
 
 ### Sitemaps

@@ -1,9 +1,32 @@
 ---
+// The bare `/` has no content under prefix-all i18n, so it redirects to the
+// default-locale home. But it is also the most-shared URL — the naked domain — so it
+// carries the home's social card + title: scrapers read those, humans get the
+// instant redirect. Static output bakes the redirect as a meta-refresh (no adapter
+// → no real 301); `.org` still upgrades to a true 301 → /en/ at the edge.
+import HeadMeta from "@/components/HeadMeta.astro";
 import { DEFAULT_LOCALE, homeUrl } from "@/lib/i18n";
+import { seoForHome } from "@/lib/seo";
+import { getPairsByKind } from "@/lib/works";
 
-// The bare `/` has no content under prefix-all i18n; redirect to the
-// default-locale home. Static output bakes this as an instant `<meta refresh>`
-// (no adapter → no real 301); `.org` upgrades to a true 301 at the edge.
-// See docs/architecture.md (Apex redirect is host-decided).
-return Astro.redirect(homeUrl(DEFAULT_LOCALE), 301);
+const locale = DEFAULT_LOCALE;
+const target = homeUrl(locale);
+const [books, poems] = await Promise.all([getPairsByKind("book"), getPairsByKind("poem")]);
+const seo = seoForHome(locale, { books: books.length, poems: poems.length });
 ---
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="refresh" content={`0; url=${target}`} />
+    <HeadMeta {seo} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <p style="font-family: system-ui, sans-serif; padding: 2rem;">
+      Панкратиус — <a href={target}>{target}</a>
+    </p>
+    <script is:inline set:html={`location.replace(${JSON.stringify(target)})`}></script>
+  </body>
+</html>

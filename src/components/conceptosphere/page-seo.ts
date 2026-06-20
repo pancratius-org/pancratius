@@ -1,4 +1,5 @@
 import { LOCALES, LOCALE_META, localizePath, type Locale } from "@/lib/i18n";
+import { OG_CONCEPTOSPHERE_PATH, ogImageUrl } from "@/lib/og";
 import { absUrl, type SeoMeta } from "@/lib/seo";
 
 import { conceptosphereStrings } from "./strings.ts";
@@ -20,7 +21,8 @@ export function conceptosphereSeo(locale: Locale): SeoMeta {
     title: strings.seo.title,
     description: strings.seo.description,
     canonical,
-    ogImage: null,
+    ogImage: ogImageUrl(OG_CONCEPTOSPHERE_PATH, locale),
+    ogImageAlt: strings.seo.title,
     ogType: "website",
     alternates: fallback
       ? [...alternates, { hreflang: "x-default", href: fallback.href }]

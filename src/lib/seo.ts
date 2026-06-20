@@ -43,6 +43,7 @@ import {
   type MessagePair,
 } from "./messages";
 import { originFor } from "./origins";
+import { ogBrandPath, ogImageUrl } from "./og";
 
 const AUTHOR_NAME = "Сергей Орехов";
 const AUTHOR_ALIAS = "Панкратиус";
@@ -65,6 +66,8 @@ export interface SeoMeta {
   description: string;
   canonical:   string;
   ogImage:    string | null;
+  /** Human alt text for the social image; null when there is no image. */
+  ogImageAlt:  string | null;
   ogType:      "website" | "article";
   alternates:  AlternateLink[];
   jsonLd:      Record<string, unknown> | null;
@@ -153,7 +156,8 @@ export function seoForHome(locale: Locale, counts: CorpusCounts): SeoMeta {
     title:       homeTitle[locale],
     description: homeDescription(locale, counts),
     canonical:  absUrl(homeUrl(locale)),
-    ogImage:    null,
+    ogImage:    ogImageUrl(ogBrandPath(locale), locale),
+    ogImageAlt: siteLabel(locale),
     ogType:     "website",
     alternates: alternatesForHome(),
     jsonLd:     null,
@@ -227,7 +231,8 @@ export function seoForKindIndex(
     title:       titles[kind][locale],
     description: descriptions[kind][locale],
     canonical:   absUrl(kindIndexUrl(kind, locale)),
-    ogImage:     null,
+    ogImage:     ogImageUrl(ogBrandPath(locale), locale),
+    ogImageAlt:  siteLabel(locale),
     ogType:      "website",
     alternates:  alternatesForKindIndex(kind),
     jsonLd:      null,
@@ -242,7 +247,8 @@ export function seoForSearch(locale: Locale): SeoMeta {
     title: copy.title,
     description: clampDescription(copy.description),
     canonical: absUrl(localizePath("/search/", locale)),
-    ogImage: null,
+    ogImage: ogImageUrl(ogBrandPath(locale), locale),
+    ogImageAlt: siteLabel(locale),
     ogType: "website",
     alternates: alternatesForSearch(),
     jsonLd: null,
@@ -280,7 +286,10 @@ export function seoForWork(input: WorkSeoInput): SeoMeta {
     title,
     description,
     canonical,
-    ogImage:    coverUrl,
+    // The cover is the visual hook; only fall back to the brand image if a work
+    // somehow has no cover.
+    ogImage:    coverUrl ?? ogImageUrl(ogBrandPath(locale), locale),
+    ogImageAlt: data.title,
     ogType:     "article",
     alternates: alternatesForWork(pair),
     jsonLd:     creativeWorkLd({
@@ -341,7 +350,8 @@ export function seoForProject(input: ProjectSeoInput): SeoMeta {
     title,
     description,
     canonical,
-    ogImage:     coverUrl,
+    ogImage:     coverUrl ?? ogImageUrl(ogBrandPath(locale), locale),
+    ogImageAlt:  data.title,
     ogType:      "article",
     alternates:  alternatesForProject(data.slug, authoredLocales),
     jsonLd:      ld,
@@ -370,7 +380,8 @@ export function seoForProjectSubpage(
     title:       `${data.title} — ${siteLabel(locale)}`,
     description,
     canonical,
-    ogImage:     null,
+    ogImage:     ogImageUrl(ogBrandPath(locale), locale),
+    ogImageAlt:  data.title,
     ogType:      "article",
     alternates:  alternatesForProjectSubpath(path, authoredLocales),
     jsonLd:      null,
@@ -416,7 +427,8 @@ export function seoForPage(
     title:       `${data.title} — ${siteLabel(locale)}`,
     description: clampDescription(data.description),
     canonical,
-    ogImage:     null,
+    ogImage:     ogImageUrl(ogBrandPath(locale), locale),
+    ogImageAlt:  data.title,
     ogType:      "article",
     alternates:  alternatesForPage(data.slug, authoredLocales),
     jsonLd:      null,
@@ -530,7 +542,9 @@ export function seoForVideo(input: VideoSeoInput): SeoMeta {
     title:       `${data.title} — ${siteLabel(locale)}`,
     description,
     canonical,
-    ogImage:     coverUrl,
+    // A video's own 16:9 thumbnail is the social image; brand image only if absent.
+    ogImage:     coverUrl ?? ogImageUrl(ogBrandPath(locale), locale),
+    ogImageAlt:  data.title,
     ogType:      "article",
     alternates:  alternatesForVideo(pair),
     jsonLd:      ld,
@@ -598,7 +612,8 @@ export function seoForMessage(input: MessageSeoInput): SeoMeta {
     title:       `${data.title} — ${siteLabel(locale)}`,
     description,
     canonical,
-    ogImage:     null,
+    ogImage:     ogImageUrl(ogBrandPath(locale), locale),
+    ogImageAlt:  data.title,
     ogType:      "article",
     alternates:  alternatesForMessage(pair),
     jsonLd:      ld,
