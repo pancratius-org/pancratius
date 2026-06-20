@@ -12,6 +12,7 @@ import PageShell from "@/components/PageShell.astro";
 import Prose from "@/components/Prose.astro";
 import LeadParagraph from "@/components/LeadParagraph.astro";
 import TableOfContents from "@/components/TableOfContents.astro";
+import SvetozarBooks from "@/components/SvetozarBooks.astro";
 
 import type { Locale } from "@/lib/i18n";
 import { LOCALES, pageUrl } from "@/lib/i18n";
@@ -43,5 +44,6 @@ const useToc = hasToc(headings);
     {useToc && <TableOfContents {headings} {locale} />}
     <Prose class="prose--svet" leadable><Content /></Prose>
     <LeadParagraph />
+    <SvetozarBooks {locale} />
   </PageShell>
 </Base>

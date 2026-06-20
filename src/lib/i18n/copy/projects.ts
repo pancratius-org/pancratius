@@ -5,7 +5,6 @@ export interface ProjectsIndexCopy {
   heading: string;
   intro: string;
   cta: string;
-  fallbackLabel: string;
 }
 
 export const projectsIndexCopy = {
@@ -14,14 +13,12 @@ export const projectsIndexCopy = {
     heading: "Два направления",
     intro: "Два направления, в которых Слово выходит в дело. Один встречает машину; другой — землю.",
     cta: "Открыть →",
-    fallbackLabel: "Русский оригинал",
   },
   en: {
     eyebrow: "Blueprints",
     heading: "Two directions",
     intro: "Two directions in which the Word goes out into the world. One meets the machine; the other — the land.",
     cta: "Open →",
-    fallbackLabel: "Russian original",
   },
 } satisfies Record<Locale, ProjectsIndexCopy>;
 

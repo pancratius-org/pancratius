@@ -73,5 +73,3 @@ He came for you to *know*.
 He returns you — to *Yourself*.
 
 And in this — is the whole mission.
-
-— Manifesto · from book №1
