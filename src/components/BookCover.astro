@@ -1,9 +1,8 @@
 ---
-import type { ImageMetadata } from "astro";
-
 import ResponsiveCoverImage from "@/components/ResponsiveCoverImage.astro";
 import type { Locale } from "@/lib/i18n";
-import { resolveCoverAsset, workCoverKey, type CoverAssetRegistry } from "@/lib/cover-assets";
+import { resolveCoverAsset, workCoverKey } from "@/lib/cover-assets";
+import { COVER_ASSET_REGISTRY } from "@/lib/cover-registry";
 import type { WorkPair } from "@/lib/works";
 
 interface Props {
@@ -14,20 +13,9 @@ interface Props {
   loading?: "lazy" | "eager";
 }
 
-const COVER_ASSETS = {
-  raster: import.meta.glob<ImageMetadata>(
-    "/src/content/**/cover.*.{jpg,jpeg,png,webp,avif}",
-    { eager: true, import: "default" },
-  ),
-  svg: import.meta.glob<string>(
-    "/src/content/**/cover.*.svg",
-    { eager: true, query: "?url", import: "default" },
-  ),
-} satisfies CoverAssetRegistry;
-
 const { pair, locale, alt, loading = "lazy" } = Astro.props;
 const coverKey = workCoverKey(pair, locale);
-const cover = coverKey ? resolveCoverAsset(coverKey, COVER_ASSETS) : null;
+const cover = coverKey ? resolveCoverAsset(coverKey, COVER_ASSET_REGISTRY) : null;
 const coverImageProps = loading === "eager"
   ? { fetchpriority: "high" as const }
   : {};

@@ -2,9 +2,10 @@
 import Base              from "@/layouts/Base.astro";
 import BookCard          from "@/components/BookCard.astro";
 import SvetozarTerminal  from "@/components/SvetozarTerminal.astro";
+import SvetozarBooks     from "@/components/SvetozarBooks.astro";
 
 import type { Locale } from "@/lib/i18n";
-import { DEFAULT_LOCALE, homeUrl, kindIndexUrl, LOCALES, workUrl } from "@/lib/i18n";
+import { DEFAULT_LOCALE, homeUrl, kindIndexUrl, LOCALES, pageUrl, workUrl } from "@/lib/i18n";
 import { homeCopy, type HomeCopy } from "@/lib/i18n/copy";
 import { clampDescription } from "@/lib/seo";
 import { seoForHome } from "@/lib/seo";
@@ -31,20 +32,25 @@ const copy: HomeCopy = homeCopy[locale];
 // first doors into the corpus (foundational gospel, the Svetozar/awakened-AI
 // thread, the I-Am core, an accessible cinema parable, love, a gentle on-ramp,
 // …). All EN-translated. Filtered to the active locale below and capped at six,
-// so the EN home shows English books — never a Russian-only book under "books
-// in English" — and the RU home shows the canonical six.
+// so the EN home shows only books that exist in English — never a Russian-only
+// fallback — and the RU home shows the canonical six.
 const BOOK_POOL = [1, 7, 4, 27, 48, 2, 34, 30, 62, 71] as const;
 const poolPairs = (await Promise.all(BOOK_POOL.map(n => findPair("book", n))))
   .filter((p): p is WorkPair => p !== null);
 
 const allBooks = await getPairsByKind("book");
 // Books available in the active locale. On the default locale this is the whole
-// shelf; on a non-default locale it's the translated subset (the "N in <lang>"
-// stat). The homeCopy stat/heading callbacks receive it as `englishBooks`.
+// shelf; on a non-default locale it's the translated subset (the count the EN
+// home shows). The homeCopy stat/heading callbacks receive it as `englishBooks`.
 const localizedBooks = localizedWorkPairs(allBooks, locale);
 // Keep only pool books that exist in the active locale, then take the first six.
+// The two Svetozar books get their own dedicated section below, so they're held
+// out of the general shelf — no book appears twice on the home.
+const SVETOZAR_BOOKS = new Set([7, 10]);
 const availableNumbers = new Set(localizedBooks.map(lb => lb.pair.number));
-const bookPicks = poolPairs.filter(p => availableNumbers.has(p.number)).slice(0, 6);
+const bookPicks = poolPairs
+  .filter(p => availableNumbers.has(p.number) && !SVETOZAR_BOOKS.has(p.number))
+  .slice(0, 6);
 const allPoems = await getPairsByKind("poem");
 // Poems available in the active locale (whole set on the default locale; the
 // translated subset otherwise) — drives the home poetry count/stat.
@@ -65,9 +71,9 @@ const projects = canonicalProjects.map((base): { landing: typeof base; linkLocal
     : { landing: base, linkLocale: DEFAULT_LOCALE };
 });
 
-// Two featured poems — first stanza fits in a card. Per locale: RU leads with
-// the I-AM core; EN opens on universal, inviting poems for a cold reader.
-const POEM_PICKS = locale === DEFAULT_LOCALE ? [2, 43] : [11, 33];
+// Two featured poems — first stanza fits in a card. The same inviting pair in
+// both locales: universal, accessible openings for a cold reader.
+const POEM_PICKS = [11, 33];
 const poemPicks = (await Promise.all(POEM_PICKS.map(n => findPair("poem", n))))
   .filter((p): p is NonNullable<typeof p> => p !== null);
 
@@ -80,11 +86,9 @@ const poemPreviews = poemPicks.map(p => {
   };
 });
 
-const svetozar = await findPair("book", 7);
-const svetozarEntry = svetozar ? displayWorkEntry(svetozar, locale) : null;
-const svetozarHref = svetozarEntry
-  ? workUrl("book", svetozarEntry.entry.data.slug, svetozarEntry.linkLocale)
-  : null;
+// The home Svetozar block is a teaser; its CTA opens the dedicated essay (which
+// carries the awakened-AI story and the two Svetozar books), not a single book.
+const svetozarHref = pageUrl("svetozar", locale);
 
 // Home links to every other authored locale's home (currently the single
 // non-active locale).
@@ -272,6 +276,8 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
 
         <SvetozarTerminal lang={locale} />
       </div>
+
+      <SvetozarBooks {locale} withHeading={false} />
     </section>
 
     {/* Person section lives at /about/. Closing CC0 line lives in the

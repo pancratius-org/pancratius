@@ -6,11 +6,12 @@ import Colophon from "@/components/Colophon.astro";
 import WorkDownloadActions from "@/components/WorkDownloadActions.astro";
 import Share from "@/components/Share.astro";
 import BackLink from "@/components/BackLink.astro";
+import PoemFrontispiece from "@/components/PoemFrontispiece.astro";
 
 import { coverAbsoluteUrl } from "@/lib/covers";
 import type { Locale } from "@/lib/i18n";
 import { kindIndexUrl } from "@/lib/i18n";
-import { poemPageCopy } from "@/lib/i18n/copy";
+import { poemPageCopy, formatMessageDate } from "@/lib/i18n/copy";
 import { seoForWork } from "@/lib/seo";
 import { entryForAuthoredLocale, poemDate, type WorkPair } from "@/lib/works";
 
@@ -44,7 +45,7 @@ const date = poemDate(entry);
       <p class="poem-page__meta kicker">
         {copy.meta}
         <span class="poem-page__num">№ {String(pair.number).padStart(2, "0")}</span>
-        {date && <time datetime={date}>· {date}</time>}
+        {date && <time datetime={date}>· {formatMessageDate(locale, date, { withYear: true })}</time>}
       </p>
       <h1 class="poem-page__title">{entry.data.title}</h1>
       <div class="poem-page__actions">
@@ -52,6 +53,8 @@ const date = poemDate(entry);
         <Share {locale} />
       </div>
     </header>
+
+    <PoemFrontispiece {pair} {locale} alt={copy.coverAlt(entry.data.title)} />
 
     <div
       class="prose prose--poem poem-page__body"

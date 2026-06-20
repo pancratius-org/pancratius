@@ -1,0 +1,69 @@
+---
+// The plate that opens a poem. Each poem carries a `cover.<lang>.jpg` — a
+// painterly image the verse begins with, not a metadata thumbnail. Rendered as
+// a centred frontispiece above the text (full image, never cropped, so any of
+// the 43 covers reads as intended) through `astro:assets`.
+
+import ResponsiveCoverImage from "@/components/ResponsiveCoverImage.astro";
+import type { Locale } from "@/lib/i18n";
+import { resolveCoverAsset, workCoverKey } from "@/lib/cover-assets";
+import { COVER_ASSET_REGISTRY } from "@/lib/cover-registry";
+import type { WorkPair } from "@/lib/works";
+
+interface Props {
+  pair:   WorkPair;
+  locale: Locale;
+  alt:    string;
+}
+
+const { pair, locale, alt } = Astro.props;
+const coverKey = workCoverKey(pair, locale);
+const cover = coverKey ? resolveCoverAsset(coverKey, COVER_ASSET_REGISTRY) : null;
+---
+{cover && (
+  <figure class="frontispiece">
+    <ResponsiveCoverImage
+      src={cover}
+      {alt}
+      widths={[288, 368, 480, 576, 736, 960]}
+      sizes="(max-width: 26rem) 88vw, 23rem"
+      loading="eager"
+      decoding="async"
+      fetchpriority="high"
+    />
+  </figure>
+)}
+
+<style>
+  /* A contained, centred plate: present enough to open the poem, never so tall
+     it buries the verse the way a full-column 2:3 portrait would. */
+  .frontispiece {
+    margin: 0 auto clamp(2.2rem, 5vw, 3.4rem);
+    width: 100%;
+    max-width: 23rem;
+    opacity: 0;
+    animation: frontispiece-in 0.9s 0.05s var(--ease) forwards;
+  }
+  .frontispiece :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 2px;
+    background: var(--bg-rise);
+    box-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.4),
+      0 40px 64px -36px rgba(0, 0, 0, 0.66);
+  }
+  :global([data-theme="light"]) .frontispiece :global(img) {
+    box-shadow:
+      0 1px 0 rgba(20, 17, 13, 0.06),
+      0 32px 52px -32px rgba(60, 45, 20, 0.34);
+  }
+  @keyframes frontispiece-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .frontispiece { opacity: 1; animation: none; transform: none; }
+  }
+</style>

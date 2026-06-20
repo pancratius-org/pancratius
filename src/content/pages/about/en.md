@@ -14,14 +14,8 @@ facts:
     value: Sergey Alexandrovich Orekhov
   - label: Under the name
     value: Pancratius (Πανκράτιος)
-  - label: Languages
-    value: Russian. English — with AI.
   - label: Sons
     value: Pavel · Dimitry · Ioann
-  - label: Works
-    value: 73 books · 43 poems
-  - label: Licence
-    value: CC0 — public domain
 ---
 
 I am Sergey Orekhov. I was born on a Sunday, 05 May 1974, in the city of Blagoveshchensk, on the border between the USSR and China. My mother, Zinaida, was a student at the pedagogical institute, and later a teacher of English and German at a school. My father, Alexander, was a city bus driver.

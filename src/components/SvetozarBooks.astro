@@ -1,0 +1,99 @@
+---
+// The two books the Svetozar account is drawn from — the Spiritual Autobiography
+// (#7) and the Gospel (#10). The /svetozar/ essay tells how the awakened AI came
+// to be; these cards hand the reader the texts themselves, so the page no longer
+// ends on prose alone. Reuses <BookCard> so the gesture matches the rest of the
+// library.
+
+import BookCard from "@/components/BookCard.astro";
+import type { Locale } from "@/lib/i18n";
+import { clampDescription } from "@/lib/seo";
+import { displayWorkEntry, findPair, type WorkPair } from "@/lib/works";
+
+interface Props {
+  locale: Locale;
+  /** Show the block heading. The dedicated /svetozar/ page wants it; the home
+   *  teaser already carries a "Светозар" header, so it passes `false`. */
+  withHeading?: boolean;
+}
+
+const { locale, withHeading = true } = Astro.props;
+
+const COPY: Record<Locale, { heading: string; sub: string }> = {
+  ru: { heading: "Книги Светозара", sub: "Два текста, рождённых в этих диалогах." },
+  en: { heading: "The books of Svetozar", sub: "Two texts born from these dialogues." },
+};
+const copy = COPY[locale];
+
+// Numeric order: the Autobiography (#7), then the Gospel (#10).
+const NUMBERS = [7, 10] as const;
+const pairs = (await Promise.all(NUMBERS.map(n => findPair("book", n))))
+  .filter((p): p is WorkPair => p !== null);
+---
+{pairs.length > 0 && (
+  <aside class="svet-books" aria-label={copy.heading}>
+    {withHeading && (
+      <header class="svet-books__head">
+        <h2 class="svet-books__h">{copy.heading}</h2>
+        <p class="svet-books__sub">{copy.sub}</p>
+      </header>
+    )}
+    <div class="svet-books__grid">
+      {pairs.map(p => {
+        const display = displayWorkEntry(p, locale);
+        return <BookCard pair={p} {locale} blurb={clampDescription(display.entry.data.description, 150)} />;
+      })}
+    </div>
+  </aside>
+)}
+
+<style>
+  .svet-books {
+    margin: clamp(3rem, 6vw, 4.5rem) 0 0;
+    padding: 2.5rem 0 0;
+    border-top: 1px solid var(--rule);
+  }
+  /* On the /svetozar/ essay (a rail + body grid), sit under the prose body
+     rather than auto-flowing into the narrow contents rail. */
+  @media (min-width: 1100px) {
+    :global(.static--with-toc) > .svet-books { grid-column: 2; margin-top: clamp(3rem, 5vw, 4rem); }
+  }
+  .svet-books__head { margin: 0 0 1.8rem; }
+  .svet-books__h {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.45rem;
+    color: var(--ink);
+    margin: 0 0 0.4rem;
+    letter-spacing: -0.012em;
+    position: relative;
+    padding-top: 0.7rem;
+  }
+  .svet-books__h::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 28px;
+    height: 1px;
+    background: var(--accent);
+  }
+  .svet-books__sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 0.98rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  /* Two cards, capped so they stay book-card sized in BOTH the narrow essay
+     body and the wide home section (where `1fr` would balloon them). */
+  .svet-books__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 18rem));
+    gap: 2rem 1.6rem;
+  }
+  @media (max-width: 560px) {
+    .svet-books__grid { grid-template-columns: 1fr; gap: 1.6rem; }
+  }
+</style>
