@@ -65,9 +65,8 @@ function linkifyParagraph(paragraph: string): TextSegment[] {
   return segments;
 }
 
-// Collapse threshold for the view. INDEPENDENT of `layoutFor` (which measures
-// the body to pick a masthead) — this measures the description so a wall of text
-// can't push the video embed off-screen.
+// Collapse threshold for a description's "show more" — measured on the
+// description so a wall of text can't push the video embed off-screen.
 const COLLAPSE_CHARS = 600;
 const COLLAPSE_LINES = 10;
 
