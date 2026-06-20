@@ -423,14 +423,14 @@ playlists:                               # optional; from YouTube
   - id: "PLFvJf-...XjmgPh3CySk"
     title: "Апокалипсис"
 related_book: 1                          # optional cross-link to a book
-layout: compact | blog                   # optional override; default = derived
 translation:
   source: original
 ```
 
-The compact-vs-blog layout is derived by `src/lib/video-format.ts:layoutFor`:
-`compact` when the rendered body has zero headings and <600 characters of raw
-text, `blog` otherwise. An explicit `layout:` field overrides the heuristic.
+Every video renders through one layout: a single reading column (masthead, embed,
+meta, then the commentary). The written commentary is optional — when the body is
+empty the page simply omits that final section; the chrome above it never changes,
+so a catalogue entry and a full essay open identically.
 
 Channels live in a sidecar so the same file feeds two consumers:
 

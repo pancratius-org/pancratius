@@ -15,14 +15,14 @@ export const videosIndexCopy = {
   ru: {
     eyebrow: "Голос",
     headingLabel: (count) => count === 1 ? "видео" : "видео",
-    sub: () => "Каталог видео Панкратиуса. Каждое со своей страницей и, где есть, с письменным разбором.",
+    sub: () => "Каталог видео — где есть, с письменным разбором.",
     channelsHeading: "Каналы",
     channelsSub: "Точки сбора. Подпишитесь там, где удобнее.",
     openChannel: "Открыть канал",
   },
   en: {
     eyebrow: "Voice",
-    headingLabel: () => "videos in English",
+    headingLabel: () => "videos",
     sub: (total, available) => `Of ${total} catalogued videos, ${available} have English commentary.`,
     fullCatalogLink: "See the full Russian catalogue.",
     channelsHeading: "Channels",
@@ -45,8 +45,6 @@ export interface VideoPageCopy {
   meta: string;
   watchOn(platform: string): string;
   mirrorsLabel: string;
-  publishedLabel: string;
-  durationLabel: string;
   playAria: string;
   pagerAria: string;
   channelLabel: string;
@@ -80,8 +78,6 @@ export const videoPageCopy = {
     meta: "Видео",
     watchOn: (platform) => `Смотреть на ${platform}`,
     mirrorsLabel: "Также:",
-    publishedLabel: "Опубликовано:",
-    durationLabel: "Длительность:",
     playAria: "Запустить видео",
     pagerAria: "Другие видео",
     channelLabel: "Канал:",
@@ -94,8 +90,6 @@ export const videoPageCopy = {
     meta: "Video",
     watchOn: (platform) => `Watch on ${platform}`,
     mirrorsLabel: "Also:",
-    publishedLabel: "Published:",
-    durationLabel: "Duration:",
     playAria: "Play video",
     pagerAria: "Other videos",
     channelLabel: "Channel:",

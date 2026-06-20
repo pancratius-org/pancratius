@@ -18,9 +18,11 @@ interface Props {
   locale:  Locale;
   /** `eager` for above-the-fold embeds, `lazy` otherwise. */
   loading?: "lazy" | "eager";
+  /** Optional corner overlay on the poster (e.g. the duration), like the cards. */
+  badge?:  string;
 }
 
-const { entry, pair, locale, loading = "lazy" } = Astro.props;
+const { entry, pair, locale, loading = "lazy", badge } = Astro.props;
 const copy = videoPageCopy[locale];
 const embed = embedUrlFor(entry, locale);
 const watch = watchUrlFor(entry);
@@ -34,7 +36,7 @@ const title = entry.data.title;
     data-watch={watch}
     data-title={title}
   >
-    <button type="button" class="vembed__play" aria-label={copy.playAria}>
+    <button type="button" class="vembed__play" aria-label={badge ? `${copy.playAria}, ${badge}` : copy.playAria}>
       {thumb && (
         <img
           src={thumb}
@@ -47,6 +49,7 @@ const title = entry.data.title;
         />
       )}
       <span class="vembed__icon" aria-hidden="true">▶</span>
+      {badge && <span class="vembed__badge" aria-hidden="true">{badge}</span>}
     </button>
     <noscript>
       <p class="vembed__noscript">
@@ -154,6 +157,21 @@ const title = entry.data.title;
   .vembed__play:hover .vembed__icon {
     background: var(--accent);
     transform: translate(-50%, -50%) scale(1.04);
+  }
+  .vembed__badge {
+    position: absolute;
+    right: 0.6rem;
+    bottom: 0.6rem;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.78);
+    color: #fff;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
   }
   .vembed__noscript {
     position: absolute;

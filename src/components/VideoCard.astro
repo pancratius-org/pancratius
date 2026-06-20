@@ -2,7 +2,7 @@
 import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE, routedUrl } from "@/lib/i18n";
 import { authoredVideoPairs, displayVideoEntry, formatDuration, videoTags, type VideoPair } from "@/lib/videos";
-import { videoCardCopy, localeBadge } from "@/lib/i18n/copy";
+import { videoCardCopy, localeBadge, formatMessageDate } from "@/lib/i18n/copy";
 import VideoCover from "./VideoCover.astro";
 
 interface Props {
@@ -24,6 +24,9 @@ const hasTranslationBadge =
   locale === DEFAULT_LOCALE && authoredVideoPairs(pair).some(item => item.locale !== DEFAULT_LOCALE);
 const altPrefix = copy.coverAltPrefix;
 const duration = formatDuration(entry.data.duration);
+// Videos are time-sensitive — a quiet publication dateline gives recency the
+// catalogue otherwise hides. Reuses the shared locale-correct date formatter.
+const published = formatMessageDate(locale, entry.data.published_at, { withYear: true });
 ---
 <a
   class="vid"
@@ -35,7 +38,10 @@ const duration = formatDuration(entry.data.duration);
 >
   <VideoCover {pair} {locale} alt={`${altPrefix}: ${entry.data.title}`} badge={duration} />
   <div class="vid__body">
-    <span class="vid__num work-card-num">{String(pair.number).padStart(2, "0")}</span>
+    <div class="vid__top">
+      <span class="vid__num work-card-num">{String(pair.number).padStart(2, "0")}</span>
+      <time class="vid__date" datetime={entry.data.published_at}>{published}</time>
+    </div>
     <h2 class="vid__title">{entry.data.title}</h2>
     {blurb && <p class="work-card-teaser">{blurb}</p>}
     {hasTranslationBadge && <span class="work-card-badge">{localeBadge.both}</span>}
@@ -55,7 +61,22 @@ const duration = formatDuration(entry.data.duration);
     transition: border-color 0.18s var(--ease);
   }
   .vid:hover :global(.vcv) { border-color: var(--accent-soft); }
-  .vid__num { margin-bottom: 0.3rem; }
+  .vid__top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.45rem;
+  }
+  .vid__date {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    color: var(--ink-mute);
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    white-space: nowrap;
+  }
   .vid__title {
     font-family: var(--serif);
     font-size: 1.15rem;
