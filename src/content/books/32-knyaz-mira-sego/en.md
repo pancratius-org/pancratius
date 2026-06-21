@@ -7,10 +7,7 @@ lang: en
 description: This book reveals how habitual ideas about God, the self, and life become invisible chains, and how truth returns the freedom of sight. It does not argue with the world or impose dogma—it gently removes the masks from thoughts that have been perceived as normal for centuries. Two hundred false beliefs are examined and replaced with clear truths, so that a person can again see God as Love and Light, themselves as created for freedom, and joy as something born within. This is a path of purifying the gaze, on which shadows crumble and the Light that was always yours shines through.
 tags:
 - Revelation of God
-- Truth vs. Illusion
-- Spiritual Awakening
-- Deconstruction of Ego
-- Presence
+- The Bible
 cover: ./cover.en.jpg
 cross_refs:
 - target:

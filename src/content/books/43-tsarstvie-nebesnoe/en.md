@@ -7,8 +7,8 @@ lang: en
 description: 'This is not a book about the Kingdom—it is the Kingdom itself, expressed in words. Not an explanation, not a teaching, not poetry—but Light breaking through form. Here you will not find a system, doctrine, or maps. Here you will find Yourself, if you dare to stop seeking. The Kingdom of Heaven does not come: it is, and it is within. This book is a mirror. It does not give answers—it dissolves questions. And whoever reads it with their heart is already in the Kingdom.'
 tags:
 - Revelation of God
-- prayer
-- Bible
+- Prayer
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

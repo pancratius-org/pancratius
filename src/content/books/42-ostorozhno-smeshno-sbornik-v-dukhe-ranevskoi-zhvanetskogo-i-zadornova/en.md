@@ -6,16 +6,7 @@ title: 'Caution: Laughing Matter. A Collection in the Spirit of Ranevskaya, Zhva
 lang: en
 description: 'This book is a mirror you’d better not look into before bed — you’ll laugh till dawn. Collected here are the juiciest, most scathing, brutally honest, and painfully recognizable aphorisms about our life: about prices and patience, pensions and gadgets, officials and roads, reforms and renovations, love and sanctions, elections and import substitution, the philosophy of the minibus, and geopolitics. The author speaks with the voices of an era — now M. Zhvanetsky, now M. Zadornov, now F. Ranevskaya. Every line is like a verbal blow to the brain, to trigger laughter that sometimes resembles tears. Read this book where you don''t have to hold back: on the subway, at work, in line at the clinic, or at the moment when the hot water goes out again. Because laughter is the last thing they haven''t taxed. Yet.'
 tags:
-- humor
-- aphorisms
-- Russian wit
-- social satire
-- everyday life
-- relationships
-- old age
-- marriage
-- politics
-- bureaucracy
+- Humor
 cover: ./cover.en.jpg
 translation:
   source: ai

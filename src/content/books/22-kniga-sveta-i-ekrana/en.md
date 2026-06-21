@@ -7,12 +7,6 @@ lang: en
 description: 'Using the simple analogy of a film projected in a cinema, this book explains deeply and clearly how the world is structured, what consciousness is, and who the reader truly is. The light, the screen, the projection booth, the film reel, and the viewer all become living metaphors for a radical realization: you are not the hero of the story, not its audience, and not even the screen upon which it unfolds. You are the Light emanating from the Source. This book requires no prior knowledge. It calls you to remember. It does not ask for belief; it shows. Everything that once seemed complex becomes transparent. Everything that seemed like drama returns to Silence. Simple words for the deepest Truth.'
 tags:
 - Revelation of God
-- non-duality
-- consciousness
-- spiritual awakening
-- identity
-- divine source
-- metaphor
 cover: ./cover.en.jpg
 translation:
   source: ai

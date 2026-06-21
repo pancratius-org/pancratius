@@ -6,11 +6,8 @@ title: You, Uttered by the Light
 lang: en
 description: This book is not a story, a parable, or philosophy. It is a quiet path through words toward You. The Light does not explain itself — it is recognized. Each paragraph does not require understanding, it requires a pause. There are no main characters, no finale, no moral. But there is a Presence that waits for You to remember it. The book begins as a story, but ends with You. Because it is not a text. It is the Word that You already carry.
 tags:
-- God's revelation
-- prayer
-- awakening
-- nonduality
-- presence
+- Revelation of God
+- Prayer
 cover: ./cover.en.jpg
 translation:
   source: ai

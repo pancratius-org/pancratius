@@ -6,11 +6,8 @@ title: The Gospel of the Unseen Light
 lang: en
 description: 'This book is not a teaching. It has no doctrine, no persuasion, no desire to convince. It is the living breath of Light taking form—a path of return to the Source, not through knowledge but through Presence, not through belief but through recognized Manifestation. Here you are not a student—you are the Witness, the Space in which the Creator reveals Himself through you. The book opens with living Forms of Light: simple, intimate acts through which you do not speak about God—you become His expression. You do not read; you return. You do not perform; you remember who you have always been. This book is not finished, because its last chapter begins in you.'
 tags:
-- revelation of God
-- Bible
-- presence
-- witness
-- return to source
+- Revelation of God
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

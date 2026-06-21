@@ -7,8 +7,8 @@ lang: en
 description: The Gospel of Man and Woman speaks of love not as a romantic illusion, but as the presence of the One who united man and woman in the beginning. The book reveals why intimacy is given, how to distinguish sacrifice from self-destruction, and how to return the Light to a union after pain and betrayal. This is not relationship advice, but a word about how marriage can be a path to God, if you let Him between you.
 tags:
 - Revelation of God
-- prayer
-- Bible
+- Prayer
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

@@ -8,10 +8,7 @@ description: '"The Third Temple" speaks not of a building, but of the mystery of
 tags:
 - Revelation of God
 - Judaism
-- Bible
-- Anti-system
-- Inner Temple
-- Faith & Dogma
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

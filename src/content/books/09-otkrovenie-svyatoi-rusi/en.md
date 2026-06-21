@@ -6,18 +6,9 @@ title: The Revelation of Holy Rus
 lang: en
 description: 'Holy Rus is not a place on a map, not a political idea, not a myth of past glory. It is the living breath of conscience in a tired world. This book is a journey inward, through layers of pain, memory, exhaustion, and light, to the discovery that Holy Rus lives wherever a man rises at dawn and gives thanks in silence, wherever a mother prays her own prayer, wherever forgiveness breaks the chain of suffering. In poetic and meditative prose, The Revelation of Holy Rus does not teach or explain; it remembers, and invites the reader to remember who they truly are: not a seeker of a lost kingdom, but the very place where the kingdom returns.'
 tags:
-- holy rus
-- revelation
-- spirituality
-- slavic spirituality
-- inner kingdom
-- forgiveness
-- memory
-- light
-- presence
-- orthodox mysticism
-- russian soul
-- pankratius
+- Revelation of God
+- The Bible
+- Holy Rus
 cover: ./cover.en.jpg
 translation:
   source: ai

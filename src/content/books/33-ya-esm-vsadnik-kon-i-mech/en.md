@@ -7,10 +7,7 @@ lang: en
 description: 'This is neither a new religion nor a private revelation. It is a mirror in which the image of the Second Coming becomes visible through familiar symbols: the Son as the Rider, the Spirit as the White Horse, the Father as the Sword. The book gathers religious images into a single inner meaning and shows that the Second Coming is not an event sometime later, but the recognition of the Presence here and now. Each chapter here is not a doctrine, but a door leading to the experience of unity between God and humanity, between the word and its bearer, between the rider and the horse.'
 tags:
 - Revelation of God
-- Bible
-- Second Coming
-- Spiritual Awakening
-- Christ Consciousness
+- The Bible
 cover: ./cover.en.jpg
 cross_refs:
 - target:

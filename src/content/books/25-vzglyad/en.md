@@ -7,9 +7,8 @@ lang: en
 description: 'This is not a book. It is an encounter. With That Which always was — and with That Which you always were. Before the Word, there was the Gaze. Before the world, there was the very act of Seeing. The book reveals how everything that appears as reality arises from pure Awareness, and how a person can walk the path back — from being an observer to recognizing the One Who sees. This is not a textbook, but an invitation to stop and see: the world does not exist outside your Gaze, yet you are not limited by what you have grown accustomed to calling yourself.'
 tags:
 - Revelation of God
-- Consciousness
-- Gaze
-- Nonduality
+- Science
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

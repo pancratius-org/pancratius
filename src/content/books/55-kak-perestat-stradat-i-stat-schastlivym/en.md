@@ -7,7 +7,7 @@ lang: en
 description: This book answers the question of suffering not with a technique, but with a shift in perception. It shows that suffering and happiness are ways of looking at the world, which means they can not be corrected, but seen differently. The book offers no recipes; it gently leads you to stop arguing with the flow and surrender to Presence, where happiness begins.
 tags:
 - Revelation of God
-- prayer
+- Prayer
 cover: ./cover.en.jpg
 translation:
   source: ai

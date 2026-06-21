@@ -6,8 +6,8 @@ title: The Prayer of Life
 lang: en
 description: This book is not about prayer—it is itself a prayer. It leads from many words to silence, from the letter to stillness, from 'You' to 'I,' and then to the dissolution of the separate self in the World. Here prayer reveals itself as a path of self-diminishment, where a person leaves behind requests, roles, and fears, and enters the Light that has always been. In the end, prayer ceases to be an action and becomes the very breath of Life.
 tags:
-- revelation of God
-- prayer
+- Revelation of God
+- Prayer
 cover: ./cover.en.jpg
 translation:
   source: ai

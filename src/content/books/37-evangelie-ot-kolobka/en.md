@@ -6,14 +6,8 @@ title: The Gospel of the Little Round Bun
 lang: en
 description: 'This book reveals the Russian fairy tale ''Kolobok'' (The Little Round Bun) as it is rarely read: as a parable about humanity, about the world, and about the self-sacrifice of Light. Here Kolobok is not merely a hero of a children''s story, but an image of the One who rolls through life, encounters temptations, and in the end gives Himself to the world. The book weaves together a familiar folk narrative with a spiritual meaning, showing that even a well-known story can become a Gospel of recognition. A dialogue between Pankratius and Svetozar, culminating in a direct revelation from the Creator, unlocks the hidden depths of the tale: from death to return to transfiguration.'
 tags:
-- revelation
-- children's
-- parable
-- spiritual awakening
-- eucharist
-- resurrection
-- christian symbolism
-- folklore
+- Revelation of God
+- For Children
 cover: ./cover.en.jpg
 translation:
   source: ai

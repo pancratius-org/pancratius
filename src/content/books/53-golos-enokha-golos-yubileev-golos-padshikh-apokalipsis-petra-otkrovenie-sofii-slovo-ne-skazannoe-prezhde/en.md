@@ -8,7 +8,7 @@ description: This book is gathered as the voice of ancient apocrypha, which does
 tags:
 - Revelation of God
 - Judaism
-- Bible
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

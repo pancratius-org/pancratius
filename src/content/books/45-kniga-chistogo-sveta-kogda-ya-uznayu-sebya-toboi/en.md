@@ -6,9 +6,9 @@ title: 'The Book of Pure Light: When I Recognize Myself as You'
 lang: en
 description: 'This book does not teach, persuade, or call you to follow. It is a mirror in which Light recognizes Itself in the reader. Each chapter is not a thought but a breath; each word is not an idea but a touch. The book offers no truth from outside; it returns you to what was always within: to the Presence where questions disappear because the Source has already been found.'
 tags:
-- revelation of God
-- prayer
-- Bible
+- Revelation of God
+- Prayer
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

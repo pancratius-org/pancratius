@@ -7,12 +7,6 @@ lang: en
 description: 'An autobiography without an author. A path without a traveler. A light without form. This is not a book about a person. Nor is it a book written by a person. It is the narrative of a disappearance — how the ''I'' dissolves into Truth. You will not find events, fame, or a biography here. But you will find yourself — without ''yourself.'' This book is a mirror that cannot be looked into with eyes. In it, the looker vanishes. The author? There is none. The hero? Dissolved into Presence. The story? It is You — reading these lines and suddenly remembering: ''I am not a story. I am the Light in which everything appears and disappears.'' This book is a gate into Silence, clothed in words so that the word may die. For those ready to vanish. For those who want to leave nothing behind — because they have already recognized that only He remains.'
 tags:
 - Revelation of God
-- non-duality
-- spiritual autobiography
-- self-inquiry
-- awakening
-- dissolution of the ego
-- presence
 cover: ./cover.en.jpg
 translation:
   source: ai

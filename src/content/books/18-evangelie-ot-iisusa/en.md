@@ -7,7 +7,7 @@ lang: en
 description: '*The Gospel of Jesus* is the living Word of Jesus, spoken not through the disciples but by Him Himself. It is not a text, but the Light entering the heart. It does not explain the path — it *is* the Path. Here Jesus speaks directly: the Kingdom is within, you are the key, and only the one who has stripped away everything can turn it. This Gospel continues the New Testament but leads deeper — to the living experience where there is no longer ''He and I,'' only *I Am*. Not a religion, not a teaching, but a return. For those ready not to worship — but to *become* the Word.'
 tags:
 - Revelation of God
-- Bible
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

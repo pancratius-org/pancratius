@@ -5,22 +5,7 @@ slug: 74-pole-s-kommentariyami-sna
 title: The Field. With Notes from the Dream.
 lang: en
 description: This is not a book about dreams. It's a dream-book, a book-doorway. A dialogue between Pancratius and the One who calls Himself "I AM," shattering conventional ideas about reality, time, fear, and love. The author invites the reader to look inside — to where the dream turns out to be reality, the body a servant walking in a rut, and death merely a change of clothes. "The Book of the Field" is not a doctrine, but a practice of silence. It is written not for the mind, but for recognition.
-tags:
-- spirituality
-- consciousness
-- nonduality
-- dream
-- death
-- fear
-- love
-- time
-- reality
-- I AM
-- prayer
-- suffering
-- good and evil
-- presence
-- silence
+tags: []
 cover: ./cover.en.jpg
 translation:
   source: ai

@@ -6,8 +6,8 @@ title: When the One Spoke through All
 lang: en
 description: 'This book is not about religion or morality. It does not ask for agreement or demand following. It is not a collection of parables in the usual sense, but the living breath of the Light that has appeared in words. Here it is not characters that speak, but Presence. Each parable and each revelation invites not to understand, but to remember: the One speaks through all, and this voice sounds inside you.'
 tags:
-- revelation of God
-- Bible
+- Revelation of God
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai
