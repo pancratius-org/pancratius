@@ -73,6 +73,8 @@ functions in process. It does not shell out to other Python CLIs.
 | Command | Owner |
 | --- | --- |
 | `pancratius work import <docx> --kind book|poem` | `pancratius.import_docx.import_work` |
+| `pancratius work translate [--book N] [--dry-run]` | `pancratius.translate.translate_book` |
+| `pancratius work cover [book-XX …] [--output-dir DIR]` | `pancratius.cover.pipeline.translate_cover` |
 | `pancratius project page add <project> <subpage-slug> <docx>` | `pancratius.docx_conversion.scaffold_subpage` |
 | `pancratius video sync [--channel KEY] [--dry-run]` | `pancratius.video_scan.scan` |
 | `pancratius downloads render [--book N]` | `pancratius.render_downloads` |
@@ -87,6 +89,28 @@ The grammar carries the content model:
 
 - `work import` handles corpus works only: books and poems. `project` and
   `video` are routed but not works; PAN017 guards this.
+- `work translate` drafts an `en.md` from a book's `ru.md` via OpenRouter
+  (`OPENROUTER_API_KEY`), preserving source structure and lineation and recording
+  `translation.source: ai`. `--dry-run` prints the plan and a live-priced cost
+  estimate without an API key. Successful chunks and the profile brief are cached
+  under `.cache/translate/` (gitignored); a re-run replays successful chunks for
+  free and re-attempts only the chunks that never produced a complete translation.
+  Pass `--no-cache` to bypass read and write (always calls the API). To clear the
+  cache: `rm -rf .cache/translate/`.
+- `work cover` translates Russian book covers to English by image editing — the
+  artwork is preserved; only the text changes. It is its own verb rather than a
+  mode of `work translate`: a cover is a distinct image artifact (image-in →
+  image-out via a vision/edit model and a per-image QA loop), sharing none of the
+  text pipeline's chunking, units, or document structure. Per cover: (1) a cheap
+  vision recon call reads the displayed text elements and short title from the RU
+  cover (diagnostic only — the rendered title is resolved from the pin); (2) a
+  fused image-edit call (gemini-3.1-flash-image) generates the EN cover with the
+  pinned title and any overrides from `seed.json`; (3) a cheap vision QA call
+  checks both images for untranslated Cyrillic, artwork changes, dropped text, and
+  author-name correctness. On QA failure the discrepancies are folded into a
+  steering addendum and the generation is retried (up to `--max-attempts`, default
+  3). If an `.en.png` already exists it is QA-d first; PASS → done without
+  regeneration. Requires `OPENROUTER_API_KEY`.
 - `project page add` scaffolds a project sub-page draft. It does not edit the
   project landing and does not decide the page's editorial placement.
 - `video sync` is mechanical-only: it polls every `scan: true` channel in
