@@ -340,12 +340,13 @@ class Paragraph:
 class LineatedBlock:
     """A lineated run: stanzas of display lines, each line a list of inlines.
 
-    A `***` stanza separator is a one-line stanza whose single line is
-    `[Text("***")]`. It lowers to a `<div class="lineated …">` wrapper whose
-    body uses Markdown hard breaks (two trailing spaces) and blank-line stanza
-    separators; `register` selects the wrapper class through
-    `lower.LINEATED_CLASS`. `evidence` is the run's Q1 lineation provenance —
-    register flips carry it unchanged.
+    Dividers are not represented as stanza lines; they are separate
+    `ThematicBreak` blocks between lineated runs. A literal `[Text("***")]` line
+    remains literal text when lowered. The block lowers to a
+    `<div class="lineated …">` wrapper whose body uses Markdown hard breaks
+    (two trailing spaces) and blank-line stanza separators; `register` selects
+    the wrapper class through `lower.LINEATED_CLASS`. `evidence` is the run's Q1
+    lineation provenance — register flips carry it unchanged.
     """
 
     stanzas: LineatedStanzas

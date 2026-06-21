@@ -543,6 +543,20 @@ def test_read_w_jc_classifies_border_kind(tmp_path: Path) -> None:
     assert [r.border for r in records] == ["box", "rule", "other", "", ""]
 
 
+def test_read_w_jc_classifies_divider_markers_as_thematic(tmp_path: Path) -> None:
+    paras = "".join(f"<w:p><w:r><w:t>{text}</w:t></w:r></w:p>" for text in ["---", "===", "***"])
+    document = (
+        '<?xml version="1.0"?>'
+        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        + paras
+        + "</w:body></w:document>"
+    )
+
+    records = adapter.read_w_jc(_docx_from_document(tmp_path, document))
+
+    assert [r.thematic for r in records] == [True, True, True]
+
+
 def test_reconcile_fused_bordered_and_plain_stays_unbordered(tmp_path: Path) -> None:
     # A Pandoc-fused block consuming a bordered AND a plain source row must NOT
     # inherit the border — that would drag plain text into a set-apart register.

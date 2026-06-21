@@ -32,6 +32,7 @@ from typing import Any, cast
 
 from pancratius import ir
 from pancratius.ir.inlines import inline_plain
+from pancratius.thematic import is_thematic_marker
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W = f"{{{W_NS}}}"
@@ -528,7 +529,7 @@ def read_w_jc(docx: Path) -> list[_SourceParagraph]:
                     indent=_indent_attrs(ppr),
                     border=border_kind(ppr),
                     heading=bool(re.fullmatch(r"(?:Heading\d+|[1-9])", direct_style)),
-                    thematic=txt in {"***", "* * *", "---"},
+                    thematic=is_thematic_marker(txt),
                     source_span=source_span,
                     source_segment=source_segment,
                     empty=_paragraph_is_empty_source(child, txt),
