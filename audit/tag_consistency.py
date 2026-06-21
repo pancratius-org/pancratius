@@ -52,6 +52,7 @@ def main() -> int:
             fm = yaml.safe_load(match.group(1)) or {}
         except yaml.YAMLError:
             continue
+        # The kinds that carry tags / playlist titles; poems and projects don't.
         if not isinstance(fm, dict) or fm.get("kind") not in ("book", "video", "message"):
             continue
         allowed = valid[md.stem]
