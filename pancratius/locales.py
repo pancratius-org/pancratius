@@ -8,7 +8,7 @@ and default equal the ``LOCALES`` / ``DEFAULT_LOCALE`` in ``src/lib/locales.ts``
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, TypeGuard
 
 type Locale = Literal["ru", "en"]
 
@@ -17,3 +17,8 @@ LOCALES: tuple[Locale, ...] = ("ru", "en")
 
 # The default locale — the apex `/` redirect target. Every locale is prefixed.
 DEFAULT_LOCALE: Locale = "ru"
+
+
+def is_locale(value: str) -> TypeGuard[Locale]:
+    """Return whether an untrusted string is one of the configured locales."""
+    return value in LOCALES

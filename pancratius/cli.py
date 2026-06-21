@@ -32,6 +32,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from pancratius.cover.models import CoverResult
     from pancratius.import_docx import ImportRequest
+    from pancratius.kinds import CorpusWorkKind
+    from pancratius.locales import Locale
     from pancratius.translate import TranslationReport
 
 
@@ -80,15 +82,41 @@ def _require_subcommand(parser: argparse.ArgumentParser) -> Callable[[argparse.N
     return handler
 
 
+def _locale_arg(value: object) -> Locale:
+    """Narrow an argparse value to the configured locale domain."""
+    from pancratius.locales import is_locale
+
+    raw = str(value)
+    if is_locale(raw):
+        return raw
+    raise ValueError(f"unsupported locale: {raw}")
+
+
+def _optional_locale_arg(value: object | None) -> Locale | None:
+    return None if value is None else _locale_arg(value)
+
+
+def _corpus_work_kind_arg(value: object | None) -> CorpusWorkKind | None:
+    """Narrow an argparse value to the importable/downloadable work-kind domain."""
+    from pancratius.kinds import is_corpus_work_kind
+
+    if value is None:
+        return None
+    raw = str(value)
+    if is_corpus_work_kind(raw):
+        return raw
+    raise ValueError(f"unsupported corpus work kind: {raw}")
+
+
 # --- handlers (work group) ----------------------------------------------------
 def _import_request_from_args(args: argparse.Namespace) -> ImportRequest:
     from pancratius import import_docx
 
     return import_docx.ImportRequest(
         docx=Path(args.docx),
-        lang=args.lang,
+        lang=_locale_arg(args.lang),
         out_content=Path(args.out_content),
-        kind=args.kind,
+        kind=_corpus_work_kind_arg(args.kind),
         into=args.into,
         title=args.title,
         number=args.number,
@@ -167,15 +195,18 @@ def _work_translate(args: argparse.Namespace) -> int:
     from pancratius.content_catalog import CatalogEntry, scan_catalog
 
     content_root = Path(args.out_content)
+    kind = _corpus_work_kind_arg(args.kind)
+    if kind is None:
+        return _fail("--kind is required", 2)
     catalog = scan_catalog(content_root)
     if args.book is not None:
         targets = [
-            e for e in catalog if e.kind == args.kind and e.number == args.book and e.lang == "ru"
+            e for e in catalog if e.kind == kind and e.number == args.book and e.lang == "ru"
         ]
         if not targets:
-            return _fail(f"no {args.kind} ru source with number {args.book}", 2)
+            return _fail(f"no {kind} ru source with number {args.book}", 2)
     else:
-        targets = xlate.find_untranslated(catalog, kind=args.kind)
+        targets = xlate.find_untranslated(catalog, kind=kind)
         if args.limit:
             targets = targets[: args.limit]
     if not targets:
@@ -209,7 +240,7 @@ def _work_translate(args: argparse.Namespace) -> int:
         cache_dir = Path(".cache") / "translate"
     workers = max(1, args.workers)
     verb = "estimating" if args.dry_run else "translating"
-    print(f"{verb} {len(targets)} {args.kind}(s) with {args.model} ({workers} workers):", flush=True)
+    print(f"{verb} {len(targets)} {kind}(s) with {args.model} ({workers} workers):", flush=True)
     total = 0.0
     failures = 0
     lock = threading.Lock()
@@ -386,11 +417,12 @@ def _project_page_add(args: argparse.Namespace) -> int:
     if (rc := _require_pandoc()) is not None:
         return rc
     try:
+        lang = _locale_arg(args.lang)
         report = scaffold_subpage(
             project=args.project,
             subpage_slug=args.subpage_slug,
             docx=Path(args.docx),
-            lang=args.lang,
+            lang=lang,
             out_content=Path(args.out_content),
             dry_run=args.dry_run,
         )
@@ -403,7 +435,7 @@ def _project_page_add(args: argparse.Namespace) -> int:
         # written to place it against). The human places it; the landing is NEVER
         # edited by the tool.
         print(
-            f"\nadd this entry to projects/{args.project}/{args.lang}.md  subpages:  "
+            f"\nadd this entry to projects/{args.project}/{lang}.md  subpages:  "
             "(place it yourself — the landing is never edited):"
         )
         print(f"  - slug: {args.subpage_slug}")
@@ -422,7 +454,7 @@ def _downloads_render(args: argparse.Namespace) -> int:
         render(
             book=args.book,
             poem=args.poem,
-            lang=args.lang,
+            lang=_optional_locale_arg(args.lang),
             skip_pdf=args.skip_pdf,
             skip_epub=args.skip_epub,
             force=args.force,
@@ -500,7 +532,7 @@ def _docx_inspect(args: argparse.Namespace) -> int:
             lineated_only=args.lineated_only,
         )
         docx = (
-            resolve_book_docx(args.book, lang=args.lang, content_root=Path(args.content_root))
+            resolve_book_docx(args.book, lang=_locale_arg(args.lang), content_root=Path(args.content_root))
             if args.book is not None
             else Path(args.docx)
         )
@@ -518,7 +550,7 @@ def _docx_render_slice(args: argparse.Namespace) -> int:
 
     try:
         docx = (
-            resolve_book_docx(args.book, lang=args.lang, content_root=Path(args.content_root))
+            resolve_book_docx(args.book, lang=_locale_arg(args.lang), content_root=Path(args.content_root))
             if args.book is not None
             else Path(args.docx)
         )

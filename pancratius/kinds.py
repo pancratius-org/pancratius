@@ -8,7 +8,7 @@ dict equals the ``SEGMENT_OF`` map in ``src/lib/kinds.ts``.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, TypeGuard
 
 type RoutedKind = Literal["book", "poem", "project", "video", "message"]
 type CorpusWorkKind = Literal["book", "poem"]
@@ -39,3 +39,18 @@ CORPUS_WORK_KINDS: tuple[CorpusWorkKind, ...] = ("book", "poem")
 KIND_OF_SEGMENT: dict[RoutedSegment, RoutedKind] = {
     segment: kind for kind, segment in SEGMENT_OF.items()
 }
+
+
+def is_routed_kind(value: str) -> TypeGuard[RoutedKind]:
+    """Return whether an untrusted string is a routed content kind."""
+    return value in SEGMENT_OF
+
+
+def is_corpus_work_kind(value: str) -> TypeGuard[CorpusWorkKind]:
+    """Return whether an untrusted string is an importable/downloadable work kind."""
+    return value in CORPUS_WORK_KINDS
+
+
+def is_routed_segment(value: str) -> TypeGuard[RoutedSegment]:
+    """Return whether an untrusted string is a configured URL segment."""
+    return value in KIND_OF_SEGMENT

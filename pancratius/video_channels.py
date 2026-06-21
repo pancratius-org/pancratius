@@ -13,6 +13,7 @@ from typing import Any
 
 import yaml
 
+from pancratius.locales import DEFAULT_LOCALE, Locale, is_locale
 from pancratius.paths import CONTENT_ROOT
 
 CHANNELS_PATH = CONTENT_ROOT / "videos" / "channels.yaml"
@@ -25,12 +26,12 @@ class VideoChannel:
     handle: str | None
     channel_id: str | None
     url: str
-    title: dict[str, str]
-    copy: dict[str, str]
-    badge: dict[str, str] | None
+    title: dict[Locale, str]
+    copy: dict[Locale, str]
+    badge: dict[Locale, str] | None
     scan: bool
     # The locale the scanner writes into `<lang>.md` for entries from this channel.
-    default_lang: str
+    default_lang: Locale
 
 
 class ChannelsError(RuntimeError):
@@ -76,6 +77,9 @@ def _parse_one(entry: object) -> VideoChannel:
     badge = data.get("badge")
     handle = data.get("handle")
     channel_id = data.get("channel_id")
+    default_lang = str(data.get("default_lang", DEFAULT_LOCALE))
+    if not is_locale(default_lang):
+        raise ChannelsError(f"channel {key}: unsupported default_lang {default_lang!r}")
     return VideoChannel(
         key=key,
         platform=str(data["platform"]),
@@ -86,12 +90,18 @@ def _parse_one(entry: object) -> VideoChannel:
         copy=_locale_map(copy),
         badge=_locale_map(badge) if isinstance(badge, Mapping) else None,
         scan=bool(data.get("scan", True)),
-        default_lang=str(data.get("default_lang", "ru")),
+        default_lang=default_lang,
     )
 
 
-def _locale_map(raw: Mapping[Any, object]) -> dict[str, str]:
-    return {str(k): str(v) for k, v in raw.items()}
+def _locale_map(raw: Mapping[Any, object]) -> dict[Locale, str]:
+    out: dict[Locale, str] = {}
+    for key, value in raw.items():
+        locale = str(key)
+        if not is_locale(locale):
+            raise ChannelsError(f"unsupported locale key {locale!r}")
+        out[locale] = str(value)
+    return out
 
 
 def write_channels(channels: list[VideoChannel], path: Path = CHANNELS_PATH) -> None:
@@ -115,6 +125,6 @@ def _channel_to_dict(c: VideoChannel) -> dict[str, Any]:
     entry["title"] = dict(c.title)
     entry["copy"] = dict(c.copy)
     entry["scan"] = c.scan
-    if c.default_lang != "ru":
+    if c.default_lang != DEFAULT_LOCALE:
         entry["default_lang"] = c.default_lang
     return entry

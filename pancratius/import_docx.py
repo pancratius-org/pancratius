@@ -11,7 +11,7 @@ import zipfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
-from typing import Any, TypedDict, TypeGuard
+from typing import Any, TypedDict
 
 from pancratius import footnotes, ir
 from pancratius.content_catalog import (
@@ -31,7 +31,8 @@ from pancratius.docx_conversion import (
     to_ascii_slug,
     write_bibliography_sidecar,
 )
-from pancratius.kinds import CORPUS_WORK_KINDS, CorpusWorkKind, RoutedKind
+from pancratius.kinds import CORPUS_WORK_KINDS, CorpusWorkKind, RoutedKind, is_corpus_work_kind
+from pancratius.locales import Locale
 from pancratius.paths import CACHE_ROOT, CONTENT_ROOT, imports_dir_for_content_root
 from pancratius.writeplan import Diagnostic, Role, WriteOp, WritePlan
 from pancratius.writer import WriteReport
@@ -68,7 +69,7 @@ class ImportRequest:
     """
 
     docx: Path
-    lang: str
+    lang: Locale
     out_content: Path
     kind: CorpusWorkKind | None = None
     into: str | None = None
@@ -107,7 +108,7 @@ class _ResolvedTarget:
     work_entries: list[CatalogEntry]
 
 
-def _scratch_role(rel: PurePosixPath, lang: str) -> Role:
+def _scratch_role(rel: PurePosixPath, lang: Locale) -> Role:
     """Map a staged bundle file to its WritePlan ownership role."""
     name = rel.name
     if name == f"{lang}.md":
@@ -126,7 +127,7 @@ def _plan_from_scratch(
     stage_work_dir: Path,
     content_root: Path,
     scope: PurePosixPath,
-    lang: str,
+    lang: Locale,
     replace: bool,
     diagnostics: tuple[Diagnostic, ...],
     source_document: Path,
@@ -275,10 +276,6 @@ def _slug_with_number(raw_slug: str, number: int) -> str:
     return f"{number:02d}-{slug}"
 
 
-def _is_corpus_work_kind(kind: RoutedKind) -> TypeGuard[CorpusWorkKind]:
-    return kind in CORPUS_WORK_KINDS
-
-
 def _existing_group(matches: list[CatalogEntry], work_ref: str) -> _ExistingGroup:
     groups: dict[tuple[RoutedKind, str], list[CatalogEntry]] = {}
     for entry in matches:
@@ -289,12 +286,12 @@ def _existing_group(matches: list[CatalogEntry], work_ref: str) -> _ExistingGrou
         choices = ", ".join(f"{kind}/{work_key}" for kind, work_key in sorted(groups))
         raise ImportWorkError(f"--into is ambiguous ({choices}); pass --kind")
     (kind, work_key), entries = next(iter(groups.items()))
-    if not _is_corpus_work_kind(kind):
+    if not is_corpus_work_kind(kind):
         raise ImportWorkError(f"work kind is not importable: {kind}")
     return _ExistingGroup(kind=kind, work_key=work_key, entries=entries)
 
 
-def _preferred_entry(entries: list[CatalogEntry], lang: str) -> CatalogEntry:
+def _preferred_entry(entries: list[CatalogEntry], lang: Locale) -> CatalogEntry:
     same_lang = [entry for entry in entries if entry.lang == lang]
     if same_lang:
         return same_lang[0]
@@ -304,7 +301,7 @@ def _preferred_entry(entries: list[CatalogEntry], lang: str) -> CatalogEntry:
     return entries[0]
 
 
-def _existing_lang_entry(entries: list[CatalogEntry], lang: str) -> CatalogEntry | None:
+def _existing_lang_entry(entries: list[CatalogEntry], lang: Locale) -> CatalogEntry | None:
     return next((entry for entry in entries if entry.lang == lang), None)
 
 
@@ -332,7 +329,7 @@ def _frontmatter_cover_exists(work_dir: Path, cover: object) -> bool:
     return (work_dir / cover[2:]).is_file()
 
 
-def _find_cover(work_dir: Path, lang: str) -> str | None:
+def _find_cover(work_dir: Path, lang: Locale) -> str | None:
     """The work's own `cover.<lang>.<ext>`, or None — render and download export
     fall back to the default-locale cover themselves, so no cross-locale pointer."""
     for path in sorted(work_dir.glob(f"cover.{lang}.*")):
@@ -346,7 +343,7 @@ def _prepare_cover(
     cover_arg: str | None,
     read_dir: Path,
     write_dir: Path,
-    lang: str,
+    lang: Locale,
     existing_lang: CatalogEntry | None,
 ) -> str | None:
     """Resolve the bundle cover: existing covers are read from `read_dir` (the real
@@ -369,7 +366,7 @@ def _prepare_cover(
     return _find_cover(read_dir, lang)
 
 
-def _translation_source(existing_lang: CatalogEntry | None, lang: str, override: str | None) -> str:
+def _translation_source(existing_lang: CatalogEntry | None, lang: Locale, override: str | None) -> str:
     if override:
         return override
     if existing_lang:
@@ -414,7 +411,7 @@ def _frontmatter_for_import(
     slug: str,
     title: str,
     description: str,
-    lang: str,
+    lang: Locale,
     cover: str | None,
     existing_lang: CatalogEntry | None,
     reference: CatalogEntry | None,
