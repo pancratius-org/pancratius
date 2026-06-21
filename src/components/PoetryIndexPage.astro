@@ -1,5 +1,6 @@
 ---
 import Base from "@/layouts/Base.astro";
+import FeedLink from "@/components/feed/FeedLink.astro";
 
 import { LOCALES, type Locale, kindIndexUrl, workUrl } from "@/lib/i18n";
 import { poetryIndexCopy } from "@/lib/i18n/copy";
@@ -82,7 +83,7 @@ const months: MonthGroup[] = [...buckets.entries()]
 ---
 <Base {locale} {seo} {alternates}>
   <section class="l-canvas l-canvas--page l-page-block poetry-index">
-    <p class="eyebrow eyebrow--lg">{copy.eyebrow()}</p>
+    <p class="eyebrow eyebrow--lg">{copy.eyebrow()}<FeedLink locale={locale} /></p>
     <div class="poetry-index__head">
       <h1><b>{rows.length}</b> {copy.headingLabel(rows.length)}</h1>
       <p class="poetry-index__intro index-lede l-measure l-measure--start">{copy.intro}</p>
