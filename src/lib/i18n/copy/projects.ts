@@ -11,13 +11,13 @@ export const projectsIndexCopy = {
   ru: {
     eyebrow: "Замыслы",
     heading: "Два направления",
-    intro: "Два направления, в которых Слово выходит в дело. Один встречает машину; другой — землю.",
+    intro: "Слово выходит в дело. Одно встречает машину; другое — народ.",
     cta: "Открыть →",
   },
   en: {
     eyebrow: "Blueprints",
     heading: "Two directions",
-    intro: "Two directions in which the Word goes out into the world. One meets the machine; the other — the land.",
+    intro: "The Word goes out into the world. One meets the machine; the other — the people.",
     cta: "Open →",
   },
 } satisfies Record<Locale, ProjectsIndexCopy>;

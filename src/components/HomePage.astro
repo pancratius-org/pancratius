@@ -2,7 +2,6 @@
 import Base              from "@/layouts/Base.astro";
 import BookCard          from "@/components/BookCard.astro";
 import SvetozarTerminal  from "@/components/SvetozarTerminal.astro";
-import SvetozarBooks     from "@/components/SvetozarBooks.astro";
 
 import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE, homeUrl, kindIndexUrl, LOCALES, pageUrl, workUrl } from "@/lib/i18n";
@@ -18,6 +17,7 @@ import {
   type WorkPair,
 } from "@/lib/works";
 import { getProjects, projectUrl } from "@/lib/projects";
+import { getAllVideoPairs, localizedVideoPairs } from "@/lib/videos";
 
 interface Props {
   locale: Locale;
@@ -55,6 +55,10 @@ const allPoems = await getPairsByKind("poem");
 // Poems available in the active locale (whole set on the default locale; the
 // translated subset otherwise) — drives the home poetry count/stat.
 const localizedPoems = localizedWorkPairs(allPoems, locale);
+// Videos available in the active locale (all on the default locale; the
+// English-authored subset otherwise) — the count the home video stat shows,
+// matching the /videos/ index heading.
+const localizedVideos = localizedVideoPairs(await getAllVideoPairs(), locale);
 // Corpus tallies drive the home meta description's spelled-out counts.
 const seo = seoForHome(locale, { books: allBooks.length, poems: allPoems.length });
 // Projects are sections, not works — sourced from the projects lib. The
@@ -101,6 +105,7 @@ const heroStats = copy.hero.stats?.({
   totalBooks: allBooks.length,
   englishBooks: localizedBooks.length,
   poems: localizedPoems.length,
+  videos: localizedVideos.length,
 });
 const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
 ---
@@ -276,8 +281,6 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
 
         <SvetozarTerminal lang={locale} />
       </div>
-
-      <SvetozarBooks {locale} withHeading={false} />
     </section>
 
     {/* Person section lives at /about/. Closing CC0 line lives in the
@@ -376,13 +379,12 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
   }
 
   .home__counts {
-    /* Three cells in one row, each sized to its content. The earlier
-       flex-wrap layout dropped the third cell onto a second line once
-       the labels grew (a long "стихотворения" pushed CC0 to wrap). A
-       fixed 3-track grid never wraps on desktop. */
+    /* Three cells in one row, each sized to its content. The column gap
+       floors low so the trio still fits a phone — the long RU
+       "стихотворения" label, not the gap, is the tight dimension. */
     display: grid;
     grid-template-columns: repeat(3, max-content);
-    gap: 0 clamp(1.75rem, 3.5vw, 3rem);
+    gap: 0 clamp(0.9rem, 3.5vw, 3rem);
     margin: 2.3rem 0 0;
     padding: 1.25rem 0 0;
     border-top: 1px solid var(--rule);
@@ -397,10 +399,6 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
   }
   .home__count--link {
     transition: color 0.18s var(--ease);
-  }
-  @media (max-width: 460px) {
-    /* Very narrow phones: let the trio wrap rather than overflow. */
-    .home__counts { grid-template-columns: repeat(2, max-content); gap: 1.1rem clamp(1.75rem, 8vw, 3rem); }
   }
   .home__counts b {
     font-family: var(--serif);
@@ -683,6 +681,12 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
   /* ─ MOBILE TUNE ───────────────────────────────────────────────── */
 
   @media (max-width: 720px) {
+    /* Phone: center the masthead on one axis — the logo (a centered mark)
+       no longer floats against left-aligned copy. The verse stays left as a
+       quoted passage; centered multi-line verse reads worse. */
+    .home__hero-main { text-align: center; }
+    .home__mark { margin-inline: auto; }
+    .home__counts { justify-content: center; }
     .home__verse { padding-left: 1.1rem; }
     .home__project { grid-template-columns: auto minmax(0, 1fr); }
     .home__project-cta { grid-column: 2; justify-self: end; }

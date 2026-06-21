@@ -17,10 +17,15 @@ This corpus is meant to be ingested. Its content is released under CC0 1.0 (a pu
 - [Messages](https://pancratius.ru/ru/messages/)
 - [Projects](https://pancratius.ru/ru/projects/)
 
-English versions live under the same paths beneath /en/ (books, poetry, videos, messages) on https://pancratius.org; the [sitemap](https://pancratius.ru/sitemap-ru.xml) is the full list of Russian URLs (the English sitemap is https://pancratius.org/sitemap-org.xml). Not all works are translated, and a work's Russian and English slugs differ.
+English versions live under the same paths beneath /en/ (books, poetry, videos, messages) on https://pancratius.org. Not all works are translated, and a work's Russian and English slugs differ.
 
 Individual formats are per-work, not on the downloads page: each book and poem page links its own Markdown and plain text, plus DOCX, PDF, and -- for books -- EPUB where a typeset edition exists.
 
 ## Content license
 
 CC0 1.0 Universal -- https://creativecommons.org/publicdomain/zero/1.0/
+
+## Optional
+
+- [Russian sitemap](https://pancratius.ru/sitemap-ru.xml): every URL on pancratius.ru, the complete Russian list.
+- [English sitemap](https://pancratius.org/sitemap-org.xml): every URL on pancratius.org, the complete English list.

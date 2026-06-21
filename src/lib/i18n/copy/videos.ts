@@ -14,7 +14,7 @@ export const videosIndexCopy = {
   ru: {
     eyebrow: "Голос",
     headingLabel: (count) => count === 1 ? "видео" : "видео",
-    sub: () => "Каталог видео — где есть, с письменным разбором.",
+    sub: () => "Слово, сказанное вслух.",
     channelsHeading: "Каналы",
     channelsSub: "Точки сбора. Подпишитесь там, где удобнее.",
     openChannel: "Открыть канал",
@@ -22,7 +22,7 @@ export const videosIndexCopy = {
   en: {
     eyebrow: "Voice",
     headingLabel: (count) => (count === 1 ? "video" : "videos"),
-    sub: () => "Pancratius on video. Each with its own page and, where written, a commentary.",
+    sub: () => "The Word, spoken aloud.",
     channelsHeading: "Channels",
     channelsSub: "Where the uploads live. Subscribe wherever it suits.",
     openChannel: "Open channel",
