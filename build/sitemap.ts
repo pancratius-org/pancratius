@@ -141,7 +141,9 @@ function renderSitemap(nodes: UrlNode[]): string {
       return `  <url>\n    <loc>${node.loc}</loc>${links ? `\n${links}` : ""}\n  </url>`;
     })
     .join("\n");
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset ${xmlns}>\n${body}\n</urlset>\n`;
+  // Crawlers ignore the stylesheet PI; browsers use it to render sitemap.xsl.
+  const stylesheet = `<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n${stylesheet}\n<urlset ${xmlns}>\n${body}\n</urlset>\n`;
 }
 
 function main(): number {
