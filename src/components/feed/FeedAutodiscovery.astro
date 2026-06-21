@@ -1,0 +1,14 @@
+---
+// FeedAutodiscovery — the page's <head> declaration that a feed exists: the
+// combined "latest" feed for this locale. The discovery concept as a named
+// component rather than an inline <link> in the head.
+import type { Locale } from "@/lib/i18n";
+import { FEED_COPY, feedUrl } from "@/lib/feed-meta";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+---
+<link rel="alternate" type="application/rss+xml" title={FEED_COPY[locale].title} href={feedUrl(locale)} />

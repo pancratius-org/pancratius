@@ -1,5 +1,6 @@
 ---
 import type { SeoMeta } from "@/lib/seo";
+import FeedAutodiscovery from "@/components/feed/FeedAutodiscovery.astro";
 
 interface Props {
   seo: SeoMeta;
@@ -38,6 +39,9 @@ const { seo, themeColor = "#0c0d10" } = Astro.props;
 {seo.jsonLd && (
   <script is:inline type="application/ld+json" set:html={JSON.stringify(seo.jsonLd)} />
 )}
+
+{/* RSS autodiscovery */}
+<FeedAutodiscovery locale={seo.locale} />
 
 {/* Discoverability for language models */}
 <link rel="alternate" type="text/plain" href="/llms.txt" />
