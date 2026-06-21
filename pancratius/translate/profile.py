@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -31,6 +31,16 @@ from pancratius.translate.schema import profile_format
 
 logger = logging.getLogger(__name__)
 
+# A model's structured brief reply, parsed from JSON: untrusted, read defensively
+# field by field (the readers below tolerate any missing or mistyped field).
+type ProfileReply = Mapping[str, Any]
+
+# The corpus tag glossary's `en` block: a canonical RU tag key mapped to the one
+# EN display label that concept keeps across every book.
+type TagKey = str
+type TagLabel = str
+type TagLabels = Mapping[TagKey, TagLabel]
+
 
 @dataclass(frozen=True, slots=True)
 class PersonaEntry:
@@ -42,7 +52,6 @@ class PersonaEntry:
 class BookProfile:
     title_en: str
     description_en: str
-    tags_en: tuple[str, ...]
     summary: str
     register: str
     personas: tuple[PersonaEntry, ...]
@@ -105,12 +114,11 @@ def _terms(raw: object) -> tuple[TermEntry, ...]:
 
 
 def _profile_from_json(
-    data: dict[str, Any], *, fallback_title: str, fallback_desc: str, fallback_tags: Sequence[str]
+    data: ProfileReply, *, fallback_title: str, fallback_desc: str
 ) -> BookProfile:
     return BookProfile(
         title_en=_str(data.get("title_en")) or fallback_title,
         description_en=_str(data.get("description_en")) or fallback_desc,
-        tags_en=str_tuple(data.get("tags_en")) or tuple(fallback_tags),
         summary=_str(data.get("summary")),
         register=_str(data.get("register")),
         personas=_personas(data.get("personas")),
@@ -156,12 +164,12 @@ def build_profile(
             logger.warning("profile JSON unparseable for %r; using a minimal brief", title_ru[:40])
             data = {}
     profile = _profile_from_json(
-        data, fallback_title=title_ru, fallback_desc=description_ru, fallback_tags=tags_ru
+        data, fallback_title=title_ru, fallback_desc=description_ru
     )
     return ProfileResult(profile=profile, usage=completion.usage)
 
 
-def _lenient_object(text: str) -> dict[str, Any]:
+def _lenient_object(text: str) -> ProfileReply:
     start, end = text.find("{"), text.rfind("}")
     if start == -1 or end <= start:
         raise ValueError("profile reply was not JSON")
@@ -191,6 +199,17 @@ def load_glossary(path: Path) -> tuple[TermEntry, ...]:
             )
         )
     return tuple(out)
+
+
+def load_tag_labels(path: Path) -> TagLabels:
+    """Canonical RU-tag → EN-label map from the glossary's `en` block (shape
+    ``{ru: {...}, en: {ru_key: en_label}}``). The pipeline maps each book's RU
+    tags through this so one concept keeps one EN label across the corpus."""
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    en = raw.get("en") if isinstance(raw, dict) else None
+    if not isinstance(en, dict):
+        raise ValueError(f"tag glossary {path} must have an 'en' object of RU-key → EN-label")
+    return {str(k): str(v) for k, v in en.items() if isinstance(v, str)}
 
 
 def title_precedents(entries: Iterable[CatalogEntry]) -> tuple[TitlePrecedent, ...]:

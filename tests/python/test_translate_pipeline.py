@@ -32,6 +32,8 @@ slug: 01-test
 title: Книга Света
 lang: ru
 description: Краткое описание.
+tags:
+- Свет
 translation:
   source: original
 ---
@@ -70,7 +72,6 @@ class _FakeClient:
             payload = {
                 "title_en": "Book of Light",
                 "description_en": "A short description.",
-                "tags_en": ["Light"],
                 "summary": "s",
                 "register": "r",
                 "personas": [],
@@ -99,6 +100,7 @@ def test_translate_book_writes_structure_preserving_en(tmp_path: Path) -> None:
         catalog=catalog,
         generated_at="2026-06-17",
         dry_run=False,
+        tag_labels={"Свет": "Light"},
     )
 
     en = entry.work_dir / "en.md"
@@ -119,6 +121,21 @@ def test_translate_book_writes_structure_preserving_en(tmp_path: Path) -> None:
     assert "# Light-" in body
     # The two-space verse hard break is structural -> preserved verbatim.
     assert "  \n" in body
+
+
+def test_tag_with_no_glossary_entry_passes_through_raw(tmp_path: Path) -> None:
+    # An unmapped RU tag is written verbatim (the tag_consistency audit flags it),
+    # never silently dropped or invented.
+    content = tmp_path / "src" / "content"
+    _seed_book(content)
+    catalog = scan_catalog(content)
+    entry = next(e for e in catalog if e.lang == "ru")
+    translate_book(
+        _FakeClient(), TranslateConfig(), entry=entry, catalog=catalog,
+        generated_at="2026-06-17", dry_run=False, tag_labels={},
+    )
+    fm = read_frontmatter(entry.work_dir / "en.md")
+    assert fm["tags"] == ["Свет"]
 
 
 def test_find_untranslated_lists_books_missing_en(tmp_path: Path) -> None:
@@ -227,7 +244,7 @@ def test_reconcile_seams_merges_only_rewritten_units() -> None:
     a, b, c = (u.id for u in doc.units)
     translations = {a: "Light one.", b: "Light two.", c: "Glow three."}
     profile = BookProfile(
-        title_en="t", description_en="d", tags_en=(), summary="", register="",
+        title_en="t", description_en="d", summary="", register="",
         personas=(), terms=(TermEntry(source="Свет", target="Light"),), recurring=(),
     )
 
@@ -266,7 +283,7 @@ def test_reconcile_seams_noop_when_consistent() -> None:
     a, b = (u.id for u in doc.units)
     translations = {a: "Light one.", b: "Light two."}
     profile = BookProfile(
-        title_en="t", description_en="d", tags_en=(), summary="", register="",
+        title_en="t", description_en="d", summary="", register="",
         personas=(), terms=(TermEntry(source="Свет", target="Light"),), recurring=(),
     )
 

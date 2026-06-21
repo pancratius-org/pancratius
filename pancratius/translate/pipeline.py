@@ -39,6 +39,7 @@ from pancratius.translate.document import (
 )
 from pancratius.translate.profile import (
     BookProfile,
+    TagLabels,
     build_profile,
     effective_terms,
     str_tuple,
@@ -323,13 +324,17 @@ def _en_frontmatter(
     work_dir: Path,
     model: ModelId,
     generated_at: str,
+    tag_labels: TagLabels,
 ) -> Frontmatter:
     fm: Frontmatter = dict(ru_fm)
     fm["lang"] = "en"
     fm["title"] = profile.title_en
     fm["description"] = profile.description_en
-    if profile.tags_en:
-        fm["tags"] = list(profile.tags_en)
+    # Tags are the RU entry's tags mapped through the glossary — one concept, one
+    # canonical EN label across the corpus. An unmapped tag passes through for the
+    # tag_consistency audit to flag.
+    ru_tags = str_tuple(ru_fm.get("tags"))
+    fm["tags"] = [tag_labels.get(t, t) for t in ru_tags]
     cover = next((p for p in sorted(work_dir.glob("cover.en.*"))), None)
     if cover is not None:
         fm["cover"] = f"./{cover.name}"
@@ -348,6 +353,7 @@ def translate_book(
     dry_run: bool,
     replace: bool = False,
     cache_dir: Path | None = None,
+    tag_labels: TagLabels | None = None,
 ) -> TranslationReport:
     ru_fm, document = _load_source(entry)
     chunks = plan_chunks(document, config)
@@ -401,7 +407,6 @@ def translate_book(
                 cached_brief.profile_json,
                 fallback_title=entry.title,
                 fallback_desc=entry.description,
-                fallback_tags=tags_ru,
             )
             logger.info("profile brief from cache")
         else:
@@ -524,6 +529,7 @@ def translate_book(
         work_dir=entry.work_dir,
         model=config.models.draft,
         generated_at=generated_at,
+        tag_labels=tag_labels or {},
     )
     findings = tuple(check_translation(document, translations, en_fm=en_fm))
     blocking = tuple(f for f in findings if f.severity >= Severity.CRITICAL)
@@ -636,7 +642,6 @@ def _profile_to_json(profile: BookProfile) -> str:
     return json.dumps({
         "title_en": profile.title_en,
         "description_en": profile.description_en,
-        "tags_en": list(profile.tags_en),
         "summary": profile.summary,
         "register": profile.register,
         "personas": [{"name": p.name, "voice": p.voice} for p in profile.personas],
@@ -651,7 +656,6 @@ def _profile_from_json_str(
     *,
     fallback_title: str,
     fallback_desc: str,
-    fallback_tags: Sequence[str],
 ) -> BookProfile:
     """Deserialize a cached ``BookProfile`` JSON string. Degrades on bad JSON."""
     from pancratius.translate.profile import _profile_from_json  # local import avoids circular
@@ -665,7 +669,6 @@ def _profile_from_json_str(
         data,
         fallback_title=fallback_title,
         fallback_desc=fallback_desc,
-        fallback_tags=fallback_tags,
     )
 
 

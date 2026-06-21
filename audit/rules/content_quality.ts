@@ -34,9 +34,9 @@ const FOLDED: readonly FoldedAudit[] = [
     script: "tag_consistency.py",
     severity: "warning",
     category: "content-i18n",
-    contract: "Tags are per-entry and language-bound: a Russian entry carries the normalized canonical tag key, its English translation carries the English label (audit/data/tag-glossary.json). Video playlist titles used as tags follow the same rule.",
+    contract: "Tags are per-entry and language-bound: a Russian entry carries the normalized canonical tag key, its English translation carries the English label (data/tag-glossary.json). Video playlist titles used as tags follow the same rule.",
     why: "An unglossaried or wrongly-cased tag leaks Russian onto an English page and splinters the per-locale filter into duplicate chips for one concept.",
-    repair: "Add the canonical RU key + EN label to audit/data/tag-glossary.json, then normalize the entry's tags/playlist titles to match.",
+    repair: "Add the canonical RU key + EN label to data/tag-glossary.json, then normalize the entry's tags/playlist titles to match.",
   },
   {
     id: "PAN006B-formatting-artifacts",

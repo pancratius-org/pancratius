@@ -89,7 +89,6 @@ class _CountingClient:
             payload = {
                 "title_en": "Cache Book",
                 "description_en": "Cache test.",
-                "tags_en": [],
                 "summary": "s",
                 "register": "r",
                 "personas": [],
@@ -130,7 +129,6 @@ class _BlankFirstChunkClient:
             payload = {
                 "title_en": "Blank Book",
                 "description_en": "d",
-                "tags_en": [],
                 "summary": "s",
                 "register": "r",
                 "personas": [],
@@ -165,7 +163,6 @@ class _BlankAlwaysClient:
             payload = {
                 "title_en": "Blank",
                 "description_en": "d",
-                "tags_en": [],
                 "summary": "s",
                 "register": "r",
                 "personas": [],

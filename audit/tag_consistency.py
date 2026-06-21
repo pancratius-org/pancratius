@@ -2,7 +2,7 @@
 
 Tags are per-entry, language-bound (like title/description): a Russian entry
 carries the normalized canonical tag key, its English translation carries the
-English label. The canonical RU↔EN mapping lives in `audit/data/tag-glossary.json`.
+English label. The canonical RU↔EN mapping lives in `data/tag-glossary.json`.
 
 This check fails when an entry (or a video playlist title used as a tag) carries
 a tag that is NOT a known label for its locale — which is exactly how Russian
@@ -31,7 +31,7 @@ def _root() -> Path:
 
 def main() -> int:
     root = _root()
-    glossary_path = root / "audit" / "data" / "tag-glossary.json"
+    glossary_path = root / "data" / "tag-glossary.json"
     if not glossary_path.exists():
         print(f"FAIL: missing {glossary_path}", file=sys.stderr)
         return 1
@@ -68,7 +68,7 @@ def main() -> int:
         if len(bad) > 40:
             print(f"  … {len(bad) - 40} more", file=sys.stderr)
         print(
-            "Add the canonical RU key + EN label to audit/data/tag-glossary.json, "
+            "Add the canonical RU key + EN label to data/tag-glossary.json, "
             "then normalize the entry's tags/playlist titles to match.",
             file=sys.stderr,
         )

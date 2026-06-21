@@ -39,7 +39,7 @@ def test_parse_translations_flattens_stray_newlines() -> None:
 
 def test_profile_schema_describes_every_field() -> None:
     props = profile_format()["json_schema"]["schema"]["properties"]
-    assert {"title_en", "tags_en", "terms", "personas"} <= set(props)
+    assert {"title_en", "description_en", "terms", "personas"} <= set(props)
     assert all("description" in spec for spec in props.values())
     term = props["terms"]["items"]["properties"]
     assert set(term) == {"source", "target", "note", "locked"}
