@@ -3019,7 +3019,7 @@ For his silence knew how to speak.
 <div class="lineated verse">
 
 An old man with a white beard sat in the corner and drank tea.  
-He never вмешивался.  
+He never interfered.  
 But one day he said:  
 — You know, in the Kingdom there are no builders.  
 There are only those who become windows.  

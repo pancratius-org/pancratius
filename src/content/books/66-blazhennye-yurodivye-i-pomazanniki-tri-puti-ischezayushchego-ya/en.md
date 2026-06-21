@@ -8,7 +8,7 @@ description: The book about the blessed, the holy fools, and the anointed shows 
 tags:
 - Revelation of God
 - The Bible
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 links:
@@ -1085,7 +1085,7 @@ It relaxes,
 becomes transparent, subtle, insubstantial.  
 The blessed one does not play a role.  
 He does not choose to be “blessed.”  
-He becomes so because the dense оболочка of the “I” softens under the tension of the Light.  
+He becomes so because the dense shell of the “I” softens under the tension of the Light.  
 He has no identification within the role.  
 He does not think of himself as “blessed,” does not define himself, does not try to live up to an image.  
 His state is not a role,  
@@ -1848,7 +1848,7 @@ It is I who am intensifying the light.
 
 </div>
 
-**2. Second: the столкновение with the attention of other people**
+**2. Second: the clash with the attention of other people**
 
 <div class="lineated verse">
 

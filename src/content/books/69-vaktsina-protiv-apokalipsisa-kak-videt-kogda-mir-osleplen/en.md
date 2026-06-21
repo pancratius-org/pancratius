@@ -8,7 +8,7 @@ description: 'This book is not about the end of the world, but about the end of 
 tags:
 - Revelation of God
 - The Bible
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 ---

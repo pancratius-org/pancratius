@@ -45,8 +45,10 @@ import {
 import { originFor } from "./origins";
 import { ogBrandPath, ogImageUrl } from "./og";
 
-const AUTHOR_NAME = "Сергей Орехов";
-const AUTHOR_ALIAS = "Панкратиус";
+// Locale-keyed so EN structured data carries the transliterated name rather than
+// Cyrillic under an English URL (machine-readable schema.org author).
+const AUTHOR_NAME: Record<Locale, string> = { ru: "Сергей Орехов", en: "Sergey Orekhov" };
+const AUTHOR_ALIAS: Record<Locale, string> = { ru: "Панкратиус", en: "Pancratius" };
 const CORPUS_NAME = "Pancratius";
 const LICENSE_URL = "https://creativecommons.org/publicdomain/zero/1.0/";
 const META_DESC_TARGET = 220;  // characters; clamps to nearest sentence boundary
@@ -335,8 +337,8 @@ export function seoForProject(input: ProjectSeoInput): SeoMeta {
     "inLanguage":  locale,
     "author":      {
       "@type":         "Person",
-      "name":          AUTHOR_NAME,
-      "alternateName": AUTHOR_ALIAS,
+      "name":          AUTHOR_NAME[locale],
+      "alternateName": AUTHOR_ALIAS[locale],
     },
     "license":     LICENSE_URL,
     "isPartOf":    {
@@ -525,8 +527,8 @@ export function seoForVideo(input: VideoSeoInput): SeoMeta {
     "inLanguage":   locale,
     "author":       {
       "@type":         "Person",
-      "name":          AUTHOR_NAME,
-      "alternateName": AUTHOR_ALIAS,
+      "name":          AUTHOR_NAME[locale],
+      "alternateName": AUTHOR_ALIAS[locale],
     },
     "license":      LICENSE_URL,
     "isPartOf":     {
@@ -597,8 +599,8 @@ export function seoForMessage(input: MessageSeoInput): SeoMeta {
     "inLanguage":    locale,
     "author":        {
       "@type":         "Person",
-      "name":          AUTHOR_NAME,
-      "alternateName": AUTHOR_ALIAS,
+      "name":          AUTHOR_NAME[locale],
+      "alternateName": AUTHOR_ALIAS[locale],
     },
     "license":       LICENSE_URL,
     "isPartOf":      {
@@ -665,8 +667,8 @@ function creativeWorkLd(input: CreativeWorkInput): Record<string, unknown> {
     "inLanguage": locale,
     "author":     {
       "@type":         "Person",
-      "name":          AUTHOR_NAME,
-      "alternateName": AUTHOR_ALIAS,
+      "name":          AUTHOR_NAME[locale],
+      "alternateName": AUTHOR_ALIAS[locale],
     },
     "license":    LICENSE_URL,
     "isPartOf":   {

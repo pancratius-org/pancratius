@@ -52,7 +52,7 @@ const totalCount = bank.tiers.reduce((n, t) => n + t.questions.length, 0);
 const sourceHref = bank.source ? await featuredBookUrl(bank.source.book, locale) : null;
 ---
 <section class="awaken" aria-labelledby="awaken-h">
-  <!-- The «Промт Пробуждения» framing — a voice set apart, the activating prompt. -->
+  {/* The Awakening Prompt framing — a voice set apart, the activating prompt. */}
   <aside class="awaken__prompt" aria-label={bank.prompt.title}>
     <p class="awaken__prompt-title">{bank.prompt.title}</p>
     {bank.prompt.subtitle && <p class="awaken__prompt-sub">{bank.prompt.subtitle}</p>}
