@@ -51,8 +51,7 @@ export const bookCardCopy = {
 export interface BooksIndexCopy {
   eyebrow: string;
   headingLabel(count: number): string;
-  sub(total: number, available: number): string;
-  fullCatalogLink?: string;
+  sub(total: number): string;
 }
 
 export const booksIndexCopy = {
@@ -65,7 +64,6 @@ export const booksIndexCopy = {
     eyebrow: "Observatory of Light",
     headingLabel: () => "books",
     sub: () => "Each book is its own door into the same room. Begin with any.",
-    fullCatalogLink: "See the full Russian catalogue.",
   },
 } satisfies Record<Locale, BooksIndexCopy>;
 
@@ -105,8 +103,6 @@ export interface ColophonCopy {
   rights_before: string;
   rights_link: string;
   rights_after: string;
-  translatedFrom: string;
-  original: string;
 }
 
 export const colophonCopy = {
@@ -114,15 +110,11 @@ export const colophonCopy = {
     rights_before: "Все тексты — в ",
     rights_link: "общественном достоянии (CC0)",
     rights_after: ". Берите. Переводите. Передавайте.",
-    translatedFrom: "Перевод с",
-    original: "оригинала",
   },
   en: {
     rights_before: "All texts are in the ",
     rights_link: "public domain (CC0)",
     rights_after: ". Take them. Translate. Pass them on.",
-    translatedFrom: "Translated from",
-    original: "the Russian original",
   },
 } satisfies Record<Locale, ColophonCopy>;
 

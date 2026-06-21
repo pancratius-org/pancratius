@@ -46,17 +46,22 @@ const coverImageProps = loading === "eager"
     box-shadow: var(--paper-shadow);
     transition: border-color 0.18s var(--ease), transform 0.32s var(--ease);
   }
-  .bcv img {
+  /* :global(img) — the cover <img> is rendered by the child ResponsiveCoverImage, so
+     a plain `.bcv img` selector gets scoped to this component's id and never matches it. */
+  .bcv :global(img) {
     position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
+    /* Anchor top-left only, then overflow the aspect-ratio rounding gap by 1px so the
+       cream --bg-rise can't show as a hairline below the image (overflow:hidden clips it). */
+    top: 0;
+    left: 0;
+    width: calc(100% + 1px);
+    height: calc(100% + 1px);
     object-fit: cover;
     display: block;
     opacity: 0.94;
     transition: opacity 0.32s var(--ease);
   }
-  :global([data-theme="light"]) .bcv img { opacity: 1; }
+  :global([data-theme="light"]) .bcv :global(img) { opacity: 1; }
   .bcv--empty {
     display: grid;
     place-items: center;
