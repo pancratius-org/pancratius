@@ -41,6 +41,7 @@ from googleapiclient.discovery import build as _build_service
 from googleapiclient.errors import HttpError
 
 from pancratius.docx_conversion import to_ascii_slug
+from pancratius.locales import Locale
 from pancratius.paths import CONTENT_ROOT
 from pancratius.video_channels import CHANNELS_PATH, VideoChannel, load_channels
 
@@ -148,7 +149,7 @@ class NewVideo:
     """One scaffold work item the writer turns into a bundle on disk."""
     number: int
     folder: str
-    lang: str
+    lang: Locale
     yt_id: VideoId
     title: str
     description: str

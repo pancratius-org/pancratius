@@ -43,8 +43,8 @@ from pathlib import Path
 from PIL import Image
 
 from pancratius.content_catalog import split_frontmatter
-from pancratius.kinds import CORPUS_WORK_KINDS, SEGMENT_OF
-from pancratius.locales import DEFAULT_LOCALE, LOCALES
+from pancratius.kinds import CORPUS_WORK_KINDS, SEGMENT_OF, CorpusWorkKind
+from pancratius.locales import DEFAULT_LOCALE, Locale, is_locale
 from pancratius.paths import (
     CACHE_ROOT,
     CONTENT_ROOT,
@@ -58,7 +58,6 @@ TEMPLATES = DOWNLOAD_TEMPLATES_ROOT
 FONTS_ROOT = DOWNLOAD_FONTS_ROOT
 
 KIND_DIRS = SEGMENT_OF
-LANGS = LOCALES
 AUTHOR = "Сергей Орехов (Панкратиус)"
 RIGHTS = "CC0 1.0 Universal — public domain"
 
@@ -81,10 +80,10 @@ LINEATED_DIV_CLASSES = {"lineated", "lineated verse"}
 
 @dataclass(slots=True)
 class WorkEntry:
-    kind: str
+    kind: CorpusWorkKind
     number: int
     folder: Path
-    lang: str
+    lang: Locale
     md: Path
     slug: str
     title: str
@@ -338,7 +337,8 @@ def discover_works() -> Iterable[WorkEntry]:
             if not work_dir.is_dir():
                 continue
             for md in sorted(work_dir.glob("*.md")):
-                if md.stem not in LANGS:
+                raw_lang = md.stem
+                if not is_locale(raw_lang):
                     continue
                 fm = _read_frontmatter(md)
                 kind_in_fm = fm.get("kind")
@@ -350,7 +350,7 @@ def discover_works() -> Iterable[WorkEntry]:
                 if not (isinstance(number, int) and isinstance(slug, str) and isinstance(title, str)):
                     continue
                 yield WorkEntry(
-                    kind=kind, number=number, folder=work_dir, lang=md.stem,
+                    kind=kind, number=number, folder=work_dir, lang=raw_lang,
                     md=md, slug=slug, title=title,
                 )
 
@@ -569,7 +569,7 @@ def render(
     *,
     book: int | None = None,
     poem: int | None = None,
-    lang: str | None = None,
+    lang: Locale | None = None,
     skip_pdf: bool = False,
     skip_epub: bool = False,
     force: bool = False,

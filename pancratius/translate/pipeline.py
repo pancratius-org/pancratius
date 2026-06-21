@@ -18,6 +18,8 @@ from pathlib import Path
 from typing import Any
 
 from pancratius.content_catalog import CatalogEntry, dump_frontmatter, split_frontmatter
+from pancratius.kinds import CorpusWorkKind
+from pancratius.locales import Locale
 from pancratius.translate.cache import BriefCacheEntry, CacheEntry, TranslationCache
 from pancratius.translate.checks import Finding, Severity, check_translation
 from pancratius.translate.chunker import Chunk, plan_chunks
@@ -104,10 +106,10 @@ class TranslationReport:
     digest: tuple[str, ...] = ()
 
 
-def find_untranslated(catalog: Sequence[CatalogEntry], *, kind: str = "book") -> list[CatalogEntry]:
+def find_untranslated(catalog: Sequence[CatalogEntry], *, kind: CorpusWorkKind = "book") -> list[CatalogEntry]:
     """The source entries of works that have a ``ru`` but no ``<target>`` language —
     i.e. the books still missing a translation."""
-    langs_by_number: dict[int, set[str]] = {}
+    langs_by_number: dict[int, set[Locale]] = {}
     source_by_number: dict[int, CatalogEntry] = {}
     for entry in catalog:
         if entry.kind != kind:

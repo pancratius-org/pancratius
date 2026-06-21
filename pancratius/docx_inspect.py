@@ -33,10 +33,12 @@ import zipfile
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
+from typing import Literal
 
 from pancratius import docx_adapter as da
 from pancratius import ir
 from pancratius.ir.inlines import inline_lines, inline_plain
+from pancratius.locales import DEFAULT_LOCALE, Locale
 from pancratius.passes.lineation import VERSE_SHORT_LINE_MAX
 from pancratius.passes.pipeline import PER_ORDINAL_SEAM, Context, run
 from pancratius.thematic import is_thematic_marker
@@ -128,6 +130,22 @@ class InspectResult:
     @property
     def ambiguous_paragraphs(self) -> int:
         return sum(1 for row in self.rows if row.block_kind.startswith("Ambiguous["))
+
+
+type InspectBlockKind = Literal[
+    "BlockQuote",
+    "DialogueLabel",
+    "Epigraph",
+    "Heading",
+    "ImageBlock",
+    "LineatedBlock",
+    "ListBlock",
+    "Paragraph",
+    "Signature",
+    "Table",
+    "ThematicBreak",
+    "VerseBlock",
+]
 
 
 def _ind_attrs(ppr: ET.Element | None) -> dict[str, str]:
@@ -356,7 +374,7 @@ def classify_blocks(docx: Path) -> BlockClassifications:
         doc = da.adapt(docx, Path(td), [])
         # rules-only: no register model (see lineation_decisions)
         doc = run(doc, Context(
-            lang="",
+            lang=DEFAULT_LOCALE,
             lineation_overrides=load_overrides(docx),
             scripture_overrides=load_scripture_pins(docx),
         ))
@@ -481,7 +499,7 @@ def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
     """
     with tempfile.TemporaryDirectory(prefix="docx-mask-") as td:
         doc = da.adapt(docx, Path(td), [])
-        doc = run(doc, Context(lang=""), until=PER_ORDINAL_SEAM)  # rules-only observer
+        doc = run(doc, Context(lang=DEFAULT_LOCALE), until=PER_ORDINAL_SEAM)  # rules-only observer
     blocks = tuple(doc.blocks)
 
     by_source = _SourceClassificationBuilder()
@@ -528,7 +546,7 @@ def lineation_decisions(docx: Path, *, apply_overrides: bool = True) -> dict[int
         doc = da.adapt(docx, Path(td), [])
         # rules-only: no register model (see the docstring); overrides ride the Context
         doc = run(doc, Context(
-            lang="",
+            lang=DEFAULT_LOCALE,
             lineation_overrides=load_overrides(docx) if apply_overrides else None,
             scripture_overrides=load_scripture_pins(docx),
         ))
@@ -601,7 +619,7 @@ def _kind_label(kinds: frozenset[str]) -> str:
     return "Ambiguous[" + "|".join(sorted(kinds)) + "]"
 
 
-def _row_may_be_kind(row: ParaRow, kind: str) -> bool:
+def _row_may_be_kind(row: ParaRow, kind: InspectBlockKind) -> bool:
     return row.block_kind == kind or (
         row.block_kind.startswith("Ambiguous[") and kind in row.block_kind
     )
@@ -708,7 +726,12 @@ def render(rows: list[ParaRow], *, width: int = 58) -> str:
 # ---------------------------------------------------------------------------
 
 
-def resolve_book_docx(number: int, *, lang: str = "ru", content_root: Path | None = None) -> Path:
+def resolve_book_docx(
+    number: int,
+    *,
+    lang: Locale = DEFAULT_LOCALE,
+    content_root: Path | None = None,
+) -> Path:
     root = Path(__file__).resolve().parents[1]
     books_root = content_root / "books" if content_root is not None else root / "src" / "content" / "books"
     matches = sorted(books_root.glob(f"{number:02d}-*"))

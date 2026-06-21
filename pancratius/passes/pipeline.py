@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 
 from pancratius import ir
 from pancratius.content_catalog import IndexHit
+from pancratius.locales import Locale
 from pancratius.passes import endmatter, lineation, register, sanitize, scrub, structure
 
 if TYPE_CHECKING:
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
 class Context:
     """Pass parameters, injected by the composition point."""
 
-    lang: str
+    lang: Locale
     demote_levels: int = 1
     slug_lookup: Mapping[str, IndexHit] | None = None
     register_model: RegisterModel | None = None

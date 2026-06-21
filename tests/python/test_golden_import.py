@@ -60,6 +60,7 @@ from pancratius import (
 )
 from pancratius.content_catalog import KIND_DIRS, dump_frontmatter, split_frontmatter
 from pancratius.kinds import CorpusWorkKind
+from pancratius.locales import Locale
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -104,7 +105,7 @@ class GoldenCase:
     name: str
     docx: str
     kind: CorpusWorkKind
-    lang: str
+    lang: Locale
     number: int
     slug: str
     title: str

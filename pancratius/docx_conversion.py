@@ -8,7 +8,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 
@@ -23,6 +23,8 @@ from pancratius import (
     scripture_overrides,
 )
 from pancratius.content_catalog import IndexHit, dump_frontmatter
+from pancratius.kinds import CorpusWorkKind
+from pancratius.locales import Locale
 from pancratius.passes import assets
 from pancratius.passes.pipeline import POEM_PASSES, Context, run
 from pancratius.passes.register import RegisterModel, load_register_model
@@ -38,6 +40,7 @@ from pancratius.writer import apply as apply_plan
 BODY_IMAGE_MAX_LONG_EDGE = 1600
 
 type BibliographyEntry = dict[str, object]
+type DocxConversionKind = CorpusWorkKind | Literal["project"]
 
 
 @dataclass
@@ -201,7 +204,7 @@ _REGISTER_MODEL_PATH = REPO_ROOT / "data" / "models" / "verse_register_v1.json"
 
 
 @cache
-def load_register_model_for(lang: str) -> RegisterModel | None:
+def load_register_model_for(lang: Locale) -> RegisterModel | None:
     """The committed artifact when it covers `lang`, loaded once per process."""
     model = load_register_model(_REGISTER_MODEL_PATH)
     if model is None or lang not in model.langs:
@@ -212,8 +215,8 @@ def load_register_model_for(lang: str) -> RegisterModel | None:
 def convert_single_docx(
     docx: Path,
     *,
-    kind: str,
-    lang: str,
+    kind: DocxConversionKind,
+    lang: Locale,
     work_key: str,
     title: str,
     title_index: dict[str, IndexHit],
@@ -298,7 +301,7 @@ def convert_single_docx(
 
 def write_bibliography_sidecar(
     work_dir: Path,
-    lang: str,
+    lang: Locale,
     bibliography: list[BibliographyEntry],
 ) -> None:
     """Write the lifted endmatter bibliography to ``<work_dir>/bibliography.yaml``.
@@ -418,7 +421,7 @@ def scaffold_subpage(
     project: str,
     subpage_slug: str,
     docx: Path,
-    lang: str,
+    lang: Locale,
     out_content: Path,
     dry_run: bool = False,
 ) -> WriteReport:

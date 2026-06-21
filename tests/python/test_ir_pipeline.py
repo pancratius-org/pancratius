@@ -1764,7 +1764,7 @@ def test_run_until_excludes_the_named_pass() -> None:
         return pass_fn
 
     pipeline = (("a", tracer("a")), ("b", tracer("b")), ("c", tracer("c")))
-    run(ir.Document(), Context(lang=""), pipeline, until="b")
+    run(ir.Document(), Context(lang="ru"), pipeline, until="b")
     assert seen == ["a"]  # `until` names the first pass NOT run
 
 
@@ -1774,7 +1774,7 @@ def test_run_until_unknown_name_is_an_error() -> None:
     from pancratius.passes.pipeline import Context, run
 
     with pytest.raises(ValueError, match="unknown pass name"):
-        run(ir.Document(), Context(lang=""), until="no-such-pass")
+        run(ir.Document(), Context(lang="ru"), until="no-such-pass")
 
 
 def test_run_rejects_duplicate_pass_names() -> None:
@@ -1786,7 +1786,7 @@ def test_run_rejects_duplicate_pass_names() -> None:
         return doc
 
     with pytest.raises(AssertionError, match="duplicate pass names"):
-        run(ir.Document(), Context(lang=""), (("x", noop), ("x", noop)))
+        run(ir.Document(), Context(lang="ru"), (("x", noop), ("x", noop)))
 
 
 def test_quoted_inline_lowers_to_locale_marks() -> None:
