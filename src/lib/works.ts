@@ -140,7 +140,7 @@ let _pairsCache: WorkPair[] | null = null;
  * Throws if any work lacks a default-locale entry — the default-locale file is
  * the canonical anchor for every work.
  */
-export async function getAllWorkPairs(): Promise<WorkPair[]> {
+async function getAllWorkPairs(): Promise<WorkPair[]> {
   if (_pairsCache) return _pairsCache;
 
   // Books + poetry ONLY. Projects are themed sections, not works — they live in
