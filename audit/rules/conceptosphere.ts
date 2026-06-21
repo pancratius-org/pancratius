@@ -15,10 +15,10 @@
 // encode the KIND so a concept_id can never collide with a community key:
 // `concept:<concept_id>` and `community:<key>`. A drifted
 // community gets a new `key`, has no entry, and fires here; there is no separate
-// detector. This mirrors the tag-localization audit's INTENT and fail-semantics
-// (glossary-as-source-of-truth, untranslated key = hard failure) but is its own
-// `core`-tier rule against its own data source — the folded tag rule is
-// heuristic/warning and by contract can never gate CI.
+// detector. This mirrors the tag-localization audit (audit/rules/tags.ts): same
+// intent and fail-semantics (glossary-as-source-of-truth, untranslated key =
+// hard failure), each its own `core`-tier rule that gates CI against its own
+// data source.
 //
 // Communities are checked only when they carry an explicit `key` (the generator
 // emits it; payloads predating the regen do not). Concepts are always checked.

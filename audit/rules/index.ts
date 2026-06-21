@@ -15,6 +15,7 @@ import {
 import { pan007AssetRefs } from "./assets.ts";
 import { pan010DocxIntegrity } from "./docx.ts";
 import { pan006bMarkdownStructure } from "./markdown.ts";
+import { pan006cTagLocalization } from "./tags.ts";
 import { pan006bPoetryStanzas, pan006bLineationBreaks } from "./poetry.ts";
 import { pan008PublicMarkdownAssets } from "./downloads.ts";
 import { pan014InternalLinks } from "./crawl.ts";
@@ -29,6 +30,7 @@ import { pan020TypographyRoleDrift } from "./typography.ts";
 import { pan021ConceptosphereI18n } from "./conceptosphere.ts";
 import { pan022ConceptosphereDegradation } from "./degradation.ts";
 import { contentQualityRules } from "./content_quality.ts";
+import { pan023TypeDomainPy, pan023TypeDomainTs } from "./type_domain.ts";
 
 export const RULES: readonly Rule[] = [
   // Fatal core (run on `npm run audit:repo`):
@@ -40,6 +42,7 @@ export const RULES: readonly Rule[] = [
   pan004BulkArchiveKinds,
   pan004DuplicateIdentity,
   pan006bMarkdownStructure,
+  pan006cTagLocalization,
   pan006bPoetryStanzas,
   pan006bLineationBreaks,
   pan007AssetRefs,
@@ -57,5 +60,7 @@ export const RULES: readonly Rule[] = [
   pan014InternalLinks,
   pan022ConceptosphereDegradation,
   // Non-blocking heuristics (run only on `npm run audit:agent`):
+  pan023TypeDomainTs,
+  pan023TypeDomainPy,
   ...contentQualityRules,
 ];

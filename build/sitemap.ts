@@ -16,7 +16,7 @@ import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { KIND_OF_SEGMENT, type RoutedKind } from "../src/lib/kinds.ts";
+import { KIND_OF_SEGMENT, isRoutedSegment, type RoutedKind } from "../src/lib/kinds.ts";
 import { LOCALES, DEFAULT_LOCALE, type Locale } from "../src/lib/locales.ts";
 import { LOCALE_META, localeFromPrefix } from "../src/lib/i18n/locale-meta.ts";
 import { originFor } from "../src/lib/origins.ts";
@@ -72,7 +72,9 @@ function slugMapAlternates(path: string, locale: Locale, map: SlugMap): Alternat
   const work = rest.match(/^\/([^/]+)\/([^/]+)\/$/);
   if (work) {
     const [, segment, slug] = work;
-    const kind = segment === undefined ? undefined : KIND_OF_SEGMENT[segment];
+    const kind = segment === undefined || !isRoutedSegment(segment)
+      ? undefined
+      : KIND_OF_SEGMENT[segment];
     if (kind === undefined || slug === undefined) return null;
     const entry = map.entries.find((e) => e.kind === kind && e.languages[locale]?.slug === slug);
     if (!entry) return null;

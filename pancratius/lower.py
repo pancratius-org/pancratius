@@ -25,23 +25,24 @@ from typing import assert_never
 
 from pancratius import ir
 from pancratius.ir.inlines import inline_lines, inline_plain
+from pancratius.locales import Locale
 from pancratius.passes.sanitize import sanitize_urls
 
 
-def _body_image_alt(lang: str) -> str:
+def _body_image_alt(lang: Locale) -> str:
     return "Illustration" if lang == "en" else "Иллюстрация"
 
 
 # Quotation glyphs by language: a `Quoted` inline carries the quote SEMANTICS (single/double);
 # the marks are typographic and locale-specific. RU uses guillemets for doubles; EN uses American
 # curly quotes. Any other language falls back to RU (the corpus default).
-_QUOTE_MARKS: dict[str, dict[str, tuple[str, str]]] = {
+_QUOTE_MARKS: dict[Locale, dict[ir.QuoteKind, tuple[str, str]]] = {
     "ru": {"double": ("«", "»"), "single": ("'", "'")},
     "en": {"double": ("“", "”"), "single": ("‘", "’")},
 }
 
 
-def _quote_marks(lang: str, kind: str) -> tuple[str, str]:
+def _quote_marks(lang: Locale, kind: ir.QuoteKind) -> tuple[str, str]:
     return _QUOTE_MARKS.get(lang, _QUOTE_MARKS["ru"])[kind]
 
 
@@ -50,7 +51,7 @@ def _quote_marks(lang: str, kind: str) -> tuple[str, str]:
 _EN_LITERAL_QUOTES = str.maketrans({"«": "“", "»": "”"})
 
 
-def _typographic_text(value: str, lang: str) -> str:
+def _typographic_text(value: str, lang: Locale) -> str:
     return value.translate(_EN_LITERAL_QUOTES) if lang == "en" else value
 
 
@@ -128,7 +129,7 @@ def _inline_code_md(value: str) -> str:
     return f"{fence}{pad}{value}{pad}{fence}"
 
 
-def _inline_md(n: ir.Inline, lang: str) -> str:
+def _inline_md(n: ir.Inline, lang: Locale) -> str:
     match n:
         case ir.Text():
             return _escape_literal_text(_typographic_text(n.value, lang))
@@ -161,11 +162,11 @@ def _inline_md(n: ir.Inline, lang: str) -> str:
     assert_never(n)
 
 
-def _inlines_md(nodes: list[ir.Inline], lang: str) -> str:
+def _inlines_md(nodes: list[ir.Inline], lang: Locale) -> str:
     return "".join(_inline_md(n, lang) for n in nodes)
 
 
-def _paragraph_image_blocks_md(inlines: list[ir.Inline], lang: str, *, poem: bool) -> str | None:
+def _paragraph_image_blocks_md(inlines: list[ir.Inline], lang: Locale, *, poem: bool) -> str | None:
     """Lower direct paragraph images as standalone Markdown blocks.
 
     Pandoc can place an image inline beside prose when a DOCX picture is anchored
@@ -206,7 +207,7 @@ def _paragraph_image_blocks_md(inlines: list[ir.Inline], lang: str, *, poem: boo
 # ---------------------------------------------------------------------------
 
 
-def _lineated_lines(line_inlines: list[ir.Inline], lang: str) -> list[str]:
+def _lineated_lines(line_inlines: list[ir.Inline], lang: Locale) -> list[str]:
     """The display lines a single lineated line's inlines lower to.
 
     Inlines render to Markdown (emphasis as `*`/`**`, footnote refs as `[^N]`),
@@ -225,7 +226,7 @@ class _LineatedImage:
 type _LineatedPart = str | _LineatedImage
 
 
-def _lineated_parts(line_inlines: list[ir.Inline], lang: str) -> list[_LineatedPart]:
+def _lineated_parts(line_inlines: list[ir.Inline], lang: Locale) -> list[_LineatedPart]:
     """Lower one source display line, splitting direct body images into block parts.
 
     A DOCX drawing can be anchored in the same paragraph as text. The content
@@ -268,7 +269,7 @@ def _lineated_wrapper_from_lines(classes: str, stanzas: list[list[str]]) -> str 
     return "\n".join(out)
 
 
-def _lineated_wrapper_md(classes: str, stanzas: ir.LineatedStanzas, lang: str) -> str | None:
+def _lineated_wrapper_md(classes: str, stanzas: ir.LineatedStanzas, lang: Locale) -> str | None:
     """Lower lineated stanzas into a raw wrapper whose inside is parsed Markdown.
 
     The blank line after the opening `<div>` is load-bearing: it makes CommonMark
@@ -317,7 +318,7 @@ LINEATED_CLASS: Mapping[ir.Register, str] = {
 }
 
 
-def _lineated_md(lb: ir.LineatedBlock, lang: str) -> str | None:
+def _lineated_md(lb: ir.LineatedBlock, lang: Locale) -> str | None:
     """Lower a lineated run to the cross-consumer canonical encoding: the
     `<div class="lineated …">` wrapper, classed by register."""
     return _lineated_wrapper_md(LINEATED_CLASS[lb.register], lb.stanzas, lang)
@@ -334,7 +335,7 @@ def _epigraph_md(e: ir.Epigraph) -> str:
     return "\n".join(['<blockquote class="epigraph">', "<p>", q, "</p>", "<footer>", f, "</footer>", "</blockquote>"])
 
 
-def _quote_member_md(blk: ir.Block, lang: str) -> str | None:
+def _quote_member_md(blk: ir.Block, lang: Locale) -> str | None:
     """Lower one quote-member block, preserving authored hard line breaks.
 
     The generic prose paragraph path collapses in-paragraph breaks to spaces;
@@ -358,7 +359,7 @@ def _quote_member_md(blk: ir.Block, lang: str) -> str | None:
     return _block_md(blk, lang)
 
 
-def _quote_member_mds(b: ir.QuoteBlock, lang: str) -> list[str]:
+def _quote_member_mds(b: ir.QuoteBlock, lang: Locale) -> list[str]:
     """The non-empty lowered member blocks of a quote."""
     return [md for blk in b.blocks if (md := _quote_member_md(blk, lang))]
 
@@ -368,14 +369,14 @@ def _gt_prefixed(md: str) -> str:
     return "\n".join("> " + line for line in md.splitlines())
 
 
-def _plain_quote_md(b: ir.QuoteBlock, lang: str) -> str | None:
+def _plain_quote_md(b: ir.QuoteBlock, lang: Locale) -> str | None:
     """An ordinary quote (Pandoc-born, from a Word Quote style/indent): the
     line-prefix join, whose members fuse by lazy continuation."""
     inner = "\n".join(_gt_prefixed(md) for blk in b.blocks if (md := _block_md(blk, lang)))
     return inner or None
 
 
-def _scripture_quote_md(b: ir.QuoteBlock, lang: str) -> str | None:
+def _scripture_quote_md(b: ir.QuoteBlock, lang: Locale) -> str | None:
     """Quoted canonical text (the boxed `w:pBdr` register): a classed HTML
     blockquote whose inside is parsed Markdown (the blank line after the
     opening tag is load-bearing, as in the lineated wrapper)."""
@@ -387,7 +388,7 @@ def _scripture_quote_md(b: ir.QuoteBlock, lang: str) -> str | None:
     )
 
 
-def _inset_quote_md(b: ir.QuoteBlock, lang: str) -> str | None:
+def _inset_quote_md(b: ir.QuoteBlock, lang: Locale) -> str | None:
     """A set-apart passage in another voice (the left-rule register): a plain
     portable Markdown quote; member blocks are separated by a bare `>` line so
     they stay distinct paragraphs instead of fusing by lazy continuation, and
@@ -400,7 +401,7 @@ def _inset_quote_md(b: ir.QuoteBlock, lang: str) -> str | None:
 
 # The register→emission registry for quote blocks. Total over `Register`
 # (test-pinned); registers without a quote treatment take the plain emission.
-QUOTE_LOWERING: Mapping[ir.Register, Callable[[ir.QuoteBlock, str], str | None]] = {
+QUOTE_LOWERING: Mapping[ir.Register, Callable[[ir.QuoteBlock, Locale], str | None]] = {
     ir.Register.ORDINARY: _plain_quote_md,
     ir.Register.VERSE: _plain_quote_md,
     ir.Register.SCRIPTURE: _scripture_quote_md,
@@ -409,7 +410,7 @@ QUOTE_LOWERING: Mapping[ir.Register, Callable[[ir.QuoteBlock, str], str | None]]
 }
 
 
-def _table_md(t: ir.Table, lang: str) -> str | None:
+def _table_md(t: ir.Table, lang: Locale) -> str | None:
     """Render a non-bibliography (reading-content) table as a GFM pipe table —
     reading-content tables are kept in the body. Cells are rendered from their inlines
     (so images get the default body alt + `./images/<hash>` ref like prose), with
@@ -494,7 +495,7 @@ def _escape_leading_list_marker(text: str) -> str:
     return f"{lead}{token}\\{delim}{text[m.end():]}"
 
 
-def _heading_md(b: ir.Heading, lang: str) -> str:
+def _heading_md(b: ir.Heading, lang: Locale) -> str:
     """Lower a heading to an ATX line PRESERVING inline footnote refs + emphasis.
 
     Headings cannot use ``inline_plain`` (which drops ``FootnoteRef`` and flattens
@@ -514,7 +515,7 @@ def _heading_md(b: ir.Heading, lang: str) -> str:
     return f"{'#' * b.level} {text}"
 
 
-def _block_md(b: ir.Block, lang: str, *, poem: bool = False) -> str | None:
+def _block_md(b: ir.Block, lang: Locale, *, poem: bool = False) -> str | None:
     match b:
         case ir.Heading():
             return _heading_md(b, lang)
@@ -583,7 +584,7 @@ def _block_md(b: ir.Block, lang: str, *, poem: bool = False) -> str | None:
 # ---------------------------------------------------------------------------
 
 
-def _footnote_appendix(doc: ir.Document, lang: str) -> str:
+def _footnote_appendix(doc: ir.Document, lang: Locale) -> str:
     if not doc.footnotes:
         return ""
     parts: list[str] = []
@@ -611,7 +612,7 @@ def _is_strong_only_para(b: ir.Block) -> bool:
     )
 
 
-def _lower_poem_body(doc: ir.Document, lang: str, diagnostics: ir.DiagnosticSink) -> str:
+def _lower_poem_body(doc: ir.Document, lang: Locale, diagnostics: ir.DiagnosticSink) -> str:
     """Lower a poem as stanza-grouped verse lines:
 
       * an empty paragraph is a stanza break (flush the accumulator);
@@ -773,7 +774,7 @@ def _surface_unknown_block_diagnostics(
 
 def lower(
     doc: ir.Document,
-    lang: str,
+    lang: Locale,
     diagnostics: ir.DiagnosticSink,
     *,
     poem: bool = False,
