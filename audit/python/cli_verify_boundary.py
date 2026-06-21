@@ -27,6 +27,7 @@ from __future__ import annotations
 import ast
 import os
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 # The site-door verb family that must never become a `pancratius` (mutate-door)
@@ -50,10 +51,16 @@ ROOT = _audit_root()
 CLI_DOOR = ROOT / "pancratius" / "cli.py"
 
 
-def _registered_subparser_names(tree: ast.Module) -> list[tuple[str, int]]:
+@dataclass(frozen=True, slots=True)
+class SubparserRegistration:
+    name: str
+    lineno: int
+
+
+def _registered_subparser_names(tree: ast.Module) -> list[SubparserRegistration]:
     """Every `<x>.add_parser("<name>", …)` name registered in the module, with its
     line — these are the door's groups/nouns/verbs."""
-    names: list[tuple[str, int]] = []
+    names: list[SubparserRegistration] = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
@@ -64,7 +71,7 @@ def _registered_subparser_names(tree: ast.Module) -> list[tuple[str, int]]:
             continue
         first = node.args[0]
         if isinstance(first, ast.Constant) and isinstance(first.value, str):
-            names.append((first.value, node.lineno))
+            names.append(SubparserRegistration(first.value, node.lineno))
     return names
 
 
@@ -77,11 +84,12 @@ def main() -> int:
 
     tree = ast.parse(CLI_DOOR.read_text(encoding="utf-8"))
     failures = [
-        f"pancratius/cli.py:{lineno}: the CLI door registers a `{name}` sub-parser — "
+        f"pancratius/cli.py:{registration.lineno}: the CLI door registers a "
+        f"`{registration.name}` sub-parser — "
         f"verification ({', '.join(sorted(FORBIDDEN_VERBS))}) is the npm site door's "
         "job (the mutate/verify cut), never a `pancratius` verb."
-        for name, lineno in _registered_subparser_names(tree)
-        if name in FORBIDDEN_VERBS
+        for registration in _registered_subparser_names(tree)
+        if registration.name in FORBIDDEN_VERBS
     ]
 
     if failures:

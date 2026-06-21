@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from pancratius import cli, docx_render
-from pancratius.docx_inspect import ParaRow
+from pancratius.docx_inspect import ParagraphIndexRange, ParaRow
 
 
 def _row(text: str, *, index: int = 0) -> ParaRow:
@@ -41,13 +41,16 @@ def test_docx_render_slice_cli_renders_selected_range(
         *,
         around: str | None = None,
         context: int = 10,
-        index_range: tuple[int, int] | None = None,
-    ) -> tuple[int, int, list[ParaRow]]:
+        index_range: ParagraphIndexRange | None = None,
+    ) -> docx_render.ResolvedParagraphSlice:
         assert docx == Path("source.docx")
         assert around is None
         assert context == 10
-        assert index_range == (0, 0)
-        return 0, 0, rows
+        assert index_range == ParagraphIndexRange(0, 0)
+        return docx_render.ResolvedParagraphSlice(
+            index_range=ParagraphIndexRange(0, 0),
+            rows=tuple(rows),
+        )
 
     def render_stub(
         docx: Path,

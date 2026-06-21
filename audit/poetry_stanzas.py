@@ -14,6 +14,7 @@ import re
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,13 @@ ROOT = Path(os.environ.get("PANCRATIUS_AUDIT_ROOT", Path(__file__).resolve().par
 CONTENT = ROOT / "src" / "content" / "poetry"
 # Drops the unified `DD.MM.YYYY, <pen name>` sign-off so the oracle counts verse.
 SIGNOFF_FILTER = Path(__file__).resolve().parent / "poem_signoff.lua"
+
+
+@dataclass(frozen=True, slots=True)
+class PoemMeta:
+    number: int
+    title: str
+    slug: str
 
 
 def _inlines_to_text(inlines: list[dict[str, Any]]) -> str:
@@ -137,15 +145,15 @@ def source_docx(number: int) -> Path:
     return matches[0]
 
 
-def _committed_poem_meta() -> list[tuple[int, str, str]]:
-    """``(number, title, slug)`` for every committed poem, sorted by number.
+def _committed_poem_meta() -> list[PoemMeta]:
+    """Metadata for every committed poem, sorted by number.
 
     Title and number are the only inputs the importer needs to reproduce a poem's
     body deterministically; we read them from the committed frontmatter so the
     ``--from-ir`` pass imports each poem with the SAME title/number the live
     importer would use, then compares the freshly converted body to the DOCX
     stanza oracle."""
-    meta: list[tuple[int, str, str]] = []
+    meta: list[PoemMeta] = []
     for md in sorted(CONTENT.glob("*/ru.md")):
         text = md.read_text(encoding="utf-8")
         m = re.search(r"^number:\s*(\d+)\s*$", text, re.M)
@@ -156,8 +164,8 @@ def _committed_poem_meta() -> list[tuple[int, str, str]]:
         title = tm.group(1).strip().strip("'\"") if tm else ""
         sm = re.search(r"^slug:\s*(.+?)\s*$", text, re.M)
         slug = sm.group(1).strip().strip("'\"") if sm else md.parent.name
-        meta.append((number, title, slug))
-    return sorted(meta)
+        meta.append(PoemMeta(number, title, slug))
+    return sorted(meta, key=lambda poem: poem.number)
 
 
 def actual_groups_from_ir() -> int:
@@ -181,31 +189,35 @@ def actual_groups_from_ir() -> int:
 
     failures: list[str] = []
     checked = 0
-    for number, title, slug in _committed_poem_meta():
-        docx = source_docx(number)
+    for poem in _committed_poem_meta():
+        docx = source_docx(poem.number)
         with tempfile.TemporaryDirectory(prefix="poetry-ir-") as td:
             content_root = Path(td) / "src" / "content"
             request = import_docx.ImportRequest(
                 docx=docx,
                 kind="poem",
                 lang="ru",
-                number=number,
-                slug=slug,
-                title=title,
+                number=poem.number,
+                slug=poem.slug,
+                title=poem.title,
                 out_content=content_root,
             )
             with contextlib.redirect_stdout(io.StringIO()):
                 report = import_docx.import_work(request)
             if report.refused:
-                failures.append(f"poem #{number:02d} {slug}: IR import refused")
+                failures.append(f"poem #{poem.number:02d} {poem.slug}: IR import refused")
                 continue
-            work_key = slug if re.match(r"^\d{1,4}-", slug) else f"{number:02d}-{slug}"
+            work_key = (
+                poem.slug
+                if re.match(r"^\d{1,4}-", poem.slug)
+                else f"{poem.number:02d}-{poem.slug}"
+            )
             got = actual_groups(content_root / "poetry" / work_key / "ru.md")
-        exp = expected_groups(docx, title)
+        exp = expected_groups(docx, poem.title)
         checked += 1
         if exp != got:
             failures.append(
-                f"poem #{number:02d} {slug}: expected stanza line-counts {exp}, got {got}"
+                f"poem #{poem.number:02d} {poem.slug}: expected stanza line-counts {exp}, got {got}"
             )
     if failures:
         print("FAIL: poetry stanza mismatches (IR import path)")

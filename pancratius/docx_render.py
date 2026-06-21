@@ -31,6 +31,7 @@ import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
+from dataclasses import dataclass
 from pathlib import Path
 
 from pancratius import docx_inspect as di
@@ -41,6 +42,12 @@ W_NS = di.da.W_NS
 
 class DocxRenderError(RuntimeError):
     """The requested DOCX visual slice cannot be rendered."""
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedParagraphSlice:
+    index_range: di.ParagraphIndexRange
+    rows: tuple[di.ParaRow, ...]
 
 
 def _soffice() -> str | None:
@@ -186,16 +193,15 @@ def resolve_range(
     *,
     around: str | None = None,
     context: int = 10,
-    index_range: tuple[int, int] | None = None,
-) -> tuple[int, int, list[di.ParaRow]]:
+    index_range: di.ParagraphIndexRange | None = None,
+) -> ResolvedParagraphSlice:
     if docx.suffix.lower() != ".docx":
         raise DocxRenderError(f"expected a .docx file, got {docx}")
     if not docx.is_file():
         raise DocxRenderError(f"DOCX not found: {docx}")
     rows = di.read_rows(docx)
     if index_range is not None:
-        lo, hi = index_range
-        return lo, hi, rows
+        return ResolvedParagraphSlice(index_range=index_range, rows=tuple(rows))
     if around is not None:
         hits = [r.index for r in rows if around in r.text]
         if not hits:
@@ -209,14 +215,17 @@ def resolve_range(
             )
         lo = max(0, hits[0] - context)
         hi = min(len(rows) - 1, hits[0] + context)
-        return lo, hi, rows
+        return ResolvedParagraphSlice(
+            index_range=di.ParagraphIndexRange(lo=lo, hi=hi),
+            rows=tuple(rows),
+        )
     raise DocxRenderError("need --around or --range")
 
 
-def range_key(rows: list[di.ParaRow], lo: int, hi: int) -> list[str]:
+def range_key(selection: ResolvedParagraphSlice) -> list[str]:
     """Text key for correlating rendered lines with `docx inspect` rows."""
     return [
         f"{row.index:>5}  {re.sub(r'\\s+', ' ', row.text)[:80]}"
-        for row in rows
-        if lo <= row.index <= hi and not row.empty
+        for row in selection.rows
+        if selection.index_range.lo <= row.index <= selection.index_range.hi and not row.empty
     ]
