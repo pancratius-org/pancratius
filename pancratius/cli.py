@@ -30,7 +30,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from pancratius.cover.models import CoverResult
     from pancratius.import_docx import ImportRequest
+    from pancratius.translate import TranslationReport
 
 
 def _missing_extra(extra: str, exc: ImportError) -> int:
@@ -119,6 +121,250 @@ def _work_import(args: argparse.Namespace) -> int:
         return _fail(exc, 2)
     import_docx.print_report(report, dry_run=request.dry_run)
     return 1 if report.refused else 0
+
+
+def _print_translate_report(report: TranslationReport) -> float:
+    """Print one book's outcome and return its USD cost contribution (estimate
+    for --dry-run, real billed cost for a live run)."""
+    if report.dry_run and report.estimate is not None:
+        est = report.estimate
+        print(
+            f"  {report.book_key}: {report.units} units, {report.chunks} chunks, "
+            f"~{est.source_tokens / 1000:.1f}k src tok  est ${est.total_usd:.4f} "
+            f"(draft ${est.draft_cost_usd:.4f} + revise ${est.revise_cost_usd:.4f} "
+            f"+ profile ${est.profile_cost_usd:.4f})"
+        )
+        return est.total_usd
+    cost = report.usage.cost_usd or 0.0
+    findings = ", ".join(
+        f"{sum(1 for f in report.findings if f.severity == sev)}×{sev.name.lower()}"
+        for sev in sorted({f.severity for f in report.findings}, reverse=True)
+    )
+    where = report.written_path.name if report.written_path else "(not written)"
+    cache_note = f"; {report.cached_chunks} chunks from cache" if report.cached_chunks else ""
+    print(
+        f"  wrote {report.book_key}/{where}: {report.units} units, {report.chunks} chunks; "
+        f"cost ${cost:.4f}; cached {report.usage.cached_tokens} tok"
+        + cache_note
+        + (f"; findings {findings}" if findings else "")
+    )
+    for line in report.digest:
+        print(line)
+    return cost
+
+
+def _work_translate(args: argparse.Namespace) -> int:
+    """`work translate [--book N]` — draft an ``en.md`` from a book's ``ru.md``.
+
+    Mechanical draft only (docs/tooling.md): writes ``translation.source: ai`` and
+    leaves ``reviewed_by`` for a human. ``--dry-run`` prints the plan and a
+    live-priced cost estimate without an API key or any generative call."""
+    import threading
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from datetime import date
+
+    from pancratius import translate as xlate
+    from pancratius.content_catalog import CatalogEntry, scan_catalog
+
+    content_root = Path(args.out_content)
+    catalog = scan_catalog(content_root)
+    if args.book is not None:
+        targets = [
+            e for e in catalog if e.kind == args.kind and e.number == args.book and e.lang == "ru"
+        ]
+        if not targets:
+            return _fail(f"no {args.kind} ru source with number {args.book}", 2)
+    else:
+        targets = xlate.find_untranslated(catalog, kind=args.kind)
+        if args.limit:
+            targets = targets[: args.limit]
+    if not targets:
+        print("nothing to translate (every work already has a translation).")
+        return 0
+
+    config = xlate.TranslateConfig(
+        models=xlate.StageModels(
+            profile=args.profile_model or args.model,
+            draft=args.model,
+            revise=args.revise_model or args.model,
+        ),
+        chunk_source_tokens=args.chunk_tokens,
+        build_profile=not args.no_profile,
+        revise=not args.no_revise,
+        reconcile=not args.no_reconcile,
+    )
+    try:
+        glossary = xlate.load_glossary(Path(args.glossary)) if args.glossary else ()
+        client = (
+            xlate.OpenRouterClient(api_key="") if args.dry_run else xlate.OpenRouterClient.from_env()
+        )
+    except (xlate.OpenRouterError, ValueError, OSError) as exc:
+        return _fail(exc)
+
+    today = date.today().isoformat()
+    cache_dir: Path | None = None
+    if not args.dry_run and not args.no_cache:
+        cache_dir = Path(".cache") / "translate"
+    workers = max(1, args.workers)
+    verb = "estimating" if args.dry_run else "translating"
+    print(f"{verb} {len(targets)} {args.kind}(s) with {args.model} ({workers} workers):", flush=True)
+    total = 0.0
+    failures = 0
+    lock = threading.Lock()
+    stop = threading.Event()
+
+    def run_one(entry: CatalogEntry) -> xlate.TranslationReport | None:
+        # Each book is independent and keeps its chunks sequential, so its prompt
+        # cache stays warm; the pool only parallelizes across books.
+        if stop.is_set():
+            return None
+        return xlate.translate_book(
+            client, config, entry=entry, catalog=catalog, glossary=glossary,
+            generated_at=today, dry_run=args.dry_run, replace=args.replace,
+            cache_dir=cache_dir,
+        )
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(run_one, e): e for e in targets}
+        for future in as_completed(futures):
+            entry = futures[future]
+            try:
+                report = future.result()
+            except Exception as exc:  # noqa: BLE001 — isolate one book's failure from the batch
+                with lock:
+                    failures += 1
+                print(f"  skip {entry.work_key}: {exc!r}", file=sys.stderr, flush=True)
+                continue
+            if report is None:
+                continue
+            with lock:
+                total += _print_translate_report(report)
+                sys.stdout.flush()
+                if args.max_cost and not args.dry_run and total > args.max_cost:
+                    if not stop.is_set():
+                        print(f"stopping: billed ${total:.2f} exceeded --max-cost "
+                              f"${args.max_cost:.2f}", file=sys.stderr, flush=True)
+                    stop.set()
+                    for pending in futures:
+                        pending.cancel()
+    label = "estimated total" if args.dry_run else "billed total"
+    print(f"{label}: ${total:.2f}; {failures} failed/skipped")
+    return 1 if failures or stop.is_set() else 0
+
+
+# --- handlers (work cover) ---------------------------------------------------
+def _print_cover_result(result: CoverResult) -> None:
+    """Print a single cover result to stdout."""
+    from pancratius.cover.models import QaVerdict
+
+    tag = "OK  " if result.ok else "FAIL"
+    attempts_used = len([a for a in result.attempts if a.attempt > 0])
+    skipped = any(a.attempt == 0 for a in result.attempts)
+    cost = f"${result.total_cost_usd:.5f}"
+    title_tag = f"[{result.title.source}]" if result.title.is_pinned else "[model]"
+
+    if skipped:
+        print(f"  {tag} {result.book_key:8s} {cost}  {title_tag}  (existing cover passed QA)")
+        return
+
+    verdict = result.attempts[-1].qa.verdict if result.attempts else "?"
+    qa_label = "PASS" if verdict == QaVerdict.PASS else f"FAIL({attempts_used}atts)"
+    where = str(result.final_path) if result.final_path else "(none)"
+    print(f"  {tag} {result.book_key:8s} {cost}  {title_tag}  QA:{qa_label}  {where}")
+    if result.error and not result.ok:
+        print(f"      unresolved: {result.error}")
+
+
+def _work_cover(args: argparse.Namespace) -> int:
+    """`work cover [book-XX …]` — translate Russian book covers to English.
+
+    Each cover goes through: (1) vision recon to identify displayed text,
+    (2) fused image-edit generation with a pinned EN title and overrides,
+    (3) vision QA against both images. On QA failure the discrepancies are
+    folded into a steering addendum for the next attempt (up to 3 attempts).
+    If an .en.png already exists it is QA-d first; PASS → done, no regeneration.
+    """
+    import re
+
+    from pancratius.cover.client import api_key_from_env
+    from pancratius.cover.pipeline import (
+        CoverTranslateConfig,
+        discover_books,
+        translate_cover,
+    )
+
+    try:
+        api_key = api_key_from_env()
+    except ValueError as exc:
+        return _fail(exc)
+
+    output_dir = Path(args.output_dir)
+
+    # Resolve book keys from positional arguments or discover all
+    if args.books:
+        # Each arg can be "book-50", "50", or "book-50 book-51" (split)
+        raw_keys: list[str] = []
+        for tok in args.books:
+            for part in tok.split():
+                raw_keys.append(part)
+        book_keys: list[str] = []
+        for raw in raw_keys:
+            if re.fullmatch(r"\d+", raw):
+                book_keys.append(f"book-{int(raw):02d}")
+            elif re.fullmatch(r"book-\d+", raw):
+                # normalise to book-NN (two-digit)
+                num = int(raw.split("-")[1])
+                book_keys.append(f"book-{num:02d}")
+            else:
+                return _fail(f"unrecognised book key {raw!r} (use 'book-50' or '50')", 2)
+    else:
+        from pancratius.cover.pipeline import DEFAULT_COVERS_DIR
+        covers_dir = Path(args.covers_dir) if args.covers_dir else DEFAULT_COVERS_DIR
+        book_keys = discover_books(covers_dir)
+        if not book_keys:
+            print("no source covers found.")
+            return 0
+
+    from pancratius.cover.pipeline import (
+        DEFAULT_BOOKS_ROOT,
+        DEFAULT_COVERS_DIR,
+        DEFAULT_QUEUE_MD,
+        DEFAULT_SEED_PATH,
+    )
+
+    config = CoverTranslateConfig(
+        output_dir=output_dir,
+        covers_dir=Path(args.covers_dir) if args.covers_dir else DEFAULT_COVERS_DIR,
+        queue_md=Path(args.queue_md) if args.queue_md else DEFAULT_QUEUE_MD,
+        books_root=Path(args.books_root) if args.books_root else DEFAULT_BOOKS_ROOT,
+        seed_path=Path(args.seed) if args.seed else DEFAULT_SEED_PATH,
+        max_attempts=args.max_attempts,
+    )
+
+    print(f"cover translate: {len(book_keys)} book(s) → {output_dir}")
+    print(f"books: {', '.join(book_keys)}\n")
+
+    results = []
+    total = 0.0
+    for book_key in book_keys:
+        print(f"[{book_key}]")
+        try:
+            result = translate_cover(book_key, config, api_key)
+        except Exception as exc:  # noqa: BLE001 — one bad cover must not kill the batch
+            print(f"  FAIL {book_key}: {exc}")
+            continue
+        _print_cover_result(result)
+        total += result.total_cost_usd
+        results.append(result)
+
+    failed = [r for r in results if not r.ok]
+    print(f"\ntotal spent: ${total:.5f}")
+    print(f"succeeded: {sum(1 for r in results if r.ok)}/{len(results)}")
+    if failed:
+        print("failed:")
+        for r in failed:
+            print(f"  {r.book_key}: {r.error}")
+    return 1 if failed else 0
 
 
 # --- handlers (project group) -------------------------------------------------
@@ -348,6 +594,7 @@ def _add_work_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     from pancratius import import_docx  # light (no ML); owns DEFAULT_CONTENT_ROOT
     from pancratius.kinds import CORPUS_WORK_KINDS
     from pancratius.locales import LOCALES
+    from pancratius.translate.config import DEFAULT_MODEL as DEFAULT_TRANSLATION_MODEL
 
     work = sub.add_parser("work", help="Import corpus works (a book or a poem).")
     work.set_defaults(func=_require_subcommand(work))
@@ -389,6 +636,86 @@ def _add_work_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         help="Permit overwriting an existing converter-owned <lang>.md; without it, re-importing an existing language is refused.",
     )
     work_import.set_defaults(func=_work_import)
+
+    work_translate = work_sub.add_parser(
+        "translate",
+        help="Draft an en.md translation for a book.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    work_translate.add_argument(
+        "--book", type=int, help="Translate only this book number (default: every untranslated book)."
+    )
+    work_translate.add_argument(
+        "--kind", choices=tuple(CORPUS_WORK_KINDS), default="book", help="Work kind to translate."
+    )
+    work_translate.add_argument(
+        "--out-content", default=str(import_docx.DEFAULT_CONTENT_ROOT), help="Content root; defaults to src/content."
+    )
+    work_translate.add_argument(
+        "--model", default=DEFAULT_TRANSLATION_MODEL, help="OpenRouter model for the draft translation."
+    )
+    work_translate.add_argument("--profile-model", help="Override the model for the brief pre-pass.")
+    work_translate.add_argument("--revise-model", help="Override the model for the revise pass.")
+    work_translate.add_argument(
+        "--chunk-tokens", type=int, default=3000, help="Target source tokens generated per chunk."
+    )
+    work_translate.add_argument("--glossary", help="YAML glossary of locked source→target terms.")
+    work_translate.add_argument("--no-profile", action="store_true", help="Skip the per-book brief pre-pass.")
+    work_translate.add_argument("--no-revise", action="store_true", help="Skip the source-aware revise pass.")
+    work_translate.add_argument(
+        "--no-reconcile", action="store_true", help="Skip the cross-seam reconcile pass (flagged boundaries only)."
+    )
+    work_translate.add_argument(
+        "--limit", type=int, default=0, help="Translate only the first N untranslated works (smoke test)."
+    )
+    work_translate.add_argument(
+        "--max-cost", type=float, default=0.0, help="Abort once billed cost exceeds this many USD (0 = no cap)."
+    )
+    work_translate.add_argument(
+        "--workers", type=int, default=12, help="Books translated concurrently (each book stays sequential internally)."
+    )
+    work_translate.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the plan and a cost estimate; write nothing (no API key needed).",
+    )
+    work_translate.add_argument(
+        "--replace", action="store_true", help="Overwrite an existing en.md (otherwise refused)."
+    )
+    work_translate.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Bypass the on-disk chunk cache; always call the API and never write cached results.",
+    )
+    work_translate.set_defaults(func=_work_translate)
+
+    work_cover = work_sub.add_parser(
+        "cover",
+        help="Translate Russian book covers to English via image editing (recon→generate→QA loop).",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    work_cover.add_argument(
+        "books",
+        nargs="*",
+        metavar="book-XX",
+        help="Book key(s) to translate (e.g. book-50 or 50). Omit to translate all discovered covers.",
+    )
+    work_cover.add_argument(
+        "--output-dir",
+        default="cover-out",
+        help="Directory for .raw.png and .en.png outputs (default: cover-out/ relative to cwd).",
+    )
+    work_cover.add_argument("--covers-dir", help="Override the source cover directory.")
+    work_cover.add_argument("--queue-md", help="Override QUEUE.md path.")
+    work_cover.add_argument("--books-root", help="Override src/content/books root.")
+    work_cover.add_argument("--seed", help="Override seed.json path.")
+    work_cover.add_argument(
+        "--max-attempts",
+        type=int,
+        default=3,
+        help="Maximum generation+QA attempts per cover before giving up.",
+    )
+    work_cover.set_defaults(func=_work_cover)
 
 
 def _add_project_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
