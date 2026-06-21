@@ -8,7 +8,7 @@ from typing import Any
 
 import yaml
 
-from pancratius.kinds import KIND_OF_SEGMENT, SEGMENT_OF
+from pancratius.kinds import KIND_OF_SEGMENT, SEGMENT_OF, RoutedKind
 
 # Work kind -> content-collection folder. The folder name equals the URL segment,
 # so this is SEGMENT_OF under the name callers already import.
@@ -21,14 +21,14 @@ class IndexHit:
 
     work_key: str
     number: int | None
-    kind: str | None
+    kind: RoutedKind | None
 
 _FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n?", re.DOTALL)
 
 
 @dataclass(frozen=True)
 class CatalogEntry:
-    kind: str
+    kind: RoutedKind
     number: int
     slug: str
     title: str
@@ -66,7 +66,9 @@ def dump_frontmatter(data: dict[str, Any]) -> str:
     return f"---\n{body}\n---\n\n"
 
 
-def scan_catalog(content_root: Path, *, kinds: Iterable[str] | None = None) -> list[CatalogEntry]:
+def scan_catalog(
+    content_root: Path, *, kinds: Iterable[RoutedKind] | None = None
+) -> list[CatalogEntry]:
     entries: list[CatalogEntry] = []
     kind_items = KIND_DIRS.items() if kinds is None else ((kind, KIND_DIRS[kind]) for kind in kinds)
     for kind, folder in kind_items:
@@ -100,7 +102,7 @@ def scan_catalog(content_root: Path, *, kinds: Iterable[str] | None = None) -> l
     return entries
 
 
-def next_number(entries: list[CatalogEntry], kind: str) -> int:
+def next_number(entries: list[CatalogEntry], kind: RoutedKind) -> int:
     numbers = [entry.number for entry in entries if entry.kind == kind]
     return max(numbers, default=0) + 1
 
@@ -108,7 +110,7 @@ def next_number(entries: list[CatalogEntry], kind: str) -> int:
 def find_work_entries(
     entries: list[CatalogEntry],
     work_ref: str,
-    kind: str | None = None,
+    kind: RoutedKind | None = None,
 ) -> list[CatalogEntry]:
     matches = [
         entry for entry in entries

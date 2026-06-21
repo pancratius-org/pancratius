@@ -1,5 +1,6 @@
 import { SEGMENT_OF, type CorpusWorkKind, type RoutedKind } from "../kinds";
 import type { Locale } from "../locales";
+import type { DownloadFormat } from "../downloads";
 import { LOCALE_META } from "./locale-meta";
 
 /** Prefix a root-relative path with the locale segment (every locale is prefixed). */
@@ -31,7 +32,12 @@ export function pageUrl(slug: string, locale: Locale): string {
 }
 
 /** Canonical download endpoint URL for `(kind, slug, format)` in `locale`. */
-export function downloadUrl(kind: CorpusWorkKind, slug: string, format: string, locale: Locale): string {
+export function downloadUrl(
+  kind: CorpusWorkKind,
+  slug: string,
+  format: DownloadFormat,
+  locale: Locale,
+): string {
   const base = localizePath(`/${SEGMENT_OF[kind]}/`, locale);
   return `${base}${slug}.${format}`;
 }

@@ -31,10 +31,15 @@ export const SEGMENT_OF: Record<RoutedKind, RoutedSegment> = {
 };
 
 /** URL segment → routed kind (inverse of `SEGMENT_OF`). */
-export const KIND_OF_SEGMENT: Record<string, RoutedKind> = {
+export const KIND_OF_SEGMENT: Record<RoutedSegment, RoutedKind> = {
   books:    "book",
   poetry:   "poem",
   projects: "project",
   videos:   "video",
   messages: "message",
 };
+
+/** True when an arbitrary path segment is one of the routed content segments. */
+export function isRoutedSegment(value: string): value is RoutedSegment {
+  return Object.prototype.hasOwnProperty.call(KIND_OF_SEGMENT, value);
+}
