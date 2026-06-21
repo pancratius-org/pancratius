@@ -1,8 +1,8 @@
 ---
 import type { Locale } from "@/lib/i18n";
-import { DEFAULT_LOCALE, downloadUrl, pageUrl, workUrl } from "@/lib/i18n";
+import { downloadUrl, pageUrl } from "@/lib/i18n";
 import { colophonCopy, downloadLabelCopy } from "@/lib/i18n/copy";
-import { defaultWorkEntry, entryForAuthoredLocale, type WorkPair } from "@/lib/works";
+import { entryForAuthoredLocale, type WorkPair } from "@/lib/works";
 import { availableFormatsForWork, FORMAT_LABEL, type DownloadFormat } from "@/lib/downloads";
 
 interface Props {
@@ -16,8 +16,6 @@ const entry = entryForAuthoredLocale(pair, locale);
 if (!entry) {
   throw new Error(`Colophon: no ${locale} entry for ${pair.kind} #${pair.number}`);
 }
-// The "original" back-link always points at the canonical default-locale work.
-const originalEntry = defaultWorkEntry(pair);
 const formats: DownloadFormat[] = availableFormatsForWork(pair, locale);
 
 const licenseHref = pageUrl("license", locale);
@@ -25,11 +23,6 @@ const licenseHref = pageUrl("license", locale);
 const copy = colophonCopy[locale];
 ---
 <aside class="colophon footer-note">
-  {entry.data.translation.source === "ai" && (
-    <p class="row">
-      {copy.translatedFrom} <a href={workUrl(pair.kind, originalEntry.data.slug, DEFAULT_LOCALE)}>{copy.original}</a>.
-    </p>
-  )}
   <p class="row">
     <b>{downloadLabelCopy[locale]}</b>{" "}
     {formats.map((fmt, i) => (

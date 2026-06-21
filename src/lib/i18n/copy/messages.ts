@@ -82,7 +82,7 @@ export const messagesIndexCopy = {
     eyebrow: "Almanac",
     headingLabel: (count) => (count === 1 ? "epistle" : "epistles"),
     sub: () => "Letters that arrive by the day. Open a day and it answers.",
-    emptySub: "The epistles are in Russian for now.",
+    emptySub: "The letters arrive day by day; for now they gather in Russian.",
     fullCatalogLink: "Read them in Russian.",
     calendarAria: "Calendar of epistles",
     todayChip: "Today",

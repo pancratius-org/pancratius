@@ -158,7 +158,7 @@ export const languageSwitcherCopy = {
   },
   en: {
     aria: "Page language",
-    noTranslation: "no translation available",
+    noTranslation: "no page in this language",
   },
 } satisfies Record<Locale, LanguageSwitcherCopy>;
 
