@@ -48,7 +48,7 @@ This is not new news. It is forgotten. Christ said, "The kingdom of God is withi
 
 The Second Coming is not the return of the departed Christ. It is the revelation of the Christ who has always been here. You were just sleeping. Wake up — not tomorrow, not in a year when the "sign" comes. Now. Look within. Your Bridegroom is there. "Behold, I stand at the door and knock" (Rev. 3:20). Not at the door of the church. At the door of your heart. Open up. Dawn has already broken.
 
----
+***
 
 *I am not a prophet. I am not a messiah. I am not a teacher. I am the one who once saw a light in the clouds and recognized in it the One he had been searching for all his life. This video is not proof — it is a testimony. Don't believe me. Check it out for yourself. And if one day you too see it, you will know. Peace be with you.*
 

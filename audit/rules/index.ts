@@ -14,6 +14,7 @@ import {
 } from "./projects.ts";
 import { pan007AssetRefs } from "./assets.ts";
 import { pan010DocxIntegrity } from "./docx.ts";
+import { pan006bMarkdownStructure } from "./markdown.ts";
 import { pan006bPoetryStanzas, pan006bLineationBreaks } from "./poetry.ts";
 import { pan008PublicMarkdownAssets } from "./downloads.ts";
 import { pan014InternalLinks } from "./crawl.ts";
@@ -38,6 +39,7 @@ export const RULES: readonly Rule[] = [
   pan004CorpusCollections,
   pan004BulkArchiveKinds,
   pan004DuplicateIdentity,
+  pan006bMarkdownStructure,
   pan006bPoetryStanzas,
   pan006bLineationBreaks,
   pan007AssetRefs,

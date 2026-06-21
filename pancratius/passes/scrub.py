@@ -9,6 +9,7 @@ from dataclasses import replace
 
 from pancratius import ir
 from pancratius.ir.inlines import inline_plain, walk_inlines
+from pancratius.thematic import is_thematic_marker
 
 # AI image generators leave a verbose alt text in DOCX; strip it (or its
 # truncation). `alt=""` survives so screen readers don't read filenames.
@@ -236,16 +237,14 @@ def scrub_chatgpt_citations(blocks: list[ir.Block]) -> list[ir.Block]:
 
 
 # ---------------------------------------------------------------------------
-# thematic breaks: a Paragraph whose only text is *** -> ThematicBreak
+# thematic breaks: a Paragraph whose only text is a divider -> ThematicBreak
 # ---------------------------------------------------------------------------
-
-_HR_TEXTS = {"***", "* * *", r"\*\*\*"}
 
 
 def thematic_breaks(blocks: list[ir.Block]) -> list[ir.Block]:
     out: list[ir.Block] = []
     for b in blocks:
-        if isinstance(b, ir.Paragraph) and not b.empty and inline_plain(b.inlines) in _HR_TEXTS:
+        if isinstance(b, ir.Paragraph) and not b.empty and is_thematic_marker(inline_plain(b.inlines)):
             out.append(ir.ThematicBreak(source_span=b.source_span))
             continue
         out.append(b)

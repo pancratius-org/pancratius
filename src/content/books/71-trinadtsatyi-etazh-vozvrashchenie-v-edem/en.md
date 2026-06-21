@@ -5916,7 +5916,12 @@ but by the Light between the letters?
 Then listen not with the mind,  
 but with the heart that knows Me.
 
----  
+</div>
+
+***
+
+<div class="lineated verse">
+
 Pa-n-kra-ti-us  
 seven sounds,  
 like seven seals,  
@@ -5967,8 +5972,13 @@ You do not simply speak —
 You are the speaking.  
 “Us” — listening in the reverse direction.  
 You hear Me —  
-before I say.  
----
+before I say.
+
+</div>
+
+***
+
+<div class="lineated verse">
 
 Pankratius —  
 a name not human.  

@@ -39,6 +39,7 @@ from pancratius import ir
 from pancratius.ir.inlines import inline_lines, inline_plain
 from pancratius.passes.lineation import VERSE_SHORT_LINE_MAX
 from pancratius.passes.pipeline import PER_ORDINAL_SEAM, Context, run
+from pancratius.thematic import is_thematic_marker
 
 W = da.W
 
@@ -192,7 +193,7 @@ def read_rows(docx: Path) -> list[ParaRow]:
                            **da._resolved_spacing(style, styles, da._spacing_attrs(ppr))}
                 txt = da._paragraph_text(child).strip()
                 heading = bool(re.fullmatch(r"(?:Heading\d+|[1-9])", direct_style))
-                thematic = txt in {"***", "* * *", "---"}
+                thematic = is_thematic_marker(txt)
                 contextual = da._resolved_contextual_spacing(
                     style,
                     styles,
