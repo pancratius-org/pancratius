@@ -78,7 +78,7 @@ function isCurrent(path: string): boolean {
       </svg>
     </button>
     <button
-      class="rail__menu-btn"
+      class="icon-btn rail__menu-btn"
       id="menuBtn"
       type="button"
       aria-expanded="false"
@@ -88,7 +88,6 @@ function isCurrent(path: string): boolean {
       data-close-label={copy.menuCloseAria}
     >
       <span class="rail__menu-rules" aria-hidden="true"><i></i><i></i></span>
-      <span class="rail__menu-text">{copy.menuLabel}</span>
     </button>
   </div>
 </header>
@@ -96,7 +95,6 @@ function isCurrent(path: string): boolean {
 <div class="menu" id="menuPanel" data-state="closed">
   <div class="menu__backdrop" id="menuBackdrop"></div>
   <nav class="menu__sheet" aria-label={copy.menuPanelAria}>
-    <p class="menu__kicker">{copy.navAria}</p>
     <ul class="menu__list">
       {navItems.map(item => (
         <li>
@@ -110,9 +108,6 @@ function isCurrent(path: string): boolean {
         </li>
       ))}
     </ul>
-    <div class="menu__foot">
-      <LanguageSwitcher currentLocale={locale} {alternates} />
-    </div>
   </nav>
 </div>
 
@@ -200,9 +195,9 @@ function isCurrent(path: string): boolean {
       link.addEventListener("click", close),
     );
 
-    // If the viewport grows past the mobile breakpoint while open, the sheet is
-    // hidden by CSS — tear down the locked state so the page isn't stuck.
-    const desktop = window.matchMedia("(min-width: 721px)");
+    // If the viewport grows past the collapse breakpoint while open, the sheet
+    // is hidden by CSS — tear down the locked state so the page isn't stuck.
+    const desktop = window.matchMedia("(min-width: 1101px)");
     desktop.addEventListener("change", e => {
       if (e.matches && isOpen()) close();
     });
@@ -278,27 +273,10 @@ function isCurrent(path: string): boolean {
     gap: 0.5rem;
   }
 
-  /* Menu toggle: a quiet hand-set label, not a glyph button. Two short rules
-     stack beside it as a restrained mark. Hidden above the mobile breakpoint. */
-  .rail__menu-btn {
-    display: none;
-    align-items: center;
-    gap: 0.5rem;
-    background: transparent;
-    border: 1px solid var(--rule);
-    border-radius: 1px;
-    color: var(--ink-soft);
-    height: 32px;
-    padding: 0 0.7rem;
-    cursor: pointer;
-    font-family: var(--sans);
-    font-size: 11.5px;
-    font-weight: 500;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    transition: color 0.18s var(--ease), border-color 0.18s var(--ease);
-  }
-  .rail__menu-btn:hover { color: var(--accent); border-color: var(--accent-soft); }
+  /* Menu toggle: an icon-only `.icon-btn` carrying a quiet hand-set mark —
+     two short rules. Hidden above the collapse breakpoint where the inline nav
+     owns navigation. */
+  .rail__menu-btn { display: none; }
   .rail__menu-rules {
     display: inline-flex;
     flex-direction: column;
@@ -339,15 +317,16 @@ function isCurrent(path: string): boolean {
      Hidden entirely on desktop, where the inline nav row owns navigation. */
   .menu { display: none; }
 
-  @media (max-width: 720px) {
+  /* Collapse breakpoint. Above it the ~10 locale-filtered nav links (RU labels,
+     the wider set) sit in one clean row; below it they would stagger, so the
+     inline row steps aside for the menu. The language dropdown and theme toggle
+     stay in the bar at every width — only the nav collapses. */
+  @media (max-width: 1100px) {
     .rail {
       grid-template-columns: 1fr auto;
       gap: 0.75rem;
     }
-    /* On mobile the inline nav row and the bar's language switch step aside;
-       the section list and the language switch move into the sheet. */
     .rail__nav { display: none; }
-    .rail__right > :global(.lang) { display: none; }
     .rail__menu-btn { display: inline-flex; }
 
     .menu {
@@ -390,25 +369,6 @@ function isCurrent(path: string): boolean {
     }
     .menu[data-state="open"] .menu__sheet { transform: translateY(0); }
 
-    .menu__kicker {
-      font-family: var(--sans);
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--ink-mute);
-      margin: 0 0 1.1rem;
-    }
-    .menu__kicker::before {
-      content: "";
-      display: inline-block;
-      width: 22px;
-      height: 1px;
-      background: var(--accent);
-      vertical-align: middle;
-      margin-right: 0.8rem;
-    }
-
     .menu__list {
       list-style: none;
       margin: 0;
@@ -443,15 +403,9 @@ function isCurrent(path: string): boolean {
       height: 1.1em;
       background: var(--accent);
     }
-
-    .menu__foot {
-      margin-top: 1.6rem;
-      padding-top: 1.3rem;
-      border-top: 1px solid var(--rule);
-    }
   }
 
-  @media (max-width: 720px) and (prefers-reduced-motion: reduce) {
+  @media (max-width: 1100px) and (prefers-reduced-motion: reduce) {
     .menu__backdrop,
     .menu__sheet { transition: none; }
   }

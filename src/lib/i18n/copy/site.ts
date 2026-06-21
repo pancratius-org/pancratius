@@ -6,8 +6,6 @@ export interface ChromeCopy {
   navAria: string;
   themeAria: string;
   skip: string;
-  /** Visible label on the mobile menu toggle. */
-  menuLabel: string;
   /** aria-label for the toggle when the menu is closed. */
   menuOpenAria: string;
   /** aria-label for the toggle when the menu is open. */
@@ -23,7 +21,6 @@ export const chromeCopy = {
     navAria: "Разделы",
     themeAria: "Сменить тему",
     skip: "К содержанию",
-    menuLabel: "Меню",
     menuOpenAria: "Открыть меню",
     menuCloseAria: "Закрыть меню",
     menuPanelAria: "Разделы",
@@ -34,7 +31,6 @@ export const chromeCopy = {
     navAria: "Sections",
     themeAria: "Toggle theme",
     skip: "Skip to content",
-    menuLabel: "Menu",
     menuOpenAria: "Open menu",
     menuCloseAria: "Close menu",
     menuPanelAria: "Sections",
