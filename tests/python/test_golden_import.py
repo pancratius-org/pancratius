@@ -59,6 +59,7 @@ from pancratius import (
     import_docx,
 )
 from pancratius.content_catalog import KIND_DIRS, dump_frontmatter, split_frontmatter
+from pancratius.kinds import CorpusWorkKind
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -102,7 +103,7 @@ class GoldenCase:
 
     name: str
     docx: str
-    kind: str
+    kind: CorpusWorkKind
     lang: str
     number: int
     slug: str

@@ -130,6 +130,7 @@ the architecture contracts those rules cover.
 | PAN019 | The `pancratius` CLI exposes no site build/verify verbs. |
 | PAN021 | Every conceptosphere stable id (concept_id, community key) has an EN translation. |
 | PAN022 | Every `/en/` book-reference context with a Cyrillic (RU-only) title carries the shared "Russian original" badge; `/ru/` carries zero badges. |
+| PAN023 | Heuristic agent review for new raw primitives, open registries, primitive tuple contracts, and optionality clusters where domain types should carry repo vocabulary. |
 
 Content-quality checks are heuristic unless promoted with a deterministic
 contract and polarity coverage.

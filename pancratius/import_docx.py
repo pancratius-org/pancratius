@@ -11,7 +11,7 @@ import zipfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
-from typing import Any, TypedDict
+from typing import Any, TypedDict, TypeGuard
 
 from pancratius import footnotes, ir
 from pancratius.content_catalog import (
@@ -31,7 +31,7 @@ from pancratius.docx_conversion import (
     to_ascii_slug,
     write_bibliography_sidecar,
 )
-from pancratius.kinds import CORPUS_WORK_KINDS
+from pancratius.kinds import CORPUS_WORK_KINDS, CorpusWorkKind, RoutedKind
 from pancratius.paths import CACHE_ROOT, CONTENT_ROOT, imports_dir_for_content_root
 from pancratius.writeplan import Diagnostic, Role, WriteOp, WritePlan
 from pancratius.writer import WriteReport
@@ -70,7 +70,7 @@ class ImportRequest:
     docx: Path
     lang: str
     out_content: Path
-    kind: str | None = None
+    kind: CorpusWorkKind | None = None
     into: str | None = None
     title: str | None = None
     number: int | None = None
@@ -84,7 +84,7 @@ class ImportRequest:
 
 @dataclass(frozen=True)
 class ImportResult:
-    kind: str
+    kind: CorpusWorkKind
     work_key: str
     md_path: Path
     docx_path: Path
@@ -93,14 +93,14 @@ class ImportResult:
 
 @dataclass(frozen=True)
 class _ExistingGroup:
-    kind: str
+    kind: CorpusWorkKind
     work_key: str
     entries: list[CatalogEntry]
 
 
 @dataclass(frozen=True)
 class _ResolvedTarget:
-    kind: str
+    kind: CorpusWorkKind
     work_key: str
     number: int
     slug: str
@@ -275,8 +275,12 @@ def _slug_with_number(raw_slug: str, number: int) -> str:
     return f"{number:02d}-{slug}"
 
 
+def _is_corpus_work_kind(kind: RoutedKind) -> TypeGuard[CorpusWorkKind]:
+    return kind in CORPUS_WORK_KINDS
+
+
 def _existing_group(matches: list[CatalogEntry], work_ref: str) -> _ExistingGroup:
-    groups: dict[tuple[str, str], list[CatalogEntry]] = {}
+    groups: dict[tuple[RoutedKind, str], list[CatalogEntry]] = {}
     for entry in matches:
         groups.setdefault((entry.kind, entry.work_key), []).append(entry)
     if not groups:
@@ -285,6 +289,8 @@ def _existing_group(matches: list[CatalogEntry], work_ref: str) -> _ExistingGrou
         choices = ", ".join(f"{kind}/{work_key}" for kind, work_key in sorted(groups))
         raise ImportWorkError(f"--into is ambiguous ({choices}); pass --kind")
     (kind, work_key), entries = next(iter(groups.items()))
+    if not _is_corpus_work_kind(kind):
+        raise ImportWorkError(f"work kind is not importable: {kind}")
     return _ExistingGroup(kind=kind, work_key=work_key, entries=entries)
 
 
@@ -403,7 +409,7 @@ def _merge_cross_refs(existing_lang: CatalogEntry | None, converted: ConvertedDo
 def _frontmatter_for_import(
     *,
     request: ImportRequest,
-    kind: str,
+    kind: CorpusWorkKind,
     number: int,
     slug: str,
     title: str,

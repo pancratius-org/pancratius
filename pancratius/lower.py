@@ -35,13 +35,13 @@ def _body_image_alt(lang: str) -> str:
 # Quotation glyphs by language: a `Quoted` inline carries the quote SEMANTICS (single/double);
 # the marks are typographic and locale-specific. RU uses guillemets for doubles; EN uses American
 # curly quotes. Any other language falls back to RU (the corpus default).
-_QUOTE_MARKS: dict[str, dict[str, tuple[str, str]]] = {
+_QUOTE_MARKS: dict[str, dict[ir.QuoteKind, tuple[str, str]]] = {
     "ru": {"double": ("«", "»"), "single": ("'", "'")},
     "en": {"double": ("“", "”"), "single": ("‘", "’")},
 }
 
 
-def _quote_marks(lang: str, kind: str) -> tuple[str, str]:
+def _quote_marks(lang: str, kind: ir.QuoteKind) -> tuple[str, str]:
     return _QUOTE_MARKS.get(lang, _QUOTE_MARKS["ru"])[kind]
 
 

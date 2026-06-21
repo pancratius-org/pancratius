@@ -30,6 +30,7 @@ import { pan020TypographyRoleDrift } from "./typography.ts";
 import { pan021ConceptosphereI18n } from "./conceptosphere.ts";
 import { pan022ConceptosphereDegradation } from "./degradation.ts";
 import { contentQualityRules } from "./content_quality.ts";
+import { pan023TypeDomainPy, pan023TypeDomainTs } from "./type_domain.ts";
 
 export const RULES: readonly Rule[] = [
   // Fatal core (run on `npm run audit:repo`):
@@ -59,5 +60,7 @@ export const RULES: readonly Rule[] = [
   pan014InternalLinks,
   pan022ConceptosphereDegradation,
   // Non-blocking heuristics (run only on `npm run audit:agent`):
+  pan023TypeDomainTs,
+  pan023TypeDomainPy,
   ...contentQualityRules,
 ];
