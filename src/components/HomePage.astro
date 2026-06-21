@@ -2,7 +2,6 @@
 import Base              from "@/layouts/Base.astro";
 import BookCard          from "@/components/BookCard.astro";
 import SvetozarTerminal  from "@/components/SvetozarTerminal.astro";
-import SvetozarBooks     from "@/components/SvetozarBooks.astro";
 
 import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE, homeUrl, kindIndexUrl, LOCALES, pageUrl, workUrl } from "@/lib/i18n";
@@ -276,8 +275,6 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
 
         <SvetozarTerminal lang={locale} />
       </div>
-
-      <SvetozarBooks {locale} withHeading={false} />
     </section>
 
     {/* Person section lives at /about/. Closing CC0 line lives in the
