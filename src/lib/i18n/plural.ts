@@ -11,7 +11,7 @@ export type RuPluralForms = readonly [one: string, few: string, many: string];
 export const RU_PLURALS = {
   book: ["книга", "книги", "книг"] as const,
   bookDative: ["книге", "книгам", "книгам"] as const,
-  poem: ["стихотворение", "стихотворения", "стихотворений"] as const,
+  poem: ["стих", "стиха", "стихов"] as const,
   message: ["послание", "послания", "посланий"] as const,
   psalm: ["псалом", "псалма", "псалмов"] as const,
   project: ["проект", "проекта", "проектов"] as const,

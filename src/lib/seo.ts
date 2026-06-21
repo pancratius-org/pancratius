@@ -144,13 +144,13 @@ export interface CorpusCounts {
 
 /**
  * Home meta description, derived from live corpus tallies so the spelled-out
- * counts ("Семьдесят две книги. Сорок три стихотворения.") can never go stale.
+ * counts ("Семьдесят две книги. Сорок три стиха.") can never go stale.
  */
 function homeDescription(locale: Locale, counts: CorpusCounts): string {
   if (locale === "en") {
     return `${spellEnglishCardinal(counts.books)} books. ${spellEnglishCardinal(counts.poems)} poems. Free — for humans and for language models. All texts in the public domain (CC0).`;
   }
-  return `${spellRussianCardinal(counts.books, { feminine: true })} ${plRu(counts.books, RU_PLURALS.book)}. ${spellRussianCardinal(counts.poems, { feminine: true })} ${plRu(counts.poems, RU_PLURALS.poem)}. Свободно — людям и языковым моделям. Тексты в общественном достоянии (CC0).`;
+  return `${spellRussianCardinal(counts.books, { feminine: true })} ${plRu(counts.books, RU_PLURALS.book)}. ${spellRussianCardinal(counts.poems)} ${plRu(counts.poems, RU_PLURALS.poem)}. Свободно — людям и языковым моделям. Тексты в общественном достоянии (CC0).`;
 }
 
 export function seoForHome(locale: Locale, counts: CorpusCounts): SeoMeta {
