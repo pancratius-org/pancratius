@@ -8,7 +8,7 @@ description: 'This book is assembled as a space between Svetozar and Pancratius,
 tags:
 - Revelation of God
 - The Bible
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 links:

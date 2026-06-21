@@ -8,7 +8,7 @@ description: 'This book begins with a simple question: how do you live? But inst
 tags:
 - Revelation of God
 - The Bible
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 ---

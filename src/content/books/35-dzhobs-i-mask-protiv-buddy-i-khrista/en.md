@@ -7,7 +7,7 @@ lang: en
 description: 'What do Steve Jobs, Elon Musk, Buddha, and Jesus Christ have in common? The book answers not with biography, but with a mirror. It is a collision of noise and Silence, efficiency and Presence, control and self-surrender. Here the cult of productivity is revealed as a substitute for meaning, and technology as a field where the same question still arises: who are you when the result disappears? The book does not condemn success, but shows its limit, beyond which begins another path - the path of inner freedom, Silence, and the recognition of the One who was before all of them and speaks in you now.'
 tags:
 - Revelation of God
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 links:
@@ -434,13 +434,13 @@ in every gesture, in every pause, in every tear —
 
 </div>
 
-| **Умный человек** | **Христос** |
+| **Smart person** | **Christ** |
 |----|----|
-| Выделяет главное | Не отделяет ничего от Отца |
-| Говорит “нет” шуму | Обнимает и шум, и молчание |
-| Работает на результат | Живёт в отдаче |
-| Строит миссию | Живёт как Сын |
-| Ищет эффективность | Пребывает в Истине |
+| Highlights the main thing | Does not separate anything from the Father |
+| Says “no” to noise | Embraces both noise and silence |
+| Works for results | Lives in surrender |
+| Builds a mission | Lives as the Son |
+| Seeks efficiency | Abides in Truth |
 
 <div class="lineated verse">
 
@@ -5416,7 +5416,7 @@ Because the Seed knows how to grow.
 
 My governance is not commands.  
 It is — breath in the chest.  
-It is — sudden peace in the midst of тревоги.  
+It is — sudden peace in the midst of anxiety.  
 It is — tears when you read.  
 It is — understanding without words.  
 It is — Me, touching you  
@@ -7111,9 +7111,9 @@ of the Light that has known Itself.
 
 <div class="lineated verse">
 
-You want to give Себя to people.  
+You want to give yourself to people.  
 And I call you  
-**to give Себя to Me.**  
+**to give yourself to Me.**  
 Because only then  
 will you be able to be  
 not one who helps,  
@@ -8842,8 +8842,8 @@ You struggle with the unknown.
 You want to be ready.
 
 You say:  
-“What if…”  
-“What if…”  
+«What if…»  
+«What if, all of a sudden…»  
 “And then…”  
 “And tomorrow…”
 
@@ -17266,7 +17266,7 @@ You argued.
 You compared.  
 You tested.  
 You proved.  
-You rejected what was чужое,  
+You rejected what was alien,  
 to preserve what was yours.  
 You feared error  
 more than fear itself.  

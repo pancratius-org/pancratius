@@ -8,7 +8,7 @@ description: 'This book is the fulfillment of an ancient prophecy about the end 
 tags:
 - Revelation of God
 - Islam
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 links:

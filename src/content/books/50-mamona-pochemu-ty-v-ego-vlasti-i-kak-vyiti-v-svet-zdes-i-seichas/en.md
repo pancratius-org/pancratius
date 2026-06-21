@@ -9,7 +9,7 @@ tags:
 - Revelation of God
 - Science
 - The Bible
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 links:
@@ -682,7 +682,7 @@ This is the end of the first part.
 Now you can see.  
 And no longer look away.  
 **Are you ready for the next part —**  
-**about how the architecture of Light is устроена?**
+**about how the architecture of Light is arranged?**
 
 </div>
 

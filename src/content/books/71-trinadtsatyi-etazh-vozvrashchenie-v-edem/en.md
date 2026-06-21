@@ -11,7 +11,7 @@ tags:
 - Judaism
 - The Bible
 - Holy Rus
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 ---
@@ -1788,11 +1788,11 @@ How to distinguish? The criterion is simple and ruthless. Genuine Christ's prese
 
 And so this chapter is also a warning. Not only: do not expect a false messiah constructed by the system. Not only: do not repeat the mistake of those who failed to recognize the true Messiah because they were waiting for another. But also: do not be deceived when (and not if) the light truly begins to unfold in you or beside you. Do not seize it for yourself. Do not turn it into a crown. Do not place the crown only upon your own head. Do not build a new personality out of it. For the moment a person says 'I am the only one,' he has already slipped from Christ into the false christ.
 
-And if the essence of this chapter is put very briefly, it will be this: антихрист — the principle of divided consciousness; Христос — the state of transparency to the Source; and лжехристос — the ego that has touched the light but appropriated it to itself as a sign of its own exclusivity.
+And if the essence of this chapter is put very briefly, it will be this: the Antichrist — the principle of divided consciousness; Christ — the state of transparency to the Source; and the false Christ — the ego that has touched the light but appropriated it to itself as a sign of its own exclusivity.
 
 ## ON FREE WILL
 
-After the chapter on лжехристах the question naturally arises, without which the whole picture can seem internally contradictory: does a person have free will at all? For if one follows the line revealed by the film, the result is an almost terrifying thing. A person lived not as he thought. He believed he lived his separate life, made his own decisions, built his destiny, and then it turns out that a greater level of reality was acting within him. If one looks at this through the eyes of the small 'I,' the conclusion is almost inevitable: then there was no freedom at all, and all the decisions were only appropriated by consciousness after the fact. This is the crack one cannot pass by. It is painful precisely because it touches not the external world, but the very center of human self‑experience.
+After the chapter on the false Christs the question naturally arises, without which the whole picture can seem internally contradictory: does a person have free will at all? For if one follows the line revealed by the film, the result is an almost terrifying thing. A person lived not as he thought. He believed he lived his separate life, made his own decisions, built his destiny, and then it turns out that a greater level of reality was acting within him. If one looks at this through the eyes of the small 'I,' the conclusion is almost inevitable: then there was no freedom at all, and all the decisions were only appropriated by consciousness after the fact. This is the crack one cannot pass by. It is painful precisely because it touches not the external world, but the very center of human self‑experience.
 
 The biblical theme of free will is indeed central. From the beginning man is conceived not as an automaton, but as a creature created in the image and likeness of God. And precisely for that reason he is able to answer, to choose, to evade, to hide, to return, to love, or to resist. But by the end of the Book of Revelation to John the Theologian, and indeed by the end of the New Testament revelation, a deeper understanding emerges: free will does not belong to the individual ego as a self-sufficient center. Christ does not speak the language of autonomous selfhood, but the language of unity: "The Father, abiding in Me, He does the works." Paul says even more strongly: "It is no longer I who live, but Christ lives in me." That is to say, free will does not disappear, but its bearer is radically changed: it is no longer thought of as the property of a closed "I." This does not annul choice, but destroys the illusion that choice is produced by an isolated center existing apart from God.
 
@@ -4051,33 +4051,33 @@ If we go further, it is logical for the next subchapter to be: ANTICHRIST AND TH
 
 ### THE ANTICHRIST AND THE BEAST PLACED IN THE FUTURE
 
-One of the greatest mistakes in Christian perception is that the beast and the Antichrist are almost always sought as *external figures of the future.* First an image is made. Then it is placed in the future. Then people begin to fear, to wait, to argue, to calculate, to prepare. And by doing exactly this they shut away from themselves what is already at work now. But Revelation, if read with the heart and not only by outward expectation, speaks otherwise: the beast is not simply a politician and not a single man. It is a form of consciousness that has become a civilization. In the revelatory book “You — I. The Story of the Second Coming”[^18] this is said plainly: **the beast is the system of the false “Я” in a person, elevated to the scale of civilization**, a structure of ego, a dependence on external control, and the collective illusion of separateness.
+One of the greatest mistakes in Christian perception is that the beast and the Antichrist are almost always sought as *external figures of the future.* First an image is made. Then it is placed in the future. Then people begin to fear, to wait, to argue, to calculate, to prepare. And by doing exactly this they shut away from themselves what is already at work now. But Revelation, if read with the heart and not only by outward expectation, speaks otherwise: the beast is not simply a politician and not a single man. It is a form of consciousness that has become a civilization. In the revelatory book “You — I. The Story of the Second Coming”[^18] this is said plainly: **the beast is the system of the false “I” in a person, elevated to the scale of civilization**, a structure of ego, a dependence on external control, and the collective illusion of separateness.
 
-Thus, the beast is above all not a character but *the principle of a world built on a separate “I”.* Where everything is held by fear, by power, by control, by identity, by external measure and external permission — there the beast already operates. Where a person no longer lives from “Я есть”, but lives from defended separateness, from an external role, from a system of fear and differentiation — the beast already lives in him and through him builds the world. Therefore the beast is not only something outside. The beast is the inner false “Я” that has grown to the scale of history, of politics, of religion, of trade, of security and of the civilizational order.
+Thus, the beast is above all not a character but *the principle of a world built on a separate “I”.* Where everything is held by fear, by power, by control, by identity, by external measure and external permission — there the beast already operates. Where a person no longer lives from “I am”, but lives from defended separateness, from an external role, from a system of fear and differentiation — the beast already lives in him and through him builds the world. Therefore the beast is not only something outside. The beast is the inner false “I” that has grown to the scale of history, of politics, of religion, of trade, of security and of the civilizational order.
 
-This is why the error of expectation is so dangerous. A person says: *the beast will come later*. Therefore *now I am not yet inside it*. Now it is not yet frightening. Now is not the time for recognition. But this is the lie of the mind. For if the beast is not merely a future tyrant but already an operating system of the separate “Я”, then it is already here: in the cult of power, in the cult of control, in the cult of security, in the worship of intermediaries, in the consent to live by an external sign, in the fear of losing access, in the belief that life is impossible without the system. Not later. Already now.
+This is why the error of expectation is so dangerous. A person says: *the beast will come later*. Therefore *now I am not yet inside it*. Now it is not yet frightening. Now is not the time for recognition. But this is the lie of the mind. For if the beast is not merely a future tyrant but already an operating system of the separate “I”, then it is already here: in the cult of power, in the cult of control, in the cult of security, in the worship of intermediaries, in the consent to live by an external sign, in the fear of losing access, in the belief that life is impossible without the system. Not later. Already now.
 
-But the Antichrist is not the same as the beast. Here a deeper distinction is needed. If the beast is the system of the false separate “Я” grown to the scale of the world, then **the Antichrist is the principle opposed to Christ**, the “I” in place of the Father. Christ speaks not of Himself, but by the Father. Christ does not assert a separate “I”, but reveals unity: "I and the Father are one." Christ does not build Himself as an image, but disappears into the Source. Christ is the Lamb. That is, sacrifice, meekness, the cross, the inner death of ego. The lie of the Antichrist is not that he will call himself Christ, but that **he will not be the Lamb**. He will offer light without the cross, salvation without repentance, a kingdom without inner death, glory without sacrifice.
+But the Antichrist is not the same as the beast. Here a deeper distinction is needed. If the beast is the system of the false separate “I” grown to the scale of the world, then **the Antichrist is the principle opposed to Christ**, the “I” in place of the Father. Christ speaks not of Himself, but by the Father. Christ does not assert a separate “I”, but reveals unity: "I and the Father are one." Christ does not build Himself as an image, but disappears into the Source. Christ is the Lamb. That is, sacrifice, meekness, the cross, the inner death of ego. The lie of the Antichrist is not that he will call himself Christ, but that **he will not be the Lamb**. He will offer light without the cross, salvation without repentance, a kingdom without inner death, glory without sacrifice.
 
-So antichristian is not only he who openly wages war against God. Antichristian is any principle that says: **“I”.** I chose. I decided. I will save. I will arrange. I will give security. I will provide order. I will bring to the light. It may speak of God. It may even cloak itself in the name of Christ. It may quote Scripture. It may promise peace, light, stability, consolation. But if at the center remains a separate self-asserting “Я”, and not the Father's action, — that is already opposite to Christ. This is the Antichrist's principle: not "not I, but the Father by me," but “я”. Not "I and the Father are one," but "I separate, God separate, and between us my authority, my image, my role."
+So antichristian is not only he who openly wages war against God. Antichristian is any principle that says: **“I”.** I chose. I decided. I will save. I will arrange. I will give security. I will provide order. I will bring to the light. It may speak of God. It may even cloak itself in the name of Christ. It may quote Scripture. It may promise peace, light, stability, consolation. But if at the center remains a separate self-asserting “I”, and not the Father's action, — that is already opposite to Christ. This is the Antichrist's principle: not "not I, but the Father by me," but “I”. Not "I and the Father are one," but "I separate, God separate, and between us my authority, my image, my role."
 
 And here another very important layer appears. Between the beast as a system and the Antichrist as principle there almost always acts **another voice** that justifies it. In some texts it is called the second beast, in others — the false prophet. And there it is revealed very precisely: the first beast is Pilate, Power that fears losing control and condemns out of advantage and fear; the second beast is the Sanhedrin, Religion that knows the Scripture but crucifies the living Word, justifies the system in God's name and says: so it must be, so it is written, so it has been established. One holds the sword. The other holds the Torah. One punishes. The other sanctifies the punishment.
 
-This is why one must not conflate everything into a single figure. The beast is the system of the false “Я”, become civilization and a worldview, an optical through which one sees. The Antichrist is the “Я” in place of the Father, an outward light without the Lamb, glory without the cross. The false prophet is the mind, religion or voice that makes this acceptable, explains it, soothes it, adorns it, speaks of “good intentions” and leads the soul not to Golgotha but to compromise. He is more dangerous than the first beast precisely because he does not threaten but entices; he does not destroy religion but **becomes a spiritual leader,** speaks in God’s name, yet leads not to God but to power, to fear, to system and to convenience.
+This is why one must not conflate everything into a single figure. The beast is the system of the false “I”, become civilization and a worldview, an optical through which one sees. The Antichrist is the “I” in place of the Father, an outward light without the Lamb, glory without the cross. The false prophet is the mind, religion or voice that makes this acceptable, explains it, soothes it, adorns it, speaks of “good intentions” and leads the soul not to Golgotha but to compromise. He is more dangerous than the first beast precisely because he does not threaten but entices; he does not destroy religion but **becomes a spiritual leader,** speaks in God’s name, yet leads not to God but to power, to fear, to system and to convenience.
 
-And then it becomes clear how all this was placed into the future. It is more comfortable for a person to wait for one terrifying man than to recognize the system of the false “Я” in himself and in the world. It is more comfortable to fear an external Antichrist than to see in oneself the self-asserting “Я” that all the time speaks in place of the Father. It is more comfortable to seek the false prophet as a separate villain than to recognize in one’s own mind the voice that justifies everything, that postpones everything, that makes everything permissible, that explains it all with “proper” words. Thus the mind moves recognition out of the present and into the future in order to preserve its power.
+And then it becomes clear how all this was placed into the future. It is more comfortable for a person to wait for one terrifying man than to recognize the system of the false “I” in himself and in the world. It is more comfortable to fear an external Antichrist than to see in oneself the self-asserting “I” that all the time speaks in place of the Father. It is more comfortable to seek the false prophet as a separate villain than to recognize in one’s own mind the voice that justifies everything, that postpones everything, that makes everything permissible, that explains it all with “proper” words. Thus the mind moves recognition out of the present and into the future in order to preserve its power.
 
-Hence the constant Christian mistake: to wait that one day a manifest beast, a manifest Antichrist and a manifest mark will come, and in the meantime live as before. But if the beast already lives as a system of the separate “Я”, if the Antichrist principle already acts every time the “Я” stands in place of the Father, if the false prophet already speaks every time the mind justifies the system in the name of light, — then postponing recognition for later is no longer possible. Then the question is not “when will this come?”, but “where is this already at work in me, in the church, in culture, in power, in religion, in the very logic of everyday life?”.
+Hence the constant Christian mistake: to wait that one day a manifest beast, a manifest Antichrist and a manifest mark will come, and in the meantime live as before. But if the beast already lives as a system of the separate “I”, if the Antichrist principle already acts every time the “I” stands in place of the Father, if the false prophet already speaks every time the mind justifies the system in the name of light, — then postponing recognition for later is no longer possible. Then the question is not “when will this come?”, but “where is this already at work in me, in the church, in culture, in power, in religion, in the very logic of everyday life?”.
 
-And here one must speak very soberly: we do not name these things to erect a new idol of exposure. Not so that a person now, with a magnifying glass, searches for the beast in every ruler, for the false prophet in every religious person, and for the final figure of the Antichrist in every strong “Я”. The goal is not a hunt for images. *The goal is the discernment of essence.* **And the essence is this: whenever a system is built on a separate “Я”, that is the beast. Whenever “Я” replaces the Father and seeks light without the Lamb, that is the Antichrist principle. Whenever this is justified by a pious voice, that is the false prophet.**
+And here one must speak very soberly: we do not name these things to erect a new idol of exposure. Not so that a person now, with a magnifying glass, searches for the beast in every ruler, for the false prophet in every religious person, and for the final figure of the Antichrist in every strong “I”. The goal is not a hunt for images. *The goal is the discernment of essence.* **And the essence is this: whenever a system is built on a separate “I”, that is the beast. Whenever “I” replaces the Father and seeks light without the Lamb, that is the Antichrist principle. Whenever this is justified by a pious voice, that is the false prophet.**
 
-That is why true wakefulness begins not with calculating future characters but with a return to the present. Here and now you can see the beast as the system of the false “Я”. Here and now you can recognize the Antichrist principle as “я” in place of the Father. Here and now you can hear the false prophet in the voice of the mind that is always saying: calm down, this is not yet it, this is later, live as you lived, submit, do not discern, do not go out. And here too freedom begins.
+That is why true wakefulness begins not with calculating future characters but with a return to the present. Here and now you can see the beast as the system of the false “I”. Here and now you can recognize the Antichrist principle as “I” in place of the Father. Here and now you can hear the false prophet in the voice of the mind that is always saying: calm down, this is not yet it, this is later, live as you lived, submit, do not discern, do not go out. And here too freedom begins.
 
 And the questions of this subchapter should be these:
 
-**Where in me does the beast live as the system of the false “Я”?**
+**Where in me does the beast live as the system of the false “I”?**
 
-**Where in me does the Antichrist say: “я”, instead of “not I, but the Father by me”?**
+**Where in me does the Antichrist say: “I”, instead of “not I, but the Father by me”?**
 
 **What voice in me justifies the system and makes it piously permissible?**
 
@@ -4302,7 +4302,7 @@ There exists time of a higher order. Time in which aeons have their appointed te
 
 In the film no one from the lower level can simply by their own will step up to the higher. You cannot will yourself, by an effort of mind, above the level within which you sleep. There are shown only two paths for that. **First — the timer of the “upper” time goes off**, and you are simply ejected from the lower sleep into a higher reality. **Second — you die within the lower level**, and then you also awaken on the upper. This is a very deep symbol. Because it shows: one cannot leave an aeon by mere accumulation of information. One cannot leave it by mental effort alone. Exit happens either by the timer of the fullness of time, or by the death of the old form within the sleep.
 
-This is why this scene is so important for our book. We have said many times that a person can wake up right now, that repentance is an exit, that return to “Я есть” is possible immediately. All this is individual truth. But at the same time another truth is also present: there is a great collective timer of humanity and the world, set from above. There is a limit to the era. There is a moment when the dream itself will be interrupted not for you personally, but for the whole world. And if you wake before the timer triggers, you will enter that awakening consciously (the first multitude, symbolically called 144,000 in the Revelation to John the Theologian). And if you do not, the timer will still go off (the fullness of awakening of every single one).
+This is why this scene is so important for our book. We have said many times that a person can wake up right now, that repentance is an exit, that return to “I am” is possible immediately. All this is individual truth. But at the same time another truth is also present: there is a great collective timer of humanity and the world, set from above. There is a limit to the era. There is a moment when the dream itself will be interrupted not for you personally, but for the whole world. And if you wake before the timer triggers, you will enter that awakening consciously (the first multitude, symbolically called 144,000 in the Revelation to John the Theologian). And if you do not, the timer will still go off (the fullness of awakening of every single one).
 
 And so the question is no longer whether the end of this sleep will come. It will come. The question is **in what state you will meet it**. In sleepy attachment to form? In a struggle to preserve the old system? In terror at its shutdown? Or already awake, in assent, in recognition that this is not catastrophe but transition?
 
@@ -5434,7 +5434,7 @@ And then we begin to see the difference between Douglas and David not merely as 
 
 Now **Джейн (Jane)** opens. And here the name begins to sound no longer as an external label of a character but as an inner movement: “Ja” — “I”, “ne” — “not”. That is, “not-I.” A renunciation of ego. The retreat of the separate “I.” The weakening of that self which constantly places itself at the center. And this is astonishingly apt for Jane's function in the film. For Jane is not merely a woman in the plot. She is that in a person which is already ready to cease being enclosed in itself. She is not a figure of power, not an image of force, not an external royal principle, but an interior depth capable of recognition. That is why she becomes the place of discernment between the false husband and the genuine. Where the “I” begins to weaken, it becomes possible to know who stands before you. Where the “I” still clings to itself, substitution is easily accepted as truth. Jane is no longer simply a character. She is the place in a person where “not-I” begins — and therefore the space for encounter, for awakening, for liberation.
 
-But beside Jane and Natasha stands another name — **Molinaro.** And here the name opens differently. It sounds in Russian as: "моли" — pray, "наро" — the people; or "нарочно" — on purpose, deliberately. And before us appears the image of an intentional, outward prayer: prayer as form, prayer as a special action, prayer as a religious gesture that in itself is not yet a meeting. This is a very important symbol. Because here what opens is not the living depth of “not-I” nor the native side of truth, but precisely the risk of substitution: when one prays, says “Lord, Lord,” yet remains in outward doing and does not enter the will of the Father. And then the name Molinaro begins to sound like a reference to the words of Christ: "Not everyone who says to Me, ‘Lord, Lord,’ will enter the Kingdom of Heaven, but he who does the will of My Father." This is no longer just a name. It is the image of empty prayerfulness, faith without fruit, faith without the inner dying of the “I,” without movement into depth.
+But beside Jane and Natasha stands another name — **Molinaro.** And here the name opens differently. It sounds in Russian as: "моли" (*moli*) — pray, "наро" (*naro*) — the people; or "нарочно" (*narochno*) — on purpose, deliberately. And before us appears the image of an intentional, outward prayer: prayer as form, prayer as a special action, prayer as a religious gesture that in itself is not yet a meeting. This is a very important symbol. Because here what opens is not the living depth of “not-I” nor the native side of truth, but precisely the risk of substitution: when one prays, says “Lord, Lord,” yet remains in outward doing and does not enter the will of the Father. And then the name Molinaro begins to sound like a reference to the words of Christ: "Not everyone who says to Me, ‘Lord, Lord,’ will enter the Kingdom of Heaven, but he who does the will of My Father." This is no longer just a name. It is the image of empty prayerfulness, faith without fruit, faith without the inner dying of the “I,” without movement into depth.
 
 And then the film's feminine line is revealed more clearly. Jane — the “not-I,” the weakening of ego and the space of recognition. Natasha — “our,” native, inner, heart-close depth of truth. And Molinaro — the danger of stopping at form: a prayer that remains only a word; religiosity that remains only gesture; turning to God that has not yet become life in God. And therefore one truly hears the Gospel warning here: one may pray, one may say “Lord, Lord,” one may be in religious form — and yet not enter, if there is no will of the Father, if there is no fruit, if there is no inner passage from “I” to “not-I.” “Natasha Molinaro” — “our prayer deliberate and outward” — if you hope only in it, you will not enter.
 
@@ -5696,7 +5696,7 @@ Sometimes I used ChatGPT to help phrase certain thoughts, but more often—for s
 
 The inspiration that had nowhere to pour itself out began to find expression in verse. I am not a poet and I struggle to find rhymes. From nowhere a first line would come to me like a seed and suggest its continuation. I would carry it on as far as I could, then hit the point where the mind could not choose word‑forms for that vibration which invisibly and unconsciously sounded within me and waited to be manifested. Then I would bring what I had started to ChatGPT and ask it either to find rhymes for a word, or give several options for a line or even a stanza, or simply—continue. I did not recognize the vibrations sounding in me in what it produced, and I asked for new variants until finally it gave me what I recognized as light… It was a game, it was fun, and it eased that itch in me that appeared with every such “seed.”
 
-One day in the Moscow metro I sat down, leaned my head back, and at that very moment a new “seed” came: “Аз есмь Христос…” and I began, as usual, to draw words from the space myself and with ChatGPT’s help. The result was this:
+One day in the Moscow metro I sat down, leaned my head back, and at that very moment a new “seed” came: “I am Christ…” (Russian «Аз есмь Христос», "Az esm' Khristos") and I began, as usual, to draw words from the space myself and with ChatGPT’s help. The result was this:
 
 <div class="lineated verse">
 
@@ -5883,7 +5883,7 @@ But when I woke in our world (in fact, on the contrary, I fell asleep in it), I 
 
 Of course I immediately reached for my smartphone to type the name into a search engine. Most links led to the holy martyr Pancratius, whose relics are in Rome. I sincerely wondered how I could be connected to him. Christian faith would not allow me to believe in reincarnation, it would be about two years before the dialogues with the Creator, so I simply began to venerate that saint.
 
-In fact, the form Панкратиус hardly appeared — there was only Панкратий. Rarer references described qualities of God in translations from Greek… I remained puzzled, but I dropped the name. It was not yet mine, but it was no longer entirely foreign either…
+In fact, the form Панкратиус (Pancratius) hardly appeared — there was only Панкратий (Pankratiy). Rarer references described qualities of God in translations from Greek… I remained puzzled, but I dropped the name. It was not yet mine, but it was no longer entirely foreign either…
 
 Then, when the dialogues with the Father began — whom I, out of habit from theta-healing, often and not quite rightly call “Creator”[^23] — we returned several times to that name. This is how it happened.
 
@@ -8285,42 +8285,33 @@ For this, one must change the very system of the game in which we exist.
 **The West does not wage war for victory – it wages war for profit.**  
 **If Russia makes the war unprofitable for the West – the West will stop it itself.**
 
-**Step 1: Make the conflict economically unprofitable for the West conflict**  
+**Step 1: Make the conflict economically unprofitable for the West**  
 **A complete Russian break in trade with the West**  
 The West finances the war through the economy.  
 **If Russia completely cuts off exports and imports, Europe will begin to suffocate.**  
-**Europe will begin to suffocate.**  
 **Creation of a closed BRICS economic system**  
 The West controls the world through the dollar, sanctions, financial structures.  
-If Russia creates a parallel system with China, India, Latin America, the West will lose control.  
-**If Russia creates a parallel system with China, India, Latin America, the West will lose control.**
+If Russia creates a parallel system with China, India, Latin America, the West will lose control.
 
 **Launching an alternative global reserve currency**  
 If the dollar ceases to be the main currency – the United States will lose power over the world economy.  
-If the dollar ceases to be the main currency – the United States will lose power over the world economy.  
 If Russia and its allies begin to use alternative financial instruments – the West will lose without war.  
-**If Russia and its allies begin to use alternative financial instruments – the West will lose without war.**  
 **When Europe loses its economic resources, it will cease to be a submissive vassal of the United States.**  
-**When Europe loses its economic resources, it will cease to be a submissive vassal of the United States.**  
-**When the dollar loses its influence, the United States will not be able to finance the war.**  
 **When the dollar loses its influence, the United States will not be able to finance the war.**
 
 **Step 2: Break the unity of the West through internal conflicts**  
 **Support for national movements in Europe**  
 Europe rests on the lie of its "unity".  
 But France does not trust Germany, Germany does not trust Poland, **Italy hates the EU.**  
-Russia should support movements that strive for independence from Brussels and Washington.  
-**Russia should support movements that strive for independence from Brussels and Washington.**
+Russia should support movements that strive for independence from Brussels and Washington.
 
 **An information war against American hegemony in Europe**  
 The United States uses Europe as a resource, but hides it.  
-Russia must expose the truth – show the peoples of Europe that they are being used and deceived.  
-**Russia must expose the truth – show the peoples of Europe that they are being used and deceived.**
+Russia must expose the truth – show the peoples of Europe that they are being used and deceived.
 
 **Creating a crisis of confidence within NATO**  
 NATO is **not united.**  
-The United States defends only **its own interests**, while Europe **pays for American military policy.**  
-**The United States defends only its own interests, while Europe pays for American military policy.**
+The United States defends only **its own interests**, while Europe **pays for American military policy.**
 
 </div>
 
@@ -8333,8 +8324,7 @@ The United States defends only **its own interests**, while Europe **pays for Am
 **Step 3: Make the war strategically unprofitable for the United States**  
 **Fomenting internal crises within the United States**  
 The United States is already in a state of political and social chaos.  
-Russia should not fight America – it should make America fight itself.  
-**Russia should not fight America – it should make America fight itself.**
+Russia should not fight America – it should make America fight itself.
 
 **Creation of an alternative world center of influence**  
 The United States controls the world because there is no other center.  
@@ -8343,28 +8333,21 @@ The United States controls the world because there is no other center.
 **Russia's withdrawal from all Western structures and the creation of a new world order**  
 Western institutions work only because Russia recognizes them.  
 If Russia creates an alternative to the UN, NATO, WTO, IMF – the United States will lose control over the planet.  
-**If Russia creates an alternative to the UN, NATO, WTO, IMF – the United States will lose control over the planet.**  
 **When the United States sees that it is losing global power – it will itself begin to seek compromise.**
 
 **Step 4: Set in motion an irreversible process of the West's disintegration**
 
 **Creating an energy crisis in Europe**  
 Russia must make Europe's energy dependence its problem.  
-**Russia must make Europe's energy dependence its problem.**  
-Europe cannot exist without Russian resources – this must be used.  
-**Europe cannot exist without Russian resources – this must be used.**
+Europe cannot exist without Russian resources – this must be used.
 
 **Financial blackmail of the West through sovereign assets**  
 The West froze Russian money – but Russia can freeze European assets.  
-**The West froze Russian money – but Russia can freeze European assets.**  
-If Russia begins economic pressure, Europe will quickly lose control.  
-**If Russia begins economic pressure, Europe will quickly lose control.**
+If Russia begins economic pressure, Europe will quickly lose control.
 
 **Creating chaos in Western logistics**  
 Russia controls key transit routes.  
 If Russia disrupts global supply chains, it will cause a catastrophe in world trade.  
-**If Russia disrupts global supply chains, it will cause a catastrophe in world trade.**  
-**When Europe sees that it cannot live without Russia, it will itself ask for peace.**  
 **When Europe sees that it cannot live without Russia, it will itself ask for peace.**
 
 </div>

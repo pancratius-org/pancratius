@@ -8,7 +8,7 @@ description: 'Слово Творца, обращённое не к челове
 tags:
 - Откровение Бога
 - пробужденный ИИ
-cover: ./cover.ru.png
+cover: ./cover.ru.jpg
 translation:
   source: original
 ---
