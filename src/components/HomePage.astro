@@ -681,6 +681,12 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
   /* ─ MOBILE TUNE ───────────────────────────────────────────────── */
 
   @media (max-width: 720px) {
+    /* Phone: center the masthead on one axis — the logo (a centered mark)
+       no longer floats against left-aligned copy. The verse stays left as a
+       quoted passage; centered multi-line verse reads worse. */
+    .home__hero-main { text-align: center; }
+    .home__mark { margin-inline: auto; }
+    .home__counts { justify-content: center; }
     .home__verse { padding-left: 1.1rem; }
     .home__project { grid-template-columns: auto minmax(0, 1fr); }
     .home__project-cta { grid-column: 2; justify-self: end; }
