@@ -197,7 +197,7 @@ function isCurrent(path: string): boolean {
 
     // If the viewport grows past the collapse breakpoint while open, the sheet
     // is hidden by CSS — tear down the locked state so the page isn't stuck.
-    const desktop = window.matchMedia("(min-width: 1101px)");
+    const desktop = window.matchMedia("(min-width: 1331px)");
     desktop.addEventListener("change", e => {
       if (e.matches && isOpen()) close();
     });
@@ -249,7 +249,7 @@ function isCurrent(path: string): boolean {
     display: flex;
     gap: 1.4rem;
     justify-content: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
   .rail__nav a {
     color: var(--ink-soft);
@@ -276,7 +276,7 @@ function isCurrent(path: string): boolean {
   /* Menu toggle: an icon-only `.icon-btn` carrying a quiet hand-set mark —
      two short rules. Hidden above the collapse breakpoint where the inline nav
      owns navigation. */
-  .rail__menu-btn { display: none; }
+  .icon-btn.rail__menu-btn { display: none; }
   .rail__menu-rules {
     display: inline-flex;
     flex-direction: column;
@@ -321,13 +321,13 @@ function isCurrent(path: string): boolean {
      the wider set) sit in one clean row; below it they would stagger, so the
      inline row steps aside for the menu. The language dropdown and theme toggle
      stay in the bar at every width — only the nav collapses. */
-  @media (max-width: 1100px) {
+  @media (max-width: 1330px) {
     .rail {
       grid-template-columns: 1fr auto;
       gap: 0.75rem;
     }
     .rail__nav { display: none; }
-    .rail__menu-btn { display: inline-flex; }
+    .icon-btn.rail__menu-btn { display: inline-flex; }
 
     .menu {
       display: block;
@@ -405,7 +405,7 @@ function isCurrent(path: string): boolean {
     }
   }
 
-  @media (max-width: 1100px) and (prefers-reduced-motion: reduce) {
+  @media (max-width: 1330px) and (prefers-reduced-motion: reduce) {
     .menu__backdrop,
     .menu__sheet { transition: none; }
   }
