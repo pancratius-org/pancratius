@@ -11,10 +11,11 @@ break and fails if any has lost it.
 
 Lineated surfaces:
 
-  1. BOOK / project `<div class="lineated">` and
+  1. BOOK / project / page `<div class="lineated">` and
      `<div class="lineated verse">` wrappers — every NON-FINAL line of a stanza
      (a stanza is a maximal run of non-blank lines, with `***` its own one-line
-     stanza) must end with exactly two trailing spaces.
+     stanza) must end with exactly two trailing spaces. The /about/ page embeds
+     verse this way (the seed-poem and the book-33/63 oracles).
   2. POEM bodies — whole-body verse (no wrapper). Same rule on the body's stanzas,
      skipping the trailing `[^N]:` footnote appendix (single-line defs, not verse).
   3. VERSE-REGISTER AUTHORED bodies — the mission/manifesto pages (rendered via
@@ -141,7 +142,12 @@ def main() -> int:
     failures: list[str] = []
     lineated_wrappers = 0
 
-    for path in sorted((CONTENT / "books").glob("*/*.md")) + sorted((CONTENT / "projects").glob("*/*.md")):
+    wrapper_globs = (
+        sorted((CONTENT / "books").glob("*/*.md"))
+        + sorted((CONTENT / "projects").glob("*/*.md"))
+        + sorted((CONTENT / "pages").glob("*/*.md"))
+    )
+    for path in wrapper_globs:
         text = path.read_text(encoding="utf-8")
         lineated_wrappers += _check_lineated_wrappers(path, text, failures)
 
