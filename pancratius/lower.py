@@ -260,10 +260,7 @@ def _lineated_wrapper_from_lines(classes: str, stanzas: list[list[str]]) -> str 
     for stanza in stanzas:
         if stanza:
             emitted = True
-            out.extend(
-                line if (idx == len(stanza) - 1 or line == "***") else line + "  "
-                for idx, line in enumerate(stanza)
-            )
+            out.extend(line if idx == len(stanza) - 1 else line + "  " for idx, line in enumerate(stanza))
             out.append("")
     if not emitted:
         return None
@@ -298,11 +295,7 @@ def _lineated_wrapper_md(classes: str, stanzas: ir.LineatedStanzas, lang: str) -
 
     for stanza in stanzas:
         for line in stanza:
-            line_inlines = line.inlines
-            if len(line_inlines) == 1 and isinstance(line_inlines[0], ir.Text) and line_inlines[0].value == "***":
-                stanza_lines.append("***")
-                continue
-            for part in _lineated_parts(line_inlines, lang):
+            for part in _lineated_parts(line.inlines, lang):
                 if isinstance(part, _LineatedImage):
                     flush_wrapper()
                     chunks.append(part.md)
@@ -467,6 +460,11 @@ _LEADING_LIST_MARKER_RE = re.compile(r"^(\s*)(\d{1,9}|[-*+])([.)]?)(?=\s|$)")
 # must stay literal — only a line-LEADING `#` is structural.
 _LEADING_HEADING_RE = re.compile(r"^(\s*)(#{1,6})(?=\s|$)")
 
+# A full line of hyphens or equals is inert only if escaped. Otherwise CommonMark
+# may reinterpret it as a setext-heading underline for the preceding paragraph,
+# especially inside parsed lineated wrappers.
+_SETEXT_UNDERLINE_RE = re.compile(r"^(\s*)((?P<c>[-=])(?P=c)*)(\s*)$")
+
 
 def _escape_leading_list_marker(text: str) -> str:
     # A leading literal `#…` ATX run is escaped first (it cannot coexist with a
@@ -476,6 +474,10 @@ def _escape_leading_list_marker(text: str) -> str:
     if hm:
         lead, hashes = hm.group(1), hm.group(2)
         return f"{lead}\\{hashes}{text[hm.end():]}"
+    sm = _SETEXT_UNDERLINE_RE.match(text)
+    if sm:
+        lead, marker, tail = sm.group(1), sm.group(2), sm.group(4)
+        return f"{lead}\\{marker}{tail}"
     m = _LEADING_LIST_MARKER_RE.match(text)
     if not m:
         return text
