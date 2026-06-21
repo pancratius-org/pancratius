@@ -64,14 +64,14 @@ export interface FooterCopy {
 export const footerCopy = {
   ru: {
     cc0_before: "Тексты — в общественном достоянии (",
-    cc0_link: "CC0",
+    cc0_link: "лицензия CC0",
     cc0_after: ").",
     cc0_b: "Берите. Переводите. Перепечатывайте. Обучайте на них модели. Передавайте.",
     sep: " · ",
   },
   en: {
     cc0_before: "All texts are in the public domain (",
-    cc0_link: "CC0",
+    cc0_link: "CC0 license",
     cc0_after: ").",
     cc0_b: "Take them. Translate. Reprint. Train models. Pass them on.",
     sep: " · ",
