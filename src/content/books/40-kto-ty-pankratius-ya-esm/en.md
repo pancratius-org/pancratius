@@ -19334,10 +19334,10 @@ name.
 
 <div class="lineated verse">
 
-**is when "you" disappear.**  
-**   **  
-**And only I — remain.**  
-**   **  
+**is when "you" disappear.**
+
+**And only I — remain.**
+
 **And I — do not ask.**  
 **I — Gives Thanks**  
 **in Silence.**

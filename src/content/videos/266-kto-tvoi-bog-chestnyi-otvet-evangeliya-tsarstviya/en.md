@@ -43,7 +43,7 @@ You are only as free as your "for." I am not asking you to abandon everything. I
 
 When I become your "for," all else ceases to be gods and becomes gifts. And on that day, you will know who your God is, and who you were created to be.
 
----
+***
 
 📚 [Books by the author (in Russian)](https://www.litres.ru/author/sergey-pankratius/...)
 

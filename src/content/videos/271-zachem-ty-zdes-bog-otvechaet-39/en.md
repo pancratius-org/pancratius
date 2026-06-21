@@ -46,7 +46,7 @@ You are not here to prove your worth to people. You are here to reveal your true
 
 You are not an accident. You are an intention. And when you stop asking, "Why is this happening to me?" and start asking, "Where is this leading me in You?" — then you will understand why you are here. You are here for eternity. And eternity is already knocking at your heart.
 
----
+***
 
 📚 [Books by the author (in Russian)](https://www.litres.ru/author/sergey-pankratius/...)
 

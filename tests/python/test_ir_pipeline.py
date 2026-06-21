@@ -453,9 +453,30 @@ def test_strip_endmatter_drops_mid_document_bibliography_section() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_thematic_break_from_stars_paragraph() -> None:
-    out = scrub.thematic_breaks([ir.Paragraph(inlines=[ir.Text("***")])])
+@pytest.mark.parametrize("marker", ["***", "* * *", r"\*\*\*", "---", "----", "===", "___"])
+def test_thematic_break_from_divider_paragraph_variants(marker: str) -> None:
+    out = scrub.thematic_breaks([ir.Paragraph(inlines=[ir.Text(marker)])])
     assert len(out) == 1 and isinstance(out[0], ir.ThematicBreak)
+
+
+def test_thematic_break_normalizes_before_lineation_lowering() -> None:
+    blocks: list[ir.Block] = [
+        ir.Paragraph(inlines=[ir.Text("Before one")], facts=ir.SourceFacts(lineation_group=1)),
+        ir.Paragraph(inlines=[ir.Text("Before two")], facts=ir.SourceFacts(lineation_group=1)),
+        ir.Paragraph(inlines=[ir.Text("Before three")], facts=ir.SourceFacts(lineation_group=1)),
+        ir.Paragraph(inlines=[ir.Text("---")], source_span=ir.SourceSpan(3, 3)),
+        ir.Paragraph(inlines=[ir.Text("After one")], facts=ir.SourceFacts(lineation_group=2)),
+        ir.Paragraph(inlines=[ir.Text("After two")], facts=ir.SourceFacts(lineation_group=2)),
+        ir.Paragraph(inlines=[ir.Text("After three")], facts=ir.SourceFacts(lineation_group=2)),
+    ]
+
+    scrubbed = scrub.thematic_breaks(blocks)
+    assert isinstance(scrubbed[3], ir.ThematicBreak)
+    body = lower.lower(ir.Document(blocks=lineation.fold_lineation(scrubbed)), "ru", [])
+
+    assert "---" not in body
+    assert "\n***\n" in body
+    assert body.count('<div class="lineated">') == 2
 
 
 def test_empty_heading_is_dropped_before_markdown() -> None:
@@ -1088,12 +1109,29 @@ def test_lower_lineated_block_escapes_structural_markers() -> None:
     # source lines that look like headings/lists must be escaped just like verse
     # lines.
     lb = ir.LineatedBlock(stanzas=[
-        [ir.Line([ir.Text("### not a heading")]), ir.Line([ir.Text("1. not a list")]), ir.Line([ir.Text("- not a bullet")])],
+        [
+            ir.Line([ir.Text("### not a heading")]),
+            ir.Line([ir.Text("1. not a list")]),
+            ir.Line([ir.Text("- not a bullet")]),
+            ir.Line([ir.Text("***")]),
+            ir.Line([ir.Text("___")]),
+            ir.Line([ir.Text("--")]),
+            ir.Line([ir.Text("==")]),
+            ir.Line([ir.Text("---")]),
+            ir.Line([ir.Text("===")]),
+        ],
     ])
     body = lower.lower(ir.Document(blocks=[lb]), "ru", [])
     assert "\\### not a heading  " in body
     assert "1\\. not a list  " in body
-    assert "\\- not a bullet" in body
+    assert "\\- not a bullet  " in body
+    assert "\\*\\*\\*  " in body
+    assert "\\_\\_\\_  " in body
+    assert "\\--  " in body
+    assert "\\==  " in body
+    assert "\\---  " in body
+    assert "\\===" in body
+    assert "\n***\n" not in body
 
 
 def test_lower_lineated_block_escapes_literal_inline_markup() -> None:
@@ -1122,9 +1160,10 @@ def test_lower_verse_block_emits_div_with_lines() -> None:
     assert body == '<div class="lineated verse">\n\nline one  \nline two\n\n</div>\n'
 
 
-def test_lower_verse_block_markdown_emphasis_and_stanza_break() -> None:
+def test_lower_verse_block_markdown_emphasis_and_literal_star_line() -> None:
     # Emphasis lowers to Markdown `*`/`**` (not HTML), stanzas are blank-line
-    # separated, and a `***` separator stanza becomes a thematic-break line.
+    # separated, and a literal `***` line stays inert text inside the wrapper.
+    # Actual source dividers lower as `ThematicBreak` blocks between wrappers.
     vb = ir.LineatedBlock(stanzas=[
         [ir.Line([ir.Text("plain "), ir.Emphasis("strong", [ir.Text("bold")])])],
         [ir.Line([ir.Text("***")])],
@@ -1134,7 +1173,7 @@ def test_lower_verse_block_markdown_emphasis_and_stanza_break() -> None:
     assert body == (
         '<div class="lineated verse">\n\n'
         "plain **bold**\n\n"
-        "***\n\n"
+        "\\*\\*\\*\n\n"
         "*ital* tail\n\n"
         "</div>\n"
     )
@@ -1145,12 +1184,21 @@ def test_lower_verse_block_escapes_leading_markdown_markers() -> None:
     # source lines that look like block syntax must therefore be escaped so they do
     # not become headings/lists and pollute the generated page ToC.
     vb = ir.LineatedBlock(stanzas=[
-        [ir.Line([ir.Text("### not a heading")]), ir.Line([ir.Text("1. not a list")]), ir.Line([ir.Text("- not a bullet")])],
+        [
+            ir.Line([ir.Text("### not a heading")]),
+            ir.Line([ir.Text("1. not a list")]),
+            ir.Line([ir.Text("- not a bullet")]),
+            ir.Line([ir.Text("***")]),
+            ir.Line([ir.Text("---")]),
+        ],
     ], register=ir.Register.VERSE)
     body = lower.lower(ir.Document(blocks=[vb]), "ru", [])
     assert "\\### not a heading  " in body
     assert "1\\. not a list  " in body
-    assert "\\- not a bullet" in body
+    assert "\\- not a bullet  " in body
+    assert "\\*\\*\\*  " in body
+    assert "\\---" in body
+    assert "\n***\n" not in body
 
 
 def test_lower_signature_emits_p_signature() -> None:
