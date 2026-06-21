@@ -17,7 +17,11 @@ import { expect, test, type Page, type ConsoleMessage } from "@playwright/test";
 
 const PAIRED_BOOK_RU = "/ru/books/01-evangelie-tsarstviya/";
 const PAIRED_BOOK_EN = "/en/books/01-evangelie-tsarstviya/";
-const UNPAIRED_BOOK  = "/ru/books/33-ya-esm-vsadnik-kon-i-mech/";
+// A representative book for prose/colophon rendering (all books are now EN-paired).
+const REPRESENTATIVE_BOOK = "/ru/books/33-ya-esm-vsadnik-kon-i-mech/";
+// A genuinely unpaired work (RU-only video) for the disabled-switcher case — every
+// book now has an English edition, so the unpaired fallback is exercised via a video.
+const UNPAIRED_WORK = "/ru/videos/02-ty-moi-tvorets-stikhi/";
 
 /**
  * Attach a console listener that fails the test on `console.error` /
@@ -128,7 +132,7 @@ test.describe("conceptosphere loads graph runtime", () => {
 test.describe("representative book renders prose + colophon", () => {
   test("GET /ru/books/33-ya-esm-vsadnik-kon-i-mech/", async ({ page }) => {
     const { messages } = failOnConsoleErrors(page);
-    await page.goto(UNPAIRED_BOOK, { waitUntil: "domcontentloaded" });
+    await page.goto(REPRESENTATIVE_BOOK, { waitUntil: "domcontentloaded" });
     // Prose body lives in <article data-pagefind-body>; colophon is the
     // closing block with download links + license note.
     await expect(page.locator("article").first()).toBeVisible();
@@ -165,8 +169,8 @@ test.describe("language switcher", () => {
     expect(new URL(page.url()).pathname).toBe(PAIRED_BOOK_EN);
   });
 
-  test("unpaired book — EN button is disabled", async ({ page }) => {
-    await page.goto(UNPAIRED_BOOK, { waitUntil: "domcontentloaded" });
+  test("unpaired work — EN button is disabled", async ({ page }) => {
+    await page.goto(UNPAIRED_WORK, { waitUntil: "domcontentloaded" });
     // No anchor for EN; the disabled fallback renders a <span aria-disabled>.
     const enAnchor = page.locator('nav.lang a[hreflang="en"]');
     expect(await enAnchor.count()).toBe(0);
