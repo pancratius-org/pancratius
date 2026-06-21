@@ -163,17 +163,22 @@ export const tocCopy = {
 } satisfies Record<Locale, TocCopy>;
 
 export interface LanguageSwitcherCopy {
-  aria: string;
+  /** aria-label for the trigger button (shows the current locale code). */
+  triggerAria: string;
+  /** aria-label for the dropdown listbox of locales. */
+  menuAria: string;
   noTranslation: string;
 }
 
 export const languageSwitcherCopy = {
   ru: {
-    aria: "Язык страницы",
+    triggerAria: "Язык страницы",
+    menuAria: "Выбор языка",
     noTranslation: "нет перевода",
   },
   en: {
-    aria: "Page language",
+    triggerAria: "Page language",
+    menuAria: "Choose language",
     noTranslation: "no page in this language",
   },
 } satisfies Record<Locale, LanguageSwitcherCopy>;

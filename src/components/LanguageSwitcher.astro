@@ -1,84 +1,243 @@
 ---
+// Language switcher — a native HTML `popover` dropdown. The browser owns
+// open/close and light-dismiss (`popovertarget` + `popover="auto"`); the script
+// only positions the panel under the trigger, syncs aria-expanded, and adds
+// roving keyboard nav. Each option links to THIS page's URL in that locale,
+// taken from `alternates`; the current locale is non-navigable and a locale the
+// page isn't translated into renders disabled (never a link to a 404). Hrefs are
+// root-relative so the switcher works on any origin (localhost preview included).
 import type { Locale } from "@/lib/i18n";
 import { LOCALES, LOCALE_LABEL, LOCALE_NAME } from "@/lib/i18n";
 import { languageSwitcherCopy } from "@/lib/i18n/copy";
 
 interface Props {
   currentLocale: Locale;
-  /** Map locale → absolute URL if a sibling page exists in that locale. */
+  /** Map locale → root-relative URL if a sibling page exists in that locale. */
   alternates: Partial<Record<Locale, string>>;
 }
 
 const { currentLocale, alternates } = Astro.props;
 const copy = languageSwitcherCopy[currentLocale];
+
+const MENU_ID = "lang-switch-menu";
+const currentLabel = LOCALE_LABEL[currentLocale];
 ---
-<nav class="lang" aria-label={copy.aria}>
-  {LOCALES.map(loc => {
-    const isCurrent = loc === currentLocale;
-    const href = alternates[loc];
-    const hasAlt = !!href;
-    const label = LOCALE_LABEL[loc];
-    const name = LOCALE_NAME[currentLocale][loc];
-    // Accessible name starts with the visible text so axe's
-    // `label-content-name-mismatch` (WCAG 2.5.3) is satisfied.
-    const accLabel = `${label} — ${name}`;
-    if (isCurrent) {
-      return (
-        <span class="lang__btn is-current" aria-current="true" aria-label={accLabel}>
-          {label}
-        </span>
+<div class="lang" data-lang-switch>
+  <button
+    type="button"
+    class="lang__trigger"
+    aria-label={copy.triggerAria}
+    aria-expanded="false"
+    popovertarget={MENU_ID}
+  >
+    <span class="lang__code">{currentLabel}</span>
+    <svg class="lang__caret" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m4 6 4 4 4-4" />
+    </svg>
+  </button>
+
+  <ul id={MENU_ID} class="lang__menu" role="listbox" aria-label={copy.menuAria} popover="auto">
+    {LOCALES.map(loc => {
+      const isCurrent = loc === currentLocale;
+      const code = LOCALE_LABEL[loc];
+      const name = LOCALE_NAME[currentLocale][loc];
+      const inner = (
+        <>
+          <span class="lang__opt-code">{code}</span>
+          <span class="lang__opt-name" lang={loc}>{name}</span>
+        </>
       );
-    }
-    if (hasAlt) {
+      if (isCurrent) {
+        return (
+          <li class="lang__option is-current" role="none">
+            {/* Current locale is non-navigable but stays in the roving set for
+                orientation; tabindex=-1 keeps it programmatically focusable. */}
+            <span role="option" aria-current="true" aria-selected="true" tabindex="-1">
+              {inner}
+            </span>
+          </li>
+        );
+      }
+      const href = alternates[loc];
+      if (href !== undefined) {
+        return (
+          <li class="lang__option" role="none">
+            <a {href} hreflang={loc} role="option" tabindex="-1">
+              {inner}
+            </a>
+          </li>
+        );
+      }
       return (
-        <a class="lang__btn" {href} hreflang={loc} aria-label={accLabel}>
-          {label}
-        </a>
+        <li class="lang__option is-disabled" role="none">
+          <span role="option" aria-disabled="true" title={copy.noTranslation}>
+            {inner}
+          </span>
+        </li>
       );
-    }
-    return (
-      <span
-        class="lang__btn is-disabled"
-        aria-disabled="true"
-        aria-label={`${label} — ${copy.noTranslation}`}
-      >
-        {label}
-      </span>
-    );
-  })}
-</nav>
+    })}
+  </ul>
+</div>
 
 <style>
   .lang {
     display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-family: var(--sans);
-    font-size: 12px;
-    letter-spacing: 0.06em;
   }
-  .lang__btn {
+
+  /* Matches the header's `.icon-btn` (32px tall, 1px --rule border, --ink-soft,
+     hover --accent/--accent-soft) so the bar reads as one set of controls;
+     auto-width to fit "RU" + caret rather than the 32px icon square. Styled
+     self-contained because Astro scopes `.icon-btn` to the Header component. */
+  .lang__trigger {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    min-width: 32px;
-    height: 28px;
+    gap: 0.3rem;
+    height: 32px;
     padding: 0 0.5rem;
+    background: transparent;
     border: 1px solid var(--rule);
     border-radius: 1px;
     color: var(--ink-soft);
-    text-decoration: none;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
     transition: color 0.18s var(--ease), border-color 0.18s var(--ease);
   }
-  .lang__btn:hover { color: var(--accent); border-color: var(--accent-soft); }
-  .lang__btn.is-current {
-    color: var(--ink);
-    border-color: var(--accent-soft);
-    background: var(--accent-mute);
+  .lang__trigger:hover { color: var(--accent); border-color: var(--accent-soft); }
+  .lang__code { line-height: 1; }
+  .lang__caret {
+    width: 11px;
+    height: 11px;
+    transition: transform 0.2s var(--ease);
   }
-  .lang__btn.is-disabled {
-    color: var(--ink-mute);
-    opacity: 0.45;
-    cursor: not-allowed;
+  .lang.is-open .lang__caret { transform: rotate(180deg); }
+
+  /* Native popover sits in the top layer; the script positions it under the
+     trigger each open. Clear the UA `inset: 0` so it doesn't park top-left first. */
+  .lang__menu {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    padding: 0.3rem;
+    min-width: 11rem;
+    border: 1px solid var(--rule);
+    border-radius: 1px;
+    background: var(--bg-rise);
+    box-shadow: var(--paper-shadow);
+    list-style: none;
+    font-family: var(--sans);
   }
+
+  .lang__option > * {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 1px;
+    text-decoration: none;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .lang__option a {
+    transition: color 0.18s var(--ease), background-color 0.18s var(--ease);
+  }
+  .lang__option a:hover { color: var(--ink); background: var(--accent-mute); }
+  .lang__option a:focus-visible {
+    outline: 1px solid var(--accent-soft);
+    outline-offset: -1px;
+  }
+  .lang__option.is-current > span { color: var(--accent); }
+  .lang__option.is-disabled > span { color: var(--ink-mute); cursor: not-allowed; }
+
+  .lang__opt-code {
+    flex: 0 0 1.6rem;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+  .lang__opt-name { font-size: 13px; }
 </style>
+
+<script>
+  // MPA — no ClientRouter — so this binds once at top level, like the theme
+  // toggle. The native popover owns open/close + light-dismiss; this only
+  // positions the top-layer panel, mirrors aria-expanded, and roves the keyboard.
+  function setupLangSwitch(root: HTMLElement): void {
+    const trigger = root.querySelector<HTMLButtonElement>(".lang__trigger");
+    const menu = root.querySelector<HTMLElement>(".lang__menu");
+    if (!trigger || !menu) return;
+
+    // Roving set: navigable links plus the current locale (both tabindex=-1);
+    // disabled options are skipped. Enter on a link follows it natively.
+    const options = Array.from(
+      menu.querySelectorAll<HTMLElement>("a[hreflang], [aria-current]"),
+    );
+
+    // Anchor the top-layer menu under the trigger, right edges aligned. Physical
+    // coordinates from getBoundingClientRect; the bar is always LTR here.
+    const position = (): void => {
+      const rect = trigger.getBoundingClientRect();
+      menu.style.top = `${Math.round(rect.bottom + 6)}px`;
+      menu.style.right = `${Math.round(window.innerWidth - rect.right)}px`;
+      menu.style.left = "auto";
+    };
+
+    // Position BEFORE paint (toggle fires after show — would flash at top-left).
+    menu.addEventListener("beforetoggle", event => {
+      if ((event as ToggleEvent).newState === "open") position();
+    });
+
+    menu.addEventListener("toggle", event => {
+      const open = (event as ToggleEvent).newState === "open";
+      trigger.setAttribute("aria-expanded", String(open));
+      root.classList.toggle("is-open", open);
+      // Focus the current locale, else the first option, once shown.
+      if (open) {
+        (menu.querySelector<HTMLElement>("[aria-current]") ?? options[0])?.focus();
+      }
+    });
+
+    trigger.addEventListener("keydown", event => {
+      if (["ArrowDown", "ArrowUp", "Enter", " "].includes(event.key)) {
+        event.preventDefault();
+        menu.showPopover();
+      }
+    });
+
+    menu.addEventListener("keydown", event => {
+      const focused = document.activeElement as HTMLElement | null;
+      const index = focused ? options.indexOf(focused) : -1;
+      switch (event.key) {
+        case "Escape":
+          // Browser hides the popover on Esc; restore focus to the trigger.
+          queueMicrotask(() => trigger.focus());
+          break;
+        case "Tab":
+          menu.hidePopover();
+          break;
+        case "ArrowDown":
+          event.preventDefault();
+          options[(index + 1) % options.length]?.focus();
+          break;
+        case "ArrowUp":
+          event.preventDefault();
+          options[(index - 1 + options.length) % options.length]?.focus();
+          break;
+        case "Home":
+          event.preventDefault();
+          options[0]?.focus();
+          break;
+        case "End":
+          event.preventDefault();
+          options[options.length - 1]?.focus();
+          break;
+      }
+    });
+  }
+
+  for (const root of document.querySelectorAll<HTMLElement>("[data-lang-switch]")) {
+    setupLangSwitch(root);
+  }
+</script>
