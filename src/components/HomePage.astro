@@ -17,6 +17,7 @@ import {
   type WorkPair,
 } from "@/lib/works";
 import { getProjects, projectUrl } from "@/lib/projects";
+import { getAllVideoPairs, localizedVideoPairs } from "@/lib/videos";
 
 interface Props {
   locale: Locale;
@@ -54,6 +55,10 @@ const allPoems = await getPairsByKind("poem");
 // Poems available in the active locale (whole set on the default locale; the
 // translated subset otherwise) — drives the home poetry count/stat.
 const localizedPoems = localizedWorkPairs(allPoems, locale);
+// Videos available in the active locale (all on the default locale; the
+// English-authored subset otherwise) — the count the home video stat shows,
+// matching the /videos/ index heading.
+const localizedVideos = localizedVideoPairs(await getAllVideoPairs(), locale);
 // Corpus tallies drive the home meta description's spelled-out counts.
 const seo = seoForHome(locale, { books: allBooks.length, poems: allPoems.length });
 // Projects are sections, not works — sourced from the projects lib. The
@@ -100,6 +105,7 @@ const heroStats = copy.hero.stats?.({
   totalBooks: allBooks.length,
   englishBooks: localizedBooks.length,
   poems: localizedPoems.length,
+  videos: localizedVideos.length,
 });
 const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
 ---

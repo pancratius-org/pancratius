@@ -5,6 +5,7 @@ interface HomeStatsInput {
   totalBooks: number;
   englishBooks: number;
   poems: number;
+  videos: number;
 }
 
 export interface HomeCopy {
@@ -54,7 +55,7 @@ export const homeCopy = {
     hero: {
       title: "Панкратиус",
       tag: "Свет, узнающий себя",
-      lede: "Открытая библиотека — для людей и языковых моделей.",
+      lede: "Открытая библиотека, чтобы встретить себя.",
       verseAria: "Об уме и тишине",
       verse: [
         { before: "Ум никогда не молчит — ", emphasis: "шепчет, спорит, строит планы." },
@@ -64,10 +65,10 @@ export const homeCopy = {
       ],
       cite: "Сергей Орехов · Панкратиус",
       statsAria: "Библиотека в числах",
-      stats: ({ totalBooks, poems }) => [
+      stats: ({ totalBooks, poems, videos }) => [
         { value: totalBooks, label: plRu(totalBooks, RU_PLURALS.book), href: "/ru/books/" },
         { value: poems, label: plRu(poems, RU_PLURALS.poem), href: "/ru/poetry/" },
-        { value: "CC0", label: "лицензия", href: "/ru/license/" },
+        { value: videos, label: "видео", href: "/ru/videos/" },
       ],
     },
     books: {
@@ -103,7 +104,7 @@ export const homeCopy = {
     hero: {
       title: "Pancratius",
       tag: "Light recognizing itself",
-      lede: "A free, public-domain library — for every reader, human or machine",
+      lede: "An open library, to meet yourself.",
       verseAria: "A passage on the mind and stillness",
       verse: [
         { before: "The mind never stops — ", emphasis: "it whispers, argues, plans." },
@@ -113,10 +114,10 @@ export const homeCopy = {
       ],
       cite: "Sergey Orekhov · Pancratius",
       statsAria: "The library in numbers",
-      stats: ({ englishBooks, poems }) => [
+      stats: ({ englishBooks, poems, videos }) => [
         { value: englishBooks, label: "books", href: "/en/books/" },
         { value: poems, label: "poems", href: "/en/poetry/" },
-        { value: "CC0", label: "license", href: "/en/license/" },
+        { value: videos, label: "videos", href: "/en/videos/" },
       ],
     },
     books: {
