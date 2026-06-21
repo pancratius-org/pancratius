@@ -9,7 +9,7 @@ tags:
 - Revelation of God
 - Prayer
 - The Bible
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 links:

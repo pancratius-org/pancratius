@@ -9,7 +9,7 @@ tags:
 - Revelation of God
 - Islam
 - The Bible
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 links:

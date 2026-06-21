@@ -10,7 +10,7 @@ tags:
 - Cinematic Gospel
 - Prayer
 - The Bible
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 links:

@@ -9,7 +9,7 @@ tags:
 - Revelation of God
 - Prayer
 - The Bible
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 links:
@@ -10554,8 +10554,8 @@ But it is precisely there — Life.
 <div class="lineated verse">
 
 Fear says:  
-“What if…?”  
-“What if…?”  
+«What if…?»  
+«What if, all of a sudden…?»  
 “You must…”  
 “You are obliged…”  
 “You will not manage…”  

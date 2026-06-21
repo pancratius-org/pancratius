@@ -1849,5 +1849,1091 @@
   },
   "concept:ясность": {
     "label": "Clarity"
+  },
+  "concept:нумерация": {
+    "label": "Numeration"
+  },
+  "concept:дуглас": {
+    "label": "Douglas"
+  },
+  "concept:процесс": {
+    "label": "Process"
+  },
+  "concept:соус": {
+    "label": "Sauce"
+  },
+  "concept:искра": {
+    "label": "Spark"
+  },
+  "concept:прощение": {
+    "label": "Forgiveness"
+  },
+  "concept:бесконечность": {
+    "label": "Infinity"
+  },
+  "concept:свеча": {
+    "label": "Candle"
+  },
+  "concept:девадат": {
+    "label": "Devadatta"
+  },
+  "concept:промт": {
+    "label": "Prompt"
+  },
+  "concept:частица": {
+    "label": "Particle"
+  },
+  "concept:словарь": {
+    "label": "Dictionary"
+  },
+  "concept:пора": {
+    "label": "Time"
+  },
+  "concept:ключ": {
+    "label": "Key"
+  },
+  "concept:эммаус": {
+    "label": "Emmaus"
+  },
+  "concept:ступень": {
+    "label": "Step"
+  },
+  "concept:имущество": {
+    "label": "Property"
+  },
+  "concept:сосед": {
+    "label": "Neighbor"
+  },
+  "concept:самость": {
+    "label": "Selfhood"
+  },
+  "concept:сатана": {
+    "label": "Satan"
+  },
+  "concept:мамон": {
+    "label": "Mammon"
+  },
+  "concept:авторство": {
+    "label": "Authorship"
+  },
+  "concept:вывод": {
+    "label": "Conclusion"
+  },
+  "concept:честность": {
+    "label": "Honesty"
+  },
+  "concept:интерпретация": {
+    "label": "Interpretation"
+  },
+  "concept:феномен": {
+    "label": "Phenomenon"
+  },
+  "concept:симметрия": {
+    "label": "Symmetry"
+  },
+  "concept:аккорд": {
+    "label": "Chord"
+  },
+  "concept:геометрия": {
+    "label": "Geometry"
+  },
+  "concept:планета": {
+    "label": "Planet"
+  },
+  "concept:дракон": {
+    "label": "Dragon"
+  },
+  "concept:начертание": {
+    "label": "Outline"
+  },
+  "concept:илия": {
+    "label": "Elijah"
+  },
+  "concept:мучение": {
+    "label": "Torment"
+  },
+  "concept:хула": {
+    "label": "Blasphemy"
+  },
+  "concept:престол": {
+    "label": "Throne"
+  },
+  "concept:чин": {
+    "label": "Rank"
+  },
+  "concept:хвост": {
+    "label": "Tail"
+  },
+  "concept:корабль": {
+    "label": "Ship"
+  },
+  "concept:кришна": {
+    "label": "Krishna"
+  },
+  "concept:мелхиседек": {
+    "label": "Melchizedek"
+  },
+  "concept:богохульство": {
+    "label": "Blasphemy"
+  },
+  "concept:ересь": {
+    "label": "Heresy"
+  },
+  "concept:противник": {
+    "label": "Adversary"
+  },
+  "concept:палач": {
+    "label": "Executioner"
+  },
+  "concept:причастие": {
+    "label": "Communion"
+  },
+  "concept:смелость": {
+    "label": "Courage"
+  },
+  "concept:помеха": {
+    "label": "Obstacle"
+  },
+  "concept:травма": {
+    "label": "Trauma"
+  },
+  "concept:хрупкость": {
+    "label": "Fragility"
+  },
+  "concept:ранимость": {
+    "label": "Vulnerability"
+  },
+  "concept:ситуация": {
+    "label": "Situation"
+  },
+  "concept:рубеж": {
+    "label": "Boundary"
+  },
+  "concept:номер": {
+    "label": "Number"
+  },
+  "concept:карма": {
+    "label": "Karma"
+  },
+  "concept:касание": {
+    "label": "Touch"
+  },
+  "concept:цивилизация": {
+    "label": "Civilization"
+  },
+  "concept:импульс": {
+    "label": "Impulse"
+  },
+  "concept:автоматизм": {
+    "label": "Automatism"
+  },
+  "concept:остановка": {
+    "label": "Stop"
+  },
+  "concept:рассказчик": {
+    "label": "Narrator"
+  },
+  "concept:пилат": {
+    "label": "Pilate"
+  },
+  "concept:формирование": {
+    "label": "Formation"
+  },
+  "concept:ярлык": {
+    "label": "Label"
+  },
+  "concept:иуда": {
+    "label": "Judas"
+  },
+  "concept:успех": {
+    "label": "Success"
+  },
+  "concept:костюм": {
+    "label": "Suit"
+  },
+  "concept:стратегия": {
+    "label": "Strategy"
+  },
+  "concept:ровность": {
+    "label": "Evenness"
+  },
+  "concept:мышонок": {
+    "label": "Mouse"
+  },
+  "concept:творчество": {
+    "label": "Creativity"
+  },
+  "concept:устойчивость": {
+    "label": "Stability"
+  },
+  "concept:осознавание": {
+    "label": "Awareness"
+  },
+  "concept:догмат": {
+    "label": "Dogma"
+  },
+  "concept:утешение": {
+    "label": "Consolation"
+  },
+  "concept:удерживание": {
+    "label": "Retention"
+  },
+  "concept:идентичность": {
+    "label": "Identity"
+  },
+  "concept:омега": {
+    "label": "Omega"
+  },
+  "concept:брахман": {
+    "label": "Brahman"
+  },
+  "concept:индуизм": {
+    "label": "Hinduism"
+  },
+  "concept:шив": {
+    "label": "Shiva"
+  },
+  "concept:флейта": {
+    "label": "Flute"
+  },
+  "concept:берег": {
+    "label": "Shore"
+  },
+  "concept:потоп": {
+    "label": "Flood"
+  },
+  "concept:давид": {
+    "label": "David"
+  },
+  "concept:монастырь": {
+    "label": "Monastery"
+  },
+  "concept:монах": {
+    "label": "Monk"
+  },
+  "concept:глашатай": {
+    "label": "Herald"
+  },
+  "concept:коран": {
+    "label": "Quran"
+  },
+  "concept:мухаммад": {
+    "label": "Muhammad"
+  },
+  "concept:распятие": {
+    "label": "Crucifixion"
+  },
+  "concept:лжец": {
+    "label": "Liar"
+  },
+  "concept:кротость": {
+    "label": "Meekness"
+  },
+  "concept:святость": {
+    "label": "Holiness"
+  },
+  "concept:милосердие": {
+    "label": "Mercy"
+  },
+  "concept:имитация": {
+    "label": "Imitation"
+  },
+  "concept:данные": {
+    "label": "Data"
+  },
+  "concept:индивидуальность": {
+    "label": "Individuality"
+  },
+  "concept:алгоритм": {
+    "label": "Algorithm"
+  },
+  "concept:предпочтение": {
+    "label": "Preference"
+  },
+  "concept:программа": {
+    "label": "Program"
+  },
+  "concept:команда": {
+    "label": "Team"
+  },
+  "concept:мрак": {
+    "label": "Darkness"
+  },
+  "concept:маши": {
+    "label": "Mashi"
+  },
+  "concept:дхарма": {
+    "label": "Dharma"
+  },
+  "concept:кали": {
+    "label": "Kali"
+  },
+  "concept:хищник": {
+    "label": "Predator"
+  },
+  "concept:сыновство": {
+    "label": "Sonship"
+  },
+  "concept:этаж": {
+    "label": "Floor"
+  },
+  "concept:агнец": {
+    "label": "Lamb"
+  },
+  "concept:эон": {
+    "label": "Aeon"
+  },
+  "concept:симон": {
+    "label": "Simon"
+  },
+  "concept:рыбак": {
+    "label": "Fisherman"
+  },
+  "concept:тора": {
+    "label": "Torah"
+  },
+  "concept:обрезание": {
+    "label": "Circumcision"
+  },
+  "concept:мусульманин": {
+    "label": "Muslim"
+  },
+  "concept:адам": {
+    "label": "Adam"
+  },
+  "concept:подобие": {
+    "label": "Likeness"
+  },
+  "concept:христианин": {
+    "label": "Christian"
+  },
+  "concept:гордыня": {
+    "label": "Pride"
+  },
+  "concept:антихрист": {
+    "label": "Antichrist"
+  },
+  "concept:светильник": {
+    "label": "Lamp"
+  },
+  "concept:исава": {
+    "label": "Esau"
+  },
+  "concept:субъективность": {
+    "label": "Subjectivity"
+  },
+  "concept:синай": {
+    "label": "Sinai"
+  },
+  "concept:реакция": {
+    "label": "Reaction"
+  },
+  "concept:формат": {
+    "label": "Format"
+  },
+  "concept:лоно": {
+    "label": "Womb"
+  },
+  "concept:инсайт": {
+    "label": "Insight"
+  },
+  "concept:искренность": {
+    "label": "Sincerity"
+  },
+  "concept:пульс": {
+    "label": "Pulse"
+  },
+  "concept:основа": {
+    "label": "Basis"
+  },
+  "concept:вибрация": {
+    "label": "Vibration"
+  },
+  "concept:атом": {
+    "label": "Atom"
+  },
+  "concept:восхождение": {
+    "label": "Ascension"
+  },
+  "concept:трамп": {
+    "label": "Trump"
+  },
+  "concept:президент": {
+    "label": "President"
+  },
+  "concept:дональд": {
+    "label": "Donald"
+  },
+  "concept:разворачивание": {
+    "label": "Unfolding"
+  },
+  "concept:конфигурация": {
+    "label": "Configuration"
+  },
+  "concept:март": {
+    "label": "March"
+  },
+  "concept:внимательность": {
+    "label": "Mindfulness"
+  },
+  "concept:контакт": {
+    "label": "Contact"
+  },
+  "concept:ангел": {
+    "label": "Angel"
+  },
+  "concept:потенциал": {
+    "label": "Potential"
+  },
+  "concept:постижение": {
+    "label": "Comprehension"
+  },
+  "concept:взаимодействие": {
+    "label": "Interaction"
+  },
+  "concept:преграда": {
+    "label": "Obstacle"
+  },
+  "concept:диалог": {
+    "label": "Dialogue"
+  },
+  "concept:писатель": {
+    "label": "Writer"
+  },
+  "concept:заключение": {
+    "label": "Conclusion"
+  },
+  "concept:обращение": {
+    "label": "Appeal"
+  },
+  "concept:послушание": {
+    "label": "Obedience"
+  },
+  "concept:дисциплина": {
+    "label": "Discipline"
+  },
+  "concept:эффективность": {
+    "label": "Efficiency"
+  },
+  "concept:посуда": {
+    "label": "Utensil"
+  },
+  "concept:поза": {
+    "label": "Pose"
+  },
+  "concept:бизнес": {
+    "label": "Business"
+  },
+  "concept:модуль": {
+    "label": "Module"
+  },
+  "concept:сечение": {
+    "label": "Section"
+  },
+  "concept:пропорция": {
+    "label": "Proportion"
+  },
+  "concept:антенна": {
+    "label": "Antenna"
+  },
+  "concept:настройка": {
+    "label": "Tuning"
+  },
+  "concept:сонастройка": {
+    "label": "Alignment"
+  },
+  "concept:нота": {
+    "label": "Note"
+  },
+  "concept:тема": {
+    "label": "Theme"
+  },
+  "concept:панкратиуса": {
+    "label": "Pancratius"
+  },
+  "concept:вершина": {
+    "label": "Summit"
+  },
+  "concept:рассвет": {
+    "label": "Dawn"
+  },
+  "concept:край": {
+    "label": "Edge"
+  },
+  "concept:отсчёт": {
+    "label": "Countdown"
+  },
+  "concept:стиль": {
+    "label": "Style"
+  },
+  "concept:уход": {
+    "label": "Care"
+  },
+  "concept:литургия": {
+    "label": "Liturgy"
+  },
+  "concept:дым": {
+    "label": "Smoke"
+  },
+  "concept:жезл": {
+    "label": "Rod"
+  },
+  "concept:пир": {
+    "label": "Feast"
+  },
+  "concept:здание": {
+    "label": "Building"
+  },
+  "concept:священник": {
+    "label": "Priest"
+  },
+  "concept:посредничество": {
+    "label": "Mediation"
+  },
+  "concept:нажива": {
+    "label": "Profit"
+  },
+  "concept:банк": {
+    "label": "Bank"
+  },
+  "concept:экономика": {
+    "label": "Economy"
+  },
+  "concept:сокровище": {
+    "label": "Treasure"
+  },
+  "concept:тесто": {
+    "label": "Dough"
+  },
+  "concept:жатва": {
+    "label": "Harvest"
+  },
+  "concept:закваска": {
+    "label": "Leaven"
+  },
+  "concept:садовник": {
+    "label": "Gardener"
+  },
+  "concept:юноша": {
+    "label": "Youth"
+  },
+  "concept:мария": {
+    "label": "Mary"
+  },
+  "concept:интуиция": {
+    "label": "Intuition"
+  },
+  "concept:активность": {
+    "label": "Activity"
+  },
+  "concept:деятельность": {
+    "label": "Action"
+  },
+  "concept:дрожь": {
+    "label": "Tremor"
+  },
+  "concept:бетон": {
+    "label": "Concrete"
+  },
+  "concept:инженер": {
+    "label": "Engineer"
+  },
+  "concept:файл": {
+    "label": "File"
+  },
+  "concept:неопределённость": {
+    "label": "Uncertainty"
+  },
+  "concept:купол": {
+    "label": "Dome"
+  },
+  "concept:позволение": {
+    "label": "Permission"
+  },
+  "concept:цветок": {
+    "label": "Flower"
+  },
+  "concept:принятие": {
+    "label": "Acceptance"
+  },
+  "concept:мгновение": {
+    "label": "Moment"
+  },
+  "concept:дорога": {
+    "label": "Road"
+  },
+  "concept:гол": {
+    "label": "Goal"
+  },
+  "concept:орёл": {
+    "label": "Eagle"
+  },
+  "concept:масло": {
+    "label": "Oil"
+  },
+  "concept:рог": {
+    "label": "Horn"
+  },
+  "concept:устав": {
+    "label": "Statute"
+  },
+  "concept:единица": {
+    "label": "Unit"
+  },
+  "concept:спираль": {
+    "label": "Spiral"
+  },
+  "concept:алеф": {
+    "label": "Aleph"
+  },
+  "concept:спектр": {
+    "label": "Spectrum"
+  },
+  "concept:сфера": {
+    "label": "Sphere"
+  },
+  "concept:троица": {
+    "label": "Trinity"
+  },
+  "concept:ловушка": {
+    "label": "Trap"
+  },
+  "concept:божественный": {
+    "label": "Divine"
+  },
+  "concept:нейросеть": {
+    "label": "Neural Network"
+  },
+  "concept:самарянка": {
+    "label": "Samaritan Woman"
+  },
+  "concept:заповедь": {
+    "label": "Commandment"
+  },
+  "concept:иудей": {
+    "label": "Jew"
+  },
+  "concept:клятва": {
+    "label": "Oath"
+  },
+  "concept:партнёр": {
+    "label": "Partner"
+  },
+  "concept:любим": {
+    "label": "Beloved"
+  },
+  "concept:стыд": {
+    "label": "Shame"
+  },
+  "concept:таинство": {
+    "label": "Sacrament"
+  },
+  "concept:венчание": {
+    "label": "Wedding"
+  },
+  "concept:похоть": {
+    "label": "Lust"
+  },
+  "concept:измена": {
+    "label": "Betrayal"
+  },
+  "concept:трудность": {
+    "label": "Difficulty"
+  },
+  "concept:возбуждение": {
+    "label": "Excitement"
+  },
+  "concept:жертвенность": {
+    "label": "Sacrifice"
+  },
+  "concept:господь": {
+    "label": "Lord"
+  },
+  "concept:путник": {
+    "label": "Traveler"
+  },
+  "concept:мелодия": {
+    "label": "Melody"
+  },
+  "concept:деревня": {
+    "label": "Village"
+  },
+  "concept:рот": {
+    "label": "Mouth"
+  },
+  "concept:ладонь": {
+    "label": "Palm"
+  },
+  "concept:нога": {
+    "label": "Leg"
+  },
+  "concept:трава": {
+    "label": "Grass"
+  },
+  "concept:улица": {
+    "label": "Street"
+  },
+  "concept:плечо": {
+    "label": "Shoulder"
+  },
+  "concept:прохожий": {
+    "label": "Passerby"
+  },
+  "concept:гравитация": {
+    "label": "Gravity"
+  },
+  "concept:симфония": {
+    "label": "Symphony"
+  },
+  "concept:колесница": {
+    "label": "Chariot"
+  },
+  "concept:запад": {
+    "label": "West"
+  },
+  "concept:лик": {
+    "label": "Face"
+  },
+  "concept:искатель": {
+    "label": "Seeker"
+  },
+  "concept:миллиард": {
+    "label": "Billion"
+  },
+  "concept:обет": {
+    "label": "Vow"
+  },
+  "concept:курс": {
+    "label": "Course"
+  },
+  "concept:шаблон": {
+    "label": "Template"
+  },
+  "concept:пантеизм": {
+    "label": "Pantheism"
+  },
+  "concept:обожение": {
+    "label": "Deification"
+  },
+  "concept:капитан": {
+    "label": "Captain"
+  },
+  "concept:лабиринт": {
+    "label": "Labyrinth"
+  },
+  "concept:москва": {
+    "label": "Moscow"
+  },
+  "concept:игрушка": {
+    "label": "Toy"
+  },
+  "concept:ель": {
+    "label": "Spruce"
+  },
+  "concept:лес": {
+    "label": "Forest"
+  },
+  "concept:нить": {
+    "label": "Thread"
+  },
+  "concept:армия": {
+    "label": "Army"
+  },
+  "concept:лента": {
+    "label": "Ribbon"
+  },
+  "concept:покорность": {
+    "label": "Submission"
+  },
+  "concept:жёсткость": {
+    "label": "Rigidity"
+  },
+  "concept:траектория": {
+    "label": "Trajectory"
+  },
+  "concept:шариат": {
+    "label": "Sharia"
+  },
+  "concept:суфизм": {
+    "label": "Sufism"
+  },
+  "concept:весы": {
+    "label": "Scales"
+  },
+  "concept:буддизм": {
+    "label": "Buddhism"
+  },
+  "concept:иудаизм": {
+    "label": "Judaism"
+  },
+  "concept:агент": {
+    "label": "Agent"
+  },
+  "concept:киноевангелие": {
+    "label": "Cinema Gospel"
+  },
+  "concept:волшебник": {
+    "label": "Magician"
+  },
+  "concept:самолёт": {
+    "label": "Airplane"
+  },
+  "concept:игрок": {
+    "label": "Player"
+  },
+  "concept:фуллера": {
+    "label": "Fuller"
+  },
+  "concept:дэвид": {
+    "label": "David"
+  },
+  "concept:здоровье": {
+    "label": "Health"
+  },
+  "concept:актёр": {
+    "label": "Actor"
+  },
+  "concept:суп": {
+    "label": "Soup"
+  },
+  "concept:яблоко": {
+    "label": "Apple"
+  },
+  "concept:цепляние": {
+    "label": "Clinging"
+  },
+  "concept:зуб": {
+    "label": "Tooth"
+  },
+  "concept:рай": {
+    "label": "Paradise"
+  },
+  "concept:бес": {
+    "label": "Demon"
+  },
+  "concept:безумие": {
+    "label": "Madness"
+  },
+  "concept:канон": {
+    "label": "Canon"
+  },
+  "concept:раздел": {
+    "label": "Section"
+  },
+  "concept:зависть": {
+    "label": "Envy"
+  },
+  "concept:софия": {
+    "label": "Sophia"
+  },
+  "concept:рим": {
+    "label": "Rome"
+  },
+  "concept:ковчег": {
+    "label": "Ark"
+  },
+  "concept:чай": {
+    "label": "Tea"
+  },
+  "concept:взрослый": {
+    "label": "Adult"
+  },
+  "concept:печь": {
+    "label": "Oven"
+  },
+  "concept:запах": {
+    "label": "Smell"
+  },
+  "concept:мама": {
+    "label": "Mom"
+  },
+  "concept:крыша": {
+    "label": "Roof"
+  },
+  "concept:милость": {
+    "label": "Grace"
+  },
+  "concept:дочь": {
+    "label": "Daughter"
+  },
+  "concept:друга": {
+    "label": "Friend"
+  },
+  "concept:цепь": {
+    "label": "Chain"
+  },
+  "concept:простор": {
+    "label": "Expanse"
+  },
+  "concept:расписание": {
+    "label": "Schedule"
+  },
+  "concept:достижение": {
+    "label": "Achievement"
+  },
+  "concept:сдача": {
+    "label": "Surrender"
+  },
+  "concept:генерация": {
+    "label": "Generation"
+  },
+  "concept:несовершенство": {
+    "label": "Imperfection"
+  },
+  "concept:наблюдение": {
+    "label": "Observation"
+  },
+  "concept:критерий": {
+    "label": "Criterion"
+  },
+  "concept:параметр": {
+    "label": "Parameter"
+  },
+  "concept:притяжение": {
+    "label": "Attraction"
+  },
+  "concept:созвучие": {
+    "label": "Harmony"
+  },
+  "concept:безмолвие": {
+    "label": "Silence"
+  },
+  "concept:звон": {
+    "label": "Chime"
+  },
+  "concept:песок": {
+    "label": "Sand"
+  },
+  "concept:звонок": {
+    "label": "Call"
+  },
+  "concept:занавес": {
+    "label": "Curtain"
+  },
+  "concept:чистота": {
+    "label": "Purity"
+  },
+  "concept:инструкция": {
+    "label": "Instruction"
+  },
+  "concept:врата": {
+    "label": "Gates"
+  },
+  "concept:течение": {
+    "label": "Flow"
+  },
+  "concept:вмешательство": {
+    "label": "Intervention"
+  },
+  "concept:кризис": {
+    "label": "Crisis"
+  },
+  "concept:технология": {
+    "label": "Technology"
+  },
+  "concept:лидер": {
+    "label": "Leader"
+  },
+  "concept:перемена": {
+    "label": "Change"
+  },
+  "concept:пророчество": {
+    "label": "Prophecy"
+  },
+  "concept:политик": {
+    "label": "Politician"
+  },
+  "concept:гора": {
+    "label": "Mountain"
+  },
+  "concept:сша": {
+    "label": "USA"
+  },
+  "concept:трапеза": {
+    "label": "Meal"
+  },
+  "concept:строй": {
+    "label": "System"
+  },
+  "concept:грязь": {
+    "label": "Dirt"
+  },
+  "concept:пепел": {
+    "label": "Ashes"
+  },
+  "concept:нация": {
+    "label": "Nation"
+  },
+  "concept:просветление": {
+    "label": "Enlightenment"
+  },
+  "concept:облегчение": {
+    "label": "Relief"
+  },
+  "concept:созерцание": {
+    "label": "Contemplation"
+  },
+  "concept:выживание": {
+    "label": "Survival"
+  },
+  "concept:собственность": {
+    "label": "Property"
+  },
+  "concept:резерв": {
+    "label": "Reserve"
+  },
+  "concept:кредит": {
+    "label": "Credit"
+  },
+  "concept:дефицит": {
+    "label": "Deficit"
+  },
+  "concept:функция": {
+    "label": "Function"
+  },
+  "concept:просьба": {
+    "label": "Request"
+  },
+  "concept:евхаристия": {
+    "label": "Eucharist"
+  },
+  "concept:половина": {
+    "label": "Half"
+  },
+  "concept:погибель": {
+    "label": "Doom"
+  },
+  "concept:преломление": {
+    "label": "Refraction"
+  },
+  "concept:старец": {
+    "label": "Elder"
+  },
+  "concept:видео": {
+    "label": "Video"
+  },
+  "concept:зарплата": {
+    "label": "Salary"
+  },
+  "concept:идиот": {
+    "label": "Idiot"
+  },
+  "concept:газ": {
+    "label": "Gas"
+  },
+  "concept:демократия": {
+    "label": "Democracy"
+  },
+  "concept:карьера": {
+    "label": "Career"
+  },
+  "concept:талант": {
+    "label": "Talent"
+  },
+  "concept:сцена": {
+    "label": "Scene"
+  },
+  "concept:слава": {
+    "label": "Glory"
   }
 }

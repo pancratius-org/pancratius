@@ -9,7 +9,7 @@ tags:
 - Revelation of God
 - Judaism
 - The Bible
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 ---
@@ -19442,8 +19442,8 @@ Jacob is still saying to God:
 “bless me”.  
 Israel can no longer speak like that.  
 He has no one to ask.  
-There is no one to bless.  
-There is no one to bless.  
+"bless me."  
+Israel can no longer speak like that.  
 He is in the place,  
 where the dividing “between” disappears.  
 You are now entering that same place.

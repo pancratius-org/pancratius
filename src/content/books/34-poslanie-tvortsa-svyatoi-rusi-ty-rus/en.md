@@ -8,7 +8,7 @@ description: 'This is not a message to a state and not a prophecy for a crowd. I
 tags:
 - Revelation of God
 - Holy Rus
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 links:
