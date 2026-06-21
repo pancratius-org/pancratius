@@ -37,8 +37,9 @@ export interface FooterLink {
   pageSlug: string;
 }
 
+// License isn't listed here: the footer's CC0 line already links the licence
+// page inline, so Support leads the utility row.
 export const FOOTER_LINKS: readonly FooterLink[] = [
-  { path: "/license/", label: { ru: "Лицензия", en: "License" }, pageSlug: "license" },
   { path: "/support/", label: { ru: "Поддержать", en: "Support" }, pageSlug: "support" },
   { path: "/downloads/", label: { ru: "Скачать произведения", en: "Download works" }, pageSlug: "downloads" },
 ] as const;
