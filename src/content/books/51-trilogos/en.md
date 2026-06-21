@@ -9,7 +9,7 @@ tags:
 - Revelation of God
 - Science
 - The Bible
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 links:

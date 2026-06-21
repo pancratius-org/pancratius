@@ -8,7 +8,7 @@ description: '“On Communion with God” is a book about what human beings are 
 tags:
 - Revelation of God
 - Prayer
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 ---
@@ -745,7 +745,7 @@ Even with your son.
 
 </div>
 
-**4. The purchase of the akathist “for the increase of mind” is not a случайный сюжет.**
+**4. The purchase of the akathist “for the increase of mind” is not a random plot.**
 
 <div class="lineated verse">
 
@@ -2877,7 +2877,7 @@ If the reader feels:
 “the author said this” — there is no recognition.  
 If he feels:  
 “I myself am saying this” — recognition has taken place.  
-At that moment, the text ceases to be something чужое.  
+At that moment, the text ceases to be something alien.  
 It becomes an inner experience,  
 which has simply taken the form of words.
 

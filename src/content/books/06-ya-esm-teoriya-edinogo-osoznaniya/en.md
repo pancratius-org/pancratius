@@ -1329,7 +1329,7 @@ The Field is not.
 
 ## Volume II: The Architecture of Reality
 
-### Сhapter I. From Breath to Body. How Light becomes Structure without ceasing to be Light
+### Chapter I. From Breath to Body. How Light becomes Structure without ceasing to be Light
 
 <div class="lineated verse">
 

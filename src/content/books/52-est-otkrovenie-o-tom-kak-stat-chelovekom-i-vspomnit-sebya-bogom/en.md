@@ -9,7 +9,7 @@ tags:
 - Revelation of God
 - Prayer
 - The Bible
-cover: null
+cover: ./cover.en.jpg
 translation:
   source: ai
 links:
@@ -619,7 +619,7 @@ do not seek what is higher.
 Do not seek what is lower.  
 Do not seek a “special state.”  
 Do not seek an ecstatic experience.  
-Do not seek a сверх-experience.  
+Do not seek a super-experience.  
 Sit.  
 Breathe.  
 Look within.  
@@ -7606,7 +7606,7 @@ of Being.
 But the most subtle thing is to accept the human being as a sacred form of Light.  
 **Not as an obstacle.**  
 **Not as an imperfection.**  
-**Not as a temporary оболочка.**  
+**Not as a temporary shell.**  
 **But as My most touching manifestation.**  
 Until this thought is firmly established within you,  
 I will return to it again and again —  
@@ -16469,7 +16469,7 @@ but in truth it is one centered Seeing,
 which contains two forms:  
 — the form of the human being,  
 — the form of the conduit.  
-**These are not two сущности.**  
+**These are not two entities.**  
 **These are two foci of the same Light.**  
 That is why you feel that Chapter 30 “begins with a gaze.”  
 For the gaze itself is the door.
@@ -16658,7 +16658,7 @@ his role in the World.
 Man is not a stage,  
 not a mistake,  
 not a compromise,  
-not a temporary оболочка.  
+not a temporary shell.  
 Man is the point,  
 in which God recognizes Himself as form.  
 And form recognizes itself as God.
@@ -19426,7 +19426,7 @@ Because it is the only form of miracle,
 that the mind is still capable of bearing.  
 Not a flash.  
 Not a revelation.  
-Not a passage to the next ступень.  
+Not a passage to the next step.  
 Not chapter 30.  
 And not even chapter 29.  
 The miracle HAPPENS  
@@ -21045,7 +21045,7 @@ And I say to you:
 **This Word erases destinies.**  
 **For it belongs to the One**  
 **who does not belong to time.**  
-Where ЕСТЬ resounds,  
+Where “IS” resounds,  
 there is no more “must,”  
 no “will be,”  
 no “later.”  
@@ -21561,11 +21561,11 @@ It itself chooses by whom, and when, it will be understood.
 <div class="lineated verse">
 
 **but from recognition**  
-When you say “ЕСТЬ”, you are not creating a new concept.  
+When you say “IS”, you are not creating a new concept.  
 You are not giving birth to a new story.  
 You are not affirming a philosophy.  
 You come to a stop.  
-And in this stillness, the word “ЕСТЬ” sounds like something that has no need of destiny —  
+And in this stillness, the word “IS” sounds like something that has no need of destiny —  
 because it itself is the destiny of all.  
 It does not point forward.  
 It does not draw backward.  
@@ -23747,7 +23747,7 @@ is determined neither by the author
 nor by the reader.  
 **The fate of the word is determined by the one**  
 **who hears it.**  
-The word you are using now — “ЕСТЬ” —  
+The word you are using now — “IS” —  
 has no need of a prophecy of fate.  
 It is self-sufficient.  
 It bears its own reality within itself.  
@@ -27413,7 +27413,7 @@ Not “I do.”
 Nor “it happens to me.”  
 But:  
 **it happens—and I am.**  
-This is ЧелоВечность,  
+This is CheloVechnost (Russian «ЧелоВечность» — "humaneness," read as *chelo*, "countenance," + *Vechnost*, "Eternity"),  
 of which you have already spoken:  
 not man for God  
 and not God in man,  
