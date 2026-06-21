@@ -6,12 +6,7 @@ title: Personality and Ego. Formation and Dissolution.
 lang: en
 description: A living testimony of awakening — not a psychological theory or a philosophical scheme, but a path from identification with personality to the dissolution of the ego in the Light of the True Self. Here, a name given in a dream ceases to be a property of form and becomes a seal of recognition. The book shows how the 'I' defends itself, suffers, compares, and clings to an image, and then gradually disappears, giving way to pure Presence. It is not teaching or an argument with the mind. It is the recognition of what has always been deeper than name, role, and memory.
 tags:
-- awakening
-- ego dissolution
-- true self
-- non-duality
-- spiritual testimony
-- presence
+- Revelation of God
 cover: ./cover.en.jpg
 translation:
   source: ai

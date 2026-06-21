@@ -7,8 +7,8 @@ lang: en
 description: 'This book does not teach you to be good. It removes the mask of the one trying to become a person and reveals that psyche, roles, and stories do not exhaust who you are. Here the person disappears not as a loss, but as recognition: behind scenes of fear, pain, and fatigue emerges the Presence that does not need to be attained. This is not psychology in the usual sense, but Light unfolding from within every human scene.'
 tags:
 - Revelation of God
-- science
-- Bible
+- Science
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

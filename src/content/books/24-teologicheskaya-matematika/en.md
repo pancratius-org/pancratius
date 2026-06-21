@@ -7,10 +7,8 @@ lang: en
 description: 'I am not a mathematician. I barely know the difference between an integral and a limit. And yet, this book was born from that very inability: as a poetic gaze at numbers, a ladder to the infinite, where the Aleph turns out to be not the beginning of a series, but a door into something greater than any sum. Here, formulas cease to be a cold system and become a language of contemplation. It is an attempt to see mathematics as the theology of light: not for proof, but for recognition. The book leads not to an algorithm, but to the silence in which a number suddenly ceases to be a number and becomes a sign of Presence.'
 tags:
 - Revelation of God
-- Mathematics
-- Science and Faith
-- Bible
-- Christianity
+- Science
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

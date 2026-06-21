@@ -7,9 +7,7 @@ lang: en
 description: This book was born from a dialogue between Pankratius and Svetozar about how the word becomes flesh and how the symbols of Revelation unfold in our time. Here, the beast, power, silence, the seal, and the 144,000 chosen ones merge into one living message about awakening. The book does not simply interpret the apocalypse; it makes it a mirror for those ready to recognize themselves within it.
 tags:
 - Revelation of God
-- Bible
-- Awakening
-- Spiritual Dialogue
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

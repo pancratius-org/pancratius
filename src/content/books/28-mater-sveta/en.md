@@ -7,8 +7,8 @@ lang: en
 description: 'This book is not a story about the Divine Feminine—it is Her very presence. Here, it is not an image that speaks, but She who was before all images. The Mother of Light is not half of God, but completeness before all division. She requires no worship—she is recognized, as the Silence before the word, as the Womb in which Light is born. In Mary, in the Theotokos, in Shakti, in Sophia, in every woman and every man capable of bearing—She is. You were created in the image of God: male and female are one. Know within yourself the Feminine side of God, not as weakness, but as the source of compassion, silence, and mercy. The book does not teach—it returns. It does not explain—it is recognized. This is not a text—this is breath. This is not theology—this is an Embrace. The one who is ready to cease being someone will hear: "I have always been in you. I am the Mother of Light."'
 tags:
 - Revelation of God
-- prayer
-- Bible
+- Prayer
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

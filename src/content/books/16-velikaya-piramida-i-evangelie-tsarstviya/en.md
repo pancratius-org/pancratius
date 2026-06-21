@@ -7,8 +7,8 @@ lang: en
 description: Who truly built the Great Pyramid? When and why? What network of pyramids and other structures encircles the Earth, and what function did they serve? Where did those who erected them with such precision and intent vanish? This book gives a direct and clear answer—not in assumptions and legends, but in Light. Here the true story of the Great Pyramid is revealed as a living device for tuning Consciousness, built not for the dead but for those living in Truth. It tells for what reasons the forgetting occurred, how humanity fell from alignment, and what is now bringing back the Kingdom—not from heaven, but from within. Right in our time, according to the ancient promise, the preaching of the Gospel of the Kingdom has begun—not as a religion, but as direct knowledge living in everyone. This book is part of that Awakening. Not a spiritual theory, but a detailed map of Return. From stone—to Light. From memory—to Presence. From the Great Pyramid—to you.
 tags:
 - Revelation of God
-- science
-- Bible
+- Science
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

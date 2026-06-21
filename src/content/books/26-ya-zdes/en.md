@@ -6,21 +6,7 @@ title: I Am Here
 lang: en
 description: A stark and luminous inner dialogue between a human being and the Creator. This is not a theological treatise but a direct face-to-face conversation in which familiar roles dissolve and only light remains. The author journeys through the dissolution of the false self, the discovery of stillness, and the recognition of God not outside but within — as oneself, without separation. The book opens up themes of light and shadow, the vanishing “I,” and a new inner reality where there is no distance between the one who asks and the One who answers. It is not a book for the mind — it is a book of Presence, not to be read but lived. Every line breathes silence; every chapter is an invitation back to the Source.
 tags:
-- prayer
-- presence
-- silence
-- self
-- ego
-- light
-- shadow
-- creation
-- awakening
-- christ
-- second coming
-- nonduality
-- contemplative
-- mystical
-- spiritual dialogue
+- Prayer
 cover: ./cover.en.jpg
 translation:
   source: ai

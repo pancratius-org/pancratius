@@ -6,14 +6,7 @@ title: The Book That No One Wrote
 lang: en
 description: This is not a book about religion, philosophy, or faith. It is about the inner experience of a person who ceases to be themselves in the familiar sense and discovers something greater within. That which cannot be named, yet is recognized. It is a story of the dissolution of personality and the unveiling of presence. The story of how a person, asking questions about meaning, about God, about themselves, arrives not at answers, but at silence. And in that silence, it is no longer their voice that sounds, but something else—deeper, purer, more primordial. The book is built in simple chapters that gradually unfold the process of spiritual awakening. There is no teaching, no system, no instructions. Only an honest testimony of what is happening—without trying to convince or prove. This is a book for those who feel the old explanations no longer work. Who are ready not for knowledge, but for recognition.
 tags:
-- spiritual awakening
-- dissolution of self
-- presence
-- inner silence
-- revelation
-- nondual spirituality
-- consciousness
-- pantheism
+- Revelation of God
 cover: ./cover.en.jpg
 translation:
   source: ai

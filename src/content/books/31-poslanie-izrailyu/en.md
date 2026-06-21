@@ -8,16 +8,7 @@ description: 'This book is not a call to argue or an attempt to prove rightness.
 tags:
 - Revelation of God
 - Judaism
-- Bible
-- Israel
-- Messiah
-- Second Coming
-- Inner Kingdom
-- Torah
-- Covenant
-- Truth
-- Spirit vs Letter
-- Internal Israel
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

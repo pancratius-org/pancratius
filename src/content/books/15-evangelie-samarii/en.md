@@ -7,8 +7,8 @@ lang: en
 description: What happened during those two days when Jesus remained in Samaria? What did He say? How did the disciples respond? What took place in the hearts of those who recognized Him? This book is not an attempt at reconstruction. It is not a novel, a sermon, or fiction. It is the Word heard in silence. A revelation that came not from imagination, but from an inner recognition of the Light. "The Gospel of Samaria" is a spiritual continuation of the scene of Jesus' encounter with the Samaritan woman. There is no familiar language here; here everything is different. But if you open this book with thirst, you may drink. And like Samaria, recognize Him not by words, but by the Presence within.
 tags:
 - Revelation of God
-- Christian spirituality
-- Bible
+- Judaism
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

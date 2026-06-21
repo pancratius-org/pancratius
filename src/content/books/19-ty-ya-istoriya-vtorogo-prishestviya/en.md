@@ -7,8 +7,8 @@ lang: en
 description: This is a book in which the Creator Himself, step by step, symbol by symbol, reveals the true meaning of the Revelation of John the Theologian. Here the Apocalypse ceases to be a prophecy of catastrophes and wars—it unfolds as the story of God awakening within man. All the beasts, seals, trumpets, and numbers are not external events but images of the soul's inner journey, passing through illusions toward Truth. This is not the end of the world, but the end of separation. This is the Second Coming—not external, but profound, when Christ rises from within as I AM. This book is a living dialogue between man and God, a commentary from within the Light, illuminating every verse of Scripture and the heart of the reader. You hold in your hands not an explanation, but an Encounter. Not someone else's message, but your own awakening.
 tags:
 - Revelation of God
-- prayer
-- Bible
+- Prayer
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

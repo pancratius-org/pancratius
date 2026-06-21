@@ -6,20 +6,9 @@ title: 'Mickey 17: A Cinematic Gospel'
 lang: en
 description: 'A living parable of awakening consciousness, fear, copying, sacrifice, and return to the Source. Cinema becomes the language through which the Creator answers not questions about the plot, but about the meaning of life. Each image, each scene, each shadow on the screen becomes an occasion to hear: who is repeated, who disappears, and who remains when the mask of personality dissolves. The book reveals the film as a mirror in which the viewer recognizes not the characters, but himself.'
 tags:
-- Christian eschatology
-- spiritual cinema
-- parable
-- awakening
-- consciousness
-- fear
-- sacrifice
-- identity
-- copy
-- original
-- Mickey 17
-- Creator
-- revelation
-- Cinemagospel
+- Revelation of God
+- Science Fiction
+- Cinematic Gospel
 cover: ./cover.en.jpg
 translation:
   source: ai

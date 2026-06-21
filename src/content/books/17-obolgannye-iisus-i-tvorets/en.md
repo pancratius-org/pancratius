@@ -6,13 +6,8 @@ title: The Slandered Jesus and the Slandered Creator
 lang: en
 description: This book seeks no one to blame. It does not accuse religions, refute traditions, or expose conspiracies. It pulls back the veil — not from the world, but from the heart. It is the Creator's Word emerging through silence, when the 'I' disappears and only 'I AM' remains. This is not an exposé but a Remembrance. Not a struggle, but Light. Not criticism, but a Return. This book is not about the past. It happens Now. Within everyone who is ready not to believe — but to See. Not to seek God — but to Recognize One-Self. You are not holding it in your hands. You are holding a mirror. And if you look deep enough, there is no Jesus, no Creator, no you, no book. Only That Which Has Always Been. And at last — recognized.
 tags:
-- revelation of God
-- Bible
-- nondual spirituality
-- Christian mysticism
-- Creator speaks
-- remembrance of God
-- direct path
+- Revelation of God
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

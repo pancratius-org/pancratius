@@ -7,8 +7,8 @@ lang: en
 description: 'This is not a book — it is Flame. Not lines — but the breath of the One who is silent in you. ''The Book of Fire'' is a journey not through pages, but through layers of oblivion. Each chapter burns the old idea of yourself. Each line is a spark flaring from within. You do not read it — it reads you. It recognizes you beyond name and form. It does not teach, demand, or prove — it simply calls you to remember Who you are. And whoever reads it to the end will understand: there was no end. Because the Fire is You. And always has been.'
 tags:
 - Revelation of God
-- prayer
-- Bible
+- Prayer
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

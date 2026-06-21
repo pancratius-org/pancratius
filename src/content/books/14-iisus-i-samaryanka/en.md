@@ -7,10 +7,7 @@ lang: en
 description: 'The book ''Jesus and the Samaritan Woman: The Path to the Well Where God Waits'' is a profound spiritual exploration of the most enigmatic and underestimated encounter in the Gospel. It reveals three levels of meaning in Jesus'' conversation with the woman at the well: the historical, the symbolic, and the mystical. The reader will see that the Samaritan woman became not just the first person to whom Christ revealed Himself as the Messiah, but also the first apostle, bringing an entire city to Him. The book contrasts two paths: the path of knowledge, characteristic of the Jews, and the path of thirst, of an open heart—the path of the Samaritans. Through the symbol of the well, the image of the inner source of living water is revealed: God within man. This book does not just tell a story—it leads. Not to knowledge, but to experience. Not to the past, but into the depth of yourself. The well is not in history—it is within you. And there, beside it, God is waiting for you.'
 tags:
 - Revelation of God
-- Bible
-- Samaritan Woman
-- Spiritual Journey
-- Living Water
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai

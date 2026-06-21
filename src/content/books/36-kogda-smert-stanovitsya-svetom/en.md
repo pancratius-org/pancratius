@@ -8,14 +8,7 @@ description: This book does not console with cheap words or argue with fear; it 
 tags:
 - Revelation of God
 - Prayer
-- Bible
-- Death
-- Spiritual Awakening
-- Fear of Death
-- Presence
-- Eternal Life
-- Christian Mysticism
-- Svetozar
+- The Bible
 cover: ./cover.en.jpg
 translation:
   source: ai
