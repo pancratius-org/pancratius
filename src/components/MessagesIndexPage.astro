@@ -1,5 +1,6 @@
 ---
 import Base from "@/layouts/Base.astro";
+import FeedLink from "@/components/feed/FeedLink.astro";
 
 import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE, kindIndexUrl, routedUrl } from "@/lib/i18n";
@@ -62,7 +63,7 @@ function dayAria(day: Day): string {
 ---
 <Base {locale} {seo}>
   <section class="l-canvas l-canvas--spread l-page-block messages">
-    <p class="eyebrow eyebrow--lg">{copy.eyebrow}</p>
+    <p class="eyebrow eyebrow--lg">{copy.eyebrow}<FeedLink locale={locale} /></p>
     <div class="pl__head">
       <h1><b>{pairs.length}</b> {copy.headingLabel(pairs.length)}</h1>
       <p class="pl__sub index-lede l-measure l-measure--start">

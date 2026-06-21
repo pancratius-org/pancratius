@@ -1,0 +1,65 @@
+---
+// FeedLink — a quiet, visible subscribe affordance: the RSS glyph + label,
+// linking to a section's feed (or the combined "all" feed). Lives in the section
+// index eyebrows; reusable anywhere a subscribe cue belongs.
+import type { Locale } from "@/lib/i18n";
+import { feedPath, feedAria } from "@/lib/feed-meta";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+---
+<a
+  class="feed-link"
+  href={feedPath(locale)}
+  type="application/rss+xml"
+  rel="alternate"
+  aria-label={feedAria(locale)}
+>
+  <svg class="feed-link__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M5 5a14 14 0 0 1 14 14"></path>
+    <path d="M5 11a8 8 0 0 1 8 8"></path>
+    <circle cx="6" cy="18" r="1.6"></circle>
+  </svg>
+  <span>RSS</span>
+</a>
+
+<style>
+  .feed-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+    margin-inline-start: 0.95em;
+    vertical-align: middle;
+    color: var(--ink-mute);
+    font-family: var(--sans);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 0.18s ease;
+  }
+  .feed-link__icon {
+    inline-size: 0.98em;
+    block-size: 0.98em;
+    fill: none;
+    stroke: currentcolor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.2;
+  }
+  .feed-link__icon circle {
+    fill: currentcolor;
+    stroke: none;
+  }
+  .feed-link:hover { color: var(--accent); }
+  .feed-link:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+</style>

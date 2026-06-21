@@ -1,12 +1,11 @@
 // RSS feed builder for the corpus.
 //
-// One builder serves the combined "latest" feed and the per-section videos /
-// messages feeds. Items are the dated, episodic, consumable content a reader
-// actually wants delivered — messages, videos, and poems — newest first. Books
-// are deliberately absent: a feed item is an announcement, and books carry no
-// real publication date (only a synthetic, number-derived one), so streaming
-// "new books" would be dishonest. When books gain real dates an announcement
-// adapter can join `collect()`.
+// One combined "latest" feed per locale. Items are the dated, episodic,
+// consumable content a reader actually wants delivered — messages, videos, and
+// poems — newest first. Books are deliberately absent: a feed item is an
+// announcement, and books carry no real publication date (only a synthetic,
+// number-derived one), so streaming "new books" would be dishonest. When books
+// gain real dates an announcement adapter can join `collect()`.
 //
 // SOTA RSS 2.0: an `<atom:link rel="self">`, channel language/copyright,
 // `<lastBuildDate>` pinned to the newest item (so the build stays
@@ -18,7 +17,7 @@ import rss from "@astrojs/rss";
 import type { Locale } from "./locales";
 import { originFor } from "./origins";
 import { routedUrl } from "./i18n/routing";
-import { FEED_COPY, feedUrl, type FeedSection } from "./feed-meta";
+import { FEED_COPY, feedUrl } from "./feed-meta";
 import { getAllMessagePairs, localizedMessagePairs, messageTags } from "./messages";
 import { getAllVideoPairs, localizedVideoPairs, videoCoverAbsoluteUrl, videoTags } from "./videos";
 import { getPairsByKind, localizedWorkPairs, poemDate, workTags } from "./works";
@@ -91,20 +90,17 @@ async function poemItems(locale: Locale): Promise<FeedItem[]> {
   return items;
 }
 
-async function collect(locale: Locale, section: FeedSection): Promise<FeedItem[]> {
-  const items =
-    section === "videos"
-      ? await videoItems(locale)
-      : section === "messages"
-        ? await messageItems(locale)
-        : (await Promise.all([messageItems(locale), videoItems(locale), poemItems(locale)])).flat();
+async function collect(locale: Locale): Promise<FeedItem[]> {
+  const items = (
+    await Promise.all([messageItems(locale), videoItems(locale), poemItems(locale)])
+  ).flat();
   return items.sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());
 }
 
-/** Build the RSS response for one locale + section. */
-export async function buildFeed(locale: Locale, section: FeedSection): Promise<Response> {
-  const items = (await collect(locale, section)).slice(0, MAX_ITEMS);
-  const copy = FEED_COPY[locale][section];
+/** Build the combined RSS response for one locale. */
+export async function buildFeed(locale: Locale): Promise<Response> {
+  const items = (await collect(locale)).slice(0, MAX_ITEMS);
+  const copy = FEED_COPY[locale];
   const newest = items[0]?.pubDate;
 
   return rss({
@@ -125,6 +121,6 @@ export async function buildFeed(locale: Locale, section: FeedSection): Promise<R
       `<language>${locale}</language>` +
       `<copyright>${COPYRIGHT[locale]}</copyright>` +
       (newest ? `<lastBuildDate>${newest.toUTCString()}</lastBuildDate>` : "") +
-      `<atom:link href="${escapeAttr(feedUrl(locale, section))}" rel="self" type="application/rss+xml"/>`,
+      `<atom:link href="${escapeAttr(feedUrl(locale))}" rel="self" type="application/rss+xml"/>`,
   });
 }

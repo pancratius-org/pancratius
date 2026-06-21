@@ -27,7 +27,7 @@ const copy = footerCopy[locale];
 // flat list so separators sit BETWEEN items rather than before each.
 const links = [
   ...availableLinks.map(link => ({ href: localizePath(link.path, locale), label: link.label[locale], external: false })),
-  { href: feedPath(locale, "all"), label: "RSS", external: false },
+  { href: feedPath(locale), label: "RSS", external: false },
   ...FOOTER_EXTERNAL_LINKS.map(link => ({ href: link.href, label: link.label[locale], external: true })),
 ];
 ---

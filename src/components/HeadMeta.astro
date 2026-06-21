@@ -1,6 +1,6 @@
 ---
 import type { SeoMeta } from "@/lib/seo";
-import { feedLinksFor } from "@/lib/feed-meta";
+import FeedAutodiscovery from "@/components/feed/FeedAutodiscovery.astro";
 
 interface Props {
   seo: SeoMeta;
@@ -9,10 +9,6 @@ interface Props {
 }
 
 const { seo, themeColor = "#0c0d10" } = Astro.props;
-
-// RSS autodiscovery: the combined feed on every page, plus the section feed when
-// the reader is inside /videos/ or /messages/.
-const feeds = feedLinksFor(seo.locale, Astro.url.pathname);
 ---
 <title>{seo.title}</title>
 <meta name="description" content={seo.description} />
@@ -45,9 +41,7 @@ const feeds = feedLinksFor(seo.locale, Astro.url.pathname);
 )}
 
 {/* RSS autodiscovery */}
-{feeds.map(f => (
-  <link rel="alternate" type="application/rss+xml" title={f.title} href={f.href} />
-))}
+<FeedAutodiscovery locale={seo.locale} />
 
 {/* Discoverability for language models */}
 <link rel="alternate" type="text/plain" href="/llms.txt" />
