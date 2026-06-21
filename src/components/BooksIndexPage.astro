@@ -4,7 +4,6 @@ import BookCard from "@/components/BookCard.astro";
 import LibraryFilter from "@/components/LibraryFilter.astro";
 
 import type { Locale } from "@/lib/i18n";
-import { DEFAULT_LOCALE, kindIndexUrl } from "@/lib/i18n";
 import { booksIndexCopy, type BooksIndexCopy } from "@/lib/i18n/copy";
 import { seoForKindIndex, clampDescription } from "@/lib/seo";
 import { getPairsByKind, localizedWorkPairs, workTags } from "@/lib/works";
@@ -14,15 +13,12 @@ interface Props {
 }
 
 const { locale } = Astro.props;
-// Widen to the interface so optional per-locale fields (e.g. `fullCatalogLink`,
-// authored only in EN) are accessible regardless of the active locale.
 const copy: BooksIndexCopy = booksIndexCopy[locale];
 const allPairs = await getPairsByKind("book");
 // Existence: a non-default-locale index lists only works authored in it; the
 // default-locale index lists every work.
 const pairs = localizedWorkPairs(allPairs, locale);
 const seo = seoForKindIndex("book", locale, { total: allPairs.length });
-const defaultHref = kindIndexUrl("book", DEFAULT_LOCALE);
 
 const tagCounts = new Map<string, number>();
 for (const { entry } of pairs) {
@@ -36,12 +32,7 @@ const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count })
     <div class="lib__head">
       <h1><b>{pairs.length}</b> {copy.headingLabel(pairs.length)}</h1>
       <p class="lib__sub index-lede l-measure l-measure--start">
-        {copy.sub(allPairs.length, pairs.length)}
-        {copy.fullCatalogLink && (
-          <Fragment>
-            {" "}<a href={defaultHref}>{copy.fullCatalogLink}</a>
-          </Fragment>
-        )}
+        {copy.sub(allPairs.length)}
       </p>
     </div>
 

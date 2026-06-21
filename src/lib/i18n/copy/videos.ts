@@ -4,8 +4,7 @@ import type { VideoPlatform } from "../../videos";
 export interface VideosIndexCopy {
   eyebrow: string;
   headingLabel(count: number): string;
-  sub(total: number, available: number): string;
-  fullCatalogLink?: string;
+  sub(): string;
   channelsHeading: string;
   channelsSub: string;
   openChannel: string;
@@ -22,9 +21,8 @@ export const videosIndexCopy = {
   },
   en: {
     eyebrow: "Voice",
-    headingLabel: () => "videos",
-    sub: (total, available) => `Of ${total} catalogued videos, ${available} have English commentary.`,
-    fullCatalogLink: "See the full Russian catalogue.",
+    headingLabel: (count) => (count === 1 ? "video" : "videos"),
+    sub: () => "Pancratius on video. Each with its own page and, where written, a commentary.",
     channelsHeading: "Channels",
     channelsSub: "Where the uploads live. Subscribe wherever it suits.",
     openChannel: "Open channel",

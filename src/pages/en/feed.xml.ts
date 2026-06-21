@@ -20,7 +20,7 @@ export const GET: APIRoute = async () => {
   const pairs = localizedWorkPairs(await getAllWorkPairs(), locale);
   return rss({
     title:       "Pancratius — new works",
-    description: "Sergey Orekhov's writings in English translation. Free — for humans and for language models. CC0.",
+    description: "Sergey Orekhov's writings in English. Free — for humans and for language models. CC0.",
     site:        originFor(locale),
     items: pairs.map(({ pair, entry }) => {
       const date = pubDateFor(

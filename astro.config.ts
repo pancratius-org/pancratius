@@ -71,6 +71,31 @@ function tsconfigAliasWithoutDeprecatedViteEntries() {
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeSlug from "rehype-slug";
 
+// The markdown processor is shared across locales, so the heading-anchor
+// aria-label can't be a single static string. This pass localizes it per the
+// document's frontmatter `lang` (Astro exposes it on the vfile), so an EN page
+// gets the English label and a RU page the Russian one.
+const HEADING_ANCHOR_ARIA: Record<string, string> = {
+  ru: "Постоянная ссылка на этот раздел",
+  en: "Permalink to this section",
+};
+function rehypeLocalizeHeadingAnchors() {
+  return (tree: unknown, file: { data?: { astro?: { frontmatter?: { lang?: string } } } }) => {
+    const lang = file.data?.astro?.frontmatter?.lang;
+    const label = (lang && HEADING_ANCHOR_ARIA[lang]) || HEADING_ANCHOR_ARIA.ru;
+    const walk = (node: unknown): void => {
+      if (!node || typeof node !== "object") return;
+      const n = node as { properties?: Record<string, unknown>; children?: unknown[] };
+      const cls = n.properties?.className;
+      if (Array.isArray(cls) && cls.includes("heading-anchor")) {
+        n.properties!.ariaLabel = label;
+      }
+      n.children?.forEach(walk);
+    };
+    walk(tree);
+  };
+}
+
 // Canonical locale list + default. `./src/lib/locales.ts` is pure TS so the
 // i18n config can derive from it. The default locale is the apex `/` redirect
 // target; every locale is prefixed (`/ru/`, `/en/`).
@@ -144,6 +169,9 @@ export default defineConfig({
           // otherwise pick up "Heading text#".
           content: [],
         }],
+        // Runs after the anchors are appended; rewrites the aria-label to the
+        // page's own language (the static label above is the RU default).
+        rehypeLocalizeHeadingAnchors,
       ],
     }),
   },
