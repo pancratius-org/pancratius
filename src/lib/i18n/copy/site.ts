@@ -6,6 +6,12 @@ export interface ChromeCopy {
   navAria: string;
   themeAria: string;
   skip: string;
+  /** aria-label for the toggle when the menu is closed. */
+  menuOpenAria: string;
+  /** aria-label for the toggle when the menu is open. */
+  menuCloseAria: string;
+  /** Accessible name for the mobile menu panel itself. */
+  menuPanelAria: string;
 }
 
 export const chromeCopy = {
@@ -15,6 +21,9 @@ export const chromeCopy = {
     navAria: "Разделы",
     themeAria: "Сменить тему",
     skip: "К содержанию",
+    menuOpenAria: "Открыть меню",
+    menuCloseAria: "Закрыть меню",
+    menuPanelAria: "Разделы",
   },
   en: {
     brand: "Pancratius",
@@ -22,6 +31,9 @@ export const chromeCopy = {
     navAria: "Sections",
     themeAria: "Toggle theme",
     skip: "Skip to content",
+    menuOpenAria: "Open menu",
+    menuCloseAria: "Close menu",
+    menuPanelAria: "Sections",
   },
 } satisfies Record<Locale, ChromeCopy>;
 
@@ -147,17 +159,22 @@ export const tocCopy = {
 } satisfies Record<Locale, TocCopy>;
 
 export interface LanguageSwitcherCopy {
-  aria: string;
+  /** aria-label for the trigger button (shows the current locale code). */
+  triggerAria: string;
+  /** aria-label for the dropdown listbox of locales. */
+  menuAria: string;
   noTranslation: string;
 }
 
 export const languageSwitcherCopy = {
   ru: {
-    aria: "Язык страницы",
+    triggerAria: "Язык страницы",
+    menuAria: "Выбор языка",
     noTranslation: "нет перевода",
   },
   en: {
-    aria: "Page language",
+    triggerAria: "Page language",
+    menuAria: "Choose language",
     noTranslation: "no page in this language",
   },
 } satisfies Record<Locale, LanguageSwitcherCopy>;

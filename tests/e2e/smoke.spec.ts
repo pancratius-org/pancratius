@@ -160,21 +160,23 @@ test.describe("theme toggle persists", () => {
 test.describe("language switcher", () => {
   test("paired book — clicking EN navigates to the EN sibling", async ({ page }) => {
     await page.goto(PAIRED_BOOK_RU, { waitUntil: "domcontentloaded" });
-    // Switcher renders an <a> for the alternate locale. Pick the EN link via
-    // hreflang to avoid coupling to wrapper class names.
-    const enLink = page.locator('nav.lang a[hreflang="en"]');
+    // The switcher is a popover dropdown — open it, then follow the EN option.
+    // Pick the EN link via hreflang to avoid coupling to wrapper class names.
+    await page.locator(".lang__trigger").click();
+    const enLink = page.locator('.lang a[hreflang="en"]');
     await expect(enLink).toBeVisible();
     await enLink.click();
     await page.waitForURL(`**${PAIRED_BOOK_EN}`);
     expect(new URL(page.url()).pathname).toBe(PAIRED_BOOK_EN);
   });
 
-  test("unpaired work — EN button is disabled", async ({ page }) => {
+  test("unpaired work — EN option is disabled", async ({ page }) => {
     await page.goto(UNPAIRED_WORK, { waitUntil: "domcontentloaded" });
     // No anchor for EN; the disabled fallback renders a <span aria-disabled>.
-    const enAnchor = page.locator('nav.lang a[hreflang="en"]');
+    const enAnchor = page.locator('.lang a[hreflang="en"]');
     expect(await enAnchor.count()).toBe(0);
-    const disabled = page.locator('nav.lang [aria-disabled="true"]');
+    await page.locator(".lang__trigger").click();
+    const disabled = page.locator('.lang [aria-disabled="true"]');
     await expect(disabled).toBeVisible();
   });
 });

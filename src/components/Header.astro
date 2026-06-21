@@ -77,8 +77,39 @@ function isCurrent(path: string): boolean {
         <path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" />
       </svg>
     </button>
+    <button
+      class="icon-btn rail__menu-btn"
+      id="menuBtn"
+      type="button"
+      aria-expanded="false"
+      aria-controls="menuPanel"
+      aria-label={copy.menuOpenAria}
+      data-open-label={copy.menuOpenAria}
+      data-close-label={copy.menuCloseAria}
+    >
+      <span class="rail__menu-rules" aria-hidden="true"><i></i><i></i></span>
+    </button>
   </div>
 </header>
+
+<div class="menu" id="menuPanel" data-state="closed">
+  <div class="menu__backdrop" id="menuBackdrop"></div>
+  <nav class="menu__sheet" aria-label={copy.menuPanelAria}>
+    <ul class="menu__list">
+      {navItems.map(item => (
+        <li>
+          <a
+            class="menu__link"
+            href={localizePath(item.path, locale)}
+            aria-current={isCurrent(item.path) ? "page" : undefined}
+          >
+            {item.label[locale]}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+</div>
 
 <script>
   // Theme toggle. Reads/writes localStorage; mirrors what ThemeInit.astro
@@ -91,6 +122,84 @@ function isCurrent(path: string): boolean {
       const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
       root.setAttribute("data-theme", next);
       try { localStorage.setItem("pncr-theme", next); } catch (_) { /* ignore */ }
+    });
+  }
+</script>
+
+<script>
+  // Mobile menu sheet. Toggles the slide-down panel and owns its accessibility:
+  // aria-expanded + label swap, body scroll lock, focus moved into the panel on
+  // open and restored to the button on close, Esc and outside-click to dismiss,
+  // and a focus trap so Tab cycles within the open sheet.
+  const menuBtn = document.getElementById("menuBtn");
+  const panel = document.getElementById("menuPanel");
+  const backdrop = document.getElementById("menuBackdrop");
+  const sheet = panel?.querySelector<HTMLElement>(".menu__sheet");
+
+  if (menuBtn && panel && backdrop && sheet) {
+    const openLabel = menuBtn.dataset.openLabel ?? "";
+    const closeLabel = menuBtn.dataset.closeLabel ?? "";
+    const focusableSelector =
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    const isOpen = () => panel.dataset.state === "open";
+
+    const focusable = (): HTMLElement[] =>
+      Array.from(sheet.querySelectorAll<HTMLElement>(focusableSelector))
+        .filter(el => el.offsetParent !== null);
+
+    const onKeydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    const open = () => {
+      if (isOpen()) return;
+      panel.dataset.state = "open";
+      menuBtn.setAttribute("aria-expanded", "true");
+      menuBtn.setAttribute("aria-label", closeLabel);
+      document.body.style.overflow = "hidden";
+      document.addEventListener("keydown", onKeydown);
+      focusable()[0]?.focus();
+    };
+
+    const close = () => {
+      if (!isOpen()) return;
+      panel.dataset.state = "closed";
+      menuBtn.setAttribute("aria-expanded", "false");
+      menuBtn.setAttribute("aria-label", openLabel);
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKeydown);
+      menuBtn.focus();
+    };
+
+    menuBtn.addEventListener("click", () => (isOpen() ? close() : open()));
+    backdrop.addEventListener("click", close);
+    // A section link navigates away; close first so state is clean on return.
+    sheet.querySelectorAll("a[href]").forEach(link =>
+      link.addEventListener("click", close),
+    );
+
+    // If the viewport grows past the collapse breakpoint while open, the sheet
+    // is hidden by CSS — tear down the locked state so the page isn't stuck.
+    const desktop = window.matchMedia("(min-width: 1331px)");
+    desktop.addEventListener("change", e => {
+      if (e.matches && isOpen()) close();
     });
   }
 </script>
@@ -140,7 +249,7 @@ function isCurrent(path: string): boolean {
     display: flex;
     gap: 1.4rem;
     justify-content: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
   .rail__nav a {
     color: var(--ink-soft);
@@ -164,6 +273,24 @@ function isCurrent(path: string): boolean {
     gap: 0.5rem;
   }
 
+  /* Menu toggle: an icon-only `.icon-btn` carrying a quiet hand-set mark —
+     two short rules. Hidden above the collapse breakpoint where the inline nav
+     owns navigation. */
+  .icon-btn.rail__menu-btn { display: none; }
+  .rail__menu-rules {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 14px;
+  }
+  .rail__menu-rules i {
+    display: block;
+    height: 1px;
+    background: currentColor;
+  }
+  .rail__menu-rules i:first-child { width: 14px; }
+  .rail__menu-rules i:last-child  { width: 9px; }
+
   .icon-btn {
     background: transparent;
     border: 1px solid var(--rule);
@@ -185,19 +312,101 @@ function isCurrent(path: string): boolean {
   :global([data-theme="light"]) .icon-btn .moon { display: block; }
   :global([data-theme="light"]) .icon-btn .sun  { display: none; }
 
-  @media (max-width: 720px) {
+  /* The slide-down sheet. Lives above the page but tucks under the sticky rail
+     (rail is z-index 50; the sheet sits just below so the bar stays legible).
+     Hidden entirely on desktop, where the inline nav row owns navigation. */
+  .menu { display: none; }
+
+  /* Collapse breakpoint. Above it the ~10 locale-filtered nav links (RU labels,
+     the wider set) sit in one clean row; below it they would stagger, so the
+     inline row steps aside for the menu. The language dropdown and theme toggle
+     stay in the bar at every width — only the nav collapses. */
+  @media (max-width: 1330px) {
     .rail {
       grid-template-columns: 1fr auto;
       gap: 0.75rem;
     }
-    .rail__nav {
-      order: 3;
-      grid-column: 1 / -1;
-      justify-content: flex-start;
-      gap: 1rem 1.1rem;
-      padding-top: 0.5rem;
-      border-top: 1px solid var(--rule);
-      margin-top: 0.6rem;
+    .rail__nav { display: none; }
+    .icon-btn.rail__menu-btn { display: inline-flex; }
+
+    .menu {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      visibility: hidden;
     }
+    .menu[data-state="open"] { visibility: visible; }
+
+    .menu__backdrop {
+      position: absolute;
+      inset: 0;
+      background: color-mix(in srgb, var(--bg) 62%, transparent);
+      backdrop-filter: saturate(120%) blur(6px);
+      -webkit-backdrop-filter: saturate(120%) blur(6px);
+      opacity: 0;
+      transition: opacity 0.24s var(--ease);
+    }
+    .menu[data-state="open"] .menu__backdrop { opacity: 1; }
+
+    .menu__sheet {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      /* Clear the sticky rail so the sheet reads as dropping from under it. */
+      padding: calc(0.95rem + 32px + 1.4rem) var(--rail) calc(var(--rail) + 0.5rem);
+      background: color-mix(in srgb, var(--bg-rise) 96%, transparent);
+      backdrop-filter: saturate(140%) blur(12px);
+      -webkit-backdrop-filter: saturate(140%) blur(12px);
+      border-bottom: 1px solid var(--rule-2);
+      box-shadow: var(--paper-shadow);
+      transform: translateY(-100%);
+      transition: transform 0.28s var(--ease);
+      max-height: 100dvh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .menu[data-state="open"] .menu__sheet { transform: translateY(0); }
+
+    .menu__list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .menu__list li + li { border-top: 1px solid var(--rule); }
+    .menu__link {
+      display: block;
+      padding: 0.9rem 0;
+      font-family: var(--serif);
+      font-size: 1.15rem;
+      letter-spacing: 0.005em;
+      color: var(--ink-soft);
+      text-decoration: none;
+      transition: color 0.18s var(--ease);
+    }
+    .menu__link:hover { color: var(--ink); }
+    .menu__link[aria-current="page"] {
+      color: var(--ink);
+      position: relative;
+      padding-left: 0.95rem;
+    }
+    .menu__link[aria-current="page"]::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 1.1em;
+      background: var(--accent);
+    }
+  }
+
+  @media (max-width: 1330px) and (prefers-reduced-motion: reduce) {
+    .menu__backdrop,
+    .menu__sheet { transition: none; }
   }
 </style>
