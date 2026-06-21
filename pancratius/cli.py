@@ -193,8 +193,10 @@ def _work_translate(args: argparse.Namespace) -> int:
         revise=not args.no_revise,
         reconcile=not args.no_reconcile,
     )
+    tag_glossary = Path(__file__).resolve().parents[1] / "data" / "tag-glossary.json"
     try:
         glossary = xlate.load_glossary(Path(args.glossary)) if args.glossary else ()
+        tag_labels = xlate.load_tag_labels(tag_glossary)
         client = (
             xlate.OpenRouterClient(api_key="") if args.dry_run else xlate.OpenRouterClient.from_env()
         )
@@ -221,7 +223,7 @@ def _work_translate(args: argparse.Namespace) -> int:
         return xlate.translate_book(
             client, config, entry=entry, catalog=catalog, glossary=glossary,
             generated_at=today, dry_run=args.dry_run, replace=args.replace,
-            cache_dir=cache_dir,
+            cache_dir=cache_dir, tag_labels=tag_labels,
         )
 
     with ThreadPoolExecutor(max_workers=workers) as pool:

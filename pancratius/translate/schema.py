@@ -114,16 +114,12 @@ def profile_format() -> ResponseFormat:
             "type": "object",
             "additionalProperties": False,
             "required": [
-                "title_en", "description_en", "tags_en", "summary",
+                "title_en", "description_en", "summary",
                 "register", "personas", "terms", "recurring",
             ],
             "properties": {
                 "title_en": {"type": "string", "description": "Faithful English title (not literal-clumsy)."},
                 "description_en": {"type": "string", "description": "English rendering of the description."},
-                "tags_en": {
-                    "type": "array", "items": {"type": "string"},
-                    "description": "The provided tags, each rendered in English.",
-                },
                 "summary": {"type": "string", "description": "2-4 sentences: argument, arc and stakes."},
                 "register": {"type": "string", "description": "One line on voice/register and who speaks."},
                 "personas": {"type": "array", "items": persona, "description": "Recurring speakers/characters."},

@@ -18,7 +18,7 @@ from pancratius.translate.pipeline import (
     find_untranslated,
     translate_book,
 )
-from pancratius.translate.profile import load_glossary
+from pancratius.translate.profile import load_glossary, load_tag_labels
 from pancratius.translate.prompts import TermEntry
 
 __all__ = [
@@ -34,5 +34,6 @@ __all__ = [
     "TranslationReport",
     "find_untranslated",
     "load_glossary",
+    "load_tag_labels",
     "translate_book",
 ]

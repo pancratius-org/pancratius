@@ -216,7 +216,7 @@ def reconcile_messages(
 
 PROFILE_INSTRUCTION = """\
 You are preparing a translation brief for the book below. Read it as a whole, then
-produce: a faithful English title and description, the tags in English, a short
+produce: a faithful English title and description, a short
 summary (argument, arc, stakes), one line on the voice/register and who speaks, the
 recurring personas, a termbase of names and recurring terms whose English must stay
 consistent (mark the fixed ones locked), and the recurring symbolic phrases. The
