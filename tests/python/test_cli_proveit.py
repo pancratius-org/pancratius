@@ -58,8 +58,8 @@ def _exit_code(argv: list[str]) -> int:
 # ===========================================================================
 # 1) work import — FULL 1:1 flag→ImportRequest map
 #    The existing suite only asserts kind/lang/dry_run/docx; the door documents
-#    "field names mirror the CLI flags". Lock EVERY field through the real door,
-#    so a dropped/renamed flag-to-field wire is caught.
+#    every CLI flag must cross into the typed importer request. Lock every mapping
+#    through the real door, so a dropped flag-to-domain wire is caught.
 # ===========================================================================
 def test_work_import_maps_every_flag_onto_request(monkeypatch: pytest.MonkeyPatch) -> None:
     from pancratius import import_docx
@@ -93,18 +93,22 @@ def test_work_import_maps_every_flag_onto_request(monkeypatch: pytest.MonkeyPatc
     (req,) = captured
     assert isinstance(req, import_docx.ImportRequest)
     assert req.docx == Path("src.docx")
-    assert req.kind == "poem"
     assert req.lang == "en"
-    assert req.into == "07-existing"
-    assert req.title == "My Title"
-    assert req.number == 42
-    assert req.slug == "custom-slug"
-    assert req.description == "A description"
-    assert req.cover == Path("cover.png")
-    assert req.translation_source == "literary"
     assert req.out_content == Path("/tmp/scratch/content")
-    assert req.dry_run is True
-    assert req.replace is True
+    assert isinstance(req.target, import_docx.ExistingWorkTarget)
+    assert req.target.work_ref == "07-existing"
+    assert isinstance(req.target.kind_scope, import_docx.SpecificImportKind)
+    assert req.target.kind_scope.kind == "poem"
+    assert req.target.identity.number == 42
+    assert req.target.identity.slug == "custom-slug"
+    assert req.text.title == "My Title"
+    assert req.text.description == "A description"
+    assert isinstance(req.cover, import_docx.CoverFile)
+    assert req.cover.path == Path("cover.png")
+    assert isinstance(req.translation, import_docx.TranslationSourceOverride)
+    assert req.translation.source == "literary"
+    assert req.write.dry_run is True
+    assert req.write.replace is True
 
 
 def test_work_import_replace_flag_defaults_false(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -120,8 +124,8 @@ def test_work_import_replace_flag_defaults_false(monkeypatch: pytest.MonkeyPatch
     )
     assert _exit_code(["work", "import", "x.docx", "--kind", "book", "--lang", "ru"]) == 0
     (req,) = captured
-    assert req.replace is False
-    assert req.dry_run is False
+    assert req.write.replace is False
+    assert req.write.dry_run is False
 
 
 # ===========================================================================

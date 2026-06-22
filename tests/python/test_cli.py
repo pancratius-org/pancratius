@@ -155,7 +155,7 @@ def _fake_report(*, refused: tuple[object, ...] = ()) -> types.SimpleNamespace:
 
 
 def test_work_import_builds_request_and_dispatches(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The door maps flags 1:1 onto ImportRequest and calls import_work; a clean
+    """The door maps flags into ImportRequest and calls import_work; a clean
     report exits 0."""
     from pancratius import import_docx
 
@@ -173,7 +173,10 @@ def test_work_import_builds_request_and_dispatches(monkeypatch: pytest.MonkeyPat
     assert rc == 0
     (req,) = captured
     assert isinstance(req, import_docx.ImportRequest)
-    assert req.kind == "book" and req.lang == "ru" and req.dry_run is True
+    assert isinstance(req.target, import_docx.NewWorkTarget)
+    assert req.target.kind == "book"
+    assert req.lang == "ru"
+    assert req.write.dry_run is True
     assert req.docx == Path("x.docx")
 
 
@@ -198,7 +201,25 @@ def test_work_import_input_error_is_usage(monkeypatch: pytest.MonkeyPatch) -> No
         raise import_docx.ImportWorkError("--kind is required when importing a new work")
 
     monkeypatch.setattr(import_docx, "import_work", boom)
+    assert _exit_code(["work", "import", "x.docx", "--kind", "book", "--lang", "ru"]) == 2
+
+
+def test_work_import_missing_kind_is_usage_before_dispatch(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pancratius import import_docx
+
+    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+
+    dispatched = False
+
+    def fake_import_work(_request: object) -> object:
+        nonlocal dispatched
+        dispatched = True
+        return _fake_report()
+
+    monkeypatch.setattr(import_docx, "import_work", fake_import_work)
+
     assert _exit_code(["work", "import", "x.docx", "--lang", "ru"]) == 2
+    assert dispatched is False
 
 
 def test_work_import_missing_pandoc_is_failure(monkeypatch: pytest.MonkeyPatch) -> None:

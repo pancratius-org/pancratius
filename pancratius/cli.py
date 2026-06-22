@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING, assert_never
 
 if TYPE_CHECKING:
     from pancratius.cover.models import CoverResult
-    from pancratius.import_docx import ImportRequest
+    from pancratius.import_docx import ImportRequest, TranslationSource
     from pancratius.kinds import CorpusWorkKind
     from pancratius.locales import Locale
     from pancratius.translate import TranslationReport
@@ -108,11 +108,25 @@ def _corpus_work_kind_arg(value: object | None) -> CorpusWorkKind | None:
     raise ValueError(f"unsupported corpus work kind: {raw}")
 
 
+def _translation_source_arg(value: object | None) -> TranslationSource | None:
+    if value is None:
+        return None
+    match str(value):
+        case "original":
+            return "original"
+        case "literary":
+            return "literary"
+        case "ai":
+            return "ai"
+        case raw:
+            raise ValueError(f"unsupported translation source: {raw}")
+
+
 # --- handlers (work group) ----------------------------------------------------
 def _import_request_from_args(args: argparse.Namespace) -> ImportRequest:
     from pancratius import import_docx
 
-    return import_docx.ImportRequest(
+    return import_docx.ImportRequest.from_cli(
         docx=Path(args.docx),
         lang=_locale_arg(args.lang),
         out_content=Path(args.out_content),
@@ -123,7 +137,7 @@ def _import_request_from_args(args: argparse.Namespace) -> ImportRequest:
         slug=args.slug,
         description=args.description,
         cover=Path(args.cover) if args.cover else None,
-        translation_source=args.translation_source,
+        translation_source=_translation_source_arg(args.translation_source),
         dry_run=bool(args.dry_run),
         replace=bool(args.replace),
     )
@@ -140,8 +154,8 @@ def _work_import(args: argparse.Namespace) -> int:
 
     if (rc := _require_pandoc()) is not None:
         return rc
-    request = _import_request_from_args(args)
     try:
+        request = _import_request_from_args(args)
         report = import_docx.import_work(request)
     except import_docx.ImportWorkError as exc:
         # Bad input / an unresolvable target is a usage error (exit 2), matching

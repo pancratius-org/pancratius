@@ -1,8 +1,5 @@
 {
   "version": 1,
   "typescript": [],
-  "python": [
-    "py:optionality-cluster:pancratius/import_docx.py:ImportRequest:kind, into, title, number, slug, description, cover, translation_source->an explicit state/request shape or documented boundary DTO",
-    "py:optionality-cluster:pancratius/passes/pipeline.py:Context:slug_lookup, register_model, lineation_overrides, scripture_overrides->an explicit state/request shape or documented boundary DTO"
-  ]
+  "python": []
 }

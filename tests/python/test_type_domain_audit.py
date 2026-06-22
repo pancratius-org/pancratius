@@ -58,6 +58,34 @@ def test_type_domain_audit_flags_dataclass_domain_fields(tmp_path: Path) -> None
     assert "ImportRequest.lang" in result.stdout
 
 
+def test_type_domain_audit_flags_optional_clusters(tmp_path: Path) -> None:
+    module = tmp_path / "pancratius" / "sample.py"
+    module.parent.mkdir()
+    module.write_text(
+        "\n".join(
+            [
+                "from __future__ import annotations",
+                "from dataclasses import dataclass",
+                "",
+                "@dataclass(frozen=True)",
+                "class SparseRequest:",
+                "    title: str | None = None",
+                "    slug: str | None = None",
+                "    description: str | None = None",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    _write_baseline(tmp_path, [])
+
+    result = _run(tmp_path)
+
+    assert result.returncode == 1
+    assert "optionality-cluster" in result.stdout
+    assert "SparseRequest" in result.stdout
+    assert "title, slug, description" in result.stdout
+
+
 def test_type_domain_audit_reports_stale_baseline_entries(tmp_path: Path) -> None:
     (tmp_path / "pancratius").mkdir()
     _write_baseline(

@@ -40,7 +40,13 @@ from pancratius import ir
 from pancratius.ir.inlines import inline_lines, inline_plain
 from pancratius.locales import DEFAULT_LOCALE, Locale
 from pancratius.passes.lineation import VERSE_SHORT_LINE_MAX
-from pancratius.passes.pipeline import PER_ORDINAL_SEAM, Context, run
+from pancratius.passes.pipeline import (
+    PER_ORDINAL_SEAM,
+    Context,
+    LineationCorrections,
+    ScripturePins,
+    run,
+)
 from pancratius.thematic import is_thematic_marker
 
 W = da.W
@@ -431,8 +437,8 @@ def classify_blocks(docx: Path) -> BlockClassifications:
         # rules-only: no register model (see lineation_decisions)
         doc = run(doc, Context(
             lang=DEFAULT_LOCALE,
-            lineation_overrides=load_overrides(docx),
-            scripture_overrides=load_scripture_pins(docx),
+            lineation=LineationCorrections(load_overrides(docx)),
+            scripture=ScripturePins(load_scripture_pins(docx)),
         ))
 
     kind_of: dict[str, set[str]] = {}
@@ -603,8 +609,8 @@ def lineation_decisions(docx: Path, *, apply_overrides: bool = True) -> dict[int
         # rules-only: no register model (see the docstring); overrides ride the Context
         doc = run(doc, Context(
             lang=DEFAULT_LOCALE,
-            lineation_overrides=load_overrides(docx) if apply_overrides else None,
-            scripture_overrides=load_scripture_pins(docx),
+            lineation=LineationCorrections(load_overrides(docx) if apply_overrides else {}),
+            scripture=ScripturePins(load_scripture_pins(docx)),
         ))
 
     def hard_break_prose(block: ir.LineatedBlock) -> bool:

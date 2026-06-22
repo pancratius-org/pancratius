@@ -26,7 +26,16 @@ from pancratius.content_catalog import IndexHit, dump_frontmatter
 from pancratius.kinds import CorpusWorkKind
 from pancratius.locales import Locale
 from pancratius.passes import assets
-from pancratius.passes.pipeline import POEM_PASSES, Context, run
+from pancratius.passes.pipeline import (
+    POEM_PASSES,
+    BibliographyLookup,
+    Context,
+    LineationCorrections,
+    ModelBackedRegister,
+    RulesOnlyRegister,
+    ScripturePins,
+    run,
+)
 from pancratius.passes.register import RegisterModel, load_register_model
 from pancratius.paths import CACHE_ROOT, REPO_ROOT
 from pancratius.poem_chrome import PoemChrome, clean_poem_chrome
@@ -269,10 +278,14 @@ def convert_single_docx(
         doc = run(doc, Context(
             lang=lang,
             demote_levels=1,
-            slug_lookup=title_index,
-            register_model=register_model,
-            lineation_overrides=lineation_overrides.load_overrides(docx),
-            scripture_overrides=scripture_overrides.load_overrides(docx),
+            bibliography=BibliographyLookup(title_index),
+            register_classifier=(
+                ModelBackedRegister(register_model)
+                if register_model is not None
+                else RulesOnlyRegister()
+            ),
+            lineation=LineationCorrections(lineation_overrides.load_overrides(docx)),
+            scripture=ScripturePins(scripture_overrides.load_overrides(docx)),
             diagnostics=diagnostics,
         ))
 
