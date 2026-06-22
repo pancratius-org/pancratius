@@ -6,7 +6,7 @@ from collections.abc import Callable
 
 from pancratius import ir
 from pancratius.ir.inlines import inline_plain
-from pancratius.passes.pipeline import Context
+from pancratius.passes.pipeline import Context, ModelBackedRegister, ScripturePins
 from pancratius.passes.register import (
     FEATURE_NAMES,
     RegisterModel,
@@ -45,7 +45,11 @@ def _lineated(*lines: str, evidence: ir.LineationEvidence | None = None) -> ir.L
 
 
 def _ctx(model: RegisterModel | None) -> Context:
-    return Context(lang="ru", register_model=model)
+    return (
+        Context(lang="ru", register_classifier=ModelBackedRegister(model))
+        if model is not None
+        else Context(lang="ru")
+    )
 
 
 def _doc(*blocks: ir.Block) -> ir.Document:
@@ -572,7 +576,7 @@ def test_assign_register_splits_in_verse_scripture_pin() -> None:
         evidence=ir.LineationEvidence(stanza_break=True),
         source_span=ir.SourceSpan(594, 600),
     )
-    ctx = Context(lang="ru", scripture_overrides={597: "Ин 4:23"})
+    ctx = Context(lang="ru", scripture=ScripturePins({597: "Ин 4:23"}))
     doc = assign_register(_doc(block), ctx)
     kinds = [(type(b).__name__, getattr(b, "register", None)) for b in doc.blocks]
     assert kinds == [

@@ -33,16 +33,22 @@ def _body_image_alt(lang: Locale) -> str:
     return "Illustration" if lang == "en" else "Иллюстрация"
 
 
+@dataclass(frozen=True, slots=True)
+class QuoteMarks:
+    opening: str
+    closing: str
+
+
 # Quotation glyphs by language: a `Quoted` inline carries the quote SEMANTICS (single/double);
 # the marks are typographic and locale-specific. RU uses guillemets for doubles; EN uses American
 # curly quotes. Any other language falls back to RU (the corpus default).
-_QUOTE_MARKS: dict[Locale, dict[ir.QuoteKind, tuple[str, str]]] = {
-    "ru": {"double": ("«", "»"), "single": ("'", "'")},
-    "en": {"double": ("“", "”"), "single": ("‘", "’")},
+_QUOTE_MARKS: dict[Locale, dict[ir.QuoteKind, QuoteMarks]] = {
+    "ru": {"double": QuoteMarks("«", "»"), "single": QuoteMarks("'", "'")},
+    "en": {"double": QuoteMarks("“", "”"), "single": QuoteMarks("‘", "’")},
 }
 
 
-def _quote_marks(lang: Locale, kind: ir.QuoteKind) -> tuple[str, str]:
+def _quote_marks(lang: Locale, kind: ir.QuoteKind) -> QuoteMarks:
     return _QUOTE_MARKS.get(lang, _QUOTE_MARKS["ru"])[kind]
 
 
@@ -141,8 +147,8 @@ def _inline_md(n: ir.Inline, lang: Locale) -> str:
         case ir.Code():
             return _inline_code_md(n.value)
         case ir.Quoted():
-            open_q, close_q = _quote_marks(lang, n.kind)
-            return f"{open_q}{_inlines_md(n.children, lang)}{close_q}"
+            marks = _quote_marks(lang, n.kind)
+            return f"{marks.opening}{_inlines_md(n.children, lang)}{marks.closing}"
         case ir.Link():
             label = _inlines_md(n.children, lang).strip()
             return f"[{label}]({n.target})" if label else ""

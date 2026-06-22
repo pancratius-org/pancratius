@@ -60,6 +60,8 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -74,6 +76,25 @@ SHORT_LINE_MAX = 120
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 _NUMBERED_QUESTION_RE = re.compile(r"^\d{1,3}[.)]\s+\S.*[?？]\s*$")
+
+
+@dataclass(frozen=True, slots=True)
+class SourceUnit:
+    text: str
+    is_empty: bool
+
+
+@dataclass(frozen=True, slots=True)
+class StructuralBlock:
+    role: str
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
+class BookMeta:
+    number: int
+    title: str
+    slug: str
 
 
 def _speaker_turn_re() -> re.Pattern[str]:
@@ -137,10 +158,10 @@ STRUCTURAL_BREAK = "\x00BREAK"
 HEADING_BREAK = "\x00HEADING"
 
 
-def group_expected_runs(units: list[tuple[str, bool]]) -> list[list[str]]:
+def group_expected_runs(units: Sequence[SourceUnit]) -> list[list[str]]:
     """Group source paragraph UNITS into the verse runs the rule expects.
 
-    ``units`` is the document's body blocks in order, each a ``(text, is_empty)``
+    ``units`` is the document's body blocks in order, each a ``SourceUnit``
     pair: a NON-empty paragraph unit holds one source paragraph's collapsed display
     lines joined by ``\\n`` (its hard ``<w:br/>`` lineation); an empty unit is a
     Word empty paragraph (a stanza break); a ``STRUCTURAL_BREAK`` text marks a
@@ -189,16 +210,16 @@ def group_expected_runs(units: list[tuple[str, bool]]) -> list[list[str]]:
         cur_has_empty = False
         cur_after_heading = False
 
-    for text, is_empty in units:
-        if text == HEADING_BREAK:
+    for unit in units:
+        if unit.text == HEADING_BREAK:
             flush()
             pending_heading = True
             continue
-        if text == STRUCTURAL_BREAK:
+        if unit.text == STRUCTURAL_BREAK:
             flush()
             pending_heading = False
             continue
-        if is_empty:
+        if unit.is_empty:
             # An empty paragraph is a stanza break: it does NOT end an in-progress
             # verse run, it marks an internal break (recorded for the >=2+empty
             # confidence rule). A trailing empty after a run still flushes via the
@@ -206,7 +227,7 @@ def group_expected_runs(units: list[tuple[str, bool]]) -> list[list[str]]:
             if cur_lines:
                 cur_has_empty = True
             continue
-        display = [ln for ln in text.split("\n") if ln.strip()]
+        display = [ln for ln in unit.text.split("\n") if ln.strip()]
         if display and all(is_verse_line(ln) for ln in display):
             if not cur_lines and pending_heading:
                 cur_after_heading = True
@@ -283,8 +304,8 @@ def _is_wrapped_prose(inlines: list[dict[str, Any]]) -> bool:
     return "SoftBreak" in kinds and "LineBreak" not in kinds
 
 
-def source_units(docx: Path) -> list[tuple[str, bool]]:
-    """The body paragraph units `(text, is_empty)` in document order.
+def source_units(docx: Path) -> list[SourceUnit]:
+    """The body paragraph units in document order.
 
     Only ``Para``/``Plain`` blocks become units; a heading/table/list/blockquote/
     image becomes a structural break (an empty-text NON-empty unit sentinel is not
@@ -295,29 +316,29 @@ def source_units(docx: Path) -> list[tuple[str, bool]]:
         capture_output=True, text=True, check=True,
     )
     blocks = json.loads(proc.stdout).get("blocks") or []
-    units: list[tuple[str, bool]] = []
+    units: list[SourceUnit] = []
     for block in blocks:
         t = block.get("t")
         if t == "Header":
-            units.append((HEADING_BREAK, False))
+            units.append(SourceUnit(text=HEADING_BREAK, is_empty=False))
             continue
         if t not in {"Para", "Plain"}:
             # A structural block breaks any in-progress run: emit a sentinel that
             # group_expected_runs treats as a non-verse boundary.
-            units.append((STRUCTURAL_BREAK, False))
+            units.append(SourceUnit(text=STRUCTURAL_BREAK, is_empty=False))
             continue
         inlines = block.get("c") or []
         if not inlines:
-            units.append(("", True))
+            units.append(SourceUnit(text="", is_empty=True))
             continue
         if _is_wrapped_prose(inlines):
             # Soft-break-wrapped prose is PROSE, not authored lineation (C2): treat
             # it as a structural boundary so it never enters a verse run — exactly
             # what the IR's `_para_lineated` does via `_is_wrapped_prose`.
-            units.append((STRUCTURAL_BREAK, False))
+            units.append(SourceUnit(text=STRUCTURAL_BREAK, is_empty=False))
             continue
         text = _inlines_to_text(inlines)
-        units.append((text, False))
+        units.append(SourceUnit(text=text, is_empty=False))
     return units
 
 
@@ -365,13 +386,15 @@ _EPIGRAPH_RE = re.compile(r'<blockquote class="epigraph">\n(.*?)\n</blockquote>'
 _WORD_RE = re.compile(r"\w+", re.UNICODE)
 
 
-def actual_structural_blocks(md_body: str) -> list[tuple[str, str]]:
-    """``(role, text)`` for each converted signature / epigraph block (tags
+def actual_structural_blocks(md_body: str) -> list[StructuralBlock]:
+    """Each converted signature / epigraph block (tags
     stripped). These come ONLY from right-aligned (``w:jc``) source groups."""
-    out: list[tuple[str, str]] = []
-    out += [("signature", _norm(m)) for m in _SIGNATURE_RE.findall(md_body)]
-    out += [("epigraph", _norm(m.replace("\n", " ")))
-            for m in _EPIGRAPH_RE.findall(md_body)]
+    out: list[StructuralBlock] = []
+    out += [StructuralBlock("signature", _norm(m)) for m in _SIGNATURE_RE.findall(md_body)]
+    out += [
+        StructuralBlock("epigraph", _norm(m.replace("\n", " ")))
+        for m in _EPIGRAPH_RE.findall(md_body)
+    ]
     return out
 
 
@@ -425,10 +448,10 @@ def source_docx(number: int) -> Path:
     raise FileNotFoundError(f"committed RU book DOCX not found for #{number}")
 
 
-def _committed_book_meta() -> list[tuple[int, str, str]]:
-    """``(number, title, slug)`` for every committed book, sorted by number — the
+def _committed_book_meta() -> list[BookMeta]:
+    """Metadata for every committed book, sorted by number — the
     same inputs the importer needs to reproduce a book's body deterministically."""
-    meta: list[tuple[int, str, str]] = []
+    meta: list[BookMeta] = []
     for md in sorted(CONTENT.glob("*/ru.md")):
         text = md.read_text(encoding="utf-8")
         m = re.search(r"^number:\s*(\d+)\s*$", text, re.M)
@@ -439,8 +462,8 @@ def _committed_book_meta() -> list[tuple[int, str, str]]:
         title = tm.group(1).strip().strip("'\"") if tm else ""
         sm = re.search(r"^slug:\s*(.+?)\s*$", text, re.M)
         slug = sm.group(1).strip().strip("'\"") if sm else md.parent.name
-        meta.append((number, title, slug))
-    return sorted(meta)
+        meta.append(BookMeta(number, title, slug))
+    return sorted(meta, key=lambda book: book.number)
 
 
 def _compare(number: int, docx: Path, md_body: str) -> list[str]:
@@ -514,13 +537,13 @@ def _compare(number: int, docx: Path, md_body: str) -> list[str]:
     # every right-aligned group becomes a signature, so absence is not loss — but a
     # signature built from non-right-aligned text is unambiguous drift.
     right_words = source_right_aligned_words(docx)
-    for role, text in actual_structural_blocks(md_body):
-        words = set(_WORD_RE.findall(text.lower()))
+    for block in actual_structural_blocks(md_body):
+        words = set(_WORD_RE.findall(block.text.lower()))
         if words and len(words - right_words) / len(words) > 0.5:
             out.append(
-                f"book #{number:02d}: SPURIOUS {role} — a {role} whose text is not "
+                f"book #{number:02d}: SPURIOUS {block.role} — a {block.role} whose text is not "
                 f"from the right-aligned source (the C1/I2 w:jc-realignment drift): "
-                f"{text[:80]}"
+                f"{block.text[:80]}"
             )
     return out
 
@@ -528,15 +551,15 @@ def _compare(number: int, docx: Path, md_body: str) -> list[str]:
 def _check_committed() -> int:
     failures: list[str] = []
     checked = 0
-    for number, _title, slug in _committed_book_meta():
+    for book in _committed_book_meta():
         try:
-            docx = source_docx(number)
+            docx = source_docx(book.number)
         except FileNotFoundError:
             continue
-        md = (CONTENT / slug / "ru.md")
+        md = (CONTENT / book.slug / "ru.md")
         if not md.is_file():
             continue
-        failures.extend(_compare(number, docx, _md_body(md.read_text(encoding="utf-8"))))
+        failures.extend(_compare(book.number, docx, _md_body(md.read_text(encoding="utf-8"))))
         checked += 1
     return _report(checked, failures)
 
@@ -553,30 +576,34 @@ def _check_from_ir() -> int:
 
     failures: list[str] = []
     checked = 0
-    for number, title, slug in _committed_book_meta():
+    for book in _committed_book_meta():
         try:
-            docx = source_docx(number)
+            docx = source_docx(book.number)
         except FileNotFoundError:
             continue
         with tempfile.TemporaryDirectory(prefix="book-verse-ir-") as td:
             content_root = Path(td) / "src" / "content"
-            request = import_docx.ImportRequest(
+            request = import_docx.ImportRequest.for_new_work(
                 docx=docx,
                 kind="book",
                 lang="ru",
-                number=number,
-                slug=slug,
-                title=title,
+                number=book.number,
+                slug=book.slug,
+                title=book.title,
                 out_content=content_root,
             )
             with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                 report = import_docx.import_work(request)
             if report.refused:
-                failures.append(f"book #{number:02d}: IR import refused")
+                failures.append(f"book #{book.number:02d}: IR import refused")
                 continue
-            work_key = slug if re.match(r"^\d{1,4}-", slug) else f"{number:02d}-{slug}"
+            work_key = (
+                book.slug
+                if re.match(r"^\d{1,4}-", book.slug)
+                else f"{book.number:02d}-{book.slug}"
+            )
             md_body = _md_body((content_root / "books" / work_key / "ru.md").read_text(encoding="utf-8"))
-        failures.extend(_compare(number, docx, md_body))
+        failures.extend(_compare(book.number, docx, md_body))
         checked += 1
     return _report(checked, failures, mode="IR import path")
 

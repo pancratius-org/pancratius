@@ -27,11 +27,11 @@ import shutil
 import sys
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, assert_never
 
 if TYPE_CHECKING:
     from pancratius.image_translation.models import ImageTranslationResult
-    from pancratius.import_docx import ImportRequest
+    from pancratius.import_docx import ImportRequest, TranslationSource
     from pancratius.kinds import CorpusWorkKind
     from pancratius.locales import Locale
     from pancratius.translate import TranslationReport
@@ -108,11 +108,25 @@ def _corpus_work_kind_arg(value: object | None) -> CorpusWorkKind | None:
     raise ValueError(f"unsupported corpus work kind: {raw}")
 
 
+def _translation_source_arg(value: object | None) -> TranslationSource | None:
+    if value is None:
+        return None
+    match str(value):
+        case "original":
+            return "original"
+        case "literary":
+            return "literary"
+        case "ai":
+            return "ai"
+        case raw:
+            raise ValueError(f"unsupported translation source: {raw}")
+
+
 # --- handlers (work group) ----------------------------------------------------
 def _import_request_from_args(args: argparse.Namespace) -> ImportRequest:
     from pancratius import import_docx
 
-    return import_docx.ImportRequest(
+    return import_docx.ImportRequest.from_cli(
         docx=Path(args.docx),
         lang=_locale_arg(args.lang),
         out_content=Path(args.out_content),
@@ -123,7 +137,7 @@ def _import_request_from_args(args: argparse.Namespace) -> ImportRequest:
         slug=args.slug,
         description=args.description,
         cover=Path(args.cover) if args.cover else None,
-        translation_source=args.translation_source,
+        translation_source=_translation_source_arg(args.translation_source),
         dry_run=bool(args.dry_run),
         replace=bool(args.replace),
     )
@@ -140,8 +154,8 @@ def _work_import(args: argparse.Namespace) -> int:
 
     if (rc := _require_pandoc()) is not None:
         return rc
-    request = _import_request_from_args(args)
     try:
+        request = _import_request_from_args(args)
         report = import_docx.import_work(request)
     except import_docx.ImportWorkError as exc:
         # Bad input / an unresolvable target is a usage error (exit 2), matching
@@ -154,31 +168,36 @@ def _work_import(args: argparse.Namespace) -> int:
 def _print_translate_report(report: TranslationReport) -> float:
     """Print one book's outcome and return its USD cost contribution (estimate
     for --dry-run, real billed cost for a live run)."""
-    if report.dry_run and report.estimate is not None:
-        est = report.estimate
-        print(
-            f"  {report.book_key}: {report.units} units, {report.chunks} chunks, "
-            f"~{est.source_tokens / 1000:.1f}k src tok  est ${est.total_usd:.4f} "
-            f"(draft ${est.draft_cost_usd:.4f} + revise ${est.revise_cost_usd:.4f} "
-            f"+ profile ${est.profile_cost_usd:.4f})"
-        )
-        return est.total_usd
-    cost = report.usage.cost_usd or 0.0
-    findings = ", ".join(
-        f"{sum(1 for f in report.findings if f.severity == sev)}×{sev.name.lower()}"
-        for sev in sorted({f.severity for f in report.findings}, reverse=True)
-    )
-    where = report.written_path.name if report.written_path else "(not written)"
-    cache_note = f"; {report.cached_chunks} chunks from cache" if report.cached_chunks else ""
-    print(
-        f"  wrote {report.book_key}/{where}: {report.units} units, {report.chunks} chunks; "
-        f"cost ${cost:.4f}; cached {report.usage.cached_tokens} tok"
-        + cache_note
-        + (f"; findings {findings}" if findings else "")
-    )
-    for line in report.digest:
-        print(line)
-    return cost
+    from pancratius.translate import TranslationEstimateOutcome, TranslationWriteOutcome
+
+    match report.outcome:
+        case TranslationEstimateOutcome(estimate=est):
+            print(
+                f"  {report.book_key}: {report.units} units, {report.chunks} chunks, "
+                f"~{est.source_tokens / 1000:.1f}k src tok  est ${est.total_usd:.4f} "
+                f"(draft ${est.draft_cost_usd:.4f} + revise ${est.revise_cost_usd:.4f} "
+                f"+ profile ${est.profile_cost_usd:.4f})"
+            )
+            return est.total_usd
+        case TranslationWriteOutcome(written_path=written_path):
+            cost = report.usage.cost_usd or 0.0
+            findings = ", ".join(
+                f"{sum(1 for f in report.findings if f.severity == sev)}×{sev.name.lower()}"
+                for sev in sorted({f.severity for f in report.findings}, reverse=True)
+            )
+            cache_note = f"; {report.cached_chunks} chunks from cache" if report.cached_chunks else ""
+            print(
+                f"  wrote {report.book_key}/{written_path.name}: "
+                f"{report.units} units, {report.chunks} chunks; "
+                f"cost ${cost:.4f}; cached {report.usage.cached_tokens} tok"
+                + cache_note
+                + (f"; findings {findings}" if findings else "")
+            )
+            for line in report.digest:
+                print(line)
+            return cost
+        case _:
+            assert_never(report.outcome)
 
 
 def _work_translate(args: argparse.Namespace) -> int:
@@ -635,7 +654,7 @@ def _docx_inspect(args: argparse.Namespace) -> int:
     )
 
     try:
-        options = InspectOptions(
+        options = InspectOptions.from_cli(
             contains=args.contains,
             around=args.around,
             context=args.context,
@@ -666,20 +685,24 @@ def _docx_render_slice(args: argparse.Namespace) -> int:
             if args.book is not None
             else Path(args.docx)
         )
-        lo, hi, rows = resolve_range(
+        selection = resolve_range(
             docx,
             around=args.around,
             context=args.context,
             index_range=parse_index_range(args.range),
         )
-        pages = render(docx, lo, hi, Path(args.out))
+        paragraph_range = selection.index_range
+        pages = render(docx, paragraph_range.lo, paragraph_range.hi, Path(args.out))
     except (DocxInspectError, DocxRenderError) as exc:
         return _fail(exc, 2)
-    print(f"rendered paragraphs [{lo}..{hi}] of {docx.name} -> {len(pages)} page(s)")
+    print(
+        f"rendered paragraphs [{paragraph_range.lo}..{paragraph_range.hi}] "
+        f"of {docx.name} -> {len(pages)} page(s)"
+    )
     for page in pages:
         print(f"  {page}")
     print("\nparagraph index -> text (correlate with `docx inspect`):")
-    for line in range_key(rows, lo, hi):
+    for line in range_key(selection):
         print(f"  {line}")
     return 0
 

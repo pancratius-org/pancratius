@@ -104,7 +104,7 @@ def test_docx_inspect_cli_missing_file_is_usage_error(
 
 def test_docx_inspect_rejects_ambiguous_filters() -> None:
     with pytest.raises(DocxInspectError, match="choose only one inspect filter"):
-        InspectOptions(contains="Alpha", index_range=parse_index_range("0:2"))
+        InspectOptions.from_cli(contains="Alpha", index_range=parse_index_range("0:2"))
 
 
 def test_docx_inspect_marks_repeated_text_with_mixed_import_roles(
@@ -273,7 +273,7 @@ def test_docx_inspect_kind_filters_keep_ambiguous_candidates() -> None:
         )
     ]
 
-    selected = docx_inspect.select_rows(rows, InspectOptions(lineated_only=True))
+    selected = docx_inspect.select_rows(rows, InspectOptions.from_cli(lineated_only=True))
 
     assert selected == rows
 

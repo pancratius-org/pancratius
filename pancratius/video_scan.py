@@ -43,7 +43,14 @@ from googleapiclient.errors import HttpError
 from pancratius.docx_conversion import to_ascii_slug
 from pancratius.locales import Locale
 from pancratius.paths import CONTENT_ROOT
-from pancratius.video_channels import CHANNELS_PATH, VideoChannel, load_channels
+from pancratius.video_channels import (
+    CHANNELS_PATH,
+    ChannelHandleOnly,
+    ChannelIdOnly,
+    ChannelIdWithHandle,
+    VideoChannel,
+    load_channels,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -85,13 +92,11 @@ type ChannelLocator = ChannelId | ChannelHandle
 
 def _channel_locator(channel: VideoChannel) -> ChannelLocator:
     """Pick the strongest available addressor; channel_id is canonical."""
-    if channel.channel_id:
-        return ChannelId(channel.channel_id)
-    if channel.handle:
-        return ChannelHandle(channel.handle)
-    raise VideoScanError(
-        f"channel {channel.key}: needs at least one of channel_id or handle",
-    )
+    match channel.require_scannable_address():
+        case ChannelIdWithHandle(channel_id=channel_id) | ChannelIdOnly(channel_id):
+            return ChannelId(channel_id)
+        case ChannelHandleOnly(handle):
+            return ChannelHandle(handle)
 
 
 class _SDKRequest(Protocol):

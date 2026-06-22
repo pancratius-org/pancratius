@@ -88,16 +88,27 @@ class CostEstimate:
 
 
 @dataclass(frozen=True, slots=True)
+class TranslationEstimateOutcome:
+    estimate: CostEstimate
+
+
+@dataclass(frozen=True, slots=True)
+class TranslationWriteOutcome:
+    written_path: Path
+    profile: BookProfile
+
+
+type TranslationOutcome = TranslationEstimateOutcome | TranslationWriteOutcome
+
+
+@dataclass(frozen=True, slots=True)
 class TranslationReport:
     book_key: str
     units: int
     chunks: int
-    dry_run: bool
+    outcome: TranslationOutcome
     usage: Usage = Usage.empty()
     findings: tuple[Finding, ...] = ()
-    estimate: CostEstimate | None = None
-    written_path: Path | None = None
-    profile: BookProfile | None = None
     blocking: tuple[Finding, ...] = field(default_factory=tuple)
     cached_chunks: int = 0
     api_chunks: int = 0
@@ -371,8 +382,7 @@ def translate_book(
             book_key=entry.work_key,
             units=len(document.units),
             chunks=len(chunks),
-            dry_run=True,
-            estimate=estimate,
+            outcome=TranslationEstimateOutcome(estimate),
         )
 
     if client is None:
@@ -550,11 +560,9 @@ def translate_book(
         book_key=entry.work_key,
         units=len(document.units),
         chunks=len(chunks),
-        dry_run=False,
+        outcome=TranslationWriteOutcome(written_path=en_path, profile=profile),
         usage=_ensure_cost(usage, client, config),
         findings=findings,
-        written_path=en_path,
-        profile=profile,
         cached_chunks=cached_chunks,
         api_chunks=api_chunks,
         digest=digest,

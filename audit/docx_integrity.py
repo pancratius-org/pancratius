@@ -65,6 +65,12 @@ class Relationship:
     resolved_target: str | None
 
 
+@dataclass(frozen=True, slots=True)
+class OfficeRelationshipRef:
+    attr_name: str
+    rel_id: str
+
+
 def _docx_paths() -> list[Path]:
     return sorted(
         path
@@ -113,10 +119,10 @@ def _parse_xml_part(zf: zipfile.ZipFile, name: str) -> ET.Element:
         raise DocxIntegrityError(f"{name} is not well-formed XML: {exc}") from exc
 
 
-def _office_relationship_refs(root: ET.Element) -> list[tuple[str, str]]:
+def _office_relationship_refs(root: ET.Element) -> list[OfficeRelationshipRef]:
     prefix = f"{{{OFFICE_REL_NS}}}"
     return [
-        (attr.removeprefix(prefix), value)
+        OfficeRelationshipRef(attr.removeprefix(prefix), value)
         for element in root.iter()
         for attr, value in element.attrib.items()
         if attr.startswith(prefix)
@@ -251,13 +257,13 @@ def _validate_xml_relationship_refs(
             continue
         rels_name = _rels_part_for(name)
         relationships = rels.get(rels_name, {})
-        missing = sorted(ref for _, ref in refs if ref not in relationships)
+        missing = sorted(ref.rel_id for ref in refs if ref.rel_id not in relationships)
         if missing:
             raise DocxIntegrityError(
                 f"{name} has unresolved relationship reference(s): {', '.join(missing)}"
             )
-        for attr_name, ref in refs:
-            _validate_relationship_reference(name, attr_name, relationships[ref])
+        for ref in refs:
+            _validate_relationship_reference(name, ref.attr_name, relationships[ref.rel_id])
     if document_root is None:
         raise DocxIntegrityError("missing required DOCX part: word/document.xml")
     return document_root

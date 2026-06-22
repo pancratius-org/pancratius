@@ -44,7 +44,7 @@ def _node(value: object) -> _PandocNode | None:
 
 def lift_bibliography(
     doc: ir.Document,
-    slug_lookup: _SlugLookup | None,
+    slug_lookup: _SlugLookup,
     diagnostics: ir.DiagnosticSink,
 ) -> ir.Document:
     """Lift catalog/bibliography tables out of the body into the returned
@@ -53,12 +53,11 @@ def lift_bibliography(
     Classification is on the actual catalog signal (cover images / LitRes / kindbook
     URLs), not a row count: reading-content tables (scripture/archetype grids) carry
     neither and are kept in the body."""
-    lookup = slug_lookup or {}
     kept: list[ir.Block] = []
     lifted: list[dict[str, object]] = []
     for b in doc.blocks:
         if isinstance(b, ir.Table) and _looks_like_biblio(b):
-            lifted.extend(_parse_biblio(b, lookup))
+            lifted.extend(_parse_biblio(b, slug_lookup))
             continue
         kept.append(b)
     bibliography = [*doc.bibliography, *lifted]

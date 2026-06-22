@@ -12,7 +12,7 @@ import pytest
 from pancratius import import_docx
 from pancratius.content_catalog import CatalogEntry, split_frontmatter
 from pancratius.docx_conversion import ConvertedDocx
-from pancratius.poem_chrome import PoemChrome
+from pancratius.poem_chrome import PoemChrome, PoemSourceDate
 
 
 def _poem_fm(
@@ -24,9 +24,18 @@ def _poem_fm(
             kind="poem", number=1, slug="01-x", title="X", lang="ru", description="d",
             work_key="poem:1", work_dir=Path("."), md_path=Path("x.md"), frontmatter=fm,
         )
-    converted = ConvertedDocx(body="стих\n", poem_chrome=PoemChrome(source_date=source_date))
+    converted = ConvertedDocx(
+        body="стих\n",
+        poem_chrome=(
+            PoemChrome((PoemSourceDate(source_date),))
+            if source_date is not None
+            else PoemChrome()
+        ),
+    )
     fm = import_docx._frontmatter_for_import(
-        request=import_docx.ImportRequest(docx=Path("x.docx"), lang="ru", out_content=Path(".")),
+        request=import_docx.ImportRequest.for_new_work(
+            docx=Path("x.docx"), lang="ru", out_content=Path("."), kind="poem"
+        ),
         kind="poem", number=1, slug="01-x", title="X", description="d", lang="ru", cover=None,
         existing_lang=entry(existing) if existing is not None else None,
         reference=entry(ref) if ref is not None else None,
@@ -105,7 +114,7 @@ def test_import_new_docx_creates_bundle_paths_and_frontmatter(
         encoding="utf-8",
     )
 
-    report = import_docx.import_work(import_docx.ImportRequest(
+    report = import_docx.import_work(import_docx.ImportRequest.for_new_work(
         docx=docx,
         lang="ru",
         out_content=content_root,
@@ -162,7 +171,7 @@ Existing body.
         encoding="utf-8",
     )
 
-    report = import_docx.import_work(import_docx.ImportRequest(
+    report = import_docx.import_work(import_docx.ImportRequest.for_existing_work(
         docx=docx,
         lang="en",
         out_content=content_root,
@@ -221,7 +230,7 @@ def test_converter_fatal_diagnostic_blocks_the_write(
     monkeypatch.setattr(assets, "plan_assets", fatal_plan)
 
     content_root = tmp_path / "src" / "content"
-    report = import_docx.import_work(import_docx.ImportRequest(
+    report = import_docx.import_work(import_docx.ImportRequest.for_new_work(
         docx=docx,
         lang="ru",
         out_content=content_root,
@@ -277,7 +286,7 @@ def test_import_work_returns_a_write_report(tmp_path: Path, make_docx: DocxFacto
     from pancratius.writer import WriteReport
 
     content_root = tmp_path / "src" / "content"
-    report = import_docx.import_work(import_docx.ImportRequest(
+    report = import_docx.import_work(import_docx.ImportRequest.for_new_work(
         docx=docx,
         lang="ru",
         out_content=content_root,
@@ -304,7 +313,7 @@ def test_import_work_refusal_returns_a_report_with_fatal_diagnostic(
     # refusal. import_work must RETURN that refused report (with a fatal
     # diagnostic), NOT raise / SystemExit.
     content_root = tmp_path / "src" / "content"
-    first = import_docx.import_work(import_docx.ImportRequest(
+    first = import_docx.import_work(import_docx.ImportRequest.for_new_work(
         docx=docx,
         lang="ru",
         out_content=content_root,
@@ -318,7 +327,7 @@ def test_import_work_refusal_returns_a_report_with_fatal_diagnostic(
 
     # Second import of the SAME bundle/lang, no replace -> the importer routes
     # through --into resolution by key; replace is False, so it is refused.
-    second = import_docx.import_work(import_docx.ImportRequest(
+    second = import_docx.import_work(import_docx.ImportRequest.for_existing_work(
         docx=docx,
         lang="ru",
         out_content=content_root,
@@ -332,7 +341,7 @@ def test_import_work_refusal_returns_a_report_with_fatal_diagnostic(
 def test_import_work_missing_docx_raises_import_work_error(tmp_path: Path) -> None:
     content_root = tmp_path / "src" / "content"
     with pytest.raises(import_docx.ImportWorkError, match="DOCX not found"):
-        import_docx.import_work(import_docx.ImportRequest(
+        import_docx.import_work(import_docx.ImportRequest.for_new_work(
             docx=tmp_path / "does-not-exist.docx",
             lang="ru",
             out_content=content_root,
@@ -358,7 +367,7 @@ def test_real_import_writes_manifest_under_content_root(
     # real repo data/imports is NEVER touched), with the source sha256 set and the
     # source_document pointing at the input DOCX.
     content_root = tmp_path / "src" / "content"
-    report = import_docx.import_work(import_docx.ImportRequest(
+    report = import_docx.import_work(import_docx.ImportRequest.for_new_work(
         docx=docx,
         lang="ru",
         out_content=content_root,
@@ -387,7 +396,7 @@ def test_dry_run_import_writes_no_manifest(
     docx = make_docx("source-ru.docx", "# Probe Work\n\nТекст.")
     # A dry-run import touches NOTHING — no bundle, and no provenance manifest.
     content_root = tmp_path / "src" / "content"
-    report = import_docx.import_work(import_docx.ImportRequest(
+    report = import_docx.import_work(import_docx.ImportRequest.for_new_work(
         docx=docx,
         lang="ru",
         out_content=content_root,
@@ -414,7 +423,7 @@ def test_import_work_is_side_effect_free(
     # The stable entry emits NO stdout/stderr (the CLI owns side effects).
     content_root = tmp_path / "src" / "content"
     capsys.readouterr()  # drain anything prior
-    import_docx.import_work(import_docx.ImportRequest(
+    import_docx.import_work(import_docx.ImportRequest.for_new_work(
         docx=docx,
         lang="ru",
         out_content=content_root,

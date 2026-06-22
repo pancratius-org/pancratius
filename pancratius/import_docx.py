@@ -8,10 +8,10 @@ import sys
 import uuid
 import xml.etree.ElementTree as ET
 import zipfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 
 from pancratius import footnotes, ir
 from pancratius.content_catalog import (
@@ -61,26 +61,245 @@ class ImportWorkError(Exception):
     its fatal diagnostics) instead. The CLI maps this to a usage exit."""
 
 
+type TranslationSource = Literal["original", "literary", "ai"]
+
+
+@dataclass(frozen=True)
+class WorkIdentityOverride:
+    """Explicit override of catalog identity inferred from target/reference data."""
+
+    number: int | None = None
+    slug: str | None = None
+
+
+@dataclass(frozen=True)
+class ImportTextOverrides:
+    """Editorial text overrides supplied by the caller."""
+
+    title: str | None = None
+    description: str | None = None
+
+
+@dataclass(frozen=True)
+class AnyImportKind:
+    """Resolve an existing `--into` target without constraining the work kind."""
+
+
+@dataclass(frozen=True)
+class SpecificImportKind:
+    """Resolve an existing `--into` target within one corpus work kind."""
+
+    kind: CorpusWorkKind
+
+
+type ImportKindScope = AnyImportKind | SpecificImportKind
+
+
+@dataclass(frozen=True)
+class NewWorkTarget:
+    """Import a new work bundle of a known corpus kind."""
+
+    kind: CorpusWorkKind
+    identity: WorkIdentityOverride = field(default_factory=WorkIdentityOverride)
+
+
+@dataclass(frozen=True)
+class ExistingWorkTarget:
+    """Import into an existing catalog work."""
+
+    work_ref: str
+    kind_scope: ImportKindScope = field(default_factory=AnyImportKind)
+    identity: WorkIdentityOverride = field(default_factory=WorkIdentityOverride)
+
+
+type ImportTarget = NewWorkTarget | ExistingWorkTarget
+
+
+@dataclass(frozen=True)
+class AutoCover:
+    """Keep an existing locale cover when present, otherwise discover it."""
+
+
+@dataclass(frozen=True)
+class CoverFile:
+    """Copy this source image into the imported bundle for the request locale."""
+
+    path: Path
+
+
+type ImportCover = AutoCover | CoverFile
+
+
+@dataclass(frozen=True)
+class InferTranslationSource:
+    """Infer `translation.source` from existing frontmatter or the locale."""
+
+
+@dataclass(frozen=True)
+class TranslationSourceOverride:
+    """Write an explicit, schema-valid `translation.source` value."""
+
+    source: TranslationSource
+
+
+type ImportTranslationPolicy = InferTranslationSource | TranslationSourceOverride
+
+
+@dataclass(frozen=True)
+class ImportWritePolicy:
+    """Writer behavior chosen at the import door."""
+
+    dry_run: bool = False
+    replace: bool = False
+
+
 @dataclass(frozen=True)
 class ImportRequest:
     """The frozen input contract `import_work` consumes.
 
-    Callers build it by name; argparse is owned by `pancratius.cli`.
+    Callers choose a target factory; argparse is owned by `pancratius.cli`.
     """
 
     docx: Path
     lang: Locale
     out_content: Path
-    kind: CorpusWorkKind | None = None
-    into: str | None = None
-    title: str | None = None
-    number: int | None = None
-    slug: str | None = None
-    description: str | None = None
-    cover: Path | None = None
-    translation_source: str | None = None
-    dry_run: bool = False
-    replace: bool = False
+    target: ImportTarget
+    text: ImportTextOverrides = field(default_factory=ImportTextOverrides)
+    cover: ImportCover = field(default_factory=AutoCover)
+    translation: ImportTranslationPolicy = field(default_factory=InferTranslationSource)
+    write: ImportWritePolicy = field(default_factory=ImportWritePolicy)
+
+    @classmethod
+    def for_new_work(
+        cls,
+        *,
+        docx: Path,
+        lang: Locale,
+        out_content: Path,
+        kind: CorpusWorkKind,
+        number: int | None = None,
+        slug: str | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        cover: Path | None = None,
+        translation_source: TranslationSource | None = None,
+        dry_run: bool = False,
+        replace: bool = False,
+    ) -> ImportRequest:
+        return cls(
+            docx=docx,
+            lang=lang,
+            out_content=out_content,
+            target=NewWorkTarget(kind=kind, identity=WorkIdentityOverride(number, slug)),
+            text=ImportTextOverrides(title, description),
+            cover=_cover_policy(cover),
+            translation=_translation_policy(translation_source),
+            write=ImportWritePolicy(dry_run=dry_run, replace=replace),
+        )
+
+    @classmethod
+    def for_existing_work(
+        cls,
+        *,
+        docx: Path,
+        lang: Locale,
+        out_content: Path,
+        into: str,
+        kind: CorpusWorkKind | None = None,
+        number: int | None = None,
+        slug: str | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        cover: Path | None = None,
+        translation_source: TranslationSource | None = None,
+        dry_run: bool = False,
+        replace: bool = False,
+    ) -> ImportRequest:
+        return cls(
+            docx=docx,
+            lang=lang,
+            out_content=out_content,
+            target=ExistingWorkTarget(
+                work_ref=into,
+                kind_scope=_import_kind_scope(kind),
+                identity=WorkIdentityOverride(number, slug),
+            ),
+            text=ImportTextOverrides(title, description),
+            cover=_cover_policy(cover),
+            translation=_translation_policy(translation_source),
+            write=ImportWritePolicy(dry_run=dry_run, replace=replace),
+        )
+
+    @classmethod
+    def from_cli(
+        cls,
+        *,
+        docx: Path,
+        lang: Locale,
+        out_content: Path,
+        kind: CorpusWorkKind | None = None,
+        into: str | None = None,
+        number: int | None = None,
+        slug: str | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        cover: Path | None = None,
+        translation_source: TranslationSource | None = None,
+        dry_run: bool = False,
+        replace: bool = False,
+    ) -> ImportRequest:
+        if into is not None:
+            return cls.for_existing_work(
+                docx=docx,
+                lang=lang,
+                out_content=out_content,
+                into=into,
+                kind=kind,
+                number=number,
+                slug=slug,
+                title=title,
+                description=description,
+                cover=cover,
+                translation_source=translation_source,
+                dry_run=dry_run,
+                replace=replace,
+            )
+        if kind is not None:
+            return cls.for_new_work(
+                docx=docx,
+                lang=lang,
+                out_content=out_content,
+                kind=kind,
+                number=number,
+                slug=slug,
+                title=title,
+                description=description,
+                cover=cover,
+                translation_source=translation_source,
+                dry_run=dry_run,
+                replace=replace,
+            )
+        raise ImportWorkError("--kind is required when importing a new work")
+
+    @property
+    def dry_run(self) -> bool:
+        return self.write.dry_run
+
+    @property
+    def replace(self) -> bool:
+        return self.write.replace
+
+
+def _import_kind_scope(kind: CorpusWorkKind | None) -> ImportKindScope:
+    return AnyImportKind() if kind is None else SpecificImportKind(kind)
+
+
+def _cover_policy(cover: Path | None) -> ImportCover:
+    return AutoCover() if cover is None else CoverFile(cover)
+
+
+def _translation_policy(source: TranslationSource | None) -> ImportTranslationPolicy:
+    return InferTranslationSource() if source is None else TranslationSourceOverride(source)
 
 
 @dataclass(frozen=True)
@@ -340,7 +559,7 @@ def _find_cover(work_dir: Path, lang: Locale) -> str | None:
 
 def _prepare_cover(
     *,
-    cover_arg: str | None,
+    cover: ImportCover,
     read_dir: Path,
     write_dir: Path,
     lang: Locale,
@@ -349,16 +568,19 @@ def _prepare_cover(
     """Resolve the bundle cover: existing covers are read from `read_dir` (the real
     bundle, for additive --into), a new --cover is written into `write_dir` (the scratch
     stage), so the writer stays the only thing that touches the real target."""
-    if cover_arg:
-        src = Path(cover_arg).expanduser().resolve()
-        if not src.is_file():
-            raise ImportWorkError(f"cover not found: {src}")
-        if src.suffix.lower() not in IMAGE_EXTS:
-            raise ImportWorkError(f"unsupported cover image extension: {src.suffix}")
-        ext = ".jpg" if src.suffix.lower() in {".jpeg", ".jpe"} else src.suffix.lower()
-        dst = write_dir / f"cover.{lang}{ext}"
-        _copy_if_needed(src, dst)
-        return f"./{dst.name}"
+    match cover:
+        case CoverFile(path=path):
+            src = path.expanduser().resolve()
+            if not src.is_file():
+                raise ImportWorkError(f"cover not found: {src}")
+            if src.suffix.lower() not in IMAGE_EXTS:
+                raise ImportWorkError(f"unsupported cover image extension: {src.suffix}")
+            ext = ".jpg" if src.suffix.lower() in {".jpeg", ".jpe"} else src.suffix.lower()
+            dst = write_dir / f"cover.{lang}{ext}"
+            _copy_if_needed(src, dst)
+            return f"./{dst.name}"
+        case AutoCover():
+            pass
 
     if existing_lang and _frontmatter_cover_exists(read_dir, existing_lang.frontmatter.get("cover")):
         return str(existing_lang.frontmatter["cover"])
@@ -366,13 +588,23 @@ def _prepare_cover(
     return _find_cover(read_dir, lang)
 
 
-def _translation_source(existing_lang: CatalogEntry | None, lang: Locale, override: str | None) -> str:
-    if override:
-        return override
+def _translation_source(
+    existing_lang: CatalogEntry | None,
+    lang: Locale,
+    policy: ImportTranslationPolicy,
+) -> TranslationSource:
+    match policy:
+        case TranslationSourceOverride(source=source):
+            return source
+        case InferTranslationSource():
+            pass
+
     if existing_lang:
         raw = existing_lang.frontmatter.get("translation")
-        if isinstance(raw, dict) and raw.get("source"):
-            return str(raw["source"])
+        if isinstance(raw, dict):
+            match raw.get("source"):
+                case "original" | "literary" | "ai" as source:
+                    return source
     return "original" if lang == "ru" else "ai"
 
 
@@ -437,7 +669,10 @@ def _frontmatter_for_import(
         case "poem":
             # The body sign-off date fills a missing date (preferred over the less
             # reliable reference) but never overwrites a committed one; mismatch warns.
-            lifted = converted.poem_chrome.source_date if converted.poem_chrome else None
+            source_date = (
+                converted.poem_chrome.source_date_fact if converted.poem_chrome else None
+            )
+            lifted = source_date.value if source_date is not None else None
             if fm.get("date") is None:
                 ref_date = reference.frontmatter.get("date") if reference else None
                 fm["date"] = lifted or ref_date
@@ -459,8 +694,16 @@ def _frontmatter_for_import(
     else:
         fm.pop("cross_refs", None)
 
-    fm["translation"] = {"source": _translation_source(existing_lang, lang, request.translation_source)}
+    fm["translation"] = {"source": _translation_source(existing_lang, lang, request.translation)}
     return fm
+
+
+def _kind_filter(scope: ImportKindScope) -> CorpusWorkKind | None:
+    match scope:
+        case AnyImportKind():
+            return None
+        case SpecificImportKind(kind=kind):
+            return kind
 
 
 def _resolve_target(
@@ -469,37 +712,39 @@ def _resolve_target(
     docx: Path,
     content_root: Path,
 ) -> _ResolvedTarget:
-    if request.into:
-        matches = find_work_entries(entries, request.into, request.kind)
-        group = _existing_group(matches, request.into)
-        reference = _preferred_entry(group.entries, request.lang)
-        number = request.number or reference.number
-        slug = _slug_with_number(request.slug, number) if request.slug else reference.slug
-        return _ResolvedTarget(
-            kind=group.kind,
-            work_key=group.work_key,
-            number=number,
-            slug=slug,
-            work_entries=group.entries,
-        )
+    match request.target:
+        case ExistingWorkTarget(work_ref=work_ref, kind_scope=kind_scope, identity=identity):
+            matches = find_work_entries(entries, work_ref, _kind_filter(kind_scope))
+            group = _existing_group(matches, work_ref)
+            reference = _preferred_entry(group.entries, request.lang)
+            number = identity.number or reference.number
+            slug = _slug_with_number(identity.slug, number) if identity.slug else reference.slug
+            return _ResolvedTarget(
+                kind=group.kind,
+                work_key=group.work_key,
+                number=number,
+                slug=slug,
+                work_entries=group.entries,
+            )
+        case NewWorkTarget(kind=kind, identity=identity):
+            number = identity.number or next_number(entries, kind)
+            title = request.text.title or infer_title(docx)
+            work_key = _slug_with_number(identity.slug or title, number)
+            slug = work_key
+            work_dir = content_root / KIND_DIRS[kind] / work_key
+            if work_dir.exists():
+                raise ImportWorkError(
+                    f"work bundle already exists: {work_dir}; use --into {work_key} to update it"
+                )
+            return _ResolvedTarget(
+                kind=kind,
+                work_key=work_key,
+                number=number,
+                slug=slug,
+                work_entries=[],
+            )
 
-    if not request.kind:
-        raise ImportWorkError("--kind is required when importing a new work")
-    kind = request.kind
-    number = request.number or next_number(entries, kind)
-    title = request.title or infer_title(docx)
-    work_key = _slug_with_number(request.slug or title, number)
-    slug = work_key
-    work_dir = content_root / KIND_DIRS[kind] / work_key
-    if work_dir.exists():
-        raise ImportWorkError(f"work bundle already exists: {work_dir}; use --into {work_key} to update it")
-    return _ResolvedTarget(
-        kind=kind,
-        work_key=work_key,
-        number=number,
-        slug=slug,
-        work_entries=[],
-    )
+    raise AssertionError(f"unhandled import target: {request.target!r}")
 
 
 def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
@@ -527,17 +772,21 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
     existing_lang = _existing_lang_entry(target.work_entries, request.lang)
     reference = _preferred_entry(target.work_entries, request.lang) if target.work_entries else None
     inferred_title = infer_title(docx)
-    if request.title:
-        title = request.title
+    if request.text.title:
+        title = request.text.title
     elif existing_lang:
         title = existing_lang.title
-    elif request.into and reference and (request.lang == reference.lang or not _majority_latin(inferred_title)):
+    elif (
+        isinstance(request.target, ExistingWorkTarget)
+        and reference
+        and (request.lang == reference.lang or not _majority_latin(inferred_title))
+    ):
         title = reference.title
     else:
         title = inferred_title
 
-    if request.description:
-        description = request.description
+    if request.text.description:
+        description = request.text.description
     elif existing_lang and existing_lang.description:
         description = existing_lang.description
     else:
@@ -563,7 +812,7 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
         )
 
         cover = _prepare_cover(
-            cover_arg=str(request.cover) if request.cover is not None else None,
+            cover=request.cover,
             read_dir=real_work_dir,
             write_dir=stage_dir,
             lang=request.lang,
@@ -606,15 +855,15 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
             content_root=content_root,
             scope=scope,
             lang=request.lang,
-            replace=bool(request.replace),
+            replace=request.write.replace,
             diagnostics=diagnostics,
             source_document=docx,
             asset_ops=body_asset_ops(converted.assets, scope),
         )
-        report = apply_plan(plan, dry_run=bool(request.dry_run))
+        report = apply_plan(plan, dry_run=request.write.dry_run)
         # Relay provenance only on a real apply that wrote — never a dry-run or refusal;
         # the writer emits no manifest.
-        if not request.dry_run and not report.refused:
+        if not request.write.dry_run and not report.refused:
             _write_manifest(plan, imports_dir=_imports_dir(content_root))
     finally:
         shutil.rmtree(stage_root, ignore_errors=True)

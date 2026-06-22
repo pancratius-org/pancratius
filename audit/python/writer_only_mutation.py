@@ -34,6 +34,7 @@ import io
 import os
 import sys
 import tokenize
+from dataclasses import dataclass
 from pathlib import Path
 
 # The marker a module carries to declare it is in the pure import boundary.
@@ -80,6 +81,12 @@ SKIP_DIR_NAMES = {"node_modules", "dist", "__pycache__", ".cache", ".astro", ".v
 FIXTURES_REL = ("audit", "fixtures")
 
 
+@dataclass(frozen=True, slots=True)
+class MutationCall:
+    lineno: int
+    name: str
+
+
 def _is_skipped(path: Path) -> bool:
     parts = path.relative_to(ROOT).parts
     if any(p in SKIP_DIR_NAMES for p in parts):
@@ -124,17 +131,17 @@ def _write_open(call: ast.Call) -> bool:
     return any(ch in WRITE_MODE_CHARS for ch in mode_node.value)
 
 
-def _mutations(tree: ast.Module) -> list[tuple[int, str]]:
-    """Return (lineno, name) for every mutation call found."""
-    hits: list[tuple[int, str]] = []
+def _mutations(tree: ast.Module) -> list[MutationCall]:
+    """Return every mutation call found."""
+    hits: list[MutationCall] = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
         func = node.func
         if isinstance(func, ast.Attribute) and func.attr in MUTATING_ATTRS:
-            hits.append((node.lineno, f".{func.attr}(...)"))
+            hits.append(MutationCall(node.lineno, f".{func.attr}(...)"))
         elif _write_open(node):
-            hits.append((node.lineno, "open(..., write-mode)"))
+            hits.append(MutationCall(node.lineno, "open(..., write-mode)"))
     return hits
 
 
@@ -158,11 +165,11 @@ def main() -> int:
         except SyntaxError as exc:  # a marked module that won't parse is a failure
             failures.append(f"{path.relative_to(ROOT)}: could not parse ({exc})")
             continue
-        for lineno, name in _mutations(tree):
+        for mutation in _mutations(tree):
             rel = path.relative_to(ROOT)
             failures.append(
-                f"{rel}:{lineno}: marked `import-pure` but calls a filesystem "
-                f"mutation `{name}` — move it into the writer (pancratius/writer.py)."
+                f"{rel}:{mutation.lineno}: marked `import-pure` but calls a filesystem "
+                f"mutation `{mutation.name}` — move it into the writer (pancratius/writer.py)."
             )
 
     if not marked:

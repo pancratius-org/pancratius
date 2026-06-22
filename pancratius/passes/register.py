@@ -11,7 +11,7 @@ set-apart gesture.
 `assign_register` decides the verse register over lineated blocks: hard
 editorial guards first (named verse sections promote, scaffold shapes never
 do), then the trained register model where the composition point injected one
-(`Context.register_model`), the geometry ladder otherwise. A verse run is
+(`Context.register_classifier`), the geometry ladder otherwise. A verse run is
 then segmented (`segment_lineated`): scaffold sub-runs (equations, dash
 enumerations) split out as `ORDINARY` fragments with honest line-derived
 spans. The feature producer and the model codec live here too — extraction,
@@ -40,7 +40,9 @@ from pancratius.passes.lineation import (
 )
 
 if TYPE_CHECKING:
-    from pancratius.passes.pipeline import Context
+    from pancratius.passes.context import Context
+
+from pancratius.passes.context import ModelBackedRegister, RulesOnlyRegister
 
 # ---------------------------------------------------------------------------
 # Q2a: bordered set-apart runs -> quote blocks
@@ -176,15 +178,23 @@ _BARE_CITE_RE = re.compile(
 _QUOTE_TRAIL = ".,;:!?…—– "
 
 
-def _split_trailing_cite(text: str) -> tuple[str, str]:
-    """Split a trailing parenthetical citation: `«…» (Ин. 4:23).` ->
-    (`«…»`, `Ин. 4:23`); no parenthetical -> (text, "")."""
+@dataclass(frozen=True, slots=True)
+class TrailingCitationSplit:
+    body: str
+    citation: str
+
+
+def _split_trailing_cite(text: str) -> TrailingCitationSplit:
+    """Split a trailing parenthetical citation from the quote body."""
     text = text.strip()
     body = text.rstrip(_QUOTE_TRAIL)
     m = _TRAILING_CITE_RE.search(body)
     if not m:
-        return text, ""
-    return body[: m.start()].rstrip(_QUOTE_TRAIL), m.group(1)
+        return TrailingCitationSplit(body=text, citation="")
+    return TrailingCitationSplit(
+        body=body[: m.start()].rstrip(_QUOTE_TRAIL),
+        citation=m.group(1),
+    )
 
 
 def _is_whole_quote(text: str) -> bool:
@@ -216,15 +226,15 @@ def is_scripture_quote(text: str) -> bool:
     text = text.strip()
     if not text:
         return False
-    body, cite = _split_trailing_cite(text)
-    if _is_whole_quote(body):
-        if _SPEECH_ANCHOR_RE.match(body):
+    split = _split_trailing_cite(text)
+    if _is_whole_quote(split.body):
+        if _SPEECH_ANCHOR_RE.match(split.body):
             return True
-        if _SCRIPTURE_CITE_RE.search(body) or _SCRIPTURE_CITE_RE.search(cite):
+        if _SCRIPTURE_CITE_RE.search(split.body) or _SCRIPTURE_CITE_RE.search(split.citation):
             return True
     if (m := _REF_LED_QUOTE_RE.match(text)) is not None:
-        led_body, _led_cite = _split_trailing_cite(text[m.end():])
-        if _is_whole_quote(led_body):
+        led_split = _split_trailing_cite(text[m.end():])
+        if _is_whole_quote(led_split.body):
             return True
     return False
 
@@ -262,7 +272,7 @@ def _scripture_verdicts(blocks: list[ir.Block]) -> set[int]:
             texts[i] = inline_plain(block.inlines)
     verdicts = {i for i in texts if is_scripture_quote(texts[i])}
     cites = {i for i in texts if _is_bare_cite(texts[i])}
-    quotes = {i for i in texts if _is_whole_quote(_split_trailing_cite(texts[i])[0])}
+    quotes = {i for i in texts if _is_whole_quote(_split_trailing_cite(texts[i]).body)}
     for run in runs:
         for pos, i in enumerate(run):
             if i not in quotes:
@@ -476,7 +486,7 @@ def _whole_quote_line_indices(texts: list[str]) -> set[int]:
     required) — the cite-adjacency channel's candidate lines."""
     return {
         i for i, t in enumerate(texts)
-        if t and _is_whole_quote(_split_trailing_cite(t)[0])
+        if t and _is_whole_quote(_split_trailing_cite(t).body)
     }
 
 
@@ -899,13 +909,17 @@ _NEUTRAL_CONTEXT = _PrecedingContext()
 
 def assign_register(doc: ir.Document, ctx: Context) -> ir.Document:
     """The Q2 pass: decide the verse register for every lineated block."""
-    model = ctx.register_model
+    match ctx.register_classifier:
+        case ModelBackedRegister(model=model):
+            pass
+        case RulesOnlyRegister():
+            model = None
     feats_ctx: dict[int, RegisterContext] = {}
     stats: BookStats | None = None
     if model is not None:
         stats = book_stats(doc.blocks)
         feats_ctx = {id(b): c for b, c in iter_with_register_context(doc.blocks)}
-    pins = frozenset(ctx.scripture_overrides or {})
+    pins = frozenset(ctx.scripture.by_ordinal)
     decided = _promote(doc.blocks, model, feats_ctx, stats, pins)
     if model is not None:
         # The rules-only re-run exists for the diagnostic below; ~2x this pass's
@@ -1093,10 +1107,11 @@ def _lineated_coda_candidate(
     candidate must be compact; this keeps prose previews before the next heading in
     prose without naming their words.
     """
-    i, saw_gap = skip_empty_paragraphs(blocks, i)
-    if not saw_gap:
+    scan = skip_empty_paragraphs(blocks, i)
+    if not scan.saw_gap:
         return None
 
+    i = scan.next_index
     first = blocks[i] if i < len(blocks) else None
     if not isinstance(first, ir.LineatedBlock) or first.register is not ir.Register.ORDINARY:
         return None
@@ -1108,7 +1123,7 @@ def _lineated_coda_candidate(
     if any(CODA_PSEUDO_HEADING_RE.match(line) for line in coda_lines):
         return None
 
-    boundary_i, _saw_trailing_gap = skip_empty_paragraphs(blocks, i)
+    boundary_i = skip_empty_paragraphs(blocks, i).next_index
     boundary = blocks[boundary_i] if boundary_i < len(blocks) else None
     if not isinstance(boundary, (ir.Heading, ir.ThematicBreak)):
         return None

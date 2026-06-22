@@ -8,35 +8,36 @@ orchestrator.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field, replace
-from typing import TYPE_CHECKING
+from collections.abc import Callable
+from dataclasses import replace
 
 from pancratius import ir
-from pancratius.content_catalog import IndexHit
-from pancratius.locales import Locale
 from pancratius.passes import endmatter, lineation, register, sanitize, scrub, structure
+from pancratius.passes.context import (
+    BibliographyLookup,
+    Context,
+    LineationCorrections,
+    ModelBackedRegister,
+    RegisterClassifier,
+    RulesOnlyRegister,
+    ScripturePins,
+)
 
-if TYPE_CHECKING:
-    from pancratius.passes.register import RegisterModel
-
-@dataclass(frozen=True)
-class Context:
-    """Pass parameters, injected by the composition point."""
-
-    lang: Locale
-    demote_levels: int = 1
-    slug_lookup: Mapping[str, IndexHit] | None = None
-    register_model: RegisterModel | None = None
-    # Editorial lineation corrections (`lineation.<lang>.json` sidecar), keyed by
-    # source `w:p` ordinal; the fold pass honors them and the final check pass
-    # proves they held.
-    lineation_overrides: Mapping[int, ir.LineationRegister] | None = None
-    # Unmarked-canon scripture pins (`scripture.<lang>.json` sidecar), keyed by
-    # source `w:p` ordinal, valued by the named canonical source; `wrap_scripture`
-    # honors them and fails loud when a pin no longer lands on a prose paragraph.
-    scripture_overrides: Mapping[int, str] | None = None
-    diagnostics: ir.DiagnosticSink = field(default_factory=list)
+__all__ = (
+    "BOOK_PASSES",
+    "PER_ORDINAL_SEAM",
+    "POEM_PASSES",
+    "BibliographyLookup",
+    "Context",
+    "LineationCorrections",
+    "ModelBackedRegister",
+    "Pass",
+    "PassFn",
+    "RegisterClassifier",
+    "RulesOnlyRegister",
+    "ScripturePins",
+    "run",
+)
 
 
 type PassFn = Callable[[ir.Document, Context], ir.Document]
@@ -53,7 +54,7 @@ def _blocks(fn: Callable[[list[ir.Block]], list[ir.Block]]) -> PassFn:
 
 
 def _lift_bibliography(doc: ir.Document, ctx: Context) -> ir.Document:
-    return endmatter.lift_bibliography(doc, ctx.slug_lookup, ctx.diagnostics)
+    return endmatter.lift_bibliography(doc, ctx.bibliography.by_title, ctx.diagnostics)
 
 
 def _demote_headings(doc: ir.Document, ctx: Context) -> ir.Document:
@@ -66,17 +67,17 @@ def _sanitize_urls(doc: ir.Document, ctx: Context) -> ir.Document:
 
 def _fold_lineation(doc: ir.Document, ctx: Context) -> ir.Document:
     return replace(doc, blocks=lineation.fold_lineation(
-        doc.blocks, lineation_overrides=ctx.lineation_overrides))
+        doc.blocks, lineation_overrides=ctx.lineation.by_ordinal))
 
 
 def _check_lineation_overrides(doc: ir.Document, ctx: Context) -> ir.Document:
-    lineation.check_overrides_held(doc.blocks, ctx.lineation_overrides or {})
+    lineation.check_overrides_held(doc.blocks, ctx.lineation.by_ordinal)
     return doc
 
 
 def _wrap_scripture(doc: ir.Document, ctx: Context) -> ir.Document:
     return replace(doc, blocks=register.wrap_scripture(
-        doc.blocks, pinned=ctx.scripture_overrides or {}))
+        doc.blocks, pinned=ctx.scripture.by_ordinal))
 
 
 BOOK_PASSES: tuple[Pass, ...] = (

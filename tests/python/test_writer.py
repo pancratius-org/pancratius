@@ -16,11 +16,24 @@ from pathlib import Path, PurePosixPath
 import pytest
 
 from pancratius import writer
-from pancratius.writeplan import AssetTransform, Diagnostic, WriteOp, WritePlan
+from pancratius.writeplan import (
+    AssetTransform,
+    CopyOp,
+    Diagnostic,
+    EnsureDirOp,
+    TransformAssetOp,
+    WriteOp,
+    WritePlan,
+    WriteTextOp,
+)
 
 SCOPE = PurePosixPath("books/99-probe")
 
 _HAS_PIL = importlib.util.find_spec("PIL") is not None
+
+
+def _ensure_dir() -> EnsureDirOp:
+    return EnsureDirOp(rel_path=SCOPE, role="canonical_source", reason="dir")
 
 
 def _source(tmp: Path, name: str, content: str) -> Path:
@@ -52,9 +65,19 @@ def _bundle_ops(tmp: Path) -> tuple[WriteOp, ...]:
     md = _source(tmp, "ru.md", "---\nkind: book\n---\n\nbody\n")
     img = _source(tmp, "a.png", "PNGDATA")
     return (
-        WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
-        WriteOp(kind="write_text", rel_path=SCOPE / "ru.md", role="canonical_source", reason="md", content=md.read_text()),
-        WriteOp(kind="copy", rel_path=SCOPE / "images" / "a.png", role="imported_asset", reason="img", source=img),
+        _ensure_dir(),
+        WriteTextOp(
+            rel_path=SCOPE / "ru.md",
+            role="canonical_source",
+            reason="md",
+            content=md.read_text(),
+        ),
+        CopyOp(
+            rel_path=SCOPE / "images" / "a.png",
+            role="imported_asset",
+            reason="img",
+            source=img,
+        ),
     )
 
 
@@ -148,16 +171,14 @@ def test_missing_copy_source_refuses_whole_plan_before_any_write(tmp_path: Path)
     plan = _plan(
         root,
         (
-            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
-            WriteOp(
-                kind="write_text",
+            _ensure_dir(),
+            WriteTextOp(
                 rel_path=SCOPE / "ru.md",
                 role="canonical_source",
                 reason="md",
                 content=md.read_text(),
             ),
-            WriteOp(
-                kind="copy",
+            CopyOp(
                 rel_path=SCOPE / "images" / "a.png",
                 role="imported_asset",
                 reason="img",
@@ -189,16 +210,14 @@ def test_unreadable_transform_asset_source_refuses_whole_plan(tmp_path: Path) ->
     plan = _plan(
         root,
         (
-            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
-            WriteOp(
-                kind="write_text",
+            _ensure_dir(),
+            WriteTextOp(
                 rel_path=SCOPE / "ru.md",
                 role="canonical_source",
                 reason="md",
                 content=md.read_text(),
             ),
-            WriteOp(
-                kind="transform_asset",
+            TransformAssetOp(
                 rel_path=SCOPE / "images" / "big.png",
                 role="imported_asset",
                 reason="img",
@@ -228,9 +247,8 @@ def test_symlink_escape_is_refused(tmp_path: Path) -> None:
     plan = _plan(
         root,
         (
-            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
-            WriteOp(
-                kind="copy",
+            _ensure_dir(),
+            CopyOp(
                 rel_path=SCOPE / "images" / "a.png",
                 role="imported_asset",
                 reason="img",
@@ -303,8 +321,7 @@ def _make_raster(path: Path, size: tuple[int, int], fmt: str = "PNG", quality: i
 
 
 def _cap_op(source: Path, rel: str = "images/a.png") -> WriteOp:
-    return WriteOp(
-        kind="transform_asset",
+    return TransformAssetOp(
         rel_path=SCOPE / PurePosixPath(rel),
         role="imported_asset",
         reason="img",
@@ -324,7 +341,7 @@ def test_cap_raster_resizes_oversized_image(tmp_path: Path) -> None:
     plan = _plan(
         root,
         (
-            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
+            _ensure_dir(),
             _cap_op(src),
         ),
     )
@@ -349,7 +366,7 @@ def test_cap_raster_under_cap_is_byte_copied(tmp_path: Path) -> None:
     plan = _plan(
         root,
         (
-            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
+            _ensure_dir(),
             _cap_op(src, rel="images/small.png"),
         ),
     )
@@ -369,8 +386,7 @@ def test_copy_transform_is_byte_copied(tmp_path: Path) -> None:
     src.parent.mkdir(parents=True, exist_ok=True)
     src.write_bytes(b'<svg xmlns="http://www.w3.org/2000/svg"><rect width="9000" height="9000"/></svg>')
 
-    op = WriteOp(
-        kind="transform_asset",
+    op = TransformAssetOp(
         rel_path=SCOPE / "images" / "v.svg",
         role="imported_asset",
         reason="img",
@@ -379,7 +395,7 @@ def test_copy_transform_is_byte_copied(tmp_path: Path) -> None:
     )
     plan = _plan(
         root,
-        (WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"), op),
+        (_ensure_dir(), op),
     )
     writer.apply(plan, dry_run=False)
 
@@ -399,7 +415,7 @@ def test_cap_raster_corrupt_image_falls_back_to_copy(tmp_path: Path) -> None:
     plan = _plan(
         root,
         (
-            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
+            _ensure_dir(),
             _cap_op(src, rel="images/broken.png"),
         ),
     )
@@ -420,8 +436,7 @@ def test_cap_raster_corrupt_image_falls_back_to_copy(tmp_path: Path) -> None:
 
 
 def _svg_copy_op(src: Path, rel: str) -> WriteOp:
-    return WriteOp(
-        kind="transform_asset",
+    return TransformAssetOp(
         rel_path=SCOPE / rel,
         role="imported_asset",
         reason="svg",
@@ -445,7 +460,7 @@ def test_svg_with_script_is_sanitized_on_copy(tmp_path: Path) -> None:
     plan = _plan(
         root,
         (
-            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
+            _ensure_dir(),
             _svg_copy_op(src, "images/evil.svg"),
         ),
     )
@@ -476,7 +491,7 @@ def test_clean_svg_is_byte_identical(tmp_path: Path) -> None:
     plan = _plan(
         root,
         (
-            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
+            _ensure_dir(),
             _svg_copy_op(src, "images/clean.svg"),
         ),
     )
@@ -500,7 +515,7 @@ def test_svg_external_xlink_href_is_neutralized(tmp_path: Path) -> None:
     plan = _plan(
         root,
         (
-            WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"),
+            _ensure_dir(),
             _svg_copy_op(src, "images/ext.svg"),
         ),
     )
@@ -523,8 +538,7 @@ def test_cover_svg_is_not_sanitized(tmp_path: Path) -> None:
         b'<foreignObject x="0" y="0" width="100" height="100"><body>Title</body></foreignObject>'
         b"</svg>"
     )
-    op = WriteOp(
-        kind="copy",
+    op = CopyOp(
         rel_path=SCOPE / "cover.en.svg",
         role="cover",
         reason="cover",
@@ -532,7 +546,7 @@ def test_cover_svg_is_not_sanitized(tmp_path: Path) -> None:
     )
     plan = _plan(
         root,
-        (WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"), op),
+        (_ensure_dir(), op),
     )
     writer.apply(plan, dry_run=False)
     out = (root / "books/99-probe/cover.en.svg").read_bytes()
