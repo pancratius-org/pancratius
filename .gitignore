@@ -46,3 +46,6 @@ __pycache__/
 # scratchpad is transient working space, except paths explicitly re-included below
 docs/scratchpad/*
 !docs/scratchpad/lineation-core/
+
+# Image-translation engine scratch output (raw intermediates)
+/image-translate-out/

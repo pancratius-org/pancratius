@@ -318,6 +318,149 @@ def test_docx_optimize_dispatches_with_path_objects(monkeypatch: pytest.MonkeyPa
     assert seen and seen[0]["paths"] == [Path("a.docx")] and seen[0]["dry_run"] is True
 
 
+def _ok_image_result(key: str) -> object:
+    from pancratius.image_translation.models import ImageTranslationResult, ImageTranslationStatus
+
+    return ImageTranslationResult(
+        key=key,
+        status=ImageTranslationStatus.OK,
+        final_path=Path(f"{key}.en.png"),
+        raw_path=Path(f"{key}.raw.png"),
+        attempts=(),
+        primary_text=None,
+        error=None,
+        total_cost_usd=0.0,
+        metadata={"kind": "test-image"},
+    )
+
+
+def test_work_cover_item_exception_is_batch_failure_and_continues(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pancratius.image_translation import client as image_client
+    from pancratius.image_translation import translator as image_translator
+    from pancratius.image_translation.models import ImageTranslationJob
+    from pancratius.image_translation.providers import ProviderJob, book_cover
+
+    calls: list[str] = []
+
+    class FakeBookCoverProvider:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        def spec(self, selector: str) -> ProviderJob:
+            return ProviderJob(
+                job=ImageTranslationJob(
+                    key=selector,
+                    source_image=Path(f"{selector}.ru.png"),
+                    target_image=Path(f"{selector}.en.png"),
+                    raw_image=Path(f"{selector}.raw.png"),
+                    metadata={"kind": "book-cover"},
+                ),
+                label=selector,
+            )
+
+    class FakeImageTextTranslator:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        def translate(self, job: ImageTranslationJob) -> object:
+            calls.append(job.key)
+            if job.key == "book-01":
+                raise RuntimeError("bad cover")
+            return _ok_image_result(job.key)
+
+    monkeypatch.setattr(image_client, "api_key_from_env", lambda: "fake-key")
+    monkeypatch.setattr(book_cover, "BookCoverProvider", FakeBookCoverProvider)
+    monkeypatch.setattr(image_translator, "ImageTextTranslator", FakeImageTextTranslator)
+
+    assert _exit_code(["work", "cover", "1", "2"]) == 1
+    assert calls == ["book-01", "book-02"]
+
+
+def test_image_translate_item_exception_is_batch_failure_and_continues(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pancratius.image_translation import client as image_client
+    from pancratius.image_translation import translator as image_translator
+    from pancratius.image_translation.models import ImageTranslationJob
+    from pancratius.image_translation.providers import ProviderJob, book_cover
+
+    jobs: dict[str, ImageTranslationJob] = {}
+    calls: list[str] = []
+
+    class FakeBookCoverProvider:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        def spec(self, selector: str) -> ProviderJob:
+            key = selector.replace(":", "-")
+            job = ImageTranslationJob(
+                key=key,
+                source_image=Path(f"{key}.ru.png"),
+                target_image=Path(f"{key}.en.png"),
+                raw_image=Path(f"{key}.raw.png"),
+                metadata={"kind": "book-cover"},
+            )
+            jobs[key] = job
+            return ProviderJob(job=job, label=key)
+
+    class FakeImageTextTranslator:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        def translate(self, job: ImageTranslationJob) -> object:
+            calls.append(job.key)
+            if job.key == "book-1":
+                raise RuntimeError("bad image")
+            return _ok_image_result(job.key)
+
+    monkeypatch.setattr(image_client, "api_key_from_env", lambda: "fake-key")
+    monkeypatch.setattr(book_cover, "BookCoverProvider", FakeBookCoverProvider)
+    monkeypatch.setattr(image_translator, "ImageTextTranslator", FakeImageTextTranslator)
+
+    assert _exit_code(["image", "translate", "book:1", "book:2"]) == 1
+    assert calls == ["book-1", "book-2"]
+    assert set(jobs) == {"book-1", "book-2"}
+
+
+def test_image_translate_insufficient_credits_stops_batch(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pancratius.image_translation import client as image_client
+    from pancratius.image_translation import translator as image_translator
+    from pancratius.image_translation.models import ImageTranslationJob
+    from pancratius.image_translation.providers import ProviderJob, book_cover
+
+    calls: list[str] = []
+
+    class FakeBookCoverProvider:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        def spec(self, selector: str) -> ProviderJob:
+            key = selector.replace(":", "-")
+            return ProviderJob(
+                job=ImageTranslationJob(
+                    key=key,
+                    source_image=Path(f"{key}.ru.png"),
+                    target_image=Path(f"{key}.en.png"),
+                    raw_image=Path(f"{key}.raw.png"),
+                    metadata={"kind": "book-cover"},
+                ),
+                label=key,
+            )
+
+    class FakeImageTextTranslator:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        def translate(self, job: ImageTranslationJob) -> object:
+            calls.append(job.key)
+            raise image_client.InsufficientCreditsError("HTTP 402: no credits")
+
+    monkeypatch.setattr(image_client, "api_key_from_env", lambda: "fake-key")
+    monkeypatch.setattr(book_cover, "BookCoverProvider", FakeBookCoverProvider)
+    monkeypatch.setattr(image_translator, "ImageTextTranslator", FakeImageTextTranslator)
+
+    assert _exit_code(["image", "translate", "book:1", "book:2"]) == 1
+    assert calls == ["book-1"]
+
+
 # --- end-to-end: the real door → import_work → writer path (no mocks) ----------
 _FIXTURE_DOCX = ROOT / "legacy" / "books" / "ru" / "23-личность-и-эго.docx"
 
