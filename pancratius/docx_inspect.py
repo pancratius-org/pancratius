@@ -79,12 +79,22 @@ class DocxInspectError(ValueError):
     """The requested DOCX inspection cannot be completed from the given input."""
 
 
+@dataclass(frozen=True, slots=True)
+class ParagraphIndexRange:
+    lo: int
+    hi: int
+
+    def __post_init__(self) -> None:
+        if self.lo < 0 or self.hi < self.lo:
+            raise DocxInspectError("--range must be shaped as LO:HI with 0 <= LO <= HI")
+
+
 @dataclass(frozen=True)
 class InspectOptions:
     contains: str | None = None
     around: str | None = None
     context: int = 6
-    index_range: tuple[int, int] | None = None
+    index_range: ParagraphIndexRange | None = None
     verse_only: bool = False
     lineated_only: bool = False
 
@@ -103,10 +113,11 @@ class InspectOptions:
             )
         if self.context < 0:
             raise DocxInspectError("--context must be non-negative")
-        if self.index_range is not None:
-            lo, hi = self.index_range
-            if lo < 0 or hi < lo:
-                raise DocxInspectError("--range must be shaped as LO:HI with 0 <= LO <= HI")
+        if (
+            self.index_range is not None
+            and (self.index_range.lo < 0 or self.index_range.hi < self.index_range.lo)
+        ):
+            raise DocxInspectError("--range must be shaped as LO:HI with 0 <= LO <= HI")
 
 
 @dataclass(frozen=True)
@@ -743,7 +754,7 @@ def resolve_book_docx(
     return docx
 
 
-def parse_index_range(raw: str | None) -> tuple[int, int] | None:
+def parse_index_range(raw: str | None) -> ParagraphIndexRange | None:
     if raw is None:
         return None
     pieces = raw.split(":")
@@ -753,9 +764,7 @@ def parse_index_range(raw: str | None) -> tuple[int, int] | None:
         lo, hi = (int(piece) for piece in pieces)
     except ValueError as exc:
         raise DocxInspectError("--range bounds must be integers") from exc
-    if lo < 0 or hi < lo:
-        raise DocxInspectError("--range must be shaped as LO:HI with 0 <= LO <= HI")
-    return lo, hi
+    return ParagraphIndexRange(lo=lo, hi=hi)
 
 
 def select_rows(rows: list[ParaRow], options: InspectOptions) -> list[ParaRow]:
@@ -776,8 +785,7 @@ def select_rows(rows: list[ParaRow], options: InspectOptions) -> list[ParaRow]:
     if options.lineated_only:
         return [r for r in rows if _row_may_be_kind(r, "LineatedBlock")]
     if options.index_range:
-        lo, hi = options.index_range
-        return [r for r in rows if lo <= r.index <= hi]
+        return [r for r in rows if options.index_range.lo <= r.index <= options.index_range.hi]
     return rows
 
 

@@ -11,6 +11,10 @@ from __future__ import annotations
 
 from audit import book_verse as bv
 
+
+def source_unit(text: str, *, is_empty: bool = False) -> bv.SourceUnit:
+    return bv.SourceUnit(text=text, is_empty=is_empty)
+
 # ---------------------------------------------------------------------------
 # is_label_line / is_verse_line — the per-line predicate (the SPEC)
 # ---------------------------------------------------------------------------
@@ -71,11 +75,11 @@ def test_is_verse_line_accepts_short_lines_incl_mid_colon() -> None:
 
 def test_litany_of_short_paras_with_trailing_empty_is_a_run() -> None:
     units = [
-        ("Ты спросил: кто они?", False),
-        ("Они — ты, когда ты не разделён.", False),
-        ("Ты спросил: почему они молчат?", False),
-        ("Потому что Истина не разговаривает, Она присутствует.", False),
-        ("", True),  # stanza-break empty paragraph
+        source_unit("Ты спросил: кто они?"),
+        source_unit("Они — ты, когда ты не разделён."),
+        source_unit("Ты спросил: почему они молчат?"),
+        source_unit("Потому что Истина не разговаривает, Она присутствует."),
+        source_unit("", is_empty=True),  # stanza-break empty paragraph
     ]
     runs = bv.group_expected_runs(units)
     assert len(runs) == 1
@@ -86,14 +90,14 @@ def test_litany_of_short_paras_with_trailing_empty_is_a_run() -> None:
 def test_two_short_standalone_paras_without_break_or_empty_is_not_a_run() -> None:
     # A bare couplet (no hard break, no stanza-break empty) is just as likely two
     # prose sentences — not a confident verse run.
-    units = [("Свет мой тихий.", False), ("В сердце горит.", False)]
+    units = [source_unit("Свет мой тихий."), source_unit("В сердце горит.")]
     assert bv.group_expected_runs(units) == []
 
 
 def test_hard_break_paragraph_is_a_run_at_two_lines() -> None:
     # A single paragraph carrying a hard <w:br/> (its lines joined by \n here) is
     # the strong source-lineation signal and counts at >=2.
-    units = [("первая строка\nвторая строка", False)]
+    units = [source_unit("первая строка\nвторая строка")]
     runs = bv.group_expected_runs(units)
     assert runs == [["первая строка", "вторая строка"]]
 
@@ -102,10 +106,10 @@ def test_label_line_breaks_the_run() -> None:
     # The book62 over-detection shape: an isolated `да.`, a label, and one prose
     # sentence — the label is a boundary, so nothing is a confident run.
     units = [
-        ("да.", False),
-        ("", True),
-        ("Ответ от Творца (режим проводника):", False),  # label -> break
-        ("Ниже — точные, нейтральные определения без образности.", False),
+        source_unit("да."),
+        source_unit("", is_empty=True),
+        source_unit("Ответ от Творца (режим проводника):"),  # label -> break
+        source_unit("Ниже — точные, нейтральные определения без образности."),
     ]
     assert bv.group_expected_runs(units) == []
 
@@ -114,9 +118,9 @@ def test_long_prose_line_breaks_the_run() -> None:
     long_line = "Именно поэтому я ценю твои вопросы и сомнения, " * 4
     assert len(long_line) > bv.SHORT_LINE_MAX
     units = [
-        ("Я — Свет.", False),
-        (long_line, False),  # prose-length -> not a verse line -> break
-        ("Я — Образ.", False),
+        source_unit("Я — Свет."),
+        source_unit(long_line),  # prose-length -> not a verse line -> break
+        source_unit("Я — Образ."),
     ]
     # Each side is a lone short line; neither reaches a confident run.
     assert bv.group_expected_runs(units) == []
@@ -124,12 +128,12 @@ def test_long_prose_line_breaks_the_run() -> None:
 
 def test_structural_break_ends_a_run() -> None:
     units = [
-        ("Я — Свет.", False),
-        ("Я — Образ.", False),
-        ("Я — Слово.", False),
-        ("", True),
-        (bv.STRUCTURAL_BREAK, False),  # a heading/table/list block
-        ("Это уже проза.", False),
+        source_unit("Я — Свет."),
+        source_unit("Я — Образ."),
+        source_unit("Я — Слово."),
+        source_unit("", is_empty=True),
+        source_unit(bv.STRUCTURAL_BREAK),  # a heading/table/list block
+        source_unit("Это уже проза."),
     ]
     runs = bv.group_expected_runs(units)
     assert runs == [["Я — Свет.", "Я — Образ.", "Я — Слово."]]
@@ -137,26 +141,28 @@ def test_structural_break_ends_a_run() -> None:
 
 def test_heading_context_makes_book30_item23_one_expected_run() -> None:
     units = [
-        (bv.HEADING_BREAK, False),
-        ("Я не люблю тебя как другой.", False),
-        ("Я люблю — в тебе, через тебя, как ты.", False),
-        ("Любовь — не эмоция.", False),
-        ("Любовь — Я, скрытый под всеми формами.", False),
-        ("И если ты любишь Истину —", False),
-        ("ты уже Мной жив.", False),
-        ("Разве не сказал Я:", False),
-        ("«Тех, кто уверовал и творили добро, Милостивый наполнит любовью» (Сура 19:96).", False),
-        ("Любовь — это знак.", False),
-        ("Если ты чувствуешь её,", False),
-        ("значит, Я в тебе просыпаюсь.", False),
-        ("И если ты любишь Ису —", False),
-        ("не потому, что он пророк,", False),
-        ("а потому, что он близок,", False),
-        ("потому что он горит Светом,", False),
-        ("значит, ты уже узнал:", False),
-        ("Это — Я.", False),
-        ("Дальше.", False),
-        (bv.HEADING_BREAK, False),
+        source_unit(bv.HEADING_BREAK),
+        source_unit("Я не люблю тебя как другой."),
+        source_unit("Я люблю — в тебе, через тебя, как ты."),
+        source_unit("Любовь — не эмоция."),
+        source_unit("Любовь — Я, скрытый под всеми формами."),
+        source_unit("И если ты любишь Истину —"),
+        source_unit("ты уже Мной жив."),
+        source_unit("Разве не сказал Я:"),
+        source_unit(
+            "«Тех, кто уверовал и творили добро, Милостивый наполнит любовью» (Сура 19:96)."
+        ),
+        source_unit("Любовь — это знак."),
+        source_unit("Если ты чувствуешь её,"),
+        source_unit("значит, Я в тебе просыпаюсь."),
+        source_unit("И если ты любишь Ису —"),
+        source_unit("не потому, что он пророк,"),
+        source_unit("а потому, что он близок,"),
+        source_unit("потому что он горит Светом,"),
+        source_unit("значит, ты уже узнал:"),
+        source_unit("Это — Я."),
+        source_unit("Дальше."),
+        source_unit(bv.HEADING_BREAK),
     ]
     runs = bv.group_expected_runs(units)
     assert len(runs) == 1
@@ -187,11 +193,11 @@ def test_actual_structural_blocks_extracts_signature_and_epigraph_text() -> None
         "<footer>\nИн. 1:1\n</footer>\n</blockquote>\n"
     )
     blocks = bv.actual_structural_blocks(body)
-    roles = {role for role, _ in blocks}
+    roles = {block.role for block in blocks}
     assert roles == {"signature", "epigraph"}
-    sig = next(t for r, t in blocks if r == "signature")
+    sig = next(block.text for block in blocks if block.role == "signature")
     assert sig == "Панкратиус"
-    epi = next(t for r, t in blocks if r == "epigraph")
+    epi = next(block.text for block in blocks if block.role == "epigraph")
     assert "цитата здесь" in epi and "Ин. 1:1" in epi
 
 

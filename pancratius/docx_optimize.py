@@ -63,6 +63,20 @@ class OptimizeSummary:
     dry_run: bool
 
 
+@dataclass(frozen=True, slots=True)
+class DisplayRectEmu:
+    cx: int
+    cy: int
+
+    @property
+    def area(self) -> int:
+        return self.cx * self.cy
+
+    @property
+    def long_edge(self) -> int:
+        return max(self.cx, self.cy)
+
+
 # Why: per-image cap to 2× the in-document display rect at 144 dpi. Source
 # embeds 1024×1536 PNGs displayed at ~113×170 px (Word EMUs cx≈1080000 ≈ 113 px
 # at 96 dpi), so the bytes are ~9× oversized. EMU → inches → px: 914400 EMU
@@ -156,14 +170,12 @@ def downscale_if_needed(img: Image.Image, max_long_edge: int = MAX_LONG_EDGE) ->
     return img.resize(new_size, Image.LANCZOS)
 
 
-def per_image_long_edge(display_emu: tuple[int, int] | None) -> int:
+def per_image_long_edge(display_rect: DisplayRectEmu | None) -> int:
     """Cap derived from the in-document display rectangle. Falls back to the
     global MAX_LONG_EDGE when we don't know the display size."""
-    if not display_emu:
+    if display_rect is None:
         return MAX_LONG_EDGE
-    cx, cy = display_emu
-    long_emu = max(cx, cy)
-    display_px = long_emu / EMU_PER_INCH * DISPLAY_DPI
+    display_px = display_rect.long_edge / EMU_PER_INCH * DISPLAY_DPI
     target = int(display_px * (RENDER_DPI / DISPLAY_DPI) * DISPLAY_RECT_MULTIPLIER)
     return max(MIN_PER_IMAGE_LONG_EDGE, min(MAX_LONG_EDGE, target))
 
@@ -186,7 +198,7 @@ def encode_png(img: Image.Image) -> bytes:
 def process_image(
     name: str,
     data: bytes,
-    display_emu: tuple[int, int] | None = None,
+    display_rect: DisplayRectEmu | None = None,
 ) -> tuple[bytes, str | None, str]:
     """
     Return (new_bytes, new_name_or_None, action_tag).
@@ -208,7 +220,7 @@ def process_image(
     if in_size <= SKIP_ICON_BYTES and long_edge <= SKIP_ICON_LONG_EDGE:
         return data, None, "kept-tiny"
 
-    max_long_edge = per_image_long_edge(display_emu)
+    max_long_edge = per_image_long_edge(display_rect)
     needs_resize = long_edge > max_long_edge
     photographic = is_jpeg_safe(img, in_size)
 
@@ -336,14 +348,14 @@ def scrub_document_xml(document_xml: bytes) -> bytes:
 def parse_display_rects(
     document_xml: bytes,
     rels_xml: bytes,
-) -> dict[str, tuple[int, int]]:
+) -> dict[str, DisplayRectEmu]:
     rid_to_target: dict[str, str] = {}
     for m in _REL_ID_TARGET_RE.finditer(rels_xml):
         rid = m.group(1).decode("utf-8")
         target = m.group(2).decode("utf-8")
         if target.startswith("media/"):
             rid_to_target[rid] = target[len("media/"):]
-    rects: dict[str, tuple[int, int]] = {}
+    rects: dict[str, DisplayRectEmu] = {}
     for d in _DRAWING_RE.finditer(document_xml):
         block = d.group(0)
         ext = _EXTENT_RE.search(block)
@@ -355,9 +367,10 @@ def parse_display_rects(
         target = rid_to_target.get(rid)
         if not target:
             continue
-        cur = rects.get(target, (0, 0))
-        if cx * cy > cur[0] * cur[1]:
-            rects[target] = (cx, cy)
+        rect = DisplayRectEmu(cx=cx, cy=cy)
+        cur = rects.get(target)
+        if cur is None or rect.area > cur.area:
+            rects[target] = rect
     return rects
 
 
@@ -408,7 +421,7 @@ def optimize_docx(src: Path, dst: Path, *, verbose: bool = False) -> tuple[int, 
         rewritten_media: dict[str, tuple[str, bytes, int]] = {}
 
         names = zin.namelist()
-        display_rects: dict[str, tuple[int, int]] = {}
+        display_rects: dict[str, DisplayRectEmu] = {}
         scrubbed_doc_xml: bytes | None = None
         try:
             doc_xml = zin.read("word/document.xml")

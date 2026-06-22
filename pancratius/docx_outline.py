@@ -56,6 +56,12 @@ class OutlineSummary:
     cleared_empty_headings: int
 
 
+@dataclass(frozen=True, slots=True)
+class HeadingDemotionCounts:
+    demoted: int
+    cleared_empty: int
+
+
 def _w_val(el: ET.Element | None) -> str:
     return "" if el is None else el.get(f"{W}val", "")
 
@@ -234,7 +240,7 @@ def _demote_heading1_paragraphs(
     heading2_id: str,
     *,
     first_part_index: int,
-) -> tuple[int, int]:
+) -> HeadingDemotionCounts:
     demoted = 0
     cleared = 0
     for index, child in enumerate(children):
@@ -252,7 +258,7 @@ def _demote_heading1_paragraphs(
                 continue
             style.set(f"{W}val", heading2_id)
             demoted += 1
-    return demoted, cleared
+    return HeadingDemotionCounts(demoted=demoted, cleared_empty=cleared)
 
 
 def apply_part_outline(
@@ -284,7 +290,7 @@ def apply_part_outline(
     heading1_id = _preferred_heading1_style_id(heading1_ids)
     heading2_id = _ensure_heading2_style(styles_root, heading1_id)
     insertions = _part_insertions(children, parts)
-    demoted, cleared = _demote_heading1_paragraphs(
+    demotion_counts = _demote_heading1_paragraphs(
         children,
         heading1_ids,
         heading2_id,
@@ -310,8 +316,8 @@ def apply_part_outline(
         output=output,
         inserted_parts=len(parts),
         removed_toc_blocks=removed_toc,
-        demoted_headings=demoted,
-        cleared_empty_headings=cleared,
+        demoted_headings=demotion_counts.demoted,
+        cleared_empty_headings=demotion_counts.cleared_empty,
     )
 
 

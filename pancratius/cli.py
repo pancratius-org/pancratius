@@ -554,20 +554,24 @@ def _docx_render_slice(args: argparse.Namespace) -> int:
             if args.book is not None
             else Path(args.docx)
         )
-        lo, hi, rows = resolve_range(
+        selection = resolve_range(
             docx,
             around=args.around,
             context=args.context,
             index_range=parse_index_range(args.range),
         )
-        pages = render(docx, lo, hi, Path(args.out))
+        paragraph_range = selection.index_range
+        pages = render(docx, paragraph_range.lo, paragraph_range.hi, Path(args.out))
     except (DocxInspectError, DocxRenderError) as exc:
         return _fail(exc, 2)
-    print(f"rendered paragraphs [{lo}..{hi}] of {docx.name} -> {len(pages)} page(s)")
+    print(
+        f"rendered paragraphs [{paragraph_range.lo}..{paragraph_range.hi}] "
+        f"of {docx.name} -> {len(pages)} page(s)"
+    )
     for page in pages:
         print(f"  {page}")
     print("\nparagraph index -> text (correlate with `docx inspect`):")
-    for line in range_key(rows, lo, hi):
+    for line in range_key(selection):
         print(f"  {line}")
     return 0
 

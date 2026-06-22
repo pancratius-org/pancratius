@@ -176,15 +176,23 @@ _BARE_CITE_RE = re.compile(
 _QUOTE_TRAIL = ".,;:!?…—– "
 
 
-def _split_trailing_cite(text: str) -> tuple[str, str]:
-    """Split a trailing parenthetical citation: `«…» (Ин. 4:23).` ->
-    (`«…»`, `Ин. 4:23`); no parenthetical -> (text, "")."""
+@dataclass(frozen=True, slots=True)
+class TrailingCitationSplit:
+    body: str
+    citation: str
+
+
+def _split_trailing_cite(text: str) -> TrailingCitationSplit:
+    """Split a trailing parenthetical citation from the quote body."""
     text = text.strip()
     body = text.rstrip(_QUOTE_TRAIL)
     m = _TRAILING_CITE_RE.search(body)
     if not m:
-        return text, ""
-    return body[: m.start()].rstrip(_QUOTE_TRAIL), m.group(1)
+        return TrailingCitationSplit(body=text, citation="")
+    return TrailingCitationSplit(
+        body=body[: m.start()].rstrip(_QUOTE_TRAIL),
+        citation=m.group(1),
+    )
 
 
 def _is_whole_quote(text: str) -> bool:
@@ -216,15 +224,15 @@ def is_scripture_quote(text: str) -> bool:
     text = text.strip()
     if not text:
         return False
-    body, cite = _split_trailing_cite(text)
-    if _is_whole_quote(body):
-        if _SPEECH_ANCHOR_RE.match(body):
+    split = _split_trailing_cite(text)
+    if _is_whole_quote(split.body):
+        if _SPEECH_ANCHOR_RE.match(split.body):
             return True
-        if _SCRIPTURE_CITE_RE.search(body) or _SCRIPTURE_CITE_RE.search(cite):
+        if _SCRIPTURE_CITE_RE.search(split.body) or _SCRIPTURE_CITE_RE.search(split.citation):
             return True
     if (m := _REF_LED_QUOTE_RE.match(text)) is not None:
-        led_body, _led_cite = _split_trailing_cite(text[m.end():])
-        if _is_whole_quote(led_body):
+        led_split = _split_trailing_cite(text[m.end():])
+        if _is_whole_quote(led_split.body):
             return True
     return False
 
@@ -262,7 +270,7 @@ def _scripture_verdicts(blocks: list[ir.Block]) -> set[int]:
             texts[i] = inline_plain(block.inlines)
     verdicts = {i for i in texts if is_scripture_quote(texts[i])}
     cites = {i for i in texts if _is_bare_cite(texts[i])}
-    quotes = {i for i in texts if _is_whole_quote(_split_trailing_cite(texts[i])[0])}
+    quotes = {i for i in texts if _is_whole_quote(_split_trailing_cite(texts[i]).body)}
     for run in runs:
         for pos, i in enumerate(run):
             if i not in quotes:
@@ -476,7 +484,7 @@ def _whole_quote_line_indices(texts: list[str]) -> set[int]:
     required) — the cite-adjacency channel's candidate lines."""
     return {
         i for i, t in enumerate(texts)
-        if t and _is_whole_quote(_split_trailing_cite(t)[0])
+        if t and _is_whole_quote(_split_trailing_cite(t).body)
     }
 
 
@@ -1093,10 +1101,11 @@ def _lineated_coda_candidate(
     candidate must be compact; this keeps prose previews before the next heading in
     prose without naming their words.
     """
-    i, saw_gap = skip_empty_paragraphs(blocks, i)
-    if not saw_gap:
+    scan = skip_empty_paragraphs(blocks, i)
+    if not scan.saw_gap:
         return None
 
+    i = scan.next_index
     first = blocks[i] if i < len(blocks) else None
     if not isinstance(first, ir.LineatedBlock) or first.register is not ir.Register.ORDINARY:
         return None
@@ -1108,7 +1117,7 @@ def _lineated_coda_candidate(
     if any(CODA_PSEUDO_HEADING_RE.match(line) for line in coda_lines):
         return None
 
-    boundary_i, _saw_trailing_gap = skip_empty_paragraphs(blocks, i)
+    boundary_i = skip_empty_paragraphs(blocks, i).next_index
     boundary = blocks[boundary_i] if boundary_i < len(blocks) else None
     if not isinstance(boundary, (ir.Heading, ir.ThematicBreak)):
         return None

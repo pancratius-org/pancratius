@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterator, Mapping, Sequence
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from typing import cast
 
 from pancratius import ir
@@ -16,6 +16,18 @@ from pancratius.passes.structure import DIALOGUE_PREFIXES
 # verse lines (well under 120 chars) from one-sentence-per-paragraph prose
 # (clustering at 121-144). audit/book_verse.py encodes the same threshold.
 VERSE_SHORT_LINE_MAX = 120
+
+
+@dataclass(frozen=True, slots=True)
+class ParagraphGapScan:
+    next_index: int
+    saw_gap: bool
+
+
+@dataclass(frozen=True, slots=True)
+class SegmentSpan:
+    start: int
+    end: int
 
 
 def _speaker_turn_re() -> re.Pattern[str]:
@@ -477,31 +489,34 @@ def check_overrides_held(blocks: Sequence[ir.Block],
                 f"{b.source_span.start}..{b.source_span.end}")
 
 
-def skip_empty_paragraphs(blocks: list[ir.Block], i: int) -> tuple[int, bool]:
+def skip_empty_paragraphs(blocks: list[ir.Block], i: int) -> ParagraphGapScan:
     start = i
     while i < len(blocks) and isinstance((p := blocks[i]), ir.Paragraph) and p.empty:
         i += 1
-    return i, i > start
+    return ParagraphGapScan(next_index=i, saw_gap=i > start)
 
 
 def _has_source_boundary_after_gap(blocks: list[ir.Block], i: int) -> bool:
-    i, _saw_gap = skip_empty_paragraphs(blocks, i)
-    return i >= len(blocks) or isinstance(blocks[i], (ir.Heading, ir.ThematicBreak))
+    scan = skip_empty_paragraphs(blocks, i)
+    return scan.next_index >= len(blocks) or isinstance(
+        blocks[scan.next_index],
+        (ir.Heading, ir.ThematicBreak),
+    )
 
 
-def _segment_spans(run: list[ir.Paragraph]) -> list[tuple[int, int]]:
+def _segment_spans(run: list[ir.Paragraph]) -> list[SegmentSpan]:
     """`[start, end)` index spans of the unit's gap-separated content segments."""
-    spans: list[tuple[int, int]] = []
+    spans: list[SegmentSpan] = []
     start: int | None = None
     for idx, p in enumerate(run):
         if p.empty:
             if start is not None:
-                spans.append((start, idx))
+                spans.append(SegmentSpan(start=start, end=idx))
                 start = None
         elif start is None:
             start = idx
     if start is not None:
-        spans.append((start, len(run)))
+        spans.append(SegmentSpan(start=start, end=len(run)))
     return spans
 
 
@@ -531,13 +546,13 @@ def _trim_prose_register_tail(
     spans = _segment_spans(run)
     tail = len(spans)
 
-    def seg_lines(span: tuple[int, int]) -> list[str]:
-        return _all_lines(run[span[0]:span[1]])
+    def seg_lines(span: SegmentSpan) -> list[str]:
+        return _all_lines(run[span.start:span.end])
 
     def mean(lines: list[str]) -> float:
         return sum(len(line) for line in lines) / len(lines)
 
-    def departs(edge: tuple[int, int], rest: list[tuple[int, int]]) -> bool:
+    def departs(edge: SegmentSpan, rest: list[SegmentSpan]) -> bool:
         # Only a TWO-LINE tail (the closing-couplet position `is_compact_coda`
         # already owns) can be a preview pair; longer tails are stanza structure.
         edge_lines = seg_lines(edge)
@@ -562,7 +577,7 @@ def _trim_prose_register_tail(
     # Cut at the trimmed segment's first row: the separating gap stays with the
     # core — the author DID set the core off with a blank, and that stanza
     # evidence must not leave with the trimmed prose.
-    end = spans[tail][0]
+    end = spans[tail].start
     return list(run[:end]), list(run[end:])
 
 
@@ -679,8 +694,8 @@ def _split_at_prose_singletons(
     spans = _segment_spans(run)
     all_lines = _all_lines([p for p in run if not p.empty])
 
-    def is_prose_singleton(span: tuple[int, int]) -> bool:
-        lines = _all_lines(run[span[0]:span[1]])
+    def is_prose_singleton(span: SegmentSpan) -> bool:
+        lines = _all_lines(run[span.start:span.end])
         if len(lines) != 1 or len(lines[0]) <= _COMPACT_SOURCE_LINE_MAX:
             return False
         if len(all_lines) < 2:
@@ -695,11 +710,11 @@ def _split_at_prose_singletons(
         return None
     pieces: list[tuple[list[ir.Paragraph], bool]] = []
     pos = 0
-    for start, end in cut:
-        if start > pos:
-            pieces.append((list(run[pos:start]), True))
-        pieces.append((list(run[start:end]), False))
-        pos = end
+    for span in cut:
+        if span.start > pos:
+            pieces.append((list(run[pos:span.start]), True))
+        pieces.append((list(run[span.start:span.end]), False))
+        pos = span.end
     if pos < len(run):
         pieces.append((list(run[pos:]), True))
     return pieces
@@ -798,8 +813,8 @@ def _is_compact_strong_opener_callout(run: list[ir.Paragraph]) -> bool:
 def _stanza_segment_lines(run: list[ir.Paragraph]) -> list[list[str]]:
     """Display lines of each gap-delimited stanza the unit would build."""
     return [
-        _all_lines(run[start:end])
-        for start, end in _segment_spans(run)
+        _all_lines(run[span.start:span.end])
+        for span in _segment_spans(run)
     ]
 
 
