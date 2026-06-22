@@ -27,7 +27,7 @@ import shutil
 import sys
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, assert_never
 
 if TYPE_CHECKING:
     from pancratius.cover.models import CoverResult
@@ -154,31 +154,36 @@ def _work_import(args: argparse.Namespace) -> int:
 def _print_translate_report(report: TranslationReport) -> float:
     """Print one book's outcome and return its USD cost contribution (estimate
     for --dry-run, real billed cost for a live run)."""
-    if report.dry_run and report.estimate is not None:
-        est = report.estimate
-        print(
-            f"  {report.book_key}: {report.units} units, {report.chunks} chunks, "
-            f"~{est.source_tokens / 1000:.1f}k src tok  est ${est.total_usd:.4f} "
-            f"(draft ${est.draft_cost_usd:.4f} + revise ${est.revise_cost_usd:.4f} "
-            f"+ profile ${est.profile_cost_usd:.4f})"
-        )
-        return est.total_usd
-    cost = report.usage.cost_usd or 0.0
-    findings = ", ".join(
-        f"{sum(1 for f in report.findings if f.severity == sev)}×{sev.name.lower()}"
-        for sev in sorted({f.severity for f in report.findings}, reverse=True)
-    )
-    where = report.written_path.name if report.written_path else "(not written)"
-    cache_note = f"; {report.cached_chunks} chunks from cache" if report.cached_chunks else ""
-    print(
-        f"  wrote {report.book_key}/{where}: {report.units} units, {report.chunks} chunks; "
-        f"cost ${cost:.4f}; cached {report.usage.cached_tokens} tok"
-        + cache_note
-        + (f"; findings {findings}" if findings else "")
-    )
-    for line in report.digest:
-        print(line)
-    return cost
+    from pancratius.translate import TranslationEstimateOutcome, TranslationWriteOutcome
+
+    match report.outcome:
+        case TranslationEstimateOutcome(estimate=est):
+            print(
+                f"  {report.book_key}: {report.units} units, {report.chunks} chunks, "
+                f"~{est.source_tokens / 1000:.1f}k src tok  est ${est.total_usd:.4f} "
+                f"(draft ${est.draft_cost_usd:.4f} + revise ${est.revise_cost_usd:.4f} "
+                f"+ profile ${est.profile_cost_usd:.4f})"
+            )
+            return est.total_usd
+        case TranslationWriteOutcome(written_path=written_path):
+            cost = report.usage.cost_usd or 0.0
+            findings = ", ".join(
+                f"{sum(1 for f in report.findings if f.severity == sev)}×{sev.name.lower()}"
+                for sev in sorted({f.severity for f in report.findings}, reverse=True)
+            )
+            cache_note = f"; {report.cached_chunks} chunks from cache" if report.cached_chunks else ""
+            print(
+                f"  wrote {report.book_key}/{written_path.name}: "
+                f"{report.units} units, {report.chunks} chunks; "
+                f"cost ${cost:.4f}; cached {report.usage.cached_tokens} tok"
+                + cache_note
+                + (f"; findings {findings}" if findings else "")
+            )
+            for line in report.digest:
+                print(line)
+            return cost
+        case _:
+            assert_never(report.outcome)
 
 
 def _work_translate(args: argparse.Namespace) -> int:
@@ -523,7 +528,7 @@ def _docx_inspect(args: argparse.Namespace) -> int:
     )
 
     try:
-        options = InspectOptions(
+        options = InspectOptions.from_cli(
             contains=args.contains,
             around=args.around,
             context=args.context,

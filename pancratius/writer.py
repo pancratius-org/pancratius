@@ -21,7 +21,18 @@ from pathlib import Path, PurePosixPath
 from typing import Literal, assert_never
 
 from pancratius import svg_sanitize
-from pancratius.writeplan import AssetTransform, Diagnostic, WriteOp, WritePlan, has_fatal, validate
+from pancratius.writeplan import (
+    AssetTransform,
+    CopyOp,
+    Diagnostic,
+    EnsureDirOp,
+    TransformAssetOp,
+    WriteOp,
+    WritePlan,
+    WriteTextOp,
+    has_fatal,
+    validate,
+)
 
 # How an applied op landed against an existing target.
 type _Bucket = Literal["created", "changed", "skipped"]
@@ -62,9 +73,7 @@ def _escapes_scope(plan: WritePlan, rel: PurePosixPath) -> bool:
     return scope_root not in resolved.parents
 
 
-def _read_source_bytes(op: WriteOp) -> bytes:
-    if op.source is None:
-        raise ValueError(f"copy op for {op.rel_path} has no source")
+def _read_source_bytes(op: CopyOp | TransformAssetOp) -> bytes:
     return op.source.read_bytes()
 
 
@@ -89,7 +98,10 @@ def _atomic_write(dest: Path, payload: bytes) -> None:
         raise
 
 
-def _capped_raster_bytes(op: WriteOp, transform: AssetTransform) -> tuple[bytes, Diagnostic | None]:
+def _capped_raster_bytes(
+    op: TransformAssetOp,
+    transform: AssetTransform,
+) -> tuple[bytes, Diagnostic | None]:
     """Return the bytes a `cap_raster` transform lands, plus an optional warning.
 
     Down-scales (LANCZOS) only a readable raster in `_CAP_RASTER_FORMATS` whose
@@ -97,8 +109,6 @@ def _capped_raster_bytes(op: WriteOp, transform: AssetTransform) -> tuple[bytes,
     bytes. A per-image failure is non-fatal: original bytes + a warning, so one bad
     image never fails the import. The only place PIL runs.
     """
-    if op.source is None:
-        raise ValueError(f"transform_asset op for {op.rel_path} has no source")
     original = op.source.read_bytes()
     if transform.max_long_edge is None:
         return original, None
@@ -137,7 +147,7 @@ def _capped_raster_bytes(op: WriteOp, transform: AssetTransform) -> tuple[bytes,
 _SVG_SANITIZE_ROLES: frozenset[str] = frozenset({"imported_asset"})
 
 
-def _maybe_sanitize_svg(op: WriteOp, payload: bytes) -> bytes:
+def _maybe_sanitize_svg(op: CopyOp | TransformAssetOp, payload: bytes) -> bytes:
     """Sanitize SVG XSS gadgets at the body-image asset-copy boundary.
 
     A body SVG is served raw same-origin, so a script/on*/javascript:/foreignObject/
@@ -149,11 +159,11 @@ def _maybe_sanitize_svg(op: WriteOp, payload: bytes) -> bytes:
     return payload
 
 
-def _transform_payload(op: WriteOp) -> tuple[bytes, Diagnostic | None]:
+def _transform_payload(op: TransformAssetOp) -> tuple[bytes, Diagnostic | None]:
     """The bytes a `transform_asset` op lands, plus any cap warning. SVG payloads are
     sanitized whichever transform produced them (a non-raster cap falls back to
     original bytes, still sanitized)."""
-    transform = op.transform or AssetTransform(kind="copy")
+    transform = op.transform
     match transform.kind:
         case "cap_raster":
             payload, warning = _capped_raster_bytes(op, transform)
@@ -167,17 +177,13 @@ def _op_payload(op: WriteOp) -> tuple[bytes, Diagnostic | None]:
     """The bytes a content op lands, plus any transform warning. SVG asset payloads
     are sanitized at this boundary. Partial over `OpKind`: `ensure_dir` carries no
     payload and is dispatched separately in `apply`."""
-    match op.kind:
-        case "write_text":
-            if op.content is None:
-                raise ValueError(f"write_text op for {op.rel_path} has no content")
-            return op.content.encode("utf-8"), None
-        case "copy":
-            return _maybe_sanitize_svg(op, _read_source_bytes(op)), None
-        case "transform_asset":
-            return _transform_payload(op)
-        case _:
-            raise ValueError(f"{op.kind} op has no payload")
+    if isinstance(op, WriteTextOp):
+        return op.content.encode("utf-8"), None
+    if isinstance(op, CopyOp):
+        return _maybe_sanitize_svg(op, _read_source_bytes(op)), None
+    if isinstance(op, TransformAssetOp):
+        return _transform_payload(op)
+    raise ValueError(f"{op.kind} op has no payload")
 
 
 def _preflight_sources(plan: WritePlan) -> tuple[Diagnostic, ...]:
@@ -191,17 +197,7 @@ def _preflight_sources(plan: WritePlan) -> tuple[Diagnostic, ...]:
     """
     diags: list[Diagnostic] = []
     for op in plan.operations:
-        if op.kind not in {"copy", "transform_asset"}:
-            continue
-        if op.source is None:
-            diags.append(
-                Diagnostic(
-                    "fatal",
-                    "writer.missing-source",
-                    f"{op.kind} op for {op.rel_path} has no source path; refusing the "
-                    "whole plan rather than writing a partial bundle.",
-                )
-            )
+        if not isinstance(op, CopyOp | TransformAssetOp):
             continue
         try:
             with op.source.open("rb") as fh:
@@ -269,7 +265,7 @@ def apply(
 
     for op in plan.operations:
         dest = plan.target_root / op.rel_path
-        if op.kind == "ensure_dir":
+        if isinstance(op, EnsureDirOp):
             if not dry_run:
                 dest.mkdir(parents=True, exist_ok=True)
             continue

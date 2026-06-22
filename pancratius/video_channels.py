@@ -19,12 +19,55 @@ from pancratius.paths import CONTENT_ROOT
 CHANNELS_PATH = CONTENT_ROOT / "videos" / "channels.yaml"
 
 
+def _clean_locator(value: str, label: str) -> str:
+    cleaned = value.strip()
+    if not cleaned:
+        raise ValueError(f"{label} must be non-empty")
+    return cleaned
+
+
+@dataclass(frozen=True, slots=True)
+class ChannelHandleOnly:
+    handle: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "handle", _clean_locator(self.handle, "handle"))
+
+
+@dataclass(frozen=True, slots=True)
+class ChannelIdOnly:
+    channel_id: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "channel_id", _clean_locator(self.channel_id, "channel_id"))
+
+
+@dataclass(frozen=True, slots=True)
+class ChannelIdWithHandle:
+    channel_id: str
+    handle: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self, "channel_id", _clean_locator(self.channel_id, "channel_id")
+        )
+        object.__setattr__(self, "handle", _clean_locator(self.handle, "handle"))
+
+
+@dataclass(frozen=True, slots=True)
+class ChannelUrlOnly:
+    pass
+
+
+type ScannableVideoChannelAddress = ChannelHandleOnly | ChannelIdOnly | ChannelIdWithHandle
+type VideoChannelAddress = ScannableVideoChannelAddress | ChannelUrlOnly
+
+
 @dataclass(frozen=True, slots=True)
 class VideoChannel:
     key: str
     platform: str
-    handle: str | None
-    channel_id: str | None
+    address: VideoChannelAddress
     url: str
     title: dict[Locale, str]
     copy: dict[Locale, str]
@@ -32,6 +75,15 @@ class VideoChannel:
     scan: bool
     # The locale the scanner writes into `<lang>.md` for entries from this channel.
     default_lang: Locale
+
+    def require_scannable_address(self) -> ScannableVideoChannelAddress:
+        match self.address:
+            case ChannelHandleOnly() | ChannelIdOnly() | ChannelIdWithHandle():
+                return self.address
+            case ChannelUrlOnly():
+                raise ChannelsError(
+                    f"channel {self.key}: scan requires channel_id or handle"
+                )
 
 
 class ChannelsError(RuntimeError):
@@ -41,9 +93,9 @@ class ChannelsError(RuntimeError):
 def load_channels(path: Path = CHANNELS_PATH) -> list[VideoChannel]:
     """Return the configured channels, in file order.
 
-    The YAML is a list of objects keyed by `id` (the channel key). Empty
-    optional fields collapse to None. Missing required fields raise
-    ``ChannelsError``.
+    The YAML is a list of objects keyed by `id` (the channel key). Handle/channel
+    id fields become an explicit address variant; `scan: true` requires one of
+    them. Missing required fields raise ``ChannelsError``.
     """
     if not path.exists():
         raise ChannelsError(f"channels file not found: {path}")
@@ -75,23 +127,38 @@ def _parse_one(entry: object) -> VideoChannel:
     if not isinstance(copy, Mapping):
         raise ChannelsError(f"channel {key}: `copy` must be a per-locale mapping")
     badge = data.get("badge")
-    handle = data.get("handle")
-    channel_id = data.get("channel_id")
+    handle = str(raw_handle).strip() if (raw_handle := data.get("handle")) else ""
+    channel_id = (
+        str(raw_channel_id).strip() if (raw_channel_id := data.get("channel_id")) else ""
+    )
     default_lang = str(data.get("default_lang", DEFAULT_LOCALE))
     if not is_locale(default_lang):
         raise ChannelsError(f"channel {key}: unsupported default_lang {default_lang!r}")
+    address = _channel_address(handle=handle, channel_id=channel_id)
+    scan = bool(data.get("scan", True))
+    if scan and isinstance(address, ChannelUrlOnly):
+        raise ChannelsError(f"channel {key}: scan requires channel_id or handle")
     return VideoChannel(
         key=key,
         platform=str(data["platform"]),
-        handle=str(handle) if handle else None,
-        channel_id=str(channel_id) if channel_id else None,
+        address=address,
         url=str(data["url"]),
         title=_locale_map(title),
         copy=_locale_map(copy),
         badge=_locale_map(badge) if isinstance(badge, Mapping) else None,
-        scan=bool(data.get("scan", True)),
+        scan=scan,
         default_lang=default_lang,
     )
+
+
+def _channel_address(*, handle: str, channel_id: str) -> VideoChannelAddress:
+    if channel_id and handle:
+        return ChannelIdWithHandle(channel_id=channel_id, handle=handle)
+    if channel_id:
+        return ChannelIdOnly(channel_id=channel_id)
+    if handle:
+        return ChannelHandleOnly(handle=handle)
+    return ChannelUrlOnly()
 
 
 def _locale_map(raw: Mapping[Any, object]) -> dict[Locale, str]:
@@ -116,9 +183,17 @@ def write_channels(channels: list[VideoChannel], path: Path = CHANNELS_PATH) -> 
 
 def _channel_to_dict(c: VideoChannel) -> dict[str, Any]:
     entry: dict[str, Any] = {"id": c.key, "platform": c.platform}
-    if c.handle:
-        entry["handle"] = c.handle
-    entry["channel_id"] = c.channel_id or ""
+    match c.address:
+        case ChannelHandleOnly(handle):
+            entry["handle"] = handle
+            entry["channel_id"] = ""
+        case ChannelIdOnly(channel_id):
+            entry["channel_id"] = channel_id
+        case ChannelIdWithHandle(channel_id=channel_id, handle=handle):
+            entry["handle"] = handle
+            entry["channel_id"] = channel_id
+        case ChannelUrlOnly():
+            entry["channel_id"] = ""
     entry["url"] = c.url
     if c.badge:
         entry["badge"] = dict(c.badge)

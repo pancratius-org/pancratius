@@ -12,9 +12,12 @@ from typing import cast
 
 from pancratius.writeplan import (
     AssetTransform,
+    CopyOp,
     Diagnostic,
+    EnsureDirOp,
     OpKind,
     Role,
+    TransformAssetOp,
     WriteOp,
     WritePlan,
     has_fatal,
@@ -43,7 +46,35 @@ def _always(_rel: PurePosixPath) -> bool:
 
 
 def _op(rel: str, *, kind: OpKind = "copy", role: Role = "imported_asset") -> WriteOp:
-    return WriteOp(kind=kind, rel_path=PurePosixPath(rel), role=role, reason="t", source=Path("/x"))
+    if kind == "copy":
+        return CopyOp(rel_path=PurePosixPath(rel), role=role, reason="t", source=Path("/x"))
+    if kind == "write_text":
+        return cast(
+            WriteOp,
+            type(
+                "InvalidWriteOp",
+                (),
+                {
+                    "kind": kind,
+                    "rel_path": PurePosixPath(rel),
+                    "role": role,
+                    "reason": "t",
+                },
+            )(),
+        )
+    return cast(
+        WriteOp,
+        type(
+            "InvalidWriteOp",
+            (),
+            {
+                "kind": kind,
+                "rel_path": PurePosixPath(rel),
+                "role": role,
+                "reason": "t",
+            },
+        )(),
+    )
 
 
 def _codes(diags: tuple[Diagnostic, ...]) -> set[str]:
@@ -116,7 +147,7 @@ def test_unknown_op_kind_is_rejected() -> None:
 
 
 def test_ensure_dir_scope_self_is_accepted() -> None:
-    plan = _plan(WriteOp(kind="ensure_dir", rel_path=SCOPE, role="canonical_source", reason="dir"))
+    plan = _plan(EnsureDirOp(rel_path=SCOPE, role="canonical_source", reason="dir"))
     diags = validate(plan, target_exists=_always, escapes_scope=_never)
     # The scope dir already existing must NOT trip the canonical-source overwrite
     # guard — adding a new language into an existing bundle is the normal case.
@@ -138,8 +169,7 @@ def test_content_op_at_scope_dir_is_rejected() -> None:
 
 
 def _transform_op(rel: str) -> WriteOp:
-    return WriteOp(
-        kind="transform_asset",
+    return TransformAssetOp(
         rel_path=PurePosixPath(rel),
         role="imported_asset",
         reason="t",

@@ -12,7 +12,7 @@ import pytest
 from pancratius import import_docx
 from pancratius.content_catalog import CatalogEntry, split_frontmatter
 from pancratius.docx_conversion import ConvertedDocx
-from pancratius.poem_chrome import PoemChrome
+from pancratius.poem_chrome import PoemChrome, PoemSourceDate
 
 
 def _poem_fm(
@@ -24,7 +24,14 @@ def _poem_fm(
             kind="poem", number=1, slug="01-x", title="X", lang="ru", description="d",
             work_key="poem:1", work_dir=Path("."), md_path=Path("x.md"), frontmatter=fm,
         )
-    converted = ConvertedDocx(body="стих\n", poem_chrome=PoemChrome(source_date=source_date))
+    converted = ConvertedDocx(
+        body="стих\n",
+        poem_chrome=(
+            PoemChrome((PoemSourceDate(source_date),))
+            if source_date is not None
+            else PoemChrome()
+        ),
+    )
     fm = import_docx._frontmatter_for_import(
         request=import_docx.ImportRequest(docx=Path("x.docx"), lang="ru", out_content=Path(".")),
         kind="poem", number=1, slug="01-x", title="X", description="d", lang="ru", cover=None,

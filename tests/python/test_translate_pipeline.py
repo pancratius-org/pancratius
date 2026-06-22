@@ -17,6 +17,7 @@ from pancratius.translate.client import ChatMessage, Completion, ModelPricing, U
 from pancratius.translate.config import TranslateConfig
 from pancratius.translate.document import parse_document
 from pancratius.translate.pipeline import (
+    TranslationWriteOutcome,
     _draft_chunk,
     _revise_reasoning_budget,
     estimate_run,
@@ -104,7 +105,8 @@ def test_translate_book_writes_structure_preserving_en(tmp_path: Path) -> None:
     )
 
     en = entry.work_dir / "en.md"
-    assert report.written_path == en
+    assert isinstance(report.outcome, TranslationWriteOutcome)
+    assert report.outcome.written_path == en
     assert not report.findings  # echo translated every unit cleanly
     fm = read_frontmatter(en)
     assert fm["lang"] == "en"

@@ -437,7 +437,10 @@ def _frontmatter_for_import(
         case "poem":
             # The body sign-off date fills a missing date (preferred over the less
             # reliable reference) but never overwrites a committed one; mismatch warns.
-            lifted = converted.poem_chrome.source_date if converted.poem_chrome else None
+            source_date = (
+                converted.poem_chrome.source_date_fact if converted.poem_chrome else None
+            )
+            lifted = source_date.value if source_date is not None else None
             if fm.get("date") is None:
                 ref_date = reference.frontmatter.get("date") if reference else None
                 fm["date"] = lifted or ref_date

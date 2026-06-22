@@ -17,7 +17,15 @@ from typing import Any
 import pytest
 
 from pancratius import video_scan
-from pancratius.video_channels import VideoChannel, write_channels
+from pancratius.video_channels import (
+    ChannelHandleOnly,
+    ChannelIdOnly,
+    ChannelIdWithHandle,
+    ChannelsError,
+    VideoChannel,
+    load_channels,
+    write_channels,
+)
 from pancratius.video_scan import (
     ChannelLocator,
     ResolvedChannel,
@@ -113,8 +121,7 @@ def channels_path(tmp_path: Path) -> Path:
             VideoChannel(
                 key="main",
                 platform="youtube",
-                handle="@test",
-                channel_id=None,
+                address=ChannelHandleOnly("@test"),
                 url="https://www.youtube.com/@test",
                 title={"ru": "Тестовый", "en": "Test"},
                 copy={"ru": "Тест", "en": "Test"},
@@ -198,6 +205,58 @@ def test_scan_requires_api_key_when_no_client_injected(
             content_root=tmp_path,
             channels_path=channels_path,
         )
+
+
+def test_scannable_channel_requires_api_locator(tmp_path: Path) -> None:
+    path = tmp_path / "channels.yaml"
+    path.write_text(
+        """
+- id: catalogue-only
+  platform: youtube
+  url: https://www.youtube.com/@catalogue
+  title:
+    ru: Каталог
+    en: Catalogue
+  copy:
+    ru: Каталог
+    en: Catalogue
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ChannelsError, match="scan requires channel_id or handle"):
+        load_channels(path)
+
+
+def test_unscanned_catalogue_channel_may_be_url_only(tmp_path: Path) -> None:
+    path = tmp_path / "channels.yaml"
+    path.write_text(
+        """
+- id: catalogue-only
+  platform: youtube
+  url: https://www.youtube.com/@catalogue
+  scan: false
+  title:
+    ru: Каталог
+    en: Catalogue
+  copy:
+    ru: Каталог
+    en: Catalogue
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    [channel] = load_channels(path)
+    assert channel.scan is False
+
+
+def test_scannable_channel_address_values_must_be_non_empty() -> None:
+    with pytest.raises(ValueError, match="handle must be non-empty"):
+        ChannelHandleOnly(" ")
+    with pytest.raises(ValueError, match="channel_id must be non-empty"):
+        ChannelIdOnly("")
+    with pytest.raises(ValueError, match="handle must be non-empty"):
+        ChannelIdWithHandle(channel_id="UC-123", handle="")
 
 
 def test_scan_attributes_videos_to_playlists_as_tags(

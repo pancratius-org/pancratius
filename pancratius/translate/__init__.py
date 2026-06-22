@@ -14,7 +14,10 @@ from pancratius.translate.config import DEFAULT_MODEL, StageModels, TranslateCon
 from pancratius.translate.pipeline import (
     CostEstimate,
     TranslateError,
+    TranslationEstimateOutcome,
+    TranslationOutcome,
     TranslationReport,
+    TranslationWriteOutcome,
     find_untranslated,
     translate_book,
 )
@@ -31,7 +34,10 @@ __all__ = [
     "TranslateConfig",
     "TranslateError",
     "TranslationCache",
+    "TranslationEstimateOutcome",
+    "TranslationOutcome",
     "TranslationReport",
+    "TranslationWriteOutcome",
     "find_untranslated",
     "load_glossary",
     "load_tag_labels",
