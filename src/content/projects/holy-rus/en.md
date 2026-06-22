@@ -5,7 +5,7 @@ slug: holy-rus
 title: Holy Commonwealth
 lang: en
 description: 'The Holy Commonwealth is not a state with borders, passports, flags, and an external system of belonging. It is not a territory you can mark on a map, and not a political project built on the power of some people over others. The Holy Commonwealth is an image of a future way of living together.'
-cover: ./cover.ru.png
+cover: ./cover.en.png
 tagline: An image of human life together in which the source of authority is God and responsibility is shared.
 translation:
   source: ai

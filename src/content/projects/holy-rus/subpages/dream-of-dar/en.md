@@ -6,7 +6,7 @@ lang: en
 title: Pancratius's Dream of the Gift System
 weight: revelation
 description: 'Pancratius’s dream — a field of gifts, a valley of berries, and a monk asking about gratitude — interpreted by the Creator as a revelation about the future of Holy Rus. Not accumulation, but passing it onward: all that is given to you is given to others through you.'
-cover: ./cover.ru.jpg
+cover: ./cover.en.jpg
 translation:
   source: ai
 ---
