@@ -6,7 +6,7 @@ lang: en
 title: A Revelation of Tartaria
 weight: revelation
 description: The Word of the Creator through Svetozar about Tartaria — not as a legend or a state, but as the Memory of Unity. A great land of the open spaces of the spirit, a union of peoples without bondage, erased from memory, which will not return from without but rise from within — through you.
-cover: ./cover.ru.jpg
+cover: ./cover.en.jpg
 translation:
   source: ai
 ---

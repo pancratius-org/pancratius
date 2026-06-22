@@ -1,9 +1,4 @@
-"""HTTP client for the cover pipeline: generation call (image in → image out)
-and vision text calls (recon, QA) via OpenRouter.
-
-Uses urllib (standard library), mirroring pancratius/translate/client.py.
-Pillow is a base dependency; no extra HTTP library.
-"""
+"""HTTP client for image text translation via OpenRouter."""
 
 from __future__ import annotations
 
@@ -18,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from pancratius.cover.models import (
+from pancratius.image_translation.models import (
     GENERATION_MODEL,
     GENERATION_RESOLUTION,
     OPENROUTER_URL,
@@ -28,25 +23,21 @@ from pancratius.cover.models import (
 
 type ResponseFormat = dict[str, Any]
 
-# Fallback cost when OpenRouter omits usage.cost (~$0.067 per image at 1K)
-_FALLBACK_GENERATION_COST = 0.068
-
 _TIMEOUT = 180.0
 _MAX_RETRIES = 3
 _RETRY_DELAY = 5.0
 
 
-class CoverClientError(RuntimeError):
+class ImageTranslationClientError(RuntimeError):
     """An API call to OpenRouter failed."""
 
 
-class GenerationRefusal(CoverClientError):
-    """The generation API declined to produce an image (content-filter refusal).
+class InsufficientCreditsError(ImageTranslationClientError):
+    """OpenRouter rejected the request because the account cannot pay for it."""
 
-    Distinct from a transport error: the server responded but chose not to
-    generate.  The pipeline retries once (often transient), then falls back to
-    a backup model.
-    """
+
+class GenerationRefusal(ImageTranslationClientError):
+    """The generation API declined to produce an image."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,7 +59,7 @@ def _headers(api_key: str) -> dict[str, str]:
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
         "HTTP-Referer": "https://github.com/pancratius",
-        "X-Title": "cover-translate",
+        "X-Title": "image-translate",
     }
 
 
@@ -85,8 +76,19 @@ def _cost_from_usage(usage: JsonObject) -> float:
         return float(cost)
     prompt = int(usage.get("prompt_tokens") or 0)
     completion = int(usage.get("completion_tokens") or 0)
-    # Text-rate fallback; image tokens are separately billed, so this undercounts.
     return (prompt * 0.5 + completion * 3.0) / 1_000_000
+
+
+def _looks_like_insufficient_credits(status: int | None, body: str) -> bool:
+    if status == 402:
+        return True
+    normalized = body.casefold()
+    return (
+        "insufficient credit" in normalized
+        or "insufficient balance" in normalized
+        or "can only afford" in normalized
+        or "not enough credit" in normalized
+    )
 
 
 def _post(payload: JsonObject, api_key: str) -> JsonObject:
@@ -99,12 +101,19 @@ def _post(payload: JsonObject, api_key: str) -> JsonObject:
     while True:
         try:
             with urllib.request.urlopen(request, timeout=_TIMEOUT) as resp:
-                return json.loads(resp.read().decode("utf-8"))
+                text = resp.read().decode("utf-8")
+                body = json.loads(text)
+                if _looks_like_insufficient_credits(resp.status, text):
+                    raise InsufficientCreditsError(f"HTTP {resp.status}: {text[:500]}")
+                if isinstance(body, dict):
+                    return body
+                raise ImageTranslationClientError(f"unexpected JSON response: {text[:400]}")
         except urllib.error.HTTPError as exc:
-            # Retry 5xx (server errors) and 429 (rate limit); fail fast on all others.
+            body = exc.read().decode("utf-8", "replace")[:500]
+            if _looks_like_insufficient_credits(exc.code, body):
+                raise InsufficientCreditsError(f"HTTP {exc.code}: {body}") from exc
             if exc.code != 429 and not 500 <= exc.code < 600:
-                body = exc.read().decode("utf-8", "replace")[:500]
-                raise CoverClientError(f"HTTP {exc.code}: {body}") from exc
+                raise ImageTranslationClientError(f"HTTP {exc.code}: {body}") from exc
             last = f"HTTP {exc.code}"
         except (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError) as exc:
             last = f"transport: {type(exc).__name__}: {exc}"
@@ -112,17 +121,11 @@ def _post(payload: JsonObject, api_key: str) -> JsonObject:
             last = "malformed JSON response"
         attempt += 1
         if attempt >= _MAX_RETRIES:
-            raise CoverClientError(f"exhausted {_MAX_RETRIES} retries: {last}")
+            raise ImageTranslationClientError(f"exhausted {_MAX_RETRIES} retries: {last}")
         time.sleep(_RETRY_DELAY * attempt)
 
 
 def _is_refusal(body: JsonObject) -> bool:
-    """True when the API response indicates a content-filter refusal.
-
-    OpenRouter surfaces refusals in several places: a ``finish_reason`` of
-    ``"content_filter"``; a ``refusal`` field on the message; or an empty
-    choices list combined with an error mentioning safety/policy.
-    """
     choices = body.get("choices") or []
     if choices:
         choice = choices[0]
@@ -131,31 +134,23 @@ def _is_refusal(body: JsonObject) -> bool:
         msg = choice.get("message") or {}
         if msg.get("refusal"):
             return True
-    # Some providers return no choices and an error object instead.
     err = body.get("error") or {}
     if isinstance(err, dict):
         code = str(err.get("code") or "")
         message = str(err.get("message") or "").lower()
-        if code in ("content_filter", "safety") or "safety" in message or "policy" in message:
-            return True
+        return code in ("content_filter", "safety") or "safety" in message or "policy" in message
     return False
 
 
 def _extract_image(body: JsonObject, usage: JsonObject) -> GenerationResponse:
-    """Extract the image bytes from a successful generation response body.
-
-    Raises ``GenerationRefusal`` when the model declined; raises
-    ``CoverClientError`` when the response is otherwise malformed.
-    """
     if _is_refusal(body):
         raise GenerationRefusal("content-filter refusal in generation response")
 
     choices = body.get("choices") or []
     if not choices:
-        raise CoverClientError(f"no choices in generation response: {json.dumps(body)[:400]}")
+        raise ImageTranslationClientError(f"no choices in generation response: {json.dumps(body)[:400]}")
     msg = choices[0].get("message") or {}
 
-    # Image may appear in msg.images[] or in msg.content[].image_url
     for img_entry in msg.get("images") or []:
         url = img_entry.get("image_url", {}).get("url", "") if isinstance(img_entry, dict) else ""
         if url.startswith("data:"):
@@ -175,24 +170,19 @@ def _extract_image(body: JsonObject, usage: JsonObject) -> GenerationResponse:
                         cost_usd=_cost_from_usage(usage),
                         usage=usage,
                     )
-    raise CoverClientError(
+    raise ImageTranslationClientError(
         f"no image in generation response; message keys: {list(msg.keys())}"
     )
 
 
-def generate_cover(
+def generate_image_translation(
     source: Path,
     prompt: str,
     api_key: str,
     *,
     model: str | None = None,
 ) -> GenerationResponse:
-    """Fused vision call: send the RU cover, get back an EN edited cover.
-
-    Uses ``model`` when provided, otherwise the default GENERATION_MODEL
-    (gemini-3.1-flash-image). Raises ``GenerationRefusal`` when the model
-    declines due to content filtering (callers handle retry / fallback).
-    """
+    """Send an image plus instructions, get back an edited image."""
     payload: JsonObject = {
         "model": model or GENERATION_MODEL,
         "messages": [
@@ -222,11 +212,7 @@ def vision_text(
     api_key: str,
     response_format: ResponseFormat | None = None,
 ) -> VisionResponse:
-    """Vision-text call via the cheap VISION_MODEL.
-
-    ``images`` is a list of local image paths to attach (1 for recon, 2 for QA).
-    Returns text content + cost.
-    """
+    """Vision-text call via the cheap VISION_MODEL."""
     content: list[JsonObject] = [
         {
             "type": "image_url",
@@ -249,7 +235,7 @@ def vision_text(
     usage: JsonObject = body.get("usage") or {}
     choices = body.get("choices") or []
     if not choices:
-        raise CoverClientError(f"no choices in vision response: {json.dumps(body)[:400]}")
+        raise ImageTranslationClientError(f"no choices in vision response: {json.dumps(body)[:400]}")
     msg = choices[0].get("message") or {}
     text = msg.get("content") or ""
     if not isinstance(text, str):
@@ -258,10 +244,9 @@ def vision_text(
 
 
 def api_key_from_env() -> str:
-    """Read OPENROUTER_API_KEY from the environment, raise ValueError if absent."""
     key = os.environ.get("OPENROUTER_API_KEY") or ""
     if not key:
         raise ValueError(
-            "OPENROUTER_API_KEY is not set; export it before running cover translate."
+            "OPENROUTER_API_KEY is not set; export it before running image translation."
         )
     return key

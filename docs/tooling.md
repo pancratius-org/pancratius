@@ -74,7 +74,8 @@ functions in process. It does not shell out to other Python CLIs.
 | --- | --- |
 | `pancratius work import <docx> --kind book|poem` | `pancratius.import_docx.import_work` |
 | `pancratius work translate [--book N] [--dry-run]` | `pancratius.translate.translate_book` |
-| `pancratius work cover [book-XX …] [--output-dir DIR]` | `pancratius.cover.pipeline.translate_cover` |
+| `pancratius work cover [book-XX …] [--output-dir DIR]` | Book-cover shortcut over `pancratius.image_translation.providers.book_cover` |
+| `pancratius image translate <book:NN|project:slug[/subpage] …>` | `pancratius.image_translation` providers + engine |
 | `pancratius project page add <project> <subpage-slug> <docx>` | `pancratius.docx_conversion.scaffold_subpage` |
 | `pancratius video sync [--channel KEY] [--dry-run]` | `pancratius.video_scan.scan` |
 | `pancratius downloads render [--book N]` | `pancratius.render_downloads` |
@@ -97,20 +98,24 @@ The grammar carries the content model:
   free and re-attempts only the chunks that never produced a complete translation.
   Pass `--no-cache` to bypass read and write (always calls the API). To clear the
   cache: `rm -rf .cache/translate/`.
-- `work cover` translates Russian book covers to English by image editing — the
-  artwork is preserved; only the text changes. It is its own verb rather than a
-  mode of `work translate`: a cover is a distinct image artifact (image-in →
-  image-out via a vision/edit model and a per-image QA loop), sharing none of the
-  text pipeline's chunking, units, or document structure. Per cover: (1) a cheap
-  vision recon call reads the displayed text elements and short title from the RU
-  cover (diagnostic only — the rendered title is resolved from the pin); (2) a
-  fused image-edit call (gemini-3.1-flash-image) generates the EN cover with the
-  pinned title and any overrides from `seed.json`; (3) a cheap vision QA call
-  checks both images for untranslated Cyrillic, artwork changes, dropped text, and
-  author-name correctness. On QA failure the discrepancies are folded into a
-  steering addendum and the generation is retried (up to `--max-attempts`, default
-  3). If an `.en.png` already exists it is QA-d first; PASS → done without
-  regeneration. Requires `OPENROUTER_API_KEY`.
+- `image translate` translates visible text in text-bearing image assets while
+  preserving the image itself. The engine is content-agnostic: providers resolve
+  source/target paths, expected visible text, and source-keyed overrides, then
+  the engine runs vision recon → image edit → vision QA with a retry steering
+  loop. Selectors include book covers (`book:50`) and project covers
+  (`project:holy-rus`, `project:holy-rus/tartaria`). Expected text may be matched
+  by exact source text, normalized source text, or detected image role
+  (`primary`, `tagline`, etc.) and may be synthesized when recon misses it.
+  Source-text expected matches may claim a consecutive detected text block, so a
+  phrase split across visual lines is replaced as one semantic element. Overrides
+  are conditional: they only apply to source text recon actually sees. There is no
+  engine-level book, title, or author special case. If an existing target image
+  exists it is QA-d first; PASS → done without regeneration. Requires
+  `OPENROUTER_API_KEY`.
+- `work cover` is a book-cover shortcut over the same image-translation engine.
+  It builds jobs from the external cover queue, `en.md` title pins, `QUEUE.md`,
+  and `seed.json`. It is separate from `work translate`: image translation shares
+  none of the text pipeline's chunking, units, or document structure.
 - `project page add` scaffolds a project sub-page draft. It does not edit the
   project landing and does not decide the page's editorial placement.
 - `video sync` is mechanical-only: it polls every `scan: true` channel in

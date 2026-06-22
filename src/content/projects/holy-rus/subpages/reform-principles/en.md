@@ -6,7 +6,7 @@ lang: en
 title: Core Principles of Economic and Spiritual Reform
 weight: essay
 description: Holy Rus as a self-sufficient spiritual organism free of external dependence — the core principles of economic reform, foreign relations, and spiritual purpose. Not accumulation, but flourishing through proportion, honesty, and co-creation; not a geography, but a living spiritual organism.
-cover: ./cover.ru.jpg
+cover: ./cover.en.jpg
 translation:
   source: ai
 ---

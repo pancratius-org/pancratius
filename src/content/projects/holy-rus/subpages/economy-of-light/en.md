@@ -6,7 +6,7 @@ lang: en
 title: The Economy of Light
 weight: essay
 description: An economy of fellowship in place of capitalism — where money is not the goal but an instrument of service, profit is shared fairly, and corruption disappears not from punishment but from transparency. A full audit of public finances, the abolition of VAT, a guaranteed income, and the five-year plans of an economy of Light.
-cover: ./cover.ru.jpg
+cover: ./cover.en.jpg
 translation:
   source: ai
 ---

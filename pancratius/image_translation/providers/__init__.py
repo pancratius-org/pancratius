@@ -1,0 +1,32 @@
+"""Content adapters for the generic image translation engine."""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from dataclasses import dataclass
+
+from pancratius.image_translation.models import (
+    ImageTranslationJob,
+    ImageTranslationResult,
+    ImageTranslationStatus,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class ProviderJob:
+    """A provider-built translation job plus optional successful-write finalizer."""
+
+    job: ImageTranslationJob
+    label: str
+    finalize_success: Callable[[ImageTranslationResult], None] | None = None
+    finalize_caveats: bool = False
+
+    def finalize(self, result: ImageTranslationResult) -> None:
+        finalizable = result.status is ImageTranslationStatus.OK or (
+            self.finalize_caveats and result.status is ImageTranslationStatus.OK_WITH_CAVEAT
+        )
+        if finalizable and self.finalize_success is not None:
+            self.finalize_success(result)
+
+
+__all__ = ["ProviderJob"]

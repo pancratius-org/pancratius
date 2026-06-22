@@ -1,12 +1,4 @@
-"""De-crop: force model output dimensions to match the source cover exactly.
-
-The generation model sometimes re-frames the canvas (adding white margins or
-cropping). Source dimensions are ground truth; we fix this deterministically
-with Pillow rather than asking the model to "remove the border".
-
-We keep the raw model output (.raw.png) alongside the de-cropped final (.en.png)
-so both stages stay inspectable.
-"""
+"""De-crop model output to the source image dimensions."""
 
 from __future__ import annotations
 
@@ -15,7 +7,7 @@ from pathlib import Path
 
 from PIL import Image, ImageChops
 
-_WHITE_TRIM_THRESHOLD = 12  # brightness delta from pure-white counted as "border"
+_WHITE_TRIM_THRESHOLD = 12
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,7 +19,7 @@ class DecropReport:
 
     @property
     def ok(self) -> bool:
-        return self.final_size == self.source_size
+        return self.source_size == self.final_size
 
 
 def _trim_white_border(img: Image.Image) -> Image.Image:
@@ -42,32 +34,33 @@ def _trim_white_border(img: Image.Image) -> Image.Image:
 
 
 def decrop_to_source(
+    *,
     raw_bytes: bytes,
     source: Path,
     raw_out: Path,
     final_out: Path,
 ) -> DecropReport:
-    """Write ``raw_out`` from ``raw_bytes``, then de-crop to ``source`` dimensions
-    and write ``final_out``. Returns a report."""
+    """Persist raw output, trim model-added white borders, and match source size."""
+    raw_out.parent.mkdir(parents=True, exist_ok=True)
+    final_out.parent.mkdir(parents=True, exist_ok=True)
     raw_out.write_bytes(raw_bytes)
 
-    src = Image.open(source)
-    out = Image.open(raw_out)
-    source_size = (src.width, src.height)
-    raw_size = (out.width, out.height)
+    with Image.open(source) as src_img:
+        source_size = src_img.size
+    with Image.open(raw_out) as raw_img:
+        raw_size = raw_img.size
+        out = raw_img.copy()
 
-    if out.size != src.size:
+    resized = False
+    if out.size != source_size:
         out = _trim_white_border(out)
-        out = out.resize(src.size, Image.LANCZOS)
+        out = out.resize(source_size, Image.Resampling.LANCZOS)
         resized = True
-    else:
-        resized = False
 
     out.convert("RGB").save(final_out, "PNG")
-    final_size = (out.width, out.height)  # after resize = src.size when resized
     return DecropReport(
         source_size=source_size,
         raw_size=raw_size,
-        final_size=final_size,
+        final_size=out.size,
         resized=resized,
     )
