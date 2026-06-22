@@ -211,7 +211,7 @@ def _structural_frontmatter(fm: Mapping[str, object]) -> dict[str, object]:
 
 def _import_case(case: GoldenCase, content_root: Path) -> ImportSnapshot:
     """Run the live importer for one case into ``content_root`` and project it."""
-    report = import_docx.import_work(import_docx.ImportRequest(
+    report = import_docx.import_work(import_docx.ImportRequest.for_new_work(
         docx=ROOT / case.docx,
         kind=case.kind,
         lang=case.lang,

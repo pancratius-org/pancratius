@@ -583,7 +583,7 @@ def _check_from_ir() -> int:
             continue
         with tempfile.TemporaryDirectory(prefix="book-verse-ir-") as td:
             content_root = Path(td) / "src" / "content"
-            request = import_docx.ImportRequest(
+            request = import_docx.ImportRequest.for_new_work(
                 docx=docx,
                 kind="book",
                 lang="ru",

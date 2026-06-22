@@ -11,7 +11,7 @@ set-apart gesture.
 `assign_register` decides the verse register over lineated blocks: hard
 editorial guards first (named verse sections promote, scaffold shapes never
 do), then the trained register model where the composition point injected one
-(`Context.register_model`), the geometry ladder otherwise. A verse run is
+(`Context.register_classifier`), the geometry ladder otherwise. A verse run is
 then segmented (`segment_lineated`): scaffold sub-runs (equations, dash
 enumerations) split out as `ORDINARY` fragments with honest line-derived
 spans. The feature producer and the model codec live here too — extraction,
@@ -40,7 +40,9 @@ from pancratius.passes.lineation import (
 )
 
 if TYPE_CHECKING:
-    from pancratius.passes.pipeline import Context
+    from pancratius.passes.context import Context
+
+from pancratius.passes.context import ModelBackedRegister, RulesOnlyRegister
 
 # ---------------------------------------------------------------------------
 # Q2a: bordered set-apart runs -> quote blocks
@@ -907,13 +909,17 @@ _NEUTRAL_CONTEXT = _PrecedingContext()
 
 def assign_register(doc: ir.Document, ctx: Context) -> ir.Document:
     """The Q2 pass: decide the verse register for every lineated block."""
-    model = ctx.register_model
+    match ctx.register_classifier:
+        case ModelBackedRegister(model=model):
+            pass
+        case RulesOnlyRegister():
+            model = None
     feats_ctx: dict[int, RegisterContext] = {}
     stats: BookStats | None = None
     if model is not None:
         stats = book_stats(doc.blocks)
         feats_ctx = {id(b): c for b, c in iter_with_register_context(doc.blocks)}
-    pins = frozenset(ctx.scripture_overrides or {})
+    pins = frozenset(ctx.scripture.by_ordinal)
     decided = _promote(doc.blocks, model, feats_ctx, stats, pins)
     if model is not None:
         # The rules-only re-run exists for the diagnostic below; ~2x this pass's

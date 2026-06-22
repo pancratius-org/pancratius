@@ -18,7 +18,7 @@ from pancratius import ir
 from pancratius.ir.inlines import inline_plain
 from pancratius.lineation_overrides import load_overrides, overrides_path, paragraph_sha
 from pancratius.passes.lineation import check_overrides_held
-from pancratius.passes.pipeline import Context, run
+from pancratius.passes.pipeline import Context, LineationCorrections, run
 
 pandoc_required = pytest.mark.skipif(
     shutil.which("pandoc") is None,
@@ -110,7 +110,7 @@ def _run_pipeline(
 ) -> list[ir.Block]:
     doc = run(
         ir.Document(blocks=blocks),
-        Context(lang="ru", lineation_overrides=overrides),
+        Context(lang="ru", lineation=LineationCorrections(overrides or {})),
     )
     return doc.blocks
 

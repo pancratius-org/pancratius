@@ -16,7 +16,7 @@ import pytest
 
 from pancratius import ir
 from pancratius.lineation_overrides import paragraph_sha
-from pancratius.passes.pipeline import Context, run
+from pancratius.passes.pipeline import Context, ScripturePins, run
 from pancratius.passes.register import wrap_scripture
 from pancratius.scripture_overrides import load_overrides, overrides_path
 
@@ -173,7 +173,7 @@ def test_pipeline_wraps_pinned_ordinal_and_lineation_decisions_hold(tmp_path: Pa
     from pancratius.scripture_overrides import load_overrides as load_pins
 
     doc = docx_adapter.adapt(docx, tmp_path / "media", [])
-    doc = run(doc, Context(lang="ru", scripture_overrides=load_pins(docx)))
+    doc = run(doc, Context(lang="ru", scripture=ScripturePins(load_pins(docx))))
     quotes = [b for b in doc.blocks if isinstance(b, ir.QuoteBlock)]
     assert len(quotes) == 1
     assert quotes[0].register is ir.Register.SCRIPTURE

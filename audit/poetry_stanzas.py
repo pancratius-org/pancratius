@@ -193,7 +193,7 @@ def actual_groups_from_ir() -> int:
         docx = source_docx(poem.number)
         with tempfile.TemporaryDirectory(prefix="poetry-ir-") as td:
             content_root = Path(td) / "src" / "content"
-            request = import_docx.ImportRequest(
+            request = import_docx.ImportRequest.for_new_work(
                 docx=docx,
                 kind="poem",
                 lang="ru",
