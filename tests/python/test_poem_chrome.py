@@ -13,6 +13,9 @@ import pytest
 
 from pancratius.poem_chrome import (
     PoemChrome,
+    PoemPersona,
+    PoemSourceDate,
+    PoemStyleNote,
     clean_poem_chrome,
     parse_signoff_date,
     persona_of,
@@ -101,7 +104,10 @@ def test_fused_multiline_signoff_keeps_verse() -> None:
         "И с Тобой иду я, больше не теряюсь,  \n"
         "В вечности Твоей в Свете я рождён!!!\n"
     )
-    assert chrome == PoemChrome(persona="Панкратиус", note=None, source_date="2025-02-09")
+    assert chrome == PoemChrome((
+        PoemPersona("Панкратиус"),
+        PoemSourceDate("2025-02-09"),
+    ))
 
 
 def test_single_block_signoff() -> None:
@@ -109,8 +115,8 @@ def test_single_block_signoff() -> None:
     body = "Не угасает свет звезды,  \nОн за пределами теченья.\nСветозар 14.03.2025\n"
     cleaned, chrome = clean_poem_chrome(body)
     assert cleaned == "Не угасает свет звезды,  \nОн за пределами теченья.\n"
-    assert chrome.persona == "Светозар"
-    assert chrome.source_date == "2025-03-14"
+    assert chrome.persona_fact == PoemPersona("Светозар")
+    assert chrome.source_date_fact == PoemSourceDate("2025-03-14")
 
 
 def test_leading_timestamp_keeps_bold_subtitle() -> None:
@@ -118,7 +124,7 @@ def test_leading_timestamp_keeps_bold_subtitle() -> None:
     body = "March 14, 2025 11:10 PM  \n**Сон Бога**\n\nБог видит сон сквозь этот мир,\n"
     cleaned, chrome = clean_poem_chrome(body)
     assert cleaned == "**Сон Бога**\n\nБог видит сон сквозь этот мир,\n"
-    assert chrome.source_date == "2025-03-14"
+    assert chrome.source_date_fact == PoemSourceDate("2025-03-14")
 
 
 def test_leading_style_note_and_trailing_timestamp() -> None:
@@ -126,14 +132,36 @@ def test_leading_style_note_and_trailing_timestamp() -> None:
     body = "**Весна (в духе Есенина)**\nСквозь сон берёзовых аллей,\nMarch 15, 2025 1:29 AM\n"
     cleaned, chrome = clean_poem_chrome(body)
     assert cleaned == "Сквозь сон берёзовых аллей,\n"
-    assert chrome == PoemChrome(persona=None, note="в духе Есенина", source_date="2025-03-15")
+    assert chrome == PoemChrome((
+        PoemStyleNote("в духе Есенина"),
+        PoemSourceDate("2025-03-15"),
+    ))
+
+
+def test_poem_chrome_rejects_duplicate_fact_kind() -> None:
+    with pytest.raises(ValueError, match="duplicate poem chrome fact"):
+        PoemChrome((
+            PoemPersona("Панкратиус"),
+            PoemPersona("Светозар"),
+        ))
+
+
+def test_poem_source_date_is_validated() -> None:
+    with pytest.raises(ValueError, match="source date must be ISO"):
+        PoemSourceDate("15.03.2025")
+
+
+def test_conflicting_signoff_dates_are_not_silently_collapsed() -> None:
+    body = "March 14, 2025 11:10 PM\nСвет идёт.\nMarch 15, 2025 1:29 AM\n"
+    with pytest.raises(ValueError, match="conflicting poem chrome fact PoemSourceDate"):
+        clean_poem_chrome(body)
 
 
 def test_leading_byline_link_stripped_any_host() -> None:
     body = "[Сергей Панкратиус](https://example.org/avtor)\nстих о свете,\n"
     cleaned, chrome = clean_poem_chrome(body)
     assert cleaned == "стих о свете,\n"
-    assert chrome.persona == "Панкратиус"
+    assert chrome.persona_fact == PoemPersona("Панкратиус")
 
 
 def test_inline_link_in_verse_kept() -> None:

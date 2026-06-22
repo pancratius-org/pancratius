@@ -37,13 +37,101 @@ _STYLE_NOTE_RE = re.compile(r"\(\s*(в\s+(?:духе|стиле)\s+[^)]+?)\s*\)"
 _BYLINE_RE = re.compile(r"^\[[^\]]*\]\(\s*https?://[^)]+\)\s*$", re.IGNORECASE)
 
 
+@dataclass(frozen=True, slots=True)
+class PoemPersona:
+    value: str  # "Светозар" / "Панкратиус"
+
+    def __post_init__(self) -> None:
+        if self.value not in {"Светозар", "Панкратиус"}:
+            raise ValueError(f"unsupported poem persona {self.value!r}")
+
+
+@dataclass(frozen=True, slots=True)
+class PoemStyleNote:
+    value: str  # "в духе Есенина"
+
+
+@dataclass(frozen=True, slots=True)
+class PoemSourceDate:
+    value: str  # ISO date parsed from the sign-off
+
+    def __post_init__(self) -> None:
+        try:
+            date.fromisoformat(self.value)
+        except ValueError as exc:
+            raise ValueError(f"source date must be ISO YYYY-MM-DD: {self.value!r}") from exc
+
+
+type PoemChromeFact = PoemPersona | PoemStyleNote | PoemSourceDate
+
+_FACT_ORDER = {
+    PoemPersona: 0,
+    PoemStyleNote: 1,
+    PoemSourceDate: 2,
+}
+
+
 @dataclass(frozen=True)
 class PoemChrome:
-    """Metadata lifted out of a poem body. All optional — a clean poem yields none."""
+    """Metadata facts lifted out of a poem body; a clean poem has no facts."""
 
-    persona: str | None = None       # "Светозар" / "Панкратиус"
-    note: str | None = None          # "в духе Есенина"
-    source_date: str | None = None   # ISO date parsed from the sign-off, if any
+    facts: tuple[PoemChromeFact, ...] = ()
+
+    def __post_init__(self) -> None:
+        seen: set[type[PoemPersona] | type[PoemStyleNote] | type[PoemSourceDate]] = set()
+        for fact in self.facts:
+            fact_type = type(fact)
+            if fact_type in seen:
+                raise ValueError(f"duplicate poem chrome fact {fact_type.__name__}")
+            seen.add(fact_type)
+        object.__setattr__(
+            self,
+            "facts",
+            tuple(sorted(self.facts, key=lambda fact: _FACT_ORDER[type(fact)])),
+        )
+
+    @property
+    def persona_fact(self) -> PoemPersona | None:
+        for fact in self.facts:
+            if isinstance(fact, PoemPersona):
+                return fact
+        return None
+
+    @property
+    def style_note_fact(self) -> PoemStyleNote | None:
+        for fact in self.facts:
+            if isinstance(fact, PoemStyleNote):
+                return fact
+        return None
+
+    @property
+    def source_date_fact(self) -> PoemSourceDate | None:
+        for fact in self.facts:
+            if isinstance(fact, PoemSourceDate):
+                return fact
+        return None
+
+
+def _add_chrome_fact(facts: list[PoemChromeFact], fact: PoemChromeFact | None) -> None:
+    if fact is None:
+        return
+    for existing in facts:
+        if type(existing) is not type(fact):
+            continue
+        if existing == fact:
+            return
+        raise ValueError(
+            f"conflicting poem chrome fact {type(fact).__name__}: "
+            f"{existing.value!r} vs {fact.value!r}"
+        )
+    facts.append(fact)
+
+
+def _add_signoff_facts(facts: list[PoemChromeFact], line: str) -> None:
+    if parsed := parse_signoff_date(line):
+        _add_chrome_fact(facts, PoemSourceDate(parsed))
+    if persona := persona_of(line):
+        _add_chrome_fact(facts, PoemPersona(persona))
 
 
 def parse_signoff_date(text: str) -> str | None:
@@ -103,23 +191,21 @@ def clean_poem_chrome(body: str) -> tuple[str, PoemChrome]:
     link, or style-note title line, and trailing sign-off / timestamp lines; lifts
     persona, note, and sign-off date. The verse between is untouched."""
     lines = body.split("\n")
-    persona: str | None = None
-    note: str | None = None
-    source_date: str | None = None
+    facts: list[PoemChromeFact] = []
 
     while lines:
         head = lines[0].strip()
         if head == "":
             lines.pop(0)
         elif _is_signoff_line(head):
-            source_date = source_date or parse_signoff_date(head)
-            persona = persona or persona_of(head)
+            _add_signoff_facts(facts, head)
             lines.pop(0)
         elif _BYLINE_RE.match(head):
-            persona = persona or persona_of(head)
+            if persona := persona_of(head):
+                _add_chrome_fact(facts, PoemPersona(persona))
             lines.pop(0)
         elif (found := _leading_style_note(head)) is not None:
-            note = note or found
+            _add_chrome_fact(facts, PoemStyleNote(found))
             lines.pop(0)
         else:
             break
@@ -129,8 +215,7 @@ def clean_poem_chrome(body: str) -> tuple[str, PoemChrome]:
         if tail == "":
             lines.pop()
         elif _is_signoff_line(tail):
-            source_date = source_date or parse_signoff_date(tail)
-            persona = persona or persona_of(tail)
+            _add_signoff_facts(facts, tail)
             lines.pop()
         else:
             break
@@ -138,4 +223,4 @@ def clean_poem_chrome(body: str) -> tuple[str, PoemChrome]:
     # `rstrip` clears the now-dangling hard break left on the final verse line.
     cleaned = "\n".join(lines).rstrip()
     cleaned = f"{cleaned}\n" if cleaned else ""
-    return cleaned, PoemChrome(persona=persona, note=note, source_date=source_date)
+    return cleaned, PoemChrome(tuple(facts))

@@ -30,7 +30,17 @@ from pancratius.passes.pipeline import POEM_PASSES, Context, run
 from pancratius.passes.register import RegisterModel, load_register_model
 from pancratius.paths import CACHE_ROOT, REPO_ROOT
 from pancratius.poem_chrome import PoemChrome, clean_poem_chrome
-from pancratius.writeplan import AssetTransform, Diagnostic, PlannedAsset, Role, WriteOp, WritePlan
+from pancratius.writeplan import (
+    AssetTransform,
+    CopyOp,
+    Diagnostic,
+    EnsureDirOp,
+    PlannedAsset,
+    Role,
+    TransformAssetOp,
+    WriteOp,
+    WritePlan,
+)
 from pancratius.writer import WriteReport
 from pancratius.writer import apply as apply_plan
 
@@ -341,8 +351,7 @@ def body_asset_ops(assets: list[PlannedAsset], scope: PurePosixPath) -> list[Wri
             else AssetTransform(kind="copy")
         )
         ops.append(
-            WriteOp(
-                kind="transform_asset",
+            TransformAssetOp(
                 rel_path=scope / PurePosixPath(asset.rel_within),
                 role="imported_asset",
                 reason=f"body image {asset.rel_within}",
@@ -370,8 +379,7 @@ def plan_from_staged_bundle(
     ownership role (the caller owns that policy). The plan is the only thing handed to
     the writer. Shared by import_docx._plan_from_scratch and scaffold_subpage."""
     ops: list[WriteOp] = [
-        WriteOp(
-            kind="ensure_dir",
+        EnsureDirOp(
             rel_path=scope,
             role="canonical_source",
             reason="bundle directory",
@@ -382,8 +390,7 @@ def plan_from_staged_bundle(
             continue
         rel_within = PurePosixPath(staged.relative_to(stage_dir).as_posix())
         ops.append(
-            WriteOp(
-                kind="copy",
+            CopyOp(
                 rel_path=scope / rel_within,
                 role=role_for(rel_within),
                 reason=f"copy {rel_within}",

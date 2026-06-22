@@ -2,12 +2,7 @@
   "version": 1,
   "typescript": [],
   "python": [
-    "py:optionality-cluster:pancratius/docx_inspect.py:InspectOptions:contains, around, index_range->an explicit state/request shape or documented boundary DTO",
     "py:optionality-cluster:pancratius/import_docx.py:ImportRequest:kind, into, title, number, slug, description, cover, translation_source->an explicit state/request shape or documented boundary DTO",
-    "py:optionality-cluster:pancratius/passes/pipeline.py:Context:slug_lookup, register_model, lineation_overrides, scripture_overrides->an explicit state/request shape or documented boundary DTO",
-    "py:optionality-cluster:pancratius/poem_chrome.py:PoemChrome:persona, note, source_date->an explicit state/request shape or documented boundary DTO",
-    "py:optionality-cluster:pancratius/translate/pipeline.py:TranslationReport:estimate, written_path, profile->an explicit state/request shape or documented boundary DTO",
-    "py:optionality-cluster:pancratius/video_channels.py:VideoChannel:handle, channel_id, badge->an explicit state/request shape or documented boundary DTO",
-    "py:optionality-cluster:pancratius/writeplan.py:WriteOp:content, source, transform->an explicit state/request shape or documented boundary DTO"
+    "py:optionality-cluster:pancratius/passes/pipeline.py:Context:slug_lookup, register_model, lineation_overrides, scripture_overrides->an explicit state/request shape or documented boundary DTO"
   ]
 }

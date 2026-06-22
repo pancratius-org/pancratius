@@ -20,8 +20,9 @@ from pathlib import Path, PurePosixPath
 from pancratius import footnotes
 from pancratius.writeplan import (
     Diagnostic,
-    WriteOp,
+    EnsureDirOp,
     WritePlan,
+    WriteTextOp,
     has_fatal,
 )
 from pancratius.writer import apply as apply_plan
@@ -133,14 +134,12 @@ def test_orphaned_ref_fatal_blocks_writer(tmp_path: Path) -> None:
         target_root=content_root,
         target_scope=scope,
         operations=(
-            WriteOp(
-                kind="ensure_dir",
+            EnsureDirOp(
                 rel_path=scope,
                 role="canonical_source",
                 reason="bundle directory",
             ),
-            WriteOp(
-                kind="write_text",
+            WriteTextOp(
                 rel_path=scope / "ru.md",
                 role="canonical_source",
                 reason="body",

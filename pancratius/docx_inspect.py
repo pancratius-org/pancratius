@@ -33,7 +33,7 @@ import zipfile
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
-from typing import Literal
+from typing import Literal, assert_never
 
 from pancratius import docx_adapter as da
 from pancratius import ir
@@ -89,35 +89,80 @@ class ParagraphIndexRange:
             raise DocxInspectError("--range must be shaped as LO:HI with 0 <= LO <= HI")
 
 
+@dataclass(frozen=True, slots=True)
+class InspectAll:
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class InspectContains:
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
+class InspectAround:
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
+class InspectRange:
+    index_range: ParagraphIndexRange
+
+
+@dataclass(frozen=True, slots=True)
+class InspectVerseOnly:
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class InspectLineatedOnly:
+    pass
+
+
+type InspectFilter = (
+    InspectAll
+    | InspectContains
+    | InspectAround
+    | InspectRange
+    | InspectVerseOnly
+    | InspectLineatedOnly
+)
+
+
 @dataclass(frozen=True)
 class InspectOptions:
-    contains: str | None = None
-    around: str | None = None
+    filter: InspectFilter = InspectAll()
     context: int = 6
-    index_range: ParagraphIndexRange | None = None
-    verse_only: bool = False
-    lineated_only: bool = False
 
-    def __post_init__(self) -> None:
+    @classmethod
+    def from_cli(
+        cls,
+        *,
+        contains: str | None = None,
+        around: str | None = None,
+        context: int = 6,
+        index_range: ParagraphIndexRange | None = None,
+        verse_only: bool = False,
+        lineated_only: bool = False,
+    ) -> InspectOptions:
         filters = [
-            self.contains is not None,
-            self.around is not None,
-            self.index_range is not None,
-            self.verse_only,
-            self.lineated_only,
+            InspectContains(contains) if contains is not None else None,
+            InspectAround(around) if around is not None else None,
+            InspectRange(index_range) if index_range is not None else None,
+            InspectVerseOnly() if verse_only else None,
+            InspectLineatedOnly() if lineated_only else None,
         ]
-        if sum(filters) > 1:
+        selected = [filter_ for filter_ in filters if filter_ is not None]
+        if len(selected) > 1:
             raise DocxInspectError(
                 "choose only one inspect filter: --contains, --around, --range, "
                 "--verse-only, or --lineated-only"
             )
+        return cls(filter=selected[0] if selected else InspectAll(), context=context)
+
+    def __post_init__(self) -> None:
         if self.context < 0:
             raise DocxInspectError("--context must be non-negative")
-        if (
-            self.index_range is not None
-            and (self.index_range.lo < 0 or self.index_range.hi < self.index_range.lo)
-        ):
-            raise DocxInspectError("--range must be shaped as LO:HI with 0 <= LO <= HI")
 
 
 @dataclass(frozen=True)
@@ -768,25 +813,29 @@ def parse_index_range(raw: str | None) -> ParagraphIndexRange | None:
 
 
 def select_rows(rows: list[ParaRow], options: InspectOptions) -> list[ParaRow]:
-    if options.around is not None:
-        hits = [r.index for r in rows if options.around in r.text]
-        if not hits:
-            raise DocxInspectError(f"no paragraph contains {options.around!r}")
-        keep: set[int] = set()
-        for h in hits:
-            keep.update(
-                range(max(0, h - options.context), min(len(rows), h + options.context + 1))
-            )
-        return [r for r in rows if r.index in keep]
-    if options.contains is not None:
-        return [r for r in rows if options.contains in r.text]
-    if options.verse_only:
-        return [r for r in rows if _row_may_be_kind(r, "VerseBlock")]
-    if options.lineated_only:
-        return [r for r in rows if _row_may_be_kind(r, "LineatedBlock")]
-    if options.index_range:
-        return [r for r in rows if options.index_range.lo <= r.index <= options.index_range.hi]
-    return rows
+    match options.filter:
+        case InspectAround(text):
+            hits = [r.index for r in rows if text in r.text]
+            if not hits:
+                raise DocxInspectError(f"no paragraph contains {text!r}")
+            keep: set[int] = set()
+            for h in hits:
+                keep.update(
+                    range(max(0, h - options.context), min(len(rows), h + options.context + 1))
+                )
+            return [r for r in rows if r.index in keep]
+        case InspectContains(text):
+            return [r for r in rows if text in r.text]
+        case InspectVerseOnly():
+            return [r for r in rows if _row_may_be_kind(r, "VerseBlock")]
+        case InspectLineatedOnly():
+            return [r for r in rows if _row_may_be_kind(r, "LineatedBlock")]
+        case InspectRange(index_range):
+            return [r for r in rows if index_range.lo <= r.index <= index_range.hi]
+        case InspectAll():
+            return rows
+        case _:
+            assert_never(options.filter)
 
 
 def inspect_docx(docx: Path, options: InspectOptions | None = None) -> InspectResult:

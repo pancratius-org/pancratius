@@ -71,23 +71,50 @@ class Diagnostic:
 
 
 @dataclass(frozen=True)
-class WriteOp:
-    """One planned operation against a scope-relative path.
+class EnsureDirOp:
+    """Declare that a scope-relative directory must exist."""
 
-    `rel_path` is relative to `target_root` and must stay under `target_scope`
-    (plan enforces the lexical part; writer enforces it against the real
-    filesystem). `content` carries inline text for `write_text`; `source` names the
-    input file for `copy`/`transform_asset` (never a write target); `transform`
-    declares how a `transform_asset` reshapes its source.
-    """
-
-    kind: OpKind
     rel_path: PurePosixPath
     role: Role
     reason: str
-    content: str | None = None
-    source: Path | None = None
-    transform: AssetTransform | None = None
+    kind: Literal["ensure_dir"] = "ensure_dir"
+
+
+@dataclass(frozen=True)
+class WriteTextOp:
+    """Write UTF-8 text to a scope-relative file."""
+
+    rel_path: PurePosixPath
+    role: Role
+    reason: str
+    content: str
+    kind: Literal["write_text"] = "write_text"
+
+
+@dataclass(frozen=True)
+class CopyOp:
+    """Copy one source file to a scope-relative target file."""
+
+    rel_path: PurePosixPath
+    role: Role
+    reason: str
+    source: Path
+    kind: Literal["copy"] = "copy"
+
+
+@dataclass(frozen=True)
+class TransformAssetOp:
+    """Copy one source file through an explicit asset transform."""
+
+    rel_path: PurePosixPath
+    role: Role
+    reason: str
+    source: Path
+    transform: AssetTransform
+    kind: Literal["transform_asset"] = "transform_asset"
+
+
+type WriteOp = EnsureDirOp | WriteTextOp | CopyOp | TransformAssetOp
 
 
 @dataclass(frozen=True)
