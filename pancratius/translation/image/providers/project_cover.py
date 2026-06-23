@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import Any
 
 from pancratius.content_catalog import split_frontmatter
-from pancratius.image_translation.models import (
+from pancratius.paths import CONTENT_ROOT
+from pancratius.translation.image.models import (
     ExpectedText,
     ImageTranslationJob,
     ImageTranslationResult,
@@ -17,8 +18,7 @@ from pancratius.image_translation.models import (
     TextOverride,
     TextRole,
 )
-from pancratius.image_translation.providers import ProviderJob
-from pancratius.paths import CONTENT_ROOT
+from pancratius.translation.image.providers import ProviderJob
 
 _FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n?", re.DOTALL)
 _SLUG_RE = re.compile(r"[a-z0-9][a-z0-9-]*\Z")

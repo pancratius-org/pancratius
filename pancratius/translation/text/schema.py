@@ -18,7 +18,7 @@ import json
 from collections.abc import Sequence
 from typing import Any
 
-from pancratius.translate.document import UnitId
+from pancratius.translation.text.document import UnitId
 
 # A JSON-Schema fragment / OpenRouter ``response_format`` blob. Open by nature —
 # these mirror the wire schema, so a TypedDict would only fight the structure.

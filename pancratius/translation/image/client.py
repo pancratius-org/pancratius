@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from pancratius.image_translation.models import (
+from pancratius.translation.image.models import (
     GENERATION_MODEL,
     GENERATION_RESOLUTION,
     OPENROUTER_URL,

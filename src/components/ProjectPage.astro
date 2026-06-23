@@ -46,7 +46,7 @@ const backHref = kindIndexUrl("project", locale);
 
 // Cover: resolve the landing's frontmatter `cover` (e.g. `./cover.ru.png`)
 // straight from the content folder. Projects are sections, not works, so they
-// don't go through the work-cover machinery (which keys on `WorkPair.kind`).
+// don't go through work-pair cover helpers keyed by `WorkPair.kind`.
 const COVER_ASSETS = {
   raster: import.meta.glob<ImageMetadata>(
     "/src/content/projects/**/cover.*.{jpg,jpeg,png,webp,avif}",

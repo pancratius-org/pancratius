@@ -29,10 +29,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 
-from pancratius.translate.checks import Finding, Severity
-from pancratius.translate.chunker import Chunk, plan_chunks
-from pancratius.translate.config import TranslateConfig
-from pancratius.translate.document import Document, TextUnit, Translations, UnitId
+from pancratius.translation.text.checks import Finding, Severity
+from pancratius.translation.text.chunker import Chunk, plan_chunks
+from pancratius.translation.text.config import TranslateConfig
+from pancratius.translation.text.document import Document, TextUnit, Translations, UnitId
 
 _CYRILLIC = re.compile(r"[А-Яа-яЁё]")
 _CYRILLIC_RUN = re.compile(r"[А-Яа-яЁё]{2,}")

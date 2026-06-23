@@ -20,26 +20,26 @@ from typing import Any
 from pancratius.content_catalog import CatalogEntry, dump_frontmatter, split_frontmatter
 from pancratius.kinds import CorpusWorkKind
 from pancratius.locales import Locale
-from pancratius.translate.cache import BriefCacheEntry, CacheEntry, TranslationCache
-from pancratius.translate.checks import Finding, Severity, check_translation
-from pancratius.translate.chunker import Chunk, plan_chunks
-from pancratius.translate.client import ModelPricing, TranslatorClient, Usage
-from pancratius.translate.config import ModelId, TranslateConfig
-from pancratius.translate.diagnostics import (
+from pancratius.translation.text.cache import BriefCacheEntry, CacheEntry, TranslationCache
+from pancratius.translation.text.checks import Finding, Severity, check_translation
+from pancratius.translation.text.chunker import Chunk, plan_chunks
+from pancratius.translation.text.client import ModelPricing, TranslatorClient, Usage
+from pancratius.translation.text.config import ModelId, TranslateConfig
+from pancratius.translation.text.diagnostics import (
     Seam,
     audit_book,
     build_digest,
     inconsistent_term_seams,
     seam_windows,
 )
-from pancratius.translate.document import (
+from pancratius.translation.text.document import (
     Document,
     TextUnit,
     Translations,
     UnitId,
     parse_document,
 )
-from pancratius.translate.profile import (
+from pancratius.translation.text.profile import (
     BookProfile,
     TagLabels,
     build_profile,
@@ -47,7 +47,7 @@ from pancratius.translate.profile import (
     str_tuple,
     title_precedents,
 )
-from pancratius.translate.prompts import (
+from pancratius.translation.text.prompts import (
     TermEntry,
     TitlePrecedent,
     build_brief,
@@ -55,7 +55,7 @@ from pancratius.translate.prompts import (
     revise_messages,
     translate_messages,
 )
-from pancratius.translate.schema import parse_translations, translation_format
+from pancratius.translation.text.schema import parse_translations, translation_format
 
 # Markdown YAML frontmatter as `content_catalog` reads/writes it: a mapping of
 # string keys to JSON-ish values. Named so the en.md assembly reads as frontmatter,
@@ -668,7 +668,9 @@ def _profile_from_json_str(
     fallback_desc: str,
 ) -> BookProfile:
     """Deserialize a cached ``BookProfile`` JSON string. Degrades on bad JSON."""
-    from pancratius.translate.profile import _profile_from_json  # local import avoids circular
+    from pancratius.translation.text.profile import (
+        _profile_from_json,  # local import avoids circular
+    )
 
     try:
         data = json.loads(profile_json)

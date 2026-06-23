@@ -36,6 +36,10 @@ def _exit_code(argv: list[str]) -> int:
     "argv",
     [
         ["--help"],
+        ["work", "--help"],
+        ["work", "translate", "--help"],
+        ["image", "--help"],
+        ["image", "translate", "--help"],
         ["conceptosphere", "--help"],
         ["conceptosphere", "graph", "--help"],
         ["conceptosphere", "embed", "--help"],
@@ -54,6 +58,10 @@ def test_bare_group_or_noun_is_usage_error(argv: list[str]) -> None:
 @pytest.mark.parametrize("argv", [["bogus"], ["conceptosphere", "bogus"], ["conceptosphere", "graph", "bogus"]])
 def test_unknown_command_is_usage_error(argv: list[str]) -> None:
     assert _exit_code(argv) == 2
+
+
+def test_work_cover_is_not_public_command() -> None:
+    assert _exit_code(["work", "cover", "1"]) == 2
 
 
 @pytest.mark.parametrize(
@@ -340,7 +348,7 @@ def test_docx_optimize_dispatches_with_path_objects(monkeypatch: pytest.MonkeyPa
 
 
 def _ok_image_result(key: str) -> object:
-    from pancratius.image_translation.models import ImageTranslationResult, ImageTranslationStatus
+    from pancratius.translation.image.models import ImageTranslationResult, ImageTranslationStatus
 
     return ImageTranslationResult(
         key=key,
@@ -355,53 +363,11 @@ def _ok_image_result(key: str) -> object:
     )
 
 
-def test_work_cover_item_exception_is_batch_failure_and_continues(monkeypatch: pytest.MonkeyPatch) -> None:
-    from pancratius.image_translation import client as image_client
-    from pancratius.image_translation import translator as image_translator
-    from pancratius.image_translation.models import ImageTranslationJob
-    from pancratius.image_translation.providers import ProviderJob, book_cover
-
-    calls: list[str] = []
-
-    class FakeBookCoverProvider:
-        def __init__(self, **_kwargs: object) -> None:
-            pass
-
-        def spec(self, selector: str) -> ProviderJob:
-            return ProviderJob(
-                job=ImageTranslationJob(
-                    key=selector,
-                    source_image=Path(f"{selector}.ru.png"),
-                    target_image=Path(f"{selector}.en.png"),
-                    raw_image=Path(f"{selector}.raw.png"),
-                    metadata={"kind": "book-cover"},
-                ),
-                label=selector,
-            )
-
-    class FakeImageTextTranslator:
-        def __init__(self, **_kwargs: object) -> None:
-            pass
-
-        def translate(self, job: ImageTranslationJob) -> object:
-            calls.append(job.key)
-            if job.key == "book-01":
-                raise RuntimeError("bad cover")
-            return _ok_image_result(job.key)
-
-    monkeypatch.setattr(image_client, "api_key_from_env", lambda: "fake-key")
-    monkeypatch.setattr(book_cover, "BookCoverProvider", FakeBookCoverProvider)
-    monkeypatch.setattr(image_translator, "ImageTextTranslator", FakeImageTextTranslator)
-
-    assert _exit_code(["work", "cover", "1", "2"]) == 1
-    assert calls == ["book-01", "book-02"]
-
-
 def test_image_translate_item_exception_is_batch_failure_and_continues(monkeypatch: pytest.MonkeyPatch) -> None:
-    from pancratius.image_translation import client as image_client
-    from pancratius.image_translation import translator as image_translator
-    from pancratius.image_translation.models import ImageTranslationJob
-    from pancratius.image_translation.providers import ProviderJob, book_cover
+    from pancratius.translation.image import client as image_client
+    from pancratius.translation.image import translator as image_translator
+    from pancratius.translation.image.models import ImageTranslationJob
+    from pancratius.translation.image.providers import ProviderJob, book_cover
 
     jobs: dict[str, ImageTranslationJob] = {}
     calls: list[str] = []
@@ -442,10 +408,10 @@ def test_image_translate_item_exception_is_batch_failure_and_continues(monkeypat
 
 
 def test_image_translate_insufficient_credits_stops_batch(monkeypatch: pytest.MonkeyPatch) -> None:
-    from pancratius.image_translation import client as image_client
-    from pancratius.image_translation import translator as image_translator
-    from pancratius.image_translation.models import ImageTranslationJob
-    from pancratius.image_translation.providers import ProviderJob, book_cover
+    from pancratius.translation.image import client as image_client
+    from pancratius.translation.image import translator as image_translator
+    from pancratius.translation.image.models import ImageTranslationJob
+    from pancratius.translation.image.providers import ProviderJob, book_cover
 
     calls: list[str] = []
 

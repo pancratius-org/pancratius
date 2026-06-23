@@ -11,7 +11,7 @@ from unittest.mock import patch
 import pytest
 from PIL import Image
 
-from pancratius.image_translation.models import (
+from pancratius.translation.image.models import (
     DetectedText,
     ExactText,
     ExpectedText,
@@ -26,13 +26,13 @@ from pancratius.image_translation.models import (
     TextOverride,
     TextRole,
 )
-from pancratius.image_translation.prompts import (
+from pancratius.translation.image.prompts import (
     SteeringLevel,
     build_steering,
     generation_prompt,
     qa_prompt,
 )
-from pancratius.image_translation.providers.book_cover import (
+from pancratius.translation.image.providers.book_cover import (
     AUTHOR_EN,
     AUTHOR_RU,
     BookCoverProvider,
@@ -47,19 +47,19 @@ from pancratius.image_translation.providers.book_cover import (
     resolve_title,
     text_plan_for_book,
 )
-from pancratius.image_translation.providers.project_cover import (
+from pancratius.translation.image.providers.project_cover import (
     ProjectCoverError,
     ProjectCoverProvider,
     parse_project_selector,
 )
-from pancratius.image_translation.schema import (
+from pancratius.translation.image.schema import (
     _extract_json,
     parse_qa,
     parse_recon,
     qa_format,
     recon_format,
 )
-from pancratius.image_translation.translator import ImageTranslationConfig, resolve_texts
+from pancratius.translation.image.translator import ImageTranslationConfig, resolve_texts
 
 
 def _png_bytes() -> bytes:
@@ -742,8 +742,8 @@ def _make_qa_json(verdict: str, kinds: list[str] | None = None, *, embedded: boo
 
 
 def test_pipeline_pass_on_attempt_n_stops_loop(tmp_path: Path) -> None:
-    from pancratius.image_translation.decrop import DecropReport
-    from pancratius.image_translation.translator import translate_image
+    from pancratius.translation.image.decrop import DecropReport
+    from pancratius.translation.image.translator import translate_image
 
     job = _job(tmp_path)
     qa_responses = iter([
@@ -774,9 +774,9 @@ def test_pipeline_pass_on_attempt_n_stops_loop(tmp_path: Path) -> None:
         return DecropReport(source_size=(1, 1), raw_size=(1, 1), final_size=(1, 1), resized=False)
 
     with (
-        patch("pancratius.image_translation.translator.generate_image_translation", return_value=_FakeGenerationResponse()),
-        patch("pancratius.image_translation.translator.vision_text", side_effect=fake_vision_text),
-        patch("pancratius.image_translation.translator.decrop_to_source", side_effect=fake_decrop),
+        patch("pancratius.translation.image.translator.generate_image_translation", return_value=_FakeGenerationResponse()),
+        patch("pancratius.translation.image.translator.vision_text", side_effect=fake_vision_text),
+        patch("pancratius.translation.image.translator.decrop_to_source", side_effect=fake_decrop),
     ):
         result = translate_image(job, ImageTranslationConfig(max_attempts=3, inter_call_sleep=0.0), "fake-key")
 
@@ -786,8 +786,8 @@ def test_pipeline_pass_on_attempt_n_stops_loop(tmp_path: Path) -> None:
 
 
 def test_pipeline_retry_edits_previous_output_not_raw_source(tmp_path: Path) -> None:
-    from pancratius.image_translation.decrop import DecropReport
-    from pancratius.image_translation.translator import translate_image
+    from pancratius.translation.image.decrop import DecropReport
+    from pancratius.translation.image.translator import translate_image
 
     job = _job(tmp_path)
     edit_bases: list[Path] = []
@@ -824,9 +824,9 @@ def test_pipeline_retry_edits_previous_output_not_raw_source(tmp_path: Path) -> 
         return DecropReport(source_size=(1, 1), raw_size=(1, 1), final_size=(1, 1), resized=False)
 
     with (
-        patch("pancratius.image_translation.translator.generate_image_translation", side_effect=fake_generate),
-        patch("pancratius.image_translation.translator.vision_text", side_effect=fake_vision_text),
-        patch("pancratius.image_translation.translator.decrop_to_source", side_effect=fake_decrop),
+        patch("pancratius.translation.image.translator.generate_image_translation", side_effect=fake_generate),
+        patch("pancratius.translation.image.translator.vision_text", side_effect=fake_vision_text),
+        patch("pancratius.translation.image.translator.decrop_to_source", side_effect=fake_decrop),
     ):
         result = translate_image(job, ImageTranslationConfig(max_attempts=3, inter_call_sleep=0.0), "fake-key")
 
@@ -838,8 +838,8 @@ def test_pipeline_retry_edits_previous_output_not_raw_source(tmp_path: Path) -> 
 
 
 def test_pipeline_persistent_fail_exhausts_attempts_and_unlinks(tmp_path: Path) -> None:
-    from pancratius.image_translation.decrop import DecropReport
-    from pancratius.image_translation.translator import translate_image
+    from pancratius.translation.image.decrop import DecropReport
+    from pancratius.translation.image.translator import translate_image
 
     job = _job(tmp_path)
 
@@ -866,9 +866,9 @@ def test_pipeline_persistent_fail_exhausts_attempts_and_unlinks(tmp_path: Path) 
         return DecropReport(source_size=(1, 1), raw_size=(1, 1), final_size=(1, 1), resized=False)
 
     with (
-        patch("pancratius.image_translation.translator.generate_image_translation", return_value=_FakeGenerationResponse()),
-        patch("pancratius.image_translation.translator.vision_text", side_effect=fake_vision_text),
-        patch("pancratius.image_translation.translator.decrop_to_source", side_effect=fake_decrop),
+        patch("pancratius.translation.image.translator.generate_image_translation", return_value=_FakeGenerationResponse()),
+        patch("pancratius.translation.image.translator.vision_text", side_effect=fake_vision_text),
+        patch("pancratius.translation.image.translator.decrop_to_source", side_effect=fake_decrop),
     ):
         result = translate_image(job, ImageTranslationConfig(max_attempts=3, inter_call_sleep=0.0), "fake-key")
 
@@ -880,8 +880,8 @@ def test_pipeline_persistent_fail_exhausts_attempts_and_unlinks(tmp_path: Path) 
 
 
 def test_pipeline_embedded_only_leftover_accepted_with_caveat(tmp_path: Path) -> None:
-    from pancratius.image_translation.decrop import DecropReport
-    from pancratius.image_translation.translator import translate_image
+    from pancratius.translation.image.decrop import DecropReport
+    from pancratius.translation.image.translator import translate_image
 
     job = _job_with_caveat_policy(tmp_path)
 
@@ -908,9 +908,9 @@ def test_pipeline_embedded_only_leftover_accepted_with_caveat(tmp_path: Path) ->
         return DecropReport(source_size=(1, 1), raw_size=(1, 1), final_size=(1, 1), resized=False)
 
     with (
-        patch("pancratius.image_translation.translator.generate_image_translation", return_value=_FakeGenerationResponse()),
-        patch("pancratius.image_translation.translator.vision_text", side_effect=fake_vision_text),
-        patch("pancratius.image_translation.translator.decrop_to_source", side_effect=fake_decrop),
+        patch("pancratius.translation.image.translator.generate_image_translation", return_value=_FakeGenerationResponse()),
+        patch("pancratius.translation.image.translator.vision_text", side_effect=fake_vision_text),
+        patch("pancratius.translation.image.translator.decrop_to_source", side_effect=fake_decrop),
     ):
         result = translate_image(job, ImageTranslationConfig(max_attempts=2, inter_call_sleep=0.0), "fake-key")
 
@@ -921,8 +921,8 @@ def test_pipeline_embedded_only_leftover_accepted_with_caveat(tmp_path: Path) ->
 
 
 def test_pipeline_embedded_only_leftover_hard_fails_without_provider_policy(tmp_path: Path) -> None:
-    from pancratius.image_translation.decrop import DecropReport
-    from pancratius.image_translation.translator import translate_image
+    from pancratius.translation.image.decrop import DecropReport
+    from pancratius.translation.image.translator import translate_image
 
     job = _job(tmp_path)
 
@@ -949,9 +949,9 @@ def test_pipeline_embedded_only_leftover_hard_fails_without_provider_policy(tmp_
         return DecropReport(source_size=(1, 1), raw_size=(1, 1), final_size=(1, 1), resized=False)
 
     with (
-        patch("pancratius.image_translation.translator.generate_image_translation", return_value=_FakeGenerationResponse()),
-        patch("pancratius.image_translation.translator.vision_text", side_effect=fake_vision_text),
-        patch("pancratius.image_translation.translator.decrop_to_source", side_effect=fake_decrop),
+        patch("pancratius.translation.image.translator.generate_image_translation", return_value=_FakeGenerationResponse()),
+        patch("pancratius.translation.image.translator.vision_text", side_effect=fake_vision_text),
+        patch("pancratius.translation.image.translator.decrop_to_source", side_effect=fake_decrop),
     ):
         result = translate_image(job, ImageTranslationConfig(max_attempts=1, inter_call_sleep=0.0), "fake-key")
 
@@ -960,14 +960,14 @@ def test_pipeline_embedded_only_leftover_hard_fails_without_provider_policy(tmp_
 
 
 def test_pipeline_insufficient_credits_is_terminal(tmp_path: Path) -> None:
-    from pancratius.image_translation.client import InsufficientCreditsError
-    from pancratius.image_translation.translator import translate_image
+    from pancratius.translation.image.client import InsufficientCreditsError
+    from pancratius.translation.image.translator import translate_image
 
     job = _job(tmp_path)
 
     with (
         patch(
-            "pancratius.image_translation.translator.vision_text",
+            "pancratius.translation.image.translator.vision_text",
             side_effect=InsufficientCreditsError("HTTP 402: no credits"),
         ),
         pytest.raises(InsufficientCreditsError),
@@ -976,7 +976,7 @@ def test_pipeline_insufficient_credits_is_terminal(tmp_path: Path) -> None:
 
 
 def test_client_recognizes_non_402_insufficient_credit_body() -> None:
-    from pancratius.image_translation.client import _looks_like_insufficient_credits
+    from pancratius.translation.image.client import _looks_like_insufficient_credits
 
     assert _looks_like_insufficient_credits(400, '{"error":"can only afford 18000 tokens"}')
     assert _looks_like_insufficient_credits(200, '{"error":{"message":"Insufficient balance"}}')
@@ -988,7 +988,7 @@ def test_config_rejects_zero_max_attempts() -> None:
 
 
 def test_decrop_trims_white_border_before_resize(tmp_path: Path) -> None:
-    from pancratius.image_translation.decrop import decrop_to_source
+    from pancratius.translation.image.decrop import decrop_to_source
 
     source = tmp_path / "source.png"
     Image.new("RGB", (2, 2), (200, 0, 0)).save(source)

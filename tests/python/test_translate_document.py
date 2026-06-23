@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from pancratius.content_catalog import split_frontmatter
-from pancratius.translate.document import Slot, UnitKind, parse_document
+from pancratius.translation.text.document import Slot, UnitKind, parse_document
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTENT = ROOT / "src" / "content"

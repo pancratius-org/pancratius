@@ -30,11 +30,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, assert_never
 
 if TYPE_CHECKING:
-    from pancratius.image_translation.models import ImageTranslationResult
     from pancratius.import_docx import ImportRequest, TranslationSource
     from pancratius.kinds import CorpusWorkKind
     from pancratius.locales import Locale
-    from pancratius.translate import TranslationReport
+    from pancratius.translation.image.models import ImageTranslationResult
+    from pancratius.translation.text import TranslationReport
 
 
 def _missing_extra(extra: str, exc: ImportError) -> int:
@@ -168,7 +168,7 @@ def _work_import(args: argparse.Namespace) -> int:
 def _print_translate_report(report: TranslationReport) -> float:
     """Print one book's outcome and return its USD cost contribution (estimate
     for --dry-run, real billed cost for a live run)."""
-    from pancratius.translate import TranslationEstimateOutcome, TranslationWriteOutcome
+    from pancratius.translation.text import TranslationEstimateOutcome, TranslationWriteOutcome
 
     match report.outcome:
         case TranslationEstimateOutcome(estimate=est):
@@ -210,8 +210,8 @@ def _work_translate(args: argparse.Namespace) -> int:
     from concurrent.futures import ThreadPoolExecutor, as_completed
     from datetime import date
 
-    from pancratius import translate as xlate
     from pancratius.content_catalog import CatalogEntry, scan_catalog
+    from pancratius.translation import text as xlate
 
     content_root = Path(args.out_content)
     kind = _corpus_work_kind_arg(args.kind)
@@ -304,10 +304,10 @@ def _work_translate(args: argparse.Namespace) -> int:
     return 1 if failures or stop.is_set() else 0
 
 
-# --- handlers (image translation / work cover) -------------------------------
+# --- handlers (image translation) --------------------------------------------
 def _print_image_result(result: ImageTranslationResult) -> None:
     """Print a single image translation result to stdout."""
-    from pancratius.image_translation.models import ImageTranslationStatus, QaVerdict
+    from pancratius.translation.image.models import ImageTranslationStatus, QaVerdict
 
     tag = "OK  " if result.ok else "FAIL"
     if result.status is ImageTranslationStatus.OK_WITH_CAVEAT:
@@ -333,7 +333,7 @@ def _print_image_result(result: ImageTranslationResult) -> None:
 
 
 def _image_exception_result(key: str, exc: Exception, *, kind: str) -> ImageTranslationResult:
-    from pancratius.image_translation.models import ImageTranslationResult, ImageTranslationStatus
+    from pancratius.translation.image.models import ImageTranslationResult, ImageTranslationStatus
 
     return ImageTranslationResult(
         key=key,
@@ -348,114 +348,22 @@ def _image_exception_result(key: str, exc: Exception, *, kind: str) -> ImageTran
     )
 
 
-def _work_cover(args: argparse.Namespace) -> int:
-    """`work cover [book-XX …]` — translate Russian book covers to English.
-
-    Each cover goes through: (1) vision recon to identify displayed text,
-    (2) fused image-edit generation with a pinned EN title and overrides,
-    (3) vision QA against both images. On QA failure the discrepancies are
-    folded into a steering addendum for the next attempt (up to 3 attempts).
-    If an .en.png already exists it is QA-d first; PASS → done, no regeneration.
-    """
-    from pancratius.image_translation.client import InsufficientCreditsError, api_key_from_env
-    from pancratius.image_translation.providers.book_cover import (
-        DEFAULT_BOOKS_ROOT,
-        DEFAULT_COVERS_DIR,
-        DEFAULT_QUEUE_MD,
-        DEFAULT_SEED_PATH,
-        BookCoverProvider,
-        discover_books,
-        normalise_book_key,
-    )
-    from pancratius.image_translation.translator import ImageTextTranslator, ImageTranslationConfig
-
-    try:
-        api_key = api_key_from_env()
-    except ValueError as exc:
-        return _fail(exc)
-
-    output_dir = Path(args.output_dir)
-
-    # Resolve book keys from positional arguments or discover all
-    if args.books:
-        # Each arg can be "book-50", "50", or "book-50 book-51" (split)
-        raw_keys: list[str] = []
-        for tok in args.books:
-            for part in tok.split():
-                raw_keys.append(part)
-        try:
-            book_keys = [normalise_book_key(raw) for raw in raw_keys]
-        except ValueError as exc:
-            return _fail(exc, 2)
-    else:
-        covers_dir = Path(args.covers_dir) if args.covers_dir else DEFAULT_COVERS_DIR
-        book_keys = discover_books(covers_dir)
-        if not book_keys:
-            print("no source covers found.")
-            return 0
-
-    provider = BookCoverProvider(
-        output_dir=output_dir,
-        covers_dir=Path(args.covers_dir) if args.covers_dir else DEFAULT_COVERS_DIR,
-        queue_md=Path(args.queue_md) if args.queue_md else DEFAULT_QUEUE_MD,
-        books_root=Path(args.books_root) if args.books_root else DEFAULT_BOOKS_ROOT,
-        seed_path=Path(args.seed) if args.seed else DEFAULT_SEED_PATH,
-    )
-    translator = ImageTextTranslator(
-        config=ImageTranslationConfig(max_attempts=args.max_attempts),
-        api_key=api_key,
-    )
-
-    print(f"cover translate: {len(book_keys)} book(s) → {output_dir}")
-    print(f"books: {', '.join(book_keys)}\n")
-
-    results = []
-    total = 0.0
-    for book_key in book_keys:
-        print(f"[{book_key}]")
-        try:
-            result = translator.translate(provider.spec(book_key).job)
-        except InsufficientCreditsError as exc:
-            print(f"  FAIL {book_key}: {exc}")
-            result = _image_exception_result(book_key, exc, kind="book-cover")
-            results.append(result)
-            print("stopping: image translation account has insufficient credits", file=sys.stderr)
-            break
-        except Exception as exc:  # noqa: BLE001 — one bad cover must not kill the batch
-            print(f"  FAIL {book_key}: {exc}")
-            result = _image_exception_result(book_key, exc, kind="book-cover")
-            results.append(result)
-            continue
-        _print_image_result(result)
-        total += result.total_cost_usd
-        results.append(result)
-
-    failed = [r for r in results if not r.ok]
-    print(f"\ntotal spent: ${total:.5f}")
-    print(f"succeeded: {sum(1 for r in results if r.ok)}/{len(results)}")
-    if failed:
-        print("failed:")
-        for r in failed:
-            print(f"  {r.key}: {r.error}")
-    return 1 if failed else 0
-
-
 def _image_translate(args: argparse.Namespace) -> int:
     """`image translate <selector...>` — translate text-bearing image assets."""
-    from pancratius.image_translation.client import InsufficientCreditsError, api_key_from_env
-    from pancratius.image_translation.providers import ProviderJob
-    from pancratius.image_translation.providers.book_cover import (
+    from pancratius.translation.image.client import InsufficientCreditsError, api_key_from_env
+    from pancratius.translation.image.providers import ProviderJob
+    from pancratius.translation.image.providers.book_cover import (
         DEFAULT_BOOKS_ROOT,
         DEFAULT_COVERS_DIR,
         DEFAULT_QUEUE_MD,
         DEFAULT_SEED_PATH,
         BookCoverProvider,
     )
-    from pancratius.image_translation.providers.project_cover import (
+    from pancratius.translation.image.providers.project_cover import (
         ProjectCoverError,
         ProjectCoverProvider,
     )
-    from pancratius.image_translation.translator import ImageTextTranslator, ImageTranslationConfig
+    from pancratius.translation.image.translator import ImageTextTranslator, ImageTranslationConfig
 
     if not args.selectors:
         return _fail("at least one selector is required (e.g. book:50 or project:holy-rus)", 2)
@@ -763,7 +671,7 @@ def _add_work_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     from pancratius import import_docx  # light (no ML); owns DEFAULT_CONTENT_ROOT
     from pancratius.kinds import CORPUS_WORK_KINDS
     from pancratius.locales import LOCALES
-    from pancratius.translate.config import DEFAULT_MODEL as DEFAULT_TRANSLATION_MODEL
+    from pancratius.translation.text.config import DEFAULT_MODEL as DEFAULT_TRANSLATION_MODEL
 
     work = sub.add_parser("work", help="Import corpus works (a book or a poem).")
     work.set_defaults(func=_require_subcommand(work))
@@ -858,42 +766,13 @@ def _add_work_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     )
     work_translate.set_defaults(func=_work_translate)
 
-    work_cover = work_sub.add_parser(
-        "cover",
-        help="Translate Russian book covers to English via image editing (recon→generate→QA loop).",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    work_cover.add_argument(
-        "books",
-        nargs="*",
-        metavar="book-XX",
-        help="Book key(s) to translate (e.g. book-50 or 50). Omit to translate all discovered covers.",
-    )
-    work_cover.add_argument(
-        "--output-dir",
-        default="cover-out",
-        help="Directory for .raw.png and .en.png outputs (default: cover-out/ relative to cwd).",
-    )
-    work_cover.add_argument("--covers-dir", help="Override the source cover directory.")
-    work_cover.add_argument("--queue-md", help="Override QUEUE.md path.")
-    work_cover.add_argument("--books-root", help="Override src/content/books root.")
-    work_cover.add_argument("--seed", help="Override seed.json path.")
-    work_cover.add_argument(
-        "--max-attempts",
-        type=int,
-        default=3,
-        help="Maximum generation+QA attempts per cover before giving up.",
-    )
-    work_cover.set_defaults(func=_work_cover)
-
-
 def _add_image_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    from pancratius.image_translation.providers.book_cover import (
+    from pancratius.paths import CONTENT_ROOT
+    from pancratius.translation.image.providers.book_cover import (
         DEFAULT_BOOKS_ROOT,
         DEFAULT_COVERS_DIR,
         DEFAULT_QUEUE_MD,
     )
-    from pancratius.paths import CONTENT_ROOT
 
     image = sub.add_parser("image", help="Translate text-bearing library images.")
     image.set_defaults(func=_require_subcommand(image))
@@ -911,7 +790,7 @@ def _add_image_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -
     translate.add_argument(
         "--output-dir",
         default="image-translate-out",
-        help="Intermediate output directory; for legacy book covers this also holds final .en.png files.",
+        help="Intermediate output directory; book-cover selectors also write final .en.png files here.",
     )
     translate.add_argument("--content-root", default=str(CONTENT_ROOT), help="Content root for project selectors.")
     translate.add_argument("--covers-dir", default=str(DEFAULT_COVERS_DIR), help="Book-cover source queue.")

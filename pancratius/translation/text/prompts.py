@@ -18,8 +18,8 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from pancratius.translate.client import ChatMessage
-from pancratius.translate.document import TextUnit, Translations
+from pancratius.translation.text.client import ChatMessage
+from pancratius.translation.text.document import TextUnit, Translations
 
 # The constant contract. Cached across the entire run (every book, every chunk).
 STYLE_GUIDE = """\

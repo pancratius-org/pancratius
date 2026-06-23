@@ -2,16 +2,16 @@
 
 Public surface for the ``pancratius work translate`` verb: it drafts an ``en.md``
 from a book's ``ru.md``, preserving Markdown structure and lineation by
-construction. See :mod:`pancratius.translate.document` for the structure-preserving
-core and :mod:`pancratius.translate.pipeline` for the run.
+construction. See :mod:`pancratius.translation.text.document` for the structure-preserving
+core and :mod:`pancratius.translation.text.pipeline` for the run.
 """
 
 from __future__ import annotations
 
-from pancratius.translate.cache import TranslationCache
-from pancratius.translate.client import OpenRouterClient, OpenRouterError
-from pancratius.translate.config import DEFAULT_MODEL, StageModels, TranslateConfig
-from pancratius.translate.pipeline import (
+from pancratius.translation.text.cache import TranslationCache
+from pancratius.translation.text.client import OpenRouterClient, OpenRouterError
+from pancratius.translation.text.config import DEFAULT_MODEL, StageModels, TranslateConfig
+from pancratius.translation.text.pipeline import (
     CostEstimate,
     TranslateError,
     TranslationEstimateOutcome,
@@ -21,8 +21,8 @@ from pancratius.translate.pipeline import (
     find_untranslated,
     translate_book,
 )
-from pancratius.translate.profile import load_glossary, load_tag_labels
-from pancratius.translate.prompts import TermEntry
+from pancratius.translation.text.profile import load_glossary, load_tag_labels
+from pancratius.translation.text.prompts import TermEntry
 
 __all__ = [
     "DEFAULT_MODEL",

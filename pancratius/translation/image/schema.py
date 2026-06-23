@@ -6,7 +6,7 @@ import json
 import re
 from typing import Any
 
-from pancratius.image_translation.models import (
+from pancratius.translation.image.models import (
     DetectedText,
     ImageReconResult,
     QaDiscrepancy,
@@ -145,6 +145,8 @@ def _extract_json(text: str) -> str:
 
 
 def _coerce_role(role: str) -> TextRole:
+    # Compatibility with earlier prompt/schema vocabulary. Keep these aliases at
+    # the parser edge so the image domain model stays provider-neutral.
     legacy = {
         "title": TextRole.PRIMARY,
         "subtitle": TextRole.SECONDARY,
@@ -182,6 +184,8 @@ def parse_recon(text: str) -> ImageReconResult:
                 embedded=bool(item.get("embedded", item.get("art_baked", False))),
             )
         )
+    # `displayed_title` is accepted for older model replies; callers only see the
+    # generic `primary_text` field.
     primary = data.get("primary_text", data.get("displayed_title", ""))
     if not isinstance(primary, str):
         primary = ""
@@ -202,6 +206,8 @@ def parse_qa(text: str) -> QaResult:
         desc = item.get("description")
         if not isinstance(kind, str) or not isinstance(desc, str):
             continue
+        # Compatibility with older QA replies; normalize to generic discrepancy
+        # kinds before the rest of the image pipeline sees them.
         if kind == "cyrillic_left":
             kind = "source_text_left"
         elif kind == "author_wrong":
