@@ -944,11 +944,51 @@ def _docx_translate_from_md(args: argparse.Namespace) -> int:
             dry_run=args.dry_run,
             replace=args.replace,
             limit=args.limit,
+            backend=args.backend,
         )
     except DocxTranslationError as exc:
         return _fail(exc)
     print_batch(batch, dry_run=args.dry_run)
     return 1 if batch.failed else 0
+
+
+def _docx_roundtrip_md(args: argparse.Namespace) -> int:
+    """`docx roundtrip-md` — prove committed DOCX imports back to acceptable Markdown."""
+    from pancratius.docx_roundtrip import (
+        DocxRoundTripError,
+        check_docx_markdown_roundtrip,
+        exit_code,
+        print_roundtrip_batch,
+    )
+    from pancratius.selectors import SelectorError, parse_book_selector
+
+    if (rc := _require_pandoc()) is not None:
+        return rc
+    if args.limit < 0:
+        return _fail("--limit must be non-negative.", 2)
+    book = None
+    if args.selector is not None:
+        if args.limit:
+            return _fail("--limit cannot be combined with explicit book:NN selector.", 2)
+        try:
+            book = parse_book_selector(args.selector).number
+        except SelectorError as exc:
+            return _fail(exc, 2)
+    try:
+        batch = check_docx_markdown_roundtrip(
+            content_root=Path(args.content_root),
+            lang=_locale_arg(args.lang),
+            book=book,
+            limit=args.limit,
+            progress=lambda index, total, target: print(
+                f"roundtrip-md {index}/{total} {target.label}",
+                file=sys.stderr,
+            ),
+        )
+    except DocxRoundTripError as exc:
+        return _fail(exc)
+    print_roundtrip_batch(batch, json_output=args.json)
+    return exit_code(batch)
 
 
 # --- handlers (conceptosphere group) ------------------------------------------
@@ -1277,6 +1317,27 @@ def _add_docx_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     render_slice.add_argument("--out", required=True, help="Output PNG path; multi-page slices add suffixes.")
     render_slice.set_defaults(func=_docx_render_slice)
 
+    roundtrip_md = docx_sub.add_parser(
+        "roundtrip-md",
+        help="Import committed translated DOCX files into temp Markdown and compare with committed Markdown.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    roundtrip_md.add_argument(
+        "selector",
+        nargs="?",
+        metavar="book:NN",
+        help="Book selector to check. Omit to check every book with <lang>.docx and <lang>.md.",
+    )
+    roundtrip_md.add_argument("--lang", choices=tuple(LOCALES), default="en")
+    roundtrip_md.add_argument(
+        "--content-root",
+        default=str(import_docx.DEFAULT_CONTENT_ROOT),
+        help="Content root; defaults to src/content.",
+    )
+    roundtrip_md.add_argument("--limit", type=int, default=0, help="Check only the first N discovered DOCX files.")
+    roundtrip_md.add_argument("--json", action="store_true", help="Print a machine-readable result summary.")
+    roundtrip_md.set_defaults(func=_docx_roundtrip_md)
+
     translate_from_md = docx_sub.add_parser(
         "translate-from-md",
         help=(
@@ -1315,6 +1376,15 @@ def _add_docx_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         help=(
             "Regenerate one existing translated DOCX. Requires book:NN because "
             "translated DOCX is source after bootstrap."
+        ),
+    )
+    translate_from_md.add_argument(
+        "--backend",
+        choices=("transfer", "markdown-render"),
+        default="transfer",
+        help=(
+            "DOCX creation backend. transfer preserves donor OOXML structure; "
+            "markdown-render renders translated Markdown with ru.docx reference styles."
         ),
     )
     translate_from_md.set_defaults(func=_docx_translate_from_md)
