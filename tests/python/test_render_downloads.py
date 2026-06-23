@@ -176,7 +176,6 @@ def test_render_uses_provided_entries_in_order(
 
     monkeypatch.setattr(render_downloads, "discover_works", lambda: [])
     monkeypatch.setattr(render_downloads, "_ensure_tools", lambda _formats: None)
-    monkeypatch.setattr(render_downloads, "REPO_ROOT", tmp_path)
     monkeypatch.setattr(render_downloads, "CACHE_ROOT", tmp_path / ".cache")
     monkeypatch.setattr(
         render_downloads,
@@ -189,10 +188,54 @@ def test_render_uses_provided_entries_in_order(
         lambda entry, _scratch_dir: rendered.append((entry.kind, entry.number, "epub")),
     )
 
-    render_downloads.render(
+    summary = render_downloads.render(
         entries=(poem_1, book_2),
         skip_epub=True,
         force=True,
     )
 
     assert rendered == [("poem", 1, "pdf"), ("book", 2, "pdf")]
+    assert summary.pdfs_made == 2
+    assert summary.epubs_made == 0
+    assert summary.skipped == 0
+
+
+def test_build_plan_reports_writes_without_rendering(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entry = _work_entry(tmp_path, "Book 1")
+
+    monkeypatch.setattr(render_downloads, "_ensure_tools", lambda _formats: pytest.fail("tools checked"))
+    monkeypatch.setattr(render_downloads, "render_pdf", lambda *_args: pytest.fail("pdf rendered"))
+    monkeypatch.setattr(render_downloads, "render_epub", lambda *_args: pytest.fail("epub rendered"))
+
+    plan = render_downloads.build_plan(entries=(entry,))
+
+    assert [(action.format, action.action, action.selector) for action in plan.actions] == [
+        ("pdf", "render", "book:1"),
+        ("epub", "render", "book:1"),
+    ]
+    assert not (entry.folder / "ru.pdf").exists()
+    assert not (entry.folder / "ru.epub").exists()
+
+
+def test_execute_plan_skips_current_outputs_without_tools_or_scratch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entry = _work_entry(tmp_path, "Book 1")
+    (entry.folder / "ru.pdf").write_text("existing", encoding="utf-8")
+
+    cache_root = tmp_path / ".cache"
+    monkeypatch.setattr(render_downloads, "CACHE_ROOT", cache_root)
+    monkeypatch.setattr(render_downloads, "render_pdf", lambda *_args: pytest.fail("pdf rendered"))
+    monkeypatch.setattr(render_downloads, "render_epub", lambda *_args: pytest.fail("epub rendered"))
+
+    plan = render_downloads.build_plan(entries=(entry,), skip_epub=True)
+    summary = render_downloads.execute_plan(plan)
+
+    assert summary.pdfs_made == 0
+    assert summary.epubs_made == 0
+    assert summary.skipped == 1
+    assert not cache_root.exists()
