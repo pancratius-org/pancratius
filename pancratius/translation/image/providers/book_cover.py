@@ -178,13 +178,14 @@ def _displayed_form(wording: str) -> str:
 
 
 def normalise_book_key(raw: str) -> str:
-    """Return canonical `book-NN` from `50`, `book-50`, or `book:50`."""
-    value = raw.removeprefix("book:")
-    if re.fullmatch(r"\d+", value):
-        return f"book-{int(value):02d}"
-    if re.fullmatch(r"book-\d+", value):
-        return f"book-{int(value.split('-')[1]):02d}"
-    raise ValueError(f"unrecognised book key {raw!r} (use 'book-50' or '50')")
+    """Return canonical internal ``book-NN`` from ``book:NN`` or ``book-NN``."""
+    if raw.startswith("book:"):
+        value = raw.removeprefix("book:")
+        if re.fullmatch(r"[0-9]+", value):
+            return f"book-{int(value):02d}"
+    if re.fullmatch(r"book-[0-9]+", raw):
+        return f"book-{int(raw.split('-')[1]):02d}"
+    raise ValueError(f"unrecognised book key {raw!r} (use 'book:50')")
 
 
 def resolve_pin(

@@ -484,15 +484,15 @@ a stable unprocessed URL.
    uv run pancratius work import /path/to/new.docx --kind book --lang ru
    ```
 
-   To add a translation to an existing work, target the existing bundle key:
+   To add a translation to an existing numbered work, target its selector:
 
    ```sh
-   uv run pancratius work import /path/to/book-en.docx --into 30-poslanie-musulmanam --lang en
+   uv run pancratius work import /path/to/book-en.docx --to book:30 --lang en
    ```
 
-2. Add `--title`, `--number`, `--slug`, `--description`, or `--cover` when the
-   importer cannot infer the desired value. Missing descriptions are seeded as
-   an obvious `TODO:` value so the file validates but remains easy to find.
+2. Add `--title`, `--to`, `--slug`, `--description`, or `--cover` when the importer
+   cannot infer the desired value. Missing descriptions are seeded as an obvious
+   `TODO:` value so the file validates but remains easy to find.
 3. Author edits `description`, `title`, `tags`, and `cross_refs` if needed.
 4. Run the remaining local release-artifact tools for the changed work:
    render PDF/EPUB and refresh bulk Markdown.

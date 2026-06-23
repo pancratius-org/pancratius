@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
@@ -8,19 +9,26 @@ from pancratius import render_downloads
 from pancratius.content_catalog import split_frontmatter
 
 
-def _work_entry(tmp_path: Path, body: str) -> render_downloads.WorkEntry:
-    folder = tmp_path / "books" / "test-work"
+def _work_entry(
+    tmp_path: Path,
+    body: str,
+    *,
+    kind: str = "book",
+    number: int = 1,
+    lang: str = "ru",
+) -> render_downloads.WorkEntry:
+    folder = tmp_path / f"{kind}s" / f"test-{kind}-{number}"
     folder.mkdir(parents=True)
-    md = folder / "ru.md"
+    md = folder / f"{lang}.md"
     md.write_text(
         "\n".join(
             [
                 "---",
-                "kind: book",
-                "number: 1",
-                "slug: test-work",
+                f"kind: {kind}",
+                f"number: {number}",
+                f"slug: test-{kind}-{number}",
                 "title: Test Work",
-                "lang: ru",
+                f"lang: {lang}",
                 "---",
                 "",
                 body,
@@ -29,12 +37,12 @@ def _work_entry(tmp_path: Path, body: str) -> render_downloads.WorkEntry:
         encoding="utf-8",
     )
     return render_downloads.WorkEntry(
-        kind="book",
-        number=1,
+        kind=cast(Any, kind),
+        number=number,
         folder=folder,
-        lang="ru",
+        lang=cast(Any, lang),
         md=md,
-        slug="test-work",
+        slug=f"test-{kind}-{number}",
         title="Test Work",
     )
 
@@ -156,3 +164,35 @@ def test_current_work_corpus_download_html_allowlist() -> None:
                 failures.append(str(exc))
 
     assert failures == []
+
+
+def test_render_uses_provided_entries_in_order(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    book_2 = _work_entry(tmp_path, "Book 2", kind="book", number=2)
+    poem_1 = _work_entry(tmp_path, "Poem 1", kind="poem", number=1)
+    rendered: list[tuple[str, int, str]] = []
+
+    monkeypatch.setattr(render_downloads, "discover_works", lambda: [])
+    monkeypatch.setattr(render_downloads, "_ensure_tools", lambda _formats: None)
+    monkeypatch.setattr(render_downloads, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(render_downloads, "CACHE_ROOT", tmp_path / ".cache")
+    monkeypatch.setattr(
+        render_downloads,
+        "render_pdf",
+        lambda entry, _scratch_dir: rendered.append((entry.kind, entry.number, "pdf")),
+    )
+    monkeypatch.setattr(
+        render_downloads,
+        "render_epub",
+        lambda entry, _scratch_dir: rendered.append((entry.kind, entry.number, "epub")),
+    )
+
+    render_downloads.render(
+        entries=(poem_1, book_2),
+        skip_epub=True,
+        force=True,
+    )
+
+    assert rendered == [("poem", 1, "pdf"), ("book", 2, "pdf")]

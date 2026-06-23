@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from pancratius import cli, docx_render
+from pancratius import cli, docx_inspect, docx_render
 from pancratius.docx_inspect import ParagraphIndexRange, ParaRow
 
 
@@ -90,6 +90,49 @@ def test_docx_render_slice_cli_reports_missing_source(capsys: pytest.CaptureFixt
 
     assert rc == 2
     assert "DOCX not found" in capsys.readouterr().err
+
+
+def test_docx_render_slice_cli_accepts_book_selector(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    resolved = tmp_path / "book-30" / "ru.docx"
+    out = tmp_path / "slice.png"
+
+    def fake_resolve_book_docx(number: int, *, lang: str, content_root: Path) -> Path:
+        assert number == 30
+        assert lang == "ru"
+        assert content_root == tmp_path
+        return resolved
+
+    monkeypatch.setattr(docx_inspect, "resolve_book_docx", fake_resolve_book_docx)
+    monkeypatch.setattr(
+        docx_render,
+        "resolve_range",
+        lambda docx, **_kwargs: docx_render.ResolvedParagraphSlice(
+            index_range=ParagraphIndexRange(4, 4),
+            rows=(_row(f"resolved {docx.name}", index=4),),
+        ),
+    )
+    monkeypatch.setattr(docx_render, "render", lambda _docx, _lo, _hi, out_png: [out_png])
+
+    rc = cli.main([
+        "docx",
+        "render-slice",
+        "book:30",
+        "--range",
+        "4:4",
+        "--out",
+        str(out),
+        "--content-root",
+        str(tmp_path),
+    ])
+
+    assert rc == 0
+    stdout = capsys.readouterr().out
+    assert "rendered paragraphs [4..4]" in stdout
+    assert "resolved ru.docx" in stdout
 
 
 def test_docx_render_uses_isolated_libreoffice_profile(

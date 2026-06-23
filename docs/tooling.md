@@ -72,21 +72,30 @@ functions in process. It does not shell out to other Python CLIs.
 
 | Command | Owner |
 | --- | --- |
-| `pancratius work import <docx> --kind book|poem` | `pancratius.import_docx.import_work` |
-| `pancratius work translate [--book N] [--dry-run]` | `pancratius.translation.text.translate_book` |
+| `pancratius work import <docx> (--kind book|poem | --to book:NN|poem:NN)` | `pancratius.import_docx.import_work` |
+| `pancratius work translate [book:NN …] [--dry-run]` | `pancratius.translation.text.translate_book` |
 | `pancratius image translate <book:NN|project:slug[/subpage] …>` | `pancratius.translation.image` providers + engine |
 | `pancratius project page add <project> <subpage-slug> <docx>` | `pancratius.docx_conversion.scaffold_subpage` |
 | `pancratius video sync [--channel KEY] [--dry-run]` | `pancratius.video_scan.scan` |
-| `pancratius downloads render [--book N]` | `pancratius.render_downloads` |
+| `pancratius downloads render [book:NN|poem:NN …]` | `pancratius.render_downloads` |
 | `pancratius docx optimize [paths...]` | `pancratius.docx_optimize` |
-| `pancratius docx inspect <docx> [--contains TEXT|--around TEXT|--range LO:HI|--verse-only|--lineated-only]` | `pancratius.docx_inspect` |
-| `pancratius docx render-slice <docx> (--around TEXT|--range LO:HI) --out <png>` | `pancratius.docx_render` |
+| `pancratius docx inspect <book:NN|docx> [--contains TEXT|--around TEXT|--range LO:HI|--verse-only|--lineated-only]` | `pancratius.docx_inspect` |
+| `pancratius docx render-slice <book:NN|docx> (--around TEXT|--range LO:HI) --out <png>` | `pancratius.docx_render` |
 | `pancratius docx merge <parts...> --out <docx> [--part TITLE::MARKER]` | `pancratius.docx_merge` |
 | `pancratius conceptosphere graph generate [--only concepts|books]` | `pancratius.conceptosphere.generate_graph` |
 | `pancratius conceptosphere embed generate` | `pancratius.conceptosphere_embed.generate_embeddings` |
 
 The grammar carries the content model:
 
+- Existing library resources are named with typed selectors such as `book:50`,
+  `poem:1`, `project:holy-rus`, and `project:holy-rus/tartaria`. Primary
+  resource identities are positional; flags remain options like `--dry-run`,
+  `--replace`, `--lang`, and `--output-dir`. Source-first creation commands are
+  the exception: `work import <docx> --kind book|poem` keeps the external artifact
+  as the primary positional input; `work import <docx> --to book:50` names the
+  destination identity when the number is explicit. `--kind` and `--to` are
+  mutually exclusive, `--to` infers both kind and number, and `--replace` is
+  required only when the concrete locale file would be overwritten.
 - `work import` handles corpus works only: books and poems. `project` and
   `video` are routed but not works; PAN017 guards this.
 - `work translate` drafts an `en.md` from a book's `ru.md` via OpenRouter
@@ -143,15 +152,15 @@ DOCX diagnostic examples:
 
 ```sh
 # Grep-like source/importer inspection around text in a committed book source.
-uv run pancratius docx inspect --book 30 --around "Если готов" --context 8
+uv run pancratius docx inspect book:30 --around "Если готов" --context 8
 
 # Render the same neighborhood as an isolated visual slice for human comparison.
-uv run pancratius docx render-slice --book 30 --around "Если готов" \
+uv run pancratius docx render-slice book:30 --around "Если готов" \
   --context 8 --out /tmp/book30-ready.png
 
 # Inspect a precise paragraph range, then render exactly that range.
-uv run pancratius docx inspect --book 25 --range 180:205
-uv run pancratius docx render-slice --book 25 --range 180:205 \
+uv run pancratius docx inspect book:25 --range 180:205
+uv run pancratius docx render-slice book:25 --range 180:205 \
   --out /tmp/book25-180-205.png
 ```
 
