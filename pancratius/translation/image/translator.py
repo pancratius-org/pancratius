@@ -62,6 +62,7 @@ class ImageTranslationConfig:
     max_attempts: int = MAX_ATTEMPTS
     inter_call_sleep: float = INTER_CALL_SLEEP_S
     backup_generation_model: str | None = DEFAULT_BACKUP_GENERATION_MODEL
+    replace_existing: bool = False
 
     def __post_init__(self) -> None:
         if self.max_attempts < 1:
@@ -278,6 +279,10 @@ def _prev_path(job: ImageTranslationJob, raw_out: Path) -> Path:
     return raw_out.with_name(f"{_safe_stem(job.key)}.prev.png")
 
 
+def _staged_path(path: Path, _key: str) -> Path:
+    return path.with_name(f"{_safe_stem(path.stem)}.replace{path.suffix}")
+
+
 def _unlink_if_exists(p: Path) -> None:
     import contextlib
     with contextlib.suppress(FileNotFoundError):
@@ -290,6 +295,11 @@ def _snapshot(src: Path, dst: Path) -> bool:
     except OSError:
         return False
     return True
+
+
+def _commit_staged(staged: Path, target: Path) -> None:
+    if staged != target:
+        staged.replace(target)
 
 
 def _run_recon(job: ImageTranslationJob, api_key: str) -> tuple[ImageReconResult, float]:
@@ -404,6 +414,7 @@ class ImageTextTranslator:
 
         final_out.parent.mkdir(parents=True, exist_ok=True)
         raw_out.parent.mkdir(parents=True, exist_ok=True)
+        had_existing_target = final_out.exists()
 
         logger.info("[%s] recon ...", job.key)
         total_cost = 0.0
@@ -453,14 +464,42 @@ class ImageTextTranslator:
                         primary_text=primary_text,
                         total_cost_usd=total_cost,
                     )
+                skip = AttemptRecord(
+                    attempt=0,
+                    qa=qa,
+                    generation_cost=GenerationCost(cost_usd=0.0),
+                    prompt_steering="",
+                )
+                if not self.config.replace_existing:
+                    return result(
+                        status=ImageTranslationStatus.FAIL,
+                        attempts=(skip,),
+                        primary_text=primary_text,
+                        error="existing target failed QA; pass --replace to regenerate it",
+                        total_cost_usd=total_cost,
+                    )
             except InsufficientCreditsError:
                 raise
             except ImageTranslationClientError as exc:
+                if not self.config.replace_existing:
+                    return result(
+                        status=ImageTranslationStatus.FAIL,
+                        primary_text=primary_text,
+                        error=f"existing target QA failed; pass --replace to regenerate it: {exc}",
+                        total_cost_usd=total_cost,
+                    )
                 logger.warning("[%s] QA of existing target failed (%s); regenerating", job.key, exc)
 
-        _unlink_if_exists(final_out)
-        _unlink_if_exists(raw_out)
+        write_final = _staged_path(final_out, job.key) if had_existing_target else final_out
+        write_raw = _staged_path(raw_out, job.key) if had_existing_target else raw_out
+        _unlink_if_exists(write_final)
+        _unlink_if_exists(write_raw)
         _unlink_if_exists(prev_out)
+
+        def cleanup_write_outputs() -> None:
+            _unlink_if_exists(write_final)
+            _unlink_if_exists(write_raw)
+            _unlink_if_exists(prev_out)
 
         attempts: list[AttemptRecord] = []
         steering = job.steering_hint
@@ -481,11 +520,12 @@ class ImageTextTranslator:
                     edit_base=edit_base,
                     elements=elements,
                     steering=steering,
-                    raw_out=raw_out,
-                    final_out=final_out,
+                    raw_out=write_raw,
+                    final_out=write_final,
                     api_key=self.api_key,
                 )
             except InsufficientCreditsError:
+                cleanup_write_outputs()
                 raise
             except GenerationRefusal as exc:
                 logger.warning("[%s] refusal on attempt %d (%s); retrying once", job.key, attempt_n, exc)
@@ -496,17 +536,18 @@ class ImageTextTranslator:
                         edit_base=edit_base,
                         elements=elements,
                         steering=steering,
-                        raw_out=raw_out,
-                        final_out=final_out,
+                        raw_out=write_raw,
+                        final_out=write_final,
                         api_key=self.api_key,
                     )
                 except InsufficientCreditsError:
+                    cleanup_write_outputs()
                     raise
                 except GenerationRefusal as exc2:
                     if self.config.backup_generation_model is None:
                         err = f"generation refused twice (no backup model): {exc2}"
                         logger.error("[%s] %s", job.key, err)
-                        _unlink_if_exists(prev_out)
+                        cleanup_write_outputs()
                         return result(
                             status=ImageTranslationStatus.FAIL,
                             attempts=tuple(attempts),
@@ -522,17 +563,18 @@ class ImageTextTranslator:
                             edit_base=edit_base,
                             elements=elements,
                             steering=steering,
-                            raw_out=raw_out,
-                            final_out=final_out,
+                            raw_out=write_raw,
+                            final_out=write_final,
                             api_key=self.api_key,
                             model=fallback_model,
                         )
                     except InsufficientCreditsError:
+                        cleanup_write_outputs()
                         raise
                     except ImageTranslationClientError as exc3:
                         err = f"generation failed after refusal + backup (attempt {attempt_n}): {exc3}"
                         logger.error("[%s] %s", job.key, err)
-                        _unlink_if_exists(prev_out)
+                        cleanup_write_outputs()
                         return result(
                             status=ImageTranslationStatus.FAIL,
                             attempts=tuple(attempts),
@@ -545,7 +587,7 @@ class ImageTextTranslator:
             except ImageTranslationClientError as exc:
                 err = f"generation failed (attempt {attempt_n}): {exc}"
                 logger.error("[%s] %s", job.key, err)
-                _unlink_if_exists(prev_out)
+                cleanup_write_outputs()
                 return result(
                     status=ImageTranslationStatus.FAIL,
                     attempts=tuple(attempts),
@@ -568,9 +610,10 @@ class ImageTextTranslator:
 
             logger.info("[%s] QA attempt %d ...", job.key, attempt_n)
             try:
-                qa, qa_cost = _run_qa(job, final_out, elements, self.api_key)
+                qa, qa_cost = _run_qa(job, write_final, elements, self.api_key)
                 total_cost += qa_cost
             except InsufficientCreditsError:
+                cleanup_write_outputs()
                 raise
             except ImageTranslationClientError as exc:
                 logger.warning("[%s] QA call failed (%s); treating as fail", job.key, exc)
@@ -601,13 +644,15 @@ class ImageTextTranslator:
                     level=_steering_level(attempt_n),
                 )
                 logger.info("[%s] steering for retry: %s", job.key, steering[:120])
-                edit_base = prev_out if _snapshot(final_out, prev_out) else source
+                edit_base = prev_out if _snapshot(write_final, prev_out) else source
                 time.sleep(self.config.inter_call_sleep)
 
         passed = last_qa is not None and last_qa.verdict == QaVerdict.PASS
         _unlink_if_exists(prev_out)
 
         if passed:
+            _commit_staged(write_raw, raw_out)
+            _commit_staged(write_final, final_out)
             return result(
                 status=ImageTranslationStatus.OK,
                 attempts=tuple(attempts),
@@ -624,6 +669,8 @@ class ImageTextTranslator:
         )
 
         if job.allow_embedded_text_caveat and embedded_only:
+            _commit_staged(write_raw, raw_out)
+            _commit_staged(write_final, final_out)
             leftover_descriptions = tuple(d.description for d in remaining)
             logger.warning(
                 "[%s] QA failed after %d attempts but all discrepancies are embedded; keeping with caveat. Unresolved: %s",
@@ -643,8 +690,7 @@ class ImageTextTranslator:
 
         unresolved = "; ".join(d.description for d in remaining)
         logger.warning("[%s] still failing after %d attempts: %s", job.key, self.config.max_attempts, unresolved)
-        _unlink_if_exists(final_out)
-        _unlink_if_exists(raw_out)
+        cleanup_write_outputs()
 
         return result(
             status=ImageTranslationStatus.FAIL,

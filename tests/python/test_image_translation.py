@@ -406,6 +406,9 @@ def test_project_provider_builds_job_and_finalizer_updates_en_cover(tmp_path: Pa
     spec = ProjectCoverProvider(content_root=tmp_path, output_dir=tmp_path / "out").spec("project:holy-rus")
     assert spec.job.key == "project:holy-rus"
     assert spec.job.target_image == folder / "cover.en.png"
+    assert [(u.path, u.field, u.value) for u in spec.frontmatter_updates] == [
+        (en, "cover", "./cover.en.png")
+    ]
     assert any(
         e.selectors == (NormalizedText("Святая Русь"), RoleSelector(TextRole.PRIMARY))
         and e.target == "Holy Commonwealth"
@@ -782,6 +785,261 @@ def test_pipeline_pass_on_attempt_n_stops_loop(tmp_path: Path) -> None:
     assert result.ok
     assert len(result.attempts) == 2
     assert result.attempts[-1].qa.verdict == QaVerdict.PASS
+
+
+def test_pipeline_existing_target_qa_fail_refuses_without_replace(tmp_path: Path) -> None:
+    from pancratius.translation.image.translator import translate_image
+
+    job = _job(tmp_path)
+    job.target_image.parent.mkdir(parents=True)
+    job.target_image.write_bytes(b"existing-target")
+
+    def fake_vision_text(
+        *,
+        images: list[Path],  # noqa: ARG001
+        prompt: str,
+        api_key: str,  # noqa: ARG001
+        response_format: object = None,  # noqa: ARG001
+    ) -> _FakeVisionResponse:
+        if "quality assurance" in prompt:
+            return _FakeVisionResponse(text=_make_qa_json("fail", ["wrong_text"]))
+        return _FakeVisionResponse(text=_make_recon_json())
+
+    with (
+        patch("pancratius.translation.image.translator.generate_image_translation", side_effect=AssertionError("generated")),
+        patch("pancratius.translation.image.translator.vision_text", side_effect=fake_vision_text),
+    ):
+        result = translate_image(job, ImageTranslationConfig(max_attempts=1, inter_call_sleep=0.0), "fake-key")
+
+    assert result.status is ImageTranslationStatus.FAIL
+    assert "pass --replace" in (result.error or "")
+    assert len(result.attempts) == 1
+    assert result.attempts[0].attempt == 0
+    assert job.target_image.read_bytes() == b"existing-target"
+    assert not job.raw_output().exists()
+
+
+def test_pipeline_replace_regenerates_existing_target_after_failed_qa(tmp_path: Path) -> None:
+    from pancratius.translation.image.decrop import DecropReport
+    from pancratius.translation.image.translator import translate_image
+
+    job = _job(tmp_path)
+    job.target_image.parent.mkdir(parents=True)
+    job.target_image.write_bytes(b"existing-target")
+    generated = 0
+    qa_responses = iter([
+        _make_qa_json("fail", ["wrong_text"]),
+        _make_qa_json("pass"),
+    ])
+
+    def fake_generate(src: Path, prompt: str, api_key: str, *, model: str | None = None) -> _FakeGenerationResponse:  # noqa: ARG001
+        nonlocal generated
+        generated += 1
+        return _FakeGenerationResponse()
+
+    def fake_vision_text(
+        *,
+        images: list[Path],  # noqa: ARG001
+        prompt: str,
+        api_key: str,  # noqa: ARG001
+        response_format: object = None,  # noqa: ARG001
+    ) -> _FakeVisionResponse:
+        if "quality assurance" in prompt:
+            return _FakeVisionResponse(text=next(qa_responses))
+        return _FakeVisionResponse(text=_make_recon_json())
+
+    def fake_decrop(
+        raw_bytes: bytes,  # noqa: ARG001
+        source: Path,  # noqa: ARG001
+        raw_out: Path,
+        final_out: Path,
+    ) -> DecropReport:
+        raw_out.parent.mkdir(parents=True, exist_ok=True)
+        raw_out.write_bytes(b"fake-raw")
+        final_out.write_bytes(b"new-target")
+        return DecropReport(source_size=(1, 1), raw_size=(1, 1), final_size=(1, 1), resized=False)
+
+    with (
+        patch("pancratius.translation.image.translator.generate_image_translation", side_effect=fake_generate),
+        patch("pancratius.translation.image.translator.vision_text", side_effect=fake_vision_text),
+        patch("pancratius.translation.image.translator.decrop_to_source", side_effect=fake_decrop),
+    ):
+        result = translate_image(
+            job,
+            ImageTranslationConfig(max_attempts=1, inter_call_sleep=0.0, replace_existing=True),
+            "fake-key",
+        )
+
+    assert result.ok
+    assert generated == 1
+    assert job.target_image.read_bytes() == b"new-target"
+
+
+def test_pipeline_replace_failure_preserves_existing_target(tmp_path: Path) -> None:
+    from pancratius.translation.image.decrop import DecropReport
+    from pancratius.translation.image.translator import translate_image
+
+    job = _job(tmp_path)
+    job.target_image.parent.mkdir(parents=True)
+    job.target_image.write_bytes(b"existing-target")
+    qa_responses = iter([
+        _make_qa_json("fail", ["wrong_text"]),
+        _make_qa_json("fail", ["wrong_text"]),
+    ])
+
+    def fake_vision_text(
+        *,
+        images: list[Path],  # noqa: ARG001
+        prompt: str,
+        api_key: str,  # noqa: ARG001
+        response_format: object = None,  # noqa: ARG001
+    ) -> _FakeVisionResponse:
+        if "quality assurance" in prompt:
+            return _FakeVisionResponse(text=next(qa_responses))
+        return _FakeVisionResponse(text=_make_recon_json())
+
+    def fake_decrop(
+        raw_bytes: bytes,  # noqa: ARG001
+        source: Path,  # noqa: ARG001
+        raw_out: Path,
+        final_out: Path,
+    ) -> DecropReport:
+        raw_out.parent.mkdir(parents=True, exist_ok=True)
+        raw_out.write_bytes(b"fake-raw")
+        final_out.write_bytes(b"bad-replacement")
+        return DecropReport(source_size=(1, 1), raw_size=(1, 1), final_size=(1, 1), resized=False)
+
+    with (
+        patch("pancratius.translation.image.translator.generate_image_translation", return_value=_FakeGenerationResponse()),
+        patch("pancratius.translation.image.translator.vision_text", side_effect=fake_vision_text),
+        patch("pancratius.translation.image.translator.decrop_to_source", side_effect=fake_decrop),
+    ):
+        result = translate_image(
+            job,
+            ImageTranslationConfig(max_attempts=1, inter_call_sleep=0.0, replace_existing=True),
+            "fake-key",
+        )
+
+    assert result.status is ImageTranslationStatus.FAIL
+    assert job.target_image.read_bytes() == b"existing-target"
+    assert not job.target_image.with_name("book-50.en.replace.png").exists()
+    assert not job.raw_output().with_name("book-50.raw.replace.png").exists()
+
+
+def test_pipeline_replace_generation_error_removes_staged_outputs(tmp_path: Path) -> None:
+    from pancratius.translation.image.client import ImageTranslationClientError
+    from pancratius.translation.image.decrop import DecropReport
+    from pancratius.translation.image.translator import translate_image
+
+    job = _job(tmp_path)
+    job.target_image.parent.mkdir(parents=True)
+    job.target_image.write_bytes(b"existing-target")
+    qa_responses = iter([
+        _make_qa_json("fail", ["wrong_text"]),
+        _make_qa_json("fail", ["wrong_text"]),
+    ])
+    generation_responses = iter([
+        _FakeGenerationResponse(),
+        ImageTranslationClientError("api failed"),
+    ])
+
+    def fake_generate(src: Path, prompt: str, api_key: str, *, model: str | None = None) -> _FakeGenerationResponse:  # noqa: ARG001
+        response = next(generation_responses)
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+    def fake_vision_text(
+        *,
+        images: list[Path],  # noqa: ARG001
+        prompt: str,
+        api_key: str,  # noqa: ARG001
+        response_format: object = None,  # noqa: ARG001
+    ) -> _FakeVisionResponse:
+        if "quality assurance" in prompt:
+            return _FakeVisionResponse(text=next(qa_responses))
+        return _FakeVisionResponse(text=_make_recon_json())
+
+    def fake_decrop(
+        raw_bytes: bytes,  # noqa: ARG001
+        source: Path,  # noqa: ARG001
+        raw_out: Path,
+        final_out: Path,
+    ) -> DecropReport:
+        raw_out.parent.mkdir(parents=True, exist_ok=True)
+        raw_out.write_bytes(b"fake-raw")
+        final_out.write_bytes(b"bad-replacement")
+        return DecropReport(source_size=(1, 1), raw_size=(1, 1), final_size=(1, 1), resized=False)
+
+    with (
+        patch("pancratius.translation.image.translator.generate_image_translation", side_effect=fake_generate),
+        patch("pancratius.translation.image.translator.vision_text", side_effect=fake_vision_text),
+        patch("pancratius.translation.image.translator.decrop_to_source", side_effect=fake_decrop),
+    ):
+        result = translate_image(
+            job,
+            ImageTranslationConfig(max_attempts=2, inter_call_sleep=0.0, replace_existing=True),
+            "fake-key",
+        )
+
+    assert result.status is ImageTranslationStatus.FAIL
+    assert "generation failed" in (result.error or "")
+    assert job.target_image.read_bytes() == b"existing-target"
+    assert not job.target_image.with_name("book-50.en.replace.png").exists()
+    assert not job.raw_output().with_name("book-50.raw.replace.png").exists()
+
+
+def test_pipeline_replace_qa_credit_error_removes_staged_outputs(tmp_path: Path) -> None:
+    from pancratius.translation.image.client import InsufficientCreditsError
+    from pancratius.translation.image.decrop import DecropReport
+    from pancratius.translation.image.translator import translate_image
+
+    job = _job(tmp_path)
+    job.target_image.parent.mkdir(parents=True)
+    job.target_image.write_bytes(b"existing-target")
+    qa_calls = 0
+
+    def fake_vision_text(
+        *,
+        images: list[Path],  # noqa: ARG001
+        prompt: str,
+        api_key: str,  # noqa: ARG001
+        response_format: object = None,  # noqa: ARG001
+    ) -> _FakeVisionResponse:
+        nonlocal qa_calls
+        if "quality assurance" in prompt:
+            qa_calls += 1
+            if qa_calls == 1:
+                return _FakeVisionResponse(text=_make_qa_json("fail", ["wrong_text"]))
+            raise InsufficientCreditsError("HTTP 402: no credits")
+        return _FakeVisionResponse(text=_make_recon_json())
+
+    def fake_decrop(
+        raw_bytes: bytes,  # noqa: ARG001
+        source: Path,  # noqa: ARG001
+        raw_out: Path,
+        final_out: Path,
+    ) -> DecropReport:
+        raw_out.parent.mkdir(parents=True, exist_ok=True)
+        raw_out.write_bytes(b"fake-raw")
+        final_out.write_bytes(b"candidate")
+        return DecropReport(source_size=(1, 1), raw_size=(1, 1), final_size=(1, 1), resized=False)
+
+    with (
+        patch("pancratius.translation.image.translator.generate_image_translation", return_value=_FakeGenerationResponse()),
+        patch("pancratius.translation.image.translator.vision_text", side_effect=fake_vision_text),
+        patch("pancratius.translation.image.translator.decrop_to_source", side_effect=fake_decrop),
+        pytest.raises(InsufficientCreditsError),
+    ):
+        translate_image(
+            job,
+            ImageTranslationConfig(max_attempts=1, inter_call_sleep=0.0, replace_existing=True),
+            "fake-key",
+        )
+
+    assert job.target_image.read_bytes() == b"existing-target"
+    assert not job.target_image.with_name("book-50.en.replace.png").exists()
+    assert not job.raw_output().with_name("book-50.raw.replace.png").exists()
 
 
 def test_pipeline_retry_edits_previous_output_not_raw_source(tmp_path: Path) -> None:
