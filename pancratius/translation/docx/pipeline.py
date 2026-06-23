@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import base64
 import copy
+import hashlib
 import json
+import posixpath
 import re
 import subprocess
 import tempfile
@@ -17,6 +19,7 @@ from itertools import combinations
 from pathlib import Path, PurePosixPath
 from typing import Any, Literal, assert_never, cast
 
+from pancratius import render_downloads
 from pancratius.content_catalog import CatalogEntry, scan_catalog, split_frontmatter
 from pancratius.docx_merge import DocxMergeError, validate_docx_package
 from pancratius.kinds import SEGMENT_OF
@@ -50,6 +53,9 @@ SOURCE_CITATION_SUFFIX_RE = re.compile(
     r"(?:\s*(?:Википедия|Wikipedia)\+\d+)+\s*$",
     flags=re.IGNORECASE,
 )
+UNBOUND_REL_ATTR_RE = re.compile(
+    rb"(?<![A-Za-z0-9_.-])([A-Za-z_][A-Za-z0-9_.-]*):(id|embed|link)="
+)
 
 IMAGE_MEDIA_TYPES: dict[str, str] = {
     ".jpg": "image/jpeg",
@@ -66,6 +72,7 @@ TransferUnitKind = Literal[
     "thematic",
     "image",
 ]
+DocxTranslationBackend = Literal["transfer", "markdown-render"]
 
 
 class DocxTranslationError(Exception):
@@ -218,6 +225,7 @@ class DocxTranslationReport:
     source_units: int
     translated_units: int
     aligned_units: int
+    backend: DocxTranslationBackend = "transfer"
     output: Path | None = None
 
 
@@ -1481,6 +1489,10 @@ def _clone_run_properties(
     hyperlink: bool = False,
 ) -> ET.Element | None:
     rpr = copy.deepcopy(base) if base is not None else ET.Element(f"{W}rPr")
+    for style in rpr.findall(f"{W}rStyle"):
+        rpr.remove(style)
+    for vert_align in rpr.findall(f"{W}vertAlign"):
+        rpr.remove(vert_align)
     if hyperlink and rpr.find(f"{W}rStyle") is None:
         style = ET.SubElement(rpr, f"{W}rStyle")
         style.set(f"{W}val", "Hyperlink")
@@ -1752,6 +1764,17 @@ def _replace_paragraph_text(
         _replace_image_metadata(p, unit)
         return
     if unit.kind == "thematic":
+        if not _normalize_text(_word_paragraph_text(p)):
+            base_rpr = _base_run_properties(p)
+            for child in list(p):
+                if child.tag != f"{W}pPr":
+                    p.remove(child)
+            p.append(_text_run(
+                "***",
+                base_rpr,
+                strong=False,
+                emphasis=False,
+            ))
         return
     base_rpr = _base_run_properties(p)
     footnote_refs = [copy.deepcopy(r) for r in p.findall(f".//{W}footnoteReference/..")]
@@ -2007,6 +2030,213 @@ def render_translated_docx(
     return len(source.units), len(translated.units), aligned_units, tuple(diagnostics)
 
 
+def render_markdown_docx(
+    *,
+    target: BookDocxTranslationTarget,
+    lang: Locale,
+    out: Path,
+) -> tuple[int, int, int, tuple[Diagnostic, ...]]:
+    """Render translated Markdown to DOCX when donor transplantation cannot apply.
+
+    This backend preserves translated content through the public-download Markdown
+    normalizer and uses the source DOCX only as a Pandoc reference document. It is
+    intentionally explicit because it does not preserve donor paragraph/run
+    structure the way ``render_translated_docx`` does.
+    """
+    diagnostics: list[Diagnostic] = [
+        Diagnostic(
+            "warning",
+            "docx-translate.markdown-render-structure",
+            (
+                "rendered from translated Markdown using ru.docx as reference styles; "
+                "donor paragraph/run structure was not transplanted"
+            ),
+        )
+    ]
+    try:
+        with tempfile.TemporaryDirectory(prefix="pancratius-docx-markdown-render-") as tmp:
+            scratch_dir = Path(tmp)
+            work_entry = render_downloads.WorkEntry(
+                kind="book",
+                number=target.entry.number,
+                folder=target.entry.work_dir,
+                lang=lang,
+                md=target.translated_md,
+                slug=target.entry.slug,
+                title=target.entry.title,
+            )
+            export_root, _cover, image_map = render_downloads._stage_export_bundle(work_entry, scratch_dir)
+            scratch_md = export_root / f"book-{target.entry.number:02d}-{lang}.md"
+            render_downloads._write_export_markdown(work_entry, scratch_md, image_map)
+            raw_docx = scratch_dir / "pandoc.docx"
+            subprocess.run(
+                [
+                    "pandoc",
+                    str(scratch_md),
+                    *_pandoc_from_for_markdown_docx(),
+                    "--to",
+                    "docx",
+                    "--reference-doc",
+                    str(target.source_docx),
+                    "-o",
+                    str(raw_docx),
+                    "--resource-path",
+                    str(export_root),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=PANDOC_TIMEOUT_SECONDS,
+            )
+            block_count = _markdown_render_block_count(scratch_md)
+            _normalize_pandoc_docx(raw_docx, out)
+            return block_count, block_count, block_count, tuple(diagnostics)
+    except FileNotFoundError:
+        diagnostics.append(Diagnostic("fatal", "docx-translate.pandoc-missing", "pandoc is not on PATH"))
+    except subprocess.TimeoutExpired:
+        diagnostics.append(Diagnostic(
+            "fatal",
+            "docx-translate.pandoc-timeout",
+            f"pandoc timed out after {PANDOC_TIMEOUT_SECONDS}s while rendering {target.translated_md}",
+        ))
+    except subprocess.CalledProcessError as exc:
+        detail = (exc.stderr or exc.stdout or str(exc)).strip()
+        diagnostics.append(Diagnostic(
+            "fatal",
+            "docx-translate.pandoc-failed",
+            f"pandoc failed while rendering {target.translated_md}: {detail}",
+        ))
+    except (DocxTranslationError, DocxMergeError, render_downloads.DownloadRenderError) as exc:
+        diagnostics.append(Diagnostic("fatal", "docx-translate.markdown-render-failed", str(exc)))
+    if out.exists():
+        with suppress(OSError):
+            out.unlink()
+    return 0, 0, 0, tuple(diagnostics)
+
+
+def _markdown_render_block_count(markdown: Path) -> int:
+    body = markdown.read_text(encoding="utf-8")
+    return sum(1 for block in re.split(r"\n{2,}", body) if block.strip())
+
+
+def _pandoc_from_for_markdown_docx() -> list[str]:
+    # Pandoc's Markdown reader treats a standalone image as a figure by default
+    # and writes the alt text as a visible DOCX caption. Corpus Markdown uses
+    # image alt for accessibility, not as body text, so the fallback source-DOCX
+    # renderer disables that extension.
+    return ["--from", "markdown-yaml_metadata_block-implicit_figures"]
+
+
+def _normalize_pandoc_docx(raw_docx: Path, out: Path) -> None:
+    package = _copy_docx_parts(raw_docx)
+    parts = {
+        name: _repair_unbound_relationship_prefixes(payload) if name.endswith(".xml") else payload
+        for name, payload in package.parts.items()
+    }
+    _dedupe_media_payloads(parts)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    _write_docx_parts(parts, out, member_order=package.member_order)
+    try:
+        validation = validate_docx_package(out)
+        del validation
+    except DocxMergeError:
+        with suppress(OSError):
+            out.unlink()
+        raise
+
+
+def _repair_unbound_relationship_prefixes(xml: bytes) -> bytes:
+    declared = set(re.findall(rb"\sxmlns:([A-Za-z_][A-Za-z0-9_.-]*)=", xml))
+    for prefix, local_name in sorted(set(UNBOUND_REL_ATTR_RE.findall(xml))):
+        if prefix in declared or not prefix.startswith(b"ns"):
+            continue
+        xml = re.sub(
+            rb"(?<![A-Za-z0-9_.-])" + prefix + rb":" + local_name + rb"=",
+            b"r:" + local_name + b"=",
+            xml,
+        )
+    return xml
+
+
+def _dedupe_media_payloads(parts: dict[str, bytes]) -> None:
+    groups: dict[str, list[str]] = {}
+    for name, payload in parts.items():
+        if name.startswith("word/media/"):
+            groups.setdefault(hashlib.sha256(payload).hexdigest(), []).append(name)
+    replacements: dict[str, str] = {}
+    for names in groups.values():
+        if len(names) < 2:
+            continue
+        canonical = sorted(names, key=_media_dedupe_sort_key)[0]
+        for duplicate in names:
+            if duplicate != canonical:
+                replacements[duplicate] = canonical
+    if not replacements:
+        return
+    for name in [part for part in parts if part.endswith(".rels")]:
+        updated = _retarget_relationships(parts[name], rels_name=name, replacements=replacements)
+        if updated != parts[name]:
+            parts[name] = updated
+    for duplicate in replacements:
+        parts.pop(duplicate, None)
+
+
+def _media_dedupe_sort_key(name: str) -> tuple[int, str]:
+    leaf = name.rsplit("/", 1)[-1]
+    return (1 if leaf.startswith("rId") else 0, name)
+
+
+def _retarget_relationships(
+    rels_xml: bytes,
+    *,
+    rels_name: str,
+    replacements: dict[str, str],
+) -> bytes:
+    try:
+        root = ET.fromstring(rels_xml)
+    except ET.ParseError:
+        return rels_xml
+    source_part = _rels_source_part(rels_name)
+    source_dir = posixpath.dirname(source_part)
+    changed = False
+    for rel in root.findall(f"{REL}Relationship"):
+        target = rel.get("Target")
+        if not target or rel.get("TargetMode") == "External":
+            continue
+        resolved = _resolve_relationship_target(source_part, target)
+        replacement = replacements.get(resolved)
+        if replacement is None:
+            continue
+        rel.set("Target", _relative_relationship_target(source_dir, replacement))
+        changed = True
+    if not changed:
+        return rels_xml
+    return serialize_relationships(root, source_xml=rels_xml)
+
+
+def _rels_source_part(rels_name: str) -> str:
+    if rels_name == "_rels/.rels":
+        return ""
+    if "/_rels/" not in rels_name or not rels_name.endswith(".rels"):
+        return ""
+    prefix, leaf = rels_name.split("/_rels/", 1)
+    return f"{prefix}/{leaf.removesuffix('.rels')}"
+
+
+def _resolve_relationship_target(source_part: str, target: str) -> str:
+    path = target.lstrip("/")
+    if target.startswith("/"):
+        return posixpath.normpath(path)
+    base = posixpath.dirname(source_part)
+    return posixpath.normpath(posixpath.join(base, path))
+
+
+def _relative_relationship_target(source_dir: str, target: str) -> str:
+    if not source_dir:
+        return target
+    return posixpath.relpath(target, start=source_dir)
+
+
 def discover_targets(
     *,
     content_root: Path = CONTENT_ROOT,
@@ -2123,7 +2353,10 @@ def translate_docx_batch(
     dry_run: bool = False,
     replace: bool = False,
     limit: int = 0,
+    backend: DocxTranslationBackend = "transfer",
 ) -> DocxTranslationBatch:
+    if backend not in ("transfer", "markdown-render"):
+        raise DocxTranslationError(f"unknown translated DOCX backend: {backend}")
     if replace and book is None:
         raise DocxTranslationError(
             "--replace requires an explicit book:NN selector; existing translated DOCX is source."
@@ -2173,12 +2406,21 @@ def translate_docx_batch(
 
         with tempfile.TemporaryDirectory(prefix="pancratius-docx-translate-") as tmp:
             staged = Path(tmp) / target.translated_docx.name
-            source_units, translated_units, aligned_units, transfer_diags = render_translated_docx(
-                source_docx=target.source_docx,
-                source_md=target.source_md,
-                translated_md=target.translated_md,
-                out=staged,
-            )
+            if backend == "transfer":
+                source_units, translated_units, aligned_units, transfer_diags = render_translated_docx(
+                    source_docx=target.source_docx,
+                    source_md=target.source_md,
+                    translated_md=target.translated_md,
+                    out=staged,
+                )
+            elif backend == "markdown-render":
+                source_units, translated_units, aligned_units, transfer_diags = render_markdown_docx(
+                    target=target,
+                    lang=lang,
+                    out=staged,
+                )
+            else:
+                assert_never(backend)
             diagnostics.extend(transfer_diags)
             scope = _target_scope(target)
             rel_docx = scope / target.translated_docx.name
@@ -2207,6 +2449,7 @@ def translate_docx_batch(
                 source_units=source_units,
                 translated_units=translated_units,
                 aligned_units=aligned_units,
+                backend=backend,
                 output=target.translated_docx,
             ))
     return DocxTranslationBatch(tuple(reports), discovery=discovery)
@@ -2223,9 +2466,15 @@ def print_batch(batch: DocxTranslationBatch, *, dry_run: bool) -> None:
         refused = bool(wr.refused) or any(diagnostic.severity == "fatal" for diagnostic in wr.diagnostics)
         status = "REFUSE" if refused else "OK"
         verb = "would refuse" if dry_run and refused else "refused" if refused else write_verb
+        if report.backend == "transfer":
+            backend_note = f"{report.aligned_units}/{report.source_units} aligned units"
+        elif report.backend == "markdown-render":
+            backend_note = f"{report.translated_units} rendered Markdown block(s)"
+        else:
+            assert_never(report.backend)
         print(
             f"  {status} book-{report.target.entry.number:02d}: {verb} {rel} "
-            f"({report.aligned_units}/{report.source_units} aligned units)"
+            f"({report.backend}; {backend_note})"
         )
         for diag in wr.diagnostics:
             if diag.severity in {"fatal", "warning"}:

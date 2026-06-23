@@ -1,0 +1,202 @@
+from __future__ import annotations
+
+import importlib.util
+import shutil
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from pancratius.content_catalog import dump_frontmatter
+from pancratius.docx_roundtrip import check_docx_markdown_roundtrip, compare_markdown_pair
+
+requires_docx_roundtrip = pytest.mark.skipif(
+    shutil.which("pandoc") is None or importlib.util.find_spec("PIL") is None,
+    reason="pandoc and pillow are required",
+)
+
+
+def _write_book_md(path: Path, *, body: str, translation_extra: str = "") -> None:
+    fm = {
+        "kind": "book",
+        "number": 1,
+        "slug": "01-test",
+        "title": "Test",
+        "lang": "en",
+        "description": "A test book.",
+        "tags": [],
+        "cover": None,
+        "translation": {"source": "ai"},
+    }
+    path.write_text(
+        dump_frontmatter(fm).replace("source: ai\n", f"source: ai\n{translation_extra}") + body,
+        encoding="utf-8",
+    )
+
+
+def _book_markdown(body: str) -> str:
+    return f"""---
+kind: book
+number: 1
+slug: 01-test
+title: Test
+lang: en
+description: A test book.
+tags: []
+cover: null
+translation:
+  source: ai
+---
+
+{body}
+"""
+
+
+def _make_docx(tmp_path: Path, markdown: str) -> Path:
+    md = tmp_path / "source.md"
+    docx = tmp_path / "source.docx"
+    md.write_text(markdown, encoding="utf-8")
+    subprocess.run(["pandoc", str(md), "-o", str(docx)], check=True, capture_output=True, text=True)
+    return docx
+
+
+@requires_docx_roundtrip
+def test_roundtrip_imports_into_temp_root_without_mutating_content(tmp_path: Path) -> None:
+    content_root = tmp_path / "content"
+    book_dir = content_root / "books" / "01-test"
+    book_dir.mkdir(parents=True)
+    committed_body = "Light.\n"
+    _write_book_md(book_dir / "en.md", body=committed_body)
+    docx = _make_docx(tmp_path, "Light.\n")
+    shutil.copyfile(docx, book_dir / "en.docx")
+    before = (book_dir / "en.md").read_text(encoding="utf-8")
+
+    batch = check_docx_markdown_roundtrip(content_root=content_root, lang="en", book=1)
+
+    assert batch.checked == 1
+    assert batch.failed_count == 0
+    assert (book_dir / "en.md").read_text(encoding="utf-8") == before
+
+
+def test_roundtrip_reports_translated_docx_without_markdown(tmp_path: Path) -> None:
+    content_root = tmp_path / "content"
+    book_dir = content_root / "books" / "01-test"
+    book_dir.mkdir(parents=True)
+    (book_dir / "en.docx").write_bytes(b"not imported; only discovery is tested")
+
+    batch = check_docx_markdown_roundtrip(content_root=content_root, lang="en")
+
+    assert batch.checked == 0
+    assert batch.missing_md == 1
+    assert batch.failed
+
+
+@requires_docx_roundtrip
+def test_compare_tolerates_bootstrap_metadata_loss_but_flags_visible_text() -> None:
+    committed = """---
+kind: book
+number: 1
+slug: 01-test
+title: Test
+lang: en
+description: A test book.
+tags: []
+cover: null
+translation:
+  source: ai
+  model: test-model
+  generated_at: 2026-06-23
+---
+
+Light.
+"""
+    imported_ok = """---
+kind: book
+number: 1
+slug: 01-test
+title: Test
+lang: en
+description: A test book.
+tags: []
+cover: null
+translation:
+  source: ai
+---
+
+Light.
+"""
+    imported_bad = imported_ok.replace("Light.", "Dark.")
+
+    ok_findings = compare_markdown_pair(committed, imported_ok, lang="en")
+    bad_findings = compare_markdown_pair(committed, imported_bad, lang="en")
+
+    assert not any(finding.severity == "fatal" for finding in ok_findings)
+    assert any(finding.code == "roundtrip.ignored-frontmatter-drift" for finding in ok_findings)
+    assert any(finding.code == "roundtrip.visible-text-drift" for finding in bad_findings)
+
+
+@requires_docx_roundtrip
+def test_compare_treats_quote_style_as_typography_drift() -> None:
+    committed = """---
+kind: book
+number: 1
+slug: 01-test
+title: Test
+lang: en
+description: A test book.
+tags: []
+cover: null
+translation:
+  source: ai
+---
+
+He said: «I am here».[1]
+"""
+    imported = committed.replace("«I am here».", "“I am here”.").replace(" .[1]", ".[1]")
+
+    findings = compare_markdown_pair(committed, imported, lang="en")
+
+    assert not any(finding.severity == "fatal" for finding in findings)
+    assert any(finding.code == "roundtrip.typography-drift" for finding in findings)
+
+
+@requires_docx_roundtrip
+def test_compare_treats_ellipsis_style_as_typography_drift() -> None:
+    committed = _book_markdown("This is a hint...\n")
+    imported = _book_markdown("This is a hint…\n")
+
+    findings = compare_markdown_pair(committed, imported, lang="en")
+
+    assert not any(finding.severity == "fatal" for finding in findings)
+    assert any(finding.code == "roundtrip.typography-drift" for finding in findings)
+
+
+@requires_docx_roundtrip
+def test_compare_treats_signature_html_text_as_visible() -> None:
+    committed = _book_markdown("""I testify.
+
+<p class="signature">
+Pancratius
+March 21, 2026
+</p>
+
+P.S. Continue.
+""")
+    imported = _book_markdown("I testify.\n\nPancratius March 21, 2026\n\nP.S. Continue.\n")
+
+    findings = compare_markdown_pair(committed, imported, lang="en")
+
+    assert not any(finding.severity == "fatal" for finding in findings)
+
+
+@requires_docx_roundtrip
+def test_visible_text_drift_message_skips_tolerated_footnote_spacing() -> None:
+    committed = _book_markdown("Creator, I was at the Liturgy[1], and then the light changed.\n")
+    imported = _book_markdown("Creator, I was at the Liturgy [1], and then the word changed.\n")
+
+    findings = compare_markdown_pair(committed, imported, lang="en")
+
+    drift = next(finding for finding in findings if finding.code == "roundtrip.visible-text-drift")
+    assert drift.severity == "fatal"
+    assert "light changed" in drift.message
+    assert "Liturgy [1]" not in drift.message
