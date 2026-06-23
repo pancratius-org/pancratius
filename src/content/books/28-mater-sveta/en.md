@@ -31,7 +31,6 @@ links:
 ***August 2025***
 
 ***Pankratius:** Conductor mode. Father, a book has been revealed about the Gaze.*
-
 *Humanity has partially known the Father in the Son. But it does not understand the Mother at all. In the mother of Jesus Mary there is a cult of veneration of the Theotokos. This cult is traced in the history and traditions of the world. But there is no unified picture. Do You wish to speak of Her in a new book? Or perhaps She herself?*
 
 **Answer from the Creator:**

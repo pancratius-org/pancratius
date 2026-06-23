@@ -968,7 +968,7 @@ Jn. 12:31
 <blockquote class="epigraph">
 <p>
 And the Light shines in the darkness,
-and the darkness has not overcome it
+and the darkness has not overcome it[^1]
 </p>
 <footer>
 Jn. 1:5
