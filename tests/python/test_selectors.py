@@ -5,9 +5,13 @@ import pytest
 from pancratius.selectors import (
     BookSelector,
     PoemSelector,
+    ProjectSelector,
+    ProjectSubpageSelector,
     SelectorError,
     dedupe_work_selectors,
     parse_book_selector,
+    parse_project_selector,
+    parse_project_subpage_selector,
     parse_work_selector,
 )
 
@@ -45,3 +49,40 @@ def test_dedupe_work_selectors_preserves_user_order() -> None:
         PoemSelector(1),
         BookSelector(1),
     ]) == (BookSelector(2), PoemSelector(1), BookSelector(1))
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("project:holy-rus", ProjectSelector("holy-rus")),
+        ("project:holy-rus/tartaria", ProjectSubpageSelector("holy-rus", "tartaria")),
+    ],
+)
+def test_parse_project_selector(raw: str, expected: ProjectSelector | ProjectSubpageSelector) -> None:
+    assert parse_project_selector(raw) == expected
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "holy-rus",
+        "project:",
+        "project:/holy-rus",
+        "project:holy-rus/",
+        "project:holy-rus//tartaria",
+        "project:holy-rus/a/b",
+        "project:../holy-rus",
+        "project:holy_rus",
+        "project:holy-rus/sub_page",
+        "project:Holy-Rus/tartaria",
+        "project:святая-русь/tartaria",
+    ],
+)
+def test_parse_project_selector_rejects_path_fragments(raw: str) -> None:
+    with pytest.raises(SelectorError):
+        parse_project_selector(raw)
+
+
+def test_parse_project_subpage_selector_rejects_landing() -> None:
+    with pytest.raises(SelectorError, match="expected project:slug/subpage"):
+        parse_project_subpage_selector("project:holy-rus")

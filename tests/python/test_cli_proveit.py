@@ -284,7 +284,7 @@ def test_scaffold_subpage_writes_no_manifest(tmp_path: Path) -> None:
     content_root = tmp_path / "src" / "content"
     rc = cli.main(
         [
-            "project", "page", "add", "holy-rus", "manifest-probe", str(_FIXTURE_DOCX),
+            "project", "page", "add", "project:holy-rus/manifest-probe", str(_FIXTURE_DOCX),
             "--lang", "ru",
             "--out-content", str(content_root),
         ]
@@ -452,7 +452,7 @@ def test_scaffolded_weight_is_outside_the_real_zod_enum(tmp_path: Path) -> None:
     content_root = tmp_path / "src" / "content"
     rc = cli.main(
         [
-            "project", "page", "add", "holy-rus", "schema-probe", str(_FIXTURE_DOCX),
+            "project", "page", "add", "project:holy-rus/schema-probe", str(_FIXTURE_DOCX),
             "--lang", "ru",
             "--out-content", str(content_root),
         ]

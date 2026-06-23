@@ -11,6 +11,7 @@ from unittest.mock import patch
 import pytest
 from PIL import Image
 
+from pancratius.selectors import parse_project_selector
 from pancratius.translation.image.models import (
     DetectedText,
     ExactText,
@@ -47,11 +48,7 @@ from pancratius.translation.image.providers.book_cover import (
     resolve_title,
     text_plan_for_book,
 )
-from pancratius.translation.image.providers.project_cover import (
-    ProjectCoverError,
-    ProjectCoverProvider,
-    parse_project_selector,
-)
+from pancratius.translation.image.providers.project_cover import ProjectCoverProvider
 from pancratius.translation.image.schema import (
     _extract_json,
     parse_qa,
@@ -372,22 +369,6 @@ def test_init_seed_is_idempotent(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize(
-    "selector",
-    [
-        "project:../holy-rus",
-        "project:/holy-rus",
-        "project:holy-rus/..",
-        "project:holy-rus/../../escape",
-        "project:holy_rus",
-        "project:holy-rus/sub_page",
-    ],
-)
-def test_project_selector_rejects_non_slug_path_fragments(selector: str) -> None:
-    with pytest.raises(ProjectCoverError, match="invalid project selector"):
-        parse_project_selector(selector)
-
-
 def test_project_provider_builds_job_and_finalizer_updates_en_cover(tmp_path: Path) -> None:
     folder = tmp_path / "projects" / "holy-rus"
     folder.mkdir(parents=True)
@@ -403,7 +384,9 @@ def test_project_provider_builds_job_and_finalizer_updates_en_cover(tmp_path: Pa
         "description: x\ncover: ./cover.ru.png\ntagline: English line\n---\n\nbody",
         encoding="utf-8",
     )
-    spec = ProjectCoverProvider(content_root=tmp_path, output_dir=tmp_path / "out").spec("project:holy-rus")
+    spec = ProjectCoverProvider(content_root=tmp_path, output_dir=tmp_path / "out").spec(
+        parse_project_selector("project:holy-rus")
+    )
     assert spec.job.key == "project:holy-rus"
     assert spec.job.target_image == folder / "cover.en.png"
     assert [(u.path, u.field, u.value) for u in spec.frontmatter_updates] == [
@@ -472,7 +455,9 @@ def test_project_provider_requires_existing_target_cover_key(tmp_path: Path) -> 
         encoding="utf-8",
     )
     with pytest.raises(ValueError, match="missing existing scalar cover"):
-        ProjectCoverProvider(content_root=tmp_path, output_dir=tmp_path / "out").spec("project:holy-rus")
+        ProjectCoverProvider(content_root=tmp_path, output_dir=tmp_path / "out").spec(
+            parse_project_selector("project:holy-rus")
+        )
 
 
 def test_project_subpage_selector_uses_subpage_folder(tmp_path: Path) -> None:
@@ -501,7 +486,9 @@ def test_project_subpage_selector_uses_subpage_folder(tmp_path: Path) -> None:
         "title: Tartaria\nlang: en\ndescription: x\ncover: ./cover.ru.jpg\n---\n\nbody",
         encoding="utf-8",
     )
-    spec = ProjectCoverProvider(content_root=tmp_path, output_dir=tmp_path / "out").spec("project:holy-rus/tartaria")
+    spec = ProjectCoverProvider(content_root=tmp_path, output_dir=tmp_path / "out").spec(
+        parse_project_selector("project:holy-rus/tartaria")
+    )
     assert spec.job.key == "project:holy-rus/tartaria"
     assert spec.job.source_image == folder / "cover.ru.jpg"
     assert spec.job.target_image == folder / "cover.en.jpg"

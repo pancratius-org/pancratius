@@ -9,6 +9,11 @@ from typing import Any
 
 from pancratius.content_catalog import split_frontmatter
 from pancratius.paths import CONTENT_ROOT
+from pancratius.selectors import (
+    ProjectResourceSelector,
+    ProjectSelector,
+    ProjectSubpageSelector,
+)
 from pancratius.translation.image.models import (
     ExpectedText,
     ImageTranslationJob,
@@ -21,7 +26,6 @@ from pancratius.translation.image.models import (
 from pancratius.translation.image.providers import FrontmatterUpdate, ProviderJob
 
 _FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n?", re.DOTALL)
-_SLUG_RE = re.compile(r"[a-z0-9][a-z0-9-]*\Z")
 
 COMMON_PROJECT_OVERRIDES: tuple[tuple[str, str], ...] = (
     ("Сергей Панкратиус", "Sergei Pancratius"),
@@ -55,38 +59,28 @@ class ProjectCoverError(ValueError):
     """A project image translation selector cannot be resolved."""
 
 
-@dataclass(frozen=True, slots=True)
-class ProjectImageTarget:
-    project: str
-    subpage: str | None = None
-
-    @property
-    def key(self) -> str:
-        if self.subpage:
-            return f"project:{self.project}/{self.subpage}"
-        return f"project:{self.project}"
+def _project_slug(target: ProjectResourceSelector) -> str:
+    if isinstance(target, ProjectSelector):
+        return target.slug
+    return target.project
 
 
-def parse_project_selector(selector: str) -> ProjectImageTarget:
-    """Parse `project:slug` or `project:slug/subpage`."""
-    value = selector.removeprefix("project:")
-    if not value or value.startswith("/"):
-        raise ProjectCoverError(f"invalid project selector {selector!r}")
-    project, sep, subpage = value.partition("/")
-    if not _SLUG_RE.fullmatch(project) or (sep and not _SLUG_RE.fullmatch(subpage)):
-        raise ProjectCoverError(f"invalid project selector {selector!r}")
-    return ProjectImageTarget(project=project, subpage=subpage or None)
+def _subpage_slug(target: ProjectResourceSelector) -> str | None:
+    if isinstance(target, ProjectSubpageSelector):
+        return target.subpage
+    return None
 
 
-def _project_dir(content_root: Path, target: ProjectImageTarget) -> Path:
-    root = content_root / "projects" / target.project
-    if target.subpage is None:
+def _project_dir(content_root: Path, target: ProjectResourceSelector) -> Path:
+    root = content_root / "projects" / _project_slug(target)
+    subpage = _subpage_slug(target)
+    if subpage is None:
         return root
-    return root / "subpages" / target.subpage
+    return root / "subpages" / subpage
 
 
-def _project_root(content_root: Path, target: ProjectImageTarget) -> Path:
-    return content_root / "projects" / target.project
+def _project_root(content_root: Path, target: ProjectResourceSelector) -> Path:
+    return content_root / "projects" / _project_slug(target)
 
 
 def _read_frontmatter(path: Path) -> dict[str, Any]:
@@ -134,11 +128,12 @@ def _replace_frontmatter_scalar(path: Path, key: str, value: str) -> None:
     path.write_text(f"---\n{frontmatter}\n---\n\n{body}", encoding="utf-8")
 
 
-def _metadata(target: ProjectImageTarget, target_fm: dict[str, Any]) -> dict[str, str]:
+def _metadata(target: ProjectResourceSelector, target_fm: dict[str, Any]) -> dict[str, str]:
+    subpage = _subpage_slug(target)
     return {
         "kind": "project-cover",
-        "project": target.project,
-        "subpage": target.subpage or "",
+        "project": _project_slug(target),
+        "subpage": subpage or "",
         "title_target": _scalar(target_fm.get("title")) or "",
     }
 
@@ -216,8 +211,7 @@ class ProjectCoverProvider:
     content_root: Path = CONTENT_ROOT
     output_dir: Path = Path("image-translate-out")
 
-    def spec(self, selector: str) -> ProviderJob:
-        target = parse_project_selector(selector)
+    def spec(self, target: ProjectResourceSelector) -> ProviderJob:
         folder = _project_dir(self.content_root, target)
         source_md = folder / "ru.md"
         target_md = folder / "en.md"
@@ -227,7 +221,7 @@ class ProjectCoverProvider:
             raise ProjectCoverError(f"target project page not found: {target_md}")
         source_fm = _read_frontmatter(source_md)
         target_fm = _read_frontmatter(target_md)
-        if target.subpage is None:
+        if _subpage_slug(target) is None:
             text_plan = _landing_plan(source_fm, target_fm)
         else:
             root = _project_root(self.content_root, target)

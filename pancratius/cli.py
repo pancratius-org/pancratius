@@ -65,6 +65,22 @@ def _fail(msg: str | Exception, code: int = 1) -> int:
     return code
 
 
+def _is_legacy_project_page_add(argv: list[str]) -> bool:
+    if len(argv) < 6 or argv[:3] != ["project", "page", "add"]:
+        return False
+    destination, subpage, docx = argv[3:6]
+    return ":" not in destination and "/" not in destination and "/" not in subpage and docx.lower().endswith(".docx")
+
+
+def _legacy_project_page_add_error(argv: list[str]) -> int:
+    destination, subpage = argv[3], argv[4]
+    return _fail(
+        "project page add now takes a typed destination selector: "
+        f"project:{destination}/{subpage} <docx>",
+        2,
+    )
+
+
 def _require_pandoc() -> int | None:
     """Shared precheck for the conversion verbs (`work import`, `project page add`):
     return 1 if pandoc is absent, else None to proceed."""
@@ -469,7 +485,7 @@ def _image_results_payload(
 
 def _image_translate(args: argparse.Namespace) -> int:
     """`image translate <selector...>` — translate text-bearing image assets."""
-    from pancratius.selectors import SelectorError, parse_book_selector
+    from pancratius.selectors import SelectorError, parse_book_selector, parse_project_selector
     from pancratius.translation.image.client import InsufficientCreditsError, api_key_from_env
     from pancratius.translation.image.providers.book_cover import (
         DEFAULT_BOOKS_ROOT,
@@ -503,7 +519,8 @@ def _image_translate(args: argparse.Namespace) -> int:
     for selector in args.selectors:
         try:
             if selector.startswith("project:"):
-                specs.append(project_provider.spec(selector))
+                project = parse_project_selector(selector)
+                specs.append(project_provider.spec(project))
             elif selector.startswith("book:"):
                 book = parse_book_selector(selector)
                 specs.append(book_provider.spec(f"book-{book.number:02d}"))
@@ -582,7 +599,7 @@ def _image_translate(args: argparse.Namespace) -> int:
 
 # --- handlers (project group) -------------------------------------------------
 def _project_page_add(args: argparse.Namespace) -> int:
-    """`project page add <project> <subpage-slug> <docx>` — scaffold a draft
+    """`project page add project:slug/subpage <docx>` — scaffold a draft
     sub-page (the deterministic slice only; docs/tooling.md).
 
     Dispatches to `scaffold_subpage`, which converts the DOCX, co-locates images,
@@ -593,14 +610,19 @@ def _project_page_add(args: argparse.Namespace) -> int:
     write refusal is a failure (exit 1)."""
     from pancratius import import_docx  # for print_report (shared report formatter) — light, no ML
     from pancratius.docx_conversion import ScaffoldError, scaffold_subpage
+    from pancratius.selectors import SelectorError, parse_project_subpage_selector
 
+    try:
+        lang = _locale_arg(args.lang)
+        destination = parse_project_subpage_selector(args.destination)
+    except (SelectorError, ValueError) as exc:
+        return _fail(exc, 2)
     if (rc := _require_pandoc()) is not None:
         return rc
     try:
-        lang = _locale_arg(args.lang)
         report = scaffold_subpage(
-            project=args.project,
-            subpage_slug=args.subpage_slug,
+            project=destination.project,
+            subpage_slug=destination.subpage,
             docx=Path(args.docx),
             lang=lang,
             out_content=Path(args.out_content),
@@ -615,10 +637,10 @@ def _project_page_add(args: argparse.Namespace) -> int:
         # written to place it against). The human places it; the landing is NEVER
         # edited by the tool.
         print(
-            f"\nadd this entry to projects/{args.project}/{lang}.md  subpages:  "
+            f"\nadd this entry to projects/{destination.project}/{lang}.md  subpages:  "
             "(place it yourself — the landing is never edited):"
         )
-        print(f"  - slug: {args.subpage_slug}")
+        print(f"  - slug: {destination.subpage}")
         print('    label: "TODO: short landing label"')
         print('    weight: "TODO: essay|revelation|verse|practice|dialogue"')
     return 1 if report.refused else 0
@@ -1107,8 +1129,7 @@ def _add_project_group(sub: argparse._SubParsersAction[argparse.ArgumentParser])
     page_add = page_sub.add_parser(
         "add", help="Scaffold a draft sub-page from a DOCX (editorial fields left TODO; landing never edited)."
     )
-    page_add.add_argument("project", help="Owning project slug (the landing's slug).")
-    page_add.add_argument("subpage_slug", metavar="<subpage-slug>", help="Sub-page slug under the project.")
+    page_add.add_argument("destination", metavar="project:slug/subpage", help="Destination project sub-page selector.")
     page_add.add_argument("docx", help="Source .docx file to convert into the draft body.")
     page_add.add_argument("--lang", choices=tuple(LOCALES), required=True)
     page_add.add_argument(
@@ -1350,8 +1371,11 @@ def main(argv: list[str] | None = None) -> int:
     """Parse and dispatch. Every parser level carries a `func` default, so a bare
     group/noun prints help + returns 2 while a leaf verb returns its handler's
     code. argparse raises SystemExit(2) for genuine usage errors."""
+    raw_argv = list(sys.argv[1:] if argv is None else argv)
+    if _is_legacy_project_page_add(raw_argv):
+        return _legacy_project_page_add_error(raw_argv)
     parser = build_parser()
-    args = parser.parse_args(argv)
+    args = parser.parse_args(raw_argv)
     _configure_logging()
     handler: Callable[[argparse.Namespace], int] = args.func
     return handler(args)
