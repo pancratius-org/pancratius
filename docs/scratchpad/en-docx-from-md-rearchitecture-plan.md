@@ -10,14 +10,16 @@ reviewers.
 
 ## Goal
 
-Produce faithful English DOCX artifacts from:
+Bootstrap faithful English DOCX source artifacts from:
 
 - the committed Russian donor DOCX,
 - the committed Russian Markdown imported from that DOCX,
 - the committed English Markdown translated from the Russian Markdown.
 
 The output DOCX files are committed corpus artifacts. The site build must not
-generate them.
+generate them. After a translated DOCX exists, it is source in the normal
+Pancratius model; the English Markdown should be derived from that DOCX through
+the importer, not maintained as the long-term authority.
 
 The quality target is not "Pandoc made a readable DOCX." The target is a
 donor-shaped English edition that preserves the source DOCX structure where
@@ -55,24 +57,47 @@ The verified gate after the main merge:
 
 ## Core Judgment
 
-This pipeline is not a new backend for the import IR.
+This pipeline is not a new backend for the import IR and not an ongoing
+Markdown-to-DOCX renderer.
 
 It is a three-way document transfer:
 
 - donor: `ru.docx`, whose structure is preserved;
 - alignment key: `ru.md`, which explains how imported text maps to the donor;
-- replacement content: `en.md`, which supplies translated text and inline
-  meaning;
-- result: `en.docx`, written into the same kind of committed corpus artifact
-  slot as the source DOCX.
+- bootstrap content: `en.md`, which supplies translated text and inline meaning
+  before the English DOCX exists;
+- result: `en.docx`, written into the same committed source-artifact slot as the
+  Russian DOCX.
 
 The import IR is the wrong spine for this operation. The import pipeline's job
 is to normalize DOCX into canonical Markdown. After the adapter, it no longer
 keeps live Word runs, relationships, drawings, or package parts. Transfer needs
 those live donor structures by design.
 
-The right connection to the import pipeline is shared vocabulary and shared
-matching primitives, not shared ownership.
+The right connection to the import pipeline is shared vocabulary, shared
+matching primitives, and a hard round-trip check: generated English DOCX must
+import back to acceptable English Markdown.
+
+## Source Authority
+
+The lifecycle is:
+
+1. English Markdown exists as an internal translation artifact.
+2. `docx translate-from-md` transplants that text into the Russian donor DOCX
+   structure and creates `en.docx`.
+3. From that point, `en.docx` is source. If an author edits the English book,
+   they edit DOCX.
+4. The normal importer derives `en.md` from `en.docx`.
+
+Do not add an embedded provenance or freshness protocol to the DOCX package.
+That would fight the repo's normal source model and make author edits look like
+pipeline drift. Protect existing English DOCX files through command semantics:
+batch mode creates missing files only, and `--replace` requires an explicit
+`book:NN`.
+
+The important proof is therefore not "does `en.md` still match `en.docx` by
+hash?" It is "does imported Markdown from `en.docx` preserve the text and
+structure we need?"
 
 ## Non-Goals
 
@@ -85,8 +110,9 @@ Do not turn this into:
 - an importer reorganization;
 - an editor for translation prose.
 
-If a book's English Markdown is wrong, fix the Markdown or route through the
-text translation machinery. The DOCX transfer should not silently invent prose.
+Before a translated DOCX exists, if English Markdown is wrong, fix the Markdown
+or route through the text translation machinery. After the DOCX exists, fix the
+DOCX and re-import Markdown.
 
 If a Russian DOCX has a genuine source bug, fixing it is allowed, but that is a
 source repair, not something hidden inside transfer logic.
@@ -117,6 +143,7 @@ pancratius/translation/docx/
   markdown_units.py
   donor_docx.py
   align.py
+  transfer.py
   ooxml_write.py
   batch.py
   report.py
@@ -214,6 +241,21 @@ Responsibilities:
 It may write to a temporary output path. It must not write into `src/content`
 directly. Corpus mutation stays behind `WritePlan` and `writer.apply`.
 
+### `transfer.py`
+
+Owns one-book orchestration.
+
+Responsibilities:
+
+- parse source and translated Markdown;
+- read the donor DOCX package;
+- build the alignment plan;
+- call the OOXML writer;
+- validate the staged DOCX;
+- return unit counts and diagnostics.
+
+It should not scan the corpus and should not apply a `WritePlan`.
+
 ### `batch.py`
 
 Owns corpus target discovery and `WritePlan` construction.
@@ -221,7 +263,8 @@ Owns corpus target discovery and `WritePlan` construction.
 Responsibilities:
 
 - scan `src/content`;
-- select missing translated DOCX targets or an explicit `book:NN`;
+- select missing translated DOCX targets, or one explicit `book:NN`;
+- refuse corpus-wide replacement of existing translated DOCX files;
 - call the lower-level transfer path;
 - build `WritePlan` operations;
 - call the writer;
@@ -304,16 +347,23 @@ Do not let `FootnoteAnchor(ordinal)` become a second, undocumented convention.
 
 ## Determinism
 
-Generated DOCX files are committed bytes. Re-running transfer should not create
-random diffs.
+Generated DOCX files are committed bytes during bootstrap. Re-running transfer
+for the same explicit book should not create random diffs.
+
+This is an implementation requirement, not just a test wish. The writer must set:
+
+- ZIP member ordering;
+- ZIP timestamps with an explicit fixed timestamp;
+- compression type and level;
+- stable XML namespace serialization;
+- stable relationship ids where possible.
 
 Add tests or an audit for:
 
-- ZIP member ordering;
-- ZIP timestamps;
-- stable XML namespace serialization;
-- stable relationship ids where possible;
 - byte-identical rerun for a small fixture;
+- no new `xmlns:nsN` ElementTree prefixes in the small transfer fixture;
+- every prefix named by `mc:Ignorable` or related compatibility attributes is
+  declared in the same XML part;
 - at least package-equivalent rerun for corpus files if byte identity is blocked
   by an external library detail.
 
@@ -346,6 +396,38 @@ Checks:
 
 The audit should inspect committed bytes. It should not call the converter.
 
+Do not make undeclared `mc:Ignorable` prefix values a repo-wide fatal audit until
+the existing Russian source DOCX corpus is normalized; several source files
+already carry Word-tolerated compatibility prefix values without matching
+declarations. Keep that check on transfer-output fixtures first.
+
+## Round-Trip Gate Finding
+
+The DOCX-first lifecycle is still the right direction, but it is not safe to
+flip source authority by policy alone.
+
+Current regenerated sample:
+
+- `08`, `23`, `46`, `53`, and `75` all import successfully from `en.docx` back
+  to Markdown in a temp content root.
+- None are byte-identical to the bootstrap `en.md`.
+- The main diffs are frontmatter loss (`translation.model` and
+  `translation.generated_at`) and Markdown emphasis-span drift caused by Word run
+  structure.
+
+A separate adversarial import experiment on pre-existing English DOCX files found
+larger failures in some books: mixed-script English text, stale DOCX versus
+Markdown, semantic line drift, and frontmatter mutation.
+
+Therefore the source-authority rule must be:
+
+- transfer creates the initial `en.docx`;
+- `en.docx` becomes the intended source only after a round-trip gate passes for
+  that book;
+- the gate should compare semantic text and structure, not raw Markdown bytes;
+- importer work is needed before this can be made automatic, at least to preserve
+  existing frontmatter fields and detect mixed-script English regressions.
+
 ## CLI Contract
 
 Keep the public command:
@@ -359,7 +441,9 @@ Rules:
 - zero selectors means all missing translated DOCX artifacts;
 - one `book:NN` selector means one book;
 - source locale is refused by argparse choices;
-- `--replace` is required for existing translated DOCX;
+- existing translated DOCX is treated as source and skipped in batch mode;
+- `--replace` requires an explicit `book:NN` selector because it discards
+  possible DOCX-side edits;
 - `--limit` is for batch discovery only and should be rejected with an explicit
   selector if that ambiguity becomes real;
 - no `--book`, `--number`, or other partial identity flags.
@@ -479,11 +563,15 @@ Do not document internals that are still likely to move.
 
 ### 7. Final Corpus Pass
 
-Regenerate or verify the committed English DOCX files.
+Bootstrap or verify the committed English DOCX files.
 
 Checks:
 
 - `pancratius docx translate-from-md --dry-run` reports nothing missing;
+- representative generated English DOCX files import into temporary Markdown
+  without text loss or structural damage;
+- the imported Markdown diff against the bootstrap English Markdown is explained
+  and small enough to accept, or the importer/transfer path is fixed;
 - generated artifacts pass the new audit;
 - full verify passes;
 - a small manual sample opens in Word/LibreOffice if available.
@@ -498,6 +586,7 @@ Reviewers should challenge these points:
 - Does any module write into `src/content` outside `WritePlan`?
 - Are alignment exceptions named and tested?
 - Can a re-run produce unexplained DOCX diffs?
+- Does generated `en.docx` import back to acceptable `en.md`?
 - Does CI verify committed artifacts without generating them?
 - Is the CLI grammar selector-first and audit-compliant?
 

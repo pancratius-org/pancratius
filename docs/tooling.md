@@ -149,13 +149,16 @@ The grammar carries the content model:
   `--part TITLE::MARKER` arguments insert real source part headings during the
   merge. Office-suite load checks are outside the first-class merge path; use
   explicit local QA when that heavier confidence is needed.
-- `docx translate-from-md` creates a translated DOCX from a committed
+- `docx translate-from-md` bootstraps a missing translated DOCX from a committed
   `ru.docx`, its imported `ru.md`, and an aligned target Markdown file such as
   `en.md`. It uses Pandoc only as a Markdown AST reader, transfers target text
   into the existing Word paragraph/run structure, and refuses documents whose
-  nonblank Markdown units cannot be aligned safely. It does not translate text,
-  flatten source DOCX styling into a Pandoc-generated reference document, or make
-  editorial repairs to mismatched corpora.
+  nonblank Markdown units cannot be aligned safely. After the translated DOCX
+  exists, that DOCX is source; Markdown should be re-derived through the normal
+  importer. `--replace` therefore requires an explicit `book:NN` selector. The
+  command does not translate text, flatten source DOCX styling into a
+  Pandoc-generated reference document, or make editorial repairs to mismatched
+  corpora.
 - Graph and embedding generation live here because they produce committed
   Python-only data products. Copying those products into `public/data/` is npm
   build work.

@@ -926,8 +926,12 @@ def _docx_translate_from_md(args: argparse.Namespace) -> int:
 
     if (rc := _require_pandoc()) is not None:
         return rc
+    if args.limit < 0:
+        return _fail("--limit must be non-negative.", 2)
     book = None
     if args.selector is not None:
+        if args.limit:
+            return _fail("--limit cannot be combined with explicit book:NN selector.", 2)
         try:
             book = parse_book_selector(args.selector).number
         except SelectorError as exc:
@@ -1308,7 +1312,10 @@ def _add_docx_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     translate_from_md.add_argument(
         "--replace",
         action="store_true",
-        help="Overwrite an existing translated DOCX; otherwise existing artifacts are refused.",
+        help=(
+            "Regenerate one existing translated DOCX. Requires book:NN because "
+            "translated DOCX is source after bootstrap."
+        ),
     )
     translate_from_md.set_defaults(func=_docx_translate_from_md)
 

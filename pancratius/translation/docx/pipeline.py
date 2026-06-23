@@ -21,6 +21,7 @@ from pancratius.content_catalog import CatalogEntry, scan_catalog, split_frontma
 from pancratius.docx_merge import DocxMergeError, validate_docx_package
 from pancratius.kinds import SEGMENT_OF
 from pancratius.locales import DEFAULT_LOCALE, Locale
+from pancratius.ooxml import serialize_relationships, serialize_xml
 from pancratius.paths import CONTENT_ROOT
 from pancratius.writeplan import CopyOp, Diagnostic, EnsureDirOp, WritePlan
 from pancratius.writer import WriteReport
@@ -35,6 +36,7 @@ R = f"{{{R_NS}}}"
 REL = f"{{{REL_NS}}}"
 XML_SPACE = f"{{{XML_NS}}}space"
 HYPERLINK_REL_TYPE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"
+FIXED_ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 
 PANDOC_TIMEOUT_SECONDS = 300
 PANDOC_MARKDOWN_FORMAT = "gfm+footnotes+raw_html+yaml_metadata_block"
@@ -220,14 +222,30 @@ class DocxTranslationReport:
 
 
 @dataclass(frozen=True, slots=True)
+class DocxTranslationDiscovery:
+    """Corpus denominator for a translated-DOCX batch."""
+
+    source_books: int
+    eligible: int
+    missing: int
+    existing: int
+    ineligible: int
+
+
+@dataclass(frozen=True, slots=True)
 class DocxTranslationBatch:
     """A batch run across one or more work bundles."""
 
     reports: tuple[DocxTranslationReport, ...]
+    discovery: DocxTranslationDiscovery
 
     @property
     def failed(self) -> bool:
-        return any(report.write_report.refused for report in self.reports)
+        return any(
+            report.write_report.refused
+            or any(diagnostic.severity == "fatal" for diagnostic in report.write_report.diagnostics)
+            for report in self.reports
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -1423,12 +1441,15 @@ class HyperlinkRelationshipAllocator:
     parts: dict[str, bytes]
     rels_part: str
     root: ET.Element = field(init=False)
+    source_xml: bytes | None = field(init=False)
     next_id: int = field(init=False)
 
     def __post_init__(self) -> None:
         if self.rels_part in self.parts:
-            self.root = ET.fromstring(self.parts[self.rels_part])
+            self.source_xml = self.parts[self.rels_part]
+            self.root = ET.fromstring(self.source_xml)
         else:
+            self.source_xml = None
             self.root = ET.Element(f"{REL}Relationships")
         ids: list[int] = []
         for rel in self.root.findall(f"{REL}Relationship"):
@@ -1449,11 +1470,7 @@ class HyperlinkRelationshipAllocator:
         return rel_id
 
     def save(self) -> None:
-        self.parts[self.rels_part] = ET.tostring(
-            self.root,
-            encoding="UTF-8",
-            xml_declaration=True,
-        )
+        self.parts[self.rels_part] = serialize_relationships(self.root, source_xml=self.source_xml)
 
 
 def _clone_run_properties(
@@ -1844,25 +1861,48 @@ def _replace_footnotes(zf_parts: dict[str, bytes], translated: MarkdownTransferD
             note.append(p)
     if footnote_hyperlinks is not None:
         footnote_hyperlinks.save()
-    zf_parts["word/footnotes.xml"] = ET.tostring(root, encoding="UTF-8", xml_declaration=True)
+    zf_parts["word/footnotes.xml"] = serialize_xml(
+        root,
+        source_xml=zf_parts["word/footnotes.xml"],
+    )
 
 
-def _copy_docx_parts(source_docx: Path) -> dict[str, bytes]:
+@dataclass(frozen=True, slots=True)
+class DocxPackageParts:
+    """A DOCX package payload plus the donor member order."""
+
+    parts: dict[str, bytes]
+    member_order: tuple[str, ...]
+
+
+def _copy_docx_parts(source_docx: Path) -> DocxPackageParts:
     try:
         with zipfile.ZipFile(source_docx) as zf:
             bad_member = zf.testzip()
             if bad_member is not None:
                 raise DocxTranslationError(f"{source_docx} has a corrupt ZIP member: {bad_member}")
-            return {name: zf.read(name) for name in zf.namelist()}
+            member_order = tuple(zf.namelist())
+            return DocxPackageParts(
+                parts={name: zf.read(name) for name in member_order},
+                member_order=member_order,
+            )
     except (OSError, zipfile.BadZipFile) as exc:
         raise DocxTranslationError(f"{source_docx} is not a valid DOCX package") from exc
 
 
-def _write_docx_parts(parts: dict[str, bytes], out: Path) -> None:
+def _write_docx_parts(parts: dict[str, bytes], out: Path, *, member_order: Sequence[str]) -> None:
     try:
-        with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
-            for name, data in parts.items():
-                zf.writestr(name, data)
+        seen_order = set(member_order)
+        ordered_names = [
+            name for name in member_order if name in parts
+        ] + sorted(name for name in parts if name not in seen_order)
+        with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+            for name in ordered_names:
+                info = zipfile.ZipInfo(name, date_time=FIXED_ZIP_TIMESTAMP)
+                info.compress_type = zipfile.ZIP_DEFLATED
+                info.create_system = 3
+                info.external_attr = 0o644 << 16
+                zf.writestr(info, parts[name])
     except (OSError, zipfile.BadZipFile) as exc:
         raise DocxTranslationError(f"could not write DOCX package {out}") from exc
 
@@ -1883,7 +1923,8 @@ def render_translated_docx(
         return len(source.units), len(translated.units), 0, tuple(diagnostics)
 
     try:
-        parts = _copy_docx_parts(source_docx)
+        package = _copy_docx_parts(source_docx)
+        parts = dict(package.parts)
         document_root = ET.fromstring(parts["word/document.xml"])
     except DocxTranslationError as exc:
         diagnostics.append(Diagnostic("fatal", "docx-translate.invalid-docx", str(exc)))
@@ -1935,10 +1976,9 @@ def render_translated_docx(
             return len(source.units), len(translated.units), 0, tuple(diagnostics)
         if document_hyperlinks is not None:
             document_hyperlinks.save()
-        parts["word/document.xml"] = ET.tostring(
+        parts["word/document.xml"] = serialize_xml(
             document_root,
-            encoding="UTF-8",
-            xml_declaration=True,
+            source_xml=package.parts["word/document.xml"],
         )
         _replace_footnotes(parts, translated)
     except DocxTranslationError as exc:
@@ -1954,7 +1994,7 @@ def render_translated_docx(
 
     try:
         out.parent.mkdir(parents=True, exist_ok=True)
-        _write_docx_parts(parts, out)
+        _write_docx_parts(parts, out, member_order=package.member_order)
         validation = validate_docx_package(out)
         del validation
     except (DocxTranslationError, DocxMergeError) as exc:
@@ -1974,25 +2014,77 @@ def discover_targets(
     lang: Locale = "en",
     include_existing: bool = False,
 ) -> tuple[BookDocxTranslationTarget, ...]:
+    targets, _discovery = _discover_targets(
+        content_root=content_root,
+        book=book,
+        lang=lang,
+        include_existing=include_existing,
+    )
+    return targets
+
+
+def _discover_targets(
+    *,
+    content_root: Path = CONTENT_ROOT,
+    book: int | None = None,
+    lang: Locale = "en",
+    include_existing: bool = False,
+) -> tuple[tuple[BookDocxTranslationTarget, ...], DocxTranslationDiscovery]:
     if lang == DEFAULT_LOCALE:
         raise DocxTranslationError(
             f"docx translate-from-md refuses source locale {DEFAULT_LOCALE!r}; "
             "choose a translated target locale."
         )
     catalog = scan_catalog(content_root)
+    translated_entries = {
+        entry.number: entry
+        for entry in catalog
+        if entry.kind == "book" and entry.lang == lang
+    }
+    source_entries = sorted(
+        (entry for entry in catalog if entry.kind == "book" and entry.lang == DEFAULT_LOCALE),
+        key=lambda entry: entry.number,
+    )
     targets: list[BookDocxTranslationTarget] = []
-    for entry in catalog:
-        if entry.kind != "book" or entry.lang != lang:
-            continue
+    source_books = 0
+    eligible = 0
+    missing = 0
+    existing = 0
+    ineligible = 0
+    matched_source = False
+    explicit_ineligible_detail = ""
+
+    for entry in source_entries:
         if book is not None and entry.number != book:
             continue
+        matched_source = True
+        source_books += 1
         source_md = entry.work_dir / "ru.md"
         source_docx = entry.work_dir / "ru.docx"
         translated_md = entry.work_dir / f"{lang}.md"
         translated_docx = entry.work_dir / f"{lang}.docx"
-        if not source_md.is_file() or not source_docx.is_file() or not translated_md.is_file():
+        missing_inputs = [
+            path.name
+            for path in (source_docx, source_md, translated_md)
+            if not path.is_file()
+        ]
+        if entry.number not in translated_entries:
+            missing_inputs.append(f"{lang}.md catalog entry")
+        if missing_inputs:
+            ineligible += 1
+            explicit_ineligible_detail = ", ".join(dict.fromkeys(missing_inputs))
             continue
-        if translated_docx.is_file() and book is None and not include_existing:
+        eligible += 1
+        translated_exists = translated_docx.is_file()
+        if translated_exists:
+            existing += 1
+        else:
+            missing += 1
+
+        should_include = not translated_exists
+        if translated_exists and (book is not None or include_existing):
+            should_include = True
+        if not should_include:
             continue
         targets.append(BookDocxTranslationTarget(
             entry=entry,
@@ -2001,30 +2093,21 @@ def discover_targets(
             translated_md=translated_md,
             translated_docx=translated_docx,
         ))
+    discovery = DocxTranslationDiscovery(
+        source_books=source_books,
+        eligible=eligible,
+        missing=missing,
+        existing=existing,
+        ineligible=ineligible,
+    )
     if book is not None and not targets:
-        book_entries = [
-            entry for entry in catalog
-            if entry.kind == "book" and entry.number == book
-        ]
-        if not book_entries:
+        if not matched_source:
             raise DocxTranslationError(f"book-{book:02d} was not found in {content_root / 'books'}")
-        work_dir = book_entries[0].work_dir
-        missing = [
-            path.name
-            for path in (
-                work_dir / "ru.docx",
-                work_dir / "ru.md",
-                work_dir / f"{lang}.md",
-            )
-            if not path.is_file()
-        ]
-        if not any(entry.lang == lang for entry in book_entries):
-            missing.append(f"{lang}.md catalog entry")
-        detail = ", ".join(dict.fromkeys(missing)) or f"eligible {lang}.md book entry"
+        detail = explicit_ineligible_detail or f"eligible {lang}.md book entry"
         raise DocxTranslationError(
             f"book-{book:02d} cannot be translated to {lang}.docx: missing {detail}."
         )
-    return tuple(sorted(targets, key=lambda target: target.entry.number))
+    return tuple(sorted(targets, key=lambda target: target.entry.number)), discovery
 
 
 def _target_scope(target: BookDocxTranslationTarget) -> PurePosixPath:
@@ -2041,12 +2124,21 @@ def translate_docx_batch(
     replace: bool = False,
     limit: int = 0,
 ) -> DocxTranslationBatch:
-    targets = list(discover_targets(
+    if replace and book is None:
+        raise DocxTranslationError(
+            "--replace requires an explicit book:NN selector; existing translated DOCX is source."
+        )
+    if limit < 0:
+        raise DocxTranslationError("--limit must be non-negative.")
+    if book is not None and limit:
+        raise DocxTranslationError("--limit cannot be combined with an explicit book:NN selector.")
+    discovered_targets, discovery = _discover_targets(
         content_root=content_root,
         book=book,
         lang=lang,
         include_existing=replace,
-    ))
+    )
+    targets = list(discovered_targets)
     if limit:
         targets = targets[:limit]
     reports: list[DocxTranslationReport] = []
@@ -2056,7 +2148,11 @@ def translate_docx_batch(
             diagnostics.append(Diagnostic(
                 "fatal",
                 "docx-translate.overwrite-refused",
-                f"{target.translated_docx} exists; pass --replace to overwrite it.",
+                (
+                    f"{target.translated_docx} exists; after bootstrap, translated DOCX is "
+                    "source. Pass --replace with this explicit book only if you intend to "
+                    "discard DOCX-side edits."
+                ),
             ))
             plan = WritePlan(
                 target_root=content_root,
@@ -2113,19 +2209,20 @@ def translate_docx_batch(
                 aligned_units=aligned_units,
                 output=target.translated_docx,
             ))
-    return DocxTranslationBatch(tuple(reports))
+    return DocxTranslationBatch(tuple(reports), discovery=discovery)
 
 
 def print_batch(batch: DocxTranslationBatch, *, dry_run: bool) -> None:
     write_verb = "would write" if dry_run else "wrote"
     if not batch.reports:
-        print("nothing to translate to DOCX.")
+        print(f"nothing to translate to DOCX. {_discovery_summary(batch.discovery)}")
         return
     for report in batch.reports:
         rel = report.target.translated_docx
         wr = report.write_report
-        status = "REFUSE" if wr.refused else "OK"
-        verb = "would refuse" if dry_run and wr.refused else "refused" if wr.refused else write_verb
+        refused = bool(wr.refused) or any(diagnostic.severity == "fatal" for diagnostic in wr.diagnostics)
+        status = "REFUSE" if refused else "OK"
+        verb = "would refuse" if dry_run and refused else "refused" if refused else write_verb
         print(
             f"  {status} book-{report.target.entry.number:02d}: {verb} {rel} "
             f"({report.aligned_units}/{report.source_units} aligned units)"
@@ -2133,3 +2230,12 @@ def print_batch(batch: DocxTranslationBatch, *, dry_run: bool) -> None:
         for diag in wr.diagnostics:
             if diag.severity in {"fatal", "warning"}:
                 print(f"      {diag.severity}: [{diag.code}] {diag.message}")
+    print(_discovery_summary(batch.discovery))
+
+
+def _discovery_summary(discovery: DocxTranslationDiscovery) -> str:
+    return (
+        f"coverage: {discovery.eligible}/{discovery.source_books} source book(s) eligible; "
+        f"{discovery.missing} missing, {discovery.existing} existing source DOCX, "
+        f"{discovery.ineligible} ineligible."
+    )
