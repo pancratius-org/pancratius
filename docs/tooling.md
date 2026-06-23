@@ -77,7 +77,7 @@ functions in process. It does not shell out to other Python CLIs.
 | `pancratius image translate <book:NN|project:slug[/subpage] …>` | `pancratius.translation.image` providers + engine |
 | `pancratius project page add <project> <subpage-slug> <docx>` | `pancratius.docx_conversion.scaffold_subpage` |
 | `pancratius video sync [--channel KEY] [--dry-run]` | `pancratius.video_scan.scan` |
-| `pancratius downloads render [book:NN|poem:NN …]` | `pancratius.render_downloads` |
+| `pancratius downloads render [book:NN|poem:NN …] [--dry-run] [--json]` | `pancratius.render_downloads` |
 | `pancratius docx optimize [paths...]` | `pancratius.docx_optimize` |
 | `pancratius docx inspect <book:NN|docx> [--contains TEXT|--around TEXT|--range LO:HI|--verse-only|--lineated-only]` | `pancratius.docx_inspect` |
 | `pancratius docx render-slice <book:NN|docx> (--around TEXT|--range LO:HI) --out <png>` | `pancratius.docx_render` |

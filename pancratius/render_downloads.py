@@ -27,6 +27,8 @@ Usage:
   uv run pancratius downloads render --skip-pdf   # only EPUBs
   uv run pancratius downloads render --skip-epub  # only PDFs
   uv run pancratius downloads render --force      # ignore existing outputs
+  uv run pancratius downloads render --dry-run    # show writes without rendering
+  uv run pancratius downloads render --json       # machine-readable summary
 """
 
 from __future__ import annotations
@@ -39,6 +41,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from html import unescape
 from pathlib import Path
+from typing import Literal
 
 from PIL import Image
 
@@ -50,7 +53,6 @@ from pancratius.paths import (
     CONTENT_ROOT,
     DOWNLOAD_FONTS_ROOT,
     DOWNLOAD_TEMPLATES_ROOT,
-    REPO_ROOT,
 )
 
 CONTENT = CONTENT_ROOT
@@ -107,6 +109,50 @@ class RenderSummary:
     pdfs_made: int
     epubs_made: int
     skipped: int
+
+
+DownloadFormat = Literal["pdf", "epub"]
+DownloadAction = Literal["render", "skip"]
+
+
+@dataclass(frozen=True, slots=True)
+class RenderAction:
+    entry: WorkEntry
+    format: DownloadFormat
+    output: Path
+    action: DownloadAction
+    reason: str
+
+    @property
+    def selector(self) -> str:
+        return f"{self.entry.kind}:{self.entry.number}"
+
+
+@dataclass(frozen=True, slots=True)
+class RenderPlan:
+    actions: tuple[RenderAction, ...]
+
+    @property
+    def pdfs_to_render(self) -> int:
+        return sum(
+            1 for action in self.actions
+            if action.format == "pdf" and action.action == "render"
+        )
+
+    @property
+    def epubs_to_render(self) -> int:
+        return sum(
+            1 for action in self.actions
+            if action.format == "epub" and action.action == "render"
+        )
+
+    @property
+    def skipped(self) -> int:
+        return sum(1 for action in self.actions if action.action == "skip")
+
+    @property
+    def formats_to_render(self) -> tuple[DownloadFormat, ...]:
+        return tuple(dict.fromkeys(action.format for action in self.actions if action.action == "render"))
 
 
 class DownloadRenderError(Exception):
@@ -356,6 +402,9 @@ def discover_works() -> Iterable[WorkEntry]:
 
 
 def _ensure_tools(formats: Iterable[str]) -> None:
+    formats = set(formats)
+    if not formats:
+        return
     required = {"pandoc"}
     if "pdf" in formats:
         required.add("typst")
@@ -565,14 +614,18 @@ def render_epub(entry: WorkEntry, scratch_dir: Path) -> Path:
     return out
 
 
-def render(
+def _output_path(entry: WorkEntry, format: DownloadFormat) -> Path:
+    return entry.folder / f"{entry.lang}.{format}"
+
+
+def build_plan(
     *,
     entries: Sequence[WorkEntry] | None = None,
     lang: Locale | None = None,
     skip_pdf: bool = False,
     skip_epub: bool = False,
     force: bool = False,
-) -> RenderSummary:
+) -> RenderPlan:
     selected: list[WorkEntry] = []
     source_entries = discover_works() if entries is None else entries
     for entry in source_entries:
@@ -583,12 +636,44 @@ def render(
     if not selected:
         raise DownloadRenderError("no matching works")
 
-    formats: list[str] = []
+    formats: list[DownloadFormat] = []
     if not skip_pdf:
         formats.append("pdf")
     if not skip_epub:
         formats.append("epub")
+
+    actions: list[RenderAction] = []
+    for entry in selected:
+        src_mtime = entry.md.stat().st_mtime
+        if "pdf" in formats:
+            out = _output_path(entry, "pdf")
+            action: DownloadAction = "render"
+            reason = "forced" if force else "missing-or-stale"
+            if not force and out.exists() and out.stat().st_mtime >= src_mtime:
+                action = "skip"
+                reason = "up-to-date"
+            actions.append(
+                RenderAction(entry=entry, format="pdf", output=out, action=action, reason=reason)
+            )
+        # EPUB scope per docs/downloads.md: books only.
+        if "epub" in formats and entry.kind == "book":
+            out = _output_path(entry, "epub")
+            action = "render"
+            reason = "forced" if force else "missing-or-stale"
+            if not force and out.exists() and out.stat().st_mtime >= src_mtime:
+                action = "skip"
+                reason = "up-to-date"
+            actions.append(
+                RenderAction(entry=entry, format="epub", output=out, action=action, reason=reason)
+            )
+    return RenderPlan(actions=tuple(actions))
+
+
+def execute_plan(plan: RenderPlan) -> RenderSummary:
+    formats = plan.formats_to_render
     _ensure_tools(formats)
+    if not formats:
+        return RenderSummary(pdfs_made=0, epubs_made=0, skipped=plan.skipped)
 
     pdfs_made = 0
     epubs_made = 0
@@ -599,35 +684,40 @@ def render(
     scratch_dir = scratch_parent / f"pancratius-render-{uuid.uuid4().hex}"
     scratch_dir.mkdir(parents=True)
     try:
-        for entry in selected:
-            src_mtime = entry.md.stat().st_mtime
-            if "pdf" in formats:
-                out = entry.folder / f"{entry.lang}.pdf"
-                if not force and out.exists() and out.stat().st_mtime >= src_mtime:
-                    skipped += 1
-                else:
-                    render_pdf(entry, scratch_dir)
-                    pdfs_made += 1
-                    print(f"  PDF  {entry.kind}#{entry.number}/{entry.lang}  →  {out.relative_to(REPO_ROOT)}")
-            # EPUB scope per docs/downloads.md: books only.
-            if "epub" in formats and entry.kind == "book":
-                out = entry.folder / f"{entry.lang}.epub"
-                if not force and out.exists() and out.stat().st_mtime >= src_mtime:
-                    skipped += 1
-                else:
-                    render_epub(entry, scratch_dir)
-                    epubs_made += 1
-                    print(f"  EPUB {entry.kind}#{entry.number}/{entry.lang}  →  {out.relative_to(REPO_ROOT)}")
+        for action in plan.actions:
+            if action.action == "skip":
+                skipped += 1
+                continue
+            if action.format == "pdf":
+                render_pdf(action.entry, scratch_dir)
+                pdfs_made += 1
+            elif action.format == "epub":
+                render_epub(action.entry, scratch_dir)
+                epubs_made += 1
     finally:
         shutil.rmtree(scratch_dir, ignore_errors=True)
 
-    summary = RenderSummary(
+    return RenderSummary(
         pdfs_made=pdfs_made,
         epubs_made=epubs_made,
         skipped=skipped,
     )
-    print(
-        f"\nrendered: {summary.pdfs_made} PDF, {summary.epubs_made} EPUB "
-        f"({summary.skipped} skipped; --force to rebuild)"
+
+
+def render(
+    *,
+    entries: Sequence[WorkEntry] | None = None,
+    lang: Locale | None = None,
+    skip_pdf: bool = False,
+    skip_epub: bool = False,
+    force: bool = False,
+) -> RenderSummary:
+    return execute_plan(
+        build_plan(
+            entries=entries,
+            lang=lang,
+            skip_pdf=skip_pdf,
+            skip_epub=skip_epub,
+            force=force,
+        )
     )
-    return summary
