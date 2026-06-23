@@ -9,8 +9,10 @@ from pathlib import Path
 
 import pytest
 
+from pancratius.ooxml import NamespaceBinding, serialize_xml
 from pancratius.translation.docx import (
     DocxTranslationError,
+    print_batch,
     render_translated_docx,
     translate_docx_batch,
 )
@@ -159,6 +161,53 @@ def _write_md(path: Path, body: str) -> None:
     path.write_text(body, encoding="utf-8")
 
 
+def _write_catalog_book_md(path: Path, *, number: int, lang: str, title: str, body: str) -> None:
+    _write_md(
+        path,
+        f"""---
+kind: book
+number: {number}
+slug: test
+title: {title}
+lang: {lang}
+description: Test
+---
+
+{body}
+""",
+    )
+
+
+def _assert_document_prefix_safety(docx: Path) -> None:
+    with zipfile.ZipFile(docx) as zf:
+        xml = zf.read("word/document.xml").decode("utf-8")
+        infos = zf.infolist()
+
+    assert all(info.date_time == (1980, 1, 1, 0, 0, 0) for info in infos)
+    assert re.search(r"<w:document\b", xml)
+    assert not re.search(r"\bxmlns:ns\d+=", xml)
+    assert not re.search(r"</?ns\d+:", xml)
+    ignorable = re.search(r'\bmc:Ignorable="([^"]+)"', xml)
+    assert ignorable is not None
+    for prefix in ignorable.group(1).split():
+        assert f"xmlns:{prefix}=" in xml
+
+
+def test_ooxml_serialize_xml_does_not_leak_elementtree_namespace_registry() -> None:
+    namespace_map = getattr(ET, "_namespace_map", None)
+    assert isinstance(namespace_map, dict)
+    before = dict(namespace_map)
+    root = ET.Element("{http://example.com/pancratius-test}root")
+
+    payload = serialize_xml(
+        root,
+        bindings=(NamespaceBinding("pan", "http://example.com/pancratius-test"),),
+    )
+
+    assert b"<pan:root" in payload
+    assert dict(namespace_map) == before
+
+
 @requires_pandoc
 def test_render_translated_docx_preserves_word_slots_and_transfers_english(
     tmp_path: Path,
@@ -222,6 +271,38 @@ Final line
         ("", ""),
         ("Final line", ""),
     ]
+
+
+@requires_pandoc
+def test_render_translated_docx_is_deterministic_and_preserves_ooxml_prefixes(
+    tmp_path: Path,
+) -> None:
+    source_docx = tmp_path / "ru.docx"
+    source_md = tmp_path / "ru.md"
+    translated_md = tmp_path / "en.md"
+    out_a = tmp_path / "a.docx"
+    out_b = tmp_path / "b.docx"
+    _write_paragraph_docx(source_docx, ["Свет"])
+    _write_md(source_md, "Свет\n")
+    _write_md(translated_md, "Light\n")
+
+    first = render_translated_docx(
+        source_docx=source_docx,
+        source_md=source_md,
+        translated_md=translated_md,
+        out=out_a,
+    )
+    second = render_translated_docx(
+        source_docx=source_docx,
+        source_md=source_md,
+        translated_md=translated_md,
+        out=out_b,
+    )
+
+    assert [d for d in first[3] if d.severity == "fatal"] == []
+    assert [d for d in second[3] if d.severity == "fatal"] == []
+    assert out_a.read_bytes() == out_b.read_bytes()
+    _assert_document_prefix_safety(out_a)
 
 
 @requires_pandoc
@@ -1236,3 +1317,45 @@ description: Test
 def test_translate_docx_batch_refuses_source_locale(tmp_path: Path) -> None:
     with pytest.raises(DocxTranslationError, match="refuses source locale"):
         translate_docx_batch(content_root=tmp_path, lang="ru", dry_run=True)
+
+
+@requires_pandoc
+def test_translate_docx_batch_treats_existing_translated_docx_as_source(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    content_root = tmp_path / "content"
+    book_dir = content_root / "books" / "01-test"
+    book_dir.mkdir(parents=True)
+    _write_paragraph_docx(book_dir / "ru.docx", ["Свет"])
+    _write_catalog_book_md(book_dir / "ru.md", number=1, lang="ru", title="Тест", body="Свет\n")
+    _write_catalog_book_md(book_dir / "en.md", number=1, lang="en", title="Test", body="Light\n")
+
+    dry = translate_docx_batch(content_root=content_root, lang="en", dry_run=True)
+
+    assert len(dry.reports) == 1
+    assert dry.discovery.missing == 1
+    assert dry.discovery.existing == 0
+    assert not (book_dir / "en.docx").exists()
+
+    written = translate_docx_batch(content_root=content_root, lang="en")
+    assert not written.failed
+    assert (book_dir / "en.docx").is_file()
+
+    after = translate_docx_batch(content_root=content_root, lang="en", dry_run=True)
+    assert after.reports == ()
+    assert after.discovery.missing == 0
+    assert after.discovery.existing == 1
+
+    explicit = translate_docx_batch(content_root=content_root, book=1, lang="en", dry_run=True)
+    assert explicit.failed
+    assert explicit.reports[0].write_report.diagnostics[0].code == "docx-translate.overwrite-refused"
+    print_batch(explicit, dry_run=True)
+    stdout = capsys.readouterr().out
+    assert "REFUSE book-01: would refuse" in stdout
+    with pytest.raises(DocxTranslationError, match="--replace requires an explicit book:NN"):
+        translate_docx_batch(content_root=content_root, lang="en", dry_run=True, replace=True)
+    with pytest.raises(DocxTranslationError, match="--limit must be non-negative"):
+        translate_docx_batch(content_root=content_root, lang="en", dry_run=True, limit=-1)
+    with pytest.raises(DocxTranslationError, match="--limit cannot be combined"):
+        translate_docx_batch(content_root=content_root, book=1, lang="en", dry_run=True, limit=1)

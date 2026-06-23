@@ -3,6 +3,7 @@
 from pancratius.translation.docx.pipeline import (
     BookDocxTranslationTarget,
     DocxTranslationBatch,
+    DocxTranslationDiscovery,
     DocxTranslationError,
     DocxTranslationReport,
     MarkdownTransferDocument,
@@ -17,6 +18,7 @@ from pancratius.translation.docx.pipeline import (
 __all__ = [
     "BookDocxTranslationTarget",
     "DocxTranslationBatch",
+    "DocxTranslationDiscovery",
     "DocxTranslationError",
     "DocxTranslationReport",
     "MarkdownTransferDocument",
