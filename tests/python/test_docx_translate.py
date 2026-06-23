@@ -16,9 +16,21 @@ from pancratius.translation.docx import (
     render_translated_docx,
     translate_docx_batch,
 )
-from pancratius.translation.docx.pipeline import (
-    _dedupe_media_payloads,
-    _repair_unbound_relationship_prefixes,
+from pancratius.translation.docx.align import (
+    align_source_units,
+    join_markdown_units_for_word_slot,
+)
+from pancratius.translation.docx.models import (
+    MarkdownTransferDocument,
+    MarkdownTransferUnit,
+    TransferUnitKind,
+    TranslatedTextRun,
+    WordTextSlot,
+)
+from pancratius.translation.docx.ooxml_write import (
+    dedupe_media_payloads,
+    repair_unbound_relationship_prefixes,
+    write_docx_parts,
 )
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -164,6 +176,31 @@ def _write_two_footnote_anchor_docx(path: Path) -> None:
             zf.writestr(name, data)
 
 
+def _write_out_of_order_footnote_anchor_docx(path: Path) -> None:
+    _write_paragraph_docx(path, ["Первый", "Второй"])
+    with zipfile.ZipFile(path) as zf:
+        parts = {name: zf.read(name) for name in zf.namelist()}
+    root = ET.fromstring(parts["word/document.xml"])
+    paragraphs = root.findall(f".//{W}body/{W}p")
+    for paragraph, footnote_id in zip(paragraphs, ("5", "2"), strict=True):
+        run = ET.SubElement(paragraph, f"{W}r")
+        ref = ET.SubElement(run, f"{W}footnoteReference")
+        ref.set(f"{W}id", footnote_id)
+    parts["word/document.xml"] = ET.tostring(root, encoding="UTF-8", xml_declaration=True)
+    parts["word/footnotes.xml"] = (
+        f'<?xml version="1.0" encoding="UTF-8"?>'
+        f'<w:footnotes xmlns:w="{W_NS}">'
+        f'<w:footnote w:id="2"><w:p><w:r><w:footnoteRef/></w:r>'
+        f"<w:r><w:t>Вторая сноска</w:t></w:r></w:p></w:footnote>"
+        f'<w:footnote w:id="5"><w:p><w:r><w:footnoteRef/></w:r>'
+        f"<w:r><w:t>Первая сноска</w:t></w:r></w:p></w:footnote>"
+        f"</w:footnotes>"
+    ).encode()
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for name, data in parts.items():
+            zf.writestr(name, data)
+
+
 def _write_image_text_docx(path: Path, image_path: Path) -> None:
     from docx import Document
     from docx.shared import Inches
@@ -231,6 +268,24 @@ def _write_md(path: Path, body: str) -> None:
     path.write_text(body, encoding="utf-8")
 
 
+def _transfer_unit(text: str, kind: TransferUnitKind = "paragraph") -> MarkdownTransferUnit:
+    return MarkdownTransferUnit(kind, (TranslatedTextRun(text),))
+
+
+def _transfer_doc(*units: MarkdownTransferUnit) -> MarkdownTransferDocument:
+    return MarkdownTransferDocument(units)
+
+
+def _word_slot(ordinal: int, text: str, *, has_drawing: bool = False) -> WordTextSlot:
+    return WordTextSlot(
+        ordinal=ordinal,
+        paragraph=ET.Element(f"{W}p"),
+        text=text,
+        has_drawing=has_drawing,
+        footnote_refs=(),
+    )
+
+
 def _write_catalog_book_md(path: Path, *, number: int, lang: str, title: str, body: str) -> None:
     _write_md(
         path,
@@ -261,6 +316,64 @@ def _assert_document_prefix_safety(docx: Path) -> None:
     assert ignorable is not None
     for prefix in ignorable.group(1).split():
         assert f"xmlns:{prefix}=" in xml
+
+
+def test_align_source_units_keeps_named_source_only_toc_gap_reviewable() -> None:
+    plan = align_source_units(
+        _transfer_doc(_transfer_unit("Начало")),
+        (
+            _word_slot(0, "Оглавление"),
+            _word_slot(1, "Глава 1 1"),
+            _word_slot(2, "Начало"),
+        ),
+    )
+
+    assert [ignored.reason for ignored in plan.ignored_slots] == ["source_toc", "source_toc"]
+    assert plan.alignments[0].slot.ordinal == 2
+
+
+def test_align_source_units_refuses_unnamed_source_gap() -> None:
+    with pytest.raises(DocxTranslationError, match="Лишний абзац"):
+        align_source_units(
+            _transfer_doc(_transfer_unit("Первый"), _transfer_unit("Второй")),
+            (
+                _word_slot(0, "Первый"),
+                _word_slot(1, "Лишний абзац"),
+                _word_slot(2, "Второй"),
+            ),
+        )
+
+
+def test_join_markdown_units_preserves_lineated_boundaries() -> None:
+    joined = join_markdown_units_for_word_slot((
+        MarkdownTransferUnit("lineated", (TranslatedTextRun("First"),)),
+        MarkdownTransferUnit("lineated", (TranslatedTextRun("Second"),)),
+    ))
+
+    assert joined.plain_text == "First\nSecond"
+
+
+def test_write_docx_parts_uses_stable_zip_shape(tmp_path: Path) -> None:
+    out = tmp_path / "stable.docx"
+
+    write_docx_parts(
+        {
+            "word/document.xml": b"<document />",
+            "custom/item.xml": b"<item />",
+            "a.xml": b"<a />",
+        },
+        out,
+        member_order=("word/document.xml",),
+    )
+
+    with zipfile.ZipFile(out) as zf:
+        infos = zf.infolist()
+        assert zf.namelist() == ["word/document.xml", "a.xml", "custom/item.xml"]
+
+    assert all(info.date_time == (1980, 1, 1, 0, 0, 0) for info in infos)
+    assert all(info.compress_type == zipfile.ZIP_DEFLATED for info in infos)
+    assert all(info.create_system == 3 for info in infos)
+    assert all(info.external_attr == 0o644 << 16 for info in infos)
 
 
 def test_ooxml_serialize_xml_does_not_leak_elementtree_namespace_registry() -> None:
@@ -1197,6 +1310,63 @@ Do not be afraid to touch[^2].
 
 
 @requires_pandoc
+def test_render_translated_docx_maps_footnote_bodies_by_body_reference_order(
+    tmp_path: Path,
+) -> None:
+    source_docx = tmp_path / "ru.docx"
+    source_md = tmp_path / "ru.md"
+    translated_md = tmp_path / "en.md"
+    out = tmp_path / "en.docx"
+    _write_out_of_order_footnote_anchor_docx(source_docx)
+    _write_md(
+        source_md,
+        """Первый[^1]
+
+Второй[^2]
+
+[^1]: Первая сноска
+
+[^2]: Вторая сноска
+""",
+    )
+    _write_md(
+        translated_md,
+        """First[^1]
+
+Second[^2]
+
+[^1]: First footnote
+
+[^2]: Second footnote
+""",
+    )
+
+    _source_units, _translated_units, aligned_units, diagnostics = render_translated_docx(
+        source_docx=source_docx,
+        source_md=source_md,
+        translated_md=translated_md,
+        out=out,
+    )
+
+    assert [d for d in diagnostics if d.severity == "fatal"] == []
+    assert aligned_units == 2
+    with zipfile.ZipFile(out) as zf:
+        document = ET.fromstring(zf.read("word/document.xml"))
+        footnotes = ET.fromstring(zf.read("word/footnotes.xml"))
+    body_ref_ids = [
+        ref.get(f"{W}id")
+        for ref in document.findall(f".//{W}body/{W}p/{W}r/{W}footnoteReference")
+    ]
+    notes_by_id = {
+        note.get(f"{W}id"): "".join(t.text or "" for t in note.findall(f".//{W}t"))
+        for note in footnotes.findall(f"{W}footnote")
+        if int(note.get(f"{W}id", "0")) > 0
+    }
+    assert body_ref_ids == ["5", "2"]
+    assert notes_by_id == {"5": "First footnote", "2": "Second footnote"}
+
+
+@requires_pandoc
 def test_render_translated_docx_refuses_source_anchor_missing_from_markdown(
     tmp_path: Path,
 ) -> None:
@@ -1489,7 +1659,7 @@ def test_markdown_render_backend_repairs_unbound_relationship_prefix() -> None:
         b"</w:document>"
     )
 
-    repaired = _repair_unbound_relationship_prefixes(xml)
+    repaired = repair_unbound_relationship_prefixes(xml)
 
     assert b' r:id="rId1"' in repaired
     assert b"ns11:id" not in repaired
@@ -1508,7 +1678,7 @@ def test_markdown_render_backend_dedupes_media_payloads_and_retargets_relationsh
         ),
     }
 
-    _dedupe_media_payloads(parts)
+    dedupe_media_payloads(parts)
 
     assert "word/media/image1.png" in parts
     assert "word/media/rId1.png" not in parts
@@ -1538,6 +1708,8 @@ def test_translate_docx_batch_markdown_render_backend_writes_docx(
 
     assert not batch.failed
     assert batch.reports[0].backend == "markdown-render"
+    assert batch.reports[0].target.source_entry.title == "Тест"
+    assert batch.reports[0].target.translated_entry.title == "Test"
     assert (book_dir / "en.docx").is_file()
     with zipfile.ZipFile(book_dir / "en.docx") as zf:
         xml = zf.read("word/document.xml").decode("utf-8")

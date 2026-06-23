@@ -190,6 +190,28 @@ P.S. Continue.
 
 
 @requires_docx_roundtrip
+def test_compare_fails_when_lineation_structure_is_lost() -> None:
+    committed = _book_markdown("""<div class="lineated">
+
+First line
+Second line
+
+Third line
+
+</div>
+""")
+    imported = _book_markdown("First line Second line Third line\n")
+
+    findings = compare_markdown_pair(committed, imported, lang="en")
+
+    drift = next(
+        finding for finding in findings
+        if finding.code == "roundtrip.lineation-structure-drift"
+    )
+    assert drift.severity == "fatal"
+
+
+@requires_docx_roundtrip
 def test_visible_text_drift_message_skips_tolerated_footnote_spacing() -> None:
     committed = _book_markdown("Creator, I was at the Liturgy[1], and then the light changed.\n")
     imported = _book_markdown("Creator, I was at the Liturgy [1], and then the word changed.\n")

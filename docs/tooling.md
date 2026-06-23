@@ -171,7 +171,9 @@ The grammar carries the content model:
   structure was not transplanted. After a translated DOCX exists, that DOCX is
   source; Markdown should be re-derived through the normal importer. `--replace`
   therefore requires an explicit `book:NN` selector. The command does not
-  translate text or make editorial repairs to mismatched corpora.
+  translate text or make editorial repairs to mismatched corpora. The stable
+  transfer contract is in
+  [`pancratius/translation/docx/README.md`](../pancratius/translation/docx/README.md).
 - Graph and embedding generation live here because they produce committed
   Python-only data products. Copying those products into `public/data/` is npm
   build work.
