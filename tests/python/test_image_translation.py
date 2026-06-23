@@ -278,7 +278,6 @@ def test_image_translation_job_has_expected_text_and_overrides_not_headline(tmp_
 
 
 def test_normalise_book_key_variants() -> None:
-    assert normalise_book_key("50") == "book-50"
     assert normalise_book_key("book-5") == "book-05"
     assert normalise_book_key("book:7") == "book-07"
 
@@ -345,7 +344,7 @@ def test_book_provider_builds_generic_job(tmp_path: Path) -> None:
         books_root=tmp_path / "books",
         seed_path=tmp_path / "seed.json",
     )
-    spec = provider.spec("50")
+    spec = provider.spec("book:50")
     assert spec.job.key == "book-50"
     assert spec.job.source_image == covers / "book-50.ru.png"
     assert spec.job.target_image == tmp_path / "out" / "book-50.en.png"

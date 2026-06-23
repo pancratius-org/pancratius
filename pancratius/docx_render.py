@@ -20,7 +20,7 @@ indent, the very signals under test.
 PURE w.r.t. the library: it reads the source DOCX and writes only the requested
 PNG(s). It never touches ``src/content``.
 
-    uv run pancratius docx render-slice --book 13 --around "Память кого" \
+    uv run pancratius docx render-slice book:13 --around "Память кого" \
         --context 12 --out /tmp/b13.png
 """
 from __future__ import annotations

@@ -304,6 +304,99 @@ def test_import_work_returns_a_write_report(tmp_path: Path, make_docx: DocxFacto
 
 @docx_import_test
 @requires_docx_import
+def test_import_work_explicit_target_creates_when_absent(tmp_path: Path, make_docx: DocxFactory) -> None:
+    docx = make_docx("source-ru.docx", "# Explicit Work\n\nТекст.")
+    content_root = tmp_path / "src" / "content"
+    report = import_docx.import_work(import_docx.ImportRequest.for_explicit_work(
+        docx=docx,
+        lang="ru",
+        out_content=content_root,
+        kind="book",
+        number=91,
+        slug="explicit-work",
+        title="Explicit Work",
+        description="Explicit description.",
+    ))
+
+    assert (content_root / "books" / "91-explicit-work" / "ru.md").is_file()
+    assert not report.refused
+
+
+@docx_import_test
+@requires_docx_import
+def test_import_work_explicit_existing_same_lang_without_replace_is_refused(
+    tmp_path: Path,
+    make_docx: DocxFactory,
+) -> None:
+    docx = make_docx("source-ru.docx", "# Explicit Work\n\nТекст.")
+    content_root = tmp_path / "src" / "content"
+    first = import_docx.import_work(import_docx.ImportRequest.for_explicit_work(
+        docx=docx,
+        lang="ru",
+        out_content=content_root,
+        kind="book",
+        number=91,
+        slug="explicit-work",
+        title="Explicit Work",
+        description="Explicit description.",
+    ))
+    assert not first.refused
+
+    second = import_docx.import_work(import_docx.ImportRequest.for_explicit_work(
+        docx=docx,
+        lang="ru",
+        out_content=content_root,
+        kind="book",
+        number=91,
+        title="Explicit Work",
+        replace=False,
+    ))
+
+    assert second.refused
+    assert any(d.severity == "fatal" for d in second.diagnostics)
+
+
+@docx_import_test
+@requires_docx_import
+def test_import_work_explicit_existing_new_lang_does_not_require_replace(
+    tmp_path: Path,
+    make_docx: DocxFactory,
+) -> None:
+    docx = make_docx("source.docx", "# Explicit Work\n\nТекст.")
+    content_root = tmp_path / "src" / "content"
+    first = import_docx.import_work(import_docx.ImportRequest.for_explicit_work(
+        docx=docx,
+        lang="ru",
+        out_content=content_root,
+        kind="book",
+        number=91,
+        slug="explicit-work",
+        title="Explicit Work",
+        description="Explicit description.",
+    ))
+    assert not first.refused
+
+    second = import_docx.import_work(import_docx.ImportRequest.for_explicit_work(
+        docx=docx,
+        lang="en",
+        out_content=content_root,
+        kind="book",
+        number=91,
+        slug="explicit-work-en",
+        title="Explicit Work EN",
+        description="Explicit description EN.",
+        replace=False,
+    ))
+
+    assert not second.refused
+    en_md = content_root / "books" / "91-explicit-work" / "en.md"
+    assert en_md.is_file()
+    fm, _body = split_frontmatter(en_md.read_text(encoding="utf-8"))
+    assert fm["slug"] == "91-explicit-work-en"
+
+
+@docx_import_test
+@requires_docx_import
 def test_import_work_refusal_returns_a_report_with_fatal_diagnostic(
     tmp_path: Path,
     make_docx: DocxFactory,
@@ -325,8 +418,8 @@ def test_import_work_refusal_returns_a_report_with_fatal_diagnostic(
     ))
     assert not first.refused
 
-    # Second import of the SAME bundle/lang, no replace -> the importer routes
-    # through --into resolution by key; replace is False, so it is refused.
+    # Second import of the SAME bundle/lang, no replace -> the importer resolves
+    # the existing key; replace is False, so it is refused.
     second = import_docx.import_work(import_docx.ImportRequest.for_existing_work(
         docx=docx,
         lang="ru",

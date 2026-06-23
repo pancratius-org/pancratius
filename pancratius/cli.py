@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from pancratius.import_docx import ImportRequest, TranslationSource
     from pancratius.kinds import CorpusWorkKind
     from pancratius.locales import Locale
+    from pancratius.render_downloads import WorkEntry
     from pancratius.translation.image.models import ImageTranslationResult
     from pancratius.translation.text import TranslationReport
 
@@ -125,15 +126,26 @@ def _translation_source_arg(value: object | None) -> TranslationSource | None:
 # --- handlers (work group) ----------------------------------------------------
 def _import_request_from_args(args: argparse.Namespace) -> ImportRequest:
     from pancratius import import_docx
+    from pancratius.selectors import SelectorError, parse_work_selector
+
+    to_kind = None
+    to_number = None
+    if args.to is not None:
+        try:
+            selector = parse_work_selector(args.to)
+        except SelectorError as exc:
+            raise import_docx.ImportWorkError(str(exc)) from exc
+        to_kind = selector.kind
+        to_number = selector.number
 
     return import_docx.ImportRequest.from_cli(
         docx=Path(args.docx),
         lang=_locale_arg(args.lang),
         out_content=Path(args.out_content),
         kind=_corpus_work_kind_arg(args.kind),
-        into=args.into,
+        to_kind=to_kind,
+        to_number=to_number,
         title=args.title,
-        number=args.number,
         slug=args.slug,
         description=args.description,
         cover=Path(args.cover) if args.cover else None,
@@ -201,7 +213,7 @@ def _print_translate_report(report: TranslationReport) -> float:
 
 
 def _work_translate(args: argparse.Namespace) -> int:
-    """`work translate [--book N]` — draft an ``en.md`` from a book's ``ru.md``.
+    """`work translate [book:NN ...]` — draft ``en.md`` from book ``ru.md`` files.
 
     Mechanical draft only (docs/tooling.md): writes ``translation.source: ai`` and
     leaves ``reviewed_by`` for a human. ``--dry-run`` prints the plan and a
@@ -211,21 +223,29 @@ def _work_translate(args: argparse.Namespace) -> int:
     from datetime import date
 
     from pancratius.content_catalog import CatalogEntry, scan_catalog
+    from pancratius.selectors import SelectorError, dedupe_work_selectors, parse_book_selector
     from pancratius.translation import text as xlate
 
     content_root = Path(args.out_content)
-    kind = _corpus_work_kind_arg(args.kind)
-    if kind is None:
-        return _fail("--kind is required", 2)
     catalog = scan_catalog(content_root)
-    if args.book is not None:
-        targets = [
-            e for e in catalog if e.kind == kind and e.number == args.book and e.lang == "ru"
-        ]
-        if not targets:
-            return _fail(f"no {kind} ru source with number {args.book}", 2)
+    if args.selectors:
+        if args.limit:
+            return _fail("--limit cannot be combined with explicit selectors", 2)
+        try:
+            selectors = dedupe_work_selectors(parse_book_selector(raw) for raw in args.selectors)
+        except SelectorError as exc:
+            return _fail(exc, 2)
+        targets = []
+        for selector in selectors:
+            matches = [
+                e for e in catalog
+                if e.kind == "book" and e.number == selector.number and e.lang == "ru"
+            ]
+            if not matches:
+                return _fail(f"no book ru source with number {selector.number}", 2)
+            targets.extend(matches)
     else:
-        targets = xlate.find_untranslated(catalog, kind=kind)
+        targets = xlate.find_untranslated(catalog, kind="book")
         if args.limit:
             targets = targets[: args.limit]
     if not targets:
@@ -259,7 +279,7 @@ def _work_translate(args: argparse.Namespace) -> int:
         cache_dir = Path(".cache") / "translate"
     workers = max(1, args.workers)
     verb = "estimating" if args.dry_run else "translating"
-    print(f"{verb} {len(targets)} {kind}(s) with {args.model} ({workers} workers):", flush=True)
+    print(f"{verb} {len(targets)} book(s) with {args.model} ({workers} workers):", flush=True)
     total = 0.0
     failures = 0
     lock = threading.Lock()
@@ -350,6 +370,7 @@ def _image_exception_result(key: str, exc: Exception, *, kind: str) -> ImageTran
 
 def _image_translate(args: argparse.Namespace) -> int:
     """`image translate <selector...>` — translate text-bearing image assets."""
+    from pancratius.selectors import SelectorError, parse_book_selector
     from pancratius.translation.image.client import InsufficientCreditsError, api_key_from_env
     from pancratius.translation.image.providers import ProviderJob
     from pancratius.translation.image.providers.book_cover import (
@@ -368,11 +389,6 @@ def _image_translate(args: argparse.Namespace) -> int:
     if not args.selectors:
         return _fail("at least one selector is required (e.g. book:50 or project:holy-rus)", 2)
 
-    try:
-        api_key = api_key_from_env()
-    except ValueError as exc:
-        return _fail(exc)
-
     book_provider = BookCoverProvider(
         output_dir=Path(args.output_dir),
         covers_dir=Path(args.covers_dir) if args.covers_dir else DEFAULT_COVERS_DIR,
@@ -390,10 +406,21 @@ def _image_translate(args: argparse.Namespace) -> int:
         try:
             if selector.startswith("project:"):
                 specs.append(project_provider.spec(selector))
+            elif selector.startswith("book:"):
+                book = parse_book_selector(selector)
+                specs.append(book_provider.spec(f"book-{book.number:02d}"))
             else:
-                specs.append(book_provider.spec(selector))
-        except (ValueError, ProjectCoverError) as exc:
+                return _fail(
+                    f"unsupported image selector {selector!r}; expected book:NN or project:slug[/subpage]",
+                    2,
+                )
+        except (SelectorError, ValueError, ProjectCoverError) as exc:
             return _fail(exc, 2)
+
+    try:
+        api_key = api_key_from_env()
+    except ValueError as exc:
+        return _fail(exc)
 
     translator = ImageTextTranslator(
         config=ImageTranslationConfig(max_attempts=args.max_attempts),
@@ -484,20 +511,52 @@ def _project_page_add(args: argparse.Namespace) -> int:
 
 
 # --- handlers (downloads / docx groups) ---------------------------------------
+def _download_entries_from_selectors(
+    raw_selectors: list[str],
+    *,
+    lang: Locale | None,
+) -> tuple[WorkEntry, ...]:
+    from pancratius.render_downloads import DownloadRenderError, discover_works
+    from pancratius.selectors import dedupe_work_selectors, parse_work_selector
+
+    selectors = dedupe_work_selectors(parse_work_selector(raw) for raw in raw_selectors)
+
+    entries = list(discover_works())
+    if not selectors:
+        return tuple(entry for entry in entries if lang is None or entry.lang == lang)
+
+    selected = []
+    for selector in selectors:
+        matches = [
+            entry for entry in entries
+            if entry.kind == selector.kind
+            and entry.number == selector.number
+            and (lang is None or entry.lang == lang)
+        ]
+        if not matches:
+            suffix = f" in {lang}" if lang else ""
+            raise DownloadRenderError(f"no matching work for {selector}{suffix}")
+        selected.extend(matches)
+    return tuple(selected)
+
+
 def _downloads_render(args: argparse.Namespace) -> int:
-    """`downloads render [--book N]` — render local PDF/EPUB release artifacts.
+    """`downloads render [book:NN|poem:NN ...]` — render local PDF/EPUB artifacts.
     Pass-through to the render owner, which prints its own progress/summary."""
     from pancratius.render_downloads import DownloadRenderError, render
+    from pancratius.selectors import SelectorError
 
     try:
+        lang = _optional_locale_arg(args.lang)
+        entries = _download_entries_from_selectors(args.selectors, lang=lang)
         render(
-            book=args.book,
-            poem=args.poem,
-            lang=_optional_locale_arg(args.lang),
+            entries=entries,
             skip_pdf=args.skip_pdf,
             skip_epub=args.skip_epub,
             force=args.force,
         )
+    except SelectorError as exc:
+        return _fail(exc, 2)
     except DownloadRenderError as exc:
         return _fail(exc)
     return 0
@@ -550,6 +609,24 @@ def _docx_merge(args: argparse.Namespace) -> int:
     return 0
 
 
+def _docx_source_from_arg(
+    raw_source: str,
+    *,
+    lang: Locale,
+    content_root: Path,
+) -> Path:
+    from pancratius.docx_inspect import resolve_book_docx
+    from pancratius.selectors import SelectorError, parse_book_selector
+
+    if not raw_source.startswith(("book:", "poem:", "project:")):
+        return Path(raw_source)
+    try:
+        selector = parse_book_selector(raw_source)
+    except SelectorError as exc:
+        raise SelectorError(f"{raw_source!r} is not a DOCX source selector: {exc}") from exc
+    return resolve_book_docx(selector.number, lang=lang, content_root=content_root)
+
+
 def _docx_inspect(args: argparse.Namespace) -> int:
     """`docx inspect` — read-only source DOCX/importer signal diagnostics."""
     from pancratius.docx_inspect import (
@@ -558,8 +635,8 @@ def _docx_inspect(args: argparse.Namespace) -> int:
         inspect_docx,
         parse_index_range,
         render_inspection,
-        resolve_book_docx,
     )
+    from pancratius.selectors import SelectorError
 
     try:
         options = InspectOptions.from_cli(
@@ -570,13 +647,13 @@ def _docx_inspect(args: argparse.Namespace) -> int:
             verse_only=args.verse_only,
             lineated_only=args.lineated_only,
         )
-        docx = (
-            resolve_book_docx(args.book, lang=_locale_arg(args.lang), content_root=Path(args.content_root))
-            if args.book is not None
-            else Path(args.docx)
+        docx = _docx_source_from_arg(
+            args.source,
+            lang=_locale_arg(args.lang),
+            content_root=Path(args.content_root),
         )
         result = inspect_docx(docx, options)
-    except DocxInspectError as exc:
+    except (DocxInspectError, SelectorError) as exc:
         return _fail(exc, 2)
     print(render_inspection(result))
     return 0
@@ -584,14 +661,15 @@ def _docx_inspect(args: argparse.Namespace) -> int:
 
 def _docx_render_slice(args: argparse.Namespace) -> int:
     """`docx render-slice` — render a diagnostic paragraph slice via LibreOffice."""
-    from pancratius.docx_inspect import DocxInspectError, parse_index_range, resolve_book_docx
+    from pancratius.docx_inspect import DocxInspectError, parse_index_range
     from pancratius.docx_render import DocxRenderError, range_key, render, resolve_range
+    from pancratius.selectors import SelectorError
 
     try:
-        docx = (
-            resolve_book_docx(args.book, lang=_locale_arg(args.lang), content_root=Path(args.content_root))
-            if args.book is not None
-            else Path(args.docx)
+        docx = _docx_source_from_arg(
+            args.source,
+            lang=_locale_arg(args.lang),
+            content_root=Path(args.content_root),
         )
         selection = resolve_range(
             docx,
@@ -601,7 +679,7 @@ def _docx_render_slice(args: argparse.Namespace) -> int:
         )
         paragraph_range = selection.index_range
         pages = render(docx, paragraph_range.lo, paragraph_range.hi, Path(args.out))
-    except (DocxInspectError, DocxRenderError) as exc:
+    except (DocxInspectError, DocxRenderError, SelectorError) as exc:
         return _fail(exc, 2)
     print(
         f"rendered paragraphs [{paragraph_range.lo}..{paragraph_range.hi}] "
@@ -677,23 +755,26 @@ def _add_work_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     work.set_defaults(func=_require_subcommand(work))
     work_sub = work.add_subparsers(dest="noun", metavar="<noun>")
     work_import = work_sub.add_parser(
-        "import", help="Import one DOCX into a work bundle (--kind book|poem; --into to add a translation)."
+        "import",
+        help="Import one DOCX into a work bundle (--kind book|poem; --to book:NN for an explicit destination).",
     )
     work_import.add_argument("docx", help="Source .docx file to import.")
-    work_import.add_argument(
+    work_import_target = work_import.add_mutually_exclusive_group(required=True)
+    work_import_target.add_argument(
         "--kind",
         choices=tuple(CORPUS_WORK_KINDS),
-        help="Required for a new work; optional with --into when the bundle is unique.",
+        help="Create a new work of this kind; mutually exclusive with --to.",
+    )
+    work_import_target.add_argument(
+        "--to",
+        metavar="book:NN|poem:NN",
+        help="Explicit destination selector; use --replace only when overwriting an existing locale.",
     )
     work_import.add_argument("--lang", choices=tuple(LOCALES), required=True)
-    work_import.add_argument("--into", help="Existing work bundle key or frontmatter slug to update.")
     work_import.add_argument(
         "--out-content", default=str(import_docx.DEFAULT_CONTENT_ROOT), help="Content root; defaults to src/content."
     )
     work_import.add_argument("--title", help="Override frontmatter title.")
-    work_import.add_argument(
-        "--number", type=int, help="Override work number; defaults to next number for new works or existing number with --into."
-    )
     work_import.add_argument(
         "--slug", help="Override frontmatter/work slug. Without a numeric prefix, the work number is prepended."
     )
@@ -720,10 +801,10 @@ def _add_work_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     work_translate.add_argument(
-        "--book", type=int, help="Translate only this book number (default: every untranslated book)."
-    )
-    work_translate.add_argument(
-        "--kind", choices=tuple(CORPUS_WORK_KINDS), default="book", help="Work kind to translate."
+        "selectors",
+        nargs="*",
+        metavar="book:NN",
+        help="Book selector(s) to translate. Omit to translate every untranslated book.",
     )
     work_translate.add_argument(
         "--out-content", default=str(import_docx.DEFAULT_CONTENT_ROOT), help="Content root; defaults to src/content."
@@ -766,6 +847,7 @@ def _add_work_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     )
     work_translate.set_defaults(func=_work_translate)
 
+
 def _add_image_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     from pancratius.paths import CONTENT_ROOT
     from pancratius.translation.image.providers.book_cover import (
@@ -784,8 +866,8 @@ def _add_image_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -
     )
     translate.add_argument(
         "selectors",
-        nargs="*",
-        help="Image selectors: book:50, book-50, 50, project:holy-rus, project:holy-rus/tartaria.",
+        nargs="+",
+        help="Image selectors: book:50, project:holy-rus, project:holy-rus/tartaria.",
     )
     translate.add_argument(
         "--output-dir",
@@ -841,8 +923,12 @@ def _add_downloads_group(sub: argparse._SubParsersAction[argparse.ArgumentParser
     downloads.set_defaults(func=_require_subcommand(downloads))
     downloads_sub = downloads.add_subparsers(dest="noun", metavar="<noun>")
     render = downloads_sub.add_parser("render", help="Render release artifacts (never CI).")
-    render.add_argument("--book", type=int, help="Render only this book number.")
-    render.add_argument("--poem", type=int, help="Render only this poem number.")
+    render.add_argument(
+        "selectors",
+        nargs="*",
+        metavar="book:NN|poem:NN",
+        help="Work selector(s) to render. Omit to render every work.",
+    )
     render.add_argument("--lang", choices=tuple(LOCALES), help="Restrict to one language.")
     render.add_argument("--skip-pdf", action="store_true", help="Skip PDF rendering.")
     render.add_argument("--skip-epub", action="store_true", help="Skip EPUB rendering.")
@@ -884,14 +970,12 @@ def _add_docx_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         "inspect",
         help="Inspect read-only OOXML/importer paragraph signals in a source DOCX.",
     )
-    inspect_src = inspect.add_mutually_exclusive_group(required=True)
-    inspect_src.add_argument("docx", nargs="?", help="Source .docx file to inspect.")
-    inspect_src.add_argument("--book", type=int, help="Committed book number; inspects its <lang>.docx.")
-    inspect.add_argument("--lang", choices=tuple(LOCALES), default="ru", help="Language for --book.")
+    inspect.add_argument("source", help="Source .docx file or committed source selector such as book:30.")
+    inspect.add_argument("--lang", choices=tuple(LOCALES), default="ru", help="Language for book:NN.")
     inspect.add_argument(
         "--content-root",
         default=str(import_docx.DEFAULT_CONTENT_ROOT),
-        help="Content root for --book lookup; defaults to src/content.",
+        help="Content root for book:NN lookup; defaults to src/content.",
     )
     inspect_filter = inspect.add_mutually_exclusive_group()
     inspect_filter.add_argument("--contains", help="Show only rows whose source text contains this substring.")
@@ -917,14 +1001,12 @@ def _add_docx_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         "render-slice",
         help="Render a diagnostic DOCX paragraph slice to PNG via LibreOffice.",
     )
-    render_src = render_slice.add_mutually_exclusive_group(required=True)
-    render_src.add_argument("docx", nargs="?", help="Source .docx file to render.")
-    render_src.add_argument("--book", type=int, help="Committed book number; renders its <lang>.docx.")
-    render_slice.add_argument("--lang", choices=tuple(LOCALES), default="ru", help="Language for --book.")
+    render_slice.add_argument("source", help="Source .docx file or committed source selector such as book:30.")
+    render_slice.add_argument("--lang", choices=tuple(LOCALES), default="ru", help="Language for book:NN.")
     render_slice.add_argument(
         "--content-root",
         default=str(import_docx.DEFAULT_CONTENT_ROOT),
-        help="Content root for --book lookup; defaults to src/content.",
+        help="Content root for book:NN lookup; defaults to src/content.",
     )
     render_filter = render_slice.add_mutually_exclusive_group(required=True)
     render_filter.add_argument("--around", help="Render rows around paragraphs containing this text.")

@@ -21,8 +21,8 @@ Outputs are written next to ``<lang>.md``.
 Usage:
 
   uv run pancratius downloads render              # render everything
-  uv run pancratius downloads render --book 33    # one work by kind+number
-  uv run pancratius downloads render --poem 1
+  uv run pancratius downloads render book:33      # one book by typed selector
+  uv run pancratius downloads render poem:1
   uv run pancratius downloads render --lang en    # restrict to one language
   uv run pancratius downloads render --skip-pdf   # only EPUBs
   uv run pancratius downloads render --skip-epub  # only PDFs
@@ -35,7 +35,7 @@ import re
 import shutil
 import subprocess
 import uuid
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from html import unescape
 from pathlib import Path
@@ -567,20 +567,16 @@ def render_epub(entry: WorkEntry, scratch_dir: Path) -> Path:
 
 def render(
     *,
-    book: int | None = None,
-    poem: int | None = None,
+    entries: Sequence[WorkEntry] | None = None,
     lang: Locale | None = None,
     skip_pdf: bool = False,
     skip_epub: bool = False,
     force: bool = False,
 ) -> RenderSummary:
     selected: list[WorkEntry] = []
-    for entry in discover_works():
+    source_entries = discover_works() if entries is None else entries
+    for entry in source_entries:
         if lang and entry.lang != lang:
-            continue
-        if book is not None and (entry.kind != "book" or entry.number != book):
-            continue
-        if poem is not None and (entry.kind != "poem" or entry.number != poem):
             continue
         selected.append(entry)
 

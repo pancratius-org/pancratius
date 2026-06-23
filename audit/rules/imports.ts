@@ -71,6 +71,31 @@ export const pan019CliVerifyBoundary: Rule = {
   },
 };
 
+// PAN024 — primary library target flags. Selectors such as `book:50` and
+// `poem:1` are resource identities, not options. The Python checker AST-scans
+// the public CLI door for exact retired target flags, without catching option
+// names like `--books-root`.
+export const pan024CliTargetFlags: Rule = {
+  id: "PAN024-cli-target-flags",
+  title: "PAN024: pancratius CLI uses positional typed selectors instead of primary-target flags",
+  tier: "core",
+  run(ctx: RuleContext): Finding[] {
+    return runPythonCheck(ctx, {
+      id: "PAN024-cli-target-flags",
+      category: CATEGORY,
+      severity: "fatal",
+      script: "python/cli_target_flags.py",
+      contract:
+        "The public `pancratius` grammar carries library identity with typed positional selectors (`book:50`, `poem:1`). Exact argparse primary-target flags `--book`, `--poem`, `--number`, and `--into` are retired. Source-first import uses `--kind` for inferred identity or `--to <selector>` for an explicit destination because the source artifact is the primary positional argument there.",
+      why: "When primary resources are flags, command handlers accumulate partial identities (`--book`, `--poem`, `--number`, `--into`) and the bounded context becomes harder to read. Typed selectors give agents and humans a grep-friendly domain vocabulary and keep flags for options.",
+      repair:
+        "Replace retired primary-target flags with a positional selector argument or source-first `--to <selector>` and parse selectors through `pancratius.selectors`. Keep true options such as `--books-root`, `--lang`, `--dry-run`, and `--replace` as flags.",
+      doNotFixBy:
+        "Renaming the flag to another partial target shape, parsing raw strings ad hoc in handlers, or weakening the audit while leaving two public ways to name the same resource.",
+    });
+  },
+};
+
 // PAN018 — writer-only-mutation guard. Import's safety boundary
 // (docs/import-pipeline.md): import code *produces* a WritePlan; only the writer
 // (pancratius/writer.py) mutates src/content. Every other import module that
