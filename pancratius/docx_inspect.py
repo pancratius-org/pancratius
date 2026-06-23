@@ -21,8 +21,8 @@ scratch media dir. It mutates nothing under ``src/content``.
 Run it:
 
     uv run pancratius docx inspect <docx> --contains "Память кого"
-    uv run pancratius docx inspect --book 13 --around "Память кого" --context 8
-    uv run pancratius docx inspect --book 13 --verse-only
+    uv run pancratius docx inspect book:13 --around "Память кого" --context 8
+    uv run pancratius docx inspect book:13 --verse-only
 """
 from __future__ import annotations
 

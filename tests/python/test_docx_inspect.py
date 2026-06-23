@@ -102,6 +102,61 @@ def test_docx_inspect_cli_missing_file_is_usage_error(
     assert "DOCX not found" in capsys.readouterr().err
 
 
+def test_docx_inspect_cli_accepts_book_selector(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    resolved = tmp_path / "book-30" / "ru.docx"
+    seen: list[Path] = []
+
+    def fake_resolve_book_docx(number: int, *, lang: str, content_root: Path) -> Path:
+        assert number == 30
+        assert lang == "ru"
+        assert content_root == tmp_path
+        return resolved
+
+    monkeypatch.setattr(docx_inspect, "resolve_book_docx", fake_resolve_book_docx)
+
+    def fake_inspect(docx: Path, _options: InspectOptions) -> object:
+        seen.append(docx)
+        return object()
+
+    monkeypatch.setattr(docx_inspect, "inspect_docx", fake_inspect)
+    monkeypatch.setattr(docx_inspect, "render_inspection", lambda _result: "resolved book source")
+
+    rc = cli.main(["docx", "inspect", "book:30", "--around", "Alpha", "--content-root", str(tmp_path)])
+
+    assert rc == 0
+    assert seen == [resolved]
+    assert "resolved book source" in capsys.readouterr().out
+
+
+def test_docx_inspect_cli_rejects_non_book_selector(capsys: pytest.CaptureFixture[str]) -> None:
+    rc = cli.main(["docx", "inspect", "poem:1"])
+
+    assert rc == 2
+    assert "not a DOCX source selector" in capsys.readouterr().err
+
+
+def test_docx_inspect_cli_keeps_unknown_colon_source_as_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seen: list[Path] = []
+
+    def fake_inspect(docx: Path, _options: InspectOptions) -> object:
+        seen.append(docx)
+        return object()
+
+    monkeypatch.setattr(docx_inspect, "inspect_docx", fake_inspect)
+    monkeypatch.setattr(docx_inspect, "render_inspection", lambda _result: "ok")
+
+    rc = cli.main(["docx", "inspect", "notes:v1.docx"])
+
+    assert rc == 0
+    assert seen == [Path("notes:v1.docx")]
+
+
 def test_docx_inspect_rejects_ambiguous_filters() -> None:
     with pytest.raises(DocxInspectError, match="choose only one inspect filter"):
         InspectOptions.from_cli(contains="Alpha", index_range=parse_index_range("0:2"))

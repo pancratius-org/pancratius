@@ -25,6 +25,7 @@ import {
   pan017ImportWorkKinds,
   pan018WriterOnlyMutation,
   pan019CliVerifyBoundary,
+  pan024CliTargetFlags,
 } from "./imports.ts";
 import { pan020TypographyRoleDrift } from "./typography.ts";
 import { pan021ConceptosphereI18n } from "./conceptosphere.ts";
@@ -53,6 +54,7 @@ export const RULES: readonly Rule[] = [
   pan017ImportWorkKinds,
   pan018WriterOnlyMutation,
   pan019CliVerifyBoundary,
+  pan024CliTargetFlags,
   pan020TypographyRoleDrift,
   pan021ConceptosphereI18n,
   // Post-build tier (need dist/; run only on `npm run audit:post-build`):

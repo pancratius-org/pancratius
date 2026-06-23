@@ -31,15 +31,29 @@ def _exit_code(argv: list[str]) -> int:
         return int(exc.code or 0)
 
 
+def _catalog_entry(*, kind: str = "book", number: int = 1, lang: str = "ru") -> object:
+    from pancratius.content_catalog import CatalogEntry
+
+    work_key = f"{kind}-{number:02d}"
+    return CatalogEntry(
+        kind=cast(Any, kind),
+        number=number,
+        slug=work_key,
+        title=f"{kind} {number}",
+        lang=cast(Any, lang),
+        description="",
+        work_key=work_key,
+        work_dir=Path("src/content") / f"{kind}s" / work_key,
+        md_path=Path("src/content") / f"{kind}s" / work_key / f"{lang}.md",
+        frontmatter={"kind": kind, "number": number, "lang": lang},
+    )
+
+
 # --- the navigable ontology (--help at every level exits 0) -------------------
 @pytest.mark.parametrize(
     "argv",
     [
         ["--help"],
-        ["work", "--help"],
-        ["work", "translate", "--help"],
-        ["image", "--help"],
-        ["image", "translate", "--help"],
         ["conceptosphere", "--help"],
         ["conceptosphere", "graph", "--help"],
         ["conceptosphere", "embed", "--help"],
@@ -60,8 +74,9 @@ def test_unknown_command_is_usage_error(argv: list[str]) -> None:
     assert _exit_code(argv) == 2
 
 
-def test_work_cover_is_not_public_command() -> None:
-    assert _exit_code(["work", "cover", "1"]) == 2
+@pytest.mark.parametrize("argv", [["work", "cover"], ["work", "cover", "1"]])
+def test_retired_work_cover_is_usage_error(argv: list[str]) -> None:
+    assert _exit_code(argv) == 2
 
 
 @pytest.mark.parametrize(
@@ -188,6 +203,56 @@ def test_work_import_builds_request_and_dispatches(monkeypatch: pytest.MonkeyPat
     assert req.docx == Path("x.docx")
 
 
+def test_work_import_to_selector_builds_explicit_target(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pancratius import import_docx
+
+    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    captured: list[object] = []
+
+    def fake_import_work(request: object) -> object:
+        captured.append(request)
+        return _fake_report()
+
+    monkeypatch.setattr(import_docx, "import_work", fake_import_work)
+    rc = _exit_code(["work", "import", "x.docx", "--to", "book:50", "--lang", "ru", "--replace"])
+    assert rc == 0
+    (req,) = captured
+    assert isinstance(req, import_docx.ImportRequest)
+    assert isinstance(req.target, import_docx.ExplicitWorkTarget)
+    assert req.target.kind == "book"
+    assert req.target.number == 50
+    assert req.write.replace is True
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["work", "import", "x.docx", "--into", "book-50", "--lang", "ru"],
+        ["work", "import", "x.docx", "--kind", "book", "--number", "50", "--lang", "ru"],
+    ],
+)
+def test_work_import_retires_raw_destination_flags(argv: list[str]) -> None:
+    assert _exit_code(argv) == 2
+
+
+def test_work_import_kind_and_to_are_mutually_exclusive(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pancratius import import_docx
+
+    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+
+    dispatched = False
+
+    def fake_import_work(_request: object) -> object:
+        nonlocal dispatched
+        dispatched = True
+        return _fake_report()
+
+    monkeypatch.setattr(import_docx, "import_work", fake_import_work)
+
+    assert _exit_code(["work", "import", "x.docx", "--kind", "book", "--to", "book:50", "--lang", "ru"]) == 2
+    assert dispatched is False
+
+
 def test_work_import_refusal_is_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     from pancratius import import_docx
 
@@ -233,6 +298,57 @@ def test_work_import_missing_kind_is_usage_before_dispatch(monkeypatch: pytest.M
 def test_work_import_missing_pandoc_is_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cli.shutil, "which", lambda _tool: None)
     assert _exit_code(["work", "import", "x.docx", "--kind", "book", "--lang", "ru"]) == 1
+
+
+def test_work_translate_selectors_dispatch_in_user_order(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pancratius import content_catalog
+    from pancratius.translation import text as xlate
+
+    entries = [
+        _catalog_entry(kind="book", number=1),
+        _catalog_entry(kind="book", number=2),
+        _catalog_entry(kind="poem", number=1),
+    ]
+    seen: list[int] = []
+
+    class FakeOpenRouterClient:
+        def __init__(self, *, api_key: str) -> None:
+            self.api_key = api_key
+
+    def fake_translate_book(_client: object, _config: object, *, entry: object, **_kwargs: object) -> object:
+        entry_dynamic = cast(Any, entry)
+        seen.append(entry_dynamic.number)
+        return xlate.TranslationReport(
+            book_key=entry_dynamic.work_key,
+            units=1,
+            chunks=1,
+            outcome=xlate.TranslationEstimateOutcome(
+                xlate.CostEstimate(
+                    source_tokens=1000,
+                    output_tokens=100,
+                    reference_tokens=1000,
+                    chunks=1,
+                    draft_cost_usd=0.01,
+                    revise_cost_usd=0.01,
+                    profile_cost_usd=0.01,
+                )
+            ),
+        )
+
+    monkeypatch.setattr(content_catalog, "scan_catalog", lambda _root: entries)
+    monkeypatch.setattr(xlate, "OpenRouterClient", FakeOpenRouterClient)
+    monkeypatch.setattr(xlate, "load_tag_labels", lambda _path: {})
+    monkeypatch.setattr(xlate, "translate_book", fake_translate_book)
+
+    rc = _exit_code(["work", "translate", "book:2", "book:1", "book:2", "--dry-run", "--workers", "1"])
+
+    assert rc == 0
+    assert seen == [2, 1]
+
+
+def test_work_translate_retires_book_and_kind_target_flags() -> None:
+    assert _exit_code(["work", "translate", "--book", "3"]) == 2
+    assert _exit_code(["work", "translate", "--kind", "book"]) == 2
 
 
 # --- project page add (writer-backed scaffold; door prints the landing entry) -
@@ -323,14 +439,53 @@ def test_project_page_add_missing_pandoc_is_failure(monkeypatch: pytest.MonkeyPa
 def test_downloads_render_dispatches(monkeypatch: pytest.MonkeyPatch) -> None:
     from pancratius import render_downloads
 
+    book_2 = render_downloads.WorkEntry(
+        kind=cast(Any, "book"),
+        number=2,
+        folder=Path("books/book-02"),
+        lang=cast(Any, "ru"),
+        md=Path("books/book-02/ru.md"),
+        slug="book-02",
+        title="Book 2",
+    )
+    poem_1 = render_downloads.WorkEntry(
+        kind=cast(Any, "poem"),
+        number=1,
+        folder=Path("poetry/poem-01"),
+        lang=cast(Any, "ru"),
+        md=Path("poetry/poem-01/ru.md"),
+        slug="poem-01",
+        title="Poem 1",
+    )
+
     seen: list[dict[str, object]] = []
 
     def fake_render(**kwargs: object) -> None:
         seen.append(kwargs)
 
+    monkeypatch.setattr(render_downloads, "discover_works", lambda: [book_2, poem_1])
     monkeypatch.setattr(render_downloads, "render", fake_render)
-    assert _exit_code(["downloads", "render", "--book", "3"]) == 0
-    assert seen and seen[0]["book"] == 3
+    assert _exit_code(["downloads", "render", "poem:1", "book:2"]) == 0
+    assert seen and seen[0]["entries"] == (poem_1, book_2)
+
+
+def test_downloads_render_missing_explicit_selector_is_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from pancratius import render_downloads
+
+    monkeypatch.setattr(render_downloads, "discover_works", lambda: [])
+    assert _exit_code(["downloads", "render", "book:999"]) == 1
+
+
+@pytest.mark.parametrize("selector", ["book:x", "book-3", "project:holy-rus", "book:0"])
+def test_downloads_render_malformed_selector_is_usage(selector: str) -> None:
+    assert _exit_code(["downloads", "render", selector]) == 2
+
+
+def test_downloads_render_retires_target_flags() -> None:
+    assert _exit_code(["downloads", "render", "--book", "3"]) == 2
+    assert _exit_code(["downloads", "render", "--poem", "1"]) == 2
 
 
 def test_docx_optimize_dispatches_with_path_objects(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -377,7 +532,7 @@ def test_image_translate_item_exception_is_batch_failure_and_continues(monkeypat
             pass
 
         def spec(self, selector: str) -> ProviderJob:
-            key = selector.replace(":", "-")
+            key = selector
             job = ImageTranslationJob(
                 key=key,
                 source_image=Path(f"{key}.ru.png"),
@@ -394,7 +549,7 @@ def test_image_translate_item_exception_is_batch_failure_and_continues(monkeypat
 
         def translate(self, job: ImageTranslationJob) -> object:
             calls.append(job.key)
-            if job.key == "book-1":
+            if job.key == "book-01":
                 raise RuntimeError("bad image")
             return _ok_image_result(job.key)
 
@@ -403,8 +558,8 @@ def test_image_translate_item_exception_is_batch_failure_and_continues(monkeypat
     monkeypatch.setattr(image_translator, "ImageTextTranslator", FakeImageTextTranslator)
 
     assert _exit_code(["image", "translate", "book:1", "book:2"]) == 1
-    assert calls == ["book-1", "book-2"]
-    assert set(jobs) == {"book-1", "book-2"}
+    assert calls == ["book-01", "book-02"]
+    assert set(jobs) == {"book-01", "book-02"}
 
 
 def test_image_translate_insufficient_credits_stops_batch(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -420,7 +575,7 @@ def test_image_translate_insufficient_credits_stops_batch(monkeypatch: pytest.Mo
             pass
 
         def spec(self, selector: str) -> ProviderJob:
-            key = selector.replace(":", "-")
+            key = selector
             return ProviderJob(
                 job=ImageTranslationJob(
                     key=key,
@@ -445,7 +600,12 @@ def test_image_translate_insufficient_credits_stops_batch(monkeypatch: pytest.Mo
     monkeypatch.setattr(image_translator, "ImageTextTranslator", FakeImageTextTranslator)
 
     assert _exit_code(["image", "translate", "book:1", "book:2"]) == 1
-    assert calls == ["book-1"]
+    assert calls == ["book-01"]
+
+
+def test_image_translate_rejects_legacy_book_keys() -> None:
+    assert _exit_code(["image", "translate", "book-1"]) == 2
+    assert _exit_code(["image", "translate", "1"]) == 2
 
 
 # --- end-to-end: the real door → import_work → writer path (no mocks) ----------
@@ -467,8 +627,8 @@ def test_work_import_dry_run_writes_nothing(tmp_path: Path) -> None:
     rc = cli.main(
         [
             "work", "import", str(_FIXTURE_DOCX),
-            "--kind", "book", "--lang", "ru",
-            "--number", "91", "--slug", "door-probe",
+            "--to", "book:91", "--lang", "ru",
+            "--slug", "door-probe",
             "--out-content", str(content_root),
             "--dry-run",
         ]

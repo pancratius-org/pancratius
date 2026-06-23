@@ -44,8 +44,8 @@ STAGE_ROOT = CACHE_ROOT / "import-stage"
 TODO_DESCRIPTION = "TODO: write the editorial description for this work."
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tiff"}
-# Imports corpus works only; the catalog scan ignores project entries, so
-# `--into <project>` simply finds no work.
+# Imports corpus works only; the catalog scan ignores project entries, so an
+# existing project reference simply finds no work.
 
 _LEADING_NUMBER_RE = re.compile(r"^\s*\d+\s*[-._ ]+\s*")
 _LATIN_RE = re.compile(r"[A-Za-z]")
@@ -56,7 +56,7 @@ class ImportWorkError(Exception):
     """Invalid import input or an unresolvable target.
 
     Raised for bad input (missing/non-DOCX file) and `_resolve_target` failures (no
-    such work, ambiguous `--into`, `--kind`-less new work, existing bundle dir). A
+    such work, ambiguous existing target, `--kind`-less new work, existing bundle dir). A
     write refusal is NOT this: `import_work` returns the refused `WriteReport` (with
     its fatal diagnostics) instead. The CLI maps this to a usage exit."""
 
@@ -82,12 +82,12 @@ class ImportTextOverrides:
 
 @dataclass(frozen=True)
 class AnyImportKind:
-    """Resolve an existing `--into` target without constraining the work kind."""
+    """Resolve an existing target without constraining the work kind."""
 
 
 @dataclass(frozen=True)
 class SpecificImportKind:
-    """Resolve an existing `--into` target within one corpus work kind."""
+    """Resolve an existing target within one corpus work kind."""
 
     kind: CorpusWorkKind
 
@@ -112,7 +112,16 @@ class ExistingWorkTarget:
     identity: WorkIdentityOverride = field(default_factory=WorkIdentityOverride)
 
 
-type ImportTarget = NewWorkTarget | ExistingWorkTarget
+@dataclass(frozen=True)
+class ExplicitWorkTarget:
+    """Import to a typed work identity, creating it when absent."""
+
+    kind: CorpusWorkKind
+    number: int
+    slug: str | None = None
+
+
+type ImportTarget = NewWorkTarget | ExistingWorkTarget | ExplicitWorkTarget
 
 
 @dataclass(frozen=True)
@@ -231,15 +240,14 @@ class ImportRequest:
         )
 
     @classmethod
-    def from_cli(
+    def for_explicit_work(
         cls,
         *,
         docx: Path,
         lang: Locale,
         out_content: Path,
-        kind: CorpusWorkKind | None = None,
-        into: str | None = None,
-        number: int | None = None,
+        kind: CorpusWorkKind,
+        number: int,
         slug: str | None = None,
         title: str | None = None,
         description: str | None = None,
@@ -248,6 +256,57 @@ class ImportRequest:
         dry_run: bool = False,
         replace: bool = False,
     ) -> ImportRequest:
+        return cls(
+            docx=docx,
+            lang=lang,
+            out_content=out_content,
+            target=ExplicitWorkTarget(kind=kind, number=number, slug=slug),
+            text=ImportTextOverrides(title, description),
+            cover=_cover_policy(cover),
+            translation=_translation_policy(translation_source),
+            write=ImportWritePolicy(dry_run=dry_run, replace=replace),
+        )
+
+    @classmethod
+    def from_cli(
+        cls,
+        *,
+        docx: Path,
+        lang: Locale,
+        out_content: Path,
+        kind: CorpusWorkKind | None = None,
+        into: str | None = None,
+        to_kind: CorpusWorkKind | None = None,
+        to_number: int | None = None,
+        slug: str | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        cover: Path | None = None,
+        translation_source: TranslationSource | None = None,
+        dry_run: bool = False,
+        replace: bool = False,
+    ) -> ImportRequest:
+        if (to_kind is None) != (to_number is None):
+            raise ImportWorkError("--to must provide both kind and number")
+        if to_kind is not None and to_number is not None:
+            if kind is not None:
+                raise ImportWorkError("--kind and --to are mutually exclusive")
+            if into is not None:
+                raise ImportWorkError("existing work target and --to are mutually exclusive")
+            return cls.for_explicit_work(
+                docx=docx,
+                lang=lang,
+                out_content=out_content,
+                kind=to_kind,
+                number=to_number,
+                slug=slug,
+                title=title,
+                description=description,
+                cover=cover,
+                translation_source=translation_source,
+                dry_run=dry_run,
+                replace=replace,
+            )
         if into is not None:
             return cls.for_existing_work(
                 docx=docx,
@@ -255,7 +314,6 @@ class ImportRequest:
                 out_content=out_content,
                 into=into,
                 kind=kind,
-                number=number,
                 slug=slug,
                 title=title,
                 description=description,
@@ -270,7 +328,6 @@ class ImportRequest:
                 lang=lang,
                 out_content=out_content,
                 kind=kind,
-                number=number,
                 slug=slug,
                 title=title,
                 description=description,
@@ -503,7 +560,7 @@ def _existing_group(matches: list[CatalogEntry], work_ref: str) -> _ExistingGrou
         raise ImportWorkError(f"work not found in Markdown catalog: {work_ref}")
     if len(groups) > 1:
         choices = ", ".join(f"{kind}/{work_key}" for kind, work_key in sorted(groups))
-        raise ImportWorkError(f"--into is ambiguous ({choices}); pass --kind")
+        raise ImportWorkError(f"existing work target is ambiguous ({choices}); pass a kind")
     (kind, work_key), entries = next(iter(groups.items()))
     if not is_corpus_work_kind(kind):
         raise ImportWorkError(f"work kind is not importable: {kind}")
@@ -566,7 +623,7 @@ def _prepare_cover(
     existing_lang: CatalogEntry | None,
 ) -> str | None:
     """Resolve the bundle cover: existing covers are read from `read_dir` (the real
-    bundle, for additive --into), a new --cover is written into `write_dir` (the scratch
+    bundle, for additive imports), a new --cover is written into `write_dir` (the scratch
     stage), so the writer stays the only thing that touches the real target."""
     match cover:
         case CoverFile(path=path):
@@ -734,13 +791,38 @@ def _resolve_target(
             work_dir = content_root / KIND_DIRS[kind] / work_key
             if work_dir.exists():
                 raise ImportWorkError(
-                    f"work bundle already exists: {work_dir}; use --into {work_key} to update it"
+                    f"work bundle already exists: {work_dir}; use --to {kind}:{number} --replace to update it"
                 )
             return _ResolvedTarget(
                 kind=kind,
                 work_key=work_key,
                 number=number,
                 slug=slug,
+                work_entries=[],
+            )
+        case ExplicitWorkTarget(kind=kind, number=number, slug=explicit_slug):
+            matches = [entry for entry in entries if entry.kind == kind and entry.number == number]
+            if matches:
+                group = _existing_group(matches, f"{kind}:{number}")
+                reference = _preferred_entry(group.entries, request.lang)
+                slug = _slug_with_number(explicit_slug, number) if explicit_slug else reference.slug
+                return _ResolvedTarget(
+                    kind=group.kind,
+                    work_key=group.work_key,
+                    number=number,
+                    slug=slug,
+                    work_entries=group.entries,
+                )
+            title = request.text.title or infer_title(docx)
+            work_key = _slug_with_number(explicit_slug or title, number)
+            work_dir = content_root / KIND_DIRS[kind] / work_key
+            if work_dir.exists():
+                raise ImportWorkError(f"work bundle already exists: {work_dir}")
+            return _ResolvedTarget(
+                kind=kind,
+                work_key=work_key,
+                number=number,
+                slug=work_key,
                 work_entries=[],
             )
 

@@ -75,11 +75,9 @@ def test_work_import_maps_every_flag_onto_request(monkeypatch: pytest.MonkeyPatc
     rc = _exit_code(
         [
             "work", "import", "src.docx",
-            "--kind", "poem",
+            "--to", "poem:42",
             "--lang", "en",
-            "--into", "07-existing",
             "--title", "My Title",
-            "--number", "42",
             "--slug", "custom-slug",
             "--description", "A description",
             "--cover", "cover.png",
@@ -95,12 +93,10 @@ def test_work_import_maps_every_flag_onto_request(monkeypatch: pytest.MonkeyPatc
     assert req.docx == Path("src.docx")
     assert req.lang == "en"
     assert req.out_content == Path("/tmp/scratch/content")
-    assert isinstance(req.target, import_docx.ExistingWorkTarget)
-    assert req.target.work_ref == "07-existing"
-    assert isinstance(req.target.kind_scope, import_docx.SpecificImportKind)
-    assert req.target.kind_scope.kind == "poem"
-    assert req.target.identity.number == 42
-    assert req.target.identity.slug == "custom-slug"
+    assert isinstance(req.target, import_docx.ExplicitWorkTarget)
+    assert req.target.kind == "poem"
+    assert req.target.number == 42
+    assert req.target.slug == "custom-slug"
     assert req.text.title == "My Title"
     assert req.text.description == "A description"
     assert isinstance(req.cover, import_docx.CoverFile)
@@ -132,25 +128,25 @@ def test_work_import_replace_flag_defaults_false(monkeypatch: pytest.MonkeyPatch
 # 2) --replace semantics through the GENUINE writer (real conversion, scratch root)
 # ===========================================================================
 def _import_new(content_root: Path, *extra: str) -> int:
-    """First import of a NEW work bundle (no --into)."""
+    """First import of a NEW explicitly numbered work bundle."""
     return cli.main(
         [
             "work", "import", str(_FIXTURE_DOCX),
-            "--kind", "book", "--lang", "ru",
-            "--number", "91", "--slug", "replace-probe",
+            "--to", "book:91", "--lang", "ru",
+            "--slug", "replace-probe",
             "--out-content", str(content_root),
             *extra,
         ]
     )
 
 
-def _reimport_into(content_root: Path, *extra: str) -> int:
-    """Re-import the SAME language into the existing bundle (--into) — the path that
+def _reimport_to(content_root: Path, *extra: str) -> int:
+    """Re-import the SAME language to the existing selector — the path that
     reaches the writer's overwrite-refused / --replace boundary."""
     return cli.main(
         [
             "work", "import", str(_FIXTURE_DOCX),
-            "--into", "91-replace-probe", "--lang", "ru",
+            "--to", "book:91", "--lang", "ru",
             "--out-content", str(content_root),
             *extra,
         ]
@@ -158,27 +154,30 @@ def _reimport_into(content_root: Path, *extra: str) -> int:
 
 
 @_REQUIRES_REAL
-def test_work_import_new_into_existing_dir_is_usage_error(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+def test_work_import_to_existing_selector_new_lang_needs_no_replace(
+    tmp_path: Path,
 ) -> None:
-    """A *fresh* import (no --into) that targets an already-existing bundle dir is
-    an unresolvable target → usage error (exit 2), distinct from a write refusal.
-    This is the importer's _resolve_target guard, not the writer's overwrite gate."""
+    """A selector can add a missing locale to an existing work without --replace;
+    the writer only requires --replace when a concrete file would be overwritten."""
     content_root = tmp_path / "src" / "content"
     assert _import_new(content_root) == 0
-    rc = _import_new(content_root)
-    err = capsys.readouterr().err
-    assert rc == 2, "re-importing a NEW work over an existing dir is a usage error"
-    assert "already exists" in err and "--into" in err
+    rc = cli.main(
+        [
+            "work", "import", str(_FIXTURE_DOCX),
+            "--to", "book:91", "--lang", "en",
+            "--out-content", str(content_root),
+        ]
+    )
+    assert rc == 0
+    assert (content_root / "books" / "91-replace-probe" / "en.md").is_file()
 
 
 @_REQUIRES_REAL
 def test_work_import_reimport_same_lang_refused_without_replace(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Re-importing the SAME language via --into without --replace must be REFUSED
-    (exit 1) with the writer's overwrite-refused fatal, never silently clobbering
-    the converter-owned <lang>.md."""
+    """Re-importing the SAME language via --to without --replace must be refused
+    by the writer, never silently clobbering the converter-owned <lang>.md."""
     content_root = tmp_path / "src" / "content"
     assert _import_new(content_root) == 0, "first import should succeed"
     md = content_root / "books" / "91-replace-probe" / "ru.md"
@@ -186,16 +185,16 @@ def test_work_import_reimport_same_lang_refused_without_replace(
     first_bytes = md.read_bytes()
     capsys.readouterr()  # drain
 
-    rc = _reimport_into(content_root)  # --into, no --replace
+    rc = _reimport_to(content_root)  # --to, no --replace
     out = capsys.readouterr()
-    assert rc == 1, "re-import without --replace must be a failure (refusal)"
+    assert rc == 1, "re-import without --replace must be a writer refusal"
     assert "overwrite-refused" in out.out + out.err
     assert md.read_bytes() == first_bytes, "refused re-import must not touch the file"
 
 
 @_REQUIRES_REAL
 def test_work_import_replace_permits_overwrite(tmp_path: Path) -> None:
-    """With --replace, re-importing the same language via --into is permitted: no
+    """With --replace, re-importing the same language via --to is permitted: no
     overwrite-refused fatal, and a locally-edited <lang>.md is rewritten to the
     freshly-converted bytes."""
     content_root = tmp_path / "src" / "content"
@@ -203,7 +202,7 @@ def test_work_import_replace_permits_overwrite(tmp_path: Path) -> None:
     md = content_root / "books" / "91-replace-probe" / "ru.md"
     # Mutate the committed file so a real overwrite is observable, then --replace.
     md.write_text(md.read_text(encoding="utf-8") + "\n<!-- locally edited -->\n", encoding="utf-8")
-    rc = _reimport_into(content_root, "--replace")
+    rc = _reimport_to(content_root, "--replace")
     assert rc == 0, "--replace must permit overwriting the existing <lang>.md"
     assert "<!-- locally edited -->" not in md.read_text(encoding="utf-8"), (
         "--replace must have rewritten the file to the freshly-converted bytes"
@@ -227,7 +226,7 @@ def test_work_import_is_idempotent_second_run_skips(
                 for p in sorted(bundle.rglob("*")) if p.is_file()}
     capsys.readouterr()
 
-    rc = _reimport_into(content_root, "--replace")
+    rc = _reimport_to(content_root, "--replace")
     out = capsys.readouterr()
     assert rc == 0
     after = {p.relative_to(content_root).as_posix(): p.read_bytes()
