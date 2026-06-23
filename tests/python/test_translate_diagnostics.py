@@ -3,10 +3,10 @@ each by chunk-seam proximity."""
 
 from __future__ import annotations
 
-from pancratius.translate.checks import Finding, Severity
-from pancratius.translate.chunker import plan_chunks
-from pancratius.translate.config import TranslateConfig
-from pancratius.translate.diagnostics import (
+from pancratius.translation.text.checks import Finding, Severity
+from pancratius.translation.text.chunker import plan_chunks
+from pancratius.translation.text.config import TranslateConfig
+from pancratius.translation.text.diagnostics import (
     BookAudit,
     FindingKind,
     audit_book,
@@ -15,7 +15,7 @@ from pancratius.translate.diagnostics import (
     seam_indices,
     seam_windows,
 )
-from pancratius.translate.document import parse_document
+from pancratius.translation.text.document import parse_document
 
 
 def test_seam_indices_mark_chunk_boundaries() -> None:
@@ -45,7 +45,7 @@ def test_detects_dropped_content() -> None:
 
 
 def test_residual_cyrillic_run_is_high_lone_letter_is_medium() -> None:
-    from pancratius.translate.checks import Severity
+    from pancratius.translation.text.checks import Severity
     src = parse_document("первый\n\nвторой\n")
     tgt = parse_document("the letter Я here\n\nполностью непереведено здесь\n")
     audit = audit_book(src, tgt, TranslateConfig(), book_key="t")

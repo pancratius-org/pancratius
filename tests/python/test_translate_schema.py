@@ -5,7 +5,11 @@ id→text map, ignoring malformed rows.
 
 from __future__ import annotations
 
-from pancratius.translate.schema import parse_translations, profile_format, translation_format
+from pancratius.translation.text.schema import (
+    parse_translations,
+    profile_format,
+    translation_format,
+)
 
 
 def test_translation_schema_pins_ids_to_an_enum() -> None:

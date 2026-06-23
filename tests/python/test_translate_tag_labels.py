@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from pancratius.translate.profile import load_tag_labels
+from pancratius.translation.text.profile import load_tag_labels
 
 
 def test_reads_the_en_block(tmp_path: Path) -> None:

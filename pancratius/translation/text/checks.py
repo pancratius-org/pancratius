@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from enum import IntEnum
 from typing import Any
 
-from pancratius.translate.document import Document, Translations, UnitId
+from pancratius.translation.text.document import Document, Translations, UnitId
 
 _CYRILLIC_RE = re.compile(r"[А-Яа-яЁё]")
 _LINK_RE = re.compile(r"\]\(")

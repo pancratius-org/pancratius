@@ -19,16 +19,16 @@ from pathlib import Path
 import pytest
 
 from pancratius.content_catalog import scan_catalog
-from pancratius.translate.cache import CacheEntry, TranslationCache
-from pancratius.translate.client import (
+from pancratius.translation.text.cache import CacheEntry, TranslationCache
+from pancratius.translation.text.client import (
     ChatMessage,
     Completion,
     ModelPricing,
     TranslatorClient,
     Usage,
 )
-from pancratius.translate.config import TranslateConfig
-from pancratius.translate.pipeline import translate_book
+from pancratius.translation.text.config import TranslateConfig
+from pancratius.translation.text.pipeline import translate_book
 
 # ---------------------------------------------------------------------------
 # Minimal corpus fixture
@@ -239,7 +239,7 @@ def test_blank_chunk_not_cached(tmp_path: Path) -> None:
     client = _BlankAlwaysClient()
     # translate_book raises TranslateError because blocking units remain blank,
     # so wrap in pytest.raises and just check the cache state.
-    from pancratius.translate.pipeline import TranslateError
+    from pancratius.translation.text.pipeline import TranslateError
 
     content = tmp_path / "src" / "content"
     _seed(content)
@@ -277,7 +277,7 @@ def test_blank_chunk_reattempted_on_rerun(tmp_path: Path) -> None:
     """First run: all draft calls return blank → chunks not cached.
     Second run: client is called again for the same chunks."""
     cache_dir = tmp_path / ".cache" / "translate"
-    from pancratius.translate.pipeline import TranslateError
+    from pancratius.translation.text.pipeline import TranslateError
 
     content = tmp_path / "src" / "content"
     _seed(content)

@@ -7,7 +7,7 @@ the translator only knows how to replace visible text while preserving artwork.
 
 from __future__ import annotations
 
-from pancratius.image_translation.models import (
+from pancratius.translation.image.models import (
     AttemptRecord,
     DetectedText,
     ExactText,
@@ -27,7 +27,7 @@ from pancratius.image_translation.models import (
     TextRole,
     TextRule,
 )
-from pancratius.image_translation.translator import (
+from pancratius.translation.image.translator import (
     ImageTextTranslator,
     ImageTranslationConfig,
     resolve_texts,

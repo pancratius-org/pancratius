@@ -4,10 +4,10 @@ deterministic checks catch missing, echoed, and markup-broken translations.
 
 from __future__ import annotations
 
-from pancratius.translate.checks import Severity, check_translation
-from pancratius.translate.chunker import plan_chunks
-from pancratius.translate.config import TranslateConfig
-from pancratius.translate.document import parse_document
+from pancratius.translation.text.checks import Severity, check_translation
+from pancratius.translation.text.chunker import plan_chunks
+from pancratius.translation.text.config import TranslateConfig
+from pancratius.translation.text.document import parse_document
 
 # A small budget so chunk boundaries are exercised on short fixtures.
 _CFG = TranslateConfig(chunk_source_tokens=8, source_chars_per_token=1.0)

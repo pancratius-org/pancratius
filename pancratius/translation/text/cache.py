@@ -23,8 +23,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from pancratius.translate.config import ModelId
-from pancratius.translate.document import UnitId
+from pancratius.translation.text.config import ModelId
+from pancratius.translation.text.document import UnitId
 
 logger = logging.getLogger(__name__)
 

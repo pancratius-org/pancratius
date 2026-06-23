@@ -12,7 +12,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from pancratius.image_translation.models import (
+from pancratius.paths import CONTENT_ROOT
+from pancratius.translation.image.models import (
     ExactText,
     ExpectedText,
     ImageTranslationJob,
@@ -20,8 +21,7 @@ from pancratius.image_translation.models import (
     TextOverride,
     TextRole,
 )
-from pancratius.image_translation.providers import ProviderJob
-from pancratius.paths import CONTENT_ROOT
+from pancratius.translation.image.providers import ProviderJob
 
 AUTHOR_RU = "Сергей Панкратиус"
 AUTHOR_EN = "Sergei Pancratius"
