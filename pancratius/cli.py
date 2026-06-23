@@ -24,11 +24,12 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import shutil
 import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, assert_never
+
+from pancratius.pandoc import find_pandoc
 
 if TYPE_CHECKING:
     from pancratius.import_docx import ImportRequest, TranslationSource
@@ -84,8 +85,8 @@ def _legacy_project_page_add_error(argv: list[str]) -> int:
 def _require_pandoc() -> int | None:
     """Shared precheck for the conversion verbs (`work import`, `project page add`):
     return 1 if pandoc is absent, else None to proceed."""
-    if shutil.which("pandoc") is None:
-        return _fail("pandoc not found on PATH; install with `brew install pandoc`.")
+    if find_pandoc() is None:
+        return _fail("pandoc not found; run `uv sync` or install it with `brew install pandoc`.")
     return None
 
 

@@ -36,6 +36,7 @@ from types import ModuleType
 import pytest
 
 from pancratius import cli
+from pancratius.pandoc import PandocExecutable
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -55,6 +56,10 @@ def _exit_code(argv: list[str]) -> int:
         return int(exc.code or 0)
 
 
+def _fake_pandoc() -> PandocExecutable:
+    return PandocExecutable("/usr/bin/pandoc", "path")
+
+
 # ===========================================================================
 # 1) work import — FULL 1:1 flag→ImportRequest map
 #    The existing suite only asserts kind/lang/dry_run/docx; the door documents
@@ -64,7 +69,7 @@ def _exit_code(argv: list[str]) -> int:
 def test_work_import_maps_every_flag_onto_request(monkeypatch: pytest.MonkeyPatch) -> None:
     from pancratius import import_docx
 
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
     captured: list[object] = []
     monkeypatch.setattr(
         import_docx,
@@ -111,7 +116,7 @@ def test_work_import_replace_flag_defaults_false(monkeypatch: pytest.MonkeyPatch
     """Absent --replace, the request's replace must be False (re-import is additive)."""
     from pancratius import import_docx
 
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
     captured: list[import_docx.ImportRequest] = []
     monkeypatch.setattr(
         import_docx,

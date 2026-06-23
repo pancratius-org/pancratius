@@ -25,6 +25,7 @@ from pancratius.docx_merge import DocxMergeError, validate_docx_package
 from pancratius.kinds import SEGMENT_OF
 from pancratius.locales import DEFAULT_LOCALE, Locale
 from pancratius.ooxml import serialize_relationships, serialize_xml
+from pancratius.pandoc import PandocNotFoundError, pandoc_argv0
 from pancratius.paths import CONTENT_ROOT
 from pancratius.writeplan import CopyOp, Diagnostic, EnsureDirOp, WritePlan
 from pancratius.writer import WriteReport
@@ -966,7 +967,7 @@ def _extract_footnote_definitions(markdown: str) -> dict[str, MarkdownFootnoteDe
 def _parse_markdown_fragment(markdown: str) -> MarkdownTransferDocument:
     proc = subprocess.run(
         [
-            "pandoc",
+            pandoc_argv0(),
             "--from",
             PANDOC_MARKDOWN_FORMAT,
             "--to",
@@ -986,7 +987,7 @@ def _parse_markdown_fragment(markdown: str) -> MarkdownTransferDocument:
 def parse_markdown_transfer(md: Path) -> MarkdownTransferDocument:
     markdown = md.read_text(encoding="utf-8")
     cmd = [
-        "pandoc",
+        pandoc_argv0(),
         "--from",
         PANDOC_MARKDOWN_FORMAT,
         "--to",
@@ -2071,7 +2072,7 @@ def render_markdown_docx(
             raw_docx = scratch_dir / "pandoc.docx"
             subprocess.run(
                 [
-                    "pandoc",
+                    pandoc_argv0(),
                     str(scratch_md),
                     *_pandoc_from_for_markdown_docx(),
                     "--to",
@@ -2091,8 +2092,8 @@ def render_markdown_docx(
             block_count = _markdown_render_block_count(scratch_md)
             _normalize_pandoc_docx(raw_docx, out)
             return block_count, block_count, block_count, tuple(diagnostics)
-    except FileNotFoundError:
-        diagnostics.append(Diagnostic("fatal", "docx-translate.pandoc-missing", "pandoc is not on PATH"))
+    except (FileNotFoundError, PandocNotFoundError):
+        diagnostics.append(Diagnostic("fatal", "docx-translate.pandoc-missing", "pandoc not found"))
     except subprocess.TimeoutExpired:
         diagnostics.append(Diagnostic(
             "fatal",
