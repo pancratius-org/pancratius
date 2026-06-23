@@ -82,6 +82,7 @@ functions in process. It does not shell out to other Python CLIs.
 | `pancratius docx inspect <book:NN|docx> [--contains TEXT|--around TEXT|--range LO:HI|--verse-only|--lineated-only]` | `pancratius.docx_inspect` |
 | `pancratius docx render-slice <book:NN|docx> (--around TEXT|--range LO:HI) --out <png>` | `pancratius.docx_render` |
 | `pancratius docx merge <parts...> --out <docx> [--part TITLE::MARKER]` | `pancratius.docx_merge` |
+| `pancratius docx translate-from-md [book:NN] [--lang en] [--dry-run] [--replace]` | `pancratius.translation.docx` |
 | `pancratius conceptosphere graph generate [--only concepts|books]` | `pancratius.conceptosphere.generate_graph` |
 | `pancratius conceptosphere embed generate` | `pancratius.conceptosphere_embed.generate_embeddings` |
 
@@ -148,6 +149,13 @@ The grammar carries the content model:
   `--part TITLE::MARKER` arguments insert real source part headings during the
   merge. Office-suite load checks are outside the first-class merge path; use
   explicit local QA when that heavier confidence is needed.
+- `docx translate-from-md` creates a translated DOCX from a committed
+  `ru.docx`, its imported `ru.md`, and an aligned target Markdown file such as
+  `en.md`. It uses Pandoc only as a Markdown AST reader, transfers target text
+  into the existing Word paragraph/run structure, and refuses documents whose
+  nonblank Markdown units cannot be aligned safely. It does not translate text,
+  flatten source DOCX styling into a Pandoc-generated reference document, or make
+  editorial repairs to mismatched corpora.
 - Graph and embedding generation live here because they produce committed
   Python-only data products. Copying those products into `public/data/` is npm
   build work.
@@ -198,6 +206,7 @@ surface. The CLI turns library outcomes into user-facing text and exit codes.
 `pancratius` performs mechanical work:
 
 - convert DOCX to canonical Markdown through the import IR;
+- transfer translated Markdown text into an aligned source DOCX structure;
 - extract and cap images;
 - preserve or seed frontmatter;
 - place files in the correct bundle;
