@@ -599,6 +599,167 @@ def _ok_image_result(key: str) -> object:
     )
 
 
+def test_image_translate_dry_run_json_needs_no_api_or_translator(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from pancratius.translation.image import client as image_client
+    from pancratius.translation.image import translator as image_translator
+    from pancratius.translation.image.models import ImageTranslationJob
+    from pancratius.translation.image.providers import ProviderJob, book_cover
+
+    class FakeBookCoverProvider:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        def spec(self, selector: str) -> ProviderJob:
+            return ProviderJob(
+                job=ImageTranslationJob(
+                    key=selector,
+                    source_image=Path(f"{selector}.ru.png"),
+                    target_image=Path(f"{selector}.en.png"),
+                    raw_image=Path(f"{selector}.raw.png"),
+                    metadata={"kind": "book-cover"},
+                ),
+                label=selector,
+            )
+
+    monkeypatch.setattr(book_cover, "BookCoverProvider", FakeBookCoverProvider)
+    monkeypatch.setattr(image_client, "api_key_from_env", lambda: pytest.fail("api key requested"))
+    monkeypatch.setattr(image_translator, "ImageTextTranslator", lambda **_kwargs: pytest.fail("translator built"))
+
+    assert _exit_code(["image", "translate", "book:1", "--dry-run", "--json"]) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["dry_run"] is True
+    assert payload["summary"] == {"images": 1}
+    assert payload["images"][0]["selector"] == "book-01"
+    assert payload["images"][0]["source_image"] == "book-01.ru.png"
+    assert payload["images"][0]["target_image"] == "book-01.en.png"
+
+
+def test_image_translate_help_hides_provider_path_flags(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert _exit_code(["image", "translate", "--help"]) == 0
+    out = capsys.readouterr().out
+    assert "--dry-run" in out
+    assert "--replace" in out
+    assert "--output-dir" in out
+    assert "--covers-dir" not in out
+    assert "--queue-md" not in out
+    assert "--books-root" not in out
+    assert "--seed" not in out
+    assert "--content-root" not in out
+
+
+def test_image_translate_replace_passes_engine_policy(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pancratius.translation.image import client as image_client
+    from pancratius.translation.image import translator as image_translator
+    from pancratius.translation.image.models import ImageTranslationJob
+    from pancratius.translation.image.providers import ProviderJob, book_cover
+    from pancratius.translation.image.translator import ImageTranslationConfig
+
+    seen_replace: list[bool] = []
+
+    class FakeBookCoverProvider:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        def spec(self, selector: str) -> ProviderJob:
+            return ProviderJob(
+                job=ImageTranslationJob(
+                    key=selector,
+                    source_image=Path(f"{selector}.ru.png"),
+                    target_image=Path(f"{selector}.en.png"),
+                    raw_image=Path(f"{selector}.raw.png"),
+                    metadata={"kind": "book-cover"},
+                ),
+                label=selector,
+            )
+
+    class FakeImageTextTranslator:
+        def __init__(self, *, config: ImageTranslationConfig, **_kwargs: object) -> None:
+            seen_replace.append(bool(config.replace_existing))
+
+        def translate(self, job: ImageTranslationJob) -> object:
+            return _ok_image_result(job.key)
+
+    monkeypatch.setattr(image_client, "api_key_from_env", lambda: "fake-key")
+    monkeypatch.setattr(book_cover, "BookCoverProvider", FakeBookCoverProvider)
+    monkeypatch.setattr(image_translator, "ImageTextTranslator", FakeImageTextTranslator)
+
+    assert _exit_code(["image", "translate", "book:1", "--replace"]) == 0
+    assert seen_replace == [True]
+
+
+def test_image_translate_existing_target_refusal_output_points_to_replace(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from pancratius.translation.image import client as image_client
+    from pancratius.translation.image import translator as image_translator
+    from pancratius.translation.image.models import (
+        AttemptRecord,
+        GenerationCost,
+        ImageTranslationJob,
+        ImageTranslationResult,
+        ImageTranslationStatus,
+        QaDiscrepancy,
+        QaResult,
+        QaVerdict,
+    )
+    from pancratius.translation.image.providers import ProviderJob, book_cover
+
+    class FakeBookCoverProvider:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        def spec(self, selector: str) -> ProviderJob:
+            return ProviderJob(
+                job=ImageTranslationJob(
+                    key=selector,
+                    source_image=Path(f"{selector}.ru.png"),
+                    target_image=Path(f"{selector}.en.png"),
+                    raw_image=Path(f"{selector}.raw.png"),
+                    metadata={"kind": "book-cover"},
+                ),
+                label=selector,
+            )
+
+    class FakeImageTextTranslator:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        def translate(self, job: ImageTranslationJob) -> object:
+            qa = QaResult(
+                verdict=QaVerdict.FAIL,
+                discrepancies=(QaDiscrepancy(kind="wrong_text", description="wrong text"),),
+                raw_json="{}",
+            )
+            return ImageTranslationResult(
+                key=job.key,
+                status=ImageTranslationStatus.FAIL,
+                final_path=None,
+                raw_path=None,
+                attempts=(AttemptRecord(0, qa, GenerationCost(0.0), ""),),
+                primary_text=None,
+                error="existing target failed QA; pass --replace to regenerate it",
+                total_cost_usd=0.0,
+                metadata={"kind": "book-cover"},
+            )
+
+    monkeypatch.setattr(image_client, "api_key_from_env", lambda: "fake-key")
+    monkeypatch.setattr(book_cover, "BookCoverProvider", FakeBookCoverProvider)
+    monkeypatch.setattr(image_translator, "ImageTextTranslator", FakeImageTextTranslator)
+
+    assert _exit_code(["image", "translate", "book:1"]) == 1
+    out = capsys.readouterr().out
+    assert "QA:FAIL(existing)" in out
+    assert "pass --replace" in out
+    assert "existing image passed QA" not in out
+
+
 def test_image_translate_item_exception_is_batch_failure_and_continues(monkeypatch: pytest.MonkeyPatch) -> None:
     from pancratius.translation.image import client as image_client
     from pancratius.translation.image import translator as image_translator

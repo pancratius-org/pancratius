@@ -74,7 +74,7 @@ functions in process. It does not shell out to other Python CLIs.
 | --- | --- |
 | `pancratius work import <docx> (--kind book|poem | --to book:NN|poem:NN)` | `pancratius.import_docx.import_work` |
 | `pancratius work translate [book:NN …] [--dry-run]` | `pancratius.translation.text.translate_book` |
-| `pancratius image translate <book:NN|project:slug[/subpage] …>` | `pancratius.translation.image` providers + engine |
+| `pancratius image translate <book:NN|project:slug[/subpage] …> [--dry-run] [--json] [--replace]` | `pancratius.translation.image` providers + engine |
 | `pancratius project page add <project> <subpage-slug> <docx>` | `pancratius.docx_conversion.scaffold_subpage` |
 | `pancratius video sync [--channel KEY] [--dry-run]` | `pancratius.video_scan.scan` |
 | `pancratius downloads render [book:NN|poem:NN …] [--dry-run] [--json]` | `pancratius.render_downloads` |
@@ -118,8 +118,10 @@ The grammar carries the content model:
   phrase split across visual lines is replaced as one semantic element. Overrides
   are conditional: they only apply to source text recon actually sees. There is no
   engine-level book, title, or author special case. If an existing target image
-  exists it is QA-d first; PASS → done without regeneration. Requires
-  `OPENROUTER_API_KEY`.
+  exists it is QA-d first; PASS → done without regeneration. Failed existing
+  target QA refuses regeneration unless `--replace` is passed. `--dry-run`
+  resolves provider inputs and prints reads/writes without an API key or writes.
+  Live runs require `OPENROUTER_API_KEY`.
 - `project page add` scaffolds a project sub-page draft. It does not edit the
   project landing and does not decide the page's editorial placement.
 - `video sync` is mechanical-only: it polls every `scan: true` channel in

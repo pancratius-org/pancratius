@@ -18,7 +18,7 @@ from pancratius.translation.image.models import (
     TextOverride,
     TextRole,
 )
-from pancratius.translation.image.providers import ProviderJob
+from pancratius.translation.image.providers import FrontmatterUpdate, ProviderJob
 
 _FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n?", re.DOTALL)
 _SLUG_RE = re.compile(r"[a-z0-9][a-z0-9-]*\Z")
@@ -263,4 +263,9 @@ class ProjectCoverProvider:
         def finalize(_result: ImageTranslationResult) -> None:
             _replace_frontmatter_scalar(target_md, "cover", rel_target)
 
-        return ProviderJob(job=job, label=target.key, finalize_success=finalize)
+        return ProviderJob(
+            job=job,
+            label=target.key,
+            finalize_success=finalize,
+            frontmatter_updates=(FrontmatterUpdate(target_md, "cover", rel_target),),
+        )
