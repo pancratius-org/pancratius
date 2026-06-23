@@ -848,7 +848,7 @@ def test_run_pandoc_passes_a_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: 
         stderr = ""
 
     def fake_run(cmd: list[str], **kwargs: object) -> _FakeProc:
-        assert cmd[0] == "pandoc"
+        assert Path(cmd[0]).name == "pandoc"
         captured.update(kwargs)
         return _FakeProc()
 

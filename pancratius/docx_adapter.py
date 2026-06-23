@@ -32,6 +32,7 @@ from typing import Any, cast
 
 from pancratius import ir
 from pancratius.ir.inlines import inline_plain
+from pancratius.pandoc import pandoc_argv0
 from pancratius.thematic import is_thematic_marker
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -154,7 +155,7 @@ def run_pandoc_json(docx: Path, media_dir: Path) -> tuple[dict[str, Any], str]:
     """
     pandoc_docx = _canonical_pandoc_input(docx, media_dir)
     cmd = [
-        "pandoc", "--from", "docx+empty_paragraphs", "--to", "json",
+        pandoc_argv0(), "--from", "docx+empty_paragraphs", "--to", "json",
         "--extract-media", str(media_dir), str(pandoc_docx),
     ]
     try:

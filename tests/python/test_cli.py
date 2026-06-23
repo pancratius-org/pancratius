@@ -19,6 +19,7 @@ from typing import Any, cast
 import pytest
 
 from pancratius import cli
+from pancratius.pandoc import PandocExecutable
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -30,6 +31,10 @@ def _exit_code(argv: list[str]) -> int:
         return cli.main(argv)
     except SystemExit as exc:  # argparse --help / usage error
         return int(exc.code or 0)
+
+
+def _fake_pandoc() -> PandocExecutable:
+    return PandocExecutable("/usr/bin/pandoc", "path")
 
 
 def _catalog_entry(*, kind: str = "book", number: int = 1, lang: str = "ru") -> object:
@@ -183,7 +188,7 @@ def test_work_import_builds_request_and_dispatches(monkeypatch: pytest.MonkeyPat
     report exits 0."""
     from pancratius import import_docx
 
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
     captured: list[object] = []
 
     def fake_import_work(request: object) -> object:
@@ -207,7 +212,7 @@ def test_work_import_builds_request_and_dispatches(monkeypatch: pytest.MonkeyPat
 def test_work_import_to_selector_builds_explicit_target(monkeypatch: pytest.MonkeyPatch) -> None:
     from pancratius import import_docx
 
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
     captured: list[object] = []
 
     def fake_import_work(request: object) -> object:
@@ -239,7 +244,7 @@ def test_work_import_retires_raw_destination_flags(argv: list[str]) -> None:
 def test_work_import_kind_and_to_are_mutually_exclusive(monkeypatch: pytest.MonkeyPatch) -> None:
     from pancratius import import_docx
 
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
 
     dispatched = False
 
@@ -257,7 +262,7 @@ def test_work_import_kind_and_to_are_mutually_exclusive(monkeypatch: pytest.Monk
 def test_work_import_refusal_is_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     from pancratius import import_docx
 
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
     monkeypatch.setattr(
         import_docx, "import_work", lambda _r: _fake_report(refused=("books/01-x/ru.md",))
     )
@@ -269,7 +274,7 @@ def test_work_import_input_error_is_usage(monkeypatch: pytest.MonkeyPatch) -> No
     (exit 2), matching the public door."""
     from pancratius import import_docx
 
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
 
     def boom(_r: object) -> object:
         raise import_docx.ImportWorkError("--kind is required when importing a new work")
@@ -281,7 +286,7 @@ def test_work_import_input_error_is_usage(monkeypatch: pytest.MonkeyPatch) -> No
 def test_work_import_missing_kind_is_usage_before_dispatch(monkeypatch: pytest.MonkeyPatch) -> None:
     from pancratius import import_docx
 
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
 
     dispatched = False
 
@@ -297,7 +302,7 @@ def test_work_import_missing_kind_is_usage_before_dispatch(monkeypatch: pytest.M
 
 
 def test_work_import_missing_pandoc_is_failure(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: None)
+    monkeypatch.setattr(cli, "find_pandoc", lambda: None)
     assert _exit_code(["work", "import", "x.docx", "--kind", "book", "--lang", "ru"]) == 1
 
 
@@ -367,7 +372,7 @@ def test_project_page_add_dispatches_and_prints_landing(
     exits 0 and prints the suggested landing `subpages:` entry (with the slug) to stdout."""
     from pancratius import docx_conversion
 
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
     captured: list[dict[str, object]] = []
 
     def fake_scaffold(**kwargs: object) -> object:
@@ -395,7 +400,7 @@ def test_project_page_add_dry_run_omits_landing_suggestion(
     nothing) must not emit it, only the planned-write-set preview."""
     from pancratius import docx_conversion
 
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
     monkeypatch.setattr(docx_conversion, "scaffold_subpage", lambda **_k: _fake_scaffold_report())
     rc = _exit_code(
         ["project", "page", "add", "project:holy-rus/my-sub", "doc.docx", "--lang", "ru", "--dry-run"]
@@ -407,7 +412,7 @@ def test_project_page_add_dry_run_omits_landing_suggestion(
 def test_project_page_add_refusal_is_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     from pancratius import docx_conversion
 
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
     monkeypatch.setattr(
         docx_conversion,
         "scaffold_subpage",
@@ -420,7 +425,7 @@ def test_project_page_add_scaffold_error_is_usage(monkeypatch: pytest.MonkeyPatc
     """A ScaffoldError (bad input — missing/non-DOCX) is a usage error (exit 2)."""
     from pancratius import docx_conversion
 
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
 
     def boom(**_k: object) -> object:
         raise docx_conversion.ScaffoldError("expected a .docx file")
@@ -430,7 +435,7 @@ def test_project_page_add_scaffold_error_is_usage(monkeypatch: pytest.MonkeyPatc
 
 
 def test_project_page_add_missing_pandoc_is_failure(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: None)
+    monkeypatch.setattr(cli, "find_pandoc", lambda: None)
     assert _exit_code(["project", "page", "add", "project:holy-rus/my-sub", "x.docx", "--lang", "ru"]) == 1
 
 
@@ -446,7 +451,7 @@ def test_project_page_add_missing_pandoc_is_failure(monkeypatch: pytest.MonkeyPa
 def test_project_page_add_requires_subpage_selector(
     monkeypatch: pytest.MonkeyPatch, destination: str
 ) -> None:
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: None)
+    monkeypatch.setattr(cli, "find_pandoc", lambda: None)
     assert _exit_code(["project", "page", "add", destination, "x.docx", "--lang", "ru"]) == 2
 
 
@@ -923,7 +928,7 @@ def test_docx_translate_from_md_dispatches(monkeypatch: pytest.MonkeyPatch) -> N
     def fake_print_batch(_batch: object, *, dry_run: bool) -> None:
         assert dry_run is True
 
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
     monkeypatch.setattr(docx_translate, "translate_docx_batch", fake_translate_docx_batch)
     monkeypatch.setattr(docx_translate, "print_batch", fake_print_batch)
 
@@ -956,13 +961,13 @@ def test_docx_translate_from_md_retires_book_flag() -> None:
 
 
 def test_docx_translate_from_md_replace_requires_selector(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
 
     assert _exit_code(["docx", "translate-from-md", "--replace", "--dry-run"]) == 1
 
 
 def test_docx_translate_from_md_rejects_invalid_limit(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
 
     assert _exit_code(["docx", "translate-from-md", "--limit", "-1", "--dry-run"]) == 2
     assert _exit_code(["docx", "translate-from-md", "book:9", "--limit", "1", "--dry-run"]) == 2
@@ -980,7 +985,7 @@ def test_docx_roundtrip_md_dispatches(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_print_roundtrip_batch(_batch: object, *, json_output: bool) -> None:
         assert json_output is True
 
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
     monkeypatch.setattr(docx_roundtrip, "check_docx_markdown_roundtrip", fake_check_docx_markdown_roundtrip)
     monkeypatch.setattr(docx_roundtrip, "print_roundtrip_batch", fake_print_roundtrip_batch)
 
@@ -1002,7 +1007,7 @@ def test_docx_roundtrip_md_dispatches(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_docx_roundtrip_md_rejects_invalid_limit(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
 
     assert _exit_code(["docx", "roundtrip-md", "--limit", "-1"]) == 2
     assert _exit_code(["docx", "roundtrip-md", "book:9", "--limit", "1"]) == 2
