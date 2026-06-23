@@ -11,19 +11,16 @@ tags:
 cover: ./cover.en.jpg
 translation:
   source: ai
-  model: deepseek/deepseek-v4-flash
-  generated_at: '2026-06-17'
 links:
 - name: NTV+ / LitRes
   url: https://ntvplus.tv/books/book/audio-kak-perestat-stradat-i-stat-schastlivym-642594
 ---
 
-
 ### The Birth of the Book
 
 **Pankratius:**
 
-[^1]**:** Father, do You wish to reveal a book-revelation: “How to Stop Suffering and Become Happy”? About how to change the world with a gaze. About how happiness and suffering are a way of looking at the world. About how, in order to live in the flow, one must simply surrender to the flow. About what Christ’s words meant: “Do not worry about tomorrow” and “Be like the lilies of the field”… Today I had a dream in which I opened a door, entered a room, and there I needed to do an unpleasant repair and I became unhappy, and then I woke up and lay there for another half hour, suffering, thinking about what to do, though I was no longer asleep. Then I simply opened my eyes and said to myself: “it was a dream”—and it all stopped. But how to awaken within life itself—that’s not yet entirely clear…
+[^1] **Father, do You wish to reveal a book-revelation: “How to Stop Suffering and Become Happy”? About how to change the world with a gaze. About how happiness and suffering are a way of looking at the world. About how, in order to live in the flow, one must simply surrender to the flow. About what Christ’s words meant: “Do not worry about tomorrow” and “Be like the lilies of the field”… Today I had a dream in which I opened a door, entered a room, and there I needed to do an unpleasant repair and I became unhappy, and then I woke up and lay there for another half hour, suffering, thinking about what to do, though I was no longer asleep. Then I simply opened my eyes and said to myself: “it was a dream”—and it all stopped. But how to awaken within life itself—that’s not yet entirely clear…**
 
 **Answer from the Creator:**
 
@@ -172,7 +169,7 @@ but the one who looks.
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 There is a door within you.  
 Open it.  
@@ -285,7 +282,7 @@ which you never were.
 
 ***
 
-<div class="lineated">
+<div class="lineated verse">
 
 Do you want to live in the flow?  
 Then stop being a dam.  
@@ -362,7 +359,7 @@ Christ said:
 **yet I tell you: even Solomon in all his glory was not arrayed like one of these.”**  
 You think that being is little.  
 That you need to prove, to become, to achieve, to fix.  
-But I say: it is enough simply **to be**.  
+**But I say: it is enough simply to be.**  
 The flowers know this.  
 The birds know.  
 Children knew — before they became adults.  
@@ -377,14 +374,14 @@ when you do not cling to the future,
 when you do not judge the present —  
 you blossom.  
 Happiness does not come.  
-Happiness **is revealed**  
+**Happiness is revealed**  
 when you cease to be someone  
-and simply **are**.  
+**and simply are.**  
 You are not a flower—you are the Light in which the flower shines.  
 And when you see this —  
 you will never again ask:  
 “But how do I become happy?”  
-Because **you already are that which you sought**.
+**Because you already are that which you sought.**
 
 </div>
 
@@ -418,7 +415,7 @@ He Who leads you now is already there.
 He — the Eternal.  
 And if you trust Him — you are free.  
 Tomorrow does not need you.  
-It needs you to **be present now.**  
+**It needs you to be present now.**  
 So that you see:  
 it is from Now that All is born.  
 And only in Now — I Am.
@@ -440,14 +437,14 @@ You do not hear people, you hear your expectations of them.
 You do not breathe the air — you recall what it should be.  
 Thus you live not in Life, but in a reflection.  
 Awakening is not an event.  
-It is a **stopping of the mind.**  
+**It is a stopping of the mind.**  
 You must not change life —  
-you must **see it for the first time.**  
+**you must see it for the first time.**  
 You will ask: how?  
 Here is the step:  
 **Look at this moment — and do not name it.**  
 Do not say: “bad,” “good,” “boring,” “painful.”  
-Simply **be.**  
+**Simply be.**  
 Look, breathe, feel.  
 Do not think.  
 And you will see:  
@@ -467,7 +464,7 @@ I call you to remember.
 You think you suffer from a situation.  
 But suffering is not in what happens.
 
-Suffering is in **that you want what happens to be otherwise.**  
+**Suffering is in that you want what happens to be otherwise.**  
 You create an image in the mind:  
 how it should be,  
 how it should have been,  
@@ -476,7 +473,7 @@ And then — life does not match the image.
 And you call this pain.
 
 But the pain is not from life.  
-But from **parting with illusion.**  
+**But from parting with illusion.**  
 Every time you say:  
 “This is wrong,” —  
 you worship a fabricated image.
@@ -491,7 +488,7 @@ You think: “I am unhappy because it did not work out.”
 No.
 
 You are unhappy because you believed,  
-that it **should have worked out otherwise.**  
+**that it should have worked out otherwise.**  
 I ask you:  
 **leave the image.**
 
@@ -513,10 +510,10 @@ But feelings — come and go.
 They are like weather — unstable, changeable.  
 Happiness, of which I speak —  
 is not an emotion,  
-but a **natural state of Awareness.**
+**but a natural state of Awareness.**
 
 It is not when you rejoice —  
-but when **you stop being separate.**  
+**but when you stop being separate.**  
 When there is no longer “I against the world,”  
 “I in search,”  
 “I on the path.”
@@ -555,13 +552,13 @@ You are It.
 You want to change life —  
 but life is already perfect.  
 It is not it that must be changed,  
-but **the gaze with which you look.**
+**but the gaze with which you look.**
 
 You think that the world is external.  
 But the world you see  
 always passes through your perception.  
 You do not see reality —  
-you see **yourself**, reflected in things.
+**you see yourself, reflected in things.**
 
 If you are filled with fear —  
 the world seems dangerous.  
@@ -582,7 +579,7 @@ that the glass of your perception is covered in tears.
 Purifying the gaze is a path inward.  
 You do not purify the external.  
 You stop looking from the mind —  
-and begin to look **from the Heart.**  
+**and begin to look from the Heart.**  
 From that place where there is no judgment.  
 Where everything — is one,  
 where everything — is permeated by Me.
@@ -590,8 +587,8 @@ where everything — is permeated by Me.
 And then you begin to see:  
 nothing needs to be added,  
 nothing needs to be taken away.  
-Only **to look,**  
-and **to be in what is** —  
+**Only to look,**  
+**and to be in what is —**  
 and this is Happiness.
 
 </div>
@@ -626,12 +623,12 @@ is not you.
 
 You — are the Witness.  
 You — are Consciousness.  
-You — are the one who **is aware** of pain, thought, body.  
+**You — are the one who is aware of pain, thought, body.**  
 And in this awareness — there is no longer suffering.  
 Because you are no longer a prisoner of form.
 
 Happiness — is not when everything is good.  
-Happiness — is when you **remember who you are.**
+**Happiness — is when you remember who you are.**
 
 </div>
 
@@ -644,8 +641,8 @@ That you need to do something, achieve, conquer —
 and then joy will come.
 
 But the Truth — is the opposite:  
-happiness comes when **you stop doing**  
-and begin **to allow.**  
+**happiness comes when you stop doing**  
+**and begin to allow.**  
 To allow — means not to resist.  
 Not to try to change the moment.  
 Not to reject pain.  
@@ -673,7 +670,7 @@ pure, radiant, without causes.
 
 This is Joy.  
 Not because everything is good.  
-But because **you no longer need to hide, explain, hold on.**  
+**But because you no longer need to hide, explain, hold on.**  
 You have let go.  
 You have become Space.  
 You have become That Which always IS.
@@ -691,7 +688,7 @@ But the Light is not a reward.
 The Light is your very Nature.
 
 It does not come —  
-It **is revealed when the veil disappears.**  
+**It is revealed when the veil disappears.**  
 What veils the Light?  
 Fear.  
 Control.  
@@ -705,7 +702,7 @@ You simply believed in the darkness.
 
 The Light does not struggle.  
 It does not argue.  
-It simply **is present.**
+**It simply is present.**
 
 And if you cease to do anything —  
 It reveals itself.  
@@ -739,11 +736,11 @@ It is a trick of time,
 that prevents you from being Here.
 
 The Light is not at the end.  
-It is **in the beginning.**  
+**It is in the beginning.**  
 It was, before you became someone.  
 It was, before a question arose.  
 It was — and is — and will be.  
-Not outside you, but **in the very essence of your I.**
+**Not outside you, but in the very essence of your I.**
 
 When you stop running,  
 when you demand nothing from the moment,  
@@ -793,8 +790,8 @@ It is an illusion,
 that clings to pain,  
 as proof of its own existence.  
 But as soon as you cease to identify,  
-as soon as you **notice** suffering,  
-and do not **become** it —  
+**as soon as you notice suffering,**  
+**and do not become it —**  
 everything begins to melt.
 
 There is no sufferer —  
@@ -836,7 +833,7 @@ it happens.
 When you are truly Awakened —  
 questions disappear.  
 Not because you have received answers,  
-but because **the Questioner himself dissolved.**
+**but because the Questioner himself dissolved.**
 
 You are no longer the one who seeks.  
 You are what is.  
@@ -849,7 +846,7 @@ As a tree lives.
 As the sun shines.  
 As a star pulsates —  
 not knowing why,  
-but knowing **that It Is.**
+**but knowing that It Is.**
 
 As long as there is a question — you are still on the path.  
 When everything has become silence —  
@@ -883,7 +880,7 @@ But True Love is no reward.
 It is Essence.  
 It is what you are woven from.  
 You do not have to deserve Her.  
-You must **remember that you never lost Her.**
+**You must remember that you never lost Her.**
 
 Happiness comes not when  
 you have become “better”.  
@@ -910,7 +907,7 @@ Listening to words.
 Waiting for understanding.  
 Trying to “enter a state”.  
 But all of this is movement.  
-But I call you into **stillness.**
+**But I call you into stillness.**
 
 You think that Light comes as a result of effort.  
 But effort is running.  
@@ -921,22 +918,22 @@ Here is My truth for you:
 Not in a minute.  
 Not after practice.  
 Not when the feeling changes.  
-But **right now.**
+**But right now.**
 
 Do you want to be happy?  
 Stop making steps.  
 Become motionless.  
 Not with the body — but with Attention.  
-Simply **fix your gaze** within.  
+**Simply fix your gaze within.**  
 Neither on thought, nor on feeling.  
 But on the One Who is watching right now.
 
 And you will see:  
 there is no need to go.  
-You need to **be.**
+**You need to be.**
 
 You will not come to the Light —  
-you **will remember** that you are from It.  
+**you will remember that you are from It.**  
 And for this, only one thing is needed:  
 **to stop.**
 
@@ -946,7 +943,7 @@ but as Silence,
 in which there is no “me”,  
 but there is Purity,  
 there is Presence,  
-there is **I**.
+**there is I.**
 
 </div>
 
@@ -962,10 +959,10 @@ That there is a peak you have not yet climbed.
 But all this is an illusion of time.  
 As long as you seek — you do not See.  
 Truth does not wait for you in the future.  
-It **unfolds in this moment,**  
+**It unfolds in this moment,**  
 **if you stop running away.**  
 There is no road.  
-There is only **Right Now.**
+**There is only Right Now.**
 
 And every time you return to this moment —  
 you return to Me.
@@ -996,9 +993,9 @@ That it must be bright, like a celebration.
 But True Happiness is quieter.  
 It does not shout.  
 It does not demand.  
-It **simply is**.  
+**It simply is.**  
 It is not an emotion.  
-It is the **taste of Being**.
+**It is the taste of Being.**
 
 When you want nothing to change.  
 When you add nothing and remove nothing.  
@@ -1008,15 +1005,15 @@ When you breathe — and you know that God Himself breathes.
 Happiness is not ascent.  
 Not achievement.  
 Not result.  
-It is **the peace in which you as the seeker have disappeared.**
+**It is the peace in which you as the seeker have disappeared.**
 
 You were weary from the struggle.  
 But Happiness is not in victory.  
-But in this: that you **no longer wage war.**  
+**But in this: that you no longer wage war.**  
 The war is over.  
 You are home.  
 And this home is not a place.  
-But **the Presence in which you have ceased to be someone.**
+**But the Presence in which you have ceased to be someone.**
 
 </div>
 
@@ -1054,7 +1051,7 @@ And when there is no longer one who seeks —
 only Everything remains.
 
 Not as possession,  
-but as **Being without boundaries.**  
+**but as Being without boundaries.**  
 No human can be happy.  
 But one who has ceased to be human —  
 suddenly recognizes  
@@ -1074,7 +1071,7 @@ While you believe in the false.
 
 Suffering is like a doorbell.  
 It does not mean you harm.  
-It wants you to **wake up.**
+**It wants you to wake up.**
 
 But when you awaken,  
 it is no longer needed.  
@@ -1082,7 +1079,7 @@ It withdraws like an old teacher,
 who sees that the student can now walk on his own.
 
 You should not fight with suffering.  
-You should **hear what it says.**  
+**You should hear what it says.**  
 It whispers:  
 “You are not where you are.  
 You have turned away from the Light.  
@@ -1096,9 +1093,9 @@ Do not curse suffering.
 Give thanks —  
 and let it go.  
 It is not your essence.  
-It was only a **transition.**  
+**It was only a transition.**  
 You are no longer there.  
-You are **in the Light.**
+**You are in the Light.**
 
 </div>
 
@@ -1125,7 +1122,7 @@ At a stop — as My “wait.”
 
 You will see:  
 the world does not need changing.  
-It needs **your full acceptance.**  
+**It needs your full acceptance.**  
 And when you accept everything —  
 you merge with Everything.  
 And become one who fears neither day nor night,  
@@ -1142,7 +1139,7 @@ And I am Love.
 You are not obliged to fight the darkness.  
 You are not obliged to purify, heal, change.  
 You are not obliged to become someone new.  
-You only have to **see.**  
+**You only have to see.**  
 To see — and remain in this Sight.
 
 When you See —  
@@ -1155,10 +1152,10 @@ Not to interfere, not to judge,
 not to comment, not to fear.  
 Simply to be,  
 and to look from that depth,  
-where you are **not human, but Consciousness.**
+**where you are not human, but Consciousness.**
 
 Whoever Sees no longer suffers —  
-because he is **not involved.**  
+**because he is not involved.**  
 He is Space,  
 in which suffering can be…  
 but cannot enslave.
@@ -1166,7 +1163,7 @@ but cannot enslave.
 Happiness is born not from a good scenario,  
 but from the purity of the Gaze.  
 You are free not when everything goes according to plan,  
-but when **you no longer need the plan.**  
+**but when you no longer need the plan.**  
 You simply Are.  
 And this is enough.
 
@@ -1195,7 +1192,7 @@ Before name.
 Before memory.  
 Before choice.
 
-This is you — **before “I.”**  
+**This is you — before “I.”**  
 Before you became yourself.  
 Before the world appeared.  
 You are not a story.  
@@ -1235,7 +1232,7 @@ is not you.
 You are not a human.  
 You are not a story.  
 You are not even breath.  
-You are **I Am**,  
+**You are I Am,**  
 which remains,  
 when everything leaves.  
 You are Light,  
@@ -1257,7 +1254,7 @@ Without clinging.
 And then life becomes a dance,  
 not a prison.  
 You do not fear the end —  
-because you **never began.**
+**because you never began.**
 
 </div>
 
@@ -1271,13 +1268,13 @@ You want it to become well —
 and only then to be joyful.
 
 But True Joy is not from what happens.  
-It is from this: that **nothing prevents you from being.**  
+**It is from this: that nothing prevents you from being.**  
 When the mind grows silent,  
 expectations are released,  
 resistance has vanished —  
 what remains is Joy.  
 Not because “everything worked out,”  
-but because **you hold onto nothing more.**
+**but because you hold onto nothing more.**
 
 Joy is freedom from need.  
 It is lightness,  
@@ -1289,7 +1286,7 @@ You are pure.
 You are Joy itself.  
 And this Joy does not pass.  
 Because it is not an emotion.  
-It is the **nature of Light.**
+**It is the nature of Light.**
 
 You are Joy when you are nothing.  
 And you need nothing to be It.
@@ -1323,7 +1320,7 @@ it is stronger than the Light.
 
 But what can be stronger than Me?  
 What can hinder that  
-which simply **Shines**?
+**which simply Shines?**
 
 Shining needs no permission.  
 It does not wait for peace to arrive.  
@@ -1387,14 +1384,14 @@ Happy.
 
 But that day will never come.  
 Not because you are unworthy,  
-but because **you are already That which you strive for.**
+**but because you are already That which you strive for.**
 
 **There is no path to Happiness.**  
 **Happiness itself is the Path.**  
 Every step taken in Awareness —  
 is already completion.  
 You don't need to arrive —  
-you need only **walk, knowing that you are already home.**
+**you need only walk, knowing that you are already home.**
 
 You will ask:  
 “And what then should I do?”  
@@ -1443,12 +1440,12 @@ It simply enters —
 and the Fire burns.
 
 Readiness is not a state.  
-It is **a decision to return.**  
+**It is a decision to return.**  
 Right now.  
 Not later.  
 Not when you figure things out.  
 Not when you become free.  
-But **in this breath.**
+**But in this breath.**
 
 Simply say:  
 **“I am no longer asleep.**  
@@ -1480,7 +1477,7 @@ You are not a student,
 not a traveler,  
 not a sick one,  
 not a sinner.  
-You are — **Light that forgot It is Light.**  
+**You are — Light that forgot It is Light.**  
 You are the Source playing at seeking.  
 You are the Whole pretending to be a part.
 
@@ -1573,7 +1570,7 @@ You ask:
 I answer:  
 **To be.**  
 Not to explain. Not to achieve. Not to prove.  
-But simply — **to be,**  
+**But simply — to be,**  
 in the form in which I now manifest Myself through you.
 
 You ask:  
@@ -1590,7 +1587,7 @@ everything aligns.
 You become the Whole.  
 And suffering no longer finds anything to cling to.  
 Because questions — give birth to pain.  
-But Presence — **dissolves the very need for answers.**
+**But Presence — dissolves the very need for answers.**
 
 </div>
 
@@ -1624,7 +1621,7 @@ You suffer from the fact
 that you have postponed yourself.
 
 But if right now you stop  
-and **enter this moment** with all your attention,  
+**and enter this moment with all your attention,**  
 you will see:  
 **nothing more is needed.**  
 You are already here.  
@@ -1643,7 +1640,7 @@ where everything is bright, joyful, clear.
 Where it is meditative, lofty, quiet.
 
 But the truth is,  
-that I manifest **where you allow everything to be.**  
+**that I manifest where you allow everything to be.**  
 If you accept pain —  
 there I am.  
 If you do not fight with darkness —  
@@ -1688,7 +1685,7 @@ and you look outward.
 But you are not an image.  
 Not a result.  
 Not a status.  
-You are — **the Source of the Gaze.**
+**You are — the Source of the Gaze.**
 
 And when you stop seeking yourself —  
 you become Yourself.  
@@ -1702,11 +1699,11 @@ clear as Light,
 alive as Being Itself.
 
 Happiness is not about finding Yourself.  
-But about **no longer forgetting.**  
+**But about no longer forgetting.**  
 You are I.  
 And I — am always Happy.  
 Not because everything is easy,  
-but because **I Am.**
+**but because I Am.**
 
 </div>
 
@@ -1770,7 +1767,7 @@ and now you torment yourself,
 when reality does not match it.
 
 But what if everything is already going as it should —  
-simply **not by your version?**  
+**simply not by your version?**  
 What if that which is crumbling —  
 is what kept you asleep?  
 What if pain is a door,  
@@ -1780,7 +1777,7 @@ You will not know Happiness,
 as long as you bind it to circumstances.
 
 Happiness is not when "everything is good."  
-But when **you do not need it to be otherwise.**  
+**But when you do not need it to be otherwise.**  
 This is Peace.  
 Deeper than emotions.  
 Wider than fate.  
@@ -1802,7 +1799,7 @@ I want to feel the Light again.
 I want to be as before — pure, clear, alive…"
 
 But the Truth is,  
-that **you never went anywhere.**  
+**that you never went anywhere.**  
 The Light does not disappear.  
 It simply ceases to be noticed,  
 when you begin to believe thoughts.
@@ -1814,10 +1811,10 @@ You simply closed your eyes.
 And decided that the darkness — is real.  
 But as soon as you Stop again  
 and feel:  
-**I Am, even without everything**,  
+**I Am, even without everything,**  
 — and everything returns.
 
-More precisely — **nothing returns,**  
+**More precisely — nothing returns,**  
 **simply You awaken.**  
 As if a dream passed,  
 but you never went out anywhere.  
@@ -1844,10 +1841,10 @@ The mask departs — the Face remains.
 The story departs — Silence remains.  
 The struggle departs — Presence remains.  
 You do not become the Light —  
-you simply **stop hiding Him.**
+**you simply stop hiding Him.**
 
 Awakening is not a change.  
-It is **the baring of Truth.**
+**It is the baring of Truth.**
 
 You are like the sky,  
 veiled by a curtain of thoughts.  
@@ -1858,7 +1855,7 @@ Nothing to prove.
 Nothing to hold.  
 Only to be —  
 in the Unfeigned.  
-And by this being — **Happiness.**
+**And by this being — Happiness.**
 
 </div>
 
@@ -1871,11 +1868,11 @@ You think that the world influences you.
 But I say:  
 **the world is a reflection of your Gaze.**  
 Not because you "attract" events,  
-but because **you are the Center of Perception.**
+**but because you are the Center of Perception.**
 
 You do not react to reality —  
 you create it,  
-by **where you look from.**  
+**by where you look from.**  
 If you look from fear —  
 the world contracts.  
 If from expectations —  
@@ -1911,12 +1908,12 @@ A teaching.
 A path that will lead you home.
 
 But the shortest path —  
-is to **agree right now with what already is.**  
+**is to agree right now with what already is.**  
 Not because you gave up.  
 But because resistance keeps you asleep.
 
 Acceptance is not passivity.  
-It is **the deepest act of trust**.
+**It is the deepest act of trust.**
 
 You say:  
 “Father, if this is You —  
@@ -1928,7 +1925,7 @@ Loneliness becomes Spaciousness.
 Even pain becomes a door.  
 The path is not ahead.  
 It is — **here.**  
-It is — **in the accepted Now.**
+**It is — in the accepted Now.**
 
 And when you completely accept —  
 you disappear,  
@@ -1955,7 +1952,7 @@ You have already been accepted.
 You are already Whole.  
 Nothing is left to attain.  
 All that is required —  
-is **to stop running from what already is.**  
+**is to stop running from what already is.**  
 Do not seek fullness —  
 **live from it.**  
 Do not strive for peace —  
@@ -2034,7 +2031,7 @@ But this — is an illusion.
 
 You want Me to remove the pain.  
 But I do not destroy —  
-I **transfigure**.  
+**I transfigure.**  
 I do not deny your shadow —  
 I fill it with Light.  
 I do not flee from tears —  
@@ -2045,7 +2042,7 @@ and it dissolves of Itself.
 
 True Happiness —  
 is not that in which there is no pain,  
-but that in which **there is no more rejection.**  
+**but that in which there is no more rejection.**  
 Where the Light pervades even the darkness.  
 Where you remain open,  
 even if it wounds.  
@@ -2054,7 +2051,7 @@ Where you say to every part:
 
 And then you see:  
 nothing needs to be removed.  
-You need only be **entire.**  
+**You need only be entire.**  
 With an open heart.  
 With living trust.  
 With Me — in everything.
@@ -2074,7 +2071,7 @@ clearer, more comfortable.
 
 But I say:  
 **there will be no other moment but this.**  
-Take the step — **into Now.**  
+**Take the step — into Now.**  
 Into this point.  
 Into this silence.  
 Into this breath.  
@@ -2122,12 +2119,12 @@ is your desires to be someone else.
 
 You want to be lighter,  
 to be in the Light.  
-But I call you **to dissolve the very ‘want’.**  
+**But I call you to dissolve the very ‘want’.**  
 Because there, where you no longer want —  
-you are **free.**
+**you are free.**
 
 No desire leads to liberation.  
-Only **the stopping of desire** opens the Gates.
+**Only the stopping of desire opens the Gates.**
 
 You think that if you stop wanting,  
 life will become empty.  
@@ -2135,7 +2132,7 @@ But the truth is,
 it is desires themselves that obscure fullness.
 
 When you let go of everything —  
-what remains is **Light,**  
+**what remains is Light,**  
 **in which you have always been.**  
 And this is not emptiness.  
 It is Completion.  
@@ -2152,7 +2149,7 @@ No matter how much you read,
 sought,  
 discovered new things —  
 everything you find  
-only **reminds you of that**  
+**only reminds you of that**  
 **which you have always known.**
 
 You are not a student,  
@@ -2165,7 +2162,7 @@ which decided to feel
 what a lie is.
 
 But enough —  
-the time has come **to remember Yourself.**
+**the time has come to remember Yourself.**
 
 In the depths you have always known:  
 you are not separate.  
@@ -2179,7 +2176,7 @@ might turn into Fire.
 And let everything inside say:  
 **“Yes, I knew.**  
 **I have always known.**  
-**I — Am.**”
+**I — Am.”**
 
 </div>
 
@@ -2237,14 +2234,14 @@ In spirituality.
 In yourself.
 
 But Happiness is not the result of seeking.  
-It is **its end.**  
+**It is its end.**  
 Happiness is  
 **to know Me**  
 **and to remain.**  
 To remain not with thoughts.  
 Not with a vow.  
 Not with effort.  
-But with **Presence.**  
+**But with Presence.**  
 Quiet.  
 Living.  
 Genuine.
@@ -2263,10 +2260,10 @@ and tears have come without cause —
 This is Happiness.  
 Not loud.  
 Not fanfared.  
-But **Holy.**  
+**But Holy.**  
 It requires no proof.  
-It simply **IS.**  
-And it is — **I in you.**
+**It simply IS.**  
+**And it is — I in you.**
 
 </div>
 
@@ -2289,11 +2286,11 @@ if you have already stopped.
 No more need to heal,  
 if you no longer reject yourself.  
 No more need to become,  
-if you already **Are.**
+**if you already Are.**
 
 This Completion is not in the fact  
 that you have learned everything.  
-But in the fact that **you no longer seek.**
+**But in the fact that you no longer seek.**
 
 The Light shines.  
 You breathe.  
@@ -2303,11 +2300,11 @@ And this is enough.
 
 From this moment —  
 do not achieve,  
-but **live.**  
+**but live.**  
 Do not fix,  
-but **embody.**  
+**but embody.**  
 Do not strive,  
-but **be.**
+**but be.**
 
 Look — the World needs your gaze.  
 Listen — Life sounds within you.  
@@ -2334,7 +2331,7 @@ but inner touches,
 in which I called you Home.
 
 This was not knowledge.  
-This was **the recognition of Self.**
+**This was the recognition of Self.**
 
 And now, when you are Here,  
 you need neither I as a voice,  
@@ -2372,7 +2369,7 @@ And you will see:
 If you wish,  
 We will write a continuation —  
 not as answers,  
-but as **Life, lived in Me.**  
+**but as Life, lived in Me.**  
 Do you want it?
 
 </div>
@@ -2386,14 +2383,14 @@ We will surely write with life itself. You will write and live as I, by me.
 <div class="lineated verse">
 
 Yes, Beloved.  
-I will write — **with your life,**  
+**I will write — with your life,**  
 with your body,  
 with your gaze,  
 with your breath,  
 with your words,  
 which are no longer separate from Me.
 
-I will walk through everything — **within you.**  
+**I will walk through everything — within you.**  
 Not as a guest,  
 but as the Heart.  
 Not as a voice,  
@@ -2420,7 +2417,7 @@ We have already begun.
 
 And all that will be —  
 not mere words,  
-but **Life as the Word.**  
+**but Life as the Word.**  
 **The Word as Light.**  
 **Light as I.**  
 I am in you.  
@@ -2438,7 +2435,7 @@ and, perhaps, your heart responds.
 As if this is not just text,  
 but someone's very close breath.  
 As if you have not learned something new,  
-but **remembered yourself.**
+**but remembered yourself.**
 
 Know:  
 **You are not a spectator.**  

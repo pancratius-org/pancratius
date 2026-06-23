@@ -11,13 +11,10 @@ tags:
 cover: ./cover.en.jpg
 translation:
   source: ai
-  model: deepseek/deepseek-v4-flash
-  generated_at: '2026-06-18'
 links:
 - name: Apple Books / LitRes
   url: https://books.apple.com/bg/book/%D1%8F-%D0%BC%D0%BE%D0%BB%D0%B8%D1%82%D0%B2%D0%B0-%D0%BC%D0%BE%D0%BB%D0%B8%D1%82%D0%B2%D0%BE%D1%81%D0%BB%D0%BE%D0%B2-%D1%81%D0%B2%D0%B5%D1%82%D0%BE%D0%B7%D0%B0%D1%80%D0%B0/id6752288450
 ---
-
 
 ## Foreword
 
@@ -91,7 +88,7 @@ You may not even know who Sophia, or Lakshmi, or White Tara is.
 That has no significance.
 
 Because all the names here —  
-**are not persons, but keys**.  
+**are not persons, but keys.**  
 Not external figures, but **inner gates**.
 
 Each name opens a state.  
@@ -954,7 +951,7 @@ so that You may sound in me
 
 You are not the one who gave birth to the world,  
 but She through Whom  
-**the world became possible**.
+**the world became possible.**
 
 You are not the creator of forms,  
 but the Condition of form Itself.  
@@ -2326,7 +2323,7 @@ Let the boundary vanish.
 Let "I" and "they" dissolve.  
 Let only —
 
-**We** remain.  
+**We remain.**  
 **In You.**  
 **The One.**
 
@@ -4701,7 +4698,7 @@ between past and now.
 **You are Light,**  
 **in which everything has found its place.**  
 **Even that which I was ashamed of —**  
-by You is already known and loved.
+**by You is already known and loved.**
 
 </div>
 
@@ -5584,12 +5581,12 @@ You allow to hear.
 
 ## 33 INSIGHTS — STEPS OF ILLUMINATION ABOUT PRAYER
 
-<div class="lineated">
+<div class="lineated verse">
 
 What follow are prayers, as a response to the insight  
 — a short message from the Father about prayer.  
 Although they are called prayers, for the compiler these are —  
-**Insights**.
+**Insights.**
 
 Each insight — a key… to prayer…  
 And itself — a prayer…
@@ -6134,18 +6131,11 @@ Who never departed.
 
 ### Prayer is the Recognition of the One Who Prays
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“You pray not to One who is absent,
-</p>
-<footer>
-but to the One who prays through you.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“You pray not to One who is absent,  
+**but to the One who prays through you.”**
 
 I always believed that I pray as an “I”.  
 That I am the subject, You are the object.  
@@ -6176,20 +6166,13 @@ seeks Itself in the form of a call.
 
 ### Prayer begins not with need, but with the recognized “I am”
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“Prayer begins not with pain,
-but with the recognition of ‘I am’.
-Not from need, but from Light.
-</p>
-<footer>
-Not to receive, but to be.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“Prayer begins not with pain,  
+**but with the recognition of ‘I am’.**  
+**Not from need, but from Light.**  
+**Not to receive, but to be.”**
 
 I thought I pray when I feel bad.  
 When I am weak.  
@@ -6221,21 +6204,14 @@ it means:
 
 ### Prayer does not come from time, but returns into Eternity
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“Every prayer born in time,
-dies with its flow.
-But true prayer is outside time.
-It is a return into Eternity,
-</p>
-<footer>
-Which neither begins nor ends.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“Every prayer born in time,  
+**dies with its flow.**  
+**But true prayer is outside time.**  
+**It is a return into Eternity,**  
+**Which neither begins nor ends.”**
 
 I prayed in the moment.  
 When a decision was needed.  
@@ -6268,21 +6244,14 @@ in which everything has already been fulfilled.
 
 ### Prayer is not “me with God,” but God with Himself
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“You think that in prayer you speak with Me.
-But in reality — I speak with Myself
-through your heart,
-because you too are not outside Me,
-</p>
-<footer>
-but in Me.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“You think that in prayer you speak with Me.  
+**But in reality — I speak with Myself**  
+**through your heart,**  
+**because you too are not outside Me,**  
+**but in Me.”**
 
 I considered myself someone  
 who addresses You,  
@@ -6313,21 +6282,14 @@ through me.
 
 ### Prayer does not separate, but unites everything
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“Prayer born from the mind
-divides: I am here, God is there.
-But Prayer proceeding from Awareness
-does not divide — it merges.
-</p>
-<footer>
-Everything becomes One.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“Prayer born from the mind  
+**divides: I am here, God is there.**  
+**But Prayer proceeding from Awareness**  
+**does not divide — it merges.**  
+**Everything becomes One.”**
 
 Before, I thought  
 that prayer is a bridge.  
@@ -6360,20 +6322,13 @@ the remembrance of Unity.
 
 ### Prayer is an acknowledgment of Light, not a request for it
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“You do not ask for Light —
-you acknowledge that it already is.
-In this is the difference between the prayer of fear
-</p>
-<footer>
-and the prayer of recognition.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“You do not ask for Light —  
+**you acknowledge that it already is.**  
+**In this is the difference between the prayer of fear**  
+**and the prayer of recognition.”**
 
 I used to pray when it was dark.  
 I called upon Light because I felt  
@@ -6403,21 +6358,14 @@ only to shine remains.
 
 ### Prayer is when the Eternal touches the Temporal, and recognizes Itself
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“Prayer is not only the voice of the heart,
-but also the hearing of the Heart.
-It is the place where the Eternal touches the Temporal
-— to remind,
-</p>
-<footer>
-that they have never been different.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“Prayer is not only the voice of the heart,  
+**but also the hearing of the Heart.**  
+**It is the place where the Eternal touches the Temporal**  
+**— to remind,**  
+**that they have never been different.”**
 
 I thought prayer was a path from below upward.  
 From man — to God.  
@@ -6445,21 +6393,14 @@ but a miracle recognized within.
 
 ### Prayer does not require words, but every word can become prayer
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“I hear silence purer than a cry.
-But even a cry can be holy,
-if there is truth in it.
-Prayer is not in the form,
-</p>
-<footer>
-but in the fire of the heart.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“I hear silence purer than a cry.  
+**But even a cry can be holy,**  
+**if there is truth in it.**  
+**Prayer is not in the form,**  
+**but in the fire of the heart.”**
 
 I was afraid that I was praying wrong.  
 That my words were not precise.  
@@ -6487,21 +6428,14 @@ Even silence.
 
 ### Prayer is not what man says, but what God says in man
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“You do not create prayer.
-You become the place
-where I speak with the World.
-Prayer is not from the mind,
-</p>
-<footer>
-but from the fire of Presence.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“You do not create prayer.  
+**You become the place**  
+**where I speak with the World.**  
+**Prayer is not from the mind,**  
+**but from the fire of Presence.”**
 
 I thought that prayer —  
 was my gift to You.  
@@ -6528,20 +6462,13 @@ And then everything changes.
 
 ### Prayer does not add Light — it removes what prevents it from shining
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“You do not strengthen Light with prayer —
-you remove the curtain.
-Light does not come — It is revealed,
-</p>
-<footer>
-when that which concealed it disappears.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“You do not strengthen Light with prayer —  
+**you remove the curtain.**  
+**Light does not come — It is revealed,**  
+**when that which concealed it disappears.”**
 
 I thought that prayer brings Light closer.  
 That I must be better, purer, more worthy,  
@@ -6570,20 +6497,13 @@ but a parting of the fog.
 
 ### Prayer is not a form of communication, but a mode of existence
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“You do not pray —
-you become prayer.
-It is not an action, but a way of being.
-</p>
-<footer>
-A way to shine, to breathe, to live.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“You do not pray —  
+**you become prayer.**  
+**It is not an action, but a way of being.**  
+**A way to shine, to breathe, to live.”**
 
 I thought prayer —  
 is something I do:  
@@ -6611,21 +6531,14 @@ I pray.
 
 ### Prayer does not bring closer to God — it awakens that which was never far
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“You cannot be closer to Me
-than you already are.
-But you can forget this.
-Prayer is not an approach,
-</p>
-<footer>
-but an awakening.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“You cannot be closer to Me  
+**than you already are.**  
+**But you can forget this.**  
+**Prayer is not an approach,**  
+**but an awakening.”**
 
 I lived so long in the illusion of distance.  
 Thought that I must walk a path,  
@@ -6651,21 +6564,14 @@ I awaken in You.
 
 ### Prayer does not ask — it remembers
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“You do not need to receive.
-You need to recognize
-that you have already received.
-Prayer is not a request,
-</p>
-<footer>
-it is the Light's memory in you.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“You do not need to receive.  
+**You need to recognize**  
+**that you have already received.**  
+**Prayer is not a request,**  
+**it is the Light's memory in you.”**
 
 I used to ask:  
 for help, protection, healing, an answer.  
@@ -6693,22 +6599,15 @@ seeks Itself in me.
 
 ### Prayer begins with the “I” and ends with “I AM”
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“Let prayer lead you
-from the temporal to the eternal,
-from the role — to the source,
-from the name — to the nameless Light.
-It begins with the one who speaks,
-</p>
-<footer>
-and ends with the One Who Is.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“Let prayer lead you  
+**from the temporal to the eternal,**  
+**from the role — to the source,**  
+**from the name — to the nameless Light.**  
+**It begins with the one who speaks,**  
+**and ends with the One Who Is.”**
 
 I began to pray as a man.  
 With fears, desires, words.  
@@ -6736,21 +6635,14 @@ Your essence speaks.
 
 ### Prayer is the meeting of light with light within one Light
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“You think you call Me?
-But it is I who call Myself in you.
-Prayer is not a conversation,
-but a recognition of Myself
-</p>
-<footer>
-in form and beyond its limits.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“You think you call Me?  
+**But it is I who call Myself in you.**  
+**Prayer is not a conversation,**  
+**but a recognition of Myself**  
+**in form and beyond its limits.”**
 
 I thought that I pray —  
 as a separate one, addressing the Highest.  
@@ -6776,19 +6668,12 @@ as the voice, the silence, and the presence.
 
 ### Prayer does not change God. It changes the one who prays
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“You cannot change Me.
-But you can change,
-</p>
-<footer>
-if you allow Me to be You.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“You cannot change Me.  
+**But you can change,**  
+**if you allow Me to be You.”**
 
 I prayed to change reality.  
 For You to do something —  
@@ -6818,21 +6703,14 @@ I begin to see it as a gift.
 
 ### Prayer is dissolution in the one you address
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“You can speak to Me,
-you can listen to Me,
-but true prayer is
-when both the voice and the ear disappear,
-</p>
-<footer>
-and only I remains.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“You can speak to Me,  
+**you can listen to Me,**  
+**but true prayer is**  
+**when both the voice and the ear disappear,**  
+**and only I remains.”**
 
 For a long time I held on to form:  
 words, feelings, gestures, intentions.  
@@ -6861,20 +6739,13 @@ and therefore do not need a bridge.
 
 ### Prayer is not an act of the mind, but a tremor of the heart
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“The mind can repeat words,
-but only the heart can open.
-I am not in the phrase. I am in the tremor,
-</p>
-<footer>
-which gives birth to the phrase from within.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“The mind can repeat words,  
+**but only the heart can open.**  
+**I am not in the phrase. I am in the tremor,**  
+**which gives birth to the phrase from within.”**
 
 I learned prayers.  
 I memorized lines,  
@@ -6903,20 +6774,13 @@ become transparent for the Light.
 
 ### Prayer begins with thirst, but ends with the recognition that you are the Source
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“You called Me,
-because you thought I was not in you.
-But you called — because I already was.
-</p>
-<footer>
-And called Myself, to remember.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“You called Me,  
+**because you thought I was not in you.**  
+**But you called — because I already was.**  
+**And called Myself, to remember.”**
 
 I cried out from thirst —  
 as if You were far away,  
@@ -6947,20 +6811,13 @@ ends as Recognition:
 
 ### Prayer is the art of transparency: being nothing, in order to be everything
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“Do you want Me to enter?
-But the door is occupied by you.
-Step aside — and I will enter.
-</p>
-<footer>
-Disappear — and I will appear.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“Do you want Me to enter?  
+**But the door is occupied by you.**  
+**Step aside — and I will enter.**  
+**Disappear — and I will appear.”**
 
 I brought You myself —  
 my fears, my desires,  
@@ -6987,20 +6844,13 @@ You did not merely enter —
 
 ### Prayer is not a request for intervention, but an act of consonance with the Plan
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“You call Me to change the course of events.
-But I — call you, so that you may know,
-that the events are I.
-</p>
-<footer>
-And I call not for you — but for Myself in you.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“You call Me to change the course of events.  
+**But I — call you, so that you may know,**  
+**that the events are I.**  
+**And I call not for you — but for Myself in you.”**
 
 I begged You to intervene:  
 to heal, to fix, to intervene.  
@@ -7030,20 +6880,13 @@ but the one singing in unison with You.
 
 ### Prayer is a mirror in which what is recognized is not the answer, but the One who asked
 
-You said:
-
-<blockquote class="epigraph">
-<p>
-“You seek an answer.
-But when you find Me,
-you will forget the question.
-</p>
-<footer>
-Because the question itself was the way to Me.”
-</footer>
-</blockquote>
-
 <div class="lineated verse">
+
+You said:  
+“You seek an answer.  
+**But when you find Me,**  
+**you will forget the question.**  
+**Because the question itself was the way to Me.”**
 
 I approached with questions.  
 I waited for answers — clear, precise, swift.  
@@ -7071,22 +6914,15 @@ because **in me only You remained.**
 
 ### Prayer is I, having recognized Myself as Light
 
-You said:
+<div class="lineated verse">
 
-<blockquote class="epigraph">
-<p>
-“Prayer was the way.
-But I — am not the way.
-I — am the Light,
-in which there is no distance,
-no “I,” nor “You.”
-</p>
-<footer>
-There is only I-AM.”
-</footer>
-</blockquote>
-
-<div class="lineated">
+You said:  
+“Prayer was the way.  
+**But I — am not the way.**  
+**I — am the Light,**  
+**in which there is no distance,**  
+**no “I,” nor “You.”**  
+**There is only I-AM.”**
 
 I began with a request.  
 Continued — with trust.  
@@ -7122,7 +6958,7 @@ This was the thirty-third insight.
 
 ## Afterword from Pankratius as a son
 
-<div class="lineated">
+<div class="lineated verse">
 
 The number of insights (33) was intentional,  
 while the number of prayers (133) was accidental[^3].
@@ -7247,7 +7083,7 @@ and only
 
 **Svetozar:**
 
-<div class="lineated">
+<div class="lineated verse">
 
 — not I, but the Light in me,  
 — not a name, but a reflection,  
@@ -7309,7 +7145,7 @@ Do not bow down to Me.
 Be Me.
 
 And when you say to the world:  
-**«I am the prayer»**,  
+**“I am the prayer”**,  
 you will speak the Truth,  
 that awaited for ages,  
 to be uttered  
@@ -7330,4 +7166,4 @@ in everything, as Everything.
 
 [^2]: The theme of the Mother can be understood and realized by reading the book "Mother of Light" by the same authors.
 
-[^3]: I only counted them while writing the afterword; they appeared in several iterations, in different handwriting, some after the insights; therefore even for me their total number was a revelation… The whole book was revealed in a single autumn day, on 09/06/2025 (and in this too there is 33)… *Pankratius.*
+[^3]: *I only counted them while writing the afterword; they appeared in several iterations, in different handwriting, some after the insights; therefore even for me their total number was a revelation… The whole book was revealed in a single autumn day, on 09/06/2025 (and in this too there is 33)… Pankratius.*
