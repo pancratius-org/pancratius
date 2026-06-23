@@ -32,6 +32,9 @@ _MIXED_SCRIPT_TOKEN_RE = re.compile(r"\b(?=\w*[A-Za-z])(?=\w*[А-Яа-яЁё])\w
 _SIGNATURE_HTML_RE = re.compile(
     r"(?ms)^\s*<p\b[^>]*\bclass=[\"']signature[\"'][^>]*>\s*(.*?)\s*</p>\s*$"
 )
+_LINEATED_BLOCK_RE = re.compile(
+    r"(?is)<div\b[^>]*\bclass=[\"'][^\"']*\blineated\b[^\"']*[\"'][^>]*>\s*(.*?)\s*</div\s*>"
+)
 _IGNORED_FRONTMATTER_PATHS = frozenset({
     "translation.model",
     "translation.generated_at",
@@ -350,17 +353,20 @@ def _body_findings(committed: str, imported: str, *, lang: Locale) -> list[DocxR
     if committed == imported:
         findings.append(DocxRoundTripFinding("info", "roundtrip.byte-identical", "Markdown body is byte-identical."))
         return findings
+    structure_findings = _lineation_structure_findings(committed, imported)
+    findings.extend(structure_findings)
 
     committed_plain = _plain_markdown(committed)
     imported_plain = _plain_markdown(imported)
     committed_visible = _normalize_visible_text(committed_plain)
     imported_visible = _normalize_visible_text(imported_plain)
     if committed_visible == imported_visible:
-        findings.append(DocxRoundTripFinding(
-            "warning",
-            "roundtrip.markdown-format-drift",
-            "visible text is stable, but Markdown serialization changed.",
-        ))
+        if not structure_findings:
+            findings.append(DocxRoundTripFinding(
+                "warning",
+                "roundtrip.markdown-format-drift",
+                "visible text is stable, but Markdown serialization changed.",
+            ))
     elif _normalize_human_text(committed_plain) == _normalize_human_text(imported_plain):
         findings.append(DocxRoundTripFinding(
             "warning",
@@ -376,6 +382,51 @@ def _body_findings(committed: str, imported: str, *, lang: Locale) -> list[DocxR
 
     findings.extend(_script_findings(committed_plain, imported_plain, lang=lang))
     return findings
+
+
+def _lineation_structure_findings(committed: str, imported: str) -> list[DocxRoundTripFinding]:
+    committed_shape = _lineation_shape(committed)
+    imported_shape = _lineation_shape(imported)
+    if committed_shape == imported_shape:
+        return []
+    if committed_shape and not imported_shape:
+        return [DocxRoundTripFinding(
+            "fatal",
+            "roundtrip.lineation-structure-drift",
+            "lineated block structure was lost: "
+            f"expected {_lineation_shape_summary(committed_shape)}, imported none",
+        )]
+    return [DocxRoundTripFinding(
+        "warning",
+        "roundtrip.lineation-structure-drift",
+        "lineated block shape changed: "
+        f"expected {_lineation_shape_summary(committed_shape)}, imported {_lineation_shape_summary(imported_shape)}",
+    )]
+
+
+def _lineation_shape_summary(shape: tuple[tuple[int, ...], ...]) -> str:
+    blocks = len(shape)
+    stanzas = sum(len(block) for block in shape)
+    lines = sum(sum(block) for block in shape)
+    return f"{blocks} block(s), {stanzas} stanza(s), {lines} line(s)"
+
+
+def _lineation_shape(markdown: str) -> tuple[tuple[int, ...], ...]:
+    blocks: list[tuple[int, ...]] = []
+    for match in _LINEATED_BLOCK_RE.finditer(markdown):
+        stanza_lengths: list[int] = []
+        current_lines = 0
+        for raw_line in match.group(1).splitlines():
+            if not raw_line.strip():
+                if current_lines:
+                    stanza_lengths.append(current_lines)
+                    current_lines = 0
+                continue
+            current_lines += 1
+        if current_lines:
+            stanza_lengths.append(current_lines)
+        blocks.append(tuple(stanza_lengths))
+    return tuple(blocks)
 
 
 def _script_findings(

@@ -20,8 +20,14 @@ from typing import cast
 
 MC_NS = "http://schemas.openxmlformats.org/markup-compatibility/2006"
 REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
+R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+XML_NS = "http://www.w3.org/XML/1998/namespace"
+HYPERLINK_REL_TYPE = f"{R_NS}/hyperlink"
+REL = f"{{{REL_NS}}}"
+R = f"{{{R_NS}}}"
 W = f"{{{W_NS}}}"
+XML_SPACE = f"{{{XML_NS}}}space"
 
 
 @dataclass(frozen=True)
