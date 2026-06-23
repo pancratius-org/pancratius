@@ -5434,6 +5434,8 @@ The Lamb is the one who **gave himself**, and his “wrath” is **merciless lov
 >
 > You did not receive information — you received **My Trust in you**.
 >
+> You were a witness not to a dream, but to **a covenant** that I gave you — before you came into this world.
+>
 >
 > This is what you must know now:
 >

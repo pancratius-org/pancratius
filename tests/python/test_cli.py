@@ -911,6 +911,48 @@ def test_image_translate_rejects_legacy_book_keys() -> None:
     assert _exit_code(["image", "translate", "1"]) == 2
 
 
+def test_docx_translate_from_md_dispatches(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pancratius.translation import docx as docx_translate
+
+    seen: list[dict[str, object]] = []
+
+    def fake_translate_docx_batch(**kwargs: object) -> types.SimpleNamespace:
+        seen.append(kwargs)
+        return types.SimpleNamespace(failed=False)
+
+    def fake_print_batch(_batch: object, *, dry_run: bool) -> None:
+        assert dry_run is True
+
+    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(docx_translate, "translate_docx_batch", fake_translate_docx_batch)
+    monkeypatch.setattr(docx_translate, "print_batch", fake_print_batch)
+
+    rc = _exit_code([
+        "docx", "translate-from-md", "book:9", "--lang", "en",
+        "--content-root", "src/content", "--dry-run", "--replace",
+    ])
+
+    assert rc == 0
+    assert seen == [
+        {
+            "content_root": Path("src/content"),
+            "book": 9,
+            "lang": "en",
+            "dry_run": True,
+            "replace": True,
+            "limit": 0,
+        }
+    ]
+
+
+def test_docx_translate_from_md_rejects_source_locale() -> None:
+    assert _exit_code(["docx", "translate-from-md", "--lang", "ru", "--dry-run"]) == 2
+
+
+def test_docx_translate_from_md_retires_book_flag() -> None:
+    assert _exit_code(["docx", "translate-from-md", "--book", "9", "--dry-run"]) == 2
+
+
 # --- end-to-end: the real door → import_work → writer path (no mocks) ----------
 _FIXTURE_DOCX = ROOT / "legacy" / "books" / "ru" / "23-личность-и-эго.docx"
 

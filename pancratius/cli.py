@@ -918,6 +918,35 @@ def _docx_render_slice(args: argparse.Namespace) -> int:
     return 0
 
 
+def _docx_translate_from_md(args: argparse.Namespace) -> int:
+    """`docx translate-from-md` — transfer translated Markdown into the source DOCX
+    structure, refusing when the source/translation units drift."""
+    from pancratius.selectors import SelectorError, parse_book_selector
+    from pancratius.translation.docx import DocxTranslationError, print_batch, translate_docx_batch
+
+    if (rc := _require_pandoc()) is not None:
+        return rc
+    book = None
+    if args.selector is not None:
+        try:
+            book = parse_book_selector(args.selector).number
+        except SelectorError as exc:
+            return _fail(exc, 2)
+    try:
+        batch = translate_docx_batch(
+            content_root=Path(args.content_root),
+            book=book,
+            lang=_locale_arg(args.lang),
+            dry_run=args.dry_run,
+            replace=args.replace,
+            limit=args.limit,
+        )
+    except DocxTranslationError as exc:
+        return _fail(exc)
+    print_batch(batch, dry_run=args.dry_run)
+    return 1 if batch.failed else 0
+
+
 # --- handlers (conceptosphere group) ------------------------------------------
 def _conceptosphere_graph_generate(args: argparse.Namespace) -> int:
     """`conceptosphere graph generate [--only concepts|books]` — regenerate the
@@ -1167,7 +1196,7 @@ def _add_downloads_group(sub: argparse._SubParsersAction[argparse.ArgumentParser
 
 def _add_docx_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     from pancratius import import_docx  # light (no ML); owns DEFAULT_CONTENT_ROOT
-    from pancratius.locales import LOCALES
+    from pancratius.locales import DEFAULT_LOCALE, LOCALES
 
     docx = sub.add_parser("docx", help="Maintain source DOCX artifacts.")
     docx.set_defaults(func=_require_subcommand(docx))
@@ -1243,6 +1272,45 @@ def _add_docx_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     render_slice.add_argument("--context", type=int, default=10, help="Rows of context for --around.")
     render_slice.add_argument("--out", required=True, help="Output PNG path; multi-page slices add suffixes.")
     render_slice.set_defaults(func=_docx_render_slice)
+
+    translate_from_md = docx_sub.add_parser(
+        "translate-from-md",
+        help=(
+            "Create missing translated DOCX artifacts by transferring <lang>.md text "
+            "into the ru.docx structure."
+        ),
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    translate_from_md.add_argument(
+        "selector",
+        nargs="?",
+        metavar="book:NN",
+        help="Book selector to translate. Omit to translate every missing translated DOCX.",
+    )
+    translated_locales = tuple(locale for locale in LOCALES if locale != DEFAULT_LOCALE)
+    translate_from_md.add_argument("--lang", choices=translated_locales, default="en")
+    translate_from_md.add_argument(
+        "--content-root",
+        default=str(import_docx.DEFAULT_CONTENT_ROOT),
+        help="Content root; defaults to src/content.",
+    )
+    translate_from_md.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="Translate only the first N discovered missing DOCX artifacts.",
+    )
+    translate_from_md.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print planned writes and diagnostics without writing.",
+    )
+    translate_from_md.add_argument(
+        "--replace",
+        action="store_true",
+        help="Overwrite an existing translated DOCX; otherwise existing artifacts are refused.",
+    )
+    translate_from_md.set_defaults(func=_docx_translate_from_md)
 
 
 def _video_sync(args: argparse.Namespace) -> int:
