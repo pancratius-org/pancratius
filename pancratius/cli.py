@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from pancratius.locales import Locale
     from pancratius.render_downloads import RenderPlan, RenderSummary, WorkEntry
     from pancratius.translation.image.models import ImageTranslationResult
+    from pancratius.translation.image.providers import ProviderJob
     from pancratius.translation.text import TranslationReport
 
 
@@ -334,17 +335,22 @@ def _print_image_result(result: ImageTranslationResult) -> None:
     if result.status is ImageTranslationStatus.OK_WITH_CAVEAT:
         tag = "CAVE"
     attempts_used = len([a for a in result.attempts if a.attempt > 0])
-    skipped = any(a.attempt == 0 for a in result.attempts)
+    existing_target_check = len(result.attempts) == 1 and result.attempts[0].attempt == 0
     cost = f"${result.total_cost_usd:.5f}"
     title_source = result.metadata.get("title_source") or ""
     title_tag = f"[{title_source}]" if title_source and title_source != "model" else "[model]"
 
-    if skipped:
+    if existing_target_check and result.ok:
         print(f"  {tag} {result.key:24s} {cost}  {title_tag}  (existing image passed QA)")
         return
 
     verdict = result.attempts[-1].qa.verdict if result.attempts else "?"
-    qa_label = "PASS" if verdict == QaVerdict.PASS else f"FAIL({attempts_used}atts)"
+    if verdict == QaVerdict.PASS:
+        qa_label = "PASS"
+    elif existing_target_check:
+        qa_label = "FAIL(existing)"
+    else:
+        qa_label = f"FAIL({attempts_used}atts)"
     where = str(result.final_path) if result.final_path else "(none)"
     print(f"  {tag} {result.key:24s} {cost}  {title_tag}  QA:{qa_label}  {where}")
     if result.error and not result.ok:
@@ -369,11 +375,102 @@ def _image_exception_result(key: str, exc: Exception, *, kind: str) -> ImageTran
     )
 
 
+def _image_display_path(path: Path | None) -> str | None:
+    if path is None:
+        return None
+    from pancratius.paths import REPO_ROOT
+
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def _image_plan_rows(specs: list[ProviderJob]) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for spec in specs:
+        job = spec.job
+        row: dict[str, object] = {
+            "selector": spec.label,
+            "key": job.key,
+            "kind": job.metadata.get("kind", "image"),
+            "source_image": _image_display_path(job.source_image),
+            "target_image": _image_display_path(job.target_image),
+            "raw_image": _image_display_path(job.raw_output()),
+            "target_exists": job.target_image.exists(),
+            "expected_text": len(job.expected_text),
+            "overrides": len(job.overrides),
+        }
+        row["frontmatter_updates"] = [
+            {
+                "path": _image_display_path(update.path),
+                "field": update.field,
+                "value": update.value,
+            }
+            for update in spec.frontmatter_updates
+        ]
+        rows.append(row)
+    return rows
+
+
+def _image_plan_payload(specs: list[ProviderJob]) -> dict[str, object]:
+    return {
+        "dry_run": True,
+        "summary": {"images": len(specs)},
+        "images": _image_plan_rows(specs),
+    }
+
+
+def _print_image_plan(specs: list[ProviderJob]) -> None:
+    print(f"image translate plan: {len(specs)} image(s)")
+    for spec in specs:
+        job = spec.job
+        exists = "existing target will be QA'd first" if job.target_image.exists() else "will generate if run"
+        print(f"  {spec.label}")
+        print(f"    read: {_image_display_path(job.source_image)}")
+        print(f"    target: {_image_display_path(job.target_image)} ({exists})")
+        print(f"    raw: {_image_display_path(job.raw_output())} (if generation is needed)")
+        print(f"    text: {len(job.expected_text)} expected, {len(job.overrides)} overrides")
+        for update in spec.frontmatter_updates:
+            print(
+                f"    finalize: {_image_display_path(update.path)} "
+                f"{update.field} -> {update.value}"
+            )
+
+
+def _image_results_payload(
+    specs: list[ProviderJob],
+    results: list[ImageTranslationResult],
+) -> dict[str, object]:
+    return {
+        "dry_run": False,
+        "summary": {
+            "requested": len(specs),
+            "completed": len(results),
+            "succeeded": sum(1 for result in results if result.ok),
+            "failed": sum(1 for result in results if not result.ok),
+            "total_cost_usd": sum(result.total_cost_usd for result in results),
+        },
+        "images": [
+            {
+                "key": result.key,
+                "kind": result.metadata.get("kind", "image"),
+                "status": result.status.value,
+                "ok": result.ok,
+                "final_path": _image_display_path(result.final_path),
+                "raw_path": _image_display_path(result.raw_path),
+                "cost_usd": result.total_cost_usd,
+                "error": result.error,
+            }
+            for result in results
+        ],
+    }
+
+
 def _image_translate(args: argparse.Namespace) -> int:
     """`image translate <selector...>` — translate text-bearing image assets."""
     from pancratius.selectors import SelectorError, parse_book_selector
     from pancratius.translation.image.client import InsufficientCreditsError, api_key_from_env
-    from pancratius.translation.image.providers import ProviderJob
     from pancratius.translation.image.providers.book_cover import (
         DEFAULT_BOOKS_ROOT,
         DEFAULT_COVERS_DIR,
@@ -418,52 +515,68 @@ def _image_translate(args: argparse.Namespace) -> int:
         except (SelectorError, ValueError, ProjectCoverError) as exc:
             return _fail(exc, 2)
 
+    if args.dry_run:
+        if args.json:
+            print(json.dumps(_image_plan_payload(specs), ensure_ascii=False, indent=2))
+        else:
+            _print_image_plan(specs)
+        return 0
+
     try:
         api_key = api_key_from_env()
     except ValueError as exc:
         return _fail(exc)
 
     translator = ImageTextTranslator(
-        config=ImageTranslationConfig(max_attempts=args.max_attempts),
+        config=ImageTranslationConfig(max_attempts=args.max_attempts, replace_existing=args.replace),
         api_key=api_key,
     )
 
-    print(f"image translate: {len(specs)} image(s)")
-    print(f"selectors: {', '.join(spec.label for spec in specs)}\n")
+    if not args.json:
+        print(f"image translate: {len(specs)} image(s)")
+        print(f"selectors: {', '.join(spec.label for spec in specs)}\n")
 
     results: list[ImageTranslationResult] = []
     total = 0.0
     for spec in specs:
-        print(f"[{spec.label}]")
+        if not args.json:
+            print(f"[{spec.label}]")
         try:
             result = translator.translate(spec.job)
             spec.finalize(result)
         except InsufficientCreditsError as exc:
-            print(f"  FAIL {spec.label}: {exc}")
+            if not args.json:
+                print(f"  FAIL {spec.label}: {exc}")
             result = _image_exception_result(
                 spec.job.key,
                 exc,
                 kind=spec.job.metadata.get("kind", "image"),
             )
             results.append(result)
-            print("stopping: image translation account has insufficient credits", file=sys.stderr)
+            if not args.json:
+                print("stopping: image translation account has insufficient credits", file=sys.stderr)
             break
         except Exception as exc:  # noqa: BLE001 - one bad image should not kill the batch
-            print(f"  FAIL {spec.label}: {exc}")
+            if not args.json:
+                print(f"  FAIL {spec.label}: {exc}")
             result = _image_exception_result(spec.job.key, exc, kind=spec.job.metadata.get("kind", "image"))
             results.append(result)
             continue
-        _print_image_result(result)
+        if not args.json:
+            _print_image_result(result)
         total += result.total_cost_usd
         results.append(result)
 
     failed = [r for r in results if not r.ok]
-    print(f"\ntotal spent: ${total:.5f}")
-    print(f"succeeded: {sum(1 for r in results if r.ok)}/{len(results)}")
-    if failed:
-        print("failed:")
-        for r in failed:
-            print(f"  {r.key}: {r.error}")
+    if args.json:
+        print(json.dumps(_image_results_payload(specs, results), ensure_ascii=False, indent=2))
+    else:
+        print(f"\ntotal spent: ${total:.5f}")
+        print(f"succeeded: {sum(1 for r in results if r.ok)}/{len(results)}")
+        if failed:
+            print("failed:")
+            for r in failed:
+                print(f"  {r.key}: {r.error}")
     return 1 if failed else 0
 
 
@@ -964,17 +1077,20 @@ def _add_image_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -
         default="image-translate-out",
         help="Intermediate output directory; book-cover selectors also write final .en.png files here.",
     )
-    translate.add_argument("--content-root", default=str(CONTENT_ROOT), help="Content root for project selectors.")
-    translate.add_argument("--covers-dir", default=str(DEFAULT_COVERS_DIR), help="Book-cover source queue.")
-    translate.add_argument("--queue-md", default=str(DEFAULT_QUEUE_MD), help="Book-cover QUEUE.md title fallback.")
-    translate.add_argument("--books-root", default=str(DEFAULT_BOOKS_ROOT), help="Book content root for title pins.")
-    translate.add_argument("--seed", help="Book-cover seed.json with manual pins/overrides.")
+    translate.add_argument("--content-root", default=str(CONTENT_ROOT), help=argparse.SUPPRESS)
+    translate.add_argument("--covers-dir", default=str(DEFAULT_COVERS_DIR), help=argparse.SUPPRESS)
+    translate.add_argument("--queue-md", default=str(DEFAULT_QUEUE_MD), help=argparse.SUPPRESS)
+    translate.add_argument("--books-root", default=str(DEFAULT_BOOKS_ROOT), help=argparse.SUPPRESS)
+    translate.add_argument("--seed", help=argparse.SUPPRESS)
     translate.add_argument(
         "--max-attempts",
         type=int,
         default=3,
         help="Maximum generation+QA attempts per image before giving up.",
     )
+    translate.add_argument("--dry-run", action="store_true", help="Print the image translation plan; write nothing.")
+    translate.add_argument("--json", action="store_true", help="Print a machine-readable plan/result summary.")
+    translate.add_argument("--replace", action="store_true", help="Regenerate if an existing target image fails QA.")
     translate.set_defaults(func=_image_translate)
 
 
