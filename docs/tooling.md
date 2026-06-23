@@ -246,15 +246,17 @@ uv sync --extra embed
 ```
 
 The CLI lazy-imports those owners and prints the relevant extra hint when the
-stack is missing. System tools such as pandoc and typst are local prerequisites,
-not Python package dependencies.
+stack is missing. The dev environment carries `pypandoc-binary` so import and
+round-trip checks run in CI. Local download rendering still needs system tools
+such as typst, and may use a system pandoc when maintainers choose one
+explicitly.
 
 ## Invariants
 
 - One task has one owner. A second command surface is drift unless it is only a
   documented alias at the same command surface.
-- CI never imports DOCX, renders PDF/EPUB, optimizes DOCX, or regenerates
-  embeddings.
+- CI never renders PDF/EPUB, optimizes DOCX, or regenerates embeddings. The
+  translated DOCX round-trip gate is the narrow DOCX import exception.
 - The Python package does not reach into `build/` or `audit/` to implement site
   work.
 - The site build does not shell into `pancratius` to manufacture corpus source.

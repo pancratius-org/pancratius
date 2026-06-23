@@ -44,6 +44,7 @@ pancratius = "pancratius.cli:main"
 [dependency-groups]
 dev = [
   "google-api-python-client-stubs>=1.37.0",
+  "pypandoc-binary>=1.17",
   "pytest>=9.0",
   "ruff>=0.15.14",
   "ty==0.0.40",

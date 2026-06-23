@@ -17,6 +17,7 @@ from pancratius import import_docx
 from pancratius.content_catalog import CatalogEntry, scan_catalog, split_frontmatter
 from pancratius.kinds import SEGMENT_OF
 from pancratius.locales import Locale
+from pancratius.pandoc import PandocNotFoundError, pandoc_argv0
 from pancratius.paths import CONTENT_ROOT
 from pancratius.writeplan import Diagnostic
 
@@ -411,15 +412,17 @@ def _plain_markdown(markdown: str) -> str:
     markdown = _project_visible_raw_html(markdown)
     try:
         proc = subprocess.run(
-            ["pandoc", "--from", PANDOC_MARKDOWN_FORMAT, "--to", "plain"],
+            [pandoc_argv0(), "--from", PANDOC_MARKDOWN_FORMAT, "--to", "plain"],
             input=markdown,
             capture_output=True,
             text=True,
             check=False,
             timeout=PANDOC_TIMEOUT_SECONDS,
         )
-    except FileNotFoundError as exc:
-        raise DocxRoundTripError("pandoc not found on PATH; install with `brew install pandoc`.") from exc
+    except (FileNotFoundError, PandocNotFoundError) as exc:
+        raise DocxRoundTripError(
+            "pandoc not found; run `uv sync` or install it with `brew install pandoc`."
+        ) from exc
     except subprocess.TimeoutExpired as exc:
         raise DocxRoundTripError("pandoc timed out while reading Markdown for round-trip comparison.") from exc
     if proc.returncode != 0:
