@@ -9,6 +9,7 @@ The owners' own behaviour is covered by their dedicated tests.
 from __future__ import annotations
 
 import importlib.util
+import json
 import shutil
 import sys
 import types
@@ -435,8 +436,11 @@ def test_project_page_add_missing_pandoc_is_failure(monkeypatch: pytest.MonkeyPa
     assert _exit_code(["project", "page", "add", "holy-rus", "my-sub", "x.docx", "--lang", "ru"]) == 1
 
 
-# --- downloads / docx (pass-through to owner) ---------------------------------
-def test_downloads_render_dispatches(monkeypatch: pytest.MonkeyPatch) -> None:
+# --- downloads / docx ---------------------------------------------------------
+def test_downloads_render_dry_run_json_reports_plan(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     from pancratius import render_downloads
 
     book_2 = render_downloads.WorkEntry(
@@ -457,16 +461,93 @@ def test_downloads_render_dispatches(monkeypatch: pytest.MonkeyPatch) -> None:
         slug="poem-01",
         title="Poem 1",
     )
+    plan = render_downloads.RenderPlan(
+        actions=(
+            render_downloads.RenderAction(
+                entry=book_2,
+                format="pdf",
+                output=Path("books/book-02/ru.pdf"),
+                action="render",
+                reason="missing-or-stale",
+            ),
+        )
+    )
 
     seen: list[dict[str, object]] = []
 
-    def fake_render(**kwargs: object) -> None:
+    def fake_build_plan(**kwargs: object) -> render_downloads.RenderPlan:
         seen.append(kwargs)
+        return plan
 
     monkeypatch.setattr(render_downloads, "discover_works", lambda: [book_2, poem_1])
-    monkeypatch.setattr(render_downloads, "render", fake_render)
-    assert _exit_code(["downloads", "render", "poem:1", "book:2"]) == 0
+    monkeypatch.setattr(render_downloads, "build_plan", fake_build_plan)
+    monkeypatch.setattr(render_downloads, "execute_plan", lambda _plan: pytest.fail("executed dry-run"))
+    assert _exit_code(["downloads", "render", "poem:1", "book:2", "--dry-run", "--json"]) == 0
     assert seen and seen[0]["entries"] == (poem_1, book_2)
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["dry_run"] is True
+    assert payload["summary"] == {
+        "pdfs_planned": 1,
+        "epubs_planned": 0,
+        "pdfs_made": 0,
+        "epubs_made": 0,
+        "skipped": 0,
+    }
+    assert payload["actions"][0]["action"] == "render"
+    assert payload["actions"][0]["output"] == "books/book-02/ru.pdf"
+
+
+def test_downloads_render_json_reports_execution_without_progress(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from pancratius import render_downloads
+
+    book_2 = render_downloads.WorkEntry(
+        kind=cast(Any, "book"),
+        number=2,
+        folder=Path("books/book-02"),
+        lang=cast(Any, "ru"),
+        md=Path("books/book-02/ru.md"),
+        slug="book-02",
+        title="Book 2",
+    )
+    plan = render_downloads.RenderPlan(
+        actions=(
+            render_downloads.RenderAction(
+                entry=book_2,
+                format="pdf",
+                output=Path("books/book-02/ru.pdf"),
+                action="render",
+                reason="missing-or-stale",
+            ),
+            render_downloads.RenderAction(
+                entry=book_2,
+                format="epub",
+                output=Path("books/book-02/ru.epub"),
+                action="skip",
+                reason="up-to-date",
+            ),
+        )
+    )
+
+    monkeypatch.setattr(render_downloads, "discover_works", lambda: [book_2])
+    monkeypatch.setattr(render_downloads, "build_plan", lambda **_kwargs: plan)
+    monkeypatch.setattr(
+        render_downloads,
+        "execute_plan",
+        lambda _plan: render_downloads.RenderSummary(pdfs_made=1, epubs_made=0, skipped=1),
+    )
+
+    assert _exit_code(["downloads", "render", "book:2", "--json"]) == 0
+
+    stdout = capsys.readouterr().out
+    payload = json.loads(stdout)
+    assert "download render result:" not in stdout
+    assert payload["dry_run"] is False
+    assert payload["summary"]["pdfs_made"] == 1
+    assert [action["action"] for action in payload["actions"]] == ["rendered", "skipped"]
 
 
 def test_downloads_render_missing_explicit_selector_is_failure(

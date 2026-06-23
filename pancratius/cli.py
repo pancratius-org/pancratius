@@ -22,6 +22,7 @@ core never imports the graph/embed stacks just to print ``--help``.
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import shutil
 import sys
@@ -33,7 +34,7 @@ if TYPE_CHECKING:
     from pancratius.import_docx import ImportRequest, TranslationSource
     from pancratius.kinds import CorpusWorkKind
     from pancratius.locales import Locale
-    from pancratius.render_downloads import WorkEntry
+    from pancratius.render_downloads import RenderPlan, RenderSummary, WorkEntry
     from pancratius.translation.image.models import ImageTranslationResult
     from pancratius.translation.text import TranslationReport
 
@@ -540,21 +541,110 @@ def _download_entries_from_selectors(
     return tuple(selected)
 
 
+def _download_display_path(path: Path) -> str:
+    from pancratius.paths import REPO_ROOT
+
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def _download_plan_payload(
+    plan: RenderPlan,
+    *,
+    dry_run: bool,
+    summary: RenderSummary | None = None,
+) -> dict[str, object]:
+    return {
+        "dry_run": dry_run,
+        "summary": {
+            "pdfs_planned": plan.pdfs_to_render,
+            "epubs_planned": plan.epubs_to_render,
+            "pdfs_made": 0 if summary is None else summary.pdfs_made,
+            "epubs_made": 0 if summary is None else summary.epubs_made,
+            "skipped": plan.skipped if summary is None else summary.skipped,
+        },
+        "actions": [
+            {
+                "selector": action.selector,
+                "kind": action.entry.kind,
+                "number": action.entry.number,
+                "lang": action.entry.lang,
+                "format": action.format,
+                "action": action.action
+                if dry_run
+                else ("skipped" if action.action == "skip" else "rendered"),
+                "reason": action.reason,
+                "output": _download_display_path(action.output),
+            }
+            for action in plan.actions
+        ],
+    }
+
+
+def _print_download_plan(plan: RenderPlan) -> None:
+    print("will render downloads:")
+    for action in plan.actions:
+        verb = "render" if action.action == "render" else "skip"
+        print(
+            f"  {verb:<6} {action.format.upper():<4} "
+            f"{action.selector}/{action.entry.lang} -> {_download_display_path(action.output)}"
+            f" ({action.reason})"
+        )
+    print(
+        f"\nplanned: {plan.pdfs_to_render} PDF, {plan.epubs_to_render} EPUB "
+        f"({plan.skipped} skipped; --force to rebuild)"
+    )
+
+
+def _print_download_result(plan: RenderPlan, summary: RenderSummary) -> None:
+    print("download render result:")
+    for action in plan.actions:
+        verb = "skipped" if action.action == "skip" else "rendered"
+        print(
+            f"  {verb:<8} {action.format.upper():<4} "
+            f"{action.selector}/{action.entry.lang} -> {_download_display_path(action.output)}"
+            f" ({action.reason})"
+        )
+    print(
+        f"\nrendered: {summary.pdfs_made} PDF, {summary.epubs_made} EPUB "
+        f"({summary.skipped} skipped; --force to rebuild)"
+    )
+
+
 def _downloads_render(args: argparse.Namespace) -> int:
     """`downloads render [book:NN|poem:NN ...]` — render local PDF/EPUB artifacts.
-    Pass-through to the render owner, which prints its own progress/summary."""
-    from pancratius.render_downloads import DownloadRenderError, render
+    The render owner builds and executes the plan; the CLI owns output."""
+    from pancratius.render_downloads import DownloadRenderError, build_plan, execute_plan
     from pancratius.selectors import SelectorError
 
     try:
         lang = _optional_locale_arg(args.lang)
         entries = _download_entries_from_selectors(args.selectors, lang=lang)
-        render(
+        plan = build_plan(
             entries=entries,
             skip_pdf=args.skip_pdf,
             skip_epub=args.skip_epub,
             force=args.force,
         )
+        if args.dry_run:
+            if args.json:
+                print(json.dumps(_download_plan_payload(plan, dry_run=True), ensure_ascii=False, indent=2))
+            else:
+                _print_download_plan(plan)
+            return 0
+        summary = execute_plan(plan)
+        if args.json:
+            print(
+                json.dumps(
+                    _download_plan_payload(plan, dry_run=False, summary=summary),
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            )
+        else:
+            _print_download_result(plan, summary)
     except SelectorError as exc:
         return _fail(exc, 2)
     except DownloadRenderError as exc:
@@ -933,6 +1023,8 @@ def _add_downloads_group(sub: argparse._SubParsersAction[argparse.ArgumentParser
     render.add_argument("--skip-pdf", action="store_true", help="Skip PDF rendering.")
     render.add_argument("--skip-epub", action="store_true", help="Skip EPUB rendering.")
     render.add_argument("--force", action="store_true", help="Re-render even if output is newer than source.")
+    render.add_argument("--dry-run", action="store_true", help="Print the render plan; write nothing.")
+    render.add_argument("--json", action="store_true", help="Print a machine-readable plan/result summary.")
     render.set_defaults(func=_downloads_render)
 
 
