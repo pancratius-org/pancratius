@@ -6,6 +6,7 @@ import shutil
 import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
+from typing import get_args
 
 import pytest
 
@@ -19,10 +20,13 @@ from pancratius.translation.docx import (
 from pancratius.translation.docx.align import (
     align_source_units,
     join_markdown_units_for_word_slot,
+    source_text_alignment_evidence,
 )
 from pancratius.translation.docx.models import (
     MarkdownTransferDocument,
     MarkdownTransferUnit,
+    SourceDocxTextVariantReason,
+    TextAlignmentVariantReason,
     TransferUnitKind,
     TranslatedTextRun,
     WordTextSlot,
@@ -35,6 +39,22 @@ from pancratius.translation.docx.ooxml_write import (
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W = f"{{{W_NS}}}"
+SOURCE_TEXT_ALIGNMENT_EVIDENCE_CASES: tuple[
+    tuple[str, str, TextAlignmentVariantReason, SourceDocxTextVariantReason],
+    ...,
+] = (
+    ("Свет", "Свет", "canonical", "canonical"),
+    ("Свет ☺", "Свет", "docx_omitted_smiley", "canonical"),
+    ("Свет *внутри*", "Свет внутри", "markdown_literal_style_marker", "canonical"),
+    ("П ока", "Пока", "split_letter_typo", "canonical"),
+    ("Путь ‑как свет", "Путь как свет", "spurious_connector_hyphen", "canonical"),
+    ("человек‑свет", "человексвет", "nonbreaking_hyphen_import", "canonical"),
+    ("Фраза Википедия+1", "Фраза", "source_citation_suffix", "canonical"),
+    ("Фраза", "Фраза Википедия+1", "canonical", "source_citation_suffix"),
+    ("Ответ: — да", "Ответ — да", "colon_before_dash", "canonical"),
+    ("Ответ:!", "Ответ!", "colon_before_punctuation", "canonical"),
+    ("Ответ:", "Ответ", "terminal_label_colon", "canonical"),
+)
 
 
 requires_pandoc = pytest.mark.skipif(shutil.which("pandoc") is None, reason="pandoc required")
@@ -342,6 +362,56 @@ def test_align_source_units_refuses_unnamed_source_gap() -> None:
                 _word_slot(2, "Второй"),
             ),
         )
+
+
+def test_align_source_units_records_text_variant_proof() -> None:
+    plan = align_source_units(
+        _transfer_doc(_transfer_unit("Свет ☺")),
+        (_word_slot(0, "Свет"),),
+    )
+
+    evidence = plan.alignments[0].source_text_evidence
+    assert evidence is not None
+    assert evidence.source_reason == "docx_omitted_smiley"
+    assert evidence.docx_reason == "canonical"
+
+
+@pytest.mark.parametrize(
+    ("source_text", "docx_text", "source_reason", "docx_reason"),
+    SOURCE_TEXT_ALIGNMENT_EVIDENCE_CASES,
+)
+def test_source_text_alignment_evidence_names_every_variant(
+    source_text: str,
+    docx_text: str,
+    source_reason: TextAlignmentVariantReason,
+    docx_reason: TextAlignmentVariantReason,
+) -> None:
+    evidence = source_text_alignment_evidence(source_text, docx_text)
+
+    assert evidence is not None
+    assert evidence.source_reason == source_reason
+    assert evidence.docx_reason == docx_reason
+
+
+def test_source_text_alignment_evidence_cases_cover_source_reasons() -> None:
+    covered = {case[2] for case in SOURCE_TEXT_ALIGNMENT_EVIDENCE_CASES}
+
+    assert covered == set(get_args(TextAlignmentVariantReason))
+
+
+def test_source_text_alignment_evidence_refuses_near_miss_dash_loss() -> None:
+    assert source_text_alignment_evidence("альфа — омега", "альфа омега") is None
+    assert source_text_alignment_evidence("Путь — как свет", "Путь как свет") is None
+
+
+def test_source_text_alignment_evidence_refuses_literal_marker_false_positives() -> None:
+    assert source_text_alignment_evidence("2*3=6", "23=6") is None
+    assert source_text_alignment_evidence("ключ_слово", "ключслово") is None
+
+
+def test_source_text_alignment_evidence_refuses_separatorless_citation_suffix() -> None:
+    assert source_text_alignment_evidence("ФразаWikipedia+1", "Фраза") is None
+    assert source_text_alignment_evidence("Фраза", "ФразаWikipedia+1") is None
 
 
 def test_join_markdown_units_preserves_lineated_boundaries() -> None:
@@ -922,6 +992,12 @@ def test_render_translated_docx_aligns_known_split_letter_typo(tmp_path: Path) -
     )
 
     assert [d for d in diagnostics if d.severity == "fatal"] == []
+    assert any(
+        diagnostic.severity == "warning"
+        and diagnostic.code == "docx-translate.source-text-alignment-variant"
+        and "split-letter-typo->canonical" in diagnostic.message
+        for diagnostic in diagnostics
+    )
     assert aligned_units == 2
     assert _paragraph_text_and_style(out) == [("Pankratius: For now I want to prepare it", "")]
 
