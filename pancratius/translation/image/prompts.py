@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from enum import StrEnum
 
-from pancratius.image_translation.models import (
+from pancratius.translation.image.models import (
     LANGUAGE_NAME,
     SCRIPT_HINT,
     ImageTranslationJob,

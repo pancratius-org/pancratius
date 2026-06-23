@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from pancratius.image_translation.client import (
+from pancratius.translation.image.client import (
     GenerationRefusal,
     GenerationResponse,
     ImageTranslationClientError,
@@ -19,8 +19,8 @@ from pancratius.image_translation.client import (
     generate_image_translation,
     vision_text,
 )
-from pancratius.image_translation.decrop import DecropReport, decrop_to_source
-from pancratius.image_translation.models import (
+from pancratius.translation.image.decrop import DecropReport, decrop_to_source
+from pancratius.translation.image.models import (
     AttemptRecord,
     DetectedText,
     ExactText,
@@ -39,14 +39,14 @@ from pancratius.image_translation.models import (
     TextOverride,
     TextRole,
 )
-from pancratius.image_translation.prompts import (
+from pancratius.translation.image.prompts import (
     SteeringLevel,
     build_steering,
     generation_prompt,
     qa_prompt,
     recon_prompt,
 )
-from pancratius.image_translation.schema import parse_qa, parse_recon, qa_format, recon_format
+from pancratius.translation.image.schema import parse_qa, parse_recon, qa_format, recon_format
 
 logger = logging.getLogger(__name__)
 

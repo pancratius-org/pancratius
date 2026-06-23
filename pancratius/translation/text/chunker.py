@@ -16,8 +16,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from pancratius.translate.config import TranslateConfig
-from pancratius.translate.document import Document, TextUnit, UnitId, UnitKind
+from pancratius.translation.text.config import TranslateConfig
+from pancratius.translation.text.document import Document, TextUnit, UnitId, UnitKind
 
 # Units whose consecutive runs form an indivisible block.
 _BLOCK_KINDS = frozenset({UnitKind.LINEATED, UnitKind.VERSE, UnitKind.SCRIPTURE})

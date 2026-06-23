@@ -24,10 +24,10 @@ from typing import Any
 import yaml
 
 from pancratius.content_catalog import CatalogEntry
-from pancratius.translate.client import TranslatorClient, Usage
-from pancratius.translate.config import TranslateConfig
-from pancratius.translate.prompts import TermEntry, TitlePrecedent, profile_messages
-from pancratius.translate.schema import profile_format
+from pancratius.translation.text.client import TranslatorClient, Usage
+from pancratius.translation.text.config import TranslateConfig
+from pancratius.translation.text.prompts import TermEntry, TitlePrecedent, profile_messages
+from pancratius.translation.text.schema import profile_format
 
 logger = logging.getLogger(__name__)
 

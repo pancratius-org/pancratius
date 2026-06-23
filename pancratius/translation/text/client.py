@@ -24,7 +24,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
-from pancratius.translate.config import ModelId
+from pancratius.translation.text.config import ModelId
 
 logger = logging.getLogger(__name__)
 

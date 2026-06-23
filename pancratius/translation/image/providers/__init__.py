@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from pancratius.image_translation.models import (
+from pancratius.translation.image.models import (
     ImageTranslationJob,
     ImageTranslationResult,
     ImageTranslationStatus,

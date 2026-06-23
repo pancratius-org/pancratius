@@ -73,9 +73,8 @@ functions in process. It does not shell out to other Python CLIs.
 | Command | Owner |
 | --- | --- |
 | `pancratius work import <docx> --kind book|poem` | `pancratius.import_docx.import_work` |
-| `pancratius work translate [--book N] [--dry-run]` | `pancratius.translate.translate_book` |
-| `pancratius work cover [book-XX …] [--output-dir DIR]` | Book-cover shortcut over `pancratius.image_translation.providers.book_cover` |
-| `pancratius image translate <book:NN|project:slug[/subpage] …>` | `pancratius.image_translation` providers + engine |
+| `pancratius work translate [--book N] [--dry-run]` | `pancratius.translation.text.translate_book` |
+| `pancratius image translate <book:NN|project:slug[/subpage] …>` | `pancratius.translation.image` providers + engine |
 | `pancratius project page add <project> <subpage-slug> <docx>` | `pancratius.docx_conversion.scaffold_subpage` |
 | `pancratius video sync [--channel KEY] [--dry-run]` | `pancratius.video_scan.scan` |
 | `pancratius downloads render [--book N]` | `pancratius.render_downloads` |
@@ -112,10 +111,6 @@ The grammar carries the content model:
   engine-level book, title, or author special case. If an existing target image
   exists it is QA-d first; PASS → done without regeneration. Requires
   `OPENROUTER_API_KEY`.
-- `work cover` is a book-cover shortcut over the same image-translation engine.
-  It builds jobs from the external cover queue, `en.md` title pins, `QUEUE.md`,
-  and `seed.json`. It is separate from `work translate`: image translation shares
-  none of the text pipeline's chunking, units, or document structure.
 - `project page add` scaffolds a project sub-page draft. It does not edit the
   project landing and does not decide the page's editorial placement.
 - `video sync` is mechanical-only: it polls every `scan: true` channel in

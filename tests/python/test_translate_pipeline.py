@@ -12,11 +12,11 @@ from pathlib import Path
 import pytest
 
 from pancratius.content_catalog import read_frontmatter, scan_catalog
-from pancratius.translate.chunker import plan_chunks
-from pancratius.translate.client import ChatMessage, Completion, ModelPricing, Usage
-from pancratius.translate.config import TranslateConfig
-from pancratius.translate.document import parse_document
-from pancratius.translate.pipeline import (
+from pancratius.translation.text.chunker import plan_chunks
+from pancratius.translation.text.client import ChatMessage, Completion, ModelPricing, Usage
+from pancratius.translation.text.config import TranslateConfig
+from pancratius.translation.text.document import parse_document
+from pancratius.translation.text.pipeline import (
     TranslationWriteOutcome,
     _draft_chunk,
     _revise_reasoning_budget,
@@ -219,7 +219,7 @@ def test_revise_reasoning_budget_never_starves_the_reply(max_tokens: int) -> Non
 def test_ensure_cost_fills_missing_cost_from_pricing() -> None:
     # A provider that omits `cost` must not make --max-cost fail open: the cost is
     # recomputed from live pricing and the token counts.
-    from pancratius.translate.pipeline import _ensure_cost
+    from pancratius.translation.text.pipeline import _ensure_cost
 
     class _Priced:
         def fetch_pricing(self, model: str) -> ModelPricing:  # noqa: ARG002
@@ -236,9 +236,9 @@ def test_reconcile_seams_merges_only_rewritten_units() -> None:
     # "Свет" rendered inconsistently across three single-unit chunks (Light, Light,
     # Glow). The term scan flags the divergent seam; the fake client rewrites that
     # unit to "Light"; only it is merged back, the rest untouched.
-    from pancratius.translate.config import TranslateConfig
-    from pancratius.translate.pipeline import _reconcile_seams
-    from pancratius.translate.profile import BookProfile, TermEntry
+    from pancratius.translation.text.config import TranslateConfig
+    from pancratius.translation.text.pipeline import _reconcile_seams
+    from pancratius.translation.text.profile import BookProfile, TermEntry
 
     doc = parse_document("Свет один.\n\nСвет два.\n\nСвет три.\n")
     cfg = TranslateConfig(chunk_source_tokens=2, source_chars_per_token=1.0, chunk_max_units=1)
@@ -275,9 +275,9 @@ def test_reconcile_seams_merges_only_rewritten_units() -> None:
 
 def test_reconcile_seams_noop_when_consistent() -> None:
     # A uniformly-rendered term and no audit defects -> no seam flagged, no call.
-    from pancratius.translate.config import TranslateConfig
-    from pancratius.translate.pipeline import _reconcile_seams
-    from pancratius.translate.profile import BookProfile, TermEntry
+    from pancratius.translation.text.config import TranslateConfig
+    from pancratius.translation.text.pipeline import _reconcile_seams
+    from pancratius.translation.text.profile import BookProfile, TermEntry
 
     doc = parse_document("Свет один.\n\nСвет два.\n")
     cfg = TranslateConfig(chunk_source_tokens=2, source_chars_per_token=1.0, chunk_max_units=1)
