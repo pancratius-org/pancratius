@@ -375,9 +375,7 @@ def test_project_page_add_dispatches_and_prints_landing(
         return _fake_scaffold_report()
 
     monkeypatch.setattr(docx_conversion, "scaffold_subpage", fake_scaffold)
-    rc = _exit_code(
-        ["project", "page", "add", "holy-rus", "my-sub", "doc.docx", "--lang", "ru"]
-    )
+    rc = _exit_code(["project", "page", "add", "project:holy-rus/my-sub", "doc.docx", "--lang", "ru"])
     assert rc == 0
     (kw,) = captured
     assert kw["project"] == "holy-rus"
@@ -400,7 +398,7 @@ def test_project_page_add_dry_run_omits_landing_suggestion(
     monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
     monkeypatch.setattr(docx_conversion, "scaffold_subpage", lambda **_k: _fake_scaffold_report())
     rc = _exit_code(
-        ["project", "page", "add", "holy-rus", "my-sub", "doc.docx", "--lang", "ru", "--dry-run"]
+        ["project", "page", "add", "project:holy-rus/my-sub", "doc.docx", "--lang", "ru", "--dry-run"]
     )
     assert rc == 0
     assert "add this entry" not in capsys.readouterr().out
@@ -415,7 +413,7 @@ def test_project_page_add_refusal_is_failure(monkeypatch: pytest.MonkeyPatch) ->
         "scaffold_subpage",
         lambda **_k: _fake_scaffold_report(refused=("projects/holy-rus/subpages/my-sub/ru.md",)),
     )
-    assert _exit_code(["project", "page", "add", "holy-rus", "my-sub", "x.docx", "--lang", "ru"]) == 1
+    assert _exit_code(["project", "page", "add", "project:holy-rus/my-sub", "x.docx", "--lang", "ru"]) == 1
 
 
 def test_project_page_add_scaffold_error_is_usage(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -428,12 +426,35 @@ def test_project_page_add_scaffold_error_is_usage(monkeypatch: pytest.MonkeyPatc
         raise docx_conversion.ScaffoldError("expected a .docx file")
 
     monkeypatch.setattr(docx_conversion, "scaffold_subpage", boom)
-    assert _exit_code(["project", "page", "add", "holy-rus", "my-sub", "x.txt", "--lang", "ru"]) == 2
+    assert _exit_code(["project", "page", "add", "project:holy-rus/my-sub", "x.txt", "--lang", "ru"]) == 2
 
 
 def test_project_page_add_missing_pandoc_is_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cli.shutil, "which", lambda _tool: None)
-    assert _exit_code(["project", "page", "add", "holy-rus", "my-sub", "x.docx", "--lang", "ru"]) == 1
+    assert _exit_code(["project", "page", "add", "project:holy-rus/my-sub", "x.docx", "--lang", "ru"]) == 1
+
+
+@pytest.mark.parametrize(
+    "destination",
+    [
+        "project:holy-rus",
+        "project:holy_rus/my-sub",
+        "project:holy-rus/my_sub",
+        "project:holy-rus/../escape",
+    ],
+)
+def test_project_page_add_requires_subpage_selector(
+    monkeypatch: pytest.MonkeyPatch, destination: str
+) -> None:
+    monkeypatch.setattr(cli.shutil, "which", lambda _tool: None)
+    assert _exit_code(["project", "page", "add", destination, "x.docx", "--lang", "ru"]) == 2
+
+
+def test_project_page_add_retires_split_project_and_subpage_args(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert _exit_code(["project", "page", "add", "holy-rus", "my-sub", "x.docx", "--lang", "ru"]) == 2
+    assert "project:holy-rus/my-sub <docx>" in capsys.readouterr().err
 
 
 # --- downloads / docx ---------------------------------------------------------
@@ -636,6 +657,46 @@ def test_image_translate_dry_run_json_needs_no_api_or_translator(
     assert payload["images"][0]["selector"] == "book-01"
     assert payload["images"][0]["source_image"] == "book-01.ru.png"
     assert payload["images"][0]["target_image"] == "book-01.en.png"
+
+
+def test_image_translate_project_dry_run_json_uses_central_selector(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from pancratius.translation.image import client as image_client
+    from pancratius.translation.image import translator as image_translator
+    from pancratius.translation.image.models import ImageTranslationJob
+    from pancratius.translation.image.providers import ProviderJob, project_cover
+
+    seen: list[str] = []
+
+    class FakeProjectCoverProvider:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        def spec(self, selector: object) -> ProviderJob:
+            seen.append(f"{selector!s}")
+            return ProviderJob(
+                job=ImageTranslationJob(
+                    key=f"{selector!s}",
+                    source_image=Path("cover.ru.png"),
+                    target_image=Path("cover.en.png"),
+                    raw_image=Path("project-holy-rus-tartaria.raw.png"),
+                    metadata={"kind": "project-cover"},
+                ),
+                label=f"{selector!s}",
+            )
+
+    monkeypatch.setattr(project_cover, "ProjectCoverProvider", FakeProjectCoverProvider)
+    monkeypatch.setattr(image_client, "api_key_from_env", lambda: pytest.fail("api key requested"))
+    monkeypatch.setattr(image_translator, "ImageTextTranslator", lambda **_kwargs: pytest.fail("translator built"))
+
+    assert _exit_code(["image", "translate", "project:holy-rus/tartaria", "--dry-run", "--json"]) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert seen == ["project:holy-rus/tartaria"]
+    assert payload["images"][0]["selector"] == "project:holy-rus/tartaria"
+    assert payload["images"][0]["kind"] == "project-cover"
 
 
 def test_image_translate_help_hides_provider_path_flags(
@@ -892,7 +953,7 @@ def test_project_page_add_dry_run_writes_nothing(tmp_path: Path) -> None:
     content_root = tmp_path / "src" / "content"
     rc = cli.main(
         [
-            "project", "page", "add", "holy-rus", "classification", str(_FIXTURE_DOCX),
+            "project", "page", "add", "project:holy-rus/classification", str(_FIXTURE_DOCX),
             "--lang", "ru",
             "--out-content", str(content_root),
             "--dry-run",
@@ -918,7 +979,7 @@ def test_project_page_add_scaffolds_subpage_not_landing(tmp_path: Path) -> None:
     content_root = tmp_path / "src" / "content"
     rc = cli.main(
         [
-            "project", "page", "add", "holy-rus", "classification", str(_FIXTURE_DOCX),
+            "project", "page", "add", "project:holy-rus/classification", str(_FIXTURE_DOCX),
             "--lang", "ru",
             "--out-content", str(content_root),
         ]
