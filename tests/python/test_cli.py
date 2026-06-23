@@ -953,6 +953,19 @@ def test_docx_translate_from_md_retires_book_flag() -> None:
     assert _exit_code(["docx", "translate-from-md", "--book", "9", "--dry-run"]) == 2
 
 
+def test_docx_translate_from_md_replace_requires_selector(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+
+    assert _exit_code(["docx", "translate-from-md", "--replace", "--dry-run"]) == 1
+
+
+def test_docx_translate_from_md_rejects_invalid_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+
+    assert _exit_code(["docx", "translate-from-md", "--limit", "-1", "--dry-run"]) == 2
+    assert _exit_code(["docx", "translate-from-md", "book:9", "--limit", "1", "--dry-run"]) == 2
+
+
 # --- end-to-end: the real door → import_work → writer path (no mocks) ----------
 _FIXTURE_DOCX = ROOT / "legacy" / "books" / "ru" / "23-личность-и-эго.docx"
 
