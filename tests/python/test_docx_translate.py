@@ -16,6 +16,10 @@ from pancratius.translation.docx import (
     render_translated_docx,
     translate_docx_batch,
 )
+from pancratius.translation.docx.pipeline import (
+    _dedupe_media_payloads,
+    _repair_unbound_relationship_prefixes,
+)
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W = f"{{{W_NS}}}"
@@ -44,6 +48,48 @@ def _write_paragraph_docx(path: Path, paragraphs: list[str]) -> None:
     for paragraph in paragraphs:
         doc.add_paragraph(paragraph)
     doc.save(str(path))
+
+
+def _write_superscript_first_run_docx(path: Path) -> None:
+    from docx import Document
+
+    doc = Document()
+    paragraph = doc.add_paragraph()
+    first = paragraph.add_run("С")
+    first.font.superscript = True
+    paragraph.add_run("вет")
+    doc.save(str(path))
+
+
+def _write_superscript_character_style_first_run_docx(path: Path) -> None:
+    _write_paragraph_docx(path, ["Свет"])
+    with zipfile.ZipFile(path) as zf:
+        parts = {name: zf.read(name) for name in zf.namelist()}
+    styles = ET.fromstring(parts["word/styles.xml"])
+    style = ET.SubElement(styles, f"{W}style")
+    style.set(f"{W}type", "character")
+    style.set(f"{W}styleId", "af2")
+    name = ET.SubElement(style, f"{W}name")
+    name.set(f"{W}val", "footnote reference")
+    rpr = ET.SubElement(style, f"{W}rPr")
+    vert_align = ET.SubElement(rpr, f"{W}vertAlign")
+    vert_align.set(f"{W}val", "superscript")
+
+    root = ET.fromstring(parts["word/document.xml"])
+    run = root.find(f".//{W}body/{W}p/{W}r")
+    assert run is not None
+    run_rpr = run.find(f"{W}rPr")
+    if run_rpr is None:
+        run_rpr = ET.Element(f"{W}rPr")
+        run.insert(0, run_rpr)
+    rstyle = ET.SubElement(run_rpr, f"{W}rStyle")
+    rstyle.set(f"{W}val", "af2")
+
+    parts["word/styles.xml"] = ET.tostring(styles, encoding="UTF-8", xml_declaration=True)
+    parts["word/document.xml"] = ET.tostring(root, encoding="UTF-8", xml_declaration=True)
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for name, data in parts.items():
+            zf.writestr(name, data)
 
 
 def _write_field_cover_docx(path: Path, old_data_uri: str) -> None:
@@ -146,6 +192,12 @@ def _write_source_only_image_docx(path: Path, image_path: Path) -> None:
     doc.save(str(path))
 
 
+def _write_tiny_png(path: Path) -> None:
+    path.write_bytes(base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
+    ))
+
+
 def _paragraph_text_and_style(path: Path) -> list[tuple[str, str]]:
     with zipfile.ZipFile(path) as zf:
         root = ET.fromstring(zf.read("word/document.xml"))
@@ -155,6 +207,24 @@ def _paragraph_text_and_style(path: Path) -> list[tuple[str, str]]:
         style = p.find(f"./{W}pPr/{W}pStyle")
         rows.append((text, "" if style is None else str(style.get(f"{W}val") or "")))
     return rows
+
+
+def _paragraph_vert_align_values(path: Path) -> list[str]:
+    with zipfile.ZipFile(path) as zf:
+        root = ET.fromstring(zf.read("word/document.xml"))
+    out: list[str] = []
+    for vert_align in root.findall(f".//{W}body/{W}p/{W}r/{W}rPr/{W}vertAlign"):
+        out.append(str(vert_align.get(f"{W}val") or ""))
+    return out
+
+
+def _paragraph_run_style_values(path: Path) -> list[str]:
+    with zipfile.ZipFile(path) as zf:
+        root = ET.fromstring(zf.read("word/document.xml"))
+    out: list[str] = []
+    for style in root.findall(f".//{W}body/{W}p/{W}r/{W}rPr/{W}rStyle"):
+        out.append(str(style.get(f"{W}val") or ""))
+    return out
 
 
 def _write_md(path: Path, body: str) -> None:
@@ -408,6 +478,56 @@ def test_render_translated_docx_aligns_markdown_superscript_markup(tmp_path: Pat
     assert [d for d in diagnostics if d.severity == "fatal"] == []
     assert aligned_units == 1
     assert _paragraph_text_and_style(out) == [("∣R∣=2ℵ0>ℵ0", "")]
+
+
+@requires_pandoc
+def test_render_translated_docx_does_not_inherit_source_superscript_for_body_text(
+    tmp_path: Path,
+) -> None:
+    source_docx = tmp_path / "ru.docx"
+    source_md = tmp_path / "ru.md"
+    translated_md = tmp_path / "en.md"
+    out = tmp_path / "en.docx"
+    _write_superscript_first_run_docx(source_docx)
+    _write_md(source_md, "Свет\n")
+    _write_md(translated_md, "Light\n")
+
+    _source_units, _translated_units, aligned_units, diagnostics = render_translated_docx(
+        source_docx=source_docx,
+        source_md=source_md,
+        translated_md=translated_md,
+        out=out,
+    )
+
+    assert [d for d in diagnostics if d.severity == "fatal"] == []
+    assert aligned_units == 1
+    assert _paragraph_text_and_style(out) == [("Light", "")]
+    assert _paragraph_vert_align_values(out) == []
+
+
+@requires_pandoc
+def test_render_translated_docx_does_not_inherit_source_character_style_for_body_text(
+    tmp_path: Path,
+) -> None:
+    source_docx = tmp_path / "ru.docx"
+    source_md = tmp_path / "ru.md"
+    translated_md = tmp_path / "en.md"
+    out = tmp_path / "en.docx"
+    _write_superscript_character_style_first_run_docx(source_docx)
+    _write_md(source_md, "Свет\n")
+    _write_md(translated_md, "Light\n")
+
+    _source_units, _translated_units, aligned_units, diagnostics = render_translated_docx(
+        source_docx=source_docx,
+        source_md=source_md,
+        translated_md=translated_md,
+        out=out,
+    )
+
+    assert [d for d in diagnostics if d.severity == "fatal"] == []
+    assert aligned_units == 1
+    assert _paragraph_text_and_style(out) == [("Light", "")]
+    assert _paragraph_run_style_values(out) == []
 
 
 @requires_pandoc
@@ -844,7 +964,7 @@ def test_render_translated_docx_aligns_thematic_break_to_blank_word_paragraph(
 
     assert [d for d in diagnostics if d.severity == "fatal"] == []
     assert aligned_units == 3
-    assert _paragraph_text_and_style(out) == [("Beginning", ""), ("", ""), ("Final", "")]
+    assert _paragraph_text_and_style(out) == [("Beginning", ""), ("***", ""), ("Final", "")]
 
 
 @requires_pandoc
@@ -1359,3 +1479,118 @@ def test_translate_docx_batch_treats_existing_translated_docx_as_source(
         translate_docx_batch(content_root=content_root, lang="en", dry_run=True, limit=-1)
     with pytest.raises(DocxTranslationError, match="--limit cannot be combined"):
         translate_docx_batch(content_root=content_root, book=1, lang="en", dry_run=True, limit=1)
+
+
+def test_markdown_render_backend_repairs_unbound_relationship_prefix() -> None:
+    xml = (
+        b'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+        b'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        b'<w:footerReference ns11:id="rId1" w:type="default" />'
+        b"</w:document>"
+    )
+
+    repaired = _repair_unbound_relationship_prefixes(xml)
+
+    assert b' r:id="rId1"' in repaired
+    assert b"ns11:id" not in repaired
+
+
+def test_markdown_render_backend_dedupes_media_payloads_and_retargets_relationships() -> None:
+    parts = {
+        "word/media/rId1.png": b"same",
+        "word/media/image1.png": b"same",
+        "word/media/image2.png": b"different",
+        "word/_rels/document.xml.rels": (
+            b'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            b'<Relationship Id="rId1" Type="image" Target="media/rId1.png" />'
+            b'<Relationship Id="rId2" Type="image" Target="media/image2.png" />'
+            b"</Relationships>"
+        ),
+    }
+
+    _dedupe_media_payloads(parts)
+
+    assert "word/media/image1.png" in parts
+    assert "word/media/rId1.png" not in parts
+    rels = parts["word/_rels/document.xml.rels"]
+    assert b'Target="media/image1.png"' in rels
+    assert b"media/rId1.png" not in rels
+
+
+@requires_pandoc
+def test_translate_docx_batch_markdown_render_backend_writes_docx(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    content_root = tmp_path / "content"
+    book_dir = content_root / "books" / "01-test"
+    book_dir.mkdir(parents=True)
+    _write_paragraph_docx(book_dir / "ru.docx", ["Свет"])
+    _write_catalog_book_md(book_dir / "ru.md", number=1, lang="ru", title="Тест", body="Свет\n")
+    _write_catalog_book_md(book_dir / "en.md", number=1, lang="en", title="Test", body="Light…\n")
+
+    batch = translate_docx_batch(
+        content_root=content_root,
+        book=1,
+        lang="en",
+        backend="markdown-render",
+    )
+
+    assert not batch.failed
+    assert batch.reports[0].backend == "markdown-render"
+    assert (book_dir / "en.docx").is_file()
+    with zipfile.ZipFile(book_dir / "en.docx") as zf:
+        xml = zf.read("word/document.xml").decode("utf-8")
+        infos = zf.infolist()
+    assert all(info.date_time == (1980, 1, 1, 0, 0, 0) for info in infos)
+    assert re.search(r"<w:document\b", xml)
+    assert not re.search(r"\bxmlns:ns\d+=", xml)
+    assert not re.search(r"</?ns\d+:", xml)
+    print_batch(batch, dry_run=False)
+    stdout = capsys.readouterr().out
+    assert "markdown-render" in stdout
+
+
+@requires_pandoc
+def test_markdown_render_backend_keeps_standalone_image_alt_out_of_body_text(tmp_path: Path) -> None:
+    content_root = tmp_path / "content"
+    book_dir = content_root / "books" / "01-test"
+    images_dir = book_dir / "images"
+    images_dir.mkdir(parents=True)
+    _write_paragraph_docx(book_dir / "ru.docx", ["Свет"])
+    _write_tiny_png(images_dir / "pixel.png")
+    _write_catalog_book_md(book_dir / "ru.md", number=1, lang="ru", title="Тест", body="Свет\n")
+    _write_catalog_book_md(
+        book_dir / "en.md",
+        number=1,
+        lang="en",
+        title="Test",
+        body="Before\n\n![Corpus diagram](./images/pixel.png)\n\nAfter\n",
+    )
+
+    batch = translate_docx_batch(
+        content_root=content_root,
+        book=1,
+        lang="en",
+        backend="markdown-render",
+    )
+
+    assert not batch.failed
+    with zipfile.ZipFile(book_dir / "en.docx") as zf:
+        root = ET.fromstring(zf.read("word/document.xml"))
+        media_parts = [name for name in zf.namelist() if name.startswith("word/media/")]
+    body_text = "\n".join(
+        "".join(t.text or "" for t in paragraph.findall(f".//{W}t"))
+        for paragraph in root.findall(f".//{W}body/{W}p")
+    )
+    metadata_text = " ".join(
+        str(value)
+        for node in root.iter()
+        if node.tag.rsplit("}", 1)[-1] in {"docPr", "cNvPr"}
+        for value in node.attrib.values()
+    )
+    assert "Before" in body_text
+    assert "After" in body_text
+    assert "Corpus diagram" not in body_text
+    assert "Corpus diagram" in metadata_text
+    assert media_parts

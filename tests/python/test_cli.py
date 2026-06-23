@@ -930,6 +930,7 @@ def test_docx_translate_from_md_dispatches(monkeypatch: pytest.MonkeyPatch) -> N
     rc = _exit_code([
         "docx", "translate-from-md", "book:9", "--lang", "en",
         "--content-root", "src/content", "--dry-run", "--replace",
+        "--backend", "markdown-render",
     ])
 
     assert rc == 0
@@ -941,6 +942,7 @@ def test_docx_translate_from_md_dispatches(monkeypatch: pytest.MonkeyPatch) -> N
             "dry_run": True,
             "replace": True,
             "limit": 0,
+            "backend": "markdown-render",
         }
     ]
 
@@ -964,6 +966,46 @@ def test_docx_translate_from_md_rejects_invalid_limit(monkeypatch: pytest.Monkey
 
     assert _exit_code(["docx", "translate-from-md", "--limit", "-1", "--dry-run"]) == 2
     assert _exit_code(["docx", "translate-from-md", "book:9", "--limit", "1", "--dry-run"]) == 2
+
+
+def test_docx_roundtrip_md_dispatches(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pancratius import docx_roundtrip
+
+    seen: list[dict[str, object]] = []
+
+    def fake_check_docx_markdown_roundtrip(**kwargs: object) -> types.SimpleNamespace:
+        seen.append(kwargs)
+        return types.SimpleNamespace(failed=False)
+
+    def fake_print_roundtrip_batch(_batch: object, *, json_output: bool) -> None:
+        assert json_output is True
+
+    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+    monkeypatch.setattr(docx_roundtrip, "check_docx_markdown_roundtrip", fake_check_docx_markdown_roundtrip)
+    monkeypatch.setattr(docx_roundtrip, "print_roundtrip_batch", fake_print_roundtrip_batch)
+
+    rc = _exit_code([
+        "docx", "roundtrip-md", "book:9", "--lang", "en",
+        "--content-root", "src/content", "--json",
+    ])
+
+    assert rc == 0
+    assert callable(seen[0].pop("progress"))
+    assert seen == [
+        {
+            "content_root": Path("src/content"),
+            "lang": "en",
+            "book": 9,
+            "limit": 0,
+        }
+    ]
+
+
+def test_docx_roundtrip_md_rejects_invalid_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cli.shutil, "which", lambda _tool: "/usr/bin/pandoc")
+
+    assert _exit_code(["docx", "roundtrip-md", "--limit", "-1"]) == 2
+    assert _exit_code(["docx", "roundtrip-md", "book:9", "--limit", "1"]) == 2
 
 
 # --- end-to-end: the real door → import_work → writer path (no mocks) ----------
