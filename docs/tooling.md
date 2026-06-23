@@ -75,7 +75,7 @@ functions in process. It does not shell out to other Python CLIs.
 | `pancratius work import <docx> (--kind book|poem | --to book:NN|poem:NN)` | `pancratius.import_docx.import_work` |
 | `pancratius work translate [book:NN …] [--dry-run]` | `pancratius.translation.text.translate_book` |
 | `pancratius image translate <book:NN|project:slug[/subpage] …> [--dry-run] [--json] [--replace]` | `pancratius.translation.image` providers + engine |
-| `pancratius project page add <project> <subpage-slug> <docx>` | `pancratius.docx_conversion.scaffold_subpage` |
+| `pancratius project page add <project:slug/subpage> <docx>` | `pancratius.docx_conversion.scaffold_subpage` |
 | `pancratius video sync [--channel KEY] [--dry-run]` | `pancratius.video_scan.scan` |
 | `pancratius downloads render [book:NN|poem:NN …] [--dry-run] [--json]` | `pancratius.render_downloads` |
 | `pancratius docx optimize [paths...]` | `pancratius.docx_optimize` |
@@ -123,7 +123,9 @@ The grammar carries the content model:
   resolves provider inputs and prints reads/writes without an API key or writes.
   Live runs require `OPENROUTER_API_KEY`.
 - `project page add` scaffolds a project sub-page draft. It does not edit the
-  project landing and does not decide the page's editorial placement.
+  project landing and does not decide the page's editorial placement. The
+  destination must be a project sub-page selector such as
+  `project:holy-rus/tartaria`; project landing selectors are not valid here.
 - `video sync` is mechanical-only: it polls every `scan: true` channel in
   `src/content/videos/channels.yaml` via the YouTube Data API v3 (requires
   `YOUTUBE_API_KEY`) and scaffolds frontmatter + a `cover.<lang>.jpg`

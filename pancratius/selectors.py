@@ -7,6 +7,7 @@ domain objects.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Literal
@@ -45,6 +46,7 @@ class PoemSelector:
 type WorkSelector = BookSelector | PoemSelector
 
 _WORK_KINDS = frozenset(CORPUS_WORK_KINDS)
+_SLUG_RE = re.compile(r"[a-z0-9][a-z0-9-]*\Z")
 
 
 def _parse_number(kind: str, raw_number: str) -> int:
@@ -94,3 +96,60 @@ def dedupe_work_selectors(selectors: Iterable[WorkSelector]) -> tuple[WorkSelect
         seen.add(key)
         deduped.append(selector)
     return tuple(deduped)
+
+
+@dataclass(frozen=True, slots=True)
+class ProjectSelector:
+    slug: str
+
+    @property
+    def key(self) -> str:
+        return f"project:{self.slug}"
+
+    def __str__(self) -> str:
+        return self.key
+
+
+@dataclass(frozen=True, slots=True)
+class ProjectSubpageSelector:
+    project: str
+    subpage: str
+
+    @property
+    def key(self) -> str:
+        return f"project:{self.project}/{self.subpage}"
+
+    def __str__(self) -> str:
+        return self.key
+
+
+type ProjectResourceSelector = ProjectSelector | ProjectSubpageSelector
+
+
+def _parse_slug(raw: str, *, label: str, full: str) -> str:
+    if not _SLUG_RE.fullmatch(raw):
+        raise SelectorError(f"invalid {label} slug in project selector {full!r}")
+    return raw
+
+
+def parse_project_selector(raw: str) -> ProjectResourceSelector:
+    """Parse ``project:slug`` or ``project:slug/subpage``."""
+    prefix = "project:"
+    if not raw.startswith(prefix):
+        raise SelectorError(f"expected selector project:slug[/subpage], got {raw!r}")
+    value = raw.removeprefix(prefix)
+    if not value or value.startswith("/") or value.endswith("/") or "//" in value:
+        raise SelectorError(f"invalid project selector {raw!r}")
+    project, sep, subpage = value.partition("/")
+    project_slug = _parse_slug(project, label="project", full=raw)
+    if not sep:
+        return ProjectSelector(project_slug)
+    subpage_slug = _parse_slug(subpage, label="subpage", full=raw)
+    return ProjectSubpageSelector(project=project_slug, subpage=subpage_slug)
+
+
+def parse_project_subpage_selector(raw: str) -> ProjectSubpageSelector:
+    selector = parse_project_selector(raw)
+    if isinstance(selector, ProjectSubpageSelector):
+        return selector
+    raise SelectorError(f"{raw!r} names a project landing; expected project:slug/subpage")
