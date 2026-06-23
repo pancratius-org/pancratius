@@ -14,6 +14,8 @@ from pancratius.translation.docx.models import (
     MarkdownTransferUnit,
     MarkdownUnitPairing,
     SourceDocxAlignmentPlan,
+    SourceDocxTextVariantReason,
+    SourceTextAlignmentEvidence,
     TextAlignmentVariantReason,
     TransferAlignment,
     TransferUnitKind,
@@ -23,14 +25,18 @@ from pancratius.translation.docx.models import (
 )
 from pancratius.writeplan import Diagnostic
 
-SPURIOUS_CONNECTOR_HYPHEN_RE = re.compile(
-    r"\s+[—–‑‐−-]\s*(?=(?:так|как|храм)\b)",
+SPURIOUS_CONNECTOR_NBHY_RE = re.compile(
+    r"\s+‑\s*(?=(?:так|как|храм)\b)",
     flags=re.IGNORECASE,
 )
 SOURCE_CITATION_SUFFIX_RE = re.compile(
-    r"(?:\s*(?:Википедия|Wikipedia)\+\d+)+\s*$",
+    r"\s+(?:(?:Википедия|Wikipedia)\+\d+)+\s*$",
     flags=re.IGNORECASE,
 )
+MARKDOWN_LITERAL_EMPHASIS_RE = re.compile(
+    r"(?<!\w)([*_]{1,2})([^*_\n]+?)\1(?!\w)",
+)
+MARKDOWN_LITERAL_SCRIPT_RE = re.compile(r"([~^])([^~^\n]+?)\1")
 
 @dataclass(frozen=True, slots=True)
 class TextAlignmentVariant:
@@ -38,6 +44,22 @@ class TextAlignmentVariant:
 
     reason: TextAlignmentVariantReason
     key: str
+
+
+@dataclass(frozen=True, slots=True)
+class SourceDocxTextAlignmentVariant:
+    """A named source-DOCX text projection used for source Markdown alignment."""
+
+    reason: SourceDocxTextVariantReason
+    key: str
+
+
+@dataclass(frozen=True, slots=True)
+class SourceSlotMatch:
+    """One source Markdown unit or join proved against one source DOCX slot."""
+
+    joined_unit_end: int
+    source_text_evidence: SourceTextAlignmentEvidence | None = None
 
 
 def _normalize_text(value: str) -> str:
@@ -74,7 +96,7 @@ def _normalize_text(value: str) -> str:
 
 
 def _spurious_connector_hyphen_variants(raw: str) -> tuple[str, ...]:
-    matches = tuple(SPURIOUS_CONNECTOR_HYPHEN_RE.finditer(raw))
+    matches = tuple(SPURIOUS_CONNECTOR_NBHY_RE.finditer(raw))
     if not matches:
         return ()
 
@@ -100,6 +122,11 @@ def _spurious_connector_hyphen_variants(raw: str) -> tuple[str, ...]:
     return tuple(variants)
 
 
+def _strip_markdown_literal_style_markers(raw: str) -> str:
+    text = MARKDOWN_LITERAL_EMPHASIS_RE.sub(r"\2", raw)
+    return MARKDOWN_LITERAL_SCRIPT_RE.sub(r"\2", text)
+
+
 def _text_alignment_variants(value: str) -> tuple[TextAlignmentVariant, ...]:
     raw = unicodedata.normalize("NFC", value).replace("\u00a0", " ")
     candidates: list[TextAlignmentVariant] = [
@@ -107,7 +134,7 @@ def _text_alignment_variants(value: str) -> tuple[TextAlignmentVariant, ...]:
     ]
     variant_specs: list[tuple[TextAlignmentVariantReason, str]] = [
         ("docx_omitted_smiley", raw.replace("☺", "")),
-        ("markdown_literal_style_marker", raw.translate(str.maketrans("", "", "~^*_"))),
+        ("markdown_literal_style_marker", _strip_markdown_literal_style_markers(raw)),
         ("split_letter_typo", re.sub(r"\bП\s+ока\b", "Пока", raw)),
         ("nonbreaking_hyphen_import", re.sub(r"(?<=\w)‑(?=\w)", "", raw)),
         ("source_citation_suffix", SOURCE_CITATION_SUFFIX_RE.sub("", raw)),
@@ -128,18 +155,36 @@ def _text_alignment_variants(value: str) -> tuple[TextAlignmentVariant, ...]:
     return tuple(candidates)
 
 
-def _source_docx_text_alignment_variants(value: str) -> tuple[TextAlignmentVariant, ...]:
+def _source_docx_text_alignment_variants(value: str) -> tuple[SourceDocxTextAlignmentVariant, ...]:
     raw = unicodedata.normalize("NFC", value).replace("\u00a0", " ")
-    candidates = [TextAlignmentVariant("canonical", _normalize_text(raw))]
+    candidates = [SourceDocxTextAlignmentVariant("canonical", _normalize_text(raw))]
     key = _normalize_text(SOURCE_CITATION_SUFFIX_RE.sub("", raw))
     if key and key != candidates[0].key:
-        candidates.append(TextAlignmentVariant("source_citation_suffix", key))
+        candidates.append(SourceDocxTextAlignmentVariant("source_citation_suffix", key))
     return tuple(candidates)
 
 
 def _texts_match_for_source_alignment(source_text: str, docx_text: str) -> bool:
-    docx_keys = {variant.key for variant in _source_docx_text_alignment_variants(docx_text)}
-    return any(variant.key in docx_keys for variant in _text_alignment_variants(source_text))
+    return _source_text_alignment_evidence(source_text, docx_text) is not None
+
+
+def _source_text_alignment_evidence(
+    source_text: str,
+    docx_text: str,
+) -> SourceTextAlignmentEvidence | None:
+    docx_variants = {
+        variant.key: variant
+        for variant in _source_docx_text_alignment_variants(docx_text)
+    }
+    for source_variant in _text_alignment_variants(source_text):
+        docx_variant = docx_variants.get(source_variant.key)
+        if docx_variant is None:
+            continue
+        return SourceTextAlignmentEvidence(
+            source_reason=source_variant.reason,
+            docx_reason=docx_variant.reason,
+        )
+    return None
 
 
 def _is_thematic_slot_text(text: str) -> bool:
@@ -196,13 +241,29 @@ def _split_inlines_on_newlines(
 
 
 def _unit_matches_slot(unit: MarkdownTransferUnit, slot: WordTextSlot) -> bool:
+    return _unit_slot_match(unit, slot, joined_unit_end=0) is not None
+
+
+def _unit_slot_match(
+    unit: MarkdownTransferUnit,
+    slot: WordTextSlot,
+    *,
+    joined_unit_end: int,
+) -> SourceSlotMatch | None:
     if unit.kind == "image":
-        return slot.has_drawing and not _slot_has_text(slot)
+        if slot.has_drawing and not _slot_has_text(slot):
+            return SourceSlotMatch(joined_unit_end)
+        return None
     if unit.kind == "blank":
-        return not slot.has_drawing and not _normalize_text(slot.text)
+        if not slot.has_drawing and not _normalize_text(slot.text):
+            return SourceSlotMatch(joined_unit_end)
+        return None
     if unit.kind == "thematic":
-        return _is_thematic_slot_text(slot.text)
-    return _texts_match_for_source_alignment(unit.plain_text, slot.text)
+        if _is_thematic_slot_text(slot.text):
+            return SourceSlotMatch(joined_unit_end)
+        return None
+    evidence = _source_text_alignment_evidence(unit.plain_text, slot.text)
+    return SourceSlotMatch(joined_unit_end, evidence) if evidence is not None else None
 
 
 def _slot_has_text(slot: WordTextSlot) -> bool:
@@ -408,10 +469,11 @@ def _matching_join_end(
     units: Sequence[MarkdownTransferUnit],
     unit_cursor: int,
     slot: WordTextSlot,
-) -> int | None:
+) -> SourceSlotMatch | None:
     unit = units[unit_cursor]
-    if _unit_matches_slot(unit, slot):
-        return unit_cursor + 1
+    match = _unit_slot_match(unit, slot, joined_unit_end=unit_cursor + 1)
+    if match is not None:
+        return match
     if not _can_join_for_word_slot(unit):
         return None
     for end in range(unit_cursor + 2, min(len(units), unit_cursor + 12) + 1):
@@ -421,8 +483,9 @@ def _matching_join_end(
         if not _units_joinable_for_word_slot(members):
             break
         joined = _join_units(members)
-        if _unit_matches_slot(joined, slot):
-            return end
+        match = _unit_slot_match(joined, slot, joined_unit_end=end)
+        if match is not None:
+            return match
     return None
 
 
@@ -480,13 +543,13 @@ def _align_source_units(
             unit_cursor += 1
             continue
         match_at: int | None = None
-        join_to = unit_cursor + 1
+        slot_match: SourceSlotMatch | None = None
         hi = min(len(slots), cursor + window)
         for slot_index in range(cursor, hi):
-            matched_join_end = _matching_join_end(source.units, unit_cursor, slots[slot_index])
-            if matched_join_end is not None:
+            match = _matching_join_end(source.units, unit_cursor, slots[slot_index])
+            if match is not None:
                 match_at = slot_index
-                join_to = matched_join_end
+                slot_match = match
                 break
         if match_at is None:
             needle = unit.plain_text or unit.kind
@@ -500,7 +563,14 @@ def _align_source_units(
             end=match_at,
             context=f"before matching RU Markdown unit {unit_cursor + 1}/{len(source.units)}",
         ))
-        alignments.append(TransferAlignment(tuple(range(unit_cursor, join_to)), slots[match_at]))
+        if slot_match is None:
+            raise AssertionError("alignment match disappeared before recording")
+        join_to = slot_match.joined_unit_end
+        alignments.append(TransferAlignment(
+            tuple(range(unit_cursor, join_to)),
+            slots[match_at],
+            source_text_evidence=slot_match.source_text_evidence,
+        ))
         cursor = match_at + 1
         unit_cursor = join_to
     ignored_slots.extend(_ignored_gap_slots(
@@ -585,6 +655,8 @@ def _pair_markdown_units(
         src_index += 1
         dst_index += 1
     return MarkdownUnitPairing(tuple(translated_indices_by_source)), tuple(diagnostics)
+
+
 def _ignored_slot_diagnostics(ignored_slots: Sequence[IgnoredWordSlot]) -> tuple[Diagnostic, ...]:
     if not ignored_slots:
         return ()
@@ -624,10 +696,34 @@ def _ignored_slot_diagnostics(ignored_slots: Sequence[IgnoredWordSlot]) -> tuple
     return tuple(diagnostics)
 
 
+def _alignment_evidence_diagnostics(
+    alignments: Sequence[TransferAlignment],
+) -> tuple[Diagnostic, ...]:
+    diagnostics: list[Diagnostic] = []
+    for alignment in alignments:
+        evidence = alignment.source_text_evidence
+        if evidence is None:
+            continue
+        if evidence.source_reason == "canonical" and evidence.docx_reason == "canonical":
+            continue
+        first = alignment.unit_indices[0] + 1
+        last = alignment.unit_indices[-1] + 1
+        unit_span = str(first) if first == last else f"{first}-{last}"
+        reason = f"{evidence.source_reason}->{evidence.docx_reason}".replace("_", "-")
+        diagnostics.append(Diagnostic(
+            "warning",
+            "docx-translate.source-text-alignment-variant",
+            f"aligned RU Markdown unit(s) {unit_span} to source DOCX paragraph "
+            f"{alignment.slot.ordinal} via {reason}: {_slot_preview(alignment.slot)!r}",
+        ))
+    return tuple(diagnostics)
+
+
 normalize_transfer_text = _normalize_text
 merge_adjacent_runs = _merge_adjacent_runs
 split_inlines_on_newlines = _split_inlines_on_newlines
 texts_match_for_source_alignment = _texts_match_for_source_alignment
+source_text_alignment_evidence = _source_text_alignment_evidence
 unit_matches_slot = _unit_matches_slot
 slot_has_text = _slot_has_text
 slot_preview = _slot_preview
@@ -635,3 +731,4 @@ align_source_units = _align_source_units
 pair_markdown_units = _pair_markdown_units
 join_markdown_units_for_word_slot = _join_units
 ignored_slot_diagnostics = _ignored_slot_diagnostics
+alignment_evidence_diagnostics = _alignment_evidence_diagnostics

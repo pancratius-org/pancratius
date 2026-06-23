@@ -55,6 +55,15 @@ TextAlignmentVariantReason = Literal[
     "colon_before_punctuation",
     "terminal_label_colon",
 ]
+SourceDocxTextVariantReason = Literal["canonical", "source_citation_suffix"]
+
+
+@dataclass(frozen=True, slots=True)
+class SourceTextAlignmentEvidence:
+    """The named equivalence that matched imported Markdown to source DOCX text."""
+
+    source_reason: TextAlignmentVariantReason
+    docx_reason: SourceDocxTextVariantReason
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,6 +131,7 @@ class TransferAlignment:
 
     unit_indices: tuple[int, ...]
     slot: WordTextSlot
+    source_text_evidence: SourceTextAlignmentEvidence | None = None
 
 
 @dataclass(frozen=True, slots=True)
