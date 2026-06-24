@@ -34,7 +34,7 @@ Current implementation:
 
 - command: `pancratius docx translate-from-md [book:NN] [--lang en] [--dry-run] [--replace]`
 - package owner: `pancratius.translation.docx`
-- implementation file: `pancratius/translation/docx/pipeline.py`
+- implementation package: `pancratius/translation/docx/`
 - facade: `pancratius/translation/docx/__init__.py`
 - tests: `tests/python/test_docx_translate.py` and CLI coverage in `tests/python/test_cli.py`
 - generated artifacts: 45 new `src/content/books/*/en.docx` files
@@ -487,7 +487,7 @@ This prevents a file move from becoming a behavior rewrite.
 
 ### 2. Split The Package
 
-Move code out of `pipeline.py` into the target modules.
+Done: the DOCX transfer code now lives in the target package modules.
 
 Order:
 
