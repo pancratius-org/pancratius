@@ -13,8 +13,13 @@ from pancratius.ooxml import (
     DRAWING_METADATA_ATTRS,
     DRAWING_METADATA_ELEMENT_TAGS,
     DRAWING_METADATA_WORD_PART_RE,
+    EMBED_REL_TYPES,
+    OoxmlRelationship,
     W,
     local_name,
+    office_relationship_refs,
+    read_ooxml_relationships,
+    relationships_part_for,
 )
 
 type DocxPartName = str
@@ -110,6 +115,50 @@ def _drawing_metadata_issue(
     return f"{part_name} {element_name}@{attr_name} contains Cyrillic text {preview!r}"
 
 
+def _relationship_issues(zf: zipfile.ZipFile, names: set[str]) -> list[str]:
+    issues: list[str] = []
+    relationships_by_part: dict[DocxPartName, dict[str, OoxmlRelationship]] = {}
+    relationship_media_parts: set[DocxPartName] = set()
+    for rels_name in sorted(name for name in names if name == "_rels/.rels" or name.endswith(".rels")):
+        root = _parse_xml(zf, rels_name)
+        read = read_ooxml_relationships(root, rels_name, names)
+        issues.extend(read.issues)
+        relationships_by_part[rels_name] = read.relationships
+        for relationship in read.relationships.values():
+            if (
+                relationship.resolved_target is not None
+                and relationship.resolved_target.startswith("word/media/")
+            ):
+                relationship_media_parts.add(relationship.resolved_target)
+    for part_name in sorted(name for name in names if name.startswith("word/") and name.endswith(".xml")):
+        root = _parse_xml(zf, part_name)
+        refs = office_relationship_refs(root)
+        if not refs:
+            continue
+        rels_name = relationships_part_for(part_name)
+        relationships = relationships_by_part.get(rels_name, {})
+        missing = sorted(ref.rel_id for ref in refs if ref.rel_id not in relationships)
+        if missing:
+            issues.append(f"{part_name} has unresolved relationship reference(s): {', '.join(missing)}")
+        for ref in refs:
+            relationship = relationships.get(ref.rel_id)
+            if relationship is None:
+                continue
+            if ref.attr_name == "embed" and relationship.target_mode == "External":
+                issues.append(
+                    f"{part_name} has r:embed={relationship.rel_id} pointing to an external relationship"
+                )
+            if ref.attr_name == "embed" and relationship.rel_type not in EMBED_REL_TYPES:
+                issues.append(
+                    f"{part_name} has r:embed={relationship.rel_id} pointing to "
+                    f"non-embeddable relationship type {relationship.rel_type}"
+                )
+    for media_part in sorted(name for name in names if name.startswith("word/media/")):
+        if media_part not in relationship_media_parts:
+            issues.append(f"{media_part} has no internal package relationship")
+    return issues
+
+
 def _positive_footnote_ids(
     root: ET.Element,
     *,
@@ -199,6 +248,7 @@ def _docx_issues(path: Path) -> list[TranslatedDocxArtifactIssue]:
             names = set(zf.namelist())
             document_root = _parse_xml(zf, "word/document.xml")
             messages = [
+                *_relationship_issues(zf, names),
                 *_footnote_issues(zf, names, document_root),
                 *_drawing_metadata_issues(zf, names),
             ]

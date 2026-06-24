@@ -58,7 +58,7 @@ the normal writer plan. PAN025 checks committed artifact shape through:
 npm run audit:repo
 ```
 
-That gate reads committed DOCX packages directly and checks that footnote tables
-are valid and drawing name, description, and title metadata contains no Cyrillic.
+That gate reads committed DOCX packages directly and checks relationships,
+footnotes, and drawing metadata.
 After changing English DOCX artifacts or import/transfer code, run
 `uv run pancratius docx roundtrip-md --lang en`.

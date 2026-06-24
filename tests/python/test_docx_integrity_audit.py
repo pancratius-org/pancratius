@@ -206,6 +206,42 @@ def test_docx_integrity_rejects_embed_pointing_to_external_relationship(tmp_path
     assert "r:embed=rIdExternal pointing to an external relationship" in result.stderr
 
 
+def test_docx_integrity_rejects_external_target_without_target_mode(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        document_relationships=(
+            '<Relationship Id="rIdExternal" '
+            'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" '
+            'Target="https://example.test/word/media/image1.png" />'
+        ),
+        extra_parts={"word/media/image1.png": b"image"},
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 1
+    assert "is external without TargetMode=External" in result.stderr
+
+
+def test_docx_integrity_rejects_invalid_target_mode(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        document_relationships=(
+            '<Relationship Id="rIdInvalidMode" '
+            'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" '
+            'Target="media/image1.png" TargetMode="external" />'
+        ),
+        extra_parts={"word/media/image1.png": b"image"},
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 1
+    assert "relationship rIdInvalidMode has invalid TargetMode 'external'" in result.stderr
+
+
 def test_docx_integrity_rejects_embed_pointing_to_wrong_internal_type(tmp_path: Path) -> None:
     root = _content_root(tmp_path)
     _write_docx(
@@ -238,6 +274,62 @@ def test_docx_integrity_rejects_orphan_relationship_part(tmp_path: Path) -> None
 
     assert result.returncode == 1
     assert "word/_rels/missing.xml.rels has no source part word/missing.xml" in result.stderr
+
+
+def test_docx_integrity_accepts_root_level_relationship_part(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        extra_parts={
+            "custom.xml": b"<custom />",
+            "_rels/custom.xml.rels": f'<Relationships xmlns="{REL_NS}" />'.encode(),
+        },
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_docx_integrity_rejects_misplaced_nested_relationship_part(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        extra_parts={
+            "word/charts/chart1.xml": b"<chart />",
+            "word/media/image1.png": b"image",
+            "word/_rels/charts/chart1.xml.rels": (
+                f'<Relationships xmlns="{REL_NS}">'
+                '<Relationship Id="rIdImage" '
+                'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" '
+                'Target="../media/image1.png" />'
+                "</Relationships>"
+            ).encode(),
+        },
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 1
+    assert "unexpected relationships part path: word/_rels/charts/chart1.xml.rels" in result.stderr
+
+
+def test_docx_integrity_rejects_exact_parent_package_escape(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        document_relationships=(
+            '<Relationship Id="rIdEscape" '
+            'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" '
+            'Target="../.." />'
+        ),
+        extra_parts={"..": b"not a package part"},
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 1
+    assert "escapes the DOCX package" in result.stderr
 
 
 def test_docx_integrity_rejects_missing_header_relationship_ref(tmp_path: Path) -> None:
