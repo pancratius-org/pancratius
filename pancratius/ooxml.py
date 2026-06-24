@@ -18,7 +18,7 @@ from collections.abc import Iterable, MutableMapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
-from urllib.parse import unquote, urlsplit
+from urllib.parse import quote, unquote, urlsplit
 
 MC_NS = "http://schemas.openxmlformats.org/markup-compatibility/2006"
 REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
@@ -244,6 +244,15 @@ def resolve_relationship_target(source_part: str, target: str) -> str:
             f"relationship target from {source_part or '/'} escapes the DOCX package: {target}"
         )
     return resolved
+
+
+def relative_relationship_target(source_part: str, target_part: str) -> str:
+    source_dir = posixpath.dirname(source_part)
+    if not source_dir:
+        relative_target = target_part
+    else:
+        relative_target = posixpath.relpath(target_part, start=source_dir)
+    return quote(relative_target, safe="/:@!$&'()*+,;=")
 
 
 def relationships_part_for(source_part: str) -> str:
