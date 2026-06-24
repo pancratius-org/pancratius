@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import hashlib
-import posixpath
 import re
 import xml.etree.ElementTree as ET
 import zipfile
@@ -20,8 +19,12 @@ from pancratius.ooxml import (
     HYPERLINK_REL_TYPE,
     REL,
     XML_SPACE,
+    OoxmlRelationshipError,
     R,
     W,
+    relationship_source_part,
+    relative_relationship_target,
+    resolve_relationship_target,
     serialize_relationships,
     serialize_xml,
 )
@@ -601,10 +604,14 @@ def _dedupe_media_payloads(parts: dict[str, bytes]) -> None:
                 replacements[duplicate] = canonical
     if not replacements:
         return
+    updated_relationship_parts: dict[str, bytes] = {}
     for name in [part for part in parts if part.endswith(".rels")]:
         updated = _retarget_relationships(parts[name], rels_name=name, replacements=replacements)
+        if updated is None:
+            return
         if updated != parts[name]:
-            parts[name] = updated
+            updated_relationship_parts[name] = updated
+    parts.update(updated_relationship_parts)
     for duplicate in replacements:
         parts.pop(duplicate, None)
 
@@ -619,50 +626,36 @@ def _retarget_relationships(
     *,
     rels_name: str,
     replacements: dict[str, str],
-) -> bytes:
+) -> bytes | None:
     try:
         root = ET.fromstring(rels_xml)
     except ET.ParseError:
-        return rels_xml
-    source_part = _rels_source_part(rels_name)
-    source_dir = posixpath.dirname(source_part)
+        return None
+    if root.tag != f"{REL}Relationships":
+        return None
+    try:
+        source_part = relationship_source_part(rels_name)
+    except OoxmlRelationshipError:
+        return None
+    if any(child.tag != f"{REL}Relationship" for child in root):
+        return None
     changed = False
     for rel in root.findall(f"{REL}Relationship"):
         target = rel.get("Target")
         if not target or rel.get("TargetMode") == "External":
             continue
-        resolved = _resolve_relationship_target(source_part, target)
+        try:
+            resolved = resolve_relationship_target(source_part, target)
+        except OoxmlRelationshipError:
+            return None
         replacement = replacements.get(resolved)
         if replacement is None:
             continue
-        rel.set("Target", _relative_relationship_target(source_dir, replacement))
+        rel.set("Target", relative_relationship_target(source_part, replacement))
         changed = True
     if not changed:
         return rels_xml
     return serialize_relationships(root, source_xml=rels_xml)
-
-
-def _rels_source_part(rels_name: str) -> str:
-    if rels_name == "_rels/.rels":
-        return ""
-    if "/_rels/" not in rels_name or not rels_name.endswith(".rels"):
-        return ""
-    prefix, leaf = rels_name.split("/_rels/", 1)
-    return f"{prefix}/{leaf.removesuffix('.rels')}"
-
-
-def _resolve_relationship_target(source_part: str, target: str) -> str:
-    path = target.lstrip("/")
-    if target.startswith("/"):
-        return posixpath.normpath(path)
-    base = posixpath.dirname(source_part)
-    return posixpath.normpath(posixpath.join(base, path))
-
-
-def _relative_relationship_target(source_dir: str, target: str) -> str:
-    if not source_dir:
-        return target
-    return posixpath.relpath(target, start=source_dir)
 
 
 replace_paragraph_text = _replace_paragraph_text

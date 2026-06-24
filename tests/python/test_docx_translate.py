@@ -2101,6 +2101,84 @@ def test_markdown_render_backend_dedupes_media_payloads_and_retargets_relationsh
     assert b"media/rId1.png" not in rels
 
 
+def test_markdown_render_backend_dedupes_percent_encoded_media_targets() -> None:
+    parts = {
+        "word/media/rId 1.png": b"same",
+        "word/media/image 1.png": b"same",
+        "word/_rels/document.xml.rels": (
+            f'<Relationships xmlns="{REL_NS}">'
+            '<Relationship Id="rId1" Type="image" Target="media/rId%201.png" />'
+            "</Relationships>"
+        ).encode(),
+    }
+
+    dedupe_media_payloads(parts)
+
+    assert "word/media/image 1.png" in parts
+    assert "word/media/rId 1.png" not in parts
+    rels = parts["word/_rels/document.xml.rels"]
+    assert b'Target="media/image%201.png"' in rels
+    assert b"rId%201.png" not in rels
+
+
+def test_markdown_render_backend_escapes_literal_percent_in_media_targets() -> None:
+    parts = {
+        "word/media/rId1.png": b"same",
+        "word/media/image%201.png": b"same",
+        "word/_rels/document.xml.rels": (
+            f'<Relationships xmlns="{REL_NS}">'
+            '<Relationship Id="rId1" Type="image" Target="media/rId1.png" />'
+            "</Relationships>"
+        ).encode(),
+    }
+
+    dedupe_media_payloads(parts)
+
+    assert "word/media/image%201.png" in parts
+    assert "word/media/rId1.png" not in parts
+    rels = parts["word/_rels/document.xml.rels"]
+    assert b'Target="media/image%25201.png"' in rels
+    assert b"media/rId1.png" not in rels
+
+
+def test_markdown_render_backend_skips_untrusted_media_relationship_paths() -> None:
+    parts = {
+        "word/media/rId1.png": b"same",
+        "word/media/image1.png": b"same",
+        "word/_rels/nested/document.xml.rels": (
+            f'<Relationships xmlns="{REL_NS}">'
+            '<Relationship Id="rId1" Type="image" Target="../media/rId1.png" />'
+            "</Relationships>"
+        ).encode(),
+    }
+    original_rels = parts["word/_rels/nested/document.xml.rels"]
+
+    dedupe_media_payloads(parts)
+
+    assert parts["word/_rels/nested/document.xml.rels"] == original_rels
+    assert "word/media/image1.png" in parts
+    assert "word/media/rId1.png" in parts
+
+
+def test_markdown_render_backend_skips_non_ooxml_relationship_parts() -> None:
+    parts = {
+        "word/media/rId1.png": b"same",
+        "word/media/image1.png": b"same",
+        "word/_rels/document.xml.rels": (
+            b"<Relationships>"
+            b'<Relationship Id="rId1" Type="image" Target="media/rId1.png" />'
+            b"</Relationships>"
+        ),
+    }
+    original_rels = parts["word/_rels/document.xml.rels"]
+
+    dedupe_media_payloads(parts)
+
+    assert parts["word/_rels/document.xml.rels"] == original_rels
+    assert "word/media/image1.png" in parts
+    assert "word/media/rId1.png" in parts
+
+
 @requires_pandoc
 def test_translate_docx_batch_markdown_render_backend_writes_docx(
     tmp_path: Path,
