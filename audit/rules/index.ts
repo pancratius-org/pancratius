@@ -13,7 +13,7 @@ import {
   pan004DuplicateIdentity,
 } from "./projects.ts";
 import { pan007AssetRefs } from "./assets.ts";
-import { pan010DocxIntegrity } from "./docx.ts";
+import { pan010DocxIntegrity, pan025TranslatedDocxTransfer } from "./docx.ts";
 import { pan006bMarkdownStructure } from "./markdown.ts";
 import { pan006cTagLocalization } from "./tags.ts";
 import { pan006bPoetryStanzas, pan006bLineationBreaks } from "./poetry.ts";
@@ -48,6 +48,7 @@ export const RULES: readonly Rule[] = [
   pan006bLineationBreaks,
   pan007AssetRefs,
   pan010DocxIntegrity,
+  pan025TranslatedDocxTransfer,
   pan012CiSeparation,
   pan016SourceLanguage,
   pan016UiFramework,
