@@ -50,7 +50,7 @@ class ResolvedParagraphSlice:
     rows: tuple[di.ParaRow, ...]
 
 
-def _soffice() -> str | None:
+def find_soffice() -> str | None:
     for cand in (
         "soffice",
         "libreoffice",
@@ -59,6 +59,10 @@ def _soffice() -> str | None:
         if shutil.which(cand) or Path(cand).exists():
             return cand
     return None
+
+
+def _soffice() -> str | None:
+    return find_soffice()
 
 
 def _ordered_paragraphs(body: ET.Element) -> list[ET.Element]:

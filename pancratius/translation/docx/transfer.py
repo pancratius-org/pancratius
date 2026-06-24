@@ -41,6 +41,7 @@ from pancratius.translation.docx.ooxml_write import (
     replace_footnotes,
     replace_paragraph_text,
     sanitize_drawing_metadata,
+    sanitize_drawing_metadata_parts,
     unit_has_hyperlink,
     write_docx_parts,
 )
@@ -127,6 +128,7 @@ def render_translated_docx(
             translated,
             reference_ids=footnote_reference_ids_by_body_order(document_root),
         )
+        sanitize_drawing_metadata_parts(parts)
     except DocxTranslationError as exc:
         diagnostics.append(Diagnostic("fatal", "docx-translate.transfer-failed", str(exc)))
         return len(source.units), len(translated.units), 0, tuple(diagnostics)

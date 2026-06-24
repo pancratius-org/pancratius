@@ -45,6 +45,8 @@ from pancratius.translation.docx.models import (
 from pancratius.translation.docx.ooxml_write import (
     dedupe_media_payloads,
     repair_unbound_relationship_prefixes,
+    sanitize_drawing_metadata,
+    sanitize_drawing_metadata_parts,
     write_docx_parts,
 )
 
@@ -1731,6 +1733,47 @@ def test_render_translated_docx_sanitizes_unmatched_drawing_metadata(tmp_path: P
         if node.tag.rsplit("}", 1)[-1] in {"docPr", "cNvPr"}
     )
     assert not re.search(r"[А-Яа-яЁё]", metadata_text)
+
+
+def test_sanitize_drawing_metadata_removes_cyrillic_title() -> None:
+    root = ET.fromstring(
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+        'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">'
+        "<w:body><w:p><w:r><w:drawing>"
+        '<wp:docPr id="1" name="Рисунок 1" descr="Иллюстрация" title="Схема" />'
+        "</w:drawing></w:r></w:p></w:body></w:document>"
+    )
+
+    sanitize_drawing_metadata(root)
+    metadata = next(node for node in root.iter() if node.tag.rsplit("}", 1)[-1] == "docPr")
+
+    assert metadata.get("name") == "Drawing 1"
+    assert metadata.get("descr") is None
+    assert metadata.get("title") is None
+
+
+def test_sanitize_drawing_metadata_parts_cleans_footnote_metadata() -> None:
+    parts = {
+        "word/document.xml": (
+            b'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            b"<w:body><w:p /></w:body></w:document>"
+        ),
+        "word/footnotes.xml": (
+            '<w:footnotes xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+            'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+            '<w:footnote w:id="1"><w:p><w:r><w:drawing>'
+            '<pic:cNvPr id="1" name="Рисунок 1" descr="Иллюстрация" title="Схема" />'
+            "</w:drawing></w:r></w:p></w:footnote></w:footnotes>"
+        ).encode(),
+    }
+
+    sanitize_drawing_metadata_parts(parts)
+    root = ET.fromstring(parts["word/footnotes.xml"])
+    metadata = next(node for node in root.iter() if node.tag.rsplit("}", 1)[-1] == "cNvPr")
+
+    assert metadata.get("name") == "Drawing 1"
+    assert metadata.get("descr") is None
+    assert metadata.get("title") is None
 
 
 @requires_pandoc

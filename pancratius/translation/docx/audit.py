@@ -2,19 +2,28 @@
 
 from __future__ import annotations
 
+import re
 import zipfile
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-from pancratius.ooxml import W
+from pancratius.ooxml import (
+    DRAWING_METADATA_ATTRS,
+    DRAWING_METADATA_ELEMENT_TAGS,
+    DRAWING_METADATA_WORD_PART_RE,
+    W,
+    local_name,
+)
 
 type DocxPartName = str
+type OoxmlAttributeName = str
 type WordElementName = str
 type WordFootnoteId = int
 
 WORK_COLLECTIONS = ("books", "poetry")
+_CYRILLIC_RE = re.compile(r"[А-Яа-яЁё]")
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,6 +82,32 @@ def _parse_xml(zf: zipfile.ZipFile, part_name: DocxPartName) -> ET.Element:
         raise TranslatedDocxAuditError(f"missing required DOCX part: {part_name}") from exc
     except ET.ParseError as exc:
         raise TranslatedDocxAuditError(f"{part_name} is not well-formed XML: {exc}") from exc
+
+
+def _drawing_metadata_issues(zf: zipfile.ZipFile, names: set[str]) -> list[str]:
+    issues: list[str] = []
+    for part_name in sorted(name for name in names if DRAWING_METADATA_WORD_PART_RE.fullmatch(name)):
+        root = _parse_xml(zf, part_name)
+        for element in root.iter():
+            if element.tag not in DRAWING_METADATA_ELEMENT_TAGS:
+                continue
+            for attr_name in DRAWING_METADATA_ATTRS:
+                value = element.get(attr_name)
+                if value is not None and _CYRILLIC_RE.search(value):
+                    issues.append(
+                        _drawing_metadata_issue(part_name, local_name(element.tag), attr_name, value)
+                    )
+    return issues
+
+
+def _drawing_metadata_issue(
+    part_name: DocxPartName,
+    element_name: WordElementName,
+    attr_name: OoxmlAttributeName,
+    value: str,
+) -> str:
+    preview = value if len(value) <= 80 else f"{value[:77]}..."
+    return f"{part_name} {element_name}@{attr_name} contains Cyrillic text {preview!r}"
 
 
 def _positive_footnote_ids(
@@ -163,7 +198,10 @@ def _docx_issues(path: Path) -> list[TranslatedDocxArtifactIssue]:
                 raise TranslatedDocxAuditError(f"corrupt ZIP member: {bad_member}")
             names = set(zf.namelist())
             document_root = _parse_xml(zf, "word/document.xml")
-            messages = _footnote_issues(zf, names, document_root)
+            messages = [
+                *_footnote_issues(zf, names, document_root),
+                *_drawing_metadata_issues(zf, names),
+            ]
     except zipfile.BadZipFile:
         messages = ["not a valid ZIP/DOCX package"]
     except TranslatedDocxAuditError as exc:
