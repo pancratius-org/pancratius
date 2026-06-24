@@ -1320,7 +1320,7 @@ def _add_docx_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
 
     roundtrip_md = docx_sub.add_parser(
         "roundtrip-md",
-        help="Import committed translated DOCX files into temp Markdown and compare with committed Markdown.",
+        help="Import committed <lang>.docx files and compare them with committed <lang>.md files.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     roundtrip_md.add_argument(
