@@ -31,7 +31,6 @@ site.
 | `npm run check` | Full non-build verification: code/tooling checks, Astro site checks, and Python checks. |
 | `npm run check:site` | Generate site inputs, then run Astro content/type checks. |
 | `npm run check:code` | Type-check TS tooling, lint code and styles, run Knip, and run Node unit tests. |
-| `npm run check:docx-roundtrip` | Import committed translated DOCX files in a temp tree and fail on human-visible Markdown drift. |
 | `npm run check:unused` | Knip unused file/dependency/export analysis for the site/tooling surface. |
 | `npm run lint` | ESLint plus Stylelint. |
 | `npm run lint:code` | ESLint over site, build, audit, and test TypeScript/Astro/JavaScript. |
@@ -46,7 +45,7 @@ site.
 | `npm run audit:selftest` | Harness fixtures proving audit polarity. |
 | `npm run test:e2e` | Playwright e2e specs. |
 | `npm run test:visual` | Playwright visual gate. |
-| `npm run check:py` | Ruff annotations, `ty` types, pytest behaviour, and the translated DOCX round-trip corpus gate. |
+| `npm run check:py` | Ruff annotations, `ty` types, and pytest behaviour. |
 
 Build derivations live in `build/` and run from npm. They derive artifacts from
 committed source; they do not mutate `src/content/`:
@@ -83,7 +82,7 @@ functions in process. It does not shell out to other Python CLIs.
 | `pancratius docx inspect <book:NN|docx> [--contains TEXT|--around TEXT|--range LO:HI|--verse-only|--lineated-only]` | `pancratius.docx_inspect` |
 | `pancratius docx render-slice <book:NN|docx> (--around TEXT|--range LO:HI) --out <png>` | `pancratius.docx_render` |
 | `pancratius docx merge <parts...> --out <docx> [--part TITLE::MARKER]` | `pancratius.docx_merge` |
-| `pancratius docx roundtrip-md [book:NN] [--lang en] [--json]` | `pancratius.docx_roundtrip` |
+| `pancratius docx roundtrip-md [book:NN] [--lang LOCALE] [--json]` | `pancratius.docx_roundtrip` |
 | `pancratius docx translate-from-md [book:NN] [--lang en] [--backend transfer|markdown-render] [--dry-run] [--replace]` | `pancratius.translation.docx` |
 | `pancratius conceptosphere graph generate [--only concepts|books]` | `pancratius.conceptosphere.generate_graph` |
 | `pancratius conceptosphere embed generate` | `pancratius.conceptosphere_embed.generate_embeddings` |
@@ -151,7 +150,7 @@ The grammar carries the content model:
   `--part TITLE::MARKER` arguments insert real source part headings during the
   merge. Office-suite load checks are outside the first-class merge path; use
   explicit local QA when that heavier confidence is needed.
-- `docx roundtrip-md` is the DOCX-source gate: it copies the content tree to a
+- `docx roundtrip-md` is a DOCX-source round-trip check: it copies the content tree to a
   temp root, imports committed `<lang>.docx` files through the normal work
   importer with replacement enabled only inside that temp root, and compares the
   generated `<lang>.md` against the committed Markdown. It does not mutate
@@ -159,7 +158,8 @@ The grammar carries the content model:
   and corpus repair loops. Human-visible text drift, public frontmatter drift,
   importer refusal, and newly introduced mixed-script English text fail the
   command; harmless Markdown serialization and typography drift are reported but
-  non-fatal.
+  non-fatal. Run it locally for the locale you changed when changing DOCX,
+  import, translation, or content transfer behavior.
 - `docx translate-from-md` bootstraps a missing translated DOCX from a committed
   `ru.docx`, its imported `ru.md`, and an aligned target Markdown file such as
   `en.md`. The default `--backend transfer` uses Pandoc only as a Markdown AST
@@ -249,16 +249,16 @@ uv sync --extra embed
 
 The CLI lazy-imports those owners and prints the relevant extra hint when the
 stack is missing. The dev environment carries `pypandoc-binary` so import and
-round-trip checks run in CI. Local download rendering still needs system tools
-such as typst, and may use a system pandoc when maintainers choose one
-explicitly.
+round-trip checks run without a system Pandoc. Local download rendering still
+needs system tools such as typst, and may use a system pandoc when maintainers
+choose one explicitly.
 
 ## Invariants
 
 - One task has one owner. A second command surface is drift unless it is only a
   documented alias at the same command surface.
-- CI never renders PDF/EPUB, optimizes DOCX, or regenerates embeddings. The
-  translated DOCX round-trip gate is the narrow DOCX import exception.
+- CI never renders PDF/EPUB, optimizes DOCX, imports DOCX, or regenerates
+  embeddings.
 - The Python package does not reach into `build/` or `audit/` to implement site
   work.
 - The site build does not shell into `pancratius` to manufacture corpus source.
