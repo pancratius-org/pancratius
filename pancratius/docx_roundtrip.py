@@ -7,7 +7,8 @@ import shutil
 import subprocess
 import tempfile
 import unicodedata
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from html import unescape
 from pathlib import Path
@@ -35,6 +36,11 @@ _SIGNATURE_HTML_RE = re.compile(
 _LINEATED_BLOCK_RE = re.compile(
     r"(?is)<div\b[^>]*\bclass=[\"'][^\"']*\blineated\b[^\"']*[\"'][^>]*>\s*(.*?)\s*</div\s*>"
 )
+_MARKDOWN_IMAGE_RE = re.compile(
+    r"!\[(?P<alt>[^\]]*)\]\(\s*(?P<target><[^>]+>|[^)\s]+)(?:\s+[\"'][^)]*[\"'])?\s*\)"
+)
+_HTML_IMG_RE = re.compile(r"(?is)<img\b[^>]*>")
+_HTML_ATTR_RE = re.compile(r"""\b(?P<name>[A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*(?P<quote>["'])(?P<value>.*?)\2""")
 _IGNORED_FRONTMATTER_PATHS = frozenset({
     "translation.model",
     "translation.generated_at",
@@ -113,6 +119,37 @@ class DocxRoundTripBatch:
         return sum(1 for report in self.reports if report.failed)
 
 
+@dataclass(frozen=True, slots=True)
+class StagedDocxRoundTripWorkspace:
+    """A temp content copy reused by staged DOCX checks."""
+
+    temp_content_root: Path
+
+    def check(
+        self,
+        *,
+        entry: CatalogEntry,
+        md_path: Path,
+        docx_path: Path,
+        lang: Locale = "en",
+    ) -> DocxRoundTripReport:
+        _require_book_roundtrip_entry(entry)
+        target = DocxRoundTripTarget(entry=entry, md_path=md_path, docx_path=docx_path)
+        return _roundtrip_one(target, self.temp_content_root, lang=lang)
+
+
+@contextmanager
+def staged_docx_roundtrip_workspace(
+    *,
+    content_root: Path = CONTENT_ROOT,
+) -> Iterator[StagedDocxRoundTripWorkspace]:
+    root = content_root.expanduser().resolve()
+    with tempfile.TemporaryDirectory(prefix="pancratius-docx-roundtrip-") as td:
+        temp_content = Path(td) / "src" / "content"
+        _copy_content_root(root, temp_content)
+        yield StagedDocxRoundTripWorkspace(temp_content)
+
+
 def check_docx_markdown_roundtrip(
     *,
     content_root: Path = CONTENT_ROOT,
@@ -164,6 +201,19 @@ def check_docx_markdown_roundtrip(
         missing_md=missing_md,
         coverage_required=limit == 0 and book is None,
     )
+
+
+def check_staged_docx_markdown_roundtrip(
+    *,
+    content_root: Path = CONTENT_ROOT,
+    entry: CatalogEntry,
+    md_path: Path,
+    docx_path: Path,
+    lang: Locale = "en",
+) -> DocxRoundTripReport:
+    """Check one staged DOCX against committed Markdown without writing content."""
+    with staged_docx_roundtrip_workspace(content_root=content_root) as workspace:
+        return workspace.check(entry=entry, md_path=md_path, docx_path=docx_path, lang=lang)
 
 
 def print_roundtrip_batch(batch: DocxRoundTripBatch, *, json_output: bool = False) -> None:
@@ -231,6 +281,11 @@ def _book_number_from_dir(path: Path) -> int | None:
     return int(match.group(1))
 
 
+def _require_book_roundtrip_entry(entry: CatalogEntry) -> None:
+    if entry.kind != "book":
+        raise DocxRoundTripError("staged DOCX roundtrip supports book entries only.")
+
+
 def _copy_content_root(src: Path, dst: Path) -> None:
     shutil.copytree(
         src,
@@ -283,7 +338,13 @@ def _roundtrip_one(
 
     committed = target.md_path.read_text(encoding="utf-8")
     imported = staged_md.read_text(encoding="utf-8")
-    findings.extend(compare_markdown_pair(committed, imported, lang=lang))
+    findings.extend(compare_markdown_pair(
+        committed,
+        imported,
+        lang=lang,
+        committed_dir=target.md_path.parent,
+        imported_dir=staged_md.parent,
+    ))
     return _report(target, committed, imported, findings)
 
 
@@ -306,12 +367,20 @@ def compare_markdown_pair(
     imported: str,
     *,
     lang: Locale,
+    committed_dir: Path | None = None,
+    imported_dir: Path | None = None,
 ) -> tuple[DocxRoundTripFinding, ...]:
     committed_fm, committed_body = split_frontmatter(committed)
     imported_fm, imported_body = split_frontmatter(imported)
     findings: list[DocxRoundTripFinding] = []
     findings.extend(_frontmatter_findings(committed_fm, imported_fm))
-    findings.extend(_body_findings(committed_body, imported_body, lang=lang))
+    findings.extend(_body_findings(
+        committed_body,
+        imported_body,
+        lang=lang,
+        committed_dir=committed_dir,
+        imported_dir=imported_dir,
+    ))
     return tuple(findings)
 
 
@@ -348,13 +417,26 @@ def _public_frontmatter(data: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def _body_findings(committed: str, imported: str, *, lang: Locale) -> list[DocxRoundTripFinding]:
+def _body_findings(
+    committed: str,
+    imported: str,
+    *,
+    lang: Locale,
+    committed_dir: Path | None,
+    imported_dir: Path | None,
+) -> list[DocxRoundTripFinding]:
     findings: list[DocxRoundTripFinding] = []
     if committed == imported:
         findings.append(DocxRoundTripFinding("info", "roundtrip.byte-identical", "Markdown body is byte-identical."))
         return findings
     structure_findings = _lineation_structure_findings(committed, imported)
     findings.extend(structure_findings)
+    findings.extend(_image_reference_findings(
+        committed,
+        imported,
+        committed_dir=committed_dir,
+        imported_dir=imported_dir,
+    ))
 
     committed_plain = _plain_markdown(committed)
     imported_plain = _plain_markdown(imported)
@@ -382,6 +464,127 @@ def _body_findings(committed: str, imported: str, *, lang: Locale) -> list[DocxR
 
     findings.extend(_script_findings(committed_plain, imported_plain, lang=lang))
     return findings
+
+
+def _image_reference_findings(
+    committed: str,
+    imported: str,
+    *,
+    committed_dir: Path | None,
+    imported_dir: Path | None,
+) -> list[DocxRoundTripFinding]:
+    committed_refs = _image_refs(committed)
+    imported_refs = _image_refs(imported)
+    if committed_refs == imported_refs:
+        return []
+    if _image_refs_payload_equal(
+        committed_refs,
+        imported_refs,
+        committed_dir=committed_dir,
+        imported_dir=imported_dir,
+    ):
+        return []
+    return [DocxRoundTripFinding(
+        "fatal",
+        "roundtrip.image-reference-drift",
+        _image_reference_drift_message(committed_refs, imported_refs),
+    )]
+
+
+def _image_refs(markdown: str) -> tuple[tuple[str, str], ...]:
+    refs: list[tuple[str, str]] = []
+    for match in _MARKDOWN_IMAGE_RE.finditer(markdown):
+        refs.append((
+            unescape(match.group("alt")).strip(),
+            _normalize_image_target(match.group("target")),
+        ))
+    for match in _HTML_IMG_RE.finditer(markdown):
+        tag = match.group(0)
+        target = _html_attr(tag, "src")
+        if target is None:
+            continue
+        refs.append((
+            _html_attr(tag, "alt") or "",
+            _normalize_image_target(target),
+        ))
+    return tuple(refs)
+
+
+def _image_refs_payload_equal(
+    committed_refs: tuple[tuple[str, str], ...],
+    imported_refs: tuple[tuple[str, str], ...],
+    *,
+    committed_dir: Path | None,
+    imported_dir: Path | None,
+) -> bool:
+    if committed_dir is None or imported_dir is None or len(committed_refs) != len(imported_refs):
+        return False
+    for expected, actual in zip(committed_refs, imported_refs, strict=True):
+        if expected[0] != actual[0]:
+            return False
+        if expected[1] == actual[1]:
+            continue
+        expected_path = _resolve_local_image_ref(committed_dir, expected[1])
+        actual_path = _resolve_local_image_ref(imported_dir, actual[1])
+        if expected_path is None or actual_path is None:
+            return False
+        try:
+            if expected_path.read_bytes() == actual_path.read_bytes():
+                continue
+        except OSError:
+            return False
+        if not _image_pixels_equal(expected_path, actual_path):
+            return False
+    return True
+
+
+def _image_pixels_equal(left: Path, right: Path) -> bool:
+    try:
+        from PIL import Image, ImageChops
+    except ImportError:
+        return False
+    try:
+        with Image.open(left) as left_image, Image.open(right) as right_image:
+            left_pixels = left_image.convert("RGBA")
+            right_pixels = right_image.convert("RGBA")
+    except OSError:
+        return False
+    return left_pixels.size == right_pixels.size and ImageChops.difference(left_pixels, right_pixels).getbbox() is None
+
+
+def _resolve_local_image_ref(base_dir: Path, target: str) -> Path | None:
+    if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", target) or target.startswith("//"):
+        return None
+    clean = target.split("#", 1)[0].split("?", 1)[0]
+    if not clean:
+        return None
+    return (base_dir / clean).resolve()
+
+
+def _html_attr(tag: str, name: str) -> str | None:
+    for match in _HTML_ATTR_RE.finditer(tag):
+        if match.group("name").lower() == name:
+            return unescape(match.group("value")).strip()
+    return None
+
+
+def _normalize_image_target(target: str) -> str:
+    target = unescape(target).strip()
+    if target.startswith("<") and target.endswith(">"):
+        target = target[1:-1].strip()
+    return target
+
+
+def _image_reference_drift_message(
+    committed_refs: tuple[tuple[str, str], ...],
+    imported_refs: tuple[tuple[str, str], ...],
+) -> str:
+    if len(committed_refs) != len(imported_refs):
+        return f"image reference count changed: expected {len(committed_refs)}, imported {len(imported_refs)}"
+    for index, (expected, actual) in enumerate(zip(committed_refs, imported_refs, strict=True), start=1):
+        if expected != actual:
+            return f"image reference {index} changed: expected {expected!r}, imported {actual!r}"
+    return "image references changed"
 
 
 def _lineation_structure_findings(committed: str, imported: str) -> list[DocxRoundTripFinding]:
