@@ -5,14 +5,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
 
 from pancratius import ir
 from pancratius.content_catalog import IndexHit
+from pancratius.intent_inference.policies import RegisterPolicy, RulesOnlyRegisterPolicy
 from pancratius.locales import Locale
-
-if TYPE_CHECKING:
-    from pancratius.passes.register import RegisterModel
 
 
 @dataclass(frozen=True)
@@ -37,28 +34,13 @@ class ScripturePins:
 
 
 @dataclass(frozen=True)
-class RulesOnlyRegister:
-    """Use deterministic register rules without a trained model."""
-
-
-@dataclass(frozen=True)
-class ModelBackedRegister:
-    """Use the trained register model where available."""
-
-    model: RegisterModel
-
-
-type RegisterClassifier = RulesOnlyRegister | ModelBackedRegister
-
-
-@dataclass(frozen=True)
 class Context:
     """Pass parameters and capabilities injected by the composition point."""
 
     lang: Locale
     demote_levels: int = 1
     bibliography: BibliographyLookup = field(default_factory=BibliographyLookup)
-    register_classifier: RegisterClassifier = field(default_factory=RulesOnlyRegister)
+    register_policy: RegisterPolicy = field(default_factory=RulesOnlyRegisterPolicy)
     lineation: LineationCorrections = field(default_factory=LineationCorrections)
     scripture: ScripturePins = field(default_factory=ScripturePins)
     diagnostics: ir.DiagnosticSink = field(default_factory=list)
