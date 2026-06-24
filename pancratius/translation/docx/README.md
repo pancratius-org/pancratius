@@ -46,12 +46,20 @@ duplicated, or unreferenced body IDs fail the transfer.
 - `transfer.py`: one-book render paths.
 - `batch.py`: target discovery, writer plans, and replacement rules.
 - `report.py`: human and JSON summaries.
+- `audit.py`: committed translated DOCX artifact checks behind PAN025.
 - `pipeline.py`: compatibility facade for older internal imports.
 
 ## Gates
 
 Transfer writes staged bytes, validates the OOXML package, then commits through
-the normal writer plan. Committed artifacts are checked by:
+the normal writer plan. PAN025 checks committed artifact shape through:
+
+```sh
+npm run audit:repo
+```
+
+That gate inspects translated DOCX packages for footnote-table coherence without
+running the converter. Imported Markdown drift is checked by:
 
 ```sh
 npm run check:docx-roundtrip
