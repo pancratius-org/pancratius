@@ -12,14 +12,16 @@ from collections.abc import Callable
 from dataclasses import replace
 
 from pancratius import ir
+from pancratius.intent_inference.policies import (
+    ModelBackedRegisterPolicy,
+    RegisterPolicy,
+    RulesOnlyRegisterPolicy,
+)
 from pancratius.passes import endmatter, lineation, register, sanitize, scrub, structure
 from pancratius.passes.context import (
     BibliographyLookup,
     Context,
     LineationCorrections,
-    ModelBackedRegister,
-    RegisterClassifier,
-    RulesOnlyRegister,
     ScripturePins,
 )
 
@@ -30,11 +32,11 @@ __all__ = (
     "BibliographyLookup",
     "Context",
     "LineationCorrections",
-    "ModelBackedRegister",
+    "ModelBackedRegisterPolicy",
     "Pass",
     "PassFn",
-    "RegisterClassifier",
-    "RulesOnlyRegister",
+    "RegisterPolicy",
+    "RulesOnlyRegisterPolicy",
     "ScripturePins",
     "run",
 )
