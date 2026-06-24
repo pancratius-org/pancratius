@@ -37,6 +37,10 @@ FIXED_ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 UNBOUND_REL_ATTR_RE = re.compile(
     rb"(?<![A-Za-z0-9_.-])([A-Za-z_][A-Za-z0-9_.-]*):(id|embed|link)="
 )
+RELATIONSHIP_REF_ATTRS = frozenset({f"{R}id", f"{R}embed", f"{R}link"})
+
+type OoxmlPartName = str
+type RelationshipId = str
 
 
 @dataclass(slots=True)
@@ -362,6 +366,45 @@ def _unit_has_hyperlink(unit: MarkdownTransferUnit) -> bool:
     )
 
 
+def _relationship_refs(root: ET.Element) -> set[RelationshipId]:
+    refs: set[RelationshipId] = set()
+    for element in root.iter():
+        for attr, value in element.attrib.items():
+            if attr in RELATIONSHIP_REF_ATTRS and value:
+                refs.add(str(value))
+    return refs
+
+
+def _rels_part_for(part_name: OoxmlPartName) -> OoxmlPartName:
+    if "/" not in part_name:
+        return f"_rels/{part_name}.rels"
+    prefix, leaf = part_name.rsplit("/", 1)
+    return f"{prefix}/_rels/{leaf}.rels"
+
+
+def _prune_unreferenced_external_hyperlinks(
+    parts: dict[str, bytes],
+    part_name: OoxmlPartName,
+) -> None:
+    rels_part = _rels_part_for(part_name)
+    if part_name not in parts or rels_part not in parts:
+        return
+
+    part_root = ET.fromstring(parts[part_name])
+    rels_root = ET.fromstring(parts[rels_part])
+    referenced_ids = _relationship_refs(part_root)
+    changed = False
+    for rel in list(rels_root.findall(f"{REL}Relationship")):
+        if rel.get("Type") != HYPERLINK_REL_TYPE or rel.get("TargetMode") != "External":
+            continue
+        if rel.get("Id") in referenced_ids:
+            continue
+        rels_root.remove(rel)
+        changed = True
+    if changed:
+        parts[rels_part] = serialize_relationships(rels_root, source_xml=parts[rels_part])
+
+
 def _run_text(run: ET.Element) -> str:
     return "".join(t.text or "" for t in run.findall(f".//{W}t"))
 
@@ -493,6 +536,7 @@ def _replace_footnotes(
         root,
         source_xml=zf_parts["word/footnotes.xml"],
     )
+    _prune_unreferenced_external_hyperlinks(zf_parts, "word/footnotes.xml")
 
 
 def _write_docx_parts(parts: dict[str, bytes], out: Path, *, member_order: Sequence[str]) -> None:
@@ -613,3 +657,4 @@ replace_footnotes = _replace_footnotes
 write_docx_parts = _write_docx_parts
 repair_unbound_relationship_prefixes = _repair_unbound_relationship_prefixes
 dedupe_media_payloads = _dedupe_media_payloads
+prune_unreferenced_external_hyperlinks = _prune_unreferenced_external_hyperlinks
