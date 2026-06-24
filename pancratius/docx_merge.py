@@ -2,19 +2,24 @@
 
 from __future__ import annotations
 
-import posixpath
 import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
 
 from pancratius.docx_outline import OutlineSummary, PartBoundary, apply_part_outline
+from pancratius.ooxml import (
+    EMBED_REL_TYPES,
+    R_NS,
+    OoxmlRelationship,
+    office_relationship_refs,
+    read_ooxml_relationships,
+    relationships_part_for,
+)
 
-REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
-OFFICE_REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+OFFICE_DOCUMENT_REL = f"{R_NS}/officeDocument"
 
 
 class DocxMergeError(ValueError):
@@ -47,59 +52,28 @@ class MergeSummary:
     outline: OutlineSummary | None
 
 
-def _rels_source_part(rels_name: str) -> str:
-    if rels_name == "_rels/.rels":
-        return ""
-    if "/_rels/" not in rels_name or not rels_name.endswith(".rels"):
-        raise DocxMergeOperationError(f"unexpected relationships part path: {rels_name}")
-    prefix, leaf = rels_name.split("/_rels/", 1)
-    return f"{prefix}/{leaf.removesuffix('.rels')}"
-
-
-def _rels_part_for(source_part: str) -> str:
-    if "/" in source_part:
-        prefix, leaf = source_part.rsplit("/", 1)
-        return f"{prefix}/_rels/{leaf}.rels"
-    return f"_rels/{source_part}.rels"
-
-
-def _resolve_relationship_target(source_part: str, target: str) -> str:
-    parsed = urlsplit(target)
-    path = unquote(parsed.path)
-    if not path:
-        raise DocxMergeOperationError(f"relationship target from {source_part or '/'} is empty")
-    if path.startswith("/"):
-        resolved = posixpath.normpath(path.lstrip("/"))
-    else:
-        base = posixpath.dirname(source_part)
-        resolved = posixpath.normpath(posixpath.join(base, path))
-    if resolved == "." or resolved.startswith("../"):
+def _validate_root_office_document(
+    path: Path,
+    relationships_by_part: dict[str, dict[str, OoxmlRelationship]],
+) -> None:
+    relationships = relationships_by_part.get("_rels/.rels", {})
+    office_relationships = [
+        relationship
+        for relationship in relationships.values()
+        if relationship.rel_type == OFFICE_DOCUMENT_REL
+    ]
+    if len(office_relationships) != 1:
         raise DocxMergeOperationError(
-            f"relationship target from {source_part or '/'} escapes the DOCX package: {target}"
+            f"{path}:root officeDocument relationship must point to word/document.xml"
         )
-    return resolved
-
-
-def _relationship_ids(rels_xml: bytes) -> set[str]:
-    root = ET.fromstring(rels_xml)
-    return {
-        rel_id for rel in root.findall(f"{{{REL_NS}}}Relationship")
-        if (rel_id := rel.get("Id"))
-    }
-
-
-def _relationship_refs(part_xml: bytes) -> set[str]:
-    refs: set[str] = set()
-    root = ET.fromstring(part_xml)
-    for el in root.iter():
-        for attr, value in el.attrib.items():
-            if attr in {
-                f"{{{OFFICE_REL_NS}}}id",
-                f"{{{OFFICE_REL_NS}}}embed",
-                f"{{{OFFICE_REL_NS}}}link",
-            }:
-                refs.add(value)
-    return refs
+    relationship = office_relationships[0]
+    if relationship.target_mode == "External":
+        raise DocxMergeOperationError(f"{path}:root officeDocument relationship is external")
+    if relationship.resolved_target != "word/document.xml":
+        raise DocxMergeOperationError(
+            f"{path}:root officeDocument relationship must point to word/document.xml "
+            f"(got {relationship.resolved_target or '<missing>'})"
+        )
 
 
 def validate_docx_package(path: Path) -> DocxValidationSummary:
@@ -126,38 +100,48 @@ def validate_docx_package(path: Path) -> DocxValidationSummary:
             raise DocxMergeOperationError(f"{path}:{name} is not well-formed XML: {exc}") from exc
 
     relationship_count = 0
+    relationships_by_part: dict[str, dict[str, OoxmlRelationship]] = {}
     for rels_name in sorted(name for name in names if name.endswith(".rels")):
-        source_part = _rels_source_part(rels_name)
         root = ET.fromstring(payload[rels_name])
-        for rel in root.findall(f"{{{REL_NS}}}Relationship"):
-            relationship_count += 1
-            if rel.get("TargetMode") == "External":
-                continue
-            target = rel.get("Target", "")
-            resolved = _resolve_relationship_target(source_part, target)
-            if resolved not in names:
-                rel_id = rel.get("Id", "<missing id>")
-                raise DocxMergeOperationError(
-                    f"{path}:{rels_name} relationship {rel_id} targets missing part {target!r}"
-                )
+        read = read_ooxml_relationships(root, rels_name, names)
+        if read.issues:
+            raise DocxMergeOperationError(f"{path}:{read.issues[0]}")
+        relationship_count += len(read.relationships)
+        relationships_by_part[rels_name] = read.relationships
+    _validate_root_office_document(path, relationships_by_part)
 
     relationship_refs = 0
     for name in sorted(n for n in names if n.endswith(".xml") and not n.endswith(".rels")):
-        refs = _relationship_refs(payload[name])
+        root = ET.fromstring(payload[name])
+        refs = office_relationship_refs(root)
         relationship_refs += len(refs)
         if not refs:
             continue
-        rels_name = _rels_part_for(name)
-        if rels_name not in names:
+        rels_name = relationships_part_for(name)
+        relationships = relationships_by_part.get(rels_name)
+        if relationships is None:
             raise DocxMergeOperationError(
                 f"{path}:{name} uses relationships but {rels_name} is missing"
             )
-        ids = _relationship_ids(payload[rels_name])
-        missing = sorted(ref for ref in refs if ref not in ids)
+        missing = sorted({ref.rel_id for ref in refs if ref.rel_id not in relationships})
         if missing:
             raise DocxMergeOperationError(
                 f"{path}:{name} has unresolved relationship reference(s): {', '.join(missing)}"
             )
+        for ref in refs:
+            relationship = relationships[ref.rel_id]
+            if ref.attr_name != "embed":
+                continue
+            if relationship.target_mode == "External":
+                raise DocxMergeOperationError(
+                    f"{path}:{name} has r:embed={relationship.rel_id} pointing to "
+                    "an external relationship"
+                )
+            if relationship.rel_type not in EMBED_REL_TYPES:
+                raise DocxMergeOperationError(
+                    f"{path}:{name} has r:embed={relationship.rel_id} pointing to "
+                    f"non-embeddable relationship type {relationship.rel_type}"
+                )
 
     return DocxValidationSummary(
         path=path,
