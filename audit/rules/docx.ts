@@ -26,7 +26,7 @@ export const pan010DocxIntegrity: Rule = {
 export const pan025TranslatedDocxTransfer: Rule = {
   id: "PAN025-translated-docx-transfer",
   title:
-    "PAN025: translated DOCX transfer keeps footnote tables coherent",
+    "PAN025: translated DOCX footnotes are valid and drawing metadata has no Cyrillic",
   tier: "core",
   run(ctx: RuleContext): Finding[] {
     return runPythonCheck(ctx, {
@@ -35,12 +35,12 @@ export const pan025TranslatedDocxTransfer: Rule = {
       severity: "fatal",
       script: "python/translated_docx_transfer.py",
       contract:
-        "Committed translated work DOCX files are source after bootstrap. Body footnote references must be positive integer IDs that match positive footnote definitions in the same package.",
-      why: "After transfer, the DOCX is the editable source. A broken footnote table makes the source artifact lie even when the sibling Markdown still appears acceptable.",
+        "Committed translated work DOCX files are source after bootstrap. Body footnote references must be positive integer IDs with matching positive definitions in the same package. Drawing names, descriptions, and titles must not contain Cyrillic donor-language text.",
+      why: "A broken footnote table or donor-language drawing label can ship from the DOCX even when imported Markdown looks correct.",
       repair:
-        "Regenerate or repair the affected translated DOCX through the DOCX transfer tooling, then re-import/check the sibling Markdown. If the DOCX was manually edited, fix the footnote references and definitions in the document itself.",
+        "Regenerate or repair the affected translated DOCX through the DOCX transfer tooling, then re-import/check the sibling Markdown. If the DOCX was manually edited, fix the footnote references, definitions, or drawing metadata in the document itself.",
       doNotFixBy:
-        "Suppressing the audit, deleting footnote definitions, or editing only Markdown while leaving the committed translated DOCX footnotes inconsistent.",
+        "Suppressing the audit, deleting footnote definitions, or editing only Markdown while leaving the committed translated DOCX package inconsistent.",
     });
   },
 };

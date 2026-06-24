@@ -58,8 +58,9 @@ the normal writer plan. PAN025 checks committed artifact shape through:
 npm run audit:repo
 ```
 
-That gate inspects translated DOCX packages for footnote-table coherence without
-running the converter. Imported Markdown drift is checked by:
+That gate reads committed DOCX packages directly and checks that footnote tables
+are valid and drawing name, description, and title metadata contains no Cyrillic.
+Imported Markdown drift is checked by:
 
 ```sh
 npm run check:docx-roundtrip

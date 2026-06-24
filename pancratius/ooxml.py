@@ -22,12 +22,28 @@ MC_NS = "http://schemas.openxmlformats.org/markup-compatibility/2006"
 REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
 R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+WP_NS = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+PIC_NS = "http://schemas.openxmlformats.org/drawingml/2006/picture"
 XML_NS = "http://www.w3.org/XML/1998/namespace"
 HYPERLINK_REL_TYPE = f"{R_NS}/hyperlink"
 REL = f"{{{REL_NS}}}"
 R = f"{{{R_NS}}}"
 W = f"{{{W_NS}}}"
+WP = f"{{{WP_NS}}}"
+PIC = f"{{{PIC_NS}}}"
 XML_SPACE = f"{{{XML_NS}}}space"
+DRAWING_METADATA_NAME_ATTR = "name"
+DRAWING_METADATA_DESCRIPTION_ATTR = "descr"
+DRAWING_METADATA_TITLE_ATTR = "title"
+DRAWING_METADATA_ATTRS = (
+    DRAWING_METADATA_NAME_ATTR,
+    DRAWING_METADATA_DESCRIPTION_ATTR,
+    DRAWING_METADATA_TITLE_ATTR,
+)
+DRAWING_METADATA_ELEMENT_TAGS = frozenset({f"{WP}docPr", f"{PIC}cNvPr"})
+DRAWING_METADATA_WORD_PART_RE = re.compile(
+    r"^word/(document|header\d+|footer\d+|footnotes|endnotes)\.xml$"
+)
 
 
 @dataclass(frozen=True)
@@ -69,7 +85,7 @@ COMMON_NAMESPACES: tuple[NamespaceBinding, ...] = (
     NamespaceBinding("m", "http://schemas.openxmlformats.org/officeDocument/2006/math"),
     NamespaceBinding("v", "urn:schemas-microsoft-com:vml"),
     NamespaceBinding("wp14", "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"),
-    NamespaceBinding("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"),
+    NamespaceBinding("wp", WP_NS),
     NamespaceBinding("w10", "urn:schemas-microsoft-com:office:word"),
     NamespaceBinding("w", W_NS),
     NamespaceBinding("w14", "http://schemas.microsoft.com/office/word/2010/wordml"),
@@ -87,7 +103,7 @@ COMMON_NAMESPACES: tuple[NamespaceBinding, ...] = (
     NamespaceBinding("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape"),
     NamespaceBinding("a", "http://schemas.openxmlformats.org/drawingml/2006/main"),
     NamespaceBinding("a14", "http://schemas.microsoft.com/office/drawing/2010/main"),
-    NamespaceBinding("pic", "http://schemas.openxmlformats.org/drawingml/2006/picture"),
+    NamespaceBinding("pic", PIC_NS),
 )
 
 _RESERVED_ET_PREFIX_RE = re.compile(r"ns\d+$")
@@ -108,6 +124,10 @@ def _w_val(el: ET.Element | None) -> str:
     if el is None:
         return ""
     return str(el.get(f"{W}val") or "")
+
+
+def local_name(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1]
 
 
 def _run_prop_enabled(el: ET.Element | None) -> bool:

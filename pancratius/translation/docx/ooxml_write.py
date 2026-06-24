@@ -12,6 +12,11 @@ from pathlib import Path
 from typing import assert_never
 
 from pancratius.ooxml import (
+    DRAWING_METADATA_DESCRIPTION_ATTR,
+    DRAWING_METADATA_ELEMENT_TAGS,
+    DRAWING_METADATA_NAME_ATTR,
+    DRAWING_METADATA_TITLE_ATTR,
+    DRAWING_METADATA_WORD_PART_RE,
     HYPERLINK_REL_TYPE,
     REL,
     XML_SPACE,
@@ -161,40 +166,52 @@ def _append_ooxml_run(
     p.append(hyperlink)
 
 
-def _local_name(tag: str) -> str:
-    return tag.rsplit("}", 1)[-1]
-
-
 def _replace_image_metadata(p: ET.Element, unit: MarkdownTransferUnit) -> None:
     alt_text = unit.plain_text.strip()
     for index, docpr in enumerate(
-        (element for element in p.iter() if _local_name(element.tag) in {"docPr", "cNvPr"}),
+        (element for element in p.iter() if element.tag in DRAWING_METADATA_ELEMENT_TAGS),
         start=1,
     ):
         if alt_text:
             name = alt_text if index == 1 else f"{alt_text} {index}"
-            docpr.set("name", name)
-            docpr.set("descr", alt_text)
+            docpr.set(DRAWING_METADATA_NAME_ATTR, name)
+            docpr.set(DRAWING_METADATA_DESCRIPTION_ATTR, alt_text)
         else:
-            docpr.set("name", f"Drawing {index}")
-            docpr.attrib.pop("descr", None)
+            docpr.set(DRAWING_METADATA_NAME_ATTR, f"Drawing {index}")
+            docpr.attrib.pop(DRAWING_METADATA_DESCRIPTION_ATTR, None)
 
 
 def _has_cyrillic(value: str) -> bool:
     return bool(re.search(r"[А-Яа-яЁё]", value))
 
 
-def _sanitize_drawing_metadata(root: ET.Element) -> None:
+def _sanitize_drawing_metadata(root: ET.Element) -> bool:
+    changed = False
     for index, docpr in enumerate(
-        (element for element in root.iter() if _local_name(element.tag) in {"docPr", "cNvPr"}),
+        (element for element in root.iter() if element.tag in DRAWING_METADATA_ELEMENT_TAGS),
         start=1,
     ):
-        name = str(docpr.get("name") or "")
-        descr = str(docpr.get("descr") or "")
+        name = str(docpr.get(DRAWING_METADATA_NAME_ATTR) or "")
+        descr = str(docpr.get(DRAWING_METADATA_DESCRIPTION_ATTR) or "")
+        title = str(docpr.get(DRAWING_METADATA_TITLE_ATTR) or "")
         if _has_cyrillic(name):
-            docpr.set("name", f"Drawing {index}")
+            docpr.set(DRAWING_METADATA_NAME_ATTR, f"Drawing {index}")
+            changed = True
         if _has_cyrillic(descr):
-            docpr.attrib.pop("descr", None)
+            docpr.attrib.pop(DRAWING_METADATA_DESCRIPTION_ATTR, None)
+            changed = True
+        if _has_cyrillic(title):
+            docpr.attrib.pop(DRAWING_METADATA_TITLE_ATTR, None)
+            changed = True
+    return changed
+
+
+def _sanitize_drawing_metadata_parts(parts: dict[str, bytes]) -> None:
+    for part_name in sorted(name for name in parts if DRAWING_METADATA_WORD_PART_RE.fullmatch(name)):
+        source_xml = parts[part_name]
+        root = ET.fromstring(source_xml)
+        if _sanitize_drawing_metadata(root):
+            parts[part_name] = serialize_xml(root, source_xml=source_xml)
 
 
 def _parent_map(root: ET.Element) -> dict[ET.Element, ET.Element]:
@@ -652,6 +669,7 @@ replace_paragraph_text = _replace_paragraph_text
 unit_has_hyperlink = _unit_has_hyperlink
 remove_ignored_word_slots = _remove_ignored_word_slots
 sanitize_drawing_metadata = _sanitize_drawing_metadata
+sanitize_drawing_metadata_parts = _sanitize_drawing_metadata_parts
 replace_embedded_cover_data_uri = _replace_embedded_cover_data_uri
 replace_footnotes = _replace_footnotes
 write_docx_parts = _write_docx_parts

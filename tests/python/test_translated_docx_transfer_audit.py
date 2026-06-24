@@ -168,6 +168,27 @@ def test_translated_docx_transfer_accepts_matching_footnote_table(tmp_path: Path
     assert result.returncode == 0, result.stderr
 
 
+def test_translated_docx_transfer_rejects_cyrillic_drawing_metadata(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        document_extra=(
+            '<w:p><w:r><w:drawing>'
+            '<wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">'
+            '<wp:docPr id="1" name="Рисунок 1" descr="Иллюстрация" />'
+            '<wp:cNvGraphicFramePr />'
+            "</wp:inline>"
+            "</w:drawing></w:r></w:p>"
+        ),
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 1
+    assert "word/document.xml docPr@name contains Cyrillic text 'Рисунок 1'" in result.stderr
+    assert "word/document.xml docPr@descr contains Cyrillic text 'Иллюстрация'" in result.stderr
+
+
 def test_translated_docx_transfer_scans_poetry_translations(tmp_path: Path) -> None:
     root = _content_root(tmp_path)
     _write_docx(
