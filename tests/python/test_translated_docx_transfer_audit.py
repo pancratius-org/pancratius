@@ -6,6 +6,8 @@ import sys
 import zipfile
 from pathlib import Path
 
+from pancratius.translation.docx.audit import audit_translated_docx_artifacts
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPO_ROOT / "audit" / "python" / "translated_docx_transfer.py"
 REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
@@ -114,6 +116,39 @@ def test_translated_docx_transfer_accepts_clean_translated_docx(tmp_path: Path) 
     result = _run_audit(root)
 
     assert result.returncode == 0, result.stderr
+
+
+def test_translated_docx_transfer_package_audit_reports_checked_artifacts(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(root)
+    _write_docx(root, collection="poetry", work="verse")
+
+    report = audit_translated_docx_artifacts(root)
+
+    assert report.checked == 2
+    assert not report.failed
+    assert not report.issues
+
+
+def test_translated_docx_transfer_package_audit_reports_failures(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    docx = _write_docx(
+        root,
+        document_extra='<w:p><w:r><w:footnoteReference w:id="1" /></w:r></w:p>',
+        footnotes_xml=(
+            f'<w:footnotes xmlns:w="{W_NS}">'
+            '<w:footnote w:id="2"><w:p><w:r><w:t>Note</w:t></w:r></w:p></w:footnote>'
+            "</w:footnotes>"
+        ),
+    )
+
+    report = audit_translated_docx_artifacts(root)
+
+    assert report.failed
+    assert len(report.issues) == 1
+    assert report.issues[0].path == docx
+    assert "body footnote reference ids [1]" in report.issues[0].message
+    assert "positive footnote definition ids [2]" in report.issues[0].message
 
 
 def test_translated_docx_transfer_accepts_matching_footnote_table(tmp_path: Path) -> None:
