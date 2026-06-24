@@ -6,14 +6,12 @@ import sys
 import zipfile
 from pathlib import Path
 
+from pancratius.ooxml import R_NS, REL_NS, W_NS
 from pancratius.translation.docx.audit import audit_translated_docx_artifacts
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPO_ROOT / "audit" / "python" / "translated_docx_transfer.py"
-REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
-OFFICE_REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-OFFICE_DOCUMENT_REL = f"{OFFICE_REL_NS}/officeDocument"
-W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+OFFICE_DOCUMENT_REL = f"{R_NS}/officeDocument"
 
 
 def _content_root(tmp_path: Path) -> Path:
@@ -38,7 +36,7 @@ def _write_docx(
 ) -> Path:
     docx = _docx_path(root, collection=collection, work=work)
     document_xml = (
-        f'<w:document xmlns:w="{W_NS}" xmlns:r="{OFFICE_REL_NS}">'
+        f'<w:document xmlns:w="{W_NS}" xmlns:r="{R_NS}">'
         "<w:body>"
         "<w:p><w:r><w:t>Light</w:t></w:r></w:p>"
         f"{document_extra}"
