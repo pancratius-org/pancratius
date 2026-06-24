@@ -12,9 +12,13 @@ import pytest
 
 from pancratius.ooxml import (
     HYPERLINK_REL_TYPE,
+    R_NS,
     REL,
+    REL_NS,
+    W_NS,
     NamespaceBinding,
     R,
+    W,
     serialize_relationships,
     serialize_xml,
 )
@@ -44,8 +48,6 @@ from pancratius.translation.docx.ooxml_write import (
     write_docx_parts,
 )
 
-W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-W = f"{{{W_NS}}}"
 SOURCE_TEXT_ALIGNMENT_EVIDENCE_CASES: tuple[
     tuple[str, str, TextAlignmentVariantReason, SourceDocxTextVariantReason],
     ...,
@@ -1856,11 +1858,10 @@ def test_translate_docx_batch_treats_existing_translated_docx_as_source(
 
 def test_markdown_render_backend_repairs_unbound_relationship_prefix() -> None:
     xml = (
-        b'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
-        b'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
-        b'<w:footerReference ns11:id="rId1" w:type="default" />'
-        b"</w:document>"
-    )
+        f'<w:document xmlns:w="{W_NS}" xmlns:r="{R_NS}">'
+        '<w:footerReference ns11:id="rId1" w:type="default" />'
+        "</w:document>"
+    ).encode()
 
     repaired = repair_unbound_relationship_prefixes(xml)
 
@@ -1874,11 +1875,11 @@ def test_markdown_render_backend_dedupes_media_payloads_and_retargets_relationsh
         "word/media/image1.png": b"same",
         "word/media/image2.png": b"different",
         "word/_rels/document.xml.rels": (
-            b'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-            b'<Relationship Id="rId1" Type="image" Target="media/rId1.png" />'
-            b'<Relationship Id="rId2" Type="image" Target="media/image2.png" />'
-            b"</Relationships>"
-        ),
+            f'<Relationships xmlns="{REL_NS}">'
+            '<Relationship Id="rId1" Type="image" Target="media/rId1.png" />'
+            '<Relationship Id="rId2" Type="image" Target="media/image2.png" />'
+            "</Relationships>"
+        ).encode(),
     }
 
     dedupe_media_payloads(parts)

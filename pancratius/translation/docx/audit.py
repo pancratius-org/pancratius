@@ -8,13 +8,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-WORK_COLLECTIONS = ("books", "poetry")
-W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-W = f"{{{W_NS}}}"
+from pancratius.ooxml import W
 
 type DocxPartName = str
 type WordElementName = str
 type WordFootnoteId = int
+
+WORK_COLLECTIONS = ("books", "poetry")
 
 
 @dataclass(frozen=True, slots=True)
