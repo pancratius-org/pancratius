@@ -47,7 +47,6 @@ duplicated, or unreferenced body IDs fail the transfer.
 - `batch.py`: target discovery, writer plans, and replacement rules.
 - `report.py`: human and JSON summaries.
 - `audit.py`: committed translated DOCX artifact checks behind PAN025.
-- `pipeline.py`: compatibility facade for older internal imports.
 
 ## Gates
 
