@@ -22,3 +22,25 @@ export const pan010DocxIntegrity: Rule = {
     });
   },
 };
+
+export const pan025TranslatedDocxTransfer: Rule = {
+  id: "PAN025-translated-docx-transfer",
+  title:
+    "PAN025: translated DOCX transfer keeps footnote tables coherent",
+  tier: "core",
+  run(ctx: RuleContext): Finding[] {
+    return runPythonCheck(ctx, {
+      id: "PAN025-translated-docx-transfer",
+      category: "translated-docx-transfer",
+      severity: "fatal",
+      script: "python/translated_docx_transfer.py",
+      contract:
+        "Committed translated work DOCX files are source after bootstrap. Body footnote references must be positive integer IDs that match positive footnote definitions in the same package.",
+      why: "After transfer, the DOCX is the editable source. A broken footnote table makes the source artifact lie even when the sibling Markdown still appears acceptable.",
+      repair:
+        "Regenerate or repair the affected translated DOCX through the DOCX transfer tooling, then re-import/check the sibling Markdown. If the DOCX was manually edited, fix the footnote references and definitions in the document itself.",
+      doNotFixBy:
+        "Suppressing the audit, deleting footnote definitions, or editing only Markdown while leaving the committed translated DOCX footnotes inconsistent.",
+    });
+  },
+};
