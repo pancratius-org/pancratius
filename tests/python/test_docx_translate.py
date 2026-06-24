@@ -5,11 +5,20 @@ import re
 import shutil
 import xml.etree.ElementTree as ET
 import zipfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import get_args
 
 import pytest
 
+from pancratius.content_catalog import CatalogEntry
+from pancratius.docx_roundtrip import (
+    DocxRoundTripError,
+    DocxRoundTripFinding,
+    DocxRoundTripReport,
+    DocxRoundTripTarget,
+)
 from pancratius.ooxml import (
     HYPERLINK_REL_TYPE,
     R_NS,
@@ -49,6 +58,7 @@ from pancratius.translation.docx.ooxml_write import (
     sanitize_drawing_metadata_parts,
     write_docx_parts,
 )
+from pancratius.writeplan import Diagnostic
 
 SOURCE_TEXT_ALIGNMENT_EVIDENCE_CASES: tuple[
     tuple[str, str, TextAlignmentVariantReason, SourceDocxTextVariantReason],
@@ -394,6 +404,7 @@ def _word_slot(ordinal: int, text: str, *, has_drawing: bool = False) -> WordTex
 
 
 def _write_catalog_book_md(path: Path, *, number: int, lang: str, title: str, body: str) -> None:
+    translation_source = "original" if lang == "ru" else "ai"
     _write_md(
         path,
         f"""---
@@ -403,6 +414,10 @@ slug: test
 title: {title}
 lang: {lang}
 description: Test
+tags: []
+cover: null
+translation:
+  source: {translation_source}
 ---
 
 {body}
@@ -1897,6 +1912,158 @@ def test_translate_docx_batch_treats_existing_translated_docx_as_source(
         translate_docx_batch(content_root=content_root, lang="en", dry_run=True, limit=-1)
     with pytest.raises(DocxTranslationError, match="--limit cannot be combined"):
         translate_docx_batch(content_root=content_root, book=1, lang="en", dry_run=True, limit=1)
+
+
+def test_translate_docx_batch_refuses_roundtrip_unsafe_staged_docx(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import pancratius.translation.docx.batch as docx_batch
+
+    content_root = tmp_path / "content"
+    book_dir = content_root / "books" / "01-test"
+    book_dir.mkdir(parents=True)
+    _write_paragraph_docx(book_dir / "ru.docx", ["Свет"])
+    _write_catalog_book_md(book_dir / "ru.md", number=1, lang="ru", title="Тест", body="Свет\n")
+    _write_catalog_book_md(book_dir / "en.md", number=1, lang="en", title="Test", body="Light\n")
+
+    def fake_render_translated_docx(
+        *,
+        source_docx: Path,
+        source_md: Path,
+        translated_md: Path,
+        out: Path,
+    ) -> tuple[int, int, int, tuple[Diagnostic, ...]]:
+        del source_docx, source_md, translated_md
+        out.write_bytes(b"staged docx")
+        return 1, 1, 1, ()
+
+    class FakeWorkspace:
+        def check(
+            self,
+            *,
+            entry: CatalogEntry,
+            md_path: Path,
+            docx_path: Path,
+            lang: str,
+        ) -> DocxRoundTripReport:
+            del lang
+            return DocxRoundTripReport(
+                target=DocxRoundTripTarget(entry=entry, md_path=md_path, docx_path=docx_path),
+                verdict="fail",
+                findings=(
+                    DocxRoundTripFinding(
+                        "fatal",
+                        "roundtrip.visible-text-drift",
+                        "visible text changed",
+                    ),
+                ),
+                committed_chars=5,
+                imported_chars=0,
+            )
+
+    @contextmanager
+    def fake_workspace(*, content_root: Path) -> Iterator[FakeWorkspace]:
+        del content_root
+        yield FakeWorkspace()
+
+    monkeypatch.setattr(docx_batch, "render_translated_docx", fake_render_translated_docx)
+    monkeypatch.setattr(docx_batch, "staged_docx_roundtrip_workspace", fake_workspace)
+
+    batch = docx_batch.translate_docx_batch(content_root=content_root, book=1, lang="en")
+
+    assert batch.failed
+    assert not (book_dir / "en.docx").exists()
+    diagnostics = batch.reports[0].write_report.diagnostics
+    assert any(
+        diagnostic.severity == "fatal"
+        and diagnostic.code == "roundtrip.visible-text-drift"
+        for diagnostic in diagnostics
+    )
+
+
+def test_translate_docx_batch_records_roundtrip_checker_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import pancratius.translation.docx.batch as docx_batch
+
+    content_root = tmp_path / "content"
+    book_dir = content_root / "books" / "01-test"
+    book_dir.mkdir(parents=True)
+    _write_paragraph_docx(book_dir / "ru.docx", ["Свет"])
+    _write_catalog_book_md(book_dir / "ru.md", number=1, lang="ru", title="Тест", body="Свет\n")
+    _write_catalog_book_md(book_dir / "en.md", number=1, lang="en", title="Test", body="Light\n")
+
+    def fake_render_translated_docx(
+        *,
+        source_docx: Path,
+        source_md: Path,
+        translated_md: Path,
+        out: Path,
+    ) -> tuple[int, int, int, tuple[Diagnostic, ...]]:
+        del source_docx, source_md, translated_md
+        out.write_bytes(b"staged docx")
+        return 1, 1, 1, ()
+
+    class FailingWorkspace:
+        def check(self, **_kwargs: object) -> DocxRoundTripReport:
+            raise DocxRoundTripError("pandoc failed")
+
+    @contextmanager
+    def fake_workspace(*, content_root: Path) -> Iterator[FailingWorkspace]:
+        del content_root
+        yield FailingWorkspace()
+
+    monkeypatch.setattr(docx_batch, "render_translated_docx", fake_render_translated_docx)
+    monkeypatch.setattr(docx_batch, "staged_docx_roundtrip_workspace", fake_workspace)
+
+    batch = docx_batch.translate_docx_batch(content_root=content_root, book=1, lang="en")
+
+    assert batch.failed
+    assert not (book_dir / "en.docx").exists()
+    assert any(
+        diagnostic.severity == "fatal"
+        and diagnostic.code == "docx-translate.roundtrip-check-failed"
+        and "pandoc failed" in diagnostic.message
+        for diagnostic in batch.reports[0].write_report.diagnostics
+    )
+
+
+def test_translate_docx_batch_refuses_missing_staged_docx(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import pancratius.translation.docx.batch as docx_batch
+
+    content_root = tmp_path / "content"
+    book_dir = content_root / "books" / "01-test"
+    book_dir.mkdir(parents=True)
+    _write_paragraph_docx(book_dir / "ru.docx", ["Свет"])
+    _write_catalog_book_md(book_dir / "ru.md", number=1, lang="ru", title="Тест", body="Свет\n")
+    _write_catalog_book_md(book_dir / "en.md", number=1, lang="en", title="Test", body="Light\n")
+
+    def fake_render_translated_docx(
+        *,
+        source_docx: Path,
+        source_md: Path,
+        translated_md: Path,
+        out: Path,
+    ) -> tuple[int, int, int, tuple[Diagnostic, ...]]:
+        del source_docx, source_md, translated_md, out
+        return 1, 1, 1, ()
+
+    monkeypatch.setattr(docx_batch, "render_translated_docx", fake_render_translated_docx)
+
+    batch = docx_batch.translate_docx_batch(content_root=content_root, book=1, lang="en")
+
+    assert batch.failed
+    assert not (book_dir / "en.docx").exists()
+    assert any(
+        diagnostic.severity == "fatal"
+        and diagnostic.code == "docx-translate.missing-staged-docx"
+        for diagnostic in batch.reports[0].write_report.diagnostics
+    )
 
 
 def test_markdown_render_backend_repairs_unbound_relationship_prefix() -> None:

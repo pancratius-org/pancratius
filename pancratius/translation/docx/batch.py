@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import tempfile
+from contextlib import ExitStack
 from pathlib import Path, PurePosixPath
 from typing import assert_never
 
 from pancratius.content_catalog import scan_catalog
+from pancratius.docx_roundtrip import (
+    DocxRoundTripError,
+    DocxRoundTripFinding,
+    staged_docx_roundtrip_workspace,
+)
 from pancratius.kinds import SEGMENT_OF
 from pancratius.locales import DEFAULT_LOCALE, Locale
 from pancratius.paths import CONTENT_ROOT
@@ -130,6 +136,18 @@ def _target_scope(target: BookDocxTranslationTarget) -> PurePosixPath:
     return PurePosixPath(segment) / target.source_entry.work_dir.name
 
 
+def _roundtrip_diagnostics(findings: tuple[DocxRoundTripFinding, ...]) -> tuple[Diagnostic, ...]:
+    return tuple(
+        Diagnostic(
+            finding.severity,
+            finding.code,
+            finding.message,
+        )
+        for finding in findings
+        if finding.severity != "info"
+    )
+
+
 def translate_docx_batch(
     *,
     content_root: Path = CONTENT_ROOT,
@@ -160,81 +178,109 @@ def translate_docx_batch(
     if limit:
         targets = targets[:limit]
     reports: list[DocxTranslationReport] = []
-    for target in targets:
-        diagnostics: list[Diagnostic] = []
-        if target.translated_docx.exists() and not replace:
-            diagnostics.append(Diagnostic(
-                "fatal",
-                "docx-translate.overwrite-refused",
-                (
-                    f"{target.translated_docx} exists; after bootstrap, translated DOCX is "
-                    "source. Pass --replace with this explicit book only if you intend to "
-                    "discard DOCX-side edits."
-                ),
-            ))
-            plan = WritePlan(
-                target_root=content_root,
-                target_scope=_target_scope(target),
-                operations=(EnsureDirOp(_target_scope(target), "source_artifact", "work bundle"),),
-                diagnostics=tuple(diagnostics),
-                replace=replace,
-                source_document=target.source_docx,
-            )
-            reports.append(DocxTranslationReport(
-                target=target,
-                write_report=apply_plan(plan, dry_run=True),
-                source_units=0,
-                translated_units=0,
-                aligned_units=0,
-            ))
-            continue
-
-        with tempfile.TemporaryDirectory(prefix="pancratius-docx-translate-") as tmp:
-            staged = Path(tmp) / target.translated_docx.name
-            if backend == "transfer":
-                source_units, translated_units, aligned_units, transfer_diags = render_translated_docx(
-                    source_docx=target.source_docx,
-                    source_md=target.source_md,
-                    translated_md=target.translated_md,
-                    out=staged,
-                )
-            elif backend == "markdown-render":
-                source_units, translated_units, aligned_units, transfer_diags = render_markdown_docx(
-                    target=target,
-                    lang=lang,
-                    out=staged,
-                )
-            else:
-                assert_never(backend)
-            diagnostics.extend(transfer_diags)
-            scope = _target_scope(target)
-            rel_docx = scope / target.translated_docx.name
-            operations: list[EnsureDirOp | CopyOp] = [
-                EnsureDirOp(scope, "source_artifact", "work bundle"),
-            ]
-            if staged.exists():
-                operations.append(CopyOp(
-                    rel_path=rel_docx,
-                    role="source_artifact",
-                    reason=f"translated DOCX from {target.source_docx.name}, {target.source_md.name}, and {target.translated_md.name}",
-                    source=staged,
+    with ExitStack() as stack:
+        roundtrip_workspace = None
+        for target in targets:
+            diagnostics: list[Diagnostic] = []
+            if target.translated_docx.exists() and not replace:
+                diagnostics.append(Diagnostic(
+                    "fatal",
+                    "docx-translate.overwrite-refused",
+                    (
+                        f"{target.translated_docx} exists; after bootstrap, translated DOCX is "
+                        "source. Pass --replace with this explicit book only if you intend to "
+                        "discard DOCX-side edits."
+                    ),
                 ))
-            plan = WritePlan(
-                target_root=content_root,
-                target_scope=scope,
-                operations=tuple(operations),
-                diagnostics=tuple(diagnostics),
-                replace=replace,
-                source_document=target.source_docx,
-            )
-            write_report = apply_plan(plan, dry_run=dry_run)
-            reports.append(DocxTranslationReport(
-                target=target,
-                write_report=write_report,
-                source_units=source_units,
-                translated_units=translated_units,
-                aligned_units=aligned_units,
-                backend=backend,
-                output=target.translated_docx,
-            ))
+                plan = WritePlan(
+                    target_root=content_root,
+                    target_scope=_target_scope(target),
+                    operations=(EnsureDirOp(_target_scope(target), "source_artifact", "work bundle"),),
+                    diagnostics=tuple(diagnostics),
+                    replace=replace,
+                    source_document=target.source_docx,
+                )
+                reports.append(DocxTranslationReport(
+                    target=target,
+                    write_report=apply_plan(plan, dry_run=True),
+                    source_units=0,
+                    translated_units=0,
+                    aligned_units=0,
+                ))
+                continue
+
+            with tempfile.TemporaryDirectory(prefix="pancratius-docx-translate-") as tmp:
+                staged = Path(tmp) / target.translated_docx.name
+                if backend == "transfer":
+                    source_units, translated_units, aligned_units, transfer_diags = render_translated_docx(
+                        source_docx=target.source_docx,
+                        source_md=target.source_md,
+                        translated_md=target.translated_md,
+                        out=staged,
+                    )
+                elif backend == "markdown-render":
+                    source_units, translated_units, aligned_units, transfer_diags = render_markdown_docx(
+                        target=target,
+                        lang=lang,
+                        out=staged,
+                    )
+                else:
+                    assert_never(backend)
+                diagnostics.extend(transfer_diags)
+                if not staged.exists():
+                    diagnostics.append(Diagnostic(
+                        "fatal",
+                        "docx-translate.missing-staged-docx",
+                        f"{backend} did not produce {staged.name}.",
+                    ))
+                else:
+                    if roundtrip_workspace is None:
+                        roundtrip_workspace = stack.enter_context(staged_docx_roundtrip_workspace(
+                            content_root=content_root,
+                        ))
+                    try:
+                        roundtrip = roundtrip_workspace.check(
+                            entry=target.translated_entry,
+                            md_path=target.translated_md,
+                            docx_path=staged,
+                            lang=lang,
+                        )
+                    except DocxRoundTripError as exc:
+                        diagnostics.append(Diagnostic(
+                            "fatal",
+                            "docx-translate.roundtrip-check-failed",
+                            str(exc),
+                        ))
+                    else:
+                        diagnostics.extend(_roundtrip_diagnostics(roundtrip.findings))
+                scope = _target_scope(target)
+                rel_docx = scope / target.translated_docx.name
+                operations: list[EnsureDirOp | CopyOp] = [
+                    EnsureDirOp(scope, "source_artifact", "work bundle"),
+                ]
+                if staged.exists() and not any(diagnostic.severity == "fatal" for diagnostic in diagnostics):
+                    operations.append(CopyOp(
+                        rel_path=rel_docx,
+                        role="source_artifact",
+                        reason=f"translated DOCX from {target.source_docx.name}, {target.source_md.name}, and {target.translated_md.name}",
+                        source=staged,
+                    ))
+                plan = WritePlan(
+                    target_root=content_root,
+                    target_scope=scope,
+                    operations=tuple(operations),
+                    diagnostics=tuple(diagnostics),
+                    replace=replace,
+                    source_document=target.source_docx,
+                )
+                write_report = apply_plan(plan, dry_run=dry_run)
+                reports.append(DocxTranslationReport(
+                    target=target,
+                    write_report=write_report,
+                    source_units=source_units,
+                    translated_units=translated_units,
+                    aligned_units=aligned_units,
+                    backend=backend,
+                    output=target.translated_docx,
+                ))
     return DocxTranslationBatch(tuple(reports), discovery=discovery)
