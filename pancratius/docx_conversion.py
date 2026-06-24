@@ -6,7 +6,6 @@ import unicodedata
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from functools import cache
 from pathlib import Path, PurePosixPath
 from typing import Any, Literal
 
@@ -23,6 +22,7 @@ from pancratius import (
     scripture_overrides,
 )
 from pancratius.content_catalog import IndexHit, dump_frontmatter
+from pancratius.intent_inference import artifacts as register_artifacts
 from pancratius.kinds import CorpusWorkKind
 from pancratius.locales import Locale
 from pancratius.passes import assets
@@ -31,13 +31,10 @@ from pancratius.passes.pipeline import (
     BibliographyLookup,
     Context,
     LineationCorrections,
-    ModelBackedRegister,
-    RulesOnlyRegister,
     ScripturePins,
     run,
 )
-from pancratius.passes.register import RegisterModel, load_register_model
-from pancratius.paths import CACHE_ROOT, REPO_ROOT
+from pancratius.paths import CACHE_ROOT
 from pancratius.poem_chrome import PoemChrome, clean_poem_chrome
 from pancratius.writeplan import (
     AssetTransform,
@@ -217,20 +214,6 @@ def _ordered_bibliography_entry(entry: BibliographyEntry) -> BibliographyEntry:
     return ordered
 
 
-# The committed register-model artifact. The composition point owns artifact
-# location and injection; the artifact's own `langs` field bounds its validity.
-_REGISTER_MODEL_PATH = REPO_ROOT / "data" / "models" / "verse_register_v1.json"
-
-
-@cache
-def load_register_model_for(lang: Locale) -> RegisterModel | None:
-    """The committed artifact when it covers `lang`, loaded once per process."""
-    model = load_register_model(_REGISTER_MODEL_PATH)
-    if model is None or lang not in model.langs:
-        return None
-    return model
-
-
 def convert_single_docx(
     docx: Path,
     *,
@@ -267,23 +250,20 @@ def convert_single_docx(
                              f"take no scripture pins — remove it")
         doc = run(doc, Context(lang=lang, diagnostics=diagnostics), POEM_PASSES)
     else:
-        register_model = load_register_model_for(lang)
-        if register_model is None and not _REGISTER_MODEL_PATH.exists():
+        register_policy = register_artifacts.load_register_policy_for(lang)
+        if register_policy.missing_artifact is not None:
             # An absent artifact FILE is a configuration state worth recording;
             # a lang outside the artifact's validity domain is not.
             diagnostics.append(ir.Diagnostic(
                 "info", "register.model",
-                f"no register model artifact at {_REGISTER_MODEL_PATH.name}; rules decide alone",
+                f"no register model artifact at "
+                f"{register_policy.missing_artifact.name}; rules decide alone",
             ))
         doc = run(doc, Context(
             lang=lang,
             demote_levels=1,
             bibliography=BibliographyLookup(title_index),
-            register_classifier=(
-                ModelBackedRegister(register_model)
-                if register_model is not None
-                else RulesOnlyRegister()
-            ),
+            register_policy=register_policy.policy,
             lineation=LineationCorrections(lineation_overrides.load_overrides(docx)),
             scripture=ScripturePins(scripture_overrides.load_overrides(docx)),
             diagnostics=diagnostics,

@@ -4,27 +4,54 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+import pytest
+
 from pancratius import ir
-from pancratius.ir.inlines import inline_plain
-from pancratius.docx_conversion import load_register_model_for
-from pancratius.passes.pipeline import Context, ModelBackedRegister, ScripturePins
-from pancratius.passes.register import (
+from pancratius.intent_inference.artifacts import load_register_policy_for
+from pancratius.intent_inference.decisions import (
+    ArtifactId,
+    DecisionOutcome,
+    FeatureSetId,
+    IntentTask,
+    PredictorRef,
+    RegisterDecision,
+    RegisterDecisionReason,
+    SchemaId,
+    ScorerFamily,
+)
+from pancratius.intent_inference.observations import RegisterCandidate, RegisterDocumentContext
+from pancratius.intent_inference.policies import ModelBackedRegisterPolicy, PolicyMode
+from pancratius.intent_inference.scorers.standardized_linear import (
     FEATURE_NAMES,
-    RegisterModel,
+    StandardizedLinearRegisterScorer,
+)
+from pancratius.ir.inlines import inline_plain
+from pancratius.passes.pipeline import Context, ScripturePins
+from pancratius.passes.register import (
     SpanLabel,
     assign_register,
     scaffold_line_labeler,
     segment_lineated,
 )
 
+_TEST_PREDICTOR = PredictorRef(
+    task=IntentTask.DISPLAY_REGISTER,
+    artifact_id=ArtifactId("test-register-model"),
+    artifact_schema=SchemaId.REGISTER_ARTIFACT_V1,
+    observation_schema=SchemaId.REGISTER_OBSERVATION_V1,
+    label_space=SchemaId.DISPLAY_REGISTER_LABELS_V1,
+    scorer_family=ScorerFamily.STANDARDIZED_LINEAR_V1,
+    feature_set=FeatureSetId.VERSE_REGISTER_FEATURES_V1,
+)
 
-def _model(*, bias: float) -> RegisterModel:
+
+def _model(*, bias: float) -> StandardizedLinearRegisterScorer:
     """A constant model: p = sigmoid(bias) for every block."""
     n = len(FEATURE_NAMES)
-    return RegisterModel(
+    return StandardizedLinearRegisterScorer(
         version=0, langs=("ru",), features=FEATURE_NAMES,
         mean=(0.0,) * n, std=(1.0,) * n, coef=(0.0,) * n,
-        intercept=bias, threshold=0.6,
+        intercept=bias, threshold=0.6, predictor_ref=_TEST_PREDICTOR,
     )
 
 
@@ -45,9 +72,9 @@ def _lineated(*lines: str, evidence: ir.LineationEvidence | None = None) -> ir.L
     )
 
 
-def _ctx(model: RegisterModel | None) -> Context:
+def _ctx(model: StandardizedLinearRegisterScorer | None) -> Context:
     return (
-        Context(lang="ru", register_classifier=ModelBackedRegister(model))
+        Context(lang="ru", register_policy=ModelBackedRegisterPolicy(model))
         if model is not None
         else Context(lang="ru")
     )
@@ -79,12 +106,12 @@ def test_model_over_threshold_promotes() -> None:
 
 
 def test_shipped_model_promotes_where_rules_do_not_and_reports_delta() -> None:
-    model = load_register_model_for("ru")
-    assert model is not None
+    policy_load = load_register_policy_for("ru")
+    assert policy_load.missing_artifact is None
     block = _lineated("Тихая строка,", "ещё одна строка.")
 
     rules = assign_register(_doc(block), Context(lang="ru"))
-    with_model_ctx = Context(lang="ru", register_classifier=ModelBackedRegister(model))
+    with_model_ctx = Context(lang="ru", register_policy=policy_load.policy)
     with_model = assign_register(_doc(block), with_model_ctx)
 
     assert not _is_verse(rules.blocks[0])
@@ -143,17 +170,17 @@ def test_equations_are_never_promoted() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _dash_poison_model() -> RegisterModel:
+def _dash_poison_model() -> StandardizedLinearRegisterScorer:
     """A model whose probability collapses below threshold as the dash-line rate
     rises: a verse body alone clears 0.6, the same body with a dash island sinks.
     Used to prove the verdict reads the verse-candidate view, not the monolith."""
     n = len(FEATURE_NAMES)
     coef = [0.0] * n
     coef[FEATURE_NAMES.index("dash_rate")] = -6.0
-    return RegisterModel(
+    return StandardizedLinearRegisterScorer(
         version=0, langs=("ru",), features=FEATURE_NAMES,
         mean=(0.0,) * n, std=(1.0,) * n, coef=tuple(coef),
-        intercept=1.0, threshold=0.6,
+        intercept=1.0, threshold=0.6, predictor_ref=_TEST_PREDICTOR,
     )
 
 
@@ -490,6 +517,68 @@ def test_existing_verse_blocks_keep_coda_machinery() -> None:
     assert isinstance(doc.blocks[1], ir.Heading)
 
 
+def test_model_promoted_block_keeps_coda_machinery() -> None:
+    doc = _doc(
+        ir.LineatedBlock(
+            stanzas=[[
+                _spanned_line("Тихая строка,", 10),
+                _spanned_line("ещё одна строка.", 11),
+            ]],
+            source_span=ir.SourceSpan(10, 11),
+        ),
+        ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True)),
+        ir.LineatedBlock(
+            stanzas=[[
+                _spanned_line("Ты читал.", 13),
+                _spanned_line("Я писал.", 14),
+            ]],
+            source_span=ir.SourceSpan(13, 14),
+        ),
+        ir.Heading(level=2, inlines=[ir.Text("Глава")]),
+    )
+    ctx = _ctx(PROMOTE)
+
+    doc = assign_register(doc, ctx)
+
+    first = doc.blocks[0]
+    assert isinstance(first, ir.LineatedBlock)
+    assert first.register is ir.Register.VERSE
+    assert len(first.stanzas) == 2
+    assert first.source_span == ir.SourceSpan(10, 14)
+    assert isinstance(doc.blocks[1], ir.Heading)
+    assert [(d.severity, d.code) for d in ctx.diagnostics] == [("info", "register.model")]
+
+
+def test_unmaterializable_policy_decision_fails_loud() -> None:
+    class RefusingPolicy:
+        name = "refusing-register"
+        mode = PolicyMode.RULES_ONLY
+        reports_model_delta = False
+        model_version = None
+
+        def decide_document(
+            self,
+            candidates: tuple[RegisterCandidate, ...],
+            context: RegisterDocumentContext,
+        ) -> tuple[RegisterDecision, ...]:
+            _ = context
+            return tuple(
+                RegisterDecision(
+                    subject=candidate.candidate_id,
+                    outcome=DecisionOutcome.REFUSE_CONTRACT,
+                    label=None,
+                    reason=RegisterDecisionReason.ARTIFACT_CONTRACT,
+                )
+                for candidate in candidates
+            )
+
+    with pytest.raises(ValueError, match="refused contract"):
+        assign_register(_doc(_lineated("Тихая строка,", "ещё одна строка.")), Context(
+            lang="ru",
+            register_policy=RefusingPolicy(),
+        ))
+
+
 # ---------------------------------------------------------------------------
 # SCRIPTURE line-class: in-verse canonical quote lines (segmentation × scripture)
 # ---------------------------------------------------------------------------
@@ -497,7 +586,7 @@ def test_existing_verse_blocks_keep_coda_machinery() -> None:
 
 def _pin_labeler(
     block: ir.LineatedBlock, *ords: int
-) -> Callable[[ir.Line], SpanLabel]:
+) -> Callable[[int, int, ir.Line], SpanLabel]:
     return scaffold_line_labeler(block, frozenset(ords))
 
 

@@ -8,29 +8,43 @@ in another voice. Border evidence is within-book contrastive: a kind covering
 a large share of the book's text paragraphs is the book's own frame, not a
 set-apart gesture.
 
-`assign_register` decides the verse register over lineated blocks: hard
-editorial guards first (named verse sections promote, scaffold shapes never
-do), then the trained register model where the composition point injected one
-(`Context.register_classifier`), the geometry ladder otherwise. A verse run is
-then segmented (`segment_lineated`): scaffold sub-runs (equations, dash
-enumerations) split out as `ORDINARY` fragments with honest line-derived
-spans. The feature producer and the model codec live here too — extraction,
-training, and this pass read one φ.
+`assign_register` decides the verse register over lineated blocks through the
+production intent-inference policy seam. This pass collects candidates,
+materializes returned decisions, and segments verse runs (`segment_lineated`):
+scaffold sub-runs (equations, dash enumerations) split out as `ORDINARY`
+fragments with honest line-derived spans.
 """
 
 from __future__ import annotations
 
-import json
-import math
 import re
 from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass, replace
 from enum import StrEnum
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pancratius import ir
+from pancratius.intent_inference.decisions import (
+    DecisionOutcome,
+    DisplayRegisterLabel,
+    RegisterDecision,
+    RegisterDecisionReason,
+)
+from pancratius.intent_inference.observations import (
+    RegisterCandidate,
+    RegisterDocumentContext,
+    RegisterModelContext,
+    RegisterObservation,
+    RegisterRuleContext,
+    RegisterRuleEvaluation,
+    lineated_plain_lines,
+    register_book_stats,
+    stable_register_candidate_id,
+    stanza_line_counts,
+)
+from pancratius.intent_inference.policies import RulesOnlyRegisterPolicy
 from pancratius.ir.inlines import inline_plain
+from pancratius.locales import Locale
 from pancratius.passes.lineation import (
     CODA_PSEUDO_HEADING_RE,
     VERSE_SHORT_LINE_MAX,
@@ -41,8 +55,6 @@ from pancratius.passes.lineation import (
 
 if TYPE_CHECKING:
     from pancratius.passes.context import Context
-
-from pancratius.passes.context import ModelBackedRegister, RulesOnlyRegister
 
 # ---------------------------------------------------------------------------
 # Q2a: bordered set-apart runs -> quote blocks
@@ -490,8 +502,15 @@ def _whole_quote_line_indices(texts: list[str]) -> set[int]:
     }
 
 
-def _scripture_line_ids(block: ir.LineatedBlock, pinned: frozenset[int]) -> set[int]:
-    """`id(line)` of every line that lowers as scripture inside `block`.
+type _LinePosition = tuple[int, int]
+type _LineLabeler = Callable[[int, int, ir.Line], SpanLabel]
+
+
+def _scripture_line_positions(
+    block: ir.LineatedBlock,
+    pinned: frozenset[int],
+) -> set[_LinePosition]:
+    """Positions of every line that lowers as scripture inside `block`.
 
     Three channels, mirroring the prose `wrap_scripture`:
     * a pinned source ordinal (sidecar canon-knowledge — the LUPI rail no text
@@ -500,26 +519,32 @@ def _scripture_line_ids(block: ir.LineatedBlock, pinned: frozenset[int]) -> set[
     * cite-adjacency — a whole «…» quote line whose neighboring display line
       (an equation/blank line is transparent to neither; immediate neighbor) is
       a bare citation line."""
-    flat = [line for stanza in block.stanzas for line in stanza]
-    texts = [inline_plain(line.inlines) for line in flat]
-    ids: set[int] = set()
-    for line, text in zip(flat, texts, strict=True):
+    flat = [
+        (si, li, line)
+        for si, stanza in enumerate(block.stanzas)
+        for li, line in enumerate(stanza)
+    ]
+    texts = [inline_plain(line.inlines) for _si, _li, line in flat]
+    positions: set[_LinePosition] = set()
+    for (si, li, line), text in zip(flat, texts, strict=True):
         if pinned and any(o in pinned for o in _line_ordinals(line)):
-            ids.add(id(line))
+            positions.add((si, li))
         elif text and _is_cited_quote_line(text):
-            ids.add(id(line))
+            positions.add((si, li))
     quotes = _whole_quote_line_indices(texts)
     refs = {i for i, t in enumerate(texts) if t and _is_ref_line(t)}
     for i in quotes:
         if any(0 <= j < len(flat) and j in refs for j in (i - 1, i + 1)):
-            ids.add(id(flat[i]))
-            ids.update(id(flat[j]) for j in (i - 1, i + 1) if j in refs)
-    return ids
+            positions.add((flat[i][0], flat[i][1]))
+            positions.update(
+                (flat[j][0], flat[j][1]) for j in (i - 1, i + 1) if j in refs
+            )
+    return positions
 
 
 def scaffold_line_labeler(
     block: ir.LineatedBlock, scripture_pins: frozenset[int] = frozenset(),
-) -> Callable[[ir.Line], SpanLabel]:
+) -> _LineLabeler:
     """The rules-only line classifier for `block`, from the scaffold and
     scripture line-classes that already exist as run/prose predicates.
 
@@ -530,21 +555,21 @@ def scaffold_line_labeler(
     shape the looser per-line dash demotion was refuted on. Scaffold wins over
     scripture (an equation line is never a canonical quote). `scripture_pins`
     are source ordinals adjudicated as in-verse canon; with the line-grain
-    citation channels they mark scripture quote lines (`_scripture_line_ids`)."""
-    dash_stanza_lines: set[int] = set()
-    for stanza in block.stanzas:
+    citation channels they mark scripture quote lines."""
+    dash_stanza_lines: set[_LinePosition] = set()
+    for si, stanza in enumerate(block.stanzas):
         texts = [t for line in stanza if (t := inline_plain(line.inlines))]
         if is_dash_scaffold(texts):
-            dash_stanza_lines.update(id(line) for line in stanza)
-    scripture_lines = _scripture_line_ids(block, scripture_pins)
+            dash_stanza_lines.update((si, li) for li, _line in enumerate(stanza))
+    scripture_lines = _scripture_line_positions(block, scripture_pins)
 
-    def label(line: ir.Line) -> SpanLabel:
+    def label(stanza_index: int, line_index: int, line: ir.Line) -> SpanLabel:
         text = inline_plain(line.inlines)
         if text and _is_equation_line(text):
             return SpanLabel.SCAFFOLD
-        if id(line) in dash_stanza_lines:
+        if (stanza_index, line_index) in dash_stanza_lines:
             return SpanLabel.SCAFFOLD
-        if id(line) in scripture_lines:
+        if (stanza_index, line_index) in scripture_lines:
             return SpanLabel.SCRIPTURE
         return SpanLabel.VERSE
 
@@ -553,13 +578,17 @@ def scaffold_line_labeler(
 
 def _segment_labels(
     block: ir.LineatedBlock,
-    label_of: Callable[[ir.Line], SpanLabel],
+    label_of: _LineLabeler,
 ) -> list[SpanLabel]:
     """Per-line labels over the flattened run, islands resolved: a scaffold
     sub-run below `_SCAFFOLD_SUBRUN_MIN` lines that is not itself a whole
     stanza rejoins the run's verse label."""
     stanza_of = [si for si, stanza in enumerate(block.stanzas) for _ in stanza]
-    labels = [label_of(line) for stanza in block.stanzas for line in stanza]
+    labels = [
+        label_of(si, li, line)
+        for si, stanza in enumerate(block.stanzas)
+        for li, line in enumerate(stanza)
+    ]
     stanza_sizes = [len(stanza) for stanza in block.stanzas]
     i = 0
     while i < len(labels):
@@ -634,7 +663,7 @@ def _segment_fragment(
 
 def segment_lineated(
     block: ir.LineatedBlock,
-    label_of: Callable[[ir.Line], SpanLabel],
+    label_of: _LineLabeler,
 ) -> list[ir.Block]:
     """Split one lineated run at register boundaries.
 
@@ -698,194 +727,33 @@ def _tile_fragment_spans(
         )
 
 
-# ---------------------------------------------------------------------------
-# the feature producer (one φ for extraction, training, and this pass)
-# ---------------------------------------------------------------------------
-
-_TERM_RE = re.compile(r"[.!?…]\s*$")
-_Q2P_RE = re.compile(r"\b(ты|тебя|тебе|тобой|твой|твоя|твоё|твои)\b", re.IGNORECASE)
-_DIVINE_RE = re.compile(r"\b(Я|Меня|Мне|Мной|Мой|Моя|Моё|Мои)\b")
-_QUOTE_OPEN_RE = re.compile(r"^[«\"„]")
 _NUM_LEAD_RE = re.compile(r"^\d{1,4}[.:)\s]")
-
-# The exported feature order; the model artifact pins the same list and the
-# loader refuses a mismatch (fail loud on drift).
-FEATURE_NAMES = (
-    "n_lines", "mean_len", "max_len", "cv_len", "term_rate", "dash_rate",
-    "q2p_rate", "divine_rate", "quote_open_rate", "num_lead_rate",
-    "question_rate", "comma_end_rate", "lower_start_rate", "n_stanzas",
-    "multi_line_stanzas", "ev_hard_break", "ev_inferred", "ev_stanza_break",
-    "ev_compact_callout", "ctx_heading", "ctx_named", "ctx_separator",
-    "len_vs_book", "book_lineated_frac",
-)
-
-
-@dataclass(frozen=True)
-class BookStats:
-    """Within-book baselines for contrastive features."""
-
-    mean_para_len: float
-    lineated_frac: float
-
-
-def book_stats(blocks: list[ir.Block]) -> BookStats:
-    para_lens = [
-        len(inline_plain(b.inlines))
-        for b in blocks
-        if isinstance(b, ir.Paragraph) and not b.empty
-    ]
-    lineated = sum(1 for b in blocks if isinstance(b, ir.LineatedBlock))
-    total = len(para_lens) + lineated
-    return BookStats(
-        mean_para_len=sum(para_lens) / len(para_lens) if para_lens else 0.0,
-        lineated_frac=lineated / total if total else 0.0,
-    )
-
-
-@dataclass(frozen=True)
-class RegisterContext:
-    """What precedes a candidate block. Empty rows are TRANSPARENT: a heading
-    followed by a blank row still heads the next content block."""
-
-    heading: bool = False
-    named: bool = False
-    separator: bool = False
 
 
 def iter_with_register_context(
     blocks: list[ir.Block],
-) -> Iterator[tuple[ir.Block, RegisterContext]]:
+) -> Iterator[tuple[int, ir.Block, RegisterModelContext]]:
     """Yield every block with its register context — the one walker the teacher
     extraction and this pass both read."""
-    ctx = RegisterContext()
-    for b in blocks:
-        yield b, ctx
+    ctx = RegisterModelContext()
+    for i, b in enumerate(blocks):
+        yield i, b, ctx
         if isinstance(b, ir.Heading):
-            ctx = RegisterContext(heading=True, named=is_verse_section_title(inline_plain(b.inlines)))
+            ctx = RegisterModelContext(
+                heading=True,
+                named=is_verse_section_title(inline_plain(b.inlines)),
+            )
         elif isinstance(b, ir.ThematicBreak):
-            ctx = RegisterContext(separator=True)
+            ctx = RegisterModelContext(separator=True)
         elif isinstance(b, ir.Paragraph) and b.empty:
             pass  # blank rows are transparent
         else:
-            ctx = RegisterContext()
+            ctx = RegisterModelContext()
 
 
 def lineated_lines(block: ir.LineatedBlock) -> list[str]:
     """The block's non-empty plain display lines."""
-    return [
-        text
-        for stanza in block.stanzas
-        for line in stanza
-        if (text := inline_plain(line.inlines))
-    ]
-
-
-def verse_register_features(
-    lines: list[str],
-    stanzas: ir.LineatedStanzas,
-    evidence: ir.LineationEvidence,
-    *,
-    ctx: RegisterContext,
-    book: BookStats,
-) -> dict[str, float]:
-    """The block's register feature vector (keys = ``FEATURE_NAMES``)."""
-    n = len(lines)
-    lens = [len(x) for x in lines] or [0]
-    mean_len = sum(lens) / len(lens)
-    stanza_sizes = [
-        size for st in stanzas if (size := sum(1 for line in st if inline_plain(line.inlines)))
-    ]
-    rate = (lambda pred: sum(1 for x in lines if pred(x)) / n) if n else (lambda _pred: 0.0)
-    return {
-        "n_lines": float(n),
-        "mean_len": mean_len,
-        "max_len": float(max(lens)),
-        "cv_len": (
-            (sum((x - mean_len) ** 2 for x in lens) / len(lens)) ** 0.5 / mean_len
-            if mean_len else 0.0
-        ),
-        "term_rate": rate(lambda x: bool(_TERM_RE.search(x))),
-        "dash_rate": rate(lambda x: bool(_DASH_LINE_RE.match(x))),
-        "q2p_rate": rate(lambda x: bool(_Q2P_RE.search(x))),
-        "divine_rate": rate(lambda x: bool(_DIVINE_RE.search(x))),
-        "quote_open_rate": rate(lambda x: bool(_QUOTE_OPEN_RE.match(x))),
-        "num_lead_rate": rate(lambda x: bool(_NUM_LEAD_RE.match(x))),
-        "question_rate": rate(lambda x: "?" in x),
-        "comma_end_rate": rate(lambda x: x.rstrip().endswith((",", "—", "–"))),
-        "lower_start_rate": rate(lambda x: x[:1].islower()),
-        "n_stanzas": float(len(stanza_sizes)),
-        "multi_line_stanzas": float(sum(1 for s in stanza_sizes if s > 1)),
-        "ev_hard_break": float(evidence.hard_break),
-        "ev_inferred": float(evidence.inferred_source_rows),
-        "ev_stanza_break": float(evidence.stanza_break),
-        "ev_compact_callout": float(evidence.compact_callout),
-        "ctx_heading": float(ctx.heading),
-        "ctx_named": float(ctx.named),
-        "ctx_separator": float(ctx.separator),
-        "len_vs_book": mean_len / book.mean_para_len if book.mean_para_len else 0.0,
-        "book_lineated_frac": book.lineated_frac,
-    }
-
-
-# ---------------------------------------------------------------------------
-# the register model (committed JSON artifact; dot-product scoring)
-# ---------------------------------------------------------------------------
-
-
-@dataclass(frozen=True)
-class RegisterModel:
-    """A standardized-logistic register model: ``p(verse | features)``."""
-
-    version: int
-    langs: tuple[str, ...]
-    features: tuple[str, ...]
-    mean: tuple[float, ...]
-    std: tuple[float, ...]
-    coef: tuple[float, ...]
-    intercept: float
-    threshold: float
-
-    def probability(self, feats: dict[str, float]) -> float:
-        z = self.intercept
-        for name, mu, sd, w in zip(self.features, self.mean, self.std, self.coef, strict=True):
-            z += w * ((feats[name] - mu) / sd)
-        return 1.0 / (1.0 + math.exp(-z))
-
-
-def load_register_model(path: Path) -> RegisterModel | None:
-    """The exported model artifact, or ``None`` when not shipped.
-
-    Validates eagerly so a malformed artifact fails at the load site with a
-    contextual error, never later inside ``probability``."""
-    if not path.exists():
-        return None
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-        features = tuple(raw["features"])
-        mean = tuple(float(x) for x in raw["mean"])
-        std = tuple(float(x) for x in raw["std"])
-        coef = tuple(float(x) for x in raw["coef"])
-        model = RegisterModel(
-            version=int(raw.get("version", 0)),
-            langs=tuple(raw.get("langs", ())),
-            features=features,
-            mean=mean,
-            std=std,
-            coef=coef,
-            intercept=float(raw["intercept"]),
-            threshold=float(raw["threshold"]),
-        )
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
-        raise ValueError(f"malformed register model artifact {path}: {exc}") from exc
-    if model.features != FEATURE_NAMES:
-        raise ValueError(
-            f"register model artifact {path}: feature schema drifted from the producer"
-        )
-    if not (len(model.mean) == len(model.std) == len(model.coef) == len(model.features)):
-        raise ValueError(f"register model artifact {path}: vector lengths disagree")
-    if any(sd <= 0 for sd in model.std):
-        raise ValueError(f"register model artifact {path}: non-positive feature std")
-    return model
+    return list(lineated_plain_lines(block))
 
 
 # ---------------------------------------------------------------------------
@@ -893,35 +761,17 @@ def load_register_model(path: Path) -> RegisterModel | None:
 # ---------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)
-class _PrecedingContext:
-    """Q2 register context preceding an already-lineated block, as the ladder
-    reads it (blank rows RESET it — unlike `RegisterContext`, whose transparent
-    blanks the model was trained on)."""
-
-    named: bool = False
-    heading: bool = False
-    separator: bool = False
-
-
-_NEUTRAL_CONTEXT = _PrecedingContext()
+_NEUTRAL_CONTEXT = RegisterRuleContext()
 
 
 def assign_register(doc: ir.Document, ctx: Context) -> ir.Document:
     """The Q2 pass: decide the verse register for every lineated block."""
-    match ctx.register_classifier:
-        case ModelBackedRegister(model=model):
-            pass
-        case RulesOnlyRegister():
-            model = None
-    feats_ctx: dict[int, RegisterContext] = {}
-    stats: BookStats | None = None
-    if model is not None:
-        stats = book_stats(doc.blocks)
-        feats_ctx = {id(b): c for b, c in iter_with_register_context(doc.blocks)}
     pins = frozenset(ctx.scripture.by_ordinal)
-    decided = _promote(doc.blocks, model, feats_ctx, stats, pins)
-    if model is not None:
+    candidates = _register_candidates(doc.blocks, ctx.lang, pins)
+    document_context = RegisterDocumentContext(lang=ctx.lang)
+    decisions = ctx.register_policy.decide_document(candidates, document_context)
+    decided = _promote(doc.blocks, _decision_plan(candidates, decisions), pins)
+    if ctx.register_policy.reports_model_delta:
         # The rules-only re-run exists for the diagnostic below; ~2x this pass's
         # cost, accepted for batch CLI (coda merges depend on verdicts, so a
         # cheaper per-block comparison would miscount).
@@ -932,11 +782,22 @@ def assign_register(doc: ir.Document, ctx: Context) -> ir.Document:
             )
 
         with_model = verse_count(decided)
-        rules_only = verse_count(_promote(doc.blocks, None, {}, None, pins))
+        rules_decisions = RulesOnlyRegisterPolicy().decide_document(
+            candidates,
+            document_context,
+        )
+        rules_only = verse_count(_promote(
+            doc.blocks,
+            _decision_plan(candidates, rules_decisions),
+            pins,
+        ))
         if with_model != rules_only:
+            model_version = ctx.register_policy.model_version
+            if model_version is None:
+                raise ValueError("register policy requested model diagnostics without a model version")
             ctx.diagnostics.append(ir.Diagnostic(
                 "info", "register.model",
-                f"register model v{model.version}: {with_model} verse blocks "
+                f"register model v{model_version}: {with_model} verse blocks "
                 f"(rules alone: {rules_only})",
             ))
     return replace(doc, blocks=decided)
@@ -944,7 +805,10 @@ def assign_register(doc: ir.Document, ctx: Context) -> ir.Document:
 
 def promote_verse_register(blocks: list[ir.Block]) -> list[ir.Block]:
     """Ladder-only promotion: the rule policy with no model injected."""
-    return _promote(blocks, None, {}, None, frozenset())
+    policy = RulesOnlyRegisterPolicy()
+    candidates = _register_candidates(blocks, "ru", frozenset())
+    decisions = policy.decide_document(candidates, RegisterDocumentContext(lang="ru"))
+    return _promote(blocks, _decision_plan(candidates, decisions), frozenset())
 
 
 def _block_pins(block: ir.LineatedBlock, pins: frozenset[int]) -> frozenset[int]:
@@ -970,33 +834,106 @@ def _segment(block: ir.LineatedBlock, pins: frozenset[int]) -> list[ir.Block]:
 def _has_scripture_line(block: ir.LineatedBlock, pins: frozenset[int]) -> bool:
     """Whether `block` carries any scripture quote line (pin or citation
     channel) — the gate for splitting an un-promoted ordinary run."""
-    return bool(_scripture_line_ids(block, _block_pins(block, pins)))
+    return bool(_scripture_line_positions(block, _block_pins(block, pins)))
+
+
+def _register_candidates(
+    blocks: list[ir.Block],
+    lang: Locale,
+    pins: frozenset[int],
+) -> tuple[RegisterCandidate, ...]:
+    book = register_book_stats(blocks)
+    model_context_by_index = {
+        i: register_ctx for i, _block, register_ctx in iter_with_register_context(blocks)
+    }
+    out: list[RegisterCandidate] = []
+    rule_ctx = _NEUTRAL_CONTEXT
+    candidate_ordinal = 0
+    for i, block in enumerate(blocks):
+        if isinstance(block, ir.Heading):
+            title = inline_plain(block.inlines)
+            rule_ctx = RegisterRuleContext(
+                named=is_verse_section_title(title),
+                heading=True,
+            )
+            continue
+        if isinstance(block, ir.ThematicBreak):
+            rule_ctx = RegisterRuleContext(separator=True)
+            continue
+        if isinstance(block, ir.LineatedBlock) and block.register is ir.Register.ORDINARY:
+            label_of = scaffold_line_labeler(block, _block_pins(block, pins))
+            view = _verse_candidate_view(block, label_of)
+            candidate_id = stable_register_candidate_id(
+                block,
+                source_block_index=i,
+                candidate_ordinal=candidate_ordinal,
+            )
+            out.append(RegisterCandidate(
+                candidate_id=candidate_id,
+                source_block_index=i,
+                source_span=block.source_span,
+                observation=RegisterObservation(
+                    candidate_id=candidate_id,
+                    lang=lang,
+                    lines=lineated_plain_lines(view.view),
+                    stanza_line_counts=stanza_line_counts(view.view.stanzas),
+                    evidence=view.view.evidence,
+                    model_context=model_context_by_index.get(i, RegisterModelContext()),
+                    book=book,
+                ),
+                rules=_rule_evaluation(view, rule_ctx),
+            ))
+            candidate_ordinal += 1
+            rule_ctx = _NEUTRAL_CONTEXT
+            continue
+        rule_ctx = _NEUTRAL_CONTEXT
+    return tuple(out)
+
+
+def _decision_plan(
+    candidates: tuple[RegisterCandidate, ...],
+    decisions: tuple[RegisterDecision, ...],
+) -> dict[int, RegisterDecision]:
+    by_subject = {decision.subject: decision for decision in decisions}
+    if len(by_subject) != len(decisions):
+        raise ValueError("register policy returned duplicate candidate decisions")
+    missing = [candidate.candidate_id for candidate in candidates if candidate.candidate_id not in by_subject]
+    if missing:
+        raise ValueError(f"register policy returned no decision for {missing[0]}")
+    extra = [subject for subject in by_subject if subject not in {c.candidate_id for c in candidates}]
+    if extra:
+        raise ValueError(f"register policy returned unknown decision {extra[0]}")
+    return {
+        candidate.source_block_index: by_subject[candidate.candidate_id]
+        for candidate in candidates
+    }
+
+
+def _materialized_label(decision: RegisterDecision) -> DisplayRegisterLabel:
+    if decision.outcome is DecisionOutcome.REFUSE_CONTRACT:
+        raise ValueError(f"register policy refused contract for {decision.subject}")
+    if decision.label is not None:
+        return decision.label
+    if decision.fallback_label is not None:
+        return decision.fallback_label
+    raise ValueError(f"register policy returned no materializable label for {decision.subject}")
 
 
 def _promote(
     blocks: list[ir.Block],
-    model: RegisterModel | None,
-    feats_ctx: dict[int, RegisterContext],
-    stats: BookStats | None,
+    decisions: Mapping[int, RegisterDecision],
     pins: frozenset[int],
 ) -> list[ir.Block]:
     out: list[ir.Block] = []
     i = 0
-    ctx = _NEUTRAL_CONTEXT
 
     while i < len(blocks):
         b = blocks[i]
         if isinstance(b, ir.Heading):
-            title = inline_plain(b.inlines)
-            ctx = _PrecedingContext(
-                named=is_verse_section_title(title),
-                heading=True,
-            )
             out.append(b)
             i += 1
             continue
         if isinstance(b, ir.ThematicBreak):
-            ctx = _PrecedingContext(separator=True)
             out.append(b)
             i += 1
             continue
@@ -1004,10 +941,8 @@ def _promote(
             if (segment := _lineated_coda_segment(blocks, i + 1, b)) is not None:
                 verse, next_i = segment
                 out.extend(_segment(verse, pins))
-                ctx = _NEUTRAL_CONTEXT
                 i = next_i
                 continue
-            ctx = _NEUTRAL_CONTEXT
             out.extend(_segment(b, pins))
             i += 1
             continue
@@ -1018,12 +953,11 @@ def _promote(
             # back out. A numbered/equation island no longer poisons the verdict
             # of the verse body it is embedded in.
             label_of = scaffold_line_labeler(b, _block_pins(b, pins))
-            if _verdict(_verse_candidate_view(b, label_of), ctx, model, feats_ctx, stats):
+            if _materialized_label(decisions[i]) is DisplayRegisterLabel.VERSE:
                 verse = replace(b, register=ir.Register.VERSE)
                 if (segment := _lineated_coda_segment(blocks, i + 1, verse)) is not None:
                     verse, next_i = segment
                     out.extend(_segment(verse, pins))
-                    ctx = _NEUTRAL_CONTEXT
                     i = next_i
                     continue
                 out.extend(segment_lineated(verse, label_of))
@@ -1034,10 +968,8 @@ def _promote(
                 out.extend(_segment(b, pins))
             else:
                 out.append(b)
-            ctx = _NEUTRAL_CONTEXT
             i += 1
             continue
-        ctx = _NEUTRAL_CONTEXT
         out.append(b)
         i += 1
     return out
@@ -1045,55 +977,61 @@ def _promote(
 
 @dataclass(frozen=True)
 class _CandidateView:
-    """A block's verse-candidate view plus the id under which its feature-context
-    is recorded (the original block, before scaffold lines were dropped)."""
+    """A block's verse-candidate view after scaffold lines were dropped."""
 
     view: ir.LineatedBlock
-    feats_id: int
 
 
 def _verse_candidate_view(
-    block: ir.LineatedBlock, label_of: Callable[[ir.Line], SpanLabel],
+    block: ir.LineatedBlock, label_of: _LineLabeler,
 ) -> _CandidateView:
     """The verse-candidate view of `block`: the same run with its scaffold
     islands removed, so the verdict reads only the lines that would actually be
     verse. `label_of` is the one labeling `segment_lineated` will split on, so
-    the view and the split agree by construction. Empty stanzas are dropped; the
-    feature-context is keyed on the ORIGINAL block (the new stanzas have a fresh
-    identity)."""
+    the view and the split agree by construction. Empty stanzas are dropped."""
     stanzas = [
         kept
-        for stanza in block.stanzas
-        if (kept := [line for line in stanza if label_of(line) is not SpanLabel.SCAFFOLD])
+        for si, stanza in enumerate(block.stanzas)
+        if (
+            kept := [
+                line
+                for li, line in enumerate(stanza)
+                if label_of(si, li, line) is not SpanLabel.SCAFFOLD
+            ]
+        )
     ]
     view = replace(block, stanzas=stanzas)
-    return _CandidateView(view=view, feats_id=id(block))
+    return _CandidateView(view=view)
 
 
-def _verdict(
+def _rule_evaluation(
     candidate: _CandidateView,
-    ctx: _PrecedingContext,
-    model: RegisterModel | None,
-    feats_ctx: dict[int, RegisterContext],
-    stats: BookStats | None,
-) -> bool:
-    """One verse decision over a block's verse-candidate view (scaffold islands
-    already dropped): hard guards, then the model where injected, the geometry
-    ladder otherwise. Named verse sections always take the ladder — the
-    structural prior outranks the model in both directions."""
+    ctx: RegisterRuleContext,
+) -> RegisterRuleEvaluation:
     block = candidate.view
     lines = lineated_lines(block)
     if len(lines) < 2 or not all(is_verse_candidate_line(line) for line in lines):
-        return False
+        return RegisterRuleEvaluation(
+            label=DisplayRegisterLabel.ORDINARY,
+            reason=RegisterDecisionReason.HARD_GUARD,
+            model_allowed=False,
+        )
     if is_dash_scaffold(lines) or is_equation_scaffold(lines):
-        return False
-    if model is None or stats is None or ctx.named:
-        return _kind_for_lines(lines, block.evidence, ctx) is not None
-    p = model.probability(verse_register_features(
-        lines, block.stanzas, block.evidence,
-        ctx=feats_ctx.get(candidate.feats_id, RegisterContext()), book=stats,
-    ))
-    return p >= model.threshold
+        return RegisterRuleEvaluation(
+            label=DisplayRegisterLabel.ORDINARY,
+            reason=RegisterDecisionReason.HARD_GUARD,
+            model_allowed=False,
+        )
+    rules_label = (
+        DisplayRegisterLabel.VERSE
+        if _kind_for_lines(lines, block.evidence, ctx) is not None
+        else DisplayRegisterLabel.ORDINARY
+    )
+    return RegisterRuleEvaluation(
+        label=rules_label,
+        reason=RegisterDecisionReason.RULES,
+        model_allowed=not ctx.named,
+    )
 
 
 def _lineated_coda_candidate(
@@ -1152,7 +1090,7 @@ def _lineated_coda_segment(
 def _kind_for_lines(
     lines: list[str],
     evidence: ir.LineationEvidence,
-    ctx: _PrecedingContext,
+    ctx: RegisterRuleContext,
 ) -> ir.Register | None:
     """The geometry ladder. Callers have already applied the shared guards."""
     def _passes(avg_max: float, line_max: int | None = None) -> bool:
