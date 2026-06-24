@@ -60,12 +60,5 @@ npm run audit:repo
 
 That gate reads committed DOCX packages directly and checks that footnote tables
 are valid and drawing name, description, and title metadata contains no Cyrillic.
-Imported Markdown drift is checked by:
-
-```sh
-npm run check:docx-roundtrip
-```
-
-That gate imports translated DOCX files in a temporary content tree and compares
-the result with committed Markdown for visible text, public frontmatter,
-mixed-script English, and structural loss. `npm run verify` includes it.
+After changing English DOCX artifacts or import/transfer code, run
+`uv run pancratius docx roundtrip-md --lang en`.
