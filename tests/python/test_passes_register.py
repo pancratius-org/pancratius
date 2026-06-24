@@ -6,6 +6,7 @@ from collections.abc import Callable
 
 from pancratius import ir
 from pancratius.ir.inlines import inline_plain
+from pancratius.docx_conversion import load_register_model_for
 from pancratius.passes.pipeline import Context, ModelBackedRegister, ScripturePins
 from pancratius.passes.register import (
     FEATURE_NAMES,
@@ -75,6 +76,29 @@ def test_model_over_threshold_promotes() -> None:
     doc = assign_register(doc, _ctx(PROMOTE))
     block = doc.blocks[0]
     assert _is_verse(block)
+
+
+def test_shipped_model_promotes_where_rules_do_not_and_reports_delta() -> None:
+    model = load_register_model_for("ru")
+    assert model is not None
+    block = _lineated("Тихая строка,", "ещё одна строка.")
+
+    rules = assign_register(_doc(block), Context(lang="ru"))
+    with_model_ctx = Context(lang="ru", register_classifier=ModelBackedRegister(model))
+    with_model = assign_register(_doc(block), with_model_ctx)
+
+    assert not _is_verse(rules.blocks[0])
+    assert _is_verse(with_model.blocks[0])
+    assert [
+        (d.severity, d.code, d.message)
+        for d in with_model_ctx.diagnostics
+    ] == [
+        (
+            "info",
+            "register.model",
+            "register model v1: 1 verse blocks (rules alone: 0)",
+        )
+    ]
 
 
 def test_model_under_threshold_blocks_ladder_promotion() -> None:
@@ -439,9 +463,22 @@ def test_assign_register_splits_promoted_mixed_run() -> None:
 
 def test_existing_verse_blocks_keep_coda_machinery() -> None:
     doc = _doc(
-        _verse("Свет мой тихий,", "в сердце горит."),
+        ir.LineatedBlock(
+            stanzas=[[
+                _spanned_line("Свет мой тихий,", 10),
+                _spanned_line("в сердце горит.", 11),
+            ]],
+            register=ir.Register.VERSE,
+            source_span=ir.SourceSpan(10, 11),
+        ),
         ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True)),
-        _lineated("Ты читал.", "Я писал."),
+        ir.LineatedBlock(
+            stanzas=[[
+                _spanned_line("Ты читал.", 13),
+                _spanned_line("Я писал.", 14),
+            ]],
+            source_span=ir.SourceSpan(13, 14),
+        ),
         ir.Heading(level=2, inlines=[ir.Text("Глава")]),
     )
     doc = assign_register(doc, _ctx(None))
@@ -449,6 +486,8 @@ def test_existing_verse_blocks_keep_coda_machinery() -> None:
     assert isinstance(first, ir.LineatedBlock)
     assert first.register is ir.Register.VERSE
     assert len(first.stanzas) == 2  # the compact coda folded into the verse block
+    assert first.source_span == ir.SourceSpan(10, 14)
+    assert isinstance(doc.blocks[1], ir.Heading)
 
 
 # ---------------------------------------------------------------------------

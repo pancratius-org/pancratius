@@ -9,9 +9,11 @@ from pathlib import Path
 
 import pytest
 
-from pancratius import import_docx
+from pancratius import import_docx, ir
 from pancratius.content_catalog import CatalogEntry, split_frontmatter
+from pancratius import docx_conversion
 from pancratius.docx_conversion import ConvertedDocx
+from pancratius.locales import Locale
 from pancratius.poem_chrome import PoemChrome, PoemSourceDate
 
 
@@ -270,6 +272,81 @@ def test_converter_typed_diagnostics_carry_severity(
     assert all(d.severity in {"fatal", "warning", "info"} for d in converted.diagnostics)
     # The human-readable warnings string is still produced.
     assert isinstance(converted.warnings, str)
+
+
+def _lineated_import_doc() -> ir.Document:
+    return ir.Document(blocks=[
+        ir.LineatedBlock(
+            stanzas=[[
+                ir.Line([ir.Text("Свет мой тихий,")]),
+                ir.Line([ir.Text("в сердце горит,")]),
+                ir.Line([ir.Text("и не гаснет.")]),
+            ]],
+            evidence=ir.LineationEvidence(stanza_break=True),
+        )
+    ])
+
+
+def _convert_with_stub_doc(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    *,
+    lang: Locale,
+) -> ConvertedDocx:
+    monkeypatch.setattr(
+        docx_conversion.docx_adapter,
+        "adapt",
+        lambda _docx, _media_out, _diagnostics: _lineated_import_doc(),
+    )
+    return docx_conversion.convert_single_docx(
+        tmp_path / f"source-{lang}.docx",
+        kind="book",
+        lang=lang,
+        work_key="91-probe",
+        title="Probe",
+        title_index={},
+        media_out=tmp_path / "media",
+    )
+
+
+def test_missing_register_artifact_is_info_and_rules_only(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    missing = tmp_path / "missing-register-model.json"
+    monkeypatch.setattr(docx_conversion, "_REGISTER_MODEL_PATH", missing)
+    docx_conversion.load_register_model_for.cache_clear()
+    try:
+        converted = _convert_with_stub_doc(monkeypatch, tmp_path, lang="ru")
+    finally:
+        docx_conversion.load_register_model_for.cache_clear()
+
+    assert 'class="lineated verse"' in converted.body
+    assert [
+        (d.severity, d.code, d.message)
+        for d in converted.diagnostics
+        if d.code == "register.model"
+    ] == [
+        (
+            "info",
+            "register.model",
+            "no register model artifact at missing-register-model.json; rules decide alone",
+        )
+    ]
+
+
+def test_register_artifact_unsupported_language_falls_back_without_diagnostic(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    docx_conversion.load_register_model_for.cache_clear()
+    try:
+        converted = _convert_with_stub_doc(monkeypatch, tmp_path, lang="en")
+    finally:
+        docx_conversion.load_register_model_for.cache_clear()
+
+    assert 'class="lineated verse"' in converted.body
+    assert [d for d in converted.diagnostics if d.code == "register.model"] == []
 
 
 # ---------------------------------------------------------------------------
