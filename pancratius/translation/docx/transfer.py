@@ -34,6 +34,7 @@ from pancratius.translation.docx.ooxml_write import (
     HyperlinkRelationshipAllocator,
     dedupe_media_payloads,
     footnote_reference_ids_by_body_order,
+    prune_unreferenced_external_hyperlinks,
     remove_ignored_word_slots,
     repair_unbound_relationship_prefixes,
     replace_embedded_cover_data_uri,
@@ -120,6 +121,7 @@ def render_translated_docx(
             document_root,
             source_xml=package.parts["word/document.xml"],
         )
+        prune_unreferenced_external_hyperlinks(parts, "word/document.xml")
         replace_footnotes(
             parts,
             translated,

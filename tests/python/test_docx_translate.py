@@ -10,7 +10,14 @@ from typing import get_args
 
 import pytest
 
-from pancratius.ooxml import NamespaceBinding, serialize_xml
+from pancratius.ooxml import (
+    HYPERLINK_REL_TYPE,
+    REL,
+    NamespaceBinding,
+    R,
+    serialize_relationships,
+    serialize_xml,
+)
 from pancratius.translation.docx import (
     DocxTranslationError,
     print_batch,
@@ -80,6 +87,43 @@ def _write_paragraph_docx(path: Path, paragraphs: list[str]) -> None:
     for paragraph in paragraphs:
         doc.add_paragraph(paragraph)
     doc.save(str(path))
+
+
+def _write_body_hyperlink_docx(path: Path, *, target: str) -> None:
+    _write_paragraph_docx(path, ["ссылка"])
+    with zipfile.ZipFile(path) as zf:
+        parts = {name: zf.read(name) for name in zf.namelist()}
+
+    root = ET.fromstring(parts["word/document.xml"])
+    paragraph = root.find(f".//{W}body/{W}p")
+    assert paragraph is not None
+    for child in list(paragraph):
+        if child.tag != f"{W}pPr":
+            paragraph.remove(child)
+    hyperlink = ET.SubElement(paragraph, f"{W}hyperlink")
+    hyperlink.set(f"{R}id", "rId900")
+    run = ET.SubElement(hyperlink, f"{W}r")
+    text = ET.SubElement(run, f"{W}t")
+    text.text = "ссылка"
+    parts["word/document.xml"] = serialize_xml(
+        root,
+        source_xml=parts["word/document.xml"],
+    )
+
+    rels = ET.fromstring(parts["word/_rels/document.xml.rels"])
+    rel = ET.SubElement(rels, f"{REL}Relationship")
+    rel.set("Id", "rId900")
+    rel.set("Type", HYPERLINK_REL_TYPE)
+    rel.set("Target", target)
+    rel.set("TargetMode", "External")
+    parts["word/_rels/document.xml.rels"] = serialize_relationships(
+        rels,
+        source_xml=parts["word/_rels/document.xml.rels"],
+    )
+
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for name, data in parts.items():
+            zf.writestr(name, data)
 
 
 def _write_superscript_first_run_docx(path: Path) -> None:
@@ -166,6 +210,45 @@ def _write_footnote_anchor_docx(path: Path) -> None:
         f"<w:r><w:t>Сноска</w:t></w:r></w:p></w:footnote>"
         f"</w:footnotes>"
     ).encode()
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for name, data in parts.items():
+            zf.writestr(name, data)
+
+
+def _write_footnote_hyperlink_docx(path: Path, *, target: str) -> None:
+    _write_footnote_anchor_docx(path)
+    with zipfile.ZipFile(path) as zf:
+        parts = {name: zf.read(name) for name in zf.namelist()}
+
+    root = ET.fromstring(parts["word/footnotes.xml"])
+    note = next(
+        note
+        for note in root.findall(f"{W}footnote")
+        if note.get(f"{W}id") == "1"
+    )
+    paragraph = note.find(f"{W}p")
+    assert paragraph is not None
+    for child in list(paragraph):
+        if child.find(f".//{W}footnoteRef") is None:
+            paragraph.remove(child)
+    hyperlink = ET.SubElement(paragraph, f"{W}hyperlink")
+    hyperlink.set(f"{R}id", "rId900")
+    run = ET.SubElement(hyperlink, f"{W}r")
+    text = ET.SubElement(run, f"{W}t")
+    text.text = "Сноска"
+    parts["word/footnotes.xml"] = serialize_xml(
+        root,
+        source_xml=parts["word/footnotes.xml"],
+    )
+
+    rels = ET.Element(f"{REL}Relationships")
+    rel = ET.SubElement(rels, f"{REL}Relationship")
+    rel.set("Id", "rId900")
+    rel.set("Type", HYPERLINK_REL_TYPE)
+    rel.set("Target", target)
+    rel.set("TargetMode", "External")
+    parts["word/_rels/footnotes.xml.rels"] = serialize_relationships(rels)
+
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
         for name, data in parts.items():
             zf.writestr(name, data)
@@ -736,12 +819,12 @@ def test_render_translated_docx_aligns_smiley_missing_from_source_docx(tmp_path:
 
 
 @requires_pandoc
-def test_render_translated_docx_preserves_hyperlinks(tmp_path: Path) -> None:
+def test_render_translated_docx_replaces_body_hyperlink_relationships(tmp_path: Path) -> None:
     source_docx = tmp_path / "ru.docx"
     source_md = tmp_path / "ru.md"
     translated_md = tmp_path / "en.md"
     out = tmp_path / "en.docx"
-    _write_paragraph_docx(source_docx, ["ссылка"])
+    _write_body_hyperlink_docx(source_docx, target="https://example.com")
     _write_md(source_md, "[ссылка](https://example.com)\n")
     _write_md(translated_md, "[link](https://example.org)\n")
 
@@ -759,15 +842,18 @@ def test_render_translated_docx_preserves_hyperlinks(tmp_path: Path) -> None:
         rels = ET.fromstring(zf.read("word/_rels/document.xml.rels"))
     hyperlink = document.find(f".//{W}hyperlink")
     assert hyperlink is not None
-    rel_id = hyperlink.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id")
+    assert "".join(t.text or "" for t in hyperlink.findall(f".//{W}t")) == "link"
+    rel_id = hyperlink.get(f"{R}id")
     assert rel_id
-    rel = rels.find(
-        "{http://schemas.openxmlformats.org/package/2006/relationships}Relationship"
-        f"[@Id='{rel_id}']"
-    )
+    rel = rels.find(f"{REL}Relationship[@Id='{rel_id}']")
     assert rel is not None
     assert rel.get("Target") == "https://example.org"
     assert rel.get("TargetMode") == "External"
+    assert [
+        rel.get("Target")
+        for rel in rels.findall(f"{REL}Relationship")
+        if rel.get("Type") == HYPERLINK_REL_TYPE
+    ] == ["https://example.org"]
 
 
 @requires_pandoc
@@ -1313,6 +1399,47 @@ def test_render_translated_docx_preserves_footnote_body_marker(tmp_path: Path) -
     ]
     assert body_notes
     assert body_notes[0].find(f".//{W}footnoteRef") is not None
+
+
+@requires_pandoc
+def test_render_translated_docx_writes_footnote_hyperlink_relationships(
+    tmp_path: Path,
+) -> None:
+    source_docx = tmp_path / "ru.docx"
+    source_md = tmp_path / "ru.md"
+    translated_md = tmp_path / "en.md"
+    out = tmp_path / "en.docx"
+    _write_footnote_hyperlink_docx(source_docx, target="https://example.com/source")
+    _write_md(source_md, "Свет[^1]\n\n[^1]: [Сноска](https://example.com/source)\n")
+    _write_md(translated_md, "Light[^1]\n\n[^1]: [linked note](https://example.org/note)\n")
+
+    _source_units, _translated_units, aligned_units, diagnostics = render_translated_docx(
+        source_docx=source_docx,
+        source_md=source_md,
+        translated_md=translated_md,
+        out=out,
+    )
+
+    assert [d for d in diagnostics if d.severity == "fatal"] == []
+    assert aligned_units == 1
+    with zipfile.ZipFile(out) as zf:
+        footnotes = ET.fromstring(zf.read("word/footnotes.xml"))
+        footnote_rels = ET.fromstring(zf.read("word/_rels/footnotes.xml.rels"))
+    hyperlink = footnotes.find(f".//{W}hyperlink")
+    assert hyperlink is not None
+    assert "".join(t.text or "" for t in hyperlink.findall(f".//{W}t")) == "linked note"
+    rel_id = hyperlink.get(f"{R}id")
+    assert rel_id
+    rel = footnote_rels.find(f"{REL}Relationship[@Id='{rel_id}']")
+    assert rel is not None
+    assert rel.get("Type") == HYPERLINK_REL_TYPE
+    assert rel.get("Target") == "https://example.org/note"
+    assert rel.get("TargetMode") == "External"
+    assert [
+        rel.get("Target")
+        for rel in footnote_rels.findall(f"{REL}Relationship")
+        if rel.get("Type") == HYPERLINK_REL_TYPE
+    ] == ["https://example.org/note"]
 
 
 @requires_pandoc
