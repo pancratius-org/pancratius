@@ -7,8 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from pancratius.content_catalog import dump_frontmatter
-from pancratius.docx_roundtrip import check_docx_markdown_roundtrip, compare_markdown_pair
+from pancratius.content_catalog import CatalogEntry, dump_frontmatter, scan_catalog
+from pancratius.docx_roundtrip import (
+    DocxRoundTripError,
+    check_docx_markdown_roundtrip,
+    check_staged_docx_markdown_roundtrip,
+    compare_markdown_pair,
+)
 
 requires_docx_roundtrip = pytest.mark.skipif(
     shutil.which("pandoc") is None or importlib.util.find_spec("PIL") is None,
@@ -76,6 +81,53 @@ def test_roundtrip_imports_into_temp_root_without_mutating_content(tmp_path: Pat
     assert batch.checked == 1
     assert batch.failed_count == 0
     assert (book_dir / "en.md").read_text(encoding="utf-8") == before
+
+
+@requires_docx_roundtrip
+def test_staged_roundtrip_checks_docx_before_commit(tmp_path: Path) -> None:
+    content_root = tmp_path / "content"
+    book_dir = content_root / "books" / "01-test"
+    book_dir.mkdir(parents=True)
+    committed_body = "Light.\n"
+    _write_book_md(book_dir / "en.md", body=committed_body)
+    staged_docx = _make_docx(tmp_path, "Light.\n")
+    before = (book_dir / "en.md").read_text(encoding="utf-8")
+    entry = next(entry for entry in scan_catalog(content_root) if entry.kind == "book")
+
+    report = check_staged_docx_markdown_roundtrip(
+        content_root=content_root,
+        entry=entry,
+        md_path=book_dir / "en.md",
+        docx_path=staged_docx,
+        lang="en",
+    )
+
+    assert not report.failed
+    assert (book_dir / "en.md").read_text(encoding="utf-8") == before
+
+
+def test_staged_roundtrip_refuses_non_book_entry(tmp_path: Path) -> None:
+    entry = CatalogEntry(
+        kind="poem",
+        number=1,
+        slug="test",
+        title="Test",
+        lang="en",
+        description="",
+        work_key="01-test",
+        work_dir=tmp_path,
+        md_path=tmp_path / "en.md",
+        frontmatter={},
+    )
+
+    with pytest.raises(DocxRoundTripError, match="book entries"):
+        check_staged_docx_markdown_roundtrip(
+            content_root=tmp_path,
+            entry=entry,
+            md_path=entry.md_path,
+            docx_path=tmp_path / "en.docx",
+            lang="en",
+        )
 
 
 def test_roundtrip_reports_translated_docx_without_markdown(tmp_path: Path) -> None:
@@ -169,6 +221,42 @@ def test_compare_treats_ellipsis_style_as_typography_drift() -> None:
 
     assert not any(finding.severity == "fatal" for finding in findings)
     assert any(finding.code == "roundtrip.typography-drift" for finding in findings)
+
+
+@requires_docx_roundtrip
+def test_compare_fails_when_image_reference_changes() -> None:
+    committed = _book_markdown("![Illustration](./images/a.jpg)\n")
+    imported = _book_markdown("![Illustration](./images/b.jpg)\n")
+
+    findings = compare_markdown_pair(committed, imported, lang="en")
+
+    drift = next(finding for finding in findings if finding.code == "roundtrip.image-reference-drift")
+    assert drift.severity == "fatal"
+
+
+@requires_docx_roundtrip
+def test_compare_accepts_rehashed_image_reference_with_same_payload(tmp_path: Path) -> None:
+    committed_dir = tmp_path / "committed"
+    imported_dir = tmp_path / "imported"
+    committed_images = committed_dir / "images"
+    imported_images = imported_dir / "images"
+    committed_images.mkdir(parents=True)
+    imported_images.mkdir(parents=True)
+    payload = b"same image bytes"
+    (committed_images / "pixel.png").write_bytes(payload)
+    (imported_images / "6019c3c9e47d.png").write_bytes(payload)
+    committed = _book_markdown("![Corpus diagram](./images/pixel.png)\n")
+    imported = _book_markdown("![Corpus diagram](./images/6019c3c9e47d.png)\n")
+
+    findings = compare_markdown_pair(
+        committed,
+        imported,
+        lang="en",
+        committed_dir=committed_dir,
+        imported_dir=imported_dir,
+    )
+
+    assert not any(finding.code == "roundtrip.image-reference-drift" for finding in findings)
 
 
 @requires_docx_roundtrip
