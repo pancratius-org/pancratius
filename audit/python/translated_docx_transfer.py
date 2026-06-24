@@ -23,7 +23,7 @@ def main() -> int:
         return 1
     print(
         f"checked {audit.checked} translated DOCX artifact(s); "
-        "package and footnote checks clean"
+        "no package, footnote, or drawing metadata issues found"
     )
     return 0
 
