@@ -10,6 +10,7 @@ effects from one DOCX command.
 from __future__ import annotations
 
 import io
+import posixpath
 import re
 import xml.etree.ElementTree as ET
 import zipfile
@@ -17,6 +18,7 @@ from collections.abc import Iterable, MutableMapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
+from urllib.parse import unquote, urlsplit
 
 MC_NS = "http://schemas.openxmlformats.org/markup-compatibility/2006"
 REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
@@ -26,6 +28,13 @@ WP_NS = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
 PIC_NS = "http://schemas.openxmlformats.org/drawingml/2006/picture"
 XML_NS = "http://www.w3.org/XML/1998/namespace"
 HYPERLINK_REL_TYPE = f"{R_NS}/hyperlink"
+EMBED_REL_TYPES = frozenset({
+    f"{R_NS}/audio",
+    f"{R_NS}/image",
+    f"{R_NS}/oleObject",
+    f"{R_NS}/package",
+    f"{R_NS}/video",
+})
 REL = f"{{{REL_NS}}}"
 R = f"{{{R_NS}}}"
 W = f"{{{W_NS}}}"
@@ -63,6 +72,32 @@ class DocxParagraphMeta:
 class NamespaceBinding:
     prefix: str
     uri: str
+
+
+@dataclass(frozen=True, slots=True)
+class OoxmlRelationship:
+    rel_id: str
+    rel_type: str
+    target: str
+    target_mode: str | None
+    resolved_target: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class OoxmlRelationshipRef:
+    attr_name: str
+    rel_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class OoxmlRelationshipRead:
+    source_part: str
+    relationships: dict[str, OoxmlRelationship]
+    issues: tuple[str, ...]
+
+
+class OoxmlRelationshipError(ValueError):
+    """An OOXML relationship path cannot be trusted."""
 
 
 COMMON_NAMESPACES: tuple[NamespaceBinding, ...] = (
@@ -173,6 +208,129 @@ def namespace_bindings(xml: bytes) -> tuple[NamespaceBinding, ...]:
     for _event, (prefix, uri) in ET.iterparse(io.BytesIO(xml), events=("start-ns",)):
         bindings.append(NamespaceBinding(prefix, uri))
     return tuple(bindings)
+
+
+def relationship_source_part(rels_name: str) -> str:
+    if rels_name == "_rels/.rels":
+        return ""
+    if rels_name.startswith("_rels/") and rels_name.endswith(".rels"):
+        leaf = rels_name.removeprefix("_rels/")
+        if "/" in leaf:
+            raise OoxmlRelationshipError(f"unexpected relationships part path: {rels_name}")
+        return leaf.removesuffix(".rels")
+    if "/_rels/" not in rels_name or not rels_name.endswith(".rels"):
+        raise OoxmlRelationshipError(f"unexpected relationships part path: {rels_name}")
+    prefix, leaf = rels_name.split("/_rels/", 1)
+    if "/" in leaf:
+        raise OoxmlRelationshipError(f"unexpected relationships part path: {rels_name}")
+    return f"{prefix}/{leaf.removesuffix('.rels')}"
+
+
+def resolve_relationship_target(source_part: str, target: str) -> str:
+    parsed = urlsplit(target)
+    if parsed.scheme or parsed.netloc:
+        raise OoxmlRelationshipError(
+            f"relationship target from {source_part or '/'} is external without TargetMode=External: {target}"
+        )
+    path = unquote(parsed.path)
+    if not path:
+        raise OoxmlRelationshipError(f"relationship target from {source_part or '/'} is empty")
+    if path.startswith("/"):
+        resolved = posixpath.normpath(path.lstrip("/"))
+    else:
+        resolved = posixpath.normpath(posixpath.join(posixpath.dirname(source_part), path))
+    if resolved in {".", ".."} or resolved.startswith("../"):
+        raise OoxmlRelationshipError(
+            f"relationship target from {source_part or '/'} escapes the DOCX package: {target}"
+        )
+    return resolved
+
+
+def relationships_part_for(source_part: str) -> str:
+    if "/" in source_part:
+        prefix, leaf = source_part.rsplit("/", 1)
+        return f"{prefix}/_rels/{leaf}.rels"
+    return f"_rels/{source_part}.rels"
+
+
+def read_ooxml_relationships(
+    root: ET.Element,
+    rels_name: str,
+    package_part_names: set[str],
+) -> OoxmlRelationshipRead:
+    try:
+        source_part = relationship_source_part(rels_name)
+    except OoxmlRelationshipError as exc:
+        return OoxmlRelationshipRead("", {}, (str(exc),))
+    if source_part and source_part not in package_part_names:
+        return OoxmlRelationshipRead(
+            source_part,
+            {},
+            (f"{rels_name} has no source part {source_part}",),
+        )
+
+    issues: list[str] = []
+    relationships: dict[str, OoxmlRelationship] = {}
+    for rel in root.findall(f"{REL}Relationship"):
+        rel_id = rel.get("Id")
+        if rel_id is None:
+            issues.append(f"{rels_name} has a relationship without Id")
+            continue
+        if rel_id in relationships:
+            issues.append(f"{rels_name} has duplicate relationship Id {rel_id}")
+            continue
+        rel_type = rel.get("Type")
+        if rel_type is None:
+            issues.append(f"{rels_name} relationship {rel_id} has no Type")
+            continue
+        target = rel.get("Target")
+        if not target:
+            issues.append(f"{rels_name} relationship {rel_id} is missing Target")
+            continue
+        target_mode = rel.get("TargetMode")
+        if target_mode not in {None, "Internal", "External"}:
+            issues.append(
+                f"{rels_name} relationship {rel_id} has invalid TargetMode {target_mode!r}"
+            )
+            continue
+        if target_mode == "External":
+            relationships[rel_id] = OoxmlRelationship(
+                rel_id=rel_id,
+                rel_type=rel_type,
+                target=target,
+                target_mode=target_mode,
+                resolved_target=None,
+            )
+            continue
+        try:
+            resolved = resolve_relationship_target(source_part, target)
+        except OoxmlRelationshipError as exc:
+            issues.append(f"{rels_name} relationship {rel_id}: {exc}")
+            continue
+        if resolved not in package_part_names:
+            issues.append(
+                f"{rels_name} relationship {rel_id} targets missing package part "
+                f"{target!r} (resolved as {resolved!r})"
+            )
+            continue
+        relationships[rel_id] = OoxmlRelationship(
+            rel_id=rel_id,
+            rel_type=rel_type,
+            target=target,
+            target_mode=target_mode,
+            resolved_target=resolved,
+        )
+    return OoxmlRelationshipRead(source_part, relationships, tuple(issues))
+
+
+def office_relationship_refs(root: ET.Element) -> tuple[OoxmlRelationshipRef, ...]:
+    prefix = f"{{{R_NS}}}"
+    return tuple(
+        OoxmlRelationshipRef(attr.removeprefix(prefix), value)
+        for element in root.iter()
+        for attr, value in element.attrib.items()
+        if attr.startswith(prefix)
+    )
 
 
 def register_namespaces(bindings: Iterable[NamespaceBinding] = ()) -> None:

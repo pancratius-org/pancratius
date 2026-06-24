@@ -10,20 +10,28 @@ from __future__ import annotations
 
 import hashlib
 import os
-import posixpath
 import sys
 import zipfile
-from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
 from xml.etree import ElementTree as ET
+
+from pancratius.ooxml import (
+    EMBED_REL_TYPES,
+    R_NS,
+    REL_NS,
+    W_NS,
+    OoxmlRelationship,
+    OoxmlRelationshipError,
+    office_relationship_refs,
+    read_ooxml_relationships,
+    relationships_part_for,
+    resolve_relationship_target,
+)
 
 ROOT = Path(os.environ.get("PANCRATIUS_AUDIT_ROOT", Path(__file__).resolve().parents[1]))
 CONTENT = ROOT / "src" / "content"
 CONTENT_TYPES_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
-REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
-OFFICE_REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-OFFICE_DOCUMENT_REL = f"{OFFICE_REL_NS}/officeDocument"
+OFFICE_DOCUMENT_REL = f"{R_NS}/officeDocument"
 DOCUMENT_CONTENT_TYPE = (
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
 )
@@ -41,34 +49,11 @@ EXPECTED_CONTENT_TYPES = {
     "tiff": "image/tiff",
     "wmf": "image/x-wmf",
 }
-EMBED_REL_TYPES = {
-    f"{OFFICE_REL_NS}/audio",
-    f"{OFFICE_REL_NS}/image",
-    f"{OFFICE_REL_NS}/oleObject",
-    f"{OFFICE_REL_NS}/package",
-    f"{OFFICE_REL_NS}/video",
-}
-W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 DUPLICATE_HALF_MIN_PARAGRAPHS = 6
 
 
 class DocxIntegrityError(ValueError):
     """The DOCX package is not internally coherent enough to trust."""
-
-
-@dataclass(frozen=True)
-class Relationship:
-    rel_id: str
-    rel_type: str
-    target: str
-    target_mode: str | None
-    resolved_target: str | None
-
-
-@dataclass(frozen=True, slots=True)
-class OfficeRelationshipRef:
-    attr_name: str
-    rel_id: str
 
 
 def _docx_paths() -> list[Path]:
@@ -79,55 +64,11 @@ def _docx_paths() -> list[Path]:
         for path in collection.glob("*/*.docx")
     )
 
-
-def _rels_source_part(rels_name: str) -> str:
-    if rels_name == "_rels/.rels":
-        return ""
-    if "/_rels/" not in rels_name or not rels_name.endswith(".rels"):
-        raise DocxIntegrityError(f"unexpected relationships part path: {rels_name}")
-    prefix, leaf = rels_name.split("/_rels/", 1)
-    return f"{prefix}/{leaf.removesuffix('.rels')}"
-
-
-def _resolve_relationship_target(source_part: str, target: str) -> str:
-    parsed = urlsplit(target)
-    path = unquote(parsed.path)
-    if not path:
-        raise DocxIntegrityError(f"relationship target from {source_part or '/'} is empty")
-    if path.startswith("/"):
-        resolved = posixpath.normpath(path.lstrip("/"))
-    else:
-        resolved = posixpath.normpath(posixpath.join(posixpath.dirname(source_part), path))
-    if resolved == "." or resolved.startswith("../"):
-        raise DocxIntegrityError(
-            f"relationship target from {source_part or '/'} escapes the DOCX package: {target}"
-        )
-    return resolved
-
-
-def _rels_part_for(source_part: str) -> str:
-    if "/" in source_part:
-        prefix, leaf = source_part.rsplit("/", 1)
-        return f"{prefix}/_rels/{leaf}.rels"
-    return f"_rels/{source_part}.rels"
-
-
 def _parse_xml_part(zf: zipfile.ZipFile, name: str) -> ET.Element:
     try:
         return ET.fromstring(zf.read(name))
     except ET.ParseError as exc:
         raise DocxIntegrityError(f"{name} is not well-formed XML: {exc}") from exc
-
-
-def _office_relationship_refs(root: ET.Element) -> list[OfficeRelationshipRef]:
-    prefix = f"{{{OFFICE_REL_NS}}}"
-    return [
-        OfficeRelationshipRef(attr.removeprefix(prefix), value)
-        for element in root.iter()
-        for attr, value in element.attrib.items()
-        if attr.startswith(prefix)
-    ]
-
 
 def _validate_content_types(root: ET.Element, names: set[str]) -> None:
     defaults = {
@@ -169,7 +110,10 @@ def _validate_root_office_document(
             continue
         if rel.get("TargetMode") == "External":
             raise DocxIntegrityError("root officeDocument relationship is external")
-        targets.append(_resolve_relationship_target("", rel.get("Target", "")))
+        try:
+            targets.append(resolve_relationship_target("", rel.get("Target", "")))
+        except OoxmlRelationshipError as exc:
+            raise DocxIntegrityError(str(exc)) from exc
     if targets != ["word/document.xml"]:
         rendered = ", ".join(targets) if targets else "<missing>"
         raise DocxIntegrityError(
@@ -184,52 +128,20 @@ def _validate_relationship_part(
     zf: zipfile.ZipFile,
     names: set[str],
     rels_name: str,
-) -> dict[str, Relationship]:
+) -> dict[str, OoxmlRelationship]:
     root = _parse_xml_part(zf, rels_name)
     if rels_name == "_rels/.rels":
         _validate_root_office_document(root, names)
-    source_part = _rels_source_part(rels_name)
-    if source_part and source_part not in names:
-        raise DocxIntegrityError(f"{rels_name} has no source part {source_part}")
-    relationships: dict[str, Relationship] = {}
-    for rel in root.findall(f"{{{REL_NS}}}Relationship"):
-        rel_id = rel.get("Id")
-        rel_type = rel.get("Type")
-        if rel_id is None:
-            raise DocxIntegrityError(f"{rels_name} has a relationship without Id")
-        if rel_id in relationships:
-            raise DocxIntegrityError(f"{rels_name} has duplicate relationship Id {rel_id}")
-        if rel_type is None:
-            raise DocxIntegrityError(f"{rels_name} relationship {rel_id} has no Type")
-        target = rel.get("Target", "")
-        if rel.get("TargetMode") == "External":
-            relationships[rel_id] = Relationship(
-                rel_id=rel_id,
-                rel_type=rel_type,
-                target=target,
-                target_mode=rel.get("TargetMode"),
-                resolved_target=None,
-            )
-            continue
-        resolved = _resolve_relationship_target(source_part, target)
-        if resolved not in names:
-            raise DocxIntegrityError(
-                f"{rels_name} relationship {rel_id} targets missing part {target!r}"
-            )
-        relationships[rel_id] = Relationship(
-            rel_id=rel_id,
-            rel_type=rel_type,
-            target=target,
-            target_mode=rel.get("TargetMode"),
-            resolved_target=resolved,
-        )
-    return relationships
+    read = read_ooxml_relationships(root, rels_name, names)
+    if read.issues:
+        raise DocxIntegrityError(read.issues[0])
+    return read.relationships
 
 
 def _validate_relationship_reference(
     part_name: str,
     attr_name: str,
-    relationship: Relationship,
+    relationship: OoxmlRelationship,
 ) -> None:
     if attr_name == "embed" and relationship.target_mode == "External":
         raise DocxIntegrityError(
@@ -245,17 +157,17 @@ def _validate_relationship_reference(
 def _validate_xml_relationship_refs(
     zf: zipfile.ZipFile,
     names: set[str],
-    rels: dict[str, dict[str, Relationship]],
+    rels: dict[str, dict[str, OoxmlRelationship]],
 ) -> ET.Element:
     document_root: ET.Element | None = None
     for name in sorted(n for n in names if n.startswith("word/") and n.endswith(".xml")):
         root = _parse_xml_part(zf, name)
         if name == "word/document.xml":
             document_root = root
-        refs = _office_relationship_refs(root)
+        refs = office_relationship_refs(root)
         if not refs:
             continue
-        rels_name = _rels_part_for(name)
+        rels_name = relationships_part_for(name)
         relationships = rels.get(rels_name, {})
         missing = sorted(ref.rel_id for ref in refs if ref.rel_id not in relationships)
         if missing:
@@ -282,7 +194,7 @@ def _validate_docx_package(path: Path) -> tuple[set[str], ET.Element]:
             for required in ("[Content_Types].xml", "_rels/.rels", "word/document.xml"):
                 if required not in names:
                     raise DocxIntegrityError(f"missing required DOCX part: {required}")
-            rels: dict[str, dict[str, Relationship]] = {}
+            rels: dict[str, dict[str, OoxmlRelationship]] = {}
             for name in sorted(n for n in names if n.endswith(".rels")):
                 rels[name] = _validate_relationship_part(zf, names, name)
             _validate_content_types(_parse_xml_part(zf, "[Content_Types].xml"), names)

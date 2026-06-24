@@ -33,6 +33,7 @@ def _write_docx(
     document_relationships: str = "",
     footnotes_xml: str | None = None,
     footnote_relationships: str = "",
+    extra_parts: dict[str, bytes] | None = None,
 ) -> Path:
     docx = _docx_path(root, collection=collection, work=work)
     document_xml = (
@@ -68,6 +69,8 @@ def _write_docx(
         parts["word/_rels/footnotes.xml.rels"] = (
             f'<Relationships xmlns="{REL_NS}">{footnote_relationships}</Relationships>'
         ).encode()
+    if extra_parts is not None:
+        parts.update(extra_parts)
     with zipfile.ZipFile(docx, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for name, payload in parts.items():
             zf.writestr(name, payload)
@@ -166,6 +169,196 @@ def test_translated_docx_transfer_accepts_matching_footnote_table(tmp_path: Path
     result = _run_audit(root)
 
     assert result.returncode == 0, result.stderr
+
+
+def test_translated_docx_transfer_rejects_missing_relationship_target(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        document_relationships=(
+            f'<Relationship Id="rId2" Type="{R_NS}/image" Target="media/missing.png"/>'
+        ),
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 1
+    assert (
+        "word/_rels/document.xml.rels relationship rId2 targets missing package part "
+        "'media/missing.png' (resolved as 'word/media/missing.png')"
+    ) in result.stderr
+
+
+def test_translated_docx_transfer_rejects_orphan_relationship_part(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        extra_parts={"word/_rels/missing.xml.rels": f'<Relationships xmlns="{REL_NS}" />'.encode()},
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 1
+    assert "word/_rels/missing.xml.rels has no source part word/missing.xml" in result.stderr
+
+
+def test_translated_docx_transfer_rejects_unresolved_xml_relationship_ref(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(root, document_extra='<w:pict r:embed="missingImage" />')
+
+    result = _run_audit(root)
+
+    assert result.returncode == 1
+    assert "word/document.xml has unresolved relationship reference(s): missingImage" in result.stderr
+
+
+def test_translated_docx_transfer_rejects_malformed_relationship_rows(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        document_relationships=(
+            f'<Relationship Type="{R_NS}/image" Target="media/image1.png"/>'
+            '<Relationship Id="missingType" Target="media/image1.png"/>'
+            f'<Relationship Id="dupe" Type="{R_NS}/image" Target="media/image1.png"/>'
+            f'<Relationship Id="dupe" Type="{R_NS}/image" Target="media/image1.png"/>'
+        ),
+        extra_parts={"word/media/image1.png": b"image"},
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 1
+    assert "word/_rels/document.xml.rels has a relationship without Id" in result.stderr
+    assert "word/_rels/document.xml.rels relationship missingType has no Type" in result.stderr
+    assert "word/_rels/document.xml.rels has duplicate relationship Id dupe" in result.stderr
+
+
+def test_translated_docx_transfer_allows_external_relationship_target(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        document_relationships=(
+            f'<Relationship Id="rId2" Type="{R_NS}/hyperlink" '
+            'Target="https://example.com/" TargetMode="External"/>'
+        ),
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_translated_docx_transfer_rejects_external_target_without_target_mode(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        document_relationships=(
+            f'<Relationship Id="rId2" Type="{R_NS}/image" '
+            'Target="https://example.com/word/media/image1.png"/>'
+        ),
+        extra_parts={"word/media/image1.png": b"image"},
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 1
+    assert "is external without TargetMode=External" in result.stderr
+
+
+def test_translated_docx_transfer_rejects_invalid_target_mode(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        document_relationships=(
+            f'<Relationship Id="rId2" Type="{R_NS}/image" '
+            'Target="media/image1.png" TargetMode="external"/>'
+        ),
+        extra_parts={"word/media/image1.png": b"image"},
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 1
+    assert "relationship rId2 has invalid TargetMode 'external'" in result.stderr
+
+
+def test_translated_docx_transfer_rejects_misplaced_nested_relationship_part(
+    tmp_path: Path,
+) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        extra_parts={
+            "word/charts/chart1.xml": b"<chart />",
+            "word/media/image1.png": b"image",
+            "word/_rels/charts/chart1.xml.rels": (
+                f'<Relationships xmlns="{REL_NS}">'
+                f'<Relationship Id="rId2" Type="{R_NS}/image" Target="../media/image1.png"/>'
+                "</Relationships>"
+            ).encode(),
+        },
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 1
+    assert "unexpected relationships part path: word/_rels/charts/chart1.xml.rels" in result.stderr
+
+
+def test_translated_docx_transfer_rejects_exact_parent_package_escape(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        document_relationships=(
+            f'<Relationship Id="rId2" Type="{R_NS}/image" Target="../.."/>'
+        ),
+        extra_parts={"..": b"not a package part"},
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 1
+    assert "escapes the DOCX package" in result.stderr
+
+
+def test_translated_docx_transfer_accepts_relationship_targeted_media(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        document_relationships=(
+            f'<Relationship Id="rId2" Type="{R_NS}/image" Target="media/image1.png"/>'
+        ),
+        extra_parts={"word/media/image1.png": b"image"},
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_translated_docx_transfer_accepts_percent_encoded_media_target(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(
+        root,
+        document_relationships=(
+            f'<Relationship Id="rId2" Type="{R_NS}/image" Target="media/image%201.png"/>'
+        ),
+        extra_parts={"word/media/image 1.png": b"image"},
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_translated_docx_transfer_rejects_unowned_media_part(tmp_path: Path) -> None:
+    root = _content_root(tmp_path)
+    _write_docx(root, extra_parts={"word/media/image1.png": b"image"})
+
+    result = _run_audit(root)
+
+    assert result.returncode == 1
+    assert "word/media/image1.png has no internal package relationship" in result.stderr
 
 
 def test_translated_docx_transfer_rejects_cyrillic_drawing_metadata(tmp_path: Path) -> None:

@@ -132,7 +132,7 @@ the architecture contracts those rules cover.
 | PAN022 | Every `/en/` book-reference context with a Cyrillic (RU-only) title carries the shared "Russian original" badge; `/ru/` carries zero badges. |
 | PAN023 | Heuristic agent review for new raw primitives, open registries, primitive tuple contracts, and optionality clusters where domain types should carry repo vocabulary. |
 | PAN024 | The `pancratius` CLI uses positional typed selectors or source-first `--to` rather than primary-target flags. |
-| PAN025 | Translated work DOCX footnotes match definitions; drawing name/description/title fields contain no Cyrillic. |
+| PAN025 | Translated work DOCX relationships and Word XML references resolve, media is relationship-owned, footnotes match definitions, and drawing metadata contains no Cyrillic. |
 
 Content-quality checks are heuristic unless promoted with a deterministic
 contract and polarity coverage.
