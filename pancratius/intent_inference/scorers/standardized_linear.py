@@ -2,26 +2,29 @@
 
 from __future__ import annotations
 
-import json
 import math
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
-from pathlib import Path
+from enum import StrEnum
 
 from pancratius.intent_inference.decisions import (
     ArtifactId,
+    ArtifactSchemaId,
     DisplayRegisterLabel,
     FeatureSetId,
     IntentTask,
     LabelScore,
+    LabelSpaceId,
+    ObservationSchemaId,
     Prediction,
     PredictorRef,
-    SchemaId,
     ScoreKind,
     ScorerFamily,
 )
 from pancratius.intent_inference.errors import RegisterArtifactError
 from pancratius.intent_inference.observations import RegisterObservation
+from pancratius.locales import Locale
 
 _TERM_RE = re.compile(r"[.!?…]\s*$")
 _DASH_LINE_RE = re.compile(r"^[—–-]\s")
@@ -38,12 +41,37 @@ FEATURE_NAMES = (
     "ev_compact_callout", "ctx_heading", "ctx_named", "ctx_separator",
     "len_vs_book", "book_lineated_frac",
 )
+_WEIGHT_FIELDS = frozenset({
+    "schema",
+    "version",
+    "features",
+    "mean",
+    "std",
+    "coef",
+    "intercept",
+    "threshold",
+})
+
+
+class StandardizedLinearWeightsSchema(StrEnum):
+    V1 = "pancratius.standardized_linear.weights.v1"
+
+
+@dataclass(frozen=True, slots=True)
+class StandardizedLinearWeights:
+    version: int
+    features: tuple[str, ...]
+    mean: tuple[float, ...]
+    std: tuple[float, ...]
+    coef: tuple[float, ...]
+    intercept: float
+    threshold: float
 
 
 @dataclass(frozen=True, slots=True)
 class StandardizedLinearRegisterScorer:
     version: int
-    langs: tuple[str, ...]
+    langs: tuple[Locale, ...]
     features: tuple[str, ...]
     mean: tuple[float, ...]
     std: tuple[float, ...]
@@ -75,7 +103,7 @@ class StandardizedLinearRegisterScorer:
             self.features, self.mean, self.std, self.coef, strict=True
         ):
             z += weight * ((feats[name] - mu) / sd)
-        return 1.0 / (1.0 + math.exp(-z))
+        return _sigmoid(z)
 
 
 def verse_register_features(observation: RegisterObservation) -> dict[str, float]:
@@ -127,7 +155,10 @@ def _string_tuple(raw: object, field: str) -> tuple[str, ...]:
 def _finite_float(raw: object, field: str) -> float:
     if isinstance(raw, bool) or not isinstance(raw, (int, float)):
         raise RegisterArtifactError(f"field {field!r} must be a number")
-    value = float(raw)
+    try:
+        value = float(raw)
+    except OverflowError as exc:
+        raise RegisterArtifactError(f"field {field!r} must be finite") from exc
     if not math.isfinite(value):
         raise RegisterArtifactError(f"field {field!r} must be finite")
     return value
@@ -139,54 +170,99 @@ def _finite_tuple(raw: object, field: str) -> tuple[float, ...]:
     return tuple(_finite_float(item, field) for item in raw)
 
 
-def load_standardized_linear_register_scorer(
-    path: Path,
-) -> StandardizedLinearRegisterScorer | None:
-    if not path.exists():
-        return None
+def _weights_schema(raw: object) -> StandardizedLinearWeightsSchema:
+    if not isinstance(raw, str):
+        raise RegisterArtifactError("field 'schema' must be a string")
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-        if not isinstance(raw, dict):
-            raise RegisterArtifactError("artifact root must be an object")
-        kind = raw.get("kind")
-        if kind is not None and kind != "verse-register-student":
-            raise RegisterArtifactError(f"unknown register model artifact kind {kind!r}")
-        features = _string_tuple(raw["features"], "features")
-        langs = _string_tuple(raw.get("langs", ()), "langs")
-        mean = _finite_tuple(raw["mean"], "mean")
-        std = _finite_tuple(raw["std"], "std")
-        coef = _finite_tuple(raw["coef"], "coef")
-        version = int(raw.get("version", 0))
-        intercept = _finite_float(raw["intercept"], "intercept")
-        threshold = _finite_float(raw["threshold"], "threshold")
-        if not 0.0 <= threshold <= 1.0:
+        return StandardizedLinearWeightsSchema(raw)
+    except ValueError as exc:
+        raise RegisterArtifactError(f"unknown standardized linear weights schema {raw!r}") from exc
+
+
+def _version(raw: object) -> int:
+    if isinstance(raw, bool) or not isinstance(raw, int):
+        raise RegisterArtifactError("field 'version' must be an integer")
+    if raw <= 0:
+        raise RegisterArtifactError("field 'version' must be positive")
+    return raw
+
+
+def _sigmoid(z: float) -> float:
+    if z >= 0.0:
+        return 1.0 / (1.0 + math.exp(-z))
+    exp_z = math.exp(z)
+    return exp_z / (1.0 + exp_z)
+
+
+def _parse_weights(weights: Mapping[str, object]) -> StandardizedLinearWeights:
+    unknown = sorted(set(weights) - _WEIGHT_FIELDS)
+    if unknown:
+        raise RegisterArtifactError(f"unknown standardized linear weights field {unknown[0]!r}")
+    schema = _weights_schema(weights["schema"])
+    if schema is not StandardizedLinearWeightsSchema.V1:
+        raise RegisterArtifactError(
+            f"unsupported standardized linear weights schema {schema.value!r}"
+        )
+    return StandardizedLinearWeights(
+        version=_version(weights["version"]),
+        features=_string_tuple(weights["features"], "features"),
+        mean=_finite_tuple(weights["mean"], "mean"),
+        std=_finite_tuple(weights["std"], "std"),
+        coef=_finite_tuple(weights["coef"], "coef"),
+        intercept=_finite_float(weights["intercept"], "intercept"),
+        threshold=_finite_float(weights["threshold"], "threshold"),
+    )
+
+
+def load_standardized_linear_register_scorer(
+    weights: Mapping[str, object],
+    *,
+    artifact_id: ArtifactId,
+    artifact_schema: ArtifactSchemaId,
+    observation_schema: ObservationSchemaId,
+    label_space: LabelSpaceId,
+    scorer_family: ScorerFamily,
+    feature_set: FeatureSetId,
+    langs: tuple[Locale, ...],
+) -> StandardizedLinearRegisterScorer:
+    if scorer_family is not ScorerFamily.STANDARDIZED_LINEAR_V1:
+        raise RegisterArtifactError(
+            f"standardized linear loader received scorer family {scorer_family.value!r}"
+        )
+    if feature_set is not FeatureSetId.VERSE_REGISTER_FEATURES_V1:
+        raise RegisterArtifactError(
+            f"standardized linear loader received feature set {feature_set.value!r}"
+        )
+    try:
+        parsed = _parse_weights(weights)
+        if not 0.0 <= parsed.threshold <= 1.0:
             raise RegisterArtifactError("field 'threshold' must be between 0 and 1")
         scorer = StandardizedLinearRegisterScorer(
-            version=version,
+            version=parsed.version,
             langs=langs,
-            features=features,
-            mean=mean,
-            std=std,
-            coef=coef,
-            intercept=intercept,
-            threshold=threshold,
+            features=parsed.features,
+            mean=parsed.mean,
+            std=parsed.std,
+            coef=parsed.coef,
+            intercept=parsed.intercept,
+            threshold=parsed.threshold,
             predictor_ref=PredictorRef(
                 task=IntentTask.DISPLAY_REGISTER,
-                artifact_id=ArtifactId(f"verse-register-v{version}"),
-                artifact_schema=SchemaId.REGISTER_ARTIFACT_V1,
-                observation_schema=SchemaId.REGISTER_OBSERVATION_V1,
-                label_space=SchemaId.DISPLAY_REGISTER_LABELS_V1,
-                scorer_family=ScorerFamily.STANDARDIZED_LINEAR_V1,
-                feature_set=FeatureSetId.VERSE_REGISTER_FEATURES_V1,
+                artifact_id=artifact_id,
+                artifact_schema=artifact_schema,
+                observation_schema=observation_schema,
+                label_space=label_space,
+                scorer_family=scorer_family,
+                feature_set=feature_set,
             ),
         )
     except RegisterArtifactError:
         raise
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
-        raise RegisterArtifactError(f"malformed register model artifact {path}: {exc}") from exc
+    except (KeyError, TypeError, ValueError) as exc:
+        raise RegisterArtifactError(f"malformed standardized linear weights: {exc}") from exc
     if scorer.features != FEATURE_NAMES:
         raise RegisterArtifactError(
-            f"register model artifact {path}: feature schema drifted from the producer"
+            "standardized linear weights feature schema drifted from the producer"
         )
     if not (
         len(scorer.mean)
@@ -194,7 +270,7 @@ def load_standardized_linear_register_scorer(
         == len(scorer.coef)
         == len(scorer.features)
     ):
-        raise RegisterArtifactError(f"register model artifact {path}: vector lengths disagree")
+        raise RegisterArtifactError("standardized linear weights vector lengths disagree")
     if any(sd <= 0 for sd in scorer.std):
-        raise RegisterArtifactError(f"register model artifact {path}: non-positive feature std")
+        raise RegisterArtifactError("standardized linear weights contain non-positive feature std")
     return scorer

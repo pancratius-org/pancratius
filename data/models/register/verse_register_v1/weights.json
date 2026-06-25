@@ -1,9 +1,6 @@
 {
- "kind": "verse-register-student",
+ "schema": "pancratius.standardized_linear.weights.v1",
  "version": 1,
- "langs": [
-  "ru"
- ],
  "features": [
   "n_lines",
   "mean_len",
@@ -109,6 +106,5 @@
   0.12878010906370368
  ],
  "intercept": 1.4608288942120478,
- "threshold": 0.6,
- "trained_on": 3131
+ "threshold": 0.6
 }
