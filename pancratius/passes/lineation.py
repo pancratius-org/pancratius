@@ -161,6 +161,15 @@ def is_compact_coda(lines: list[str]) -> bool:
     ) <= _VISUAL_CODA_AVG_MAX
 
 
+def _lineated_plain_lines(block: ir.LineatedBlock) -> list[str]:
+    return [
+        text
+        for stanza in block.stanzas
+        for line in stanza
+        if (text := inline_plain(line.inlines))
+    ]
+
+
 def _collect_unit(
     blocks: list[ir.Block],
     i: int,
@@ -428,6 +437,101 @@ def recover_numbered_rows(blocks: list[ir.Block]) -> list[ir.Block]:
     return out
 
 
+def attach_compact_coda_lineation(blocks: list[ir.Block]) -> list[ir.Block]:
+    """Q1 repair: attach a compact closing coda to the preceding lineated unit.
+
+    `fold_lineation` can emit the closing shape as a neighboring
+    `LineatedBlock`: previous lineated run, at least one blank source row, exactly
+    two compact coda lines Q1 already inferred as source rows, optional blanks,
+    then a section boundary. That is structural lineation, so it is repaired
+    before Q2 display-register assignment. The repair does not decide verse
+    register; it only moves the coda stanza into the lineated unit it visually
+    closes.
+    """
+    out: list[ir.Block] = []
+    i = 0
+    n = len(blocks)
+    while i < n:
+        block = blocks[i]
+        if not isinstance(block, ir.LineatedBlock):
+            out.append(block)
+            i += 1
+            continue
+        candidate = _compact_coda_lineation_candidate(blocks, i + 1)
+        if candidate is None:
+            out.append(block)
+            i += 1
+            continue
+        coda, next_i = candidate
+        out.append(_fuse_compact_coda_lineation(block, coda))
+        i = next_i
+    return out
+
+
+def _compact_coda_lineation_candidate(
+    blocks: list[ir.Block],
+    i: int,
+) -> tuple[ir.LineatedBlock, int] | None:
+    """Return the following compact coda block and the boundary index."""
+    scan = skip_empty_paragraphs(blocks, i)
+    if not scan.saw_gap:
+        return None
+
+    i = scan.next_index
+    coda = blocks[i] if i < len(blocks) else None
+    if not isinstance(coda, ir.LineatedBlock) or coda.register is not ir.Register.ORDINARY:
+        return None
+    if not coda.evidence.inferred_source_rows:
+        return None
+
+    coda_lines = _lineated_plain_lines(coda)
+    if not is_compact_coda(coda_lines):
+        return None
+    if any(CODA_PSEUDO_HEADING_RE.match(line) for line in coda_lines):
+        return None
+
+    boundary_i = skip_empty_paragraphs(blocks, i + 1).next_index
+    boundary = blocks[boundary_i] if boundary_i < len(blocks) else None
+    if not isinstance(boundary, (ir.Heading, ir.ThematicBreak)):
+        return None
+
+    return coda, boundary_i
+
+
+def _merge_lineation_evidence(
+    first: ir.LineationEvidence,
+    second: ir.LineationEvidence,
+) -> ir.LineationEvidence:
+    return ir.LineationEvidence(
+        pandoc_line_block=first.pandoc_line_block or second.pandoc_line_block,
+        hard_break=first.hard_break or second.hard_break,
+        inferred_source_rows=first.inferred_source_rows or second.inferred_source_rows,
+        stanza_break=first.stanza_break or second.stanza_break,
+        compact_callout=first.compact_callout or second.compact_callout,
+    )
+
+
+def _fuse_compact_coda_lineation(
+    before: ir.LineatedBlock,
+    coda: ir.LineatedBlock,
+) -> ir.LineatedBlock:
+    repair = ir.LineationRepair(
+        kind=ir.LineationRepairKind.COMPACT_CODA_ATTACHMENT,
+        body_stanza_count=len(before.stanzas),
+        body_source_span=before.source_span,
+        body_evidence=before.evidence,
+        attached_source_span=coda.source_span,
+        attached_evidence=coda.evidence,
+    )
+    return ir.LineatedBlock(
+        stanzas=[*before.stanzas, *coda.stanzas],
+        register=before.register,
+        evidence=_merge_lineation_evidence(before.evidence, coda.evidence),
+        source_span=ir.merge_source_spans((before.source_span, coda.source_span)),
+        lineation_repairs=(*before.lineation_repairs, repair, *coda.lineation_repairs),
+    )
+
+
 def _fuse_numbered_run(
     before: ir.LineatedBlock, bridge: list[ir.Paragraph], after: ir.LineatedBlock,
 ) -> ir.LineatedBlock:
@@ -440,12 +544,9 @@ def _fuse_numbered_run(
     # The merged run carries both folds' provenance, plus inferred-source-rows —
     # this repair asserts the bridge rows ARE source lineation.
     before_ev, after_ev = before.evidence, after.evidence
-    evidence = ir.LineationEvidence(
-        pandoc_line_block=before_ev.pandoc_line_block or after_ev.pandoc_line_block,
-        hard_break=before_ev.hard_break or after_ev.hard_break,
+    evidence = replace(
+        _merge_lineation_evidence(before_ev, after_ev),
         inferred_source_rows=True,
-        stanza_break=before_ev.stanza_break or after_ev.stanza_break,
-        compact_callout=before_ev.compact_callout or after_ev.compact_callout,
     )
     return ir.LineatedBlock(
         stanzas=[*before.stanzas, bridge_stanza, *after.stanzas],

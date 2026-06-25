@@ -99,6 +99,7 @@ BOOK_PASSES: tuple[Pass, ...] = (
     ("fold_quote_registers", _blocks(register.fold_quote_registers)),  # ← PER_ORDINAL_SEAM
     ("fold_lineation", _fold_lineation),
     ("recover_numbered_rows", _blocks(lineation.recover_numbered_rows)),
+    ("attach_compact_coda_lineation", _blocks(lineation.attach_compact_coda_lineation)),
     ("assign_register", register.assign_register),
     ("wrap_scripture", _wrap_scripture),
     ("sanitize_urls", _sanitize_urls),

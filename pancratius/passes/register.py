@@ -47,11 +47,8 @@ from pancratius.intent_inference.policies import RulesOnlyRegisterPolicy
 from pancratius.ir.inlines import inline_plain
 from pancratius.locales import Locale
 from pancratius.passes.lineation import (
-    CODA_PSEUDO_HEADING_RE,
     VERSE_SHORT_LINE_MAX,
-    is_compact_coda,
     is_verse_candidate_line,
-    skip_empty_paragraphs,
 )
 
 if TYPE_CHECKING:
@@ -757,6 +754,22 @@ def lineated_lines(block: ir.LineatedBlock) -> list[str]:
     return list(lineated_plain_lines(block))
 
 
+def _register_decision_block(block: ir.LineatedBlock) -> ir.LineatedBlock:
+    """The pre-repair view Q2 policy scores for compact-coda attachments."""
+    for index in range(len(block.lineation_repairs) - 1, -1, -1):
+        repair = block.lineation_repairs[index]
+        if repair.kind is not ir.LineationRepairKind.COMPACT_CODA_ATTACHMENT:
+            continue
+        return replace(
+            block,
+            stanzas=block.stanzas[:repair.body_stanza_count],
+            evidence=repair.body_evidence,
+            source_span=repair.body_source_span,
+            lineation_repairs=block.lineation_repairs[:index],
+        )
+    return block
+
+
 # ---------------------------------------------------------------------------
 # Q2b: the verse-register decision over lineated blocks
 # ---------------------------------------------------------------------------
@@ -779,8 +792,7 @@ def assign_register(doc: ir.Document, ctx: Context) -> ir.Document:
     decided = _promote(doc.blocks, _decision_plan(candidates, decisions), pins)
     if ctx.register_policy.reports_model_delta:
         # The rules-only re-run exists for the diagnostic below; ~2x this pass's
-        # cost, accepted for batch CLI (coda merges depend on verdicts, so a
-        # cheaper per-block comparison would miscount).
+        # cost, accepted for batch CLI so the report reads the materialized pass.
         def verse_count(blocks: list[ir.Block]) -> int:
             return sum(
                 1 for b in blocks
@@ -875,17 +887,21 @@ def _register_candidates(
             rule_ctx = RegisterRuleContext(separator=True)
             continue
         if isinstance(block, ir.LineatedBlock) and block.register is ir.Register.ORDINARY:
-            label_of = scaffold_line_labeler(block, _block_pins(block, pins))
-            view = _verse_candidate_view(block, label_of)
+            decision_block = _register_decision_block(block)
+            label_of = scaffold_line_labeler(
+                decision_block,
+                _block_pins(decision_block, pins),
+            )
+            view = _verse_candidate_view(decision_block, label_of)
             candidate_id = stable_register_candidate_id(
-                block,
+                decision_block,
                 source_block_index=i,
                 candidate_ordinal=candidate_ordinal,
             )
             out.append(RegisterCandidate(
                 candidate_id=candidate_id,
                 source_block_index=i,
-                source_span=block.source_span,
+                source_span=decision_block.source_span,
                 observation=RegisterObservation(
                     candidate_id=candidate_id,
                     lang=lang,
@@ -952,11 +968,6 @@ def _promote(
             i += 1
             continue
         if isinstance(b, ir.LineatedBlock) and b.register is ir.Register.VERSE:
-            if (segment := _lineated_coda_segment(blocks, i + 1, b)) is not None:
-                verse, next_i = segment
-                out.extend(_segment(verse, pins))
-                i = next_i
-                continue
             out.extend(_segment(b, pins))
             i += 1
             continue
@@ -969,11 +980,6 @@ def _promote(
             label_of = scaffold_line_labeler(b, _block_pins(b, pins))
             if _materialized_label(decisions[i]) is DisplayRegisterLabel.VERSE:
                 verse = replace(b, register=ir.Register.VERSE)
-                if (segment := _lineated_coda_segment(blocks, i + 1, verse)) is not None:
-                    verse, next_i = segment
-                    out.extend(_segment(verse, pins))
-                    i = next_i
-                    continue
                 out.extend(segment_lineated(verse, label_of))
             elif _has_scripture_line(b, pins):
                 # An un-promoted ordinary lineated run still splits its scripture
@@ -1046,59 +1052,6 @@ def _rule_evaluation(
         reason=RegisterDecisionReason.RULES,
         model_allowed=not ctx.named,
     )
-
-
-def _lineated_coda_candidate(
-    blocks: list[ir.Block],
-    i: int,
-) -> tuple[ir.LineatedBlock, int] | None:
-    """A local coda segment after a verse run.
-
-    Shape: one or more empty paragraphs, an exact two-line lineated
-    candidate, optional empty paragraphs, then a heading/thematic boundary. The
-    candidate must be compact; this keeps prose previews before the next heading in
-    prose without naming their words.
-    """
-    scan = skip_empty_paragraphs(blocks, i)
-    if not scan.saw_gap:
-        return None
-
-    i = scan.next_index
-    first = blocks[i] if i < len(blocks) else None
-    if not isinstance(first, ir.LineatedBlock) or first.register is not ir.Register.ORDINARY:
-        return None
-    i += 1
-
-    coda_lines = lineated_lines(first)
-    if not is_compact_coda(coda_lines):
-        return None
-    if any(CODA_PSEUDO_HEADING_RE.match(line) for line in coda_lines):
-        return None
-
-    boundary_i = skip_empty_paragraphs(blocks, i).next_index
-    boundary = blocks[boundary_i] if boundary_i < len(blocks) else None
-    if not isinstance(boundary, (ir.Heading, ir.ThematicBreak)):
-        return None
-
-    return first, boundary_i
-
-
-def _lineated_coda_segment(
-    blocks: list[ir.Block],
-    i: int,
-    prev: ir.LineatedBlock,
-) -> tuple[ir.LineatedBlock, int] | None:
-    """`prev` extended with the coda segment found at `i`, or `None`."""
-    candidate = _lineated_coda_candidate(blocks, i)
-    if candidate is None:
-        return None
-    coda, next_i = candidate
-    merged = replace(
-        prev,
-        stanzas=[*prev.stanzas, *coda.stanzas],
-        source_span=ir.merge_source_spans((prev.source_span, coda.source_span)),
-    )
-    return merged, next_i
 
 
 def _kind_for_lines(

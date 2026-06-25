@@ -75,7 +75,14 @@ def register_book_stats(blocks: list[ir.Block]) -> RegisterBookStats:
         for b in blocks
         if isinstance(b, ir.Paragraph) and not b.empty
     ]
-    lineated = sum(1 for b in blocks if isinstance(b, ir.LineatedBlock))
+    lineated = sum(
+        1 + sum(
+            1 for repair in b.lineation_repairs
+            if repair.kind is ir.LineationRepairKind.COMPACT_CODA_ATTACHMENT
+        )
+        for b in blocks
+        if isinstance(b, ir.LineatedBlock)
+    )
     total = len(para_lens) + lineated
     return RegisterBookStats(
         mean_para_len=sum(para_lens) / len(para_lens) if para_lens else 0.0,
