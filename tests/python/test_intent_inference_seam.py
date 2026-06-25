@@ -1,14 +1,29 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
+from collections.abc import Callable
 from pathlib import Path
+from typing import cast
 
 import pytest
 
 from pancratius import ir
+from pancratius.intent_inference.artifacts import (
+    ArtifactFileRef,
+    LanguageSupport,
+    LocalArtifactRepository,
+    RegisterArtifactManifest,
+    compute_bundle_sha256,
+    load_register_policy_for,
+)
 from pancratius.intent_inference.decisions import (
+    ArtifactBundleHash,
+    ArtifactBundleId,
     ArtifactId,
+    ArtifactManifestSchema,
+    ArtifactSchemaId,
     DecisionOutcome,
     DiagnosticSeverity,
     DisplayRegisterLabel,
@@ -16,12 +31,15 @@ from pancratius.intent_inference.decisions import (
     IntentDiagnosticCode,
     IntentTask,
     LabelScore,
+    LabelSpaceId,
+    ObservationSchemaId,
     Prediction,
     PredictorRef,
     RegisterDecisionReason,
-    SchemaId,
+    RelativeBundlePath,
     ScoreKind,
     ScorerFamily,
+    Sha256Digest,
 )
 from pancratius.intent_inference.errors import RegisterArtifactError
 from pancratius.intent_inference.observations import (
@@ -34,11 +52,12 @@ from pancratius.intent_inference.observations import (
     stable_register_candidate_id,
     stanza_line_counts,
 )
-from pancratius.intent_inference.policies import ModelBackedRegisterPolicy
+from pancratius.intent_inference.policies import ModelBackedRegisterPolicy, PolicyMode
+from pancratius.intent_inference.scorers.registry import ScorerRegistry
 from pancratius.intent_inference.scorers.standardized_linear import (
     FEATURE_NAMES,
     StandardizedLinearRegisterScorer,
-    load_standardized_linear_register_scorer,
+    StandardizedLinearWeightsSchema,
 )
 from pancratius.locales import Locale
 
@@ -148,8 +167,32 @@ def test_register_pass_does_not_own_model_family_code() -> None:
     assert "load_register_model" not in defined
 
 
+def test_import_composition_uses_artifact_registry_not_concrete_scorer() -> None:
+    import_paths = [
+        ROOT / "pancratius" / "docx_conversion.py",
+        ROOT / "pancratius" / "intent_inference" / "artifacts.py",
+    ]
+
+    for path in import_paths:
+        imported = _imported_modules(path)
+        assert "pancratius.intent_inference.scorers.standardized_linear" not in imported
+
+    artifact_imports = _imported_modules(ROOT / "pancratius" / "intent_inference" / "artifacts.py")
+    assert "pancratius.intent_inference.scorers.registry" in artifact_imports
+
+
 def test_production_intent_inference_has_no_research_or_network_imports() -> None:
-    forbidden_roots = {"intent_ai", "openrouter", "requests", "httpx", "urllib", "google"}
+    forbidden_roots = {
+        "google",
+        "httpx",
+        "intent_ai",
+        "numpy",
+        "openrouter",
+        "pandas",
+        "requests",
+        "sklearn",
+        "urllib",
+    }
     paths = [
         *(ROOT / "pancratius" / "intent_inference").rglob("*.py"),
         ROOT / "pancratius" / "passes" / "register.py",
@@ -161,11 +204,15 @@ def test_production_intent_inference_has_no_research_or_network_imports() -> Non
         assert imported_roots.isdisjoint(forbidden_roots), path
 
 
-def _artifact(features: tuple[str, ...] = FEATURE_NAMES) -> dict[str, object]:
+_TEST_BUNDLE_ID = ArtifactBundleId("register/verse_register_v1")
+_MODEL_CARD = "# Test register model\n\nRuntime test card.\n"
+
+
+def _weights(features: tuple[str, ...] = FEATURE_NAMES) -> dict[str, object]:
     n = len(features)
     return {
+        "schema": StandardizedLinearWeightsSchema.V1.value,
         "version": 1,
-        "langs": ["ru"],
         "features": list(features),
         "mean": [0.0] * n,
         "std": [1.0] * n,
@@ -175,51 +222,357 @@ def _artifact(features: tuple[str, ...] = FEATURE_NAMES) -> dict[str, object]:
     }
 
 
-def test_standardized_linear_loader_rejects_feature_drift(tmp_path: Path) -> None:
-    path = tmp_path / "model.json"
+def _sha256_text(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _manifest_dict(weights_sha: str, model_card_sha: str) -> dict[str, object]:
+    manifest = RegisterArtifactManifest(
+        schema=ArtifactManifestSchema.REGISTER_BUNDLE_V1,
+        artifact_id=ArtifactId("verse-register-v1"),
+        artifact_schema=ArtifactSchemaId.REGISTER_ARTIFACT_V1,
+        bundle_id=_TEST_BUNDLE_ID,
+        bundle_sha256=ArtifactBundleHash("0" * 64),
+        task=IntentTask.DISPLAY_REGISTER,
+        scorer_family=ScorerFamily.STANDARDIZED_LINEAR_V1,
+        observation_schema=ObservationSchemaId.REGISTER_OBSERVATION_V1,
+        label_space=LabelSpaceId.DISPLAY_REGISTER_LABELS_V1,
+        feature_set=FeatureSetId.VERSE_REGISTER_FEATURES_V1,
+        language_support=LanguageSupport(("ru",)),
+        weights=ArtifactFileRef(
+            path=RelativeBundlePath("weights.json"),
+            sha256=Sha256Digest(weights_sha),
+        ),
+        model_card=ArtifactFileRef(
+            path=RelativeBundlePath("model-card.md"),
+            sha256=Sha256Digest(model_card_sha),
+        ),
+    )
+    return {
+        "schema": manifest.schema.value,
+        "artifact_id": str(manifest.artifact_id),
+        "artifact_schema": manifest.artifact_schema.value,
+        "bundle_id": str(manifest.bundle_id),
+        "bundle_sha256": str(compute_bundle_sha256(manifest)),
+        "task": manifest.task.value,
+        "scorer_family": manifest.scorer_family.value,
+        "observation_schema": manifest.observation_schema.value,
+        "label_space": manifest.label_space.value,
+        "feature_set": manifest.feature_set.value,
+        "language_support": {"locales": list(manifest.language_support.locales)},
+        "files": {
+            "weights": {
+                "path": str(manifest.weights.path),
+                "sha256": str(manifest.weights.sha256),
+            },
+            "model_card": {
+                "path": str(manifest.model_card.path),
+                "sha256": str(manifest.model_card.sha256),
+            },
+        },
+    }
+
+
+def _manifest_file_ref(manifest: dict[str, object], role: str) -> dict[str, object]:
+    files = manifest["files"]
+    assert isinstance(files, dict)
+    typed_files = cast(dict[str, object], files)
+    ref = typed_files[role]
+    assert isinstance(ref, dict)
+    return cast(dict[str, object], ref)
+
+
+def _write_bundle(
+    tmp_path: Path,
+    *,
+    weights: dict[str, object] | None = None,
+    weights_text: str | None = None,
+    mutate_manifest: Callable[[dict[str, object]], None] | None = None,
+) -> LocalArtifactRepository:
+    root = tmp_path / "models"
+    bundle = root / "register" / "verse_register_v1"
+    bundle.mkdir(parents=True, exist_ok=True)
+    resolved_weights_text = (
+        weights_text
+        if weights_text is not None
+        else json.dumps(weights or _weights(), ensure_ascii=False, indent=2) + "\n"
+    )
+    (bundle / "weights.json").write_text(resolved_weights_text, encoding="utf-8")
+    (bundle / "model-card.md").write_text(_MODEL_CARD, encoding="utf-8")
+    manifest = _manifest_dict(
+        _sha256_text(resolved_weights_text),
+        _sha256_text(_MODEL_CARD),
+    )
+    if mutate_manifest is not None:
+        mutate_manifest(manifest)
+    (bundle / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return LocalArtifactRepository(root)
+
+
+def test_register_bundle_loader_accepts_valid_bundle(tmp_path: Path) -> None:
+    repository = _write_bundle(tmp_path)
+
+    bundle = repository.load_bundle(_TEST_BUNDLE_ID)
+    assert bundle is not None
+    assert bundle.manifest.artifact_id == ArtifactId("verse-register-v1")
+    assert bundle.manifest.scorer_family is ScorerFamily.STANDARDIZED_LINEAR_V1
+
+    loaded = load_register_policy_for("ru", repository=repository, bundle_id=_TEST_BUNDLE_ID)
+    assert loaded.missing_artifact is None
+    assert loaded.policy.mode is PolicyMode.ARTIFACT_OPTIONAL_DIAGNOSTIC_TEMP
+
+
+def test_register_validated_bundle_rejects_feature_vector_drift(tmp_path: Path) -> None:
     bad_features = ("drifted", *FEATURE_NAMES[1:])
-    path.write_text(json.dumps(_artifact(bad_features)), encoding="utf-8")
+    repository = _write_bundle(tmp_path, weights=_weights(bad_features))
 
     with pytest.raises(RegisterArtifactError, match="feature schema drifted"):
-        load_standardized_linear_register_scorer(path)
+        repository.load_validated_bundle(_TEST_BUNDLE_ID)
 
 
-def test_standardized_linear_loader_rejects_malformed_language_support(tmp_path: Path) -> None:
-    path = tmp_path / "model.json"
-    artifact = _artifact()
-    artifact["langs"] = "ru"
-    path.write_text(json.dumps(artifact), encoding="utf-8")
+def test_register_bundle_loader_rejects_bundle_hash_mismatch(tmp_path: Path) -> None:
+    def break_hash(manifest: dict[str, object]) -> None:
+        _manifest_file_ref(manifest, "weights")["sha256"] = "0" * 64
 
-    with pytest.raises(RegisterArtifactError, match="langs"):
-        load_standardized_linear_register_scorer(path)
+    repository = _write_bundle(tmp_path, mutate_manifest=break_hash)
 
-
-def test_standardized_linear_loader_rejects_non_finite_numbers(tmp_path: Path) -> None:
-    path = tmp_path / "model.json"
-    artifact = _artifact()
-    artifact["intercept"] = float("inf")
-    path.write_text(json.dumps(artifact), encoding="utf-8")
-
-    with pytest.raises(RegisterArtifactError, match="finite"):
-        load_standardized_linear_register_scorer(path)
+    with pytest.raises(RegisterArtifactError, match="bundle hash mismatch"):
+        repository.load_bundle(_TEST_BUNDLE_ID)
 
 
-def test_standardized_linear_loader_missing_artifact_is_optional(tmp_path: Path) -> None:
-    assert load_standardized_linear_register_scorer(tmp_path / "missing.json") is None
+def test_register_bundle_loader_rejects_file_hash_mismatch(tmp_path: Path) -> None:
+    repository = _write_bundle(tmp_path)
+    weights = tmp_path / "models" / "register" / "verse_register_v1" / "weights.json"
+    weights.write_text(json.dumps(_weights(), ensure_ascii=False), encoding="utf-8")
+
+    with pytest.raises(RegisterArtifactError, match="weights sha256 mismatch"):
+        repository.load_bundle(_TEST_BUNDLE_ID)
+
+
+def test_register_bundle_loader_rejects_missing_weights_file(tmp_path: Path) -> None:
+    repository = _write_bundle(tmp_path)
+    (tmp_path / "models" / "register" / "verse_register_v1" / "weights.json").unlink()
+
+    with pytest.raises(RegisterArtifactError, match="weights file missing"):
+        repository.load_bundle(_TEST_BUNDLE_ID)
+
+
+def test_register_bundle_loader_rejects_missing_model_card(tmp_path: Path) -> None:
+    repository = _write_bundle(tmp_path)
+    (tmp_path / "models" / "register" / "verse_register_v1" / "model-card.md").unlink()
+
+    with pytest.raises(RegisterArtifactError, match="model_card file missing"):
+        repository.load_bundle(_TEST_BUNDLE_ID)
+
+
+def test_register_bundle_loader_rejects_path_traversal(tmp_path: Path) -> None:
+    def traverse(manifest: dict[str, object]) -> None:
+        _manifest_file_ref(manifest, "weights")["path"] = "../weights.json"
+
+    repository = _write_bundle(tmp_path, mutate_manifest=traverse)
+
+    with pytest.raises(RegisterArtifactError, match="traverse outside"):
+        repository.load_bundle(_TEST_BUNDLE_ID)
+
+
+def test_register_bundle_loader_rejects_bundle_id_traversal(tmp_path: Path) -> None:
+    repository = _write_bundle(tmp_path)
+
+    with pytest.raises(RegisterArtifactError, match="traverse outside"):
+        repository.load_bundle(ArtifactBundleId("../verse_register_v1"))
+
+
+def test_register_bundle_loader_rejects_absolute_bundle_id(tmp_path: Path) -> None:
+    repository = _write_bundle(tmp_path)
+
+    with pytest.raises(RegisterArtifactError, match="relative bundle path"):
+        repository.load_bundle(ArtifactBundleId("/tmp/verse_register_v1"))
+
+
+def test_register_bundle_loader_rejects_unknown_manifest_schema(tmp_path: Path) -> None:
+    def unknown_schema(manifest: dict[str, object]) -> None:
+        manifest["schema"] = "pancratius.register_bundle_manifest.v9"
+
+    repository = _write_bundle(tmp_path, mutate_manifest=unknown_schema)
+
+    with pytest.raises(RegisterArtifactError, match="unknown schema"):
+        repository.load_bundle(_TEST_BUNDLE_ID)
+
+
+def test_register_bundle_loader_rejects_unknown_manifest_fields(tmp_path: Path) -> None:
+    def extra_field(manifest: dict[str, object]) -> None:
+        manifest["promoted_at"] = "2026-06-25"
+
+    repository = _write_bundle(tmp_path, mutate_manifest=extra_field)
+
+    with pytest.raises(RegisterArtifactError, match="unknown artifact manifest field"):
+        repository.load_bundle(_TEST_BUNDLE_ID)
+
+
+def test_register_bundle_loader_rejects_duplicate_manifest_keys(tmp_path: Path) -> None:
+    repository = _write_bundle(tmp_path)
+    manifest_path = tmp_path / "models" / "register" / "verse_register_v1" / "manifest.json"
+    manifest_path.write_text(
+        '{"schema":"pancratius.register_bundle_manifest.v1","schema":"x"}',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RegisterArtifactError, match="duplicate JSON key"):
+        repository.load_bundle(_TEST_BUNDLE_ID)
+
+
+def test_register_bundle_loader_rejects_malformed_manifest_json(tmp_path: Path) -> None:
+    repository = _write_bundle(tmp_path)
+    manifest_path = tmp_path / "models" / "register" / "verse_register_v1" / "manifest.json"
+    manifest_path.write_text('{"schema":', encoding="utf-8")
+
+    with pytest.raises(RegisterArtifactError, match="malformed artifact manifest JSON"):
+        repository.load_bundle(_TEST_BUNDLE_ID)
+
+
+def test_register_bundle_loader_rejects_unknown_scorer_family(tmp_path: Path) -> None:
+    def unknown_family(manifest: dict[str, object]) -> None:
+        manifest["scorer_family"] = "tree_ensemble.v1"
+
+    repository = _write_bundle(tmp_path, mutate_manifest=unknown_family)
+
+    with pytest.raises(RegisterArtifactError, match="unknown scorer_family"):
+        repository.load_bundle(_TEST_BUNDLE_ID)
+
+
+def test_scorer_registry_rejects_known_family_without_registered_loader(tmp_path: Path) -> None:
+    repository = _write_bundle(tmp_path)
+
+    with pytest.raises(RegisterArtifactError, match="no scorer registered"):
+        load_register_policy_for(
+            "ru",
+            repository=repository,
+            bundle_id=_TEST_BUNDLE_ID,
+            scorer_registry=ScorerRegistry({}),
+        )
+
+
+def test_register_bundle_loader_rejects_malformed_weights_json(tmp_path: Path) -> None:
+    bad_json = '{"schema": "pancratius.standardized_linear.weights.v1",'
+    repository = _write_bundle(tmp_path, weights_text=bad_json)
+
+    with pytest.raises(RegisterArtifactError, match="malformed weights JSON"):
+        repository.load_bundle(_TEST_BUNDLE_ID)
+
+
+def test_register_bundle_loader_rejects_huge_json_integers(tmp_path: Path) -> None:
+    weights_text = json.dumps(_weights(), ensure_ascii=False).replace(
+        '"intercept": 0.0',
+        '"intercept": ' + ("9" * 400),
+    )
+    repository = _write_bundle(tmp_path, weights_text=weights_text)
+
+    with pytest.raises(RegisterArtifactError, match="non-finite JSON integer"):
+        repository.load_bundle(_TEST_BUNDLE_ID)
+
+
+def test_register_bundle_loader_rejects_non_finite_numbers(tmp_path: Path) -> None:
+    weights = dict(_weights())
+    weights_text = json.dumps(weights, ensure_ascii=False).replace(
+        '"intercept": 0.0',
+        '"intercept": 1e999',
+    )
+    repository = _write_bundle(tmp_path, weights_text=weights_text)
+
+    with pytest.raises(RegisterArtifactError, match="non-finite JSON number"):
+        repository.load_bundle(_TEST_BUNDLE_ID)
+
+
+def test_register_bundle_loader_rejects_unknown_language_support(tmp_path: Path) -> None:
+    def unknown_locale(manifest: dict[str, object]) -> None:
+        manifest["language_support"] = {"locales": ["de"]}
+
+    repository = _write_bundle(tmp_path, mutate_manifest=unknown_locale)
+
+    with pytest.raises(RegisterArtifactError, match="known locales"):
+        repository.load_bundle(_TEST_BUNDLE_ID)
+
+
+def test_register_bundle_rejects_unsupported_feature_set(tmp_path: Path) -> None:
+    def lineation_features(manifest: dict[str, object]) -> None:
+        manifest["feature_set"] = FeatureSetId.LINEATION_FEATURES_V1.value
+
+    repository = _write_bundle(tmp_path, mutate_manifest=lineation_features)
+
+    with pytest.raises(RegisterArtifactError, match="unsupported feature set"):
+        repository.load_bundle(_TEST_BUNDLE_ID)
+
+
+def test_standardized_linear_registry_rejects_feature_vector_drift(tmp_path: Path) -> None:
+    bad_features = ("drifted", *FEATURE_NAMES[1:])
+    repository = _write_bundle(tmp_path, weights=_weights(bad_features))
+
+    with pytest.raises(RegisterArtifactError, match="feature schema drifted"):
+        load_register_policy_for("ru", repository=repository, bundle_id=_TEST_BUNDLE_ID)
+
+
+def test_register_bundle_missing_artifact_is_optional(tmp_path: Path) -> None:
+    loaded = load_register_policy_for(
+        "ru",
+        repository=LocalArtifactRepository(tmp_path / "models"),
+        bundle_id=_TEST_BUNDLE_ID,
+    )
+
+    assert loaded.policy.mode is PolicyMode.RULES_ONLY
+    assert loaded.missing_artifact == tmp_path / "models" / "register" / "verse_register_v1"
+
+
+def test_register_bundle_unsupported_language_uses_rules_policy(tmp_path: Path) -> None:
+    repository = _write_bundle(tmp_path)
+
+    loaded = load_register_policy_for("en", repository=repository, bundle_id=_TEST_BUNDLE_ID)
+
+    assert loaded.policy.mode is PolicyMode.RULES_ONLY
+    assert loaded.missing_artifact is None
+
+
+def test_unsupported_language_does_not_parse_corrupted_weights(tmp_path: Path) -> None:
+    repository = _write_bundle(tmp_path)
+    weights = tmp_path / "models" / "register" / "verse_register_v1" / "weights.json"
+    weights.write_text("{not json", encoding="utf-8")
+
+    loaded = load_register_policy_for("en", repository=repository, bundle_id=_TEST_BUNDLE_ID)
+
+    assert loaded.policy.mode is PolicyMode.RULES_ONLY
+    assert loaded.missing_artifact is None
+
+
+def test_register_scorer_cache_is_keyed_by_bundle_hash(tmp_path: Path) -> None:
+    first_weights = _weights()
+    first_weights["version"] = 1
+    repository = _write_bundle(tmp_path, weights=first_weights)
+    first = load_register_policy_for("ru", repository=repository, bundle_id=_TEST_BUNDLE_ID)
+
+    second_weights = _weights()
+    second_weights["version"] = 2
+    second_weights["intercept"] = 3.0
+    _write_bundle(tmp_path, weights=second_weights)
+    second = load_register_policy_for("ru", repository=repository, bundle_id=_TEST_BUNDLE_ID)
+
+    assert first.policy.model_version == 1
+    assert second.policy.model_version == 2
 
 
 _TEST_PREDICTOR = PredictorRef(
     task=IntentTask.DISPLAY_REGISTER,
     artifact_id=ArtifactId("test-register-model"),
-    artifact_schema=SchemaId.REGISTER_ARTIFACT_V1,
-    observation_schema=SchemaId.REGISTER_OBSERVATION_V1,
-    label_space=SchemaId.DISPLAY_REGISTER_LABELS_V1,
+    artifact_schema=ArtifactSchemaId.REGISTER_ARTIFACT_V1,
+    observation_schema=ObservationSchemaId.REGISTER_OBSERVATION_V1,
+    label_space=LabelSpaceId.DISPLAY_REGISTER_LABELS_V1,
     scorer_family=ScorerFamily.STANDARDIZED_LINEAR_V1,
     feature_set=FeatureSetId.VERSE_REGISTER_FEATURES_V1,
 )
 
 
-def _scorer(*, bias: float, langs: tuple[str, ...] = ("ru",)) -> StandardizedLinearRegisterScorer:
+def _scorer(*, bias: float, langs: tuple[Locale, ...] = ("ru",)) -> StandardizedLinearRegisterScorer:
     n = len(FEATURE_NAMES)
     return StandardizedLinearRegisterScorer(
         version=7,
@@ -270,6 +623,15 @@ def _candidate(
     )
 
 
+def test_standardized_linear_probability_saturates_for_extreme_finite_scores() -> None:
+    low = _scorer(bias=-1_000.0)
+    high = _scorer(bias=1_000.0)
+    observation = _candidate().observation
+
+    assert low.probability(observation) == 0.0
+    assert high.probability(observation) == 1.0
+
+
 def test_model_policy_records_candidate_level_disagreement_diagnostic() -> None:
     policy = ModelBackedRegisterPolicy(_scorer(bias=3.0))
 
@@ -306,7 +668,7 @@ def test_model_policy_thresholds_the_prediction_label_not_an_implicit_verse_scor
     class OrdinaryScorer:
         version: int = 3
         threshold: float = 0.6
-        langs: tuple[str, ...] = ("ru",)
+        langs: tuple[Locale, ...] = ("ru",)
 
         def predict(self, observation: RegisterObservation) -> Prediction:
             _ = observation

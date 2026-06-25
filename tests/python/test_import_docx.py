@@ -313,8 +313,8 @@ def test_missing_register_artifact_is_info_and_rules_only(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    missing = tmp_path / "missing-register-model.json"
-    monkeypatch.setattr(register_artifacts, "REGISTER_MODEL_PATH", missing)
+    missing_root = tmp_path / "missing-models"
+    monkeypatch.setattr(register_artifacts, "ARTIFACT_ROOT", missing_root)
     register_artifacts.load_register_scorer.cache_clear()
     try:
         converted = _convert_with_stub_doc(monkeypatch, tmp_path, lang="ru")
@@ -330,7 +330,7 @@ def test_missing_register_artifact_is_info_and_rules_only(
         (
             "info",
             "register.model",
-            "no register model artifact at missing-register-model.json; rules decide alone",
+            "no register model artifact at register/verse_register_v1; rules decide alone",
         )
     ]
 

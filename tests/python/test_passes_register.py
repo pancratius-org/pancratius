@@ -10,13 +10,15 @@ from pancratius import ir
 from pancratius.intent_inference.artifacts import load_register_policy_for
 from pancratius.intent_inference.decisions import (
     ArtifactId,
+    ArtifactSchemaId,
     DecisionOutcome,
     FeatureSetId,
     IntentTask,
+    LabelSpaceId,
+    ObservationSchemaId,
     PredictorRef,
     RegisterDecision,
     RegisterDecisionReason,
-    SchemaId,
     ScorerFamily,
 )
 from pancratius.intent_inference.observations import RegisterCandidate, RegisterDocumentContext
@@ -37,9 +39,9 @@ from pancratius.passes.register import (
 _TEST_PREDICTOR = PredictorRef(
     task=IntentTask.DISPLAY_REGISTER,
     artifact_id=ArtifactId("test-register-model"),
-    artifact_schema=SchemaId.REGISTER_ARTIFACT_V1,
-    observation_schema=SchemaId.REGISTER_OBSERVATION_V1,
-    label_space=SchemaId.DISPLAY_REGISTER_LABELS_V1,
+    artifact_schema=ArtifactSchemaId.REGISTER_ARTIFACT_V1,
+    observation_schema=ObservationSchemaId.REGISTER_OBSERVATION_V1,
+    label_space=LabelSpaceId.DISPLAY_REGISTER_LABELS_V1,
     scorer_family=ScorerFamily.STANDARDIZED_LINEAR_V1,
     feature_set=FeatureSetId.VERSE_REGISTER_FEATURES_V1,
 )

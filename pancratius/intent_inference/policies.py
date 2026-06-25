@@ -22,6 +22,7 @@ from pancratius.intent_inference.observations import (
     RegisterDocumentContext,
     RegisterObservation,
 )
+from pancratius.locales import Locale
 
 
 class PolicyMode(StrEnum):
@@ -32,7 +33,7 @@ class PolicyMode(StrEnum):
 class RegisterScorer(Protocol):
     version: int
     threshold: float
-    langs: tuple[str, ...]
+    langs: tuple[Locale, ...]
 
     def predict(self, observation: RegisterObservation) -> Prediction:
         """Score one candidate observation."""
