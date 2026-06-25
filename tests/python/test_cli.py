@@ -283,6 +283,23 @@ def test_work_import_input_error_is_usage(monkeypatch: pytest.MonkeyPatch) -> No
     assert _exit_code(["work", "import", "x.docx", "--kind", "book", "--lang", "ru"]) == 2
 
 
+def test_work_import_artifact_contract_error_is_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from pancratius import import_docx
+    from pancratius.intent_inference.errors import RegisterArtifactError
+
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
+
+    def boom(_r: object) -> object:
+        raise RegisterArtifactError("required register artifact bundle missing")
+
+    monkeypatch.setattr(import_docx, "import_work", boom)
+    assert _exit_code(["work", "import", "x.docx", "--kind", "book", "--lang", "ru"]) == 1
+    assert "required register artifact bundle missing" in capsys.readouterr().err
+
+
 def test_work_import_missing_kind_is_usage_before_dispatch(monkeypatch: pytest.MonkeyPatch) -> None:
     from pancratius import import_docx
 
@@ -432,6 +449,23 @@ def test_project_page_add_scaffold_error_is_usage(monkeypatch: pytest.MonkeyPatc
 
     monkeypatch.setattr(docx_conversion, "scaffold_subpage", boom)
     assert _exit_code(["project", "page", "add", "project:holy-rus/my-sub", "x.txt", "--lang", "ru"]) == 2
+
+
+def test_project_page_add_artifact_contract_error_is_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from pancratius import docx_conversion
+    from pancratius.intent_inference.errors import RegisterArtifactError
+
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
+
+    def boom(**_k: object) -> object:
+        raise RegisterArtifactError("artifact weights sha256 mismatch")
+
+    monkeypatch.setattr(docx_conversion, "scaffold_subpage", boom)
+    assert _exit_code(["project", "page", "add", "project:holy-rus/my-sub", "x.docx", "--lang", "ru"]) == 1
+    assert "artifact weights sha256 mismatch" in capsys.readouterr().err
 
 
 def test_project_page_add_missing_pandoc_is_failure(monkeypatch: pytest.MonkeyPatch) -> None:

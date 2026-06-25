@@ -964,6 +964,7 @@ def import_work(request: ImportRequest) -> WriteReport:
     """The side-effect-free importer entry the `pancratius work import` CLI dispatches
     to. Returns the writer's `WriteReport` — including on a refusal, where
     `report.refused` carries the fatal diagnostics (it does not raise). Raises
-    `ImportWorkError` only for invalid input or an unresolvable target. The CLI owns all
-    side effects."""
+    `ImportWorkError` for invalid input or an unresolvable target, and lets
+    register-artifact contract failures surface as intent-inference errors. The
+    CLI owns all side effects and maps those failure classes to exit codes."""
     return _apply(request)[1]

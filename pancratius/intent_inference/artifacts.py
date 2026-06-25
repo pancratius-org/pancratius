@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from functools import cache
 from pathlib import Path, PurePosixPath
-from typing import NoReturn, cast
+from typing import Literal, NoReturn, assert_never, cast
 
 from pancratius.intent_inference.decisions import (
     ArtifactBundleHash,
@@ -32,8 +32,10 @@ from pancratius.intent_inference.errors import RegisterArtifactError
 from pancratius.intent_inference.policies import (
     ModelBackedRegisterPolicy,
     RegisterPolicy,
+    RegisterRolloutMode,
     RegisterScorer,
     RulesOnlyRegisterPolicy,
+    UnsupportedLanguageRulesFallbackRegisterPolicy,
 )
 from pancratius.intent_inference.scorers.registry import DEFAULT_SCORER_REGISTRY, ScorerRegistry
 from pancratius.locales import LOCALES, Locale, is_locale
@@ -41,6 +43,8 @@ from pancratius.paths import REPO_ROOT
 
 ARTIFACT_ROOT = REPO_ROOT / "data" / "models"
 DEFAULT_REGISTER_BUNDLE_ID = ArtifactBundleId("register/verse_register_v1")
+type RegisterArtifactRequiredLangs = tuple[Locale, ...]
+DEFAULT_REGISTER_BUNDLE_REQUIRED_LANGS: RegisterArtifactRequiredLangs = ("ru",)
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _MANIFEST_FIELDS = frozenset({
@@ -108,10 +112,48 @@ class ValidatedArtifactBundle:
     scorer: RegisterScorer
 
 
+class RegisterPolicyLoadOutcome(StrEnum):
+    EXPLICIT_RULES_ONLY = "explicit_rules_only"
+    MODEL_ASSISTED_ARTIFACT_LOADED = "model_assisted_artifact_loaded"
+    UNSUPPORTED_LANGUAGE_RULES_FALLBACK = "unsupported_language_rules_fallback"
+
+
 @dataclass(frozen=True, slots=True)
-class RegisterPolicyLoad:
+class ExplicitRulesOnlyRegisterPolicyLoad:
     policy: RegisterPolicy
-    missing_artifact: Path | None = None
+    bundle_id: ArtifactBundleId
+    outcome: Literal[RegisterPolicyLoadOutcome.EXPLICIT_RULES_ONLY] = (
+        RegisterPolicyLoadOutcome.EXPLICIT_RULES_ONLY
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class ModelAssistedRegisterPolicyLoad:
+    policy: RegisterPolicy
+    bundle_id: ArtifactBundleId
+    bundle_path: Path
+    model_assisted_langs: RegisterArtifactRequiredLangs = ()
+    outcome: Literal[RegisterPolicyLoadOutcome.MODEL_ASSISTED_ARTIFACT_LOADED] = (
+        RegisterPolicyLoadOutcome.MODEL_ASSISTED_ARTIFACT_LOADED
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class UnsupportedLanguageRegisterPolicyLoad:
+    policy: RegisterPolicy
+    bundle_id: ArtifactBundleId
+    bundle_path: Path
+    model_assisted_langs: RegisterArtifactRequiredLangs
+    outcome: Literal[RegisterPolicyLoadOutcome.UNSUPPORTED_LANGUAGE_RULES_FALLBACK] = (
+        RegisterPolicyLoadOutcome.UNSUPPORTED_LANGUAGE_RULES_FALLBACK
+    )
+
+
+type RegisterPolicyLoad = (
+    ExplicitRulesOnlyRegisterPolicyLoad
+    | ModelAssistedRegisterPolicyLoad
+    | UnsupportedLanguageRegisterPolicyLoad
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -236,31 +278,74 @@ def load_register_policy_for(
     repository: LocalArtifactRepository | None = None,
     bundle_id: ArtifactBundleId | None = None,
     scorer_registry: ScorerRegistry = DEFAULT_SCORER_REGISTRY,
+    rollout: RegisterRolloutMode = RegisterRolloutMode.MODEL_ASSISTED_PRODUCTION,
+    required_langs: RegisterArtifactRequiredLangs = DEFAULT_REGISTER_BUNDLE_REQUIRED_LANGS,
 ) -> RegisterPolicyLoad:
     artifact_repository = repository or LocalArtifactRepository(ARTIFACT_ROOT)
     resolved_bundle_id = bundle_id or DEFAULT_REGISTER_BUNDLE_ID
+    match rollout:
+        case RegisterRolloutMode.RULES_ONLY:
+            return ExplicitRulesOnlyRegisterPolicyLoad(
+                policy=RulesOnlyRegisterPolicy(),
+                bundle_id=resolved_bundle_id,
+            )
+        case RegisterRolloutMode.MODEL_ASSISTED_PRODUCTION:
+            pass
+        case _:
+            assert_never(rollout)
+
+    bundle_path = artifact_repository.bundle_root(resolved_bundle_id)
+    if lang not in required_langs:
+        return UnsupportedLanguageRegisterPolicyLoad(
+            policy=UnsupportedLanguageRulesFallbackRegisterPolicy(
+                lang=lang,
+                model_assisted_langs=required_langs,
+                bundle_id=resolved_bundle_id,
+            ),
+            bundle_id=resolved_bundle_id,
+            bundle_path=bundle_path,
+            model_assisted_langs=required_langs,
+        )
     manifest = artifact_repository.load_manifest(resolved_bundle_id)
     if manifest is None:
-        missing = artifact_repository.bundle_root(resolved_bundle_id)
-        return RegisterPolicyLoad(policy=RulesOnlyRegisterPolicy(), missing_artifact=missing)
+        raise RegisterArtifactError(
+            f"required register artifact bundle missing for {lang}: {bundle_path}"
+        )
     if not manifest.language_support.supports(lang):
-        return RegisterPolicyLoad(policy=RulesOnlyRegisterPolicy())
+        raise RegisterArtifactError(
+            f"required register artifact {resolved_bundle_id!r} does not support {lang!r}"
+        )
+
+    bundle = artifact_repository.load_bundle(resolved_bundle_id)
+    if bundle is None:
+        raise RegisterArtifactError(
+            f"required register artifact bundle missing for {lang}: {bundle_path}"
+        )
 
     if scorer_registry is DEFAULT_SCORER_REGISTRY:
         scorer = load_register_scorer(
             artifact_repository.root,
             resolved_bundle_id,
-            manifest.bundle_sha256,
+            bundle.manifest.bundle_sha256,
         )
     else:
-        validated = artifact_repository.load_validated_bundle(resolved_bundle_id, scorer_registry)
-        scorer = None if validated is None else validated.scorer
+        scorer = scorer_registry.load(bundle)
 
     if scorer is None:
-        return RegisterPolicyLoad(policy=RulesOnlyRegisterPolicy())
+        raise RegisterArtifactError(
+            f"required register artifact bundle unavailable for {lang}: {bundle_path}"
+        )
     if lang not in scorer.langs:
-        return RegisterPolicyLoad(policy=RulesOnlyRegisterPolicy())
-    return RegisterPolicyLoad(policy=ModelBackedRegisterPolicy(scorer))
+        raise RegisterArtifactError(
+            f"register scorer for {resolved_bundle_id!r} does not support {lang!r} "
+            "despite manifest language_support"
+        )
+    return ModelAssistedRegisterPolicyLoad(
+        policy=ModelBackedRegisterPolicy(scorer),
+        bundle_id=resolved_bundle_id,
+        bundle_path=bundle_path,
+        model_assisted_langs=required_langs,
+    )
 
 
 def _parse_manifest(raw: Mapping[str, object]) -> RegisterArtifactManifest:

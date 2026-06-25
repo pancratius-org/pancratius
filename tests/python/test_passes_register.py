@@ -7,7 +7,10 @@ from collections.abc import Callable
 import pytest
 
 from pancratius import ir
-from pancratius.intent_inference.artifacts import load_register_policy_for
+from pancratius.intent_inference.artifacts import (
+    RegisterPolicyLoadOutcome,
+    load_register_policy_for,
+)
 from pancratius.intent_inference.decisions import (
     ArtifactId,
     ArtifactSchemaId,
@@ -22,7 +25,7 @@ from pancratius.intent_inference.decisions import (
     ScorerFamily,
 )
 from pancratius.intent_inference.observations import RegisterCandidate, RegisterDocumentContext
-from pancratius.intent_inference.policies import ModelBackedRegisterPolicy, PolicyMode
+from pancratius.intent_inference.policies import ModelBackedRegisterPolicy, RegisterRolloutMode
 from pancratius.intent_inference.scorers.standardized_linear import (
     FEATURE_NAMES,
     StandardizedLinearRegisterScorer,
@@ -109,7 +112,7 @@ def test_model_over_threshold_promotes() -> None:
 
 def test_shipped_model_promotes_where_rules_do_not_and_reports_delta() -> None:
     policy_load = load_register_policy_for("ru")
-    assert policy_load.missing_artifact is None
+    assert policy_load.outcome is RegisterPolicyLoadOutcome.MODEL_ASSISTED_ARTIFACT_LOADED
     block = _lineated("Тихая строка,", "ещё одна строка.")
 
     rules = assign_register(_doc(block), Context(lang="ru"))
@@ -122,6 +125,11 @@ def test_shipped_model_promotes_where_rules_do_not_and_reports_delta() -> None:
         (d.severity, d.code, d.message)
         for d in with_model_ctx.diagnostics
     ] == [
+        (
+            "info",
+            "register.model_rules_disagree",
+            "model chose verse; rules chose ordinary",
+        ),
         (
             "info",
             "register.model",
@@ -548,13 +556,17 @@ def test_model_promoted_block_keeps_coda_machinery() -> None:
     assert len(first.stanzas) == 2
     assert first.source_span == ir.SourceSpan(10, 14)
     assert isinstance(doc.blocks[1], ir.Heading)
-    assert [(d.severity, d.code) for d in ctx.diagnostics] == [("info", "register.model")]
+    assert [(d.severity, d.code) for d in ctx.diagnostics] == [
+        ("info", "register.model_rules_disagree"),
+        ("info", "register.model_rules_disagree"),
+        ("info", "register.model"),
+    ]
 
 
 def test_unmaterializable_policy_decision_fails_loud() -> None:
     class RefusingPolicy:
         name = "refusing-register"
-        mode = PolicyMode.RULES_ONLY
+        rollout = RegisterRolloutMode.RULES_ONLY
         reports_model_delta = False
         model_version = None
 

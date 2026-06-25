@@ -16,6 +16,7 @@ from typing import Any, Literal
 
 from pancratius import import_docx
 from pancratius.content_catalog import CatalogEntry, scan_catalog, split_frontmatter
+from pancratius.intent_inference.errors import RegisterArtifactError
 from pancratius.kinds import SEGMENT_OF
 from pancratius.locales import Locale
 from pancratius.pandoc import PandocNotFoundError, pandoc_argv0
@@ -317,6 +318,15 @@ def _roundtrip_one(
             target=target,
             verdict="fail",
             findings=(DocxRoundTripFinding("fatal", "roundtrip.import-error", str(exc)),),
+            committed_chars=len(committed),
+            imported_chars=0,
+        )
+    except RegisterArtifactError as exc:
+        committed = target.md_path.read_text(encoding="utf-8") if target.md_path.is_file() else ""
+        return DocxRoundTripReport(
+            target=target,
+            verdict="fail",
+            findings=(DocxRoundTripFinding("fatal", "roundtrip.artifact-contract", str(exc)),),
             committed_chars=len(committed),
             imported_chars=0,
         )

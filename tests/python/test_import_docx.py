@@ -309,7 +309,7 @@ def _convert_with_stub_doc(
     )
 
 
-def test_missing_register_artifact_is_info_and_rules_only(
+def test_missing_required_register_artifact_raises(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -317,7 +317,22 @@ def test_missing_register_artifact_is_info_and_rules_only(
     monkeypatch.setattr(register_artifacts, "ARTIFACT_ROOT", missing_root)
     register_artifacts.load_register_scorer.cache_clear()
     try:
-        converted = _convert_with_stub_doc(monkeypatch, tmp_path, lang="ru")
+        with pytest.raises(
+            register_artifacts.RegisterArtifactError,
+            match="required register artifact bundle missing",
+        ):
+            _convert_with_stub_doc(monkeypatch, tmp_path, lang="ru")
+    finally:
+        register_artifacts.load_register_scorer.cache_clear()
+
+
+def test_register_artifact_unsupported_language_fallback_is_diagnostic(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    register_artifacts.load_register_scorer.cache_clear()
+    try:
+        converted = _convert_with_stub_doc(monkeypatch, tmp_path, lang="en")
     finally:
         register_artifacts.load_register_scorer.cache_clear()
 
@@ -330,23 +345,10 @@ def test_missing_register_artifact_is_info_and_rules_only(
         (
             "info",
             "register.model",
-            "no register model artifact at register/verse_register_v1; rules decide alone",
+            "register model rollout for register/verse_register_v1 covers ru; "
+            "en uses rules fallback",
         )
     ]
-
-
-def test_register_artifact_unsupported_language_falls_back_without_diagnostic(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    register_artifacts.load_register_scorer.cache_clear()
-    try:
-        converted = _convert_with_stub_doc(monkeypatch, tmp_path, lang="en")
-    finally:
-        register_artifacts.load_register_scorer.cache_clear()
-
-    assert 'class="lineated verse"' in converted.body
-    assert [d for d in converted.diagnostics if d.code == "register.model"] == []
 
 
 # ---------------------------------------------------------------------------

@@ -3,7 +3,7 @@
   "artifact_id": "verse-register-v1",
   "artifact_schema": "pancratius.register_artifact.v1",
   "bundle_id": "register/verse_register_v1",
-  "bundle_sha256": "0fcf032829b61a0a20120147aa9e0ced51ae6574a979174b899c0f4737c686c2",
+  "bundle_sha256": "55fcfc780c4fe674e5ed94bcfee0d620e30f5ee2e9f52b72aa1ddfe19a5bb097",
   "task": "display_register",
   "scorer_family": "standardized_linear.v1",
   "observation_schema": "pancratius.register_observation.v1",
@@ -21,7 +21,7 @@
     },
     "model_card": {
       "path": "model-card.md",
-      "sha256": "bca693dadad68c6886012771444a42af5f429366a694b5b2bbadf5774167c361"
+      "sha256": "d6e44e743d1eba17d099e271a90efd87e7668b3ce1cc3f0d0845f97fbc0baf3d"
     }
   }
 }
