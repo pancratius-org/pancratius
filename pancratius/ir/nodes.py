@@ -216,6 +216,25 @@ class LineationEvidence:
     stanza_break: bool = False
     compact_callout: bool = False
 
+
+class LineationRepairKind(StrEnum):
+    """Named structural repairs applied after initial lineation folding."""
+
+    COMPACT_CODA_ATTACHMENT = "compact_coda_attachment"
+
+
+@dataclass(frozen=True)
+class LineationRepair:
+    """Provenance for a named Q1 repair that should not be mistaken for evidence."""
+
+    kind: LineationRepairKind
+    body_stanza_count: int
+    body_source_span: SourceSpan | None
+    body_evidence: LineationEvidence
+    attached_source_span: SourceSpan | None
+    attached_evidence: LineationEvidence
+
+
 # Container inline kinds (those nesting a `children` list), in two forms: the union
 # types a known container; the tuple is `isinstance`'s 2nd arg (a `type` alias can't
 # be). `test_container_forms_in_sync` keeps them aligned.
@@ -353,6 +372,7 @@ class LineatedBlock:
     register: Register = Register.ORDINARY
     evidence: LineationEvidence = field(default_factory=LineationEvidence)
     source_span: SourceSpan | None = None
+    lineation_repairs: tuple[LineationRepair, ...] = ()
 
 
 @dataclass(frozen=True)

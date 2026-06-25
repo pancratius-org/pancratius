@@ -30,7 +30,12 @@ import pytest
 
 from pancratius import ir
 from pancratius.ir.inlines import inline_plain
-from pancratius.passes.lineation import VERSE_SHORT_LINE_MAX, fold_lineation, is_lineated_line
+from pancratius.passes.lineation import (
+    VERSE_SHORT_LINE_MAX,
+    attach_compact_coda_lineation,
+    fold_lineation,
+    is_lineated_line,
+)
 from pancratius.passes.register import promote_verse_register
 
 
@@ -378,7 +383,7 @@ def test_book30_item3_visual_suffix_after_long_citation_becomes_verse() -> None:
     assert inline_plain(out[1].inlines).startswith("«Воистину, подобие Исы")
 
 
-def test_visual_two_line_coda_after_verse_appends_as_new_stanza() -> None:
+def test_gap_separated_two_line_closing_stanza_folds_with_unit() -> None:
     blocks: list[ir.Block] = [
         ir.Heading(level=4, inlines=[ir.Text("20. И вот — как в Эммаусе")]),
         _para("Нет больше «Он».", lineation_group=1),
@@ -399,7 +404,7 @@ def test_visual_two_line_coda_after_verse_appends_as_new_stanza() -> None:
     ]
 
 
-def test_visual_two_line_coda_before_thematic_break_appends_as_new_stanza() -> None:
+def test_gap_separated_two_line_closing_stanza_before_thematic_break_folds_with_unit() -> None:
     blocks: list[ir.Block] = [
         _para("Так начинается сборка ложного «я» —", lineation_group=1),
         _para("из обломков взглядов,", lineation_group=1),
@@ -693,9 +698,12 @@ def test_visual_coda_does_not_mutate_existing_verse_block() -> None:
         ir.Heading(level=4, inlines=[ir.Text("Дальше")]),
     ]
 
-    out = promote_verse_register(fold_lineation(blocks))
+    lineated = attach_compact_coda_lineation(fold_lineation(blocks))
+    out = promote_verse_register(lineated)
 
     assert _verse_stanzas(existing) == [["Я — Свет.", "Я — Слово."]]
+    assert isinstance(lineated[0], ir.LineatedBlock)
+    assert len(lineated[0].stanzas) == 2
     assert _is_verse(out[0])
     assert _verse_stanzas(out[0]) == [
         ["Я — Свет.", "Я — Слово."],

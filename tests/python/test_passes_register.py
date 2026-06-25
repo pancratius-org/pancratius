@@ -31,6 +31,7 @@ from pancratius.intent_inference.scorers.standardized_linear import (
     StandardizedLinearRegisterScorer,
 )
 from pancratius.ir.inlines import inline_plain
+from pancratius.passes.lineation import attach_compact_coda_lineation
 from pancratius.passes.pipeline import Context, ScripturePins
 from pancratius.passes.register import (
     SpanLabel,
@@ -498,7 +499,7 @@ def test_assign_register_splits_promoted_mixed_run() -> None:
     ]
 
 
-def test_existing_verse_blocks_keep_coda_machinery() -> None:
+def test_existing_verse_blocks_receive_coda_before_register_assignment() -> None:
     doc = _doc(
         ir.LineatedBlock(
             stanzas=[[
@@ -514,20 +515,28 @@ def test_existing_verse_blocks_keep_coda_machinery() -> None:
                 _spanned_line("Ты читал.", 13),
                 _spanned_line("Я писал.", 14),
             ]],
+            evidence=ir.LineationEvidence(inferred_source_rows=True),
             source_span=ir.SourceSpan(13, 14),
         ),
         ir.Heading(level=2, inlines=[ir.Text("Глава")]),
     )
+    doc = _doc(*attach_compact_coda_lineation(doc.blocks))
+    first = doc.blocks[0]
+    assert isinstance(first, ir.LineatedBlock)
+    assert first.register is ir.Register.VERSE
+    assert len(first.stanzas) == 2
+    assert first.source_span == ir.SourceSpan(10, 14)
+
     doc = assign_register(doc, _ctx(None))
     first = doc.blocks[0]
     assert isinstance(first, ir.LineatedBlock)
     assert first.register is ir.Register.VERSE
-    assert len(first.stanzas) == 2  # the compact coda folded into the verse block
+    assert len(first.stanzas) == 2
     assert first.source_span == ir.SourceSpan(10, 14)
     assert isinstance(doc.blocks[1], ir.Heading)
 
 
-def test_model_promoted_block_keeps_coda_machinery() -> None:
+def test_model_promoted_block_receives_coda_before_register_assignment() -> None:
     doc = _doc(
         ir.LineatedBlock(
             stanzas=[[
@@ -542,11 +551,18 @@ def test_model_promoted_block_keeps_coda_machinery() -> None:
                 _spanned_line("Ты читал.", 13),
                 _spanned_line("Я писал.", 14),
             ]],
+            evidence=ir.LineationEvidence(inferred_source_rows=True),
             source_span=ir.SourceSpan(13, 14),
         ),
         ir.Heading(level=2, inlines=[ir.Text("Глава")]),
     )
     ctx = _ctx(PROMOTE)
+
+    doc = _doc(*attach_compact_coda_lineation(doc.blocks))
+    first = doc.blocks[0]
+    assert isinstance(first, ir.LineatedBlock)
+    assert len(first.stanzas) == 2
+    assert first.register is ir.Register.ORDINARY
 
     doc = assign_register(doc, ctx)
 
@@ -558,9 +574,78 @@ def test_model_promoted_block_keeps_coda_machinery() -> None:
     assert isinstance(doc.blocks[1], ir.Heading)
     assert [(d.severity, d.code) for d in ctx.diagnostics] == [
         ("info", "register.model_rules_disagree"),
-        ("info", "register.model_rules_disagree"),
         ("info", "register.model"),
     ]
+
+
+def test_compact_coda_attachment_does_not_widen_register_decision_view() -> None:
+    doc = _doc(
+        ir.LineatedBlock(
+            stanzas=[[
+                _spanned_line("Тихая строка,", 10),
+                _spanned_line("ещё одна строка.", 11),
+            ]],
+            source_span=ir.SourceSpan(10, 11),
+        ),
+        ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True)),
+        ir.LineatedBlock(
+            stanzas=[[
+                _spanned_line("Если готов —", 13),
+                _spanned_line("Я поведу тебя дальше.", 14),
+            ]],
+            evidence=ir.LineationEvidence(inferred_source_rows=True),
+            source_span=ir.SourceSpan(13, 14),
+        ),
+        ir.Heading(level=2, inlines=[ir.Text("Глава")]),
+    )
+
+    doc = _doc(*attach_compact_coda_lineation(doc.blocks))
+    first = doc.blocks[0]
+    assert isinstance(first, ir.LineatedBlock)
+    assert first.evidence.inferred_source_rows
+
+    doc = assign_register(doc, _ctx(None))
+
+    first = doc.blocks[0]
+    assert isinstance(first, ir.LineatedBlock)
+    assert first.register is ir.Register.ORDINARY
+    assert len(first.stanzas) == 2
+
+
+def test_assign_register_does_not_attach_following_coda_block() -> None:
+    doc = _doc(
+        ir.LineatedBlock(
+            stanzas=[[
+                _spanned_line("Свет мой тихий,", 10),
+                _spanned_line("в сердце горит.", 11),
+            ]],
+            register=ir.Register.VERSE,
+            source_span=ir.SourceSpan(10, 11),
+        ),
+        ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True)),
+        ir.LineatedBlock(
+            stanzas=[[
+                _spanned_line("Ты читал.", 13),
+                _spanned_line("Я писал.", 14),
+            ]],
+            evidence=ir.LineationEvidence(inferred_source_rows=True),
+            source_span=ir.SourceSpan(13, 14),
+        ),
+        ir.Heading(level=2, inlines=[ir.Text("Глава")]),
+    )
+
+    doc = assign_register(doc, _ctx(None))
+
+    first = doc.blocks[0]
+    assert isinstance(first, ir.LineatedBlock)
+    assert first.register is ir.Register.VERSE
+    assert len(first.stanzas) == 1
+    assert isinstance(doc.blocks[1], ir.Paragraph) and doc.blocks[1].empty
+    coda = doc.blocks[2]
+    assert isinstance(coda, ir.LineatedBlock)
+    assert coda.register is ir.Register.ORDINARY
+    assert len(coda.stanzas) == 1
+    assert isinstance(doc.blocks[3], ir.Heading)
 
 
 def test_unmaterializable_policy_decision_fails_loud() -> None:
