@@ -1,4 +1,4 @@
-"""Register policies: rules choose defaults, scorers provide optional evidence."""
+"""Register rollout policies: rules, required artifacts, and explicit fallbacks."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import Protocol
 
 from pancratius.intent_inference.decisions import (
+    ArtifactBundleId,
     DecisionOutcome,
     DiagnosticSeverity,
     DisplayRegisterLabel,
@@ -25,9 +26,9 @@ from pancratius.intent_inference.observations import (
 from pancratius.locales import Locale
 
 
-class PolicyMode(StrEnum):
+class RegisterRolloutMode(StrEnum):
     RULES_ONLY = "rules_only"
-    ARTIFACT_OPTIONAL_DIAGNOSTIC_TEMP = "artifact_optional_diagnostic_temp"
+    MODEL_ASSISTED_PRODUCTION = "model_assisted_production"
 
 
 class RegisterScorer(Protocol):
@@ -41,7 +42,7 @@ class RegisterScorer(Protocol):
 
 class RegisterPolicy(Protocol):
     name: str
-    mode: PolicyMode
+    rollout: RegisterRolloutMode
     reports_model_delta: bool
 
     @property
@@ -59,7 +60,7 @@ class RegisterPolicy(Protocol):
 @dataclass(frozen=True, slots=True)
 class RulesOnlyRegisterPolicy:
     name: str = "rules-only-register"
-    mode: PolicyMode = PolicyMode.RULES_ONLY
+    rollout: RegisterRolloutMode = RegisterRolloutMode.RULES_ONLY
     reports_model_delta: bool = False
     model_version: int | None = None
 
@@ -81,10 +82,60 @@ class RulesOnlyRegisterPolicy:
 
 
 @dataclass(frozen=True, slots=True)
+class UnsupportedLanguageRulesFallbackRegisterPolicy:
+    lang: Locale
+    model_assisted_langs: tuple[Locale, ...]
+    bundle_id: ArtifactBundleId
+    name: str = "unsupported-language-register-rules-fallback"
+    rollout: RegisterRolloutMode = RegisterRolloutMode.MODEL_ASSISTED_PRODUCTION
+    reports_model_delta: bool = False
+    model_version: int | None = None
+
+    def decide_document(
+        self,
+        candidates: tuple[RegisterCandidate, ...],
+        context: RegisterDocumentContext,
+    ) -> tuple[RegisterDecision, ...]:
+        if context.lang != self.lang:
+            raise ValueError(
+                f"unsupported-language register policy was loaded for {self.lang}, "
+                f"not {context.lang}"
+            )
+        supported = tuple(str(lang) for lang in self.model_assisted_langs)
+        return tuple(
+            RegisterDecision(
+                subject=candidate.candidate_id,
+                outcome=DecisionOutcome.FALLBACK_TO_RULES,
+                label=candidate.rules.label,
+                reason=RegisterDecisionReason.UNSUPPORTED_LANGUAGE,
+                fallback_label=candidate.rules.label,
+                diagnostics=(
+                    IntentDiagnostic(
+                        code=IntentDiagnosticCode.UNSUPPORTED_LANGUAGE,
+                        severity=DiagnosticSeverity.INFO,
+                        subject=candidate.candidate_id,
+                        message=(
+                            f"register model rollout does not cover {self.lang}; "
+                            "rules supplied the materialized label"
+                        ),
+                        evidence={
+                            "bundle_id": str(self.bundle_id),
+                            "lang": self.lang,
+                            "model_assisted_langs": supported,
+                            "rollout": self.rollout.value,
+                        },
+                    ),
+                ),
+            )
+            for candidate in candidates
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class ModelBackedRegisterPolicy:
     scorer: RegisterScorer
     name: str = "model-backed-register"
-    mode: PolicyMode = PolicyMode.ARTIFACT_OPTIONAL_DIAGNOSTIC_TEMP
+    rollout: RegisterRolloutMode = RegisterRolloutMode.MODEL_ASSISTED_PRODUCTION
     reports_model_delta: bool = True
 
     @property
@@ -97,15 +148,9 @@ class ModelBackedRegisterPolicy:
         context: RegisterDocumentContext,
     ) -> tuple[RegisterDecision, ...]:
         if context.lang not in self.scorer.langs:
-            return tuple(
-                RegisterDecision(
-                    subject=candidate.candidate_id,
-                    outcome=DecisionOutcome.FALLBACK_TO_RULES,
-                    label=candidate.rules.label,
-                    reason=RegisterDecisionReason.UNSUPPORTED_LANGUAGE,
-                    fallback_label=candidate.rules.label,
-                )
-                for candidate in candidates
+            raise ValueError(
+                "model-backed register policy cannot decide unsupported language "
+                f"{context.lang!r}; load an explicit unsupported-language fallback policy"
             )
         return tuple(self._decide_candidate(candidate) for candidate in candidates)
 

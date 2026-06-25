@@ -27,6 +27,7 @@ from pancratius import ir
 from pancratius.intent_inference.decisions import (
     DecisionOutcome,
     DisplayRegisterLabel,
+    IntentDiagnostic,
     RegisterDecision,
     RegisterDecisionReason,
 )
@@ -770,6 +771,11 @@ def assign_register(doc: ir.Document, ctx: Context) -> ir.Document:
     candidates = _register_candidates(doc.blocks, ctx.lang, pins)
     document_context = RegisterDocumentContext(lang=ctx.lang)
     decisions = ctx.register_policy.decide_document(candidates, document_context)
+    ctx.diagnostics.extend(
+        _intent_diagnostic_to_ir(diagnostic)
+        for decision in decisions
+        for diagnostic in decision.diagnostics
+    )
     decided = _promote(doc.blocks, _decision_plan(candidates, decisions), pins)
     if ctx.register_policy.reports_model_delta:
         # The rules-only re-run exists for the diagnostic below; ~2x this pass's
@@ -801,6 +807,14 @@ def assign_register(doc: ir.Document, ctx: Context) -> ir.Document:
                 f"(rules alone: {rules_only})",
             ))
     return replace(doc, blocks=decided)
+
+
+def _intent_diagnostic_to_ir(diagnostic: IntentDiagnostic) -> ir.Diagnostic:
+    return ir.Diagnostic(
+        diagnostic.severity.value,
+        f"register.{diagnostic.code.value}",
+        diagnostic.message,
+    )
 
 
 def promote_verse_register(blocks: list[ir.Block]) -> list[ir.Block]:

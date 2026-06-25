@@ -55,11 +55,13 @@ not a fixed function count.
 Passes are code; models and policies are **parameters**. Every pass is a plain
 function over the document; anything tunable — a trained register model, the
 slug lookup, demotion depth — is injected through the pass context at the
-composition point, and an absent model means the deterministic rules decide
-alone. IR nodes carry source facts and provenance only; feature vectors are
-derived at decision time, never stored on the IR. Research and training live
-outside the package; the package ships the passes and reads committed model
-artifacts.
+composition point. Rules-only register import is an explicit policy, not the
+implicit fallback for a broken production artifact; the default model-assisted
+register rollout requires its committed bundle for covered languages and uses a
+diagnosed rules fallback only for languages outside that rollout. IR nodes carry
+source facts and provenance only; feature vectors are derived at decision time,
+never stored on the IR. Research and training live outside the package; the
+package ships the passes and reads committed model artifacts.
 
 The pipeline is declared data: an ordered tuple of named passes. Observation
 happens at named pipeline positions — an observer runs the same pipeline

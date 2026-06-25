@@ -251,14 +251,13 @@ def convert_single_docx(
         doc = run(doc, Context(lang=lang, diagnostics=diagnostics), POEM_PASSES)
     else:
         register_policy = register_artifacts.load_register_policy_for(lang)
-        if register_policy.missing_artifact is not None:
-            # An absent artifact bundle is a configuration state worth recording;
-            # a lang outside the artifact's validity domain is not.
+        if isinstance(register_policy, register_artifacts.UnsupportedLanguageRegisterPolicyLoad):
+            bundle = _display_register_artifact_path(register_policy.bundle_path)
+            supported = ", ".join(register_policy.model_assisted_langs) or "none"
             diagnostics.append(ir.Diagnostic(
                 "info", "register.model",
-                f"no register model artifact at "
-                f"{_display_register_artifact_path(register_policy.missing_artifact)}; "
-                "rules decide alone",
+                f"register model rollout for {bundle} covers {supported}; "
+                f"{lang} uses rules fallback",
             ))
         doc = run(doc, Context(
             lang=lang,

@@ -182,12 +182,15 @@ def _work_import(args: argparse.Namespace) -> int:
     unresolvable target). The door owns all output: it prints the report (the
     `--dry-run` review gate) and maps a write refusal to a failure exit."""
     from pancratius import import_docx
+    from pancratius.intent_inference.errors import RegisterArtifactError
 
     if (rc := _require_pandoc()) is not None:
         return rc
     try:
         request = _import_request_from_args(args)
         report = import_docx.import_work(request)
+    except RegisterArtifactError as exc:
+        return _fail(exc, 1)
     except import_docx.ImportWorkError as exc:
         # Bad input / an unresolvable target is a usage error (exit 2), matching
         # the door's contract.
@@ -608,9 +611,11 @@ def _project_page_add(args: argparse.Namespace) -> int:
     general writer (no provenance manifest). After a REAL apply the door prints the
     suggested landing `subpages:` entry to STDOUT for a human to place — it never
     edits the landing. Bad input (missing/non-DOCX) is a usage error (exit 2); a
-    write refusal is a failure (exit 1)."""
+    write refusal is a failure (exit 1). Required artifact contract failures are
+    operation failures too, not usage errors."""
     from pancratius import import_docx  # for print_report (shared report formatter) — light, no ML
     from pancratius.docx_conversion import ScaffoldError, scaffold_subpage
+    from pancratius.intent_inference.errors import RegisterArtifactError
     from pancratius.selectors import SelectorError, parse_project_subpage_selector
 
     try:
@@ -629,6 +634,8 @@ def _project_page_add(args: argparse.Namespace) -> int:
             out_content=Path(args.out_content),
             dry_run=args.dry_run,
         )
+    except RegisterArtifactError as exc:
+        return _fail(exc, 1)
     except ScaffoldError as exc:
         return _fail(exc, 2)
     import_docx.print_report(report, dry_run=args.dry_run)

@@ -2,9 +2,9 @@
 
 Runtime task: display-register inference for DOCX import.
 
-This bundle supplies optional evidence for Russian book imports that contain
-lineated source structure. The compiler still applies hard guards and rule
-fallbacks; this scorer only scores candidates the policy allows.
+This bundle supplies model-assisted display-register decisions for Russian
+non-poem DOCX conversions that contain lineated source structure. The compiler
+still applies hard guards; this scorer only scores candidates the policy allows.
 
 Contract:
 
@@ -16,5 +16,8 @@ Contract:
 - feature set: `pancratius.verse_register_features.v1`
 - language support: `ru`
 
-Unsupported languages and missing bundles fall back to the rules-only register
-policy. Runtime import does not download models or read research code.
+The production rollout requires this committed bundle for Russian non-poem
+conversions.
+Unsupported rollout languages use an explicit rules fallback with diagnostics.
+Missing or invalid required bundles are artifact contract failures. Runtime
+import does not download models or read research code.
