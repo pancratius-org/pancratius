@@ -1,3 +1,4 @@
+# import-pure: no filesystem mutation
 """Local production artifacts for import-time intent inference."""
 
 from __future__ import annotations

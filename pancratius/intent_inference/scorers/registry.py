@@ -1,3 +1,4 @@
+# import-pure: no filesystem mutation
 """Registry for approved production intent scorers."""
 
 from __future__ import annotations
