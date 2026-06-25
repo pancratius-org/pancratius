@@ -1,0 +1,27 @@
+{
+  "schema": "pancratius.register_bundle_manifest.v1",
+  "artifact_id": "verse-register-v1",
+  "artifact_schema": "pancratius.register_artifact.v1",
+  "bundle_id": "register/verse_register_v1",
+  "bundle_sha256": "0fcf032829b61a0a20120147aa9e0ced51ae6574a979174b899c0f4737c686c2",
+  "task": "display_register",
+  "scorer_family": "standardized_linear.v1",
+  "observation_schema": "pancratius.register_observation.v1",
+  "label_space": "pancratius.display_register.labels.v1",
+  "feature_set": "pancratius.verse_register_features.v1",
+  "language_support": {
+    "locales": [
+      "ru"
+    ]
+  },
+  "files": {
+    "weights": {
+      "path": "weights.json",
+      "sha256": "2f4270fe1ba3810ffe6b5ef82e74b811b7e3393b13ee678377015586e507ee40"
+    },
+    "model_card": {
+      "path": "model-card.md",
+      "sha256": "bca693dadad68c6886012771444a42af5f429366a694b5b2bbadf5774167c361"
+    }
+  }
+}

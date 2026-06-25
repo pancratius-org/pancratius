@@ -252,12 +252,13 @@ def convert_single_docx(
     else:
         register_policy = register_artifacts.load_register_policy_for(lang)
         if register_policy.missing_artifact is not None:
-            # An absent artifact FILE is a configuration state worth recording;
+            # An absent artifact bundle is a configuration state worth recording;
             # a lang outside the artifact's validity domain is not.
             diagnostics.append(ir.Diagnostic(
                 "info", "register.model",
                 f"no register model artifact at "
-                f"{register_policy.missing_artifact.name}; rules decide alone",
+                f"{_display_register_artifact_path(register_policy.missing_artifact)}; "
+                "rules decide alone",
             ))
         doc = run(doc, Context(
             lang=lang,
@@ -300,6 +301,13 @@ def convert_single_docx(
         diagnostics=list(diagnostics),
         poem_chrome=poem_chrome,
     )
+
+
+def _display_register_artifact_path(path: Path) -> str:
+    try:
+        return path.relative_to(register_artifacts.ARTIFACT_ROOT).as_posix()
+    except ValueError:
+        return str(path)
 
 
 def write_bibliography_sidecar(

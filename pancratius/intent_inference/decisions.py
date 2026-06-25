@@ -9,9 +9,13 @@ from types import MappingProxyType
 from typing import NewType
 
 ArtifactId = NewType("ArtifactId", str)
+ArtifactBundleHash = NewType("ArtifactBundleHash", str)
+ArtifactBundleId = NewType("ArtifactBundleId", str)
 CandidateId = NewType("CandidateId", str)
 DataFingerprint = NewType("DataFingerprint", str)
 FeatureSchemaHash = NewType("FeatureSchemaHash", str)
+RelativeBundlePath = NewType("RelativeBundlePath", str)
+Sha256Digest = NewType("Sha256Digest", str)
 
 type JsonScalar = str | int | float | bool | None
 type JsonValue = JsonScalar | tuple["JsonValue", ...] | Mapping[str, "JsonValue"]
@@ -21,14 +25,25 @@ class IntentTask(StrEnum):
     DISPLAY_REGISTER = "display_register"
 
 
-class SchemaId(StrEnum):
+class ArtifactManifestSchema(StrEnum):
+    REGISTER_BUNDLE_V1 = "pancratius.register_bundle_manifest.v1"
+
+
+class ArtifactSchemaId(StrEnum):
     REGISTER_ARTIFACT_V1 = "pancratius.register_artifact.v1"
+
+
+class ObservationSchemaId(StrEnum):
     REGISTER_OBSERVATION_V1 = "pancratius.register_observation.v1"
+
+
+class LabelSpaceId(StrEnum):
     DISPLAY_REGISTER_LABELS_V1 = "pancratius.display_register.labels.v1"
 
 
 class FeatureSetId(StrEnum):
     VERSE_REGISTER_FEATURES_V1 = "pancratius.verse_register_features.v1"
+    LINEATION_FEATURES_V1 = "pancratius.lineation_features.v1"
 
 
 class ScorerFamily(StrEnum):
@@ -93,9 +108,9 @@ class IntentDiagnostic:
 class PredictorRef:
     task: IntentTask
     artifact_id: ArtifactId
-    artifact_schema: SchemaId
-    observation_schema: SchemaId
-    label_space: SchemaId
+    artifact_schema: ArtifactSchemaId
+    observation_schema: ObservationSchemaId
+    label_space: LabelSpaceId
     scorer_family: ScorerFamily
     feature_set: FeatureSetId
 
