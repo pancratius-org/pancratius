@@ -15,6 +15,7 @@ from pancratius.intent_inference.artifacts import (
     LanguageSupport,
     LocalArtifactRepository,
     RegisterArtifactManifest,
+    RegisterPolicyLoadOutcome,
     compute_bundle_sha256,
     load_register_policy_for,
 )
@@ -52,7 +53,7 @@ from pancratius.intent_inference.observations import (
     stable_register_candidate_id,
     stanza_line_counts,
 )
-from pancratius.intent_inference.policies import ModelBackedRegisterPolicy, PolicyMode
+from pancratius.intent_inference.policies import ModelBackedRegisterPolicy, RegisterRolloutMode
 from pancratius.intent_inference.scorers.registry import ScorerRegistry
 from pancratius.intent_inference.scorers.standardized_linear import (
     FEATURE_NAMES,
@@ -312,6 +313,27 @@ def _write_bundle(
     return LocalArtifactRepository(root)
 
 
+def _refresh_manifest_bundle_hash(manifest: dict[str, object]) -> None:
+    payload = {
+        key: manifest[key]
+        for key in (
+            "schema",
+            "artifact_id",
+            "artifact_schema",
+            "bundle_id",
+            "task",
+            "scorer_family",
+            "observation_schema",
+            "label_space",
+            "feature_set",
+            "language_support",
+            "files",
+        )
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    manifest["bundle_sha256"] = hashlib.sha256(encoded).hexdigest()
+
+
 def test_register_bundle_loader_accepts_valid_bundle(tmp_path: Path) -> None:
     repository = _write_bundle(tmp_path)
 
@@ -321,8 +343,8 @@ def test_register_bundle_loader_accepts_valid_bundle(tmp_path: Path) -> None:
     assert bundle.manifest.scorer_family is ScorerFamily.STANDARDIZED_LINEAR_V1
 
     loaded = load_register_policy_for("ru", repository=repository, bundle_id=_TEST_BUNDLE_ID)
-    assert loaded.missing_artifact is None
-    assert loaded.policy.mode is PolicyMode.ARTIFACT_OPTIONAL_DIAGNOSTIC_TEMP
+    assert loaded.outcome is RegisterPolicyLoadOutcome.MODEL_ASSISTED_ARTIFACT_LOADED
+    assert loaded.policy.rollout is RegisterRolloutMode.MODEL_ASSISTED_PRODUCTION
 
 
 def test_register_validated_bundle_rejects_feature_vector_drift(tmp_path: Path) -> None:
@@ -443,6 +465,16 @@ def test_register_bundle_loader_rejects_unknown_scorer_family(tmp_path: Path) ->
         repository.load_bundle(_TEST_BUNDLE_ID)
 
 
+def test_register_policy_load_rejects_unknown_scorer_family(tmp_path: Path) -> None:
+    def unknown_family(manifest: dict[str, object]) -> None:
+        manifest["scorer_family"] = "tree_ensemble.v1"
+
+    repository = _write_bundle(tmp_path, mutate_manifest=unknown_family)
+
+    with pytest.raises(RegisterArtifactError, match="unknown scorer_family"):
+        load_register_policy_for("ru", repository=repository, bundle_id=_TEST_BUNDLE_ID)
+
+
 def test_scorer_registry_rejects_known_family_without_registered_loader(tmp_path: Path) -> None:
     repository = _write_bundle(tmp_path)
 
@@ -496,6 +528,19 @@ def test_register_bundle_loader_rejects_unknown_language_support(tmp_path: Path)
         repository.load_bundle(_TEST_BUNDLE_ID)
 
 
+def test_register_policy_load_rejects_required_language_outside_manifest_support(
+    tmp_path: Path,
+) -> None:
+    def english_only(manifest: dict[str, object]) -> None:
+        manifest["language_support"] = {"locales": ["en"]}
+        _refresh_manifest_bundle_hash(manifest)
+
+    repository = _write_bundle(tmp_path, mutate_manifest=english_only)
+
+    with pytest.raises(RegisterArtifactError, match="does not support 'ru'"):
+        load_register_policy_for("ru", repository=repository, bundle_id=_TEST_BUNDLE_ID)
+
+
 def test_register_bundle_rejects_unsupported_feature_set(tmp_path: Path) -> None:
     def lineation_features(manifest: dict[str, object]) -> None:
         manifest["feature_set"] = FeatureSetId.LINEATION_FEATURES_V1.value
@@ -514,15 +559,27 @@ def test_standardized_linear_registry_rejects_feature_vector_drift(tmp_path: Pat
         load_register_policy_for("ru", repository=repository, bundle_id=_TEST_BUNDLE_ID)
 
 
-def test_register_bundle_missing_artifact_is_optional(tmp_path: Path) -> None:
+def test_register_bundle_missing_artifact_is_required_for_model_assisted_lang(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(RegisterArtifactError, match="required register artifact bundle missing"):
+        load_register_policy_for(
+            "ru",
+            repository=LocalArtifactRepository(tmp_path / "models"),
+            bundle_id=_TEST_BUNDLE_ID,
+        )
+
+
+def test_explicit_rules_only_does_not_require_register_bundle(tmp_path: Path) -> None:
     loaded = load_register_policy_for(
         "ru",
         repository=LocalArtifactRepository(tmp_path / "models"),
         bundle_id=_TEST_BUNDLE_ID,
+        rollout=RegisterRolloutMode.RULES_ONLY,
     )
 
-    assert loaded.policy.mode is PolicyMode.RULES_ONLY
-    assert loaded.missing_artifact == tmp_path / "models" / "register" / "verse_register_v1"
+    assert loaded.outcome is RegisterPolicyLoadOutcome.EXPLICIT_RULES_ONLY
+    assert loaded.policy.rollout is RegisterRolloutMode.RULES_ONLY
 
 
 def test_register_bundle_unsupported_language_uses_rules_policy(tmp_path: Path) -> None:
@@ -530,8 +587,8 @@ def test_register_bundle_unsupported_language_uses_rules_policy(tmp_path: Path) 
 
     loaded = load_register_policy_for("en", repository=repository, bundle_id=_TEST_BUNDLE_ID)
 
-    assert loaded.policy.mode is PolicyMode.RULES_ONLY
-    assert loaded.missing_artifact is None
+    assert loaded.outcome is RegisterPolicyLoadOutcome.UNSUPPORTED_LANGUAGE_RULES_FALLBACK
+    assert loaded.policy.rollout is RegisterRolloutMode.MODEL_ASSISTED_PRODUCTION
 
 
 def test_unsupported_language_does_not_parse_corrupted_weights(tmp_path: Path) -> None:
@@ -541,8 +598,22 @@ def test_unsupported_language_does_not_parse_corrupted_weights(tmp_path: Path) -
 
     loaded = load_register_policy_for("en", repository=repository, bundle_id=_TEST_BUNDLE_ID)
 
-    assert loaded.policy.mode is PolicyMode.RULES_ONLY
-    assert loaded.missing_artifact is None
+    assert loaded.outcome is RegisterPolicyLoadOutcome.UNSUPPORTED_LANGUAGE_RULES_FALLBACK
+
+
+def test_unsupported_language_policy_returns_auditable_rules_fallback(tmp_path: Path) -> None:
+    repository = _write_bundle(tmp_path)
+    loaded = load_register_policy_for("en", repository=repository, bundle_id=_TEST_BUNDLE_ID)
+
+    (decision,) = loaded.policy.decide_document(
+        (_candidate(lang="en", rules_label=DisplayRegisterLabel.ORDINARY),),
+        RegisterDocumentContext(lang="en"),
+    )
+
+    assert decision.outcome is DecisionOutcome.FALLBACK_TO_RULES
+    assert decision.reason is RegisterDecisionReason.UNSUPPORTED_LANGUAGE
+    assert decision.fallback_label is DisplayRegisterLabel.ORDINARY
+    assert decision.diagnostics[0].code is IntentDiagnosticCode.UNSUPPORTED_LANGUAGE
 
 
 def test_register_scorer_cache_is_keyed_by_bundle_hash(tmp_path: Path) -> None:
@@ -559,6 +630,39 @@ def test_register_scorer_cache_is_keyed_by_bundle_hash(tmp_path: Path) -> None:
 
     assert first.policy.model_version == 1
     assert second.policy.model_version == 2
+
+
+def test_register_policy_load_validates_hashes_even_when_scorer_cache_is_warm(
+    tmp_path: Path,
+) -> None:
+    repository = _write_bundle(tmp_path)
+    first = load_register_policy_for("ru", repository=repository, bundle_id=_TEST_BUNDLE_ID)
+    assert first.policy.model_version == 1
+
+    weights = tmp_path / "models" / "register" / "verse_register_v1" / "weights.json"
+    weights.write_text(json.dumps(_weights(), ensure_ascii=False), encoding="utf-8")
+
+    with pytest.raises(RegisterArtifactError, match="weights sha256 mismatch"):
+        load_register_policy_for("ru", repository=repository, bundle_id=_TEST_BUNDLE_ID)
+
+
+def test_register_policy_load_rejects_scorer_language_drift(tmp_path: Path) -> None:
+    repository = _write_bundle(tmp_path)
+    def english_scorer(bundle: object) -> StandardizedLinearRegisterScorer:
+        _ = bundle
+        return _scorer(bias=0.0, langs=("en",))
+
+    registry = ScorerRegistry({
+        ScorerFamily.STANDARDIZED_LINEAR_V1: english_scorer,
+    })
+
+    with pytest.raises(RegisterArtifactError, match="does not support 'ru'"):
+        load_register_policy_for(
+            "ru",
+            repository=repository,
+            bundle_id=_TEST_BUNDLE_ID,
+            scorer_registry=registry,
+        )
 
 
 _TEST_PREDICTOR = PredictorRef(
@@ -650,18 +754,14 @@ def test_model_policy_records_candidate_level_disagreement_diagnostic() -> None:
     assert diagnostic.evidence["threshold"] == 0.6
 
 
-def test_model_policy_unsupported_language_falls_back_to_rules() -> None:
+def test_model_policy_rejects_unsupported_language_without_explicit_fallback() -> None:
     policy = ModelBackedRegisterPolicy(_scorer(bias=3.0, langs=("ru",)))
 
-    (decision,) = policy.decide_document(
-        (_candidate(lang="en", rules_label=DisplayRegisterLabel.ORDINARY),),
-        RegisterDocumentContext(lang="en"),
-    )
-
-    assert decision.outcome is DecisionOutcome.FALLBACK_TO_RULES
-    assert decision.label is DisplayRegisterLabel.ORDINARY
-    assert decision.reason is RegisterDecisionReason.UNSUPPORTED_LANGUAGE
-    assert decision.fallback_label is DisplayRegisterLabel.ORDINARY
+    with pytest.raises(ValueError, match="explicit unsupported-language fallback"):
+        policy.decide_document(
+            (_candidate(lang="en", rules_label=DisplayRegisterLabel.ORDINARY),),
+            RegisterDocumentContext(lang="en"),
+        )
 
 
 def test_model_policy_thresholds_the_prediction_label_not_an_implicit_verse_score() -> None:

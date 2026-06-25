@@ -143,6 +143,35 @@ def test_roundtrip_reports_translated_docx_without_markdown(tmp_path: Path) -> N
     assert batch.failed
 
 
+def test_roundtrip_reports_register_artifact_errors_as_fatal(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from pancratius import import_docx
+    from pancratius.intent_inference.errors import RegisterArtifactError
+
+    content_root = tmp_path / "content"
+    book_dir = content_root / "books" / "01-test"
+    book_dir.mkdir(parents=True)
+    _write_book_md(book_dir / "en.md", body="Light.\n")
+    (book_dir / "en.docx").write_bytes(b"not imported; import_work is stubbed")
+
+    def boom(_request: import_docx.ImportRequest) -> object:
+        raise RegisterArtifactError("artifact weights sha256 mismatch")
+
+    monkeypatch.setattr(import_docx, "import_work", boom)
+
+    batch = check_docx_markdown_roundtrip(content_root=content_root, lang="en")
+
+    assert batch.checked == 1
+    assert batch.failed
+    (report,) = batch.reports
+    assert len(report.findings) == 1
+    assert report.findings[0].severity == "fatal"
+    assert report.findings[0].code == "roundtrip.artifact-contract"
+    assert "weights sha256 mismatch" in report.findings[0].message
+
+
 @requires_docx_roundtrip
 def test_compare_tolerates_bootstrap_metadata_loss_but_flags_visible_text() -> None:
     committed = """---
