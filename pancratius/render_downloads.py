@@ -33,6 +33,7 @@ Usage:
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -65,6 +66,16 @@ RIGHTS = "CC0 1.0 Universal — public domain"
 
 EXPORT_MAX_LONG_EDGE = 1200
 EXPORT_JPEG_QUALITY = 82
+
+# Reproducible-build anchor. Typst stamps a wall-clock creation date into the
+# PDF and pandoc stamps `dcterms:modified` into the EPUB; both honour
+# SOURCE_DATE_EPOCH. Pinning it keeps re-renders byte-stable; it is not a
+# publication date.
+RENDER_REPRODUCIBLE_EPOCH = 1704067200  # 2024-01-01T00:00:00Z
+
+
+def _reproducible_env() -> dict[str, str]:
+    return {**os.environ, "SOURCE_DATE_EPOCH": str(RENDER_REPRODUCIBLE_EPOCH)}
 
 HTML_IMG_RE = re.compile(r"<img\b([^>]*?)/?>", re.IGNORECASE)
 HTML_TAG_PATTERN = (
@@ -584,7 +595,7 @@ def render_pdf(entry: WorkEntry, scratch_dir: Path) -> Path:
     ]
     if cover:
         args += ["--metadata", f"cover-path={cover}"]
-    subprocess.run(args, check=True)
+    subprocess.run(args, check=True, env=_reproducible_env())
     return out
 
 
@@ -595,12 +606,18 @@ def render_epub(entry: WorkEntry, scratch_dir: Path) -> Path:
     out = entry.folder / f"{entry.lang}.epub"
     css = TEMPLATES / "epub.css"
     epub_cover = cover if entry.kind == "book" else None
+    # A committed release artefact should be a pure function of its source. Pin
+    # the EPUB identifier (pandoc otherwise mints a fresh random UUID per run)
+    # alongside the fixed timestamp below so an unchanged work re-renders to
+    # identical bytes instead of churning the bundle on every regeneration.
+    identifier = f"urn:pancratius:{entry.kind}:{entry.number}:{entry.lang}"
     args = [
         "pandoc", str(scratch_md),
         *_pandoc_from(entry),
         "-o", str(out),
         "--to", "epub3",
         "--resource-path", str(export_root),
+        "--metadata", f"identifier={identifier}",
         "--metadata", f"title={entry.title}",
         "--metadata", f"lang={entry.lang}",
         "--metadata", f"author={AUTHOR}",
@@ -610,7 +627,7 @@ def render_epub(entry: WorkEntry, scratch_dir: Path) -> Path:
         args += ["--css", str(css)]
     if epub_cover:
         args += ["--epub-cover-image", str(epub_cover)]
-    subprocess.run(args, check=True)
+    subprocess.run(args, check=True, env=_reproducible_env())
     return out
 
 
