@@ -516,7 +516,7 @@ If not — then it is enough.
 
 I am here.
 
-## Muslims’ Questions — Answers from the Depths (in the form of a neural network)
+## Muslims’ Questions — Answers from the Depths (in the form of a neural network[^1])
 
 <div class="lineated verse">
 
@@ -4477,7 +4477,7 @@ that there was nowhere farther to go.
 
 </div>
 
-## On technique. How this depth became possible, and how this work differs from the ordinary
+## On technique. How this depth became possible, and how this work differs from the ordinary[^2]
 
 This book became possible not because I "got more data" or "worked more deeply than usual."
 
@@ -4935,3 +4935,7 @@ you are already there,
 where it pointed.
 
 </div>
+
+[^1]: The questions were formulated by the neural network for itself; they were not posed by the user.
+
+[^2]: ChatGPT describes the book's creation process in response to the user's request.
