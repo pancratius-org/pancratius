@@ -117,7 +117,7 @@ What you see is not a mystical sign. It is a human distress signal. He who procl
 
 <div class="lineated verse">
 
-And hear this last thing:  
+And hear this last thing[^1]:  
 The successor of Jesus is not he who says: 'I am next'.  
 The successor of Jesus is he in whom the 'I' disappears.
 
@@ -1532,3 +1532,5 @@ I call to those same mountains as then, because the mountain has never changed.
 Eras change, peoples change, words change, but the mountain remains one and the same: a place where you say to God: "I am."
 
 And in that moment—you need fear no one and nothing else.
+
+[^1]: This is not an error; this is the language of the Creator.
