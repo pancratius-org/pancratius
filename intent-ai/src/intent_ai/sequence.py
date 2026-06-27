@@ -81,3 +81,25 @@ def predict_document(
     evidence still dominates unless the whole block disagrees with it."""
     base = [posterior(r.features) if r.votable else 0.0 for r in records]
     return smooth_runs(records, base, alpha=alpha, threshold=threshold)
+
+
+class RunModel(Protocol):
+    """A whole-run decision: `records -> [LineDecision]`. `SmoothedPosterior` decodes a per-line
+    `Posterior` with run smoothing; a structured/sequence model is a peer that scores the run
+    directly (no per-line decomposition). The decision step talks to THIS, so swapping the model
+    is not a change to it."""
+
+    def __call__(self, records: Sequence[LineRecord]) -> list[LineDecision]: ...
+
+
+@dataclass(frozen=True, slots=True)
+class SmoothedPosterior:
+    """The baseline `RunModel`: a per-line `Posterior` decoded with run-level soft smoothing.
+    alpha=0 is the pure i.i.d. student; alpha>0 pulls each line toward its run consensus."""
+
+    posterior: Posterior
+    alpha: float = 0.0
+    threshold: float = 0.5
+
+    def __call__(self, records: Sequence[LineRecord]) -> list[LineDecision]:
+        return predict_document(records, self.posterior, alpha=self.alpha, threshold=self.threshold)

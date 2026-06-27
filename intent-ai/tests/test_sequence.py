@@ -105,3 +105,11 @@ def test_nonvotable_lines_not_emitted():
     recs = [_rec(1, votable=False, role=Role.BLANK), _rec(2)]
     out = sequence.predict_document(recs, StubPosterior({0.4: 0.5}), alpha=0.0)
     assert [d.id.src_ordinal for d in out] == [2]
+
+
+def test_smoothed_posterior_is_predict_document_as_a_runmodel():
+    recs = [_rec(1, fill=0.1), _rec(2, fill=0.9), _rec(3, fill=0.1)]
+    post = StubPosterior({0.1: 0.2, 0.9: 0.8})
+    model = sequence.SmoothedPosterior(post, alpha=0.5)
+    assert model(recs) == sequence.predict_document(recs, post, alpha=0.5)
+    assert sequence.SmoothedPosterior(post)(recs) == sequence.predict_document(recs, post)
