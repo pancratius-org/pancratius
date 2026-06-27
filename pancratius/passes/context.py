@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 
 from pancratius import ir
 from pancratius.content_catalog import IndexHit
+from pancratius.intent_inference.lineation import LineationPolicy, RulesOnlyLineationPolicy
 from pancratius.intent_inference.policies import RegisterPolicy, RulesOnlyRegisterPolicy
 from pancratius.locales import Locale
 
@@ -41,6 +42,7 @@ class Context:
     demote_levels: int = 1
     bibliography: BibliographyLookup = field(default_factory=BibliographyLookup)
     register_policy: RegisterPolicy = field(default_factory=RulesOnlyRegisterPolicy)
+    lineation_policy: LineationPolicy = field(default_factory=RulesOnlyLineationPolicy)
     lineation: LineationCorrections = field(default_factory=LineationCorrections)
     scripture: ScripturePins = field(default_factory=ScripturePins)
     diagnostics: ir.DiagnosticSink = field(default_factory=list)

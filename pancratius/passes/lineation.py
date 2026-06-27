@@ -9,6 +9,11 @@ from dataclasses import dataclass, replace
 from typing import cast
 
 from pancratius import ir
+from pancratius.intent_inference.lineation import (
+    LineationCandidate,
+    LineationPolicy,
+    RulesOnlyLineationPolicy,
+)
 from pancratius.ir.inlines import inline_lines, inline_plain, walk_inlines
 from pancratius.passes.structure import DIALOGUE_PREFIXES
 
@@ -16,6 +21,9 @@ from pancratius.passes.structure import DIALOGUE_PREFIXES
 # verse lines (well under 120 chars) from one-sentence-per-paragraph prose
 # (clustering at 121-144). audit/book_verse.py encodes the same threshold.
 VERSE_SHORT_LINE_MAX = 120
+
+# Default Q1 fold policy: the compiler's gate verdict with no model injected.
+_RULES_ONLY_LINEATION = RulesOnlyLineationPolicy()
 
 
 @dataclass(frozen=True, slots=True)
@@ -233,6 +241,7 @@ def _overridden_prose(p: ir.Paragraph,
 def fold_lineation(
     blocks: list[ir.Block], *,
     lineation_overrides: Mapping[int, ir.LineationRegister] | None = None,
+    lineation_policy: LineationPolicy = _RULES_ONLY_LINEATION,
 ) -> list[ir.Block]:
     """Q1: fold source rows into `LineatedBlock`s, never deciding a register.
 
@@ -291,6 +300,7 @@ def fold_lineation(
                 after_source_boundary=after_boundary and boundary_group in (None, gid),
                 before_source_boundary=_has_source_boundary_after_gap(blocks, i),
                 after_lineated=after_lineated,
+                lineation_policy=lineation_policy,
             )
             out.extend(folded)
             # The unit may return trimmed edge prose around its block: what
@@ -688,15 +698,28 @@ def _gate_and_build(
     after_source_boundary: bool,
     before_source_boundary: bool,
     after_lineated: bool,
+    lineation_policy: LineationPolicy,
 ) -> ir.LineatedBlock | None:
-    """One inference-gate decision over `run`: the folded block, or `None`."""
+    """One inference-gate decision over `run`: the folded block, or `None`.
+
+    The compiler computes the deterministic gate verdict; the policy owns the
+    final fold call. `RulesOnly` returns the gate verdict unchanged."""
     evidence = _run_evidence(run)
-    if _should_infer_source_row_lineation(
+    rules_infer = _should_infer_source_row_lineation(
         run,
         after_source_boundary=after_source_boundary,
         before_source_boundary=before_source_boundary,
         after_lineated=after_lineated,
-    ):
+    )
+    candidate = LineationCandidate(
+        run=tuple(run),
+        evidence=evidence,
+        after_source_boundary=after_source_boundary,
+        before_source_boundary=before_source_boundary,
+        after_lineated=after_lineated,
+        rules_infer=rules_infer,
+    )
+    if lineation_policy.infer_lineation(candidate):
         evidence = replace(evidence, inferred_source_rows=True)
     if not (evidence.inferred_source_rows or evidence.compact_callout):
         return None
@@ -709,6 +732,7 @@ def _fold_sub_units(
     after_source_boundary: bool,
     before_source_boundary: bool,
     after_lineated: bool,
+    lineation_policy: LineationPolicy,
 ) -> list[ir.Block] | None:
     """Decide each visual sub-unit of a failed merged unit on its own.
 
@@ -751,6 +775,7 @@ def _fold_sub_units(
             after_source_boundary=after_source_boundary and rows is sub_units[0],
             before_source_boundary=before_source_boundary and rows is sub_units[-1],
             after_lineated=after_lineated,
+            lineation_policy=lineation_policy,
         )
         if block is None:
             out.extend(rows)
@@ -827,6 +852,7 @@ def _fold_unit(
     after_source_boundary: bool,
     before_source_boundary: bool,
     after_lineated: bool = False,
+    lineation_policy: LineationPolicy,
 ) -> list[ir.Block]:
     """Return the unit folded into one structural lineated block (with any
     trimmed edge prose back as paragraphs), or its original paragraphs when no
@@ -852,6 +878,7 @@ def _fold_unit(
                         before_source_boundary and rows is pieces[-1][0]
                     ),
                     after_lineated=after_lineated,
+                    lineation_policy=lineation_policy,
                 )
                 out.extend(folded)
                 after_lineated = isinstance(folded[-1], ir.LineatedBlock)
@@ -866,6 +893,7 @@ def _fold_unit(
             after_source_boundary=after_source_boundary,
             before_source_boundary=before_source_boundary and not tail,
             after_lineated=after_lineated,
+            lineation_policy=lineation_policy,
         )
         if block is not None:
             return [block, *tail]
@@ -874,6 +902,7 @@ def _fold_unit(
         after_source_boundary=after_source_boundary,
         before_source_boundary=before_source_boundary,
         after_lineated=after_lineated,
+        lineation_policy=lineation_policy,
     )
     return folded if folded is not None else list(run)
 

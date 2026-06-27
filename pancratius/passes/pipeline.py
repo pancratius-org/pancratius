@@ -69,7 +69,9 @@ def _sanitize_urls(doc: ir.Document, ctx: Context) -> ir.Document:
 
 def _fold_lineation(doc: ir.Document, ctx: Context) -> ir.Document:
     return replace(doc, blocks=lineation.fold_lineation(
-        doc.blocks, lineation_overrides=ctx.lineation.by_ordinal))
+        doc.blocks,
+        lineation_overrides=ctx.lineation.by_ordinal,
+        lineation_policy=ctx.lineation_policy))
 
 
 def _check_lineation_overrides(doc: ir.Document, ctx: Context) -> ir.Document:
