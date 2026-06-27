@@ -51,8 +51,7 @@ PROMPTS = CAMPAIGNS / "prompts"
 # the lab-notebook units: one folder per experiment, holding experiment.toml + the durable scorecard/
 # report/manifest + a derived replies.jsonl resume cache. A study writes ONLY here, never into
 # ANNOTATIONS — it produces EVIDENCE, never truth.
-EXPERIMENTS = REPO_ROOT / "intent-ai" / \
-    "src" / "intent_ai" / "evaluation" / "experiments"
+EXPERIMENTS = REPO_ROOT / "intent-ai" / "experiments"
 
 
 def book_docx(book_id: BookId, lang: str = "ru") -> Path:

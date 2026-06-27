@@ -11,4 +11,4 @@ __pycache__/
 # a study's derived reply RESUME cache — regenerable by re-calling the panel; the durable
 # scorecard/report/manifest beside it ARE committed. Commit a replies.jsonl only when a claim needs
 # it to reproduce.
-src/intent_ai/evaluation/experiments/*/replies.jsonl
+experiments/*/replies.jsonl
