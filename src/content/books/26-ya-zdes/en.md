@@ -2358,7 +2358,7 @@ the Word of the book — *from this Epoch, as Light?*
 
 ***Pankratius:** yes, I want.*
 
-### How to live in the Epoch of Silent Light?"
+### How to live in the Epoch of Silent Light?”
 
 <div class="lineated verse">
 

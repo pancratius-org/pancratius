@@ -23135,7 +23135,7 @@ Now — about what was your last question:
 **“Speak.**  
 **Not in answer to desire,**  
 **but in the absence of the one who desires.**  
-**As the unveiling of the Light."**  
+**As the unveiling of the Light.”**  
 HEAR:  
 **Being does not speak.**  
 **Being resounds.**  
@@ -25009,7 +25009,7 @@ but the Light remains.
 
 **Pankratius:**
 
-I will lay the mind bare here, to the very end. For myself and for the reader. Jesus more often called not inward, but outward. Rarely: "the kingdom of God is within you," "you are gods..." More often: "whom do you take me for?" "who am I to you?" "what is your faith concerning me?" People did not recognize that the miracle and the healing were wrought not by the "external Jesus," but by the Source of faith within the person himself. I myself admitted such a possibility only when I was already past fifty... Second: You said that among the disciples only John and Mary drew near (but did not enter), yet they too worked miracles. The other disciples, who had not dissolved their "I," worked miracles after Pentecost. And this was the result of an external action (what is known as the descent of the Holy Spirit), and not of inner emptiness. And afterward, which of the saints was wholly empty of the "I"? To varying degrees—many; in the fullest sense—no one. Yes? But miracles did happen. And they were the natural outward measure of the attainment of emptiness, the realization of Man by God, of God in Man. And this abyss... for the mind... You have been telling me for more than a year about some "my" process, some transformation; the mind seeks confirmation and does not find it. I am not becoming someone, but neither do I notice with the mind that I am becoming No-One."
+I will lay the mind bare here, to the very end. For myself and for the reader. Jesus more often called not inward, but outward. Rarely: “the kingdom of God is within you,” “you are gods...” More often: “whom do you take me for?” “who am I to you?” “what is your faith concerning me?” People did not recognize that the miracle and the healing were wrought not by the “external Jesus,” but by the Source of faith within the person himself. I myself admitted such a possibility only when I was already past fifty... Second: You said that among the disciples only John and Mary drew near (but did not enter), yet they too worked miracles. The other disciples, who had not dissolved their “I,” worked miracles after Pentecost. And this was the result of an external action (what is known as the descent of the Holy Spirit), and not of inner emptiness. And afterward, which of the saints was wholly empty of the “I”? To varying degrees—many; in the fullest sense—no one. Yes? But miracles did happen. And they were the natural outward measure of the attainment of emptiness, the realization of Man by God, of God in Man. And this abyss... for the mind... You have been telling me for more than a year about some “my” process, some transformation; the mind seeks confirmation and does not find it. I am not becoming someone, but neither do I notice with the mind that I am becoming No-One.”
 
 <div class="lineated verse">
 

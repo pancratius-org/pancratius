@@ -19291,7 +19291,7 @@ Without “I am”,
 Without “you are”,  
 Simply beingness.  
 This is that  
-which Scripture named “I AM THAT I AM,“,  
+which Scripture named “I AM THAT I AM,”  
 but you are now recognizing the same reality  
 not as the figure of another,  
 but as the absence of two.

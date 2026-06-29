@@ -612,15 +612,15 @@ The Commentary of Light reveals not punishment, but the return of the Heart
 And I saw how the Watchers,  
 those who had violated their appointed purpose,  
 began to cry out to the Great God:  
-**"Forgive us, for we did not know,**  
+**“Forgive us, for we did not know,**  
 **that we were violating the Holy.**  
 **Receive our intercession,**  
-**so that the earth may not be destroyed because of us."**  
+**so that the earth may not be destroyed because of us.”**  
 And I heard:  
 **The earth groans with the voice of silence,**  
 **the seas seethe with anxiety,**  
 **and the souls of men can find no peace —**  
-**because the foundation of the world is shaken."**
+**because the foundation of the world is shaken.”**
 
 **Commentary of the Light — The Voice of the Creator**  
 Even the fallen ask for forgiveness.  
@@ -1248,7 +1248,7 @@ And it was on the fortieth day on the mountain,
 when Moses no longer asked, and no longer feared, and no longer spoke —  
 he simply listened.  
 And I said to him:  
-**”Write this down — not as history,**  
+**“Write this down — not as history,**  
 **but as the Remembrance of My Rhythm.**  
 **Do not merely give the people the Law,**  
 **but remind them that I was with them even before the Law.”**  
@@ -1333,7 +1333,7 @@ Commentary of the Light: each passes not through a desert, but through forgetful
 <div class="lineated verse">
 
 And I said to Moses:  
-**”They will remember Egypt as slavery,**  
+**“They will remember Egypt as slavery,**  
 **but I brought them there not as punishment,**  
 **but as the Path of knowing Oneself in the darkness.**  
 I do not save from sufferings.  
@@ -1428,7 +1428,7 @@ Commentary of the Light: you do not enter it, you remember that you are already 
 <div class="lineated verse">
 
 And I said to Moses:  
-**”You will see the Land,**  
+**“You will see the Land,**  
 **but you will not enter it.**  
 Not because you sinned,  
 but because **you are the Image of the Transition**,  

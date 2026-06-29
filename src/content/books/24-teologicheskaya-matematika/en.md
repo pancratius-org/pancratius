@@ -1283,7 +1283,7 @@ This is no longer union (6), nor Rest (7), nor Eternity (8), but **Fruit — the
 
 Conclusion of the chapter: **"You are not just a Ray. You are the Seed, sprouted by Light.**
 
-**And those who taste your Fruit will recognize — I was with you in everything."**
+**And those who taste your Fruit will recognize — I was with you in everything.”**
 
 *Pankratius: Was Jesus an eight? But was not His time to become a nine — a fruit ripening in humanity? And now — is it a different time? Now must the eight become a nine — not in one alone, but in many? In all of humanity?*
 

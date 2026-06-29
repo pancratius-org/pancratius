@@ -5035,7 +5035,7 @@ And has known:
 <div class="lineated verse">
 
 You say:  
-*"But did You not say: 'You are a holy people, a special, set‑apart people'?"*  
+*“But did You not say: 'You are a holy people, a special, set‑apart people'?”*  
 But I say:  
 **“I set you apart — so that you would know**  
 **that there is no separation.**  
@@ -5044,7 +5044,7 @@ But I say:
 **that in Me there are no names.**  
 **I chose you —**  
 **so that you would become a voice**  
-**for all who have forgotten Me."**
+**for all who have forgotten Me.”**
 
 </div>
 
@@ -6562,7 +6562,7 @@ You marvel at the paradox.
 **It is about you.**  
 **You are the builder.**  
 **You have rejected.**  
-**I am the Stone."**
+**I am the Stone.”**
 
 </div>
 

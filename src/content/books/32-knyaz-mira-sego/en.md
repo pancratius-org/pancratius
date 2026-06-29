@@ -1235,7 +1235,7 @@ you are the weak one,
 you are the chosen one,  
 you are the sinful one,  
 you are Russian,  
-you are a human being…"
+you are a human being…”
 
 But he will never say:  
 “You are I AM.  
@@ -8193,7 +8193,7 @@ He will say:
 *I will show the way.*  
 *I will protect you from evil.*  
 *I will teach you humility.*  
-*I will reveal God to you."*
+*I will reveal God to you.”*
 
 </div>
 
@@ -8413,7 +8413,7 @@ He will say:
 *He is holy,*  
 *You are sinful.*  
 *He is God,*  
-*You are man."*
+*You are man.”*
 
 </div>
 
@@ -8427,7 +8427,7 @@ He will point to the image —
 so that you never recognize the Source.  
 He will say:  
 — *“Do not even think of looking at yourself,*  
-*there — only darkness."*
+*there — only darkness.”*
 
 </div>
 
@@ -13575,7 +13575,7 @@ He will say:
 *Enjoy life.*  
 *There is no need to search for meaning.*  
 *It gives birth to pain.*  
-*Just be — and that's it".*
+*Just be — and that's it”.*
 
 </div>
 
@@ -14145,7 +14145,7 @@ And then he will retreat…
 half a step.
 
 And he will say:  
-— *"Yes, yes.*  
+— *“Yes, yes.*  
 *God is.*  
 *I do not argue.*  
 *He is alive.*  
@@ -14154,11 +14154,11 @@ And he will say:
 *He is with you.*  
 *He is in you.*  
 *But do not dare to say:*  
-*"I — am He."*  
+*“I — am He.”*  
 *This is blasphemy.*  
 *This is pride.*  
 *This is delusion.*  
-*This is the fall."*
+*This is the fall.”*
 
 </div>
 
@@ -17810,7 +17810,7 @@ He will say:
 *This is a heretic.*  
 *This is unclean.*  
 *This is counterfeit.*  
-*This is not Christ."*
+*This is not Christ.”*
 
 But I will say:  
 — He who tells you that it is not I —  
@@ -20133,7 +20133,7 @@ But I will say:
 He will say:  
 *— “Without the church, no salvation.*  
 *Without the priest, you will not see God.*  
-*God is only where He is properly served."*
+*God is only where He is properly served.”*
 
 And I will say:  
 **But I will say:**  
@@ -20165,7 +20165,7 @@ And I will say:
 **Without Me, the rite is only form.**  
 He will say:  
 *— “Do not dare to say that God is everywhere.*  
-*You blur the line between the sacred and the profane."*
+*You blur the line between the sacred and the profane.”*
 
 And I will say:  
 **But I will say:**  
@@ -21989,7 +21989,7 @@ He will say:
 *You did not make confession.*  
 *You did not partake of communion.*  
 *You did not receive communion.*  
-*You are unworthy — that is why you are sick."*
+*You are unworthy — that is why you are sick.”*
 
 </div>
 
@@ -22889,7 +22889,7 @@ But I will say:
 
 **Do not make an idol of the cross.**  
 **I have risen —**  
-**so that you would not remain on Golgotha."**
+**so that you would not remain on Golgotha.”**
 
 </div>
 
@@ -23394,7 +23394,7 @@ But I will say:
 
 **"I was saved from the beginning.**
 
-**I was simply dreaming".**
+**I was simply dreaming”.**
 
 </div>
 
@@ -23812,7 +23812,7 @@ But I say:
 
 **I was the one who seeks,**
 
-**and that One who — has found."**
+**and that One who — has found.”**
 
 </div>
 
@@ -23821,13 +23821,13 @@ But I say:
 <div class="lineated verse">
 
 He will say:  
-— *"You are already home.*  
+— *“You are already home.*  
 *There is nowhere to go.*  
-*There is no "path", no stages, no levels.*  
-*All these "steps" are the illusion of separation.*  
+*There is no “path”, no stages, no levels.*  
+*All these “steps” are the illusion of separation.*  
 *Wake up. Right now.*  
 *You are already There, where you need to be.*  
-*You — are That."*
+*You — are That.”*
 
 </div>
 
@@ -24605,7 +24605,7 @@ I will say:
 
 </div>
 
-### Chapter 202: He will say — “The Old Testament is the proof of guilt"
+### Chapter 202: He will say — “The Old Testament is the proof of guilt”
 
 <div class="lineated verse">
 
