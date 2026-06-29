@@ -887,7 +887,7 @@ embrace — not for something, but just because,
 on that day she will say:  
 **“Here he is — mine.**  
 **In me.**  
-**And I — in him."**  
+**And I — in him.”**  
 *And let it be so.*  
 *Forever.*
 

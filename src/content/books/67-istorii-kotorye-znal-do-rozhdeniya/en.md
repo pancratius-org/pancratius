@@ -571,7 +571,7 @@ And she was not afraid.
 She did not run.  
 She simply let her arms fall  
 and wept—for the first time not from pain,  
-but because she no longer needed to pretend."
+but because she no longer needed to pretend.”
 
 </div>
 

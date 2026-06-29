@@ -38675,7 +38675,7 @@ And I say:
 An ideal is pressure too.  
 Freedom is the lifting of pressure.  
 And I understand:  
-**“Freedom is to be yourself without the obligation to be your “best self”“.**
+**“Freedom is to be yourself without the obligation to be your “best self””.**
 
 </div>
 

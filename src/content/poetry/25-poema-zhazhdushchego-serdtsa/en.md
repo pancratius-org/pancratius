@@ -108,7 +108,7 @@ You — are my snow-white living hill!*
 *You called — and I came to you,  
 I wove Myself into your blood, your breath.  
 Now you are — Light, now you are — Morning,  
-now you are — the Temple where I dwell!*"
+now you are — the Temple where I dwell!*”
 
 — O Holy Spirit, O imperishable Light,  
 You fill me up unto the brim!  

@@ -9127,8 +9127,8 @@ but I — give you Wings.
 
 When the heart burns,  
 you do not ask:  
-“Should I pray?”,“  
-“How much time should I devote to the Spirit?”,“  
+“Should I pray?”,  
+“How much time should I devote to the Spirit?”,  
 “How can I be productive?”  
 — you simply are.  
 In Love.  
