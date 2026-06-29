@@ -549,12 +549,27 @@ def _scripture_to_quote(body: str) -> str:
     return _SCRIPTURE_WRAPPER_RE.sub(repl, body)
 
 
+_INLINE_MATH_RE = re.compile(r"\$\$([^\n]+?)\$\$")
+
+
+def _inline_math_for_pandoc(body: str) -> str:
+    """Lower inline `$$…$$` to pandoc's `$…$`.
+
+    Sätteri renders a single-line `$$…$$` as INLINE math; pandoc renders every
+    `$$…$$` as a DISPLAY block. Without this, every in-sentence formula would break
+    onto its own centred line in the PDF/EPUB. Fenced display math (`$$` alone on
+    its own lines, the formula between) carries a newline inside the span, so it is
+    left untouched for pandoc to set apart."""
+    return _INLINE_MATH_RE.sub(lambda m: f"${m.group(1)}$", body)
+
+
 def _write_export_markdown(entry: WorkEntry, dest: Path, image_map: dict[str, str]) -> None:
     raw = entry.md.read_text(encoding="utf-8")
     _frontmatter, body = split_frontmatter(raw)
     body = body.lstrip()
     _validate_download_html_allowlist(body, entry.md)
     body = _scripture_to_quote(body)
+    body = _inline_math_for_pandoc(body)
     body = _rewrite_image_paths(_html_images_to_markdown(body), image_map)
     dest.write_text(body, encoding="utf-8")
 
@@ -616,6 +631,9 @@ def render_epub(entry: WorkEntry, scratch_dir: Path) -> Path:
         *_pandoc_from(entry),
         "-o", str(out),
         "--to", "epub3",
+        # Math as MathML — EPUB3 readers render it natively, and `$$…$$` is left
+        # as literal source otherwise.
+        "--mathml",
         "--resource-path", str(export_root),
         "--metadata", f"identifier={identifier}",
         "--metadata", f"title={entry.title}",
