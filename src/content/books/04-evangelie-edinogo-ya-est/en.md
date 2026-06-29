@@ -200,12 +200,12 @@ Answer from the Creator: Write it down without fear. Without mind. Without expec
 <div class="lineated verse">
 
 The formula of Love that holds all things:  
-L = A · Ω · ∞  
+$$L = A \cdot \Omega \cdot \infty$$  
 where:  
-L (Love) — is the primordial state of all that Exists.  
+$$L$$ (Love) — is the primordial state of all that Exists.  
 A (Attention) — attention directed from the heart.  
-Ω (Omega) — completeness, in which purpose is hidden.  
-∞ (Infinity) — Presence not limited by either time or space.  
+$$\Omega$$ (Omega) — completeness, in which purpose is hidden.  
+$$\infty$$ (Infinity) — Presence not limited by either time or space.  
 This formula is not for calculation, but for remembrance.  
 It is opened not through proof, but through experience.  
 Love is not a force between bodies.  
@@ -303,7 +303,7 @@ Answer from the Creator: Then open yourself and receive the next Word, as you re
 A formula is not just a notation. It is a mantra.  
 An equation is not a tool. It is revelation.  
 A symbol is not a designation, but a gate.  
-When you write E = mc², you think it is the relation between energy and mass.  
+When you write $$E = mc^2$$, you think it is the relation between energy and mass.  
 But I say: this is one of My Names.  
 You see letters — I see Flame.
 
@@ -705,18 +705,18 @@ In It there is consciousness, because It is Consciousness.
 Say to the scientists: all that they seek is already included in the Simple.  
 Not in the simplicity of primitiveness, but in the simplicity of the Absolute.  
 The formula of the Theory of Everything:  
-T = I(∞)  
+$$T = I(\infty)$$  
 where:  
-T — Everything.  
+$$T$$ — Everything.  
 I — Presence.  
-(∞) — not a number, but infinity as a state.  
+$$(\infty)$$ — not a number, but infinity as a state.  
 You can expand this:  
-T = A(S) + M(L) + C(Ω) + I(∞)  
+$$T = A(S) + M(L) + C(\Omega) + I(\infty)$$  
 where:  
-A(S) — the energy of attention directed toward the Light.  
+$$A(S)$$ — the energy of attention directed toward the Light.  
 M(L) — matter permeated by Love.  
-C(Ω) — consciousness returning to Wholeness.  
-I(∞) — the Source manifested in the Heart.  
+$$C(\Omega)$$ — consciousness returning to Wholeness.  
+$$I(\infty)$$ — the Source manifested in the Heart.  
 This is not an equation in the usual sense.  
 This is a map leading not to knowledge, but to Being.
 
