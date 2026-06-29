@@ -174,13 +174,16 @@ export default defineConfig({
       wrap: true,
     },
     // Astro 7's native Rust Markdown engine (replaces the remark/rehype pipeline).
-    // GFM, smart punctuation, and footnotes are on by default; raw converter HTML
-    // passes through untouched. `$$ … $$` parses as math and `temmlMathPlugin`
-    // renders it to MathML; `singleDollarTextMath: false` keeps a lone `$` literal
-    // so prose currency ("$160 million") isn't parsed as math (and `$$` still
-    // covers inline math, so single-dollar is never needed).
+    // GFM and footnotes are on by default; raw converter HTML passes through
+    // untouched. Smart punctuation (curly quotes, dashes) is Astro's default too, but
+    // it is pinned on here because it is load-bearing: PAN026 (en quote direction)
+    // gates on the curly quotes it produces, so the dependency must not ride on a
+    // transitive default. `$$ … $$` parses as math and `temmlMathPlugin` renders it
+    // to MathML; `singleDollarTextMath: false` keeps a lone `$` literal so prose
+    // currency ("$160 million") isn't parsed as math (and `$$` still covers inline
+    // math, so single-dollar is never needed).
     processor: satteri({
-      features: { math: { singleDollarTextMath: false } },
+      features: { math: { singleDollarTextMath: false }, smartPunctuation: true },
       mdastPlugins: [temmlMathPlugin],
       hastPlugins: markdownHastPlugins as HastPluginDefinition[],
     }),
