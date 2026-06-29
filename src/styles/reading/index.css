@@ -15,6 +15,7 @@
 @import "./elements.css";
 @import "./lineation.css";
 @import "./semantics.css";
+@import "./math.css";
 @import "./registers/note.css";
 @import "./registers/verse.css";
 @import "./registers/manifesto.css";
