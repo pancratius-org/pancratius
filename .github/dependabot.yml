@@ -35,6 +35,7 @@ updates:
         patterns:
           - "astro"
           - "@astrojs/*"
+          - "satteri"
       conceptosphere-viz:
         patterns:
           - "sigma"

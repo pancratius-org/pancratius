@@ -1,5 +1,7 @@
 import { defineConfig, fontProviders } from "astro/config";
-import { unified } from "@astrojs/markdown-remark";
+import { satteri, satteriHeadingIdsPlugin } from "@astrojs/markdown-satteri";
+import type { HastPluginDefinition, HastPluginInput } from "satteri";
+import type { Element } from "hast";
 
 // Self-hosted web fonts, pinned to the `@fontsource-variable/*` packages in package-lock.json and
 // referenced as package imports — Astro subsets and serves them from the origin, so there is no
@@ -68,33 +70,53 @@ function tsconfigAliasWithoutDeprecatedViteEntries() {
   };
 }
 
-import rehypeAutolinkHeadings from "rehype-autolink-headings";
-import rehypeSlug from "rehype-slug";
-
-// The markdown processor is shared across locales, so the heading-anchor
-// aria-label can't be a single static string. This pass localizes it per the
-// document's frontmatter `lang` (Astro exposes it on the vfile), so an EN page
-// gets the English label and a RU page the Russian one.
+// Heading anchors aren't native to Sätteri: `satteriHeadingIdsPlugin` assigns
+// the `id`, this appends the citable "#" link to each h2/h3/h4. The processor is
+// shared across locales, so the aria-label is localized per the document's
+// frontmatter `lang` (an EN page gets the English label, RU the Russian, anything
+// else the RU default). The anchor carries no text — the visible "#" is drawn by
+// CSS (`.heading-anchor::after`, reading/elements.css), which keeps a literal "#"
+// out of ToC text and search snippets.
 const HEADING_ANCHOR_ARIA: Record<string, string> = {
   ru: "Постоянная ссылка на этот раздел",
   en: "Permalink to this section",
 };
-function rehypeLocalizeHeadingAnchors() {
-  return (tree: unknown, file: { data?: { astro?: { frontmatter?: { lang?: string } } } }) => {
-    const lang = file.data?.astro?.frontmatter?.lang;
-    const label = (lang && HEADING_ANCHOR_ARIA[lang]) || HEADING_ANCHOR_ARIA.ru;
-    const walk = (node: unknown): void => {
-      if (!node || typeof node !== "object") return;
-      const n = node as { properties?: Record<string, unknown>; children?: unknown[] };
-      const cls = n.properties?.className;
-      if (Array.isArray(cls) && cls.includes("heading-anchor")) {
-        n.properties!.ariaLabel = label;
-      }
-      n.children?.forEach(walk);
-    };
-    walk(tree);
+function headingAnchorsPlugin(): HastPluginDefinition {
+  return {
+    name: "heading-anchors",
+    element: {
+      filter: ["h2", "h3", "h4"],
+      visit(node, ctx) {
+        const id = node.properties?.id;
+        if (typeof id !== "string") return;
+        // `frontmatter` is typed `Record<string, any>`, so narrow `lang` to a
+        // real string before the lookup rather than indexing on `any`.
+        const lang = ctx.data.astro?.frontmatter?.lang;
+        const ariaLabel =
+          (typeof lang === "string" ? HEADING_ANCHOR_ARIA[lang] : undefined) ??
+          HEADING_ANCHOR_ARIA.ru;
+        const anchor: Element = {
+          type: "element",
+          tagName: "a",
+          properties: { href: `#${id}`, className: ["heading-anchor"], ariaLabel },
+          children: [],
+        };
+        ctx.appendChild(node, anchor);
+      },
+    },
   };
 }
+
+// `satteriHeadingIdsPlugin` runs first so the `id` exists when `headingAnchorsPlugin`
+// reads it: Sätteri's own id pass runs last, after user plugins, and re-runs
+// idempotently over existing ids — so this user pass is required, not redundant.
+// Both are passed as factories, not instances: Sätteri re-instantiates each per
+// document, so the slugger resets per page. A shared instance would carry slug
+// counts across the whole build and append spurious suffixes to headings that
+// repeat between books ("Prologue" → "prologue-1"). `satteri()` types `hastPlugins`
+// as ready definitions, but the engine per-document-instantiates the
+// `HastPluginInput` factory form it forwards to — hence the assertion at the call site.
+const markdownHastPlugins: HastPluginInput[] = [satteriHeadingIdsPlugin, headingAnchorsPlugin];
 
 // Canonical locale list + default. `./src/lib/locales.ts` is pure TS so the
 // i18n config can derive from it. The default locale is the apex `/` redirect
@@ -147,32 +169,15 @@ export default defineConfig({
       theme: "github-dark",
       wrap: true,
     },
-    processor: unified({
-      rehypePlugins: [
-        // `rehype-slug` must run before `rehype-autolink-headings`, which
-        // only adds anchors to headings that already have an `id`. Astro's
-        // own slugger runs on its own pass for the `headings` collection
-        // and isn't visible to user plugins in the right order, so we add
-        // an explicit slug pass here. Result: every prose h2/h3/h4 gets a
-        // citable id and an anchor.
-        rehypeSlug,
-        [rehypeAutolinkHeadings, {
-          behavior: "append",
-          test: ["h2", "h3", "h4"],
-          properties: {
-            className: ["heading-anchor"],
-            ariaLabel: "Постоянная ссылка на этот раздел",
-          },
-          // No text content — the visible "#" is drawn by CSS via
-          // `::after`. That keeps the literal "#" out of plain-text
-          // extractors (ToC heading text, search snippets) which would
-          // otherwise pick up "Heading text#".
-          content: [],
-        }],
-        // Runs after the anchors are appended; rewrites the aria-label to the
-        // page's own language (the static label above is the RU default).
-        rehypeLocalizeHeadingAnchors,
-      ],
+    // Astro 7's native Rust Markdown engine (replaces the remark/rehype pipeline).
+    // GFM, smart punctuation, and footnotes are on by default; raw converter HTML
+    // passes through untouched. Math only RECOGNIZES `$$ … $$` (rendering LaTeX is a
+    // separate KaTeX/MathML step, deferred until the corpus has math);
+    // `singleDollarTextMath: false` keeps a lone `$` literal so prose currency
+    // ("$160 million") isn't parsed as math.
+    processor: satteri({
+      features: { math: { singleDollarTextMath: false } },
+      hastPlugins: markdownHastPlugins as HastPluginDefinition[],
     }),
   },
 });

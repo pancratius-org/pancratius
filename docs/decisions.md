@@ -344,3 +344,43 @@ on a different trust path (committed directly or passed via an explicit
 their styled title — sanitizing would corrupt them. The committed body SVGs are
 clean (the sanitizer is a byte-for-byte no-op on them); the scoping lives in
 `pancratius/writer.py`.
+
+## Markdown processor: Astro 7's native Sätteri engine
+
+The site renders Markdown with `satteri()` — Astro 7's native Rust engine — set as
+`markdown.processor` in `astro.config.ts`, not the remark/rehype `unified()`
+pipeline. The swap drops three direct dependencies (`@astrojs/markdown-remark`,
+`rehype-slug`, `rehype-autolink-headings`) and the whole remark/rehype/micromark
+transitive subtree, renders the large corpus markedly faster (native Rust vs JS),
+and keeps the renderer sanitizer-free: converter-emitted raw HTML (lineated
+wrappers, signatures, bidi spans) passes through byte-for-byte, so the publish-gate
+contract above still holds. Heading `id`s (same github-slugger), GFM
+footnotes/tables, and smart punctuation are native.
+
+Two behaviours are not native and stay local in `astro.config.ts`:
+
+- **Heading anchors.** Sätteri assigns the heading `id` but emits no anchor link,
+  so `headingAnchorsPlugin` appends the empty `<a class="heading-anchor">` (the
+  "#" is CSS) with a per-locale `aria-label`, replacing rehype-autolink-headings
+  plus its hand-rolled localizer. It runs after `satteriHeadingIdsPlugin` so the
+  `id` exists when it reads it — the built-in id pass runs last, after user
+  plugins, so a user anchor plugin alone would see no `id`.
+
+- **Per-document plugin state.** Both plugins are passed as factories, not
+  instances. `satteriHeadingIdsPlugin`'s slugger must reset per page; a single
+  shared instance accumulates slug counts across the whole build and appends
+  spurious suffixes to headings that repeat between books ("Prologue" →
+  "prologue-1"). `satteri()` types `hastPlugins` as ready definitions, but the
+  engine accepts and per-document-instantiates the `HastPluginInput` factory form
+  it forwards to — hence the one assertion at the call site.
+
+Math is enabled as `{ singleDollarTextMath: false }`: `$$…$$` is recognized but a
+lone `$` stays literal, so currency in the prose ("$160 million") is never parsed
+as math. The corpus has no math today; this is forward-cover only (rendering LaTeX
+would still need a KaTeX/MathML step).
+
+Sätteri's smart punctuation differs from remark-smartypants only on direction for
+the corpus's unbalanced straight quotes — on balance more correct (it closes
+trailing `,"` and opens leading `"…` where remark guessed wrong), with a few
+misses on quotes spanning paragraphs. ASCII `---` becomes an em-dash. The durable
+fix for quote direction is curly quotes in source, not the engine.
