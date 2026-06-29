@@ -118,6 +118,10 @@ function headingAnchorsPlugin(): HastPluginDefinition {
 // `HastPluginInput` factory form it forwards to — hence the assertion at the call site.
 const markdownHastPlugins: HastPluginInput[] = [satteriHeadingIdsPlugin, headingAnchorsPlugin];
 
+// `$$…$$` → MathML at build time (display + inline). Runs on the MDAST math nodes,
+// before they would lower to a `<pre><code class="language-math">` block.
+import { temmlMathPlugin } from "./src/lib/markdown/math.ts";
+
 // Canonical locale list + default. `./src/lib/locales.ts` is pure TS so the
 // i18n config can derive from it. The default locale is the apex `/` redirect
 // target; every locale is prefixed (`/ru/`, `/en/`).
@@ -171,12 +175,13 @@ export default defineConfig({
     },
     // Astro 7's native Rust Markdown engine (replaces the remark/rehype pipeline).
     // GFM, smart punctuation, and footnotes are on by default; raw converter HTML
-    // passes through untouched. Math only RECOGNIZES `$$ … $$` (rendering LaTeX is a
-    // separate KaTeX/MathML step, deferred until the corpus has math);
-    // `singleDollarTextMath: false` keeps a lone `$` literal so prose currency
-    // ("$160 million") isn't parsed as math.
+    // passes through untouched. `$$ … $$` parses as math and `temmlMathPlugin`
+    // renders it to MathML; `singleDollarTextMath: false` keeps a lone `$` literal
+    // so prose currency ("$160 million") isn't parsed as math (and `$$` still
+    // covers inline math, so single-dollar is never needed).
     processor: satteri({
       features: { math: { singleDollarTextMath: false } },
+      mdastPlugins: [temmlMathPlugin],
       hastPlugins: markdownHastPlugins as HastPluginDefinition[],
     }),
   },

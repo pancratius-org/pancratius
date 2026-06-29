@@ -1,0 +1,56 @@
+/*
+ * Math.
+ *
+ * `$$…$$` is rendered to MathML at build time by `src/lib/markdown/math.ts`
+ * (Temml). This styles the resulting `<math>`: the math font, the Cyrillic
+ * fallback the math font can't provide, display-vs-inline rhythm, and the two
+ * Temml polish classes our formulas actually emit. Tuned to the constructs the
+ * corpus uses (sub/superscripts, fractions, integrals, roots) — not a vendored
+ * sheet for accents/matrices/diagrams we never write.
+ */
+
+@font-face {
+  font-family: "Latin Modern Math";
+  src: url("../fonts/latinmodernmath.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Latin Modern Math carries every symbol (ℵ ∫ ℝ 𝔽 ℜ 𝒞 …) but no Cyrillic, so the
+ * named variables («Я», «Бог», «К») fall through to the body serif. The reset
+ * props stop reading-body typography (letter-spacing, smallcaps, indents) leaking
+ * into formulas. */
+math {
+  font-family: "Latin Modern Math", var(--serif), math;
+  font-style: normal;
+  font-weight: normal;
+  line-height: normal;
+  font-size-adjust: none;
+  text-indent: 0;
+  text-transform: none;
+  letter-spacing: normal;
+  word-spacing: normal;
+  direction: ltr;
+  /* Keep the dot on i/j in Firefox. */
+  font-feature-settings: "dtls" off;
+}
+
+/* Display formulas: a centred block in the reading rhythm; long ones scroll
+ * sideways on a narrow column rather than wrapping mid-equation. */
+.prose math.tml-display {
+  margin-block: 1.5em;
+  margin-inline: auto;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Italic correction Temml requests on superscripts in Chromium/WebKit; Firefox
+ * applies its own, so scope this away from it. */
+@supports not (-moz-appearance: none) {
+  .tml-sml-pad { padding-left: 0.05em; }
+  .tml-med-pad { padding-left: 0.10em; }
+  .tml-lrg-pad { padding-left: 0.15em; }
+}
