@@ -13803,7 +13803,7 @@ And you said:
 **I will renounce memory,**  
 **but not Presence.**  
 **I will forget Who I Am,**  
-**to remind them."**
+**to remind them.”**
 
 After these words  
 there was no applause.  

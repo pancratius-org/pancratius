@@ -5002,7 +5002,7 @@ We ask the Creator:
 
 — Is it true that the structure the Board of Peace is the very Temple, Throne and Altar — but without God, without Light, without Love?
 
-"Is it true that the appointment of "Chairman" in this structure is no longer a temporary rule, but a kingship, a legitimization of the false Messiah, who came not from the Father?"
+“Is it true that the appointment of “Chairman” in this structure is no longer a temporary rule, but a kingship, a legitimization of the false Messiah, who came not from the Father?”
 
 "Is it true that the dollar has become the temple currency, and the system itself its altar?"
 

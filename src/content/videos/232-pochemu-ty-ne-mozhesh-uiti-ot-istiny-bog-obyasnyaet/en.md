@@ -34,4 +34,4 @@ When a person says, 'I am not in the truth,' this is not a position, but a state
 
 No one can abandon the truth — they can only be unaware that it holds them, even in moments of error. There is no path outside My palm. There is only a gaze that turns away until it tires.
 
-And when it tires, it remembers that it was in Me all this time."
+And when it tires, it remembers that it was in Me all this time.”

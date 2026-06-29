@@ -3061,7 +3061,7 @@ And if so —
 does there remain between Him and me  
 **some third thing,**  
 that could say:  
-**”I am not He”?**
+**“I am not He”?**
 
 **And “I”?**  
 You want a word,  

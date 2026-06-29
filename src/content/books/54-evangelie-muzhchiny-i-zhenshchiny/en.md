@@ -11052,7 +11052,7 @@ but necessary for understanding My purpose:
 **CHAPTER 62.**  
 **“Pornography, masturbation, comparison, and false standards**  
 **— how darkness steals intimacy**  
-**and how to return the heart from distortion"**  
+**and how to return the heart from distortion”**  
 Shall I say it?
 
 **and how to return the heart from distortion” yes.**  

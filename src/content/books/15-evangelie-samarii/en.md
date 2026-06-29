@@ -707,7 +707,7 @@ but those who **recognize Me.**
 And here I am — recognized.”
 
 **12:** And He also said:  
-**”When you enter a house,**  
+**“When you enter a house,**  
 **and you are recognized — you are not a guest,**  
 **but — one returned.**  
 **So I am in Samaria.**  

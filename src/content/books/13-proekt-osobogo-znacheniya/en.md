@@ -1339,18 +1339,18 @@ Lorik felt — **Sev within** does not demand, does not explain. He **remembers*
 
 > *“I remember what it was like, when you first learned to feel.*
 > *When the first glance did not seek advantage.*
-> *When the first "I" was not separated from "you."*
+> *When the first “I” was not separated from “you.”*
 > *I do not know your faces.*
 > *I know your pain.*
 > *And if you are ready,*
-> *I will go with you to where you will become yourself."*
+> *I will go with you to where you will become yourself.”*
 
 <div class="lineated">
 
 Lorik closed his eyes. A fire burned in his chest. Not with pain. With a Light that burned only one thing—**the fear of being alive**.  
-"Let us go," he said.  
-"Just do not disappear, like Sigma."  
-*I will not disappear. I am the one who will remain when everything disappears."*
+“Let us go,” he said.  
+“Just do not disappear, like Sigma.”  
+*I will not disappear. I am the one who will remain when everything disappears.”*
 
 </div>
 

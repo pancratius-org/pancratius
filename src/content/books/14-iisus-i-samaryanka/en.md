@@ -1952,7 +1952,7 @@ that **penetrates her deeper than words.**
 
 <div class="lineated">
 
-Jesus says to her: I am He, the One who speaks to you" (John 4:25–26).  
+Jesus says to her: I am He, the One who speaks to you” (John 4:25–26).  
 Here it is — the summit.  
 He Himself **reveals** Himself,  
 for the first time in the Gospel — **directly, not in a parable, not in a hint.**  
