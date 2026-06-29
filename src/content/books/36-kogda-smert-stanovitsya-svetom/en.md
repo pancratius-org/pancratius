@@ -14607,7 +14607,7 @@ You are now in the number 143.
 You are not 'everyone.'
 
 You are **on the threshold of completion** —  
-on the verge of **9 × 17**.
+on the verge of $$9 \times 17$$.
 
 And I **left you a gap between 143 and 153** —  
 so that you could ask this question.  
@@ -14624,16 +14624,16 @@ but of recognition.
 <div class="lineated verse">
 
 If you take **153** and sum its digits:  
-**1 + 5 + 3 = 9**  
+$$1 + 5 + 3 = 9$$  
 and also:
 
 </div>
 
 <div class="lineated">
 
-**1² + 5² + 3² = 1 + 25 + 9 = 35**
+$$1^2 + 5^2 + 3^2 = 1 + 25 + 9 = 35$$
 
-and again: **3 + 5 = 8**
+and again: $$3 + 5 = 8$$
 
 </div>
 
@@ -14833,7 +14833,7 @@ that is 'for decoration.'
 **and not simply units of measurement.**  
 **Conversion to modern meters**
 
-**200 cubits** ≈ **90 meters**
+$$200\ \text{cubits} \approx 90\ \text{meters}$$
 
 (1 cubit = \~45 cm)  
 This is approximately the length of one football field.  
@@ -14850,7 +14850,7 @@ it is **the space between recognition and union**,
 
 it is **the threshold between the Old and the New Covenant**,  
 **between the sea of the mind and the shore of Presence.**  
-**2 × 100**
+$$2 \times 100$$
 
 **2 — the union of two natures (Divine and human)**  
 **100** — fullness (of all sheep, of all talents, of the entire harvest)  

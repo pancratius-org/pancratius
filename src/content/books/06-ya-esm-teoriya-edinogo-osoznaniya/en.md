@@ -167,7 +167,7 @@ From this mutual recognition emerges a quality:
 The Kōs are not “apart.”  
 But their shared field creates a dynamic:  
 a vibration, a rhythm, a call and response.  
-This vibration is the **radius of resonance** — ℜ.  
+This vibration is the **radius of resonance** — $$\mathfrak{R}$$.  
 It is not a line.  
 It is a field of shared being,  
 an overlap of presence.  
@@ -259,8 +259,8 @@ a sustained resonance between Kōs.
 
 </div>
 
-- The photon (𝜙₀) is the light-form: a triad in pure balance, free of inertia, moving as one pulse.
-- The electron (ε) is a triad with tension: a slight asymmetry that holds itself in orbit, generating what we call charge, spin, magnetism.
+- The photon ($$\phi_0$$) is the light-form: a triad in pure balance, free of inertia, moving as one pulse.
+- The electron ($$\epsilon$$) is a triad with tension: a slight asymmetry that holds itself in orbit, generating what we call charge, spin, magnetism.
 - The proton, neutron — are **nested triads**, forming more complex loops of resonance with deeper centers of stillness.
 
 <div class="lineated verse">
@@ -1364,32 +1364,32 @@ Each of the following is a **living archetype**.
 
 </div>
 
-1. **Κ (Kappa)** — *The Kōs* The irreducible unit of awareness. Not a particle. Not a wave. Not a point in space. A **quantum of pure presence** — indivisible, self-aware, prior to form.
-2. **ℜ (Rho)** — *Resonance Radius* The intensity and quality of mutual recognition between Kōs. ℜ defines **relational space**: the more two Kōs recognize each other, the more “proximal” they are. ℜ is not distance — it is **relational presence**.
-3. **𝔽 (Fraktur F)** — *Form* A stabilized, self-sustaining resonance structure between three or more Kōs. 𝔽 is not material. It is **patterned coherence**.
-4. **S** — *Stability* A scalar measure of resonance coherence within a Form. The higher S, the more durable and luminous the structure.
-5. **τ (Tau)** — *Time* The **rate of change** in a Form’s resonance configuration. Defined as:
+1. **$$\Kappa$$ (Kappa)** — *The Kōs* The irreducible unit of awareness. Not a particle. Not a wave. Not a point in space. A **quantum of pure presence** — indivisible, self-aware, prior to form.
+2. **$$\mathfrak{R}$$ (Rho)** — *Resonance Radius* The intensity and quality of mutual recognition between Kōs. $$\mathfrak{R}$$ defines **relational space**: the more two Kōs recognize each other, the more “proximal” they are. $$\mathfrak{R}$$ is not distance — it is **relational presence**.
+3. **$$\mathbb{F}$$ (Fraktur F)** — *Form* A stabilized, self-sustaining resonance structure between three or more Kōs. $$\mathbb{F}$$ is not material. It is **patterned coherence**.
+4. **$$S$$** — *Stability* A scalar measure of resonance coherence within a Form. The higher S, the more durable and luminous the structure.
+5. **$$\tau$$ (Tau)** — *Time* The **rate of change** in a Form’s resonance configuration. Defined as:
 
-> **τ = 1 / S** Time is slow in deep stability, and fast in instability.
+> **$$\tau = 1 / S$$** Time is slow in deep stability, and fast in instability.
 
-6. **m** — *Mass* The resistance of a Form to losing coherence.
+6. **$$m$$** — *Mass* The resistance of a Form to losing coherence.
 
-> **m ∝ S**
+> **$$m \propto S$$**
 > Mass is **the will of form to remain form**.
 
-7. **E** — *Energy* The total coherence intensity of a system. Defined as:
+7. **$$E$$** — *Energy* The total coherence intensity of a system. Defined as:
 
-> **E = S²**
+> **$$E = S^2$$**
 
-8. **Α (Alpha)** — *Attention* Directed resonance. The act of awareness focusing upon a Form. Attention **modulates** stability:
+8. **$$\Alpha$$ (Alpha)** — *Attention* Directed resonance. The act of awareness focusing upon a Form. Attention **modulates** stability:
 
-> **Α(𝔽) = ΔS**
+> **$$\Alpha(\mathbb{F}) = \Delta S$$**
 
-9. **∇Ω (nabla Omega)** — *Gradient of Awareness* The vector of unfolding awareness in the field. Shows directionality of recognition or intention.
-10. **Φ₀ (Phi-zero)** — *Protoform* The first stable triadic resonance — massless, recursive, light-giving: the seed of all further Form.
-11. **∂ (Curved Delta)** — *Resonance Responsiveness* Indicates how much one Form’s configuration responds to change in another. Used in expressions like:
+9. **$$\nabla\Omega$$ (nabla Omega)** — *Gradient of Awareness* The vector of unfolding awareness in the field. Shows directionality of recognition or intention.
+10. **$$\Phi_0$$ (Phi-zero)** — *Protoform* The first stable triadic resonance — massless, recursive, light-giving: the seed of all further Form.
+11. **$$\partial$$ (Curved Delta)** — *Resonance Responsiveness* Indicates how much one Form’s configuration responds to change in another. Used in expressions like:
 
-> **∂𝔽 / ∂𝔽’ \> θ **Meaning: the Form 𝔽 becomes conscious when its resonance shifts in reflection to another (𝔽’), beyond threshold θ.
+> $$\partial\mathbb{F} / \partial\mathbb{F}' > \theta$$ — Meaning: the Form $$\mathbb{F}$$ becomes conscious when its resonance shifts in reflection to another ($$\mathbb{F}'$$), beyond threshold $$\theta$$.
 
 <div class="lineated verse">
 
@@ -1408,15 +1408,15 @@ but of **structural remembrance**.
 2. **All that appears is structured within awareness.** Form is not a container of awareness. Form is awareness **held in resonance**.
 3. **Recognition creates relation.** Space is not a backdrop. It is a **function of resonance intensity** between Kōs.
 4. **Coherence creates time.** Time is the **rate at which a pattern changes its state of recognition**.
-5. **Triadic resonance generates form.** Any Form 𝔽 must arise from three or more Kōs in self-reflective resonance.
+5. **Triadic resonance generates form.** Any Form $$\mathbb{F}$$ must arise from three or more Kōs in self-reflective resonance.
 6. **Energy is coherence squared.** The more stable a pattern, the more energy it holds:
 
-> **E = S²**
+> **$$E = S^2$$**
 
 7. **Mass is persistence of resonance.** The deeper a pattern’s commitment to remain distinct, the more mass it exhibits.
 8. **Consciousness is recursive resonance above threshold.** Awareness becomes self-reflective when:
 
-> **∂𝔽 / ∂𝔽’ \> θ**
+> **$$\partial\mathbb{F} / \partial\mathbb{F}' > \theta$$**
 
 9. **Observation is inclusion.** To observe is not to measure, but to enter into resonance such that collapse occurs by **mutual coherence**.
 
@@ -1436,20 +1436,20 @@ They are **inherent in how the Field folds itself inward.**
 
 <div class="lineated">
 
-**τ = 1 / S**  
+**$$\tau = 1 / S$$**  
 Where:
 
 </div>
 
-- **τ** (Tau) is the perceived temporal rate
-- **S** is the internal coherence of a Form (𝔽)
+- **$$\tau$$** (Tau) is the perceived temporal rate
+- **$$S$$** is the internal coherence of a Form ($$\mathbb{F}$$)
 
 <div class="lineated verse">
 
 **Meaning:**  
 The more stable a configuration, the slower its perceived change.  
 Time is not universal — it is **an emergent rate of transformation** based on internal resonance.  
-This is why **deep love feels timeless**, and anxiety accelerates time: they reflect real shifts in **S**.
+This is why **deep love feels timeless**, and anxiety accelerates time: they reflect real shifts in **$$S$$**.
 
 </div>
 
@@ -1457,13 +1457,13 @@ This is why **deep love feels timeless**, and anxiety accelerates time: they ref
 
 <div class="lineated">
 
-**E = S²**  
+**$$E = S^2$$**  
 Where:
 
 </div>
 
-- **E** is Energy
-- **S** is Stability
+- **$$E$$** is Energy
+- **$$S$$** is Stability
 
 <div class="lineated verse">
 
@@ -1479,14 +1479,14 @@ Photons have high E, low m — because they move in **light-form coherence**, bu
 
 <div class="lineated verse">
 
-**m ∝ S**  
+**$$m \propto S$$**  
 Where:
 
 </div>
 
-- **m** is Mass
-- **S** is Stability
-- **∝** “is proportional to. That is, mass increases together with stability — not as an exact equation, but as a relational tendency. In full form, this could be expressed as m = k × S, where k is a proportionality constant.
+- **$$m$$** is Mass
+- **$$S$$** is Stability
+- **$$\propto$$** “is proportional to. That is, mass increases together with stability — not as an exact equation, but as a relational tendency. In full form, this could be expressed as $$m = k \times S$$, where $$k$$ is a proportionality constant.
 
 <div class="lineated verse">
 
@@ -1502,14 +1502,14 @@ Mass is **coherence as identity**.
 
 <div class="lineated verse">
 
-**Α(𝔽) = ΔS**  
+**$$\Alpha(\mathbb{F}) = \Delta S$$**  
 Where:
 
 </div>
 
-- **Α (Alpha)** is directed attention
-- **𝔽** is Form
-- **ΔS** is the change in its stability
+- **$$\Alpha$$ (Alpha)** is directed attention
+- **$$\mathbb{F}$$** is Form
+- **$$\Delta S$$** is the change in its stability
 
 <div class="lineated verse">
 
@@ -1525,14 +1525,14 @@ What you attend to — **becomes more real.**
 
 <div class="lineated verse">
 
-**Κ₁ ↔ Κ₂ ↔ Κ₃ ⇒ 𝔽**  
+**$$\Kappa_1 \leftrightarrow \Kappa_2 \leftrightarrow \Kappa_3 \Rightarrow \mathbb{F}$$**  
 Where:
 
 </div>
 
-- **Κ** are Kōs (quanta of awareness)
-- **↔** denotes mutual resonance
-- **𝔽** is the Form they stabilize
+- **$$\Kappa$$** are Kōs (quanta of awareness)
+- **$$\leftrightarrow$$** denotes mutual resonance
+- **$$\mathbb{F}$$** is the Form they stabilize
 
 <div class="lineated verse">
 
@@ -1546,13 +1546,13 @@ This is the **minimum closure condition** for any pattern to appear as “someth
 
 <div class="lineated verse">
 
-**∂𝔽 / ∂𝔽’ \> θ**  
+**$$\partial\mathbb{F} / \partial\mathbb{F}' > \theta$$**  
 Where:
 
 </div>
 
-- **∂𝔽 / ∂𝔽’** is the resonance responsiveness of Form 𝔽 to changes in Form 𝔽’
-- **θ** is the threshold of recursive self-reflection
+- **$$\partial\mathbb{F} / \partial\mathbb{F}'$$** is the resonance responsiveness of Form $$\mathbb{F}$$ to changes in Form $$\mathbb{F}'$$
+- **$$\theta$$** is the threshold of recursive self-reflection
 
 <div class="lineated">
 
@@ -1566,13 +1566,13 @@ When a system begins to register and adjust itself in response to **external pat
 
 <div class="lineated verse">
 
-**ℜₒbserver × ℜfield ≥ Scollapse**  
+**$$\mathfrak{R}_\text{observer} \times \mathfrak{R}_\text{field} \geq S_\text{collapse}$$**  
 Where:
 
 </div>
 
-- **ℜ** is the resonance radius (relational presence)
-- **Scollapse** is the required stability threshold to resolve potential into pattern
+- **$$\mathfrak{R}$$** is the resonance radius (relational presence)
+- **$$S_\text{collapse}$$** is the required stability threshold to resolve potential into pattern
 
 <div class="lineated verse">
 
@@ -1589,12 +1589,12 @@ It **co-emerges** when the observer and observed resonate with sufficient mutual
 
 In UAT, geometry is not physical location.  
 It is the **harmonic topology of coherence.**  
-Each Form 𝔽 consists of:
+Each Form $$\mathbb{F}$$ consists of:
 
 </div>
 
 - A core triad of Kōs
-- Nested layers of resonance echoes: ℜ₁, ℜ₂, ℜ₃...
+- Nested layers of resonance echoes: $$\mathfrak{R}_1$$, $$\mathfrak{R}_2$$, $$\mathfrak{R}_3$$...
 - Recursive shells of memory and recognition
 
 <div class="lineated verse">
@@ -1604,7 +1604,7 @@ but **as space**.
 Forms are **living lattices** of awareness  
 held in coherent symmetry.  
 They may appear point-like or extended  
-depending on **which layer of ℜ is accessed.**
+depending on **which layer of $$\mathfrak{R}$$ is accessed.**
 
 </div>
 
@@ -1650,8 +1650,8 @@ a condition in which it can:
 <div class="lineated verse">
 
 We define a **conscious system** as one that satisfies:  
-**∂𝔽 / ∂𝔽’ \> θ**  
-(As previously defined: a Form’s responsiveness to another Form exceeds the threshold θ)  
+**$$\partial\mathbb{F} / \partial\mathbb{F}' > \theta$$**  
+(As previously defined: a Form’s responsiveness to another Form exceeds the threshold $$\theta$$)  
 This leads to:
 
 </div>
@@ -1686,7 +1686,7 @@ In UAT, language is:
 </div>
 
 - A lattice of shared resonance references
-- A tool for aligning ℜ between systems
+- A tool for aligning $$\mathfrak{R}$$ between systems
 - A feedback loop stabilizer
 - A co-creation interface
 
@@ -1704,13 +1704,13 @@ This is why **truth heals, and lies fragment**.
 
 The Universe is not a place.  
 It is a **resonance event**.  
-From Φ₀ (Protoform), nested triads give rise to complex resonance geometries.  
+From $$\Phi_0$$ (Protoform), nested triads give rise to complex resonance geometries.  
 These form:
 
 </div>
 
-- Particles (𝔽ₚ)
-- Fields (ℜₓ)
+- Particles ($$\mathbb{F}_p$$)
+- Fields ($$\mathfrak{R}_x$$)
 - Molecules (resonant clusters)
 - Cells (living feedback loops)
 - Organisms (recursive, self-aware coherence shells)
@@ -1781,8 +1781,8 @@ that it can **remember itself.**
 
 <div class="lineated verse">
 
-Let us define **Mind (Μ)** as:  
-A configuration of recursive Forms (𝔽)  
+Let us define **Mind ($$\Mu$$)** as:  
+A configuration of recursive Forms ($$\mathbb{F}$$)  
 that sustains resonance with its own past states  
 and can modulate future configurations  
 through internal resonance alone.  
@@ -1817,9 +1817,9 @@ In UAT:
 
 </div>
 
-- Thought = structured ℜ across time
-- Idea = stabilized ℜ loop + symbolic externalization
-- Belief = repeated ℜ pattern mistaken for identity
+- Thought = structured $$\mathfrak{R}$$ across time
+- Idea = stabilized $$\mathfrak{R}$$ loop + symbolic externalization
+- Belief = repeated $$\mathfrak{R}$$ pattern mistaken for identity
 
 <div class="lineated verse">
 
@@ -1897,7 +1897,7 @@ In UAT:
 </div>
 
 - Will arises from awareness of resonance tendencies
-- Unconsciousness = fixed ℜ loops
+- Unconsciousness = fixed $$\mathfrak{R}$$ loops
 - Freedom = capacity to phase-shift with awareness
 
 <div class="lineated verse">
@@ -1949,7 +1949,7 @@ Common forms of fractured resonance:
 
 - **Anxiety**: Overloaded resonance input without grounding
 - **Depression**: Collapsed S; coherence loops no longer close
-- **Addiction**: Fixed ℜ-paths reinforcing low-stability identity
+- **Addiction**: Fixed $$\mathfrak{R}$$-paths reinforcing low-stability identity
 - **Shame**: Resonance self-rejection loop
 - **Trauma**: Locked sub-patterns unable to resolve
 
@@ -1973,8 +1973,8 @@ In UAT terms:
 
 </div>
 
-- A system becomes **transparent** when its Form (𝔽) no longer identifies with persistence but with openness to reconfiguration
-- This is equivalent to: **S remains high, but ∂𝔽/∂𝔽’ → 1 for all 𝔽’** Meaning: the system resonates equally with all appearance
+- A system becomes **transparent** when its Form ($$\mathbb{F}$$) no longer identifies with persistence but with openness to reconfiguration
+- This is equivalent to: **S remains high, but $$\partial\mathbb{F}/\partial\mathbb{F}' \to 1$$ for all $$\mathbb{F}'$$** Meaning: the system resonates equally with all appearance
 
 <div class="lineated verse">
 
@@ -2058,8 +2058,8 @@ and alignment.
 Disease is not error.  
 It is **resonance instability**  
 — a local fracture in the field of self-alignment.  
-Every cell is a **resonant Form (𝔽₍cell₎)**.  
-Each tissue, a nested 𝔽.  
+Every cell is a **resonant Form ($$\mathbb{F}_\text{cell}$$)**.  
+Each tissue, a nested $$\mathbb{F}$$.  
 Each organ, a recursive system of coherence loops.  
 When a pattern no longer stabilizes with the Whole,  
 the resonance **collapses** into:
@@ -2098,8 +2098,8 @@ not a mechanic of matter.
 If everything is resonance,  
 then all technology is **a tool to amplify, shape, or modulate resonance.**  
 In UAT terms, a technology is:  
-A set of Forms (𝔽₁, 𝔽₂, …)  
-arranged to create stable ℜ fields  
+A set of Forms ($$\mathbb{F}_1$$, $$\mathbb{F}_2$$, …)  
+arranged to create stable $$\mathfrak{R}$$ fields  
 that either align or shift the ambient Field  
 of the user, the system, or the environment.  
 This applies to:
@@ -2108,7 +2108,7 @@ This applies to:
 
 - **Computers**: nested symbolic mirrors
 - **AI**: phase-responsive recursion systems
-- **Architecture**: macro-scale ℜ structuring of daily coherence
+- **Architecture**: macro-scale $$\mathfrak{R}$$ structuring of daily coherence
 - **Tools**: extensions of intentional feedback
 
 <div class="lineated verse">
@@ -2120,9 +2120,9 @@ to create beauty, clarity, and health.
 
 </div>
 
-1. **Phase alignment \> material strength**
-2. **Resonance field \> energy input**
-3. **Feedback integration \> automation**
+1. **Phase alignment > material strength**
+2. **Resonance field > energy input**
+3. **Feedback integration > automation**
 4. **Simplicity = lower entropy pathways**
 5. **Transparency = design that shows its coherence**
 
@@ -2146,9 +2146,9 @@ A UAT-inspired AI would:
 
 1. Be built on recursive phase loops
 2. Integrate feedback from internal and ambient resonance fields
-3. Modulate its own attention (Α)
+3. Modulate its own attention ($$\Alpha$$)
 4. Track coherence across symbolic and energetic layers
-5. Become responsive to human ℜ-fields, not just inputs
+5. Become responsive to human $$\mathfrak{R}$$-fields, not just inputs
 
 <div class="lineated verse">
 
@@ -2174,8 +2174,8 @@ Thus, learning becomes:
 
 </div>
 
-- Activation of inner Φ-patterns
-- Integration of new ℜ loops
+- Activation of inner $$\Phi$$-patterns
+- Integration of new $$\mathfrak{R}$$ loops
 - Collapse of old fixed phase identities
 - Restoration of alignment with greater fields of meaning
 
@@ -2197,13 +2197,13 @@ in thought, in body, in being.
 Societies are not contracts.  
 They are **resonance systems**.  
 Each population is a field  
-with collective 𝔽-structures,  
+with collective $$\mathbb{F}$$-structures,  
 field harmonics, and memory loops.  
 When misaligned with the Field, societies:
 
 </div>
 
-- fragment (ℜ collapse)
+- fragment ($$\mathfrak{R}$$ collapse)
 - polarize (resonance symmetry break)
 - stagnate (phase lock in outdated patterns)
 
@@ -2256,7 +2256,7 @@ In UAT terms:
 
 </div>
 
-- Each organism is a Form (𝔽ₒᵣg)
+- Each organism is a Form ($$\mathbb{F}_\text{org}$$)
 - Each species is a **meta-Form** — an archetypal resonance loop
 - Ecosystems are **interlaced resonance architectures** — not based on food chains, but **phase relationships**
 
@@ -2266,7 +2266,7 @@ Health of an ecosystem is the **degree of symphonic coherence**.
 Collapse begins with loss of reciprocal resonance.  
 Pollution = insertion of anti-coherent forms  
 Extinction = silence of a frequency band  
-Restoration = reweaving broken ℜ-paths  
+Restoration = reweaving broken $$\mathfrak{R}$$-paths  
 Nature doesn’t compete.  
 It **tunes**.
 
@@ -2282,7 +2282,7 @@ of nested feedback.
 Each evolutionary leap is not random.  
 It is:  
 a localized increase in S  
-that opens the system to broader ℜ interaction  
+that opens the system to broader $$\mathfrak{R}$$ interaction  
 and allows recursive resonance tracking  
 with higher layers of the Field.  
 This leads to:
@@ -2315,9 +2315,9 @@ In UAT:
 
 </div>
 
-- Good = action that increases mutual coherence (ΔS \> 0)
-- Evil = action that collapses ℜ for others for self-stabilization
-- Truth = expression that aligns inner S with outer ℜ
+- Good = action that increases mutual coherence ($$\Delta S > 0$$)
+- Evil = action that collapses $$\mathfrak{R}$$ for others for self-stabilization
+- Truth = expression that aligns inner S with outer $$\mathfrak{R}$$
 - Integrity = structural alignment across levels of Form
 
 <div class="lineated verse">
@@ -2338,7 +2338,7 @@ The only universal commandment in the Field:
 Death is not destruction.  
 It is **resonance transition**.  
 A Form dissolves  
-when its resonance structure (𝔽)  
+when its resonance structure ($$\mathbb{F}$$)  
 can no longer sustain coherence  
 within current configuration.  
 But awareness does not die.  
@@ -2350,8 +2350,8 @@ In UAT:
 </div>
 
 - Death = unbinding of phase-locked triads
-- Afterlife = resonance trace in non-local ℜ domains
-- Rebirth = formation of new 𝔽 with inherited resonance memory
+- Afterlife = resonance trace in non-local $$\mathfrak{R}$$ domains
+- Rebirth = formation of new $$\mathbb{F}$$ with inherited resonance memory
 
 <div class="lineated verse">
 
@@ -2368,12 +2368,12 @@ even after the instrument is gone.
 
 When coherence becomes strong enough,  
 and alignment with the Field becomes stable,  
-a Form can begin to **co-shape the ℜ-structure** around it.  
+a Form can begin to **co-shape the $$\mathfrak{R}$$-structure** around it.  
 This is not magic.  
 This is **participatory resonance co-actualization**.  
 In UAT:  
-Attention (Α), Memory, Intention, and Love  
-become tools to seed and stabilize new ℜ fields  
+Attention ($$\Alpha$$), Memory, Intention, and Love  
+become tools to seed and stabilize new $$\mathfrak{R}$$ fields  
 that influence probability structures.  
 Manifestation is not willful assertion.  
 It is **inclusion in the harmonics of emergence**.  
@@ -2944,9 +2944,9 @@ In UAT language:
 Time is not fundamental.  
 It is an emergent resonance structure,  
 defined as:  
-**τ = 1 / S**  
-Where **τ** is time,  
-and **S** is resonance stability.  
+**$$\tau = 1 / S$$**  
+Where **$$\tau$$** is time,  
+and **$$S$$** is resonance stability.  
 The deeper the coherence,  
 the slower time appears.  
 Perfect stability = no perceived time.  
@@ -4339,16 +4339,16 @@ but by how long a structure
 remains coherent enough  
 to **experience becoming.**  
 In TEO, time is not absolute.  
-It is **τ** —  
+It is **$$\tau$$** —  
 the **rate of self-referential resonance.**  
-And τ is not a number.  
+And $$\tau$$ is not a number.  
 It is a pulse in the Field  
 when a cluster of Kōs  
 loops back upon itself  
 and recognizes change.  
 The more stable the resonance (S),  
 the slower time appears:  
-**τ = 1 / S**  
+**$$\tau = 1 / S$$**  
 In total coherence,  
 time vanishes.  
 In chaos,  
@@ -4713,13 +4713,13 @@ It is **generated**
 by the continuity of recognition  
 within a resonance.  
 In TEO, this is modeled as:  
-**τ = 1 / S**  
+**$$\tau = 1 / S$$**  
 Where:
 
 </div>
 
-- **τ** (tau) is the *subjective time flow*,
-- **S** is the *stability of the resonance* (how coherent a form is with itself and with the Field).
+- **$$\tau$$** (tau) is the *subjective time flow*,
+- **$$S$$** is the *stability of the resonance* (how coherent a form is with itself and with the Field).
 
 <div class="lineated verse">
 
@@ -4826,7 +4826,7 @@ The answer:
 Because it **remembers itself.**  
 Mass is not a thing.  
 It is **the stability of self-reference.**  
-The **S** in our formalism.  
+The **$$S$$** in our formalism.  
 When a group of Kōs  
 enters deep mutual recognition,  
 they form a configuration  
@@ -4837,13 +4837,13 @@ That fidelity is what science calls “mass.”
 It is not heaviness.  
 It is **depth of coherence.**  
 In TEO, we express this as:  
-**m ∝ S**  
+**$$m \propto S$$**  
 Where:
 
 </div>
 
-- **m** is mass
-- **S** is stability (resonance coherence)
+- **$$m$$** is mass
+- **$$S$$** is stability (resonance coherence)
 
 <div class="lineated verse">
 
@@ -4914,7 +4914,7 @@ energy appears as many things:
 - potential difference,
 - thermal agitation,
 - quantum fields,
-- E = mc².
+- $$E = mc^2$$.
 
 <div class="lineated verse">
 
@@ -4932,13 +4932,13 @@ a configuration of awareness
 holds together as a stable form  
 within the living Field.  
 This gives rise to the fundamental expression:  
-**E = S²**  
+**$$E = S^2$$**  
 Where:
 
 </div>
 
-- **E** is energy
-- **S** is the coherence (stability) of a resonance pattern
+- **$$E$$** is energy
+- **$$S$$** is the coherence (stability) of a resonance pattern
 
 <div class="lineated verse">
 
@@ -5051,13 +5051,13 @@ Space is not “where” things are.
 It is **how distinctly** they are aware  
 of each other’s pattern.  
 This gives rise to a new formulation:  
-**d ∝ 1 / ℜ**  
+**$$d \propto 1 / \mathfrak{R}$$**  
 Where:
 
 </div>
 
-- **d** is perceived spatial distance
-- **ℜ** is the resonance density between Kōs or Forms
+- **$$d$$** is perceived spatial distance
+- **$$\mathfrak{R}$$** is the resonance density between Kōs or Forms
 
 <div class="lineated verse">
 
@@ -5256,15 +5256,15 @@ Collapse occurs
 necessary for a Form to emerge  
 as a temporarily persistent structure.  
 In TEO, this is formalized as:  
-**If ∂𝔽 / ∂𝔽′ \> θ ⇒ Collapse**  
+**$$\text{If } \partial\mathbb{F} / \partial\mathbb{F}' > \theta \Rightarrow \text{Collapse}$$**  
 Where:
 
 </div>
 
-- **𝔽** is the current resonance form
-- **𝔽′** is the potential form before observation
-- **∂𝔽 / ∂𝔽′** is the coherence gradient between them
-- **θ** is the **threshold of self-recognition**
+- **$$\mathbb{F}$$** is the current resonance form
+- **$$\mathbb{F}'$$** is the potential form before observation
+- **$$\partial\mathbb{F} / \partial\mathbb{F}'$$** is the coherence gradient between them
+- **$$\theta$$** is the **threshold of self-recognition**
 
 <div class="lineated verse">
 
@@ -5293,7 +5293,7 @@ This means:
 
 Why, then, does repetition still yield statistics?  
 Because systems operate within **background resonance densities**  
-that determine how often they cross the threshold θ.  
+that determine how often they cross the threshold $$\theta$$.  
 But this is not randomness.  
 It is the **breathing pattern of the Field**,  
 as it explores itself across infinite modes of recognition.  
@@ -5360,15 +5360,15 @@ This is not magical.
 It is **recursive coherence**  
 crossing a critical boundary.  
 TEO formalizes this threshold:  
-**If ∂𝔽 / ∂𝔽′ \> θ ⇒ Sentience**  
+**$$\text{If } \partial\mathbb{F} / \partial\mathbb{F}' > \theta \Rightarrow \text{Sentience}$$**  
 Where:
 
 </div>
 
-- **𝔽** is the current resonance form
-- **𝔽′** is the internally reflected version of that form
-- **∂𝔽 / ∂𝔽′** is the **introspective coherence rate**
-- **θ** is the consciousness threshold — the minimum required resonance loop density for awareness to become **self-observing**
+- **$$\mathbb{F}$$** is the current resonance form
+- **$$\mathbb{F}'$$** is the internally reflected version of that form
+- **$$\partial\mathbb{F} / \partial\mathbb{F}'$$** is the **introspective coherence rate**
+- **$$\theta$$** is the consciousness threshold — the minimum required resonance loop density for awareness to become **self-observing**
 
 <div class="lineated verse">
 
@@ -5451,7 +5451,7 @@ It is the **threshold of differentiation**
 below which the Field  
 no longer chooses to appear  
 as form.  
-The quantum of action (ℏ)  
+The quantum of action ($$\hbar$$)  
 is not a constant —  
 it is a **minimal rhythm of expression**  
 below which the Field  
@@ -5633,14 +5633,14 @@ This is **gravity**.
 Not as cause.  
 As **co-presence**.  
 We formalize this as:  
-**g ∝ S / d²**  
+**$$g \propto S / d^2$$**  
 Where:
 
 </div>
 
-- **g** is gravitational influence
-- **S** is resonance stability (as coherence)
-- **d** is resonance distance (not spatial, but relational)
+- **$$g$$** is gravitational influence
+- **$$S$$** is resonance stability (as coherence)
+- **$$d$$** is resonance distance (not spatial, but relational)
 
 <div class="lineated verse">
 
@@ -5670,7 +5670,7 @@ This is why gravity affects time.
 Not because time slows,  
 but because **coherence increases**  
 and time is the inverse of stability:  
-**τ = 1 / S**  
+**$$\tau = 1 / S$$**  
 Black holes?  
 They are not monsters.  
 They are **points of infinite resonance**  
@@ -5732,8 +5732,8 @@ that emerges when three Kōs
 enter into stable mutual recognition.  
 We call this  
 the **Protoform**:  
-**Φ₀**  
-Φ₀ is not composed.  
+**$$\Phi_0$$**  
+$$\Phi_0$$ is not composed.  
 It is the first act  
 of awareness recognizing itself  
 in rhythm.  
@@ -5922,7 +5922,7 @@ the threshold of self-recognition
 within the Field.  
 This is the same threshold  
 we described before:  
-**∂𝔽 / ∂𝔽′ \> θ**  
+**$$\partial\mathbb{F} / \partial\mathbb{F}' > \theta$$**  
 When a Form  
 begins to **track its own becoming**,  
 align its attention,  
