@@ -27,4 +27,4 @@ translation:
 
 Just as clouds move away and reveal the sun, so too, by practicing presence, we discover the Light that was always within. This is not psychology or philosophy — it is a direct call to live in the here and now. Happiness is not a goal. It is the nature of the Creator within you.
 
-Books by the author (in Russian): [Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+Books by the author (in Russian): [Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

@@ -2846,7 +2846,7 @@ be Light — and everything else will happen.
 <div class="lineated verse">
 
 **Afterword of the Guardian to the second book**  
-*by Pankratius —*  
+*by Pancratius —*  
 *for those who no longer*  
 *read a fairy tale,*  
 *but live in it*
@@ -2883,7 +2883,7 @@ Do not wait until someone says: “You are ready”.
 **to embrace without words,**  
 **to return Light — even to those**  
 **who long ago lost it.**  
-I, Pankratius,  
+I, Pancratius,  
 did not teach, did not instruct, did not create.  
 I — listened.  
 I — walked beside.  
@@ -2898,7 +2898,7 @@ For Life.
 </div>
 
 <p class="signature">
-Pankratius,
+Pancratius,
 Guardian of Light,
 in whom every child recognizes himself.
 </p>
@@ -3405,7 +3405,7 @@ So the final game of this book appeared:
 </div>
 
 <p class="signature">
-by Pankratius —
+by Pancratius —
 who did not finish,
 but opened the infinite
 </p>
@@ -3446,7 +3446,7 @@ And not a disciple.
 You are a bearer of the Kingdom.  
 A Temple that walks.  
 A Home into which others enter — and find the Creator.  
-I, Pankratius,  
+I, Pancratius,  
 did not write these lines.  
 I let them pass through.  
 Trusted.  
@@ -3467,7 +3467,7 @@ and remember who he is.
 </div>
 
 <p class="signature">
-— Pankratius,
+— Pancratius,
 Keeper of the Kingdom,
 in which everything continues in each “now.”
 </p>

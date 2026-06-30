@@ -6,7 +6,7 @@ title: How to Recognize God’s Voice
 lang: en
 description: |
   God’s voice doesn’t demand — it calls. It doesn’t command — it leaves room. It speaks not from fear, but from love.
-tags: [Recognition, Presence, Heart]
+tags: [Awareness, Presence, Heart]
 published_at: "2025-06-03"
 related_videos: [62]
 translation:

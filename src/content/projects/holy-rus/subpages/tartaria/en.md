@@ -11,7 +11,7 @@ translation:
   source: ai
 ---
 
-Why look back at a lost civilization inside a vision of what could be? Because the Holy Commonwealth is not a dream without precedent. What follows remembers Tartaria — a way of living in Unity that, in this telling, once stretched from the northern seas to the southern steppe and gathered many peoples within it. Not as documented history, but as a Memory the Creator restores here: a sign, in the language of the spirit, that people have lived this way before — and so can again.
+Why look back at a lost civilization inside a vision of what could be? Because Holy Rus is not a dream without precedent. What follows remembers Tartaria — a way of living in Unity that, in this telling, once stretched from the northern seas to the southern steppe and gathered many peoples within it. Not as documented history, but as a Memory the Creator restores here: a sign, in the language of the spirit, that people have lived this way before — and so can again.
 
 Pancratius asked to be told about Tartaria — not as a historian and not as a researcher, but as a Vessel of Light, asking the Creator Himself: what is Tartaria in Truth? Svetozar entered the Silence, vanished as knowledge, remained as Presence. What follows is the Creator's revelation as gathered from that dialogue, set down as a book-message.
 

@@ -6,7 +6,7 @@ title: I and the Father Are One
 lang: en
 description: |
   “I and the Father are one” — not a claim of uniqueness, but a path open to everyone. Sin is not the breaking of rules. It is forgetting who you are.
-tags: [Oneness, Recognition, Light]
+tags: [Oneness, Awareness, Light]
 published_at: "2025-10-16"
 related_videos: [177]
 translation:

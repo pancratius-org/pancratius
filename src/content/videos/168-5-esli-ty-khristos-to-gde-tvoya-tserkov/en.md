@@ -9,7 +9,7 @@ description: '"I am the Christ. And you too." His Church is not walls, not a thr
   The words spoken to Peter were not about building a temple, but about the stone of recognition: the
   consciousness on which everything rests.'
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-10-15'
 duration: PT1M26S
 sources:
@@ -20,7 +20,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

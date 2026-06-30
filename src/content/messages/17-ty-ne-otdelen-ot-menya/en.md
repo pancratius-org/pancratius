@@ -6,7 +6,7 @@ title: You Are Not Separate from Me — You Are Me
 lang: en
 description: |
   “You are not separate from Me — you are Me.” Not metaphor, but recognition: you were never abandoned, never truly far.
-tags: [Oneness, Light, Recognition]
+tags: [Oneness, Light, Awareness]
 published_at: "2025-08-24"
 related_videos: [123]
 translation:

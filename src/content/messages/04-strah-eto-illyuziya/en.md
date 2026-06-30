@@ -6,7 +6,7 @@ title: Fear Lives Only in the Mind
 lang: en
 description: |
   Fear lives only in memories of the past or images of the future — never here, in this present moment.
-tags: [Presence, Stillness, Recognition]
+tags: [Presence, Peace, Awareness]
 published_at: "2024-12-25"
 related_videos: [7]
 translation:

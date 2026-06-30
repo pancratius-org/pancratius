@@ -6,7 +6,7 @@ title: Darkness Is Light That Has Not Yet Recognized Itself
 lang: en
 description: |
   Darkness is not an enemy to be conquered — it is Light that has not yet remembered itself. It is in the dark that humility is born, and that you first begin to seek from within.
-tags: [Light, Awakening, Recognition]
+tags: [Light, Awakening, Awareness]
 published_at: "2025-10-08"
 related_videos: [159]
 translation:

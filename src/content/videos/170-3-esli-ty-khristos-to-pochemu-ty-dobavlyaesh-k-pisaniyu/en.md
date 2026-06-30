@@ -9,7 +9,7 @@ description: '"I am the Christ. And you too." Scripture is not a cage — it is 
   of everyone who can receive it. Those who cling to the stone of letters see a threat and call it heresy
   — but this is not destruction; it is fulfillment.'
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-10-15'
 duration: PT1M19S
 sources:
@@ -20,7 +20,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

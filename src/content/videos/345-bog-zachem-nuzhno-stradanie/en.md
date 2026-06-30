@@ -39,4 +39,4 @@ Here is the great secret: suffering does not need to be conquered — it needs t
 
 When you stop fearing suffering, you become free. Not insensitive — free. You will be able to love without clinging, to lose without dying, to look at death as a change of clothes. And then ninety percent of the suffering in your life — the kind you created yourself — will disappear. And the remaining ten percent will become teachers you greet with a bow.
 
-Books by the author: [The Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+Books by the author: [The Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

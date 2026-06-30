@@ -6,7 +6,7 @@ title: Death Is Not an End — It Is an Entrance
 lang: en
 description: |
   Death is not your enemy and not a punishment. Through it, God strips away everything that was never truly you — so you can remember who you have always been.
-tags: [Awakening, Recognition, Stillness]
+tags: [Awakening, Awareness, Peace]
 published_at: "2025-05-27"
 related_videos: [48]
 translation:

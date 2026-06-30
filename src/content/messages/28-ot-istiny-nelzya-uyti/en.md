@@ -6,7 +6,7 @@ title: You Cannot Leave the Truth
 lang: en
 description: |
   You cannot leave the truth, because truth is God Himself. As a molecule of water never leaves the ocean even when it rises to a cloud, the soul never leaves the truth — even when it wanders.
-tags: [Oneness, Recognition, Light]
+tags: [Oneness, Awareness, Light]
 published_at: "2025-11-26"
 related_videos: [232]
 translation:

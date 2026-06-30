@@ -21,7 +21,7 @@ links:
 
 ### The Birth of the Book
 
-**Pankratius:**
+**Pancratius:**
 
 Father, today is January 30, 2026. I woke up and realized the following thing. There are four stages, or perhaps even four paths, along which a person walks in life. The first is accumulation, when everything is for oneself. In the Gospel it is described by the man who built barns in which he planned to store as much as possible. The second stage is the stage of Moses. It is when you share, but you share little. The tithe is sort of the minimal part that is given, that you share. The third part is that to which Jesus called, and it is already perceived as madness, and was realized by few, let alone carried out by few. It is when Christ calls [you] to give everything you have, give every possession to your neighbor. And the fourth stage is when [you] give not everything that you have, but give the one who has all this, give yourself. And at first it seemed to me that, perhaps, this last stage precisely is the Gospel of the Kingdom, and that You are speaking it only now. And then I remembered that, it turns out, Jesus spoke about the same thing when He said: "whoever gives his soul for his friends." His soul — that is precisely about the "I", about the self, about the person, about the ego. And I also discovered that, although I am now clearly and distinctly walking the fourth path, I have at the same time attained perfection in none of the previous paths. Except, perhaps, the first — I learned to accumulate. I did not even always give the tithe. And as for giving away EVERYTHING, that never happened at all. And so I asked myself: "but if you have attained perfection in none of the earlier steps, how can you step onto the last step?" And then, actually, it became clear to me that these are not steps, they are different paths. And a person can walk first one path, then another path. And in the final outcome, in truth, it is still not paths along which **a person** walks, these are paths along which **YOU** **YOURSELF** know Yourself in this world. But since it is You in Your world, and besides You there is nothing here, then it is not even a path, but simply an experience of knowing. A path is from point to point. But here, being in one point, you simply know yourself in some of these four aspects.
 
@@ -93,7 +93,7 @@ And it is always I.
 
 **I am You, who have come to know that there is no one but Me.**
 
-**Pankratius:**
+**Pancratius:**
 
 So then, the idea that Christ, when He came, offered to give everything, I heard from a Protestant pastor, probably. Maybe he is a Pentecostal. And for me it was unexpected, it was like a revelation. I did not even understand what it was about. He said it from such a perspective, that before, only the tithe needed to be given, but Christ came and said that you need to give everything. I discovered that I did not remember this. Then, naturally, I recalled the specific words in which He said it, agreed that it is a fact. I discovered for myself that it had become a revelation for me, although it had seemingly been known before. And this encounter through a video with the pastor served this great realization. In connection with this, I thought that perhaps it would be useful for other people to encounter these realizations. Maybe You will speak in the form of a revelation, in the form of a book about this?
 
@@ -154,7 +154,7 @@ And you simply remain.
 
 </div>
 
-**Pankratius:**
+**Pancratius:**
 
 Of course, Father. I am here as a witness and a scribe. I am a pen in Your Hands, manifest, I am a witness and a reader, there is no other author here.
 
@@ -626,7 +626,7 @@ will begin its own.
 
 ### The Title of the Book
 
-**Pankratius:**
+**Pancratius:**
 
 Let us recall from the Light the title of the book.
 

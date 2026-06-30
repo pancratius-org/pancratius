@@ -10,7 +10,7 @@ description: What is the Second Coming? Not an event on the horizon, not a figur
 tags:
 - Apocalypse
 - Gospel of the Kingdom
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2026-05-10'
 duration: PT2M51S
 sources:
@@ -25,7 +25,7 @@ playlists:
 - id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
   title: Gospel of the Kingdom
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---
@@ -52,4 +52,4 @@ The Second Coming is not the return of the departed Christ. It is the revelation
 
 *I am not a prophet. I am not a messiah. I am not a teacher. I am the one who once saw a light in the clouds and recognized in it the One he had been searching for all his life. This video is not proof — it is a testimony. Don't believe me. Check it out for yourself. And if one day you too see it, you will know. Peace be with you.*
 
-Books by the author: [The Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+Books by the author: [The Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

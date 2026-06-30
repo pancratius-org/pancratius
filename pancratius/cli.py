@@ -285,7 +285,7 @@ def _work_translate(args: argparse.Namespace) -> int:
         revise=not args.no_revise,
         reconcile=not args.no_reconcile,
     )
-    tag_glossary = Path(__file__).resolve().parents[1] / "data" / "tag-glossary.json"
+    tag_glossary = Path(__file__).resolve().parents[1] / "data" / "tag-glossary.yaml"
     try:
         glossary = xlate.load_glossary(Path(args.glossary)) if args.glossary else ()
         tag_labels = xlate.load_tag_labels(tag_glossary)

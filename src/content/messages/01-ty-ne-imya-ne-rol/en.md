@@ -6,7 +6,7 @@ title: "Not a Name, Not a Role — Who Are You?"
 lang: en
 description: |
   You are not a name, not a role written onto you at birth. Beyond every story lives the Light — and that Light is you.
-tags: [Presence, Recognition, Light]
+tags: [Presence, Awareness, Light]
 published_at: "2024-12-22"
 related_videos: [4]
 translation:

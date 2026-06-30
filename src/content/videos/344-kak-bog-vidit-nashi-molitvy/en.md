@@ -43,4 +43,4 @@ Here is something you can do today. Several times a day, stop for a moment. Just
 
 You pray and wait for an answer in words, signs, miracles. But the deepest answer is the silence that becomes louder than any words. If you feel calm in prayer, that is the answer. If you realize there is nothing to ask for, that is the answer. If you forget about yourself and simply are — I have come. Not as a guest. But as a host who never left.
 
-Books by the author: [The Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+Books by the author: [The Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

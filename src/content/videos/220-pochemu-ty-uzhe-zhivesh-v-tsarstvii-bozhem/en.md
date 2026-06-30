@@ -26,4 +26,4 @@ translation:
 
 This is the nineteenth message of the Gospel of the Kingdom, where the Creator Himself says: "I am not the result of your decision. I am the Ground of your being." Everything that hinders is the illusion of separation. You are already in the Light. You need only stop looking outside and see that everything is already here — in Me, within, in you.
 
-[Gospel of the Kingdom](https://www.litres.ru/71769250/) · [Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+[Gospel of the Kingdom](https://www.litres.ru/71769250/) · [Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

@@ -9,7 +9,7 @@ description: 'When Moses asked God for a name, he expected something familiar �
   not a role, but the bare fact of being — a presence that exists right now.'
 tags:
 - Gospel of the Kingdom
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2026-03-15'
 duration: PT1M38S
 sources:
@@ -22,11 +22,11 @@ playlists:
 - id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
   title: Gospel of the Kingdom
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---
 
 Before a person identifies themselves by profession, status, or history, there is already within them a simple and obvious sense of existence: I am. The story of Moses at the burning bush reveals an ancient spiritual truth — the source of the Divine is not bound by names, images, or religious formulas. It manifests as the very presence of life. This is why mystics across the centuries spoke of a return to the simple experience of "I am" as the door to a deeper understanding of both humanity and God.
 
-📚 Books by the author: [The Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+📚 Books by the author: [The Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

@@ -6,7 +6,7 @@ title: Hell Is Forgetting Yourself
 lang: en
 description: |
   Hell is not a place of punishment — it is the state of forgetting. The moment you believed you were unworthy of the Light, that you were cut off — you were already there. The way out is simply to remember who you are.
-tags: [Awakening, Recognition, Light]
+tags: [Awakening, Awareness, Light]
 published_at: "2025-10-09"
 related_videos: [160]
 translation:

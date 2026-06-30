@@ -8,7 +8,7 @@ description: The sixth brother is the mind — the judge of all five senses. He 
   sight; he does not hear, but interprets. He builds walls of argument, locks you in a temple of thought,
   and believes he is God. But he is not you.
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-11-12'
 duration: PT1M49S
 sources:
@@ -19,7 +19,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

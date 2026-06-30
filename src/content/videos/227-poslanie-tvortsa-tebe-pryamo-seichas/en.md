@@ -8,7 +8,7 @@ description: You are not merely form, not merely thoughts and feelings. You are 
   life manifests itself. The breath of eternity resounds within each of you, and every moment is an opportunity
   to touch the Truth.
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-11-16'
 duration: PT1M3S
 sources:
@@ -19,7 +19,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---
@@ -28,4 +28,4 @@ Release fear and expectation. Allow yourself to be without masks and roles. Let 
 
 You are part of the One, and in this Oneness there is no separation. There is only life, only love, only the infinite "I AM."
 
-[Gospel of the Kingdom](https://www.litres.ru/71769250/) · [Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+[Gospel of the Kingdom](https://www.litres.ru/71769250/) · [Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

@@ -6,7 +6,7 @@ title: True Service Is the Disappearance of Self
 lang: en
 description: |
   If you want to know whether you truly serve — look to see whether you’ve disappeared. As long as “you” are present, however beautifully it’s named, you are serving yourself.
-tags: [Recognition, Awakening, Oneness]
+tags: [Awareness, Awakening, Oneness]
 published_at: "2025-08-01"
 related_videos: [112]
 translation:

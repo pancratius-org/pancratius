@@ -9,7 +9,7 @@ description: 'I am the Christ. This New Testament is not about the future — it
   or fear, but recognition and love: it is the freedom to live not from dread of hell, but from the fullness
   of light.'
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-10-15'
 duration: PT2M3S
 sources:
@@ -20,7 +20,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

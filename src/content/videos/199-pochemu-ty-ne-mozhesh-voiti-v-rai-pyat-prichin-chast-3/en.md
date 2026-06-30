@@ -10,7 +10,7 @@ description: 'You thought you were living freely. But look more carefully: five 
   paired with memory. Taste paired with craving. Touch paired with desire. These are the rich man’s five
   brothers. This is your slavery. Part 3 of 8.'
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-11-06'
 duration: PT2M54S
 sources:
@@ -21,7 +21,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

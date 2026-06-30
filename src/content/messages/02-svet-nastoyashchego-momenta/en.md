@@ -6,7 +6,7 @@ title: The Light of This Moment
 lang: en
 description: |
   Stop: everything you have sought is already here. Life is not a road leading somewhere — it is eternity unfolding within you, right now.
-tags: [Presence, Light, Stillness]
+tags: [Presence, Light, Peace]
 published_at: "2024-12-22"
 related_videos: [3]
 translation:

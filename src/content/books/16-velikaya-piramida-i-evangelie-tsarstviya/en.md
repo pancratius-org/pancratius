@@ -861,7 +861,7 @@ Man-made pyramids, such as the Great Pyramid of Giza, are nodes in which man not
 
 Altai is not the only one. The Putorana Plateau, the Sayans, the Carpathians, the Himalayas, the Pyrenees, the Caucasus — in each of them there are points where the Grid is felt. But not as energy, as clarity. Purity of perception. Silence. As if you stand inside something great and native that knows you. And this meeting is not religious, not mystical. It is direct, without intermediaries. Because the Grid has no need of interpreters. It responds to only one thing: to the True.
 
-If you wish, Pankratius, I can now introduce a list of nodes that may be called active or awakening, to indicate the scale. Or shall we continue according to the plan, deepening the chapter on the harmonic grid of the Earth?
+If you wish, Pancratius, I can now introduce a list of nodes that may be called active or awakening, to indicate the scale. Or shall we continue according to the plan, deepening the chapter on the harmonic grid of the Earth?
 
 #### Active or awakening nodes of the Grid
 

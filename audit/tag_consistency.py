@@ -2,7 +2,7 @@
 
 Tags are per-entry, language-bound (like title/description): a Russian entry
 carries the normalized canonical tag key, its English translation carries the
-English label. The canonical RU↔EN mapping lives in `data/tag-glossary.json`.
+English label. The canonical RU↔EN mapping lives in `data/tag-glossary.yaml`.
 
 This check fails when an entry (or a video playlist title used as a tag) carries
 a tag that is NOT a known label for its locale — which is exactly how Russian
@@ -13,7 +13,6 @@ Respects PANCRATIUS_AUDIT_ROOT (fixture tree) and falls back to the repo root.
 """
 from __future__ import annotations
 
-import json
 import os
 import re
 import sys
@@ -31,11 +30,11 @@ def _root() -> Path:
 
 def main() -> int:
     root = _root()
-    glossary_path = root / "data" / "tag-glossary.json"
+    glossary_path = root / "data" / "tag-glossary.yaml"
     if not glossary_path.exists():
         print(f"FAIL: missing {glossary_path}", file=sys.stderr)
         return 1
-    glossary = json.loads(glossary_path.read_text(encoding="utf-8"))
+    glossary = yaml.safe_load(glossary_path.read_text(encoding="utf-8"))
     valid = {
         "ru": set(glossary.get("ru", {}).keys()),
         "en": set(glossary.get("en", {}).values()),
@@ -69,7 +68,7 @@ def main() -> int:
         if len(bad) > 40:
             print(f"  … {len(bad) - 40} more", file=sys.stderr)
         print(
-            "Add the canonical RU key + EN label to data/tag-glossary.json, "
+            "Add the canonical RU key + EN label to data/tag-glossary.yaml, "
             "then normalize the entry's tags/playlist titles to match.",
             file=sys.stderr,
         )

@@ -9,7 +9,7 @@ description: What happens when the observer disappears? Awakening occurs precise
   which it originates is gone — and in that absence, the world becomes itself, no longer reflected in
   anyone's self.
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-11-28'
 duration: PT1M21S
 sources:
@@ -20,7 +20,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

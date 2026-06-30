@@ -6,7 +6,7 @@ title: Truth Is Not Knowledge — It Is Recognition
 lang: en
 description: |
   Truth is not information, not teaching. You don’t receive it from outside — you remember it from within. When the mind goes quiet, Light arises: I AM.
-tags: [Recognition, Light, Awakening]
+tags: [Awareness, Light, Awakening]
 published_at: "2025-08-20"
 related_videos: [119]
 translation:
