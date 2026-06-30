@@ -8,7 +8,7 @@ description: 'You think you choose. But look: who is walking and who is in the h
   not your servants — you are theirs. You harnessed yourself; you called that enslavement "purchase" and
   that yoke "investment." And so you toil, without knowing why. Part 2 of 8.'
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-11-06'
 duration: PT2M37S
 sources:
@@ -19,7 +19,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

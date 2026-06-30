@@ -6,7 +6,7 @@ title: Every Moment Is a Gift
 lang: en
 description: |
   Happiness is not waiting for you in the future — it lives in each moment you allow yourself to receive right now.
-tags: [Presence, Stillness, Recognition]
+tags: [Presence, Peace, Awareness]
 published_at: "2024-12-25"
 related_videos: [6]
 translation:

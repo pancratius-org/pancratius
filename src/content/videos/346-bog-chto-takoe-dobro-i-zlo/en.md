@@ -40,4 +40,4 @@ Good and evil are like two hands. They are needed to grasp and hold. But when yo
 
 To be continued — when you grow tired of dividing the world into black and white and want to see the rainbow.
 
-Books by the author: [The Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+Books by the author: [The Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

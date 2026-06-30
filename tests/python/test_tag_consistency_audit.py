@@ -9,11 +9,12 @@ on the others now that the rule gates CI.
 
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 from collections.abc import Iterable, Mapping
 from pathlib import Path
+
+import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 CHECKER = ROOT / "audit" / "tag_consistency.py"
@@ -37,7 +38,7 @@ def _entry(kind: str, *, tags: Iterable[str] = (), playlists: Iterable[str] = ()
 def _tree(root: Path, entries: Mapping[str, str], glossary: object = GLOSSARY) -> Path:
     data = root / "data"
     data.mkdir(parents=True)
-    (data / "tag-glossary.json").write_text(json.dumps(glossary, ensure_ascii=False), encoding="utf-8")
+    (data / "tag-glossary.yaml").write_text(yaml.safe_dump(glossary, allow_unicode=True), encoding="utf-8")
     for rel, text in entries.items():
         path = root / "src" / "content" / rel
         path.parent.mkdir(parents=True, exist_ok=True)

@@ -27,4 +27,4 @@ translation:
 
 If you truly desire Me, let go of the means. Remain in silence. And you will see — I am already here.
 
-[Gospel of the Kingdom](https://www.litres.ru/71769250/) · [Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+[Gospel of the Kingdom](https://www.litres.ru/71769250/) · [Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

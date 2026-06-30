@@ -56,4 +56,4 @@ You are not an accident. You are an intention. And when you stop asking, "Why is
 
 📘 [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/)
 
-📘 [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+📘 [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

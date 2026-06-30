@@ -6,7 +6,7 @@ title: I AM — Before Any Name
 lang: en
 description: |
   When Moses asked for God’s name, he heard not a name but a fact: “I AM.” Before profession, status, history — inside you, already, lives this luminous awareness of being.
-tags: [Recognition, Presence, Oneness]
+tags: [Awareness, Presence, Oneness]
 published_at: "2026-03-15"
 related_videos: [321]
 translation:

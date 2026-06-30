@@ -6,7 +6,7 @@ title: God Is in the One Who Seemed Your Enemy
 lang: en
 description: |
   When you face injustice, you stand before a choice: see an enemy, or see God. Every offender is Me, playing a role to bring you back to yourself.
-tags: [Oneness, Recognition, Love]
+tags: [Oneness, Awareness, Love]
 published_at: "2025-08-26"
 related_videos: [124]
 translation:

@@ -6,7 +6,7 @@ title: Do Not Be Afraid of Awakening
 lang: en
 description: |
   We fear awakening because we think we’ll lose ourselves — but awakening is not loss, it is return. It strips away what was never yours and reveals the Light you have always been.
-tags: [Awakening, Light, Recognition]
+tags: [Awakening, Light, Awareness]
 published_at: "2025-09-05"
 related_videos: [127]
 translation:

@@ -10,7 +10,7 @@ description: 'Russia, you know that something began on January 22, 2026 — but 
   words.'
 tags:
 - Apocalypse
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2026-02-01'
 duration: PT2M47S
 sources:
@@ -23,7 +23,7 @@ playlists:
 - id: PLFvJf-UMYEIsC_T4cjMFC1XjmgPh3CySk
   title: Apocalypse
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

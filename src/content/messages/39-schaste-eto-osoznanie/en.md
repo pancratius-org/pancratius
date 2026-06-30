@@ -6,7 +6,7 @@ title: Happiness Is Awareness of the Present
 lang: en
 description: |
   There is no path to Happiness — Happiness is the Path. It doesn’t arrive as a reward at the end. It is already here, when you stop waiting and simply are.
-tags: [Presence, Stillness, Recognition]
+tags: [Presence, Peace, Awareness]
 published_at: "2026-01-23"
 related_videos: [298]
 translation:

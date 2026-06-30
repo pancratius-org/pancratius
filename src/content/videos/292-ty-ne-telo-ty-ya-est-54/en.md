@@ -29,4 +29,4 @@ You will find here the hidden meaning of the phrase "It is easier for a camel to
 
 It is said: "I came not to destroy, but to fulfill." This does not mean to abolish order, but to breathe Life into it. You are not a name, not a role, not an image. You are that which sees all of this.
 
-Books by the author (in Russian): [Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+Books by the author (in Russian): [Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

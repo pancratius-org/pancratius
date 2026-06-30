@@ -8,7 +8,7 @@ description: '"I am the Christ, and you too." These words reveal the true meanin
   of for centuries. Christ says: I came not to judge, but to know. Light does not condemn darkness — it
   simply shines, and the darkness disappears.'
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-10-15'
 duration: PT1M28S
 sources:
@@ -19,7 +19,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

@@ -8,7 +8,7 @@ description: '"Bind him and cast him into outer darkness" — you thought it was
   and demons. But hear the truth: outer darkness is not a place. It is separation. It is when you found
   yourself in the Light but did not recognize it — present in body, while your soul remained outside.'
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-11-13'
 duration: PT1M53S
 sources:
@@ -19,7 +19,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

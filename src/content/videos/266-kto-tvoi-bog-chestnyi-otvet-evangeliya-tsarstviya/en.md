@@ -53,4 +53,4 @@ When I become your "for," all else ceases to be gods and becomes gifts. And on t
 
 📘 [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/)
 
-📘 [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+📘 [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

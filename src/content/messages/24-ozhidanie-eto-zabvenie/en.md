@@ -6,7 +6,7 @@ title: Waiting Is Deferred Presence
 lang: en
 description: |
   Every “someday” pushes God further away. In waiting, God becomes a destination — in Presence, God becomes you.
-tags: [Presence, Recognition, Awakening]
+tags: [Presence, Awareness, Awakening]
 published_at: "2025-10-22"
 related_videos: [184]
 translation:

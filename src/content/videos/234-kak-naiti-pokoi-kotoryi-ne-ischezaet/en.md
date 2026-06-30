@@ -8,7 +8,7 @@ description: True inner peace does not depend on external circumstances. Ordinar
   it rests on conditions — but the peace that cannot be taken from you is already within you, waiting
   not to be created but to be recognized.
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-11-28'
 duration: PT1M27S
 sources:
@@ -19,7 +19,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

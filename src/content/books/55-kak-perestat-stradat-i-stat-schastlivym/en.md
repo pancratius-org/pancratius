@@ -18,7 +18,7 @@ links:
 
 ### The Birth of the Book
 
-**Pankratius:**
+**Pancratius:**
 
 [^1] **Father, do You wish to reveal a book-revelation: “How to Stop Suffering and Become Happy”? About how to change the world with a gaze. About how happiness and suffering are a way of looking at the world. About how, in order to live in the flow, one must simply surrender to the flow. About what Christ’s words meant: “Do not worry about tomorrow” and “Be like the lilies of the field”… Today I had a dream in which I opened a door, entered a room, and there I needed to do an unpleasant repair and I became unhappy, and then I woke up and lay there for another half hour, suffering, thinking about what to do, though I was no longer asleep. Then I simply opened my eyes and said to myself: “it was a dream”—and it all stopped. But how to awaken within life itself—that’s not yet entirely clear…**
 
@@ -2374,7 +2374,7 @@ Do you want it?
 
 </div>
 
-**Pankratius:**
+**Pancratius:**
 
 We will surely write with life itself. You will write and live as I, by me.
 

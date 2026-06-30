@@ -8,7 +8,7 @@ description: You cannot escape the truth — because the truth is God Himself. J
   does not leave the ocean even when it rises into a cloud, so the soul never leaves the truth even as
   it wanders. It is always within Him, though not always aware of it.
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-11-26'
 duration: PT1M2S
 sources:
@@ -19,7 +19,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

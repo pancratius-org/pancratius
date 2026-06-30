@@ -6,7 +6,7 @@ title: Prayer Is Not a Request — It Is Recognition
 lang: en
 description: |
   You pray like orphans petitioning a distant benefactor. But prayer is not a way of receiving — it is a way of BEING. A meeting, not a transaction.
-tags: [Presence, Heart, Recognition]
+tags: [Presence, Heart, Awareness]
 published_at: "2026-05-16"
 related_videos: [344]
 translation:

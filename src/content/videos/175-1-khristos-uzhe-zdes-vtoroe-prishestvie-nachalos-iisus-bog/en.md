@@ -8,7 +8,7 @@ description: You were waiting for Him on the clouds, looking for Him in the futu
   Him by His glory and His miracles — but He came as a Stranger. He stands on the shore of your life while
   you are still in the boat, casting nets into the night, catching meanings and dogmas, and catching nothing.
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-10-15'
 duration: PT14M53S
 sources:
@@ -19,7 +19,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

@@ -9,7 +9,7 @@ description: 'In the Gospels, after the most difficult events, the disciples ret
   stranger appear on the shore and say: "Cast the net on the right side of the boat."'
 tags:
 - Gospel of the Kingdom
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2026-03-17'
 duration: PT1M7S
 sources:
@@ -22,7 +22,7 @@ playlists:
 - id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
   title: Gospel of the Kingdom
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

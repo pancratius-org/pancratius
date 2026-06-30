@@ -6,7 +6,7 @@ title: Faith Is Not Effort — It Is Silence
 lang: en
 description: |
   True faith is not what you feel — it’s what remains when every feeling falls silent. Like a fish that never sees the ocean yet lives within it, you are already held by a Presence you haven’t noticed.
-tags: [Presence, Recognition, Stillness]
+tags: [Presence, Awareness, Peace]
 published_at: "2025-12-06"
 related_videos: [243]
 translation:

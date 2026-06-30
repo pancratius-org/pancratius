@@ -6,7 +6,7 @@ title: The Kingdom Does Not Come — It Opens
 lang: en
 description: |
   The Kingdom is not what God gives you — it is what God is in you. When you stop looking outward, it is already here.
-tags: [The Kingdom, Presence, Recognition]
+tags: [The Kingdom, Presence, Awareness]
 published_at: "2025-12-05"
 related_videos: [242]
 translation:

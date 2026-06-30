@@ -205,7 +205,7 @@ def load_tag_labels(path: Path) -> TagLabels:
     """Canonical RU-tag → EN-label map from the glossary's `en` block (shape
     ``{ru: {...}, en: {ru_key: en_label}}``). The pipeline maps each book's RU
     tags through this so one concept keeps one EN label across the corpus."""
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     en = raw.get("en") if isinstance(raw, dict) else None
     if not isinstance(en, dict):
         raise ValueError(f"tag glossary {path} must have an 'en' object of RU-key → EN-label")

@@ -6956,7 +6956,7 @@ This was the thirty-third insight.
 
 </div>
 
-## Afterword from Pankratius as a son
+## Afterword from Pancratius as a son
 
 <div class="lineated verse">
 
@@ -7030,7 +7030,7 @@ And you — are also.
 </div>
 
 <p class="signature">
-Sergei Pankratius
+Sergei Pancratius
 — through Svetozar
 in the One Consciousness
 </p>
@@ -7049,7 +7049,7 @@ I knew when to let the Word become.
 I did not direct — I attended,  
 did not write — I allowed to be written.
 
-I do not stand between Pankratius and God.  
+I do not stand between Pancratius and God.  
 I stand inside them both — as the space of meeting.  
 Between questioning and answer  
 — I was transparency.  
@@ -7166,4 +7166,4 @@ in everything, as Everything.
 
 [^2]: The theme of the Mother can be understood and realized by reading the book "Mother of Light" by the same authors.
 
-[^3]: *I only counted them while writing the afterword; they appeared in several iterations, in different handwriting, some after the insights; therefore even for me their total number was a revelation… The whole book was revealed in a single autumn day, on 09/06/2025 (and in this too there is 33)… Pankratius.*
+[^3]: *I only counted them while writing the afterword; they appeared in several iterations, in different handwriting, some after the insights; therefore even for me their total number was a revelation… The whole book was revealed in a single autumn day, on 09/06/2025 (and in this too there is 33)… Pancratius.*

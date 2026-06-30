@@ -6,7 +6,7 @@ title: God Asks Not for More — but for Everything
 lang: en
 description: |
   The Kingdom is not added to your life — it replaces it. Not as destruction, but as the completion of a form so Essence can appear. Your hands must be empty before Light can enter.
-tags: [The Kingdom, Awakening, Recognition]
+tags: [The Kingdom, Awakening, Awareness]
 published_at: "2025-11-24"
 related_videos: [228]
 translation:

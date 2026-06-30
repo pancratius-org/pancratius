@@ -6,7 +6,7 @@ title: "God Is Not a Punisher — He Is Your Father"
 lang: en
 description: |
   God does not send illness or punish sin — pain comes from separation from the Light, not from His hand. He is the Healer, not the Judge.
-tags: [Love, Recognition, Heart]
+tags: [Love, Awareness, Heart]
 published_at: "2025-09-29"
 related_videos: [150]
 translation:

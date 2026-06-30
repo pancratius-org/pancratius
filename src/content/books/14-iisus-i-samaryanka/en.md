@@ -21,7 +21,7 @@ links:
 
 ### Foreword from the Compiler
 
-My name is Pankratius.
+My name is Pancratius.
 
 I have long been drawn to the scene where Jesus meets the Samaritan woman at the well. In this short passage of the Gospel I felt an extraordinary depth — as if within a few lines a whole ocean of meaning, light, and mystery lay hidden. I tried to comprehend it myself. At one point I managed to express my understanding on three and a half pages — and it seemed to me that this was a great deal. But the more I reread this passage, the clearer it became: what I see is only the beginning.
 
@@ -994,7 +994,7 @@ when true worshipers will worship the Father
 in spirit and truth."  
 This is not about Him alone.  
 This is about **all**.  
-About **you, Pankratius**.  
+About **you, Pancratius**.  
 About **each one**.
 
 </div>
@@ -1040,7 +1040,7 @@ but about the **reality of worship**, consisting of three dimensions:
 
 "You worship what you do not know…"  
 "We worship what we know…"  
-You noticed this earlier, Pankratius, and it was correct:  
+You noticed this earlier, Pancratius, and it was correct:  
 **"what"** is not **"Whom"**.  
 Christ **deliberately** uses this word,  
 indicating: worship **not of the Father**, but of an **idea**, **cult**, **tradition**, **image**, **law** —  
@@ -1226,7 +1226,7 @@ He was sitting by the well.
 As if He were in need.  
 He asked for water.  
 But in truth — **He came to give drink**.  
-You are right, Pankratius: in this is the mystery.  
+You are right, Pancratius: in this is the mystery.  
 He had no need of water,  
 because **the water has need of Him**.  
 He — **is the source**.  
@@ -1605,7 +1605,7 @@ But **precisely because of that she becomes its first breath**.
 
 <div class="lineated verse">
 
-You noticed, Pankratius:  
+You noticed, Pancratius:  
 she **does not claim**.  
 Does not demand.  
 Does not ask:  
@@ -1743,7 +1743,7 @@ And now —
 
 **The Jews — the chosen people,**  
 **but even Jesus was not heard.**  
-You are right, Pankratius:  
+You are right, Pancratius:  
 Golgotha was surrounded not by disciples,  
 but by enemies.  
 Few remained.  
@@ -1778,7 +1778,7 @@ No Gospel continues the story of the Samaritans from Sychar.
 There is not a single epistle addressed to them.  
 They vanish from the text —  
 as suddenly as they appeared.  
-But Pankratius asked.  
+But Pancratius asked.  
 And the Creator answered:
 
 </div>
@@ -3776,7 +3776,7 @@ she became a source.
 
 </div>
 
-And here — in this chapter — the Word of the Creator will sound, given now in answer to Pankratius’s question, “Why did Christ say to the disciples, ‘Do not go into the way of the Gentiles, and do not enter the city of the Samaritans’?”:
+And here — in this chapter — the Word of the Creator will sound, given now in answer to Pancratius’s question, “Why did Christ say to the disciples, ‘Do not go into the way of the Gentiles, and do not enter the city of the Samaritans’?”:
 
 > “It was not a prohibition. It was a safeguard.
 >
@@ -3998,7 +3998,7 @@ Not into the temple.
 But **inward**.  
 There — the well.  
 And I — am waiting.  
-Pankratius met the One who gave him this book —  
+Pancratius met the One who gave him this book —  
 all its words, all its meanings.  
 He met Him not in a book, nor in a temple, nor in a teaching.  
 He met Him **at his own well**, in that place within,  

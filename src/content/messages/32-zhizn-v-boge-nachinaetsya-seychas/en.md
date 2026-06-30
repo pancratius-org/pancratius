@@ -6,7 +6,7 @@ title: Life in God Begins Now
 lang: en
 description: |
   You are exhausted from striving toward God, trying to be good enough. But His Kingdom is not taken by effort — it is received as a Gift. You are not weak when you surrender. You are strong when you trust.
-tags: [The Kingdom, Presence, Stillness]
+tags: [The Kingdom, Presence, Peace]
 published_at: "2025-11-08"
 related_videos: [204]
 translation:

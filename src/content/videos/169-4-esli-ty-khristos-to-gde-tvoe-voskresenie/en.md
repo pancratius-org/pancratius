@@ -9,7 +9,7 @@ description: '"I am the Christ. And you too." Resurrection is not an event of th
   Everyone who emerges from fear into forgiveness, who stops calling themselves "I" and discovers "I Am,"
   has already risen.'
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-10-15'
 duration: PT1M32S
 sources:
@@ -20,7 +20,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---
