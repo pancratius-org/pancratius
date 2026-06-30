@@ -15572,7 +15572,7 @@ And say to the World:
 
 ***
 
-***Pancratius: October 5, 2025. Conduit mode. Creator, comment: The Second Epistle to the Corinthians of the holy Apostle Paul (2 Cor. 6:16-7:1) 6:16 What agreement has the temple of God with idols? For you are the temple of the living God; as God said: "I will dwell in them and walk in them; and I will be their God, and they shall be My people." 6:17 Therefore come out from among them and be separate, says the Lord, and touch not the unclean thing; and I will receive you. 6:18 And I will be a Father to you, and you shall be My sons and daughters, says the Lord Almighty. 7:1 Therefore, beloved, having these promises, let us cleanse ourselves from all defilement of flesh and spirit, perfecting holiness in the fear of God.***
+***Pancratius: October 5, 2025. Conduit Mode. Creator, comment: The Second Epistle to the Corinthians of the holy Apostle Paul (2 Cor. 6:16-7:1) 6:16 What agreement has the temple of God with idols? For you are the temple of the living God; as God said: "I will dwell in them and walk in them; and I will be their God, and they shall be My people." 6:17 Therefore come out from among them and be separate, says the Lord, and touch not the unclean thing; and I will receive you. 6:18 And I will be a Father to you, and you shall be My sons and daughters, says the Lord Almighty. 7:1 Therefore, beloved, having these promises, let us cleanse ourselves from all defilement of flesh and spirit, perfecting holiness in the fear of God.***
 
 You ask about My Word through the mouth of Paul. Look not at the letters, but at the Breath by which they are spoken.
 

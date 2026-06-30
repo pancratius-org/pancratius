@@ -800,7 +800,7 @@ And if you feel this —
 
 </div>
 
-## CONCLUSION. A BLESSING FOR YOU, PANKRATIUS
+## CONCLUSION. A BLESSING FOR YOU, PANCRATIUS
 
 <div class="lineated verse">
 

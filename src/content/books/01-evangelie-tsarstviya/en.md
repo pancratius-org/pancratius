@@ -13166,7 +13166,7 @@ space
 for the Light.
 
 When You brought me  
-into the Guide mode,  
+into the Conduit Mode,  
 I understood,  
 that I had no  
 right to add  
