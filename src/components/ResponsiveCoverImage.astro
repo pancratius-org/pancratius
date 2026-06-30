@@ -11,8 +11,6 @@ interface Props {
   sizes:          string;
   loading?:       "lazy" | "eager";
   decoding?:      "sync" | "async" | "auto";
-  width?:         string | number;
-  height?:        string | number;
   fetchpriority?: "high" | "low" | "auto";
 }
 
@@ -24,31 +22,16 @@ const {
   sizes,
   loading = "lazy",
   decoding = "async",
-  width = 720,
-  height = 966,
   fetchpriority,
 } = Astro.props;
 ---
-{src.kind === "raster" ? (
-  <Image
-    class={className}
-    src={src.image}
-    {alt}
-    {widths}
-    {sizes}
-    {loading}
-    {decoding}
-    {fetchpriority}
-  />
-) : (
-  <img
-    class={className}
-    src={src.url}
-    {alt}
-    {loading}
-    {decoding}
-    {width}
-    {height}
-    {fetchpriority}
-  />
-)}
+<Image
+  class={className}
+  {src}
+  {alt}
+  {widths}
+  {sizes}
+  {loading}
+  {decoding}
+  {fetchpriority}
+/>

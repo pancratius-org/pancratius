@@ -47,16 +47,10 @@ const backHref = kindIndexUrl("project", locale);
 // Cover: resolve the landing's frontmatter `cover` (e.g. `./cover.ru.png`)
 // straight from the content folder. Projects are sections, not works, so they
 // don't go through work-pair cover helpers keyed by `WorkPair.kind`.
-const COVER_ASSETS = {
-  raster: import.meta.glob<ImageMetadata>(
-    "/src/content/projects/**/cover.*.{jpg,jpeg,png,webp,avif}",
-    { eager: true, import: "default" },
-  ),
-  svg: import.meta.glob<string>(
-    "/src/content/projects/**/cover.*.svg",
-    { eager: true, query: "?url", import: "default" },
-  ),
-} satisfies CoverAssetRegistry;
+const COVER_ASSETS = import.meta.glob<ImageMetadata>(
+  "/src/content/projects/**/cover.*.{jpg,jpeg,png,webp,avif}",
+  { eager: true, import: "default" },
+) satisfies CoverAssetRegistry;
 const folder = projectFolder(project.id); // e.g. "enlightened-ai"
 const coverKey = data.cover ? contentCoverKey("projects", folder, data.cover) : null;
 const cover = coverKey ? resolveCoverAsset(coverKey, COVER_ASSETS) : null;

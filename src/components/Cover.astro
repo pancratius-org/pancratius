@@ -1,0 +1,79 @@
+---
+/*
+ * <Cover> — the shared cover frame. A 2:3 card with the art filled edge-to-edge,
+ * used by book covers and project mastheads alike so the treatment never drifts.
+ *
+ * The <img> is emitted by the child <ResponsiveCoverImage>, so the fill rule has to
+ * pierce scope with `:global(img)` — a plain `img` selector would be scoped to this
+ * component's id and never match the child's element.
+ */
+
+import ResponsiveCoverImage from "@/components/ResponsiveCoverImage.astro";
+import type { CoverAsset } from "@/lib/cover-assets";
+
+interface Props {
+  cover?:         CoverAsset;
+  alt:            string;
+  widths:         number[];
+  sizes:          string;
+  loading?:       "lazy" | "eager";
+  fetchpriority?: "high" | "low" | "auto";
+  /** Shown when there is no cover: the work or project number. */
+  fallback?:      string;
+}
+
+const { cover, alt, widths, sizes, loading = "lazy", fetchpriority, fallback } = Astro.props;
+---
+<div class:list={["cover", !cover && "cover--empty"]} aria-hidden={cover ? undefined : "true"}>
+  {cover ? (
+    <ResponsiveCoverImage
+      src={cover}
+      {alt}
+      {widths}
+      {sizes}
+      {loading}
+      decoding="async"
+      {...(fetchpriority ? { fetchpriority } : {})}
+    />
+  ) : (
+    <span class="cover__num">{fallback}</span>
+  )}
+</div>
+
+<style>
+  .cover {
+    position: relative;
+    aspect-ratio: 2 / 3;
+    background: var(--bg-rise);
+    border: 1px solid var(--rule);
+    overflow: hidden;
+    box-shadow: var(--paper-shadow);
+    transition: border-color 0.18s var(--ease), transform 0.32s var(--ease);
+  }
+  .cover :global(img) {
+    position: absolute;
+    /* Anchor top-left, then overflow the aspect-ratio rounding gap by 1px so the
+       cream --bg-rise can't show as a hairline below the image (overflow clips it). */
+    top: 0;
+    left: 0;
+    width: calc(100% + 1px);
+    height: calc(100% + 1px);
+    object-fit: cover;
+    display: block;
+    opacity: 0.94;
+    transition: opacity 0.32s var(--ease);
+  }
+  :global([data-theme="light"]) .cover :global(img) { opacity: 1; }
+  .cover--empty {
+    display: grid;
+    place-items: center;
+  }
+  .cover__num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-size: 2.4rem;
+    color: var(--ink-mute);
+    line-height: 1;
+  }
+</style>

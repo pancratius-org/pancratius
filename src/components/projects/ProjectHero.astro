@@ -10,7 +10,7 @@
  * cover resolution stays in one place.
  */
 
-import ResponsiveCoverImage from "@/components/ResponsiveCoverImage.astro";
+import Cover from "@/components/Cover.astro";
 import type { Locale } from "@/lib/i18n";
 import { projectPageCopy } from "@/lib/i18n/copy";
 import type { CoverAsset } from "@/lib/cover-assets";
@@ -35,22 +35,15 @@ const copy = projectPageCopy[locale];
       {tagline && <p class="hero__tagline">{tagline}</p>}
     </div>
     <div class="hero__cover">
-      {cover ? (
-        <ResponsiveCoverImage
-          class="hero__cover-img"
-          src={cover}
-          alt={copy.coverAlt(title)}
-          widths={[180, 240, 320, 460]}
-          sizes="(max-width: 760px) 190px, 230px"
-          loading="eager"
-          decoding="async"
-          fetchpriority="high"
-        />
-      ) : (
-        <div class="hero__cover-empty" aria-hidden="true">
-          <span>{String(number).padStart(2, "0")}</span>
-        </div>
-      )}
+      <Cover
+        {...(cover ? { cover } : {})}
+        alt={copy.coverAlt(title)}
+        widths={[180, 240, 320, 460]}
+        sizes="(max-width: 760px) 190px, 230px"
+        loading="eager"
+        fetchpriority="high"
+        fallback={String(number).padStart(2, "0")}
+      />
     </div>
   </div>
 </header>
@@ -119,32 +112,6 @@ const copy = projectPageCopy[locale];
     text-wrap: pretty;
   }
 
-  .hero__cover {
-    aspect-ratio: 2 / 3;
-    border: 1px solid var(--rule);
-    overflow: hidden;
-    background: var(--bg-rise);
-    box-shadow:
-      0 1px 0 rgba(0, 0, 0, 0.25),
-      0 30px 60px -34px rgba(0, 0, 0, 0.6);
-  }
-  .hero__cover-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .hero__cover-empty {
-    width: 100%;
-    height: 100%;
-    display: grid;
-    place-items: center;
-  }
-  .hero__cover-empty span {
-    font-family: var(--serif);
-    font-style: italic;
-    font-variant-numeric: oldstyle-nums proportional-nums;
-    font-size: 2.4rem;
-    color: var(--ink-mute);
-  }
+  /* The cover frame itself is the shared <Cover>; .hero__cover only places it in
+     the masthead grid (and reorders it above the text on narrow screens). */
 </style>

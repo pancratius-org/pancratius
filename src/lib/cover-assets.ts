@@ -4,14 +4,11 @@ import type { Locale } from "./i18n";
 import { originFor } from "./origins";
 import { COLLECTION_OF, resolveCover, workBundleKey, type WorkPair } from "./works";
 
-export type CoverAsset =
-  | { kind: "raster"; image: ImageMetadata }
-  | { kind: "svg"; url: string };
+/** A resolved cover image. Covers are raster art, optimized by `astro:assets`. */
+export type CoverAsset = ImageMetadata;
 
-export interface CoverAssetRegistry {
-  raster: Partial<Record<string, ImageMetadata>>;
-  svg: Partial<Record<string, string>>;
-}
+/** The eager cover glob, keyed by repo-absolute asset path. */
+export type CoverAssetRegistry = Partial<Record<string, ImageMetadata>>;
 
 export function contentCoverKey(
   collection: "books" | "poetry" | "projects",
@@ -31,19 +28,9 @@ export function resolveCoverAsset(
   key: string,
   registry: CoverAssetRegistry,
 ): CoverAsset | null {
-  const image = registry.raster[key];
-  if (image) return { kind: "raster", image };
-
-  const url = registry.svg[key];
-  if (url) return { kind: "svg", url };
-
-  return null;
-}
-
-function coverAssetUrl(asset: CoverAsset): string {
-  return asset.kind === "raster" ? asset.image.src : asset.url;
+  return registry[key] ?? null;
 }
 
 export function absoluteCoverAssetUrl(asset: CoverAsset, locale: Locale): string {
-  return new URL(coverAssetUrl(asset), originFor(locale)).toString();
+  return new URL(asset.src, originFor(locale)).toString();
 }
