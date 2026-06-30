@@ -1,0 +1,13 @@
+terms:
+  - ru: Святая Русь
+    sense: human life together with God as its foundation
+    en:
+      use: Holy Rus
+      avoid: [Holy Commonwealth, Holy Russia]
+      enforcement: denylist
+  - ru: Панкратиус
+    sense: the author's name
+    en:
+      use: Pancratius
+      avoid: [Pankratius]
+      enforcement: denylist
