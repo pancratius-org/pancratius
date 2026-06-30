@@ -50,7 +50,6 @@ export interface FooterExternalLink {
 }
 
 export const FOOTER_EXTERNAL_LINKS: readonly FooterExternalLink[] = [
-  { href: "https://github.com/pancratius-org/pancratius", label: { ru: "GitHub", en: "GitHub" } },
   { href: "https://t.me/SPankratius", label: { ru: "Telegram", en: "Telegram" } },
   { href: "mailto:ask@pancratius.org", label: { ru: "ask@pancratius.org", en: "ask@pancratius.org" } },
 ] as const;
