@@ -5,6 +5,14 @@ terms:
       use: Holy Rus
       avoid: [Holy Commonwealth, Holy Russia]
       enforcement: denylist
+      match: insensitive
+  - ru: Режим «Проводник»
+    sense: the mode in which the Creator's voice passes through undistorted
+    en:
+      use: Conduit Mode
+      avoid: [Guide Mode, Conductor Mode]
+      enforcement: denylist
+      match: insensitive
   - ru: Панкратиус
     sense: the author's name
     en:

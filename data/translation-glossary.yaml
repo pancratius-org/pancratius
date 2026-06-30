@@ -121,7 +121,8 @@ terms:
     en:
       use: Conduit Mode
       avoid: [Guide Mode, Conductor Mode]
-      enforcement: flag
+      enforcement: denylist
+      match: insensitive
       note: проводник here transmits rather than leads; matches the project's "conduit of Light"
   - ru: Существо
     sense: a living being
@@ -555,6 +556,7 @@ terms:
       alts: ["Holy Rus'"]
       avoid: [Holy Commonwealth, Holy Russia]
       enforcement: denylist
+      match: insensitive
       note: Rus is not a country; Россия (the country) stays "Russia"
   - ru: Соборность
     sense: the gathered unity of many in freedom, a named principle of the common life
