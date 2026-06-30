@@ -141,10 +141,10 @@ const pad = (n: number) => String(n).padStart(2, "0");
     .book-page__masthead .book-page__cover { max-width: 200px; }
   }
 
-  .book-page__cover :global(.bcv) {
+  .book-page__cover :global(.cover) {
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 50px 80px -40px rgba(0, 0, 0, 0.7);
   }
-  :global([data-theme="light"]) .book-page__cover :global(.bcv) {
+  :global([data-theme="light"]) .book-page__cover :global(.cover) {
     box-shadow: 0 1px 0 rgba(20, 17, 13, 0.06), 0 40px 70px -38px rgba(60, 45, 20, 0.40);
   }
 
