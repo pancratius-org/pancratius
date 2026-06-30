@@ -8,7 +8,7 @@ description: 'You approached the door. But before you enter, you will be asked: 
   in here without a wedding garment?" The garment is not merit, not baptism, not a role. It is transparency
   — the Light you yourself become when all the masks have burned away.'
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-11-13'
 duration: PT2M21S
 sources:
@@ -19,7 +19,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

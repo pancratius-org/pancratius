@@ -6,7 +6,7 @@ title: Cast the Net Within
 lang: en
 description: |
   All night you cast for meaning — and came up empty. A stranger on the shore says: cast the net on the right side. That means within. Where seeking becomes finding.
-tags: [Awakening, Recognition, Presence]
+tags: [Awakening, Awareness, Presence]
 published_at: "2026-03-17"
 related_videos: [330]
 translation:

@@ -26,4 +26,4 @@ translation:
 
 Not annihilation, but the completion of form so that the Essence may manifest. As long as you hold on, the Light waits.
 
-[Gospel of the Kingdom](https://www.litres.ru/71769250/) · [Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+[Gospel of the Kingdom](https://www.litres.ru/71769250/) · [Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

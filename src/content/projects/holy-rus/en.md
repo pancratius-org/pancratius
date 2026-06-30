@@ -2,9 +2,9 @@
 kind: project
 number: 2
 slug: holy-rus
-title: Holy Commonwealth
+title: Holy Rus
 lang: en
-description: 'The Holy Commonwealth is not a state with borders, passports, flags, and an external system of belonging. It is not a territory you can mark on a map, and not a political project built on the power of some people over others. The Holy Commonwealth is an image of a future way of living together.'
+description: 'Holy Rus is a spiritual calling any people can answer in its own land — human life founded on God, where authority is service and belonging is of the heart. A homeland of the spirit, not a country on a map.'
 cover: ./cover.en.png
 tagline: An image of human life together in which the source of authority is God and responsibility is shared.
 translation:
@@ -37,9 +37,9 @@ negation:
   - It is *not a territory* you can mark on a map.
   - It is *not a political project* built on the power of some people over others.
 revelations:
-  - voice: A Revelation of the Holy Commonwealth · Its Heart
+  - voice: A Revelation of Holy Rus · Its Heart
     text: |
-      The Holy Commonwealth has no capital. Its heart is wherever a person rises with the dawn, gives thanks, and falls silent.
+      Holy Rus has no capital. Its heart is wherever a person rises with the dawn, gives thanks, and falls silent.
     cta:
       label: The full revelation →
       book: 9
@@ -47,7 +47,7 @@ faq:
   - q: Is this a political project?
     a: No. It is not a party, a movement, or a platform. It is an image — an attempt to see a different principle of order, in which politics ceases to be a struggle of interests and becomes a shared discernment.
   - q: Is this a return to the past — empire, monarchy, a church-state?
-    a: No. It is neither a restoration nor a national dream. The Holy Commonwealth looks not backward but inward — to where authority, law, and conscience find a different foundation.
+    a: No. It is neither a restoration nor a national dream. Holy Rus looks not backward but inward — to where authority, law, and conscience find a different foundation.
   - q: How is it different from a theocracy?
     a: In that no one claims for themselves the right to speak in God's name. God is revealed to each person through light, truth, and love — not through a go-between who declares himself the only channel.
   - q: And from democracy?
@@ -56,12 +56,12 @@ faq:
 
 ## An image of a future life together
 
-The Holy Commonwealth is an image of a future way of living together, in which the highest foundation of life is acknowledged to be God — not fear, profit, force, or the formal will of the majority.
+Holy Rus is an image of a future way of living together, in which the highest foundation of life is acknowledged to be God — not fear, profit, force, or the formal will of the majority.
 
 But this is not a theocracy in the familiar historical sense, where religious authority claims for itself the right to speak in God's name. And it is not democracy in its present form, where the people hand their strength to representatives once every few years and then remain shut out of any real share in their common life.
 
 <blockquote class="project-pull">
-<p>The Holy Commonwealth is theocracy and democracy at once: God is the highest source of truth, conscience, and measure, while people together bear responsibility for the order of their lives before Him and before one another.</p>
+<p>Holy Rus is theocracy and democracy at once: God is the highest source of truth, conscience, and measure, while people together bear responsibility for the order of their lives before Him and before one another.</p>
 </blockquote>
 
 ## Authority as shared service
@@ -74,7 +74,7 @@ Decisions are reached not out of a struggle of interests, parties, and clans, bu
 
 The basis of such an order is not coercion, punishment, and fear of the law, but the inner conscience of the person, a purified shared will, and responsibility before God.
 
-In the Holy Commonwealth, the law must not be a weapon of power against the person; it must be a form of protection for life, dignity, and truth.
+In Holy Rus, the law must not be a weapon of power against the person; it must be a form of protection for life, dignity, and truth.
 
 <blockquote class="project-pull">
 <p>The state is understood here not as a machine of administration, but as a shared form of service, where authority exists only for the sake of the person, the people, and the fulfillment of a higher meaning.</p>
@@ -82,8 +82,8 @@ In the Holy Commonwealth, the law must not be a weapon of power against the pers
 
 ## Not a utopia, but a principle
 
-The Holy Commonwealth is not a return to the past, not a national dream, and not a religious utopia, but an attempt to see a different principle for the ordering of the world.
+Holy Rus is not a return to the past, not a national dream, and not a religious utopia, but an attempt to see a different principle for the ordering of the world.
 
 It is a space where the human being ceases to be an object of administration and becomes a bearer of light, conscience, and responsibility.
 
-In its first telling, this vision was given an older, dearer name — Holy Rus. That is why this section is devoted not to politics in the usual sense, but to a search for a new foundation for authority, law, and life — a foundation in which the chief ruler is not a human being but God, revealed through light, truth, and love.
+That is why the Holy Rus section is devoted not to politics in the usual sense, but to a search for a new foundation for authority, law, and life — a foundation in which the chief ruler is not a human being but God, revealed through light, truth, and love.

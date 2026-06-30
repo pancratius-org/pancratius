@@ -9,7 +9,7 @@ description: 'You are one step from Heaven — and yet you do not enter. Why? Th
   of Light, taste satisfies the body but not the soul, and touch reaches for the world but never touches
   itself. This is not sin. But as long as the senses rule you, you are a slave. Part 1 of 8.'
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-11-06'
 duration: PT2M48S
 sources:
@@ -20,7 +20,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

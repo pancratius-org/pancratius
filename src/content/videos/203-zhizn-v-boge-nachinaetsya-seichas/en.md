@@ -26,4 +26,4 @@ translation:
   source: ai
 ---
 
-The author's books in Russian: [All books by Pankratius](https://www.litres.ru/author/sergey-pankratius/) · [The Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+The author's books in Russian: [All books by Pancratius](https://www.litres.ru/author/sergey-pankratius/) · [The Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

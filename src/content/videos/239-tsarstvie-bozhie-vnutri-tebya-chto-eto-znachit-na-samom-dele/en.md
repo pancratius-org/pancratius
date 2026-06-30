@@ -10,7 +10,7 @@ description: You seek the Kingdom of God somewhere ahead, as if it were a future
   is no longer an "I," no observer, no separation. The seeker and the sought have never been two.
 tags:
 - Gospel of the Kingdom
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-12-03'
 duration: PT1M12S
 sources:
@@ -23,7 +23,7 @@ playlists:
 - id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
   title: Gospel of the Kingdom
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

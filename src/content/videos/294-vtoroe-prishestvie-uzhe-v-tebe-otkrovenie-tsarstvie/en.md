@@ -29,4 +29,4 @@ The full text of the Father's message: "My Gaze is not a gaze that evaluates you
 
 What prevents us from seeing as God sees? Fear of seeing darkness. The memory of pain. Faith in someone else's judgment. And the habit of identifying not with the Heart, but with a role. As long as you are someone, you cannot see yourself as Light. But you can sit, be still, and say: "I am" — and then you will see: everything I look at is Light, because I am this Light.
 
-Books by the author (in Russian): [Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+Books by the author (in Russian): [Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

@@ -6,7 +6,7 @@ title: Be Like Children
 lang: en
 description: |
   Children rejoice not because they have little, but because they have enough. The Kingdom of Heaven belongs to them — not for their innocence, but for their aliveness.
-tags: [Presence, Stillness, The Kingdom]
+tags: [Presence, Peace, The Kingdom]
 published_at: "2025-12-04"
 related_videos: [240]
 translation:

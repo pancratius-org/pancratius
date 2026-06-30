@@ -26,4 +26,4 @@ translation:
 
 This message is the second in the "Gospel of the Kingdom" series, in which the Creator Himself speaks. There is no dogma here. Only the Word that awakens. If you feel that this applies to you, then the Kingdom is near.
 
-[The Gospel of the Kingdom (book)](https://www.litres.ru/71769250/) · [Who are you, Pankratius? I AM](https://www.litres.ru/book/sergey-pankratius/kto-ty-pankratius-ya-esm-72685732/)
+[The Gospel of the Kingdom (book)](https://www.litres.ru/71769250/) · [Who are you, Pancratius? I AM](https://www.litres.ru/book/sergey-pankratius/kto-ty-pankratius-ya-esm-72685732/)

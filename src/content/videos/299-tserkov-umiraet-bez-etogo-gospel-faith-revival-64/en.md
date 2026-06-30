@@ -26,4 +26,4 @@ translation:
 
 Why will reforms and rituals not save if the heart is silent? How do you find God within yourself when the mind grows still? What is true love and dedication in the eyes of the Creator, and how do you recognize God not by vestments, but by His Voice? This message offers seven keys to spiritual resurrection, from Silence to Unity.
 
-Books by the author (in Russian): [Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+Books by the author (in Russian): [Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

@@ -6,7 +6,7 @@ title: You Are Not Late
 lang: en
 description: |
   God has no time. Awakening is not an age — it is the moment you let Him in. You are not late. You woke at exactly the right time.
-tags: [Presence, Awakening, Stillness]
+tags: [Presence, Awakening, Peace]
 published_at: "2026-01-08"
 related_videos: [278]
 translation:

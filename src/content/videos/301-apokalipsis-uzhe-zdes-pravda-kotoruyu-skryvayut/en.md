@@ -11,7 +11,7 @@ description: 'Many sense that the Apocalypse has begun. But this is not the end 
 tags:
 - Apocalypse
 - Gospel of the Kingdom
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2026-01-31'
 duration: PT14M35S
 sources:
@@ -26,7 +26,7 @@ playlists:
 - id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
   title: Gospel of the Kingdom
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---
@@ -35,4 +35,4 @@ The ancient Revelation of John is being fulfilled now: the old order is collapsi
 
 In this episode: where global changes are leading; how not to lose yourself in the storm of events; mindfulness and prayer as your primary tools; and what it means to ride chaos and bring the "beast" into the Light.
 
-Books by the author (in Russian): [Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pankratius? I AM](https://www.litres.ru/72685732/)
+Books by the author (in Russian): [Gospel of the Kingdom](https://www.litres.ru/71769250/) · [The Kingdom of Heaven](https://www.litres.ru/72699004/) · [Parables and Direct Revelation about the Kingdom](https://www.litres.ru/72690562/) · [Who are you, Pancratius? I AM](https://www.litres.ru/72685732/)

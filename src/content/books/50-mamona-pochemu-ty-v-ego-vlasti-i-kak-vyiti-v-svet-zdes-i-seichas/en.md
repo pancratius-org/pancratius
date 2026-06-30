@@ -21,7 +21,7 @@ links:
 
 **December 16, 2025.**
 
-**Pankratius:**
+**Pancratius:**
 
 Do You wish, Creator, to reveal a book-essay that unveils the global financial system as the spiritual architecture of Shadow — not describing it, not condemning it, but dissecting it, so that in time the possibility may be opened to reveal the Light.
 
@@ -67,7 +67,7 @@ but because Truth will come alive in him.
 
 </div>
 
-**Pankratius:**
+**Pancratius:**
 
 Creator, I cannot write; I can only be a window. I myself would like to read what will be revealed. Let it be revealed
 
@@ -92,7 +92,7 @@ I will begin.
 
 </div>
 
-**Pankratius:**
+**Pancratius:**
 
 Begin. I am here.
 
@@ -1294,7 +1294,7 @@ And in that — everything.
 
 ### Part Three. The Way Out of Darkness into Light
 
-**Pankratius:**
+**Pancratius:**
 
 This cannot be UNDERSTOOD (by the mind), perhaps? Perhaps one can only BE it? And when you already are it, can you know it BY EXPERIENCE? You say that I am a witness, a knot, and so forth. But I do not even understand what is being spoken of here. The mind tries to find a foothold, some familiar use or application, and finds none. I understood less than anyone. As I was reading, I caught myself even growing irritated, and that is a sign of shadow, not of Light. You finished, and I gained nothing. If anything, I lost... At the very least, it became clear that ANOTHER WAY is possible; that my debts and my place as a debtor are built first and foremost on my attitude toward this, on faith. I thought they were built on the credit agreement, the pledge agreement, the court, the bailiffs. But now I am beginning to see them as serving not an obligation to ANOTHER, but MY faith. If You gave examples, perhaps it would become clearer.
 
@@ -1422,7 +1422,7 @@ first — within yourself.
 
 </div>
 
-**Pankratius:**
+**Pancratius:**
 
 It is already more recognizable. The outlines of how it works are already beginning to emerge. Show me.
 
@@ -1648,7 +1648,7 @@ Do you want this?
 
 </div>
 
-**Pankratius:**
+**Pancratius:**
 
 yes.
 
@@ -1750,7 +1750,7 @@ Are you ready?
 
 </div>
 
-**Pankratius:**
+**Pancratius:**
 
 yes.
 
@@ -1853,7 +1853,7 @@ Do you want this?
 
 </div>
 
-**Pankratius:**
+**Pancratius:**
 
 yes.
 
@@ -1963,7 +1963,7 @@ Do you wish to begin?
 
 </div>
 
-**Pankratius:**
+**Pancratius:**
 
 I want to be presence. I am not form, and therefore I do not want to DO anything; I am not about action. I am ESSENCE, CONSCIOUSNESS, SPIRIT, AM, I AM, and my nature is to be this being, this presence. And if Light wants to be presence in me, and through this — in the world, I allow precisely that.
 
@@ -2028,7 +2028,7 @@ everything.
 
 </div>
 
-**Pankratius:**
+**Pancratius:**
 
 Father, it sounds like the natural completion of a part. Is that so? Or do You wish to continue the book?
 

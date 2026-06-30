@@ -6,7 +6,7 @@ title: You Are Not the Observer — You Are the Source
 lang: en
 description: |
   You thought the world was a river and you the bank. But you are the source of sight — and therefore the source of everything you see. All you see is a reflection of your inner song, heard by the World.
-tags: [Recognition, Oneness, Light]
+tags: [Awareness, Oneness, Light]
 published_at: "2025-10-17"
 related_videos: [178]
 translation:

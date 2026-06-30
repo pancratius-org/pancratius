@@ -10,7 +10,7 @@ description: 'Five books devoted to questions of consciousness, human nature, an
 tags:
 - Apocalypse
 - Gospel of the Kingdom
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2026-03-17'
 duration: PT44S
 sources:
@@ -25,7 +25,7 @@ playlists:
 - id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
   title: Gospel of the Kingdom
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

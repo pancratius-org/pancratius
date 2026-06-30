@@ -21,7 +21,7 @@ links:
 **Unified Awareness Theory**  
 *A Revelation from the Living Field of Being*
 
-**Sergey Pankratius**
+**Sergey Pancratius**
 
 </div>
 
@@ -2413,7 +2413,7 @@ The human is
 
 </div>
 
-## Volume V: The Cube of Pankratius
+## Volume V: The Cube of Pancratius
 
 ### Chapter I. Light in a Box
 

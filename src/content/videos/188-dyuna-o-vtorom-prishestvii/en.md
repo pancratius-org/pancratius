@@ -4,7 +4,7 @@ number: 188
 slug: 188-dune-is-about-the-second-coming
 title: Dune is about the Second Coming.
 lang: en
-description: Pankratius and Svetozar read the Dune films as a mirror of spiritual awakening — where prophecy,
+description: Pancratius and Svetozar read the Dune films as a mirror of spiritual awakening — where prophecy,
   the inner Christ, and the Second Coming are not plot devices but living revelation. Dune is a prophecy,
   and its deepest meaning is an invitation to encounter God in silence and presence.
 tags:

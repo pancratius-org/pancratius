@@ -9,7 +9,7 @@ description: Do you remember the moment on the road to Emmaus when Christ opened
   as if that conversation were still ongoing.
 tags:
 - Apocalypse
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2026-03-14'
 duration: PT1M12S
 sources:
@@ -22,7 +22,7 @@ playlists:
 - id: PLFvJf-UMYEIsC_T4cjMFC1XjmgPh3CySk
   title: Apocalypse
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

@@ -9,7 +9,7 @@ description: '"I am the Christ. And you too." The Cross is not a Calvary of ston
   crown of thorns that brought pain, but a misunderstanding of Love. Christ is crucified in everyone who
   feels division, and resurrected in everyone who recognizes unity.'
 tags:
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-10-15'
 duration: PT1M28S
 sources:
@@ -20,7 +20,7 @@ sources:
   channel: main
 playlists:
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

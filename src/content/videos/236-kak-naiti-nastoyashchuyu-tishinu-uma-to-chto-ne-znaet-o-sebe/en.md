@@ -10,7 +10,7 @@ description: Meditation, inner peace, mindfulness, the stillness of the mind —
   It is the space before thoughts, the awareness that has no observer at its center.
 tags:
 - Gospel of the Kingdom
-- Pankratius Speaks
+- Pancratius Speaks
 published_at: '2025-11-28'
 duration: PT19M11S
 sources:
@@ -23,7 +23,7 @@ playlists:
 - id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
   title: Gospel of the Kingdom
 - id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pankratius Speaks
+  title: Pancratius Speaks
 translation:
   source: ai
 ---

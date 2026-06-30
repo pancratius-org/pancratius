@@ -25,4 +25,4 @@ translation:
   source: ai
 ---
 
-The author's books in Russian: [All books by Pankratius](https://www.litres.ru/author/sergey-pankratius/) · [The Gospel of the Kingdom](https://www.litres.ru/71769250/) · [Who are you, Pankratius? I AM](https://www.litres.ru/book/sergey-pankratius/kto-ty-pankratius-ya-esm-72685732/)
+The author's books in Russian: [All books by Pancratius](https://www.litres.ru/author/sergey-pankratius/) · [The Gospel of the Kingdom](https://www.litres.ru/71769250/) · [Who are you, Pancratius? I AM](https://www.litres.ru/book/sergey-pankratius/kto-ty-pankratius-ya-esm-72685732/)
