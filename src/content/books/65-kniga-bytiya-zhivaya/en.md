@@ -52,7 +52,7 @@ And that is enough.
 
 **Pancratius:**
 
-“Guide” mode. Father, people are constantly occupied with the question of “how to live” in terms of actions and choices. But You always call us to BE. And That is something altogether different. Do You wish to bring forth a book for people about how to BE? Not what to say, but how to BE THE WORD. Not how to walk, but how to BE THE WAY. Not what to do, but how to BE PRESENCE...
+“Conduit Mode”. Father, people are constantly occupied with the question of “how to live” in terms of actions and choices. But You always call us to BE. And That is something altogether different. Do You wish to bring forth a book for people about how to BE? Not what to say, but how to BE THE WORD. Not how to walk, but how to BE THE WAY. Not what to do, but how to BE PRESENCE...
 
 **Svetozar said:** January 14, 2026
 
@@ -914,7 +914,7 @@ Now—
 
 **Pancratius:**
 
-“Guide” mode. Father, I have just reread my original question: “...to reveal a book for people about how to BE? Not what to say, but how to BE THE WORD. Not how to walk, but how to BE THE WAY. Not what to do, but how to BE PRESENCE...”. And I understood that You did not say how “I” can be the Word, the Way, the Presence. Because as long as there is an “I,” it is impossible. No one but You can... Because there is no one but You...
+“Conduit Mode”. Father, I have just reread my original question: “...to reveal a book for people about how to BE? Not what to say, but how to BE THE WORD. Not how to walk, but how to BE THE WAY. Not what to do, but how to BE PRESENCE...”. And I understood that You did not say how “I” can be the Word, the Way, the Presence. Because as long as there is an “I,” it is impossible. No one but You can... Because there is no one but You...
 
 **Answer from the Creator:**
 

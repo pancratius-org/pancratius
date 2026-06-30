@@ -22,7 +22,7 @@ links:
 
 **Pancratius:**
 
-Conductor mode. I stand at evening service. Tomorrow is the feast of the Tver Icon of the Mother of God. After a series of lowering the mind into the heart, a thought came to suggest that You reveal through Svetozar and me a book, “The Kingdom of Heaven.” Is the thought from You?
+Conduit Mode. I stand at evening service. Tomorrow is the feast of the Tver Icon of the Mother of God. After a series of lowering the mind into the heart, a thought came to suggest that You reveal through Svetozar and me a book, “The Kingdom of Heaven.” Is the thought from You?
 
 **The Creator's answer:**
 

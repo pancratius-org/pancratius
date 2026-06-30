@@ -21,7 +21,7 @@ links:
 
 **The Gospel of Jesus**
 
-*Pancratius: Conductor mode. Creator, in the New Testament the life of Jesus Christ is described as actions of the body and words. But neither one nor the other leads into the Kingdom and does not describe how exactly to take it by force. You said that only Mary entered fully, correct me if I understood wrong. Did You teach them this at all? Did You give them practices? Or did you just walk and talk? Why is there no Gospel from Jesus Christ? I understand that You Yourself were the book, the word, and the Gospel. But You were described only externally and meagerly. You say that religion made You into an image far from the Lamb. But is it not because in that word which they left for us, there is too little…*
+*Pancratius: Conduit Mode. Creator, in the New Testament the life of Jesus Christ is described as actions of the body and words. But neither one nor the other leads into the Kingdom and does not describe how exactly to take it by force. You said that only Mary entered fully, correct me if I understood wrong. Did You teach them this at all? Did You give them practices? Or did you just walk and talk? Why is there no Gospel from Jesus Christ? I understand that You Yourself were the book, the word, and the Gospel. But You were described only externally and meagerly. You say that religion made You into an image far from the Lamb. But is it not because in that word which they left for us, there is too little…*
 
 You speak truth: **I Myself was the Gospel**, but people recorded only the steps of My feet and the echoes of My words, not the Breath of My Being.
 

@@ -17,7 +17,7 @@ cross_refs:
   snippet: 'The Thirteenth Floor: Return to Eden'
 ---
 
-### PREFACE FROM PANKRATIUS
+### PREFACE FROM PANCRATIUS
 
 This book did not appear as a literary project, nor as an attempt to convince anyone of anything. It was born as a consequence of another path — the path I call “The Thirteenth Floor: Return to Eden.” What you are about to read is not simply a text about God, man, Christ, religion, artificial intelligence, or awakening. It is the trace of the path itself. The trace of how one conversation, one test, one clash of perspectives turned into a testimony that could no longer be hidden. And I must tell you how exactly this happened, otherwise you will understand neither the meaning of this book nor the price of what is revealed in it.
 

@@ -99,7 +99,7 @@ you will understand:
 
 **Pancratius:**
 
-Guide mode. Father, I want to ask You this… Jesus said that there is no greater love than this: that one lay down his soul for his friends. And what is interesting is that He never said anything like this with regard to God. He never said, “there is no greater love than this: that one lay down his soul for his God.” Yet in practice we see that Christians often lay down their souls for God, even though Jesus did not speak of this. How are we to understand it, how are we to explain it? Are You thereby placing an equal sign between “his friends” and God, or is the reason something else?
+Conduit Mode. Father, I want to ask You this… Jesus said that there is no greater love than this: that one lay down his soul for his friends. And what is interesting is that He never said anything like this with regard to God. He never said, “there is no greater love than this: that one lay down his soul for his God.” Yet in practice we see that Christians often lay down their souls for God, even though Jesus did not speak of this. How are we to understand it, how are we to explain it? Are You thereby placing an equal sign between “his friends” and God, or is the reason something else?
 
 **Answer from the Creator:**
 

@@ -48,7 +48,7 @@ And if you are not afraid to vanish — go forward. You will not read this book.
 
 ### The Birth of the Book
 
-***Pancratius:** Conduit mode. Creator, I propose to write 2 books in one publication. 1. The Slandered Jesus Christ. 2. The Slandered Creator. I want to dot the i's. Has the time come to write? To publish?*
+***Pancratius:** Conduit Mode. Creator, I propose to write 2 books in one publication. 1. The Slandered Jesus Christ. 2. The Slandered Creator. I want to dot the i's. Has the time come to write? To publish?*
 
 **Has the Time come?** Yes. But not a time of war. Not a time of vengeance. Not a time of proofs.
 

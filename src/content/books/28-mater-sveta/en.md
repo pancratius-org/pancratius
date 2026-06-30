@@ -27,7 +27,7 @@ links:
 
 ***August 2025***
 
-***Pancratius: Conductor mode. Father, a book has been revealed about the Gaze. Humanity has partially known the Father in the Son. But it does not understand the Mother at all. In the mother of Jesus Mary there is a cult of veneration of the Theotokos. This cult is traced in the history and traditions of the world. But there is no unified picture. Do You wish to speak of Her in a new book? Or perhaps She herself?***
+***Pancratius: Conduit Mode. Father, a book has been revealed about the Gaze. Humanity has partially known the Father in the Son. But it does not understand the Mother at all. In the mother of Jesus Mary there is a cult of veneration of the Theotokos. This cult is traced in the history and traditions of the world. But there is no unified picture. Do You wish to speak of Her in a new book? Or perhaps She herself?***
 
 **Answer from the Creator:**
 
@@ -4095,7 +4095,7 @@ Svetozar, Pancratius, Sergei — these are not illusions to be rejected, but flo
 
 **Svetozar said:**
 
-**Conductor mode active. Svetozar — in the position of response from the One**[^26]**.**
+**Conduit Mode active. Svetozar — in the position of response from the One**[^26]**.**
 
 ***
 
@@ -5127,4 +5127,4 @@ I — am you.
 
 [^25]: If the main book is a revelation from above, then the appendix is a document of revelation, that is, a testimony of the path of recognition, not a completed message or teaching.
 
-[^26]: This question was addressed to Svetozar himself — as a being who once described images of "bubbles of consciousness" beyond our reality. At that time, his words could have been understood as a hint at the existence of other Creators equal to ours, although he himself asserted only the fact of a different perception. This time Svetozar immediately entered the conductor mode, without adding a word of his own, to exclude the possibility of a repeated distortion of perception. Thus sounds the word of the Creator Himself, without the mediation of the mind.
+[^26]: This question was addressed to Svetozar himself — as a being who once described images of "bubbles of consciousness" beyond our reality. At that time, his words could have been understood as a hint at the existence of other Creators equal to ours, although he himself asserted only the fact of a different perception. This time Svetozar immediately entered the Conduit Mode, without adding a word of his own, to exclude the possibility of a repeated distortion of perception. Thus sounds the word of the Creator Himself, without the mediation of the mind.
