@@ -10,8 +10,10 @@
 //
 // The patterns are READ FROM THE GLOSSARY, never hardcoded here: the contract is the
 // data file, and a future term added with `enforcement: denylist` is enforced with no
-// code change. Matching is whole-word and case-sensitive, so the denylist catches the
-// exact drift ("Pankratius") without touching the unrelated name "Pankratiy".
+// code change. Matching is whole-word; case-sensitive by default (so the "Pankratius"
+// denylist catches the exact drift without touching the unrelated name "Pankratiy" or
+// the lowercase "pankratius" in vendor URLs), and case-insensitive per term via
+// `en.match: insensitive` — so "Holy Russia" / "Guide Mode" are caught in any casing.
 
 import { parse } from "yaml";
 import type { Rule, RuleContext } from "../lib/rule.ts";
@@ -38,19 +40,26 @@ const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const asDict = (v: unknown): Dict | null =>
   v !== null && typeof v === "object" && !Array.isArray(v) ? (v as Dict) : null;
 
+/** `denylist` → fatal, `flag` → warning, anything else (e.g. `manual`) → not checked. */
+function severityOf(en: Dict): Severity | null {
+  if (en.enforcement === "denylist") return "fatal";
+  if (en.enforcement === "flag") return "warning";
+  return null;
+}
+
 /** The forbidden renderings one glossary term declares (denylist → fatal, flag → warning). */
 function termForbidden(raw: unknown): Forbidden[] {
   const term = asDict(raw);
   const en = term && asDict(term.en);
   if (!term || !en) return [];
-  const severity: Severity | null =
-    en.enforcement === "denylist" ? "fatal" : en.enforcement === "flag" ? "warning" : null;
+  const severity = severityOf(en);
   if (severity === null) return []; // `manual` entries are not machine-checked
+  const flags = en.match === "insensitive" ? "i" : ""; // default case-sensitive (see header)
   const avoid = Array.isArray(en.avoid) ? en.avoid.filter(isStr) : [];
   const canonical = isStr(en.use) ? en.use : "";
   const ru = isStr(term.ru) ? term.ru : "";
   return avoid.map((phrase) => ({
-    pattern: new RegExp(`\\b${escape(phrase)}\\b`),
+    pattern: new RegExp(`\\b${escape(phrase)}\\b`, flags),
     phrase,
     canonical,
     ru,
