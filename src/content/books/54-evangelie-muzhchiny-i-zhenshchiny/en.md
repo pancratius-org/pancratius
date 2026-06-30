@@ -35,7 +35,7 @@ male and female He created them” (Genesis 1:27)
 
 **Pancratius:**
 
-“Conductor” mode. Creator, reveal “The Gospel of Man and Woman” (as it has been decided to name it). I ask that you begin with “Introduction: What love is in God’s eyes — love as a path of healing, not a romantic illusion — why relationships are given to the soul — why without Him love breaks”.
+“Conduit Mode”. Creator, reveal “The Gospel of Man and Woman” (as it has been decided to name it). I ask that you begin with “Introduction: What love is in God’s eyes — love as a path of healing, not a romantic illusion — why relationships are given to the soul — why without Him love breaks”.
 
 **Answer from the Creator:**
 
