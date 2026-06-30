@@ -1,5 +1,5 @@
 ---
-import ResponsiveCoverImage from "@/components/ResponsiveCoverImage.astro";
+import Cover from "@/components/Cover.astro";
 import type { Locale } from "@/lib/i18n";
 import { resolveCoverAsset, workCoverKey } from "@/lib/cover-assets";
 import { COVER_ASSET_REGISTRY } from "@/lib/cover-registry";
@@ -16,62 +16,13 @@ interface Props {
 const { pair, locale, alt, loading = "lazy" } = Astro.props;
 const coverKey = workCoverKey(pair, locale);
 const cover = coverKey ? resolveCoverAsset(coverKey, COVER_ASSET_REGISTRY) : null;
-const coverImageProps = loading === "eager"
-  ? { fetchpriority: "high" as const }
-  : {};
 ---
-<div class:list={["bcv", !cover && "bcv--empty"]} aria-hidden={cover ? undefined : "true"}>
-  {cover ? (
-    <ResponsiveCoverImage
-      src={cover}
-      {alt}
-      widths={[96, 160, 220, 320, 440, 720]}
-      sizes="(max-width: 720px) 200px, 220px"
-      {loading}
-      decoding="async"
-      {...coverImageProps}
-    />
-  ) : (
-    <span class="bcv__num">{pair.number}</span>
-  )}
-</div>
-
-<style>
-  .bcv {
-    position: relative;
-    aspect-ratio: 2 / 3;
-    background: var(--bg-rise);
-    border: 1px solid var(--rule);
-    overflow: hidden;
-    box-shadow: var(--paper-shadow);
-    transition: border-color 0.18s var(--ease), transform 0.32s var(--ease);
-  }
-  /* :global(img) — the cover <img> is rendered by the child ResponsiveCoverImage, so
-     a plain `.bcv img` selector gets scoped to this component's id and never matches it. */
-  .bcv :global(img) {
-    position: absolute;
-    /* Anchor top-left only, then overflow the aspect-ratio rounding gap by 1px so the
-       cream --bg-rise can't show as a hairline below the image (overflow:hidden clips it). */
-    top: 0;
-    left: 0;
-    width: calc(100% + 1px);
-    height: calc(100% + 1px);
-    object-fit: cover;
-    display: block;
-    opacity: 0.94;
-    transition: opacity 0.32s var(--ease);
-  }
-  :global([data-theme="light"]) .bcv :global(img) { opacity: 1; }
-  .bcv--empty {
-    display: grid;
-    place-items: center;
-  }
-  .bcv__num {
-    font-family: var(--serif);
-    font-style: italic;
-    font-variant-numeric: oldstyle-nums proportional-nums;
-    font-size: 2.4rem;
-    color: var(--ink-mute);
-    line-height: 1;
-  }
-</style>
+<Cover
+  {...(cover ? { cover } : {})}
+  {alt}
+  widths={[96, 160, 220, 320, 440, 720]}
+  sizes="(max-width: 720px) 200px, 220px"
+  {loading}
+  {...(loading === "eager" ? { fetchpriority: "high" as const } : {})}
+  fallback={String(pair.number)}
+/>

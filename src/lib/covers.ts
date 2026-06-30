@@ -10,7 +10,7 @@ import { originFor } from "./origins";
 import type { WorkPair } from "./works";
 
 const COVER_URLS = import.meta.glob<string>(
-  "/src/content/**/cover.*.{jpg,jpeg,png,webp,avif,svg}",
+  "/src/content/**/cover.*.{jpg,jpeg,png,webp,avif}",
   { eager: true, query: "?url", import: "default" },
 );
 
