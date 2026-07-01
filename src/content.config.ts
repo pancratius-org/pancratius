@@ -288,9 +288,10 @@ const pages = defineCollection({
 // its own per-locale commentary. A single video stream can be referenced by
 // multiple locale entries; the embed source lives in `sources[]`, which is a
 // mirrors list (YouTube primary today, Vimeo/Rutube/self-hosted in the
-// future). The scanner — `uv run pancratius video sync` — only seeds
-// frontmatter and downloads the source thumbnail as `cover.<lang>.jpg`;
-// commentary in the body is editorial and never touched by re-runs.
+// future). The scanner — `uv run pancratius video sync` — seeds frontmatter,
+// downloads the source thumbnail as `cover.<lang>.jpg`, and drafts the hook
+// (`description`) + reading `body` from the raw YouTube description; re-runs
+// never touch known entries.
 // ─────────────────────────────────────────────────────────────────────
 
 // ISO 8601 duration as YouTube reports it (`PT8M42S`, `PT1H3M`, `PT45S`, …).

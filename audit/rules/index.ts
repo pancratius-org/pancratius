@@ -34,6 +34,7 @@ import { pan021ConceptosphereI18n } from "./conceptosphere.ts";
 import { pan022ConceptosphereDegradation } from "./degradation.ts";
 import { contentQualityRules } from "./content_quality.ts";
 import { pan023TypeDomainPy, pan023TypeDomainTs } from "./type_domain.ts";
+import { pan028VideoHook } from "./videos.ts";
 
 export const RULES: readonly Rule[] = [
   // Fatal core (run on `npm run audit:repo`):
@@ -61,6 +62,7 @@ export const RULES: readonly Rule[] = [
   pan020TypographyRoleDrift,
   pan026QuoteDirection,
   pan027Terminology,
+  pan028VideoHook,
   pan021ConceptosphereI18n,
   // Post-build tier (need dist/; run only on `npm run audit:post-build`):
   pan008PublicMarkdownAssets,

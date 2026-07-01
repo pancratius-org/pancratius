@@ -1,6 +1,6 @@
-"""YouTube channel scanner — the mechanical side of ``pancratius video sync``.
+"""YouTube channel scanner — the metadata side of ``pancratius video sync``.
 
-What this module does (mechanical only; no editorial output):
+What this module does:
 
   1. Reads ``src/content/videos/channels.yaml``; for each ``scan: true`` channel
      resolves handle → channel id → uploads playlist via the YouTube Data API.
@@ -8,19 +8,23 @@ What this module does (mechanical only; no editorial output):
   3. Fetches full ``snippet,contentDetails`` for new IDs in 50-batches.
   4. Maps each new video to the channel playlists that contain it.
   5. Sorts new IDs by ``snippet.publishedAt`` (publication order; the upload
-     playlist's own order is not documented) and scaffolds a draft
-     ``<lang>.md`` per video plus a ``cover.<lang>.jpg`` thumbnail.
+     playlist's own order is not documented) and scaffolds ``<lang>.md`` per
+     video plus a ``cover.<lang>.jpg`` thumbnail.
 
-Editorial fields the scanner does NOT write: the commentary body, a curated
-title or final description (YouTube description seeds the field; the author
-rewrites), cross_refs / related_book.
+The raw YouTube description is discovery copy, not reading copy, so the scaffold
+does not dump it into the page. It goes through
+:func:`pancratius.video_description.draft_description`, which splits it into a
+clean hook (frontmatter ``description``) and a reading ``body`` — the author's
+own words, junk removed, faithful and QA-gated. The scanner does not write a
+curated ``title``, ``cross_refs``, or ``related_book``.
 
 Re-runs are idempotent by video ID. Editor edits to existing entries are never
 touched.
 
-Auth: ``YOUTUBE_API_KEY`` environment variable (Data API v3, read-only public
-access). Uses ``google-api-python-client`` so pagination (``list_next``),
-HTTP retries, and structured ``HttpError``s are handled by the SDK.
+Auth: ``YOUTUBE_API_KEY`` (Data API v3) for the scan; ``OPENROUTER_API_KEY`` for
+the description split — absent the latter, the split uses its deterministic
+fallback. Uses ``google-api-python-client`` so pagination (``list_next``), HTTP
+retries, and structured ``HttpError``s are handled by the SDK.
 """
 
 from __future__ import annotations
@@ -42,6 +46,7 @@ from googleapiclient.errors import HttpError
 
 from pancratius.docx_conversion import to_ascii_slug
 from pancratius.locales import Locale
+from pancratius.openrouter import LLMClient, Usage
 from pancratius.paths import CONTENT_ROOT
 from pancratius.video_channels import (
     CHANNELS_PATH,
@@ -50,6 +55,14 @@ from pancratius.video_channels import (
     ChannelIdWithHandle,
     VideoChannel,
     load_channels,
+)
+from pancratius.video_description import (
+    DescriptionConfig,
+    DescriptionDraft,
+    SplitMethod,
+    VideoContext,
+    client_from_env,
+    draft_description,
 )
 
 logger = logging.getLogger(__name__)
@@ -64,10 +77,21 @@ ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # lands in a slot meant for a playlist id or a slug.
 type VideoId = str
 type PlaylistId = str
-type PlaylistAttribution = dict[VideoId, list[tuple[PlaylistId, str]]]
 
 # Untyped JSON-API payload shape; pattern-matching `case` blocks narrow at use.
 type JSONObject = dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class PlaylistRef:
+    """A playlist a video belongs to: source id + this-locale title. Seeds the
+    video's frontmatter ``playlists`` and (by title) its ``tags``."""
+
+    id: PlaylistId
+    title: str
+
+
+type PlaylistAttribution = dict[VideoId, list[PlaylistRef]]
 
 
 class VideoScanError(RuntimeError):
@@ -151,17 +175,18 @@ class YouTubePlaylist:
 
 @dataclass(frozen=True, slots=True)
 class NewVideo:
-    """One scaffold work item the writer turns into a bundle on disk."""
+    """One scaffold work item the writer turns into a bundle on disk. ``draft``
+    carries the enriched hook (frontmatter ``description``) and reading body."""
     number: int
     folder: str
     lang: Locale
     yt_id: VideoId
     title: str
-    description: str
+    draft: DescriptionDraft
     published_at: str
     duration: str
     channel_key: str
-    playlists: list[dict[str, str]]
+    playlists: tuple[PlaylistRef, ...]
     thumbnail_url: str
 
 
@@ -307,7 +332,7 @@ def _build_attribution(
     playlists: Sequence[YouTubePlaylist],
     target_ids: Sequence[VideoId],
 ) -> PlaylistAttribution:
-    """For each target id, list the (playlist_id, title) pairs it appears in."""
+    """For each target id, list the playlists it appears in."""
     if not target_ids:
         return {}
     targets = set(target_ids)
@@ -315,25 +340,24 @@ def _build_attribution(
     for pl in playlists:
         for vid in client.list_playlist_video_ids(pl.id):
             if vid in targets:
-                out.setdefault(vid, []).append((pl.id, pl.title))
+                out.setdefault(vid, []).append(PlaylistRef(id=pl.id, title=pl.title))
     return out
 
 
 _DESCRIPTION_TODO = "TODO: write a one-paragraph SEO description for this video."
 
+_DURATION_RE = re.compile(r"^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$")
 
-def _clean_description(text: str) -> str:
-    """The full source description, kept whole. Lightly normalized — trailing
-    whitespace stripped per line and runs of blank lines collapsed — but
-    paragraph structure (and any links) preserved. Empty input collapses to the
-    TODO marker so the editor's ``rg TODO`` walk finds it.
 
-    Crimping to a card/SEO blurb is the view's job (`clampDescription` in
-    `src/lib/seo.ts`), never the scanner's: the model stores the whole message,
-    the view decides how much to show."""
-    lines = [line.rstrip() for line in text.strip().splitlines()]
-    cleaned = re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
-    return cleaned or _DESCRIPTION_TODO
+def _iso_duration_seconds(iso: str) -> int | None:
+    """Seconds from a YouTube ISO-8601 duration (``PT2M40S``), or None if
+    unparsable. Feeds the splitter's short-video heuristic (a sub-minute short
+    rarely carries a body to extract)."""
+    match = _DURATION_RE.match(iso)
+    if match is None:
+        return None
+    hours, minutes, seconds = (int(g) if g else 0 for g in match.groups())
+    return hours * 3600 + minutes * 60 + seconds
 
 
 def _existing_video_ids(content_root: Path) -> tuple[set[VideoId], int]:
@@ -413,11 +437,13 @@ def _scaffold_one(video: NewVideo, content_root: Path, *, dry_run: bool) -> Path
     fm: JSONObject = {
         "kind": "video",
         "number": video.number,
-        "slug": f"{video.number:02d}-{to_ascii_slug(video.title)}",
+        # Slug and folder share the one ASCII key, so a title that slugifies to
+        # empty (emoji-only) still gets the `video-<id>` fallback the folder uses.
+        "slug": video.folder,
         "title": video.title,
         "lang": video.lang,
-        "description": video.description,
-        "tags": [p["title"] for p in video.playlists],
+        "description": video.draft.hook or _DESCRIPTION_TODO,
+        "tags": [p.title for p in video.playlists],
         "cover": f"./cover.{video.lang}.jpg",
         "published_at": video.published_at,
         "duration": video.duration,
@@ -430,21 +456,32 @@ def _scaffold_one(video: NewVideo, content_root: Path, *, dry_run: bool) -> Path
                 "channel": video.channel_key,
             }
         ],
-        "playlists": video.playlists,
+        "playlists": [{"id": p.id, "title": p.title} for p in video.playlists],
         "translation": {"source": "original"},
     }
+    document = f"---\n{_ordered_yaml_dump(fm)}---\n"
+    body = video.draft.body.strip()
+    if body:
+        document += f"\n{body}\n"
 
     if dry_run:
         rel_md = md_path.relative_to(content_root.parent)
-        rel_cover = cover_path.relative_to(content_root.parent)
-        print(f"  would create {rel_md}")
-        print(f"  would fetch  {video.thumbnail_url} -> {rel_cover}")
+        _print_draft_preview(rel_md, video)
         return md_path
 
     folder.mkdir(parents=True, exist_ok=True)
-    md_path.write_text(f"---\n{_ordered_yaml_dump(fm)}---\n", encoding="utf-8")
+    md_path.write_text(document, encoding="utf-8")
     _download_thumbnail(video.thumbnail_url, video.yt_id, cover_path)
     return md_path
+
+
+def _print_draft_preview(rel_md: Path, video: NewVideo) -> None:
+    draft = video.draft
+    tail = "" if not draft.body else f"  ·  body {len(draft.body)} chars"
+    print(f"  {rel_md}  [{draft.method.value}]{tail}")
+    print(f"    hook: {draft.hook}")
+    if draft.dropped:
+        print(f"    dropped: {', '.join(draft.dropped)}")
 
 
 def _download_thumbnail(maxres_url: str, yt_id: VideoId, dst: Path) -> None:
@@ -466,6 +503,10 @@ class ScanResult:
     skipped_channels: list[str] = field(default_factory=list)
     new_videos: list[str] = field(default_factory=list)
     quota_used: int = 0
+    # Enrichment accounting: what the description split cost, and which videos
+    # fell back to the deterministic split (worth a human glance first).
+    editorial_usage: Usage = field(default_factory=Usage.empty)
+    fallback_videos: list[str] = field(default_factory=list)
 
 
 def scan(
@@ -476,16 +517,29 @@ def scan(
     channels_path: Path | None = None,
     api_key: str | None = None,
     client: VideoClient | None = None,
+    enrich: bool = True,
+    editorial_client: LLMClient | None = None,
+    editorial_config: DescriptionConfig | None = None,
 ) -> ScanResult:
     """Poll configured channels and scaffold drafts for new videos.
 
     ``channel_key`` narrows to one channel. ``dry_run`` prints planned actions.
     ``client`` is injected by tests; otherwise built from ``api_key`` or
     ``YOUTUBE_API_KEY``.
+
+    Each new video's description is split into a clean hook + reading body by
+    :func:`pancratius.video_description.draft_description`. ``editorial_client`` is
+    injected by tests; otherwise it is built from ``OPENROUTER_API_KEY`` when
+    ``enrich`` is set. With no client (``enrich=False`` or no key) the split uses
+    its deterministic fallback, so a sync never emits a raw description dump.
     """
     content = content_root if content_root is not None else CONTENT_ROOT
     channels_yaml = channels_path if channels_path is not None else CHANNELS_PATH
     client = client if client is not None else _build_default_client(api_key)
+    ed_client = editorial_client if editorial_client is not None else (client_from_env() if enrich else None)
+    ed_config = editorial_config or DescriptionConfig()
+    if ed_client is None:
+        logger.info("editorial: no OpenRouter client; using deterministic fallback split")
 
     channels = load_channels(channels_yaml)
     if channel_key:
@@ -536,20 +590,27 @@ def scan(
             slug_root = to_ascii_slug(meta.title) or f"video-{vid}"
             folder_name = f"{next_number:02d}-{slug_root}"
             logger.info("%s [%d/%d] %s", channel.key, idx, total, folder_name)
+            playlist_refs = attribution.get(vid, [])
+            context = VideoContext(
+                title=meta.title,
+                playlists=tuple(ref.title for ref in playlist_refs),
+                duration_seconds=_iso_duration_seconds(meta.duration),
+            )
+            draft, usage = draft_description(meta.description, context, client=ed_client, config=ed_config)
+            result.editorial_usage += usage
+            if draft.method is SplitMethod.FALLBACK:
+                result.fallback_videos.append(f"{channel.key}:{vid}")
             new_video = NewVideo(
                 number=next_number,
                 folder=folder_name,
                 lang=channel.default_lang,
                 yt_id=vid,
                 title=meta.title,
-                description=_clean_description(meta.description),
+                draft=draft,
                 published_at=meta.published_at,
                 duration=meta.duration,
                 channel_key=channel.key,
-                playlists=[
-                    {"id": pid, "title": title}
-                    for pid, title in attribution.get(vid, [])
-                ],
+                playlists=tuple(playlist_refs),
                 thumbnail_url=meta.thumbnail_url,
             )
             _scaffold_one(new_video, content, dry_run=dry_run)
@@ -579,5 +640,13 @@ def print_result(result: ScanResult, *, dry_run: bool) -> None:
     if result.skipped_channels:
         print(f"{prefix}skipped (scan: false): {', '.join(result.skipped_channels)}")
     print(f"{prefix}new videos: {len(result.new_videos)}  ·  quota used: {result.quota_used}")
+    cost = result.editorial_usage.cost_usd
+    if result.new_videos:
+        cost_note = f"  ·  ${cost:.4f}" if cost else ""
+        fallbacks = len(result.fallback_videos)
+        fb_note = f"  ·  {fallbacks} via fallback" if fallbacks else ""
+        print(f"{prefix}enriched descriptions: {len(result.new_videos)}{fb_note}{cost_note}")
+    for ref in result.fallback_videos:
+        print(f"  fallback: {ref}")
     for ref in result.new_videos:
         print(f"  {ref}")

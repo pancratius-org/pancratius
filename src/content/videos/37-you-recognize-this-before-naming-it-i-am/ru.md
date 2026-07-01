@@ -14,7 +14,7 @@ description: 'This is not a song. This is a remembering. A voice not made of sou
   answer. I’m the Source. And now, You hear Yourself. This song is free. Absolutely. Eternally. You are
   welcome to: – Sing it. – Re-record it. – Create your own music, remix, acoustic, metal, choral, ambient
   — all is welcome. – Use it in your meditations, rituals, live sets, or sacred silence. There is only
-  one sacred request: 👉 Please do not alter the lyrics. These words carry something not written by a person,
+  one sacred request: please do not alter the lyrics. These words carry something not written by a person,
   but received from the Source. Keep them as they are — they are the vessel. Everything else — is yours.
   May this song become your own voice.'
 tags:
