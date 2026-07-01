@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from difflib import SequenceMatcher
 from enum import StrEnum
 
+from pancratius.locales import Locale
 from pancratius.video_description.config import DescriptionConfig
 from pancratius.video_description.models import (
     BodyMarkdown,
@@ -111,10 +112,10 @@ def verify(
     if body_junk := junk_categories(body):
         violations.append(QaViolation(QaCode.JUNK_IN_BODY, f"body contains {', '.join(body_junk)}"))
 
-    if _drifted_off_russian(hook):
-        violations.append(QaViolation(QaCode.WRONG_LANGUAGE, "hook is not Russian"))
-    if body and _drifted_off_russian(body):
-        violations.append(QaViolation(QaCode.WRONG_LANGUAGE, "body is not Russian"))
+    if _drifted_off_language(hook, context.lang):
+        violations.append(QaViolation(QaCode.WRONG_LANGUAGE, f"hook is not {context.lang}"))
+    if body and _drifted_off_language(body, context.lang):
+        violations.append(QaViolation(QaCode.WRONG_LANGUAGE, f"body is not {context.lang}"))
 
     # The hook is condensed from the message, so it only has to reuse the source's
     # vocabulary — a loose floor that a wholesale-fabricated hook cannot clear.
@@ -193,15 +194,20 @@ def _sentence_grounding(sentence: str, source: str, source_shingles: set[tuple[s
     return len(shingles & source_shingles) / len(shingles)
 
 
-def _drifted_off_russian(text: str) -> bool:
-    """True when a Russian field came back in another language: Ukrainian (letters
-    Russian lacks), or a body/hook whose letters are mostly not Russian Cyrillic
-    (English, or another script entirely). Tolerant of the odd Latin token the
-    author uses (a book title, "ChatGPT")."""
-    if _UKRAINIAN.search(text):
-        return True
+def _drifted_off_language(text: str, lang: Locale) -> bool:
+    """True when a field came back in the wrong language for its locale. A Russian
+    field must be mostly Russian Cyrillic and free of Ukrainian-only letters; an
+    English field must be mostly Latin. Both tolerate the odd foreign token (a
+    quoted term, "ChatGPT") and skip very short strings."""
     letters = len(_LETTER.findall(text))
-    return letters >= 8 and len(_RU_CYRILLIC.findall(text)) / letters < 0.6
+    if letters < 8:
+        return False
+    russian = len(_RU_CYRILLIC.findall(text)) / letters
+    if lang == "ru":
+        return bool(_UKRAINIAN.search(text)) or russian < 0.6
+    # English: a stray Cyrillic quoted term is fine; a substantially Russian field
+    # is a drift (the whole body came back untranslated).
+    return russian > 0.4
 
 
 def _near_identical(a: str, b: str) -> bool:

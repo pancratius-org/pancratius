@@ -35,7 +35,7 @@ import re
 import urllib.error
 import urllib.request
 from collections.abc import Iterator, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from itertools import batched
 from pathlib import Path
 from typing import Any, Protocol, assert_never
@@ -47,7 +47,7 @@ from googleapiclient.errors import HttpError
 from pancratius.docx_conversion import to_ascii_slug
 from pancratius.locales import Locale
 from pancratius.openrouter import LLMClient, Usage
-from pancratius.paths import CONTENT_ROOT
+from pancratius.paths import CONTENT_ROOT, data_root_for_content_root
 from pancratius.video_channels import (
     CHANNELS_PATH,
     ChannelHandleOnly,
@@ -63,6 +63,11 @@ from pancratius.video_description import (
     VideoContext,
     client_from_env,
     draft_description,
+)
+from pancratius.video_description.english import (
+    TermReplacement,
+    TermReplacements,
+    normalize_english,
 )
 
 logger = logging.getLogger(__name__)
@@ -139,7 +144,7 @@ class VideoClient(Protocol):
     def list_playlist_video_ids(self, playlist_id: PlaylistId) -> list[VideoId]: ...
 
     def fetch_videos(
-        self, video_ids: Sequence[VideoId],
+        self, video_ids: Sequence[VideoId], default_lang: Locale = "ru",
     ) -> dict[VideoId, VideoMetadata]: ...
 
     def list_channel_playlists(self, channel_id: str) -> list[YouTubePlaylist]: ...
@@ -155,15 +160,26 @@ class ResolvedChannel:
 
 
 @dataclass(frozen=True, slots=True)
+class VideoLocalization:
+    """An author-provided title + description in a non-default language (YouTube
+    localizations), title already stripped of discovery hashtags."""
+    title: str
+    description: str
+
+
+@dataclass(frozen=True, slots=True)
 class VideoMetadata:
     """One YouTube video, post-validation: `published_at` is `YYYY-MM-DD`,
-    `duration` is the ISO 8601 string YouTube returns."""
+    `duration` is the ISO 8601 string YouTube returns. `title` is the default
+    (Russian) title with trailing hashtags dropped; `localizations` holds any
+    author-provided non-default-language variants (e.g. English), keyed by locale."""
     id: VideoId
     title: str
     description: str
     published_at: str
     duration: str
     thumbnail_url: str
+    localizations: dict[Locale, VideoLocalization] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -174,20 +190,30 @@ class YouTubePlaylist:
 
 
 @dataclass(frozen=True, slots=True)
-class NewVideo:
-    """One scaffold work item the writer turns into a bundle on disk. ``draft``
-    carries the enriched hook (frontmatter ``description``) and reading body."""
-    number: int
-    folder: str
+class LocaleScaffold:
+    """One language's authored fields for a video: the title, the hook/body split
+    (``draft``), and the playlists in that language (their titles seed the tags)."""
     lang: Locale
-    yt_id: VideoId
     title: str
     draft: DescriptionDraft
+    playlists: tuple[PlaylistRef, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class NewVideo:
+    """One scaffold work item the writer turns into a bundle on disk. One
+    :class:`LocaleScaffold` per language present — Russian always, plus English
+    when the author published an ``en-US`` localization. Only the default
+    language's ``cover.<lang>.jpg`` is fetched; other locales fall back to it."""
+    number: int
+    folder: str
+    yt_id: VideoId
     published_at: str
     duration: str
     channel_key: str
-    playlists: tuple[PlaylistRef, ...]
     thumbnail_url: str
+    default_lang: Locale
+    locales: tuple[LocaleScaffold, ...]
 
 
 class YouTubeClient:
@@ -235,15 +261,18 @@ class YouTubeClient:
             request = self._service.playlistItems().list_next(request, resp)
         return ids
 
-    def fetch_videos(self, video_ids: Sequence[VideoId]) -> dict[VideoId, VideoMetadata]:
-        """Batch `videos.list` (50/batch). Skips items missing required fields."""
+    def fetch_videos(
+        self, video_ids: Sequence[VideoId], default_lang: Locale = "ru",
+    ) -> dict[VideoId, VideoMetadata]:
+        """Batch `videos.list` (50/batch). Skips items missing required fields.
+        `localizations` carries the author's non-default-language title/description."""
         out: dict[VideoId, VideoMetadata] = {}
         for batch in batched(video_ids, 50, strict=False):
             request = self._service.videos().list(
-                part="snippet,contentDetails", id=",".join(batch),
+                part="snippet,contentDetails,localizations", id=",".join(batch),
             )
             for item in self._execute(request).get("items") or []:
-                meta = _parse_video(item)
+                meta = _parse_video(item, default_lang)
                 if meta is not None:
                     out[meta.id] = meta
         return out
@@ -280,7 +309,44 @@ class YouTubeClient:
         return payload
 
 
-def _parse_video(item: object) -> VideoMetadata | None:
+# A trailing run of discovery hashtags. Each must contain a letter, so a numeric
+# episode marker like "#51" is preserved, not mistaken for a tag.
+_TRAILING_HASHTAGS = re.compile(r"(?:\s+#(?=[^\s#]*[^\W\d_])[^\s#]+)+\s*$")
+
+# The YouTube localization keys we accept for each site locale, in preference
+# order (en-US before a bare en before en-GB), so the choice is deterministic.
+_YT_KEYS_FOR_LOCALE: dict[Locale, tuple[str, ...]] = {"ru": ("ru",), "en": ("en-US", "en", "en-GB")}
+
+
+def _clean_title(title: str) -> str:
+    """Drop trailing discovery hashtags (`… #faith #молитва`) that belong on
+    YouTube, not on a reading page. Leading and inline text is untouched."""
+    return _TRAILING_HASHTAGS.sub("", title).strip()
+
+
+def _parse_localizations(item: object, default_lang: Locale) -> dict[Locale, VideoLocalization]:
+    """Author-provided non-default-language title/description pairs. For each site
+    locale (other than the default, which is the snippet already), the first
+    available YouTube key in preference order wins; a localization missing a
+    non-empty title or description is skipped."""
+    out: dict[Locale, VideoLocalization] = {}
+    match item:
+        case {"localizations": dict() as localizations}:
+            by_key = {k: v for k, v in localizations.items() if isinstance(k, str)}
+            for locale, keys in _YT_KEYS_FOR_LOCALE.items():
+                if locale == default_lang:
+                    continue
+                for key in keys:
+                    match by_key.get(key):
+                        case {"title": str(title), "description": str(description)} if title.strip() and description.strip():
+                            out[locale] = VideoLocalization(
+                                title=_clean_title(title) or title.strip(), description=description,
+                            )
+                            break
+    return out
+
+
+def _parse_video(item: object, default_lang: Locale = "ru") -> VideoMetadata | None:
     """Structurally narrow a `videos.list` item; None for missing/malformed."""
     match item:
         case {
@@ -291,14 +357,15 @@ def _parse_video(item: object) -> VideoMetadata | None:
             published_at = _extract_published_at(snippet.get("publishedAt"))
             if published_at is None:
                 return None
-            raw_title = str(snippet.get("title", "")).strip()
+            title = _clean_title(str(snippet.get("title", "")).strip())
             return VideoMetadata(
                 id=vid,
-                title=raw_title or f"Video {vid}",
+                title=title or f"Video {vid}",
                 description=str(snippet.get("description", "")),
                 published_at=published_at,
                 duration=duration,
                 thumbnail_url=_best_thumbnail_url(snippet, vid),
+                localizations=_parse_localizations(item, default_lang),
             )
         case _:
             return None
@@ -342,6 +409,91 @@ def _build_attribution(
             if vid in targets:
                 out.setdefault(vid, []).append(PlaylistRef(id=pl.id, title=pl.title))
     return out
+
+
+def _build_locale(
+    lang: Locale,
+    title: str,
+    description: str,
+    playlists: Sequence[PlaylistRef],
+    duration_seconds: int | None,
+    *,
+    client: LLMClient | None,
+    config: DescriptionConfig,
+    english_terms: TermReplacements = (),
+) -> tuple[LocaleScaffold, Usage]:
+    """Split one language's description into a hook + body and package it as a
+    :class:`LocaleScaffold`. An English localization is normalized to the
+    library's canonical terminology and curly-quote direction."""
+    context = VideoContext(
+        title=title,
+        lang=lang,
+        playlists=tuple(ref.title for ref in playlists),
+        duration_seconds=duration_seconds,
+    )
+    draft, usage = draft_description(description, context, client=client, config=config)
+    if lang == "en":
+        # Normalize the title too: PAN027 scans en.md line-by-line including the
+        # frontmatter, so a name like "Pankratius" in the title fails fatally.
+        title = normalize_english(title, english_terms)
+        draft = replace(
+            draft,
+            hook=normalize_english(draft.hook, english_terms),
+            body=normalize_english(draft.body, english_terms),
+        )
+    return LocaleScaffold(lang=lang, title=title, draft=draft, playlists=tuple(playlists)), usage
+
+
+def _load_english_terms(content_root: Path) -> TermReplacements:
+    """Canonical-terminology replacements from ``data/translation-glossary.yaml`` —
+    the same denylist/flag terms PAN027 enforces, carrying each term's case
+    sensitivity — applied to English localizations so they conform without a human
+    pass. Empty when the glossary is missing, malformed, or unreachable."""
+    try:
+        path = data_root_for_content_root(content_root) / "translation-glossary.yaml"
+        raw: object = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, yaml.YAMLError):
+        return ()
+    terms: list[TermReplacement] = []
+    match raw:
+        case {"terms": list() as entries}:
+            for entry in entries:
+                match entry:
+                    case {"en": {"use": str(use), "avoid": list() as avoid, "enforcement": ("denylist" | "flag"), "match": "insensitive"}}:
+                        terms += _term_replacements(use, avoid, insensitive=True)
+                    case {"en": {"use": str(use), "avoid": list() as avoid, "enforcement": ("denylist" | "flag")}}:
+                        terms += _term_replacements(use, avoid, insensitive=False)
+    return tuple(terms)
+
+
+def _term_replacements(use: str, avoid: list[object], *, insensitive: bool) -> list[TermReplacement]:
+    canonical = use.split(" / ")[0].strip()
+    return [TermReplacement(a, canonical, insensitive) for a in avoid if isinstance(a, str)]
+
+
+def _localize_playlists(
+    playlists: Sequence[PlaylistRef], tag_labels: dict[str, str],
+) -> list[PlaylistRef]:
+    """Re-title playlists into English via the tag glossary (their titles seed the
+    tags, which PAN006C requires to be the canonical English labels). The lookup
+    trims whitespace to survive a stray trailing space; a still-unmapped title is
+    kept as-is so the gap surfaces loudly rather than shipping silently."""
+    return [PlaylistRef(id=p.id, title=tag_labels.get(p.title.strip(), p.title)) for p in playlists]
+
+
+def _load_en_tag_labels(content_root: Path) -> dict[str, str]:
+    """Canonical Russian-tag → English-label map from ``data/tag-glossary.yaml``'s
+    ``en`` block; empty when the glossary is missing, malformed, or the content
+    root is not a real repo tree (e.g. a test fixture)."""
+    try:
+        path = data_root_for_content_root(content_root) / "tag-glossary.yaml"
+        raw: object = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, yaml.YAMLError):
+        return {}
+    match raw:
+        case {"en": dict() as en}:
+            return {str(k): str(v) for k, v in en.items() if isinstance(v, str)}
+    return {}
 
 
 _DESCRIPTION_TODO = "TODO: write a one-paragraph SEO description for this video."
@@ -427,24 +579,42 @@ def _ordered_yaml_dump(data: JSONObject) -> str:
     )
 
 
-def _scaffold_one(video: NewVideo, content_root: Path, *, dry_run: bool) -> Path:
+def _scaffold_one(video: NewVideo, content_root: Path, *, dry_run: bool) -> None:
+    """Write one `<lang>.md` per locale (skipping any that already exist) and,
+    for the default locale only, fetch the cover thumbnail."""
     folder = content_root / "videos" / video.folder
-    md_path = folder / f"{video.lang}.md"
-    cover_path = folder / f"cover.{video.lang}.jpg"
-    if md_path.exists():
-        return md_path
+    for locale in video.locales:
+        md_path = folder / f"{locale.lang}.md"
+        if md_path.exists():
+            continue
+        document = _locale_document(video, locale)
+        if dry_run:
+            _print_draft_preview(md_path.relative_to(content_root.parent), locale)
+            continue
+        folder.mkdir(parents=True, exist_ok=True)
+        md_path.write_text(document, encoding="utf-8")
+    if not dry_run:
+        _download_thumbnail(
+            video.thumbnail_url, video.yt_id, folder / f"cover.{video.default_lang}.jpg",
+        )
 
+
+def _locale_document(video: NewVideo, locale: LocaleScaffold) -> str:
+    is_default = locale.lang == video.default_lang
     fm: JSONObject = {
         "kind": "video",
         "number": video.number,
-        # Slug and folder share the one ASCII key, so a title that slugifies to
-        # empty (emoji-only) still gets the `video-<id>` fallback the folder uses.
-        "slug": video.folder,
-        "title": video.title,
-        "lang": video.lang,
-        "description": video.draft.hook or _DESCRIPTION_TODO,
-        "tags": [p.title for p in video.playlists],
-        "cover": f"./cover.{video.lang}.jpg",
+        # Slug and folder share the one ASCII key for the default locale; a
+        # translation gets its own ASCII slug from its title (falling back to the
+        # video id if the title has no ASCII, as the folder key does).
+        "slug": video.folder if is_default
+        else f"{video.number:02d}-{to_ascii_slug(locale.title) or f'video-{video.yt_id}'}",
+        "title": locale.title,
+        "lang": locale.lang,
+        "description": locale.draft.hook or _DESCRIPTION_TODO,
+        "tags": [p.title for p in locale.playlists],
+        # Only the default locale owns a cover; others fall back to it.
+        **({"cover": f"./cover.{locale.lang}.jpg"} if is_default else {}),
         "published_at": video.published_at,
         "duration": video.duration,
         "sources": [
@@ -456,27 +626,20 @@ def _scaffold_one(video: NewVideo, content_root: Path, *, dry_run: bool) -> Path
                 "channel": video.channel_key,
             }
         ],
-        "playlists": [{"id": p.id, "title": p.title} for p in video.playlists],
-        "translation": {"source": "original"},
+        "playlists": [{"id": p.id, "title": p.title} for p in locale.playlists],
+        # The Russian is the original; an English localization is the author's own
+        # published translation (human, not our machine draft).
+        "translation": {"source": "original" if is_default else "literary"},
     }
     document = f"---\n{_ordered_yaml_dump(fm)}---\n"
-    body = video.draft.body.strip()
+    body = locale.draft.body.strip()
     if body:
         document += f"\n{body}\n"
-
-    if dry_run:
-        rel_md = md_path.relative_to(content_root.parent)
-        _print_draft_preview(rel_md, video)
-        return md_path
-
-    folder.mkdir(parents=True, exist_ok=True)
-    md_path.write_text(document, encoding="utf-8")
-    _download_thumbnail(video.thumbnail_url, video.yt_id, cover_path)
-    return md_path
+    return document
 
 
-def _print_draft_preview(rel_md: Path, video: NewVideo) -> None:
-    draft = video.draft
+def _print_draft_preview(rel_md: Path, locale: LocaleScaffold) -> None:
+    draft = locale.draft
     tail = "" if not draft.body else f"  ·  body {len(draft.body)} chars"
     print(f"  {rel_md}  [{draft.method.value}]{tail}")
     print(f"    hook: {draft.hook}")
@@ -503,9 +666,11 @@ class ScanResult:
     skipped_channels: list[str] = field(default_factory=list)
     new_videos: list[str] = field(default_factory=list)
     quota_used: int = 0
-    # Enrichment accounting: what the description split cost, and which videos
-    # fell back to the deterministic split (worth a human glance first).
+    # Enrichment accounting: what the description split cost, which videos also
+    # got an English localization (`en.md`), and which fell back to the
+    # deterministic split (worth a human glance first).
     editorial_usage: Usage = field(default_factory=Usage.empty)
+    localized_videos: list[str] = field(default_factory=list)
     fallback_videos: list[str] = field(default_factory=list)
 
 
@@ -549,6 +714,8 @@ def scan(
 
     known_ids, max_number = _existing_video_ids(content)
     next_number = max_number + 1
+    tag_labels = _load_en_tag_labels(content)
+    english_terms = _load_english_terms(content)
     result = ScanResult()
 
     for channel in channels:
@@ -572,7 +739,7 @@ def scan(
             continue
 
         logger.info("%s: fetching metadata for %d videos…", channel.key, len(new_ids))
-        videos = client.fetch_videos(new_ids)
+        videos = client.fetch_videos(new_ids, channel.default_lang)
         logger.info("%s: listing channel playlists…", channel.key)
         playlists = client.list_channel_playlists(info.channel_id)
         logger.info("%s: mapping videos to %d playlists…", channel.key, len(playlists))
@@ -591,29 +758,41 @@ def scan(
             folder_name = f"{next_number:02d}-{slug_root}"
             logger.info("%s [%d/%d] %s", channel.key, idx, total, folder_name)
             playlist_refs = attribution.get(vid, [])
-            context = VideoContext(
-                title=meta.title,
-                playlists=tuple(ref.title for ref in playlist_refs),
-                duration_seconds=_iso_duration_seconds(meta.duration),
+            duration_seconds = _iso_duration_seconds(meta.duration)
+
+            ru, usage = _build_locale(
+                channel.default_lang, meta.title, meta.description, playlist_refs,
+                duration_seconds, client=ed_client, config=ed_config,
             )
-            draft, usage = draft_description(meta.description, context, client=ed_client, config=ed_config)
             result.editorial_usage += usage
-            if draft.method is SplitMethod.FALLBACK:
+            locales = [ru]
+            if ru.draft.method is SplitMethod.FALLBACK:
                 result.fallback_videos.append(f"{channel.key}:{vid}")
-            new_video = NewVideo(
-                number=next_number,
-                folder=folder_name,
-                lang=channel.default_lang,
-                yt_id=vid,
-                title=meta.title,
-                draft=draft,
-                published_at=meta.published_at,
-                duration=meta.duration,
-                channel_key=channel.key,
-                playlists=tuple(playlist_refs),
-                thumbnail_url=meta.thumbnail_url,
+
+            # The author's own English localization, if he published one.
+            en_loc = meta.localizations.get("en")
+            if en_loc is not None and channel.default_lang != "en":
+                en, en_usage = _build_locale(
+                    "en", en_loc.title, en_loc.description,
+                    _localize_playlists(playlist_refs, tag_labels), duration_seconds,
+                    client=ed_client, config=ed_config, english_terms=english_terms,
+                )
+                result.editorial_usage += en_usage
+                locales.append(en)
+                result.localized_videos.append(f"{channel.key}:{vid}")
+                if en.draft.method is SplitMethod.FALLBACK:
+                    result.fallback_videos.append(f"{channel.key}:{vid}:en")
+
+            _scaffold_one(
+                NewVideo(
+                    number=next_number, folder=folder_name, yt_id=vid,
+                    published_at=meta.published_at, duration=meta.duration,
+                    channel_key=channel.key, thumbnail_url=meta.thumbnail_url,
+                    default_lang=channel.default_lang, locales=tuple(locales),
+                ),
+                content,
+                dry_run=dry_run,
             )
-            _scaffold_one(new_video, content, dry_run=dry_run)
             result.new_videos.append(f"{channel.key}:{vid}")
             known_ids.add(vid)
             next_number += 1
@@ -645,7 +824,8 @@ def print_result(result: ScanResult, *, dry_run: bool) -> None:
         cost_note = f"  ·  ${cost:.4f}" if cost else ""
         fallbacks = len(result.fallback_videos)
         fb_note = f"  ·  {fallbacks} via fallback" if fallbacks else ""
-        print(f"{prefix}enriched descriptions: {len(result.new_videos)}{fb_note}{cost_note}")
+        en_note = f"  ·  {len(result.localized_videos)} with EN" if result.localized_videos else ""
+        print(f"{prefix}enriched descriptions: {len(result.new_videos)}{en_note}{fb_note}{cost_note}")
     for ref in result.fallback_videos:
         print(f"  fallback: {ref}")
     for ref in result.new_videos:

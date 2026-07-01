@@ -310,6 +310,64 @@ def test_qa_blocks_ukrainian_drift() -> None:
     assert QaCode.WRONG_LANGUAGE in _codes("Чистий лід про світло душі твоєї.", "")
 
 
+def test_normalize_english_applies_terminology_and_quotes() -> None:
+    from pancratius.video_description.english import TermReplacement, normalize_english
+
+    terms = (
+        TermReplacement("Holy Russia", "Holy Rus", insensitive=True),
+        TermReplacement("Pankratius", "Pancratius", insensitive=False),
+    )
+    out = normalize_english('In Holy Russia, Pankratius said "come home." He meant it.', terms)
+    assert "Holy Rus" in out and "Holy Russia" not in out
+    assert "Pancratius" in out and "Pankratius" not in out
+    assert "“come home.”" in out  # opening + closing curly, facing right
+
+
+def test_normalize_english_terminology_respects_case_flag() -> None:
+    from pancratius.video_description.english import TermReplacement, normalize_english
+
+    # "Holy Russia" is match:insensitive in the glossary → lowercase must be fixed;
+    # "Pankratius" is case-sensitive → a lowercase slug token must be left alone.
+    terms = (
+        TermReplacement("Holy Russia", "Holy Rus", insensitive=True),
+        TermReplacement("Pankratius", "Pancratius", insensitive=False),
+    )
+    assert "Holy Rus" in normalize_english("in holy russia we live", terms)
+    assert "sergey-pankratius" in normalize_english("see sergey-pankratius online", terms)
+
+
+def test_normalize_english_closes_multi_paragraph_quote() -> None:
+    from pancratius.video_description.english import normalize_english
+
+    # A quote opening in one paragraph and closing at the very end: the closing
+    # mark must curl closed, not backwards.
+    body = 'He said:\n\n"This is the first line.\n\nAnd the last, in all its glory."'
+    out = normalize_english(body, ())
+    assert out.endswith('glory.”')
+    assert '"' not in out
+
+
+def test_qa_accepts_english_for_en_locale() -> None:
+    src = "The light lives in the heart, not in rules. You do not have to be brighter than others."
+    en_ctx = VideoContext(title="On the light", lang="en", duration_seconds=160)
+    verdict = verify(
+        _draft("The light lives in the heart, not in rules.", "You do not have to be brighter than others."),
+        src, en_ctx, CONFIG,
+    )
+    assert verdict.ok
+
+
+def test_qa_rejects_wrong_language_for_locale() -> None:
+    en_ctx = VideoContext(title="On the light", lang="en", duration_seconds=160)
+    ru_body_in_en = verify(
+        _draft("The light lives in the heart.", "Свет живёт в сердце, а не в правилах, друг навсегда."),
+        "The light lives in the heart.", en_ctx, CONFIG,
+    )
+    assert QaCode.WRONG_LANGUAGE in {v.code for v in ru_body_in_en.violations}
+    # English in a Russian-locale hook is likewise a drift (default CTX is ru).
+    assert QaCode.WRONG_LANGUAGE in _codes("This entire hook is written in English words here", "")
+
+
 def test_qa_blocks_ungrounded_hook() -> None:
     # A hook whose vocabulary is invented, not drawn from the description.
     codes = _codes("Купите криптовалюту сегодня получите гарантированную прибыль завтра быстро", "")

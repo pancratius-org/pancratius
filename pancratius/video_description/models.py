@@ -12,13 +12,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
+from pancratius.locales import Locale
+
 # The unprocessed description exactly as the platform returns it.
 type RawDescription = str
-# The lede: a short, complete Russian thought. Shown above the embed and used
-# for SEO/OG/cards.
+# The lede: a short, complete thought in the source language. Shown above the
+# embed and used for SEO/OG/cards.
 type Hook = str
-# The reading, as clean Russian Markdown — or "" when the source carries no
-# message beyond the hook (a short, or SEO + footer only).
+# The reading, as clean Markdown in the source language — or "" when the source
+# carries no message beyond the hook (a short, or SEO + footer only).
 type BodyMarkdown = str
 
 
@@ -35,11 +37,13 @@ class VideoContext:
     """What the splitter knows besides the raw description.
 
     The title is passed so the hook does not merely restate it (the page already
-    shows the title). Playlist titles and duration give topical/format grounding
-    without leaking into the prose — a sub-minute video is almost always a
-    hook-only short with no body to extract."""
+    shows the title). `lang` is the language of THIS description (a video's own
+    Russian and its English localization are two separate contexts). Playlist
+    titles and duration give topical/format grounding without leaking into the
+    prose — a sub-minute video is almost always a hook-only short with no body."""
 
     title: str
+    lang: Locale = "ru"
     playlists: tuple[str, ...] = ()
     duration_seconds: int | None = None
 
