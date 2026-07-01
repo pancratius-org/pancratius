@@ -31,8 +31,9 @@ Four kinds of content with different identity rules — do not collapse them:
   layout. Channels live in `src/content/videos/channels.yaml`;
   `uv run pancratius video sync` polls them, and for each new video splits the raw
   YouTube description into a clean hook (`description`) and reading `body` — a
-  faithful, QA-gated draft of the author's own words, not a raw dump. See
-  [Videos](#videos).
+  faithful, QA-gated draft of the author's own words, not a raw dump. When the
+  author published an English localization, a paired `en.md` is scaffolded from it
+  the same way. See [Videos](#videos).
 
 The product goal for works: one folder tells the whole story of that work — no
 parallel media tree, no hidden metadata files to add one book.

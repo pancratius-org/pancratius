@@ -31,6 +31,7 @@ from pancratius.video_channels import (
 from pancratius.video_scan import (
     ChannelLocator,
     ResolvedChannel,
+    VideoLocalization,
     VideoMetadata,
     YouTubePlaylist,
 )
@@ -106,7 +107,10 @@ class _FakeClient:
             return list(self.uploads_ids)
         return list(self.playlist_members.get(playlist_id, []))
 
-    def fetch_videos(self, video_ids: Sequence[str]) -> dict[str, VideoMetadata]:
+    def fetch_videos(
+        self, video_ids: Sequence[str], default_lang: str = "ru",
+    ) -> dict[str, VideoMetadata]:
+        del default_lang
         self.quota_used += 1
         return {vid: self.videos[vid] for vid in video_ids if vid in self.videos}
 
@@ -392,6 +396,95 @@ def test_scan_writes_clean_fallback_when_model_returns_junk(
         assert leak not in fm["description"]
 
 
+@dataclass
+class _BilingualEditorial:
+    """Returns the Russian or English canned reply based on the LANGUAGE marker the
+    prompt carries, so one fake serves both locale calls."""
+
+    ru_reply: str
+    en_reply: str
+
+    def complete(
+        self,
+        *,
+        model: ModelId,
+        messages: Sequence[ChatMessage],
+        temperature: float,
+        max_tokens: int,
+        response_format: dict[str, Any] | None = None,
+        reasoning_max_tokens: int | None = None,
+    ) -> Completion:
+        del temperature, max_tokens, response_format, reasoning_max_tokens
+        text = " ".join(m.content for m in messages)
+        reply = self.en_reply if "LANGUAGE: English" in text else self.ru_reply
+        return Completion(text=reply, usage=Usage(10, 10, 0, 0.001), model=model)
+
+    def fetch_pricing(self, model: ModelId) -> ModelPricing:
+        del model
+        return ModelPricing(0.1, 0.4, None)
+
+
+def _repo_shaped(tmp_path: Path) -> Path:
+    """A tmp tree shaped like `<root>/src/content` with sibling `data/` glossaries,
+    so the scanner's tag/terminology loaders resolve. Returns the content root."""
+    content = tmp_path / "src" / "content"
+    (content / "videos").mkdir(parents=True)
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "tag-glossary.yaml").write_text("en:\n  Апокалипсис: Apocalypse\n", encoding="utf-8")
+    (data / "translation-glossary.yaml").write_text(
+        "terms:\n  - ru: Панкратиус\n    en:\n      use: Pancratius\n      avoid: [Pankratius]\n"
+        "      enforcement: denylist\n",
+        encoding="utf-8",
+    )
+    return content
+
+
+def test_scan_scaffolds_english_from_localization(tmp_path: Path) -> None:
+    content = _repo_shaped(tmp_path)
+    channels_path = content / "videos" / "channels.yaml"
+    write_channels(
+        [VideoChannel(
+            key="main", platform="youtube", address=ChannelHandleOnly("@t"),
+            url="https://www.youtube.com/@t", title={"ru": "T", "en": "T"},
+            copy={"ru": "t", "en": "t"}, badge=None, scan=True, default_lang="ru",
+        )],
+        channels_path,
+    )
+    client = _FakeClient(
+        uploads_ids=["v1"],
+        videos={"v1": VideoMetadata(
+            id="v1", title="Слово о свете", description="Свет живёт в сердце, а не в правилах.",
+            published_at="2026-02-01", duration="PT3M",
+            thumbnail_url="https://i.ytimg.com/vi/v1/maxresdefault.jpg",
+            localizations={"en": VideoLocalization(
+                title="A Word from Pankratius",
+                description="Light lives in the heart, not in rules, Pankratius says.",
+            )},
+        )},
+        playlists=[YouTubePlaylist(id="pl", title="Апокалипсис", item_count=1)],
+        playlist_members={"pl": ["v1"]},
+    )
+    editorial = _BilingualEditorial(
+        ru_reply=json.dumps({"hook": "Свет живёт в сердце.", "body_markdown": "Свет живёт в сердце, а не в правилах.", "dropped": []}, ensure_ascii=False),
+        en_reply=json.dumps({"hook": "Light lives in the heart.", "body_markdown": "Light lives in the heart, not in rules, Pankratius says.", "dropped": []}, ensure_ascii=False),
+    )
+    result = video_scan.scan(content_root=content, channels_path=channels_path, client=client, editorial_client=editorial)
+
+    assert result.localized_videos == ["main:v1"]
+    folder = next((content / "videos").glob("01-*"))
+    en = video_scan._read_frontmatter(folder / "en.md")
+    assert en is not None
+    assert en["lang"] == "en"
+    assert en["title"] == "A Word from Pancratius"  # terminology-normalized title
+    assert en["slug"] == "01-a-word-from-pancratius"
+    assert en["tags"] == ["Apocalypse"]  # RU playlist mapped through the glossary
+    assert "cover" not in en  # EN falls back to the RU cover
+    assert en["translation"] == {"source": "literary"}
+    body = (folder / "en.md").read_text(encoding="utf-8").split("---\n", 2)[-1]
+    assert "Pancratius" in body and "Pankratius" not in body  # body normalized too
+
+
 def test_scan_falls_back_to_clean_split_without_editorial_client(
     tmp_path: Path, channels_path: Path,
 ) -> None:
@@ -417,6 +510,35 @@ def test_scan_falls_back_to_clean_split_without_editorial_client(
 # ─────────────────────────────────────────────────────────────────────
 # Pure parser/helper tests (no client involved).
 # ─────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [
+        pytest.param("Оставаться перед Богом #faith #молитва #бог", "Оставаться перед Богом", id="trailing-tags"),
+        pytest.param("Свобода от Мамоны #shorts", "Свобода от Мамоны", id="single-tag"),
+        pytest.param("Чистый заголовок без тегов", "Чистый заголовок без тегов", id="no-tags"),
+        pytest.param("Перестань #kingdomofgod #믿음", "Перестань", id="mixed-script-tag"),
+        pytest.param("Послание #51 #shorts", "Послание #51", id="preserve-episode-marker"),
+        pytest.param("Послание #shorts #51", "Послание #shorts #51", id="numeric-marker-stops-strip"),
+    ],
+)
+def test_clean_title_strips_trailing_hashtags(title: str, expected: str) -> None:
+    assert video_scan._clean_title(title) == expected
+
+
+def test_parse_localizations_maps_en_us_and_skips_default() -> None:
+    item = {
+        "localizations": {
+            "ru": {"title": "Русский", "description": "..."},
+            "en-US": {"title": "English #faith", "description": "The English body."},
+            "de": {"title": "Deutsch", "description": "..."},
+        }
+    }
+    locs = video_scan._parse_localizations(item, default_lang="ru")
+    assert set(locs) == {"en"}  # ru is the default; de is not a site locale
+    assert locs["en"].title == "English"  # hashtags stripped
+    assert locs["en"].description == "The English body."
 
 
 @pytest.mark.parametrize(

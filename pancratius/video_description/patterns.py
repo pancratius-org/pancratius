@@ -43,9 +43,15 @@ JUNK_PATTERNS: dict[str, re.Pattern[str]] = {
     "handle": re.compile(_HANDLE),
     "email": re.compile(r"\b[\w.+-]+@[\w-]+\.[a-z]{2,}", re.I),
     "card_number": re.compile(_CARD),
+    # Structure catches the generic footer surface; these phrases catch bare
+    # RU/EN promo lines that carry no URL, handle, card number, or emoji.
     "promo_phrase": re.compile(
+        # Russian footer/promo lines …
         r"Поддержать проект|поддержать канал|Следующее\s*[—–-]\s*здесь"
-        r"|Книги автора|Слуша(?:ть|й) (?:книг|аудио)|карты? для перевод",
+        r"|Книги автора|Слуша(?:ть|й) (?:книг|аудио)|карты? для перевод"
+        # … and their English-localization equivalents.
+        r"|Support the project|Author'?s books|This message is from the"
+        r"|The next one is here|Watch the (?:long|full) video",
         re.I,
     ),
     "emoji": re.compile(_EMOJI),
@@ -78,11 +84,14 @@ def scrub(text: str) -> str:
 # A line that belongs to the trailing promo footer: an anchored promo marker, or
 # a line that already carries junk. The message's own prose never matches at the
 # LINE start, so `footer_start` cuts only a genuine trailing block, not a body
-# sentence that merely opens with a word like "Дзен".
+# sentence that merely opens with a word like "Дзен". Natural-language markers
+# are RU/EN helpers; URLs, handles, card numbers, emoji, and HTML are the generic
+# deterministic guard.
 _FOOTER_MARKER = re.compile(
     r"^\s*(?:"
     + _URL
     + r"|" + _EMOJI
+    # Russian footer openers …
     + r"|Это послание\s*[—–-]\s*из серии"
     + r"|Следующее\s*[—–-]\s*здесь"
     + r"|Книги автора"
@@ -90,6 +99,12 @@ _FOOTER_MARKER = re.compile(
     + r"|(?:Канал в )?Telegram\b"
     + r"|Дзен\b|Контакт\b"
     + r"|(?:RUB|EUR|USD)[:\s]"
+    # … and their English-localization equivalents.
+    + r"|This message is from the"
+    + r"|Author'?s books"
+    + r"|Support the project"
+    + r"|Watch the (?:long|full) video"
+    + r"|Contact\b"
     + r")",
     re.I,
 )

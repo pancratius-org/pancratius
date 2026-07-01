@@ -5,7 +5,7 @@ The model is capable but not infallible, and nobody reviews the sync PR before i
 merges. So every draft is checked against machine-verifiable rules before it is
 accepted: no junk (links, promo, raw HTML) in the hook or body, the body is
 grounded sentence-by-sentence in the source (not invented), the hook reuses the
-source's own vocabulary, the language stayed Russian, and the hook stays within
+source's own vocabulary, the language stays in-locale, and the hook stays within
 its length. Blocking violations send the draft back to the model with the
 specific complaint, then — if it still fails — to the deterministic fallback.
 """
@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from difflib import SequenceMatcher
 from enum import StrEnum
 
+from pancratius.localization import drifted_off_language
 from pancratius.video_description.config import DescriptionConfig
 from pancratius.video_description.models import (
     BodyMarkdown,
@@ -28,9 +29,6 @@ from pancratius.video_description.models import (
 from pancratius.video_description.patterns import junk_categories
 
 _WORD = re.compile(r"\w+", re.UNICODE)
-_LETTER = re.compile(r"[^\W\d_]", re.UNICODE)     # any script's letter
-_RU_CYRILLIC = re.compile(r"[а-яёА-ЯЁ]")
-_UKRAINIAN = re.compile(r"[іїєґІЇЄҐ]")            # letters Russian lacks — a defect here
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?…»])\s+|\n+")
 
 # A body longer than this must be broken into paragraphs — one unbroken block of
@@ -45,7 +43,7 @@ class QaCode(StrEnum):
     JUNK_IN_BODY = "junk_in_body"
     HOOK_UNGROUNDED = "hook_ungrounded"      # hook vocabulary not from the source
     BODY_UNGROUNDED = "body_ungrounded"      # a body sentence invented, not in the source
-    WRONG_LANGUAGE = "wrong_language"        # drifted off Russian
+    WRONG_LANGUAGE = "wrong_language"
     BODY_NOT_PARAGRAPHED = "body_not_paragraphed"  # a long body with no paragraph breaks
     HOOK_RESTATES_TITLE = "hook_restates_title"
     BODY_DUPLICATES_HOOK = "body_duplicates_hook"
@@ -111,10 +109,10 @@ def verify(
     if body_junk := junk_categories(body):
         violations.append(QaViolation(QaCode.JUNK_IN_BODY, f"body contains {', '.join(body_junk)}"))
 
-    if _drifted_off_russian(hook):
-        violations.append(QaViolation(QaCode.WRONG_LANGUAGE, "hook is not Russian"))
-    if body and _drifted_off_russian(body):
-        violations.append(QaViolation(QaCode.WRONG_LANGUAGE, "body is not Russian"))
+    if drifted_off_language(hook, context.lang):
+        violations.append(QaViolation(QaCode.WRONG_LANGUAGE, f"hook is not {context.lang}"))
+    if body and drifted_off_language(body, context.lang):
+        violations.append(QaViolation(QaCode.WRONG_LANGUAGE, f"body is not {context.lang}"))
 
     # The hook is condensed from the message, so it only has to reuse the source's
     # vocabulary — a loose floor that a wholesale-fabricated hook cannot clear.
@@ -191,17 +189,6 @@ def _sentence_grounding(sentence: str, source: str, source_shingles: set[tuple[s
     if len(shingles) < 2:
         return 0.0
     return len(shingles & source_shingles) / len(shingles)
-
-
-def _drifted_off_russian(text: str) -> bool:
-    """True when a Russian field came back in another language: Ukrainian (letters
-    Russian lacks), or a body/hook whose letters are mostly not Russian Cyrillic
-    (English, or another script entirely). Tolerant of the odd Latin token the
-    author uses (a book title, "ChatGPT")."""
-    if _UKRAINIAN.search(text):
-        return True
-    letters = len(_LETTER.findall(text))
-    return letters >= 8 and len(_RU_CYRILLIC.findall(text)) / letters < 0.6
 
 
 def _near_identical(a: str, b: str) -> bool:
