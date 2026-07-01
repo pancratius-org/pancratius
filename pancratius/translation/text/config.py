@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
-type ModelId = str
+from pancratius.openrouter import ModelId
 
 # Default model for every stage: DeepSeek V4 Flash — 1M context (fits whole
 # books as cached reference), strong RU→EN, and the cheapest capable tier on
