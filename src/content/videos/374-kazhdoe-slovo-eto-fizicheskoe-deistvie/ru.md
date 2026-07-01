@@ -1,8 +1,8 @@
 ---
 kind: video
 number: 374
-slug: 374-kazhdoe-slovo-eto-fizicheskoe-deistvie-dukhovnoipost-mudrost
-title: 'Каждое слово — это физическое действие #духовнойпост #мудрость'
+slug: 374-kazhdoe-slovo-eto-fizicheskoe-deistvie
+title: Каждое слово — это физическое действие
 lang: ru
 description: Сила слова — не в красоте произнесённого, а в том, становится ли слово делом. Истинное слово
   уже является началом действия, а истинный поступок — словом, произнесённым без звука. Каждое слово просит

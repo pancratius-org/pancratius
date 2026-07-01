@@ -1,8 +1,8 @@
 ---
 kind: video
 number: 372
-slug: 372-tvoya-slabost-dver-dlya-boga-dukhovnost-vera
-title: 'Твоя слабость — дверь для Бога #духовность #вера'
+slug: 372-tvoya-slabost-dver-dlya-boga
+title: Твоя слабость — дверь для Бога
 lang: ru
 description: 'Не бойся своей слабости — она дверь для Бога. Его сила совершается в немощи. Разреши себе
   быть слабым, скажи: «Я устал. Я боюсь. Мне нужен Ты». И в этой простоте — вся сила.'
