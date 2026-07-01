@@ -1,8 +1,8 @@
 ---
 kind: video
 number: 375
-slug: 375-pochemu-ty-ne-dolzhen-byt-solntsem-otkrovenie-istina
-title: 'Почему ты не должен быть солнцем #откровение #истина'
+slug: 375-pochemu-ty-ne-dolzhen-byt-solntsem
+title: Почему ты не должен быть солнцем
 lang: ru
 description: Не сравнивай себя с другими, чтобы обрести уверенность. Ты не должен быть солнцем — ты тот,
   кого солнце выбрало согреть. Твой свет души — это присутствие Бога в тебе, и его достаточно.
