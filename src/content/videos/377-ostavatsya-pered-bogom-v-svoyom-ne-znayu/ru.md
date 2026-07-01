@@ -1,8 +1,8 @@
 ---
 kind: video
 number: 377
-slug: 377-ostavatsya-pered-bogom-v-svoyom-ne-znayu-faith-molitva-bog
-title: 'Оставаться перед Богом в своём «не знаю» #faith #молитва #бог'
+slug: 377-ostavatsya-pered-bogom-v-svoyom-ne-znayu
+title: Оставаться перед Богом в своём «не знаю»
 lang: ru
 description: Ты не должен знать все ответы. Иногда святость — просто оставаться с вопросом и не убегать.
   Бог не всегда даёт человеку всю карту, и это не наказание — это приглашение к более глубокому доверию.

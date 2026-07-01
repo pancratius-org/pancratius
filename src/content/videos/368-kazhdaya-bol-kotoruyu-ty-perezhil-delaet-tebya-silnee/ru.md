@@ -1,8 +1,8 @@
 ---
 kind: video
 number: 368
-slug: 368-kazhdaya-bol-kotoruyu-ty-perezhil-delaet-tebya-silnee-istina-transformatsiya
-title: 'Каждая боль, которую ты пережил, делает тебя сильнее #истина #трансформация'
+slug: 368-kazhdaya-bol-kotoruyu-ty-perezhil-delaet-tebya-silnee
+title: Каждая боль, которую ты пережил, делает тебя сильнее
 lang: ru
 description: 'Каждая боль, которую ты пережил, делает тебя сильнее. Ты не новичок, ты — ветеран. Бог не
   даёт тебе чистый лист — Он даёт тебе лист, на котором уже написано: «Я выдержал».'

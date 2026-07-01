@@ -1,8 +1,8 @@
 ---
 kind: video
 number: 364
-slug: 364-vtoroe-prishestvie-nachalos-ty-gotov-eto-prinyat-vtoroeprishestvie-istina-bog
-title: 'Второе Пришествие началось. Ты готов это принять? #второепришествие #истина #бог'
+slug: 364-vtoroe-prishestvie-nachalos-ty-gotov-eto-prinyat
+title: Второе Пришествие началось. Ты готов это принять?
 lang: ru
 description: Второе Пришествие началось, и оно внутри тебя. Не ищи его снаружи, иначе обманешься, как
   иудеи. Это раскрытие Первого Пришествия, Присутствие Бога в каждом из нас.

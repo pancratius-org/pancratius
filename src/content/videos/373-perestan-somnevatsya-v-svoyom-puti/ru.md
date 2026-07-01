@@ -1,8 +1,8 @@
 ---
 kind: video
 number: 373
-slug: 373-perestan-somnevatsya-v-svoyom-puti-kingdomofgod-spirituality
-title: 'Перестань сомневаться в своём пути #kingdomofgod #spirituality #믿음'
+slug: 373-perestan-somnevatsya-v-svoyom-puti
+title: Перестань сомневаться в своём пути
 lang: ru
 description: Не бойся, что твой путь не похож на другие. У каждого человека — свой путь, свои испытания
   и свой неповторимый путь к Богу. Важно не то, насколько твоя дорога похожа на дороги других людей, а

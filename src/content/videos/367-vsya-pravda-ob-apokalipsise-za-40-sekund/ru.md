@@ -1,8 +1,8 @@
 ---
 kind: video
 number: 367
-slug: 367-vsya-pravda-ob-apokalipsise-za-40-sekund-religiya-filosofiya-shorts
-title: 'Вся правда об Апокалипсисе за 40 секунд #религия #философия #shorts'
+slug: 367-vsya-pravda-ob-apokalipsise-za-40-sekund
+title: Вся правда об Апокалипсисе за 40 секунд
 lang: ru
 description: Ты не жертва времени, не песчинка. Ты — место, где Бог решил узнать Себя. Апокалипсис — это
   миг, когда ты это вспоминаешь.
