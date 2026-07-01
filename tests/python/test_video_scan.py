@@ -519,6 +519,8 @@ def test_scan_falls_back_to_clean_split_without_editorial_client(
         pytest.param("Свобода от Мамоны #shorts", "Свобода от Мамоны", id="single-tag"),
         pytest.param("Чистый заголовок без тегов", "Чистый заголовок без тегов", id="no-tags"),
         pytest.param("Перестань #kingdomofgod #믿음", "Перестань", id="mixed-script-tag"),
+        pytest.param("Послание #51 #shorts", "Послание #51", id="preserve-episode-marker"),
+        pytest.param("Послание #shorts #51", "Послание #shorts #51", id="numeric-marker-stops-strip"),
     ],
 )
 def test_clean_title_strips_trailing_hashtags(title: str, expected: str) -> None:

@@ -311,14 +311,25 @@ class YouTubeClient:
         return payload
 
 
-# A trailing run of discovery hashtags. Each must contain a letter, so a numeric
-# episode marker like "#51" is preserved, not mistaken for a tag.
-_TRAILING_HASHTAGS = re.compile(r"(?:\s+#(?=[^\s#]*[^\W\d_])[^\s#]+)+\s*$")
-
 def _clean_title(title: str) -> str:
     """Drop trailing discovery hashtags (`… #faith #молитва`) that belong on
     YouTube, not on a reading page. Leading and inline text is untouched."""
-    return _TRAILING_HASHTAGS.sub("", title).strip()
+    text = title.strip()
+    end = len(text)
+    while end > 0:
+        start = end
+        while start > 0 and not text[start - 1].isspace():
+            start -= 1
+        if not _is_discovery_hashtag(text[start:end]):
+            break
+        end = start
+        while end > 0 and text[end - 1].isspace():
+            end -= 1
+    return text[:end].strip()
+
+
+def _is_discovery_hashtag(token: str) -> bool:
+    return token.startswith("#") and any(ch.isalpha() for ch in token[1:])
 
 
 def _parse_localizations(item: object, default_lang: Locale) -> dict[Locale, VideoLocalization]:
