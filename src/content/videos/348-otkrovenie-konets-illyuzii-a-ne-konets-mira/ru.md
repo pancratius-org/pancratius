@@ -1,8 +1,8 @@
 ---
 kind: video
 number: 348
-slug: 348-otkrovenie-konets-illyuzii-a-ne-konets-mira-otkrovenie
-title: 'Откровение: конец иллюзий, а не конец мира! #откровение'
+slug: 348-otkrovenie-konets-illyuzii-a-ne-konets-mira
+title: 'Откровение: конец иллюзий, а не конец мира!'
 lang: ru
 description: 'Апокалипсис — не катастрофа и не расписание казней. Это карта возвращения: к себе, к Отцу,
   к единству, которое никогда не прерывалось. Откровение Иоанна Богослова — это послание о конце иллюзии

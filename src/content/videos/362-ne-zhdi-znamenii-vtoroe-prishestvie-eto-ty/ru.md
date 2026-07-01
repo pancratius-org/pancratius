@@ -1,8 +1,8 @@
 ---
 kind: video
 number: 362
-slug: 362-ne-zhdi-znamenii-vtoroe-prishestvie-eto-ty-probuzhdenie-istina
-title: 'Не жди знамений: Второе Пришествие — это ты #пробуждение #истина'
+slug: 362-ne-zhdi-znamenii-vtoroe-prishestvie-eto-ty
+title: 'Не жди знамений: Второе Пришествие — это ты'
 lang: ru
 description: Второе Пришествие — это не событие в будущем, а пробуждение внутри тебя. Бог уже внутри тебя,
   и Царствие Его раскрывается сейчас.
