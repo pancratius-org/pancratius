@@ -17,10 +17,12 @@ These rules decide where a change belongs.
   theological register, or publication judgment. → [`tooling.md`](./tooling.md).
 - **Local vs CI.** Import DOCX → source and render release artifacts locally; CI
   only builds and publishes — it does not import works, render release artifacts,
-  optimize DOCX, or regenerate embeddings. **Exception:** light external-metadata
-  ingestion (e.g. `pancratius video sync` via `.github/workflows/video-sync.yml`)
-  runs in CI because it is additive, idempotent, and stays away from the heavy
-  paths above.
+  optimize DOCX, or regenerate embeddings. **Exception:** external-API ingestion
+  (`pancratius video sync` via `.github/workflows/video-sync.yml`) runs in CI
+  because it is additive, idempotent, and only makes lightweight HTTP calls — a
+  YouTube poll plus one OpenRouter call per new video to draft its description —
+  never the heavy local toolchains (typst/pandoc/MLX) the rule keeps out. The
+  draft is QA-gated and degrades to a deterministic fallback with no API key.
 - **Fallback vs route existence.** Display data may fall back to the default
   locale; a route, download, or feed exists only where that locale was authored.
   → [`i18n-routing.md`](./i18n-routing.md).

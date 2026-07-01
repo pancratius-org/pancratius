@@ -128,11 +128,19 @@ The grammar carries the content model:
   project landing and does not decide the page's editorial placement. The
   destination must be a project sub-page selector such as
   `project:holy-rus/tartaria`; project landing selectors are not valid here.
-- `video sync` is mechanical-only: it polls every `scan: true` channel in
+- `video sync` polls every `scan: true` channel in
   `src/content/videos/channels.yaml` via the YouTube Data API v3 (requires
-  `YOUTUBE_API_KEY`) and scaffolds frontmatter + a `cover.<lang>.jpg`
-  thumbnail for each new video. Commentary in the body is editorial. Re-runs
-  never touch known entries.
+  `YOUTUBE_API_KEY`) and scaffolds frontmatter + a `cover.<lang>.jpg` thumbnail
+  for each new video. The raw YouTube description is discovery copy, not reading
+  copy, so it is not dumped into the page: `pancratius.video_description` splits
+  it (via OpenRouter, `OPENROUTER_API_KEY`) into a clean `description` (the hook)
+  and a Markdown reading `body` — a faithful draft of the author's own words with
+  the promo footer, links, and SEO cruft removed, gated by a deterministic QA
+  check (no junk, grounded in the source, still Russian). This is the same class
+  as `work translate` drafting an AI translation: a reviewable draft, not an
+  editorial decision, and never a raw dump. With no `OPENROUTER_API_KEY` the split
+  falls back to a deterministic clean-and-strip. Re-runs never touch known
+  entries. PAN028 guards committed hooks against junk.
 - `docx inspect` is read-only source diagnostics. It prints per-paragraph OOXML
   and importer classification signals for debugging DOCX import behavior. When
   repeated text maps to multiple IR roles, it reports the row as ambiguous
@@ -231,11 +239,18 @@ surface. The CLI turns library outcomes into user-facing text and exit codes.
 - render release artifacts;
 - regenerate graph/embed data.
 
-It does not perform editorial judgment: deciding whether a document deserves to
-be a book, choosing final titles/descriptions, composing project landings,
-ordering project sub-pages, approving translations, or changing theological
-register. When a tool cannot know, it should produce a diagnostic or a draft
-placeholder, not guess.
+It does not make final editorial decisions: whether a document deserves to be a
+book, the final title, composing project landings, ordering project sub-pages,
+approving translations, or changing theological register. When a tool cannot
+know, it produces a diagnostic or a draft, not a guess.
+
+A tool MAY produce an AI-authored *draft* of a field a human then owns, as long
+as it is faithful, provenance-marked, and reversible — not an irreversible
+decision. `work translate` drafts an `en.md` marked `translation.source: ai`;
+`video sync` drafts a video's `description` + reading `body` from the raw YouTube
+description. Both are transformations of the author's own words gated by a
+mechanical QA check, not the CLI inventing content. The line is decision vs
+draft, not machine vs human.
 
 ## Dependencies
 

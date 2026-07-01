@@ -26,11 +26,13 @@ Four kinds of content with different identity rules — do not collapse them:
   PDF/EPUB/DOCX download matrix. Each video carries an ordered list of mirror
   URLs (`sources[]`) so the library survives any one platform pulling content;
   YouTube is the default platform today but has no privileged status in the
-  schema. The body is editorial commentary (an SEO-targeted blog post about the
-  video); if it is empty/short the page renders a compact layout, otherwise the
-  book-like layout. Channels live in `src/content/videos/channels.yaml`;
-  `uv run pancratius video sync` polls them and scaffolds new drafts
-  mechanically (frontmatter + thumbnail only). See [Videos](#videos).
+  schema. The body is a reading (an SEO-targeted blog post about the video); if it
+  is empty/short the page renders a compact layout, otherwise the book-like
+  layout. Channels live in `src/content/videos/channels.yaml`;
+  `uv run pancratius video sync` polls them, and for each new video splits the raw
+  YouTube description into a clean hook (`description`) and reading `body` — a
+  faithful, QA-gated draft of the author's own words, not a raw dump. See
+  [Videos](#videos).
 
 The product goal for works: one folder tells the whole story of that work — no
 parallel media tree, no hidden metadata files to add one book.

@@ -7,24 +7,30 @@ name: Sync videos
 #
 # NOTE on the Local-vs-CI rule (docs/architecture.md): CI never imports DOCX,
 # renders PDF/EPUB, optimizes DOCX, or regenerates embeddings. This workflow
-# is the documented exception: it runs the library-management CLI (`pancratius
-# video sync`) inside CI because the work is pure metadata scaffolding driven
-# by an external API poll. It does not import documents or render artifacts.
+# is the documented exception: it runs `pancratius video sync` inside CI because
+# the work is external-API ingestion — a YouTube poll plus one OpenRouter call
+# per new video that splits the raw description into a clean hook + reading body
+# (docs/tooling.md → "video sync"). Both are lightweight HTTP calls, not the
+# heavy local toolchains (typst/pandoc/MLX) the rule keeps out of CI. It imports
+# no documents and renders no artifacts. If `OPENROUTER_API_KEY` is unset the
+# split degrades to its deterministic fallback and the sync still succeeds.
 #
 # One-time setup in repo settings:
-#   1. Secrets and variables → Actions → New secret: `YOUTUBE_API_KEY`.
+#   1. Secrets and variables → Actions → New secrets: `YOUTUBE_API_KEY` and
+#      `OPENROUTER_API_KEY`.
 #   2. General → Pull Requests → enable "Allow auto-merge".
 #   3. If branch protection requires reviewers on main, add a bypass for the
 #      `github-actions[bot]` author or drop the requirement for this branch.
 #
-# Validation runs INSIDE this workflow (`npm run verify`) so the PR is opened
-# only after the site builds clean. Auto-merge can then fire with no extra
-# required checks. PRs triggered by the default GITHUB_TOKEN do not re-run
-# pr.yml, which is why we verify here instead of relying on PR checks.
+# A content gate (checks + audit + build) runs INSIDE this workflow so the PR is
+# opened only after the new videos validate, pass the audit, and build clean.
+# Auto-merge can then fire with no extra required checks. PRs triggered by the
+# default GITHUB_TOKEN do not re-run pr.yml, which is why we gate here instead of
+# relying on PR checks.
 
 on:
   schedule:
-    - cron: "0 9 * * 0"   # Sundays 09:00 UTC
+    - cron: "0 9 * * *"   # daily, 09:00 UTC
   workflow_dispatch: {}
 
 permissions:
@@ -56,12 +62,10 @@ jobs:
       - name: Install Python deps (frozen lock)
         run: uv sync --frozen
 
-      - name: Install npm dependencies
-        run: npm ci
-
-      - name: Scan YouTube channels for new videos
+      - name: Scan YouTube channels and draft new video descriptions
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: uv run --frozen pancratius video sync
 
       - name: Stop early if nothing changed
@@ -69,17 +73,25 @@ jobs:
         run: |
           if [ -z "$(git status --porcelain)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No new videos; skipping PR + verify."
+            echo "No new videos; skipping the content gate + PR."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
             git status --short
           fi
 
-      - name: Verify (full local gate)
-        # Same gate as PR + push-to-main paths. If scaffolded video content
-        # breaks any check the PR is never opened.
+      - name: Install npm dependencies
+        # Only the content gate needs npm; the scan is Python-only.
         if: steps.diff.outputs.changed == 'true'
-        run: npm run verify
+        run: npm ci
+
+      - name: Verify the new content
+        # Type/schema checks, the architectural audit (PAN028 guards the hooks),
+        # and a clean build — enough to prove the scaffolded videos are valid and
+        # render. Not the full `verify`: a new video can't affect the Playwright
+        # e2e/visual suite, so it is skipped to save CI minutes and a browser
+        # download. If any check fails the PR is never opened.
+        if: steps.diff.outputs.changed == 'true'
+        run: npm run check && npm run audit:repo && npm run build
 
       - name: Open or update PR
         if: steps.diff.outputs.changed == 'true'
@@ -88,13 +100,14 @@ jobs:
         with:
           branch: bot/video-sync
           delete-branch: true
-          commit-message: "feat: sync new videos"
-          title: "feat: sync new videos"
+          commit-message: "feat(content): sync new videos"
+          title: "feat(content): sync new videos"
           body: |
             Automated by `.github/workflows/video-sync.yml`.
 
-            `npm run verify` passed inside the workflow before this PR was
-            opened, so it should auto-merge as soon as GitHub clears it.
+            Content checks, the audit, and a clean build passed inside the
+            workflow before this PR was opened, so it should auto-merge as soon
+            as GitHub clears it.
 
       - name: Enable auto-merge
         if: steps.cpr.outputs.pull-request-number != ''

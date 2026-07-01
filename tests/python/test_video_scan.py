@@ -9,6 +9,7 @@ talk about videos and playlists, not URLs.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -17,6 +18,7 @@ from typing import Any
 import pytest
 
 from pancratius import video_scan
+from pancratius.openrouter import ChatMessage, Completion, ModelId, ModelPricing, Usage
 from pancratius.video_channels import (
     ChannelHandleOnly,
     ChannelIdOnly,
@@ -32,6 +34,48 @@ from pancratius.video_scan import (
     VideoMetadata,
     YouTubePlaylist,
 )
+
+
+@dataclass
+class _FakeEditorialClient:
+    """Returns a canned model reply so scan enrichment is deterministic offline."""
+
+    reply: str
+
+    def complete(
+        self,
+        *,
+        model: ModelId,
+        messages: Sequence[ChatMessage],
+        temperature: float,
+        max_tokens: int,
+        response_format: dict[str, Any] | None = None,
+        reasoning_max_tokens: int | None = None,
+    ) -> Completion:
+        del messages, temperature, max_tokens, response_format, reasoning_max_tokens
+        return Completion(text=self.reply, usage=Usage(20, 20, 0, 0.001), model=model)
+
+    def fetch_pricing(self, model: ModelId) -> ModelPricing:
+        del model
+        return ModelPricing(0.1, 0.4, None)
+
+
+def _single_video_client(description: str) -> _FakeClient:
+    return _FakeClient(
+        uploads_ids=["vid-1"],
+        videos={
+            "vid-1": VideoMetadata(
+                id="vid-1",
+                title="Заголовок видео",
+                description=description,
+                published_at="2026-02-01",
+                duration="PT3M",
+                thumbnail_url="https://i.ytimg.com/vi/vid-1/maxresdefault.jpg",
+            ),
+        },
+        playlists=[],
+        playlist_members={},
+    )
 
 # ─────────────────────────────────────────────────────────────────────
 # Fake client. Implements the YouTubeClient method surface; the scanner
@@ -147,6 +191,7 @@ def test_scan_scaffolds_new_videos_in_publication_order(
         content_root=tmp_path,
         channels_path=channels_path,
         client=_two_videos_client(),
+        enrich=False,
     )
     assert len(result.new_videos) == 2
     folder_names = sorted(
@@ -164,6 +209,7 @@ def test_scan_is_idempotent_and_preserves_editor_edits(
         content_root=tmp_path,
         channels_path=channels_path,
         client=_two_videos_client(),
+        enrich=False,
     )
     # Edit one scaffolded file to verify the second scan never touches it.
     folders = [f for f in (tmp_path / "videos").iterdir() if f.is_dir()]
@@ -177,6 +223,7 @@ def test_scan_is_idempotent_and_preserves_editor_edits(
         content_root=tmp_path,
         channels_path=channels_path,
         client=_two_videos_client(),
+        enrich=False,
     )
     assert result2.new_videos == []
     assert "EDITORIAL" in target_md.read_text(encoding="utf-8")
@@ -190,6 +237,7 @@ def test_scan_dry_run_writes_nothing(
         channels_path=channels_path,
         client=_two_videos_client(),
         dry_run=True,
+        enrich=False,
     )
     folders = [f for f in (tmp_path / "videos").iterdir() if f.is_dir()]
     assert folders == []
@@ -266,6 +314,7 @@ def test_scan_attributes_videos_to_playlists_as_tags(
         content_root=tmp_path,
         channels_path=channels_path,
         client=_two_videos_client(),
+        enrich=False,
     )
     # vid-newer-22 is in BOTH playlists; vid-older-11 is in one.
     newer_md = next((tmp_path / "videos").glob("02-*/ru.md"))
@@ -281,9 +330,88 @@ def test_scan_reports_real_quota_used(
         content_root=tmp_path,
         channels_path=channels_path,
         client=_two_videos_client(),
+        enrich=False,
     )
     # 1 resolve + 1 uploads list + 1 videos fetch + 1 playlists list + 2 per-playlist = 6.
     assert result.quota_used == 6
+
+
+def test_scan_enriches_description_into_hook_and_body(
+    tmp_path: Path, channels_path: Path,
+) -> None:
+    description = (
+        "Настоящая мысль о свете внутри. Свет живёт в сердце, а не в правилах.\n\n"
+        "📢 Telegram: https://t.me/x\n"
+        "💖 Поддержать проект: RUB 2200 1535 2426 2640"
+    )
+    reply = json.dumps(
+        {
+            "hook": "Свет живёт в сердце, а не в правилах.",
+            "body_markdown": "Настоящая мысль о свете внутри. Свет живёт в сердце, а не в правилах.",
+            "dropped": ["promo footer"],
+        },
+        ensure_ascii=False,
+    )
+    result = video_scan.scan(
+        content_root=tmp_path,
+        channels_path=channels_path,
+        client=_single_video_client(description),
+        editorial_client=_FakeEditorialClient(reply),
+    )
+    assert result.fallback_videos == []
+    md = next((tmp_path / "videos").glob("01-*/ru.md"))
+    fm = video_scan._read_frontmatter(md)
+    assert fm is not None
+    assert fm["description"] == "Свет живёт в сердце, а не в правилах."
+    body = md.read_text(encoding="utf-8").split("---\n", 2)[-1]
+    assert "Настоящая мысль о свете внутри." in body
+    # The promo footer never reaches the file.
+    assert "Telegram" not in body and "RUB" not in body and "t.me" not in body
+
+
+def test_scan_writes_clean_fallback_when_model_returns_junk(
+    tmp_path: Path, channels_path: Path,
+) -> None:
+    # The model leaks a donation link + card number; QA rejects it every attempt,
+    # and the file on disk is the clean deterministic fallback (never the junk).
+    description = "Ясная мысль о свете и тишине сердца.\n\n💖 https://t.me/x RUB 2200 1535 2426 2640"
+    junk_reply = json.dumps(
+        {"hook": "Пиши https://t.me/x", "body_markdown": "Жертвуй 2200 1535 2426 2640", "dropped": []},
+        ensure_ascii=False,
+    )
+    result = video_scan.scan(
+        content_root=tmp_path,
+        channels_path=channels_path,
+        client=_single_video_client(description),
+        editorial_client=_FakeEditorialClient(junk_reply),
+    )
+    assert result.fallback_videos == ["main:vid-1"]
+    fm = video_scan._read_frontmatter(next((tmp_path / "videos").glob("01-*/ru.md")))
+    assert fm is not None
+    for leak in ("t.me", "https", "2200", "1535"):
+        assert leak not in fm["description"]
+
+
+def test_scan_falls_back_to_clean_split_without_editorial_client(
+    tmp_path: Path, channels_path: Path,
+) -> None:
+    description = (
+        "Ясная мысль о тишине. Тишина глубже слов.\n\n"
+        "💖 Поддержать проект: RUB 2200 1535 2426 2640"
+    )
+    result = video_scan.scan(
+        content_root=tmp_path,
+        channels_path=channels_path,
+        client=_single_video_client(description),
+        enrich=False,
+    )
+    assert result.fallback_videos == ["main:vid-1"]
+    md = next((tmp_path / "videos").glob("01-*/ru.md"))
+    fm = video_scan._read_frontmatter(md)
+    assert fm is not None
+    assert fm["description"].startswith("Ясная мысль о тишине")
+    # No donation block, no card number leaks into the lede.
+    assert "RUB" not in fm["description"] and "Поддержать" not in fm["description"]
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -291,27 +419,18 @@ def test_scan_reports_real_quota_used(
 # ─────────────────────────────────────────────────────────────────────
 
 
-def test_clean_description_keeps_full_text_with_paragraphs_and_links() -> None:
-    full = (
-        "Первый абзац с мыслью.\n\n"
-        "Второй абзац и ссылка https://example.com/x внутри."
-    )
-    # Nothing is truncated; the paragraph break and the URL survive intact —
-    # crimping is the view's job, not the scanner's.
-    assert video_scan._clean_description(full) == full
-
-
-def test_clean_description_collapses_blank_runs_and_trailing_space() -> None:
-    messy = "Абзац один.   \n\n\n\nАбзац два.   "
-    assert video_scan._clean_description(messy) == "Абзац один.\n\nАбзац два."
-
-
 @pytest.mark.parametrize(
-    "text",
-    [pytest.param("", id="empty"), pytest.param("   \n\t  ", id="whitespace-only")],
+    ("iso", "expected"),
+    [
+        pytest.param("PT2M40S", 160, id="minutes-seconds"),
+        pytest.param("PT36S", 36, id="seconds-only"),
+        pytest.param("PT1H3M", 3780, id="hours-minutes"),
+        pytest.param("PT9M01S", 541, id="zero-padded"),
+        pytest.param("garbage", None, id="unparsable"),
+    ],
 )
-def test_clean_description_falls_back_to_todo(text: str) -> None:
-    assert video_scan._clean_description(text).startswith("TODO")
+def test_iso_duration_seconds(iso: str, expected: int | None) -> None:
+    assert video_scan._iso_duration_seconds(iso) == expected
 
 
 @pytest.mark.parametrize(
