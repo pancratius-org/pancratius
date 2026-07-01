@@ -45,7 +45,15 @@ from googleapiclient.discovery import build as _build_service
 from googleapiclient.errors import HttpError
 
 from pancratius.docx_conversion import to_ascii_slug
-from pancratius.locales import Locale
+from pancratius.locales import LOCALES, Locale
+from pancratius.localization import (
+    TagLabels,
+    TermReplacements,
+    load_tag_labels,
+    load_term_replacements,
+    normalize_locale_text,
+    youtube_keys_for_locale,
+)
 from pancratius.openrouter import LLMClient, Usage
 from pancratius.paths import CONTENT_ROOT, data_root_for_content_root
 from pancratius.video_channels import (
@@ -63,11 +71,6 @@ from pancratius.video_description import (
     VideoContext,
     client_from_env,
     draft_description,
-)
-from pancratius.video_description.english import (
-    TermReplacement,
-    TermReplacements,
-    normalize_english,
 )
 
 logger = logging.getLogger(__name__)
@@ -171,8 +174,8 @@ class VideoLocalization:
 class VideoMetadata:
     """One YouTube video, post-validation: `published_at` is `YYYY-MM-DD`,
     `duration` is the ISO 8601 string YouTube returns. `title` is the default
-    (Russian) title with trailing hashtags dropped; `localizations` holds any
-    author-provided non-default-language variants (e.g. English), keyed by locale."""
+    locale title with trailing hashtags dropped; `localizations` holds any
+    author-provided non-default variants, keyed by locale."""
     id: VideoId
     title: str
     description: str
@@ -202,9 +205,8 @@ class LocaleScaffold:
 @dataclass(frozen=True, slots=True)
 class NewVideo:
     """One scaffold work item the writer turns into a bundle on disk. One
-    :class:`LocaleScaffold` per language present — Russian always, plus English
-    when the author published an ``en-US`` localization. Only the default
-    language's ``cover.<lang>.jpg`` is fetched; other locales fall back to it."""
+    :class:`LocaleScaffold` per language present. Only the default locale's
+    ``cover.<lang>.jpg`` is fetched; other locales fall back to it."""
     number: int
     folder: str
     yt_id: VideoId
@@ -313,11 +315,6 @@ class YouTubeClient:
 # episode marker like "#51" is preserved, not mistaken for a tag.
 _TRAILING_HASHTAGS = re.compile(r"(?:\s+#(?=[^\s#]*[^\W\d_])[^\s#]+)+\s*$")
 
-# The YouTube localization keys we accept for each site locale, in preference
-# order (en-US before a bare en before en-GB), so the choice is deterministic.
-_YT_KEYS_FOR_LOCALE: dict[Locale, tuple[str, ...]] = {"ru": ("ru",), "en": ("en-US", "en", "en-GB")}
-
-
 def _clean_title(title: str) -> str:
     """Drop trailing discovery hashtags (`… #faith #молитва`) that belong on
     YouTube, not on a reading page. Leading and inline text is untouched."""
@@ -333,10 +330,10 @@ def _parse_localizations(item: object, default_lang: Locale) -> dict[Locale, Vid
     match item:
         case {"localizations": dict() as localizations}:
             by_key = {k: v for k, v in localizations.items() if isinstance(k, str)}
-            for locale, keys in _YT_KEYS_FOR_LOCALE.items():
+            for locale in LOCALES:
                 if locale == default_lang:
                     continue
-                for key in keys:
+                for key in youtube_keys_for_locale(locale):
                     match by_key.get(key):
                         case {"title": str(title), "description": str(description)} if title.strip() and description.strip():
                             out[locale] = VideoLocalization(
@@ -420,11 +417,10 @@ def _build_locale(
     *,
     client: LLMClient | None,
     config: DescriptionConfig,
-    english_terms: TermReplacements = (),
+    term_replacements: TermReplacements = (),
 ) -> tuple[LocaleScaffold, Usage]:
     """Split one language's description into a hook + body and package it as a
-    :class:`LocaleScaffold`. An English localization is normalized to the
-    library's canonical terminology and curly-quote direction."""
+    :class:`LocaleScaffold`."""
     context = VideoContext(
         title=title,
         lang=lang,
@@ -432,68 +428,36 @@ def _build_locale(
         duration_seconds=duration_seconds,
     )
     draft, usage = draft_description(description, context, client=client, config=config)
-    if lang == "en":
-        # Normalize the title too: PAN027 scans en.md line-by-line including the
-        # frontmatter, so a name like "Pankratius" in the title fails fatally.
-        title = normalize_english(title, english_terms)
-        draft = replace(
-            draft,
-            hook=normalize_english(draft.hook, english_terms),
-            body=normalize_english(draft.body, english_terms),
-        )
+    title = normalize_locale_text(title, lang, term_replacements)
+    draft = replace(
+        draft,
+        hook=normalize_locale_text(draft.hook, lang, term_replacements),
+        body=normalize_locale_text(draft.body, lang, term_replacements),
+    )
     return LocaleScaffold(lang=lang, title=title, draft=draft, playlists=tuple(playlists)), usage
 
 
-def _load_english_terms(content_root: Path) -> TermReplacements:
-    """Canonical-terminology replacements from ``data/translation-glossary.yaml`` —
-    the same denylist/flag terms PAN027 enforces, carrying each term's case
-    sensitivity — applied to English localizations so they conform without a human
-    pass. Empty when the glossary is missing, malformed, or unreachable."""
+def _data_file(content_root: Path, name: str) -> Path | None:
     try:
-        path = data_root_for_content_root(content_root) / "translation-glossary.yaml"
-        raw: object = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError, yaml.YAMLError):
-        return ()
-    terms: list[TermReplacement] = []
-    match raw:
-        case {"terms": list() as entries}:
-            for entry in entries:
-                match entry:
-                    case {"en": {"use": str(use), "avoid": list() as avoid, "enforcement": ("denylist" | "flag"), "match": "insensitive"}}:
-                        terms += _term_replacements(use, avoid, insensitive=True)
-                    case {"en": {"use": str(use), "avoid": list() as avoid, "enforcement": ("denylist" | "flag")}}:
-                        terms += _term_replacements(use, avoid, insensitive=False)
-    return tuple(terms)
+        return data_root_for_content_root(content_root) / name
+    except ValueError:
+        return None
 
 
-def _term_replacements(use: str, avoid: list[object], *, insensitive: bool) -> list[TermReplacement]:
-    canonical = use.split(" / ")[0].strip()
-    return [TermReplacement(a, canonical, insensitive) for a in avoid if isinstance(a, str)]
+def _load_term_replacements(content_root: Path) -> dict[Locale, TermReplacements]:
+    path = _data_file(content_root, "translation-glossary.yaml")
+    return {locale: load_term_replacements(path, locale) if path is not None else () for locale in LOCALES}
 
 
 def _localize_playlists(
-    playlists: Sequence[PlaylistRef], tag_labels: dict[str, str],
+    playlists: Sequence[PlaylistRef], tag_labels: TagLabels,
 ) -> list[PlaylistRef]:
-    """Re-title playlists into English via the tag glossary (their titles seed the
-    tags, which PAN006C requires to be the canonical English labels). The lookup
-    trims whitespace to survive a stray trailing space; a still-unmapped title is
-    kept as-is so the gap surfaces loudly rather than shipping silently."""
     return [PlaylistRef(id=p.id, title=tag_labels.get(p.title.strip(), p.title)) for p in playlists]
 
 
-def _load_en_tag_labels(content_root: Path) -> dict[str, str]:
-    """Canonical Russian-tag → English-label map from ``data/tag-glossary.yaml``'s
-    ``en`` block; empty when the glossary is missing, malformed, or the content
-    root is not a real repo tree (e.g. a test fixture)."""
-    try:
-        path = data_root_for_content_root(content_root) / "tag-glossary.yaml"
-        raw: object = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError, yaml.YAMLError):
-        return {}
-    match raw:
-        case {"en": dict() as en}:
-            return {str(k): str(v) for k, v in en.items() if isinstance(v, str)}
-    return {}
+def _load_tag_labels(content_root: Path) -> dict[Locale, TagLabels]:
+    path = _data_file(content_root, "tag-glossary.yaml")
+    return {locale: load_tag_labels(path, locale) if path is not None else {} for locale in LOCALES}
 
 
 _DESCRIPTION_TODO = "TODO: write a one-paragraph SEO description for this video."
@@ -627,8 +591,7 @@ def _locale_document(video: NewVideo, locale: LocaleScaffold) -> str:
             }
         ],
         "playlists": [{"id": p.id, "title": p.title} for p in locale.playlists],
-        # The Russian is the original; an English localization is the author's own
-        # published translation (human, not our machine draft).
+        # The channel default is the original; platform localizations are authored.
         "translation": {"source": "original" if is_default else "literary"},
     }
     document = f"---\n{_ordered_yaml_dump(fm)}---\n"
@@ -666,9 +629,7 @@ class ScanResult:
     skipped_channels: list[str] = field(default_factory=list)
     new_videos: list[str] = field(default_factory=list)
     quota_used: int = 0
-    # Enrichment accounting: what the description split cost, which videos also
-    # got an English localization (`en.md`), and which fell back to the
-    # deterministic split (worth a human glance first).
+    # Enrichment accounting for the description split.
     editorial_usage: Usage = field(default_factory=Usage.empty)
     localized_videos: list[str] = field(default_factory=list)
     fallback_videos: list[str] = field(default_factory=list)
@@ -714,8 +675,8 @@ def scan(
 
     known_ids, max_number = _existing_video_ids(content)
     next_number = max_number + 1
-    tag_labels = _load_en_tag_labels(content)
-    english_terms = _load_english_terms(content)
+    tag_labels = _load_tag_labels(content)
+    term_replacements = _load_term_replacements(content)
     result = ScanResult()
 
     for channel in channels:
@@ -763,25 +724,30 @@ def scan(
             ru, usage = _build_locale(
                 channel.default_lang, meta.title, meta.description, playlist_refs,
                 duration_seconds, client=ed_client, config=ed_config,
+                term_replacements=term_replacements.get(channel.default_lang, ()),
             )
             result.editorial_usage += usage
             locales = [ru]
             if ru.draft.method is SplitMethod.FALLBACK:
                 result.fallback_videos.append(f"{channel.key}:{vid}")
 
-            # The author's own English localization, if he published one.
-            en_loc = meta.localizations.get("en")
-            if en_loc is not None and channel.default_lang != "en":
-                en, en_usage = _build_locale(
-                    "en", en_loc.title, en_loc.description,
-                    _localize_playlists(playlist_refs, tag_labels), duration_seconds,
-                    client=ed_client, config=ed_config, english_terms=english_terms,
+            localized = False
+            for locale, localization in meta.localizations.items():
+                if locale == channel.default_lang:
+                    continue
+                scaffold, loc_usage = _build_locale(
+                    locale, localization.title, localization.description,
+                    _localize_playlists(playlist_refs, tag_labels.get(locale, {})), duration_seconds,
+                    client=ed_client, config=ed_config,
+                    term_replacements=term_replacements.get(locale, ()),
                 )
-                result.editorial_usage += en_usage
-                locales.append(en)
+                result.editorial_usage += loc_usage
+                locales.append(scaffold)
+                localized = True
+                if scaffold.draft.method is SplitMethod.FALLBACK:
+                    result.fallback_videos.append(f"{channel.key}:{vid}:{locale}")
+            if localized:
                 result.localized_videos.append(f"{channel.key}:{vid}")
-                if en.draft.method is SplitMethod.FALLBACK:
-                    result.fallback_videos.append(f"{channel.key}:{vid}:en")
 
             _scaffold_one(
                 NewVideo(
@@ -824,7 +790,7 @@ def print_result(result: ScanResult, *, dry_run: bool) -> None:
         cost_note = f"  ·  ${cost:.4f}" if cost else ""
         fallbacks = len(result.fallback_videos)
         fb_note = f"  ·  {fallbacks} via fallback" if fallbacks else ""
-        en_note = f"  ·  {len(result.localized_videos)} with EN" if result.localized_videos else ""
+        en_note = f"  ·  {len(result.localized_videos)} with localization" if result.localized_videos else ""
         print(f"{prefix}enriched descriptions: {len(result.new_videos)}{en_note}{fb_note}{cost_note}")
     for ref in result.fallback_videos:
         print(f"  fallback: {ref}")

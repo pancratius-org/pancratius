@@ -310,21 +310,21 @@ def test_qa_blocks_ukrainian_drift() -> None:
     assert QaCode.WRONG_LANGUAGE in _codes("Чистий лід про світло душі твоєї.", "")
 
 
-def test_normalize_english_applies_terminology_and_quotes() -> None:
-    from pancratius.video_description.english import TermReplacement, normalize_english
+def test_normalize_locale_text_applies_terminology_and_quotes() -> None:
+    from pancratius.localization import TermReplacement, normalize_locale_text
 
     terms = (
         TermReplacement("Holy Russia", "Holy Rus", insensitive=True),
         TermReplacement("Pankratius", "Pancratius", insensitive=False),
     )
-    out = normalize_english('In Holy Russia, Pankratius said "come home." He meant it.', terms)
+    out = normalize_locale_text('In Holy Russia, Pankratius said "come home." He meant it.', "en", terms)
     assert "Holy Rus" in out and "Holy Russia" not in out
     assert "Pancratius" in out and "Pankratius" not in out
     assert "“come home.”" in out  # opening + closing curly, facing right
 
 
-def test_normalize_english_terminology_respects_case_flag() -> None:
-    from pancratius.video_description.english import TermReplacement, normalize_english
+def test_normalize_locale_text_terminology_respects_case_flag() -> None:
+    from pancratius.localization import TermReplacement, normalize_locale_text
 
     # "Holy Russia" is match:insensitive in the glossary → lowercase must be fixed;
     # "Pankratius" is case-sensitive → a lowercase slug token must be left alone.
@@ -332,19 +332,25 @@ def test_normalize_english_terminology_respects_case_flag() -> None:
         TermReplacement("Holy Russia", "Holy Rus", insensitive=True),
         TermReplacement("Pankratius", "Pancratius", insensitive=False),
     )
-    assert "Holy Rus" in normalize_english("in holy russia we live", terms)
-    assert "sergey-pankratius" in normalize_english("see sergey-pankratius online", terms)
+    assert "Holy Rus" in normalize_locale_text("in holy russia we live", "en", terms)
+    assert "sergey-pankratius" in normalize_locale_text("see sergey-pankratius online", "en", terms)
 
 
-def test_normalize_english_closes_multi_paragraph_quote() -> None:
-    from pancratius.video_description.english import normalize_english
+def test_normalize_locale_text_closes_multi_paragraph_quote() -> None:
+    from pancratius.localization import normalize_locale_text
 
     # A quote opening in one paragraph and closing at the very end: the closing
     # mark must curl closed, not backwards.
     body = 'He said:\n\n"This is the first line.\n\nAnd the last, in all its glory."'
-    out = normalize_english(body, ())
+    out = normalize_locale_text(body, "en")
     assert out.endswith('glory.”')
     assert '"' not in out
+
+
+def test_normalize_locale_text_handles_single_quotes_and_apostrophes() -> None:
+    from pancratius.localization import normalize_locale_text
+
+    assert normalize_locale_text("'Don't,' he said.", "en") == "‘Don’t,’ he said."
 
 
 def test_qa_accepts_english_for_en_locale() -> None:

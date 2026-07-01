@@ -2,14 +2,15 @@
 
 The model gets the video title and the whole raw description and returns a strict
 JSON object: a `hook` (lede), a `body_markdown` (the reading), and `dropped`
-(short audit notes). Instructions are in English; the content it handles — and
-everything it emits — stays in the source language (Russian).
+(short audit notes). Instructions are in English; the content it handles and
+emits stays in the source language.
 """
 
 from __future__ import annotations
 
 import json
 
+from pancratius.localization import locale_profile
 from pancratius.openrouter import ChatMessage, JsonObject
 from pancratius.video_description.models import RawDescription, VideoContext
 
@@ -128,12 +129,9 @@ def build_messages(
     return messages
 
 
-_LANGUAGE_NAME = {"ru": "Russian", "en": "English"}
-
-
 def _render_video(context: VideoContext, raw: RawDescription) -> str:
     lines = [
-        f"LANGUAGE: {_LANGUAGE_NAME.get(context.lang, context.lang)} (keep the hook and body in this language)",
+        f"LANGUAGE: {locale_profile(context.lang).language_name} (keep the hook and body in this language)",
         f"TITLE: {context.title}",
     ]
     if context.duration_seconds is not None:

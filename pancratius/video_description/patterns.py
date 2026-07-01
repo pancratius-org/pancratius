@@ -43,6 +43,8 @@ JUNK_PATTERNS: dict[str, re.Pattern[str]] = {
     "handle": re.compile(_HANDLE),
     "email": re.compile(r"\b[\w.+-]+@[\w-]+\.[a-z]{2,}", re.I),
     "card_number": re.compile(_CARD),
+    # Structure catches the generic footer surface; these phrases catch bare
+    # RU/EN promo lines that carry no URL, handle, card number, or emoji.
     "promo_phrase": re.compile(
         # Russian footer/promo lines …
         r"Поддержать проект|поддержать канал|Следующее\s*[—–-]\s*здесь"
@@ -82,7 +84,9 @@ def scrub(text: str) -> str:
 # A line that belongs to the trailing promo footer: an anchored promo marker, or
 # a line that already carries junk. The message's own prose never matches at the
 # LINE start, so `footer_start` cuts only a genuine trailing block, not a body
-# sentence that merely opens with a word like "Дзен".
+# sentence that merely opens with a word like "Дзен". Natural-language markers
+# are RU/EN helpers; URLs, handles, card numbers, emoji, and HTML are the generic
+# deterministic guard.
 _FOOTER_MARKER = re.compile(
     r"^\s*(?:"
     + _URL

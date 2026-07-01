@@ -26,6 +26,7 @@ from typing import assert_never
 from pancratius import ir
 from pancratius.ir.inlines import inline_lines, inline_plain
 from pancratius.locales import Locale
+from pancratius.localization import normalize_literal_quotes, quote_marks
 from pancratius.passes.sanitize import sanitize_urls
 
 
@@ -33,32 +34,8 @@ def _body_image_alt(lang: Locale) -> str:
     return "Illustration" if lang == "en" else "Иллюстрация"
 
 
-@dataclass(frozen=True, slots=True)
-class QuoteMarks:
-    opening: str
-    closing: str
-
-
-# Quotation glyphs by language: a `Quoted` inline carries the quote SEMANTICS (single/double);
-# the marks are typographic and locale-specific. RU uses guillemets for doubles; EN uses American
-# curly quotes. Any other language falls back to RU (the corpus default).
-_QUOTE_MARKS: dict[Locale, dict[ir.QuoteKind, QuoteMarks]] = {
-    "ru": {"double": QuoteMarks("«", "»"), "single": QuoteMarks("'", "'")},
-    "en": {"double": QuoteMarks("“", "”"), "single": QuoteMarks("‘", "’")},
-}
-
-
-def _quote_marks(lang: Locale, kind: ir.QuoteKind) -> QuoteMarks:
-    return _QUOTE_MARKS.get(lang, _QUOTE_MARKS["ru"])[kind]
-
-
-# A literal guillemet in EN text is a mistyped quote (English has no guillemets), so it normalizes
-# to the same American curly double a `Quoted` inline lowers to. RU text keeps its guillemets.
-_EN_LITERAL_QUOTES = str.maketrans({"«": "“", "»": "”"})
-
-
 def _typographic_text(value: str, lang: Locale) -> str:
-    return value.translate(_EN_LITERAL_QUOTES) if lang == "en" else value
+    return normalize_literal_quotes(value, lang)
 
 
 def _escape_markdown_alt(alt: str) -> str:
@@ -147,7 +124,7 @@ def _inline_md(n: ir.Inline, lang: Locale) -> str:
         case ir.Code():
             return _inline_code_md(n.value)
         case ir.Quoted():
-            marks = _quote_marks(lang, n.kind)
+            marks = quote_marks(lang, n.kind)
             return f"{marks.opening}{_inlines_md(n.children, lang)}{marks.closing}"
         case ir.Link():
             label = _inlines_md(n.children, lang).strip()
