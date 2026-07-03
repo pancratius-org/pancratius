@@ -85,6 +85,10 @@ const relatedVideos = await relatedVideosFor(entry);
           data-pagefind-body
           data-pagefind-meta={`title:${entry.data.title}`}
           data-leadable
+          data-track-read
+          data-track-kind="message"
+          data-track-slug={entry.data.slug}
+          data-track-locale={locale}
         >
           <Content />
         </div>

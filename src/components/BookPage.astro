@@ -92,6 +92,10 @@ const pad = (n: number) => String(n).padStart(2, "0");
         data-pagefind-body
         data-pagefind-meta={`title:${entry.data.title}`}
         data-leadable
+        data-track-read
+        data-track-kind={pair.kind}
+        data-track-slug={entry.data.slug}
+        data-track-locale={locale}
       >
         <Content />
       </div>

@@ -47,11 +47,13 @@ export const FOOTER_LINKS: readonly FooterLink[] = [
 export interface FooterExternalLink {
   href: string;
   label: Record<Locale, string>;
+  /** Channel name in analytics `channel-open` events. */
+  channel: string;
 }
 
 export const FOOTER_EXTERNAL_LINKS: readonly FooterExternalLink[] = [
-  { href: "https://t.me/SPankratius", label: { ru: "Telegram", en: "Telegram" } },
-  { href: "mailto:ask@pancratius.org", label: { ru: "ask@pancratius.org", en: "ask@pancratius.org" } },
+  { href: "https://t.me/SPankratius", label: { ru: "Telegram", en: "Telegram" }, channel: "telegram" },
+  { href: "mailto:ask@pancratius.org", label: { ru: "ask@pancratius.org", en: "ask@pancratius.org" }, channel: "email" },
 ] as const;
 
 /**

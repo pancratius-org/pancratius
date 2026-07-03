@@ -1,0 +1,28 @@
+---
+// Umami tracker + the site's observer layer (src/lib/analytics.ts). The
+// contract — event vocabulary, dashboard setup, what is deliberately not
+// collected — lives in docs/analytics.md.
+//
+// `data-domains` keeps localhost, previews, and CI silent: the tracker only
+// runs when the page is served from a production hostname. `data-exclude-hash`
+// folds `#fragment` landings into their page (and keeps the conceptosphere's
+// hash-borne mode out of pageview URLs). `data-performance` adds Core Web
+// Vitals to the same beacon.
+import { PRODUCTION_HOSTNAMES } from "@/lib/origins";
+
+const WEBSITE_ID = "b0a074c7-4683-40d9-bc06-021ea5442dfa";
+---
+<script
+  is:inline
+  defer
+  src="https://cloud.umami.is/script.js"
+  data-website-id={WEBSITE_ID}
+  data-domains={PRODUCTION_HOSTNAMES.join(",")}
+  data-exclude-hash="true"
+  data-performance="true"
+></script>
+<script>
+  import { bindAnalytics } from "@/lib/analytics";
+
+  bindAnalytics();
+</script>

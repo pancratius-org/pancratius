@@ -60,6 +60,10 @@ const date = poemDate(entry);
       class="prose prose--poem poem-page__body"
       data-pagefind-body
       data-pagefind-meta={`title:${entry.data.title}`}
+      data-track-read
+      data-track-kind={pair.kind}
+      data-track-slug={entry.data.slug}
+      data-track-locale={locale}
     >
       <Content />
     </div>

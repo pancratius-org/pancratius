@@ -100,6 +100,15 @@ const copy = pagefindSearchCopy[locale];
       more.hidden = rendered >= activeResults.length;
     }
 
+    // Reflect only COMPLETED searches in the URL (shareable / bookmarkable).
+    // Per-keystroke updates would also feed every partial query to the
+    // analytics tracker, which observes history.replaceState.
+    function reflectQuery(q) {
+      const url = new URL(location.href);
+      if (q) url.searchParams.set("q", q); else url.searchParams.delete("q");
+      history.replaceState(null, "", url);
+    }
+
     async function runSearch() {
       const q = input.value.trim();
       const mine = ++token;
@@ -107,7 +116,12 @@ const copy = pagefindSearchCopy[locale];
       activeResults = [];
       rendered = 0;
       more.hidden = true;
-      if (!q) { status.textContent = copy.prompt; return; }
+      if (!q) {
+        status.textContent = copy.prompt;
+        reflectQuery("");
+        list.dataset.searchQuery = "";
+        return;
+      }
       status.textContent = copy.searching;
       let pagefind;
       try {
@@ -123,6 +137,10 @@ const copy = pagefindSearchCopy[locale];
       if (search === null) return;
       if (mine !== token) return;
       activeResults = search.results;
+      reflectQuery(q);
+      // The completed-search state (data-search-*) is what analytics observes.
+      list.dataset.searchQuery = q;
+      list.dataset.searchResults = String(activeResults.length);
       if (!activeResults.length) {
         status.textContent = copy.empty;
         return;
@@ -142,10 +160,6 @@ const copy = pagefindSearchCopy[locale];
           .then(pagefind => pagefind.preload?.(q))
           .catch(() => {});
       }
-      // Reflect the query in the URL so the search is shareable / bookmarkable.
-      const url = new URL(location.href);
-      if (q) url.searchParams.set("q", q); else url.searchParams.delete("q");
-      history.replaceState(null, "", url);
     });
     // Pick up an initial query from ?q= and run it.
     const initial = new URLSearchParams(location.search).get("q");

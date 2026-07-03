@@ -35,7 +35,15 @@ const FORMAT_LABEL: Record<ArchiveInfo["format"], string> = {
       <ol class="dl__list">
         {archives.map(a => (
           <li class="dl__row">
-            <a class="dl__link" href={a.url} download>
+            <a
+              class="dl__link"
+              href={a.url}
+              download
+              data-track-event="archive-download"
+              data-track-archive={a.name}
+              data-track-locale={locale}
+              data-track-format={a.format}
+            >
               <span class="dl__label">{FORMAT_LABEL[a.format]}</span>
               <span class="dl__name">{a.name}</span>
             </a>
