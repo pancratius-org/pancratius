@@ -71,7 +71,15 @@ const copy = supportChannelsCopy[locale];
 
           {c.kind === "link" && (
             <div class="channel__row">
-              <a class="channel__value channel__value--link" href={c.value} rel="noopener noreferrer" target="_blank">
+              <a
+                class="channel__value channel__value--link"
+                href={c.value}
+                rel="noopener noreferrer"
+                target="_blank"
+                data-track-event="support-open"
+                data-track-channel={c.label}
+                data-track-locale={locale}
+              >
                 {c.value.replace(/^https?:\/\//, "")}
               </a>
               <button
@@ -81,6 +89,10 @@ const copy = supportChannelsCopy[locale];
                 data-copy-label={copy.copy}
                 data-copy-done={copy.copied}
                 data-copy-fail={copy.failed}
+                data-umami-event="support-copy"
+                data-umami-event-channel={c.label}
+                data-umami-event-kind={c.kind}
+                data-umami-event-locale={locale}
                 aria-label={copy.copyAria(c.label)}
               >[{copy.copy}]</button>
             </div>
@@ -96,6 +108,10 @@ const copy = supportChannelsCopy[locale];
                 data-copy-label={copy.copy}
                 data-copy-done={copy.copied}
                 data-copy-fail={copy.failed}
+                data-umami-event="support-copy"
+                data-umami-event-channel={c.label}
+                data-umami-event-kind={c.kind}
+                data-umami-event-locale={locale}
                 aria-label={copy.copyAria(c.label)}
               >[{copy.copy}]</button>
             </div>

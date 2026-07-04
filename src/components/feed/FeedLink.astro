@@ -17,6 +17,8 @@ const { locale } = Astro.props;
   type="application/rss+xml"
   rel="alternate"
   aria-label={feedAria(locale)}
+  data-track-event="feed-subscribe"
+  data-track-locale={locale}
 >
   <svg class="feed-link__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
     <path d="M5 5a14 14 0 0 1 14 14"></path>

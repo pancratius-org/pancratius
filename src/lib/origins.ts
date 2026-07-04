@@ -31,3 +31,12 @@ const LOCALE_ORIGIN: Record<Locale, string> = Object.fromEntries(
 export function originFor(locale: Locale): string {
   return LOCALE_ORIGIN[locale];
 }
+
+/**
+ * The hostnames production traffic arrives on — the analytics allowlist.
+ * Deliberately built from the defaults, not the per-deploy overrides: a
+ * preview origin must not collect analytics.
+ */
+export const PRODUCTION_HOSTNAMES: readonly string[] = LOCALES.map(
+  locale => new URL(DEFAULT_ORIGIN[locale]).hostname,
+);

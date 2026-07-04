@@ -8,7 +8,7 @@
 // only.
 
 import type { Locale } from "@/lib/i18n";
-import { embedUrlFor, watchUrlFor, type VideoEntry } from "@/lib/videos";
+import { embedUrlFor, videoWatchLinks, watchUrlFor, type VideoEntry } from "@/lib/videos";
 import { videoCoverAssetUrl, type VideoPair } from "@/lib/videos";
 import { videoPageCopy } from "@/lib/i18n/copy";
 
@@ -26,6 +26,7 @@ const { entry, pair, locale, loading = "lazy", badge } = Astro.props;
 const copy = videoPageCopy[locale];
 const embed = embedUrlFor(entry, locale);
 const watch = watchUrlFor(entry);
+const platform = videoWatchLinks(entry).primary.platform;
 const thumb = videoCoverAssetUrl(pair, locale);
 const title = entry.data.title;
 ---
@@ -36,7 +37,15 @@ const title = entry.data.title;
     data-watch={watch}
     data-title={title}
   >
-    <button type="button" class="vembed__play" aria-label={badge ? `${copy.playAria}, ${badge}` : copy.playAria}>
+    <button
+      type="button"
+      class="vembed__play"
+      aria-label={badge ? `${copy.playAria}, ${badge}` : copy.playAria}
+      data-umami-event="video-play"
+      data-umami-event-number={pair.number}
+      data-umami-event-platform={platform}
+      data-umami-event-locale={locale}
+    >
       {thumb && (
         <img
           src={thumb}
@@ -59,7 +68,14 @@ const title = entry.data.title;
   </div>
 ) : (
   <p class="vembed__fallback">
-    <a href={watch} rel="noopener">{title}</a>
+    <a
+      href={watch}
+      rel="noopener"
+      data-track-event="video-watch"
+      data-track-number={pair.number}
+      data-track-platform={platform}
+      data-track-locale={locale}
+    >{title}</a>
   </p>
 )}
 

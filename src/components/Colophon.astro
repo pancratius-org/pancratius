@@ -28,7 +28,15 @@ const copy = colophonCopy[locale];
     {formats.map((fmt, i) => (
       <>
         {i > 0 && " · "}
-        <a href={downloadUrl(pair.kind, entry.data.slug, fmt, locale)} download>
+        <a
+          href={downloadUrl(pair.kind, entry.data.slug, fmt, locale)}
+          download
+          data-track-event="work-download"
+          data-track-kind={pair.kind}
+          data-track-slug={entry.data.slug}
+          data-track-locale={locale}
+          data-track-format={fmt}
+        >
           {FORMAT_LABEL[fmt]}
         </a>
       </>

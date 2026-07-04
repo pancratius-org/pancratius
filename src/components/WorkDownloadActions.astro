@@ -22,11 +22,15 @@ const labelId = `work-actions-${pair.kind}-${pair.number}-${locale}`;
     {formats.map((fmt, i) => (
       <>
         {i > 0 && <span class="work-actions__sep">·</span>}
-        {downloadAttribute ? (
-          <a href={downloadUrl(pair.kind, entry.data.slug, fmt, locale)} download>{FORMAT_LABEL[fmt]}</a>
-        ) : (
-          <a href={downloadUrl(pair.kind, entry.data.slug, fmt, locale)}>{FORMAT_LABEL[fmt]}</a>
-        )}
+        <a
+          href={downloadUrl(pair.kind, entry.data.slug, fmt, locale)}
+          download={downloadAttribute}
+          data-track-event="work-download"
+          data-track-kind={pair.kind}
+          data-track-slug={entry.data.slug}
+          data-track-locale={locale}
+          data-track-format={fmt}
+        >{FORMAT_LABEL[fmt]}</a>
       </>
     ))}
   </div>

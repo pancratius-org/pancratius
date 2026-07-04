@@ -83,7 +83,15 @@ const channel = await channelForEntry(entry);
 
     <div class="video-page__bar">
       <p class="video-page__watch">
-        <a href={watchLinks.primary.url} rel="noopener" target="_blank">
+        <a
+          href={watchLinks.primary.url}
+          rel="noopener"
+          target="_blank"
+          data-track-event="video-watch"
+          data-track-number={pair.number}
+          data-track-platform={watchLinks.primary.platform}
+          data-track-locale={locale}
+        >
           {copy.watchOn(copy.platformLabel(watchLinks.primary.platform))} →
         </a>
         {watchLinks.mirrors.length > 0 && (
@@ -92,7 +100,15 @@ const channel = await channelForEntry(entry);
             {watchLinks.mirrors.map((m, i) => (
               <>
                 {i > 0 && " · "}
-                <a href={m.url} rel="noopener" target="_blank">{copy.platformLabel(m.platform)}</a>
+                <a
+                  href={m.url}
+                  rel="noopener"
+                  target="_blank"
+                  data-track-event="video-watch"
+                  data-track-number={pair.number}
+                  data-track-platform={m.platform}
+                  data-track-locale={locale}
+                >{copy.platformLabel(m.platform)}</a>
               </>
             ))}
           </span>
@@ -101,7 +117,14 @@ const channel = await channelForEntry(entry);
       {channel && (
         <p class="video-page__channel">
           <span class="video-page__channel-label">{copy.channelLabel}</span>
-          <a href={channel.data.url} rel="noopener" target="_blank">{channel.data.title[locale]}</a>
+          <a
+            href={channel.data.url}
+            rel="noopener"
+            target="_blank"
+            data-track-event="channel-open"
+            data-track-channel={channel.data.platform}
+            data-track-locale={locale}
+          >{channel.data.title[locale]}</a>
         </p>
       )}
       <Share {locale} />

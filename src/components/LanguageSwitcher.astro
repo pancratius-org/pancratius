@@ -62,7 +62,15 @@ const currentLabel = LOCALE_LABEL[currentLocale];
       if (href !== undefined) {
         return (
           <li class="lang__option" role="none">
-            <a {href} hreflang={loc} role="option" tabindex="-1">
+            <a
+              {href}
+              hreflang={loc}
+              role="option"
+              tabindex="-1"
+              data-track-event="language-switch"
+              data-track-from={currentLocale}
+              data-track-to={loc}
+            >
               {inner}
             </a>
           </li>

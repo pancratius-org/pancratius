@@ -81,6 +81,9 @@ already committed. Their meeting point is committed source.
   a function of the resource's **locale** (`src/lib/origins.ts`), never of the
   serving host, so the artifact stays byte-identical across both. Language
   switching is same-origin; the cross-origin hreflang map is the SEO axis.
+- **Analytics.** Anonymous, cookieless Umami Cloud — the one third-party
+  request the site makes. Components expose semantic markup; a single
+  observer module does the tracking. Contract: [`analytics.md`](./analytics.md).
 - **Apex redirect is host-decided.** The build bakes the apex `/ → /ru/`
   as a meta-refresh (static output → no real 301); only `.org` upgrades it to a
   true 301 → `/en/` at the edge. The apex is the only host-specific behavior; `dist/` carries no
@@ -202,7 +205,8 @@ merged algorithmic **Похожие книги** list on book pages. Data contra
 ## Voice / no-decoration constraints
 
 - The site exists to be read. Components earn their place by serving the reading, not by performing.
-- No analytics tracker, no auth, no comments, no payment provider.
+- No auth, no comments, no payment provider. Analytics stays anonymous and
+  observational; the reading experience never depends on it.
 - Corpus content is CC0. The license text lives in `LICENSE` and is restated
   in voice on `/license/`.
 
