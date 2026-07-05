@@ -70,13 +70,13 @@
     "@types/node": "^24.12.4",
     "eslint": "^10.6.0",
     "eslint-plugin-astro": "^2.1.1",
-    "knip": "^6.22.0",
-    "postcss": "^8.5.14",
+    "knip": "^6.24.0",
+    "postcss": "^8.5.16",
     "postcss-html": "^1.8.1",
     "stylelint": "^17.14.0",
     "stylelint-config-recommended": "^18.0.0",
     "temml": "^0.13.3",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.62.0"
+    "typescript-eslint": "^8.62.1"
   }
 }
