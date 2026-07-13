@@ -24,24 +24,18 @@ import subprocess
 import xml.etree.ElementTree as ET
 import zipfile
 from bisect import bisect_left
-from collections.abc import Mapping
-from dataclasses import dataclass, field, replace
-from itertools import pairwise
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, cast
 
-from pancratius import ir
+from pancratius import docx_source, ir
+from pancratius.docx_source import SourceParagraph
 from pancratius.ir.inlines import inline_plain
+from pancratius.ooxml import W_NS
 from pancratius.pandoc import pandoc_argv0
-from pancratius.thematic import is_thematic_marker
 
-W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-W = f"{{{W_NS}}}"
-# OOXML markup-compatibility: a run can carry both an `mc:Choice` and an
-# `mc:Fallback` rendering of the same content; the side-channel reader drops the
-# `mc:Fallback` subtree so its `w:t` text is not double-counted.
-MC_NS = "http://schemas.openxmlformats.org/markup-compatibility/2006"
-MC_FALLBACK = f"{{{MC_NS}}}Fallback"
+W = docx_source.W
 
 _WORD_RE = re.compile(r"\w+", re.UNICODE)
 
@@ -73,7 +67,7 @@ PANDOC_TIMEOUT_SECONDS = 300
 # (`ns3:`/`ns5:`/`ns7:` …); pandoc then drops every image despite a spec-valid file.
 # `_canonical_pandoc_input` re-prefixes such a doc before pandoc reads it.
 _CANONICAL_NS = {
-    "http://schemas.openxmlformats.org/wordprocessingml/2006/main": "w",
+    W_NS: "w",
     "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing": "wp",
     "http://schemas.openxmlformats.org/drawingml/2006/main": "a",
     "http://schemas.openxmlformats.org/drawingml/2006/picture": "pic",
@@ -117,8 +111,8 @@ def _canonical_pandoc_input(docx: Path, work_dir: Path) -> Path:
     The rewrite changes ONLY the namespace prefixes of `word/document.xml` (the URIs,
     and therefore the meaning, are unchanged), so the recovered images are real and no
     text is lost. Only `document.xml` is rewritten — images in this corpus live there, not
-    in headers/footers/notes. The OOXML side-channel reads (`read_w_jc`) match by URI and so
-    read the ORIGINAL docx — only pandoc, which resolves embeds by prefix, needs this form.
+    in headers/footers/notes. The canonical source model matches by URI and reads
+    the ORIGINAL docx — only pandoc, which resolves embeds by prefix, needs this form.
 
     A docx that cannot be read as a zip/XML here is passed through unchanged: pandoc stays
     the single authority on a malformed file, so this pre-pass never converts a clean pandoc
@@ -172,384 +166,6 @@ def run_pandoc_json(docx: Path, media_dir: Path) -> tuple[dict[str, Any], str]:
     return json.loads(proc.stdout), proc.stderr.strip()
 
 
-# ---------------------------------------------------------------------------
-# OOXML w:jc side-channel (the one signal Pandoc drops)
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class _SourceParagraph:
-    """One top-level source `w:p`: its reading text plus the OOXML signals the
-    importer reconciles onto Pandoc IR by content.
-
-    `indented` is within-book DIRECTIONED, not the raw presence of `w:ind`: in a
-    book whose body default carries a first-line indent on every paragraph, the
-    raw bit discriminates nothing (verse rows carry it too). It is set by
-    `_direction_indents` only where the paragraph's indent signature departs from
-    the book-dominant one."""
-
-    align: str
-    text: str
-    style: str = ""
-    contextual_spacing: bool = False
-    spacing: dict[str, str] = field(default_factory=dict)
-    indent: tuple[tuple[str, str], ...] = ()
-    indented: bool = False
-    border: ir.BorderKind = ""
-    heading: bool = False
-    thematic: bool = False
-    source_span: ir.SourceSpan | None = None
-    source_segment: int = 0
-    empty: bool = False
-    reconcile: bool = True
-    lineation_group: int | None = None
-
-
-def _direction_indents(records: list[_SourceParagraph]) -> None:
-    """Set `indented` to "indent departs from the book default".
-
-    The dominant indent signature over text-bearing body records is the book's
-    default paragraph shape; a paragraph is `indented` only when it carries an
-    indent that is neither absent nor that default. Runs before lineation-group
-    assignment and reconciliation so every consumer reads the directioned bit.
-    """
-    body = [p for p in records if p.reconcile and p.text.strip()]
-    counts: dict[tuple[tuple[str, str], ...], int] = {}
-    for p in body:
-        counts[p.indent] = counts.get(p.indent, 0) + 1
-    dominant = max(counts, key=lambda sig: counts[sig], default=())
-    for p in records:
-        p.indented = bool(p.indent) and p.indent != dominant
-
-
-@dataclass(frozen=True)
-class _StyleInfo:
-    based_on: str
-    contextual_spacing: bool
-    spacing: dict[str, str]
-
-
-def _indent_attrs(ppr: ET.Element | None) -> tuple[tuple[str, str], ...]:
-    """The `w:ind` attrs of a paragraph as a canonical signature (sorted pairs)."""
-    ind = ppr.find(f"{W}ind") if ppr is not None else None
-    if ind is None:
-        return ()
-    return tuple(sorted((k.removeprefix(W), v) for k, v in ind.attrib.items()))
-
-
-def _spacing_attrs(ppr: ET.Element | None) -> dict[str, str]:
-    spacing = ppr.find(f"{W}spacing") if ppr is not None else None
-    if spacing is None:
-        return {}
-    return {k.removeprefix(W): v for k, v in spacing.attrib.items()}
-
-
-def _doc_default_spacing(zf: zipfile.ZipFile) -> dict[str, str]:
-    """Document-wide paragraph spacing inherited when style/direct spacing is absent."""
-    try:
-        root = ET.fromstring(zf.read("word/styles.xml"))
-    except KeyError:
-        return {}
-    sp = root.find(f"{W}docDefaults/{W}pPrDefault/{W}pPr/{W}spacing")
-    return {k.removeprefix(W): v for k, v in sp.attrib.items()} if sp is not None else {}
-
-
-def _paragraph_styles(zf: zipfile.ZipFile) -> tuple[dict[str, _StyleInfo], str]:
-    try:
-        root = ET.fromstring(zf.read("word/styles.xml"))
-    except KeyError:
-        return {}, "Normal"
-
-    styles: dict[str, _StyleInfo] = {}
-    default = "Normal"
-    for st in root.findall(f".//{W}style"):
-        if st.get(f"{W}type") != "paragraph":
-            continue
-        style_id = str(st.get(f"{W}styleId") or "")
-        if not style_id:
-            continue
-        if st.get(f"{W}default") == "1":
-            default = style_id
-        ppr = st.find(f"{W}pPr")
-        styles[style_id] = _StyleInfo(
-            based_on=_w_val(st.find(f"{W}basedOn")),
-            contextual_spacing=(
-                ppr.find(f"{W}contextualSpacing") is not None if ppr is not None else False
-            ),
-            spacing=_spacing_attrs(ppr),
-        )
-    return styles, default
-
-
-def _w_val(el: ET.Element | None) -> str:
-    if el is None:
-        return ""
-    return str(el.get(f"{W}val") or "")
-
-
-_BORDER_SIDES = ("top", "bottom", "left", "right")
-
-
-def border_kind(ppr: ET.Element | None) -> ir.BorderKind:
-    """The paragraph's `w:pBdr` gesture kind.
-
-    Reduced to the two side combinations that carry editorial meaning in this
-    corpus: a full four-side box ("box") and a left-rule-only bar ("rule").
-    `w:between`/`w:bar` edges and `val="none"` sides are not block-set-apart
-    gestures and do not count."""
-    pbdr = ppr.find(f"{W}pBdr") if ppr is not None else None
-    if pbdr is None:
-        return ""
-    sides = {
-        side
-        for side in _BORDER_SIDES
-        if (el := pbdr.find(f"{W}{side}")) is not None
-        and el.get(f"{W}val", "none") not in {"none", "nil"}
-    }
-    if not sides:
-        return ""
-    if len(sides) == 4:
-        return "box"
-    if sides == {"left"}:
-        return "rule"
-    return "other"
-
-
-def _style_chain(style: str, styles: dict[str, _StyleInfo]) -> list[_StyleInfo]:
-    out: list[_StyleInfo] = []
-    seen: set[str] = set()
-    cur = style
-    while cur and cur not in seen:
-        seen.add(cur)
-        got = styles.get(cur)
-        if got is None:
-            break
-        out.append(got)
-        cur = got.based_on
-    return out
-
-
-def _resolved_contextual_spacing(
-    style: str,
-    styles: dict[str, _StyleInfo],
-    *,
-    direct_contextual_spacing: bool,
-) -> bool:
-    return direct_contextual_spacing or any(
-        info.contextual_spacing for info in _style_chain(style, styles)
-    )
-
-
-def _resolved_spacing(
-    style: str, styles: dict[str, _StyleInfo], direct: dict[str, str]
-) -> dict[str, str]:
-    out: dict[str, str] = {}
-    for info in reversed(_style_chain(style, styles)):
-        out.update(info.spacing)
-    out.update(direct)
-    return out
-
-
-def _spacing_before_is_real(p: _SourceParagraph) -> bool:
-    if p.spacing.get("beforeAutospacing") == "1":
-        return True
-    try:
-        return int(p.spacing.get("before") or "0") > 0
-    except ValueError:
-        return False
-
-
-def _spacing_after_is_real(p: _SourceParagraph) -> bool:
-    if p.spacing.get("afterAutospacing") == "1":
-        return True
-    try:
-        return int(p.spacing.get("after") or "0") > 0
-    except ValueError:
-        return False
-
-
-def _source_paragraphs_join(a: _SourceParagraph, b: _SourceParagraph) -> bool:
-    """Whether adjacent Word paragraphs render as one visual lineated group.
-
-    This is intentionally structural. It does not decide whether the group is
-    verse-worthy; it only records that Word suppresses visible paragraph spacing
-    between same-style neighbors.
-
-    Debugging note: when this logic drifts, the fastest RCA has been a read-only
-    one-off OOXML inspector that prints paragraph index, resolved style,
-    `w:contextualSpacing`, spacing attrs, `numPr`/`ind`/`jc`/`pBdr`, and text around
-    a failing phrase. Inspect the source signals first; do not prototype by
-    rewriting the DOCX and then diffing Pandoc output.
-    """
-    if not (a.contextual_spacing and b.contextual_spacing):
-        return False
-    if a.style != b.style:
-        return False
-    if not a.text.strip() or not b.text.strip():
-        return False
-    if a.heading or b.heading or a.thematic or b.thematic:
-        return False
-    if a.indented or b.indented or a.border or b.border:
-        return False
-    if a.align != b.align:
-        return False
-    return _spacing_after_is_real(a) or _spacing_before_is_real(b)
-
-
-def _assign_lineation_groups(paragraphs: list[_SourceParagraph]) -> None:
-    if not paragraphs:
-        return
-    group_id = 1
-    run = [paragraphs[0]]
-    for prev, cur in pairwise(paragraphs):
-        if _source_paragraphs_join(prev, cur):
-            run.append(cur)
-            continue
-        if len(run) > 1:
-            for p in run:
-                p.lineation_group = group_id
-            group_id += 1
-        run = [cur]
-    if len(run) > 1:
-        for p in run:
-            p.lineation_group = group_id
-
-
-def _source_boundary(
-    source_span: ir.SourceSpan | None = None,
-    *,
-    source_segment: int = 0,
-) -> _SourceParagraph:
-    """A top-level source block that must break visual grouping but does not
-    reconcile onto a top-level Pandoc paragraph."""
-    return _SourceParagraph(
-        align="",
-        text="",
-        source_span=source_span,
-        source_segment=source_segment,
-        reconcile=False,
-    )
-
-
-def _paragraph_text(p: ET.Element) -> str:
-    """The reading text of a `w:p` (its `w:t` runs, hard breaks as spaces,
-    `mc:Fallback` duplicates dropped). Used only to MATCH the paragraph to its AST
-    counterpart, so it must render the same glyphs Pandoc does: a `w:noBreakHyphen`/
-    `w:softHyphen` is a textless element Pandoc surfaces as U+2011/U+00AD, and
-    dropping it would fuse the words it sits between (`кто‑то`→`ктото`), desyncing
-    the fingerprint and costing that paragraph its source span."""
-    parts: list[str] = []
-
-    def walk(el: ET.Element, *, in_fallback: bool) -> None:
-        for child in el:
-            if child.tag == MC_FALLBACK:
-                walk(child, in_fallback=True)
-            elif child.tag == f"{W}t":
-                if not in_fallback:
-                    parts.append(child.text or "")
-            elif child.tag in {f"{W}br", f"{W}cr", f"{W}tab"}:
-                parts.append(" ")
-            elif child.tag == f"{W}noBreakHyphen":
-                parts.append("‑")
-            elif child.tag == f"{W}softHyphen":
-                parts.append("­")
-            else:
-                walk(child, in_fallback=in_fallback)
-
-    walk(p, in_fallback=False)
-    return "".join(parts)
-
-
-_NON_TEXT_SOURCE_CONTENT = {f"{W}br", f"{W}cr", f"{W}tab", f"{W}drawing", f"{W}pict", f"{W}object"}
-
-
-def _paragraph_is_empty_source(p: ET.Element, text: str) -> bool:
-    """True for a structural empty paragraph, not an image/object paragraph."""
-    return not text.strip() and not any(el.tag in _NON_TEXT_SOURCE_CONTENT for el in p.iter())
-
-
-def read_w_jc(docx: Path) -> list[_SourceParagraph]:
-    """Per-body-paragraph source records in document order.
-
-    Only top-level body paragraphs are walked: the body's direct `w:p` children plus
-    those nested in `w:sdt` content controls, skipping `w:tbl` contents (table cells
-    are not top-level AST paragraphs).
-
-    List-item paragraphs (`w:numPr`) are skipped: Pandoc collapses a run of list
-    `w:p` into one `OrderedList`/`BulletList` block, so they never surface as
-    top-level `Para`s and emitting an entry per item would desync this vector from
-    the AST sequence. The other collapse/fusion shapes are absorbed by the content
-    reconciliation in `reconcile_source`, not enumerated here.
-    """
-    with zipfile.ZipFile(docx) as zf:
-        styles, default_style = _paragraph_styles(zf)
-        doc_default_spacing = _doc_default_spacing(zf)
-        root = ET.fromstring(zf.read("word/document.xml"))
-    body = root.find(f"{W}body")
-    if body is None:
-        return []
-    records: list[_SourceParagraph] = []
-    source_index = 0
-    source_segment = 0
-
-    def walk(el: ET.Element) -> None:
-        nonlocal source_index, source_segment
-        for child in el:
-            if child.tag == f"{W}p":
-                source_span = ir.SourceSpan(source_index, source_index)
-                source_index += 1
-                ppr = child.find(f"{W}pPr")
-                if ppr is not None and ppr.find(f"{W}numPr") is not None:
-                    records.append(_source_boundary(
-                        source_span,
-                        source_segment=source_segment,
-                    ))
-                    source_segment += 1
-                    continue  # list item: Pandoc collapses it into a List block
-                direct_style = _w_val(ppr.find(f"{W}pStyle") if ppr is not None else None)
-                style = direct_style or default_style
-                direct_spacing = _spacing_attrs(ppr)
-                txt = _paragraph_text(child).strip()
-                records.append(_SourceParagraph(
-                    align=_w_val(ppr.find(f"{W}jc") if ppr is not None else None),
-                    text=txt,
-                    style=style,
-                    contextual_spacing=_resolved_contextual_spacing(
-                        style,
-                        styles,
-                        direct_contextual_spacing=(
-                            ppr.find(f"{W}contextualSpacing") is not None
-                            if ppr is not None
-                            else False
-                        ),
-                    ),
-                    spacing={
-                        **doc_default_spacing,
-                        **_resolved_spacing(style, styles, direct_spacing),
-                    },
-                    indent=_indent_attrs(ppr),
-                    border=border_kind(ppr),
-                    heading=bool(re.fullmatch(r"(?:Heading\d+|[1-9])", direct_style)),
-                    thematic=is_thematic_marker(txt),
-                    source_span=source_span,
-                    source_segment=source_segment,
-                    empty=_paragraph_is_empty_source(child, txt),
-                ))
-            elif child.tag == f"{W}tbl":
-                records.append(_source_boundary(source_segment=source_segment))
-                source_segment += 1
-                continue  # table cells are not top-level AST paragraphs
-            elif child.tag == f"{W}sdt":
-                content = child.find(f"{W}sdtContent")
-                if content is not None:
-                    walk(content)
-
-    walk(body)
-    _direction_indents(records)
-    _assign_lineation_groups(records)
-    return [p for p in records if p.reconcile]
-
-
 def _fingerprint(text: str) -> str:
     """A whitespace/case-insensitive fingerprint of a paragraph's reading words — the
     comparison key reconciliation diffs on. Joining the word stream makes the AST
@@ -567,21 +183,26 @@ def _source_match_key(text: str) -> str:
     return _fingerprint(text) or re.sub(r"\s+", " ", text).strip().casefold()
 
 
-def _has_contiguous_source_spans(records: list[_SourceParagraph]) -> bool:
+def _record_span(record: SourceParagraph) -> ir.SourceSpan:
+    ordinal = int(record.ordinal)
+    return ir.SourceSpan(ordinal, ordinal)
+
+
+def _has_contiguous_source_spans(records: Sequence[SourceParagraph]) -> bool:
     """True when records prove adjacent source paragraph ordinals."""
-    if not records or records[0].source_span is None:
+    if not records:
         return False
-    prev = records[0].source_span
-    segment = records[0].source_segment
+    previous = records[0]
     for record in records[1:]:
-        cur = record.source_span
-        if record.source_segment != segment or cur is None or cur.start != prev.end + 1:
+        if record.segment != previous.segment or int(record.ordinal) != int(previous.ordinal) + 1:
             return False
-        prev = cur
+        previous = record
     return True
 
 
-def _assign_bracketed_empty_spans(blocks: list[ir.Block], records: list[_SourceParagraph]) -> int:
+def _assign_bracketed_empty_spans(
+    blocks: list[ir.Block], records: Sequence[SourceParagraph]
+) -> int:
     """Attach source spans to empty IR paragraphs only when neighbors prove them.
 
     Empty paragraphs have no text key, so matching them during the main content walk
@@ -590,9 +211,9 @@ def _assign_bracketed_empty_spans(blocks: list[ir.Block], records: list[_SourceP
     paragraph ordinals between those neighbors.
     """
     empty_spans = {
-        record.source_span.start: record.source_span
+        int(record.ordinal): _record_span(record)
         for record in records
-        if record.empty and record.source_span is not None
+        if record.structural_empty
     }
     if not empty_spans:
         return 0
@@ -712,7 +333,7 @@ def _monotone_anchors(pairs: list[tuple[int, int]]) -> list[tuple[int, int]]:
 def _match_window(
     block_fps: list[str],
     rec_fps: list[str],
-    records: list[_SourceParagraph],
+    records: Sequence[SourceParagraph],
     *,
     blocks_range: range,
     records_range: range,
@@ -768,7 +389,9 @@ def _match_window(
         ri += consumed
 
 
-def _align_records(block_fps: list[str], rec_fps: list[str], records: list[_SourceParagraph]) -> list[_Match]:
+def _align_records(
+    block_fps: list[str], rec_fps: list[str], records: Sequence[SourceParagraph]
+) -> list[_Match]:
     """THE source↔AST alignment: match every source record onto its AST block once.
 
     Position alone cannot be trusted (Pandoc collapses some `w:p` — lists, `Div`s,
@@ -810,7 +433,9 @@ def _align_records(block_fps: list[str], rec_fps: list[str], records: list[_Sour
     return matches
 
 
-def reconcile_source(blocks: list[ir.Block], records: list[_SourceParagraph]) -> tuple[int, int]:
+def reconcile_source(
+    blocks: list[ir.Block], records: Sequence[SourceParagraph]
+) -> tuple[int, int]:
     """Reconcile source `w:p` records onto AST blocks by CONTENT, in one alignment.
 
     Each matched block is REBUILT in its `blocks` slot (nodes are frozen; the
@@ -833,7 +458,7 @@ def reconcile_source(blocks: list[ir.Block], records: list[_SourceParagraph]) ->
     for m in _align_records(block_fps, rec_fps, records):
         consumed = records[m.first_record:m.first_record + m.n_records]
         block = blocks[m.block]
-        span = ir.merge_source_spans(r.source_span for r in consumed)
+        span = ir.merge_source_spans(_record_span(record) for record in consumed)
         if span is not None:
             spans += 1
         else:
@@ -842,19 +467,23 @@ def reconcile_source(blocks: list[ir.Block], records: list[_SourceParagraph]) ->
             blocks[m.block] = replace(block, source_span=span)
             continue
         facts = block.facts
-        if any(r.indented for r in consumed):
+        if any(record.indent_departure for record in consumed):
             facts = replace(facts, indented=True)
         # Strict agreement: every text-bearing consumed record must carry the
         # SAME border kind. A Pandoc-fused block spanning bordered and plain
         # source rows stays unbordered — assigning the border would drag the
         # plain text into a set-apart register.
-        text_borders = {r.border for r in consumed if r.text.strip()}
+        text_borders = {record.border.value for record in consumed if record.text}
         if len(text_borders) == 1 and (kind := text_borders.pop()):
-            facts = replace(facts, border=kind)
-        groups = {r.lineation_group for r in consumed if r.lineation_group is not None}
+            facts = replace(facts, border=cast("ir.BorderKind", kind))
+        groups = {
+            record.visual_group.value
+            for record in consumed
+            if record.visual_group is not None
+        }
         if len(groups) == 1:
             facts = replace(facts, lineation_group=groups.pop())
-        if any(r.align in {"right", "end"} for r in consumed) and not facts.align:
+        if any(r.alignment.is_right_edge for r in consumed) and not facts.align:
             facts = replace(facts, align="right")
             right += 1
         blocks[m.block] = replace(block, facts=facts, source_span=span)
@@ -1204,7 +833,7 @@ def adapt(docx: Path, media_dir: Path, diagnostics: ir.DiagnosticSink) -> ir.Doc
     inline walk are attached densely renumbered.
     """
     ast, warns = run_pandoc_json(docx, media_dir)
-    records = read_w_jc(docx)
+    records = docx_source.read(docx).reconciliation_paragraphs
 
     ctx = _Ctx()
     if warns:
@@ -1218,7 +847,7 @@ def adapt(docx: Path, media_dir: Path, diagnostics: ir.DiagnosticSink) -> ir.Doc
     span_assigned, assigned = reconcile_source(blocks, records)
     paragraphs = [b for b in blocks if isinstance(b, ir.Paragraph)]
 
-    right_records = sum(1 for r in records if r.align in {"right", "end"} and r.text.strip())
+    right_records = sum(1 for r in records if r.alignment.is_right_edge and r.text)
     right_assigned = sum(1 for p in paragraphs if p.align in {"right", "end"})
     diagnostics.append(ir.Diagnostic(
         "info", "import.align-zip",

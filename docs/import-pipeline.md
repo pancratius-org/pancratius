@@ -185,6 +185,13 @@ measured fidelity in code and its tests, not pinned in this contract. The
 invariant is only this: **no Markdown string exists before lowering.** The
 adapter does not parse to GFM and then patch the string.
 
+Direct OOXML facts have one canonical source model: paragraph identity and
+order, typed breaks, resolved paragraph properties, and visual lineation
+groups. The adapter, diagnostics, correction rails, and research producers are
+projections of that model; consumers do not walk `document.xml` to reconstruct
+the same facts. Pandoc decodes rich content, but it is not the authority for
+source break kind.
+
 ## The transformation layer must be editable in one place
 
 Detection, normalization, and lowering rules are the part that actually changes

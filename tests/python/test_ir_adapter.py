@@ -14,14 +14,48 @@ from __future__ import annotations
 
 import subprocess
 import zipfile
+from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
 
 from pancratius import docx_adapter as adapter
-from pancratius import ir
+from pancratius import docx_source, ir
 
 W = adapter.W
+
+
+def _read_source(path: Path) -> tuple[docx_source.SourceParagraph, ...]:
+    return docx_source.read(path).reconciliation_paragraphs
+
+
+def _source_paragraph(
+    text: str,
+    *,
+    ordinal: int = 0,
+    align: str = "",
+    segment: int = 0,
+    structural_empty: bool = False,
+) -> docx_source.SourceParagraph:
+    """Small valid source aggregate member for reconciliation-unit tests."""
+    return docx_source.SourceParagraph(
+        ordinal=docx_source.ParagraphOrdinal(ordinal),
+        content=docx_source.ParagraphText(text, text),
+        resolved_style="",
+        direct_style="",
+        alignment=docx_source.ParagraphAlignment(align),
+        contextual_spacing=False,
+        spacing=(),
+        indent=(),
+        indent_departure=False,
+        border=docx_source.BorderGesture.NONE,
+        roles=frozenset({docx_source.ParagraphRole.BODY}),
+        segment=docx_source.SourceSegment(segment),
+        structural_empty=structural_empty,
+        page_break_before=False,
+        bold=False,
+        italic=False,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -286,23 +320,19 @@ def _docx_with_paragraphs(tmp_path: Path, *jcs: str | None) -> Path:
     return _docx_from_document(tmp_path, document)
 
 
-def _aligns(records: list[adapter._SourceParagraph]) -> list[str]:
-    return [r.align for r in records]
+def _aligns(records: Sequence[docx_source.SourceParagraph]) -> list[str]:
+    return [record.alignment.value for record in records]
 
 
-def _groups(records: list[adapter._SourceParagraph]) -> list[int | None]:
-    return [r.lineation_group for r in records]
+def _groups(records: Sequence[docx_source.SourceParagraph]) -> list[int | None]:
+    return [record.visual_group.value if record.visual_group is not None else None for record in records]
 
 
 def test_read_w_jc_returns_alignment_per_body_paragraph(tmp_path: Path) -> None:
     path = _docx_with_paragraphs(tmp_path, "right", None, "center")
-    records = adapter.read_w_jc(path)
+    records = _read_source(path)
     assert _aligns(records) == ["right", "", "center"]
-    assert [record.source_span for record in records] == [
-        ir.SourceSpan(0, 0),
-        ir.SourceSpan(1, 1),
-        ir.SourceSpan(2, 2),
-    ]
+    assert [int(record.ordinal) for record in records] == [0, 1, 2]
 
 
 def test_read_w_jc_skips_table_paragraphs(tmp_path: Path) -> None:
@@ -318,7 +348,7 @@ def test_read_w_jc_skips_table_paragraphs(tmp_path: Path) -> None:
         "</w:body></w:document>"
     )
     path = _docx_from_document(tmp_path, document)
-    assert _aligns(adapter.read_w_jc(path)) == ["right", ""]  # the table para is skipped
+    assert _aligns(_read_source(path)) == ["right", ""]  # the table para is skipped
 
 
 def test_read_w_jc_skips_list_item_paragraphs(tmp_path: Path) -> None:
@@ -338,7 +368,7 @@ def test_read_w_jc_skips_list_item_paragraphs(tmp_path: Path) -> None:
         "</w:body></w:document>"
     )
     path = _docx_from_document(tmp_path, document)
-    records = adapter.read_w_jc(path)
+    records = _read_source(path)
     assert _aligns(records) == ["", "right"]  # the two list items are skipped
     assert [r.text for r in records] == ["before", "after"]
 
@@ -356,7 +386,7 @@ def test_read_w_jc_marks_contextual_spacing_visual_group(tmp_path: Path) -> None
         "</w:body></w:document>"
     )
     path = _docx_from_document(tmp_path, document)
-    records = adapter.read_w_jc(path)
+    records = _read_source(path)
     assert [r.text for r in records] == ["first line", "second line", "third line"]
     assert _groups(records) == [1, 1, 1]
 
@@ -379,7 +409,7 @@ def test_read_w_jc_uses_doc_default_spacing_for_visual_group(tmp_path: Path) -> 
         "</w:body></w:document>"
     )
     path = _docx_from_document(tmp_path, document, styles=styles)
-    records = adapter.read_w_jc(path)
+    records = _read_source(path)
     assert [r.text for r in records] == ["first line", "second line"]
     assert _groups(records) == [1, 1]
 
@@ -405,7 +435,7 @@ def test_read_w_jc_style_spacing_overrides_doc_default_spacing(tmp_path: Path) -
         "</w:body></w:document>"
     )
     path = _docx_from_document(tmp_path, document, styles=styles)
-    records = adapter.read_w_jc(path)
+    records = _read_source(path)
     assert [r.text for r in records] == ["first paragraph", "second paragraph"]
     assert _groups(records) == [None, None]
 
@@ -420,14 +450,10 @@ def test_read_w_jc_marks_structural_empty_paragraphs(tmp_path: Path) -> None:
         "</w:body></w:document>"
     )
     path = _docx_from_document(tmp_path, document)
-    records = adapter.read_w_jc(path)
+    records = _read_source(path)
     assert [r.text for r in records] == ["before", "", "after"]
     assert [r.empty for r in records] == [False, True, False]
-    assert [r.source_span for r in records] == [
-        ir.SourceSpan(0, 0),
-        ir.SourceSpan(1, 1),
-        ir.SourceSpan(2, 2),
-    ]
+    assert [int(record.ordinal) for record in records] == [0, 1, 2]
 
 
 def test_read_w_jc_visual_group_does_not_bridge_list_item(tmp_path: Path) -> None:
@@ -444,7 +470,7 @@ def test_read_w_jc_visual_group_does_not_bridge_list_item(tmp_path: Path) -> Non
         "</w:body></w:document>"
     )
     path = _docx_from_document(tmp_path, document)
-    records = adapter.read_w_jc(path)
+    records = _read_source(path)
     assert [r.text for r in records] == ["before list", "after list"]
     assert _groups(records) == [None, None]
 
@@ -465,7 +491,7 @@ def test_paragraph_text_drops_mc_fallback_duplicate(tmp_path: Path) -> None:
         "</w:body></w:document>"
     )
     path = _docx_from_document(tmp_path, document)
-    records = adapter.read_w_jc(path)
+    records = _read_source(path)
     assert [r.text for r in records] == ["Title"]  # not "TitleTitle"
 
 
@@ -482,7 +508,7 @@ def test_paragraph_text_keeps_no_break_hyphen(tmp_path: Path) -> None:
         "</w:body></w:document>"
     )
     path = _docx_from_document(tmp_path, document)
-    records = adapter.read_w_jc(path)
+    records = _read_source(path)
     assert [r.text for r in records] == ["кто‑то"]  # not "ктото"
 
 
@@ -497,7 +523,7 @@ def test_paragraph_text_keeps_soft_hyphen(tmp_path: Path) -> None:
         "</w:body></w:document>"
     )
     path = _docx_from_document(tmp_path, document)
-    records = adapter.read_w_jc(path)
+    records = _read_source(path)
     assert [r.text for r in records] == ["кто­то"]  # soft hyphen kept, not "ктото"
 
 
@@ -513,7 +539,7 @@ def test_no_break_hyphen_paragraph_keeps_source_span(tmp_path: Path) -> None:
         "<w:p><w:r><w:t>кто</w:t><w:noBreakHyphen/><w:t>то</w:t></w:r></w:p>"
         "</w:body></w:document>"
     )
-    records = adapter.read_w_jc(_docx_from_document(tmp_path, document))
+    records = _read_source(_docx_from_document(tmp_path, document))
     blocks: list[ir.Block] = [para]
     adapter.reconcile_source(blocks, records)
     assert blocks[0].source_span == ir.SourceSpan(0, 0)
@@ -539,7 +565,7 @@ def test_read_w_jc_classifies_border_kind(tmp_path: Path) -> None:
         + _bordered_para("plain")
         + "</w:body></w:document>"
     )
-    records = adapter.read_w_jc(_docx_from_document(tmp_path, document))
+    records = _read_source(_docx_from_document(tmp_path, document))
     assert [r.border for r in records] == ["box", "rule", "other", "", ""]
 
 
@@ -552,7 +578,7 @@ def test_read_w_jc_classifies_divider_markers_as_thematic(tmp_path: Path) -> Non
         + "</w:body></w:document>"
     )
 
-    records = adapter.read_w_jc(_docx_from_document(tmp_path, document))
+    records = _read_source(_docx_from_document(tmp_path, document))
 
     assert [r.thematic for r in records] == [True, True, True]
 
@@ -569,7 +595,7 @@ def test_reconcile_fused_bordered_and_plain_stays_unbordered(tmp_path: Path) -> 
         + "<w:p><w:r><w:t>plain words</w:t></w:r></w:p>"
         + "</w:body></w:document>"
     )
-    records = adapter.read_w_jc(_docx_from_document(tmp_path, document))
+    records = _read_source(_docx_from_document(tmp_path, document))
     blocks: list[ir.Block] = [para]
     adapter.reconcile_source(blocks, records)
     reconciled = blocks[0]
@@ -585,7 +611,7 @@ def test_reconcile_assigns_border_kind(tmp_path: Path) -> None:
         + _bordered_para("set-apart inset passage", "left")
         + "</w:body></w:document>"
     )
-    records = adapter.read_w_jc(_docx_from_document(tmp_path, document))
+    records = _read_source(_docx_from_document(tmp_path, document))
     blocks: list[ir.Block] = [para]
     adapter.reconcile_source(blocks, records)
     reconciled = blocks[0]
@@ -622,9 +648,9 @@ def test_reconcile_alignment_survives_list_and_image_before_right_para() -> None
     # skipped by read_w_jc, but the image-only paragraph stays — and the only
     # right-aligned record is the signature.
     records = [
-        adapter._SourceParagraph(align="", text="Opening prose paragraph."),
-        adapter._SourceParagraph(align="", text=""),  # the image-only paragraph
-        adapter._SourceParagraph(align="right", text="Signed Pankratius"),
+        _source_paragraph("Opening prose paragraph.", ordinal=0),
+        _source_paragraph("", ordinal=1),  # the image-only paragraph
+        _source_paragraph("Signed Pankratius", ordinal=2, align="right"),
     ]
     _spans, right = adapter.reconcile_source(blocks, records)
     paragraphs = [b for b in blocks if isinstance(b, ir.Paragraph)]
@@ -646,8 +672,8 @@ def test_reconcile_alignment_merged_right_paragraphs() -> None:
     )
     assert isinstance(para, ir.Paragraph)
     records = [
-        adapter._SourceParagraph(align="right", text="Тогда волк", source_span=ir.SourceSpan(5, 5)),
-        adapter._SourceParagraph(align="right", text="будет жить", source_span=ir.SourceSpan(6, 6)),
+        _source_paragraph("Тогда волк", ordinal=5, align="right"),
+        _source_paragraph("будет жить", ordinal=6, align="right"),
     ]
     blocks: list[ir.Block] = [para]
     spans, right = adapter.reconcile_source(blocks, records)
@@ -665,8 +691,8 @@ def test_reconcile_alignment_refuses_fusion_across_source_gap() -> None:
     )
     assert isinstance(para, ir.Paragraph)
     records = [
-        adapter._SourceParagraph(align="right", text="before list", source_span=ir.SourceSpan(5, 5)),
-        adapter._SourceParagraph(align="right", text="after list", source_span=ir.SourceSpan(7, 7)),
+        _source_paragraph("before list", ordinal=5, align="right"),
+        _source_paragraph("after list", ordinal=7, align="right"),
     ]
 
     spans, right = adapter.reconcile_source([para], records)
@@ -684,18 +710,8 @@ def test_reconcile_alignment_refuses_fusion_across_table_boundary() -> None:
     )
     assert isinstance(para, ir.Paragraph)
     records = [
-        adapter._SourceParagraph(
-            align="right",
-            text="before table",
-            source_span=ir.SourceSpan(5, 5),
-            source_segment=0,
-        ),
-        adapter._SourceParagraph(
-            align="right",
-            text="after table",
-            source_span=ir.SourceSpan(6, 6),
-            source_segment=1,
-        ),
+        _source_paragraph("before table", ordinal=5, align="right", segment=0),
+        _source_paragraph("after table", ordinal=6, align="right", segment=1),
     ]
 
     spans, right = adapter.reconcile_source([para], records)
@@ -708,7 +724,7 @@ def test_reconcile_alignment_refuses_fusion_across_table_boundary() -> None:
 def test_source_span_assignment_keeps_punctuation_only_structural_paragraph() -> None:
     block = ir.Paragraph(inlines=[ir.Text("***")])
     records = [
-        adapter._SourceParagraph(align="", text="***", source_span=ir.SourceSpan(12, 12)),
+        _source_paragraph("***", ordinal=12),
     ]
 
     blocks: list[ir.Block] = [block]
@@ -726,18 +742,10 @@ def test_source_span_assignment_matches_blockquote_before_duplicate_later_text()
         ir.Paragraph(inlines=[ir.Text("Repeated dedication")]),
     ]
     records = [
-        adapter._SourceParagraph(align="", text="Title", source_span=ir.SourceSpan(1, 1)),
-        adapter._SourceParagraph(
-            align="",
-            text="Repeated dedication",
-            source_span=ir.SourceSpan(2, 2),
-        ),
-        adapter._SourceParagraph(align="", text="Chapter", source_span=ir.SourceSpan(3, 3)),
-        adapter._SourceParagraph(
-            align="",
-            text="Repeated dedication",
-            source_span=ir.SourceSpan(4, 4),
-        ),
+        _source_paragraph("Title", ordinal=1),
+        _source_paragraph("Repeated dedication", ordinal=2),
+        _source_paragraph("Chapter", ordinal=3),
+        _source_paragraph("Repeated dedication", ordinal=4),
     ]
 
     spans, _right = adapter.reconcile_source(blocks, records)
@@ -758,9 +766,9 @@ def test_source_span_assignment_keeps_structural_empty_paragraph() -> None:
         ir.Paragraph(inlines=[ir.Text("after")]),
     ]
     records = [
-        adapter._SourceParagraph(align="", text="before", source_span=ir.SourceSpan(1, 1)),
-        adapter._SourceParagraph(align="", text="", source_span=ir.SourceSpan(2, 2), empty=True),
-        adapter._SourceParagraph(align="", text="after", source_span=ir.SourceSpan(3, 3)),
+        _source_paragraph("before", ordinal=1),
+        _source_paragraph("", ordinal=2, structural_empty=True),
+        _source_paragraph("after", ordinal=3),
     ]
 
     spans, _right = adapter.reconcile_source(blocks, records)
@@ -780,7 +788,7 @@ def test_reconcile_alignment_no_match_assigns_nothing() -> None:
     ctx = adapter._Ctx()
     para = adapter._block(_para(_str("completely different prose")), ctx)
     assert isinstance(para, ir.Paragraph)
-    records = [adapter._SourceParagraph(align="right", text="unrelated source words")]
+    records = [_source_paragraph("unrelated source words", align="right")]
     _spans, right = adapter.reconcile_source([para], records)
     assert right == 0 and para.align == ""
 
@@ -798,10 +806,10 @@ def test_reconcile_source_duplicate_text_does_not_overshoot_early_right_para() -
         adapter._block(_para(_str("Repeated chorus line")), ctx),     # 2nd occurrence
     ]
     records = [
-        adapter._SourceParagraph(align="", text="Repeated chorus line", source_span=ir.SourceSpan(0, 0)),
-        adapter._SourceParagraph(align="right", text="Signed Pankratius", source_span=ir.SourceSpan(1, 1)),
-        adapter._SourceParagraph(align="", text="Unique middle paragraph", source_span=ir.SourceSpan(2, 2)),
-        adapter._SourceParagraph(align="", text="Repeated chorus line", source_span=ir.SourceSpan(3, 3)),
+        _source_paragraph("Repeated chorus line", ordinal=0),
+        _source_paragraph("Signed Pankratius", ordinal=1, align="right"),
+        _source_paragraph("Unique middle paragraph", ordinal=2),
+        _source_paragraph("Repeated chorus line", ordinal=3),
     ]
     spans, right = adapter.reconcile_source(blocks, records)
     assert spans == 4 and right == 1
@@ -827,8 +835,8 @@ def test_direction_indents_book_default_indent_is_not_indented(tmp_path: Path) -
         + "".join(paras)
         + "</w:body></w:document>"
     )
-    records = adapter.read_w_jc(_docx_from_document(tmp_path, document))
-    assert [r.indented for r in records] == [False, False, False, True, False]
+    records = _read_source(_docx_from_document(tmp_path, document))
+    assert [record.indent_departure for record in records] == [False, False, False, True, False]
 
 
 # ---------------------------------------------------------------------------

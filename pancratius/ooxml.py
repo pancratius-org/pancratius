@@ -13,10 +13,8 @@ import io
 import posixpath
 import re
 import xml.etree.ElementTree as ET
-import zipfile
 from collections.abc import Iterable, MutableMapping
 from dataclasses import dataclass
-from pathlib import Path
 from typing import cast
 from urllib.parse import quote, unquote, urlsplit
 
@@ -53,19 +51,6 @@ DRAWING_METADATA_ELEMENT_TAGS = frozenset({f"{WP}docPr", f"{PIC}cNvPr"})
 DRAWING_METADATA_WORD_PART_RE = re.compile(
     r"^word/(document|header\d+|footer\d+|footnotes|endnotes)\.xml$"
 )
-
-
-@dataclass(frozen=True)
-class DocxParagraphMeta:
-    text: str
-    align: str
-    style: str
-    bold: bool
-    italic: bool
-
-    @property
-    def is_empty(self) -> bool:
-        return not self.text.strip()
 
 
 @dataclass(frozen=True, slots=True)
@@ -155,52 +140,8 @@ _PREFIX_VALUED_ATTRS = frozenset(
 )
 
 
-def _w_val(el: ET.Element | None) -> str:
-    if el is None:
-        return ""
-    return str(el.get(f"{W}val") or "")
-
-
 def local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
-
-
-def _run_prop_enabled(el: ET.Element | None) -> bool:
-    if el is None:
-        return False
-    val = el.get(f"{W}val")
-    return val not in {"0", "false", "False", "off"}
-
-
-def read_docx_paragraph_meta(docx: Path) -> list[DocxParagraphMeta]:
-    """Read paragraph metadata that Markdown cannot carry."""
-    with zipfile.ZipFile(docx) as zf:
-        root = ET.fromstring(zf.read("word/document.xml"))
-
-    paras: list[DocxParagraphMeta] = []
-    for p in root.iter(f"{W}p"):
-        text_parts: list[str] = []
-        for el in p.iter():
-            if el.tag == f"{W}t":
-                text_parts.append(el.text or "")
-            elif el.tag in {f"{W}br", f"{W}cr"}:
-                text_parts.append("\n")
-            elif el.tag == f"{W}tab":
-                text_parts.append("\t")
-
-        ppr = p.find(f"{W}pPr")
-        style = _w_val(ppr.find(f"{W}pStyle") if ppr is not None else None)
-        align = _w_val(ppr.find(f"{W}jc") if ppr is not None else None)
-        bold = any(_run_prop_enabled(el) for el in p.findall(f".//{W}b"))
-        italic = any(_run_prop_enabled(el) for el in p.findall(f".//{W}i"))
-        paras.append(DocxParagraphMeta(
-            text="".join(text_parts).strip(),
-            align=align,
-            style=style,
-            bold=bold,
-            italic=italic,
-        ))
-    return paras
 
 
 def namespace_bindings(xml: bytes) -> tuple[NamespaceBinding, ...]:

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from pancratius import cli, docx_inspect, ir
+from pancratius import cli, docx_inspect, docx_source, ir
 from pancratius.docx_inspect import (
     BlockSourceHit,
     DocxInspectError,
@@ -40,6 +40,8 @@ def test_read_rows_separates_line_breaks_from_page_breaks(tmp_path: Path) -> Non
     line.add_run("second")
     pg = doc.add_paragraph("before-break")
     pg.add_run().add_break(WD_BREAK.PAGE)             # an inline page break — pagination
+    col = doc.add_paragraph("before-column")
+    col.add_run().add_break(WD_BREAK.COLUMN)          # column pagination is not a line either
     after = doc.add_paragraph("on-next-page")
     after.paragraph_format.page_break_before = True   # a pageBreakBefore — pagination
     path = tmp_path / "breaks.docx"
@@ -50,8 +52,18 @@ def test_read_rows_separates_line_breaks_from_page_breaks(tmp_path: Path) -> Non
     assert line_row.br_count == 1 and not line_row.page_break_inline
     pg_row = next(r for r in rows if r.text == "before-break")
     assert pg_row.br_count == 0 and pg_row.page_break_inline
+    col_row = next(r for r in rows if r.text == "before-column")
+    assert col_row.br_count == 0 and col_row.column_break_inline
     after_row = next(r for r in rows if r.text == "on-next-page")
     assert after_row.page_break_before and after_row.br_count == 0
+
+    paragraphs = docx_source.read(path).paragraphs
+    line_source = next(p for p in paragraphs if p.text.startswith("first"))
+    assert line_source.content.breaks == (docx_source.BreakKind.LINE,)
+    assert line_source.content.line_segments == ("first", "second")
+    page_source = next(p for p in paragraphs if p.text == "before-break")
+    assert page_source.content.breaks == (docx_source.BreakKind.PAGE,)
+    assert page_source.content.line_segments == ("before-break",)
 
 
 pandoc_required = pytest.mark.skipif(

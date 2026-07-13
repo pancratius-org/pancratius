@@ -35,9 +35,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from pancratius import docx_inspect as di
+from pancratius import docx_source
+from pancratius.ooxml import W_NS
 
-W = di.W
-W_NS = di.da.W_NS
+W = docx_source.W
 
 
 class DocxRenderError(RuntimeError):
@@ -65,26 +66,6 @@ def _soffice() -> str | None:
     return find_soffice()
 
 
-def _ordered_paragraphs(body: ET.Element) -> list[ET.Element]:
-    """Every body ``w:p`` in document order, recursing ``w:sdt`` content controls —
-    the SAME walk (and therefore the same indices) as ``docx_inspect.read_rows``.
-    ``w:tbl`` paragraphs are excluded: read_rows treats a table as one boundary, so
-    table cells never advance the paragraph index."""
-    out: list[ET.Element] = []
-
-    def walk(el: ET.Element) -> None:
-        for child in el:
-            if child.tag == f"{W}p":
-                out.append(child)
-            elif child.tag == f"{W}sdt":
-                content = child.find(f"{W}sdtContent")
-                if content is not None:
-                    walk(content)
-            # w:tbl is intentionally not descended (matches read_rows' boundary)
-    walk(body)
-    return out
-
-
 def slice_docx(docx: Path, lo: int, hi: int, dest: Path) -> Path:
     """Write a DOCX to ``dest`` holding only body paragraphs [lo, hi] (inclusive).
 
@@ -107,7 +88,7 @@ def slice_docx(docx: Path, lo: int, hi: int, dest: Path) -> Path:
     if body is None:
         raise DocxRenderError("no w:body in document.xml")
 
-    paras = _ordered_paragraphs(body)
+    paras = docx_source.body_paragraph_elements(body)
     keep = paras[lo:hi + 1]
     for p in keep:
         # Drop inline drawings so the slice stays small and never explodes into

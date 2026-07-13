@@ -14,11 +14,11 @@ import yaml
 from pancratius import (
     cross_refs,
     docx_adapter,
+    docx_source,
     footnotes,
     ir,
     lineation_overrides,
     lower,
-    ooxml,
     scripture_overrides,
 )
 from pancratius.content_catalog import IndexHit, dump_frontmatter
@@ -123,7 +123,7 @@ def _poem_title_key(s: str) -> str:
 def _strip_source_duplicate_poem_title(
     body: str,
     title: str,
-    docx_paras: list[ooxml.DocxParagraphMeta],
+    docx_paras: tuple[docx_source.SourceParagraph, ...],
 ) -> str:
     """Drop the leading title paragraph from a poem body.
 
@@ -133,7 +133,7 @@ def _strip_source_duplicate_poem_title(
     is a safety guard against a future messy import bolding a stray line.
     """
     key = _poem_title_key(title)
-    first = next((para for para in docx_paras if not para.is_empty), None)
+    first = next((paragraph for paragraph in docx_paras if not paragraph.empty), None)
     if not key or first is None or not first.bold or _poem_title_key(first.text) != key:
         return body
 
@@ -276,7 +276,7 @@ def convert_single_docx(
         # A poem DOCX that opens with a bold title paragraph repeats the masthead title
         # in its first stanza; drop that one bold paragraph (an incipit is plain verse).
         body = _strip_source_duplicate_poem_title(
-            body, title, ooxml.read_docx_paragraph_meta(docx)
+            body, title, docx_source.read(docx).paragraphs
         )
         body, poem_chrome = clean_poem_chrome(body)
     refs = cross_refs.extract_cross_refs(body, work_key, title_index)
