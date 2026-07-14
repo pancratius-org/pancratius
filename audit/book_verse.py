@@ -403,13 +403,13 @@ def source_right_aligned_words(docx: Path) -> set[str]:
     ``right``/``end``). A converted signature/epigraph must be drawn from THIS set
     — a block whose words are NOT mostly right-aligned source is a spurious
     signature/epigraph, the symptom of the C1 ``w:jc``-realignment drift (a
-    positional zip mis-assigning alignment). Reuses the importer's ``read_w_jc``."""
-    from pancratius import docx_adapter
+    positional zip mis-assigning alignment). Reads the canonical source model."""
+    from pancratius import docx_source
 
     words: set[str] = set()
-    for rec in docx_adapter.read_w_jc(docx):
-        if rec.align in {"right", "end"}:
-            words.update(_WORD_RE.findall(rec.text.lower()))
+    for paragraph in docx_source.read(docx).reconciliation_paragraphs:
+        if paragraph.alignment.is_right_edge:
+            words.update(_WORD_RE.findall(paragraph.text.lower()))
     return words
 
 

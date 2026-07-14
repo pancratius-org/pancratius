@@ -14,11 +14,11 @@ import yaml
 from pancratius import (
     cross_refs,
     docx_adapter,
+    docx_source,
     footnotes,
     ir,
     lineation_overrides,
     lower,
-    ooxml,
     scripture_overrides,
 )
 from pancratius.content_catalog import IndexHit, dump_frontmatter
@@ -123,7 +123,7 @@ def _poem_title_key(s: str) -> str:
 def _strip_source_duplicate_poem_title(
     body: str,
     title: str,
-    docx_paras: list[ooxml.DocxParagraphMeta],
+    docx_paras: tuple[docx_source.SourceParagraph, ...],
 ) -> str:
     """Drop the leading title paragraph from a poem body.
 
@@ -133,7 +133,7 @@ def _strip_source_duplicate_poem_title(
     is a safety guard against a future messy import bolding a stray line.
     """
     key = _poem_title_key(title)
-    first = next((para for para in docx_paras if not para.is_empty), None)
+    first = next((paragraph for paragraph in docx_paras if not paragraph.empty), None)
     if not key or first is None or not first.bold or _poem_title_key(first.text) != key:
         return body
 
@@ -232,10 +232,11 @@ def convert_single_docx(
     this call until the writer copies them. Pure after the adapter.
     """
     media_out.mkdir(parents=True, exist_ok=True)
+    source = docx_source.read(docx)
     # ONE diagnostics sink for the whole conversion: the adapter, every pass (via
     # `Context`), and the backend tail all append into it.
     diagnostics: ir.DiagnosticSink = []
-    doc = docx_adapter.adapt(docx, media_out, diagnostics)
+    doc = docx_adapter.adapt(source, media_out, diagnostics)
 
     if kind == "poem":
         # Verse end-to-end: skip heading demotion, bibliography lift, and verse
@@ -264,8 +265,8 @@ def convert_single_docx(
             demote_levels=1,
             bibliography=BibliographyLookup(title_index),
             register_policy=register_policy.policy,
-            lineation=LineationCorrections(lineation_overrides.load_overrides(docx)),
-            scripture=ScripturePins(scripture_overrides.load_overrides(docx)),
+            lineation=LineationCorrections(lineation_overrides.load_overrides(source)),
+            scripture=ScripturePins(scripture_overrides.load_overrides(source)),
             diagnostics=diagnostics,
         ))
 
@@ -276,7 +277,7 @@ def convert_single_docx(
         # A poem DOCX that opens with a bold title paragraph repeats the masthead title
         # in its first stanza; drop that one bold paragraph (an incipit is plain verse).
         body = _strip_source_duplicate_poem_title(
-            body, title, ooxml.read_docx_paragraph_meta(docx)
+            body, title, source.paragraphs
         )
         body, poem_chrome = clean_poem_chrome(body)
     refs = cross_refs.extract_cross_refs(body, work_key, title_index)

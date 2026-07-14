@@ -293,13 +293,19 @@ def _convert_with_stub_doc(
     *,
     lang: Locale,
 ) -> ConvertedDocx:
+    docx = tmp_path / f"source-{lang}.docx"
+    monkeypatch.setattr(
+        docx_conversion.docx_source,
+        "read",
+        lambda path: docx_conversion.docx_source.DocxSourceDocument(path, ()),
+    )
     monkeypatch.setattr(
         docx_conversion.docx_adapter,
         "adapt",
-        lambda _docx, _media_out, _diagnostics: _lineated_import_doc(),
+        lambda _source, _media_out, _diagnostics: _lineated_import_doc(),
     )
     return docx_conversion.convert_single_docx(
-        tmp_path / f"source-{lang}.docx",
+        docx,
         kind="book",
         lang=lang,
         work_key="91-probe",

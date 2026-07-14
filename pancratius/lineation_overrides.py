@@ -15,14 +15,12 @@ projection into production content (labels and sidecar move together, like docx 
 """
 from __future__ import annotations
 
-import hashlib
-import json
-import unicodedata
 from pathlib import Path
 
+from pancratius import docx_source
 from pancratius.ir import LineationRegister
 
-_SHA_HEX = 16
+paragraph_sha = docx_source.paragraph_sha
 
 
 def overrides_path(docx: Path) -> Path:
@@ -30,53 +28,23 @@ def overrides_path(docx: Path) -> Path:
     return docx.with_name(f"lineation.{docx.stem}.json")
 
 
-def paragraph_sha(text: str) -> str:
-    """The sidecar's text rail: sha256 of the NFC paragraph text, 16 hex. NFC so a cosmetic
-    unicode re-encoding does not spuriously fail the rail, while any real edit does."""
-    return hashlib.sha256(unicodedata.normalize("NFC", text).encode("utf-8")).hexdigest()[:_SHA_HEX]
-
-
-def load_overrides(docx: Path) -> dict[int, LineationRegister]:
+def load_overrides(
+    source: docx_source.DocxSourceDocument,
+) -> dict[int, LineationRegister]:
     """The validated corrections for one source DOCX (empty when no sidecar). FAILS LOUD on a
     malformed sidecar, a non-canonical or duplicate ordinal key, an unknown register, an ordinal
     with no source paragraph, or a text-rail mismatch."""
-    path = overrides_path(docx)
-    if not path.is_file():
-        return {}
-    from pancratius.docx_inspect import read_rows
-
-    def _no_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
-        d = dict(pairs)
-        if len(d) != len(pairs):
-            raise ValueError(f"{path.name}: duplicate key in sidecar object")
-        return d
-
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_no_duplicate_keys)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"{path.name}: not valid JSON — {e}") from e
-    if not isinstance(raw, dict):
-        raise ValueError(f"{path.name}: must be an object keyed by source ordinal")
-
-    rows = {r.index: r for r in read_rows(docx)}
+    path = overrides_path(source.path)
     out: dict[int, LineationRegister] = {}
-    for key, entry in raw.items():
-        if not (key.isdigit() and str(int(key)) == key):
-            raise ValueError(f"{path.name}: key {key!r} is not a canonical ordinal")
-        ordinal = int(key)
-        if ordinal in out:
-            raise ValueError(f"{path.name}: duplicate ordinal {ordinal}")
-        register, text_sha = entry["register"], entry["text_sha"]
-        if register not in ("prose", "lineated"):
-            raise ValueError(f"{path.name}: ordinal {ordinal} has register {register!r} "
+    for adjudication in docx_source.read_adjudications(source, path):
+        ordinal = int(adjudication.paragraph.ordinal)
+        raw_register = adjudication.payload.get("register")
+        if raw_register == "prose":
+            register: LineationRegister = "prose"
+        elif raw_register == "lineated":
+            register = "lineated"
+        else:
+            raise ValueError(f"{path.name}: ordinal {ordinal} has register {raw_register!r} "
                              f"(must be prose|lineated)")
-        row = rows.get(ordinal)
-        if row is None:
-            raise ValueError(f"{path.name}: ordinal {ordinal} has no source paragraph in "
-                             f"{docx.name} — the correction is stale; re-adjudicate or remove it")
-        if paragraph_sha(row.text) != text_sha:
-            raise ValueError(f"{path.name}: ordinal {ordinal} text drifted under the correction "
-                             f"(rail {text_sha} != live {paragraph_sha(row.text)}) — "
-                             f"re-adjudicate against the current text")
         out[ordinal] = register
     return out

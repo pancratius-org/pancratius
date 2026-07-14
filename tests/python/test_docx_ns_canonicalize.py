@@ -16,6 +16,7 @@ from typing import cast
 import pytest
 
 from pancratius import docx_adapter as da
+from pancratius import docx_source
 
 pandoc_required = pytest.mark.skipif(
     shutil.which("pandoc") is None,
@@ -70,7 +71,7 @@ def _body_words(docx: Path, media: Path) -> list[str]:
     from pancratius import ir
     from pancratius.ir.inlines import inline_plain
 
-    doc = da.adapt(docx, media, [])
+    doc = da.adapt(docx_source.read(docx), media, [])
     text = " ".join(inline_plain(b.inlines) for b in doc.blocks
                     if isinstance(b, ir.Paragraph) and b.inlines)
     return text.split()

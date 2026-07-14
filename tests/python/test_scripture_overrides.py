@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from pancratius import ir
+from pancratius import docx_source, ir
 from pancratius.lineation_overrides import paragraph_sha
 from pancratius.passes.pipeline import Context, ScripturePins, run
 from pancratius.passes.register import wrap_scripture
@@ -41,13 +41,17 @@ def _write_sidecar(docx: Path, entries: dict[int, dict[str, str]]) -> Path:
     return path
 
 
+def _load(docx: Path) -> dict[int, str]:
+    return load_overrides(docx_source.read(docx))
+
+
 # --- the loader rails ---------------------------------------------------------------------
 
 
 def test_missing_sidecar_means_no_pins(tmp_path: Path) -> None:
     docx = tmp_path / "ru.docx"
     _write_docx(docx, ["Текст."])
-    assert load_overrides(docx) == {}
+    assert _load(docx) == {}
 
 
 def test_sidecar_path_is_language_keyed(tmp_path: Path) -> None:
@@ -58,7 +62,7 @@ def test_valid_pin_loads_by_ordinal(tmp_path: Path) -> None:
     docx = tmp_path / "ru.docx"
     _write_docx(docx, ["Свой голос книги.", "Се, гряду скоро."])
     _write_sidecar(docx, {1: {"source": "Откр 22:7", "text_sha": paragraph_sha("Се, гряду скоро.")}})
-    assert load_overrides(docx) == {1: "Откр 22:7"}
+    assert _load(docx) == {1: "Откр 22:7"}
 
 
 def test_text_drift_fails_the_load(tmp_path: Path) -> None:
@@ -66,7 +70,7 @@ def test_text_drift_fails_the_load(tmp_path: Path) -> None:
     _write_docx(docx, ["Изменённый текст."])
     _write_sidecar(docx, {0: {"source": "Откр 22:7", "text_sha": paragraph_sha("Се, гряду скоро.")}})
     with pytest.raises(ValueError, match="drifted"):
-        load_overrides(docx)
+        _load(docx)
 
 
 def test_stale_ordinal_fails_the_load(tmp_path: Path) -> None:
@@ -74,7 +78,7 @@ def test_stale_ordinal_fails_the_load(tmp_path: Path) -> None:
     _write_docx(docx, ["Один абзац."])
     _write_sidecar(docx, {99: {"source": "Откр 22:7", "text_sha": paragraph_sha("что-то")}})
     with pytest.raises(ValueError, match="no source paragraph"):
-        load_overrides(docx)
+        _load(docx)
 
 
 def test_blank_paragraph_pin_fails_the_load(tmp_path: Path) -> None:
@@ -82,7 +86,7 @@ def test_blank_paragraph_pin_fails_the_load(tmp_path: Path) -> None:
     _write_docx(docx, ["", "Се, гряду скоро."])
     _write_sidecar(docx, {0: {"source": "Откр 22:7", "text_sha": paragraph_sha("")}})
     with pytest.raises(ValueError, match="blank paragraph"):
-        load_overrides(docx)
+        _load(docx)
 
 
 def test_missing_source_name_fails_the_load(tmp_path: Path) -> None:
@@ -90,7 +94,7 @@ def test_missing_source_name_fails_the_load(tmp_path: Path) -> None:
     _write_docx(docx, ["Се, гряду скоро."])
     _write_sidecar(docx, {0: {"source": "", "text_sha": paragraph_sha("Се, гряду скоро.")}})
     with pytest.raises(ValueError, match="canonical source"):
-        load_overrides(docx)
+        _load(docx)
 
 
 # --- the wrap pass honors pins ---------------------------------------------------------------
@@ -172,8 +176,9 @@ def test_pipeline_wraps_pinned_ordinal_and_lineation_decisions_hold(tmp_path: Pa
     from pancratius import docx_adapter
     from pancratius.scripture_overrides import load_overrides as load_pins
 
-    doc = docx_adapter.adapt(docx, tmp_path / "media", [])
-    doc = run(doc, Context(lang="ru", scripture=ScripturePins(load_pins(docx))))
+    source = docx_source.read(docx)
+    doc = docx_adapter.adapt(source, tmp_path / "media", [])
+    doc = run(doc, Context(lang="ru", scripture=ScripturePins(load_pins(source))))
     quotes = [b for b in doc.blocks if isinstance(b, ir.QuoteBlock)]
     assert len(quotes) == 1
     assert quotes[0].register is ir.Register.SCRIPTURE

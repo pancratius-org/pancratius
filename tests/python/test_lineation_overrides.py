@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from pancratius import ir
+from pancratius import docx_source, ir
 from pancratius.ir.inlines import inline_plain
 from pancratius.lineation_overrides import load_overrides, overrides_path, paragraph_sha
 from pancratius.passes.lineation import check_overrides_held
@@ -41,13 +41,17 @@ def _write_sidecar(docx: Path, entries: dict[int, dict[str, str]]) -> Path:
     return path
 
 
+def _load(docx: Path) -> dict[int, ir.LineationRegister]:
+    return load_overrides(docx_source.read(docx))
+
+
 # --- the loader rails ---------------------------------------------------------------------
 
 
 def test_missing_sidecar_means_no_overrides(tmp_path: Path) -> None:
     docx = tmp_path / "ru.docx"
     _write_docx(docx, ["Текст."])
-    assert load_overrides(docx) == {}
+    assert _load(docx) == {}
 
 
 def test_sidecar_path_is_language_keyed(tmp_path: Path) -> None:
@@ -58,7 +62,7 @@ def test_valid_override_loads_by_ordinal(tmp_path: Path) -> None:
     docx = tmp_path / "ru.docx"
     _write_docx(docx, ["Первый абзац.", "Пиши. Дальше."])
     _write_sidecar(docx, {1: {"register": "prose", "text_sha": paragraph_sha("Пиши. Дальше.")}})
-    assert load_overrides(docx) == {1: "prose"}
+    assert _load(docx) == {1: "prose"}
 
 
 def test_text_drift_fails_the_load(tmp_path: Path) -> None:
@@ -66,7 +70,7 @@ def test_text_drift_fails_the_load(tmp_path: Path) -> None:
     _write_docx(docx, ["Первый абзац.", "Изменённый текст."])
     _write_sidecar(docx, {1: {"register": "prose", "text_sha": paragraph_sha("Пиши. Дальше.")}})
     with pytest.raises(ValueError, match="drifted"):
-        load_overrides(docx)
+        _load(docx)
 
 
 def test_stale_ordinal_fails_the_load(tmp_path: Path) -> None:
@@ -74,7 +78,7 @@ def test_stale_ordinal_fails_the_load(tmp_path: Path) -> None:
     _write_docx(docx, ["Один абзац."])
     _write_sidecar(docx, {99: {"register": "prose", "text_sha": paragraph_sha("что-то")}})
     with pytest.raises(ValueError, match="no source paragraph"):
-        load_overrides(docx)
+        _load(docx)
 
 
 def test_unknown_register_fails_the_load(tmp_path: Path) -> None:
@@ -82,7 +86,7 @@ def test_unknown_register_fails_the_load(tmp_path: Path) -> None:
     _write_docx(docx, ["Один абзац."])
     _write_sidecar(docx, {0: {"register": "verse", "text_sha": paragraph_sha("Один абзац.")}})
     with pytest.raises(ValueError, match="register"):
-        load_overrides(docx)
+        _load(docx)
 
 
 # --- the fold pass honors the override ------------------------------------------------------
@@ -214,13 +218,13 @@ def test_loader_rejects_duplicate_and_noncanonical_keys(tmp_path: Path) -> None:
     p.write_text(f'{{"1": {{"register": "prose", "text_sha": "{sha}"}}, '
                  f'"1": {{"register": "prose", "text_sha": "{sha}"}}}}')
     with pytest.raises(ValueError, match="duplicate"):
-        load_overrides(docx)
+        _load(docx)
     p.write_text(f'{{"01": {{"register": "prose", "text_sha": "{sha}"}}}}')
     with pytest.raises(ValueError, match="canonical"):
-        load_overrides(docx)
+        _load(docx)
     p.write_text('[1, 2]')
     with pytest.raises(ValueError, match="object"):
-        load_overrides(docx)
+        _load(docx)
     p.write_text('{not json')
     with pytest.raises(ValueError, match="not valid JSON"):
-        load_overrides(docx)
+        _load(docx)

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from pancratius import cli, docx_inspect, ir
+from pancratius import cli, docx_inspect, docx_source, ir
 from pancratius.docx_inspect import (
     BlockSourceHit,
     DocxInspectError,
@@ -27,6 +27,10 @@ def _write_docx(path: Path, paragraphs: list[str]) -> None:
     doc.save(str(path))
 
 
+def _empty_source() -> docx_source.DocxSourceDocument:
+    return docx_source.DocxSourceDocument(Path("source.docx"), ())
+
+
 def test_read_rows_separates_line_breaks_from_page_breaks(tmp_path: Path) -> None:
     """A `<w:br/>` line break is authored LINEATION (counted in br_count); a page or column
     break is PAGINATION (excluded from br_count, surfaced on page_break_* instead). Conflating
@@ -40,18 +44,75 @@ def test_read_rows_separates_line_breaks_from_page_breaks(tmp_path: Path) -> Non
     line.add_run("second")
     pg = doc.add_paragraph("before-break")
     pg.add_run().add_break(WD_BREAK.PAGE)             # an inline page break — pagination
+    col = doc.add_paragraph("before-column")
+    col.add_run().add_break(WD_BREAK.COLUMN)          # column pagination is not a line either
     after = doc.add_paragraph("on-next-page")
     after.paragraph_format.page_break_before = True   # a pageBreakBefore — pagination
     path = tmp_path / "breaks.docx"
     doc.save(str(path))
 
-    rows = docx_inspect.read_rows(path)
+    rows = docx_inspect.read_rows(docx_source.read(path))
     line_row = next(r for r in rows if r.text.startswith("first"))
     assert line_row.br_count == 1 and not line_row.page_break_inline
     pg_row = next(r for r in rows if r.text == "before-break")
     assert pg_row.br_count == 0 and pg_row.page_break_inline
+    col_row = next(r for r in rows if r.text == "before-column")
+    assert col_row.br_count == 0 and col_row.column_break_inline
     after_row = next(r for r in rows if r.text == "on-next-page")
     assert after_row.page_break_before and after_row.br_count == 0
+
+    paragraphs = docx_source.read(path).paragraphs
+    line_source = next(p for p in paragraphs if p.text.startswith("first"))
+    assert line_source.content.breaks == (docx_source.BreakKind.LINE,)
+    assert line_source.content.line_segments == ("first", "second")
+    page_source = next(p for p in paragraphs if p.text == "before-break")
+    assert page_source.content.breaks == (docx_source.BreakKind.PAGE,)
+    assert page_source.content.line_segments == ("before-break",)
+
+
+def test_paragraph_content_derives_every_view_from_one_atom_sequence() -> None:
+    content = docx_source.ParagraphContent((
+        docx_source.TextAtom("before"),
+        docx_source.BreakKind.PAGE,
+        docx_source.TextAtom("after"),
+        docx_source.BreakKind.LINE,
+        docx_source.TextAtom("next"),
+        docx_source.TextAtom("\t"),
+    ))
+
+    assert content.reading == "before after next "
+    assert content.lineated == "before after\nnext\t"
+    assert content.breaks == (
+        docx_source.BreakKind.PAGE,
+        docx_source.BreakKind.LINE,
+    )
+    assert content.line_segments == ("before after", "next")
+
+
+def test_source_names_pagination_only_without_changing_reconciliation(
+    tmp_path: Path,
+) -> None:
+    from docx import Document
+    from docx.enum.text import WD_BREAK
+
+    document = Document()
+    document.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+    document.add_paragraph()
+    document.add_paragraph().add_run().add_break(WD_BREAK.LINE)
+    path = tmp_path / "dispositions.docx"
+    document.save(str(path))
+
+    source = docx_source.read(path)
+    assert [paragraph.disposition for paragraph in source.paragraphs] == [
+        docx_source.ParagraphDisposition.PAGINATION_ONLY,
+        docx_source.ParagraphDisposition.STRUCTURAL_EMPTY,
+        docx_source.ParagraphDisposition.NON_TEXT,
+    ]
+    assert [
+        paragraph.reconciliation_position.value
+        for paragraph in source.reconciliation_paragraphs
+        if paragraph.reconciliation_position is not None
+    ] == [0, 1, 2]
 
 
 pandoc_required = pytest.mark.skipif(
@@ -191,7 +252,7 @@ def test_docx_inspect_marks_repeated_text_with_mixed_import_roles(
         ),
     )
 
-    docx_inspect.annotate([row], Path("source.docx"))
+    docx_inspect.annotate([row], _empty_source())
 
     assert row.block_kind == "Ambiguous[Paragraph|VerseBlock]"
 
@@ -226,7 +287,7 @@ def test_docx_inspect_prefers_source_span_classification(
         ),
     )
 
-    docx_inspect.annotate([row], Path("source.docx"))
+    docx_inspect.annotate([row], _empty_source())
 
     assert row.block_kind == "VerseBlock"
     assert row.block_source_span == span
@@ -262,7 +323,7 @@ def test_docx_inspect_classifies_empty_rows_inside_source_span(
         ),
     )
 
-    docx_inspect.annotate([row], Path("source.docx"))
+    docx_inspect.annotate([row], _empty_source())
 
     assert row.block_kind == "VerseBlock"
     assert "ir=4..6" in docx_inspect.render([row])
@@ -289,7 +350,9 @@ def test_docx_inspect_classifies_empty_rows_from_real_block_span(
     )
 
     def fake_adapt(
-        _docx: Path, _media_dir: Path, _diagnostics: list[ir.Diagnostic]
+        _source: docx_source.DocxSourceDocument,
+        _media_dir: Path,
+        _diagnostics: list[ir.Diagnostic],
     ) -> ir.Document:
         return ir.Document(blocks=[
             ir.LineatedBlock(
@@ -301,7 +364,7 @@ def test_docx_inspect_classifies_empty_rows_from_real_block_span(
 
     monkeypatch.setattr(docx_inspect.da, "adapt", fake_adapt)
 
-    docx_inspect.annotate([row], Path("source.docx"))
+    docx_inspect.annotate([row], _empty_source())
 
     assert row.block_kind == "VerseBlock"
     assert row.block_source_span == ir.SourceSpan(4, 6)
@@ -387,6 +450,7 @@ def test_votability_mask_keys_per_ordinal_and_leaves_unmapped_absent(
         ),
     ])
     monkeypatch.setattr(docx_inspect.da, "adapt", lambda _docx, _media, _diags: doc)
+    monkeypatch.setattr(docx_inspect.docx_source, "read", lambda _docx: _empty_source())
     monkeypatch.setattr("pancratius.docx_inspect.run", lambda d, _ctx, **_kw: d)
 
     mask = votability_mask(Path("source.docx"))

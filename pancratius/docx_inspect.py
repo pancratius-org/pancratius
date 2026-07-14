@@ -11,9 +11,9 @@ pipeline. A human can then see WHY a run was (or was not) folded into a
 ``verse``: the source signals on the left, the classifier's verdict on the
 right.
 
-It reuses ``pancratius.docx_adapter`` so the signals shown are exactly the ones
-the importer reads — no parallel re-implementation that could drift from the
-converter.
+It projects ``pancratius.docx_source`` so the signals shown are the same domain
+facts the importer reads — there is no diagnostic-side OOXML interpretation to
+drift from the converter.
 
 PURE: opens the DOCX zip for READ only and runs the pure import passes into a
 scratch media dir. It mutates nothing under ``src/content``.
@@ -36,7 +36,7 @@ from pathlib import Path
 from typing import Literal, assert_never
 
 from pancratius import docx_adapter as da
-from pancratius import ir
+from pancratius import docx_source, ir
 from pancratius.ir.inlines import inline_lines, inline_plain
 from pancratius.locales import DEFAULT_LOCALE, Locale
 from pancratius.passes.lineation import VERSE_SHORT_LINE_MAX
@@ -47,10 +47,6 @@ from pancratius.passes.pipeline import (
     ScripturePins,
     run,
 )
-from pancratius.thematic import is_thematic_marker
-
-W = da.W
-
 
 # ---------------------------------------------------------------------------
 # rich per-paragraph source record (everything the importer's signals derive from)
@@ -79,6 +75,7 @@ class ParaRow:
     block_source_span: ir.SourceSpan | None = None
     page_break_before: bool = False  # w:pPr/w:pageBreakBefore — starts a new page
     page_break_inline: bool = False  # a run-level <w:br w:type="page"/> inside the paragraph
+    column_break_inline: bool = False
 
 
 class DocxInspectError(ValueError):
@@ -210,135 +207,33 @@ type InspectBlockKind = Literal[
 ]
 
 
-def _ind_attrs(ppr: ET.Element | None) -> dict[str, str]:
-    ind = ppr.find(f"{W}ind") if ppr is not None else None
-    if ind is None:
-        return {}
-    return {k.removeprefix(W): v for k, v in ind.attrib.items()}
-
-
-_PAGINATION_BR_TYPES = {"page", "column"}
-
-
-def _br_count(p: ET.Element) -> int:
-    """Authored LINE breaks only: a `<w:br>` with no type (or textWrapping) and `<w:cr>`.
-    Page/column breaks are pagination, never lineation."""
-    return sum(
-        1 for el in p.iter()
-        if (el.tag == f"{W}br" and el.get(f"{W}type") not in _PAGINATION_BR_TYPES)
-        or el.tag == f"{W}cr")
-
-
-def _page_break_inline(p: ET.Element) -> bool:
-    return any(el.tag == f"{W}br" and el.get(f"{W}type") == "page" for el in p.iter())
-
-
-def _page_break_before(ppr: ET.Element | None) -> bool:
-    el = ppr.find(f"{W}pageBreakBefore") if ppr is not None else None
-    return el is not None and el.get(f"{W}val") not in {"false", "0", "none"}
-
-
-def read_rows(docx: Path) -> list[ParaRow]:
-    """Every top-level body paragraph with its full source signal set, in order.
-
-    Unlike ``docx_adapter.read_w_jc`` (which emits boundary sentinels for lists and
-    tables and is trimmed to reconciliation needs), this keeps every paragraph and
-    every signal so the inspector can show the human the complete picture.
-    """
-    with zipfile.ZipFile(docx) as zf:
-        styles, default_style = da._paragraph_styles(zf)
-        doc_default_spacing = da._doc_default_spacing(zf)
-        root = ET.fromstring(zf.read("word/document.xml"))
-    body = root.find(f"{W}body")
-    if body is None:
-        return []
-
-    rows: list[ParaRow] = []
-    # Mirror docx_adapter.read_w_jc's walk so the lineation_group ids match the
-    # importer's exactly — build _SourceParagraph records the same way, then read
-    # the group assignment back.
-    src: list[da._SourceParagraph] = []
-    raw_index: list[int] = []  # rows index aligned to reconcile-eligible src records
-    source_segment = 0
-
-    def walk(el: ET.Element) -> None:
-        nonlocal source_segment
-        for child in el:
-            if child.tag == f"{W}p":
-                ppr = child.find(f"{W}pPr")
-                numbered = ppr is not None and ppr.find(f"{W}numPr") is not None
-                direct_style = da._w_val(ppr.find(f"{W}pStyle") if ppr is not None else None)
-                style = direct_style or default_style
-                spacing = {**doc_default_spacing,
-                           **da._resolved_spacing(style, styles, da._spacing_attrs(ppr))}
-                txt = da._paragraph_text(child).strip()
-                heading = bool(re.fullmatch(r"(?:Heading\d+|[1-9])", direct_style))
-                thematic = is_thematic_marker(txt)
-                contextual = da._resolved_contextual_spacing(
-                    style,
-                    styles,
-                    direct_contextual_spacing=(
-                        ppr.find(f"{W}contextualSpacing") is not None
-                        if ppr is not None
-                        else False
-                    ),
-                )
-                border = da.border_kind(ppr)
-                align = da._w_val(ppr.find(f"{W}jc") if ppr is not None else None)
-                row = ParaRow(
-                    index=len(rows),
-                    text=txt,
-                    style=style,
-                    direct_style=direct_style,
-                    align=align,
-                    contextual=contextual,
-                    spacing=spacing,
-                    indent=_ind_attrs(ppr),
-                    numbered=numbered,
-                    border=border,
-                    heading=heading,
-                    thematic=thematic,
-                    br_count=_br_count(child),
-                    empty=not txt,
-                    page_break_before=_page_break_before(ppr),
-                    page_break_inline=_page_break_inline(child),
-                )
-                rows.append(row)
-                # The source-paragraph record the importer would build (list items
-                # and tables become boundaries there; keep them aligned to rows).
-                if numbered:
-                    src.append(da._source_boundary(
-                        ir.SourceSpan(row.index, row.index),
-                        source_segment=source_segment,
-                    ))
-                    source_segment += 1
-                else:
-                    src.append(da._SourceParagraph(
-                        align=align, text=txt, style=style,
-                        contextual_spacing=contextual, spacing=spacing,
-                        indent=da._indent_attrs(ppr), border=border,
-                        heading=heading, thematic=thematic,
-                        source_span=ir.SourceSpan(row.index, row.index),
-                        source_segment=source_segment,
-                        empty=da._paragraph_is_empty_source(child, txt),
-                    ))
-                raw_index.append(row.index)
-            elif child.tag == f"{W}tbl":
-                src.append(da._source_boundary(source_segment=source_segment))
-                source_segment += 1
-                raw_index.append(-1)
-            elif child.tag == f"{W}sdt":
-                content = child.find(f"{W}sdtContent")
-                if content is not None:
-                    walk(content)
-
-    walk(body)
-    da._direction_indents(src)
-    da._assign_lineation_groups(src)
-    for ri, sp in zip(raw_index, src, strict=True):
-        if ri >= 0:
-            rows[ri].lineation_group = sp.lineation_group
-    return rows
+def read_rows(source: docx_source.DocxSourceDocument) -> list[ParaRow]:
+    """Diagnostic rows projected from the canonical DOCX source aggregate."""
+    return [
+        ParaRow(
+            index=int(paragraph.ordinal),
+            text=paragraph.text,
+            style=paragraph.resolved_style,
+            direct_style=paragraph.direct_style,
+            align=paragraph.alignment.value,
+            contextual=paragraph.contextual_spacing,
+            spacing=dict(paragraph.spacing),
+            indent=dict(paragraph.indent),
+            numbered=paragraph.numbered,
+            border=paragraph.border.value,
+            heading=paragraph.heading,
+            thematic=paragraph.thematic,
+            br_count=paragraph.content.breaks.count(docx_source.BreakKind.LINE),
+            empty=paragraph.empty,
+            lineation_group=(
+                paragraph.visual_group.value if paragraph.visual_group is not None else None
+            ),
+            page_break_before=paragraph.page_break_before,
+            page_break_inline=docx_source.BreakKind.PAGE in paragraph.content.breaks,
+            column_break_inline=docx_source.BreakKind.COLUMN in paragraph.content.breaks,
+        )
+        for paragraph in source.paragraphs
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -422,7 +317,7 @@ class _SourceClassificationBuilder:
         }
 
 
-def classify_blocks(docx: Path) -> BlockClassifications:
+def classify_blocks(source: docx_source.DocxSourceDocument) -> BlockClassifications:
     """Classify normalized import blocks by reading text and source paragraph span.
 
     Source ordinals are the stable diagnostic path. Text remains as a fallback for
@@ -433,12 +328,12 @@ def classify_blocks(docx: Path) -> BlockClassifications:
     from pancratius.scripture_overrides import load_overrides as load_scripture_pins
 
     with tempfile.TemporaryDirectory(prefix="docx-inspect-") as td:
-        doc = da.adapt(docx, Path(td), [])
+        doc = da.adapt(source, Path(td), [])
         # rules-only: no register model (see lineation_decisions)
         doc = run(doc, Context(
             lang=DEFAULT_LOCALE,
-            lineation=LineationCorrections(load_overrides(docx)),
-            scripture=ScripturePins(load_scripture_pins(docx)),
+            lineation=LineationCorrections(load_overrides(source)),
+            scripture=ScripturePins(load_scripture_pins(source)),
         ))
 
     kind_of: dict[str, set[str]] = {}
@@ -460,12 +355,12 @@ def classify_blocks(docx: Path) -> BlockClassifications:
 
 def classify(docx: Path) -> BlockKindsByText:
     """Map normalized reading-line text → possible IR block kinds after import."""
-    return classify_blocks(docx).by_text
+    return classify_blocks(docx_source.read(docx)).by_text
 
 
 def classify_source_spans(docx: Path) -> BlockKindsBySource:
     """Map raw source paragraph index → normalized IR block kind/span."""
-    return classify_blocks(docx).by_source
+    return classify_blocks(docx_source.read(docx)).by_source
 
 
 # ---------------------------------------------------------------------------
@@ -559,8 +454,9 @@ def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
     bibliography cross-reference targets, never a block's kind, so verdicts are
     identical to the production import path.
     """
+    source = docx_source.read(docx)
     with tempfile.TemporaryDirectory(prefix="docx-mask-") as td:
-        doc = da.adapt(docx, Path(td), [])
+        doc = da.adapt(source, Path(td), [])
         doc = run(doc, Context(lang=DEFAULT_LOCALE), until=PER_ORDINAL_SEAM)  # rules-only observer
     blocks = tuple(doc.blocks)
 
@@ -604,13 +500,14 @@ def lineation_decisions(docx: Path, *, apply_overrides: bool = True) -> dict[int
     from pancratius.lineation_overrides import load_overrides
     from pancratius.scripture_overrides import load_overrides as load_scripture_pins
 
+    source = docx_source.read(docx)
     with tempfile.TemporaryDirectory(prefix="docx-lineation-") as td:
-        doc = da.adapt(docx, Path(td), [])
+        doc = da.adapt(source, Path(td), [])
         # rules-only: no register model (see the docstring); overrides ride the Context
         doc = run(doc, Context(
             lang=DEFAULT_LOCALE,
-            lineation=LineationCorrections(load_overrides(docx) if apply_overrides else {}),
-            scripture=ScripturePins(load_scripture_pins(docx)),
+            lineation=LineationCorrections(load_overrides(source) if apply_overrides else {}),
+            scripture=ScripturePins(load_scripture_pins(source)),
         ))
 
     def hard_break_prose(block: ir.LineatedBlock) -> bool:
@@ -687,8 +584,8 @@ def _row_may_be_kind(row: ParaRow, kind: InspectBlockKind) -> bool:
     )
 
 
-def annotate(rows: list[ParaRow], docx: Path) -> None:
-    classifications = classify_blocks(docx)
+def annotate(rows: list[ParaRow], source: docx_source.DocxSourceDocument) -> None:
+    classifications = classify_blocks(source)
     for row in rows:
         if source_hit := classifications.by_source.get(row.index):
             row.block_kind = _kind_label(source_hit.kinds)
@@ -851,8 +748,9 @@ def inspect_docx(docx: Path, options: InspectOptions | None = None) -> InspectRe
     if not docx.is_file():
         raise DocxInspectError(f"DOCX not found: {docx}")
     try:
-        rows = read_rows(docx)
-        annotate(rows, docx)
+        source = docx_source.read(docx)
+        rows = read_rows(source)
+        annotate(rows, source)
     except zipfile.BadZipFile as exc:
         raise DocxInspectError(f"{docx} is not a valid ZIP/DOCX package") from exc
     except KeyError as exc:
