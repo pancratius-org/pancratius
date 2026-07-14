@@ -7,13 +7,18 @@ from pathlib import Path
 
 from pancratius.docx_source import (
     DocxSourceError,
+    ParagraphStyles,
+    paragraph_styles,
     story_paragraph_elements,
 )
 from pancratius.ooxml import W
 from pancratius.translation.docx.models import DocxTranslationError, WordTextSlot
 
 
-def word_text_slots(document_root: ET.Element) -> tuple[WordTextSlot, ...]:
+def word_text_slots(
+    document_root: ET.Element,
+    styles: ParagraphStyles,
+) -> tuple[WordTextSlot, ...]:
     slots: list[WordTextSlot] = []
     body = document_root.find(f"{W}body")
     if body is None:
@@ -26,7 +31,11 @@ def word_text_slots(document_root: ET.Element) -> tuple[WordTextSlot, ...]:
         ) from exc
     for story_index, p in enumerate(paragraphs):
         try:
-            slot = WordTextSlot(story_index=story_index, paragraph=p)
+            slot = WordTextSlot.from_paragraph(
+                story_index=story_index,
+                paragraph=p,
+                styles=styles,
+            )
         except DocxSourceError as exc:
             raise DocxTranslationError(
                 f"source DOCX paragraph {story_index} has unsupported content: {exc}"
@@ -41,6 +50,7 @@ class DocxPackageParts:
 
     parts: dict[str, bytes]
     member_order: tuple[str, ...]
+    styles: ParagraphStyles
 
 
 def copy_docx_parts(source_docx: Path) -> DocxPackageParts:
@@ -50,9 +60,11 @@ def copy_docx_parts(source_docx: Path) -> DocxPackageParts:
             if bad_member is not None:
                 raise DocxTranslationError(f"{source_docx} has a corrupt ZIP member: {bad_member}")
             member_order = tuple(zf.namelist())
+            parts = {name: zf.read(name) for name in member_order}
             return DocxPackageParts(
-                parts={name: zf.read(name) for name in member_order},
+                parts=parts,
                 member_order=member_order,
+                styles=paragraph_styles(parts.get("word/styles.xml")),
             )
     except (OSError, zipfile.BadZipFile) as exc:
         raise DocxTranslationError(f"{source_docx} is not a valid DOCX package") from exc

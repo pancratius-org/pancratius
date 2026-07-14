@@ -45,7 +45,11 @@ def _source_paragraph(
                 (docx_source.TextAtom(text),) if text else ()
             ),
             page_break_before=False,
-            has_opaque_payload=has_opaque_payload,
+            payload=docx_source.ParagraphPayload(
+                frozenset({docx_source.ParagraphPayloadKind.OPAQUE})
+                if has_opaque_payload
+                else frozenset()
+            ),
         ),
         resolved_style="",
         direct_style="",

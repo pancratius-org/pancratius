@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 from docx import Document
+from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_BREAK
 from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import qn
@@ -36,10 +37,15 @@ _REPO = Path(__file__).resolve().parents[2]
 _CONVENTIONAL = _REPO / "src/content/books/11-kniga-ischezayushchego-ya/en.docx"
 _GENERIC = _REPO / "src/content/books/27-mikki-17/ru.docx"
 _BOOK17 = _REPO / "src/content/books/17-obolgannye-iisus-i-tvorets/ru.docx"
+_BOOK39 = (
+    _REPO
+    / "src/content/books/39-kogda-bog-zagovoril-iz-mashiny-istoriya-iskina/ru.docx"
+)
 _GENERIC_IMAGE_RICH = (
     _REPO / "src/content/books/33-ya-esm-vsadnik-kon-i-mech/ru.docx"
 )
 _GENERIC_NAMESPACE_DOCX = (_GENERIC, _GENERIC_IMAGE_RICH)
+_NO_STYLES = docx_source.ParagraphStyles()
 
 
 def test_inline_text_keeps_break_policy_and_hides_opaque_payload() -> None:
@@ -103,7 +109,11 @@ def test_alphabetic_source_alias_is_canonicalized_for_pandoc() -> None:
         '<w:body><foo:inline/></w:body></w:document>'
     ).encode()
 
-    projection = docx_pandoc._project_part(docx_source.DOCUMENT_PART, xml)
+    projection = docx_pandoc._project_part(
+        docx_source.DOCUMENT_PART,
+        xml,
+        styles=_NO_STYLES,
+    )
 
     assert b"<wp:inline" in projection
     assert ET.fromstring(projection).find(f".//{{{ooxml.WP_NS}}}inline") is not None
@@ -224,13 +234,15 @@ def _opaque_pagination_docx(tmp_path: Path) -> Path:
 
 def test_break_projection_neutralizes_only_pagination(tmp_path: Path) -> None:
     path = _break_docx(tmp_path)
+    source = docx_source.read(path)
     with zipfile.ZipFile(path) as archive:
         document_xml = archive.read("word/document.xml")
 
     projection = docx_pandoc._project_part(
         docx_source.DOCUMENT_PART,
         document_xml,
-        docx_source.read(path),
+        source,
+        styles=source.styles,
     )
 
     root = ET.fromstring(projection)
@@ -253,7 +265,11 @@ def test_inactive_choice_paragraph_is_never_removed() -> None:
         '</mc:AlternateContent></w:r></w:p></w:footnote></w:footnotes>'
     ).encode()
 
-    projection = docx_pandoc._project_part("word/footnotes.xml", xml)
+    projection = docx_pandoc._project_part(
+        "word/footnotes.xml",
+        xml,
+        styles=_NO_STYLES,
+    )
 
     root = ET.fromstring(projection)
     paragraphs = root.findall(f".//{docx_source.W}p")
@@ -326,8 +342,15 @@ def test_alternate_content_uses_fallback_for_source_and_pagination() -> None:
     paragraph = ET.fromstring(xml).find(f".//{docx_source.W}p")
     assert paragraph is not None
 
-    semantics = docx_source.analyze_paragraph(paragraph)
-    projection = docx_pandoc._project_part(docx_source.DOCUMENT_PART, xml)
+    semantics = docx_source.analyze_paragraph(
+        paragraph,
+        styles=docx_source.ParagraphStyles(),
+    )
+    projection = docx_pandoc._project_part(
+        docx_source.DOCUMENT_PART,
+        xml,
+        styles=_NO_STYLES,
+    )
 
     assert semantics.content.reading.strip() == "VISIBLE FALLBACK"
     assert semantics.content.lineated == "\nVISIBLE FALLBACK"
@@ -348,14 +371,97 @@ def test_alternate_content_without_fallback_remains_opaque() -> None:
     paragraph = ET.fromstring(xml).find(f".//{docx_source.W}p")
     assert paragraph is not None
 
-    semantics = docx_source.analyze_paragraph(paragraph)
-    projection = docx_pandoc._project_part(docx_source.DOCUMENT_PART, xml)
+    semantics = docx_source.analyze_paragraph(
+        paragraph,
+        styles=docx_source.ParagraphStyles(),
+    )
+    projection = docx_pandoc._project_part(
+        docx_source.DOCUMENT_PART,
+        xml,
+        styles=_NO_STYLES,
+    )
 
     assert semantics.content.atoms == ()
     assert semantics.has_opaque_payload
     assert semantics.disposition is docx_source.ParagraphDisposition.NON_TEXT
     assert len(ET.fromstring(projection).findall(f".//{docx_source.W}p")) == 1
     assert b"CHOICE ONLY" not in projection
+
+
+def test_pagination_projection_preserves_numbered_paragraph_semantics() -> None:
+    xml = (
+        f'<w:document xmlns:w="{ooxml.W_NS}"><w:body><w:p>'
+        '<w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr>'
+        '<w:r><w:br w:type="page"/></w:r>'
+        '</w:p></w:body></w:document>'
+    ).encode()
+    paragraph = ET.fromstring(xml).find(f".//{docx_source.W}p")
+    assert paragraph is not None
+
+    semantics = docx_source.analyze_paragraph(
+        paragraph,
+        styles=docx_source.ParagraphStyles(),
+    )
+    projected = docx_pandoc._project_part(
+        docx_source.DOCUMENT_PART,
+        xml,
+        styles=_NO_STYLES,
+    )
+
+    assert semantics.payload.kinds == frozenset(
+        {docx_source.ParagraphPayloadKind.DIRECT_NUMBERING}
+    )
+    assert semantics.disposition is docx_source.ParagraphDisposition.NON_TEXT
+    assert ET.fromstring(projected).find(f".//{docx_source.W}numPr") is not None
+
+
+def test_pagination_projection_resolves_numbering_but_not_ordinary_styles(
+    tmp_path: Path,
+) -> None:
+    document = Document()
+    ordinary = document.add_paragraph(style="Quote")
+    ordinary.add_run().add_break(WD_BREAK.PAGE)
+    numbered_style = document.styles.add_style(
+        "Derived Number",
+        WD_STYLE_TYPE.PARAGRAPH,
+    )
+    numbered_style.base_style = document.styles["List Number"]
+    numbered = document.add_paragraph(style=numbered_style)
+    numbered.add_run().add_break(WD_BREAK.PAGE)
+    path = tmp_path / "styles.docx"
+    document.save(str(path))
+
+    source = docx_source.read(path)
+    projected = docx_pandoc.project_package(source, tmp_path / "projected")
+    with zipfile.ZipFile(projected) as archive:
+        root = ET.fromstring(archive.read(docx_source.DOCUMENT_PART))
+
+    assert [paragraph.disposition for paragraph in source.paragraphs] == [
+        docx_source.ParagraphDisposition.PAGINATION_ONLY,
+        docx_source.ParagraphDisposition.NON_TEXT,
+    ]
+    assert source.paragraphs[1].semantics.payload.kinds == frozenset(
+        {docx_source.ParagraphPayloadKind.RESOLVED_NUMBERING}
+    )
+    remaining = root.findall(f".//{docx_source.W}p")
+    assert len(remaining) == 1
+    assert remaining[0].find(f"{docx_source.W}pPr/{docx_source.W}pStyle") is not None
+
+
+@pandoc_required
+def test_book39_styled_pagination_does_not_mint_an_empty_ir_block(
+    tmp_path: Path,
+) -> None:
+    source = docx_source.read(_BOOK39)
+
+    assert source.paragraphs[46].disposition is docx_source.ParagraphDisposition.PAGINATION_ONLY
+    adapted = da.adapt(source, tmp_path / "media", [])
+
+    assert not (
+        isinstance(adapted.blocks[46], ir.Paragraph)
+        and adapted.blocks[46].empty
+        and adapted.blocks[46].source_span is None
+    )
 
 
 def test_alternate_content_outside_run_contributes_no_atoms() -> None:
@@ -367,8 +473,15 @@ def test_alternate_content_outside_run_contributes_no_atoms() -> None:
     ).encode()
     paragraph = ET.fromstring(xml).find(f".//{docx_source.W}p")
     assert paragraph is not None
-    semantics = docx_source.analyze_paragraph(paragraph)
-    projection = docx_pandoc._project_part(docx_source.DOCUMENT_PART, xml)
+    semantics = docx_source.analyze_paragraph(
+        paragraph,
+        styles=docx_source.ParagraphStyles(),
+    )
+    projection = docx_pandoc._project_part(
+        docx_source.DOCUMENT_PART,
+        xml,
+        styles=_NO_STYLES,
+    )
 
     root = ET.fromstring(projection)
     assert semantics.content.atoms == ()
@@ -393,8 +506,15 @@ def test_nested_alternate_content_keeps_its_original_capability_context() -> Non
     paragraph = ET.fromstring(xml).find(f".//{docx_source.W}p")
     assert paragraph is not None
 
-    semantics = docx_source.analyze_paragraph(paragraph)
-    projection = docx_pandoc._project_part(docx_source.DOCUMENT_PART, xml)
+    semantics = docx_source.analyze_paragraph(
+        paragraph,
+        styles=docx_source.ParagraphStyles(),
+    )
+    projection = docx_pandoc._project_part(
+        docx_source.DOCUMENT_PART,
+        xml,
+        styles=_NO_STYLES,
+    )
     projected_root = ET.fromstring(projection)
 
     assert semantics.content.atoms == ()
@@ -415,7 +535,11 @@ def test_removed_choices_cannot_conflict_in_namespace_closure() -> None:
         '</mc:AlternateContent></w:r></w:p></w:body></w:document>'
     ).encode()
 
-    projection = docx_pandoc._project_part(docx_source.DOCUMENT_PART, xml)
+    projection = docx_pandoc._project_part(
+        docx_source.DOCUMENT_PART,
+        xml,
+        styles=_NO_STYLES,
+    )
 
     assert b"BASELINE" in projection
     assert b"FIRST" not in projection
@@ -435,7 +559,11 @@ def test_removed_pagination_attributes_cannot_conflict_in_namespace_closure() ->
         '</w:body></w:document>'
     ).encode()
 
-    projection = docx_pandoc._project_part(docx_source.DOCUMENT_PART, xml)
+    projection = docx_pandoc._project_part(
+        docx_source.DOCUMENT_PART,
+        xml,
+        styles=_NO_STYLES,
+    )
     root = ET.fromstring(projection)
 
     assert [element.text for element in root.iter(f"{docx_source.W}t")] == [
@@ -465,7 +593,11 @@ def test_alternate_content_rejects_duplicate_fallback_with_context() -> None:
             r"mc:AlternateContent has multiple fallback branches"
         ),
     ):
-        docx_pandoc._project_part("word/footnotes.xml", xml)
+        docx_pandoc._project_part(
+            "word/footnotes.xml",
+            xml,
+            styles=_NO_STYLES,
+        )
 
 
 def test_only_selected_fallback_pagination_is_neutralized() -> None:
@@ -478,7 +610,11 @@ def test_only_selected_fallback_pagination_is_neutralized() -> None:
         '</mc:AlternateContent></w:r></w:p></w:footnote></w:footnotes>'
     ).encode()
 
-    projection = docx_pandoc._project_part("word/footnotes.xml", xml)
+    projection = docx_pandoc._project_part(
+        "word/footnotes.xml",
+        xml,
+        styles=_NO_STYLES,
+    )
     root = ET.fromstring(projection)
 
     assert root.find(f".//{docx_source.W}br") is None
@@ -552,7 +688,7 @@ def test_note_story_parts_neutralize_pagination_without_modeling_notes(part: str
         f'</w:{root_name}>'
     ).encode()
 
-    projection = docx_pandoc._project_part(part, xml)
+    projection = docx_pandoc._project_part(part, xml, styles=_NO_STYLES)
 
     rendered = ET.fromstring(projection)
     breaks = rendered.findall(f".//{docx_source.W}br")
@@ -575,7 +711,11 @@ def test_story_projection_reports_unknown_break_with_part_and_paragraph() -> Non
             r"unsupported w:br type 'future-layout'"
         ),
     ):
-        docx_pandoc._project_part("word/footnotes.xml", xml)
+        docx_pandoc._project_part(
+            "word/footnotes.xml",
+            xml,
+            styles=_NO_STYLES,
+        )
 
 
 def test_break_validation_applies_only_to_selected_fallback() -> None:
@@ -592,6 +732,7 @@ def test_break_validation_applies_only_to_selected_fallback() -> None:
     projection = docx_pandoc._project_part(
         "word/footnotes.xml",
         story("future-layout", "page"),
+        styles=_NO_STYLES,
     )
     assert ET.fromstring(projection).find(f".//{docx_source.W}p") is None
 
@@ -605,6 +746,7 @@ def test_break_validation_applies_only_to_selected_fallback() -> None:
         docx_pandoc._project_part(
             "word/footnotes.xml",
             story("page", "future-layout"),
+            styles=_NO_STYLES,
         )
 
 
@@ -618,7 +760,11 @@ def test_note_story_parts_remove_only_payload_free_pagination_paragraphs() -> No
         '</w:footnotes>'
     ).encode()
 
-    projection = docx_pandoc._project_part("word/footnotes.xml", xml)
+    projection = docx_pandoc._project_part(
+        "word/footnotes.xml",
+        xml,
+        styles=_NO_STYLES,
+    )
 
     root = ET.fromstring(projection)
     assert len(root.findall(f".//{docx_source.W}p")) == 1
@@ -634,8 +780,15 @@ def test_disabled_page_break_before_remains_a_structural_empty_paragraph() -> No
     paragraph = ET.fromstring(xml).find(f".//{docx_source.W}p")
     assert paragraph is not None
 
-    semantics = docx_source.analyze_paragraph(paragraph)
-    projection = docx_pandoc._project_part("word/footnotes.xml", xml)
+    semantics = docx_source.analyze_paragraph(
+        paragraph,
+        styles=docx_source.ParagraphStyles(),
+    )
+    projection = docx_pandoc._project_part(
+        "word/footnotes.xml",
+        xml,
+        styles=_NO_STYLES,
+    )
 
     assert not semantics.page_break_before
     assert semantics.disposition is docx_source.ParagraphDisposition.STRUCTURAL_EMPTY

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
@@ -10,6 +10,7 @@ from pancratius.content_catalog import CatalogEntry
 from pancratius.docx_source import (
     ParagraphDisposition,
     ParagraphSemantics,
+    ParagraphStyles,
     analyze_paragraph,
     paragraph_has_drawing,
 )
@@ -125,12 +126,23 @@ class WordTextSlot:
 
     story_index: int
     paragraph: ET.Element
-    semantics: ParagraphSemantics = field(init=False)
-    has_drawing: bool = field(init=False)
+    semantics: ParagraphSemantics
+    has_drawing: bool
 
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "semantics", analyze_paragraph(self.paragraph))
-        object.__setattr__(self, "has_drawing", paragraph_has_drawing(self.paragraph))
+    @classmethod
+    def from_paragraph(
+        cls,
+        *,
+        story_index: int,
+        paragraph: ET.Element,
+        styles: ParagraphStyles,
+    ) -> WordTextSlot:
+        return cls(
+            story_index=story_index,
+            paragraph=paragraph,
+            semantics=analyze_paragraph(paragraph, styles=styles),
+            has_drawing=paragraph_has_drawing(paragraph),
+        )
 
     @property
     def alignment_text(self) -> str:
