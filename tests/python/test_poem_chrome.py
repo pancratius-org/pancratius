@@ -17,10 +17,10 @@ from pancratius.poem_chrome import (
     PoemSourceDate,
     PoemStyleNote,
     clean_poem_chrome,
+    is_signoff_line,
     parse_signoff_date,
     persona_of,
 )
-from pancratius.poem_chrome import _is_signoff_line as is_signoff_line
 from pancratius.poem_chrome import _leading_style_note as leading_style_note
 
 # Every trailing sign-off / publication line in the corpus → its parsed ISO date.
@@ -86,7 +86,6 @@ def test_style_note_extracted(line: str, note: str) -> None:
 
 
 # ─── whole-body integration, from real poem shapes ──────────────────────────
-
 def test_fused_multiline_signoff_keeps_verse() -> None:
     """05: sign-off is the last hard-break line of the final stanza (no blank before
     it). A block-level drop would delete four verse lines; the line stripper keeps them."""

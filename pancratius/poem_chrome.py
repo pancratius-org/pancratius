@@ -166,7 +166,7 @@ def persona_of(text: str) -> str | None:
     return "Светозар" if hit in {"светозар", "svetozar"} else "Панкратиус"
 
 
-def _is_signoff_line(line: str) -> bool:
+def is_signoff_line(line: str) -> bool:
     """A publication / sign-off line: it carries a date, and once the date, clock,
     an optional pen name, emphasis markup, and punctuation are removed, nothing is
     left. The emphasis markers cover the unified `*DD.MM.YYYY, <name>*` sign-off."""
@@ -197,7 +197,7 @@ def clean_poem_chrome(body: str) -> tuple[str, PoemChrome]:
         head = lines[0].strip()
         if head == "":
             lines.pop(0)
-        elif _is_signoff_line(head):
+        elif is_signoff_line(head):
             _add_signoff_facts(facts, head)
             lines.pop(0)
         elif _BYLINE_RE.match(head):
@@ -214,7 +214,7 @@ def clean_poem_chrome(body: str) -> tuple[str, PoemChrome]:
         tail = lines[-1].strip()
         if tail == "":
             lines.pop()
-        elif _is_signoff_line(tail):
+        elif is_signoff_line(tail):
             _add_signoff_facts(facts, tail)
             lines.pop()
         else:

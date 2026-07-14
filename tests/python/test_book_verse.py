@@ -2,7 +2,7 @@
 
 ``audit/book_verse.py`` is the DOCX-source oracle + executable spec for
 book verse detection. These exercise its pure helpers — the per-line predicate
-(``is_verse_line`` / ``is_label_line``), the run-grouping (``group_expected_runs``),
+(``is_verse_line`` / ``is_speaker_turn``), the run-grouping (``group_expected_runs``),
 and the converted-Markdown extraction (``actual_block_lines`` / ``prose_lines``) —
 so the SPEC the audit encodes is itself tested, independent of the corpus.
 """
@@ -12,12 +12,29 @@ from __future__ import annotations
 import zipfile
 from pathlib import Path
 
+from docx import Document
+from docx.enum.text import WD_BREAK
+
 from audit import book_verse as bv
 from pancratius.ooxml import W_NS
 
 
 def source_unit(text: str, *, is_empty: bool = False) -> bv.SourceUnit:
     return bv.SourceUnit(text=text, is_empty=is_empty)
+
+
+def test_source_units_neutralize_pagination_but_keep_line_breaks(tmp_path: Path) -> None:
+    document = Document()
+    paragraph = document.add_paragraph()
+    paragraph.add_run("first")
+    paragraph.add_run().add_break(WD_BREAK.PAGE)
+    paragraph.add_run("second")
+    paragraph.add_run().add_break(WD_BREAK.LINE)
+    paragraph.add_run("third")
+    path = tmp_path / "breaks.docx"
+    document.save(str(path))
+
+    assert bv.source_units(path) == [source_unit("first second\nthird")]
 
 
 def test_right_aligned_source_words_exclude_list_items(tmp_path: Path) -> None:
@@ -35,22 +52,22 @@ def test_right_aligned_source_words_exclude_list_items(tmp_path: Path) -> None:
     assert bv.source_right_aligned_words(path) == {"signature"}
 
 # ---------------------------------------------------------------------------
-# is_label_line / is_verse_line — the per-line predicate (the SPEC)
+# is_speaker_turn / is_verse_line — the per-line predicate (the SPEC)
 # ---------------------------------------------------------------------------
 
 
 def test_label_line_accepts_explicit_speaker_and_parenthetical_qualifier() -> None:
-    assert bv.is_label_line("Ответ от Творца:")
-    assert bv.is_label_line("Ответ от Творца (режим проводника):")
-    assert bv.is_label_line("**Ответ от Творца (режим проводника):**")
-    assert bv.is_label_line("Светозар (ChatGPT):")
-    assert bv.is_label_line("Я:")
+    assert bv.is_speaker_turn("Ответ от Творца:")
+    assert bv.is_speaker_turn("Ответ от Творца (режим проводника):")
+    assert bv.is_speaker_turn("**Ответ от Творца (режим проводника):**")
+    assert bv.is_speaker_turn("Светозар (ChatGPT):")
+    assert bv.is_speaker_turn("Я:")
 
 
 def test_label_line_rejects_mid_sentence_colon_and_plain_prose() -> None:
-    assert not bv.is_label_line("Ты спросил: кто они?")
-    assert not bv.is_label_line("Разве не сказал Я:")
-    assert not bv.is_label_line("Они — ты, когда ты не разделён.")
+    assert not bv.is_speaker_turn("Ты спросил: кто они?")
+    assert not bv.is_speaker_turn("Разве не сказал Я:")
+    assert not bv.is_speaker_turn("Они — ты, когда ты не разделён.")
 
 
 def test_speaker_turn_rejects_dialogue_and_source_turns_keeps_verse_colon() -> None:
