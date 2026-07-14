@@ -63,6 +63,10 @@ def _demote_headings(doc: ir.Document, ctx: Context) -> ir.Document:
     return replace(doc, blocks=scrub.demote_headings(doc.blocks, ctx.demote_levels))
 
 
+def _scrub_rights(doc: ir.Document, ctx: Context) -> ir.Document:
+    return replace(doc, blocks=scrub.scrub_rights(doc.blocks, ctx.rights))
+
+
 def _sanitize_urls(doc: ir.Document, ctx: Context) -> ir.Document:
     return sanitize.sanitize_urls(doc, ctx.diagnostics)
 
@@ -84,7 +88,7 @@ def _wrap_scripture(doc: ir.Document, ctx: Context) -> ir.Document:
 
 BOOK_PASSES: tuple[Pass, ...] = (
     ("drop_toc", _blocks(scrub.drop_toc)),
-    ("scrub_rights", _blocks(scrub.scrub_rights)),
+    ("scrub_rights", _scrub_rights),
     ("scrub_ai_alt", _blocks(scrub.scrub_ai_alt)),
     ("scrub_chatgpt_citations", _blocks(scrub.scrub_chatgpt_citations)),
     ("lift_bibliography", _lift_bibliography),

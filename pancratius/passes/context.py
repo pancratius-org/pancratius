@@ -10,6 +10,7 @@ from pancratius import ir
 from pancratius.content_catalog import IndexHit
 from pancratius.intent_inference.policies import RegisterPolicy, RulesOnlyRegisterPolicy
 from pancratius.locales import Locale
+from pancratius.rights_boilerplate import RightsRemovalPlan
 
 
 @dataclass(frozen=True)
@@ -43,4 +44,5 @@ class Context:
     register_policy: RegisterPolicy = field(default_factory=RulesOnlyRegisterPolicy)
     lineation: LineationCorrections = field(default_factory=LineationCorrections)
     scripture: ScripturePins = field(default_factory=ScripturePins)
+    rights: RightsRemovalPlan = field(default_factory=RightsRemovalPlan)
     diagnostics: ir.DiagnosticSink = field(default_factory=list)

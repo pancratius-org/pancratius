@@ -25,7 +25,7 @@ from typing import Any, cast
 
 from pancratius import docx_pandoc, docx_source, ir
 from pancratius.docx_source import SourceParagraph
-from pancratius.ir.inlines import inline_plain
+from pancratius.ir.inlines import block_plain
 
 _WORD_RE = re.compile(r"\w+", re.UNICODE)
 
@@ -134,45 +134,6 @@ def _assign_bracketed_empty_spans(
             blocks[idx] = replace(blocks[idx], source_span=span)
             assigned += 1
     return assigned
-
-
-def _block_plain_for_source_span(block: ir.Block) -> str:
-    """Best-effort reading text for top-level source-span reconciliation."""
-    match block:
-        case ir.Heading() | ir.Paragraph():
-            return inline_plain(block.inlines)
-        case ir.LineatedBlock():
-            return " ".join(
-                inline_plain(line.inlines)
-                for stanza in block.stanzas
-                for line in stanza
-            )
-        case ir.Signature():
-            return " ".join(block.lines)
-        case ir.Epigraph():
-            return " ".join([*block.quote, *block.footer])
-        case ir.DialogueLabel():
-            return block.speaker
-        case ir.ThematicBreak():
-            return "***"
-        case ir.QuoteBlock():
-            return " ".join(_block_plain_for_source_span(child) for child in block.blocks)
-        case ir.ListBlock():
-            return " ".join(
-                _block_plain_for_source_span(child)
-                for item in block.items
-                for child in item
-            )
-        case ir.CodeBlock():
-            return block.text
-        case ir.Table():
-            return " ".join(inline_plain(cell) for row in block.rows for cell in row)
-        case ir.ImageBlock():
-            return block.alt
-        case ir.UnknownBlock():
-            return block.text
-        case _:
-            return ""
 
 
 @dataclass(frozen=True)
@@ -335,7 +296,7 @@ def reconcile_source(
     """
     if not records:
         return 0, 0
-    block_fps = [_source_match_key(_block_plain_for_source_span(b)) for b in blocks]
+    block_fps = [_source_match_key(block_plain(b)) for b in blocks]
     rec_fps = [_source_match_key(r.text) for r in records]
     spans = 0
     right = 0

@@ -8,7 +8,11 @@ import re
 from dataclasses import replace
 
 from pancratius import ir
-from pancratius.ir.inlines import inline_plain, walk_inlines
+from pancratius.ir.inlines import block_plain, inline_plain, walk_inlines
+from pancratius.rights_boilerplate import (
+    RightsRemovalMismatch,
+    RightsRemovalPlan,
+)
 from pancratius.thematic import is_thematic_marker
 
 # AI image generators leave a verbose alt text in DOCX; strip it (or its
@@ -21,21 +25,6 @@ AI_ALT_FRAGMENTS = (
     "AI-generated content may be incorrect",
     "может быть неверным",
 )
-
-# Anchored at line starts with explicit short spans (never `.*?` across arbitrary
-# content); standalone paragraphs are scrubbed only from the head region.
-RIGHTS_PATTERNS = [
-    re.compile(r"(?im)^\s*Copyright\s+©.*$"),
-    re.compile(r"(?im)^\s*All rights reserved\.?\s*$"),
-    re.compile(r"(?im)^\s*©\s*\d{4}.*$"),
-    re.compile(r"(?im)^\s*©\s*Сергей\s+Орехов.*$"),
-    re.compile(r"(?im)^\s*No part of this book may be reproduced.*$"),
-    re.compile(r"(?im)^\s*The characters and events portrayed.*coincidental.*$"),
-    re.compile(r"(?im)^\s*Все\s+права\s+защищены\.?\s*$"),
-    re.compile(r"(?im)^\s*Никакая\s+часть\s+(этой|данной)\s+книги.*$"),
-    re.compile(r"(?im)^\s*Воспроизведение\s+(или\s+)?распространение.*запрещ.*$"),
-    re.compile(r"(?im)^\s*Эта\s+книга\s+даруется\s+миру\s+свободно\.?\s*$"),
-]
 
 # ---------------------------------------------------------------------------
 # TOC drop — auto-generated table-of-contents link runs
@@ -107,16 +96,10 @@ def drop_empty_headings(blocks: list[ir.Block]) -> list[ir.Block]:
 # ---------------------------------------------------------------------------
 
 
-def head_region_end(blocks: list[ir.Block]) -> int:
-    """The exclusive end of the source headmatter window: up to the first H1, but
-    never past the first ~3% of the document (with a 20-block floor). Shared by
-    the rights scrub and the endmatter strip so both read one head region."""
-    n = len(blocks)
-    first_h1 = next((i for i, b in enumerate(blocks) if isinstance(b, ir.Heading) and b.level == 1), n)
-    return min(first_h1, max(20, int(n * 0.03)))
-
-
-def scrub_rights(blocks: list[ir.Block]) -> list[ir.Block]:
+def scrub_rights(
+    blocks: list[ir.Block],
+    plan: RightsRemovalPlan,
+) -> list[ir.Block]:
     """Drop rights boilerplate without touching ordinary book body text.
 
     This pass only handles standalone boilerplate paragraphs near the beginning of
@@ -124,17 +107,39 @@ def scrub_rights(blocks: list[ir.Block]) -> list[ir.Block]:
     `strip_endmatter`, after bibliography tables have had a chance to lift
     into the sidecar.
     """
-    n = len(blocks)
-    if n == 0:
+    if not plan.removals:
         return blocks
-    window_end = head_region_end(blocks)
+    remaining = {removal.ordinal.value: removal for removal in plan.removals}
     out: list[ir.Block] = []
-    for i, b in enumerate(blocks):
-        if i < window_end and isinstance(b, ir.Paragraph) and not b.empty:
-            text = inline_plain(b.inlines)
-            if any(pat.fullmatch(text) for pat in RIGHTS_PATTERNS):
+    for b in blocks:
+        span = b.source_span
+        if (
+            span is not None
+            and span.start == span.end
+            and span.start in remaining
+        ):
+            match b:
+                case ir.Paragraph() if not b.empty:
+                    safe_shape = True
+                case ir.QuoteBlock() if b.register is ir.Register.ORDINARY:
+                    safe_shape = True
+                case ir.ListBlock() if len(b.items) == 1:
+                    safe_shape = True
+                case _:
+                    safe_shape = False
+            removal = remaining[span.start]
+            if safe_shape and removal.matches(block_plain(b).strip()):
+                del remaining[span.start]
                 continue
         out.append(b)
+    if remaining:
+        details = ", ".join(
+            f"{ordinal}:{removal.kind.value}"
+            for ordinal, removal in sorted(remaining.items())
+        )
+        raise RightsRemovalMismatch(
+            f"rights-removal plan has no exact atomic IR target ({details})"
+        )
     return out
 
 

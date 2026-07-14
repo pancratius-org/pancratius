@@ -40,7 +40,12 @@ from pathlib import Path
 
 from PIL import Image, ImageFilter
 
+from pancratius import docx_source, ooxml
 from pancratius.paths import CONTENT_ROOT
+from pancratius.rights_boilerplate import (
+    RightsRemovalPlan,
+    plan_rights_removal,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -300,49 +305,38 @@ _REL_ID_TARGET_RE = re.compile(
 )
 
 
-# Why: scrub the same rights boilerplate the MD pipeline removes, but at the
-# XML level so the downloadable DOCX is consistent with the rendered MD.
-# Bounded: only paragraphs (`<w:p>`) appearing before the first paragraph
-# styled as a heading (`<w:pStyle w:val="Heading…">`). Never touches body
-# prose.
-_W_PARA_RE = re.compile(rb"<w:p\b[^>]*>.*?</w:p>", re.DOTALL)
-_W_HEADING_RE = re.compile(rb'<w:pStyle\s+w:val="Heading\d+"')
-_W_T_RE = re.compile(rb"<w:t[^>]*>([^<]*)</w:t>", re.DOTALL)
-
-RIGHTS_TEXT_PATTERNS = [
-    re.compile(rb"(?i)all rights reserved"),
-    re.compile(b"(?i)copyright\\s+\xc2\xa9"),
-    re.compile(rb"(?i)no part of this book may be reproduced"),
-    re.compile(rb"(?i)the characters and events portrayed.*coincidental"),
-    re.compile(b"(?i)\xd0\x92\xd1\x81\xd0\xb5 \xd0\xbf\xd1\x80\xd0\xb0\xd0\xb2\xd0\xb0 \xd0\xb7\xd0\xb0\xd1\x89\xd0\xb8\xd1\x89\xd0\xb5\xd0\xbd"),
-]
-
-
-def scrub_document_xml(document_xml: bytes) -> bytes:
-    paragraphs: list[tuple[int, int, bytes]] = []
-    for m in _W_PARA_RE.finditer(document_xml):
-        paragraphs.append((m.start(), m.end(), m.group(0)))
-    if not paragraphs:
+def scrub_document_xml(
+    document_xml: bytes,
+    plan: RightsRemovalPlan,
+) -> bytes:
+    """Remove bounded rights paragraphs by canonical source identity."""
+    if not plan.removals:
         return document_xml
-    first_heading_idx = next(
-        (i for i, (_, _, p) in enumerate(paragraphs) if _W_HEADING_RE.search(p)),
-        min(len(paragraphs), max(20, int(len(paragraphs) * 0.10))),
-    )
-    boilerplate_indices: set[int] = set()
-    for i in range(first_heading_idx):
-        text = b"".join(t.group(1) for t in _W_T_RE.finditer(paragraphs[i][2]))
-        if any(pat.search(text) for pat in RIGHTS_TEXT_PATTERNS):
-            boilerplate_indices.add(i)
-    if not boilerplate_indices:
+    parsed = ooxml.parse_xml(document_xml)
+    body = parsed.root.find(f"{docx_source.W}body")
+    if body is None:
         return document_xml
-    pieces: list[bytes] = []
-    cursor = 0
-    for i, (start, end, _) in enumerate(paragraphs):
-        if i in boilerplate_indices:
-            pieces.append(document_xml[cursor:start])
-            cursor = end
-    pieces.append(document_xml[cursor:])
-    return b"".join(pieces)
+    elements = docx_source.body_paragraph_elements(body)
+    parents = {child: parent for parent in parsed.root.iter() for child in parent}
+    for removal in plan.removals:
+        try:
+            element = elements[removal.ordinal.value]
+        except IndexError as exc:
+            raise RuntimeError(
+                f"rights-removal ordinal {removal.ordinal.value} is outside the document"
+            ) from exc
+        live_text = docx_source.paragraph_text(element)
+        if not removal.matches(live_text):
+            raise RuntimeError(
+                f"rights-removal ordinal {removal.ordinal.value} no longer matches its source"
+            )
+        parent = parents.get(element)
+        if parent is None:
+            raise RuntimeError(
+                f"rights-removal ordinal {removal.ordinal.value} has no source parent"
+            )
+        parent.remove(element)
+    return ooxml.serialize_xml(parsed)
 
 
 def parse_display_rects(
@@ -416,6 +410,8 @@ def optimize_docx(src: Path, dst: Path, *, verbose: bool = False) -> tuple[int, 
 
     dst.parent.mkdir(parents=True, exist_ok=True)
     tmp_out = dst.with_suffix(dst.suffix + ".tmp")
+    source = docx_source.read(src)
+    rights = plan_rights_removal(source)
 
     with zipfile.ZipFile(src, "r") as zin:
         rewritten_media: dict[str, tuple[str, bytes, int]] = {}
@@ -423,13 +419,13 @@ def optimize_docx(src: Path, dst: Path, *, verbose: bool = False) -> tuple[int, 
         names = zin.namelist()
         display_rects: dict[str, DisplayRectEmu] = {}
         scrubbed_doc_xml: bytes | None = None
+        doc_xml = zin.read("word/document.xml")
+        scrubbed_doc_xml = scrub_document_xml(doc_xml, rights)
+        if scrubbed_doc_xml == doc_xml:
+            scrubbed_doc_xml = None
         try:
-            doc_xml = zin.read("word/document.xml")
             rels_xml = zin.read("word/_rels/document.xml.rels")
             display_rects = parse_display_rects(doc_xml, rels_xml)
-            scrubbed_doc_xml = scrub_document_xml(doc_xml)
-            if scrubbed_doc_xml == doc_xml:
-                scrubbed_doc_xml = None
         except KeyError:
             display_rects = {}
 

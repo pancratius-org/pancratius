@@ -1,5 +1,5 @@
 # import-pure: no filesystem mutation
-"""Inline-tree helpers shared by the adapter, passes, lowerer, and inspector."""
+"""Reading-text and inline-tree helpers shared across the import pipeline."""
 
 from __future__ import annotations
 
@@ -33,6 +33,45 @@ def inline_plain(inlines: list[ir.Inline]) -> str:
             case _:
                 assert_never(n)
     return re.sub(r"\s+", " ", "".join(out)).strip()
+
+
+def block_plain(block: ir.Block) -> str:
+    """Presentation-free reading text for one block tree."""
+    match block:
+        case ir.Heading() | ir.Paragraph():
+            return inline_plain(block.inlines)
+        case ir.LineatedBlock():
+            return " ".join(
+                inline_plain(line.inlines)
+                for stanza in block.stanzas
+                for line in stanza
+            )
+        case ir.Signature():
+            return " ".join(block.lines)
+        case ir.Epigraph():
+            return " ".join([*block.quote, *block.footer])
+        case ir.DialogueLabel():
+            return block.speaker
+        case ir.ThematicBreak():
+            return "***"
+        case ir.QuoteBlock():
+            return " ".join(block_plain(child) for child in block.blocks)
+        case ir.ListBlock():
+            return " ".join(
+                block_plain(child)
+                for item in block.items
+                for child in item
+            )
+        case ir.CodeBlock():
+            return block.text
+        case ir.Table():
+            return " ".join(inline_plain(cell) for row in block.rows for cell in row)
+        case ir.ImageBlock():
+            return block.alt
+        case ir.UnknownBlock():
+            return block.text
+        case _:
+            assert_never(block)
 
 
 def inline_lines(

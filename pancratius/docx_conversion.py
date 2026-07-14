@@ -19,6 +19,7 @@ from pancratius import (
     ir,
     lineation_overrides,
     lower,
+    rights_boilerplate,
     scripture_overrides,
 )
 from pancratius.content_catalog import IndexHit, dump_frontmatter
@@ -267,6 +268,7 @@ def convert_single_docx(
             register_policy=register_policy.policy,
             lineation=LineationCorrections(lineation_overrides.load_overrides(source)),
             scripture=ScripturePins(scripture_overrides.load_overrides(source)),
+            rights=rights_boilerplate.plan_rights_removal(source),
             diagnostics=diagnostics,
         ))
 
