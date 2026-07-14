@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from pancratius import cli, docx_inspect, docx_render
+from pancratius import cli, docx_inspect, docx_render, docx_source
 from pancratius.docx_inspect import ParagraphIndexRange, ParaRow
 
 
@@ -25,6 +25,7 @@ def _row(text: str, *, index: int = 0) -> ParaRow:
         thematic=False,
         br_count=0,
         empty=False,
+        disposition=docx_source.ParagraphDisposition.CONTENT,
     )
 
 
@@ -90,6 +91,37 @@ def test_docx_render_slice_cli_reports_missing_source(capsys: pytest.CaptureFixt
 
     assert rc == 2
     assert "DOCX not found" in capsys.readouterr().err
+
+
+def test_docx_render_slice_cli_reports_source_error_without_traceback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    source = tmp_path / "source.docx"
+    source.write_bytes(b"source boundary stub")
+
+    def fail_read(_path: Path) -> docx_source.DocxSourceDocument:
+        raise docx_source.DocxSourceError(
+            "source.docx: paragraph 4: unsupported w:br type 'future-layout'"
+        )
+
+    monkeypatch.setattr(docx_source, "read", fail_read)
+
+    rc = cli.main([
+        "docx",
+        "render-slice",
+        str(source),
+        "--range",
+        "0:0",
+        "--out",
+        str(tmp_path / "slice.png"),
+    ])
+
+    assert rc == 2
+    error = capsys.readouterr().err
+    assert "unsupported w:br type 'future-layout'" in error
+    assert "Traceback" not in error
 
 
 def test_docx_render_slice_cli_accepts_book_selector(

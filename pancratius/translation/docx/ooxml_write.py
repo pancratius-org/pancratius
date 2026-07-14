@@ -8,8 +8,15 @@ import zipfile
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import assert_never
+from typing import Literal, assert_never
 
+from pancratius.docx_source import (
+    BreakKind,
+    DocxSourceError,
+    ParagraphContent,
+    TextAtom,
+    iter_baseline_descendants,
+)
 from pancratius.ooxml import (
     DRAWING_METADATA_DESCRIPTION_ATTR,
     DRAWING_METADATA_ELEMENT_TAGS,
@@ -20,16 +27,16 @@ from pancratius.ooxml import (
     REL,
     XML_SPACE,
     OoxmlRelationshipError,
+    ParsedOoxml,
     R,
     W,
+    parse_xml,
     relationship_source_part,
     relative_relationship_target,
     resolve_relationship_target,
     serialize_relationships,
     serialize_xml,
 )
-from pancratius.translation.docx.align import normalize_transfer_text
-from pancratius.translation.docx.donor_docx import word_paragraph_text
 from pancratius.translation.docx.models import (
     DocxTranslationError,
     FootnoteAnchor,
@@ -38,6 +45,7 @@ from pancratius.translation.docx.models import (
     MarkdownTransferDocument,
     MarkdownTransferUnit,
     TranslatedTextRun,
+    WordTextSlot,
 )
 from pancratius.writeplan import Diagnostic
 
@@ -49,6 +57,62 @@ RELATIONSHIP_REF_ATTRS = frozenset({f"{R}id", f"{R}embed", f"{R}link"})
 
 type OoxmlPartName = str
 type RelationshipId = str
+type PaginationBreak = Literal[BreakKind.PAGE, BreakKind.COLUMN]
+
+
+def _pagination_break(break_kind: BreakKind) -> PaginationBreak:
+    match break_kind:
+        case BreakKind.PAGE:
+            return BreakKind.PAGE
+        case BreakKind.COLUMN:
+            return BreakKind.COLUMN
+        case BreakKind.LINE:
+            raise AssertionError("line break is not a pagination control")
+    assert_never(break_kind)
+
+
+@dataclass(frozen=True, slots=True)
+class _InlinePaginationEdges:
+    """Inline layout controls that can survive replacement without an anchor."""
+
+    leading: tuple[PaginationBreak, ...] = ()
+    trailing: tuple[PaginationBreak, ...] = ()
+
+    @classmethod
+    def around_text(
+        cls,
+        content: ParagraphContent,
+        *,
+        slot_ordinal: int,
+    ) -> _InlinePaginationEdges:
+        pagination = tuple(
+            (index, _pagination_break(atom))
+            for index, atom in enumerate(content.atoms)
+            if isinstance(atom, BreakKind) and atom.is_pagination
+        )
+        if not pagination:
+            return cls()
+        substantive = tuple(
+            index
+            for index, atom in enumerate(content.atoms)
+            if isinstance(atom, TextAtom) and bool(atom.value.strip())
+        )
+        if not substantive:
+            raise DocxTranslationError(
+                f"cannot replace pagination-only source DOCX paragraph {slot_ordinal}"
+            )
+        first, last = substantive[0], substantive[-1]
+        internal = tuple(kind for index, kind in pagination if first < index < last)
+        if internal:
+            kinds = ", ".join(kind.value for kind in internal)
+            raise DocxTranslationError(
+                f"cannot preserve source DOCX paragraph {slot_ordinal} pagination "
+                f"inside translated text ({kinds})"
+            )
+        return cls(
+            leading=tuple(kind for index, kind in pagination if index < first),
+            trailing=tuple(kind for index, kind in pagination if index > last),
+        )
 
 
 @dataclass(slots=True)
@@ -57,17 +121,14 @@ class HyperlinkRelationshipAllocator:
 
     parts: dict[str, bytes]
     rels_part: str
-    root: ET.Element = field(init=False)
-    source_xml: bytes | None = field(init=False)
+    tree: ParsedOoxml | ET.Element = field(init=False)
     next_id: int = field(init=False)
 
     def __post_init__(self) -> None:
         if self.rels_part in self.parts:
-            self.source_xml = self.parts[self.rels_part]
-            self.root = ET.fromstring(self.source_xml)
+            self.tree = parse_xml(self.parts[self.rels_part])
         else:
-            self.source_xml = None
-            self.root = ET.Element(f"{REL}Relationships")
+            self.tree = ET.Element(f"{REL}Relationships")
         ids: list[int] = []
         for rel in self.root.findall(f"{REL}Relationship"):
             rel_id = str(rel.get("Id") or "")
@@ -75,6 +136,10 @@ class HyperlinkRelationshipAllocator:
             if match:
                 ids.append(int(match.group(1)))
         self.next_id = max(ids, default=0) + 1
+
+    @property
+    def root(self) -> ET.Element:
+        return self.tree.root if isinstance(self.tree, ParsedOoxml) else self.tree
 
     def add_external_hyperlink(self, target: str) -> str:
         rel_id = f"rId{self.next_id}"
@@ -87,7 +152,7 @@ class HyperlinkRelationshipAllocator:
         return rel_id
 
     def save(self) -> None:
-        self.parts[self.rels_part] = serialize_relationships(self.root, source_xml=self.source_xml)
+        self.parts[self.rels_part] = serialize_relationships(self.tree)
 
 
 def _clone_run_properties(
@@ -211,14 +276,184 @@ def _sanitize_drawing_metadata(root: ET.Element) -> bool:
 
 def _sanitize_drawing_metadata_parts(parts: dict[str, bytes]) -> None:
     for part_name in sorted(name for name in parts if DRAWING_METADATA_WORD_PART_RE.fullmatch(name)):
-        source_xml = parts[part_name]
-        root = ET.fromstring(source_xml)
-        if _sanitize_drawing_metadata(root):
-            parts[part_name] = serialize_xml(root, source_xml=source_xml)
+        tree = parse_xml(parts[part_name])
+        if _sanitize_drawing_metadata(tree.root):
+            parts[part_name] = serialize_xml(tree)
 
 
 def _parent_map(root: ET.Element) -> dict[ET.Element, ET.Element]:
     return {child: parent for parent in root.iter() for child in list(parent)}
+
+
+def _selected_footnote_runs(paragraph: ET.Element) -> tuple[ET.Element, ...]:
+    """Project selected reference anchors without copying compatibility branches."""
+    parents = _parent_map(paragraph)
+    runs: list[ET.Element] = []
+    for payload in iter_baseline_descendants(paragraph):
+        if payload.tag != f"{W}footnoteReference":
+            continue
+        node = payload
+        while (parent := parents.get(node)) is not None and parent.tag != f"{W}r":
+            node = parent
+        if parent is None:
+            raise DocxTranslationError(
+                f"selected {payload.tag.rsplit('}', 1)[-1]} is not inside a Word run"
+            )
+        run = ET.Element(f"{W}r", dict(parent.attrib))
+        if (properties := parent.find(f"{W}rPr")) is not None:
+            run.append(copy.deepcopy(properties))
+        run.append(copy.deepcopy(payload))
+        runs.append(run)
+    return tuple(runs)
+
+
+_DRAWING_PAYLOAD_TAGS = frozenset({f"{W}drawing", f"{W}pict"})
+_TEXT_OWNED_PAYLOAD_TAGS = frozenset(
+    {
+        f"{W}t",
+        f"{W}br",
+        f"{W}cr",
+        f"{W}tab",
+        f"{W}noBreakHyphen",
+        f"{W}softHyphen",
+        f"{W}footnoteReference",
+    }
+)
+
+
+def _direct_paragraph_child(
+    element: ET.Element,
+    *,
+    paragraph: ET.Element,
+    parents: dict[ET.Element, ET.Element],
+    story_index: int,
+    payload_name: str,
+) -> ET.Element:
+    node = element
+    while (parent := parents.get(node)) is not paragraph:
+        if parent is None:
+            raise DocxTranslationError(
+                f"selected {payload_name} in source DOCX paragraph {story_index} "
+                "has no paragraph payload anchor"
+            )
+        node = parent
+    return node
+
+
+def _selected_drawing_children(
+    paragraph: ET.Element,
+    *,
+    story_index: int,
+) -> tuple[ET.Element, ...]:
+    """Preserve each selected drawing's opaque direct paragraph payload."""
+    selected = tuple(iter_baseline_descendants(paragraph))
+    drawings = tuple(element for element in selected if element.tag in _DRAWING_PAYLOAD_TAGS)
+    if not drawings:
+        return ()
+    parents = _parent_map(paragraph)
+
+    children: list[ET.Element] = []
+    seen: set[int] = set()
+    for drawing in drawings:
+        child = _direct_paragraph_child(
+            drawing,
+            paragraph=paragraph,
+            parents=parents,
+            story_index=story_index,
+            payload_name="drawing",
+        )
+        if id(child) in seen:
+            continue
+        seen.add(id(child))
+        for payload in selected:
+            if payload.tag not in _TEXT_OWNED_PAYLOAD_TAGS or _direct_paragraph_child(
+                payload,
+                paragraph=paragraph,
+                parents=parents,
+                story_index=story_index,
+                payload_name="text",
+            ) is not child:
+                continue
+            node: ET.Element | None = payload
+            while node is not child and node not in drawings:
+                parent = parents.get(node)
+                if parent is None:
+                    break
+                node = parent
+            if node not in drawings:
+                raise DocxTranslationError(
+                    f"source DOCX paragraph {story_index} mixes replaceable text "
+                    "with a drawing in one donor payload"
+                )
+        children.append(copy.deepcopy(child))
+    return tuple(children)
+
+
+def _assert_pagination_outside_drawings(
+    paragraph: ET.Element,
+    pagination: _InlinePaginationEdges,
+    *,
+    story_index: int,
+) -> None:
+    selected = tuple(iter_baseline_descendants(paragraph))
+    drawings = tuple(element for element in selected if element.tag in _DRAWING_PAYLOAD_TAGS)
+    if not drawings or not (pagination.leading or pagination.trailing):
+        return
+    parents = _parent_map(paragraph)
+    page_breaks = tuple(
+        element
+        for element in selected
+        if element.tag == f"{W}br"
+        and BreakKind.from_ooxml(element.get(f"{W}type")).is_pagination
+    )
+    if len(page_breaks) != len(pagination.leading) + len(pagination.trailing):
+        raise AssertionError("pagination edge classification lost a selected break")
+
+    for page_break in page_breaks:
+        node = page_break
+        while node is not paragraph and node not in drawings:
+            parent = parents.get(node)
+            if parent is None:
+                break
+            node = parent
+        if node in drawings:
+            raise DocxTranslationError(
+                f"source DOCX paragraph {story_index} carries pagination inside "
+                "a preserved drawing payload"
+            )
+
+    positions = {child: index for index, child in enumerate(paragraph)}
+    drawing_positions = tuple(
+        positions[_direct_paragraph_child(
+            drawing,
+            paragraph=paragraph,
+            parents=parents,
+            story_index=story_index,
+            payload_name="drawing",
+        )]
+        for drawing in drawings
+    )
+    break_positions = tuple(
+        positions[_direct_paragraph_child(
+            page_break,
+            paragraph=paragraph,
+            parents=parents,
+            story_index=story_index,
+            payload_name="pagination",
+        )]
+        for page_break in page_breaks
+    )
+    leading = break_positions[:len(pagination.leading)]
+    trailing = break_positions[len(pagination.leading):]
+    if (
+        leading and max(leading) >= min(drawing_positions)
+    ) or (
+        trailing and min(trailing) <= max(drawing_positions)
+    ):
+        raise DocxTranslationError(
+            f"cannot preserve source DOCX paragraph {story_index} pagination "
+            "without moving a drawing across it"
+        )
 
 
 def _body_child_for(
@@ -336,17 +571,34 @@ def _append_translated_inlines(
         )
 
 
+def _append_pagination_breaks(
+    paragraph: ET.Element,
+    breaks: Sequence[PaginationBreak],
+) -> None:
+    for break_kind in breaks:
+        match break_kind:
+            case BreakKind.PAGE | BreakKind.COLUMN:
+                run = ET.SubElement(paragraph, f"{W}r")
+                element = ET.SubElement(run, f"{W}br")
+                element.set(f"{W}type", break_kind.value)
+            case BreakKind.LINE:
+                raise AssertionError("line break is not a pagination control")
+            case unsupported:
+                assert_never(unsupported)
+
+
 def _replace_paragraph_text(
-    p: ET.Element,
+    slot: WordTextSlot,
     unit: MarkdownTransferUnit,
     *,
     hyperlinks: HyperlinkRelationshipAllocator | None,
 ) -> None:
+    p = slot.paragraph
     if unit.kind == "image":
         _replace_image_metadata(p, unit)
         return
     if unit.kind == "thematic":
-        if not normalize_transfer_text(word_paragraph_text(p)):
+        if not slot.alignment_text:
             base_rpr = _base_run_properties(p)
             for child in list(p):
                 if child.tag != f"{W}pPr":
@@ -358,18 +610,27 @@ def _replace_paragraph_text(
                 emphasis=False,
             ))
         return
+    pagination = _InlinePaginationEdges.around_text(
+        slot.semantics.content,
+        slot_ordinal=slot.story_index,
+    )
     base_rpr = _base_run_properties(p)
-    footnote_refs = [copy.deepcopy(r) for r in p.findall(f".//{W}footnoteReference/..")]
-    drawing_runs = [
-        copy.deepcopy(r)
-        for r in p.findall(f"{W}r")
-        if r.find(f".//{W}drawing") is not None or r.find(f".//{W}pict") is not None
-    ]
+    footnote_refs = _selected_footnote_runs(p)
+    drawing_children = _selected_drawing_children(
+        p,
+        story_index=slot.story_index,
+    )
+    _assert_pagination_outside_drawings(
+        p,
+        pagination,
+        story_index=slot.story_index,
+    )
     for child in list(p):
         if child.tag != f"{W}pPr":
             p.remove(child)
-    for run in drawing_runs:
-        p.append(run)
+    _append_pagination_breaks(p, pagination.leading)
+    for child in drawing_children:
+        p.append(child)
     _append_translated_inlines(
         p,
         unit,
@@ -377,6 +638,7 @@ def _replace_paragraph_text(
         footnote_refs=footnote_refs,
         hyperlinks=hyperlinks,
     )
+    _append_pagination_breaks(p, pagination.trailing)
 
 
 def _unit_has_hyperlink(unit: MarkdownTransferUnit) -> bool:
@@ -411,7 +673,8 @@ def _prune_unreferenced_external_hyperlinks(
         return
 
     part_root = ET.fromstring(parts[part_name])
-    rels_root = ET.fromstring(parts[rels_part])
+    rels = parse_xml(parts[rels_part])
+    rels_root = rels.root
     referenced_ids = _relationship_refs(part_root)
     changed = False
     for rel in list(rels_root.findall(f"{REL}Relationship")):
@@ -422,7 +685,7 @@ def _prune_unreferenced_external_hyperlinks(
         rels_root.remove(rel)
         changed = True
     if changed:
-        parts[rels_part] = serialize_relationships(rels_root, source_xml=parts[rels_part])
+        parts[rels_part] = serialize_relationships(rels)
 
 
 def _run_text(run: ET.Element) -> str:
@@ -472,7 +735,17 @@ def _footnote_id(note: ET.Element) -> str | None:
 
 def footnote_reference_ids_by_body_order(root: ET.Element) -> tuple[str, ...]:
     ids: list[str] = []
-    for ref in root.findall(f".//{W}footnoteReference"):
+    try:
+        references = tuple(
+            element
+            for element in iter_baseline_descendants(root)
+            if element.tag == f"{W}footnoteReference"
+        )
+    except DocxSourceError as exc:
+        raise DocxTranslationError(
+            f"source DOCX body has unsupported compatibility content: {exc}"
+        ) from exc
+    for ref in references:
         raw = str(ref.get(f"{W}id") or "")
         try:
             if int(raw) > 0:
@@ -495,7 +768,8 @@ def _replace_footnotes(
         if any(_unit_has_hyperlink(unit) for footnote in translated.footnotes for unit in footnote)
         else None
     )
-    root = ET.fromstring(zf_parts["word/footnotes.xml"])
+    footnotes = parse_xml(zf_parts["word/footnotes.xml"])
+    root = footnotes.root
     notes_by_id = {
         footnote_id: note
         for note in root.findall(f"{W}footnote")
@@ -552,10 +826,7 @@ def _replace_footnotes(
             note.append(p)
     if footnote_hyperlinks is not None:
         footnote_hyperlinks.save()
-    zf_parts["word/footnotes.xml"] = serialize_xml(
-        root,
-        source_xml=zf_parts["word/footnotes.xml"],
-    )
+    zf_parts["word/footnotes.xml"] = serialize_xml(footnotes)
     _prune_unreferenced_external_hyperlinks(zf_parts, "word/footnotes.xml")
 
 
@@ -628,9 +899,10 @@ def _retarget_relationships(
     replacements: dict[str, str],
 ) -> bytes | None:
     try:
-        root = ET.fromstring(rels_xml)
+        relationships = parse_xml(rels_xml)
     except ET.ParseError:
         return None
+    root = relationships.root
     if root.tag != f"{REL}Relationships":
         return None
     try:
@@ -655,7 +927,7 @@ def _retarget_relationships(
         changed = True
     if not changed:
         return rels_xml
-    return serialize_relationships(root, source_xml=rels_xml)
+    return serialize_relationships(relationships)
 
 
 replace_paragraph_text = _replace_paragraph_text

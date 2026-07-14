@@ -19,15 +19,22 @@ from pancratius.docx_roundtrip import (
     DocxRoundTripReport,
     DocxRoundTripTarget,
 )
+from pancratius.docx_source import (
+    BreakKind,
+    ParagraphDisposition,
+    TextAtom,
+    analyze_paragraph,
+)
 from pancratius.ooxml import (
     HYPERLINK_REL_TYPE,
+    MC_NS,
     R_NS,
     REL,
     REL_NS,
     W_NS,
-    NamespaceBinding,
     R,
     W,
+    parse_xml,
     serialize_relationships,
     serialize_xml,
 )
@@ -42,6 +49,7 @@ from pancratius.translation.docx.align import (
     join_markdown_units_for_word_slot,
     source_text_alignment_evidence,
 )
+from pancratius.translation.docx.donor_docx import word_text_slots
 from pancratius.translation.docx.models import (
     MarkdownTransferDocument,
     MarkdownTransferUnit,
@@ -53,7 +61,9 @@ from pancratius.translation.docx.models import (
 )
 from pancratius.translation.docx.ooxml_write import (
     dedupe_media_payloads,
+    footnote_reference_ids_by_body_order,
     repair_unbound_relationship_prefixes,
+    replace_paragraph_text,
     sanitize_drawing_metadata,
     sanitize_drawing_metadata_parts,
     write_docx_parts,
@@ -69,7 +79,6 @@ SOURCE_TEXT_ALIGNMENT_EVIDENCE_CASES: tuple[
     ("Свет *внутри*", "Свет внутри", "markdown_literal_style_marker", "canonical"),
     ("П ока", "Пока", "split_letter_typo", "canonical"),
     ("Путь ‑как свет", "Путь как свет", "spurious_connector_hyphen", "canonical"),
-    ("человек‑свет", "человексвет", "nonbreaking_hyphen_import", "canonical"),
     ("Фраза Википедия+1", "Фраза", "source_citation_suffix", "canonical"),
     ("Фраза", "Фраза Википедия+1", "canonical", "source_citation_suffix"),
     ("Ответ: — да", "Ответ — да", "colon_before_dash", "canonical"),
@@ -103,12 +112,32 @@ def _write_paragraph_docx(path: Path, paragraphs: list[str]) -> None:
     doc.save(str(path))
 
 
+def _write_pagination_docx(path: Path) -> None:
+    _write_paragraph_docx(path, ["Начало", "", "Финал"])
+    with zipfile.ZipFile(path) as zf:
+        parts = {name: zf.read(name) for name in zf.namelist()}
+    document = parse_xml(parts["word/document.xml"])
+    paragraphs = document.root.findall(f".//{W}body/{W}p")
+    source_run = paragraphs[0].find(f"{W}r")
+    assert source_run is not None
+    trailing = ET.SubElement(source_run, f"{W}br")
+    trailing.set(f"{W}type", BreakKind.PAGE.value)
+    run = ET.SubElement(paragraphs[1], f"{W}r")
+    pagination_only = ET.SubElement(run, f"{W}br")
+    pagination_only.set(f"{W}type", BreakKind.PAGE.value)
+    parts["word/document.xml"] = serialize_xml(document)
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for name, data in parts.items():
+            zf.writestr(name, data)
+
+
 def _write_body_hyperlink_docx(path: Path, *, target: str) -> None:
     _write_paragraph_docx(path, ["ссылка"])
     with zipfile.ZipFile(path) as zf:
         parts = {name: zf.read(name) for name in zf.namelist()}
 
-    root = ET.fromstring(parts["word/document.xml"])
+    document = parse_xml(parts["word/document.xml"])
+    root = document.root
     paragraph = root.find(f".//{W}body/{W}p")
     assert paragraph is not None
     for child in list(paragraph):
@@ -119,21 +148,15 @@ def _write_body_hyperlink_docx(path: Path, *, target: str) -> None:
     run = ET.SubElement(hyperlink, f"{W}r")
     text = ET.SubElement(run, f"{W}t")
     text.text = "ссылка"
-    parts["word/document.xml"] = serialize_xml(
-        root,
-        source_xml=parts["word/document.xml"],
-    )
+    parts["word/document.xml"] = serialize_xml(document)
 
-    rels = ET.fromstring(parts["word/_rels/document.xml.rels"])
-    rel = ET.SubElement(rels, f"{REL}Relationship")
+    relationships = parse_xml(parts["word/_rels/document.xml.rels"])
+    rel = ET.SubElement(relationships.root, f"{REL}Relationship")
     rel.set("Id", "rId900")
     rel.set("Type", HYPERLINK_REL_TYPE)
     rel.set("Target", target)
     rel.set("TargetMode", "External")
-    parts["word/_rels/document.xml.rels"] = serialize_relationships(
-        rels,
-        source_xml=parts["word/_rels/document.xml.rels"],
-    )
+    parts["word/_rels/document.xml.rels"] = serialize_relationships(relationships)
 
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
         for name, data in parts.items():
@@ -234,7 +257,8 @@ def _write_footnote_hyperlink_docx(path: Path, *, target: str) -> None:
     with zipfile.ZipFile(path) as zf:
         parts = {name: zf.read(name) for name in zf.namelist()}
 
-    root = ET.fromstring(parts["word/footnotes.xml"])
+    footnotes = parse_xml(parts["word/footnotes.xml"])
+    root = footnotes.root
     note = next(
         note
         for note in root.findall(f"{W}footnote")
@@ -250,10 +274,7 @@ def _write_footnote_hyperlink_docx(path: Path, *, target: str) -> None:
     run = ET.SubElement(hyperlink, f"{W}r")
     text = ET.SubElement(run, f"{W}t")
     text.text = "Сноска"
-    parts["word/footnotes.xml"] = serialize_xml(
-        root,
-        source_xml=parts["word/footnotes.xml"],
-    )
+    parts["word/footnotes.xml"] = serialize_xml(footnotes)
 
     rels = ET.Element(f"{REL}Relationships")
     rel = ET.SubElement(rels, f"{REL}Relationship")
@@ -394,13 +415,50 @@ def _transfer_doc(*units: MarkdownTransferUnit) -> MarkdownTransferDocument:
 
 
 def _word_slot(ordinal: int, text: str, *, has_drawing: bool = False) -> WordTextSlot:
+    paragraph = ET.Element(f"{W}p")
+    run = ET.SubElement(paragraph, f"{W}r")
+    if text:
+        text_element = ET.SubElement(run, f"{W}t")
+        text_element.text = text
+    if has_drawing:
+        ET.SubElement(run, f"{W}drawing")
     return WordTextSlot(
-        ordinal=ordinal,
-        paragraph=ET.Element(f"{W}p"),
-        text=text,
-        has_drawing=has_drawing,
-        footnote_refs=(),
+        story_index=ordinal,
+        paragraph=paragraph,
     )
+
+
+def _slot_from_paragraph(ordinal: int, paragraph: ET.Element) -> WordTextSlot:
+    return WordTextSlot(
+        story_index=ordinal,
+        paragraph=paragraph,
+    )
+
+
+def _paragraph_with_controls(
+    before: str,
+    controls: tuple[BreakKind, ...],
+    after: str,
+    *,
+    page_break_before: bool = False,
+) -> ET.Element:
+    paragraph = ET.Element(f"{W}p")
+    if page_break_before:
+        properties = ET.SubElement(paragraph, f"{W}pPr")
+        ET.SubElement(properties, f"{W}pageBreakBefore")
+    run = ET.SubElement(paragraph, f"{W}r")
+    if before:
+        text = ET.SubElement(run, f"{W}t")
+        text.text = before
+    for break_kind in controls:
+        element = ET.SubElement(run, f"{W}br")
+        if break_kind is not BreakKind.LINE:
+            element.set(f"{W}type", break_kind.value)
+    if after:
+        text = ET.SubElement(run, f"{W}t")
+        text.text = after
+    ET.SubElement(run, f"{W}lastRenderedPageBreak")
+    return paragraph
 
 
 def _write_catalog_book_md(path: Path, *, number: int, lang: str, title: str, body: str) -> None:
@@ -440,6 +498,179 @@ def _assert_document_prefix_safety(docx: Path) -> None:
         assert f"xmlns:{prefix}=" in xml
 
 
+def test_word_slots_follow_canonical_story_semantics() -> None:
+    root = ET.Element(f"{W}document")
+    body = ET.SubElement(root, f"{W}body")
+    wrapper = ET.SubElement(body, f"{W}r")
+    alternate = ET.SubElement(wrapper, f"{{{MC_NS}}}AlternateContent")
+    choice = ET.SubElement(alternate, f"{{{MC_NS}}}Choice")
+    choice.set("Requires", "future")
+    inactive = _paragraph_with_controls("INACTIVE", (), "")
+    inactive_run = inactive.find(f"{W}r")
+    assert inactive_run is not None
+    ET.SubElement(inactive_run, f"{W}drawing")
+    choice.append(inactive)
+    fallback = ET.SubElement(alternate, f"{{{MC_NS}}}Fallback")
+    paragraph = _paragraph_with_controls("BASE", (), "")
+    run = paragraph.find(f"{W}r")
+    assert run is not None
+    ET.SubElement(run, f"{W}noBreakHyphen")
+    suffix = ET.SubElement(run, f"{W}t")
+    suffix.text = "LINE"
+    page = ET.SubElement(run, f"{W}br")
+    page.set(f"{W}type", BreakKind.PAGE.value)
+    fallback.append(paragraph)
+
+    slot, = word_text_slots(root)
+
+    assert slot.alignment_text == "BASE‑LINE"
+    assert slot.semantics.content.breaks == (BreakKind.PAGE,)
+    assert not slot.has_drawing
+
+
+def test_word_slots_translate_unknown_breaks_to_domain_errors() -> None:
+    root = ET.Element(f"{W}document")
+    body = ET.SubElement(root, f"{W}body")
+    paragraph = ET.SubElement(body, f"{W}p")
+    run = ET.SubElement(paragraph, f"{W}r")
+    element = ET.SubElement(run, f"{W}br")
+    element.set(f"{W}type", "future-layout")
+
+    with pytest.raises(
+        DocxTranslationError,
+        match="source DOCX paragraph 0 has unsupported content",
+    ):
+        word_text_slots(root)
+
+    alternate = ET.SubElement(run, f"{{{MC_NS}}}AlternateContent")
+    ET.SubElement(alternate, f"{{{MC_NS}}}Fallback")
+    ET.SubElement(alternate, f"{{{MC_NS}}}Fallback")
+    element.set(f"{W}type", BreakKind.PAGE.value)
+    with pytest.raises(
+        DocxTranslationError,
+        match="source DOCX story has unsupported content",
+    ):
+        word_text_slots(root)
+
+
+def test_writer_does_not_reopen_inactive_compatibility_payloads() -> None:
+    root = ET.Element(f"{W}document")
+    body = ET.SubElement(root, f"{W}body")
+    paragraph = ET.SubElement(body, f"{W}p")
+    run = ET.SubElement(paragraph, f"{W}r")
+    alternate = ET.SubElement(run, f"{{{MC_NS}}}AlternateContent")
+    choice = ET.SubElement(alternate, f"{{{MC_NS}}}Choice")
+    choice.set("Requires", "future")
+    ET.SubElement(choice, f"{W}drawing")
+    reference = ET.SubElement(choice, f"{W}footnoteReference")
+    reference.set(f"{W}id", "99")
+    fallback = ET.SubElement(alternate, f"{{{MC_NS}}}Fallback")
+    text = ET.SubElement(fallback, f"{W}t")
+    text.text = "SOURCE"
+    slot = WordTextSlot(story_index=0, paragraph=paragraph)
+
+    assert not slot.has_drawing
+    assert footnote_reference_ids_by_body_order(root) == ()
+    replace_paragraph_text(slot, _transfer_unit("TARGET"), hyperlinks=None)
+
+    assert analyze_paragraph(paragraph).text == "TARGET"
+    assert paragraph.find(f".//{W}drawing") is None
+    assert paragraph.find(f".//{W}footnoteReference") is None
+
+
+def test_writer_preserves_selected_drawing_compatibility_envelope() -> None:
+    paragraph = ET.Element(f"{W}p")
+    drawing_run = ET.SubElement(paragraph, f"{W}r")
+    alternate = ET.SubElement(drawing_run, f"{{{MC_NS}}}AlternateContent")
+    choice = ET.SubElement(alternate, f"{{{MC_NS}}}Choice")
+    choice.set("Requires", "future")
+    ET.SubElement(choice, f"{W}drawing")
+    fallback = ET.SubElement(alternate, f"{{{MC_NS}}}Fallback")
+    ET.SubElement(fallback, f"{W}pict")
+    text_run = ET.SubElement(paragraph, f"{W}r")
+    text = ET.SubElement(text_run, f"{W}t")
+    text.text = "SOURCE"
+    slot = WordTextSlot(story_index=0, paragraph=paragraph)
+
+    assert slot.has_drawing
+    replace_paragraph_text(slot, _transfer_unit("TARGET"), hyperlinks=None)
+
+    envelope = paragraph.find(f"{W}r/{{{MC_NS}}}AlternateContent")
+    assert envelope is not None
+    assert envelope.find(f"{{{MC_NS}}}Choice/{W}drawing") is not None
+    assert envelope.find(f"{{{MC_NS}}}Fallback/{W}pict") is not None
+    assert analyze_paragraph(paragraph).text == "TARGET"
+
+
+def test_writer_rejects_text_and_drawing_in_one_donor_payload_without_mutation() -> None:
+    paragraph = _paragraph_with_controls("SOURCE", (), "")
+    run = paragraph.find(f"{W}r")
+    assert run is not None
+    ET.SubElement(run, f"{W}pict")
+    slot = WordTextSlot(story_index=5, paragraph=paragraph)
+    before = ET.tostring(paragraph)
+
+    with pytest.raises(DocxTranslationError, match="mixes replaceable text with a drawing"):
+        replace_paragraph_text(slot, _transfer_unit("TARGET"), hyperlinks=None)
+
+    assert ET.tostring(paragraph) == before
+
+
+@pytest.mark.parametrize(
+    "payload_order",
+    [("text", "page", "drawing"), ("drawing", "page", "text")],
+)
+def test_writer_refuses_to_move_drawings_across_pagination(
+    payload_order: tuple[str, ...],
+) -> None:
+    paragraph = ET.Element(f"{W}p")
+    for payload in payload_order:
+        run = ET.SubElement(paragraph, f"{W}r")
+        if payload == "text":
+            text = ET.SubElement(run, f"{W}t")
+            text.text = "SOURCE"
+        elif payload == "page":
+            page = ET.SubElement(run, f"{W}br")
+            page.set(f"{W}type", BreakKind.PAGE.value)
+        else:
+            ET.SubElement(run, f"{W}pict")
+    slot = WordTextSlot(story_index=6, paragraph=paragraph)
+    before = ET.tostring(paragraph)
+
+    with pytest.raises(DocxTranslationError, match="moving a drawing across"):
+        replace_paragraph_text(slot, _transfer_unit("TARGET"), hyperlinks=None)
+
+    assert ET.tostring(paragraph) == before
+
+
+@pytest.mark.parametrize("unit_kind", ["blank", "thematic"])
+def test_blank_like_units_skip_semantic_non_blanks(
+    unit_kind: TransferUnitKind,
+) -> None:
+    pagination = _paragraph_with_controls("", (BreakKind.PAGE,), "")
+    line_only = _paragraph_with_controls("", (BreakKind.LINE,), "")
+    opaque = ET.Element(f"{W}p")
+    ET.SubElement(opaque, f"{W}bookmarkStart")
+    structural_empty = ET.Element(f"{W}p")
+    slots = tuple(
+        _slot_from_paragraph(ordinal, paragraph)
+        for ordinal, paragraph in enumerate(
+            (pagination, line_only, opaque, structural_empty)
+        )
+    )
+
+    plan = align_source_units(
+        _transfer_doc(MarkdownTransferUnit(unit_kind)),
+        slots,
+    )
+
+    assert plan.alignments[0].slot.story_index == 3
+    assert plan.ignored_slots == ()
+    assert slots[0].disposition is ParagraphDisposition.PAGINATION_ONLY
+    assert slots[1].disposition is ParagraphDisposition.NON_TEXT
+    assert slots[2].disposition is ParagraphDisposition.NON_TEXT
+
+
 def test_align_source_units_keeps_named_source_only_toc_gap_reviewable() -> None:
     plan = align_source_units(
         _transfer_doc(_transfer_unit("Начало")),
@@ -451,7 +682,7 @@ def test_align_source_units_keeps_named_source_only_toc_gap_reviewable() -> None
     )
 
     assert [ignored.reason for ignored in plan.ignored_slots] == ["source_toc", "source_toc"]
-    assert plan.alignments[0].slot.ordinal == 2
+    assert plan.alignments[0].slot.story_index == 2
 
 
 def test_align_source_units_refuses_unnamed_source_gap() -> None:
@@ -506,6 +737,81 @@ def test_source_text_alignment_evidence_refuses_near_miss_dash_loss() -> None:
     assert source_text_alignment_evidence("Путь — как свет", "Путь как свет") is None
 
 
+@pytest.mark.parametrize(
+    ("source_controls", "edge", "target_text", "expected_atoms"),
+    [
+        ((BreakKind.PAGE,), "leading", "translated", (BreakKind.PAGE, "translated")),
+        ((BreakKind.PAGE,), "trailing", "translated", ("translated", BreakKind.PAGE)),
+        ((BreakKind.COLUMN,), "leading", "translated", (BreakKind.COLUMN, "translated")),
+        ((BreakKind.COLUMN,), "trailing", "translated", ("translated", BreakKind.COLUMN)),
+        ((BreakKind.LINE,), "internal", "translated", ("translated",)),
+        (
+            (BreakKind.PAGE,),
+            "trailing",
+            "first\nsecond",
+            ("first", BreakKind.LINE, "second", BreakKind.PAGE),
+        ),
+        (
+            (BreakKind.PAGE, BreakKind.LINE, BreakKind.COLUMN, BreakKind.PAGE),
+            "leading",
+            "translated",
+            (BreakKind.PAGE, BreakKind.COLUMN, BreakKind.PAGE, "translated"),
+        ),
+    ],
+)
+def test_writer_separates_target_lineation_from_donor_pagination(
+    source_controls: tuple[BreakKind, ...],
+    edge: str,
+    target_text: str,
+    expected_atoms: tuple[str | BreakKind, ...],
+) -> None:
+    before = "" if edge == "leading" else "source"
+    after = "" if edge == "trailing" else "source"
+    paragraph = _paragraph_with_controls(
+        before,
+        source_controls,
+        after,
+        page_break_before=True,
+    )
+    slot = _slot_from_paragraph(7, paragraph)
+
+    replace_paragraph_text(
+        slot,
+        _transfer_unit(target_text, "lineated" if "\n" in target_text else "paragraph"),
+        hyperlinks=None,
+    )
+
+    semantics = analyze_paragraph(paragraph)
+    atoms = tuple(
+        atom.value if isinstance(atom, TextAtom) else atom
+        for atom in semantics.content.atoms
+    )
+    assert atoms == expected_atoms
+    assert semantics.page_break_before
+    assert paragraph.find(f".//{W}lastRenderedPageBreak") is None
+
+
+@pytest.mark.parametrize("break_kind", [BreakKind.PAGE, BreakKind.COLUMN])
+def test_writer_rejects_internal_pagination_without_mutation(
+    break_kind: BreakKind,
+) -> None:
+    paragraph = _paragraph_with_controls("before", (break_kind,), "after")
+    slot = _slot_from_paragraph(9, paragraph)
+    before = ET.tostring(paragraph)
+
+    with pytest.raises(
+        DocxTranslationError,
+        match=rf"paragraph 9 pagination inside translated text \({break_kind.value}\)",
+    ):
+        replace_paragraph_text(
+            slot,
+            _transfer_unit("translated"),
+            hyperlinks=None,
+        )
+
+    assert ET.tostring(paragraph) == before
+
+
 def test_source_text_alignment_evidence_refuses_literal_marker_false_positives() -> None:
     assert source_text_alignment_evidence("2*3=6", "23=6") is None
     assert source_text_alignment_evidence("ключ_слово", "ключслово") is None
@@ -546,21 +852,6 @@ def test_write_docx_parts_uses_stable_zip_shape(tmp_path: Path) -> None:
     assert all(info.compress_type == zipfile.ZIP_DEFLATED for info in infos)
     assert all(info.create_system == 3 for info in infos)
     assert all(info.external_attr == 0o644 << 16 for info in infos)
-
-
-def test_ooxml_serialize_xml_does_not_leak_elementtree_namespace_registry() -> None:
-    namespace_map = getattr(ET, "_namespace_map", None)
-    assert isinstance(namespace_map, dict)
-    before = dict(namespace_map)
-    root = ET.Element("{http://example.com/pancratius-test}root")
-
-    payload = serialize_xml(
-        root,
-        bindings=(NamespaceBinding("pan", "http://example.com/pancratius-test"),),
-    )
-
-    assert b"<pan:root" in payload
-    assert dict(namespace_map) == before
 
 
 @requires_pandoc
@@ -1162,30 +1453,6 @@ def test_render_translated_docx_aligns_one_spurious_connector_hyphen_without_dro
 
 
 @requires_pandoc
-def test_render_translated_docx_aligns_nonbreaking_hyphen_dropped_by_docx(
-    tmp_path: Path,
-) -> None:
-    source_docx = tmp_path / "ru.docx"
-    source_md = tmp_path / "ru.md"
-    translated_md = tmp_path / "en.md"
-    out = tmp_path / "en.docx"
-    _write_paragraph_docx(source_docx, ["Не ктото смотрел."])
-    _write_md(source_md, "Не кто‑то смотрел.\n")
-    _write_md(translated_md, "It was not someone who looked.\n")
-
-    _source_units, _translated_units, aligned_units, diagnostics = render_translated_docx(
-        source_docx=source_docx,
-        source_md=source_md,
-        translated_md=translated_md,
-        out=out,
-    )
-
-    assert [d for d in diagnostics if d.severity == "fatal"] == []
-    assert aligned_units == 1
-    assert _paragraph_text_and_style(out) == [("It was not someone who looked.", "")]
-
-
-@requires_pandoc
 def test_render_translated_docx_aligns_source_docx_scraped_citation_suffix(
     tmp_path: Path,
 ) -> None:
@@ -1259,6 +1526,40 @@ def test_render_translated_docx_aligns_thematic_break_to_blank_word_paragraph(
     assert [d for d in diagnostics if d.severity == "fatal"] == []
     assert aligned_units == 3
     assert _paragraph_text_and_style(out) == [("Beginning", ""), ("***", ""), ("Final", "")]
+
+
+@requires_pandoc
+def test_transfer_preserves_pagination_without_consuming_it_as_content(
+    tmp_path: Path,
+) -> None:
+    source_docx = tmp_path / "ru.docx"
+    source_md = tmp_path / "ru.md"
+    translated_md = tmp_path / "en.md"
+    out = tmp_path / "en.docx"
+    _write_pagination_docx(source_docx)
+    _write_md(source_md, "Начало\n\nФинал\n")
+    _write_md(translated_md, "Beginning\n\nFinal\n")
+
+    _source_units, _translated_units, aligned_units, diagnostics = render_translated_docx(
+        source_docx=source_docx,
+        source_md=source_md,
+        translated_md=translated_md,
+        out=out,
+    )
+
+    assert [diagnostic for diagnostic in diagnostics if diagnostic.severity == "fatal"] == []
+    assert aligned_units == 2
+    with zipfile.ZipFile(out) as zf:
+        root = ET.fromstring(zf.read("word/document.xml"))
+    paragraphs = root.findall(f".//{W}body/{W}p")
+    semantics = tuple(analyze_paragraph(paragraph) for paragraph in paragraphs)
+    assert [paragraph.text for paragraph in semantics] == ["Beginning", "", "Final"]
+    assert [paragraph.content.breaks for paragraph in semantics] == [
+        (BreakKind.PAGE,),
+        (BreakKind.PAGE,),
+        (),
+    ]
+    assert semantics[1].disposition is ParagraphDisposition.PAGINATION_ONLY
 
 
 @requires_pandoc

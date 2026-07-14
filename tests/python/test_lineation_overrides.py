@@ -89,6 +89,28 @@ def test_unknown_register_fails_the_load(tmp_path: Path) -> None:
         _load(docx)
 
 
+def test_pagination_only_ordinal_fails_at_sidecar_load(tmp_path: Path) -> None:
+    from docx import Document
+    from docx.enum.text import WD_BREAK
+
+    docx = tmp_path / "ru.docx"
+    document = Document()
+    document.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+    document.save(str(docx))
+    source = docx_source.read(docx)
+    assert source.paragraphs[0].disposition is docx_source.ParagraphDisposition.PAGINATION_ONLY
+    _write_sidecar(
+        docx,
+        {0: {"register": "prose", "text_sha": paragraph_sha("")}},
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=r"ordinal 0 is pagination_only, not readable content",
+    ):
+        _load(docx)
+
+
 # --- the fold pass honors the override ------------------------------------------------------
 
 

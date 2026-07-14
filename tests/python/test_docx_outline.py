@@ -21,6 +21,13 @@ def _para(text: str, style: str | None = None) -> str:
     return f"<w:p>{ppr}<w:r><w:t>{text}</w:t></w:r></w:p>"
 
 
+def _page_split_para(before: str, after: str, style: str) -> str:
+    return (
+        f'<w:p><w:pPr><w:pStyle w:val="{style}"/></w:pPr>'
+        f'<w:r><w:t>{before}</w:t><w:br w:type="page"/><w:t>{after}</w:t></w:r></w:p>'
+    )
+
+
 def _drawing_para() -> str:
     return (
         "<w:p><w:r><w:drawing><wp:inline>"
@@ -156,6 +163,21 @@ def test_part_outline_rejects_ambiguous_markers(tmp_path: Path) -> None:
             output,
             (docx_outline.PartBoundary("Part 1", "Chapter 1."),),
         )
+
+
+def test_part_outline_matches_markers_through_canonical_reading_text(tmp_path: Path) -> None:
+    source = tmp_path / "source.docx"
+    output = tmp_path / "output.docx"
+    _write_docx(source, _page_split_para("Chapter 1.", "One", "1"))
+
+    summary = docx_outline.apply_part_outline(
+        source,
+        output,
+        (docx_outline.PartBoundary("Part 1", "Chapter 1. One"),),
+    )
+
+    assert summary.inserted_parts == 1
+    assert summary.demoted_headings == 1
 
 
 def test_part_outline_rejects_two_part_specs_targeting_same_paragraph(tmp_path: Path) -> None:

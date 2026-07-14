@@ -20,9 +20,8 @@ from pathlib import Path
 import pytest
 
 from pancratius import docx_adapter as adapter
-from pancratius import docx_source, ir
-
-W = adapter.W
+from pancratius import docx_pandoc, docx_source, ir
+from pancratius.ooxml import W_NS
 
 
 def _read_source(path: Path) -> tuple[docx_source.SourceParagraph, ...]:
@@ -35,19 +34,18 @@ def _source_paragraph(
     ordinal: int = 0,
     align: str = "",
     segment: int = 0,
-    structural_empty: bool = False,
+    has_opaque_payload: bool = False,
 ) -> docx_source.SourceParagraph:
     """Small valid source aggregate member for reconciliation-unit tests."""
     return docx_source.SourceParagraph(
         ordinal=docx_source.ParagraphOrdinal(ordinal),
         reconciliation_position=docx_source.ReconciliationPosition(ordinal),
-        content=docx_source.ParagraphContent(
-            (docx_source.TextAtom(text),) if text else ()
-        ),
-        disposition=(
-            docx_source.ParagraphDisposition.STRUCTURAL_EMPTY
-            if structural_empty
-            else docx_source.ParagraphDisposition.CONTENT
+        semantics=docx_source.ParagraphSemantics(
+            content=docx_source.ParagraphContent(
+                (docx_source.TextAtom(text),) if text else ()
+            ),
+            page_break_before=False,
+            has_opaque_payload=has_opaque_payload,
         ),
         resolved_style="",
         direct_style="",
@@ -59,7 +57,6 @@ def _source_paragraph(
         border=docx_source.BorderGesture.NONE,
         roles=frozenset({docx_source.ParagraphRole.BODY}),
         segment=docx_source.SourceSegment(segment),
-        page_break_before=False,
         bold=False,
         italic=False,
     )
@@ -320,7 +317,7 @@ def _docx_with_paragraphs(tmp_path: Path, *jcs: str | None) -> Path:
         paras.append(f"<w:p>{ppr}<w:r><w:t>x</w:t></w:r></w:p>")
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         + "".join(paras)
         + "</w:body></w:document>"
     )
@@ -347,7 +344,7 @@ def test_read_w_jc_skips_table_paragraphs(tmp_path: Path) -> None:
     # not top-level AST paragraphs), so the records stay lined up with the AST.
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         '<w:p><w:pPr><w:jc w:val="right"/></w:pPr><w:r><w:t>a</w:t></w:r></w:p>'
         '<w:tbl><w:tr><w:tc><w:p><w:pPr><w:jc w:val="center"/></w:pPr>'
         '<w:r><w:t>cell</w:t></w:r></w:p></w:tc></w:tr></w:tbl>'
@@ -365,7 +362,7 @@ def test_read_w_jc_skips_list_item_paragraphs(tmp_path: Path) -> None:
     # drift source). The text-bearing records around it are kept.
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         '<w:p><w:r><w:t>before</w:t></w:r></w:p>'
         '<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr>'
         '<w:r><w:t>item one</w:t></w:r></w:p>'
@@ -383,7 +380,7 @@ def test_read_w_jc_skips_list_item_paragraphs(tmp_path: Path) -> None:
 def test_read_w_jc_marks_contextual_spacing_visual_group(tmp_path: Path) -> None:
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         '<w:p><w:pPr><w:contextualSpacing/><w:spacing w:after="100"/></w:pPr>'
         '<w:r><w:t>first line</w:t></w:r></w:p>'
         '<w:p><w:pPr><w:contextualSpacing/><w:spacing w:before="100"/></w:pPr>'
@@ -401,14 +398,14 @@ def test_read_w_jc_marks_contextual_spacing_visual_group(tmp_path: Path) -> None
 def test_read_w_jc_uses_doc_default_spacing_for_visual_group(tmp_path: Path) -> None:
     styles = (
         '<?xml version="1.0"?>'
-        f'<w:styles xmlns:w="{adapter.W_NS}">'
+        f'<w:styles xmlns:w="{W_NS}">'
         '<w:docDefaults><w:pPrDefault><w:pPr><w:spacing w:after="100"/>'
         "</w:pPr></w:pPrDefault></w:docDefaults>"
         "</w:styles>"
     )
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         '<w:p><w:pPr><w:contextualSpacing/></w:pPr>'
         '<w:r><w:t>first line</w:t></w:r></w:p>'
         '<w:p><w:pPr><w:contextualSpacing/></w:pPr>'
@@ -424,7 +421,7 @@ def test_read_w_jc_uses_doc_default_spacing_for_visual_group(tmp_path: Path) -> 
 def test_read_w_jc_style_spacing_overrides_doc_default_spacing(tmp_path: Path) -> None:
     styles = (
         '<?xml version="1.0"?>'
-        f'<w:styles xmlns:w="{adapter.W_NS}">'
+        f'<w:styles xmlns:w="{W_NS}">'
         '<w:docDefaults><w:pPrDefault><w:pPr><w:spacing w:after="100"/>'
         "</w:pPr></w:pPrDefault></w:docDefaults>"
         '<w:style w:type="paragraph" w:styleId="NoGap">'
@@ -434,7 +431,7 @@ def test_read_w_jc_style_spacing_overrides_doc_default_spacing(tmp_path: Path) -
     )
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         '<w:p><w:pPr><w:pStyle w:val="NoGap"/><w:contextualSpacing/></w:pPr>'
         '<w:r><w:t>first paragraph</w:t></w:r></w:p>'
         '<w:p><w:pPr><w:pStyle w:val="NoGap"/><w:contextualSpacing/></w:pPr>'
@@ -450,7 +447,7 @@ def test_read_w_jc_style_spacing_overrides_doc_default_spacing(tmp_path: Path) -
 def test_read_w_jc_marks_structural_empty_paragraphs(tmp_path: Path) -> None:
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         '<w:p><w:r><w:t>before</w:t></w:r></w:p>'
         "<w:p/>"
         '<w:p><w:r><w:t>after</w:t></w:r></w:p>'
@@ -466,7 +463,7 @@ def test_read_w_jc_marks_structural_empty_paragraphs(tmp_path: Path) -> None:
 def test_read_w_jc_visual_group_does_not_bridge_list_item(tmp_path: Path) -> None:
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         '<w:p><w:pPr><w:contextualSpacing/><w:spacing w:after="100"/></w:pPr>'
         '<w:r><w:t>before list</w:t></w:r></w:p>'
         '<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>'
@@ -482,24 +479,30 @@ def test_read_w_jc_visual_group_does_not_bridge_list_item(tmp_path: Path) -> Non
     assert _groups(records) == [None, None]
 
 
-def test_paragraph_text_drops_mc_fallback_duplicate(tmp_path: Path) -> None:
-    # A run with both an mc:Choice and an mc:Fallback rendering of the SAME text
-    # must be counted ONCE (walking every w:t would double it and desync matching).
+def test_paragraph_text_selects_mc_fallback_without_concatenating_choices(
+    tmp_path: Path,
+) -> None:
+    # AlternateContent branches are mutually exclusive. Pancratius has the same
+    # baseline capability profile as Pandoc: no extension Choice is claimed, so
+    # only Fallback contributes source atoms.
     mc = "http://schemas.openxmlformats.org/markup-compatibility/2006"
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}" xmlns:mc="{mc}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}" xmlns:mc="{mc}" '
+        'xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" '
+        'xmlns:x="urn:unsupported"><w:body>'
         "<w:p><w:r>"
         "<mc:AlternateContent>"
-        '<mc:Choice Requires="wpg"><w:t>Title</w:t></mc:Choice>'
-        "<mc:Fallback><w:t>Title</w:t></mc:Fallback>"
+        '<mc:Choice Requires="wps"><w:t>MODERN</w:t></mc:Choice>'
+        '<mc:Choice Requires="x"><w:t>FUTURE</w:t></mc:Choice>'
+        "<mc:Fallback><w:t>BASELINE</w:t></mc:Fallback>"
         "</mc:AlternateContent>"
         "</w:r></w:p>"
         "</w:body></w:document>"
     )
     path = _docx_from_document(tmp_path, document)
     records = _read_source(path)
-    assert [r.text for r in records] == ["Title"]  # not "TitleTitle"
+    assert [r.text for r in records] == ["BASELINE"]
 
 
 def test_paragraph_text_keeps_no_break_hyphen(tmp_path: Path) -> None:
@@ -510,7 +513,7 @@ def test_paragraph_text_keeps_no_break_hyphen(tmp_path: Path) -> None:
     # (Fingerprint-desync, distinct from the §14-P1 verse-merge MIXED case.) Survive it.
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         "<w:p><w:r><w:t>кто</w:t><w:noBreakHyphen/><w:t>то</w:t></w:r></w:p>"
         "</w:body></w:document>"
     )
@@ -525,7 +528,7 @@ def test_paragraph_text_keeps_soft_hyphen(tmp_path: Path) -> None:
     # hyphen, so the record must key on the same glyph.
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         "<w:p><w:r><w:t>кто</w:t><w:softHyphen/><w:t>то</w:t></w:r></w:p>"
         "</w:body></w:document>"
     )
@@ -542,7 +545,7 @@ def test_no_break_hyphen_paragraph_keeps_source_span(tmp_path: Path) -> None:
     assert isinstance(para, ir.Paragraph)
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         "<w:p><w:r><w:t>кто</w:t><w:noBreakHyphen/><w:t>то</w:t></w:r></w:p>"
         "</w:body></w:document>"
     )
@@ -564,7 +567,7 @@ def test_read_w_jc_classifies_border_kind(tmp_path: Path) -> None:
     # Other side combinations are "other"; val="none" sides do not count.
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         + _bordered_para("boxed", "top", "bottom", "left", "right")
         + _bordered_para("ruled", "left")
         + _bordered_para("topped", "top")
@@ -580,7 +583,7 @@ def test_read_w_jc_classifies_divider_markers_as_thematic(tmp_path: Path) -> Non
     paras = "".join(f"<w:p><w:r><w:t>{text}</w:t></w:r></w:p>" for text in ["---", "===", "***"])
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         + paras
         + "</w:body></w:document>"
     )
@@ -597,7 +600,7 @@ def test_reconcile_fused_bordered_and_plain_stays_unbordered(tmp_path: Path) -> 
     assert isinstance(para, ir.Paragraph)
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         + _bordered_para("framed words", "left")
         + "<w:p><w:r><w:t>plain words</w:t></w:r></w:p>"
         + "</w:body></w:document>"
@@ -614,7 +617,7 @@ def test_reconcile_assigns_border_kind(tmp_path: Path) -> None:
     assert isinstance(para, ir.Paragraph)
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         + _bordered_para("set-apart inset passage", "left")
         + "</w:body></w:document>"
     )
@@ -656,7 +659,7 @@ def test_reconcile_alignment_survives_list_and_image_before_right_para() -> None
     # right-aligned record is the signature.
     records = [
         _source_paragraph("Opening prose paragraph.", ordinal=0),
-        _source_paragraph("", ordinal=1),  # the image-only paragraph
+        _source_paragraph("", ordinal=1, has_opaque_payload=True),
         _source_paragraph("Signed Pankratius", ordinal=2, align="right"),
     ]
     _spans, right = adapter.reconcile_source(blocks, records)
@@ -774,7 +777,7 @@ def test_source_span_assignment_keeps_structural_empty_paragraph() -> None:
     ]
     records = [
         _source_paragraph("before", ordinal=1),
-        _source_paragraph("", ordinal=2, structural_empty=True),
+        _source_paragraph("", ordinal=2),
         _source_paragraph("after", ordinal=3),
     ]
 
@@ -838,7 +841,7 @@ def test_direction_indents_book_default_indent_is_not_indented(tmp_path: Path) -
     paras.append("<w:p><w:r><w:t>plain</w:t></w:r></w:p>")
     document = (
         '<?xml version="1.0"?>'
-        f'<w:document xmlns:w="{adapter.W_NS}"><w:body>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
         + "".join(paras)
         + "</w:body></w:document>"
     )
@@ -868,7 +871,11 @@ def test_run_pandoc_passes_a_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: 
         return _FakeProc()
 
     monkeypatch.setattr(subprocess, "run", fake_run)
-    adapter.run_pandoc_json(tmp_path / "x.docx", tmp_path / "media")
+    monkeypatch.setattr(
+        docx_pandoc, "project_package", lambda source, _media: source.path
+    )
+    source = docx_source.DocxSourceDocument(tmp_path / "x.docx", ())
+    docx_pandoc.run_json(source, tmp_path / "media")
     assert "timeout" in captured, "pandoc subprocess.run must pass a timeout"
     assert isinstance(captured["timeout"], (int, float)) and captured["timeout"] > 0
 
@@ -881,5 +888,9 @@ def test_run_pandoc_timeout_raises_clear_error(monkeypatch: pytest.MonkeyPatch, 
         raise subprocess.TimeoutExpired(cmd, float(timeout) if isinstance(timeout, (int, float)) else 0.0)
 
     monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        docx_pandoc, "project_package", lambda source, _media: source.path
+    )
     with pytest.raises(RuntimeError, match=r"(?i)timed out|timeout"):
-        adapter.run_pandoc_json(tmp_path / "x.docx", tmp_path / "media")
+        source = docx_source.DocxSourceDocument(tmp_path / "x.docx", ())
+        docx_pandoc.run_json(source, tmp_path / "media")

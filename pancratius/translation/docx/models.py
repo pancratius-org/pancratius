@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import base64
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
 from pancratius.content_catalog import CatalogEntry
+from pancratius.docx_source import (
+    ParagraphDisposition,
+    ParagraphSemantics,
+    analyze_paragraph,
+    paragraph_has_drawing,
+)
 from pancratius.writeplan import Diagnostic
 from pancratius.writer import WriteReport
 
@@ -49,7 +55,6 @@ TextAlignmentVariantReason = Literal[
     "markdown_literal_style_marker",
     "split_letter_typo",
     "spurious_connector_hyphen",
-    "nonbreaking_hyphen_import",
     "source_citation_suffix",
     "colon_before_dash",
     "colon_before_punctuation",
@@ -116,13 +121,26 @@ class MarkdownCoverImage:
 
 @dataclass(frozen=True, slots=True)
 class WordTextSlot:
-    """A source DOCX paragraph selected by Markdown alignment."""
+    """One selected-story paragraph available for Markdown alignment."""
 
-    ordinal: int
+    story_index: int
     paragraph: ET.Element
-    text: str
-    has_drawing: bool
-    footnote_refs: tuple[ET.Element, ...]
+    semantics: ParagraphSemantics = field(init=False)
+    has_drawing: bool = field(init=False)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "semantics", analyze_paragraph(self.paragraph))
+        object.__setattr__(self, "has_drawing", paragraph_has_drawing(self.paragraph))
+
+    @property
+    def alignment_text(self) -> str:
+        """Reading projection used to prove source-Markdown correspondence."""
+        return self.semantics.text
+
+    @property
+    def disposition(self) -> ParagraphDisposition:
+        return self.semantics.disposition
+
 
 
 @dataclass(frozen=True, slots=True)

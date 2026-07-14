@@ -1,12 +1,8 @@
-"""DOCX turn count == MD turn count for the verified dialogue books
-(#07, #39, #46, #64). Codex sampled these four; we re-verify after
-re-conversion. Counts the unique speaker-prefix lines in both source and
-target."""
+"""Minimum canonical Markdown turn counts for verified dialogue books."""
 from __future__ import annotations
 
 import re
 import sys
-import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,22 +37,6 @@ def md_turn_count(md_path: Path) -> int:
         if end > 0:
             text = text[end + 4:]
     return len(TURN_RE.findall(text))
-
-
-def docx_turn_count(docx_path: Path) -> int:
-    if not docx_path.exists():
-        return -1
-    with zipfile.ZipFile(docx_path) as zf:
-        try:
-            xml = zf.read("word/document.xml").decode("utf-8", errors="ignore")
-        except KeyError:
-            return -1
-    text = re.sub(r"<[^>]+>", " ", xml)
-    text = re.sub(r"\s+", " ", text)
-    count = 0
-    for pref in SPEAKER_PREFIXES:
-        count += len(re.findall(rf"\b{re.escape(pref)}[\w\s]{{0,40}}?:\s", text))
-    return count
 
 
 def main() -> int:

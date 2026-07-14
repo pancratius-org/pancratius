@@ -70,6 +70,7 @@ class ParaRow:
     br_count: int         # hard <w:br/>/<w:cr/> LINE breaks (authored lineation; page and
                           # column breaks are pagination, not lineation — excluded)
     empty: bool
+    disposition: docx_source.ParagraphDisposition
     lineation_group: int | None = None
     block_kind: str = "?"  # the IR block this paragraph's text landed in
     block_source_span: ir.SourceSpan | None = None
@@ -225,6 +226,7 @@ def read_rows(source: docx_source.DocxSourceDocument) -> list[ParaRow]:
             thematic=paragraph.thematic,
             br_count=paragraph.content.breaks.count(docx_source.BreakKind.LINE),
             empty=paragraph.empty,
+            disposition=paragraph.disposition,
             lineation_group=(
                 paragraph.visual_group.value if paragraph.visual_group is not None else None
             ),
@@ -295,11 +297,14 @@ class BlockClassifications:
 
 @dataclass
 class _SourceClassificationBuilder:
+    eligible_ordinals: frozenset[int]
     kinds: dict[int, set[str]] = field(default_factory=dict)
     spans: dict[int, ir.SourceSpan] = field(default_factory=dict)
 
     def add(self, *, name: str, span: ir.SourceSpan) -> None:
         for index in range(span.start, span.end + 1):
+            if index not in self.eligible_ordinals:
+                continue
             self.kinds.setdefault(index, set()).add(name)
             previous = self.spans.get(index)
             self.spans[index] = (
@@ -337,7 +342,7 @@ def classify_blocks(source: docx_source.DocxSourceDocument) -> BlockClassificati
         ))
 
     kind_of: dict[str, set[str]] = {}
-    by_source = _SourceClassificationBuilder()
+    by_source = _SourceClassificationBuilder(source.semantic_ordinals)
     for block in doc.blocks:
         name = _block_kind_name(block)
         for line in _block_lines(block):
@@ -460,7 +465,7 @@ def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
         doc = run(doc, Context(lang=DEFAULT_LOCALE), until=PER_ORDINAL_SEAM)  # rules-only observer
     blocks = tuple(doc.blocks)
 
-    by_source = _SourceClassificationBuilder()
+    by_source = _SourceClassificationBuilder(source.semantic_ordinals)
     for block in blocks:
         span = block.source_span
         if span is not None:
@@ -536,6 +541,7 @@ def lineation_decisions(docx: Path, *, apply_overrides: bool = True) -> dict[int
 
     lineated: set[int] = set()
     prose: set[int] = set()
+    content_ordinals = source.content_ordinals
 
     def claim(block: ir.Block) -> None:
         span = block.source_span
@@ -559,7 +565,11 @@ def lineation_decisions(docx: Path, *, apply_overrides: bool = True) -> dict[int
                 claim(member)
             return
         if target is not None:
-            target.update(range(span.start, span.end + 1))
+            target.update(
+                ordinal
+                for ordinal in range(span.start, span.end + 1)
+                if ordinal in content_ordinals
+            )
 
     for block in doc.blocks:
         claim(block)
@@ -630,6 +640,14 @@ def _flags(row: ParaRow) -> str:
         out.append("ind:" + ",".join(bits) if bits else "ind")
     if row.br_count:
         out.append(f"br×{row.br_count}")
+    if row.disposition is docx_source.ParagraphDisposition.PAGINATION_ONLY:
+        out.append("pagination")
+    if row.page_break_before:
+        out.append("pageBefore")
+    if row.page_break_inline:
+        out.append("pageBr")
+    if row.column_break_inline:
+        out.append("colBr")
     if row.numbered:
         out.append("list")
     if row.border:
@@ -757,6 +775,8 @@ def inspect_docx(docx: Path, options: InspectOptions | None = None) -> InspectRe
         raise DocxInspectError(f"{docx} is missing required DOCX part: {exc}") from exc
     except ET.ParseError as exc:
         raise DocxInspectError(f"{docx} contains malformed DOCX XML: {exc}") from exc
+    except docx_source.DocxSourceError as exc:
+        raise DocxInspectError(str(exc)) from exc
     except RuntimeError as exc:
         raise DocxInspectError(exc) from exc
     except FileNotFoundError as exc:

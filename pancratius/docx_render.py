@@ -184,7 +184,10 @@ def resolve_range(
         raise DocxRenderError(f"expected a .docx file, got {docx}")
     if not docx.is_file():
         raise DocxRenderError(f"DOCX not found: {docx}")
-    rows = di.read_rows(docx_source.read(docx))
+    try:
+        rows = di.read_rows(docx_source.read(docx))
+    except docx_source.DocxSourceError as exc:
+        raise DocxRenderError(str(exc)) from exc
     if index_range is not None:
         return ResolvedParagraphSlice(index_range=index_range, rows=tuple(rows))
     if around is not None:
