@@ -87,7 +87,7 @@ def render_translated_docx(
         return len(source.units), len(translated.units), 0, tuple(diagnostics)
 
     try:
-        slots = word_text_slots(document_root)
+        slots = word_text_slots(document_root, package.styles)
         alignment_plan = align_source_units(source, slots)
         diagnostics.extend(ignored_slot_diagnostics(alignment_plan.ignored_slots))
         diagnostics.extend(alignment_evidence_diagnostics(alignment_plan.alignments))

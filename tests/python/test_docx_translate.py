@@ -22,8 +22,11 @@ from pancratius.docx_roundtrip import (
 from pancratius.docx_source import (
     BreakKind,
     ParagraphDisposition,
+    ParagraphPayloadKind,
+    ParagraphStyles,
     TextAtom,
     analyze_paragraph,
+    paragraph_text,
 )
 from pancratius.ooxml import (
     HYPERLINK_REL_TYPE,
@@ -69,6 +72,8 @@ from pancratius.translation.docx.ooxml_write import (
     write_docx_parts,
 )
 from pancratius.writeplan import Diagnostic
+
+_NO_STYLES = ParagraphStyles()
 
 SOURCE_TEXT_ALIGNMENT_EVIDENCE_CASES: tuple[
     tuple[str, str, TextAlignmentVariantReason, SourceDocxTextVariantReason],
@@ -422,16 +427,18 @@ def _word_slot(ordinal: int, text: str, *, has_drawing: bool = False) -> WordTex
         text_element.text = text
     if has_drawing:
         ET.SubElement(run, f"{W}drawing")
-    return WordTextSlot(
+    return WordTextSlot.from_paragraph(
         story_index=ordinal,
         paragraph=paragraph,
+        styles=_NO_STYLES,
     )
 
 
 def _slot_from_paragraph(ordinal: int, paragraph: ET.Element) -> WordTextSlot:
-    return WordTextSlot(
+    return WordTextSlot.from_paragraph(
         story_index=ordinal,
         paragraph=paragraph,
+        styles=_NO_STYLES,
     )
 
 
@@ -521,11 +528,33 @@ def test_word_slots_follow_canonical_story_semantics() -> None:
     page.set(f"{W}type", BreakKind.PAGE.value)
     fallback.append(paragraph)
 
-    slot, = word_text_slots(root)
+    slot, = word_text_slots(root, _NO_STYLES)
 
     assert slot.alignment_text == "BASE‑LINE"
     assert slot.semantics.content.breaks == (BreakKind.PAGE,)
     assert not slot.has_drawing
+
+
+def test_word_slots_require_the_package_style_environment() -> None:
+    root = ET.Element(f"{W}document")
+    body = ET.SubElement(root, f"{W}body")
+    paragraph = ET.SubElement(body, f"{W}p")
+    properties = ET.SubElement(paragraph, f"{W}pPr")
+    style = ET.SubElement(properties, f"{W}pStyle")
+    style.set(f"{W}val", "DerivedNumber")
+    run = ET.SubElement(paragraph, f"{W}r")
+    page = ET.SubElement(run, f"{W}br")
+    page.set(f"{W}type", BreakKind.PAGE.value)
+
+    slot, = word_text_slots(
+        root,
+        ParagraphStyles(numbered=frozenset({"DerivedNumber"})),
+    )
+
+    assert slot.disposition is ParagraphDisposition.NON_TEXT
+    assert slot.semantics.payload.kinds == frozenset(
+        {ParagraphPayloadKind.RESOLVED_NUMBERING}
+    )
 
 
 def test_word_slots_translate_unknown_breaks_to_domain_errors() -> None:
@@ -540,7 +569,7 @@ def test_word_slots_translate_unknown_breaks_to_domain_errors() -> None:
         DocxTranslationError,
         match="source DOCX paragraph 0 has unsupported content",
     ):
-        word_text_slots(root)
+        word_text_slots(root, _NO_STYLES)
 
     alternate = ET.SubElement(run, f"{{{MC_NS}}}AlternateContent")
     ET.SubElement(alternate, f"{{{MC_NS}}}Fallback")
@@ -550,7 +579,7 @@ def test_word_slots_translate_unknown_breaks_to_domain_errors() -> None:
         DocxTranslationError,
         match="source DOCX story has unsupported content",
     ):
-        word_text_slots(root)
+        word_text_slots(root, _NO_STYLES)
 
 
 def test_writer_does_not_reopen_inactive_compatibility_payloads() -> None:
@@ -567,13 +596,17 @@ def test_writer_does_not_reopen_inactive_compatibility_payloads() -> None:
     fallback = ET.SubElement(alternate, f"{{{MC_NS}}}Fallback")
     text = ET.SubElement(fallback, f"{W}t")
     text.text = "SOURCE"
-    slot = WordTextSlot(story_index=0, paragraph=paragraph)
+    slot = WordTextSlot.from_paragraph(
+        story_index=0,
+        paragraph=paragraph,
+        styles=_NO_STYLES,
+    )
 
     assert not slot.has_drawing
     assert footnote_reference_ids_by_body_order(root) == ()
     replace_paragraph_text(slot, _transfer_unit("TARGET"), hyperlinks=None)
 
-    assert analyze_paragraph(paragraph).text == "TARGET"
+    assert paragraph_text(paragraph) == "TARGET"
     assert paragraph.find(f".//{W}drawing") is None
     assert paragraph.find(f".//{W}footnoteReference") is None
 
@@ -590,7 +623,11 @@ def test_writer_preserves_selected_drawing_compatibility_envelope() -> None:
     text_run = ET.SubElement(paragraph, f"{W}r")
     text = ET.SubElement(text_run, f"{W}t")
     text.text = "SOURCE"
-    slot = WordTextSlot(story_index=0, paragraph=paragraph)
+    slot = WordTextSlot.from_paragraph(
+        story_index=0,
+        paragraph=paragraph,
+        styles=_NO_STYLES,
+    )
 
     assert slot.has_drawing
     replace_paragraph_text(slot, _transfer_unit("TARGET"), hyperlinks=None)
@@ -599,7 +636,7 @@ def test_writer_preserves_selected_drawing_compatibility_envelope() -> None:
     assert envelope is not None
     assert envelope.find(f"{{{MC_NS}}}Choice/{W}drawing") is not None
     assert envelope.find(f"{{{MC_NS}}}Fallback/{W}pict") is not None
-    assert analyze_paragraph(paragraph).text == "TARGET"
+    assert paragraph_text(paragraph) == "TARGET"
 
 
 def test_writer_rejects_text_and_drawing_in_one_donor_payload_without_mutation() -> None:
@@ -607,7 +644,11 @@ def test_writer_rejects_text_and_drawing_in_one_donor_payload_without_mutation()
     run = paragraph.find(f"{W}r")
     assert run is not None
     ET.SubElement(run, f"{W}pict")
-    slot = WordTextSlot(story_index=5, paragraph=paragraph)
+    slot = WordTextSlot.from_paragraph(
+        story_index=5,
+        paragraph=paragraph,
+        styles=_NO_STYLES,
+    )
     before = ET.tostring(paragraph)
 
     with pytest.raises(DocxTranslationError, match="mixes replaceable text with a drawing"):
@@ -634,7 +675,11 @@ def test_writer_refuses_to_move_drawings_across_pagination(
             page.set(f"{W}type", BreakKind.PAGE.value)
         else:
             ET.SubElement(run, f"{W}pict")
-    slot = WordTextSlot(story_index=6, paragraph=paragraph)
+    slot = WordTextSlot.from_paragraph(
+        story_index=6,
+        paragraph=paragraph,
+        styles=_NO_STYLES,
+    )
     before = ET.tostring(paragraph)
 
     with pytest.raises(DocxTranslationError, match="moving a drawing across"):
@@ -781,7 +826,7 @@ def test_writer_separates_target_lineation_from_donor_pagination(
         hyperlinks=None,
     )
 
-    semantics = analyze_paragraph(paragraph)
+    semantics = analyze_paragraph(paragraph, styles=_NO_STYLES)
     atoms = tuple(
         atom.value if isinstance(atom, TextAtom) else atom
         for atom in semantics.content.atoms
@@ -1552,7 +1597,10 @@ def test_transfer_preserves_pagination_without_consuming_it_as_content(
     with zipfile.ZipFile(out) as zf:
         root = ET.fromstring(zf.read("word/document.xml"))
     paragraphs = root.findall(f".//{W}body/{W}p")
-    semantics = tuple(analyze_paragraph(paragraph) for paragraph in paragraphs)
+    semantics = tuple(
+        analyze_paragraph(paragraph, styles=_NO_STYLES)
+        for paragraph in paragraphs
+    )
     assert [paragraph.text for paragraph in semantics] == ["Beginning", "", "Final"]
     assert [paragraph.content.breaks for paragraph in semantics] == [
         (BreakKind.PAGE,),

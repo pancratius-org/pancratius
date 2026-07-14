@@ -22,7 +22,7 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from pancratius.docx_source import DocxSourceError, analyze_paragraph
+from pancratius.docx_source import DocxSourceError, paragraph_text
 from pancratius.ooxml import W, parse_xml, serialize_xml
 
 
@@ -58,7 +58,7 @@ def _w_val(el: ET.Element | None) -> str:
 
 def _paragraph_text(p: ET.Element) -> str:
     try:
-        return analyze_paragraph(p).text
+        return paragraph_text(p)
     except DocxSourceError as exc:
         raise DocxOutlineError(f"unsupported source paragraph: {exc}") from exc
 

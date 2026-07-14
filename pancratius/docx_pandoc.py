@@ -241,6 +241,8 @@ def _project_part(
     part: str,
     xml: bytes,
     source: docx_source.DocxSourceDocument | None = None,
+    *,
+    styles: docx_source.ParagraphStyles,
 ) -> bytes:
     """Project one Word story part without teaching the domain about note internals."""
     try:
@@ -264,7 +266,7 @@ def _project_part(
     else:
         elements = story_paragraphs
         dispositions = tuple(
-            docx_source.analyze_paragraph(element).disposition
+            docx_source.analyze_paragraph(element, styles=styles).disposition
             for element in elements
         )
     lowered_alternatives = _materialize_baseline_content(root)
@@ -313,6 +315,7 @@ def project_package(source: docx_source.DocxSourceDocument, work_dir: Path) -> P
                     part,
                     original,
                     source if part == docx_source.DOCUMENT_PART else None,
+                    styles=source.styles,
                 )
                 if projected != original:
                     replacements[entries.index(info)] = projected

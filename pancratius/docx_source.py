@@ -197,13 +197,52 @@ class ParagraphDisposition(StrEnum):
     NON_TEXT = "non_text"
 
 
+class ParagraphPayloadKind(StrEnum):
+    """Non-text paragraph meaning retained outside the normalized atom stream."""
+
+    DIRECT_NUMBERING = "direct_numbering"
+    RESOLVED_NUMBERING = "resolved_numbering"
+    SECTION = "section"
+    OPAQUE = "opaque"
+
+
+@dataclass(frozen=True, slots=True)
+class ParagraphPayload:
+    """Closed source payload facts relevant to preservation and deletion."""
+
+    kinds: frozenset[ParagraphPayloadKind] = frozenset()
+
+    @property
+    def has_meaning(self) -> bool:
+        return bool(self.kinds)
+
+    @property
+    def has_opaque(self) -> bool:
+        return ParagraphPayloadKind.OPAQUE in self.kinds
+
+    @property
+    def atomic_deletion_safe(self) -> bool:
+        """Whole-paragraph deletion may discard presentation, but not content."""
+        return self.kinds <= {
+            ParagraphPayloadKind.DIRECT_NUMBERING,
+            ParagraphPayloadKind.RESOLVED_NUMBERING,
+        }
+
+    def adding(self, kind: ParagraphPayloadKind) -> ParagraphPayload:
+        return ParagraphPayload(self.kinds | {kind})
+
+
 @dataclass(frozen=True, slots=True)
 class ParagraphSemantics:
     """The one source-owned analysis of a raw Word paragraph."""
 
     content: ParagraphContent
     page_break_before: bool
-    has_opaque_payload: bool
+    payload: ParagraphPayload = ParagraphPayload()
+
+    @property
+    def has_opaque_payload(self) -> bool:
+        return self.payload.has_opaque
 
     @property
     def text(self) -> str:
@@ -215,14 +254,25 @@ class ParagraphSemantics:
         """Derive removability from source facts; never cache a second truth."""
         if self.text:
             return ParagraphDisposition.CONTENT
-        if not self.has_opaque_payload and (
+        if not self.payload.has_meaning and (
             self.content.pagination_only
             or (self.page_break_before and self.content.text_only_blank)
         ):
             return ParagraphDisposition.PAGINATION_ONLY
-        if not self.has_opaque_payload and self.content.text_only_blank:
+        if not self.payload.has_meaning and self.content.text_only_blank:
             return ParagraphDisposition.STRUCTURAL_EMPTY
         return ParagraphDisposition.NON_TEXT
+
+
+@dataclass(frozen=True, slots=True)
+class ParagraphStyles:
+    """Resolved paragraph-style facts needed by semantic analysis."""
+
+    default: str = "Normal"
+    numbered: frozenset[str] = frozenset()
+
+    def is_numbered(self, direct_style: str) -> bool:
+        return (direct_style or self.default) in self.numbered
 
 
 class ParagraphRole(StrEnum):
@@ -301,6 +351,14 @@ class SourceParagraph:
         return self.semantics.page_break_before
 
     @property
+    def has_opaque_payload(self) -> bool:
+        return self.semantics.has_opaque_payload
+
+    @property
+    def atomic_deletion_safe(self) -> bool:
+        return self.semantics.payload.atomic_deletion_safe
+
+    @property
     def text(self) -> str:
         return self.semantics.text
 
@@ -331,6 +389,7 @@ class DocxSourceDocument:
 
     path: Path
     paragraphs: tuple[SourceParagraph, ...]
+    styles: ParagraphStyles = ParagraphStyles()
 
     @property
     def reconciliation_paragraphs(self) -> tuple[SourceParagraph, ...]:
@@ -429,6 +488,7 @@ class _StyleDefinition:
     based_on: str
     contextual_spacing: bool
     spacing: OoxmlAttributes
+    numbered: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -498,11 +558,10 @@ def _enabled(element: ET.Element | None) -> bool:
     return element is not None and element.get(f"{W}val") not in {"0", "false", "False", "off"}
 
 
-def _style_sheet(zf: zipfile.ZipFile) -> _StyleSheet:
-    try:
-        root = ET.fromstring(zf.read(STYLES_PART))
-    except KeyError:
+def _style_sheet_xml(styles_xml: bytes | None) -> _StyleSheet:
+    if styles_xml is None:
         return _StyleSheet({})
+    root = ET.fromstring(styles_xml)
 
     styles: dict[str, _StyleDefinition] = {}
     default = "Normal"
@@ -521,6 +580,7 @@ def _style_sheet(zf: zipfile.ZipFile) -> _StyleSheet:
                 ppr.find(f"{W}contextualSpacing") is not None if ppr is not None else False
             ),
             spacing=_attributes(ppr.find(f"{W}spacing") if ppr is not None else None),
+            numbered=ppr is not None and ppr.find(f"{W}numPr") is not None,
         )
     return _StyleSheet(
         paragraphs=styles,
@@ -529,6 +589,14 @@ def _style_sheet(zf: zipfile.ZipFile) -> _StyleSheet:
             root.find(f"{W}docDefaults/{W}pPrDefault/{W}pPr/{W}spacing")
         ),
     )
+
+
+def _style_sheet(zf: zipfile.ZipFile) -> _StyleSheet:
+    try:
+        styles_xml = zf.read(STYLES_PART)
+    except KeyError:
+        styles_xml = None
+    return _style_sheet_xml(styles_xml)
 
 
 def _style_chain(style: str, styles: dict[str, _StyleDefinition]) -> Iterator[_StyleDefinition]:
@@ -541,6 +609,25 @@ def _style_chain(style: str, styles: dict[str, _StyleDefinition]) -> Iterator[_S
             return
         yield definition
         current = definition.based_on
+
+
+def _paragraph_styles(style_sheet: _StyleSheet) -> ParagraphStyles:
+    return ParagraphStyles(
+        default=style_sheet.default_paragraph,
+        numbered=frozenset(
+            style
+            for style in style_sheet.paragraphs
+            if any(
+                definition.numbered
+                for definition in _style_chain(style, style_sheet.paragraphs)
+            )
+        ),
+    )
+
+
+def paragraph_styles(styles_xml: bytes | None) -> ParagraphStyles:
+    """Resolve the style environment shared by every story in one DOCX package."""
+    return _paragraph_styles(_style_sheet_xml(styles_xml))
 
 
 def _resolved_contextual_spacing(
@@ -597,37 +684,42 @@ _ATOM_MARKUP = frozenset(
     }
 )
 _PROPERTY_CONTAINERS = frozenset({f"{W}pPr", f"{W}rPr"})
-_SEMANTIC_PROPERTIES = frozenset({f"{W}numPr", f"{W}sectPr"})
 _HEADING_STYLE = re.compile(r"(?:Heading\d+|[1-9])")
 _BORDER_SIDES = ("top", "bottom", "left", "right")
 
 
-def _has_opaque_payload(paragraph: ET.Element) -> bool:
-    """Whether removing this paragraph could discard unmodelled source meaning.
+def _paragraph_payload(paragraph: ET.Element) -> ParagraphPayload:
+    """Classify non-text meaning outside the normalized atom stream.
 
-    Formatting properties are harmless without content, except numbering and
-    section properties, which carry package/structural semantics. Everything
-    outside the deliberately tiny atom/wrapper vocabulary is opaque passthrough:
-    bookmarks, fields, references, equations, symbols, content controls, and
-    future OOXML constructs therefore make the paragraph non-removable.
+    Direct numbering and section controls are known semantic payload. Inherited
+    numbering is resolved separately against ``ParagraphStyles`` because it needs
+    package context. Everything outside the tiny atom/wrapper vocabulary is opaque.
     """
 
-    def walk(element: ET.Element) -> bool:
+    kinds: set[ParagraphPayloadKind] = set()
+
+    def walk(element: ET.Element) -> None:
         for child in element:
             if child.tag == ooxml.MC_ALTERNATE_CONTENT:
                 fallback = _baseline_fallback(element, child)
-                if fallback is None or walk(fallback):
-                    return True
+                if fallback is None:
+                    kinds.add(ParagraphPayloadKind.OPAQUE)
+                else:
+                    walk(fallback)
                 continue
             if child.tag in _PROPERTY_CONTAINERS:
-                if any(node.tag in _SEMANTIC_PROPERTIES for node in child.iter()):
-                    return True
+                if child.find(f".//{W}numPr") is not None:
+                    kinds.add(ParagraphPayloadKind.DIRECT_NUMBERING)
+                if child.find(f".//{W}sectPr") is not None:
+                    kinds.add(ParagraphPayloadKind.SECTION)
                 continue
-            if child.tag not in _ATOM_MARKUP or walk(child):
-                return True
-        return False
+            if child.tag not in _ATOM_MARKUP:
+                kinds.add(ParagraphPayloadKind.OPAQUE)
+                continue
+            walk(child)
 
-    return walk(paragraph)
+    walk(paragraph)
+    return ParagraphPayload(frozenset(kinds))
 
 
 def _border_gesture(ppr: ET.Element | None) -> BorderGesture:
@@ -667,15 +759,29 @@ def _page_break_before(ppr: ET.Element | None) -> bool:
     return _enabled(element)
 
 
-def analyze_paragraph(paragraph: ET.Element) -> ParagraphSemantics:
+def analyze_paragraph(
+    paragraph: ET.Element,
+    *,
+    styles: ParagraphStyles,
+) -> ParagraphSemantics:
     """Interpret paragraph content, pagination, and removability exactly once."""
     content = _paragraph_content(paragraph)
-    page_break_before = _page_break_before(paragraph.find(f"{W}pPr"))
+    ppr = paragraph.find(f"{W}pPr")
+    page_break_before = _page_break_before(ppr)
+    payload = _paragraph_payload(paragraph)
+    direct_style = _w_val(ppr.find(f"{W}pStyle") if ppr is not None else None)
+    if styles.is_numbered(direct_style):
+        payload = payload.adding(ParagraphPayloadKind.RESOLVED_NUMBERING)
     return ParagraphSemantics(
         content=content,
         page_break_before=page_break_before,
-        has_opaque_payload=_has_opaque_payload(paragraph),
+        payload=payload,
     )
+
+
+def paragraph_text(paragraph: ET.Element) -> str:
+    """Local reading text for consumers that do not interpret disposition."""
+    return _paragraph_content(paragraph).reading.strip()
 
 
 def body_paragraph_elements(body: ET.Element) -> tuple[ET.Element, ...]:
@@ -776,10 +882,11 @@ def read(docx: Path) -> DocxSourceDocument:
     """Read one DOCX into the canonical source aggregate."""
     with zipfile.ZipFile(docx) as zf:
         style_sheet = _style_sheet(zf)
+        paragraph_styles = _paragraph_styles(style_sheet)
         root = ET.fromstring(zf.read(DOCUMENT_PART))
     body = root.find(f"{W}body")
     if body is None:
-        return DocxSourceDocument(path=docx, paragraphs=())
+        return DocxSourceDocument(path=docx, paragraphs=(), styles=paragraph_styles)
 
     paragraphs: list[SourceParagraph] = []
     segment = 0
@@ -790,14 +897,15 @@ def read(docx: Path) -> DocxSourceDocument:
             continue
         ordinal = ParagraphOrdinal(len(paragraphs))
         ppr = event.find(f"{W}pPr")
-        numbered = ppr is not None and ppr.find(f"{W}numPr") is not None
+        direct_numbered = ppr is not None and ppr.find(f"{W}numPr") is not None
         direct_style = _w_val(ppr.find(f"{W}pStyle") if ppr is not None else None)
+        numbered = direct_numbered or paragraph_styles.is_numbered(direct_style)
         resolved_style = direct_style or style_sheet.default_paragraph
         direct_spacing = _attributes(
             ppr.find(f"{W}spacing") if ppr is not None else None
         )
         try:
-            semantics = analyze_paragraph(event)
+            semantics = analyze_paragraph(event, styles=paragraph_styles)
         except DocxSourceError as exc:
             raise DocxSourceError(
                 f"{docx.name}: paragraph {ordinal.value}: {exc}"
@@ -805,7 +913,7 @@ def read(docx: Path) -> DocxSourceDocument:
         content = semantics.content
         text = content.reading.strip()
         disposition = semantics.disposition
-        reconciles = not numbered and disposition is not ParagraphDisposition.PAGINATION_ONLY
+        reconciles = not direct_numbered and disposition is not ParagraphDisposition.PAGINATION_ONLY
         paragraph = SourceParagraph(
             ordinal=ordinal,
             reconciliation_position=(
@@ -847,10 +955,14 @@ def read(docx: Path) -> DocxSourceDocument:
             italic=any(_enabled(element) for element in event.findall(f".//{W}i")),
         )
         paragraphs.append(paragraph)
-        if numbered:
+        if direct_numbered:
             segment += 1
         elif reconciles:
             reconciliation_position += 1
 
     directed = _direction_indents(tuple(paragraphs))
-    return DocxSourceDocument(path=docx, paragraphs=_assign_visual_groups(directed))
+    return DocxSourceDocument(
+        path=docx,
+        paragraphs=_assign_visual_groups(directed),
+        styles=paragraph_styles,
+    )

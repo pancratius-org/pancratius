@@ -190,7 +190,11 @@ def test_paragraph_disposition_is_derived_from_canonical_facts(
     semantics = docx_source.ParagraphSemantics(
         content=content,
         page_break_before=page_break_before,
-        has_opaque_payload=has_opaque_payload,
+        payload=docx_source.ParagraphPayload(
+            frozenset({docx_source.ParagraphPayloadKind.OPAQUE})
+            if has_opaque_payload
+            else frozenset()
+        ),
     )
 
     assert semantics.disposition is expected
