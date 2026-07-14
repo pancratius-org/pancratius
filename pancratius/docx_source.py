@@ -59,6 +59,17 @@ class SourceSegment:
 
 
 @dataclass(frozen=True, slots=True, order=True)
+class ReconciliationPosition:
+    """Adjacency in the paragraph stream Pandoc can represent."""
+
+    value: int
+
+    def __post_init__(self) -> None:
+        if self.value < 0:
+            raise DocxSourceError("reconciliation position must be non-negative")
+
+
+@dataclass(frozen=True, slots=True, order=True)
 class VisualLineationGroup:
     """Identity of adjacent paragraphs Word renders without paragraph spacing."""
 
@@ -84,6 +95,74 @@ class BreakKind(StrEnum):
             return cls.COLUMN
         # Only explicit pagination is excluded; other values retain line behavior.
         return cls.LINE
+
+
+@dataclass(frozen=True, slots=True)
+class TextAtom:
+    """One source text fragment in document order."""
+
+    value: str
+
+
+type ParagraphAtom = TextAtom | BreakKind
+
+
+@dataclass(frozen=True, slots=True)
+class ParagraphContent:
+    """One ordered truth from which every paragraph text view is derived."""
+
+    atoms: tuple[ParagraphAtom, ...] = ()
+
+    def _project(self, *, lineated: bool) -> str:
+        def text_value(atom: TextAtom) -> str:
+            if lineated:
+                return atom.value
+            return "".join(" " if character == "\t" else character for character in atom.value)
+
+        return "".join(
+            text_value(atom)
+            if isinstance(atom, TextAtom)
+            else "\n" if lineated and atom is BreakKind.LINE else " "
+            for atom in self.atoms
+        )
+
+    @property
+    def reading(self) -> str:
+        return self._project(lineated=False)
+
+    @property
+    def lineated(self) -> str:
+        return self._project(lineated=True)
+
+    @property
+    def breaks(self) -> tuple[BreakKind, ...]:
+        return tuple(atom for atom in self.atoms if isinstance(atom, BreakKind))
+
+    @property
+    def line_segments(self) -> tuple[str, ...]:
+        """Natural source lines; pagination never mints a sub-line."""
+        return tuple(part.strip() for part in self.lineated.split("\n"))
+
+    @property
+    def pagination_only(self) -> bool:
+        """True when atoms carry pagination and no readable/lineating content."""
+        return any(
+            isinstance(atom, BreakKind) and atom is not BreakKind.LINE
+            for atom in self.atoms
+        ) and all(
+            (isinstance(atom, TextAtom) and not atom.value.strip())
+            or (isinstance(atom, BreakKind) and atom is not BreakKind.LINE)
+            for atom in self.atoms
+        )
+
+
+class ParagraphDisposition(StrEnum):
+    """Why a source paragraph does or does not carry readable content."""
+
+    CONTENT = "content"
+    STRUCTURAL_EMPTY = "structural_empty"
+    PAGINATION_ONLY = "pagination_only"
+    NON_TEXT = "non_text"
 
 
 class ParagraphRole(StrEnum):
@@ -129,25 +208,13 @@ def _attribute(attributes: OoxmlAttributes, key: str) -> str | None:
 
 
 @dataclass(frozen=True, slots=True)
-class ParagraphText:
-    """Two lawful text projections plus the ordered semantic break kinds."""
-
-    reading: str = ""
-    lineated: str = ""
-    breaks: tuple[BreakKind, ...] = ()
-
-    @property
-    def line_segments(self) -> tuple[str, ...]:
-        """Natural source lines; page/column breaks never mint a sub-line."""
-        return tuple(part.strip() for part in self.lineated.split("\n"))
-
-
-@dataclass(frozen=True, slots=True)
 class SourceParagraph:
     """One canonical top-level Word paragraph and all source-owned facts."""
 
     ordinal: ParagraphOrdinal
-    content: ParagraphText
+    reconciliation_position: ReconciliationPosition | None
+    content: ParagraphContent
+    disposition: ParagraphDisposition
     resolved_style: str
     direct_style: str
     alignment: ParagraphAlignment
@@ -158,7 +225,6 @@ class SourceParagraph:
     border: BorderGesture
     roles: frozenset[ParagraphRole]
     segment: SourceSegment
-    structural_empty: bool
     page_break_before: bool
     bold: bool
     italic: bool
@@ -184,6 +250,10 @@ class SourceParagraph:
     def empty(self) -> bool:
         return not self.text
 
+    @property
+    def structural_empty(self) -> bool:
+        return self.disposition is ParagraphDisposition.STRUCTURAL_EMPTY
+
 
 @dataclass(frozen=True, slots=True)
 class DocxSourceDocument:
@@ -195,7 +265,7 @@ class DocxSourceDocument:
     @property
     def reconciliation_paragraphs(self) -> tuple[SourceParagraph, ...]:
         """Paragraphs that can correspond to top-level Pandoc paragraph blocks."""
-        return tuple(p for p in self.paragraphs if not p.numbered)
+        return tuple(p for p in self.paragraphs if p.reconciliation_position is not None)
 
     def paragraph(self, ordinal: ParagraphOrdinal) -> SourceParagraph:
         if ordinal.value >= len(self.paragraphs):
@@ -218,7 +288,9 @@ def paragraph_sha(text: str) -> str:
     return hashlib.sha256(unicodedata.normalize("NFC", text).encode()).hexdigest()[:16]
 
 
-def read_adjudications(docx: Path, sidecar: Path) -> tuple[SourceAdjudication, ...]:
+def read_adjudications(
+    source: DocxSourceDocument, sidecar: Path
+) -> tuple[SourceAdjudication, ...]:
     """Load canonical ordinal/text-railed entries from a source sidecar."""
     if not sidecar.is_file():
         return ()
@@ -236,7 +308,6 @@ def read_adjudications(docx: Path, sidecar: Path) -> tuple[SourceAdjudication, .
     if not isinstance(raw, dict):
         raise ValueError(f"{sidecar.name}: must be an object keyed by source ordinal")
 
-    source = read(docx)
     out: list[SourceAdjudication] = []
     for key, payload in raw.items():
         if not (key.isdigit() and str(int(key)) == key):
@@ -247,7 +318,7 @@ def read_adjudications(docx: Path, sidecar: Path) -> tuple[SourceAdjudication, .
         except DocxSourceError as exc:
             raise ValueError(
                 f"{sidecar.name}: ordinal {ordinal.value} has no source paragraph in "
-                f"{docx.name} — the adjudication is stale; re-adjudicate or remove it"
+                f"{source.path.name} — the adjudication is stale; re-adjudicate or remove it"
             ) from exc
         if not isinstance(payload, dict):
             raise ValueError(f"{sidecar.name}: ordinal {ordinal.value} entry must be an object")
@@ -353,19 +424,8 @@ def _resolved_spacing(
     return tuple(sorted(values.items()))
 
 
-def _paragraph_text(paragraph: ET.Element) -> ParagraphText:
-    reading: list[str] = []
-    lineated: list[str] = []
-    breaks: list[BreakKind] = []
-
-    def text(value: str) -> None:
-        reading.append(value)
-        lineated.append(value)
-
-    def br(kind: BreakKind) -> None:
-        breaks.append(kind)
-        reading.append(" ")
-        lineated.append("\n" if kind is BreakKind.LINE else " ")
+def _paragraph_content(paragraph: ET.Element) -> ParagraphContent:
+    atoms: list[ParagraphAtom] = []
 
     def walk(element: ET.Element) -> None:
         for child in element:
@@ -374,28 +434,29 @@ def _paragraph_text(paragraph: ET.Element) -> ParagraphText:
                 # Counting fallback text or controls would duplicate content.
                 continue
             if child.tag == f"{W}t":
-                text(child.text or "")
+                if child.text:
+                    atoms.append(TextAtom(child.text))
             elif child.tag == f"{W}br":
-                br(BreakKind.from_ooxml(child.get(f"{W}type")))
+                atoms.append(BreakKind.from_ooxml(child.get(f"{W}type")))
             elif child.tag == f"{W}cr":
-                br(BreakKind.LINE)
+                atoms.append(BreakKind.LINE)
             elif child.tag == f"{W}tab":
-                reading.append(" ")
-                lineated.append("\t")
+                atoms.append(TextAtom("\t"))
             elif child.tag == f"{W}noBreakHyphen":
-                text("‑")
+                atoms.append(TextAtom("‑"))
             elif child.tag == f"{W}softHyphen":
-                text("­")
+                atoms.append(TextAtom("­"))
             else:
                 walk(child)
 
     walk(paragraph)
-    return ParagraphText("".join(reading), "".join(lineated), tuple(breaks))
+    return ParagraphContent(tuple(atoms))
 
 
 _NON_TEXT_SOURCE_CONTENT = frozenset(
     {f"{W}br", f"{W}cr", f"{W}tab", f"{W}drawing", f"{W}pict", f"{W}object"}
 )
+_OPAQUE_SOURCE_CONTENT = frozenset({f"{W}drawing", f"{W}pict", f"{W}object"})
 _HEADING_STYLE = re.compile(r"(?:Heading\d+|[1-9])")
 _BORDER_SIDES = ("top", "bottom", "left", "right")
 
@@ -430,6 +491,19 @@ def _paragraph_roles(
     if is_thematic_marker(text):
         roles.add(ParagraphRole.THEMATIC)
     return frozenset(roles or {ParagraphRole.BODY})
+
+
+def _paragraph_disposition(
+    paragraph: ET.Element, content: ParagraphContent
+) -> ParagraphDisposition:
+    if content.reading.strip():
+        return ParagraphDisposition.CONTENT
+    tags = {element.tag for element in paragraph.iter()}
+    if content.pagination_only and not tags & _OPAQUE_SOURCE_CONTENT:
+        return ParagraphDisposition.PAGINATION_ONLY
+    if not tags & _NON_TEXT_SOURCE_CONTENT:
+        return ParagraphDisposition.STRUCTURAL_EMPTY
+    return ParagraphDisposition.NON_TEXT
 
 
 def _page_break_before(ppr: ET.Element | None) -> bool:
@@ -542,6 +616,7 @@ def read(docx: Path) -> DocxSourceDocument:
 
     paragraphs: list[SourceParagraph] = []
     segment = 0
+    reconciliation_position = 0
     for event in _body_events(body):
         if event is None:
             segment += 1
@@ -554,11 +629,15 @@ def read(docx: Path) -> DocxSourceDocument:
         direct_spacing = _attributes(
             ppr.find(f"{W}spacing") if ppr is not None else None
         )
-        content = _paragraph_text(event)
+        content = _paragraph_content(event)
         text = content.reading.strip()
         paragraph = SourceParagraph(
             ordinal=ordinal,
+            reconciliation_position=(
+                None if numbered else ReconciliationPosition(reconciliation_position)
+            ),
             content=content,
+            disposition=_paragraph_disposition(event, content),
             resolved_style=resolved_style,
             direct_style=direct_style,
             alignment=ParagraphAlignment(
@@ -590,10 +669,6 @@ def read(docx: Path) -> DocxSourceDocument:
                 text=text,
             ),
             segment=SourceSegment(segment),
-            structural_empty=(
-                not text
-                and not any(element.tag in _NON_TEXT_SOURCE_CONTENT for element in event.iter())
-            ),
             page_break_before=_page_break_before(ppr),
             bold=any(_enabled(element) for element in event.findall(f".//{W}b")),
             italic=any(_enabled(element) for element in event.findall(f".//{W}i")),
@@ -601,6 +676,8 @@ def read(docx: Path) -> DocxSourceDocument:
         paragraphs.append(paragraph)
         if numbered:
             segment += 1
+        else:
+            reconciliation_position += 1
 
     directed = _direction_indents(tuple(paragraphs))
     return DocxSourceDocument(path=docx, paragraphs=_assign_visual_groups(directed))

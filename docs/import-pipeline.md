@@ -190,7 +190,19 @@ order, typed breaks, resolved paragraph properties, and visual lineation
 groups. The adapter, diagnostics, correction rails, and research producers are
 projections of that model; consumers do not walk `document.xml` to reconstruct
 the same facts. Pandoc decodes rich content, but it is not the authority for
-source break kind.
+source break kind. Paragraph content is one ordered, closed sequence of text
+fragments and typed breaks (`line`, `page`, `column`); reading text, natural lines,
+and break evidence are derived views, never independently stored copies.
+Paragraph disposition explicitly distinguishes readable content, structural
+emptiness, pagination-only layout, and opaque non-text content. Raw paragraph
+ordinal remains source identity while reconciliation position owns semantic
+adjacency.
+
+An import or diagnostic operation hydrates this source-document handle once and
+passes it to the adapter and adjudication rails. It is an immutable source
+snapshot, not a pipeline context. Research producers, including intent records,
+derive text, sub-lines, and source fate from the same content/disposition values;
+they do not reconstruct those facts from Pandoc IR or XML.
 
 ## The transformation layer must be editable in one place
 

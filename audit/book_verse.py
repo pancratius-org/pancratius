@@ -407,7 +407,7 @@ def source_right_aligned_words(docx: Path) -> set[str]:
     from pancratius import docx_source
 
     words: set[str] = set()
-    for paragraph in docx_source.read(docx).paragraphs:
+    for paragraph in docx_source.read(docx).reconciliation_paragraphs:
         if paragraph.alignment.is_right_edge:
             words.update(_WORD_RE.findall(paragraph.text.lower()))
     return words

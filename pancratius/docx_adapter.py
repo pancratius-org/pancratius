@@ -189,12 +189,19 @@ def _record_span(record: SourceParagraph) -> ir.SourceSpan:
 
 
 def _has_contiguous_source_spans(records: Sequence[SourceParagraph]) -> bool:
-    """True when records prove adjacent source paragraph ordinals."""
+    """True when records prove semantic adjacency in one source segment."""
     if not records:
         return False
     previous = records[0]
     for record in records[1:]:
-        if record.segment != previous.segment or int(record.ordinal) != int(previous.ordinal) + 1:
+        previous_position = previous.reconciliation_position
+        position = record.reconciliation_position
+        if (
+            record.segment != previous.segment
+            or previous_position is None
+            or position is None
+            or position.value != previous_position.value + 1
+        ):
             return False
         previous = record
     return True
@@ -822,8 +829,12 @@ def _table(node: dict[str, Any], ctx: _Ctx) -> ir.Table:
 # ---------------------------------------------------------------------------
 
 
-def adapt(docx: Path, media_dir: Path, diagnostics: ir.DiagnosticSink) -> ir.Document:
-    """Parse `docx` into an `ir.Document`, extracting media into `media_dir`.
+def adapt(
+    source: docx_source.DocxSourceDocument,
+    media_dir: Path,
+    diagnostics: ir.DiagnosticSink,
+) -> ir.Document:
+    """Parse one source aggregate into IR, extracting media into `media_dir`.
 
     `diagnostics` is the caller's sink — the same one the passes and the backend
     take. `w:jc` alignment and visual lineation groups are assigned onto the
@@ -832,8 +843,8 @@ def adapt(docx: Path, media_dir: Path, diagnostics: ir.DiagnosticSink) -> ir.Doc
     future drift can't ship silently. Footnote definitions collected during the
     inline walk are attached densely renumbered.
     """
-    ast, warns = run_pandoc_json(docx, media_dir)
-    records = docx_source.read(docx).reconciliation_paragraphs
+    ast, warns = run_pandoc_json(source.path, media_dir)
+    records = source.reconciliation_paragraphs
 
     ctx = _Ctx()
     if warns:

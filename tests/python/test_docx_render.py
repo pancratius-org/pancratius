@@ -192,6 +192,11 @@ def test_docx_render_around_requires_unique_match(
         _row("Needle one", index=1),
         _row("Needle two", index=2),
     ]
+    monkeypatch.setattr(
+        docx_render.docx_source,
+        "read",
+        lambda path: docx_render.docx_source.DocxSourceDocument(path, ()),
+    )
     monkeypatch.setattr(docx_render.di, "read_rows", lambda _docx: rows)
 
     with pytest.raises(docx_render.DocxRenderError, match="matched 2 paragraphs"):

@@ -232,10 +232,11 @@ def convert_single_docx(
     this call until the writer copies them. Pure after the adapter.
     """
     media_out.mkdir(parents=True, exist_ok=True)
+    source = docx_source.read(docx)
     # ONE diagnostics sink for the whole conversion: the adapter, every pass (via
     # `Context`), and the backend tail all append into it.
     diagnostics: ir.DiagnosticSink = []
-    doc = docx_adapter.adapt(docx, media_out, diagnostics)
+    doc = docx_adapter.adapt(source, media_out, diagnostics)
 
     if kind == "poem":
         # Verse end-to-end: skip heading demotion, bibliography lift, and verse
@@ -264,8 +265,8 @@ def convert_single_docx(
             demote_levels=1,
             bibliography=BibliographyLookup(title_index),
             register_policy=register_policy.policy,
-            lineation=LineationCorrections(lineation_overrides.load_overrides(docx)),
-            scripture=ScripturePins(scripture_overrides.load_overrides(docx)),
+            lineation=LineationCorrections(lineation_overrides.load_overrides(source)),
+            scripture=ScripturePins(scripture_overrides.load_overrides(source)),
             diagnostics=diagnostics,
         ))
 
@@ -276,7 +277,7 @@ def convert_single_docx(
         # A poem DOCX that opens with a bold title paragraph repeats the masthead title
         # in its first stanza; drop that one bold paragraph (an incipit is plain verse).
         body = _strip_source_duplicate_poem_title(
-            body, title, docx_source.read(docx).paragraphs
+            body, title, source.paragraphs
         )
         body, poem_chrome = clean_poem_chrome(body)
     refs = cross_refs.extract_cross_refs(body, work_key, title_index)

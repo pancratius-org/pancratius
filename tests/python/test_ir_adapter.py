@@ -40,7 +40,15 @@ def _source_paragraph(
     """Small valid source aggregate member for reconciliation-unit tests."""
     return docx_source.SourceParagraph(
         ordinal=docx_source.ParagraphOrdinal(ordinal),
-        content=docx_source.ParagraphText(text, text),
+        reconciliation_position=docx_source.ReconciliationPosition(ordinal),
+        content=docx_source.ParagraphContent(
+            (docx_source.TextAtom(text),) if text else ()
+        ),
+        disposition=(
+            docx_source.ParagraphDisposition.STRUCTURAL_EMPTY
+            if structural_empty
+            else docx_source.ParagraphDisposition.CONTENT
+        ),
         resolved_style="",
         direct_style="",
         alignment=docx_source.ParagraphAlignment(align),
@@ -51,7 +59,6 @@ def _source_paragraph(
         border=docx_source.BorderGesture.NONE,
         roles=frozenset({docx_source.ParagraphRole.BODY}),
         segment=docx_source.SourceSegment(segment),
-        structural_empty=structural_empty,
         page_break_before=False,
         bold=False,
         italic=False,

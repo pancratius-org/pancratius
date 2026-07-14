@@ -28,21 +28,21 @@ def overrides_path(docx: Path) -> Path:
     return docx.with_name(f"scripture.{docx.stem}.json")
 
 
-def load_overrides(docx: Path) -> dict[int, str]:
+def load_overrides(source: docx_source.DocxSourceDocument) -> dict[int, str]:
     """The validated scripture pins for one source DOCX (empty when no sidecar),
     ordinal → named canonical source. FAILS LOUD on a malformed sidecar, a
     non-canonical or duplicate ordinal key, a missing/empty source name, an ordinal
     with no source paragraph, or a text-rail mismatch."""
-    path = overrides_path(docx)
+    path = overrides_path(source.path)
     out: dict[int, str] = {}
-    for adjudication in docx_source.read_adjudications(docx, path):
+    for adjudication in docx_source.read_adjudications(source, path):
         ordinal = int(adjudication.paragraph.ordinal)
-        source = adjudication.payload.get("source")
-        if not (isinstance(source, str) and source.strip()):
+        named_source = adjudication.payload.get("source")
+        if not (isinstance(named_source, str) and named_source.strip()):
             raise ValueError(f"{path.name}: ordinal {ordinal} must name its canonical source")
         paragraph = adjudication.paragraph
         if not paragraph.text:
             raise ValueError(f"{path.name}: ordinal {ordinal} is a blank paragraph — "
                              f"a pin must land on quotation text")
-        out[ordinal] = source
+        out[ordinal] = named_source
     return out

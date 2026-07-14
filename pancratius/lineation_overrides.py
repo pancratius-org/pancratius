@@ -28,13 +28,15 @@ def overrides_path(docx: Path) -> Path:
     return docx.with_name(f"lineation.{docx.stem}.json")
 
 
-def load_overrides(docx: Path) -> dict[int, LineationRegister]:
+def load_overrides(
+    source: docx_source.DocxSourceDocument,
+) -> dict[int, LineationRegister]:
     """The validated corrections for one source DOCX (empty when no sidecar). FAILS LOUD on a
     malformed sidecar, a non-canonical or duplicate ordinal key, an unknown register, an ordinal
     with no source paragraph, or a text-rail mismatch."""
-    path = overrides_path(docx)
+    path = overrides_path(source.path)
     out: dict[int, LineationRegister] = {}
-    for adjudication in docx_source.read_adjudications(docx, path):
+    for adjudication in docx_source.read_adjudications(source, path):
         ordinal = int(adjudication.paragraph.ordinal)
         raw_register = adjudication.payload.get("register")
         if raw_register == "prose":

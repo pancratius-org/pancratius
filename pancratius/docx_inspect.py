@@ -207,7 +207,7 @@ type InspectBlockKind = Literal[
 ]
 
 
-def read_rows(docx: Path) -> list[ParaRow]:
+def read_rows(source: docx_source.DocxSourceDocument) -> list[ParaRow]:
     """Diagnostic rows projected from the canonical DOCX source aggregate."""
     return [
         ParaRow(
@@ -232,7 +232,7 @@ def read_rows(docx: Path) -> list[ParaRow]:
             page_break_inline=docx_source.BreakKind.PAGE in paragraph.content.breaks,
             column_break_inline=docx_source.BreakKind.COLUMN in paragraph.content.breaks,
         )
-        for paragraph in docx_source.read(docx).paragraphs
+        for paragraph in source.paragraphs
     ]
 
 
@@ -317,7 +317,7 @@ class _SourceClassificationBuilder:
         }
 
 
-def classify_blocks(docx: Path) -> BlockClassifications:
+def classify_blocks(source: docx_source.DocxSourceDocument) -> BlockClassifications:
     """Classify normalized import blocks by reading text and source paragraph span.
 
     Source ordinals are the stable diagnostic path. Text remains as a fallback for
@@ -328,12 +328,12 @@ def classify_blocks(docx: Path) -> BlockClassifications:
     from pancratius.scripture_overrides import load_overrides as load_scripture_pins
 
     with tempfile.TemporaryDirectory(prefix="docx-inspect-") as td:
-        doc = da.adapt(docx, Path(td), [])
+        doc = da.adapt(source, Path(td), [])
         # rules-only: no register model (see lineation_decisions)
         doc = run(doc, Context(
             lang=DEFAULT_LOCALE,
-            lineation=LineationCorrections(load_overrides(docx)),
-            scripture=ScripturePins(load_scripture_pins(docx)),
+            lineation=LineationCorrections(load_overrides(source)),
+            scripture=ScripturePins(load_scripture_pins(source)),
         ))
 
     kind_of: dict[str, set[str]] = {}
@@ -355,12 +355,12 @@ def classify_blocks(docx: Path) -> BlockClassifications:
 
 def classify(docx: Path) -> BlockKindsByText:
     """Map normalized reading-line text → possible IR block kinds after import."""
-    return classify_blocks(docx).by_text
+    return classify_blocks(docx_source.read(docx)).by_text
 
 
 def classify_source_spans(docx: Path) -> BlockKindsBySource:
     """Map raw source paragraph index → normalized IR block kind/span."""
-    return classify_blocks(docx).by_source
+    return classify_blocks(docx_source.read(docx)).by_source
 
 
 # ---------------------------------------------------------------------------
@@ -454,8 +454,9 @@ def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
     bibliography cross-reference targets, never a block's kind, so verdicts are
     identical to the production import path.
     """
+    source = docx_source.read(docx)
     with tempfile.TemporaryDirectory(prefix="docx-mask-") as td:
-        doc = da.adapt(docx, Path(td), [])
+        doc = da.adapt(source, Path(td), [])
         doc = run(doc, Context(lang=DEFAULT_LOCALE), until=PER_ORDINAL_SEAM)  # rules-only observer
     blocks = tuple(doc.blocks)
 
@@ -499,13 +500,14 @@ def lineation_decisions(docx: Path, *, apply_overrides: bool = True) -> dict[int
     from pancratius.lineation_overrides import load_overrides
     from pancratius.scripture_overrides import load_overrides as load_scripture_pins
 
+    source = docx_source.read(docx)
     with tempfile.TemporaryDirectory(prefix="docx-lineation-") as td:
-        doc = da.adapt(docx, Path(td), [])
+        doc = da.adapt(source, Path(td), [])
         # rules-only: no register model (see the docstring); overrides ride the Context
         doc = run(doc, Context(
             lang=DEFAULT_LOCALE,
-            lineation=LineationCorrections(load_overrides(docx) if apply_overrides else {}),
-            scripture=ScripturePins(load_scripture_pins(docx)),
+            lineation=LineationCorrections(load_overrides(source) if apply_overrides else {}),
+            scripture=ScripturePins(load_scripture_pins(source)),
         ))
 
     def hard_break_prose(block: ir.LineatedBlock) -> bool:
@@ -582,8 +584,8 @@ def _row_may_be_kind(row: ParaRow, kind: InspectBlockKind) -> bool:
     )
 
 
-def annotate(rows: list[ParaRow], docx: Path) -> None:
-    classifications = classify_blocks(docx)
+def annotate(rows: list[ParaRow], source: docx_source.DocxSourceDocument) -> None:
+    classifications = classify_blocks(source)
     for row in rows:
         if source_hit := classifications.by_source.get(row.index):
             row.block_kind = _kind_label(source_hit.kinds)
@@ -746,8 +748,9 @@ def inspect_docx(docx: Path, options: InspectOptions | None = None) -> InspectRe
     if not docx.is_file():
         raise DocxInspectError(f"DOCX not found: {docx}")
     try:
-        rows = read_rows(docx)
-        annotate(rows, docx)
+        source = docx_source.read(docx)
+        rows = read_rows(source)
+        annotate(rows, source)
     except zipfile.BadZipFile as exc:
         raise DocxInspectError(f"{docx} is not a valid ZIP/DOCX package") from exc
     except KeyError as exc:

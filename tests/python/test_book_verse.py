@@ -9,11 +9,30 @@ so the SPEC the audit encodes is itself tested, independent of the corpus.
 
 from __future__ import annotations
 
+import zipfile
+from pathlib import Path
+
 from audit import book_verse as bv
+from pancratius.ooxml import W_NS
 
 
 def source_unit(text: str, *, is_empty: bool = False) -> bv.SourceUnit:
     return bv.SourceUnit(text=text, is_empty=is_empty)
+
+
+def test_right_aligned_source_words_exclude_list_items(tmp_path: Path) -> None:
+    document_xml = f'''<?xml version="1.0"?>
+<w:document xmlns:w="{W_NS}"><w:body>
+  <w:p><w:pPr><w:jc w:val="right"/><w:numPr><w:numId w:val="1"/></w:numPr></w:pPr>
+    <w:r><w:t>listonly</w:t></w:r></w:p>
+  <w:p><w:pPr><w:jc w:val="right"/></w:pPr>
+    <w:r><w:t>signature</w:t></w:r></w:p>
+</w:body></w:document>'''
+    path = tmp_path / "right-list.docx"
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("word/document.xml", document_xml)
+
+    assert bv.source_right_aligned_words(path) == {"signature"}
 
 # ---------------------------------------------------------------------------
 # is_label_line / is_verse_line — the per-line predicate (the SPEC)
