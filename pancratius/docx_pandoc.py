@@ -11,14 +11,125 @@ import subprocess
 import xml.etree.ElementTree as ET
 import zipfile
 from collections.abc import Sequence
+from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, assert_never, cast
 
 from pancratius import docx_source, ooxml
 from pancratius.ooxml import W
 from pancratius.pandoc import pandoc_argv0
 
 PANDOC_TIMEOUT_SECONDS = 300
+
+
+class SoftBreakRendering(StrEnum):
+    SPACE = " "
+    LINE = "\n"
+
+
+class PandocBreakKind(StrEnum):
+    SOFT = "soft"
+    HARD = "hard"
+
+
+@dataclass(frozen=True, slots=True)
+class PandocTextAtom:
+    value: str
+
+
+type PandocInlineAtom = PandocTextAtom | PandocBreakKind
+
+
+class PandocInlineError(ValueError):
+    """A Pandoc inline cannot be projected without guessing its shape."""
+
+
+def _inline_payload(value: object, *, path: str, kind: str, arity: int) -> list[object]:
+    if not isinstance(value, list) or len(value) != arity:
+        raise PandocInlineError(f"{path} {kind}: expected a {arity}-field payload")
+    return cast("list[object]", value)
+
+
+def _inline_atoms(inlines: object, *, path: str = "inlines") -> tuple[PandocInlineAtom, ...]:
+    if not isinstance(inlines, list):
+        raise PandocInlineError(f"{path}: expected an inline list")
+
+    atoms: list[PandocInlineAtom] = []
+    for index, item in enumerate(inlines):
+        item_path = f"{path}[{index}]"
+        if not isinstance(item, dict):
+            raise PandocInlineError(f"{item_path}: expected an inline object")
+        node = cast("dict[str, object]", item)
+        kind = node.get("t")
+        value = node.get("c")
+        if not isinstance(kind, str):
+            raise PandocInlineError(f"{item_path}: missing inline kind")
+
+        match kind:
+            case "Str":
+                if not isinstance(value, str):
+                    raise PandocInlineError(f"{item_path} Str: expected text payload")
+                atoms.append(PandocTextAtom(value))
+            case "Space":
+                atoms.append(PandocTextAtom(" "))
+            case "SoftBreak":
+                atoms.append(PandocBreakKind.SOFT)
+            case "LineBreak":
+                atoms.append(PandocBreakKind.HARD)
+            case (
+                "Strong"
+                | "Emph"
+                | "Underline"
+                | "SmallCaps"
+                | "Strikeout"
+                | "Superscript"
+                | "Subscript"
+            ):
+                atoms.extend(_inline_atoms(value, path=f"{item_path}.{kind}"))
+            case "Quoted" | "Cite" | "Span":
+                payload = _inline_payload(value, path=item_path, kind=kind, arity=2)
+                atoms.extend(_inline_atoms(payload[1], path=f"{item_path}.{kind}"))
+            case "Code" | "Math":
+                payload = _inline_payload(value, path=item_path, kind=kind, arity=2)
+                text = payload[1]
+                if not isinstance(text, str):
+                    raise PandocInlineError(f"{item_path} {kind}: expected text at field 1")
+                atoms.append(PandocTextAtom(text))
+            case "Link":
+                payload = _inline_payload(value, path=item_path, kind=kind, arity=3)
+                atoms.extend(_inline_atoms(payload[1], path=f"{item_path}.{kind}"))
+            case "Image" | "Note" | "RawInline":
+                pass
+            case str() as unknown:
+                raise PandocInlineError(f"{item_path}: unsupported inline kind {unknown!r}")
+    return tuple(atoms)
+
+
+def inline_text(
+    inlines: object,
+    *,
+    soft_break: SoftBreakRendering,
+) -> str:
+    """Project validated visible inlines without leaking opaque payload."""
+    out: list[str] = []
+    for atom in _inline_atoms(inlines):
+        match atom:
+            case PandocTextAtom(value=value):
+                out.append(value)
+            case PandocBreakKind.SOFT:
+                out.append(soft_break.value)
+            case PandocBreakKind.HARD:
+                out.append("\n")
+            case _:
+                assert_never(atom)
+    return "".join(out)
+
+
+def inline_break_kinds(inlines: object) -> frozenset[PandocBreakKind]:
+    """Break constructors present in the validated visible inline stream."""
+    return frozenset(atom for atom in _inline_atoms(inlines) if isinstance(atom, PandocBreakKind))
+
 
 _PANDOC_PREFIXES = frozenset({"w", "wp", "a", "pic", "r"})
 _PANDOC_NAMESPACE_BINDINGS = tuple(

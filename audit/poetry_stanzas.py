@@ -1,27 +1,26 @@
 """Verify poetry Markdown preserves DOCX stanza boundaries.
 
-The converter reads poem DOCX through Pandoc's `docx+empty_paragraphs` AST.
-This audit repeats the structural read independently enough to catch the
-regression where empty Word paragraphs were collapsed and poems became one
-giant stanza.
+The audit derives stanza policy independently over the same pagination-safe
+Pandoc projection used by the converter. This catches grouping regressions
+without reintroducing a second interpretation of Word breaks.
 """
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import re
 import shutil
-import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from pancratius import docx_pandoc, docx_source
+from pancratius.poem_chrome import is_signoff_line
+
 ROOT = Path(os.environ.get("PANCRATIUS_AUDIT_ROOT", Path(__file__).resolve().parents[1])).resolve()
 CONTENT = ROOT / "src" / "content" / "poetry"
-# Drops the unified `DD.MM.YYYY, <pen name>` sign-off so the oracle counts verse.
-SIGNOFF_FILTER = Path(__file__).resolve().parent / "poem_signoff.lua"
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,36 +28,6 @@ class PoemMeta:
     number: int
     title: str
     slug: str
-
-
-def _inlines_to_text(inlines: list[dict[str, Any]]) -> str:
-    out: list[str] = []
-    for item in inlines:
-        typ = item.get("t")
-        val: Any = item.get("c")  # Pandoc AST payload: shape depends on `typ`
-        if typ == "Str":
-            out.append(str(val))
-        elif typ == "Space":
-            out.append(" ")
-        elif typ in {"SoftBreak", "LineBreak"}:
-            out.append("\n")
-        elif typ in {"Strong", "Emph", "Underline", "SmallCaps", "Strikeout"}:
-            out.append(_inlines_to_text(val or []))
-        elif typ == "Quoted":
-            out.append(_inlines_to_text(val[1]))
-        elif typ == "Code":
-            out.append(str(val[1]))
-        elif typ == "Link":
-            out.append(_inlines_to_text(val[1]))
-        elif typ == "Image":
-            # Images are not verse lines. The converter may keep them as block
-            # illustrations, but stanza fidelity is about text lineation.
-            continue
-        elif typ == "Span":
-            out.append(_inlines_to_text(val[1]))
-        elif isinstance(val, list):
-            out.append(_inlines_to_text(val))
-    return "".join(out)
 
 
 def _is_strong_only(block: dict[str, Any]) -> bool:
@@ -77,14 +46,10 @@ def _title_key(s: str) -> str:
 
 
 def expected_groups(docx: Path, title: str) -> list[int]:
-    proc = subprocess.run(
-        ["pandoc", "--from", "docx+empty_paragraphs", "--lua-filter", str(SIGNOFF_FILTER),
-         "--to", "json", str(docx)],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    blocks = json.loads(proc.stdout).get("blocks") or []
+    source = docx_source.read(docx)
+    with tempfile.TemporaryDirectory(prefix="poetry-stanzas-") as temp_dir:
+        ast, _ = docx_pandoc.run_json(source, Path(temp_dir))
+    blocks = ast.get("blocks") or []
     key = _title_key(title)
     groups: list[list[str]] = []
     current: list[str] = []
@@ -104,7 +69,14 @@ def expected_groups(docx: Path, title: str) -> list[int]:
         if not inlines:
             flush()
             continue
-        lines = [ln.strip() for ln in _inlines_to_text(inlines).split("\n") if ln.strip()]
+        lines = [
+            line
+            for raw in docx_pandoc.inline_text(
+                inlines,
+                soft_break=docx_pandoc.SoftBreakRendering.LINE,
+            ).split("\n")
+            if (line := raw.strip()) and not is_signoff_line(line)
+        ]
         if not lines:
             flush()
             continue

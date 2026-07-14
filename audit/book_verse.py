@@ -1,69 +1,24 @@
-"""Legacy diagnostic for book verse-register decisions (I4).
+"""Legacy, non-blocking diagnostic for book verse-register decisions.
 
-Poems have ``poetry_stanzas.py``; books had NOTHING — a blind spot that let a
-verse signature-drift bug nearly ship. This audit is now a legacy REGISTER
-diagnostic, not the source of truth for Q1 lineation and not the executable spec
-for the split importer. The importer now separates Q1 lineation
-(``lineated_blocks``) from Q2 register promotion (``promote_verse_register``);
-``LineatedBlock`` line/wrapper preservation is covered by IR/lowering tests and by
-``audit/lineation_breaks.py``.
-
-It reads each book's DOCX structure INDEPENDENTLY of the importer (pandoc's
-``docx+empty_paragraphs`` AST for paragraphs, empties, and hard ``LineBreak``s,
-plus the OOXML ``w:jc`` right-alignment for signature/epigraph), derives the
-EXPECTED verse / signature / epigraph structure under a clear conservative rule,
-then compares it to the CONVERTED Markdown — flagging BOTH:
-
-  * OVER-detection — the IR applied a verse register the source rule does not call
-    a confident verse run (an isolated short line, a `Speaker:` /
-    `Speaker (qual):` label line, a prose-length line, one prose sentence after a
-    label).
-  * UNDER-detection — the source has a confident verse run the IR left as prose.
-
-This checks only whether the legacy conservative rule would expect a
-``VERSE`` register. A mismatch must be classified before action: Q1
-lineation loss, Q2 register disagreement, or stale legacy-rule overreach. Do not
-update committed Markdown or goldens solely because this audit says over/under.
-
-It ALSO asserts every converted signature/epigraph is DRAWN FROM the right-aligned
-(``w:jc``) source — a block built from non-right-aligned text is the symptom of the
-C1 ``w:jc``-realignment drift — so it doubles as the C1 / I2 regression guard.
-
-The legacy verse rule (historical diagnostic, not the split IR spec):
-
-  * A *verse run* is >=2 consecutive SHORT lineated display-lines whose lineation
-    comes from the SOURCE — a hard ``LineBreak`` (``<w:br/>``) inside one
-    paragraph, a run after a heading, or a run of short standalone paragraphs
-    separated only by empty paragraphs (stanza breaks). Each line must be under
-    ``SHORT_LINE_MAX`` chars.
-  * A run of BARE standalone single-line paragraphs is a CONFIDENT verse run only
-    when it carries a stanza-break empty paragraph (the source separates its lines
-    with a blank Word paragraph) AND has >=3 lines — paragraph boundaries alone
-    don't separate a short couplet from two prose sentences, so a 2-line run with
-    no hard break (a couplet that is just as likely two prose sentences) is left to
-    prose. A hard ``<w:br/>`` line is a CONFIDENT signal on its own and counts at
-    >=2.
-  * NOT a verse line: an explicit SPEAKER/SOURCE turn (`Speaker:` /
-    `Speaker: content`); a LONG (prose-length) line; a numbered Q/A heading; a
-    list item; an image/table/link line.
-
-Tiering: this remains a ``heuristic`` (agent-tier, non-blocking) audit. During the
-lineation/register split it is guidance only; the benchmark must move to the
-3-way ontology (flowing / lineated-prose / verse) before this can become a hard
-contract again.
+Source facts come from the canonical pagination-safe projection; the register
+rule remains independent. It reports over/under verse promotion and verifies
+that signature and epigraph text comes from right-aligned source paragraphs.
+It is not the lineation specification: classify each mismatch as lineation
+loss, register disagreement, or legacy-rule overreach before acting on it.
 """
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import re
-import subprocess
 import sys
+import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from pancratius import docx_pandoc, docx_source
 
 ROOT = Path(os.environ.get("PANCRATIUS_AUDIT_ROOT") or Path(__file__).resolve().parents[1])
 CONTENT = ROOT / "src" / "content" / "books"
@@ -72,8 +27,6 @@ CONTENT = ROOT / "src" / "content" / "books"
 # and is NOT a verse line. Mirrors ``passes.lineation.VERSE_SHORT_LINE_MAX``; the two
 # are kept in sync deliberately (the audit is the spec the IR implements).
 SHORT_LINE_MAX = 120
-
-W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 _NUMBERED_QUESTION_RE = re.compile(r"^\d{1,3}[.)]\s+\S.*[?？]\s*$")
 
@@ -119,11 +72,6 @@ SPEAKER_TURN_RE = _speaker_turn_re()
 # ---------------------------------------------------------------------------
 # the verse rule, as testable pure helpers (the SPEC)
 # ---------------------------------------------------------------------------
-
-
-def is_label_line(line: str) -> bool:
-    """Backward-compatible helper: explicit speaker/source labels are not verse."""
-    return is_speaker_turn(line)
 
 
 def is_speaker_turn(line: str) -> bool:
@@ -247,61 +195,17 @@ def group_expected_runs(units: Sequence[SourceUnit]) -> list[list[str]]:
 # ---------------------------------------------------------------------------
 
 
-def _inlines_to_text(inlines: list[dict[str, Any]]) -> str:
-    """Flatten a Pandoc inline list, hard ``LineBreak`` -> ``\\n``, soft break ->
-    space (soft breaks are prose wrapping, not authored lineation — the C2 rule)."""
-    out: list[str] = []
-    for item in inlines:
-        typ = item.get("t")
-        val: Any = item.get("c")
-        if typ == "Str":
-            out.append(str(val))
-        elif typ == "Space" or typ == "SoftBreak":
-            out.append(" ")
-        elif typ == "LineBreak":
-            out.append("\n")
-        elif typ in {"Strong", "Emph", "Underline", "SmallCaps", "Strikeout"}:
-            out.append(_inlines_to_text(val or []))
-        elif typ == "Quoted":
-            out.append(_inlines_to_text(val[1]))
-        elif typ == "Code":
-            out.append(str(val[1]))
-        elif typ in {"Link", "Span"}:
-            out.append(_inlines_to_text(val[1]))
-        elif typ == "Image":
-            continue
-        elif isinstance(val, list):
-            out.append(_inlines_to_text(val))
-    return "".join(out)
-
-
-def _inline_kinds(inlines: list[dict[str, Any]]) -> set[str]:
-    """The set of Pandoc inline tags anywhere in the tree (recursing containers) —
-    used to tell a paragraph's break kind apart (``SoftBreak`` vs ``LineBreak``)."""
-    kinds: set[str] = set()
-    for item in inlines:
-        typ = item.get("t")
-        if typ:
-            kinds.add(str(typ))
-        val = item.get("c")
-        if isinstance(val, list):
-            if typ in {"Strong", "Emph", "Underline", "SmallCaps", "Strikeout"}:
-                kinds |= _inline_kinds(val)
-            elif typ in {"Quoted", "Link", "Span"} and len(val) >= 2 and isinstance(val[1], list):
-                kinds |= _inline_kinds(val[1])
-            elif typ not in {"Str", "Code", "Image"}:
-                kinds |= _inline_kinds(val)
-    return kinds
-
-
 def _is_wrapped_prose(inlines: list[dict[str, Any]]) -> bool:
     """True when a paragraph's only in-run breaks are ``SoftBreak``s (prose
     wrapping, a literal ``\\r\\n`` in one ``<w:t>``) with NO hard ``LineBreak``.
     Such a paragraph is PROSE, never a verse line — its lineation was never
     authored. Mirrors ``passes.lineation._is_wrapped_prose`` (the C2 over-detection
     fix), so the audit's expected set agrees with the IR on wrapped prose."""
-    kinds = _inline_kinds(inlines)
-    return "SoftBreak" in kinds and "LineBreak" not in kinds
+    kinds = docx_pandoc.inline_break_kinds(inlines)
+    return (
+        docx_pandoc.PandocBreakKind.SOFT in kinds
+        and docx_pandoc.PandocBreakKind.HARD not in kinds
+    )
 
 
 def source_units(docx: Path) -> list[SourceUnit]:
@@ -311,11 +215,10 @@ def source_units(docx: Path) -> list[SourceUnit]:
     image becomes a structural break (an empty-text NON-empty unit sentinel is not
     needed — a non-``Para`` simply yields nothing, ending any run because the next
     ``Para`` starts fresh after the gap)."""
-    proc = subprocess.run(
-        ["pandoc", "--from", "docx+empty_paragraphs", "--to", "json", str(docx)],
-        capture_output=True, text=True, check=True,
-    )
-    blocks = json.loads(proc.stdout).get("blocks") or []
+    source = docx_source.read(docx)
+    with tempfile.TemporaryDirectory(prefix="book-verse-") as temp_dir:
+        ast, _ = docx_pandoc.run_json(source, Path(temp_dir))
+    blocks = ast.get("blocks") or []
     units: list[SourceUnit] = []
     for block in blocks:
         t = block.get("t")
@@ -337,7 +240,10 @@ def source_units(docx: Path) -> list[SourceUnit]:
             # what the IR's `_para_lineated` does via `_is_wrapped_prose`.
             units.append(SourceUnit(text=STRUCTURAL_BREAK, is_empty=False))
             continue
-        text = _inlines_to_text(inlines)
+        text = docx_pandoc.inline_text(
+            inlines,
+            soft_break=docx_pandoc.SoftBreakRendering.SPACE,
+        )
         units.append(SourceUnit(text=text, is_empty=False))
     return units
 
@@ -376,11 +282,6 @@ def actual_block_lines(md_body: str) -> set[str]:
     return verse
 
 
-def actual_verse_lines(md_body: str) -> set[str]:
-    """All lines the IR placed inside a verse block."""
-    return actual_block_lines(md_body)
-
-
 _SIGNATURE_RE = re.compile(r'<p class="signature">\n(.*?)\n</p>', re.S)
 _EPIGRAPH_RE = re.compile(r'<blockquote class="epigraph">\n(.*?)\n</blockquote>', re.S)
 _WORD_RE = re.compile(r"\w+", re.UNICODE)
@@ -404,8 +305,6 @@ def source_right_aligned_words(docx: Path) -> set[str]:
     — a block whose words are NOT mostly right-aligned source is a spurious
     signature/epigraph, the symptom of the C1 ``w:jc``-realignment drift (a
     positional zip mis-assigning alignment). Reads the canonical source model."""
-    from pancratius import docx_source
-
     words: set[str] = set()
     for paragraph in docx_source.read(docx).reconciliation_paragraphs:
         if paragraph.alignment.is_right_edge:

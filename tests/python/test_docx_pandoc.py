@@ -42,6 +42,56 @@ _GENERIC_IMAGE_RICH = (
 _GENERIC_NAMESPACE_DOCX = (_GENERIC, _GENERIC_IMAGE_RICH)
 
 
+def test_inline_text_keeps_break_policy_and_hides_opaque_payload() -> None:
+    inlines = [
+        {"t": "Str", "c": "first"},
+        {"t": "SoftBreak"},
+        {"t": "Str", "c": "second"},
+        {"t": "LineBreak"},
+        {
+            "t": "Note",
+            "c": [{"t": "Para", "c": [{"t": "Str", "c": "MINTED"}]}],
+        },
+        {"t": "Image", "c": [["", [], []], [], ["x.png", ""]]},
+        {"t": "Cite", "c": [[], [{"t": "Str", "c": "cited"}]]},
+        {"t": "Space"},
+        {"t": "Math", "c": [{"t": "InlineMath"}, "x+y"]},
+        {"t": "RawInline", "c": ["html", "<b>OPAQUE</b>"]},
+        {"t": "Str", "c": "third"},
+    ]
+
+    assert (
+        docx_pandoc.inline_text(
+            inlines,
+            soft_break=docx_pandoc.SoftBreakRendering.SPACE,
+        )
+        == "first second\ncited x+ythird"
+    )
+    assert (
+        docx_pandoc.inline_text(
+            inlines,
+            soft_break=docx_pandoc.SoftBreakRendering.LINE,
+        )
+        == "first\nsecond\ncited x+ythird"
+    )
+
+
+@pytest.mark.parametrize(
+    "inlines",
+    [
+        [{"t": "Str", "c": ["not text"]}],
+        [{"t": "Cite", "c": [[], "not inlines"]}],
+        [{"t": "Future", "c": [{"t": "Str", "c": "LEAK"}]}],
+    ],
+)
+def test_inline_text_rejects_malformed_or_unknown_payload(inlines: object) -> None:
+    with pytest.raises(docx_pandoc.PandocInlineError):
+        docx_pandoc.inline_text(
+            inlines,
+            soft_break=docx_pandoc.SoftBreakRendering.SPACE,
+        )
+
+
 def test_conventional_docx_is_passed_through_unchanged(tmp_path: Path) -> None:
     source = docx_source.read(_CONVENTIONAL)
     assert docx_pandoc.project_package(source, tmp_path) == _CONVENTIONAL
