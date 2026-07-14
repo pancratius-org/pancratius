@@ -17,6 +17,7 @@ from collections.abc import Iterable, MutableMapping
 from dataclasses import dataclass
 from typing import cast
 from urllib.parse import quote, unquote, urlsplit
+from xml.sax.saxutils import quoteattr
 
 MC_NS = "http://schemas.openxmlformats.org/markup-compatibility/2006"
 REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
@@ -39,6 +40,8 @@ W = f"{{{W_NS}}}"
 WP = f"{{{WP_NS}}}"
 PIC = f"{{{PIC_NS}}}"
 XML_SPACE = f"{{{XML_NS}}}space"
+MC_ALTERNATE_CONTENT = f"{{{MC_NS}}}AlternateContent"
+MC_FALLBACK = f"{{{MC_NS}}}Fallback"
 DRAWING_METADATA_NAME_ATTR = "name"
 DRAWING_METADATA_DESCRIPTION_ATTR = "descr"
 DRAWING_METADATA_TITLE_ATTR = "title"
@@ -57,6 +60,49 @@ DRAWING_METADATA_WORD_PART_RE = re.compile(
 class NamespaceBinding:
     prefix: str
     uri: str
+
+
+@dataclass(frozen=True, slots=True)
+class PrefixValueReference:
+    """One lexical namespace reference resolved where it appears."""
+
+    prefix: str
+    uri: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class ElementNamespaceContext:
+    """The lexical namespace scope captured at one parsed element."""
+
+    element: ET.Element
+    bindings: tuple[NamespaceBinding, ...]
+
+    def resolve(self, prefix: str) -> str | None:
+        return next(
+            (binding.uri for binding in self.bindings if binding.prefix == prefix),
+            None,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ParsedOoxml:
+    """One parsed XML tree with immutable lexical scope provenance."""
+
+    root: ET.Element
+    bindings: tuple[NamespaceBinding, ...]
+    element_contexts: tuple[ElementNamespaceContext, ...]
+
+    def references_in(self, root: ET.Element | None = None) -> tuple[PrefixValueReference, ...]:
+        retained = self.root if root is None else root
+        contexts = {context.element: context for context in self.element_contexts}
+        return tuple(
+            PrefixValueReference(
+                prefix,
+                contexts[element].resolve(prefix) if element in contexts else None,
+            )
+            for element in retained.iter()
+            for prefix in _prefix_value_references_in_attributes(element)
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,6 +129,10 @@ class OoxmlRelationshipRead:
 
 class OoxmlRelationshipError(ValueError):
     """An OOXML relationship path cannot be trusted."""
+
+
+class OoxmlNamespaceError(ValueError):
+    """OOXML carries a lexical namespace reference that cannot be resolved."""
 
 
 COMMON_NAMESPACES: tuple[NamespaceBinding, ...] = (
@@ -128,15 +178,9 @@ COMMON_NAMESPACES: tuple[NamespaceBinding, ...] = (
 
 _RESERVED_ET_PREFIX_RE = re.compile(r"ns\d+$")
 _XML_DECL_RE = re.compile(rb"^\s*<\?xml[^>]*\?>")
-_PREFIX_VALUED_ATTRS = frozenset(
-    {
-        "Ignorable",
-        "MustUnderstand",
-        "ProcessContent",
-        "PreserveElements",
-        "PreserveAttributes",
-        "Requires",
-    }
+_PREFIX_LIST_ATTRS = frozenset({"Ignorable", "MustUnderstand", "Requires"})
+_QNAME_LIST_ATTRS = frozenset(
+    {"ProcessContent", "PreserveElements", "PreserveAttributes"}
 )
 
 
@@ -144,11 +188,58 @@ def local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
 
 
-def namespace_bindings(xml: bytes) -> tuple[NamespaceBinding, ...]:
+def parse_xml(xml: bytes) -> ParsedOoxml:
+    """Parse once, retaining scoped meanings of lexical prefix-valued attributes."""
     bindings: list[NamespaceBinding] = []
-    for _event, (prefix, uri) in ET.iterparse(io.BytesIO(xml), events=("start-ns",)):
-        bindings.append(NamespaceBinding(prefix, uri))
-    return tuple(bindings)
+    contexts: list[ElementNamespaceContext] = []
+    pending: dict[str, str] = {}
+    scopes: list[dict[str, str]] = [{"xml": XML_NS}]
+    root: ET.Element | None = None
+    events = ET.iterparse(io.BytesIO(xml), events=("start-ns", "start", "end"))
+    for event, value in events:
+        if event == "start-ns":
+            prefix, uri = value
+            bindings.append(NamespaceBinding(prefix, uri))
+            pending[prefix] = uri
+            continue
+        if event == "start":
+            element = cast("ET.Element", value)
+            if root is None:
+                root = element
+            scope = dict(scopes[-1])
+            scope.update(pending)
+            pending.clear()
+            scopes.append(scope)
+            if _prefix_value_references_in_attributes(element):
+                contexts.append(
+                    ElementNamespaceContext(
+                        element,
+                        tuple(
+                            NamespaceBinding(prefix, uri)
+                            for prefix, uri in scope.items()
+                        ),
+                    )
+                )
+            continue
+        if len(scopes) > 1:
+            scopes.pop()
+    if root is None:
+        raise ET.ParseError("no element found")
+    return ParsedOoxml(root, tuple(bindings), tuple(contexts))
+
+
+def unresolved_prefix_value_references(xml: bytes) -> set[str]:
+    """Lexical namespace prefixes that are not in scope where referenced."""
+    return {
+        reference.prefix
+        for reference in prefix_value_references_in_xml(xml)
+        if reference.uri is None
+    }
+
+
+def prefix_value_references_in_xml(xml: bytes) -> tuple[PrefixValueReference, ...]:
+    """Resolve lexical namespace references against their element scopes."""
+    return parse_xml(xml).references_in()
 
 
 def relationship_source_part(rels_name: str) -> str:
@@ -284,73 +375,154 @@ def office_relationship_refs(root: ET.Element) -> tuple[OoxmlRelationshipRef, ..
 
 
 def register_namespaces(bindings: Iterable[NamespaceBinding] = ()) -> None:
-    seen: set[tuple[str, str]] = set()
     for binding in (*COMMON_NAMESPACES, *tuple(bindings)):
-        key = (binding.prefix, binding.uri)
-        if key in seen:
-            continue
-        seen.add(key)
         if binding.prefix == "xml" or _RESERVED_ET_PREFIX_RE.fullmatch(binding.prefix):
             continue
         ET.register_namespace(binding.prefix, binding.uri)
 
 
 def serialize_xml(
-    root: ET.Element,
+    tree: ParsedOoxml | ET.Element,
     *,
-    source_xml: bytes | None = None,
     bindings: Iterable[NamespaceBinding] = (),
 ) -> bytes:
+    supplied_bindings = (*COMMON_NAMESPACES, *tuple(bindings))
+    if isinstance(tree, ParsedOoxml):
+        root = tree.root
+        source_bindings = tree.bindings
+        references = tree.references_in()
+    else:
+        root = tree
+        source_bindings = ()
+        references = tuple(
+            PrefixValueReference(prefix, None)
+            for prefix in prefix_value_references(root)
+        )
+    desired = _required_prefix_value_bindings(
+        references,
+        supplied_bindings=supplied_bindings,
+    )
     snapshot = _namespace_registry_snapshot()
     try:
-        source_bindings = namespace_bindings(source_xml) if source_xml is not None else ()
-        all_bindings = (*COMMON_NAMESPACES, *source_bindings, *tuple(bindings))
+        # Canonical/supplied bindings win for element names. Lexical aliases
+        # are closed separately below, so they cannot rename Pandoc's QNames.
+        lexical_prefixes = {binding.prefix for binding in desired}
+        registry_source_bindings = tuple(
+            binding
+            for binding in source_bindings
+            if binding.prefix not in lexical_prefixes
+        )
+        all_bindings = (*registry_source_bindings, *supplied_bindings)
         register_namespaces(all_bindings)
         payload = ET.tostring(root, encoding="UTF-8", xml_declaration=True)
-        missing = _missing_prefix_value_bindings(root, payload, all_bindings)
-        if not missing:
-            return payload
-        return _inject_namespace_declarations(payload, missing)
+        return _close_prefix_value_references(payload, desired)
     finally:
         _restore_namespace_registry(snapshot)
 
 
-def serialize_relationships(root: ET.Element, *, source_xml: bytes | None = None) -> bytes:
+def serialize_relationships(
+    tree: ParsedOoxml | ET.Element,
+) -> bytes:
     return serialize_xml(
-        root,
-        source_xml=source_xml,
+        tree,
         bindings=(NamespaceBinding("", REL_NS),),
     )
 
 
-def _missing_prefix_value_bindings(
-    root: ET.Element,
-    payload: bytes,
-    bindings: Iterable[NamespaceBinding],
+def _required_prefix_value_bindings(
+    references: Iterable[PrefixValueReference],
+    *,
+    supplied_bindings: Iterable[NamespaceBinding],
 ) -> tuple[NamespaceBinding, ...]:
-    declared = {match.decode("ascii") for match in re.findall(rb"\sxmlns:([A-Za-z_][\w.-]*)=", payload)}
-    binding_by_prefix = {binding.prefix: binding.uri for binding in bindings if binding.prefix}
-    missing: list[NamespaceBinding] = []
-    for prefix in sorted(_prefix_value_references(root)):
-        if prefix in declared:
-            continue
-        uri = binding_by_prefix.get(prefix)
+    references_by_prefix: dict[str, set[str | None]] = {}
+    for reference in references:
+        references_by_prefix.setdefault(reference.prefix, set()).add(reference.uri)
+
+    supplied = {
+        binding.prefix: binding.uri
+        for binding in supplied_bindings
+        if binding.prefix
+    }
+    desired: list[NamespaceBinding] = []
+    unresolved: list[str] = []
+    for prefix, resolutions in sorted(references_by_prefix.items()):
+        resolved = {uri for uri in resolutions if uri is not None}
+        if len(resolved) > 1:
+            raise OoxmlNamespaceError(
+                f"namespace prefix value {prefix!r} has conflicting meanings"
+            )
+        uri = next(iter(resolved), None)
+        if None in resolutions:
+            repair = supplied.get(prefix)
+            if repair is None or (uri is not None and repair != uri):
+                unresolved.append(prefix)
+                continue
+            uri = repair
         if uri is not None:
-            missing.append(NamespaceBinding(prefix, uri))
-    return tuple(missing)
+            desired.append(NamespaceBinding(prefix, uri))
+    if unresolved:
+        raise OoxmlNamespaceError(
+            "unresolved namespace prefix value(s): " + ", ".join(unresolved)
+        )
+    return tuple(desired)
 
 
-def _prefix_value_references(root: ET.Element) -> set[str]:
+def _close_prefix_value_references(
+    payload: bytes,
+    desired: Iterable[NamespaceBinding],
+) -> bytes:
+    desired_by_prefix = {binding.prefix: binding for binding in desired}
+    missing: set[str] = set()
+    unknown: set[str] = set()
+    changed: set[str] = set()
+    for reference in prefix_value_references_in_xml(payload):
+        expected = desired_by_prefix.get(reference.prefix)
+        if expected is None:
+            unknown.add(reference.prefix)
+        elif reference.uri is None:
+            missing.add(reference.prefix)
+        elif reference.uri != expected.uri:
+            changed.add(reference.prefix)
+    if unknown:
+        raise OoxmlNamespaceError(
+            "unresolved namespace prefix value(s): " + ", ".join(sorted(unknown))
+        )
+    if changed:
+        raise OoxmlNamespaceError(
+            "namespace prefix value meaning changed during serialization: "
+            + ", ".join(sorted(changed))
+        )
+    return _inject_namespace_declarations(
+        payload,
+        tuple(desired_by_prefix[prefix] for prefix in sorted(missing)),
+    )
+
+
+def prefix_value_references(root: ET.Element) -> set[str]:
+    """Prefixes referenced lexically by markup-compatibility attributes."""
     out: set[str] = set()
     for elem in root.iter():
-        for attr, value in elem.attrib.items():
-            local = attr.rsplit("}", 1)[-1] if attr.startswith("{") else attr
-            if local not in _PREFIX_VALUED_ATTRS:
+        out.update(_prefix_value_references_in_attributes(elem))
+    return out
+
+
+def _prefix_value_references_in_attributes(element: ET.Element) -> set[str]:
+    out: set[str] = set()
+    for attr, value in element.attrib.items():
+        if attr.startswith(f"{{{MC_NS}}}"):
+            local = attr.removeprefix(f"{{{MC_NS}}}")
+        elif attr == "Requires" and element.tag == f"{{{MC_NS}}}Choice":
+            local = attr
+        else:
+            continue
+        if local not in _PREFIX_LIST_ATTRS | _QNAME_LIST_ATTRS:
+            continue
+        for token in value.split():
+            if local in _QNAME_LIST_ATTRS and ":" not in token:
                 continue
-            for token in value.split():
-                prefix = token.split(":", 1)[0]
-                if prefix:
-                    out.add(prefix)
+            prefix = token.split(":", 1)[0]
+            if prefix:
+                out.add(prefix)
     return out
 
 
@@ -365,7 +537,7 @@ def _inject_namespace_declarations(
     if marker < 0:
         return payload
     attrs = b"".join(
-        f' xmlns:{binding.prefix}="{binding.uri}"'.encode()
+        f" xmlns:{binding.prefix}={quoteattr(binding.uri)}".encode()
         for binding in missing
     )
     return payload[:marker] + attrs + payload[marker:]

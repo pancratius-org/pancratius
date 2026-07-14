@@ -197,9 +197,12 @@ trailing whitespace, so `.editorconfig` carries
 Converters must preserve real stanza breaks. For DOCX poetry, the source signal
 is Word paragraph structure: non-empty paragraphs are verse lines, empty
 paragraphs are stanza breaks, and in-paragraph line breaks are verse lines inside
-one stanza. The converter reads this through Pandoc's `docx+empty_paragraphs`
-AST and writes the generated-Markdown lineation shape above (two-space breaks
-within a stanza, blank line between stanzas). Do not run a blanket
+one stanza. Explicit page and column breaks are pagination, never lineation, and
+must not enter the block IR as hard line breaks; a paragraph carrying only
+pagination is not a structural empty paragraph or stanza boundary. The converter
+reads this through Pandoc's `docx+empty_paragraphs` AST and writes the
+generated-Markdown lineation shape above (two-space breaks within a stanza, blank
+line between stanzas). Do not run a blanket
 `blank-line-between-every-line -> single newline` collapse over Pandoc's GFM
 output; by then the stanza signal has already been blurred. The poetry stanza
 audit must fail if converted Markdown no longer matches the DOCX stanza

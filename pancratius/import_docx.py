@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any, Literal, TypedDict
 
-from pancratius import footnotes, ir
+from pancratius import docx_source, footnotes, ir
 from pancratius.content_catalog import (
     KIND_DIRS,
     CatalogEntry,
@@ -55,7 +55,7 @@ _CYRILLIC_RE = re.compile(r"[А-Яа-яЁё]")
 class ImportWorkError(Exception):
     """Invalid import input or an unresolvable target.
 
-    Raised for bad input (missing/non-DOCX file) and `_resolve_target` failures (no
+    Raised for bad or unrepresentable input and `_resolve_target` failures (no
     such work, ambiguous existing target, `--kind`-less new work, existing bundle dir). A
     write refusal is NOT this: `import_work` returns the refused `WriteReport` (with
     its fatal diagnostics) instead. The CLI maps this to a usage exit."""
@@ -964,7 +964,10 @@ def import_work(request: ImportRequest) -> WriteReport:
     """The side-effect-free importer entry the `pancratius work import` CLI dispatches
     to. Returns the writer's `WriteReport` — including on a refusal, where
     `report.refused` carries the fatal diagnostics (it does not raise). Raises
-    `ImportWorkError` for invalid input or an unresolvable target, and lets
+    `ImportWorkError` for invalid/unrepresentable input or an unresolvable target, and lets
     register-artifact contract failures surface as intent-inference errors. The
     CLI owns all side effects and maps those failure classes to exit codes."""
-    return _apply(request)[1]
+    try:
+        return _apply(request)[1]
+    except docx_source.DocxSourceError as exc:
+        raise ImportWorkError(str(exc)) from exc

@@ -5,8 +5,9 @@ import unicodedata
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from itertools import combinations
-from typing import cast
+from typing import assert_never, cast
 
+from pancratius.docx_source import ParagraphDisposition
 from pancratius.translation.docx.models import (
     DocxTranslationError,
     IgnoredWordSlot,
@@ -136,7 +137,6 @@ def _text_alignment_variants(value: str) -> tuple[TextAlignmentVariant, ...]:
         ("docx_omitted_smiley", raw.replace("☺", "")),
         ("markdown_literal_style_marker", _strip_markdown_literal_style_markers(raw)),
         ("split_letter_typo", re.sub(r"\bП\s+ока\b", "Пока", raw)),
-        ("nonbreaking_hyphen_import", re.sub(r"(?<=\w)‑(?=\w)", "", raw)),
         ("source_citation_suffix", SOURCE_CITATION_SUFFIX_RE.sub("", raw)),
         ("colon_before_dash", re.sub(r":\s*[—–‑‐−-]", " —", raw)),
         ("colon_before_punctuation", re.sub(r":\s*([,.;!?])", r"\1", raw)),
@@ -255,24 +255,42 @@ def _unit_slot_match(
             return SourceSlotMatch(joined_unit_end)
         return None
     if unit.kind == "blank":
-        if not slot.has_drawing and not _normalize_text(slot.text):
+        if (
+            not slot.has_drawing
+            and slot.disposition is ParagraphDisposition.STRUCTURAL_EMPTY
+        ):
             return SourceSlotMatch(joined_unit_end)
         return None
     if unit.kind == "thematic":
-        if _is_thematic_slot_text(slot.text):
+        if _is_thematic_slot_text(slot.alignment_text) and (
+            bool(slot.alignment_text)
+            or slot.disposition is ParagraphDisposition.STRUCTURAL_EMPTY
+        ):
             return SourceSlotMatch(joined_unit_end)
         return None
-    evidence = _source_text_alignment_evidence(unit.plain_text, slot.text)
+    evidence = _source_text_alignment_evidence(unit.plain_text, slot.alignment_text)
     return SourceSlotMatch(joined_unit_end, evidence) if evidence is not None else None
 
 
 def _slot_has_text(slot: WordTextSlot) -> bool:
-    return bool(_normalize_text(slot.text))
+    return bool(_normalize_text(slot.alignment_text))
 
 
 def _slot_preview(slot: WordTextSlot) -> str:
-    text = slot.text.strip() or "<image>" if slot.has_drawing else slot.text.strip() or "<blank>"
-    return re.sub(r"\s+", " ", text)[:80]
+    if text := slot.alignment_text:
+        return re.sub(r"\s+", " ", text)[:80]
+    if slot.has_drawing:
+        return "<image>"
+    match slot.disposition:
+        case ParagraphDisposition.STRUCTURAL_EMPTY:
+            return "<blank>"
+        case ParagraphDisposition.PAGINATION_ONLY:
+            return "<pagination>"
+        case ParagraphDisposition.NON_TEXT:
+            return "<non-text>"
+        case ParagraphDisposition.CONTENT:
+            raise AssertionError("content paragraph has no readable text")
+    assert_never(slot.disposition)
 
 
 def _is_toc_line(text: str) -> bool:
@@ -284,19 +302,25 @@ def _is_toc_line(text: str) -> bool:
 def _is_toc_gap(text_slots: Sequence[WordTextSlot]) -> bool:
     return (
         bool(text_slots)
-        and _normalize_text(text_slots[0].text) in {"оглавление", "содержание"}
-        and all(_is_toc_line(slot.text) for slot in text_slots)
+        and _normalize_text(text_slots[0].alignment_text) in {"оглавление", "содержание"}
+        and all(_is_toc_line(slot.alignment_text) for slot in text_slots)
     )
 
 
 def _is_back_matter_gap(text_slots: Sequence[WordTextSlot]) -> bool:
     if not text_slots:
         return False
-    return _normalize_text(text_slots[0].text) in {"библиография", "копирайт", "контакты"}
+    return _normalize_text(text_slots[0].alignment_text) in {
+        "библиография",
+        "копирайт",
+        "контакты",
+    }
 
 
 def _is_thematic_gap(text_slots: Sequence[WordTextSlot]) -> bool:
-    return bool(text_slots) and all(_is_thematic_slot_text(slot.text) for slot in text_slots)
+    return bool(text_slots) and all(
+        _is_thematic_slot_text(slot.alignment_text) for slot in text_slots
+    )
 
 
 def _ignored_gap_slots(
@@ -318,7 +342,7 @@ def _ignored_gap_slots(
         return tuple(IgnoredWordSlot(slot, "source_back_matter") for slot in gap)
     slot = text_slots[0]
     raise DocxTranslationError(
-        f"source DOCX paragraph {slot.ordinal} was skipped {context}: "
+        f"source DOCX paragraph {slot.story_index} was skipped {context}: "
         f"{_slot_preview(slot)!r}"
     )
 
@@ -666,8 +690,8 @@ def _ignored_slot_diagnostics(ignored_slots: Sequence[IgnoredWordSlot]) -> tuple
     def flush() -> None:
         if not group:
             return
-        first = group[0].slot.ordinal
-        last = group[-1].slot.ordinal
+        first = group[0].slot.story_index
+        last = group[-1].slot.story_index
         ordinal_span = str(first) if first == last else f"{first}-{last}"
         preview_slot = next(
             (ignored.slot for ignored in group if _slot_has_text(ignored.slot)),
@@ -686,7 +710,7 @@ def _ignored_slot_diagnostics(ignored_slots: Sequence[IgnoredWordSlot]) -> tuple
             group
             and (
                 ignored.reason != group[-1].reason
-                or ignored.slot.ordinal != group[-1].slot.ordinal + 1
+                or ignored.slot.story_index != group[-1].slot.story_index + 1
             )
         ):
             flush()
@@ -714,7 +738,7 @@ def _alignment_evidence_diagnostics(
             "warning",
             "docx-translate.source-text-alignment-variant",
             f"aligned RU Markdown unit(s) {unit_span} to source DOCX paragraph "
-            f"{alignment.slot.ordinal} via {reason}: {_slot_preview(alignment.slot)!r}",
+            f"{alignment.slot.story_index} via {reason}: {_slot_preview(alignment.slot)!r}",
         ))
     return tuple(diagnostics)
 

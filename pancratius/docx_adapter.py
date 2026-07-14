@@ -9,33 +9,23 @@ survive into the IR. The OOXML side-channel reads paragraph alignment `w:jc` and
 visual lineation groups from `w:contextualSpacing`, which Pandoc drops; they are
 reconciled onto the IR's `Paragraph` blocks by content.
 
-NOT `import-pure`: it shells to pandoc, reads the DOCX zip, and extracts media into
-a caller-provided scratch dir — that impurity is isolated here so downstream stages
-stay pure. Footnotes arrive as inline `Note` nodes and are lowered to
+NOT `import-pure`: composition delegates package projection and the Pandoc process
+to `docx_pandoc`; downstream IR stages stay pure. Footnotes arrive as inline `Note` nodes and are lowered to
 `FootnoteRef`/`FootnoteDef` pairs renumbered densely by reference order.
 """
 
 from __future__ import annotations
 
-import io
-import json
 import re
-import subprocess
-import xml.etree.ElementTree as ET
-import zipfile
 from bisect import bisect_left
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, cast
 
-from pancratius import docx_source, ir
+from pancratius import docx_pandoc, docx_source, ir
 from pancratius.docx_source import SourceParagraph
 from pancratius.ir.inlines import inline_plain
-from pancratius.ooxml import W_NS
-from pancratius.pandoc import pandoc_argv0
-
-W = docx_source.W
 
 _WORD_RE = re.compile(r"\w+", re.UNICODE)
 
@@ -51,119 +41,6 @@ def _node(value: object) -> dict[str, Any] | None:
     cast is needed because a bare `isinstance(x, dict)` narrows to
     `dict[Unknown, Unknown]`, whose keys ty types as `Never`."""
     return cast("dict[str, Any]", value) if isinstance(value, dict) else None
-
-
-# ---------------------------------------------------------------------------
-# Pandoc JSON
-# ---------------------------------------------------------------------------
-
-
-# Wall-clock cap on a single pandoc invocation: a loose bound that fires only on a
-# pathological input that would otherwise hang the import indefinitely.
-PANDOC_TIMEOUT_SECONDS = 300
-
-# The conventional OOXML prefixes pandoc 3.x resolves drawing/image embeds by. Some
-# source DOCX (tool-exported) bind these correct URIs to GENERIC prefixes
-# (`ns3:`/`ns5:`/`ns7:` …); pandoc then drops every image despite a spec-valid file.
-# `_canonical_pandoc_input` re-prefixes such a doc before pandoc reads it.
-_CANONICAL_NS = {
-    W_NS: "w",
-    "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing": "wp",
-    "http://schemas.openxmlformats.org/drawingml/2006/main": "a",
-    "http://schemas.openxmlformats.org/drawingml/2006/picture": "pic",
-    "http://schemas.openxmlformats.org/officeDocument/2006/relationships": "r",
-}
-_DOCUMENT_XML = "word/document.xml"
-
-
-def _ns_bindings(document_xml: bytes) -> dict[str, str]:
-    """Every `prefix -> uri` namespace binding declared in the document (last wins)."""
-    out: dict[str, str] = {}
-    for _event, (prefix, uri) in ET.iterparse(io.BytesIO(document_xml), events=("start-ns",)):
-        out[prefix] = uri
-    return out
-
-
-def _needs_canonicalization(bindings: Mapping[str, str]) -> bool:
-    """True when any conventional OOXML drawing URI is bound to a NON-conventional prefix —
-    the condition under which pandoc, resolving embeds by prefix, drops images. Keyed on the
-    embed-resolving URIs themselves (not mere prefix presence), so a doc that binds a canonical
-    URI to a generic alias is still caught."""
-    return any(uri in _CANONICAL_NS and prefix != _CANONICAL_NS[uri]
-               for prefix, uri in bindings.items())
-
-
-def _reserialize_canonical(document_xml: bytes) -> bytes:
-    """Re-serialize `document.xml` forcing conventional prefixes for the drawing URIs. The
-    URIs — and therefore the meaning — are unchanged; only prefixes move. Per the package's
-    register-before-serialize convention (`docx_render`, `docx_outline`), the canonical prefixes
-    are registered immediately before `tostring`; they are the STANDARD OOXML prefixes, so the
-    last-wins global registry only ever yields conventional, valid XML for any later serializer."""
-    for uri, prefix in _CANONICAL_NS.items():
-        ET.register_namespace(prefix, uri)
-    return ET.tostring(ET.fromstring(document_xml), encoding="UTF-8", xml_declaration=True)
-
-
-def _canonical_pandoc_input(docx: Path, work_dir: Path) -> Path:
-    """`docx` ready for pandoc's image reader: the original when its drawing namespaces
-    already use conventional prefixes, else a re-prefixed temp copy under `work_dir`.
-
-    The rewrite changes ONLY the namespace prefixes of `word/document.xml` (the URIs,
-    and therefore the meaning, are unchanged), so the recovered images are real and no
-    text is lost. Only `document.xml` is rewritten — images in this corpus live there, not
-    in headers/footers/notes. The canonical source model matches by URI and reads
-    the ORIGINAL docx — only pandoc, which resolves embeds by prefix, needs this form.
-
-    A docx that cannot be read as a zip/XML here is passed through unchanged: pandoc stays
-    the single authority on a malformed file, so this pre-pass never converts a clean pandoc
-    error into an obscure one.
-    """
-    try:
-        document_xml = zipfile.ZipFile(docx).read(_DOCUMENT_XML)
-    except (OSError, zipfile.BadZipFile, KeyError):
-        return docx
-    if not _needs_canonicalization(_ns_bindings(document_xml)):
-        return docx                      # already conventional — pandoc reads it directly
-
-    src = zipfile.ZipFile(docx)
-    parts = {name: src.read(name) for name in src.namelist()}
-    parts[_DOCUMENT_XML] = _reserialize_canonical(document_xml)
-    out_dir = work_dir / "_canonical_docx"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out = out_dir / f"{docx.stem}.docx"
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as dst:
-        for name, data in parts.items():
-            dst.writestr(name, data)
-    return out
-
-
-def run_pandoc_json(docx: Path, media_dir: Path) -> tuple[dict[str, Any], str]:
-    """Parse `docx` to the Pandoc JSON AST, extracting media into `media_dir`.
-
-    Returns `(ast, stderr)`. `+empty_paragraphs` preserves Word empty paragraphs
-    so stanza structure reaches the IR. A DOCX whose drawing namespaces use generic
-    prefixes is canonicalized first (`_canonical_pandoc_input`) so pandoc resolves its
-    images. Raises on a non-zero pandoc exit, and on a `PANDOC_TIMEOUT_SECONDS`
-    wall-clock overrun (a hung/pathological conversion is turned into a clear error
-    instead of an indefinite hang).
-    """
-    pandoc_docx = _canonical_pandoc_input(docx, media_dir)
-    cmd = [
-        pandoc_argv0(), "--from", "docx+empty_paragraphs", "--to", "json",
-        "--extract-media", str(media_dir), str(pandoc_docx),
-    ]
-    try:
-        proc = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=PANDOC_TIMEOUT_SECONDS, check=False
-        )
-    except subprocess.TimeoutExpired as exc:
-        raise RuntimeError(
-            f"pandoc timed out after {PANDOC_TIMEOUT_SECONDS}s on {docx.name}; "
-            "the conversion was aborted (no partial output is trusted)."
-        ) from exc
-    if proc.returncode != 0:
-        raise RuntimeError(f"pandoc failed on {docx.name}: {proc.stderr.strip()}")
-    return json.loads(proc.stdout), proc.stderr.strip()
 
 
 def _fingerprint(text: str) -> str:
@@ -843,7 +720,7 @@ def adapt(
     future drift can't ship silently. Footnote definitions collected during the
     inline walk are attached densely renumbered.
     """
-    ast, warns = run_pandoc_json(source.path, media_dir)
+    ast, warns = docx_pandoc.run_json(source, media_dir)
     records = source.reconciliation_paragraphs
 
     ctx = _Ctx()

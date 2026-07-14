@@ -20,17 +20,26 @@ from dataclasses import dataclass, replace
 from enum import StrEnum
 from itertools import pairwise
 from pathlib import Path
+from typing import assert_never
 
-from pancratius.ooxml import MC_NS, W
+from pancratius import ooxml
+from pancratius.ooxml import W
 from pancratius.thematic import is_thematic_marker
 
-MC_FALLBACK = f"{{{MC_NS}}}Fallback"
 DOCUMENT_PART = "word/document.xml"
 STYLES_PART = "word/styles.xml"
 
 
 class DocxSourceError(ValueError):
     """A Word source cannot be represented by the canonical source model."""
+
+
+class AlternateContentError(DocxSourceError):
+    """A malformed compatibility branch, retaining its XML location."""
+
+    def __init__(self, element: ET.Element) -> None:
+        self.element = element
+        super().__init__("mc:AlternateContent has multiple fallback branches")
 
 
 @dataclass(frozen=True, slots=True, order=True)
@@ -89,12 +98,25 @@ class BreakKind(StrEnum):
 
     @classmethod
     def from_ooxml(cls, raw: str | None) -> BreakKind:
-        if raw == "page":
-            return cls.PAGE
-        if raw == "column":
-            return cls.COLUMN
-        # Only explicit pagination is excluded; other values retain line behavior.
-        return cls.LINE
+        match raw:
+            case None | "textWrapping":
+                return cls.LINE
+            case "page":
+                return cls.PAGE
+            case "column":
+                return cls.COLUMN
+            case unsupported:
+                raise DocxSourceError(f"unsupported w:br type {unsupported!r}")
+
+    @property
+    def is_pagination(self) -> bool:
+        """Whether this break controls layout rather than authored lineation."""
+        match self:
+            case BreakKind.LINE:
+                return False
+            case BreakKind.PAGE | BreakKind.COLUMN:
+                return True
+        assert_never(self)
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,17 +136,22 @@ class ParagraphContent:
     atoms: tuple[ParagraphAtom, ...] = ()
 
     def _project(self, *, lineated: bool) -> str:
-        def text_value(atom: TextAtom) -> str:
+        def text_value(value: str) -> str:
             if lineated:
-                return atom.value
-            return "".join(" " if character == "\t" else character for character in atom.value)
+                return value
+            return "".join(" " if character == "\t" else character for character in value)
 
-        return "".join(
-            text_value(atom)
-            if isinstance(atom, TextAtom)
-            else "\n" if lineated and atom is BreakKind.LINE else " "
-            for atom in self.atoms
-        )
+        def atom_value(atom: ParagraphAtom) -> str:
+            match atom:
+                case TextAtom(value=value):
+                    return text_value(value)
+                case BreakKind.LINE:
+                    return "\n" if lineated else " "
+                case BreakKind.PAGE | BreakKind.COLUMN:
+                    return " "
+            assert_never(atom)
+
+        return "".join(atom_value(atom) for atom in self.atoms)
 
     @property
     def reading(self) -> str:
@@ -146,12 +173,17 @@ class ParagraphContent:
     @property
     def pagination_only(self) -> bool:
         """True when atoms carry pagination and no readable/lineating content."""
-        return any(
-            isinstance(atom, BreakKind) and atom is not BreakKind.LINE
-            for atom in self.atoms
-        ) and all(
+        return any(break_kind.is_pagination for break_kind in self.breaks) and all(
             (isinstance(atom, TextAtom) and not atom.value.strip())
-            or (isinstance(atom, BreakKind) and atom is not BreakKind.LINE)
+            or (isinstance(atom, BreakKind) and atom.is_pagination)
+            for atom in self.atoms
+        )
+
+    @property
+    def text_only_blank(self) -> bool:
+        """True when content is empty or consists solely of whitespace text."""
+        return all(
+            isinstance(atom, TextAtom) and not atom.value.strip()
             for atom in self.atoms
         )
 
@@ -163,6 +195,34 @@ class ParagraphDisposition(StrEnum):
     STRUCTURAL_EMPTY = "structural_empty"
     PAGINATION_ONLY = "pagination_only"
     NON_TEXT = "non_text"
+
+
+@dataclass(frozen=True, slots=True)
+class ParagraphSemantics:
+    """The one source-owned analysis of a raw Word paragraph."""
+
+    content: ParagraphContent
+    page_break_before: bool
+    has_opaque_payload: bool
+
+    @property
+    def text(self) -> str:
+        """Readable paragraph text; layout controls never become content."""
+        return self.content.reading.strip()
+
+    @property
+    def disposition(self) -> ParagraphDisposition:
+        """Derive removability from source facts; never cache a second truth."""
+        if self.text:
+            return ParagraphDisposition.CONTENT
+        if not self.has_opaque_payload and (
+            self.content.pagination_only
+            or (self.page_break_before and self.content.text_only_blank)
+        ):
+            return ParagraphDisposition.PAGINATION_ONLY
+        if not self.has_opaque_payload and self.content.text_only_blank:
+            return ParagraphDisposition.STRUCTURAL_EMPTY
+        return ParagraphDisposition.NON_TEXT
 
 
 class ParagraphRole(StrEnum):
@@ -213,8 +273,7 @@ class SourceParagraph:
 
     ordinal: ParagraphOrdinal
     reconciliation_position: ReconciliationPosition | None
-    content: ParagraphContent
-    disposition: ParagraphDisposition
+    semantics: ParagraphSemantics
     resolved_style: str
     direct_style: str
     alignment: ParagraphAlignment
@@ -225,14 +284,25 @@ class SourceParagraph:
     border: BorderGesture
     roles: frozenset[ParagraphRole]
     segment: SourceSegment
-    page_break_before: bool
     bold: bool
     italic: bool
     visual_group: VisualLineationGroup | None = None
 
     @property
+    def content(self) -> ParagraphContent:
+        return self.semantics.content
+
+    @property
+    def disposition(self) -> ParagraphDisposition:
+        return self.semantics.disposition
+
+    @property
+    def page_break_before(self) -> bool:
+        return self.semantics.page_break_before
+
+    @property
     def text(self) -> str:
-        return self.content.reading.strip()
+        return self.semantics.text
 
     @property
     def numbered(self) -> bool:
@@ -266,6 +336,25 @@ class DocxSourceDocument:
     def reconciliation_paragraphs(self) -> tuple[SourceParagraph, ...]:
         """Paragraphs that can correspond to top-level Pandoc paragraph blocks."""
         return tuple(p for p in self.paragraphs if p.reconciliation_position is not None)
+
+    @property
+    def content_ordinals(self) -> frozenset[int]:
+        """Raw identities eligible for per-paragraph reading/lineation truth."""
+        return frozenset(
+            paragraph.ordinal.value
+            for paragraph in self.paragraphs
+            if paragraph.disposition is ParagraphDisposition.CONTENT
+        )
+
+    @property
+    def semantic_ordinals(self) -> frozenset[int]:
+        """Raw identities that carry readable or opaque source meaning."""
+        return frozenset(
+            paragraph.ordinal.value
+            for paragraph in self.paragraphs
+            if paragraph.disposition
+            in {ParagraphDisposition.CONTENT, ParagraphDisposition.NON_TEXT}
+        )
 
     def paragraph(self, ordinal: ParagraphOrdinal) -> SourceParagraph:
         if ordinal.value >= len(self.paragraphs):
@@ -353,6 +442,58 @@ def _w_val(element: ET.Element | None) -> str:
     return str(element.get(f"{W}val") or "") if element is not None else ""
 
 
+def _baseline_fallback(
+    parent: ET.Element,
+    alternate: ET.Element,
+) -> ET.Element | None:
+    if parent.tag != f"{W}r":
+        return None
+    fallbacks = alternate.findall(ooxml.MC_FALLBACK)
+    if len(fallbacks) > 1:
+        raise AlternateContentError(alternate)
+    return fallbacks[0] if fallbacks else None
+
+
+def iter_baseline_children(parent: ET.Element) -> Iterator[ET.Element]:
+    """Yield the direct children selected by the baseline capability profile.
+
+    Pandoc recognizes ``mc:AlternateContent`` only directly under ``w:r`` and
+    consumes its fallback without claiming extension capabilities. Other
+    placements contribute no selected children.
+    """
+    for child in parent:
+        if child.tag == ooxml.MC_ALTERNATE_CONTENT:
+            fallback = _baseline_fallback(parent, child)
+            if fallback is not None:
+                yield from iter_baseline_children(fallback)
+            continue
+        yield child
+
+
+def iter_baseline_descendants(root: ET.Element) -> Iterator[ET.Element]:
+    """Walk every descendant selected by the baseline capability profile."""
+    for child in iter_baseline_children(root):
+        yield child
+        yield from iter_baseline_descendants(child)
+
+
+def story_paragraph_elements(root: ET.Element) -> tuple[ET.Element, ...]:
+    """Paragraphs visible under one Word story in selected document order."""
+    return tuple(
+        element
+        for element in iter_baseline_descendants(root)
+        if element.tag == f"{W}p"
+    )
+
+
+def paragraph_has_drawing(paragraph: ET.Element) -> bool:
+    """Whether the selected compatibility branch carries a drawing."""
+    return any(
+        element.tag in {f"{W}drawing", f"{W}pict"}
+        for element in iter_baseline_descendants(paragraph)
+    )
+
+
 def _enabled(element: ET.Element | None) -> bool:
     return element is not None and element.get(f"{W}val") not in {"0", "false", "False", "off"}
 
@@ -426,39 +567,67 @@ def _resolved_spacing(
 
 def _paragraph_content(paragraph: ET.Element) -> ParagraphContent:
     atoms: list[ParagraphAtom] = []
-
-    def walk(element: ET.Element) -> None:
-        for child in element:
-            if child.tag == MC_FALLBACK:
-                # ``mc:Choice`` already contributed the active representation.
-                # Counting fallback text or controls would duplicate content.
-                continue
-            if child.tag == f"{W}t":
-                if child.text:
-                    atoms.append(TextAtom(child.text))
-            elif child.tag == f"{W}br":
-                atoms.append(BreakKind.from_ooxml(child.get(f"{W}type")))
-            elif child.tag == f"{W}cr":
-                atoms.append(BreakKind.LINE)
-            elif child.tag == f"{W}tab":
-                atoms.append(TextAtom("\t"))
-            elif child.tag == f"{W}noBreakHyphen":
-                atoms.append(TextAtom("‑"))
-            elif child.tag == f"{W}softHyphen":
-                atoms.append(TextAtom("­"))
-            else:
-                walk(child)
-
-    walk(paragraph)
+    for child in iter_baseline_descendants(paragraph):
+        if child.tag == f"{W}t" and child.text:
+            atoms.append(TextAtom(child.text))
+        elif child.tag == f"{W}br":
+            atoms.append(BreakKind.from_ooxml(child.get(f"{W}type")))
+        elif child.tag == f"{W}cr":
+            atoms.append(BreakKind.LINE)
+        elif child.tag == f"{W}tab":
+            atoms.append(TextAtom("\t"))
+        elif child.tag == f"{W}noBreakHyphen":
+            atoms.append(TextAtom("‑"))
+        elif child.tag == f"{W}softHyphen":
+            atoms.append(TextAtom("­"))
     return ParagraphContent(tuple(atoms))
 
 
-_NON_TEXT_SOURCE_CONTENT = frozenset(
-    {f"{W}br", f"{W}cr", f"{W}tab", f"{W}drawing", f"{W}pict", f"{W}object"}
+_ATOM_MARKUP = frozenset(
+    {
+        f"{W}p",
+        f"{W}r",
+        f"{W}t",
+        f"{W}br",
+        f"{W}cr",
+        f"{W}tab",
+        f"{W}noBreakHyphen",
+        f"{W}softHyphen",
+        f"{W}lastRenderedPageBreak",
+    }
 )
-_OPAQUE_SOURCE_CONTENT = frozenset({f"{W}drawing", f"{W}pict", f"{W}object"})
+_PROPERTY_CONTAINERS = frozenset({f"{W}pPr", f"{W}rPr"})
+_SEMANTIC_PROPERTIES = frozenset({f"{W}numPr", f"{W}sectPr"})
 _HEADING_STYLE = re.compile(r"(?:Heading\d+|[1-9])")
 _BORDER_SIDES = ("top", "bottom", "left", "right")
+
+
+def _has_opaque_payload(paragraph: ET.Element) -> bool:
+    """Whether removing this paragraph could discard unmodelled source meaning.
+
+    Formatting properties are harmless without content, except numbering and
+    section properties, which carry package/structural semantics. Everything
+    outside the deliberately tiny atom/wrapper vocabulary is opaque passthrough:
+    bookmarks, fields, references, equations, symbols, content controls, and
+    future OOXML constructs therefore make the paragraph non-removable.
+    """
+
+    def walk(element: ET.Element) -> bool:
+        for child in element:
+            if child.tag == ooxml.MC_ALTERNATE_CONTENT:
+                fallback = _baseline_fallback(element, child)
+                if fallback is None or walk(fallback):
+                    return True
+                continue
+            if child.tag in _PROPERTY_CONTAINERS:
+                if any(node.tag in _SEMANTIC_PROPERTIES for node in child.iter()):
+                    return True
+                continue
+            if child.tag not in _ATOM_MARKUP or walk(child):
+                return True
+        return False
+
+    return walk(paragraph)
 
 
 def _border_gesture(ppr: ET.Element | None) -> BorderGesture:
@@ -493,22 +662,20 @@ def _paragraph_roles(
     return frozenset(roles or {ParagraphRole.BODY})
 
 
-def _paragraph_disposition(
-    paragraph: ET.Element, content: ParagraphContent
-) -> ParagraphDisposition:
-    if content.reading.strip():
-        return ParagraphDisposition.CONTENT
-    tags = {element.tag for element in paragraph.iter()}
-    if content.pagination_only and not tags & _OPAQUE_SOURCE_CONTENT:
-        return ParagraphDisposition.PAGINATION_ONLY
-    if not tags & _NON_TEXT_SOURCE_CONTENT:
-        return ParagraphDisposition.STRUCTURAL_EMPTY
-    return ParagraphDisposition.NON_TEXT
-
-
 def _page_break_before(ppr: ET.Element | None) -> bool:
     element = ppr.find(f"{W}pageBreakBefore") if ppr is not None else None
-    return element is not None and element.get(f"{W}val") not in {"false", "0", "none"}
+    return _enabled(element)
+
+
+def analyze_paragraph(paragraph: ET.Element) -> ParagraphSemantics:
+    """Interpret paragraph content, pagination, and removability exactly once."""
+    content = _paragraph_content(paragraph)
+    page_break_before = _page_break_before(paragraph.find(f"{W}pPr"))
+    return ParagraphSemantics(
+        content=content,
+        page_break_before=page_break_before,
+        has_opaque_payload=_has_opaque_payload(paragraph),
+    )
 
 
 def body_paragraph_elements(body: ET.Element) -> tuple[ET.Element, ...]:
@@ -576,7 +743,7 @@ def _direction_indents(paragraphs: tuple[SourceParagraph, ...]) -> tuple[SourceP
 
 
 def _assign_visual_groups(paragraphs: tuple[SourceParagraph, ...]) -> tuple[SourceParagraph, ...]:
-    eligible = [p for p in paragraphs if not p.numbered]
+    eligible = [p for p in paragraphs if p.reconciliation_position is not None]
     groups: dict[ParagraphOrdinal, VisualLineationGroup] = {}
     next_id = 1
     run: list[SourceParagraph] = []
@@ -629,15 +796,22 @@ def read(docx: Path) -> DocxSourceDocument:
         direct_spacing = _attributes(
             ppr.find(f"{W}spacing") if ppr is not None else None
         )
-        content = _paragraph_content(event)
+        try:
+            semantics = analyze_paragraph(event)
+        except DocxSourceError as exc:
+            raise DocxSourceError(
+                f"{docx.name}: paragraph {ordinal.value}: {exc}"
+            ) from exc
+        content = semantics.content
         text = content.reading.strip()
+        disposition = semantics.disposition
+        reconciles = not numbered and disposition is not ParagraphDisposition.PAGINATION_ONLY
         paragraph = SourceParagraph(
             ordinal=ordinal,
             reconciliation_position=(
-                None if numbered else ReconciliationPosition(reconciliation_position)
+                ReconciliationPosition(reconciliation_position) if reconciles else None
             ),
-            content=content,
-            disposition=_paragraph_disposition(event, content),
+            semantics=semantics,
             resolved_style=resolved_style,
             direct_style=direct_style,
             alignment=ParagraphAlignment(
@@ -669,14 +843,13 @@ def read(docx: Path) -> DocxSourceDocument:
                 text=text,
             ),
             segment=SourceSegment(segment),
-            page_break_before=_page_break_before(ppr),
             bold=any(_enabled(element) for element in event.findall(f".//{W}b")),
             italic=any(_enabled(element) for element in event.findall(f".//{W}i")),
         )
         paragraphs.append(paragraph)
         if numbered:
             segment += 1
-        else:
+        elif reconciles:
             reconciliation_position += 1
 
     directed = _direction_indents(tuple(paragraphs))

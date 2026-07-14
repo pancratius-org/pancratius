@@ -163,12 +163,15 @@ footnote, image-role, and source-span information; a full source AST is too broa
 for the Pancratius model. Add a block type when structure is real. Do not smuggle
 structure through string conventions.
 
-`source_span` is provenance, not structure: when the DOCX adapter can prove which
-top-level `word/document.xml` paragraphs produced a block, it records the
-inclusive ordinal range on that block. Passes combine or copy that span
+`source_span` is an enclosing provenance interval, not an assertion that every
+raw ordinal inside it contributed semantics: when the DOCX adapter can prove the
+outermost top-level `word/document.xml` paragraphs that produced a block, it
+records that inclusive range. Passes combine or copy that span
 when it wraps, merges, or splits source-derived blocks. Lowering ignores it.
 Diagnostics such as `pancratius docx inspect` use it to map IR decisions back to
-the exact DOCX slice; missing provenance must stay missing rather than guessed.
+the DOCX slice, intersecting per-paragraph classifications with the source
+aggregate's semantic ordinals so skipped pagination/empty rows cannot be swept
+back in by the interval. Missing provenance must stay missing rather than guessed.
 
 ### One adapter now: DOCX
 
@@ -197,6 +200,17 @@ Paragraph disposition explicitly distinguishes readable content, structural
 emptiness, pagination-only layout, and opaque non-text content. Raw paragraph
 ordinal remains source identity while reconciliation position owns semantic
 adjacency.
+
+The Pandoc anti-corruption projection consumes that aggregate. It omits body
+paragraphs whose disposition is pagination-only, neutralizes page/column breaks
+inside mixed content, and preserves authored line breaks. The same narrow break
+projection covers `document.xml`, `footnotes.xml`, and `endnotes.xml` without
+promoting note internals into the domain model. Rewritten story parts retain
+their required namespace bindings and the scratch package retains ZIP entry
+order and metadata; the source DOCX is never mutated.
+The source reader and Pandoc projection share one baseline capability profile:
+only a supported direct fallback is selected from markup-compatibility
+alternatives; inactive choices are never concatenated or used as evidence.
 
 An import or diagnostic operation hydrates this source-document handle once and
 passes it to the adapter and adjudication rails. It is an immutable source

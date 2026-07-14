@@ -38,6 +38,12 @@ def load_overrides(
     out: dict[int, LineationRegister] = {}
     for adjudication in docx_source.read_adjudications(source, path):
         ordinal = int(adjudication.paragraph.ordinal)
+        if adjudication.paragraph.disposition is not docx_source.ParagraphDisposition.CONTENT:
+            raise ValueError(
+                f"{path.name}: ordinal {ordinal} is "
+                f"{adjudication.paragraph.disposition.value}, not readable content — "
+                "the adjudication is stale; re-adjudicate or remove it"
+            )
         raw_register = adjudication.payload.get("register")
         if raw_register == "prose":
             register: LineationRegister = "prose"

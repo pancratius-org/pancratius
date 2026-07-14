@@ -283,6 +283,29 @@ def test_work_import_input_error_is_usage(monkeypatch: pytest.MonkeyPatch) -> No
     assert _exit_code(["work", "import", "x.docx", "--kind", "book", "--lang", "ru"]) == 2
 
 
+def test_work_import_source_error_is_concise_usage_error(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from pancratius import docx_source, import_docx
+
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
+
+    def fail_source(_request: object) -> object:
+        raise docx_source.DocxSourceError(
+            "source.docx: paragraph 4: unsupported w:br type 'future-layout'"
+        )
+
+    monkeypatch.setattr(import_docx, "_apply", fail_source)
+
+    assert _exit_code(
+        ["work", "import", "source.docx", "--kind", "book", "--lang", "ru"]
+    ) == 2
+    error = capsys.readouterr().err
+    assert "unsupported w:br type 'future-layout'" in error
+    assert "Traceback" not in error
+
+
 def test_work_import_artifact_contract_error_is_failure(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -449,6 +472,43 @@ def test_project_page_add_scaffold_error_is_usage(monkeypatch: pytest.MonkeyPatc
 
     monkeypatch.setattr(docx_conversion, "scaffold_subpage", boom)
     assert _exit_code(["project", "page", "add", "project:holy-rus/my-sub", "x.txt", "--lang", "ru"]) == 2
+
+
+def test_project_page_add_source_error_is_concise_usage_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from pancratius import docx_conversion, docx_source
+
+    source = tmp_path / "source.docx"
+    source.touch()
+    monkeypatch.setattr(cli, "find_pandoc", lambda: _fake_pandoc())
+    monkeypatch.setattr(docx_conversion, "CACHE_ROOT", tmp_path / "cache")
+
+    def fail_source(*_args: object, **_kwargs: object) -> object:
+        raise docx_source.DocxSourceError(
+            "source.docx: paragraph 4: unsupported w:br type 'future-layout'"
+        )
+
+    monkeypatch.setattr(docx_conversion, "convert_single_docx", fail_source)
+
+    assert _exit_code(
+        [
+            "project",
+            "page",
+            "add",
+            "project:holy-rus/my-sub",
+            str(source),
+            "--lang",
+            "ru",
+            "--out-content",
+            str(tmp_path / "content"),
+        ]
+    ) == 2
+    error = capsys.readouterr().err
+    assert "unsupported w:br type 'future-layout'" in error
+    assert "Traceback" not in error
 
 
 def test_project_page_add_artifact_contract_error_is_failure(

@@ -10,7 +10,7 @@ from pathlib import Path
 from pancratius import render_downloads
 from pancratius.docx_merge import DocxMergeError, validate_docx_package
 from pancratius.locales import Locale
-from pancratius.ooxml import serialize_xml
+from pancratius.ooxml import parse_xml, serialize_xml
 from pancratius.pandoc import PandocNotFoundError, pandoc_argv0
 from pancratius.translation.docx.align import (
     align_source_units,
@@ -66,7 +66,8 @@ def render_translated_docx(
     try:
         package = copy_docx_parts(source_docx)
         parts = dict(package.parts)
-        document_root = ET.fromstring(parts["word/document.xml"])
+        document = parse_xml(parts["word/document.xml"])
+        document_root = document.root
     except DocxTranslationError as exc:
         diagnostics.append(Diagnostic("fatal", "docx-translate.invalid-docx", str(exc)))
         return len(source.units), len(translated.units), 0, tuple(diagnostics)
@@ -85,8 +86,8 @@ def render_translated_docx(
         ))
         return len(source.units), len(translated.units), 0, tuple(diagnostics)
 
-    slots = word_text_slots(document_root)
     try:
+        slots = word_text_slots(document_root)
         alignment_plan = align_source_units(source, slots)
         diagnostics.extend(ignored_slot_diagnostics(alignment_plan.ignored_slots))
         diagnostics.extend(alignment_evidence_diagnostics(alignment_plan.alignments))
@@ -107,7 +108,7 @@ def render_translated_docx(
                 tuple(translated_members)
             )
             replace_paragraph_text(
-                alignment.slot.paragraph,
+                alignment.slot,
                 translated_unit,
                 hyperlinks=document_hyperlinks,
             )
@@ -118,10 +119,7 @@ def render_translated_docx(
             return len(source.units), len(translated.units), 0, tuple(diagnostics)
         if document_hyperlinks is not None:
             document_hyperlinks.save()
-        parts["word/document.xml"] = serialize_xml(
-            document_root,
-            source_xml=package.parts["word/document.xml"],
-        )
+        parts["word/document.xml"] = serialize_xml(document)
         prune_unreferenced_external_hyperlinks(parts, "word/document.xml")
         replace_footnotes(
             parts,

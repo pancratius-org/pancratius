@@ -22,18 +22,8 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
-W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-W = f"{{{W_NS}}}"
-OOXML_NAMESPACES = {
-    "w": W_NS,
-    "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
-    "wp": "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing",
-    "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
-    "pic": "http://schemas.openxmlformats.org/drawingml/2006/picture",
-    "wps": "http://schemas.microsoft.com/office/word/2010/wordprocessingShape",
-    "wpg": "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup",
-    "mc": "http://schemas.openxmlformats.org/markup-compatibility/2006",
-}
+from pancratius.docx_source import DocxSourceError, analyze_paragraph
+from pancratius.ooxml import W, parse_xml, serialize_xml
 
 
 class DocxOutlineError(ValueError):
@@ -66,13 +56,11 @@ def _w_val(el: ET.Element | None) -> str:
     return "" if el is None else el.get(f"{W}val", "")
 
 
-def _register_ooxml_namespaces() -> None:
-    for prefix, uri in OOXML_NAMESPACES.items():
-        ET.register_namespace(prefix, uri)
-
-
 def _paragraph_text(p: ET.Element) -> str:
-    return "".join(t.text or "" for t in p.findall(f".//{W}t")).strip()
+    try:
+        return analyze_paragraph(p).text
+    except DocxSourceError as exc:
+        raise DocxOutlineError(f"unsupported source paragraph: {exc}") from exc
 
 
 def _pstyle(p: ET.Element) -> ET.Element | None:
@@ -273,7 +261,6 @@ def apply_part_outline(
     if not source.is_file():
         raise DocxOutlineError(f"DOCX not found: {source}")
 
-    _register_ooxml_namespaces()
     with zipfile.ZipFile(source) as zf:
         payload = {name: zf.read(name) for name in zf.namelist()}
     try:
@@ -282,8 +269,10 @@ def apply_part_outline(
     except KeyError as exc:
         raise DocxOutlineError(f"{source} is missing {exc.args[0]}") from exc
 
-    document_root = ET.fromstring(document_xml)
-    styles_root = ET.fromstring(styles_xml)
+    document = parse_xml(document_xml)
+    styles = parse_xml(styles_xml)
+    document_root = document.root
+    styles_root = styles.root
     body, children = _body_children(document_root)
     children, removed_toc = _drop_generated_toc_blocks(children)
     heading1_ids = _heading1_style_ids(styles_root)
@@ -305,8 +294,8 @@ def apply_part_outline(
         body.append(child)
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    payload["word/document.xml"] = ET.tostring(document_root, encoding="UTF-8", xml_declaration=True)
-    payload["word/styles.xml"] = ET.tostring(styles_root, encoding="UTF-8", xml_declaration=True)
+    payload["word/document.xml"] = serialize_xml(document)
+    payload["word/styles.xml"] = serialize_xml(styles)
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zf:
         for name, data in payload.items():
             zf.writestr(name, data)

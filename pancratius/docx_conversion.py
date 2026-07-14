@@ -415,7 +415,7 @@ def plan_from_staged_bundle(
 
 
 class ScaffoldError(Exception):
-    """Invalid input to scaffold_subpage (missing/non-DOCX source)."""
+    """Invalid DOCX input to ``scaffold_subpage``."""
 
 
 def _subpage_role(rel: PurePosixPath) -> Role:
@@ -464,15 +464,18 @@ def scaffold_subpage(
     try:
         # Thread a non-work kind so the prose path runs (only `kind == "poem"` is
         # special-cased).
-        converted = convert_single_docx(
-            docx,
-            kind="project",
-            lang=lang,
-            work_key=subpage_slug,
-            title=subpage_slug,
-            title_index={},
-            media_out=media_out,
-        )
+        try:
+            converted = convert_single_docx(
+                docx,
+                kind="project",
+                lang=lang,
+                work_key=subpage_slug,
+                title=subpage_slug,
+                title_index={},
+                media_out=media_out,
+            )
+        except docx_source.DocxSourceError as exc:
+            raise ScaffoldError(str(exc)) from exc
 
         # Mechanical fields seeded; editorial fields are TODO placeholders. The
         # `weight` value is enum-invalid, so the draft fails `npm run check` until a

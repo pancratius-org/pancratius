@@ -70,6 +70,32 @@ def test_read_rows_separates_line_breaks_from_page_breaks(tmp_path: Path) -> Non
     assert page_source.content.line_segments == ("before-break",)
 
 
+def test_render_distinguishes_pagination_only_from_structural_empty(
+    tmp_path: Path,
+) -> None:
+    from docx import Document
+    from docx.enum.text import WD_BREAK
+
+    document = Document()
+    document.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+    document.add_paragraph()
+    document.add_paragraph().add_run().add_break(WD_BREAK.COLUMN)
+    page_before = document.add_paragraph()
+    page_before.paragraph_format.page_break_before = True
+    path = tmp_path / "pagination-signals.docx"
+    document.save(str(path))
+
+    rendered = docx_inspect.render(
+        docx_inspect.read_rows(docx_source.read(path))
+    ).splitlines()
+    signals = [line for line in rendered if line[:4].strip().isdigit()]
+
+    assert "pagination pageBr" in signals[0]
+    assert "pagination" not in signals[1]
+    assert "pagination colBr" in signals[2]
+    assert "pagination pageBefore" in signals[3]
+
+
 def test_paragraph_content_derives_every_view_from_one_atom_sequence() -> None:
     content = docx_source.ParagraphContent((
         docx_source.TextAtom("before"),
@@ -89,30 +115,141 @@ def test_paragraph_content_derives_every_view_from_one_atom_sequence() -> None:
     assert content.line_segments == ("before after", "next")
 
 
-def test_source_names_pagination_only_without_changing_reconciliation(
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (None, docx_source.BreakKind.LINE),
+        ("textWrapping", docx_source.BreakKind.LINE),
+        ("page", docx_source.BreakKind.PAGE),
+        ("column", docx_source.BreakKind.COLUMN),
+    ],
+)
+def test_break_kind_accepts_exactly_the_ooxml_vocabulary(
+    raw: str | None,
+    expected: docx_source.BreakKind,
+) -> None:
+    assert docx_source.BreakKind.from_ooxml(raw) is expected
+
+
+def test_break_kind_fails_closed_on_future_ooxml_syntax() -> None:
+    with pytest.raises(
+        docx_source.DocxSourceError,
+        match=r"unsupported w:br type 'future-layout'",
+    ):
+        docx_source.BreakKind.from_ooxml("future-layout")
+
+
+@pytest.mark.parametrize(
+    ("content", "page_break_before", "has_opaque_payload", "expected"),
+    [
+        (
+            docx_source.ParagraphContent((docx_source.TextAtom("readable"),)),
+            True,
+            True,
+            docx_source.ParagraphDisposition.CONTENT,
+        ),
+        (
+            docx_source.ParagraphContent(),
+            False,
+            False,
+            docx_source.ParagraphDisposition.STRUCTURAL_EMPTY,
+        ),
+        (
+            docx_source.ParagraphContent(),
+            True,
+            False,
+            docx_source.ParagraphDisposition.PAGINATION_ONLY,
+        ),
+        (
+            docx_source.ParagraphContent((docx_source.BreakKind.PAGE,)),
+            False,
+            False,
+            docx_source.ParagraphDisposition.PAGINATION_ONLY,
+        ),
+        (
+            docx_source.ParagraphContent((docx_source.BreakKind.LINE,)),
+            False,
+            False,
+            docx_source.ParagraphDisposition.NON_TEXT,
+        ),
+        (
+            docx_source.ParagraphContent(),
+            False,
+            True,
+            docx_source.ParagraphDisposition.NON_TEXT,
+        ),
+    ],
+)
+def test_paragraph_disposition_is_derived_from_canonical_facts(
+    content: docx_source.ParagraphContent,
+    *,
+    page_break_before: bool,
+    has_opaque_payload: bool,
+    expected: docx_source.ParagraphDisposition,
+) -> None:
+    semantics = docx_source.ParagraphSemantics(
+        content=content,
+        page_break_before=page_break_before,
+        has_opaque_payload=has_opaque_payload,
+    )
+
+    assert semantics.disposition is expected
+
+
+def test_source_read_reports_unknown_break_with_document_and_paragraph(
+    tmp_path: Path,
+) -> None:
+    from docx import Document
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
+    document = Document()
+    paragraph = document.add_paragraph("before")
+    element = OxmlElement("w:br")
+    element.set(qn("w:type"), "future-layout")
+    paragraph.add_run()._r.append(element)
+    path = tmp_path / "unknown-break.docx"
+    document.save(str(path))
+
+    with pytest.raises(
+        docx_source.DocxSourceError,
+        match=(
+            r"unknown-break\.docx: paragraph 0: "
+            r"unsupported w:br type 'future-layout'"
+        ),
+    ):
+        docx_source.read(path)
+
+
+def test_pagination_only_is_excluded_without_breaking_semantic_adjacency(
     tmp_path: Path,
 ) -> None:
     from docx import Document
     from docx.enum.text import WD_BREAK
 
     document = Document()
+    document.add_paragraph("before")
     document.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
     document.add_paragraph()
     document.add_paragraph().add_run().add_break(WD_BREAK.LINE)
+    document.add_paragraph("after")
     path = tmp_path / "dispositions.docx"
     document.save(str(path))
 
     source = docx_source.read(path)
     assert [paragraph.disposition for paragraph in source.paragraphs] == [
+        docx_source.ParagraphDisposition.CONTENT,
         docx_source.ParagraphDisposition.PAGINATION_ONLY,
         docx_source.ParagraphDisposition.STRUCTURAL_EMPTY,
         docx_source.ParagraphDisposition.NON_TEXT,
+        docx_source.ParagraphDisposition.CONTENT,
     ]
     assert [
         paragraph.reconciliation_position.value
         for paragraph in source.reconciliation_paragraphs
         if paragraph.reconciliation_position is not None
-    ] == [0, 1, 2]
+    ] == [0, 1, 2, 3]
+    assert source.paragraphs[1].reconciliation_position is None
 
 
 pandoc_required = pytest.mark.skipif(
@@ -161,6 +298,29 @@ def test_docx_inspect_cli_missing_file_is_usage_error(
 
     assert rc == 2
     assert "DOCX not found" in capsys.readouterr().err
+
+
+def test_docx_inspect_cli_reports_source_error_without_traceback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    source = tmp_path / "source.docx"
+    source.write_bytes(b"source boundary stub")
+
+    def fail_read(_path: Path) -> docx_source.DocxSourceDocument:
+        raise docx_source.DocxSourceError(
+            "source.docx: paragraph 4: unsupported w:br type 'future-layout'"
+        )
+
+    monkeypatch.setattr(docx_source, "read", fail_read)
+
+    rc = cli.main(["docx", "inspect", str(source)])
+
+    assert rc == 2
+    error = capsys.readouterr().err
+    assert "unsupported w:br type 'future-layout'" in error
+    assert "Traceback" not in error
 
 
 def test_docx_inspect_cli_accepts_book_selector(
@@ -241,6 +401,7 @@ def test_docx_inspect_marks_repeated_text_with_mixed_import_roles(
         thematic=False,
         br_count=0,
         empty=False,
+        disposition=docx_source.ParagraphDisposition.CONTENT,
     )
 
     monkeypatch.setattr(
@@ -275,6 +436,7 @@ def test_docx_inspect_prefers_source_span_classification(
         thematic=False,
         br_count=0,
         empty=False,
+        disposition=docx_source.ParagraphDisposition.CONTENT,
     )
     span = ir.SourceSpan(4, 6)
 
@@ -311,6 +473,7 @@ def test_docx_inspect_classifies_empty_rows_inside_source_span(
         thematic=False,
         br_count=0,
         empty=True,
+        disposition=docx_source.ParagraphDisposition.STRUCTURAL_EMPTY,
     )
     span = ir.SourceSpan(4, 6)
 
@@ -329,7 +492,7 @@ def test_docx_inspect_classifies_empty_rows_inside_source_span(
     assert "ir=4..6" in docx_inspect.render([row])
 
 
-def test_docx_inspect_classifies_empty_rows_from_real_block_span(
+def test_docx_inspect_does_not_classify_empty_rows_from_enclosing_block_span(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     row = ParaRow(
@@ -347,6 +510,7 @@ def test_docx_inspect_classifies_empty_rows_from_real_block_span(
         thematic=False,
         br_count=0,
         empty=True,
+        disposition=docx_source.ParagraphDisposition.STRUCTURAL_EMPTY,
     )
 
     def fake_adapt(
@@ -366,8 +530,8 @@ def test_docx_inspect_classifies_empty_rows_from_real_block_span(
 
     docx_inspect.annotate([row], _empty_source())
 
-    assert row.block_kind == "VerseBlock"
-    assert row.block_source_span == ir.SourceSpan(4, 6)
+    assert row.block_kind == "—"
+    assert row.block_source_span is None
 
 
 def test_docx_inspect_kind_filters_keep_ambiguous_candidates() -> None:
@@ -387,6 +551,7 @@ def test_docx_inspect_kind_filters_keep_ambiguous_candidates() -> None:
             thematic=False,
             br_count=0,
             empty=False,
+            disposition=docx_source.ParagraphDisposition.CONTENT,
             block_kind="Ambiguous[LineatedBlock|Paragraph]",
         )
     ]
@@ -450,7 +615,13 @@ def test_votability_mask_keys_per_ordinal_and_leaves_unmapped_absent(
         ),
     ])
     monkeypatch.setattr(docx_inspect.da, "adapt", lambda _docx, _media, _diags: doc)
-    monkeypatch.setattr(docx_inspect.docx_source, "read", lambda _docx: _empty_source())
+    source = _empty_source()
+    monkeypatch.setattr(
+        type(source),
+        "semantic_ordinals",
+        property(lambda _source: frozenset(range(5))),
+    )
+    monkeypatch.setattr(docx_inspect.docx_source, "read", lambda _docx: source)
     monkeypatch.setattr("pancratius.docx_inspect.run", lambda d, _ctx, **_kw: d)
 
     mask = votability_mask(Path("source.docx"))
@@ -460,6 +631,36 @@ def test_votability_mask_keys_per_ordinal_and_leaves_unmapped_absent(
     # the verse block's merged ordinals 2..4 each resolve to a clean BODY
     assert mask[2] is mask[3] is mask[4] is MaskVerdict.BODY
     assert 5 not in mask   # unmapped ordinal is absent → the caller defaults it to REVIEW
+
+
+@pandoc_required
+def test_semantic_surfaces_do_not_expand_enclosing_span_over_pagination(
+    tmp_path: Path,
+) -> None:
+    """A folded block may enclose a skipped raw ordinal, but the ordinal is not a
+    semantic contributor and must stay absent from every per-paragraph surface."""
+    from docx import Document
+    from docx.enum.text import WD_BREAK
+
+    document = Document()
+    document.add_heading("Psalm", level=2)
+    document.add_paragraph("My quiet light,")
+    document.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+    document.add_paragraph("burns in the heart.")
+    path = tmp_path / "semantic-hole.docx"
+    document.save(str(path))
+
+    source = docx_source.read(path)
+    assert source.paragraphs[2].disposition is docx_source.ParagraphDisposition.PAGINATION_ONLY
+    classifications = docx_inspect.classify_blocks(source).by_source
+    decisions = docx_inspect.lineation_decisions(path, apply_overrides=False)
+    mask = docx_inspect.votability_mask(path)
+
+    assert classifications[1].span == ir.SourceSpan(1, 3)
+    assert 2 not in classifications
+    assert decisions[1] is decisions[3] is True
+    assert 2 not in decisions
+    assert 2 not in mask
 
 
 @pandoc_required
