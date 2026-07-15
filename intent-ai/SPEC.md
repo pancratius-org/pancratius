@@ -66,6 +66,10 @@ The student predicts `P(lineated)` from the fixed feature schema. Cross-validati
 `(language, book)` so no edition appears in its own training fold. Run smoothing is a decoding step
 over held-out posteriors, not a feature or label source.
 
+Scoring is document-shaped: one ordered feature batch becomes a `ScoredDocument` of source-attributed
+base posteriors. IID and smoothed decisions are interpretations of that same value; a policy sweep
+never refits or re-scores the document.
+
 Serialized weights pin both `feature_schema_version` and `producer_version`. Records, manifests,
 and weights reject version skew.
 

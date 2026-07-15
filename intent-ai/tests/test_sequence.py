@@ -4,6 +4,8 @@ structural slots, and soft-smooths (so confident within-run splits survive). Stu
 no training needed, fast."""
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import pytest
 from intent_ai import identity, sequence
 from intent_ai.identity import LineId
@@ -28,9 +30,9 @@ def _feat(fill=0.4, *, run_len=3, run_pos=1):
     )
 
 
-def _rec(ordn, role=Role.BODY, fill=0.4, **feature_kw):
+def _rec(ordn, role=Role.BODY, fill=0.4, *, book="01", **feature_kw):
     return LineRecord(
-        id=LineId("ru", "01", ordn, 0), text=f"line {ordn}",
+        id=LineId("ru", book, ordn, 0), text=f"line {ordn}",
         role=role, features=_feat(fill, **feature_kw),
         line_text_hash=identity.text_hash(f"line {ordn}"),
     )
@@ -39,9 +41,11 @@ def _rec(ordn, role=Role.BODY, fill=0.4, **feature_kw):
 class StubPosterior:
     def __init__(self, by_fill: dict[float, float]):
         self.by_fill = by_fill
+        self.calls: list[tuple[LineFeatures, ...]] = []
 
-    def __call__(self, features: LineFeatures) -> float:
-        return self.by_fill[features.fill]
+    def posteriors(self, features: Sequence[LineFeatures]) -> list[float]:
+        self.calls.append(tuple(features))
+        return [self.by_fill[feature.fill] for feature in features]
 
 
 def test_alpha_zero_is_pure_iid_superset():
@@ -54,23 +58,27 @@ def test_alpha_zero_is_pure_iid_superset():
 
 
 def test_runs_bounded_by_nonvotable():
-    recs = [_rec(1), _rec(2), _rec(3, role=Role.HEADING), _rec(4), _rec(5)]
-    post = StubPosterior({0.4: 0.5})
-    out = sequence.predict_document(recs, post, alpha=0.0)
+    recs = [
+        _rec(1, fill=0.1), _rec(2, fill=0.3), _rec(3, role=Role.HEADING),
+        _rec(4, fill=0.7), _rec(5, fill=0.9),
+    ]
+    post = StubPosterior({fill: fill for fill in (0.1, 0.3, 0.7, 0.9)})
+    out = sequence.predict_document(recs, post, alpha=1.0)
     assert len(out) == 4
-    run_ids = [d.run_id for d in out]
-    assert run_ids == [0, 0, 1, 1]
+    assert [decision.posterior for decision in out] == pytest.approx([0.2, 0.2, 0.8, 0.8])
+    assert post.calls == [tuple(record.features for record in recs if record.votable)]
 
 
 def test_runs_preserve_an_invisible_structural_boundary():
     recs = [
-        _rec(1),
-        _rec(2, run_len=2, run_pos=1),
-        _rec(4, run_len=2, run_pos=0),
-        _rec(5),
+        _rec(1, fill=0.1),
+        _rec(2, fill=0.3, run_len=2, run_pos=1),
+        _rec(4, fill=0.7, run_len=2, run_pos=0),
+        _rec(5, fill=0.9),
     ]
-    out = sequence.predict_document(recs, StubPosterior({0.4: 0.5}), alpha=0.0)
-    assert [decision.run_id for decision in out] == [0, 0, 1, 1]
+    post = StubPosterior({fill: fill for fill in (0.1, 0.3, 0.7, 0.9)})
+    out = sequence.predict_document(recs, post, alpha=1.0)
+    assert [decision.posterior for decision in out] == pytest.approx([0.2, 0.2, 0.8, 0.8])
 
 
 def test_soft_smoothing_pulls_outlier_toward_run_mean():
@@ -107,15 +115,61 @@ def test_alpha_out_of_range_raises():
         sequence.predict_document([_rec(1)], StubPosterior({0.4: 0.5}), alpha=1.5)
 
 
+def test_threshold_out_of_range_raises():
+    with pytest.raises(ValueError):
+        sequence.predict_document([_rec(1)], StubPosterior({0.4: 0.5}), threshold=-0.1)
+
+
 def test_nonvotable_lines_not_emitted():
     recs = [_rec(1, role=Role.CONTEXT), _rec(2)]
     out = sequence.predict_document(recs, StubPosterior({0.4: 0.5}), alpha=0.0)
     assert [d.id.src_ordinal for d in out] == [2]
 
 
-def test_smoothed_posterior_is_predict_document_as_a_runmodel():
-    recs = [_rec(1, fill=0.1), _rec(2, fill=0.9), _rec(3, fill=0.1)]
-    post = StubPosterior({0.1: 0.2, 0.9: 0.8})
-    model = sequence.SmoothedPosterior(post, alpha=0.5)
-    assert model(recs) == sequence.predict_document(recs, post, alpha=0.5)
-    assert sequence.SmoothedPosterior(post)(recs) == sequence.predict_document(recs, post)
+def test_score_document_fails_loud_on_wrong_batch_cardinality():
+    class ShortScorer:
+        def posteriors(self, features):
+            return [0.5] * max(0, len(features) - 1)
+
+    with pytest.raises(ValueError, match="1 values for 2 votable"):
+        sequence.score_document([_rec(1), _rec(2)], ShortScorer())
+
+
+def test_structural_only_document_does_not_call_scorer():
+    post = StubPosterior({})
+    assert sequence.predict_document([_rec(1, role=Role.HEADING)], post) == []
+    assert post.calls == []
+
+
+def test_scored_document_rejects_scores_from_another_record_order():
+    first, second = _rec(1), _rec(2)
+    with pytest.raises(ValueError, match="document order"):
+        sequence.ScoredDocument(
+            (first, second),
+            (sequence.BasePosterior(second.id, 0.8), sequence.BasePosterior(first.id, 0.2)),
+        )
+
+
+def test_scored_document_is_one_unique_book():
+    record = _rec(1)
+    score = sequence.BasePosterior(record.id, 0.5)
+    with pytest.raises(ValueError, match="unique"):
+        sequence.ScoredDocument((record, record), (score, score))
+    other_book = _rec(1, book="02")
+    with pytest.raises(ValueError, match="mix"):
+        sequence.ScoredDocument(
+            (record, other_book),
+            (score, sequence.BasePosterior(other_book.id, 0.5)),
+        )
+    later = _rec(2)
+    with pytest.raises(ValueError, match="source-ordered"):
+        sequence.ScoredDocument(
+            (later, record),
+            (sequence.BasePosterior(later.id, 0.5), score),
+        )
+
+
+@pytest.mark.parametrize("value", [-0.1, 1.1, float("nan"), float("inf")])
+def test_base_posterior_rejects_non_probability(value):
+    with pytest.raises(ValueError, match="posterior"):
+        sequence.BasePosterior(_rec(1).id, value)

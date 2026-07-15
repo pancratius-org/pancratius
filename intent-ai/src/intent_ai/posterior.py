@@ -1,21 +1,21 @@
 # research-pure: the deployable, sklearn-free form of the student's per-line score.
 """Serialize the fitted student as weights a consumer applies with stdlib math alone.
 
-`student.FittedModel` is a sklearn scaler + logistic regression; its score is, exactly,
+`student.LinearModel` is a sklearn scaler + logistic regression; its score is, exactly,
 `sigmoid(coef · ((x - mean) / std) + intercept)` over the fixed feature columns. So it serializes
 to a few float arrays and applies with no sklearn on the path — which is what lets the importer
 run the model as DATA, never importing a model family.
 
 This is the standardized-linear form — THIS student's family. A tree, a CRF, or a distilled head
-would carry its own serialized shape behind the same `sequence.Posterior` callable; the dict below
+would carry its own serialized shape behind the same batch scorer contract; the dict below
 is not a universal contract.
 """
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Protocol, Self, cast
+from typing import Self, cast
 
 from . import producer
 from .records import (
@@ -24,23 +24,7 @@ from .records import (
     FeatureName,
     LineFeatures,
 )
-
-
-class _Scaler(Protocol):
-    mean_: Iterable[float]
-    scale_: Iterable[float]
-
-
-class _Classifier(Protocol):
-    coef_: tuple[tuple[float, ...], ...]
-    intercept_: tuple[float, ...]
-
-
-class ExportableModel(Protocol):
-    scaler: _Scaler
-    clf: _Classifier
-    columns: list[FeatureName]
-    single_class: int | None
+from .student import LinearModel
 
 WEIGHTS_SCHEMA = "intent_ai.lineation.standardized_linear.weights.v1"
 
@@ -55,9 +39,7 @@ def _sigmoid(z: float) -> float:
 
 @dataclass(frozen=True, slots=True)
 class StandardizedLinearPosterior:
-    """A sklearn-free `P(lineated)` over the fixed feature columns. Satisfies `sequence.Posterior`
-    (`features -> float`), so it drops into `predict_document` exactly where a fitted model does,
-    with no sklearn/numpy on the path."""
+    """A sklearn-free batch scorer over the fixed feature columns."""
 
     columns: tuple[FeatureName, ...]
     mean: tuple[float, ...]
@@ -92,12 +74,15 @@ class StandardizedLinearPosterior:
                 f"!= live {PRODUCER_VERSION!r}"
             )
 
-    def __call__(self, features: LineFeatures) -> float:
+    def _posterior(self, features: LineFeatures) -> float:
         vec = producer.vectorize_fixed(features)
         z = self.intercept
         for c, m, s, w in zip(self.columns, self.mean, self.std, self.coef, strict=True):
             z += w * ((vec[c] - m) / s)
         return _sigmoid(z)
+
+    def posteriors(self, features: Sequence[LineFeatures]) -> list[float]:
+        return [self._posterior(feature) for feature in features]
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -126,11 +111,8 @@ class StandardizedLinearPosterior:
         )
 
 
-def export_posterior(model: ExportableModel) -> StandardizedLinearPosterior:
-    """Lift a fitted scaler+LR student into its sklearn-free posterior. A degenerate single-class
-    fit has no linear form; the deployable model is fit on the full labeled set, which has both."""
-    if model.single_class is not None:
-        raise ValueError("cannot export a single-class degenerate model as a linear posterior")
+def export_posterior(model: LinearModel) -> StandardizedLinearPosterior:
+    """Lift the fitted linear student into its sklearn-free representation."""
     return StandardizedLinearPosterior(
         columns=tuple(model.columns),
         mean=tuple(float(m) for m in model.scaler.mean_),

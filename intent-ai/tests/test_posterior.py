@@ -25,8 +25,7 @@ def test_sklearn_free_posterior_matches_fitted(fitted):
     model, feats = fitted
     post = export_posterior(model)
     sample = feats[:500]
-    for f, ref in zip(sample, model.posteriors(sample), strict=True):
-        assert post(f) == pytest.approx(ref, abs=1e-9)
+    assert post.posteriors(sample) == pytest.approx(model.posteriors(sample), abs=1e-9)
 
 
 @pytest.mark.corpus_cache
@@ -35,8 +34,9 @@ def test_json_round_trip_is_lossless(fitted):
     post = export_posterior(model)
     restored = StandardizedLinearPosterior.from_dict(json.loads(json.dumps(post.to_dict())))
     assert restored == post
-    for f in feats[:200]:
-        assert restored(f) == pytest.approx(post(f), abs=1e-12)
+    assert restored.posteriors(feats[:200]) == pytest.approx(
+        post.posteriors(feats[:200]), abs=1e-12,
+    )
 
 
 def test_from_dict_rejects_foreign_schema():
@@ -52,9 +52,3 @@ def test_from_dict_rejects_stale_feature_contract(fitted):
 
     with pytest.raises(ValueError, match="feature contract"):
         StandardizedLinearPosterior.from_dict(payload)
-
-
-def test_export_rejects_single_class():
-    degenerate = student.FittedModel(scaler=None, clf=None, columns=["x"], single_class=1)
-    with pytest.raises(ValueError, match="single-class"):
-        export_posterior(degenerate)
