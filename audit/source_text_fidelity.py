@@ -9,15 +9,14 @@ from __future__ import annotations
 import os
 import re
 import sys
-import zipfile
+import unicodedata
 from collections import Counter
 from pathlib import Path
-from xml.etree import ElementTree as ET
+
+from pancratius import docx_source
 
 ROOT = Path(os.environ.get("PANCRATIUS_AUDIT_ROOT", Path(__file__).resolve().parents[1]))
 CONTENT = ROOT / "src" / "content"
-W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-
 SHINGLE_K = 8
 COVERAGE_MIN = 0.85
 MARKDOWN_DUPLICATE_MIN_WORDS = 20
@@ -40,14 +39,6 @@ def _strip_yaml(md: str) -> str:
         if end > 0:
             return md[end + 4:]
     return md
-
-
-def _paragraphs_from_xml(payload: bytes) -> list[str]:
-    root = ET.fromstring(payload)
-    return [
-        " ".join(t.text or "" for t in p.findall(f".//{{{W_NS}}}t")).strip()
-        for p in root.findall(f".//{{{W_NS}}}p")
-    ]
 
 
 def _simple(text: str) -> str:
@@ -83,11 +74,13 @@ def _strip_docx_body_chrome(paragraphs: list[str]) -> list[str]:
 
 
 def _docx_body_text(docx: Path) -> str:
-    with zipfile.ZipFile(docx) as zf:
-        rows = _strip_docx_body_chrome(_paragraphs_from_xml(zf.read("word/document.xml")))
-        for name in ("word/footnotes.xml", "word/endnotes.xml"):
-            if name in zf.namelist():
-                rows.extend(_paragraphs_from_xml(zf.read(name)))
+    rows = _strip_docx_body_chrome(
+        [content.reading.strip() for content in docx_source.read_story(
+            docx, docx_source.StoryPart.DOCUMENT
+        )]
+    )
+    for part in (docx_source.StoryPart.FOOTNOTES, docx_source.StoryPart.ENDNOTES):
+        rows.extend(content.reading.strip() for content in docx_source.read_story(docx, part))
     return " ".join(rows)
 
 
@@ -100,6 +93,20 @@ def _strip_md_body_chrome(md: str) -> str:
 
 
 def _normalize(text: str) -> str:
+    # Compare rendered math, not its storage spelling. Word stores Greek/math
+    # glyphs while imported Markdown spells the same notation as TeX commands.
+    text = unicodedata.normalize("NFKC", text)
+    text = re.sub(
+        r"\\(?:mathfrak|mathbf|mathrm|mathit|operatorname|text)\s*\{([^{}]*)\}",
+        r" \1 ",
+        text,
+    )
+    text = re.sub(
+        r"\\(?:frac|sqrt|cdot|times|approx|to|rightarrow|left|right|begin|end|nabla)\b",
+        " ",
+        text,
+    )
+    text = "".join(_greek_letter_name(character) or character for character in text)
     text = re.sub(r"<[^>]+>", " ", text)
     text = re.sub(r"!\[[^\]]*]\([^)]+\)", " ", text)
     # Word list labels live in numbering metadata; Markdown materializes them.
@@ -108,6 +115,13 @@ def _normalize(text: str) -> str:
     text = text.lower()
     text = re.sub(r"\s+", " ", text)
     return text.strip()
+
+
+def _greek_letter_name(character: str) -> str:
+    name = unicodedata.name(character, "")
+    if not name.startswith("GREEK ") or " LETTER " not in name:
+        return ""
+    return name.split(" LETTER ", 1)[1].split(" WITH ", 1)[0].lower()
 
 
 def _shingles(text: str, k: int) -> set[str]:
@@ -140,7 +154,7 @@ def _duplicated_passage(md_text: str, docx_text: str) -> str | None:
     surplus = [
         shingle
         for shingle, count in md_counts.items()
-        if count > 1 and count > docx_counts.get(shingle, 0)
+        if (source_count := docx_counts.get(shingle, 0)) > 0 and count > source_count
     ]
     if len(surplus) < DUPLICATE_PASSAGE_EXTRA_SHINGLES_MIN:
         return None

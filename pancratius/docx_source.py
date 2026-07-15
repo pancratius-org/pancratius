@@ -30,6 +30,23 @@ DOCUMENT_PART = "word/document.xml"
 STYLES_PART = "word/styles.xml"
 
 
+class StoryPart(StrEnum):
+    """Word stories whose text is consumed outside the import body model."""
+
+    DOCUMENT = DOCUMENT_PART
+    FOOTNOTES = "word/footnotes.xml"
+    ENDNOTES = "word/endnotes.xml"
+
+    @property
+    def required(self) -> bool:
+        match self:
+            case StoryPart.DOCUMENT:
+                return True
+            case StoryPart.FOOTNOTES | StoryPart.ENDNOTES:
+                return False
+        assert_never(self)
+
+
 class DocxSourceError(ValueError):
     """A Word source cannot be represented by the canonical source model."""
 
@@ -128,47 +145,126 @@ class TextAtom:
 
 type ParagraphAtom = TextAtom | BreakKind
 
+class SourceAdjudicationKind(StrEnum):
+    """The consumer-owned equivalence relation for a source adjudication."""
+
+    LINEATION = "lineation"
+    SCRIPTURE = "scripture"
+
+
+@dataclass(frozen=True, slots=True)
+class LineationFingerprint:
+    """Identity of words and authored line boundaries; pagination is irrelevant."""
+
+    value: str
+
+    def __post_init__(self) -> None:
+        _validate_fingerprint(self.value, kind="lineation")
+
+
+@dataclass(frozen=True, slots=True)
+class ScriptureFingerprint:
+    """Identity of readable quotation text; layout and lineation are irrelevant."""
+
+    value: str
+
+    def __post_init__(self) -> None:
+        _validate_fingerprint(self.value, kind="scripture")
+
+
+type AdjudicationFingerprint = LineationFingerprint | ScriptureFingerprint
+
+
+def _validate_fingerprint(value: str, *, kind: str) -> None:
+    if re.fullmatch(r"[0-9a-f]{16}", value) is None:
+        raise DocxSourceError(f"invalid {kind} fingerprint {value!r}")
+
+
+def _fingerprint(domain: str, value: object) -> str:
+    encoded = json.dumps(
+        [domain, value],
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode()
+    return hashlib.sha256(encoded).hexdigest()[:16]
+
 
 @dataclass(frozen=True, slots=True)
 class ParagraphContent:
-    """One ordered truth from which every paragraph text view is derived."""
+    """One ordered truth from which every paragraph interpretation is derived."""
 
     atoms: tuple[ParagraphAtom, ...] = ()
 
-    def _project(self, *, lineated: bool) -> str:
-        def text_value(value: str) -> str:
-            if lineated:
-                return value
-            return "".join(" " if character == "\t" else character for character in value)
-
-        def atom_value(atom: ParagraphAtom) -> str:
+    def __post_init__(self) -> None:
+        """Erase OOXML run boundaries: adjacent text fragments are one domain atom."""
+        canonical: list[ParagraphAtom] = []
+        for atom in self.atoms:
             match atom:
-                case TextAtom(value=value):
-                    return text_value(value)
-                case BreakKind.LINE:
-                    return "\n" if lineated else " "
-                case BreakKind.PAGE | BreakKind.COLUMN:
-                    return " "
-            assert_never(atom)
-
-        return "".join(atom_value(atom) for atom in self.atoms)
+                case TextAtom(value=""):
+                    continue
+                case TextAtom(value=value) if canonical and isinstance(canonical[-1], TextAtom):
+                    previous = canonical[-1]
+                    assert isinstance(previous, TextAtom)
+                    canonical[-1] = TextAtom(previous.value + value)
+                case TextAtom() | BreakKind.LINE | BreakKind.PAGE | BreakKind.COLUMN:
+                    canonical.append(atom)
+                case _ as unreachable:
+                    assert_never(unreachable)
+        object.__setattr__(self, "atoms", tuple(canonical))
 
     @property
     def reading(self) -> str:
-        return self._project(lineated=False)
+        """Normalized reading text; every break is layout whitespace."""
+        parts: list[str] = []
+        for atom in self.atoms:
+            match atom:
+                case TextAtom(value=value):
+                    parts.append(value)
+                case BreakKind.LINE | BreakKind.PAGE | BreakKind.COLUMN:
+                    parts.append(" ")
+                case _ as unreachable:
+                    assert_never(unreachable)
+        return " ".join("".join(parts).split())
+
+    @property
+    def line_segments(self) -> tuple[str, ...]:
+        """Natural source lines; only an authored line break starts a new line."""
+        lines: list[list[str]] = [[]]
+        for atom in self.atoms:
+            match atom:
+                case TextAtom(value=value):
+                    lines[-1].append(value)
+                case BreakKind.LINE:
+                    lines.append([])
+                case BreakKind.PAGE | BreakKind.COLUMN:
+                    lines[-1].append(" ")
+                case _ as unreachable:
+                    assert_never(unreachable)
+        return tuple(" ".join("".join(parts).split()) for parts in lines)
 
     @property
     def lineated(self) -> str:
-        return self._project(lineated=True)
+        return "\n".join(self.line_segments)
+
+    def adjudication_fingerprint(
+        self,
+        kind: SourceAdjudicationKind,
+    ) -> AdjudicationFingerprint:
+        match kind:
+            case SourceAdjudicationKind.LINEATION:
+                lines = tuple(
+                    unicodedata.normalize("NFC", line)
+                    for line in self.line_segments
+                )
+                return LineationFingerprint(_fingerprint("lineation-v1", lines))
+            case SourceAdjudicationKind.SCRIPTURE:
+                reading = unicodedata.normalize("NFC", self.reading)
+                return ScriptureFingerprint(_fingerprint("scripture-v1", reading))
+        assert_never(kind)
 
     @property
     def breaks(self) -> tuple[BreakKind, ...]:
         return tuple(atom for atom in self.atoms if isinstance(atom, BreakKind))
-
-    @property
-    def line_segments(self) -> tuple[str, ...]:
-        """Natural source lines; pagination never mints a sub-line."""
-        return tuple(part.strip() for part in self.lineated.split("\n"))
 
     @property
     def pagination_only(self) -> bool:
@@ -275,13 +371,13 @@ class ParagraphStyles:
         return (direct_style or self.default) in self.numbered
 
 
-class ParagraphRole(StrEnum):
-    """Structural role relevant at the DOCX adapter boundary."""
+@dataclass(frozen=True, slots=True)
+class ParagraphMarkers:
+    """Independent source observations; none pretends to be the paragraph's sole role."""
 
-    BODY = "body"
-    LIST_ITEM = "list_item"
-    HEADING = "heading"
-    THEMATIC = "thematic"
+    numbered: bool = False
+    heading_style: bool = False
+    thematic_marker: bool = False
 
 
 class BorderGesture(StrEnum):
@@ -293,15 +389,120 @@ class BorderGesture(StrEnum):
     OTHER = "other"
 
 
+class TextAlignment(StrEnum):
+    """Reading alignment after OOXML start/end aliases are resolved."""
+
+    LEFT = "left"
+    JUST = "just"
+    CENTER = "center"
+    RIGHT = "right"
+
+
+_TEXT_ALIGNMENT = {
+    "": TextAlignment.LEFT,
+    "left": TextAlignment.LEFT,
+    "start": TextAlignment.LEFT,
+    "both": TextAlignment.JUST,
+    "center": TextAlignment.CENTER,
+    "right": TextAlignment.RIGHT,
+    "end": TextAlignment.RIGHT,
+}
+
+
 @dataclass(frozen=True, slots=True)
 class ParagraphAlignment:
-    """OOXML alignment value with the semantic query consumers actually need."""
+    """Validated OOXML alignment token and its semantic projection."""
 
     value: str = ""
 
+    def __post_init__(self) -> None:
+        if self.value not in _TEXT_ALIGNMENT:
+            raise DocxSourceError(f"unsupported w:jc value {self.value!r}")
+
+    @property
+    def normalized(self) -> TextAlignment:
+        return _TEXT_ALIGNMENT[self.value]
+
     @property
     def is_right_edge(self) -> bool:
-        return self.value in {"right", "end"}
+        return self.normalized is TextAlignment.RIGHT
+
+
+@dataclass(frozen=True, slots=True, order=True)
+class Twips:
+    """A signed OOXML twentieth-of-a-point measurement."""
+
+    value: int = 0
+
+    @property
+    def points(self) -> float:
+        return self.value / 20.0
+
+
+@dataclass(frozen=True, slots=True)
+class GeometryUnavailable:
+    """The package does not state a geometry fact the consumer needs."""
+
+
+@dataclass(frozen=True, slots=True)
+class ObservedColumnWidth:
+    width: Twips
+
+    def __post_init__(self) -> None:
+        if self.width.value <= 0:
+            raise DocxSourceError("document column width must be positive")
+
+
+@dataclass(frozen=True, slots=True)
+class HeterogeneousColumnWidths:
+    """Distinct observed section widths that cannot support one document-wide fill model."""
+
+    widths: tuple[Twips, ...]
+
+    def __post_init__(self) -> None:
+        values = tuple(sorted({width.value for width in self.widths}))
+        if len(values) < 2 or values[0] <= 0:
+            raise DocxSourceError("heterogeneous column widths require two positive values")
+        object.__setattr__(self, "widths", tuple(Twips(value) for value in values))
+
+
+@dataclass(frozen=True, slots=True)
+class PartiallyObservedColumnWidths:
+    """Some sections have a width and others do not; no global width may be inferred."""
+
+    widths: tuple[Twips, ...]
+
+    def __post_init__(self) -> None:
+        values = tuple(sorted({width.value for width in self.widths}))
+        if not values or values[0] <= 0:
+            raise DocxSourceError("partial column geometry requires a positive observed width")
+        object.__setattr__(self, "widths", tuple(Twips(value) for value in values))
+
+
+@dataclass(frozen=True, slots=True)
+class ObservedFontSize:
+    half_points: int
+
+    def __post_init__(self) -> None:
+        if self.half_points <= 0:
+            raise DocxSourceError("document default font size must be positive")
+
+
+type ColumnWidth = (
+    ObservedColumnWidth
+    | HeterogeneousColumnWidths
+    | PartiallyObservedColumnWidths
+    | GeometryUnavailable
+)
+type DefaultFontSize = ObservedFontSize | GeometryUnavailable
+
+
+@dataclass(frozen=True, slots=True)
+class DocumentLayout:
+    """Only package geometry actually observed in OOXML; policy fallbacks live downstream."""
+
+    column_width: ColumnWidth = GeometryUnavailable()
+    default_font_size: DefaultFontSize = GeometryUnavailable()
 
 
 type OoxmlAttributes = tuple[tuple[str, str], ...]
@@ -317,6 +518,85 @@ def _attribute(attributes: OoxmlAttributes, key: str) -> str | None:
     return dict(attributes).get(key)
 
 
+def _twips(
+    attributes: OoxmlAttributes,
+    key: str,
+    *,
+    alias: str | None = None,
+) -> Twips:
+    """Decode one known layout measurement; malformed source never becomes zero."""
+    values = dict(attributes)
+    raw = values.get(key)
+    if raw is None and alias is not None:
+        raw = values.get(alias)
+    if raw is None:
+        return Twips()
+    try:
+        return Twips(int(raw))
+    except ValueError as exc:
+        raise DocxSourceError(f"invalid w:{key} twips value {raw!r}") from exc
+
+
+@dataclass(frozen=True, slots=True)
+class ParagraphSpacing:
+    """One resolved OOXML spacing value; semantic measurements are derived views."""
+
+    attributes: OoxmlAttributes = ()
+
+    @property
+    def before(self) -> Twips:
+        return _twips(self.attributes, "before")
+
+    @property
+    def after(self) -> Twips:
+        return _twips(self.attributes, "after")
+
+    def is_real(self, edge: str) -> bool:
+        if _attribute(self.attributes, f"{edge}Autospacing") == "1":
+            return True
+        return (self.before if edge == "before" else self.after).value > 0
+
+
+@dataclass(frozen=True, slots=True)
+class ParagraphIndent:
+    """One resolved OOXML indentation value; aliases lower to typed measurements."""
+
+    attributes: OoxmlAttributes = ()
+
+    @property
+    def first_line(self) -> Twips:
+        return _twips(self.attributes, "firstLine")
+
+    @property
+    def left(self) -> Twips:
+        return _twips(self.attributes, "left", alias="start")
+
+
+@dataclass(frozen=True, slots=True)
+class ParagraphLayout:
+    """The single resolved paragraph-layout value."""
+
+    source_alignment: ParagraphAlignment = ParagraphAlignment()
+    spacing: ParagraphSpacing = ParagraphSpacing()
+    indent: ParagraphIndent = ParagraphIndent()
+
+    @property
+    def alignment(self) -> TextAlignment:
+        return self.source_alignment.normalized
+
+    @property
+    def first_line_indent(self) -> Twips:
+        return self.indent.first_line
+
+    @property
+    def left_indent(self) -> Twips:
+        return self.indent.left
+
+    @property
+    def spacing_after(self) -> Twips:
+        return self.spacing.after
+
+
 @dataclass(frozen=True, slots=True)
 class SourceParagraph:
     """One canonical top-level Word paragraph and all source-owned facts."""
@@ -326,13 +606,11 @@ class SourceParagraph:
     semantics: ParagraphSemantics
     resolved_style: str
     direct_style: str
-    alignment: ParagraphAlignment
+    layout: ParagraphLayout
     contextual_spacing: bool
-    spacing: OoxmlAttributes
-    indent: OoxmlAttributes
     indent_departure: bool
     border: BorderGesture
-    roles: frozenset[ParagraphRole]
+    markers: ParagraphMarkers
     segment: SourceSegment
     bold: bool
     italic: bool
@@ -341,6 +619,18 @@ class SourceParagraph:
     @property
     def content(self) -> ParagraphContent:
         return self.semantics.content
+
+    @property
+    def alignment(self) -> ParagraphAlignment:
+        return self.layout.source_alignment
+
+    @property
+    def spacing(self) -> OoxmlAttributes:
+        return self.layout.spacing.attributes
+
+    @property
+    def indent(self) -> OoxmlAttributes:
+        return self.layout.indent.attributes
 
     @property
     def disposition(self) -> ParagraphDisposition:
@@ -362,17 +652,23 @@ class SourceParagraph:
     def text(self) -> str:
         return self.semantics.text
 
+    def adjudication_fingerprint(
+        self,
+        kind: SourceAdjudicationKind,
+    ) -> AdjudicationFingerprint:
+        return self.content.adjudication_fingerprint(kind)
+
     @property
     def numbered(self) -> bool:
-        return ParagraphRole.LIST_ITEM in self.roles
+        return self.markers.numbered
 
     @property
     def heading(self) -> bool:
-        return ParagraphRole.HEADING in self.roles
+        return self.markers.heading_style
 
     @property
     def thematic(self) -> bool:
-        return ParagraphRole.THEMATIC in self.roles
+        return self.markers.thematic_marker
 
     @property
     def empty(self) -> bool:
@@ -390,6 +686,7 @@ class DocxSourceDocument:
     path: Path
     paragraphs: tuple[SourceParagraph, ...]
     styles: ParagraphStyles = ParagraphStyles()
+    layout: DocumentLayout = DocumentLayout()
 
     @property
     def reconciliation_paragraphs(self) -> tuple[SourceParagraph, ...]:
@@ -431,15 +728,13 @@ class SourceAdjudication:
     payload: dict[str, object]
 
 
-def paragraph_sha(text: str) -> str:
-    """Stable NFC-normalized text identity used by committed source sidecars."""
-    return hashlib.sha256(unicodedata.normalize("NFC", text).encode()).hexdigest()[:16]
-
-
 def read_adjudications(
-    source: DocxSourceDocument, sidecar: Path
+    source: DocxSourceDocument,
+    sidecar: Path,
+    *,
+    kind: SourceAdjudicationKind,
 ) -> tuple[SourceAdjudication, ...]:
-    """Load canonical ordinal/text-railed entries from a source sidecar."""
+    """Load entries under the consumer's typed source-equivalence relation."""
     if not sidecar.is_file():
         return ()
 
@@ -470,14 +765,28 @@ def read_adjudications(
             ) from exc
         if not isinstance(payload, dict):
             raise ValueError(f"{sidecar.name}: ordinal {ordinal.value} entry must be an object")
-        text_sha = payload.get("text_sha")
-        if not isinstance(text_sha, str):
-            raise ValueError(f"{sidecar.name}: ordinal {ordinal.value} is missing the text_sha rail")
-        live_sha = paragraph_sha(paragraph.text)
-        if live_sha != text_sha:
+        field = f"{kind.value}_fingerprint"
+        raw_fingerprint = payload.get(field)
+        if not isinstance(raw_fingerprint, str):
             raise ValueError(
-                f"{sidecar.name}: ordinal {ordinal.value} text drifted under the adjudication "
-                f"(rail {text_sha} != live {live_sha}) — re-adjudicate against the current text"
+                f"{sidecar.name}: ordinal {ordinal.value} is missing the {field} rail"
+            )
+        try:
+            match kind:
+                case SourceAdjudicationKind.LINEATION:
+                    expected: AdjudicationFingerprint = LineationFingerprint(raw_fingerprint)
+                case SourceAdjudicationKind.SCRIPTURE:
+                    expected = ScriptureFingerprint(raw_fingerprint)
+                case _ as unreachable:
+                    assert_never(unreachable)
+        except DocxSourceError as exc:
+            raise ValueError(f"{sidecar.name}: ordinal {ordinal.value}: {exc}") from exc
+        current = paragraph.adjudication_fingerprint(kind)
+        if current != expected:
+            raise ValueError(
+                f"{sidecar.name}: ordinal {ordinal.value} source content drifted under the "
+                f"adjudication (rail {expected.value} != live {current.value}) — "
+                "re-adjudicate against the current source"
             )
         out.append(SourceAdjudication(paragraph, payload))
     return tuple(out)
@@ -487,7 +796,10 @@ def read_adjudications(
 class _StyleDefinition:
     based_on: str
     contextual_spacing: bool
+    alignment: ParagraphAlignment
     spacing: OoxmlAttributes
+    indent: OoxmlAttributes
+    font_half_points: int | None
     numbered: bool
 
 
@@ -495,7 +807,10 @@ class _StyleDefinition:
 class _StyleSheet:
     paragraphs: dict[str, _StyleDefinition]
     default_paragraph: str = "Normal"
+    default_alignment: ParagraphAlignment = ParagraphAlignment()
     default_spacing: OoxmlAttributes = ()
+    default_indent: OoxmlAttributes = ()
+    default_font_half_points: int | None = None
 
 
 def _w_val(element: ET.Element | None) -> str:
@@ -546,6 +861,35 @@ def story_paragraph_elements(root: ET.Element) -> tuple[ET.Element, ...]:
     )
 
 
+def story_contents(root: ET.Element) -> tuple[ParagraphContent, ...]:
+    """Canonical atom streams for every paragraph in one selected Word story."""
+    contents: list[ParagraphContent] = []
+    for index, paragraph in enumerate(story_paragraph_elements(root)):
+        try:
+            contents.append(_paragraph_content(paragraph))
+        except DocxSourceError as exc:
+            raise DocxSourceError(f"paragraph {index}: {exc}") from exc
+    return tuple(contents)
+
+
+def read_story(docx: Path, part: StoryPart) -> tuple[ParagraphContent, ...]:
+    """Read a text-bearing story through the same compatibility and break grammar as the body."""
+    try:
+        with zipfile.ZipFile(docx) as archive:
+            try:
+                payload = archive.read(part.value)
+            except KeyError:
+                if part.required:
+                    raise DocxSourceError(f"{docx.name}: missing {part.value}") from None
+                return ()
+    except (OSError, zipfile.BadZipFile) as exc:
+        raise DocxSourceError(f"{docx.name}: cannot read {part.value}: {exc}") from exc
+    try:
+        return story_contents(ET.fromstring(payload))
+    except (ET.ParseError, DocxSourceError) as exc:
+        raise DocxSourceError(f"{docx.name}: cannot read {part.value}: {exc}") from exc
+
+
 def paragraph_has_drawing(paragraph: ET.Element) -> bool:
     """Whether the selected compatibility branch carries a drawing."""
     return any(
@@ -579,14 +923,30 @@ def _style_sheet_xml(styles_xml: bytes | None) -> _StyleSheet:
             contextual_spacing=(
                 ppr.find(f"{W}contextualSpacing") is not None if ppr is not None else False
             ),
+            alignment=ParagraphAlignment(
+                _w_val(ppr.find(f"{W}jc") if ppr is not None else None)
+            ),
             spacing=_attributes(ppr.find(f"{W}spacing") if ppr is not None else None),
+            indent=_attributes(ppr.find(f"{W}ind") if ppr is not None else None),
+            font_half_points=_ooxml_optional_int(style.find(f"{W}rPr/{W}sz"), "val"),
             numbered=ppr is not None and ppr.find(f"{W}numPr") is not None,
         )
+    default_ppr = root.find(f"{W}docDefaults/{W}pPrDefault/{W}pPr")
     return _StyleSheet(
         paragraphs=styles,
         default_paragraph=default,
+        default_alignment=ParagraphAlignment(
+            _w_val(default_ppr.find(f"{W}jc") if default_ppr is not None else None)
+        ),
         default_spacing=_attributes(
-            root.find(f"{W}docDefaults/{W}pPrDefault/{W}pPr/{W}spacing")
+            default_ppr.find(f"{W}spacing") if default_ppr is not None else None
+        ),
+        default_indent=_attributes(
+            default_ppr.find(f"{W}ind") if default_ppr is not None else None
+        ),
+        default_font_half_points=_ooxml_optional_int(
+            root.find(f"{W}docDefaults/{W}rPrDefault/{W}rPr/{W}sz"),
+            "val",
         ),
     )
 
@@ -597,6 +957,84 @@ def _style_sheet(zf: zipfile.ZipFile) -> _StyleSheet:
     except KeyError:
         styles_xml = None
     return _style_sheet_xml(styles_xml)
+
+
+def _ooxml_optional_int(element: ET.Element | None, attribute: str) -> int | None:
+    if element is None:
+        return None
+    raw = element.get(f"{W}{attribute}")
+    if raw is None:
+        return None
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise DocxSourceError(
+            f"invalid {element.tag.removeprefix(W)} w:{attribute} value {raw!r}"
+        ) from exc
+
+
+def _default_font_size(style_sheet: _StyleSheet) -> DefaultFontSize:
+    half_points = style_sheet.default_font_half_points
+    for definition in reversed(tuple(_style_chain(
+        style_sheet.default_paragraph,
+        style_sheet.paragraphs,
+    ))):
+        if definition.font_half_points is not None:
+            half_points = definition.font_half_points
+    return (
+        ObservedFontSize(half_points)
+        if half_points is not None
+        else GeometryUnavailable()
+    )
+
+
+def _section_column_width(section: ET.Element) -> int | None:
+    page = section.find(f"{W}pgSz")
+    margins = section.find(f"{W}pgMar")
+    if page is None or margins is None:
+        return None
+    width = _ooxml_optional_int(page, "w")
+    left = _ooxml_optional_int(
+        margins,
+        "left" if margins.get(f"{W}left") is not None else "start",
+    )
+    right = _ooxml_optional_int(
+        margins,
+        "right" if margins.get(f"{W}right") is not None else "end",
+    )
+    if width is None or left is None or right is None:
+        return None
+    available = width - left - right
+    columns = section.find(f"{W}cols")
+    explicit = columns.find(f"{W}col") if columns is not None else None
+    if explicit is not None:
+        return _ooxml_optional_int(explicit, "w")
+    count = _ooxml_optional_int(columns, "num") if columns is not None else 1
+    if count is None or count == 1:
+        return available
+    space = _ooxml_optional_int(columns, "space")
+    return (available - (count - 1) * space) // count if space is not None else None
+
+
+def _document_layout(root: ET.Element, style_sheet: _StyleSheet) -> DocumentLayout:
+    """Observe all section widths without promoting partial evidence to a global fact."""
+    sections = root.findall(f".//{W}sectPr")
+    observations = tuple(_section_column_width(section) for section in sections)
+    widths = {width for width in observations if width is not None}
+    if widths and any(width is None for width in observations):
+        column_width: ColumnWidth = PartiallyObservedColumnWidths(
+            tuple(Twips(width) for width in widths)
+        )
+    elif len(widths) == 1:
+        column_width = ObservedColumnWidth(Twips(next(iter(widths))))
+    elif widths:
+        column_width = HeterogeneousColumnWidths(tuple(Twips(width) for width in widths))
+    else:
+        column_width = GeometryUnavailable()
+    return DocumentLayout(
+        column_width=column_width,
+        default_font_size=_default_font_size(style_sheet),
+    )
 
 
 def _style_chain(style: str, styles: dict[str, _StyleDefinition]) -> Iterator[_StyleDefinition]:
@@ -648,6 +1086,32 @@ def _resolved_spacing(
     values = dict(document_default)
     for definition in reversed(tuple(_style_chain(style, styles))):
         values.update(definition.spacing)
+    values.update(direct)
+    return tuple(sorted(values.items()))
+
+
+def _resolved_alignment(
+    style: str,
+    styles: dict[str, _StyleDefinition],
+    document_default: ParagraphAlignment,
+    direct: ParagraphAlignment,
+) -> ParagraphAlignment:
+    value = document_default
+    for definition in reversed(tuple(_style_chain(style, styles))):
+        if definition.alignment.value:
+            value = definition.alignment
+    return direct if direct.value else value
+
+
+def _resolved_indent(
+    style: str,
+    styles: dict[str, _StyleDefinition],
+    document_default: OoxmlAttributes,
+    direct: OoxmlAttributes,
+) -> OoxmlAttributes:
+    values = dict(document_default)
+    for definition in reversed(tuple(_style_chain(style, styles))):
+        values.update(definition.indent)
     values.update(direct)
     return tuple(sorted(values.items()))
 
@@ -741,17 +1205,14 @@ def _border_gesture(ppr: ET.Element | None) -> BorderGesture:
     return BorderGesture.OTHER
 
 
-def _paragraph_roles(
+def _paragraph_markers(
     *, numbered: bool, direct_style: str, text: str
-) -> frozenset[ParagraphRole]:
-    roles: set[ParagraphRole] = set()
-    if numbered:
-        roles.add(ParagraphRole.LIST_ITEM)
-    if _HEADING_STYLE.fullmatch(direct_style):
-        roles.add(ParagraphRole.HEADING)
-    if is_thematic_marker(text):
-        roles.add(ParagraphRole.THEMATIC)
-    return frozenset(roles or {ParagraphRole.BODY})
+) -> ParagraphMarkers:
+    return ParagraphMarkers(
+        numbered=numbered,
+        heading_style=_HEADING_STYLE.fullmatch(direct_style) is not None,
+        thematic_marker=is_thematic_marker(text),
+    )
 
 
 def _page_break_before(ppr: ET.Element | None) -> bool:
@@ -802,15 +1263,6 @@ def _body_events(body: ET.Element) -> Iterator[ET.Element | None]:
                 yield from _body_events(content)
 
 
-def _spacing_is_real(spacing: OoxmlAttributes, edge: str) -> bool:
-    if _attribute(spacing, f"{edge}Autospacing") == "1":
-        return True
-    try:
-        return int(_attribute(spacing, edge) or "0") > 0
-    except ValueError:
-        return False
-
-
 def _paragraphs_join(left: SourceParagraph, right: SourceParagraph) -> bool:
     if left.segment != right.segment:
         return False
@@ -820,9 +1272,9 @@ def _paragraphs_join(left: SourceParagraph, right: SourceParagraph) -> bool:
         return False
     if not left.text or not right.text:
         return False
-    if left.roles & {ParagraphRole.HEADING, ParagraphRole.THEMATIC}:
+    if left.heading or left.thematic:
         return False
-    if right.roles & {ParagraphRole.HEADING, ParagraphRole.THEMATIC}:
+    if right.heading or right.thematic:
         return False
     if left.indent_departure or right.indent_departure:
         return False
@@ -830,19 +1282,23 @@ def _paragraphs_join(left: SourceParagraph, right: SourceParagraph) -> bool:
         return False
     if left.alignment != right.alignment:
         return False
-    return _spacing_is_real(left.spacing, "after") or _spacing_is_real(right.spacing, "before")
+    return left.layout.spacing.is_real("after") or right.layout.spacing.is_real("before")
 
 
 def _direction_indents(paragraphs: tuple[SourceParagraph, ...]) -> tuple[SourceParagraph, ...]:
     body = [p for p in paragraphs if not p.numbered and p.text]
-    counts: dict[OoxmlAttributes, int] = {}
+    counts: dict[ParagraphIndent, int] = {}
     for paragraph in body:
-        counts[paragraph.indent] = counts.get(paragraph.indent, 0) + 1
-    dominant = max(counts, key=lambda signature: counts[signature], default=())
+        indent = paragraph.layout.indent
+        counts[indent] = counts.get(indent, 0) + 1
+    dominant = max(counts, key=lambda signature: counts[signature], default=ParagraphIndent())
     return tuple(
         replace(
             paragraph,
-            indent_departure=bool(paragraph.indent) and paragraph.indent != dominant,
+            indent_departure=(
+                bool(paragraph.layout.indent.attributes)
+                and paragraph.layout.indent != dominant
+            ),
         )
         for paragraph in paragraphs
     )
@@ -881,12 +1337,22 @@ def _assign_visual_groups(paragraphs: tuple[SourceParagraph, ...]) -> tuple[Sour
 def read(docx: Path) -> DocxSourceDocument:
     """Read one DOCX into the canonical source aggregate."""
     with zipfile.ZipFile(docx) as zf:
-        style_sheet = _style_sheet(zf)
+        try:
+            styles_xml = zf.read(STYLES_PART)
+        except KeyError:
+            styles_xml = None
+        style_sheet = _style_sheet_xml(styles_xml)
         paragraph_styles = _paragraph_styles(style_sheet)
         root = ET.fromstring(zf.read(DOCUMENT_PART))
+    document_layout = _document_layout(root, style_sheet)
     body = root.find(f"{W}body")
     if body is None:
-        return DocxSourceDocument(path=docx, paragraphs=(), styles=paragraph_styles)
+        return DocxSourceDocument(
+            path=docx,
+            paragraphs=(),
+            styles=paragraph_styles,
+            layout=document_layout,
+        )
 
     paragraphs: list[SourceParagraph] = []
     segment = 0
@@ -914,6 +1380,25 @@ def read(docx: Path) -> DocxSourceDocument:
         text = content.reading.strip()
         disposition = semantics.disposition
         reconciles = not direct_numbered and disposition is not ParagraphDisposition.PAGINATION_ONLY
+        alignment = _resolved_alignment(
+            resolved_style,
+            style_sheet.paragraphs,
+            style_sheet.default_alignment,
+            ParagraphAlignment(_w_val(ppr.find(f"{W}jc") if ppr is not None else None)),
+        )
+        spacing = _resolved_spacing(
+            resolved_style,
+            style_sheet.paragraphs,
+            style_sheet.default_spacing,
+            direct_spacing,
+        )
+        indent = _resolved_indent(
+            resolved_style,
+            style_sheet.paragraphs,
+            style_sheet.default_indent,
+            _attributes(ppr.find(f"{W}ind") if ppr is not None else None),
+        )
+        baseline = tuple(iter_baseline_descendants(event))
         paragraph = SourceParagraph(
             ordinal=ordinal,
             reconciliation_position=(
@@ -922,8 +1407,10 @@ def read(docx: Path) -> DocxSourceDocument:
             semantics=semantics,
             resolved_style=resolved_style,
             direct_style=direct_style,
-            alignment=ParagraphAlignment(
-                _w_val(ppr.find(f"{W}jc") if ppr is not None else None)
+            layout=ParagraphLayout(
+                source_alignment=alignment,
+                spacing=ParagraphSpacing(spacing),
+                indent=ParagraphIndent(indent),
             ),
             contextual_spacing=_resolved_contextual_spacing(
                 resolved_style,
@@ -934,25 +1421,22 @@ def read(docx: Path) -> DocxSourceDocument:
                     else False
                 ),
             ),
-            spacing=_resolved_spacing(
-                resolved_style,
-                style_sheet.paragraphs,
-                style_sheet.default_spacing,
-                direct_spacing,
-            ),
-            indent=_attributes(
-                ppr.find(f"{W}ind") if ppr is not None else None
-            ),
             indent_departure=False,
             border=_border_gesture(ppr),
-            roles=_paragraph_roles(
+            markers=_paragraph_markers(
                 numbered=numbered,
                 direct_style=direct_style,
                 text=text,
             ),
             segment=SourceSegment(segment),
-            bold=any(_enabled(element) for element in event.findall(f".//{W}b")),
-            italic=any(_enabled(element) for element in event.findall(f".//{W}i")),
+            bold=any(
+                element.tag == f"{W}b" and _enabled(element)
+                for element in baseline
+            ),
+            italic=any(
+                element.tag == f"{W}i" and _enabled(element)
+                for element in baseline
+            ),
         )
         paragraphs.append(paragraph)
         if direct_numbered:
@@ -965,4 +1449,5 @@ def read(docx: Path) -> DocxSourceDocument:
         path=docx,
         paragraphs=_assign_visual_groups(directed),
         styles=paragraph_styles,
+        layout=document_layout,
     )

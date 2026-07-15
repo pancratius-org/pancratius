@@ -3,12 +3,12 @@
 `lineation.<lang>.json`, sibling of `<lang>.docx`, pins a human-adjudicated register for
 specific source paragraphs the importer's own lineation ladder gets wrong:
 
-    {"140": {"register": "prose", "text_sha": "0123456789abcdef"}}
+    {"140": {"register": "prose", "lineation_fingerprint": "0123456789abcdef"}}
 
-Keys are source `w:p` ordinals; `text_sha` is `paragraph_sha` of the paragraph text the
-correction was adjudicated against. The hash is a rail, never advisory: a mismatch means the
-DOCX changed under the correction, and the load FAILS rather than apply (or silently skip) a
-stale verdict. A missing sidecar means no corrections.
+Keys are source `w:p` ordinals. `lineation_fingerprint` identifies reading text and authored
+line boundaries; pagination is irrelevant. The fingerprint is a rail, never
+advisory: a mismatch means the source changed under the correction, and the load FAILS rather
+than apply (or silently skip) a stale verdict. A missing sidecar means no corrections.
 
 The adjudicated truth lives in the research label store; this sidecar is its committed
 projection into production content (labels and sidecar move together, like docx and md).
@@ -19,8 +19,6 @@ from pathlib import Path
 
 from pancratius import docx_source
 from pancratius.ir import LineationRegister
-
-paragraph_sha = docx_source.paragraph_sha
 
 
 def overrides_path(docx: Path) -> Path:
@@ -33,10 +31,14 @@ def load_overrides(
 ) -> dict[int, LineationRegister]:
     """The validated corrections for one source DOCX (empty when no sidecar). FAILS LOUD on a
     malformed sidecar, a non-canonical or duplicate ordinal key, an unknown register, an ordinal
-    with no source paragraph, or a text-rail mismatch."""
+    with no source paragraph, or a source-fingerprint mismatch."""
     path = overrides_path(source.path)
     out: dict[int, LineationRegister] = {}
-    for adjudication in docx_source.read_adjudications(source, path):
+    for adjudication in docx_source.read_adjudications(
+        source,
+        path,
+        kind=docx_source.SourceAdjudicationKind.LINEATION,
+    ):
         ordinal = int(adjudication.paragraph.ordinal)
         if adjudication.paragraph.disposition is not docx_source.ParagraphDisposition.CONTENT:
             raise ValueError(

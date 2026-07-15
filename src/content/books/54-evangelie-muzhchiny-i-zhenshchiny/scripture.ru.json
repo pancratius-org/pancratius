@@ -1,10 +1,10 @@
 {
- "6755": {
-  "source": "Мф 5:8",
-  "text_sha": "ce97b31b306848b9"
- },
- "9531": {
-  "source": "Еф 5:32",
-  "text_sha": "071d792763c2de37"
- }
+  "6755": {
+    "source": "Мф 5:8",
+    "scripture_fingerprint": "b723d304c7e45f3d"
+  },
+  "9531": {
+    "source": "Еф 5:32",
+    "scripture_fingerprint": "d2aa4847f585ca8f"
+  }
 }

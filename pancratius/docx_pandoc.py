@@ -140,11 +140,7 @@ _PANDOC_NAMESPACE_BINDINGS = tuple(
 _CANONICAL_NS = {
     binding.uri: binding.prefix for binding in _PANDOC_NAMESPACE_BINDINGS
 }
-_PANDOC_STORY_PARTS = (
-    docx_source.DOCUMENT_PART,
-    "word/footnotes.xml",
-    "word/endnotes.xml",
-)
+_PANDOC_STORY_PARTS = tuple(part.value for part in docx_source.StoryPart)
 
 
 def _needs_canonicalization(bindings: Sequence[ooxml.NamespaceBinding]) -> bool:

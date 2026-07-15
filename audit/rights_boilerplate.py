@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import re
 import sys
-import zipfile
 from pathlib import Path
-from xml.etree import ElementTree as ET
 
 from pancratius import docx_source
 from pancratius.rights_boilerplate import (
@@ -135,11 +133,10 @@ def markdown_notices(markdown: str) -> tuple[tuple[int, str], ...]:
 
 def docx_restrictions(docx: Path) -> tuple[tuple[int, str], ...]:
     """Restrictive standalone notices in every selected body-story paragraph."""
-    with zipfile.ZipFile(docx) as archive:
-        root = ET.fromstring(archive.read(docx_source.DOCUMENT_PART))
     hits: list[tuple[int, str]] = []
-    for position, paragraph in enumerate(docx_source.story_paragraph_elements(root)):
-        text = docx_source.paragraph_text(paragraph)
+    contents = docx_source.read_story(docx, docx_source.StoryPart.DOCUMENT)
+    for position, content in enumerate(contents):
+        text = content.reading.strip()
         if classify_rights_boilerplate_notice(text) in DOCX_RESTRICTIONS:
             hits.append((position, text))
     return tuple(hits)
@@ -154,13 +151,7 @@ def main() -> int:
     for docx in CONTENT.rglob("*.docx"):
         try:
             hits = docx_restrictions(docx)
-        except (
-            KeyError,
-            OSError,
-            ET.ParseError,
-            zipfile.BadZipFile,
-            docx_source.DocxSourceError,
-        ) as exc:
+        except docx_source.DocxSourceError as exc:
             failures.append(f"{docx.relative_to(ROOT)}: cannot inspect source: {exc}")
             continue
         for position, text in hits:

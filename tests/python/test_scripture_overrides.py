@@ -15,7 +15,6 @@ from pathlib import Path
 import pytest
 
 from pancratius import docx_source, ir
-from pancratius.lineation_overrides import paragraph_sha
 from pancratius.passes.pipeline import Context, ScripturePins, run
 from pancratius.passes.register import wrap_scripture
 from pancratius.scripture_overrides import load_overrides, overrides_path
@@ -45,6 +44,15 @@ def _load(docx: Path) -> dict[int, str]:
     return load_overrides(docx_source.read(docx))
 
 
+def _railed(docx: Path, ordinal: int, **payload: str) -> dict[str, str]:
+    paragraph = docx_source.read(docx).paragraph(docx_source.ParagraphOrdinal(ordinal))
+    return {
+        **payload,
+        "scripture_fingerprint": paragraph.adjudication_fingerprint(
+        docx_source.SourceAdjudicationKind.SCRIPTURE
+    ).value,
+    }
+
 # --- the loader rails ---------------------------------------------------------------------
 
 
@@ -61,14 +69,14 @@ def test_sidecar_path_is_language_keyed(tmp_path: Path) -> None:
 def test_valid_pin_loads_by_ordinal(tmp_path: Path) -> None:
     docx = tmp_path / "ru.docx"
     _write_docx(docx, ["Свой голос книги.", "Се, гряду скоро."])
-    _write_sidecar(docx, {1: {"source": "Откр 22:7", "text_sha": paragraph_sha("Се, гряду скоро.")}})
+    _write_sidecar(docx, {1: _railed(docx, 1, source="Откр 22:7")})
     assert _load(docx) == {1: "Откр 22:7"}
 
 
 def test_text_drift_fails_the_load(tmp_path: Path) -> None:
     docx = tmp_path / "ru.docx"
     _write_docx(docx, ["Изменённый текст."])
-    _write_sidecar(docx, {0: {"source": "Откр 22:7", "text_sha": paragraph_sha("Се, гряду скоро.")}})
+    _write_sidecar(docx, {0: {"source": "Откр 22:7", "scripture_fingerprint": "0" * 16}})
     with pytest.raises(ValueError, match="drifted"):
         _load(docx)
 
@@ -76,7 +84,7 @@ def test_text_drift_fails_the_load(tmp_path: Path) -> None:
 def test_stale_ordinal_fails_the_load(tmp_path: Path) -> None:
     docx = tmp_path / "ru.docx"
     _write_docx(docx, ["Один абзац."])
-    _write_sidecar(docx, {99: {"source": "Откр 22:7", "text_sha": paragraph_sha("что-то")}})
+    _write_sidecar(docx, {99: {"source": "Откр 22:7", "scripture_fingerprint": "0" * 16}})
     with pytest.raises(ValueError, match="no source paragraph"):
         _load(docx)
 
@@ -84,7 +92,7 @@ def test_stale_ordinal_fails_the_load(tmp_path: Path) -> None:
 def test_blank_paragraph_pin_fails_the_load(tmp_path: Path) -> None:
     docx = tmp_path / "ru.docx"
     _write_docx(docx, ["", "Се, гряду скоро."])
-    _write_sidecar(docx, {0: {"source": "Откр 22:7", "text_sha": paragraph_sha("")}})
+    _write_sidecar(docx, {0: _railed(docx, 0, source="Откр 22:7")})
     with pytest.raises(ValueError, match="blank paragraph"):
         _load(docx)
 
@@ -92,7 +100,7 @@ def test_blank_paragraph_pin_fails_the_load(tmp_path: Path) -> None:
 def test_missing_source_name_fails_the_load(tmp_path: Path) -> None:
     docx = tmp_path / "ru.docx"
     _write_docx(docx, ["Се, гряду скоро."])
-    _write_sidecar(docx, {0: {"source": "", "text_sha": paragraph_sha("Се, гряду скоро.")}})
+    _write_sidecar(docx, {0: _railed(docx, 0, source="")})
     with pytest.raises(ValueError, match="canonical source"):
         _load(docx)
 
@@ -159,8 +167,8 @@ def test_no_pins_is_the_shipped_rule_behavior() -> None:
 
 
 @pandoc_required
-def test_pipeline_wraps_pinned_ordinal_and_lineation_decisions_hold(tmp_path: Path) -> None:
-    from pancratius.docx_inspect import lineation_decisions
+def test_pipeline_wraps_pinned_ordinal_and_fold_decisions_hold(tmp_path: Path) -> None:
+    from pancratius.docx_structure import fold_decisions
 
     docx = tmp_path / "ru.docx"
     paragraphs = [
@@ -169,9 +177,9 @@ def test_pipeline_wraps_pinned_ordinal_and_lineation_decisions_hold(tmp_path: Pa
         "И дальше книга продолжает собственное рассуждение о времени и свете.",
     ]
     _write_docx(docx, paragraphs)
-    before = lineation_decisions(docx)
+    before = fold_decisions(docx_source.read(docx), lang="ru")
 
-    _write_sidecar(docx, {1: {"source": "Откр 22:12", "text_sha": paragraph_sha(paragraphs[1])}})
+    _write_sidecar(docx, {1: _railed(docx, 1, source="Откр 22:12")})
 
     from pancratius import docx_adapter
     from pancratius.scripture_overrides import load_overrides as load_pins
@@ -185,5 +193,5 @@ def test_pipeline_wraps_pinned_ordinal_and_lineation_decisions_hold(tmp_path: Pa
     assert quotes[0].source_span == ir.SourceSpan(1, 1)
 
     # The per-ordinal lineation surface keeps its verdicts through the wrapper.
-    after = lineation_decisions(docx)
+    after = fold_decisions(docx_source.read(docx), lang="ru")
     assert after == before

@@ -1,18 +1,18 @@
 {
- "64": {
-  "source": "Коран 5:17",
-  "text_sha": "ef2d3f5a7dc7ccc3"
- },
- "82": {
-  "source": "Коран 19:30",
-  "text_sha": "b75a4bd27cda4ce2"
- },
- "91": {
-  "source": "Коран 5:116",
-  "text_sha": "a96fd2404d2f5035"
- },
- "511": {
-  "source": "Ин 8:58",
-  "text_sha": "0ec99a136db43e22"
- }
+  "64": {
+    "source": "Коран 5:17",
+    "scripture_fingerprint": "c21a99a72c49d66f"
+  },
+  "82": {
+    "source": "Коран 19:30",
+    "scripture_fingerprint": "034cb0fe28d21ac5"
+  },
+  "91": {
+    "source": "Коран 5:116",
+    "scripture_fingerprint": "1948e1f3f3219597"
+  },
+  "511": {
+    "source": "Ин 8:58",
+    "scripture_fingerprint": "615cfa1573b278f0"
+  }
 }

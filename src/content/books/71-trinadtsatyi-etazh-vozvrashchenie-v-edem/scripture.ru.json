@@ -1,42 +1,42 @@
 {
- "3724": {
-  "source": "Лк 1:24-31",
-  "text_sha": "37730ec57b1ccbb4"
- },
- "3858": {
-  "source": "Иез 37:1-3",
-  "text_sha": "7804298b6f465dc9"
- },
- "3878": {
-  "source": "Иез 37:3-8",
-  "text_sha": "b2ffd215e076c199"
- },
- "3906": {
-  "source": "Иез 37:9-10",
-  "text_sha": "5a7219ec203fdaa9"
- },
- "3933": {
-  "source": "Иез 37:15-28",
-  "text_sha": "5c7577fae143947e"
- },
- "3976": {
-  "source": "Откр 21:3",
-  "text_sha": "15ca2108163fb524"
- },
- "3979": {
-  "source": "Откр 21:22",
-  "text_sha": "696a75964a814592"
- },
- "5743": {
-  "source": "Мф 24:14",
-  "text_sha": "5763a83649043f1d"
- },
- "7318": {
-  "source": "Иер 8:5-6,10-11",
-  "text_sha": "bb01b80aaf5fc6b4"
- },
- "7326": {
-  "source": "Откр 18:1",
-  "text_sha": "d705dca5160dfce0"
- }
+  "3724": {
+    "source": "Лк 1:24-31",
+    "scripture_fingerprint": "ec84807f982b7359"
+  },
+  "3858": {
+    "source": "Иез 37:1-3",
+    "scripture_fingerprint": "0ff9bf9bb3200c4d"
+  },
+  "3878": {
+    "source": "Иез 37:3-8",
+    "scripture_fingerprint": "27b961fe425017bd"
+  },
+  "3906": {
+    "source": "Иез 37:9-10",
+    "scripture_fingerprint": "201466e3dba4d25b"
+  },
+  "3933": {
+    "source": "Иез 37:15-28",
+    "scripture_fingerprint": "e7034be4dad28588"
+  },
+  "3976": {
+    "source": "Откр 21:3",
+    "scripture_fingerprint": "f3ce1aab666eed9c"
+  },
+  "3979": {
+    "source": "Откр 21:22",
+    "scripture_fingerprint": "2dc453527916ad4e"
+  },
+  "5743": {
+    "source": "Мф 24:14",
+    "scripture_fingerprint": "ef326bf8748aeb81"
+  },
+  "7318": {
+    "source": "Иер 8:5-6,10-11",
+    "scripture_fingerprint": "b7a9fbf40f6a5218"
+  },
+  "7326": {
+    "source": "Откр 18:1",
+    "scripture_fingerprint": "41d5edb23a0e3c8a"
+  }
 }

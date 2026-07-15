@@ -1,26 +1,26 @@
 {
- "966": {
-  "source": "Лк 22:19",
-  "text_sha": "573101c1f6083d92"
- },
- "10622": {
-  "source": "Ин 10:30",
-  "text_sha": "13410e987e792343"
- },
- "11863": {
-  "source": "Лк 17:21",
-  "text_sha": "65c6aa15058286d2"
- },
- "12194": {
-  "source": "Лк 19:9",
-  "text_sha": "b9550201cac7da2c"
- },
- "12935": {
-  "source": "Лк 17:21",
-  "text_sha": "5a7a38d72a0cf826"
- },
- "13034": {
-  "source": "Ин 14:6",
-  "text_sha": "e49fab02d786a711"
- }
+  "966": {
+    "source": "Лк 22:19",
+    "scripture_fingerprint": "3f9a2352a49b5e57"
+  },
+  "10622": {
+    "source": "Ин 10:30",
+    "scripture_fingerprint": "2a9eb67b722c4fab"
+  },
+  "11863": {
+    "source": "Лк 17:21",
+    "scripture_fingerprint": "5600ac1aefab3a3f"
+  },
+  "12194": {
+    "source": "Лк 19:9",
+    "scripture_fingerprint": "c617e13fde2fa19a"
+  },
+  "12935": {
+    "source": "Лк 17:21",
+    "scripture_fingerprint": "0e4f764b03a92159"
+  },
+  "13034": {
+    "source": "Ин 14:6",
+    "scripture_fingerprint": "2f62bab9b7cca382"
+  }
 }
