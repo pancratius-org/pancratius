@@ -30,18 +30,15 @@ import re
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
-from dataclasses import dataclass, field
-from enum import StrEnum
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, assert_never
 
 from pancratius import docx_adapter as da
-from pancratius import docx_source, ir
-from pancratius.ir.inlines import inline_lines, inline_plain
+from pancratius import docx_source, docx_structure, ir
+from pancratius.ir.inlines import inline_plain
 from pancratius.locales import DEFAULT_LOCALE, Locale
-from pancratius.passes.lineation import VERSE_SHORT_LINE_MAX
 from pancratius.passes.pipeline import (
-    PER_ORDINAL_SEAM,
     Context,
     LineationCorrections,
     ScripturePins,
@@ -249,17 +246,6 @@ def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", _TAG_RE.sub("", text)).strip()
 
 
-def _block_kind_name(block: ir.Block) -> str:
-    """The inspector's kind vocabulary. External tooling joins on these names, so
-    they are derived from the register, not the node class: a verse-registered
-    `LineatedBlock` is "VerseBlock", a `QuoteBlock` is "BlockQuote"."""
-    if isinstance(block, ir.LineatedBlock):
-        return "VerseBlock" if block.register is ir.Register.VERSE else "LineatedBlock"
-    if isinstance(block, ir.QuoteBlock):
-        return "BlockQuote"
-    return type(block).__name__
-
-
 def _block_lines(block: ir.Block) -> list[str]:
     """The normalized reading lines a block contributes, for membership lookup."""
     match block:
@@ -277,13 +263,10 @@ def _block_lines(block: ir.Block) -> list[str]:
             return []
 
 
-type BlockKindsByText = dict[str, frozenset[str]]
+type BlockKindsByText = dict[str, frozenset[docx_structure.CompilerBlockKind]]
 
 
-@dataclass(frozen=True)
-class BlockSourceHit:
-    kinds: frozenset[str]
-    span: ir.SourceSpan
+BlockSourceHit = docx_structure.SourceBlockHit
 
 
 type BlockKindsBySource = dict[int, BlockSourceHit]
@@ -293,33 +276,6 @@ type BlockKindsBySource = dict[int, BlockSourceHit]
 class BlockClassifications:
     by_text: BlockKindsByText
     by_source: BlockKindsBySource
-
-
-@dataclass
-class _SourceClassificationBuilder:
-    eligible_ordinals: frozenset[int]
-    kinds: dict[int, set[str]] = field(default_factory=dict)
-    spans: dict[int, ir.SourceSpan] = field(default_factory=dict)
-
-    def add(self, *, name: str, span: ir.SourceSpan) -> None:
-        for index in range(span.start, span.end + 1):
-            if index not in self.eligible_ordinals:
-                continue
-            self.kinds.setdefault(index, set()).add(name)
-            previous = self.spans.get(index)
-            self.spans[index] = (
-                span if previous is None
-                else ir.SourceSpan(
-                    start=min(previous.start, span.start),
-                    end=max(previous.end, span.end),
-                )
-            )
-
-    def build(self) -> BlockKindsBySource:
-        return {
-            index: BlockSourceHit(kinds=frozenset(kinds), span=self.spans[index])
-            for index, kinds in self.kinds.items()
-        }
 
 
 def classify_blocks(source: docx_source.DocxSourceDocument) -> BlockClassifications:
@@ -334,27 +290,22 @@ def classify_blocks(source: docx_source.DocxSourceDocument) -> BlockClassificati
 
     with tempfile.TemporaryDirectory(prefix="docx-inspect-") as td:
         doc = da.adapt(source, Path(td), [])
-        # rules-only: no register model (see lineation_decisions)
+        # rules-only: no register model (see fold_decisions)
         doc = run(doc, Context(
             lang=DEFAULT_LOCALE,
             lineation=LineationCorrections(load_overrides(source)),
             scripture=ScripturePins(load_scripture_pins(source)),
         ))
 
-    kind_of: dict[str, set[str]] = {}
-    by_source = _SourceClassificationBuilder(source.semantic_ordinals)
+    kind_of: dict[str, set[docx_structure.CompilerBlockKind]] = {}
     for block in doc.blocks:
-        name = _block_kind_name(block)
+        name = docx_structure.compiler_block_kind(block)
         for line in _block_lines(block):
             if line:
                 kind_of.setdefault(line, set()).add(name)
-        span = block.source_span
-        if span is None:
-            continue
-        by_source.add(name=name, span=span)
     return BlockClassifications(
         by_text={line: frozenset(kinds) for line, kinds in kind_of.items()},
-        by_source=by_source.build(),
+        by_source=docx_structure.source_block_hits(doc.blocks, source.semantic_ordinals),
     )
 
 
@@ -368,224 +319,16 @@ def classify_source_spans(docx: Path) -> BlockKindsBySource:
     return classify_blocks(docx_source.read(docx)).by_source
 
 
-# ---------------------------------------------------------------------------
-# votability mask: what the production compiler says a source paragraph IS,
-# reduced to a conservative "is this votable body, or not, or unsure?" verdict.
-# This exists so a downstream dataset stops GUESSING a paragraph's structural
-# role and instead defers to the real classifier — defaulting to votable when
-# the classifier is silent or mixed, never silently masking an ambiguous case.
-# ---------------------------------------------------------------------------
-
-# The IR block kinds that are non-body STRUCTURE: a source ordinal that became
-# ONLY these is confidently not a prose/verse candidate (it is a boundary or
-# non-body content). Anything not listed here (and not the BODY kinds below) is
-# treated as UNKNOWN → votable-with-review rather than silently masked.
-_STRUCTURAL_KINDS = frozenset({
-    "Heading", "ThematicBreak", "Table", "ListBlock", "Signature",
-    "Epigraph", "BlockQuote", "ImageBlock", "DialogueLabel",
-})
-
-# The IR block kinds that ARE votable body. At the structural seam the mask observes
-# (see `votability_mask`), lineated/verse runs have NOT been merged yet — every body
-# line is still a `Paragraph`. `LineatedBlock`/`VerseBlock` are listed for robustness
-# so that if the mask is ever observed past the lineation seam they are still treated
-# as body (the lineation verdict — the decision the dataset re-judges — never leaks).
-_BODY_KINDS = frozenset({"Paragraph", "LineatedBlock", "VerseBlock"})
+# Structural and lineation observations live in `docx_structure`; this module only
+# renders them for diagnostics.
 
 
-class MaskVerdict(StrEnum):
-    """The conservative votability verdict for one source paragraph.
-
-    `BODY` — the classifier says this ordinal is prose body; it is a votable candidate.
-    `CONTEXT` — the classifier says this ordinal is ONLY non-body structure
-        (heading, table, dialogue label, …); it is not a candidate.
-    `REVIEW` — votable like BODY, but flagged: the classifier was mixed, the kind
-        is unknown, the ordinal is unmapped (no entry / no span), or a paragraph
-        unexpectedly merges several source ordinals. Never silently masked away.
-    """
-
-    BODY = "body"
-    CONTEXT = "context"
-    REVIEW = "review"
-
-
-def _verdict_for(hit: BlockSourceHit | None) -> MaskVerdict:
-    """Reduce one source ordinal's structural-IR hit to a votability verdict."""
-    if hit is None:
-        # No block carried this ordinal at the structural seam: dropped (TOC/
-        # endmatter/bibliography) or unreconciled (§14-P1). Stay votable, but flag —
-        # we cannot faithfully render it against a known block.
-        return MaskVerdict.REVIEW
-    kinds = hit.kinds
-    if not kinds <= (_BODY_KINDS | _STRUCTURAL_KINDS):
-        # An IR kind we do not model here. Default to votable, flagged — never
-        # mask a paragraph out of voting on an unrecognized kind.
-        return MaskVerdict.REVIEW
-    if len(kinds) > 1:
-        # mixed kinds (e.g. {DialogueLabel, Paragraph}): the <w:p> split into a
-        # label + a body fragment. Stay votable, flagged — never collapse to the
-        # structural half.
-        return MaskVerdict.REVIEW
-    (kind,) = tuple(kinds)
-    if kind in _STRUCTURAL_KINDS:
-        return MaskVerdict.CONTEXT
-    # a BODY kind. A *Paragraph* owns one source ordinal; spanning >1 is an
-    # unexpected merge (e.g. a dialogue coda fused onto its lead) → flag it.
-    if kind == "Paragraph" and hit.span.end != hit.span.start:
-        return MaskVerdict.REVIEW
-    return MaskVerdict.BODY
-
-
-def votability_mask(docx: Path) -> dict[int, MaskVerdict]:
-    """Per source-paragraph-ordinal votability verdict from the production compiler.
-
-    Runs ``adapt`` then the pass pipeline ONCE — stopping at the structural seam
-    (``until=PER_ORDINAL_SEAM``: after dialogue labels, before the span-merging
-    passes) — and reduces each source ordinal's resulting IR block kind(s) to a
-    conservative ``MaskVerdict``. The caller looks a paragraph up by its
-    ``SourceSpan`` start; an ordinal absent from the returned map is unmapped and
-    should be treated as ``REVIEW`` (votable, flagged), never silently masked.
-
-    Why the seam, not the full pipeline: the lineation fold merges lineated/verse
-    runs into one block, and ``merge_source_spans`` drops that block's provenance if
-    any member (e.g. an empty stanza-gap) lacks a span — poisoning provenance for
-    whole verse sections and falsely flagging thousands of real body lines.
-    Observing before that pass keeps each body line an addressable ``Paragraph`` AND
-    avoids surfacing the lineation verdict (it has not been computed yet).
-    Structural roles (heading/signature/dialogue-label/…) are already assigned by
-    this point.
-
-    ``slug_lookup`` is omitted (as in ``classify_blocks``): it only resolves
-    bibliography cross-reference targets, never a block's kind, so verdicts are
-    identical to the production import path.
-    """
-    source = docx_source.read(docx)
-    with tempfile.TemporaryDirectory(prefix="docx-mask-") as td:
-        doc = da.adapt(source, Path(td), [])
-        doc = run(doc, Context(lang=DEFAULT_LOCALE), until=PER_ORDINAL_SEAM)  # rules-only observer
-    blocks = tuple(doc.blocks)
-
-    by_source = _SourceClassificationBuilder(source.semantic_ordinals)
-    for block in blocks:
-        span = block.source_span
-        if span is not None:
-            by_source.add(name=_block_kind_name(block), span=span)
-    # `add()` already keys every ordinal a span covers, so `hits` is complete per-ordinal.
-    hits = by_source.build()
-    return {
-        ordinal: _verdict_for(hit)
-        for ordinal, hit in hits.items()
-    }
-
-
-def lineation_decisions(docx: Path, *, apply_overrides: bool = True) -> dict[int, bool]:
-    """The RULES-ONLY lineation verdict per source `w:p` ordinal.
-
-    Deliberately model-free: the labeling system this surface feeds anchors on
-    the deterministic instrument, and scoring a learned model against labels
-    influenced by a learned model would be circular. Production verdicts can
-    differ where the register model flips a block.
-
-    Runs the full import pipeline (``adapt`` → ``run``) and reads each
-    ordinal's fate: ``True`` when its text lowered inside a lineated/verse block,
-    ``False`` when it stayed a body prose paragraph. Non-body structure (headings,
-    tables, labels, …), blank paragraphs, and ordinals whose provenance did not
-    survive (no source span) are absent — score only on the covered ordinals and
-    report the rest as uncovered, never guessed.
-
-    ``apply_overrides=False`` reads the importer's OWN verdict with the editorial
-    correction sidecar ignored — the baseline a correction exporter diffs truth
-    against (diffing against the corrected verdict would erase its own domain) and
-    an eval's view of the uncorrected ladder.
-
-    This is the per-line ``prose``/``lineated`` surface the lineation gold set
-    (``LineId(lang, book, src_ordinal, sub)``) joins against; every ``sub``
-    segment of one ``w:p`` shares the ordinal's verdict.
-    """
-    from pancratius.lineation_overrides import load_overrides
-    from pancratius.scripture_overrides import load_overrides as load_scripture_pins
-
-    source = docx_source.read(docx)
-    with tempfile.TemporaryDirectory(prefix="docx-lineation-") as td:
-        doc = da.adapt(source, Path(td), [])
-        # rules-only: no register model (see the docstring); overrides ride the Context
-        doc = run(doc, Context(
-            lang=DEFAULT_LOCALE,
-            lineation=LineationCorrections(load_overrides(source) if apply_overrides else {}),
-            scripture=ScripturePins(load_scripture_pins(source)),
-        ))
-
-    def hard_break_prose(block: ir.LineatedBlock) -> bool:
-        """A block folded ONLY because of an authored `<w:br>` whose lines are
-        prose-length: the importer rightly preserves the break for display, but
-        as a register the human truth reads such lines as prose, not lineation."""
-        e = block.evidence
-        if not e.hard_break or e.pandoc_line_block or e.inferred_source_rows or e.compact_callout:
-            return False
-        return any(
-            len(inline_plain(line.inlines)) > VERSE_SHORT_LINE_MAX
-            for stanza in block.stanzas
-            for line in stanza
-        )
-
-    def paragraph_verdict(p: ir.Paragraph) -> set[int]:
-        """A paragraph's per-line truth: prose, unless it carries authored hard
-        breaks with verse-length lines (the same prose-length mirror as
-        ``hard_break_prose``)."""
-        lines = inline_lines(p.inlines, soft_break=False)
-        if len(lines) <= 1:
-            return prose
-        if any(len(inline_plain(line)) > VERSE_SHORT_LINE_MAX for line in lines):
-            return prose
-        return lineated
-
-    lineated: set[int] = set()
-    prose: set[int] = set()
-    content_ordinals = source.content_ordinals
-
-    def claim(block: ir.Block) -> None:
-        span = block.source_span
-        if span is None:
-            return
-        target: set[int] | None = None
-        if isinstance(block, ir.LineatedBlock):
-            if block.register is ir.Register.VERSE:
-                target = lineated
-            else:
-                target = prose if hard_break_prose(block) else lineated
-        elif isinstance(block, ir.Paragraph) and not block.empty:
-            target = paragraph_verdict(block)
-        elif isinstance(block, ir.QuoteBlock) and block.register in {
-            ir.Register.SCRIPTURE, ir.Register.INSET,
-        }:
-            # The display-register pass wraps source paragraphs; their per-line
-            # lineation truth must keep its coverage (the lineation gold set
-            # joins on these ordinals).
-            for member in block.blocks:
-                claim(member)
-            return
-        if target is not None:
-            target.update(
-                ordinal
-                for ordinal in range(span.start, span.end + 1)
-                if ordinal in content_ordinals
-            )
-
-    for block in doc.blocks:
-        claim(block)
-    # An ordinal claimed by both kinds is ambiguous: drop it rather than guess.
-    return {
-        **dict.fromkeys(lineated - prose, True),
-        **dict.fromkeys(prose - lineated, False),
-    }
-
-
-def _kind_label(kinds: frozenset[str]) -> str:
+def _kind_label(kinds: frozenset[docx_structure.CompilerBlockKind]) -> str:
     if not kinds:
         return "Paragraph?"
     if len(kinds) == 1:
-        return next(iter(kinds))
-    return "Ambiguous[" + "|".join(sorted(kinds)) + "]"
+        return next(iter(kinds)).value
+    return "Ambiguous[" + "|".join(sorted(kind.value for kind in kinds)) + "]"
 
 
 def _row_may_be_kind(row: ParaRow, kind: InspectBlockKind) -> bool:

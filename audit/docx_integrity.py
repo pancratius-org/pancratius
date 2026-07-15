@@ -15,11 +15,11 @@ import zipfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+from pancratius import docx_source
 from pancratius.ooxml import (
     EMBED_REL_TYPES,
     R_NS,
     REL_NS,
-    W_NS,
     OoxmlRelationship,
     OoxmlRelationshipError,
     office_relationship_refs,
@@ -204,15 +204,12 @@ def _validate_docx_package(path: Path) -> tuple[set[str], ET.Element]:
         raise DocxIntegrityError("not a valid ZIP/DOCX package") from exc
 
 
-def _paragraph_texts(root: ET.Element) -> list[str]:
-    return [
-        " ".join(t.text or "" for t in paragraph.findall(f".//{{{W_NS}}}t")).strip()
-        for paragraph in root.findall(f".//{{{W_NS}}}p")
-    ]
-
-
 def _duplicate_text_half(path: Path, document_root: ET.Element) -> str | None:
-    nonempty = [text for text in _paragraph_texts(document_root) if text]
+    nonempty = [
+        content.reading.strip()
+        for content in docx_source.story_contents(document_root)
+        if content.reading.strip()
+    ]
     if len(nonempty) < DUPLICATE_HALF_MIN_PARAGRAPHS or len(nonempty) % 2 != 0:
         return None
     mid = len(nonempty) // 2

@@ -1,21 +1,38 @@
 from __future__ import annotations
 
 import shutil
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
 
-from pancratius import cli, docx_inspect, docx_source, ir
+from pancratius import cli, docx_inspect, docx_source, docx_structure, ir, ooxml
 from pancratius.docx_inspect import (
-    BlockSourceHit,
     DocxInspectError,
     InspectOptions,
-    MaskVerdict,
     ParaRow,
-    _verdict_for,
     parse_index_range,
-    votability_mask,
 )
+from pancratius.docx_structure import (
+    BlockClaim,
+    BodyParagraph,
+    CompilerBlockKind,
+    ContextParagraph,
+    ContextReason,
+    ContextRole,
+    FoldConflict,
+    FoldDecision,
+    FoldDisposition,
+    ReviewParagraph,
+    ReviewReason,
+    SourceBlockHit,
+    _fold_result,
+    _observation,
+    fold_decisions,
+    observe_structure,
+    source_block_hits,
+)
+from pancratius.passes.pipeline import POST_FOLD_SEAM, Context
 
 
 def _write_docx(path: Path, paragraphs: list[str]) -> None:
@@ -106,14 +123,66 @@ def test_paragraph_content_derives_every_view_from_one_atom_sequence() -> None:
         docx_source.TextAtom("\t"),
     ))
 
-    assert content.reading == "before after next "
-    assert content.lineated == "before after\nnext\t"
+    assert content.reading == "before after next"
+    assert content.lineated == "before after\nnext"
     assert content.breaks == (
         docx_source.BreakKind.PAGE,
         docx_source.BreakKind.LINE,
     )
     assert content.line_segments == ("before after", "next")
 
+    authored_space = docx_source.ParagraphContent((
+        docx_source.TextAtom("a  b\u00a0c"),
+        docx_source.BreakKind.LINE,
+        docx_source.TextAtom("d  e"),
+    ))
+    assert authored_space.reading == "a b c d e"
+    assert authored_space.line_segments == ("a b c", "d e")
+
+
+
+def test_adjudication_fingerprints_encode_domain_equivalence() -> None:
+    def content(*atoms: docx_source.ParagraphAtom) -> docx_source.ParagraphContent:
+        return docx_source.ParagraphContent(atoms)
+
+    space = content(docx_source.TextAtom("a b"))
+    tab = content(docx_source.TextAtom("a\tb"))
+    page = content(
+        docx_source.TextAtom("a"),
+        docx_source.BreakKind.PAGE,
+        docx_source.TextAtom("b"),
+    )
+    column = content(
+        docx_source.TextAtom("a"),
+        docx_source.BreakKind.COLUMN,
+        docx_source.TextAtom("b"),
+    )
+    line = content(
+        docx_source.TextAtom("a"),
+        docx_source.BreakKind.LINE,
+        docx_source.TextAtom("b"),
+    )
+
+    lineation = docx_source.SourceAdjudicationKind.LINEATION
+    scripture = docx_source.SourceAdjudicationKind.SCRIPTURE
+    assert {
+        item.adjudication_fingerprint(lineation)
+        for item in (space, tab, page, column)
+    } == {space.adjudication_fingerprint(lineation)}
+    assert line.adjudication_fingerprint(lineation) != space.adjudication_fingerprint(lineation)
+    assert {
+        item.adjudication_fingerprint(scripture)
+        for item in (space, tab, page, column, line)
+    } == {space.adjudication_fingerprint(scripture)}
+
+    composed = content(docx_source.TextAtom("é"))
+    decomposed = content(docx_source.TextAtom("e\u0301"))
+    assert composed.adjudication_fingerprint(lineation) == decomposed.adjudication_fingerprint(
+        lineation
+    )
+    assert composed.adjudication_fingerprint(scripture) == decomposed.adjudication_fingerprint(
+        scripture
+    )
 
 @pytest.mark.parametrize(
     ("raw", "expected"),
@@ -137,6 +206,50 @@ def test_break_kind_fails_closed_on_future_ooxml_syntax() -> None:
         match=r"unsupported w:br type 'future-layout'",
     ):
         docx_source.BreakKind.from_ooxml("future-layout")
+
+
+def test_paragraph_markers_keep_independent_source_facts() -> None:
+    markers = docx_source._paragraph_markers(
+        numbered=True,
+        direct_style="Heading1",
+        text="---",
+    )
+
+    assert markers == docx_source.ParagraphMarkers(
+        numbered=True,
+        heading_style=True,
+        thematic_marker=True,
+    )
+
+
+def test_document_layout_retains_heterogeneous_section_widths() -> None:
+    root = ET.fromstring(
+        f'<w:document xmlns:w="{ooxml.W_NS}"><w:body>'
+        '<w:sectPr><w:pgSz w:w="10000"/><w:pgMar w:left="1000" w:right="1000"/></w:sectPr>'
+        '<w:sectPr><w:pgSz w:w="11000"/><w:pgMar w:left="1000" w:right="1000"/></w:sectPr>'
+        '</w:body></w:document>'
+    )
+
+    layout = docx_source._document_layout(root, docx_source._style_sheet_xml(None))
+
+    assert layout.column_width == docx_source.HeterogeneousColumnWidths(
+        (docx_source.Twips(8000), docx_source.Twips(9000))
+    )
+
+
+def test_document_layout_does_not_promote_partial_section_geometry() -> None:
+    root = ET.fromstring(
+        f'<w:document xmlns:w="{ooxml.W_NS}"><w:body>'
+        '<w:sectPr><w:pgSz w:w="10000"/></w:sectPr>'
+        '<w:sectPr><w:pgSz w:w="11000"/><w:pgMar w:left="1000" w:right="1000"/></w:sectPr>'
+        '</w:body></w:document>'
+    )
+
+    layout = docx_source._document_layout(root, docx_source._style_sheet_xml(None))
+
+    assert layout.column_width == docx_source.PartiallyObservedColumnWidths(
+        (docx_source.Twips(9000),)
+    )
 
 
 @pytest.mark.parametrize(
@@ -412,14 +525,17 @@ def test_docx_inspect_marks_repeated_text_with_mixed_import_roles(
         docx_inspect,
         "classify_blocks",
         lambda _docx: docx_inspect.BlockClassifications(
-            by_text={"Same": frozenset({"Paragraph", "VerseBlock"})},
+            by_text={"Same": frozenset({
+                CompilerBlockKind.PARAGRAPH,
+                CompilerBlockKind.LINEATED,
+            })},
             by_source={},
         ),
     )
 
     docx_inspect.annotate([row], _empty_source())
 
-    assert row.block_kind == "Ambiguous[Paragraph|VerseBlock]"
+    assert row.block_kind == "Ambiguous[LineatedBlock|Paragraph]"
 
 
 def test_docx_inspect_prefers_source_span_classification(
@@ -448,14 +564,16 @@ def test_docx_inspect_prefers_source_span_classification(
         docx_inspect,
         "classify_blocks",
         lambda _docx: docx_inspect.BlockClassifications(
-            by_text={"Repeated": frozenset({"Paragraph"})},
-            by_source={4: docx_inspect.BlockSourceHit(frozenset({"VerseBlock"}), span)},
+            by_text={"Repeated": frozenset({CompilerBlockKind.PARAGRAPH})},
+            by_source={4: docx_inspect.BlockSourceHit((
+                BlockClaim(CompilerBlockKind.LINEATED, span, (0,)),
+            ))},
         ),
     )
 
     docx_inspect.annotate([row], _empty_source())
 
-    assert row.block_kind == "VerseBlock"
+    assert row.block_kind == "LineatedBlock"
     assert row.block_source_span == span
 
 
@@ -486,13 +604,15 @@ def test_docx_inspect_classifies_empty_rows_inside_source_span(
         "classify_blocks",
         lambda _docx: docx_inspect.BlockClassifications(
             by_text={},
-            by_source={5: docx_inspect.BlockSourceHit(frozenset({"VerseBlock"}), span)},
+            by_source={5: docx_inspect.BlockSourceHit((
+                BlockClaim(CompilerBlockKind.LINEATED, span, (0,)),
+            ))},
         ),
     )
 
     docx_inspect.annotate([row], _empty_source())
 
-    assert row.block_kind == "VerseBlock"
+    assert row.block_kind == "LineatedBlock"
     assert "ir=4..6" in docx_inspect.render([row])
 
 
@@ -565,76 +685,152 @@ def test_docx_inspect_kind_filters_keep_ambiguous_candidates() -> None:
     assert selected == rows
 
 
-# --- votability mask (Slice 0): contract = which source ordinals are votable body ----------
-# These pin the VERDICT contract, not the mask's internals: at the structural seam the mask
-# observes, body is plain Paragraph; structural-only is context; every ambiguous case
-# (mixed/unknown/unmapped/unexpected-merge) stays votable-but-flagged — never silently masked.
-# The same outcomes must hold when the re-architecture reads votability off the structural-IR
-# seam directly instead of this shim.
-
-def _hit(kinds: set[str], start: int, end: int) -> BlockSourceHit:
-    return BlockSourceHit(kinds=frozenset(kinds), span=ir.SourceSpan(start, end))
+# --- total structural observation ----------------------------------------------------------
 
 
-def test_verdict_body_kinds_are_votable() -> None:
-    assert _verdict_for(_hit({"Paragraph"}, 5, 5)) is MaskVerdict.BODY
-    # lineated/verse do not appear at the structural seam, but are listed as body for
-    # robustness — if ever observed past the seam they stay BODY, never a leaked verdict.
-    assert _verdict_for(_hit({"LineatedBlock"}, 5, 8)) is MaskVerdict.BODY
-    assert _verdict_for(_hit({"VerseBlock"}, 5, 8)) is MaskVerdict.BODY
+def _hit(kinds: set[CompilerBlockKind], start: int, end: int) -> SourceBlockHit:
+    span = ir.SourceSpan(start, end)
+    return SourceBlockHit(tuple(
+        BlockClaim(kind=kind, span=span, path=(index,))
+        for index, kind in enumerate(kinds)
+    ))
 
 
-def test_verdict_structural_only_is_context() -> None:
-    for kind in ("Heading", "Signature", "DialogueLabel", "Table", "ThematicBreak"):
-        assert _verdict_for(_hit({kind}, 3, 3)) is MaskVerdict.CONTEXT
+def test_structure_observation_is_closed_and_reasoned() -> None:
+    assert isinstance(_observation(_hit({CompilerBlockKind.PARAGRAPH}, 5, 5)), BodyParagraph)
+    assert isinstance(_observation(_hit({CompilerBlockKind.LINEATED}, 5, 8)), BodyParagraph)
+    structural = _observation(_hit({CompilerBlockKind.HEADING}, 3, 3))
+    assert structural == ContextParagraph(
+        ContextReason.STRUCTURAL_KIND,
+        ContextRole.HEADING,
+    )
+    non_unique = _observation(_hit(
+        {CompilerBlockKind.DIALOGUE_LABEL, CompilerBlockKind.PARAGRAPH},
+        7,
+        7,
+    ))
+    assert non_unique == ReviewParagraph(ReviewReason.NON_UNIQUE_CLAIMS)
+    same_kind_twice = SourceBlockHit((
+        BlockClaim(CompilerBlockKind.PARAGRAPH, ir.SourceSpan(7, 7), (0,)),
+        BlockClaim(CompilerBlockKind.PARAGRAPH, ir.SourceSpan(7, 7), (1,)),
+    ))
+    assert _observation(same_kind_twice) == ReviewParagraph(ReviewReason.NON_UNIQUE_CLAIMS)
+    unknown = _observation(_hit({CompilerBlockKind.UNKNOWN}, 2, 2))
+    assert unknown == ReviewParagraph(ReviewReason.UNKNOWN_KIND)
+    merged = _observation(_hit({CompilerBlockKind.PARAGRAPH}, 5, 7))
+    assert merged == ReviewParagraph(ReviewReason.MERGED_BODY)
 
 
-def test_verdict_mixed_kinds_stay_votable_flagged() -> None:
-    # a <w:p> that split into label + body must never collapse to the structural half
-    assert _verdict_for(_hit({"DialogueLabel", "Paragraph"}, 7, 7)) is MaskVerdict.REVIEW
-
-
-def test_verdict_unknown_kind_is_review() -> None:
-    assert _verdict_for(_hit({"FootnoteDef"}, 2, 2)) is MaskVerdict.REVIEW
-
-
-def test_verdict_unmapped_ordinal_is_review() -> None:
-    assert _verdict_for(None) is MaskVerdict.REVIEW
-
-
-def test_verdict_unexpected_paragraph_merge_is_review() -> None:
-    # a plain Paragraph owns ONE ordinal; spanning >1 is an unexpected merge → flag it
-    assert _verdict_for(_hit({"Paragraph"}, 5, 7)) is MaskVerdict.REVIEW
-
-
-def test_votability_mask_keys_per_ordinal_and_leaves_unmapped_absent(
+def test_structure_observation_distinguishes_dropped_from_unmapped(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    doc = ir.Document(blocks=[
+    adapted = ir.Document(blocks=[
         ir.Paragraph(inlines=[ir.Text("prose")], source_span=ir.SourceSpan(0, 0)),
         ir.Heading(level=1, inlines=[ir.Text("H")], source_span=ir.SourceSpan(1, 1)),
-        ir.LineatedBlock(
-            stanzas=[[ir.Line([ir.Text("v")])]], register=ir.Register.VERSE,
-            source_span=ir.SourceSpan(2, 4),
-        ),
+        ir.Paragraph(inlines=[ir.Text("dropped")], source_span=ir.SourceSpan(2, 2)),
     ])
-    monkeypatch.setattr(docx_inspect.da, "adapt", lambda _docx, _media, _diags: doc)
+    seam = ir.Document(blocks=[
+        adapted.blocks[0],
+        adapted.blocks[1],
+    ])
     source = _empty_source()
     monkeypatch.setattr(
         type(source),
-        "semantic_ordinals",
-        property(lambda _source: frozenset(range(5))),
+        "content_ordinals",
+        property(lambda _source: frozenset(range(4))),
     )
-    monkeypatch.setattr(docx_inspect.docx_source, "read", lambda _docx: source)
-    monkeypatch.setattr("pancratius.docx_inspect.run", lambda d, _ctx, **_kw: d)
+    monkeypatch.setattr("pancratius.docx_structure.da.adapt", lambda *_args: adapted)
+    monkeypatch.setattr("pancratius.docx_structure.run", lambda *_args, **_kwargs: seam)
 
-    mask = votability_mask(Path("source.docx"))
+    observation = observe_structure(source, lang="ru")
 
-    assert mask[0] is MaskVerdict.BODY
-    assert mask[1] is MaskVerdict.CONTEXT
-    # the verse block's merged ordinals 2..4 each resolve to a clean BODY
-    assert mask[2] is mask[3] is mask[4] is MaskVerdict.BODY
-    assert 5 not in mask   # unmapped ordinal is absent → the caller defaults it to REVIEW
+    by_ordinal = observation.by_ordinal
+    assert by_ordinal[docx_source.ParagraphOrdinal(0)] == BodyParagraph()
+    assert by_ordinal[docx_source.ParagraphOrdinal(1)] == ContextParagraph(
+        ContextReason.STRUCTURAL_KIND,
+        ContextRole.HEADING,
+    )
+    assert by_ordinal[docx_source.ParagraphOrdinal(2)] == ContextParagraph(
+        ContextReason.DROPPED_BY_STRUCTURAL_PIPELINE
+    )
+    assert by_ordinal[docx_source.ParagraphOrdinal(3)] == ReviewParagraph(
+        ReviewReason.UNMAPPED_AT_ADAPTER
+    )
+
+
+def test_source_block_hits_projects_container_role_to_nested_members() -> None:
+    paragraph = ir.Paragraph(
+        inlines=[ir.Text("item")],
+        source_span=ir.SourceSpan(7, 7),
+    )
+    blocks: list[ir.Block] = [ir.ListBlock(ordered=False, items=[[paragraph]])]
+
+    hit = source_block_hits(blocks, {7})[7]
+
+    assert hit.kinds == {CompilerBlockKind.LIST}
+    assert hit.claims == (
+        BlockClaim(
+            kind=CompilerBlockKind.PARAGRAPH,
+            span=ir.SourceSpan(7, 7),
+            path=(0, 0, 0),
+            context=CompilerBlockKind.LIST,
+        ),
+    )
+
+
+def test_fold_result_uses_flow_claims_without_erasing_claim_cardinality() -> None:
+    span = ir.SourceSpan(4, 4)
+    label = BlockClaim(CompilerBlockKind.DIALOGUE_LABEL, span, (0,))
+    paragraph = BlockClaim(CompilerBlockKind.PARAGRAPH, span, (1,))
+
+    assert _fold_result(SourceBlockHit((label, paragraph))) == FoldDecision(
+        FoldDisposition.FLOWING,
+        (label, paragraph),
+    )
+    assert _fold_result(SourceBlockHit((paragraph, paragraph))) == FoldDecision(
+        FoldDisposition.FLOWING,
+        (paragraph, paragraph),
+    )
+
+
+def test_fold_result_keeps_mixed_flow_claims_as_a_typed_conflict() -> None:
+    span = ir.SourceSpan(4, 4)
+    paragraph = BlockClaim(CompilerBlockKind.PARAGRAPH, span, (0,))
+    lineated = BlockClaim(CompilerBlockKind.LINEATED, span, (1,))
+
+    assert _fold_result(SourceBlockHit((paragraph, lineated))) == FoldConflict(
+        (paragraph, lineated)
+    )
+    observation = docx_structure.FoldObservation((
+        (
+            docx_source.ParagraphOrdinal(4),
+            FoldConflict((paragraph, lineated)),
+        ),
+    ))
+    assert observation.decisions == ()
+
+
+def test_fold_observer_stops_before_register_assignment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = _empty_source()
+    seen: list[tuple[str | None, Context]] = []
+
+    monkeypatch.setattr(
+        docx_structure.da,
+        "adapt",
+        lambda _source, _media, _diagnostics: ir.Document(blocks=[]),
+    )
+
+    def fake_run(doc: ir.Document, context: Context, *, until: str | None = None) -> ir.Document:
+        seen.append((until, context))
+        return doc
+
+    monkeypatch.setattr(docx_structure, "run", fake_run)
+
+    assert docx_structure.observe_fold(source, lang="ru").entries == ()
+    assert seen and seen[0][0] == POST_FOLD_SEAM
+    assert not seen[0][1].scripture.by_ordinal
 
 
 @pandoc_required
@@ -657,21 +853,21 @@ def test_semantic_surfaces_do_not_expand_enclosing_span_over_pagination(
     source = docx_source.read(path)
     assert source.paragraphs[2].disposition is docx_source.ParagraphDisposition.PAGINATION_ONLY
     classifications = docx_inspect.classify_blocks(source).by_source
-    decisions = docx_inspect.lineation_decisions(path, apply_overrides=False)
-    mask = docx_inspect.votability_mask(path)
+    decisions = fold_decisions(source, lang="ru", apply_overrides=False)
+    observation = observe_structure(source, lang="ru")
 
     assert classifications[1].span == ir.SourceSpan(1, 3)
     assert 2 not in classifications
     assert decisions[1] is decisions[3] is True
     assert 2 not in decisions
-    assert 2 not in mask
+    assert 2 not in dict(observation.entries)
 
 
 @pandoc_required
-def test_lineation_decisions_per_ordinal_surface(tmp_path: Path) -> None:
+def test_fold_decisions_per_ordinal_surface(tmp_path: Path) -> None:
     """The per-`w:p`-ordinal prose/lineated surface the lineation gold joins on:
-    prose stays False, an authored hard break with a prose-length line is reported
-    prose (the break is display, not register), structure is absent, and a folded
+    prose stays False, an authored hard break is lineated regardless of Q2 register,
+    structure is absent, and a folded
     couplet after a heading is True."""
     from docx import Document
 
@@ -690,20 +886,20 @@ def test_lineation_decisions_per_ordinal_surface(tmp_path: Path) -> None:
     path = tmp_path / "fixture.docx"
     doc.save(str(path))
 
-    decisions = docx_inspect.lineation_decisions(path)
+    decisions = fold_decisions(docx_source.read(path), lang="ru")
 
     assert decisions[0] is False
-    assert decisions[1] is False  # hard break preserved for display, prose register
+    assert decisions[1] is True   # the compiler emitted one lineated block; Q2 is separate
     assert 2 not in decisions     # the heading is structure, not a votable body line
     assert decisions[3] is True and decisions[4] is True
 
 
 @pandoc_required
-def test_lineation_decisions_cover_register_quote_members(tmp_path: Path) -> None:
-    """Paragraphs the display-register pass wraps (scripture/inset quotes) keep
-    their per-ordinal lineation coverage: a prose-length bordered paragraph is
-    still a False label, and a bordered hard-break couplet stays True — the
-    wrapped run must not vanish from the gold-join surface."""
+def test_fold_decisions_cover_register_quote_members(tmp_path: Path) -> None:
+    """Register wrapping keeps fold coverage without conflating rendered hard lines:
+    both quote members remain Paragraphs, so both are flowing at the fold seam. The
+    hard break still renders as two-space lineation, independently test-pinned by
+    `test_quote_member_hard_breaks_become_display_lines`."""
     from docx import Document
     from docx.oxml.ns import qn
     from docx.text.paragraph import Paragraph as DocxParagraph
@@ -735,14 +931,14 @@ def test_lineation_decisions_cover_register_quote_members(tmp_path: Path) -> Non
     path = tmp_path / "fixture-borders.docx"
     doc.save(str(path))
 
-    decisions = docx_inspect.lineation_decisions(path)
+    decisions = fold_decisions(docx_source.read(path), lang="ru")
 
     assert decisions[8] is False   # boxed prose verse: covered, prose register
-    assert decisions[9] is True    # ruled hard-break couplet: covered, lineated
+    assert decisions[9] is False   # rendered hard lines, but never a LineatedBlock fold
 
 
 @pandoc_required
-def test_lineation_decisions_en_edition_mirrors_ru(tmp_path: Path) -> None:
+def test_fold_decisions_en_edition_mirrors_ru(tmp_path: Path) -> None:
     """The EN editions get the same per-ordinal surface: EN prose stays False,
     an EN speaker turn (`Answer from the Creator:`) is structure — absent, never
     a verse line — and an EN couplet after a heading folds True."""
@@ -762,7 +958,7 @@ def test_lineation_decisions_en_edition_mirrors_ru(tmp_path: Path) -> None:
     path = tmp_path / "fixture-en.docx"
     doc.save(str(path))
 
-    decisions = docx_inspect.lineation_decisions(path)
+    decisions = fold_decisions(docx_source.read(path), lang="en")
 
     assert decisions[0] is False
     assert decisions.get(1) is not True   # the speaker turn is never lineated

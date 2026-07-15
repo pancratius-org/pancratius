@@ -53,13 +53,13 @@ def _source_paragraph(
         ),
         resolved_style="",
         direct_style="",
-        alignment=docx_source.ParagraphAlignment(align),
+        layout=docx_source.ParagraphLayout(
+            source_alignment=docx_source.ParagraphAlignment(align),
+        ),
         contextual_spacing=False,
-        spacing=(),
-        indent=(),
         indent_departure=False,
         border=docx_source.BorderGesture.NONE,
-        roles=frozenset({docx_source.ParagraphRole.BODY}),
+        markers=docx_source.ParagraphMarkers(),
         segment=docx_source.SourceSegment(segment),
         bold=False,
         italic=False,
@@ -446,6 +446,36 @@ def test_read_w_jc_style_spacing_overrides_doc_default_spacing(tmp_path: Path) -
     records = _read_source(path)
     assert [r.text for r in records] == ["first paragraph", "second paragraph"]
     assert _groups(records) == [None, None]
+
+
+def test_read_resolves_inherited_alignment_and_indent_once(tmp_path: Path) -> None:
+    styles = (
+        '<?xml version="1.0"?>'
+        f'<w:styles xmlns:w="{W_NS}">'
+        '<w:docDefaults><w:pPrDefault><w:pPr><w:jc w:val="center"/>'
+        '<w:ind w:left="120"/></w:pPr></w:pPrDefault></w:docDefaults>'
+        '<w:style w:type="paragraph" w:styleId="Base">'
+        '<w:pPr><w:jc w:val="both"/><w:ind w:left="240" w:firstLine="80"/></w:pPr>'
+        '</w:style>'
+        '<w:style w:type="paragraph" w:styleId="Derived">'
+        '<w:basedOn w:val="Base"/><w:pPr><w:ind w:left="480"/></w:pPr>'
+        '</w:style>'
+        '</w:styles>'
+    )
+    document = (
+        '<?xml version="1.0"?>'
+        f'<w:document xmlns:w="{W_NS}"><w:body>'
+        '<w:p><w:pPr><w:pStyle w:val="Derived"/></w:pPr>'
+        '<w:r><w:t>styled</w:t></w:r></w:p>'
+        '</w:body></w:document>'
+    )
+    paragraph = _read_source(_docx_from_document(tmp_path, document, styles=styles))[0]
+
+    assert paragraph.alignment.value == "both"
+    assert paragraph.layout.alignment is docx_source.TextAlignment.JUST
+    assert dict(paragraph.indent) == {"firstLine": "80", "left": "480"}
+    assert paragraph.layout.first_line_indent == docx_source.Twips(80)
+    assert paragraph.layout.left_indent == docx_source.Twips(480)
 
 
 def test_read_w_jc_marks_structural_empty_paragraphs(tmp_path: Path) -> None:

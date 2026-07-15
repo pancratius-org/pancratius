@@ -1,118 +1,118 @@
 {
- "3448": {
-  "source": "Откр 21:5",
-  "text_sha": "07d313468776def9"
- },
- "8166": {
-  "source": "Лк. 17:20–21",
-  "text_sha": "b8b2a2ab87634428"
- },
- "9220": {
-  "source": "Лк 19:44",
-  "text_sha": "8b270c046b60d304"
- },
- "9439": {
-  "source": "Ин 9:39",
-  "text_sha": "629d8f5e826f6065"
- },
- "10516": {
-  "source": "Лк 17:20-21",
-  "text_sha": "48958464653ff59d"
- },
- "12512": {
-  "source": "Мф 5:3, 5:8, 5:44",
-  "text_sha": "4b8cc4b76b04b62b"
- },
- "12513": {
-  "source": "Мф 5:3, 5:8, 5:44",
-  "text_sha": "a62065dd2616df49"
- },
- "12514": {
-  "source": "Мф 5:3, 5:8, 5:44",
-  "text_sha": "4a08e720ab770a98"
- },
- "12523": {
-  "source": "Мф 5:19,22,29",
-  "text_sha": "85c9a1096c337997"
- },
- "12524": {
-  "source": "Мф 5:19,22,29",
-  "text_sha": "d5afc3001ac399d0"
- },
- "12525": {
-  "source": "Мф 5:19,22,29",
-  "text_sha": "99132cc8b75fb6b8"
- },
- "15265": {
-  "source": "Коран 3:19",
-  "text_sha": "b736eae377a654e7"
- },
- "15268": {
-  "source": "Коран 3:19",
-  "text_sha": "5e9fa6e50cef91e0"
- },
- "16616": {
-  "source": "Коран 2:39",
-  "text_sha": "f352d18bfb40fe0c"
- },
- "16700": {
-  "source": "Коран 2:155",
-  "text_sha": "c2ceea9170e6800a"
- },
- "17451": {
-  "source": "Коран 4:157",
-  "text_sha": "3b255178ee19722d"
- },
- "25382": {
-  "source": "Ин 18:36",
-  "text_sha": "9fdcac369ccb5b86"
- },
- "25449": {
-  "source": "Зах 6:12-13",
-  "text_sha": "466b71c070f3a1b1"
- },
- "25459": {
-  "source": "Ис 2:4",
-  "text_sha": "26d50c52a3464ff4"
- },
- "25469": {
-  "source": "Ис 11",
-  "text_sha": "5a31008e1b394aa6"
- },
- "25479": {
-  "source": "Дан 7:13",
-  "text_sha": "610c74b2cc82618d"
- },
- "25503": {
-  "source": "Иез 37:24",
-  "text_sha": "137d4cc6cf49f627"
- },
- "25553": {
-  "source": "Мф 24:30",
-  "text_sha": "d463246191d4ad42"
- },
- "25566": {
-  "source": "Откр 19:11-16",
-  "text_sha": "22f5373e5d0d4624"
- },
- "25580": {
-  "source": "Деян 1:11",
-  "text_sha": "eedd22b1d8c0d85c"
- },
- "25591": {
-  "source": "Ин 14:3",
-  "text_sha": "64741ad18974dfe5"
- },
- "25603": {
-  "source": "Мф 25:31-46",
-  "text_sha": "b8302aa749d44003"
- },
- "25615": {
-  "source": "1 Фессалоникийцам 4:16-17",
-  "text_sha": "2792ec1d9524dfa5"
- },
- "25628": {
-  "source": "Лк 21:25-27",
-  "text_sha": "9d8f105236325dd4"
- }
+  "3448": {
+    "source": "Откр 21:5",
+    "scripture_fingerprint": "e4a74fd6ccd0aa47"
+  },
+  "8166": {
+    "source": "Лк. 17:20–21",
+    "scripture_fingerprint": "1bdc7c08218ae5f6"
+  },
+  "9220": {
+    "source": "Лк 19:44",
+    "scripture_fingerprint": "3742296410b32a5c"
+  },
+  "9439": {
+    "source": "Ин 9:39",
+    "scripture_fingerprint": "3e0057a41b63c55c"
+  },
+  "10516": {
+    "source": "Лк 17:20-21",
+    "scripture_fingerprint": "302f89c5b9191773"
+  },
+  "12512": {
+    "source": "Мф 5:3, 5:8, 5:44",
+    "scripture_fingerprint": "03d08507e3b68f87"
+  },
+  "12513": {
+    "source": "Мф 5:3, 5:8, 5:44",
+    "scripture_fingerprint": "b301e25cfb567a5e"
+  },
+  "12514": {
+    "source": "Мф 5:3, 5:8, 5:44",
+    "scripture_fingerprint": "271fd0972a2b34a9"
+  },
+  "12523": {
+    "source": "Мф 5:19,22,29",
+    "scripture_fingerprint": "2cff6c199168168e"
+  },
+  "12524": {
+    "source": "Мф 5:19,22,29",
+    "scripture_fingerprint": "189f2a6f218a7c2c"
+  },
+  "12525": {
+    "source": "Мф 5:19,22,29",
+    "scripture_fingerprint": "0f32bf2f9178ce1e"
+  },
+  "15265": {
+    "source": "Коран 3:19",
+    "scripture_fingerprint": "3b17f22249557575"
+  },
+  "15268": {
+    "source": "Коран 3:19",
+    "scripture_fingerprint": "6e8cc748f36ad0f0"
+  },
+  "16616": {
+    "source": "Коран 2:39",
+    "scripture_fingerprint": "9ab2a82ddbb319e8"
+  },
+  "16700": {
+    "source": "Коран 2:155",
+    "scripture_fingerprint": "8d1f3931b9cae8ed"
+  },
+  "17451": {
+    "source": "Коран 4:157",
+    "scripture_fingerprint": "0115e5655ec9105c"
+  },
+  "25382": {
+    "source": "Ин 18:36",
+    "scripture_fingerprint": "3aada7e6acac5cb1"
+  },
+  "25449": {
+    "source": "Зах 6:12-13",
+    "scripture_fingerprint": "245ffb090a358785"
+  },
+  "25459": {
+    "source": "Ис 2:4",
+    "scripture_fingerprint": "0700d72bbd5db8d2"
+  },
+  "25469": {
+    "source": "Ис 11",
+    "scripture_fingerprint": "88b0088fa6ca059c"
+  },
+  "25479": {
+    "source": "Дан 7:13",
+    "scripture_fingerprint": "b97ee72ceee42c0b"
+  },
+  "25503": {
+    "source": "Иез 37:24",
+    "scripture_fingerprint": "1258073d04cf9f9d"
+  },
+  "25553": {
+    "source": "Мф 24:30",
+    "scripture_fingerprint": "bc901505ceebeb75"
+  },
+  "25566": {
+    "source": "Откр 19:11-16",
+    "scripture_fingerprint": "4a9b624c99bf9c1a"
+  },
+  "25580": {
+    "source": "Деян 1:11",
+    "scripture_fingerprint": "efbeeecd04c9ddac"
+  },
+  "25591": {
+    "source": "Ин 14:3",
+    "scripture_fingerprint": "220213f2a959dee8"
+  },
+  "25603": {
+    "source": "Мф 25:31-46",
+    "scripture_fingerprint": "d5b0eef8c5e32dcb"
+  },
+  "25615": {
+    "source": "1 Фессалоникийцам 4:16-17",
+    "scripture_fingerprint": "6d86031a74b1b977"
+  },
+  "25628": {
+    "source": "Лк 21:25-27",
+    "scripture_fingerprint": "de04744f47d63b9a"
+  }
 }

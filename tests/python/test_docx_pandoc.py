@@ -360,6 +360,115 @@ def test_alternate_content_uses_fallback_for_source_and_pagination() -> None:
     assert ET.fromstring(projection).find(f".//{ooxml.MC_ALTERNATE_CONTENT}") is None
 
 
+def test_natural_lines_normalize_layout_tabs_like_reading_text() -> None:
+    content = docx_source.ParagraphContent(
+        (
+            docx_source.TextAtom("chapter\t\u00a012"),
+            docx_source.BreakKind.LINE,
+            docx_source.TextAtom("next  line"),
+        )
+    )
+
+    assert content.reading == "chapter 12 next line"
+    assert content.line_segments == ("chapter 12", "next line")
+
+
+def test_story_contents_share_the_canonical_break_and_compatibility_grammar() -> None:
+    root = ET.fromstring(
+        f'<w:footnotes xmlns:w="{ooxml.W_NS}" xmlns:mc="{ooxml.MC_NS}">'
+        '<w:footnote><w:p><w:r><w:t>one</w:t><w:br w:type="page"/>'
+        '<mc:AlternateContent><mc:Choice Requires="x"><w:t>hidden</w:t></mc:Choice>'
+        '<mc:Fallback><w:br/><w:t>two</w:t></mc:Fallback>'
+        '</mc:AlternateContent></w:r></w:p></w:footnote></w:footnotes>'
+    )
+
+    content, = docx_source.story_contents(root)
+
+    assert content.reading == "one two"
+    assert content.line_segments == ("one", "two")
+    assert content.breaks == (docx_source.BreakKind.PAGE, docx_source.BreakKind.LINE)
+
+
+def _add_story(path: Path, part: docx_source.StoryPart, body: str) -> None:
+    root = part.name.lower()
+    payload = f'<w:{root} xmlns:w="{ooxml.W_NS}" xmlns:mc="{ooxml.MC_NS}">{body}</w:{root}>'
+    with zipfile.ZipFile(path, "a") as archive:
+        archive.writestr(part.value, payload.encode())
+
+
+def test_read_story_handles_required_and_optional_parts(tmp_path: Path) -> None:
+    document = Document()
+    document.add_paragraph("body")
+    path = tmp_path / "stories.docx"
+    document.save(str(path))
+
+    assert tuple(content.reading for content in docx_source.read_story(
+        path, docx_source.StoryPart.DOCUMENT
+    )) == ("body",)
+    assert docx_source.read_story(path, docx_source.StoryPart.FOOTNOTES) == ()
+    assert docx_source.read_story(path, docx_source.StoryPart.ENDNOTES) == ()
+
+    empty = tmp_path / "missing-document.docx"
+    with zipfile.ZipFile(empty, "w"):
+        pass
+    with pytest.raises(docx_source.DocxSourceError, match=r"missing word/document\.xml"):
+        docx_source.read_story(empty, docx_source.StoryPart.DOCUMENT)
+
+
+@pytest.mark.parametrize(
+    "part",
+    [docx_source.StoryPart.FOOTNOTES, docx_source.StoryPart.ENDNOTES],
+)
+def test_read_story_uses_typed_breaks_and_selected_fallback(
+    tmp_path: Path,
+    part: docx_source.StoryPart,
+) -> None:
+    document = Document()
+    path = tmp_path / f"{part.name.lower()}.docx"
+    document.save(str(path))
+    _add_story(
+        path,
+        part,
+        '<w:p><w:r><w:t>one</w:t><w:br w:type="page"/>'
+        '<mc:AlternateContent><mc:Choice Requires="x"><w:t>hidden</w:t></mc:Choice>'
+        '<mc:Fallback><w:br/><w:t>two</w:t></mc:Fallback>'
+        '</mc:AlternateContent><w:br w:type="column"/></w:r></w:p>',
+    )
+
+    content, = docx_source.read_story(path, part)
+
+    assert content.reading == "one two"
+    assert content.line_segments == ("one", "two")
+    assert content.breaks == (
+        docx_source.BreakKind.PAGE,
+        docx_source.BreakKind.LINE,
+        docx_source.BreakKind.COLUMN,
+    )
+
+
+def test_read_story_reports_package_part_and_paragraph_for_unknown_break(
+    tmp_path: Path,
+) -> None:
+    document = Document()
+    path = tmp_path / "unknown-break.docx"
+    document.save(str(path))
+    _add_story(
+        path,
+        docx_source.StoryPart.FOOTNOTES,
+        '<w:p><w:r><w:t>first</w:t></w:r></w:p>'
+        '<w:p><w:r><w:br w:type="future-layout"/></w:r></w:p>',
+    )
+
+    with pytest.raises(
+        docx_source.DocxSourceError,
+        match=(
+            r"unknown-break\.docx: cannot read word/footnotes\.xml: paragraph 1: "
+            r"unsupported w:br type 'future-layout'"
+        ),
+    ):
+        docx_source.read_story(path, docx_source.StoryPart.FOOTNOTES)
+
+
 def test_alternate_content_without_fallback_remains_opaque() -> None:
     xml = (
         f'<w:document xmlns:w="{ooxml.W_NS}" '

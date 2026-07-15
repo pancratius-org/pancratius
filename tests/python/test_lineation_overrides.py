@@ -16,7 +16,7 @@ import pytest
 
 from pancratius import docx_source, ir
 from pancratius.ir.inlines import inline_plain
-from pancratius.lineation_overrides import load_overrides, overrides_path, paragraph_sha
+from pancratius.lineation_overrides import load_overrides, overrides_path
 from pancratius.passes.lineation import check_overrides_held
 from pancratius.passes.pipeline import Context, LineationCorrections, run
 
@@ -45,6 +45,15 @@ def _load(docx: Path) -> dict[int, ir.LineationRegister]:
     return load_overrides(docx_source.read(docx))
 
 
+def _railed(docx: Path, ordinal: int, **payload: str) -> dict[str, str]:
+    paragraph = docx_source.read(docx).paragraph(docx_source.ParagraphOrdinal(ordinal))
+    return {
+        **payload,
+        "lineation_fingerprint": paragraph.adjudication_fingerprint(
+        docx_source.SourceAdjudicationKind.LINEATION
+    ).value,
+    }
+
 # --- the loader rails ---------------------------------------------------------------------
 
 
@@ -61,14 +70,14 @@ def test_sidecar_path_is_language_keyed(tmp_path: Path) -> None:
 def test_valid_override_loads_by_ordinal(tmp_path: Path) -> None:
     docx = tmp_path / "ru.docx"
     _write_docx(docx, ["Первый абзац.", "Пиши. Дальше."])
-    _write_sidecar(docx, {1: {"register": "prose", "text_sha": paragraph_sha("Пиши. Дальше.")}})
+    _write_sidecar(docx, {1: _railed(docx, 1, register="prose")})
     assert _load(docx) == {1: "prose"}
 
 
 def test_text_drift_fails_the_load(tmp_path: Path) -> None:
     docx = tmp_path / "ru.docx"
     _write_docx(docx, ["Первый абзац.", "Изменённый текст."])
-    _write_sidecar(docx, {1: {"register": "prose", "text_sha": paragraph_sha("Пиши. Дальше.")}})
+    _write_sidecar(docx, {1: {"register": "prose", "lineation_fingerprint": "0" * 16}})
     with pytest.raises(ValueError, match="drifted"):
         _load(docx)
 
@@ -76,7 +85,7 @@ def test_text_drift_fails_the_load(tmp_path: Path) -> None:
 def test_stale_ordinal_fails_the_load(tmp_path: Path) -> None:
     docx = tmp_path / "ru.docx"
     _write_docx(docx, ["Один абзац."])
-    _write_sidecar(docx, {99: {"register": "prose", "text_sha": paragraph_sha("что-то")}})
+    _write_sidecar(docx, {99: {"register": "prose", "lineation_fingerprint": "0" * 16}})
     with pytest.raises(ValueError, match="no source paragraph"):
         _load(docx)
 
@@ -84,7 +93,7 @@ def test_stale_ordinal_fails_the_load(tmp_path: Path) -> None:
 def test_unknown_register_fails_the_load(tmp_path: Path) -> None:
     docx = tmp_path / "ru.docx"
     _write_docx(docx, ["Один абзац."])
-    _write_sidecar(docx, {0: {"register": "verse", "text_sha": paragraph_sha("Один абзац.")}})
+    _write_sidecar(docx, {0: _railed(docx, 0, register="verse")})
     with pytest.raises(ValueError, match="register"):
         _load(docx)
 
@@ -101,7 +110,7 @@ def test_pagination_only_ordinal_fails_at_sidecar_load(tmp_path: Path) -> None:
     assert source.paragraphs[0].disposition is docx_source.ParagraphDisposition.PAGINATION_ONLY
     _write_sidecar(
         docx,
-        {0: {"register": "prose", "text_sha": paragraph_sha("")}},
+        {0: _railed(docx, 0, register="prose")},
     )
 
     with pytest.raises(
@@ -176,8 +185,8 @@ def test_lineated_override_is_not_silently_ignored() -> None:
 
 
 @pandoc_required
-def test_lineation_decisions_honor_the_sidecar(tmp_path: Path) -> None:
-    from pancratius.docx_inspect import lineation_decisions
+def test_fold_decisions_honor_the_sidecar(tmp_path: Path) -> None:
+    from pancratius.docx_structure import fold_decisions
 
     docx = tmp_path / "ru.docx"
     paragraphs = [
@@ -188,15 +197,17 @@ def test_lineation_decisions_honor_the_sidecar(tmp_path: Path) -> None:
         "Пиши. Дальше.",          # 4 — the corrected line
     ]
     _write_docx(docx, paragraphs)
-    before = lineation_decisions(docx)
+    before = fold_decisions(docx_source.read(docx), lang="ru")
     assert before.get(4) is True, "precondition: the importer lineates row 4 in this fixture"
 
-    _write_sidecar(docx, {4: {"register": "prose", "text_sha": paragraph_sha("Пиши. Дальше.")}})
-    after = lineation_decisions(docx)
+    _write_sidecar(docx, {4: _railed(docx, 4, register="prose")})
+    after = fold_decisions(docx_source.read(docx), lang="ru")
     assert after.get(4) is False
     assert all(after.get(o) is True for o in (1, 2, 3))
     # `apply_overrides=False` is the uncorrected baseline: the importer's own verdict.
-    assert lineation_decisions(docx, apply_overrides=False).get(4) is True
+    assert fold_decisions(
+        docx_source.read(docx), lang="ru", apply_overrides=False
+    ).get(4) is True
 
 
 def test_mid_run_override_demotes_the_whole_unit_today() -> None:
@@ -235,13 +246,13 @@ def test_fate_assertion_sees_a_fold_inside_a_quote_wrapper() -> None:
 def test_loader_rejects_duplicate_and_noncanonical_keys(tmp_path: Path) -> None:
     docx = tmp_path / "ru.docx"
     _write_docx(docx, ["Один.", "Два."])
-    sha = paragraph_sha("Два.")
+    fingerprint = _railed(docx, 1, register="prose")["lineation_fingerprint"]
     p = overrides_path(docx)
-    p.write_text(f'{{"1": {{"register": "prose", "text_sha": "{sha}"}}, '
-                 f'"1": {{"register": "prose", "text_sha": "{sha}"}}}}')
+    row = f'{{"register": "prose", "lineation_fingerprint": "{fingerprint}"}}'
+    p.write_text(f'{{"1": {row}, "1": {row}}}')
     with pytest.raises(ValueError, match="duplicate"):
         _load(docx)
-    p.write_text(f'{{"01": {{"register": "prose", "text_sha": "{sha}"}}}}')
+    p.write_text(f'{{"01": {row}}}')
     with pytest.raises(ValueError, match="canonical"):
         _load(docx)
     p.write_text('[1, 2]')

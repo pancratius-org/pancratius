@@ -29,6 +29,7 @@ __all__ = (
     "BOOK_PASSES",
     "PER_ORDINAL_SEAM",
     "POEM_PASSES",
+    "POST_FOLD_SEAM",
     "BibliographyLookup",
     "Context",
     "LineationCorrections",
@@ -121,6 +122,11 @@ POEM_PASSES: tuple[Pass, ...] = (
 # The first span-merging pass: before it, every body row is still an addressable
 # `Paragraph` with its own ordinal — the seam the per-ordinal observers need.
 PER_ORDINAL_SEAM = "fold_quote_registers"
+
+# Q1 (flowing paragraph vs lineated block) is complete immediately before Q2 assigns
+# display register. Observers of fold truth stop here so later register/scripture passes
+# consume Q1 without becoming an accidental second owner of it.
+POST_FOLD_SEAM = "assign_register"
 
 
 def run(

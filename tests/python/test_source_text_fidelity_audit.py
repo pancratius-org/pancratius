@@ -86,3 +86,29 @@ def test_source_text_fidelity_rejects_partially_duplicated_markdown_passage(tmp_
 
     assert result.returncode == 1
     assert "Markdown repeats a source passage more often than DOCX" in result.stderr
+
+
+def test_source_text_fidelity_does_not_call_unrelated_repetition_a_source_passage(
+    tmp_path: Path,
+) -> None:
+    root = _content_root(tmp_path)
+    source = " ".join(f"source{i}" for i in range(40))
+    unrelated = " ".join(f"other{i}" for i in range(30))
+    docx = root / "src" / "content" / "books" / "sample" / "ru.docx"
+    _write_docx(docx, source)
+    docx.with_suffix(".md").write_text(
+        f"---\ntitle: Sample\n---\n\n{source}\n\n{unrelated}\n\n{unrelated}\n",
+        encoding="utf-8",
+    )
+
+    result = _run_audit(root)
+
+    assert result.returncode == 0
+
+
+def test_source_text_fidelity_compares_visible_math_across_word_and_tex_storage() -> None:
+    from audit.source_text_fidelity import _normalize
+
+    assert _normalize("Каждое утверждение начинается с Ω и ℜ") == _normalize(
+        r"Каждое утверждение начинается с $$\Omega$$ и $$\mathfrak{R}$$"
+    )
