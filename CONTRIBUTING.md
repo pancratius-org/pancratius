@@ -40,7 +40,7 @@ test checks, minus the audits and the build.
 - Commit subjects are single-line, conventional: `type(scope): subject` (e.g.
   `fix(audit): …`). Scope names the subsystem you touched — `site`, `styles`,
   `layout`, `content`, `audit`, `import`, `cli`, `tooling`, `docx`, `python`,
-  `ci`, `conceptosphere`, `projects`, `video`, `lineation-core`, `publication`;
+  `ci`, `conceptosphere`, `projects`, `video`, `intent-ai`, `publication`;
   add one when a subsystem earns clear ownership.
 - Open a PR; once `verify` passes, squash- or rebase-merge — squash when the
   PR's history is iterative, rebase to preserve a clean series. Either keeps

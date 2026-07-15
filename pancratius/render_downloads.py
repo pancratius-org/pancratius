@@ -443,7 +443,7 @@ def _resize_for_export(img: Image.Image) -> Image.Image:
         return img
     scale = EXPORT_MAX_LONG_EDGE / long_edge
     size = (max(1, round(w * scale)), max(1, round(h * scale)))
-    return img.resize(size, Image.LANCZOS)
+    return img.resize(size, Image.Resampling.LANCZOS)
 
 
 def _write_jpeg(img: Image.Image, dest: Path) -> None:

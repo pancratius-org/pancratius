@@ -6,6 +6,7 @@ the nested IR/package paths so a broad bad fixture cannot hide a stale guard.
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -90,3 +91,46 @@ def test_console_script_corpus_verb_is_banned_in_isolation(tmp_path: Path) -> No
 def test_site_build_command_is_allowed(tmp_path: Path) -> None:
     proc = _run(_workflow(tmp_path, "npm run build"))
     assert proc.returncode == 0, proc.stderr
+
+
+def test_banned_compiler_hidden_behind_nested_npm_scripts_is_rejected(tmp_path: Path) -> None:
+    root = _workflow(tmp_path, "npm run verify")
+    (root / "package.json").write_text(
+        json.dumps(
+            {
+                "scripts": {
+                    "verify": "npm run check:intent-ai",
+                    "check:intent-ai": (
+                        "uv run --project intent-ai --frozen python -m intent_ai.build_records"
+                    ),
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    proc = _run(root)
+    assert proc.returncode == 1
+    assert "intent-ai record compiler" in proc.stderr
+    assert "check:intent-ai" in proc.stderr
+
+
+def test_banned_compiler_hidden_in_npm_lifecycle_hook_is_rejected(tmp_path: Path) -> None:
+    root = _workflow(tmp_path, "npm run verify")
+    (root / "package.json").write_text(
+        json.dumps(
+            {
+                "scripts": {
+                    "preverify": (
+                        "uv run --project intent-ai --frozen python -m intent_ai.build_records"
+                    ),
+                    "verify": "npm run check",
+                    "check": "node --test",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    proc = _run(root)
+    assert proc.returncode == 1
+    assert "intent-ai record compiler" in proc.stderr
+    assert "preverify" in proc.stderr

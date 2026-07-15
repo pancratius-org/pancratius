@@ -1,0 +1,217 @@
+{"before": ["en", "27", 41, 0], "after": null, "status": "retired", "old_text_hash": "1badd39eb3e26a11", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["en", "27", 117, 1], "after": null, "status": "needs_adjudication", "old_text_hash": "56b67a18547c1cc2", "new_text_hash": null, "reason": "unique text hash violates monotone neighbour order"}
+{"before": ["en", "27", 164, 1], "after": ["en", "27", 36, 24], "status": "moved", "old_text_hash": "f554df6849fe31b5", "new_text_hash": "f554df6849fe31b5", "reason": "unique canonical text hash"}
+{"before": ["en", "27", 383, 1], "after": null, "status": "retired", "old_text_hash": "97441b63de2f945b", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["en", "27", 551, 3], "after": null, "status": "retired", "old_text_hash": "b875ef6340e980a2", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["en", "27", 630, 0], "after": null, "status": "retired", "old_text_hash": "2cdbb018a9cc06b2", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["en", "35", 430, 0], "after": ["en", "35", 92, 0], "status": "moved", "old_text_hash": "0cae3fea8a659103", "new_text_hash": "0cae3fea8a659103", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 1177, 0], "after": ["en", "35", 273, 11], "status": "moved", "old_text_hash": "25f6212b782cd3a1", "new_text_hash": "25f6212b782cd3a1", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 1209, 0], "after": ["en", "35", 280, 3], "status": "moved", "old_text_hash": "262b74f8dc1d3b4e", "new_text_hash": "262b74f8dc1d3b4e", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 1216, 0], "after": ["en", "35", 282, 2], "status": "moved", "old_text_hash": "1e040c05ade1329d", "new_text_hash": "1e040c05ade1329d", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 2499, 0], "after": ["en", "35", 609, 2], "status": "moved", "old_text_hash": "4b02cf599a64cec3", "new_text_hash": "4b02cf599a64cec3", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 3587, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "4ad54734a5942067", "new_text_hash": null, "reason": "text hash has 2 canonical candidates"}
+{"before": ["en", "35", 3895, 0], "after": null, "status": "retired", "old_text_hash": "38d5fcabfd86838b", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["en", "35", 4546, 0], "after": ["en", "35", 1109, 1], "status": "moved", "old_text_hash": "363a5ed290c34b9d", "new_text_hash": "363a5ed290c34b9d", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 5201, 0], "after": ["en", "35", 1265, 1], "status": "moved", "old_text_hash": "843170953174e409", "new_text_hash": "843170953174e409", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 5253, 0], "after": ["en", "35", 1277, 1], "status": "moved", "old_text_hash": "bb2a967100d459cc", "new_text_hash": "bb2a967100d459cc", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 6548, 0], "after": ["en", "35", 1603, 0], "status": "moved", "old_text_hash": "0c655436b7cbf898", "new_text_hash": "0c655436b7cbf898", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 6845, 0], "after": ["en", "35", 1681, 1], "status": "moved", "old_text_hash": "45026d574a053d8e", "new_text_hash": "45026d574a053d8e", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 7365, 0], "after": ["en", "35", 1831, 0], "status": "moved", "old_text_hash": "cf8c2c906df458a9", "new_text_hash": "cf8c2c906df458a9", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 7986, 0], "after": ["en", "35", 2008, 2], "status": "moved", "old_text_hash": "e6165875f640d645", "new_text_hash": "e6165875f640d645", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 8460, 0], "after": ["en", "35", 2135, 0], "status": "moved", "old_text_hash": "ad6eb5cea5c8fcc4", "new_text_hash": "ad6eb5cea5c8fcc4", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 8568, 0], "after": ["en", "35", 2166, 0], "status": "moved", "old_text_hash": "19ee0a532c4ef8dd", "new_text_hash": "19ee0a532c4ef8dd", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 9328, 0], "after": ["en", "35", 2377, 0], "status": "moved", "old_text_hash": "143fc4bd9c4c5201", "new_text_hash": "143fc4bd9c4c5201", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 9335, 0], "after": ["en", "35", 2379, 1], "status": "moved", "old_text_hash": "ccb75c8f293e5b32", "new_text_hash": "ccb75c8f293e5b32", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 9481, 0], "after": ["en", "35", 2422, 0], "status": "moved", "old_text_hash": "15217e44368f9bd6", "new_text_hash": "15217e44368f9bd6", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 9559, 0], "after": ["en", "35", 2442, 1], "status": "moved", "old_text_hash": "35fe5fdfa8d7e58d", "new_text_hash": "35fe5fdfa8d7e58d", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 11136, 0], "after": ["en", "35", 2876, 3], "status": "moved", "old_text_hash": "cb8c82cccd76f09b", "new_text_hash": "cb8c82cccd76f09b", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 11766, 0], "after": ["en", "35", 3062, 5], "status": "moved", "old_text_hash": "dc174268c487777d", "new_text_hash": "dc174268c487777d", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 12695, 0], "after": ["en", "35", 3309, 2], "status": "moved", "old_text_hash": "1b2fe21ab804f35f", "new_text_hash": "1b2fe21ab804f35f", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 13794, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "09a15abe97df7094", "new_text_hash": null, "reason": "text hash has 2 canonical candidates"}
+{"before": ["en", "35", 14330, 0], "after": ["en", "35", 3735, 0], "status": "moved", "old_text_hash": "a7f56e069458e902", "new_text_hash": "a7f56e069458e902", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 14577, 0], "after": ["en", "35", 3805, 2], "status": "moved", "old_text_hash": "ddb633d48a1593de", "new_text_hash": "ddb633d48a1593de", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 15000, 0], "after": ["en", "35", 3899, 0], "status": "moved", "old_text_hash": "1392579940f3d7d9", "new_text_hash": "1392579940f3d7d9", "reason": "unique canonical text hash"}
+{"before": ["en", "35", 15421, 0], "after": ["en", "35", 3985, 0], "status": "moved", "old_text_hash": "681a999237070360", "new_text_hash": "681a999237070360", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 43, 0], "after": ["en", "63", 32, 7], "status": "moved", "old_text_hash": "c0cd262a731e7962", "new_text_hash": "c0cd262a731e7962", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 611, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "e2bb21f20123a34e", "new_text_hash": null, "reason": "text hash has 22 canonical candidates"}
+{"before": ["en", "63", 868, 0], "after": ["en", "63", 201, 0], "status": "moved", "old_text_hash": "3ee0941c31f05c65", "new_text_hash": "3ee0941c31f05c65", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 876, 0], "after": ["en", "63", 202, 7], "status": "moved", "old_text_hash": "c46ab6c43275b0ea", "new_text_hash": "c46ab6c43275b0ea", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 1477, 0], "after": ["en", "63", 367, 1], "status": "moved", "old_text_hash": "3b8b203a2f1fc108", "new_text_hash": "3b8b203a2f1fc108", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 1593, 0], "after": ["en", "63", 405, 2], "status": "moved", "old_text_hash": "89d4478c63a94e59", "new_text_hash": "89d4478c63a94e59", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 2428, 0], "after": ["en", "63", 598, 1], "status": "moved", "old_text_hash": "f5207affee2c2172", "new_text_hash": "f5207affee2c2172", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 2706, 0], "after": ["en", "63", 655, 21], "status": "moved", "old_text_hash": "45905852ea5c4f07", "new_text_hash": "45905852ea5c4f07", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 2840, 0], "after": ["en", "63", 679, 2], "status": "moved", "old_text_hash": "1915f962c260be79", "new_text_hash": "1915f962c260be79", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 3291, 0], "after": ["en", "63", 776, 9], "status": "moved", "old_text_hash": "c192c85c62338ce6", "new_text_hash": "c192c85c62338ce6", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 3509, 0], "after": ["en", "63", 822, 0], "status": "moved", "old_text_hash": "4c3c0538c29d0511", "new_text_hash": "4c3c0538c29d0511", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 3890, 0], "after": ["en", "63", 910, 16], "status": "moved", "old_text_hash": "c3d39ba83d0d9633", "new_text_hash": "c3d39ba83d0d9633", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 5431, 0], "after": ["en", "63", 1249, 6], "status": "moved", "old_text_hash": "c45b8e5dc9c05cac", "new_text_hash": "c45b8e5dc9c05cac", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 5964, 0], "after": null, "status": "retired", "old_text_hash": "5ed3cb7e9dffee7a", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["en", "63", 6270, 0], "after": ["en", "63", 1388, 0], "status": "moved", "old_text_hash": "6f890a23f09c5267", "new_text_hash": "6f890a23f09c5267", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 6373, 0], "after": ["en", "63", 1407, 2], "status": "moved", "old_text_hash": "e04c7dbb42d9ec3d", "new_text_hash": "e04c7dbb42d9ec3d", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 6748, 0], "after": ["en", "63", 1475, 5], "status": "moved", "old_text_hash": "fb87c077b62fd5e0", "new_text_hash": "fb87c077b62fd5e0", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 6869, 0], "after": ["en", "63", 1494, 11], "status": "moved", "old_text_hash": "01d8ad5d3d0619e7", "new_text_hash": "01d8ad5d3d0619e7", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 7619, 0], "after": ["en", "63", 1638, 11], "status": "moved", "old_text_hash": "9032a0489e0cd981", "new_text_hash": "9032a0489e0cd981", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 8562, 0], "after": ["en", "63", 1790, 7], "status": "moved", "old_text_hash": "896e2b0181e4f7e3", "new_text_hash": "896e2b0181e4f7e3", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 8693, 0], "after": ["en", "63", 1816, 0], "status": "moved", "old_text_hash": "71bc6e0f3dbb227d", "new_text_hash": "71bc6e0f3dbb227d", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 9662, 0], "after": ["en", "63", 1986, 7], "status": "moved", "old_text_hash": "9c256a380c81a85e", "new_text_hash": "9c256a380c81a85e", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 9884, 0], "after": ["en", "63", 2030, 1], "status": "moved", "old_text_hash": "8656bc08a00f4ec6", "new_text_hash": "8656bc08a00f4ec6", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 10286, 0], "after": null, "status": "retired", "old_text_hash": "227f87fe287748b7", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["en", "63", 10434, 0], "after": null, "status": "retired", "old_text_hash": "4c0812f7008358b4", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["en", "63", 10510, 0], "after": ["en", "63", 2144, 9], "status": "moved", "old_text_hash": "74c16a1f4a6ebd71", "new_text_hash": "74c16a1f4a6ebd71", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 10815, 0], "after": ["en", "63", 2200, 8], "status": "moved", "old_text_hash": "5fde153d87fa9a31", "new_text_hash": "5fde153d87fa9a31", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 11836, 0], "after": ["en", "63", 2392, 3], "status": "moved", "old_text_hash": "1745e83d6a34157c", "new_text_hash": "1745e83d6a34157c", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 11943, 0], "after": ["en", "63", 2414, 2], "status": "moved", "old_text_hash": "b3203ea78458d7dc", "new_text_hash": "b3203ea78458d7dc", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 12461, 0], "after": ["en", "63", 2510, 6], "status": "moved", "old_text_hash": "91006402b59cdbef", "new_text_hash": "91006402b59cdbef", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 12475, 0], "after": ["en", "63", 2512, 9], "status": "moved", "old_text_hash": "5730b77acc26e7e5", "new_text_hash": "5730b77acc26e7e5", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 13374, 0], "after": ["en", "63", 2689, 0], "status": "moved", "old_text_hash": "003aac4130a1bdc2", "new_text_hash": "003aac4130a1bdc2", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 13604, 0], "after": ["en", "63", 2724, 7], "status": "moved", "old_text_hash": "753bbbf9aefba414", "new_text_hash": "753bbbf9aefba414", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 13691, 0], "after": ["en", "63", 2742, 1], "status": "moved", "old_text_hash": "1055fdc2278f6988", "new_text_hash": "1055fdc2278f6988", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 13743, 0], "after": ["en", "63", 2750, 2], "status": "moved", "old_text_hash": "fa4c4a448713edbd", "new_text_hash": "fa4c4a448713edbd", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 14472, 0], "after": ["en", "63", 2866, 12], "status": "moved", "old_text_hash": "291f46b4183f582a", "new_text_hash": "291f46b4183f582a", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 15224, 0], "after": ["en", "63", 3018, 7], "status": "moved", "old_text_hash": "543f6044de13db06", "new_text_hash": "543f6044de13db06", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 15698, 0], "after": ["en", "63", 3148, 1], "status": "moved", "old_text_hash": "96a5507e44479231", "new_text_hash": "96a5507e44479231", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 15760, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "cdc13f893da7e314", "new_text_hash": null, "reason": "text hash has 6 canonical candidates"}
+{"before": ["en", "63", 15786, 0], "after": ["en", "63", 3174, 1], "status": "moved", "old_text_hash": "604da66a24c1d01d", "new_text_hash": "604da66a24c1d01d", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 15979, 0], "after": ["en", "63", 3229, 9], "status": "moved", "old_text_hash": "1f4a6e290e117b56", "new_text_hash": "1f4a6e290e117b56", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 16848, 0], "after": ["en", "63", 3483, 2], "status": "moved", "old_text_hash": "a8a19c100e3f712e", "new_text_hash": "a8a19c100e3f712e", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 17002, 0], "after": ["en", "63", 3541, 3], "status": "moved", "old_text_hash": "8aa2e985d17c48d3", "new_text_hash": "8aa2e985d17c48d3", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 17317, 0], "after": ["en", "63", 3649, 11], "status": "moved", "old_text_hash": "2b1db8c234d77cb3", "new_text_hash": "2b1db8c234d77cb3", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 17318, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "7baf76b685acab05", "new_text_hash": null, "reason": "text hash has 2 canonical candidates"}
+{"before": ["en", "63", 17690, 0], "after": ["en", "63", 3750, 3], "status": "moved", "old_text_hash": "c63c704ae2b024c4", "new_text_hash": "c63c704ae2b024c4", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 19369, 0], "after": ["en", "63", 4345, 10], "status": "moved", "old_text_hash": "c17f5a1005717b4e", "new_text_hash": "c17f5a1005717b4e", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 20338, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "c75befc64765c13e", "new_text_hash": null, "reason": "text hash has 13 canonical candidates"}
+{"before": ["en", "63", 20390, 0], "after": ["en", "63", 4688, 2], "status": "moved", "old_text_hash": "024d2738c416926c", "new_text_hash": "024d2738c416926c", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 20877, 0], "after": ["en", "63", 4870, 2], "status": "moved", "old_text_hash": "57e4819ad80679c3", "new_text_hash": "57e4819ad80679c3", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 20949, 0], "after": ["en", "63", 4888, 15], "status": "moved", "old_text_hash": "9c87752d74847b91", "new_text_hash": "9c87752d74847b91", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 21305, 0], "after": ["en", "63", 4958, 2], "status": "moved", "old_text_hash": "8906d8399a4b9cbb", "new_text_hash": "8906d8399a4b9cbb", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 21422, 0], "after": ["en", "63", 4990, 0], "status": "moved", "old_text_hash": "33b5643b3dc3a853", "new_text_hash": "33b5643b3dc3a853", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 21507, 0], "after": ["en", "63", 5016, 14], "status": "moved", "old_text_hash": "f7c09ba14db21258", "new_text_hash": "f7c09ba14db21258", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 22003, 0], "after": ["en", "63", 5156, 0], "status": "moved", "old_text_hash": "4ca5a0ea66530450", "new_text_hash": "4ca5a0ea66530450", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 22536, 0], "after": ["en", "63", 5313, 4], "status": "moved", "old_text_hash": "5aeba7d491fbf523", "new_text_hash": "5aeba7d491fbf523", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 22775, 0], "after": ["en", "63", 5369, 1], "status": "moved", "old_text_hash": "684acdbf62653c30", "new_text_hash": "684acdbf62653c30", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 24225, 0], "after": ["en", "63", 5698, 7], "status": "moved", "old_text_hash": "7957d183133f1956", "new_text_hash": "7957d183133f1956", "reason": "unique canonical text hash"}
+{"before": ["en", "63", 24362, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "96b09527d153eb33", "new_text_hash": null, "reason": "text hash has 2 canonical candidates"}
+{"before": ["en", "64", 32, 0], "after": null, "status": "retired", "old_text_hash": "e391a3b2fc3a7dcf", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["en", "64", 1107, 0], "after": ["en", "64", 114, 0], "status": "moved", "old_text_hash": "cd2626136892a3f5", "new_text_hash": "cd2626136892a3f5", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 1330, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "6d494a85a2246fe0", "new_text_hash": null, "reason": "text hash has 2 canonical candidates"}
+{"before": ["en", "64", 1531, 0], "after": ["en", "64", 160, 15], "status": "moved", "old_text_hash": "01abaf25fce7c82e", "new_text_hash": "01abaf25fce7c82e", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 1730, 0], "after": ["en", "64", 182, 14], "status": "moved", "old_text_hash": "36dc0223adba524d", "new_text_hash": "36dc0223adba524d", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 1808, 0], "after": ["en", "64", 206, 0], "status": "moved", "old_text_hash": "ece8658e00ccdcba", "new_text_hash": "ece8658e00ccdcba", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 1969, 0], "after": ["en", "64", 224, 3], "status": "moved", "old_text_hash": "e8d4367dc6a5225e", "new_text_hash": "e8d4367dc6a5225e", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 2508, 0], "after": ["en", "64", 284, 14], "status": "moved", "old_text_hash": "d4f1163cc3d54d8b", "new_text_hash": "d4f1163cc3d54d8b", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 3070, 0], "after": ["en", "64", 381, 11], "status": "moved", "old_text_hash": "52921fa8bd12570f", "new_text_hash": "52921fa8bd12570f", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 3764, 0], "after": ["en", "64", 520, 9], "status": "moved", "old_text_hash": "10a8408417e666ab", "new_text_hash": "10a8408417e666ab", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 4056, 0], "after": ["en", "64", 567, 14], "status": "moved", "old_text_hash": "802c90f7adf2022a", "new_text_hash": "802c90f7adf2022a", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 4222, 0], "after": ["en", "64", 612, 3], "status": "moved", "old_text_hash": "81a50b56a24fc939", "new_text_hash": "81a50b56a24fc939", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 4458, 0], "after": ["en", "64", 666, 0], "status": "moved", "old_text_hash": "88912f96bae619ef", "new_text_hash": "88912f96bae619ef", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 4864, 0], "after": ["en", "64", 740, 9], "status": "moved", "old_text_hash": "15b791093a72232b", "new_text_hash": "15b791093a72232b", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 4960, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "518854f4056a6a6d", "new_text_hash": null, "reason": "text hash has 2 canonical candidates"}
+{"before": ["en", "64", 5073, 0], "after": ["en", "64", 775, 3], "status": "moved", "old_text_hash": "a9916b4b8f6e3feb", "new_text_hash": "a9916b4b8f6e3feb", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 5267, 0], "after": null, "status": "retired", "old_text_hash": "8a9760f793a4f373", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["en", "64", 5944, 0], "after": ["en", "64", 898, 9], "status": "moved", "old_text_hash": "dbd8183cb6ece0b4", "new_text_hash": "dbd8183cb6ece0b4", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 7283, 0], "after": ["en", "64", 1087, 8], "status": "moved", "old_text_hash": "3aa61a477b06441c", "new_text_hash": "3aa61a477b06441c", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 7330, 0], "after": ["en", "64", 1093, 11], "status": "moved", "old_text_hash": "51ecd124d7492a68", "new_text_hash": "51ecd124d7492a68", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 7504, 0], "after": ["en", "64", 1129, 8], "status": "moved", "old_text_hash": "ebd1ae61d11bbaec", "new_text_hash": "ebd1ae61d11bbaec", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 8243, 0], "after": ["en", "64", 1229, 7], "status": "moved", "old_text_hash": "a7182856e9b27bda", "new_text_hash": "a7182856e9b27bda", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 8724, 0], "after": ["en", "64", 1295, 2], "status": "moved", "old_text_hash": "c2b5351c739e6ea3", "new_text_hash": "c2b5351c739e6ea3", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 9634, 0], "after": ["en", "64", 1429, 9], "status": "moved", "old_text_hash": "4e92abbfce69f4cd", "new_text_hash": "4e92abbfce69f4cd", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 11005, 0], "after": ["en", "64", 1649, 7], "status": "moved", "old_text_hash": "d5deaf354783beee", "new_text_hash": "d5deaf354783beee", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 11097, 0], "after": ["en", "64", 1663, 2], "status": "moved", "old_text_hash": "1d4f9f9e1ee9e656", "new_text_hash": "1d4f9f9e1ee9e656", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 12079, 0], "after": ["en", "64", 1821, 5], "status": "moved", "old_text_hash": "670135e1c6196d20", "new_text_hash": "670135e1c6196d20", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 12579, 0], "after": ["en", "64", 1905, 3], "status": "moved", "old_text_hash": "5c0b3836fe770c6f", "new_text_hash": "5c0b3836fe770c6f", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 12894, 0], "after": ["en", "64", 1957, 8], "status": "moved", "old_text_hash": "bbd4193cb01183c1", "new_text_hash": "bbd4193cb01183c1", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 13246, 0], "after": ["en", "64", 2013, 7], "status": "moved", "old_text_hash": "fd4088970224545e", "new_text_hash": "fd4088970224545e", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 13783, 0], "after": ["en", "64", 2101, 6], "status": "moved", "old_text_hash": "8f667e9a6456a684", "new_text_hash": "8f667e9a6456a684", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 14208, 0], "after": ["en", "64", 2175, 4], "status": "moved", "old_text_hash": "875ddd7d8ba23165", "new_text_hash": "875ddd7d8ba23165", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 14361, 0], "after": ["en", "64", 2203, 1], "status": "moved", "old_text_hash": "fe7f38e25d830541", "new_text_hash": "fe7f38e25d830541", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 14520, 0], "after": ["en", "64", 2235, 0], "status": "moved", "old_text_hash": "a0d2a3f05ad06710", "new_text_hash": "a0d2a3f05ad06710", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 16469, 0], "after": ["en", "64", 2628, 4], "status": "moved", "old_text_hash": "ed19de4b785e7761", "new_text_hash": "ed19de4b785e7761", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 16866, 0], "after": ["en", "64", 2706, 0], "status": "moved", "old_text_hash": "3294b9f4382fbd70", "new_text_hash": "3294b9f4382fbd70", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 17329, 0], "after": null, "status": "retired", "old_text_hash": "50e282af836f7210", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["en", "64", 17473, 0], "after": ["en", "64", 2860, 3], "status": "moved", "old_text_hash": "ec403de91f0d3128", "new_text_hash": "ec403de91f0d3128", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 18033, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "92a090ac27baaffa", "new_text_hash": null, "reason": "text hash has 80 canonical candidates"}
+{"before": ["en", "64", 18188, 0], "after": ["en", "64", 3008, 1], "status": "moved", "old_text_hash": "1ca63ddaea942f34", "new_text_hash": "1ca63ddaea942f34", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 19257, 0], "after": ["en", "64", 3220, 9], "status": "moved", "old_text_hash": "6424a42f31ce4b29", "new_text_hash": "6424a42f31ce4b29", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 19296, 0], "after": ["en", "64", 3228, 3], "status": "moved", "old_text_hash": "f5899b7cbf6c4277", "new_text_hash": "f5899b7cbf6c4277", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 20340, 0], "after": ["en", "64", 3402, 3], "status": "moved", "old_text_hash": "c4efe0061fb726b5", "new_text_hash": "c4efe0061fb726b5", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 21064, 0], "after": ["en", "64", 3526, 4], "status": "moved", "old_text_hash": "67784275727a83ed", "new_text_hash": "67784275727a83ed", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 21155, 0], "after": ["en", "64", 3541, 5], "status": "moved", "old_text_hash": "75612ec121100d9f", "new_text_hash": "75612ec121100d9f", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 22121, 0], "after": ["en", "64", 3723, 6], "status": "moved", "old_text_hash": "e9c7f8fecfdf17fd", "new_text_hash": "e9c7f8fecfdf17fd", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 22552, 0], "after": ["en", "64", 3806, 2], "status": "moved", "old_text_hash": "7a716544dcbb4779", "new_text_hash": "7a716544dcbb4779", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 22705, 0], "after": ["en", "64", 3834, 2], "status": "moved", "old_text_hash": "3c0daa6e85b7ecae", "new_text_hash": "3c0daa6e85b7ecae", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 22813, 0], "after": ["en", "64", 3850, 16], "status": "moved", "old_text_hash": "7d4faf8e62ab7c5b", "new_text_hash": "7d4faf8e62ab7c5b", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 22982, 0], "after": ["en", "64", 3882, 0], "status": "moved", "old_text_hash": "68ac46151271df98", "new_text_hash": "68ac46151271df98", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 23268, 0], "after": ["en", "64", 3932, 4], "status": "moved", "old_text_hash": "3702a71034f2fb15", "new_text_hash": "3702a71034f2fb15", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 23343, 0], "after": ["en", "64", 3945, 5], "status": "moved", "old_text_hash": "fb990e4d463bbafa", "new_text_hash": "fb990e4d463bbafa", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 23354, 0], "after": ["en", "64", 3947, 9], "status": "moved", "old_text_hash": "fed1447906bfe432", "new_text_hash": "fed1447906bfe432", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 23959, 0], "after": ["en", "64", 4058, 9], "status": "moved", "old_text_hash": "42a672ffece3d8a3", "new_text_hash": "42a672ffece3d8a3", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 24013, 0], "after": ["en", "64", 4069, 0], "status": "moved", "old_text_hash": "0d45c227656a1f3e", "new_text_hash": "0d45c227656a1f3e", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 24598, 0], "after": ["en", "64", 4182, 2], "status": "moved", "old_text_hash": "3ae79f5f535e55f2", "new_text_hash": "3ae79f5f535e55f2", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 25134, 0], "after": ["en", "64", 4298, 4], "status": "moved", "old_text_hash": "529ef9c247866b94", "new_text_hash": "529ef9c247866b94", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 25191, 0], "after": ["en", "64", 4312, 0], "status": "moved", "old_text_hash": "76c32607a2741a3f", "new_text_hash": "76c32607a2741a3f", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 25848, 0], "after": ["en", "64", 4466, 5], "status": "moved", "old_text_hash": "2553a3e81afdf0d3", "new_text_hash": "2553a3e81afdf0d3", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 25876, 0], "after": ["en", "64", 4474, 5], "status": "moved", "old_text_hash": "02675c9e0d3fd5c9", "new_text_hash": "02675c9e0d3fd5c9", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 26375, 0], "after": ["en", "64", 4622, 3], "status": "moved", "old_text_hash": "74286e28abf59292", "new_text_hash": "74286e28abf59292", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 27925, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "727190d1f12ad6e6", "new_text_hash": null, "reason": "text hash has 192 canonical candidates"}
+{"before": ["en", "64", 28517, 0], "after": ["en", "64", 5281, 6], "status": "moved", "old_text_hash": "ef02ca4fa2e0a8bf", "new_text_hash": "ef02ca4fa2e0a8bf", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 28572, 0], "after": ["en", "64", 5299, 0], "status": "moved", "old_text_hash": "f2ad99a44a836a1c", "new_text_hash": "f2ad99a44a836a1c", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 29067, 0], "after": ["en", "64", 5520, 0], "status": "moved", "old_text_hash": "120172f6e18220be", "new_text_hash": "120172f6e18220be", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 29266, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "9854543d04e3f67b", "new_text_hash": null, "reason": "text hash has 2 canonical candidates"}
+{"before": ["en", "64", 29713, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "53473d94a5caa4da", "new_text_hash": null, "reason": "text hash has 2 canonical candidates"}
+{"before": ["en", "64", 29715, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "ed2aadcf6105973d", "new_text_hash": null, "reason": "text hash has 4 canonical candidates"}
+{"before": ["en", "64", 29782, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "cf4f1d7e08b517c3", "new_text_hash": null, "reason": "text hash has 372 canonical candidates"}
+{"before": ["en", "64", 29811, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "200aadf2be737e14", "new_text_hash": null, "reason": "text hash has 195 canonical candidates"}
+{"before": ["en", "64", 30011, 0], "after": ["en", "64", 5886, 3], "status": "moved", "old_text_hash": "f5f2037d325673c9", "new_text_hash": "f5f2037d325673c9", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 30081, 0], "after": ["en", "64", 5912, 2], "status": "moved", "old_text_hash": "7fb6db2bafb96ae7", "new_text_hash": "7fb6db2bafb96ae7", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 30135, 0], "after": ["en", "64", 5925, 0], "status": "moved", "old_text_hash": "fb290515f7008d8e", "new_text_hash": "fb290515f7008d8e", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 30187, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "759d360c2963e337", "new_text_hash": null, "reason": "text hash has 4 canonical candidates"}
+{"before": ["en", "64", 30362, 0], "after": ["en", "64", 6022, 0], "status": "moved", "old_text_hash": "06645404cbdb7c8b", "new_text_hash": "06645404cbdb7c8b", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 30427, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "727190d1f12ad6e6", "new_text_hash": null, "reason": "text hash has 192 canonical candidates"}
+{"before": ["en", "64", 30980, 0], "after": ["en", "64", 6280, 1], "status": "moved", "old_text_hash": "a229e3319f571ee9", "new_text_hash": "a229e3319f571ee9", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 31561, 0], "after": ["en", "64", 6467, 1], "status": "moved", "old_text_hash": "36743fc08ba7c868", "new_text_hash": "36743fc08ba7c868", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 32071, 0], "after": ["en", "64", 6593, 4], "status": "moved", "old_text_hash": "57236e73cc6b55e3", "new_text_hash": "57236e73cc6b55e3", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 33681, 0], "after": ["en", "64", 7003, 0], "status": "moved", "old_text_hash": "5ce5198f470ea91a", "new_text_hash": "5ce5198f470ea91a", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 34328, 0], "after": ["en", "64", 7241, 6], "status": "moved", "old_text_hash": "83ef50f50a0fba84", "new_text_hash": "83ef50f50a0fba84", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 34762, 0], "after": ["en", "64", 7282, 9], "status": "moved", "old_text_hash": "1d0b24b9347e45eb", "new_text_hash": "1d0b24b9347e45eb", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 34882, 0], "after": ["en", "64", 7295, 4], "status": "moved", "old_text_hash": "d4a7a678dff1707b", "new_text_hash": "d4a7a678dff1707b", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 35077, 0], "after": ["en", "64", 7315, 3], "status": "moved", "old_text_hash": "eb90f2720478615f", "new_text_hash": "eb90f2720478615f", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 35201, 0], "after": ["en", "64", 7328, 1], "status": "moved", "old_text_hash": "185970004c3c21cf", "new_text_hash": "185970004c3c21cf", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 35848, 0], "after": ["en", "64", 7444, 2], "status": "moved", "old_text_hash": "e4cc5fc7ede61e76", "new_text_hash": "e4cc5fc7ede61e76", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 35878, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "5f5d55d9efcb7791", "new_text_hash": null, "reason": "text hash has 3 canonical candidates"}
+{"before": ["en", "64", 36234, 0], "after": null, "status": "needs_adjudication", "old_text_hash": "ceb11eae97e31677", "new_text_hash": null, "reason": "text hash has 3 canonical candidates"}
+{"before": ["en", "64", 36416, 0], "after": ["en", "64", 7500, 8], "status": "moved", "old_text_hash": "a49ae1abad510f95", "new_text_hash": "a49ae1abad510f95", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 36672, 0], "after": ["en", "64", 7581, 0], "status": "moved", "old_text_hash": "fe8d4e4569ec3d81", "new_text_hash": "fe8d4e4569ec3d81", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 38106, 0], "after": ["en", "64", 8608, 1], "status": "moved", "old_text_hash": "a064f362c6e36e4e", "new_text_hash": "a064f362c6e36e4e", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 38131, 0], "after": ["en", "64", 8622, 0], "status": "moved", "old_text_hash": "bac47f211c97eb41", "new_text_hash": "bac47f211c97eb41", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 38196, 0], "after": ["en", "64", 8675, 0], "status": "moved", "old_text_hash": "5b0ff77d0c37043f", "new_text_hash": "5b0ff77d0c37043f", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 38250, 0], "after": ["en", "64", 8717, 0], "status": "moved", "old_text_hash": "7548f330f3d04ebe", "new_text_hash": "7548f330f3d04ebe", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 38268, 0], "after": ["en", "64", 8733, 0], "status": "moved", "old_text_hash": "7df6510bc8f82ce1", "new_text_hash": "7df6510bc8f82ce1", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 38307, 0], "after": ["en", "64", 8768, 0], "status": "moved", "old_text_hash": "cedb4da0bae03c3a", "new_text_hash": "cedb4da0bae03c3a", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 39121, 0], "after": ["en", "64", 9458, 0], "status": "moved", "old_text_hash": "3192642309bc59a5", "new_text_hash": "3192642309bc59a5", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 39175, 0], "after": ["en", "64", 9504, 0], "status": "moved", "old_text_hash": "d1fe33616dfedb5f", "new_text_hash": "d1fe33616dfedb5f", "reason": "unique canonical text hash"}
+{"before": ["en", "64", 39365, 0], "after": ["en", "64", 9656, 0], "status": "moved", "old_text_hash": "976976ab910e4feb", "new_text_hash": "976976ab910e4feb", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 362, 0], "after": ["en", "71", 240, 0], "status": "moved", "old_text_hash": "582c03daa4ef42a9", "new_text_hash": "582c03daa4ef42a9", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 1094, 0], "after": ["en", "71", 968, 0], "status": "moved", "old_text_hash": "64c298b0daaf9f5a", "new_text_hash": "64c298b0daaf9f5a", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 1248, 0], "after": ["en", "71", 1121, 0], "status": "moved", "old_text_hash": "19cfa6ff2ca34490", "new_text_hash": "19cfa6ff2ca34490", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 1762, 0], "after": ["en", "71", 1614, 0], "status": "moved", "old_text_hash": "cb9d1099218f21dc", "new_text_hash": "cb9d1099218f21dc", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 2022, 0], "after": ["en", "71", 1865, 0], "status": "moved", "old_text_hash": "7c9796e42a514e02", "new_text_hash": "7c9796e42a514e02", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 2482, 0], "after": ["en", "71", 2303, 0], "status": "moved", "old_text_hash": "cbce0c6b0f7ae025", "new_text_hash": "cbce0c6b0f7ae025", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 2780, 0], "after": ["en", "71", 2601, 0], "status": "moved", "old_text_hash": "1e2bc33833b29922", "new_text_hash": "1e2bc33833b29922", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 2813, 0], "after": ["en", "71", 2634, 0], "status": "moved", "old_text_hash": "484f8e85ce804045", "new_text_hash": "484f8e85ce804045", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 3158, 0], "after": ["en", "71", 2815, 42], "status": "moved", "old_text_hash": "e87a4e70c40201d3", "new_text_hash": "e87a4e70c40201d3", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 3290, 0], "after": ["en", "71", 2908, 0], "status": "moved", "old_text_hash": "3d11dc7c6b7050ae", "new_text_hash": "3d11dc7c6b7050ae", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 3360, 0], "after": null, "status": "retired", "old_text_hash": "d73f145d4d2f2ffa", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["en", "71", 3448, 0], "after": ["en", "71", 3059, 0], "status": "moved", "old_text_hash": "8c53977ac97dd271", "new_text_hash": "8c53977ac97dd271", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 3611, 0], "after": ["en", "71", 3217, 0], "status": "moved", "old_text_hash": "a1d64c0f8a917152", "new_text_hash": "a1d64c0f8a917152", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 3935, 0], "after": ["en", "71", 3461, 2], "status": "moved", "old_text_hash": "4015d7b0e017952f", "new_text_hash": "4015d7b0e017952f", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 4163, 0], "after": ["en", "71", 3570, 10], "status": "moved", "old_text_hash": "d800325ce015f368", "new_text_hash": "d800325ce015f368", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 5163, 0], "after": ["en", "71", 4017, 3], "status": "moved", "old_text_hash": "7d43775ed98aeebe", "new_text_hash": "7d43775ed98aeebe", "reason": "unique canonical text hash"}
+{"before": ["en", "71", 5426, 0], "after": null, "status": "retired", "old_text_hash": "49bfcd51c5efc608", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["en", "71", 5455, 0], "after": null, "status": "retired", "old_text_hash": "276a327dc3cf9905", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["en", "71", 6895, 0], "after": null, "status": "retired", "old_text_hash": "1626dfe55c33161d", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["en", "71", 7784, 0], "after": ["en", "71", 5764, 0], "status": "moved", "old_text_hash": "6efe0b26b083684d", "new_text_hash": "6efe0b26b083684d", "reason": "unique canonical text hash"}
+{"before": ["ru", "05", 187, 2], "after": ["ru", "05", 187, 3], "status": "moved", "old_text_hash": "84acc32f6619e6a5", "new_text_hash": "84acc32f6619e6a5", "reason": "unique text hash within the same source paragraph"}
+{"before": ["ru", "22", 84, 0], "after": null, "status": "retired", "old_text_hash": "d46b80df10cb92b0", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
+{"before": ["ru", "63", 21276, 0], "after": null, "status": "retired", "old_text_hash": null, "new_text_hash": null, "reason": "historical reference has no text hash"}
+{"before": ["ru", "67", 9000134, 0], "after": ["ru", "67", 134, 0], "status": "moved", "old_text_hash": "ce1034446aab9afb", "new_text_hash": "ce1034446aab9afb", "reason": "unique canonical text hash from legacy unmapped identity"}
+{"before": ["ru", "67", 9000179, 0], "after": ["ru", "67", 179, 0], "status": "moved", "old_text_hash": "815de9a533cc02ff", "new_text_hash": "815de9a533cc02ff", "reason": "unique canonical text hash from legacy unmapped identity"}

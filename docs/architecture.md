@@ -15,9 +15,10 @@ These rules decide where a change belongs.
 - **Mechanical vs editorial.** The CLI may convert, scaffold, render, optimize,
   and regenerate data. It must not decide titles, descriptions, project shape,
   theological register, or publication judgment. → [`tooling.md`](./tooling.md).
-- **Local vs CI.** Import DOCX → source and render release artifacts locally; CI
-  only builds and publishes — it does not import works, render release artifacts,
-  optimize DOCX, or regenerate embeddings. **Exception:** external-API ingestion
+- **Local vs CI.** Import DOCX → source, compile research records, and render release artifacts
+  locally; CI builds, validates, and publishes committed source. It does not import works,
+  compile DOCX, mutate library content, render
+  release artifacts, optimize DOCX, or regenerate committed embeddings. **Exception:** external-API ingestion
   (`pancratius video sync` via `.github/workflows/video-sync.yml`) runs in CI
   because it is additive, idempotent, and only makes lightweight HTTP calls — a
   YouTube poll plus one OpenRouter call per new video to draft its description —
@@ -26,6 +27,10 @@ These rules decide where a change belongs.
 - **Fallback vs route existence.** Display data may fall back to the default
   locale; a route, download, or feed exists only where that locale was authored.
   → [`i18n-routing.md`](./i18n-routing.md).
+- **DOCX source vs lineation research.** `pancratius.docx_source` owns OOXML syntax and source
+  semantics; `pancratius.docx_structure` binds that document to its locale-specific compiler
+  observation. `intent-ai/` consumes the resulting aggregate for research; it never reparses OOXML,
+  and production never imports it. The only return path is explicit correction data.
 
 ## Flow
 
@@ -35,6 +40,11 @@ local library work
       -> pancratius
       -> src/content + committed data/products
 
+lineation research
+  committed source + canonical DOCX source model
+      -> intent-ai records + annotation/model evidence
+      -> explicit correction sidecars
+
 site work
   committed source
       -> npm build/check/audit
@@ -42,8 +52,9 @@ site work
       -> production hosts
 ```
 
-The first flow creates or changes the library. The second publishes what is
-already committed. Their meeting point is committed source.
+Library work changes the corpus. Research reads committed source and returns only explicit
+correction data; its records and models are downstream evidence. Site work publishes committed
+source. The shared boundary is the repository, not a runtime dependency.
 
 ## Stack
 
@@ -68,7 +79,8 @@ already committed. Their meeting point is committed source.
   backend, or API surface.
 - **CI publishes committed source.** CI validates content, builds Astro, runs
   Pagefind/sitemap generation, checks referenced artifacts, and deploys `dist/`.
-  It does not optimize DOCX, render PDF/EPUB, or regenerate embeddings.
+  It does not compile or import DOCX, optimize DOCX, render PDF/EPUB, or regenerate
+  committed embeddings.
 - **One URL = one resource.** Language, content, downloads, and alternate links
   follow from the URL. There is no separate UI-language state. See
   [`i18n-routing.md`](./i18n-routing.md).
@@ -190,7 +202,7 @@ Three owners, no shared binary: a font's identity (family + OFL license) is shar
 
 - **Site** (site build): self-hosted via Astro's Fonts API — no third-party request, no committed binary.
 - **Downloads** (`pancratius/`): static faces Typst embeds into PDF/EPUB, matched by family name with system fonts ignored for reproducible renders.
-- **Metrics** (lineation research package): the font the source was laid out in, vendored and hash-pinned so the wrap simulator measures real glyph advances.
+- **Metrics** (lineation research package): source-observed column width and default font size, plus explicit hash-pinned Liberation Serif surrogate glyph metrics.
 
 ## Search
 

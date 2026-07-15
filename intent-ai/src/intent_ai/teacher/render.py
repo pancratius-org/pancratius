@@ -1,0 +1,173 @@
+# research-pure: renders an authored DOCX page span to a vision composite; reads source read-only,
+# writes only temp files. scratch only.
+"""The vision evidence builder: a region's COMPOSITE assets are the LibreOffice-faithful render of
+the authored page span the region covers — the page(s) the reader actually judges (their real line
+breaks, indent, alignment, spacing), ONE image per page. The page authority is
+`pancratius.docx_render` (production); only the per-page labeling and the data-URI encoding are
+local. The page RENDERER is INJECTED, so labeling + encoding are unit-tested WITHOUT LibreOffice.
+
+NO synthetic prose/lineated candidate tiles: a candidate is a HYPOTHESIS render whose fidelity
+confounds the gate (a `<w:br>`-glued prose candidate made readers vote on a merged shape), and it
+would drag in the site-CSS / headless-browser harness this package deliberately does not depend on.
+The authored page is the privileged signal; the reader compares it against the keyed line listing
+already carried in the task item."""
+from __future__ import annotations
+
+import base64
+import io
+import tempfile
+from collections.abc import Callable, Sequence
+from functools import lru_cache
+from pathlib import Path
+
+from PIL import Image, ImageDraw
+
+from pancratius import docx_render
+
+from .. import paths
+from ..identity import BookId
+from .tasks import PAGE_SPAN_CAP, AssetKind, EvidenceAsset, ItemSpec, RegionId
+
+# (docx, lo, hi, out_png) → the rendered page PNG path(s) in document order. The ONLY LibreOffice
+# seam: the real one wraps `pancratius.docx_render`; a test passes a stub that writes fixture PNGs.
+type PageRenderer = Callable[[Path, int, int, Path], list[Path]]
+type DocxFor = Callable[[BookId, str], Path]               # (book_id, lang) → source docx
+type Compositor = Callable[[Sequence[ItemSpec]], dict[RegionId, tuple[EvidenceAsset, ...]]]
+# docx → the source ordinals k with an authored PAGE boundary between k and k+1 (an inline
+# `<w:br w:type="page"/>` in k, or `pageBreakBefore` on k+1). Injected like the renderer, so
+# the window-trim logic is unit-tested without parsing a real DOCX.
+type PageBoundaries = Callable[[Path], frozenset[int]]
+
+_BG = (251, 250, 246)        # cream margin around the page
+_BAR = (34, 34, 40)          # the region-label bar
+_BAR_TEXT = (245, 242, 232)
+_BAR_H = 28
+
+
+class RenderError(RuntimeError):
+    """A region's vision evidence cannot be built."""
+
+
+def libreoffice_pages(*, dpi: int = 140) -> PageRenderer:
+    """The real page renderer: `pancratius.docx_render` (LibreOffice → PDF → PNG) over a docx slice."""
+    def render(docx: Path, lo: int, hi: int, out_png: Path) -> list[Path]:
+        return docx_render.render(docx, lo, hi, out_png, dpi=dpi)
+    return render
+
+
+@lru_cache(maxsize=8)
+def docx_page_boundaries(docx: Path) -> frozenset[int]:
+    """The authored page boundaries of a source DOCX, in the production ordinal space
+    (the canonical source ordinal space). Cached per docx: the sources are
+    committed and stable for the life of a run."""
+    from pancratius import docx_source
+
+    source = docx_source.read(docx)
+    return frozenset(
+        {
+            int(paragraph.ordinal)
+            for paragraph in source.paragraphs
+            if docx_source.BreakKind.PAGE in paragraph.content.breaks
+        }
+        | {
+            int(paragraph.ordinal) - 1
+            for paragraph in source.paragraphs
+            if paragraph.page_break_before and int(paragraph.ordinal) > 0
+        }
+    )
+
+
+def trim_cross_page_context(lo: int, hi: int, vlo: int, vhi: int,
+                            boundaries: frozenset[int]) -> tuple[int, int]:
+    """Shrink a render window so it never opens or closes on a page the votable lines are not on:
+    context the author separated from them by a page break renders as a nearly-blank page (the
+    slice cannot reproduce what fills that page in the full book) — misleading evidence for the
+    vision reader and the human (found live in E1: book 36's chapter break drew an empty page 1).
+    A mid-paragraph inline break is treated as a boundary after its paragraph — conservative: the
+    image may lose one shared-page context paragraph; the text listing always keeps it."""
+    for k in sorted(boundaries):
+        if lo <= k < vlo:
+            lo = k + 1          # ends at the LAST boundary before the first votable line
+        elif vhi <= k < hi:
+            hi = k              # the FIRST boundary after the last votable line caps the tail
+            break
+    return lo, hi
+
+
+def make_compositor(render_page: PageRenderer, *, docx_for: DocxFor = paths.book_docx,
+                    page_boundaries: PageBoundaries = docx_page_boundaries,
+                    max_span: int = PAGE_SPAN_CAP, margin: int = 3) -> Compositor:
+    """A `RenderFn` that gives each region ONE COMPOSITE asset PER PAGE of the authored `<w:p>` span
+    it covers — separate page images, not one tall stack. The page renderer is injected (the
+    LibreOffice seam); the docx resolver defaults to the committed source tree. `max_span`/`margin`
+    (paragraphs) bound the rendered window around the votable lines — config, not baked into the
+    render abstraction.
+
+    One image PER PAGE because a vision reader's per-image token budget is FIXED (Gemini 3 caps each
+    image part at ~1120 tokens and downsamples the whole image to fit): a tall 3-page stack would
+    share one budget — a third of the resolution per page, illegible dense text — whereas three page
+    parts each get the full budget. Grok tiles either shape at full resolution, so per-page is
+    token-neutral there and strictly better for the capped readers."""
+    def compose(specs: Sequence[ItemSpec]) -> dict[RegionId, tuple[EvidenceAsset, ...]]:
+        return {spec.region_id: _region_assets(spec, render_page, docx_for, page_boundaries,
+                                               max_span=max_span, margin=margin) for spec in specs}
+    return compose
+
+
+def _region_assets(spec: ItemSpec, render_page: PageRenderer, docx_for: DocxFor,
+                   page_boundaries: PageBoundaries = docx_page_boundaries, *,
+                   max_span: int = PAGE_SPAN_CAP, margin: int = 3) -> tuple[EvidenceAsset, ...]:
+    """Render the authored-page WINDOW around the region's VOTABLE lines — `[min..max votable
+    src_ordinal]` widened by `margin` paragraphs, clamped to the region's own source span, and capped
+    at `max_span` source paragraphs — and return ONE asset per rendered page (the window may straddle
+    a page break). NOT the full region span: `tile_regions` keeps a whole authorial run intact, so a
+    region's context can be hundreds–thousands of paragraphs; rendering all of it yields a many-page,
+    multi-MB image a vision model REJECTS ("unable to process input image"). The votable lines are the
+    decision focus; their page layout is what the reader judges, and the orientation context beyond the
+    window remains in the text listing."""
+    if not spec.region:
+        raise RenderError(f"region {spec.region_id!r}: no source lines to render")
+    book_id, lang = spec.region[0].book_id, spec.region[0].lang
+    if any((lid.book_id, lid.lang) != (book_id, lang) for lid in spec.region):
+        raise RenderError(f"region {spec.region_id!r}: mixes book/lang across lines — one region "
+                          f"must be a single (book, lang) to anchor one authored page span")
+    region_lo = min(lid.src_ordinal for lid in spec.region)
+    region_hi = max(lid.src_ordinal for lid in spec.region)
+    focus = list(spec.votable) or list(spec.region)
+    vlo = min(lid.src_ordinal for lid in focus)
+    vhi = max(lid.src_ordinal for lid in focus)
+    if vhi - vlo > max_span:                         # the votable lines themselves are too wide for one
+        raise RenderError(                           # page — FAIL LOUD, never silently render a window
+            f"region {spec.region_id!r}: votable lines span {vhi - vlo} paragraphs > max_span "
+            f"{max_span} — too wide for one authored page; the region should be split upstream")
+    lo = max(region_lo, vlo - margin)                # hug the votable lines (+ margin): both endpoints
+    hi = min(region_hi, vhi + margin)                # are always inside the rendered window
+    docx = docx_for(book_id, lang)
+    lo, hi = trim_cross_page_context(lo, hi, vlo, vhi, page_boundaries(docx))
+    with tempfile.TemporaryDirectory(prefix="lc-render-") as td:
+        pages = render_page(docx, lo, hi, Path(td) / "page.png")
+        if not pages:
+            raise RenderError(f"region {spec.region_id!r}: renderer produced no page image")
+        imgs = [Image.open(p).convert("RGB") for p in pages]
+        return tuple(
+            EvidenceAsset(kind=AssetKind.COMPOSITE,
+                          data_uri=_data_uri(_labeled(img, f"{spec.region_id} · p{i + 1}/{len(imgs)}")),
+                          caption=spec.region_id)
+            for i, img in enumerate(imgs))
+
+
+def _labeled(page: Image.Image, label: str) -> Image.Image:
+    """One page render under a thin label bar (region id + page-of-n) — the unit image the UI/panel
+    inlines. Each page is its own image part, so a capped-budget reader sees it at full resolution."""
+    canvas = Image.new("RGB", (page.width, _BAR_H + page.height), _BG)
+    draw = ImageDraw.Draw(canvas)
+    draw.rectangle((0, 0, page.width - 1, _BAR_H - 1), fill=_BAR)
+    draw.text((8, 8), label, fill=_BAR_TEXT)
+    canvas.paste(page, (0, _BAR_H))
+    return canvas
+
+
+def _data_uri(img: Image.Image) -> str:
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
