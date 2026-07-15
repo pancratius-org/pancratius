@@ -9,10 +9,15 @@ import json
 import re
 from datetime import UTC, datetime
 
+import pytest
 from intent_ai import store
 from intent_ai.evaluation.reader_metrics import PriceTable
 from intent_ai.evaluation.study import load_experiment, run_study
 from intent_ai.teacher.panel import ChatReply, ReaderConfig
+
+from tests.record_factory import sample_records
+
+pytestmark = pytest.mark.usefixtures("sample_record_store")
 
 
 class CannedCompleter:
@@ -35,7 +40,7 @@ class CannedCompleter:
 
 def _frozen_eval_set(annotations):
     """A membership-only eval slice + the labels.jsonl truth its lines join to."""
-    picks = [record for record in store.load_records("57") if record.votable][:4]
+    picks = [record for record in sample_records() if record.votable][:4]
     (annotations / "eval_sets").mkdir(parents=True, exist_ok=True)
     (annotations / "eval_sets" / "tiny.json").write_text(
         json.dumps([record.id.as_key() for record in picks]))
@@ -242,7 +247,9 @@ def _stub_page_renderer():
     return render_page
 
 
-def test_vision_build_specs_splits_an_over_page_region_and_attaches_assets(tmp_path):
+def test_vision_build_specs_splits_an_over_page_region_and_attaches_assets(
+    tmp_path, sample_record_store
+):
     # the first paid run is vision+sweep — exercise the VISION path (select → tile → page-size SPLIT)
     # and the per-page asset attachment with a STUB renderer, so the splitter + compositor run without
     # LibreOffice. The eval set spans far more than one page, so the over-page region MUST split.
@@ -255,7 +262,9 @@ def test_vision_build_specs_splits_an_over_page_region_and_attaches_assets(tmp_p
     ann = tmp_path / "annotations"
     # a dense block of votable lines spanning ~200 source paragraphs: a large target keeps them in one
     # tiled region wider than the 120-paragraph page cap, so _build_specs's page-size pass MUST split it.
-    wide = [r.id for r in store.load_records("57")
+    wide_records = sample_records(count=220)
+    sample_record_store(wide_records)
+    wide = [r.id for r in wide_records
             if r.votable and r.id.src_ordinal <= 200]
     (ann / "eval_sets").mkdir(parents=True, exist_ok=True)
     (ann / "eval_sets" / "wide.json").write_text(json.dumps([lid.as_key() for lid in wide]))

@@ -7,24 +7,36 @@ from __future__ import annotations
 import json
 
 import pytest
-from intent_ai import store
 from intent_ai.evaluation.study import load_experiment, sweep_recipes
+from intent_ai.identity import BookId
 from intent_ai.teacher import recipes
 from intent_ai.teacher.panel import ResponseContract
+
+from tests.record_factory import sample_records
+
+pytestmark = pytest.mark.usefixtures("sample_record_store")
 
 
 def _frozen_eval_set(annotations, name="tiny"):
     """Freeze a 4-line synthetic eval slice (books 57 + 13) + its labels.jsonl truth into a tmp
     annotations dir — membership and truth in their one home each."""
-    picks_57 = [x.id for x in store.load_records("57") if x.votable][:3]
-    picks_13 = [x.id for x in store.load_records("13") if x.votable][:1]
+    records_57 = [x for x in sample_records(book_id=BookId("57")) if x.votable][:3]
+    records_13 = [x for x in sample_records(book_id=BookId("13")) if x.votable][:1]
+    picked = records_57 + records_13
     (annotations / "eval_sets").mkdir(parents=True, exist_ok=True)
     (annotations / "eval_sets" / f"{name}.json").write_text(
-        json.dumps([lid.as_key() for lid in picks_57 + picks_13]))
-    rows = ([{"id": lid.as_key(), "label": "lineated", "source": "human"} for lid in picks_57]
-            + [{"id": lid.as_key(), "label": "prose", "source": "human"} for lid in picks_13])
+        json.dumps([record.id.as_key() for record in picked]))
+    rows = [
+        {
+            "id": record.id.as_key(),
+            "label": "lineated" if record.id.book_id == "57" else "prose",
+            "source": "human",
+            "line_text_hash": record.line_text_hash,
+        }
+        for record in picked
+    ]
     (annotations / "labels.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
-    return picks_57 + picks_13
+    return [record.id for record in picked]
 
 
 _TOML = """

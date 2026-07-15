@@ -15,6 +15,7 @@ def test_contested_truth_comes_from_the_one_store():
     assert all(human[lid] == lab for lid, lab in contested.load_contested().items())
 
 
+@pytest.mark.corpus_cache
 def test_contested_locked(corpus, student_predictions):
     _, labelset = corpus
     r = contested.evaluate_predictions(

@@ -107,6 +107,7 @@ def test_adjudication_cohort_carries_task_lineage(labelset):
         assert g.audit_status == "adjudicated"
 
 
+@pytest.mark.corpus_source
 def test_every_g05_label_matches_canonical_source_text(labelset):
     """g05_b37 is a hard-break region where the old IR reader once misjoined lines. Every active
     label must hash-match the canonical source record; the migration ledger separately proves

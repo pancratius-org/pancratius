@@ -10,13 +10,17 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
 from intent_ai import paths, store
 from intent_ai.evaluation import study
 from intent_ai.evaluation.reader_metrics import PriceTable
 from intent_ai.evaluation.study import load_experiment, run_study
 from intent_ai.teacher.panel import ChatReply
 
+from tests.record_factory import sample_records
+
 _EVAL_DIR = Path(study.__file__).parent
+pytestmark = pytest.mark.usefixtures("sample_record_store")
 
 
 def _imports(path: Path) -> set[str]:
@@ -40,7 +44,11 @@ def test_evaluation_never_imports_the_promote_path():
 
 
 class _Canned:
+    def __init__(self) -> None:
+        self.calls = 0
+
     def complete(self, *, model, messages, temperature, max_tokens, response_format=None):
+        self.calls += 1
         listing = messages[0]["content"][0]["text"].split("Return ONLY")[0]
         keys = sorted(set(re.findall(r"\bL\d+\b", listing)))
         return ChatReply(content=json.dumps([{"key": k, "lineation_label": "lineated"} for k in keys]),
@@ -73,7 +81,7 @@ def test_run_study_leaves_real_annotations_byte_unchanged(tmp_path):
     before = _fingerprint_annotations()
     ann = tmp_path / "annotations"
     (ann / "eval_sets").mkdir(parents=True)
-    picks = [record for record in store.load_records("57") if record.votable][:3]
+    picks = [record for record in sample_records() if record.votable][:3]
     (ann / "eval_sets" / "tiny.json").write_text(
         json.dumps([record.id.as_key() for record in picks])
     )
@@ -87,7 +95,9 @@ def test_run_study_leaves_real_annotations_byte_unchanged(tmp_path):
         for record in picks
     ))
     exp = load_experiment(_TOML, annotations=ann)
-    run_study(exp, _Canned(), PriceTable(version="t", models={"deepseek/deepseek-v4-flash": (1e-6, 1e-6)}),
+    completer = _Canned()
+    scorecard = run_study(exp, completer, PriceTable(version="t", models={"deepseek/deepseek-v4-flash": (1e-6, 1e-6)}),
               now=datetime(2026, 6, 9, tzinfo=UTC), git_sha="abc",
               experiments_dir=tmp_path / "experiments", annotations=ann)
+    assert completer.calls > 0 and scorecard.results
     assert _fingerprint_annotations() == before          # real committed truth untouched

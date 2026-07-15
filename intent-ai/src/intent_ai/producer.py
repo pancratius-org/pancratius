@@ -24,7 +24,7 @@ from statistics import median
 from pancratius import docx_source, docx_structure
 from pancratius.locales import Locale
 
-from . import identity, physics, records, source_view
+from . import identity, records, source_view
 from .identity import BookId, LineId, ListingKey
 from .records import (
     Align,
@@ -130,17 +130,24 @@ def _slots(paras: list[source_view.Para]) -> list[_Slot]:
 
 
 def _read_lines(docx: Path, lang: Locale, book_id: BookId) -> list[LineRecord]:
-    """All LineRecords for one (book, lang). Features computed once per line.
-
-    Physics is read off the canonical source line, never recomputed on joined
-    paragraph text. Within-book norms are computed per book."""
+    """Hydrate the local compiler boundary, then enter the pure projection."""
     source = docx_source.read(docx)
     observation = docx_structure.observe_structure(source, lang=lang)
-    paras = list(source_view.read_view(
-        source,
-        observation,
-        physics.page_geom(source.layout),
-    ))
+    return project_records(observation, book_id=book_id)
+
+
+def project_records(
+    observation: docx_structure.StructuralObservation,
+    *,
+    book_id: BookId,
+) -> list[LineRecord]:
+    """Project typed source and compiler observations into records.
+
+    No filesystem or compiler access occurs here. Physics is read off each
+    canonical source line, never recomputed on joined paragraph text.
+    Within-book norms are computed once per book.
+    """
+    paras = list(source_view.read_view(observation))
 
     # within-book references (on BODY lines only).
     body_paras = [p for p in paras if p.role.is_body]
@@ -230,7 +237,7 @@ def _read_lines(docx: Path, lang: Locale, book_id: BookId) -> list[LineRecord]:
             fill_pctile_in_book=pctile(ln.fill),
         )
 
-        lid = identity.LineId.mapped(lang, book_id, src_ord, li)
+        lid = identity.LineId.mapped(observation.lang, book_id, src_ord, li)
         out.append(LineRecord(
             id=lid, text=ln.text, role=role, features=feats,
             line_text_hash=identity.text_hash(ln.text),

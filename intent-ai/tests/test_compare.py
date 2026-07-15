@@ -7,6 +7,8 @@ import pytest
 from intent_ai.annotations import by_reader
 from intent_ai.evaluation import compare
 
+pytestmark = pytest.mark.corpus_cache
+
 
 def test_compare_locked(corpus, student_predictions):
     _, labelset = corpus

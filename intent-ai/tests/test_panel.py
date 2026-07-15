@@ -7,7 +7,6 @@ import importlib.util
 import threading
 
 import pytest
-from intent_ai import store
 from intent_ai.annotations import PanelVote
 from intent_ai.identity import LineId
 from intent_ai.teacher import panel, tasks
@@ -20,6 +19,8 @@ from intent_ai.teacher.tasks import (
     TaskItem,
     TaskLine,
 )
+
+from tests.record_factory import sample_records
 
 
 class FakeCompleter:
@@ -34,7 +35,7 @@ class FakeCompleter:
 
 
 def _task(n: int = 3):
-    recs = store.load_records("57")
+    recs = sample_records()
     votable = [r for r in recs if r.votable][:n]
     spec = ItemSpec.all_votable("b57-r0", [r.id for r in votable])
     return tasks.build_task(title="t", instructions="decide prose vs lineated",
@@ -142,7 +143,7 @@ def test_run_panel_reuses_same_prompt_but_recalls_when_the_prompt_changes():
     """The resume cache is keyed by the PROMPT fingerprint: same prompt → reuse the paid reply;
     an EDITED prompt (same items, different instructions) → re-call, never silently reuse a reply
     made under the old prompt."""
-    recs = store.load_records("57")
+    recs = sample_records()
     spec = ItemSpec.all_votable("b57-r0", [r.id for r in recs if r.votable][:3])
     cfg = PanelConfig(readers=(ReaderConfig("grok", "x/grok", Modality.TEXT),), reps=1)
     fake = FakeCompleter('[{"key":"L001","lineation_label":"prose","confidence":0.7}]')

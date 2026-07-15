@@ -744,6 +744,8 @@ def test_structure_observation_distinguishes_dropped_from_unmapped(
 
     observation = observe_structure(source, lang="ru")
 
+    assert observation.source is source
+    assert observation.lang == "ru"
     by_ordinal = observation.by_ordinal
     assert by_ordinal[docx_source.ParagraphOrdinal(0)] == BodyParagraph()
     assert by_ordinal[docx_source.ParagraphOrdinal(1)] == ContextParagraph(

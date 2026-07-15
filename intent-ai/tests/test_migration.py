@@ -7,6 +7,7 @@ import subprocess
 from collections import Counter
 from pathlib import Path
 
+import pytest
 from intent_ai import paths
 from intent_ai.identity import LegacyLineId, LineId
 from intent_ai.migration import (
@@ -100,6 +101,7 @@ def test_migration_receipt_pins_every_changed_live_surface():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == snapshot.sha256
 
 
+@pytest.mark.repository_history
 def test_migration_receipt_proves_baseline_blobs_and_membership_deltas():
     receipt = _receipt()
     for surface in receipt.surfaces:

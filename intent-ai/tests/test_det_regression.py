@@ -10,6 +10,8 @@ from __future__ import annotations
 import pytest
 from intent_ai.evaluation import det_regression
 
+pytestmark = pytest.mark.corpus_source
+
 # (scored, mixed, incomplete, balanced-accuracy floor, prose-recall floor). Measured from the
 # repaired post-fold seam. `contested` has one genuinely mixed paragraph (ru37:414) and retains
 # one representable false fold (holdout ru24:1522); neither is hidden by lowering a floor.

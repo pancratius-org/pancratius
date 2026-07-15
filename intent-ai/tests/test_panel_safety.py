@@ -13,11 +13,15 @@ from intent_ai import store
 from intent_ai.teacher import recipes
 from intent_ai.teacher.panel import ChatReply, ReaderConfig
 
+from tests.record_factory import sample_records
+
+pytestmark = pytest.mark.usefixtures("sample_record_store")
+
 
 def _build(tmp_path, n: int = 5):
     """A built 1-reader text task over the first `n` votable lines of book 57, in tmp dirs."""
     ann, st = tmp_path / "annotations", tmp_path / "_teacher"
-    picks = [x.id for x in store.load_records("57") if x.votable][:n]
+    picks = [x.id for x in sample_records() if x.votable][:n]
     (ann / "selections").mkdir(parents=True)
     (ann / "selections" / "acq.json").write_text(json.dumps([lid.as_key() for lid in picks]))
     r = recipes.Recipe(task_id="acq", title="A", instructions="prose vs lineated", books=("57",),
@@ -133,7 +137,7 @@ def test_partial_per_reader_coverage_refuses(tmp_path):
     counts the key 'answered' (the other reader supplied it), so without a per-reader gate a thinned
     support vote would silently flip the gate's routing."""
     ann, st = tmp_path / "annotations", tmp_path / "_teacher"
-    picks = [x.id for x in store.load_records("57") if x.votable][:5]
+    picks = [x.id for x in sample_records() if x.votable][:5]
     (ann / "selections").mkdir(parents=True)
     (ann / "selections" / "acq.json").write_text(json.dumps([lid.as_key() for lid in picks]))
     r = recipes.Recipe(task_id="acq", title="A", instructions="prose vs lineated", books=("57",),

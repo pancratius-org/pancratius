@@ -2,12 +2,14 @@
 
 ## Boundary
 
-`pancratius.docx_source` is the source compiler. It owns OOXML traversal, break kinds, paragraph
-identity, layout, and semantic dispositions. `intent-ai` is a downstream research package:
+`pancratius.docx_source` owns OOXML traversal, break kinds, paragraph identity, layout, and
+semantic dispositions. `pancratius.docx_structure` binds that source document to one total,
+locale-specific compiler observation. `intent-ai` is a downstream research package:
 
 ```text
 OOXML
   -> DocxSourceDocument            pancratius: syntax and source semantics
+  -> StructuralObservation         pancratius: source + locale + compiler roles
   -> canonical natural lines       intent-ai/source_view: physics-only projection
   -> LineRecord                    intent-ai/producer: one feature producer
   -> labels / student / evaluation intent-ai: learning loop
@@ -19,9 +21,9 @@ data boundary, not a Python dependency.
 
 ## Source phase
 
-The source document is hydrated once per operation. All consumers receive that aggregate or a
-projection from it. They do not reopen `document.xml`, reinterpret Pandoc IR, or store correlated
-reading/lineated copies.
+The source document is hydrated once per operation and bound to its locale-specific compiler
+observation. All consumers receive that aggregate or a projection from it. They do not reopen
+`document.xml`, reinterpret Pandoc IR, or store correlated reading/lineated copies.
 
 `ParagraphContent` is an ordered algebra of text and typed breaks. Reading text, natural lines, and
 Pandoc lowering are exhaustive interpretations of that same value. Page and column breaks remain

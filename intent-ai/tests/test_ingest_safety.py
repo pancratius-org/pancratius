@@ -13,11 +13,15 @@ from intent_ai import store
 from intent_ai.teacher import recipes, tasks
 from intent_ai.teacher.panel import ReaderConfig
 
+from tests.record_factory import sample_records
+
+pytestmark = pytest.mark.usefixtures("sample_record_store")
+
 
 def _build(tmp_path, n: int = 5):
     """A built 1-reader text task over the first `n` votable lines of book 57, in tmp dirs."""
     ann, st = tmp_path / "annotations", tmp_path / "_teacher"
-    picks = [x.id for x in store.load_records("57") if x.votable][:n]
+    picks = [x.id for x in sample_records() if x.votable][:n]
     (ann / "selections").mkdir(parents=True)
     (ann / "selections" / "acq.json").write_text(json.dumps([lid.as_key() for lid in picks]))
     r = recipes.Recipe(task_id="acq", title="A", instructions="prose vs lineated", books=("57",),

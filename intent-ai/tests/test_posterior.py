@@ -20,6 +20,7 @@ def fitted(corpus):
     return model, feats
 
 
+@pytest.mark.corpus_cache
 def test_sklearn_free_posterior_matches_fitted(fitted):
     model, feats = fitted
     post = export_posterior(model)
@@ -28,6 +29,7 @@ def test_sklearn_free_posterior_matches_fitted(fitted):
         assert post(f) == pytest.approx(ref, abs=1e-9)
 
 
+@pytest.mark.corpus_cache
 def test_json_round_trip_is_lossless(fitted):
     model, feats = fitted
     post = export_posterior(model)
@@ -42,6 +44,7 @@ def test_from_dict_rejects_foreign_schema():
         StandardizedLinearPosterior.from_dict({"schema": "something.else", "features": []})
 
 
+@pytest.mark.corpus_cache
 def test_from_dict_rejects_stale_feature_contract(fitted):
     model, _ = fitted
     payload = export_posterior(model).to_dict()

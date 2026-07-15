@@ -6,13 +6,14 @@ from __future__ import annotations
 import json
 import re
 
-from intent_ai import store
 from intent_ai.teacher import tasks
 from intent_ai.teacher.tasks import AssetKind, EvidenceAsset, ItemSpec
 
+from tests.record_factory import sample_records
+
 
 def _votable(book: str = "57", n: int = 7):
-    return [r for r in store.load_records(book) if r.votable][:n]
+    return [r for r in sample_records(book_id=book) if r.votable][:n]
 
 
 def _one_region(recs, n_vote: int = 5):
@@ -25,7 +26,7 @@ def test_build_task_mints_contiguous_opaque_keys():
     recs = _votable()
     spec, _ = _one_region(recs)
     task = tasks.build_task(title="t", instructions="i", specs=[spec],
-                            records={"57": store.load_records("57")})
+                            records={"57": sample_records()})
     keys = [ln.key for it in task.items for ln in it.lines]
     assert keys == ["L001", "L002", "L003", "L004", "L005"]      # per-task, contiguous, opaque
     assert set(task.manifest.by_key) == set(keys)                # every wire key resolves
@@ -36,7 +37,7 @@ def test_payload_omits_manifest_and_never_leaks_a_lineid():
     recs = _votable()
     spec, _ = _one_region(recs)
     task = tasks.build_task(title="t", instructions="i", specs=[spec],
-                            records={"57": store.load_records("57")})
+                            records={"57": sample_records()})
     payload = task.to_payload()
     blob = json.dumps(payload, ensure_ascii=False)
 
@@ -52,7 +53,7 @@ def test_context_listing_uses_opaque_keys():
     recs = _votable()
     spec, _ = _one_region(recs)
     task = tasks.build_task(title="t", instructions="i", specs=[spec],
-                            records={"57": store.load_records("57")})
+                            records={"57": sample_records()})
     context = task.items[0].context
     assert "L001" in context                 # votable lines keyed opaquely
     assert "·" in context                    # the 2 context lines shown un-keyed for orientation
@@ -64,7 +65,7 @@ def test_context_listing_uses_opaque_keys():
 def test_manifest_roundtrips_and_captures_text_hash():
     recs = _votable()
     spec, _ = _one_region(recs)
-    records = {"57": store.load_records("57")}
+    records = {"57": sample_records()}
     task = tasks.build_task(title="t", instructions="i", specs=[spec], records=records)
     back = tasks.TaskManifest.from_dict(task.manifest.to_dict())
     assert back.by_key == task.manifest.by_key
@@ -92,7 +93,7 @@ def test_keys_continue_across_items_not_reset_per_region():
     a = ItemSpec.all_votable("b57-r0", [r.id for r in recs[:3]])
     b = ItemSpec.all_votable("b57-r1", [r.id for r in recs[3:6]])
     task = tasks.build_task(title="t", instructions="i", specs=[a, b],
-                            records={"57": store.load_records("57")})
+                            records={"57": sample_records()})
     assert [ln.key for ln in task.items[0].lines] == ["L001", "L002", "L003"]
     assert [ln.key for ln in task.items[1].lines] == ["L004", "L005", "L006"]   # not reset
 
@@ -102,7 +103,7 @@ def test_region_is_rendered_in_caller_order_never_sorted():
     rev = list(reversed(recs))                          # deliberately NOT document order
     spec = ItemSpec.all_votable("b57-r0", [r.id for r in rev])
     task = tasks.build_task(title="t", instructions="i", specs=[spec],
-                            records={"57": store.load_records("57")})
+                            records={"57": sample_records()})
     assert task.manifest.by_key["L001"] == rev[0].id    # L001 = the FIRST id the caller gave...
     assert task.manifest.by_key["L003"] == rev[2].id    # ...not the document-first (no re-sort)
     ctx = task.items[0].context
@@ -117,7 +118,7 @@ def test_multipage_images_survive_the_payload_roundtrip_in_order():
     pages = tuple(EvidenceAsset(kind=AssetKind.COMPOSITE, data_uri=f"data:image/png;base64,P{n}")
                   for n in range(3))
     task = tasks.build_task(title="t", instructions="i", specs=[spec],
-                            records={"57": store.load_records("57")}, assets={"b57-r0": pages})
+                            records={"57": sample_records()}, assets={"b57-r0": pages})
     payload = task.to_payload()
     assert payload["items"][0]["images"] == [a.data_uri for a in pages]      # all pages, in order
     back = tasks.Task.from_bundle(payload, task.manifest.to_dict())

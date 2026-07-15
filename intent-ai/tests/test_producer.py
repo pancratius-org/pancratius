@@ -5,7 +5,6 @@ read_lines is cached per-docx so the suite builds each view once."""
 from __future__ import annotations
 
 import dataclasses
-import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -13,14 +12,14 @@ import pytest
 from intent_ai import physics, producer, source_view
 from intent_ai import records as record_model
 from intent_ai.paths import BOOKS
-from intent_ai.records import LineRecord, feature_field_names
+from intent_ai.records import LineRecord
 
 from pancratius import docx_source, docx_structure
+from tests.record_factory import sample_records
 
 B57 = BOOKS / "57-ya-otdayushchii" / "ru.docx"
 B37 = BOOKS / "37-evangelie-ot-kolobka" / "ru.docx"   # multi-<w:br> body paras
 B64_RU = BOOKS / "64-kniga-svyatogo-dukha" / "ru.docx"
-
 
 @lru_cache(maxsize=8)
 def records(docx: Path, lang: str, book: str) -> tuple[LineRecord, ...]:
@@ -34,11 +33,13 @@ def recs57():
 
 # --- identity on real data ---
 
+@pytest.mark.corpus_source
 def test_lineid_unique_within_book_real(recs57):
     ids = [r.id for r in recs57]
     assert len(ids) == len(set(ids)), "LineId collided on real book 57"
 
 
+@pytest.mark.corpus_source
 def test_votable_only_body(recs57):
     for r in recs57:
         if r.votable:
@@ -47,6 +48,7 @@ def test_votable_only_body(recs57):
 
 # --- single physics source: record fill == per-LINE fill, NOT the per-paragraph recompute ---
 
+@pytest.mark.corpus_source
 def test_record_fill_is_per_line_not_per_paragraph():
     """The H2 double-compute bug: a per-paragraph fill is computed on the JOINED text. Our
     record reads it per source LINE. For a multi-line (<w:br>) paragraph these MUST differ;
@@ -54,7 +56,7 @@ def test_record_fill_is_per_line_not_per_paragraph():
     source = docx_source.read(B37)
     geom = physics.page_geom(source.layout)
     observation = docx_structure.observe_structure(source, lang="ru")
-    paras = source_view.read_view(source, observation, geom)
+    paras = source_view.read_view(observation)
     recs = records(B37, "ru", "37")
     by_key = {(r.id.src_ordinal, r.id.sub): r for r in recs}
     multis = [p for p in paras
@@ -75,8 +77,8 @@ def test_record_fill_is_per_line_not_per_paragraph():
 
 # --- parity: listing φ and vector φ are the SAME record (perturbation) ---
 
-def test_parity_listing_and_vector_share_one_feature_object(recs57):
-    body = next(r for r in recs57 if r.votable)
+def test_parity_listing_and_vector_share_one_feature_object():
+    body = sample_records()[0]
     base_vec = producer.to_vector(body.features)
     keys = {body.id: "L001"}
     base_listing = producer.render_listing([body], keys=keys,
@@ -93,8 +95,8 @@ def test_parity_listing_and_vector_share_one_feature_object(recs57):
     assert ("WRAP" in pl) == perturbed_feats.wraps
 
 
-def test_listing_feature_tokens_equal_vector_values(recs57):
-    for r in list(recs57)[:200]:
+def test_listing_feature_tokens_equal_vector_values():
+    for r in sample_records():
         if not r.votable:
             continue
         vec = producer.to_vector(r.features)
@@ -106,31 +108,25 @@ def test_listing_feature_tokens_equal_vector_values(recs57):
 
 # --- no leakage: φ has NO label/prediction input (structural + perturbation) ---
 
-def test_read_lines_signature_has_no_label_input():
-    sig = set(producer.read_lines.__code__.co_varnames[:producer.read_lines.__code__.co_argcount])
-    assert sig == {"docx", "lang", "book_id"}
-    for name in feature_field_names():
-        assert not re.search(r"label|gold|predict|class", name)
-
-
+@pytest.mark.corpus_source
 def test_features_deterministic_same_docx(recs57):
     again = tuple(producer.read_lines(B57, "ru", "57"))
     assert [r.features for r in again] == [r.features for r in recs57]
     assert [r.id for r in again] == [r.id for r in recs57]
 
 
-def test_vector_columns_fixed_and_include_zero_support(recs57):
+def test_vector_columns_fixed_and_include_zero_support():
     cols = producer.vector_columns()
     assert len(cols) == len(set(cols))
-    for r in list(recs57)[:50]:
+    for r in sample_records():
         v = producer.vectorize_fixed(r.features)
         assert set(v.keys()) == set(cols)
     assert "align=center" in cols
 
 
-def test_vector_projects_run_boundaries_without_duplicate_storage(recs57):
+def test_vector_projects_run_boundaries_without_duplicate_storage():
     middle = dataclasses.replace(
-        next(r for r in recs57 if r.votable).features, run_len=3, run_pos=1
+        sample_records()[0].features, run_len=3, run_pos=1
     )
     first = dataclasses.replace(middle, run_pos=0)
     last = dataclasses.replace(middle, run_pos=2)
@@ -145,6 +141,7 @@ def test_vector_projects_run_boundaries_without_duplicate_storage(recs57):
 
 # --- golden snapshot (regression lock) on a known region ---
 
+@pytest.mark.corpus_source
 def test_golden_snapshot_book57_first_body_lines(recs57):
     """Regression lock: the producer's output on a known region is frozen; if the substrate or
     φ logic shifts these values, this fails."""
@@ -162,12 +159,14 @@ def test_golden_snapshot_book57_first_body_lines(recs57):
     assert snap == expected
 
 
+@pytest.mark.corpus_source
 def test_golden_total_counts_book57(recs57):
     """Lock the gross shape, including substantive source rows absent from compiler output."""
     assert len(recs57) == 504
     assert sum(r.votable for r in recs57) == 459
 
 
+@pytest.mark.corpus_source
 def test_unmapped_book57_source_body_remains_visible_for_review(recs57):
     """Canonical source owns Q2 candidates even when shipping Q1 has no block claim."""
     recovered = [r for r in recs57 if 30 <= r.id.src_ordinal <= 39]
@@ -176,9 +175,10 @@ def test_unmapped_book57_source_body_remains_visible_for_review(recs57):
     assert all(r.votable and r.requires_review and r.text for r in recovered)
 
 
-def test_persisted_runs_match_producer_features(recs57):
-    for run in record_model.runs(recs57):
-        members = [recs57[index] for index in run]
+def test_persisted_runs_match_producer_features():
+    sample = sample_records(run_lengths=(3, 4))
+    for run in record_model.runs(sample):
+        members = [sample[index] for index in run]
         assert members[0].features.prev_structural
         assert members[-1].features.next_structural
         assert [record.features.run_pos for record in members] == list(range(len(run)))

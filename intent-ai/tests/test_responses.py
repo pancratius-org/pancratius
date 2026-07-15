@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import dataclasses
 
-from intent_ai import store
 from intent_ai.annotations import LabelSource
 from intent_ai.identity import text_hash
 from intent_ai.teacher import responses, tasks
@@ -14,9 +13,11 @@ from intent_ai.teacher.panel import ResponseContract
 from intent_ai.teacher.responses import RawReaderResponse, RawReaderRow, ResolveFault
 from intent_ai.teacher.tasks import ItemSpec
 
+from tests.record_factory import sample_records
+
 
 def _task(n: int = 5):
-    recs = store.load_records("57")
+    recs = sample_records()
     votable = [r for r in recs if r.votable][:n]
     spec = ItemSpec.all_votable("b57-r0", [r.id for r in votable])
     return tasks.build_task(title="adj", instructions="i", specs=[spec], records={"57": recs}), \
@@ -24,7 +25,7 @@ def _task(n: int = 5):
 
 
 def _two_item_task():
-    recs = store.load_records("57")
+    recs = sample_records()
     v = [r for r in recs if r.votable][:6]
     a = ItemSpec.all_votable("b57-r0", [r.id for r in v[:3]])
     b = ItemSpec.all_votable("b57-r1", [r.id for r in v[3:6]])

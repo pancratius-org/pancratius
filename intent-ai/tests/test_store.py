@@ -24,11 +24,13 @@ def test_annotation_load_fails_loud_on_missing_file(tmp_path):
         store.load_label_rows(annotations=tmp_path)    # empty dir -> loud, never a rebuild
 
 
+@pytest.mark.corpus_cache
 def test_records_load_through_the_edge():
     recs = store.load_records("57")                    # from the real cache, hash-validated
     assert recs and all(r.id.book_id == "57" for r in recs)
 
 
+@pytest.mark.corpus_source
 def test_records_load_fails_loud_on_missing_cache(tmp_path):
     with pytest.raises((FileNotFoundError, artifact.HashMismatch)):
         store.load_records("57", store=tmp_path)        # empty cache -> loud, no re-emit

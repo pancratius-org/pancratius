@@ -5,7 +5,7 @@
 // work that mutates source or renders release artifacts — it must never run in CI.
 //
 // PAN012 is a thin wrapper over the Python check that parses the workflow YAML and
-// scans each step's run:/uses: (not comments) for that banned tooling. PAN005
+// scans each step's run:/uses: and reachable npm scripts (not comments) for that banned tooling. PAN005
 // (build steps mutating authored Markdown, --clean deleting a content kind, etc.)
 // will be added here as deterministic members land, incident-first.
 
@@ -17,7 +17,7 @@ import { runPythonCheck } from "../lib/python.ts";
 export const pan012CiSeparation: Rule = {
   id: "PAN012-ci-separation",
   title:
-    "PAN012: CI must not install or run pandoc/typst/embedding/importer/renderer tooling or the converter/IR/writer library modules",
+    "PAN012: CI must not compile corpus records or run local library-management tooling",
   tier: "core",
   run(ctx: RuleContext): Finding[] {
     return runPythonCheck(ctx, {
@@ -26,7 +26,7 @@ export const pan012CiSeparation: Rule = {
       severity: "fatal",
       script: "python/ci_separation.py",
       contract:
-        "CI validates and publishes committed source; it never manufactures the library (architecture.md \"Shape\"; downloads.md \"CI Contract\"). Read-only checks may derive ignored caches from committed DOCX. A workflow step must not install or run pandoc, typst, the embedding stack, DOCX optimizers, the source importers/renderers, or the converter/IR/writer library modules behind them (the DOCX adapter, the typed IR + normalize/lower, footnote/cross-ref analysis, the WritePlan, and the writer — src/content's sole mutator; docs/import-pipeline.md) — whether invoked through the pancratius door, by .py path, or as a dotted module (python -m pancratius.…). Those are local/admin activities that mutate source or render release artifacts.",
+        "CI validates and publishes committed source; it never manufactures the library (architecture.md \"Shape\"; downloads.md \"CI Contract\"). A workflow step or transitively invoked npm script must not compile intent-ai records, install or run pandoc, typst, the embedding stack, DOCX optimizers, the source importers/renderers, or the converter/IR/writer library modules behind them (the DOCX adapter, the typed IR + normalize/lower, footnote/cross-ref analysis, the WritePlan, and the writer — src/content's sole mutator; docs/import-pipeline.md). Those are local/admin activities that compile or mutate source and render release artifacts.",
       why: "If CI renders or imports, the deploy pipeline depends on heavy local tooling (pandoc/typst/MLX) and can mutate or regenerate committed source — making the build non-reproducible and able to overwrite authored content. The split is what keeps CI a pure build-and-publish.",
       repair:
         "Run import/render/optimize/embedding locally via the library door (uv) and commit the results; CI only packages and publishes what is already in src/content/. Remove the offending install/run/import step from the workflow.",

@@ -59,14 +59,13 @@ def _role(
 
 
 def read_view(
-    source: docx_source.DocxSourceDocument,
     observation: docx_structure.StructuralObservation,
-    geom: physics.PageGeom,
 ) -> tuple[Para, ...]:
     """Project one already-hydrated source document into intent paragraphs."""
     out: list[Para] = []
     by_ordinal = observation.by_ordinal
-    for paragraph in source.paragraphs:
+    geom = physics.page_geom(observation.source.layout)
+    for paragraph in observation.source.paragraphs:
         match paragraph.disposition:
             case docx_source.ParagraphDisposition.PAGINATION_ONLY:
                 continue

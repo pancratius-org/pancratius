@@ -5,15 +5,15 @@ CI validates, builds, and PUBLISHES the site; it never manufactures the library
 install or run the library-management tooling — pandoc, typst, the embedding
 stack, DOCX optimizers, the source importers/renderers, OR the converter/IR/writer
 library modules behind them (docs/import-pipeline.md). Those are local/admin
-activities that mutate source or render release artifacts. Read-only validation may
-compile committed DOCX into ignored test caches; that is verification, not import. The import pipeline's
+activities that compile or mutate source and render release artifacts. The import pipeline's
 sole src/content mutator (pancratius/writer.py) and the pure modules that feed it
 (the DOCX adapter, the typed IR + normalize/lower, footnote/cross-ref analysis,
 the WritePlan) all belong to the library door, never CI — invoked by their .py path
 OR as a dotted module (`python -m pancratius.writer`, `-c "from pancratius.…"`).
 
-This parses the workflow YAML with PyYAML and scans only the `run:` and `uses:`
-of each step — NOT comments or surrounding prose — so a workflow's own
+This parses the workflow YAML with PyYAML and scans the `run:` and `uses:` of each
+step plus npm scripts transitively reachable from `npm run`. It does not scan comments
+or surrounding prose, so a workflow's own
 "MUST NOT install pandoc or typst" comment is not a false hit. Honours
 ``PANCRATIUS_AUDIT_ROOT`` (the harness points it at a fixture); wrapped by the
 TS harness as PAN012 (audit/rules/ownership.ts).
@@ -21,6 +21,7 @@ TS harness as PAN012 (audit/rules/ownership.ts).
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import sys
@@ -103,6 +104,14 @@ _RUN_BANNED: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("conda (banned: uv only)", re.compile(r"\bconda\b", _F)),
     ("requirements.txt (banned: uv lock only)", re.compile(r"requirements\.txt", _F)),
     (
+        "intent-ai record compiler (local research boundary, never CI)",
+        re.compile(
+            r"(?:\bintent_ai\.build_records\b"
+            r"|\bintent-ai/src/intent_ai/build_records\.py\b)",
+            _F,
+        ),
+    ),
+    (
         "pancratius corpus-management CLI (library door, never CI)",
         re.compile(r"\bpancratius\s+" + _CORPUS_VERBS + r"\b", _F),
     ),
@@ -129,6 +138,7 @@ _RUN_BANNED: tuple[tuple[str, re.Pattern[str]], ...] = (
 # Banned in a step's `uses:` (a setup action that installs an engine). Word-bounded
 # so an unrelated action whose name merely contains the substring doesn't misfire.
 _USES_BANNED: re.Pattern[str] = re.compile(r"\b(pandoc|typst)\b", _F)
+_NPM_RUN: re.Pattern[str] = re.compile(r"\bnpm\s+(?:run|run-script)\s+([\w:-]+)")
 
 
 # PyYAML returns `object`; `isinstance(x, dict)` alone narrows to a key/value-less
@@ -161,7 +171,40 @@ def _steps(workflow: object) -> list[dict[str, object]]:
     return out
 
 
-def _scan_workflow(rel: str, text: str) -> list[str]:
+def _scan_run(label: str, run: str) -> list[str]:
+    return [
+        f"{label}: run uses {description}"
+        for description, pattern in _RUN_BANNED
+        if pattern.search(run)
+    ]
+
+
+def _reachable_npm_scripts(run: str, scripts: dict[str, str]) -> list[tuple[str, str]]:
+    """Named script bodies reachable from one workflow command, once each."""
+    def invoked(command: str) -> list[str]:
+        names: list[str] = []
+        for match in _NPM_RUN.finditer(command):
+            name = match.group(1)
+            names.extend((f"pre{name}", name, f"post{name}"))
+        return names
+
+    pending = invoked(run)
+    seen: set[str] = set()
+    out: list[tuple[str, str]] = []
+    while pending:
+        name = pending.pop()
+        if name in seen:
+            continue
+        seen.add(name)
+        body = scripts.get(name)
+        if body is None:
+            continue
+        out.append((name, body))
+        pending.extend(invoked(body))
+    return out
+
+
+def _scan_workflow(rel: str, text: str, scripts: dict[str, str]) -> list[str]:
     failures: list[str] = []
     try:
         workflow = yaml.safe_load(text)
@@ -174,15 +217,30 @@ def _scan_workflow(rel: str, text: str) -> list[str]:
 
         run = step.get("run")
         if isinstance(run, str):
-            for desc, pattern in _RUN_BANNED:
-                if pattern.search(run):
-                    failures.append(f"{label}: run uses {desc}")
+            failures.extend(_scan_run(label, run))
+            for script_name, script_body in _reachable_npm_scripts(run, scripts):
+                failures.extend(_scan_run(f"{label} via npm script {script_name!r}", script_body))
 
         uses = step.get("uses")
         if isinstance(uses, str) and _USES_BANNED.search(uses):
             failures.append(f"{label}: uses action installs a banned engine ({uses})")
 
     return failures
+
+
+def _package_scripts(root: Path) -> tuple[dict[str, str], list[str]]:
+    package = root / "package.json"
+    if not package.is_file():
+        return {}, []
+    try:
+        value = json.loads(package.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        return {}, [f"package.json: could not read npm scripts ({exc})"]
+    package_map = _as_mapping(value)
+    script_map = _as_mapping(package_map.get("scripts")) if package_map is not None else None
+    if script_map is None:
+        return {}, []
+    return {name: body for name, body in script_map.items() if isinstance(body, str)}, []
 
 
 def main() -> int:
@@ -193,9 +251,13 @@ def main() -> int:
         return 0
 
     files = sorted(p for p in workflows.iterdir() if p.suffix in {".yml", ".yaml"})
-    failures: list[str] = []
+    scripts, failures = _package_scripts(root)
     for path in files:
-        failures.extend(_scan_workflow(str(path.relative_to(root)), path.read_text(encoding="utf-8")))
+        failures.extend(
+            _scan_workflow(
+                str(path.relative_to(root)), path.read_text(encoding="utf-8"), scripts
+            )
+        )
 
     if failures:
         print("FAIL: CI runs library-management tooling (import/render/build separation)", file=sys.stderr)

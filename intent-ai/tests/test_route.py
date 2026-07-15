@@ -20,6 +20,10 @@ from intent_ai.identity import Label, LineId
 from intent_ai.teacher import promote, recipes, tasks
 from intent_ai.teacher.tasks import ItemSpec
 
+from tests.record_factory import sample_records
+
+pytestmark = pytest.mark.usefixtures("sample_record_store")
+
 # The settled live config: the legacy anchor-led gate (min_support=2, min_core_agree=2,
 # conf_floor=0.7, tolerating one dissent) over a grok anchor + deepseek/gemini support.
 _ROUTED = """
@@ -69,12 +73,12 @@ def _recipe() -> recipes.Recipe:
 
 
 def _votable_ids(n: int) -> list[LineId]:
-    return [r.id for r in store.load_records("57") if r.votable][:n]
+    return [r.id for r in sample_records() if r.votable][:n]
 
 
 def _build_task(ann, st, ids: list[LineId]) -> None:
     """Persist the campaign task bundle `route` reads — its manifest scopes the votes to these lines."""
-    records = {"57": store.load_records("57")}
+    records = {"57": sample_records()}
     spec = ItemSpec.all_votable("b57-r0", ids)
     task = tasks.build_task(title="Route test", instructions="prose vs lineated",
                             specs=[spec], records=records)

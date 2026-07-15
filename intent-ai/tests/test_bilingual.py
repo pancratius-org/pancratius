@@ -49,6 +49,7 @@ def _en_records():
     return tuple(producer.read_lines(B64_EN, "en", "64"))
 
 
+@pytest.mark.corpus_source
 def test_en_book_reads_with_same_schema_as_ru():
     recs = _en_records()
     assert len(recs) > 1000

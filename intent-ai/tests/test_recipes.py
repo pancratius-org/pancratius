@@ -3,6 +3,7 @@
 shows context neighbours un-keyed, covers every selected line exactly once, in document order."""
 from __future__ import annotations
 
+import dataclasses
 import json
 
 import pytest
@@ -11,13 +12,17 @@ from intent_ai.teacher import recipes
 from intent_ai.teacher.panel import ReaderConfig
 from intent_ai.teacher.tasks import AssetKind, EvidenceAsset, Modality
 
+from tests.record_factory import sample_records
+
+pytestmark = pytest.mark.usefixtures("sample_record_store")
+
 
 def _first_votable(n: int):
-    return [r for r in store.load_records("57") if r.votable][:n]
+    return [r for r in sample_records() if r.votable][:n]
 
 
 def test_tile_covers_every_selected_line_exactly_once():
-    recs = store.load_records("57")
+    recs = sample_records()
     selected = {r.id for r in _first_votable(20)}
     specs = recipes.tile_regions("57", recs, selected, target=8)
     covered = [lid for s in specs for lid in s.votable]
@@ -25,7 +30,7 @@ def test_tile_covers_every_selected_line_exactly_once():
 
 
 def test_tile_never_splits_a_run_across_regions():
-    recs = store.load_records("57")
+    recs = sample_records()
     selected = {r.id for r in _first_votable(20)}
     specs = recipes.tile_regions("57", recs, selected, target=4)   # small target stresses splitting
     region_votables = [s.votable for s in specs]
@@ -37,7 +42,7 @@ def test_tile_never_splits_a_run_across_regions():
 
 
 def test_tile_shows_context_unkeyed_and_is_a_deterministic_document_span():
-    recs = store.load_records("57")
+    recs = sample_records()
     mid = _first_votable(11)[10]
     specs = recipes.tile_regions("57", recs, {mid.id}, target=8, context_radius=2)
     assert len(specs) == 1
@@ -134,13 +139,13 @@ def _recipe(selector: recipes.Selector | None = None, books: tuple = ("57",)) ->
 
 def test_select_lines_all_returns_every_votable_line():
     sel = recipes.select_lines(_recipe(selector=recipes.AllVotable()))
-    recs = store.load_records("57")
+    recs = sample_records()
     assert sel["57"] == {x.id for x in recs if x.votable}
 
 
 def test_select_lines_from_a_committed_selection_file(tmp_path):
     ann = tmp_path / "annotations"
-    picks = [x.id for x in store.load_records("57") if x.votable][:5]
+    picks = [x.id for x in sample_records() if x.votable][:5]
     (ann / "selections").mkdir(parents=True)
     (ann / "selections" / "acq.json").write_text(json.dumps([lid.as_key() for lid in picks]))
     sel = recipes.select_lines(_recipe(selector=recipes.SelectionFile("acq")), annotations=ann)
@@ -152,7 +157,7 @@ def test_build_persists_a_task_bundle_with_the_selected_lines(tmp_path):
     task = recipes.build(_recipe(selector=recipes.AllVotable()), annotations=ann, teacher_store=st)
     assert (ann / "tasks" / "t1.manifest.json").is_file()      # manifest committed
     assert (st / "t1" / "payload.json").is_file()              # payload derived
-    votable = {x.id for x in store.load_records("57") if x.votable}
+    votable = {x.id for x in sample_records() if x.votable}
     assert set(task.manifest.by_key.values()) == votable        # every votable line tiled in
     payload, _ = store.load_task_bundle("t1", annotations=ann, store=st)
     assert "manifest" not in payload and payload["items"]
@@ -187,7 +192,8 @@ def test_build_vision_render_missing_a_composite_fails_loud(tmp_path):
 
 
 def test_tile_distant_runs_become_separate_regions():
-    recs = store.load_records("57")
+    recs = sample_records(run_lengths=(4, 10, 4))
+    recs[4:14] = [dataclasses.replace(record, role=records.Role.CONTEXT) for record in recs[4:14]]
     rns = [run for run in records.runs(recs) if any(recs[i].votable for i in run)]
     far = next((run for run in rns[1:] if run[0] - rns[0][-1] - 1 > 8), None)
     assert far is not None                                     # the book has a run > max_gap away
@@ -199,7 +205,7 @@ def test_tile_distant_runs_become_separate_regions():
 
 def test_select_lines_raises_on_out_of_scope_book(tmp_path):
     ann = tmp_path / "annotations"
-    picks = [x.id for x in store.load_records("57") if x.votable][:3]
+    picks = [x.id for x in sample_records() if x.votable][:3]
     (ann / "selections").mkdir(parents=True)
     (ann / "selections" / "acq.json").write_text(json.dumps([lid.as_key() for lid in picks]))
     r = recipes.Recipe(task_id="t", title="T", instructions="i", books=("13",),  # 13, not 57
@@ -215,7 +221,7 @@ def test_recipe_panel_and_ingest_reach_committed_truth(tmp_path):
     from intent_ai.teacher.panel import ChatReply
 
     ann, st = tmp_path / "annotations", tmp_path / "_teacher"
-    picks = [x.id for x in store.load_records("57") if x.votable][:5]
+    picks = [x.id for x in sample_records() if x.votable][:5]
     (ann / "selections").mkdir(parents=True)
     (ann / "selections" / "acq.json").write_text(json.dumps([lid.as_key() for lid in picks]))
     r = recipes.Recipe(task_id="acq", title="A", instructions="prose vs lineated", books=("57",),
@@ -315,7 +321,7 @@ def test_page_size_passes_an_in_page_region_through_unchanged():
 
 def test_select_lines_refuses_a_wrong_language_selection(tmp_path):
     ann = tmp_path / "annotations"
-    picks = [x.id for x in store.load_records("57") if x.votable][:3]
+    picks = [x.id for x in sample_records() if x.votable][:3]
     keys = [["en", lid.book_id, lid.src_ordinal, lid.sub] for lid in picks]  # en ids, ru recipe
     (ann / "selections").mkdir(parents=True)
     (ann / "selections" / "acq.json").write_text(json.dumps(keys))
@@ -353,8 +359,8 @@ def test_holdout_eval_set_parses_from_the_toml():
 
 def test_build_page_sizes_oversized_runs_for_text_recipes_too(tmp_path):
     # a selection spanning a giant run must not produce a region wider than the page cap
-    recs = store.load_records("57")
     from intent_ai.teacher.tasks import PAGE_SPAN_CAP
+    recs = sample_records(count=PAGE_SPAN_CAP + 20)
     votable = [r for r in recs if r.votable]
     picks = {votable[0].id, votable[-1].id}
     tiled = recipes.tile_regions("57", recs, picks, target=10, context_radius=1, max_gap=10**9)

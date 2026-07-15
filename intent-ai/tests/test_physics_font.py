@@ -61,6 +61,7 @@ def test_heterogeneous_sections_refuse_a_false_document_wide_fill_model() -> Non
         physics.page_geom(partial)
 
 
+@pytest.mark.corpus_source
 def test_pin_matches_libreoffice_bundle() -> None:
     if not _LIBREOFFICE_SERIF.is_file():
         pytest.skip("LibreOffice not installed at the macOS bundle path")

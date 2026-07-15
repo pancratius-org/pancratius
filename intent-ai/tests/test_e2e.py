@@ -15,6 +15,8 @@ from intent_ai.teacher import panel, promote, responses, tasks
 from intent_ai.teacher.panel import ChatReply, PanelConfig, ReaderConfig
 from intent_ai.teacher.tasks import ItemSpec, Modality
 
+from tests.record_factory import sample_records
+
 
 class _Canned:
     """A ChatCompleter that always returns the same reply — the network, stubbed."""
@@ -32,7 +34,7 @@ def _grok():
 
 def test_create_task_then_fake_panel_and_human_reach_committed_truth(tmp_path):
     ann, st = tmp_path / "annotations", tmp_path / "_teacher"
-    recs = store.load_records("57")
+    recs = sample_records()
     records = {"57": recs}
     votable = [r for r in recs if r.votable][:4]
     spec = ItemSpec.all_votable("b57-r0", [r.id for r in votable])
@@ -72,7 +74,7 @@ def test_create_task_then_fake_panel_and_human_reach_committed_truth(tmp_path):
 
 def test_promote_is_idempotent(tmp_path):
     ann = tmp_path / "annotations"
-    recs = store.load_records("57")
+    recs = sample_records()
     records = {"57": recs}
     votable = [r for r in recs if r.votable][:3]
     spec = ItemSpec.all_votable("b57-r0", [r.id for r in votable])

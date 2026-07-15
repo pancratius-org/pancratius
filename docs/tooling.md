@@ -50,7 +50,7 @@ site.
 | `npm run test:e2e` | Playwright e2e specs. |
 | `npm run test:visual` | Playwright visual gate. |
 | `npm run check:py` | Ruff annotations, `ty` types, and pytest behaviour. |
-| `npm run check:intent-ai` | Validate lineation research against a read-only cache derived from canonical DOCX source. |
+| `npm run check:intent-ai` | Run portable lineation domain, projection, and boundary checks; no DOCX compiler or derived cache. |
 
 Build derivations live in `build/` and run from npm. They derive artifacts from
 committed source; they do not mutate `src/content/`:
@@ -72,9 +72,10 @@ uv run --project intent-ai --group dev --frozen pytest intent-ai/tests -q -c int
 ```
 
 The first command rebuilds ignored records for every edition referenced by committed annotations;
-it reads committed DOCX files and does not import or mutate library content. The second tests the
-package against that cache. `npm run check:intent-ai` owns the complete research gate and is
-included in the full `npm run verify` gate.
+it reads committed DOCX files and does not import or mutate library content. The second is the
+local acceptance gate: portable tests plus corpus/cache and repository-history checks.
+`npm run check:intent-ai`, included in `npm run verify`, runs the portable subset without compiling
+DOCX or depending on ignored local state.
 
 ## Library Operations
 

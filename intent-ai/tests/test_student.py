@@ -72,6 +72,7 @@ def res(ds):
     return student.train_cv(ds)
 
 
+@pytest.mark.corpus_cache
 def test_dataset_joins_every_trainable_label(ds, corpus):
     """The dataset is exactly the trainable truth — no silent shrinkage. A label whose line is
     missing from the records map must surface (a stale artifact or a broken join)."""
@@ -80,6 +81,7 @@ def test_dataset_joins_every_trainable_label(ds, corpus):
     assert len(ds.X) == len(ds.y) == len(ds.groups) == len(ds.ids) == ds.n_joined
 
 
+@pytest.mark.corpus_cache
 def test_dataset_is_bilingual_and_groups_split_by_lang(ds):
     """The (lang, book) re-key: en labels JOIN (the bare-book_id join silently dropped them) and
     ru:NN / en:NN are DISTINCT CV groups — one shared folder number never folds two books."""
@@ -90,12 +92,14 @@ def test_dataset_is_bilingual_and_groups_split_by_lang(ds):
     assert both, "expected at least one folder number labeled in both languages"
 
 
+@pytest.mark.corpus_cache
 def test_holdout_labels_are_never_training_rows(ds, corpus):
     _, labelset = corpus
     holdout = {g.id for g in labelset.labels if g.holdout}
     assert holdout and not holdout & set(ds.ids)
 
 
+@pytest.mark.corpus_cache
 def test_every_row_spans_the_fixed_columns_no_nan(ds):
     import math
     cols = set(ds.columns)
@@ -104,6 +108,7 @@ def test_every_row_spans_the_fixed_columns_no_nan(ds):
         assert all(not math.isnan(v) and not math.isinf(v) for v in row.values())
 
 
+@pytest.mark.corpus_cache
 def test_labels_are_two_class(ds):
     assert set(ds.y) <= {"prose", "lineated"}
 
@@ -113,11 +118,13 @@ def test_no_feature_column_is_the_label():
     assert not any("label" in c or "gold" in c or "predict" in c for c in cols)
 
 
+@pytest.mark.corpus_cache
 def test_cv_is_book_grouped_no_leakage(ds, res):
     assert set(res.oof_pred.keys()) == set(ds.ids)
     assert set(res.oof_pred.values()) <= {"prose", "lineated"}
 
 
+@pytest.mark.corpus_cache
 def test_locked_cv_number(res, corpus):
     """Source-v3 truth under (lang, book)-grouped leave-one-book-out CV."""
     _, labelset = corpus
@@ -130,12 +137,14 @@ def test_locked_cv_number(res, corpus):
     assert res.balanced_accuracy > res.majority_baseline_acc
 
 
+@pytest.mark.corpus_cache
 def test_zero_support_columns_reported_not_dropped(res, ds):
     assert "align=center" in res.zero_support_columns
     for c in res.zero_support_columns:
         assert c in ds.columns
 
 
+@pytest.mark.corpus_cache
 def test_model_explains_itself_with_signed_weights(ds):
     """The interpretability readout is the fitted model's own (`FittedModel.explain`), not the CV
     harness's. The top features carry the domain-sane sign: wraps→prose (negative toward lineated),
@@ -147,6 +156,7 @@ def test_model_explains_itself_with_signed_weights(ds):
     assert w["fill"] < 0
 
 
+@pytest.mark.corpus_cache
 def test_reproducible(ds):
     prose_groups = {group for group, label in zip(ds.groups, ds.y, strict=True) if label == "prose"}
     lineated_groups = {

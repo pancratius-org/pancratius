@@ -15,9 +15,9 @@ These rules decide where a change belongs.
 - **Mechanical vs editorial.** The CLI may convert, scaffold, render, optimize,
   and regenerate data. It must not decide titles, descriptions, project shape,
   theological register, or publication judgment. → [`tooling.md`](./tooling.md).
-- **Local vs CI.** Import DOCX → source and render release artifacts locally; CI
-  builds, validates, and publishes — it may compile committed source into ignored
-  read-only test caches, but does not import works, mutate library content, render
+- **Local vs CI.** Import DOCX → source, compile research records, and render release artifacts
+  locally; CI builds, validates, and publishes committed source. It does not import works,
+  compile DOCX, mutate library content, render
   release artifacts, optimize DOCX, or regenerate committed embeddings. **Exception:** external-API ingestion
   (`pancratius video sync` via `.github/workflows/video-sync.yml`) runs in CI
   because it is additive, idempotent, and only makes lightweight HTTP calls — a
@@ -28,8 +28,9 @@ These rules decide where a change belongs.
   locale; a route, download, or feed exists only where that locale was authored.
   → [`i18n-routing.md`](./i18n-routing.md).
 - **DOCX source vs lineation research.** `pancratius.docx_source` owns OOXML syntax and source
-  semantics. `intent-ai/` consumes that typed aggregate for research; it never reparses OOXML, and
-  production never imports it. The only return path is explicit correction data.
+  semantics; `pancratius.docx_structure` binds that document to its locale-specific compiler
+  observation. `intent-ai/` consumes the resulting aggregate for research; it never reparses OOXML,
+  and production never imports it. The only return path is explicit correction data.
 
 ## Flow
 
@@ -78,8 +79,8 @@ source. The shared boundary is the repository, not a runtime dependency.
   backend, or API surface.
 - **CI publishes committed source.** CI validates content, builds Astro, runs
   Pagefind/sitemap generation, checks referenced artifacts, and deploys `dist/`.
-  It may derive ignored verification caches from committed DOCX; it does not import
-  works, optimize DOCX, render PDF/EPUB, or regenerate committed embeddings.
+  It does not compile or import DOCX, optimize DOCX, render PDF/EPUB, or regenerate
+  committed embeddings.
 - **One URL = one resource.** Language, content, downloads, and alternate links
   follow from the URL. There is no separate UI-language state. See
   [`i18n-routing.md`](./i18n-routing.md).

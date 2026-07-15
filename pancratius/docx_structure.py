@@ -62,30 +62,23 @@ type ParagraphObservation = BodyParagraph | ReviewParagraph | ContextParagraph
 
 @dataclass(frozen=True, slots=True)
 class StructuralObservation:
-    """One total, immutable classification of every readable source paragraph."""
+    """One source document and its total, locale-specific compiler classification."""
 
+    source: docx_source.DocxSourceDocument
+    lang: Locale
     entries: tuple[tuple[docx_source.ParagraphOrdinal, ParagraphObservation], ...]
 
     def __post_init__(self) -> None:
         ordinals = [ordinal for ordinal, _ in self.entries]
         if len(ordinals) != len(set(ordinals)):
             raise ValueError("structural observation contains duplicate ordinals")
-
-    @classmethod
-    def complete(
-        cls,
-        source: docx_source.DocxSourceDocument,
-        entries: tuple[tuple[docx_source.ParagraphOrdinal, ParagraphObservation], ...],
-    ) -> StructuralObservation:
-        observation = cls(entries)
-        actual = {int(ordinal) for ordinal, _ in entries}
-        if actual != source.content_ordinals:
-            missing = sorted(source.content_ordinals - actual)
-            extra = sorted(actual - source.content_ordinals)
+        actual = {int(ordinal) for ordinal, _ in self.entries}
+        if actual != self.source.content_ordinals:
+            missing = sorted(self.source.content_ordinals - actual)
+            extra = sorted(actual - self.source.content_ordinals)
             raise ValueError(
                 f"structural observation is not total (missing={missing[:5]}, extra={extra[:5]})"
             )
-        return observation
 
     @property
     def by_ordinal(self) -> dict[docx_source.ParagraphOrdinal, ParagraphObservation]:
@@ -281,7 +274,7 @@ def observe_structure(
         else:
             observation = ReviewParagraph(ReviewReason.UNMAPPED_AT_ADAPTER)
         entries.append((source_ordinal, observation))
-    return StructuralObservation.complete(source, tuple(entries))
+    return StructuralObservation(source, lang, tuple(entries))
 
 
 class FoldDisposition(StrEnum):

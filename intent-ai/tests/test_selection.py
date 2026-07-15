@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from types import SimpleNamespace
 
+import pytest
 from intent_ai import selection, store, student
 from intent_ai.identity import BookKey, LineId
 
@@ -46,6 +47,7 @@ def test_context_marks_the_line_and_respects_radius():
     assert len(edge) == 3 and edge[0].startswith("-> ")
 
 
+@pytest.mark.corpus_cache
 def test_queue_invariants_on_real_data(corpus):
     records, labelset = corpus
     label_ids = {g.id for g in labelset.labels}
@@ -71,6 +73,7 @@ def test_queue_invariants_on_real_data(corpus):
     assert q.n_votable > 0
 
 
+@pytest.mark.corpus_cache
 def test_fit_full_posteriors_batch_matches_single(corpus):
     records, labelset = corpus
     ds = student.build_dataset(records, labelset)
@@ -99,6 +102,7 @@ def _restrict(ds: student.Dataset, books: list[str], *, flip: str | None = None)
     )
 
 
+@pytest.mark.corpus_cache
 def test_oof_smoothed_no_leakage(corpus):
     """The book-held-out smoothed prediction of a line must NOT depend on that line's own book's
     labels (the model that judges book B was fit on the other books). Flip ALL of one book's
