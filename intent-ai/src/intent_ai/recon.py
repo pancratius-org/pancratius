@@ -44,7 +44,7 @@ from .records import (
     Align,
     LineRecord,
 )
-from .student import FittedModel
+from .student import LinearModel
 from .wire import number, sequence
 
 
@@ -251,7 +251,7 @@ def en_outliers(summaries: Sequence[BookRecon],
 
 
 def scan_book(book_id: BookId, lang: str, *,
-              model: FittedModel | None = None) -> tuple[list[LineRecon], BookRecon]:
+              model: LinearModel | None = None) -> tuple[list[LineRecon], BookRecon]:
     """Load the book's records through the rails, read the production verdicts off its DOCX,
     score posteriors with the given student, join, summarize. Persists nothing — the driver
     owns writes."""
@@ -268,16 +268,15 @@ def scan_book(book_id: BookId, lang: str, *,
         int(paragraph.ordinal) for paragraph in source.paragraphs if paragraph.empty
     )
 
-    votable = [r for r in records if r.votable]
     posteriors: dict[LineId, float] = {}
-    if model is not None and votable:
-        for r, p in zip(votable, model.posteriors([r.features for r in votable]), strict=True):
-            posteriors[r.id] = p
+    if model is not None:
+        from . import sequence
+        posteriors = sequence.score_document(records, model).by_id
     rows = join_rows(records, det, posteriors)
     return rows, summarize(book_id, lang, records, rows, det, empty)
 
 
-def _scan_and_save(book_id: BookId, lang: str, model: FittedModel | None) -> BookRecon:
+def _scan_and_save(book_id: BookId, lang: str, model: LinearModel | None) -> BookRecon:
     """Pool worker: scan one (book, lang) and persist its rows. Returns the summary only —
     the rows live on disk, never shuttled back through the pool."""
     rows, summary = scan_book(book_id, lang, model=model)
@@ -285,7 +284,7 @@ def _scan_and_save(book_id: BookId, lang: str, model: FittedModel | None) -> Boo
     return summary
 
 
-def fit_current_student() -> tuple[FittedModel, int]:
+def fit_current_student() -> tuple[LinearModel, int]:
     """The deployable student fitted on ALL trainable labels — the tier-1 posterior source.
     Bilingual since the (lang, book) re-key: the dataset joins and the CV groups key by
     `BookKey`, so ru:01 and en:01 never collide and en lines carry real posteriors. The features

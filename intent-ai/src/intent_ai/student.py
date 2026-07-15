@@ -19,10 +19,11 @@ line where readers/humans gave conflicting labels (the `contested` set). The hum
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Protocol, assert_never
 
-from . import producer, store
+from . import producer, sequence, store
 from .annotations import LabelSet, load_labels
 from .identity import BookKey, Label, LabelByLine, LineId
 from .records import FeatureName, FeatureVector, LineFeatures, RecordsByBook
@@ -83,62 +84,42 @@ def _matrix(ds: Dataset):
 
 
 class _Scaler(Protocol):
+    mean_: Any
+    scale_: Any
+
     def transform(self, X: Any) -> Any: ...
 
 
 class _Classifier(Protocol):
     coef_: Any
+    intercept_: Any
 
     def predict_proba(self, X: Any) -> Any: ...
 
 
-@dataclass
-class FittedModel:
-    """A fitted scaler+LR over the fixed feature columns, exposing the sequence module's
-    `Posterior` interface: features → P(lineated). The single source of per-line scores for both
-    the i.i.d. CV and `predict_document`, so smoothing layers on TOP of exactly the trained
-    model, never a parallel scorer."""
+@dataclass(frozen=True, slots=True)
+class LinearModel:
+    """The fitted, interpretable student: one batched posterior surface over fixed features."""
 
     scaler: _Scaler
-    clf: _Classifier | None
-    columns: list[FeatureName]
-    single_class: int | None = None  # set iff the train fold had one class (degenerate fold)
+    clf: _Classifier
+    columns: tuple[FeatureName, ...]
 
-    def posterior(self, features: LineFeatures) -> float:
-        if self.single_class is not None:
-            return float(self.single_class)
-        if self.clf is None:
-            raise RuntimeError("multi-class model has no classifier")
-        import numpy as np
-        vec = producer.vectorize_fixed(features)
-        x = np.array([[vec[c] for c in self.columns]], dtype=float)
-        return float(self.clf.predict_proba(self.scaler.transform(x))[0, 1])
+    def _posteriors_from_matrix(self, matrix: Any) -> list[float]:
+        return self.clf.predict_proba(self.scaler.transform(matrix))[:, 1].tolist()
 
-    def posteriors(self, feats: list[LineFeatures]) -> list[float]:
-        """Batched `posterior` — one `predict_proba` over a whole corpus's unlabeled lines, so
-        scoring a book does not become a per-line Python loop."""
+    def posteriors(self, feats: Sequence[LineFeatures]) -> list[float]:
         if not feats:
             return []
-        if self.single_class is not None:
-            return [float(self.single_class)] * len(feats)
-        if self.clf is None:
-            raise RuntimeError("multi-class model has no classifier")
         import numpy as np
         X = np.array([[producer.vectorize_fixed(f)[c] for c in self.columns] for f in feats],
                      dtype=float)
-        return self.clf.predict_proba(self.scaler.transform(X))[:, 1].tolist()
-
-    __call__ = posterior  # a FittedModel IS a sequence.Posterior
+        return self._posteriors_from_matrix(X)
 
     def explain(self) -> list[tuple[FeatureName, float]]:
         """This model's signed per-feature weights, largest |weight| first — the INTERPRETABLE
         readout. Model-specific (a logistic regression's coefficients), so it lives on the model,
-        not in the CV harness: a different student carries its own `explain`. A degenerate
-        single-class fit has no weights → empty."""
-        if self.single_class is not None:
-            return []
-        if self.clf is None:
-            raise RuntimeError("multi-class model has no classifier")
+        not in the CV harness: a different student carries its own `explain`."""
         # sort by the UNROUNDED weight (so rounding-tied features keep their true order), round
         # only on emit.
         ordered = sorted(zip(self.columns, self.clf.coef_[0], strict=True),
@@ -146,23 +127,48 @@ class FittedModel:
         return [(c, round(float(w), 3)) for c, w in ordered]
 
 
-def _fit(M, y, *, seed: int, columns: list[FeatureName]) -> FittedModel:
+@dataclass(frozen=True, slots=True)
+class ConstantModel:
+    """A valid degenerate fold model whose training truth contained only one class."""
+
+    label: Label
+
+    def __post_init__(self) -> None:
+        if self.label not in ("prose", "lineated"):
+            raise ValueError(f"constant model needs a prose|lineated label, got {self.label!r}")
+
+    def _posteriors_from_matrix(self, matrix: Any) -> list[float]:
+        value = 1.0 if self.label == "lineated" else 0.0
+        return [value] * len(matrix)
+
+    def posteriors(self, feats: Sequence[LineFeatures]) -> list[float]:
+        return self._posteriors_from_matrix(feats)
+
+
+def _fit(M, y, *, seed: int, columns: list[FeatureName]) -> LinearModel | ConstantModel:
+    if not len(y):
+        raise ValueError("cannot fit a student without training truth")
+    if len(set(y.tolist())) < 2:
+        return ConstantModel("lineated" if int(y[0]) == 1 else "prose")
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import StandardScaler
     scaler = StandardScaler().fit(M)
-    if len(set(y.tolist())) < 2:
-        return FittedModel(scaler, None, columns, single_class=int(y[0]))
     clf = LogisticRegression(max_iter=2000, class_weight="balanced", random_state=seed, C=1.0)
     clf.fit(scaler.transform(M), y)
-    return FittedModel(scaler, clf, columns)
+    return LinearModel(scaler, clf, tuple(columns))
 
 
-def fit_full(ds: Dataset, *, seed: int = 0) -> FittedModel:
-    """The deployable model fit on ALL labeled lines — its `posterior` is the honest current
-    score for an UNLABELED line (that line is not a training row, so no leakage). The book-held-
-    out CV remains the performance number; this is for scoring/serving, not self-evaluation."""
+def fit_full(ds: Dataset, *, seed: int = 0) -> LinearModel:
+    """The deployable model fit on ALL labeled lines. Its score for an unlabeled line is honest:
+    that line is not a training row. Book-held-out CV remains the performance measurement."""
     M, yv = _matrix(ds)
-    return _fit(M, yv, seed=seed, columns=ds.columns)
+    match model := _fit(M, yv, seed=seed, columns=ds.columns):
+        case LinearModel():
+            return model
+        case ConstantModel():
+            raise ValueError("a deployable student requires both prose and lineated truth")
+        case unsupported:
+            assert_never(unsupported)
 
 
 @dataclass
@@ -205,13 +211,7 @@ def train_cv(ds: Dataset, *, seed: int = 0) -> CVResult:
     oof: LabelByLine = {}
     for tr, te in logo.split(M, yv, groups):
         model = _fit(M[tr], yv[tr], seed=seed, columns=ds.columns)
-        if model.single_class is None:
-            if model.clf is None:
-                raise RuntimeError("multi-class model has no classifier")
-            fold_proba = model.clf.predict_proba(model.scaler.transform(M[te]))[:, 1]
-        else:
-            fold_proba = np.full(len(te), float(model.single_class))
-        proba = np.array([fold_proba]).ravel()
+        proba = np.asarray(model._posteriors_from_matrix(M[te]))
         pred = (proba >= 0.5).astype(int)
         y_true_all.extend(yv[te].tolist())
         y_pred_all.extend(pred.tolist())
@@ -241,31 +241,37 @@ def train_cv(ds: Dataset, *, seed: int = 0) -> CVResult:
     )
 
 
-def oof_smoothed(ds: Dataset, records: RecordsByBook, *,
-                 alpha: float = 0.75, seed: int = 0):
-    """Book-held-out run-SMOOTHED prediction (`sequence.LineDecision`) for every votable line in
-    the labeled books. For each held-out book: fit on the others, score the book's lines in ONE
-    batch, then `smooth_runs` over the book's record document (runs bound correctly). alpha=0
-    reproduces the i.i.d. oof; the held-out book is never in the fit, so there is no leakage."""
+def _oof_scored_documents(
+    ds: Dataset, records: RecordsByBook, *, seed: int = 0,
+) -> dict[BookKey, sequence.ScoredDocument]:
+    """Fit and batch-score each labeled document with that document's book held out."""
     import numpy as np
-
-    from . import sequence
 
     M, yv = _matrix(ds)
     groups = np.array([str(g) for g in ds.groups])
-    out: dict[LineId, sequence.LineDecision] = {}
-    for book, recs in sorted(records.items()):
+    missing = sorted(set(ds.groups) - records.keys())
+    if missing:
+        raise ValueError(f"no record document for labeled books {missing}")
+    out: dict[BookKey, sequence.ScoredDocument] = {}
+    for book in sorted(records):
+        document_records = records[book]
+        if any(record.id.book_key != book for record in document_records):
+            raise ValueError(f"record document stored under the wrong book key {book}")
         training = np.flatnonzero(groups != str(book))
         if not len(training):
             raise ValueError(f"no training books remain while holding out {book}")
         model = _fit(M[training], yv[training], seed=seed, columns=ds.columns)
-        votable = [(i, r) for i, r in enumerate(recs) if r.votable]
-        probs = model.posteriors([r.features for _, r in votable])      # batched per book
-        base = [0.0] * len(recs)
-        for (i, _), p in zip(votable, probs, strict=True):
-            base[i] = p
-        for d in sequence.smooth_runs(recs, base, alpha=alpha):
-            out[d.id] = d
+        out[book] = sequence.score_document(document_records, model)
+    return out
+
+
+def oof_smoothed(ds: Dataset, records: RecordsByBook, *,
+                 alpha: float = 0.75, seed: int = 0) -> dict[LineId, sequence.LineDecision]:
+    """Decode one book-held-out base score per votable line under a smoothing policy."""
+    out: dict[LineId, sequence.LineDecision] = {}
+    for document in _oof_scored_documents(ds, records, seed=seed).values():
+        for decision in sequence.decide_document(document, alpha=alpha):
+            out[decision.id] = decision
     return out
 
 
@@ -278,38 +284,23 @@ class SequenceCV:
     n_changed_vs_iid: int   # labeled lines whose label flipped relative to alpha=0
 
 
-def evaluate_alpha_cv(
-    ds: Dataset, labelset: LabelSet, records: RecordsByBook, *,
-    alpha: float, seed: int = 0,
+def _evaluate_alpha(
+    documents: dict[BookKey, sequence.ScoredDocument], truth: LabelByLine,
+    *, alpha: float,
 ) -> SequenceCV:
-    """Book-grouped CV of `predict_document` at a given alpha. For each held-out book: fit on
-    the OTHER books, build that book's full record document (so runs bound correctly), run
-    `predict_document`, and score the labeled votable lines against truth. alpha applies at
-    TEST time only. alpha=0 is identical to the i.i.d. CV (smoothing is a strict superset)."""
+    """Score one decoding policy over an already cross-fitted attributed corpus."""
     import numpy as np
     from sklearn.metrics import balanced_accuracy_score, f1_score, recall_score
-    from sklearn.model_selection import LeaveOneGroupOut
-
-    from . import sequence
-
-    M, yv = _matrix(ds)
-    groups = np.array([str(g) for g in ds.groups])
-    truth = {g.id: g.label for g in labelset.trainable}
 
     y_true: list[int] = []
     y_iid: list[int] = []
     y_seq: list[int] = []
-    for tr, te in LeaveOneGroupOut().split(M, yv, groups):
-        book = ds.groups[te[0]]
-        model = _fit(M[tr], yv[tr], seed=seed, columns=ds.columns)
-        decisions = sequence.predict_document(records[book], model, alpha=alpha)
-        iid = sequence.predict_document(records[book], model, alpha=0.0)
-        iid_by_id = {d.id: d.label for d in iid}
-        for d in decisions:
-            if d.id in truth:
-                y_true.append(1 if truth[d.id] == "lineated" else 0)
-                y_seq.append(1 if d.label == "lineated" else 0)
-                y_iid.append(1 if iid_by_id[d.id] == "lineated" else 0)
+    for document in documents.values():
+        for decision in sequence.decide_document(document, alpha=alpha):
+            if decision.id in truth:
+                y_true.append(1 if truth[decision.id] == "lineated" else 0)
+                y_seq.append(1 if decision.label == "lineated" else 0)
+                y_iid.append(1 if decision.base_posterior >= 0.5 else 0)
 
     yt, ys, yi = np.array(y_true), np.array(y_seq), np.array(y_iid)
     return SequenceCV(
@@ -322,11 +313,16 @@ def evaluate_alpha_cv(
 
 
 def tune_alpha(ds: Dataset, labelset: LabelSet,
-               records: RecordsByBook, *, grid=(0.0, 0.25, 0.5, 0.75, 1.0),
+               records: RecordsByBook, *, grid: Sequence[float] = (0.0, 0.25, 0.5, 0.75, 1.0),
                seed: int = 0) -> list[SequenceCV]:
     """Sweep alpha under book-grouped CV. alpha=0 is the i.i.d. baseline; a higher alpha is
     worth adopting only if it improves the held-out metric WITHOUT collapsing prose recall."""
-    return [evaluate_alpha_cv(ds, labelset, records, alpha=a, seed=seed) for a in grid]
+    if not grid:
+        return []
+    cv_records = {book: records[book] for book in sorted(set(ds.groups))}
+    documents = _oof_scored_documents(ds, cv_records, seed=seed)
+    truth: LabelByLine = {label.id: label.label for label in labelset.trainable}
+    return [_evaluate_alpha(documents, truth, alpha=alpha) for alpha in grid]
 
 
 if __name__ == "__main__":

@@ -107,10 +107,10 @@ def build_queue(records: RecordsByBook, labelset: LabelSet, *,
     for book in book_ids:
         recs = records[book]
         vidx = [i for i, r in enumerate(recs) if r.votable]
-        base = [0.0] * len(recs)
-        for i, p in zip(vidx, full.posteriors([recs[i].features for i in vidx]), strict=True):
-            base[i] = p
-        smoothed = {d.id: d for d in sequence.smooth_runs(recs, base, alpha=alpha)}  # full-model
+        smoothed = {
+            decision.id: decision
+            for decision in sequence.predict_document(recs, full, alpha=alpha)
+        }
         body = [recs[i] for i in vidx]
         for k, r in enumerate(body):
             n_votable += 1

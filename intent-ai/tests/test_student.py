@@ -2,10 +2,12 @@
 """One build_dataset() + one train_cv() (module-scoped — the slow part) back every assertion."""
 from __future__ import annotations
 
+from typing import cast
+
 import pytest
 from intent_ai import identity, producer, student, truth
 from intent_ai.annotations import LabelSet, LabelSource, LineLabel
-from intent_ai.identity import BookKey, LineId
+from intent_ai.identity import BookKey, Label, LineId
 from intent_ai.records import (
     Align,
     EndPunct,
@@ -17,27 +19,33 @@ from intent_ai.records import (
 )
 
 
-def _record(ordinal: int, *, role: Role = Role.BODY) -> LineRecord:
+def _record(
+    ordinal: int, *, book: str = "01", role: Role = Role.BODY, fill: float = 0.5,
+    run_len: int = 1, run_pos: int = 0,
+) -> LineRecord:
     text = f"line {ordinal}"
     features = LineFeatures(
-        fill=0.5, wraps=False, char_len=len(text), word_count=2,
+        fill=fill, wraps=False, char_len=len(text), word_count=2,
         end_punct=EndPunct.NONE, starts_lower=True, next_line_lower=False,
         enjambs=False, colon_opens=False, align=Align.LEFT,
         indent_vs_book=IndentVsBook.DEFAULT,
         spacing_after_vs_book=SpacingVsBook.TYPICAL,
         align_is_book_default=True, sub=0, n_subs=1,
-        run_len=1, run_pos=0,
+        run_len=run_len, run_pos=run_pos,
         fill_pctile_in_book=0.5,
     )
     return LineRecord(
-        id=LineId.mapped("ru", "01", ordinal, 0), text=text, role=role,
+        id=LineId.mapped("ru", book, ordinal, 0), text=text, role=role,
         features=features, line_text_hash=identity.text_hash(text),
     )
 
 
-def _label(ordinal: int, text_hash: str, *, holdout: bool = False) -> LineLabel:
+def _label(
+    ordinal: int, text_hash: str, *, book: str = "01", label: Label = "prose",
+    holdout: bool = False,
+) -> LineLabel:
     return LineLabel(
-        id=LineId.mapped("ru", "01", ordinal, 0), label="prose",
+        id=LineId.mapped("ru", book, ordinal, 0), label=label,
         source=LabelSource.HUMAN, confidence=None, audit_status="", notes="",
         provenance={}, line_text_hash=text_hash, holdout=holdout,
     )
@@ -118,6 +126,95 @@ def test_no_feature_column_is_the_label():
     assert not any("label" in c or "gold" in c or "predict" in c for c in cols)
 
 
+def test_constant_fold_model_is_a_total_batch_scorer():
+    features = [_record(1).features, _record(2).features]
+    assert student.ConstantModel("prose").posteriors(features) == [0.0, 0.0]
+    assert student.ConstantModel("lineated").posteriors(features) == [1.0, 1.0]
+    assert student.ConstantModel("lineated").posteriors([]) == []
+    with pytest.raises(ValueError, match=r"prose\|lineated"):
+        student.ConstantModel(cast(Label, "other"))
+
+
+def test_linear_model_transforms_and_predicts_once_per_batch():
+    import numpy as np
+
+    class SpyScaler:
+        mean_ = scale_ = ()
+        calls = 0
+
+        def transform(self, matrix):
+            self.calls += 1
+            return matrix
+
+    class SpyClassifier:
+        coef_ = intercept_ = ()
+        calls = 0
+
+        def predict_proba(self, matrix):
+            self.calls += 1
+            return np.array([[0.25, 0.75]] * len(matrix))
+
+    scaler, classifier = SpyScaler(), SpyClassifier()
+    columns = tuple(producer.vector_columns())
+    model = student.LinearModel(scaler, classifier, columns)
+    features = [_record(1).features, _record(2).features, _record(3).features]
+
+    feature_scores = model.posteriors(features)
+    assert feature_scores == [0.75, 0.75, 0.75]
+    assert scaler.calls == classifier.calls == 1
+    matrix = np.array([
+        [producer.vectorize_fixed(feature)[column] for column in columns]
+        for feature in features
+    ])
+    assert model._posteriors_from_matrix(matrix) == feature_scores
+    assert scaler.calls == classifier.calls == 2
+
+
+def test_alpha_grid_cross_fits_and_scores_each_document_once(monkeypatch):
+    records = {}
+    labels: list[LineLabel] = []
+    for book in ("01", "02", "03"):
+        recs = [
+            _record(1, book=book, fill=0.1, run_len=3, run_pos=0),
+            _record(2, book=book, fill=0.9, run_len=3, run_pos=1),
+            _record(3, book=book, fill=0.2, run_len=3, run_pos=2),  # unlabeled run neighbor
+            _record(4, book=book, role=Role.HEADING, fill=0.7),
+        ]
+        records[BookKey("ru", book)] = recs
+        labels.extend([
+            _label(1, recs[0].line_text_hash, book=book, label="prose"),
+            _label(2, recs[1].line_text_hash, book=book, label="lineated"),
+        ])
+    labelset = LabelSet(tuple(labels))
+    dataset = student.build_dataset(records, labelset)
+    fit_calls = 0
+    score_calls: list[tuple[LineFeatures, ...]] = []
+
+    class SpyScorer:
+        def posteriors(self, features):
+            score_calls.append(tuple(features))
+            return [feature.fill for feature in features]
+
+    def fake_fit(*args, **kwargs):
+        nonlocal fit_calls
+        fit_calls += 1
+        return SpyScorer()
+
+    monkeypatch.setattr(student, "_fit", fake_fit)
+    assert student.tune_alpha(dataset, labelset, records, grid=()) == []
+    assert fit_calls == 0
+    grid = (0.0, 0.5, 1.0)
+    result = student.tune_alpha(dataset, labelset, records, grid=grid)
+
+    books = sorted(records)
+    assert fit_calls == len(books)
+    assert score_calls == [
+        tuple(record.features for record in records[book] if record.votable)
+        for book in books
+    ]
+    assert [row.alpha for row in result] == list(grid)
+
+
 @pytest.mark.corpus_cache
 def test_cv_is_book_grouped_no_leakage(ds, res):
     assert set(res.oof_pred.keys()) == set(ds.ids)
@@ -146,7 +243,7 @@ def test_zero_support_columns_reported_not_dropped(res, ds):
 
 @pytest.mark.corpus_cache
 def test_model_explains_itself_with_signed_weights(ds):
-    """The interpretability readout is the fitted model's own (`FittedModel.explain`), not the CV
+    """The interpretability readout is the fitted model's own (`LinearModel.explain`), not the CV
     harness's. The top features carry the domain-sane sign: wraps→prose (negative toward lineated),
     starts_lower→lineated (positive), fill→prose. If these flip, the model learned something
     suspicious."""

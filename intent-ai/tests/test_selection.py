@@ -74,15 +74,15 @@ def test_queue_invariants_on_real_data(corpus):
 
 
 @pytest.mark.corpus_cache
-def test_fit_full_posteriors_batch_matches_single(corpus):
+def test_fit_full_posteriors_preserve_batch_order(corpus):
     records, labelset = corpus
     ds = student.build_dataset(records, labelset)
     model = student.fit_full(ds)
     recs = store.load_records("37")
     feats = [r.features for r in recs if r.votable][:20]
-    batch = model.posteriors(feats)
-    singles = [model.posterior(f) for f in feats]
-    assert all(abs(a - b) < 1e-9 for a, b in zip(batch, singles, strict=True))
+    whole = model.posteriors(feats)
+    partitioned = model.posteriors(feats[:7]) + model.posteriors(feats[7:])
+    assert whole == pytest.approx(partitioned, abs=1e-9)
 
 
 def _restrict(ds: student.Dataset, books: list[str], *, flip: str | None = None) -> student.Dataset:

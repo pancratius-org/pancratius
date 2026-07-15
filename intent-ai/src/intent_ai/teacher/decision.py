@@ -90,7 +90,7 @@ class Routing:
 class DecisionPolicy(Protocol):
     """A cross-reader rule: one line's per-reader votes → a routed `LineDecision`. Pure + stateless;
     concrete policies are frozen dataclasses holding their own thresholds and satisfy this
-    structurally (no base class, mirroring `Posterior`/`ChatCompleter`)."""
+    structurally (no base class, mirroring `PosteriorScorer`/`ChatCompleter`)."""
     @property
     def name(self) -> str: ...
 
