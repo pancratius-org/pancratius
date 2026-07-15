@@ -7,7 +7,7 @@ present — is still checked in code and retried); and the field names + short
 ``description``s name each field's intent so the model is conditioned by them. The
 full translation contract lives once in the prompt (``STYLE_GUIDE``), not here.
 
-Pattern mirrors the lineation-core teacher panel: a strict, object-wrapped array
+Pattern mirrors the intent-ai teacher panel: a strict, object-wrapped array
 (a top-level array is not allowed under strict decoding), ``additionalProperties:
 false`` throughout.
 """

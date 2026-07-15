@@ -2,7 +2,7 @@
 
 ## Boundary
 
-Pancratius has two command surfaces:
+Pancratius has two production command surfaces:
 
 - `uv run pancratius ...` changes the library. It imports, scaffolds, renders
   release artifacts, optimizes source DOCX, and regenerates committed Python data
@@ -12,6 +12,10 @@ Pancratius has two command surfaces:
 
 The owner is decided by the effect. Mutation and committed corpus products belong
 to `pancratius`; build and verification belong to `npm`.
+
+`intent-ai/` is a downstream research package, not a third production CLI. Run it through its
+locked uv project. It may write its own annotation evidence, derived record cache, and explicit
+correction sidecars; it does not own DOCX parsing or site builds.
 
 Do not add wrapper commands across that boundary. In particular, `pancratius`
 must not grow `audit`, `check`, `test`, `build`, `dev`, `preview`, or `site`
@@ -46,6 +50,7 @@ site.
 | `npm run test:e2e` | Playwright e2e specs. |
 | `npm run test:visual` | Playwright visual gate. |
 | `npm run check:py` | Ruff annotations, `ty` types, and pytest behaviour. |
+| `npm run check:intent-ai` | Validate lineation research against a read-only cache derived from canonical DOCX source. |
 
 Build derivations live in `build/` and run from npm. They derive artifacts from
 committed source; they do not mutate `src/content/`:
@@ -58,6 +63,18 @@ committed source; they do not mutate `src/content/`:
 
 Audit belongs to site operations because it verifies. Python checks in `audit/`
 are subprocesses of the harness, not standalone commands.
+
+## Lineation Research
+
+```sh
+uv run --project intent-ai --frozen python -m intent_ai.build_records
+uv run --project intent-ai --group dev --frozen pytest intent-ai/tests -q -c intent-ai/pyproject.toml
+```
+
+The first command rebuilds ignored records for every edition referenced by committed annotations;
+it reads committed DOCX files and does not import or mutate library content. The second tests the
+package against that cache. `npm run check:intent-ai` owns the complete research gate and is
+included in the full `npm run verify` gate.
 
 ## Library Operations
 

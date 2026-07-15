@@ -28,7 +28,8 @@
     "check:unused": "knip",
     "check:code": "npm run typecheck:tooling && npm run lint && npm run check:unused && npm run test:unit",
     "check:site": "npm run generate && astro check",
-    "check:py": "uv run ruff check . && uv run ty check && uv run pytest tests/python -q",
+    "check:py": "uv run ruff check pancratius audit tests/python && uv run ty check && uv run pytest tests/python -q",
+    "check:intent-ai": "uv run ruff check --config intent-ai/pyproject.toml intent-ai/src intent-ai/tests && uv run --project intent-ai --group dev --frozen ty check && uv run --project intent-ai --frozen python -m intent_ai.build_records && uv run --project intent-ai --group dev --frozen pytest intent-ai/tests -q -c intent-ai/pyproject.toml -p no:cacheprovider",
     "check": "npm run check:code && npm run check:site && npm run check:py",
     "test": "npm run test:unit",
     "test:unit": "node --test \"tests/unit/*.test.ts\"",
@@ -46,7 +47,7 @@
     "audit:layout-fill": "node audit/layout-fill.ts",
     "audit:post-build": "node audit/harness.ts post-build",
     "audit:selftest": "node audit/selftest.ts",
-    "verify": "npm run audit:deps && npm run check && npm run audit:repo && npm run audit:selftest && npm run build && npm run audit:post-build && npm run test:e2e:gate"
+    "verify": "npm run audit:deps && npm run check && npm run check:intent-ai && npm run audit:repo && npm run audit:selftest && npm run build && npm run audit:post-build && npm run test:e2e:gate"
   },
   "dependencies": {
     "@astrojs/markdown-satteri": "0.3.2",

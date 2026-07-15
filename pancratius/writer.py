@@ -124,7 +124,9 @@ def _capped_raster_bytes(
             if fmt not in _CAP_RASTER_FORMATS or max(width, height) <= transform.max_long_edge:
                 return original, None  # vector/animated/unknown or already small
             resized = img.copy()
-        resized.thumbnail((transform.max_long_edge, transform.max_long_edge), Image.LANCZOS)
+        resized.thumbnail(
+            (transform.max_long_edge, transform.max_long_edge), Image.Resampling.LANCZOS
+        )
         quality = transform.quality if transform.quality is not None else _CAP_QUALITY.get(fmt)
         buf = io.BytesIO()
         if fmt in _CAP_QUALITY and quality is not None:

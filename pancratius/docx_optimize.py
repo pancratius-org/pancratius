@@ -131,7 +131,7 @@ def edge_density(img: Image.Image) -> float:
     scale = 256 / max(w, h)
     if scale < 1:
         sample = sample.resize((max(1, int(w * scale)), max(1, int(h * scale))),
-                               Image.LANCZOS)
+                               Image.Resampling.LANCZOS)
     edges = sample.filter(ImageFilter.FIND_EDGES)
     hist = edges.histogram()
     total = sum(hist)
@@ -172,7 +172,7 @@ def downscale_if_needed(img: Image.Image, max_long_edge: int = MAX_LONG_EDGE) ->
         return img
     scale = max_long_edge / long_edge
     new_size = (max(1, round(w * scale)), max(1, round(h * scale)))
-    return img.resize(new_size, Image.LANCZOS)
+    return img.resize(new_size, Image.Resampling.LANCZOS)
 
 
 def per_image_long_edge(display_rect: DisplayRectEmu | None) -> int:

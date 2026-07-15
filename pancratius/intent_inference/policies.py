@@ -32,18 +32,28 @@ class RegisterRolloutMode(StrEnum):
 
 
 class RegisterScorer(Protocol):
-    version: int
-    threshold: float
-    langs: tuple[Locale, ...]
+    @property
+    def version(self) -> int: ...
+
+    @property
+    def threshold(self) -> float: ...
+
+    @property
+    def langs(self) -> tuple[Locale, ...]: ...
 
     def predict(self, observation: RegisterObservation) -> Prediction:
         """Score one candidate observation."""
 
 
 class RegisterPolicy(Protocol):
-    name: str
-    rollout: RegisterRolloutMode
-    reports_model_delta: bool
+    @property
+    def name(self) -> str: ...
+
+    @property
+    def rollout(self) -> RegisterRolloutMode: ...
+
+    @property
+    def reports_model_delta(self) -> bool: ...
 
     @property
     def model_version(self) -> int | None:

@@ -1,11 +1,12 @@
 """PAN012 — CI import/render/build separation.
 
-CI builds and PUBLISHES the site; it never manufactures the library
+CI validates, builds, and PUBLISHES the site; it never manufactures the library
 (architecture.md "Shape"; downloads.md "CI Contract"). So a CI workflow must not
 install or run the library-management tooling — pandoc, typst, the embedding
 stack, DOCX optimizers, the source importers/renderers, OR the converter/IR/writer
 library modules behind them (docs/import-pipeline.md). Those are local/admin
-activities that mutate source or render release artifacts. The import pipeline's
+activities that mutate source or render release artifacts. Read-only validation may
+compile committed DOCX into ignored test caches; that is verification, not import. The import pipeline's
 sole src/content mutator (pancratius/writer.py) and the pure modules that feed it
 (the DOCX adapter, the typed IR + normalize/lower, footnote/cross-ref analysis,
 the WritePlan) all belong to the library door, never CI — invoked by their .py path

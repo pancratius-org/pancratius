@@ -16,6 +16,7 @@ Each file has one home:
 - `src/content/` — authored or imported library and site content;
 - `src/` — Astro routes, components, styles, and site code;
 - `pancratius/` — Python library-management package and CLI;
+- `intent-ai/` — downstream lineation research, annotation truth, and reproducible model evidence;
 - `build/` — site build helpers run by npm;
 - `audit/` — quality harness and rules;
 - `tests/` — Python, unit, e2e, and visual tests;

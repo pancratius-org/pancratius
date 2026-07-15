@@ -43,9 +43,8 @@ playwright-report/
 __pycache__/
 *.pyc
 
-# scratchpad is transient working space, except paths explicitly re-included below
+# scratchpad is transient working space
 docs/scratchpad/*
-!docs/scratchpad/lineation-core/
 
 # Image-translation engine scratch output (raw intermediates)
 /image-translate-out/
