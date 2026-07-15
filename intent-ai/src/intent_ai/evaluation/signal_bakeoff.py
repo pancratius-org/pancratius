@@ -299,7 +299,7 @@ class Bakeoff:
         }
 
 
-RECON_EXPERIMENT = ExperimentId("2026-07-14-source-v3-corpus-recon")
+RECON_EXPERIMENT = ExperimentId("2026-07-15-source-v3-corpus-recon")
 
 
 @dataclass(frozen=True, slots=True)

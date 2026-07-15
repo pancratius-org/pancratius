@@ -89,6 +89,7 @@ def test_summarize_census_disagreement_sides_and_desync_counter():
     s = recon.summarize("01", "ru", recs, rows, det, frozenset({50}))
     assert (s.n_votable, s.n_records) == (4, 5)
     assert (s.det_lineated, s.det_prose, s.det_uncovered) == (1, 2, 1)
+    assert (s.n_uncovered_review, s.n_uncovered_unreviewed) == (1, 0)
     assert (s.disagree_prose, s.disagree_lineated) == (1, 1)
     assert s.n_mask_review == 1
     assert s.n_det_unjoined == 1                   # ordinal 99: importer covers, producer lost
@@ -100,6 +101,14 @@ def test_summarize_survives_a_book_with_no_votable_lines():
     recs = [_rec(1, role=Role.HEADING)]
     s = recon.summarize("01", "ru", recs, [], {})  # empty_ordinals defaults empty
     assert (s.n_votable, s.lineated_pct, s.fill_median, s.posterior_mean) == (0, 0.0, 0.0, None)
+
+
+def test_summarize_cross_tabs_uncovered_by_review_mask():
+    recs = [_rec(1, role=Role.BODY_REVIEW), _rec(2)]
+    rows = recon.join_rows(recs, det={}, posteriors={})
+    summary = recon.summarize("01", "ru", recs, rows, det={})
+    assert summary.det_uncovered == 2
+    assert (summary.n_uncovered_review, summary.n_uncovered_unreviewed) == (1, 1)
 
 
 def test_line_recon_round_trips_through_dict():
@@ -114,7 +123,8 @@ def test_line_recon_round_trips_through_dict():
 def _summary(book, lang, *, just=0.5, wraps=0.5, fill=0.5, lin=50, pro=50):
     return recon.BookRecon(
         book_id=book, lang=lang, n_records=100, n_votable=100, n_det_unjoined=0,
-        det_lineated=lin, det_prose=pro, det_uncovered=0, n_mask_review=0,
+        det_lineated=lin, det_prose=pro, det_uncovered=0,
+        n_uncovered_review=0, n_uncovered_unreviewed=0, n_mask_review=0,
         disagree_prose=0, disagree_lineated=0, posterior_mean=0.5,
         pct_align_just=just, pct_align_left=1 - just, pct_align_center=0.0,
         pct_wraps=wraps, fill_median=fill,

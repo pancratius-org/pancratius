@@ -3,10 +3,11 @@
 starts from.
 
 Tier 0 is the production importer's OWN verdict, read back per source ordinal
-(`pancratius.docx_structure.fold_decisions`): coverage exists by construction, so the task
-downstream is finding the importer's MISTAKES, not labelling the corpus. Tier 1 ranks where to
-look: the deterministic verdict and the student posterior are two independent free views of one
-source, and their disagreement is the error detector.
+(`pancratius.docx_structure.fold_decisions`), totalized as lineated, prose, or uncovered. A missing
+flow-bearing claim is explicit, never guessed. The structural review mask is a separate axis, so
+review and uncovered counts may overlap. Tier 1 ranks where to look: the deterministic verdict and
+the student posterior are two separately computed free signals over one source, and their
+disagreement is the error detector.
 
 Shape: `join_rows`, `summarize`, and the corpus aggregations are PURE (records + verdict maps
 in, rows/census out) so the join and ledger logic are provable without a DOCX; `scan_book` is
@@ -136,6 +137,8 @@ class BookRecon:
     det_lineated: int
     det_prose: int
     det_uncovered: int
+    n_uncovered_review: int
+    n_uncovered_unreviewed: int
     n_mask_review: int
     disagree_prose: int         # det=prose but posterior ≥ 0.5 — the suspect slice core
     disagree_lineated: int      # det=lineated but posterior < 0.5 — audit-only (det is trusted)
@@ -158,7 +161,10 @@ class BookRecon:
             "n_records": self.n_records, "n_votable": self.n_votable,
             "n_det_unjoined": self.n_det_unjoined,
             "det_lineated": self.det_lineated, "det_prose": self.det_prose,
-            "det_uncovered": self.det_uncovered, "n_mask_review": self.n_mask_review,
+            "det_uncovered": self.det_uncovered,
+            "n_uncovered_review": self.n_uncovered_review,
+            "n_uncovered_unreviewed": self.n_uncovered_unreviewed,
+            "n_mask_review": self.n_mask_review,
             "lineated_pct": round(self.lineated_pct, 4),
             "disagree_prose": self.disagree_prose, "disagree_lineated": self.disagree_lineated,
             "posterior_mean": (round(self.posterior_mean, 4)
@@ -180,12 +186,17 @@ def summarize(book_id: BookId, lang: str, records: list[LineRecord],
     votable = [r for r in records if r.votable]
     source_ordinals = {r.id.src_ordinal for r in records}
     det_count = {Tier0.LINEATED: 0, Tier0.PROSE: 0, Tier0.UNCOVERED: 0}
-    disagree_p = disagree_l = review = 0
+    disagree_p = disagree_l = review = uncovered_review = uncovered_unreviewed = 0
     posts: list[float] = []
     for row in rows:
         det_count[row.det] += 1
         if row.requires_review:
             review += 1
+        if row.det is Tier0.UNCOVERED:
+            if row.requires_review:
+                uncovered_review += 1
+            else:
+                uncovered_unreviewed += 1
         if row.posterior is not None:
             posts.append(row.posterior)
             if row.det is Tier0.PROSE and row.posterior >= 0.5:
@@ -198,7 +209,10 @@ def summarize(book_id: BookId, lang: str, records: list[LineRecord],
         book_id=book_id, lang=lang, n_records=len(records), n_votable=len(votable),
         n_det_unjoined=len(det.keys() - source_ordinals - empty_ordinals),
         det_lineated=det_count[Tier0.LINEATED], det_prose=det_count[Tier0.PROSE],
-        det_uncovered=det_count[Tier0.UNCOVERED], n_mask_review=review,
+        det_uncovered=det_count[Tier0.UNCOVERED],
+        n_uncovered_review=uncovered_review,
+        n_uncovered_unreviewed=uncovered_unreviewed,
+        n_mask_review=review,
         disagree_prose=disagree_p, disagree_lineated=disagree_l,
         posterior_mean=(sum(posts) / len(posts)) if posts else None,
         pct_align_just=sum(r.features.align is Align.JUST for r in votable) / n_vot,
@@ -212,7 +226,8 @@ def summarize(book_id: BookId, lang: str, records: list[LineRecord],
 # corpus aggregations — pure over the per-book censuses ------------------------------------------
 
 _SUM_FIELDS = ("n_records", "n_votable", "n_det_unjoined",
-               "det_lineated", "det_prose", "det_uncovered", "n_mask_review",
+               "det_lineated", "det_prose", "det_uncovered",
+               "n_uncovered_review", "n_uncovered_unreviewed", "n_mask_review",
                "disagree_prose", "disagree_lineated")
 _ENVELOPE_FIELDS = ("pct_align_just", "pct_wraps", "fill_median", "lineated_pct")
 
@@ -337,11 +352,16 @@ if __name__ == "__main__":
     by_lang = {
         lang: {k: sum(getattr(s, k) for s in summaries if s.lang == lang)
                for k in ("n_votable", "det_lineated", "det_prose", "det_uncovered",
-                         "disagree_prose")}
+                         "n_uncovered_review", "n_uncovered_unreviewed", "disagree_prose")}
         for lang in ("ru", "en")
     }
     envelope = ru_envelope(summaries)
     outliers = en_outliers(summaries, envelope)
+    uncovered_editions = [
+        f"{s.lang}:{s.book_id} ({s.n_uncovered_unreviewed})"
+        for s in summaries
+        if s.n_uncovered_unreviewed
+    ]
 
     scorecard: JsonObject = {
         "totals": totals, "by_lang": by_lang,
@@ -375,6 +395,9 @@ if __name__ == "__main__":
         f"- tier-0: lineated {totals['det_lineated']}, prose {totals['det_prose']}, "
         f"uncovered {totals['det_uncovered']}; mask-review {totals['n_mask_review']}; "
         f"det-unjoined {totals['n_det_unjoined']}",
+        f"- uncovered overlap: {totals['n_uncovered_review']} review-masked; "
+        f"{totals['n_uncovered_unreviewed']} unmasked"
+        + (f" — {', '.join(uncovered_editions)}" if uncovered_editions else ""),
         f"- det-vs-student disagreement: prose-side {totals['disagree_prose']} "
         f"(the suspect slice core), lineated-side {totals['disagree_lineated']} (audit-only)",
         f"- EN envelope (5–95% ru band): {len(outliers)} of {n_en} en books outside"
