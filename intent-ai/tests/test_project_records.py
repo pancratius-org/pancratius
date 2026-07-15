@@ -6,7 +6,7 @@ from pathlib import Path
 
 from intent_ai import producer
 from intent_ai.identity import BookId
-from intent_ai.records import Role, feature_field_names
+from intent_ai.records import RecordDisposition, feature_field_names
 
 from pancratius import docx_source, docx_structure
 
@@ -59,15 +59,28 @@ def test_project_records_folds_one_typed_source_without_reopening_the_compiler()
         source,
         "ru",
         (
-            (docx_source.ParagraphOrdinal(0), docx_structure.BodyParagraph()),
             (
-                docx_source.ParagraphOrdinal(1),
-                docx_structure.ContextParagraph(
-                    docx_structure.ContextReason.STRUCTURAL_KIND,
-                    docx_structure.ContextRole.HEADING,
+                docx_source.SourceLineCoordinate(docx_source.ParagraphOrdinal(0), 0),
+                docx_structure.SourceLineObservation(
+                    docx_structure.CompilerBlockKind.PARAGRAPH
                 ),
             ),
-            (docx_source.ParagraphOrdinal(2), docx_structure.BodyParagraph()),
+            (
+                docx_source.SourceLineCoordinate(docx_source.ParagraphOrdinal(0), 1),
+                docx_structure.SourceLineObservation(
+                    docx_structure.CompilerBlockKind.DIALOGUE_LABEL
+                ),
+            ),
+            (
+                docx_source.SourceLineCoordinate(docx_source.ParagraphOrdinal(1), 0),
+                docx_structure.SourceLineObservation(docx_structure.CompilerBlockKind.HEADING),
+            ),
+            (
+                docx_source.SourceLineCoordinate(docx_source.ParagraphOrdinal(2), 0),
+                docx_structure.SourceLineObservation(
+                    docx_structure.CompilerBlockKind.PARAGRAPH
+                ),
+            ),
         ),
     )
     records = producer.project_records(
@@ -81,15 +94,15 @@ def test_project_records_folds_one_typed_source_without_reopening_the_compiler()
         (1, 0),
         (2, 0),
     ]
-    assert [record.role for record in records] == [
-        Role.BODY,
-        Role.BODY,
-        Role.HEADING,
-        Role.BODY,
+    assert [record.disposition for record in records] == [
+        RecordDisposition.BODY,
+        RecordDisposition.CONTEXT,
+        RecordDisposition.HEADING,
+        RecordDisposition.BODY,
     ]
     assert [(record.features.run_len, record.features.run_pos) for record in records] == [
-        (2, 0),
-        (2, 1),
+        (1, 0),
+        (1, 0),
         (1, 0),
         (1, 0),
     ]

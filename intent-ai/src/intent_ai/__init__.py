@@ -6,7 +6,7 @@ identically by teacher annotation, an interpretable distilled student, and serve
 
 Layout (one home per concern):
     identity     LineId + content hashes + domain vocab (Label, ReaderTag, BookKey, …) — pure
-    records      LineRecord + LineFeatures + Role + the feature schema — pure
+    records      LineRecord + LineFeatures + RecordDisposition + the feature schema — pure
     physics      the per-line LibreOffice wrap simulator — reads the DOCX (input adapter)
     source_view  physics-only projection of the canonical DOCX source aggregate
     producer     read_lines (the ONE feature producer) + to_vector / render_listing (thin views)

@@ -14,7 +14,7 @@ from intent_ai.records import (
     IndentVsBook,
     LineFeatures,
     LineRecord,
-    Role,
+    RecordDisposition,
     SpacingVsBook,
 )
 
@@ -30,10 +30,10 @@ def _feat(fill=0.4, *, run_len=3, run_pos=1):
     )
 
 
-def _rec(ordn, role=Role.BODY, fill=0.4, *, book="01", **feature_kw):
+def _rec(ordn, disposition=RecordDisposition.BODY, fill=0.4, *, book="01", **feature_kw):
     return LineRecord(
         id=LineId("ru", book, ordn, 0), text=f"line {ordn}",
-        role=role, features=_feat(fill, **feature_kw),
+        disposition=disposition, features=_feat(fill, **feature_kw),
         line_text_hash=identity.text_hash(f"line {ordn}"),
     )
 
@@ -59,7 +59,7 @@ def test_alpha_zero_is_pure_iid_superset():
 
 def test_runs_bounded_by_nonvotable():
     recs = [
-        _rec(1, fill=0.1), _rec(2, fill=0.3), _rec(3, role=Role.HEADING),
+        _rec(1, fill=0.1), _rec(2, fill=0.3), _rec(3, disposition=RecordDisposition.HEADING),
         _rec(4, fill=0.7), _rec(5, fill=0.9),
     ]
     post = StubPosterior({fill: fill for fill in (0.1, 0.3, 0.7, 0.9)})
@@ -121,7 +121,7 @@ def test_threshold_out_of_range_raises():
 
 
 def test_nonvotable_lines_not_emitted():
-    recs = [_rec(1, role=Role.CONTEXT), _rec(2)]
+    recs = [_rec(1, disposition=RecordDisposition.CONTEXT), _rec(2)]
     out = sequence.predict_document(recs, StubPosterior({0.4: 0.5}), alpha=0.0)
     assert [d.id.src_ordinal for d in out] == [2]
 
@@ -137,7 +137,7 @@ def test_score_document_fails_loud_on_wrong_batch_cardinality():
 
 def test_structural_only_document_does_not_call_scorer():
     post = StubPosterior({})
-    assert sequence.predict_document([_rec(1, role=Role.HEADING)], post) == []
+    assert sequence.predict_document([_rec(1, disposition=RecordDisposition.HEADING)], post) == []
     assert post.calls == []
 
 

@@ -162,7 +162,7 @@ class LineSignals:
     posterior: float             # book-held-out OOF P(lineated) — never the in-sample fit
     det_student_disagree: float  # posterior if det=prose else 1−posterior (pulls AGAINST det)
     student_uncertainty: float   # 1 − 2·|posterior−0.5|  (high = uncertain)
-    suspicion_v0: float          # recon.suspicion_v0(det, mask, posterior)
+    suspicion_v0: float          # recon.suspicion_v0(det, posterior)
     panel_vote_spread: float     # minority fraction across the readers (0 = unanimous)
 
     @property
@@ -299,7 +299,7 @@ class Bakeoff:
         }
 
 
-RECON_EXPERIMENT = ExperimentId("2026-07-15-source-v3-corpus-recon")
+RECON_EXPERIMENT = ExperimentId("2026-07-16-source-v3-corpus-recon")
 
 
 @dataclass(frozen=True, slots=True)
@@ -353,25 +353,24 @@ def _oof_posteriors(work: set[LineId]) -> dict[LineId, float]:
     return {lid: decisions[lid].posterior for lid in work if lid in decisions}
 
 
-def _det_and_review(ids: set[LineId]) -> dict[LineId, tuple[Tier0, bool]]:
-    """Tier-0 verdict plus the canonical record's persisted review state."""
+def _det_verdicts(ids: set[LineId]) -> dict[LineId, Tier0]:
+    """Tier-0 verdict per working line, read off the production fold ledger."""
     from pancratius import docx_source, docx_structure
 
-    out: dict[LineId, tuple[Tier0, bool]] = {}
+    out: dict[LineId, Tier0] = {}
     for lang, book in sorted({(i.lang, i.book_id) for i in ids}):
         docx = paths.book_docx(book, lang)
         source = docx_source.read(docx)
         dec = docx_structure.fold_decisions(source, lang=lang)
-        by_id = {record.id: record for record in store.load_records(book, lang)}
+        record_ids = {record.id for record in store.load_records(book, lang)}
         for lid in ids:
             if lid.lang == lang and lid.book_id == book:
-                try:
-                    record = by_id[lid]
-                except KeyError as exc:
-                    raise ValueError(f"working line has no canonical record: {lid}") from exc
-                hit = dec.get(lid.src_ordinal)
-                det = Tier0.UNCOVERED if hit is None else (Tier0.LINEATED if hit else Tier0.PROSE)
-                out[lid] = (det, record.requires_review)
+                if lid not in record_ids:
+                    raise ValueError(f"working line has no canonical record: {lid}")
+                coordinate = docx_source.SourceLineCoordinate(
+                    docx_source.ParagraphOrdinal(lid.src_ordinal), lid.sub
+                )
+                out[lid] = Tier0.from_fold(dec.get(coordinate))
     return out
 
 
@@ -386,7 +385,7 @@ def _build_rows(*, annotations: Path | None) -> list[LineSignals]:
         g.id: (g.label, g.source)
         for g in load_labels(annotations=annotations).labels if g.id in work}
     posteriors = _oof_posteriors(work)
-    det_review = _det_and_review(set(truth))
+    det_by_line = _det_verdicts(set(truth))
 
     votes_by_line: dict[LineId, list[PanelVote]] = {}
     for v in load_votes(annotations=annotations):
@@ -396,7 +395,7 @@ def _build_rows(*, annotations: Path | None) -> list[LineSignals]:
     rows: list[LineSignals] = []
     for lid in sorted(truth):
         label, source = truth[lid]
-        det, requires_review = det_review[lid]
+        det = det_by_line[lid]
         post = posteriors[lid]
         votes = tuple(sorted(votes_by_line.get(lid, ()), key=lambda v: v.tag))
         disagree = post if det is Tier0.PROSE else 1.0 - post
@@ -404,7 +403,7 @@ def _build_rows(*, annotations: Path | None) -> list[LineSignals]:
             id=lid, det=det, truth=label, source=source, posterior=post,
             det_student_disagree=disagree,
             student_uncertainty=1.0 - 2.0 * abs(post - 0.5),
-            suspicion_v0=suspicion_v0(det, requires_review, post),
+            suspicion_v0=suspicion_v0(det, post),
             panel_vote_spread=_vote_spread(votes)))
     return rows
 

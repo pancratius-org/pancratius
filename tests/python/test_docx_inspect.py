@@ -3,6 +3,7 @@ from __future__ import annotations
 import shutil
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -15,24 +16,24 @@ from pancratius.docx_inspect import (
 )
 from pancratius.docx_structure import (
     BlockClaim,
-    BodyParagraph,
     CompilerBlockKind,
-    ContextParagraph,
-    ContextReason,
-    ContextRole,
     FoldConflict,
     FoldDecision,
     FoldDisposition,
-    ReviewParagraph,
-    ReviewReason,
     SourceBlockHit,
+    SourceLineObservation,
     _fold_result,
-    _observation,
+    _observe,
     fold_decisions,
     observe_structure,
     source_block_hits,
+    source_line_hits,
 )
 from pancratius.passes.pipeline import POST_FOLD_SEAM, Context
+
+
+def _line(ordinal: int, sub: int = 0) -> docx_source.SourceLineCoordinate:
+    return docx_source.SourceLineCoordinate(docx_source.ParagraphOrdinal(ordinal), sub)
 
 
 def _write_docx(path: Path, paragraphs: list[str]) -> None:
@@ -82,6 +83,10 @@ def test_read_rows_separates_line_breaks_from_page_breaks(tmp_path: Path) -> Non
     line_source = next(p for p in paragraphs if p.text.startswith("first"))
     assert line_source.content.breaks == (docx_source.BreakKind.LINE,)
     assert line_source.content.line_segments == ("first", "second")
+    assert line_source.natural_lines == (
+        docx_source.SourceLine(_line(int(line_source.ordinal)), "first"),
+        docx_source.SourceLine(_line(int(line_source.ordinal), 1), "second"),
+    )
     page_source = next(p for p in paragraphs if p.text == "before-break")
     assert page_source.content.breaks == (docx_source.BreakKind.PAGE,)
     assert page_source.content.line_segments == ("before-break",)
@@ -685,7 +690,7 @@ def test_docx_inspect_kind_filters_keep_ambiguous_candidates() -> None:
     assert selected == rows
 
 
-# --- total structural observation ----------------------------------------------------------
+# --- total source-line structural observation ---------------------------------------------
 
 
 def _hit(kinds: set[CompilerBlockKind], start: int, end: int) -> SourceBlockHit:
@@ -696,44 +701,54 @@ def _hit(kinds: set[CompilerBlockKind], start: int, end: int) -> SourceBlockHit:
     ))
 
 
-def test_structure_observation_is_closed_and_reasoned() -> None:
-    assert isinstance(_observation(_hit({CompilerBlockKind.PARAGRAPH}, 5, 5)), BodyParagraph)
-    assert isinstance(_observation(_hit({CompilerBlockKind.LINEATED}, 5, 8)), BodyParagraph)
-    structural = _observation(_hit({CompilerBlockKind.HEADING}, 3, 3))
-    assert structural == ContextParagraph(
-        ContextReason.STRUCTURAL_KIND,
-        ContextRole.HEADING,
+def test_source_line_observation_reduces_body_first() -> None:
+    assert _observe(_hit({CompilerBlockKind.PARAGRAPH}, 5, 5)) == SourceLineObservation(
+        CompilerBlockKind.PARAGRAPH
     )
-    non_unique = _observation(_hit(
+    assert _observe(_hit({CompilerBlockKind.LINEATED}, 5, 8)) == SourceLineObservation(
+        CompilerBlockKind.LINEATED
+    )
+    assert _observe(_hit({CompilerBlockKind.HEADING}, 3, 3)) == SourceLineObservation(
+        CompilerBlockKind.HEADING
+    )
+    # A dialogue split is normal decomposition: the body leaf classifies the ordinal.
+    split = _observe(_hit(
         {CompilerBlockKind.DIALOGUE_LABEL, CompilerBlockKind.PARAGRAPH},
         7,
         7,
     ))
-    assert non_unique == ReviewParagraph(ReviewReason.NON_UNIQUE_CLAIMS)
-    same_kind_twice = SourceBlockHit((
-        BlockClaim(CompilerBlockKind.PARAGRAPH, ir.SourceSpan(7, 7), (0,)),
-        BlockClaim(CompilerBlockKind.PARAGRAPH, ir.SourceSpan(7, 7), (1,)),
-    ))
-    assert _observation(same_kind_twice) == ReviewParagraph(ReviewReason.NON_UNIQUE_CLAIMS)
-    unknown = _observation(_hit({CompilerBlockKind.UNKNOWN}, 2, 2))
-    assert unknown == ReviewParagraph(ReviewReason.UNKNOWN_KIND)
-    merged = _observation(_hit({CompilerBlockKind.PARAGRAPH}, 5, 7))
-    assert merged == ReviewParagraph(ReviewReason.MERGED_BODY)
+    assert split == SourceLineObservation(CompilerBlockKind.PARAGRAPH)
+    unknown = _observe(_hit({CompilerBlockKind.UNKNOWN}, 2, 2))
+    assert unknown == SourceLineObservation(CompilerBlockKind.UNKNOWN)
 
 
-def test_structure_observation_distinguishes_dropped_from_unmapped(
+def test_structure_observation_separates_removed_from_lost(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Two absences, two fates: a pass-removed paragraph is legitimate structure;
+    an adapter-lost one is authored content that leaked out of the import."""
+    spans = tuple(ir.SourceProvenance.for_lines((_line(ordinal),)) for ordinal in range(3))
     adapted = ir.Document(blocks=[
-        ir.Paragraph(inlines=[ir.Text("prose")], source_span=ir.SourceSpan(0, 0)),
-        ir.Heading(level=1, inlines=[ir.Text("H")], source_span=ir.SourceSpan(1, 1)),
-        ir.Paragraph(inlines=[ir.Text("dropped")], source_span=ir.SourceSpan(2, 2)),
+        ir.Paragraph(inlines=[ir.Text("prose")], source_span=spans[0]),
+        ir.Heading(level=1, inlines=[ir.Text("H")], source_span=spans[1]),
+        ir.Paragraph(inlines=[ir.Text("removed by a pass")], source_span=spans[2]),
     ])
     seam = ir.Document(blocks=[
         adapted.blocks[0],
         adapted.blocks[1],
     ])
     source = _empty_source()
+    object.__setattr__(
+        source,
+        "paragraphs",
+        tuple(
+            SimpleNamespace(
+                ordinal=docx_source.ParagraphOrdinal(ordinal),
+                line_coordinates=(_line(ordinal),),
+            )
+            for ordinal in range(4)
+        ),
+    )
     monkeypatch.setattr(
         type(source),
         "content_ordinals",
@@ -746,21 +761,12 @@ def test_structure_observation_distinguishes_dropped_from_unmapped(
 
     assert observation.source is source
     assert observation.lang == "ru"
-    by_ordinal = observation.by_ordinal
-    assert by_ordinal[docx_source.ParagraphOrdinal(0)] == BodyParagraph()
-    assert by_ordinal[docx_source.ParagraphOrdinal(1)] == ContextParagraph(
-        ContextReason.STRUCTURAL_KIND,
-        ContextRole.HEADING,
-    )
-    assert by_ordinal[docx_source.ParagraphOrdinal(2)] == ContextParagraph(
-        ContextReason.DROPPED_BY_STRUCTURAL_PIPELINE
-    )
-    assert by_ordinal[docx_source.ParagraphOrdinal(3)] == ReviewParagraph(
-        ReviewReason.UNMAPPED_AT_ADAPTER
-    )
+    assert set(observation.by_line) == {_line(0), _line(1)}
+    assert observation.removed == frozenset({2})
+    assert observation.lost == frozenset({3})
 
 
-def test_source_block_hits_projects_container_role_to_nested_members() -> None:
+def test_source_block_hits_reports_leaf_kind_and_enclosure() -> None:
     paragraph = ir.Paragraph(
         inlines=[ir.Text("item")],
         source_span=ir.SourceSpan(7, 7),
@@ -769,15 +775,24 @@ def test_source_block_hits_projects_container_role_to_nested_members() -> None:
 
     hit = source_block_hits(blocks, {7})[7]
 
-    assert hit.kinds == {CompilerBlockKind.LIST}
+    assert hit.kinds == {CompilerBlockKind.PARAGRAPH}
     assert hit.claims == (
         BlockClaim(
             kind=CompilerBlockKind.PARAGRAPH,
             span=ir.SourceSpan(7, 7),
             path=(0, 0, 0),
-            context=CompilerBlockKind.LIST,
+            enclosure=CompilerBlockKind.LIST,
         ),
     )
+
+
+def test_empty_reconciliation_leaf_proves_identity_but_not_a_rendered_line() -> None:
+    anchor = ir.Paragraph(inlines=[], source_span=ir.SourceSpan(8, 8))
+
+    hit = source_block_hits([anchor], {8})[8]
+
+    assert hit.kinds == {CompilerBlockKind.PARAGRAPH}
+    assert source_line_hits([anchor]) == {}
 
 
 def test_fold_result_uses_flow_claims_without_erasing_claim_cardinality() -> None:
@@ -805,11 +820,71 @@ def test_fold_result_keeps_mixed_flow_claims_as_a_typed_conflict() -> None:
     )
     observation = docx_structure.FoldObservation((
         (
-            docx_source.ParagraphOrdinal(4),
+            _line(4),
             FoldConflict((paragraph, lineated)),
         ),
     ))
     assert observation.decisions == ()
+
+
+def test_source_line_hits_keep_mixed_paragraph_dispositions_separate() -> None:
+    first, second = _line(38, 0), _line(38, 1)
+    folded = ir.LineatedBlock(
+        stanzas=[[
+            ir.Line(
+                [ir.Text("folded")],
+                span=ir.SourceProvenance.for_lines((first,)),
+            )
+        ]],
+    )
+    flowing = ir.Paragraph(
+        [ir.Text("flowing")],
+        source_span=ir.SourceProvenance.for_lines((second,)),
+    )
+
+    hits = source_line_hits([folded, flowing])
+
+    assert _fold_result(hits[first]) == FoldDecision(
+        FoldDisposition.FOLDED, hits[first].claims
+    )
+    assert _fold_result(hits[second]) == FoldDecision(
+        FoldDisposition.FLOWING, hits[second].claims
+    )
+
+
+@pandoc_required
+def test_en05_mixed_source_paragraph_has_per_line_fold_decisions() -> None:
+    docx = next(
+        (Path(__file__).resolve().parents[2] / "src/content/books").glob("05-*/en.docx")
+    )
+
+    observation = docx_structure.observe_fold(docx_source.read(docx), lang="en")
+    decisions = {
+        coordinate: decision.disposition is FoldDisposition.FOLDED
+        for coordinate, decision in observation.decisions
+    }
+
+    assert [decisions[_line(38, sub)] for sub in range(3)] == [True, False, False]
+    structural = observe_structure(docx_source.read(docx), lang="en")
+    assert not structural.by_line[_line(49, 3)].is_body_kind
+    assert not structural.by_line[_line(53, 2)].is_body_kind
+
+
+@pandoc_required
+def test_ru27_title_anchor_is_removed_context_not_uncovered_body() -> None:
+    docx = next(
+        (Path(__file__).resolve().parents[2] / "src/content/books").glob("27-*/ru.docx")
+    )
+
+    structural = observe_structure(docx_source.read(docx), lang="ru")
+
+    assert 1 in structural.removed
+    assert _line(1) not in structural.by_line
+    assert _line(1) not in fold_decisions(
+        docx_source.read(docx),
+        lang="ru",
+        apply_overrides=False,
+    )
 
 
 def test_fold_observer_stops_before_register_assignment(
@@ -858,11 +933,11 @@ def test_semantic_surfaces_do_not_expand_enclosing_span_over_pagination(
     decisions = fold_decisions(source, lang="ru", apply_overrides=False)
     observation = observe_structure(source, lang="ru")
 
-    assert classifications[1].span == ir.SourceSpan(1, 3)
+    assert (classifications[1].span.start, classifications[1].span.end) == (1, 3)
     assert 2 not in classifications
-    assert decisions[1] is decisions[3] is True
-    assert 2 not in decisions
-    assert 2 not in dict(observation.entries)
+    assert decisions[_line(1)] is decisions[_line(3)] is True
+    assert _line(2) not in decisions
+    assert _line(2) not in dict(observation.entries)
 
 
 @pandoc_required
@@ -890,10 +965,11 @@ def test_fold_decisions_per_ordinal_surface(tmp_path: Path) -> None:
 
     decisions = fold_decisions(docx_source.read(path), lang="ru")
 
-    assert decisions[0] is False
-    assert decisions[1] is True   # the compiler emitted one lineated block; Q2 is separate
-    assert 2 not in decisions     # the heading is structure, not a votable body line
-    assert decisions[3] is True and decisions[4] is True
+    assert decisions[_line(0)] is False
+    assert decisions[_line(1, 0)] is True
+    assert decisions[_line(1, 1)] is True
+    assert _line(2) not in decisions
+    assert decisions[_line(3)] is True and decisions[_line(4)] is True
 
 
 @pandoc_required
@@ -935,8 +1011,9 @@ def test_fold_decisions_cover_register_quote_members(tmp_path: Path) -> None:
 
     decisions = fold_decisions(docx_source.read(path), lang="ru")
 
-    assert decisions[8] is False   # boxed prose verse: covered, prose register
-    assert decisions[9] is False   # rendered hard lines, but never a LineatedBlock fold
+    assert decisions[_line(8)] is False
+    assert decisions[_line(9, 0)] is False
+    assert decisions[_line(9, 1)] is False
 
 
 @pandoc_required
@@ -962,8 +1039,23 @@ def test_fold_decisions_en_edition_mirrors_ru(tmp_path: Path) -> None:
 
     decisions = fold_decisions(docx_source.read(path), lang="en")
 
-    assert decisions[0] is False
-    assert decisions.get(1) is not True   # the speaker turn is never lineated
-    assert decisions[2] is False
-    assert 3 not in decisions             # the heading is structure
-    assert decisions[4] is True and decisions[5] is True
+    assert decisions[_line(0)] is False
+    assert decisions.get(_line(1)) is not True
+    assert decisions[_line(2)] is False
+    assert _line(3) not in decisions
+    assert decisions[_line(4)] is True and decisions[_line(5)] is True
+
+
+def test_observe_collapses_duplicate_context_claims_and_rejects_conflicts() -> None:
+    span = ir.SourceSpan(3, 3)
+    twice = SourceBlockHit((
+        BlockClaim(CompilerBlockKind.THEMATIC, span, (0,)),
+        BlockClaim(CompilerBlockKind.THEMATIC, span, (1,)),
+    ))
+    assert _observe(twice) == SourceLineObservation(CompilerBlockKind.THEMATIC)
+    conflicted = SourceBlockHit((
+        BlockClaim(CompilerBlockKind.HEADING, span, (0,)),
+        BlockClaim(CompilerBlockKind.TABLE, span, (1,)),
+    ))
+    with pytest.raises(ValueError, match="conflicting structural claims"):
+        _observe(conflicted)

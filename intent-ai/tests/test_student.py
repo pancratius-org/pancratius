@@ -14,13 +14,13 @@ from intent_ai.records import (
     IndentVsBook,
     LineFeatures,
     LineRecord,
-    Role,
+    RecordDisposition,
     SpacingVsBook,
 )
 
 
 def _record(
-    ordinal: int, *, book: str = "01", role: Role = Role.BODY, fill: float = 0.5,
+    ordinal: int, *, book: str = "01", disposition: RecordDisposition = RecordDisposition.BODY, fill: float = 0.5,
     run_len: int = 1, run_pos: int = 0,
 ) -> LineRecord:
     text = f"line {ordinal}"
@@ -35,7 +35,7 @@ def _record(
         fill_pctile_in_book=0.5,
     )
     return LineRecord(
-        id=LineId.mapped("ru", book, ordinal, 0), text=text, role=role,
+        id=LineId.mapped("ru", book, ordinal, 0), text=text, disposition=disposition,
         features=features, line_text_hash=identity.text_hash(text),
     )
 
@@ -52,7 +52,7 @@ def _label(
 
 
 def test_truth_join_reports_every_broken_reference():
-    records = [_record(1), _record(2, role=Role.HEADING), _record(3), _record(4)]
+    records = [_record(1), _record(2, disposition=RecordDisposition.HEADING), _record(3), _record(4)]
     labels = LabelSet(labels=[
         _label(1, identity.text_hash("line 1")),
         _label(2, identity.text_hash("line 2")),
@@ -178,7 +178,7 @@ def test_alpha_grid_cross_fits_and_scores_each_document_once(monkeypatch):
             _record(1, book=book, fill=0.1, run_len=3, run_pos=0),
             _record(2, book=book, fill=0.9, run_len=3, run_pos=1),
             _record(3, book=book, fill=0.2, run_len=3, run_pos=2),  # unlabeled run neighbor
-            _record(4, book=book, role=Role.HEADING, fill=0.7),
+            _record(4, book=book, disposition=RecordDisposition.HEADING, fill=0.7),
         ]
         records[BookKey("ru", book)] = recs
         labels.extend([

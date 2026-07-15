@@ -102,7 +102,10 @@ def _det_by_line(ids: set[LineId]) -> dict[LineId, Tier0]:
         dec = docx_structure.fold_decisions(source, lang=lang)
         for lid in ids:
             if lid.lang == lang and lid.book_id == book:
-                hit = dec.get(lid.src_ordinal)
+                coordinate = docx_source.SourceLineCoordinate(
+                    docx_source.ParagraphOrdinal(lid.src_ordinal), lid.sub
+                )
+                hit = dec.get(coordinate)
                 out[lid] = Tier0.UNCOVERED if hit is None else (Tier0.LINEATED if hit else Tier0.PROSE)
     return out
 

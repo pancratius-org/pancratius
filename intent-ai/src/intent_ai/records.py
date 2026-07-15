@@ -147,21 +147,18 @@ class DerivedFeature(StrEnum):
 _DERIVED_FEATURES_BY_NAME = {feature.value: feature for feature in DerivedFeature}
 
 
-class Role(StrEnum):
+class RecordDisposition(StrEnum):
     BODY = "body"
-    BODY_REVIEW = "body_review"
     HEADING = "heading"
     LIST = "list"
     THEMATIC = "thematic"
-    CONTEXT = "context"      # a <w:p> the normalize classification calls non-body structure
+    CONTEXT = "context"      # a <w:p> the compiler observation classifies as non-body structure
+    LOST = "lost"            # a source line whose paragraph the adapter never claimed; reported
+                             # as importer-lost and excluded from body/Tier-0 baselines
 
     @property
-    def is_body(self) -> bool:
-        return self in {Role.BODY, Role.BODY_REVIEW}
-
-    @property
-    def requires_review(self) -> bool:
-        return self is Role.BODY_REVIEW
+    def contributes_to_body_model(self) -> bool:
+        return self is RecordDisposition.BODY
 
 
 @dataclass(frozen=True, slots=True)
@@ -172,7 +169,7 @@ class LineRecord:
 
     id: LineId
     text: str
-    role: Role
+    disposition: RecordDisposition
     features: LineFeatures
     line_text_hash: LineTextHash
 
@@ -184,17 +181,13 @@ class LineRecord:
 
     @property
     def votable(self) -> bool:
-        return self.role.is_body
-
-    @property
-    def requires_review(self) -> bool:
-        return self.role.requires_review
+        return self.disposition.contributes_to_body_model
 
     def to_dict(self) -> JsonObject:
         return {
             "id": self.id.as_key(),
             "text": self.text,
-            "role": self.role.value,
+            "disposition": self.disposition.value,
             "features": self.features.to_dict(),
             "line_text_hash": self.line_text_hash,
         }
@@ -224,7 +217,7 @@ class LineRecord:
         )
         return cls(
             id=LineId.from_key(cast(Iterable[object], d["id"])), text=str(d["text"]),
-            role=Role(str(d["role"])), features=feats,
+            disposition=RecordDisposition(str(d["disposition"])), features=feats,
             line_text_hash=LineTextHash(str(d["line_text_hash"])),
         )
 
@@ -257,7 +250,7 @@ def feature_value(features: LineFeatures, name: FeatureName) -> object:
 # manifest and read back as a drift rail. Pure constants (no IO), so any module needing the version
 # for provenance reads them here, not from the cache-IO module.
 FEATURE_SCHEMA_VERSION = "features-5"
-PRODUCER_VERSION = "read_lines-5"
+PRODUCER_VERSION = "read_lines-7"
 
 
 @dataclass(frozen=True)
@@ -293,7 +286,7 @@ class FeatureSchema:
 
 
 def runs(records: Sequence[LineRecord]) -> list[Run]:
-    """Indices grouped into runs: maximal spans of consecutive BODY lines (`role == BODY`),
+    """Indices grouped into runs: maximal spans of consecutive BODY lines (`disposition == BODY`),
     bounded by any structural record — the block level of the hierarchy, and the SAME predicate
     the producer's `run_len`/`run_pos` features use, so the two notions of "run" agree. The teacher
     tiler keeps a whole run together as one authorial unit."""

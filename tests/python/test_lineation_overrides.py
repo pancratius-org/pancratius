@@ -26,6 +26,10 @@ pandoc_required = pytest.mark.skipif(
 )
 
 
+def _line(ordinal: int, sub: int = 0) -> docx_source.SourceLineCoordinate:
+    return docx_source.SourceLineCoordinate(docx_source.ParagraphOrdinal(ordinal), sub)
+
+
 def _write_docx(path: Path, paragraphs: list[str]) -> None:
     from docx import Document
 
@@ -198,16 +202,16 @@ def test_fold_decisions_honor_the_sidecar(tmp_path: Path) -> None:
     ]
     _write_docx(docx, paragraphs)
     before = fold_decisions(docx_source.read(docx), lang="ru")
-    assert before.get(4) is True, "precondition: the importer lineates row 4 in this fixture"
+    assert before.get(_line(4)) is True, "precondition: the importer lineates row 4"
 
     _write_sidecar(docx, {4: _railed(docx, 4, register="prose")})
     after = fold_decisions(docx_source.read(docx), lang="ru")
-    assert after.get(4) is False
-    assert all(after.get(o) is True for o in (1, 2, 3))
+    assert after.get(_line(4)) is False
+    assert all(after.get(_line(o)) is True for o in (1, 2, 3))
     # `apply_overrides=False` is the uncorrected baseline: the importer's own verdict.
     assert fold_decisions(
         docx_source.read(docx), lang="ru", apply_overrides=False
-    ).get(4) is True
+    ).get(_line(4)) is True
 
 
 def test_mid_run_override_demotes_the_whole_unit_today() -> None:

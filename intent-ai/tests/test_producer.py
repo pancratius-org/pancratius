@@ -43,7 +43,7 @@ def test_lineid_unique_within_book_real(recs57):
 def test_votable_only_body(recs57):
     for r in recs57:
         if r.votable:
-            assert r.role.is_body
+            assert r.disposition.contributes_to_body_model
 
 
 # --- single physics source: record fill == per-LINE fill, NOT the per-paragraph recompute ---
@@ -60,7 +60,8 @@ def test_record_fill_is_per_line_not_per_paragraph():
     recs = records(B37, "ru", "37")
     by_key = {(r.id.src_ordinal, r.id.sub): r for r in recs}
     multis = [p for p in paras
-              if p.role.is_body and len(p.lines) >= 2]
+              if any(line.disposition.contributes_to_body_model for line in p.lines)
+              and len(p.lines) >= 2]
     assert multis, "need a multi-<w:br> body paragraph in book 37 to exercise the bug"
     checked = 0
     for p in multis[:20]:
@@ -163,16 +164,23 @@ def test_golden_snapshot_book57_first_body_lines(recs57):
 def test_golden_total_counts_book57(recs57):
     """Lock the gross shape, including substantive source rows absent from compiler output."""
     assert len(recs57) == 504
-    assert sum(r.votable for r in recs57) == 459
+    assert sum(r.votable for r in recs57) == 455
 
 
 @pytest.mark.corpus_source
-def test_unmapped_book57_source_body_remains_visible_for_review(recs57):
-    """Canonical source owns Q2 candidates even when shipping Q1 has no block claim."""
+def test_nested_book57_source_body_is_classified_not_masked(recs57):
+    """Container members carry exact provenance: the formerly-unmapped band resolves
+    to real structure — list items excluded, quote members in scope."""
     recovered = [r for r in recs57 if 30 <= r.id.src_ordinal <= 39]
     assert [r.id.src_ordinal for r in recovered] == list(range(30, 40))
-    assert all(r.role is record_model.Role.BODY_REVIEW for r in recovered)
-    assert all(r.votable and r.requires_review and r.text for r in recovered)
+    assert [r.disposition for r in recovered] == [
+        record_model.RecordDisposition.LIST, record_model.RecordDisposition.BODY,
+        record_model.RecordDisposition.LIST, record_model.RecordDisposition.BODY,
+        record_model.RecordDisposition.LIST, record_model.RecordDisposition.BODY,
+        record_model.RecordDisposition.LIST, record_model.RecordDisposition.BODY,
+        record_model.RecordDisposition.BODY, record_model.RecordDisposition.BODY,
+    ]
+    assert all(r.text for r in recovered)
 
 
 def test_persisted_runs_match_producer_features():

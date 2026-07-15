@@ -4,6 +4,7 @@ contracts are proven on synthetic records — no DOCX, no store. The IO shell (`
 exercised corpus-wide by the driver, not re-proven here."""
 from __future__ import annotations
 
+import pytest
 from intent_ai import identity, recon
 from intent_ai.identity import LineId
 from intent_ai.recon import Tier0
@@ -13,9 +14,11 @@ from intent_ai.records import (
     IndentVsBook,
     LineFeatures,
     LineRecord,
-    Role,
+    RecordDisposition,
     SpacingVsBook,
 )
+
+from pancratius import docx_source
 
 
 def _feat(fill=0.4, align=Align.LEFT, wraps=False, sub=0):
@@ -28,57 +31,63 @@ def _feat(fill=0.4, align=Align.LEFT, wraps=False, sub=0):
     )
 
 
-def _rec(ordn, sub=0, role=Role.BODY, book="01", **feat_kw):
+def _rec(ordn, sub=0, disposition=RecordDisposition.BODY, book="01", **feat_kw):
     return LineRecord(
         id=LineId("ru", book, ordn, sub), text=f"line {ordn}.{sub}",
-        role=role, features=_feat(sub=sub, **feat_kw),
+        disposition=disposition, features=_feat(sub=sub, **feat_kw),
         line_text_hash=identity.text_hash(f"line {ordn}.{sub}"),
     )
+
+
+def _line(ordinal, sub=0):
+    return docx_source.SourceLineCoordinate(docx_source.ParagraphOrdinal(ordinal), sub)
 
 
 def test_join_covers_every_votable_line_and_only_them():
     recs = [
         _rec(1), _rec(2),
-        _rec(3, role=Role.HEADING),                                      # structure: no row
-        _rec(4, role=Role.CONTEXT),                                      # context: no row
+        _rec(3, disposition=RecordDisposition.HEADING),                                      # structure: no row
+        _rec(4, disposition=RecordDisposition.CONTEXT),                                      # context: no row
     ]
-    rows = recon.join_rows(recs, det={1: True, 2: False}, posteriors={})
+    rows = recon.join_rows(recs, det={_line(1): True, _line(2): False}, posteriors={})
     assert [r.id.src_ordinal for r in rows] == [1, 2]
     assert rows[0].det is Tier0.LINEATED and rows[1].det is Tier0.PROSE
 
 
 def test_uncovered_ordinal_is_flagged_never_guessed():
-    rows = recon.join_rows([_rec(7, role=Role.BODY_REVIEW)], det={}, posteriors={})
+    rows = recon.join_rows([_rec(7)], det={}, posteriors={})
     (row,) = rows
     assert row.det is Tier0.UNCOVERED
-    assert row.requires_review
     assert row.suspicion > 1.0  # the auto-suspect band sorts above every covered line
 
 
-def test_subs_share_their_ordinal_verdict():
+def test_subs_join_their_own_source_line_verdict():
     recs = [_rec(5, sub=0), _rec(5, sub=1), _rec(5, sub=2)]
-    rows = recon.join_rows(recs, det={5: True}, posteriors={})
-    assert {r.det for r in rows} == {Tier0.LINEATED}
+    rows = recon.join_rows(
+        recs,
+        det={_line(5, 0): True, _line(5, 1): False, _line(5, 2): False},
+        posteriors={},
+    )
+    assert [r.det for r in rows] == [Tier0.LINEATED, Tier0.PROSE, Tier0.PROSE]
 
 
 def test_suspicion_v0_total_order_matches_the_ladder():
-    # uncovered/review > det=prose-by-posterior > det=lineated (accepted at 0)
-    assert recon.suspicion_v0(Tier0.UNCOVERED, False, 0.1) > 1.0
-    assert recon.suspicion_v0(Tier0.PROSE, True, 0.1) > 1.0
-    assert recon.suspicion_v0(Tier0.PROSE, False, 0.9) == 0.9
-    assert recon.suspicion_v0(Tier0.PROSE, False, 0.1) == 0.1
-    assert recon.suspicion_v0(Tier0.PROSE, False, None) == 0.5  # no model ≠ silently safe
-    assert recon.suspicion_v0(Tier0.LINEATED, False, 0.1) == 0.0
+    # uncovered > det=prose-by-posterior > det=lineated (accepted at 0)
+    assert recon.suspicion_v0(Tier0.UNCOVERED, 0.1) > 1.0
+    assert recon.suspicion_v0(Tier0.PROSE, 0.9) == 0.9
+    assert recon.suspicion_v0(Tier0.PROSE, 0.1) == 0.1
+    assert recon.suspicion_v0(Tier0.PROSE, None) == 0.5  # no model ≠ silently safe
+    assert recon.suspicion_v0(Tier0.LINEATED, 0.1) == 0.0
 
 
 def test_summarize_census_disagreement_sides_and_desync_counter():
     recs = [
         _rec(1, align=Align.JUST), _rec(2, align=Align.JUST), _rec(3, align=Align.CENTER),
-        _rec(4, role=Role.BODY_REVIEW),
-        _rec(9, role=Role.CONTEXT),
+        _rec(4),
+        _rec(9, disposition=RecordDisposition.CONTEXT),
     ]
-    # 4 uncovered; 99 matches no record (real desync); 50 is a span-interior blank (not desync)
-    det = {1: False, 2: False, 3: True, 50: True, 99: True}
+    # 4 uncovered; 99 matches no record (real desync).
+    det = {_line(1): False, _line(2): False, _line(3): True, _line(99): True}
     posteriors = {
         LineId("ru", "01", 1, 0): 0.9,   # det=prose, student says lineated → disagree_prose
         LineId("ru", "01", 2, 0): 0.1,   # agree prose
@@ -86,45 +95,35 @@ def test_summarize_census_disagreement_sides_and_desync_counter():
         LineId("ru", "01", 4, 0): 0.5,
     }
     rows = recon.join_rows(recs, det, posteriors)
-    s = recon.summarize("01", "ru", recs, rows, det, frozenset({50}))
+    s = recon.summarize("01", "ru", recs, rows, det)
     assert (s.n_votable, s.n_records) == (4, 5)
     assert (s.det_lineated, s.det_prose, s.det_uncovered) == (1, 2, 1)
-    assert (s.n_uncovered_review, s.n_uncovered_unreviewed) == (1, 0)
     assert (s.disagree_prose, s.disagree_lineated) == (1, 1)
-    assert s.n_mask_review == 1
-    assert s.n_det_unjoined == 1                   # ordinal 99: importer covers, producer lost
+    assert s.n_fold_unjoined == 1
     assert s.lineated_pct == 1 / 3                 # of covered votable lines only
     assert s.pct_align_just == 0.5
 
 
 def test_summarize_survives_a_book_with_no_votable_lines():
-    recs = [_rec(1, role=Role.HEADING)]
+    recs = [_rec(1, disposition=RecordDisposition.HEADING)]
     s = recon.summarize("01", "ru", recs, [], {})  # empty_ordinals defaults empty
     assert (s.n_votable, s.lineated_pct, s.fill_median, s.posterior_mean) == (0, 0.0, 0.0, None)
 
 
-def test_summarize_cross_tabs_uncovered_by_review_mask():
-    recs = [_rec(1, role=Role.BODY_REVIEW), _rec(2)]
-    rows = recon.join_rows(recs, det={}, posteriors={})
-    summary = recon.summarize("01", "ru", recs, rows, det={})
-    assert summary.det_uncovered == 2
-    assert (summary.n_uncovered_review, summary.n_uncovered_unreviewed) == (1, 1)
-
-
 def test_line_recon_round_trips_through_dict():
     row = recon.LineRecon(id=LineId("en", "75", 12, 1), det=Tier0.PROSE,
-                          requires_review=False, posterior=0.25, suspicion=0.25)
+                          posterior=0.25, suspicion=0.25)
     assert recon.LineRecon.from_dict(row.to_dict()) == row
     held = recon.LineRecon(id=LineId("ru", "01", 3, 0), det=Tier0.UNCOVERED,
-                           requires_review=True, posterior=None, suspicion=1.5)
+                           posterior=None, suspicion=1.5)
     assert recon.LineRecon.from_dict(held.to_dict()) == held
 
 
 def _summary(book, lang, *, just=0.5, wraps=0.5, fill=0.5, lin=50, pro=50):
     return recon.BookRecon(
-        book_id=book, lang=lang, n_records=100, n_votable=100, n_det_unjoined=0,
+        book_id=book, lang=lang, n_records=100, n_votable=100,
+        n_fold_unjoined=0, n_importer_lost=0,
         det_lineated=lin, det_prose=pro, det_uncovered=0,
-        n_uncovered_review=0, n_uncovered_unreviewed=0, n_mask_review=0,
         disagree_prose=0, disagree_lineated=0, posterior_mean=0.5,
         pct_align_just=just, pct_align_left=1 - just, pct_align_center=0.0,
         pct_wraps=wraps, fill_median=fill,
@@ -146,3 +145,20 @@ def test_corpus_totals_and_en_envelope_flagging():
     flagged = recon.en_outliers(summaries, env)
     assert [o["book_id"] for o in flagged] == ["76"]
     assert "pct_align_just" in flagged[0]["outside"]
+
+
+def test_lost_lines_are_importer_diagnostics_not_body_tier0():
+    recs = [_rec(1), _rec(2, disposition=RecordDisposition.LOST)]
+    rows = recon.join_rows(recs, det={_line(1): True}, posteriors={})
+    assert [(r.id.src_ordinal, r.det) for r in rows] == [
+        (1, Tier0.LINEATED),
+    ]
+    s = recon.summarize("01", "ru", recs, rows, det={_line(1): True})
+    assert s.det_uncovered == 0
+    assert s.n_votable == 1
+    assert s.n_importer_lost == 1
+
+
+def test_book_recon_rejects_non_partitioning_body_census():
+    with pytest.raises(ValueError, match="does not partition body lines"):
+        _summary("01", "ru", lin=49, pro=50)

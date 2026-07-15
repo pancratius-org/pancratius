@@ -98,9 +98,21 @@ def test_inline_text_rejects_malformed_or_unknown_payload(inlines: object) -> No
         )
 
 
-def test_conventional_docx_is_passed_through_unchanged(tmp_path: Path) -> None:
+def test_conventional_docx_gains_only_source_anchors(tmp_path: Path) -> None:
     source = docx_source.read(_CONVENTIONAL)
-    assert docx_pandoc.project_package(source, tmp_path) == _CONVENTIONAL
+    projected = docx_pandoc.project_package(source, tmp_path)
+    assert projected != _CONVENTIONAL
+    with zipfile.ZipFile(projected) as archive:
+        root = ET.fromstring(archive.read(docx_source.DOCUMENT_PART))
+    names = {
+        element.get(f"{docx_source.W}name")
+        for element in root.findall(f".//{docx_source.W}bookmarkStart")
+    }
+    expected = {
+        docx_pandoc.source_anchor_name(ordinal)
+        for ordinal in docx_pandoc.anchored_ordinals(source)
+    }
+    assert expected and expected <= names
 
 
 def test_alphabetic_source_alias_is_canonicalized_for_pandoc() -> None:
@@ -298,7 +310,7 @@ def test_pagination_only_paragraphs_do_not_mint_empty_ir_blocks(tmp_path: Path) 
         root = ET.fromstring(archive.read(docx_source.DOCUMENT_PART))
     body = root.find(f"{docx_source.W}body")
     assert body is not None
-    assert len(docx_source.body_paragraph_elements(body)) == 4
+    assert len(docx_source.body_paragraph_elements(body)) == 4 + 1  # + the anchor farm
 
     imported = da.adapt(source, tmp_path / "media", [])
     assert [
@@ -324,7 +336,14 @@ def test_pagination_never_deletes_opaque_source_payload(tmp_path: Path) -> None:
 
     assert len(root.findall(f".//{docx_source.W}footnoteReference")) == 1
     assert len(root.findall(".//{http://schemas.openxmlformats.org/officeDocument/2006/math}oMath")) == 1
-    assert len(root.findall(f".//{docx_source.W}bookmarkStart")) == 1
+    foreign_bookmarks = [
+        element
+        for element in root.findall(f".//{docx_source.W}bookmarkStart")
+        if not (element.get(f"{docx_source.W}name") or "").startswith(
+            docx_pandoc.SOURCE_ANCHOR_PREFIX
+        )
+    ]
+    assert len(foreign_bookmarks) == 1
     assert len(root.findall(f".//{docx_source.W}fldChar")) == 1
     assert len(root.findall(f".//{docx_source.W}sectPr")) >= 2
 
@@ -745,7 +764,7 @@ def test_fallback_only_pagination_paragraph_mints_no_ir_block(tmp_path: Path) ->
     with zipfile.ZipFile(projected) as archive:
         root = ET.fromstring(archive.read(docx_source.DOCUMENT_PART))
     assert root.find(f".//{ooxml.MC_ALTERNATE_CONTENT}") is None
-    assert len(root.findall(f".//{docx_source.W}p")) == 2
+    assert len(root.findall(f".//{docx_source.W}p")) == 2 + 1  # + the anchor farm
 
     imported = da.adapt(source, tmp_path / "media", [])
     assert [
@@ -1077,3 +1096,279 @@ def test_book17_former_sidecar_is_output_equivalent(
         pinned.bibliography,
         pinned.cross_refs,
     )
+
+# ---------------------------------------------------------------------------
+# Source anchors: exact leaf provenance through Pandoc
+# ---------------------------------------------------------------------------
+
+
+def _provenance_message(diagnostics: list[ir.Diagnostic]) -> str:
+    return next(d.message for d in diagnostics if d.code == "import.provenance")
+
+
+def test_anchors_give_exact_identity_to_duplicate_and_nested_paragraphs(
+    tmp_path: Path,
+) -> None:
+    """The two shapes content matching cannot resolve: duplicate text, and a
+    paragraph nested inside a container. Anchors identify both exactly."""
+    document = Document()
+    document.add_paragraph("Repeated dedication")            # ordinal 0
+    document.add_paragraph("Repeated dedication", style="Quote")  # ordinal 1, quote member
+    document.add_paragraph()                                  # ordinal 2, empty
+    document.add_paragraph("***")                             # ordinal 3, punctuation-only
+    path = tmp_path / "anchors.docx"
+    document.save(str(path))
+
+    source = docx_source.read(path)
+    diagnostics: list[ir.Diagnostic] = []
+    imported = da.adapt(source, tmp_path / "media", diagnostics)
+
+    quote = next(b for b in imported.blocks if isinstance(b, ir.QuoteBlock))
+    (member,) = [m for m in quote.blocks if isinstance(m, ir.Paragraph)]
+    assert member.source_span is not None and (
+        member.source_span.start, member.source_span.end
+    ) == (1, 1)
+    assert quote.source_span == member.source_span
+    top_paragraphs = [b for b in imported.blocks if isinstance(b, ir.Paragraph)]
+    first = next(p for p in top_paragraphs if p.inlines and not p.empty)
+    assert first.source_span is not None and (
+        first.source_span.start, first.source_span.end
+    ) == (0, 0)
+    stars = next(
+        p for p in top_paragraphs if p.inlines and ir.Text("***") in p.inlines
+    )
+    assert stars.source_span is not None and (
+        stars.source_span.start, stars.source_span.end
+    ) == (3, 3)
+    assert "unclaimed-content=0" in _provenance_message(diagnostics)
+
+
+def test_anchor_farm_never_reaches_the_ir(tmp_path: Path) -> None:
+    document = Document()
+    document.add_paragraph("only content")
+    path = tmp_path / "farm.docx"
+    document.save(str(path))
+
+    source = docx_source.read(path)
+    imported = da.adapt(source, tmp_path / "media", [])
+
+    texts = [
+        "".join(t.value for t in b.inlines if isinstance(t, ir.Text))
+        for b in imported.blocks
+        if isinstance(b, ir.Paragraph)
+    ]
+    assert texts == ["only content"]
+    assert not any(
+        isinstance(i, ir.Link)
+        for b in imported.blocks
+        if isinstance(b, ir.Paragraph)
+        for i in b.inlines
+    )
+
+
+def test_anchor_extraction_leaves_no_phantom_trailing_inline(tmp_path: Path) -> None:
+    """The injected bookmark must not leave residue: a single-run bold paragraph
+    stays a SINGLE inline (strong-opener detection depends on it), and a trailing
+    hard break stays trimmed exactly as Pandoc trims it unanchored."""
+    document = Document()
+    paragraph = document.add_paragraph()
+    paragraph.add_run("Потому запомни:").bold = True
+    trailed = document.add_paragraph()
+    trailed.add_run("title line")
+    trailed.add_run().add_break(WD_BREAK.LINE)
+    path = tmp_path / "residue.docx"
+    document.save(str(path))
+
+    source = docx_source.read(path)
+    imported = da.adapt(source, tmp_path / "media", [])
+
+    bold, titled = (b for b in imported.blocks if isinstance(b, ir.Paragraph))
+    assert len(bold.inlines) == 1 and isinstance(bold.inlines[0], ir.Emphasis)
+    assert not any(isinstance(i, ir.LineBreak) for i in titled.inlines)
+
+
+def test_unclaimed_content_ordinals_fail_loud(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Provenance loss must never ship silently: dropping a claimed block from the
+    AST surfaces the ordinal in the provenance warning."""
+    document = Document()
+    document.add_paragraph("kept")
+    document.add_paragraph("lost")
+    path = tmp_path / "unclaimed.docx"
+    document.save(str(path))
+    source = docx_source.read(path)
+
+    real_run_json = docx_pandoc.run_json
+
+    def dropping_run_json(
+        src: docx_source.DocxSourceDocument, media: Path
+    ) -> tuple[dict[str, object], str]:
+        ast, warns = real_run_json(src, media)
+        blocks = ast.get("blocks") or []
+        kept = [b for b in blocks if "lost" not in str(b)]
+        return {**ast, "blocks": kept}, warns
+
+    monkeypatch.setattr(docx_pandoc, "run_json", dropping_run_json)
+    diagnostics: list[ir.Diagnostic] = []
+    da.adapt(source, tmp_path / "media", diagnostics)
+
+    warning = next(
+        d for d in diagnostics if d.code == "import.provenance-unclaimed"
+    )
+    assert "1 content paragraph" in warning.message
+
+
+def test_heading_provenance_recovered_through_farm_rewrite(tmp_path: Path) -> None:
+    """Pandoc folds a heading's bookmark into the Header id and rewrites the farm
+    link; position-based recovery must hand the ordinal back to the Heading."""
+    document = Document()
+    document.add_heading("Chapter of Light", level=1)   # ordinal 0
+    document.add_paragraph("Body under the heading.")   # ordinal 1
+    path = tmp_path / "heading.docx"
+    document.save(str(path))
+
+    source = docx_source.read(path)
+    diagnostics: list[ir.Diagnostic] = []
+    imported = da.adapt(source, tmp_path / "media", diagnostics)
+
+    heading = next(b for b in imported.blocks if isinstance(b, ir.Heading))
+    assert heading.source_span is not None and (
+        heading.source_span.start, heading.source_span.end
+    ) == (0, 0)
+    assert "unclaimed-content=0" in _provenance_message(diagnostics)
+
+
+def test_source_anchor_aliases_accept_foreign_bookmarks() -> None:
+    source = docx_source.read(_CONVENTIONAL)
+    ordinals = docx_pandoc.anchored_ordinals(source)
+    targets = [f"#pansrc{ordinal}" for ordinal in ordinals]
+    targets[0] = "#OLE_LINK7"
+    targets[1] = "#_Toc123"
+
+    assert docx_pandoc.source_anchor_aliases(targets, source) == {
+        "OLE_LINK7": ordinals[0],
+        "_Toc123": ordinals[1],
+    }
+
+
+def test_source_anchor_aliases_reject_one_alias_for_two_ordinals() -> None:
+    source = docx_source.read(_CONVENTIONAL)
+    ordinals = docx_pandoc.anchored_ordinals(source)
+    targets = [f"#pansrc{ordinal}" for ordinal in ordinals]
+    targets[0] = targets[1] = "#shared"
+
+    with pytest.raises(ValueError, match="anchor alias 'shared' identifies source ordinals"):
+        docx_pandoc.source_anchor_aliases(targets, source)
+
+
+def test_real_dot_link_paragraph_is_not_mistaken_for_the_farm(tmp_path: Path) -> None:
+    """A legitimate paragraph that is exactly one link labelled `.` must survive:
+    its injected anchor breaks the farm shape, and even anchor-less it fails the
+    pansrc-target requirement."""
+    document = Document()
+    document.add_paragraph("before")
+    paragraph = document.add_paragraph()
+    run = paragraph.add_run(".")
+    hyperlink = parse_xml(
+        f'<w:hyperlink xmlns:w="{ooxml.W_NS}" w:anchor="elsewhere"/>'
+    )
+    run._r.addprevious(hyperlink)
+    hyperlink.append(run._r)
+    path = tmp_path / "dotlink.docx"
+    document.save(str(path))
+
+    source = docx_source.read(path)
+    imported = da.adapt(source, tmp_path / "media", [])
+
+    from pancratius.ir.inlines import inline_plain as plain
+    texts = [plain(b.inlines) for b in imported.blocks if isinstance(b, ir.Paragraph) and b.inlines]
+    assert texts == ["before", "."]
+    # and the pure classifier itself refuses a dot-link paragraph with no pansrc target
+    fake = {"t": "Para", "c": [
+        {"t": "Link", "c": [["", [], []], [{"t": "Str", "c": "."}], ["https://example.org", ""]]},
+    ]}
+    assert docx_pandoc.farm_link_targets(fake) is None
+
+
+def test_phantom_interval_claims_fail_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A span interval covering a content ordinal no anchor proved is known-false
+    identity: the import must STOP, not continue on a corrupt claim."""
+    document = Document()
+    document.add_paragraph("first")
+    document.add_paragraph("middle")
+    document.add_paragraph("last")
+    path = tmp_path / "phantom.docx"
+    document.save(str(path))
+    source = docx_source.read(path)
+
+    def fused_run_json(
+        _src: docx_source.DocxSourceDocument, _media: Path
+    ) -> tuple[dict[str, object], str]:
+        def anchor(ordinal: int) -> dict[str, object]:
+            return {"t": "Span", "c": [[f"pansrc{ordinal}", ["anchor"], []], []]}
+
+        def dot_link(target: str) -> dict[str, object]:
+            return {"t": "Link", "c": [["", [], []], [{"t": "Str", "c": "."}], [target, ""]]}
+
+        blocks = [
+            # One fused Para claiming ordinals 0 and 2 — ordinal 1's anchor is gone.
+            {"t": "Para", "c": [
+                {"t": "Str", "c": "first middle last"}, anchor(0), anchor(2),
+            ]},
+            {"t": "Para", "c": [
+                dot_link("#pansrcfarm0"),
+                dot_link("#pansrc0"), dot_link("#pansrc1"), dot_link("#pansrc2"),
+                {"t": "Span", "c": [["pansrcfarm0", ["anchor"], []], []]},
+            ]},
+        ]
+        return {"blocks": blocks, "meta": {}, "pandoc-api-version": [1, 23, 1]}, ""
+
+    monkeypatch.setattr(docx_pandoc, "run_json", fused_run_json)
+    with pytest.raises(da.ProvenanceError, match="claimed by span interval"):
+        da.adapt(source, tmp_path / "media", [])
+
+
+def test_all_heading_document_recovers_every_ordinal(tmp_path: Path) -> None:
+    """The hostile farm case: every anchored paragraph is a heading, so Pandoc
+    rewrites EVERY ordinal link in the farm. The chunk's reserved marker must
+    still identify it — headings keep their spans, no synthetic paragraph leaks."""
+    document = Document()
+    document.add_heading("First Light", level=1)     # ordinal 0
+    document.add_heading("Second Light", level=2)    # ordinal 1
+    path = tmp_path / "all-headings.docx"
+    document.save(str(path))
+
+    source = docx_source.read(path)
+    diagnostics: list[ir.Diagnostic] = []
+    imported = da.adapt(source, tmp_path / "media", diagnostics)
+
+    headings = [b for b in imported.blocks if isinstance(b, ir.Heading)]
+    assert [
+        (span.start, span.end) for heading in headings if (span := heading.source_span)
+    ] == [(0, 0), (1, 1)]
+    assert not any(isinstance(b, ir.Paragraph) and b.inlines for b in imported.blocks)
+    assert "unclaimed-content=0" in _provenance_message(diagnostics)
+
+
+def test_bookmark_ids_are_unique_across_gaps_and_farm(tmp_path: Path) -> None:
+    """Ordinal gaps (empty/pagination paragraphs) must not let a content anchor
+    collide with a farm marker: one monotonic allocator covers both."""
+    document = Document()
+    document.add_paragraph("content zero")   # ordinal 0
+    document.add_paragraph()                 # ordinal 1: empty, never anchored
+    document.add_paragraph("content two")    # ordinal 2
+    path = tmp_path / "id-gaps.docx"
+    document.save(str(path))
+
+    source = docx_source.read(path)
+    projected = docx_pandoc.project_package(source, tmp_path)
+    with zipfile.ZipFile(projected) as archive:
+        root = ET.fromstring(archive.read(docx_source.DOCUMENT_PART))
+    ids = [
+        element.get(f"{docx_source.W}id")
+        for element in root.findall(f".//{docx_source.W}bookmarkStart")
+    ]
+    assert len(ids) == len(set(ids)), f"bookmark ids collide: {sorted(ids)}"

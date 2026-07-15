@@ -40,8 +40,16 @@ def fake_world(tmp_path, monkeypatch):
     corrections._line_counts.cache_clear()
     corrections._source.cache_clear()
     # baseline: the importer lineates every ordinal here (the weak-direction errors live there)
-    monkeypatch.setattr(corrections, "_baseline_decisions",
-                        lambda lang, book_id: {140: True, 141: True, 1522: True})
+    monkeypatch.setattr(
+        corrections,
+        "_baseline_decisions",
+        lambda lang, book_id: {
+            corrections.docx_source.SourceLineCoordinate(
+                corrections.docx_source.ParagraphOrdinal(ordinal), 0
+            ): True
+            for ordinal in (140, 141, 1522)
+        },
+    )
     monkeypatch.setattr(
         corrections,
         "_lineation_fingerprint",

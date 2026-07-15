@@ -1,9 +1,9 @@
 {
-  "git_sha": "7eec142473f8ec325508e6fb112d7e31c8c08fd7",
-  "timestamp": "2026-07-15T14:35:09.155836+00:00",
+  "git_sha": "ae01ec3a35035fae0d340fff2cf9067b9744b594+dirty",
+  "timestamp": "2026-07-17T00:49:30.286450+00:00",
   "labels_sha256": "4a5ddd65c8d51af3fb9194d37d0175593ef95239df1871cbbd2b26ba4780685e",
   "n_trainable_labels": 1350,
-  "producer_version": "read_lines-5",
+  "producer_version": "read_lines-7",
   "feature_schema_version": "features-5",
   "n_books": 148,
   "n_failed": 0,

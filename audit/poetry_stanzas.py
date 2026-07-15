@@ -49,7 +49,7 @@ def expected_groups(docx: Path, title: str) -> list[int]:
     source = docx_source.read(docx)
     with tempfile.TemporaryDirectory(prefix="poetry-stanzas-") as temp_dir:
         ast, _ = docx_pandoc.run_json(source, Path(temp_dir))
-    blocks = ast.get("blocks") or []
+    blocks = docx_pandoc.strip_source_anchors(ast.get("blocks") or [])
     key = _title_key(title)
     groups: list[list[str]] = []
     current: list[str] = []

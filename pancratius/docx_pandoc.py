@@ -7,10 +7,11 @@ Word story parts Pandoc reads into its poorer vocabulary, then invokes Pandoc.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import xml.etree.ElementTree as ET
 import zipfile
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -21,6 +22,203 @@ from pancratius.ooxml import W
 from pancratius.pandoc import pandoc_argv0
 
 PANDOC_TIMEOUT_SECONDS = 300
+
+# Source-anchor vocabulary. The projection tags every content `w:p` with a
+# bookmark named for its ordinal; Pandoc's docx reader surfaces each as an
+# anchor `Span` INSIDE whatever structure the paragraph lands in, so the
+# adapter reads provenance off every leaf instead of reconstructing it.
+# Pandoc prunes bookmarks no link references, so the projection also appends
+# farm paragraphs of internal links (dropped again by the adapter).
+
+# A bookmark identifier the projection mints: `pansrc<ordinal>`.
+type SourceAnchorName = str
+# One raw Pandoc `{"t": …, "c": …}` JSON node / an inline sequence of them
+# (payload shapes vary by kind, so members stay untyped).
+type PandocNode = dict[str, Any]
+type PandocInlines = list[Any]
+type PandocBlocks = list[Any]
+# A farm link's target: `#pansrc<ordinal>`, or a surviving foreign bookmark /
+# generated identifier Pandoc rewrote the link to.
+type FarmLinkTarget = str
+type FarmTargets = list[FarmLinkTarget]
+type AnchorAlias = str
+
+SOURCE_ANCHOR_PREFIX = "pansrc"
+_SOURCE_ANCHOR_RE = re.compile(rf"^{SOURCE_ANCHOR_PREFIX}(\d+)$")
+# Each farm chunk carries its own reserved bookmark plus a content-bearing
+# self-link to it: the bookmark survives Pandoc (it is referenced), is never a
+# heading (so never folded/rewritten), and identifies the chunk unambiguously —
+# even when every ordinal link in the chunk was rewritten to a heading id.
+_FARM_MARKER_PREFIX = f"{SOURCE_ANCHOR_PREFIX}farm"
+_FARM_MARKER_RE = re.compile(rf"^{_FARM_MARKER_PREFIX}\d+$")
+_ANCHOR_BOOKMARK_ID_BASE = 500_000  # floor; real allocation starts above the document's own ids
+_ANCHOR_FARM_CHUNK = 800            # arbitrary bound so no farm paragraph grows degenerate
+
+
+def source_anchor_name(ordinal: docx_source.SourceOrdinal) -> SourceAnchorName:
+    return f"{SOURCE_ANCHOR_PREFIX}{ordinal}"
+
+
+def source_anchor_ordinal(name: str) -> docx_source.SourceOrdinal | None:
+    """The ordinal carried by a source-anchor identifier, else None."""
+    m = _SOURCE_ANCHOR_RE.match(name)
+    return int(m.group(1)) if m else None
+
+
+def anchored_ordinals(source: docx_source.DocxSourceDocument) -> list[docx_source.SourceOrdinal]:
+    """The ordinals the projection anchors, in farm order: content paragraphs
+    only. Anchoring empty or non-text paragraphs perturbs how Pandoc reads them
+    (an image-only `w:p` stops converting as a Figure), and only content
+    ordinals carry reading/lineation truth."""
+    return [
+        int(p.ordinal)
+        for p in source.paragraphs
+        if p.disposition is docx_source.ParagraphDisposition.CONTENT
+    ]
+
+
+_FARM_LINK_LABEL = "."
+
+
+def as_node(value: object) -> PandocNode | None:
+    """View an opaque value as a Pandoc `{"t": …, "c": …}` node when it is a dict."""
+    return cast("dict[str, Any]", value) if isinstance(value, dict) else None
+
+
+def split_inline_anchors(
+    nodes: PandocInlines,
+    aliases: Mapping[str, docx_source.SourceOrdinal] | None = None,
+) -> tuple[list[docx_source.SourceOrdinal], PandocInlines]:
+    """Split source-anchor Spans out of a raw Pandoc inline list.
+
+    An anchor is empty by construction (its bookmarkStart/End are adjacent), so
+    the node is dropped whole. `aliases` names foreign anchors Pandoc kept in
+    place of ours (a pre-existing `OLE_LINK`/`_Toc` bookmark at the same spot) —
+    such a Span stays in the stream (real links may target it) but claims its
+    ordinal. The separator Pandoc keeps before the trailing anchor goes with
+    it: Pandoc never emits paragraph-trailing whitespace or breaks on its own,
+    so trailing `Space`/`SoftBreak`/`LineBreak` nodes left after extraction are
+    injection residue, not content."""
+    ordinals: list[docx_source.SourceOrdinal] = []
+    cleaned: PandocInlines = []
+    for node in nodes:
+        nd = as_node(node)
+        if nd is not None and nd.get("t") == "Span":
+            c = nd.get("c")
+            if isinstance(c, list) and len(c) == 2 and isinstance(c[0], list) and c[0]:
+                ident = str(c[0][0])
+                if (ordinal := source_anchor_ordinal(ident)) is not None:
+                    ordinals.append(ordinal)
+                    continue
+                if aliases and (aliased := aliases.get(ident)) is not None:
+                    ordinals.append(aliased)
+        cleaned.append(node)
+    if ordinals:
+        while cleaned and (nd := as_node(cleaned[-1])) is not None and nd.get("t") in {
+            "Space",
+            "SoftBreak",
+            "LineBreak",
+        }:
+            cleaned.pop()
+    return ordinals, cleaned
+
+
+def farm_link_targets(block: object) -> FarmTargets | None:
+    """The ordinal-position targets of one anchor-farm paragraph, or None for
+    real content.
+
+    A farm paragraph identifies itself by its reserved `pansrcfarm<k>` marker —
+    a bookmark Span the chunk's own self-link keeps alive through Pandoc. The
+    marker is authoritative: it survives even when every ordinal link in the
+    chunk was rewritten to a heading id, and no authored paragraph can carry it
+    (the injection rejects documents using the reserved namespace). The
+    self-link's target is plumbing and is excluded from the returned targets."""
+    nd = as_node(block)
+    if nd is None or nd.get("t") not in {"Para", "Plain"}:
+        return None
+    inlines = nd.get("c")
+    if not isinstance(inlines, list) or not inlines:
+        return None
+    marked = any(
+        (span := as_node(raw)) is not None
+        and span.get("t") == "Span"
+        and isinstance(c := span.get("c"), list)
+        and len(c) == 2
+        and isinstance(c[0], list)
+        and c[0]
+        and _FARM_MARKER_RE.match(str(c[0][0]))
+        for raw in inlines
+    )
+    if not marked:
+        return None
+    targets: FarmTargets = []
+    for raw in inlines:
+        link = as_node(raw)
+        if link is None or link.get("t") != "Link":
+            continue
+        payload = link.get("c")
+        if not isinstance(payload, list) or len(payload) != 3:
+            continue
+        target = payload[2]
+        if not isinstance(target, list) or not target:
+            continue
+        value = str(target[0])
+        if _FARM_MARKER_RE.match(value.removeprefix("#")):
+            continue
+        targets.append(value)
+    return targets
+
+
+def source_anchor_aliases(
+    farm_targets: Sequence[FarmLinkTarget],
+    source: docx_source.DocxSourceDocument,
+) -> dict[AnchorAlias, docx_source.SourceOrdinal]:
+    """Recover source provenance from the farm's rewritten link targets.
+
+    Pandoc may retain an existing OLE_LINK/_Toc bookmark or fold a heading's
+    bookmark into its generated identifier. Farm links are authored in ordinal
+    order, so a link's position names its ordinal and a rewritten target names
+    the surviving anchor that carries it."""
+    expected = anchored_ordinals(source)
+    if len(farm_targets) != len(expected):
+        raise ValueError(
+            f"anchor farm carries {len(farm_targets)} links for {len(expected)} anchored "
+            f"paragraphs — the Pandoc anchor contract moved; provenance cannot be trusted"
+        )
+    out: dict[AnchorAlias, docx_source.SourceOrdinal] = {}
+    for ordinal, target in zip(expected, farm_targets, strict=True):
+        ident = target.removeprefix("#")
+        carried = source_anchor_ordinal(ident)
+        if carried is None:
+            if ident in out and out[ident] != ordinal:
+                raise ValueError(
+                    f"anchor alias {ident!r} identifies source ordinals "
+                    f"{out[ident]} and {ordinal}; provenance cannot be trusted"
+                )
+            out[ident] = ordinal
+        # carried != ordinal: Pandoc consumed this ordinal's bookmark and redirected
+        # the link to a surviving anchor. Positions stay aligned (the link exists),
+        # the ordinal stays unclaimed, and the provenance diagnostic surfaces it.
+    return out
+
+
+def strip_source_anchors(blocks: PandocBlocks) -> PandocBlocks:
+    """The AST's content blocks with the projection's anchor apparatus removed:
+    farm paragraphs dropped, anchor Spans and their residue stripped from
+    TOP-LEVEL `Para`/`Plain` inlines (anchors inside containers survive; today's
+    consumers read only top-level paragraphs). For raw-AST consumers that don't
+    need ordinals; the adapter extracts the anchors itself instead."""
+    out: PandocBlocks = []
+    for block in blocks:
+        if farm_link_targets(block) is not None:
+            continue
+        nd = as_node(block)
+        if nd is not None and nd.get("t") in {"Para", "Plain"} and isinstance(nd.get("c"), list):
+            _ordinals, cleaned = split_inline_anchors(nd["c"])
+            out.append({"t": nd["t"], "c": cleaned})
+            continue
+        out.append(block)
+    return out
 
 
 class SoftBreakRendering(StrEnum):
@@ -233,6 +431,71 @@ def _story_evidence(
     return tuple(paragraphs), tuple(pagination)
 
 
+def _inject_source_anchors(
+    body: ET.Element,
+    elements: Sequence[ET.Element],
+    paragraphs: Sequence[docx_source.SourceParagraph],
+) -> bool:
+    """Bookmark every content `w:p` with its ordinal and append the link farm.
+
+    Only `anchored_ordinals` get bookmarks. The farm paragraphs exist solely to
+    defeat Pandoc's orphan-anchor pruning and are dropped by the adapter."""
+    existing_ids: list[int] = []
+    for existing in body.iter(f"{W}bookmarkStart"):
+        if (existing.get(f"{W}name") or "").startswith(SOURCE_ANCHOR_PREFIX):
+            raise RuntimeError(
+                f"source document already contains a {SOURCE_ANCHOR_PREFIX}* bookmark "
+                f"({existing.get(f'{W}name')!r}) — the anchor namespace is reserved"
+            )
+        raw_id = existing.get(f"{W}id") or ""
+        if raw_id.lstrip("-").isdigit():
+            existing_ids.append(int(raw_id))
+    next_id = max([_ANCHOR_BOOKMARK_ID_BASE, *(i + 1 for i in existing_ids)])
+
+    def allocate_id() -> str:
+        nonlocal next_id
+        value = str(next_id)
+        next_id += 1
+        return value
+
+    names: list[str] = []
+    for element, paragraph in zip(elements, paragraphs, strict=True):
+        if paragraph.disposition is not docx_source.ParagraphDisposition.CONTENT:
+            continue
+        ordinal = int(paragraph.ordinal)
+        name = source_anchor_name(ordinal)
+        bookmark_id = allocate_id()
+        # Trailing placement is load-bearing: Pandoc's docx reader drops a
+        # LEADING bookmark from the paragraph after an empty one.
+        element.append(
+            ET.Element(f"{W}bookmarkStart", {f"{W}id": bookmark_id, f"{W}name": name})
+        )
+        element.append(ET.Element(f"{W}bookmarkEnd", {f"{W}id": bookmark_id}))
+        names.append(name)
+    if not names:
+        return False
+
+    farm_at = len(body)
+    if len(body) and body[-1].tag == f"{W}sectPr":
+        farm_at -= 1
+    for chunk, offset in enumerate(range(0, len(names), _ANCHOR_FARM_CHUNK)):
+        marker = f"{_FARM_MARKER_PREFIX}{chunk}"
+        marker_id = allocate_id()
+        farm = ET.Element(f"{W}p")
+        for name in (marker, *names[offset:offset + _ANCHOR_FARM_CHUNK]):
+            link = ET.SubElement(farm, f"{W}hyperlink", {f"{W}anchor": name})
+            run = ET.SubElement(link, f"{W}r")
+            text = ET.SubElement(run, f"{W}t")
+            text.text = "."
+        farm.append(
+            ET.Element(f"{W}bookmarkStart", {f"{W}id": marker_id, f"{W}name": marker})
+        )
+        farm.append(ET.Element(f"{W}bookmarkEnd", {f"{W}id": marker_id}))
+        body.insert(farm_at, farm)
+        farm_at += 1
+    return True
+
+
 def _project_part(
     part: str,
     xml: bytes,
@@ -267,7 +530,12 @@ def _project_part(
         )
     lowered_alternatives = _materialize_baseline_content(root)
     removed = _remove_pagination_only_paragraphs(root, elements, dispositions)
-    if not (pagination_breaks or removed or lowered_alternatives or namespace_repair):
+    injected = False
+    if source is not None:
+        body = root.find(f"{W}body")
+        if body is not None:
+            injected = _inject_source_anchors(body, elements, source.paragraphs)
+    if not (pagination_breaks or removed or lowered_alternatives or namespace_repair or injected):
         return xml
 
     for element in pagination_breaks:
