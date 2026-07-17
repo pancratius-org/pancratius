@@ -91,6 +91,11 @@ class TranslateConfig:
     # The same cap for the brief pre-pass, whose prompt (the whole book plus the
     # corpus title precedents) provokes the longest chain of any stage.
     profile_reasoning_tokens: int = 2000
+    # Drafting is transcription against a brief, not deliberation, so it gets the
+    # smallest chain of all: uncapped, ds-flash spent a whole dense chunk's budget
+    # thinking and returned zero of its units, which read as "incomplete" and cost
+    # a full retry per chunk.
+    draft_reasoning_tokens: int = 1024
 
     # Re-draft a chunk while any unit is still blank, up to this many attempts.
     # ds-flash occasionally returns malformed JSON for a dense chunk; each attempt

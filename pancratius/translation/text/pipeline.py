@@ -166,9 +166,18 @@ def _chunk_units(document: Document, chunk: Chunk) -> list[TextUnit]:
 def _max_tokens_for(chunk: Chunk, config: TranslateConfig) -> int:
     # max_tokens is only a ceiling — you pay for tokens actually generated — so be
     # generous. Undersizing truncates the JSON reply and silently drops units; over-
-    # sizing costs nothing. Budget covers the translations plus per-unit JSON framing.
-    translation = config.estimate_output_tokens(chunk.source_tokens)
-    return min(round(translation * 2) + len(chunk.unit_ids) * 30 + 1024, MAX_OUTPUT_TOKENS)
+    # sizing costs nothing. Budget covers the translations plus per-unit JSON framing,
+    # and the hidden reasoning chain that shares this same ceiling.
+    return _units_max_tokens(
+        chunk.source_tokens, len(chunk.unit_ids), config, config.draft_reasoning_tokens
+    )
+
+
+def _units_max_tokens(
+    source_tokens: int, units: int, config: TranslateConfig, reasoning_cap: int
+) -> int:
+    content = round(config.estimate_output_tokens(source_tokens) * 2) + units * 30 + 1024
+    return min(content + reasoning_cap, MAX_OUTPUT_TOKENS)
 
 
 def _revise_reasoning_budget(config: TranslateConfig, max_tokens: int) -> int:
@@ -228,6 +237,7 @@ def _draft_chunk(
         """Draft up to ``n`` times on ``model`` against ``reference_units``; fill only
         units still untranslated (blank or echoing the source). True once all are done."""
         nonlocal usage, last_reply
+        max_tokens = _max_tokens_for(chunk, config)
         for attempt in range(n):
             completion = client.complete(
                 model=model,
@@ -235,8 +245,9 @@ def _draft_chunk(
                     brief=brief, full_source_units=reference_units, chunk_units=units
                 ),
                 temperature=config.draft_temperature,
-                max_tokens=_max_tokens_for(chunk, config),
+                max_tokens=max_tokens,
                 response_format=translation_format(chunk.unit_ids),
+                reasoning_max_tokens=reasoning_budget(config.draft_reasoning_tokens, max_tokens),
             )
             usage += completion.usage
             last_reply = completion.text or ""
@@ -625,12 +636,14 @@ def _reconcile_seams(
     for seam in seams:
         window_ids = tuple(u.id for u in seam.window)
         draft_subset = {uid: translations.get(uid, "") for uid in window_ids}
+        max_tokens = _max_tokens_for_units(seam.window, config)
         completion = client.complete(
             model=config.models.revise,
             messages=reconcile_messages(brief=brief, units=seam.window, draft=draft_subset),
             temperature=config.revise_temperature,
-            max_tokens=_max_tokens_for_units(seam.window, config),
+            max_tokens=max_tokens,
             response_format=translation_format(window_ids),
+            reasoning_max_tokens=reasoning_budget(config.revise_reasoning_tokens, max_tokens),
         )
         usage += completion.usage
         try:
@@ -644,9 +657,10 @@ def _reconcile_seams(
 
 
 def _max_tokens_for_units(units: Sequence[TextUnit], config: TranslateConfig) -> int:
-    """``max_tokens`` for an ad-hoc unit window (the seam pass has no Chunk)."""
+    """``max_tokens`` for an ad-hoc unit window (the seam pass has no Chunk). The seam
+    runs on the revise model, so it budgets that stage's reasoning chain."""
     source_tokens = config.estimate_source_tokens(sum(len(u.source) for u in units))
-    return min(round(config.estimate_output_tokens(source_tokens) * 2) + len(units) * 30 + 1024, MAX_OUTPUT_TOKENS)
+    return _units_max_tokens(source_tokens, len(units), config, config.revise_reasoning_tokens)
 
 
 def _profile_to_json(profile: BookProfile) -> str:

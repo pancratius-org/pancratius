@@ -20,11 +20,12 @@ from pancratius.translation.text.client import (
     TranslatorClient,
     Usage,
 )
-from pancratius.translation.text.config import TranslateConfig
+from pancratius.translation.text.config import TranslateConfig, reasoning_budget
 from pancratius.translation.text.document import parse_document
 from pancratius.translation.text.pipeline import (
     TranslationWriteOutcome,
     _draft_chunk,
+    _max_tokens_for,
     _revise_reasoning_budget,
     estimate_run,
     find_untranslated,
@@ -257,6 +258,42 @@ def test_profile_retries_until_the_reply_parses() -> None:
     # dense draft chunk; one bad reply must not decide the book's English title.
     profile = _build_brief(_RawReplyClient(["not json at all", _BRIEF_REPLY]))
     assert profile.title_en == "The Book of Light"
+
+
+def test_draft_caps_reasoning_so_a_dense_chunk_returns_its_units() -> None:
+    # Measured on ds-flash: uncapped, a 78-unit chunk spent all 4444 tokens thinking
+    # and returned 0/78 units — read as "incomplete", costing a retry per chunk.
+    # Capped, the same call returned 78/78.
+    doc = parse_document("Свет.\n\nТьма.\n")
+    chunk = plan_chunks(doc, TranslateConfig(chunk_source_tokens=999))[0]
+    a, b = chunk.unit_ids
+    seen: dict[str, object] = {}
+
+    class _Recording:
+        def fetch_pricing(self, model: str) -> ModelPricing:
+            raise NotImplementedError
+
+        def complete(self, *, model: str, **kw: object) -> Completion:
+            seen.update(kw)
+            reply = {"translations": [{"id": a, "english": "Light."}, {"id": b, "english": "Dark."}]}
+            return Completion(text=json.dumps(reply), usage=Usage(1, 1, 0, 0.0), model=model)
+
+    _draft_chunk(_Recording(), TranslateConfig(), brief="b", document=doc, chunk=chunk)
+    reasoning, max_tokens = seen["reasoning_max_tokens"], seen["max_tokens"]
+    assert isinstance(reasoning, int) and isinstance(max_tokens, int)
+    assert 0 < reasoning <= max_tokens // 2
+
+
+def test_chunk_budget_leaves_the_estimated_translation_room_beside_reasoning() -> None:
+    # `max_tokens` covers reasoning AND content, so the chunk ceiling must exceed the
+    # estimated translation by at least the reasoning cap — otherwise capping the
+    # chain just steals the budget the units needed.
+    doc = parse_document("Свет.\n\nТьма.\n")
+    config = TranslateConfig()
+    chunk = plan_chunks(doc, config)[0]
+    max_tokens = _max_tokens_for(chunk, config)
+    content = max_tokens - reasoning_budget(config.draft_reasoning_tokens, max_tokens)
+    assert content > config.estimate_output_tokens(chunk.source_tokens)
 
 
 def test_profile_caps_reasoning_so_the_brief_reply_is_never_starved() -> None:
