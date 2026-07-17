@@ -99,7 +99,12 @@ class Document:
                 case Verbatim(text):
                     out.append(text)
                 case Slot(unit_id):
-                    out.append(translations.get(unit_id, index[unit_id].source))
+                    # A slot's edges are stripped at parse time — a line's whitespace
+                    # belongs to the surrounding Verbatim — so hold a reply to the same
+                    # shape. A model answering with a trailing space would otherwise
+                    # push it into the scaffolding, making a two-space lineation break
+                    # three, which reads downstream as a lost break.
+                    out.append(translations.get(unit_id, index[unit_id].source).strip())
         return "".join(out)
 
     def source_text(self) -> str:

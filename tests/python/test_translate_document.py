@@ -60,6 +60,17 @@ def test_slots_translate_without_touching_structure() -> None:
     assert rendered == '<div class="lineated verse">\n\nX  \nX\n\n</div>\n'
 
 
+def test_reply_with_edge_space_cannot_grow_a_lineation_break() -> None:
+    # ds-flash occasionally answers a unit with a trailing space. Rendered raw before
+    # the verbatim two-space break that follows, the line ends with three — which the
+    # lineation audit reads as a lost break (hit once in book 77's en.md).
+    body = '<div class="lineated verse">\n\nСвет  \nТьма\n\n</div>\n'
+    doc = parse_document(body)
+    first, second = (u.id for u in doc.units)
+    rendered = doc.render({first: "Light ", second: "  Darkness"})
+    assert rendered == '<div class="lineated verse">\n\nLight  \nDarkness\n\n</div>\n'
+
+
 def test_heading_and_list_kinds() -> None:
     doc = parse_document("## Глава\n\n- пункт\n1. первый\n")
     kinds = {u.source: u.kind for u in doc.units}
