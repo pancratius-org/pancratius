@@ -24,12 +24,9 @@ from typing import Any
 import yaml
 
 from pancratius.content_catalog import CatalogEntry
+from pancratius.openrouter import NoReasoning
 from pancratius.translation.text.client import TranslatorClient, Usage
-from pancratius.translation.text.config import (
-    MAX_OUTPUT_TOKENS,
-    TranslateConfig,
-    reasoning_budget,
-)
+from pancratius.translation.text.config import MAX_OUTPUT_TOKENS, TranslateConfig
 from pancratius.translation.text.prompts import TermEntry, TitlePrecedent, profile_messages
 from pancratius.translation.text.schema import profile_format
 
@@ -167,9 +164,7 @@ def build_profile(
             temperature=config.draft_temperature,
             max_tokens=_PROFILE_MAX_TOKENS,
             response_format=profile_format(),
-            reasoning_max_tokens=reasoning_budget(
-                config.profile_reasoning_tokens, _PROFILE_MAX_TOKENS
-            ),
+            reasoning=NoReasoning(),
         )
         usage += completion.usage
         data = _reply_object(completion.text)

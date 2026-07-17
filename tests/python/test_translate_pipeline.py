@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from pancratius.content_catalog import read_frontmatter, scan_catalog
+from pancratius.openrouter import NoReasoning
 from pancratius.translation.text.chunker import plan_chunks
 from pancratius.translation.text.client import (
     ChatMessage,
@@ -20,7 +21,11 @@ from pancratius.translation.text.client import (
     TranslatorClient,
     Usage,
 )
-from pancratius.translation.text.config import TranslateConfig, reasoning_budget
+from pancratius.translation.text.config import (
+    MAX_OUTPUT_TOKENS,
+    TranslateConfig,
+    reasoning_budget,
+)
 from pancratius.translation.text.document import parse_document
 from pancratius.translation.text.pipeline import (
     TranslationWriteOutcome,
@@ -260,10 +265,11 @@ def test_profile_retries_until_the_reply_parses() -> None:
     assert profile.title_en == "The Book of Light"
 
 
-def test_draft_caps_reasoning_so_a_dense_chunk_returns_its_units() -> None:
-    # Measured on ds-flash: uncapped, a 78-unit chunk spent all 4444 tokens thinking
-    # and returned 0/78 units — read as "incomplete", costing a retry per chunk.
-    # Capped, the same call returned 78/78.
+def test_draft_asks_for_no_reasoning() -> None:
+    # Drafting is transcription against a brief. A chain there buys nothing and spends
+    # the reply's own budget: the same ds-flash prompt returns 0 reasoning tokens from
+    # DeepInfra and 203 from GMICloud, so leaving it unstated is a coin flip on
+    # routing. The stage says so rather than inheriting a provider default.
     doc = parse_document("Свет.\n\nТьма.\n")
     chunk = plan_chunks(doc, TranslateConfig(chunk_source_tokens=999))[0]
     a, b = chunk.unit_ids
@@ -279,27 +285,28 @@ def test_draft_caps_reasoning_so_a_dense_chunk_returns_its_units() -> None:
             return Completion(text=json.dumps(reply), usage=Usage(1, 1, 0, 0.0), model=model)
 
     _draft_chunk(_Recording(), TranslateConfig(), brief="b", document=doc, chunk=chunk)
-    reasoning, max_tokens = seen["reasoning_max_tokens"], seen["max_tokens"]
-    assert isinstance(reasoning, int) and isinstance(max_tokens, int)
-    assert 0 < reasoning <= max_tokens // 2
+    assert seen["reasoning"] == NoReasoning()
 
 
-def test_chunk_budget_leaves_the_estimated_translation_room_beside_reasoning() -> None:
-    # `max_tokens` covers reasoning AND content, so the chunk ceiling must exceed the
-    # estimated translation by at least the reasoning cap — otherwise capping the
-    # chain just steals the budget the units needed.
+def test_a_stage_that_grants_a_chain_buys_the_room_for_it() -> None:
+    # `max_tokens` is one pool for the chain and the reply, so a ceiling sized without
+    # the cap would let a granted chain eat the units. The revise loop grants
+    # `revise_reasoning_tokens`, so its ceiling must exceed the draft-shaped one.
     doc = parse_document("Свет.\n\nТьма.\n")
     config = TranslateConfig()
     chunk = plan_chunks(doc, config)[0]
-    max_tokens = _max_tokens_for(chunk, config)
-    content = max_tokens - reasoning_budget(config.draft_reasoning_tokens, max_tokens)
+    no_chain = _max_tokens_for(chunk, config)
+    with_chain = _max_tokens_for(chunk, config, config.revise_reasoning_tokens)
+    assert with_chain > no_chain
+    content = with_chain - reasoning_budget(config.revise_reasoning_tokens, with_chain)
     assert content > config.estimate_output_tokens(chunk.source_tokens)
 
 
-def test_profile_caps_reasoning_so_the_brief_reply_is_never_starved() -> None:
-    # The real ds-flash runaway: with no cap the brief's prompt (whole book + 360
-    # corpus title precedents) burned every token on hidden reasoning and returned
-    # empty content, which then read as "unparseable" and degraded to a RU title.
+def test_profile_asks_for_no_reasoning_and_takes_the_house_ceiling() -> None:
+    # What actually starved the brief was a 4096 ceiling too small for a big book's
+    # termbase (~7k tokens for 98 terms), leaving a truncated reply that read as
+    # "unparseable" and degraded to the RU title. It extracts from a book already in
+    # the prompt, so it takes the house ceiling and does not deliberate first.
     seen: dict[str, object] = {}
 
     class _Recording(_RawReplyClient):
@@ -308,10 +315,8 @@ def test_profile_caps_reasoning_so_the_brief_reply_is_never_starved() -> None:
             return super().complete(model=model, **kw)
 
     _build_brief(_Recording([_BRIEF_REPLY]))
-    reasoning = seen["reasoning_max_tokens"]
-    max_tokens = seen["max_tokens"]
-    assert isinstance(reasoning, int) and isinstance(max_tokens, int)
-    assert 0 < reasoning <= max_tokens // 2
+    assert seen["reasoning"] == NoReasoning()
+    assert seen["max_tokens"] == MAX_OUTPUT_TOKENS
 
 
 def test_profile_fails_rather_than_publishing_the_russian_title() -> None:

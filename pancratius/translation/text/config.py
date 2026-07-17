@@ -85,17 +85,12 @@ class TranslateConfig:
     # revise critique benefits from reasoning (set per-call in the client).
     draft_temperature: float = 0.2
     revise_temperature: float = 0.1
-    # Cap the revise critic's hidden reasoning so it can't spend the whole reply
-    # budget thinking and return empty content.
+    # Only the revise critic deliberates. Drafting and the brief pre-pass state
+    # `NoReasoning` at the call: they transcribe and extract, and a chain there only
+    # competes with the reply for one `max_tokens` pool. A budget is not a hard
+    # guarantee — OpenRouter lowers it to an effort level for effort-only models —
+    # so the ceiling must survive the chain overshooting it.
     revise_reasoning_tokens: int = 3000
-    # The same cap for the brief pre-pass, whose prompt (the whole book plus the
-    # corpus title precedents) provokes the longest chain of any stage.
-    profile_reasoning_tokens: int = 2000
-    # Drafting is transcription against a brief, not deliberation, so it gets the
-    # smallest chain of all: uncapped, ds-flash spent a whole dense chunk's budget
-    # thinking and returned zero of its units, which read as "incomplete" and cost
-    # a full retry per chunk.
-    draft_reasoning_tokens: int = 1024
 
     # Re-draft a chunk while any unit is still blank, up to this many attempts.
     # ds-flash occasionally returns malformed JSON for a dense chunk; each attempt

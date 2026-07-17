@@ -20,6 +20,7 @@ from typing import Any
 from pancratius.content_catalog import CatalogEntry, dump_frontmatter, split_frontmatter
 from pancratius.kinds import CorpusWorkKind
 from pancratius.locales import Locale
+from pancratius.openrouter import NoReasoning, ReasoningBudget
 from pancratius.translation.text.cache import BriefCacheEntry, CacheEntry, TranslationCache
 from pancratius.translation.text.checks import Finding, Severity, check_translation
 from pancratius.translation.text.chunker import Chunk, plan_chunks
@@ -163,13 +164,14 @@ def _chunk_units(document: Document, chunk: Chunk) -> list[TextUnit]:
     return [index[uid] for uid in chunk.unit_ids]
 
 
-def _max_tokens_for(chunk: Chunk, config: TranslateConfig) -> int:
+def _max_tokens_for(chunk: Chunk, config: TranslateConfig, reasoning_cap: int = 0) -> int:
     # max_tokens is only a ceiling — you pay for tokens actually generated — so be
     # generous. Undersizing truncates the JSON reply and silently drops units; over-
     # sizing costs nothing. Budget covers the translations plus per-unit JSON framing,
-    # and the hidden reasoning chain that shares this same ceiling.
+    # plus whatever chain THIS stage grants: the two share one pool, so a caller that
+    # lets the model think must buy the room for it.
     return _units_max_tokens(
-        chunk.source_tokens, len(chunk.unit_ids), config, config.draft_reasoning_tokens
+        chunk.source_tokens, len(chunk.unit_ids), config, reasoning_cap
     )
 
 
@@ -247,7 +249,7 @@ def _draft_chunk(
                 temperature=config.draft_temperature,
                 max_tokens=max_tokens,
                 response_format=translation_format(chunk.unit_ids),
-                reasoning_max_tokens=reasoning_budget(config.draft_reasoning_tokens, max_tokens),
+                reasoning=NoReasoning(),
             )
             usage += completion.usage
             last_reply = completion.text or ""
@@ -509,14 +511,14 @@ def translate_book(
 
             units = _chunk_units(document, chunk)
             draft_subset = {uid: translations.get(uid, "") for uid in chunk.unit_ids}
-            max_tokens = _max_tokens_for(chunk, config)
+            max_tokens = _max_tokens_for(chunk, config, config.revise_reasoning_tokens)
             completion = client.complete(
                 model=config.models.revise,
                 messages=revise_messages(brief=brief, units=units, draft=draft_subset),
                 temperature=config.revise_temperature,
                 max_tokens=max_tokens,
                 response_format=translation_format(chunk.unit_ids),
-                reasoning_max_tokens=_revise_reasoning_budget(config, max_tokens),
+                reasoning=ReasoningBudget(_revise_reasoning_budget(config, max_tokens)),
             )
             usage += completion.usage
             # Revise is best-effort: an empty or unparseable reply keeps the draft
@@ -643,7 +645,7 @@ def _reconcile_seams(
             temperature=config.revise_temperature,
             max_tokens=max_tokens,
             response_format=translation_format(window_ids),
-            reasoning_max_tokens=reasoning_budget(config.revise_reasoning_tokens, max_tokens),
+            reasoning=ReasoningBudget(reasoning_budget(config.revise_reasoning_tokens, max_tokens)),
         )
         usage += completion.usage
         try:
