@@ -21,17 +21,13 @@ from pancratius.translation.text.client import (
     TranslatorClient,
     Usage,
 )
-from pancratius.translation.text.config import (
-    MAX_OUTPUT_TOKENS,
-    TranslateConfig,
-    reasoning_budget,
-)
+from pancratius.translation.text.config import MAX_OUTPUT_TOKENS, TranslateConfig
 from pancratius.translation.text.document import parse_document
 from pancratius.translation.text.pipeline import (
     TranslationWriteOutcome,
     _draft_chunk,
     _max_tokens_for,
-    _revise_reasoning_budget,
+    _revise_reasoning,
     estimate_run,
     find_untranslated,
     translate_book,
@@ -298,7 +294,7 @@ def test_a_stage_that_grants_a_chain_buys_the_room_for_it() -> None:
     no_chain = _max_tokens_for(chunk, config)
     with_chain = _max_tokens_for(chunk, config, config.revise_reasoning_tokens)
     assert with_chain > no_chain
-    content = with_chain - reasoning_budget(config.revise_reasoning_tokens, with_chain)
+    content = with_chain - _revise_reasoning(config, with_chain).max_tokens
     assert content > config.estimate_output_tokens(chunk.source_tokens)
 
 
@@ -333,10 +329,10 @@ def test_profile_fails_rather_than_publishing_the_russian_title() -> None:
     [400, 1086, 1654, 3000, 10000],
     ids=lambda v: f"max_tokens={v}",
 )
-def test_revise_reasoning_budget_never_starves_the_reply(max_tokens: int) -> None:
+def test_revise_reasoning_never_starves_the_reply(max_tokens: int) -> None:
     # The reasoning cap shares ``max_tokens`` with the visible reply, so it must
     # leave room for content — otherwise a reasoning model returns empty text.
-    budget = _revise_reasoning_budget(TranslateConfig(), max_tokens)
+    budget = _revise_reasoning(TranslateConfig(), max_tokens).max_tokens
     assert budget < max_tokens
     assert budget <= TranslateConfig().revise_reasoning_tokens
 

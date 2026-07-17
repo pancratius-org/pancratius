@@ -25,12 +25,7 @@ from pancratius.translation.text.cache import BriefCacheEntry, CacheEntry, Trans
 from pancratius.translation.text.checks import Finding, Severity, check_translation
 from pancratius.translation.text.chunker import Chunk, plan_chunks
 from pancratius.translation.text.client import ModelPricing, TranslatorClient, Usage
-from pancratius.translation.text.config import (
-    MAX_OUTPUT_TOKENS,
-    ModelId,
-    TranslateConfig,
-    reasoning_budget,
-)
+from pancratius.translation.text.config import MAX_OUTPUT_TOKENS, ModelId, TranslateConfig
 from pancratius.translation.text.diagnostics import (
     Seam,
     audit_book,
@@ -182,10 +177,11 @@ def _units_max_tokens(
     return min(content + reasoning_cap, MAX_OUTPUT_TOKENS)
 
 
-def _revise_reasoning_budget(config: TranslateConfig, max_tokens: int) -> int:
-    """The revise critic's slice of `reasoning_budget`: on a small chunk a fixed 3k
-    cap would starve the reply to empty."""
-    return reasoning_budget(config.revise_reasoning_tokens, max_tokens)
+def _revise_reasoning(config: TranslateConfig, max_tokens: int) -> ReasoningBudget:
+    """The revise critic is the one stage that deliberates. Its chain shares
+    `max_tokens` with the reply, so on a small chunk a flat 3k cap would starve the
+    reply to empty — never take more than half."""
+    return ReasoningBudget(min(config.revise_reasoning_tokens, max_tokens // 2))
 
 
 @dataclass(frozen=True, slots=True)
@@ -518,7 +514,7 @@ def translate_book(
                 temperature=config.revise_temperature,
                 max_tokens=max_tokens,
                 response_format=translation_format(chunk.unit_ids),
-                reasoning=ReasoningBudget(_revise_reasoning_budget(config, max_tokens)),
+                reasoning=_revise_reasoning(config, max_tokens),
             )
             usage += completion.usage
             # Revise is best-effort: an empty or unparseable reply keeps the draft
@@ -645,7 +641,7 @@ def _reconcile_seams(
             temperature=config.revise_temperature,
             max_tokens=max_tokens,
             response_format=translation_format(window_ids),
-            reasoning=ReasoningBudget(reasoning_budget(config.revise_reasoning_tokens, max_tokens)),
+            reasoning=_revise_reasoning(config, max_tokens),
         )
         usage += completion.usage
         try:

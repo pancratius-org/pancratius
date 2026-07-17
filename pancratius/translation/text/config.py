@@ -127,13 +127,3 @@ class TranslateConfig:
 # against it: undersizing truncates a reply mid-JSON, oversizing costs nothing.
 MAX_OUTPUT_TOKENS = 16000
 
-
-def reasoning_budget(cap: int, max_tokens: int) -> int:
-    """Cap a stage's hidden reasoning without letting the cap eat the completion.
-
-    ``max_tokens`` covers reasoning AND visible content, so an uncapped or greedy
-    chain leaves nothing for the reply and the model returns empty text (the
-    ds-flash runaway). Reserve at least half the budget for the reply itself.
-    Every reasoning-model call goes through here, so a new stage cannot miss it.
-    """
-    return min(cap, max_tokens // 2)
