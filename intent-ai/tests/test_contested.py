@@ -21,12 +21,12 @@ def test_contested_locked(corpus, student_predictions):
     r = contested.evaluate_predictions(
         labelset, by_reader(), contested.load_contested(), student_predictions
     )
-    # Source-v3 has 97 prose and 327 lineated items. The book-held-out model gets 93 and 272;
+    # Source-v3 has 97 prose and 327 lineated items. The book-held-out model gets 93 and 274;
     # pin the class counts so a metric change cannot hide denominator drift.
     assert r.n_contested == 424
     assert r.n_with_student == 424
     assert r.label_dist == {"prose": 97, "lineated": 327}
     assert r.student.prose_recall == pytest.approx(93 / 97)
-    assert r.student.lineated_recall == pytest.approx(272 / 327)
-    assert r.student.balanced_acc == pytest.approx((93 / 97 + 272 / 327) / 2)
+    assert r.student.lineated_recall == pytest.approx(274 / 327)
+    assert r.student.balanced_acc == pytest.approx((93 / 97 + 274 / 327) / 2)
     assert r.rows                                       # per-reader head-to-head rows present

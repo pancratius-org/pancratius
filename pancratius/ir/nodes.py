@@ -23,6 +23,8 @@ from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import Literal, assert_never
 
+from pancratius.docx_source import SourceLineCoordinate
+
 # The emphasis kinds the IR models. Exported so the adapter (mapping Pandoc node
 # tags to it) and the lowering (mapping it to Markdown/HTML) share ONE source of
 # truth for the closed set, instead of each re-spelling the string literals.
@@ -43,24 +45,72 @@ type BibliographyEntry = dict[str, object]
 
 
 @dataclass(frozen=True)
-class SourceSpan:
-    """Inclusive top-level source paragraph ordinals.
+class SourceProvenance:
+    """Exact source identity with its inclusive paragraph slice.
 
-    This is provenance, not semantics: it says which DOCX body ``w:p`` rows a block
-    came from, so diagnostics can render or inspect the original source slice. It
-    is optional on blocks because hand-built IR, future non-DOCX adapters, and
-    genuinely synthetic nodes must not fake provenance they cannot prove.
+    `lines` is the ordered natural-line identity used by line-level observers.
+    `line_groups` projects those coordinates onto the current leaf's ordered
+    display lines. A transform may collapse a source boundary, so one display
+    line can own several coordinates without losing their order.
+    `start`/`end` retain the raw paragraph slice used by diagnostics. When exact
+    lines are present the constructor proves both views agree; callers should use
+    `for_lines` rather than spell the bounds twice.
     """
 
     start: int
     end: int
+    lines: tuple[SourceLineCoordinate, ...] = ()
+    line_groups: tuple[tuple[SourceLineCoordinate, ...], ...] = ()
 
     def __post_init__(self) -> None:
         if self.start < 0 or self.end < self.start:
-            raise ValueError(f"invalid SourceSpan({self.start}, {self.end})")
+            raise ValueError(f"invalid SourceProvenance({self.start}, {self.end})")
+        if len(self.lines) != len(set(self.lines)):
+            raise ValueError("source provenance contains duplicate line coordinates")
+        if self.lines and tuple(sorted(self.lines)) != self.lines:
+            raise ValueError("source provenance line coordinates are out of source order")
+        if self.lines and (
+            int(self.lines[0].ordinal) != self.start
+            or int(self.lines[-1].ordinal) != self.end
+        ):
+            raise ValueError("source provenance paragraph slice disagrees with its lines")
+        if self.lines and not self.line_groups:
+            object.__setattr__(self, "line_groups", tuple((line,) for line in self.lines))
+        if any(not group for group in self.line_groups):
+            raise ValueError("source provenance contains an empty display-line group")
+        grouped = tuple(line for group in self.line_groups for line in group)
+        if grouped != self.lines:
+            raise ValueError("source provenance display-line groups disagree with its lines")
+
+    @classmethod
+    def for_lines(cls, lines: Iterable[SourceLineCoordinate]) -> SourceProvenance:
+        exact = tuple(lines)
+        if not exact:
+            raise ValueError("source provenance needs at least one line coordinate")
+        return cls(int(exact[0].ordinal), int(exact[-1].ordinal), exact)
+
+    @classmethod
+    def for_line_group(cls, lines: Iterable[SourceLineCoordinate]) -> SourceProvenance:
+        exact = tuple(lines)
+        provenance = cls.for_lines(exact)
+        return cls(provenance.start, provenance.end, exact, (exact,))
+
+    def regroup(
+        self,
+        line_groups: Iterable[Iterable[SourceLineCoordinate]],
+    ) -> SourceProvenance:
+        groups = tuple(tuple(group) for group in line_groups)
+        return SourceProvenance(self.start, self.end, self.lines, groups)
 
 
-def merge_source_spans(spans: Iterable[SourceSpan | None]) -> SourceSpan | None:
+# Kept as the public constructor name used throughout the import pipeline. A
+# span is now the paragraph projection of one validated provenance value.
+SourceSpan = SourceProvenance
+
+
+def merge_source_spans(
+    spans: Iterable[SourceProvenance | None],
+) -> SourceProvenance | None:
     """Return the smallest span covering a complete span set, or ``None``.
 
     Normalization passes use this when they merge or wrap source-derived blocks.
@@ -72,9 +122,12 @@ def merge_source_spans(spans: Iterable[SourceSpan | None]) -> SourceSpan | None:
     if not collected or any(span is None for span in collected):
         return None
     present = [span for span in collected if span is not None]
-    return SourceSpan(
+    exact = all(span.lines for span in present)
+    lines = tuple(sorted({line for span in present for line in span.lines})) if exact else ()
+    return SourceProvenance(
         start=min(span.start for span in present),
         end=max(span.end for span in present),
+        lines=lines,
     )
 
 # ---------------------------------------------------------------------------

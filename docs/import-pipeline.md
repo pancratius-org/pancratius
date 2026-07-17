@@ -163,15 +163,19 @@ footnote, image-role, and source-span information; a full source AST is too broa
 for the Pancratius model. Add a block type when structure is real. Do not smuggle
 structure through string conventions.
 
-`source_span` is an enclosing provenance interval, not an assertion that every
-raw ordinal inside it contributed semantics: when the DOCX adapter can prove the
-outermost top-level `word/document.xml` paragraphs that produced a block, it
-records that inclusive range. Passes combine or copy that span
-when it wraps, merges, or splits source-derived blocks. Lowering ignores it.
+`source_span` is one validated provenance value. It carries ordered natural-line
+coordinates where the adapter can prove them; its enclosing paragraph interval
+is derived from those coordinates and remains the stable raw DOCX slice for
+diagnostics. Its display-line groups are also ordered and total over those exact
+coordinates. A transform that intentionally removes a display boundary groups
+the adjacent coordinates on the surviving line rather than restoring content or
+guessing by text. Passes partition exact coordinates when they split
+source-derived blocks and combine them when they merge blocks. Lowering ignores provenance.
 Diagnostics such as `pancratius docx inspect` use it to map IR decisions back to
 the DOCX slice, intersecting per-paragraph classifications with the source
 aggregate's semantic ordinals so skipped pagination/empty rows cannot be swept
-back in by the interval. Missing provenance must stay missing rather than guessed.
+back in by the interval. Span-only provenance remains valid for synthetic or
+non-DOCX IR, but line-level observers cannot invent coordinates from it.
 
 ### One adapter now: DOCX
 
@@ -203,7 +207,11 @@ adjacency.
 
 The Pandoc anti-corruption projection consumes that aggregate. It omits body
 paragraphs whose disposition is pagination-only, neutralizes page/column breaks
-inside mixed content, and preserves authored line breaks. The same narrow break
+inside mixed content, and preserves authored line breaks. It also stamps every
+content paragraph with a source anchor, so identity survives Pandoc instead of
+being reconstructed afterwards: an IR leaf built from a content paragraph
+carries the `w:p` ordinal(s) it renders, at any nesting depth, and a content
+ordinal claimed by no block surfaces as a diagnostic, never as silent loss. The same narrow break
 projection covers `document.xml`, `footnotes.xml`, and `endnotes.xml` without
 promoting note internals into the domain model. Rewritten story parts retain
 their required namespace bindings and the scratch package retains ZIP entry

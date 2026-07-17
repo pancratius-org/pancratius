@@ -190,7 +190,9 @@ def test_pipeline_wraps_pinned_ordinal_and_fold_decisions_hold(tmp_path: Path) -
     quotes = [b for b in doc.blocks if isinstance(b, ir.QuoteBlock)]
     assert len(quotes) == 1
     assert quotes[0].register is ir.Register.SCRIPTURE
-    assert quotes[0].source_span == ir.SourceSpan(1, 1)
+    assert quotes[0].source_span is not None and (
+        quotes[0].source_span.start, quotes[0].source_span.end
+    ) == (1, 1)
 
     # The per-ordinal lineation surface keeps its verdicts through the wrapper.
     after = fold_decisions(docx_source.read(docx), lang="ru")

@@ -59,6 +59,11 @@ class AlternateContentError(DocxSourceError):
         super().__init__("mc:AlternateContent has multiple fallback branches")
 
 
+# The raw `w:p` index in document order — the int a `ParagraphOrdinal` wraps.
+# Spans, anchors, and the recon ledgers key on it directly.
+type SourceOrdinal = int
+
+
 @dataclass(frozen=True, slots=True, order=True)
 class ParagraphOrdinal:
     """Stable zero-based identity of a top-level ``w:p`` in document order."""
@@ -74,8 +79,30 @@ class ParagraphOrdinal:
 
 
 @dataclass(frozen=True, slots=True, order=True)
+class SourceLineCoordinate:
+    """One non-empty natural line inside a source paragraph."""
+
+    ordinal: ParagraphOrdinal
+    sub: int
+
+    def __post_init__(self) -> None:
+        if self.sub < 0:
+            raise DocxSourceError("source line sub-index must be non-negative")
+
+
+@dataclass(frozen=True, slots=True)
+class SourceLine:
+    """One natural source line with its stable coordinate and text."""
+
+    coordinate: SourceLineCoordinate
+    text: str
+
+
+@dataclass(frozen=True, slots=True, order=True)
 class SourceSegment:
-    """A reconciliation region that cannot cross a list or table boundary."""
+    """A contiguous top-level flow region; increments at each table and each
+    numbered paragraph. Visual grouping and run segmentation never join
+    across it."""
 
     value: int
 
@@ -621,6 +648,17 @@ class SourceParagraph:
         return self.semantics.content
 
     @property
+    def natural_lines(self) -> tuple[SourceLine, ...]:
+        return tuple(
+            SourceLine(SourceLineCoordinate(self.ordinal, sub), text)
+            for sub, text in enumerate(line for line in self.content.line_segments if line)
+        )
+
+    @property
+    def line_coordinates(self) -> tuple[SourceLineCoordinate, ...]:
+        return tuple(line.coordinate for line in self.natural_lines)
+
+    @property
     def alignment(self) -> ParagraphAlignment:
         return self.layout.source_alignment
 
@@ -694,7 +732,7 @@ class DocxSourceDocument:
         return tuple(p for p in self.paragraphs if p.reconciliation_position is not None)
 
     @property
-    def content_ordinals(self) -> frozenset[int]:
+    def content_ordinals(self) -> frozenset[SourceOrdinal]:
         """Raw identities eligible for per-paragraph reading/lineation truth."""
         return frozenset(
             paragraph.ordinal.value
@@ -703,7 +741,7 @@ class DocxSourceDocument:
         )
 
     @property
-    def semantic_ordinals(self) -> frozenset[int]:
+    def semantic_ordinals(self) -> frozenset[SourceOrdinal]:
         """Raw identities that carry readable or opaque source meaning."""
         return frozenset(
             paragraph.ordinal.value

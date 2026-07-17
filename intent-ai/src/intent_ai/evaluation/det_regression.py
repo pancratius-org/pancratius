@@ -2,7 +2,7 @@
 """The deterministic regression — the gate every converter-rule change must pass.
 
 The production importer is the corpus's free tier-0 labeler (`docx_structure.fold_decisions`,
-read per source ordinal). Its verified asymmetry — when it says "lineated" it is essentially
+read per source line). Its verified asymmetry — when it says "lineated" it is essentially
 never wrong; its error mass is verse it failed to detect — is the load-bearing beam of the
 budget ladder, so any `pancratius/` change that could move these numbers re-runs this scoring
 and must keep prose-recall at its floor while never regressing the easy sets.
@@ -10,7 +10,7 @@ and must keep prose-recall at its floor while never regressing the easy sets.
 Scores FROZEN memberships only (`det-gate` — the trainable truth as of the floors' measurement —
 plus the three eval slices), so truth GROWTH never moves the gate: a new label changes nothing
 here, while a converter change or a member's re-adjudication moves a floor and is investigated.
-A member line whose ordinal has no verdict is counted `uncovered`, never guessed. Pure given the
+A member line with no verdict is counted `uncovered`, never guessed. Pure given the
 truth + per-book verdict maps; `score_all` is the IO shell (labels + DOCX, no records).
 `python -m intent_ai.evaluation.det_regression` prints the table;
 `tests/test_det_regression.py` pins the floors."""
@@ -19,6 +19,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import cache
+
+from pancratius import docx_source
 
 from .. import paths
 from ..identity import BookId, Label, LineId
@@ -35,8 +37,10 @@ GATE_SLICES = ("det-gate", "reader_bench", "contested", "prompt_structural")
 
 
 @cache   # ≤103 books, one-shot process; stale only if a docx changes mid-run
-def _book_decisions(lang: str, book_id: str) -> Mapping[int, bool]:
-    from pancratius import docx_source, docx_structure
+def _book_decisions(
+    lang: str, book_id: str
+) -> Mapping[docx_source.SourceLineCoordinate, bool]:
+    from pancratius import docx_structure
     from pancratius.locales import is_locale
 
     if not is_locale(lang):
@@ -54,7 +58,7 @@ def _book_line_counts(lang: str, book_id: str) -> Mapping[int, int]:
         raise ValueError(f"unsupported locale {lang!r}")
     source = docx_source.read(paths.book_docx(BookId(book_id), lang))
     return {
-        int(paragraph.ordinal): sum(bool(line) for line in paragraph.content.line_segments)
+        int(paragraph.ordinal): len(paragraph.natural_lines)
         for paragraph in source.paragraphs
     }
 
@@ -96,10 +100,21 @@ def score_truth(name: str, truth: Mapping[LineId, Label]) -> DetScore:
                 continue
             case UnanimousParagraphTruth(label=label):
                 pass
-        hit = _book_decisions(lang, book_id).get(ordinal)
-        if hit is None:
+        decisions = _book_decisions(lang, book_id)
+        hits = [
+            decisions.get(
+                docx_source.SourceLineCoordinate(docx_source.ParagraphOrdinal(ordinal), sub)
+            )
+            for sub in range(expected)
+        ]
+        if any(hit is None for hit in hits):
             uncovered += 1
             continue
+        dispositions = {hit for hit in hits if hit is not None}
+        if len(dispositions) != 1:
+            mixed += 1
+            continue
+        hit = dispositions.pop()
         y_true.append(label)
         y_pred.append("lineated" if hit else "prose")
     return DetScore(

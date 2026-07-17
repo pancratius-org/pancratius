@@ -1,13 +1,12 @@
 # research-pure: the free corpus maps — production importer verdict + student posterior per line.
-"""Tier-0/tier-1 reconnaissance over every votable line — the $0 signals the budget ladder
-starts from.
+"""Tier-0/tier-1 reconnaissance over every compiler-scoped body line — the $0 signals the
+budget ladder starts from.
 
-Tier 0 is the production importer's OWN verdict, read back per source ordinal
+Tier 0 is the production importer's OWN verdict, read back per source line
 (`pancratius.docx_structure.fold_decisions`), totalized as lineated, prose, or uncovered. A missing
-flow-bearing claim is explicit, never guessed. The structural review mask is a separate axis, so
-review and uncovered counts may overlap. Tier 1 ranks where to look: the deterministic verdict and
-the student posterior are two separately computed free signals over one source, and their
-disagreement is the error detector.
+flow-bearing claim is explicit, never guessed. Tier 1 ranks where
+to look: the deterministic verdict and the student posterior are two separately computed free
+signals over one source, and their disagreement is the error detector.
 
 Shape: `join_rows`, `summarize`, and the corpus aggregations are PURE (records + verdict maps
 in, rows/census out) so the join and ledger logic are provable without a DOCX; `scan_book` is
@@ -19,9 +18,8 @@ evidence a prior decision was made on.
 
 Suspicion here is v0 — a transparent ranking to SIZE the suspect slice, not the chosen router
 (E2 picks that on unbiased data): the student posterior on `det=prose` lines (disagreement
-strength in the importer's one weak direction), an auto-suspect band above it for lines with no
-trustworthy verdict (uncovered / REVIEW mask), and 0 on `det=lineated` (measured FP 1/261 —
-accepted, audited only by random sample)."""
+strength in the importer's one weak direction), an auto-suspect band above it for uncovered
+lines, and 0 on `det=lineated` (measured FP 1/261 — accepted, audited only by random sample)."""
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
@@ -30,6 +28,8 @@ from enum import StrEnum
 from statistics import median, quantiles
 from typing import Self
 
+from pancratius.docx_source import ParagraphOrdinal, SourceLineCoordinate
+
 from . import paths, store
 from .identity import (
     SOURCE_IDENTITY_VERSION,
@@ -37,41 +37,47 @@ from .identity import (
     ExperimentId,
     JsonObject,
     LineId,
-    strict_bool,
 )
 from .records import (
     FEATURE_SCHEMA_VERSION,
     PRODUCER_VERSION,
     Align,
     LineRecord,
+    RecordDisposition,
 )
 from .student import LinearModel
 from .wire import number, sequence
 
 
 class Tier0(StrEnum):
-    """The production importer's free verdict for one votable line, read per source ordinal.
-    `UNCOVERED` = the ordinal has no verdict (no span survived, or claimed by both kinds) —
-    a fate-ledger entry, never a guess."""
+    """The production importer's free verdict for one body source line.
+
+    `UNCOVERED` means that exact line has no unanimous flow-bearing claim.
+    """
     LINEATED = "lineated"
     PROSE = "prose"
     UNCOVERED = "uncovered"
 
+    @classmethod
+    def from_fold(cls, folded: bool | None) -> Tier0:
+        """Totalize one fold-ledger read: absent → UNCOVERED, never a guess."""
+        if folded is None:
+            return cls.UNCOVERED
+        return cls.LINEATED if folded else cls.PROSE
+
 
 @dataclass(frozen=True, slots=True)
 class LineRecon:
-    """One votable line's free signals: the tier-0 importer verdict, the structural-seam mask
-    verdict, the student posterior P(lineated), and the v0 suspicion rank."""
+    """One votable line's free signals: the tier-0 importer verdict, the student
+    posterior P(lineated), and the v0 suspicion rank."""
 
     id: LineId
     det: Tier0
-    requires_review: bool
     posterior: float | None  # P(lineated) from the current student; None = no model fitted
     suspicion: float
 
     def to_dict(self) -> JsonObject:
         return {"id": self.id.as_key(), "det": self.det.value,
-                "requires_review": self.requires_review,
                 "posterior": self.posterior, "suspicion": self.suspicion}
 
     @classmethod
@@ -79,18 +85,15 @@ class LineRecon:
         post = d["posterior"]
         return cls(id=LineId.from_key(sequence(d["id"], field="recon.id")),
                    det=Tier0(str(d["det"])),
-                   requires_review=strict_bool(
-                       d["requires_review"], field="recon.requires_review"
-                   ),
                    posterior=number(post, field="recon.posterior") if post is not None else None,
                    suspicion=number(d["suspicion"], field="recon.suspicion"))
 
 
-def suspicion_v0(det: Tier0, requires_review: bool, posterior: float | None) -> float:
+def suspicion_v0(det: Tier0, posterior: float | None) -> float:
     """The v0 ranking signal (see module docstring — sizing, not the chosen router).
     A missing posterior ranks at maximum uncertainty (0.5), never silently at 0."""
     p = posterior if posterior is not None else 0.5
-    if det is Tier0.UNCOVERED or requires_review:
+    if det is Tier0.UNCOVERED:
         return 1.0 + p           # the auto-suspect band: sorts above every covered line
     if det is Tier0.PROSE:
         return p                 # the importer's one weak direction — posterior IS disagreement
@@ -99,26 +102,22 @@ def suspicion_v0(det: Tier0, requires_review: bool, posterior: float | None) -> 
 
 def join_rows(
     records: list[LineRecord],
-    det: Mapping[int, bool],
+    det: Mapping[SourceLineCoordinate, bool],
     posteriors: Mapping[LineId, float],
 ) -> list[LineRecon]:
-    """Join one book's votable records to the per-ordinal verdict maps. Pure — every input is
-    data. Only votable lines get rows (non-votable records are structure/context, held
-    by the producer); every `sub` segment of one `<w:p>` shares its ordinal's verdicts."""
+    """Join candidate records whose structural compiler fate remains body."""
     out: list[LineRecon] = []
     for r in records:
         if not r.votable:
             continue
-        hit = det.get(r.id.src_ordinal)
-        verdict = (Tier0.UNCOVERED if hit is None
-                   else Tier0.LINEATED if hit else Tier0.PROSE)
+        coordinate = SourceLineCoordinate(ParagraphOrdinal(r.id.src_ordinal), r.id.sub)
+        verdict = Tier0.from_fold(det.get(coordinate))
         p = posteriors.get(r.id)
         out.append(LineRecon(
             id=r.id,
             det=verdict,
-            requires_review=r.requires_review,
             posterior=p,
-            suspicion=suspicion_v0(verdict, r.requires_review, p),
+            suspicion=suspicion_v0(verdict, p),
         ))
     return out
 
@@ -132,26 +131,31 @@ class BookRecon:
     lang: str
     n_records: int
     n_votable: int
-    n_det_unjoined: int         # non-empty det ordinals matching NO record — producer/importer
-                                # desync (a block span covers its interior blanks; those are not it)
+    n_fold_unjoined: int        # compiler fold coordinates matching no canonical record
+    n_importer_lost: int        # source lines whose paragraph identity never reached the compiler
     det_lineated: int
     det_prose: int
     det_uncovered: int
-    n_uncovered_review: int
-    n_uncovered_unreviewed: int
-    n_mask_review: int
     disagree_prose: int         # det=prose but posterior ≥ 0.5 — the suspect slice core
     disagree_lineated: int      # det=lineated but posterior < 0.5 — audit-only (det is trusted)
     posterior_mean: float | None
-    pct_align_just: float       # φ profile over votable lines
+    pct_align_just: float       # φ profile over compiler-scoped body lines
     pct_align_left: float
     pct_align_center: float
     pct_wraps: float
     fill_median: float
 
+    def __post_init__(self) -> None:
+        tier0 = self.det_lineated + self.det_prose + self.det_uncovered
+        if tier0 != self.n_votable:
+            raise ValueError(
+                f"body tier-0 census ({tier0}) does not partition body lines "
+                f"({self.n_votable})"
+            )
+
     @property
     def lineated_pct(self) -> float:
-        """The book prior: det-lineated share of the COVERED votable lines."""
+        """The book prior: det-lineated share of covered body lines."""
         covered = self.det_lineated + self.det_prose
         return self.det_lineated / covered if covered else 0.0
 
@@ -159,12 +163,10 @@ class BookRecon:
         return {
             "book_id": self.book_id, "lang": self.lang,
             "n_records": self.n_records, "n_votable": self.n_votable,
-            "n_det_unjoined": self.n_det_unjoined,
+            "n_fold_unjoined": self.n_fold_unjoined,
+            "n_importer_lost": self.n_importer_lost,
             "det_lineated": self.det_lineated, "det_prose": self.det_prose,
             "det_uncovered": self.det_uncovered,
-            "n_uncovered_review": self.n_uncovered_review,
-            "n_uncovered_unreviewed": self.n_uncovered_unreviewed,
-            "n_mask_review": self.n_mask_review,
             "lineated_pct": round(self.lineated_pct, 4),
             "disagree_prose": self.disagree_prose, "disagree_lineated": self.disagree_lineated,
             "posterior_mean": (round(self.posterior_mean, 4)
@@ -178,25 +180,19 @@ class BookRecon:
 
 
 def summarize(book_id: BookId, lang: str, records: list[LineRecord],
-              rows: list[LineRecon], det: Mapping[int, bool],
-              empty_ordinals: frozenset[int] = frozenset()) -> BookRecon:
-    """Aggregate one book's rows + records into the `BookRecon` census. Pure.
-    `empty_ordinals` names the source paragraphs with no text — a det span covers its interior
-    blanks, so they are excluded from the desync counter rather than drowning it."""
+              rows: list[LineRecon],
+              det: Mapping[SourceLineCoordinate, bool]) -> BookRecon:
+    """Aggregate one book's body census and separate source/import diagnostics."""
     votable = [r for r in records if r.votable]
-    source_ordinals = {r.id.src_ordinal for r in records}
+    source_lines = {
+        SourceLineCoordinate(ParagraphOrdinal(r.id.src_ordinal), r.id.sub)
+        for r in records
+    }
     det_count = {Tier0.LINEATED: 0, Tier0.PROSE: 0, Tier0.UNCOVERED: 0}
-    disagree_p = disagree_l = review = uncovered_review = uncovered_unreviewed = 0
+    disagree_p = disagree_l = 0
     posts: list[float] = []
     for row in rows:
         det_count[row.det] += 1
-        if row.requires_review:
-            review += 1
-        if row.det is Tier0.UNCOVERED:
-            if row.requires_review:
-                uncovered_review += 1
-            else:
-                uncovered_unreviewed += 1
         if row.posterior is not None:
             posts.append(row.posterior)
             if row.det is Tier0.PROSE and row.posterior >= 0.5:
@@ -204,15 +200,15 @@ def summarize(book_id: BookId, lang: str, records: list[LineRecord],
             elif row.det is Tier0.LINEATED and row.posterior < 0.5:
                 disagree_l += 1
 
+    if len(votable) != len(rows):
+        raise ValueError("body record census disagrees with joined tier-0 rows")
     n_vot = len(votable) or 1   # guard: an empty book yields zero percentages, not a crash
     return BookRecon(
-        book_id=book_id, lang=lang, n_records=len(records), n_votable=len(votable),
-        n_det_unjoined=len(det.keys() - source_ordinals - empty_ordinals),
+        book_id=book_id, lang=lang, n_records=len(records), n_votable=len(rows),
+        n_fold_unjoined=len(det.keys() - source_lines),
+        n_importer_lost=sum(r.disposition is RecordDisposition.LOST for r in records),
         det_lineated=det_count[Tier0.LINEATED], det_prose=det_count[Tier0.PROSE],
         det_uncovered=det_count[Tier0.UNCOVERED],
-        n_uncovered_review=uncovered_review,
-        n_uncovered_unreviewed=uncovered_unreviewed,
-        n_mask_review=review,
         disagree_prose=disagree_p, disagree_lineated=disagree_l,
         posterior_mean=(sum(posts) / len(posts)) if posts else None,
         pct_align_just=sum(r.features.align is Align.JUST for r in votable) / n_vot,
@@ -225,9 +221,8 @@ def summarize(book_id: BookId, lang: str, records: list[LineRecord],
 
 # corpus aggregations — pure over the per-book censuses ------------------------------------------
 
-_SUM_FIELDS = ("n_records", "n_votable", "n_det_unjoined",
+_SUM_FIELDS = ("n_records", "n_votable", "n_fold_unjoined", "n_importer_lost",
                "det_lineated", "det_prose", "det_uncovered",
-               "n_uncovered_review", "n_uncovered_unreviewed", "n_mask_review",
                "disagree_prose", "disagree_lineated")
 _ENVELOPE_FIELDS = ("pct_align_just", "pct_wraps", "fill_median", "lineated_pct")
 
@@ -278,17 +273,17 @@ def scan_book(book_id: BookId, lang: str, *,
     records = store.load_records(book_id, lang)
     docx = paths.book_docx(book_id, lang)
     source = docx_source.read(docx)
-    det = docx_structure.fold_decisions(source, lang=lang)
-    empty = frozenset(
-        int(paragraph.ordinal) for paragraph in source.paragraphs if paragraph.empty
-    )
-
+    observation = docx_structure.observe_fold(source, lang=lang)
+    det = {
+        coordinate: decision.disposition is docx_structure.FoldDisposition.FOLDED
+        for coordinate, decision in observation.decisions
+    }
     posteriors: dict[LineId, float] = {}
     if model is not None:
         from . import sequence
         posteriors = sequence.score_document(records, model).by_id
     rows = join_rows(records, det, posteriors)
-    return rows, summarize(book_id, lang, records, rows, det, empty)
+    return rows, summarize(book_id, lang, records, rows, det)
 
 
 def _scan_and_save(book_id: BookId, lang: str, model: LinearModel | None) -> BookRecon:
@@ -352,15 +347,20 @@ if __name__ == "__main__":
     by_lang = {
         lang: {k: sum(getattr(s, k) for s in summaries if s.lang == lang)
                for k in ("n_votable", "det_lineated", "det_prose", "det_uncovered",
-                         "n_uncovered_review", "n_uncovered_unreviewed", "disagree_prose")}
+                         "disagree_prose")}
         for lang in ("ru", "en")
     }
     envelope = ru_envelope(summaries)
     outliers = en_outliers(summaries, envelope)
     uncovered_editions = [
-        f"{s.lang}:{s.book_id} ({s.n_uncovered_unreviewed})"
+        f"{s.lang}:{s.book_id} ({s.det_uncovered})"
         for s in summaries
-        if s.n_uncovered_unreviewed
+        if s.det_uncovered
+    ]
+    lost_editions = [
+        f"{s.lang}:{s.book_id} ({s.n_importer_lost})"
+        for s in summaries
+        if s.n_importer_lost
     ]
 
     scorecard: JsonObject = {
@@ -384,20 +384,23 @@ if __name__ == "__main__":
     }
 
     n_en = sum(s.lang == "en" for s in summaries)
+    body_tier0 = sum(s.det_lineated + s.det_prose + s.det_uncovered for s in summaries)
     lines = [
         "# Corpus reconnaissance (free signals, corpus-wide)", "",
         f"{len(summaries)}/{len(pairs)} (book, lang) scanned; student fitted on "
         f"{n_trainable} trainable labels."
         + (f" **{len(failed)} FAILED** (see scorecard)." if failed else ""),
         "",
-        f"- votable lines: **{totals['n_votable']}** "
+        f"- body lines: **{totals['n_votable']}** "
         f"(ru {by_lang['ru']['n_votable']}, en {by_lang['en']['n_votable']})",
-        f"- tier-0: lineated {totals['det_lineated']}, prose {totals['det_prose']}, "
-        f"uncovered {totals['det_uncovered']}; mask-review {totals['n_mask_review']}; "
-        f"det-unjoined {totals['n_det_unjoined']}",
-        f"- uncovered overlap: {totals['n_uncovered_review']} review-masked; "
-        f"{totals['n_uncovered_unreviewed']} unmasked"
-        + (f" — {', '.join(uncovered_editions)}" if uncovered_editions else ""),
+        f"- body tier-0: lineated {totals['det_lineated']}, prose {totals['det_prose']}, "
+        f"uncovered {totals['det_uncovered']} "
+        f"(sum {body_tier0})",
+        "- body tier-0 gaps"
+        + (f": {', '.join(uncovered_editions)}" if uncovered_editions else ": none"),
+        f"- source/import diagnostics: importer-lost {totals['n_importer_lost']}"
+        + (f" — {', '.join(lost_editions)}" if lost_editions else "")
+        + f"; fold-unjoined {totals['n_fold_unjoined']}",
         f"- det-vs-student disagreement: prose-side {totals['disagree_prose']} "
         f"(the suspect slice core), lineated-side {totals['disagree_lineated']} (audit-only)",
         f"- EN envelope (5–95% ru band): {len(outliers)} of {n_en} en books outside"

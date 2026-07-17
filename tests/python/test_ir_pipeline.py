@@ -20,6 +20,7 @@ import pytest
 import pancratius.lower as lower
 from pancratius import (
     docx_conversion,
+    docx_source,
     ir,
 )
 from pancratius.content_catalog import IndexHit
@@ -211,11 +212,15 @@ def test_dialogue_multi_turn_paragraph_splits_on_hard_breaks() -> None:
     # H1: one Word paragraph packs several `**Speaker:**` turns separated by hard
     # breaks; each turn must become its own label + body, and a leading non-speaker
     # bold segment (a date) stays its own paragraph — not collapsed into a run-on.
+    coordinates = tuple(
+        docx_source.SourceLineCoordinate(docx_source.ParagraphOrdinal(38), sub)
+        for sub in range(3)
+    )
     para = ir.Paragraph(inlines=[
         ir.Emphasis("strong", [ir.Text("April 22, 2025")]), ir.LineBreak(),
         ir.Emphasis("strong", [ir.Text("Pankratius:")]), ir.Text(" Explain string theory."), ir.LineBreak(),
         ir.Emphasis("strong", [ir.Text("Svetozar:")]), ir.Text(" I will explain it simply."),
-    ])
+    ], source_span=ir.SourceProvenance.for_lines(coordinates))
     out = structure.dialogue_labels([para])
     kinds = [type(b).__name__ for b in out]
     assert kinds == ["Paragraph", "DialogueLabel", "Paragraph", "DialogueLabel", "Paragraph"]
@@ -224,6 +229,15 @@ def test_dialogue_multi_turn_paragraph_splits_on_hard_breaks() -> None:
     assert inline_plain(_para(out[2]).inlines) == "Explain string theory."
     assert isinstance(out[3], ir.DialogueLabel) and out[3].speaker == "Svetozar"
     assert inline_plain(_para(out[4]).inlines) == "I will explain it simply."
+    provenances = [block.source_span for block in out]
+    assert all(provenance is not None for provenance in provenances)
+    assert [provenance.lines for provenance in provenances if provenance is not None] == [
+        (coordinates[0],),
+        (coordinates[1],),
+        (coordinates[1],),
+        (coordinates[2],),
+        (coordinates[2],),
+    ]
 
 
 def test_dialogue_single_hard_break_segment_not_over_split() -> None:
@@ -238,6 +252,43 @@ def test_dialogue_single_hard_break_segment_not_over_split() -> None:
     assert isinstance(out[0], ir.DialogueLabel) and out[0].speaker == "Творец"
     # the body keeps both lines (single turn, not split into two turns)
     assert len([b for b in out if isinstance(b, ir.DialogueLabel)]) == 1
+
+
+def test_dialogue_inside_body_preserves_following_source_line() -> None:
+    coordinates = tuple(
+        docx_source.SourceLineCoordinate(docx_source.ParagraphOrdinal(277), sub)
+        for sub in range(3)
+    )
+    para = ir.Paragraph(inlines=[
+        ir.Emphasis("strong", [ir.Text("Светозар: Режим проводник.")]),
+        ir.LineBreak(),
+        ir.Emphasis("strong", [ir.Text("Оформление Свитка")]),
+        ir.LineBreak(),
+        ir.Emphasis("emph", [ir.Text("Евангелие Колеблющегося Света")]),
+    ], source_span=ir.SourceProvenance.for_lines(coordinates))
+
+    out = structure.dialogue_labels([para])
+
+    assert isinstance(out[0], ir.DialogueLabel)
+    assert out[0].source_span == ir.SourceProvenance.for_lines((coordinates[0],))
+    body = _para(out[1])
+    assert [inline_plain(line) for line in inline_lines(body.inlines, soft_break=False)] == [
+        "Режим проводник. Оформление Свитка",
+        "Евангелие Колеблющегося Света",
+    ]
+    assert body.source_span is not None
+    assert body.source_span.lines == coordinates
+    assert body.source_span.line_groups == (
+        (coordinates[0], coordinates[1]),
+        (coordinates[2],),
+    )
+
+    (folded,) = lineation.fold_lineation([body])
+    assert isinstance(folded, ir.LineatedBlock)
+    assert [line.span.lines for stanza in folded.stanzas for line in stanza if line.span] == [
+        (coordinates[0], coordinates[1]),
+        (coordinates[2],),
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -641,6 +692,12 @@ def test_merged_source_span_requires_complete_provenance() -> None:
         None,
         ir.SourceSpan(12, 12),
     ]) is None
+
+
+def test_source_provenance_rejects_line_coordinates_outside_its_slice() -> None:
+    coordinate = docx_source.SourceLineCoordinate(docx_source.ParagraphOrdinal(11), 0)
+    with pytest.raises(ValueError, match="paragraph slice disagrees"):
+        ir.SourceProvenance(10, 10, (coordinate,))
 
 
 def test_explicit_hard_break_lineation_survives_without_verse_register() -> None:

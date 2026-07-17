@@ -73,7 +73,9 @@ def _joined_truth() -> JoinedTruth:
 
 
 @cache
-def _baseline_decisions(lang: Locale, book_id: BookId) -> dict[int, bool]:
+def _baseline_decisions(
+    lang: Locale, book_id: BookId
+) -> dict[docx_source.SourceLineCoordinate, bool]:
     """The importer's own verdict, sidecar IGNORED — the diff baseline."""
     return docx_structure.fold_decisions(
         _source(lang, book_id),
@@ -86,7 +88,7 @@ def _baseline_decisions(lang: Locale, book_id: BookId) -> dict[int, bool]:
 @cache
 def _line_counts(lang: Locale, book_id: BookId) -> dict[int, int]:
     return {
-        int(paragraph.ordinal): sum(bool(line) for line in paragraph.content.line_segments)
+        int(paragraph.ordinal): len(paragraph.natural_lines)
         for paragraph in _source(lang, book_id).paragraphs
     }
 
@@ -141,11 +143,17 @@ def contradictions() -> tuple[
                 continue
             case UnanimousParagraphTruth(label=truth):
                 pass
-        hit = _baseline_decisions(lang, book_id).get(ordinal)
-        if hit is None:
+        decisions = _baseline_decisions(lang, book_id)
+        hits = [
+            decisions.get(
+                docx_source.SourceLineCoordinate(docx_source.ParagraphOrdinal(ordinal), sub)
+            )
+            for sub in range(expected)
+        ]
+        if any(hit is None for hit in hits):
             uncovered += 1
             continue
-        if ("lineated" if hit else "prose") != truth:
+        if any(("lineated" if hit else "prose") != truth for hit in hits):
             out[(lang, book_id)][ordinal] = truth
     for (lang, book_id, ordinal), by_sub in sorted(holdout.items()):
         expected = _line_counts(lang, book_id).get(ordinal, 0)
@@ -155,8 +163,16 @@ def contradictions() -> tuple[
         if not isinstance(reduced, UnanimousParagraphTruth):
             continue
         truth = reduced.label
-        hit = _baseline_decisions(lang, book_id).get(ordinal)
-        if hit is not None and ("lineated" if hit else "prose") != truth:
+        decisions = _baseline_decisions(lang, book_id)
+        hits = [
+            decisions.get(
+                docx_source.SourceLineCoordinate(docx_source.ParagraphOrdinal(ordinal), sub)
+            )
+            for sub in range(expected)
+        ]
+        if all(hit is not None for hit in hits) and any(
+            ("lineated" if hit else "prose") != truth for hit in hits
+        ):
             n_holdout += 1
     return dict(out), conflicts, incomplete, n_holdout, uncovered
 

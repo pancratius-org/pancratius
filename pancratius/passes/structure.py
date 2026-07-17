@@ -138,19 +138,66 @@ def fold_right_aligned(blocks: list[ir.Block]) -> list[ir.Block]:
 # ---------------------------------------------------------------------------
 
 
-def _leading_strong(inlines: list[ir.Inline]) -> tuple[ir.Emphasis | None, list[ir.Inline]]:
+def _leading_strong(
+    inlines: list[ir.Inline],
+) -> tuple[ir.Emphasis | None, list[ir.Inline], bool]:
     """If the paragraph opens with a `Strong` span, return it plus the trailing
-    inlines (dropping the leading break/space between them); else (None, inlines)."""
+    inlines and whether the transform collapsed a hard boundary between them.
+
+    The established dialogue display joins a leading `Speaker: body` span to the
+    next segment. The returned boundary fact lets provenance group the two source
+    coordinates without restoring that removed break.
+    """
     rest = list(inlines)
     while rest and isinstance(rest[0], (ir.SoftBreak, ir.LineBreak)):
         rest.pop(0)
     if rest and isinstance(rest[0], ir.Emphasis) and rest[0].kind == "strong":
         head = rest[0]
         tail = rest[1:]
+        collapsed_hard = False
         while tail and isinstance(tail[0], (ir.SoftBreak, ir.LineBreak)):
-            tail.pop(0)
-        return head, tail
-    return None, inlines
+            collapsed_hard = collapsed_hard or isinstance(tail.pop(0), ir.LineBreak)
+        return head, tail, collapsed_hard
+    return None, inlines, False
+
+
+def _first_line_provenance(
+    provenance: ir.SourceProvenance | None,
+) -> ir.SourceProvenance | None:
+    if provenance is None or not provenance.lines:
+        return provenance
+    return ir.SourceProvenance.for_line_group(provenance.line_groups[0])
+
+
+def _after_label_boundary(
+    tail: list[ir.Inline],
+    provenance: ir.SourceProvenance | None,
+    *,
+    crossed_hard: bool,
+) -> tuple[list[ir.Inline], ir.SourceProvenance | None]:
+    """Remove the presentation boundary after a bare label and project its body.
+
+    A hard boundary advances the body to the next exact source line. A soft break
+    is wrapping, so label and body still share the same source-line coordinate.
+    """
+    if crossed_hard and provenance is not None and provenance.lines:
+        remaining = provenance.line_groups[1:]
+        exact = tuple(line for group in remaining for line in group)
+        return tail, ir.SourceProvenance.for_lines(exact).regroup(remaining) if exact else None
+    return tail, provenance
+
+
+def _collapse_first_line_boundary(
+    provenance: ir.SourceProvenance | None,
+    *,
+    collapsed_hard: bool,
+) -> ir.SourceProvenance | None:
+    if not collapsed_hard or provenance is None or not provenance.lines:
+        return provenance
+    if len(provenance.line_groups) < 2:
+        raise ValueError("dialogue collapsed a source boundary without two line groups")
+    first = (*provenance.line_groups[0], *provenance.line_groups[1])
+    return provenance.regroup((first, *provenance.line_groups[2:]))
 
 
 def _hard_break_segments(inlines: list[ir.Inline]) -> list[list[ir.Inline]]:
@@ -166,6 +213,23 @@ def _hard_break_segments(inlines: list[ir.Inline]) -> list[list[ir.Inline]]:
     return [s for s in segs if s]
 
 
+def _segment_provenance(
+    provenance: ir.SourceProvenance | None,
+    count: int,
+) -> tuple[ir.SourceProvenance | None, ...]:
+    if provenance is None or not provenance.lines:
+        return (provenance,) * count
+    if len(provenance.line_groups) != count:
+        raise ValueError(
+            f"hard-break segments ({count}) disagree with exact source lines "
+            f"({len(provenance.line_groups)})"
+        )
+    return tuple(
+        ir.SourceProvenance.for_line_group(group)
+        for group in provenance.line_groups
+    )
+
+
 def _emit_dialogue_segment(
     inlines: list[ir.Inline],
     re_inside: re.Pattern[str],
@@ -178,15 +242,16 @@ def _emit_dialogue_segment(
     with a `Strong("Speaker:")`, else `None` (the caller keeps it as-is). Covers all
     three corpus shapes: whole-paragraph `Strong("Speaker: body")`, bare
     `Strong("Speaker:")`, and `Strong("Speaker:")` then trailing prose inlines."""
-    head, tail = _leading_strong(inlines)
+    head, tail, collapsed_hard = _leading_strong(inlines)
     if head is None:
         return None
     head_txt = inline_plain(head.children)
+    label_span = _first_line_provenance(source_span)
     if not tail:
         m = re_inside.match(head_txt)
         if m:
             blocks: list[ir.Block] = [
-                ir.DialogueLabel(speaker=m.group(1), source_span=source_span)
+                ir.DialogueLabel(speaker=m.group(1), source_span=label_span)
             ]
             body = m.group(2).strip()
             if re.search(r"[\wЀ-ӿ]", body):
@@ -194,15 +259,18 @@ def _emit_dialogue_segment(
             return blocks
         lm = re_label.match(head_txt)
         if lm:
-            return [ir.DialogueLabel(speaker=lm.group(1), source_span=source_span)]
+            return [ir.DialogueLabel(speaker=lm.group(1), source_span=label_span)]
         return None
     m = re_label.match(head_txt)
     if m:
         out: list[ir.Block] = [
-            ir.DialogueLabel(speaker=m.group(1), source_span=source_span)
+            ir.DialogueLabel(speaker=m.group(1), source_span=label_span)
         ]
-        if tail:
-            out.append(ir.Paragraph(inlines=tail, source_span=source_span))
+        body, body_span = _after_label_boundary(
+            tail, source_span, crossed_hard=collapsed_hard
+        )
+        if body:
+            out.append(ir.Paragraph(inlines=body, source_span=body_span))
         return out
     m = re_inside.match(head_txt)
     if m:
@@ -213,8 +281,13 @@ def _emit_dialogue_segment(
         joiner = "" if head_body and head_body[-1] in "«“„([{‹" else " "
         body_inlines: list[ir.Inline] = [ir.Text(head_body + joiner), *tail]
         return [
-            ir.DialogueLabel(speaker=m.group(1), source_span=source_span),
-            ir.Paragraph(inlines=body_inlines, source_span=source_span),
+            ir.DialogueLabel(speaker=m.group(1), source_span=label_span),
+            ir.Paragraph(
+                inlines=body_inlines,
+                source_span=_collapse_first_line_boundary(
+                    source_span, collapsed_hard=collapsed_hard
+                ),
+            ),
         ]
     return None
 
@@ -237,7 +310,7 @@ def dialogue_labels(blocks: list[ir.Block]) -> list[ir.Block]:
     re_label = re.compile(rf"^({inner})\s*:?\s*$")
 
     def opens_with_speaker(seg: list[ir.Inline]) -> bool:
-        head, _tail = _leading_strong(seg)
+        head, _tail, _collapsed_hard = _leading_strong(seg)
         if head is None:
             return False
         txt = inline_plain(head.children)
@@ -252,12 +325,13 @@ def dialogue_labels(blocks: list[ir.Block]) -> list[ir.Block]:
         # non-speaker segment (e.g. a leading date) stays its own paragraph.
         segments = _hard_break_segments(b.inlines)
         if len(segments) > 1 and sum(opens_with_speaker(s) for s in segments) >= 2:
-            for seg in segments:
-                emitted = _emit_dialogue_segment(seg, re_inside, re_label, b.source_span)
+            provenances = _segment_provenance(b.source_span, len(segments))
+            for seg, provenance in zip(segments, provenances, strict=True):
+                emitted = _emit_dialogue_segment(seg, re_inside, re_label, provenance)
                 if emitted is not None:
                     out.extend(emitted)
                 else:
-                    out.append(ir.Paragraph(inlines=seg, source_span=b.source_span))
+                    out.append(ir.Paragraph(inlines=seg, source_span=provenance))
             continue
         emitted = _emit_dialogue_segment(b.inlines, re_inside, re_label, b.source_span)
         if emitted is not None:

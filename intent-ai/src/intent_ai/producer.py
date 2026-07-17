@@ -94,12 +94,11 @@ def read_lines(docx: Path, lang: Locale, book_id: BookId) -> list[LineRecord]:
 @dataclass(frozen=True, slots=True)
 class _LineSlot:
     para: source_view.Para
-    sub: int
     line: source_view.Line
 
     @property
     def is_body_line(self) -> bool:
-        return self.para.role.is_body
+        return self.line.disposition.contributes_to_body_model
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,7 +121,7 @@ def _slots(paras: list[source_view.Para]) -> list[_Slot]:
         if previous_segment is not None and segment != previous_segment:
             out.append(_StructuralSlot())
         if p.lines:
-            out.extend(_LineSlot(p, sub, line) for sub, line in enumerate(p.lines))
+            out.extend(_LineSlot(p, line) for line in p.lines)
         else:
             out.append(_StructuralSlot())
         previous_segment = segment
@@ -150,10 +149,18 @@ def project_records(
     paras = list(source_view.read_view(observation))
 
     # within-book references (on BODY lines only).
-    body_paras = [p for p in paras if p.role.is_body]
+    body_paras = [
+        p for p in paras
+        if any(line.disposition.contributes_to_body_model for line in p.lines)
+    ]
     aligns = [p.source.layout.alignment for p in body_paras]
     default_align = Counter(aligns).most_common(1)[0][0] if aligns else Align.LEFT
-    body_fills = sorted(ln.fill for p in body_paras for ln in p.lines) or [0.0]
+    body_fills = sorted(
+        line.fill
+        for paragraph in body_paras
+        for line in paragraph.lines
+        if line.disposition.contributes_to_body_model
+    ) or [0.0]
     sp_after = [p.source.layout.spacing_after.value for p in body_paras]
     med_sp_after = median(sp_after) if sp_after else 0
     n_indent_books = sum(
@@ -193,8 +200,9 @@ def project_records(
     for k, slot in enumerate(flat):
         if isinstance(slot, _StructuralSlot):
             continue
-        p, li, ln = slot.para, slot.sub, slot.line
-        role = p.role
+        p, ln = slot.para, slot.line
+        li = ln.coordinate.sub
+        disposition = ln.disposition
         src_ord = int(p.source.ordinal)
         # The next content line is a lexical feature; run boundaries derive from run_pos/run_len.
         next_slot = flat[k + 1] if k + 1 < n else None
@@ -239,7 +247,7 @@ def project_records(
 
         lid = identity.LineId.mapped(observation.lang, book_id, src_ord, li)
         out.append(LineRecord(
-            id=lid, text=ln.text, role=role, features=feats,
+            id=lid, text=ln.text, disposition=disposition, features=feats,
             line_text_hash=identity.text_hash(ln.text),
         ))
     return out
@@ -311,15 +319,14 @@ def render_listing(records_in: list[LineRecord], *, keys: Mapping[LineId, Listin
     lines: list[str] = []
     for r in records_in:
         if not r.votable:
-            lines.append(f"  ---- [{r.role.value}]" + (f" {r.text[:60]}" if r.text else ""))
+            lines.append(f"  ---- [{r.disposition.value}]" + (f" {r.text[:60]}" if r.text else ""))
             continue
         key = keys.get(r.id, "·")            # absent ⇒ a context body line, no vote key
-        flag = "  (review)" if r.requires_review else ""
         if with_features:
-            lines.append(f"  {key}  [{_feature_tokens(r.features)}] {r.text}{flag}")
+            lines.append(f"  {key}  [{_feature_tokens(r.features)}] {r.text}")
         else:
             w = "WRAPS " if r.features.wraps else "nowrap"
-            lines.append(f"  {key}  {w} | {r.text}{flag}")
+            lines.append(f"  {key}  {w} | {r.text}")
     return "\n".join(lines)
 
 

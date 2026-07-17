@@ -15,7 +15,7 @@ from intent_ai.records import (
     IndentVsBook,
     LineFeatures,
     LineRecord,
-    Role,
+    RecordDisposition,
     SpacingVsBook,
     feature_field_names,
 )
@@ -36,7 +36,7 @@ def _feat(**over):
 def _rec(lang="ru", book="64", ordn=10, sub=0, text="Hello world."):
     return LineRecord(
         id=LineId(lang, book, ordn, sub), text=text,
-        role=Role.BODY, features=_feat(), line_text_hash=identity.text_hash(text),
+        disposition=RecordDisposition.BODY, features=_feat(), line_text_hash=identity.text_hash(text),
     )
 
 
@@ -118,7 +118,7 @@ def test_record_rejects_stale_hash_and_sub_index() -> None:
         LineRecord(
             id=LineId("ru", "64", 1, 0),
             text="truth",
-            role=Role.BODY,
+            disposition=RecordDisposition.BODY,
             features=_feat(),
             line_text_hash=identity.text_hash("other"),
         )
@@ -126,7 +126,7 @@ def test_record_rejects_stale_hash_and_sub_index() -> None:
         LineRecord(
             id=LineId("ru", "64", 1, 1),
             text="truth",
-            role=Role.BODY,
+            disposition=RecordDisposition.BODY,
             features=_feat(),
             line_text_hash=identity.text_hash("truth"),
         )

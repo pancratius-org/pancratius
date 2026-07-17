@@ -147,6 +147,24 @@ def _block_lines(p: ir.Paragraph) -> list[list[ir.Inline]]:
     return [ln for ln in inline_lines(p.inlines, soft_break=False) if inline_plain(ln)]
 
 
+def _lines_with_provenance(
+    paragraph: ir.Paragraph,
+) -> list[tuple[list[ir.Inline], ir.SourceProvenance | None]]:
+    lines = _block_lines(paragraph)
+    provenance = paragraph.source_span
+    if provenance is None or not provenance.lines:
+        return [(line, provenance) for line in lines]
+    if len(lines) != len(provenance.line_groups):
+        raise ValueError(
+            f"display lines ({len(lines)}) disagree with exact source lines "
+            f"({len(provenance.line_groups)})"
+        )
+    return [
+        (line, ir.SourceProvenance.for_line_group(group))
+        for line, group in zip(lines, provenance.line_groups, strict=True)
+    ]
+
+
 def _all_lines(paras: list[ir.Paragraph]) -> list[str]:
     return [inline_plain(ln) for p in paras for ln in _block_lines(p)]
 
@@ -539,7 +557,9 @@ def _fuse_numbered_run(
     stanza of `Line`s between the two folds' stanzas, the span recomputes, and the
     evidence carries inferred-source-rows (the repair's own provenance)."""
     bridge_stanza: ir.Stanza = [
-        ir.Line(ln, span=p.source_span) for p in bridge for ln in _block_lines(p)
+        ir.Line(line, span=provenance)
+        for paragraph in bridge
+        for line, provenance in _lines_with_provenance(paragraph)
     ]
     # The merged run carries both folds' provenance, plus inferred-source-rows —
     # this repair asserts the bridge rows ARE source lineation.
@@ -1051,8 +1071,8 @@ def _build_lineated(
         if p.empty:
             flush()
             continue
-        for ln in _block_lines(p):
-            current.append(ir.Line(ln, span=p.source_span))
+        for line, provenance in _lines_with_provenance(p):
+            current.append(ir.Line(line, span=provenance))
     flush()
     return ir.LineatedBlock(
         stanzas=stanzas,

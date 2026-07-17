@@ -12,11 +12,13 @@ from typing import assert_never
 from pancratius import docx_source, docx_structure
 
 from . import physics
-from .records import Role
+from .records import RecordDisposition
 
 
 @dataclass(frozen=True, slots=True)
 class Line:
+    coordinate: docx_source.SourceLineCoordinate
+    disposition: RecordDisposition
     text: str
     fill: float
     wraps: bool
@@ -24,10 +26,9 @@ class Line:
 
 @dataclass(frozen=True, slots=True)
 class Para:
-    """One source paragraph with an intent role and derived natural lines."""
+    """One source paragraph with its derived, independently scoped natural lines."""
 
     source: docx_source.SourceParagraph
-    role: Role
     lines: tuple[Line, ...] = ()
 
     @property
@@ -35,27 +36,29 @@ class Para:
         return self.source.text
 
 
-def _role(
-    observation: docx_structure.ParagraphObservation,
-) -> Role:
-    match observation:
-        case docx_structure.BodyParagraph():
-            return Role.BODY
-        case docx_structure.ReviewParagraph():
-            return Role.BODY_REVIEW
-        case docx_structure.ContextParagraph(role=role):
-            match role:
-                case docx_structure.ContextRole.HEADING:
-                    return Role.HEADING
-                case docx_structure.ContextRole.LIST:
-                    return Role.LIST
-                case docx_structure.ContextRole.THEMATIC:
-                    return Role.THEMATIC
-                case docx_structure.ContextRole.CONTEXT:
-                    return Role.CONTEXT
-            raise ValueError(f"unsupported source context role {role!r}")
-        case unsupported:
-            assert_never(unsupported)
+def _disposition(observation: docx_structure.SourceLineObservation) -> RecordDisposition:
+    """THE research-scope table: which compiler classification is a lineation
+    candidate.
+
+    Quote members are in scope: the importer makes real fold decisions inside
+    quotes (scripture/inset verse) and those ship — flip the QUOTE line to
+    exclude them from the corpus."""
+    kind = docx_structure.CompilerBlockKind
+    if observation.is_body_kind:
+        match observation.enclosure:
+            case None | kind.QUOTE:
+                return RecordDisposition.BODY
+            case kind.LIST:
+                return RecordDisposition.LIST
+    match observation.kind:
+        case kind.HEADING:
+            return RecordDisposition.HEADING
+        case kind.THEMATIC:
+            return RecordDisposition.THEMATIC
+        case kind.LIST:
+            return RecordDisposition.LIST
+        case _:
+            return RecordDisposition.CONTEXT
 
 
 def read_view(
@@ -63,17 +66,18 @@ def read_view(
 ) -> tuple[Para, ...]:
     """Project one already-hydrated source document into intent paragraphs."""
     out: list[Para] = []
-    by_ordinal = observation.by_ordinal
+    by_line = observation.by_line
+    lost = observation.lost
     geom = physics.page_geom(observation.source.layout)
     for paragraph in observation.source.paragraphs:
         match paragraph.disposition:
             case docx_source.ParagraphDisposition.PAGINATION_ONLY:
                 continue
             case docx_source.ParagraphDisposition.STRUCTURAL_EMPTY:
-                out.append(Para(source=paragraph, role=Role.CONTEXT))
+                out.append(Para(source=paragraph))
                 continue
             case docx_source.ParagraphDisposition.NON_TEXT:
-                out.append(Para(source=paragraph, role=Role.CONTEXT))
+                out.append(Para(source=paragraph))
                 continue
             case docx_source.ParagraphDisposition.CONTENT:
                 pass
@@ -81,16 +85,21 @@ def read_view(
                 assert_never(unsupported)
 
         lines = tuple(
-            Line(text=text, fill=stat.fill, wraps=stat.wraps)
-            for segment in paragraph.content.line_segments
-            if (text := segment)
-            for stat in (physics.wrap_stat(text, geom),)
-        )
-        out.append(
-            Para(
-                source=paragraph,
-                role=_role(by_ordinal[paragraph.ordinal]),
-                lines=lines,
+            Line(
+                coordinate=source_line.coordinate,
+                disposition=(
+                    RecordDisposition.LOST
+                    if int(paragraph.ordinal) in lost
+                    else _disposition(by_line[source_line.coordinate])
+                    if source_line.coordinate in by_line
+                    else RecordDisposition.CONTEXT
+                ),
+                text=source_line.text,
+                fill=stat.fill,
+                wraps=stat.wraps,
             )
+            for source_line in paragraph.natural_lines
+            for stat in (physics.wrap_stat(source_line.text, geom),)
         )
+        out.append(Para(source=paragraph, lines=lines))
     return tuple(out)

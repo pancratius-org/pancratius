@@ -9,7 +9,7 @@ from intent_ai.records import (
     IndentVsBook,
     LineFeatures,
     LineRecord,
-    Role,
+    RecordDisposition,
     SpacingVsBook,
 )
 
@@ -61,7 +61,7 @@ def sample_records(
                 LineRecord(
                     id=LineId.mapped(lang, book, ordinal, 0),
                     text=text,
-                    role=Role.BODY,
+                    disposition=RecordDisposition.BODY,
                     features=features,
                     line_text_hash=identity.text_hash(text),
                 )

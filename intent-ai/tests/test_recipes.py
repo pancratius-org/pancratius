@@ -193,7 +193,7 @@ def test_build_vision_render_missing_a_composite_fails_loud(tmp_path):
 
 def test_tile_distant_runs_become_separate_regions():
     recs = sample_records(run_lengths=(4, 10, 4))
-    recs[4:14] = [dataclasses.replace(record, role=records.Role.CONTEXT) for record in recs[4:14]]
+    recs[4:14] = [dataclasses.replace(record, disposition=records.RecordDisposition.CONTEXT) for record in recs[4:14]]
     rns = [run for run in records.runs(recs) if any(recs[i].votable for i in run)]
     far = next((run for run in rns[1:] if run[0] - rns[0][-1] - 1 > 8), None)
     assert far is not None                                     # the book has a run > max_gap away

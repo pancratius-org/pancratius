@@ -11,7 +11,11 @@ LineId(language, book_id, source_ordinal, sub)
 ```
 
 `source_ordinal` is the canonical `w:p` ordinal. `sub` is the natural-line index within that
-paragraph. `LineId` can represent only active canonical identities; `LegacyLineId` is a distinct
+paragraph. The compiler projects fold fate on this same coordinate; sibling lines do not inherit
+one paragraph-level verdict. Structural scope reduces on the same coordinate: label+body
+co-claims remain body, while label-only coordinates remain context and never enter the lineation
+vote. A surviving display line may carry several ordered coordinates when a named compiler
+transform removes their boundary. `LineId` can represent only active canonical identities; `LegacyLineId` is a distinct
 type used only by migration lineage and historical manifests.
 
 ## Canonical record

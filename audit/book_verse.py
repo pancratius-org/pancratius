@@ -218,7 +218,7 @@ def source_units(docx: Path) -> list[SourceUnit]:
     source = docx_source.read(docx)
     with tempfile.TemporaryDirectory(prefix="book-verse-") as temp_dir:
         ast, _ = docx_pandoc.run_json(source, Path(temp_dir))
-    blocks = ast.get("blocks") or []
+    blocks = docx_pandoc.strip_source_anchors(ast.get("blocks") or [])
     units: list[SourceUnit] = []
     for block in blocks:
         t = block.get("t")

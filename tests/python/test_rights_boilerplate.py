@@ -180,7 +180,9 @@ def test_adapter_removes_one_atomic_styled_notice(
 
     assert tuple(removal.ordinal.value for removal in plan.removals) == (0,)
     assert isinstance(adapted.blocks[0], block_type)
-    assert adapted.blocks[0].source_span == ir.SourceSpan(0, 0)
+    assert adapted.blocks[0].source_span == ir.SourceProvenance.for_lines((
+        docx_source.SourceLineCoordinate(docx_source.ParagraphOrdinal(0), 0),
+    ))
     assert scrub_rights(adapted.blocks, plan) == adapted.blocks[1:]
 
 
