@@ -24,7 +24,12 @@ from pancratius.translation.text.cache import BriefCacheEntry, CacheEntry, Trans
 from pancratius.translation.text.checks import Finding, Severity, check_translation
 from pancratius.translation.text.chunker import Chunk, plan_chunks
 from pancratius.translation.text.client import ModelPricing, TranslatorClient, Usage
-from pancratius.translation.text.config import ModelId, TranslateConfig
+from pancratius.translation.text.config import (
+    MAX_OUTPUT_TOKENS,
+    ModelId,
+    TranslateConfig,
+    reasoning_budget,
+)
 from pancratius.translation.text.diagnostics import (
     Seam,
     audit_book,
@@ -64,7 +69,6 @@ type Frontmatter = dict[str, Any]
 
 logger = logging.getLogger(__name__)
 
-_MAX_OUTPUT_TOKENS = 16000
 _REFERENCE_OVERHEAD = 1.02  # plain-text reference: just newlines around the source
 
 
@@ -164,15 +168,13 @@ def _max_tokens_for(chunk: Chunk, config: TranslateConfig) -> int:
     # generous. Undersizing truncates the JSON reply and silently drops units; over-
     # sizing costs nothing. Budget covers the translations plus per-unit JSON framing.
     translation = config.estimate_output_tokens(chunk.source_tokens)
-    return min(round(translation * 2) + len(chunk.unit_ids) * 30 + 1024, _MAX_OUTPUT_TOKENS)
+    return min(round(translation * 2) + len(chunk.unit_ids) * 30 + 1024, MAX_OUTPUT_TOKENS)
 
 
 def _revise_reasoning_budget(config: TranslateConfig, max_tokens: int) -> int:
-    """Cap the revise critic's hidden reasoning, but never let that cap eat the
-    whole completion: ``max_tokens`` covers reasoning AND visible content, so on a
-    small chunk a fixed 3k cap would starve the reply to empty (the ds-flash
-    runaway). Reserve at least half the budget for the actual revised units."""
-    return min(config.revise_reasoning_tokens, max_tokens // 2)
+    """The revise critic's slice of `reasoning_budget`: on a small chunk a fixed 3k
+    cap would starve the reply to empty."""
+    return reasoning_budget(config.revise_reasoning_tokens, max_tokens)
 
 
 @dataclass(frozen=True, slots=True)
@@ -644,7 +646,7 @@ def _reconcile_seams(
 def _max_tokens_for_units(units: Sequence[TextUnit], config: TranslateConfig) -> int:
     """``max_tokens`` for an ad-hoc unit window (the seam pass has no Chunk)."""
     source_tokens = config.estimate_source_tokens(sum(len(u.source) for u in units))
-    return min(round(config.estimate_output_tokens(source_tokens) * 2) + len(units) * 30 + 1024, _MAX_OUTPUT_TOKENS)
+    return min(round(config.estimate_output_tokens(source_tokens) * 2) + len(units) * 30 + 1024, MAX_OUTPUT_TOKENS)
 
 
 def _profile_to_json(profile: BookProfile) -> str:

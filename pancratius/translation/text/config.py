@@ -88,6 +88,9 @@ class TranslateConfig:
     # Cap the revise critic's hidden reasoning so it can't spend the whole reply
     # budget thinking and return empty content.
     revise_reasoning_tokens: int = 3000
+    # The same cap for the brief pre-pass, whose prompt (the whole book plus the
+    # corpus title precedents) provokes the longest chain of any stage.
+    profile_reasoning_tokens: int = 2000
 
     # Re-draft a chunk while any unit is still blank, up to this many attempts.
     # ds-flash occasionally returns malformed JSON for a dense chunk; each attempt
@@ -95,6 +98,14 @@ class TranslateConfig:
     # book's completion odds at no cost to healthy chunks (which finish on the
     # first). A still-incomplete chunk after this surfaces as a critical check.
     draft_attempts: int = 4
+
+    # Rebuild the brief while its reply is unparseable, up to this many attempts.
+    # Same ds-flash flakiness as `draft_attempts`, but the brief is not merely an
+    # aid: it carries the English title and description en.md publishes, and it
+    # rides along with every chunk to hold terminology steady. A degraded brief
+    # therefore ships a Russian title on an English page and lets terms drift, so
+    # the stage retries and then fails the book rather than settling for one.
+    profile_attempts: int = 3
 
     # Estimation ratios (corpus-measured, o200k proxy).
     source_chars_per_token: float = 3.09
@@ -109,3 +120,20 @@ class TranslateConfig:
 
     def estimate_output_tokens(self, source_tokens: int) -> int:
         return round(source_tokens * self.output_ratio)
+
+
+# The most any one reply may generate. `max_tokens` is a ceiling, not a spend —
+# you pay for tokens actually generated — so stages size their budget generously
+# against it: undersizing truncates a reply mid-JSON, oversizing costs nothing.
+MAX_OUTPUT_TOKENS = 16000
+
+
+def reasoning_budget(cap: int, max_tokens: int) -> int:
+    """Cap a stage's hidden reasoning without letting the cap eat the completion.
+
+    ``max_tokens`` covers reasoning AND visible content, so an uncapped or greedy
+    chain leaves nothing for the reply and the model returns empty text (the
+    ds-flash runaway). Reserve at least half the budget for the reply itself.
+    Every reasoning-model call goes through here, so a new stage cannot miss it.
+    """
+    return min(cap, max_tokens // 2)

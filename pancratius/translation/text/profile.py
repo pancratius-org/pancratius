@@ -25,11 +25,26 @@ import yaml
 
 from pancratius.content_catalog import CatalogEntry
 from pancratius.translation.text.client import TranslatorClient, Usage
-from pancratius.translation.text.config import TranslateConfig
+from pancratius.translation.text.config import (
+    MAX_OUTPUT_TOKENS,
+    TranslateConfig,
+    reasoning_budget,
+)
 from pancratius.translation.text.prompts import TermEntry, TitlePrecedent, profile_messages
 from pancratius.translation.text.schema import profile_format
 
 logger = logging.getLogger(__name__)
+
+# The brief is one call per book and its termbase grows with the book: the corpus's
+# second-largest needs ~7k tokens for 98 terms. Take the house ceiling — a bigger
+# book must not silently lose terms off the end of a tighter budget.
+_PROFILE_MAX_TOKENS = MAX_OUTPUT_TOKENS
+
+
+class ProfileError(RuntimeError):
+    """The brief could not be built, so this book has no English title,
+    description, or termbase to translate against."""
+
 
 # A model's structured brief reply, parsed from JSON: untrusted, read defensively
 # field by field (the readers below tolerate any missing or mistyped field).
@@ -144,29 +159,47 @@ def build_profile(
         source_text=source_text,
         title_precedents=title_precedents,
     )
-    max_tokens = 4096
-    completion = client.complete(
-        model=config.models.profile,
-        messages=messages,
-        temperature=config.draft_temperature,
-        max_tokens=max_tokens,
-        response_format=profile_format(),
+    usage = Usage.empty()
+    for attempt in range(config.profile_attempts):
+        completion = client.complete(
+            model=config.models.profile,
+            messages=messages,
+            temperature=config.draft_temperature,
+            max_tokens=_PROFILE_MAX_TOKENS,
+            response_format=profile_format(),
+            reasoning_max_tokens=reasoning_budget(
+                config.profile_reasoning_tokens, _PROFILE_MAX_TOKENS
+            ),
+        )
+        usage += completion.usage
+        data = _reply_object(completion.text)
+        if data is not None:
+            profile = _profile_from_json(
+                data, fallback_title=title_ru, fallback_desc=description_ru
+            )
+            return ProfileResult(profile=profile, usage=usage)
+        logger.warning(
+            "profile brief %s for %r (attempt %d/%d, %s); retrying",
+            "hit the token ceiling" if completion.truncated else "reply was unparseable",
+            title_ru[:40], attempt + 1, config.profile_attempts, config.models.profile,
+        )
+    raise ProfileError(
+        f"could not build a brief for {title_ru!r} after {config.profile_attempts} attempts: "
+        f"{config.models.profile} never returned a parseable reply"
     )
+
+
+def _reply_object(text: str) -> ProfileReply | None:
+    """The reply as an object, or None when even a lenient read cannot find one.
+    The schema makes a well-formed object the norm; a stray prose wrapper is still
+    salvageable, anything else is a failed attempt."""
     try:
-        data = json.loads(completion.text)
+        return json.loads(text)
     except json.JSONDecodeError:
-        # The schema makes a valid object the norm; tolerate a stray prose wrapper,
-        # and if even that fails, degrade to a minimal brief rather than failing the
-        # whole book — the brief is an aid, not a hard requirement.
         try:
-            data = _lenient_object(completion.text)
+            return _lenient_object(text)
         except (json.JSONDecodeError, ValueError):
-            logger.warning("profile JSON unparseable for %r; using a minimal brief", title_ru[:40])
-            data = {}
-    profile = _profile_from_json(
-        data, fallback_title=title_ru, fallback_desc=description_ru
-    )
-    return ProfileResult(profile=profile, usage=completion.usage)
+            return None
 
 
 def _lenient_object(text: str) -> ProfileReply:

@@ -13,7 +13,13 @@ import pytest
 
 from pancratius.content_catalog import read_frontmatter, scan_catalog
 from pancratius.translation.text.chunker import plan_chunks
-from pancratius.translation.text.client import ChatMessage, Completion, ModelPricing, Usage
+from pancratius.translation.text.client import (
+    ChatMessage,
+    Completion,
+    ModelPricing,
+    TranslatorClient,
+    Usage,
+)
 from pancratius.translation.text.config import TranslateConfig
 from pancratius.translation.text.document import parse_document
 from pancratius.translation.text.pipeline import (
@@ -24,6 +30,7 @@ from pancratius.translation.text.pipeline import (
     find_untranslated,
     translate_book,
 )
+from pancratius.translation.text.profile import BookProfile, ProfileError, build_profile
 
 _RU = """\
 ---
@@ -201,6 +208,82 @@ def test_draft_chunk_keeps_good_partial_when_retry_is_unparseable() -> None:
 
     drafted = _draft_chunk(_GarbageSecond(), TranslateConfig(), brief="b", document=doc, chunk=chunk)
     assert drafted.translations.get(a) == "Light."
+
+
+class _RawReplyClient:
+    """Returns scripted raw reply text per ``complete`` call, so an attempt can be
+    malformed in ways a JSON-encoding stub could not produce."""
+
+    def __init__(self, replies: Sequence[str]) -> None:
+        self._replies = list(replies)
+        self._call = 0
+
+    def fetch_pricing(self, model: str) -> ModelPricing:
+        raise NotImplementedError
+
+    def complete(self, *, model: str, **_: object) -> Completion:
+        text = self._replies[min(self._call, len(self._replies) - 1)]
+        self._call += 1
+        return Completion(text=text, usage=Usage(1, 1, 0, 0.0), model=model)
+
+
+_BRIEF_REPLY = json.dumps(
+    {
+        "title_en": "The Book of Light",
+        "description_en": "A short description.",
+        "summary": "s",
+        "register": "r",
+        "personas": [],
+        "terms": [],
+        "recurring": [],
+    }
+)
+
+
+def _build_brief(client: TranslatorClient, attempts: int = 3) -> BookProfile:
+    return build_profile(
+        client,
+        TranslateConfig(profile_attempts=attempts),
+        title_ru="Книга Света",
+        description_ru="Краткое описание.",
+        tags_ru=(),
+        source_text="Свет.",
+        title_precedents=(),
+    ).profile
+
+
+def test_profile_retries_until_the_reply_parses() -> None:
+    # ds-flash returns malformed JSON for the brief the same way it does for a
+    # dense draft chunk; one bad reply must not decide the book's English title.
+    profile = _build_brief(_RawReplyClient(["not json at all", _BRIEF_REPLY]))
+    assert profile.title_en == "The Book of Light"
+
+
+def test_profile_caps_reasoning_so_the_brief_reply_is_never_starved() -> None:
+    # The real ds-flash runaway: with no cap the brief's prompt (whole book + 360
+    # corpus title precedents) burned every token on hidden reasoning and returned
+    # empty content, which then read as "unparseable" and degraded to a RU title.
+    seen: dict[str, object] = {}
+
+    class _Recording(_RawReplyClient):
+        def complete(self, *, model: str, **kw: object) -> Completion:
+            seen.update(kw)
+            return super().complete(model=model, **kw)
+
+    _build_brief(_Recording([_BRIEF_REPLY]))
+    reasoning = seen["reasoning_max_tokens"]
+    max_tokens = seen["max_tokens"]
+    assert isinstance(reasoning, int) and isinstance(max_tokens, int)
+    assert 0 < reasoning <= max_tokens // 2
+
+
+def test_profile_fails_rather_than_publishing_the_russian_title() -> None:
+    # Exhausted attempts used to degrade to a brief whose title/description fell
+    # back to the RU source — publishing Cyrillic on the English page, and letting
+    # terms drift book-wide. Fail instead: drafted chunks are cached, so re-running
+    # the book costs almost nothing.
+    with pytest.raises(ProfileError):
+        _build_brief(_RawReplyClient(["not json at all"]))
 
 
 @pytest.mark.parametrize(
