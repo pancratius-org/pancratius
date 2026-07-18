@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
 from typing import assert_never
@@ -49,22 +48,10 @@ def _font(size_pt: float) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(str(_FONT_FILE), int(round(size_pt * _PX_PER_PT)))
 
 
-class GeometryBasis(StrEnum):
-    OBSERVED = "observed"
-    RESEARCH_FALLBACK = "research_fallback"
-
-
-class FontMetricsBasis(StrEnum):
-    SURROGATE_LIBERATION_SERIF = "surrogate_liberation_serif"
-
-
 @dataclass(frozen=True)
 class PageGeom:
     col_pt: float          # reading-column width in points
     size_pt: float         # body font size in points
-    column_basis: GeometryBasis
-    font_size_basis: GeometryBasis
-    font_metrics_basis: FontMetricsBasis = FontMetricsBasis.SURROGATE_LIBERATION_SERIF
 
     def __post_init__(self) -> None:
         if self.col_pt <= 0.0 or self.size_pt <= 0.0:
@@ -76,10 +63,8 @@ def page_geom(layout: docx_source.DocumentLayout) -> PageGeom:
     match layout.column_width:
         case docx_source.ObservedColumnWidth(width=width):
             column_twips = width.value
-            column_basis = GeometryBasis.OBSERVED
         case docx_source.GeometryUnavailable():
             column_twips = _FALLBACK_COLUMN_TWIPS
-            column_basis = GeometryBasis.RESEARCH_FALLBACK
         case docx_source.HeterogeneousColumnWidths(widths=widths):
             values = ", ".join(str(width.value) for width in widths)
             raise ValueError(
@@ -96,18 +81,12 @@ def page_geom(layout: docx_source.DocumentLayout) -> PageGeom:
             assert_never(unsupported)
     match layout.default_font_size:
         case docx_source.ObservedFontSize(half_points=half_points):
-            font_size_basis = GeometryBasis.OBSERVED
+            pass
         case docx_source.GeometryUnavailable():
             half_points = _FALLBACK_FONT_HALF_POINTS
-            font_size_basis = GeometryBasis.RESEARCH_FALLBACK
         case unsupported:
             assert_never(unsupported)
-    return PageGeom(
-        col_pt=column_twips / 20.0,
-        size_pt=half_points / 2.0,
-        column_basis=column_basis,
-        font_size_basis=font_size_basis,
-    )
+    return PageGeom(col_pt=column_twips / 20.0, size_pt=half_points / 2.0)
 
 
 def _adv(text: str, size_pt: float) -> float:

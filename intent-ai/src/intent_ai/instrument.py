@@ -5,15 +5,12 @@ from dataclasses import dataclass
 from typing import NewType
 
 EvalSetName = NewType("EvalSetName", str)
-InstrumentIdentity = NewType("InstrumentIdentity", str)
 EvalSetDigest = NewType("EvalSetDigest", str)
 
 
 @dataclass(frozen=True, slots=True)
 class InstrumentVersion:
-    identity: InstrumentIdentity
     source_identity: str
-    predecessor: InstrumentIdentity | None
     frozen_set: EvalSetName
     frozen_digest: EvalSetDigest
     frozen_size: int
@@ -32,9 +29,7 @@ class InstrumentVersion:
 
 
 E1_V2 = InstrumentVersion(
-    identity=InstrumentIdentity("e1-v2"),
     source_identity="source-v3",
-    predecessor=InstrumentIdentity("e1-v1"),
     frozen_set=EvalSetName("e1-v2-frozen"),
     frozen_digest=EvalSetDigest(
         "7d7db0c99d848c74daa5895cdd6cfe76be70806dc5b763fd46672a5d5cbff8c9"

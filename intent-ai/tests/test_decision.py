@@ -115,7 +115,7 @@ def test_legacy_gate_missing_anchor_conf_routes_human():
     by = _by(_v("grok", "lineated", conf=None), _v("gemini-pro", "lineated"), _v("ds-flash-text", "lineated"))
     d = LEGACY.decide(LID, by, ROSTER)
     assert d.outcome is Outcome.HUMAN and d.reason is Reason.CONF_MISSING
-    assert Reason.CONF_MISSING in decision.TERMINAL_REASONS
+    assert Reason.CONF_MISSING not in decision.OPERATIONAL_REASONS
     # with no floor (the default unanimous policy) a missing conf is irrelevant — it still accepts.
     assert UNANIMOUS.decide(LID, by, ROSTER).outcome is Outcome.ACCEPT
 

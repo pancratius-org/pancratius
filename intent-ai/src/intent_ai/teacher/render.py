@@ -26,7 +26,7 @@ from pancratius import docx_render
 
 from .. import paths
 from ..identity import BookId
-from .tasks import PAGE_SPAN_CAP, AssetKind, EvidenceAsset, ItemSpec, RegionId
+from .tasks import PAGE_SPAN_CAP, EvidenceAsset, ItemSpec, RegionId
 
 # (docx, lo, hi, out_png) → the rendered page PNG path(s) in document order. The ONLY LibreOffice
 # seam: the real one wraps `pancratius.docx_render`; a test passes a stub that writes fixture PNGs.
@@ -150,9 +150,7 @@ def _region_assets(spec: ItemSpec, render_page: PageRenderer, docx_for: DocxFor,
             raise RenderError(f"region {spec.region_id!r}: renderer produced no page image")
         imgs = [Image.open(p).convert("RGB") for p in pages]
         return tuple(
-            EvidenceAsset(kind=AssetKind.COMPOSITE,
-                          data_uri=_data_uri(_labeled(img, f"{spec.region_id} · p{i + 1}/{len(imgs)}")),
-                          caption=spec.region_id)
+            EvidenceAsset(_data_uri(_labeled(img, f"{spec.region_id} · p{i + 1}/{len(imgs)}")))
             for i, img in enumerate(imgs))
 
 

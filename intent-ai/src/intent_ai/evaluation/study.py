@@ -316,13 +316,13 @@ def _score_readers(manifest, reps, records, readers: Sequence[ReaderConfig], tru
     `rv` that would smear one reader's faults across the whole panel."""
     from collections import Counter, defaultdict
 
-    from ..teacher.panel import FinishReason
+    from ..teacher.panel import FINISH_LENGTH
 
     reps_by_tag: dict[ReaderTag, list] = defaultdict(list)
     truncated: Counter[ReaderTag] = Counter()
     for rep in reps:
         reps_by_tag[rep.tag].append(rep)
-        if rep.finish_reason == FinishReason.LENGTH:
+        if rep.finish_reason == FINISH_LENGTH:
             truncated[rep.tag] += 1
     n_lines = len(eval_lines)
 

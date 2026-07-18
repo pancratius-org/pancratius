@@ -10,7 +10,7 @@ import pytest
 from intent_ai import records, store
 from intent_ai.teacher import recipes
 from intent_ai.teacher.panel import ReaderConfig
-from intent_ai.teacher.tasks import AssetKind, EvidenceAsset, Modality
+from intent_ai.teacher.tasks import EvidenceAsset, Modality
 
 from tests.record_factory import sample_records
 
@@ -177,8 +177,8 @@ def test_build_vision_without_render_fails_loud(tmp_path):
 
 def test_build_vision_with_render_attaches_composites_to_every_item(tmp_path):
     def render(specs):
-        return {s.region_id: (EvidenceAsset(kind=AssetKind.COMPOSITE,
-                                            data_uri="data:image/png;base64,AA"),) for s in specs}
+        return {s.region_id: (EvidenceAsset(data_uri="data:image/png;base64,AA"),)
+                for s in specs}
     recipes.build(_vision_recipe(), annotations=tmp_path / "a", teacher_store=tmp_path / "s",
                   render=render)
     payload, _ = store.load_task_bundle("v", annotations=tmp_path / "a", store=tmp_path / "s")

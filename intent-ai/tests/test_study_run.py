@@ -257,7 +257,7 @@ def test_vision_build_specs_splits_an_over_page_region_and_attaches_assets(
 
     from intent_ai.evaluation import study
     from intent_ai.teacher import recipes, render
-    from intent_ai.teacher.tasks import AssetKind, Modality
+    from intent_ai.teacher.tasks import Modality
 
     ann = tmp_path / "annotations"
     # a dense block of votable lines spanning ~200 source paragraphs: a large target keeps them in one
@@ -293,7 +293,7 @@ def test_vision_build_specs_splits_an_over_page_region_and_attaches_assets(
         page_boundaries=lambda _docx: frozenset())(specs)   # stub: the path is never parsed
     for s in specs:
         page_assets = assets[s.region_id]
-        assert page_assets and all(a.kind is AssetKind.COMPOSITE for a in page_assets)
+        assert page_assets
     assert rp.calls                                       # the stub renderer was actually driven
 
 

@@ -31,21 +31,15 @@ class Modality(StrEnum):
     VISION = "vision"       # evidence = the listing + rendered page/candidate images
 
 
-class AssetKind(StrEnum):
-    COMPOSITE = "composite"           # the authored page render shown to a vision reader
-
-
 type LineOption = tuple[str, str]     # (value, display label) for the UI's per-line picker
 _DEFAULT_OPTIONS: tuple[LineOption, ...] = (("prose", "Prose"), ("lineated", "Lineated"))
 
 
 @dataclass(frozen=True, slots=True)
 class EvidenceAsset:
-    """One visual evidence image as an embeddable data-URI (so the UI works offline and the panel
+    """One authored-page render as an embeddable data-URI (so the UI works offline and the panel
     can inline it). VISION-only; built by `teacher.render`."""
-    kind: AssetKind
     data_uri: str
-    caption: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,7 +48,6 @@ class TaskLine:
     no `src_ordinal`. The feature-rich rendering of the whole region is `TaskItem.context`."""
     key: TaskKey
     text: str
-    hint: str = ""          # optional per-line hint (the UI hides it by default)
 
 
 @dataclass(frozen=True, slots=True)
@@ -175,10 +168,9 @@ class Task:
                 lines.append(TaskLine(
                     key=string(line["key"], field="task.line.key"),
                     text=string(line["text"], field="task.line.text"),
-                    hint=string(line.get("hint", ""), field="task.line.hint"),
                 ))
             assets = tuple(
-                EvidenceAsset(kind=AssetKind.COMPOSITE, data_uri=string(url, field="task.image"))
+                EvidenceAsset(data_uri=string(url, field="task.image"))
                 for url in sequence(item.get("images", []), field=f"task.items[{index}].images")
             )
             items.append(TaskItem(
@@ -203,17 +195,14 @@ def _item_payload(it: TaskItem, options: tuple[LineOption, ...]) -> JsonObject:
         "lineOptions": [{"value": v, "label": label} for v, label in options],
         "lines": [_line_payload(ln) for ln in it.lines],
     }
-    images = [a.data_uri for a in it.assets if a.kind is AssetKind.COMPOSITE]
+    images = [a.data_uri for a in it.assets]
     if images:                                      # vision only — one page image per part; text=none
         payload["images"] = images
     return payload
 
 
 def _line_payload(ln: TaskLine) -> JsonObject:
-    row: JsonObject = {"key": ln.key, "text": ln.text}
-    if ln.hint:
-        row["hint"] = ln.hint
-    return row
+    return {"key": ln.key, "text": ln.text}
 
 
 @dataclass(frozen=True, slots=True)

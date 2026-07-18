@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from intent_ai.identity import LineId
 from intent_ai.teacher import render
-from intent_ai.teacher.tasks import AssetKind, ItemSpec
+from intent_ai.teacher.tasks import ItemSpec
 from PIL import Image
 
 
@@ -61,7 +61,6 @@ def test_composite_is_a_labeled_png_data_uri():
                                      docx_for=_docx_for_stub([]), page_boundaries=_NO_BREAKS)
     assets = compose([spec])
     (asset,) = assets["b57-r0"]
-    assert asset.kind is AssetKind.COMPOSITE and asset.caption == "b57-r0"
     img = _decode(asset.data_uri)
     assert img.format == "PNG"
     assert img.width == 120 and img.height == render._BAR_H + 50   # one page under the label bar
@@ -110,7 +109,6 @@ def test_multipage_region_yields_one_image_per_page():
     assets = compose([spec])["b57-r0"]
     assert len(assets) == 2
     for a in assets:
-        assert a.kind is AssetKind.COMPOSITE and a.caption == "b57-r0"
         img = _decode(a.data_uri)
         assert img.width == 80 and img.height == render._BAR_H + 30   # one page under its own bar
 

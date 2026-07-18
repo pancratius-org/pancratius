@@ -46,9 +46,10 @@ type ListingKey = str   # the OUTWARD key shown for a line in a rendered listing
 LineTextHash = NewType("LineTextHash", str)
 DocxPackageHash = NewType("DocxPackageHash", str)
 RequestFingerprint = NewType("RequestFingerprint", str)
-                               # config + response contract) a reader was sent — the resume-cache key
-                               # carries it so an edited prompt, a changed temp/max_tokens, OR a changed
-                               # response schema re-calls instead of reusing a reply made under another
+                               # hash of the FULL request (prompt + model + sampling config + response
+                               # contract) a reader was sent — the resume-cache key carries it so an
+                               # edited prompt, a changed temp/max_tokens, OR a changed response schema
+                               # re-calls instead of reusing a reply made under another request
 
 # Teacher-loop identifiers. A `TaskId` names a built task bundle (its manifest resolves the opaque
 # keys); a `RunId` names a saved panel run's per-rep evidence. Distinct concepts that both spell a
