@@ -1,0 +1,110 @@
+{
+  "truth": {
+    "active_labels": 2159,
+    "gate": 1408,
+    "human": 751,
+    "holdout": {
+      "total": 808,
+      "gate": 699,
+      "human": 109
+    },
+    "trainable": 1351,
+    "migration_audit": {
+      "ledger": 216,
+      "moved": 179,
+      "needs_adjudication": 21,
+      "retired": 16,
+      "quarantined_labels": 35,
+      "restored": "ru:22:84:0 (stale-baseline retirement; same id + same text hash exist at the current substrate)"
+    }
+  },
+  "cv_trainable": {
+    "grouping": "(lang, book) leave-one-book-out",
+    "n": 1351,
+    "balanced_accuracy": 0.919,
+    "macro_f1": 0.902,
+    "prose_f1": 0.828,
+    "caveat": "trainable slice mixes gate+human truth"
+  },
+  "human_holdout_contested": {
+    "n": 424,
+    "prose": 97,
+    "lineated": 327,
+    "iid": {
+      "balanced_acc": 0.86,
+      "macro_f1": 0.803
+    },
+    "smoothed_a75": {
+      "balanced_acc": 0.898,
+      "macro_f1": 0.836,
+      "prose_recall": 0.959,
+      "lineated_recall": 0.838
+    }
+  },
+  "gate_marked_working_half": {
+    "n": 728,
+    "p_lineated_given_det_prose": 0.444,
+    "p_lineated_given_det_prose_human_only": "4/5",
+    "p_prose_given_det_lineated": 0.025,
+    "en_vs_ru_over_lineated": [
+      0.05,
+      0.014
+    ]
+  },
+  "run_unit_census": {
+    "population": {
+      "labeled_lines_scored": 1433,
+      "frozen_members_excluded": 726,
+      "truth_homogeneous_runs": 103
+    },
+    "unit_splits": {
+      "det": {
+        "splits": 19,
+        "interior": 3
+      },
+      "student_iid": {
+        "splits": 16,
+        "interior": 9
+      },
+      "student_a75": {
+        "splits": 6,
+        "interior": 5
+      }
+    },
+    "wrong_lines_a75": 95,
+    "split_minority_lines_a75": 13,
+    "deferral_sweep_a75": [
+      {
+        "tau": 0.05,
+        "coverage": 0.974,
+        "wrong_deferred": 0.147,
+        "split_deferred": 0.462
+      },
+      {
+        "tau": 0.1,
+        "coverage": 0.957,
+        "wrong_deferred": 0.284,
+        "split_deferred": 0.923
+      },
+      {
+        "tau": 0.2,
+        "coverage": 0.903,
+        "wrong_deferred": 0.411,
+        "split_deferred": 1.0
+      }
+    ]
+  },
+  "corpus_151": {
+    "body_lines": 788644,
+    "det_prose": 131503,
+    "disagree_prose": 44335,
+    "disagree_lineated": 26307,
+    "uncovered": 0,
+    "importer_lost": 2,
+    "book_78_ru": {
+      "votable": 42893,
+      "det_prose": 35386,
+      "det_prose_posterior_ge_090": 5658
+    }
+  }
+}
