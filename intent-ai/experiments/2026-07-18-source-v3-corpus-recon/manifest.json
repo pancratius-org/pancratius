@@ -1,0 +1,11 @@
+{
+  "git_sha": "3226bab767457ccc0c91463fce3fcee351aa2630+dirty",
+  "timestamp": "2026-07-18T18:09:23.393624+00:00",
+  "labels_sha256": "0da97ac74e592efd1e8c44a923526f70adb39d775e4735b9cb223d053795cfec",
+  "n_trainable_labels": 1351,
+  "producer_version": "read_lines-7",
+  "feature_schema_version": "features-5",
+  "n_books": 151,
+  "n_failed": 0,
+  "suspicion": "v0 (see recon.py docstring)"
+}
