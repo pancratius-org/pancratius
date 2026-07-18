@@ -123,7 +123,6 @@ class LLMClient(Protocol):
         temperature: float,
         max_tokens: int,
         response_format: JsonObject | None = None,
-        reasoning_max_tokens: int | None = None,
     ) -> Completion: ...
 
     def fetch_pricing(self, model: ModelId) -> ModelPricing: ...
@@ -249,7 +248,6 @@ class OpenRouterClient:
         temperature: float,
         max_tokens: int,
         response_format: JsonObject | None = None,
-        reasoning_max_tokens: int | None = None,
     ) -> Completion:
         payload: JsonObject = {
             "model": model,
@@ -257,21 +255,18 @@ class OpenRouterClient:
             "temperature": temperature,
             "max_tokens": max_tokens,
             "usage": {"include": True},
+            "reasoning": {"enabled": False},
         }
         if response_format is not None:
             payload["response_format"] = response_format
-        if reasoning_max_tokens is not None:
-            # Cap the hidden chain so a reasoning model can't spend the whole budget
-            # thinking and return empty content.
-            payload["reasoning"] = {"max_tokens": reasoning_max_tokens}
         body = self._post("/chat/completions", payload)
         choices = body.get("choices") or []
         if not choices:
             raise OpenRouterError(f"no choices in response: {json.dumps(body)[:400]}")
         content = choices[0].get("message", {}).get("content")
         if content is None:
-            # A reasoning model can exhaust max_tokens before emitting content
-            # (finish_reason "length"). Return empty text and let the caller decide.
+            # A provider can stop without content. Return empty text and let the
+            # caller's completeness check decide whether to retry.
             content = ""
         if not isinstance(content, str):
             raise OpenRouterError("response message had non-string content")

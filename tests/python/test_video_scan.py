@@ -18,7 +18,13 @@ from typing import Any
 import pytest
 
 from pancratius import video_scan
-from pancratius.openrouter import ChatMessage, Completion, ModelId, ModelPricing, Usage
+from pancratius.openrouter import (
+    ChatMessage,
+    Completion,
+    ModelId,
+    ModelPricing,
+    Usage,
+)
 from pancratius.video_channels import (
     ChannelHandleOnly,
     ChannelIdOnly,
@@ -51,9 +57,8 @@ class _FakeEditorialClient:
         temperature: float,
         max_tokens: int,
         response_format: dict[str, Any] | None = None,
-        reasoning_max_tokens: int | None = None,
     ) -> Completion:
-        del messages, temperature, max_tokens, response_format, reasoning_max_tokens
+        del messages, temperature, max_tokens, response_format
         return Completion(text=self.reply, usage=Usage(20, 20, 0, 0.001), model=model)
 
     def fetch_pricing(self, model: ModelId) -> ModelPricing:
@@ -412,9 +417,8 @@ class _BilingualEditorial:
         temperature: float,
         max_tokens: int,
         response_format: dict[str, Any] | None = None,
-        reasoning_max_tokens: int | None = None,
     ) -> Completion:
-        del temperature, max_tokens, response_format, reasoning_max_tokens
+        del temperature, max_tokens, response_format
         text = " ".join(m.content for m in messages)
         reply = self.en_reply if "LANGUAGE: English" in text else self.ru_reply
         return Completion(text=reply, usage=Usage(10, 10, 0, 0.001), model=model)

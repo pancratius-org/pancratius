@@ -200,9 +200,8 @@ class _StubClient:
         temperature: float,
         max_tokens: int,
         response_format: dict[str, Any] | None = None,
-        reasoning_max_tokens: int | None = None,
     ) -> Completion:
-        del messages, temperature, max_tokens, response_format, reasoning_max_tokens
+        del messages, temperature, max_tokens, response_format
         self.calls += 1
         if self.error:
             raise OpenRouterError("stub failure")

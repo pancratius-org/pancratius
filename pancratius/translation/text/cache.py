@@ -1,17 +1,13 @@
 """On-disk response cache for the chunk translation pipeline.
 
-Semantics: a cache entry is the *outcome* after draft+revise for one chunk or
-the brief after build_profile — never a raw ``client.complete`` reply. This
-means the within-chunk retry loop still hits the network on blank replies
-(correct behaviour), but a fully-successful chunk is never re-sent on a
-subsequent run.
+Semantics: an entry is one completed chunk after its configured translation
+passes. Blank or partial outcomes are never cached.
 
 Storage: one JSON file per entry under ``cache_dir/{sha256_hex}.json``.
 Absent or corrupt files are treated as a cache miss — never raise.
 
-Keys:
-- Chunk: sha256(json([model_id, brief, [unit.source, ...], "revised"]))
-- Brief: sha256(json([model_id, source_text, title_ru, description_ru, [*tags_ru]]))
+Keys include every stage model that affects the stored outcome, the brief, the
+context part, and the chunk source text.
 """
 
 from __future__ import annotations
@@ -27,26 +23,6 @@ from pancratius.translation.text.config import ModelId
 from pancratius.translation.text.document import UnitId
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True, slots=True)
-class ChunkCacheKey:
-    """The inputs that fully determine a chunk's translation output."""
-
-    model_id: ModelId
-    brief: str
-    source_texts: tuple[str, ...]
-
-
-@dataclass(frozen=True, slots=True)
-class BriefCacheKey:
-    """The inputs that determine the profile brief."""
-
-    model_id: ModelId
-    source_text: str
-    title_ru: str
-    description_ru: str
-    tags_ru: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,12 +54,29 @@ class TranslationCache:
 
     # --- key derivation ---------------------------------------------------------
 
-    def chunk_key(self, model_id: ModelId, brief: str, source_texts: tuple[str, ...]) -> str:
-        """Hex sha256 for a chunk's inputs. The ``"revised"`` literal disambiguates
-        from a draft-only value if we ever cache those separately."""
-        payload = json.dumps([model_id, brief, list(source_texts), "revised"],
-                             ensure_ascii=False, separators=(",", ":"))
-        return hashlib.sha256(payload.encode()).hexdigest()
+    @staticmethod
+    def _key(payload: object) -> str:
+        encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+        return hashlib.sha256(encoded.encode()).hexdigest()
+
+    def chunk_key(
+        self,
+        draft_model: ModelId,
+        revise_model: ModelId | None,
+        brief: str,
+        context_source_texts: tuple[str, ...],
+        source_texts: tuple[str, ...],
+    ) -> str:
+        return self._key(
+            [
+                "chunk-v3",
+                draft_model,
+                revise_model,
+                brief,
+                list(context_source_texts),
+                list(source_texts),
+            ]
+        )
 
     def brief_key(
         self,
@@ -94,9 +87,7 @@ class TranslationCache:
         description_ru: str,
         tags_ru: tuple[str, ...],
     ) -> str:
-        payload = json.dumps([model_id, source_text, title_ru, description_ru, list(tags_ru)],
-                             ensure_ascii=False, separators=(",", ":"))
-        return hashlib.sha256(payload.encode()).hexdigest()
+        return self._key([model_id, source_text, title_ru, description_ru, list(tags_ru)])
 
     # --- chunk read/write -------------------------------------------------------
 

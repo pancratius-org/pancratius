@@ -173,20 +173,25 @@ class _BlankAlwaysClient:
 
 
 # ---------------------------------------------------------------------------
-# Shared config (no revise, single attempt — keeps tests fast)
+# Shared config (single pass and attempt keeps cache tests focused)
 # ---------------------------------------------------------------------------
 
 _CONFIG = TranslateConfig(draft_attempts=1, revise=False)
 
 
-def _run(client: TranslatorClient, tmp_path: Path, cache_dir: Path | None) -> None:
+def _run(
+    client: TranslatorClient,
+    tmp_path: Path,
+    cache_dir: Path | None,
+    config: TranslateConfig = _CONFIG,
+) -> None:
     content = tmp_path / "src" / "content"
     _seed(content)
     catalog = scan_catalog(content)
     entry = next(e for e in catalog if e.lang == "ru")
     translate_book(
         client,
-        _CONFIG,
+        config,
         entry=entry,
         catalog=catalog,
         generated_at="2026-06-19",
@@ -226,6 +231,26 @@ def test_hit_skips_api_on_second_run(tmp_path: Path) -> None:
     assert client2.draft_calls == 0, (
         f"expected 0 draft calls on cache hit, got {client2.draft_calls}"
     )
+
+
+def test_completed_chunk_survives_later_chunk_failure(tmp_path: Path) -> None:
+    cache_dir = tmp_path / ".cache" / "translate"
+    config = TranslateConfig(draft_attempts=1, chunk_max_units=1, reconcile=False)
+
+    class _FailsOnSecondDraft(_CountingClient):
+        def complete(
+            self, *, model: str, messages: Sequence[ChatMessage], **kwargs: object
+        ) -> Completion:
+            if "Translate ONLY the units" in messages[-1].content and self.draft_calls == 1:
+                raise RuntimeError("connection lost")
+            return super().complete(model=model, messages=messages, **kwargs)
+
+    with pytest.raises(RuntimeError, match="connection lost"):
+        _run(_FailsOnSecondDraft(), tmp_path, cache_dir, config)
+
+    resumed = _CountingClient()
+    _run(resumed, tmp_path, cache_dir, config)
+    assert resumed.draft_calls == 1
 
 
 # ---------------------------------------------------------------------------
@@ -391,7 +416,13 @@ def test_cache_get_chunk_returns_none_on_missing(tmp_path: Path) -> None:
 def test_cache_roundtrip(tmp_path: Path) -> None:
     cache = TranslationCache(tmp_path / "cache")
     entry = CacheEntry(unit_translations={"u0001": "Hello.", "u0002": "World."})
-    key = cache.chunk_key("model-x", "brief text", ("Привет.", "Мир."))
+    key = cache.chunk_key(
+        "model-x",
+        None,
+        "brief text",
+        ("Контекст.",),
+        ("Привет.", "Мир."),
+    )
     cache.put_chunk(key, entry)
     result = cache.get_chunk(key)
     assert result is not None
@@ -400,11 +431,13 @@ def test_cache_roundtrip(tmp_path: Path) -> None:
 
 def test_cache_key_differs_on_field_change(tmp_path: Path) -> None:
     cache = TranslationCache(tmp_path / "cache")
-    k1 = cache.chunk_key("model-a", "brief", ("text1",))
-    k2 = cache.chunk_key("model-b", "brief", ("text1",))
-    k3 = cache.chunk_key("model-a", "brief-changed", ("text1",))
-    k4 = cache.chunk_key("model-a", "brief", ("text1-changed",))
-    assert len({k1, k2, k3, k4}) == 4, "each field change must produce a distinct key"
+    k1 = cache.chunk_key("model-a", "model-r", "brief", ("context",), ("text1",))
+    k2 = cache.chunk_key("model-b", "model-r", "brief", ("context",), ("text1",))
+    k3 = cache.chunk_key("model-a", "model-r2", "brief", ("context",), ("text1",))
+    k4 = cache.chunk_key("model-a", "model-r", "brief-changed", ("context",), ("text1",))
+    k5 = cache.chunk_key("model-a", "model-r", "brief", ("context-changed",), ("text1",))
+    k6 = cache.chunk_key("model-a", "model-r", "brief", ("context",), ("text1-changed",))
+    assert len({k1, k2, k3, k4, k5, k6}) == 6
 
 
 def test_cache_get_chunk_returns_none_on_corrupt_json(tmp_path: Path) -> None:

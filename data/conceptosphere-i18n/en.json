@@ -89,6 +89,78 @@
   "community:ed39f7c7": {
     "label": "Inner and Outer"
   },
+  "community:3b6d8ecc": {
+    "label": "Word and Voice"
+  },
+  "community:cbe0112f": {
+    "label": "Subject and Disappearance"
+  },
+  "community:fc45945d": {
+    "label": "Beginning and End"
+  },
+  "community:1fb35a96": {
+    "label": "Book and Revelation"
+  },
+  "community:7f814171": {
+    "label": "Search and Truth"
+  },
+  "community:b4989c6c": {
+    "label": "Creator, Question and Answer"
+  },
+  "community:ea006561": {
+    "label": "Life and Death"
+  },
+  "community:b4dc5d00": {
+    "label": "Presence and Being"
+  },
+  "community:0d9a4305": {
+    "label": "Eye and Door"
+  },
+  "community:d8a19e56": {
+    "label": "Israel and Jacob"
+  },
+  "community:280a30b8": {
+    "label": "The Kingdom"
+  },
+  "community:f5ea97a7": {
+    "label": "Form and Name"
+  },
+  "community:245dc02e": {
+    "label": "Holy Spirit and Mystery"
+  },
+  "community:a19bea6c": {
+    "label": "Temple and Building"
+  },
+  "community:b139b58d": {
+    "label": "Light and Darkness"
+  },
+  "community:61c2dff3": {
+    "label": "Fear and Loss"
+  },
+  "community:be147e80": {
+    "label": "First and Second Coming"
+  },
+  "community:ec323a74": {
+    "label": "Man and God"
+  },
+  "community:5d8d5f44": {
+    "label": "Rider, Horse and Sword"
+  },
+  "community:2d935811": {
+    "label": "Heaven and Earth"
+  },
+  "community:d3999e33": {
+    "label": "Resonance, Consciousness and Awareness"
+  },
+  "community:1bc0854b": {
+    "label": "World-System, Power and Apocalypse"
+  },
+  "community:c575c202": {
+    "label": "Gospel Images and Earth"
+  },
+  "community:7563036d": {
+    "label": "Authorship, Support and Tension"
+  },
   "concept:gemini": {
     "label": "Gemini"
   },
@@ -2935,5 +3007,116 @@
   },
   "concept:слава": {
     "label": "Glory"
+  },
+  "concept:ближний": {
+    "label": "Neighbor"
+  },
+  "concept:брат": {
+    "label": "Brother"
+  },
+  "concept:верить": {
+    "label": "To Believe"
+  },
+  "concept:верность": {
+    "label": "Faithfulness"
+  },
+  "concept:вино": {
+    "label": "Wine"
+  },
+  "concept:воскреснуть": {
+    "label": "To Rise"
+  },
+  "concept:гордость": {
+    "label": "Pride"
+  },
+  "concept:дело": {
+    "label": "Deed"
+  },
+  "concept:добрый": {
+    "label": "Good"
+  },
+  "concept:зависимость": {
+    "label": "Dependence"
+  },
+  "concept:закрывать": {
+    "label": "To Close"
+  },
+  "concept:земной": {
+    "label": "Earthly"
+  },
+  "concept:исцеление": {
+    "label": "Healing"
+  },
+  "concept:кровь": {
+    "label": "Blood"
+  },
+  "concept:малый": {
+    "label": "Little"
+  },
+  "concept:обратить": {
+    "label": "To Turn"
+  },
+  "concept:ответственность": {
+    "label": "Responsibility"
+  },
+  "concept:отношение": {
+    "label": "Relationship"
+  },
+  "concept:ошибиться": {
+    "label": "To Err"
+  },
+  "concept:победить": {
+    "label": "To Overcome"
+  },
+  "concept:покаяние": {
+    "label": "Repentance"
+  },
+  "concept:помощь": {
+    "label": "Help"
+  },
+  "concept:постоянный": {
+    "label": "Constant"
+  },
+  "concept:правда": {
+    "label": "Truth"
+  },
+  "concept:правильный": {
+    "label": "Right"
+  },
+  "concept:привычка": {
+    "label": "Habit"
+  },
+  "concept:принимать": {
+    "label": "To Accept"
+  },
+  "concept:проверять": {
+    "label": "To Test"
+  },
+  "concept:проходить": {
+    "label": "To Pass"
+  },
+  "concept:различать": {
+    "label": "To Discern"
+  },
+  "concept:решение": {
+    "label": "Decision"
+  },
+  "concept:свободный": {
+    "label": "Free"
+  },
+  "concept:связать": {
+    "label": "To Bind"
+  },
+  "concept:смочь": {
+    "label": "To Be Able"
+  },
+  "concept:ставить": {
+    "label": "To Set"
+  },
+  "concept:творение": {
+    "label": "Creation"
+  },
+  "concept:христов": {
+    "label": "Of Christ"
   }
 }
