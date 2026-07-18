@@ -1,0 +1,84 @@
+{
+  "set": "e1-v2-working",
+  "n": 728,
+  "det_distribution": {
+    "lineated": 638,
+    "prose": 90
+  },
+  "truth_source": {
+    "gate": 708,
+    "human": 20
+  },
+  "p_lineated_given_det_prose": {
+    "overall": {
+      "k": 40,
+      "n": 90,
+      "rate": 0.4444444444444444
+    },
+    "by_source": {
+      "gate": {
+        "k": 36,
+        "n": 85,
+        "rate": 0.4235294117647059
+      },
+      "human": {
+        "k": 4,
+        "n": 5,
+        "rate": 0.8
+      }
+    },
+    "by_lang": {
+      "en": {
+        "k": 12,
+        "n": 25,
+        "rate": 0.48
+      },
+      "ru": {
+        "k": 28,
+        "n": 65,
+        "rate": 0.4307692307692308
+      }
+    }
+  },
+  "p_prose_given_det_lineated": {
+    "overall": {
+      "k": 16,
+      "n": 638,
+      "rate": 0.025078369905956112
+    },
+    "by_source": {
+      "gate": {
+        "k": 15,
+        "n": 623,
+        "rate": 0.024077046548956663
+      },
+      "human": {
+        "k": 1,
+        "n": 15,
+        "rate": 0.06666666666666667
+      }
+    },
+    "by_lang": {
+      "en": {
+        "k": 10,
+        "n": 199,
+        "rate": 0.05025125628140704
+      },
+      "ru": {
+        "k": 6,
+        "n": 439,
+        "rate": 0.01366742596810934
+      }
+    }
+  },
+  "disagreement_lines": {
+    "verse_missed": 40,
+    "over_lineated": 16,
+    "total": 56
+  },
+  "caveats": [
+    "working half only; frozen scored once in E4",
+    "gate truth = panel verdict (not independent); only human is ground truth",
+    "no student posterior — det/truth rates only"
+  ]
+}

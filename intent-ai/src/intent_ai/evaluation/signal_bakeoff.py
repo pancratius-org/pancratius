@@ -1,11 +1,11 @@
 # research-pure: E2 — rank the free signals that surface importer errors + the inside/outside-φ fork.
-"""E2, the $0 replay on the E1 WORKING half (747 lines). Two questions, one experiment:
+"""E2, the $0 replay on the E1 WORKING half. Two questions, one experiment:
 
 (b) **Signal bakeoff.** The target is `det ≠ truth` — the lines where the deterministic tier-0
-    verdict disagrees with committed truth on the working half (the readout found 61: 47 verse-missed
-    det=prose/truth=lineated, 14 over-lineated det=lineated/truth=prose). Rank the free candidate
-    signals by how well they SURFACE those disagreements (ROC-AUC on all 747 AND on the 21 human
-    ground-truth lines — a signal must hold up on BOTH):
+    verdict disagrees with committed truth on the working half (both directions; the working
+    readout reports the split). Rank the free candidate signals by how well they SURFACE those
+    disagreements (ROC-AUC on the full half AND on its human ground-truth lines — a signal must
+    hold up on BOTH):
       - det⊕student disagreement  (posterior pulls AGAINST the det verdict),
       - raw student uncertainty   (low margin |posterior−0.5|),
       - recon.suspicion_v0,
@@ -27,10 +27,10 @@ Hard guards this replay depends on (mirroring `working_readout.compute`):
     the out-of-fold posterior (`student.oof_smoothed` at alpha=0 over ALL trainable labels — each line
     scored by a model that never saw its book). The corpus router (recon) uses the unsmoothed
     `fit_full` posterior; alpha=0 keeps the OOF score per-line comparable to it.
-  - GATE TRUTH IS NOT INDEPENDENT — 726 of 747 working-truth labels are `gate` (the panel's own
-    verdict), so `det ≠ truth` is mostly det-vs-PANEL: a candidate error, NOT a proven det error. The
-    human subset (21 lines, 5 of them det=disagreement) is the only ground truth; AUC is reported on
-    it separately. No ground-truth detection rate is claimed.
+  - GATE TRUTH IS NOT INDEPENDENT — nearly all working-truth labels are `gate` (the panel's own
+    verdict), so `det ≠ truth` is mostly det-vs-PANEL: a candidate error, NOT a proven det error.
+    The small human subset is the only ground truth; AUC is reported on it separately. No
+    ground-truth detection rate is claimed.
 """
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ PHI_RHO_THRESHOLD = 0.30  # pre-registered: ρ ≥ this with monotone terciles �
 CAVEATS = (
     "working half only; frozen scored once in E4",
     "book-held-out OOF posterior (alpha=0) — never the in-sample fit_full",
-    "target det≠truth is mostly det-vs-PANEL (gate truth); only 21 human lines are ground truth",
+    "target det≠truth is mostly det-vs-PANEL (gate truth); only the human subset is ground truth",
     "AUC on the human ground-truth subset reported separately and is tiny-N (caveat, not a claim)",
 )
 
@@ -299,7 +299,7 @@ class Bakeoff:
         }
 
 
-RECON_EXPERIMENT = ExperimentId("2026-07-16-source-v3-corpus-recon")
+RECON_EXPERIMENT = ExperimentId("2026-07-18-source-v3-corpus-recon")
 
 
 @dataclass(frozen=True, slots=True)
@@ -418,8 +418,8 @@ def _robust_on_human(s: SignalScore) -> bool:
     return s.auc_human is not None and s.auc_human >= HUMAN_COLLAPSE_FLOOR
 
 
-def _choose_router(scored: list[SignalScore], fork: PhiFork,
-                   recon: CorpusRecon) -> tuple[str, str, int, str]:
+def _choose_router(scored: list[SignalScore], fork: PhiFork, recon: CorpusRecon,
+                   *, n_human: int, n_human_pos: int) -> tuple[str, str, int, str]:
     """DERIVE the E3 router (router, rationale, corpus suspect size, basis) from the evidence.
 
     E3 does NOT gate on a router — the whole det=prose band is sweepable with ds-flash, so the
@@ -429,8 +429,9 @@ def _choose_router(scored: list[SignalScore], fork: PhiFork,
     gate-circular and disqualified, though it stays in the table as evidence. Among the signals robust
     on human truth, pick the strongest human-AUC.
 
-    The robust-on-independent-truth verdict rests on only ~21 human / 5 det-disagreement-positive
-    lines — enough to ORDER a whole-band sweep, NOT enough for aggressive pruning or early-stop."""
+    The robust-on-independent-truth verdict rests on a tiny human subset (`n_human` lines,
+    `n_human_pos` det-disagreement-positive) — enough to ORDER a whole-band sweep, NOT enough for
+    aggressive pruning or early-stop."""
     auc_leader = max(scored, key=lambda s: (s.auc_all if s.auc_all is not None else -1.0))
     robust = [s for s in scored if _robust_on_human(s)]
     if not robust:
@@ -448,16 +449,16 @@ def _choose_router(scored: list[SignalScore], fork: PhiFork,
                  f"~$4); the router only ORDERS the sweep. Chosen by robustness on independent "
                  f"truth: {chosen.name} (gate {_r(chosen.auc_all)} / human {_r(chosen.auc_human)}), "
                  f"NOT the AUC(all) leader {auc_leader.name} {circular}whose edge is gate-circular. "
-                 f"That human-AUC verdict rests on only ~21 human / 5 det-disagreement-positive "
-                 f"lines — fine for ORDERING the sweep, NOT for aggressive pruning/early-stop. "
-                 f"{fork_note}.")
+                 f"That human-AUC verdict rests on only {n_human} human / {n_human_pos} "
+                 f"det-disagreement-positive lines — fine for ORDERING the sweep, NOT for "
+                 f"aggressive pruning/early-stop. {fork_note}.")
     suspect = recon.det_prose
     basis = (f"the whole det=prose band ({recon.det_prose}) is swept; the {chosen.name} ordering "
              f"prioritizes the {recon.disagree_prose} disagreement lines first. det=lineated "
              f"disagreement ({recon.disagree_lineated}) stays AUDIT-ONLY. NOTE: det⊕student here is "
-             f"NOT independent proof of the readout's 0.46 rate — the recon student is trained on the "
-             f"SAME gate labels, so det⊕student only SIZES a candidate suspect slice CONSISTENT with "
-             f"the working readout")
+             f"NOT independent proof of the readout's weak-side rate — the recon student is trained "
+             f"on the SAME gate labels, so det⊕student only SIZES a candidate suspect slice "
+             f"CONSISTENT with the working readout")
     return router, rationale, suspect, basis
 
 
@@ -467,8 +468,10 @@ def compute(*, annotations: Path | None = None,
     scored = sorted((score_signal(n, rows) for n in SIGNALS),
                     key=lambda s: (s.auc_all if s.auc_all is not None else -1.0), reverse=True)
     fork = resolve_fork(rows)
+    human = [r for r in rows if r.source in INDEPENDENT_TRUTH]
     router, rationale, suspect, basis = _choose_router(
-        scored, fork, recon or CorpusRecon.from_experiment())
+        scored, fork, recon or CorpusRecon.from_experiment(),
+        n_human=len(human), n_human_pos=sum(r.is_error for r in human))
     return Bakeoff(
         n=len(rows), n_error=sum(r.is_error for r in rows),
         n_human=sum(r.source in INDEPENDENT_TRUTH for r in rows),
@@ -487,7 +490,7 @@ def report(b: Bakeoff) -> str:
         f"({b.det_distribution}). Truth is mostly `gate` (panel); only **{b.n_human}** are human "
         "ground truth. Posterior = book-held-out OOF (alpha=0), never the in-sample fit.", "",
         "## (b) Signal ranking — detectors of `det ≠ truth`",
-        "Oriented so higher = more suspect. AUC(all) over 747 (mostly det-vs-PANEL, can be "
+        f"Oriented so higher = more suspect. AUC(all) over {b.n} (mostly det-vs-PANEL, can be "
         f"gate-circular); AUC(human) over the {b.n_human} ground-truth lines — the only independent "
         "truth, and the one the router must hold up on:", "",
         "| signal | AUC(all) | AUC(human) |",
@@ -533,7 +536,7 @@ def report(b: Bakeoff) -> str:
     return "\n".join(lines) + "\n"
 
 
-EXPERIMENT_ID = ExperimentId("2026-07-14-source-v3-e2-signal-bakeoff")
+EXPERIMENT_ID = ExperimentId("2026-07-18-source-v3-e2-signal-bakeoff")
 
 
 def _eval_set_path(name: str) -> Path:
