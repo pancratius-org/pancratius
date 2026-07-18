@@ -9,7 +9,12 @@ core and :mod:`pancratius.translation.text.pipeline` for the run.
 from __future__ import annotations
 
 from pancratius.translation.text.cache import TranslationCache
-from pancratius.translation.text.client import OpenRouterClient, OpenRouterError
+from pancratius.translation.text.client import (
+    CostCapExceeded,
+    CostCappedClient,
+    OpenRouterClient,
+    OpenRouterError,
+)
 from pancratius.translation.text.config import DEFAULT_MODEL, StageModels, TranslateConfig
 from pancratius.translation.text.pipeline import (
     CostEstimate,
@@ -26,6 +31,8 @@ from pancratius.translation.text.prompts import TermEntry
 
 __all__ = [
     "DEFAULT_MODEL",
+    "CostCapExceeded",
+    "CostCappedClient",
     "CostEstimate",
     "OpenRouterClient",
     "OpenRouterError",

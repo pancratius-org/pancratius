@@ -1,11 +1,10 @@
 """Orchestration: turn one ``ru.md`` into an ``en.md`` translation.
 
-Per book: read the source, build the brief (profile pre-pass), plan chunks, draft
-each chunk with the whole book as cached reference, run the deterministic checks,
-run the source-aware revise pass, then re-assemble the translated units into the
-source's exact structure and write ``en.md`` beside ``ru.md`` (recording
-``translation.source: ai``). ``--dry-run`` produces the plan and a live-priced
-cost estimate without calling the generative endpoint or needing an API key.
+Per book: read the source, build the book brief, plan chunks, draft and
+revise each chunk as one durable unit of work, then re-assemble the translated
+units into the source's exact structure and write ``en.md`` beside ``ru.md``
+(recording ``translation.source: ai``). ``--dry-run`` produces the plan and a
+live-priced cost estimate without calling the generative endpoint.
 """
 
 from __future__ import annotations
@@ -20,7 +19,6 @@ from typing import Any
 from pancratius.content_catalog import CatalogEntry, dump_frontmatter, split_frontmatter
 from pancratius.kinds import CorpusWorkKind
 from pancratius.locales import Locale
-from pancratius.openrouter import NoReasoning, ReasoningBudget
 from pancratius.translation.text.cache import BriefCacheEntry, CacheEntry, TranslationCache
 from pancratius.translation.text.checks import Finding, Severity, check_translation
 from pancratius.translation.text.chunker import Chunk, plan_chunks
@@ -65,18 +63,22 @@ type Frontmatter = dict[str, Any]
 
 logger = logging.getLogger(__name__)
 
-_REFERENCE_OVERHEAD = 1.02  # plain-text reference: just newlines around the source
+_PROFILE_BRIEF_TOKEN_ESTIMATE = 8_000
+_DRAFT_UNIT_FRAMING_TOKENS = 24
+_REVISE_UNIT_FRAMING_TOKENS = 40
+_CONTEXT_PART_TOKEN_LIMIT = 128_000
+_CONTEXT_SOURCE_OVERHEAD = 1.02
 
 
 class TranslateError(RuntimeError):
-    """A translation run could not proceed (bad input, refused write, oversize book)."""
+    """A translation run could not proceed or produced an incomplete result."""
 
 
 @dataclass(frozen=True, slots=True)
 class CostEstimate:
     source_tokens: int
     output_tokens: int
-    reference_tokens: int
+    brief_tokens: int
     chunks: int
     draft_cost_usd: float
     revise_cost_usd: float
@@ -159,29 +161,47 @@ def _chunk_units(document: Document, chunk: Chunk) -> list[TextUnit]:
     return [index[uid] for uid in chunk.unit_ids]
 
 
-def _max_tokens_for(chunk: Chunk, config: TranslateConfig, reasoning_cap: int = 0) -> int:
+def _context_parts(chunks: Sequence[Chunk]) -> list[tuple[Chunk, ...]]:
+    """Pack output chunks into bounded, reusable source-context parts."""
+    parts: list[tuple[Chunk, ...]] = []
+    current: list[Chunk] = []
+    current_tokens = 0
+    for chunk in chunks:
+        if current and current_tokens + chunk.source_tokens > _CONTEXT_PART_TOKEN_LIMIT:
+            parts.append(tuple(current))
+            current = []
+            current_tokens = 0
+        current.append(chunk)
+        current_tokens += chunk.source_tokens
+    if current:
+        parts.append(tuple(current))
+    return parts
+
+
+def _context_units_by_chunk(
+    document: Document, chunks: Sequence[Chunk]
+) -> dict[int, tuple[TextUnit, ...]]:
+    units_by_id = document.unit_index()
+    result: dict[int, tuple[TextUnit, ...]] = {}
+    for part in _context_parts(chunks):
+        units = tuple(units_by_id[uid] for chunk in part for uid in chunk.unit_ids)
+        for chunk in part:
+            result[chunk.index] = units
+    return result
+
+
+def _max_tokens_for(chunk: Chunk, config: TranslateConfig) -> int:
     # max_tokens is only a ceiling — you pay for tokens actually generated — so be
     # generous. Undersizing truncates the JSON reply and silently drops units; over-
-    # sizing costs nothing. Budget covers the translations plus per-unit JSON framing,
-    # plus whatever chain THIS stage grants: the two share one pool, so a caller that
-    # lets the model think must buy the room for it.
-    return _units_max_tokens(
-        chunk.source_tokens, len(chunk.unit_ids), config, reasoning_cap
-    )
+    # sizing costs nothing. Budget covers the translations plus per-unit JSON framing.
+    return _units_max_tokens(chunk.source_tokens, len(chunk.unit_ids), config)
 
 
 def _units_max_tokens(
-    source_tokens: int, units: int, config: TranslateConfig, reasoning_cap: int
+    source_tokens: int, units: int, config: TranslateConfig
 ) -> int:
     content = round(config.estimate_output_tokens(source_tokens) * 2) + units * 30 + 1024
-    return min(content + reasoning_cap, MAX_OUTPUT_TOKENS)
-
-
-def _revise_reasoning(config: TranslateConfig, max_tokens: int) -> ReasoningBudget:
-    """The revise critic is the one stage that deliberates. Its chain shares
-    `max_tokens` with the reply, so on a small chunk a flat 3k cap would starve the
-    reply to empty — never take more than half."""
-    return ReasoningBudget(min(config.revise_reasoning_tokens, max_tokens // 2))
+    return min(content, MAX_OUTPUT_TOKENS)
 
 
 @dataclass(frozen=True, slots=True)
@@ -207,6 +227,13 @@ def _untranslated(text: str, source: str) -> bool:
     return cyr > lat and src_cyr >= 4
 
 
+def _chunk_complete(units: Sequence[TextUnit], translations: Mapping[UnitId, str]) -> bool:
+    return all(
+        not _untranslated(translations.get(unit.id, ""), unit.source)
+        for unit in units
+    )
+
+
 def _draft_chunk(
     client: TranslatorClient,
     config: TranslateConfig,
@@ -214,6 +241,7 @@ def _draft_chunk(
     brief: str,
     document: Document,
     chunk: Chunk,
+    context_units: Sequence[TextUnit],
 ) -> DraftedChunk:
     """Draft one chunk, retrying if the reply is unparseable or misses units
     (transient model flakiness). Each attempt only ADDS units the prior ones left
@@ -221,31 +249,30 @@ def _draft_chunk(
     still-incomplete chunk surfaces as a critical check, never a silent partial.
 
     If the primary model leaves units blank after all attempts, a final pass retries
-    them on the backup model with no full-source reference: deepseek-v4-flash
-    intermittently returns null content under the strict per-unit JSON schema on some
-    dense passages, and a different model (with a smaller input) clears them. The
-    revise pass then re-homogenises the voice."""
+    them on the backup model. DeepSeek V4 Flash intermittently returns null content
+    under the strict per-unit JSON schema on some dense passages, and a different
+    model clears them. The revise pass then re-homogenises the voice."""
     units = _chunk_units(document, chunk)
     source_by_id = {u.id: u.source for u in units}
     usage = Usage.empty()
     result: dict[UnitId, str] = {}
     last_reply = ""
 
-    def run_attempts(reference_units: Sequence[TextUnit], n: int, model: ModelId) -> bool:
-        """Draft up to ``n`` times on ``model`` against ``reference_units``; fill only
-        units still untranslated (blank or echoing the source). True once all are done."""
+    def run_attempts(n: int, model: ModelId) -> bool:
+        """Draft up to ``n`` times on ``model``; fill only units still untranslated."""
         nonlocal usage, last_reply
         max_tokens = _max_tokens_for(chunk, config)
         for attempt in range(n):
             completion = client.complete(
                 model=model,
                 messages=translate_messages(
-                    brief=brief, full_source_units=reference_units, chunk_units=units
+                    brief=brief,
+                    context_units=context_units,
+                    chunk_units=units,
                 ),
                 temperature=config.draft_temperature,
                 max_tokens=max_tokens,
                 response_format=translation_format(chunk.unit_ids),
-                reasoning=NoReasoning(),
             )
             usage += completion.usage
             last_reply = completion.text or ""
@@ -265,17 +292,16 @@ def _draft_chunk(
             )
         return False
 
-    if run_attempts(document.units, config.draft_attempts, config.models.draft):
+    if run_attempts(config.draft_attempts, config.models.draft):
         return DraftedChunk(translations=result, usage=usage)
-    # Primary model fell short. Retry the blanks on the backup model with no
-    # full-source reference (smaller input, different model → clears the stall).
+    # Primary model fell short. Retry the blanks on a different model.
     backup = config.models.backup_draft
     if backup and backup != config.models.draft:
         logger.warning(
             "draft chunk %d incomplete on %s; retrying blanks on backup %s",
             chunk.index + 1, config.models.draft, backup,
         )
-        if run_attempts((), max(2, config.draft_attempts // 2), backup):
+        if run_attempts(max(2, config.draft_attempts // 2), backup):
             return DraftedChunk(translations=result, usage=usage)
     unresolved = [u for u in chunk.unit_ids if _untranslated(result.get(u, ""), source_by_id[u])]
     if unresolved:
@@ -296,34 +322,44 @@ def estimate_run(
     each call's ``usage``; this sizes the job before spending."""
     source_tokens = sum(config.estimate_source_tokens(len(u.source)) for u in document.units)
     output_tokens = config.estimate_output_tokens(source_tokens)
-    reference_tokens = round(source_tokens * _REFERENCE_OVERHEAD)
+    brief_tokens = min(_PROFILE_BRIEF_TOKEN_ESTIMATE, max(source_tokens // 10, 1_000))
+    units = len(document.units)
     n = max(len(chunks), 1)
 
     draft = pricing[config.models.draft]
-    # First chunk pays the reference fresh; later chunks read it from cache. Every
-    # chunk also sends its own units fresh (≈ the whole source once across chunks).
-    draft_fresh = reference_tokens + source_tokens
-    draft_cached = reference_tokens * (n - 1)
+    parts = _context_parts(chunks)
+    context_fresh = sum(
+        round(sum(chunk.source_tokens for chunk in part) * _CONTEXT_SOURCE_OVERHEAD)
+        for part in parts
+    )
+    context_cached = sum(
+        round(sum(chunk.source_tokens for chunk in part) * _CONTEXT_SOURCE_OVERHEAD)
+        * (len(part) - 1)
+        for part in parts
+    )
+    # Each source unit is sent once as requested JSON and once in a bounded
+    # context part. The brief and repeated part prefixes get cache-read pricing.
+    draft_body = source_tokens + units * _DRAFT_UNIT_FRAMING_TOKENS
+    draft_fresh = brief_tokens + context_fresh + draft_body
+    draft_cached = brief_tokens * (n - 1) + context_cached
     draft_cost = draft.cost(draft_fresh + draft_cached, output_tokens, draft_cached)
 
     revise_cost = 0.0
     if config.revise:
         rev = pricing[config.models.revise]
-        # Each chunk re-sends source+draft for its units (≈ 2× source overall);
-        # only changed units are regenerated (~half the draft output, generously).
-        revise_fresh = source_tokens * 2
+        # Each chunk sends source+draft for its units; only changed units are
+        # regenerated (~half the draft output, generously).
+        revise_fresh = source_tokens + output_tokens + units * _REVISE_UNIT_FRAMING_TOKENS
         revise_out = round(output_tokens * 0.5)
         revise_cost = rev.cost(revise_fresh, revise_out, 0)
 
-    profile_cost = 0.0
-    if config.build_profile:
-        prof = pricing[config.models.profile]
-        profile_cost = prof.cost(source_tokens, 2048, 0)
+    prof = pricing[config.models.profile]
+    profile_cost = prof.cost(source_tokens, brief_tokens, 0)
 
     return CostEstimate(
         source_tokens=source_tokens,
         output_tokens=output_tokens,
-        reference_tokens=reference_tokens,
+        brief_tokens=brief_tokens,
         chunks=n,
         draft_cost_usd=draft_cost,
         revise_cost_usd=revise_cost,
@@ -400,16 +436,10 @@ def translate_book(
         raise TranslateError("a client is required for a real translation run")
     if en_path.exists() and not replace:
         raise TranslateError(f"{en_path} exists; pass --replace to overwrite an existing translation")
-    source_tokens_total = sum(config.estimate_source_tokens(len(u.source)) for u in document.units)
-    if source_tokens_total > config.reference_token_budget:
-        raise TranslateError(
-            f"{entry.work_key}: ~{source_tokens_total} source tokens exceeds the "
-            f"reference budget {config.reference_token_budget}; lower --chunk-tokens "
-            "is not enough — this book needs windowed reference (not yet implemented)."
-        )
 
     cache = TranslationCache(cache_dir) if cache_dir is not None else None
     tags_ru = str_tuple(ru_fm.get("tags"))
+    source_identity = document.source_text()
 
     usage = Usage.empty()
     profile: BookProfile
@@ -418,7 +448,7 @@ def translate_book(
     if cache is not None:
         bk = cache.brief_key(
             config.models.profile,
-            document.source_text(),
+            source_identity,
             title_ru=entry.title,
             description_ru=entry.description,
             tags_ru=tags_ru,
@@ -439,7 +469,7 @@ def translate_book(
                 title_ru=entry.title,
                 description_ru=entry.description,
                 tags_ru=tags_ru,
-                source_text=document.source_text(),
+                source_text=source_identity,
                 title_precedents=precedents,
             )
             usage += profile_result.usage
@@ -454,7 +484,7 @@ def translate_book(
             title_ru=entry.title,
             description_ru=entry.description,
             tags_ru=tags_ru,
-            source_text=document.source_text(),
+            source_text=source_identity,
             title_precedents=precedents,
         )
         usage += profile_result.usage
@@ -465,78 +495,72 @@ def translate_book(
     translations: dict[UnitId, str] = {}
     cached_chunks = 0
     api_chunks = 0
-    # Track which chunk indices were served from cache to skip them in the revise loop.
-    cache_hit_indices: set[int] = set()
+    context_by_chunk = _context_units_by_chunk(document, chunks)
 
     for chunk in chunks:
-        if cache is not None:
-            ck = cache.chunk_key(
+        units = _chunk_units(document, chunk)
+        context_units = context_by_chunk[chunk.index]
+        source_texts = tuple(unit.source for unit in units)
+        cache_key = (
+            cache.chunk_key(
                 config.models.draft,
+                config.models.revise if config.revise else None,
                 brief,
-                tuple(u.source for u in _chunk_units(document, chunk)),
+                tuple(unit.source for unit in context_units),
+                source_texts,
             )
-            hit = cache.get_chunk(ck)
+            if cache is not None
+            else None
+        )
+
+        if cache is not None and cache_key is not None:
+            hit = cache.get_chunk(cache_key)
             if hit is not None:
                 translations.update(hit.unit_translations)
                 cached_chunks += 1
-                cache_hit_indices.add(chunk.index)
                 logger.info("chunk %d/%d from cache", chunk.index + 1, len(chunks))
                 continue
 
-        drafted = _draft_chunk(client, config, brief=brief, document=document, chunk=chunk)
+        drafted = _draft_chunk(
+            client,
+            config,
+            brief=brief,
+            document=document,
+            chunk=chunk,
+            context_units=context_units,
+        )
         usage += drafted.usage
         translations.update(drafted.translations)
         api_chunks += 1
         logger.info("drafted chunk %d/%d", chunk.index + 1, len(chunks))
 
-        # When not revising, write to cache immediately after a fully successful draft.
-        if not config.revise and cache is not None:
-            chunk_result = {uid: translations.get(uid, "") for uid in chunk.unit_ids}
-            if all(v.strip() for v in chunk_result.values()):
-                ck = cache.chunk_key(
-                    config.models.draft,
-                    brief,
-                    tuple(u.source for u in _chunk_units(document, chunk)),
-                )
-                cache.put_chunk(ck, CacheEntry(unit_translations=chunk_result))
-
-    if config.revise:
-        for chunk in chunks:
-            if chunk.index in cache_hit_indices:
-                continue  # already fully translated from cache
-
-            units = _chunk_units(document, chunk)
+        if config.revise:
             draft_subset = {uid: translations.get(uid, "") for uid in chunk.unit_ids}
-            max_tokens = _max_tokens_for(chunk, config, config.revise_reasoning_tokens)
+            max_tokens = _max_tokens_for(chunk, config)
             completion = client.complete(
                 model=config.models.revise,
                 messages=revise_messages(brief=brief, units=units, draft=draft_subset),
                 temperature=config.revise_temperature,
                 max_tokens=max_tokens,
                 response_format=translation_format(chunk.unit_ids),
-                reasoning=_revise_reasoning(config, max_tokens),
             )
             usage += completion.usage
-            # Revise is best-effort: an empty or unparseable reply keeps the draft
-            # for this chunk rather than failing the book.
             try:
                 improved = _only_requested(parse_translations(completion.text), chunk.unit_ids)
             except (json.JSONDecodeError, ValueError):
-                logger.warning("revise chunk %d/%d unparseable; keeping draft", chunk.index + 1, len(chunks))
+                logger.warning(
+                    "revise chunk %d/%d unparseable; keeping draft",
+                    chunk.index + 1,
+                    len(chunks),
+                )
             else:
                 translations.update({uid: text for uid, text in improved.items() if text.strip()})
                 logger.info("revised chunk %d/%d", chunk.index + 1, len(chunks))
 
-            # Write cache after revise only when every unit in the chunk is non-blank.
-            if cache is not None:
-                chunk_result = {uid: translations.get(uid, "") for uid in chunk.unit_ids}
-                if all(v.strip() for v in chunk_result.values()):
-                    ck = cache.chunk_key(
-                        config.models.draft,
-                        brief,
-                        tuple(u.source for u in units),
-                    )
-                    cache.put_chunk(ck, CacheEntry(unit_translations=chunk_result))
+        if cache is not None and cache_key is not None:
+            chunk_result = {uid: translations.get(uid, "") for uid in chunk.unit_ids}
+            if _chunk_complete(units, chunk_result):
+                cache.put_chunk(cache_key, CacheEntry(unit_translations=chunk_result))
 
     if config.reconcile:
         usage += _reconcile_seams(
@@ -641,7 +665,6 @@ def _reconcile_seams(
             temperature=config.revise_temperature,
             max_tokens=max_tokens,
             response_format=translation_format(window_ids),
-            reasoning=_revise_reasoning(config, max_tokens),
         )
         usage += completion.usage
         try:
@@ -655,10 +678,9 @@ def _reconcile_seams(
 
 
 def _max_tokens_for_units(units: Sequence[TextUnit], config: TranslateConfig) -> int:
-    """``max_tokens`` for an ad-hoc unit window (the seam pass has no Chunk). The seam
-    runs on the revise model, so it budgets that stage's reasoning chain."""
+    """``max_tokens`` for an ad-hoc unit window (the seam pass has no Chunk)."""
     source_tokens = config.estimate_source_tokens(sum(len(u.source) for u in units))
-    return _units_max_tokens(source_tokens, len(units), config, config.revise_reasoning_tokens)
+    return _units_max_tokens(source_tokens, len(units), config)
 
 
 def _profile_to_json(profile: BookProfile) -> str:

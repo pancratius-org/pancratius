@@ -16,7 +16,7 @@ import re
 from dataclasses import replace
 from difflib import SequenceMatcher
 
-from pancratius.openrouter import LLMClient, NoReasoning, OpenRouterError, Usage
+from pancratius.openrouter import LLMClient, OpenRouterError, Usage
 from pancratius.video_description.config import DescriptionConfig
 from pancratius.video_description.fallback import deterministic_split
 from pancratius.video_description.models import (
@@ -55,7 +55,6 @@ def draft_description(
                 temperature=config.temperature,
                 max_tokens=config.max_tokens,
                 response_format=RESPONSE_FORMAT,
-                reasoning=NoReasoning(),
             )
         except OpenRouterError as exc:
             logger.warning("editorial: API error on attempt %d, using fallback: %s", attempt, exc)

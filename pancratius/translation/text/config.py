@@ -1,9 +1,8 @@
 """Configuration value types for the book-translation pipeline.
 
-The pipeline is *book-aware chunked translation*: the whole source book travels as
-a read-only reference so the model keeps terminology, personas and motifs
-consistent, while output is produced one bounded chunk at a time and stitched
-back into the exact source structure.
+The pipeline is *book-aware chunked translation*: a compact brief carries
+book-wide decisions while bounded source parts give each output chunk exact
+nearby context. Translated units are stitched back into the source structure.
 
 Nothing here hardcodes prices — model *prices* drift and are fetched live from
 OpenRouter (`client.fetch_pricing`). This module only fixes the knobs the
@@ -18,24 +17,16 @@ from dataclasses import dataclass, replace
 
 from pancratius.openrouter import ModelId
 
-# Default model for every stage: DeepSeek V4 Flash — 1M context (fits whole
-# books as cached reference), strong RU→EN, and the cheapest capable tier on
+# Default model for every stage: DeepSeek V4 Flash — strong RU→EN and the cheapest capable tier on
 # OpenRouter at time of writing ($0.09/$0.18 per Mtok, $0.02 cached input).
 DEFAULT_MODEL: ModelId = "deepseek/deepseek-v4-flash"
 
 
 @dataclass(frozen=True, slots=True)
 class StageModels:
-    """Per-stage model selection. The profile and revise stages may use a
-    stronger (or reasoning) model than the bulk draft without changing the rest
-    of the pipeline."""
-
     profile: ModelId = DEFAULT_MODEL
     draft: ModelId = DEFAULT_MODEL
     revise: ModelId = DEFAULT_MODEL
-    # Fallback drafter for chunks the primary model cannot complete. The primary
-    # (deepseek-v4-flash) intermittently returns null content under the strict
-    # per-unit JSON schema on some dense passages; a different model clears them.
     backup_draft: ModelId | None = "google/gemini-2.5-flash"
 
     @classmethod
@@ -58,8 +49,7 @@ class TranslateConfig:
     models: StageModels = StageModels()
 
     # Chunking: target source tokens per generated chunk. ~3k keeps each request
-    # well inside the quality band (SOTA: larger-than-sentence, smaller-than-book)
-    # while the full book rides along as cached reference.
+    # larger than a sentence and small enough for reliable structured output.
     chunk_source_tokens: int = 3000
     # Also cap units per chunk: a verse-dense run of short lines stays under the
     # token budget yet asks the model for one huge JSON array, and the draft model
@@ -69,28 +59,11 @@ class TranslateConfig:
     # stopped near ~134 units, so 80 leaves margin); only verse sections re-split,
     # prose chunks still flush on the token budget first.
     chunk_max_units: int = 80
-    # Cap on how much source we attach as read-only reference. Below the model's
-    # context so the chunk + instructions + output still fit; books past this fall
-    # back to a windowed reference (preceding + following neighbourhood).
-    reference_token_budget: int = 600_000
-
-    # Stage toggles.
-    build_profile: bool = True
     revise: bool = True
-    # After revise, a cheap pass that reconciles ONLY flagged chunk boundaries
-    # (seams with an at_seam audit finding or a term rendered two ways across them).
     reconcile: bool = True
 
-    # Sampling. Draft translation wants faithful, low-temperature output; the
-    # revise critique benefits from reasoning (set per-call in the client).
     draft_temperature: float = 0.2
     revise_temperature: float = 0.1
-    # Only the revise critic deliberates. Drafting and the brief pre-pass state
-    # `NoReasoning` at the call: they transcribe and extract, and a chain there only
-    # competes with the reply for one `max_tokens` pool. A budget is not a hard
-    # guarantee — OpenRouter lowers it to an effort level for effort-only models —
-    # so the ceiling must survive the chain overshooting it.
-    revise_reasoning_tokens: int = 3000
 
     # Re-draft a chunk while any unit is still blank, up to this many attempts.
     # ds-flash occasionally returns malformed JSON for a dense chunk; each attempt
@@ -126,4 +99,3 @@ class TranslateConfig:
 # you pay for tokens actually generated — so stages size their budget generously
 # against it: undersizing truncates a reply mid-JSON, oversizing costs nothing.
 MAX_OUTPUT_TOKENS = 16000
-

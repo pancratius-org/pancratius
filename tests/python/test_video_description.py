@@ -19,7 +19,6 @@ from pancratius.openrouter import (
     ModelId,
     ModelPricing,
     OpenRouterError,
-    ReasoningPolicy,
     Usage,
 )
 from pancratius.video_description import DescriptionConfig, VideoContext, draft_description
@@ -201,9 +200,8 @@ class _StubClient:
         temperature: float,
         max_tokens: int,
         response_format: dict[str, Any] | None = None,
-        reasoning: ReasoningPolicy,
     ) -> Completion:
-        del messages, temperature, max_tokens, response_format, reasoning
+        del messages, temperature, max_tokens, response_format
         self.calls += 1
         if self.error:
             raise OpenRouterError("stub failure")

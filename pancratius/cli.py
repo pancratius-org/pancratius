@@ -281,7 +281,6 @@ def _work_translate(args: argparse.Namespace) -> int:
             revise=args.revise_model or args.model,
         ),
         chunk_source_tokens=args.chunk_tokens,
-        build_profile=not args.no_profile,
         revise=not args.no_revise,
         reconcile=not args.no_reconcile,
     )
@@ -289,7 +288,7 @@ def _work_translate(args: argparse.Namespace) -> int:
     try:
         glossary = xlate.load_glossary(Path(args.glossary)) if args.glossary else ()
         tag_labels = xlate.load_tag_labels(tag_glossary)
-        client = (
+        base_client = (
             xlate.OpenRouterClient(api_key="") if args.dry_run else xlate.OpenRouterClient.from_env()
         )
     except (xlate.OpenRouterError, ValueError, OSError) as exc:
@@ -299,6 +298,12 @@ def _work_translate(args: argparse.Namespace) -> int:
     cache_dir: Path | None = None
     if not args.dry_run and not args.no_cache:
         cache_dir = Path(".cache") / "translate"
+    cost_guard = (
+        xlate.CostCappedClient(base_client, args.max_cost)
+        if not args.dry_run and args.max_cost
+        else None
+    )
+    client = cost_guard or base_client
     workers = max(1, args.workers)
     verb = "estimating" if args.dry_run else "translating"
     print(f"{verb} {len(targets)} book(s) with {args.model} ({workers} workers):", flush=True)
@@ -324,6 +329,15 @@ def _work_translate(args: argparse.Namespace) -> int:
             entry = futures[future]
             try:
                 report = future.result()
+            except xlate.CostCapExceeded as exc:
+                with lock:
+                    failures += 1
+                if not stop.is_set():
+                    print(f"stopping: {exc}", file=sys.stderr, flush=True)
+                stop.set()
+                for pending in futures:
+                    pending.cancel()
+                continue
             except Exception as exc:  # noqa: BLE001 — isolate one book's failure from the batch
                 with lock:
                     failures += 1
@@ -334,14 +348,9 @@ def _work_translate(args: argparse.Namespace) -> int:
             with lock:
                 total += _print_translate_report(report)
                 sys.stdout.flush()
-                if args.max_cost and not args.dry_run and total > args.max_cost:
-                    if not stop.is_set():
-                        print(f"stopping: billed ${total:.2f} exceeded --max-cost "
-                              f"${args.max_cost:.2f}", file=sys.stderr, flush=True)
-                    stop.set()
-                    for pending in futures:
-                        pending.cancel()
     label = "estimated total" if args.dry_run else "billed total"
+    if cost_guard is not None:
+        total = cost_guard.spent_usd
     print(f"{label}: ${total:.2f}; {failures} failed/skipped")
     return 1 if failures or stop.is_set() else 0
 
@@ -1124,7 +1133,6 @@ def _add_work_group(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         "--chunk-tokens", type=int, default=3000, help="Target source tokens generated per chunk."
     )
     work_translate.add_argument("--glossary", help="YAML glossary of locked source→target terms.")
-    work_translate.add_argument("--no-profile", action="store_true", help="Skip the per-book brief pre-pass.")
     work_translate.add_argument("--no-revise", action="store_true", help="Skip the source-aware revise pass.")
     work_translate.add_argument(
         "--no-reconcile", action="store_true", help="Skip the cross-seam reconcile pass (flagged boundaries only)."

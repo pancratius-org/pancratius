@@ -121,7 +121,8 @@ The grammar carries the content model:
 - `work translate` drafts an `en.md` from a book's `ru.md` via OpenRouter
   (`OPENROUTER_API_KEY`), preserving source structure and lineation and recording
   `translation.source: ai`. `--dry-run` prints the plan and a live-priced cost
-  estimate without an API key. Successful chunks and the profile brief are cached
+  estimate without an API key. Each output chunk receives the book brief and a
+  bounded, reusable part of the exact source as context. Successful chunks and the profile brief are cached
   under `.cache/translate/` (gitignored); a re-run replays successful chunks for
   free and re-attempts only the chunks that never produced a complete translation.
   Pass `--no-cache` to bypass read and write (always calls the API). To clear the

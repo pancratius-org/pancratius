@@ -372,7 +372,7 @@ def test_work_translate_selectors_dispatch_in_user_order(monkeypatch: pytest.Mon
                 xlate.CostEstimate(
                     source_tokens=1000,
                     output_tokens=100,
-                    reference_tokens=1000,
+                    brief_tokens=1000,
                     chunks=1,
                     draft_cost_usd=0.01,
                     revise_cost_usd=0.01,

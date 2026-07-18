@@ -1,15 +1,14 @@
 """Group translatable units into bounded, structure-respecting chunks.
 
-The whole book travels as cached reference, so a chunk only has to bound how much
-*new* text the model generates per call. Two rules shape the cut:
+Each chunk is one bounded translation request. Two rules shape the cut:
 
 - a maximal run of lineated/verse/scripture units (a stanza or a quoted passage)
   is one indivisible *atom* — never split a poem across two requests;
 - atoms are packed greedily up to ``chunk_source_tokens``; an atom larger than the
   budget stands alone.
 
-Chunks stay contiguous and in document order so each one's local neighbourhood is
-coherent even before the global reference is consulted.
+Chunks stay contiguous and in document order so each request has a coherent local
+neighbourhood.
 """
 
 from __future__ import annotations

@@ -73,10 +73,6 @@ class Usage:
     completion_tokens: int
     cached_tokens: int
     cost_usd: float | None
-    # The hidden chain, billed inside `completion_tokens`. Without it a stage cannot
-    # tell "the model thought away its reply budget" from "the model returned junk",
-    # and the two need opposite fixes.
-    reasoning_tokens: int = 0
 
     @staticmethod
     def empty() -> Usage:
@@ -90,7 +86,6 @@ class Usage:
             self.completion_tokens + other.completion_tokens,
             self.cached_tokens + other.cached_tokens,
             cost,
-            self.reasoning_tokens + other.reasoning_tokens,
         )
 
 
@@ -115,30 +110,6 @@ class Completion:
     truncated: bool = False
 
 
-@dataclass(frozen=True, slots=True)
-class NoReasoning:
-    """This call transcribes or extracts; it must not think first."""
-
-
-@dataclass(frozen=True, slots=True)
-class ReasoningBudget:
-    """This call deliberates, but its chain may not exceed ``max_tokens``.
-
-    Honoured as a real budget only by providers that take one. OpenRouter turns it
-    into an effort level for effort-only models, so treat it as "think, but briefly",
-    never as a guarantee — size `max_tokens` to survive the chain overshooting.
-    """
-
-    max_tokens: int
-
-
-# One OpenRouter model is served by many providers, and they disagree on whether to
-# think when asked nothing: the same ds-flash prompt returns 0 reasoning tokens from
-# DeepInfra and 203 from GMICloud. So a stage states its intent and never inherits a
-# default — omitting the choice is a coin flip on somebody else's routing table.
-type ReasoningPolicy = NoReasoning | ReasoningBudget
-
-
 class LLMClient(Protocol):
     """The slice of the client a pipeline depends on. Typing against this (not
     the concrete class) keeps a pipeline testable with a stub and inverts the
@@ -152,7 +123,6 @@ class LLMClient(Protocol):
         temperature: float,
         max_tokens: int,
         response_format: JsonObject | None = None,
-        reasoning: ReasoningPolicy,
     ) -> Completion: ...
 
     def fetch_pricing(self, model: ModelId) -> ModelPricing: ...
@@ -176,14 +146,12 @@ def _message_payload(message: ChatMessage) -> JsonObject:
 def _usage_from(raw: JsonObject) -> Usage:
     details = raw.get("prompt_tokens_details") or {}
     cached = int(details.get("cached_tokens") or 0)
-    completion_details = raw.get("completion_tokens_details") or {}
     cost = raw.get("cost")
     return Usage(
         prompt_tokens=int(raw.get("prompt_tokens") or 0),
         completion_tokens=int(raw.get("completion_tokens") or 0),
         cached_tokens=cached,
         cost_usd=float(cost) if cost is not None else None,
-        reasoning_tokens=int(completion_details.get("reasoning_tokens") or 0),
     )
 
 
@@ -280,7 +248,6 @@ class OpenRouterClient:
         temperature: float,
         max_tokens: int,
         response_format: JsonObject | None = None,
-        reasoning: ReasoningPolicy,
     ) -> Completion:
         payload: JsonObject = {
             "model": model,
@@ -288,24 +255,18 @@ class OpenRouterClient:
             "temperature": temperature,
             "max_tokens": max_tokens,
             "usage": {"include": True},
+            "reasoning": {"enabled": False},
         }
         if response_format is not None:
             payload["response_format"] = response_format
-        # Always stated, never omitted: `max_tokens` is one pool for the hidden chain
-        # and the visible reply, and providers disagree on whether to think unasked.
-        match reasoning:
-            case NoReasoning():
-                payload["reasoning"] = {"enabled": False}
-            case ReasoningBudget(max_tokens=budget):
-                payload["reasoning"] = {"max_tokens": budget}
         body = self._post("/chat/completions", payload)
         choices = body.get("choices") or []
         if not choices:
             raise OpenRouterError(f"no choices in response: {json.dumps(body)[:400]}")
         content = choices[0].get("message", {}).get("content")
         if content is None:
-            # A reasoning model can exhaust max_tokens before emitting content
-            # (finish_reason "length"). Return empty text and let the caller decide.
+            # A provider can stop without content. Return empty text and let the
+            # caller's completeness check decide whether to retry.
             content = ""
         if not isinstance(content, str):
             raise OpenRouterError("response message had non-string content")

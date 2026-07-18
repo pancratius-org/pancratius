@@ -6,10 +6,10 @@ keeps the model's job purely lexical (translate spans) while ``document.py`` own
 every structural byte. Each unit's source is a single line, so the JSON strings
 never carry newlines and parsing stays trivial.
 
-Message layout is built for prompt caching: a constant system style guide, then a
-per-book read-only reference (brief + full source map) marked as a cache
-breakpoint, then the small varying per-chunk instruction. For a book's 2nd..Nth
-chunk the whole prefix is served from cache.
+Message layout is built for prompt caching: a constant system style guide, then
+the per-book brief, a bounded part of the source, then the current chunk. The
+brief carries book-wide terminology and voice; the source part gives exact local
+context without attaching the entire book to every request.
 """
 
 from __future__ import annotations
@@ -97,13 +97,6 @@ def _units_json(units: Sequence[TextUnit]) -> str:
     return json.dumps({unit.id: unit.source for unit in units}, ensure_ascii=False, indent=0)
 
 
-def _units_text(units: Sequence[TextUnit]) -> str:
-    """The units as plain newline-joined source — for the read-only reference, which
-    is context the model only reads (no ids, no JSON). A `{id: source}` map would add
-    ~24 framing tokens per unit, tripling a unit-dense book's reference for nothing."""
-    return "\n".join(unit.source for unit in units)
-
-
 def build_brief(
     *,
     title_ru: str,
@@ -135,24 +128,23 @@ def build_brief(
 def translate_messages(
     *,
     brief: str,
-    full_source_units: Sequence[TextUnit],
+    context_units: Sequence[TextUnit],
     chunk_units: Sequence[TextUnit],
 ) -> list[ChatMessage]:
-    """Messages for one draft chunk. The brief + full-book plain-text source is the
-    cached reference; the trailing instruction (the id-keyed chunk) is the only
-    varying part."""
-    reference = (
-        f"{brief}\n\nFULL SOURCE (read-only; for global consistency only — "
-        f"do NOT translate these now):\n{_units_text(full_source_units)}"
+    """Messages for one draft chunk."""
+    context = (
+        "SOURCE PART (read-only context; translate only the requested units below):\n"
+        + "\n".join(unit.source for unit in context_units)
     )
     instruction = (
-        "Translate ONLY the units below, using the full source and brief above for "
-        "context:\n"
+        "Translate ONLY the units below, using the brief and source part above "
+        "for context:\n"
         f"{_units_json(chunk_units)}"
     )
     return [
         ChatMessage("system", STYLE_GUIDE, cache=True),
-        ChatMessage("user", reference, cache=True),
+        ChatMessage("user", brief, cache=True),
+        ChatMessage("user", context, cache=True),
         ChatMessage("user", instruction),
     ]
 
@@ -247,5 +239,3 @@ def profile_messages(
         ChatMessage("system", PROFILE_INSTRUCTION, cache=True),
         ChatMessage("user", user),
     ]
-
-

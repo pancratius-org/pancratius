@@ -8,12 +8,12 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 from pathlib import Path
+from typing import cast
 
 import pytest
 
 from pancratius.content_catalog import read_frontmatter, scan_catalog
-from pancratius.openrouter import NoReasoning
-from pancratius.translation.text.chunker import plan_chunks
+from pancratius.translation.text.chunker import Chunk, plan_chunks
 from pancratius.translation.text.client import (
     ChatMessage,
     Completion,
@@ -25,9 +25,9 @@ from pancratius.translation.text.config import MAX_OUTPUT_TOKENS, TranslateConfi
 from pancratius.translation.text.document import parse_document
 from pancratius.translation.text.pipeline import (
     TranslationWriteOutcome,
+    _context_parts,
     _draft_chunk,
     _max_tokens_for,
-    _revise_reasoning,
     estimate_run,
     find_untranslated,
     translate_book,
@@ -185,7 +185,14 @@ def test_draft_chunk_unions_partial_replies_across_attempts() -> None:
             {"translations": [{"id": b, "english": "Dark."}]},
         ]
     )
-    drafted = _draft_chunk(client, TranslateConfig(), brief="b", document=doc, chunk=chunk)
+    drafted = _draft_chunk(
+        client,
+        TranslateConfig(),
+        brief="b",
+        document=doc,
+        chunk=chunk,
+        context_units=doc.units,
+    )
     assert drafted.translations == {a: "Light.", b: "Dark."}
 
 
@@ -208,7 +215,14 @@ def test_draft_chunk_keeps_good_partial_when_retry_is_unparseable() -> None:
             text = good if self._n == 1 else "not json at all"
             return Completion(text=text, usage=Usage(1, 1, 0, 0.0), model=model)
 
-    drafted = _draft_chunk(_GarbageSecond(), TranslateConfig(), brief="b", document=doc, chunk=chunk)
+    drafted = _draft_chunk(
+        _GarbageSecond(),
+        TranslateConfig(),
+        brief="b",
+        document=doc,
+        chunk=chunk,
+        context_units=doc.units,
+    )
     assert drafted.translations.get(a) == "Light."
 
 
@@ -261,14 +275,10 @@ def test_profile_retries_until_the_reply_parses() -> None:
     assert profile.title_en == "The Book of Light"
 
 
-def test_draft_asks_for_no_reasoning() -> None:
-    # Drafting is transcription against a brief. A chain there buys nothing and spends
-    # the reply's own budget: the same ds-flash prompt returns 0 reasoning tokens from
-    # DeepInfra and 203 from GMICloud, so leaving it unstated is a coin flip on
-    # routing. The stage says so rather than inheriting a provider default.
+def test_draft_sends_bounded_context_but_requests_only_the_current_chunk() -> None:
     doc = parse_document("Свет.\n\nТьма.\n")
-    chunk = plan_chunks(doc, TranslateConfig(chunk_source_tokens=999))[0]
-    a, b = chunk.unit_ids
+    chunk = plan_chunks(doc, TranslateConfig(chunk_max_units=1))[0]
+    a = chunk.unit_ids[0]
     seen: dict[str, object] = {}
 
     class _Recording:
@@ -277,28 +287,46 @@ def test_draft_asks_for_no_reasoning() -> None:
 
         def complete(self, *, model: str, **kw: object) -> Completion:
             seen.update(kw)
-            reply = {"translations": [{"id": a, "english": "Light."}, {"id": b, "english": "Dark."}]}
+            reply = {"translations": [{"id": a, "english": "Light."}]}
             return Completion(text=json.dumps(reply), usage=Usage(1, 1, 0, 0.0), model=model)
 
-    _draft_chunk(_Recording(), TranslateConfig(), brief="b", document=doc, chunk=chunk)
-    assert seen["reasoning"] == NoReasoning()
+    _draft_chunk(
+        _Recording(),
+        TranslateConfig(chunk_max_units=1),
+        brief="BOOK BRIEF",
+        document=doc,
+        chunk=chunk,
+        context_units=doc.units,
+    )
+    messages = cast(Sequence[ChatMessage], seen["messages"])
+    prompt = "\n".join(message.content for message in messages)
+    assert "BOOK BRIEF" in prompt
+    assert "Свет." in prompt
+    assert "Тьма." in prompt
+    assert "Тьма." not in messages[-1].content
 
 
-def test_a_stage_that_grants_a_chain_buys_the_room_for_it() -> None:
-    # `max_tokens` is one pool for the chain and the reply, so a ceiling sized without
-    # the cap would let a granted chain eat the units. The revise loop grants
-    # `revise_reasoning_tokens`, so its ceiling must exceed the draft-shaped one.
+def test_context_parts_have_a_fixed_source_token_ceiling() -> None:
+    chunks = [
+        Chunk(index=0, unit_ids=("u00000",), source_tokens=64_000),
+        Chunk(index=1, unit_ids=("u00001",), source_tokens=64_000),
+        Chunk(index=2, unit_ids=("u00002",), source_tokens=1),
+    ]
+    assert [[chunk.index for chunk in part] for part in _context_parts(chunks)] == [
+        [0, 1],
+        [2],
+    ]
+
+
+def test_chunk_ceiling_leaves_room_for_translation_and_json() -> None:
     doc = parse_document("Свет.\n\nТьма.\n")
     config = TranslateConfig()
     chunk = plan_chunks(doc, config)[0]
-    no_chain = _max_tokens_for(chunk, config)
-    with_chain = _max_tokens_for(chunk, config, config.revise_reasoning_tokens)
-    assert with_chain > no_chain
-    content = with_chain - _revise_reasoning(config, with_chain).max_tokens
-    assert content > config.estimate_output_tokens(chunk.source_tokens)
+    max_tokens = _max_tokens_for(chunk, config)
+    assert max_tokens > config.estimate_output_tokens(chunk.source_tokens)
 
 
-def test_profile_asks_for_no_reasoning_and_takes_the_house_ceiling() -> None:
+def test_profile_takes_the_house_ceiling() -> None:
     # What actually starved the brief was a 4096 ceiling too small for a big book's
     # termbase (~7k tokens for 98 terms), leaving a truncated reply that read as
     # "unparseable" and degraded to the RU title. It extracts from a book already in
@@ -311,7 +339,6 @@ def test_profile_asks_for_no_reasoning_and_takes_the_house_ceiling() -> None:
             return super().complete(model=model, **kw)
 
     _build_brief(_Recording([_BRIEF_REPLY]))
-    assert seen["reasoning"] == NoReasoning()
     assert seen["max_tokens"] == MAX_OUTPUT_TOKENS
 
 
@@ -322,19 +349,6 @@ def test_profile_fails_rather_than_publishing_the_russian_title() -> None:
     # the book costs almost nothing.
     with pytest.raises(ProfileError):
         _build_brief(_RawReplyClient(["not json at all"]))
-
-
-@pytest.mark.parametrize(
-    "max_tokens",
-    [400, 1086, 1654, 3000, 10000],
-    ids=lambda v: f"max_tokens={v}",
-)
-def test_revise_reasoning_never_starves_the_reply(max_tokens: int) -> None:
-    # The reasoning cap shares ``max_tokens`` with the visible reply, so it must
-    # leave room for content — otherwise a reasoning model returns empty text.
-    budget = _revise_reasoning(TranslateConfig(), max_tokens).max_tokens
-    assert budget < max_tokens
-    assert budget <= TranslateConfig().revise_reasoning_tokens
 
 
 def test_ensure_cost_fills_missing_cost_from_pricing() -> None:
@@ -424,7 +438,7 @@ def test_reconcile_seams_noop_when_consistent() -> None:
     assert translations == {a: "Light one.", b: "Light two."}
 
 
-def test_estimate_run_credits_the_cached_reference() -> None:
+def test_estimate_run_credits_the_cached_brief() -> None:
     doc = parse_document("Абзац один.\n\nАбзац два.\n\nАбзац три.\n")
     config = TranslateConfig(chunk_source_tokens=2, source_chars_per_token=1.0)
     chunks = plan_chunks(doc, config)
