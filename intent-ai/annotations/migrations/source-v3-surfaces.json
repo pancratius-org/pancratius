@@ -7,14 +7,14 @@
     {
       "name": "labels",
       "before": {"path": "labels.jsonl", "count": 2194, "sha256": "0d3ec985ee784c18ed069819c6658a8d5392c7d0df485102660d7c636bd5dc8f"},
-      "after": {"path": "labels.jsonl", "count": 2158, "sha256": "4a5ddd65c8d51af3fb9194d37d0175593ef95239df1871cbbd2b26ba4780685e"},
-      "quarantined": {"path": "history/source-v2/unresolved-labels.jsonl", "count": 36, "sha256": "bb4f23d0e212ff4e95521330dd6131b2f66203f514829718e6b8509012e02341"}
+      "after": {"path": "labels.jsonl", "count": 2159, "sha256": "0da97ac74e592efd1e8c44a923526f70adb39d775e4735b9cb223d053795cfec"},
+      "quarantined": {"path": "history/source-v2/unresolved-labels.jsonl", "count": 35, "sha256": "51e41239d0b538ea612a5ab781a496cb81fd17d4d373accb3017865c0a974c4c"}
     },
     {
       "name": "votes",
       "before": {"path": "votes.jsonl", "count": 7631, "sha256": "3497df10b08258aa038dbcee9e9ab44b32305b9db03aa5e49b41c647dba5b380"},
-      "after": {"path": "votes.jsonl", "count": 7518, "sha256": "e359dd0a4d6b6d302c8f4c17d4123fd090dbc9882215cf7f65bfe376134344b3"},
-      "quarantined": {"path": "history/source-v2/unresolved-votes.jsonl", "count": 113, "sha256": "60c1106b35aa38af8f7e7dc76c79cf0a60a6351ac8b7695fd776509b667b1eb0"}
+      "after": {"path": "votes.jsonl", "count": 7521, "sha256": "3ed7bc25e212a1a5d4e6663de41c0eb08f0ef1594818141a81305bd2ed135f11"},
+      "quarantined": {"path": "history/source-v2/unresolved-votes.jsonl", "count": 110, "sha256": "3711d11f85892db65dacae993917b4bcbf51beab93c2946facd6c862a0030d8b"}
     },
     {
       "name": "e1-v2-frozen",
@@ -40,8 +40,8 @@
     {
       "name": "selection-ru",
       "before": {"path": "selections/e1-instrument-ru.json", "count": 1009, "sha256": "95699e0d368b9b5d99fbdbda24e2605b31b3453f7f95a55f8091856896d9c55d"},
-      "after": {"path": "selections/e1-instrument-ru.json", "count": 1008, "sha256": "de194aae9a597668047fb8ab603b4144e8d962ee511995ece946e9853c231206"},
-      "removed": {"count": 2, "sha256": "b5a202128c5c1c4746c866a1a6dee02c31336c444c59d518674ca7d7dae77860"},
+      "after": {"path": "selections/e1-instrument-ru.json", "count": 1009, "sha256": "4fee393c08404d649a09f5a8cfe8b1f1bb98a47e004f401f059a30045c047aeb"},
+      "removed": {"count": 1, "sha256": "1b099e805e79c676bb8b7ce6a0e285c5971c80cd45d4b1107730bbe3995a273e"},
       "added": {"count": 1, "sha256": "7d644669e5bda5a465a0f663baed7f9e5924de00729cc51d3b61713a0cfa53a0"}
     },
     {
@@ -52,7 +52,7 @@
     {
       "name": "tasks-ru",
       "before": {"path": "tasks/e1-instrument-ru.manifest.json", "count": 1011, "sha256": "f895278c96471ccec3fa733b6aceaf88cfa8ec8174960a178aef9898cfb8a7ae"},
-      "after": {"path": "tasks/e1-instrument-ru.manifest.json", "count": 1011, "sha256": "4152d62a36bddbfb25534c647293387dd76c76cc1677d98353dbf97c75e6a7b8"}
+      "after": {"path": "tasks/e1-instrument-ru.manifest.json", "count": 1011, "sha256": "dc7dc87684ff9b3f32d9e852bdeb1585f94db4ef66987fbfe7fe098ba048cb9f"}
     },
     {
       "name": "tasks-en-adjudication",
@@ -65,5 +65,5 @@
       "after": {"path": "tasks/e1-instrument-ru-adjudication.manifest.json", "count": 30, "sha256": "b0b864430290e3e4c9769ac7c1ee94622dab7a062e44bc69919819a8ccf06d01"}
     }
   ],
-  "ledger": {"path": "migrations/source-v3.jsonl", "count": 217, "sha256": "798d73dd3570172124a996529e0923ba17a9b84af92f23041df19536da292b68"}
+  "ledger": {"path": "migrations/source-v3.jsonl", "count": 216, "sha256": "a8f3d8201054753c4699cd077012592a4787dfd71661b7566d36ee599bd8680f"}
 }

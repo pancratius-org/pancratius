@@ -7516,3 +7516,6 @@
 {"id": ["ru", "75", 30, 9], "tag": "deepseek", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-ru"}
 {"id": ["ru", "75", 30, 9], "tag": "gemini", "label": "lineated", "conf": 0.9499999999999998, "task": "e1-instrument-ru"}
 {"id": ["ru", "75", 30, 9], "tag": "grok", "label": "lineated", "conf": 0.9166666666666666, "task": "e1-instrument-ru"}
+{"id": ["ru", "22", 84, 0], "tag": "deepseek", "label": "prose", "conf": 0.65, "task": "e1-instrument-ru"}
+{"id": ["ru", "22", 84, 0], "tag": "gemini", "label": "prose", "conf": 0.9499999999999998, "task": "e1-instrument-ru"}
+{"id": ["ru", "22", 84, 0], "tag": "grok", "label": "prose", "conf": 0.9333333333333332, "task": "e1-instrument-ru"}

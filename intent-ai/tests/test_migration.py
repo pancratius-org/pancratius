@@ -81,7 +81,7 @@ def test_migration_ledger_is_complete_and_collision_free():
     assert Counter(type(entry) for entry in ledger.entries) == {
         Moved: 179,
         NeedsAdjudication: 21,
-        Retired: 17,
+        Retired: 16,
     }
     targets = [entry.after for entry in ledger.entries if isinstance(entry, Moved)]
     assert len(targets) == len(set(targets))
@@ -186,6 +186,6 @@ def test_unresolved_truth_stays_out_of_the_active_store():
         paths.ANNOTATIONS / "history" / "source-v2" / "unresolved-labels.jsonl"
     )
     human = [row for row in unresolved if row["source"] == "human"]
-    assert len(unresolved) == 36
+    assert len(unresolved) == 35
     assert len(human) == 1
     assert human[0]["id"] == ["en", "63", 5964, 0]
