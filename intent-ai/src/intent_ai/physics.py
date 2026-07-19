@@ -1,9 +1,10 @@
 # research-pure: reading-column geometry + a LibreOffice greedy-wrap simulator.
-"""Per-line PHYSICAL signal — the keystone feature. The author pressed Enter for every line, so a
-`<w:p>` boundary is noise; what he cannot fake is layout physics: at the observed reading column
-a flowing-prose line WRAPS to >=2 rendered lines, while a discrete verse/litany line occupies ONE.
-We approximate LibreOffice's greedy line-fill with hash-pinned Liberation Serif metrics at the
-source's resolved default font size, computing `fill` and `wraps` per display line.
+"""Per-line physical evidence for Q1. The author used `<w:p>` boundaries deliberately, but the
+boundary alone does not decide whether the reading surface needs separate prose paragraphs or one
+lineated run. Layout physics helps distinguish those display roles: at the observed reading column
+a prose-length source line wraps, while a short verse/litany line often does not. We approximate
+LibreOffice's greedy line-fill with hash-pinned Liberation Serif metrics at the source's resolved
+default font size, computing `fill` and `wraps` per source line.
 
 This is the one primitive production lacks — production ships whole paragraphs to
 LibreOffice for real rendering and never needed a per-line simulator. It belongs upstream eventually

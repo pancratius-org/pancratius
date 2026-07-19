@@ -408,7 +408,7 @@ def _build_rows(*, annotations: Path | None) -> list[LineSignals]:
     return rows
 
 
-HUMAN_COLLAPSE_FLOOR = 0.60  # AUC(human) at/below this on the 21 ground-truth lines reads as ~chance
+HUMAN_COLLAPSE_FLOOR = 0.60  # AUC(human) at/below this on the tiny human slice reads as ~chance
 
 
 def _robust_on_human(s: SignalScore) -> bool:
