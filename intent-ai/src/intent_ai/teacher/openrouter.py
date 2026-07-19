@@ -8,9 +8,10 @@ The SDK is imported LAZILY (inside `__init__`/`complete`), never at module impor
 installed; only a live run needs it (`uv run --extra live`).
 
 The SDK already retries 5xx with backoff internally; this adapter adds retry/backoff for the
-transient cases it does NOT (HTTP 429 rate-limit, connection-level failures with no response, and raw
-httpx transport drops mid-stream — e.g. an incomplete chunked read on a long completion, which the SDK
-does not type), and on a non-retryable error surfaces the HTTP/SDK error BODY rather than swallowing it."""
+transient cases it does NOT (HTTP 429 rate-limit, connection-level failures with no response, raw
+httpx transport drops mid-stream, and a 200 whose body arrived truncated/malformed — the SDK types
+that one as `ResponseValidationError` after the status line, but it is the same transport-drop
+class), and on a non-retryable error surfaces the HTTP/SDK error BODY rather than swallowing it."""
 from __future__ import annotations
 
 import importlib
@@ -101,6 +102,9 @@ class OpenRouterCompleter:
                         f"{last}") from e
                 time.sleep(self._rate_limit_backoff)            # wait out the per-minute window
                 continue                                        # a 429 does not spend a normal retry
+            except errors.ResponseValidationError as e:         # 200 whose body arrived truncated /
+                last = _err(e)                                  # malformed — a mid-stream drop the SDK
+                                                                # types after the status line; retryable
             except errors.OpenRouterError as e:                 # any other HTTP error: capture body
                 if 500 <= e.status_code < 600:                  # SDK already retried 5xx; it's spent
                     last = _err(e)
