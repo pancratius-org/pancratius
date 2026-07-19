@@ -57,12 +57,18 @@ type EnclosureKind = Literal[CompilerBlockKind.QUOTE, CompilerBlockKind.LIST]
 @dataclass(frozen=True, slots=True)
 class BlockClaim:
     """One leaf block's claim on one or more source ordinals. `enclosure` is the
-    nearest container the leaf renders inside, when nested."""
+    nearest container the leaf renders inside, when nested. `register` is the
+    independent display axis carried by a lineated leaf."""
 
     kind: CompilerBlockKind
     span: ir.SourceSpan
     path: tuple[int, ...]
     enclosure: EnclosureKind | None = None
+    register: ir.Register | None = None
+
+    @property
+    def is_verse(self) -> bool:
+        return self.kind is CompilerBlockKind.LINEATED and self.register is ir.Register.VERSE
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,6 +166,9 @@ def source_block_hits(
             span,
             leaf.path,
             leaf.enclosure,
+            register=(
+                leaf.block.register if isinstance(leaf.block, ir.LineatedBlock) else None
+            ),
         )
         for ordinal in range(span.start, span.end + 1):
             if ordinal in eligible:
@@ -190,6 +199,7 @@ def source_line_hits(
                             line.span,
                             (*leaf.path, stanza_index, line_index),
                             leaf.enclosure,
+                            register=leaf.block.register,
                         )
                         for coordinate in line.span.lines:
                             claims.setdefault(coordinate, []).append(claim)
@@ -199,7 +209,15 @@ def source_line_hits(
 
         if (span := leaf.block.source_span) is None:
             continue
-        claim = BlockClaim(kind, span, leaf.path, leaf.enclosure)
+        claim = BlockClaim(
+            kind,
+            span,
+            leaf.path,
+            leaf.enclosure,
+            register=(
+                leaf.block.register if isinstance(leaf.block, ir.LineatedBlock) else None
+            ),
+        )
         for coordinate in span.lines:
             claims.setdefault(coordinate, []).append(claim)
     return {
