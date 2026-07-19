@@ -1,0 +1,20 @@
+{
+  "git_sha": "3226bab767457ccc0c91463fce3fcee351aa2630+dirty",
+  "labels_sha256": "0da97ac74e592efd1e8c44a923526f70adb39d775e4735b9cb223d053795cfec",
+  "votes_sha256": "3ed7bc25e212a1a5d4e6663de41c0eb08f0ef1594818141a81305bd2ed135f11",
+  "working_set": "e1-v2-working",
+  "frozen_set_excluded": "e1-v2-frozen",
+  "working_set_sha256": "65a93b07434f25280e7e46a70a518ecc120f8412b12e5fa0d23eac47e2997175",
+  "frozen_set_sha256": "7d7db0c99d848c74daa5895cdd6cfe76be70806dc5b763fd46672a5d5cbff8c9",
+  "truth_sha256": "06d7f827a54e4d7ae4fbf6ae32e299019bb3f161f49ae94c52d4ee67d31c5d86",
+  "posterior": "student.oof_smoothed alpha=0 over ALL trainable labels (book-held-out)",
+  "signals": [
+    "det_student_disagree",
+    "student_uncertainty",
+    "suspicion_v0",
+    "panel_vote_spread"
+  ],
+  "phi_rho_threshold": 0.3,
+  "corpus_recon": "2026-07-18-source-v3-corpus-recon",
+  "corpus_recon_scorecard_sha256": "877d273be1adc1e583f5c6fbe563228fb04e612f49da73bc0097fd1567fe9ab5"
+}

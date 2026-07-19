@@ -189,7 +189,7 @@ if __name__ == "__main__":
     r = compute()
     print(report(r))
     folder = store.write_experiment(
-        ExperimentId("2026-07-14-source-v3-working-readout"),
+        ExperimentId("2026-07-18-source-v3-working-readout"),
         scorecard=r.to_dict(),
         report=report(r),
         manifest={

@@ -1,0 +1,9 @@
+{
+  "git_sha": "ee2a3a1e2d2e5a598692b50148130a35720b9b2a+dirty",
+  "labels_sha256": "0da97ac74e592efd1e8c44a923526f70adb39d775e4735b9cb223d053795cfec",
+  "working_set": "e1-v2-working",
+  "frozen_set_excluded": "e1-v2-frozen",
+  "working_set_sha256": "65a93b07434f25280e7e46a70a518ecc120f8412b12e5fa0d23eac47e2997175",
+  "frozen_set_sha256": "7d7db0c99d848c74daa5895cdd6cfe76be70806dc5b763fd46672a5d5cbff8c9",
+  "truth_sha256": "06d7f827a54e4d7ae4fbf6ae32e299019bb3f161f49ae94c52d4ee67d31c5d86"
+}

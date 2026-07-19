@@ -24,14 +24,15 @@ type used only by migration lineage and historical manifests.
 LineRecord
   id
   text
-  role
+  disposition
   features
   line_text_hash
 ```
 
-`role` distinguishes body from structure; `votable` is derived from `Role.is_body` (ordinary or
-review-required body). There is
-no copied inline tree, IR block index, or independently constructible source disposition.
+`disposition` is the closed research outcome: body, structural context, or importer-lost. Only
+`BODY` contributes to the lineation model; `votable` is derived from that fact. The producer derives
+the value once from `StructuralObservation`; consumers do not reclassify the source. There is no
+copied inline tree or IR block index.
 
 `LineFeatures` contains:
 
@@ -98,7 +99,7 @@ annotations/
   selections/
   tasks/
   responses/
-  panel_runs/
+  panel_runs/       # immutable raw/per-rep evidence as deterministic .jsonl.gz
   migrations/
   history/
 ```

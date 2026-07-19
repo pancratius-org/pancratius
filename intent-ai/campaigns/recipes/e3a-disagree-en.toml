@@ -1,0 +1,28 @@
+# E3a — det=prose disagreement-core sweep (en): see e3a-disagree-ru.toml — same design, the en
+# stratum of the same committed recon-row selection. Unrouted on purpose: single-reader votes are
+# evidence, never gate labels.
+#   build: uv run --project intent-ai --frozen python -m intent_ai.teacher.recipes build intent-ai/campaigns/recipes/e3a-disagree-en.toml
+#   panel: uv run --project intent-ai --extra live --frozen python -m intent_ai.teacher.recipes panel intent-ai/campaigns/recipes/e3a-disagree-en.toml
+
+task_id = "e3a-disagree-en"
+title = "E3a — det=prose disagreement sweep (en)"
+reps = 3
+temperature = 0.5
+contract = "json_keyed"
+max_workers = 32  # ds-flash is latency-bound, not rate-limited (no gemini 429 constraint here)
+
+[prompts]
+text = "lineation-structure-text.md"
+
+[selection]
+selector = "selection_file:e3a-disagree-en"
+books = ["01", "02", "03", "04", "05", "06", "07", "08", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "43", "44", "46", "47", "48", "49", "50", "51", "52", "53", "54", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "70", "71", "72", "74"]
+lang = "en"
+target = 10
+context_radius = 2
+
+[[readers]]
+tag = "deepseek"
+model = "deepseek/deepseek-v4-flash"
+reasoning_max_tokens = 3000  # ds-flash reasons BY DEFAULT — cap the hidden chain so a runaway
+                             # cannot burn max_tokens and return an empty answer

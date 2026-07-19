@@ -12,7 +12,6 @@ from intent_ai.identity import LineId
 from intent_ai.teacher import panel, tasks
 from intent_ai.teacher.panel import ChatReply, PanelConfig, ReaderConfig
 from intent_ai.teacher.tasks import (
-    AssetKind,
     EvidenceAsset,
     ItemSpec,
     Modality,
@@ -45,8 +44,7 @@ def _task(n: int = 3):
 def _vision_item():
     return TaskItem(id="r", context="  L001  | x",
                     lines=(TaskLine(key="L001", text="x"),),
-                    assets=(EvidenceAsset(kind=AssetKind.COMPOSITE,
-                                          data_uri="data:image/png;base64,AAAA"),))
+                    assets=(EvidenceAsset(data_uri="data:image/png;base64,AAAA"),))
 
 
 def test_run_panel_parses_each_rep_from_the_completer():
@@ -125,8 +123,8 @@ def test_vision_reader_gets_every_page_image_in_order():
     # so a per-image-budget reader sees each page at full resolution (not a downsampled stack).
     item = TaskItem(id="r", context="  L001 | x",
                     lines=(TaskLine(key="L001", text="x"),),
-                    assets=tuple(EvidenceAsset(kind=AssetKind.COMPOSITE,
-                                               data_uri=f"data:image/png;base64,P{n}") for n in range(3)))
+                    assets=tuple(EvidenceAsset(data_uri=f"data:image/png;base64,P{n}")
+                                 for n in range(3)))
     msgs = panel.build_prompt(item, ReaderConfig("grok", "x/grok", Modality.VISION), "b",
                               panel.ResponseContract.JSON_ARRAY)
     urls = [p["image_url"]["url"] for p in msgs[0]["content"] if p["type"] == "image_url"]

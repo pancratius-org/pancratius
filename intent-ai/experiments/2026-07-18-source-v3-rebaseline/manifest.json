@@ -1,0 +1,11 @@
+{
+  "git_sha": "44b466ef05d059b5d39bc5b39485d2ff5f5bc2f7",
+  "labels_sha256": "0da97ac74e592efd1e8c44a923526f70adb39d775e4735b9cb223d053795cfec",
+  "truth_sha256_contested": "61784345029ab0b746adc762a3bab6e2a549b1fc453b5a345a6d11965d5a2ae2",
+  "corpus_recon": "2026-07-18-source-v3-corpus-recon",
+  "corpus_recon_scorecard_sha256": "877d273be1adc1e583f5c6fbe563228fb04e612f49da73bc0097fd1567fe9ab5",
+  "e2_scorecard_sha256": "c49b5e373ee3cee124c37fae3f08b66270ef248512628a4c18e93cb7fe32f9c4",
+  "working_readout_scorecard_sha256": "25dc2ddd44ff3b6df71afb83d839fc93db3e2717ef586fd27f1622ffde600215",
+  "census": "one-off run_unit_census (run-verify-deleted); frozen half excluded",
+  "posterior": "student.oof_smoothed, book-held-out; alpha in {0.0, 0.75}"
+}

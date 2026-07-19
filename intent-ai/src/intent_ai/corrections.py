@@ -105,13 +105,19 @@ class ExportReport:
     n_uncovered_truth: int          # exportable truth absent from importer coverage
 
 
-def contradictions() -> tuple[
-    dict[tuple[Locale, BookId], dict[int, Label]], int, int, int, int
-]:
-    """Exportable truth vs the sidecar-free importer baseline, reduced per ordinal. Returns the
-    per-(lang, book) contradiction map, the count of ordinals whose sub-line labels conflict
-    (skipped — one `w:p` has one register; conflicting truth needs re-adjudication), and the
-    count of holdout-withheld contradictions."""
+@dataclass(frozen=True)
+class Contradictions:
+    """Exportable truth vs the sidecar-free importer baseline, reduced per ordinal: the
+    per-(lang, book) contradiction map plus every withheld class, counted."""
+
+    by_book: dict[tuple[Locale, BookId], dict[int, Label]]
+    n_conflicting: int      # sub-line labels of one ordinal disagree — skipped, surfaced
+    n_incomplete: int       # not every sibling line has truth — unsafe to lower
+    n_holdout: int          # eval-only truth, exportable only post-E4
+    n_uncovered: int        # exportable truth absent from importer coverage
+
+
+def contradictions() -> Contradictions:
     by_ordinal: dict[tuple[Locale, BookId, int], dict[int, Label]] = defaultdict(dict)
     holdout: dict[tuple[Locale, BookId, int], dict[int, Label]] = defaultdict(dict)
     for binding in _joined_truth().entries:
@@ -174,17 +180,18 @@ def contradictions() -> tuple[
             ("lineated" if hit else "prose") != truth for hit in hits
         ):
             n_holdout += 1
-    return dict(out), conflicts, incomplete, n_holdout, uncovered
+    return Contradictions(by_book=dict(out), n_conflicting=conflicts, n_incomplete=incomplete,
+                          n_holdout=n_holdout, n_uncovered=uncovered)
 
 
 def export() -> ExportReport:
     """Rewrite the sidecars as the total projection of the exportable truth: one file per
     (book, lang) with prose-direction corrections; an existing sidecar whose corrections are
     gone is DELETED, never left stale."""
-    contra, conflicts, incomplete, n_holdout, uncovered = contradictions()
+    contra = contradictions()
     desired: dict[Path, dict[str, dict[str, str]]] = {}
     n_prose = n_lineated = 0
-    for (lang, book_id), per_ordinal in sorted(contra.items()):
+    for (lang, book_id), per_ordinal in sorted(contra.by_book.items()):
         entries: dict[str, dict[str, str]] = {}
         for ordinal, truth in sorted(per_ordinal.items()):
             if truth == "lineated":
@@ -208,9 +215,10 @@ def export() -> ExportReport:
         p.unlink()
     return ExportReport(written=written, deleted=tuple(sorted(stale)),
                         n_prose_corrections=n_prose, n_lineated_pending=n_lineated,
-                        n_holdout_withheld=n_holdout, n_conflicting_ordinals=conflicts,
-                        n_incomplete_ordinals=incomplete,
-                        n_uncovered_truth=uncovered)
+                        n_holdout_withheld=contra.n_holdout,
+                        n_conflicting_ordinals=contra.n_conflicting,
+                        n_incomplete_ordinals=contra.n_incomplete,
+                        n_uncovered_truth=contra.n_uncovered)
 
 
 if __name__ == "__main__":

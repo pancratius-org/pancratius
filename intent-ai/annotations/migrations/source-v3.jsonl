@@ -211,7 +211,6 @@
 {"before": ["en", "71", 6895, 0], "after": null, "status": "retired", "old_text_hash": "1626dfe55c33161d", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
 {"before": ["en", "71", 7784, 0], "after": ["en", "71", 5764, 0], "status": "moved", "old_text_hash": "6efe0b26b083684d", "new_text_hash": "6efe0b26b083684d", "reason": "unique canonical text hash"}
 {"before": ["ru", "05", 187, 2], "after": ["ru", "05", 187, 3], "status": "moved", "old_text_hash": "84acc32f6619e6a5", "new_text_hash": "84acc32f6619e6a5", "reason": "unique text hash within the same source paragraph"}
-{"before": ["ru", "22", 84, 0], "after": null, "status": "retired", "old_text_hash": "d46b80df10cb92b0", "new_text_hash": null, "reason": "text hash is absent from the repaired source"}
 {"before": ["ru", "63", 21276, 0], "after": null, "status": "retired", "old_text_hash": null, "new_text_hash": null, "reason": "historical reference has no text hash"}
 {"before": ["ru", "67", 9000134, 0], "after": ["ru", "67", 134, 0], "status": "moved", "old_text_hash": "ce1034446aab9afb", "new_text_hash": "ce1034446aab9afb", "reason": "unique canonical text hash from legacy unmapped identity"}
 {"before": ["ru", "67", 9000179, 0], "after": ["ru", "67", 179, 0], "status": "moved", "old_text_hash": "815de9a533cc02ff", "new_text_hash": "815de9a533cc02ff", "reason": "unique canonical text hash from legacy unmapped identity"}

@@ -10,8 +10,10 @@ from intent_ai.evaluation import datasets
 def test_aligned_set_join_locked():
     a = datasets.from_store()
     # One human reference has no canonical source-v3 line and stays in migration history.
-    assert a.n_total == 576                            # lines with BOTH a label and >=1 vote
-    assert a.n_prose == 71 and a.n_lineated == 505     # the imbalance surfaced up front
+    # 581 = 576 pre-E3a + 5 human-labeled det=prose band lines whose FIRST vote came from the
+    # E3a sweep (a campaign growing votes.jsonl legitimately grows this raw join).
+    assert a.n_total == 581                            # lines with BOTH a label and >=1 vote
+    assert a.n_prose == 74 and a.n_lineated == 507     # the imbalance surfaced up front
     assert a.n_prose + a.n_lineated == a.n_total
     # every aligned line has truth, >=1 vote, and a difficulty stratum.
     assert all(ln.votes and ln.truth in ("prose", "lineated") for ln in a.lines)

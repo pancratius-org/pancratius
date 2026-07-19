@@ -55,6 +55,8 @@ page evidence. Evaluation consumes predictions as data and does not own model fi
 
 - `annotations/labels.jsonl` is active truth.
 - `annotations/votes.jsonl` is evidence, not truth.
+- `annotations/panel_runs/*.jsonl.gz` stores immutable raw/per-rep evidence in deterministic
+  compressed form; it is an artifact, not a line-review surface.
 - `annotations/eval_sets/` stores membership only; truth joins from `labels.jsonl`.
 - `annotations/migrations/` records total, typed source-identity migrations.
 - `annotations/history/` retains unresolved or retired truth outside the active store.

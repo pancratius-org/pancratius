@@ -24,7 +24,7 @@ from . import panel as panel_mod
 from . import promote, responses, tasks
 from .decision import DecisionPolicy, LineDecision, PanelRoster
 from .panel import ReaderConfig
-from .tasks import PAGE_SPAN_CAP, AssetKind, ItemSpec, Modality
+from .tasks import PAGE_SPAN_CAP, ItemSpec, Modality
 
 # Where the lines to poll come from — the closed selection ADT. Authored as a string
 # ("all" | "eval_set:<name>" | "selection_file:<name>") parsed ONCE at the toml edge
@@ -352,10 +352,9 @@ def _build_and_save(recipe: Recipe, selection: Selection, task_id: TaskId, *,
     else:
         assets = {}
     if recipe.vision:
-        bare = [s.region_id for s in specs
-                if not any(a.kind is AssetKind.COMPOSITE for a in assets.get(s.region_id, ()))]
+        bare = [s.region_id for s in specs if not assets.get(s.region_id, ())]
         if bare:
-            raise ValueError(f"vision recipe: render produced no COMPOSITE for regions {bare}")
+            raise ValueError(f"vision recipe: render produced no page image for regions {bare}")
     task = tasks.build_task(title=recipe.title, instructions=recipe.instructions,
                             specs=specs, records=records, assets=assets)
     store.save_task_bundle(task_id, task.to_payload(), task.manifest.to_dict(),
@@ -412,10 +411,10 @@ def panel(recipe: Recipe, completer: panel_mod.ChatCompleter, *,
     store.save_panel_reps(recipe.task_id, _rep_rows(reps, recipe.contract), annotations=annotations)
 
     truncated = [(r.item_id, r.tag, r.rep) for r in reps
-                 if r.finish_reason == panel_mod.FinishReason.LENGTH]
+                 if r.finish_reason == panel_mod.FINISH_LENGTH]
     if truncated:
         raise PanelRefused(f"refusing to promote {recipe.task_id!r}: truncated reps "
-                           f"(finish_reason={panel_mod.FinishReason.LENGTH}): {truncated}")
+                           f"(finish_reason={panel_mod.FINISH_LENGTH}): {truncated}")
     empty = [(r.item_id, r.tag, r.rep) for r in reps if not r.response.rows]
     if empty:
         raise PanelRefused(f"refusing to promote {recipe.task_id!r}: reps with ZERO parsed rows "

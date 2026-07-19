@@ -50,13 +50,10 @@ class Reason(StrEnum):
     CONF_MISSING = "conf_missing"                  # human: a conf floor is set but the anchor reported no conf
 
 
-# A reason is TERMINAL (intrinsic ambiguity → a human, more reps cannot help) or OPERATIONAL (a
-# coverage gap → a live run can ESCALATE more reps; the offline harness just counts it as load).
-# CONF_MISSING is TERMINAL: the anchor DID vote, it just declined to report a confidence — re-running
+# An OPERATIONAL reason is a coverage gap a live run can ESCALATE more reps against (the offline
+# harness just counts it as load); every other reason is terminal — intrinsic ambiguity → a human.
+# CONF_MISSING is terminal: the anchor DID vote, it just declined to report a confidence — re-running
 # the same reader cannot manufacture a number it chose not to give, so the line goes to a human.
-TERMINAL_REASONS = frozenset({Reason.SUPPORT_DISAGREES, Reason.ANCHOR_PANEL_SPLIT,
-                              Reason.INSUFFICIENT_AGREEMENT, Reason.NO_PANEL_MAJORITY,
-                              Reason.LOW_CONFIDENCE, Reason.CONF_MISSING})
 OPERATIONAL_REASONS = frozenset({Reason.ANCHOR_ABSTAIN, Reason.INSUFFICIENT_COVERAGE})
 
 

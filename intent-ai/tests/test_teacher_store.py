@@ -31,6 +31,11 @@ def test_panel_reps_round_trip(tmp_path):
     ann = tmp_path / "annotations"
     rows = [{"id": ["ru", "57", 1, 0], "tag": "grok", "label": "lineated", "conf": 0.9, "rep": 0}]
     store.save_panel_reps("run1", rows, annotations=ann)
+    path = ann / "panel_runs" / "run1.jsonl.gz"
+    first = path.read_bytes()
+    store.save_panel_reps("run1", rows, annotations=ann)
+    assert path.read_bytes() == first
+    assert not (ann / "panel_runs" / "run1.jsonl").exists()
     assert store.load_panel_reps("run1", annotations=ann) == rows
 
 

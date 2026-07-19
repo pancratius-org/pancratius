@@ -18,7 +18,6 @@ from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from enum import StrEnum
 from typing import Literal, Protocol, TypedDict
 
 from ..annotations import PanelVote, VoteKey
@@ -29,7 +28,7 @@ from ..wire import integer, mapping, string
 # re-exported as the panel's public surface.
 from .contracts import RawReaderResponse, ResponseContract, ResponseFormat, spec_for
 from .responses import parse_reader_reply
-from .tasks import AssetKind, Modality, RegionId, Task, TaskItem
+from .tasks import Modality, RegionId, Task, TaskItem
 
 __all__ = ["ResponseContract"]
 
@@ -55,15 +54,10 @@ class Message(TypedDict):
     content: list[MessagePart]
 
 
-class FinishReason(StrEnum):
-    """The OpenAI/OpenRouter completion stop reasons the panel branches on. `LENGTH` means the
-    model hit `max_tokens` mid-answer — a truncated, under-covered reply the run REFUSES to promote.
-    Stored verbatim as the raw `str` on `ChatReply` (an unknown provider value passes through
-    untouched); this enum is the named value to compare against, never re-parsed from the wire."""
-    STOP = "stop"
-    LENGTH = "length"
-    CONTENT_FILTER = "content_filter"
-    TOOL_CALLS = "tool_calls"
+# The one completion stop reason the panel branches on: the model hit `max_tokens` mid-answer —
+# a truncated, under-covered reply the run REFUSES to promote or reuse. `finish_reason` is stored
+# verbatim as a raw `str` on `ChatReply`; every other provider value passes through untouched.
+FINISH_LENGTH = "length"
 
 
 @dataclass(frozen=True, slots=True)
@@ -146,7 +140,7 @@ def build_prompt(item: TaskItem, reader: ReaderConfig, instructions: str,
     parts: list[MessagePart] = [TextPart(type="text", text=text)]
     if reader.modality is Modality.VISION:
         parts += [ImagePart(type="image_url", image_url=ImageUrl(url=a.data_uri))
-                  for a in item.assets if a.kind is AssetKind.COMPOSITE]   # one part per page
+                  for a in item.assets]   # one part per page
     return [Message(role="user", content=parts)]
 
 
@@ -252,7 +246,7 @@ def _reusable_reply(row: JsonRow) -> ChatReply | None:
     run, where a fresh sampling (temp > 0) usually succeeds. The bad row is still LOGGED (evidence)
     — it is just not offered for reuse, so it can never re-poison a run."""
     reply = CompletionRequest.reply_from_row(row)
-    if not reply.content or reply.finish_reason == FinishReason.LENGTH.value:
+    if not reply.content or reply.finish_reason == FINISH_LENGTH:
         return None
     contract = ResponseContract(str(row.get("contract", ResponseContract.JSON_ARRAY.value)))
     try:

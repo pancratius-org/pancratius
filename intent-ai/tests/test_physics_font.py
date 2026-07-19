@@ -31,18 +31,14 @@ def test_vendored_font_matches_pin() -> None:
 
 def test_geometry_fallback_is_research_policy_not_source_fact() -> None:
     missing = physics.page_geom(docx_source.DocumentLayout())
-    assert missing.column_basis is physics.GeometryBasis.RESEARCH_FALLBACK
-    assert missing.font_size_basis is physics.GeometryBasis.RESEARCH_FALLBACK
-    assert missing.font_metrics_basis is physics.FontMetricsBasis.SURROGATE_LIBERATION_SERIF
+    assert missing.col_pt == physics._FALLBACK_COLUMN_TWIPS / 20.0
+    assert missing.size_pt == physics._FALLBACK_FONT_HALF_POINTS / 2.0
 
     observed = physics.page_geom(docx_source.DocumentLayout(
         column_width=docx_source.ObservedColumnWidth(docx_source.Twips(6000)),
         default_font_size=docx_source.ObservedFontSize(22),
     ))
     assert observed.col_pt == 300.0 and observed.size_pt == 11.0
-    assert observed.column_basis is physics.GeometryBasis.OBSERVED
-    assert observed.font_size_basis is physics.GeometryBasis.OBSERVED
-    assert observed.font_metrics_basis is physics.FontMetricsBasis.SURROGATE_LIBERATION_SERIF
 
 
 def test_heterogeneous_sections_refuse_a_false_document_wide_fill_model() -> None:

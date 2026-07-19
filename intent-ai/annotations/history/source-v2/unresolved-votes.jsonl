@@ -103,9 +103,6 @@
 {"id": ["en", "71", 6895, 0], "tag": "deepseek", "label": "prose", "conf": 0.9499999999999998, "task": "e1-instrument-en"}
 {"id": ["en", "71", 6895, 0], "tag": "gemini", "label": "prose", "conf": 1.0, "task": "e1-instrument-en"}
 {"id": ["en", "71", 6895, 0], "tag": "grok", "label": "prose", "conf": 0.9166666666666666, "task": "e1-instrument-en"}
-{"id": ["ru", "22", 84, 0], "tag": "deepseek", "label": "prose", "conf": 0.65, "task": "e1-instrument-ru"}
-{"id": ["ru", "22", 84, 0], "tag": "gemini", "label": "prose", "conf": 0.9499999999999998, "task": "e1-instrument-ru"}
-{"id": ["ru", "22", 84, 0], "tag": "grok", "label": "prose", "conf": 0.9333333333333332, "task": "e1-instrument-ru"}
 {"id": ["ru", "63", 21276, 0], "tag": "deepseek", "label": "lineated", "conf": 0.95, "task": null}
 {"id": ["ru", "63", 21276, 0], "tag": "gemini", "label": "prose", "conf": 0.9, "task": null}
 {"id": ["ru", "63", 21276, 0], "tag": "grok", "label": "lineated", "conf": 0.8, "task": null}

@@ -7,7 +7,7 @@ import json
 import re
 
 from intent_ai.teacher import tasks
-from intent_ai.teacher.tasks import AssetKind, EvidenceAsset, ItemSpec
+from intent_ai.teacher.tasks import EvidenceAsset, ItemSpec
 
 from tests.record_factory import sample_records
 
@@ -115,7 +115,7 @@ def test_multipage_images_survive_the_payload_roundtrip_in_order():
     # order, so a re-run/resume attaches the full evidence (not just page 1).
     recs = _votable(n=3)
     spec = ItemSpec.all_votable("b57-r0", [r.id for r in recs])
-    pages = tuple(EvidenceAsset(kind=AssetKind.COMPOSITE, data_uri=f"data:image/png;base64,P{n}")
+    pages = tuple(EvidenceAsset(data_uri=f"data:image/png;base64,P{n}")
                   for n in range(3))
     task = tasks.build_task(title="t", instructions="i", specs=[spec],
                             records={"57": sample_records()}, assets={"b57-r0": pages})
@@ -123,5 +123,5 @@ def test_multipage_images_survive_the_payload_roundtrip_in_order():
     assert payload["items"][0]["images"] == [a.data_uri for a in pages]      # all pages, in order
     back = tasks.Task.from_bundle(payload, task.manifest.to_dict())
     item = back.items[0]
-    assert item.assets and all(a.kind is AssetKind.COMPOSITE for a in item.assets)
+    assert item.assets
     assert [a.data_uri for a in item.assets] == [a.data_uri for a in pages]  # reconstructed in order

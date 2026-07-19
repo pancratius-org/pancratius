@@ -1,0 +1,19 @@
+{
+  "git_sha": "f1a985a78136be9ef8dc2494939b5ed3ca674c70+dirty",
+  "recon": "2026-07-18-source-v3-corpus-recon",
+  "recon_scorecard_sha256": "877d273be1adc1e583f5c6fbe563228fb04e612f49da73bc0097fd1567fe9ab5",
+  "votes_sha256": "467f4b0f724deae31dcf0364d4fef80bdd5915e29773eccccbcc2e5e2f8d5afc",
+  "selections_sha256": {
+    "en": "0e8422814fcee24d5abca689b2b04b6b565f370a1c98a5bcab0fa00f483bd3e3",
+    "ru": "15daf4868163d66c4765f9e43bcb17c5cd151a2483a325d8f40cab939c262131"
+  },
+  "task_manifests_sha256": {
+    "en": "d7eb10777abf5cfaae104e41a557e7cc788ccaff82d323274623bcfdd9eb5cde",
+    "ru": "5141576d030c708218ca90aca42a8c99fd063706f0fd53d6c6b52d715a22e97f"
+  },
+  "panel_runs_sha256": {
+    "en": "6a8d3b6c40b2d4681bb8227450bb56fc34c1bb0292623988008b62d0d4b456ab",
+    "ru": "10200c00af950c6e81183ace92280480a25f4b5391407b456a42df63e0eb4edd"
+  },
+  "price_table_version": "2026-06-10"
+}
