@@ -99,7 +99,7 @@ annotations/
   selections/
   tasks/
   responses/
-  panel_runs/
+  panel_runs/       # immutable raw/per-rep evidence as deterministic .jsonl.gz
   migrations/
   history/
 ```

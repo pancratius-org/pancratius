@@ -11,6 +11,7 @@ artifacts are returned as validated `LineRecord`s through the existing hash-rail
 loader."""
 from __future__ import annotations
 
+import gzip
 import hashlib
 import json
 import os
@@ -233,7 +234,7 @@ def load_records_many(
 
 TASKS_DIR = "tasks"            # committed: <task_id>.manifest.json — resolves L001→LineId
 RESPONSES_DIR = "responses"    # committed: <task_id>.json — raw human adjudications
-PANEL_RUNS_DIR = "panel_runs"  # committed: <run_id>.jsonl — per-rep panel votes (evidence)
+PANEL_RUNS_DIR = "panel_runs"  # committed: <run_id>.jsonl.gz — immutable per-rep evidence
 
 
 def save_task_bundle(task_id: TaskId, payload: JsonObject, manifest: JsonObject, *,
@@ -285,16 +286,20 @@ def load_human_responses(task_id: TaskId, *, annotations: Path | None = None) ->
 
 def save_panel_reps(run_id: RunId, rows: list[JsonRow], *,
                     annotations: Path | None = None) -> None:
-    """Per-rep parsed panel votes — committed EVIDENCE (run-to-run instability is real data, not
-    fluff). The canonical resolved view is `votes.jsonl`; this keeps the reps behind it."""
+    """Persist immutable per-rep evidence as deterministic compressed JSONL."""
     ann = annotations or paths.ANNOTATIONS
     (ann / PANEL_RUNS_DIR).mkdir(parents=True, exist_ok=True)
-    artifact.write_jsonl(ann / PANEL_RUNS_DIR / f"{run_id}.jsonl", rows)
+    _atomic_gzip_text(
+        ann / PANEL_RUNS_DIR / f"{run_id}.jsonl.gz",
+        _jsonl(rows),
+    )
 
 
 def load_panel_reps(run_id: RunId, *, annotations: Path | None = None) -> list[JsonRow]:
     ann = annotations or paths.ANNOTATIONS
-    return list(artifact.read_jsonl(_must(ann / PANEL_RUNS_DIR / f"{run_id}.jsonl")))
+    path = _must(ann / PANEL_RUNS_DIR / f"{run_id}.jsonl.gz")
+    with gzip.open(path, mode="rt", encoding="utf-8") as fh:
+        return [json.loads(line) for line in fh if line.strip()]
 
 
 # --- resumable raw calls: one persisted (item, reader, rep) reply per LLM call (derived) ------
@@ -333,6 +338,16 @@ def _atomic_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(text)
+    os.replace(tmp, path)
+
+
+def _atomic_gzip_text(path: Path, text: str) -> None:
+    """Atomically write byte-stable gzip: no source filename and a fixed timestamp."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    with tmp.open("wb") as raw:
+        with gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as compressed:
+            compressed.write(text.encode("utf-8"))
     os.replace(tmp, path)
 
 

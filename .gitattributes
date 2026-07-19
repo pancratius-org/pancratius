@@ -15,10 +15,12 @@
 *.mp3  binary
 *.mp4  binary
 *.zip  binary
+*.gz   binary
 
 # Normalize line endings for text content.
 *.md     text eol=lf whitespace=-blank-at-eol
 *.json   text eol=lf
+*.jsonl  text eol=lf
 *.yml    text eol=lf
 *.yaml   text eol=lf
 *.ts     text eol=lf
@@ -30,6 +32,17 @@
 *.html   text eol=lf
 *.astro  text eol=lf
 *.py     text eol=lf
+
+# Machine-generated data is reviewed through its producer and compact reports,
+# not by line-merging opaque identity maps or model evidence.
+intent-ai/annotations/panel_runs/** binary
+intent-ai/annotations/selections/** binary
+intent-ai/annotations/tasks/*.manifest.json binary
+intent-ai/annotations/votes.jsonl binary
+intent-ai/experiments/**/scorecard.json binary
+data/pancratius-books-graph.json binary
+data/pancratius-concepts-graph.json binary
+data/conceptosphere-embed.json binary
 
 # GitHub Linguist: keep repository language stats focused on product source.
 # These trees intentionally contain generated outputs, bad/good source fixtures,
