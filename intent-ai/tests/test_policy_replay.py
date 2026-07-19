@@ -134,15 +134,18 @@ def test_replay_keeps_decisions_inspectable():
 # --- the HEADLINE LOCK on the real committed aligned set ----------------------------------------
 
 def test_real_policy_comparison_locks_the_finding():
-    # Pin the HISTORICAL instrument: the pre-campaign (task-unstamped) votes the finding was
-    # derived on. Later campaigns add voted lines SELECTED by a policy (e.g. the 48 E1 lines the
-    # legacy gate itself routed), which would bias this comparison's load ratios by construction.
+    # Pin the HISTORICAL instrument: lines whose votes are ALL pre-campaign (task-unstamped).
+    # Votes are one-per-(reader, line) with recency precedence, so a later campaign that re-votes
+    # one of these lines REPLACES its historical vote (E3a restamped 27 of the original 529 —
+    # their raw legacy evidence stays in history/legacy-classifier); such lines leave this
+    # population rather than enter it with mixed-provenance panels. Votes SELECTED by a later
+    # policy would bias the load ratios by construction, so they never enter.
     full = datasets.from_store()
     legacy_lines = tuple(ln for ln in full.lines if all(v.task is None for v in ln.votes))
     aligned = AlignedSet(lines=legacy_lines,
                          n_prose=sum(ln.truth == "prose" for ln in legacy_lines),
                          n_lineated=sum(ln.truth == "lineated" for ln in legacy_lines))
-    assert aligned.n_total == 529                  # the frozen population, byte-stable
+    assert aligned.n_total == 502                  # the surviving all-legacy-vote population
     specs = load_policy_specs(RECIPE,
                               present_readers=frozenset(v.tag for ln in aligned.lines for v in ln.votes))
     results = {m.name: m for m in replay_and_score(aligned, specs)}
@@ -164,10 +167,10 @@ def test_real_policy_comparison_locks_the_finding():
     assert legacy.accept.false_accepts < equal.accept.false_accepts
 
     # finding 3: prose capture is near-total but NOT perfect — legacy auto-accepts ONE true-prose
-    # line as lineated (67/68 captured; the panel was confidently wrong on a line the human
+    # line as lineated (62/63 captured; the panel was confidently wrong on a line the human
     # settled as prose). Routed prose stays zero.
     assert legacy.accept.false_accept_prose_as_lineated == 1
-    assert legacy.capture.auto_prose_capture == pytest.approx(67 / 68)
+    assert legacy.capture.auto_prose_capture == pytest.approx(62 / 63)
     assert legacy.capture.routed_prose == 0
     # unanimous's accept-SET recall reads 1.0, but it ROUTES most prose away — the global capture
     # exposes that gap, which is exactly why accepted_*_recall must not be read as total capture.
@@ -175,9 +178,9 @@ def test_real_policy_comparison_locks_the_finding():
     assert unanimous.capture.auto_prose_capture < 0.9 and unanimous.capture.routed_prose > 0
 
     # the measured shape under the fixed-render re-adjudicated truth (robust bands, not brittle counts).
-    assert 480 <= legacy.accept.n_accepted <= 500
+    assert 455 <= legacy.accept.n_accepted <= 475
     assert legacy.accept.acc == pytest.approx(0.939, abs=0.02)
-    assert equal.accept.n_accepted >= 510
+    assert equal.accept.n_accepted >= 500
     assert equal.accept.acc == pytest.approx(0.903, abs=0.02)
 
     # both strata are scored in the per-stratum breakdown.

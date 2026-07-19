@@ -1,0 +1,112 @@
+{
+  "selection": {
+    "basis": "recon det=prose AND student posterior >= 0.5",
+    "n": 44335,
+    "ru": 26890,
+    "en": 17445
+  },
+  "panel": {
+    "reader": "deepseek/deepseek-v4-flash (text, reasoning capped 3000)",
+    "reps": 3,
+    "temperature": 0.5,
+    "contract": "json_keyed",
+    "regions": {
+      "en": 3392,
+      "ru": 4009
+    },
+    "calls": {
+      "en": 11914,
+      "ru": 14040
+    },
+    "cost_usd": {
+      "en": 7.63,
+      "ru": 8.75,
+      "total": 16.38
+    },
+    "rep_unanimous": 0.873
+  },
+  "votes": {
+    "coverage": "44335/44335 (0 missing, 0 extra)",
+    "ds_lineated": 42972,
+    "ds_lineated_rate": 0.969,
+    "by_lang": {
+      "ru": 0.964,
+      "en": 0.978
+    },
+    "by_posterior_band": {
+      "0.5-0.75": 0.945,
+      "0.75-0.9": 0.97,
+      "0.9+": 0.98
+    },
+    "dissent_prose": 1363,
+    "conf_on_lineated": {
+      "median": 0.93,
+      "p10": 0.85
+    }
+  },
+  "truth_overlap": {
+    "human": {
+      "n": 34,
+      "truth_lineated": 25,
+      "agree": 0.706,
+      "recall_lineated": "23/25",
+      "recall_prose": "1/9"
+    },
+    "gate_panel_derived": {
+      "n": 60,
+      "truth_lineated": 54,
+      "agree": 0.917,
+      "recall_lineated": "54/54",
+      "recall_prose": "1/6"
+    }
+  },
+  "runs_touched": {
+    "total": 8037,
+    "whole_run_unanimous_lineated": 857,
+    "partial_run_unanimous_lineated": 6533,
+    "unanimous_prose": 290,
+    "mixed": 357
+  },
+  "top_books_confirmed": [
+    [
+      "ru:78",
+      8286,
+      8648
+    ],
+    [
+      "en:64",
+      2082,
+      2113
+    ],
+    [
+      "ru:64",
+      1817,
+      1864
+    ],
+    [
+      "ru:63",
+      1770,
+      1830
+    ],
+    [
+      "ru:19",
+      1587,
+      1606
+    ],
+    [
+      "ru:52",
+      1551,
+      1610
+    ],
+    [
+      "en:63",
+      1423,
+      1472
+    ],
+    [
+      "en:19",
+      1244,
+      1249
+    ]
+  ]
+}

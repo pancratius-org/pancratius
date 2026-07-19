@@ -87,6 +87,13 @@ def test_migration_ledger_is_complete_and_collision_free():
     assert len(targets) == len(set(targets))
 
 
+# labels.jsonl / votes.jsonl are GROWING stores: their receipt after-snapshots were true at
+# resolution time, but new truth and panel evidence append past them by design. Their permanent
+# conservation is proven by the ledger + the static quarantine files + the baseline-blob test —
+# a current-bytes pin would re-freeze the store.
+_GROWING_STORES = frozenset({"labels.jsonl", "votes.jsonl"})
+
+
 def test_migration_receipt_pins_every_changed_live_surface():
     receipt = _receipt()
     assert receipt.baseline_commit == "bef6cc6a8886091823fd148e6fd380ce388f48d0"
@@ -97,6 +104,9 @@ def test_migration_receipt_pins_every_changed_live_surface():
         assert snapshot.path not in paths_seen
         paths_seen.add(snapshot.path)
         path = paths.ANNOTATIONS / snapshot.path
+        if snapshot.path in _GROWING_STORES:
+            assert _surface_count(path) >= snapshot.count
+            continue
         assert _surface_count(path) == snapshot.count
         assert hashlib.sha256(path.read_bytes()).hexdigest() == snapshot.sha256
 
@@ -158,26 +168,44 @@ def test_every_historical_label_has_one_explicit_disposition():
 
 
 def test_all_live_annotation_references_target_resolved_lines():
+    """A live row must never BE a migrated-away v2 line. Numeric keys COINCIDE across the two
+    identity spaces (v2 and v3 ordinals were renumbered), so raw-key disjointness is the wrong
+    test at density: a dense selection legitimately contains current lines whose keys equal some
+    legacy before-key. The typed contract is hash-shaped — where a live surface carries a text
+    hash (labels, task manifests), a key that collides with a ledger before-key must carry a
+    DIFFERENT hash than that legacy line did."""
     ledger = _ledger()
     resolved = {entry.after for entry in ledger.entries if isinstance(entry, Moved)}
-    changed = set(ledger.by_before)
     unresolved = {entry.before for entry in ledger.entries if not isinstance(entry, Moved)}
-    live: set[LineId] = set()
+    old_hash_by_key = {
+        tuple(entry.before.as_key()): (
+            entry.text_hash if isinstance(entry, Moved) else entry.old_text_hash
+        )
+        for entry in ledger.entries
+    }
 
-    for name in ("labels.jsonl", "votes.jsonl"):
-        live |= {_id(row["id"]) for row in _jsonl(paths.ANNOTATIONS / name)}
+    def assert_not_the_legacy_line(raw_key: object, text_hash: object) -> None:
+        old = old_hash_by_key.get(tuple(_id(raw_key).as_key()))
+        if old is not None:
+            assert text_hash != old, f"live row {raw_key} carries a migrated-away line's hash"
+
+    live: set[LineId] = set()
+    for row in _jsonl(paths.ANNOTATIONS / "labels.jsonl"):
+        live.add(_id(row["id"]))
+        assert_not_the_legacy_line(row["id"], row["line_text_hash"])
+    for row in _jsonl(paths.ANNOTATIONS / "votes.jsonl"):
+        live.add(_id(row["id"]))
     for directory in ("eval_sets", "selections"):
         for path in (paths.ANNOTATIONS / directory).glob("*.json"):
             live |= {_id(raw) for raw in _json(path)}
     for path in (paths.ANNOTATIONS / "tasks").glob("*.manifest.json"):
         manifest = _json(path)
-        live |= {_id(raw) for raw in manifest["by_key"].values()}
+        for key, raw in manifest["by_key"].items():
+            live.add(_id(raw))
+            assert_not_the_legacy_line(raw, manifest["text_hash_by_key"][key])
         retired = {_legacy_id(raw) for raw in manifest.get("retired_by_key", {}).values()}
         assert retired <= unresolved
 
-    live_wire_keys = {tuple(line_id.as_key()) for line_id in live}
-    assert live_wire_keys.isdisjoint(tuple(line_id.as_key()) for line_id in unresolved)
-    assert live_wire_keys.isdisjoint(tuple(line_id.as_key()) for line_id in changed)
     assert resolved <= live
 
 
