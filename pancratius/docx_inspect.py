@@ -7,9 +7,9 @@ detection consumes — resolved style, ``w:contextualSpacing``, spacing attrs,
 ``w:jc`` alignment, ``w:ind`` indent, ``w:numPr`` list, ``w:pBdr`` border, the
 hard ``<w:br/>`` count, and the assigned visual ``lineation_group`` — beside the
 IR block the paragraph actually became after the full ``adapt`` → pass
-pipeline. A human can then see WHY a run was (or was not) folded into a
-``verse``: the source signals on the left, the classifier's verdict on the
-right.
+pipeline. A human can then inspect Q1 and Q2 separately: whether source rows
+were folded into a ``LineatedBlock``, and which display register that block
+received.
 
 It projects ``pancratius.docx_source`` so the signals shown are the same domain
 facts the importer reads — there is no diagnostic-side OOXML interpretation to
@@ -71,6 +71,7 @@ class ParaRow:
     lineation_group: int | None = None
     block_kind: str = "?"  # the IR block this paragraph's text landed in
     block_source_span: ir.SourceSpan | None = None
+    block_registers: frozenset[ir.Register] = frozenset()
     page_break_before: bool = False  # w:pPr/w:pageBreakBefore — starts a new page
     page_break_inline: bool = False  # a run-level <w:br w:type="page"/> inside the paragraph
     column_break_inline: bool = False
@@ -171,10 +172,7 @@ class InspectResult:
     docx: Path
     rows: tuple[ParaRow, ...]
     selected: tuple[ParaRow, ...]
-
-    @property
-    def verse_paragraphs(self) -> int:
-        return sum(1 for row in self.rows if row.block_kind == "VerseBlock")
+    verse_blocks: int = 0
 
     @property
     def lineated_paragraphs(self) -> int:
@@ -201,7 +199,6 @@ type InspectBlockKind = Literal[
     "Signature",
     "Table",
     "ThematicBreak",
-    "VerseBlock",
 ]
 
 
@@ -277,6 +274,15 @@ class BlockClassifications:
     by_text: BlockKindsByText
     by_source: BlockKindsBySource
 
+    @property
+    def verse_block_paths(self) -> frozenset[tuple[int, ...]]:
+        return frozenset(
+            claim.path
+            for hit in self.by_source.values()
+            for claim in hit.claims
+            if claim.is_verse
+        )
+
 
 def classify_blocks(source: docx_source.DocxSourceDocument) -> BlockClassifications:
     """Classify normalized import blocks by reading text and source paragraph span.
@@ -337,12 +343,17 @@ def _row_may_be_kind(row: ParaRow, kind: InspectBlockKind) -> bool:
     )
 
 
-def annotate(rows: list[ParaRow], source: docx_source.DocxSourceDocument) -> None:
+def annotate(
+    rows: list[ParaRow], source: docx_source.DocxSourceDocument
+) -> BlockClassifications:
     classifications = classify_blocks(source)
     for row in rows:
         if source_hit := classifications.by_source.get(row.index):
             row.block_kind = _kind_label(source_hit.kinds)
             row.block_source_span = source_hit.span
+            row.block_registers = frozenset(
+                claim.register for claim in source_hit.claims if claim.register is not None
+            )
             continue
         if row.empty:
             row.block_kind = "—"
@@ -352,6 +363,8 @@ def annotate(rows: list[ParaRow], source: docx_source.DocxSourceDocument) -> Non
         candidates = set(classifications.by_text.get(first, ()))
         candidates.update(classifications.by_text.get(_norm(row.text), ()))
         row.block_kind = _kind_label(frozenset(candidates))
+        # Text fallback can recover only a block kind. Never guess Q2 without a source claim.
+    return classifications
 
 
 # ---------------------------------------------------------------------------
@@ -410,7 +423,6 @@ def _flags(row: ParaRow) -> str:
 
 _KIND_MARK = {
     "LineatedBlock": "LINE ",
-    "VerseBlock": "VERSE",
     "Signature": "SIGN ",
     "Epigraph": "EPIG ",
     "DialogueLabel": "DLG  ",
@@ -422,17 +434,21 @@ _KIND_MARK = {
 }
 
 
+def _kind_mark(row: ParaRow) -> str:
+    if row.block_kind.startswith("Ambiguous["):
+        return "AMBIG"
+    if row.block_kind == "LineatedBlock" and ir.Register.VERSE in row.block_registers:
+        return "VERSE"
+    return _KIND_MARK.get(row.block_kind, row.block_kind[:5])
+
+
 def render(rows: list[ParaRow], *, width: int = 58) -> str:
     lines: list[str] = []
     header = f"{'idx':>4}  {'kind':<5}  {'lg':>3}  {'style':<14}  signals"
     lines.append(header)
     lines.append("-" * len(header))
     for row in rows:
-        mark = (
-            "AMBIG"
-            if row.block_kind.startswith("Ambiguous[")
-            else _KIND_MARK.get(row.block_kind, row.block_kind[:5])
-        )
+        mark = _kind_mark(row)
         lg = str(row.lineation_group) if row.lineation_group is not None else "·"
         preview = re.sub(r"\s+", " ", row.text)[:width] or "∅"
         style = (row.style or "Normal")[:14]
@@ -491,7 +507,7 @@ def select_rows(rows: list[ParaRow], options: InspectOptions) -> list[ParaRow]:
         case InspectContains(text):
             return [r for r in rows if text in r.text]
         case InspectVerseOnly():
-            return [r for r in rows if _row_may_be_kind(r, "VerseBlock")]
+            return [r for r in rows if ir.Register.VERSE in r.block_registers]
         case InspectLineatedOnly():
             return [r for r in rows if _row_may_be_kind(r, "LineatedBlock")]
         case InspectRange(index_range):
@@ -511,7 +527,7 @@ def inspect_docx(docx: Path, options: InspectOptions | None = None) -> InspectRe
     try:
         source = docx_source.read(docx)
         rows = read_rows(source)
-        annotate(rows, source)
+        classifications = annotate(rows, source)
     except zipfile.BadZipFile as exc:
         raise DocxInspectError(f"{docx} is not a valid ZIP/DOCX package") from exc
     except KeyError as exc:
@@ -529,15 +545,20 @@ def inspect_docx(docx: Path, options: InspectOptions | None = None) -> InspectRe
             ) from exc
         raise
     selected = select_rows(rows, options)
-    return InspectResult(docx=docx, rows=tuple(rows), selected=tuple(selected))
+    return InspectResult(
+        docx=docx,
+        rows=tuple(rows),
+        selected=tuple(selected),
+        verse_blocks=len(classifications.verse_block_paths),
+    )
 
 
 def render_inspection(result: InspectResult) -> str:
     lines = [
         f"# {result.docx}  ({len(result.rows)} body paragraphs, {len(result.selected)} shown)",
         (
-            f"# verse-register paragraphs: {result.verse_paragraphs}   "
-            f"lineated-prose paragraphs: {result.lineated_paragraphs}   "
+            f"# verse-register blocks: {result.verse_blocks}   "
+            f"lineated source paragraphs: {result.lineated_paragraphs}   "
             f"visual lineation-groups: {result.lineation_groups}   "
             f"ambiguous text matches: {result.ambiguous_paragraphs}"
         ),

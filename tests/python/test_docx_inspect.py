@@ -571,7 +571,12 @@ def test_docx_inspect_prefers_source_span_classification(
         lambda _docx: docx_inspect.BlockClassifications(
             by_text={"Repeated": frozenset({CompilerBlockKind.PARAGRAPH})},
             by_source={4: docx_inspect.BlockSourceHit((
-                BlockClaim(CompilerBlockKind.LINEATED, span, (0,)),
+                BlockClaim(
+                    CompilerBlockKind.LINEATED,
+                    span,
+                    (0,),
+                    register=ir.Register.VERSE,
+                ),
             ))},
         ),
     )
@@ -580,6 +585,7 @@ def test_docx_inspect_prefers_source_span_classification(
 
     assert row.block_kind == "LineatedBlock"
     assert row.block_source_span == span
+    assert row.block_registers == {ir.Register.VERSE}
 
 
 def test_docx_inspect_classifies_empty_rows_inside_source_span(
@@ -688,6 +694,70 @@ def test_docx_inspect_kind_filters_keep_ambiguous_candidates() -> None:
     selected = docx_inspect.select_rows(rows, InspectOptions.from_cli(lineated_only=True))
 
     assert selected == rows
+
+
+def test_docx_inspect_verse_filter_uses_register_not_block_kind() -> None:
+    def lineated_row(index: int, register: ir.Register) -> ParaRow:
+        return ParaRow(
+            index=index,
+            text=f"line {index}",
+            style="Normal",
+            direct_style="",
+            align="",
+            contextual=False,
+            spacing={},
+            indent={},
+            numbered=False,
+            border="",
+            heading=False,
+            thematic=False,
+            br_count=0,
+            empty=False,
+            disposition=docx_source.ParagraphDisposition.CONTENT,
+            block_kind="LineatedBlock",
+            block_registers=frozenset({register}),
+        )
+
+    verse = lineated_row(0, ir.Register.VERSE)
+    ordinary = lineated_row(1, ir.Register.ORDINARY)
+
+    assert docx_inspect.select_rows(
+        [verse, ordinary], InspectOptions.from_cli(verse_only=True)
+    ) == [verse]
+    assert docx_inspect.select_rows(
+        [verse, ordinary], InspectOptions.from_cli(lineated_only=True)
+    ) == [verse, ordinary]
+    assert "VERSE" in docx_inspect.render([verse])
+    assert "LINE" in docx_inspect.render([ordinary])
+
+
+def test_docx_inspect_counts_unique_verse_registered_lineated_blocks() -> None:
+    verse = ir.LineatedBlock(
+        stanzas=[[ir.Line([ir.Text("first")]), ir.Line([ir.Text("second")])]],
+        register=ir.Register.VERSE,
+        source_span=ir.SourceSpan(4, 5),
+    )
+    ordinary = ir.LineatedBlock(
+        stanzas=[[ir.Line([ir.Text("third")])]],
+        source_span=ir.SourceSpan(6, 6),
+    )
+
+    hits = source_block_hits([verse, ordinary], {4, 5, 6})
+    classifications = docx_inspect.BlockClassifications(by_text={}, by_source=hits)
+
+    assert classifications.verse_block_paths == {(0,)}
+    assert hits[4].claims[0].register is ir.Register.VERSE
+    assert hits[6].claims[0].register is ir.Register.ORDINARY
+    summary = docx_inspect.render_inspection(
+        docx_inspect.InspectResult(
+            docx=Path("source.docx"),
+            rows=(),
+            selected=(),
+            verse_blocks=len(classifications.verse_block_paths),
+        )
+    )
+    assert "verse-register blocks: 1" in summary
+    assert "VerseBlock" not in summary
 
 
 # --- total source-line structural observation ---------------------------------------------
