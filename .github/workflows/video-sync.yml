@@ -2,8 +2,9 @@ name: Sync videos
 
 # Scaffolds newly published videos. `pancratius video sync` reads the configured
 # YouTube channels and makes one OpenRouter call per new video to split the raw
-# description into a hook + reading body; the content gate below runs before the
-# auto-merging PR opens (a GITHUB_TOKEN PR would not re-trigger pr.yml).
+# description into a hook + reading body. The content gate runs before the PR
+# opens; afterwards the workflow explicitly dispatches pr.yml because a
+# GITHUB_TOKEN-created PR does not produce an unattended pull_request run.
 #
 # This is the one `pancratius` command that runs in CI — the documented exception
 # to the Local-vs-CI rule (docs/architecture.md) — because it is external-API
@@ -17,6 +18,7 @@ on:
   workflow_dispatch: {}
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -89,8 +91,22 @@ jobs:
             Automated by `.github/workflows/video-sync.yml`.
 
             Content checks, the audit, and a clean build passed inside the
-            workflow before this PR was opened, so it should auto-merge as soon
-            as GitHub clears it.
+            workflow before this PR was opened. The required PR gate runs on
+            the final branch before GitHub auto-merges it.
+
+      - name: Rebase PR onto current main
+        if: steps.cpr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.cpr.outputs.pull-request-number }}
+        run: gh pr update-branch --rebase "$PR_NUMBER"
+
+      - name: Run required PR gate
+        if: steps.cpr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_BRANCH: ${{ steps.cpr.outputs.pull-request-branch }}
+        run: gh workflow run pr.yml --ref "$PR_BRANCH"
 
       - name: Enable auto-merge
         if: steps.cpr.outputs.pull-request-number != ''
