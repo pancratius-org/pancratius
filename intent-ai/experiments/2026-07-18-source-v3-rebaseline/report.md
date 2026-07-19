@@ -35,11 +35,13 @@ Examples (position matters, not row counts):
   around lineated formula lines break one authorial unit into three rendered pieces.
 - ru:31 ords 6029-6032 (anaphoric «Он — как ...» litany, truth lineated): one interior prose call
   (iid) breaks the anaphora; smoothing repairs it.
-- ru:78 ords 589-595 (breath litany «Вдох - ... / Выдох - ...»): det=prose throughout; the student
-  reads 590-595 at posterior >=0.9. The AUTHORED page renders all seven paragraphs with uniform
-  spacing — the visual gives weak evidence either way, so this is a genuine-ambiguity class for
-  the panel/human loop, not a proven importer error. Today it ships as four indented one-sentence
-  prose paragraphs; a lineated verdict would set one tight stanza.
+- ru:78 ords 589-596 (breath litany «Вдох - ... / Выдох - ...»): det=prose throughout; recon
+  posteriors are 590=.91, 591=.95, 592=.95, 593=.93, 594=.85, 595=.06, 596=.65 — the likely
+  lineated island is 591-594, 590 is a prose lead-in the student ALSO scores 0.91 (the boundary
+  false-fold class), and 595 resumes prose. The AUTHORED page renders all these paragraphs with
+  uniform spacing — the visual gives weak evidence either way, so this is a genuine-ambiguity
+  class for the panel/human loop, not a proven importer error. Today the island ships as four
+  indented one-sentence prose paragraphs; a lineated verdict would set one tight stanza.
 
 ## Error taxonomy
 
