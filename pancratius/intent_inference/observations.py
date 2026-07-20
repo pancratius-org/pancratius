@@ -122,7 +122,6 @@ def stable_register_candidate_id(
         f"stanzas={','.join(str(count) for count in stanza_line_counts(block.stanzas))}",
         (
             "evidence="
-            f"{int(block.evidence.pandoc_line_block)},"
             f"{int(block.evidence.hard_break)},"
             f"{int(block.evidence.inferred_source_rows)},"
             f"{int(block.evidence.stanza_break)},"

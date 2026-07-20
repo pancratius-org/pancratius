@@ -15,7 +15,7 @@ from pancratius.docx_source import (
     DocxSourceError,
     ParagraphContent,
     TextAtom,
-    iter_baseline_descendants,
+    iter_source_descendants,
 )
 from pancratius.ooxml import (
     DRAWING_METADATA_DESCRIPTION_ATTR,
@@ -289,7 +289,7 @@ def _selected_footnote_runs(paragraph: ET.Element) -> tuple[ET.Element, ...]:
     """Project selected reference anchors without copying compatibility branches."""
     parents = _parent_map(paragraph)
     runs: list[ET.Element] = []
-    for payload in iter_baseline_descendants(paragraph):
+    for payload in iter_source_descendants(paragraph):
         if payload.tag != f"{W}footnoteReference":
             continue
         node = payload
@@ -346,7 +346,7 @@ def _selected_drawing_children(
     story_index: int,
 ) -> tuple[ET.Element, ...]:
     """Preserve each selected drawing's opaque direct paragraph payload."""
-    selected = tuple(iter_baseline_descendants(paragraph))
+    selected = tuple(iter_source_descendants(paragraph))
     drawings = tuple(element for element in selected if element.tag in _DRAWING_PAYLOAD_TAGS)
     if not drawings:
         return ()
@@ -395,7 +395,7 @@ def _assert_pagination_outside_drawings(
     *,
     story_index: int,
 ) -> None:
-    selected = tuple(iter_baseline_descendants(paragraph))
+    selected = tuple(iter_source_descendants(paragraph))
     drawings = tuple(element for element in selected if element.tag in _DRAWING_PAYLOAD_TAGS)
     if not drawings or not (pagination.leading or pagination.trailing):
         return
@@ -738,7 +738,7 @@ def footnote_reference_ids_by_body_order(root: ET.Element) -> tuple[str, ...]:
     try:
         references = tuple(
             element
-            for element in iter_baseline_descendants(root)
+            for element in iter_source_descendants(root)
             if element.tag == f"{W}footnoteReference"
         )
     except DocxSourceError as exc:

@@ -38,7 +38,7 @@ _TOC_HEADING_RE = re.compile(
 
 def _is_toc_paragraph(p: ir.Paragraph) -> bool:
     """A paragraph that is entirely internal-anchor links (`#...` targets), i.e.
-    a Pandoc-generated TOC entry — seen here as `Link` inlines with `#`-prefixed
+    a generated DOCX TOC entry — seen here as `Link` inlines with `#`-prefixed
     targets."""
     if p.empty:
         return False
@@ -50,20 +50,45 @@ def _is_toc_paragraph(p: ir.Paragraph) -> bool:
     return len(inline_plain(p.inlines)) <= len(label_text) + 4
 
 
+def _toc_entry_count(block: ir.Block) -> int | None:
+    """Count generated entries in one adapter container, or reject the block.
+
+    Word indents nested TOC levels. The adapter preserves that layout as a
+    ``QuoteBlock``; TOC removal therefore has to inspect that semantic container
+    rather than depend on the old frontend flattening every entry.
+    """
+    if isinstance(block, ir.Paragraph):
+        if block.empty:
+            return 0
+        return 1 if _is_toc_paragraph(block) else None
+    if not isinstance(block, ir.QuoteBlock):
+        return None
+    count = 0
+    for child in block.blocks:
+        if not isinstance(child, ir.Paragraph):
+            return None
+        if child.empty:
+            continue
+        if not _is_toc_paragraph(child):
+            return None
+        count += 1
+    return count
+
+
 def drop_toc(blocks: list[ir.Block]) -> list[ir.Block]:
     out: list[ir.Block] = []
     i = 0
     n = len(blocks)
     while i < n:
         b = blocks[i]
-        if isinstance(b, ir.Paragraph) and _is_toc_paragraph(b):
+        if (initial_count := _toc_entry_count(b)) is not None and initial_count > 0:
             j = i
-            count = 0
-            while j < n and isinstance((pj := blocks[j]), ir.Paragraph) and (
-                pj.empty or _is_toc_paragraph(pj)
-            ):
-                if _is_toc_paragraph(pj):
-                    count += 1
+            count = initial_count
+            while j + 1 < n:
+                candidate_count = _toc_entry_count(blocks[j + 1])
+                if candidate_count is None:
+                    break
+                count += candidate_count
                 j += 1
             if count >= 3:
                 # Drop a preceding "Оглавление"/"Contents" heading too.
@@ -71,7 +96,7 @@ def drop_toc(blocks: list[ir.Block]) -> list[ir.Block]:
                     inline_plain(out[-1].inlines)
                 ):
                     out.pop()
-                i = j
+                i = j + 1
                 continue
         out.append(b)
         i += 1
@@ -196,10 +221,6 @@ def _is_ws_text(n: ir.Inline) -> bool:
     return isinstance(n, ir.Text) and n.value.isspace()
 
 
-def _is_literal(n: ir.Inline, ch: str) -> bool:
-    return isinstance(n, ir.Text) and n.value == ch
-
-
 def _drop_lead_ws(out: list[ir.Inline]) -> None:
     """Drop the single whitespace run that led into a just-removed citation, so the
     sentence closes cleanly (`дхарму. [pill](url)` → `дхарму.`)."""
@@ -214,10 +235,24 @@ def _scrub_citations_in_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
         node = inlines[i]
         nxt = inlines[i + 1] if i + 1 < len(inlines) else None
         nxt2 = inlines[i + 2] if i + 2 < len(inlines) else None
-        # a parenthesized citation `([pill](url))` — drop the wrapping parens with it
-        if _is_literal(node, "(") and nxt is not None and _is_citation_link(nxt) \
-                and nxt2 is not None and _is_literal(nxt2, ")"):
-            _drop_lead_ws(out)
+        # A parenthesized citation `([pill](url))`: the source reader is free to
+        # coalesce adjacent text, so recognize both three single-token nodes and
+        # `"prose (" / ") tail"` without depending on run segmentation.
+        if (
+            isinstance(node, ir.Text)
+            and node.value.rstrip().endswith("(")
+            and nxt is not None
+            and _is_citation_link(nxt)
+            and isinstance(nxt2, ir.Text)
+            and nxt2.value.startswith(")")
+        ):
+            prefix = node.value.rstrip()[:-1].rstrip()
+            if prefix:
+                out.append(ir.Text(prefix))
+            else:
+                _drop_lead_ws(out)
+            if suffix := nxt2.value[1:]:
+                out.append(ir.Text(suffix))
             i += 3
             continue
         if _is_citation_link(node):
@@ -233,8 +268,8 @@ def _scrub_citations_in_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
 
 def scrub_chatgpt_citations(blocks: list[ir.Block]) -> list[ir.Block]:
     """Remove ChatGPT's auto-injected web-search citation links (`[pill](url?utm_source=
-    chatgpt.com)`, e.g. a `Википедия+2` / `Encyclopedia Britannica` pill). Pandoc used to drop
-    these; the namespace-canonicalization image recovery now carries them forward, so they are
+    chatgpt.com)`, e.g. a `Википедия+2` / `Encyclopedia Britannica` pill). The
+    canonical reader preserves them, so they are
     scrubbed here at the IR boundary — the author's own conversation links carry no tracking tag
     and are kept. The pass also removes a `(...)` wrapper and the lead-in space around a removed
     citation so the surrounding prose closes cleanly."""
@@ -278,12 +313,33 @@ def demote_headings(blocks: list[ir.Block], levels: int = 1) -> list[ir.Block]:
 def _is_empty_emphasis(n: ir.Inline) -> bool:
     """True when `n` is an emphasis span whose flattened text is empty — the
     structural form of a stray `** **` / `\\**` artifact (a Word run that held
-    only whitespace/a break inside emphasis markers)."""
-    return isinstance(n, ir.Emphasis) and inline_plain(n.children) == ""
+    only whitespace/a break inside emphasis markers).
+
+    Images and footnote references intentionally have no reading text.  They are
+    still content, so flattening alone is not a safe emptiness test.
+    """
+    if not isinstance(n, ir.Emphasis):
+        return False
+
+    def formatting_only(children: list[ir.Inline]) -> bool:
+        for child in children:
+            if isinstance(child, ir.Text):
+                if child.value.strip():
+                    return False
+            elif isinstance(child, ir.LineBreak):
+                continue
+            elif isinstance(child, ir.Emphasis):
+                if not formatting_only(child.children):
+                    return False
+            else:
+                return False
+        return True
+
+    return formatting_only(n.children)
 
 
 def _hoist_boundary_breaks(inlines: list[ir.Inline]) -> list[ir.Inline]:
-    """Move a `LineBreak`/`SoftBreak` at the edge of an emphasis span outside it
+    """Move a `LineBreak` at the edge of an emphasis span outside it
     (recursing into containers). Word styles the break run along with the styled
     text, but a Markdown emphasis delimiter next to a newline cannot close, so
     `*line  \\n*next` would leak broken markers across the verse break."""
@@ -297,10 +353,10 @@ def _hoist_boundary_breaks(inlines: list[ir.Inline]) -> list[ir.Inline]:
             out.append(ir.rebuild_container(n, children))
             continue
         head = 0
-        while head < len(children) and isinstance(children[head], (ir.LineBreak, ir.SoftBreak)):
+        while head < len(children) and isinstance(children[head], ir.LineBreak):
             head += 1
         tail = len(children)
-        while tail > head and isinstance(children[tail - 1], (ir.LineBreak, ir.SoftBreak)):
+        while tail > head and isinstance(children[tail - 1], ir.LineBreak):
             tail -= 1
         out.extend(children[:head])
         if children[head:tail]:
@@ -341,8 +397,8 @@ def strip_artifacts(blocks: list[ir.Block]) -> list[ir.Block]:
 
     Whole empty-emphasis husks vanish; trailing or embedded `** **` inside content
     is removed in place. Word/HTML form sentinels are also dropped when they are
-    the whole paragraph: in DOCX they are hidden control text, but Pandoc exposes
-    them as reading text.
+    the whole paragraph: in DOCX they are hidden control text, but their field
+    result can surface as reading text.
     """
     out: list[ir.Block] = []
     for b in blocks:
@@ -351,7 +407,7 @@ def strip_artifacts(blocks: list[ir.Block]) -> list[ir.Block]:
             if _is_form_marker_text(inline_plain(b.inlines)):
                 continue
             if not inline_plain(b.inlines) and all(
-                isinstance(n, (ir.SoftBreak, ir.LineBreak)) for n in b.inlines
+                isinstance(n, ir.LineBreak) for n in b.inlines
             ):
                 continue  # nothing left but breaks/whitespace → drop the husk
         out.append(b)

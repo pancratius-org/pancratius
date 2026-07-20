@@ -26,7 +26,7 @@ from typing import assert_never
 from pancratius import ir
 from pancratius.ir.inlines import inline_lines, inline_plain
 from pancratius.locales import Locale
-from pancratius.localization import normalize_literal_quotes, quote_marks
+from pancratius.localization import normalize_literal_quotes
 from pancratius.passes.sanitize import sanitize_urls
 
 
@@ -61,8 +61,8 @@ _EMPH_MD: dict[ir.EmphKind, tuple[str, str]] = {
 
 # The mid-line Markdown/HTML markup characters a LITERAL `ir.Text` value must be
 # escaped against, so a DOCX literal (e.g. `[x](y)`, `*not emphasis*`, `<script>`)
-# lowers as inert text rather than being re-interpreted as real markup — exactly
-# what Pandoc's GFM writer did for `Str` runs. The backslash MUST be first in the
+# lowers as inert text rather than being re-interpreted as real markup. The
+# backslash MUST be first in the
 # class so an inserted `\` is never itself re-escaped. NOT included here:
 #   * `#` — a LINE-LEADING concern (mid-word `#` like "C#" is literal); handled in
 #     `_escape_leading_list_marker`.
@@ -80,8 +80,8 @@ _LITERAL_MD_ESCAPE_RE = re.compile(r"[\\`*_\[\]<>~]")
 def _escape_literal_text(value: str) -> str:
     """Escape the mid-line Markdown/HTML markup chars in a LITERAL text run.
 
-    A Pandoc `Str`/IR `Text` value is literal source text, not markup; emitting it
-    raw lets `[x](y)` become a real link, `*x*` emphasis, `<b>` raw HTML, `a|b` a
+    An IR `Text` value is literal source text, not markup; emitting it raw lets
+    `[x](y)` become a real link, `*x*` emphasis, `<b>` raw HTML, `a|b` a
     table-cell split. Each markup char gets a leading backslash (`*` → `\\*`). The
     backslash-first regex class keeps the inserted `\\` from being doubled. Code
     content and the IR's own emitted markup are NOT routed through here.
@@ -116,16 +116,13 @@ def _inline_md(n: ir.Inline, lang: Locale) -> str:
     match n:
         case ir.Text():
             return _escape_literal_text(_typographic_text(n.value, lang))
-        case ir.SoftBreak() | ir.LineBreak():
+        case ir.LineBreak():
             return "\n"
         case ir.Emphasis():
             o, c = _EMPH_MD[n.kind]
             return f"{o}{_inlines_md(n.children, lang)}{c}"
         case ir.Code():
             return _inline_code_md(n.value)
-        case ir.Quoted():
-            marks = quote_marks(lang, n.kind)
-            return f"{marks.opening}{_inlines_md(n.children, lang)}{marks.closing}"
         case ir.Link():
             label = _inlines_md(n.children, lang).strip()
             return f"[{label}]({n.target})" if label else ""
@@ -152,8 +149,8 @@ def _inlines_md(nodes: list[ir.Inline], lang: Locale) -> str:
 def _paragraph_image_blocks_md(inlines: list[ir.Inline], lang: Locale, *, poem: bool) -> str | None:
     """Lower direct paragraph images as standalone Markdown blocks.
 
-    Pandoc can place an image inline beside prose when a DOCX picture is anchored
-    in a text paragraph. Canonical source Markdown treats body illustrations as
+    A DOCX picture can occur inline beside prose in a text paragraph. Canonical
+    source Markdown treats body illustrations as
     block images, so split the paragraph at each direct ``ImageInline`` while
     preserving the surrounding text order.
     """
@@ -323,8 +320,7 @@ def _quote_member_md(blk: ir.Block, lang: Locale) -> str | None:
 
     The generic prose paragraph path collapses in-paragraph breaks to spaces;
     inside a set-apart quote a hard `w:br` is an authored display line, encoded
-    as the corpus two-trailing-space hard break. Soft breaks remain prose
-    wrapping (joined as a space by `inline_lines`)."""
+    as the corpus two-trailing-space hard break."""
     if (
         isinstance(blk, ir.Paragraph)
         and not blk.empty
@@ -334,7 +330,7 @@ def _quote_member_md(blk: ir.Block, lang: Locale) -> str | None:
             _escape_leading_list_marker(
                 re.sub(r"\s*\n\s*", " ", _inlines_md(line, lang)).strip()
             )
-            for line in inline_lines(blk.inlines, soft_break=False)
+            for line in inline_lines(blk.inlines)
         ]
         lines = [ln for ln in lines if ln]
         if len(lines) > 1:
@@ -353,7 +349,7 @@ def _gt_prefixed(md: str) -> str:
 
 
 def _plain_quote_md(b: ir.QuoteBlock, lang: Locale) -> str | None:
-    """An ordinary quote (Pandoc-born, from a Word Quote style/indent): the
+    """An ordinary quote from a Word Quote style/indent: the
     line-prefix join, whose members fuse by lazy continuation."""
     inner = "\n".join(_gt_prefixed(md) for blk in b.blocks if (md := _block_md(blk, lang)))
     return inner or None
@@ -426,8 +422,8 @@ def _table_md(t: ir.Table, lang: Locale) -> str | None:
 # list-item syntax. When the author typed a literal "1. " in a normal paragraph
 # (the source has NO `OrderedList` — e.g. `книга-огня`'s numbered prose), an
 # UNESCAPED marker makes the downstream Markdown parser emit an `<ol>`/`<ul>`.
-# Escaping the delimiter with a backslash (mirroring Pandoc's GFM writer: `1. ` →
-# `1\. `) keeps the paragraph a `<p>`. REAL source `OrderedList`/`BulletList`s are
+# Escaping the delimiter with a backslash (`1. ` → `1\. `) keeps the paragraph a
+# `<p>`. Real source lists are
 # lowered by `ListBlock` (not this prose path), so they still render as lists.
 #
 # The trailing-whitespace requirement is what keeps a DATE safe: `25.06.2025` is
@@ -439,7 +435,7 @@ _LEADING_LIST_MARKER_RE = re.compile(r"^(\s*)(\d{1,9}|[-*+])([.)]?)(?=\s|$)")
 # A leading ATX-heading run `#`..`######` followed by whitespace/end: a literal
 # leading `#` in a normal paragraph (the author typed it; the source has no
 # `Header`) would otherwise be parsed as a heading. Escaping the first `#` (`# x`
-# → `\# x`) keeps the paragraph a `<p>`, mirroring Pandoc's GFM writer. `#` is NOT
+# → `\# x`) keeps the paragraph a `<p>`. `#` is NOT
 # in the per-char literal set because mid-word `#` ("C#", "F#") is not markup and
 # must stay literal — only a line-LEADING `#` is structural.
 _LEADING_HEADING_RE = re.compile(r"^(\s*)(#{1,6})(?=\s|$)")
@@ -513,7 +509,7 @@ def _block_md(b: ir.Block, lang: Locale, *, poem: bool = False) -> str | None:
                 # only trailing spaces — the poem path's line-per-line shape.
                 lines = [ln.rstrip() for ln in text.split("\n")]
                 return "\n".join(ln for ln in lines if ln.strip()) or None
-            # Prose: collapse internal soft/hard breaks to spaces (Pandoc --wrap=none).
+            # Prose: semantic folding has rejected these as display-line boundaries.
             text = re.sub(r"\s*\n\s*", " ", text).strip()
             return _escape_leading_list_marker(text) or None
         case ir.LineatedBlock():
@@ -573,7 +569,7 @@ def _footnote_appendix(doc: ir.Document, lang: Locale) -> str:
     parts: list[str] = []
     for fn in doc.footnotes:
         body = "\n\n".join(filter(None, (_block_md(b, lang) for b in fn.blocks)))
-        body = re.sub(r"\n{2,}", " ", body).strip()  # single-line def like Pandoc GFM
+        body = re.sub(r"\n{2,}", " ", body).strip()  # one portable GFM definition
         parts.append(f"[^{fn.id}]: {body}")
     return "\n\n".join(parts)
 
@@ -633,11 +629,9 @@ def _lower_poem_body(doc: ir.Document, lang: Locale, diagnostics: ir.DiagnosticS
             # The poem lowering renders ONLY top-level `Para`/`Plain`; a
             # `QuoteBlock` flushes and is not emitted. In the
             # corpus a poem `QuoteBlock` only ever wraps the poem TITLE (the page
-            # masthead already renders that title), so this drop is a title-duplicate
-            # drop, not reading-content loss — and it keeps the head stanza count
-            # equal to the DOCX stanza oracle (#08 head 2→1). The diagnostic
-            # records what was dropped so a real quoted passage cannot vanish
-            # silently.
+            # masthead already renders that title), so this is a title-duplicate
+            # drop, not reading-content loss. The diagnostic records what was
+            # dropped so a real quoted passage cannot vanish silently.
             dropped = " ".join(
                 inline_plain(p.inlines)
                 for p in b.blocks

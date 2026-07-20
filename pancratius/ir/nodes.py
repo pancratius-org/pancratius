@@ -25,11 +25,10 @@ from typing import Literal, assert_never
 
 from pancratius.docx_source import SourceLineCoordinate
 
-# The emphasis kinds the IR models. Exported so the adapter (mapping Pandoc node
-# tags to it) and the lowering (mapping it to Markdown/HTML) share ONE source of
+# The emphasis kinds the IR models. Exported so the source adapter and the
+# lowering to Markdown/HTML share ONE source of
 # truth for the closed set, instead of each re-spelling the string literals.
 EmphKind = Literal["strong", "emph", "strike", "sup", "sub"]
-QuoteKind = Literal["single", "double"]
 # Paragraph border gesture (OOXML `w:pBdr`), reduced to the two editorially
 # meaningful kinds: a full four-side box ("box" — quoted/framed canonical text)
 # and a left-rule bar ("rule" — a set-apart inset passage). Any other side
@@ -38,8 +37,8 @@ BorderKind = Literal["", "box", "rule", "other"]
 # The two-class per-source-paragraph lineation verdict an editorial correction
 # (`lineation.<lang>.json` sidecar) can pin against the importer's own ladder.
 LineationRegister = Literal["prose", "lineated"]
-# Open JSON-ish records at the IR boundary. Pandoc table raw nodes stay opaque;
-# bibliography entries are structured enough to name, but intentionally open-ended.
+# Open JSON-ish records at the IR boundary. Bibliography entries are structured
+# enough to name, but intentionally open-ended.
 type JsonObject = dict[str, object]
 type BibliographyEntry = dict[str, object]
 
@@ -178,14 +177,6 @@ class ImageInline:
 
 
 @dataclass(frozen=True)
-class Quoted:
-    """A typographically quoted span (Pandoc `Quoted`)."""
-
-    kind: QuoteKind
-    children: list[Inline]
-
-
-@dataclass(frozen=True)
 class FootnoteRef:
     """A footnote reference. `id` is the dense 1..N id assigned by the adapter in
     reference order; `raw_index` is the adapter's running index (kept for
@@ -202,22 +193,14 @@ class LineBreak:
 
 
 @dataclass(frozen=True)
-class SoftBreak:
-    """A soft break Pandoc emits for wrapped source. Collapses to a space in
-    prose; still a display-line boundary inside verse."""
-
-
-@dataclass(frozen=True)
 class DirectionalSpan:
     """A bidi span carrying an explicit writing direction (`dir="rtl"`/`"ltr"`),
     lowered to `<span dir="…">…</span>`.
 
-    Pandoc emits `Span` with a `dir` attribute for Hebrew/Arabic runs whose visual
-    ordering depends on the direction (scripture-heavy book62). The adapter unwraps
-    other `Span` attributes (production flattens them), but the direction is
-    reading-significant — flattening it reverses mixed RTL/LTR ordering — so it is
-    modelled as a typed kind rather than silently dropped (the design's "add a
-    typed kind instead of flattening")."""
+    The canonical reader retains explicit bidi run properties for Hebrew/Arabic
+    text whose visual ordering depends on direction (notably book 62). Flattening
+    that fact reverses mixed RTL/LTR ordering, so it remains typed through
+    lowering."""
 
     direction: str
     children: list[Inline]
@@ -233,8 +216,8 @@ class UnknownInline:
 
 
 type Inline = (
-    Text | Emphasis | Code | Link | ImageInline | Quoted | FootnoteRef
-    | LineBreak | SoftBreak | DirectionalSpan | UnknownInline
+    Text | Emphasis | Code | Link | ImageInline | FootnoteRef
+    | LineBreak | DirectionalSpan | UnknownInline
 )
 
 
@@ -263,7 +246,6 @@ class LineationEvidence:
     lineation provenance, but it must not encode "almost verse" state here.
     """
 
-    pandoc_line_block: bool = False
     hard_break: bool = False
     inferred_source_rows: bool = False
     stanza_break: bool = False
@@ -291,8 +273,8 @@ class LineationRepair:
 # Container inline kinds (those nesting a `children` list), in two forms: the union
 # types a known container; the tuple is `isinstance`'s 2nd arg (a `type` alias can't
 # be). `test_container_forms_in_sync` keeps them aligned.
-type ContainerInlineNode = Emphasis | Link | Quoted | DirectionalSpan | UnknownInline
-ContainerInline = (Emphasis, Link, Quoted, DirectionalSpan, UnknownInline)
+type ContainerInlineNode = Emphasis | Link | DirectionalSpan | UnknownInline
+ContainerInline = (Emphasis, Link, DirectionalSpan, UnknownInline)
 
 
 def rebuild_container(node: ContainerInlineNode, children: list[Inline]) -> Inline:
@@ -308,8 +290,6 @@ def rebuild_container(node: ContainerInlineNode, children: list[Inline]) -> Inli
             return Emphasis(node.kind, children)
         case Link():
             return Link(children, node.target)
-        case Quoted():
-            return Quoted(node.kind, children)
         case DirectionalSpan():
             return DirectionalSpan(node.direction, children)
         case UnknownInline():
@@ -345,10 +325,10 @@ class Heading:
 
 @dataclass(frozen=True)
 class SourceFacts:
-    """The OOXML facts the frontend (extraction + reconciliation) records on a
-    paragraph; read-only afterwards.
+    """The canonical source facts projected onto an IR paragraph; read-only
+    afterwards.
 
-    `align` is the OOXML `w:jc` alignment reconciled by the adapter (`""` for the
+    `align` is the resolved OOXML `w:jc` alignment (`""` for the
     default); it drives signature/epigraph detection. `lineation_group` is a
     read-only DOCX visual-continuity group: adjacent Word paragraphs whose
     `w:contextualSpacing` suppresses same-style paragraph spacing share the same
@@ -464,7 +444,7 @@ class ThematicBreak:
 @dataclass(frozen=True)
 class QuoteBlock:
     """A set-apart run of blocks. `register` selects the emission through
-    `lower.QUOTE_LOWERING`: `ORDINARY` is the Pandoc-born Word-Quote-style quote
+    `lower.QUOTE_LOWERING`: `ORDINARY` is the Word-Quote-style source gesture
     (plain `>` lowering), `SCRIPTURE`/`INSET` are the bordered registers."""
 
     blocks: list[Block]
@@ -475,9 +455,8 @@ class QuoteBlock:
 @dataclass(frozen=True)
 class ListBlock:
     """An ordered or bullet list; each item is its own block list. `start` is the
-    first ordinal of an ordered list (preserved from the source: Pandoc may split
-    one authored list into chunks that resume at 4, 6, … — keeping `start` means
-    the lowered Markdown reproduces those ordinals rather than renumbering)."""
+    first ordinal of an ordered-list source run. Keeping `start` means lowered
+    Markdown reproduces resumed numbering rather than silently renumbering it."""
 
     ordered: bool
     items: list[list[Block]]
@@ -494,18 +473,28 @@ class CodeBlock:
 
 
 @dataclass(frozen=True)
+class TableShape:
+    """Physical table complexity relevant to semantic table handling."""
+
+    has_caption: bool = False
+    has_merged_cells: bool = False
+    has_multi_block_cells: bool = False
+
+    @property
+    def complex(self) -> bool:
+        return self.has_caption or self.has_merged_cells or self.has_multi_block_cells
+
+
+@dataclass(frozen=True)
 class Table:
-    """A table. `rows` is structured cell content — rows of cells, each cell a list
-    of inlines — so reading-content tables flow through the same AI-alt scrub and
-    asset-rewrite passes as body prose before lowering to a GFM pipe table. `raw`
-    keeps the opaque source node (the Pandoc Table JSON object, or `None`) for the
-    bibliography classifier (it needs the hrefs and image alts the flattened cells
-    would drop); it is typed `JsonObject | None` — a JSON object whose schema the
-    pure IR makes no claim about — so the classifier still narrows it itself. The classifier lifts a bibliography table
-    in the same pass that recognizes it, so no verdict is stored here."""
+    """A structured table whose cells retain rich inlines.
+
+    ``shape`` carries the few physical facts the bibliography pass needs.  The IR
+    no longer stores an opaque second frontend's table node beside this structure.
+    """
 
     rows: list[list[list[Inline]]]
-    raw: JsonObject | None = None
+    shape: TableShape = TableShape()
     source_span: SourceSpan | None = None
 
 

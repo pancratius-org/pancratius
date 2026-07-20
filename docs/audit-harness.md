@@ -158,8 +158,10 @@ artifact and prove a structural invariant. Do not replace one with the other.
 
 Examples:
 
-- Verse conversion behavior belongs in pytest and source-fidelity audits that
-  inspect the DOCX source.
+- Verse conversion behavior belongs in pytest. The audit checks the emitted
+  Markdown hard-break contract; it does not rederive stanza semantics from DOCX.
+- Canonical-source-to-Markdown text coverage may report transformation or
+  committed-output drift, but it is not an independent check of the DOCX reader.
 - "Only the writer mutates `src/content/`" belongs in audit, because it is a
   source-tree shape invariant.
 - "CI never runs import/render tooling" belongs in audit, because it is a

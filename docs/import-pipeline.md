@@ -184,47 +184,52 @@ The other formats named in earlier drafts (Markdown, HTML, text, ODT) are not
 built. The IR boundary would let them be added later without touching placement,
 lowering, or the writer. Adding them now would be speculative surface.
 
-*How* the DOCX adapter reads the document — which structured parse feeds the IR
-and which narrow OOXML signals are read directly for things a text writer drops
-(empty paragraphs, alignment, named styles, footnote linkage, image
-relationships) — is an implementation detail behind the adapter, fixed by
-measured fidelity in code and its tests, not pinned in this contract. The
-invariant is only this: **no Markdown string exists before lowering.** The
-adapter does not parse to GFM and then patch the string.
+The DOCX adapter consumes exactly one `DocxSourceDocument`, built by
+`docx_source.read`. That immutable aggregate is the authoritative interpretation
+of the package for import. It is deliberately domain-sufficient rather than a
+general OOXML object model. One package read produces:
 
-Direct OOXML facts have one canonical source model: paragraph identity and
-order, typed breaks, resolved paragraph properties, and visual lineation
-groups. The adapter, diagnostics, correction rails, and research producers are
-projections of that model; consumers do not walk `document.xml` to reconstruct
-the same facts. Pandoc decodes rich content, but it is not the authority for
-source break kind. Paragraph content is one ordered, closed sequence of text
-fragments and typed breaks (`line`, `page`, `column`); reading text, natural lines,
-and break evidence are derived views, never independently stored copies.
-Paragraph disposition explicitly distinguishes readable content, structural
-emptiness, pagination-only layout, and opaque non-text content. Raw paragraph
-ordinal remains source identity while reconciliation position owns semantic
-adjacency.
+- ordered body blocks and rich inlines, including runs, links, images, fields,
+  notes, lists, tables, text boxes, and content controls;
+- paragraph identity, typed authored/layout breaks, structural emptiness,
+  resolved and direct styles, numbering, alignment, borders, and the narrow
+  geometry needed by later analysis;
+- relationship-resolved media and note definitions; and
+- explicit diagnostics or unknown nodes for readable constructs outside the
+  supported grammar.
 
-The Pandoc anti-corruption projection consumes that aggregate. It omits body
-paragraphs whose disposition is pagination-only, neutralizes page/column breaks
-inside mixed content, and preserves authored line breaks. It also stamps every
-content paragraph with a source anchor, so identity survives Pandoc instead of
-being reconstructed afterwards: an IR leaf built from a content paragraph
-carries the `w:p` ordinal(s) it renders, at any nesting depth, and a content
-ordinal claimed by no block surfaces as a diagnostic, never as silent loss. The same narrow break
-projection covers `document.xml`, `footnotes.xml`, and `endnotes.xml` without
-promoting note internals into the domain model. Rewritten story parts retain
-their required namespace bindings and the scratch package retains ZIP entry
-order and metadata; the source DOCX is never mutated.
-The source reader and Pandoc projection share one baseline capability profile:
-only a supported direct fallback is selected from markup-compatibility
-alternatives; inactive choices are never concatenated or used as evidence.
+The rich and physical views are not joined by text, position guesses, or injected
+anchors. A body paragraph block carries its `SourceAddress` and the exact
+`SourceParagraph` value from the same parse. Body paragraph ordinals remain the
+stable editorial coordinate for correction sidecars; structural addresses cover
+table cells, notes, content controls, and text boxes. Location establishes
+identity and diagnostic attachment, not lineation or register.
 
-An import or diagnostic operation hydrates this source-document handle once and
-passes it to the adapter and adjudication rails. It is an immutable source
-snapshot, not a pipeline context. Research producers, including intent records,
-derive text, sub-lines, and source fate from the same content/disposition values;
-they do not reconstruct those facts from Pandoc IR or XML.
+Paragraph content is one ordered, closed sequence of text fragments and typed
+breaks (`line`, `page`, `column`). Reading text, natural lines, and break evidence
+are derived views, never separately parsed copies. Paragraph disposition
+explicitly distinguishes readable content, structural emptiness, pagination-only
+layout, and opaque non-text content. Markup-compatibility content selects one
+supported branch at every nesting level; inactive choices are never concatenated
+or used as evidence.
+
+Internal nonbreaking spaces are authored text and survive rich-run normalization,
+including at emphasis boundaries. Whitespace at the outer edge of a paragraph is
+layout and is discarded before lowering.
+
+The adapter is a package-blind typed projection from this aggregate into block
+IR. It does not open the package, invoke Pandoc, walk XML, reconcile a second
+tree, or manufacture source identity. Its only I/O is materializing media bytes
+already carried by the aggregate into the import scratch directory. Diagnostics,
+correction rails, audits, and research producers project from the same aggregate.
+A consumer that needs an import-semantic DOCX fact must extend the aggregate
+instead of rereading the package. Package validation, optimization, slicing,
+merge, independent rendering, and translation writing are different operations
+and may use lower-level package access without becoming alternate semantic
+readers.
+
+**No Markdown string exists before lowering.** Empty source paragraphs and other
+source evidence enter the IR before any textual representation could erase them.
 
 ## The transformation layer must be editable in one place
 
@@ -343,6 +348,15 @@ importer/renderer tools nor the converter/IR/writer library modules behind them
 (PAN012). These guard the *shape* so the boundary cannot silently drift; the
 runtime behaviors above stay in tests, where a property is established by running
 the code, not by guessing from its shape.
+
+Checks that consume `DocxSourceDocument` begin at the canonical-source boundary.
+They can catch transformation and committed-output loss, but they are not an
+independent OOXML interpretation and must not be described as reader validation.
+Reader coverage comes from the element-identity coverage assertion, explicit
+unknown/unsupported diagnostics, focused source-grammar fixtures, and a reusable
+[cross-version differential harness](../tests/tools/docx_frontend_parity.py).
+Adding a second text or stanza extractor to an audit would recreate the drift
+this boundary removes.
 
 ## Final rules
 

@@ -1,526 +1,869 @@
-"""DOCX → block IR (the one source adapter).
+"""Project the canonical DOCX source model into Pancratius block IR.
 
-The parse stage of `docs/import-pipeline.md`: turn a DOCX into the typed IR and
-stop. No Markdown string is produced here.
-
-The primary parse is `pandoc --from docx+empty_paragraphs --to json`;
-`+empty_paragraphs` keeps Word's empty paragraphs as `Para []` so stanza breaks
-survive into the IR. Provenance is harvested from the projection's source
-anchors (`docx_pandoc.source_anchor_name`): every leaf built from a content
-`w:p` carries the ordinal(s) it renders, at any nesting depth. Shapes outside
-that scope (table cells, code-converted paragraphs) surface through the
-`import.provenance-unclaimed` diagnostic rather than silently. The OOXML
-paragraph facts Pandoc drops (`w:jc`, borders, visual lineation groups) join
-by ordinal.
-
-NOT `import-pure`: composition delegates package projection and the Pandoc process
-to `docx_pandoc`; downstream IR stages stay pure. Footnotes arrive as inline `Note` nodes and are lowered to
-`FootnoteRef`/`FootnoteDef` pairs renumbered densely by reference order.
+This module never opens a DOCX and never joins independently parsed records.
+Every rich inline, physical paragraph fact, relationship, and source coordinate
+comes from one ``DocxSourceDocument`` built by ``docx_source.read``.
 """
 
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
-from dataclasses import replace
-from pathlib import Path
-from typing import Any, NamedTuple, cast
+from pathlib import Path, PurePosixPath
+from typing import Literal, assert_never
 
-from pancratius import docx_pandoc, docx_source, ir
-from pancratius.docx_source import SourceParagraph
+from pancratius import docx_source, ir
+from pancratius.ir.inlines import inline_plain
 
 
-class ProvenanceError(RuntimeError):
-    """Exact anchor lineage and span projections disagree — identity is known
-    false, and every downstream consumer would treat the corrupt claim as
-    truth, so the import stops instead."""
+class _Context:
+    def __init__(
+        self,
+        source: docx_source.DocxSourceDocument,
+        media_dir: Path,
+        diagnostics: ir.DiagnosticSink,
+    ) -> None:
+        self.source = source
+        self.media_dir = media_dir
+        self.diagnostics = diagnostics
+        self.media = {part.part_name: part for part in source.media}
+        self.notes = {(note.kind, note.note_id): note for note in source.notes}
+        self.footnotes: list[ir.FootnoteDef] = []
+        self.unknown_inlines: dict[str, int] = {}
+        self.unknown_blocks: dict[str, int] = {}
+        self.next_number: dict[tuple[int, int], int] = {}
 
-# ---------------------------------------------------------------------------
-# Source anchors: provenance harvested from the projection's bookmarks
-# ---------------------------------------------------------------------------
+    def image_source(self, image: docx_source.SourceImage) -> str:
+        if image.media_part is None:
+            return image.target
+        media = self.media.get(image.media_part)
+        if media is None:
+            self.diagnostics.append(ir.Diagnostic(
+                "fatal",
+                "import.image-missing",
+                f"canonical image part {image.media_part!r} is unavailable",
+            ))
+            return ""
+        part = PurePosixPath(media.part_name)
+        relative = PurePosixPath(*part.parts[1:]) if part.parts[:1] == ("word",) else part
+        destination = self.media_dir.joinpath(*relative.parts)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if not destination.is_file() or destination.read_bytes() != media.data:
+            destination.write_bytes(media.data)
+        return str(destination)
 
-def _anchor_span(ordinals: Sequence[docx_source.SourceOrdinal]) -> ir.SourceSpan | None:
-    return ir.SourceSpan(min(ordinals), max(ordinals)) if ordinals else None
+    def note(self, reference: docx_source.SourceNoteReference) -> ir.FootnoteRef:
+        dense_id = len(self.footnotes) + 1
+        definition = self.notes.get((reference.kind, reference.note_id))
+        if definition is None:
+            self.diagnostics.append(ir.Diagnostic(
+                "fatal",
+                "import.note-missing",
+                f"{reference.kind.value} {reference.note_id} has no definition",
+            ))
+            blocks: list[ir.Block] = []
+        else:
+            blocks = _adapt_sequence(list(_flatten_controls(definition.blocks)), self)
+        self.footnotes.append(ir.FootnoteDef(dense_id, blocks))
+        return ir.FootnoteRef(raw_index=dense_id, id=dense_id)
+
+    def finish_diagnostics(self) -> None:
+        if self.unknown_inlines:
+            summary = ", ".join(
+                f"{name}={count}" for name, count in sorted(self.unknown_inlines.items())
+            )
+            self.diagnostics.append(ir.Diagnostic(
+                "warning",
+                "import.source-inline-unsupported",
+                f"unsupported source inlines preserved explicitly: {summary}",
+            ))
+        if self.unknown_blocks:
+            summary = ", ".join(
+                f"{name}={count}" for name, count in sorted(self.unknown_blocks.items())
+            )
+            self.diagnostics.append(ir.Diagnostic(
+                "warning",
+                "import.source-block-unsupported",
+                f"unsupported source blocks preserved explicitly: {summary}",
+            ))
 
 
 def _source_provenance(
-    source: docx_source.DocxSourceDocument | None,
-    ordinals: Sequence[docx_source.SourceOrdinal],
+    block: docx_source.SourceParagraphBlock,
 ) -> ir.SourceProvenance | None:
-    if not ordinals:
-        return None
-    if source is None:
-        return _anchor_span(ordinals)
-    lines = tuple(
-        coordinate
-        for ordinal in ordinals
-        for coordinate in source.paragraph(docx_source.ParagraphOrdinal(ordinal)).line_coordinates
-    )
-    return ir.SourceProvenance.for_lines(lines) if lines else _anchor_span(ordinals)
+    if block.coordinates:
+        return ir.SourceProvenance.for_lines(block.coordinates)
+    if block.paragraph is not None and block.paragraph.disposition is not (
+        docx_source.ParagraphDisposition.PAGINATION_ONLY
+    ):
+        ordinal = int(block.paragraph.ordinal)
+        return ir.SourceProvenance(ordinal, ordinal)
+    return None
 
 
-def _member_span(members: Sequence[ir.Block]) -> ir.SourceSpan | None:
-    """A container's derived span: the range its anchored members prove.
-    Span-less members (empty paragraphs are never anchored) don't poison it."""
-    present = [span for m in members if (span := m.source_span) is not None]
+def _covering_span(blocks: list[ir.Block]) -> ir.SourceProvenance | None:
+    present = [block.source_span for block in blocks if block.source_span is not None]
     return ir.merge_source_spans(present) if present else None
 
 
-def _paragraph_facts(
-    block: ir.Paragraph, consumed: Sequence[SourceParagraph]
-) -> tuple[ir.SourceFacts, bool]:
-    """The OOXML facts a paragraph's consumed source records prove, plus whether
-    right alignment was newly assigned (the signature/epigraph signal the
-    `import.align-unreconciled` rail counts).
-
-    Strict agreement: every text-bearing consumed record must carry the SAME
-    border kind. A Pandoc-fused block spanning bordered and plain source rows
-    stays unbordered — assigning the border would drag the plain text into a
-    set-apart register. Same discipline for visual-continuity groups."""
-    facts = block.facts
-    if any(record.indent_departure for record in consumed):
-        facts = replace(facts, indented=True)
-    text_borders = {record.border.value for record in consumed if record.text}
-    if len(text_borders) == 1 and (kind := text_borders.pop()):
-        facts = replace(facts, border=cast("ir.BorderKind", kind))
-    groups = {
-        record.visual_group.value
-        for record in consumed
-        if record.visual_group is not None
-    }
-    if len(groups) == 1:
-        facts = replace(facts, lineation_group=groups.pop())
-    right = any(r.alignment.is_right_edge for r in consumed) and not facts.align
-    if right:
-        facts = replace(facts, align="right")
-    return facts, right
+def _source_diagnostic(finding: docx_source.SourceDiagnostic) -> ir.Diagnostic:
+    suffix = finding.code.removeprefix("source.")
+    severity: Literal["fatal", "warning", "info"]
+    if suffix == "compatibility-fallback":
+        severity = "info"
+    elif suffix.startswith("field-"):
+        severity = "warning"
+    else:
+        severity = "fatal"
+    location = ""
+    if finding.address is not None:
+        path = "/".join(str(index) for index in finding.address.path)
+        location = f"{finding.address.story.value}:{path}: "
+    return ir.Diagnostic(
+        severity,
+        f"import.source-{suffix}",
+        f"{location}{finding.message}",
+    )
 
 
-class AppliedSourceFacts(NamedTuple):
-    """What the by-ordinal facts join changed: paragraphs whose facts were
-    updated, and how many gained right alignment (the signature/epigraph signal)."""
-
-    paragraphs_updated: int
-    right_aligned: int
-
-
-def apply_source_facts(
-    blocks: list[ir.Block], records: Sequence[SourceParagraph]
-) -> AppliedSourceFacts:
-    """Attach OOXML paragraph facts by exact ordinal onto top-level `Paragraph`s.
-
-    Top-level only: widening facts into container members is a
-    register-detection decision, not an identity one.
-    """
-    by_ordinal = {int(record.ordinal): record for record in records}
-    applied = 0
-    right_total = 0
-    for i, block in enumerate(blocks):
-        if not isinstance(block, ir.Paragraph) or block.source_span is None or block.empty:
-            continue
-        # Only content records vote: a fused span covers removed/blank interior
-        # ordinals whose layout facts the block never rendered.
-        consumed = [
-            record
-            for ordinal in range(block.source_span.start, block.source_span.end + 1)
-            if (record := by_ordinal.get(ordinal)) is not None
-            and record.disposition is docx_source.ParagraphDisposition.CONTENT
-        ]
-        if not consumed:
-            continue
-        facts, right = _paragraph_facts(block, consumed)
-        right_total += int(right)
-        if facts != block.facts:
-            applied += 1
-            blocks[i] = replace(block, facts=facts)
-    return AppliedSourceFacts(applied, right_total)
+def _unknown_inline(
+    source: docx_source.SourceUnknownInline,
+    ctx: _Context,
+) -> list[ir.Inline]:
+    ctx.unknown_inlines[source.name] = ctx.unknown_inlines.get(source.name, 0) + 1
+    return [ir.UnknownInline(source.name, [ir.Text(source.text)])] if source.text else []
 
 
-# ---------------------------------------------------------------------------
-# Inline lowering: Pandoc inline node -> IR Inline
-# ---------------------------------------------------------------------------
+def _run_inlines(
+    source: docx_source.SourceRun,
+    ctx: _Context,
+) -> list[ir.Inline]:
+    children = _inlines(source.children, ctx)
+    properties = source.properties
 
-_EMPH_MAP: dict[str, ir.EmphKind] = {
-    "Strong": "strong", "Emph": "emph", "Strikeout": "strike",
-    "Superscript": "sup", "Subscript": "sub",
-}
-
-
-class _Ctx:
-    """Per-document state threaded through the inline/block walk: the running
-    footnote index, the footnote definitions collected in reference order, the
-    anchor-alias recovery map, and the source ordinals claimed so far."""
-
-    def __init__(
-        self,
-        anchor_aliases: dict[docx_pandoc.AnchorAlias, docx_source.SourceOrdinal] | None = None,
-        *,
-        source: docx_source.DocxSourceDocument | None = None,
-    ) -> None:
-        self.fn_index = 0
-        self.fn_defs: list[tuple[int, list[ir.Block]]] = []
-        self.anchor_aliases: dict[docx_pandoc.AnchorAlias, docx_source.SourceOrdinal] = (
-            anchor_aliases or {}
-        )
-        self.source = source
-        self.claimed: set[docx_source.SourceOrdinal] = set()
-
-    def claim(self, ordinals: Sequence[docx_source.SourceOrdinal]) -> ir.SourceSpan | None:
-        self.claimed.update(ordinals)
-        return self.provenance(ordinals)
-
-    def provenance(
-        self, ordinals: Sequence[docx_source.SourceOrdinal]
-    ) -> ir.SourceProvenance | None:
-        return _source_provenance(self.source, ordinals)
-
-
-def _inlines(nodes: docx_pandoc.PandocInlines, ctx: _Ctx) -> list[ir.Inline]:
-    out: list[ir.Inline] = []
-    for node in nodes:
-        out.extend(_inline(node, ctx))
-    return out
-
-
-def _inline(node: docx_pandoc.PandocNode, ctx: _Ctx) -> list[ir.Inline]:
-    # Dispatch on Pandoc's string tag; the `isinstance(c, list)` guards inside arms
-    # are intrinsic — `c` is positional Pandoc JSON, not a typed shape.
-    t = node.get("t")
-    c = node.get("c")
-    match t:
-        case "Str":
-            return [ir.Text(str(c))]
-        case "Space":
-            return [ir.Text(" ")]
-        case "SoftBreak":
-            return [ir.SoftBreak()]
-        case "LineBreak":
-            return [ir.LineBreak()]
-        case "Strong" | "Emph" | "Strikeout" | "Superscript" | "Subscript":
-            children = c if isinstance(c, list) else []
-            return [ir.Emphasis(_EMPH_MAP[t], _inlines(children, ctx))]
-        case "Underline" | "SmallCaps":  # production unwraps to plain text
-            return _inlines(c if isinstance(c, list) else [], ctx)
-        case "Quoted" if isinstance(c, list):
-            qt, quoted = c
-            kind: ir.QuoteKind = (
-                "single" if isinstance(qt, dict) and qt.get("t") == "SingleQuote" else "double"
-            )
-            return [ir.Quoted(kind, _inlines(quoted, ctx))]
-        case "Code" if isinstance(c, list):
-            return [ir.Code(str(c[1]))]
-        case "Link" if isinstance(c, list):
-            _attr, label, target = c
-            return [ir.Link(_inlines(label, ctx), str(target[0]))]
-        case "Image" if isinstance(c, list):
-            _attr, label, target = c
-            return [ir.ImageInline(src=str(target[0]), alt=_plain(label))]
-        case "Span" if isinstance(c, list):
-            # Production unwraps a Span, EXCEPT a `dir` attribute (Hebrew/Arabic
-            # bidi) governs visual ordering, so it survives as `DirectionalSpan`.
-            # `attr` is `[id, classes, [(k, v), ...]]`; only `dir` is preserved.
-            attr, span = c
-            direction = ""
-            if isinstance(attr, list) and len(attr) == 3 and isinstance(attr[2], list):
-                for pair in attr[2]:
-                    if isinstance(pair, list) and len(pair) == 2 and pair[0] == "dir":
-                        direction = str(pair[1])
-            children = _inlines(span, ctx)
-            if direction:
-                return [ir.DirectionalSpan(direction=direction, children=children)]
-            return children
-        case "Note" if isinstance(c, list):
-            # `c` is footnote body blocks. Renumber densely by reference order so the
-            # id never depends on Word's internal `w:id`.
-            ctx.fn_index += 1
-            idx = ctx.fn_index
-            ctx.fn_defs.append((idx, _blocks(c, ctx)))
-            return [ir.FootnoteRef(raw_index=idx, id=idx)]
-        case "RawInline" if isinstance(c, list):
-            fmt, raw = c
-            return [ir.Text(str(raw))] if fmt in {"html", "markdown"} else []
-        case _:
-            if isinstance(c, list):
-                return [ir.UnknownInline(note=str(t), children=_inlines(c, ctx))]
-            return [ir.UnknownInline(note=str(t))]
-
-
-def _plain(nodes: docx_pandoc.PandocInlines) -> str:
-    """Plain-text flatten of inlines (image alt + table cells)."""
-    out: list[str] = []
-    for node in nodes:
-        t = node.get("t")
-        c = node.get("c")
-        match t:
-            case "Str":
-                out.append(str(c))
-            case "Space" | "SoftBreak" | "LineBreak":
-                out.append(" ")
-            case _ if t in _EMPH_MAP or t in {"Underline", "SmallCaps", "Span"}:
-                payload = c[1] if t == "Span" and isinstance(c, list) else c
-                out.append(_plain(payload if isinstance(payload, list) else []))
-            case "Quoted" if isinstance(c, list):
-                out.append(_plain(c[1]))
-            case "Code" if isinstance(c, list):
-                out.append(str(c[1]))
-            case "Link" | "Image" if isinstance(c, list):
-                out.append(_plain(c[1]))
-            case _ if isinstance(c, list):
-                out.append(_plain(c))
-    return "".join(out).strip()
-
-
-def _node_plain(value: object) -> str:
-    """Best-effort readable text of an arbitrary Pandoc node/subtree, so an
-    UnknownBlock carries its content instead of dropping it at lowering.
-
-    Structure-agnostic (never assumes the kind's `c` is inlines vs blocks): walks
-    dicts/lists generically — a `Str` contributes its text, spacing nodes a space,
-    any other `c` list recurses. Inert kinds (e.g. `Null`) yield `""`."""
-    parts: list[str] = []
-
-    def walk(v: object) -> None:
-        nd = docx_pandoc.as_node(v)
-        if nd is not None:
-            t = nd.get("t")
-            c = nd.get("c")
-            if t == "Str":
-                parts.append(str(c))
-            elif t in {"Space", "SoftBreak", "LineBreak"}:
-                parts.append(" ")
-            elif isinstance(c, (list, dict)):
-                walk(c)
-        elif isinstance(v, list):
-            for item in v:
-                walk(item)
-
-    walk(value)
-    return re.sub(r"\s+", " ", "".join(parts)).strip()
-
-
-# ---------------------------------------------------------------------------
-# Block lowering: Pandoc block node -> IR Block
-# ---------------------------------------------------------------------------
-
-
-def _blocks(nodes: list[Any] | None, ctx: _Ctx) -> list[ir.Block]:
-    """A block sequence with `Div`/`Figure` children spliced in place.
-
-    Production unwraps Divs; splicing at parse time means a quote block in the
-    IR always carries reading semantics, never plumbing. A `Figure` contributes
-    its content blocks then its caption blocks, so neither is lost."""
-    out: list[ir.Block] = []
-    for node in nodes or []:
-        t = node.get("t") if isinstance(node, dict) else None
-        c = node.get("c") if isinstance(node, dict) else None
-        if t == "Div" and isinstance(c, list):
-            _attr, children = c
-            out.extend(_blocks(children, ctx))
-        elif t == "Figure" and isinstance(c, list):
-            _attr, caption, content = c
-            out.extend(_blocks(content, ctx))
-            cap_blocks = caption[1] if isinstance(caption, list) and len(caption) > 1 else None
-            if cap_blocks:
-                out.extend(_blocks(cap_blocks, ctx))
+    def styled(items: list[ir.Inline]) -> list[ir.Inline]:
+        if not items:
+            return []
+        if properties.code:
+            items = [ir.Code(inline_plain(items))]
         else:
-            out.append(_block(node, ctx))
+            if properties.rtl:
+                items = [ir.DirectionalSpan("rtl", items)]
+            if properties.subscript:
+                items = [ir.Emphasis("sub", items)]
+            elif properties.superscript:
+                items = [ir.Emphasis("sup", items)]
+            if properties.strike:
+                items = [ir.Emphasis("strike", items)]
+            if properties.italic:
+                items = [ir.Emphasis("emph", items)]
+            if properties.bold:
+                items = [ir.Emphasis("strong", items)]
+        if properties.code and properties.rtl:
+            items = [ir.DirectionalSpan("rtl", items)]
+        return items
+
+    out: list[ir.Inline] = []
+    text: list[ir.Inline] = []
+
+    def flush() -> None:
+        chunk = list(text)
+        text.clear()
+        out.extend(styled(chunk))
+
+    for child in children:
+        if isinstance(child, (ir.ImageInline, ir.FootnoteRef)):
+            flush()
+            out.append(child)
+        else:
+            text.append(child)
+    flush()
     return out
 
 
-def _block(node: docx_pandoc.PandocNode, ctx: _Ctx) -> ir.Block:
-    # Dispatch on Pandoc's string tag; the `isinstance(c, list)` guards inside arms
-    # are intrinsic — `c` is positional Pandoc JSON, not a typed shape.
-    t = node.get("t")
-    c = node.get("c")
-    match t:
-        case "Div" | "Figure":
-            raise AssertionError(f"{t} reaches _block; containers are spliced in _blocks")
-        case "Header" if isinstance(c, list):
-            level, attr, inlines = c
-            ordinals, cleaned = docx_pandoc.split_inline_anchors(
-                inlines if isinstance(inlines, list) else [], ctx.anchor_aliases
-            )
-            # A heading's own bookmark is folded into the Header id by Pandoc;
-            # the farm recovery maps that id back to the ordinal.
-            ident = str(attr[0]) if isinstance(attr, list) and attr else ""
-            if (recovered := ctx.anchor_aliases.get(ident)) is not None:
-                ordinals.append(recovered)
-            return ir.Heading(
-                level=int(level),
-                inlines=_inlines(cleaned, ctx),
-                source_span=ctx.claim(ordinals),
-            )
-        case "Para" | "Plain":
-            ordinals, inlines = docx_pandoc.split_inline_anchors(
-                c if isinstance(c, list) else [], ctx.anchor_aliases
-            )
-            span = ctx.claim(ordinals)
-            if not inlines:
-                return ir.Paragraph(
-                    inlines=[], facts=ir.SourceFacts(empty=True), source_span=span
-                )
-            return ir.Paragraph(
-                inlines=_inlines(inlines, ctx),
-                facts=ir.SourceFacts(italic=_all_italic(inlines)),
-                source_span=span,
-            )
-        case "HorizontalRule":
-            return ir.ThematicBreak()
-        case "BlockQuote" if isinstance(c, list):
-            members = _blocks(c, ctx)
-            return ir.QuoteBlock(
-                blocks=members,
-                register=ir.Register.ORDINARY,
-                source_span=_member_span(members),
-            )
-        case "BulletList" if isinstance(c, list):
-            items = [_blocks(item, ctx) for item in c]
-            return ir.ListBlock(
-                ordered=False, items=items,
-                source_span=_member_span([m for item in items for m in item]),
-            )
-        case "OrderedList" if isinstance(c, list):
-            attr, raw_items = c  # attr = [start, style, delim]; keep the source start ordinal
-            start = int(attr[0]) if isinstance(attr, list) and attr else 1
-            items = [_blocks(item, ctx) for item in raw_items]
-            return ir.ListBlock(
-                ordered=True, start=start, items=items,
-                source_span=_member_span([m for item in items for m in item]),
-            )
-        case "LineBlock" if isinstance(c, list):
-            # Pandoc `LineBlock` proves structural lineation, not verse register.
-            # Normalization may promote it later if surrounding register context
-            # warrants that; the adapter only preserves the authored line shape.
-            ordinals: list[docx_source.SourceOrdinal] = []
-            stanza: list[ir.Line] = []
-            for line in c:
-                if not isinstance(line, list):
-                    continue
-                line_ordinals, cleaned = docx_pandoc.split_inline_anchors(line, ctx.anchor_aliases)
-                ordinals.extend(line_ordinals)
-                stanza.append(
-                    ir.Line(_inlines(cleaned, ctx), span=ctx.provenance(line_ordinals))
-                )
-            return ir.LineatedBlock(
-                stanzas=[stanza],
-                evidence=ir.LineationEvidence(pandoc_line_block=True),
-                source_span=ctx.claim(ordinals),
-            )
-        case "CodeBlock" if isinstance(c, list):
-            _attr, text = c
-            return ir.CodeBlock(text=str(text))
-        case "Table":
-            return _table(node, ctx)
-        case _:
-            # Unmodelled kind: preserve best-effort reading text (lowering emits it +
-            # surfaces a diagnostic) so content is never silently dropped.
-            return ir.UnknownBlock(note=str(t), text=_node_plain(c))
+def _field_hyperlink_target(instruction: str) -> str | None:
+    quoted_or_bare = r'(?:"([^"]+)"|(\S+))'
+    local = re.search(
+        rf"\\l\s+{quoted_or_bare}", instruction, flags=re.IGNORECASE
+    )
+    external = re.match(
+        rf"\s*HYPERLINK\s+(?!\\[A-Za-z]){quoted_or_bare}",
+        instruction,
+        flags=re.IGNORECASE,
+    )
+    target = ""
+    if external is not None:
+        target = external.group(1) or external.group(2) or ""
+    if local is not None:
+        anchor = local.group(1) or local.group(2) or ""
+        target = f"{target}#{anchor}" if target else f"#{anchor}"
+    return target or None
 
 
-def _all_italic(inlines: docx_pandoc.PandocInlines) -> bool:
-    """True when every text-bearing top-level inline is wrapped in `Emph` (the
-    epigraph italic signal)."""
-    saw = False
-    for node in inlines:
-        t = node.get("t")
-        if t in {"Space", "SoftBreak", "LineBreak"}:
+def _inline(source: docx_source.SourceInline, ctx: _Context) -> list[ir.Inline]:
+    match source:
+        case docx_source.SourceText(value=value):
+            value = re.sub(r"[ \t\r\n]+", " ", value)
+            return [ir.Text(value)] if value else []
+        case docx_source.BreakKind.LINE:
+            return [ir.LineBreak()]
+        case docx_source.BreakKind.PAGE | docx_source.BreakKind.COLUMN:
+            # Pagination is not authored lineation, but it is still a separator
+            # when it occurs between readable fragments in one paragraph.  The
+            # canonical physical view makes the same promise through
+            # ParagraphContent.reading.  Paragraph-edge whitespace is trimmed
+            # after projection, so a terminal page break remains invisible.
+            return [ir.Text(" ")]
+        case docx_source.SourceRenderedPageBreak():
+            return []
+        case docx_source.SourceHorizontalRule():
+            raise AssertionError("horizontal rule reached inline projection")
+        case docx_source.SourceRun():
+            return _run_inlines(source, ctx)
+        case docx_source.SourceHyperlink():
+            return [ir.Link(_inlines(source.children, ctx), source.target)]
+        case docx_source.SourceImage():
+            return [ir.ImageInline(
+                ctx.image_source(source),
+                " ".join(source.alt.split()),
+            )]
+        case docx_source.SourceNoteReference():
+            return [ctx.note(source)]
+        case docx_source.SourceSymbol():
+            if source.character:
+                return [ir.Text(source.character)]
+            name = f"symbol:{source.font or 'unknown'}:{source.code or 'unknown'}"
+            ctx.unknown_inlines[name] = ctx.unknown_inlines.get(name, 0) + 1
+            return []
+        case docx_source.SourceFieldInstruction() | docx_source.SourceFieldBoundary():
+            return []
+        case docx_source.SourceField():
+            children = _inlines(source.children, ctx)
+            if source.kind == "HYPERLINK":
+                if target := _field_hyperlink_target(source.instruction):
+                    return [ir.Link(children, target)]
+                ctx.unknown_inlines["field:HYPERLINK"] = (
+                    ctx.unknown_inlines.get("field:HYPERLINK", 0) + 1
+                )
+                return [ir.UnknownInline("field:HYPERLINK", children)]
+            if source.kind not in {"TOC", "PAGEREF", "SEQ", "INCLUDEPICTURE"}:
+                name = f"field:{source.kind or 'unknown'}"
+                ctx.unknown_inlines[name] = ctx.unknown_inlines.get(name, 0) + 1
+                return [ir.UnknownInline(name, children)]
+            return children
+        case docx_source.SourceUnknownInline():
+            return _unknown_inline(source, ctx)
+        case docx_source.SourceTextBox():
+            raise AssertionError("text box reached inline projection")
+    assert_never(source)
+
+
+def _inlines(
+    source: tuple[docx_source.SourceInline, ...],
+    ctx: _Context,
+) -> list[ir.Inline]:
+    return _normalize_inlines([
+        inline for item in source for inline in _inline(item, ctx)
+    ])
+
+
+def _merge_adjacent_text(inlines: list[ir.Inline]) -> list[ir.Inline]:
+    out: list[ir.Inline] = []
+    for inline in inlines:
+        if isinstance(inline, ir.Text) and out and isinstance(out[-1], ir.Text):
+            previous = out[-1]
+            assert isinstance(previous, ir.Text)
+            out[-1] = ir.Text(re.sub(r" +", " ", previous.value + inline.value))
+        else:
+            out.append(inline)
+    return out
+
+
+def _without_covering_emphasis(
+    inline: ir.Inline,
+    kind: ir.EmphKind,
+) -> tuple[bool, list[ir.Inline]]:
+    """Remove ``kind`` when it covers the inline's entire readable content."""
+    if isinstance(inline, ir.Emphasis) and inline.kind == kind:
+        return True, list(inline.children)
+    if not isinstance(inline, ir.ContainerInline):
+        return False, [inline]
+
+    children: list[ir.Inline] = []
+    covered = False
+    for child in inline.children:
+        if isinstance(child, ir.Text) and child.value.isspace():
+            children.append(child)
             continue
-        if t == "Emph":
-            saw = True
+        child_covered, replacement = _without_covering_emphasis(child, kind)
+        if not child_covered:
+            return False, [inline]
+        covered = True
+        children.extend(replacement)
+    if not covered:
+        return False, [inline]
+    return True, [ir.rebuild_container(inline, _merge_adjacent_text(children))]
+
+
+def _factor_common_emphasis(
+    inlines: list[ir.Inline],
+    kind: ir.EmphKind,
+) -> list[ir.Inline]:
+    """Factor a presentation span shared across neighboring source runs.
+
+    Word stores the intersections of bold and italic as independent runs. A
+    fixed wrapper order cannot express both an italic span containing bold and
+    a bold span containing italic without splitting one of them. Recover the
+    common span from adjacent run fragments so Markdown never receives an
+    ambiguous ``****`` delimiter seam.
+    """
+    out: list[ir.Inline] = []
+    index = 0
+    while index < len(inlines):
+        covered, replacement = _without_covering_emphasis(inlines[index], kind)
+        if not covered:
+            out.append(inlines[index])
+            index += 1
             continue
+
+        replacements = list(replacement)
+        pending_whitespace: list[ir.Inline] = []
+        covered_count = 1
+        cursor = index + 1
+        while cursor < len(inlines):
+            candidate = inlines[cursor]
+            if isinstance(candidate, ir.Text) and candidate.value.isspace():
+                pending_whitespace.append(candidate)
+                cursor += 1
+                continue
+            candidate_covered, candidate_replacement = _without_covering_emphasis(
+                candidate,
+                kind,
+            )
+            if not candidate_covered:
+                break
+            replacements.extend(pending_whitespace)
+            pending_whitespace.clear()
+            replacements.extend(candidate_replacement)
+            covered_count += 1
+            cursor += 1
+
+        if covered_count == 1:
+            out.append(inlines[index])
+            index += 1
+            continue
+        out.append(ir.Emphasis(kind, _merge_adjacent_text(replacements)))
+        out.extend(pending_whitespace)
+        index = cursor
+    return out
+
+
+def _normalize_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
+    """Erase source run fragmentation while retaining rich boundaries."""
+    out: list[ir.Inline] = []
+
+    def append_text(value: str) -> None:
+        if out and isinstance(out[-1], ir.Text):
+            previous = out[-1]
+            assert isinstance(previous, ir.Text)
+            out[-1] = ir.Text(re.sub(r" +", " ", previous.value + value))
+        else:
+            out.append(ir.Text(value))
+
+    for inline in inlines:
+        if isinstance(inline, ir.ContainerInline):
+            inline = ir.rebuild_container(
+                inline, _normalize_inlines(inline.children)
+            )
+        leading = ""
+        trailing = ""
+        if isinstance(inline, ir.Emphasis) and inline.children:
+            children = list(inline.children)
+            if isinstance(children[0], ir.Text):
+                value = children[0].value
+                stripped = value.lstrip()
+                leading = value[: len(value) - len(stripped)]
+                children[0] = ir.Text(stripped)
+            if children and isinstance(children[-1], ir.Text):
+                value = children[-1].value
+                stripped = value.rstrip()
+                trailing = value[len(stripped):]
+                children[-1] = ir.Text(stripped)
+            children = [
+                child
+                for child in children
+                if not isinstance(child, ir.Text) or child.value
+            ]
+            inline = ir.Emphasis(inline.kind, children)
+        if leading:
+            append_text(leading)
+        if isinstance(inline, ir.Emphasis) and not inline.children:
+            # Presentation on whitespace has no reading meaning. A whitespace
+            # run has both a leading and trailing edge; emit it once.
+            if trailing and not leading:
+                append_text(trailing)
+            continue
+        if (
+            isinstance(inline, ir.Emphasis)
+            and len(out) >= 2
+            and isinstance(out[-1], ir.Text)
+            and out[-1].value.isspace()
+            and isinstance(out[-2], ir.Emphasis)
+            and out[-2].kind == inline.kind
+        ):
+            whitespace = out.pop()
+            previous = out.pop()
+            assert isinstance(previous, ir.Emphasis)
+            out.append(ir.Emphasis(
+                previous.kind,
+                _normalize_inlines([
+                    *previous.children,
+                    whitespace,
+                    *inline.children,
+                ]),
+            ))
+        elif isinstance(inline, ir.Text) and out and isinstance(out[-1], ir.Text):
+            append_text(inline.value)
+        elif (
+            isinstance(inline, ir.Link)
+            and out
+            and isinstance(out[-1], ir.Link)
+            and out[-1].target == inline.target
+        ):
+            previous = out[-1]
+            assert isinstance(previous, ir.Link)
+            out[-1] = ir.Link(
+                _normalize_inlines([*previous.children, *inline.children]),
+                previous.target,
+            )
+        elif (
+            isinstance(inline, ir.Emphasis)
+            and out
+            and isinstance(out[-1], ir.Emphasis)
+            and out[-1].kind == inline.kind
+        ):
+            previous = out[-1]
+            assert isinstance(previous, ir.Emphasis)
+            out[-1] = ir.Emphasis(
+                previous.kind,
+                _normalize_inlines([*previous.children, *inline.children]),
+            )
+        else:
+            out.append(inline)
+        if trailing:
+            append_text(trailing)
+    for kind in ("strong", "emph"):
+        out = _factor_common_emphasis(out, kind)
+    return out
+
+
+def _unwrap_emphasis_kind(
+    inlines: list[ir.Inline],
+    kind: ir.EmphKind,
+) -> list[ir.Inline]:
+    """Remove one redundant presentation layer without flattening rich content."""
+    out: list[ir.Inline] = []
+    for inline in inlines:
+        if isinstance(inline, ir.ContainerInline):
+            children = _unwrap_emphasis_kind(inline.children, kind)
+            if isinstance(inline, ir.Emphasis) and inline.kind == kind:
+                out.extend(children)
+                continue
+            inline = ir.rebuild_container(inline, children)
+        out.append(inline)
+    return _normalize_inlines(out)
+
+
+def _trim_paragraph_whitespace(inlines: list[ir.Inline]) -> list[ir.Inline]:
+    """Discard paragraph-edge layout whitespace; retain internal NBSP content."""
+    out = list(inlines)
+    if out and isinstance(out[0], ir.Text):
+        out[0] = ir.Text(out[0].value.lstrip())
+    if out and isinstance(out[-1], ir.Text):
+        out[-1] = ir.Text(out[-1].value.rstrip())
+    return [
+        inline
+        for inline in out
+        if not isinstance(inline, ir.Text) or inline.value
+    ]
+
+
+type _ParagraphPart = (
+    tuple[docx_source.SourceInline, ...]
+    | docx_source.SourceTextBox
+    | docx_source.SourceHorizontalRule
+)
+
+
+def _split_embedded_blocks(
+    source: tuple[docx_source.SourceInline, ...],
+) -> list[_ParagraphPart]:
+    out: list[_ParagraphPart] = []
+    current: list[docx_source.SourceInline] = []
+
+    def flush() -> None:
+        if current:
+            out.append(tuple(current))
+            current.clear()
+
+    for item in source:
+        if isinstance(
+            item,
+            docx_source.SourceTextBox | docx_source.SourceHorizontalRule,
+        ):
+            flush()
+            out.append(item)
+            continue
+        if isinstance(item, docx_source.SourceRun):
+            for part in _split_embedded_blocks(item.children):
+                if isinstance(
+                    part,
+                    docx_source.SourceTextBox | docx_source.SourceHorizontalRule,
+                ):
+                    flush()
+                    out.append(part)
+                else:
+                    current.append(docx_source.SourceRun(part, item.properties))
+            continue
+        if isinstance(item, docx_source.SourceHyperlink):
+            for part in _split_embedded_blocks(item.children):
+                if isinstance(
+                    part,
+                    docx_source.SourceTextBox | docx_source.SourceHorizontalRule,
+                ):
+                    flush()
+                    out.append(part)
+                else:
+                    current.append(docx_source.SourceHyperlink(
+                        part, item.target, item.relationship_id
+                    ))
+            continue
+        if isinstance(item, docx_source.SourceField):
+            for part in _split_embedded_blocks(item.children):
+                if isinstance(
+                    part,
+                    docx_source.SourceTextBox | docx_source.SourceHorizontalRule,
+                ):
+                    flush()
+                    out.append(part)
+                else:
+                    current.append(docx_source.SourceField(
+                        item.instruction,
+                        part,
+                        item.field_id,
+                    ))
+            continue
+        current.append(item)
+    flush()
+    return out
+
+
+def _all_italic(source: tuple[docx_source.SourceInline, ...]) -> bool:
+    text_runs: list[docx_source.SourceRun] = []
+
+    def visit(items: tuple[docx_source.SourceInline, ...]) -> None:
+        for item in items:
+            if isinstance(item, docx_source.SourceRun):
+                if any(
+                    isinstance(child, docx_source.SourceText) and child.value.strip()
+                    for child in item.children
+                ):
+                    text_runs.append(item)
+                visit(item.children)
+            elif isinstance(item, docx_source.SourceHyperlink):
+                visit(item.children)
+            elif isinstance(item, docx_source.SourceField):
+                visit(item.children)
+
+    visit(source)
+    return bool(text_runs) and all(run.properties.italic for run in text_runs)
+
+
+def _paragraph_facts(
+    block: docx_source.SourceParagraphBlock,
+    inlines: list[ir.Inline],
+) -> ir.SourceFacts:
+    paragraph = block.paragraph
+    if paragraph is None:
+        return ir.SourceFacts(
+            align=block.alignment.value,
+            empty=not inlines,
+            italic=_all_italic(block.inlines),
+            indented=bool(block.indent.attributes),
+        )
+    return ir.SourceFacts(
+        align=paragraph.alignment.value,
+        empty=not inlines,
+        italic=_all_italic(block.inlines),
+        indented=paragraph.indent_departure,
+        border=paragraph.border.value,
+        lineation_group=(
+            paragraph.visual_group.value if paragraph.visual_group is not None else None
+        ),
+    )
+
+
+def _inline_block(
+    source: docx_source.SourceParagraphBlock,
+    source_inlines: tuple[docx_source.SourceInline, ...],
+    ctx: _Context,
+    *,
+    span: ir.SourceProvenance | None,
+) -> ir.Block:
+    inlines: list[ir.Inline] = _trim_paragraph_whitespace(
+        _inlines(source_inlines, ctx)
+    )
+    if _all_italic(source_inlines) and inlines:
+        inlines = [ir.Emphasis(
+            "emph",
+            _unwrap_emphasis_kind(inlines, "emph"),
+        )]
+    # The reading surface has three levels below its page title (h2-h4). Deeper
+    # Word outline levels remain source facts, but do not become unstyled h5/h6
+    # product headings. An empty outline row likewise remains only a boundary.
+    heading_level = _product_heading_level(source)
+    if heading_level is not None and inlines:
+        inlines = _unwrap_emphasis_kind(inlines, "strong")
+        return ir.Heading(heading_level, inlines, span)
+    return ir.Paragraph(inlines, _paragraph_facts(source, inlines), span)
+
+
+def _paragraph_blocks(
+    source: docx_source.SourceParagraphBlock,
+    ctx: _Context,
+) -> list[ir.Block]:
+    paragraph = source.paragraph
+    if (
+        paragraph is not None
+        and paragraph.disposition is docx_source.ParagraphDisposition.PAGINATION_ONLY
+    ):
+        return []
+    parts = _split_embedded_blocks(source.inlines)
+    span = _source_provenance(source)
+    if not parts:
+        return [_inline_block(source, (), ctx, span=span)]
+
+    out: list[ir.Block] = []
+    span_available = True
+    for part in parts:
+        if isinstance(part, docx_source.SourceTextBox):
+            out.extend(_adapt_sequence(list(_flatten_controls(part.blocks)), ctx))
+        elif isinstance(part, docx_source.SourceHorizontalRule):
+            out.append(ir.ThematicBreak(span if span_available else None))
+            span_available = False
+        else:
+            out.append(_inline_block(
+                source,
+                part,
+                ctx,
+                span=span if span_available else None,
+            ))
+            span_available = False
+    return out
+
+
+def _is_quote_paragraph(block: docx_source.SourceParagraphBlock) -> bool:
+    if block.numbering is not None or _product_heading_level(block) is not None:
         return False
-    return saw
+    style = f"{block.direct_style} {block.resolved_style}".replace("_", " ").casefold()
+    named_quote = any(
+        name in style for name in ("blocktext", "block text", "intensequote", "intense quote", "quote")
+    )
+    paragraph = block.paragraph
+    if paragraph is not None and paragraph.thematic:
+        return False
+    indented_quote = (
+        paragraph is not None
+        and paragraph.indent_departure
+        and block.indent.left.value > 0
+        and block.indent.hanging.value <= 0
+    )
+    return named_quote or indented_quote
 
 
-_EMPH_WRAP: dict[str, tuple[str, str]] = {
-    "Strong": ("**", "**"), "Emph": ("*", "*"), "Strikeout": ("~~", "~~"),
-    "Superscript": ("^", "^"), "Subscript": ("~", "~"),
-}
+def _product_heading_level(
+    block: docx_source.SourceParagraphBlock,
+) -> int | None:
+    level = block.heading_level
+    return level if level is not None and 1 <= level <= 3 else None
 
 
-def _inline_md(nodes: docx_pandoc.PandocInlines) -> str:
-    """Plain Markdown render of Pandoc inlines — used only for table cells (the
-    one place the adapter flattens inlines to text for `ir.Table.rows`)."""
-    out: list[str] = []
-    for node in nodes:
-        t = node.get("t")
-        c = node.get("c")
-        match t:
-            case "Str":
-                out.append(str(c))
-            case "Space" | "SoftBreak" | "LineBreak":
-                out.append(" ")
-            case "Strong" | "Emph" | "Strikeout" | "Superscript" | "Subscript" if isinstance(c, list):
-                o, cl = _EMPH_WRAP[t]
-                out.append(f"{o}{_inline_md(c)}{cl}")
-            case ("Underline" | "SmallCaps") if isinstance(c, list):
-                out.append(_inline_md(c))
-            case "Quoted" if isinstance(c, list):
-                qt, quoted = c
-                o, cl = ("'", "'") if isinstance(qt, dict) and qt.get("t") == "SingleQuote" else ("«", "»")
-                out.append(f"{o}{_inline_md(quoted)}{cl}")
-            case "Code" if isinstance(c, list):
-                out.append(f"`{c[1]}`")
-            case "Link" if isinstance(c, list):
-                _a, label, target = c
-                out.append(f"[{_inline_md(label)}]({target[0]})")
-            case "Image" if isinstance(c, list):
-                _a, label, target = c
-                out.append(f"![{_plain(label)}]({target[0]})")
-            case "Span" if isinstance(c, list):
-                out.append(_inline_md(c[1]))
-            case _ if isinstance(c, list):
-                out.append(_inline_md(c))
-    return re.sub(r"\s+", " ", "".join(out)).strip()
+def _flatten_controls(
+    blocks: tuple[docx_source.SourceBlock, ...],
+) -> tuple[docx_source.SourceBlock, ...]:
+    out: list[docx_source.SourceBlock] = []
+    for block in blocks:
+        if isinstance(block, docx_source.SourceContentControl):
+            out.extend(_flatten_controls(block.blocks))
+        else:
+            out.append(block)
+    return tuple(out)
 
 
-def _table(node: docx_pandoc.PandocNode, ctx: _Ctx) -> ir.Table:
-    """Structure a Pandoc 3.x Table into `ir.Table`. `rows` carries STRUCTURED
-    cell content (rows of cells of inlines) so reading-content table cells flow
-    through the same AI-alt and asset passes as prose; `raw` keeps the node for the
-    bibliography classifier (it needs hrefs + image alts)."""
-    c = node.get("c")
+def _adapt_list(
+    blocks: list[docx_source.SourceBlock],
+    start_index: int,
+    ctx: _Context,
+) -> tuple[ir.ListBlock, int]:
+    first = blocks[start_index]
+    assert isinstance(first, docx_source.SourceParagraphBlock)
+    numbering = first.numbering
+    assert numbering is not None
+    num_id = numbering.num_id
+    base_level = numbering.level
+    items: list[list[ir.Block]] = []
+    index = start_index
+
+    while index < len(blocks):
+        block = blocks[index]
+        if not isinstance(block, docx_source.SourceParagraphBlock):
+            break
+        current = block.numbering
+        if current is None or current.num_id != num_id or current.level < base_level:
+            break
+        if current.level > base_level:
+            if not items:
+                break
+            nested, index = _adapt_list(blocks, index, ctx)
+            items[-1].append(nested)
+            continue
+        if current.ordered != numbering.ordered:
+            break
+        items.append(_paragraph_blocks(block, ctx))
+        index += 1
+
+    key = (num_id, base_level)
+    start = ctx.next_number.get(key, numbering.start) if numbering.ordered else 1
+    if numbering.ordered:
+        ctx.next_number[key] = start + len(items)
+    members = [member for item in items for member in item]
+    return (
+        ir.ListBlock(
+            ordered=numbering.ordered,
+            items=items,
+            start=start,
+            source_span=_covering_span(members),
+        ),
+        index,
+    )
+
+
+def _block_inlines(block: ir.Block) -> list[ir.Inline]:
+    match block:
+        case ir.Heading() | ir.Paragraph():
+            return block.inlines
+        case ir.LineatedBlock():
+            out: list[ir.Inline] = []
+            for stanza in block.stanzas:
+                for line in stanza:
+                    if out:
+                        out.append(ir.Text(" "))
+                    out.extend(line.inlines)
+            return out
+        case ir.QuoteBlock():
+            return _blocks_as_inlines(block.blocks)
+        case ir.ListBlock():
+            return _blocks_as_inlines([
+                member for item in block.items for member in item
+            ])
+        case ir.ImageBlock():
+            return [ir.ImageInline(block.src, block.alt, block.asset_id)]
+        case ir.CodeBlock():
+            return [ir.Code(block.text)]
+        case ir.UnknownBlock():
+            return [ir.UnknownInline(block.note, [ir.Text(block.text)] if block.text else [])]
+        case ir.Signature():
+            return [ir.Text(" ".join(block.lines))]
+        case ir.Epigraph():
+            return [ir.Text(" ".join([*block.quote, *block.footer]))]
+        case ir.DialogueLabel():
+            return [ir.Text(block.speaker)]
+        case ir.ThematicBreak():
+            return [ir.Text("***")]
+        case ir.Table():
+            return [
+                inline
+                for row in block.rows
+                for cell in row
+                for inline in cell
+            ]
+    assert_never(block)
+
+
+def _blocks_as_inlines(blocks: list[ir.Block]) -> list[ir.Inline]:
+    out: list[ir.Inline] = []
+    for block in blocks:
+        inlines = _block_inlines(block)
+        if out and inlines:
+            out.append(ir.Text(" "))
+        out.extend(inlines)
+    return out
+
+
+def _table(source: docx_source.SourceTableBlock, ctx: _Context) -> ir.Table:
     rows: list[list[list[ir.Inline]]] = []
-
-    def cell_inlines(cell: object) -> list[ir.Inline]:
-        # cell = [attr, alignment, rowspan, colspan, blocks]; narrow before indexing.
-        if not isinstance(cell, list) or len(cell) < 5 or not isinstance(cell[4], list):
-            return []
-        out: list[ir.Inline] = []
-        for raw in cell[4]:
-            b = docx_pandoc.as_node(raw)
-            if b is not None and b.get("t") in {"Para", "Plain"}:
-                if out:
-                    out.append(ir.Text(" "))  # join multi-block cells with a space
-                payload = b.get("c")
-                out.extend(_inlines(payload if isinstance(payload, list) else [], ctx))
-        return out
-
-    def cells_of(row: object) -> list[list[ir.Inline]]:
-        # row = [attr, cells]
-        if not isinstance(row, list) or len(row) < 2 or not isinstance(row[1], list):
-            return []
-        return [cell_inlines(cell) for cell in row[1]]
-
-    if isinstance(c, list):
-        try:
-            _attr, _cap, _cols, thead, tbodies, _tfoot = c
-            for hrow in (thead[1] if thead else []):
-                rows.append(cells_of(hrow))
-            for tbody in tbodies:
-                # tbody = [attr, rowheadcols, headerrows, bodyrows]
-                for brow in tbody[3]:
-                    rows.append(cells_of(brow))
-        except (ValueError, IndexError, TypeError):
-            # A table shape we don't recognize keeps `raw` for the classifier and
-            # an empty `rows` (lowered to nothing rather than guessed).
-            pass
-    return ir.Table(rows=rows, raw=node)
+    multi_block = False
+    merged = False
+    for row in source.rows:
+        cells: list[list[ir.Inline]] = []
+        for cell in row.cells:
+            source_blocks = list(_flatten_controls(cell.blocks))
+            multi_block = multi_block or len(source_blocks) > 1
+            merged = merged or cell.row_span != 1 or cell.column_span != 1
+            cells.append(_blocks_as_inlines(_adapt_sequence(source_blocks, ctx)))
+        rows.append(cells)
+    return ir.Table(
+        rows,
+        ir.TableShape(
+            has_merged_cells=merged,
+            has_multi_block_cells=multi_block,
+        ),
+    )
 
 
-# ---------------------------------------------------------------------------
-# Top-level adapter
-# ---------------------------------------------------------------------------
+def _adapt_sequence(
+    blocks: list[docx_source.SourceBlock],
+    ctx: _Context,
+) -> list[ir.Block]:
+    out: list[ir.Block] = []
+    index = 0
+    while index < len(blocks):
+        block = blocks[index]
+        if isinstance(block, docx_source.SourceParagraphBlock):
+            # Word headings can also carry numbering.  Heading is the product
+            # structure; treating such a row as a list item erases the section
+            # boundary and lets later section passes consume unrelated prose.
+            if block.numbering is not None and _product_heading_level(block) is None:
+                list_block, index = _adapt_list(blocks, index, ctx)
+                out.append(list_block)
+                continue
+            if _is_quote_paragraph(block):
+                quote_members: list[ir.Block] = []
+                while index < len(blocks):
+                    candidate = blocks[index]
+                    if not isinstance(candidate, docx_source.SourceParagraphBlock):
+                        break
+                    if not _is_quote_paragraph(candidate):
+                        break
+                    quote_members.extend(_paragraph_blocks(candidate, ctx))
+                    index += 1
+                out.append(ir.QuoteBlock(
+                    quote_members,
+                    ir.Register.ORDINARY,
+                    _covering_span(quote_members),
+                ))
+                continue
+            out.extend(_paragraph_blocks(block, ctx))
+        elif isinstance(block, docx_source.SourceTableBlock):
+            out.append(_table(block, ctx))
+        elif isinstance(block, docx_source.SourceContentControl):
+            out.extend(_adapt_sequence(list(_flatten_controls(block.blocks)), ctx))
+        elif isinstance(block, docx_source.SourceUnknownBlock):
+            ctx.unknown_blocks[block.name] = ctx.unknown_blocks.get(block.name, 0) + 1
+            out.append(ir.UnknownBlock(block.name, block.text))
+        else:
+            assert_never(block)
+        index += 1
+    return out
 
 
 def adapt(
@@ -528,76 +871,15 @@ def adapt(
     media_dir: Path,
     diagnostics: ir.DiagnosticSink,
 ) -> ir.Document:
-    """Parse one source aggregate into IR, extracting media into `media_dir`.
-
-    `diagnostics` is the caller's sink — the same one the passes and the backend
-    take. Provenance comes from the projection's source anchors, so every
-    text-bearing leaf carries its `w:p` ordinal(s) at any nesting depth; a
-    `warning` fires for any content ordinal no block claims, so provenance loss
-    can't ship silently. OOXML paragraph facts (`w:jc`, borders, visual groups)
-    join by ordinal. Footnote definitions collected during the inline walk are
-    attached densely renumbered.
-    """
-    ast, warns = docx_pandoc.run_json(source, media_dir)
-    if warns:
-        diagnostics.append(ir.Diagnostic("info", "import.pandoc-warn", warns))
-
-    raw_blocks = ast.get("blocks") or []
-    if not isinstance(raw_blocks, list):
-        raw_blocks = []
-    farm_targets: list[docx_pandoc.FarmLinkTarget] = []
-    content_nodes: docx_pandoc.PandocBlocks = []
-    for node in raw_blocks:
-        targets = docx_pandoc.farm_link_targets(node)
-        if targets is None:
-            content_nodes.append(node)
-        else:
-            farm_targets.extend(targets)
-
-    ctx = _Ctx(
-        docx_pandoc.source_anchor_aliases(farm_targets, source) if farm_targets else None,
-        source=source,
-    )
-    blocks = _blocks(content_nodes, ctx)
-    facts_applied, right_assigned = apply_source_facts(blocks, source.paragraphs)
-
-    interval_claimed: set[docx_source.SourceOrdinal] = set()
-    for hit_block in blocks:
-        if (hit_span := hit_block.source_span) is not None:
-            interval_claimed.update(range(hit_span.start, hit_span.end + 1))
-    phantom = sorted(
-        (interval_claimed & source.content_ordinals) - ctx.claimed
-    )
-    if phantom:
-        raise ProvenanceError(
-            f"{len(phantom)} content paragraph(s) claimed by span interval but by no "
-            f"anchor (first: {phantom[:10]})"
-        )
-    unclaimed = sorted(source.content_ordinals - ctx.claimed)
-    diagnostics.append(ir.Diagnostic(
-        "info", "import.provenance",
-        f"anchors={len(ctx.claimed)} unclaimed-content={len(unclaimed)} "
-        f"facts={facts_applied} right-assigned={right_assigned}",
-    ))
-    if unclaimed:
-        diagnostics.append(ir.Diagnostic(
-            "warning", "import.provenance-unclaimed",
-            f"{len(unclaimed)} content paragraph(s) claimed by no block "
-            f"(first: {unclaimed[:10]})",
-        ))
-    right_records = sum(
-        1
-        for r in source.reconciliation_paragraphs
-        if r.alignment.is_right_edge and r.text
-    )
-    if right_records and not right_assigned:
-        diagnostics.append(ir.Diagnostic(
-            "warning", "import.align-unreconciled",
-            f"{right_records} right-aligned source paragraph(s) but 0 carried onto "
-            f"the IR — alignment-driven signatures/epigraphs may be lost",
-        ))
-
-    return ir.Document(
-        blocks=blocks,
-        footnotes=[ir.FootnoteDef(id=i, blocks=bs) for i, bs in ctx.fn_defs],
-    )
+    """Project one canonical source aggregate into block IR."""
+    media_dir.mkdir(parents=True, exist_ok=True)
+    ctx = _Context(source, media_dir, diagnostics)
+    blocks = _adapt_sequence(list(_flatten_controls(source.body)), ctx)
+    # Empty source rows after readable content remain Q1 evidence, including at
+    # the tail. Leading layout whitespace has no preceding semantic neighbour
+    # and must not become visible IR.
+    while blocks and isinstance(blocks[0], ir.Paragraph) and blocks[0].empty:
+        blocks.pop(0)
+    diagnostics.extend(_source_diagnostic(finding) for finding in source.diagnostics)
+    ctx.finish_diagnostics()
+    return ir.Document(blocks=blocks, footnotes=ctx.footnotes)

@@ -1,8 +1,9 @@
-"""Golden test net: freeze the CURRENT DOCX->Markdown importer behavior.
+"""Golden regression net for the live DOCX-to-Markdown compiler.
 
-The single job of this module is to lock down what the live import path
-(`import_docx.import_work` -> `pancratius.docx_conversion.convert_single_docx`, the typed-IR
-pipeline) produces, so refactors stay behavior-preserving against a committed
+These snapshots make compiler changes reviewable; they are not an independent
+interpretation of the DOCX or unquestionable source truth. A mismatch may be a
+regression, an intentional source-fidelity correction, or a fixture-source
+change. Classify it against the DOCX and semantic invariants before updating the
 snapshot.
 
 What is frozen, per case, under ``tests/golden/<case>/``:
@@ -26,13 +27,13 @@ Deliberate-update path:
 Fixture-source rule:
   The ``docx`` paths in ``CASES`` are the inputs under test, and today they point
   at the canonical in-place corpus DOCX files under ``src/content``. If one of
-  those DOCX files changes, a golden failure may be expected rather than a parser
-  regression. First inspect the imported diff against the new DOCX intent and the
-  refreshed corpus body; only then promote the new snapshot with
+those DOCX files changes, a golden failure may be expected rather than a parser
+regression. First inspect the imported diff against the DOCX evidence and the
+reading-surface contract; only then promote the new snapshot with
   ``GOLDEN_UPDATE=1``.
 
 Determinism: tests do not depend on machine-local paths and guard on
-pandoc + PIL availability (both installed here, so they RUN). The DOCX artifact
+PIL availability. The DOCX artifact
 and image BYTES are deliberately NOT asserted for equality — they pass through
 `docx_optimize`/PIL and may not be byte-deterministic; only the markdown body,
 the (allowlisted) frontmatter, the sorted image FILENAME set, and the
@@ -44,7 +45,6 @@ from __future__ import annotations
 import difflib
 import importlib.util
 import os
-import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -65,10 +65,9 @@ from pancratius.locales import Locale
 ROOT = Path(__file__).resolve().parents[2]
 
 pytestmark = [
-    pytest.mark.pandoc,
     pytest.mark.skipif(
-        shutil.which("pandoc") is None or importlib.util.find_spec("PIL") is None,
-        reason="pandoc and pillow are required",
+        importlib.util.find_spec("PIL") is None,
+        reason="pillow is required",
     ),
 ]
 

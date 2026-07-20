@@ -1,10 +1,9 @@
 # import-pure: no filesystem mutation
-"""Shared OOXML helpers.
+"""Shared OOXML package and namespace helpers.
 
-The importer reads paragraph-level Word signals that Pandoc Markdown cannot
-carry. The translated-DOCX transfer also serializes edited XML parts, so this
-module owns the namespace registration instead of relying on import-time side
-effects from one DOCX command.
+The canonical reader and translated-DOCX transfer both need exact namespace and
+relationship handling.  This module owns those mechanics without assigning
+document or product semantics.
 """
 
 from __future__ import annotations
@@ -405,7 +404,7 @@ def serialize_xml(
     snapshot = _namespace_registry_snapshot()
     try:
         # Canonical/supplied bindings win for element names. Lexical aliases
-        # are closed separately below, so they cannot rename Pandoc's QNames.
+        # are closed separately below, so they cannot rename serialized QNames.
         lexical_prefixes = {binding.prefix for binding in desired}
         registry_source_bindings = tuple(
             binding

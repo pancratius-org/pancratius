@@ -1,8 +1,10 @@
-"""Plain-text shingle coverage between source DOCX bodies and generated MD bodies.
+"""Plain-text shingle coverage from the canonical source model to generated Markdown.
 
-This is a corpus-wide text guard, not a layout/typography audit. It intentionally
-strips DOCX-generated chrome (TOC, bibliography, copyright/contact tail) because
-those regions are not part of the canonical Markdown body.
+This catches loss or duplication after ``docx_source.read`` and drift in committed
+output. It is not an independent OOXML reader and cannot prove that the canonical
+reader itself retained every source atom. It intentionally strips generated chrome
+(TOC, bibliography, copyright/contact tail) because those regions are not part of
+the canonical Markdown body.
 """
 from __future__ import annotations
 
@@ -74,13 +76,11 @@ def _strip_docx_body_chrome(paragraphs: list[str]) -> list[str]:
 
 
 def _docx_body_text(docx: Path) -> str:
+    source = docx_source.read(docx)
     rows = _strip_docx_body_chrome(
-        [content.reading.strip() for content in docx_source.read_story(
-            docx, docx_source.StoryPart.DOCUMENT
-        )]
+        list(source.body_readings)
     )
-    for part in (docx_source.StoryPart.FOOTNOTES, docx_source.StoryPart.ENDNOTES):
-        rows.extend(content.reading.strip() for content in docx_source.read_story(docx, part))
+    rows.extend(source.note_readings)
     return " ".join(rows)
 
 

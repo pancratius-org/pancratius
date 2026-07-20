@@ -37,6 +37,16 @@ _STYLE_NOTE_RE = re.compile(r"\(\s*(в\s+(?:духе|стиле)\s+[^)]+?)\s*\)"
 _BYLINE_RE = re.compile(r"^\[[^\]]*\]\(\s*https?://[^)]+\)\s*$", re.IGNORECASE)
 
 
+def poem_title_key(text: str) -> str:
+    """Comparison key for the repeated DOCX title and the publication title."""
+    text = re.sub(r"<[^>]+>", "", text)
+    text = _STYLE_NOTE_RE.sub("", text)
+    text = re.sub(r"^[#>*_`\s-]+|[*_`\s-]+$", "", text.strip())
+    text = text.replace("…", "...")
+    text = re.sub(r"[.,;:!?]+$", "", text)
+    return re.sub(r"\s+", " ", text).casefold().strip()
+
+
 @dataclass(frozen=True, slots=True)
 class PoemPersona:
     value: str  # "Светозар" / "Панкратиус"

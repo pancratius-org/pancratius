@@ -4,7 +4,6 @@ These tests predate the lineation/register split and now cover Q2 promotion
 behavior around known regressions, not the full source of truth for Q1 lineation.
 The importer first preserves/folds lineation as `LineatedBlock`, then promotes an
 already-lineated block to the verse register only when evidence warrants it.
-`audit/book_verse.py` is a legacy diagnostic, not the split IR spec.
 
   * A *verse-register run* is an already-lineated block whose display lines are
     short enough for the verse voice under the current conservative Q2 rule.
@@ -20,8 +19,8 @@ The two regressions this guards (verified during the IR cutover):
     не разделён. / …`) was left as prose because the mid-sentence colon lines were
     rejected as if they were labels, breaking the run.
 
-Must NOT regress the C2 (SoftBreak = wrapping space) and C3 (hard breaks nested in
-`Emph` still split) fixes — those have their own asserts here too.
+Hard breaks nested in `Emph` must still split; that regression has a focused
+assert below.
 """
 
 from __future__ import annotations
@@ -805,24 +804,8 @@ def test_run_of_long_prose_sentences_stays_prose() -> None:
 
 
 # ---------------------------------------------------------------------------
-# C2 / C3 must not regress (verse detection through SoftBreak / nested Emph)
+# Hard breaks nested in emphasis remain authored lineation.
 # ---------------------------------------------------------------------------
-
-
-def test_c2_softbreak_only_paragraph_stays_prose_after_fix() -> None:
-    blocks: list[ir.Block] = [
-        ir.Heading(level=2, inlines=[ir.Text("Глава")]),
-        ir.Paragraph(inlines=[
-            ir.Text("Свет не был сотворён."), ir.SoftBreak(),
-            ir.Text("Он не возник."), ir.SoftBreak(), ir.Text("Он — Есть."),
-        ]),
-        _empty(),
-        ir.Paragraph(inlines=[
-            ir.Text("Он не движется."), ir.SoftBreak(), ir.Text("Он просто светит."),
-        ]),
-    ]
-    out = promote_verse_register(fold_lineation(blocks))
-    assert not any(_is_verse(b) for b in out)
 
 
 def test_c3_linebreak_in_emphasis_paragraph_becomes_verse_after_fix() -> None:

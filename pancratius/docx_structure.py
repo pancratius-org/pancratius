@@ -1,9 +1,9 @@
 # import-pure: compiler observations over one canonical DOCX source aggregate
 """Typed source-line observations at stable production compiler seams.
 
-Provenance lives on IR leaves (the adapter's source anchors), so an observation
-is a leaf walk: each source line is classified by the leaf block that claims
-it, with the enclosing container kind carried as a separate fact.
+Source coordinates live on IR leaves, so an observation is a leaf walk: each
+source line is classified by the leaf block projected from that same canonical
+source unit, with the enclosing container kind carried as a separate fact.
 Policy — which (kind, enclosure) pairs are in scope for a task — belongs to
 consumers, not to this module.
 """
@@ -185,9 +185,8 @@ def source_line_hits(
         kind = compiler_block_kind(leaf.block)
         match leaf.block:
             case ir.Paragraph() if leaf.block.empty:
-                # Empty reconciliation carriers prove adapter identity but do
-                # not render an exact source line. The ordinal ledger keeps
-                # them; the rendered-line projection deliberately does not.
+                # Empty source rows retain identity but render no exact source
+                # line. The ordinal ledger keeps them; this projection does not.
                 continue
             case ir.LineatedBlock(stanzas=stanzas):
                 for stanza_index, stanza in enumerate(stanzas):

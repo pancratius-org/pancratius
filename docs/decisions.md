@@ -84,9 +84,9 @@ see duplicate suggestions.
 
 ## Divine-Voice Marking
 
-The converter preserves whatever italic markup pandoc emits from source DOCX
-`<w:i/>` runs. It does not invent semantic emphasis from `Творец:` / `Бог:`
-speaker labels.
+The converter preserves the canonical source reader's resolved italic run
+properties, including direct `<w:i/>` formatting and inherited style toggles. It
+does not invent semantic emphasis from `Творец:` / `Бог:` speaker labels.
 
 Rationale:
 
@@ -145,7 +145,7 @@ conversion must not recreate Cyrillic folders.
 Markdown-rendered body uses the `.prose` reading surface — book and poem pages,
 project landings and sub-pages, and the dedicated static-page routes.
 
-It encodes a reading register designed for the *actual* markup our pandoc
+It encodes a reading register designed for the *actual* markup our import
 pipeline emits, not for the hand-authored markup of the v4/v5/v7 mockups.
 The corpus is largely short paratactic lines in Word that arrive as one
 `<p>` per blank line, plus a small set of long narrative paragraphs. The
@@ -187,9 +187,9 @@ The current contract:
   `p.signature`; scripture and epigraph groups become
   `blockquote.epigraph`. This comes from `word/document.xml`, not from CSS
   heuristics or "italic means quote" guessing.
-- **standalone `***` is a thematic break.** Pandoc sometimes escapes the
-  asterisks; the converter normalizes escaped or unescaped `***`-only lines to
-  a real GFM thematic break so the site renders the intended ornament.
+- **authored source rules are thematic breaks.** The converter recognizes an
+  exact `***` source paragraph and Word's VML horizontal-rule gesture, lowering
+  either to a real GFM thematic break so the site renders the intended ornament.
 - **book-register `<h2>` is an ornamented chapter opener.** Project headings
   override this in the project register, where `h2` is a left-aligned editorial
   section with a generated `§` eyebrow.
@@ -233,6 +233,33 @@ they may be authored directly in the Markdown. The converter emits only
 structural classes it can justify from source shape and section name, such as
 `.lineated` and `.lineated.verse`.
 
+## DOCX Import Uses One Source Grammar
+
+Import reads each DOCX package into one domain-sufficient source tree. The tree
+owns rich content, source order and identity, typed breaks, resolved styles,
+layout, relationships, notes, images, fields, lists, and tables. Physical facts
+and rich content come from the same selected XML tree and meet by element
+identity; paragraph content has only the rich-grammar derivation. The adapter
+projects that aggregate into block IR without opening the package.
+
+The direct model won over a Pandoc bridge and higher-level Python libraries
+because the corpus needs facts those abstractions either discard or expose only
+through raw-XML escape hatches: authored versus rendered breaks, structural empty
+paragraphs, compatibility branches, VML rules, inherited formatting, fields,
+notes, and stable paragraph identity. Keeping a second reader for rich content
+would restore the anchor/reconciliation seam that caused the original failures.
+
+Package validation, mutation, translation writing, slicing, and independent
+rendering may still open DOCX packages. They do not define import semantics. A
+new import-semantic fact extends the source aggregate; it is never reconstructed
+in an adapter, audit, or research producer.
+
+This choice narrows what an audit can prove. An audit that consumes the aggregate
+checks transformations or emitted artifacts from that boundary onward; it cannot
+independently detect a parser omission. Parser coverage is enforced inside the
+reader with exact element coverage, explicit unsupported nodes/diagnostics,
+source-grammar fixtures, and cross-version differential captures.
+
 ## Verse Source Contract
 
 Markdown here is a DERIVED publication format, not an authoring surface — an AI
@@ -268,22 +295,19 @@ wrappers, poems, mission page, or verse subpage — loses its two-space breaks;
 cannot silently strip them. The download exporters read this one encoding through
 a single plain pandoc reader (no poem-only `+hard_line_breaks`).
 
-The converter must treat stanza boundaries as editorial data. DOCX poems and
-book lineation are read through Pandoc's `docx+empty_paragraphs` JSON AST,
-because empty Word paragraphs survive there as explicit empty paragraph nodes.
-Poems emit whole-body verse in the generated encoding above. Books split the old
-one-stage "verse run" decision into two questions: Q1 preserves/folds source rows
-as lineation (`LineatedBlock`) using explicit hard breaks and isolated,
-documented source-row inference; Q2 may then add the `.verse` register to an
-already-lineated block. Headings, titles, and thematic separators may influence Q2
-register, but they are not themselves proof that Q1 hard breaks exist. The
-converter must not infer stanza structure from plain Pandoc GFM after the
-empty-paragraph signal has been lost, and it must not silently flatten all poems
-into one stanza. The 120-char threshold still appears in
-`pancratius/ir/normalize.py` (`VERSE_SHORT_LINE_MAX`) and the legacy
-`audit/book_verse.py` (`SHORT_LINE_MAX`), but that audit is now a register
-diagnostic pending the 3-way flowing / lineated-prose / verse benchmark, not the
-lineation oracle.
+The converter must treat stanza boundaries as editorial data. The canonical
+DOCX source model retains empty Word paragraphs and typed authored line breaks;
+poems emit whole-body verse from those facts in the generated encoding above.
+Books split the old one-stage "verse run" decision into two questions: Q1
+preserves or folds source rows as lineation (`LineatedBlock`) using explicit hard
+breaks and isolated, documented source-row inference; Q2 may then add the
+`.verse` register to an already-lineated block. Headings, titles, and thematic
+separators may influence Q2 register, but they are not themselves proof that Q1
+hard breaks exist. The converter must not infer stanza structure from lowered
+Markdown after the empty-paragraph signal has been lost, and it must not silently
+flatten all poems into one stanza. The 120-character threshold in
+`pancratius/passes/lineation.py` (`VERSE_SHORT_LINE_MAX`) is one isolated inference
+input, not an audit-owned second interpretation of the source.
 
 ## Conceptosphere page-layout selectors are global
 
@@ -320,7 +344,7 @@ Why ty over the conventional pyright/mypy:
 Caveat and exit: ty is pre-1.0, so it is pinned **exact** (`ty==`), not `>=`.
 Re-evaluate against pyright/mypy `--strict` when ty reaches a stable line. `Any`
 is permitted only at genuine dynamic boundaries (opaque ML model/tokenizer
-objects, untyped Pandoc-AST payloads, un-stubbed third-party imports) and must be
+objects, untyped translation-AST payloads, un-stubbed third-party imports) and must be
 explicit through local aliases or narrow typed payload edges — never a blanket
 suppression.
 
