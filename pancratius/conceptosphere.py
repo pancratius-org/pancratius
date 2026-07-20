@@ -837,9 +837,9 @@ def run_concepts_mode(config: GraphConfig, out: Path, log: LogFn, bundle: Corpus
             })
         return out
 
-    # Build node list
+    # Build node list, centrality-descending so consumers can take top-K
     nodes_out = []
-    for n in G.nodes():
+    for n in sorted(G.nodes(), key=lambda n: round(pagerank[n], 6), reverse=True):
         nodes_out.append({
             "id": n,
             "concept_id": n,
@@ -852,9 +852,6 @@ def run_concepts_mode(config: GraphConfig, out: Path, log: LogFn, bundle: Corpus
             "community": int(partition[n]),
             "top_books": top_books_for(n),
         })
-    # Sort nodes by centrality descending so consumers can take top-K easily
-    nodes_out.sort(key=lambda x: x["centrality"], reverse=True)
-
     edges_out = []
     for a, b, d in G.edges(data=True):
         edges_out.append({
@@ -1273,9 +1270,9 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
     else:
         log(f"note: {embed_path.name} not present — semantic recs will be empty")
 
-    # Build node list.
+    # Build node list, centrality-descending so consumers can take top-K.
     nodes_out = []
-    for slug in G.nodes():
+    for slug in sorted(G.nodes(), key=lambda s: round(pagerank.get(s, 0.0), 6), reverse=True):
         b = book_by_slug.get(slug)
         if b is None:
             continue
@@ -1295,7 +1292,6 @@ def run_books_mode(config: GraphConfig, out: Path, log: LogFn, bundle: CorpusBun
             "top_similar": top_similar[slug],
             "top_similar_embed": top_similar_embed.get(slug, []),
         })
-    nodes_out.sort(key=lambda x: x["centrality"], reverse=True)
 
     edges_out = []
     for a, b, d in G.edges(data=True):
