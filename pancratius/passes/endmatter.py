@@ -4,13 +4,13 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator, Mapping
+from collections.abc import Mapping
 from dataclasses import replace
 
 from pancratius import ir
 from pancratius.content_catalog import IndexHit
-from pancratius.ir.inlines import inline_plain
-from pancratius.passes.scrub import is_ai_alt
+from pancratius.ir.inlines import inline_plain, walk_inlines
+from pancratius.passes.scrub import is_unhelpful_image_alt
 
 # The slug→(slug, number, kind) corpus index the bibliography lift resolves
 # titles against; an entry resolves to a `{kind, number}` target.
@@ -73,13 +73,6 @@ def _table_inlines(table: ir.Table) -> list[ir.Inline]:
     return [inline for row in table.rows for cell in row for inline in cell]
 
 
-def _walk_inlines(inlines: list[ir.Inline]) -> Iterator[ir.Inline]:
-    for inline in inlines:
-        yield inline
-        if isinstance(inline, ir.ContainerInline):
-            yield from _walk_inlines(inline.children)
-
-
 def _looks_like_biblio(t: ir.Table) -> bool:
     """A catalog/bibliography table to lift: a catalog signal (cover images / LitRes
     / kindbook URLs) AND its source shape needs an HTML table. A reading-content
@@ -89,17 +82,11 @@ def _looks_like_biblio(t: ir.Table) -> bool:
     return any(
         isinstance(inline, ir.ImageInline)
         or (isinstance(inline, ir.Link) and _A_RE.search(inline.target))
-        for inline in _walk_inlines(_table_inlines(t))
+        for inline in walk_inlines(_table_inlines(t))
     )
 
 
 _A_RE = re.compile(r"litres\.ru|kindbook\.net")
-_GENERIC_IMAGE_ALT_RE = re.compile(
-    r"^(?:рисунок|figure|picture|image)\s*\d+$",
-    re.IGNORECASE,
-)
-
-
 def _resolve_target(title: str, slug_lookup: _SlugLookup) -> dict[str, object] | None:
     """Resolve a title to a `{kind, number}` target when the corpus knows it.
     The record stays an open dict (it travels into `doc.bibliography`)."""
@@ -115,7 +102,7 @@ def _resolve_target(title: str, slug_lookup: _SlugLookup) -> dict[str, object] |
 def _parse_biblio(t: ir.Table, slug_lookup: _SlugLookup) -> list[dict[str, object]]:
     """Pull store-link titles and non-AI cover alts from structured cells."""
     titles: list[tuple[str, str | None]] = []
-    for inline in _walk_inlines(_table_inlines(t)):
+    for inline in walk_inlines(_table_inlines(t)):
         if isinstance(inline, ir.Link) and _A_RE.search(inline.target):
             title = inline_plain(inline.children).strip()
             if len(title) >= 2:
@@ -124,8 +111,7 @@ def _parse_biblio(t: ir.Table, slug_lookup: _SlugLookup) -> list[dict[str, objec
             alt = inline.alt.strip()
             if (
                 len(alt) > 2
-                and not is_ai_alt(alt)
-                and _GENERIC_IMAGE_ALT_RE.fullmatch(alt) is None
+                and not is_unhelpful_image_alt(alt)
             ):
                 titles.append((alt, None))
     out: list[dict[str, object]] = []

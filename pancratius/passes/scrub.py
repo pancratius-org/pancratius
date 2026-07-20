@@ -8,7 +8,7 @@ import re
 from dataclasses import replace
 
 from pancratius import ir
-from pancratius.ir.inlines import block_plain, inline_plain, walk_inlines
+from pancratius.ir.inlines import block_plain, inline_plain
 from pancratius.rights_boilerplate import (
     RightsRemovalMismatch,
     RightsRemovalPlan,
@@ -25,6 +25,10 @@ AI_ALT_FRAGMENTS = (
     "AI-generated content may be incorrect",
     "может быть неверным",
 )
+_GENERIC_IMAGE_ALT_RE = re.compile(
+    r"^(?:рисунок|figure|picture|image)\s*\d+$",
+    re.IGNORECASE,
+)
 
 # ---------------------------------------------------------------------------
 # TOC drop — auto-generated table-of-contents link runs
@@ -36,70 +40,69 @@ _TOC_HEADING_RE = re.compile(
 )
 
 
-def _is_toc_paragraph(p: ir.Paragraph) -> bool:
-    """A paragraph that is entirely internal-anchor links (`#...` targets), i.e.
-    a generated DOCX TOC entry — seen here as `Link` inlines with `#`-prefixed
-    targets."""
-    if p.empty:
-        return False
-    links = [n for n in walk_inlines(p.inlines) if isinstance(n, ir.Link)]
-    if not links or not all(ln.target.startswith("#") for ln in links):
-        return False
-    # The visible text must be (almost) only the link labels — no real prose.
-    label_text = "".join(inline_plain(ln.children) for ln in links)
-    return len(inline_plain(p.inlines)) <= len(label_text) + 4
-
-
-def _toc_entry_count(block: ir.Block) -> int | None:
-    """Count generated entries in one adapter container, or reject the block.
-
-    Word indents nested TOC levels. The adapter preserves that layout as a
-    ``QuoteBlock``; TOC removal therefore has to inspect that semantic container
-    rather than depend on the old frontend flattening every entry.
-    """
-    if isinstance(block, ir.Paragraph):
-        if block.empty:
-            return 0
-        return 1 if _is_toc_paragraph(block) else None
-    if not isinstance(block, ir.QuoteBlock):
+def _without_generated_toc(block: ir.Block) -> ir.Block | None:
+    if (
+        isinstance(block, ir.Paragraph)
+        and block.generated is ir.GeneratedContentKind.TABLE_OF_CONTENTS
+    ):
         return None
-    count = 0
-    for child in block.blocks:
-        if not isinstance(child, ir.Paragraph):
+    if isinstance(block, ir.QuoteBlock):
+        children = [
+            kept
+            for child in block.blocks
+            if (kept := _without_generated_toc(child)) is not None
+        ]
+        if not children:
             return None
-        if child.empty:
-            continue
-        if not _is_toc_paragraph(child):
+        return replace(
+            block,
+            blocks=children,
+            source_span=ir.merge_source_spans(child.source_span for child in children),
+        )
+    if isinstance(block, ir.ListBlock):
+        items = [
+            kept
+            for item in block.items
+            if (
+                kept := [
+                    child
+                    for member in item
+                    if (child := _without_generated_toc(member)) is not None
+                ]
+            )
+        ]
+        if not items:
             return None
-        count += 1
-    return count
+        return replace(
+            block,
+            items=items,
+            source_span=ir.merge_source_spans(
+                child.source_span for item in items for child in item
+            ),
+        )
+    return block
 
 
 def drop_toc(blocks: list[ir.Block]) -> list[ir.Block]:
     out: list[ir.Block] = []
-    i = 0
-    n = len(blocks)
-    while i < n:
-        b = blocks[i]
-        if (initial_count := _toc_entry_count(b)) is not None and initial_count > 0:
-            j = i
-            count = initial_count
-            while j + 1 < n:
-                candidate_count = _toc_entry_count(blocks[j + 1])
-                if candidate_count is None:
-                    break
-                count += candidate_count
-                j += 1
-            if count >= 3:
-                # Drop a preceding "Оглавление"/"Contents" heading too.
-                if out and isinstance(out[-1], ir.Heading) and _TOC_HEADING_RE.match(
-                    inline_plain(out[-1].inlines)
-                ):
-                    out.pop()
-                i = j + 1
-                continue
-        out.append(b)
-        i += 1
+    after_generated_toc = False
+    for block in blocks:
+        kept = _without_generated_toc(block)
+        if kept is None:
+            after_generated_toc = True
+            if out and isinstance(out[-1], ir.Heading) and _TOC_HEADING_RE.match(
+                inline_plain(out[-1].inlines)
+            ):
+                out.pop()
+            continue
+        if (
+            after_generated_toc
+            and isinstance(kept, ir.Paragraph)
+            and kept.empty
+        ):
+            continue
+        after_generated_toc = False
+        out.append(kept)
     return out
 
 
@@ -177,12 +180,16 @@ def is_ai_alt(alt: str) -> bool:
     return any(frag in alt for frag in AI_ALT_FRAGMENTS)
 
 
+def is_unhelpful_image_alt(alt: str) -> bool:
+    return is_ai_alt(alt) or _GENERIC_IMAGE_ALT_RE.fullmatch(alt.strip()) is not None
+
+
 def _scrub_alt_in_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
     out: list[ir.Inline] = []
     for n in inlines:
         # isinstance, not match: the container arm tests `ir.ContainerInline`
         # (a runtime tuple), which can't appear in a `case`.
-        if isinstance(n, ir.ImageInline) and is_ai_alt(n.alt):
+        if isinstance(n, ir.ImageInline) and is_unhelpful_image_alt(n.alt):
             out.append(ir.ImageInline(src=n.src, alt="", asset_id=n.asset_id))
         elif isinstance(n, ir.ContainerInline):
             out.append(ir.rebuild_container(n, _scrub_alt_in_inlines(n.children)))
@@ -197,7 +204,7 @@ def scrub_ai_alt(blocks: list[ir.Block]) -> list[ir.Block]:
         # An `ImageBlock`'s alt is a block field the shared inline-descent can't
         # reach; rebuild it here. Every inline-list leaf is reached by the skeleton.
         if isinstance(b, ir.ImageBlock):
-            out.append(replace(b, alt="") if is_ai_alt(b.alt) else b)
+            out.append(replace(b, alt="") if is_unhelpful_image_alt(b.alt) else b)
         else:
             out.append(ir.map_block_inlines(b, _scrub_alt_in_inlines))
     return out

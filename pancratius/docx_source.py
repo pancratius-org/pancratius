@@ -15,7 +15,7 @@ import re
 import unicodedata
 import xml.etree.ElementTree as ET
 import zipfile
-from collections.abc import Iterator
+from collections.abc import Collection, Iterator
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from itertools import pairwise
@@ -39,14 +39,6 @@ class StoryPart(StrEnum):
 
 class DocxSourceError(ValueError):
     """A Word source cannot be represented by the canonical source model."""
-
-
-class AlternateContentError(DocxSourceError):
-    """A malformed compatibility branch, retaining its XML location."""
-
-    def __init__(self, element: ET.Element) -> None:
-        self.element = element
-        super().__init__("mc:AlternateContent has multiple fallback branches")
 
 
 # The raw `w:p` index in document order — the int a `ParagraphOrdinal` wraps.
@@ -429,11 +421,6 @@ class ParagraphAlignment:
     def normalized(self) -> TextAlignment:
         return _TEXT_ALIGNMENT[self.value]
 
-    @property
-    def is_right_edge(self) -> bool:
-        return self.normalized is TextAlignment.RIGHT
-
-
 @dataclass(frozen=True, slots=True, order=True)
 class Twips:
     """A signed OOXML twentieth-of-a-point measurement."""
@@ -698,10 +685,6 @@ class SourceParagraph:
         return self.semantics.page_break_before
 
     @property
-    def has_opaque_payload(self) -> bool:
-        return self.semantics.has_opaque_payload
-
-    @property
     def atomic_deletion_safe(self) -> bool:
         return self.semantics.payload.atomic_deletion_safe
 
@@ -730,11 +713,6 @@ class SourceParagraph:
     @property
     def empty(self) -> bool:
         return not self.text
-
-    @property
-    def structural_empty(self) -> bool:
-        return self.disposition is ParagraphDisposition.STRUCTURAL_EMPTY
-
 
 @dataclass(frozen=True, slots=True)
 class _BodyParagraphSeed:
@@ -874,6 +852,30 @@ class SourceFieldBoundary:
     kind: str
 
 
+def _field_hyperlink_target(instruction: str) -> str | None:
+    quoted_or_bare = r'(?:"([^"]+)"|(\S+))'
+    local = re.search(
+        rf"\\l\s+{quoted_or_bare}", instruction, flags=re.IGNORECASE
+    )
+    external = re.match(
+        rf"\s*HYPERLINK\s+(?!\\[A-Za-z]){quoted_or_bare}",
+        instruction,
+        flags=re.IGNORECASE,
+    )
+    target = ""
+    if external is not None:
+        target = external.group(1) or external.group(2) or ""
+    if local is not None:
+        anchor = local.group(1) or local.group(2) or ""
+        target = f"{target}#{anchor}" if target else f"#{anchor}"
+    return target or None
+
+
+def _field_kind(instruction: str) -> str:
+    match = re.match(r"\s*([A-Za-z]+)", instruction)
+    return match.group(1).upper() if match else ""
+
+
 @dataclass(frozen=True, slots=True)
 class SourceField:
     """A complex field result, with a shared identity across source paragraphs."""
@@ -884,8 +886,15 @@ class SourceField:
 
     @property
     def kind(self) -> str:
-        match = re.match(r"\s*([A-Za-z]+)", self.instruction)
-        return match.group(1).upper() if match else ""
+        return _field_kind(self.instruction)
+
+    @property
+    def hyperlink_target(self) -> str | None:
+        return (
+            _field_hyperlink_target(self.instruction)
+            if self.kind == "HYPERLINK"
+            else None
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -928,6 +937,7 @@ class SourceParagraphBlock:
     body_ordinal: ParagraphOrdinal | None = None
     presentation: SourceParagraphPresentation = SourceParagraphPresentation()
     paragraph: SourceParagraph | None = None
+    field_kinds: frozenset[str] = frozenset()
 
     def __post_init__(self) -> None:
         if (
@@ -1028,9 +1038,23 @@ class SourceMedia:
     data: bytes
 
 
+class SourceDiagnosticCode(StrEnum):
+    COMPATIBILITY_FALLBACK = "source.compatibility-fallback"
+    COMPATIBILITY_UNSUPPORTED = "source.compatibility-unsupported"
+    FIELD_CONTROL_UNMATCHED = "source.field-control-unmatched"
+    FIELD_INCOMPLETE = "source.field-incomplete"
+    FIELD_INSTRUCTION_IN_RESULT = "source.field-instruction-in-result"
+    IMAGE_RELATIONSHIP = "source.image-relationship"
+    RELATIONSHIP = "source.relationship"
+    RELATIONSHIP_MISSING = "source.relationship-missing"
+    TABLE_CAPTION_UNSUPPORTED = "source.table-caption-unsupported"
+    TABLE_NESTED_UNSUPPORTED = "source.table-nested-unsupported"
+    TABLE_VERTICAL_MERGE_UNSUPPORTED = "source.table-vertical-merge-unsupported"
+
+
 @dataclass(frozen=True, slots=True)
 class SourceDiagnostic:
-    code: str
+    code: SourceDiagnosticCode
     message: str
     address: SourceAddress | None = None
 
@@ -1087,10 +1111,6 @@ class DocxSourceDocument:
                 f"{self.path.name}: no source paragraph at ordinal {ordinal.value}"
             )
         return self.paragraphs[ordinal.value]
-
-    def media_part(self, name: str) -> SourceMedia | None:
-        return next((part for part in self.media if part.part_name == name), None)
-
 
 def inline_reading(inlines: tuple[SourceInline, ...]) -> str:
     """Presentation-free readable text for one canonical inline sequence."""
@@ -1158,29 +1178,20 @@ def inline_content(inlines: tuple[SourceInline, ...]) -> ParagraphContent:
     return ParagraphContent(tuple(atoms))
 
 
-def _block_source_runs(blocks: tuple[SourceBlock, ...]) -> Iterator[SourceRun]:
-    for block in blocks:
-        if isinstance(block, SourceParagraphBlock):
-            yield from _source_runs(block.inlines)
-        elif isinstance(block, SourceTableBlock):
-            for row in block.rows:
-                for cell in row.cells:
-                    yield from _block_source_runs(cell.blocks)
-        elif isinstance(block, SourceContentControl):
-            yield from _block_source_runs(block.blocks)
+def walk_source_inlines(
+    inlines: tuple[SourceInline, ...],
+) -> Iterator[SourceInline]:
+    """Walk one inline tree in source order.
 
-
-def _source_runs(inlines: tuple[SourceInline, ...]) -> Iterator[SourceRun]:
-    """Yield resolved runs nested anywhere in one inline sequence."""
+    A text box is yielded as an inline boundary. Its blocks are covered by
+    :func:`walk_source_blocks`, so callers traversing a whole source tree combine
+    the two walkers without seeing nested content twice.
+    """
     for inline in inlines:
+        yield inline
         match inline:
-            case SourceRun(children=children):
-                yield inline
-                yield from _source_runs(children)
-            case SourceHyperlink(children=children) | SourceField(children=children):
-                yield from _source_runs(children)
-            case SourceTextBox(blocks=blocks):
-                yield from _block_source_runs(blocks)
+            case SourceRun(children=children) | SourceHyperlink(children=children) | SourceField(children=children):
+                yield from walk_source_inlines(children)
             case (
                 SourceText()
                 | BreakKind.LINE
@@ -1194,28 +1205,77 @@ def _source_runs(inlines: tuple[SourceInline, ...]) -> Iterator[SourceRun]:
                 | SourceFieldInstruction()
                 | SourceFieldBoundary()
                 | SourceUnknownInline()
+                | SourceTextBox()
             ):
                 continue
             case _ as unreachable:
                 assert_never(unreachable)
 
 
-def block_readings(blocks: tuple[SourceBlock, ...]) -> tuple[str, ...]:
-    """Readable rows from a canonical body/note block tree in source order."""
+def walk_source_blocks(blocks: tuple[SourceBlock, ...]) -> Iterator[SourceBlock]:
+    """Walk the closed source block tree, including blocks inside text boxes."""
+    for block in blocks:
+        yield block
+        match block:
+            case SourceParagraphBlock(inlines=inlines):
+                for inline in walk_source_inlines(inlines):
+                    if isinstance(inline, SourceTextBox):
+                        yield from walk_source_blocks(inline.blocks)
+            case SourceTableBlock(rows=rows):
+                for row in rows:
+                    for cell in row.cells:
+                        yield from walk_source_blocks(cell.blocks)
+            case SourceContentControl(blocks=children):
+                yield from walk_source_blocks(children)
+            case SourceUnknownBlock():
+                continue
+            case _ as unreachable:
+                assert_never(unreachable)
+
+
+def _source_runs(inlines: tuple[SourceInline, ...]) -> Iterator[SourceRun]:
+    for inline in walk_source_inlines(inlines):
+        if isinstance(inline, SourceRun):
+            yield inline
+        elif isinstance(inline, SourceTextBox):
+            for block in walk_source_blocks(inline.blocks):
+                if not isinstance(block, SourceParagraphBlock):
+                    continue
+                yield from (
+                    child
+                    for child in walk_source_inlines(block.inlines)
+                    if isinstance(child, SourceRun)
+                )
+
+
+def block_readings(
+    blocks: tuple[SourceBlock, ...],
+    *,
+    exclude_field_kinds: Collection[str] = (),
+) -> tuple[str, ...]:
+    """Readable rows from a canonical block tree, optionally excluding fields."""
     out: list[str] = []
     for block in blocks:
         match block:
-            case SourceParagraphBlock():
+            case SourceParagraphBlock(field_kinds=field_kinds):
+                if field_kinds.intersection(exclude_field_kinds):
+                    continue
                 out.append(block.reading)
             case SourceTableBlock(rows=rows):
                 out.extend(
                     reading
                     for row in rows
                     for cell in row.cells
-                    for reading in block_readings(cell.blocks)
+                    for reading in block_readings(
+                        cell.blocks,
+                        exclude_field_kinds=exclude_field_kinds,
+                    )
                 )
             case SourceContentControl(blocks=children):
-                out.extend(block_readings(children))
+                out.extend(block_readings(
+                    children,
+                    exclude_field_kinds=exclude_field_kinds,
+                ))
             case SourceUnknownBlock(text=text):
                 out.append(text)
             case _ as unreachable:
@@ -1339,6 +1399,30 @@ class _StyleSheet:
     default_indent: OoxmlAttributes = ()
     default_font_half_points: int | None = None
     default_run: _RunPropertyDelta = _RunPropertyDelta()
+    _paragraph_chains: dict[str, tuple[_StyleDefinition, ...]] = field(
+        default_factory=dict,
+        init=False,
+        repr=False,
+        compare=False,
+    )
+    _character_chains: dict[str, tuple[_CharacterStyleDefinition, ...]] = field(
+        default_factory=dict,
+        init=False,
+        repr=False,
+        compare=False,
+    )
+
+    def paragraph_chain(self, style: str) -> tuple[_StyleDefinition, ...]:
+        if style not in self._paragraph_chains:
+            self._paragraph_chains[style] = tuple(_style_chain(style, self.paragraphs))
+        return self._paragraph_chains[style]
+
+    def character_chain(self, style: str) -> tuple[_CharacterStyleDefinition, ...]:
+        if style not in self._character_chains:
+            self._character_chains[style] = tuple(
+                _character_style_chain(style, self.characters)
+            )
+        return self._character_chains[style]
 
 
 def _w_val(element: ET.Element | None) -> str:
@@ -1354,7 +1438,7 @@ def _compatibility_fallback(alternate: ET.Element) -> ET.Element | None:
     """
     fallbacks = alternate.findall(ooxml.MC_FALLBACK)
     if len(fallbacks) > 1:
-        raise AlternateContentError(alternate)
+        raise DocxSourceError("mc:AlternateContent has multiple fallback branches")
     return fallbacks[0] if fallbacks else None
 
 
@@ -1517,10 +1601,7 @@ def _ooxml_optional_int(element: ET.Element | None, attribute: str) -> int | Non
 
 def _default_font_size(style_sheet: _StyleSheet) -> DefaultFontSize:
     half_points = style_sheet.default_font_half_points
-    for definition in reversed(tuple(_style_chain(
-        style_sheet.default_paragraph,
-        style_sheet.paragraphs,
-    ))):
+    for definition in reversed(style_sheet.paragraph_chain(style_sheet.default_paragraph)):
         if definition.font_half_points is not None:
             half_points = definition.font_half_points
     return (
@@ -1599,7 +1680,7 @@ def _paragraph_styles(style_sheet: _StyleSheet) -> ParagraphStyles:
             for style in style_sheet.paragraphs
             if any(
                 definition.numbered
-                for definition in _style_chain(style, style_sheet.paragraphs)
+                for definition in style_sheet.paragraph_chain(style)
             )
         ),
     )
@@ -1612,21 +1693,23 @@ def paragraph_styles(styles_xml: bytes | None) -> ParagraphStyles:
 
 def _resolved_contextual_spacing(
     style: str,
-    styles: dict[str, _StyleDefinition],
+    style_sheet: _StyleSheet,
     *,
     direct: bool,
 ) -> bool:
-    return direct or any(definition.contextual_spacing for definition in _style_chain(style, styles))
+    return direct or any(
+        definition.contextual_spacing
+        for definition in style_sheet.paragraph_chain(style)
+    )
 
 
 def _resolved_spacing(
     style: str,
-    styles: dict[str, _StyleDefinition],
-    document_default: OoxmlAttributes,
+    style_sheet: _StyleSheet,
     direct: OoxmlAttributes,
 ) -> OoxmlAttributes:
-    values = dict(document_default)
-    for definition in reversed(tuple(_style_chain(style, styles))):
+    values = dict(style_sheet.default_spacing)
+    for definition in reversed(style_sheet.paragraph_chain(style)):
         values.update(definition.spacing)
     values.update(direct)
     return tuple(sorted(values.items()))
@@ -1634,12 +1717,11 @@ def _resolved_spacing(
 
 def _resolved_alignment(
     style: str,
-    styles: dict[str, _StyleDefinition],
-    document_default: ParagraphAlignment,
+    style_sheet: _StyleSheet,
     direct: ParagraphAlignment,
 ) -> ParagraphAlignment:
-    value = document_default
-    for definition in reversed(tuple(_style_chain(style, styles))):
+    value = style_sheet.default_alignment
+    for definition in reversed(style_sheet.paragraph_chain(style)):
         if definition.alignment.value:
             value = definition.alignment
     return direct if direct.value else value
@@ -1647,12 +1729,11 @@ def _resolved_alignment(
 
 def _resolved_indent(
     style: str,
-    styles: dict[str, _StyleDefinition],
-    document_default: OoxmlAttributes,
+    style_sheet: _StyleSheet,
     direct: OoxmlAttributes,
 ) -> OoxmlAttributes:
-    values = dict(document_default)
-    for definition in reversed(tuple(_style_chain(style, styles))):
+    values = dict(style_sheet.default_indent)
+    for definition in reversed(style_sheet.paragraph_chain(style)):
         values.update(definition.indent)
     values.update(direct)
     return tuple(sorted(values.items()))
@@ -1825,6 +1906,18 @@ def _page_break_before(ppr: ET.Element | None) -> bool:
     return _enabled(element)
 
 
+def _paragraph_semantic_facts(
+    paragraph: ET.Element,
+    styles: ParagraphStyles,
+) -> tuple[bool, ParagraphPayload]:
+    ppr = paragraph.find(f"{W}pPr")
+    payload = _paragraph_payload(paragraph)
+    direct_style = _w_val(ppr.find(f"{W}pStyle") if ppr is not None else None)
+    if styles.is_numbered(direct_style):
+        payload = payload.adding(ParagraphPayloadKind.RESOLVED_NUMBERING)
+    return _page_break_before(ppr), payload
+
+
 def _paragraph_semantics(
     paragraph: ET.Element,
     *,
@@ -1832,12 +1925,7 @@ def _paragraph_semantics(
     content: ParagraphContent,
 ) -> ParagraphSemantics:
     """Combine a caller-owned content projection with non-content facts."""
-    ppr = paragraph.find(f"{W}pPr")
-    page_break_before = _page_break_before(ppr)
-    payload = _paragraph_payload(paragraph)
-    direct_style = _w_val(ppr.find(f"{W}pStyle") if ppr is not None else None)
-    if styles.is_numbered(direct_style):
-        payload = payload.adding(ParagraphPayloadKind.RESOLVED_NUMBERING)
+    page_break_before, payload = _paragraph_semantic_facts(paragraph, styles)
     return ParagraphSemantics(
         content=content,
         page_break_before=page_break_before,
@@ -2063,7 +2151,7 @@ def _resolved_numbering(
 ) -> SourceNumbering | None:
     num_id, level = _num_properties(ppr)
     if num_id is None:
-        for definition in _style_chain(resolved_style, style_sheet.paragraphs):
+        for definition in style_sheet.paragraph_chain(resolved_style):
             if definition.num_id is not None:
                 num_id = definition.num_id
                 level = definition.num_level
@@ -2087,20 +2175,66 @@ def _heading_level(
     )
     if direct_outline is not None and 0 <= direct_outline <= 5:
         return direct_outline + 1
-    for style_id, definition in (
-        (resolved_style, value)
-        for value in _style_chain(resolved_style, style_sheet.paragraphs)
-    ):
+    candidates = [resolved_style]
+    for definition in style_sheet.paragraph_chain(resolved_style):
         if definition.outline_level is not None and 0 <= definition.outline_level <= 5:
             return definition.outline_level + 1
-        for candidate in (style_id, definition.name):
-            if match := _HEADING_NAME.fullmatch(candidate.replace("_", " ")):
-                return int(match.group(1))
-            if match := re.fullmatch(r"Heading([1-9])", candidate):
-                return int(match.group(1))
-            if candidate in set("123456"):
-                return int(candidate)
+        candidates.append(definition.name)
+    for candidate in candidates:
+        if match := _HEADING_NAME.fullmatch(candidate.replace("_", " ")):
+            return int(match.group(1))
+        if candidate in "123456" and len(candidate) == 1:
+            return int(candidate)
     return None
+
+
+def _resolve_presentation(
+    ppr: ET.Element | None,
+    style_sheet: _StyleSheet,
+    numbering: _NumberingCatalog,
+) -> SourceParagraphPresentation:
+    direct_style = _w_val(ppr.find(f"{W}pStyle") if ppr is not None else None)
+    resolved_style = direct_style or style_sheet.default_paragraph
+    return SourceParagraphPresentation(
+        resolved_style=resolved_style,
+        direct_style=direct_style,
+        layout=ParagraphLayout(
+            source_alignment=_resolved_alignment(
+                resolved_style,
+                style_sheet,
+                ParagraphAlignment(_w_val(
+                    ppr.find(f"{W}jc") if ppr is not None else None
+                )),
+            ),
+            spacing=ParagraphSpacing(_resolved_spacing(
+                resolved_style,
+                style_sheet,
+                _attributes(ppr.find(f"{W}spacing") if ppr is not None else None),
+            )),
+            indent=ParagraphIndent(_resolved_indent(
+                resolved_style,
+                style_sheet,
+                _attributes(ppr.find(f"{W}ind") if ppr is not None else None),
+            )),
+        ),
+        contextual_spacing=_resolved_contextual_spacing(
+            resolved_style,
+            style_sheet,
+            direct=(
+                ppr.find(f"{W}contextualSpacing") is not None
+                if ppr is not None
+                else False
+            ),
+        ),
+        border=_border_gesture(ppr),
+        numbering=_resolved_numbering(
+            ppr,
+            resolved_style,
+            style_sheet,
+            numbering,
+        ),
+        heading_level=_heading_level(ppr, resolved_style, style_sheet),
+    )
 
 
 def _apply_run_delta(
@@ -2162,7 +2296,7 @@ def _resolved_run_properties(
         "vertical_align": "",
     }
     _apply_run_delta(values, style_sheet.default_run)
-    for definition in reversed(tuple(_style_chain(paragraph_style, style_sheet.paragraphs))):
+    for definition in reversed(style_sheet.paragraph_chain(paragraph_style)):
         _apply_style_run_delta(values, definition.run)
 
     # ``w:pPr/w:rPr`` formats the paragraph mark, not every run in the
@@ -2171,9 +2305,7 @@ def _resolved_run_properties(
 
     direct_style = _w_val(rpr.find(f"{W}rStyle") if rpr is not None else None)
     character_names: list[str] = []
-    for definition in reversed(tuple(_character_style_chain(
-        direct_style, style_sheet.characters
-    ))):
+    for definition in reversed(style_sheet.character_chain(direct_style)):
         character_names.append(definition.name)
         _apply_style_run_delta(values, definition.run)
     _apply_run_delta(values, _run_delta(rpr))
@@ -2206,15 +2338,17 @@ def _relationship_map(
     return result.relationships, result.issues
 
 
-_A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
-_ASVG = "{http://schemas.microsoft.com/office/drawing/2016/SVG/main}"
-_V = "{urn:schemas-microsoft-com:vml}"
-_O = "{urn:schemas-microsoft-com:office:office}"
-_M = "{http://schemas.openxmlformats.org/officeDocument/2006/math}"
+_A = f"{{{ooxml.A_NS}}}"
+_ASVG = f"{{{ooxml.ASVG_NS}}}"
+_V = f"{{{ooxml.V_NS}}}"
+_O = f"{{{ooxml.O_NS}}}"
+_M = f"{{{ooxml.M_NS}}}"
 _IMAGE_REL = f"{ooxml.R_NS}/image"
 
 
-def _field_tokens(inlines: tuple[SourceInline, ...]) -> tuple[SourceInline, ...]:
+def _hoist_field_controls(
+    inlines: tuple[SourceInline, ...],
+) -> tuple[SourceInline, ...]:
     """Lift field controls out of their formatting runs without losing results."""
     out: list[SourceInline] = []
     for inline in inlines:
@@ -2232,55 +2366,6 @@ def _field_tokens(inlines: tuple[SourceInline, ...]) -> tuple[SourceInline, ...]
                 buffered.append(child)
         if buffered:
             out.append(SourceRun(tuple(buffered), inline.properties))
-    return tuple(out)
-
-
-def _group_fields(inlines: tuple[SourceInline, ...]) -> tuple[SourceInline, ...]:
-    """Replace complete begin/separate/end ranges with typed source fields.
-
-    Word permits fields to span paragraphs. Those incomplete local ranges stay
-    as explicit controls, so their displayed runs remain available and no local
-    parser guesses across source-unit boundaries.
-    """
-    tokens = _field_tokens(inlines)
-    out: list[SourceInline] = []
-    index = 0
-    while index < len(tokens):
-        token = tokens[index]
-        if not isinstance(token, SourceFieldBoundary) or token.kind != "begin":
-            out.append(token)
-            index += 1
-            continue
-
-        depth = 0
-        separate: int | None = None
-        end: int | None = None
-        for candidate_index in range(index, len(tokens)):
-            candidate = tokens[candidate_index]
-            if not isinstance(candidate, SourceFieldBoundary):
-                continue
-            if candidate.kind == "begin":
-                depth += 1
-            elif candidate.kind == "end":
-                depth -= 1
-                if depth == 0:
-                    end = candidate_index
-                    break
-            elif candidate.kind == "separate" and depth == 1:
-                separate = candidate_index
-        if end is None or separate is None:
-            out.append(token)
-            index += 1
-            continue
-
-        instruction = "".join(
-            item.value
-            for item in tokens[index + 1 : separate]
-            if isinstance(item, SourceFieldInstruction)
-        ).strip()
-        result = _group_fields(tokens[separate + 1 : end])
-        out.append(SourceField(instruction, result))
-        index = end + 1
     return tuple(out)
 
 
@@ -2315,7 +2400,7 @@ class _RichReader:
             fallback = _compatibility_fallback(child)
             if fallback is None:
                 self.diagnostics.append(SourceDiagnostic(
-                    "source.compatibility-unsupported",
+                    SourceDiagnosticCode.COMPATIBILITY_UNSUPPORTED,
                     "mc:AlternateContent has no fallback branch",
                     SourceAddress(story, child_path),
                 ))
@@ -2325,7 +2410,7 @@ class _RichReader:
                 choice.get("Requires", "") for choice in choices if choice.get("Requires")
             )
             self.diagnostics.append(SourceDiagnostic(
-                "source.compatibility-fallback",
+                SourceDiagnosticCode.COMPATIBILITY_FALLBACK,
                 f"selected fallback branch; unclaimed requirements: {requirements or 'none'}",
                 SourceAddress(story, child_path),
             ))
@@ -2340,7 +2425,8 @@ class _RichReader:
             relationships, issues = _relationship_map(self.zf, part)
             self.relationships[part] = relationships
             self.diagnostics.extend(
-                SourceDiagnostic("source.relationship", issue) for issue in issues
+                SourceDiagnostic(SourceDiagnosticCode.RELATIONSHIP, issue)
+                for issue in issues
             )
         return self.relationships[part]
 
@@ -2364,7 +2450,7 @@ class _RichReader:
         relationship = self._rels(part).get(rel_id)
         if relationship is None:
             self.diagnostics.append(SourceDiagnostic(
-                "source.relationship-missing",
+                SourceDiagnosticCode.RELATIONSHIP_MISSING,
                 f"{part} references missing relationship {rel_id}",
                 address,
             ))
@@ -2382,7 +2468,7 @@ class _RichReader:
             return SourceImage(rel_id, "", alt)
         if relationship.rel_type != _IMAGE_REL:
             self.diagnostics.append(SourceDiagnostic(
-                "source.image-relationship",
+                SourceDiagnosticCode.IMAGE_RELATIONSHIP,
                 f"{rel_id} has relationship type {relationship.rel_type!r}, not image",
                 address,
             ))
@@ -2563,10 +2649,12 @@ class _RichReader:
                     paragraph_style=paragraph_style,
                 )
                 instruction = str(child.get(f"{W}instr") or "")
-                match = re.search(r'\bHYPERLINK\s+"([^"]+)"', instruction, re.IGNORECASE)
-                out.append(SourceHyperlink(nested, match.group(1)) if match else SourceRun(
-                    (SourceFieldInstruction(instruction), *nested)
-                ))
+                field = SourceField(instruction, nested)
+                out.append(
+                    SourceHyperlink(nested, target)
+                    if (target := field.hyperlink_target) is not None
+                    else field
+                )
             elif child.tag in {f"{W}drawing", f"{W}pict", f"{W}object"}:
                 out.extend(self._drawing(
                     child, story=story, part=part, path=child_path
@@ -2596,7 +2684,7 @@ class _RichReader:
                 out.append(SourceUnknownInline(
                     ooxml.local_name(child.tag), self._readable_text(child)
                 ))
-        return _group_fields(tuple(out))
+        return _hoist_field_controls(tuple(out))
 
     def _paragraph_block(
         self,
@@ -2607,61 +2695,19 @@ class _RichReader:
         path: tuple[int, ...],
     ) -> SourceParagraphBlock:
         ppr = element.find(f"{W}pPr")
-        direct_style = _w_val(ppr.find(f"{W}pStyle") if ppr is not None else None)
-        resolved_style = direct_style or self.style_sheet.default_paragraph
         seed = self.body_seeds.get(element)
-        if seed is not None:
-            presentation = seed.presentation
-        else:
-            presentation = SourceParagraphPresentation(
-                resolved_style=resolved_style,
-                direct_style=direct_style,
-                layout=ParagraphLayout(
-                    source_alignment=_resolved_alignment(
-                        resolved_style,
-                        self.style_sheet.paragraphs,
-                        self.style_sheet.default_alignment,
-                        ParagraphAlignment(
-                            _w_val(ppr.find(f"{W}jc") if ppr is not None else None)
-                        ),
-                    ),
-                    spacing=ParagraphSpacing(_resolved_spacing(
-                        resolved_style,
-                        self.style_sheet.paragraphs,
-                        self.style_sheet.default_spacing,
-                        _attributes(
-                            ppr.find(f"{W}spacing") if ppr is not None else None
-                        ),
-                    )),
-                    indent=ParagraphIndent(_resolved_indent(
-                        resolved_style,
-                        self.style_sheet.paragraphs,
-                        self.style_sheet.default_indent,
-                        _attributes(ppr.find(f"{W}ind") if ppr is not None else None),
-                    )),
-                ),
-                contextual_spacing=_resolved_contextual_spacing(
-                    resolved_style,
-                    self.style_sheet.paragraphs,
-                    direct=(
-                        ppr.find(f"{W}contextualSpacing") is not None
-                        if ppr is not None
-                        else False
-                    ),
-                ),
-                border=_border_gesture(ppr),
-                numbering=_resolved_numbering(
-                    ppr, resolved_style, self.style_sheet, self.numbering
-                ),
-                heading_level=_heading_level(ppr, resolved_style, self.style_sheet),
-            )
+        presentation = (
+            seed.presentation
+            if seed is not None
+            else _resolve_presentation(ppr, self.style_sheet, self.numbering)
+        )
         try:
             inlines = self._inline_container(
                 element,
                 story=story,
                 part=part,
                 path=path,
-                paragraph_style=resolved_style,
+                paragraph_style=presentation.resolved_style,
             )
         except DocxSourceError as exc:
             location = (
@@ -2694,7 +2740,7 @@ class _RichReader:
         )
         if caption is not None:
             self.diagnostics.append(SourceDiagnostic(
-                "source.table-caption-unsupported",
+                SourceDiagnosticCode.TABLE_CAPTION_UNSUPPORTED,
                 f"table caption {str(caption.get(f'{W}val') or '')!r} is not represented",
                 address,
             ))
@@ -2709,13 +2755,13 @@ class _RichReader:
                 tc_pr = cell.find(f"{W}tcPr")
                 if tc_pr is not None and tc_pr.find(f"{W}vMerge") is not None:
                     self.diagnostics.append(SourceDiagnostic(
-                        "source.table-vertical-merge-unsupported",
+                        SourceDiagnosticCode.TABLE_VERTICAL_MERGE_UNSUPPORTED,
                         "vertically merged table cells are not represented",
                         SourceAddress(story, cell_path),
                     ))
                 if cell.find(f"{W}tbl") is not None:
                     self.diagnostics.append(SourceDiagnostic(
-                        "source.table-nested-unsupported",
+                        SourceDiagnosticCode.TABLE_NESTED_UNSUPPORTED,
                         "nested tables are not represented in Pancratius table IR",
                         SourceAddress(story, cell_path),
                     ))
@@ -2850,21 +2896,53 @@ class _FieldResolver:
         self.next_id += 1
         return value
 
-    def _diagnostic(self, code: str, message: str, address: SourceAddress) -> None:
+    def _diagnostic(
+        self,
+        code: SourceDiagnosticCode,
+        message: str,
+        address: SourceAddress,
+    ) -> None:
         self.diagnostics.append(SourceDiagnostic(code, message, address))
 
-    def _nested(self, inline: SourceInline) -> SourceInline:
+    def _incomplete(self, stack: list[_OpenField]) -> None:
+        for active in stack:
+            self._diagnostic(
+                SourceDiagnosticCode.FIELD_INCOMPLETE,
+                f"complex field {active.field_id} has no closing boundary",
+                active.address,
+            )
+
+    def _container_inlines(
+        self,
+        inlines: tuple[SourceInline, ...],
+        address: SourceAddress,
+    ) -> tuple[SourceInline, ...]:
+        stack: list[_OpenField] = []
+        resolved = self._inlines(inlines, stack, address)
+        self._incomplete(stack)
+        return resolved
+
+    def _nested(self, inline: SourceInline, address: SourceAddress) -> SourceInline:
         match inline:
-            case SourceRun(children=children) | SourceHyperlink(children=children):
-                return replace(inline, children=tuple(self._nested(child) for child in children))
+            case SourceRun(children=children):
+                nested = tuple(self._nested(child, address) for child in children)
+                return inline if nested == children else replace(inline, children=nested)
+            case SourceHyperlink(children=children):
+                nested = self._container_inlines(children, address)
+                return inline if nested == children else replace(inline, children=nested)
             case SourceField(instruction=instruction, children=children, field_id=field_id):
+                nested = self._container_inlines(children, address)
+                resolved_id = field_id if field_id is not None else self._id()
+                if nested == children and resolved_id == field_id:
+                    return inline
                 return SourceField(
                     instruction,
-                    tuple(self._nested(child) for child in children),
-                    field_id if field_id is not None else self._id(),
+                    nested,
+                    resolved_id,
                 )
             case SourceTextBox(blocks=blocks):
-                return SourceTextBox(self.container(blocks))
+                nested = self.container(blocks)
+                return inline if nested == blocks else SourceTextBox(nested)
             case (
                 SourceText()
                 | BreakKind.LINE
@@ -2897,7 +2975,7 @@ class _FieldResolver:
                 case SourceFieldInstruction(value=value) if stack:
                     if stack[-1].separated:
                         self._diagnostic(
-                            "source.field-instruction-in-result",
+                            SourceDiagnosticCode.FIELD_INSTRUCTION_IN_RESULT,
                             "field instruction appeared after its result separator",
                             address,
                         )
@@ -2909,7 +2987,7 @@ class _FieldResolver:
                     stack.pop()
                 case SourceFieldInstruction() | SourceFieldBoundary():
                     self._diagnostic(
-                        "source.field-control-unmatched",
+                        SourceDiagnosticCode.FIELD_CONTROL_UNMATCHED,
                         "complex field control has no matching field boundary",
                         address,
                     )
@@ -2917,7 +2995,7 @@ class _FieldResolver:
                 case _:
                     if stack and any(not active.separated for active in stack):
                         continue
-                    resolved = self._nested(inline)
+                    resolved = self._nested(inline, address)
                     for active in reversed(stack):
                         resolved = SourceField(
                             "".join(active.instruction).strip(),
@@ -2936,23 +3014,49 @@ class _FieldResolver:
         for block in blocks:
             match block:
                 case SourceParagraphBlock(address=address, inlines=inlines):
-                    out.append(replace(
-                        block,
-                        inlines=self._inlines(inlines, stack, address),
-                    ))
+                    resolved = self._inlines(inlines, stack, address)
+                    field_kinds = set(block.field_kinds)
+                    field_kinds.update(
+                        item.kind
+                        for item in walk_source_inlines(resolved)
+                        if isinstance(item, SourceField) and item.kind
+                    )
+                    field_kinds.update(
+                        kind
+                        for active in stack
+                        if (kind := _field_kind("".join(active.instruction)))
+                    )
+                    out.append(
+                        block
+                        if resolved == inlines and field_kinds == block.field_kinds
+                        else replace(
+                            block,
+                            inlines=resolved,
+                            field_kinds=frozenset(field_kinds),
+                        )
+                    )
                 case SourceContentControl(address=address, blocks=children):
-                    out.append(SourceContentControl(address, self._flow(children, stack)))
+                    resolved = self._flow(children, stack)
+                    out.append(
+                        block if resolved == children else SourceContentControl(address, resolved)
+                    )
                 case SourceTableBlock(address=address, rows=rows):
-                    out.append(SourceTableBlock(
-                        address,
-                        tuple(
-                            SourceTableRow(tuple(
-                                replace(cell, blocks=self.container(cell.blocks))
-                                for cell in row.cells
-                            ))
-                            for row in rows
-                        ),
-                    ))
+                    resolved_rows = tuple(
+                        SourceTableRow(tuple(
+                            (
+                                cell
+                                if (resolved := self.container(cell.blocks)) == cell.blocks
+                                else replace(cell, blocks=resolved)
+                            )
+                            for cell in row.cells
+                        ))
+                        for row in rows
+                    )
+                    out.append(
+                        block
+                        if resolved_rows == rows
+                        else SourceTableBlock(address, resolved_rows)
+                    )
                 case SourceUnknownBlock():
                     out.append(block)
                 case _ as unreachable:
@@ -2960,14 +3064,19 @@ class _FieldResolver:
         return tuple(out)
 
     def container(self, blocks: tuple[SourceBlock, ...]) -> tuple[SourceBlock, ...]:
+        if not any(
+            isinstance(
+                inline,
+                SourceFieldInstruction | SourceFieldBoundary | SourceField,
+            )
+            for block in walk_source_blocks(blocks)
+            if isinstance(block, SourceParagraphBlock)
+            for inline in walk_source_inlines(block.inlines)
+        ):
+            return blocks
         stack: list[_OpenField] = []
         resolved = self._flow(blocks, stack)
-        for active in stack:
-            self._diagnostic(
-                "source.field-incomplete",
-                f"complex field {active.field_id} has no closing boundary",
-                active.address,
-            )
+        self._incomplete(stack)
         return resolved
 
 
@@ -3135,69 +3244,20 @@ def _read_package(docx: Path) -> DocxSourceDocument:
             ordinal = ParagraphOrdinal(len(seeds))
             ppr = event.find(f"{W}pPr")
             direct_numbered = ppr is not None and ppr.find(f"{W}numPr") is not None
-            direct_style = _w_val(ppr.find(f"{W}pStyle") if ppr is not None else None)
-            resolved_style = direct_style or style_sheet.default_paragraph
-            numbering = _resolved_numbering(
-                ppr, resolved_style, style_sheet, numbering_catalog
-            )
-            direct_spacing = _attributes(
-                ppr.find(f"{W}spacing") if ppr is not None else None
-            )
             try:
-                semantics = _paragraph_semantics(
-                    event,
-                    styles=paragraph_styles,
-                    content=ParagraphContent(()),
+                page_break_before, payload = _paragraph_semantic_facts(
+                    event, paragraph_styles
                 )
             except DocxSourceError as exc:
                 raise DocxSourceError(
                     f"{docx.name}: paragraph {ordinal.value}: {exc}"
                 ) from exc
-            alignment = _resolved_alignment(
-                resolved_style,
-                style_sheet.paragraphs,
-                style_sheet.default_alignment,
-                ParagraphAlignment(_w_val(
-                    ppr.find(f"{W}jc") if ppr is not None else None
-                )),
-            )
-            spacing = _resolved_spacing(
-                resolved_style,
-                style_sheet.paragraphs,
-                style_sheet.default_spacing,
-                direct_spacing,
-            )
-            indent = _resolved_indent(
-                resolved_style,
-                style_sheet.paragraphs,
-                style_sheet.default_indent,
-                _attributes(ppr.find(f"{W}ind") if ppr is not None else None),
-            )
-            heading_level = _heading_level(ppr, resolved_style, style_sheet)
             seed = _BodyParagraphSeed(
                 ordinal=ordinal,
-                page_break_before=semantics.page_break_before,
-                payload=semantics.payload,
-                presentation=SourceParagraphPresentation(
-                    resolved_style=resolved_style,
-                    direct_style=direct_style,
-                    layout=ParagraphLayout(
-                        source_alignment=alignment,
-                        spacing=ParagraphSpacing(spacing),
-                        indent=ParagraphIndent(indent),
-                    ),
-                    contextual_spacing=_resolved_contextual_spacing(
-                        resolved_style,
-                        style_sheet.paragraphs,
-                        direct=(
-                            ppr.find(f"{W}contextualSpacing") is not None
-                            if ppr is not None
-                            else False
-                        ),
-                    ),
-                    border=_border_gesture(ppr),
-                    numbering=numbering,
-                    heading_level=heading_level,
+                page_break_before=page_break_before,
+                payload=payload,
+                presentation=_resolve_presentation(
+                    ppr, style_sheet, numbering_catalog
                 ),
                 segment=SourceSegment(segment),
             )

@@ -806,10 +806,17 @@ def test_structure_observation_separates_removed_from_lost(
             for ordinal in range(4)
         ),
     )
+    content_ordinal_reads = 0
+
+    def content_ordinals(_source: docx_source.DocxSourceDocument) -> frozenset[int]:
+        nonlocal content_ordinal_reads
+        content_ordinal_reads += 1
+        return frozenset(range(4))
+
     monkeypatch.setattr(
         type(source),
         "content_ordinals",
-        property(lambda _source: frozenset(range(4))),
+        property(content_ordinals),
     )
     monkeypatch.setattr("pancratius.docx_structure.da.adapt", lambda *_args: adapted)
     monkeypatch.setattr("pancratius.docx_structure.run", lambda *_args, **_kwargs: seam)
@@ -821,6 +828,7 @@ def test_structure_observation_separates_removed_from_lost(
     assert set(observation.by_line) == {_line(0), _line(1)}
     assert observation.removed == frozenset({2})
     assert observation.lost == frozenset({3})
+    assert content_ordinal_reads == 2
 
 
 def test_source_block_hits_reports_leaf_kind_and_enclosure() -> None:

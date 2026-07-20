@@ -6,6 +6,7 @@ import unicodedata
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from enum import StrEnum
 from pathlib import Path, PurePosixPath
 from typing import Any, Literal
 
@@ -29,6 +30,7 @@ from pancratius.locales import Locale
 from pancratius.passes import assets
 from pancratius.passes.pipeline import (
     POEM_PASSES,
+    POST_FOLD_SEAM,
     BibliographyLookup,
     Context,
     LineationCorrections,
@@ -75,6 +77,22 @@ class ConvertedDocx:
     diagnostics: list[ir.Diagnostic] = field(default_factory=list)
     # Metadata lifted from a poem body; None for non-poem kinds.
     poem_chrome: PoemChrome | None = None
+
+
+class CompilationSeam(StrEnum):
+    ADAPTED = "adapted"
+    POST_LINEATION = "post_lineation"
+    COMPILED = "compiled"
+
+
+@dataclass(frozen=True)
+class CompilationObservation:
+    seam: CompilationSeam
+    document: ir.Document
+    diagnostics: tuple[ir.Diagnostic, ...]
+
+
+type CompilationObserver = Callable[[CompilationObservation], None]
 
 
 # ---------------------------------------------------------------------------
@@ -214,12 +232,41 @@ def convert_single_docx(
     returned assets reference those files until the writer copies them. Pure
     after the adapter.
     """
+    return convert_source(
+        docx_source.read(docx),
+        kind=kind,
+        lang=lang,
+        work_key=work_key,
+        title=title,
+        title_index=title_index,
+        media_out=media_out,
+    )
+
+
+def convert_source(
+    source: docx_source.DocxSourceDocument,
+    *,
+    kind: DocxConversionKind,
+    lang: Locale,
+    work_key: str,
+    title: str,
+    title_index: dict[str, IndexHit],
+    media_out: Path,
+    observe: CompilationObserver | None = None,
+) -> ConvertedDocx:
+    """Run the production compiler from an already parsed source aggregate."""
     media_out.mkdir(parents=True, exist_ok=True)
-    source = docx_source.read(docx)
+    docx = source.path
     # ONE diagnostics sink for the whole conversion: the adapter, every pass (via
     # `Context`), and the backend tail all append into it.
     diagnostics: ir.DiagnosticSink = []
     doc = docx_adapter.adapt(source, media_out, diagnostics)
+    if observe is not None:
+        observe(CompilationObservation(
+            CompilationSeam.ADAPTED,
+            doc,
+            tuple(diagnostics),
+        ))
 
     if kind == "poem":
         # Verse end-to-end: skip heading demotion, bibliography lift, and verse
@@ -233,6 +280,12 @@ def convert_single_docx(
             raise ValueError(f"poem import: {stray.name} found beside {docx.name}, but poems "
                              f"take no scripture pins — remove it")
         doc = run(doc, Context(lang=lang, diagnostics=diagnostics), POEM_PASSES)
+        if observe is not None:
+            observe(CompilationObservation(
+                CompilationSeam.POST_LINEATION,
+                doc,
+                tuple(diagnostics),
+            ))
     else:
         register_policy = register_artifacts.load_register_policy_for(lang)
         if isinstance(register_policy, register_artifacts.UnsupportedLanguageRegisterPolicyLoad):
@@ -243,15 +296,36 @@ def convert_single_docx(
                 f"register model rollout for {bundle} covers {supported}; "
                 f"{lang} uses rules fallback",
             ))
-        doc = run(doc, Context(
-            lang=lang,
-            demote_levels=1,
-            bibliography=BibliographyLookup(title_index),
-            register_policy=register_policy.policy,
-            lineation=LineationCorrections(lineation_overrides.load_overrides(source)),
-            scripture=ScripturePins(scripture_overrides.load_overrides(source)),
-            rights=rights_boilerplate.plan_rights_removal(source),
-            diagnostics=diagnostics,
+        def observe_pass(name: str, current: ir.Document) -> None:
+            if observe is not None and name == POST_FOLD_SEAM:
+                observe(CompilationObservation(
+                    CompilationSeam.POST_LINEATION,
+                    current,
+                    tuple(diagnostics),
+                ))
+
+        doc = run(
+            doc,
+            Context(
+                lang=lang,
+                demote_levels=1,
+                bibliography=BibliographyLookup(title_index),
+                register_policy=register_policy.policy,
+                lineation=LineationCorrections(
+                    lineation_overrides.load_overrides(source)
+                ),
+                scripture=ScripturePins(scripture_overrides.load_overrides(source)),
+                rights=rights_boilerplate.plan_rights_removal(source),
+                diagnostics=diagnostics,
+            ),
+            observe=observe_pass if observe is not None else None,
+        )
+
+    if observe is not None:
+        observe(CompilationObservation(
+            CompilationSeam.COMPILED,
+            doc,
+            tuple(diagnostics),
         ))
 
     doc, planned_assets = assets.plan_assets(doc, media_out, diagnostics)

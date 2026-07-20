@@ -134,7 +134,7 @@ converter-owned file, never to add a new one.
 A typed block model, not a compiler AST. It carries only the block and inline
 kinds Pancratius canonical Markdown actually needs — prose, lineated runs with
 stanza structure, quotes, lists, tables, asset-id images, thematic breaks,
-emphasis, links, code, footnote references — plus an explicit *unknown* block and
+emphasis, links, inline code, footnote references — plus an explicit *unknown* block and
 *unknown* inline for anything unrecognized. The authoritative kind set lives in
 code, not here; the contract is the shape, not the inventory. Footnote
 definitions and the lifted bibliography travel beside the blocks, not inside the
@@ -212,6 +212,11 @@ explicitly distinguishes readable content, structural emptiness, pagination-only
 layout, and opaque non-text content. Markup-compatibility content selects one
 supported branch at every nesting level; inactive choices are never concatenated
 or used as evidence.
+
+Field parsing also owns field-result membership across paragraph boundaries,
+including empty result rows. The adapter carries generated-TOC membership as a
+typed source fact, and the TOC pass filters that fact; it does not rediscover a
+TOC from link targets, indentation, or text shape.
 
 Internal nonbreaking spaces are authored text and survive rich-run normalization,
 including at emphasis boundaries. Whitespace at the outer edge of a paragraph is

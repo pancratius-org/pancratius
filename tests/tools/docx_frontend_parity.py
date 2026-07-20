@@ -11,7 +11,9 @@ reader switch, capture the replacement afterwards, then compare the directories:
 
 Each compressed snapshot contains source facts, adapted block IR, post-Q1 IR,
 post-Q2 IR, lowered Markdown, assets, and diagnostics.  Runtime measurements are
-recorded but excluded from semantic comparison.
+recorded but excluded from semantic comparison. Timings are uninstrumented by
+default; ``--measure-memory`` enables ``tracemalloc`` and makes those timings
+comparable only with another memory-instrumented capture.
 """
 
 from __future__ import annotations
@@ -31,35 +33,13 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, cast
 
-from pancratius import (
-    cross_refs,
-    docx_adapter,
-    docx_conversion,
-    docx_source,
-    ir,
-    lineation_overrides,
-    lower,
-    rights_boilerplate,
-    scripture_overrides,
-)
+from pancratius import docx_conversion, docx_source, ir
 from pancratius.content_catalog import (
     CatalogEntry,
     build_title_index,
     scan_catalog,
 )
-from pancratius.intent_inference import artifacts as register_artifacts
 from pancratius.ir.inlines import inline_plain
-from pancratius.passes import assets
-from pancratius.passes.pipeline import (
-    BOOK_PASSES,
-    POEM_PASSES,
-    POST_FOLD_SEAM,
-    BibliographyLookup,
-    Context,
-    LineationCorrections,
-    ScripturePins,
-    run,
-)
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTENT_ROOT = ROOT / "src" / "content"
@@ -79,12 +59,7 @@ def _sanitize_string(value: str, media_dir: Path | None) -> str:
 
 
 def _json_value(value: object, *, media_dir: Path | None = None) -> object:
-    """Lossless stable JSON projection of the typed IR.
-
-    The legacy frontend's raw table payload is deliberately omitted. Structured
-    cells and the resulting bibliography/output are the compiler contracts that
-    a replacement must preserve.
-    """
+    """Lossless stable JSON projection of the typed IR."""
     if value is None or isinstance(value, bool | int | float):
         return value
     if isinstance(value, Enum):
@@ -96,8 +71,6 @@ def _json_value(value: object, *, media_dir: Path | None = None) -> object:
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
         fields: dict[str, object] = {"$type": type(value).__name__}
         for field in dataclasses.fields(value):
-            if isinstance(value, ir.Table) and field.name == "raw":
-                continue
             fields[field.name] = _json_value(
                 getattr(value, field.name), media_dir=media_dir
             )
@@ -161,60 +134,6 @@ def _source_snapshot(source: docx_source.DocxSourceDocument) -> dict[str, object
     }
 
 
-def _source_blocks(
-    blocks: tuple[docx_source.SourceBlock, ...],
-) -> Iterator[docx_source.SourceBlock]:
-    for block in blocks:
-        yield block
-        match block:
-            case docx_source.SourceParagraphBlock(inlines=inlines):
-                yield from _inline_source_blocks(inlines)
-            case docx_source.SourceTableBlock(rows=rows):
-                for row in rows:
-                    for cell in row.cells:
-                        yield from _source_blocks(cell.blocks)
-            case docx_source.SourceContentControl(blocks=children):
-                yield from _source_blocks(children)
-            case docx_source.SourceUnknownBlock():
-                continue
-
-
-def _inline_source_blocks(
-    inlines: tuple[docx_source.SourceInline, ...],
-) -> Iterator[docx_source.SourceBlock]:
-    for inline in inlines:
-        match inline:
-            case (
-                docx_source.SourceRun(children=children)
-                | docx_source.SourceHyperlink(children=children)
-                | docx_source.SourceField(children=children)
-            ):
-                yield from _inline_source_blocks(children)
-            case docx_source.SourceTextBox(blocks=blocks):
-                yield from _source_blocks(blocks)
-            case _:
-                continue
-
-
-def _source_inlines(
-    blocks: tuple[docx_source.SourceBlock, ...],
-) -> Iterator[docx_source.SourceInline]:
-    for block in _source_blocks(blocks):
-        if not isinstance(block, docx_source.SourceParagraphBlock):
-            continue
-        stack = list(reversed(block.inlines))
-        while stack:
-            inline = stack.pop()
-            yield inline
-            if isinstance(
-                inline,
-                docx_source.SourceRun
-                | docx_source.SourceHyperlink
-                | docx_source.SourceField,
-            ):
-                stack.extend(reversed(inline.children))
-
-
 def _address_key(address: docx_source.SourceAddress) -> str:
     return f"{address.story.value}:{'.'.join(map(str, address.path))}"
 
@@ -240,7 +159,7 @@ def _canonical_source_snapshot(
 
 def _source_invariants(source: docx_source.DocxSourceDocument) -> dict[str, object]:
     """Assertions that make source identity and loss visible in every capture."""
-    body_blocks = tuple(_source_blocks(source.body))
+    body_blocks = tuple(docx_source.walk_source_blocks(source.body))
     linked = tuple(
         block
         for block in body_blocks
@@ -259,16 +178,20 @@ def _source_invariants(source: docx_source.DocxSourceDocument) -> dict[str, obje
     for note in source.notes:
         addresses.extend(
             _address_key(block.address)
-            for block in _source_blocks(note.blocks)
+            for block in docx_source.walk_source_blocks(note.blocks)
         )
     media_names = [media.part_name for media in source.media]
     media_name_set = set(media_names)
-    all_inlines = tuple(
-        _source_inlines(source.body)
-    ) + tuple(
-        inline
+    all_blocks = body_blocks + tuple(
+        block
         for note in source.notes
-        for inline in _source_inlines(note.blocks)
+        for block in docx_source.walk_source_blocks(note.blocks)
+    )
+    all_inlines = tuple(
+        inline
+        for block in all_blocks
+        if isinstance(block, docx_source.SourceParagraphBlock)
+        for inline in docx_source.walk_source_inlines(block.inlines)
     )
     image_parts = [
         inline.media_part
@@ -373,8 +296,6 @@ def _ir_leaves(blocks: Iterable[ir.Block], prefix: str = "body") -> Iterator[dic
                         }
             case ir.ImageBlock():
                 yield {**base, "kind": "image", "text": block.alt}
-            case ir.CodeBlock():
-                yield {**base, "kind": "code", "text": block.text}
             case ir.UnknownBlock():
                 yield {**base, "kind": f"unknown:{block.note}", "text": block.text}
             case ir.Signature():
@@ -406,88 +327,6 @@ def _ir_snapshot(document: ir.Document, media_dir: Path) -> dict[str, object]:
         "leaves": leaves,
         "readable_text_sha256": _sha256(reading),
         "footnote_leaves": footnote_leaves,
-    }
-
-
-def _book_context(
-    source: docx_source.DocxSourceDocument,
-    entry: CatalogEntry,
-    title_index: dict[str, Any],
-    diagnostics: ir.DiagnosticSink,
-) -> Context:
-    policy = register_artifacts.load_register_policy_for(entry.lang)
-    return Context(
-        lang=entry.lang,
-        demote_levels=1,
-        bibliography=BibliographyLookup(title_index),
-        register_policy=policy.policy,
-        lineation=LineationCorrections(lineation_overrides.load_overrides(source)),
-        scripture=ScripturePins(scripture_overrides.load_overrides(source)),
-        rights=rights_boilerplate.plan_rights_removal(source),
-        diagnostics=diagnostics,
-    )
-
-
-def _compile(
-    source: docx_source.DocxSourceDocument,
-    adapted: ir.Document,
-    entry: CatalogEntry,
-    title_index: dict[str, Any],
-    media_dir: Path,
-    adapter_diagnostics: ir.DiagnosticSink,
-) -> dict[str, object]:
-    if entry.kind == "poem":
-        q1_diagnostics: ir.DiagnosticSink = []
-        q1 = run(adapted, Context(lang=entry.lang, diagnostics=q1_diagnostics), POEM_PASSES)
-        full = q1
-        full_diagnostics = q1_diagnostics
-    else:
-        q1_diagnostics = []
-        q1 = run(
-            adapted,
-            _book_context(source, entry, title_index, q1_diagnostics),
-            BOOK_PASSES,
-            until=POST_FOLD_SEAM,
-        )
-        full_diagnostics: ir.DiagnosticSink = []
-        full = run(
-            adapted,
-            _book_context(source, entry, title_index, full_diagnostics),
-            BOOK_PASSES,
-        )
-
-    lowered_diagnostics = [*adapter_diagnostics, *full_diagnostics]
-    lowered, planned_assets = assets.plan_assets(full, media_dir, lowered_diagnostics)
-    body = lower.lower(
-        lowered,
-        entry.lang,
-        lowered_diagnostics,
-        poem=entry.kind == "poem",
-    )
-    poem_chrome = None
-    if entry.kind == "poem":
-        body = docx_conversion._strip_source_duplicate_poem_title(
-            body, entry.title, source.paragraphs
-        )
-        body, poem_chrome = docx_conversion.clean_poem_chrome(body)
-
-    return {
-        "q1": _ir_snapshot(q1, media_dir),
-        "q1_diagnostics": _json_value(q1_diagnostics, media_dir=media_dir),
-        "q2": _ir_snapshot(full, media_dir),
-        "output": {
-            "body": body,
-            "body_sha256": _sha256(body),
-            "bibliography": _json_value(
-                docx_conversion._dedupe_bibliography(lowered.bibliography)
-            ),
-            "cross_refs": _json_value(
-                cross_refs.extract_cross_refs(body, entry.work_key, title_index)
-            ),
-            "assets": _json_value(planned_assets, media_dir=media_dir),
-            "diagnostics": _json_value(lowered_diagnostics, media_dir=media_dir),
-            "poem_chrome": _json_value(poem_chrome),
-        },
     }
 
 
@@ -532,58 +371,108 @@ def _capture_one(
     entry: CatalogEntry,
     title_index: dict[str, Any],
     output: Path,
+    *,
+    measure_memory: bool,
 ) -> None:
     started = time.perf_counter()
-    tracemalloc.start()
-    source_started = time.perf_counter()
-    source = docx_source.read(docx)
-    source_seconds = time.perf_counter() - source_started
+    tracing = measure_memory
+    if tracing:
+        tracemalloc.start()
+    try:
+        source_started = time.perf_counter()
+        source = docx_source.read(docx)
+        source_seconds = time.perf_counter() - source_started
 
-    with tempfile.TemporaryDirectory(prefix="pancratius-reader-parity-") as raw_media:
-        media_dir = Path(raw_media)
-        diagnostics: ir.DiagnosticSink = []
-        adapter_started = time.perf_counter()
-        adapted = docx_adapter.adapt(source, media_dir, diagnostics)
-        adapter_seconds = time.perf_counter() - adapter_started
-        compile_started = time.perf_counter()
-        compiler = _compile(
-            source, adapted, entry, title_index, media_dir, diagnostics
-        )
-        compile_seconds = time.perf_counter() - compile_started
-        _current, peak = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
+        with tempfile.TemporaryDirectory(prefix="pancratius-reader-parity-") as raw_media:
+            media_dir = Path(raw_media)
+            observations: dict[
+                docx_conversion.CompilationSeam,
+                docx_conversion.CompilationObservation,
+            ] = {}
+            observed_at: dict[docx_conversion.CompilationSeam, float] = {}
 
-        candidate_payload: dict[str, object] = {}
-        # The characterization commit runs against both sides of the switch. The
-        # legacy aggregate has no rich body tree; candidate-only coverage evidence
-        # appears as soon as the replacement aggregate exposes one.
-        if hasattr(source, "body"):
+            def observe(
+                observation: docx_conversion.CompilationObservation,
+            ) -> None:
+                if observation.seam in observations:
+                    raise RuntimeError(
+                        f"compiler emitted {observation.seam.value} twice"
+                    )
+                observations[observation.seam] = observation
+                observed_at[observation.seam] = time.perf_counter()
+
+            conversion_started = time.perf_counter()
+            kind = cast(docx_conversion.DocxConversionKind, entry.kind)
+            converted = docx_conversion.convert_source(
+                source,
+                kind=kind,
+                lang=entry.lang,
+                work_key=entry.work_key,
+                title=entry.title,
+                title_index=title_index,
+                media_out=media_dir,
+                observe=observe,
+            )
+            conversion_seconds = time.perf_counter() - conversion_started
+            adapted = observations[docx_conversion.CompilationSeam.ADAPTED]
+            q1 = observations[docx_conversion.CompilationSeam.POST_LINEATION]
+            compiled = observations[docx_conversion.CompilationSeam.COMPILED]
+            adapter_seconds = (
+                observed_at[docx_conversion.CompilationSeam.ADAPTED]
+                - conversion_started
+            )
+            peak: int | None = None
+            if tracing:
+                _current, peak = tracemalloc.get_traced_memory()
+                tracemalloc.stop()
+                tracing = False
+
             canonical_source_path = _canonical_source_path(output, docx)
             _write_snapshot(canonical_source_path, _canonical_source_snapshot(source))
-            candidate_payload = {
+            snapshot = {
+                "schema": SCHEMA,
+                "source_path": docx.resolve().relative_to(ROOT).as_posix(),
+                "source": _source_snapshot(source),
                 "canonical_source_artifact": canonical_source_path.relative_to(
                     output
                 ).as_posix(),
                 "source_invariants": _source_invariants(source),
+                "adapted": _ir_snapshot(adapted.document, media_dir),
+                "adapter_diagnostics": _json_value(
+                    adapted.diagnostics,
+                    media_dir=media_dir,
+                ),
+                "q1": _ir_snapshot(q1.document, media_dir),
+                "q1_diagnostics": _json_value(
+                    q1.diagnostics,
+                    media_dir=media_dir,
+                ),
+                "q2": _ir_snapshot(compiled.document, media_dir),
+                "output": {
+                    "body": converted.body,
+                    "body_sha256": _sha256(converted.body),
+                    "bibliography": _json_value(converted.bibliography),
+                    "cross_refs": _json_value(converted.cross_refs),
+                    "assets": _json_value(converted.assets, media_dir=media_dir),
+                    "diagnostics": _json_value(
+                        converted.diagnostics,
+                        media_dir=media_dir,
+                    ),
+                    "poem_chrome": _json_value(converted.poem_chrome),
+                },
+                "metrics": {
+                    "source_seconds": source_seconds,
+                    "adapter_seconds": adapter_seconds,
+                    "compiler_seconds": conversion_seconds - adapter_seconds,
+                    "total_seconds": time.perf_counter() - started,
+                    **({"python_peak_bytes": peak} if peak is not None else {}),
+                    "docx_bytes": docx.stat().st_size,
+                },
             }
-        snapshot = {
-            "schema": SCHEMA,
-            "source_path": docx.resolve().relative_to(ROOT).as_posix(),
-            "source": _source_snapshot(source),
-            **candidate_payload,
-            "adapted": _ir_snapshot(adapted, media_dir),
-            "adapter_diagnostics": _json_value(diagnostics, media_dir=media_dir),
-            **compiler,
-            "metrics": {
-                "source_seconds": source_seconds,
-                "adapter_seconds": adapter_seconds,
-                "compiler_seconds": compile_seconds,
-                "total_seconds": time.perf_counter() - started,
-                "python_peak_bytes": peak,
-                "docx_bytes": docx.stat().st_size,
-            },
-        }
-        _write_snapshot(_snapshot_path(output, docx), snapshot)
+            _write_snapshot(_snapshot_path(output, docx), snapshot)
+    finally:
+        if tracing:
+            tracemalloc.stop()
 
 
 def _selected_docx(args: argparse.Namespace) -> list[Path]:
@@ -613,7 +502,13 @@ def capture(args: argparse.Namespace) -> int:
             flush=True,
         )
         try:
-            _capture_one(docx, entry, title_index, args.output)
+            _capture_one(
+                docx,
+                entry,
+                title_index,
+                args.output,
+                measure_memory=args.measure_memory,
+            )
         except Exception as exc:  # keep a full-corpus run useful after one bad source
             failures += 1
             print(f"  ERROR {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
@@ -707,18 +602,12 @@ def _reading_stream(snapshot: Snapshot) -> object:
 _IR_NON_SEMANTIC_FIELDS = frozenset({
     "source_span",
     "span",
-    "facts",
-    "evidence",
-    "lineation_repairs",
-    "raw",
-    "shape",
     "asset_id",
-    "field_id",
 })
 
 
 def _ir_semantics(snapshot: Snapshot) -> object:
-    """Rich/container semantics without frontend-private coordinates or evidence."""
+    """IR semantics without source coordinates or temporary asset filenames."""
 
     def project(value: object) -> object:
         if isinstance(value, dict):
@@ -729,69 +618,7 @@ def _ir_semantics(snapshot: Snapshot) -> object:
                 if key not in _IR_NON_SEMANTIC_FIELDS
             }
         if isinstance(value, list):
-            projected = [project(item) for item in value]
-            normalized: list[object] = []
-            for item in projected:
-                item_mapping = cast(Snapshot, item) if isinstance(item, dict) else None
-                previous_mapping = (
-                    cast(Snapshot, normalized[-1])
-                    if normalized and isinstance(normalized[-1], dict)
-                    else None
-                )
-                if (
-                    item_mapping is not None
-                    and item_mapping.get("$type") == "Text"
-                    and item_mapping.get("value") == ""
-                ):
-                    continue
-                if (
-                    item_mapping is not None
-                    and previous_mapping is not None
-                    and item_mapping.get("$type") == "Text"
-                    and previous_mapping.get("$type") == "Text"
-                ):
-                    previous_mapping["value"] = (
-                        str(previous_mapping["value"])
-                        + str(item_mapping["value"])
-                    )
-                    continue
-                item_children = (
-                    item_mapping.get("children")
-                    if item_mapping is not None
-                    else None
-                )
-                previous_children = (
-                    previous_mapping.get("children")
-                    if previous_mapping is not None
-                    else None
-                )
-                if (
-                    item_mapping is not None
-                    and previous_mapping is not None
-                    and item_mapping.get("$type") in {
-                        "DirectionalSpan", "Emphasis", "Link", "Quoted",
-                    }
-                    and item_mapping.get("$type") == previous_mapping.get("$type")
-                    and {
-                        key: nested
-                        for key, nested in item_mapping.items()
-                        if key != "children"
-                    }
-                    == {
-                        key: nested
-                        for key, nested in previous_mapping.items()
-                        if key != "children"
-                    }
-                    and isinstance(item_children, list)
-                    and isinstance(previous_children, list)
-                ):
-                    previous_mapping["children"] = project([
-                        *previous_children,
-                        *item_children,
-                    ])
-                    continue
-                normalized.append(item)
-            return normalized
+            return [project(item) for item in value]
         return value
 
     return project(snapshot["document"])
@@ -887,36 +714,62 @@ def compare(args: argparse.Namespace) -> int:
             old["output"]["diagnostics"], new["output"]["diagnostics"]
         )
 
-        timings: dict[str, object] = {}
-        for name in ("source_seconds", "adapter_seconds", "compiler_seconds", "total_seconds", "python_peak_bytes"):
-            old_value = old_metrics.get(name)
-            new_value = new_metrics.get(name)
-            if not isinstance(old_value, int | float) or not isinstance(new_value, int | float):
-                continue
-            timings[name] = {
-                "old": old_value,
-                "new": new_value,
-                "new_over_old": new_value / old_value if old_value else None,
+        old_instrumented = isinstance(old_metrics.get("python_peak_bytes"), int | float)
+        new_instrumented = isinstance(new_metrics.get("python_peak_bytes"), int | float)
+        timings: dict[str, object] = {
+            "instrumentation": {
+                "old": "tracemalloc" if old_instrumented else "none",
+                "new": "tracemalloc" if new_instrumented else "none",
+                "comparable": old_instrumented == new_instrumented,
             }
-        component_names = ("source_seconds", "adapter_seconds", "compiler_seconds")
-        old_pipeline = [old_metrics.get(name) for name in component_names]
-        new_pipeline = [new_metrics.get(name) for name in component_names]
-        if all(isinstance(value, int | float) for value in (*old_pipeline, *new_pipeline)):
-            old_pipeline_seconds = sum(
-                value for value in old_pipeline if isinstance(value, int | float)
+        }
+        if old_instrumented == new_instrumented:
+            for name in (
+                "source_seconds",
+                "adapter_seconds",
+                "compiler_seconds",
+                "total_seconds",
+                "python_peak_bytes",
+            ):
+                old_value = old_metrics.get(name)
+                new_value = new_metrics.get(name)
+                if not isinstance(old_value, int | float) or not isinstance(
+                    new_value, int | float
+                ):
+                    continue
+                timings[name] = {
+                    "old": old_value,
+                    "new": new_value,
+                    "new_over_old": new_value / old_value if old_value else None,
+                }
+            component_names = (
+                "source_seconds",
+                "adapter_seconds",
+                "compiler_seconds",
             )
-            new_pipeline_seconds = sum(
-                value for value in new_pipeline if isinstance(value, int | float)
-            )
-            timings["pipeline_seconds"] = {
-                "old": old_pipeline_seconds,
-                "new": new_pipeline_seconds,
-                "new_over_old": (
-                    new_pipeline_seconds / old_pipeline_seconds
-                    if old_pipeline_seconds
-                    else None
-                ),
-            }
+            old_pipeline = [old_metrics.get(name) for name in component_names]
+            new_pipeline = [new_metrics.get(name) for name in component_names]
+            if all(
+                isinstance(value, int | float)
+                for value in (*old_pipeline, *new_pipeline)
+            ):
+                old_pipeline_seconds = sum(
+                    value for value in old_pipeline
+                    if isinstance(value, int | float)
+                )
+                new_pipeline_seconds = sum(
+                    value for value in new_pipeline
+                    if isinstance(value, int | float)
+                )
+                timings["pipeline_seconds"] = {
+                    "old": old_pipeline_seconds,
+                    "new": new_pipeline_seconds,
+                    "new_over_old": (
+                        new_pipeline_seconds / old_pipeline_seconds
+                        if old_pipeline_seconds
+                        else None
+                    ),
+                }
 
         item = {
             "path": relative.as_posix(),
@@ -993,6 +846,11 @@ def parser() -> argparse.ArgumentParser:
     capture_parser.add_argument("--all", action="store_true")
     capture_parser.add_argument("--output", type=Path, required=True)
     capture_parser.add_argument("--fail-fast", action="store_true")
+    capture_parser.add_argument(
+        "--measure-memory",
+        action="store_true",
+        help="enable tracemalloc; substantially slows large captures",
+    )
     capture_parser.set_defaults(run=capture)
 
     compare_parser = subcommands.add_parser("compare")

@@ -6,11 +6,11 @@ inline walks (`inlines.py`). The passes live in `pancratius.passes`; the
 canonical-Markdown backend is `pancratius.lower`.
 """
 
+from pancratius.ir.inlines import blocks_as_inlines
 from pancratius.ir.nodes import (
     Block,
     BorderKind,
     Code,
-    CodeBlock,
     ContainerInline,
     ContainerInlineNode,
     Diagnostic,
@@ -23,6 +23,7 @@ from pancratius.ir.nodes import (
     Epigraph,
     FootnoteDef,
     FootnoteRef,
+    GeneratedContentKind,
     Heading,
     ImageBlock,
     ImageInline,
@@ -51,6 +52,7 @@ from pancratius.ir.nodes import (
     ThematicBreak,
     UnknownBlock,
     UnknownInline,
+    map_block_children,
     map_block_inlines,
     merge_source_spans,
     rebuild_container,
@@ -60,7 +62,6 @@ __all__ = (
     "Block",
     "BorderKind",
     "Code",
-    "CodeBlock",
     "ContainerInline",
     "ContainerInlineNode",
     "Diagnostic",
@@ -73,6 +74,7 @@ __all__ = (
     "Epigraph",
     "FootnoteDef",
     "FootnoteRef",
+    "GeneratedContentKind",
     "Heading",
     "ImageBlock",
     "ImageInline",
@@ -101,6 +103,8 @@ __all__ = (
     "ThematicBreak",
     "UnknownBlock",
     "UnknownInline",
+    "blocks_as_inlines",
+    "map_block_children",
     "map_block_inlines",
     "merge_source_spans",
     "rebuild_container",

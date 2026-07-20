@@ -8,6 +8,7 @@ comes from one ``DocxSourceDocument`` built by ``docx_source.read``.
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from pathlib import Path, PurePosixPath
 from typing import Literal, assert_never
 
@@ -90,8 +91,9 @@ class _Context:
 def _source_provenance(
     block: docx_source.SourceParagraphBlock,
 ) -> ir.SourceProvenance | None:
-    if block.coordinates:
-        return ir.SourceProvenance.for_lines(block.coordinates)
+    coordinates = block.coordinates
+    if coordinates:
+        return ir.SourceProvenance.for_lines(coordinates)
     if block.paragraph is not None and block.paragraph.disposition is not (
         docx_source.ParagraphDisposition.PAGINATION_ONLY
     ):
@@ -108,12 +110,27 @@ def _covering_span(blocks: list[ir.Block]) -> ir.SourceProvenance | None:
 def _source_diagnostic(finding: docx_source.SourceDiagnostic) -> ir.Diagnostic:
     suffix = finding.code.removeprefix("source.")
     severity: Literal["fatal", "warning", "info"]
-    if suffix == "compatibility-fallback":
-        severity = "info"
-    elif suffix.startswith("field-"):
-        severity = "warning"
-    else:
-        severity = "fatal"
+    match finding.code:
+        case docx_source.SourceDiagnosticCode.COMPATIBILITY_FALLBACK:
+            severity = "info"
+        case (
+            docx_source.SourceDiagnosticCode.FIELD_CONTROL_UNMATCHED
+            | docx_source.SourceDiagnosticCode.FIELD_INCOMPLETE
+            | docx_source.SourceDiagnosticCode.FIELD_INSTRUCTION_IN_RESULT
+        ):
+            severity = "warning"
+        case (
+            docx_source.SourceDiagnosticCode.COMPATIBILITY_UNSUPPORTED
+            | docx_source.SourceDiagnosticCode.IMAGE_RELATIONSHIP
+            | docx_source.SourceDiagnosticCode.RELATIONSHIP
+            | docx_source.SourceDiagnosticCode.RELATIONSHIP_MISSING
+            | docx_source.SourceDiagnosticCode.TABLE_CAPTION_UNSUPPORTED
+            | docx_source.SourceDiagnosticCode.TABLE_NESTED_UNSUPPORTED
+            | docx_source.SourceDiagnosticCode.TABLE_VERTICAL_MERGE_UNSUPPORTED
+        ):
+            severity = "fatal"
+        case unreachable:
+            assert_never(unreachable)
     location = ""
     if finding.address is not None:
         path = "/".join(str(index) for index in finding.address.path)
@@ -180,25 +197,6 @@ def _run_inlines(
     return out
 
 
-def _field_hyperlink_target(instruction: str) -> str | None:
-    quoted_or_bare = r'(?:"([^"]+)"|(\S+))'
-    local = re.search(
-        rf"\\l\s+{quoted_or_bare}", instruction, flags=re.IGNORECASE
-    )
-    external = re.match(
-        rf"\s*HYPERLINK\s+(?!\\[A-Za-z]){quoted_or_bare}",
-        instruction,
-        flags=re.IGNORECASE,
-    )
-    target = ""
-    if external is not None:
-        target = external.group(1) or external.group(2) or ""
-    if local is not None:
-        anchor = local.group(1) or local.group(2) or ""
-        target = f"{target}#{anchor}" if target else f"#{anchor}"
-    return target or None
-
-
 def _inline(source: docx_source.SourceInline, ctx: _Context) -> list[ir.Inline]:
     match source:
         case docx_source.SourceText(value=value):
@@ -239,7 +237,7 @@ def _inline(source: docx_source.SourceInline, ctx: _Context) -> list[ir.Inline]:
         case docx_source.SourceField():
             children = _inlines(source.children, ctx)
             if source.kind == "HYPERLINK":
-                if target := _field_hyperlink_target(source.instruction):
+                if target := source.hyperlink_target:
                     return [ir.Link(children, target)]
                 ctx.unknown_inlines["field:HYPERLINK"] = (
                     ctx.unknown_inlines.get("field:HYPERLINK", 0) + 1
@@ -357,23 +355,27 @@ def _factor_common_emphasis(
     return out
 
 
-def _normalize_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
-    """Erase source run fragmentation while retaining rich boundaries."""
+def _append_text(out: list[ir.Inline], value: str) -> None:
+    if out and isinstance(out[-1], ir.Text):
+        previous = out[-1]
+        assert isinstance(previous, ir.Text)
+        out[-1] = ir.Text(re.sub(r" +", " ", previous.value + value))
+    else:
+        out.append(ir.Text(value))
+
+
+def _normalize_children(inlines: list[ir.Inline]) -> list[ir.Inline]:
+    return [
+        ir.rebuild_container(inline, _normalize_inlines(inline.children))
+        if isinstance(inline, ir.ContainerInline)
+        else inline
+        for inline in inlines
+    ]
+
+
+def _hoist_emphasis_edges(inlines: list[ir.Inline]) -> list[ir.Inline]:
     out: list[ir.Inline] = []
-
-    def append_text(value: str) -> None:
-        if out and isinstance(out[-1], ir.Text):
-            previous = out[-1]
-            assert isinstance(previous, ir.Text)
-            out[-1] = ir.Text(re.sub(r" +", " ", previous.value + value))
-        else:
-            out.append(ir.Text(value))
-
     for inline in inlines:
-        if isinstance(inline, ir.ContainerInline):
-            inline = ir.rebuild_container(
-                inline, _normalize_inlines(inline.children)
-            )
         leading = ""
         trailing = ""
         if isinstance(inline, ir.Emphasis) and inline.children:
@@ -395,62 +397,80 @@ def _normalize_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
             ]
             inline = ir.Emphasis(inline.kind, children)
         if leading:
-            append_text(leading)
+            _append_text(out, leading)
         if isinstance(inline, ir.Emphasis) and not inline.children:
-            # Presentation on whitespace has no reading meaning. A whitespace
-            # run has both a leading and trailing edge; emit it once.
             if trailing and not leading:
-                append_text(trailing)
+                _append_text(out, trailing)
             continue
-        if (
-            isinstance(inline, ir.Emphasis)
-            and len(out) >= 2
-            and isinstance(out[-1], ir.Text)
-            and out[-1].value.isspace()
-            and isinstance(out[-2], ir.Emphasis)
-            and out[-2].kind == inline.kind
-        ):
-            whitespace = out.pop()
-            previous = out.pop()
-            assert isinstance(previous, ir.Emphasis)
-            out.append(ir.Emphasis(
-                previous.kind,
-                _normalize_inlines([
-                    *previous.children,
-                    whitespace,
-                    *inline.children,
-                ]),
-            ))
-        elif isinstance(inline, ir.Text) and out and isinstance(out[-1], ir.Text):
-            append_text(inline.value)
-        elif (
-            isinstance(inline, ir.Link)
-            and out
-            and isinstance(out[-1], ir.Link)
-            and out[-1].target == inline.target
-        ):
-            previous = out[-1]
-            assert isinstance(previous, ir.Link)
-            out[-1] = ir.Link(
-                _normalize_inlines([*previous.children, *inline.children]),
-                previous.target,
-            )
-        elif (
-            isinstance(inline, ir.Emphasis)
-            and out
-            and isinstance(out[-1], ir.Emphasis)
-            and out[-1].kind == inline.kind
-        ):
-            previous = out[-1]
-            assert isinstance(previous, ir.Emphasis)
-            out[-1] = ir.Emphasis(
-                previous.kind,
-                _normalize_inlines([*previous.children, *inline.children]),
-            )
-        else:
-            out.append(inline)
+        out.append(inline)
         if trailing:
-            append_text(trailing)
+            _append_text(out, trailing)
+    return out
+
+
+def _merge_adjacent_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
+    """Merge one normalized level, normalizing each joined child run once."""
+    out: list[ir.Inline] = []
+    index = 0
+    while index < len(inlines):
+        inline = inlines[index]
+        if isinstance(inline, ir.Text):
+            _append_text(out, inline.value)
+            index += 1
+            continue
+        if isinstance(inline, ir.Link):
+            children = list(inline.children)
+            cursor = index + 1
+            while cursor < len(inlines):
+                candidate = inlines[cursor]
+                if not isinstance(candidate, ir.Link) or candidate.target != inline.target:
+                    break
+                children.extend(candidate.children)
+                cursor += 1
+            out.append(
+                inline
+                if cursor == index + 1
+                else ir.Link(_normalize_inlines(children), inline.target)
+            )
+            index = cursor
+            continue
+        if isinstance(inline, ir.Emphasis):
+            children = list(inline.children)
+            cursor = index + 1
+            while cursor < len(inlines):
+                candidate = inlines[cursor]
+                if isinstance(candidate, ir.Emphasis) and candidate.kind == inline.kind:
+                    children.extend(candidate.children)
+                    cursor += 1
+                    continue
+                if (
+                    isinstance(candidate, ir.Text)
+                    and candidate.value.isspace()
+                    and cursor + 1 < len(inlines)
+                ):
+                    following = inlines[cursor + 1]
+                    if isinstance(following, ir.Emphasis) and following.kind == inline.kind:
+                        children.extend((candidate, *following.children))
+                        cursor += 2
+                        continue
+                break
+            out.append(
+                inline
+                if cursor == index + 1
+                else ir.Emphasis(inline.kind, _normalize_inlines(children))
+            )
+            index = cursor
+            continue
+        out.append(inline)
+        index += 1
+    return out
+
+
+def _normalize_inlines(inlines: list[ir.Inline]) -> list[ir.Inline]:
+    """Erase source run fragmentation while retaining rich boundaries."""
+    out = _merge_adjacent_inlines(
+        _hoist_emphasis_edges(_normalize_children(inlines))
+    )
     for kind in ("strong", "emph"):
         out = _factor_common_emphasis(out, kind)
     return out
@@ -497,6 +517,15 @@ type _ParagraphPart = (
 def _split_embedded_blocks(
     source: tuple[docx_source.SourceInline, ...],
 ) -> list[_ParagraphPart]:
+    if not any(
+        isinstance(
+            item,
+            docx_source.SourceTextBox | docx_source.SourceHorizontalRule,
+        )
+        for item in docx_source.walk_source_inlines(source)
+    ):
+        return [source] if source else []
+
     out: list[_ParagraphPart] = []
     current: list[docx_source.SourceInline] = []
 
@@ -513,7 +542,12 @@ def _split_embedded_blocks(
             flush()
             out.append(item)
             continue
-        if isinstance(item, docx_source.SourceRun):
+        if isinstance(
+            item,
+            docx_source.SourceRun
+            | docx_source.SourceHyperlink
+            | docx_source.SourceField,
+        ):
             for part in _split_embedded_blocks(item.children):
                 if isinstance(
                     part,
@@ -522,35 +556,7 @@ def _split_embedded_blocks(
                     flush()
                     out.append(part)
                 else:
-                    current.append(docx_source.SourceRun(part, item.properties))
-            continue
-        if isinstance(item, docx_source.SourceHyperlink):
-            for part in _split_embedded_blocks(item.children):
-                if isinstance(
-                    part,
-                    docx_source.SourceTextBox | docx_source.SourceHorizontalRule,
-                ):
-                    flush()
-                    out.append(part)
-                else:
-                    current.append(docx_source.SourceHyperlink(
-                        part, item.target, item.relationship_id
-                    ))
-            continue
-        if isinstance(item, docx_source.SourceField):
-            for part in _split_embedded_blocks(item.children):
-                if isinstance(
-                    part,
-                    docx_source.SourceTextBox | docx_source.SourceHorizontalRule,
-                ):
-                    flush()
-                    out.append(part)
-                else:
-                    current.append(docx_source.SourceField(
-                        item.instruction,
-                        part,
-                        item.field_id,
-                    ))
+                    current.append(replace(item, children=part))
             continue
         current.append(item)
     flush()
@@ -558,47 +564,48 @@ def _split_embedded_blocks(
 
 
 def _all_italic(source: tuple[docx_source.SourceInline, ...]) -> bool:
-    text_runs: list[docx_source.SourceRun] = []
-
-    def visit(items: tuple[docx_source.SourceInline, ...]) -> None:
-        for item in items:
-            if isinstance(item, docx_source.SourceRun):
-                if any(
-                    isinstance(child, docx_source.SourceText) and child.value.strip()
-                    for child in item.children
-                ):
-                    text_runs.append(item)
-                visit(item.children)
-            elif isinstance(item, docx_source.SourceHyperlink):
-                visit(item.children)
-            elif isinstance(item, docx_source.SourceField):
-                visit(item.children)
-
-    visit(source)
+    text_runs = [
+        item
+        for item in docx_source.walk_source_inlines(source)
+        if isinstance(item, docx_source.SourceRun)
+        and any(
+            isinstance(child, docx_source.SourceText) and child.value.strip()
+            for child in item.children
+        )
+    ]
     return bool(text_runs) and all(run.properties.italic for run in text_runs)
 
 
 def _paragraph_facts(
     block: docx_source.SourceParagraphBlock,
     inlines: list[ir.Inline],
+    *,
+    italic: bool,
 ) -> ir.SourceFacts:
+    generated = (
+        ir.GeneratedContentKind.TABLE_OF_CONTENTS
+        if "TOC" in block.field_kinds
+        else None
+    )
     paragraph = block.paragraph
     if paragraph is None:
         return ir.SourceFacts(
             align=block.alignment.value,
             empty=not inlines,
-            italic=_all_italic(block.inlines),
+            italic=italic,
             indented=bool(block.indent.attributes),
+            generated=generated,
         )
     return ir.SourceFacts(
         align=paragraph.alignment.value,
         empty=not inlines,
-        italic=_all_italic(block.inlines),
+        italic=italic,
         indented=paragraph.indent_departure,
         border=paragraph.border.value,
         lineation_group=(
             paragraph.visual_group.value if paragraph.visual_group is not None else None
         ),
+        generated=generated,
     )
 
 
@@ -609,10 +616,11 @@ def _inline_block(
     *,
     span: ir.SourceProvenance | None,
 ) -> ir.Block:
+    italic = _all_italic(source_inlines)
     inlines: list[ir.Inline] = _trim_paragraph_whitespace(
         _inlines(source_inlines, ctx)
     )
-    if _all_italic(source_inlines) and inlines:
+    if italic and inlines:
         inlines = [ir.Emphasis(
             "emph",
             _unwrap_emphasis_kind(inlines, "emph"),
@@ -620,11 +628,17 @@ def _inline_block(
     # The reading surface has three levels below its page title (h2-h4). Deeper
     # Word outline levels remain source facts, but do not become unstyled h5/h6
     # product headings. An empty outline row likewise remains only a boundary.
-    heading_level = _product_heading_level(source)
+    heading_level = (
+        None if "TOC" in source.field_kinds else _product_heading_level(source)
+    )
     if heading_level is not None and inlines:
         inlines = _unwrap_emphasis_kind(inlines, "strong")
         return ir.Heading(heading_level, inlines, span)
-    return ir.Paragraph(inlines, _paragraph_facts(source, inlines), span)
+    return ir.Paragraph(
+        inlines,
+        _paragraph_facts(source, inlines, italic=italic),
+        span,
+    )
 
 
 def _paragraph_blocks(
@@ -747,58 +761,6 @@ def _adapt_list(
     )
 
 
-def _block_inlines(block: ir.Block) -> list[ir.Inline]:
-    match block:
-        case ir.Heading() | ir.Paragraph():
-            return block.inlines
-        case ir.LineatedBlock():
-            out: list[ir.Inline] = []
-            for stanza in block.stanzas:
-                for line in stanza:
-                    if out:
-                        out.append(ir.Text(" "))
-                    out.extend(line.inlines)
-            return out
-        case ir.QuoteBlock():
-            return _blocks_as_inlines(block.blocks)
-        case ir.ListBlock():
-            return _blocks_as_inlines([
-                member for item in block.items for member in item
-            ])
-        case ir.ImageBlock():
-            return [ir.ImageInline(block.src, block.alt, block.asset_id)]
-        case ir.CodeBlock():
-            return [ir.Code(block.text)]
-        case ir.UnknownBlock():
-            return [ir.UnknownInline(block.note, [ir.Text(block.text)] if block.text else [])]
-        case ir.Signature():
-            return [ir.Text(" ".join(block.lines))]
-        case ir.Epigraph():
-            return [ir.Text(" ".join([*block.quote, *block.footer]))]
-        case ir.DialogueLabel():
-            return [ir.Text(block.speaker)]
-        case ir.ThematicBreak():
-            return [ir.Text("***")]
-        case ir.Table():
-            return [
-                inline
-                for row in block.rows
-                for cell in row
-                for inline in cell
-            ]
-    assert_never(block)
-
-
-def _blocks_as_inlines(blocks: list[ir.Block]) -> list[ir.Inline]:
-    out: list[ir.Inline] = []
-    for block in blocks:
-        inlines = _block_inlines(block)
-        if out and inlines:
-            out.append(ir.Text(" "))
-        out.extend(inlines)
-    return out
-
-
 def _table(source: docx_source.SourceTableBlock, ctx: _Context) -> ir.Table:
     rows: list[list[list[ir.Inline]]] = []
     multi_block = False
@@ -809,7 +771,7 @@ def _table(source: docx_source.SourceTableBlock, ctx: _Context) -> ir.Table:
             source_blocks = list(_flatten_controls(cell.blocks))
             multi_block = multi_block or len(source_blocks) > 1
             merged = merged or cell.row_span != 1 or cell.column_span != 1
-            cells.append(_blocks_as_inlines(_adapt_sequence(source_blocks, ctx)))
+            cells.append(ir.blocks_as_inlines(_adapt_sequence(source_blocks, ctx)))
         rows.append(cells)
     return ir.Table(
         rows,

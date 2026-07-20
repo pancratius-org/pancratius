@@ -11,18 +11,18 @@ from docx.enum.text import WD_BREAK
 
 from pancratius import docx_conversion
 from pancratius.content_catalog import split_frontmatter
+from pancratius.footnotes import is_definition_line
 
 ROOT = Path(__file__).resolve().parents[2]
 POETRY = ROOT / "src" / "content" / "poetry"
 POEM_MARKDOWN = tuple(sorted(POETRY.glob("*/ru.md")))
-FOOTNOTE_DEFINITION = re.compile(r"^\[\^[0-9A-Za-z._-]+\]:\s")
 IMAGE_ONLY = re.compile(r"!\[[^]]*]\([^)]+\)")
 
 
 def _reading_stanza_sizes(body: str) -> tuple[int, ...]:
     lines = body.strip().splitlines()
     lines = lines[: next(
-        (index for index, line in enumerate(lines) if FOOTNOTE_DEFINITION.match(line)),
+        (index for index, line in enumerate(lines) if is_definition_line(line)),
         len(lines),
     )]
     groups = (

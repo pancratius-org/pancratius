@@ -41,7 +41,6 @@ class CompilerBlockKind(StrEnum):
     THEMATIC = "ThematicBreak"
     QUOTE = "BlockQuote"
     LIST = "ListBlock"
-    CODE = "CodeBlock"
     TABLE = "Table"
     IMAGE = "ImageBlock"
     UNKNOWN = "UnknownBlock"
@@ -140,8 +139,6 @@ def compiler_block_kind(block: ir.Block) -> CompilerBlockKind:
             return CompilerBlockKind.QUOTE
         case ir.ListBlock():
             return CompilerBlockKind.LIST
-        case ir.CodeBlock():
-            return CompilerBlockKind.CODE
         case ir.Table():
             return CompilerBlockKind.TABLE
         case ir.ImageBlock():
@@ -293,8 +290,9 @@ class StructuralObservation:
         if self.removed & self.lost:
             raise ValueError("removed and lost paragraph identities overlap")
         absent = self.removed | self.lost
-        if not absent <= self.source.content_ordinals:
-            extra = sorted(absent - self.source.content_ordinals)
+        content_ordinals = self.source.content_ordinals
+        if not absent <= content_ordinals:
+            extra = sorted(absent - content_ordinals)
             raise ValueError(
                 f"structural observation has unknown absent paragraphs {extra[:5]}"
             )
@@ -305,7 +303,7 @@ class StructuralObservation:
             coordinate
             for paragraph in self.source.paragraphs
             if (
-                int(paragraph.ordinal) in self.source.content_ordinals
+                int(paragraph.ordinal) in content_ordinals
                 and int(paragraph.ordinal) not in absent
             )
             for coordinate in paragraph.line_coordinates
@@ -329,14 +327,15 @@ def observe_structure(
     lang: Locale,
 ) -> StructuralObservation:
     """Classify every natural source line at the pre-lineation structural seam."""
+    content_ordinals = source.content_ordinals
     with tempfile.TemporaryDirectory(prefix="docx-structure-") as directory:
         adapted = da.adapt(source, Path(directory), [])
-        at_adapter = frozenset(source_block_hits(adapted.blocks, source.content_ordinals))
+        at_adapter = frozenset(source_block_hits(adapted.blocks, content_ordinals))
         compiled = run(adapted, Context(lang=lang), until=PER_ORDINAL_SEAM)
 
     line_hits = source_line_hits(compiled.blocks)
     rendered_ordinals = {int(coordinate.ordinal) for coordinate in line_hits}
-    absent = source.content_ordinals - rendered_ordinals
+    absent = content_ordinals - rendered_ordinals
     return StructuralObservation(
         source,
         lang,

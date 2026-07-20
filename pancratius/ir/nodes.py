@@ -314,6 +314,12 @@ class Register(StrEnum):
     VOICE = "voice"
 
 
+class GeneratedContentKind(StrEnum):
+    """Source-generated material preserved until a semantic policy handles it."""
+
+    TABLE_OF_CONTENTS = "table_of_contents"
+
+
 @dataclass(frozen=True)
 class Heading:
     """A section heading at `level` (1..6)."""
@@ -350,6 +356,7 @@ class SourceFacts:
     indented: bool = False
     border: BorderKind = ""
     lineation_group: int | None = None
+    generated: GeneratedContentKind | None = None
 
 
 @dataclass(frozen=True)
@@ -386,6 +393,10 @@ class Paragraph:
     @property
     def lineation_group(self) -> int | None:
         return self.facts.lineation_group
+
+    @property
+    def generated(self) -> GeneratedContentKind | None:
+        return self.facts.generated
 
 
 @dataclass(frozen=True)
@@ -465,33 +476,20 @@ class ListBlock:
 
 
 @dataclass(frozen=True)
-class CodeBlock:
-    """A fenced code block."""
-
-    text: str
-    source_span: SourceSpan | None = None
-
-
-@dataclass(frozen=True)
 class TableShape:
     """Physical table complexity relevant to semantic table handling."""
 
-    has_caption: bool = False
     has_merged_cells: bool = False
     has_multi_block_cells: bool = False
 
     @property
     def complex(self) -> bool:
-        return self.has_caption or self.has_merged_cells or self.has_multi_block_cells
+        return self.has_merged_cells or self.has_multi_block_cells
 
 
 @dataclass(frozen=True)
 class Table:
-    """A structured table whose cells retain rich inlines.
-
-    ``shape`` carries the few physical facts the bibliography pass needs.  The IR
-    no longer stores an opaque second frontend's table node beside this structure.
-    """
+    """A structured table whose cells retain rich inlines."""
 
     rows: list[list[list[Inline]]]
     shape: TableShape = TableShape()
@@ -524,7 +522,7 @@ class UnknownBlock:
 
 type Block = (
     Heading | Paragraph | LineatedBlock | Signature | Epigraph | DialogueLabel
-    | ThematicBreak | QuoteBlock | ListBlock | CodeBlock | Table | ImageBlock
+    | ThematicBreak | QuoteBlock | ListBlock | Table | ImageBlock
     | UnknownBlock
 )
 
@@ -557,6 +555,20 @@ def map_block_inlines(block: Block, fn: Callable[[list[Inline]], list[Inline]]) 
             ])
         case _:
             return block  # inline-free block kinds carry no mappable inline list
+
+
+def map_block_children(
+    block: Block,
+    fn: Callable[[list[Block]], list[Block]],
+) -> Block:
+    """Apply a sequence transform to every immediate block-container slot."""
+    match block:
+        case QuoteBlock():
+            return replace(block, blocks=fn(block.blocks))
+        case ListBlock():
+            return replace(block, items=[fn(item) for item in block.items])
+        case _:
+            return block
 
 
 # ---------------------------------------------------------------------------

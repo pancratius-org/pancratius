@@ -18,19 +18,22 @@ import re
 import xml.etree.ElementTree as ET
 import zipfile
 from collections import Counter, defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
-MC_NS = "http://schemas.openxmlformats.org/markup-compatibility/2006"
-WP_NS = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
-PIC_NS = "http://schemas.openxmlformats.org/drawingml/2006/picture"
-A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
-V_NS = "urn:schemas-microsoft-com:vml"
-O_NS = "urn:schemas-microsoft-com:office:office"
+from pancratius import ooxml
+
+W_NS = ooxml.W_NS
+R_NS = ooxml.R_NS
+REL_NS = ooxml.REL_NS
+MC_NS = ooxml.MC_NS
+WP_NS = ooxml.WP_NS
+PIC_NS = ooxml.PIC_NS
+A_NS = ooxml.A_NS
+V_NS = ooxml.V_NS
+O_NS = ooxml.O_NS
 
 W = f"{{{W_NS}}}"
 R = f"{{{R_NS}}}"
@@ -63,6 +66,10 @@ SEMANTIC_PARAGRAPH_TAGS = frozenset(
         f"{W}proofErr",
         f"{W}footnoteReference",
         f"{W}endnoteReference",
+        f"{W}footnoteRef",
+        f"{W}endnoteRef",
+        f"{W}separator",
+        f"{W}continuationSeparator",
         f"{W}commentReference",
         f"{W}fldChar",
         f"{W}instrText",
@@ -79,6 +86,7 @@ SEMANTIC_PARAGRAPH_TAGS = frozenset(
         f"{W}sdt",
         f"{W}sdtPr",
         f"{W}sdtContent",
+        f"{W}txbxContent",
         f"{MC}AlternateContent",
         f"{MC}Choice",
         f"{MC}Fallback",
@@ -165,9 +173,9 @@ def relationship_kind(value: str) -> str:
     return value.rsplit("/", 1)[-1]
 
 
-def paragraph_text(paragraph: ET.Element) -> str:
+def _elements_reading(elements: Iterable[ET.Element]) -> str:
     pieces: list[str] = []
-    for element in paragraph.iter():
+    for element in elements:
         if element.tag in {f"{W}t", f"{W}delText", f"{W}instrText"} and element.text:
             pieces.append(element.text)
         elif element.tag == f"{W}tab":
@@ -177,8 +185,8 @@ def paragraph_text(paragraph: ET.Element) -> str:
     return re.sub(r"[ \t]+", " ", "".join(pieces)).strip()
 
 
-def excerpt(path: str, paragraph: ET.Element, ordinal: int) -> str:
-    text = paragraph_text(paragraph).replace("\n", " / ")
+def excerpt(path: str, text: str, ordinal: int) -> str:
+    text = text.replace("\n", " / ")
     if len(text) > 90:
         text = text[:87] + "..."
     return f"{path}#p{ordinal}: {text}"
@@ -198,9 +206,14 @@ def count_feature(
 def scan_paragraphs(census: Census, path: str, root: ET.Element) -> dict[str, int]:
     stats: Counter[str] = Counter()
     paragraphs = list(root.iter(f"{W}p"))
+    readable_paragraphs = 0
     for ordinal, paragraph in enumerate(paragraphs):
+        elements = tuple(paragraph.iter())
+        tags = Counter(element.tag for element in elements)
+        reading = _elements_reading(elements)
+        readable_paragraphs += bool(reading)
         ppr = paragraph.find(f"{W}pPr")
-        sample = excerpt(path, paragraph, ordinal)
+        sample = excerpt(path, reading, ordinal)
         style = w_val(ppr.find(f"{W}pStyle") if ppr is not None else None)
         if style:
             census.paragraph_styles[style] += 1
@@ -235,15 +248,22 @@ def scan_paragraphs(census: Census, path: str, root: ET.Element) -> dict[str, in
         if ppr is not None and ppr.find(f"{W}contextualSpacing") is not None:
             census.feature("contextual-spacing", path, example=sample)
 
-        for element in paragraph.iter(f"{W}br"):
+        for element in elements:
+            if element.tag != f"{W}br":
+                continue
             kind = element.get(f"{W}type") or "textWrapping"
             census.feature(f"break:{kind}", path, example=sample)
-        count = sum(1 for _ in paragraph.iter(f"{W}cr"))
-        census.feature("break:carriage-return", path, count, example=sample)
+        census.feature(
+            "break:carriage-return",
+            path,
+            tags[f"{W}cr"],
+            example=sample,
+        )
 
         horizontal_rules = sum(
             1
-            for pict in paragraph.iter(f"{W}pict")
+            for pict in elements
+            if pict.tag == f"{W}pict"
             if any(
                 descendant.tag == f"{{{V_NS}}}rect"
                 and descendant.get(f"{{{O_NS}}}hr") in {"t", "true", "1"}
@@ -284,34 +304,42 @@ def scan_paragraphs(census: Census, path: str, root: ET.Element) -> dict[str, in
             "bidi": f"{W}bidi",
         }
         for name, tag in probes.items():
-            found = sum(1 for _ in paragraph.iter(tag))
-            census.feature(name, path, found, example=sample)
+            census.feature(name, path, tags[tag], example=sample)
 
-        for instruction in paragraph.iter(f"{W}instrText"):
+        for instruction in elements:
+            if instruction.tag != f"{W}instrText":
+                continue
             value = (instruction.text or "").strip()
             match = re.match(r"([A-Za-z]+)", value)
             kind = match.group(1).upper() if match else "(empty)"
             census.field_instruction_kinds[kind] += 1
             census.feature(f"field:{kind}", path, example=sample)
-        for simple in paragraph.iter(f"{W}fldSimple"):
+        for simple in elements:
+            if simple.tag != f"{W}fldSimple":
+                continue
             value = str(simple.get(f"{W}instr") or "").strip()
             match = re.match(r"([A-Za-z]+)", value)
             census.field_instruction_kinds[
                 f"simple:{match.group(1).upper() if match else '(empty)'}"
             ] += 1
 
+        property_nodes = {
+            descendant
+            for element in elements
+            if element.tag in {f"{W}pPr", f"{W}rPr"}
+            for descendant in element.iter()
+        }
         unknown = {
             qname_label(element.tag)
-            for element in paragraph.iter()
+            for element in elements
             if element.tag not in SEMANTIC_PARAGRAPH_TAGS
-            and not element.tag.startswith(f"{W}pPr"[: len(W)])
-            and not element.tag.startswith(f"{W}rPr"[: len(W)])
+            and element not in property_nodes
         }
         for tag in unknown:
             census.feature(f"paragraph-extension:{tag}", path, example=sample)
 
     stats["paragraphs"] = len(paragraphs)
-    stats["readable_paragraphs"] = sum(bool(paragraph_text(p)) for p in paragraphs)
+    stats["readable_paragraphs"] = readable_paragraphs
     return dict(stats)
 
 

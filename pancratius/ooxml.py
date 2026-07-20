@@ -19,11 +19,16 @@ from urllib.parse import quote, unquote, urlsplit
 from xml.sax.saxutils import quoteattr
 
 MC_NS = "http://schemas.openxmlformats.org/markup-compatibility/2006"
+M_NS = "http://schemas.openxmlformats.org/officeDocument/2006/math"
+O_NS = "urn:schemas-microsoft-com:office:office"
 REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
 R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+V_NS = "urn:schemas-microsoft-com:vml"
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 WP_NS = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
 PIC_NS = "http://schemas.openxmlformats.org/drawingml/2006/picture"
+A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
+ASVG_NS = "http://schemas.microsoft.com/office/drawing/2016/SVG/main"
 XML_NS = "http://www.w3.org/XML/1998/namespace"
 HYPERLINK_REL_TYPE = f"{R_NS}/hyperlink"
 EMBED_REL_TYPES = frozenset({

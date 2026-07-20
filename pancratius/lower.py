@@ -39,11 +39,7 @@ def _typographic_text(value: str, lang: Locale) -> str:
 
 
 def _escape_markdown_alt(alt: str) -> str:
-    # Escape `[`/`]` in image alt text. `re.sub` (not str.replace) so the PAN018
-    # purity scan — which flags the bare `.replace` attribute name, unable to tell
-    # `str.replace` from `os.replace`/`Path.replace` — stays green in this
-    # import-pure module.
-    return re.sub(r"[\[\]]", r"\\\g<0>", alt)
+    return alt.replace("[", r"\[").replace("]", r"\]")
 
 
 # ---------------------------------------------------------------------------
@@ -191,7 +187,7 @@ def _lineated_lines(line_inlines: list[ir.Inline], lang: Locale) -> list[str]:
     """The display lines a single lineated line's inlines lower to.
 
     Inlines render to Markdown (emphasis as `*`/`**`, footnote refs as `[^N]`),
-    with any internal soft/hard break (a `\\n` from `_inline_md`) splitting into a
+    with any internal authored break (a `\\n` from `_inline_md`) splitting into a
     further display line. Blank results are dropped so a stray break never emits an
     empty line."""
     md = _inlines_md(line_inlines, lang)
@@ -401,11 +397,7 @@ def _table_md(t: ir.Table, lang: Locale) -> str | None:
     def cell_md(cell: list[ir.Inline]) -> str:
         text = _inlines_md(cell, lang)
         text = re.sub(r"\s*\n\s*", " ", text).strip()
-        # Escape pipes for the GFM cell grid. `re.sub` (not str.replace) so the
-        # PAN018 purity scan — which flags the bare `.replace` attribute name,
-        # unable to tell `str.replace` from `os.replace`/`Path.replace` — stays
-        # clean on this import-pure module.
-        return re.sub(r"\|", r"\\|", text)
+        return text.replace("|", r"\|")
 
     def row(cells: list[list[ir.Inline]]) -> str:
         rendered = [cell_md(c) for c in cells] + [""] * (ncol - len(cells))
@@ -415,6 +407,23 @@ def _table_md(t: ir.Table, lang: Locale) -> str | None:
     for r in t.rows[1:]:
         out.append(row(r))
     return "\n".join(out)
+
+
+def _list_item_md(marker: str, body: str) -> str:
+    """Indent every continuation line into the CommonMark list item.
+
+    This is load-bearing for nested block content. Without the continuation
+    indent, a multiline block container closes the list after its opening line
+    and the remaining authored lines escape into top-level prose.
+    """
+    if not body:
+        return f"{marker} "
+    first, *rest = body.splitlines()
+    indent = " " * (len(marker) + 1)
+    return "\n".join((
+        f"{marker} {first}",
+        *(f"{indent}{line}" if line else "" for line in rest),
+    ))
 
 
 # A leading list marker in PROSE: an ordinal `N.`/`N)` or a bullet `-`/`*`/`+`,
@@ -482,7 +491,7 @@ def _heading_md(b: ir.Heading, lang: Locale) -> str:
     its `[^3]` ref, ORPHANING the `[^3]:` definition — a real footnote-integrity
     regression. The marker must stay on the heading line, so we render through the
     inline-markdown path (emits `[^N]`, `*…*`, `**…**`, links), collapse internal
-    soft/hard breaks to spaces (a heading is one line), and then strip a FULLY-bold
+    authored breaks to spaces (a heading is one line), and then strip a FULLY-bold
     wrapper (`# **TEXT**` → `# TEXT`) — partial emphasis is kept."""
     text = _inlines_md(b.inlines, lang)
     text = re.sub(r"\s*\n\s*", " ", text).strip()
@@ -505,7 +514,7 @@ def _block_md(b: ir.Block, lang: Locale, *, poem: bool = False) -> str | None:
                 return _paragraph_image_blocks_md(b.inlines, lang, poem=poem)
             text = _inlines_md(b.inlines, lang)
             if poem:
-                # Verse: keep hard/soft breaks as lines (one verse line each), trimming
+                # Verse: keep authored breaks as lines (one verse line each), trimming
                 # only trailing spaces — the poem path's line-per-line shape.
                 lines = [ln.rstrip() for ln in text.split("\n")]
                 return "\n".join(ln for ln in lines if ln.strip()) or None
@@ -535,15 +544,8 @@ def _block_md(b: ir.Block, lang: Locale, *, poem: bool = False) -> str | None:
             for idx, item in enumerate(b.items):
                 marker = f"{b.start + idx}." if b.ordered else "-"
                 item_md = "\n\n".join(filter(None, (_block_md(x, lang) for x in item)))
-                parts.append(f"{marker} {item_md}")
+                parts.append(_list_item_md(marker, item_md))
             return "\n".join(parts) or None
-        case ir.CodeBlock():
-            # A FIXED triple-fence lets a ``` line inside the content close the block
-            # early, leaking the remainder as raw Markdown. Size the fence to be strictly
-            # longer than the longest internal backtick run (min 3), so the block cannot
-            # be terminated early — CommonMark info-string-less variable-length fence.
-            fence = "`" * max(3, _longest_backtick_run(b.text) + 1)
-            return f"{fence}\n{b.text}\n{fence}"
         case ir.Table():
             return _table_md(b, lang)
         case ir.UnknownBlock():
@@ -597,7 +599,7 @@ def _lower_poem_body(doc: ir.Document, lang: Locale, diagnostics: ir.DiagnosticS
       * an empty paragraph is a stanza break (flush the accumulator);
       * a `***` paragraph / thematic break is its own one-line stanza;
       * a NON-EMPTY paragraph that yields MORE THAN ONE display line (it carries
-        internal hard/soft breaks) is its OWN stanza — flushed before and after;
+        internal authored breaks) is its OWN stanza — flushed before and after;
       * a non-empty paragraph that yields a SINGLE line ACCUMULATES into the
         current stanza, which is flushed only at the next empty paragraph.
 

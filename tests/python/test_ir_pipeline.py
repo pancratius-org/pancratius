@@ -532,17 +532,37 @@ def test_strip_endmatter_drops_mid_document_bibliography_section() -> None:
 
 def test_drop_toc_follows_indented_entries_inside_quote_container() -> None:
     def entry(label: str) -> ir.Paragraph:
-        return ir.Paragraph(inlines=[ir.Link([ir.Text(label)], f"#_{label}")])
+        return ir.Paragraph(
+            inlines=[ir.Link([ir.Text(label)], f"#_{label}")],
+            facts=ir.SourceFacts(
+                generated=ir.GeneratedContentKind.TABLE_OF_CONTENTS
+            ),
+        )
 
     blocks: list[ir.Block] = [
         ir.Heading(level=1, inlines=[ir.Text("Contents")]),
         entry("chapter-1"),
         ir.QuoteBlock(blocks=[entry("section-1"), entry("section-2")]),
+        ir.Paragraph(
+            inlines=[],
+            facts=ir.SourceFacts(
+                empty=True,
+                generated=ir.GeneratedContentKind.TABLE_OF_CONTENTS,
+            ),
+        ),
         ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True)),
         ir.Heading(level=1, inlines=[ir.Text("Chapter 1")]),
     ]
 
     assert scrub.drop_toc(blocks) == [blocks[-1]]
+
+
+def test_drop_toc_keeps_authored_internal_anchor_links() -> None:
+    paragraph = ir.Paragraph(
+        inlines=[ir.Link([ir.Text("See chapter")], "#chapter")]
+    )
+
+    assert scrub.drop_toc([paragraph]) == [paragraph]
 
 
 @pytest.mark.parametrize("marker", ["***", "* * *", r"\*\*\*", "---", "----", "===", "___"])
@@ -787,6 +807,27 @@ def test_hard_break_lineation_survives_inside_a_quote_container() -> None:
     assert [[inline_plain(line.inlines) for line in stanza] for stanza in lineated.stanzas] == [
         ["first quoted line", "second quoted line"],
     ]
+
+
+def test_hard_break_lineation_survives_inside_a_list_item() -> None:
+    paragraph = ir.Paragraph(inlines=[
+        ir.Text("first listed line"),
+        ir.LineBreak(),
+        ir.Text("second listed line"),
+    ])
+
+    (result,) = lineation.fold_lineation([
+        ir.ListBlock(ordered=False, items=[[paragraph]]),
+    ])
+
+    assert isinstance(result, ir.ListBlock)
+    assert len(result.items) == 1
+    (lineated,) = result.items[0]
+    assert isinstance(lineated, ir.LineatedBlock)
+    assert [
+        [inline_plain(line.inlines) for line in stanza]
+        for stanza in lineated.stanzas
+    ] == [["first listed line", "second listed line"]]
 
 
 def test_blank_paragraph_is_internal_stanza_break_only_between_lineated_neighbors() -> None:
@@ -1168,6 +1209,29 @@ def test_lower_real_ordered_list_still_renders_as_list() -> None:
     body = lower.lower(ir.Document(blocks=[lst]), "ru", [])
     assert "1. first" in body and "2. second" in body
     assert "1\\." not in body
+
+
+def test_lower_keeps_lineated_block_inside_its_list_item() -> None:
+    lineated = ir.LineatedBlock(stanzas=[[
+        ir.Line([ir.Text("first line")]),
+        ir.Line([ir.Text("second line")]),
+    ]])
+    listing = ir.ListBlock(ordered=True, items=[[lineated]])
+
+    body = lower.lower(ir.Document(blocks=[listing]), "ru", [])
+
+    lines = body.splitlines()
+    assert lines[0].startswith("1. ")
+    assert "first line" in body and "second line" in body
+    assert all(not line or line.startswith("   ") for line in lines[1:])
+
+
+def test_lower_preserves_authored_empty_list_items() -> None:
+    listing = ir.ListBlock(ordered=True, items=[[]], start=3)
+
+    body = lower.lower(ir.Document(blocks=[listing]), "ru", [])
+
+    assert body == "3.\n"
 
 
 def test_lower_lineated_block_emits_base_wrapper_with_hard_break_lines() -> None:
@@ -1616,24 +1680,6 @@ def test_inline_code_pure_backtick_content_is_space_padded() -> None:
     md = lower._inline_md(ir.Code("`"), "ru")
     # fence is at least 2 backticks; padded with single spaces around the content.
     assert md == "`` ` ``"
-
-
-def test_code_block_with_internal_fence_uses_longer_fence() -> None:
-    # SECURITY: a code block whose content contains a ``` line closes the block
-    # early under a FIXED triple-fence, leaking the remainder as raw Markdown. The
-    # fence must be longer than the longest internal backtick run.
-    cb = ir.CodeBlock(text="line one\n```\nstill code\n```")
-    md = lower._block_md(cb, "ru")
-    assert md is not None
-    fence = md.split("\n", 1)[0]
-    assert set(fence) == {"`"}
-    # The fence (4+ backticks) is strictly longer than the internal run of 3.
-    assert len(fence) >= 4
-    # The whole literal body is preserved between the fences.
-    assert "line one" in md
-    assert "still code" in md
-    # The closing fence equals the opening fence and is the last line.
-    assert md.rstrip().endswith(fence)
 
 
 # ---------------------------------------------------------------------------

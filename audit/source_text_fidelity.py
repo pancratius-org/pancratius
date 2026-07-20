@@ -16,6 +16,7 @@ from collections import Counter
 from pathlib import Path
 
 from pancratius import docx_source
+from pancratius.content_catalog import split_frontmatter
 
 ROOT = Path(os.environ.get("PANCRATIUS_AUDIT_ROOT", Path(__file__).resolve().parents[1]))
 CONTENT = ROOT / "src" / "content"
@@ -32,15 +33,6 @@ BODY_TAIL_MARKERS = {
     "контакты",
     "contacts",
 }
-TOC_TITLES = {"оглавление", "contents", "table of contents"}
-
-
-def _strip_yaml(md: str) -> str:
-    if md.startswith("---"):
-        end = md.find("\n---", 3)
-        if end > 0:
-            return md[end + 4:]
-    return md
 
 
 def _simple(text: str) -> str:
@@ -50,25 +42,10 @@ def _simple(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def _looks_like_toc_entry(text: str) -> bool:
-    stripped = text.strip()
-    return bool(stripped and re.search(r"\d+$", stripped))
-
-
 def _strip_docx_body_chrome(paragraphs: list[str]) -> list[str]:
     rows = list(paragraphs)
     while rows and not rows[0].strip():
         rows.pop(0)
-    if rows and _simple(rows[0]) in TOC_TITLES:
-        i = 1
-        while i < len(rows):
-            text = rows[i].strip()
-            if not text or _looks_like_toc_entry(text):
-                i += 1
-                continue
-            break
-        rows = rows[i:]
-
     for i, text in enumerate(rows):
         if _simple(text) in BODY_TAIL_MARKERS:
             return rows[:i]
@@ -78,14 +55,18 @@ def _strip_docx_body_chrome(paragraphs: list[str]) -> list[str]:
 def _docx_body_text(docx: Path) -> str:
     source = docx_source.read(docx)
     rows = _strip_docx_body_chrome(
-        list(source.body_readings)
+        list(docx_source.block_readings(
+            source.body,
+            exclude_field_kinds={"TOC"},
+        ))
     )
     rows.extend(source.note_readings)
     return " ".join(rows)
 
 
 def _strip_md_body_chrome(md: str) -> str:
-    rows = _strip_yaml(md).splitlines()
+    _frontmatter, body = split_frontmatter(md)
+    rows = body.splitlines()
     for i, line in enumerate(rows):
         if _simple(line) in BODY_TAIL_MARKERS:
             return "\n".join(rows[:i])

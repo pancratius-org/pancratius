@@ -290,14 +290,13 @@ def fold_lineation(
             i += 1
             continue
         if not isinstance(b, ir.Paragraph):
-            if isinstance(b, ir.QuoteBlock):
-                b = replace(
-                    b,
-                    blocks=fold_lineation(
-                        b.blocks,
-                        lineation_overrides=overrides,
-                    ),
-                )
+            b = ir.map_block_children(
+                b,
+                lambda children: fold_lineation(
+                    children,
+                    lineation_overrides=overrides,
+                ),
+            )
             after_lineated = isinstance(b, ir.LineatedBlock)
             out.append(b)
             after_boundary = False
@@ -599,10 +598,9 @@ def _lineated_folds(blocks: Sequence[ir.Block]) -> Iterator[ir.LineatedBlock]:
 def check_overrides_held(blocks: Sequence[ir.Block],
                          overrides: Mapping[int, ir.LineationRegister]) -> None:
     """Prove every prose-pinned ordinal stayed out of lineation — the seam has several fold
-    paths, so the FATE is asserted, not the mechanism. Limitation: a block with no source span
-    (an adapter-emitted LineBlock) is invisible here; the correction exporter cannot mint an
-    override for such an ordinal (it is uncovered), so only a hand-written sidecar could reach
-    that gap."""
+    paths, so the fate is asserted, not the mechanism. A block with no source span
+    is invisible here, but the correction exporter cannot mint an override for an
+    uncovered ordinal."""
     pinned = {o for o, r in overrides.items() if r == "prose"}
     if not pinned:
         return

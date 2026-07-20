@@ -45,6 +45,11 @@ def definition_ids(body: str) -> list[str]:
     return [m.group(1) for m in (_DEF_LINE_RE.match(ln) for ln in body.splitlines()) if m]
 
 
+def is_definition_line(line: str) -> bool:
+    """Whether a Markdown line starts a footnote definition."""
+    return _DEF_LINE_RE.match(line) is not None
+
+
 def analyze_footnotes(body: str) -> list[FootnoteDiagnostic]:
     """Diagnose footnote integrity of a FINAL body markdown.
 

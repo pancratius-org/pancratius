@@ -9,20 +9,20 @@ from pathlib import Path
 
 import pytest
 
-from pancratius import docx_adapter, docx_source, ir, lower
+from pancratius import docx_adapter, docx_conversion, docx_source, ir, lower, ooxml
 from pancratius.ir.inlines import inline_plain
 
-W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
-MC_NS = "http://schemas.openxmlformats.org/markup-compatibility/2006"
-A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
-WP_NS = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
-PIC_NS = "http://schemas.openxmlformats.org/drawingml/2006/picture"
-ASVG_NS = "http://schemas.microsoft.com/office/drawing/2016/SVG/main"
-V_NS = "urn:schemas-microsoft-com:vml"
-O_NS = "urn:schemas-microsoft-com:office:office"
-M_NS = "http://schemas.openxmlformats.org/officeDocument/2006/math"
+W_NS = ooxml.W_NS
+R_NS = ooxml.R_NS
+REL_NS = ooxml.REL_NS
+MC_NS = ooxml.MC_NS
+A_NS = ooxml.A_NS
+WP_NS = ooxml.WP_NS
+PIC_NS = ooxml.PIC_NS
+ASVG_NS = ooxml.ASVG_NS
+V_NS = ooxml.V_NS
+O_NS = ooxml.O_NS
+M_NS = ooxml.M_NS
 IMAGE_REL = f"{R_NS}/image"
 HYPERLINK_REL = f"{R_NS}/hyperlink"
 
@@ -86,35 +86,11 @@ def _visual_groups(
 def _paragraph_blocks(
     blocks: tuple[docx_source.SourceBlock, ...],
 ) -> list[docx_source.SourceParagraphBlock]:
-    out: list[docx_source.SourceParagraphBlock] = []
-    for block in blocks:
-        if isinstance(block, docx_source.SourceParagraphBlock):
-            out.append(block)
-            for inline in block.inlines:
-                if isinstance(inline, docx_source.SourceRun):
-                    out.extend(_text_box_paragraphs(inline.children))
-        elif isinstance(block, docx_source.SourceTableBlock):
-            for row in block.rows:
-                for cell in row.cells:
-                    out.extend(_paragraph_blocks(cell.blocks))
-        elif isinstance(block, docx_source.SourceContentControl):
-            out.extend(_paragraph_blocks(block.blocks))
-    return out
-
-
-def _text_box_paragraphs(
-    inlines: tuple[docx_source.SourceInline, ...],
-) -> list[docx_source.SourceParagraphBlock]:
-    out: list[docx_source.SourceParagraphBlock] = []
-    for inline in inlines:
-        if isinstance(inline, docx_source.SourceTextBox):
-            out.extend(_paragraph_blocks(inline.blocks))
-        elif isinstance(
-            inline,
-            docx_source.SourceRun | docx_source.SourceHyperlink | docx_source.SourceField,
-        ):
-            out.extend(_text_box_paragraphs(inline.children))
-    return out
+    return [
+        block
+        for block in docx_source.walk_source_blocks(blocks)
+        if isinstance(block, docx_source.SourceParagraphBlock)
+    ]
 
 
 def test_one_read_links_physical_facts_to_rich_blocks(tmp_path: Path) -> None:
@@ -874,8 +850,12 @@ def test_element_and_complex_field_hyperlinks_keep_targets(tmp_path: Path) -> No
         """
         <w:p>
           <w:hyperlink r:id="rIdLink"><w:r><w:t>ordinary</w:t></w:r></w:hyperlink>
-          <w:r><w:t> and </w:t><w:fldChar w:fldCharType="begin"/></w:r>
-          <w:r><w:instrText xml:space="preserve"> HYPERLINK "https://field.example" </w:instrText></w:r>
+          <w:r><w:t xml:space="preserve"> and </w:t></w:r>
+          <w:fldSimple w:instr='HYPERLINK https://simple.example \\l section'>
+            <w:r><w:t>simple link</w:t></w:r>
+          </w:fldSimple>
+          <w:r><w:t xml:space="preserve"> and </w:t><w:fldChar w:fldCharType="begin"/></w:r>
+          <w:r><w:instrText xml:space="preserve"> HYPERLINK https://field.example \\l "chapter" </w:instrText></w:r>
           <w:r><w:fldChar w:fldCharType="separate"/></w:r>
           <w:r><w:rPr><w:b/></w:rPr><w:t>field link</w:t></w:r>
           <w:r><w:fldChar w:fldCharType="end"/><w:t> number </w:t></w:r>
@@ -892,7 +872,7 @@ def test_element_and_complex_field_hyperlinks_keep_targets(tmp_path: Path) -> No
     assert isinstance(block, docx_source.SourceParagraphBlock)
     fields = [inline for inline in block.inlines if isinstance(inline, docx_source.SourceField)]
     assert [field.kind for field in fields] == ["HYPERLINK", "SEQ"]
-    assert block.reading == "ordinary and field link number 2"
+    assert block.reading == "ordinary and simple link and field link number 2"
 
     document, diagnostics = _adapt(source, tmp_path)
     assert diagnostics == []
@@ -901,9 +881,84 @@ def test_element_and_complex_field_hyperlinks_keep_targets(tmp_path: Path) -> No
     links = [inline for inline in paragraph.inlines if isinstance(inline, ir.Link)]
     assert [link.target for link in links] == [
         "https://ordinary.example",
-        "https://field.example",
+        "https://simple.example#section",
+        "https://field.example#chapter",
     ]
-    assert inline_plain(paragraph.inlines) == "ordinary and field link number 2"
+    assert inline_plain(paragraph.inlines) == (
+        "ordinary and simple link and field link number 2"
+    )
+
+
+def test_toc_field_membership_survives_empty_rows_and_projection(
+    tmp_path: Path,
+) -> None:
+    source = docx_source.read(_write_docx(
+        tmp_path,
+        """
+        <w:p><w:r><w:fldChar w:fldCharType="begin"/></w:r>
+          <w:r><w:instrText> TOC \\o "1-3" </w:instrText></w:r>
+          <w:r><w:fldChar w:fldCharType="separate"/></w:r></w:p>
+        <w:p><w:r><w:t>Chapter one</w:t></w:r></w:p>
+        <w:p/>
+        <w:p><w:r><w:t>Chapter two</w:t></w:r>
+          <w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>
+        <w:p><w:r><w:t>Authored body</w:t></w:r></w:p>
+        """,
+    ))
+
+    paragraphs = _paragraph_blocks(source.body)
+    assert [block.field_kinds for block in paragraphs] == [
+        frozenset({"TOC"}),
+        frozenset({"TOC"}),
+        frozenset({"TOC"}),
+        frozenset({"TOC"}),
+        frozenset(),
+    ]
+    assert docx_source.block_readings(
+        source.body,
+        exclude_field_kinds={"TOC"},
+    ) == ("Authored body",)
+
+    document, diagnostics = _adapt(source, tmp_path)
+    assert diagnostics == []
+    assert [
+        block.generated
+        for block in document.blocks
+        if isinstance(block, ir.Paragraph)
+    ] == [
+        ir.GeneratedContentKind.TABLE_OF_CONTENTS,
+        ir.GeneratedContentKind.TABLE_OF_CONTENTS,
+        ir.GeneratedContentKind.TABLE_OF_CONTENTS,
+        None,
+    ]
+
+
+def test_conversion_observer_uses_the_production_composition_once(
+    tmp_path: Path,
+) -> None:
+    source = docx_source.read(_write_docx(
+        tmp_path,
+        "<w:p><w:r><w:t>One poem line</w:t></w:r></w:p>",
+    ))
+    observed: list[docx_conversion.CompilationObservation] = []
+
+    converted = docx_conversion.convert_source(
+        source,
+        kind="poem",
+        lang="ru",
+        work_key="fixture",
+        title="Fixture",
+        title_index={},
+        media_out=tmp_path / "media",
+        observe=observed.append,
+    )
+
+    assert [observation.seam for observation in observed] == [
+        docx_conversion.CompilationSeam.ADAPTED,
+        docx_conversion.CompilationSeam.POST_LINEATION,
+        docx_conversion.CompilationSeam.COMPILED,
+    ]
+    assert "One poem line" in converted.body
 
 
 def test_adjacent_hyperlink_fragments_share_one_semantic_link(tmp_path: Path) -> None:
@@ -1262,8 +1317,7 @@ def test_mixed_content_horizontal_rule_preserves_block_order(tmp_path: Path) -> 
         <w:p><w:r>
           <w:t>before</w:t>
           <w:pict><v:rect o:hr="t"/></w:pict>
-          <w:t>after</w:t>
-        </w:r></w:p>
+        </w:r><w:r><w:rPr><w:i/></w:rPr><w:t>after</w:t></w:r></w:p>
         """,
     ))
 
@@ -1281,6 +1335,8 @@ def test_mixed_content_horizontal_rule_preserves_block_order(tmp_path: Path) -> 
     assert isinstance(after, ir.Paragraph)
     assert inline_plain(before.inlines) == "before"
     assert inline_plain(after.inlines) == "after"
+    assert not before.facts.italic
+    assert after.facts.italic
     assert before.source_span is not None
     assert (before.source_span.start, before.source_span.end) == (0, 0)
     assert rule.source_span is None

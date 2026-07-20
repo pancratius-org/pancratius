@@ -37,6 +37,8 @@ import re
 import sys
 from pathlib import Path
 
+from pancratius.footnotes import is_definition_line
+
 
 def _audit_root() -> Path:
     env = os.environ.get("PANCRATIUS_AUDIT_ROOT")
@@ -51,7 +53,6 @@ LINEATED_WRAPPER_RE = re.compile(
     r"(?P<body>.*?)\n</div>",
     re.S,
 )
-FOOTNOTE_DEF_RE = re.compile(r"^\[\^[0-9A-Za-z._-]+\]:\s")
 # A subpage is verse-register iff its frontmatter sets `weight: verse` (the only
 # weight ProjectSubpagePage maps to <Verse>); the mission page is the one <Verse>
 # page route. Both render their WHOLE body as lineated verse.
@@ -83,7 +84,7 @@ def _check_stanza_lines(lines: list[str]) -> list[int]:
 
 def _strip_footnote_appendix(lines: list[str]) -> list[str]:
     for i, line in enumerate(lines):
-        if FOOTNOTE_DEF_RE.match(line):
+        if is_definition_line(line):
             return lines[:i]
     return lines
 

@@ -68,8 +68,6 @@ def block_plain(block: ir.Block) -> str:
                 for item in block.items
                 for child in item
             )
-        case ir.CodeBlock():
-            return block.text
         case ir.Table():
             return " ".join(inline_plain(cell) for row in block.rows for cell in row)
         case ir.ImageBlock():
@@ -78,6 +76,64 @@ def block_plain(block: ir.Block) -> str:
             return block.text
         case _:
             assert_never(block)
+
+
+def blocks_as_inlines(blocks: list[ir.Block]) -> list[ir.Inline]:
+    """Flatten block content for an IR slot that only admits rich inlines.
+
+    DOCX table cells use this when a source cell contains several paragraphs or
+    nested containers. A single exhaustive owner keeps that lossy boundary in
+    sync with the closed block vocabulary.
+    """
+    out: list[ir.Inline] = []
+    for block in blocks:
+        inlines = _block_as_inlines(block)
+        if out and inlines:
+            out.append(ir.Text(" "))
+        out.extend(inlines)
+    return out
+
+
+def _block_as_inlines(block: ir.Block) -> list[ir.Inline]:
+    match block:
+        case ir.Heading() | ir.Paragraph():
+            return block.inlines
+        case ir.LineatedBlock():
+            out: list[ir.Inline] = []
+            for stanza in block.stanzas:
+                for line in stanza:
+                    if out:
+                        out.append(ir.Text(" "))
+                    out.extend(line.inlines)
+            return out
+        case ir.QuoteBlock():
+            return blocks_as_inlines(block.blocks)
+        case ir.ListBlock():
+            return blocks_as_inlines([
+                member for item in block.items for member in item
+            ])
+        case ir.ImageBlock():
+            return [ir.ImageInline(block.src, block.alt, block.asset_id)]
+        case ir.UnknownBlock():
+            children: list[ir.Inline] = [ir.Text(block.text)] if block.text else []
+            return [ir.UnknownInline(block.note, children)]
+        case ir.Signature():
+            return [ir.Text(" ".join(block.lines))]
+        case ir.Epigraph():
+            return [ir.Text(" ".join([*block.quote, *block.footer]))]
+        case ir.DialogueLabel():
+            return [ir.Text(block.speaker)]
+        case ir.ThematicBreak():
+            return [ir.Text("***")]
+        case ir.Table():
+            return [
+                inline
+                for row in block.rows
+                for cell in row
+                for inline in cell
+            ]
+        case _ as unreachable:
+            assert_never(unreachable)
 
 
 def inline_lines(inlines: list[ir.Inline]) -> list[list[ir.Inline]]:
