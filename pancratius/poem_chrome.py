@@ -74,7 +74,7 @@ class PoemSourceDate:
 
 type PoemChromeFact = PoemPersona | PoemStyleNote | PoemSourceDate
 
-_FACT_ORDER = {
+_FACT_ORDER: dict[type[PoemChromeFact], int] = {
     PoemPersona: 0,
     PoemStyleNote: 1,
     PoemSourceDate: 2,
