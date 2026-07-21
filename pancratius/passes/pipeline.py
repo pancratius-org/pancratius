@@ -36,6 +36,7 @@ __all__ = (
     "ModelBackedRegisterPolicy",
     "Pass",
     "PassFn",
+    "PassObserver",
     "RegisterPolicy",
     "RulesOnlyRegisterPolicy",
     "ScripturePins",
@@ -45,6 +46,7 @@ __all__ = (
 
 type PassFn = Callable[[ir.Document, Context], ir.Document]
 type Pass = tuple[str, PassFn]  # the name is the seam vocabulary
+type PassObserver = Callable[[str, ir.Document], None]
 
 
 def _blocks(fn: Callable[[list[ir.Block]], list[ir.Block]]) -> PassFn:
@@ -135,6 +137,7 @@ def run(
     pipeline: tuple[Pass, ...] = BOOK_PASSES,
     *,
     until: str | None = None,
+    observe: PassObserver | None = None,
 ) -> ir.Document:
     """Run passes in order; `until` names the first pass NOT run.
 
@@ -144,6 +147,8 @@ def run(
     if until is not None and until not in names:
         raise ValueError(f"unknown pass name {until!r}; expected one of {names}")
     for name, fn in pipeline:
+        if observe is not None:
+            observe(name, doc)
         if name == until:
             break
         doc = fn(doc, ctx)

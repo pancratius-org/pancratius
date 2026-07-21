@@ -70,13 +70,13 @@ _BANNED_OWNER_MODULES = (
 # (writer, footnotes, lower) can't misfire on unrelated prose in a run line.
 _BANNED_LIB_MODULES = (
     "docx_conversion",  # convert_single_docx — the live typed-IR converter
-    "docx_adapter",  # pandoc-JSON + OOXML w:jc adapter (shells to pandoc, reads the zip)
+    "docx_adapter",  # canonical source-model to typed-IR adapter
     "ir",  # the typed block IR package
     "passes",  # the pass pipeline package (the middle-end)
     "lower",  # the canonical-Markdown backend
     "footnotes",  # footnote definition/reference analysis
     "cross_refs",  # cross-reference extraction
-    "ooxml",  # narrow OOXML reads
+    "ooxml",  # shared OOXML package mechanics
     "writeplan",  # the pure WritePlan + validation
     "writer",  # the ONLY src/content mutator
 )

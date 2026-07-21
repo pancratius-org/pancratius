@@ -158,12 +158,9 @@ def _validate_xml_relationship_refs(
     zf: zipfile.ZipFile,
     names: set[str],
     rels: dict[str, dict[str, OoxmlRelationship]],
-) -> ET.Element:
-    document_root: ET.Element | None = None
+) -> None:
     for name in sorted(n for n in names if n.startswith("word/") and n.endswith(".xml")):
         root = _parse_xml_part(zf, name)
-        if name == "word/document.xml":
-            document_root = root
         refs = office_relationship_refs(root)
         if not refs:
             continue
@@ -176,12 +173,9 @@ def _validate_xml_relationship_refs(
             )
         for ref in refs:
             _validate_relationship_reference(name, ref.attr_name, relationships[ref.rel_id])
-    if document_root is None:
-        raise DocxIntegrityError("missing required DOCX part: word/document.xml")
-    return document_root
 
 
-def _validate_docx_package(path: Path) -> tuple[set[str], ET.Element]:
+def _validate_docx_package(path: Path) -> set[str]:
     try:
         with zipfile.ZipFile(path) as zf:
             name_list = zf.namelist()
@@ -198,17 +192,20 @@ def _validate_docx_package(path: Path) -> tuple[set[str], ET.Element]:
             for name in sorted(n for n in names if n.endswith(".rels")):
                 rels[name] = _validate_relationship_part(zf, names, name)
             _validate_content_types(_parse_xml_part(zf, "[Content_Types].xml"), names)
-            document_root = _validate_xml_relationship_refs(zf, names, rels)
-            return names, document_root
+            _validate_xml_relationship_refs(zf, names, rels)
+            return names
     except zipfile.BadZipFile as exc:
         raise DocxIntegrityError("not a valid ZIP/DOCX package") from exc
 
 
-def _duplicate_text_half(path: Path, document_root: ET.Element) -> str | None:
+def _duplicate_text_half(
+    path: Path,
+    source: docx_source.DocxSourceDocument,
+) -> str | None:
     nonempty = [
-        content.reading.strip()
-        for content in docx_source.story_contents(document_root)
-        if content.reading.strip()
+        reading
+        for reading in source.body_readings
+        if reading
     ]
     if len(nonempty) < DUPLICATE_HALF_MIN_PARAGRAPHS or len(nonempty) % 2 != 0:
         return None
@@ -237,11 +234,12 @@ def main() -> int:
     paths = _docx_paths()
     for path in paths:
         try:
-            names, document_root = _validate_docx_package(path)
-        except DocxIntegrityError as exc:
+            names = _validate_docx_package(path)
+            source = docx_source.read(path)
+        except (DocxIntegrityError, docx_source.DocxSourceError) as exc:
             failures.append(f"{path}: invalid DOCX package: {exc}")
             continue
-        if (duplicate := _duplicate_text_half(path, document_root)) is not None:
+        if (duplicate := _duplicate_text_half(path, source)) is not None:
             failures.append(duplicate)
         if (duplicate := _duplicate_media(path, names)) is not None:
             failures.append(duplicate)

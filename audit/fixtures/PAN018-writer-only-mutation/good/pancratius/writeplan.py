@@ -16,4 +16,5 @@ class WriteOp:
 
 def build_ops(body: str) -> list[WriteOp]:
     # Pure: assembles WriteOps. No write_text / mkdir / copy / open-for-write.
-    return [WriteOp(rel_path="books/99-probe/ru.md", content=body)]
+    normalized = body.replace("\r\n", "\n")
+    return [WriteOp(rel_path="books/99-probe/ru.md", content=normalized)]

@@ -149,13 +149,13 @@ def _leading_strong(
     coordinates without restoring that removed break.
     """
     rest = list(inlines)
-    while rest and isinstance(rest[0], (ir.SoftBreak, ir.LineBreak)):
+    while rest and isinstance(rest[0], ir.LineBreak):
         rest.pop(0)
     if rest and isinstance(rest[0], ir.Emphasis) and rest[0].kind == "strong":
         head = rest[0]
         tail = rest[1:]
         collapsed_hard = False
-        while tail and isinstance(tail[0], (ir.SoftBreak, ir.LineBreak)):
+        while tail and isinstance(tail[0], ir.LineBreak):
             collapsed_hard = collapsed_hard or isinstance(tail.pop(0), ir.LineBreak)
         return head, tail, collapsed_hard
     return None, inlines, False
@@ -276,9 +276,15 @@ def _emit_dialogue_segment(
     if m:
         # Join the inside-body text to the trailing inlines with a space — UNLESS
         # the body text ends in an OPENING quote/bracket glyph, where a space would
-        # wrongly separate the glyph from what it opens (`«` + `Почему` → `« Почему`).
+        # wrongly separate the glyph from what it opens (`«` + `Почему` → `« Почему`),
+        # or the next readable token is closing punctuation after a structural ref.
         head_body = m.group(2).strip()
-        joiner = "" if head_body and head_body[-1] in "«“„([{‹" else " "
+        tail_text = inline_plain(tail)
+        joins_without_space = (
+            bool(head_body and head_body[-1] in "«“„([{‹")
+            or bool(tail_text and tail_text[0] in ".,;:!?…)]}»”›")
+        )
+        joiner = "" if joins_without_space else " "
         body_inlines: list[ir.Inline] = [ir.Text(head_body + joiner), *tail]
         return [
             ir.DialogueLabel(speaker=m.group(1), source_span=label_span),

@@ -2,7 +2,7 @@
 
 The source compiler owns paragraph identity, breaks, layout, and structural
 classification. This module only adds line-width physics; it never reopens
-OOXML or reconstructs lines from Pandoc IR.
+OOXML or reconstructs lines from another document view.
 """
 from __future__ import annotations
 

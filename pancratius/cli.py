@@ -83,8 +83,7 @@ def _legacy_project_page_add_error(argv: list[str]) -> int:
 
 
 def _require_pandoc() -> int | None:
-    """Shared precheck for the conversion verbs (`work import`, `project page add`):
-    return 1 if pandoc is absent, else None to proceed."""
+    """Precheck for DOCX translation and Markdown round-trip rendering."""
     if find_pandoc() is None:
         return _fail("pandoc not found; run `uv sync` or install it with `brew install pandoc`.")
     return None
@@ -184,8 +183,6 @@ def _work_import(args: argparse.Namespace) -> int:
     from pancratius import import_docx
     from pancratius.intent_inference.errors import RegisterArtifactError
 
-    if (rc := _require_pandoc()) is not None:
-        return rc
     try:
         request = _import_request_from_args(args)
         report = import_docx.import_work(request)
@@ -632,8 +629,6 @@ def _project_page_add(args: argparse.Namespace) -> int:
         destination = parse_project_subpage_selector(args.destination)
     except (SelectorError, ValueError) as exc:
         return _fail(exc, 2)
-    if (rc := _require_pandoc()) is not None:
-        return rc
     try:
         report = scaffold_subpage(
             project=destination.project,

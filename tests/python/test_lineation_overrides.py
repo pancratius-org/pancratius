@@ -9,7 +9,6 @@ direction is not yet appliable and must fail loud rather than be silently ignore
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 
 import pytest
@@ -19,11 +18,6 @@ from pancratius.ir.inlines import inline_plain
 from pancratius.lineation_overrides import load_overrides, overrides_path
 from pancratius.passes.lineation import check_overrides_held
 from pancratius.passes.pipeline import Context, LineationCorrections, run
-
-pandoc_required = pytest.mark.skipif(
-    shutil.which("pandoc") is None,
-    reason="pandoc is required for importer-backed DOCX paths",
-)
 
 
 def _line(ordinal: int, sub: int = 0) -> docx_source.SourceLineCoordinate:
@@ -188,7 +182,6 @@ def test_lineated_override_is_not_silently_ignored() -> None:
 # --- end to end: the production verdict reader reflects the correction ---------------------
 
 
-@pandoc_required
 def test_fold_decisions_honor_the_sidecar(tmp_path: Path) -> None:
     from pancratius.docx_structure import fold_decisions
 

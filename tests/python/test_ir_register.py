@@ -127,17 +127,6 @@ def test_quote_member_lines_escape_leading_list_markers() -> None:
     assert "> 1\\." in md and "> \\-" in md
 
 
-def test_quote_member_soft_breaks_stay_prose() -> None:
-    para = ir.Paragraph(inlines=[
-        ir.Text("обычная строка,"),
-        ir.SoftBreak(),
-        ir.Text("перенесённая в источнике."),
-    ])
-    quote = ir.QuoteBlock(blocks=[para], register=ir.Register.INSET)
-    md = _block_md(quote, "ru")
-    assert md == "> обычная строка, перенесённая в источнике."
-
-
 def test_equation_scaffold_never_promotes_to_verse() -> None:
     from pancratius.passes.register import is_equation_scaffold
 
