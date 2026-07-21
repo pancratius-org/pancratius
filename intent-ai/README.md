@@ -3,9 +3,9 @@
 Research package for recovering authorial lineation from the library's DOCX sources.
 
 The production library owns DOCX syntax and semantics. `intent-ai` consumes its typed
-`DocxSourceDocument`; it does not parse OOXML, reconstruct Pandoc blocks, or maintain a second text
-surface. Each source paragraph is projected into canonical natural lines, measured, and represented
-as one `LineRecord` per `(language, book, paragraph ordinal, natural-line index)`.
+`DocxSourceDocument`; it does not parse OOXML, invoke another document frontend, or maintain a
+second text surface. Each source paragraph is projected into canonical natural lines, measured,
+and represented as one `LineRecord` per `(language, book, paragraph ordinal, natural-line index)`.
 
 Those records support three downstream operations:
 

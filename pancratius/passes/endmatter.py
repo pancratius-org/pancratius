@@ -3,16 +3,14 @@
 
 from __future__ import annotations
 
-import json
 import re
 from collections.abc import Mapping
 from dataclasses import replace
-from typing import Any, cast
 
 from pancratius import ir
 from pancratius.content_catalog import IndexHit
-from pancratius.ir.inlines import inline_plain
-from pancratius.passes.scrub import is_ai_alt
+from pancratius.ir.inlines import inline_plain, walk_inlines
+from pancratius.passes.scrub import is_unhelpful_image_alt
 
 # The slug→(slug, number, kind) corpus index the bibliography lift resolves
 # titles against; an entry resolves to a `{kind, number}` target.
@@ -33,16 +31,6 @@ _BIBLIO_HEADING_RE = re.compile(
     r"^(?:библиография|bibliography|список\s+литературы|литература)\s*$",
     re.IGNORECASE,
 )
-
-# A Pandoc JSON node `{"t": ..., "c": ...}`. `_node` views an opaque value as one
-# when it is a dict, so `.get("t")`/`["c"]` are str-keyed (a bare `isinstance`
-# narrow yields `dict[Unknown, Unknown]`, whose keys ty types as `Never`).
-type _PandocNode = dict[str, Any]
-
-
-def _node(value: object) -> _PandocNode | None:
-    return cast("_PandocNode", value) if isinstance(value, dict) else None
-
 
 # ---------------------------------------------------------------------------
 # bibliography table classification + lift
@@ -76,75 +64,29 @@ def lift_bibliography(
     return replace(doc, blocks=kept, bibliography=bibliography)
 
 
-def _raw_table_text(node: object) -> str:
-    return json.dumps(node, ensure_ascii=False)
-
-
 def _renders_as_html_table(t: ir.Table) -> bool:
-    """True when Pandoc's GFM writer would emit this table as raw HTML `<table>`
-    rather than a pipe table — the set the bibliography lift considers.
+    """Whether the factual table shape needs richer-than-pipe treatment."""
+    return t.shape.complex
 
-    Pandoc renders simple grids (single-block cells, no spans, no caption) as pipe
-    tables, kept in the body as reading content; it falls back to HTML for a
-    multi-block cell, a row/col span ≠ 1, or a caption — the richer shape a catalog
-    table has. Pinned to the current Pandoc GFM writer (pandoc 3.9); if pandoc is
-    bumped, re-confirm against the new writer (the goldens pin the lift outcome)."""
-    node = _node(t.raw)  # opaque Pandoc Table node
-    if node is None:
-        return False
-    c = node.get("c")
-    if not isinstance(c, list) or len(c) != 6:
-        return False
-    _attr, caption, _cols, thead, tbodies, _tfoot = c
-    if isinstance(caption, list) and len(caption) > 1 and caption[1]:
-        return True  # a caption can't be expressed in a pipe table
 
-    def cell_forces_html(cell: object) -> bool:
-        # cell = [attr, alignment, rowspan, colspan, blocks]
-        if not isinstance(cell, list) or len(cell) < 5:
-            return False
-        span2, span3 = _node(cell[2]), _node(cell[3])
-        rowspan = span2["c"] if span2 else cell[2]
-        colspan = span3["c"] if span3 else cell[3]
-        if rowspan != 1 or colspan != 1:
-            return True
-        return isinstance(cell[4], list) and len(cell[4]) > 1  # multi-block cell
-
-    def any_row_forces_html(rows: object) -> bool:
-        if not isinstance(rows, list):
-            return False
-        for row in rows:
-            if (
-                isinstance(row, list)
-                and len(row) > 1
-                and isinstance(row[1], list)
-                and any(cell_forces_html(cell) for cell in row[1])
-            ):
-                return True
-        return False
-
-    if isinstance(thead, list) and len(thead) > 1 and any_row_forces_html(thead[1]):
-        return True
-    if isinstance(tbodies, list):
-        for tbody in tbodies:
-            if isinstance(tbody, list) and len(tbody) > 3 and any_row_forces_html(tbody[3]):
-                return True
-    return False
+def _table_inlines(table: ir.Table) -> list[ir.Inline]:
+    return [inline for row in table.rows for cell in row for inline in cell]
 
 
 def _looks_like_biblio(t: ir.Table) -> bool:
     """A catalog/bibliography table to lift: a catalog signal (cover images / LitRes
-    / kindbook URLs) AND Pandoc would render it as an HTML table. A reading-content
+    / kindbook URLs) AND its source shape needs an HTML table. A reading-content
     grid (a pipe table) is never lifted, even if it embeds a thumbnail."""
     if not _renders_as_html_table(t):
         return False
-    raw = _raw_table_text(t.raw)
-    return '"Image"' in raw or "litres.ru" in raw or "kindbook.net" in raw
+    return any(
+        isinstance(inline, ir.ImageInline)
+        or (isinstance(inline, ir.Link) and _A_RE.search(inline.target))
+        for inline in walk_inlines(_table_inlines(t))
+    )
 
 
 _A_RE = re.compile(r"litres\.ru|kindbook\.net")
-
-
 def _resolve_target(title: str, slug_lookup: _SlugLookup) -> dict[str, object] | None:
     """Resolve a title to a `{kind, number}` target when the corpus knows it.
     The record stays an open dict (it travels into `doc.bibliography`)."""
@@ -158,34 +100,20 @@ def _resolve_target(title: str, slug_lookup: _SlugLookup) -> dict[str, object] |
 
 
 def _parse_biblio(t: ir.Table, slug_lookup: _SlugLookup) -> list[dict[str, object]]:
-    """Pull entries from the structured table by walking the raw Pandoc node for
-    store-link titles and (non-AI) cover-image alts."""
+    """Pull store-link titles and non-AI cover alts from structured cells."""
     titles: list[tuple[str, str | None]] = []
-
-    def walk(value: object) -> None:  # opaque Pandoc node
-        node = _node(value)
-        if node is not None:
-            payload = node.get("c")
-            if node.get("t") == "Link" and isinstance(payload, list) and len(payload) == 3:
-                _attr, label, target = payload
-                href = str(target[0]) if isinstance(target, list) and target else ""
-                if _A_RE.search(href):
-                    title = _flat(label)
-                    if title and len(title) >= 2:
-                        titles.append((title, href))
-            elif node.get("t") == "Image" and isinstance(payload, list) and len(payload) == 3:
-                _attr, label, _target = payload
-                alt = _flat(label)
-                if alt and len(alt) > 2 and not is_ai_alt(alt):
-                    titles.append((alt, None))
-            if isinstance(payload, list):
-                for v in payload:
-                    walk(v)
-        elif isinstance(value, list):
-            for v in value:
-                walk(v)
-
-    walk(t.raw)
+    for inline in walk_inlines(_table_inlines(t)):
+        if isinstance(inline, ir.Link) and _A_RE.search(inline.target):
+            title = inline_plain(inline.children).strip()
+            if len(title) >= 2:
+                titles.append((title, inline.target))
+        elif isinstance(inline, ir.ImageInline):
+            alt = inline.alt.strip()
+            if (
+                len(alt) > 2
+                and not is_unhelpful_image_alt(alt)
+            ):
+                titles.append((alt, None))
     out: list[dict[str, object]] = []
     seen: set[tuple[str, str]] = set()
     for title, href in titles:
@@ -201,23 +129,6 @@ def _parse_biblio(t: ir.Table, slug_lookup: _SlugLookup) -> list[dict[str, objec
             entry["target"] = target
         out.append(entry)
     return out
-
-
-def _flat(label: object) -> str:  # opaque Pandoc inline list; narrowed below
-    out: list[str] = []
-    for item in label if isinstance(label, list) else []:
-        n = _node(item)
-        if n is None:
-            continue
-        t = n.get("t")
-        c = n.get("c")
-        if t == "Str":
-            out.append(str(c))
-        elif t in {"Space", "SoftBreak", "LineBreak"}:
-            out.append(" ")
-        elif isinstance(c, list):
-            out.append(_flat(c))
-    return re.sub(r"\s+", " ", "".join(out)).strip()
 
 
 # ---------------------------------------------------------------------------

@@ -11,7 +11,6 @@ from pancratius.localization.typography import (
     normalize_literal_quotes,
     normalize_locale_text,
     normalize_quotes,
-    quote_marks,
 )
 
 __all__ = [
@@ -27,6 +26,5 @@ __all__ = [
     "normalize_literal_quotes",
     "normalize_locale_text",
     "normalize_quotes",
-    "quote_marks",
     "youtube_keys_for_locale",
 ]

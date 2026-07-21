@@ -1,8 +1,8 @@
 """Unit tests for the typed-IR import pipeline (ir / passes / lower).
 
-These exercise the pure stages directly on hand-built IR fixtures — no pandoc, no
-DOCX — so they run everywhere (``test_ir_adapter`` covers the adapter end-to-end
-where pandoc is available). They lock in the IR behaviours: dialogue-label
+These exercise the pure stages directly on hand-built IR fixtures — no DOCX — so
+they run everywhere (``test_docx_source_model`` covers the canonical reader and
+adapter boundary end-to-end). They lock in the IR behaviours: dialogue-label
 canonicalization (including the mixed-inline split the spike left unfinished),
 empty-emphasis artifact stripping, the bare-bibliography-heading strip, AI-alt
 scrubbing via the shared `AI_ALT_FRAGMENTS` constant, thematic breaks, verse
@@ -134,14 +134,14 @@ def test_bibliography_target_resolution_ignores_terminal_period() -> None:
 
 def test_inline_plain_flattens_emphasis_and_collapses_whitespace() -> None:
     inlines: list[ir.Inline] = [
-        ir.Text("a "), ir.Emphasis("strong", [ir.Text("b")]), ir.SoftBreak(), ir.Text("c"),
+        ir.Text("a "), ir.Emphasis("strong", [ir.Text("b")]), ir.Text(" "), ir.Text("c"),
     ]
     assert inline_plain(inlines) == "a b c"
 
 
 def test_inline_lines_splits_on_breaks() -> None:
     inlines: list[ir.Inline] = [
-        ir.Text("one"), ir.LineBreak(), ir.Text("two"), ir.SoftBreak(), ir.Text("three"),
+        ir.Text("one"), ir.LineBreak(), ir.Text("two"), ir.LineBreak(), ir.Text("three"),
     ]
     lines = inline_lines(inlines)
     assert [inline_plain(ln) for ln in lines] == ["one", "two", "three"]
@@ -200,6 +200,21 @@ def test_dialogue_label_inside_body_normal_word_keeps_join_space() -> None:
     ])
     out = structure.dialogue_labels([para])
     assert inline_plain(_para(out[1]).inlines) == "Смотри внимательно."
+
+
+def test_dialogue_label_keeps_footnote_before_closing_punctuation() -> None:
+    para = ir.Paragraph(inlines=[
+        ir.Emphasis("strong", [ir.Text("Панкратиус: глава 29")]),
+        ir.FootnoteRef(raw_index=5, id=5),
+        ir.Emphasis("strong", [ir.Text(".")]),
+    ])
+
+    out = structure.dialogue_labels([para])
+
+    assert isinstance(out[0], ir.DialogueLabel)
+    body = _para(out[1])
+    assert inline_plain(body.inlines) == "глава 29."
+    assert any(isinstance(inline, ir.FootnoteRef) for inline in body.inlines)
 
 
 def test_dialogue_label_ignores_non_speaker_strong() -> None:
@@ -272,7 +287,7 @@ def test_dialogue_inside_body_preserves_following_source_line() -> None:
     assert isinstance(out[0], ir.DialogueLabel)
     assert out[0].source_span == ir.SourceProvenance.for_lines((coordinates[0],))
     body = _para(out[1])
-    assert [inline_plain(line) for line in inline_lines(body.inlines, soft_break=False)] == [
+    assert [inline_plain(line) for line in inline_lines(body.inlines)] == [
         "Режим проводник. Оформление Свитка",
         "Евангелие Колеблющегося Света",
     ]
@@ -334,7 +349,7 @@ def test_strip_artifacts_keeps_break_of_break_only_emphasis() -> None:
 
 def test_strip_artifacts_drops_hidden_form_markers() -> None:
     blocks: list[ir.Block] = [
-        ir.Paragraph(inlines=[ir.Text("Н    ачало"), ir.SoftBreak(), ir.Text("формы")]),
+        ir.Paragraph(inlines=[ir.Text("Н    ачало формы")]),
         ir.Paragraph(inlines=[ir.Text("Конец формы")]),
         ir.Paragraph(inlines=[ir.Text("Beginning of the form")]),
         ir.Paragraph(inlines=[ir.Text("End of the form")]),
@@ -395,6 +410,17 @@ def test_scrub_chatgpt_citation_trailing_and_parenthesized() -> None:
     out = scrub.scrub_chatgpt_citations([trailing, parened])
     assert inline_plain(_para(out[0]).inlines) == "дхарму."
     assert inline_plain(_para(out[1]).inlines) == "жизнью."
+
+
+def test_scrub_chatgpt_citation_ignores_source_text_segmentation() -> None:
+    utm = "https://www.britannica.com/x?utm_source=chatgpt.com"
+    para = ir.Paragraph(inlines=[
+        ir.Text(value="before ("), _cite(utm), ir.Text(value=") after"),
+    ])
+
+    out = scrub.scrub_chatgpt_citations([para])
+
+    assert inline_plain(_para(out[0]).inlines) == "before after"
 
 
 def test_scrub_chatgpt_citation_keeps_author_conversation_links() -> None:
@@ -502,6 +528,41 @@ def test_strip_endmatter_drops_mid_document_bibliography_section() -> None:
 # ---------------------------------------------------------------------------
 # thematic breaks + heading demotion
 # ---------------------------------------------------------------------------
+
+
+def test_drop_toc_follows_indented_entries_inside_quote_container() -> None:
+    def entry(label: str) -> ir.Paragraph:
+        return ir.Paragraph(
+            inlines=[ir.Link([ir.Text(label)], f"#_{label}")],
+            facts=ir.SourceFacts(
+                generated=ir.GeneratedContentKind.TABLE_OF_CONTENTS
+            ),
+        )
+
+    blocks: list[ir.Block] = [
+        ir.Heading(level=1, inlines=[ir.Text("Contents")]),
+        entry("chapter-1"),
+        ir.QuoteBlock(blocks=[entry("section-1"), entry("section-2")]),
+        ir.Paragraph(
+            inlines=[],
+            facts=ir.SourceFacts(
+                empty=True,
+                generated=ir.GeneratedContentKind.TABLE_OF_CONTENTS,
+            ),
+        ),
+        ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True)),
+        ir.Heading(level=1, inlines=[ir.Text("Chapter 1")]),
+    ]
+
+    assert scrub.drop_toc(blocks) == [blocks[-1]]
+
+
+def test_drop_toc_keeps_authored_internal_anchor_links() -> None:
+    paragraph = ir.Paragraph(
+        inlines=[ir.Link([ir.Text("See chapter")], "#chapter")]
+    )
+
+    assert scrub.drop_toc([paragraph]) == [paragraph]
 
 
 @pytest.mark.parametrize("marker", ["***", "* * *", r"\*\*\*", "---", "----", "===", "___"])
@@ -716,6 +777,59 @@ def test_explicit_hard_break_lineation_survives_without_verse_register() -> None
     assert 'class="lineated verse"' not in body
 
 
+def test_terminal_hard_break_keeps_an_image_without_inventing_lineation() -> None:
+    image = ir.ImageInline(src="media/picture.jpg", alt="")
+    blocks: list[ir.Block] = [
+        ir.Paragraph(inlines=[image, ir.LineBreak()]),
+        ir.Paragraph(inlines=[ir.Text("following source row")]),
+    ]
+
+    out = lineation.fold_lineation(blocks)
+
+    assert out == blocks
+
+
+def test_hard_break_lineation_survives_inside_a_quote_container() -> None:
+    paragraph = ir.Paragraph(inlines=[
+        ir.Text("first quoted line"),
+        ir.LineBreak(),
+        ir.Text("second quoted line"),
+    ])
+
+    (result,) = lineation.fold_lineation([
+        ir.QuoteBlock(blocks=[paragraph]),
+    ])
+
+    assert isinstance(result, ir.QuoteBlock)
+    assert len(result.blocks) == 1
+    lineated = result.blocks[0]
+    assert isinstance(lineated, ir.LineatedBlock)
+    assert [[inline_plain(line.inlines) for line in stanza] for stanza in lineated.stanzas] == [
+        ["first quoted line", "second quoted line"],
+    ]
+
+
+def test_hard_break_lineation_survives_inside_a_list_item() -> None:
+    paragraph = ir.Paragraph(inlines=[
+        ir.Text("first listed line"),
+        ir.LineBreak(),
+        ir.Text("second listed line"),
+    ])
+
+    (result,) = lineation.fold_lineation([
+        ir.ListBlock(ordered=False, items=[[paragraph]]),
+    ])
+
+    assert isinstance(result, ir.ListBlock)
+    assert len(result.items) == 1
+    (lineated,) = result.items[0]
+    assert isinstance(lineated, ir.LineatedBlock)
+    assert [
+        [inline_plain(line.inlines) for line in stanza]
+        for stanza in lineated.stanzas
+    ] == [["first listed line", "second listed line"]]
+
+
 def test_blank_paragraph_is_internal_stanza_break_only_between_lineated_neighbors() -> None:
     prose = (
         "Это длинное прозаическое предложение закрывает lineated run and must "
@@ -872,22 +986,8 @@ def test_indented_strong_opener_callout_stays_prose() -> None:
 
 
 # ---------------------------------------------------------------------------
-# C2 / C3: the corrected line-splitting primitive
-# (SoftBreak = wrapping in verse detection; recurse into containers for hard breaks)
+# Line splitting recurses into containers for authored hard breaks.
 # ---------------------------------------------------------------------------
-
-
-def test_inline_lines_softbreak_is_space_in_verse_detection() -> None:
-    # C2: in verse DETECTION a SoftBreak is wrapping, so the inlines stay ONE line.
-    inlines: list[ir.Inline] = [
-        ir.Text("one"), ir.SoftBreak(), ir.Text("two"), ir.SoftBreak(), ir.Text("three"),
-    ]
-    lines = inline_lines(inlines, soft_break=False)
-    assert [inline_plain(ln) for ln in lines] == ["one two three"]
-    # A hard LineBreak STILL splits, even with soft_break=False.
-    inlines2: list[ir.Inline] = [ir.Text("a"), ir.LineBreak(), ir.Text("b")]
-    lines2 = inline_lines(inlines2, soft_break=False)
-    assert [inline_plain(ln) for ln in lines2] == ["a", "b"]
 
 
 def test_inline_lines_recurses_into_emphasis_for_nested_linebreaks() -> None:
@@ -900,26 +1000,13 @@ def test_inline_lines_recurses_into_emphasis_for_nested_linebreaks() -> None:
             ir.Text("Я — Свет."),
         ]),
     ]
-    lines = inline_lines(para_inlines, soft_break=False)
+    lines = inline_lines(para_inlines)
     assert [inline_plain(ln) for ln in lines] == [
         "Свет — не фотон.", "Фотон — отпечаток.", "Я — Свет.",
     ]
     # each surviving fragment is still an Emphasis span (emphasis preserved)
     for ln in lines:
         assert len(ln) == 1 and isinstance(ln[0], ir.Emphasis)
-
-
-def test_softbreak_only_paragraph_stays_prose() -> None:
-    # C2: a paragraph whose only breaks are SoftBreaks (prose wrapping, no <w:br/>)
-    # is NOT a verse candidate — a run of them stays prose, not a verse register.
-    blocks: list[ir.Block] = [
-        ir.Heading(level=2, inlines=[ir.Text("Глава")]),
-        ir.Paragraph(inlines=[ir.Text("Свет не был сотворён."), ir.SoftBreak(), ir.Text("Он не возник."), ir.SoftBreak(), ir.Text("Он — Есть.")]),
-        ir.Paragraph(inlines=[], facts=ir.SourceFacts(empty=True)),
-        ir.Paragraph(inlines=[ir.Text("Он не движется."), ir.SoftBreak(), ir.Text("Он просто светит.")]),
-    ]
-    out = register.promote_verse_register(lineation.fold_lineation(blocks))
-    assert not any(_is_verse(b) for b in out)
 
 
 def test_linebreak_in_emphasis_paragraph_becomes_verse() -> None:
@@ -1124,6 +1211,29 @@ def test_lower_real_ordered_list_still_renders_as_list() -> None:
     assert "1\\." not in body
 
 
+def test_lower_keeps_lineated_block_inside_its_list_item() -> None:
+    lineated = ir.LineatedBlock(stanzas=[[
+        ir.Line([ir.Text("first line")]),
+        ir.Line([ir.Text("second line")]),
+    ]])
+    listing = ir.ListBlock(ordered=True, items=[[lineated]])
+
+    body = lower.lower(ir.Document(blocks=[listing]), "ru", [])
+
+    lines = body.splitlines()
+    assert lines[0].startswith("1. ")
+    assert "first line" in body and "second line" in body
+    assert all(not line or line.startswith("   ") for line in lines[1:])
+
+
+def test_lower_preserves_authored_empty_list_items() -> None:
+    listing = ir.ListBlock(ordered=True, items=[[]], start=3)
+
+    body = lower.lower(ir.Document(blocks=[listing]), "ru", [])
+
+    assert body == "3.\n"
+
+
 def test_lower_lineated_block_emits_base_wrapper_with_hard_break_lines() -> None:
     # Lineated prose preserves authored line boundaries using the same two-space
     # hard-break encoding as verse, but carries only the base `.lineated` wrapper.
@@ -1287,9 +1397,8 @@ def test_lower_body_image_default_alt_and_hash_ref() -> None:
 
 # ---------------------------------------------------------------------------
 # Bug 2: literal Markdown/HTML in Text nodes is escaped at prose lowering
-# (Pandoc Str/Text values are LITERAL source text, not markup — emitting them
-# raw lets a DOCX literal become a real link/emphasis/HTML, like the OLD GFM
-# writer that DID escape them). The escaping applies ONLY to literal Text-node
+# (IR Text values are LITERAL source text, not markup — emitting them raw lets a
+# DOCX literal become a real link/emphasis/HTML). The escaping applies ONLY to literal Text-node
 # values, never to the intentional markup the IR nodes emit (Link/Emphasis/Code/
 # DirectionalSpan), so a real Link still renders as a working link.
 # ---------------------------------------------------------------------------
@@ -1357,6 +1466,18 @@ def test_intentional_emphasis_node_still_renders() -> None:
     assert "*that*" in body
 
 
+def test_nested_strong_inside_italic_has_unambiguous_delimiters() -> None:
+    doc = ir.Document(blocks=[ir.Paragraph(inlines=[
+        ir.Emphasis("emph", [
+            ir.Text("before "),
+            ir.Emphasis("strong", [ir.Text("bold")]),
+            ir.Text(" after"),
+        ]),
+    ])])
+
+    assert lower.lower(doc, "ru", []).strip() == "*before **bold** after*"
+
+
 def test_intentional_code_node_text_not_escaped() -> None:
     # Inline `Code` is literal-but-protected-by-backticks: its content is NOT
     # Markdown-escaped (backticks already make it literal), so a `*` inside code
@@ -1396,8 +1517,8 @@ def test_literal_markup_in_heading_text_is_escaped() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Bug 3 (now hardened by Fix A): a body-image asset `src` must stay UNDER the pandoc
-# media-extraction dir. An absolute `src` (e.g. `/etc/passwd`) or a `..`-escaping
+# Bug 3 (now hardened by Fix A): a body-image asset `src` must stay under the
+# importer media-extraction dir. An absolute `src` (e.g. `/etc/passwd`) or a `..`-escaping
 # `src` is REJECTED — the importer must never read/copy a file outside `media_root`.
 # Fix A makes this a FATAL local-image-unresolved diagnostic (blocking the write)
 # and DROPS the ref so no dangling/escaping path is emitted into the body.
@@ -1515,7 +1636,7 @@ def test_lower_unknown_block_preserves_text_and_emits_diagnostic() -> None:
 
 
 def test_lower_empty_unknown_block_still_emits_diagnostic() -> None:
-    # An unknown block with NO recoverable text (e.g. Pandoc Null) carries no
+    # An unknown block with no recoverable text carries no
     # reading content, but its presence is still surfaced as a diagnostic — the
     # importer never drops a block silently.
     doc = ir.Document(blocks=[ir.UnknownBlock(note="Null", text="")])
@@ -1559,24 +1680,6 @@ def test_inline_code_pure_backtick_content_is_space_padded() -> None:
     md = lower._inline_md(ir.Code("`"), "ru")
     # fence is at least 2 backticks; padded with single spaces around the content.
     assert md == "`` ` ``"
-
-
-def test_code_block_with_internal_fence_uses_longer_fence() -> None:
-    # SECURITY: a code block whose content contains a ``` line closes the block
-    # early under a FIXED triple-fence, leaking the remainder as raw Markdown. The
-    # fence must be longer than the longest internal backtick run.
-    cb = ir.CodeBlock(text="line one\n```\nstill code\n```")
-    md = lower._block_md(cb, "ru")
-    assert md is not None
-    fence = md.split("\n", 1)[0]
-    assert set(fence) == {"`"}
-    # The fence (4+ backticks) is strictly longer than the internal run of 3.
-    assert len(fence) >= 4
-    # The whole literal body is preserved between the fences.
-    assert "line one" in md
-    assert "still code" in md
-    # The closing fence equals the opening fence and is the last line.
-    assert md.rstrip().endswith(fence)
 
 
 # ---------------------------------------------------------------------------
@@ -1846,21 +1949,9 @@ def test_run_rejects_duplicate_pass_names() -> None:
         run(ir.Document(), Context(lang="ru"), (("x", noop), ("x", noop)))
 
 
-def test_quoted_inline_lowers_to_locale_marks() -> None:
-    # A `Quoted` carries quote SEMANTICS; the marks are locale typography. RU doubles are
-    # guillemets, EN doubles are American curly quotes; both single forms are language-specific.
-    double = ir.Quoted("double", [ir.Text("x")])
-    single = ir.Quoted("single", [ir.Text("y")])
-    assert lower._inline_md(double, "ru") == "«x»"
-    assert lower._inline_md(double, "en") == "“x”"
-    assert lower._inline_md(single, "ru") == "'y'"
-    assert lower._inline_md(single, "en") == "‘y’"
-
-
 def test_en_literal_guillemets_normalize_to_curly_doubles() -> None:
     # A literal guillemet typed into EN source is a mistyped quote (English has none) — it
-    # normalizes to the SAME curly double a `Quoted` lowers to, so EN output is consistent
-    # whichever way the author entered the quote. RU literal guillemets are preserved.
+    # normalizes to curly double quotes. RU literal guillemets are preserved.
     en = ir.Text("«word»")
     assert lower._inline_md(en, "en") == "“word”"
     assert lower._inline_md(en, "ru") == "«word»"

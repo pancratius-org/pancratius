@@ -41,7 +41,7 @@ class PlannedAsset:
     """
 
     rel_within: str  # bundle-relative POSIX path, e.g. "images/<hash>.<ext>"
-    source: Path  # the extracted pandoc media file to copy from
+    source: Path  # the extracted source-media file to copy from
     is_raster: bool  # raster (cap-eligible) vs vector/animated (copied verbatim)
 
 

@@ -9,7 +9,6 @@ no longer lands on a top-level prose paragraph FAILS the pass.
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 
 import pytest
@@ -18,11 +17,6 @@ from pancratius import docx_source, ir
 from pancratius.passes.pipeline import Context, ScripturePins, run
 from pancratius.passes.register import wrap_scripture
 from pancratius.scripture_overrides import load_overrides, overrides_path
-
-pandoc_required = pytest.mark.skipif(
-    shutil.which("pandoc") is None,
-    reason="pandoc is required for importer-backed DOCX paths",
-)
 
 
 def _write_docx(path: Path, paragraphs: list[str]) -> None:
@@ -166,7 +160,6 @@ def test_no_pins_is_the_shipped_rule_behavior() -> None:
 # --- end to end: importer pipeline + per-ordinal surfaces -------------------------------------
 
 
-@pandoc_required
 def test_pipeline_wraps_pinned_ordinal_and_fold_decisions_hold(tmp_path: Path) -> None:
     from pancratius.docx_structure import fold_decisions
 

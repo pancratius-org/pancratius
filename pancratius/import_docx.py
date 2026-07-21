@@ -874,7 +874,7 @@ def _apply(request: ImportRequest) -> tuple[ImportResult, WriteReport]:
     else:
         description = TODO_DESCRIPTION
 
-    # Stage into a disposable scratch root; the pandoc media dir is a sibling holding
+    # Stage into a disposable scratch root; the extracted-media dir is a sibling holding
     # the extracted body images, which must live until the writer copies them. Body
     # images reach src/content only via the writer, never the stage.
     stage_root = STAGE_ROOT / uuid.uuid4().hex

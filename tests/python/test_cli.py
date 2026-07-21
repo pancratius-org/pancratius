@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import shutil
 import sys
 import types
 from pathlib import Path
@@ -341,9 +340,13 @@ def test_work_import_missing_kind_is_usage_before_dispatch(monkeypatch: pytest.M
     assert dispatched is False
 
 
-def test_work_import_missing_pandoc_is_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_work_import_does_not_require_pandoc(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pancratius import import_docx
+
     monkeypatch.setattr(cli, "find_pandoc", lambda: None)
-    assert _exit_code(["work", "import", "x.docx", "--kind", "book", "--lang", "ru"]) == 1
+    monkeypatch.setattr(import_docx, "import_work", lambda _request: _fake_report())
+
+    assert _exit_code(["work", "import", "x.docx", "--kind", "book", "--lang", "ru"]) == 0
 
 
 def test_work_translate_selectors_dispatch_in_user_order(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -528,9 +531,17 @@ def test_project_page_add_artifact_contract_error_is_failure(
     assert "artifact weights sha256 mismatch" in capsys.readouterr().err
 
 
-def test_project_page_add_missing_pandoc_is_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_project_page_add_does_not_require_pandoc(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pancratius import docx_conversion
+
     monkeypatch.setattr(cli, "find_pandoc", lambda: None)
-    assert _exit_code(["project", "page", "add", "project:holy-rus/my-sub", "x.docx", "--lang", "ru"]) == 1
+    monkeypatch.setattr(
+        docx_conversion,
+        "scaffold_subpage",
+        lambda **_kwargs: _fake_report(),
+    )
+
+    assert _exit_code(["project", "page", "add", "project:holy-rus/my-sub", "x.docx", "--lang", "ru"]) == 0
 
 
 @pytest.mark.parametrize(
@@ -1112,14 +1123,13 @@ _FIXTURE_DOCX = ROOT / "legacy" / "books" / "ru" / "23-личность-и-эг�
 
 
 @pytest.mark.skipif(
-    shutil.which("pandoc") is None
-    or importlib.util.find_spec("PIL") is None
+    importlib.util.find_spec("PIL") is None
     or not _FIXTURE_DOCX.is_file(),
-    reason="pandoc, pillow, and the fixture DOCX are required",
+    reason="pillow and the fixture DOCX are required",
 )
 def test_work_import_dry_run_writes_nothing(tmp_path: Path) -> None:
     """Drive the genuine path (no monkeypatch): the door builds the request, calls
-    import_work, which converts via pandoc, plans, and dry-runs the writer. The
+    import_work, which reads the DOCX, plans, and dry-runs the writer. The
     writer-backed --dry-run must touch nothing — proven against a scratch content
     root, never the real corpus."""
     content_root = tmp_path / "src" / "content"
@@ -1138,10 +1148,9 @@ def test_work_import_dry_run_writes_nothing(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(
-    shutil.which("pandoc") is None
-    or importlib.util.find_spec("PIL") is None
+    importlib.util.find_spec("PIL") is None
     or not _FIXTURE_DOCX.is_file(),
-    reason="pandoc, pillow, and the fixture DOCX are required",
+    reason="pillow and the fixture DOCX are required",
 )
 def test_project_page_add_dry_run_writes_nothing(tmp_path: Path) -> None:
     """The genuine door → scaffold_subpage → writer path under --dry-run must touch
@@ -1161,10 +1170,9 @@ def test_project_page_add_dry_run_writes_nothing(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(
-    shutil.which("pandoc") is None
-    or importlib.util.find_spec("PIL") is None
+    importlib.util.find_spec("PIL") is None
     or not _FIXTURE_DOCX.is_file(),
-    reason="pandoc, pillow, and the fixture DOCX are required",
+    reason="pillow and the fixture DOCX are required",
 )
 def test_project_page_add_scaffolds_subpage_not_landing(tmp_path: Path) -> None:
     """A real (non-dry-run) scaffold writes the sub-page `<lang>.md` with the
@@ -1196,10 +1204,9 @@ def test_project_page_add_scaffolds_subpage_not_landing(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(
-    shutil.which("pandoc") is None
-    or importlib.util.find_spec("PIL") is None
+    importlib.util.find_spec("PIL") is None
     or not _FIXTURE_DOCX.is_file(),
-    reason="pandoc, pillow, and the fixture DOCX are required",
+    reason="pillow and the fixture DOCX are required",
 )
 @pytest.mark.parametrize(
     ("project", "subpage_slug"),

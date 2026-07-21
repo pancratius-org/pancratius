@@ -111,21 +111,12 @@ const FOLDED: readonly FoldedAudit[] = [
     repair: "Regenerate the lineated block from the DOCX AST through the converter.",
   },
   {
-    id: "PAN006B-book-verse",
-    script: "book_verse.py",
-    severity: "warning",
-    category: "conversion-fidelity",
-    contract: "Legacy diagnostic for book verse-register wrappers under the old conservative source-run rule. It is not the Q1 lineation oracle and not the split IR spec; every reported mismatch must be classified as Q1 lineation loss, Q2 register disagreement, or stale legacy-rule overreach before action.",
-    why: "Over-wrapped prose ships in the wrong voice; missed register may flatten a litany. The audit also keeps watching the signature/epigraph right-alignment drift class, but it cannot decide the new flowing/lineated-prose/verse ontology by itself.",
-    repair: "Inspect the DOCX source and rendered surface, classify the delta, then fix the owning layer: Q1 lineation, Q2 register promotion, or the legacy audit/golden expectation. Do not update committed Markdown solely to satisfy this diagnostic.",
-  },
-  {
     id: "PAN006B-source-text-fidelity",
     script: "source_text_fidelity.py",
     severity: "warning",
     category: "conversion-fidelity",
-    contract: "Converted Markdown preserves the source DOCX text (no dropped or duplicated passages).",
-    why: "A fidelity gap means the published work silently differs from the author's source.",
+    contract: "Converted Markdown preserves the canonical DOCX source model's readable text (no dropped or duplicated passages after parsing).",
+    why: "A fidelity gap means a transformation or committed output silently differs from the canonical source projection; this check does not independently validate OOXML parsing.",
     repair: "Compare the flagged work's Markdown to its DOCX and re-convert the affected span.",
   },
 ];

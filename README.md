@@ -44,7 +44,7 @@ The import pipeline is a bit compiler-shaped (frontend -> IR -> backend):
 
 ```txt
 DOCX
-  -> parse OOXML + Pandoc AST (DOCX frontend)
+  -> one canonical rich + physical source model (DOCX frontend)
   -> typed IR for blocks and their lines
   -> passes: filter, normalize, lineate and enrich using distilled models
   -> lowering to canonical Markdown + assets (Markdown backend)
@@ -52,8 +52,12 @@ DOCX
   -> content writer
 ```
 
-It reads Pandoc AST where it is strong and OOXML where Pandoc drops
-information.
+The semantic frontend opens the package once and derives each body/note view
+from one selected XML tree. Rich runs, links, notes, images, lists, and tables
+carry the same structural identity as paragraph breaks, styles, and layout
+evidence, so later passes never reconcile two interpretations of the document.
+Core metadata, validation, optimization, and rendering remain separate package
+operations rather than alternate content readers.
 
 The lineation model is a learned compiler pass. Its unit is a line 
 record with source identity, render physics, source context, and

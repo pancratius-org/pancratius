@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import shutil
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from types import SimpleNamespace
@@ -366,21 +365,10 @@ def test_pagination_only_is_excluded_without_breaking_semantic_adjacency(
         docx_source.ParagraphDisposition.NON_TEXT,
         docx_source.ParagraphDisposition.CONTENT,
     ]
-    assert [
-        paragraph.reconciliation_position.value
-        for paragraph in source.reconciliation_paragraphs
-        if paragraph.reconciliation_position is not None
-    ] == [0, 1, 2, 3]
-    assert source.paragraphs[1].reconciliation_position is None
+    assert source.content_ordinals == frozenset({0, 4})
+    assert source.semantic_ordinals == frozenset({0, 3, 4})
 
 
-pandoc_required = pytest.mark.skipif(
-    shutil.which("pandoc") is None,
-    reason="pandoc is required for importer-backed DOCX inspection",
-)
-
-
-@pandoc_required
 def test_docx_inspect_cli_smoke_with_temp_docx_fixture(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -396,7 +384,6 @@ def test_docx_inspect_cli_smoke_with_temp_docx_fixture(
     assert "Beta marker" in out
 
 
-@pandoc_required
 def test_docx_inspect_cli_contains_filter(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     source = tmp_path / "source.docx"
     _write_docx(source, ["Alpha opening", "Beta marker", "Gamma close"])
@@ -819,10 +806,17 @@ def test_structure_observation_separates_removed_from_lost(
             for ordinal in range(4)
         ),
     )
+    content_ordinal_reads = 0
+
+    def content_ordinals(_source: docx_source.DocxSourceDocument) -> frozenset[int]:
+        nonlocal content_ordinal_reads
+        content_ordinal_reads += 1
+        return frozenset(range(4))
+
     monkeypatch.setattr(
         type(source),
         "content_ordinals",
-        property(lambda _source: frozenset(range(4))),
+        property(content_ordinals),
     )
     monkeypatch.setattr("pancratius.docx_structure.da.adapt", lambda *_args: adapted)
     monkeypatch.setattr("pancratius.docx_structure.run", lambda *_args, **_kwargs: seam)
@@ -834,6 +828,7 @@ def test_structure_observation_separates_removed_from_lost(
     assert set(observation.by_line) == {_line(0), _line(1)}
     assert observation.removed == frozenset({2})
     assert observation.lost == frozenset({3})
+    assert content_ordinal_reads == 2
 
 
 def test_source_block_hits_reports_leaf_kind_and_enclosure() -> None:
@@ -856,7 +851,7 @@ def test_source_block_hits_reports_leaf_kind_and_enclosure() -> None:
     )
 
 
-def test_empty_reconciliation_leaf_proves_identity_but_not_a_rendered_line() -> None:
+def test_empty_source_leaf_proves_identity_but_not_a_rendered_line() -> None:
     anchor = ir.Paragraph(inlines=[], source_span=ir.SourceSpan(8, 8))
 
     hit = source_block_hits([anchor], {8})[8]
@@ -922,7 +917,6 @@ def test_source_line_hits_keep_mixed_paragraph_dispositions_separate() -> None:
     )
 
 
-@pandoc_required
 def test_en05_mixed_source_paragraph_has_per_line_fold_decisions() -> None:
     docx = next(
         (Path(__file__).resolve().parents[2] / "src/content/books").glob("05-*/en.docx")
@@ -940,7 +934,6 @@ def test_en05_mixed_source_paragraph_has_per_line_fold_decisions() -> None:
     assert not structural.by_line[_line(53, 2)].is_body_kind
 
 
-@pandoc_required
 def test_ru27_title_anchor_is_removed_context_not_uncovered_body() -> None:
     docx = next(
         (Path(__file__).resolve().parents[2] / "src/content/books").glob("27-*/ru.docx")
@@ -980,7 +973,6 @@ def test_fold_observer_stops_before_register_assignment(
     assert not seen[0][1].scripture.by_ordinal
 
 
-@pandoc_required
 def test_semantic_surfaces_do_not_expand_enclosing_span_over_pagination(
     tmp_path: Path,
 ) -> None:
@@ -1010,7 +1002,6 @@ def test_semantic_surfaces_do_not_expand_enclosing_span_over_pagination(
     assert _line(2) not in dict(observation.entries)
 
 
-@pandoc_required
 def test_fold_decisions_per_ordinal_surface(tmp_path: Path) -> None:
     """The per-`w:p`-ordinal prose/lineated surface the lineation gold joins on:
     prose stays False, an authored hard break is lineated regardless of Q2 register,
@@ -1042,12 +1033,10 @@ def test_fold_decisions_per_ordinal_surface(tmp_path: Path) -> None:
     assert decisions[_line(3)] is True and decisions[_line(4)] is True
 
 
-@pandoc_required
 def test_fold_decisions_cover_register_quote_members(tmp_path: Path) -> None:
-    """Register wrapping keeps fold coverage without conflating rendered hard lines:
-    both quote members remain Paragraphs, so both are flowing at the fold seam. The
-    hard break still renders as two-space lineation, independently test-pinned by
-    `test_quote_member_hard_breaks_become_display_lines`."""
+    """Register wrapping preserves the independent Q1 result for quote members:
+    the scripture member remains flowing, while both authored lines in the
+    left-rule member remain lineated inside the quote."""
     from docx import Document
     from docx.oxml.ns import qn
     from docx.text.paragraph import Paragraph as DocxParagraph
@@ -1082,11 +1071,10 @@ def test_fold_decisions_cover_register_quote_members(tmp_path: Path) -> None:
     decisions = fold_decisions(docx_source.read(path), lang="ru")
 
     assert decisions[_line(8)] is False
-    assert decisions[_line(9, 0)] is False
-    assert decisions[_line(9, 1)] is False
+    assert decisions[_line(9, 0)] is True
+    assert decisions[_line(9, 1)] is True
 
 
-@pandoc_required
 def test_fold_decisions_en_edition_mirrors_ru(tmp_path: Path) -> None:
     """The EN editions get the same per-ordinal surface: EN prose stays False,
     an EN speaker turn (`Answer from the Creator:`) is structure — absent, never

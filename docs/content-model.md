@@ -199,14 +199,15 @@ is Word paragraph structure: non-empty paragraphs are verse lines, empty
 paragraphs are stanza breaks, and in-paragraph line breaks are verse lines inside
 one stanza. Explicit page and column breaks are pagination, never lineation, and
 must not enter the block IR as hard line breaks; a paragraph carrying only
-pagination is not a structural empty paragraph or stanza boundary. The converter
-reads this through Pandoc's `docx+empty_paragraphs` AST and writes the
-generated-Markdown lineation shape above (two-space breaks within a stanza, blank
-line between stanzas). Do not run a blanket
-`blank-line-between-every-line -> single newline` collapse over Pandoc's GFM
-output; by then the stanza signal has already been blurred. The poetry stanza
-audit must fail if converted Markdown no longer matches the DOCX stanza
-structure.
+pagination is not a structural empty paragraph or stanza boundary. The canonical
+DOCX source model retains typed authored line breaks and structural empty
+paragraphs before any semantic folding. It writes the generated-Markdown
+lineation shape above (two-space breaks within a stanza, blank lines between
+stanzas). Do not infer stanza boundaries from lowered Markdown; by then the
+source distinction is unavailable. Compiler integration tests run the live poem
+import over the committed corpus and compare its stanza topology with the
+committed derived body. The separate lineation audit checks the published
+two-space break encoding without reading DOCX.
 
 The same source signal appears inside some books. Named sections such as
 `Посвящение`, `Предисловие от Творца`, `Слово Творца`, and `Молитва` are clear
@@ -249,15 +250,15 @@ wraps pinned paragraphs as scripture quote blocks; the hash is a rail (drift
 fails the import), and a pin that no longer lands on a top-level prose
 paragraph fails loudly rather than dissolve. Poems take no scripture sidecar.
 
-DOCX paragraph metadata is also source data. Pandoc's Markdown writer does not
-carry Word paragraph alignment or paragraph borders, so the converter reads
-`word/document.xml` directly for narrow semantic cases:
+DOCX paragraph metadata is also source data. The canonical source model owns
+paragraph alignment, borders, and styles alongside rich content, and semantic
+passes use those facts for narrow cases:
 
 - right-aligned signature paragraphs become `<p class="signature">`;
 - right-aligned scripture / epigraph groups become
   `<blockquote class="epigraph">`;
-- a standalone `***` line (escaped or unescaped in Pandoc output) becomes a
-  real Markdown thematic break.
+- a standalone `***` source paragraph or an authored VML horizontal rule becomes
+  a real Markdown thematic break.
 
 Do not infer these from rendered CSS, italic-only paragraphs, or arbitrary
 short-line runs. The signal must come from the DOCX structure or an explicit
@@ -265,10 +266,9 @@ source marker.
 
 Quotation marks are locale typography applied at import, not hand-edited into the
 derived Markdown (which a re-import would revert). Russian text uses guillemets
-(`«…»`); English text uses American curly double quotes (`“…”`). The rule covers
-both a parsed `Quoted` inline and a literal guillemet typed into English source
-(English has no guillemets, so it is a mistyped quote normalized to the same curly
-double). Single quotes follow the same locale split.
+(`«…»`); English text uses American curly double quotes (`“…”`). A literal
+guillemet typed into English source is normalized to the same curly double.
+Single quotes follow the same locale split.
 
 ### Display registers (set-apart blocks)
 
@@ -284,8 +284,8 @@ ordinary content, never as a register.
   and refs survive);
 - a contrastive **left-rule** run — an inset passage in a voice or provenance
   distinct from the body (dictation, framed reflection, commentary) — becomes
-  a plain Markdown blockquote (`>`), unifying with the Word Quote-style
-  channel Pandoc already lowers to `>`; member paragraphs stay distinct
+  a plain Markdown blockquote (`>`), unifying with the canonical reader's Word
+  Quote-style channel; member paragraphs stay distinct
   (separated by a bare `>` line) and authored hard breaks inside members stay
   two-space display lines.
 

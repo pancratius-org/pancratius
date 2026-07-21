@@ -286,10 +286,10 @@ uv sync --extra embed
 ```
 
 The CLI lazy-imports those owners and prints the relevant extra hint when the
-stack is missing. The dev environment carries `pypandoc-binary` so import and
-round-trip checks run without a system Pandoc. Local download rendering still
-needs system tools such as typst, and may use a system pandoc when maintainers
-choose one explicitly.
+stack is missing. The dev environment carries `pypandoc-binary` for translation
+and round-trip checks; DOCX import does not require Pandoc. Local download
+rendering still needs system tools such as typst, and may use a system pandoc when
+maintainers choose one explicitly.
 
 ## Invariants
 
