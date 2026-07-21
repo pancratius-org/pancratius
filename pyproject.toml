@@ -72,7 +72,7 @@ markers = [
 [tool.ruff]
 target-version = "py313"
 line-length = 100
-include = ["pancratius/**/*.py", "audit/**/*.py", "tests/python/**/*.py"]
+include = ["pancratius/**/*.py", "audit/**/*.py", "tests/python/**/*.py", "tests/tools/**/*.py"]
 extend-exclude = ["audit/fixtures"]
 
 [tool.ruff.lint]
@@ -115,10 +115,10 @@ suppress-none-returning = false
 
 [tool.ty.environment]
 python-version = "3.13"
-root = ["pancratius", "audit", "tests/python"]
+root = ["pancratius", "audit", "tests/python", "tests/tools"]
 
 [tool.ty.src]
-include = ["pancratius", "audit", "tests/python"]
+include = ["pancratius", "audit", "tests/python", "tests/tools"]
 exclude = ["audit/fixtures"]
 
 [tool.ty.rules]

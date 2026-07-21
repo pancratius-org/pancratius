@@ -5,7 +5,6 @@ from typing import Literal
 
 from pancratius.locales import Locale
 
-type QuoteKind = Literal["double", "single"]
 type Script = Literal["russian-cyrillic", "latin"]
 
 
@@ -23,10 +22,6 @@ class LocaleProfile:
     youtube_keys: tuple[str, ...]
     double_quotes: QuoteMarks
     single_quotes: QuoteMarks
-
-    def quote_marks(self, kind: QuoteKind) -> QuoteMarks:
-        return self.double_quotes if kind == "double" else self.single_quotes
-
 
 _PROFILES: dict[Locale, LocaleProfile] = {
     "ru": LocaleProfile(

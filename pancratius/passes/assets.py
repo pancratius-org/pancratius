@@ -58,7 +58,7 @@ def _is_image_path(p: str) -> bool:
 
 
 def _escapes_media_root(src: str, media_root: Path) -> bool:
-    """True if `src` resolves OUTSIDE the pandoc media-extraction dir.
+    """True if `src` resolves OUTSIDE the canonical media-extraction dir.
 
     The real-path confinement: `(media_root / src).resolve()` (absolute `src`
     overrides `media_root` under `Path.__truediv__`, so an absolute path resolves to
@@ -67,7 +67,7 @@ def _escapes_media_root(src: str, media_root: Path) -> bool:
     style root is normalized. `..` in the path parts is treated as escaping too
     (defense-in-depth for the parent-traversal intent, even where it would resolve
     back). This is what stops an `src` like `/etc/passwd` or `../../secret` from
-    being read/copied — WITHOUT rejecting the absolute-but-in-root paths Pandoc
+    being read/copied — WITHOUT rejecting absolute-but-in-root scratch paths the reader
     legitimately emits (`<media_root>/media/imageN.jpg`)."""
     if ".." in PurePosixPath(src).parts:
         return True
@@ -130,7 +130,7 @@ def plan_assets(
     and return the rebuilt document plus the deduped `PlannedAsset`s for the
     writer to copy.
 
-    `media_root` is the directory pandoc extracted media into. An image whose source
+    `media_root` is the directory the canonical reader extracted media into. An image whose source
     is a safe REMOTE url (http/https) is kept as-is. A LOCAL image whose source does
     NOT resolve to a safe readable file UNDER `media_root` — a missing in-root ref,
     or an absolute / `..`-escaping path — is FATAL (docs/import-pipeline.md: "an

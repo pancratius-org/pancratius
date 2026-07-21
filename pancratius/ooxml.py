@@ -1,10 +1,9 @@
 # import-pure: no filesystem mutation
-"""Shared OOXML helpers.
+"""Shared OOXML package and namespace helpers.
 
-The importer reads paragraph-level Word signals that Pandoc Markdown cannot
-carry. The translated-DOCX transfer also serializes edited XML parts, so this
-module owns the namespace registration instead of relying on import-time side
-effects from one DOCX command.
+The canonical reader and translated-DOCX transfer both need exact namespace and
+relationship handling.  This module owns those mechanics without assigning
+document or product semantics.
 """
 
 from __future__ import annotations
@@ -20,11 +19,16 @@ from urllib.parse import quote, unquote, urlsplit
 from xml.sax.saxutils import quoteattr
 
 MC_NS = "http://schemas.openxmlformats.org/markup-compatibility/2006"
+M_NS = "http://schemas.openxmlformats.org/officeDocument/2006/math"
+O_NS = "urn:schemas-microsoft-com:office:office"
 REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
 R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+V_NS = "urn:schemas-microsoft-com:vml"
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 WP_NS = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
 PIC_NS = "http://schemas.openxmlformats.org/drawingml/2006/picture"
+A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
+ASVG_NS = "http://schemas.microsoft.com/office/drawing/2016/SVG/main"
 XML_NS = "http://www.w3.org/XML/1998/namespace"
 HYPERLINK_REL_TYPE = f"{R_NS}/hyperlink"
 EMBED_REL_TYPES = frozenset({
@@ -405,7 +409,7 @@ def serialize_xml(
     snapshot = _namespace_registry_snapshot()
     try:
         # Canonical/supplied bindings win for element names. Lexical aliases
-        # are closed separately below, so they cannot rename Pandoc's QNames.
+        # are closed separately below, so they cannot rename serialized QNames.
         lexical_prefixes = {binding.prefix for binding in desired}
         registry_source_bindings = tuple(
             binding

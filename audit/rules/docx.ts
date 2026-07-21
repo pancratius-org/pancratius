@@ -18,7 +18,7 @@ export const pan010DocxIntegrity: Rule = {
       repair:
         "Restore the affected DOCX from the author/source archive or regenerate it through the first-class DOCX tooling, then re-import and rebuild derived artifacts.",
       doNotFixBy:
-        "Treating Pandoc readability as sufficient; source DOCX integrity must be checked before trusting derived content.",
+        "Treating a successful semantic import as package validation; source DOCX integrity must be checked before trusting derived content.",
     });
   },
 };

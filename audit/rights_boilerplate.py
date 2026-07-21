@@ -132,11 +132,10 @@ def markdown_notices(markdown: str) -> tuple[tuple[int, str], ...]:
 
 
 def docx_restrictions(docx: Path) -> tuple[tuple[int, str], ...]:
-    """Restrictive standalone notices in every selected body-story paragraph."""
+    """Restrictive standalone notices in the canonical body paragraph stream."""
     hits: list[tuple[int, str]] = []
-    contents = docx_source.read_story(docx, docx_source.StoryPart.DOCUMENT)
-    for position, content in enumerate(contents):
-        text = content.reading.strip()
+    source = docx_source.read(docx)
+    for position, text in enumerate(source.body_readings):
         if classify_rights_boilerplate_notice(text) in DOCX_RESTRICTIONS:
             hits.append((position, text))
     return tuple(hits)

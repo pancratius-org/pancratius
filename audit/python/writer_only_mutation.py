@@ -13,9 +13,10 @@ truth — later phases add the marker to the parser/normalizer/lowerer and they 
 automatically covered) and asserts each marked module contains NO filesystem-
 mutation call:
 
-  - attribute calls: ``.write_text``, ``.write_bytes``, ``.mkdir``,
-    ``shutil.copy*``, ``shutil.move``, ``shutil.rmtree``, ``os.replace``,
-    ``os.remove``, ``os.rename``, ``os.unlink``, ``os.makedirs``, ``Path.touch``;
+  - path methods: ``.write_text``, ``.write_bytes``, ``.mkdir``, ``.touch``,
+    ``.unlink``, plus ``Path.replace`` and ``Path.rename`` on a path-typed value;
+  - qualified ``shutil.copy*``/``move``/``rmtree`` and
+    ``os.replace``/``remove``/``rename``/``unlink``/``makedirs`` calls;
   - ``open(..., mode)`` where mode requests writing (``w``/``a``/``x`` or a
     binary/plus variant of those).
 
@@ -40,27 +41,29 @@ from pathlib import Path
 # The marker a module carries to declare it is in the pure import boundary.
 PURITY_MARKER = "# import-pure: no filesystem mutation"
 
-# Mutation attribute-call names (the method/function on the right of a dot).
-MUTATING_ATTRS: frozenset[str] = frozenset(
-    {
-        "write_text",
-        "write_bytes",
-        "mkdir",
-        "makedirs",
-        "touch",
-        "replace",  # os.replace / Path.replace
-        "remove",
-        "rename",  # os.rename / Path.rename
-        "unlink",
-        "rmtree",
-        "move",
-        "copy",
-        "copy2",
-        "copyfile",
-        "copytree",
-        "copyfileobj",
-    }
-)
+PATH_MUTATING_METHODS = frozenset({
+    "write_text",
+    "write_bytes",
+    "mkdir",
+    "touch",
+    "unlink",
+    "rmdir",
+})
+PATH_AMBIGUOUS_METHODS = frozenset({"replace", "rename"})
+FILESYSTEM_FUNCTIONS = frozenset({
+    "os.makedirs",
+    "os.remove",
+    "os.rename",
+    "os.replace",
+    "os.unlink",
+    "shutil.copy",
+    "shutil.copy2",
+    "shutil.copyfile",
+    "shutil.copyfileobj",
+    "shutil.copytree",
+    "shutil.move",
+    "shutil.rmtree",
+})
 
 # `open(path, mode)` is a write when the mode contains any of these.
 WRITE_MODE_CHARS = frozenset("wax")
@@ -131,15 +134,102 @@ def _write_open(call: ast.Call) -> bool:
     return any(ch in WRITE_MODE_CHARS for ch in mode_node.value)
 
 
+def _import_aliases(tree: ast.Module) -> dict[str, str]:
+    aliases: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                local = alias.asname or alias.name.split(".", 1)[0]
+                aliases[local] = alias.name
+        elif isinstance(node, ast.ImportFrom) and node.module is not None:
+            for alias in node.names:
+                aliases[alias.asname or alias.name] = f"{node.module}.{alias.name}"
+    return aliases
+
+
+def _qualified_name(node: ast.expr, aliases: dict[str, str]) -> str | None:
+    if isinstance(node, ast.Name):
+        return aliases.get(node.id, node.id)
+    if isinstance(node, ast.Attribute):
+        owner = _qualified_name(node.value, aliases)
+        return f"{owner}.{node.attr}" if owner is not None else None
+    return None
+
+
+def _annotation_mentions_path(annotation: ast.expr | None) -> bool:
+    return annotation is not None and any(
+        isinstance(node, ast.Name) and node.id in {"Path", "PurePath"}
+        or isinstance(node, ast.Attribute) and node.attr in {"Path", "PurePath"}
+        or isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and ("Path" in node.value or "PurePath" in node.value)
+        for node in ast.walk(annotation)
+    )
+
+
+def _is_path_expr(
+    node: ast.expr,
+    aliases: dict[str, str],
+    path_names: set[str],
+) -> bool:
+    if isinstance(node, ast.Name):
+        return node.id in path_names
+    if isinstance(node, ast.Call):
+        called = _qualified_name(node.func, aliases)
+        if called in {"pathlib.Path", "pathlib.PurePath"}:
+            return True
+        if isinstance(node.func, ast.Attribute) and node.func.attr in {
+            "absolute",
+            "joinpath",
+            "resolve",
+            "with_name",
+            "with_stem",
+            "with_suffix",
+        }:
+            return _is_path_expr(node.func.value, aliases, path_names)
+    return (
+        isinstance(node, ast.BinOp)
+        and isinstance(node.op, ast.Div)
+        and _is_path_expr(node.left, aliases, path_names)
+    )
+
+
+def _path_bound_names(tree: ast.Module) -> set[str]:
+    names = {
+        node.arg
+        for node in ast.walk(tree)
+        if isinstance(node, ast.arg) and _annotation_mentions_path(node.annotation)
+    }
+    names.update(
+        node.target.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.AnnAssign)
+        and isinstance(node.target, ast.Name)
+        and _annotation_mentions_path(node.annotation)
+    )
+    return names
+
+
 def _mutations(tree: ast.Module) -> list[MutationCall]:
     """Return every mutation call found."""
+    aliases = _import_aliases(tree)
+    path_names = _path_bound_names(tree)
     hits: list[MutationCall] = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
         func = node.func
-        if isinstance(func, ast.Attribute) and func.attr in MUTATING_ATTRS:
+        qualified = _qualified_name(func, aliases)
+        if qualified in FILESYSTEM_FUNCTIONS:
+            hits.append(MutationCall(node.lineno, f"{qualified}(...)"))
+        elif isinstance(func, ast.Attribute) and func.attr in PATH_MUTATING_METHODS:
             hits.append(MutationCall(node.lineno, f".{func.attr}(...)"))
+        elif (
+            isinstance(func, ast.Attribute)
+            and func.attr in PATH_AMBIGUOUS_METHODS
+            and _is_path_expr(func.value, aliases, path_names)
+        ):
+            hits.append(MutationCall(node.lineno, f"Path.{func.attr}(...)"))
         elif _write_open(node):
             hits.append(MutationCall(node.lineno, "open(..., write-mode)"))
     return hits

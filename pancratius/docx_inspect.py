@@ -28,8 +28,6 @@ from __future__ import annotations
 
 import re
 import tempfile
-import xml.etree.ElementTree as ET
-import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, assert_never
@@ -528,22 +526,10 @@ def inspect_docx(docx: Path, options: InspectOptions | None = None) -> InspectRe
         source = docx_source.read(docx)
         rows = read_rows(source)
         classifications = annotate(rows, source)
-    except zipfile.BadZipFile as exc:
-        raise DocxInspectError(f"{docx} is not a valid ZIP/DOCX package") from exc
-    except KeyError as exc:
-        raise DocxInspectError(f"{docx} is missing required DOCX part: {exc}") from exc
-    except ET.ParseError as exc:
-        raise DocxInspectError(f"{docx} contains malformed DOCX XML: {exc}") from exc
     except docx_source.DocxSourceError as exc:
         raise DocxInspectError(str(exc)) from exc
     except RuntimeError as exc:
         raise DocxInspectError(exc) from exc
-    except FileNotFoundError as exc:
-        if exc.filename == "pandoc":
-            raise DocxInspectError(
-                "pandoc not found on PATH; install with `brew install pandoc`."
-            ) from exc
-        raise
     selected = select_rows(rows, options)
     return InspectResult(
         docx=docx,

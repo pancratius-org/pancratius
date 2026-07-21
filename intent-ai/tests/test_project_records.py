@@ -17,17 +17,15 @@ def _paragraph(
 ) -> docx_source.SourceParagraph:
     return docx_source.SourceParagraph(
         ordinal=docx_source.ParagraphOrdinal(ordinal),
-        reconciliation_position=docx_source.ReconciliationPosition(ordinal),
         semantics=docx_source.ParagraphSemantics(
             content=docx_source.ParagraphContent(atoms),
             page_break_before=False,
         ),
-        resolved_style="Normal",
-        direct_style="Normal",
-        layout=docx_source.ParagraphLayout(),
-        contextual_spacing=False,
+        presentation=docx_source.SourceParagraphPresentation(
+            resolved_style="Normal",
+            direct_style="Normal",
+        ),
         indent_departure=False,
-        border=docx_source.BorderGesture.NONE,
         markers=docx_source.ParagraphMarkers(),
         segment=docx_source.SourceSegment(0),
         bold=False,

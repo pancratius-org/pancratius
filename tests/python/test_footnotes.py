@@ -1,17 +1,4 @@
-"""Tests for the pure footnote module + the FATAL-on-unresolved-ref boundary.
-
-Covers three things Phase 4 introduced:
-
-  * `lib.footnotes.analyze_footnotes` — orphaned ref → fatal, unused def →
-    warning, duplicate id → warning, clean doc → no diagnostics.
-  * `lib.footnotes.extract_footnote_defs` / `reattach_footnote_defs` — the
-    lift/re-append the converter uses so Pandoc's tail definitions survive the
-    bibliography stripping (round-trip + multi-line continuation).
-  * the integration: a genuinely orphaned reference (no def even in the source)
-    produces a fatal diagnostic in the plan and the writer REFUSES — nothing is
-    written. This is the safety net that makes the orphaned-marker bug class
-    impossible to ship again.
-"""
+"""Final footnote diagnostics and the FATAL-on-unresolved-ref boundary."""
 
 from __future__ import annotations
 
@@ -71,50 +58,6 @@ def test_no_footnotes_at_all_is_clean() -> None:
 
 def has_warning(diags: list[footnotes.FootnoteDiagnostic], code: str, needle: str) -> bool:
     return any(d.severity == "warning" and d.code == code and needle in d.message for d in diags)
-
-
-# ---------------------------------------------------------------------------
-# extract / reattach round-trip
-# ---------------------------------------------------------------------------
-
-def test_extract_lifts_defs_and_keeps_references() -> None:
-    md = "Body line.[^1]\n\nMore body.\n\n[^1]: the definition.\n"
-    stripped, defs = footnotes.extract_footnote_defs(md)
-    assert "[^1]:" not in stripped  # definition lifted out
-    assert "[^1]" in stripped  # inline reference survives
-    assert [d.id for d in defs] == ["1"]
-    assert defs[0].text == "[^1]: the definition."
-
-
-def test_reattach_round_trips_after_intervening_strip() -> None:
-    """The converter strips the body between extract and reattach; the defs must
-    land back at the tail with every reference still resolvable."""
-    md = "A.[^1] B.[^2]\n\n## Библиография\n\nstuff\n\n[^1]: one.\n\n[^2]: two.\n"
-    stripped, defs = footnotes.extract_footnote_defs(md)
-    # Simulate the bibliography-to-EOF strip that used to eat the defs.
-    truncated = stripped.split("## Библиография")[0].rstrip() + "\n"
-    result = footnotes.reattach_footnote_defs(truncated, defs)
-    assert footnotes.analyze_footnotes(result) == []
-    assert result.rstrip().endswith("[^2]: two.")
-
-
-def test_extract_handles_multiline_continuation() -> None:
-    """A definition with indented continuation lines is extracted as one block."""
-    md = (
-        "Ref.[^1]\n\n"
-        "[^1]: first line of the note\n"
-        "    continued, indented line\n"
-        "    and a third\n"
-    )
-    _stripped, defs = footnotes.extract_footnote_defs(md)
-    assert len(defs) == 1
-    assert "continued, indented line" in defs[0].text
-    assert "and a third" in defs[0].text
-
-
-def test_reattach_no_defs_is_identity() -> None:
-    md = "Just body.\n"
-    assert footnotes.reattach_footnote_defs(md, []) == md
 
 
 # ---------------------------------------------------------------------------

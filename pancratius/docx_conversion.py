@@ -6,6 +6,7 @@ import unicodedata
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from enum import StrEnum
 from pathlib import Path, PurePosixPath
 from typing import Any, Literal
 
@@ -29,6 +30,7 @@ from pancratius.locales import Locale
 from pancratius.passes import assets
 from pancratius.passes.pipeline import (
     POEM_PASSES,
+    POST_FOLD_SEAM,
     BibliographyLookup,
     Context,
     LineationCorrections,
@@ -36,7 +38,7 @@ from pancratius.passes.pipeline import (
     run,
 )
 from pancratius.paths import CACHE_ROOT
-from pancratius.poem_chrome import PoemChrome, clean_poem_chrome
+from pancratius.poem_chrome import PoemChrome, clean_poem_chrome, poem_title_key
 from pancratius.writeplan import (
     AssetTransform,
     CopyOp,
@@ -77,6 +79,22 @@ class ConvertedDocx:
     poem_chrome: PoemChrome | None = None
 
 
+class CompilationSeam(StrEnum):
+    ADAPTED = "adapted"
+    POST_LINEATION = "post_lineation"
+    COMPILED = "compiled"
+
+
+@dataclass(frozen=True)
+class CompilationObservation:
+    seam: CompilationSeam
+    document: ir.Document
+    diagnostics: tuple[ir.Diagnostic, ...]
+
+
+type CompilationObserver = Callable[[CompilationObservation], None]
+
+
 # ---------------------------------------------------------------------------
 # slug
 # ---------------------------------------------------------------------------
@@ -103,24 +121,6 @@ def to_ascii_slug(value: str) -> str:
     return _SLUG_DASHES.sub("-", s).strip("-")
 
 
-# ---------------------------------------------------------------------------
-# poem source-duplicate-title strip (uses OOXML paragraph signals)
-# ---------------------------------------------------------------------------
-
-
-def _poem_title_key(s: str) -> str:
-    """A loose comparison key for a poem title: markup, a trailing style note, and
-    edge punctuation removed, case-folded. Note-tolerant so a self-sufficient DOCX
-    title line ("Весна (в духе Есенина)") keys equal to the frontmatter title
-    ("Весна") — the note lives in frontmatter, the title carries it for display."""
-    s = re.sub(r"<[^>]+>", "", s)
-    s = re.sub(r"\s*\(\s*в\s+(?:духе|стиле)\b[^)]*\)", "", s, flags=re.IGNORECASE)
-    s = re.sub(r"^[#>*_`\s-]+|[*_`\s-]+$", "", s.strip())
-    s = s.replace("…", "...")
-    s = re.sub(r"[.,;:!?]+$", "", s)
-    return re.sub(r"\s+", " ", s).casefold().strip()
-
-
 def _strip_source_duplicate_poem_title(
     body: str,
     title: str,
@@ -128,18 +128,17 @@ def _strip_source_duplicate_poem_title(
 ) -> str:
     """Drop the leading title paragraph from a poem body.
 
-    One rule, shared with the stanza oracle: the leading DOCX paragraph is the title
-    iff it is BOLD. An incipit poem (where the first verse line is the title) has no
-    bold paragraph, so its first line is plain verse and is kept. The title-key match
-    is a safety guard against a future messy import bolding a stray line.
+    The leading DOCX paragraph is the title iff it is bold. An incipit poem
+    (where the first verse line is the title) has no bold paragraph, so its first
+    line is kept. The title-key match prevents a stray bold line from being dropped.
     """
-    key = _poem_title_key(title)
+    key = poem_title_key(title)
     first = next((paragraph for paragraph in docx_paras if not paragraph.empty), None)
-    if not key or first is None or not first.bold or _poem_title_key(first.text) != key:
+    if not key or first is None or not first.bold or poem_title_key(first.text) != key:
         return body
 
     blocks = re.split(r"\n\s*\n", body.strip(), maxsplit=1)
-    if not blocks or _poem_title_key(blocks[0]) != key:
+    if not blocks or poem_title_key(blocks[0]) != key:
         return body
     rest = blocks[1] if len(blocks) > 1 else ""
     return rest.lstrip() + ("\n" if rest and not rest.endswith("\n") else "")
@@ -228,16 +227,46 @@ def convert_single_docx(
     """Convert one DOCX into author-facing Markdown body + sidecar data + planned
     body assets, through the typed-IR pipeline (adapter → passes → lower).
 
-    Copies no media: pandoc extracts into the caller's persistent `media_out` and the
-    returned `ConvertedDocx.assets` reference those files, so `media_out` must outlive
-    this call until the writer copies them. Pure after the adapter.
+    Copies no committed media: the canonical reader carries package image bytes,
+    the adapter materializes them in the caller's scratch `media_out`, and the
+    returned assets reference those files until the writer copies them. Pure
+    after the adapter.
     """
+    return convert_source(
+        docx_source.read(docx),
+        kind=kind,
+        lang=lang,
+        work_key=work_key,
+        title=title,
+        title_index=title_index,
+        media_out=media_out,
+    )
+
+
+def convert_source(
+    source: docx_source.DocxSourceDocument,
+    *,
+    kind: DocxConversionKind,
+    lang: Locale,
+    work_key: str,
+    title: str,
+    title_index: dict[str, IndexHit],
+    media_out: Path,
+    observe: CompilationObserver | None = None,
+) -> ConvertedDocx:
+    """Run the production compiler from an already parsed source aggregate."""
     media_out.mkdir(parents=True, exist_ok=True)
-    source = docx_source.read(docx)
+    docx = source.path
     # ONE diagnostics sink for the whole conversion: the adapter, every pass (via
     # `Context`), and the backend tail all append into it.
     diagnostics: ir.DiagnosticSink = []
     doc = docx_adapter.adapt(source, media_out, diagnostics)
+    if observe is not None:
+        observe(CompilationObservation(
+            CompilationSeam.ADAPTED,
+            doc,
+            tuple(diagnostics),
+        ))
 
     if kind == "poem":
         # Verse end-to-end: skip heading demotion, bibliography lift, and verse
@@ -251,6 +280,12 @@ def convert_single_docx(
             raise ValueError(f"poem import: {stray.name} found beside {docx.name}, but poems "
                              f"take no scripture pins — remove it")
         doc = run(doc, Context(lang=lang, diagnostics=diagnostics), POEM_PASSES)
+        if observe is not None:
+            observe(CompilationObservation(
+                CompilationSeam.POST_LINEATION,
+                doc,
+                tuple(diagnostics),
+            ))
     else:
         register_policy = register_artifacts.load_register_policy_for(lang)
         if isinstance(register_policy, register_artifacts.UnsupportedLanguageRegisterPolicyLoad):
@@ -261,15 +296,36 @@ def convert_single_docx(
                 f"register model rollout for {bundle} covers {supported}; "
                 f"{lang} uses rules fallback",
             ))
-        doc = run(doc, Context(
-            lang=lang,
-            demote_levels=1,
-            bibliography=BibliographyLookup(title_index),
-            register_policy=register_policy.policy,
-            lineation=LineationCorrections(lineation_overrides.load_overrides(source)),
-            scripture=ScripturePins(scripture_overrides.load_overrides(source)),
-            rights=rights_boilerplate.plan_rights_removal(source),
-            diagnostics=diagnostics,
+        def observe_pass(name: str, current: ir.Document) -> None:
+            if observe is not None and name == POST_FOLD_SEAM:
+                observe(CompilationObservation(
+                    CompilationSeam.POST_LINEATION,
+                    current,
+                    tuple(diagnostics),
+                ))
+
+        doc = run(
+            doc,
+            Context(
+                lang=lang,
+                demote_levels=1,
+                bibliography=BibliographyLookup(title_index),
+                register_policy=register_policy.policy,
+                lineation=LineationCorrections(
+                    lineation_overrides.load_overrides(source)
+                ),
+                scripture=ScripturePins(scripture_overrides.load_overrides(source)),
+                rights=rights_boilerplate.plan_rights_removal(source),
+                diagnostics=diagnostics,
+            ),
+            observe=observe_pass if observe is not None else None,
+        )
+
+    if observe is not None:
+        observe(CompilationObservation(
+            CompilationSeam.COMPILED,
+            doc,
+            tuple(diagnostics),
         ))
 
     doc, planned_assets = assets.plan_assets(doc, media_out, diagnostics)
@@ -283,16 +339,13 @@ def convert_single_docx(
         )
         body, poem_chrome = clean_poem_chrome(body)
     refs = cross_refs.extract_cross_refs(body, work_key, title_index)
-    # Forward pandoc warnings plus any surfaced warning/fatal diagnostic, so the
-    # documented "fail loud" actually fires.
+    # Forward every surfaced warning/fatal diagnostic so the documented
+    # "fail loud" contract actually fires.
     warning_messages = [
-        d.message for d in diagnostics if d.code == "import.pandoc-warn"
-    ]
-    warning_messages.extend(
         f"[{d.code}] {d.message}"
         for d in diagnostics
         if d.severity in {"warning", "fatal"}
-    )
+    ]
     warnings = "\n".join(warning_messages)
     return ConvertedDocx(
         body=body,
@@ -457,7 +510,7 @@ def scaffold_subpage(
     content_root = Path(out_content).expanduser().resolve()
     scope = PurePosixPath("projects") / project / "subpages" / subpage_slug
 
-    # Stage into a disposable scratch root; the pandoc media dir is a sibling that must
+    # Stage into a disposable scratch root; the extracted-media dir is a sibling that must
     # live until the writer copies the body images, cleaned in `finally`.
     stage_root = CACHE_ROOT / "subpage-stage" / uuid.uuid4().hex
     stage_dir = stage_root / scope.name

@@ -14,7 +14,7 @@ from pancratius.passes.structure import DIALOGUE_PREFIXES
 
 # A display line longer than this is prose-length, not verse: it separates genuine
 # verse lines (well under 120 chars) from one-sentence-per-paragraph prose
-# (clustering at 121-144). audit/book_verse.py encodes the same threshold.
+# (clustering at 121-144). It is a Q1 inference input, not a source-reader rule.
 VERSE_SHORT_LINE_MAX = 120
 
 
@@ -83,41 +83,30 @@ def is_verse_candidate_line(text: str) -> bool:
     return is_lineated_line(_ORDINAL_LEAD_RE.sub("", text, count=1))
 
 
-def _is_wrapped_prose(p: ir.Paragraph) -> bool:
-    """True when a paragraph's only in-run breaks are `SoftBreak`s (prose wrapping,
-    a literal `\\r\\n` in one `<w:t>`) with no hard `LineBreak`: its lineation was
-    never authored, so it is prose even when collapsed to one short line. A hard
-    break — or no break at all (one Word paragraph per line) — stays verse-eligible."""
-    has_soft = False
-    has_hard = False
-    for n in walk_inlines(p.inlines):
-        has_soft = has_soft or isinstance(n, ir.SoftBreak)
-        has_hard = has_hard or isinstance(n, ir.LineBreak)
-    return has_soft and not has_hard
-
-
 def _para_lineated(p: ir.Paragraph) -> bool:
     if not p.inlines:
         return False
     for n in walk_inlines(p.inlines):
         if isinstance(n, (ir.ImageInline, ir.Link, ir.Code)):
             return False
-    if _is_wrapped_prose(p):
-        return False  # wrapping, not authored lineation
-    # Detection: a `SoftBreak` is prose wrapping (joined as a space); only a hard
-    # `LineBreak` is a verse-line boundary. Recurse into containers.
-    lines = [inline_plain(ln) for ln in inline_lines(p.inlines, soft_break=False)]
+    # Only authored hard breaks reach the IR. Recurse into containers.
+    lines = [inline_plain(ln) for ln in inline_lines(p.inlines)]
     lines = [line for line in lines if line]
     return bool(lines) and all(is_lineated_line(line) for line in lines)
 
 
 def _para_has_hard_lineation(p: ir.Paragraph) -> bool:
-    """True when the source paragraph carries an explicit hard `w:br` boundary.
+    """True when a hard ``w:br`` separates represented display lines.
 
-    This is LINEATION evidence even when the lines are not verse-register lines:
-    lowering must preserve the authored break instead of collapsing it as prose.
+    A leading or trailing break remains a source fact, but its empty edge is not
+    a Q1 unit. This is lineation evidence even when the represented lines are not
+    verse-register lines: lowering must preserve the authored boundary instead
+    of collapsing it as prose.
     """
-    return any(isinstance(n, ir.LineBreak) for n in walk_inlines(p.inlines))
+    return (
+        any(isinstance(n, ir.LineBreak) for n in walk_inlines(p.inlines))
+        and len(_block_lines(p)) >= 2
+    )
 
 
 def _para_structurally_lineated(p: ir.Paragraph) -> bool:
@@ -142,9 +131,19 @@ _VISUAL_CODA_AVG_MAX = 48.0
 
 
 def _block_lines(p: ir.Paragraph) -> list[list[ir.Inline]]:
-    # Verse display lines as detection sees them: hard `LineBreak`s (incl. nested in
-    # `Emph`) split; `SoftBreak` wrapping joins as a space.
-    return [ln for ln in inline_lines(p.inlines, soft_break=False) if inline_plain(ln)]
+    # Verse display lines as detection sees them: hard `LineBreak`s, including
+    # breaks nested in emphasis, split. Images and footnote anchors are content
+    # even when they have no plain reading text; a hard break beside one must not
+    # make the Q1 fold silently discard it.
+    return [
+        line
+        for line in inline_lines(p.inlines)
+        if inline_plain(line)
+        or any(
+            isinstance(inline, ir.ImageInline | ir.FootnoteRef)
+            for inline in walk_inlines(line)
+        )
+    ]
 
 
 def _lines_with_provenance(
@@ -254,9 +253,9 @@ def fold_lineation(
 ) -> list[ir.Block]:
     """Q1: fold source rows into `LineatedBlock`s, never deciding a register.
 
-    Explicit/mechanical lineation is axiomatic: Pandoc `LineBlock`s already arrive
-    as `LineatedBlock`, and paragraphs with hard `<w:br/>` boundaries are folded
-    here regardless of verse register. The only non-explicit path is the named
+    Explicit/mechanical lineation is axiomatic: paragraphs with hard `<w:br/>`
+    boundaries are folded here regardless of verse register. The only
+    non-explicit path is the named
     `_should_infer_source_row_lineation` gate below; it is source-row inference,
     not register promotion. An editorial `lineation_overrides` correction pinning
     a source paragraph to prose excludes it from every fold path here (the
@@ -291,6 +290,13 @@ def fold_lineation(
             i += 1
             continue
         if not isinstance(b, ir.Paragraph):
+            b = ir.map_block_children(
+                b,
+                lambda children: fold_lineation(
+                    children,
+                    lineation_overrides=overrides,
+                ),
+            )
             after_lineated = isinstance(b, ir.LineatedBlock)
             out.append(b)
             after_boundary = False
@@ -521,7 +527,6 @@ def _merge_lineation_evidence(
     second: ir.LineationEvidence,
 ) -> ir.LineationEvidence:
     return ir.LineationEvidence(
-        pandoc_line_block=first.pandoc_line_block or second.pandoc_line_block,
         hard_break=first.hard_break or second.hard_break,
         inferred_source_rows=first.inferred_source_rows or second.inferred_source_rows,
         stanza_break=first.stanza_break or second.stanza_break,
@@ -593,10 +598,9 @@ def _lineated_folds(blocks: Sequence[ir.Block]) -> Iterator[ir.LineatedBlock]:
 def check_overrides_held(blocks: Sequence[ir.Block],
                          overrides: Mapping[int, ir.LineationRegister]) -> None:
     """Prove every prose-pinned ordinal stayed out of lineation — the seam has several fold
-    paths, so the FATE is asserted, not the mechanism. Limitation: a block with no source span
-    (an adapter-emitted LineBlock) is invisible here; the correction exporter cannot mint an
-    override for such an ordinal (it is uncovered), so only a hand-written sidecar could reach
-    that gap."""
+    paths, so the fate is asserted, not the mechanism. A block with no source span
+    is invisible here, but the correction exporter cannot mint an override for an
+    uncovered ordinal."""
     pinned = {o for o, r in overrides.items() if r == "prose"}
     if not pinned:
         return

@@ -4,13 +4,9 @@ import re
 
 from pancratius.locales import Locale
 from pancratius.localization.glossary import TermReplacements, apply_term_replacements
-from pancratius.localization.profiles import QuoteKind, QuoteMarks, locale_profile
+from pancratius.localization.profiles import QuoteMarks, locale_profile
 
 _OPENS_AFTER = re.compile(r"[\s([{<«“‘—–\-*_~:/]")
-
-
-def quote_marks(locale: Locale, kind: QuoteKind) -> QuoteMarks:
-    return locale_profile(locale).quote_marks(kind)
 
 
 def normalize_quotes(text: str, locale: Locale) -> str:
