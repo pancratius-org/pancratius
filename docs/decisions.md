@@ -327,7 +327,7 @@ tools: **ruff** (flake8-annotations `ANN` ruleset) enforces that annotations are
 The honest claim is **annotation coverage plus best-effort checking, not total
 type soundness** — the `replace-imports-with-any` list (below) deliberately treats
 several un-stubbed libraries as `Any`. Both tools are dev-dependencies pinned in
-`uv.lock` and run via `uv run` (`npm run check:py`, and a `--frozen` step in CI).
+`uv.lock` and run via `uv run` (`mise run check:python`, and a `--frozen` step in CI).
 
 Why ty over the conventional pyright/mypy:
 

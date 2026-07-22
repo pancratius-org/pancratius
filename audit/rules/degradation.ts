@@ -1,6 +1,6 @@
 // PAN022 — conceptosphere / book-reference RU-only degradation invariant
 // (docs/audit-harness.md → "PAN022"). A `post-build`-tier rule: it needs the
-// emitted `dist/`, so it runs only on `npm run audit:post-build`, never on the
+// emitted `dist/`, so it runs only on `mise run audit:post-build`, never on the
 // fast PR gate.
 //
 // THE INVARIANT (conceptosphere-bilingual-design.md §4): on an English URL a

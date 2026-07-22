@@ -44,15 +44,15 @@ export const pan017ImportWorkKinds: Rule = {
   },
 };
 
-// PAN019 — CLI door verify-boundary. The two-doors split (docs/tooling.md) cuts on
-// mutate vs verify: the `pancratius` console-script MUTATES the corpus; verification
-// (`check`/`test`/`audit`) is the npm site door's job. So the door must register no
-// sub-parser named in the site-door verb family (the `site` proxy plus check/test/
+// PAN019 — CLI door verify-boundary. The command split (docs/tooling.md) cuts on
+// mutate vs verify: the `pancratius` console script MUTATES the corpus; pure
+// repository workflows live in mise. So the door must register no sub-parser
+// named in the repository-task verb family (the `site` proxy plus check/test/
 // audit/build/dev/preview) — name-bound by nature (a verb's semantics aren't static),
 // so it bars the whole family. The Python checker AST-scans pancratius/cli.py.
 export const pan019CliVerifyBoundary: Rule = {
   id: "PAN019-cli-verify-boundary",
-  title: "PAN019: the pancratius CLI door exposes no site-door verb (no audit/check/test/build/dev/preview verb, no `site` proxy)",
+  title: "PAN019: the pancratius CLI door exposes no repository-task verb (no audit/check/test/build/dev/preview verb, no `site` proxy)",
   tier: "core",
   run(ctx: RuleContext): Finding[] {
     return runPythonCheck(ctx, {
@@ -61,12 +61,12 @@ export const pan019CliVerifyBoundary: Rule = {
       severity: "fatal",
       script: "python/cli_verify_boundary.py",
       contract:
-        "The two-doors split (docs/tooling.md) cuts on what a command does to the world: `pancratius` MUTATES the corpus, while the npm site door BUILDS and VERIFIES it. So `pancratius/cli.py` must register NO argparse sub-parser (at any nesting level) named in the site-door verb family — the `site` proxy group, the verify verbs (`audit`, `check`, `test`), or the build/serve verbs (`build`, `dev`, `preview`). Discoverability of `npm run audit:repo` is a `--help`/skills-doc concern, not a routing one.",
-      why: "A `pancratius site audit → npm run audit:repo` proxy (or any verify/build verb) inverts the doc's mutate/verify cut at the grammar level: it puts a site-door command under the mutate door, the exact `site`-proxy alternative tooling.md rejected. Barring the whole family keeps the seam CI-enforced instead of convention-only, and catches an accidental `check`/`build` door verb, not just `audit`/`site`.",
+        "The command split (docs/tooling.md) cuts on what a command does to the world: `pancratius` MUTATES the corpus, while mise BUILDS and VERIFIES through native npm and uv leaves. So `pancratius/cli.py` must register NO argparse sub-parser (at any nesting level) named in the repository-task verb family — the `site` proxy group, the verify verbs (`audit`, `check`, `test`), or the build/serve verbs (`build`, `dev`, `preview`). Discoverability of `mise run audit:repo` is a `--help`/skills-doc concern, not a routing one.",
+      why: "A `pancratius site audit → mise run audit:repo` proxy (or any verify/build verb) inverts the mutate/verify cut at the grammar level: it puts a pure repository command under the mutation door. Barring the whole family keeps the seam CI-enforced instead of convention-only and catches an accidental `check`/`build` door verb, not just `audit`/`site`.",
       repair:
-        "Keep build+verify under `npm` (`npm run build`, `npm run audit:repo`, `astro check`, Playwright). The `pancratius` door only grows MUTATE verbs (import, scaffold, render, optimize, data generation); point users at the npm verbs from the skills doc and `--help`, not a proxy verb.",
+        "Keep build and verification in the mise task graph. The `pancratius` door only grows MUTATE verbs (import, scaffold, render, optimize, data generation); point users at mise tasks from the skills doc and `--help`, not a proxy verb.",
       doNotFixBy:
-        "Adding a `pancratius site audit`/`pancratius audit`/`pancratius check` convenience wrapper that shells to npm — that is the rejected `site` proxy; it re-creates a second surface for a site-door command under the wrong door.",
+        "Adding a `pancratius site audit`/`pancratius audit`/`pancratius check` convenience wrapper that shells to mise — that is the rejected `site` proxy; it re-creates a pure repository command under the mutation door.",
     });
   },
 };

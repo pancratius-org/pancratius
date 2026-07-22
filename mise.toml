@@ -1,0 +1,117 @@
+min_version = "2026.7.0"
+
+[settings]
+lockfile = true
+lockfile_platforms = ["macos-arm64", "linux-x64"]
+minimum_release_age = "7d"
+task.run_auto_install = false
+
+[tools]
+node = "24"
+python = "3.13"
+uv = "0.11"
+pandoc = "3.10"
+typst = "0.15"
+
+[tasks.bootstrap]
+description = "Install repository dependencies and the Chromium test browser"
+run = [
+  "npm ci",
+  "uv sync --frozen",
+  "uv sync --project intent-ai --frozen",
+  "npx playwright install chromium",
+]
+
+[tasks.dev]
+description = "Start the generated Astro site in development mode"
+run = "npm run dev"
+
+[tasks.build]
+description = "Build the complete static site"
+run = "npm run build"
+
+[tasks."check:code"]
+description = "Check the TypeScript, Astro, styles, dependency surface, and Node tests"
+run = "npm run check:code"
+
+[tasks."check:site"]
+description = "Generate site inputs and check Astro content and types"
+depends = ["check:code"]
+run = "npm run check:site"
+
+[tasks."check:python"]
+description = "Lint, type-check, and run the portable root Python suite"
+run = [
+  "uv run --frozen ruff check pancratius audit tests/python tests/tools",
+  "uv run --frozen ty check",
+  "uv run --frozen pytest tests/python -q -m 'not pandoc'",
+]
+
+[tasks."check:intent-ai"]
+description = "Check the portable intent-ai research project"
+run = [
+  "uv run --frozen ruff check --config intent-ai/pyproject.toml intent-ai/src intent-ai/tests",
+  "uv run --project intent-ai --group dev --frozen ty check",
+  "uv run --project intent-ai --group dev --frozen pytest intent-ai/tests -q -c intent-ai/pyproject.toml -p no:cacheprovider -m 'not corpus_cache and not corpus_source and not repository_history'",
+]
+
+[tasks.check]
+description = "Run all code, site, Python, and research checks"
+depends = ["check:site", "check:python", "check:intent-ai"]
+run = []
+
+[tasks."audit:deps"]
+description = "Audit npm dependencies at the release severity threshold"
+run = "npm run audit:deps"
+
+[tasks."audit:repo"]
+description = "Check the repository's architectural contracts"
+run = "node audit/harness.ts"
+
+[tasks."audit:agent"]
+description = "Run core audits plus non-blocking review heuristics"
+run = "node audit/harness.ts agent"
+
+[tasks."audit:selftest"]
+description = "Prove audit polarity against known-good and known-bad fixtures"
+run = "node audit/selftest.ts"
+
+[tasks."audit:post-build"]
+description = "Check contracts that require an existing dist directory"
+run = "node audit/harness.ts post-build"
+
+[tasks."test:e2e:gate"]
+description = "Run the Playwright gate against a fresh preview server"
+run = "npm run test:e2e:gate"
+
+[tasks."test:renderers"]
+description = "Render one real book to isolated PDF and EPUB outputs"
+run = "uv run --frozen pytest tests/tools/test_renderer_smoke.py -q"
+
+[tasks."test:pandoc"]
+description = "Run DOCX integration tests that require Pandoc"
+run = "uv run --frozen pytest tests/python -q -m pandoc"
+
+[tasks."verify:toolchain"]
+description = "Exercise the locked Pandoc and Typst authoring toolchain"
+depends = ["test:pandoc", "test:renderers"]
+run = []
+
+[tasks."verify:content"]
+description = "Check and build content without the browser or research suites"
+depends = ["check:site", "check:python"]
+run = [
+  { task = "audit:repo" },
+  { task = "build" },
+]
+
+[tasks.verify]
+description = "Run the complete local and CI quality gate"
+depends = ["audit:deps", "check"]
+run = [
+  { task = "audit:repo" },
+  { task = "audit:selftest" },
+  { task = "build" },
+  { task = "audit:post-build" },
+  { task = "test:e2e:gate" },
+]

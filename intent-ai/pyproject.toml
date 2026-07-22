@@ -3,7 +3,7 @@
 name = "intent-ai"
 version = "0.1.0"
 description = "Per-source-line lineation (prose vs lineated) for bilingual DOCX — research package."
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.14"
 dependencies = [
   "pancratius",
   "scikit-learn>=1.4",
@@ -58,6 +58,9 @@ root = ["src"]
 
 [tool.ty.src]
 include = ["src/intent_ai"]
+
+[tool.uv]
+python-preference = "only-system"
 
 [tool.uv.sources]
 pancratius = { path = "..", editable = true }

@@ -12,7 +12,7 @@ contract:
     exit 2  usage error
 
 Human-readable summaries go to stdout; diagnostics go to stderr. It makes no
-editorial/domain decisions and runs no verification — that is ``npm run audit``.
+editorial/domain decisions and runs no verification — that is the mise task graph.
 
 This door dispatches to importable ``pancratius`` package modules. The heavy
 conceptosphere owners are imported lazily inside their handlers, so the light
@@ -85,7 +85,7 @@ def _legacy_project_page_add_error(argv: list[str]) -> int:
 def _require_pandoc() -> int | None:
     """Precheck for DOCX translation and Markdown round-trip rendering."""
     if find_pandoc() is None:
-        return _fail("pandoc not found; run `uv sync` or install it with `brew install pandoc`.")
+        return _fail("pandoc not found on PATH; run `mise install pandoc`.")
     return None
 
 

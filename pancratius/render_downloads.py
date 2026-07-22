@@ -582,6 +582,11 @@ def _pandoc_from(_entry: WorkEntry) -> list[str]:
     return ["--from", "markdown-yaml_metadata_block"]
 
 
+def _typst_path_literal(path: Path) -> str:
+    value = path.as_posix().replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{value}"'
+
+
 def render_pdf(entry: WorkEntry, scratch_dir: Path) -> Path:
     template = TEMPLATES / "book.typ"
     if not template.exists():
@@ -609,7 +614,9 @@ def render_pdf(entry: WorkEntry, scratch_dir: Path) -> Path:
         "--metadata", f"author={AUTHOR}",
     ]
     if cover:
-        args += ["--metadata", f"cover-path={cover}"]
+        # Metadata strings are Markdown-escaped by Pandoc (`_` becomes `\_`).
+        # A template variable preserves the Typst path literal we construct.
+        args += ["--variable", f"cover-path={_typst_path_literal(cover)}"]
     subprocess.run(args, check=True, env=_reproducible_env())
     return out
 

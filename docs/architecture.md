@@ -10,8 +10,9 @@ These rules decide where a change belongs.
 - **Content kinds.** Books and poems are a *population* (one shape, paired by
   `(kind, number)`, full downloads); pages are *individuals* (dedicated routes);
   projects are *themed mini-sites*, not works. → [`content-model.md`](./content-model.md).
-- **Command ownership.** `pancratius` changes the library. `npm` builds, checks,
-  previews, audits, and deploys the site. → [`tooling.md`](./tooling.md).
+- **Command ownership.** `pancratius` changes the library. Mise owns the pure
+  repository task graph; npm and uv retain their site and Python implementation
+  leaves and dependency graphs. → [`tooling.md`](./tooling.md).
 - **Mechanical vs editorial.** The CLI may convert, scaffold, render, optimize,
   and regenerate data. It must not decide titles, descriptions, project shape,
   theological register, or publication judgment. → [`tooling.md`](./tooling.md).
@@ -47,7 +48,8 @@ lineation research
 
 site work
   committed source
-      -> npm build/check/audit
+      -> mise task graph
+      -> npm site leaves + mixed-language audit
       -> dist
       -> production hosts
 ```
@@ -63,7 +65,7 @@ source. The shared boundary is the repository, not a runtime dependency.
   handwritten production JavaScript (`.js` / `.mjs` / `.cjs`) in source trees.
   Non-production JavaScript belongs outside the tsconfig-included trees.
 - **Runtime**: Node 24.
-- **Python tooling**: Python 3.13+ with type hints. Run through `uv`; dependencies
+- **Python tooling**: Python 3.13 with type hints. Run through `uv`; dependencies
   are locked in `pyproject.toml` / `uv.lock`. No `pip`, `conda`, or
   `requirements.txt`.
 - **Conceptosphere viz libs**: Sigma 3, `graphology`, and

@@ -1,6 +1,6 @@
 // Built-surface internal-link crawl (docs/audit-harness.md → "PAN014:
 // Built-Surface Crawl And Index Sanity"). A `post-build`-tier rule: it needs
-// an emitted `dist/`, so it runs only on `npm run audit:post-build`, never on
+// an emitted `dist/`, so it runs only on `mise run audit:post-build`, never on
 // the fast PR gate.
 //
 // `astro build` alone does not prove the deployed site is internally consistent:

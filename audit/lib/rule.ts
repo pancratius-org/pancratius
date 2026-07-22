@@ -11,13 +11,13 @@ import { walk, read, exists, isDir, abs, type WalkOptions } from "./repo.ts";
 
 /**
  * When a rule runs, and therefore whether CI can fail on it:
- * - `core`     — fast, deterministic; runs on `npm run audit:repo` and
+ * - `core`     — fast, deterministic; runs on `mise run audit:repo` and
  *                in agent mode. The only tier whose findings gate CI.
  * - `heuristic`— non-blocking agent guidance (literals, css, cohesion, …); runs
  *                only in agent mode. Never fatal (the doc forbids it).
  * - `post-build`— checks that need an emitted `dist/` (link crawls, public-
  *                Markdown asset scans, archive scans); runs on
- *                `npm run audit:post-build`.
+ *                `mise run audit:post-build`.
  */
 export type Tier = "core" | "heuristic" | "post-build";
 

@@ -37,7 +37,7 @@ import { pan023TypeDomainPy, pan023TypeDomainTs } from "./type_domain.ts";
 import { pan028VideoHook } from "./videos.ts";
 
 export const RULES: readonly Rule[] = [
-  // Fatal core (run on `npm run audit:repo`):
+  // Fatal core (run on `mise run audit:repo`):
   pan001PathBoundary,
   pan002,
   pan003Locales,
@@ -63,11 +63,11 @@ export const RULES: readonly Rule[] = [
   pan027Terminology,
   pan028VideoHook,
   pan021ConceptosphereI18n,
-  // Post-build tier (need dist/; run only on `npm run audit:post-build`):
+  // Post-build tier (need dist/; run only on `mise run audit:post-build`):
   pan008PublicMarkdownAssets,
   pan014InternalLinks,
   pan022ConceptosphereDegradation,
-  // Non-blocking heuristics (run only on `npm run audit:agent`):
+  // Non-blocking heuristics (run only on `mise run audit:agent`):
   pan023TypeDomainTs,
   pan023TypeDomainPy,
   ...contentQualityRules,

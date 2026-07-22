@@ -54,7 +54,7 @@ Transfer writes staged bytes, validates the OOXML package, then commits through
 the normal writer plan. PAN025 checks committed artifact shape through:
 
 ```sh
-npm run audit:repo
+mise --locked run audit:repo
 ```
 
 That gate reads committed DOCX packages directly and checks relationships,

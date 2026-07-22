@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import base64
 import re
-import shutil
 import xml.etree.ElementTree as ET
 import zipfile
 from collections.abc import Iterator
@@ -91,8 +90,7 @@ SOURCE_TEXT_ALIGNMENT_EVIDENCE_CASES: tuple[
     ("Ответ:", "Ответ", "terminal_label_colon", "canonical"),
 )
 
-
-requires_pandoc = pytest.mark.skipif(shutil.which("pandoc") is None, reason="pandoc required")
+requires_pandoc = pytest.mark.pandoc
 
 
 def _write_source_docx(path: Path) -> None:

@@ -105,7 +105,7 @@
 $if(cover-path)$
 #page(margin: 0pt, numbering: none)[
   #set align(center + horizon)
-  #image("$cover-path$", height: 100%)
+  #image($cover-path$, height: 100%)
 ]
 #page(numbering: none)[
   #set align(center + horizon)

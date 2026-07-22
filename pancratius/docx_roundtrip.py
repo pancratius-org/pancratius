@@ -684,9 +684,7 @@ def _plain_markdown(markdown: str) -> str:
             timeout=PANDOC_TIMEOUT_SECONDS,
         )
     except (FileNotFoundError, PandocNotFoundError) as exc:
-        raise DocxRoundTripError(
-            "pandoc not found; run `uv sync` or install it with `brew install pandoc`."
-        ) from exc
+        raise DocxRoundTripError("pandoc not found on PATH; run `mise install pandoc`.") from exc
     except subprocess.TimeoutExpired as exc:
         raise DocxRoundTripError("pandoc timed out while reading Markdown for round-trip comparison.") from exc
     if proc.returncode != 0:

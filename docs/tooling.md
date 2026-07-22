@@ -2,24 +2,34 @@
 
 ## Boundary
 
-Pancratius has two production command surfaces:
+Pancratius has one repository task surface over two native owners:
 
+- `mise --locked run ...` develops, builds, checks, audits, and tests the
+  repository. Mise owns the executable environment and cross-language task graph.
 - `uv run pancratius ...` changes the library. It imports, scaffolds, renders
   release artifacts, optimizes source DOCX, and regenerates committed Python data
   products.
-- `npm run ...` builds, serves, and verifies the site. It owns Astro, Pagefind,
-  Playwright, TypeScript checks, audit, and deterministic build derivations.
+- `npm run ...` implements the Astro/TypeScript site subtree. It owns Pagefind,
+  Playwright, TypeScript checks, and deterministic build derivations; uv owns
+  Python dependency resolution and implementation commands.
 
 The owner is decided by the effect. Mutation and committed corpus products belong
-to `pancratius`; build and verification belong to `npm`.
+to `pancratius`; owner-local commands stay with npm or uv; orchestration that
+crosses owners belongs to mise.
 
 `intent-ai/` is a downstream research package, not a third production CLI. Run it through its
 locked uv project. It may write its own annotation evidence, derived record cache, and explicit
 correction sidecars; it does not own DOCX parsing or site builds.
 
-Do not add wrapper commands across that boundary. In particular, `pancratius`
-must not grow `audit`, `check`, `test`, `build`, `dev`, `preview`, or `site`
-commands. PAN019 guards this.
+Do not add proxy commands between native owners. Mise may expose a small set of
+repository workflows that delegate to native leaves; it must not mirror every npm
+script. In particular, `pancratius` must not grow `audit`, `check`, `test`,
+`build`, `dev`, `preview`, or `site` commands. PAN019 guards this.
+
+`mise tasks` is the live command catalog. `verify` is portable and excludes
+Pandoc-marked tests; `verify:toolchain` runs those tests plus the PDF/EPUB smoke.
+Independent check lanes may run together, but build, post-build audit, and
+Playwright stay ordered because they share `dist/`.
 
 ## Site Operations
 
@@ -32,25 +42,17 @@ site.
 | `npm run build` | Generate deterministic site inputs, build the static site, then build the Pagefind search index. |
 | `npm run generate` | Build-time derivations: slug map, public graph payloads, and bulk archive manifest/cache. |
 | `npm run preview` | Astro preview of the built site. |
-| `npm run check` | Full non-build verification: code/tooling checks, Astro site checks, and Python checks. |
 | `npm run check:site` | Generate site inputs, then run Astro content/type checks. |
 | `npm run check:code` | Type-check TS tooling, lint code and styles, run Knip, and run Node unit tests. |
 | `npm run check:unused` | Knip unused file/dependency/export analysis for the site/tooling surface. |
 | `npm run lint` | ESLint plus Stylelint. |
 | `npm run lint:code` | ESLint over site, build, audit, and test TypeScript/Astro/JavaScript. |
 | `npm run lint:style` | Stylelint over CSS files and Astro component style blocks. |
-| `npm run verify` | The full gate — checks, audits, build, and Playwright e2e; identical locally and in CI. |
 | `npm run audit:deps` | npm vulnerability audit at the high-severity release gate. |
-| `npm run audit:repo` | Architectural contract harness; see [`audit-harness.md`](./audit-harness.md). |
-| `npm run audit:agent` | Core audit plus non-blocking heuristic checks. |
 | `npm run audit:css-values` | Diagnostic PostCSS report for repeated CSS literals and layout/spacing/type drift. |
 | `npm run audit:layout-fill` | Diagnostic Playwright sweep for under-filled reading columns; run against a local site with `BASE_URL` or the default `http://localhost:4321`. |
-| `npm run audit:post-build` | Rules that need an emitted `dist/` (PAN014 link crawl, PAN008 `/assets/` URL contract). |
-| `npm run audit:selftest` | Harness fixtures proving audit polarity. |
 | `npm run test:e2e` | Playwright e2e specs. |
 | `npm run test:visual` | Playwright visual gate. |
-| `npm run check:py` | Ruff annotations, `ty` types, and pytest behaviour. |
-| `npm run check:intent-ai` | Run portable lineation domain, projection, and boundary checks; no DOCX compiler or derived cache. |
 
 Build derivations live in `build/` and run from npm. They derive artifacts from
 committed source; they do not mutate `src/content/`:
@@ -61,8 +63,9 @@ committed source; they do not mutate `src/content/`:
 - `build/bulk-archives.ts` builds the bulk archive manifest and `.cache` zip.
 - `build/sync-pagefind-dev.ts` copies Pagefind output for local dev.
 
-Audit belongs to site operations because it verifies. Python checks in `audit/`
-are subprocesses of the harness, not standalone commands.
+Audit is a repository verification subtree, not a site-only concern. Mise invokes
+its Node entry point; the harness runs TypeScript rules and delegates parser-heavy
+checks to uv-managed Python without exposing each rule as a separate task.
 
 ## Lineation Research
 
@@ -74,8 +77,8 @@ uv run --project intent-ai --group dev --frozen pytest intent-ai/tests -q -c int
 The first command rebuilds ignored records for every edition referenced by committed annotations;
 it reads committed DOCX files and does not import or mutate library content. The second is the
 local acceptance gate: portable tests plus corpus/cache and repository-history checks.
-`npm run check:intent-ai`, included in `npm run verify`, runs the portable subset without compiling
-DOCX or depending on ignored local state.
+`mise --locked run check:intent-ai`, included in the repository check graph, runs
+the portable subset without compiling DOCX or depending on ignored local state.
 
 ## Library Operations
 
@@ -286,15 +289,16 @@ uv sync --extra embed
 ```
 
 The CLI lazy-imports those owners and prints the relevant extra hint when the
-stack is missing. The dev environment carries `pypandoc-binary` for translation
-and round-trip checks; DOCX import does not require Pandoc. Local download
-rendering still needs system tools such as typst, and may use a system pandoc when
-maintainers choose one explicitly.
+stack is missing. Pandoc and Typst come from mise; there is no embedded fallback.
+DOCX import does not require Pandoc, while LibreOffice remains an external
+desktop dependency. Run `mise --locked run verify:toolchain` for renderer
+changes. Node and Python major updates must also update their compatibility
+declarations and locks.
 
 ## Invariants
 
 - One task has one owner. A second command surface is drift unless it is only a
-  documented alias at the same command surface.
+  deliberate repository-level composition in mise.
 - CI never renders PDF/EPUB, optimizes DOCX, imports DOCX, or regenerates
   embeddings.
 - The Python package does not reach into `build/` or `audit/` to implement site
