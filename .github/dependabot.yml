@@ -20,6 +20,8 @@ updates:
 
   - package-ecosystem: npm
     directory: /
+    exclude-paths:
+      - "audit/fixtures/**" # synthetic audit manifests, never installed
     schedule:
       interval: weekly
       day: sunday
