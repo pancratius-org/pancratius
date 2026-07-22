@@ -4,7 +4,7 @@
 // the raw YouTube description, which bundles the message with an SEO opener,
 // hashtags, and a promo footer (book ads, a Telegram channel, a donation block).
 // The Python splitter's QA gate rejects junk at generation time; this is the
-// content-layer backstop that runs in `npm run verify` — so if a junk hook ever
+// content-layer backstop that runs in `mise run verify` — so if a junk hook ever
 // reaches a committed file (a splitter regression, or a hand edit), the sync PR
 // fails to build and never auto-merges. It guards the `description` field only:
 // the reading `body` is covered by the generation-time gate, and older bodies

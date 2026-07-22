@@ -24,9 +24,9 @@ permitted by the OFL.
 ## Fonts
 
 - **Source Serif 4** 4.005R — the body face. Static styles only (Regular,
-  Italic, Semibold, SemiboldIt, Bold, BoldIt). typst 0.14 does not yet
-  support variable fonts and emits a warning if a variable TTF is loaded;
-  we pin the statics to keep the build warning-free and metrics stable.
+  Italic, Semibold, SemiboldIt, Bold, BoldIt). Typst 0.15 supports variable
+  fonts, but committed static faces keep renderer inputs, weights, and metrics
+  explicit.
 - **Inter** 4.1 — the heading/UI face. Static styles only (Regular,
   Italic, Medium, SemiBold, Bold, BoldItalic).
 
@@ -38,15 +38,14 @@ Both cover Cyrillic, Latin Extended, and modern punctuation. The
 typographic continuity with the site is intentional — the web stack also
 serves Source Serif 4 for body type.
 
-## Tool install (macOS dev)
+## Tool install
 
 ```
-brew install pandoc typst poppler   # poppler is optional, for pdftoppm previews
+mise install pandoc typst
 ```
 
-Tested with:
-- `pandoc 3.9.0.2`
-- `typst 0.14.2`
+The checked-in `mise.lock` records the tested releases. Poppler is optional and
+external to mise; install it separately when `pdftoppm` previews are needed.
 
 CI does not install or run these tools. They are local/admin dependencies for
 refreshing committed release artifacts.
@@ -66,14 +65,14 @@ pandoc <md> -o <pdf>
   --metadata title=<title>
   --metadata lang=<ru|en>
   --metadata author=Сергей Орехов (Панкратиус)
-  --metadata cover-path=<abs>/cover.<lang>.<ext>     # books only
+  --variable cover-path=\"<abs>/cover.<lang>.<ext>\" # books only
 ```
 
 - `--ignore-system-fonts` keeps output reproducible across machines.
 - `--root=/` lets the template reference the cover image via absolute path
   (typst sandboxes file access to a configurable root; the default rejects
   paths outside the input file's directory).
-- The cover-path metadata variable is consumed by the `$if(cover-path)$`
+- The `cover-path` template variable is consumed by the `$if(cover-path)$`
   branch in `book.typ`. Poems currently omit the cover and get a plain text title
   page; if a poem ever ships a cover image
   the same path will pick it up.

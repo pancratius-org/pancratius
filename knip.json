@@ -1,6 +1,8 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   "entry": [
+    "audit/harness.ts",
+    "audit/selftest.ts",
     "src/components/conceptosphere/graph-runtime.ts"
   ],
   "ignore": [
@@ -8,7 +10,7 @@
     "dist/**",
     "docs/scratchpad/**"
   ],
-  "ignoreBinaries": ["uv", "pandoc"],
+  "ignoreBinaries": ["uv"],
   "ignoreDependencies": [
     "@fontsource-variable/inter",
     "@fontsource-variable/source-serif-4"

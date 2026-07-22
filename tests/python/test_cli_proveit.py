@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import importlib.util
 import re
-import shutil
 import sys
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -42,10 +41,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 _FIXTURE_DOCX = ROOT / "legacy" / "books" / "ru" / "23-личность-и-эго.docx"
 _REQUIRES_REAL = pytest.mark.skipif(
-    shutil.which("pandoc") is None
-    or importlib.util.find_spec("PIL") is None
-    or not _FIXTURE_DOCX.is_file(),
-    reason="pandoc, pillow, and the fixture DOCX are required",
+    importlib.util.find_spec("PIL") is None or not _FIXTURE_DOCX.is_file(),
+    reason="pillow and the fixture DOCX are required",
 )
 
 
@@ -57,7 +54,7 @@ def _exit_code(argv: list[str]) -> int:
 
 
 def _fake_pandoc() -> PandocExecutable:
-    return PandocExecutable("/usr/bin/pandoc", "path")
+    return PandocExecutable("/usr/bin/pandoc")
 
 
 # ===========================================================================
@@ -443,7 +440,7 @@ def test_generate_graph_projection_error_propagates_after_both_runs(
 @_REQUIRES_REAL
 def test_scaffolded_weight_is_outside_the_real_zod_enum(tmp_path: Path) -> None:
     """The draft's TODO weight must be a value the real Zod enum rejects, so the
-    draft genuinely fails `npm run check` (the safe-incomplete contract) — not
+    draft genuinely fails `mise run check` (the safe-incomplete contract) — not
     merely a string that happens to start with TODO."""
     from pancratius.content_catalog import split_frontmatter
 

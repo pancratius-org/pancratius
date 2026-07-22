@@ -1,24 +1,21 @@
-"""Focused coverage for PAN012's CI/library-door boundary scan.
-
-The audit harness selftest proves each rule fires somewhere. These tests isolate
-the nested IR/package paths so a broad bad fixture cannot hide a stale guard.
-"""
+"""Focused coverage for PAN012's workflow-door contract."""
 
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 CHECKER = ROOT / "audit" / "python" / "ci_separation.py"
 
 
-def _workflow(root: Path, run: str) -> Path:
+def _workflow(root: Path, run: str, *, filename: str = "pr.yml") -> Path:
     workflows = root / ".github" / "workflows"
     workflows.mkdir(parents=True)
-    (workflows / "pr.yml").write_text(
+    (workflows / filename).write_text(
         "\n".join((
             "name: Build",
             "on: [push]",
@@ -36,6 +33,42 @@ def _workflow(root: Path, run: str) -> Path:
     return root
 
 
+def _mise_workflow(root: Path, *, version: str | None, install_args: str | None) -> Path:
+    workflows = root / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    with_lines = ["        with:"]
+    if version is not None:
+        with_lines.append(f'          version: "{version}"')
+    if install_args is not None:
+        with_lines.append(f'          install_args: "{install_args}"')
+    (workflows / "pr.yml").write_text(
+        "\n".join((
+            "name: Build",
+            "on: [push]",
+            "jobs:",
+            "  build:",
+            "    runs-on: ubuntu-latest",
+            "    steps:",
+            "      - name: Setup locked toolchain",
+            "        uses: jdx/mise-action@0123456789abcdef0123456789abcdef01234567",
+            *with_lines,
+            "",
+        )),
+        encoding="utf-8",
+    )
+    return root
+
+
+def _mise_settings(root: Path, *, auto_install: bool | None) -> Path:
+    lines = (
+        []
+        if auto_install is None
+        else ["[settings]", f"task.run_auto_install = {str(auto_install).lower()}"]
+    )
+    (root / "mise.toml").write_text("\n".join((*lines, "")), encoding="utf-8")
+    return root
+
+
 def _run(root: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, str(CHECKER)],
@@ -46,91 +79,139 @@ def _run(root: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_nested_ir_nodes_path_is_banned_in_isolation(tmp_path: Path) -> None:
-    proc = _run(_workflow(tmp_path, "uv run pancratius/ir/nodes.py"))
-    assert proc.returncode == 1
-    assert "converter/IR/writer module" in proc.stderr
-
-
-def test_nested_passes_pipeline_path_is_banned_in_isolation(tmp_path: Path) -> None:
-    proc = _run(_workflow(tmp_path, "uv run pancratius/passes/pipeline.py"))
-    assert proc.returncode == 1
-    assert "converter/IR/writer module" in proc.stderr
-
-
-def test_backend_lower_path_is_banned_in_isolation(tmp_path: Path) -> None:
-    proc = _run(_workflow(tmp_path, "uv run pancratius/lower.py"))
-    assert proc.returncode == 1
-    assert "converter/IR/writer module" in proc.stderr
-
-
-def test_nested_ir_nodes_dotted_import_is_banned_in_isolation(tmp_path: Path) -> None:
-    proc = _run(_workflow(tmp_path, "uv run python -c 'import pancratius.ir.nodes'"))
-    assert proc.returncode == 1
-    assert "converter/IR/writer module" in proc.stderr
-
-
-def test_nested_passes_pipeline_dotted_import_is_banned_in_isolation(tmp_path: Path) -> None:
-    proc = _run(_workflow(tmp_path, "uv run python -c 'from pancratius.passes.pipeline import run'"))
-    assert proc.returncode == 1
-    assert "converter/IR/writer module" in proc.stderr
-
-
-def test_backend_lower_dotted_import_is_banned_in_isolation(tmp_path: Path) -> None:
-    proc = _run(_workflow(tmp_path, "uv run python -c 'import pancratius.lower'"))
-    assert proc.returncode == 1
-    assert "converter/IR/writer module" in proc.stderr
-
-
-def test_console_script_corpus_verb_is_banned_in_isolation(tmp_path: Path) -> None:
-    proc = _run(_workflow(tmp_path, "uv run --frozen pancratius work import source.docx --kind book"))
-    assert proc.returncode == 1
-    assert "pancratius corpus-management CLI" in proc.stderr
-
-
-def test_site_build_command_is_allowed(tmp_path: Path) -> None:
-    proc = _run(_workflow(tmp_path, "npm run build"))
+@pytest.mark.parametrize(
+    ("filename", "command"),
+    (
+        ("pr.yml", "npm ci"),
+        ("video-sync.yml", "uv run --frozen pancratius video sync"),
+    ),
+)
+def test_allowed_direct_workflow_commands(
+    tmp_path: Path,
+    filename: str,
+    command: str,
+) -> None:
+    proc = _run(_workflow(tmp_path, command, filename=filename))
     assert proc.returncode == 0, proc.stderr
 
 
-def test_banned_compiler_hidden_behind_nested_npm_scripts_is_rejected(tmp_path: Path) -> None:
-    root = _workflow(tmp_path, "npm run verify")
-    (root / "package.json").write_text(
-        json.dumps(
-            {
-                "scripts": {
-                    "verify": "npm run check:intent-ai",
-                    "check:intent-ai": (
-                        "uv run --project intent-ai --frozen python -m intent_ai.build_records"
-                    ),
-                }
-            }
+@pytest.mark.parametrize(
+    ("filename", "command", "message"),
+    (
+        ("pr.yml", "uv run pancratius/ir/nodes.py", "direct pancratius library access"),
+        (
+            "pr.yml",
+            "uv run python -c 'from pancratius.passes.pipeline import run'",
+            "direct pancratius library access",
         ),
-        encoding="utf-8",
+        (
+            "pr.yml",
+            "uv run --frozen pancratius work import a.docx --kind book",
+            "direct pancratius library access",
+        ),
+        (
+            "pr.yml",
+            "uv run --frozen pancratius video sync",
+            "direct pancratius library access",
+        ),
+        (
+            "video-sync.yml",
+            "uv run --frozen pancratius video sync --dry-run",
+            "direct pancratius library access",
+        ),
+        ("pr.yml", "mise --locked bootstrap --yes", "mise bootstrap"),
+        ("pr.yml", "npm run build", "must enter through mise"),
+        (
+            "pr.yml",
+            "uv run --project intent-ai python -m intent_ai.build_records",
+            "intent-ai record compiler",
+        ),
+    ),
+)
+def test_rejected_direct_workflow_commands(
+    tmp_path: Path,
+    filename: str,
+    command: str,
+    message: str,
+) -> None:
+    proc = _run(_workflow(tmp_path, command, filename=filename))
+    assert proc.returncode == 1
+    assert message in proc.stderr
+
+
+def test_mise_action_with_exact_ci_tool_subset_is_allowed(tmp_path: Path) -> None:
+    root = _mise_workflow(tmp_path, version="2026.7.5", install_args="node python uv")
+    proc = _run(root)
+    assert proc.returncode == 0, proc.stderr
+
+
+@pytest.mark.parametrize(
+    ("version", "install_args", "message"),
+    (
+        ("2026.7.5", None, "install_args must be exactly 'node python uv'"),
+        (
+            "2026.7.5",
+            "node python uv pandoc typst",
+            "install_args must be exactly 'node python uv'",
+        ),
+        ("latest", "node python uv", "version must be an exact release"),
+    ),
+)
+def test_invalid_mise_action_configuration_is_rejected(
+    tmp_path: Path,
+    version: str,
+    install_args: str | None,
+    message: str,
+) -> None:
+    root = _mise_workflow(tmp_path, version=version, install_args=install_args)
+    proc = _run(root)
+    assert proc.returncode == 1
+    assert message in proc.stderr
+
+
+@pytest.mark.parametrize("task", ("verify", "verify:content"))
+def test_ci_can_enter_locked_public_gate(tmp_path: Path, task: str) -> None:
+    root = _mise_settings(
+        _workflow(tmp_path, f"mise --locked run {task}"),
+        auto_install=False,
+    )
+    proc = _run(root)
+    assert proc.returncode == 0, proc.stderr
+
+
+@pytest.mark.parametrize(
+    ("command", "message"),
+    (
+        ("mise --locked run check", "only mise tasks: verify, verify:content"),
+        ("mise --locked run test:renderers", "only mise tasks: verify, verify:content"),
+        ("mise run verify", "mise task calls must be exactly"),
+        ("mise --locked run verify --force", "mise task calls must be exactly"),
+    ),
+)
+def test_invalid_ci_mise_task_call_is_rejected(
+    tmp_path: Path,
+    command: str,
+    message: str,
+) -> None:
+    root = _mise_settings(
+        _workflow(tmp_path, command),
+        auto_install=False,
     )
     proc = _run(root)
     assert proc.returncode == 1
-    assert "intent-ai record compiler" in proc.stderr
-    assert "check:intent-ai" in proc.stderr
+    assert message in proc.stderr
 
 
-def test_banned_compiler_hidden_in_npm_lifecycle_hook_is_rejected(tmp_path: Path) -> None:
-    root = _workflow(tmp_path, "npm run verify")
-    (root / "package.json").write_text(
-        json.dumps(
-            {
-                "scripts": {
-                    "preverify": (
-                        "uv run --project intent-ai --frozen python -m intent_ai.build_records"
-                    ),
-                    "verify": "npm run check",
-                    "check": "node --test",
-                }
-            }
-        ),
-        encoding="utf-8",
+@pytest.mark.parametrize("auto_install", (None, True))
+def test_ci_mise_tasks_require_disabled_auto_install(
+    tmp_path: Path,
+    *,
+    auto_install: bool | None,
+) -> None:
+    root = _mise_settings(
+        _workflow(tmp_path, "mise --locked run verify"),
+        auto_install=auto_install,
     )
     proc = _run(root)
     assert proc.returncode == 1
-    assert "intent-ai record compiler" in proc.stderr
-    assert "preverify" in proc.stderr
+    assert "settings.task.run_auto_install=false" in proc.stderr

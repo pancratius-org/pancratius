@@ -6,11 +6,17 @@ Do not just grep-and-patch the first matching file; if you cannot place the work
 
 ## Shape
 
-Two entry points:
+One repository task surface delegates to two native owners:
+- **Repository:** `mise --locked run ...`
+  Pure development, build, check, audit, and test workflows. Mise owns the
+  cross-language task graph and executable environment; it does not resolve npm
+  or Python dependencies and does not mutate the library.
 - **Library:** `uv run pancratius ...`
   Local Python tooling that changes the library: import works, scaffold project pages drafts, build downloads, optimize docx, generate committed graph and embedding data for recommendations. It is not the site build and not CI. Never use bare python/pip/venv, only `uv`.
-- **Site:** `npm run ...` and GitHub actions
-  Astro/TypeScript tooling that builds, checks, previews, audits, and deploys the site from committed source. It may derive build artifacts, but it does not create or edit the library.
+- **Site:** `npm run ...`
+  Astro/TypeScript implementation commands and dependencies. Mise may compose
+  these leaves into repository workflows; npm does not own Python or repository
+  orchestration. Site commands may derive build artifacts, but never edit the library.
 
 Each file has one home:
 - `src/content/` — authored or imported library and site content;
@@ -32,4 +38,4 @@ Classify the work and read the contract that owns it:
 
 Work inside the owning boundaries. Do not change component boundaries or introduce new bridges between them, unless the task explicitly asks to re-architect them.
 
-Verify before claiming done. The quality gate is `npm run verify` — the full gate (checks, audits, build, Playwright e2e), run identically locally and in CI. When checks fail, diagnose the cause and improve the code or contract; do not silence or route around failures just to pass.
+Verify before claiming done. The quality gate is `mise --locked run verify` — the full gate (checks, audits, build, Playwright e2e), run identically locally and in CI. When checks fail, diagnose the cause and improve the code or contract; do not silence or route around failures just to pass.

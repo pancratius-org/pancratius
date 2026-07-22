@@ -33,7 +33,7 @@ def _exit_code(argv: list[str]) -> int:
 
 
 def _fake_pandoc() -> PandocExecutable:
-    return PandocExecutable("/usr/bin/pandoc", "path")
+    return PandocExecutable("/usr/bin/pandoc")
 
 
 def _catalog_entry(*, kind: str = "book", number: int = 1, lang: str = "ru") -> object:
@@ -88,8 +88,8 @@ def test_retired_work_cover_is_usage_error(argv: list[str]) -> None:
     "verify", [["audit"], ["site"], ["check"], ["build"], ["test"], ["dev"], ["preview"]]
 )
 def test_door_has_no_verify_verb(verify: list[str]) -> None:
-    """The door MUTATES; the site-door verb family (verify: audit/check/test;
-    build/serve: build/dev/preview; plus the `site` proxy) is the npm door's job
+    """The door MUTATES; the repository-task family (verify: audit/check/test;
+    build/serve: build/dev/preview; plus the `site` proxy) is mise's job
     (the mutate/verify cut, PAN019). None are door groups → usage error."""
     assert _exit_code(verify) == 2
 

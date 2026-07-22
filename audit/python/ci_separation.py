@@ -1,30 +1,26 @@
-"""PAN012 — CI import/render/build separation.
+"""PAN012 — keep library-manufacturing tools out of CI.
 
-CI validates, builds, and PUBLISHES the site; it never manufactures the library
-(architecture.md "Shape"; downloads.md "CI Contract"). So a CI workflow must not
-install or run the library-management tooling — pandoc, typst, the embedding
-stack, DOCX optimizers, the source importers/renderers, OR the converter/IR/writer
-library modules behind them (docs/import-pipeline.md). Those are local/admin
-activities that compile or mutate source and render release artifacts. The import pipeline's
-sole src/content mutator (pancratius/writer.py) and the pure modules that feed it
-(the DOCX adapter, the typed IR + normalize/lower, footnote/cross-ref analysis,
-the WritePlan) all belong to the library door, never CI — invoked by their .py path
-OR as a dotted module (`python -m pancratius.writer`, `-c "from pancratius.…"`).
+CI publishes committed library content. It may build and verify the site, but it
+must not import DOCX, render release artifacts, optimize sources, or regenerate
+research data.
 
-This parses the workflow YAML with PyYAML and scans the `run:` and `uses:` of each
-step plus npm scripts transitively reachable from `npm run`. It does not scan comments
-or surrounding prose, so a workflow's own
-"MUST NOT install pandoc or typst" comment is not a false hit. Honours
-``PANCRATIUS_AUDIT_ROOT`` (the harness points it at a fixture); wrapped by the
-TS harness as PAN012 (audit/rules/ownership.ts).
+This rule checks the boundary at the workflow door. GitHub Actions may enter the
+repository task graph only through the locked ``verify`` and ``verify:content``
+mise tasks. The mise action must install exactly Node, Python, and uv, and task
+auto-install must remain disabled. Direct workflow commands are scanned for the
+local library tools and mutation paths the boundary excludes.
+
+PAN012 deliberately does not interpret mise tasks, npm scripts, included TOML,
+or shell programs. Mise already owns task discovery and graph resolution; a
+second partial interpreter here would be a weaker, drifting copy of that model.
 """
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import sys
+import tomllib
 from pathlib import Path
 from typing import cast
 
@@ -35,67 +31,10 @@ def audit_root() -> Path:
     env = os.environ.get("PANCRATIUS_AUDIT_ROOT")
     if env:
         return Path(env).resolve()
-    # audit/python/ci_separation.py -> repo root.
     return Path(__file__).resolve().parents[2]
 
 
-# Banned in a step's `run:` command. Each is a durable contract from
-# architecture.md ("Library-management tools": pandoc, typst, …; "Run via uv
-# only" → no pip/conda) and downloads.md ("CI Contract"): the render/convert
-# engines, the banned Python install mechanisms, and the corpus-management
-# library door (never CI). Word-boundaried so substrings don't
-# misfire (e.g. a path containing "pip").
-# Case-insensitive throughout (a `Pandoc` is as banned as `pandoc`); word-bounded
-# so substrings ("typescript", "pipx", "typstyle") don't misfire.
 _F = re.IGNORECASE
-
-# Corpus-management owner modules. They have no direct executable entrypoint, but CI
-# must not reach for their file paths or dotted modules to bypass the door contract.
-_BANNED_OWNER_MODULES = (
-    "import_docx",  # the DOCX → work-bundle importer (mutates src/content via the writer)
-    "render_downloads",  # the release renderer (produces dist download artifacts)
-    "docx_optimize",  # the DOCX optimizer (rewrites source DOCX)
-    "conceptosphere",  # the embedding/graph builder
-    "conceptosphere_embed",  # the embedding stack
-)
-
-# The converter/IR/writer LIBRARY MODULES behind import_docx.py (docs/import-pipeline.md:
-# the DOCX adapter, the typed IR package, the pass pipeline, the canonical-Markdown
-# backend, footnote/cross-ref analysis, the WritePlan, and the writer — the sole
-# src/content mutator). These have no CLI of their own, so CI could only reach them
-# by importing or `-m`-running them (`python -m pancratius.writer`,
-# `uv run python -c "from pancratius.lower import …"`). Matched in path form
-# (`pancratius/<name>.py` or `pancratius/<pkg>/<stage>.py`) and dotted module form
-# (`pancratius.<name>`), anchored to the import context so generic names
-# (writer, footnotes, lower) can't misfire on unrelated prose in a run line.
-_BANNED_LIB_MODULES = (
-    "docx_conversion",  # convert_single_docx — the live typed-IR converter
-    "docx_adapter",  # canonical source-model to typed-IR adapter
-    "ir",  # the typed block IR package
-    "passes",  # the pass pipeline package (the middle-end)
-    "lower",  # the canonical-Markdown backend
-    "footnotes",  # footnote definition/reference analysis
-    "cross_refs",  # cross-reference extraction
-    "ooxml",  # shared OOXML package mechanics
-    "writeplan",  # the pure WritePlan + validation
-    "writer",  # the ONLY src/content mutator
-)
-_BANNED_MODULES = (*_BANNED_OWNER_MODULES, *_BANNED_LIB_MODULES)
-_BANNED_PATH_MODULES = (
-    *_BANNED_MODULES,
-    "ir/nodes",
-    "ir/inlines",
-    "passes/pipeline",
-    "passes/scrub",
-    "passes/endmatter",
-    "passes/structure",
-    "passes/lineation",
-    "passes/register",
-    "passes/sanitize",
-    "passes/assets",
-)
-_CORPUS_VERBS = r"(?:work|project|downloads|docx|conceptosphere)"
-
 _RUN_BANNED: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("pandoc (document converter)", re.compile(r"\bpandoc\b", _F)),
     ("typst (PDF engine)", re.compile(r"\btypst\b", _F)),
@@ -104,6 +43,14 @@ _RUN_BANNED: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("conda (banned: uv only)", re.compile(r"\bconda\b", _F)),
     ("requirements.txt (banned: uv lock only)", re.compile(r"requirements\.txt", _F)),
     (
+        "local renderer smoke test",
+        re.compile(r"\btests/tools/test_renderer_smoke\.py\b", _F),
+    ),
+    (
+        "mise bootstrap (installs the full local toolchain)",
+        re.compile(r"\bmise\b[^\n;&|]*\bbootstrap\b", _F),
+    ),
+    (
         "intent-ai record compiler (local research boundary, never CI)",
         re.compile(
             r"(?:\bintent_ai\.build_records\b"
@@ -111,136 +58,142 @@ _RUN_BANNED: tuple[tuple[str, re.Pattern[str]], ...] = (
             _F,
         ),
     ),
-    (
-        "pancratius corpus-management CLI (library door, never CI)",
-        re.compile(r"\bpancratius\s+" + _CORPUS_VERBS + r"\b", _F),
-    ),
-    (
-        "pancratius CLI module with corpus-management verb (library door, never CI)",
-        re.compile(r"\bpython(?:3(?:\.\d+)?)?\s+-m\s+pancratius(?:\.cli)?\s+" + _CORPUS_VERBS + r"\b", _F),
-    ),
-    (
-        "pancratius CLI file path with corpus-management verb (library door, never CI)",
-        re.compile(r"\bpython(?:3(?:\.\d+)?)?\s+pancratius/cli\.py\s+" + _CORPUS_VERBS + r"\b", _F),
-    ),
-    (
-        "corpus-management owner or converter/IR/writer module (never CI)",
-        re.compile(
-            # path form: pancratius/<name>.py  — OR — dotted module form
-            # (python -m / -c import): pancratius.<name>
-            r"(?:\bpancratius/(?:" + "|".join(_BANNED_PATH_MODULES) + r")\.py\b"
-            r"|\bpancratius\.(?:" + "|".join(_BANNED_MODULES) + r")\b)",
-            _F,
-        ),
-    ),
 )
 
-# Banned in a step's `uses:` (a setup action that installs an engine). Word-bounded
-# so an unrelated action whose name merely contains the substring doesn't misfire.
-_USES_BANNED: re.Pattern[str] = re.compile(r"\b(pandoc|typst)\b", _F)
-_NPM_RUN: re.Pattern[str] = re.compile(r"\bnpm\s+(?:run|run-script)\s+([\w:-]+)")
+_USES_BANNED = re.compile(r"\b(pandoc|typst)\b", _F)
+_MISE_ACTION = re.compile(r"^jdx/mise-action@", _F)
+_EXACT_MISE_VERSION = re.compile(r"^\d{4}\.\d+\.\d+$")
+_CI_MISE_TOOLS = frozenset({"node", "python", "uv"})
+_ALLOWED_CI_TASKS = frozenset({"verify", "verify:content"})
+_CANONICAL_MISE_RUN = re.compile(r"mise --locked run ([\w:-]+)")
+_ANY_MISE_RUN = re.compile(r"\bmise\b[^\n;&|]*\brun\b")
+_NPM_RUN = re.compile(r"\bnpm\s+(?:run|run-script)\b")
+_VIDEO_SYNC_WORKFLOW = ".github/workflows/video-sync.yml"
+_VIDEO_SYNC_COMMAND = "uv run --frozen pancratius video sync"
+_PANCRATIUS_REFERENCE = re.compile(r"\bpancratius(?:[./]|\s|$)")
 
 
-# PyYAML returns `object`; `isinstance(x, dict)` alone narrows to a key/value-less
-# dict the type checker won't let us `.get` on, so narrow-and-cast to the YAML
-# mapping shape (str keys, arbitrary values) once, here.
 def _as_mapping(value: object) -> dict[str, object] | None:
     return cast(dict[str, object], value) if isinstance(value, dict) else None
 
 
 def _steps(workflow: object) -> list[dict[str, object]]:
-    """Every step dict across all jobs, defensively (malformed YAML -> [])."""
     out: list[dict[str, object]] = []
     wf = _as_mapping(workflow)
-    if wf is None:
-        return out
-    jobs = _as_mapping(wf.get("jobs"))
+    jobs = _as_mapping(wf.get("jobs")) if wf is not None else None
     if jobs is None:
         return out
     for job_value in jobs.values():
         job = _as_mapping(job_value)
-        if job is None:
-            continue
-        steps = job.get("steps")
+        steps = job.get("steps") if job is not None else None
         if not isinstance(steps, list):
             continue
-        for step_value in steps:
-            step = _as_mapping(step_value)
-            if step is not None:
-                out.append(step)
+        out.extend(step for value in steps if (step := _as_mapping(value)) is not None)
     return out
 
 
-def _scan_run(label: str, run: str) -> list[str]:
-    return [
+def _scan_run(rel: str, label: str, run: str) -> tuple[list[str], bool]:
+    failures = [
         f"{label}: run uses {description}"
         for description, pattern in _RUN_BANNED
         if pattern.search(run)
     ]
 
-
-def _reachable_npm_scripts(run: str, scripts: dict[str, str]) -> list[tuple[str, str]]:
-    """Named script bodies reachable from one workflow command, once each."""
-    def invoked(command: str) -> list[str]:
-        names: list[str] = []
-        for match in _NPM_RUN.finditer(command):
-            name = match.group(1)
-            names.extend((f"pre{name}", name, f"post{name}"))
-        return names
-
-    pending = invoked(run)
-    seen: set[str] = set()
-    out: list[tuple[str, str]] = []
-    while pending:
-        name = pending.pop()
-        if name in seen:
+    invokes_project_task = False
+    for line in run.splitlines():
+        command = line.strip()
+        if not _ANY_MISE_RUN.search(command):
             continue
-        seen.add(name)
-        body = scripts.get(name)
-        if body is None:
+        call = _CANONICAL_MISE_RUN.fullmatch(command)
+        if call is None:
+            failures.append(
+                f"{label}: mise task calls must be exactly 'mise --locked run verify' "
+                "or 'mise --locked run verify:content'"
+            )
             continue
-        out.append((name, body))
-        pending.extend(invoked(body))
-    return out
+        task = call.group(1)
+        if task not in _ALLOWED_CI_TASKS:
+            failures.append(
+                f"{label}: CI may run only mise tasks: verify, verify:content (found {task})"
+            )
+            continue
+        invokes_project_task = True
+
+    if _NPM_RUN.search(run):
+        failures.append(f"{label}: CI repository tasks must enter through mise, not npm run")
+
+    without_video_sync = "\n".join(
+        "" if rel == _VIDEO_SYNC_WORKFLOW and line.strip() == _VIDEO_SYNC_COMMAND else line
+        for line in run.splitlines()
+    )
+    if _PANCRATIUS_REFERENCE.search(without_video_sync):
+        failures.append(
+            f"{label}: direct pancratius library access is forbidden; "
+            "only the video sync workflow exception is allowed"
+        )
+
+    return failures, invokes_project_task
 
 
-def _scan_workflow(rel: str, text: str, scripts: dict[str, str]) -> list[str]:
+def _scan_mise_action(label: str, step: dict[str, object]) -> list[str]:
+    with_ = _as_mapping(step.get("with"))
+    if with_ is None:
+        return [f"{label}: mise-action must install exactly: node python uv"]
+
     failures: list[str] = []
+    version = with_.get("version")
+    if not isinstance(version, str) or _EXACT_MISE_VERSION.fullmatch(version) is None:
+        failures.append(f"{label}: mise-action version must be an exact release")
+
+    install_args = with_.get("install_args")
+    tools = frozenset(install_args.split()) if isinstance(install_args, str) else frozenset()
+    if tools != _CI_MISE_TOOLS:
+        actual = " ".join(sorted(tools)) if tools else "<missing>"
+        failures.append(
+            f"{label}: mise-action install_args must be exactly 'node python uv' (found {actual})"
+        )
+    return failures
+
+
+def _scan_workflow(rel: str, text: str) -> tuple[list[str], bool]:
     try:
         workflow = yaml.safe_load(text)
-    except yaml.YAMLError as exc:  # a workflow we can't parse is a failure to surface
-        return [f"{rel}: could not parse workflow YAML ({exc})"]
+    except yaml.YAMLError as exc:
+        return [f"{rel}: could not parse workflow YAML ({exc})"], False
 
+    failures: list[str] = []
+    invokes_project_task = False
     for step in _steps(workflow):
         name = step.get("name")
         label = f"{rel} step {name!r}" if isinstance(name, str) else rel
 
         run = step.get("run")
         if isinstance(run, str):
-            failures.extend(_scan_run(label, run))
-            for script_name, script_body in _reachable_npm_scripts(run, scripts):
-                failures.extend(_scan_run(f"{label} via npm script {script_name!r}", script_body))
+            run_failures, invokes_mise = _scan_run(rel, label, run)
+            failures.extend(run_failures)
+            invokes_project_task = invokes_project_task or invokes_mise
 
         uses = step.get("uses")
         if isinstance(uses, str) and _USES_BANNED.search(uses):
             failures.append(f"{label}: uses action installs a banned engine ({uses})")
+        if isinstance(uses, str) and _MISE_ACTION.search(uses):
+            failures.extend(_scan_mise_action(label, step))
 
-    return failures
+    return failures, invokes_project_task
 
 
-def _package_scripts(root: Path) -> tuple[dict[str, str], list[str]]:
-    package = root / "package.json"
-    if not package.is_file():
-        return {}, []
+def _auto_install_failure(root: Path) -> str | None:
+    path = root / "mise.toml"
     try:
-        value = json.loads(package.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as exc:
-        return {}, [f"package.json: could not read npm scripts ({exc})"]
-    package_map = _as_mapping(value)
-    script_map = _as_mapping(package_map.get("scripts")) if package_map is not None else None
-    if script_map is None:
-        return {}, []
-    return {name: body for name, body in script_map.items() if isinstance(body, str)}, []
+        config = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (tomllib.TOMLDecodeError, OSError) as exc:
+        return f"mise.toml: could not verify task.run_auto_install ({exc})"
+
+    settings = _as_mapping(config.get("settings"))
+    task = _as_mapping(settings.get("task")) if settings is not None else None
+    if task is None or task.get("run_auto_install") is not False:
+        return "mise.toml: CI mise tasks require settings.task.run_auto_install=false"
+    return None
 
 
 def main() -> int:
@@ -250,22 +203,26 @@ def main() -> int:
         print(f"PASS: no {workflows.relative_to(root)} directory")
         return 0
 
-    files = sorted(p for p in workflows.iterdir() if p.suffix in {".yml", ".yaml"})
-    scripts, failures = _package_scripts(root)
+    files = sorted(path for path in workflows.iterdir() if path.suffix in {".yml", ".yaml"})
+    failures: list[str] = []
+    invokes_project_task = False
     for path in files:
-        failures.extend(
-            _scan_workflow(
-                str(path.relative_to(root)), path.read_text(encoding="utf-8"), scripts
-            )
+        workflow_failures, invokes_mise = _scan_workflow(
+            str(path.relative_to(root)), path.read_text(encoding="utf-8")
         )
+        failures.extend(workflow_failures)
+        invokes_project_task = invokes_project_task or invokes_mise
+
+    if invokes_project_task and (failure := _auto_install_failure(root)) is not None:
+        failures.append(failure)
 
     if failures:
-        print("FAIL: CI runs library-management tooling (import/render/build separation)", file=sys.stderr)
+        print("FAIL: CI crosses the library-management boundary", file=sys.stderr)
         for failure in failures:
             print(f"  {failure}", file=sys.stderr)
         return 1
 
-    print(f"PASS: {len(files)} workflow(s) install/run no banned library tooling")
+    print(f"PASS: {len(files)} workflow(s) preserve the CI/library boundary")
     return 0
 
 

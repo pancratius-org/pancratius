@@ -150,6 +150,15 @@ def test_export_markdown_refuses_undocumented_div_wrapper(tmp_path: Path, class_
         render_downloads._write_export_markdown(entry, dest, {})
 
 
+def test_typst_path_literal_is_raw_typst_not_markdown(tmp_path: Path) -> None:
+    path = tmp_path / 'cover_name_"quoted".jpg'
+
+    literal = render_downloads._typst_path_literal(path)
+
+    assert "\\_" not in literal
+    assert literal == '"' + path.as_posix().replace('"', '\\"') + '"'
+
+
 def test_current_work_corpus_download_html_allowlist() -> None:
     failures: list[str] = []
     for root in [

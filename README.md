@@ -21,12 +21,8 @@ goals of the tooling is to prevent drift caused by semi-supervised long loops.
 - CI verifies and publishes committed source, syncs videos. It does not import 
   works, render books, optimize DOCX, or regenerate embeddings.
 
-Two command surfaces has an explicit boundary:
-
-```bash
-uv run pancratius ...  # changes the library and derivations like graph payloads
-npm run ...            # checks, builds, audits, previews, deploys the site
-```
+Mise owns repository workflows; npm owns site leaves, while
+`uv run pancratius ...` changes the library and committed corpus products.
 
 ## Structure and Intent Restoration
 
@@ -134,25 +130,25 @@ docs/          target contracts for architecture, content, tooling, and data
 ## Running It
 
 ```sh
-npm ci
-uv sync --frozen
-npm run dev
+# Review mise.toml before trusting repository tasks and settings.
+mise trust
+mise --locked bootstrap --yes
+mise --locked run dev
 ```
+
+Mise tasks use the locked tools without requiring shell activation. Native npm
+and uv leaves can still be run through `mise --locked exec --` when needed. See
+mise's [trust](https://mise.jdx.dev/cli/trust.html) and
+[activation](https://mise.jdx.dev/getting-started.html) guidance.
 
 Before claiming a change is ready:
 
 ```sh
-npm run verify
+mise --locked run verify
 ```
 
-Useful entry points:
-
-```sh
-npm run check
-npm run build
-npm run preview
-uv run pancratius --help
-```
+Run `mise tasks` for the command catalog. See [`docs/tooling.md`](docs/tooling.md)
+for ownership and the portable/toolchain test split.
 
 ## Documentation
 

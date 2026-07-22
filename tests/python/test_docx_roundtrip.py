@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import importlib.util
 import shutil
-import subprocess
 from pathlib import Path
 
 import pytest
+from docx import Document
 
 from pancratius.content_catalog import CatalogEntry, dump_frontmatter, scan_catalog
 from pancratius.docx_roundtrip import (
@@ -13,11 +12,6 @@ from pancratius.docx_roundtrip import (
     check_docx_markdown_roundtrip,
     check_staged_docx_markdown_roundtrip,
     compare_markdown_pair,
-)
-
-requires_docx_roundtrip = pytest.mark.skipif(
-    shutil.which("pandoc") is None or importlib.util.find_spec("PIL") is None,
-    reason="pandoc and pillow are required",
 )
 
 
@@ -58,14 +52,14 @@ translation:
 
 
 def _make_docx(tmp_path: Path, markdown: str) -> Path:
-    md = tmp_path / "source.md"
     docx = tmp_path / "source.docx"
-    md.write_text(markdown, encoding="utf-8")
-    subprocess.run(["pandoc", str(md), "-o", str(docx)], check=True, capture_output=True, text=True)
+    document = Document()
+    document.add_paragraph(markdown.strip())
+    document.save(str(docx))
     return docx
 
 
-@requires_docx_roundtrip
+@pytest.mark.pandoc
 def test_roundtrip_imports_into_temp_root_without_mutating_content(tmp_path: Path) -> None:
     content_root = tmp_path / "content"
     book_dir = content_root / "books" / "01-test"
@@ -83,7 +77,7 @@ def test_roundtrip_imports_into_temp_root_without_mutating_content(tmp_path: Pat
     assert (book_dir / "en.md").read_text(encoding="utf-8") == before
 
 
-@requires_docx_roundtrip
+@pytest.mark.pandoc
 def test_staged_roundtrip_checks_docx_before_commit(tmp_path: Path) -> None:
     content_root = tmp_path / "content"
     book_dir = content_root / "books" / "01-test"
@@ -172,7 +166,7 @@ def test_roundtrip_reports_register_artifact_errors_as_fatal(
     assert "weights sha256 mismatch" in report.findings[0].message
 
 
-@requires_docx_roundtrip
+@pytest.mark.pandoc
 def test_compare_tolerates_bootstrap_metadata_loss_but_flags_visible_text() -> None:
     committed = """---
 kind: book
@@ -216,7 +210,7 @@ Light.
     assert any(finding.code == "roundtrip.visible-text-drift" for finding in bad_findings)
 
 
-@requires_docx_roundtrip
+@pytest.mark.pandoc
 def test_compare_treats_quote_style_as_typography_drift() -> None:
     committed = """---
 kind: book
@@ -241,7 +235,7 @@ He said: «I am here».[1]
     assert any(finding.code == "roundtrip.typography-drift" for finding in findings)
 
 
-@requires_docx_roundtrip
+@pytest.mark.pandoc
 def test_compare_treats_ellipsis_style_as_typography_drift() -> None:
     committed = _book_markdown("This is a hint...\n")
     imported = _book_markdown("This is a hint…\n")
@@ -252,7 +246,7 @@ def test_compare_treats_ellipsis_style_as_typography_drift() -> None:
     assert any(finding.code == "roundtrip.typography-drift" for finding in findings)
 
 
-@requires_docx_roundtrip
+@pytest.mark.pandoc
 def test_compare_fails_when_image_reference_changes() -> None:
     committed = _book_markdown("![Illustration](./images/a.jpg)\n")
     imported = _book_markdown("![Illustration](./images/b.jpg)\n")
@@ -263,7 +257,7 @@ def test_compare_fails_when_image_reference_changes() -> None:
     assert drift.severity == "fatal"
 
 
-@requires_docx_roundtrip
+@pytest.mark.pandoc
 def test_compare_accepts_rehashed_image_reference_with_same_payload(tmp_path: Path) -> None:
     committed_dir = tmp_path / "committed"
     imported_dir = tmp_path / "imported"
@@ -288,7 +282,7 @@ def test_compare_accepts_rehashed_image_reference_with_same_payload(tmp_path: Pa
     assert not any(finding.code == "roundtrip.image-reference-drift" for finding in findings)
 
 
-@requires_docx_roundtrip
+@pytest.mark.pandoc
 def test_compare_treats_signature_html_text_as_visible() -> None:
     committed = _book_markdown("""I testify.
 
@@ -306,7 +300,7 @@ P.S. Continue.
     assert not any(finding.severity == "fatal" for finding in findings)
 
 
-@requires_docx_roundtrip
+@pytest.mark.pandoc
 def test_compare_fails_when_lineation_structure_is_lost() -> None:
     committed = _book_markdown("""<div class="lineated">
 
@@ -328,7 +322,7 @@ Third line
     assert drift.severity == "fatal"
 
 
-@requires_docx_roundtrip
+@pytest.mark.pandoc
 def test_visible_text_drift_message_skips_tolerated_footnote_spacing() -> None:
     committed = _book_markdown("Creator, I was at the Liturgy[1], and then the light changed.\n")
     imported = _book_markdown("Creator, I was at the Liturgy [1], and then the word changed.\n")

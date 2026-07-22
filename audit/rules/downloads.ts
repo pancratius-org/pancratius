@@ -1,6 +1,6 @@
 // Download / corpus-export contract (docs/audit-harness.md → "PAN008: Download
 // And Corpus Export Contract", docs/downloads.md). A `post-build`-tier rule:
-// it needs an emitted `dist/`, so it runs only on `npm run audit:post-build`,
+// it needs an emitted `dist/`, so it runs only on `mise run audit:post-build`,
 // never on the fast PR gate.
 //
 // PAN008 wraps the existing, production-proven post-build check

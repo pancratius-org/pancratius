@@ -1,20 +1,20 @@
 """PAN019 — CLI door verify-boundary guard (mutate/verify cut, PAN015 family).
 
-The two-doors split (docs/tooling.md) cuts on what a command does to the world:
-the `pancratius` console-script MUTATES the corpus; verification (`check`, `test`,
-`audit`) is PURE and lives behind the `npm` site door. So the `pancratius` door
-must expose NO verification verb — concretely, no `audit` group/verb and no `site`
-proxy group (the two rejected alternatives tooling.md names). A `pancratius site
-audit → npm run audit:repo` proxy would invert the doc's cut at the grammar level.
+The command split (docs/tooling.md) cuts on what a command does to the world: the
+`pancratius` console script MUTATES the corpus; pure repository workflows
+(`check`, `test`, `audit`, build, and development) live in mise. So the
+`pancratius` door must expose no verification verb and no `site` proxy group. A
+`pancratius site audit → mise run audit:repo` proxy would invert the cut at the
+grammar level.
 
 This audit asserts that `pancratius/cli.py` registers no argparse sub-parser whose
-name is a site-door verb (at ANY nesting level), so the boundary can't silently
+name is a repository-task verb (at ANY nesting level), so the boundary can't silently
 drift in. The door grows new MUTATE verbs freely (import/add/render/optimize/
-generate/refresh — none collide); only the site-door names are barred.
+generate/refresh — none collide); only the repository-task names are barred.
 
 This is necessarily NAME-bound: a verb's *semantics* aren't statically knowable, so
 the rule can't catch a verify verb under a creative new name. It bars the whole
-site-door verb family (not just `audit`/`site`) to make an accidental `check`/`build`
+repository-task verb family (not just `audit`/`site`) to make an accidental `check`/`build`
 door verb trip the wire, and pairs with `tests/test_cli.py`'s behavioural check that
 those names aren't door groups. The defence is the named boundary, not omniscience.
 
@@ -30,11 +30,9 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-# The site-door verb family that must never become a `pancratius` (mutate-door)
-# verb/group — the mutate/verify cut (docs/tooling.md). `site` is the rejected proxy
-# group; the rest are the npm site door's own verbs: the VERIFY family (check, test,
-# audit) and the BUILD/serve family (dev, build, preview). None collide with a real
-# mutate verb, so barring the names is safe and faithful to the cut.
+# The repository-task verb family must never become a `pancratius` mutation verb.
+# `site` is the rejected proxy group; the rest are mise's verification and
+# build/development vocabulary. None collide with a real mutation verb.
 FORBIDDEN_VERBS: frozenset[str] = frozenset(
     {"site", "audit", "check", "test", "build", "dev", "preview"}
 )
@@ -86,7 +84,7 @@ def main() -> int:
     failures = [
         f"pancratius/cli.py:{registration.lineno}: the CLI door registers a "
         f"`{registration.name}` sub-parser — "
-        f"verification ({', '.join(sorted(FORBIDDEN_VERBS))}) is the npm site door's "
+        f"verification ({', '.join(sorted(FORBIDDEN_VERBS))}) is the mise task graph's "
         "job (the mutate/verify cut), never a `pancratius` verb."
         for registration in _registered_subparser_names(tree)
         if registration.name in FORBIDDEN_VERBS

@@ -4,14 +4,16 @@ Pancratius is a public-domain library of Sergey Orekhov's spiritual writings —
 static Astro site plus the Python tooling that builds it. Corpus content is
 CC0; the site and tooling code are MIT.
 
-## Two command surfaces
+## Command ownership
 
 A change's owner is decided by its effect:
 
+- `mise --locked run …` owns pure repository workflows across the site, Python,
+  audits, and research projects.
 - `uv run pancratius …` changes the library — import DOCX, scaffold pages, render
   downloads, regenerate committed data. Local only; never run in CI.
-- `npm run …` builds, checks, audits, and deploys the site from committed source.
-  It never creates or edits library content.
+- `npm run …` implements Astro/TypeScript site leaves. npm and uv keep dependency
+  ownership even when mise composes their commands.
 
 Read the contract that owns your change before writing code:
 [`architecture.md`](docs/architecture.md) (boundaries, stack, deploy),
@@ -20,19 +22,29 @@ Read the contract that owns your change before writing code:
 
 ## Setup
 
-- Node — version in [`.nvmrc`](.nvmrc); `npm ci`.
-- Python 3.13 via [`uv`](https://docs.astral.sh/uv/); `uv sync`.
+Install [mise](https://mise.jdx.dev/), review `mise.toml`, then trust the
+repository configuration and bootstrap the locked toolchain and dependencies:
+
+```sh
+mise trust
+mise --locked bootstrap --yes
+```
+
+Tasks receive the locked environment without shell activation; use
+`mise --locked exec -- <command>` for native npm or uv commands. See mise's
+[`trust`](https://mise.jdx.dev/cli/trust.html) and
+[activation](https://mise.jdx.dev/getting-started.html) guidance.
 
 ## The gate
 
 One command, identical locally and in CI — green before a PR merges:
 
 ```sh
-npm run verify
+mise --locked run verify
 ```
 
-`npm run check` is the faster inner loop — the same TS, Astro, Python, lint, and
-test checks, minus the audits and the build.
+Use `mise --locked run check` as the faster inner loop. Renderer and DOCX
+translation changes also require `mise --locked run verify:toolchain`.
 
 ## Git
 

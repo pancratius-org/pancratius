@@ -4,10 +4,11 @@
 // the embedding stack, DOCX optimizers, source importers/renderers) is local/admin
 // work that mutates source or renders release artifacts — it must never run in CI.
 //
-// PAN012 is a thin wrapper over the Python check that parses the workflow YAML and
-// scans each step's run:/uses: and reachable npm scripts (not comments) for that banned tooling. PAN005
-// (build steps mutating authored Markdown, --clean deleting a content kind, etc.)
-// will be added here as deterministic members land, incident-first.
+// PAN012 checks the workflow door: the exact CI tool subset, the two allowed
+// locked mise entry points, disabled task auto-install, and direct banned commands.
+// Mise itself owns transitive task discovery and graph resolution. PAN005 (build
+// steps mutating authored Markdown, --clean deleting a content kind, etc.) will be
+// added here as deterministic members land, incident-first.
 
 import type { Rule, RuleContext } from "../lib/rule.ts";
 import type { Finding } from "../lib/finding.ts";
@@ -26,10 +27,10 @@ export const pan012CiSeparation: Rule = {
       severity: "fatal",
       script: "python/ci_separation.py",
       contract:
-        "CI validates and publishes committed source; it never manufactures the library (architecture.md \"Shape\"; downloads.md \"CI Contract\"). A workflow step or transitively invoked npm script must not compile intent-ai records, install or run pandoc, typst, the embedding stack, DOCX optimizers, the source importers/renderers, or the converter/IR/writer library modules behind them (the DOCX adapter, the typed IR + normalize/lower, footnote/cross-ref analysis, the WritePlan, and the writer — src/content's sole mutator; docs/import-pipeline.md). Those are local/admin activities that compile or mutate source and render release artifacts.",
+        "CI validates and publishes committed source; it never manufactures the library (architecture.md \"Shape\"; downloads.md \"CI Contract\"). Workflows may enter the repository task graph only through `mise --locked run verify` or `verify:content`. The mise action installs exactly Node, Python, and uv, and task auto-install stays disabled. Direct workflow commands must not compile intent-ai records, install or run pandoc/typst, invoke corpus mutation commands, or import the converter/IR/writer modules behind them.",
       why: "If CI renders or imports, the deploy pipeline depends on heavy local tooling (pandoc/typst/MLX) and can mutate or regenerate committed source — making the build non-reproducible and able to overwrite authored content. The split is what keeps CI a pure build-and-publish.",
       repair:
-        "Run import/render/optimize/embedding locally via the library door (uv) and commit the results; CI only packages and publishes what is already in src/content/. Remove the offending install/run/import step from the workflow.",
+        "Move repository verification behind an allowed locked mise entry point. Run import/render/optimize/embedding locally through the library door and commit the results; CI only packages and publishes what is already in src/content/.",
       doNotFixBy:
         "Adding a pandoc/typst install step, invoking an importer/renderer, or `python -m`-running a converter/writer library module in CI to 'just make the artifact in the pipeline' — that erases the import/render/build boundary.",
     });

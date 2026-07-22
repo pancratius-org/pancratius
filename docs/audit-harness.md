@@ -12,10 +12,10 @@ assets, and the split between library work and site work.
 
 | Command | Scope |
 | --- | --- |
-| `npm run audit:repo` | Core fatal rules. This is the normal repo audit gate. |
-| `npm run audit:agent` | Core rules plus non-blocking heuristic checks. |
-| `npm run audit:post-build` | Rules that need an emitted `dist/`. |
-| `npm run audit:selftest` | Known-good/known-bad fixtures for the harness. |
+| `mise --locked run audit:repo` | Core fatal rules. This is the normal repo audit gate. |
+| `mise --locked run audit:agent` | Core rules plus non-blocking heuristic checks. |
+| `mise --locked run audit:post-build` | Rules that need an existing `dist/`. |
+| `mise --locked run audit:selftest` | Known-good/known-bad fixtures for the harness. |
 
 Only `fatal` findings fail the command. `warning` and `info` findings are still
 real review signal; they just do not block the build by default.
@@ -122,7 +122,7 @@ the architecture contracts those rules cover.
 | PAN004 | Projects do not enter work-only machinery such as bulk work archives or duplicate work identity. |
 | PAN007 | Markdown asset references resolve to owned content assets. |
 | PAN008 | Public Markdown exports use public asset URLs, not local or relative source paths. |
-| PAN012 | CI does not install or run library-management tooling or converter/IR/writer internals. |
+| PAN012 | CI enters only the locked verification tasks and does not directly install or run library-management tooling. |
 | PAN014 | Emitted internal links resolve in `dist/`. |
 | PAN016 | Production source follows the declared TS/Python stack boundaries. |
 | PAN017 | `pancratius work import --kind` derives from `CORPUS_WORK_KINDS`; projects are not work kinds. |

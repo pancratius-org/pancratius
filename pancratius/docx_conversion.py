@@ -494,7 +494,7 @@ def scaffold_subpage(
     Converts the DOCX prose, co-locates its body images, and writes
     `projects/<project>/subpages/<subpage-slug>/<lang>.md` with mechanical frontmatter
     seeded and editorial fields left as `TODO` placeholders, so the draft fails
-    `npm run check` until a human fills them (a failing draft beats a guessed register).
+    `mise run check` until a human fills them (a failing draft beats a guessed register).
 
     Never reads or writes the project landing. Writes through the import writer (the
     writer is general and emits no provenance, so there is no import coupling). Raises
@@ -533,7 +533,7 @@ def scaffold_subpage(
             raise ScaffoldError(str(exc)) from exc
 
         # Mechanical fields seeded; editorial fields are TODO placeholders. The
-        # `weight` value is enum-invalid, so the draft fails `npm run check` until a
+        # `weight` value is enum-invalid, so the draft fails `mise run check` until a
         # human sets the register.
         fm: dict[str, Any] = {
             "kind": "project_subpage",

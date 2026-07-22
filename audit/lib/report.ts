@@ -57,7 +57,7 @@ export function renderReport(findings: readonly Finding[], opts: ReportOptions):
   if (opts.showInfo) {
     blocks.push("", section("INFO", of("info")));
   } else if (counts.info > 0) {
-    blocks.push("", `INFO\n  ${counts.info} informational finding(s) — run \`npm run audit:agent\` to see them`);
+    blocks.push("", `INFO\n  ${counts.info} informational finding(s) — run \`mise run audit:agent\` to see them`);
   }
 
   return blocks.join("\n") + "\n";

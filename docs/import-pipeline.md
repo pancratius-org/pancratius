@@ -350,9 +350,11 @@ the writer module — every pure import module carries a marker and the scan der
 its set from those markers, so the boundary holds regardless of test coverage
 (PAN018); and import/converter code is never invoked from CI, neither the
 importer/renderer tools nor the converter/IR/writer library modules behind them
-(PAN012). These guard the *shape* so the boundary cannot silently drift; the
-runtime behaviors above stay in tests, where a property is established by running
-the code, not by guessing from its shape.
+(PAN012). PAN012 guards the workflow door: CI installs the portable tool subset,
+cannot auto-install project tools, and enters only the locked verification tasks.
+It does not duplicate mise's transitive task resolver. Runtime behaviors above
+stay in tests, where a property is established by running the code, not by
+guessing from its shape.
 
 Checks that consume `DocxSourceDocument` begin at the canonical-source boundary.
 They can catch transformation and committed-output loss, but they are not an

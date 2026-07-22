@@ -24,6 +24,10 @@ pnpm-debug.log*
 .env
 .env.local
 .env.*.local
+mise.local.toml
+mise.local.lock
+.mise.local.toml
+.mise.local.lock
 
 # Editor / OS
 .DS_Store

@@ -6,9 +6,9 @@
   "description": "Pancratius — open-access library of Sergey Orekhov's spiritual writings",
   "license": "MIT",
   "engines": {
-    "node": ">=24.12.0"
+    "node": ">=24.12.0 <25"
   },
-  "packageManager": "npm@11.11.0",
+  "packageManager": "npm@11.16.0",
   "scripts": {
     "dev": "npm run generate && node build/sync-pagefind-dev.ts && astro dev",
     "build": "npm run generate && npm run build:site && npm run build:sitemap && npm run build:search-index",
@@ -28,9 +28,6 @@
     "check:unused": "knip",
     "check:code": "npm run typecheck:tooling && npm run lint && npm run check:unused && npm run test:unit",
     "check:site": "npm run generate && astro check",
-    "check:py": "uv run ruff check pancratius audit tests/python tests/tools && uv run ty check && uv run pytest tests/python -q",
-    "check:intent-ai": "uv run ruff check --config intent-ai/pyproject.toml intent-ai/src intent-ai/tests && uv run --project intent-ai --group dev --frozen ty check && uv run --project intent-ai --group dev --frozen pytest intent-ai/tests -q -c intent-ai/pyproject.toml -p no:cacheprovider -m 'not corpus_cache and not corpus_source and not repository_history'",
-    "check": "npm run check:code && npm run check:site && npm run check:py",
     "test": "npm run test:unit",
     "test:unit": "node --test \"tests/unit/*.test.ts\"",
     "test:e2e": "playwright test",
@@ -41,13 +38,8 @@
     "shots:viewport": "node tests/visual/capture-viewports.ts",
     "shots:projects": "node tests/visual/capture-projects.ts",
     "audit:deps": "npm audit --audit-level=high",
-    "audit:repo": "node audit/harness.ts",
-    "audit:agent": "node audit/harness.ts agent",
     "audit:css-values": "node audit/css-values.ts",
-    "audit:layout-fill": "node audit/layout-fill.ts",
-    "audit:post-build": "node audit/harness.ts post-build",
-    "audit:selftest": "node audit/selftest.ts",
-    "verify": "npm run audit:deps && npm run check && npm run check:intent-ai && npm run audit:repo && npm run audit:selftest && npm run build && npm run audit:post-build && npm run test:e2e:gate"
+    "audit:layout-fill": "node audit/layout-fill.ts"
   },
   "dependencies": {
     "@astrojs/markdown-satteri": "0.3.4",

@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import importlib.util
 import json
-import shutil
-import subprocess
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from docx import Document
 
 from pancratius import docx_conversion, import_docx, ir
 from pancratius.content_catalog import CatalogEntry, split_frontmatter
@@ -64,11 +62,6 @@ def test_poem_signoff_date_never_overwrites_and_warns_on_mismatch() -> None:
     assert [d.code for d in diags] == ["import.poem-date-mismatch"]
 
 
-requires_docx_import = pytest.mark.skipif(
-    shutil.which("pandoc") is None or importlib.util.find_spec("PIL") is None,
-    reason="pandoc and pillow are required",
-)
-docx_import_test = pytest.mark.pandoc
 type DocxFactory = Callable[[str, str], Path]
 
 
@@ -87,22 +80,19 @@ def make_docx(tmp_path: Path) -> DocxFactory:
     """
 
     def make(name: str, markdown: str = "# Fixture\n\nBody.") -> Path:
-        md = tmp_path / f"{Path(name).stem}.md"
         docx = tmp_path / name
-        md.write_text(markdown, encoding="utf-8")
-        subprocess.run(
-            ["pandoc", str(md), "-o", str(docx)],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
+        document = Document()
+        for block in markdown.strip().split("\n\n"):
+            if block.startswith("# "):
+                document.add_heading(block.removeprefix("# "), level=1)
+            else:
+                document.add_paragraph(block)
+        document.save(str(docx))
         return docx
 
     return make
 
 
-@docx_import_test
-@requires_docx_import
 def test_import_new_docx_creates_bundle_paths_and_frontmatter(
     tmp_path: Path,
     make_docx: DocxFactory,
@@ -142,8 +132,6 @@ def test_import_new_docx_creates_bundle_paths_and_frontmatter(
     assert fm["translation"] == {"source": "original"}
 
 
-@docx_import_test
-@requires_docx_import
 def test_import_translation_with_into_updates_existing_bundle(
     tmp_path: Path,
     make_docx: DocxFactory,
@@ -201,8 +189,6 @@ Existing body.
 # ---------------------------------------------------------------------------
 
 
-@docx_import_test
-@requires_docx_import
 def test_converter_fatal_diagnostic_blocks_the_write(
     tmp_path: Path,
     make_docx: DocxFactory,
@@ -248,8 +234,6 @@ def test_converter_fatal_diagnostic_blocks_the_write(
     assert not (work_dir / "ru.md").exists(), "a converter FATAL must block the write entirely"
 
 
-@docx_import_test
-@requires_docx_import
 def test_converter_typed_diagnostics_carry_severity(
     tmp_path: Path,
     make_docx: DocxFactory,
@@ -362,8 +346,6 @@ def test_register_artifact_unsupported_language_fallback_is_diagnostic(
 # ---------------------------------------------------------------------------
 
 
-@docx_import_test
-@requires_docx_import
 def test_import_work_returns_a_write_report(tmp_path: Path, make_docx: DocxFactory) -> None:
     docx = make_docx("source-ru.docx", "# Probe Work\n\nТекст.")
     # The stable entry takes a typed ImportRequest and RETURNS the writer's
@@ -387,8 +369,6 @@ def test_import_work_returns_a_write_report(tmp_path: Path, make_docx: DocxFacto
     assert not report.refused
 
 
-@docx_import_test
-@requires_docx_import
 def test_import_work_explicit_target_creates_when_absent(tmp_path: Path, make_docx: DocxFactory) -> None:
     docx = make_docx("source-ru.docx", "# Explicit Work\n\nТекст.")
     content_root = tmp_path / "src" / "content"
@@ -407,8 +387,6 @@ def test_import_work_explicit_target_creates_when_absent(tmp_path: Path, make_do
     assert not report.refused
 
 
-@docx_import_test
-@requires_docx_import
 def test_import_work_explicit_existing_same_lang_without_replace_is_refused(
     tmp_path: Path,
     make_docx: DocxFactory,
@@ -441,8 +419,6 @@ def test_import_work_explicit_existing_same_lang_without_replace_is_refused(
     assert any(d.severity == "fatal" for d in second.diagnostics)
 
 
-@docx_import_test
-@requires_docx_import
 def test_import_work_explicit_existing_new_lang_does_not_require_replace(
     tmp_path: Path,
     make_docx: DocxFactory,
@@ -480,8 +456,6 @@ def test_import_work_explicit_existing_new_lang_does_not_require_replace(
     assert fm["slug"] == "91-explicit-work-en"
 
 
-@docx_import_test
-@requires_docx_import
 def test_import_work_refusal_returns_a_report_with_fatal_diagnostic(
     tmp_path: Path,
     make_docx: DocxFactory,
@@ -533,8 +507,6 @@ def test_import_work_missing_docx_raises_import_work_error(tmp_path: Path) -> No
 # ---------------------------------------------------------------------------
 
 
-@docx_import_test
-@requires_docx_import
 def test_real_import_writes_manifest_under_content_root(
     tmp_path: Path,
     make_docx: DocxFactory,
@@ -565,8 +537,6 @@ def test_real_import_writes_manifest_under_content_root(
     assert manifest["source_sha256"]
 
 
-@docx_import_test
-@requires_docx_import
 def test_dry_run_import_writes_no_manifest(
     tmp_path: Path,
     make_docx: DocxFactory,
@@ -590,8 +560,6 @@ def test_dry_run_import_writes_no_manifest(
     assert not (content_root / "books").exists(), "dry-run must write no bundle"
 
 
-@docx_import_test
-@requires_docx_import
 def test_import_work_is_side_effect_free(
     tmp_path: Path,
     make_docx: DocxFactory,
