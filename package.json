@@ -39,6 +39,7 @@
     "shots:projects": "node tests/visual/capture-projects.ts",
     "audit:deps": "npm audit --audit-level=high",
     "audit:css-values": "node audit/css-values.ts",
+    "audit:font-swap": "node audit/font-swap.ts",
     "audit:layout-fill": "node audit/layout-fill.ts"
   },
   "dependencies": {

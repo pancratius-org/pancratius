@@ -5,9 +5,8 @@ import type { Element } from "hast";
 
 // Self-hosted web fonts, pinned to the `@fontsource-variable/*` packages in package-lock.json and
 // referenced as package imports — Astro subsets and serves them from the origin, so there is no
-// Google request at build or runtime and no committed binary. The `standard` files keep the
-// optical-size axis (Source Serif's display headings stay refined). `src/styles/tokens.css`
-// composes the generated `--font-*` vars into the `--serif` / `--sans` tokens the CSS reads.
+// Google request at build or runtime and no committed binary. `src/styles/tokens.css` composes the
+// generated `--font-*` vars into the `--serif` / `--sans` tokens the CSS reads.
 const FONT_SUBSETS: Record<string, string> = {
   "latin": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
   "latin-ext": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
@@ -24,7 +23,7 @@ type FontVariant = {
   unicodeRange: [string];
 };
 
-/** One `@font-face` per subset × style off the pinned Fontsource `standard` (wght+opsz) files. */
+/** One face per subset and style; wght-only files halve the payload by dropping opsz. */
 const fontsourceVariants = (
   slug: string,
   weight: string,
@@ -32,7 +31,7 @@ const fontsourceVariants = (
 ): [FontVariant, ...FontVariant[]] => {
   const variants = styles.flatMap((style) =>
     Object.entries(FONT_SUBSETS).map(([subset, unicode]): FontVariant => ({
-      src: [`@fontsource-variable/${slug}/files/${slug}-${subset}-standard-${style}.woff2`],
+      src: [`@fontsource-variable/${slug}/files/${slug}-${subset}-wght-${style}.woff2`],
       weight,
       style,
       unicodeRange: [unicode],
@@ -140,11 +139,14 @@ export default defineConfig({
   trailingSlash: "ignore",
   build: { format: "directory" },
   fonts: [
+    // Avoid an immediate flash on fast loads and bound late swaps on slow ones.
+    // Smaller wght-only faces reduce fallback exposure without competing preloads.
     {
       provider: fontProviders.local(),
       name: "Source Serif 4",
       cssVariable: "--font-serif",
       fallbacks: ["PT Serif", "Georgia", "serif"],
+      display: "fallback",
       options: { variants: fontsourceVariants("source-serif-4", "300 700", ["normal", "italic"]) },
     },
     {
@@ -152,6 +154,7 @@ export default defineConfig({
       name: "Inter",
       cssVariable: "--font-sans",
       fallbacks: ["system-ui", "sans-serif"],
+      display: "fallback",
       options: { variants: fontsourceVariants("inter", "400 600", ["normal"]) },
     },
   ],
