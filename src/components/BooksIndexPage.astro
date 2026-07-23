@@ -1,6 +1,7 @@
 ---
 import Base from "@/layouts/Base.astro";
 import BookCard from "@/components/BookCard.astro";
+import IndexMasthead from "@/components/IndexMasthead.astro";
 import LibraryFilter from "@/components/LibraryFilter.astro";
 
 import type { Locale } from "@/lib/i18n";
@@ -28,13 +29,9 @@ const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count })
 ---
 <Base {locale} {seo}>
   <section class="l-canvas l-canvas--spread l-page-block lib">
-    <p class="eyebrow eyebrow--lg">{copy.eyebrow}</p>
-    <div class="lib__head">
-      <h1><b>{pairs.length}</b> {copy.headingLabel(pairs.length)}</h1>
-      <p class="lib__sub index-lede l-measure l-measure--start">
-        {copy.sub(allPairs.length)}
-      </p>
-    </div>
+    <IndexMasthead eyebrow={copy.eyebrow} count={pairs.length} heading={copy.headingLabel(pairs.length)}>
+      {copy.sub(allPairs.length)}
+    </IndexMasthead>
 
     <LibraryFilter {locale} {tags} total={pairs.length} />
 
@@ -47,37 +44,6 @@ const tags = [...tagCounts.entries()].map(([label, count]) => ({ label, count })
 </Base>
 
 <style>
-  .lib__head {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 2.5rem;
-    gap: 1.1rem;
-  }
-  .lib__head h1 {
-    font-family: var(--serif);
-    font-weight: 400;
-    font-size: var(--type-index-masthead-title-size);
-    line-height: var(--type-index-masthead-title-leading);
-    margin: 0;
-    letter-spacing: var(--type-index-masthead-title-tracking);
-  }
-  .lib__head h1 b {
-    font-weight: 500;
-    font-variant-numeric: oldstyle-nums proportional-nums;
-    font-style: italic;
-    color: var(--accent);
-  }
-  .lib__sub :global(a) {
-    color: var(--ink-soft);
-    text-decoration: underline;
-    text-decoration-color: var(--rule-2);
-    text-underline-offset: 3px;
-  }
-  .lib__sub :global(a:hover) {
-    color: var(--accent);
-    text-decoration-color: var(--accent);
-  }
-
   .index {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
