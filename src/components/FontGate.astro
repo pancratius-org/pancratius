@@ -1,0 +1,49 @@
+---
+import type { Locale } from "@/lib/i18n";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+---
+
+<script is:inline define:vars={{ locale }}>
+  if (document.fonts?.load) {
+    const root = document.documentElement;
+    const sample =
+      locale === "ru"
+        ? "Панкратиус Pancratius 0123456789"
+        : "Pancratius 0123456789";
+    const firstFamily = (variable) =>
+      getComputedStyle(root).getPropertyValue(variable).trim().split(",", 1)[0];
+
+    root.dataset.fonts = "loading";
+
+    const serif = firstFamily("--font-serif");
+    const sans = firstFamily("--font-sans");
+    Promise.all([
+      document.fonts.load(`400 1em ${serif}`, sample),
+      document.fonts.load(`italic 400 1em ${serif}`, sample),
+      document.fonts.load(`400 1em ${sans}`, sample),
+    ]).then(
+      () => {
+        root.dataset.fonts = "ready";
+      },
+      () => {
+        root.dataset.fonts = "fallback";
+      },
+    );
+  }
+</script>
+
+<style is:global>
+  html[data-fonts="loading"] body {
+    visibility: hidden;
+  }
+
+  html[data-fonts="fallback"] {
+    --serif: "PT Serif", Georgia, "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
+  }
+</style>
