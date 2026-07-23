@@ -1,0 +1,67 @@
+---
+// The index-page masthead: an oversized eyebrow over an h1 that optionally
+// opens with a counted lead-in ("77 books"), then a lede paragraph. Books,
+// Videos, Poetry, Messages and Projects all render this one shape — keeping it
+// here is what stops their headers drifting apart, the way four homepage copies
+// and this header's own link-hover styling already had.
+//
+// The gap below the masthead is the one genuinely per-page value (card grids
+// want 2.5rem, the projects list a fluid clamp, the messages almanac 3.4rem),
+// so it stays a knob: a page sets `--index-masthead-space` on its own section.
+//
+// Slots: default → lede content (may compose inline links); `eyebrow-extra` →
+// optional trailing content in the eyebrow (a FeedLink).
+interface Props {
+  eyebrow: string;
+  heading: string; // h1 text: the plural noun for counted pages, the whole title otherwise
+  count?: number; // when set, opens the h1 with an italic accent numeral
+}
+
+const { eyebrow, heading, count } = Astro.props;
+const hasLede = Astro.slots.has("default");
+---
+
+<p class="eyebrow eyebrow--lg">{eyebrow}<slot name="eyebrow-extra" /></p>
+<div class="index-masthead">
+  <h1>
+    {count !== undefined ? <Fragment><b>{count}</b>{" "}{heading}</Fragment> : heading}
+  </h1>
+  {hasLede && (
+    <p class="index-lede l-measure l-measure--start"><slot /></p>
+  )}
+</div>
+
+<style>
+  .index-masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    margin-bottom: var(--index-masthead-space, 2.5rem);
+  }
+  .index-masthead h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: var(--type-index-masthead-title-size);
+    line-height: var(--type-index-masthead-title-leading);
+    margin: 0;
+    letter-spacing: var(--type-index-masthead-title-tracking);
+  }
+  .index-masthead h1 b {
+    font-weight: 500;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-style: italic;
+    color: var(--accent);
+  }
+  /* Links composed into the lede (e.g. the messages full-catalog link) — slotted
+     content, so it needs :global to reach past the component scope. */
+  .index-lede :global(a) {
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-2);
+    text-underline-offset: 3px;
+  }
+  .index-lede :global(a:hover) {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
+  }
+</style>

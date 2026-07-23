@@ -2,7 +2,7 @@
 kind: video
 number: 211
 slug: 211-why-don-t-you-let-god-in-completely-gospel-of-the-kingdom
-title: Why don't you let God in completely?Gospel of the Kingdom
+title: Why don't you let God in completely? | Gospel of the Kingdom
 lang: en
 description: You call out to God, but keep the door half-closed. Why? Because the Light reveals — it shows
   you the real you. And you're not ready for that yet. This is the ninth message of the "Gospel of the

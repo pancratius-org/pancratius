@@ -1,5 +1,6 @@
 ---
 import Base from "@/layouts/Base.astro";
+import IndexMasthead from "@/components/IndexMasthead.astro";
 import FeedLink from "@/components/feed/FeedLink.astro";
 
 import { LOCALES, type Locale, kindIndexUrl, workUrl } from "@/lib/i18n";
@@ -83,11 +84,10 @@ const months: MonthGroup[] = [...buckets.entries()]
 ---
 <Base {locale} {seo} {alternates}>
   <section class="l-canvas l-canvas--page l-page-block poetry-index">
-    <p class="eyebrow eyebrow--lg">{copy.eyebrow()}<FeedLink locale={locale} /></p>
-    <div class="poetry-index__head">
-      <h1><b>{rows.length}</b> {copy.headingLabel(rows.length)}</h1>
-      <p class="poetry-index__intro index-lede l-measure l-measure--start">{copy.intro}</p>
-    </div>
+    <IndexMasthead eyebrow={copy.eyebrow()} count={rows.length} heading={copy.headingLabel(rows.length)}>
+      <FeedLink slot="eyebrow-extra" locale={locale} />
+      {copy.intro}
+    </IndexMasthead>
 
     {heroRow && heroStanza && (
       <a class="poetry-hero" href={workUrl("poem", heroRow.entry.data.slug, heroRow.linkLocale)}>
@@ -122,27 +122,6 @@ const months: MonthGroup[] = [...buckets.entries()]
 </Base>
 
 <style>
-  .poetry-index__head {
-    display: flex;
-    flex-direction: column;
-    gap: 1.1rem;
-    margin-bottom: 2.5rem;
-  }
-  .poetry-index h1 {
-    font-family: var(--serif);
-    font-weight: 400;
-    font-size: var(--type-index-masthead-title-size);
-    line-height: var(--type-index-masthead-title-leading);
-    margin: 0;
-    letter-spacing: var(--type-index-masthead-title-tracking);
-  }
-  .poetry-index h1 b {
-    font-weight: 500;
-    font-variant-numeric: oldstyle-nums proportional-nums;
-    font-style: italic;
-    color: var(--accent);
-  }
-
   .poetry-hero {
     display: block;
     margin: 0 0 3rem;

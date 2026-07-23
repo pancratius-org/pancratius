@@ -1,5 +1,6 @@
 ---
 import Base from "@/layouts/Base.astro";
+import IndexMasthead from "@/components/IndexMasthead.astro";
 
 import type { Locale } from "@/lib/i18n";
 import { DEFAULT_LOCALE } from "@/lib/i18n";
@@ -40,11 +41,9 @@ const rows: Row[] = canonical.map(base => {
 ---
 <Base {locale} {seo}>
   <section class="l-canvas l-canvas--spread l-page-block projects-index">
-    <p class="eyebrow eyebrow--lg">{copy.eyebrow}</p>
-    <div class="projects-index__head">
-      <h1>{copy.heading}</h1>
-      <p class="projects-index__intro index-lede l-measure l-measure--start">{copy.intro}</p>
-    </div>
+    <IndexMasthead eyebrow={copy.eyebrow} heading={copy.heading}>
+      {copy.intro}
+    </IndexMasthead>
 
     <div class="projects-list">
       {rows.map(({ landing, hrefLocale }) => (
@@ -70,20 +69,8 @@ const rows: Row[] = canonical.map(base => {
 </Base>
 
 <style>
-  .projects-index__head {
-    display: flex;
-    flex-direction: column;
-    gap: 1.1rem;
-    margin-bottom: clamp(3rem, 6vw, 4.5rem);
-  }
-  .projects-index h1 {
-    font-family: var(--serif);
-    font-weight: 400;
-    font-size: var(--type-index-masthead-title-size);
-    line-height: var(--type-index-masthead-title-leading);
-    margin: 0;
-    letter-spacing: var(--type-index-masthead-title-tracking);
-  }
+  /* Bordered list wants a wider, fluid gap below the masthead. */
+  .projects-index { --index-masthead-space: clamp(3rem, 6vw, 4.5rem); }
 
   .projects-list { border-top: 1px solid var(--rule); }
   .project-row {
