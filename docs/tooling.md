@@ -50,7 +50,6 @@ site.
 | `npm run lint:style` | Stylelint over CSS files and Astro component style blocks. |
 | `npm run audit:deps` | npm vulnerability audit at the high-severity release gate. |
 | `npm run audit:css-values` | Diagnostic PostCSS report for repeated CSS literals and layout/spacing/type drift. |
-| `npm run audit:font-swap` | Diagnostic comparison of the host fallback and webfont heading geometry; run against a local site with `BASE_URL` or the default `http://127.0.0.1:4321`. |
 | `npm run audit:layout-fill` | Diagnostic Playwright sweep for under-filled reading columns; run against a local site with `BASE_URL` or the default `http://localhost:4321`. |
 | `npm run test:e2e` | Playwright e2e specs. |
 | `npm run test:visual` | Playwright visual gate. |
