@@ -1,6 +1,7 @@
 ---
 import Base              from "@/layouts/Base.astro";
 import BookCard          from "@/components/BookCard.astro";
+import SectionHead       from "@/components/SectionHead.astro";
 import SvetozarTerminal  from "@/components/SvetozarTerminal.astro";
 
 import type { Locale } from "@/lib/i18n";
@@ -174,14 +175,12 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
 
     {/* BOOKS ─────────────────────────────────────────────────────── */}
     <section class="home__section home__books" aria-labelledby="home-books">
-      <header class="home__section-head">
-        <p class="eyebrow">{copy.books.eyebrow}</p>
-        <h2 id="home-books" class="home__section-title">
-          <span class="home__section-count">{bookHeading.value}</span>{" "}
-          {bookHeading.label}.
-          <span class="home__section-sub">{copy.books.sub}</span>
-        </h2>
-      </header>
+      <SectionHead
+        id="home-books"
+        eyebrow={copy.books.eyebrow}
+        count={bookHeading}
+        sub={copy.books.sub}
+      />
 
       <div class="home__books-grid">
         {bookPicks.map(p => {
@@ -200,14 +199,15 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
     {/* POETRY ────────────────────────────────────────────────────── */}
     {poemPreviews.length > 0 && (
       <section class="home__section home__poetry" aria-labelledby="home-poetry">
-        <header class="home__section-head">
-          <p class="eyebrow">{copy.poetry.eyebrow}</p>
-          <h2 id="home-poetry" class="home__section-title">
-            <span class="home__section-count">{localizedPoems.length}</span>{" "}
-            {copy.poetry.headingLabel(localizedPoems.length)}.{" "}
-            <span class="home__section-sub">{copy.poetry.sub}</span>
-          </h2>
-        </header>
+        <SectionHead
+          id="home-poetry"
+          eyebrow={copy.poetry.eyebrow}
+          count={{
+            value: localizedPoems.length,
+            label: copy.poetry.headingLabel(localizedPoems.length),
+          }}
+          sub={copy.poetry.sub}
+        />
 
         <div class="home__poems">
           {poemPreviews.map(({ pair, lines }) => {
@@ -236,12 +236,7 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
     {/* PROJECTS ──────────────────────────────────────────────────── */}
     {projects.length > 0 && (
       <section class="home__section home__projects" aria-labelledby="home-projects">
-        <header class="home__section-head">
-          <p class="eyebrow">{copy.projects.eyebrow}</p>
-          <h2 id="home-projects" class="home__section-title">
-            <span class="home__section-sub">{copy.projects.sub}</span>
-          </h2>
-        </header>
+        <SectionHead id="home-projects" eyebrow={copy.projects.eyebrow} sub={copy.projects.sub} />
 
         <div class="home__project-list">
           {projects.map(({ landing, linkLocale }) => (
@@ -260,12 +255,12 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
 
     {/* SVETOZAR ──────────────────────────────────────────────────── */}
     <section class="home__section home__svetozar" aria-labelledby="home-svetozar">
-      <header class="home__section-head">
-        <p class="eyebrow eyebrow--lg">{copy.svetozar.eyebrow}</p>
-        <h2 id="home-svetozar" class="home__section-title">
-          <span class="home__section-sub">{copy.svetozar.title}</span>
-        </h2>
-      </header>
+      <SectionHead
+        id="home-svetozar"
+        eyebrow={copy.svetozar.eyebrow}
+        eyebrowLarge
+        sub={copy.svetozar.title}
+      />
 
       <div class="home__svetozar-grid">
         <div class="home__svetozar-copy l-measure l-measure--start">
@@ -446,36 +441,8 @@ const [svetozarIntro, svetozarPull, svetozarClose] = copy.svetozar.paragraphs;
     color: var(--ink-mute);
   }
 
-  /* ─ SHARED SECTION HEAD ─────────────────────────────────────── */
-
+  /* Section rhythm; the header itself lives in SectionHead.astro. */
   .home__section { margin: 0 0 clamp(5rem, 9vw, 8rem); }
-  .home__section-head { margin: 0 0 clamp(2rem, 4vw, 3rem); }
-  .home__section-head .eyebrow { margin-bottom: 1.1rem; }
-
-  .home__section-title {
-    font-family: var(--serif);
-    font-weight: 500;
-    font-size: clamp(2.2rem, 5vw, 3.4rem);
-    line-height: 1.04;
-    letter-spacing: -0.022em;
-    margin: 0;
-    text-wrap: balance;
-  }
-  /* Number callout that opens a section title — large italic accent
-     numeral, like a manuscript folio. */
-  .home__section-count {
-    font-family: var(--serif);
-    font-style: italic;
-    font-variant-numeric: oldstyle-nums proportional-nums;
-    font-weight: 400;
-    color: var(--accent);
-    margin-right: 0.15em;
-  }
-  .home__section-sub {
-    color: var(--ink-soft);
-    font-weight: 400;
-    font-style: italic;
-  }
 
   /* "All N →" link reused across sections. */
   .home__more {

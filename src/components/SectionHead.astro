@@ -1,0 +1,57 @@
+---
+// The home page's section header: an eyebrow label over a title that optionally
+// opens with a counted lead-in ("77 books.") before the italic subtitle. Each
+// separator is written once, as explicit text, so the sections cannot drift
+// apart on spacing the way four hand-copied headers did.
+interface Props {
+  id: string;
+  eyebrow: string;
+  sub: string;
+  count?: { value: number; label: string };
+  eyebrowLarge?: boolean;
+}
+
+const { id, eyebrow, sub, count, eyebrowLarge = false } = Astro.props;
+---
+
+<header class="section-head">
+  <p class:list={["eyebrow", eyebrowLarge && "eyebrow--lg"]}>{eyebrow}</p>
+  <h2 {id} class="section-head__title">
+    {count && (
+      <Fragment>
+        <span class="section-head__count">{count.value}</span>{` ${count.label}. `}
+      </Fragment>
+    )}
+    <span class="section-head__sub">{sub}</span>
+  </h2>
+</header>
+
+<style>
+  .section-head { margin: 0 0 clamp(2rem, 4vw, 3rem); }
+  .section-head .eyebrow { margin-bottom: 1.1rem; }
+
+  .section-head__title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    line-height: 1.04;
+    letter-spacing: -0.022em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  /* Number callout that opens a section title — large italic accent
+     numeral, like a manuscript folio. */
+  .section-head__count {
+    font-family: var(--serif);
+    font-style: italic;
+    font-variant-numeric: oldstyle-nums proportional-nums;
+    font-weight: 400;
+    color: var(--accent);
+    margin-right: 0.15em;
+  }
+  .section-head__sub {
+    color: var(--ink-soft);
+    font-weight: 400;
+    font-style: italic;
+  }
+</style>
