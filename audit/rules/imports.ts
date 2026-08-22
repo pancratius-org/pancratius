@@ -27,7 +27,7 @@ export const pan017ImportWorkKinds: Rule = {
   title:
     "PAN017: work import --kind choices must derive from CORPUS_WORK_KINDS, project must not be a work kind, and CORPUS_WORK_KINDS ⊆ SEGMENT_OF",
   tier: "core",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: "PAN017-import-work-kinds",
       category: CATEGORY,
@@ -54,7 +54,7 @@ export const pan019CliVerifyBoundary: Rule = {
   id: "PAN019-cli-verify-boundary",
   title: "PAN019: the pancratius CLI door exposes no repository-task verb (no audit/check/test/build/dev/preview verb, no `site` proxy)",
   tier: "core",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: "PAN019-cli-verify-boundary",
       category: CATEGORY,
@@ -79,7 +79,7 @@ export const pan024CliTargetFlags: Rule = {
   id: "PAN024-cli-target-flags",
   title: "PAN024: pancratius CLI uses positional typed selectors instead of primary-target flags",
   tier: "core",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: "PAN024-cli-target-flags",
       category: CATEGORY,
@@ -114,7 +114,7 @@ export const pan018WriterOnlyMutation: Rule = {
   title:
     "PAN018: modules marked `# import-pure: no filesystem mutation` must contain no filesystem-mutation calls (only the writer mutates src/content)",
   tier: "core",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: "PAN018-writer-only-mutation",
       category: CATEGORY,

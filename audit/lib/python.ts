@@ -9,7 +9,7 @@
 // root when the env var is absent. Exit 0 = clean; non-zero = the contract is
 // broken and stdout/stderr carry the evidence.
 
-import { spawnSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { join } from "node:path";
 
 import type { Finding, Severity } from "./finding.ts";
@@ -29,21 +29,46 @@ export interface PythonCheckSpec {
   doNotFixBy?: string;
 }
 
+export interface PythonProcessResult {
+  readonly error: Error | null;
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+}
+
+function executePythonCheck(ctx: RuleContext, spec: PythonCheckSpec): Promise<PythonProcessResult> {
+  const scriptPath = join(AUDIT_DIR, spec.script);
+  return new Promise((resolve) => {
+    execFile("uv", ["run", "--frozen", "--quiet", scriptPath], {
+      encoding: "utf-8",
+      env: { ...process.env, PANCRATIUS_AUDIT_ROOT: ctx.root },
+      maxBuffer: 32 * 1024 * 1024,
+    }, (error, stdout, stderr) => {
+      const status = error === null ? 0 : typeof error.code === "number" ? error.code : null;
+      resolve({ error, status, stdout, stderr });
+    });
+  });
+}
+
 /**
  * Run a wrapped Python check against `ctx.root` and normalize its result.
  * Returns `[]` when the script exits 0, one finding (with the captured output as
  * `observed`) when it exits non-zero, and one finding when the subprocess itself
  * fails to run — a check that cannot execute is not a passing check.
  */
-export function runPythonCheck(ctx: RuleContext, spec: PythonCheckSpec): Finding[] {
-  const scriptPath = join(AUDIT_DIR, spec.script);
-  const res = spawnSync("uv", ["run", "--frozen", "--quiet", scriptPath], {
-    encoding: "utf-8",
-    env: { ...process.env, PANCRATIUS_AUDIT_ROOT: ctx.root },
-    maxBuffer: 32 * 1024 * 1024,
-  });
+export async function runPythonCheck(
+  ctx: RuleContext,
+  spec: PythonCheckSpec,
+): Promise<Finding[]> {
+  const res = await executePythonCheck(ctx, spec);
+  return normalizePythonResult(spec, res);
+}
 
-  if (res.error || res.status === null) {
+export function normalizePythonResult(
+  spec: PythonCheckSpec,
+  res: PythonProcessResult,
+): Finding[] {
+  if (res.status === null) {
     return [
       {
         rule: spec.id,

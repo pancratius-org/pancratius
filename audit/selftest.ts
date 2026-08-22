@@ -19,6 +19,7 @@ import { type Finding, SEVERITIES } from "./lib/finding.ts";
 import type { Rule } from "./lib/rule.ts";
 import { makeContext } from "./lib/rule.ts";
 import { AUDIT_DIR } from "./lib/repo.ts";
+import { AUDIT_CONCURRENCY, mapBounded } from "./lib/runner.ts";
 import { RULES } from "./rules/index.ts";
 
 const FIXTURES = join(AUDIT_DIR, "fixtures");
@@ -121,8 +122,8 @@ function goodFixtureResult(rule: Rule, found: readonly Finding[]): Result {
 }
 
 async function main(): Promise<void> {
-  const all: Result[] = [];
-  for (const rule of RULES) all.push(...(await checkRule(rule)));
+  const byRule = await mapBounded(RULES, AUDIT_CONCURRENCY, checkRule);
+  const all: Result[] = byRule.flat();
 
   process.stdout.write("Pancratius audit — self-test\n\n");
   for (const r of all) {

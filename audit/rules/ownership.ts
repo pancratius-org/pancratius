@@ -20,7 +20,7 @@ export const pan012CiSeparation: Rule = {
   title:
     "PAN012: CI must not compile corpus records or run local library-management tooling",
   tier: "core",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: "PAN012-ci-separation",
       category: "import-render-build-split",

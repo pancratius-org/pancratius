@@ -23,6 +23,12 @@ export default defineConfig(
     ],
   },
 
+  {
+    linterOptions: {
+      reportUnusedDisableDirectives: "error",
+    },
+  },
+
   { ...js.configs.recommended, files: ["**/*.{js,mjs,cjs}"] },
   ...astro.configs["flat/recommended"],
   ...tseslint.configs.recommendedTypeChecked.map(tsFilesOnly),

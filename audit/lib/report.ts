@@ -10,6 +10,7 @@ import {
   bySeverityThenLocation,
   countBySeverity,
 } from "./finding.ts";
+import type { RuleRun } from "./runner.ts";
 
 export interface ReportOptions {
   /** Show info findings in full. Off for the terse CI view, on for agent mode. */
@@ -66,4 +67,13 @@ export function renderReport(findings: readonly Finding[], opts: ReportOptions):
 /** Exit-relevant verdict: CI fails only when a fatal finding is present. */
 export function hasFatal(findings: readonly Finding[]): boolean {
   return findings.some((f) => f.severity === "fatal");
+}
+
+export function renderRuleTimings(runs: readonly RuleRun[]): string {
+  const idWidth = runs.reduce((width, run) => Math.max(width, run.rule.id.length), 0);
+  const rows = runs.map((run) => {
+    const seconds = (run.durationMs / 1_000).toFixed(2).padStart(7);
+    return `  ${run.rule.id.padEnd(idWidth)}  ${seconds}s`;
+  });
+  return `RULE TIMINGS\n${rows.join("\n")}\n`;
 }

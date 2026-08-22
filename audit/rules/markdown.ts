@@ -6,7 +6,7 @@ export const pan006bMarkdownStructure: Rule = {
   id: "PAN006B-markdown-structure",
   title: "PAN006B: content Markdown avoids setext and lineated headings",
   tier: "core",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: "PAN006B-markdown-structure",
       category: "content-formatting",

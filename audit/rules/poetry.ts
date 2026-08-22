@@ -6,7 +6,7 @@ export const pan006bLineationBreaks: Rule = {
   id: "PAN006B-lineation-breaks",
   title: "PAN006B: generated lineation keeps its two-space hard breaks",
   tier: "core",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: "PAN006B-lineation-breaks",
       category: "conversion-fidelity",

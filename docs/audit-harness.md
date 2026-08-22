@@ -19,6 +19,7 @@ assets, and the split between library work and site work.
 
 Only `fatal` findings fail the command. `warning` and `info` findings are still
 real review signal; they just do not block the build by default.
+Each run also prints per-rule timings in registry order.
 
 ## What Belongs In Audit
 
@@ -173,8 +174,9 @@ Keep the harness small and explicit.
 
 - The rule registry is an explicit list in `audit/rules/index.ts`.
 - TS rules own rule identity, severity, category, and finding text.
-- Python checks are subprocesses for checks that need Python parsers or the
-  Python package.
+- Python checks run as captured subprocesses under a fixed concurrency bound
+  when they need Python parsers or the Python package. Findings, failures, and
+  timing rows are emitted in registry order after the workers finish.
 - Fixture trees live under `audit/fixtures/` and are excluded from normal type
   and lint scope because they are test data.
 - Rules should return findings, not print private reports or mutate the repo.

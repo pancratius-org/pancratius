@@ -6,7 +6,7 @@ export const pan010DocxIntegrity: Rule = {
   id: "PAN010-docx-integrity",
   title: "PAN010: source DOCX packages are valid and not duplicated",
   tier: "core",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: "PAN010-docx-integrity",
       category: "conversion-fidelity",
@@ -28,7 +28,7 @@ export const pan025TranslatedDocxTransfer: Rule = {
   title:
     "PAN025: translated DOCX relationships and footnotes are valid",
   tier: "core",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: "PAN025-translated-docx-transfer",
       category: "translated-docx-transfer",

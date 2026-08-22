@@ -6,7 +6,7 @@ export const pan006cTagLocalization: Rule = {
   id: "PAN006C-tag-localization",
   title: "PAN006C: content tags match the canonical per-locale glossary",
   tier: "core",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: "PAN006C-tag-localization",
       category: "content-i18n",

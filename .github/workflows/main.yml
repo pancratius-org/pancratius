@@ -55,6 +55,14 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Restore Astro asset cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: node_modules/.astro
+          key: ${{ runner.os }}-astro-v1-${{ hashFiles('package-lock.json', 'astro.config.ts', 'src/content/**/*.jpg', 'src/content/**/*.png', 'src/content/**/*.svg') }}
+          restore-keys: |
+            ${{ runner.os }}-astro-v1-
+
       - name: Install Python deps (frozen lock)
         run: uv sync --frozen
 

@@ -370,7 +370,7 @@ export const pan023TypeDomainPy: Rule = {
   id: PY_ID,
   title: "PAN023: Python domain APIs avoid new raw primitives, primitive tuple contracts, and optionality clusters",
   tier: "heuristic",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: PY_ID,
       category: CATEGORY,
