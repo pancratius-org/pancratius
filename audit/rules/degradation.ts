@@ -1,29 +1,38 @@
-// PAN022 — conceptosphere / book-reference RU-only degradation invariant
+// PAN022 — conceptosphere / item-reference RU-only degradation invariant
 // (docs/audit-harness.md → "PAN022"). A `post-build`-tier rule: it needs the
 // emitted `dist/`, so it runs only on `mise run audit:post-build`, never on the
 // fast PR gate.
 //
-// THE INVARIANT (conceptosphere-bilingual-design.md §4): on an English URL a
-// book that has no `en.md` falls back to its Russian original. That language
+// THE INVARIANT (conceptosphere-bilingual-design.md §4): on an English URL an
+// item that has no `en.md` falls back to its Russian original. That language
 // flip must read as DELIBERATE, never as a leak — the shared treatment
 // (`RussianOriginalBadge.astro` + its conceptosphere DOM twin
 // `russian-badge.ts`) emits the `.ru-original__pill` "Russian original" pill
 // next to the Cyrillic title. PAN021 proves every concept/community LABEL is
-// translated; this rule proves the remaining surface — RU-only BOOK TITLES
+// translated; this rule proves the remaining surface — RU-only ITEM TITLES
 // rendered under `/en/` — always carries the degradation badge.
 //
+// ITEM, not "work": `CorpusWorkKind` (src/lib/kinds.ts) is book|poem and
+// EXCLUDES videos, so the spanning category here is the routed content item —
+// book, poem, or video — that a card renders by its own title.
+//
 // WHY a STANDING gate and not a one-time grep: a future render surface that
-// prints a book title but bypasses the shared component would silently ship a
+// prints an item title but bypasses the shared component would silently ship a
 // raw-Russian title behind English chrome, and `astro build` succeeding proves
 // nothing about it. This crawl of the EMITTED `/en/` HTML is the only thing that
-// keeps the invariant true as new book-reference surfaces are added.
+// keeps the invariant true as new item-reference surfaces are added.
 //
 // CONTEXTS COVERED (the stable wrapper classes the shared SSR components emit;
-// each is a self-contained book-reference UNIT whose title must be badged when
+// each is a self-contained item-reference UNIT whose title must be badged when
 // Cyrillic):
-//   - `.book__body`        — BookCard.astro book cards (book index, and the
+//   - `.book__body`        — BookCard.astro book/poem cards (book index, and the
 //                            SimilarPair "See also"/"Similar" rows, which render
 //                            BookCard). Title in `.book__title`.
+//   - `.vid__body`         — VideoCard.astro video cards. The /en/ videos index
+//                            lists only EN-authored videos, so the live fallback
+//                            surface is the MessagePage "Related video" aside —
+//                            and nothing forces the NEXT video surface to filter
+//                            the way the index does. Title in `.vid__title`.
 //   - `.cs-book-row-meta`  — conceptosphere mobile-fallback "Books" rows
 //                            (MobileList.astro). Title in `.cs-title`; the
 //                            sibling `.cs-book-row-concepts` list is EXCLUDED
@@ -39,12 +48,12 @@
 // HTML crawl cannot see it. It is held to the SAME invariant structurally: it is
 // the conceptosphere twin of the shared badge (`russianOriginalBadge()` in
 // `russian-badge.ts`) and emits the identical `.ru-original__pill`. A NEW
-// book-reference surface MUST either localize the title or render the shared
-// badge; if it is a NEW SSR wrapper class, add it to `BOOK_REF_CONTEXTS` below so
+// item-reference surface MUST either localize the title or render the shared
+// badge; if it is a NEW SSR wrapper class, add it to `ITEM_REF_CONTEXTS` below so
 // this gate sees it.
 //
 // INVERSE (cheap mis-wire detector): a `/ru/` (default-locale) page must carry
-// ZERO pills. A pill on the default-locale surface means a book was wrongly
+// ZERO pills. A pill on the default-locale surface means an item was wrongly
 // treated as a non-default-locale fallback — a locale mis-wire — and fires too.
 
 import type { Rule, RuleContext } from "../lib/rule.ts";
@@ -55,12 +64,12 @@ const CATEGORY = "ru-degradation";
 
 // The shared degradation treatment's stable marker. Both the Astro component and
 // its conceptosphere DOM twin emit this class on the pill; the literal copy
-// ("Russian original") lives in `localeBadge`/`ConceptosphereStrings` so the two
+// ("Russian original") lives in `russianOriginalBadgeCopy`/`ConceptosphereStrings` so the two
 // surfaces cannot drift. We key on the class (the structural contract), not the
 // copy string (which localization could change).
 const PILL_CLASS = "ru-original__pill";
 
-// Cyrillic script range (covers Russian + extended Cyrillic). A book title that
+// Cyrillic script range (covers Russian + extended Cyrillic). A title that
 // contains ANY Cyrillic letter is, on an English URL, an un-localized RU title.
 const CYRILLIC = /[Ѐ-ӿԀ-ԯ]/;
 
@@ -68,37 +77,38 @@ const CYRILLIC = /[Ѐ-ӿԀ-ԯ]/;
 const MAX_FINDINGS = 100;
 
 const CONTRACT =
-  "On `/en/` every book-reference render context (`.book__body`, `.cs-book-row-meta`, `.cs-detail-books` rows) that shows a Cyrillic-script (RU-only) book title MUST carry the shared `.ru-original__pill` \"Russian original\" badge; on the default-locale `/ru/` surface that pill must NEVER appear.";
+  "On `/en/` every item-reference render context (`.book__body`, `.vid__body`, `.cs-book-row-meta`, `.cs-detail-books` rows) that shows a Cyrillic-script (RU-only) title MUST carry the shared `.ru-original__pill` \"Russian original\" badge; on the default-locale `/ru/` surface that pill must NEVER appear.";
 const WHY =
-  "A raw Russian title under an English URL with no degradation badge is the silent-Russian-leak the i18n contract forbids — the language flip must read as deliberate. A pill on a default-locale page is the inverse defect: a book wrongly treated as a fallback, i.e. a locale mis-wire. `astro build` proves neither; only crawling the emitted HTML does.";
+  "A raw Russian title under an English URL with no degradation badge is the silent-Russian-leak the i18n contract forbids — the language flip must read as deliberate. A pill on a default-locale page is the inverse defect: an item wrongly treated as a fallback, i.e. a locale mis-wire. `astro build` proves neither; only crawling the emitted HTML does.";
 const REPAIR_EN =
-  "Render the book title through a surface that either localizes it or emits the shared badge (`RussianOriginalBadge.astro`, or `russianOriginalBadge()` for DOM-built rows). If this is a NEW SSR book-reference wrapper class, add it to BOOK_REF_CONTEXTS in audit/rules/degradation.ts so the gate covers it.";
+  "Render the title through a surface that either localizes it or emits the shared badge (`RussianOriginalBadge.astro`, or `russianOriginalBadge()` for DOM-built rows). If this is a NEW SSR item-reference wrapper class, add it to ITEM_REF_CONTEXTS in audit/rules/degradation.ts so the gate covers it.";
 const REPAIR_RU =
-  "Remove the degradation badge from the default-locale surface: a `/ru/` book is the original, not a fallback. The pill leaking here means the fallback decision (`displayWorkEntry` linkLocale / `row.localized`) is mis-wired for the default locale.";
+  "Remove the degradation badge from the default-locale surface: a `/ru/` item is the original, not a fallback. The pill leaking here means the fallback decision (`displayWorkEntry` linkLocale / `row.localized`) is mis-wired for the default locale.";
 const DO_NOT_FIX_BY =
-  "Hand-writing a one-off pill into the new surface's markup, or downgrading this rule below fatal — that re-opens the exact bypass (a book-reference surface that skips the shared component) this gate exists to close.";
+  "Hand-writing a one-off pill into the new surface's markup, or downgrading this rule below fatal — that re-opens the exact bypass (an item-reference surface that skips the shared component) this gate exists to close.";
 
-/** A book-reference UNIT shape the shared SSR components emit. */
-interface BookRefContext {
-  /** The stable wrapper class that delimits one book-reference unit. */
+/** An item-reference UNIT shape the shared SSR components emit. */
+interface ItemRefContext {
+  /** The stable wrapper class that delimits one item-reference unit. */
   readonly wrapperClass: string;
   /**
-   * Where the book TITLE text lives inside the unit:
+   * Where the item TITLE text lives inside the unit:
    *  - `{ titleClass }`: the title is the text of the first element carrying
    *    this class (e.g. `.book__title`, `.cs-title`).
    *  - `"anchor"`: the title is the text of the unit's first `<a>` (the
    *    `.cs-detail-books` row links the bare title).
-   * Non-title text in the unit (book number, translated concept list) is never
-   * read for Cyrillic, so a localized row with an English title + a stray
-   * Cyrillic concept elsewhere does not false-fire.
+   * Non-title text in the unit (item number, dateline, translated concept list)
+   * is never read for Cyrillic, so a localized row with an English title + a
+   * stray Cyrillic concept elsewhere does not false-fire.
    */
   readonly title: { readonly titleClass: string } | "anchor";
   /** Human name of the surface, for the finding text. */
   readonly surface: string;
 }
 
-const BOOK_REF_CONTEXTS: readonly BookRefContext[] = [
+const ITEM_REF_CONTEXTS: readonly ItemRefContext[] = [
   { wrapperClass: "book__body", title: { titleClass: "book__title" }, surface: "book card" },
+  { wrapperClass: "vid__body", title: { titleClass: "vid__title" }, surface: "video card" },
   { wrapperClass: "cs-book-row-meta", title: { titleClass: "cs-title" }, surface: "conceptosphere mobile book row" },
   { wrapperClass: "cs-detail-books", title: "anchor", surface: "conceptosphere concept \"appears in\" row" },
 ];
@@ -119,7 +129,7 @@ interface DegradationReport {
 export const pan022ConceptosphereDegradation: Rule = {
   id: ID,
   title:
-    "PAN022: every `/en/` book-reference context with a Cyrillic (RU-only) book title carries the shared `.ru-original__pill` badge; `/ru/` carries zero pills",
+    "PAN022: every `/en/` item-reference context with a Cyrillic (RU-only) title carries the shared `.ru-original__pill` badge; `/ru/` carries zero pills",
   tier: "post-build",
   run(ctx: RuleContext): Finding[] {
     return degradationReport(ctx).findings;
@@ -171,11 +181,11 @@ function violationsInHtml(htmlRel: string, html: string): Violation[] {
     : strayPillViolations(htmlRel, html);
 }
 
-/** /en/: each book-reference unit with a Cyrillic title must contain a pill. */
+/** /en/: each item-reference unit with a Cyrillic title must contain a pill. */
 function missingBadgeViolations(htmlRel: string, html: string): Violation[] {
   const out: Violation[] = [];
-  for (const context of BOOK_REF_CONTEXTS) {
-    for (const unit of bookRefUnits(html, context)) {
+  for (const context of ITEM_REF_CONTEXTS) {
+    for (const unit of itemRefUnits(html, context)) {
       const title = unitTitle(unit, context.title);
       if (title === null || !CYRILLIC.test(title)) continue;
       if (unit.includes(PILL_CLASS)) continue;
@@ -192,7 +202,7 @@ function strayPillViolations(htmlRel: string, html: string): Violation[] {
 }
 
 /**
- * Each book-reference UNIT in the HTML for one context. A unit is the element
+ * Each item-reference UNIT in the HTML for one context. A unit is the element
  * carrying `wrapperClass` together with its full subtree, captured by walking
  * the tag stream from the opening tag to its matching close (so a nested badge
  * or title inside the unit is included). Emitted Astro HTML is well-formed, so a
@@ -202,14 +212,14 @@ function strayPillViolations(htmlRel: string, html: string): Violation[] {
  * per book); for it we descend to each direct child element. Every other
  * context's wrapper IS the unit.
  */
-function bookRefUnits(html: string, context: BookRefContext): string[] {
+function itemRefUnits(html: string, context: ItemRefContext): string[] {
   const wrappers = elementsWithClass(html, context.wrapperClass);
   if (context.wrapperClass !== "cs-detail-books") return wrappers;
-  // A `.cs-detail-books` <ul> holds one <li> book-reference unit per book.
+  // A `.cs-detail-books` <ul> holds one <li> item-reference unit per book.
   return wrappers.flatMap((ul) => childElements(ul, "li"));
 }
 
-function unitTitle(unit: string, title: BookRefContext["title"]): string | null {
+function unitTitle(unit: string, title: ItemRefContext["title"]): string | null {
   const [first] =
     title === "anchor" ? childElements(unit, "a") : elementsWithClass(unit, title.titleClass);
   return first === undefined ? null : elementText(first);
@@ -326,8 +336,8 @@ function addViolation(report: DegradationReport, v: Violation): void {
 function violationFinding(v: Violation): Finding {
   const observed =
     v.kind === "en"
-      ? `${v.file}: ${v.surface} renders the Cyrillic (RU-only) book title "${v.title}" with no \`.${PILL_CLASS}\` "Russian original" badge in its context — a raw Russian title leaking under an English URL.`
-      : `${v.file}: a default-locale (\`/ru/\`) page carries a \`.${PILL_CLASS}\` degradation badge — the pill belongs only on non-default-locale fallbacks, so a book is mis-wired as a fallback here.`;
+      ? `${v.file}: ${v.surface} renders the Cyrillic (RU-only) title "${v.title}" with no \`.${PILL_CLASS}\` "Russian original" badge in its context — a raw Russian title leaking under an English URL.`
+      : `${v.file}: a default-locale (\`/ru/\`) page carries a \`.${PILL_CLASS}\` degradation badge — the pill belongs only on non-default-locale fallbacks, so an item is mis-wired as a fallback here.`;
   return {
     rule: ID,
     severity: "fatal",
