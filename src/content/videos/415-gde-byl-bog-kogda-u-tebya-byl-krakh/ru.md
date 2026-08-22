@@ -1,0 +1,33 @@
+---
+kind: video
+number: 415
+slug: 415-gde-byl-bog-kogda-u-tebya-byl-krakh
+title: Где был Бог, когда у тебя был крах?
+lang: ru
+description: Ты смотришь на обломки. Планы рухнули, надежды рассыпались, и кажется, что Бог молчит. Но
+  это не так. Он был внутри твоего крушения — не чтобы спасти твои постройки, а чтобы спасти тебя.
+tags:
+- Евангелие Царствия
+cover: ./cover.ru.jpg
+published_at: '2026-08-17'
+duration: PT2M50S
+sources:
+- platform: youtube
+  id: ej_1R-J8pJI
+  url: https://www.youtube.com/watch?v=ej_1R-J8pJI
+  embed_url: https://www.youtube-nocookie.com/embed/ej_1R-J8pJI
+  channel: main
+playlists:
+- id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
+  title: Евангелие Царствия
+translation:
+  source: original
+---
+
+В этом видео — послание для тех, кто стоит посреди хаоса и не видит выхода. Узнай, что на самом деле делает Бог, когда твой привычный мир рушится:
+
+1. Как Он собирает тебя заново из твоих ран.
+2. Почему Он убирает ложные опоры из твоей жизни.
+3. Какой дар Он готовит тебе прямо в центре тьмы.
+
+То, что ты считаешь концом, может оказаться началом твоего настоящего дома, который невозможно разрушить.
