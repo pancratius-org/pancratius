@@ -8,7 +8,8 @@ import type { Finding } from "./lib/finding.ts";
 import type { Rule, Tier } from "./lib/rule.ts";
 import { makeContext } from "./lib/rule.ts";
 import { REPO_ROOT } from "./lib/repo.ts";
-import { renderReport, hasFatal } from "./lib/report.ts";
+import { renderReport, renderRuleTimings, hasFatal } from "./lib/report.ts";
+import { runRules } from "./lib/runner.ts";
 import { RULES } from "./rules/index.ts";
 
 type Mode = "default" | "agent" | "post-build";
@@ -42,12 +43,11 @@ async function main(): Promise<void> {
   const ctx = makeContext(REPO_ROOT);
   const selected: readonly Rule[] = RULES.filter((r) => config.tiers.has(r.tier));
 
-  const findings: Finding[] = [];
-  for (const rule of selected) {
-    findings.push(...(await rule.run(ctx)));
-  }
+  const runs = await runRules(selected, ctx);
+  const findings: Finding[] = runs.flatMap((run) => run.findings);
 
   process.stdout.write(renderReport(findings, { showInfo: config.showInfo, title: config.title }));
+  process.stdout.write(`\n${renderRuleTimings(runs)}`);
   process.exit(hasFatal(findings) ? 1 : 0);
 }
 

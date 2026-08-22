@@ -231,7 +231,7 @@ export const pan003Locales: Rule = {
   id: "PAN003-locale-parity",
   title: "PAN003: the locale list and default locale must agree between src/lib/locales.ts and pancratius/locales.py",
   tier: "core",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: "PAN003-locale-parity",
       category: "ssot-parity",
@@ -253,7 +253,7 @@ export const pan003Kinds: Rule = {
   id: "PAN003-kind-segment-parity",
   title: "PAN003: the kind → URL-segment map must agree between src/lib/kinds.ts and pancratius/kinds.py",
   tier: "core",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: "PAN003-kind-segment-parity",
       category: "ssot-parity",

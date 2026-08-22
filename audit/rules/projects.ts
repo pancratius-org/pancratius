@@ -238,7 +238,7 @@ export const pan004DuplicateIdentity: Rule = {
   id: "PAN004-duplicate-identity",
   title: "PAN004: no two content files may claim the same (kind, number, lang)",
   tier: "core",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: "PAN004-duplicate-identity",
       category: CATEGORY,

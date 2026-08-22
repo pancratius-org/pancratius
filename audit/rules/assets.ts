@@ -17,7 +17,7 @@ export const pan007AssetRefs: Rule = {
   id: "PAN007-asset-refs",
   title: "PAN007: every cover/body-image reference in src/content/ must resolve on disk",
   tier: "core",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: "PAN007-asset-refs",
       category: "asset-refs",

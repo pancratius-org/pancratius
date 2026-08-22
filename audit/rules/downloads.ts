@@ -20,7 +20,7 @@ export const pan008PublicMarkdownAssets: Rule = {
   title:
     "PAN008: public Markdown exports (and all-md.zip) must reference work-scoped /assets/… image URLs, never local/legacy/relative paths",
   tier: "post-build",
-  run(ctx: RuleContext): Finding[] {
+  async run(ctx: RuleContext): Promise<Finding[]> {
     return runPythonCheck(ctx, {
       id: "PAN008-public-md-asset-urls",
       category: "download-export",

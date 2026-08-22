@@ -130,7 +130,7 @@ function fold(audit: FoldedAudit): Rule {
     id: audit.id,
     title: `${audit.id}: ${audit.category} (folded ${audit.script}, non-blocking)`,
     tier,
-    run(ctx: RuleContext): Finding[] {
+    async run(ctx: RuleContext): Promise<Finding[]> {
       return runPythonCheck(ctx, {
         id: audit.id,
         category: audit.category,
