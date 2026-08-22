@@ -334,7 +334,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "numpy", specifier = ">=1.26" },
-    { name = "openrouter", marker = "extra == 'live'", specifier = ">=0.9,<1" },
+    { name = "openrouter", marker = "extra == 'live'", specifier = ">=1.1,<2" },
     { name = "pancratius", editable = "../" },
     { name = "pillow", specifier = ">=10.4" },
     { name = "scikit-learn", specifier = ">=1.4" },
@@ -421,7 +421,7 @@ wheels = [
 
 [[package]]
 name = "openrouter"
-version = "0.11.46"
+version = "1.1.74"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpcore" },
@@ -429,9 +429,9 @@ dependencies = [
     { name = "jsonpath-python" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5e/61/6a238508a4e4310a7674c360b656a652a8e11973e451c6eca8da8bf45d8d/openrouter-0.11.46.tar.gz", hash = "sha256:5470af3e7bf25ad84cd410b43bbd4aba3052642d7a5033e5767b35c0ee5608db", size = 380405, upload-time = "2026-07-20T17:06:23.391Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d1/50/3836888c9bda0c664883458b4ca2bac15ca51dcd174faed84823c36bb07d/openrouter-1.1.74.tar.gz", hash = "sha256:08fe9ba1cd0a678da6bd86f0b9782267a401836302458e159aebdbb0c47be88e", size = 429077, upload-time = "2026-08-22T05:13:32.937Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/08/e3/0504f94e182c8975750bc9eb280552cf9cec9a7ffe20edeb44a825fa605d/openrouter-0.11.46-py3-none-any.whl", hash = "sha256:9acbb9922bcae46239ef4364c8ec095284773494fac40c92c61a24e1a1d239b4", size = 837323, upload-time = "2026-07-20T17:06:22.039Z" },
+    { url = "https://files.pythonhosted.org/packages/dc/a7/67e5e1f53c86e5fe7264cf29bbc3bdef5ff906180574fce30775219181b8/openrouter-1.1.74-py3-none-any.whl", hash = "sha256:d6ea3233ec9a180cadc7701772986cdb3945998d8a4b5ca9c1cd6c59e11ff171", size = 925685, upload-time = "2026-08-22T05:13:31.156Z" },
 ]
 
 [[package]]
@@ -491,7 +491,7 @@ dev = [
     { name = "google-api-python-client-stubs", specifier = ">=1.37.0" },
     { name = "pytest", specifier = ">=9.0" },
     { name = "ruff", specifier = ">=0.15.14" },
-    { name = "ty", specifier = "==0.0.40" },
+    { name = "ty", specifier = "==0.0.74" },
     { name = "types-networkx", specifier = ">=3.6.1.20260518" },
     { name = "types-pillow", specifier = ">=10.2.0.20240822" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20260518" },
