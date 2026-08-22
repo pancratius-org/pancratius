@@ -1,21 +1,22 @@
 ---
-// The single, shared RU-only degradation treatment for server-rendered book
-// references on /en/.
+// The single, shared RU-only degradation treatment for server-rendered item
+// references on /en/ — book, poem, and video cards alike.
 //
-// Anywhere a book under an English URL falls back to its Russian original (no
+// Anywhere an item under an English URL falls back to its Russian original (no
 // `en.md` exists), this pill marks the language flip as deliberate, never as a
-// leak. The book's own link already points to the Russian page, so the pill
+// leak. The item's own link already points to the Russian page, so the pill
 // alone declares the fallback. The `localized` decision is NOT made here —
-// callers pass it from the one source (`displayWorkEntry`'s linkLocale).
+// callers pass it from the one source (`displayWorkEntry`/`displayVideoEntry`'s
+// linkLocale).
 //
 // The conceptosphere client runtime renders the identical markup from its DOM
 // helper (`src/components/conceptosphere/russian-badge.ts`); both read the same
-// copy (`localeBadge`) so the two surfaces cannot drift.
+// copy (`russianOriginalBadgeCopy`) so the two surfaces cannot drift.
 
-import { localeBadge } from "@/lib/i18n/copy";
+import { russianOriginalBadgeCopy } from "@/lib/i18n/copy";
 ---
 <span class="ru-original">
-  <span class="ru-original__pill">{localeBadge.russianOriginal}</span>
+  <span class="ru-original__pill">{russianOriginalBadgeCopy}</span>
 </span>
 
 <style>
