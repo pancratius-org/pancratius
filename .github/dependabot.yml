@@ -4,10 +4,9 @@ version: 2
 # tags) current. Without it, SHA pins go stale and accumulate known CVEs.
 # Each PR bumps both the SHA and the `# version` comment together.
 #
-# `pip` ecosystem is intentionally absent: it reads `pyproject.toml` but
-# does not understand `uv.lock`, so it would propose un-locked bumps that
-# don't reflect the resolver state. Run `uv lock --upgrade` on a cadence
-# until Dependabot supports uv natively.
+# Security fixes are grouped by dependency graph. A high-severity advisory makes
+# the repository gate fail, so isolated fixes can deadlock behind vulnerabilities
+# that only a sibling PR repairs.
 updates:
   - package-ecosystem: github-actions
     directory: /
@@ -33,15 +32,35 @@ updates:
         update-types:
           - "version-update:semver-major"
     groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
       astro:
+        applies-to: version-updates
         patterns:
           - "astro"
           - "@astrojs/*"
           - "satteri"
       conceptosphere-viz:
+        applies-to: version-updates
         patterns:
           - "sigma"
           - "graphology"
           - "graphology-*"
       dev:
+        applies-to: version-updates
         dependency-type: development
+      production:
+        applies-to: version-updates
+        dependency-type: production
+
+  - package-ecosystem: uv
+    directories:
+      - /
+      - /intent-ai
+    schedule:
+      interval: weekly
+      day: sunday
+    groups:
+      python:
+        patterns: ["*"]

@@ -27,8 +27,12 @@ export default defineConfig({
   ],
   webServer: {
     command: `npx astro preview --port ${PORT} --host 127.0.0.1`,
+    // Astro 7.2 otherwise daemonizes preview when it detects an agent. The
+    // process is already automated here, and Playwright must own its lifetime.
+    env: { ASTRO_PREVIEW_BACKGROUND: "1" },
     url: `http://127.0.0.1:${PORT}/`,
-    reuseExistingServer: !process.env.CI && !process.env.PW_GATE,  // The mise verify gate forces a fresh preview on its own port.
+    // The mise verify gate forces a fresh preview on its own port.
+    reuseExistingServer: !process.env.CI && !process.env.PW_GATE,
     timeout: 120_000,
   },
 });

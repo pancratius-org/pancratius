@@ -46,7 +46,7 @@ dev = [
   "google-api-python-client-stubs>=1.37.0",
   "pytest>=9.0",
   "ruff>=0.15.14",
-  "ty==0.0.40",
+  "ty==0.0.74",
   "types-networkx>=3.6.1.20260518",
   "types-pillow>=10.2.0.20240822",
   "types-pyyaml>=6.0.12.20260518",
