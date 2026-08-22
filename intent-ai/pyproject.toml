@@ -16,7 +16,7 @@ dependencies = [
 # imports it lazily, only a live run needs it. Install with `uv sync --extra live`, or a one-off
 # `uv run --extra live python -m intent_ai.teacher.recipes panel <recipe.toml>`.
 [project.optional-dependencies]
-live = ["openrouter>=0.9,<1"]   # pin to the 0.9.x API the adapter is written against
+live = ["openrouter>=1.1,<2"]   # keep the adapter on the tested 1.x chat.send contract
 
 [dependency-groups]
 dev = ["pytest>=9.0", "ty>=0.0.1a17"]
