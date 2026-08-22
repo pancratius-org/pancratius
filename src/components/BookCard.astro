@@ -1,8 +1,8 @@
 ---
 import type { Locale } from "@/lib/i18n";
-import { DEFAULT_LOCALE, workUrl } from "@/lib/i18n";
-import { authoredWorkPairs, displayWorkEntry, type WorkPair } from "@/lib/works";
-import { bookCardCopy, localeBadge } from "@/lib/i18n/copy";
+import { workUrl } from "@/lib/i18n";
+import { displayWorkEntry, type WorkPair } from "@/lib/works";
+import { bookCardCopy } from "@/lib/i18n/copy";
 import BookCover from "./BookCover.astro";
 import RussianOriginalBadge from "./RussianOriginalBadge.astro";
 
@@ -26,10 +26,6 @@ const linkLocale: Locale = display.linkLocale;
 const entry = display.entry;
 const href = workUrl(pair.kind, entry.data.slug, linkLocale);
 const tags = "tags" in entry.data ? entry.data.tags : [];
-// On the default-locale index, badge works that also have a non-default
-// translation. (For RU+EN this is the "RU · EN" badge on /books/.)
-const hasTranslationBadge =
-  locale === DEFAULT_LOCALE && authoredWorkPairs(pair).some(item => item.locale !== DEFAULT_LOCALE);
 const altPrefix = copy.coverAltPrefix;
 ---
 <a
@@ -45,7 +41,6 @@ const altPrefix = copy.coverAltPrefix;
     <span class="book__num work-card-num">{String(pair.number).padStart(2, "0")}</span>
     <h2 class="book__title">{entry.data.title}</h2>
     {blurb && <p class="work-card-teaser">{blurb}</p>}
-    {hasTranslationBadge && <span class="work-card-badge">{localeBadge.both}</span>}
     {localeFallback && <RussianOriginalBadge />}
   </div>
 </a>

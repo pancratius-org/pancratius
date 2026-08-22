@@ -106,16 +106,3 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.work-card-badge {
-  font-family: var(--sans);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.15em;
-  color: var(--ink-mute);
-  margin-top: 0.55rem;
-  display: inline-block;
-}
-.work-card-badge--fallback {
-  color: var(--accent-soft);
-  border-bottom: 1px dashed var(--rule-2);
-}

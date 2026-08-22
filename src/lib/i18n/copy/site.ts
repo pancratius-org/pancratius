@@ -50,20 +50,14 @@ export const shareCopy = {
   en: { label: "Share", copied: "Copied", failed: "Failed" },
 } satisfies Record<Locale, ShareCopy>;
 
-// Corpus-language badges on cards: which locales a work exists in. These name
-// the *corpus's* languages, not the UI's, so they read the same in any locale.
-//
-// `russianOriginal` is the SINGLE source of the RU-only degradation treatment
-// used at every /en/ fallback site (book cards, similar rows, conceptosphere
-// panels and mobile list). It only ever renders on /en/ — a RU-only book under
-// a RU URL is not a fallback — so the English-naming wording is correct
-// everywhere it appears. The book's own link already points to the Russian
-// page, so the pill alone declares the fallback.
-export const localeBadge = {
-  both: "RU · EN",
-  russianOnly: "Russian only",
-  russianOriginal: "Russian original",
-} as const;
+// The SINGLE source of the RU-only degradation treatment's copy —
+// used at every /en/ fallback site (book cards, video cards, similar rows,
+// conceptosphere panels and mobile list). It names the *corpus's* language, not
+// the UI's, so it reads the same in any locale. It only ever renders on /en/ —
+// a RU-only item under a RU URL is not a fallback — so the English-naming
+// wording is correct everywhere it appears. The item's own link already points
+// to the Russian page, so the pill alone declares the fallback.
+export const russianOriginalBadgeCopy = "Russian original";
 
 export interface FooterCopy {
   cc0_before: string;
