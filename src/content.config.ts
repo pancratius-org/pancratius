@@ -331,8 +331,8 @@ const videoSource = z
 const videoPlaylist = z.object({
   // Source-platform id (YouTube uses ~34-char base64-ish strings; keep loose).
   id: z.string().min(1),
-  // Title for THIS locale's page. The scanner seeds it from the raw YouTube
-  // playlist title; the author can localize by hand.
+  // This locale's canonical tag label for the playlist, resolved from the id
+  // through data/tag-glossary.yaml — not the playlist's YouTube display title.
   title: z.string().min(1),
 });
 
@@ -351,8 +351,9 @@ const videos = defineCollection({
     title: z.string().min(1),
     lang,
     description: z.string().min(1),
-    // Authored or scanner-seeded from YouTube playlist titles. Drives the
-    // LibraryFilter chips on `/videos/`, same as books `tags`.
+    // Authored or scanner-seeded from the video's YouTube playlists (by id,
+    // through data/tag-glossary.yaml). Drives the LibraryFilter chips on
+    // `/videos/`, same as books `tags`.
     tags: z.array(z.string()).default([]),
     cover: z.string().nullable().optional(),
     // Source publication date on the primary platform.

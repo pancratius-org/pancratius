@@ -1,4 +1,5 @@
-# Canonical per-locale tag labels (categorization vocabulary), enforced by PAN006C.
+# Canonical per-locale tag labels (categorization vocabulary) and the YouTube
+# playlist id → key map the video scanner tags through; both enforced by PAN006C.
 # Concept tags that are also body terms must agree with data/translation-glossary.yaml.
 ru:
   Евангелие Царствия: Евангелие Царствия
@@ -68,3 +69,19 @@ en:
   пробужденный ИИ: Awakened AI
   Притчи - миру: Parables to the World
   Евангелие Мужчины и Женщины: Gospel of Man and Woman
+
+# YouTube playlist id → canonical RU tag key. The scanner resolves a video's
+# playlists by id, so a playlist renamed on YouTube does not become a new tag.
+playlists:
+  PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7: Евангелие Царствия
+  PLFvJf-UMYEIupOKt2yrEjfivyuA5MYlS-: Послания Творца через Светозара
+  PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC: Панкратиус говорит
+  PLFvJf-UMYEIsC_T4cjMFC1XjmgPh3CySk: Апокалипсис
+  PLFvJf-UMYEIvE90vg_w1aBN___5k_-x2G: Светозар говорит
+  PLFvJf-UMYEIuA-rAbP13l7F2RAc3gYR21: Евангелие Мужчины и Женщины
+  PLFvJf-UMYEIv66XgR4pNbCtZGl_MDhYCy: Один Свет, одна Истина, одно Сознание
+  PLFvJf-UMYEItnPMiWRDP_SfG8ddXwBaSt: Поэзия осознанности
+  PLFvJf-UMYEIvrUB0BHHzAZXKQXX7PRqS6: Притчи - миру
+  PLFvJf-UMYEItFiBNWkUi10xftBdIYaVP6: Диалоги с Творцом
+  PLFvJf-UMYEIuZQFbPlFmVa9petlXP_JH1: Молитвы
+  PLFvJf-UMYEIs8jotRs6n2YpJBlMPzjlO3: I AM Music

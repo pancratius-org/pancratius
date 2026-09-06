@@ -412,7 +412,9 @@ lang: en
 description: |                           # mandatory; editorial copy (SEO / cards / OG)
   Authored copy describing the video.
 tags: [Bible, Apocalypse]                # like books; the scanner seeds these
-                                         # from YouTube playlist titles.
+                                         # from the video's YouTube playlists,
+                                         # resolved by playlist id through
+                                         # data/tag-glossary.yaml.
 cover: ./cover.en.jpg                    # optional; falls back to RU
 published_at: "2026-01-22"               # ISO date; source publication
 duration: "PT8M42S"                      # ISO 8601 (matches YouTube)
@@ -425,9 +427,9 @@ sources:                                 # ordered: first = primary, others = mi
   - platform: vimeo                      # future mirror
     id: "987654321"
     url: "https://vimeo.com/987654321"
-playlists:                               # optional; from YouTube
-  - id: "PLFvJf-...XjmgPh3CySk"
-    title: "Апокалипсис"
+playlists:                               # optional; from YouTube. `title` is the
+  - id: "PLFvJf-...XjmgPh3CySk"          # locale's canonical tag label, not the
+    title: "Apocalypse"                  # playlist's current display title
 related_book: 1                          # optional cross-link to a book
 translation:
   source: original

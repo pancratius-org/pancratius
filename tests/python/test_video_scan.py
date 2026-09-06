@@ -489,6 +489,96 @@ def test_scan_scaffolds_english_from_localization(tmp_path: Path) -> None:
     assert "Pancratius" in body and "Pankratius" not in body  # body normalized too
 
 
+def test_scan_resolves_a_renamed_playlist_by_id(tmp_path: Path) -> None:
+    """A playlist renamed on YouTube still tags the video with the canonical
+    label in every locale: the glossary maps the playlist id to the RU key."""
+    content = _repo_shaped(tmp_path)
+    (tmp_path / "data" / "tag-glossary.yaml").write_text(
+        "ru:\n  Апокалипсис: Апокалипсис\nen:\n  Апокалипсис: Apocalypse\n"
+        "playlists:\n  pl: Апокалипсис\n",
+        encoding="utf-8",
+    )
+    channels_path = content / "videos" / "channels.yaml"
+    write_channels(
+        [VideoChannel(
+            key="main", platform="youtube", address=ChannelHandleOnly("@t"),
+            url="https://www.youtube.com/@t", title={"ru": "T", "en": "T"},
+            copy={"ru": "t", "en": "t"}, badge=None, scan=True, default_lang="ru",
+        )],
+        channels_path,
+    )
+    client = _FakeClient(
+        uploads_ids=["v1"],
+        videos={"v1": VideoMetadata(
+            id="v1", title="Слово о свете", description="Свет живёт в сердце.",
+            published_at="2026-02-01", duration="PT3M",
+            thumbnail_url="https://i.ytimg.com/vi/v1/maxresdefault.jpg",
+            localizations={"en": VideoLocalization(title="A Word of Light", description="Light lives in the heart.")},
+        )},
+        playlists=[YouTubePlaylist(id="pl", title="⭐ НАЧНИ ЗДЕСЬ: Апокалипсис", item_count=1)],
+        playlist_members={"pl": ["v1"]},
+    )
+    video_scan.scan(content_root=content, channels_path=channels_path, client=client, enrich=False)
+
+    folder = next((content / "videos").glob("01-*"))
+    ru = video_scan._read_frontmatter(folder / "ru.md")
+    en = video_scan._read_frontmatter(folder / "en.md")
+    assert ru is not None and en is not None
+    assert ru["tags"] == ["Апокалипсис"]
+    assert ru["playlists"] == [{"id": "pl", "title": "Апокалипсис"}]
+    assert en["tags"] == ["Apocalypse"]
+    assert en["playlists"] == [{"id": "pl", "title": "Apocalypse"}]
+
+
+def test_localize_playlists_resolves_by_id_then_title_and_keeps_the_key_unlabelled() -> None:
+    refs = [
+        video_scan.PlaylistRef(id="mapped", title="⭐ НАЧНИ ЗДЕСЬ: Апокалипсис"),
+        video_scan.PlaylistRef(id="unmapped", title=" Молитвы "),
+        video_scan.PlaylistRef(id="unknown", title="Новый плейлист"),
+    ]
+    labels = {"Апокалипсис": "Apocalypse"}  # no EN label for Молитвы
+    out = video_scan._localize_playlists(refs, labels, {"mapped": "Апокалипсис"})
+    assert [p.title for p in out] == ["Apocalypse", "Молитвы", "Новый плейлист"]
+
+
+def test_scan_tags_one_concept_once_when_two_playlists_share_a_key(tmp_path: Path) -> None:
+    content = _repo_shaped(tmp_path)
+    (tmp_path / "data" / "tag-glossary.yaml").write_text(
+        "ru:\n  Апокалипсис: Апокалипсис\nen:\n  Апокалипсис: Apocalypse\n"
+        "playlists:\n  old: Апокалипсис\n  new: Апокалипсис\n",
+        encoding="utf-8",
+    )
+    channels_path = content / "videos" / "channels.yaml"
+    write_channels(
+        [VideoChannel(
+            key="main", platform="youtube", address=ChannelHandleOnly("@t"),
+            url="https://www.youtube.com/@t", title={"ru": "T", "en": "T"},
+            copy={"ru": "t", "en": "t"}, badge=None, scan=True, default_lang="ru",
+        )],
+        channels_path,
+    )
+    client = _FakeClient(
+        uploads_ids=["v1"],
+        videos={"v1": VideoMetadata(
+            id="v1", title="Слово о свете", description="Свет живёт в сердце.",
+            published_at="2026-02-01", duration="PT3M",
+            thumbnail_url="https://i.ytimg.com/vi/v1/maxresdefault.jpg",
+        )},
+        playlists=[
+            YouTubePlaylist(id="old", title="Апокалипсис", item_count=1),
+            YouTubePlaylist(id="new", title="Апокалипсис (2026)", item_count=1),
+        ],
+        playlist_members={"old": ["v1"], "new": ["v1"]},
+    )
+    video_scan.scan(content_root=content, channels_path=channels_path, client=client, enrich=False)
+
+    ru = video_scan._read_frontmatter(next((content / "videos").glob("01-*")) / "ru.md")
+    assert ru is not None
+    assert ru["tags"] == ["Апокалипсис"]
+    assert [p["id"] for p in ru["playlists"]] == ["old", "new"]
+    assert {p["title"] for p in ru["playlists"]} == {"Апокалипсис"}
+
+
 def test_scan_falls_back_to_clean_split_without_editorial_client(
     tmp_path: Path, channels_path: Path,
 ) -> None:
