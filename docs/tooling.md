@@ -153,7 +153,10 @@ The grammar carries the content model:
 - `video sync` polls every `scan: true` channel in
   `src/content/videos/channels.yaml` via the YouTube Data API v3 (requires
   `YOUTUBE_API_KEY`) and scaffolds frontmatter + a `cover.<lang>.jpg` thumbnail
-  for each new video. The title's trailing discovery hashtags are dropped. The
+  for each new video. Tags are the video's YouTube playlists, resolved by playlist
+  id to the locale's canonical label in the tag glossary: a playlist renamed on
+  YouTube never becomes a new tag, and a playlist the glossary does not know stops
+  at the content gate. The title's trailing discovery hashtags are dropped. The
   raw YouTube description is discovery copy, not reading copy, so it is not dumped
   into the page: `pancratius.video_description` splits it (via OpenRouter,
   `OPENROUTER_API_KEY`) into a clean `description` (the hook) and a Markdown
@@ -163,8 +166,8 @@ The grammar carries the content model:
   translate` drafting an AI translation: a reviewable draft, not an editorial
   decision, and never a raw dump. When the author published an `en-US`
   localization, a paired `en.md` is scaffolded the same way (`translation.source:
-  literary`, tags mapped through the tag glossary, terminology and curly quotes
-  normalized to the library's English conventions). With no `OPENROUTER_API_KEY`
+  literary`, terminology and curly quotes normalized to the library's English
+  conventions). With no `OPENROUTER_API_KEY`
   the split falls back to a deterministic clean-and-strip. Re-runs never touch
   known entries. PAN028 guards committed hooks against junk.
 - `docx inspect` is read-only source diagnostics. It prints per-paragraph OOXML

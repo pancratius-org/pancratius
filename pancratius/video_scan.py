@@ -47,8 +47,10 @@ from googleapiclient.errors import HttpError
 from pancratius.docx_conversion import to_ascii_slug
 from pancratius.locales import LOCALES, Locale
 from pancratius.localization import (
+    PlaylistTagKeys,
     TagLabels,
     TermReplacements,
+    load_playlist_tag_keys,
     load_tag_labels,
     load_term_replacements,
     normalize_locale_text,
@@ -461,14 +463,27 @@ def _load_term_replacements(content_root: Path) -> dict[Locale, TermReplacements
 
 
 def _localize_playlists(
-    playlists: Sequence[PlaylistRef], tag_labels: TagLabels,
+    playlists: Sequence[PlaylistRef], tag_labels: TagLabels, playlist_keys: PlaylistTagKeys,
 ) -> list[PlaylistRef]:
-    return [PlaylistRef(id=p.id, title=tag_labels.get(p.title.strip(), p.title)) for p in playlists]
+    """Each playlist as this locale's canonical tag label: the glossary key comes
+    from the playlist id when known, else from the title. A key without a label
+    for this locale, or a playlist the glossary has never seen, passes through
+    unlabelled and PAN006C stops it at the gate."""
+    out: list[PlaylistRef] = []
+    for p in playlists:
+        key = playlist_keys.get(p.id, p.title.strip())
+        out.append(PlaylistRef(id=p.id, title=tag_labels.get(key, key)))
+    return out
 
 
 def _load_tag_labels(content_root: Path) -> dict[Locale, TagLabels]:
     path = _data_file(content_root, "tag-glossary.yaml")
     return {locale: load_tag_labels(path, locale) if path is not None else {} for locale in LOCALES}
+
+
+def _load_playlist_tag_keys(content_root: Path) -> PlaylistTagKeys:
+    path = _data_file(content_root, "tag-glossary.yaml")
+    return load_playlist_tag_keys(path) if path is not None else {}
 
 
 _DESCRIPTION_TODO = "TODO: write a one-paragraph SEO description for this video."
@@ -587,7 +602,8 @@ def _locale_document(video: NewVideo, locale: LocaleScaffold) -> str:
         "title": locale.title,
         "lang": locale.lang,
         "description": locale.draft.hook or _DESCRIPTION_TODO,
-        "tags": [p.title for p in locale.playlists],
+        # Several playlists may share one concept; the concept is tagged once.
+        "tags": list(dict.fromkeys(p.title for p in locale.playlists)),
         # Only the default locale owns a cover; others fall back to it.
         **({"cover": f"./cover.{locale.lang}.jpg"} if is_default else {}),
         "published_at": video.published_at,
@@ -687,6 +703,7 @@ def scan(
     known_ids, max_number = _existing_video_ids(content)
     next_number = max_number + 1
     tag_labels = _load_tag_labels(content)
+    playlist_keys = _load_playlist_tag_keys(content)
     term_replacements = _load_term_replacements(content)
     result = ScanResult()
 
@@ -733,7 +750,8 @@ def scan(
             duration_seconds = _iso_duration_seconds(meta.duration)
 
             ru, usage = _build_locale(
-                channel.default_lang, meta.title, meta.description, playlist_refs,
+                channel.default_lang, meta.title, meta.description,
+                _localize_playlists(playlist_refs, tag_labels.get(channel.default_lang, {}), playlist_keys),
                 duration_seconds, client=ed_client, config=ed_config,
                 term_replacements=term_replacements.get(channel.default_lang, ()),
             )
@@ -748,7 +766,8 @@ def scan(
                     continue
                 scaffold, loc_usage = _build_locale(
                     locale, localization.title, localization.description,
-                    _localize_playlists(playlist_refs, tag_labels.get(locale, {})), duration_seconds,
+                    _localize_playlists(playlist_refs, tag_labels.get(locale, {}), playlist_keys),
+                    duration_seconds,
                     client=ed_client, config=ed_config,
                     term_replacements=term_replacements.get(locale, ()),
                 )
