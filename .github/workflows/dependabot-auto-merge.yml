@@ -1,10 +1,16 @@
 name: Dependabot auto-merge
 
+# Merges as the pancratius-automation App, never as GITHUB_TOKEN: GitHub does
+# not run workflows for events GITHUB_TOKEN causes, so a token-merged commit
+# would skip the deploy pipeline. Dependabot-triggered runs read the Dependabot
+# secret store, so the App credentials live there as well as in Actions
+# secrets. GITHUB_TOKEN stays read-only so the rule is enforced, not remembered.
+
 on: pull_request
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  pull-requests: read
 
 jobs:
   auto-merge:
@@ -17,9 +23,17 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Mint automation App token
+        if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.AUTOMATION_APP_CLIENT_ID }}
+          private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
+
       - name: Enable auto-merge for patch/minor
         if: steps.meta.outputs.update-type != 'version-update:semver-major'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: gh pr merge --squash --auto "$PR_URL"
