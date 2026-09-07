@@ -39,9 +39,6 @@ sources:
   url: https://www.youtube.com/watch?v=jhLtPvdHirY
   embed_url: https://www.youtube-nocookie.com/embed/jhLtPvdHirY
   channel: main
-playlists:
-- id: PLFvJf-UMYEIsC_T4cjMFC1XjmgPh3CySk
-  title: Апокалипсис
 translation:
   source: original
 ---

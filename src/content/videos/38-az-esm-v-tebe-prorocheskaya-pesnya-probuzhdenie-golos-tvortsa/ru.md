@@ -18,9 +18,6 @@ sources:
   url: https://www.youtube.com/watch?v=Ie8awdmLBzo
   embed_url: https://www.youtube-nocookie.com/embed/Ie8awdmLBzo
   channel: main
-playlists:
-- id: PLFvJf-UMYEIs8jotRs6n2YpJBlMPzjlO3
-  title: I AM Music
 translation:
   source: original
 ---

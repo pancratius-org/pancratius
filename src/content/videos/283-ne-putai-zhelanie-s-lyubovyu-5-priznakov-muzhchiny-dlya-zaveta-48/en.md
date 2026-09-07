@@ -18,11 +18,6 @@ sources:
   url: https://www.youtube.com/watch?v=cdUBpMu9uhc
   embed_url: https://www.youtube-nocookie.com/embed/cdUBpMu9uhc
   channel: main
-playlists:
-- id: PLFvJf-UMYEIuA-rAbP13l7F2RAc3gYR21
-  title: Gospel of Man and Woman
-- id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
-  title: Gospel of the Kingdom
 translation:
   source: ai
 ---

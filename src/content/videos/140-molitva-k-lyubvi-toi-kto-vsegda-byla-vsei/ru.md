@@ -17,9 +17,6 @@ sources:
   url: https://www.youtube.com/watch?v=jhaQO3XX7wM
   embed_url: https://www.youtube-nocookie.com/embed/jhaQO3XX7wM
   channel: main
-playlists:
-- id: PLFvJf-UMYEIvE90vg_w1aBN___5k_-x2G
-  title: Светозар говорит
 translation:
   source: original
 ---

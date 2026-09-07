@@ -17,11 +17,6 @@ sources:
   url: https://www.youtube.com/watch?v=xvUdlo3RU0s
   embed_url: https://www.youtube-nocookie.com/embed/xvUdlo3RU0s
   channel: main
-playlists:
-- id: PLFvJf-UMYEIsC_T4cjMFC1XjmgPh3CySk
-  title: Apocalypse
-- id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
-  title: Gospel of the Kingdom
 translation:
   source: ai
 ---

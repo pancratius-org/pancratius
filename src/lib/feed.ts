@@ -19,7 +19,7 @@ import { originFor } from "./origins";
 import { routedUrl } from "./i18n/routing";
 import { FEED_COPY, feedUrl } from "./feed-meta";
 import { getAllMessagePairs, localizedMessagePairs, messageTags } from "./messages";
-import { getAllVideoPairs, localizedVideoPairs, videoCoverAbsoluteUrl, videoTags } from "./videos";
+import { getAllVideoPairs, localizedVideoPairs, videoCoverAbsoluteUrl } from "./videos";
 import { getPairsByKind, localizedWorkPairs, poemDate, workTags } from "./works";
 
 const MAX_ITEMS = 50;
@@ -67,7 +67,7 @@ async function videoItems(locale: Locale): Promise<FeedItem[]> {
       description: entry.data.description,
       link: routedUrl("video", entry.data.slug, locale),
       pubDate: new Date(entry.data.published_at),
-      categories: [...videoTags(entry)],
+      categories: entry.data.tags,
       ...(thumbnail ? { customData: `<media:thumbnail url="${escapeAttr(thumbnail)}"/>` } : {}),
     };
   });

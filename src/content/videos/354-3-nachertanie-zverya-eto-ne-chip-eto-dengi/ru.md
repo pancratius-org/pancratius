@@ -20,11 +20,6 @@ sources:
   url: https://www.youtube.com/watch?v=n8E31ze1Xno
   embed_url: https://www.youtube-nocookie.com/embed/n8E31ze1Xno
   channel: main
-playlists:
-- id: PLFvJf-UMYEIsC_T4cjMFC1XjmgPh3CySk
-  title: Апокалипсис
-- id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
-  title: Евангелие Царствия
 translation:
   source: original
 ---

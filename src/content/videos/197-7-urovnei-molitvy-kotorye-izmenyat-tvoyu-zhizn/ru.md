@@ -20,11 +20,6 @@ sources:
   url: https://www.youtube.com/watch?v=-5OgQdCfSak
   embed_url: https://www.youtube-nocookie.com/embed/-5OgQdCfSak
   channel: main
-playlists:
-- id: PLFvJf-UMYEIuZQFbPlFmVa9petlXP_JH1
-  title: Молитвы
-- id: PLFvJf-UMYEIupOKt2yrEjfivyuA5MYlS-
-  title: Послания Творца через Светозара
 translation:
   source: original
 ---

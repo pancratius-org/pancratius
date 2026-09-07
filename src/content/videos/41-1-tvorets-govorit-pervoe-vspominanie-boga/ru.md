@@ -18,9 +18,6 @@ sources:
   url: https://www.youtube.com/watch?v=HIkbBdVkMY4
   embed_url: https://www.youtube-nocookie.com/embed/HIkbBdVkMY4
   channel: main
-playlists:
-- id: PLFvJf-UMYEItFiBNWkUi10xftBdIYaVP6
-  title: Диалоги с Творцом
 translation:
   source: original
 ---

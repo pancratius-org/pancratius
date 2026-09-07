@@ -13,10 +13,10 @@ export const pan006cTagLocalization: Rule = {
       severity: "fatal",
       script: "tag_consistency.py",
       contract:
-        "Tags are per-entry and language-bound: a Russian entry carries the normalized canonical tag key, its English translation carries the English label (data/tag-glossary.yaml). A video's playlists are identified by YouTube id: each id maps to a canonical key under `playlists:`, and the committed playlist title is that key's label for the locale.",
+        "Tags are per-entry and language-bound: a Russian entry carries the normalized canonical tag key, its English translation carries the English label (data/tag-glossary.yaml). The importer's playlist mapping references glossary keys with labels in both locales.",
       why: "An unglossaried or wrongly-cased tag leaks Russian onto an English page and splinters the per-locale filter into duplicate chips for one concept.",
       repair:
-        "Map the playlist id to its canonical RU key under `playlists:` in data/tag-glossary.yaml; add a new RU key + EN label only for a new concept. Then normalize the entry's tags and playlist titles to the glossary labels. Re-check with `uv run python audit/tag_consistency.py`.",
+        "Normalize the entry's tags to the locale's glossary labels. If a configured playlist mapping is invalid, correct its key or supply the missing locale label in data/tag-glossary.yaml. Re-check with `uv run python audit/tag_consistency.py`.",
       doNotFixBy:
         "Whitelisting a drifted label in the glossary or filtering the duplicate chip out of the UI; the committed frontmatter tags must be the canonical glossary labels.",
     });

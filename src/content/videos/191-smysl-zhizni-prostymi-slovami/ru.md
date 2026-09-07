@@ -18,9 +18,6 @@ sources:
   url: https://www.youtube.com/watch?v=yh3_6bdcr7I
   embed_url: https://www.youtube-nocookie.com/embed/yh3_6bdcr7I
   channel: main
-playlists:
-- id: PLFvJf-UMYEItnPMiWRDP_SfG8ddXwBaSt
-  title: Поэзия осознанности
 translation:
   source: original
 ---

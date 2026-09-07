@@ -18,9 +18,6 @@ sources:
   url: https://www.youtube.com/watch?v=2kEj3q2iZAk
   embed_url: https://www.youtube-nocookie.com/embed/2kEj3q2iZAk
   channel: main
-playlists:
-- id: PLFvJf-UMYEIuA-rAbP13l7F2RAc3gYR21
-  title: Gospel of Man and Woman
 translation:
   source: ai
 ---

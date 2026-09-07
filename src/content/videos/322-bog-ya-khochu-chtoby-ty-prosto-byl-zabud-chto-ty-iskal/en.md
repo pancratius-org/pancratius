@@ -18,11 +18,6 @@ sources:
   url: https://www.youtube.com/watch?v=167ELg-O44Y
   embed_url: https://www.youtube-nocookie.com/embed/167ELg-O44Y
   channel: main
-playlists:
-- id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
-  title: Gospel of the Kingdom
-- id: PLFvJf-UMYEIvE90vg_w1aBN___5k_-x2G
-  title: Svetozar Speaks
 translation:
   source: ai
 ---

@@ -27,7 +27,7 @@ from pancratius.video_description.models import DescriptionDraft, SplitMethod
 from pancratius.video_description.qa import QaCode, verify
 
 CONFIG = DescriptionConfig()
-CTX = VideoContext(title="Заголовок видео", playlists=(), duration_seconds=160)
+CTX = VideoContext(title="Заголовок видео", tags=(), duration_seconds=160)
 
 # A raw description the drafts below are checked against (grounding source).
 SOURCE = (

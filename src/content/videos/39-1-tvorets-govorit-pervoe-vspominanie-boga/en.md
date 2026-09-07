@@ -17,9 +17,6 @@ sources:
   url: https://www.youtube.com/watch?v=vrKFgREfoxg
   embed_url: https://www.youtube-nocookie.com/embed/vrKFgREfoxg
   channel: main
-playlists:
-- id: PLFvJf-UMYEItFiBNWkUi10xftBdIYaVP6
-  title: Dialogues with the Creator
 translation:
   source: ai
 ---

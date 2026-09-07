@@ -17,7 +17,6 @@ sources:
   url: https://www.youtube.com/watch?v=N7Fxl2oWv00
   embed_url: https://www.youtube-nocookie.com/embed/N7Fxl2oWv00
   channel: main
-playlists: []
 translation:
   source: ai
 ---

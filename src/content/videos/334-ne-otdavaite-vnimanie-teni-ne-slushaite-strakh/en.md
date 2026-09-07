@@ -16,9 +16,6 @@ sources:
   url: https://www.youtube.com/watch?v=CVCGLTXbC0k
   embed_url: https://www.youtube-nocookie.com/embed/CVCGLTXbC0k
   channel: main
-playlists:
-- id: PLFvJf-UMYEIsC_T4cjMFC1XjmgPh3CySk
-  title: Apocalypse
 translation:
   source: ai
 ---

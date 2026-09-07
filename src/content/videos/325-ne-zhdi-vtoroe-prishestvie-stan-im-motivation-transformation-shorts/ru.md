@@ -19,11 +19,6 @@ sources:
   url: https://www.youtube.com/watch?v=mHGwjAYTNao
   embed_url: https://www.youtube-nocookie.com/embed/mHGwjAYTNao
   channel: main
-playlists:
-- id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
-  title: Евангелие Царствия
-- id: PLFvJf-UMYEIvE90vg_w1aBN___5k_-x2G
-  title: Светозар говорит
 translation:
   source: original
 ---

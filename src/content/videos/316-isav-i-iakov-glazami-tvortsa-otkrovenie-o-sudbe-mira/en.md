@@ -18,11 +18,6 @@ sources:
   url: https://www.youtube.com/watch?v=rvUuloZTnac
   embed_url: https://www.youtube-nocookie.com/embed/rvUuloZTnac
   channel: main
-playlists:
-- id: PLFvJf-UMYEIsC_T4cjMFC1XjmgPh3CySk
-  title: Apocalypse
-- id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pancratius Speaks
 translation:
   source: ai
 ---

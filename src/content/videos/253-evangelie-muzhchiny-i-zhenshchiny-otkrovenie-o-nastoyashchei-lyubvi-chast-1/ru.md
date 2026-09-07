@@ -18,9 +18,6 @@ sources:
   url: https://www.youtube.com/watch?v=hz0CUwXG4aM
   embed_url: https://www.youtube-nocookie.com/embed/hz0CUwXG4aM
   channel: main
-playlists:
-- id: PLFvJf-UMYEIuA-rAbP13l7F2RAc3gYR21
-  title: Евангелие Мужчины и Женщины
 translation:
   source: original
 ---

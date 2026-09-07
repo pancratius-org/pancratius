@@ -17,9 +17,6 @@ sources:
   url: https://www.youtube.com/watch?v=hJ2jqNs3qf0
   embed_url: https://www.youtube-nocookie.com/embed/hJ2jqNs3qf0
   channel: main
-playlists:
-- id: PLFvJf-UMYEIvrUB0BHHzAZXKQXX7PRqS6
-  title: Притчи - миру
 translation:
   source: original
 ---

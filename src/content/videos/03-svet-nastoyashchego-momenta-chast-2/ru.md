@@ -19,9 +19,6 @@ sources:
   url: https://www.youtube.com/watch?v=rGaWdvHDISc
   embed_url: https://www.youtube-nocookie.com/embed/rGaWdvHDISc
   channel: main
-playlists:
-- id: PLFvJf-UMYEIv66XgR4pNbCtZGl_MDhYCy
-  title: Один Свет, одна Истина, одно Сознание
 translation:
   source: original
 ---

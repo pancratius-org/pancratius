@@ -328,14 +328,6 @@ const videoSource = z
     }
   });
 
-const videoPlaylist = z.object({
-  // Source-platform id (YouTube uses ~34-char base64-ish strings; keep loose).
-  id: z.string().min(1),
-  // This locale's canonical tag label for the playlist, resolved from the id
-  // through data/tag-glossary.yaml — not the playlist's YouTube display title.
-  title: z.string().min(1),
-});
-
 const videos = defineCollection({
   loader: glob({
     pattern: "**/*.md",
@@ -362,9 +354,6 @@ const videos = defineCollection({
     duration: iso8601Duration,
     // Ordered list of mirrors; the first entry is the primary embed source.
     sources: z.array(videoSource).min(1),
-    // Source-platform playlists the video belongs to. Optional; the scanner
-    // seeds these from YouTube. Rendered as chips on the video page.
-    playlists: z.array(videoPlaylist).optional(),
     // Optional cross-link to a book by editorial number (e.g. reading-of-X).
     related_book: z.number().int().positive().optional(),
     translation,

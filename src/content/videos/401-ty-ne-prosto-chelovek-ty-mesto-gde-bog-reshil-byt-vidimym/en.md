@@ -16,9 +16,6 @@ sources:
   url: https://www.youtube.com/watch?v=7d5lW_6Zez8
   embed_url: https://www.youtube-nocookie.com/embed/7d5lW_6Zez8
   channel: main
-playlists:
-- id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
-  title: Gospel of the Kingdom
 translation:
   source: literary
 ---

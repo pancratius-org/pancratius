@@ -18,9 +18,6 @@ sources:
   url: https://www.youtube.com/watch?v=cKhZUmdF7qs
   embed_url: https://www.youtube-nocookie.com/embed/cKhZUmdF7qs
   channel: main
-playlists:
-- id: PLFvJf-UMYEIuZQFbPlFmVa9petlXP_JH1
-  title: Prayers
 translation:
   source: ai
 ---

@@ -17,9 +17,6 @@ sources:
   url: https://www.youtube.com/watch?v=gWfeVaYZIis
   embed_url: https://www.youtube-nocookie.com/embed/gWfeVaYZIis
   channel: main
-playlists:
-- id: PLFvJf-UMYEIvrUB0BHHzAZXKQXX7PRqS6
-  title: Parables to the World
 translation:
   source: ai
 ---

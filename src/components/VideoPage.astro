@@ -21,7 +21,6 @@ import {
   formatDuration,
   localizedVideoPairs,
   videoCoverAbsoluteUrl,
-  videoTags,
   videoWatchLinks,
   type VideoPair,
 } from "@/lib/videos";
@@ -41,7 +40,7 @@ const copy = videoPageCopy[locale];
 const { Content } = await render(entry);
 const coverUrl = videoCoverAbsoluteUrl(pair, locale);
 const seo = seoForVideo({ pair, locale, coverUrl });
-const tags = videoTags(entry);
+const tags = entry.data.tags;
 // One page for every video. The written commentary is optional; only its
 // presence adds a section — it never changes the chrome above it, so a
 // catalogue entry and a full essay open identically.

@@ -18,9 +18,6 @@ sources:
   url: https://www.youtube.com/watch?v=8E7Hf_906PQ
   embed_url: https://www.youtube-nocookie.com/embed/8E7Hf_906PQ
   channel: main
-playlists:
-- id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pancratius Speaks
 translation:
   source: ai
 ---
