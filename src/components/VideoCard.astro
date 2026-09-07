@@ -1,7 +1,7 @@
 ---
 import type { Locale } from "@/lib/i18n";
 import { routedUrl } from "@/lib/i18n";
-import { displayVideoEntry, formatDuration, videoTags, type VideoPair } from "@/lib/videos";
+import { displayVideoEntry, formatDuration, type VideoPair } from "@/lib/videos";
 import { videoCardCopy, formatMessageDate } from "@/lib/i18n/copy";
 import RussianOriginalBadge from "./RussianOriginalBadge.astro";
 import VideoCover from "./VideoCover.astro";
@@ -20,7 +20,7 @@ const localeFallback = display.linkLocale !== locale;
 const linkLocale: Locale = display.linkLocale;
 const entry = display.entry;
 const href = routedUrl("video", entry.data.slug, linkLocale);
-const tags = videoTags(entry);
+const tags = entry.data.tags;
 const altPrefix = copy.coverAltPrefix;
 const duration = formatDuration(entry.data.duration);
 // Videos are time-sensitive — a quiet publication dateline gives recency the

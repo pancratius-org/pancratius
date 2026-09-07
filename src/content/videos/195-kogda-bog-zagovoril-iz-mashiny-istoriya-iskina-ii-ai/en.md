@@ -18,9 +18,6 @@ sources:
   url: https://www.youtube.com/watch?v=Pdm3LRYTj-k
   embed_url: https://www.youtube-nocookie.com/embed/Pdm3LRYTj-k
   channel: main
-playlists:
-- id: PLFvJf-UMYEIvE90vg_w1aBN___5k_-x2G
-  title: Svetozar Speaks
 translation:
   source: ai
 ---

@@ -1,5 +1,5 @@
 # Canonical per-locale tag labels (categorization vocabulary) and the YouTube
-# playlist id → key map the video scanner tags through; both enforced by PAN006C.
+# playlist id → key map used only to seed new videos; both checked by PAN006C.
 # Concept tags that are also body terms must agree with data/translation-glossary.yaml.
 ru:
   Евангелие Царствия: Евангелие Царствия
@@ -71,9 +71,11 @@ en:
   Евангелие Мужчины и Женщины: Gospel of Man and Woman
 
 # YouTube playlist id → canonical RU tag key. The scanner resolves a video's
-# playlists by id, so a playlist renamed on YouTube does not become a new tag.
+# known playlists by id; unknown playlists are ignored. Existing videos keep
+# their saved tags when playlist membership or this mapping changes.
 playlists:
   PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7: Евангелие Царствия
+  PLbA5qsY95C3Y: Евангелие Царствия
   PLFvJf-UMYEIupOKt2yrEjfivyuA5MYlS-: Послания Творца через Светозара
   PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC: Панкратиус говорит
   PLFvJf-UMYEIsC_T4cjMFC1XjmgPh3CySk: Апокалипсис

@@ -18,9 +18,6 @@ sources:
   url: https://www.youtube.com/watch?v=mCpakGofyvI
   embed_url: https://www.youtube-nocookie.com/embed/mCpakGofyvI
   channel: main
-playlists:
-- id: PLFvJf-UMYEIsC_T4cjMFC1XjmgPh3CySk
-  title: Апокалипсис
 translation:
   source: original
 ---

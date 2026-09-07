@@ -17,9 +17,6 @@ sources:
   url: https://www.youtube.com/watch?v=BLy3fUOwP4o
   embed_url: https://www.youtube-nocookie.com/embed/BLy3fUOwP4o
   channel: main
-playlists:
-- id: PLFvJf-UMYEIv66XgR4pNbCtZGl_MDhYCy
-  title: One Light, One Truth, One Consciousness
 translation:
   source: ai
 ---

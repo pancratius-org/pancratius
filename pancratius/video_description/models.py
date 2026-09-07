@@ -38,13 +38,13 @@ class VideoContext:
 
     The title is passed so the hook does not merely restate it (the page already
     shows the title). `lang` is the language of THIS description (a video's own
-    Russian and its English localization are two separate contexts). Playlist
-    titles and duration give topical/format grounding without leaking into the
+    Russian and its English localization are two separate contexts). Tags
+    and duration give topical/format grounding without leaking into the
     prose — a sub-minute video is almost always a hook-only short with no body."""
 
     title: str
     lang: Locale = "ru"
-    playlists: tuple[str, ...] = ()
+    tags: tuple[str, ...] = ()
     duration_seconds: int | None = None
 
     @property

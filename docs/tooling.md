@@ -153,11 +153,12 @@ The grammar carries the content model:
 - `video sync` polls every `scan: true` channel in
   `src/content/videos/channels.yaml` via the YouTube Data API v3 (requires
   `YOUTUBE_API_KEY`) and scaffolds frontmatter + a `cover.<lang>.jpg` thumbnail
-  for each new video. Tags are the video's YouTube playlists, resolved by playlist
-  id to the locale's canonical label in the tag glossary: a playlist renamed on
-  YouTube never becomes a new tag, and a playlist the glossary does not know stops
-  at the content gate. The title's trailing discovery hashtags are dropped. The
-  raw YouTube description is discovery copy, not reading copy, so it is not dumped
+  for each new video. Known playlist IDs seed localized tags through
+  `data/tag-glossary.yaml`; titles are never matched. Unknown playlists are
+  ignored, so creating or renaming a YouTube playlist cannot block publication.
+  Only tags are saved; existing entries and their manual edits are left alone.
+  Mapping changes affect future imports. The title's trailing discovery hashtags
+  are dropped. The raw YouTube description is discovery copy, not reading copy, so it is not dumped
   into the page: `pancratius.video_description` splits it (via OpenRouter,
   `OPENROUTER_API_KEY`) into a clean `description` (the hook) and a Markdown
   reading `body` — a faithful draft of the author's own words with the promo

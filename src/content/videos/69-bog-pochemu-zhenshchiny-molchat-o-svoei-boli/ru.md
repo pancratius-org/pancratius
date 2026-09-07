@@ -20,9 +20,6 @@ sources:
   url: https://www.youtube.com/watch?v=wJlPgu4D_TQ
   embed_url: https://www.youtube-nocookie.com/embed/wJlPgu4D_TQ
   channel: main
-playlists:
-- id: PLFvJf-UMYEIupOKt2yrEjfivyuA5MYlS-
-  title: Послания Творца через Светозара
 translation:
   source: original
 ---

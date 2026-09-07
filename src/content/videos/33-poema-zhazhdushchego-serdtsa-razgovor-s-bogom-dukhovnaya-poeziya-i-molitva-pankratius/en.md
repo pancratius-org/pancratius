@@ -16,9 +16,6 @@ sources:
   url: https://www.youtube.com/watch?v=iESLaoj7Rog
   embed_url: https://www.youtube-nocookie.com/embed/iESLaoj7Rog
   channel: main
-playlists:
-- id: PLFvJf-UMYEItnPMiWRDP_SfG8ddXwBaSt
-  title: Poetry of Awareness
 translation:
   source: ai
 ---

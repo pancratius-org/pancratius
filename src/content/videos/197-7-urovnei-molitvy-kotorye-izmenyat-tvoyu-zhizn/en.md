@@ -20,11 +20,6 @@ sources:
   url: https://www.youtube.com/watch?v=-5OgQdCfSak
   embed_url: https://www.youtube-nocookie.com/embed/-5OgQdCfSak
   channel: main
-playlists:
-- id: PLFvJf-UMYEIuZQFbPlFmVa9petlXP_JH1
-  title: Prayers
-- id: PLFvJf-UMYEIupOKt2yrEjfivyuA5MYlS-
-  title: Messages from the Creator through Svetozar
 translation:
   source: ai
 ---

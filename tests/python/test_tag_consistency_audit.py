@@ -2,8 +2,8 @@
 
 The audit harness selftest proves the rule fires on one known-bad fixture (a raw
 Russian tag on an English page). These tests isolate each dimension of the
-contract — wrong case, an unglossaried tag on the Russian side, and a drifted
-playlist title used as a tag — so a broad bad fixture cannot hide a stale guard
+contract — wrong case, an unglossaried tag on the Russian side, and invalid
+import mappings — so a broad bad fixture cannot hide a stale guard
 on the others now that the rule gates CI.
 """
 
@@ -26,12 +26,10 @@ GLOSSARY = {
 }
 
 
-def _entry(kind: str, *, tags: Iterable[str] = (), playlists: Iterable[tuple[str, str]] = ()) -> str:
+def _entry(kind: str, *, tags: Iterable[str] = ()) -> str:
     lines = ["---", f"kind: {kind}", "title: Fixture"]
     if tags := list(tags):
         lines += ["tags:", *(f"  - {t}" for t in tags)]
-    if playlists := list(playlists):
-        lines += ["playlists:", *(f"  - id: {i}\n    title: {t}" for i, t in playlists)]
     lines += ["---", "", "Body.", ""]
     return "\n".join(lines)
 
@@ -61,8 +59,9 @@ def test_clean_corpus_passes(tmp_path: Path) -> None:
     proc = _run(_tree(tmp_path, {
         "books/01-x/ru.md": _entry("book", tags=["свет"]),
         "books/01-x/en.md": _entry("book", tags=["Light"]),
-        "videos/clip/ru.md": _entry("video", playlists=[("pl-truth", "истина")]),
-        "videos/clip/en.md": _entry("video", playlists=[("pl-truth", "Truth")]),
+        "videos/clip/ru.md": _entry("video", tags=["истина"]),
+        "videos/clip/en.md": _entry("video", tags=["Truth"]),
+        "videos/untagged/ru.md": _entry("video"),
     }))
     assert proc.returncode == 0, proc.stderr
 
@@ -85,23 +84,18 @@ def test_unglossaried_tag_on_russian_page_fires(tmp_path: Path) -> None:
     assert "тьма" in proc.stderr
 
 
-def test_drifted_playlist_title_fires(tmp_path: Path) -> None:
-    proc = _run(_tree(tmp_path, {"videos/clip/en.md": _entry("video", playlists=[("pl-truth", "Unknown Playlist")])}))
-    assert proc.returncode == 1
-    assert "Unknown Playlist" in proc.stderr and "'Truth'" in proc.stderr
-
-
-def test_unmapped_playlist_id_fires_and_names_the_id(tmp_path: Path) -> None:
-    proc = _run(_tree(tmp_path, {"videos/clip/en.md": _entry("video", playlists=[("pl-new", "Truth")])}))
-    assert proc.returncode == 1
-    assert "pl-new" in proc.stderr
-
-
 def test_playlist_mapped_to_an_unknown_key_fires(tmp_path: Path) -> None:
     glossary = {**GLOSSARY, "playlists": {"pl-truth": "тьма"}}
     proc = _run(_tree(tmp_path, {}, glossary))
     assert proc.returncode == 1
     assert "pl-truth" in proc.stderr and "тьма" in proc.stderr
+
+
+def test_playlist_key_requires_an_english_label(tmp_path: Path) -> None:
+    glossary = {**GLOSSARY, "en": {"свет": "Light"}}
+    proc = _run(_tree(tmp_path, {}, glossary))
+    assert proc.returncode == 1
+    assert "pl-truth" in proc.stderr and "no en label" in proc.stderr
 
 
 def test_russian_label_must_be_its_own_key(tmp_path: Path) -> None:

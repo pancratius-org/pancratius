@@ -313,15 +313,6 @@ export function baseEmbedUrlFor(entry: VideoEntry): string | null {
   return embedBaseUrl(entry, primaryVideoSource(entry));
 }
 
-/** Flatten playlist titles into the video's `tags` list (de-duplicated). */
-export function videoTags(entry: VideoEntry): readonly string[] {
-  const tags = new Set(entry.data.tags);
-  for (const playlist of entry.data.playlists ?? []) {
-    tags.add(playlist.title);
-  }
-  return [...tags];
-}
-
 function primaryVideoSource(entry: VideoEntry): VideoSource {
   return videoSources(entry).primary;
 }

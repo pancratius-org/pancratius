@@ -17,9 +17,6 @@ sources:
   url: https://www.youtube.com/watch?v=Bqx8KboWYdE
   embed_url: https://www.youtube-nocookie.com/embed/Bqx8KboWYdE
   channel: main
-playlists:
-- id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Панкратиус говорит
 translation:
   source: original
 ---

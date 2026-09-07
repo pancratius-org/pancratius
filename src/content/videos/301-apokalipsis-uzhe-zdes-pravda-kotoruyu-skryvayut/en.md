@@ -20,13 +20,6 @@ sources:
   url: https://www.youtube.com/watch?v=fgdgkBjYRdg
   embed_url: https://www.youtube-nocookie.com/embed/fgdgkBjYRdg
   channel: main
-playlists:
-- id: PLFvJf-UMYEIsC_T4cjMFC1XjmgPh3CySk
-  title: Apocalypse
-- id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
-  title: Gospel of the Kingdom
-- id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pancratius Speaks
 translation:
   source: ai
 ---

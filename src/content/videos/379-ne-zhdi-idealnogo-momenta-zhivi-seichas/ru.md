@@ -17,9 +17,6 @@ sources:
   url: https://www.youtube.com/watch?v=SfdSUBs7JHA
   embed_url: https://www.youtube-nocookie.com/embed/SfdSUBs7JHA
   channel: main
-playlists:
-- id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
-  title: Евангелие Царствия
 translation:
   source: original
 ---

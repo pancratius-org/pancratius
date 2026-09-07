@@ -6,7 +6,7 @@ What this module does:
      resolves handle → channel id → uploads playlist via the YouTube Data API.
   2. Enumerates the uploads playlist (paginated through ``list_next``).
   3. Fetches full ``snippet,contentDetails`` for new IDs in 50-batches.
-  4. Maps each new video to the channel playlists that contain it.
+  4. Seeds tags from known channel playlist IDs; ignores other playlists.
   5. Sorts new IDs by ``snippet.publishedAt`` (publication order; the upload
      playlist's own order is not documented) and scaffolds ``<lang>.md`` per
      video plus a ``cover.<lang>.jpg`` thumbnail.
@@ -92,18 +92,6 @@ type PlaylistId = str
 type JSONObject = dict[str, Any]
 
 
-@dataclass(frozen=True, slots=True)
-class PlaylistRef:
-    """A playlist a video belongs to: source id + this-locale title. Seeds the
-    video's frontmatter ``playlists`` and (by title) its ``tags``."""
-
-    id: PlaylistId
-    title: str
-
-
-type PlaylistAttribution = dict[VideoId, list[PlaylistRef]]
-
-
 class VideoScanError(RuntimeError):
     """Raised on a scan-side failure (network, API, or malformed response)."""
 
@@ -152,7 +140,7 @@ class VideoClient(Protocol):
         self, video_ids: Sequence[VideoId], default_lang: Locale = "ru",
     ) -> dict[VideoId, VideoMetadata]: ...
 
-    def list_channel_playlists(self, channel_id: str) -> list[YouTubePlaylist]: ...
+    def list_channel_playlists(self, channel_id: str) -> list[PlaylistId]: ...
 
 
 # Domain types — what `YouTubeClient` returns.
@@ -188,20 +176,13 @@ class VideoMetadata:
 
 
 @dataclass(frozen=True, slots=True)
-class YouTubePlaylist:
-    id: PlaylistId
-    title: str
-    item_count: int
-
-
-@dataclass(frozen=True, slots=True)
 class LocaleScaffold:
     """One language's authored fields for a video: the title, the hook/body split
-    (``draft``), and the playlists in that language (their titles seed the tags)."""
+    (``draft``), and the initial tags in that language."""
     lang: Locale
     title: str
     draft: DescriptionDraft
-    playlists: tuple[PlaylistRef, ...]
+    tags: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -281,22 +262,21 @@ class YouTubeClient:
                     out[meta.id] = meta
         return out
 
-    def list_channel_playlists(self, channel_id: str) -> list[YouTubePlaylist]:
-        """Channel playlists with at least one item."""
+    def list_channel_playlists(self, channel_id: str) -> list[PlaylistId]:
+        """IDs of channel playlists with at least one item."""
         request = self._service.playlists().list(
-            part="snippet,contentDetails", channelId=channel_id, maxResults=50,
+            part="contentDetails", channelId=channel_id, maxResults=50,
         )
-        out: list[YouTubePlaylist] = []
+        out: list[PlaylistId] = []
         while request is not None:
             resp = self._execute(request)
             for item in resp.get("items") or []:
                 match item:
                     case {
                         "id": str(pid),
-                        "snippet": {"title": str(title)},
                         "contentDetails": {"itemCount": int(count)},
                     } if count > 0:
-                        out.append(YouTubePlaylist(id=pid, title=title, item_count=count))
+                        out.append(pid)
             request = self._service.playlists().list_next(request, resp)
         return out
 
@@ -404,20 +384,23 @@ def _best_thumbnail_url(snippet: object, yt_id: VideoId) -> str:
     return f"{THUMBNAIL_BASE}/{yt_id}/maxresdefault.jpg"
 
 
-def _build_attribution(
+def _playlist_tag_keys(
     client: VideoClient,
-    playlists: Sequence[YouTubePlaylist],
+    playlists: Sequence[PlaylistId],
     target_ids: Sequence[VideoId],
-) -> PlaylistAttribution:
-    """For each target id, list the playlists it appears in."""
-    if not target_ids:
-        return {}
+    playlist_keys: PlaylistTagKeys,
+) -> dict[VideoId, list[str]]:
+    """Seed tag keys from known playlist memberships for new videos only."""
     targets = set(target_ids)
-    out: PlaylistAttribution = {}
-    for pl in playlists:
-        for vid in client.list_playlist_video_ids(pl.id):
+    out: dict[VideoId, list[str]] = {}
+    for playlist_id in playlists:
+        key = playlist_keys.get(playlist_id)
+        if key is None:
+            logger.info("Ignoring unmapped playlist https://www.youtube.com/playlist?list=%s", playlist_id)
+            continue
+        for vid in client.list_playlist_video_ids(playlist_id):
             if vid in targets:
-                out.setdefault(vid, []).append(PlaylistRef(id=pl.id, title=pl.title))
+                out.setdefault(vid, []).append(key)
     return out
 
 
@@ -425,7 +408,7 @@ def _build_locale(
     lang: Locale,
     title: str,
     description: str,
-    playlists: Sequence[PlaylistRef],
+    tags: tuple[str, ...],
     duration_seconds: int | None,
     *,
     client: LLMClient | None,
@@ -437,7 +420,7 @@ def _build_locale(
     context = VideoContext(
         title=title,
         lang=lang,
-        playlists=tuple(ref.title for ref in playlists),
+        tags=tags,
         duration_seconds=duration_seconds,
     )
     draft, usage = draft_description(description, context, client=client, config=config)
@@ -447,7 +430,7 @@ def _build_locale(
         hook=normalize_locale_text(draft.hook, lang, term_replacements),
         body=normalize_locale_text(draft.body, lang, term_replacements),
     )
-    return LocaleScaffold(lang=lang, title=title, draft=draft, playlists=tuple(playlists)), usage
+    return LocaleScaffold(lang=lang, title=title, draft=draft, tags=tags), usage
 
 
 def _data_file(content_root: Path, name: str) -> Path | None:
@@ -462,18 +445,8 @@ def _load_term_replacements(content_root: Path) -> dict[Locale, TermReplacements
     return {locale: load_term_replacements(path, locale) if path is not None else () for locale in LOCALES}
 
 
-def _localize_playlists(
-    playlists: Sequence[PlaylistRef], tag_labels: TagLabels, playlist_keys: PlaylistTagKeys,
-) -> list[PlaylistRef]:
-    """Each playlist as this locale's canonical tag label: the glossary key comes
-    from the playlist id when known, else from the title. A key without a label
-    for this locale, or a playlist the glossary has never seen, passes through
-    unlabelled and PAN006C stops it at the gate."""
-    out: list[PlaylistRef] = []
-    for p in playlists:
-        key = playlist_keys.get(p.id, p.title.strip())
-        out.append(PlaylistRef(id=p.id, title=tag_labels.get(key, key)))
-    return out
+def _localize_tags(keys: Sequence[str], tag_labels: TagLabels) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(tag_labels[key] for key in keys if key in tag_labels))
 
 
 def _load_tag_labels(content_root: Path) -> dict[Locale, TagLabels]:
@@ -549,7 +522,7 @@ _FRONTMATTER_KEY_ORDER = (
     "kind", "number", "slug", "title", "lang",
     "description", "tags", "cover",
     "published_at", "duration",
-    "sources", "playlists",
+    "sources",
     "related_book", "layout",
     "translation", "cross_refs",
 )
@@ -602,8 +575,7 @@ def _locale_document(video: NewVideo, locale: LocaleScaffold) -> str:
         "title": locale.title,
         "lang": locale.lang,
         "description": locale.draft.hook or _DESCRIPTION_TODO,
-        # Several playlists may share one concept; the concept is tagged once.
-        "tags": list(dict.fromkeys(p.title for p in locale.playlists)),
+        "tags": list(locale.tags),
         # Only the default locale owns a cover; others fall back to it.
         **({"cover": f"./cover.{locale.lang}.jpg"} if is_default else {}),
         "published_at": video.published_at,
@@ -617,7 +589,6 @@ def _locale_document(video: NewVideo, locale: LocaleScaffold) -> str:
                 "channel": video.channel_key,
             }
         ],
-        "playlists": [{"id": p.id, "title": p.title} for p in locale.playlists],
         # The channel default is the original; platform localizations are authored.
         "translation": {"source": "original" if is_default else "literary"},
     }
@@ -732,7 +703,7 @@ def scan(
         logger.info("%s: listing channel playlists…", channel.key)
         playlists = client.list_channel_playlists(info.channel_id)
         logger.info("%s: mapping videos to %d playlists…", channel.key, len(playlists))
-        attribution = _build_attribution(client, playlists, new_ids)
+        initial_tags = _playlist_tag_keys(client, playlists, new_ids, playlist_keys)
 
         # publishedAt is authoritative; the uploads-playlist order isn't documented.
         new_ids.sort(key=lambda v: videos[v].published_at if v in videos else "")
@@ -746,12 +717,12 @@ def scan(
             slug_root = to_ascii_slug(meta.title) or f"video-{vid}"
             folder_name = f"{next_number:02d}-{slug_root}"
             logger.info("%s [%d/%d] %s", channel.key, idx, total, folder_name)
-            playlist_refs = attribution.get(vid, [])
+            tag_keys = initial_tags.get(vid, [])
             duration_seconds = _iso_duration_seconds(meta.duration)
 
             ru, usage = _build_locale(
                 channel.default_lang, meta.title, meta.description,
-                _localize_playlists(playlist_refs, tag_labels.get(channel.default_lang, {}), playlist_keys),
+                _localize_tags(tag_keys, tag_labels[channel.default_lang]),
                 duration_seconds, client=ed_client, config=ed_config,
                 term_replacements=term_replacements.get(channel.default_lang, ()),
             )
@@ -766,7 +737,7 @@ def scan(
                     continue
                 scaffold, loc_usage = _build_locale(
                     locale, localization.title, localization.description,
-                    _localize_playlists(playlist_refs, tag_labels.get(locale, {}), playlist_keys),
+                    _localize_tags(tag_keys, tag_labels[locale]),
                     duration_seconds,
                     client=ed_client, config=ed_config,
                     term_replacements=term_replacements.get(locale, ()),

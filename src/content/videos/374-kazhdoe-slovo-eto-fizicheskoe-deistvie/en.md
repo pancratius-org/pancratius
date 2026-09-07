@@ -16,7 +16,6 @@ sources:
   url: https://www.youtube.com/watch?v=0jxcnaOQ6NE
   embed_url: https://www.youtube-nocookie.com/embed/0jxcnaOQ6NE
   channel: main
-playlists: []
 translation:
   source: literary
 ---

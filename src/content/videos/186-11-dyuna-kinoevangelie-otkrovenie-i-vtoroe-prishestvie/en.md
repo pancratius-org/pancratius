@@ -18,9 +18,6 @@ sources:
   url: https://www.youtube.com/watch?v=WaKRE6HEAlQ
   embed_url: https://www.youtube-nocookie.com/embed/WaKRE6HEAlQ
   channel: main
-playlists:
-- id: PLFvJf-UMYEIupOKt2yrEjfivyuA5MYlS-
-  title: Messages from the Creator through Svetozar
 translation:
   source: ai
 ---

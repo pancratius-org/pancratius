@@ -136,7 +136,7 @@ def _render_video(context: VideoContext, raw: RawDescription) -> str:
     ]
     if context.duration_seconds is not None:
         lines.append(f"DURATION_SECONDS: {context.duration_seconds}")
-    if context.playlists:
-        lines.append(f"PLAYLISTS: {', '.join(context.playlists)}")
+    if context.tags:
+        lines.append(f"TAGS: {', '.join(context.tags)}")
     lines.append(f"\n⟪DESCRIPTION⟫\n{raw}\n⟪END⟫")
     return "\n".join(lines)

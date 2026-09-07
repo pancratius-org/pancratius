@@ -39,7 +39,6 @@ from pancratius.video_scan import (
     ResolvedChannel,
     VideoLocalization,
     VideoMetadata,
-    YouTubePlaylist,
 )
 
 
@@ -97,9 +96,10 @@ class _FakeClient:
     )
     uploads_ids: list[str] = field(default_factory=list)
     videos: dict[str, VideoMetadata] = field(default_factory=dict)
-    playlists: list[YouTubePlaylist] = field(default_factory=list)
+    playlists: list[str] = field(default_factory=list)
     playlist_members: dict[str, list[str]] = field(default_factory=dict)
     quota_used: int = 0
+    queried_playlists: list[str] = field(default_factory=list)
 
     def resolve_channel(self, locator: ChannelLocator) -> ResolvedChannel:
         del locator
@@ -107,6 +107,7 @@ class _FakeClient:
         return self.resolved
 
     def list_playlist_video_ids(self, playlist_id: str) -> list[str]:
+        self.queried_playlists.append(playlist_id)
         self.quota_used += 1
         if playlist_id == self.resolved.uploads_playlist_id:
             return list(self.uploads_ids)
@@ -119,7 +120,7 @@ class _FakeClient:
         self.quota_used += 1
         return {vid: self.videos[vid] for vid in video_ids if vid in self.videos}
 
-    def list_channel_playlists(self, channel_id: str) -> list[YouTubePlaylist]:
+    def list_channel_playlists(self, channel_id: str) -> list[str]:
         del channel_id
         self.quota_used += 1
         return list(self.playlists)
@@ -148,8 +149,8 @@ def _two_videos_client() -> _FakeClient:
             ),
         },
         playlists=[
-            YouTubePlaylist(id="pl-1", title="Евангелие Царствия", item_count=2),
-            YouTubePlaylist(id="pl-2", title="Апокалипсис", item_count=1),
+            "pl-1",
+            "pl-2",
         ],
         playlist_members={
             "pl-1": ["vid-older-11", "vid-newer-22"],
@@ -224,18 +225,21 @@ def test_scan_is_idempotent_and_preserves_editor_edits(
     folders = [f for f in (tmp_path / "videos").iterdir() if f.is_dir()]
     target_md = next(folders[0].glob("*.md"))
     target_md.write_text(
-        target_md.read_text(encoding="utf-8")
+        target_md.read_text(encoding="utf-8").replace("tags: []", "tags: [Откровение Бога]")
         + "\n\n# EDITORIAL\n\nHand-written commentary.\n",
         encoding="utf-8",
     )
+    edited = target_md.read_bytes()
+    second_client = _two_videos_client()
     result2 = video_scan.scan(
         content_root=tmp_path,
         channels_path=channels_path,
-        client=_two_videos_client(),
+        client=second_client,
         enrich=False,
     )
     assert result2.new_videos == []
-    assert "EDITORIAL" in target_md.read_text(encoding="utf-8")
+    assert target_md.read_bytes() == edited
+    assert second_client.queried_playlists == ["UU-UPLOADS"]
 
 
 def test_scan_dry_run_writes_nothing(
@@ -317,8 +321,10 @@ def test_scannable_channel_address_values_must_be_non_empty() -> None:
 
 
 def test_scan_attributes_videos_to_playlists_as_tags(
-    tmp_path: Path, channels_path: Path,
+    tmp_path: Path, channels_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(video_scan, "_load_playlist_tag_keys", lambda _: {"pl-1": "Евангелие Царствия", "pl-2": "Апокалипсис"})
+    monkeypatch.setattr(video_scan, "_load_tag_labels", lambda _: {"ru": {"Евангелие Царствия": "Евангелие Царствия", "Апокалипсис": "Апокалипсис"}})
     video_scan.scan(
         content_root=tmp_path,
         channels_path=channels_path,
@@ -333,8 +339,10 @@ def test_scan_attributes_videos_to_playlists_as_tags(
 
 
 def test_scan_reports_real_quota_used(
-    tmp_path: Path, channels_path: Path,
+    tmp_path: Path, channels_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(video_scan, "_load_playlist_tag_keys", lambda _: {"pl-1": "Евангелие Царствия", "pl-2": "Апокалипсис"})
+    monkeypatch.setattr(video_scan, "_load_tag_labels", lambda _: {"ru": {"Евангелие Царствия": "Евангелие Царствия", "Апокалипсис": "Апокалипсис"}})
     result = video_scan.scan(
         content_root=tmp_path,
         channels_path=channels_path,
@@ -343,6 +351,35 @@ def test_scan_reports_real_quota_used(
     )
     # 1 resolve + 1 uploads list + 1 videos fetch + 1 playlists list + 2 per-playlist = 6.
     assert result.quota_used == 6
+
+
+def test_scan_ignores_unknown_and_other_channel_playlists(
+    tmp_path: Path, channels_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(video_scan, "_load_playlist_tag_keys", lambda _: {
+        "pl-1": "Апокалипсис", "other-channel": "Молитвы",
+    })
+    monkeypatch.setattr(video_scan, "_load_tag_labels", lambda _: {
+        "ru": {"Апокалипсис": "Апокалипсис", "Молитвы": "Молитвы"},
+    })
+    client = _two_videos_client()
+    client.playlists += ["unknown", "Апокалипсис"]
+    client.playlist_members = {
+        "pl-1": ["vid-newer-22"],
+        "unknown": ["vid-older-11", "vid-newer-22"],
+        "Апокалипсис": ["vid-older-11"],
+        "other-channel": ["vid-older-11"],
+    }
+    result = video_scan.scan(
+        content_root=tmp_path, channels_path=channels_path, client=client, enrich=False,
+    )
+    assert len(result.new_videos) == 2
+    assert client.queried_playlists == ["UU-UPLOADS", "pl-1"]
+    older = video_scan._read_frontmatter(next((tmp_path / "videos").glob("01-*/ru.md")))
+    newer = video_scan._read_frontmatter(next((tmp_path / "videos").glob("02-*/ru.md")))
+    assert older is not None and newer is not None
+    assert older["tags"] == []
+    assert newer["tags"] == ["Апокалипсис"]
 
 
 def test_scan_enriches_description_into_hook_and_body(
@@ -435,7 +472,7 @@ def _repo_shaped(tmp_path: Path) -> Path:
     (content / "videos").mkdir(parents=True)
     data = tmp_path / "data"
     data.mkdir()
-    (data / "tag-glossary.yaml").write_text("en:\n  Апокалипсис: Apocalypse\n", encoding="utf-8")
+    (data / "tag-glossary.yaml").write_text("ru:\n  Апокалипсис: Апокалипсис\nen:\n  Апокалипсис: Apocalypse\nplaylists:\n  pl: Апокалипсис\n", encoding="utf-8")
     (data / "translation-glossary.yaml").write_text(
         "terms:\n  - ru: Панкратиус\n    en:\n      use: Pancratius\n      avoid: [Pankratius]\n"
         "      enforcement: denylist\n",
@@ -466,7 +503,7 @@ def test_scan_scaffolds_english_from_localization(tmp_path: Path) -> None:
                 description="Light lives in the heart, not in rules, Pankratius says.",
             )},
         )},
-        playlists=[YouTubePlaylist(id="pl", title="Апокалипсис", item_count=1)],
+        playlists=["pl"],
         playlist_members={"pl": ["v1"]},
     )
     editorial = _BilingualEditorial(
@@ -489,9 +526,7 @@ def test_scan_scaffolds_english_from_localization(tmp_path: Path) -> None:
     assert "Pancratius" in body and "Pankratius" not in body  # body normalized too
 
 
-def test_scan_resolves_a_renamed_playlist_by_id(tmp_path: Path) -> None:
-    """A playlist renamed on YouTube still tags the video with the canonical
-    label in every locale: the glossary maps the playlist id to the RU key."""
+def test_scan_seeds_localized_tags_from_playlist_ids(tmp_path: Path) -> None:
     content = _repo_shaped(tmp_path)
     (tmp_path / "data" / "tag-glossary.yaml").write_text(
         "ru:\n  Апокалипсис: Апокалипсис\nen:\n  Апокалипсис: Apocalypse\n"
@@ -515,7 +550,7 @@ def test_scan_resolves_a_renamed_playlist_by_id(tmp_path: Path) -> None:
             thumbnail_url="https://i.ytimg.com/vi/v1/maxresdefault.jpg",
             localizations={"en": VideoLocalization(title="A Word of Light", description="Light lives in the heart.")},
         )},
-        playlists=[YouTubePlaylist(id="pl", title="⭐ НАЧНИ ЗДЕСЬ: Апокалипсис", item_count=1)],
+        playlists=["pl"],
         playlist_members={"pl": ["v1"]},
     )
     video_scan.scan(content_root=content, channels_path=channels_path, client=client, enrich=False)
@@ -525,20 +560,11 @@ def test_scan_resolves_a_renamed_playlist_by_id(tmp_path: Path) -> None:
     en = video_scan._read_frontmatter(folder / "en.md")
     assert ru is not None and en is not None
     assert ru["tags"] == ["Апокалипсис"]
-    assert ru["playlists"] == [{"id": "pl", "title": "Апокалипсис"}]
     assert en["tags"] == ["Apocalypse"]
-    assert en["playlists"] == [{"id": "pl", "title": "Apocalypse"}]
 
 
-def test_localize_playlists_resolves_by_id_then_title_and_keeps_the_key_unlabelled() -> None:
-    refs = [
-        video_scan.PlaylistRef(id="mapped", title="⭐ НАЧНИ ЗДЕСЬ: Апокалипсис"),
-        video_scan.PlaylistRef(id="unmapped", title=" Молитвы "),
-        video_scan.PlaylistRef(id="unknown", title="Новый плейлист"),
-    ]
-    labels = {"Апокалипсис": "Apocalypse"}  # no EN label for Молитвы
-    out = video_scan._localize_playlists(refs, labels, {"mapped": "Апокалипсис"})
-    assert [p.title for p in out] == ["Apocalypse", "Молитвы", "Новый плейлист"]
+def test_localize_tags_does_not_fall_back_to_russian() -> None:
+    assert video_scan._localize_tags(["Апокалипсис", "Молитвы"], {"Апокалипсис": "Apocalypse"}) == ("Apocalypse",)
 
 
 def test_scan_tags_one_concept_once_when_two_playlists_share_a_key(tmp_path: Path) -> None:
@@ -565,8 +591,8 @@ def test_scan_tags_one_concept_once_when_two_playlists_share_a_key(tmp_path: Pat
             thumbnail_url="https://i.ytimg.com/vi/v1/maxresdefault.jpg",
         )},
         playlists=[
-            YouTubePlaylist(id="old", title="Апокалипсис", item_count=1),
-            YouTubePlaylist(id="new", title="Апокалипсис (2026)", item_count=1),
+            "old",
+            "new",
         ],
         playlist_members={"old": ["v1"], "new": ["v1"]},
     )
@@ -575,8 +601,6 @@ def test_scan_tags_one_concept_once_when_two_playlists_share_a_key(tmp_path: Pat
     ru = video_scan._read_frontmatter(next((content / "videos").glob("01-*")) / "ru.md")
     assert ru is not None
     assert ru["tags"] == ["Апокалипсис"]
-    assert [p["id"] for p in ru["playlists"]] == ["old", "new"]
-    assert {p["title"] for p in ru["playlists"]} == {"Апокалипсис"}
 
 
 def test_scan_falls_back_to_clean_split_without_editorial_client(

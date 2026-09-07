@@ -9,9 +9,8 @@ resolves tags through.
 This check fails when an entry carries a tag that is NOT a known label for its
 locale — which is exactly how Russian leaks onto an English page, or how a
 re-cased / drifted tag splinters the per-locale filter into duplicate chips for
-one concept — and when a committed video playlist is unmapped or carries a title
-other than its key's label, which is how a mis-mapped id would tag new videos
-differently from the ones already on the site.
+one concept. The importer's playlist mapping must reference keys with labels in
+both locales; it has no continuing relationship to committed video tags.
 
 Respects PANCRATIUS_AUDIT_ROOT (fixture tree) and falls back to the repo root.
 """
@@ -49,11 +48,9 @@ def main() -> int:
     en = _section(glossary, "en")
     playlists = _section(glossary, "playlists")
     valid = {"ru": set(ru), "en": set(en.values())}
-    # The label a playlist's canonical key takes on a page of each locale.
-    label = {"ru": {k: k for k in ru}, "en": en}
-
     glossary_bad = [f"ru: {k!r} must label itself, not {v!r}" for k, v in ru.items() if v != k]
     glossary_bad += [f"playlists: {pid} -> {key!r} is not a ru key" for pid, key in playlists.items() if key not in ru]
+    glossary_bad += [f"playlists: {pid} -> {key!r} has no en label" for pid, key in playlists.items() if not en.get(key)]
 
     bad: list[tuple[str, str, str]] = []
     for md in sorted((root / "src" / "content").rglob("*.md")):
@@ -66,7 +63,7 @@ def main() -> int:
             fm = yaml.safe_load(match.group(1)) or {}
         except yaml.YAMLError:
             continue
-        # The kinds that carry tags / playlists; poems and projects don't.
+        # The kinds that carry tags; poems and projects don't.
         if not isinstance(fm, dict) or fm.get("kind") not in ("book", "video", "message"):
             continue
         lang = md.stem
@@ -74,15 +71,6 @@ def main() -> int:
         for tag in fm.get("tags") or []:
             if str(tag) not in valid[lang]:
                 bad.append((rel, lang, repr(str(tag))))
-        for p in fm.get("playlists") or []:
-            if not isinstance(p, dict):
-                continue
-            pid, title = str(p.get("id", "")), p.get("title")
-            key = playlists.get(pid)
-            if key is None:
-                bad.append((rel, lang, f"playlist {pid} is not mapped under playlists:"))
-            elif title != label[lang].get(key):
-                bad.append((rel, lang, f"playlist {pid} title {title!r} should be {label[lang].get(key)!r}"))
 
     if glossary_bad or bad:
         print(f"FAIL: {len(glossary_bad)} glossary problem(s), {len(bad)} entry problem(s):", file=sys.stderr)

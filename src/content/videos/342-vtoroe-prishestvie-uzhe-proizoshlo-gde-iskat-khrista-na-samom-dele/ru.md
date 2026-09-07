@@ -19,13 +19,6 @@ sources:
   url: https://www.youtube.com/watch?v=Zx6RKK0FpIw
   embed_url: https://www.youtube-nocookie.com/embed/Zx6RKK0FpIw
   channel: main
-playlists:
-- id: PLFvJf-UMYEIsC_T4cjMFC1XjmgPh3CySk
-  title: Апокалипсис
-- id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
-  title: Евангелие Царствия
-- id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Панкратиус говорит
 translation:
   source: original
 ---

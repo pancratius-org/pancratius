@@ -19,11 +19,6 @@ sources:
   url: https://www.youtube.com/watch?v=b3DPfje3y0w
   embed_url: https://www.youtube-nocookie.com/embed/b3DPfje3y0w
   channel: main
-playlists:
-- id: PLFvJf-UMYEItdHqQwbq3Vlr4guVG8iWq7
-  title: Gospel of the Kingdom
-- id: PLFvJf-UMYEIsvxzp5VD7QkUcveNpsr0NC
-  title: Pancratius Speaks
 translation:
   source: ai
 ---
