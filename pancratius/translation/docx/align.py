@@ -265,6 +265,7 @@ def _unit_slot_match(
         if _is_thematic_slot_text(slot.alignment_text) and (
             bool(slot.alignment_text)
             or slot.disposition is ParagraphDisposition.STRUCTURAL_EMPTY
+            or slot.has_horizontal_rule
         ):
             return SourceSlotMatch(joined_unit_end)
         return None

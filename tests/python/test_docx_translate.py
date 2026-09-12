@@ -30,9 +30,11 @@ from pancratius.docx_source import (
 from pancratius.ooxml import (
     HYPERLINK_REL_TYPE,
     MC_NS,
+    O_NS,
     R_NS,
     REL,
     REL_NS,
+    V_NS,
     W_NS,
     R,
     W,
@@ -694,11 +696,15 @@ def test_blank_like_units_skip_semantic_non_blanks(
     line_only = _paragraph_with_controls("", (BreakKind.LINE,), "")
     opaque = ET.Element(f"{W}p")
     ET.SubElement(opaque, f"{W}bookmarkStart")
+    drawing = ET.fromstring(
+        f'<w:p xmlns:w="{W_NS}" xmlns:v="{V_NS}">'
+        '<w:r><w:pict><v:rect/></w:pict></w:r></w:p>'
+    )
     structural_empty = ET.Element(f"{W}p")
     slots = tuple(
         _slot_from_paragraph(ordinal, paragraph)
         for ordinal, paragraph in enumerate(
-            (pagination, line_only, opaque, structural_empty)
+            (pagination, line_only, opaque, drawing, structural_empty)
         )
     )
 
@@ -707,11 +713,39 @@ def test_blank_like_units_skip_semantic_non_blanks(
         slots,
     )
 
-    assert plan.alignments[0].slot.story_index == 3
+    assert plan.alignments[0].slot.story_index == 4
     assert plan.ignored_slots == ()
     assert slots[0].disposition is ParagraphDisposition.PAGINATION_ONLY
     assert slots[1].disposition is ParagraphDisposition.NON_TEXT
     assert slots[2].disposition is ParagraphDisposition.NON_TEXT
+    assert slots[3].disposition is ParagraphDisposition.NON_TEXT
+
+
+@pytest.mark.parametrize("selected", [True, False])
+def test_physical_rule_alignment_uses_selected_compatibility_branch(*, selected: bool) -> None:
+    rule = f'<w:pict><v:rect xmlns:v="{V_NS}" xmlns:o="{O_NS}" o:hr="t"/></w:pict>'
+    paragraph = ET.fromstring(
+        f'<w:p xmlns:w="{W_NS}" xmlns:mc="{MC_NS}"><w:r><mc:AlternateContent>'
+        f'<mc:Choice Requires="future">{"" if selected else rule}</mc:Choice>'
+        f'<mc:Fallback>{rule if selected else "<w:pict/>"}</mc:Fallback>'
+        '</mc:AlternateContent></w:r></w:p>'
+    )
+    slot = _slot_from_paragraph(0, paragraph)
+    before = ET.tostring(paragraph)
+    pagination = _paragraph_with_controls("", (BreakKind.PAGE,), "")
+    slots = (slot, _slot_from_paragraph(1, pagination), _word_slot(2, "Глава"), _word_slot(3, ""))
+    source = _transfer_doc(MarkdownTransferUnit("thematic"), _transfer_unit("Глава", "heading"))
+
+    assert slot.has_horizontal_rule is selected
+    if not selected:
+        with pytest.raises(DocxTranslationError, match="Глава"):
+            align_source_units(source, slots)
+        return
+
+    plan = align_source_units(source, slots)
+    assert [alignment.slot.story_index for alignment in plan.alignments] == [0, 2]
+    replace_paragraph_text(slot, MarkdownTransferUnit("thematic"), hyperlinks=None)
+    assert ET.tostring(paragraph) == before
 
 
 def test_align_source_units_keeps_named_source_only_toc_gap_reviewable() -> None:
@@ -1569,6 +1603,48 @@ def test_render_translated_docx_aligns_thematic_break_to_blank_word_paragraph(
     assert [d for d in diagnostics if d.severity == "fatal"] == []
     assert aligned_units == 3
     assert _paragraph_text_and_style(out) == [("Beginning", ""), ("***", ""), ("Final", "")]
+
+
+@requires_pandoc
+def test_transfer_preserves_physical_rule_before_pagination_and_heading(tmp_path: Path) -> None:
+    source_docx = tmp_path / "ru.docx"
+    source_md = tmp_path / "ru.md"
+    translated_md = tmp_path / "en.md"
+    out = tmp_path / "en.docx"
+    _write_paragraph_docx(source_docx, ["Начало", "", "", "Глава", ""])
+    with zipfile.ZipFile(source_docx) as zf:
+        parts = {name: zf.read(name) for name in zf.namelist()}
+    document = parse_xml(parts["word/document.xml"])
+    paragraphs = document.root.findall(f".//{W}body/{W}p")
+    paragraphs[1].append(ET.fromstring(
+        f'<w:r xmlns:w="{W_NS}" xmlns:v="{V_NS}" xmlns:o="{O_NS}">'
+        '<w:pict><v:rect o:hr="t" style="width:100%;height:1.5pt"/></w:pict></w:r>'
+    ))
+    paragraphs[2].append(ET.fromstring(f'<w:r xmlns:w="{W_NS}"><w:br w:type="page"/></w:r>'))
+    rule_before = ET.tostring(paragraphs[1])
+    pagination_before = ET.tostring(paragraphs[2])
+    parts["word/document.xml"] = serialize_xml(document)
+    with zipfile.ZipFile(source_docx, "w", zipfile.ZIP_DEFLATED) as zf:
+        for name, data in parts.items():
+            zf.writestr(name, data)
+    _write_md(source_md, "Начало\n\n***\n\n# Глава\n")
+    _write_md(translated_md, "Beginning\n\n***\n\n# Chapter\n")
+
+    _source_units, _translated_units, aligned_units, diagnostics = render_translated_docx(
+        source_docx=source_docx,
+        source_md=source_md,
+        translated_md=translated_md,
+        out=out,
+    )
+
+    assert [diagnostic for diagnostic in diagnostics if diagnostic.severity == "fatal"] == []
+    assert aligned_units == 3
+    with zipfile.ZipFile(out) as zf:
+        root = ET.fromstring(zf.read("word/document.xml"))
+    translated = root.findall(f".//{W}body/{W}p")
+    assert [paragraph_text(paragraph) for paragraph in translated] == ["Beginning", "", "", "Chapter", ""]
+    assert ET.tostring(translated[1]) == rule_before
+    assert ET.tostring(translated[2]) == pagination_before
 
 
 @requires_pandoc

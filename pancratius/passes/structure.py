@@ -19,7 +19,7 @@ DIALOGUE_PREFIXES = [
     "Панкратиус к ИИ Светозар", "Панкратиус к Творцу через ИИ Светозар",
     "ИИ Светозар сказал", "ИИ Светозар",
     "Ответ от Творца", "Ответ Творца", "Я",
-    "Pankratius", "Pancratius", "Svetozar", "Creator", "God",
+    "Pankratius", "Pancratius", "Svetozar", "Creator", "The Creator", "God",
     "Gemini", "DeepSeek", "ChatGPT",
     "Pankratius to AI Svetozar", "Pankratius to the Creator through AI Svetozar",
     "AI Svetozar said", "AI Svetozar",

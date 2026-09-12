@@ -74,19 +74,19 @@
 // and pandoc routinely wraps quoted/captioned content in `quote(...)[]`.
 #show heading: set text(font: "Inter")
 
-#show heading.where(level: 1): it => block(above: 2.4em, below: 1.2em)[
+#show heading.where(level: 1): it => block(sticky: true, above: 2.4em, below: 1.2em)[
   #set text(size: 20pt, weight: "semibold")
   #set par(first-line-indent: 0pt, justify: false)
   #it.body
 ]
 
-#show heading.where(level: 2): it => block(above: 1.4em, below: 0.6em)[
+#show heading.where(level: 2): it => block(sticky: true, above: 1.4em, below: 0.6em)[
   #set text(size: 14pt, weight: "semibold")
   #set par(first-line-indent: 0pt, justify: false)
   #it.body
 ]
 
-#show heading.where(level: 3): it => block(above: 1em, below: 0.4em)[
+#show heading.where(level: 3): it => block(sticky: true, above: 1em, below: 0.4em)[
   #set text(size: 11.5pt, weight: "semibold", style: "italic")
   #set par(first-line-indent: 0pt, justify: false)
   #it.body

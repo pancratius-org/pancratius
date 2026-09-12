@@ -598,7 +598,7 @@ def _replace_paragraph_text(
         _replace_image_metadata(p, unit)
         return
     if unit.kind == "thematic":
-        if not slot.alignment_text:
+        if not slot.alignment_text and not slot.has_horizontal_rule:
             base_rpr = _base_run_properties(p)
             for child in list(p):
                 if child.tag != f"{W}pPr":

@@ -1477,6 +1477,18 @@ def paragraph_has_drawing(paragraph: ET.Element) -> bool:
     )
 
 
+def _is_horizontal_rule(element: ET.Element) -> bool:
+    return (
+        element.tag == f"{_V}rect"
+        and element.get(f"{_O}hr") in {"t", "true", "1"}
+    )
+
+
+def paragraph_has_horizontal_rule(paragraph: ET.Element) -> bool:
+    """Whether the selected compatibility branch carries a physical VML rule."""
+    return any(_is_horizontal_rule(element) for element in iter_source_descendants(paragraph))
+
+
 def _enabled(element: ET.Element | None) -> bool:
     return element is not None and element.get(f"{W}val") not in {"0", "false", "False", "off"}
 
@@ -2550,8 +2562,7 @@ class _RichReader:
                 path=text_box_path,
             )))
         if not out and any(
-            descendant.tag == f"{_V}rect"
-            and descendant.get(f"{_O}hr") in {"t", "true", "1"}
+            _is_horizontal_rule(descendant)
             for _, descendant in descendants
         ):
             out.append(SourceHorizontalRule())

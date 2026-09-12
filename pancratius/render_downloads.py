@@ -61,7 +61,10 @@ TEMPLATES = DOWNLOAD_TEMPLATES_ROOT
 FONTS_ROOT = DOWNLOAD_FONTS_ROOT
 
 KIND_DIRS = SEGMENT_OF
-AUTHOR = "Сергей Орехов (Панкратиус)"
+AUTHOR_BY_LOCALE: dict[Locale, str] = {
+    "ru": "Сергей Орехов (Панкратиус)",
+    "en": "Sergey Orekhov (Pancratius)",
+}
 RIGHTS = "CC0 1.0 Universal — public domain"
 
 EXPORT_MAX_LONG_EDGE = 1200
@@ -607,11 +610,12 @@ def render_pdf(entry: WorkEntry, scratch_dir: Path) -> Path:
         "-o", str(out),
         "--pdf-engine=typst",
         "--template", str(template),
+        "--lua-filter", str(TEMPLATES / "dialogue-labels.lua"),
         *typst_opts,
         "--resource-path", str(export_root),
         "--metadata", f"title={entry.title}",
         "--metadata", f"lang={entry.lang}",
-        "--metadata", f"author={AUTHOR}",
+        "--metadata", f"author={AUTHOR_BY_LOCALE[entry.lang]}",
     ]
     if cover:
         # Metadata strings are Markdown-escaped by Pandoc (`_` becomes `\_`).
@@ -645,7 +649,7 @@ def render_epub(entry: WorkEntry, scratch_dir: Path) -> Path:
         "--metadata", f"identifier={identifier}",
         "--metadata", f"title={entry.title}",
         "--metadata", f"lang={entry.lang}",
-        "--metadata", f"author={AUTHOR}",
+        "--metadata", f"author={AUTHOR_BY_LOCALE[entry.lang]}",
         "--metadata", f"rights={RIGHTS}",
     ]
     if css.exists():

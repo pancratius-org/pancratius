@@ -23,6 +23,13 @@ const REPRESENTATIVE_BOOK = "/ru/books/33-ya-esm-vsadnik-kon-i-mech/";
 // book now has an English edition, so the unpaired fallback is exercised via a video.
 const UNPAIRED_WORK = "/ru/videos/02-ty-moi-tvorets-stikhi/";
 
+test.beforeEach(async ({ context }) => {
+  // Analytics is silent on localhost; smoke tests must not depend on its CDN.
+  await context.route("https://cloud.umami.is/script.js", route =>
+    route.fulfill({ contentType: "application/javascript", body: "" }),
+  );
+});
+
 /**
  * Attach a console listener that fails the test on `console.error` /
  * uncaught exceptions. We allow warnings (Pagefind emits them on the
@@ -113,19 +120,17 @@ test.describe("conceptosphere loads graph runtime", () => {
   // and threw `ReferenceError: Cannot access 'filterSets' before initialization`
   // on every mobile load. Run a phone-sized viewport against /conceptosphere/
   // and assert no console errors.
-  test("mobile load of /conceptosphere/ has no console errors", async ({ browser }) => {
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-    const p = await ctx.newPage();
-    const { messages } = failOnConsoleErrors(p);
-    await p.goto("/ru/conceptosphere/", { waitUntil: "domcontentloaded" });
-    await expect(p.locator(".cs-mobile").first()).toBeVisible();
+  test("mobile load of /conceptosphere/ has no console errors", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const { messages } = failOnConsoleErrors(page);
+    await page.goto("/ru/conceptosphere/", { waitUntil: "domcontentloaded" });
+    await expect(page.locator(".cs-mobile").first()).toBeVisible();
     // Click into the mobile mode toggle to exercise wireMobile's event
     // listeners — that's where the TDZ ReferenceError used to fire.
-    const toggle = p.locator(".cs-mode-toggle--mobile button[data-mode='books']");
+    const toggle = page.locator(".cs-mode-toggle--mobile button[data-mode='books']");
     await toggle.waitFor({ state: "visible" });
     await toggle.click();
     expect(messages, messages.join("\n")).toEqual([]);
-    await ctx.close();
   });
 });
 
