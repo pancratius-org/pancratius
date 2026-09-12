@@ -184,6 +184,43 @@ Existing body.
     assert fm["translation"] == {"source": "ai"}
 
 
+@pytest.mark.parametrize("source_override", [None, "ai", "literary"])
+def test_reimport_preserves_translation_provenance_until_source_changes(
+    tmp_path: Path,
+    make_docx: DocxFactory,
+    source_override: import_docx.TranslationSource | None,
+) -> None:
+    content_root = tmp_path / "src" / "content"
+    docx = make_docx("source-en.docx", "# English Book\n\nEnglish body.")
+    first = import_docx.import_work(import_docx.ImportRequest.for_new_work(
+        docx=docx, lang="en", out_content=content_root, kind="book",
+        number=90, slug="provenance",
+    ))
+    assert not first.refused
+    work_dir = content_root / "books" / "90-provenance"
+    md = work_dir / "en.md"
+    md.write_text(md.read_text(encoding="utf-8").replace(
+        "  source: ai",
+        "  source: ai\n  model: example/translator\n"
+        "  generated_at: '2026-09-12'\n  reviewed_by: Editor",
+    ), encoding="utf-8")
+
+    report = import_docx.import_work(import_docx.ImportRequest.for_existing_work(
+        docx=work_dir / "en.docx", lang="en", out_content=content_root,
+        into="90-provenance", replace=True, translation_source=source_override,
+    ))
+    assert not report.refused
+    expected = (
+        {"source": "literary"}
+        if source_override == "literary"
+        else {
+            "source": "ai", "model": "example/translator",
+            "generated_at": "2026-09-12", "reviewed_by": "Editor",
+        }
+    )
+    assert _frontmatter(md)["translation"] == expected
+
+
 # ---------------------------------------------------------------------------
 # Fix A: typed converter diagnostics flow into the WritePlan and a FATAL blocks
 # ---------------------------------------------------------------------------

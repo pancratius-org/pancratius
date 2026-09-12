@@ -751,7 +751,13 @@ def _frontmatter_for_import(
     else:
         fm.pop("cross_refs", None)
 
-    fm["translation"] = {"source": _translation_source(existing_lang, lang, request.translation)}
+    source = _translation_source(existing_lang, lang, request.translation)
+    translation = fm.get("translation")
+    fm["translation"] = (
+        {**translation, "source": source}
+        if isinstance(translation, dict) and translation.get("source") == source
+        else {"source": source}
+    )
     return fm
 
 

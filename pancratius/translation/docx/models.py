@@ -13,6 +13,7 @@ from pancratius.docx_source import (
     ParagraphStyles,
     analyze_paragraph,
     paragraph_has_drawing,
+    paragraph_has_horizontal_rule,
 )
 from pancratius.writeplan import Diagnostic
 from pancratius.writer import WriteReport
@@ -128,6 +129,7 @@ class WordTextSlot:
     paragraph: ET.Element
     semantics: ParagraphSemantics
     has_drawing: bool
+    has_horizontal_rule: bool
 
     @classmethod
     def from_paragraph(
@@ -142,6 +144,7 @@ class WordTextSlot:
             paragraph=paragraph,
             semantics=analyze_paragraph(paragraph, styles=styles),
             has_drawing=paragraph_has_drawing(paragraph),
+            has_horizontal_rule=paragraph_has_horizontal_rule(paragraph),
         )
 
     @property

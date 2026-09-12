@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import subprocess
 from pathlib import Path
 from typing import Any, cast
 
@@ -157,6 +159,60 @@ def test_typst_path_literal_is_raw_typst_not_markdown(tmp_path: Path) -> None:
 
     assert "\\_" not in literal
     assert literal == '"' + path.as_posix().replace('"', '\\"') + '"'
+
+
+@pytest.mark.pandoc
+def test_pdf_dialogue_filter_preserves_other_bold_content() -> None:
+    body = "**Bold paragraph**\n\n**Inline label:** speech.\n\nPlain label:\n\n"
+    args = ["pandoc", "--from", "markdown", "--to", "typst"]
+    original = subprocess.run(args, input=body, text=True, capture_output=True, check=True)
+    filtered = subprocess.run(
+        [*args, "--lua-filter", str(render_downloads.TEMPLATES / "dialogue-labels.lua")],
+        input=body, text=True, capture_output=True, check=True,
+    )
+    assert filtered.stdout == original.stdout
+
+
+@pytest.mark.pandoc
+def test_pdf_dialogue_label_stays_with_start_of_breakable_speech(tmp_path: Path) -> None:
+    body = (
+        '`#v(150pt)`{=typst}\n\n**Speaker:**\n\n'
+        '`#metadata("speech")`{=typst}Speech begins here. '
+        + "The speech may continue onto another page. " * 50
+        + '`#metadata("end")`{=typst}\n'
+    )
+    pages_by_variant: dict[str, dict[str, int]] = {}
+    for variant, extra_args in [
+        ("original", []),
+        ("filtered", ["--lua-filter", str(render_downloads.TEMPLATES / "dialogue-labels.lua")]),
+    ]:
+        rendered = subprocess.run(
+            ["pandoc", "--from", "markdown", "--to", "typst", *extra_args],
+            input=body, text=True, capture_output=True, check=True,
+        )
+        source = tmp_path / f"{variant}.typ"
+        source.write_text(
+            '#set page(width: 250pt, height: 220pt, margin: 20pt)\n'
+            '#set text(size: 10pt)\n'
+            '#show strong: it => { metadata("speaker"); it }\n'
+            + rendered.stdout,
+            encoding="utf-8",
+        )
+        result = subprocess.run(
+            [
+                "typst", "eval",
+                "query(metadata).map(it => (it.value, it.location().page()))",
+                "--in", str(source),
+            ],
+            text=True, capture_output=True, check=True,
+        )
+        pages_by_variant[variant] = dict(json.loads(result.stdout))
+
+    original_pages = pages_by_variant["original"]
+    filtered_pages = pages_by_variant["filtered"]
+    assert original_pages["speaker"] < original_pages["speech"]
+    assert filtered_pages["speaker"] == filtered_pages["speech"]
+    assert filtered_pages["end"] > filtered_pages["speech"]
 
 
 def test_current_work_corpus_download_html_allowlist() -> None:

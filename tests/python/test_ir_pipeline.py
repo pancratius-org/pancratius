@@ -159,6 +159,20 @@ def test_dialogue_label_whole_strong_with_body_splits() -> None:
     assert inline_plain(_para(out[1]).inlines) == "привет"
 
 
+def test_english_creator_speech_keeps_only_the_label_bold() -> None:
+    para = ir.Paragraph(inlines=[
+        ir.Emphasis("strong", [ir.Text("The Creator: Son. You called Me Father.")]),
+    ])
+    out = structure.dialogue_labels([para])
+
+    assert len(out) == 2
+    assert isinstance(out[0], ir.DialogueLabel)
+    assert out[0].speaker == "The Creator"
+    assert lower.lower(ir.Document(blocks=out), "en", []) == (
+        "**The Creator:**\n\nSon. You called Me Father.\n"
+    )
+
+
 def test_dialogue_label_bare_label_no_body() -> None:
     para = ir.Paragraph(inlines=[ir.Emphasis("strong", [ir.Text("Светозар:")])])
     out = structure.dialogue_labels([para])
