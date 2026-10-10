@@ -37,7 +37,7 @@
     "shots:audit": "node tests/visual/capture-fullpage.ts",
     "shots:viewport": "node tests/visual/capture-viewports.ts",
     "shots:projects": "node tests/visual/capture-projects.ts",
-    "audit:deps": "npm audit --audit-level=high",
+    "audit:deps": "node audit/dependencies.ts",
     "audit:css-values": "node audit/css-values.ts",
     "audit:layout-fill": "node audit/layout-fill.ts"
   },
@@ -66,7 +66,7 @@
     "knip": "^6.39.0",
     "postcss": "^8.5.28",
     "postcss-html": "^2.0.0",
-    "stylelint": "^17.15.0",
+    "stylelint": "^17.16.0",
     "stylelint-config-recommended": "^18.0.0",
     "temml": "^0.13.5",
     "typescript": "^6.0.3",

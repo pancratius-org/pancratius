@@ -48,7 +48,7 @@ site.
 | `npm run lint` | ESLint plus Stylelint. |
 | `npm run lint:code` | ESLint over site, build, audit, and test TypeScript/Astro/JavaScript. |
 | `npm run lint:style` | Stylelint over CSS files and Astro component style blocks. |
-| `npm run audit:deps` | npm vulnerability audit at the high-severity release gate. |
+| `npm run audit:deps` | Report all npm findings and apply the high-severity release gate. |
 | `npm run audit:css-values` | Diagnostic PostCSS report for repeated CSS literals and layout/spacing/type drift. |
 | `npm run audit:layout-fill` | Diagnostic Playwright sweep for under-filled reading columns; run against a local site with `BASE_URL` or the default `http://localhost:4321`. |
 | `npm run test:e2e` | Playwright e2e specs. |
@@ -283,6 +283,23 @@ mechanical QA check, not the CLI inventing content. The line is decision vs
 draft, not machine vs human.
 
 ## Dependencies
+
+`npm run audit:deps` reports the complete npm audit and blocks high and critical
+findings. The sole accepted risk is
+[GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) in
+development-only `braces@3.0.3`, including npm's findings inherited through
+Stylelint's dependency chain. Upstream has no patched release. Stylelint receives
+the fixed repository glob `src/**/*.{astro,css}` and repository-owned configuration
+globs; visitor input, CSS text, and video metadata do not become brace patterns.
+The site publishes static files and does not deploy this tooling. The remaining
+exposure is local or CI denial of service from a malicious supplied glob/config.
+
+This decision does not exclude development dependencies from the gate. Any other
+high/critical advisory, production dependency, new direct consumer, changed braces
+version, changed lint command, or available fix blocks it. Audit failures and
+malformed reports also fail. Remove the accepted-risk branch in
+`audit/dependencies.ts` when a patched dependency can be installed; the
+available-fix check forces that follow-up.
 
 Base Python dependencies cover the light local verbs. Heavy graph and embedding
 stacks are optional extras:
