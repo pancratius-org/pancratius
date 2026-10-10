@@ -37,7 +37,7 @@
     "shots:audit": "node tests/visual/capture-fullpage.ts",
     "shots:viewport": "node tests/visual/capture-viewports.ts",
     "shots:projects": "node tests/visual/capture-projects.ts",
-    "audit:deps": "npm audit --audit-level=high",
+    "audit:deps": "node audit/dependencies.ts",
     "audit:css-values": "node audit/css-values.ts",
     "audit:layout-fill": "node audit/layout-fill.ts"
   },
@@ -46,12 +46,12 @@
     "@astrojs/rss": "^4.0.19",
     "@fontsource-variable/inter": "5.3.0",
     "@fontsource-variable/source-serif-4": "5.3.0",
-    "astro": "7.3.4",
+    "astro": "7.3.5",
     "graphology": "^0.26.0",
     "graphology-layout-forceatlas2": "^0.10.1",
     "pagefind": "^1.5.2",
     "satteri": "0.10.5",
-    "sharp": "^0.35.4",
+    "sharp": "^0.35.5",
     "sigma": "^3.0.3",
     "yaml": "^2.9.1"
   },
@@ -60,16 +60,16 @@
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
     "@types/hast": "^3.0.5",
-    "@types/node": "^24.13.6",
+    "@types/node": "^24.19.0",
     "eslint": "^10.11.0",
     "eslint-plugin-astro": "^3.2.1",
-    "knip": "^6.38.0",
+    "knip": "^6.39.0",
     "postcss": "^8.5.28",
     "postcss-html": "^2.0.0",
-    "stylelint": "^17.15.0",
+    "stylelint": "^17.16.0",
     "stylelint-config-recommended": "^18.0.0",
     "temml": "^0.13.5",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.70.1"
+    "typescript-eslint": "^8.71.0"
   }
 }
