@@ -138,7 +138,6 @@ test.describe("conceptosphere loads graph runtime", () => {
       await page.emulateMedia({ colorScheme: theme });
       const { messages } = failOnConsoleErrors(page);
       await page.goto("/ru/conceptosphere/", { waitUntil: "networkidle" });
-      await page.locator("#cs-graph canvas").first().waitFor();
       await pinVisibleGraphNode(page);
       await expect(page.locator("#cs-panel")).toHaveClass(/is-pinned/);
 
@@ -164,6 +163,7 @@ test.describe("conceptosphere loads graph runtime", () => {
 });
 
 async function pinVisibleGraphNode(page: Page): Promise<void> {
+  await page.locator("#cs-graph canvas").first().waitFor();
   const stage = await page.locator("#cs-graph").boundingBox();
   if (!stage) throw new Error("Graph stage is missing");
   for (let row = stage.height * 0.2; row < stage.height * 0.8; row += 24) {
@@ -175,10 +175,9 @@ async function pinVisibleGraphNode(page: Page): Promise<void> {
       await page.evaluate(() => new Promise<void>((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
       }));
-      if ((await page.locator("#cs-panel").getAttribute("class"))?.includes("is-open")) {
-        await page.mouse.click(x, y);
-        if ((await page.locator("#cs-panel").getAttribute("class"))?.includes("is-pinned")) return;
-      }
+      if (!(await page.locator("#cs-panel").getAttribute("class"))?.includes("is-open")) continue;
+      await page.mouse.click(x, y);
+      if ((await page.locator("#cs-panel").getAttribute("class"))?.includes("is-pinned")) return;
     }
   }
   throw new Error("No graph node responded to pointer interaction");
