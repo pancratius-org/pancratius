@@ -133,42 +133,51 @@ test.describe("conceptosphere loads graph runtime", () => {
     expect(messages, messages.join("\n")).toEqual([]);
   });
 
-  test("nodes remain interactive through filtering, theme changes, and mode swaps", async ({ page }) => {
-    const { messages } = failOnConsoleErrors(page);
-    await page.goto("/ru/conceptosphere/", { waitUntil: "networkidle" });
-    await page.locator("#cs-graph canvas").first().waitFor();
-    await pinVisibleGraphNode(page);
-    await expect(page.locator("#cs-panel")).toHaveClass(/is-pinned/);
+  for (const theme of ["light", "dark"] as const) {
+    test(`nodes remain interactive through filtering, theme changes, and mode swaps (${theme})`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: theme });
+      const { messages } = failOnConsoleErrors(page);
+      await page.goto("/ru/conceptosphere/", { waitUntil: "networkidle" });
+      await page.locator("#cs-graph canvas").first().waitFor();
+      await pinVisibleGraphNode(page);
+      await expect(page.locator("#cs-panel")).toHaveClass(/is-pinned/);
 
-    const community = page.locator("#cs-legend-list button").first();
-    await community.click();
-    await expect(community).toHaveAttribute("aria-pressed", "true");
-    await page.locator("#themeBtn").click();
-    await expect(page.locator("#cs-panel")).toHaveClass(/is-pinned/);
-    await page.locator("#cs-legend-clear").click();
-    await page.locator("#cs-panel-close").click();
-    await expect(page.locator("#cs-panel")).not.toHaveClass(/is-open/);
+      const community = page.locator("#cs-legend-list button").first();
+      await community.click();
+      await expect(community).toHaveAttribute("aria-pressed", "true");
+      await page.locator("#themeBtn").click();
+      await expect(page.locator("#cs-panel")).toHaveClass(/is-pinned/);
+      await page.locator("#cs-legend-clear").click();
+      await page.locator("#cs-panel-close").click();
+      await expect(page.locator("#cs-panel")).not.toHaveClass(/is-open/);
 
-    await page.locator('.cs-modebar button[data-mode="books"]').click();
-    await expect(page.locator("#cs-stage")).toHaveAttribute("data-cs-mode", "books");
-    await page.locator('.cs-modebar button[data-mode="concepts"]').click();
-    await expect(page.locator("#cs-stage")).toHaveAttribute("data-cs-mode", "concepts");
-    await pinVisibleGraphNode(page);
-    await expect(page.locator("#cs-panel")).toHaveClass(/is-pinned/);
-    expect(messages, messages.join("\n")).toEqual([]);
-  });
+      await page.locator('.cs-modebar button[data-mode="books"]').click();
+      await expect(page.locator("#cs-stage")).toHaveAttribute("data-cs-mode", "books");
+      await page.locator('.cs-modebar button[data-mode="concepts"]').click();
+      await expect(page.locator("#cs-stage")).toHaveAttribute("data-cs-mode", "concepts");
+      await pinVisibleGraphNode(page);
+      await expect(page.locator("#cs-panel")).toHaveClass(/is-pinned/);
+      expect(messages, messages.join("\n")).toEqual([]);
+    });
+
+  }
 });
 
 async function pinVisibleGraphNode(page: Page): Promise<void> {
   const stage = await page.locator("#cs-graph").boundingBox();
   if (!stage) throw new Error("Graph stage is missing");
-  for (let row = 1; row <= 9; row++) {
-    for (let column = 6; column <= 15; column++) {
-      const x = stage.x + stage.width * column / 20;
-      const y = stage.y + stage.height * row / 10;
-      await page.mouse.click(x, y);
-      if ((await page.locator("#cs-panel").getAttribute("class"))?.includes("is-pinned")) {
-        return;
+  for (let row = stage.height * 0.2; row < stage.height * 0.8; row += 24) {
+    for (let column = stage.width * 0.25; column < stage.width * 0.75; column += 24) {
+      const x = stage.x + column;
+      const y = stage.y + row;
+      await page.mouse.move(x, y);
+      // Hover picking resolves asynchronously on the GPU.
+      await page.evaluate(() => new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }));
+      if ((await page.locator("#cs-panel").getAttribute("class"))?.includes("is-open")) {
+        await page.mouse.click(x, y);
+        if ((await page.locator("#cs-panel").getAttribute("class"))?.includes("is-pinned")) return;
       }
     }
   }

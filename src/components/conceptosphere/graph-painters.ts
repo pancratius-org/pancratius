@@ -51,7 +51,7 @@ export function sigmaOptionsFor(input: SigmaOptionsInput): SigmaOptions<ConceptN
       nodes: {
         ...DEFAULT_STYLES.nodes,
         labelColor: () => theme.labelColor,
-        labelFont: `600 ${getComputedStyle(document.documentElement).getPropertyValue("--serif") || "Georgia, serif"}`,
+        labelFont: `600 ${graphFontFamily()}`,
         labelSize: (attributes) => {
           const cameraRatio = Math.max(0.001, renderer()?.getCamera().getState().ratio ?? 1);
           const zoomLift = Math.max(0, Math.min(1, (0.72 - cameraRatio) / 0.56));
@@ -91,6 +91,10 @@ export function installCanvasPainters(input: CanvasPainterInput): void {
   });
 }
 
+function graphFontFamily(): string {
+  return getComputedStyle(document.documentElement).getPropertyValue("--serif") || "Georgia, serif";
+}
+
 export function initialCameraRatio(stage: HTMLElement, mode: ConceptosphereMode): number {
   const box = stage.getBoundingClientRect();
   const aspect = box.height > 0 ? box.width / box.height : 1.6;
@@ -107,6 +111,7 @@ function paintBookBadges(input: CanvasPainterContext): void {
   const dims = renderer.getDimensions();
   const ratio = renderer.getCamera().getState().ratio;
   if (ratio > 2.6) return;
+  const fontFamily = graphFontFamily();
 
   context.save();
   context.textAlign = "center";
@@ -125,7 +130,7 @@ function paintBookBadges(input: CanvasPainterContext): void {
     const radiusPx = displayData.size;
     if (radiusPx < 7) return;
     const fontPx = Math.max(9, Math.min(15, radiusPx * 0.95));
-    context.font = `500 ${fontPx}px var(--serif), "PT Serif", Georgia, serif`;
+    context.font = `500 ${fontPx}px ${fontFamily}`;
     context.lineWidth = Math.max(1, fontPx * 0.14);
     context.lineJoin = "round";
     context.miterLimit = 2;
@@ -256,7 +261,7 @@ function focusCalloutBox(
   labelText: string,
 ): FocusCalloutBox {
   const fontSize = strong ? 13.5 : 12.5;
-  context.font = `${strong ? 600 : 500} ${fontSize}px var(--serif), "PT Serif", Georgia, serif`;
+  context.font = `${strong ? 600 : 500} ${fontSize}px ${graphFontFamily()}`;
   const padX = 10;
   const padY = 5;
   const maxBoxWidth = Math.min(360, dims.width - 24);
