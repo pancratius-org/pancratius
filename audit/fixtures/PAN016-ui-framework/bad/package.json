@@ -6,7 +6,7 @@
     "astro": "^7.1.3",
     "react": "^18",
     "react-dom": "^18",
-    "@astrojs/svelte": "^7",
+    "@astrojs/svelte": "^9",
     "@solidjs/router": "^0.13"
   },
   "devDependencies": {
