@@ -1,8 +1,8 @@
 ---
 kind: video
 number: 495
-slug: 495-126-am-i-too-late-and-have-i-wasted-my-life-1080p-caption
-title: 126 Am I too late and have I wasted my life 1080p caption
+slug: 495-am-i-too-late-and-have-i-wasted-my-life
+title: Am I too late and have I wasted my life
 lang: en
 description: You’re not too late. This is a message from God for you if you feel like your life has been
   wasted and time has been lost. God speaks to you now through this word of God. Not as a strict judge,

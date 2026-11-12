@@ -1,8 +1,8 @@
 ---
 kind: video
 number: 478
-slug: 478-104-will-i-take-your-life-1080p-caption
-title: 104 Will I take your life? 1080p caption
+slug: 478-will-i-take-your-life
+title: Will I take your life?
 lang: en
 description: 'Do you fear that closeness to God will take away your life, freedom, and dreams? God speaks
   with the tenderness of the Heavenly Father: I came not to take away, but to fill. Find God not in withdrawal,
