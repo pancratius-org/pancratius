@@ -6,7 +6,7 @@
   "description": "Pancratius — open-access library of Sergey Orekhov's spiritual writings",
   "license": "MIT",
   "engines": {
-    "node": ">=24.12.0 <25"
+    "node": ">=24.16.0 <25"
   },
   "packageManager": "npm@11.16.0",
   "scripts": {
@@ -37,39 +37,39 @@
     "shots:audit": "node tests/visual/capture-fullpage.ts",
     "shots:viewport": "node tests/visual/capture-viewports.ts",
     "shots:projects": "node tests/visual/capture-projects.ts",
-    "audit:deps": "node audit/dependencies.ts",
+    "audit:deps": "npm audit --audit-level=high",
     "audit:css-values": "node audit/css-values.ts",
     "audit:layout-fill": "node audit/layout-fill.ts"
   },
   "dependencies": {
-    "@astrojs/markdown-satteri": "0.4.3",
+    "@astrojs/markdown-satteri": "0.4.7",
     "@astrojs/rss": "^4.0.19",
     "@fontsource-variable/inter": "5.3.0",
-    "@fontsource-variable/source-serif-4": "5.3.0",
-    "astro": "7.3.8",
+    "@fontsource-variable/source-serif-4": "5.3.1",
+    "astro": "7.4.7",
     "graphology": "^0.26.0",
     "graphology-layout-forceatlas2": "^0.10.1",
-    "pagefind": "^1.5.2",
-    "satteri": "0.10.5",
+    "pagefind": "^1.6.0",
+    "satteri": "0.11.7",
     "sharp": "^0.35.5",
-    "sigma": "^3.0.3",
+    "sigma": "^4.0.4",
     "yaml": "^2.9.1"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.10",
+    "@astrojs/check": "^0.9.12",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.64.1",
+    "@playwright/test": "^1.65.0",
     "@types/hast": "^3.0.5",
     "@types/node": "^24.19.2",
-    "eslint": "^10.12.0",
+    "eslint": "^10.14.0",
     "eslint-plugin-astro": "^3.2.1",
-    "knip": "^6.41.0",
-    "postcss": "^8.5.30",
+    "knip": "^6.44.2",
+    "postcss": "^8.5.32",
     "postcss-html": "^2.0.0",
-    "stylelint": "^17.16.0",
-    "stylelint-config-recommended": "^18.0.0",
+    "stylelint": "^18.0.0",
+    "stylelint-config-recommended": "^19.0.0",
     "temml": "^0.14.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.71.2"
+    "typescript-eslint": "^8.72.1"
   }
 }

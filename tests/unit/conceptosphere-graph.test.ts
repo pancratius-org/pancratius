@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import { GraphDataStore, type GraphCommunity, type GraphData, type GraphDataConfig, type GraphEdgeData, type GraphNodeData } from "../../src/components/conceptosphere/graph-data.ts";
-import { applyGraphHighlighting } from "../../src/components/conceptosphere/graph-highlight.ts";
-import { buildGraphModel, type ConceptRenderer } from "../../src/components/conceptosphere/graph-model.ts";
+import { GraphHighlighting } from "../../src/components/conceptosphere/graph-highlight.ts";
+import { buildGraphModel } from "../../src/components/conceptosphere/graph-model.ts";
 import { parseGraphPayload, type GraphPayload } from "../../src/components/conceptosphere/graph-payload.ts";
 import type { GraphTheme } from "../../src/components/conceptosphere/graph-theme.ts";
 import type { ConceptosphereMode } from "../../src/components/conceptosphere/graph-types.ts";
@@ -14,9 +14,7 @@ const THEME: GraphTheme = {
   dimNode: "rgba(70, 65, 55, 0.45)",
   dimEdge: "rgba(80, 70, 55, 0.04)",
   focusEdge: "rgba(233, 161, 66, 0.55)",
-  defaultEdgeColor: "rgba(232, 227, 214, 0.10)",
   labelColor: "#f3eee0",
-  labelHalo: "rgba(6, 8, 12, 0.55)",
   badgeHalo: "rgba(6, 8, 12, 0.75)",
   badgeInk: "#f3eee0",
   calloutBg: "rgba(9, 11, 16, 0.96)",
@@ -202,31 +200,32 @@ describe("conceptosphere graph interactions", () => {
     );
     const state = new GraphInteractionState();
     state.setSearch("mercy");
-    const renderer = createReducerProbe();
     const hulls = createHullProbe([1, 2]);
 
-    applyGraphHighlighting({
+    const highlighting = new GraphHighlighting({
       mode: "concepts",
       graph,
-      renderer: renderer.asRenderer(),
       theme: THEME,
       hulls: hulls.asSvg(),
       state: state.snapshot(),
     });
 
-    const faith = renderer.reduceNode("faith", graph.getNodeAttributes("faith"));
-    const silence = renderer.reduceNode("silence", graph.getNodeAttributes("silence"));
+    const faith = highlighting.nodeDisplay("faith", graph.getNodeAttributes("faith"));
+    const silence = highlighting.nodeDisplay("silence", graph.getNodeAttributes("silence"));
     const graphEdge = graph.edge("faith", "silence");
     assert.ok(graphEdge);
 
     assert.equal(faith.dimmed, false);
-    assert.equal(faith.forceLabel, true);
+    assert.equal(faith.labelVisibility, "visible");
     assert.equal(silence.dimmed, true);
     assert.equal(silence.color, THEME.dimNode);
-    assert.equal(renderer.reduceEdge(graphEdge, graph.getEdgeAttributes(graphEdge)).hidden, false);
+    assert.equal(highlighting.edgeDisplay(graphEdge, graph.getEdgeAttributes(graphEdge)).visibility, "visible");
     assert.equal(hulls.opacityFor(1, "fill-opacity"), THEME.hullFillOpacity);
     assert.equal(hulls.opacityFor(2, "fill-opacity"), THEME.hullFillOpacity);
-    assert.equal(renderer.refreshCount, 1);
+    state.clearAll();
+    highlighting.update({ mode: "concepts", graph, theme: THEME, hulls: hulls.asSvg(), state: state.snapshot() });
+    assert.equal(highlighting.nodeDisplay("silence", graph.getNodeAttributes("silence")).dimmed, false);
+    assert.equal(highlighting.nodeDisplay("faith", graph.getNodeAttributes("faith")).labelVisibility, "auto");
   });
 
   test("highlight reducers hide edges outside the selected communities", () => {
@@ -248,13 +247,11 @@ describe("conceptosphere graph interactions", () => {
     );
     const state = new GraphInteractionState();
     state.toggleCommunity(1);
-    const renderer = createReducerProbe();
     const hulls = createHullProbe([1, 2]);
 
-    applyGraphHighlighting({
+    const highlighting = new GraphHighlighting({
       mode: "concepts",
       graph,
-      renderer: renderer.asRenderer(),
       theme: THEME,
       hulls: hulls.asSvg(),
       state: state.snapshot(),
@@ -265,9 +262,9 @@ describe("conceptosphere graph interactions", () => {
     assert.ok(selectedEdge);
     assert.ok(crossEdge);
 
-    assert.equal(renderer.reduceEdge(selectedEdge, graph.getEdgeAttributes(selectedEdge)).hidden, false);
-    assert.equal(renderer.reduceEdge(selectedEdge, graph.getEdgeAttributes(selectedEdge)).zIndex, 1);
-    assert.equal(renderer.reduceEdge(crossEdge, graph.getEdgeAttributes(crossEdge)).hidden, true);
+    assert.equal(highlighting.edgeDisplay(selectedEdge, graph.getEdgeAttributes(selectedEdge)).visibility, "visible");
+    assert.equal(highlighting.edgeDisplay(selectedEdge, graph.getEdgeAttributes(selectedEdge)).zIndex, 1);
+    assert.equal(highlighting.edgeDisplay(crossEdge, graph.getEdgeAttributes(crossEdge)).visibility, "hidden");
     assert.equal(hulls.opacityFor(1, "fill-opacity"), THEME.hullFillOpacity);
     assert.equal(hulls.opacityFor(2, "fill-opacity"), THEME.hullDimFillOpacity);
   });
@@ -372,44 +369,6 @@ function edge(source: string, target: string, weight: number, npmi?: number): Gr
     weight,
     sharedConcepts: [],
     ...(npmi !== undefined ? { npmi } : {}),
-  };
-}
-
-interface ReducerProbe {
-  readonly refreshCount: number;
-  asRenderer(): ConceptRenderer;
-  reduceNode(node: string, data: unknown): Record<string, unknown>;
-  reduceEdge(edgeId: string, data: unknown): Record<string, unknown>;
-}
-
-function createReducerProbe(): ReducerProbe {
-  let refreshCount = 0;
-  let nodeReducer: ((node: string, data: unknown) => unknown) | null = null;
-  let edgeReducer: ((edge: string, data: unknown) => unknown) | null = null;
-
-  return {
-    get refreshCount() {
-      return refreshCount;
-    },
-    asRenderer() {
-      return {
-        setSetting: (key: string, value: unknown) => {
-          if (key === "nodeReducer") nodeReducer = value as typeof nodeReducer;
-          if (key === "edgeReducer") edgeReducer = value as typeof edgeReducer;
-        },
-        refresh: () => {
-          refreshCount++;
-        },
-      } as unknown as ConceptRenderer;
-    },
-    reduceNode(node: string, data: unknown) {
-      assert.ok(nodeReducer);
-      return nodeReducer(node, data) as Record<string, unknown>;
-    },
-    reduceEdge(edgeId: string, data: unknown) {
-      assert.ok(edgeReducer);
-      return edgeReducer(edgeId, data) as Record<string, unknown>;
-    },
   };
 }
 

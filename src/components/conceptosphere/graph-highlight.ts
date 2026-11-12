@@ -4,7 +4,6 @@ import type {
   ConceptEdgeAttributes,
   ConceptGraph,
   ConceptNodeAttributes,
-  ConceptRenderer,
 } from "./graph-model.ts";
 import type { GraphTheme } from "./graph-theme.ts";
 import type { ConceptosphereMode } from "./graph-types.ts";
@@ -13,7 +12,6 @@ import type { InteractionSnapshot } from "./interaction-state.ts";
 interface HighlightRequest {
   mode: ConceptosphereMode;
   graph: ConceptGraph;
-  renderer: ConceptRenderer;
   theme: GraphTheme;
   hulls: SVGSVGElement;
   state: InteractionSnapshot;
@@ -29,19 +27,10 @@ interface HighlightContext extends HighlightRequest {
 }
 
 type NodeReducerOutput = Partial<NodeDisplayData> & {
-  forceLabel?: boolean;
-  dimmed?: boolean;
-  baseSize?: number;
-  communityId?: number;
-  baseColor?: string;
+  dimmed: boolean;
 };
 
-type EdgeReducerOutput = Partial<EdgeDisplayData> & {
-  visibleBackbone?: boolean;
-  withinCommunity?: boolean;
-  baseColor?: string;
-  baseSize?: number;
-};
+type EdgeReducerOutput = Partial<EdgeDisplayData>;
 
 type EdgeDisplayState =
   | "hidden"
@@ -57,14 +46,26 @@ interface EdgeEndpoints {
   target: ConceptNodeAttributes;
 }
 
-export function applyGraphHighlighting(request: HighlightRequest): void {
-  const context = highlightContext(request);
-  request.renderer.setSetting("nodeReducer", (node, data) =>
-    nodeDisplay(node, data, context));
-  request.renderer.setSetting("edgeReducer", (edge, data) =>
-    edgeDisplay(edge, data, context));
-  updateHullOpacity(context);
-  request.renderer.refresh();
+export class GraphHighlighting {
+  private context: HighlightContext;
+
+  constructor(request: HighlightRequest) {
+    this.context = highlightContext(request);
+    updateHullOpacity(this.context);
+  }
+
+  update(request: HighlightRequest): void {
+    this.context = highlightContext(request);
+    updateHullOpacity(this.context);
+  }
+
+  nodeDisplay(node: string, data: ConceptNodeAttributes): NodeReducerOutput {
+    return nodeDisplay(node, data, this.context);
+  }
+
+  edgeDisplay(edge: string, data: ConceptEdgeAttributes): EdgeReducerOutput {
+    return edgeDisplay(edge, data, this.context);
+  }
 }
 
 function highlightContext(request: HighlightRequest): HighlightContext {
@@ -120,17 +121,17 @@ function baseNodeDisplay(
   data: ConceptNodeAttributes,
   context: HighlightContext,
 ): NodeReducerOutput {
-  const out: NodeReducerOutput = { ...data };
+  const out: NodeReducerOutput = { size: data.baseSize, dimmed: false };
   if (isDimNode(data, context, node)) {
     out.color = context.theme.dimNode;
-    out.forceLabel = false;
+    out.labelVisibility = "auto";
     out.zIndex = 0;
     out.dimmed = true;
   } else {
     out.color = data.baseColor;
     const focused = context.focusSet?.has(node) ?? false;
     out.zIndex = focused ? 2 : 1;
-    out.forceLabel = forceNodeLabel(data, context, node, focused);
+    out.labelVisibility = forceNodeLabel(data, context, node, focused) ? "visible" : "auto";
     out.dimmed = false;
   }
   return out;
@@ -151,7 +152,7 @@ function highlightedNodeDisplay(
 ): NodeReducerOutput {
   out.color = data.baseColor;
   out.size = data.baseSize * (interaction === "pinned" ? 1.12 : 1.08);
-  out.forceLabel = false;
+  out.labelVisibility = "auto";
   out.zIndex = interaction === "pinned" ? 4 : 3;
   out.dimmed = false;
   return out;
@@ -181,7 +182,7 @@ function edgeDisplay(
   data: ConceptEdgeAttributes,
   context: HighlightContext,
 ): EdgeReducerOutput {
-  const out: EdgeReducerOutput = { ...data };
+  const out: EdgeReducerOutput = {};
   const endpoints = edgeEndpoints(edge, context);
   return applyEdgeDisplayState(
     out,
@@ -244,7 +245,7 @@ function applyEdgeDisplayState(
 }
 
 function hideEdge(out: EdgeReducerOutput): EdgeReducerOutput {
-  out.hidden = true;
+  out.visibility = "hidden";
   return out;
 }
 
@@ -256,7 +257,7 @@ function showEdge(
 ): EdgeReducerOutput {
   out.color = color;
   out.size = size;
-  out.hidden = false;
+  out.visibility = "visible";
   if (zIndex !== undefined) out.zIndex = zIndex;
   return out;
 }

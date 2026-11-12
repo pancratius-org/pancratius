@@ -1,4 +1,4 @@
-// Sigma 3 + graphology runtime for /conceptosphere/.
+// Sigma + graphology runtime for /conceptosphere/.
 //
 // Boot owns only the cross-surface orchestration: read the page JSON island,
 // wire the mobile fallback, and mount/unmount the desktop Sigma runtime at
