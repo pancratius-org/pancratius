@@ -68,7 +68,7 @@ source. The shared boundary is the repository, not a runtime dependency.
 - **Python tooling**: Python 3.13 with type hints. Run through `uv`; dependencies
   are locked in `pyproject.toml` / `uv.lock`. No `pip`, `conda`, or
   `requirements.txt`.
-- **Conceptosphere viz libs**: Sigma 3, `graphology`, and
+- **Conceptosphere viz libs**: Sigma 4, `graphology`, and
   `graphology-layout-forceatlas2`, bundled through npm.
 - **Search**: Pagefind (static; ships with the build).
 - **Library-management tools**: pandoc, typst, pymorphy3, Qwen3-Embedding via

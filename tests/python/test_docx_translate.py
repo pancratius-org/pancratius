@@ -4,7 +4,7 @@ import base64
 import re
 import xml.etree.ElementTree as ET
 import zipfile
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import get_args
@@ -2386,7 +2386,7 @@ def test_translate_docx_batch_refuses_roundtrip_unsafe_staged_docx(
             )
 
     @contextmanager
-    def fake_workspace(*, content_root: Path) -> Iterator[FakeWorkspace]:
+    def fake_workspace(*, content_root: Path) -> Generator[FakeWorkspace]:
         del content_root
         yield FakeWorkspace()
 
@@ -2434,7 +2434,7 @@ def test_translate_docx_batch_records_roundtrip_checker_error(
             raise DocxRoundTripError("pandoc failed")
 
     @contextmanager
-    def fake_workspace(*, content_root: Path) -> Iterator[FailingWorkspace]:
+    def fake_workspace(*, content_root: Path) -> Generator[FailingWorkspace]:
         del content_root
         yield FailingWorkspace()
 
