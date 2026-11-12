@@ -8,9 +8,7 @@ export interface GraphTheme {
   dimNode: string;
   dimEdge: string;
   focusEdge: string;
-  defaultEdgeColor: string;
   labelColor: string;
-  labelHalo: string;
   badgeHalo: string;
   badgeInk: string;
   calloutBg: string;
@@ -33,9 +31,7 @@ const GRAPH_THEME_FALLBACKS = {
   dimNode: "rgba(70, 65, 55, 0.45)",
   dimEdge: "rgba(80, 70, 55, 0.04)",
   focusEdge: "rgba(233, 161, 66, 0.55)",
-  defaultEdgeColor: "rgba(232, 227, 214, 0.10)",
   labelColor: "#f3eee0",
-  labelHalo: "rgba(6, 8, 12, 0.55)",
   badgeHalo: "rgba(6, 8, 12, 0.75)",
   badgeInk: "#f3eee0",
   calloutBg: "rgba(9, 11, 16, 0.96)",
@@ -133,9 +129,7 @@ export function readGraphTheme(): GraphTheme {
     dimNode: cssSigmaColor("--cs-dim-node", GRAPH_THEME_FALLBACKS.dimNode, isLight),
     dimEdge: cssSigmaColor("--cs-dim-edge", GRAPH_THEME_FALLBACKS.dimEdge, isLight),
     focusEdge: cssSigmaColor("--cs-focus-edge", GRAPH_THEME_FALLBACKS.focusEdge, isLight),
-    defaultEdgeColor: cssSigmaColor("--cs-default-edge", GRAPH_THEME_FALLBACKS.defaultEdgeColor, isLight),
     labelColor: cssVar("--cs-label-color", GRAPH_THEME_FALLBACKS.labelColor),
-    labelHalo: cssVar("--cs-label-halo", GRAPH_THEME_FALLBACKS.labelHalo),
     badgeHalo: cssVar("--cs-badge-halo", GRAPH_THEME_FALLBACKS.badgeHalo),
     badgeInk: cssVar("--cs-badge-ink", GRAPH_THEME_FALLBACKS.badgeInk),
     calloutBg: cssVar("--cs-callout-bg", GRAPH_THEME_FALLBACKS.calloutBg),

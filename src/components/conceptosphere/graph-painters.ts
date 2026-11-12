@@ -1,12 +1,12 @@
-import type { Settings as SigmaSettings } from "sigma/settings";
-import type { NodeDisplayData } from "sigma/types";
+import { DEFAULT_STYLES } from "sigma";
+import type { NodeDisplayData, SigmaOptions } from "sigma/types";
 
-import type { ConceptGraph, ConceptRenderer } from "./graph-model.ts";
+import type { ConceptEdgeAttributes, ConceptGraph, ConceptNodeAttributes, ConceptRenderer } from "./graph-model.ts";
 import type { GraphTheme } from "./graph-theme.ts";
 import type { ConceptosphereMode } from "./graph-types.ts";
 import type { GraphInteractionState } from "./interaction-state.ts";
 
-interface SigmaSettingsInput {
+interface SigmaOptionsInput {
   mode: ConceptosphereMode;
   theme: GraphTheme;
   renderer: () => ConceptRenderer | null;
@@ -20,6 +20,10 @@ interface CanvasPainterInput {
   state: GraphInteractionState;
 }
 
+interface CanvasPainterContext extends CanvasPainterInput {
+  canvas: CanvasRenderingContext2D;
+}
+
 interface FocusPaintContext {
   graph: ConceptGraph;
   renderer: ConceptRenderer;
@@ -30,50 +34,65 @@ interface FocusPaintContext {
   zoomToSize: (ratio: number) => number;
 }
 
-export function sigmaSettingsFor(input: SigmaSettingsInput): Partial<SigmaSettings> {
+export function sigmaOptionsFor(input: SigmaOptionsInput): SigmaOptions<ConceptNodeAttributes, ConceptEdgeAttributes> {
   const { mode, theme, renderer } = input;
   return {
-    renderEdgeLabels: false,
-    defaultEdgeColor: theme.defaultEdgeColor,
-    labelColor: { color: theme.labelColor },
-    labelFont: "var(--serif), Georgia, serif",
-    labelSize: 13.5,
-    labelWeight: "600",
-    labelDensity: mode === "concepts" ? 1 : 0.4,
-    labelGridCellSize: mode === "concepts" ? 68 : 140,
-    labelRenderedSizeThreshold: mode === "books" ? 0 : 6.5,
-    minCameraRatio: 0.08,
-    maxCameraRatio: 8,
-    zIndex: true,
-    defaultDrawNodeHover: () => { /* focus chrome is painted on afterRender */ },
-    defaultDrawNodeLabel: (context, displayData, drawSettings) => {
-      if (!displayData.label || mode === "books") return;
-      const baseLabelSize = (displayData as NodeDisplayData & { labelSize?: number }).labelSize
-        ?? drawSettings.labelSize;
-      const cameraRatio = Math.max(0.001, renderer()?.getCamera().getState().ratio ?? 1);
-      const zoomLift = Math.max(0, Math.min(1, (0.72 - cameraRatio) / 0.56));
-      const labelScale = 1 + zoomLift * (theme.isLight ? 0.46 : 0.32);
-      const labelSize = baseLabelSize * labelScale;
-      const font = drawSettings.labelFont;
-      const weight = drawSettings.labelWeight;
-      context.font = `${weight} ${labelSize}px ${font}`;
-      const label = displayData.label;
-      const x = displayData.x + displayData.size + 3 + zoomLift * 2;
-      const y = displayData.y + labelSize / 3;
-      context.lineWidth = (theme.isLight ? 3.4 : 2.5) * Math.min(1.24, labelScale);
-      context.strokeStyle = theme.labelHalo;
-      context.lineJoin = "round";
-      context.miterLimit = 2;
-      context.strokeText(label, x, y);
-      context.fillStyle = (drawSettings.labelColor as { color: string }).color;
-      context.fillText(label, x, y);
+    settings: {
+      renderLabels: mode === "concepts",
+      renderEdgeLabels: false,
+      itemSizesReference: "screen",
+      labelDensity: mode === "concepts" ? 1 : 0.4,
+      labelGridCellSize: mode === "concepts" ? 68 : 140,
+      labelRenderedSizeThreshold: mode === "books" ? 0 : 6.5,
+      minCameraRatio: 0.08,
+      maxCameraRatio: 8,
+    },
+    styles: {
+      nodes: {
+        ...DEFAULT_STYLES.nodes,
+        labelColor: () => theme.labelColor,
+        labelFont: `600 ${graphFontFamily()}`,
+        labelSize: (attributes) => {
+          const cameraRatio = Math.max(0.001, renderer()?.getCamera().getState().ratio ?? 1);
+          const zoomLift = Math.max(0, Math.min(1, (0.72 - cameraRatio) / 0.56));
+          return attributes.labelSize * (1 + zoomLift * (theme.isLight ? 0.46 : 0.32));
+        },
+        backdropVisibility: "hidden",
+      },
+      edges: DEFAULT_STYLES.edges,
     },
   };
 }
 
 export function installCanvasPainters(input: CanvasPainterInput): void {
-  input.renderer.on("afterRender", () => paintBookBadges(input));
-  input.renderer.on("afterRender", () => paintFocusDecoration(input));
+  const layer = input.renderer.createCanvas("annotations", {
+    afterLayer: "stage",
+    style: { pointerEvents: "none" },
+  });
+  layer.setAttribute("aria-hidden", "true");
+  const canvas = layer.getContext("2d");
+  if (!canvas) throw new Error("Graph annotations require a 2D canvas");
+  const context = { ...input, canvas };
+  input.renderer.on("afterRender", () => {
+    const { width, height } = input.renderer.getDimensions();
+    const ratio = window.devicePixelRatio || 1;
+    const pixelWidth = Math.round(width * ratio);
+    const pixelHeight = Math.round(height * ratio);
+    if (layer.width !== pixelWidth || layer.height !== pixelHeight) {
+      layer.width = pixelWidth;
+      layer.height = pixelHeight;
+      layer.style.width = `${width}px`;
+      layer.style.height = `${height}px`;
+    }
+    canvas.setTransform(ratio, 0, 0, ratio, 0, 0);
+    canvas.clearRect(0, 0, width, height);
+    paintBookBadges(context);
+    paintFocusDecoration(context);
+  });
+}
+
+function graphFontFamily(): string {
+  return getComputedStyle(document.documentElement).getPropertyValue("--serif") || "Georgia, serif";
 }
 
 export function initialCameraRatio(stage: HTMLElement, mode: ConceptosphereMode): number {
@@ -85,17 +104,14 @@ export function initialCameraRatio(stage: HTMLElement, mode: ConceptosphereMode)
   return Math.max(1.02, Math.min(1.34, ratio));
 }
 
-function paintBookBadges(input: CanvasPainterInput): void {
+function paintBookBadges(input: CanvasPainterContext): void {
   const { mode, graph, renderer, theme } = input;
   if (mode !== "books") return;
-  const canvases = renderer.getCanvases();
-  const layer = canvases.labels ?? canvases.hovers;
-  if (!layer) return;
-  const context = layer.getContext("2d");
-  if (!context) return;
+  const context = input.canvas;
   const dims = renderer.getDimensions();
   const ratio = renderer.getCamera().getState().ratio;
   if (ratio > 2.6) return;
+  const fontFamily = graphFontFamily();
 
   context.save();
   context.textAlign = "center";
@@ -114,7 +130,7 @@ function paintBookBadges(input: CanvasPainterInput): void {
     const radiusPx = displayData.size;
     if (radiusPx < 7) return;
     const fontPx = Math.max(9, Math.min(15, radiusPx * 0.95));
-    context.font = `500 ${fontPx}px var(--serif), "PT Serif", Georgia, serif`;
+    context.font = `500 ${fontPx}px ${fontFamily}`;
     context.lineWidth = Math.max(1, fontPx * 0.14);
     context.lineJoin = "round";
     context.miterLimit = 2;
@@ -126,31 +142,25 @@ function paintBookBadges(input: CanvasPainterInput): void {
   context.restore();
 }
 
-function paintFocusDecoration(input: CanvasPainterInput): void {
+function paintFocusDecoration(input: CanvasPainterContext): void {
   const targets = focusTargets(input.state);
   if (!targets.length) return;
 
   const paint = focusPaintContext(input);
-  if (!paint) return;
 
   paint.canvas.save();
   for (const target of targets) paintFocusTarget(paint, target);
   paint.canvas.restore();
 }
 
-function focusPaintContext(input: CanvasPainterInput): FocusPaintContext | null {
+function focusPaintContext(input: CanvasPainterContext): FocusPaintContext {
   const { graph, renderer, theme } = input;
-  const canvases = renderer.getCanvases();
-  const layer = canvases.labels ?? canvases.hovers;
-  if (!layer) return null;
-  const canvas = layer.getContext("2d");
-  if (!canvas) return null;
 
   return {
     graph,
     renderer,
     theme,
-    canvas,
+    canvas: input.canvas,
     dims: renderer.getDimensions(),
     cameraRatio: Math.max(0.001, renderer.getCamera().getState().ratio || 1),
     zoomToSize: zoomToSizeFunction(renderer),
@@ -251,7 +261,7 @@ function focusCalloutBox(
   labelText: string,
 ): FocusCalloutBox {
   const fontSize = strong ? 13.5 : 12.5;
-  context.font = `${strong ? 600 : 500} ${fontSize}px var(--serif), "PT Serif", Georgia, serif`;
+  context.font = `${strong ? 600 : 500} ${fontSize}px ${graphFontFamily()}`;
   const padX = 10;
   const padY = 5;
   const maxBoxWidth = Math.min(360, dims.width - 24);

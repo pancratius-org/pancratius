@@ -284,22 +284,13 @@ draft, not machine vs human.
 
 ## Dependencies
 
-`npm run audit:deps` reports the complete npm audit and blocks high and critical
-findings. The sole accepted risk is
-[GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) in
-development-only `braces@3.0.3`, including npm's findings inherited through
-Stylelint's dependency chain. Upstream has no patched release. Stylelint receives
-the fixed repository glob `src/**/*.{astro,css}` and repository-owned configuration
-globs; visitor input, CSS text, and video metadata do not become brace patterns.
-The site publishes static files and does not deploy this tooling. The remaining
-exposure is local or CI denial of service from a malicious supplied glob/config.
+`npm run audit:deps` uses npm's high-severity gate for all dependencies, including
+development tools. High and critical findings and unavailable audit data block
+publication. There are no advisory exceptions.
 
-This decision does not exclude development dependencies from the gate. Any other
-high/critical advisory, production dependency, new direct consumer, changed braces
-version, changed lint command, or available fix blocks it. Audit failures and
-malformed reports also fail. Remove the accepted-risk branch in
-`audit/dependencies.ts` when a patched dependency can be installed; the
-available-fix check forces that follow-up.
+Dependabot groups version updates and security updates separately for each
+ecosystem. Both Python lockfiles share the same update configuration so security
+fixes can be reviewed together instead of competing across independent PRs.
 
 Base Python dependencies cover the light local verbs. Heavy graph and embedding
 stacks are optional extras:

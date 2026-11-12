@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import tempfile
 import unicodedata
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from html import unescape
@@ -143,7 +143,7 @@ class StagedDocxRoundTripWorkspace:
 def staged_docx_roundtrip_workspace(
     *,
     content_root: Path = CONTENT_ROOT,
-) -> Iterator[StagedDocxRoundTripWorkspace]:
+) -> Generator[StagedDocxRoundTripWorkspace]:
     root = content_root.expanduser().resolve()
     with tempfile.TemporaryDirectory(prefix="pancratius-docx-roundtrip-") as td:
         temp_content = Path(td) / "src" / "content"

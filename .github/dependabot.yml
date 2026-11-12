@@ -62,5 +62,9 @@ updates:
       interval: weekly
       day: sunday
     groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
       python:
+        applies-to: version-updates
         patterns: ["*"]

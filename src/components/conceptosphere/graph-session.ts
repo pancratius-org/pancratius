@@ -1,9 +1,9 @@
 import Sigma from "sigma";
 
-import { applyGraphHighlighting } from "./graph-highlight.ts";
+import { GraphHighlighting } from "./graph-highlight.ts";
 import { buildGraphModel, type ConceptGraph, type ConceptRenderer } from "./graph-model.ts";
 import { edgeVisual, readGraphTheme, type GraphTheme } from "./graph-theme.ts";
-import { initialCameraRatio, installCanvasPainters, sigmaSettingsFor } from "./graph-painters.ts";
+import { initialCameraRatio, installCanvasPainters, sigmaOptionsFor } from "./graph-painters.ts";
 import type { CommunityCatalog, GraphData } from "./graph-data.ts";
 import type { HullLayer } from "./hull-render.ts";
 import { createHullLayer } from "./hull-render.ts";
@@ -32,6 +32,7 @@ export class GraphSession {
   readonly interactions = new GraphInteractionState();
 
   private readonly hullLayer: HullLayer;
+  private readonly highlighting: GraphHighlighting;
   private disposed = false;
 
   constructor(host: GraphSessionHost, data: GraphData) {
@@ -43,11 +44,23 @@ export class GraphSession {
     this.graph = model.graph;
     this.communities = model.communities;
 
+    this.highlighting = new GraphHighlighting({
+      mode: this.mode,
+      graph: this.graph,
+      theme: this.theme,
+      hulls: host.hulls,
+      state: this.interactions.snapshot(),
+    });
+
     let rendererRef: ConceptRenderer | null = null;
     this.renderer = new Sigma(
       this.graph,
       host.stage,
-      sigmaSettingsFor({ mode: this.mode, theme: this.theme, renderer: () => rendererRef }),
+      {
+        ...sigmaOptionsFor({ mode: this.mode, theme: this.theme, renderer: () => rendererRef }),
+        nodeReducer: (node, _display, attributes) => this.highlighting.nodeDisplay(node, attributes),
+        edgeReducer: (edge, _display, attributes) => this.highlighting.edgeDisplay(edge, attributes),
+      },
     );
     rendererRef = this.renderer;
 
@@ -81,14 +94,14 @@ export class GraphSession {
   }
 
   refresh(): void {
-    applyGraphHighlighting({
+    this.highlighting.update({
       mode: this.mode,
       graph: this.graph,
-      renderer: this.renderer,
       theme: this.theme,
       hulls: this.hullLayer.element,
       state: this.interactions.snapshot(),
     });
+    this.renderer.refresh();
   }
 
   scheduleHullPaint(): void {
@@ -97,8 +110,6 @@ export class GraphSession {
 
   retheme(): void {
     Object.assign(this.theme, readGraphTheme());
-    this.renderer.setSetting("defaultEdgeColor", this.theme.defaultEdgeColor);
-    this.renderer.setSetting("labelColor", { color: this.theme.labelColor });
 
     this.graph.forEachEdge((edge, attrs, _source, _target, sourceAttrs, targetAttrs) => {
       const sourceCommunity = this.communities.byId.get(sourceAttrs.communityId);
@@ -148,11 +159,9 @@ export function rethemeGraphSession(session: GraphSession): void {
 }
 
 function markCanvasesPresentational(renderer: ConceptRenderer): void {
-  for (const canvas of Object.values(renderer.getCanvases())) {
-    if (canvas instanceof HTMLCanvasElement) {
-      canvas.setAttribute("aria-hidden", "true");
-      canvas.setAttribute("role", "presentation");
-    }
+  for (const canvas of renderer.getContainer().querySelectorAll("canvas")) {
+    canvas.setAttribute("aria-hidden", "true");
+    canvas.setAttribute("role", "presentation");
   }
 }
 
