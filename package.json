@@ -52,7 +52,7 @@
     "pagefind": "^1.6.0",
     "satteri": "0.11.7",
     "sharp": "^0.35.5",
-    "sigma": "^4.0.4",
+    "sigma": "^4.0.6",
     "yaml": "^2.9.1"
   },
   "devDependencies": {
