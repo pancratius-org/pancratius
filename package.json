@@ -42,17 +42,17 @@
     "audit:layout-fill": "node audit/layout-fill.ts"
   },
   "dependencies": {
-    "@astrojs/markdown-satteri": "0.4.7",
+    "@astrojs/markdown-satteri": "0.4.9",
     "@astrojs/rss": "^4.0.19",
     "@fontsource-variable/inter": "5.3.0",
     "@fontsource-variable/source-serif-4": "5.3.1",
-    "astro": "7.4.7",
+    "astro": "7.4.11",
     "graphology": "^0.26.0",
     "graphology-layout-forceatlas2": "^0.10.1",
     "pagefind": "^1.6.0",
     "satteri": "0.11.7",
     "sharp": "^0.35.5",
-    "sigma": "^4.0.4",
+    "sigma": "^4.0.6",
     "yaml": "^2.9.1"
   },
   "devDependencies": {
